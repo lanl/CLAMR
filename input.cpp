@@ -1,8 +1,8 @@
-/**
- *  Copyright (c) 2011, Los Alamos National Security, LLC.
+/*
+ *  Copyright (c) 2011-2012, Los Alamos National Security, LLC.
  *  All rights Reserved.
  *
- *  Copyright 2011. Los Alamos National Security, LLC. This software was produced 
+ *  Copyright 2011-2012. Los Alamos National Security, LLC. This software was produced 
  *  under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
  *  Laboratory (LANL), which is operated by Los Alamos National Security, LLC 
  *  for the U.S. Department of Energy. The U.S. Government has rights to use, 

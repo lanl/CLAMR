@@ -6,7 +6,7 @@ Copyright:  Copyright (C) 1997   H. Carter Edwards
             Graduate Student
             University of Texas
 
-Re-release: Copyright (C) 2011   H. Carter Edwards
+Re-release: Copyright (C) 2011-2012   H. Carter Edwards
 
 Purpose:    Domain paritioning based upon Hilbert Space-Filling Curve
             ordering.
