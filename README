@@ -1,0 +1,93 @@
+
+////////////////////////
+// Useful bash commands
+////////////////////////
+
+// logistics
+locate [file]	// find file in directory
+history		// see history of bash commands
+source [file]	// read this file (in a shell form)
+
+// code checking
+valgrind	// check memory errors
+ddd		// debugger
+totalview (there is a module on yellowrail and turing)
+
+// code compiling
+//
+// Use configure which takes various commands for install directory,
+// location of libraries, etc.
+//
+configure --help		// shows help menu
+configure --enable-debug	// enter debug mode
+configure --prefix		// install directory
+configure --enable-prof		// profiling, turns on flags for gprof
+//
+// need to edit configure.ac (b/c using autoconf package)
+//
+make				// builds the executable
+make install			// copy the executable to destination
+make clean			// restores to the pre-make step
+make distclean			// restores to the pre-configure step
+make installcheck		// not always there
+make dist			// builds new distro into a new tar file
+//
+// need to edit Makefile.am (b/c using automake package)
+//
+
+/////////////////////
+// Environment Setup
+/////////////////////
+
+// Update .bashrc by setting editor and loading modules
+export EDITOR=vim
+module load cuda
+module load openmpi-gcc/1.4.1-64
+
+
+/////////////////////
+// Darwin
+/////////////////////
+To build on Darwin, The OpenCL libraries needed to build are only 
+available on back-end nodes.  To get a node do:
+
+% salloc -p tesla -N 1
+% ssh $SLURM_NODELIST
+
+You must use a special version of GCC for CUDA that is not the default
+compiler on Darwin.  To use the correct compiler do:
+
+% export PATH=/home/opt/gcc/4.4.6/bin:$PATH
+
+Totalview on darwin
+
+/home/ccs/opt/x86_64/bin/totalview
+
+////////////////
+// SVN Commands
+////////////////
+
+// How to check out of the SVN
+svn co svn://ccs-dev-fe/xcp_students/Exa-Y-Z/trunk/Exa-Y-Z    Exa-Y-Z
+// How to check out of gforge with svn
+svn checkout --username <username>@lanl.gov https://gforge.sandia.gov/svn/clamr/trunk/ clamr
+
+// Copy new materials from the repository (update)
+svn update
+
+// Are there any local changes to the SVN files
+svn status
+
+// Have a file to add to the SVN
+svn add [file]
+
+// Show the newly added file
+svn commit [file] 
+
+// Show the log of a file
+svn log [file]
+
+// Shows the difference between new versions of a file
+svn diff
+
+

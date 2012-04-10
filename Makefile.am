@@ -1,0 +1,31 @@
+bin_PROGRAMS = clamr_gpuonly clamr_checkall
+#bin_PROGRAMS = clamr clamr_checkall clamr_gpuonly
+
+SUBDIRS = l7 kdtree hsfc s7 timer ezcl zorder
+
+clamr_CXX_SRCS = clamr.cpp mesh.cpp partition.cpp state.cpp input.cpp
+clamr_C_SRCS = display.c reduce.c
+clamr_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
+
+clamr_SOURCES = ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS} kdtree/libkdtree.a hsfc/libhsfc.a s7/libs7.a ezcl/libezcl.a timer/libtimer.a zorder/libzorder.a
+
+clamr_gpuonly_CXX_SRCS = clamr_gpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp
+clamr_gpuonly_C_SRCS = display.c reduce.c
+clamr_gpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
+
+clamr_gpuonly_SOURCES = ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS} l7/libl7.a kdtree/libkdtree.a hsfc/libhsfc.a s7/libs7.a  ezcl/libezcl.a timer/libtimer.a zorder/libzorder.a
+
+clamr_checkall_CXX_SRCS = clamr_checkall.cpp mesh.cpp partition.cpp state.cpp input.cpp
+clamr_checkall_C_SRCS = display.c reduce.c 
+clamr_checkall_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
+
+clamr_checkall_SOURCES = ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${clamr_checkall_H_SRCS} l7/libl7.a kdtree/libkdtree.a hsfc/libhsfc.a s7/libs7.a ezcl/libezcl.a timer/libtimer.a zorder/libzorder.a
+
+LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ll7 -ll7 -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lX11 -lm
+
+EXTRA_DIST = wave_kern.cl wave_kern_calc.cl reduce.cl config.h clamr.xcodeproj/project.pbxproj clamr.1 fileamr.in AUTHORS ChangeLog runtests.sh newbatch.sh
+
+distclean-local:
+	rm -f config.h.in~
+	rm -rf autom4te.cache
+	rm -rf config.log config.status
