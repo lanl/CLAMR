@@ -1,3 +1,0 @@
-To use this graphics package, enable write_grid in clamr_gpuonly by uncommenting the
-call. This will then output grid00.gph during the run. Copy that file to rundata in
-this directory. Then run python clamr.py and a graphics.svg file will be written. 
