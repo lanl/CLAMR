@@ -1591,14 +1591,19 @@ __kernel void refine_smooth_cl(
    if (tiX < 32)
    {  itile[tiX].s1 += itile[tiX+32].s1;
       itile[tiX].s0 += itile[tiX+32].s0;
+      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
       itile[tiX].s1 += itile[tiX+16].s1;
       itile[tiX].s0 += itile[tiX+16].s0;
+      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
       itile[tiX].s1 += itile[tiX+8].s1;
       itile[tiX].s0 += itile[tiX+8].s0;
+      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
       itile[tiX].s1 += itile[tiX+4].s1;
       itile[tiX].s0 += itile[tiX+4].s0;
+      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
       itile[tiX].s1 += itile[tiX+2].s1;
       itile[tiX].s0 += itile[tiX+2].s0;
+      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
       itile[tiX].s1 += itile[tiX+1].s1;
       itile[tiX].s0 += itile[tiX+1].s0; }
 
