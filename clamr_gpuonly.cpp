@@ -387,9 +387,9 @@ extern "C" void do_calc(void)
       n++;
       
       //  Set up grid.
-//#ifdef GRAPHICS_OUTPUT
+#ifdef GRAPHICS_OUTPUT
       mesh->write_grid(n);
-//#endif
+#endif
 #ifdef HAVE_OPENGL
       set_mysize(ncells);
       set_viewmode(view_mode);
