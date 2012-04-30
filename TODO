@@ -4,39 +4,22 @@
 
 ADD COMMENTS TO ALL THE CODE!!!
 
-Discuss the data structures used in exa... what's the best data structure to
-work with?
-
-Focuses:
-	Hilbert Curve, how will local memory accesses be optimized
-	Optimizing the K-D Tree
-	Implementing the kernel for computing the updates determined
-	 by the shallow water wave equations
-	** Local memory access strategy should be discussed as a group
-
-
-Discuss duties for OpenGL implementation and bug checking
-	- Add MPE option?
+Add mesh smoothing for MPI versions
+Add coarsening to the grid
+Fix boundary conditions
+Add MPE option?
 	- Not as portable but could include necessary libraries in the tar file
 	  of clamr itself
 
 Run valgrind to find sources of memory errors
 
 Profile code
-	How to delegate? One person profiles or everyone profiles current code
-	responsibility? Discuss in conference room where the largest
-	consumption of cpu cycles is occurring and determine where additional
-	optimizations are needed, aside from the computations that will be
-	put into the kernel.
-
-Add coarsening to the grid
 
 // Keyboard commands to add to exa
 Pause function
 
 Possible work tasks:
    Symmetry checks
-   Fix Hydro to conserve mass
    Alternative to current hash key
    Putting kD Tree on the GPU
    Adding pseudo-Z-order insertion
