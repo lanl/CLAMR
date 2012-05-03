@@ -1,0 +1,7 @@
+*.o
+*.a
+Makefile
+.deps
+config.log
+config.status
+stamp-h1

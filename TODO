@@ -7,6 +7,7 @@ ADD COMMENTS TO ALL THE CODE!!!
 Add mesh smoothing for MPI versions
 Add coarsening to the grid
 Fix boundary conditions
+Add load balance coding
 Add MPE option?
 	- Not as portable but could include necessary libraries in the tar file
 	  of clamr itself
