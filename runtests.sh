@@ -1,13 +1,13 @@
 #!/bin/sh
 
-echo "./clamr_gpuonly -n 256 -i 100 -t 1000"
-./clamr_gpuonly -n 256 -i 100 -t 1000
+echo "./clamr_gpucheck -n 256 -i 100 -t 1000"
+./clamr_gpucheck -n 256 -i 100 -t 1000
 echo ""
 echo ""
 
 
-echo "./clamr_gpuonly -n 128 -i 100 -t 600"
-./clamr_gpuonly -n 128 -i 100 -t 600
+echo "./clamr_gpucheck -n 128 -i 100 -t 600"
+./clamr_gpucheck -n 128 -i 100 -t 600
 echo ""
 echo ""
 

@@ -34,7 +34,10 @@ make
 
 Two executables are currently built
 
-clamr_gpuonly: Calls the GPU and CPU versions of each call and checks the results
+clamr_gpuonly: Calls the GPU versions of each call. Option to check the results
+against the cpu calls
+
+clamr_gpucheck: Calls the GPU and CPU versions of each call and checks the results
 against each other
 
 clamr_checkall: Calls the GPU, CPU, MPI and GPU/MPI versions of each call and checks
