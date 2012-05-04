@@ -37,6 +37,9 @@ Two executables are currently built
 clamr_gpuonly: Calls the GPU versions of each call. Option to check the results
 against the cpu calls
 
+clamr_cpuonly: Calls the CPU versions of each call. Option to check the results
+against the cpu calls
+
 clamr_gpucheck: Calls the GPU and CPU versions of each call and checks the results
 against each other
 

@@ -34,8 +34,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = clamr_gpuonly$(EXEEXT) clamr_gpucheck$(EXEEXT) \
-	clamr_checkall$(EXEEXT)
+bin_PROGRAMS = clamr_gpuonly$(EXEEXT) clamr_cpuonly$(EXEEXT) \
+	clamr_gpucheck$(EXEEXT) clamr_checkall$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
@@ -63,16 +63,23 @@ am_clamr_checkall_OBJECTS = $(am__objects_1) $(am__objects_2) \
 clamr_checkall_OBJECTS = $(am_clamr_checkall_OBJECTS)
 clamr_checkall_LDADD = $(LDADD)
 clamr_checkall_DEPENDENCIES =
-am__objects_4 = clamr_gpucheck.$(OBJEXT) mesh.$(OBJEXT) \
+am__objects_4 = clamr_cpuonly.$(OBJEXT) mesh.$(OBJEXT) \
 	partition.$(OBJEXT) state.$(OBJEXT) input.$(OBJEXT)
-am_clamr_gpucheck_OBJECTS = $(am__objects_4) $(am__objects_2) \
+am_clamr_cpuonly_OBJECTS = $(am__objects_4) $(am__objects_2) \
+	$(am__objects_3)
+clamr_cpuonly_OBJECTS = $(am_clamr_cpuonly_OBJECTS)
+clamr_cpuonly_LDADD = $(LDADD)
+clamr_cpuonly_DEPENDENCIES =
+am__objects_5 = clamr_gpucheck.$(OBJEXT) mesh.$(OBJEXT) \
+	partition.$(OBJEXT) state.$(OBJEXT) input.$(OBJEXT)
+am_clamr_gpucheck_OBJECTS = $(am__objects_5) $(am__objects_2) \
 	$(am__objects_3)
 clamr_gpucheck_OBJECTS = $(am_clamr_gpucheck_OBJECTS)
 clamr_gpucheck_LDADD = $(LDADD)
 clamr_gpucheck_DEPENDENCIES =
-am__objects_5 = clamr_gpuonly.$(OBJEXT) mesh.$(OBJEXT) \
+am__objects_6 = clamr_gpuonly.$(OBJEXT) mesh.$(OBJEXT) \
 	partition.$(OBJEXT) state.$(OBJEXT) input.$(OBJEXT)
-am_clamr_gpuonly_OBJECTS = $(am__objects_5) $(am__objects_2) \
+am_clamr_gpuonly_OBJECTS = $(am__objects_6) $(am__objects_2) \
 	$(am__objects_3)
 clamr_gpuonly_OBJECTS = $(am_clamr_gpuonly_OBJECTS)
 clamr_gpuonly_LDADD = $(LDADD)
@@ -90,10 +97,10 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(clamr_checkall_SOURCES) $(clamr_gpucheck_SOURCES) \
-	$(clamr_gpuonly_SOURCES)
-DIST_SOURCES = $(clamr_checkall_SOURCES) $(clamr_gpucheck_SOURCES) \
-	$(clamr_gpuonly_SOURCES)
+SOURCES = $(clamr_checkall_SOURCES) $(clamr_cpuonly_SOURCES) \
+	$(clamr_gpucheck_SOURCES) $(clamr_gpuonly_SOURCES)
+DIST_SOURCES = $(clamr_checkall_SOURCES) $(clamr_cpuonly_SOURCES) \
+	$(clamr_gpucheck_SOURCES) $(clamr_gpuonly_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -260,6 +267,10 @@ clamr_gpuonly_CXX_SRCS = clamr_gpuonly.cpp mesh.cpp partition.cpp state.cpp inpu
 clamr_gpuonly_C_SRCS = display.c reduce.c
 clamr_gpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_gpuonly_SOURCES = ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS}
+clamr_cpuonly_CXX_SRCS = clamr_cpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp
+clamr_cpuonly_C_SRCS = display.c reduce.c
+clamr_cpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
+clamr_cpuonly_SOURCES = ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr_cpuonly_H_SRCS}
 clamr_gpucheck_CXX_SRCS = clamr_gpucheck.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_gpucheck_C_SRCS = display.c reduce.c
 clamr_gpucheck_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
@@ -366,6 +377,9 @@ clean-binPROGRAMS:
 clamr_checkall$(EXEEXT): $(clamr_checkall_OBJECTS) $(clamr_checkall_DEPENDENCIES) 
 	@rm -f clamr_checkall$(EXEEXT)
 	$(CXXLINK) $(clamr_checkall_OBJECTS) $(clamr_checkall_LDADD) $(LIBS)
+clamr_cpuonly$(EXEEXT): $(clamr_cpuonly_OBJECTS) $(clamr_cpuonly_DEPENDENCIES) 
+	@rm -f clamr_cpuonly$(EXEEXT)
+	$(CXXLINK) $(clamr_cpuonly_OBJECTS) $(clamr_cpuonly_LDADD) $(LIBS)
 clamr_gpucheck$(EXEEXT): $(clamr_gpucheck_OBJECTS) $(clamr_gpucheck_DEPENDENCIES) 
 	@rm -f clamr_gpucheck$(EXEEXT)
 	$(CXXLINK) $(clamr_gpucheck_OBJECTS) $(clamr_gpucheck_LDADD) $(LIBS)
@@ -380,6 +394,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_checkall.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_cpuonly.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_gpucheck.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_gpuonly.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/display.Po@am__quote@

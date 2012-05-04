@@ -1,4 +1,4 @@
-bin_PROGRAMS = clamr_gpuonly clamr_gpucheck clamr_checkall
+bin_PROGRAMS = clamr_gpuonly clamr_cpuonly clamr_gpucheck clamr_checkall
 #bin_PROGRAMS = clamr clamr_checkall clamr_gpuonly
 
 SUBDIRS = l7 kdtree hsfc s7 timer ezcl zorder
@@ -14,6 +14,12 @@ clamr_gpuonly_C_SRCS = display.c reduce.c
 clamr_gpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 
 clamr_gpuonly_SOURCES = ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS}
+
+clamr_cpuonly_CXX_SRCS = clamr_cpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp
+clamr_cpuonly_C_SRCS = display.c reduce.c
+clamr_cpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
+
+clamr_cpuonly_SOURCES = ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr_cpuonly_H_SRCS}
 
 clamr_gpucheck_CXX_SRCS = clamr_gpucheck.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_gpucheck_C_SRCS = display.c reduce.c
