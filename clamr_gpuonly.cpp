@@ -737,6 +737,11 @@ extern "C" void do_calc(void)
          double H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
          printf("Iteration %d timestep %lf Sim Time %lf cells %d Mass Sum %14.12lg Mass Change %14.12lg\n",
             n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
+         ezcl_enqueue_read_buffer(command_queue, dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],     NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],     NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_level, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&level[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_H,     CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H[0],     NULL);
+         mesh->calc_spatial_coordinates(0);
 #ifdef HAVE_OPENGL
          set_mysize(ncells);
          set_viewmode(view_mode);
