@@ -475,10 +475,10 @@ __kernel void calc_finite_difference_cl(
    real Hll, Hrr, Htt, Hbb;
 
    real Uic, Ul, Ur, Ut, Ub;
-   real Ull, Urr, Utt, Ubb;
+   real Ull, Urr;
 
    real Vic, Vl, Vr, Vt, Vb;
-   real Vll, Vrr, Vtt, Vbb;
+   real Vtt, Vbb;
 
    real Hlt, Hrt, Htr, Hbr;
    real Ult, Urt, Utr, Ubr;
@@ -495,8 +495,6 @@ __kernel void calc_finite_difference_cl(
 
    int start_idx = group_id * ntX;
 //   int end_idx = (group_id + 1) * ntX;
-
-   int ic = giX;
 
    lvl  = levelval(tiX);
 
@@ -549,13 +547,11 @@ __kernel void calc_finite_difference_cl(
       lvl_nll = level[nll];
       Hll     = H[nll];
       Ull     = U[nll];
-      Vll     = V[nll];
    }
    else {
       lvl_nll = levelval(nll);
       Hll     = Hval(nll);
       Ull     = Uval(nll);
-      Vll     = Vval(nll);
       nll    += start_idx;
    }
 
@@ -620,13 +616,11 @@ __kernel void calc_finite_difference_cl(
       lvl_nrr = level[nrr];
       Hrr     = H[nrr];
       Urr     = U[nrr];
-      Vrr     = V[nrr];
    }
    else {
       lvl_nrr = levelval(nrr);
       Hrr     = Hval(nrr);
       Urr     = Uval(nrr);
-      Vrr     = Vval(nrr);
       nrr    += start_idx;
    }
 
@@ -690,13 +684,11 @@ __kernel void calc_finite_difference_cl(
       if (ntt < 0) ntt     = abs(ntt+1);
       lvl_ntt = level[ntt];
       Htt     = H[ntt];
-      Utt     = U[ntt];
       Vtt     = V[ntt];
    }
    else {
       lvl_ntt = levelval(ntt);
       Htt     = Hval(ntt);
-      Utt     = Uval(ntt);
       Vtt     = Vval(ntt);
       ntt    += start_idx;
    }
@@ -760,13 +752,11 @@ __kernel void calc_finite_difference_cl(
       if (nbb < 0) nbb     = abs(nbb+1);
       lvl_nbb = level[nbb];
       Hbb     = H[nbb];
-      Ubb     = U[nbb];
       Vbb     = V[nbb];
    }
    else {
       lvl_nbb = levelval(nbb);
       Hbb     = Hval(nbb);
-      Ubb     = Uval(nbb);
       Vbb     = Vval(nbb);
       nbb    += start_idx;
    }
@@ -1172,16 +1162,15 @@ __kernel void refine_potential_cl(
 
    int nlt, nrt, nbr, ntr;
    int nl, nr, nb, nt;
-   real Hic, Uic, Vic;
+   real Hic;
    real Hl, Ul, Vl;
    real Hr, Ur, Vr;
    real Hb, Ub, Vb;
    real Ht, Ut, Vt;
-   real dxl, dxr, dyb, dyt;
 
-   real duminus1, duminus2;
-   real duplus1, duplus2;
-   real duhalf1, duhalf2;
+   real duminus1;
+   real duplus1;
+   real duhalf1;
 
    nl = nlftval(tiX);
    nr = nrhtval(tiX);
@@ -1189,8 +1178,6 @@ __kernel void refine_potential_cl(
    nt = ntopval(tiX);
 
    Hic  = Hval(tiX);
-   Uic  = Uval(tiX);
-   Vic  = Vval(tiX);
 
    int lvl = levelval(tiX);
 
@@ -1211,7 +1198,6 @@ __kernel void refine_potential_cl(
    // Using global access for the left neighbor values
    if(nl < 0) {
       nl = abs(nl+1);
-      dxl = lev_dx[level[nl]];
       Hl = H[nl];
       Ul = U[nl];
       Vl = V[nl];
@@ -1225,7 +1211,6 @@ __kernel void refine_potential_cl(
    }
    // Using local access for the left neighbor
    else {
-      dxl = lev_dx[level[nl]];
       Hl = Hval(nl);
       Ul = Uval(nl);
       Vl = Vval(nl);
@@ -1254,7 +1239,6 @@ __kernel void refine_potential_cl(
    // Using global access for the right neighbor values
    if(nr < 0) {
       nr = abs(nr+1);
-      dxr = lev_dx[level[nr]] ;
       Hr = H[nr];
       Ur = U[nr];
       Vr = V[nr];
@@ -1268,7 +1252,6 @@ __kernel void refine_potential_cl(
    }
    // Using local access for the right neighbor
    else {
-      dxr = lev_dx[level[nr]] ;
       Hr = Hval(nr);
       Ur = Uval(nr);
       Vr = Vval(nr);
@@ -1298,7 +1281,6 @@ __kernel void refine_potential_cl(
    // Using global access for the bottom neighbor values
    if (nb < 0) {
       nb = abs(nb+1);
-      dyb = ONE / lev_dy[level[nb]];
       Hb = H[nb];
       Ub = U[nb];
       Vb = V[nb];
@@ -1312,7 +1294,6 @@ __kernel void refine_potential_cl(
    }
    // Using local access for the bottom neighbor
    else {
-      dyb = ONE / lev_dy[levelval(nb)];
       Hb = Hval(nb);
       Ub = Uval(nb);
       Vb = Vval(nb);
@@ -1341,7 +1322,6 @@ __kernel void refine_potential_cl(
    // Using global access for the top neighbor values
    if (nt < 0) {
       nt = abs(nt+1);
-      dyt = ONE / lev_dy[level[nt]];
       Ht = H[nt];
       Ut = U[nt];
       Vt = V[nt];
@@ -1355,7 +1335,6 @@ __kernel void refine_potential_cl(
    }
    // Using local access for the top neighbor
    else {
-      dyt = ONE / lev_dy[levelval(nt)];
       Ht = Hval(nt);
       Ut = Uval(nt);
       Vt = Vval(nt);
@@ -1383,25 +1362,25 @@ __kernel void refine_potential_cl(
     real invHic = ONE / Hic; //  For faster math.
     real qmax = -THOUSAND;          //  Set the default maximum low to catch the real one.
     
-    duplus1 = Hr - Hic;     duplus2 = Ur - Uic;
-    duhalf1 = Hic - Hl;     duhalf2 = Uic - Ul;
+    duplus1 = Hr - Hic;
+    duhalf1 = Hic - Hl;
     qpot = max(fabs(duplus1 * invHic), fabs(duhalf1 * invHic));
     if (qpot > qmax) qmax = qpot;
     
-    duminus1= Hic - Hl;     duminus2= Uic - Ul;
-    duhalf1 = Hr - Hic;     duhalf2 = Ur - Uic;
+    duminus1= Hic - Hl;
+    duhalf1 = Hr - Hic;
     qpot = max(fabs(duminus1 * invHic), fabs(duhalf1 * invHic));
     if (qpot > qmax) qmax = qpot;
     
     //  Calculate the gradient between the top and bottom neighbors and the
     //  main cell.
-    duplus1 = Ht - Hic;     duplus2 = Vt - Vic;
-    duhalf1 = Hic - Hb;     duhalf2 = Vic - Vb;
+    duplus1 = Ht - Hic;
+    duhalf1 = Hic - Hb;
     qpot = max(fabs(duplus1 * invHic), fabs(duhalf1 * invHic));
     if (qpot > qmax) qmax = qpot;
     
-    duminus1= Hic - Hb;     duminus2= Vic - Vb;
-    duhalf1 = Ht - Hic;     duhalf2 = Vt - Vic;
+    duminus1= Hic - Hb;
+    duhalf1 = Ht - Hic;
     qpot = max(fabs(duminus1 * invHic), fabs(duhalf1 * invHic));
     if (qpot > qmax) qmax = qpot;
 
