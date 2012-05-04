@@ -803,7 +803,7 @@ __kernel void hash_setup_local_cl(
    int iminsize = sizes[0].s0;
    int imaxsize = sizes[0].s1;
    int jminsize = sizes[0].s2;
-   int jmaxsize = sizes[0].s3;
+   //int jmaxsize = sizes[0].s3;
 
    int lev = level[giX];
 
@@ -863,7 +863,7 @@ __kernel void hash_setup_border_cl(
    int iminsize = sizes[0].s0;
    int imaxsize = sizes[0].s1;
    int jminsize = sizes[0].s2;
-   int jmaxsize = sizes[0].s3;
+   //int jmaxsize = sizes[0].s3;
 
    int lev = border_level[giX];
    int ii  = border_i[giX];
@@ -1104,7 +1104,7 @@ __kernel void calc_neighbors_local_cl(
    int iminsize = sizes[0].s0;
    int imaxsize = sizes[0].s1;
    int jminsize = sizes[0].s2;
-   int jmaxsize = sizes[0].s3;
+   //int jmaxsize = sizes[0].s3;
 
    int imaxcalc = (imax+1)*levtable[levmx];
    int jmaxcalc = (jmax+1)*levtable[levmx];
@@ -1176,7 +1176,7 @@ __kernel void calc_neighbors_local2_cl(
    int iminsize = sizes[0].s0;
    int imaxsize = sizes[0].s1;
    int jminsize = sizes[0].s2;
-   int jmaxsize = sizes[0].s3;
+   //int jmaxsize = sizes[0].s3;
 
    int imaxcalc = (imax+1)*levtable[levmx];
    int jmaxcalc = (jmax+1)*levtable[levmx];
