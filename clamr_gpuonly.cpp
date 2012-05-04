@@ -523,7 +523,10 @@ extern "C" void do_calc(void)
       
       }
 
-      vector<int>      ioffset(block_size);
+      vector<int>      ioffset;
+      if (do_comparison_calc) {
+         ioffset.resize(block_size);
+      }
       cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
       vector<int>      newcount(block_size);
@@ -735,6 +738,10 @@ extern "C" void do_calc(void)
 
       if (n % outputInterval == 0) {
          double H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
+         if (isnan(H_sum)) {
+            printf("Got a NAN on cycle %d\n",n);
+            exit(-1);
+         }
          printf("Iteration %d timestep %lf Sim Time %lf cells %d Mass Sum %14.12lg Mass Change %14.12lg\n",
             n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
          ezcl_enqueue_read_buffer(command_queue, dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],     NULL);
