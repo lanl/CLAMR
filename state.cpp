@@ -3641,7 +3641,9 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
       if (mype == 0) {
          printf("=============================================================\n");
          printf("Profiling: Total              time was\t%8.4f\ts or\t%4.2f min\n",    elapsed_time,     elapsed_time/60.0);
-         printf("Speed-up:                             \t%8.4f\n",   cpu_elapsed_time*1.0e9/gpu_elapsed_time);
+         if (do_cpu_calc && do_gpu_calc) {
+            printf("Speed-up:                             \t%8.4f\n",   cpu_elapsed_time*1.0e9/gpu_elapsed_time);
+         }
          printf("=============================================================\n");
       }
    } else {
