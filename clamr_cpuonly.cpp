@@ -519,7 +519,6 @@ extern "C" void do_calc(void)
       vector<int>      ioffset(block_size);
       cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
-      vector<int>      newcount(block_size);
       cl_mem dev_newcount   = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
       mpot.resize(ncells);

@@ -446,14 +446,13 @@ extern "C" void do_calc(void)
 
       //  Calculate the real time step for the current discrete time step.
       
-      double deltaT_gpu = state->gpu_set_timestep(command_queue, mesh, sigma);
-      double deltaT = deltaT_gpu;
+      double deltaT = state->gpu_set_timestep(command_queue, mesh, sigma);
 
       //  Compare time step values and pass deltaT in to the kernel.
       if (do_comparison_calc) {
          double deltaT_cpu = state->set_timestep(mesh, g, sigma);
-         if (fabs(deltaT_gpu - deltaT_cpu) > .000001) {
-            printf("Error with deltaT calc --- cpu %lf gpu %lf\n",deltaT_cpu,deltaT_gpu); 
+         if (fabs(deltaT - deltaT_cpu) > .000001) {
+            printf("Error with deltaT calc --- cpu %lf gpu %lf\n",deltaT_cpu,deltaT); 
          }
       }
 
@@ -524,12 +523,13 @@ extern "C" void do_calc(void)
       }
 
       vector<int>      ioffset;
+      //vector<int>      newcount;
       if (do_comparison_calc) {
          ioffset.resize(block_size);
+         //newcount.resize(block_size);
       }
-      cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
-      vector<int>      newcount(block_size);
+      cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
       cl_mem dev_newcount   = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
       size_t result_size = 1;
