@@ -290,7 +290,7 @@ void Mesh::compare_dev_local_to_local(cl_command_queue command_queue)
    fprintf(fp,"\n%d:                 Finished comparing mesh for dev_local to local\n\n",mype);
 }
 
-Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary, int parallel_in)
+Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary, int parallel_in, int do_gpu_calc)
 {
    cpu_time_calc_neighbors     = 0;
    cpu_time_rezone_all         = 0;
@@ -303,6 +303,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
 
    ndim   = ndim_in;
    levmx  = levmx_in;
+   numpe  = numpe_in;
+   mype   = 0;
 
    offtile_ratio_local = 0;
    offtile_local_count = 1;
@@ -314,9 +316,10 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
    if (mpi_init){
       MPI_Comm_rank(MPI_COMM_WORLD,&mype);
       MPI_Comm_size(MPI_COMM_WORLD,&numpe);
+   } else {
+      mype  = 0;
+      numpe = 1;
    }
-#else
-   numpe=numpe_in;
 #endif
    cell_handle = 0;
 
@@ -381,13 +384,15 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
    }
 
    // The copy host ptr flag will have the data copied to the GPU as part of the allocation
-   dev_levtable = ezcl_malloc(&levtable[0],   &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-   dev_levdx    = ezcl_malloc(&lev_deltax[0], &lvlMxSize, sizeof(cl_real), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-   dev_levdy    = ezcl_malloc(&lev_deltay[0], &lvlMxSize, sizeof(cl_real), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-   dev_levibeg  = ezcl_malloc(&lev_ibegin[0], &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-   dev_leviend  = ezcl_malloc(&lev_iend[0],   &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-   dev_levjbeg  = ezcl_malloc(&lev_jbegin[0], &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-   dev_levjend  = ezcl_malloc(&lev_jend[0],   &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+   if (do_gpu_calc) {
+      dev_levtable = ezcl_malloc(&levtable[0],   &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levdx    = ezcl_malloc(&lev_deltax[0], &lvlMxSize, sizeof(cl_real), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levdy    = ezcl_malloc(&lev_deltay[0], &lvlMxSize, sizeof(cl_real), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levibeg  = ezcl_malloc(&lev_ibegin[0], &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_leviend  = ezcl_malloc(&lev_iend[0],   &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levjbeg  = ezcl_malloc(&lev_jbegin[0], &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levjend  = ezcl_malloc(&lev_jend[0],   &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+   }
 
    ibase = 0;
 
@@ -407,22 +412,24 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
 
 }
 
-void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, bool special_case)
+void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, bool special_case, int do_gpu_calc)
 {
-   kernel_reduction_scan    = ezcl_create_kernel(context, "wave_kern_calc.cl", "finish_reduction_scan_cl", 0);
-   kernel_hash_init         = ezcl_create_kernel(context, "wave_kern.cl",      "hash_init_cl",             0);
-   kernel_hash_init_corners = ezcl_create_kernel(context, "wave_kern.cl",      "hash_init_corners_cl",      0);
-   kernel_hash_setup        = ezcl_create_kernel(context, "wave_kern.cl",      "hash_setup_cl",            0);
-   kernel_hash_setup_local  = ezcl_create_kernel(context, "wave_kern.cl",      "hash_setup_local_cl",      0);
-   kernel_hash_setup_border = ezcl_create_kernel(context, "wave_kern.cl",      "hash_setup_border_cl",      0);
-   kernel_calc_neighbors    = ezcl_create_kernel(context, "wave_kern.cl",      "calc_neighbors_cl",        0);
-   kernel_calc_neighbors_local = ezcl_create_kernel(context, "wave_kern.cl",      "calc_neighbors_local_cl",        0);
-   kernel_calc_neighbors_local2 = ezcl_create_kernel(context, "wave_kern.cl",      "calc_neighbors_local2_cl",        0);
-   kernel_copy_mesh_data = ezcl_create_kernel(context, "wave_kern.cl",      "copy_mesh_data_cl",        0);
-   kernel_copy_ghost_data = ezcl_create_kernel(context, "wave_kern.cl",      "copy_ghost_data_cl",        0);
-   kernel_adjust_neighbors = ezcl_create_kernel(context, "wave_kern.cl",      "adjust_neighbors_cl",        0);
-   kernel_hash_size         = ezcl_create_kernel(context, "wave_kern.cl",      "calc_hash_size_cl",        0);
-   kernel_finish_hash_size  = ezcl_create_kernel(context, "wave_kern.cl",      "finish_reduction_minmax4_cl",        0);
+   if (do_gpu_calc) {
+      kernel_reduction_scan    = ezcl_create_kernel(context, "wave_kern_calc.cl", "finish_reduction_scan_cl", 0);
+      kernel_hash_init         = ezcl_create_kernel(context, "wave_kern.cl",      "hash_init_cl",             0);
+      kernel_hash_init_corners = ezcl_create_kernel(context, "wave_kern.cl",      "hash_init_corners_cl",      0);
+      kernel_hash_setup        = ezcl_create_kernel(context, "wave_kern.cl",      "hash_setup_cl",            0);
+      kernel_hash_setup_local  = ezcl_create_kernel(context, "wave_kern.cl",      "hash_setup_local_cl",      0);
+      kernel_hash_setup_border = ezcl_create_kernel(context, "wave_kern.cl",      "hash_setup_border_cl",      0);
+      kernel_calc_neighbors    = ezcl_create_kernel(context, "wave_kern.cl",      "calc_neighbors_cl",        0);
+      kernel_calc_neighbors_local = ezcl_create_kernel(context, "wave_kern.cl",      "calc_neighbors_local_cl",        0);
+      kernel_calc_neighbors_local2 = ezcl_create_kernel(context, "wave_kern.cl",      "calc_neighbors_local2_cl",        0);
+      kernel_copy_mesh_data = ezcl_create_kernel(context, "wave_kern.cl",      "copy_mesh_data_cl",        0);
+      kernel_copy_ghost_data = ezcl_create_kernel(context, "wave_kern.cl",      "copy_ghost_data_cl",        0);
+      kernel_adjust_neighbors = ezcl_create_kernel(context, "wave_kern.cl",      "adjust_neighbors_cl",        0);
+      kernel_hash_size         = ezcl_create_kernel(context, "wave_kern.cl",      "calc_hash_size_cl",        0);
+      kernel_finish_hash_size  = ezcl_create_kernel(context, "wave_kern.cl",      "finish_reduction_minmax4_cl",        0);
+   }
 
    int istart = 1,
        jstart = 1,
@@ -484,6 +491,8 @@ void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partitio
    celltype.resize(ncells);
 
    calc_celltype();
+
+   calc_neighbors();
 
    partition_cells(numpe, proc, index, initial_order);
 

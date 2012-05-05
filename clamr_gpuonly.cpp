@@ -218,11 +218,11 @@ int main(int argc, char **argv) {
    int boundary = 1;
    int parallel_in = 0;
    
-   mesh  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in);
-   mesh->init(nx, ny, circ_radius, context, initial_order, special_case);
+   mesh  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
+   mesh->init(nx, ny, circ_radius, context, initial_order, special_case, do_gpu_calc);
    size_t &ncells = mesh->ncells;
    state = new State(ncells, context);
-   state->init(ncells, context);
+   state->init(ncells, context, do_gpu_calc);
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe, mesh->proc);
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);

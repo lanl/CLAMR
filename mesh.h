@@ -214,10 +214,10 @@ public:
 
    //   Public constructors.
    Mesh(FILE *fin, int *numpe);
-   Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe, int boundary, int parallel_in);
+   Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe, int boundary, int parallel_in, int do_gpu_calc);
 
    //   Member functions.
-   void init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, bool special_case);
+   void init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, bool special_case, int do_gpu_calc);
    void mesh_reorder(vector<int> iorder);
 
    void resize_old_device_memory(size_t ncells);

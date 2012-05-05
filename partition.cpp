@@ -218,7 +218,7 @@ void Mesh::print_partition_measure()
 
       local_time = offtile_ratio_local;
       MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-      if (mype == 0) {
+      if (mype == 0 && numpe > 1) {
          printf("The MPI surface area to volume ratio \t");
          for(int ip = 0; ip < numpe; ip++){
             printf("%8.4f\t", global_times[ip]);
@@ -236,8 +236,9 @@ void Mesh::print_partition_measure()
          printf("The GPU Partition Quality Avg C value  \t%8.4lf\n" , meas_sum_average/(double)meas_count);
       }
 
-      printf("The MPI surface area to volume ratio \t%8.4lf\t without duplicates\n", offtile_ratio_local);
-
+      if (numpe > 1) {
+         printf("The MPI surface area to volume ratio \t%8.4lf\t without duplicates\n", offtile_ratio_local); 
+      }
    }
 }
 

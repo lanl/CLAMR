@@ -235,11 +235,11 @@ int main(int argc, char **argv) {
    int parallel_in = 0;
    if (special_case) circ_radius = .75;
 
-   mesh_global  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in);
-   mesh_global->init(nx, ny, circ_radius, context, initial_order, special_case);
+   mesh_global  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
+   mesh_global->init(nx, ny, circ_radius, context, initial_order, special_case, do_gpu_calc);
    size_t &ncells_global = mesh_global->ncells;
    state_global = new State(ncells_global, context);
-   state_global->init(ncells_global, context);
+   state_global->init(ncells_global, context, do_gpu_calc);
    mesh_global->proc.resize(ncells_global);
    mesh_global->calc_distribution(numpe, mesh_global->proc);
    state_global->fill_circle(mesh_global, circ_radius, 100.0, 5.0);
@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
 #endif
    
    parallel_in = 1;
-   mesh_local = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in);
+   mesh_local = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
    state_local = new State(mesh_local->ncells, context);
 
    size_t &ncells = mesh_local->ncells;

@@ -200,16 +200,16 @@ int main(int argc, char **argv) {
    
    numpe = 16;
 
-#ifdef HAVE_OPENCL
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &context, &command_queue, 0);
-   if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &context, &command_queue, 0);
+   if (do_gpu_calc) {
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &context, &command_queue, 0);
+      if (ierr == EZCL_NODEVICE) {
+         ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &context, &command_queue, 0);
+      }
+      if (ierr != EZCL_SUCCESS) {
+         printf("No opencl device available -- aborting\n");
+         exit(-1);
+      }
    }
-   if (ierr != EZCL_SUCCESS) {
-      printf("No opencl device available -- aborting\n");
-      exit(-1);
-   }
-#endif
 
    double circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.
@@ -217,22 +217,22 @@ int main(int argc, char **argv) {
    int boundary = 1;
    int parallel_in = 0;
    
-   mesh  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in);
-   mesh->init(nx, ny, circ_radius, context, initial_order, special_case);
+   mesh  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
+   mesh->init(nx, ny, circ_radius, context, initial_order, special_case, do_gpu_calc);
    size_t &ncells = mesh->ncells;
    state = new State(ncells, context);
-   state->init(ncells, context);
+   state->init(ncells, context, do_gpu_calc);
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe, mesh->proc);
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
    
-#ifdef HAVE_OPENCL
-   init_kernel_2stage_sum(context);
-   init_kernel_2stage_sum_int(context);
-   if (! mesh->have_boundary){
-     kernel_count_BCs       = ezcl_create_kernel(context, "wave_kern.cl",      "count_BCs_cl",             0);
+   if (do_gpu_calc) {
+      init_kernel_2stage_sum(context);
+      init_kernel_2stage_sum_int(context);
+      if (! mesh->have_boundary){
+        kernel_count_BCs       = ezcl_create_kernel(context, "wave_kern.cl",      "count_BCs_cl",             0);
+      }
    }
-#endif
    
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_i        = mesh->dev_i;
@@ -257,29 +257,31 @@ int main(int argc, char **argv) {
    vector<real>  &U        = state->U;
    vector<real>  &V        = state->V;
 
-   state->allocate_device_memory(ncells);
+   if (do_gpu_calc) {
+      state->allocate_device_memory(ncells);
 
-   size_t one = 1;
-   state->dev_deltaT   = ezcl_malloc(NULL, &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+      size_t one = 1;
+      state->dev_deltaT   = ezcl_malloc(NULL, &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
 
-   dev_celltype = ezcl_malloc(NULL, &ncells, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
-   dev_i        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
-   dev_j        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
-   dev_level    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
+      dev_celltype = ezcl_malloc(NULL, &ncells, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
+      dev_i        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
+      dev_j        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
+      dev_level    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
 
-   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&celltype[0], &start_write_event);
-   ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],        NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],        NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&level[0],    NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],       NULL              );
-   ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],       NULL              );
-   ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],       &end_write_event  );
-   state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
+      ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&celltype[0], &start_write_event);
+      ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],        NULL            );
+      ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],        NULL            );
+      ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&level[0],    NULL            );
+      ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],       NULL              );
+      ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],       NULL              );
+      ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],       &end_write_event  );
+      state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
 
-   dev_celltype_new = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_i_new        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_j_new        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_level_new    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+      dev_celltype_new = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+      dev_i_new        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+      dev_j_new        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+      dev_level_new    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+   }
 
 #ifdef HAVE_OPENGL
    set_mysize(ncells);
@@ -517,9 +519,13 @@ extern "C" void do_calc(void)
       }  //  Complete NAN check.
       
       vector<int>      ioffset(block_size);
-      cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
-      cl_mem dev_newcount   = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
+      cl_mem dev_ioffset;
+      cl_mem dev_newcount;
+      if (do_gpu_calc) {
+         dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
+         dev_newcount   = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
+      }
 
       mpot.resize(ncells);
       state->calc_refine_potential(mesh, mpot, icount, jcount);

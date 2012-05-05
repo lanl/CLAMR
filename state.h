@@ -107,7 +107,7 @@ public:
 
    State(const State&); // To block copy constructor so copies are not made inadvertently
 
-   void init(int ncells, cl_context context);
+   void init(int ncells, cl_context context, int do_gpu_calc);
 
    double get_cpu_time_apply_BCs(void)         {return(cpu_time_apply_BCs);};
    double get_cpu_time_set_timestep(void)      {return(cpu_time_set_timestep);};
