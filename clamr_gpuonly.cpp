@@ -710,12 +710,12 @@ extern "C" void do_calc(void)
 
       ezcl_device_memory_remove(dev_ioffset);
 
-      double total_mass = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
+      double H_sum = -1.0;
 
-      double summer;
       if (do_comparison_calc) {
-         summer = state->mass_sum(mesh, enhanced_precision_sum);
-         if (fabs(total_mass - summer) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", total_mass, summer);/***/
+         H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
+         double summer = state->mass_sum(mesh, enhanced_precision_sum);
+         if (fabs(H_sum - summer) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", H_sum, summer);
       }
 
       mesh->proc.resize(ncells);
@@ -736,7 +736,9 @@ extern "C" void do_calc(void)
       }
 
       if (n % outputInterval == 0) {
-         double H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
+         if (H_sum < 0) {
+            H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
+         }
          if (isnan(H_sum)) {
             printf("Got a NAN on cycle %d\n",n);
             exit(-1);
@@ -757,10 +759,10 @@ extern "C" void do_calc(void)
          set_circle_radius(circle_radius);
          DrawGLScene();
 #endif
-      }
+      }  //  Complete output interval.
       ++n;
       simTime += deltaT;
       
-   }  //  Complete output interval.
+   }
 }
 

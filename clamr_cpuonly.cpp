@@ -710,14 +710,13 @@ extern "C" void do_calc(void)
 
       ezcl_device_memory_remove(dev_ioffset);
 
-      double summer = state->mass_sum(mesh, enhanced_precision_sum);
-
-      double total_mass;
+      double H_sum = -1.0;
 
       if (do_comparison_calc) {
-         total_mass = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
+         double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+         double total_mass = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
 
-         if (fabs(total_mass - summer) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", total_mass, summer);/***/
+         if (fabs(total_mass - H_sum) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", total_mass, H_sum);/***/
       }
 
       mesh->proc.resize(ncells);
@@ -745,7 +744,9 @@ extern "C" void do_calc(void)
 
       mesh->ncells = ncells;
       if (n % outputInterval == 0) {
-         double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+         if (H_sum < 0) {
+            H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+         }
          printf("Iteration %d timestep %lf Sim Time %lf cells %d Mass Sum %14.12lg Mass Change %14.12lg\n",
             n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
 #ifdef HAVE_OPENGL
@@ -757,7 +758,7 @@ extern "C" void do_calc(void)
          set_circle_radius(circle_radius);
          DrawGLScene();
 #endif
-      }
+      }  //  Complete output interval.
       ++n;
       simTime += deltaT;
       
@@ -769,6 +770,6 @@ extern "C" void do_calc(void)
          }
       }
 
-   }  //  Complete output interval.
+   }
 }
 
