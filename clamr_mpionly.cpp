@@ -429,17 +429,13 @@ extern "C" void do_calc(void)
       tresult.tv_usec = tstop.tv_usec - tstart.tv_usec;
       double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
       
-#ifdef HAVE_OPENCL
-      //  Release kernels and finalize the OpenCL elements.
-      ezcl_finalize();
-      
       state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
       state_local->output_timing_info(mesh_local, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
 
       mesh_local->print_partition_measure();
       mesh_local->print_calc_neighbor_type();
       mesh_local->print_partition_type();
-#endif
+
       L7_Terminate();
       exit(0);
    }  //  Complete final output.
@@ -470,51 +466,39 @@ extern "C" void do_calc(void)
       size_t new_ncells_global = 0;
 
       //  Calculate the real time step for the current discrete time step.
-      double deltaT_cpu, deltaT_cpu_local;
-      if (do_cpu_calc) {
-         deltaT_cpu = state_global->set_timestep(mesh_global, g, sigma);
-         deltaT_cpu_local = state_local->set_timestep(mesh_local, g, sigma);
-      }  //  Complete CPU timestep calculation.
+      double deltaT = state_local->set_timestep(mesh_local, g, sigma);
 
       //  Compare time step values and pass deltaT in to the kernel.
       if (do_comparison_calc) {
-         int iflag = 0;
-         if (fabs(deltaT_cpu_local - deltaT_cpu) > .000001) iflag = 1;
-         if (iflag) {
+         double deltaT_cpu_global = state_global->set_timestep(mesh_global, g, sigma);
+
+         if (fabs(deltaT - deltaT_cpu_global) > .000001) {
             printf("Error with deltaT calc --- cpu_local %lf cpu_global %lf\n",
-               deltaT_cpu_local, deltaT_cpu);
+               deltaT, deltaT_cpu_global);
          }
       }
 
-      double deltaT = deltaT_cpu_local;
+      mesh_local->calc_neighbors_local();
 
-      if (do_cpu_calc) {
-         mesh_global->calc_neighbors();
-         mesh_local->calc_neighbors_local();
+      H.resize(ncells_ghost,0.0);
+      U.resize(ncells_ghost,0.0);
+      V.resize(ncells_ghost,0.0);
+      L7_Update(&H[0], L7_REAL, cell_handle);
+      L7_Update(&U[0], L7_REAL, cell_handle);
+      L7_Update(&V[0], L7_REAL, cell_handle);
 
-         H.resize(ncells_ghost,0.0);
-         U.resize(ncells_ghost,0.0);
-         V.resize(ncells_ghost,0.0);
-         L7_Update(&H[0], L7_REAL, cell_handle);
-         L7_Update(&U[0], L7_REAL, cell_handle);
-         L7_Update(&V[0], L7_REAL, cell_handle);
-
-         x.resize(ncells_ghost,0.0);
-         dx.resize(ncells_ghost,0.0);
-         y.resize(ncells_ghost,0.0);
-         dy.resize(ncells_ghost,0.0);
-         L7_Update(&x[0], L7_REAL, cell_handle);
-         L7_Update(&dx[0], L7_REAL, cell_handle);
-         L7_Update(&y[0], L7_REAL, cell_handle);
-         L7_Update(&dy[0], L7_REAL, cell_handle);
-      }
-
-      if (do_gpu_calc) {
-         mesh_global->gpu_calc_neighbors(command_queue);
-         mesh_local->gpu_calc_neighbors_local(command_queue);
-      }
+      x.resize(ncells_ghost,0.0);
+      dx.resize(ncells_ghost,0.0);
+      y.resize(ncells_ghost,0.0);
+      dy.resize(ncells_ghost,0.0);
+      L7_Update(&x[0], L7_REAL, cell_handle);
+      L7_Update(&dx[0], L7_REAL, cell_handle);
+      L7_Update(&y[0], L7_REAL, cell_handle);
+      L7_Update(&dy[0], L7_REAL, cell_handle);
 
       if (do_comparison_calc) {
+         mesh_global->calc_neighbors();
+
          // Checking CPU parallel to CPU global
          vector<int> Test(ncells_ghost);
          for(int ic=0; ic<ncells; ic++){
