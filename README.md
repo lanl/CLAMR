@@ -63,5 +63,5 @@ conditions need some more work
 Current performance shows about a 50x speedup on the GPU versus the CPU using NVIDIA
 Tesla 2050s and AMD CPUs
 
-See the PAPERS file for a list of publications related to the CLAMR code (papers.bib for 
+See the PAPERS file for a list of publications related to the CLAMR code (Papers.bib for 
 bibtex format)
