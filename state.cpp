@@ -3721,7 +3721,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
       if (mype == 0) printf("=============================================================\n");
 
       parallel_timer_output(numpe,mype,"Profiling: Total              time was",elapsed_time );
-      parallel_timer_output(numpe,mype,"Parallel Speed-up:                      ",cpu_elapsed_time*1.0e9/gpu_elapsed_time);
+      parallel_timer_output(numpe,mype,"Parallel Speed-up:                    ",cpu_elapsed_time*1.0e9/gpu_elapsed_time);
 
       if (mype == 0) printf("=============================================================\n");
    }

@@ -89,7 +89,6 @@
 #endif
 
 // Sync is to reduce numerical drift between cpu and gpu
-#define DO_SYNC 
 #define DO_COMPARISON
 
 //TODO:  command-line option for OpenGL?
@@ -101,13 +100,6 @@ int do_comparison_calc = 0;
 
 int do_cpu_calc = 1;
 int do_gpu_calc = 0;
-
-#ifdef DO_SYNC
-int do_sync = 1;
-#else
-int do_sync = 0;
-#endif
-int do_gpu_sync = 0;
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
@@ -779,35 +771,39 @@ extern "C" void do_calc(void)
       set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
 #endif
 
-      double cpu_mass_sum, cpu_mass_sum_local;
-      double gpu_mass_sum, gpu_mass_sum_local;
-      if (do_cpu_calc) {
-         cpu_mass_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
-         cpu_mass_sum_local = state_local->mass_sum_local(mesh_local, enhanced_precision_sum);
-      }
+      double H_sum = -1;
 
       if (do_comparison_calc) {
-         int iflag = 0;
-         if (fabs(cpu_mass_sum_local - cpu_mass_sum) > CONSERVATION_EPS) iflag = 1;
+         H_sum = state_local->mass_sum_local(mesh_local, enhanced_precision_sum);
 
-         if (iflag) {
-            printf("Error with mass sum calculation -- cpu_mass_sum_local %lf cpu_mass_sum %lf\n",
-                    cpu_mass_sum_local, cpu_mass_sum);
+         double H_sum_global = state_global->mass_sum(mesh_global, enhanced_precision_sum);
+
+         if (fabs(H_sum - H_sum_global) > CONSERVATION_EPS) {
+            printf("Error with mass sum calculation -- mass_sum %lf mass_sum_global %lf\n",
+                    H_sum, H_sum_global);
          }
       }
 
-      mesh_global->proc.resize(ncells_global);
       mesh_local->proc.resize(ncells);
       if (icount) {
          vector<int> index(ncells);
-         vector<int> index_global(ncells_global);
-         mesh_global->partition_cells(numpe, mesh_global->proc, index_global, cycle_reorder);
          mesh_local->partition_cells(numpe, mesh_local->proc, index, cycle_reorder);
-         //state->state_reorder(index);
+      }
+
+      if (do_comparison_calc) {
+         mesh_global->proc.resize(ncells_global);
+
+         if (icount) {
+            vector<int> index_global(ncells_global);
+            mesh_global->partition_cells(numpe, mesh_global->proc, index_global, cycle_reorder);
+            //state->state_reorder(index);
+         }
       }
 
       if (n % outputInterval == 0) {
-         double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
+         if (H_sum < 0) {
+            H_sum = state_local->mass_sum_local(mesh_local, enhanced_precision_sum);
+         }
          if (mype == 0){
             printf("Iteration %d timestep %lf Sim Time %lf cells %d Mass Sum %14.12lg Mass Change %14.12lg\n",
                n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
@@ -821,10 +817,11 @@ extern "C" void do_calc(void)
          set_circle_radius(circle_radius);
          DrawGLScene();
 #endif
-      }
+      }  //  Complete output interval.
+
       ++n;
       simTime += deltaT;
       
-   }  //  Complete output interval.
+   }
 }
 
