@@ -1099,6 +1099,7 @@ extern "C" void do_calc(void)
          // For global This compares ioffset for each block in the calculation
          ezcl_enqueue_read_buffer(command_queue, dev_ioffset_global, CL_TRUE, 0, block_size_global*sizeof(cl_int),       &ioffset_global[0], NULL);
          mtotal = 0;
+         int count = 0;
          for (int ig=0; ig<(old_ncells_global+TILE_SIZE-1)/TILE_SIZE; ig++){
             mcount = 0;
             for (int ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
@@ -1109,12 +1110,16 @@ extern "C" void do_calc(void)
                    mcount += mpot_global[ic] ? 2 : 1;
                 }
             }
-            if (mcount != ioffset_global[ig]) printf("DEBUG global ig %d ioffset %d mcount %d\n",ig,ioffset_global[ig],mcount);
+            if (mcount != ioffset_global[ig]) {
+               printf("DEBUG global ig %d ioffset %d mcount %d\n",ig,ioffset_global[ig],mcount);
+               count++;
+            }
+            if (count > 10) exit(0);
             mtotal += mcount;
          }
 
       }
-     if (do_gpu_sync) {
+      if (do_gpu_sync) {
         for (int ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
            mcount = 0;
            for (int ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
