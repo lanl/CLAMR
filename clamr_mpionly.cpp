@@ -771,7 +771,7 @@ extern "C" void do_calc(void)
       set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
 #endif
 
-      double H_sum = -1;
+      double H_sum = -1.0;
 
       if (do_comparison_calc) {
          H_sum = state_local->mass_sum_local(mesh_local, enhanced_precision_sum);
