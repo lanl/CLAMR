@@ -91,22 +91,15 @@
 // Sync is to reduce numerical drift between cpu and gpu
 #define DO_SYNC 
 #define DO_COMPARISON
-//#define DO_CPU
 
 //TODO:  command-line option for OpenGL?
 #ifdef DO_COMPARISON
-#define DO_CPU
 int do_comparison_calc = 1;
 #else
 int do_comparison_calc = 0;
 #endif
 
-#ifdef DO_CPU
 int do_cpu_calc = 1;
-#else
-int do_cpu_calc = 0;
-#endif
-
 int do_gpu_calc = 0;
 
 #ifdef DO_SYNC
@@ -429,8 +422,10 @@ extern "C" void do_calc(void)
       tresult.tv_usec = tstop.tv_usec - tstart.tv_usec;
       double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
       
-      state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
       state_local->output_timing_info(mesh_local, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
+      if (do_comparison_calc) {
+         state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
+      }
 
       mesh_local->print_partition_measure();
       mesh_local->print_calc_neighbor_type();
@@ -634,30 +629,25 @@ extern "C" void do_calc(void)
       mesh_local->partition_measure();
 
       // Currently not working -- may need to be earlier?
-      //if (do_cpu_calc && ! mesh->have_boundary) {
+      //if (mesh->have_boundary) {
       //  state->add_boundary_cells(mesh);
       //}
 
       // Need ghost cells for this routine
-      if (do_cpu_calc) {
+      state_local->apply_boundary_conditions(mesh_local);
+
+      if (do_comparison_calc) {
         state_global->apply_boundary_conditions(mesh_global);
-        state_local->apply_boundary_conditions(mesh_local);
       }
 
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
-      if (do_cpu_calc) {
-         state_global->calc_finite_difference(mesh_global, deltaT);
-         state_local->calc_finite_difference_local(mesh_local, deltaT);
-      }
-      
-      if (do_gpu_calc) {
-         state_global->gpu_calc_finite_difference(command_queue, mesh_global, deltaT);
-         state_local->gpu_calc_finite_difference_local(command_queue, mesh_local, deltaT);
-      }
-      
+      state_local->calc_finite_difference_local(mesh_local, deltaT);
+
       if (do_comparison_calc) {
+         state_global->calc_finite_difference(mesh_global, deltaT);
+
          // Compare H gathered to H_global, etc
          vector<real>H_save_global(ncells_global);
          vector<real>U_save_global(ncells_global);
@@ -673,9 +663,10 @@ extern "C" void do_calc(void)
       }
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
-      if (do_cpu_calc) {
+      state_local->remove_boundary_cells(mesh_local);
+
+      if (do_comparison_calc) {
          state_global->remove_boundary_cells(mesh_global);
-         state_local->remove_boundary_cells(mesh_local);
       }
       
       //  Check for NANs.
@@ -692,22 +683,21 @@ extern "C" void do_calc(void)
             exit(-1); }
       }  //  Complete NAN check.
       
-      if (do_cpu_calc) {
-         mpot.resize(ncells);
+      mpot.resize(ncells);
+      state_local->calc_refine_potential_local(mesh_local, mpot, icount, jcount);
+      nlft.clear();
+      nrht.clear();
+      nbot.clear();
+      ntop.clear();
+  
+      if (do_comparison_calc) {
          mpot_global.resize(ncells_global);
          state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount);
-         state_local->calc_refine_potential_local(mesh_local, mpot, icount, jcount);
-         nlft.clear();
-         nrht.clear();
-         nbot.clear();
-         ntop.clear();
          nlft_global.clear();
          nrht_global.clear();
          nbot_global.clear();
          ntop_global.clear();
-      }  //  Complete CPU calculation.
-  
-      if (do_comparison_calc) {
+
          int icount_test;
          MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          if (icount_test != icount_global) {
@@ -724,22 +714,22 @@ extern "C" void do_calc(void)
          }    
       }
 
-      if (do_cpu_calc) {
-         new_ncells_global = old_ncells_global+mesh_global->rezone_count(mpot_global);
-         new_ncells = old_ncells+mesh_local->rezone_count(mpot);
-      }
-
-      if (do_cpu_calc) {
-         int add_ncells_global = new_ncells_global - old_ncells_global;
-         int add_ncells = new_ncells - old_ncells;
-         //printf("%d: DEBUG add %d new %d old %d\n",mype,add_ncells,new_ncells,old_ncells);
-         state_global->rezone_all(mesh_global, mpot_global, add_ncells_global);
-         state_local->rezone_all_local(mesh_local, mpot, add_ncells);
-         mpot_global.clear();
-         mpot.clear();
-      }
+      new_ncells = old_ncells+mesh_local->rezone_count(mpot);
 
       if (do_comparison_calc) {
+         new_ncells_global = old_ncells_global+mesh_global->rezone_count(mpot_global);
+      }
+
+      int add_ncells = new_ncells - old_ncells;
+      state_local->rezone_all_local(mesh_local, mpot, add_ncells);
+      mpot.clear();
+
+      if (do_comparison_calc) {
+         int add_ncells_global = new_ncells_global - old_ncells_global;
+         //printf("%d: DEBUG add %d new %d old %d\n",mype,add_ncells,new_ncells,old_ncells);
+         state_global->rezone_all(mesh_global, mpot_global, add_ncells_global);
+         mpot_global.clear();
+
          //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
          MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
          ndispl[0]=0;
@@ -789,27 +779,6 @@ extern "C" void do_calc(void)
       set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
 #endif
 
-      if (do_gpu_calc) {
-         if (ncells != old_ncells){
-            H.resize(ncells);
-            U.resize(ncells);
-            V.resize(ncells);
-            level.resize(ncells);
-            i.resize(ncells);
-            j.resize(ncells);
-            celltype.resize(ncells);
-         }
-         if (ncells_global != old_ncells_global){
-            H_global.resize(ncells_global);
-            U_global.resize(ncells_global);
-            V_global.resize(ncells_global);
-            level_global.resize(ncells_global);
-            i_global.resize(ncells_global);
-            j_global.resize(ncells_global);
-            celltype_global.resize(ncells_global);
-         }
-      }
-
       double cpu_mass_sum, cpu_mass_sum_local;
       double gpu_mass_sum, gpu_mass_sum_local;
       if (do_cpu_calc) {
@@ -856,15 +825,6 @@ extern "C" void do_calc(void)
       ++n;
       simTime += deltaT;
       
-      //  Calculate timings for this time step.
-#ifdef XXX
-      if (do_gpu_calc) {
-         if (! mesh->have_boundary) {
-            gpu_time_count_BCs        += ezcl_timer_calc(&count_BCs_stage1_event, &count_BCs_stage1_event);
-            gpu_time_count_BCs        += ezcl_timer_calc(&count_BCs_stage2_event, &count_BCs_stage2_event);
-         }
-      }
-#endif
    }  //  Complete output interval.
 }
 
