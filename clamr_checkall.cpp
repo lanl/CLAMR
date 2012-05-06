@@ -53,7 +53,6 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
-#define MAILBOX 1
 
 #include <algorithm>
 #include <math.h>
@@ -154,6 +153,8 @@ typedef cl_float8   cl_real8;
 #define MPI_C_REAL MPI_FLOAT
 #define L7_REAL L7_FLOAT
 #endif
+
+typedef unsigned int uint;
 
 double circle_radius=-1.0;
 
@@ -457,8 +458,8 @@ double  H_sum_initial = 0.0;
 extern "C" void do_calc(void)
 {  double g     = 9.80;
    double sigma = 0.95; 
-   int icount, jcount, bcount;
-   int icount_global, jcount_global, bcount_global;
+   int icount, jcount;
+   int icount_global;
 
    if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
       do_sync = 0;
@@ -481,7 +482,6 @@ extern "C" void do_calc(void)
    vector<int>   &celltype_global = mesh_global->celltype;
    vector<int>   &i_global        = mesh_global->i;
    vector<int>   &j_global        = mesh_global->j;
-   vector<int>   &index_global    = mesh_global->index;
    vector<int>   &level_global    = mesh_global->level;
    vector<int>   &nlft_global     = mesh_global->nlft;
    vector<int>   &nrht_global     = mesh_global->nrht;
@@ -491,7 +491,6 @@ extern "C" void do_calc(void)
    vector<int>   &celltype = mesh_local->celltype;
    vector<int>   &i        = mesh_local->i;
    vector<int>   &j        = mesh_local->j;
-   vector<int>   &index    = mesh_local->index;
    vector<int>   &level    = mesh_local->level;
    vector<int>   &nlft     = mesh_local->nlft;
    vector<int>   &nrht     = mesh_local->nrht;
@@ -522,19 +521,9 @@ extern "C" void do_calc(void)
    vector<real>  &y_global  = mesh_global->y;
    vector<real>  &dy_global = mesh_global->dy;
 
-   cl_mem &dev_levdx    = mesh_local->dev_levdx;
-   cl_mem &dev_levdy    = mesh_local->dev_levdy;
-
-   cl_mem &dev_levibeg  = mesh_local->dev_levibeg;
-   cl_mem &dev_leviend  = mesh_local->dev_leviend;
-   cl_mem &dev_levjbeg  = mesh_local->dev_levjbeg;
-   cl_mem &dev_levjend  = mesh_local->dev_levjend;
-
    cl_mem &dev_H_global = state_global->dev_H;
    cl_mem &dev_U_global = state_global->dev_U;
    cl_mem &dev_V_global = state_global->dev_V;
-
-   cl_mem &dev_deltaT   = state_local->dev_deltaT;
 
    cl_mem &dev_H  = state_local->dev_H;
    cl_mem &dev_U  = state_local->dev_U;
@@ -558,11 +547,6 @@ extern "C" void do_calc(void)
    cl_mem &dev_nbot     = mesh_local->dev_nbot;
    cl_mem &dev_ntop     = mesh_local->dev_ntop;
 
-   cl_mem &dev_celltype_new_global = mesh_global->dev_celltype_new;
-   cl_mem &dev_i_new_global        = mesh_global->dev_i_new;
-   cl_mem &dev_j_new_global        = mesh_global->dev_j_new;
-   cl_mem &dev_level_new_global    = mesh_global->dev_level_new;
-   
    //  Kahan-type enhanced precision sum implementation.
    if (n < 0)
    {
@@ -663,13 +647,15 @@ extern "C" void do_calc(void)
       size_t new_ncells_global = 0;
 
       //  Calculate the real time step for the current discrete time step.
-      double deltaT_cpu, deltaT_cpu_local;
+      double deltaT_cpu = -1.0;
+      double deltaT_cpu_local = -1.0;
       if (do_cpu_calc) {
          deltaT_cpu = state_global->set_timestep(mesh_global, g, sigma);
          deltaT_cpu_local = state_local->set_timestep(mesh_local, g, sigma);
       }  //  Complete CPU timestep calculation.
 
-      double deltaT_gpu, deltaT_gpu_local;
+      double deltaT_gpu = -1.0;
+      double deltaT_gpu_local = -1.0;
       if (do_gpu_calc) {
          deltaT_gpu = state_global->gpu_set_timestep(command_queue, mesh_global, sigma);
          deltaT_gpu_local = state_local->gpu_set_timestep(command_queue, mesh_local, sigma);
@@ -1161,12 +1147,12 @@ extern "C" void do_calc(void)
       if (do_comparison_calc) {
          int result;
          ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-         if (new_ncells != result) printf("%d: DEBUG new_ncells not correct %d %d\n",mype,new_ncells,result);
+         if (new_ncells != result) printf("%d: DEBUG new_ncells not correct %ld %d\n",mype,new_ncells,result);
          new_ncells = result;
          //printf("Result is %d\n",result[0]);
 
          ezcl_enqueue_read_buffer(command_queue, dev_result_global, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-         if (new_ncells_global != result) printf("%d: DEBUG new_ncells_global not correct %d %d\n",mype,new_ncells_global,result);
+         if (new_ncells_global != result) printf("%d: DEBUG new_ncells_global not correct %ld %d\n",mype,new_ncells_global,result);
          new_ncells_global = result;
       }
 
@@ -1219,7 +1205,7 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  &celltype_check[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &i_check[0],         NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_TRUE,  0, ncells*sizeof(cl_int),  &j_check[0],         NULL);
-         for (int ic = 0; ic < ncells; ic++){
+         for (uint ic = 0; ic < ncells; ic++){
             if (fabs(H[ic]-H_check[ic]) > STATE_EPS) printf("%d: DEBUG rezone 1 cell %d H %lf H_check %lf\n",mype, ic,H[ic],H_check[ic]);
             if (fabs(U[ic]-U_check[ic]) > STATE_EPS) printf("%d: DEBUG rezone 1 cell %d U %lf U_check %lf\n",mype, ic,U[ic],U_check[ic]);
             if (fabs(V[ic]-V_check[ic]) > STATE_EPS) printf("%d: DEBUG rezone 1 cell %d V %lf V_check %lf\n",mype, ic,V[ic],V_check[ic]);
@@ -1244,7 +1230,7 @@ extern "C" void do_calc(void)
          MPI_Allgatherv(&i_check[0],        nsizes[mype], MPI_INT,    &i_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
          MPI_Allgatherv(&j_check[0],        nsizes[mype], MPI_INT,    &j_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
          MPI_Allgatherv(&level_check[0],    nsizes[mype], MPI_INT,    &level_check_global[0],    &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
-         for (int ic = 0; ic < ncells_global; ic++){
+         for (uint ic = 0; ic < ncells_global; ic++){
             if (fabs(H_global[ic]-H_check_global[ic]) > STATE_EPS) printf("%d: DEBUG rezone 2 cell %d H_global %lf H_check_global %lf \n",mype,ic,H_global[ic],H_check_global[ic]);
             if (fabs(U_global[ic]-U_check_global[ic]) > STATE_EPS) printf("%d: DEBUG rezone 2 cell %d U_global %lf U_check_global %lf \n",mype,ic,U_global[ic],U_check_global[ic]);
             if (fabs(V_global[ic]-V_check_global[ic]) > STATE_EPS) printf("%d: DEBUG rezone 2 cell %d V_global %lf V_check_global %lf \n",mype,ic,V_global[ic],V_check_global[ic]);
@@ -1262,7 +1248,7 @@ extern "C" void do_calc(void)
          MPI_Allgatherv(&i[0],        nsizes[mype], MPI_INT,    &i_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
          MPI_Allgatherv(&j[0],        nsizes[mype], MPI_INT,    &j_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
          MPI_Allgatherv(&level[0],    nsizes[mype], MPI_INT,    &level_check_global[0],    &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
-         for (int ic = 0; ic < ncells_global; ic++){
+         for (uint ic = 0; ic < ncells_global; ic++){
             if (fabs(H_global[ic]-H_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 3 at cycle %d H_global & H_check_global %d %lf %lf \n",n,ic,H_global[ic],H_check_global[ic]);
             if (fabs(U_global[ic]-U_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 3 at cycle %d U_global & U_check_global %d %lf %lf \n",n,ic,U_global[ic],U_check_global[ic]);
             if (fabs(V_global[ic]-V_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 3 at cycle %d V_global & V_check_global %d %lf %lf \n",n,ic,V_global[ic],V_check_global[ic]);
@@ -1280,7 +1266,7 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_i_global,        CL_FALSE, 0, ncells_global*sizeof(cl_int),  &i_check_global[0],        NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_j_global,        CL_FALSE, 0, ncells_global*sizeof(cl_int),  &j_check_global[0],        NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_level_global,    CL_TRUE,  0, ncells_global*sizeof(cl_int),  &level_check_global[0],    NULL);
-         for (int ic = 0; ic < ncells_global; ic++){
+         for (uint ic = 0; ic < ncells_global; ic++){
             if (fabs(H_global[ic]-H_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 4 at cycle %d H_global & H_check_global %d %lf %lf \n",n,ic,H_global[ic],H_check_global[ic]);
             if (fabs(U_global[ic]-U_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 4 at cycle %d U_global & U_check_global %d %lf %lf \n",n,ic,U_global[ic],U_check_global[ic]);
             if (fabs(V_global[ic]-V_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 4 at cycle %d V_global & V_check_global %d %lf %lf \n",n,ic,V_global[ic],V_check_global[ic]);
@@ -1431,7 +1417,7 @@ extern "C" void do_calc(void)
             H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
          }
          if (mype == 0){
-            printf("Iteration %d timestep %lf Sim Time %lf cells %d Mass Sum %14.12lg Mass Change %14.12lg\n",
+            printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
                n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
          }
 #ifdef HAVE_OPENGL

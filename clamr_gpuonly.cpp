@@ -134,6 +134,8 @@ typedef cl_float8   cl_real8;
 #define STATE_EPS      15.0
 #endif
 
+typedef unsigned int uint;
+
 double circle_radius=-1.0;
 
 int view_mode = 0;
@@ -320,14 +322,12 @@ extern "C" void do_calc(void)
    vector<int>   &celltype = mesh->celltype;
    vector<int>   &i        = mesh->i;
    vector<int>   &j        = mesh->j;
-   vector<int>   &index    = mesh->index;
    vector<int>   &level    = mesh->level;
    vector<int>   &nlft     = mesh->nlft;
    vector<int>   &nrht     = mesh->nrht;
    vector<int>   &nbot     = mesh->nbot;
    vector<int>   &ntop     = mesh->ntop;
 
-   int levmx        = mesh->levmx;
    size_t ncells    = mesh->ncells;
 
    cl_mem &dev_levibeg  = mesh->dev_levibeg;
@@ -347,7 +347,6 @@ extern "C" void do_calc(void)
    cl_mem &dev_H        = state->dev_H;
    cl_mem &dev_U        = state->dev_U;
    cl_mem &dev_V        = state->dev_V;
-   cl_mem &dev_deltaT   = state->dev_deltaT;
 
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_i        = mesh->dev_i;
@@ -358,11 +357,6 @@ extern "C" void do_calc(void)
    cl_mem &dev_nbot     = mesh->dev_nbot;
    cl_mem &dev_ntop     = mesh->dev_ntop;
 
-   cl_mem &dev_celltype_new = mesh->dev_celltype_new;
-   cl_mem &dev_i_new        = mesh->dev_i_new;
-   cl_mem &dev_j_new        = mesh->dev_j_new;
-   cl_mem &dev_level_new    = mesh->dev_level_new;
-   
    //  Kahan-type enhanced precision sum implementation.
    if (n < 0)
    {
@@ -468,7 +462,7 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_nbot,     CL_FALSE, 0, ncells*sizeof(cl_int),  &nbot_check[0],      NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_ntop,     CL_TRUE,  0, ncells*sizeof(cl_int),  &ntop_check[0],      NULL);
 
-         for (int ic=0; ic<ncells; ic++){
+         for (uint ic=0; ic<ncells; ic++){
             if (nlft[ic] != nlft_check[ic]) printf("DEBUG -- nlft: ic %d nlft %d nlft_check %d\n",ic, nlft[ic], nlft_check[ic]);
             if (nrht[ic] != nrht_check[ic]) printf("DEBUG -- nrht: ic %d nrht %d nrht_check %d\n",ic, nrht[ic], nrht_check[ic]);
             if (nbot[ic] != nbot_check[ic]) printf("DEBUG -- nbot: ic %d nbot %d nbot_check %d\n",ic, nbot[ic], nbot_check[ic]);
@@ -497,7 +491,7 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_save[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_save[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_save[0], NULL);
-         for (int ic = 0; ic < ncells; ic++){
+         for (uint ic = 0; ic < ncells; ic++){
             if (fabs(H[ic]-H_save[ic]) > STATE_EPS) printf("DEBUG finite_difference at cycle %d H & H_save %d %lf %lf \n",n,ic,H[ic],H_save[ic]);
             if (fabs(U[ic]-U_save[ic]) > STATE_EPS) printf("DEBUG finite_difference at cycle %d U & U_save %d %lf %lf \n",n,ic,U[ic],U_save[ic]);
             if (fabs(V[ic]-V_save[ic]) > STATE_EPS) printf("DEBUG finite_difference at cycle %d V & V_save %d %lf %lf \n",n,ic,V[ic],V_save[ic]);
@@ -507,7 +501,7 @@ extern "C" void do_calc(void)
          state->remove_boundary_cells(mesh);
 
          //  Check for NANs.
-         for (int ic=0; ic<ncells; ic++) {
+         for (uint ic=0; ic<ncells; ic++) {
             if (isnan(H[ic]))
             {  printf("Got a NAN on cell %d cycle %d\n",ic,n);
                H[ic]=0.0;
@@ -555,7 +549,7 @@ extern "C" void do_calc(void)
          // Need to compare dev_mpot to mpot
          vector<int>mpot_save(ncells);
          ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_save[0], NULL);
-         for (int ic = 0; ic < ncells; ic++){
+         for (uint ic = 0; ic < ncells; ic++){
             if (fabs(mpot[ic]-mpot_save[ic]) > STATE_EPS) {
                printf("DEBUG refine_potential at cycle %d mpot & mpot_save %d %d %d \n",n,ic,mpot[ic],mpot_save[ic]);
             }
@@ -579,9 +573,9 @@ extern "C" void do_calc(void)
 
          ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
          mtotal = 0;
-         for (int ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
+         for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
             mcount = 0;
-            for (int ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
+            for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
                 if (ic >= old_ncells) break;
 
                 if (celltype[ic] == REAL_CELL){
@@ -633,7 +627,7 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  &celltype_check[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &i_check[0],         NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_TRUE,  0, ncells*sizeof(cl_int),  &j_check[0],         NULL);
-         for (int ic = 0; ic < ncells; ic++){
+         for (uint ic = 0; ic < ncells; ic++){
             if (fabs(H[ic]-H_save[ic]) > STATE_EPS) printf("DEBUG diff at cycle %d H & H_save %d %lf %lf \n",n,ic,H[ic],H_save[ic]);
             if (fabs(U[ic]-U_save[ic]) > STATE_EPS) printf("DEBUG diff at cycle %d U & U_save %d %lf %lf \n",n,ic,U[ic],U_save[ic]);
             if (fabs(V[ic]-V_save[ic]) > STATE_EPS) printf("DEBUG diff at cycle %d V & V_save %d %lf %lf \n",n,ic,V[ic],V_save[ic]);
@@ -743,7 +737,7 @@ extern "C" void do_calc(void)
             printf("Got a NAN on cycle %d\n",n);
             exit(-1);
          }
-         printf("Iteration %d timestep %lf Sim Time %lf cells %d Mass Sum %14.12lg Mass Change %14.12lg\n",
+         printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
             n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
          ezcl_enqueue_read_buffer(command_queue, dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],     NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],     NULL);

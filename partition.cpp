@@ -65,6 +65,8 @@
 #include "zorder/zorder.h"
 #include "timer/timer.h"
 
+typedef unsigned int uint;
+
 int measure_type;
 int      meas_count                  = 0;
 double   meas_sum_average            = 0.0;
@@ -78,16 +80,16 @@ void Mesh::partition_measure(void)
   int ntX     = TILE_SIZE; 
   double offtile_ratio = 0.0;
 
-  int num_groups = (ncells + TILE_SIZE - 1)/TILE_SIZE;
+  uint num_groups = (ncells + TILE_SIZE - 1)/TILE_SIZE;
 
   if (measure_type == WITH_DUPLICATES) {
-     for (int group_id=0, i = 0; group_id < num_groups; group_id ++){ 
+     for (uint group_id=0, i = 0; group_id < num_groups; group_id ++){ 
  
         int start_idx = group_id * ntX;
         int end_idx   = (group_id + 1) * ntX; 
 
         int offtile =0;
-        for (int ic = 0; ic < TILE_SIZE; ic++, i++){ 
+        for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
 
            if (i >= ncells) continue;
            //taken from wave_kern_calc.cl 'setup tile' kernel
@@ -109,13 +111,13 @@ void Mesh::partition_measure(void)
      }
   } else if (measure_type == WITHOUT_DUPLICATES) {
 
-     for (int group_id=0, i = 0; group_id < num_groups; group_id ++){ 
+     for (uint group_id=0, i = 0; group_id < num_groups; group_id ++){ 
         list<int> offtile_list;
  
         int start_idx = group_id * ntX;
         int end_idx   = (group_id + 1) * ntX; 
 
-        for (int ic = 0; ic < TILE_SIZE; ic++, i++){ 
+        for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
 
            if (i >= ncells) continue;
 
@@ -140,13 +142,13 @@ void Mesh::partition_measure(void)
      }
   } else if (measure_type == CVALUE) {
 
-     for (int group_id=0, i = 0; group_id < num_groups; group_id ++){ 
+     for (uint group_id=0, i = 0; group_id < num_groups; group_id ++){ 
         list<int> offtile_list;
  
         int start_idx = group_id * ntX;
         int end_idx   = (group_id + 1) * ntX; 
 
-        for (int ic = 0; ic < TILE_SIZE; ic++, i++){ 
+        for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
 
            if (i >= ncells) continue;
 
@@ -281,13 +283,9 @@ void Mesh::partition_cells(
 {  
    int           *info;      //
    double         iscale,    //
-                  jscale,    //
-                  xlocdiff,  //
-                  ylocdiff;  //
+                  jscale;    //
    int            imax,      //  Maximum x-index.
-                  jmax,      //  Maximum y-index.
-                  lev,       //
-                  limit;     //
+                  jmax;      //  Maximum y-index.
    vector<int>    z_index;   //  Ordered curve from hsfc.
    vector<int>    i_scaled;  //  x-indices normalized to a scale of [0, 1] for hsfc.
    vector<int>    j_scaled;  //  y-indices normalized to a scale of [0, 1] for hsfc.
@@ -306,7 +304,7 @@ void Mesh::partition_cells(
    switch (method)
    {   case ORIGINAL_ORDER:
          //  Set z_order to the current cell order.
-         for (int ic = 0; ic < ncells; ++ic)
+         for (uint ic = 0; ic < ncells; ++ic)
          {   z_order[ic] = ic; }
 
          cpu_time_partition += cpu_timer_stop(tstart_cpu);
@@ -329,7 +327,7 @@ void Mesh::partition_cells(
 //         if (jscale > iscale) jscale = iscale;
 
          //   Scale the indices to a normalized [0, 1] range for hsfc.
-         for (int ic = 0; ic < ncells; ++ic)
+         for (uint ic = 0; ic < ncells; ++ic)
          {   iunit[ic] = (x[ic] + 0.5 * dx[ic] - xcentermin) * iscale;
              junit[ic] = (y[ic] + 0.5 * dy[ic] - ycentermin) * jscale; }
          info = (int *)malloc(sizeof(int) * 3 * ncells);
@@ -338,7 +336,7 @@ void Mesh::partition_cells(
          hsfc2sort(ncells, &(iunit[0]), &(junit[0]), 0, info, 1);
 
          //   Copy the cell order information from info into z_order.
-         for (int ic = 0; ic < ncells; ++ic)
+         for (uint ic = 0; ic < ncells; ++ic)
          {   z_order[ic] = info[ic]; }
          free(info);
 
@@ -352,7 +350,7 @@ void Mesh::partition_cells(
          //
          imax = 0;
          jmax = 0;
-         for (int ic = 0; ic < ncells; ++ic)
+         for (uint ic = 0; ic < ncells; ++ic)
          {   if (i[ic] > imax) imax = i[ic];
             if (j[ic] > jmax) jmax = j[ic]; }
 
@@ -361,7 +359,7 @@ void Mesh::partition_cells(
          jscale = 16.0 / (double)jmax;
 
          //
-         for (int ic = 0; ic < ncells; ++ic)
+         for (uint ic = 0; ic < ncells; ++ic)
          {   i_scaled[ic]=(int) ( (double)i[ic]*iscale);
             j_scaled[ic]=(int) ( (double)j[ic]*jscale); }
 
@@ -384,7 +382,7 @@ void Mesh::partition_cells(
    //   Output ordered mesh information.
    if (DEBUG)
    {   printf("orig index   i     j     lev    nlft nrht nbot ntop   xlow    xhigh     ylow    yhigh   z index  z order\n");
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
          printf(" %6d   %4d  %4d   %4d  %4d %4d %4d %4d ", index[ic], j[ic], i[ic], level[ic], nlft[ic], nrht[ic], nbot[ic], ntop[ic]);
          printf(" %8.2lf %8.2lf %8.2lf %8.2lf", x[ic], x[ic]+dx[ic], y[ic], y[ic]+dy[ic]);
          printf(" %6d    %5d\n", z_index[ic], z_order[ic]); } }
@@ -399,8 +397,8 @@ void Mesh::partition_cells(
 void Mesh::calc_distribution(int numpe,  //  Number of work items between which the domain is to be divided.
                              vector<int> &proc)   //   List of work items.
 {  
-   int lsize = 0;     //
-   int ic    = 0;            //   Overall work item index.
+   uint lsize = 0;     //
+   uint ic    = 0;            //   Overall work item index.
    for (int ip = 0; ip < numpe; ++ip) {
       lsize += proc.size()/numpe;
       if (ip < proc.size()%numpe) lsize++;

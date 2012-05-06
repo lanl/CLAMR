@@ -244,7 +244,7 @@ void hsfc2part(
         if ( g->newcell == -1 ) { /* An SFC isolated cell */
 
           sfc_grid * neigh[4] ;
-          unsigned max , imax ;
+          unsigned max , imax=0 ;
 
           /* Edge neighbors */
 

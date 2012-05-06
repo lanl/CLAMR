@@ -78,6 +78,8 @@ typedef float       real;
 #define MPI_C_REAL MPI_FLOAT
 #endif
 
+typedef unsigned int uint;
+
 #define TWO 2
 #define HALF 0.5
 
@@ -112,16 +114,16 @@ void Mesh::write_grid(int ncycle)
    fp=fopen(filename,"w");
 
    fprintf(fp,"viewport %lf %lf %lf %lf\n",xmin,ymin,xmax,ymax);
-   for (int ic = 0; ic < ncells; ic++) {
+   for (uint ic = 0; ic < ncells; ic++) {
       fprintf(fp,"rect  %lf   %lf   %lf   %lf\n",x[ic],y[ic],x[ic]+dx[ic],y[ic]+dy[ic]);
    }
 
    fprintf(fp,"line_init %lf %lf\n",x[0]+0.5*dx[0],y[0]+0.5*dy[0]);
-   for (int ic = 1; ic < ncells; ic++){
+   for (uint ic = 1; ic < ncells; ic++){
       fprintf(fp,"line %lf %lf\n",x[ic]+0.5*dx[ic],y[ic]+0.5*dy[ic]);
    }
 
-   for (int ic = 0; ic < ncells; ic++){
+   for (uint ic = 0; ic < ncells; ic++){
       fprintf(fp,"text %lf %lf %d\n",x[ic]+0.5*dx[ic],y[ic]+0.5*dy[ic],ic);
    }
 
@@ -154,7 +156,7 @@ void Mesh::mesh_reorder(vector<int> iorder)
    if (nlft.size() >= ncells) {
       vector<int> inv_iorder(ncells);
 
-      for (int i = 0; i < ncells; i++)
+      for (uint i = 0; i < ncells; i++)
       {  inv_iorder[iorder[i]] = i; }
 
       reorder_indexarray(nlft, iorder, inv_iorder);
@@ -191,7 +193,7 @@ Mesh::Mesh(FILE *fin, int *numpe)
    i.resize(ncells);
    j.resize(ncells);
    level.resize(ncells);
-   int ic=0;
+   uint ic=0;
    while(fgets(string, 80, fin)!=NULL){
       sscanf(string, "%d %d %d %d", &(index[ic]), &(i[ic]), &(j[ic]), &(level[ic]));
       ic++;
@@ -214,7 +216,7 @@ void Mesh::print(void)
 {
    //printf("size is %lu %lu %lu %lu %lu\n",index.size(), i.size(), level.size(), nlft.size(), x.size());
    printf("index orig index   i     j     lev   nlft  nrht  nbot  ntop   xlow    xhigh     ylow    yhigh\n");
-   for (int ic=0; ic<ncells; ic++)
+   for (uint ic=0; ic<ncells; ic++)
    {  printf("%6d %6d   %4d  %4d   %4d  %4d  %4d  %4d  %4d ", ic, index[ic], i[ic], j[ic], level[ic], nlft[ic], nrht[ic], nbot[ic], ntop[ic]);
       printf("%8.2lf %8.2lf %8.2lf %8.2lf\n", x[ic], x[ic]+dx[ic], y[ic], y[ic]+dy[ic]); }
 }
@@ -224,12 +226,12 @@ void Mesh::print_local()
 
    if (nlft.size() >= ncells){
       fprintf(fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mype);
-      for (int ic=0; ic<ncells; ic++) {
+      for (uint ic=0; ic<ncells; ic++) {
          fprintf(fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mype,ic, ic+noffset,i[ic], j[ic], level[ic], nlft[ic], nrht[ic], nbot[ic], ntop[ic]);
       }
    } else {
       fprintf(fp,"%d:    index   i     j     lev\n",mype);
-      for (int ic=0; ic<ncells; ic++) {
+      for (uint ic=0; ic<ncells; ic++) {
          fprintf(fp,"%d: %6d  %4d  %4d   %4d  \n", mype,ic, i[ic], j[ic], level[ic]);
       }
    }
@@ -255,7 +257,7 @@ void Mesh::print_dev_local(cl_command_queue command_queue)
    fprintf(fp,"\n%d:                    Printing mesh for dev_local\n\n",mype);
 
    fprintf(fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mype);
-   for (int ic=0; ic<ncells_ghost; ic++) {
+   for (uint ic=0; ic<ncells_ghost; ic++) {
       fprintf(fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mype,ic, ic+noffset,i_tmp[ic], j_tmp[ic], level_tmp[ic], nlft_tmp[ic], nrht_tmp[ic], nbot_tmp[ic], ntop_tmp[ic]);
    }
    fprintf(fp,"\n%d:              Finished printing mesh for dev_local\n\n",mype);
@@ -280,7 +282,7 @@ void Mesh::compare_dev_local_to_local(cl_command_queue command_queue)
 
    fprintf(fp,"\n%d:                      Comparing mesh for dev_local to local\n\n",mype);
    //fprintf(fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mype);
-   for (int ic=0; ic<ncells_ghost; ic++) {
+   for (uint ic=0; ic<ncells_ghost; ic++) {
       if (i_tmp[ic]     != i[ic]    ) fprintf(fp,"%d: Error: cell %d dev_i     %d i     %d\n",mype,ic,i_tmp[ic],    i[ic]);
       if (j_tmp[ic]     != j[ic]    ) fprintf(fp,"%d: Error: cell %d dev_j     %d j     %d\n",mype,ic,j_tmp[ic],    j[ic]);
       if (level_tmp[ic] != level[ic]) fprintf(fp,"%d: Error: cell %d dev_level %d level %d\n",mype,ic,level_tmp[ic],level[ic]);
@@ -379,7 +381,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
       lev_deltax[lev] = lev_deltax[lev-1]*0.5;
       lev_deltay[lev] = lev_deltay[lev-1]*0.5;
    }
-   for (int lev=0; lev<lvlMxSize; lev++){
+   for (uint lev=0; lev<lvlMxSize; lev++){
       levtable[lev] = (int)pow(2,lev);
    }
 
@@ -401,7 +403,6 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
    int j_corner[] = {   0,jmax,   0,jmax};
 
    for(int ic=0; ic<ncells_corners; ic++){
-      int lev = 0;
       for (int    jj = j_corner[ic]*levtable[levmx]; jj < (j_corner[ic]+1)*levtable[levmx]; jj++) {
          for (int ii = i_corner[ic]*levtable[levmx]; ii < (i_corner[ic]+1)*levtable[levmx]; ii++) {
             corners_i.push_back(ii);
@@ -481,7 +482,7 @@ void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partitio
    ntop.resize(ncells);
 
    index.resize(ncells);
-   for (int ic=0; ic<ncells; ic++) {
+   for (uint ic=0; ic<ncells; ic++) {
       nlft[ic]=-1;
       nrht[ic]=-1;
       nbot[ic]=-1;
@@ -501,7 +502,7 @@ void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partitio
 
       vector<int> mpot(ncells);
 
-      for (int ic=0; ic<ncells; ++ic) {
+      for (uint ic=0; ic<ncells; ++ic) {
          mpot[ic]=0;
       }
 
@@ -519,7 +520,6 @@ void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partitio
 
       KDTree_Destroy(&tree);
       //  Refine the cells.
-      int icount;
       if (! special_case) rezone_spread(mpot);
       int add_ncells = rezone_count(mpot);
       rezone_all(mpot, add_ncells);
@@ -532,7 +532,6 @@ void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partitio
    int j_corner[] = {   0,jmax,   0,jmax};
 
    for(int ic=0; ic<ncells_corners; ic++){
-      int lev = 0;
       for (int    jj = j_corner[ic]*levtable[levmx]; jj < (j_corner[ic]+1)*levtable[levmx]; jj++) {
          for (int ii = i_corner[ic]*levtable[levmx]; ii < (i_corner[ic]+1)*levtable[levmx]; ii++) {
             corners_i.push_back(ii);
@@ -544,7 +543,7 @@ void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partitio
 
 void Mesh::rezone_spread(vector<int> &mpot)
 {
-   for (int ic=0; ic<ncells; ++ic) {
+   for (uint ic=0; ic<ncells; ++ic) {
       if (mpot[ic] > 0) continue;
       if (mpot[nlft[ic]] == 1 && level[ic] <= level[nlft[ic]]) mpot[ic] = 2;
       if (mpot[nrht[ic]] == 1 && level[ic] <= level[nrht[ic]]) mpot[ic] = 2;
@@ -553,7 +552,7 @@ void Mesh::rezone_spread(vector<int> &mpot)
    }
 
 
-   for (int ic=0; ic<ncells; ++ic){
+   for (uint ic=0; ic<ncells; ++ic){
       if (is_left_boundary(ic)   && mpot[nrht[ic]] > 0) mpot[ic]=3;
       if (is_right_boundary(ic)  && mpot[nlft[ic]] > 0) mpot[ic]=3;
       if (is_bottom_boundary(ic) && mpot[ntop[ic]] > 0) mpot[ic]=3;
@@ -565,7 +564,7 @@ int Mesh::rezone_count(vector<int> mpot)
 {
    int icount=0;
 
-   for (int ic=0; ic<ncells; ++ic){
+   for (uint ic=0; ic<ncells; ++ic){
       if (mpot[ic] < 0) {
          if (celltype[ic] == REAL_CELL) {
             icount -= 3;
@@ -617,7 +616,7 @@ void Mesh::kdtree_setup()
    KDTree_Initialize(&tree);
 
    TBounds box;
-   for (int ic=0; ic<ncells; ic++) {
+   for (uint ic=0; ic<ncells; ic++) {
      box.min.x = x[ic];
      box.max.x = x[ic]+dx[ic];
      box.min.y = y[ic];
@@ -634,14 +633,14 @@ void Mesh::calc_spatial_coordinates(int ibase)
    dy.resize(ncells);
 
    if (have_boundary) {
-      for (int ic = 0; ic < ncells; ic++) {
+      for (uint ic = 0; ic < ncells; ic++) {
          x[ic]  = xmin + lev_deltax[level[ic]] * (real)(i[ic] - ibase);
          dx[ic] =        lev_deltax[level[ic]];
          y[ic]  = ymin + lev_deltay[level[ic]] * (real)(j[ic] - ibase);
          dy[ic] =        lev_deltay[level[ic]];
       }
    } else {
-      for (int ic = 0; ic < ncells; ic++) {
+      for (uint ic = 0; ic < ncells; ic++) {
          x[ic]  = xmin + lev_deltax[level[ic]] * (real)(i[ic] - lev_ibegin[level[ic]]);
          dx[ic] =        lev_deltax[level[ic]];
          y[ic]  = ymin + lev_deltay[level[ic]] * (real)(j[ic] - lev_jbegin[level[ic]]);
@@ -654,14 +653,14 @@ void Mesh::calc_minmax(void)
 {
    xmin=+1.0e30, ymin=+1.0e30, zmin=+1.0e30;
 
-   for (int ic=0; ic<ncells; ic++){
+   for (uint ic=0; ic<ncells; ic++){
       if (x[ic] < xmin) xmin = x[ic];
    }
-   for (int ic=0; ic<ncells; ic++){
+   for (uint ic=0; ic<ncells; ic++){
       if (y[ic] < ymin) ymin = y[ic];
    }
    if (ndim > 2) {
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
          if (z[ic] < zmin) zmin = z[ic];
       }
    }
@@ -669,16 +668,16 @@ void Mesh::calc_minmax(void)
    xmax=-1.0e30, ymax=-1.0e30, zmax=-1.0e30;
    real xhigh, yhigh, zhigh;
 
-   for (int ic=0; ic<ncells; ic++){
+   for (uint ic=0; ic<ncells; ic++){
       xhigh = x[ic]+dx[ic];
       if (xhigh > xmax) xmax = xhigh;
    }
-   for (int ic=0; ic<ncells; ic++){
+   for (uint ic=0; ic<ncells; ic++){
       yhigh = y[ic]+dy[ic];
       if (yhigh > ymax) ymax = yhigh;
    }
    if (ndim > 2) {
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
         zhigh = z[ic]+dz[ic];
         if (zhigh > zmax) zmax = zhigh;
       }
@@ -691,18 +690,18 @@ void Mesh::calc_centerminmax(void)
    xcentermax=-1.0e30, ycentermax=-1.0e30, zcentermax=-1.0e30;
    real xmid, ymid, zmid;
 
-   for (int ic=0; ic<ncells; ic++){
+   for (uint ic=0; ic<ncells; ic++){
       xmid = x[ic]+0.5*dx[ic];
       if (xmid < xcentermin) xcentermin = xmid;
       if (xmid > xcentermax) xcentermax = xmid;
    }
-   for (int ic=0; ic<ncells; ic++){
+   for (uint ic=0; ic<ncells; ic++){
       ymid = y[ic]+0.5*dy[ic];
       if (ymid < ycentermin) ycentermin = ymid;
       if (ymid > ycentermax) ycentermax = ymid;
    }
    if (ndim > 2) {
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
          zmid = z[ic]+0.5*dz[ic];
          if (zmid < zcentermin) zcentermin = zmid;
          if (zmid > zcentermax) zcentermax = zmid;
@@ -713,10 +712,10 @@ void Mesh::calc_centerminmax(void)
 
 void Mesh::rezone_all(vector<int> mpot, int add_ncells)
 {
-   struct timeval tstart_cpu, tstop_cpu;
+   struct timeval tstart_cpu;
 
-   int ic,          //  Index for old cell arrays.
-       nc;          //  Index for new cell arrays.
+   uint ic,          //  Index for old cell arrays.
+        nc;          //  Index for new cell arrays.
    int set_index = 0;
 
    cpu_timer_start(&tstart_cpu);
@@ -735,7 +734,7 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
 
    if (set_index == 1) {
       index.resize(ncells);
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
          index[ic]=ic;
       }
       return;
@@ -1252,7 +1251,7 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
 
 void Mesh::calc_neighbors(void)
 {
-   struct timeval tstart_cpu, tstop_cpu;
+   struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    nlft.resize(ncells);
@@ -1272,7 +1271,7 @@ void Mesh::calc_neighbors(void)
          }
       }
 
-      for(int ic=0; ic<ncells; ic++){
+      for(uint ic=0; ic<ncells; ic++){
          int lev = level[ic];
          if (i[ic] < lev_ibegin[lev]) { // left boundary
             for (int    jj = j[ic]*levtable[levmx-lev]; jj < (j[ic]+1)*levtable[levmx-lev]; jj++) {
@@ -1311,7 +1310,7 @@ void Mesh::calc_neighbors(void)
 
       int ii, jj, lev, iii, jjj, levmult;
 
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
          ii = i[ic];
          jj = j[ic];
          lev = level[ic];
@@ -1322,7 +1321,7 @@ void Mesh::calc_neighbors(void)
          ntop[ic] = hash[min( (jj+1)*levmult,   jmaxsize-1)][      ii   *levmult               ];
       }
 
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
          if (nlft[ic] < 0){
             lev = level[ic];
             ii = i[ic];
@@ -1466,7 +1465,7 @@ void Mesh::calc_neighbors(void)
 
       kdtree_setup();
 
-      for (int ic=0; ic<ncells; ic++) {
+      for (uint ic=0; ic<ncells; ic++) {
 
          //left
          nlft[ic]  = ic;
@@ -1514,7 +1513,7 @@ void Mesh::calc_neighbors(void)
 
 void Mesh::calc_neighbors_local(void)
 {
-   struct timeval tstart_cpu, tstop_cpu;
+   struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    nlft.resize(ncells,-98);
@@ -1530,7 +1529,7 @@ void Mesh::calc_neighbors_local(void)
       int iminsize = (imax+1)*levtable[levmx];
       int jmaxsize = 0;
       int imaxsize = 0;
-      for(int ic=0; ic<ncells; ic++){
+      for(uint ic=0; ic<ncells; ic++){
          int lev = level[ic];
          if ( j[ic]   *levtable[levmx-lev] < jminsize) jminsize =  j[ic]   *levtable[levmx-lev];
          if ((j[ic]+1)*levtable[levmx-lev] > jmaxsize) jmaxsize = (j[ic]+1)*levtable[levmx-lev];
@@ -1564,7 +1563,6 @@ void Mesh::calc_neighbors_local(void)
       int j_corner[] = {   0,jmax,   0,jmax};
 
       for(int ic=0; ic<ncells_corners; ic++){
-         int lev = 0;
          for (int    jj = j_corner[ic]*levtable[levmx]-jminsize; jj < (j_corner[ic]+1)*levtable[levmx]-jminsize; jj++) {
             for (int ii = i_corner[ic]*levtable[levmx]-iminsize; ii < (i_corner[ic]+1)*levtable[levmx]-iminsize; ii++) {
                //printf("%d: block j %d i %d\n",mype,jj,ii);
@@ -1576,7 +1574,7 @@ void Mesh::calc_neighbors_local(void)
 
       // Walk through cell array and set hash to global cell values
       // TODO: This has changed -- need to update kernel code
-      for(int ic=0; ic<ncells; ic++){
+      for(uint ic=0; ic<ncells; ic++){
          int lev = level[ic];
          if (i[ic] < lev_ibegin[lev]) { // left boundary
             for (int    jj = j[ic]*levtable[levmx-lev]-jminsize; jj < (j[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
@@ -1620,7 +1618,7 @@ void Mesh::calc_neighbors_local(void)
       // Set neighbors to global cell numbers from hash
       int jmaxcalc = (jmax+1)*levtable[levmx];
       int imaxcalc = (imax+1)*levtable[levmx];
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
          ii = i[ic];
          jj = j[ic];
          lev = level[ic];
@@ -1632,7 +1630,7 @@ void Mesh::calc_neighbors_local(void)
       }
 
       // Scan for corner boundary cells
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
          if (nlft[ic] == -99){
             lev = level[ic];
             levmult = levtable[levmx-lev];
@@ -1666,7 +1664,7 @@ void Mesh::calc_neighbors_local(void)
       vector<int> border_cell;
 
       // Push list of unsatisfied neighbor cells
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
          if (nlft[ic] == -1){
             //printf("%d: Cell is %d nlft %d\n",mype,ic+noffset,nlft[ic]);
             border_cell.push_back(ic+noffset);
@@ -1809,7 +1807,7 @@ void Mesh::calc_neighbors_local(void)
       jmaxcalc = (jmax+1)*levtable[levmx];
       imaxcalc = (imax+1)*levtable[levmx];
 
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
          ii = i[ic];
          jj = j[ic];
          lev = level[ic];
@@ -1824,7 +1822,7 @@ void Mesh::calc_neighbors_local(void)
       }
 
       // Scan for corner boundary cells
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
          if (nlft[ic] == -99){
             lev = level[ic];
             levmult = levtable[levmx-lev];
@@ -1971,7 +1969,7 @@ void Mesh::calc_neighbors_local(void)
       int start_idx = noffset;
       int end_idx   = noffset+ncells;
 
-      for (int ic = 0; ic < ncells; ic++){
+      for (uint ic = 0; ic < ncells; ic++){
          ii = i[ic];
          jj = j[ic];
          lev = level[ic];
@@ -2172,7 +2170,7 @@ void Mesh::calc_neighbors_local(void)
       //   fprintf(fp,"%d: 1655 nlft for %5d is %5d\n",mype,ic,nlft[ic]);
       //}
 
-      for (int ic=0; ic<ncells_ghost; ic++){
+      for (uint ic=0; ic<ncells_ghost; ic++){
          if (nlft[ic] >= noffset && nlft[ic] < noffset+ncells) {
             nlft[ic] -= noffset;
             //fprintf(fp,"%d: 1: ic %d nlft is %d\n",mype,ic,nlft[ic]);
@@ -2353,12 +2351,12 @@ void Mesh::calc_neighbors_local(void)
       }
 
       if (DEBUG) {
-         for (int ic=0; ic<ncells; ic++){
+         for (uint ic=0; ic<ncells; ic++){
             fprintf(fp,"%d: before update ic %d        i %d j %d lev %d nlft %d nrht %d nbot %d ntop %d\n",
                 mype,ic,i[ic],j[ic],level[ic],nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
          }
          int ig=0;
-         for (int ic=ncells; ic<ncells_ghost; ic++, ig++){
+         for (uint ic=ncells; ic<ncells_ghost; ic++, ig++){
             fprintf(fp,"%d: after  update ic %d off %d i %d j %d lev %d nlft %d nrht %d nbot %d ntop %d\n",
                 mype,ic,indices_needed[ig],i[ic],j[ic],level[ic],nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
          }
@@ -2377,7 +2375,7 @@ void Mesh::calc_neighbors_local(void)
 
       kdtree_setup();
 
-      for (int ic=0; ic<ncells; ic++) {
+      for (uint ic=0; ic<ncells; ic++) {
 
          //left
          nlft[ic]  = ic;
@@ -2747,7 +2745,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    vector<int> border_cell;
 
    // Scan for corner boundary cells and also push list of unsatisfied neighbor cells
-   for (int ic=0; ic<ncells; ic++){
+   for (uint ic=0; ic<ncells; ic++){
       if (nlft_tmp[ic] < 0){
          //printf("%d: Cell is %d nlft %d\n",mype,ic+noffset,nlft_tmp[ic]);
          border_cell.push_back(ic+noffset);
@@ -3041,7 +3039,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    int jmaxcalc = (jmax+1)*levtable[levmx];
    int imaxcalc = (imax+1)*levtable[levmx];
 
-   for (int ic = 0; ic < ncells; ic++){
+   for (uint ic = 0; ic < ncells; ic++){
       ii = i_tmp[ic];
       jj = j_tmp[ic];
       lev = level_tmp[ic];
@@ -3354,12 +3352,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nbot_tmp[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells_ghost*sizeof(cl_int), &ntop_tmp[0], NULL);
 
-      for (int ic=0; ic<ncells; ic++){
+      for (uint ic=0; ic<ncells; ic++){
          fprintf(fp,"%d: before update ic %d        i %d j %d lev %d nlft %d nrht %d nbot %d ntop %d\n",
              mype,ic,i_tmp[ic],j_tmp[ic],level_tmp[ic],nlft_tmp[ic],nrht_tmp[ic],nbot_tmp[ic],ntop_tmp[ic]);
       }
       int ig=0;
-      for (int ic=ncells; ic<ncells_ghost; ic++, ig++){
+      for (uint ic=ncells; ic<ncells_ghost; ic++, ig++){
          fprintf(fp,"%d: after  update ic %d off %d i %d j %d lev %d nlft %d nrht %d nbot %d ntop %d\n",
              mype,ic,indices_needed[ig],i_tmp[ic],j_tmp[ic],level_tmp[ic],nlft_tmp[ic],nrht_tmp[ic],nbot_tmp[ic],ntop_tmp[ic]);
       }
@@ -3399,7 +3397,7 @@ void Mesh::calc_celltype(void)
 {
    celltype.resize(ncells,REAL_CELL);
 
-   for (int ic=0; ic<ncells; ++ic) {
+   for (uint ic=0; ic<ncells; ++ic) {
       celltype[ic] = REAL_CELL;
       if (is_left_boundary(ic) )   celltype[ic] = LEFT_BOUNDARY;
       if (is_right_boundary(ic) )  celltype[ic] = RIGHT_BOUNDARY;
@@ -3414,7 +3412,7 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
    vector<int> index_list(20);
 
    int num;
-   for (int ic=0; ic<ncells; ic++) {
+   for (uint ic=0; ic<ncells; ic++) {
       dsym[ic]=ic;
       xsym[ic]=ic;
       ysym[ic]=ic;

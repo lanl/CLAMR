@@ -55,6 +55,8 @@
  */
 #include <vector>
 
+typedef unsigned int uint;
+
 using namespace std;
 
 template< class T>
@@ -62,7 +64,7 @@ void reorder(vector<T> &v, vector<int> const &iorder) {
    vector<T> tmp;
    tmp.resize( v.size() );
       
-   for (int ic = 0; ic < iorder.size(); ic++){
+   for (uint ic = 0; ic < iorder.size(); ic++){
       tmp[ic] = v[iorder[ic]];
    }
    
@@ -74,7 +76,7 @@ void reorder_indexarray(vector<T> &v, vector<int> const &iorder, vector<int> con
    vector<T> tmp;
    tmp.resize( v.size() );
    
-   for (int ic = 0; ic < iorder.size(); ic++){
+   for (uint ic = 0; ic < iorder.size(); ic++){
       tmp[ic] = inv_iorder[v[iorder[ic]]];
    }
    

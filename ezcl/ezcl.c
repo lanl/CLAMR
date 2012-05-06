@@ -1337,8 +1337,10 @@ void ezcl_print_error(const int ierr, const char *routine, const char *cl_routin
    void* callstack[128];
    int frames = backtrace(callstack, 128);
    if (frames > 2) {
+#ifdef HAVE_ADDR2LINE
       char hex_address[21];
       const char command_string[80];
+#endif
       char** strs = backtrace_symbols(callstack, frames);
       printf("\n  =============== Backtrace ===============\n");
       for (int i = 1; i < frames-1; ++i) {
