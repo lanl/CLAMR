@@ -1377,28 +1377,22 @@ extern "C" void do_calc(void)
       ezcl_device_memory_remove(dev_ioffset);
       ezcl_device_memory_remove(dev_ioffset_global);
 
-      double cpu_mass_sum, cpu_mass_sum_local;
-      double gpu_mass_sum, gpu_mass_sum_local;
-      if (do_cpu_calc) {
-         cpu_mass_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
-         cpu_mass_sum_local = state_local->mass_sum_local(mesh_local, enhanced_precision_sum);
-      }
-
-      if (do_gpu_calc) {
-         gpu_mass_sum = state_global->gpu_mass_sum(command_queue, mesh_global, enhanced_precision_sum);
-         gpu_mass_sum_local = state_local->gpu_mass_sum_local(command_queue, mesh_local, enhanced_precision_sum);
-      }
+      double H_sum = -1.0;
 
       if (do_comparison_calc) {
+         double cpu_mass_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
+         double cpu_mass_sum_local = state_local->mass_sum_local(mesh_local, enhanced_precision_sum);
+         double gpu_mass_sum = state_global->gpu_mass_sum(command_queue, mesh_global, enhanced_precision_sum);
+         H_sum = state_local->gpu_mass_sum_local(command_queue, mesh_local, enhanced_precision_sum);
          int iflag = 0;
          if (fabs(cpu_mass_sum_local - cpu_mass_sum) > CONSERVATION_EPS) iflag = 1;
-         //if (fabs(gpu_mass_sum_local - gpu_mass_sum) > CONSERVATION_EPS) iflag = 1;
+         //if (fabs(H_sum - gpu_mass_sum) > CONSERVATION_EPS) iflag = 1;
          //if (fabs(gpu_mass_sum - cpu_mass_sum) > CONSERVATION_EPS) iflag = 1;
-         if (fabs(gpu_mass_sum_local - cpu_mass_sum_local) > CONSERVATION_EPS) iflag = 1;
+         if (fabs(H_sum - cpu_mass_sum_local) > CONSERVATION_EPS) iflag = 1;
 
          if (iflag) {
             printf("Error with mass sum calculation -- cpu_mass_sum_local %lf cpu_mass_sum %lf gpu_mass_sum_local %lf gpu_mass_sum %lf\n",
-                    cpu_mass_sum_local, cpu_mass_sum, gpu_mass_sum_local, gpu_mass_sum);
+                    cpu_mass_sum_local, cpu_mass_sum, H_sum, gpu_mass_sum);
          }
       }
 
@@ -1433,7 +1427,9 @@ extern "C" void do_calc(void)
 
       
       if (n % outputInterval == 0) {
-         double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
+         if (H_sum < 0) {
+            H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
+         }
          if (mype == 0){
             printf("Iteration %d timestep %lf Sim Time %lf cells %d Mass Sum %14.12lg Mass Change %14.12lg\n",
                n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
