@@ -101,8 +101,8 @@ case "$host" in
           CFLAGS="-g -DDEBUG=1 ${CFLAGS}"
           CXXFLAGS="-g -DDEBUG=1 ${CXXFLAGS}"
         else
-          CFLAGS="-g -O3 ${CFLAGS}"
-          CXXFLAGS="-g -O3 ${CXXFLAGS}"
+          CFLAGS="-g -O3 -mfpmath=sse ${CFLAGS}"
+          CXXFLAGS="-g -O3 -mfpmath=sse ${CXXFLAGS}"
         fi
 
         if test "${enable_bounds_check}" = "yes"; then

@@ -1044,8 +1044,8 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    MPI_Request req[12];
    MPI_Status status[12];
 
-   static unsigned int prev     = MPI_PROC_NULL;
-   static unsigned int next     = MPI_PROC_NULL;
+   static int prev     = MPI_PROC_NULL;
+   static int next     = MPI_PROC_NULL;
 
    if (mesh->mype != 0)               prev = mesh->mype-1;
    if (mesh->mype < mesh->numpe - 1)  next = mesh->mype+1;
@@ -3157,7 +3157,7 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_potential, 1, NULL, &global_work_size, &local_work_size,
        &refine_potential_event);
 
-   gpu_time_refine_potential += (cpu_timer_stop(tstart_gpu)*1e9);  
+   gpu_time_refine_potential += ((long)(cpu_timer_stop(tstart_gpu)*1e9));  
 
    gpu_time_refine_potential += ezcl_timer_calc(&refine_potential_event,  &refine_potential_event);
 }
