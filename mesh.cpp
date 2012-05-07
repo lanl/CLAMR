@@ -85,10 +85,12 @@ typedef unsigned int uint;
 
 #define __NEW_STENCIL__
 //#define __OLD_STENCIL__
-#define STENCIL_WARNING
+//#define STENCIL_WARNING 1
 
 #ifdef STENCIL_WARNING
-int do_stencil_warning=1
+int do_stencil_warning=1;
+#else
+int do_stencil_warning=0;
 #endif
 
 extern bool localStencil;
