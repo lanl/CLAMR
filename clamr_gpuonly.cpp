@@ -441,7 +441,7 @@ extern "C" void do_calc(void)
       
       double deltaT = state->gpu_set_timestep(command_queue, mesh, sigma);
 
-      //  Compare time step values and pass deltaT in to the kernel.
+      //  Compare time step values
       if (do_comparison_calc) {
          double deltaT_cpu = state->set_timestep(mesh, g, sigma);
          if (fabs(deltaT - deltaT_cpu) > .000001) {
@@ -468,7 +468,7 @@ extern "C" void do_calc(void)
             if (nbot[ic] != nbot_check[ic]) printf("DEBUG -- nbot: ic %d nbot %d nbot_check %d\n",ic, nbot[ic], nbot_check[ic]);
             if (ntop[ic] != ntop_check[ic]) printf("DEBUG -- ntop: ic %d ntop %d ntop_check %d\n",ic, ntop[ic], ntop_check[ic]);
          }
-         mesh->partition_measure();
+         mesh->partition_measure(); // Only have a cpu version of this
       }
 
       // Currently not working -- may need to be earlier?
@@ -516,10 +516,8 @@ extern "C" void do_calc(void)
       }
 
       vector<int>      ioffset;
-      //vector<int>      newcount;
       if (do_comparison_calc) {
          ioffset.resize(block_size);
-         //newcount.resize(block_size);
       }
 
       cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
@@ -700,13 +698,12 @@ extern "C" void do_calc(void)
          level.resize(ncells);
       }
 
-      ioffset.clear();
-
       ezcl_device_memory_remove(dev_ioffset);
 
       double H_sum = -1.0;
 
       if (do_comparison_calc) {
+         ioffset.clear();
          H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
          double summer = state->mass_sum(mesh, enhanced_precision_sum);
          if (fabs(H_sum - summer) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", H_sum, summer);
@@ -739,12 +736,13 @@ extern "C" void do_calc(void)
          }
          printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
             n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
+#ifdef HAVE_OPENGL
          ezcl_enqueue_read_buffer(command_queue, dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],     NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],     NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_level, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&level[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_H,     CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H[0],     NULL);
-         mesh->calc_spatial_coordinates(0);
-#ifdef HAVE_OPENGL
+         mesh->calc_spatial_coordinates(0); // should do this on the gpu
+
          set_mysize(ncells);
          set_viewmode(view_mode);
          set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
