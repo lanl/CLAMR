@@ -110,6 +110,7 @@ cl_kernel      kernel_adjust_neighbors;
 cl_kernel      kernel_reduction_scan;
 cl_kernel      kernel_hash_size;
 cl_kernel      kernel_finish_hash_size;
+cl_kernel      kernel_calc_spatial_coordinates;
 
 void Mesh::write_grid(int ncycle)
 {
@@ -301,14 +302,16 @@ void Mesh::compare_dev_local_to_local(cl_command_queue command_queue)
 
 Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary, int parallel_in, int do_gpu_calc)
 {
-   cpu_time_calc_neighbors     = 0;
-   cpu_time_rezone_all         = 0;
-   cpu_time_partition          = 0;
+   cpu_time_calc_neighbors     = 0.0;
+   cpu_time_rezone_all         = 0.0;
+   cpu_time_partition          = 0.0;
+   cpu_time_calc_spatial_coordinates = 0.0;
 
    gpu_time_reduction_scan     = 0;
    gpu_time_hash_setup         = 0;
    gpu_time_calc_neighbors     = 0;
    gpu_time_rezone_all         = 0;
+   gpu_time_calc_spatial_coordinates = 0;
 
    ndim   = ndim_in;
    levmx  = levmx_in;
@@ -437,6 +440,7 @@ void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partitio
       kernel_adjust_neighbors = ezcl_create_kernel(context, "wave_kern.cl",      "adjust_neighbors_cl",        0);
       kernel_hash_size         = ezcl_create_kernel(context, "wave_kern.cl",      "calc_hash_size_cl",        0);
       kernel_finish_hash_size  = ezcl_create_kernel(context, "wave_kern.cl",      "finish_reduction_minmax4_cl",        0);
+      kernel_calc_spatial_coordinates = ezcl_create_kernel(context, "wave_kern.cl",      "calc_spatial_coordinates_cl",        0);
    }
 
    int istart = 1,
@@ -634,6 +638,10 @@ void Mesh::kdtree_setup()
 
 void Mesh::calc_spatial_coordinates(int ibase)
 {
+   struct timeval tstart_cpu;
+
+   cpu_timer_start(&tstart_cpu);
+
    x.resize(ncells);
    dx.resize(ncells);
    y.resize(ncells);
@@ -654,6 +662,54 @@ void Mesh::calc_spatial_coordinates(int ibase)
          dy[ic] =        lev_deltay[level[ic]];
       }
    }
+
+   cpu_time_calc_spatial_coordinates += cpu_timer_stop(tstart_cpu);
+}
+
+void Mesh::gpu_calc_spatial_coordinates(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy)
+{
+   cl_event calc_spatial_coordinates_event;
+
+   size_t local_work_size = MIN(ncells, TILE_SIZE);
+   size_t global_work_size = ((ncells + local_work_size - 1) /local_work_size) * local_work_size;
+
+// Only coded for base 0 and have boundary
+//  Need:
+//     xmin
+//     ymin
+//
+//     lev_deltax -- dev_levdx
+//     lev_deltay -- dev_levdy
+//     x
+//     dx
+//     y
+//     dy
+//     level
+//     i
+//     j
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  0, sizeof(cl_int), (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  1, sizeof(cl_real), (void *)&xmin);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  2, sizeof(cl_real), (void *)&ymin);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  3, sizeof(cl_mem),  (void *)&dev_levdx);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  4, sizeof(cl_mem),  (void *)&dev_levdy);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  5, sizeof(cl_mem),  (void *)&dev_x);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  6, sizeof(cl_mem),  (void *)&dev_dx);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  7, sizeof(cl_mem),  (void *)&dev_y);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  8, sizeof(cl_mem),  (void *)&dev_dy);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  9, sizeof(cl_mem),  (void *)&dev_level);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates, 10, sizeof(cl_mem),  (void *)&dev_i);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates, 11, sizeof(cl_mem),  (void *)&dev_j);
+   //ezcl_set_kernel_arg(kernel_hash_init, 1, sizeof(cl_mem), (void *)&dev_hash);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_spatial_coordinates, 1, NULL, &global_work_size, &local_work_size, &calc_spatial_coordinates_event);
+/*
+      for (uint ic = 0; ic < ncells; ic++) {
+         x[ic]  = xmin + lev_deltax[level[ic]] * (real)(i[ic] - ibase);
+         dx[ic] =        lev_deltax[level[ic]];
+         y[ic]  = ymin + lev_deltay[level[ic]] * (real)(j[ic] - ibase);
+         dy[ic] =        lev_deltay[level[ic]];
+      }
+*/
+   gpu_time_calc_spatial_coordinates += ezcl_timer_calc(&calc_spatial_coordinates_event, &calc_spatial_coordinates_event);
 }
 
 void Mesh::calc_minmax(void)
@@ -1250,8 +1306,8 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
    nbot.resize(new_ncells, -1);
    ntop.resize(new_ncells, -1);
    
-   ibase    = 0;
-   calc_spatial_coordinates(ibase);
+   //ibase    = 0;
+   //calc_spatial_coordinates(ibase);
 
    calc_celltype();
 

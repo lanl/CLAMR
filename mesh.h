@@ -104,12 +104,14 @@ class Mesh
 public:
    double   cpu_time_calc_neighbors,
             cpu_time_rezone_all,
-            cpu_time_partition;
+            cpu_time_partition,
+            cpu_time_calc_spatial_coordinates;
 
    long     gpu_time_reduction_scan,
             gpu_time_hash_setup,
             gpu_time_calc_neighbors,
-            gpu_time_rezone_all;
+            gpu_time_rezone_all,
+            gpu_time_calc_spatial_coordinates;
 
    int            mype,
                   numpe,
@@ -236,17 +238,20 @@ public:
    int is_upper_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 1); }
    int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
 
-   double get_cpu_time_calc_neighbors(void)    {return(cpu_time_calc_neighbors); };
-   double get_cpu_time_rezone_all(void)        {return(cpu_time_rezone_all); };
-   double get_cpu_time_partition(void)         {return(cpu_time_partition); };
+   double get_cpu_time_calc_neighbors(void)           {return(cpu_time_calc_neighbors); };
+   double get_cpu_time_rezone_all(void)               {return(cpu_time_rezone_all); };
+   double get_cpu_time_partition(void)                {return(cpu_time_partition); };
+   double get_cpu_time_calc_spatial_coordinates(void) {return(cpu_time_calc_spatial_coordinates); };
 
-   long get_gpu_time_reduction_scan(void)      {return(gpu_time_reduction_scan); };
-   long get_gpu_time_hash_setup(void)          {return(gpu_time_hash_setup); };
-   long get_gpu_time_calc_neighbors(void)      {return(gpu_time_calc_neighbors); };
-   long get_gpu_time_rezone_all(void)          {return(gpu_time_rezone_all); };
+   long get_gpu_time_reduction_scan(void)           {return(gpu_time_reduction_scan); };
+   long get_gpu_time_hash_setup(void)               {return(gpu_time_hash_setup); };
+   long get_gpu_time_calc_neighbors(void)           {return(gpu_time_calc_neighbors); };
+   long get_gpu_time_rezone_all(void)               {return(gpu_time_rezone_all); };
+   long get_gpu_time_calc_spatial_coordinates(void) {return(gpu_time_calc_spatial_coordinates); };
 
    void write_grid(int ncycle);
    void calc_spatial_coordinates(int ibase);
+   void gpu_calc_spatial_coordinates(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy);
    void kdtree_setup(void);
    void calc_centerminmax(void);
    int  rezone_count(vector<int> mpot);

@@ -3562,6 +3562,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
                             mesh->get_cpu_time_rezone_all() +
                             mesh->get_cpu_time_calc_neighbors() +
                             get_cpu_time_mass_sum() +
+                            mesh->get_cpu_time_calc_spatial_coordinates() +
                             mesh->cpu_time_partition;
          cpu_elapsed_time =                  cpu_time_compute;
 
@@ -3574,7 +3575,8 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
             printf("CPU:  mesh->rezone_all         time was\t %8.4f\ts\n",     (get_cpu_time_rezone_all() + mesh->get_cpu_time_rezone_all() ) );
             printf("CPU:  mesh->partition_cells    time was\t %8.4f\ts\n",     mesh->cpu_time_partition);
             printf("CPU:  mesh->calc_neighbors     time was\t %8.4f\ts\n",     mesh->get_cpu_time_calc_neighbors() );
-            printf("CPU:  mass_sum                 time was\t %8.4f\ts\n",     get_cpu_time_mass_sum() );
+            printf("CPU:  mass_sum                time was\t %8.4f\ts\n",     get_cpu_time_mass_sum() );
+            printf("CPU:  mesh->calc_spatial_coor time was\t %8.4f\ts\n",     mesh->get_cpu_time_calc_spatial_coordinates() );
             printf("=============================================================\n");
             printf("Profiling: Total CPU          time was\t%8.4f\ts or\t%4.2f min\n",  cpu_elapsed_time, cpu_elapsed_time/60.0);      
             printf("=============================================================\n\n");
@@ -3591,6 +3593,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
                             mesh->get_gpu_time_hash_setup() +
                             mesh->get_gpu_time_calc_neighbors() +
                             get_gpu_time_mass_sum() +
+                            mesh->get_gpu_time_calc_spatial_coordinates() +
                             gpu_time_count_BCs;
          gpu_elapsed_time   = get_gpu_time_write() + gpu_time_compute + get_gpu_time_read();
 
@@ -3606,6 +3609,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
             printf("GPU:  kernel_hash_setup        time was\t %8.4f\ts\n",    (double) mesh->get_gpu_time_hash_setup()        * 1.0e-9);
             printf("GPU:  kernel_calc_neighbors    time was\t %8.4f\ts\n",    (double) mesh->get_gpu_time_calc_neighbors()    * 1.0e-9);
             printf("GPU:  kernel_mass_sum          time was\t %8.4f\ts\n",    (double) get_gpu_time_mass_sum()          * 1.0e-9);
+            printf("GPU:  kernel_calc_spatial_coor time was\t %8.4f\ts\n",    (double) mesh->get_gpu_time_calc_spatial_coordinates() * 1.0e-9);
             if (! mesh->have_boundary) {
                printf("GPU:  kernel_count_BCs         time was\t %8.4f\ts\n",    (double) gpu_time_count_BCs        * 1.0e-9);
             }

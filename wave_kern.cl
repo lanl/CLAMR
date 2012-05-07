@@ -1687,3 +1687,30 @@ void reduction_epsum_within_tile(__local  real2  *tile)
 
 }
 
+__kernel void calc_spatial_coordinates_cl(
+          const    int    isize,
+          const    real   xmin,
+          const    real   ymin,
+          __global real   *lev_deltax,
+          __global real   *lev_deltay,
+          __global real   *x,
+          __global real   *dx,
+          __global real   *y,
+          __global real   *dy,
+          __global int    *level,
+          __global int    *i,
+          __global int    *j)
+{
+   const unsigned int tiX  = get_local_id(0);
+   const unsigned int giX  = get_global_id(0);
+
+   if (giX >= isize) return;
+
+   int lev = level[giX];
+
+   x[giX] = isize;
+   x[giX]  = xmin + lev_deltax[lev] * (real)i[giX];
+   dx[giX] =        lev_deltax[lev];
+   y[giX]  = ymin + lev_deltay[lev] * (real)j[giX];
+   dy[giX] =        lev_deltay[lev];
+}
