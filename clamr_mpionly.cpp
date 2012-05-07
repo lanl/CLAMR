@@ -704,6 +704,15 @@ extern "C" void do_calc(void)
       int add_ncells = new_ncells - old_ncells;
       state_local->rezone_all_local(mesh_local, mpot, add_ncells);
       mpot.clear();
+      MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+      ndispl[0]=0;
+      for (int ip=1; ip<numpe; ip++){
+         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+      }
+      noffset=0;
+      for (int ip=0; ip<mype; ip++){
+         noffset += nsizes[ip];
+      }
 
       if (do_comparison_calc) {
          int add_ncells_global = new_ncells_global - old_ncells_global;
@@ -712,15 +721,6 @@ extern "C" void do_calc(void)
          mpot_global.clear();
 
          //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
-         MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-         ndispl[0]=0;
-         for (int ip=1; ip<numpe; ip++){
-            ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-         }
-         noffset=0;
-         for (int ip=0; ip<mype; ip++){
-           noffset += nsizes[ip];
-         }
 
          // And compare H gathered to H_global, etc
          vector<real>H_check_global(ncells_global);
