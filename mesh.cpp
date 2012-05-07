@@ -85,6 +85,11 @@ typedef unsigned int uint;
 
 #define __NEW_STENCIL__
 //#define __OLD_STENCIL__
+#define STENCIL_WARNING
+
+#ifdef STENCIL_WARNING
+int do_stencil_warning=1
+#endif
 
 extern bool localStencil;
 int calc_neighbor_type;
@@ -1111,7 +1116,9 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
 
                else { // Default to a knot 
                   order[0] = NW; order[1] = SE; order[2] = SW; order[3] = NE;
-                  printf("Nonlocal case for the stencil.\n");
+                  if (do_stencil_warning) {
+                     printf("Nonlocal case for the stencil.\n");
+                  }
                }
                //  Determine the relative orientation of the neighboring cells.
                //  There are 12 possible ways across the cell: 4 Ls and 2 straight
