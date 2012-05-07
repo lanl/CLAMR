@@ -155,8 +155,8 @@ enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
 Mesh       *mesh_global;    //  Object containing mesh information; init in grid.cpp::main().
 State      *state_global;   //  Object containing state information corresponding to mesh; init in grid.cpp::main().
-Mesh       *mesh_local;     //  Object containing mesh information; init in grid.cpp::main().
-State      *state_local;    //  Object containing state information corresponding to mesh; init in grid.cpp::main().
+Mesh       *mesh;           //  Object containing mesh information; init in grid.cpp::main().
+State      *state;    //  Object containing state information corresponding to mesh; init in grid.cpp::main().
 
 //  Set up timing information.
 struct timeval tstart, tstop, tresult;
@@ -202,11 +202,11 @@ int main(int argc, char **argv) {
    state_global->fill_circle(mesh_global, circ_radius, 100.0, 5.0);
    
    parallel_in = 1;
-   mesh_local = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
-   state_local = new State(mesh_local->ncells, context);
+   mesh = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
+   state = new State(mesh->ncells, context);
 
-   size_t &ncells = mesh_local->ncells;
-   int &noffset = mesh_local->noffset;
+   size_t &ncells = mesh->ncells;
+   int &noffset = mesh->noffset;
 
    vector<int>   &nsizes     = mesh_global->nsizes;
    vector<int>   &ndispl     = mesh_global->ndispl;
@@ -220,24 +220,24 @@ int main(int argc, char **argv) {
    vector<real>  &y_global  = mesh_global->y;
    vector<real>  &dy_global = mesh_global->dy;
 
-   vector<int>   &celltype = mesh_local->celltype;
-   vector<int>   &i        = mesh_local->i;
-   vector<int>   &j        = mesh_local->j;
-   vector<int>   &level    = mesh_local->level;
+   vector<int>   &celltype = mesh->celltype;
+   vector<int>   &i        = mesh->i;
+   vector<int>   &j        = mesh->j;
+   vector<int>   &level    = mesh->level;
 
    vector<int>   &celltype_global = mesh_global->celltype;
    vector<int>   &i_global        = mesh_global->i;
    vector<int>   &j_global        = mesh_global->j;
    vector<int>   &level_global    = mesh_global->level;
 
-   vector<real> &H = state_local->H;
-   vector<real> &U = state_local->U;
-   vector<real> &V = state_local->V;
+   vector<real> &H = state->H;
+   vector<real> &U = state->U;
+   vector<real> &V = state->V;
 
-   vector<real> &x  = mesh_local->x;
-   vector<real> &dx = mesh_local->dx;
-   vector<real> &y  = mesh_local->y;
-   vector<real> &dy = mesh_local->dy;
+   vector<real> &x  = mesh->x;
+   vector<real> &dx = mesh->dx;
+   vector<real> &y  = mesh->y;
+   vector<real> &dy = mesh->dy;
 
    ncells = ncells_global/numpe;
    if (mype < ncells_global%numpe) ncells++;
@@ -314,9 +314,9 @@ extern "C" void do_calc(void)
    int icount_global;
 
    //  Initialize state variables for GPU calculation.
-   int &mype = mesh_local->mype;
-   int &numpe = mesh_local->numpe;
-   int &noffset = mesh_local->noffset;
+   int &mype = mesh->mype;
+   int &numpe = mesh->numpe;
+   int &noffset = mesh->noffset;
 
    vector<int>   &nsizes   = mesh_global->nsizes;
    vector<int>   &ndispl   = mesh_global->ndispl;
@@ -330,33 +330,33 @@ extern "C" void do_calc(void)
    vector<int>   &nbot_global     = mesh_global->nbot;
    vector<int>   &ntop_global     = mesh_global->ntop;
 
-   vector<int>   &celltype = mesh_local->celltype;
-   vector<int>   &i        = mesh_local->i;
-   vector<int>   &j        = mesh_local->j;
-   vector<int>   &level    = mesh_local->level;
-   vector<int>   &nlft     = mesh_local->nlft;
-   vector<int>   &nrht     = mesh_local->nrht;
-   vector<int>   &nbot     = mesh_local->nbot;
-   vector<int>   &ntop     = mesh_local->ntop;
+   vector<int>   &celltype = mesh->celltype;
+   vector<int>   &i        = mesh->i;
+   vector<int>   &j        = mesh->j;
+   vector<int>   &level    = mesh->level;
+   vector<int>   &nlft     = mesh->nlft;
+   vector<int>   &nrht     = mesh->nrht;
+   vector<int>   &nbot     = mesh->nbot;
+   vector<int>   &ntop     = mesh->ntop;
 
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh_global->ncells;
-   size_t &ncells           = mesh_local->ncells;
-   size_t &ncells_ghost     = mesh_local->ncells_ghost;
-   int &cell_handle         = mesh_local->cell_handle;
+   size_t &ncells           = mesh->ncells;
+   size_t &ncells_ghost     = mesh->ncells_ghost;
+   int &cell_handle         = mesh->cell_handle;
 
    vector<real>  &H_global = state_global->H;
    vector<real>  &U_global = state_global->U;
    vector<real>  &V_global = state_global->V;
 
-   vector<real>  &H = state_local->H;
-   vector<real>  &U = state_local->U;
-   vector<real>  &V = state_local->V;
+   vector<real>  &H = state->H;
+   vector<real>  &U = state->U;
+   vector<real>  &V = state->V;
 
-   vector<real>  &x  = mesh_local->x;
-   vector<real>  &dx = mesh_local->dx;
-   vector<real>  &y  = mesh_local->y;
-   vector<real>  &dy = mesh_local->dy;
+   vector<real>  &x  = mesh->x;
+   vector<real>  &dx = mesh->dx;
+   vector<real>  &y  = mesh->y;
+   vector<real>  &dy = mesh->dy;
 
    vector<real>  &x_global  = mesh_global->x;
    vector<real>  &dx_global = mesh_global->dx;
@@ -403,14 +403,14 @@ extern "C" void do_calc(void)
       tresult.tv_usec = tstop.tv_usec - tstart.tv_usec;
       double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
       
-      state_local->output_timing_info(mesh_local, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
+      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
       if (do_comparison_calc) {
          state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
       }
 
-      mesh_local->print_partition_measure();
-      mesh_local->print_calc_neighbor_type();
-      mesh_local->print_partition_type();
+      mesh->print_partition_measure();
+      mesh->print_calc_neighbor_type();
+      mesh->print_partition_type();
 
       L7_Terminate();
       exit(0);
@@ -424,7 +424,7 @@ extern "C" void do_calc(void)
 
       char filename[10];
       sprintf(filename,"out%1d",mype);
-      mesh_local->fp=fopen(filename,"w");
+      mesh->fp=fopen(filename,"w");
 
       //mesh->print_local();
    }
@@ -442,7 +442,7 @@ extern "C" void do_calc(void)
       size_t new_ncells_global = 0;
 
       //  Calculate the real time step for the current discrete time step.
-      double deltaT = state_local->set_timestep(mesh_local, g, sigma);
+      double deltaT = state->set_timestep(mesh, g, sigma);
 
       //  Compare time step values and pass deltaT in to the kernel.
       if (do_comparison_calc) {
@@ -454,7 +454,7 @@ extern "C" void do_calc(void)
          }
       }
 
-      mesh_local->calc_neighbors_local();
+      mesh->calc_neighbors_local();
 
       H.resize(ncells_ghost,0.0);
       U.resize(ncells_ghost,0.0);
@@ -607,7 +607,7 @@ extern "C" void do_calc(void)
          
       }
 
-      mesh_local->partition_measure();
+      mesh->partition_measure();
 
       // Currently not working -- may need to be earlier?
       //if (mesh->have_boundary) {
@@ -615,7 +615,7 @@ extern "C" void do_calc(void)
       //}
 
       // Need ghost cells for this routine
-      state_local->apply_boundary_conditions(mesh_local);
+      state->apply_boundary_conditions(mesh);
 
       if (do_comparison_calc) {
         state_global->apply_boundary_conditions(mesh_global);
@@ -624,7 +624,7 @@ extern "C" void do_calc(void)
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
-      state_local->calc_finite_difference_local(mesh_local, deltaT);
+      state->calc_finite_difference_local(mesh, deltaT);
 
       if (do_comparison_calc) {
          state_global->calc_finite_difference(mesh_global, deltaT);
@@ -644,7 +644,7 @@ extern "C" void do_calc(void)
       }
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
-      state_local->remove_boundary_cells(mesh_local);
+      state->remove_boundary_cells(mesh);
 
       if (do_comparison_calc) {
          state_global->remove_boundary_cells(mesh_global);
@@ -665,7 +665,7 @@ extern "C" void do_calc(void)
       }  //  Complete NAN check.
       
       mpot.resize(ncells);
-      state_local->calc_refine_potential_local(mesh_local, mpot, icount, jcount);
+      state->calc_refine_potential_local(mesh, mpot, icount, jcount);
       nlft.clear();
       nrht.clear();
       nbot.clear();
@@ -695,14 +695,14 @@ extern "C" void do_calc(void)
          }    
       }
 
-      new_ncells = old_ncells+mesh_local->rezone_count(mpot);
+      new_ncells = old_ncells+mesh->rezone_count(mpot);
 
       if (do_comparison_calc) {
          new_ncells_global = old_ncells_global+mesh_global->rezone_count(mpot_global);
       }
 
       int add_ncells = new_ncells - old_ncells;
-      state_local->rezone_all_local(mesh_local, mpot, add_ncells);
+      state->rezone_all_local(mesh, mpot, add_ncells);
       mpot.clear();
       MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
       ndispl[0]=0;
@@ -763,7 +763,7 @@ extern "C" void do_calc(void)
       double H_sum = -1.0;
 
       if (do_comparison_calc) {
-         H_sum = state_local->mass_sum_local(mesh_local, enhanced_precision_sum);
+         H_sum = state->mass_sum_local(mesh, enhanced_precision_sum);
 
          double H_sum_global = state_global->mass_sum(mesh_global, enhanced_precision_sum);
 
@@ -773,10 +773,10 @@ extern "C" void do_calc(void)
          }
       }
 
-      mesh_local->proc.resize(ncells);
+      mesh->proc.resize(ncells);
       if (icount) {
          vector<int> index(ncells);
-         mesh_local->partition_cells(numpe, mesh_local->proc, index, cycle_reorder);
+         mesh->partition_cells(numpe, mesh->proc, index, cycle_reorder);
       }
 
       if (do_comparison_calc) {
@@ -791,7 +791,7 @@ extern "C" void do_calc(void)
 
       if (n % outputInterval == 0) {
          if (H_sum < 0) {
-            H_sum = state_local->mass_sum_local(mesh_local, enhanced_precision_sum);
+            H_sum = state->mass_sum_local(mesh, enhanced_precision_sum);
          }
          if (mype == 0){
             printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
