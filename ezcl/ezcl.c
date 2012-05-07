@@ -159,19 +159,19 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
       for (int iplatform=0; iplatform<nPlatforms; iplatform++){
          printf("  Platform %d:\n",iplatform+1);
       
-         //clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_PROFILE,   1024,info,0);
+         //clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_PROFILE,   1024L,info,0);
          //printf("    CL_PLATFORM_PROFILE    : %s\n",info);
       
-         clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_VERSION,   1024,info,0);
+         clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_VERSION,   1024L,info,0);
          printf("    CL_PLATFORM_VERSION    : %s\n",info);
       
-         clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_NAME,      1024,info,0);
+         clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_NAME,      1024L,info,0);
          printf("    CL_PLATFORM_NAME       : %s\n",info);
       
-         clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_VENDOR,    1024,info,0);
+         clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_VENDOR,    1024L,info,0);
          printf("    CL_PLATFORM_VENDOR     : %s\n",info);
       
-         //clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_EXTENSIONS,1024,info,0);
+         //clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_EXTENSIONS,1024L,info,0);
          //printf("    CL_PLATFORM_EXTENSIONS : %s\n",info);
       }
       printf("\n");
@@ -294,7 +294,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_contex
 
    cl_uint nPlatforms;
    //cl_uint nDevices;
-   cl_uint platform_selected = -1;
+   cl_int platform_selected = -1;
 
    // Get the number of platforms first, then allocate and get the platform
    ierr = clGetPlatformIDs(0, NULL, &nPlatforms);
@@ -329,19 +329,19 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_contex
       for (int iplatform=0; iplatform<nPlatforms; iplatform++){
          printf("  Platform %d:\n",iplatform+1);
 
-         //clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_PROFILE,   1024,info,0);
+         //clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_PROFILE,   1024L,info,0);
          //printf("    CL_PLATFORM_PROFILE    : %s\n",info);
 
-         clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_VERSION,   1024,info,0);
+         clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_VERSION,   1024L,info,0);
          printf("    CL_PLATFORM_VERSION    : %s\n",info);
 
-         clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_NAME,      1024,info,0);
+         clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_NAME,      1024L,info,0);
          printf("    CL_PLATFORM_NAME       : %s\n",info);
 
-         clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_VENDOR,    1024,info,0);
+         clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_VENDOR,    1024L,info,0);
          printf("    CL_PLATFORM_VENDOR     : %s\n",info);
 
-         //clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_EXTENSIONS,1024,info,0);
+         //clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_EXTENSIONS,1024L,info,0);
          //printf("    CL_PLATFORM_EXTENSIONS : %s\n",info);
       }
       printf("\n");
@@ -651,11 +651,11 @@ cl_mem ezcl_malloc_p(void *host_mem_ptr, size_t dims[], size_t elsize, int flags
          ezcl_device_memory_add(buf_mem_ptr, size);
 
          if (flags & CL_MEM_READ_ONLY){
-           mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, CL_MAP_WRITE, 0, size, 0, NULL, NULL, NULL);
+           mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, CL_MAP_WRITE, 0L, size, 0, NULL, NULL, NULL);
          }else if (flags & CL_MEM_WRITE_ONLY){
-           mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, CL_MAP_READ, 0, size, 0, NULL, NULL, NULL);
+           mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, CL_MAP_READ, 0L, size, 0, NULL, NULL, NULL);
          } else {
-           mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, 0, 0, size, 0, NULL, NULL, NULL);
+           mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, 0L, 0L, size, 0, NULL, NULL, NULL);
          }
          ezcl_mapped_memory_add(mem_ptr, size);
 
@@ -877,10 +877,10 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
    }
    
    stat(filename, &statbuf);
-   source = (char *)malloc(statbuf.st_size + 1);
-   ezcl_malloc_memory_add(source, statbuf.st_size + 1);
+   source = (char *)malloc((unsigned)(statbuf.st_size + 1));
+   ezcl_malloc_memory_add(source, (unsigned)(statbuf.st_size + 1));
    
-   if (fread(source, statbuf.st_size, 1, fh) != 1) {
+   if (fread(source, statbuf.st_size, 1L, fh) != 1) {
       printf("ERROR: problem reading program source file %s\n",filename);
       exit(-1);
    }
@@ -930,7 +930,7 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
           break;
         case CL_BUILD_PROGRAM_FAILURE:
           printf("Build program failure in clBuildProgram\n");
-          ierr = clGetProgramBuildInfo(program, ezcl_get_device(context), CL_PROGRAM_BUILD_LOG, 0, NULL, &nReportSize);
+          ierr = clGetProgramBuildInfo(program, ezcl_get_device(context), CL_PROGRAM_BUILD_LOG, 0L, NULL, &nReportSize);
           if (ierr != CL_SUCCESS) {
             switch (ierr){
                case CL_INVALID_DEVICE:
@@ -1093,7 +1093,7 @@ void ezcl_enqueue_ndrange_kernel_p(cl_command_queue command_queue, cl_kernel ker
    }
 }
 
-void ezcl_set_kernel_arg_p(cl_kernel kernel, cl_int arg_index, size_t arg_size, const void *arg_value, const char *file, const int line)
+void ezcl_set_kernel_arg_p(cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value, const char *file, const int line)
 {
    int ierr;
    ierr=clSetKernelArg(kernel, arg_index, arg_size, arg_value);
@@ -1365,10 +1365,10 @@ void ezcl_print_error(const int ierr, const char *routine, const char *cl_routin
 void *genvector_p(int inum, size_t elsize, const char *file, const int line)
 {
    void *out;
-   int mem_size;
+   size_t mem_size;
 
    mem_size = inum*elsize;
-   out      = (void *)calloc(inum, elsize);
+   out      = (void *)calloc((size_t)inum, elsize);
    ezcl_malloc_memory_add(out, mem_size);
 
    return (out);
@@ -1382,14 +1382,14 @@ void genvectorfree_p(void *var, const char *file, const int line)
 void **genmatrix_p(int jnum, int inum, size_t elsize, const char *file, const int line)
 {
    void **out;
-   int mem_size;
+   size_t mem_size;
   
    mem_size = jnum*sizeof(void *);
    out      = (void **)malloc(mem_size);
    ezcl_malloc_memory_add(out, mem_size);
   
    mem_size = jnum*inum*elsize;
-   out[0]    = (void *)calloc(jnum*inum, elsize);
+   out[0]    = (void *)calloc((size_t)jnum*(size_t)inum, elsize);
    ezcl_malloc_memory_add(out[0], mem_size);
   
    for (int i = 1; i < jnum; i++) {
@@ -1408,7 +1408,7 @@ void genmatrixfree_p(void **var, const char *file, const int line)
 void ***gentrimatrix_p(int knum, int jnum, int inum, size_t elsize, const char *file, const int line)
 {
    void ***out;
-   int mem_size;
+   size_t mem_size;
 
    mem_size  = knum*sizeof(void **);
    out       = (void ***)malloc(mem_size);
@@ -1419,7 +1419,7 @@ void ***gentrimatrix_p(int knum, int jnum, int inum, size_t elsize, const char *
    ezcl_malloc_memory_add(out[0], mem_size);
 
    mem_size  = knum*jnum*inum*elsize;
-   out[0][0] = (void *)calloc(knum*jnum*inum, elsize);
+   out[0][0] = (void *)calloc((size_t)knum*(size_t)jnum*(size_t)inum, elsize);
    ezcl_malloc_memory_add(out[0][0], mem_size);
 
    for (int k = 0; k < knum; k++)

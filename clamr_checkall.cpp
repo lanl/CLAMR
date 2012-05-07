@@ -705,7 +705,7 @@ extern "C" void do_calc(void)
       if (do_comparison_calc) {
          // Checking CPU parallel to CPU global
          vector<int> Test(ncells_ghost);
-         for(int ic=0; ic<ncells; ic++){
+         for(uint ic=0; ic<ncells; ic++){
             Test[ic] = mype*1000 +ic;
          }
          L7_Update(&Test[0], L7_INT, cell_handle);
@@ -717,27 +717,27 @@ extern "C" void do_calc(void)
          vector<int> Test_check_global(ncells_global);
 
          // ==================== check left value ====================
-         for (int ic=0; ic<ncells; ic++){
+         for (uint ic=0; ic<ncells; ic++){
             Test_check[ic] = Test[nlft[ic]];
             //if (mype == 1 && ic==0) printf("%d: nlft check for ic 0 is %d\n",mype,nlft[0]);
          }
 
          MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
-         for (int ic=0; ic<ncells_global; ic++){
+         for (uint ic=0; ic<ncells_global; ic++){
             //if (Test_global[nlft_global[ic]] != Test_check_global[ic]) {
                //if (mype == 0) printf("%d: Error with nlft for cell %d -- nlft %d global %d check %d\n",mype,ic,nlft_global[ic],Test_global[nlft_global[ic]],Test_check_global[ic]);
             //}
          }
          
          // ==================== check left left value ====================
-         for (int ic=0; ic<ncells; ic++){
+         for (uint ic=0; ic<ncells; ic++){
             Test_check[ic] = Test[nlft[nlft[ic]]];
          }
 
          MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
-         for (int ic=0; ic<ncells_global; ic++){
+         for (uint ic=0; ic<ncells_global; ic++){
             if (Test_global[nlft_global[nlft_global[ic]]] != Test_check_global[ic]) {
                printf("%d: Error with nlft nlft for cell %5d -- nlftg %5d nlftg nlftg %5d global %5d\n",
                   mype,ic,nlft_global[ic],nlft_global[nlft_global[ic]],Test_global[nlft_global[nlft_global[ic]]]);
@@ -747,26 +747,26 @@ extern "C" void do_calc(void)
          }
          
          // ==================== check right value ====================
-         for (int ic=0; ic<ncells; ic++){
+         for (uint ic=0; ic<ncells; ic++){
             Test_check[ic] = Test[nrht[ic]];
          }
 
          MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
-         for (int ic=0; ic<ncells_global; ic++){
+         for (uint ic=0; ic<ncells_global; ic++){
             if (Test_global[nrht_global[ic]] != Test_check_global[ic]) {
                if (mype == 0) printf("%d: Error with nrht for cell %d -- %d %d\n",mype,ic,Test_global[nrht_global[ic]],Test_check_global[ic]);
             }
          }
          
          // ==================== check right right value ====================
-         for (int ic=0; ic<ncells; ic++){
+         for (uint ic=0; ic<ncells; ic++){
             Test_check[ic] = Test[nrht[nrht[ic]]];
          }
 
          MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
-         for (int ic=0; ic<ncells_global; ic++){
+         for (uint ic=0; ic<ncells_global; ic++){
             if (Test_global[nrht_global[nrht_global[ic]]] != Test_check_global[ic]) {
                printf("%d: Error with nrht nrht for cell %5d -- nrhtg %5d nrhtg nrhtg %5d global %5d\n",
                   mype,ic,nrht_global[ic],nrht_global[nrht_global[ic]],Test_global[nrht_global[nrht_global[ic]]]);
@@ -776,26 +776,26 @@ extern "C" void do_calc(void)
          }
          
          // ==================== check bottom value ====================
-         for (int ic=0; ic<ncells; ic++){
+         for (uint ic=0; ic<ncells; ic++){
             Test_check[ic] = Test[nbot[ic]];
          }
 
          MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
-         for (int ic=0; ic<ncells_global; ic++){
+         for (uint ic=0; ic<ncells_global; ic++){
             if (Test_global[nbot_global[ic]] != Test_check_global[ic]) {
                if (mype == 0) printf("%d: Error with nbot for cell %d -- %d %d\n",mype,ic,Test_global[nbot_global[ic]],Test_check_global[ic]);
             }
          }
          
          // ==================== check bottom bottom value ====================
-         for (int ic=0; ic<ncells; ic++){
+         for (uint ic=0; ic<ncells; ic++){
             Test_check[ic] = Test[nbot[nbot[ic]]];
          }
 
          MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
-         for (int ic=0; ic<ncells_global; ic++){
+         for (uint ic=0; ic<ncells_global; ic++){
             if (Test_global[nbot_global[nbot_global[ic]]] != Test_check_global[ic]) {
                printf("%d: Error with nbot nbot for cell %5d -- nbotg %5d nbotg nbotg %5d global %5d\n",
                   mype,ic,nbot_global[ic],nbot_global[nbot_global[ic]],Test_global[nbot_global[nbot_global[ic]]]);
@@ -805,26 +805,26 @@ extern "C" void do_calc(void)
          }
          
          // ==================== check top value ====================
-         for (int ic=0; ic<ncells; ic++){
+         for (uint ic=0; ic<ncells; ic++){
             Test_check[ic] = Test[ntop[ic]];
          }
 
          MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
-         for (int ic=0; ic<ncells_global; ic++){
+         for (uint ic=0; ic<ncells_global; ic++){
             if (Test_global[ntop_global[ic]] != Test_check_global[ic]) {
                if (mype == 0) printf("%d: Error with ntop for cell %d -- %d %d\n",mype,ic,Test_global[ntop_global[ic]],Test_check_global[ic]);
             }
          }
 
          // ==================== check top top value ====================
-         for (int ic=0; ic<ncells; ic++){
+         for (uint ic=0; ic<ncells; ic++){
             Test_check[ic] = Test[ntop[ntop[ic]]];
          }
 
          MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
-         for (int ic=0; ic<ncells_global; ic++){
+         for (uint ic=0; ic<ncells_global; ic++){
             if (Test_global[ntop_global[ntop_global[ic]]] != Test_check_global[ic]) {
                printf("%d: Error with ntop ntop for cell %5d -- ntopg %5d ntopg ntopg %5d global %5d\n",
                   mype,ic,ntop_global[ic],ntop_global[ntop_global[ic]],Test_global[ntop_global[ntop_global[ic]]]);
@@ -843,7 +843,7 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells_ghost*sizeof(cl_int),  &nbot_check[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells_ghost*sizeof(cl_int),  &ntop_check[0], NULL);
 
-         for (int ic=0; ic<ncells_ghost; ic++){
+         for (uint ic=0; ic<ncells_ghost; ic++){
             if (nlft[ic] != nlft_check[ic]) printf("%d: Error with gpu calculated nlft for cell %d nlft %d check %d\n",mype,ic,nlft[ic],nlft_check[ic]);
             if (nrht[ic] != nrht_check[ic]) printf("%d: Error with gpu calculated nrht for cell %d nrht %d check %d\n",mype,ic,nrht[ic],nrht_check[ic]);
             if (nbot[ic] != nbot_check[ic]) printf("%d: Error with gpu calculated nbot for cell %d nbot %d check %d\n",mype,ic,nbot[ic],nbot_check[ic]);
@@ -860,7 +860,7 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_nbot_global, CL_FALSE, 0, ncells_global*sizeof(cl_int), &nbot_global_check[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_ntop_global, CL_TRUE,  0, ncells_global*sizeof(cl_int), &ntop_global_check[0], NULL);
 
-         for (int ic=0; ic<ncells_global; ic++){
+         for (uint ic=0; ic<ncells_global; ic++){
             if (nlft_global[ic] != nlft_global_check[ic]) printf("%d: Error with gpu calculated nlft for cell %d nlft %d check %d\n",mype,ic,nlft_global[ic],nlft_global_check[ic]);
             if (nrht_global[ic] != nrht_global_check[ic]) printf("%d: Error with gpu calculated nrht for cell %d nrht %d check %d\n",mype,ic,nrht_global[ic],nrht_global_check[ic]);
             if (nbot_global[ic] != nbot_global_check[ic]) printf("%d: Error with gpu calculated nbot for cell %d nbot %d check %d\n",mype,ic,nbot_global[ic],nbot_global_check[ic]);
@@ -902,7 +902,7 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_save[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_save[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_save[0], NULL);
-         for (int ic = 0; ic < ncells; ic++){
+         for (uint ic = 0; ic < ncells; ic++){
             if (fabs(H[ic]-H_save[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 1 at cycle %d H & H_save %d %lf %lf \n",mype,n,ic,H[ic],H_save[ic]);
             if (fabs(U[ic]-U_save[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 1 at cycle %d U & U_save %d %lf %lf \n",mype,n,ic,U[ic],U_save[ic]);
             if (fabs(V[ic]-V_save[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 1 at cycle %d V & V_save %d %lf %lf \n",mype,n,ic,V[ic],V_save[ic]);
@@ -916,7 +916,7 @@ extern "C" void do_calc(void)
          MPI_Allgatherv(&U_save[0], nsizes[mype], MPI_C_REAL, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
          MPI_Allgatherv(&V_save[0], nsizes[mype], MPI_C_REAL, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
          if (mype == 0) {
-            for (int ic = 0; ic < ncells_global; ic++){
+            for (uint ic = 0; ic < ncells_global; ic++){
                if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 2 at cycle %d H_global & H_save_global %d %lf %lf \n",mype,n,ic,H_global[ic],H_save_global[ic]);
                if (fabs(U_global[ic]-U_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 2 at cycle %d U_global & U_save_global %d %lf %lf \n",mype,n,ic,U_global[ic],U_save_global[ic]);
                if (fabs(V_global[ic]-V_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 2 at cycle %d V_global & V_save_global %d %lf %lf \n",mype,n,ic,V_global[ic],V_save_global[ic]);
@@ -927,7 +927,7 @@ extern "C" void do_calc(void)
          MPI_Allgatherv(&H[0], nsizes[mype], MPI_C_REAL, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
          MPI_Allgatherv(&U[0], nsizes[mype], MPI_C_REAL, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
          MPI_Allgatherv(&V[0], nsizes[mype], MPI_C_REAL, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-         for (int ic = 0; ic < ncells_global; ic++){
+         for (uint ic = 0; ic < ncells_global; ic++){
             if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("DEBUG finite_difference 3 at cycle %d H_global & H_save_global %d %lf %lf \n",n,ic,H_global[ic],H_save_global[ic]);
             if (fabs(U_global[ic]-U_save_global[ic]) > STATE_EPS) printf("DEBUG finite_difference 3 at cycle %d U_global & U_save_global %d %lf %lf \n",n,ic,U_global[ic],U_save_global[ic]);
             if (fabs(V_global[ic]-V_save_global[ic]) > STATE_EPS) printf("DEBUG finite_difference 3 at cycle %d V_global & V_save_global %d %lf %lf \n",n,ic,V_global[ic],V_save_global[ic]);
@@ -938,7 +938,7 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real), &U_save_global[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_real), &V_save_global[0], NULL);
          if (mype == 0) {
-            for (int ic = 0; ic < ncells_global; ic++){
+            for (uint ic = 0; ic < ncells_global; ic++){
                if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 4 at cycle %d H_global & H_save_global %d %lf %lf \n",mype,n,ic,H_global[ic],H_save_global[ic]);
                if (fabs(U_global[ic]-U_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 4 at cycle %d U_global & U_save_global %d %lf %lf \n",mype,n,ic,U_global[ic],U_save_global[ic]);
                if (fabs(V_global[ic]-V_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 4 at cycle %d V_global & V_save_global %d %lf %lf \n",mype,n,ic,V_global[ic],V_save_global[ic]);
@@ -953,7 +953,7 @@ extern "C" void do_calc(void)
       }
       
       //  Check for NANs.
-      for (int ic=0; ic<ncells; ic++) {
+      for (uint ic=0; ic<ncells; ic++) {
          if (isnan(H[ic]))
          {  printf("Got a NAN on cell %d cycle %d\n",ic,n);
             H[ic]=0.0;
@@ -1020,7 +1020,7 @@ extern "C" void do_calc(void)
          // Need to compare dev_mpot to mpot
          vector<int>mpot_save(ncells);
          ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_save[0], NULL);
-         for (int ic = 0; ic < ncells; ic++){
+         for (uint ic = 0; ic < ncells; ic++){
             if (mpot[ic] != mpot_save[ic]) {
                printf("%d: DEBUG refine_potential 1 at cycle %d cell %d mpot & mpot_save %d %d \n",mype,n,ic,mpot[ic],mpot_save[ic]);
             }    
@@ -1029,7 +1029,7 @@ extern "C" void do_calc(void)
          // Compare dev_mpot to mpot_global
          vector<int>mpot_save_global(ncells_global);
          MPI_Allgatherv(&mpot_save[0], nsizes[mype], MPI_INT, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-         for (int ic = 0; ic < ncells_global; ic++){
+         for (uint ic = 0; ic < ncells_global; ic++){
             if (mpot_global[ic] != mpot_save_global[ic]) {
                if (mype == 0) printf("%d: DEBUG refine_potential 2 at cycle %d cell %d mpot_global & mpot_save_global %d %d \n",mype,n,ic,mpot_global[ic],mpot_save_global[ic]);
             }    
@@ -1037,7 +1037,7 @@ extern "C" void do_calc(void)
 
          // Compare mpot to mpot_global
          MPI_Allgatherv(&mpot[0], nsizes[mype], MPI_INT, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-         for (int ic = 0; ic < ncells_global; ic++){
+         for (uint ic = 0; ic < ncells_global; ic++){
             if (mpot_global[ic] != mpot_save_global[ic]) {
                if (mype == 0) printf("%d: DEBUG refine_potential 3 at cycle %d cell %d mpot_global & mpot_save_global %d %d \n",mype,n,ic,mpot_global[ic],mpot_save_global[ic]);
             }    
@@ -1045,9 +1045,9 @@ extern "C" void do_calc(void)
 
          // Compare dev_mpot_global to mpot_global
          ezcl_enqueue_read_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_int), &mpot_save_global[0], NULL);
-         for (int ic = 0; ic < ncells_global; ic++){
+         for (uint ic = 0; ic < ncells_global; ic++){
             if (mpot_global[ic] != mpot_save_global[ic]) {
-               if (mype == 0) printf("%d: DEBUG refine_potential 4 at cycle %d mpot_global & mpot_save_global %d %d \n",mype,n,ic,mpot_global[ic],mpot_save_global[ic]);
+               if (mype == 0) printf("%d: DEBUG refine_potential 4 at cycle %d cell %u mpot_global & mpot_save_global %d %d \n",mype,n,ic,mpot_global[ic],mpot_save_global[ic]);
             }    
          }    
       }
@@ -1068,9 +1068,9 @@ extern "C" void do_calc(void)
          // This compares ioffset for each block in the calculation
          ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
          mtotal = 0;
-         for (int ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
+         for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
             mcount = 0;
-            for (int ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
+            for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
                 if (ic >= old_ncells) break;
                 if (celltype[ic] == REAL_CELL) {
                    mcount += mpot[ic] ? 4 : 1;
@@ -1086,9 +1086,9 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_ioffset_global, CL_TRUE, 0, block_size_global*sizeof(cl_int),       &ioffset_global[0], NULL);
          mtotal = 0;
          int count = 0;
-         for (int ig=0; ig<(old_ncells_global+TILE_SIZE-1)/TILE_SIZE; ig++){
+         for (uint ig=0; ig<(old_ncells_global+TILE_SIZE-1)/TILE_SIZE; ig++){
             mcount = 0;
-            for (int ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
+            for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
                 if (ic >= old_ncells_global) break;
                 if (celltype_global[ic] == REAL_CELL) {
                    mcount += mpot_global[ic] ? 4 : 1;
@@ -1106,9 +1106,9 @@ extern "C" void do_calc(void)
 
       }
       if (do_gpu_sync) {
-        for (int ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
+        for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
            mcount = 0;
-           for (int ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
+           for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
                if (ic >= old_ncells) break;
                if (celltype[ic] == REAL_CELL) {
                   mcount += mpot[ic] ? 4 : 1;
@@ -1119,9 +1119,9 @@ extern "C" void do_calc(void)
            ioffset[ig] = mcount;
         }
         ezcl_enqueue_write_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
-        for (int ig=0; ig<(old_ncells_global+TILE_SIZE-1)/TILE_SIZE; ig++){
+        for (uint ig=0; ig<(old_ncells_global+TILE_SIZE-1)/TILE_SIZE; ig++){
            mcount = 0;
-           for (int ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
+           for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
                if (ic >= old_ncells_global) break;
                if (celltype_global[ic] == REAL_CELL) {
                   mcount += mpot_global[ic] ? 4 : 1;

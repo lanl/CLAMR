@@ -58,7 +58,7 @@
 #include "KDTree.h"
 
 static void median_sort(TKDTree* t,
-                        int cut_direction, int k, int num, int* idx)
+                        unsigned int cut_direction, int k, int num, int* idx)
 {
    int left, mid, right, a, i, j;
    
@@ -167,7 +167,8 @@ void KDTree_AddElement(TKDTree* t, TBounds* add)
 
 void KDTree_CreateTree(TKDTree* t)
 {
-   int i, next_node, stack_ptr, min, mid, max, parent, cut_direction;
+   unsigned int i;
+   int next_node, stack_ptr, min, mid, max, parent, cut_direction;
    double width, max_width;
    int* stack;
    int* idx;
@@ -223,7 +224,7 @@ void KDTree_CreateTree(TKDTree* t)
             is the center point of the element bounding boxes along the selected
             cutting direction. */
          mid = (min + max) /2;
-         median_sort(t, cut_direction, mid - min, max - min + 1, &(idx[min]));
+         median_sort(t, (unsigned int)cut_direction, mid - min, max - min + 1, &(idx[min]));
          /* Give the parent a reference to its two children */
          t->tree_link[parent] = next_node;
          /* Add the "left" child to the tree and the stack */

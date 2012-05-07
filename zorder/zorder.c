@@ -107,7 +107,7 @@ unsigned long long index_to_bit(unsigned long long index,
    unsigned long long ii, ibit;
    ii = index - ibase;
    if (lev < levmx)
-   {   ii = ii * pow(2, (levmx - lev)); }
+   {   ii = ii * pow((double)2, (double)(levmx - lev)); }
    ibit = ii;
    ibit = (ibit | (ibit << S[3])) & B[3];
    ibit = (ibit | (ibit << S[2])) & B[2];

@@ -226,7 +226,7 @@ void ezcl_enqueue_read_buffer_p(cl_command_queue command_queue, cl_mem mem_buffe
                               size_t offset, size_t size, void *ptr, cl_event *event, const char *file, const int line);
 void ezcl_enqueue_ndrange_kernel_p(cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim,
                                  const size_t *global_work_offset, const size_t *global_work_size, const size_t *local_work_size, cl_event *event, const char *file, const int line);
-void ezcl_set_kernel_arg_p(cl_kernel kernel, cl_int arg_index, size_t arg_size, const void *arg_value, const char *file, const int line);
+void ezcl_set_kernel_arg_p(cl_kernel kernel, cl_uint arg_index, size_t arg_size, const void *arg_value, const char *file, const int line);
 void ezcl_flush_p(cl_command_queue command_queue, const char *file, const int line);
 void ezcl_finish_p(cl_command_queue command_queue, const char *file, const int line);
 void ezcl_get_event_profiling_info_p(cl_event event, cl_profiling_info param_name, size_t param_value_size, void *param_value, const char *file, const int line);

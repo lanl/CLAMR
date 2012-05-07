@@ -94,7 +94,7 @@ boolean Bounds_IsOverlappingBounds(TBounds* b, TBounds* tst) {
    return(true);
 }
 
-double Bounds_WidthAxis(TBounds* b, unsigned long axis)
+double Bounds_WidthAxis(TBounds* b, unsigned int axis)
 {
    double width;
    
@@ -108,7 +108,7 @@ double Bounds_WidthAxis(TBounds* b, unsigned long axis)
    return(width);
 }
 
-double Bounds_CenterAxis(TBounds* b, unsigned long axis)
+double Bounds_CenterAxis(TBounds* b, unsigned int axis)
 {
    double center;
    

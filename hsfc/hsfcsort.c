@@ -114,7 +114,7 @@ void hsfc2sort(
   const double imax = ((double) ~(0u)) ;
 
   const unsigned ldinfo = LDInfo ;
-  const unsigned npt    = N ;
+  const unsigned long long npt    = N ;
   const unsigned nkey   = NKEY(2) ;
   const unsigned ldT    = nkey + 1 ;
 
@@ -195,7 +195,7 @@ void hsfc3sort(
   const double imax = ((double) ~(0u)) ;
 
   const unsigned ldinfo = LDInfo ;
-  const unsigned npt    = N ;
+  const unsigned long long npt    = N ;
   const unsigned nkey   = NKEY(3) ;
   const unsigned ldT    = nkey + 1 ;
 

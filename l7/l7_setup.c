@@ -267,7 +267,7 @@ int L7_Setup(
 					ierr);
 		}
 		
-		l7_id_db = (l7_id_database*)calloc(1, sizeof(l7_id_database) );
+		l7_id_db = (l7_id_database*)calloc(1L, sizeof(l7_id_database) );
 		
 		if (l7_id_db == NULL){
 			ierr = -1;
@@ -334,7 +334,7 @@ int L7_Setup(
 			 free(l7_id_db->indices_needed);
 			 
 		l7_id_db->indices_needed =
-			 (int *)calloc(num_indices_needed, (int)sizeof(int) );
+			 (int *)calloc((unsigned long long)num_indices_needed, sizeof(int) );
 			 
 		if (l7_id_db->indices_needed == NULL){
 			 ierr = -1;
@@ -394,7 +394,7 @@ int L7_Setup(
 	 */
 	
 	l7_id_db->starting_indices =
-		(int *)calloc(numpes+1, (int)sizeof(int));
+		(int *)calloc((unsigned long long)(numpes+1), sizeof(int));
 	if(l7_id_db->starting_indices == NULL){
 		ierr = -1;
 		L7_ASSERT(l7_id_db->starting_indices != NULL,
@@ -475,7 +475,7 @@ int L7_Setup(
 			free(l7_id_db->recv_counts);
 		
 		l7_id_db->recv_counts = 
-			(int *)calloc(l7_id_db->num_recvs, (int)sizeof(int) );
+			(int *)calloc((unsigned long long)l7_id_db->num_recvs, sizeof(int) );
 		if (l7_id_db->recv_counts == NULL){
 			ierr = -1;
 			L7_ASSERT(l7_id_db->recv_counts != NULL,
@@ -493,7 +493,7 @@ int L7_Setup(
 			free(l7_id_db->recv_from);
 		
 		l7_id_db->recv_from =
-			(int *)calloc(l7_id_db->num_recvs, (int) sizeof (int) );
+			(int *)calloc((unsigned long long)l7_id_db->num_recvs, sizeof(int) );
 		
 	if (l7_id_db->recv_from == NULL){
 		ierr = -1;
@@ -565,7 +565,7 @@ int L7_Setup(
 	   if (l7.send_buffer)
 	      free(l7.send_buffer);
 	   
-	   l7.send_buffer = calloc (2*numpes, (int)sizeof(int));
+	   l7.send_buffer = calloc ((unsigned long long)(2*numpes), sizeof(int));
 	   if (l7.send_buffer == NULL){
 	      ierr = -1;
 	      L7_ASSERT(l7.send_buffer != NULL, "No memory for send buffer", ierr);
@@ -608,7 +608,7 @@ int L7_Setup(
 	   if (l7_id_db->mpi_request)
 	      free(l7_id_db->mpi_request);
 	   
-	   l7_id_db->mpi_request = (MPI_Request *) calloc (num_msgs, (int)sizeof(MPI_Request));
+	   l7_id_db->mpi_request = (MPI_Request *) calloc ((unsigned long long)num_msgs, sizeof(MPI_Request));
 	   
 	  if (l7_id_db->mpi_request == NULL){
 	     ierr = -1;
@@ -622,7 +622,7 @@ int L7_Setup(
 	   if (l7_id_db->mpi_status)
 	      free(l7_id_db->mpi_status);
 	   
-	   l7_id_db->mpi_status = (MPI_Status *) calloc(num_msgs, (int)sizeof(MPI_Status) );
+	   l7_id_db->mpi_status = (MPI_Status *) calloc((unsigned long long)num_msgs, sizeof(MPI_Status) );
 	   if (l7_id_db->mpi_status == NULL){
 	      ierr = -1;
 	      L7_ASSERT(l7_id_db->mpi_status != NULL,
@@ -664,7 +664,7 @@ int L7_Setup(
 	   if (l7_id_db->send_counts)
 	      free(l7_id_db->send_counts);
 	   
-	   l7_id_db->send_counts = (int *) calloc(l7_id_db->num_sends, (int)sizeof(int) );
+	   l7_id_db->send_counts = (int *) calloc((unsigned long long)l7_id_db->num_sends, sizeof(int) );
 	   if (l7_id_db->send_counts == NULL){
 	      ierr = -1;
 	      L7_ASSERT(l7_id_db->send_counts != NULL,
@@ -677,7 +677,7 @@ int L7_Setup(
 	   if (l7_id_db->send_to)
 	      free(l7_id_db->send_to);
 	   
-	   l7_id_db->send_to = (int *) calloc(l7_id_db->num_sends, (int)sizeof(int) );
+	   l7_id_db->send_to = (int *) calloc((unsigned long long)l7_id_db->num_sends, sizeof(int) );
 	   if (l7_id_db->send_to == NULL){
 	      ierr = -1;
          L7_ASSERT(l7_id_db->send_to != NULL,
@@ -724,7 +724,7 @@ int L7_Setup(
 	   if (l7_id_db->indices_global_to_send)
 	      free(l7_id_db->indices_global_to_send);
 	   
-	   l7_id_db->indices_global_to_send = (int *) calloc(count_total, (int)sizeof(int) );
+	   l7_id_db->indices_global_to_send = (int *) calloc((unsigned long long)count_total, sizeof(int) );
 	   if (l7_id_db->indices_global_to_send == NULL){
 	      ierr = -1;
 	      L7_ASSERT(l7_id_db->indices_global_to_send != NULL,
@@ -734,7 +734,7 @@ int L7_Setup(
 	   if (l7_id_db->indices_local_to_send)
 	      free(l7_id_db->indices_local_to_send);
 
-	   l7_id_db->indices_local_to_send = (int *) calloc(count_total, (int)sizeof(int) );
+	   l7_id_db->indices_local_to_send = (int *) calloc((unsigned long long)count_total, sizeof(int) );
       if (l7_id_db->indices_local_to_send == NULL){
          ierr = -1;
          L7_ASSERT(l7_id_db->indices_local_to_send != NULL,
@@ -880,7 +880,7 @@ int L7_Setup(
 	   if (l7.send_buffer)
 	      free(l7.send_buffer);
 	   
-	   l7.send_buffer = (char *)calloc(send_buffer_bytes_needed, sizeof (char) );
+	   l7.send_buffer = (char *)calloc((unsigned long long)send_buffer_bytes_needed, sizeof (char) );
 	   if (l7.send_buffer == NULL){
 	      ierr = -1;
 	      L7_ASSERT(l7.send_buffer != NULL, "No memory for send buffer", ierr);

@@ -81,6 +81,8 @@ typedef cl_float2   cl_real2;
 #define L7_REAL L7_FLOAT
 #endif
 
+typedef unsigned int uint;
+
 struct esum_type{
    double sum;
    double correction;
@@ -230,7 +232,6 @@ void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Data
 void State::add_boundary_cells(Mesh *mesh)
 {
    struct timeval tstart_cpu;
-   int nl, nr, nb, nt;
 
    cpu_timer_start(&tstart_cpu);
 
@@ -258,7 +259,7 @@ void State::add_boundary_cells(Mesh *mesh)
 
    // Pre-count number of cells to add
    int icount = 0;
-   for (int ic=0; ic<ncells; ic++) {
+   for (uint ic=0; ic<ncells; ic++) {
       if (i[ic] == lev_ibegin[level[ic]]) icount++; // Left boundary
       if (i[ic] == lev_iend[level[ic]])   icount++; // Right boundary
       if (j[ic] == lev_jbegin[level[ic]]) icount++; // Bottom boundary
@@ -293,8 +294,8 @@ void State::add_boundary_cells(Mesh *mesh)
    // In the first pass, set two of the neighbor indices and all
    // the other data to be brought across. Set the inverse of the
    // the velocity to enforce the reflective boundary condition
-   int nc=ncells;
-   for (int ic=0; ic<ncells; ic++) {
+   uint nc=ncells;
+   for (uint ic=0; ic<ncells; ic++) {
       if (i[ic] == lev_ibegin[level[ic]]) {
          nlft[ic] = nc;
          nlft[nc] = nc;
@@ -445,7 +446,7 @@ void State::apply_boundary_conditions(Mesh *mesh)
    cpu_timer_start(&tstart_cpu);
 
    // This is for a mesh with boundary cells
-   for (int ic=0; ic<ncells; ic++) {
+   for (uint ic=0; ic<ncells; ic++) {
       if (mesh->is_left_boundary(ic)) {
          nr = nrht[ic];
          H[ic] =  H[nr];
@@ -514,7 +515,7 @@ void State::remove_boundary_cells(Mesh *mesh)
    dy.resize(save_ncells);
 
    // Reset the neighbors due to the dropped boundary cells
-   for (int ic=0; ic<ncells; ic++) {
+   for (uint ic=0; ic<ncells; ic++) {
       if (i[ic] == mesh->lev_ibegin[level[ic]]) nlft[ic] = ic;
       if (i[ic] == mesh->lev_iend[level[ic]])   nrht[ic] = ic;
       if (j[ic] == mesh->lev_jbegin[level[ic]]) nbot[ic] = ic;
@@ -538,7 +539,7 @@ double State::set_timestep(Mesh *mesh, double g, double sigma)
    vector<int> &celltype = mesh->celltype;
    vector<int> &level    = mesh->level;
 
-   for (int ic=0; ic<ncells; ic++) {
+   for (uint ic=0; ic<ncells; ic++) {
       if (celltype[ic] == REAL_CELL) {
          lev = level[ic];
          wavespeed = sqrt(g*H[ic]);
@@ -668,7 +669,7 @@ void State::fill_circle(Mesh   *mesh,       //  Mesh.
    vector<real> &y  = mesh->y;
    vector<real> &dy = mesh->dy;
 
-   for (int ic = 0; ic < ncells; ic++)
+   for (uint ic = 0; ic < ncells; ic++)
    {  H[ic] = background;
       U[ic] = V[ic] = 0.0; }
    
@@ -708,9 +709,9 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
    struct timeval tstart_cpu;
 
    vector<int> &celltype = mesh->celltype;
-   vector<int> &nlft     = mesh->nlft;
+   //vector<int> &nlft     = mesh->nlft;
    vector<int> &nrht     = mesh->nrht;
-   vector<int> &nbot     = mesh->nbot;
+   //vector<int> &nbot     = mesh->nbot;
    vector<int> &ntop     = mesh->ntop;
 
    int ncells = mesh->ncells;
@@ -791,9 +792,9 @@ void State::rezone_all_local(Mesh *mesh, vector<int> mpot, int add_ncells)
    struct timeval tstart_cpu;
 
    vector<int> &celltype = mesh->celltype;
-   vector<int> &nlft     = mesh->nlft;
+   //vector<int> &nlft     = mesh->nlft;
    vector<int> &nrht     = mesh->nrht;
-   vector<int> &nbot     = mesh->nbot;
+   //vector<int> &nbot     = mesh->nbot;
    vector<int> &ntop     = mesh->ntop;
 
    int ncells = mesh->ncells;
@@ -1264,27 +1265,18 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
    int nl, nr, nb, nt;
    int nll, nrr, nbb, ntt;
    int nlt, nrt, nbr, ntr;
-   double dxminus, dxplus;
    double Hxminus, Hxplus;
    double Uxminus, Uxplus;
    double Vxminus, Vxplus;
 
-   double dyminus, dyplus;
    double Hyminus, Hyplus;
    double Uyminus, Uyplus;
    double Vyminus, Vyplus;
-
-   double duminus1, duminus2;
-   double duplus1, duplus2;
-   double duhalf1, duhalf2;
-   double rdenom, rnumplus, rnumminus, rminus, rplus;
-   double nu, q, cv, wminusx, wplusx, wminusy, wplusy;
 
    vector<real> H_new(ncells);
    vector<real> U_new(ncells);
    vector<real> V_new(ncells);
 
-   int inum;
    double dxic, dxl, dxr, dyic, dyb, dyt;
    double Hic, Hl, Hr, Hb, Ht;
    double Hll, Hrr, Hbb, Htt;
@@ -1292,19 +1284,18 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
    double Ull, Urr, Ubb, Utt;
    double Vic, Vl, Vr, Vb, Vt;
    double Vll, Vrr, Vbb, Vtt;
-   double qmax, qavg, qpot;
 
-   double Hlt, Hrt, Htr, Hbr;
-   double Ult, Urt, Utr, Ubr;
-   double Vlt, Vrt, Vtr, Vbr;
+   double Hlt=0.0, Hrt=0.0, Htr=0.0, Hbr=0.0;
+   double Ult=0.0, Urt=0.0, Utr=0.0, Ubr=0.0;
+   double Vlt=0.0, Vrt=0.0, Vtr=0.0, Vbr=0.0;
 
-   double Hxminus2, Hxplus2;
-   double Uxminus2, Uxplus2;
-   double Vxminus2, Vxplus2;
+   double Hxminus2=0.0, Hxplus2=0.0;
+   double Uxminus2=0.0, Uxplus2=0.0;
+   double Vxminus2=0.0, Vxplus2=0.0;
 
-   double Hyminus2, Hyplus2;
+   double Hyminus2=0.0, Hyplus2=0.0;
    double Uyminus2, Uyplus2;
-   double Vyminus2, Vyplus2;
+   double Vyminus2=0.0, Vyplus2=0.0;
 
    double dric, drl, drr, drt, drb;
 
@@ -1331,25 +1322,25 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
    real wminusy_H, wminusy_V;
    real wplusy_H, wplusy_V;
 
-   int nltl;
-   real Hll2;
+   int nltl=0;
+   real Hll2=ZERO;
 
-   int nrtr;
-   real Hrr2;
+   int nrtr=0;
+   real Hrr2=ZERO;
 
-   real Ull2;
-   real Urr2;
+   real Ull2=ZERO;
+   real Urr2=ZERO;
 
-   int nbrb;
-   real Hbb2;
+   int nbrb=0;
+   real Hbb2=ZERO;
 
-   int ntrt;
-   real Htt2;
+   int ntrt=0;
+   real Htt2=ZERO;
 
-   real Vbb2;
-   real Vtt2;
+   real Vbb2=ZERO;
+   real Vtt2=ZERO;
 
-   for(int gix = 0; gix < ncells; gix++) {
+   for(uint gix = 0; gix < ncells; gix++) {
 
       lvl     = level[gix];
       nl      = nlft[gix];
@@ -1769,27 +1760,18 @@ void State::calc_finite_difference_local(Mesh *mesh, double deltaT){
    int nl, nr, nb, nt;
    int nll, nrr, nbb, ntt;
    int nlt, nrt, nbr, ntr;
-   double dxminus, dxplus;
    double Hxminus, Hxplus;
    double Uxminus, Uxplus;
    double Vxminus, Vxplus;
 
-   double dyminus, dyplus;
    double Hyminus, Hyplus;
    double Uyminus, Uyplus;
    double Vyminus, Vyplus;
-
-   double duminus1, duminus2;
-   double duplus1, duplus2;
-   double duhalf1, duhalf2;
-   double rdenom, rnumplus, rnumminus, rminus, rplus;
-   double nu, q, cv, wminusx, wplusx, wminusy, wplusy;
 
    vector<real> Hnew(ncells_ghost);
    vector<real> Unew(ncells_ghost);
    vector<real> Vnew(ncells_ghost);
 
-   int inum;
    double dxic, dxl, dxr, dyic, dyb, dyt;
    double Hic, Hl, Hr, Hb, Ht;
    double Hll, Hrr, Hbb, Htt;
@@ -1797,19 +1779,18 @@ void State::calc_finite_difference_local(Mesh *mesh, double deltaT){
    double Ull, Urr, Ubb, Utt;
    double Vic, Vl, Vr, Vb, Vt;
    double Vll, Vrr, Vbb, Vtt;
-   double qmax, qavg, qpot;
 
-   double Hlt, Hrt, Htr, Hbr;
-   double Ult, Urt, Utr, Ubr;
-   double Vlt, Vrt, Vtr, Vbr;
+   double Hlt=0.0, Hrt=0.0, Htr=0.0, Hbr=0.0;
+   double Ult=0.0, Urt=0.0, Utr=0.0, Ubr=0.0;
+   double Vlt=0.0, Vrt=0.0, Vtr=0.0, Vbr=0.0;
 
-   double Hxminus2, Hxplus2;
-   double Uxminus2, Uxplus2;
+   double Hxminus2=0.0, Hxplus2=0.0;
+   double Uxminus2=0.0, Uxplus2=0.0;
    double Vxminus2, Vxplus2;
 
-   double Hyminus2, Hyplus2;
+   double Hyminus2=0.0, Hyplus2=0.0;
    double Uyminus2, Uyplus2;
-   double Vyminus2, Vyplus2;
+   double Vyminus2=0.0, Vyplus2=0.0;
 
    double dric, drl, drr, drt, drb;
 
@@ -1836,25 +1817,25 @@ void State::calc_finite_difference_local(Mesh *mesh, double deltaT){
    real wminusy_H, wminusy_V;
    real wplusy_H, wplusy_V;
 
-   int nltl;
-   real Hll2;
+   int nltl=0;
+   real Hll2=ZERO;
 
-   int nrtr;
-   real Hrr2;
+   int nrtr=0;
+   real Hrr2=ZERO;
 
-   real Ull2;
-   real Urr2;
+   real Ull2=ZERO;
+   real Urr2=ZERO;
 
-   int nbrb;
-   real Hbb2;
+   int nbrb=0;
+   real Hbb2=ZERO;
 
-   int ntrt;
-   real Htt2;
+   int ntrt=0;
+   real Htt2=ZERO;
 
-   real Vbb2;
-   real Vtt2;
+   real Vbb2=ZERO;
+   real Vtt2=ZERO;
 
-   for(int gix = 0; gix < ncells; gix++) {
+   for(uint gix = 0; gix < ncells; gix++) {
 
       lvl     = level[gix];
       nl      = nlft[gix];
@@ -2536,7 +2517,7 @@ void State::symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index
       ysign = -1.0;
    }
 
-   for (int ic=0; ic<ncells; ic++) {
+   for (uint ic=0; ic<ncells; ic++) {
       /*  Symmetrical check */
       if (fabs(H[ic] - H[sym_index[ic]]) > eps) {
          printf("%s ic %d sym %d H[ic] %lf Hsym %lf diff %lf\n",
@@ -2571,9 +2552,6 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    vector<int> &ntop  = mesh->ntop;
    vector<int> &level = mesh->level;
 
-   vector<int> &i = mesh->i;
-   vector<int> &j = mesh->j;
-
    vector<double> Q(ncells);
 
    int nl, nr, nt, nb;
@@ -2590,7 +2568,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    icount = 0;
    jcount = 0;
 
-   for(int ic = 0; ic < ncells; ic++) {
+   for(uint ic = 0; ic < ncells; ic++) {
 
       Hic = H[ic];
       Uic = U[ic];
@@ -2674,7 +2652,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
 
    }
 
-   for(int ic=0; ic<ncells; ic++) {
+   for(uint ic=0; ic<ncells; ic++) {
       mpot[ic]=0;
       if (Q[ic] > REFINE_GRADIENT && level[ic] < mesh->levmx) {
          mpot[ic] = 1;
@@ -2690,7 +2668,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
       do {
          levcount++; 
          new_count=0;
-         for(int ic = 0; ic < ncells; ic++) {
+         for(uint ic = 0; ic < ncells; ic++) {
             lev = level[ic];
             if(mpot[ic] > 0) lev++;
    
@@ -2809,17 +2787,13 @@ void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icoun
    cpu_timer_start(&tstart_cpu);
 
    size_t &ncells       = mesh->ncells;
-   size_t &ncells_ghost = mesh->ncells_ghost;
    vector<int> &nlft    = mesh->nlft;
    vector<int> &nrht    = mesh->nrht;
    vector<int> &nbot    = mesh->nbot;
    vector<int> &ntop    = mesh->ntop;
    vector<int> &level   = mesh->level;
 
-   vector<int> &i = mesh->i;
-   vector<int> &j = mesh->j;
-
-   int nl, nr, nt, nb, nrt; 
+   int nl, nr, nt, nb; 
    double Hic, Hl, Hr, Hb, Ht;
    double Uic, Ul, Ur, Ub, Ut;
    double Vic, Vl, Vr, Vb, Vt;
@@ -2836,7 +2810,7 @@ void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icoun
    L7_Update(&U[0], L7_REAL, mesh->cell_handle);
    L7_Update(&V[0], L7_REAL, mesh->cell_handle);
 
-   for (int ic=0; ic<ncells; ic++) {
+   for (uint ic=0; ic<ncells; ic++) {
 
       Hic = H[ic];
       Uic = U[ic];
@@ -3203,7 +3177,7 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
       double correction, corrected_next_term, new_sum;
       correction = 0.0;
 
-      for (int ic = 0; ic < ncells; ic++) {
+      for (uint ic = 0; ic < ncells; ic++) {
          if (celltype[ic] == REAL_CELL) {
             //  Exclude boundary cells.
             corrected_next_term= H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]] + correction;
@@ -3213,7 +3187,7 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
          }
       }
    } else {
-      for (int ic=0; ic < ncells; ic++){
+      for (uint ic=0; ic < ncells; ic++){
          if (celltype[ic] == REAL_CELL) {
             summer += H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]];
          }
@@ -3245,7 +3219,7 @@ double State::mass_sum_local(Mesh *mesh, bool enhanced_precision_sum)
 
       local.sum = 0.0;
       local.correction = 0.0;
-      for (int ic = 0; ic < ncells; ic++) {
+      for (uint ic = 0; ic < ncells; ic++) {
          if (celltype[ic] == REAL_CELL) {
             //  Exclude boundary cells.
             corrected_next_term= H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]] + local.correction;
@@ -3257,7 +3231,7 @@ double State::mass_sum_local(Mesh *mesh, bool enhanced_precision_sum)
       MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
       total_sum = global.sum + global.correction;
    } else {
-      for (int ic=0; ic < ncells; ic++){
+      for (uint ic=0; ic < ncells; ic++){
          if (celltype[ic] == REAL_CELL) {
             summer += H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]];
          }
@@ -3570,8 +3544,8 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
    double cpu_time_compute;
    long gpu_time_compute;
 
-   double cpu_elapsed_time;
-   long gpu_elapsed_time;
+   double cpu_elapsed_time=0.0;
+   long gpu_elapsed_time=0;
 
    if (! mesh->parallel) {
       //  Output timing information.
@@ -3587,7 +3561,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
                             get_cpu_time_rezone_all() +
                             mesh->get_cpu_time_rezone_all() +
                             mesh->get_cpu_time_calc_neighbors() +
-                            get_cpu_time_mass_sum();
+                            get_cpu_time_mass_sum() +
                             mesh->cpu_time_partition;
          cpu_elapsed_time =                  cpu_time_compute;
 
@@ -3616,7 +3590,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
                             mesh->get_gpu_time_rezone_all() +
                             mesh->get_gpu_time_hash_setup() +
                             mesh->get_gpu_time_calc_neighbors() +
-                            get_gpu_time_mass_sum();
+                            get_gpu_time_mass_sum() +
                             gpu_time_count_BCs;
          gpu_elapsed_time   = get_gpu_time_write() + gpu_time_compute + get_gpu_time_read();
 
@@ -3657,7 +3631,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
                             get_cpu_time_rezone_all() +
                             mesh->get_cpu_time_rezone_all() +
                             mesh->get_cpu_time_calc_neighbors() +
-                            get_cpu_time_mass_sum();
+                            get_cpu_time_mass_sum() +
                             mesh->cpu_time_partition;
          cpu_elapsed_time =                  cpu_time_compute;
 
@@ -3689,7 +3663,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
                             mesh->get_gpu_time_rezone_all() +
                             mesh->get_gpu_time_hash_setup() +
                             mesh->get_gpu_time_calc_neighbors() +
-                            get_gpu_time_mass_sum();
+                            get_gpu_time_mass_sum() +
                             gpu_time_count_BCs;
          gpu_elapsed_time   = get_gpu_time_write() + gpu_time_compute + get_gpu_time_read();
 

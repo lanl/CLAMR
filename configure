@@ -4866,8 +4866,8 @@ case "$host" in
         ;;
     *darwin*)
         host=darwin
-        CFLAGS="-std=gnu99 -Wall"
-        CXXFLAGS="-Wall"
+        CFLAGS="-std=gnu99 -Wall -Wconversion"
+        CXXFLAGS="-Wall -Wconversion"
         if test "${enable_debug}" = "yes"; then
           CFLAGS="-g -DDEBUG=1 ${CFLAGS}"
           CXXFLAGS="-g -DDEBUG=1 ${CXXFLAGS}"
