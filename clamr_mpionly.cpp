@@ -403,10 +403,10 @@ extern "C" void do_calc(void)
       tresult.tv_usec = tstop.tv_usec - tstart.tv_usec;
       double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
       
-      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
       if (do_comparison_calc) {
          state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
       }
+      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
@@ -797,6 +797,8 @@ extern "C" void do_calc(void)
             printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
                n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
          }
+         mesh->calc_spatial_coordinates(0);
+         mesh_global->calc_spatial_coordinates(0);
 #ifdef HAVE_OPENGL
          set_mysize(ncells_global);
          set_viewmode(view_mode);

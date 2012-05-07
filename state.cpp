@@ -3536,6 +3536,8 @@ void State::resize_old_device_memory(size_t ncells)
    dev_V = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 }
 
+static double total_time = 0.0;
+
 void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, long gpu_time_count_BCs, double elapsed_time)
 {
    int &mype  = mesh->mype;
@@ -3565,6 +3567,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
                             mesh->get_cpu_time_calc_spatial_coordinates() +
                             mesh->cpu_time_partition;
          cpu_elapsed_time =                  cpu_time_compute;
+         total_time = cpu_elapsed_time;
 
          if (mype == 0) {
             printf("CPU: Device compute           time was\t%8.4f \ts\n",     cpu_time_compute);
@@ -3699,7 +3702,11 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
       if (mype == 0) printf("=============================================================\n");
 
       parallel_timer_output(numpe,mype,"Profiling: Total              time was",elapsed_time );
-      parallel_timer_output(numpe,mype,"Parallel Speed-up:                    ",cpu_elapsed_time*1.0e9/gpu_elapsed_time);
+      if (do_gpu_calc){
+         parallel_timer_output(numpe,mype,"Parallel Speed-up:                    ",cpu_elapsed_time*1.0e9/gpu_elapsed_time);
+      } else {
+         parallel_timer_output(numpe,mype,"Parallel Speed-up:                    ",total_time/cpu_elapsed_time);
+      }
 
       if (mype == 0) printf("=============================================================\n");
    }
