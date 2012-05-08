@@ -286,8 +286,6 @@ int main(int argc, char **argv) {
 
 
 #ifdef HAVE_OPENGL
-   mesh_global->calc_spatial_coordinates(0);
-   mesh->calc_spatial_coordinates(0);
    set_cell_data(&H_global[0]);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
    set_mysize(ncells_global);
@@ -376,8 +374,6 @@ extern "C" void do_calc(void)
       
       //  Set up grid.
 #ifdef HAVE_OPENGL
-      mesh_global->calc_spatial_coordinates(0);
-      mesh->calc_spatial_coordinates(0);
       set_mysize(ncells_global);
       set_viewmode(view_mode);
       set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
@@ -761,7 +757,6 @@ extern "C" void do_calc(void)
       //}
 
 #ifdef HAVE_OPENGL
-      mesh->calc_spatial_coordinates(0);
       mesh_global->calc_spatial_coordinates(0);
       set_cell_data(&H_global[0]);
       set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
@@ -805,7 +800,6 @@ extern "C" void do_calc(void)
                n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
          }
 #ifdef HAVE_OPENGL
-         mesh->calc_spatial_coordinates(0);
          mesh_global->calc_spatial_coordinates(0);
          set_mysize(ncells_global);
          set_viewmode(view_mode);
