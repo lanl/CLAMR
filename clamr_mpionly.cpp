@@ -284,7 +284,10 @@ int main(int argc, char **argv) {
    MPI_Scatterv(&y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &y[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dy[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
 
+
 #ifdef HAVE_OPENGL
+   mesh_global->calc_spatial_coordinates(0);
+   mesh->calc_spatial_coordinates(0);
    set_cell_data(&H_global[0]);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
    set_mysize(ncells_global);
@@ -373,6 +376,8 @@ extern "C" void do_calc(void)
       
       //  Set up grid.
 #ifdef HAVE_OPENGL
+      mesh_global->calc_spatial_coordinates(0);
+      mesh->calc_spatial_coordinates(0);
       set_mysize(ncells_global);
       set_viewmode(view_mode);
       set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
@@ -756,6 +761,8 @@ extern "C" void do_calc(void)
       //}
 
 #ifdef HAVE_OPENGL
+      mesh->calc_spatial_coordinates(0);
+      mesh_global->calc_spatial_coordinates(0);
       set_cell_data(&H_global[0]);
       set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
 #endif
@@ -797,9 +804,9 @@ extern "C" void do_calc(void)
             printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
                n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
          }
+#ifdef HAVE_OPENGL
          mesh->calc_spatial_coordinates(0);
          mesh_global->calc_spatial_coordinates(0);
-#ifdef HAVE_OPENGL
          set_mysize(ncells_global);
          set_viewmode(view_mode);
          set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
