@@ -661,7 +661,7 @@ extern "C" void do_calc(void)
                   __local        int   *tile)      // 9
           */
          size_t shared_spd_sum_int = local_work_size * sizeof(cl_int);
-         ezcl_set_kernel_arg(kernel_count_BCs, 0, sizeof(cl_int), (void *)&ncells);
+         ezcl_set_kernel_arg(kernel_count_BCs, 0, sizeof(cl_size_t), (void *)&ncells);
          ezcl_set_kernel_arg(kernel_count_BCs, 1, sizeof(cl_mem), (void *)&dev_i);
          ezcl_set_kernel_arg(kernel_count_BCs, 2, sizeof(cl_mem), (void *)&dev_j);
          ezcl_set_kernel_arg(kernel_count_BCs, 3, sizeof(cl_mem), (void *)&dev_level);
