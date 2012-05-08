@@ -607,17 +607,17 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
       */
 
    real sigma_local = sigma;
-   ezcl_set_kernel_arg(kernel_set_timestep,  0, sizeof(cl_int),  (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_set_timestep,  1, sizeof(cl_real), (void *)&sigma_local);
-   ezcl_set_kernel_arg(kernel_set_timestep,  2, sizeof(cl_mem),  (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_set_timestep,  3, sizeof(cl_mem),  (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_set_timestep,  4, sizeof(cl_mem),  (void *)&dev_V);
-   ezcl_set_kernel_arg(kernel_set_timestep,  5, sizeof(cl_mem),  (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_set_timestep,  6, sizeof(cl_mem),  (void *)&dev_celltype);
-   ezcl_set_kernel_arg(kernel_set_timestep,  7, sizeof(cl_mem),  (void *)&dev_levdx);
-   ezcl_set_kernel_arg(kernel_set_timestep,  8, sizeof(cl_mem),  (void *)&dev_levdy);
-   ezcl_set_kernel_arg(kernel_set_timestep,  9, sizeof(cl_mem),  (void *)&dev_redscratch);
-   ezcl_set_kernel_arg(kernel_set_timestep, 10, sizeof(cl_mem),  (void *)&dev_deltaT);
+   ezcl_set_kernel_arg(kernel_set_timestep,  0, sizeof(cl_size_t), (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_set_timestep,  1, sizeof(cl_real),   (void *)&sigma_local);
+   ezcl_set_kernel_arg(kernel_set_timestep,  2, sizeof(cl_mem),    (void *)&dev_H);
+   ezcl_set_kernel_arg(kernel_set_timestep,  3, sizeof(cl_mem),    (void *)&dev_U);
+   ezcl_set_kernel_arg(kernel_set_timestep,  4, sizeof(cl_mem),    (void *)&dev_V);
+   ezcl_set_kernel_arg(kernel_set_timestep,  5, sizeof(cl_mem),    (void *)&dev_level);
+   ezcl_set_kernel_arg(kernel_set_timestep,  6, sizeof(cl_mem),    (void *)&dev_celltype);
+   ezcl_set_kernel_arg(kernel_set_timestep,  7, sizeof(cl_mem),    (void *)&dev_levdx);
+   ezcl_set_kernel_arg(kernel_set_timestep,  8, sizeof(cl_mem),    (void *)&dev_levdy);
+   ezcl_set_kernel_arg(kernel_set_timestep,  9, sizeof(cl_mem),    (void *)&dev_redscratch);
+   ezcl_set_kernel_arg(kernel_set_timestep, 10, sizeof(cl_mem),    (void *)&dev_deltaT);
    ezcl_set_kernel_arg(kernel_set_timestep, 11, local_work_size*sizeof(cl_real),  NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_timestep, 1, NULL, &global_work_size, &local_work_size, &set_timestep_event);
@@ -629,9 +629,9 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
         __global real  *deltaT,
         __local  real  *tile)
       */
-   ezcl_set_kernel_arg(kernel_reduction_min, 0, sizeof(cl_int),  (void *)&block_size);
-   ezcl_set_kernel_arg(kernel_reduction_min, 1, sizeof(cl_mem),  (void *)&dev_redscratch);
-   ezcl_set_kernel_arg(kernel_reduction_min, 2, sizeof(cl_mem),  (void *)&dev_deltaT);
+   ezcl_set_kernel_arg(kernel_reduction_min, 0, sizeof(cl_size_t), (void *)&block_size);
+   ezcl_set_kernel_arg(kernel_reduction_min, 1, sizeof(cl_mem),    (void *)&dev_redscratch);
+   ezcl_set_kernel_arg(kernel_reduction_min, 2, sizeof(cl_mem),    (void *)&dev_deltaT);
    ezcl_set_kernel_arg(kernel_reduction_min, 3, local_work_size*sizeof(cl_real), NULL);
 
    if (block_size > 1){
@@ -936,29 +936,29 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    size_t local_work_size = 128;
    size_t global_work_size = ((old_ncells+local_work_size - 1) /local_work_size) * local_work_size;
 
-   ezcl_set_kernel_arg(kernel_rezone_all, 0,  sizeof(cl_int),  (void *)&old_ncells);
-   ezcl_set_kernel_arg(kernel_rezone_all, 1,  sizeof(cl_int),  (void *)&stencil);
-   ezcl_set_kernel_arg(kernel_rezone_all, 2,  sizeof(cl_int),  (void *)&mesh->levmx);
-   ezcl_set_kernel_arg(kernel_rezone_all, 3,  sizeof(cl_mem),  (void *)&dev_mpot);
-   ezcl_set_kernel_arg(kernel_rezone_all, 4,  sizeof(cl_mem),  (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_rezone_all, 5,  sizeof(cl_mem),  (void *)&dev_i);
-   ezcl_set_kernel_arg(kernel_rezone_all, 6,  sizeof(cl_mem),  (void *)&dev_j);
-   ezcl_set_kernel_arg(kernel_rezone_all, 7,  sizeof(cl_mem),  (void *)&dev_celltype);
-   ezcl_set_kernel_arg(kernel_rezone_all, 8,  sizeof(cl_mem),  (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_rezone_all, 9,  sizeof(cl_mem),  (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_rezone_all, 10, sizeof(cl_mem),  (void *)&dev_V);
-   ezcl_set_kernel_arg(kernel_rezone_all, 11, sizeof(cl_mem),  (void *)&dev_level_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 12, sizeof(cl_mem),  (void *)&dev_i_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 13, sizeof(cl_mem),  (void *)&dev_j_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 14, sizeof(cl_mem),  (void *)&dev_celltype_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 15, sizeof(cl_mem),  (void *)&dev_H_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 16, sizeof(cl_mem),  (void *)&dev_U_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 17, sizeof(cl_mem),  (void *)&dev_V_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 18, sizeof(cl_mem),  (void *)&dev_ioffset);
-   ezcl_set_kernel_arg(kernel_rezone_all, 19, sizeof(cl_mem),  (void *)&dev_levdx);
-   ezcl_set_kernel_arg(kernel_rezone_all, 20, sizeof(cl_mem),  (void *)&dev_levdy);
-   ezcl_set_kernel_arg(kernel_rezone_all, 21, sizeof(cl_mem),  (void *)&mesh->dev_levtable);
-   ezcl_set_kernel_arg(kernel_rezone_all, 22, sizeof(cl_mem),  (void *)&dev_ijadd);
+   ezcl_set_kernel_arg(kernel_rezone_all, 0,  sizeof(cl_size_t), (void *)&old_ncells);
+   ezcl_set_kernel_arg(kernel_rezone_all, 1,  sizeof(cl_int),    (void *)&stencil);
+   ezcl_set_kernel_arg(kernel_rezone_all, 2,  sizeof(cl_int),    (void *)&mesh->levmx);
+   ezcl_set_kernel_arg(kernel_rezone_all, 3,  sizeof(cl_mem),    (void *)&dev_mpot);
+   ezcl_set_kernel_arg(kernel_rezone_all, 4,  sizeof(cl_mem),    (void *)&dev_level);
+   ezcl_set_kernel_arg(kernel_rezone_all, 5,  sizeof(cl_mem),    (void *)&dev_i);
+   ezcl_set_kernel_arg(kernel_rezone_all, 6,  sizeof(cl_mem),    (void *)&dev_j);
+   ezcl_set_kernel_arg(kernel_rezone_all, 7,  sizeof(cl_mem),    (void *)&dev_celltype);
+   ezcl_set_kernel_arg(kernel_rezone_all, 8,  sizeof(cl_mem),    (void *)&dev_H);
+   ezcl_set_kernel_arg(kernel_rezone_all, 9,  sizeof(cl_mem),    (void *)&dev_U);
+   ezcl_set_kernel_arg(kernel_rezone_all, 10, sizeof(cl_mem),    (void *)&dev_V);
+   ezcl_set_kernel_arg(kernel_rezone_all, 11, sizeof(cl_mem),    (void *)&dev_level_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 12, sizeof(cl_mem),    (void *)&dev_i_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 13, sizeof(cl_mem),    (void *)&dev_j_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 14, sizeof(cl_mem),    (void *)&dev_celltype_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 15, sizeof(cl_mem),    (void *)&dev_H_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 16, sizeof(cl_mem),    (void *)&dev_U_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 17, sizeof(cl_mem),    (void *)&dev_V_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 18, sizeof(cl_mem),    (void *)&dev_ioffset);
+   ezcl_set_kernel_arg(kernel_rezone_all, 19, sizeof(cl_mem),    (void *)&dev_levdx);
+   ezcl_set_kernel_arg(kernel_rezone_all, 20, sizeof(cl_mem),    (void *)&dev_levdy);
+   ezcl_set_kernel_arg(kernel_rezone_all, 21, sizeof(cl_mem),    (void *)&mesh->dev_levtable);
+   ezcl_set_kernel_arg(kernel_rezone_all, 22, sizeof(cl_mem),    (void *)&dev_ijadd);
    ezcl_set_kernel_arg(kernel_rezone_all, 23, local_work_size * sizeof(cl_uint), NULL);
    ezcl_set_kernel_arg(kernel_rezone_all, 24, local_work_size * sizeof(cl_real4),    NULL);
 
@@ -1099,29 +1099,29 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    size_t local_work_size = 128;
    size_t global_work_size = ((old_ncells+local_work_size - 1) /local_work_size) * local_work_size;
 
-   ezcl_set_kernel_arg(kernel_rezone_all, 0,  sizeof(cl_int),  (void *)&old_ncells);
-   ezcl_set_kernel_arg(kernel_rezone_all, 1,  sizeof(cl_int),  (void *)&stencil);
-   ezcl_set_kernel_arg(kernel_rezone_all, 2,  sizeof(cl_int),  (void *)&mesh->levmx);
-   ezcl_set_kernel_arg(kernel_rezone_all, 3,  sizeof(cl_mem),  (void *)&dev_mpot);
-   ezcl_set_kernel_arg(kernel_rezone_all, 4,  sizeof(cl_mem),  (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_rezone_all, 5,  sizeof(cl_mem),  (void *)&dev_i);
-   ezcl_set_kernel_arg(kernel_rezone_all, 6,  sizeof(cl_mem),  (void *)&dev_j);
-   ezcl_set_kernel_arg(kernel_rezone_all, 7,  sizeof(cl_mem),  (void *)&dev_celltype);
-   ezcl_set_kernel_arg(kernel_rezone_all, 8,  sizeof(cl_mem),  (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_rezone_all, 9,  sizeof(cl_mem),  (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_rezone_all, 10, sizeof(cl_mem),  (void *)&dev_V);
-   ezcl_set_kernel_arg(kernel_rezone_all, 11, sizeof(cl_mem),  (void *)&dev_level_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 12, sizeof(cl_mem),  (void *)&dev_i_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 13, sizeof(cl_mem),  (void *)&dev_j_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 14, sizeof(cl_mem),  (void *)&dev_celltype_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 15, sizeof(cl_mem),  (void *)&dev_H_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 16, sizeof(cl_mem),  (void *)&dev_U_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 17, sizeof(cl_mem),  (void *)&dev_V_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 18, sizeof(cl_mem),  (void *)&dev_ioffset);
-   ezcl_set_kernel_arg(kernel_rezone_all, 19, sizeof(cl_mem),  (void *)&dev_levdx);
-   ezcl_set_kernel_arg(kernel_rezone_all, 20, sizeof(cl_mem),  (void *)&dev_levdy);
-   ezcl_set_kernel_arg(kernel_rezone_all, 21, sizeof(cl_mem),  (void *)&mesh->dev_levtable);
-   ezcl_set_kernel_arg(kernel_rezone_all, 22, sizeof(cl_mem),  (void *)&dev_ijadd);
+   ezcl_set_kernel_arg(kernel_rezone_all, 0,  sizeof(cl_size_t), (void *)&old_ncells);
+   ezcl_set_kernel_arg(kernel_rezone_all, 1,  sizeof(cl_int),    (void *)&stencil);
+   ezcl_set_kernel_arg(kernel_rezone_all, 2,  sizeof(cl_int),    (void *)&mesh->levmx);
+   ezcl_set_kernel_arg(kernel_rezone_all, 3,  sizeof(cl_mem),    (void *)&dev_mpot);
+   ezcl_set_kernel_arg(kernel_rezone_all, 4,  sizeof(cl_mem),    (void *)&dev_level);
+   ezcl_set_kernel_arg(kernel_rezone_all, 5,  sizeof(cl_mem),    (void *)&dev_i);
+   ezcl_set_kernel_arg(kernel_rezone_all, 6,  sizeof(cl_mem),    (void *)&dev_j);
+   ezcl_set_kernel_arg(kernel_rezone_all, 7,  sizeof(cl_mem),    (void *)&dev_celltype);
+   ezcl_set_kernel_arg(kernel_rezone_all, 8,  sizeof(cl_mem),    (void *)&dev_H);
+   ezcl_set_kernel_arg(kernel_rezone_all, 9,  sizeof(cl_mem),    (void *)&dev_U);
+   ezcl_set_kernel_arg(kernel_rezone_all, 10, sizeof(cl_mem),    (void *)&dev_V);
+   ezcl_set_kernel_arg(kernel_rezone_all, 11, sizeof(cl_mem),    (void *)&dev_level_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 12, sizeof(cl_mem),    (void *)&dev_i_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 13, sizeof(cl_mem),    (void *)&dev_j_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 14, sizeof(cl_mem),    (void *)&dev_celltype_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 15, sizeof(cl_mem),    (void *)&dev_H_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 16, sizeof(cl_mem),    (void *)&dev_U_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 17, sizeof(cl_mem),    (void *)&dev_V_new);
+   ezcl_set_kernel_arg(kernel_rezone_all, 18, sizeof(cl_mem),    (void *)&dev_ioffset);
+   ezcl_set_kernel_arg(kernel_rezone_all, 19, sizeof(cl_mem),    (void *)&dev_levdx);
+   ezcl_set_kernel_arg(kernel_rezone_all, 20, sizeof(cl_mem),    (void *)&dev_levdy);
+   ezcl_set_kernel_arg(kernel_rezone_all, 21, sizeof(cl_mem),    (void *)&mesh->dev_levtable);
+   ezcl_set_kernel_arg(kernel_rezone_all, 22, sizeof(cl_mem),    (void *)&dev_ijadd);
    ezcl_set_kernel_arg(kernel_rezone_all, 23, local_work_size * sizeof(cl_int), NULL);
    ezcl_set_kernel_arg(kernel_rezone_all, 24, local_work_size * sizeof(cl_real4),    NULL);
 
@@ -2295,22 +2295,22 @@ void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mes
      */
 
    real deltaT_local = deltaT;
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 0, sizeof(cl_int),  (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 1, sizeof(cl_int),  (void *)&levmx);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 2, sizeof(cl_mem),  (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 3, sizeof(cl_mem),  (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 4, sizeof(cl_mem),  (void *)&dev_V);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 5, sizeof(cl_mem),  (void *)&dev_H_new);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 6, sizeof(cl_mem),  (void *)&dev_U_new);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 7, sizeof(cl_mem),  (void *)&dev_V_new);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 8, sizeof(cl_mem),  (void *)&dev_nlft);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 9, sizeof(cl_mem),  (void *)&dev_nrht);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,10, sizeof(cl_mem),  (void *)&dev_ntop);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,11, sizeof(cl_mem),  (void *)&dev_nbot);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,12, sizeof(cl_mem),  (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,13, sizeof(cl_real), (void *)&deltaT_local);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,14, sizeof(cl_mem),  (void *)&dev_levdx);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,15, sizeof(cl_mem),  (void *)&dev_levdy);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 0, sizeof(cl_size_t), (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 1, sizeof(cl_int),    (void *)&levmx);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 2, sizeof(cl_mem),    (void *)&dev_H);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 3, sizeof(cl_mem),    (void *)&dev_U);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 4, sizeof(cl_mem),    (void *)&dev_V);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 5, sizeof(cl_mem),    (void *)&dev_H_new);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 6, sizeof(cl_mem),    (void *)&dev_U_new);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 7, sizeof(cl_mem),    (void *)&dev_V_new);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 8, sizeof(cl_mem),    (void *)&dev_nlft);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 9, sizeof(cl_mem),    (void *)&dev_nrht);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,10, sizeof(cl_mem),    (void *)&dev_ntop);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,11, sizeof(cl_mem),    (void *)&dev_nbot);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,12, sizeof(cl_mem),    (void *)&dev_level);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,13, sizeof(cl_real),   (void *)&deltaT_local);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,14, sizeof(cl_mem),    (void *)&dev_levdx);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,15, sizeof(cl_mem),    (void *)&dev_levdy);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,16, local_work_size*sizeof(cl_real4),    NULL);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,17, local_work_size*sizeof(cl_int8),    NULL);
 
@@ -2377,13 +2377,13 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
              __global      real  *V_new)        // 6
      */
 
-   ezcl_set_kernel_arg(kernel_copy_state_data, 0, sizeof(cl_int), (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_copy_state_data, 1, sizeof(cl_mem), (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_copy_state_data, 2, sizeof(cl_mem), (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_copy_state_data, 3, sizeof(cl_mem), (void *)&dev_V);
-   ezcl_set_kernel_arg(kernel_copy_state_data, 4, sizeof(cl_mem), (void *)&dev_H_new);
-   ezcl_set_kernel_arg(kernel_copy_state_data, 5, sizeof(cl_mem), (void *)&dev_U_new);
-   ezcl_set_kernel_arg(kernel_copy_state_data, 6, sizeof(cl_mem), (void *)&dev_V_new);
+   ezcl_set_kernel_arg(kernel_copy_state_data, 0, sizeof(cl_size_t), (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_copy_state_data, 1, sizeof(cl_mem),    (void *)&dev_H);
+   ezcl_set_kernel_arg(kernel_copy_state_data, 2, sizeof(cl_mem),    (void *)&dev_U);
+   ezcl_set_kernel_arg(kernel_copy_state_data, 3, sizeof(cl_mem),    (void *)&dev_V);
+   ezcl_set_kernel_arg(kernel_copy_state_data, 4, sizeof(cl_mem),    (void *)&dev_H_new);
+   ezcl_set_kernel_arg(kernel_copy_state_data, 5, sizeof(cl_mem),    (void *)&dev_U_new);
+   ezcl_set_kernel_arg(kernel_copy_state_data, 6, sizeof(cl_mem),    (void *)&dev_V_new);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, &copy_state_data_event);
 
@@ -2424,14 +2424,14 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
       size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
 
       // Fill in ghost
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 2, sizeof(cl_mem), (void *)&dev_H);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 3, sizeof(cl_mem), (void *)&dev_H_add);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 4, sizeof(cl_mem), (void *)&dev_U);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 5, sizeof(cl_mem), (void *)&dev_U_add);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 6, sizeof(cl_mem), (void *)&dev_V);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 7, sizeof(cl_mem), (void *)&dev_V_add);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 0, sizeof(cl_size_t), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_int),    (void *)&nghost_local);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 2, sizeof(cl_mem),    (void *)&dev_H);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 3, sizeof(cl_mem),    (void *)&dev_H_add);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 4, sizeof(cl_mem),    (void *)&dev_U);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 5, sizeof(cl_mem),    (void *)&dev_U_add);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 6, sizeof(cl_mem),    (void *)&dev_V);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 7, sizeof(cl_mem),    (void *)&dev_V_add);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_state_ghost_data_event);
 
@@ -2466,22 +2466,22 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
      */
 
    real deltaT_local = deltaT;
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 0, sizeof(cl_int),  (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 1, sizeof(cl_int),  (void *)&levmx);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 2, sizeof(cl_mem),  (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 3, sizeof(cl_mem),  (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 4, sizeof(cl_mem),  (void *)&dev_V);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 5, sizeof(cl_mem),  (void *)&dev_H_new);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 6, sizeof(cl_mem),  (void *)&dev_U_new);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 7, sizeof(cl_mem),  (void *)&dev_V_new);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 8, sizeof(cl_mem),  (void *)&dev_nlft);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 9, sizeof(cl_mem),  (void *)&dev_nrht);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,10, sizeof(cl_mem),  (void *)&dev_ntop);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,11, sizeof(cl_mem),  (void *)&dev_nbot);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,12, sizeof(cl_mem),  (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,13, sizeof(cl_real), (void *)&deltaT_local);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,14, sizeof(cl_mem),  (void *)&dev_levdx);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,15, sizeof(cl_mem),  (void *)&dev_levdy);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 0, sizeof(cl_size_t), (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 1, sizeof(cl_int),    (void *)&levmx);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 2, sizeof(cl_mem),    (void *)&dev_H);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 3, sizeof(cl_mem),    (void *)&dev_U);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 4, sizeof(cl_mem),    (void *)&dev_V);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 5, sizeof(cl_mem),    (void *)&dev_H_new);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 6, sizeof(cl_mem),    (void *)&dev_U_new);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 7, sizeof(cl_mem),    (void *)&dev_V_new);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 8, sizeof(cl_mem),    (void *)&dev_nlft);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference, 9, sizeof(cl_mem),    (void *)&dev_nrht);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,10, sizeof(cl_mem),    (void *)&dev_ntop);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,11, sizeof(cl_mem),    (void *)&dev_nbot);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,12, sizeof(cl_mem),    (void *)&dev_level);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,13, sizeof(cl_real),   (void *)&deltaT_local);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,14, sizeof(cl_mem),    (void *)&dev_levdx);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,15, sizeof(cl_mem),    (void *)&dev_levdy);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,16, local_work_size*sizeof(cl_real4),    NULL);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,17, local_work_size*sizeof(cl_int8),    NULL);
 
@@ -2967,22 +2967,22 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
      __local        real4 *tile,     // 16  Tile size in real4.
      __local        int8  *itile)    // 17  Tile size in int8.
      */
-   ezcl_set_kernel_arg(kernel_refine_potential, 0, sizeof(cl_int),  (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_refine_potential, 1, sizeof(cl_int),  (void *)&levmx);
-   ezcl_set_kernel_arg(kernel_refine_potential, 2, sizeof(cl_mem),  (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_refine_potential, 3, sizeof(cl_mem),  (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_refine_potential, 4, sizeof(cl_mem),  (void *)&dev_V);
-   ezcl_set_kernel_arg(kernel_refine_potential, 5, sizeof(cl_mem),  (void *)&dev_nlft);
-   ezcl_set_kernel_arg(kernel_refine_potential, 6, sizeof(cl_mem),  (void *)&dev_nrht);
-   ezcl_set_kernel_arg(kernel_refine_potential, 7, sizeof(cl_mem),  (void *)&dev_ntop);
-   ezcl_set_kernel_arg(kernel_refine_potential, 8, sizeof(cl_mem),  (void *)&dev_nbot);
-   ezcl_set_kernel_arg(kernel_refine_potential, 9, sizeof(cl_mem),  (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_refine_potential,10, sizeof(cl_mem),  (void *)&dev_celltype);
-   ezcl_set_kernel_arg(kernel_refine_potential,11, sizeof(cl_mem),  (void *)&dev_mpot);
-   ezcl_set_kernel_arg(kernel_refine_potential,12, sizeof(cl_mem),  (void *)&dev_ioffset);
-   ezcl_set_kernel_arg(kernel_refine_potential,13, sizeof(cl_mem),  (void *)&dev_levdx);
-   ezcl_set_kernel_arg(kernel_refine_potential,14, sizeof(cl_mem),  (void *)&dev_levdy);
-   ezcl_set_kernel_arg(kernel_refine_potential,15, sizeof(cl_mem),  (void *)&dev_result);
+   ezcl_set_kernel_arg(kernel_refine_potential, 0, sizeof(cl_size_t), (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_refine_potential, 1, sizeof(cl_int),    (void *)&levmx);
+   ezcl_set_kernel_arg(kernel_refine_potential, 2, sizeof(cl_mem),    (void *)&dev_H);
+   ezcl_set_kernel_arg(kernel_refine_potential, 3, sizeof(cl_mem),    (void *)&dev_U);
+   ezcl_set_kernel_arg(kernel_refine_potential, 4, sizeof(cl_mem),    (void *)&dev_V);
+   ezcl_set_kernel_arg(kernel_refine_potential, 5, sizeof(cl_mem),    (void *)&dev_nlft);
+   ezcl_set_kernel_arg(kernel_refine_potential, 6, sizeof(cl_mem),    (void *)&dev_nrht);
+   ezcl_set_kernel_arg(kernel_refine_potential, 7, sizeof(cl_mem),    (void *)&dev_ntop);
+   ezcl_set_kernel_arg(kernel_refine_potential, 8, sizeof(cl_mem),    (void *)&dev_nbot);
+   ezcl_set_kernel_arg(kernel_refine_potential, 9, sizeof(cl_mem),    (void *)&dev_level);
+   ezcl_set_kernel_arg(kernel_refine_potential,10, sizeof(cl_mem),    (void *)&dev_celltype);
+   ezcl_set_kernel_arg(kernel_refine_potential,11, sizeof(cl_mem),    (void *)&dev_mpot);
+   ezcl_set_kernel_arg(kernel_refine_potential,12, sizeof(cl_mem),    (void *)&dev_ioffset);
+   ezcl_set_kernel_arg(kernel_refine_potential,13, sizeof(cl_mem),    (void *)&dev_levdx);
+   ezcl_set_kernel_arg(kernel_refine_potential,14, sizeof(cl_mem),    (void *)&dev_levdy);
+   ezcl_set_kernel_arg(kernel_refine_potential,15, sizeof(cl_mem),    (void *)&dev_result);
    ezcl_set_kernel_arg(kernel_refine_potential,16, local_work_size*sizeof(cl_real4),    NULL);
    ezcl_set_kernel_arg(kernel_refine_potential,17, local_work_size*sizeof(cl_int8),    NULL);
 
@@ -3005,18 +3005,18 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
    if( (result-ncells) > 0) {
       do {
          
-      ezcl_set_kernel_arg(kernel_refine_smooth, 0, sizeof(cl_int),  (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_refine_smooth, 1, sizeof(cl_int),  (void *)&levmx);
-      ezcl_set_kernel_arg(kernel_refine_smooth, 2, sizeof(cl_mem),  (void *)&dev_nlft);
-      ezcl_set_kernel_arg(kernel_refine_smooth, 3, sizeof(cl_mem),  (void *)&dev_nrht);
-      ezcl_set_kernel_arg(kernel_refine_smooth, 4, sizeof(cl_mem),  (void *)&dev_ntop);
-      ezcl_set_kernel_arg(kernel_refine_smooth, 5, sizeof(cl_mem),  (void *)&dev_nbot);
-      ezcl_set_kernel_arg(kernel_refine_smooth, 6, sizeof(cl_mem),  (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_refine_smooth, 7, sizeof(cl_mem),  (void *)&dev_celltype);
-      ezcl_set_kernel_arg(kernel_refine_smooth, 8, sizeof(cl_mem),  (void *)&dev_mpot);
-      ezcl_set_kernel_arg(kernel_refine_smooth, 9, sizeof(cl_mem),  (void *)&dev_ioffset);
-      ezcl_set_kernel_arg(kernel_refine_smooth,10, sizeof(cl_mem),  (void *)&dev_newcount);
-      ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_result);
+      ezcl_set_kernel_arg(kernel_refine_smooth, 0, sizeof(cl_size_t), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_refine_smooth, 1, sizeof(cl_int),    (void *)&levmx);
+      ezcl_set_kernel_arg(kernel_refine_smooth, 2, sizeof(cl_mem),    (void *)&dev_nlft);
+      ezcl_set_kernel_arg(kernel_refine_smooth, 3, sizeof(cl_mem),    (void *)&dev_nrht);
+      ezcl_set_kernel_arg(kernel_refine_smooth, 4, sizeof(cl_mem),    (void *)&dev_ntop);
+      ezcl_set_kernel_arg(kernel_refine_smooth, 5, sizeof(cl_mem),    (void *)&dev_nbot);
+      ezcl_set_kernel_arg(kernel_refine_smooth, 6, sizeof(cl_mem),    (void *)&dev_level);
+      ezcl_set_kernel_arg(kernel_refine_smooth, 7, sizeof(cl_mem),    (void *)&dev_celltype);
+      ezcl_set_kernel_arg(kernel_refine_smooth, 8, sizeof(cl_mem),    (void *)&dev_mpot);
+      ezcl_set_kernel_arg(kernel_refine_smooth, 9, sizeof(cl_mem),    (void *)&dev_ioffset);
+      ezcl_set_kernel_arg(kernel_refine_smooth,10, sizeof(cl_mem),    (void *)&dev_newcount);
+      ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),    (void *)&dev_result);
       ezcl_set_kernel_arg(kernel_refine_smooth,12, local_work_size*sizeof(cl_int2),    NULL);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_smooth, 1, NULL, &global_work_size, &local_work_size, &refine_smooth_event);
@@ -3100,14 +3100,14 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
       size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
 
       // Fill in ghost
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 2, sizeof(cl_mem), (void *)&dev_H);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 3, sizeof(cl_mem), (void *)&dev_H_add);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 4, sizeof(cl_mem), (void *)&dev_U);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 5, sizeof(cl_mem), (void *)&dev_U_add);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 6, sizeof(cl_mem), (void *)&dev_V);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 7, sizeof(cl_mem), (void *)&dev_V_add);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 0, sizeof(cl_size_t), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_int),    (void *)&nghost_local);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 2, sizeof(cl_mem),    (void *)&dev_H);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 3, sizeof(cl_mem),    (void *)&dev_H_add);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 4, sizeof(cl_mem),    (void *)&dev_U);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 5, sizeof(cl_mem),    (void *)&dev_U_add);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 6, sizeof(cl_mem),    (void *)&dev_V);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 7, sizeof(cl_mem),    (void *)&dev_V_add);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
    }
@@ -3135,22 +3135,22 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
      __local        real4 *tile,     // 15  Tile size in real4.
      __local        int8  *itile)    // 16  Tile size in int8.
      */
-   ezcl_set_kernel_arg(kernel_refine_potential, 0, sizeof(cl_int),  (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_refine_potential, 1, sizeof(cl_int),  (void *)&levmx);
-   ezcl_set_kernel_arg(kernel_refine_potential, 2, sizeof(cl_mem),  (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_refine_potential, 3, sizeof(cl_mem),  (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_refine_potential, 4, sizeof(cl_mem),  (void *)&dev_V);
-   ezcl_set_kernel_arg(kernel_refine_potential, 5, sizeof(cl_mem),  (void *)&dev_nlft);
-   ezcl_set_kernel_arg(kernel_refine_potential, 6, sizeof(cl_mem),  (void *)&dev_nrht);
-   ezcl_set_kernel_arg(kernel_refine_potential, 7, sizeof(cl_mem),  (void *)&dev_ntop);
-   ezcl_set_kernel_arg(kernel_refine_potential, 8, sizeof(cl_mem),  (void *)&dev_nbot);
-   ezcl_set_kernel_arg(kernel_refine_potential, 9, sizeof(cl_mem),  (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_refine_potential,10, sizeof(cl_mem),  (void *)&dev_celltype);
-   ezcl_set_kernel_arg(kernel_refine_potential,11, sizeof(cl_mem),  (void *)&dev_mpot);
-   ezcl_set_kernel_arg(kernel_refine_potential,12, sizeof(cl_mem),  (void *)&dev_ioffset);
-   ezcl_set_kernel_arg(kernel_refine_potential,13, sizeof(cl_mem),  (void *)&dev_levdx);
-   ezcl_set_kernel_arg(kernel_refine_potential,14, sizeof(cl_mem),  (void *)&dev_levdy);
-   ezcl_set_kernel_arg(kernel_refine_potential,15, sizeof(cl_mem),  (void *)&dev_result);
+   ezcl_set_kernel_arg(kernel_refine_potential, 0, sizeof(cl_size_t), (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_refine_potential, 1, sizeof(cl_int),    (void *)&levmx);
+   ezcl_set_kernel_arg(kernel_refine_potential, 2, sizeof(cl_mem),    (void *)&dev_H);
+   ezcl_set_kernel_arg(kernel_refine_potential, 3, sizeof(cl_mem),    (void *)&dev_U);
+   ezcl_set_kernel_arg(kernel_refine_potential, 4, sizeof(cl_mem),    (void *)&dev_V);
+   ezcl_set_kernel_arg(kernel_refine_potential, 5, sizeof(cl_mem),    (void *)&dev_nlft);
+   ezcl_set_kernel_arg(kernel_refine_potential, 6, sizeof(cl_mem),    (void *)&dev_nrht);
+   ezcl_set_kernel_arg(kernel_refine_potential, 7, sizeof(cl_mem),    (void *)&dev_ntop);
+   ezcl_set_kernel_arg(kernel_refine_potential, 8, sizeof(cl_mem),    (void *)&dev_nbot);
+   ezcl_set_kernel_arg(kernel_refine_potential, 9, sizeof(cl_mem),    (void *)&dev_level);
+   ezcl_set_kernel_arg(kernel_refine_potential,10, sizeof(cl_mem),    (void *)&dev_celltype);
+   ezcl_set_kernel_arg(kernel_refine_potential,11, sizeof(cl_mem),    (void *)&dev_mpot);
+   ezcl_set_kernel_arg(kernel_refine_potential,12, sizeof(cl_mem),    (void *)&dev_ioffset);
+   ezcl_set_kernel_arg(kernel_refine_potential,13, sizeof(cl_mem),    (void *)&dev_levdx);
+   ezcl_set_kernel_arg(kernel_refine_potential,14, sizeof(cl_mem),    (void *)&dev_levdy);
+   ezcl_set_kernel_arg(kernel_refine_potential,15, sizeof(cl_mem),    (void *)&dev_result);
    ezcl_set_kernel_arg(kernel_refine_potential,16, local_work_size*sizeof(cl_real4),    NULL);
    ezcl_set_kernel_arg(kernel_refine_potential,17, local_work_size*sizeof(cl_int8),    NULL);
 
@@ -3285,14 +3285,14 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
                 __global       real  *redscratch, // 6   Final result of operation.
                 __local        real  *tile)       // 7
         */
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 1, sizeof(cl_mem), (void *)&dev_H);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 2, sizeof(cl_mem), (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 3, sizeof(cl_mem), (void *)&dev_levdx);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 4, sizeof(cl_mem), (void *)&dev_levdy);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 5, sizeof(cl_mem), (void *)&dev_celltype);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 6, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 7, sizeof(cl_mem), (void *)&dev_redscratch);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 0, sizeof(cl_size_t), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 1, sizeof(cl_mem),    (void *)&dev_H);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 2, sizeof(cl_mem),    (void *)&dev_level);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 3, sizeof(cl_mem),    (void *)&dev_levdx);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 4, sizeof(cl_mem),    (void *)&dev_levdy);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 5, sizeof(cl_mem),    (void *)&dev_celltype);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 6, sizeof(cl_mem),    (void *)&dev_mass_sum);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 7, sizeof(cl_mem),    (void *)&dev_redscratch);
       ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 8, local_work_size*sizeof(cl_real2), NULL);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, &mass_sum_stage1_event);
@@ -3304,9 +3304,9 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
                 __local        real  *tile)       // 2
         */
 
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 0, sizeof(cl_size_t), (void *)&block_size);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 1, sizeof(cl_mem),    (void *)&dev_mass_sum);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 2, sizeof(cl_mem),    (void *)&dev_redscratch);
       ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 3, local_work_size*sizeof(cl_real2), NULL);
 
       if (block_size > 1) {
@@ -3331,14 +3331,14 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
                 __global       real  *redscratch, // 6   Final result of operation.
                 __local        real  *tile)       // 7
         */
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 1, sizeof(cl_mem), (void *)&dev_H);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 2, sizeof(cl_mem), (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 3, sizeof(cl_mem), (void *)&dev_levdx);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 4, sizeof(cl_mem), (void *)&dev_levdy);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 5, sizeof(cl_mem), (void *)&dev_celltype);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 6, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 7, sizeof(cl_mem), (void *)&dev_redscratch);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 0, sizeof(cl_size_t), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 1, sizeof(cl_mem),    (void *)&dev_H);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 2, sizeof(cl_mem),    (void *)&dev_level);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 3, sizeof(cl_mem),    (void *)&dev_levdx);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 4, sizeof(cl_mem),    (void *)&dev_levdy);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 5, sizeof(cl_mem),    (void *)&dev_celltype);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 6, sizeof(cl_mem),    (void *)&dev_mass_sum);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 7, sizeof(cl_mem),    (void *)&dev_redscratch);
       ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 8, local_work_size*sizeof(cl_real), NULL);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, &mass_sum_stage1_event);
@@ -3350,9 +3350,9 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
                 __local        real  *tile)       // 2
         */
 
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 0, sizeof(cl_size_t), (void *)&block_size);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 1, sizeof(cl_mem),    (void *)&dev_mass_sum);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 2, sizeof(cl_mem),    (void *)&dev_redscratch);
       ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 3, local_work_size*sizeof(cl_real), NULL);
 
       if (block_size > 1) {
@@ -3419,14 +3419,14 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
                 __global       real  *redscratch, // 6   Final result of operation.
                 __local        real  *tile)       // 7
         */
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 1, sizeof(cl_mem), (void *)&dev_H);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 2, sizeof(cl_mem), (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 3, sizeof(cl_mem), (void *)&dev_levdx);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 4, sizeof(cl_mem), (void *)&dev_levdy);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 5, sizeof(cl_mem), (void *)&dev_celltype);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 6, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 7, sizeof(cl_mem), (void *)&dev_redscratch);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 0, sizeof(cl_size_t), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 1, sizeof(cl_mem),    (void *)&dev_H);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 2, sizeof(cl_mem),    (void *)&dev_level);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 3, sizeof(cl_mem),    (void *)&dev_levdx);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 4, sizeof(cl_mem),    (void *)&dev_levdy);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 5, sizeof(cl_mem),    (void *)&dev_celltype);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 6, sizeof(cl_mem),    (void *)&dev_mass_sum);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 7, sizeof(cl_mem),    (void *)&dev_redscratch);
       ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 8, local_work_size*sizeof(cl_real2), NULL);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, &mass_sum_stage1_event);
@@ -3438,9 +3438,9 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
                 __local        real  *tile)       // 2
         */
 
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 0, sizeof(cl_size_t), (void *)&block_size);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 1, sizeof(cl_mem),    (void *)&dev_mass_sum);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 2, sizeof(cl_mem),    (void *)&dev_redscratch);
       ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 3, local_work_size*sizeof(cl_real2), NULL);
 
       if (block_size > 1) {
@@ -3470,14 +3470,14 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
                 __global       real  *redscratch, // 6   Final result of operation.
                 __local        real  *tile)       // 7
         */
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 1, sizeof(cl_mem), (void *)&dev_H);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 2, sizeof(cl_mem), (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 3, sizeof(cl_mem), (void *)&dev_levdx);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 4, sizeof(cl_mem), (void *)&dev_levdy);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 5, sizeof(cl_mem), (void *)&dev_celltype);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 6, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 7, sizeof(cl_mem), (void *)&dev_redscratch);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 0, sizeof(cl_size_t), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 1, sizeof(cl_mem),    (void *)&dev_H);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 2, sizeof(cl_mem),    (void *)&dev_level);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 3, sizeof(cl_mem),    (void *)&dev_levdx);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 4, sizeof(cl_mem),    (void *)&dev_levdy);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 5, sizeof(cl_mem),    (void *)&dev_celltype);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 6, sizeof(cl_mem),    (void *)&dev_mass_sum);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 7, sizeof(cl_mem),    (void *)&dev_redscratch);
       ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 8, local_work_size*sizeof(cl_real), NULL);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, &mass_sum_stage1_event);
@@ -3489,9 +3489,9 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
                 __local        real  *tile)       // 2
         */
 
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 0, sizeof(cl_size_t), (void *)&block_size);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 1, sizeof(cl_mem),    (void *)&dev_mass_sum);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 2, sizeof(cl_mem),    (void *)&dev_redscratch);
       ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 3, local_work_size*sizeof(cl_real), NULL);
 
       if (block_size > 1) {
