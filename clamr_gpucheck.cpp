@@ -722,6 +722,7 @@ extern "C" void do_calc(void)
       }
 
 #ifdef HAVE_OPENGL
+      mesh->calc_spatial_coordinates(0);
       set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
       set_cell_data(&H[0]);
 #endif
@@ -822,6 +823,7 @@ extern "C" void do_calc(void)
          }
          printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
             n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
+#ifdef HAVE_OPENGL
          if (do_cpu_calc){
             mesh->calc_spatial_coordinates(0);
          }
@@ -867,7 +869,7 @@ extern "C" void do_calc(void)
                }
             }
          }
-#ifdef HAVE_OPENGL
+
          set_mysize(ncells);
          set_viewmode(view_mode);
          set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);

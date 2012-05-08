@@ -662,14 +662,14 @@ extern "C" void do_calc(void)
           */
          size_t shared_spd_sum_int = local_work_size * sizeof(cl_int);
          ezcl_set_kernel_arg(kernel_count_BCs, 0, sizeof(cl_size_t), (void *)&ncells);
-         ezcl_set_kernel_arg(kernel_count_BCs, 1, sizeof(cl_mem), (void *)&dev_i);
-         ezcl_set_kernel_arg(kernel_count_BCs, 2, sizeof(cl_mem), (void *)&dev_j);
-         ezcl_set_kernel_arg(kernel_count_BCs, 3, sizeof(cl_mem), (void *)&dev_level);
-         ezcl_set_kernel_arg(kernel_count_BCs, 4, sizeof(cl_mem), (void *)&dev_levibeg);
-         ezcl_set_kernel_arg(kernel_count_BCs, 5, sizeof(cl_mem), (void *)&dev_leviend);
-         ezcl_set_kernel_arg(kernel_count_BCs, 6, sizeof(cl_mem), (void *)&dev_levjbeg);
-         ezcl_set_kernel_arg(kernel_count_BCs, 7, sizeof(cl_mem), (void *)&dev_levjend);
-         ezcl_set_kernel_arg(kernel_count_BCs, 8, sizeof(cl_mem), (void *)&dev_ioffset);
+         ezcl_set_kernel_arg(kernel_count_BCs, 1, sizeof(cl_mem),    (void *)&dev_i);
+         ezcl_set_kernel_arg(kernel_count_BCs, 2, sizeof(cl_mem),    (void *)&dev_j);
+         ezcl_set_kernel_arg(kernel_count_BCs, 3, sizeof(cl_mem),    (void *)&dev_level);
+         ezcl_set_kernel_arg(kernel_count_BCs, 4, sizeof(cl_mem),    (void *)&dev_levibeg);
+         ezcl_set_kernel_arg(kernel_count_BCs, 5, sizeof(cl_mem),    (void *)&dev_leviend);
+         ezcl_set_kernel_arg(kernel_count_BCs, 6, sizeof(cl_mem),    (void *)&dev_levjbeg);
+         ezcl_set_kernel_arg(kernel_count_BCs, 7, sizeof(cl_mem),    (void *)&dev_levjend);
+         ezcl_set_kernel_arg(kernel_count_BCs, 8, sizeof(cl_mem),    (void *)&dev_ioffset);
          ezcl_set_kernel_arg(kernel_count_BCs, 9, shared_spd_sum_int, 0);
 
          ezcl_set_kernel_arg(kernel_reduce_sum_int_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
@@ -736,7 +736,7 @@ extern "C" void do_calc(void)
          }
          printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
             n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
-//#ifdef HAVE_OPENGL
+#ifdef HAVE_OPENGL
          vector<real> x_save(ncells);
          vector<real> dx_save(ncells);
          vector<real> y_save(ncells);
@@ -775,7 +775,6 @@ extern "C" void do_calc(void)
          }
          state->gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
 
-#ifdef HAVE_OPENGL
          set_mysize(ncells);
          set_viewmode(view_mode);
          set_cell_coordinates(&x_save[0], &dx_save[0], &y_save[0], &dy_save[0]);
