@@ -64,30 +64,34 @@ Totalview on darwin
 /home/ccs/opt/x86_64/bin/totalview
 
 ////////////////
-// SVN Commands
+// GIT Commands
 ////////////////
 
-// How to check out of the SVN
-svn co svn://ccs-dev-fe/xcp_students/Exa-Y-Z/trunk/Exa-Y-Z    Exa-Y-Z
-// How to check out of gforge with svn
-svn checkout --username <username>@lanl.gov https://gforge.sandia.gov/svn/clamr/trunk/ clamr
+We are switching to GIT. To checkout the code
 
-// Copy new materials from the repository (update)
-svn update
+git clone git@github.com:losalamos/CLAMR.git
 
-// Are there any local changes to the SVN files
-svn status
-
-// Have a file to add to the SVN
-svn add [file]
-
-// Show the newly added file
-svn commit [file] 
-
-// Show the log of a file
-svn log [file]
-
-// Shows the difference between new versions of a file
-svn diff
+// // How to check out of the SVN
+// svn co svn://ccs-dev-fe/xcp_students/Exa-Y-Z/trunk/Exa-Y-Z    Exa-Y-Z
+// // How to check out of gforge with svn
+// svn checkout --username <username>@lanl.gov https://gforge.sandia.gov/svn/clamr/trunk/ clamr
+// 
+// // Copy new materials from the repository (update)
+// svn update
+// 
+// // Are there any local changes to the SVN files
+// svn status
+// 
+// // Have a file to add to the SVN
+// svn add [file]
+// 
+// // Show the newly added file
+// svn commit [file] 
+// 
+// // Show the log of a file
+// svn log [file]
+// 
+// // Shows the difference between new versions of a file
+// svn diff
 
 

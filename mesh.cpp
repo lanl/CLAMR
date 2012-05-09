@@ -2854,8 +2854,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       border_cell_num.push_back(*p);
    }
 
-   size_t nbsize_global;
-   size_t nbsize_local=border_cell_num.size();
+   int nbsize_global;
+   int nbsize_local=border_cell_num.size();
 
    MPI_Allreduce(&nbsize_local, &nbsize_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
