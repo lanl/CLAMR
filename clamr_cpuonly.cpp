@@ -417,8 +417,7 @@ extern "C" void do_calc(void)
    size_t new_ncells = 0;
 
    //  Main loop.
-   for (int iburst = 0; iburst < outputInterval; iburst++)
-   {
+   for (int iburst = 0; iburst < outputInterval; iburst++) {
       if (n > niter) break;
 
       size_t local_work_size  = MIN(ncells, TILE_SIZE);
@@ -545,7 +544,7 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_save[0], NULL);
          for (uint ic = 0; ic < ncells; ic++){
             if (mpot[ic] != mpot_save[ic]) {
-               printf("DEBUG refine_potential at cycle %d mpot & mpot_save %d %d %d \n",n,ic,mpot[ic],mpot_save[ic]);
+               printf("DEBUG refine_potential at cycle %d cell %d mpot & mpot_save %d %d \n",n,ic,mpot[ic],mpot_save[ic]);
             }
          }
          // Sync up cpu array with gpu version to reduce differences due to minor numerical differences
