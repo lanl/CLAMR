@@ -3364,7 +3364,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       size_t ghost_global_work_size = ((nghost + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
 
       ezcl_set_kernel_arg(kernel_copy_ghost_data,  0, sizeof(cl_size_t), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_copy_ghost_data,  1, sizeof(cl_int),    (void *)&nghost);
+      ezcl_set_kernel_arg(kernel_copy_ghost_data,  1, sizeof(cl_size_t), (void *)&nghost);
       ezcl_set_kernel_arg(kernel_copy_ghost_data,  2, sizeof(cl_mem),    (void *)&dev_nlft);
       ezcl_set_kernel_arg(kernel_copy_ghost_data,  3, sizeof(cl_mem),    (void *)&dev_nlft_add);
       ezcl_set_kernel_arg(kernel_copy_ghost_data,  4, sizeof(cl_mem),    (void *)&dev_nrht);
