@@ -89,7 +89,7 @@
 #endif
 
 // Sync is to reduce numerical drift between cpu and gpu
-#define DO_COMPARISON
+//#define DO_COMPARISON
 
 //TODO:  command-line option for OpenGL?
 #ifdef DO_COMPARISON
