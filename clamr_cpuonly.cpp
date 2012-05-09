@@ -431,18 +431,16 @@ extern "C" void do_calc(void)
       old_ncells = ncells;
 
       //  Calculate the real time step for the current discrete time step.
-      double deltaT_cpu = state->set_timestep(mesh, g, sigma);
+      double deltaT = state->set_timestep(mesh, g, sigma);
       
       //  Compare time step values and pass deltaT in to the kernel.
       if (do_comparison_calc) {
          double deltaT_gpu = state->gpu_set_timestep(command_queue, mesh, sigma);
-         if (fabs(deltaT_gpu - deltaT_cpu) > .000001) {
-            printf("Error with deltaT calc --- cpu %lf gpu %lf\n",deltaT_cpu,deltaT_gpu); 
+         if (fabs(deltaT_gpu - deltaT) > .000001) {
+            printf("Error with deltaT calc --- cpu %lf gpu %lf\n",deltaT,deltaT_gpu); 
          }
       }
       
-      double deltaT = deltaT_cpu;
-
       mesh->calc_neighbors();
 
       if (do_comparison_calc) {
@@ -546,7 +544,7 @@ extern "C" void do_calc(void)
          vector<int>mpot_save(ncells);
          ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_save[0], NULL);
          for (uint ic = 0; ic < ncells; ic++){
-            if (fabs(mpot[ic]-mpot_save[ic]) > STATE_EPS) {
+            if (mpot[ic] != mpot_save[ic]) {
                printf("DEBUG refine_potential at cycle %d mpot & mpot_save %d %d %d \n",n,ic,mpot[ic],mpot_save[ic]);
             }
          }
@@ -557,12 +555,9 @@ extern "C" void do_calc(void)
          }
       }
 
-      int mcount, mtotal;
-
       new_ncells = old_ncells+mesh->rezone_count(mpot);
 
-      //mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
-
+      int mcount, mtotal;
       if (do_comparison_calc) {
          ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
          mtotal = 0;
@@ -580,7 +575,6 @@ extern "C" void do_calc(void)
             if (mtotal != ioffset[ig]) printf("DEBUG ig %d ioffset %d mcount %d\n",ig,ioffset[ig],mtotal);
             mtotal += mcount;
          }
-         ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
 
          int result;
          ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
