@@ -430,17 +430,18 @@ extern "C" void do_calc(void)
       //mesh->print_local();
    }
 
-   //  Set write buffers for data. -- Probably just needed to reduce the accumulated difference between CPU/GPU
+   size_t old_ncells = ncells;
+   size_t old_ncells_global = ncells_global;
+   size_t new_ncells = 0;
+   size_t new_ncells_global = 0;
 
    //  Main loop.
-   for (int iburst = 0; iburst < outputInterval; iburst++)
-   {  if (n > niter) break;
+   for (int iburst = 0; iburst < outputInterval; iburst++) {
+      if (n > niter) break;
 
       //  Define basic domain decomposition parameters for GPU.
       size_t old_ncells = ncells;
       size_t old_ncells_global = ncells_global;
-      size_t new_ncells = 0;
-      size_t new_ncells_global = 0;
 
       //  Calculate the real time step for the current discrete time step.
       double deltaT = state->set_timestep(mesh, g, sigma);
