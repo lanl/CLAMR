@@ -2425,7 +2425,7 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
 
       // Fill in ghost
       ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 0, sizeof(cl_size_t), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_int),    (void *)&nghost_local);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_size_t), (void *)&nghost_local);
       ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 2, sizeof(cl_mem),    (void *)&dev_H);
       ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 3, sizeof(cl_mem),    (void *)&dev_H_add);
       ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 4, sizeof(cl_mem),    (void *)&dev_U);
@@ -3101,7 +3101,7 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 
       // Fill in ghost
       ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 0, sizeof(cl_size_t), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_int),    (void *)&nghost_local);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_size_t), (void *)&nghost_local);
       ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 2, sizeof(cl_mem),    (void *)&dev_H);
       ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 3, sizeof(cl_mem),    (void *)&dev_H_add);
       ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 4, sizeof(cl_mem),    (void *)&dev_U);

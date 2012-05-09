@@ -605,7 +605,7 @@ extern "C" void do_calc(void)
    vector<int>     mpot;
    vector<int>     mpot_global;
    
-   if (DEBUG) {
+   //if (DEBUG) {
       //if (mype == 0) mesh->print();
 
       char filename[10];
@@ -613,7 +613,7 @@ extern "C" void do_calc(void)
       mesh_local->fp=fopen(filename,"w");
 
       //mesh->print_local();
-   }
+   //}
 
    //  Set write buffers for data. -- Probably just needed to reduce the accumulated difference between CPU/GPU
 
@@ -700,6 +700,9 @@ extern "C" void do_calc(void)
       if (do_gpu_calc) {
          mesh_global->gpu_calc_neighbors(command_queue);
          mesh_local->gpu_calc_neighbors_local(command_queue);
+         //printf("File %s Line is %d\n",__FILE__,__LINE__);
+         //L7_Terminate();
+         //exit(0);
       }
 
       if (do_comparison_calc) {

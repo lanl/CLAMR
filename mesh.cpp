@@ -1630,7 +1630,6 @@ void Mesh::calc_neighbors_local(void)
       }
 
       // Walk through cell array and set hash to global cell values
-      // TODO: This has changed -- need to update kernel code
       for(uint ic=0; ic<ncells; ic++){
          int lev = level[ic];
          if (i[ic] < lev_ibegin[lev]) { // left boundary
@@ -1811,7 +1810,7 @@ void Mesh::calc_neighbors_local(void)
       MPI_Allgatherv(&border_cell_level[0], nbsizes[mype], MPI_INT, &border_cell_level_global[0], &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
 
       //for (int ic = 0; ic < nbsize_global; ic++) {
-      //   fprintf(fp,"%d: Global Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_global[ic],
+      //   fprintf(fp,"%d: Global Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
       //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
       //}
 
@@ -2671,7 +2670,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    int jminsize = sizes[2];
    int jmaxsize = sizes[3];
 
-   //fprintf(fp,"%d: sizes %d %d     %d %d   \n",mype,sizes[0].s0,sizes[0].s1,sizes[0].s2,sizes[0].s3);
+   //fprintf(fp,"%d: sizes %d %d     %d %d   \n",mype,sizes[0],sizes[1],sizes[2],sizes[3]);
    //fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
 
    // Expand size by 2*coarse_cells for ghost cells
@@ -3117,7 +3116,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          int levmult      = levtable[levmx-nlev];
          int iii = border_cell_i_global[ig];
          int jjj = border_cell_j_global[ig];
-         //fprintf(fp,"%d: DEBUG nl is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nb, ig, border_cell_global[ig], nlev, iii, jjj);
+         //fprintf(fp,"%d: DEBUG nl is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nl, ig, border_cell_num_global[ig], nlev, iii, jjj);
          int nll = hash_tmp[((      jjj   *levmult               )-jminsize)*(imaxsize-iminsize)+((max(  iii   *levmult-1, 0         ))-iminsize)];
          if (nll != nl && nll > 0 && (nll < start_idx || nll >= end_idx) ) offtile_list.push_back(nll);
          if (nlev < levmx) {
@@ -3145,7 +3144,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          int levmult      = levtable[levmx-nlev];
          int iii = border_cell_i_global[ig];
          int jjj = border_cell_j_global[ig];
-         //fprintf(fp,"%d: DEBUG nr is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nb, ig, border_cell_global[ig], nlev, iii, jjj);
+         //fprintf(fp,"%d: DEBUG nr is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nr, ig, border_cell_num_global[ig], nlev, iii, jjj);
          int nrr = hash_tmp[((      jjj   *levmult               )-jminsize)*(imaxsize-iminsize)+((min( (iii+1)*levmult,   imaxcalc-1))-iminsize)];
          if (nrr != nr && nrr > 0 && (nrr < start_idx || nrr >= end_idx) ) offtile_list.push_back(nrr);
          if (nlev < levmx) {
@@ -3173,7 +3172,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          int levmult      = levtable[levmx-nlev];
          int iii = border_cell_i_global[ig];
          int jjj = border_cell_j_global[ig];
-         //fprintf(fp,"%d: DEBUG nb is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nb, ig, border_cell_global[ig], nlev, iii, jjj);
+         //fprintf(fp,"%d: DEBUG nb is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nb, ig, border_cell_num_global[ig], nlev, iii, jjj);
          int nbb = hash_tmp[((max(  jjj   *levmult-1, 0)         )-jminsize)*(imaxsize-iminsize)+((      iii   *levmult               )-iminsize)];
          if (nbb != nb && nbb > 0 && (nbb < start_idx || nbb >= end_idx) ) offtile_list.push_back(nbb);
          if (nlev < levmx) {
@@ -3240,7 +3239,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       indices_needed.push_back(*p);
    }
 
-   int nghost = indices_needed.size();
+   size_t nghost = indices_needed.size();
    ncells_ghost = ncells + nghost;
    //fprintf(fp,"%d ncells_ghost size is %ld nghost %d\n",mype,ncells_ghost,nghost);
 
