@@ -109,13 +109,13 @@ void apply_BCs(__local  real4        *tile,
                __global const int    *nbot);
 
 __kernel void copy_state_data_cl(
-                         const size_t isize,         // 0 
-                 __global      real   *H,            // 1 
-                 __global      real   *U,            // 2 
-                 __global      real   *V,            // 3 
-                 __global      real   *H_new,        // 4 
-                 __global      real   *U_new,        // 5 
-                 __global      real   *V_new)        // 6 
+                         const ulong  isize,         // 0 
+                 __global      real  *H,            // 1 
+                 __global      real  *U,            // 2 
+                 __global      real  *V,            // 3 
+                 __global      real  *H_new,        // 4 
+                 __global      real  *U_new,        // 5 
+                 __global      real  *V_new)        // 6 
 {
                 
    const unsigned int giX  = get_global_id(0);
@@ -128,14 +128,14 @@ __kernel void copy_state_data_cl(
 }
 
 __kernel void copy_state_ghost_data_cl(
-                         const size_t ncells,        // 0 
-                         const size_t nghost,        // 1 
-                 __global      real   *H,            // 2 
-                 __global      real   *H_add,        // 3 
-                 __global      real   *U,            // 4 
-                 __global      real   *U_add,        // 5 
-                 __global      real   *V,            // 6 
-                 __global      real   *V_add)        // 7 
+                         const ulong  ncells,        // 0 
+                         const ulong  nghost,        // 1 
+                 __global      real  *H,            // 2 
+                 __global      real  *H_add,        // 3 
+                 __global      real  *U,            // 4 
+                 __global      real  *U_add,        // 5 
+                 __global      real  *V,            // 6 
+                 __global      real  *V_add)        // 7 
 {
    const unsigned int giX  = get_global_id(0);
 
@@ -344,7 +344,7 @@ real w_corrector(//_ORIG(
 
 
 __kernel void calc_finite_difference_cl(
-                 const size_t ncells,   // 0  Total number of cells
+                 const ulong  ncells,   // 0  Total number of cells
                  const int    levmx,    // 1  Maximum level
         __global const real  *H,//_old,    // 2  
         __global const real  *U,//_old,    // 3  
@@ -1108,7 +1108,7 @@ __kernel void calc_finite_difference_cl(
 #define REAL_CELL 1
 
 __kernel void refine_potential_cl(
-                 const size_t ncells,   // 0  Total number of cells.
+                 const ulong  ncells,   // 0  Total number of cells.
                  const int    levmx,    // 1  Maximum level
         __global const real  *H,        // 2
         __global const real  *U,        // 3
@@ -1427,7 +1427,7 @@ __kernel void refine_potential_cl(
 
 // XXX Refinement Smoothing XXX
 __kernel void refine_smooth_cl(
-                 const size_t  ncells,   // 0  Total number of cells.
+                 const ulong   ncells,   // 0  Total number of cells.
                  const int     levmx,    // 1  Maximum level
         __global const int    *nlft,     // 2  Array of left neighbors.
         __global const int    *nrht,     // 3  Array of right neighbors.
@@ -1648,7 +1648,7 @@ inline uint scan_workgroup_exclusive(
 }
 
 __kernel void finish_reduction_scan_cl(
-                 const size_t  isize,
+                 const ulong   isize,
         __global       int    *ioffset,
         __global       int    *result,
         __local        int    *itile_scratch,

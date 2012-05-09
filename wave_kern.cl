@@ -113,18 +113,18 @@ void reduction_max_within_tile2(__local  real2  *tile);
 void reduction_minmax_within_tile4(__local  int4  *tile);
 
 __kernel void set_timestep_cl(
-                 const size_t ncells,    // 0  Total number of cells.
-                 const real   sigma,     // 1
-        __global const real  *H_in,      // 2  
-        __global const real  *U_in,      // 3  
-        __global const real  *V_in,      // 4  
-        __global const int   *level,     // 5  Array of level information.
-        __global const int   *celltype,  // 6 
-        __global const real  *lev_dx,    // 7  
-        __global const real  *lev_dy,    // 8  
-        __global       real  *redscratch,// 9 
-        __global       real  *deltaT,    // 10
-        __local        real  *tile)      // 11
+                 const ulong ncells,    // 0  Total number of cells.
+                 const real  sigma,     // 1
+        __global const real *H_in,      // 2  
+        __global const real *U_in,      // 3  
+        __global const real *V_in,      // 4  
+        __global const int  *level,     // 5  Array of level information.
+        __global const int  *celltype,  // 6 
+        __global const real *lev_dx,    // 7  
+        __global const real *lev_dy,    // 8  
+        __global       real *redscratch,// 9 
+        __global       real *deltaT,    // 10
+        __local        real *tile)      // 11
 {
     const unsigned int giX  = get_global_id(0);
     const unsigned int tiX  = get_local_id(0);
@@ -168,10 +168,10 @@ __kernel void set_timestep_cl(
 /* finish_reduction */
 
 __kernel void finish_reduction_min_cl(
-                 const size_t isize,
-        __global       real   *redscratch,
-        __global       real   *deltaT,
-        __local        real   *tile)
+                 const ulong isize,
+        __global       real  *redscratch,
+        __global       real  *deltaT,
+        __local        real  *tile)
 {       
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
@@ -216,7 +216,7 @@ inline uint scan_warp_inclusive(__local volatile uint *input, const uint idx, co
 }
 
 __kernel void rezone_all_cl(
-                 const size_t isize,        // 0 
+                 const ulong  isize,        // 0 
                  const int    stencil,      // 1 
                  const int    levmx,        // 2
         __global const int   *mpot,         // 3   Array of mesh potential information.
@@ -688,8 +688,8 @@ __kernel void rezone_all_cl(
 #define hashval(j,i) hash[(j)*imaxsize+(i)]
 
 __kernel void hash_init_cl(
-                          const size_t isize,     // 0 
-                 __global       int    *hash)     // 1 
+                          const ulong isize,     // 0 
+                 __global       int   *hash)     // 1 
 {
    const unsigned int giX  = get_global_id(0);
 
@@ -699,15 +699,15 @@ __kernel void hash_init_cl(
 }
 
 __kernel void hash_init_corners_cl(
-                          const size_t isize,      // 0 
-                          const int    levmx,      // 1 
-                          const int    imax,       // 2 
-                          const int    jmax,       // 3 
-                 __global const int    *levtable,  // 4 
-                 __global const int    *corners_i, // 5
-                 __global const int    *corners_j, // 6
-                 __global const int4   *sizes,     // 7
-                 __global       int    *hash)      // 8 
+                          const ulong isize,      // 0 
+                          const int   levmx,      // 1 
+                          const int   imax,       // 2 
+                          const int   jmax,       // 3 
+                 __global const int   *levtable,  // 4 
+                 __global const int   *corners_i, // 5
+                 __global const int   *corners_j, // 6
+                 __global const int4  *sizes,     // 7
+                 __global       int   *hash)      // 8 
 {
    const unsigned int giX  = get_global_id(0);
 
@@ -734,20 +734,20 @@ __kernel void hash_init_corners_cl(
 }
 
 __kernel void hash_setup_cl(
-                          const size_t isize,     // 0 
-                          const int    levmx,     // 1 
-                          const int    imax,      // 2 
-                          const int    jmax,      // 3 
-                          const int    imaxsize,  // 4 
-                 __global const int    *levtable, // 5 
-                 __global const int    *lev_ibeg, // 6
-                 __global const int    *lev_iend, // 7
-                 __global const int    *lev_jbeg, // 8
-                 __global const int    *lev_jend, // 9
-                 __global const int    *level,    // 10
-                 __global const int    *i,        // 11
-                 __global const int    *j,        // 12
-                 __global       int    *hash)     // 13
+                          const ulong isize,     // 0 
+                          const int   levmx,     // 1 
+                          const int   imax,      // 2 
+                          const int   jmax,      // 3 
+                          const int   imaxsize,  // 4 
+                 __global const int   *levtable, // 5 
+                 __global const int   *lev_ibeg, // 6
+                 __global const int   *lev_iend, // 7
+                 __global const int   *lev_jbeg, // 8
+                 __global const int   *lev_jend, // 9
+                 __global const int   *level,    // 10
+                 __global const int   *i,        // 11
+                 __global const int   *j,        // 12
+                 __global       int   *hash)     // 13
 {
                 
    const unsigned int giX  = get_global_id(0);
@@ -779,21 +779,21 @@ __kernel void hash_setup_cl(
 }
 
 __kernel void hash_setup_local_cl(
-                          const size_t isize,     // 0 
-                          const int    levmx,     // 1 
-                          const int    imax,      // 2 
-                          const int    jmax,      // 3 
-                          const int    noffset,   // 4 
-                 __global const int4   *sizes,    // 5 
-                 __global const int    *levtable, // 6 
-                 __global const int    *lev_ibeg, // 7 
-                 __global const int    *lev_iend, // 8 
-                 __global const int    *lev_jbeg, // 9
-                 __global const int    *lev_jend, // 10
-                 __global const int    *level,    // 11
-                 __global const int    *i,        // 12
-                 __global const int    *j,        // 13
-                 __global       int    *hash)     // 14
+                          const ulong isize,     // 0 
+                          const int   levmx,     // 1 
+                          const int   imax,      // 2 
+                          const int   jmax,      // 3 
+                          const int   noffset,   // 4 
+                 __global const int4  *sizes,    // 5 
+                 __global const int   *levtable, // 6 
+                 __global const int   *lev_ibeg, // 7 
+                 __global const int   *lev_iend, // 8 
+                 __global const int   *lev_jbeg, // 9
+                 __global const int   *lev_jend, // 10
+                 __global const int   *level,    // 11
+                 __global const int   *i,        // 12
+                 __global const int   *j,        // 13
+                 __global       int   *hash)     // 14
 {
                 
    const unsigned int giX  = get_global_id(0);
@@ -844,16 +844,16 @@ __kernel void hash_setup_local_cl(
 }
 
 __kernel void hash_setup_border_cl(
-                          const size_t isize,         // 0 
-                          const int    levmx,         // 1 
-                          const int    noffset,       // 2 
-                 __global const int4   *sizes,        // 3 
-                 __global const int    *levtable,     // 4 
-                 __global const int    *border_level, // 5 
-                 __global const int    *border_i,     // 6 
-                 __global const int    *border_j,     // 7 
-                 __global const int    *border_num,   // 8 
-                 __global       int    *hash)         // 9 
+                          const ulong isize,         // 0 
+                          const int   levmx,         // 1 
+                          const int   noffset,       // 2 
+                 __global const int4  *sizes,        // 3 
+                 __global const int   *levtable,     // 4 
+                 __global const int   *border_level, // 5 
+                 __global const int   *border_i,     // 6 
+                 __global const int   *border_j,     // 7 
+                 __global const int   *border_num,   // 8 
+                 __global       int   *hash)         // 9 
 {
                 
    const unsigned int giX  = get_global_id(0);
@@ -883,15 +883,15 @@ __kernel void hash_setup_border_cl(
 }
 
 __kernel void calc_hash_size_cl(
-                          const size_t  ncells,      // 0 
-                          const int     levmx,       // 1 
-                 __global const int     *levtable,   // 2 
-                 __global const int     *level,      // 3 
-                 __global const int     *i,          // 4 
-                 __global const int     *j,          // 5 
-                 __global       int4    *redscratch, // 6
-                 __global       int4    *sizes,      // 7
-                 __local        int4    *tile)       // 8
+                          const ulong  ncells,      // 0 
+                          const int    levmx,       // 1 
+                 __global const int    *levtable,   // 2 
+                 __global const int    *level,      // 3 
+                 __global const int    *i,          // 4 
+                 __global const int    *j,          // 5 
+                 __global       int4   *redscratch, // 6
+                 __global       int4   *sizes,      // 7
+                 __local        int4   *tile)       // 8
 {
    const unsigned int giX  = get_global_id(0);
    const unsigned int tiX  = get_local_id(0);
@@ -940,40 +940,47 @@ void reduction_minmax_within_tile4(__local  int4  *tile)
 
     if (tiX < 32){
       if (tile[tiX+32].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+32].s0;
-      if (tile[tiX+16].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+16].s0;
-      if (tile[tiX+8].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+8].s0;
-      if (tile[tiX+4].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+4].s0;
-      if (tile[tiX+2].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+2].s0;
-      if (tile[tiX+1].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+1].s0;
-
       if (tile[tiX+32].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+32].s1;
-      if (tile[tiX+16].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+16].s1;
-      if (tile[tiX+8].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+8].s1;
-      if (tile[tiX+4].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+4].s1;
-      if (tile[tiX+2].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+2].s1;
-      if (tile[tiX+1].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+1].s1;
-
       if (tile[tiX+32].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+32].s2;
-      if (tile[tiX+16].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+16].s2;
-      if (tile[tiX+8].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+8].s2;
-      if (tile[tiX+4].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+4].s2;
-      if (tile[tiX+2].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+2].s2;
-      if (tile[tiX+1].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+1].s2;
-
       if (tile[tiX+32].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+32].s3;
+      barrier(CLK_LOCAL_MEM_FENCE);
+
+      if (tile[tiX+16].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+16].s0;
+      if (tile[tiX+16].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+16].s1;
+      if (tile[tiX+16].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+16].s2;
       if (tile[tiX+16].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+16].s3;
+      barrier(CLK_LOCAL_MEM_FENCE);
+
+      if (tile[tiX+8].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+8].s0;
+      if (tile[tiX+8].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+8].s1;
+      if (tile[tiX+8].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+8].s2;
       if (tile[tiX+8].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+8].s3;
+      barrier(CLK_LOCAL_MEM_FENCE);
+
+      if (tile[tiX+4].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+4].s0;
+      if (tile[tiX+4].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+4].s1;
+      if (tile[tiX+4].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+4].s2;
       if (tile[tiX+4].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+4].s3;
+      barrier(CLK_LOCAL_MEM_FENCE);
+
+      if (tile[tiX+2].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+2].s0;
+      if (tile[tiX+2].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+2].s1;
+      if (tile[tiX+2].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+2].s2;
       if (tile[tiX+2].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+2].s3;
+      barrier(CLK_LOCAL_MEM_FENCE);
+
+      if (tile[tiX+1].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+1].s0;
+      if (tile[tiX+1].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+1].s1;
+      if (tile[tiX+1].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+1].s2;
       if (tile[tiX+1].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+1].s3;
     }
 }
 
 __kernel void finish_reduction_minmax4_cl(
-                 const size_t isize,        // 0
-        __global       int4   *redscratch,  // 1
-        __global       int4   *sizes,       // 2
-        __local        int4   *tile)        // 3
+                 const ulong isize,        // 0
+        __global       int4  *redscratch,  // 1
+        __global       int4  *sizes,       // 2
+        __local        int4  *tile)        // 3
 {  
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
@@ -1005,21 +1012,21 @@ __kernel void finish_reduction_minmax4_cl(
 }
 
 __kernel void calc_neighbors_cl(
-                          const size_t isize,     // 0 
-                          const int    levmx,     // 1 
-                          const int    imax,      // 2 
-                          const int    jmax,      // 3 
-                          const int    imaxsize,  // 2 
-                          const int    jmaxsize,  // 3 
-                 __global const int    *levtable, // 4 
-                 __global const int    *level,    // 5 
-                 __global const int    *i,        // 6 
-                 __global const int    *j,        // 7 
-                 __global       int    *nlft,     // 8 
-                 __global       int    *nrht,     // 9 
-                 __global       int    *nbot,     // 10
-                 __global       int    *ntop,     // 11
-                 __global const int    *hash)     // 12
+                          const ulong isize,     // 0 
+                          const int   levmx,     // 1 
+                          const int   imax,      // 2 
+                          const int   jmax,      // 3 
+                          const int   imaxsize,  // 2 
+                          const int   jmaxsize,  // 3 
+                 __global const int   *levtable, // 4 
+                 __global const int   *level,    // 5 
+                 __global const int   *i,        // 6 
+                 __global const int   *j,        // 7 
+                 __global       int   *nlft,     // 8 
+                 __global       int   *nrht,     // 9 
+                 __global       int   *nbot,     // 10
+                 __global       int   *ntop,     // 11
+                 __global const int   *hash)     // 12
 {
                 
    const unsigned int giX  = get_global_id(0);
@@ -1075,20 +1082,20 @@ __kernel void calc_neighbors_cl(
 }
 
 __kernel void calc_neighbors_local_cl(
-                          const size_t isize,     // 0 
-                          const int    levmx,     // 1 
-                          const int    imax,      // 2 
-                          const int    jmax,      // 3 
-                 __global const int4   *sizes,    // 4 
-                 __global const int    *levtable, // 5 
-                 __global const int    *level,    // 6 
-                 __global const int    *i,        // 7 
-                 __global const int    *j,        // 8 
-                 __global       int    *nlft,     // 9 
-                 __global       int    *nrht,     // 10
-                 __global       int    *nbot,     // 11
-                 __global       int    *ntop,     // 12
-                 __global const int    *hash)     // 13
+                          const ulong isize,     // 0 
+                          const int   levmx,     // 1 
+                          const int   imax,      // 2 
+                          const int   jmax,      // 3 
+                 __global const int4  *sizes,    // 4 
+                 __global const int   *levtable, // 5 
+                 __global const int   *level,    // 6 
+                 __global const int   *i,        // 7 
+                 __global const int   *j,        // 8 
+                 __global       int   *nlft,     // 9 
+                 __global       int   *nrht,     // 10
+                 __global       int   *nbot,     // 11
+                 __global       int   *ntop,     // 12
+                 __global const int   *hash)     // 13
 {
                 
    const unsigned int giX  = get_global_id(0);
@@ -1147,20 +1154,20 @@ __kernel void calc_neighbors_local_cl(
 }
 
 __kernel void calc_neighbors_local2_cl(
-                          const size_t isize,     // 0 
-                          const int    levmx,     // 1 
-                          const int    imax,      // 2 
-                          const int    jmax,      // 3 
-                 __global const int4   *sizes,    // 4 
-                 __global const int    *levtable, // 5 
-                 __global const int    *level,    // 6 
-                 __global const int    *i,        // 7 
-                 __global const int    *j,        // 8 
-                 __global       int    *nlft,     // 9 
-                 __global       int    *nrht,     // 10
-                 __global       int    *nbot,     // 11
-                 __global       int    *ntop,     // 12
-                 __global const int    *hash)     // 13
+                          const ulong isize,     // 0 
+                          const int   levmx,     // 1 
+                          const int   imax,      // 2 
+                          const int   jmax,      // 3 
+                 __global const int4  *sizes,    // 4 
+                 __global const int   *levtable, // 5 
+                 __global const int   *level,    // 6 
+                 __global const int   *i,        // 7 
+                 __global const int   *j,        // 8 
+                 __global       int   *nlft,     // 9 
+                 __global       int   *nrht,     // 10
+                 __global       int   *nbot,     // 11
+                 __global       int   *ntop,     // 12
+                 __global const int   *hash)     // 13
 {
                 
    const unsigned int giX  = get_global_id(0);
@@ -1219,23 +1226,23 @@ __kernel void calc_neighbors_local2_cl(
 }
 
 __kernel void copy_mesh_data_cl(
-                          const size_t isize,         // 0 
-                 __global const int    *celltype_old, // 1 
-                 __global       int    *celltype,     // 2 
-                 __global const int    *i_old,        // 3 
-                 __global       int    *i,            // 4 
-                 __global const int    *j_old,        // 5 
-                 __global       int    *j,            // 6 
-                 __global const int    *level_old,    // 7 
-                 __global       int    *level,        // 8 
-                 __global const int    *nlft_old,     // 9 
-                 __global       int    *nlft,         // 10
-                 __global const int    *nrht_old,     // 11
-                 __global       int    *nrht,         // 12
-                 __global const int    *nbot_old,     // 13
-                 __global       int    *nbot,         // 14
-                 __global const int    *ntop_old,     // 15
-                 __global       int    *ntop)         // 16
+                          const ulong isize,         // 0 
+                 __global const int   *celltype_old, // 1 
+                 __global       int   *celltype,     // 2 
+                 __global const int   *i_old,        // 3 
+                 __global       int   *i,            // 4 
+                 __global const int   *j_old,        // 5 
+                 __global       int   *j,            // 6 
+                 __global const int   *level_old,    // 7 
+                 __global       int   *level,        // 8 
+                 __global const int   *nlft_old,     // 9 
+                 __global       int   *nlft,         // 10
+                 __global const int   *nrht_old,     // 11
+                 __global       int   *nrht,         // 12
+                 __global const int   *nbot_old,     // 13
+                 __global       int   *nbot,         // 14
+                 __global const int   *ntop_old,     // 15
+                 __global       int   *ntop)         // 16
 {
                 
    const unsigned int giX  = get_global_id(0);
@@ -1253,24 +1260,24 @@ __kernel void copy_mesh_data_cl(
 }
 
 __kernel void copy_ghost_data_cl(
-                          const size_t ncells,        // 0 
-                          const size_t nghost,        // 1 
-                 __global       int    *nlft,         // 2 
-                 __global const int    *nlft_add,     // 3 
-                 __global       int    *nrht,         // 4 
-                 __global const int    *nrht_add,     // 5 
-                 __global       int    *nbot,         // 6 
-                 __global const int    *nbot_add,     // 7 
-                 __global       int    *ntop,         // 8 
-                 __global const int    *ntop_add,     // 9 
-                 __global       int    *celltype,     // 10
-                 __global const int    *celltype_add, // 11
-                 __global       int    *i,            // 12
-                 __global const int    *i_add,        // 13
-                 __global       int    *j,            // 14
-                 __global const int    *j_add,        // 15
-                 __global       int    *level,        // 16
-                 __global const int    *level_add)    // 17
+                          const ulong ncells,        // 0 
+                          const ulong nghost,        // 1 
+                 __global       int   *nlft,         // 2 
+                 __global const int   *nlft_add,     // 3 
+                 __global       int   *nrht,         // 4 
+                 __global const int   *nrht_add,     // 5 
+                 __global       int   *nbot,         // 6 
+                 __global const int   *nbot_add,     // 7 
+                 __global       int   *ntop,         // 8 
+                 __global const int   *ntop_add,     // 9 
+                 __global       int   *celltype,     // 10
+                 __global const int   *celltype_add, // 11
+                 __global       int   *i,            // 12
+                 __global const int   *i_add,        // 13
+                 __global       int   *j,            // 14
+                 __global const int   *j_add,        // 15
+                 __global       int   *level,        // 16
+                 __global const int   *level_add)    // 17
 {
    const unsigned int giX  = get_global_id(0);
 
@@ -1287,14 +1294,14 @@ __kernel void copy_ghost_data_cl(
 }
 
 __kernel void adjust_neighbors_cl(
-                          const size_t ncells_ghost,    // 0 
-                          const size_t nghost,          // 1 
-                          const int    noffset,         // 2 
-                 __global const int    *indices_needed, // 3 
-                 __global       int    *nlft,           // 4
-                 __global       int    *nrht,           // 5
-                 __global       int    *nbot,           // 6
-                 __global       int    *ntop)           // 7
+                          const ulong ncells_ghost,    // 0 
+                          const ulong nghost,          // 1 
+                          const int   noffset,         // 2 
+                 __global const int   *indices_needed, // 3 
+                 __global       int   *nlft,           // 4
+                 __global       int   *nrht,           // 5
+                 __global       int   *nbot,           // 6
+                 __global       int   *ntop)           // 7
 {
                 
    const unsigned int giX  = get_global_id(0);
@@ -1416,7 +1423,7 @@ void reduction_max_within_tile2(__local  real2  *tile)
 void reduction_sum_within_tile(__local  real *tile);
 
 __kernel void reduce_sum_mass_stage1of2_cl(
-                 const size_t  isize,     // 0  Total number of cells.
+                 const ulong  isize,     // 0  Total number of cells.
         __global const real   *array,     // 1
         __global const int    *level,     // 2
         __global const real   *levdx,     // 3
@@ -1450,7 +1457,7 @@ __kernel void reduce_sum_mass_stage1of2_cl(
 void reduction_epsum_within_tile(__local  real2 *tile);
 
 __kernel void reduce_epsum_mass_stage1of2_cl(
-                 const size_t  isize,     // 0  Total number of cells.
+                 const ulong  isize,     // 0  Total number of cells.
         __global const real   *array,     // 1
         __global const int    *level,     // 2
         __global const real   *levdx,     // 3
@@ -1488,7 +1495,7 @@ __kernel void reduce_epsum_mass_stage1of2_cl(
 void reduction_sum_int_within_tile(__local  int  *tile);
 
 __kernel void count_BCs_cl(
-                 const size_t isize,     // 0  Total number of cells.
+                 const ulong isize,     // 0  Total number of cells.
         __global const int   *i,         // 1
         __global const int   *j,         // 2
         __global const int   *level,     // 3
@@ -1546,7 +1553,7 @@ void reduction_sum_int_within_tile(__local  int  *tile)
 }
 
 __kernel void reduce_sum_mass_stage2of2_cl(
-                 const size_t  isize,
+                 const ulong  isize,
         __global       real    *mass_sum,
         __global       real    *scratch,
         __local        real    *tile)
@@ -1574,7 +1581,7 @@ __kernel void reduce_sum_mass_stage2of2_cl(
    }
 }
 __kernel void reduce_epsum_mass_stage2of2_cl(
-                 const size_t isize,
+                 const ulong isize,
         __global       real2  *mass_sum,
         __global       real2  *scratch,
         __local        real2  *tile)
@@ -1688,7 +1695,7 @@ void reduction_epsum_within_tile(__local  real2  *tile)
 }
 
 __kernel void calc_spatial_coordinates_cl(
-          const    size_t isize,
+          const    ulong isize,
           const    real   xmin,
           const    real   ymin,
           __global real   *lev_deltax,

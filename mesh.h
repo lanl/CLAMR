@@ -77,7 +77,7 @@ typedef double      real;
 typedef float       real;
 #endif
 
-#ifdef SIZEOF_LONG 8
+#if SIZEOF_LONG==8
 typedef cl_ulong cl_size_t;
 #else
 typedef cl_uint cl_size_t;
