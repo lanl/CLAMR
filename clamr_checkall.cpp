@@ -974,7 +974,7 @@ extern "C" void do_calc(void)
 
       cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
       cl_mem dev_ioffset_global    = ezcl_malloc(NULL, &block_size_global, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
-      //cl_mem dev_newcount    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
+      cl_mem dev_newcount    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
       cl_mem dev_newcount_global    = ezcl_malloc(NULL, &block_size_global, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
       if (do_cpu_calc) {
@@ -1002,7 +1002,7 @@ extern "C" void do_calc(void)
          dev_result_global  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
          state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_mpot_global, dev_result_global, dev_ioffset_global, dev_newcount_global);
-         state_local->gpu_calc_refine_potential_local(command_queue, mesh_local, dev_mpot, dev_result, dev_ioffset);
+         state_local->gpu_calc_refine_potential(command_queue, mesh_local, dev_mpot, dev_result, dev_ioffset, dev_newcount);
 
          ezcl_device_memory_remove(dev_nlft);
          ezcl_device_memory_remove(dev_nrht);
@@ -1013,6 +1013,9 @@ extern "C" void do_calc(void)
          ezcl_device_memory_remove(dev_nbot_global);
          ezcl_device_memory_remove(dev_ntop_global);
       }
+
+      ezcl_device_memory_remove(dev_newcount);
+      ezcl_device_memory_remove(dev_newcount_global);
       
       if (do_comparison_calc) {
          int icount_test;
