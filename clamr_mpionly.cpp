@@ -88,7 +88,6 @@
 #include <mpi.h>
 #endif
 
-// Sync is to reduce numerical drift between cpu and gpu
 //#define DO_COMPARISON
 
 //TODO:  command-line option for OpenGL?
@@ -666,7 +665,7 @@ extern "C" void do_calc(void)
             exit(-1); }
       }  //  Complete NAN check.
       
-      mpot.resize(ncells);
+      mpot.resize(ncells_ghost);
       state->calc_refine_potential(mesh, mpot, icount, jcount);
       nlft.clear();
       nrht.clear();

@@ -2665,13 +2665,13 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
 
    }
 
+   int icount_global = icount;
+
    if (mesh->parallel) {
-      int icount_global;
       MPI_Allreduce(&icount, &icount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      icount = icount_global;
    }
 
-   if(icount > 0) {
+   if(icount_global > 0) {
       int lev, ll, lr, lt, lb;
       int llt, lrt, ltr, lbr;
       int new_count;
@@ -2679,6 +2679,11 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
       do {
          levcount++; 
          new_count=0;
+
+         if (mesh->parallel){
+            L7_Update(&mpot[0], L7_INT, mesh->cell_handle);
+         }
+
          for(uint ic = 0; ic < ncells; ic++) {
             lev = level[ic];
             if(mpot[ic] > 0) lev++;
