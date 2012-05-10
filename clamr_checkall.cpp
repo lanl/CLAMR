@@ -1149,18 +1149,21 @@ extern "C" void do_calc(void)
          new_ncells = old_ncells+mesh_local->rezone_count(mpot);
       }
 
-      int new_ncells_gpu, new_ncells_gpu_global;
       if (do_gpu_calc) {
-         int result;
-         ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-         new_ncells_gpu = result;
-         ezcl_enqueue_read_buffer(command_queue, dev_result_global, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-         new_ncells_gpu_global = result;
+         mesh_global->gpu_rezone_count(command_queue, block_size_global, local_work_size_global, dev_ioffset_global, dev_result_global);
+         mesh_local->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
       }
 
       if (do_comparison_calc) {
-         if (new_ncells != new_ncells_gpu) printf("%d: DEBUG new_ncells not correct %ld %d\n",mype,new_ncells,new_ncells_gpu);
-         if (new_ncells_global != new_ncells_gpu_global) printf("%d: DEBUG new_ncells_global not correct %ld %d\n",mype,new_ncells_global,new_ncells_gpu_global);
+         int result;
+         ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
+         if (new_ncells != result) printf("%d: DEBUG new_ncells not correct %ld %d\n",mype,new_ncells,result);
+         new_ncells = result;
+         //printf("Result is %d\n",result[0]);
+
+         ezcl_enqueue_read_buffer(command_queue, dev_result_global, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
+         if (new_ncells_global != result) printf("%d: DEBUG new_ncells_global not correct %ld %d\n",mype,new_ncells_global,result);
+         new_ncells_global = result;
       }
 
       if (do_gpu_calc) {
@@ -1183,11 +1186,6 @@ extern "C" void do_calc(void)
          state_global->gpu_rezone_all(command_queue, mesh_global, ncells_global, new_ncells_global, old_ncells_global, localStencil, dev_mpot_global, dev_ioffset_global);
          state_local->gpu_rezone_all_local(command_queue, mesh_local, old_ncells, new_ncells, old_ncells, localStencil, dev_mpot, dev_ioffset);
       }
-
-      ncells = new_ncells;
-      mesh_local->ncells = ncells;
-      ncells_global = new_ncells_global;
-      mesh_global->ncells = ncells_global;
 
       if (do_comparison_calc) {
          //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
