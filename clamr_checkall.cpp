@@ -645,8 +645,8 @@ extern "C" void do_calc(void)
       size_t block_size     = global_work_size/local_work_size;
 
       //  Define basic domain decomposition parameters for GPU.
-      size_t old_ncells = ncells;
-      size_t old_ncells_global = ncells_global;
+      old_ncells = ncells;
+      old_ncells_global = ncells_global;
 
       //  Calculate the real time step for the current discrete time step.
       double deltaT_cpu = -1.0;
@@ -974,14 +974,14 @@ extern "C" void do_calc(void)
 
       cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
       cl_mem dev_ioffset_global    = ezcl_malloc(NULL, &block_size_global, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
-      cl_mem dev_newcount    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
+      //cl_mem dev_newcount    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
       cl_mem dev_newcount_global    = ezcl_malloc(NULL, &block_size_global, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
       if (do_cpu_calc) {
          mpot.resize(ncells);
          mpot_global.resize(ncells_global);
          state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
-         state_local->calc_refine_potential_local(mesh_local, mpot, icount, jcount);
+         state_local->calc_refine_potential(mesh_local, mpot, icount, jcount);
          nlft.clear();
          nrht.clear();
          nbot.clear();

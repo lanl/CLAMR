@@ -440,8 +440,8 @@ extern "C" void do_calc(void)
       if (n > niter) break;
 
       //  Define basic domain decomposition parameters for GPU.
-      size_t old_ncells = ncells;
-      size_t old_ncells_global = ncells_global;
+      old_ncells = ncells;
+      old_ncells_global = ncells_global;
 
       //  Calculate the real time step for the current discrete time step.
       double deltaT = state->set_timestep(mesh, g, sigma);
@@ -667,7 +667,7 @@ extern "C" void do_calc(void)
       }  //  Complete NAN check.
       
       mpot.resize(ncells);
-      state->calc_refine_potential_local(mesh, mpot, icount, jcount);
+      state->calc_refine_potential(mesh, mpot, icount, jcount);
       nlft.clear();
       nrht.clear();
       nbot.clear();
