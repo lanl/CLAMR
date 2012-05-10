@@ -311,7 +311,7 @@ extern "C" void do_calc(void)
 {  double g     = 9.80;
    double sigma = 0.95; 
    int icount, jcount;
-   int icount_global;
+   int icount_global, jcount_global;
 
    //  Initialize state variables for GPU calculation.
    int &mype = mesh->mype;
@@ -674,7 +674,7 @@ extern "C" void do_calc(void)
   
       if (do_comparison_calc) {
          mpot_global.resize(ncells_global);
-         state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount);
+         state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
          nlft_global.clear();
          nrht_global.clear();
          nbot_global.clear();
