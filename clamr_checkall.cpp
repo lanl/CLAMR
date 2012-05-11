@@ -979,7 +979,7 @@ extern "C" void do_calc(void)
          mpot.resize(ncells);
          mpot_global.resize(ncells_global);
          state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
-         state_local->calc_refine_potential(mesh_local, mpot, icount, jcount);
+         state_local->calc_refine_potential_local(mesh_local, mpot, icount, jcount);
          nlft.clear();
          nrht.clear();
          nbot.clear();
@@ -1000,7 +1000,7 @@ extern "C" void do_calc(void)
          dev_result_global  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
          state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_mpot_global, dev_result_global, dev_ioffset_global);
-         state_local->gpu_calc_refine_potential(command_queue, mesh_local, dev_mpot, dev_result, dev_ioffset);
+         state_local->gpu_calc_refine_potential_local(command_queue, mesh_local, dev_mpot, dev_result, dev_ioffset);
 
          ezcl_device_memory_remove(dev_nlft);
          ezcl_device_memory_remove(dev_nrht);
@@ -1011,7 +1011,7 @@ extern "C" void do_calc(void)
          ezcl_device_memory_remove(dev_nbot_global);
          ezcl_device_memory_remove(dev_ntop_global);
       }
-
+      
       if (do_comparison_calc) {
          int icount_test;
          MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -1065,9 +1065,6 @@ extern "C" void do_calc(void)
          ezcl_enqueue_write_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_int), &mpot_global[0], NULL);
       }
 
-      new_ncells = old_ncells+mesh_local->rezone_count(mpot);
-      new_ncells_global = old_ncells_global+mesh_global->rezone_count(mpot_global);
-
       int mcount, mtotal;
       if (do_comparison_calc) {
          // This compares ioffset for each block in the calculation
@@ -1083,13 +1080,14 @@ extern "C" void do_calc(void)
                    mcount += mpot[ic] ? 2 : 1;
                 }
             }
-            if (mtotal != ioffset[ig]) printf("%d: DEBUG ig %d ioffset %d mtotal %d\n",mype,ig,ioffset[ig],mtotal);
+            if (mcount != ioffset[ig]) printf("%d: DEBUG ig %d ioffset %d mcount %d\n",mype,ig,ioffset[ig],mcount);
             mtotal += mcount;
          }
 
          // For global This compares ioffset for each block in the calculation
          ezcl_enqueue_read_buffer(command_queue, dev_ioffset_global, CL_TRUE, 0, block_size_global*sizeof(cl_int),       &ioffset_global[0], NULL);
          mtotal = 0;
+         int count = 0;
          for (uint ig=0; ig<(old_ncells_global+TILE_SIZE-1)/TILE_SIZE; ig++){
             mcount = 0;
             for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
@@ -1100,14 +1098,16 @@ extern "C" void do_calc(void)
                    mcount += mpot_global[ic] ? 2 : 1;
                 }
             }
-            if (mtotal != ioffset_global[ig]) printf("DEBUG global ig %d ioffset %d mtotal %d\n",ig,ioffset_global[ig],mtotal);
+            if (mcount != ioffset_global[ig]) {
+               printf("DEBUG global ig %d ioffset %d mcount %d\n",ig,ioffset_global[ig],mcount);
+               count++;
+            }
+            if (count > 10) exit(0);
             mtotal += mcount;
          }
 
       }
-
       if (do_gpu_sync) {
-        mtotal = 0;
         for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
            mcount = 0;
            for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
@@ -1118,11 +1118,9 @@ extern "C" void do_calc(void)
                   mcount += mpot[ic] ? 2 : 1;
                }
            }
-           ioffset[ig] = mtotal;
-           mtotal += mcount;
+           ioffset[ig] = mcount;
         }
         ezcl_enqueue_write_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
-        mtotal = 0;
         for (uint ig=0; ig<(old_ncells_global+TILE_SIZE-1)/TILE_SIZE; ig++){
            mcount = 0;
            for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
@@ -1133,8 +1131,7 @@ extern "C" void do_calc(void)
                   mcount += mpot_global[ic] ? 2 : 1;
                }
            }
-           ioffset_global[ig] = mtotal;
-           mtotal += mcount;
+           ioffset_global[ig] = mcount;
          }
          ezcl_enqueue_write_buffer(command_queue, dev_ioffset_global, CL_TRUE, 0, block_size_global*sizeof(cl_int),       &ioffset_global[0], NULL);
       }

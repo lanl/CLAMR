@@ -552,9 +552,12 @@ extern "C" void do_calc(void)
          }
       }
 
+      int mcount, mtotal;
+
       new_ncells = old_ncells+mesh->rezone_count(mpot);
 
-      int mcount, mtotal;
+      //mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+
       if (do_comparison_calc) {
          ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
          mtotal = 0;
@@ -572,6 +575,7 @@ extern "C" void do_calc(void)
             if (mtotal != ioffset[ig]) printf("DEBUG ig %d ioffset %d mcount %d\n",ig,ioffset[ig],mtotal);
             mtotal += mcount;
          }
+         ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
 
          int result;
          ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
@@ -630,7 +634,6 @@ extern "C" void do_calc(void)
 
 
 #ifdef HAVE_OPENGL
-      mesh->calc_spatial_coordinates(0);
       set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
       set_cell_data(&H[0]);
 #endif
@@ -774,6 +777,7 @@ extern "C" void do_calc(void)
 
             state->gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
          }
+
 
          set_mysize(ncells);
          set_viewmode(view_mode);

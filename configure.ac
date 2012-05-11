@@ -64,8 +64,6 @@ AC_HEADER_STDC
 # Checks for typedefs, structures, and compiler characteristics
 AC_SYS_LARGEFILE
 
-AC_CHECK_SIZEOF(long)
-
 # Checks for library functions
 
 AC_CANONICAL_HOST

@@ -88,7 +88,7 @@
 #include <mpi.h>
 #endif
 
-//#define DO_COMPARISON
+#define DO_COMPARISON
 
 //TODO:  command-line option for OpenGL?
 #ifdef DO_COMPARISON
@@ -283,7 +283,6 @@ int main(int argc, char **argv) {
    MPI_Scatterv(&y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &y[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dy[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
 
-
 #ifdef HAVE_OPENGL
    set_cell_data(&H_global[0]);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
@@ -403,10 +402,10 @@ extern "C" void do_calc(void)
       tresult.tv_usec = tstop.tv_usec - tstart.tv_usec;
       double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
       
+      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
       if (do_comparison_calc) {
          state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
       }
-      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
@@ -665,8 +664,8 @@ extern "C" void do_calc(void)
             exit(-1); }
       }  //  Complete NAN check.
       
-      mpot.resize(ncells_ghost);
-      state->calc_refine_potential(mesh, mpot, icount, jcount);
+      mpot.resize(ncells);
+      state->calc_refine_potential_local(mesh, mpot, icount, jcount);
       nlft.clear();
       nrht.clear();
       nbot.clear();
@@ -757,7 +756,6 @@ extern "C" void do_calc(void)
       //}
 
 #ifdef HAVE_OPENGL
-      mesh_global->calc_spatial_coordinates(0);
       set_cell_data(&H_global[0]);
       set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
 #endif
@@ -800,7 +798,6 @@ extern "C" void do_calc(void)
                n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
          }
 #ifdef HAVE_OPENGL
-         mesh_global->calc_spatial_coordinates(0);
          set_mysize(ncells_global);
          set_viewmode(view_mode);
          set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);

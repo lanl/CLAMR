@@ -77,12 +77,6 @@ typedef double      real;
 typedef float       real;
 #endif
 
-#if SIZEOF_LONG==8
-typedef cl_ulong cl_size_t;
-#else
-typedef cl_uint cl_size_t;
-#endif
-
 enum boundary
 {  REAL_CELL      =  1,         //  Denotes cell type of real cell.
    LEFT_BOUNDARY  = -1,         //  Denotes left boundary ghost cell.
