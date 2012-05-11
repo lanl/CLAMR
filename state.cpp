@@ -2798,7 +2798,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
 }
 
-void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_mpot, cl_mem dev_result, cl_mem dev_ioffset, cl_mem dev_newcount)
+void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_mpot, cl_mem dev_result, cl_mem dev_ioffset)
 {
    cl_event refine_potential_event;
    cl_event refine_smooth_event;
@@ -2824,7 +2824,6 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
    assert(dev_level);
    assert(dev_mpot);
    assert(dev_ioffset);
-   assert(dev_newcount);
    assert(dev_levdx);
    assert(dev_levdy);
 
@@ -2935,7 +2934,10 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
    }
 
    if( (result-ncells) > 0) {
+      cl_mem dev_newcount   = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
+
       do {
+
          
       ezcl_set_kernel_arg(kernel_refine_smooth, 0, sizeof(cl_size_t), (void *)&ncells);
       ezcl_set_kernel_arg(kernel_refine_smooth, 1, sizeof(cl_int),    (void *)&levmx);
@@ -2967,6 +2969,8 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
 //      sleep(1);
 //      which_smooth++;
       } while(result > 0);
+
+      ezcl_device_memory_remove(dev_newcount);
 
       mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
 

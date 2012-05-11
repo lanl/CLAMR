@@ -457,10 +457,10 @@ extern "C" void do_calc(void)
          vector<int> nrht_check(ncells);
          vector<int> nbot_check(ncells);
          vector<int> ntop_check(ncells);
-         ezcl_enqueue_read_buffer(command_queue, dev_nlft,     CL_FALSE, 0, ncells*sizeof(cl_int),  &nlft_check[0],      NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_nrht,     CL_FALSE, 0, ncells*sizeof(cl_int),  &nrht_check[0],      NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_nbot,     CL_FALSE, 0, ncells*sizeof(cl_int),  &nbot_check[0],      NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_ntop,     CL_TRUE,  0, ncells*sizeof(cl_int),  &ntop_check[0],      NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells*sizeof(cl_int),  &nlft_check[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells*sizeof(cl_int),  &nrht_check[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells*sizeof(cl_int),  &nbot_check[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int),  &ntop_check[0], NULL);
 
          for (uint ic=0; ic<ncells; ic++){
             if (nlft[ic] != nlft_check[ic]) printf("DEBUG -- nlft: ic %d nlft %d nlft_check %d\n",ic, nlft[ic], nlft_check[ic]);
@@ -521,14 +521,13 @@ extern "C" void do_calc(void)
       }
 
       cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
-      cl_mem dev_newcount   = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
       size_t result_size = 1;
 
       dev_mpot     = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
       cl_mem dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
-      state->gpu_calc_refine_potential(command_queue, mesh, dev_mpot, dev_result, dev_ioffset, dev_newcount);
+      state->gpu_calc_refine_potential(command_queue, mesh, dev_mpot, dev_result, dev_ioffset);
 
       ezcl_device_memory_remove(dev_nlft);
       ezcl_device_memory_remove(dev_nrht);

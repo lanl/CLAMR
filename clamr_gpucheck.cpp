@@ -552,8 +552,6 @@ extern "C" void do_calc(void)
       vector<int>      ioffset(block_size);
       cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
-      cl_mem dev_newcount   = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
-
       if (do_cpu_calc) {
          mpot.resize(ncells);
          state->calc_refine_potential(mesh, mpot, icount, jcount);
@@ -570,7 +568,7 @@ extern "C" void do_calc(void)
          dev_mpot     = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
          dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
-         state->gpu_calc_refine_potential(command_queue, mesh, dev_mpot, dev_result, dev_ioffset, dev_newcount);
+         state->gpu_calc_refine_potential(command_queue, mesh, dev_mpot, dev_result, dev_ioffset);
 
          ezcl_device_memory_remove(dev_nlft);
          ezcl_device_memory_remove(dev_nrht);
