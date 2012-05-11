@@ -2674,11 +2674,11 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    if(icount_global > 0) {
       int lev, ll, lr, lt, lb;
       int llt, lrt, ltr, lbr;
-      int new_count;
       int levcount = 0;
+      int icount_global_old;
       do {
          levcount++; 
-         new_count=0;
+         icount_global_old = icount_global;
 
          if (mesh->parallel){
             L7_Update(&mpot[0], L7_INT, mesh->cell_handle);
@@ -2694,7 +2694,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    
             if(ll - lev > 1) {
                mpot[ic]++;
-               new_count++; icount++;
+               icount++;
                continue;
             }
 
@@ -2704,7 +2704,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
 
             if(llt - lev > 1) {
                mpot[ic]++;
-               new_count++; icount++;
+               icount++;
                continue;
             }
 
@@ -2714,7 +2714,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    
             if(lr - lev > 1) {
                mpot[ic]++;
-               new_count++; icount++;
+               icount++;
                continue;
             }
 
@@ -2724,7 +2724,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
 
             if(lrt - lev > 1) {
                mpot[ic]++;
-               new_count++; icount++;
+               icount++;
                continue;
             }
 
@@ -2734,7 +2734,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    
             if(lt - lev > 1) {
                mpot[ic]++;
-               new_count++; icount++;
+               icount++;
                continue;
             }
 
@@ -2744,7 +2744,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
 
             if(ltr - lev > 1) {
                mpot[ic]++;
-               new_count++; icount++;
+               icount++;
                continue;
             }
 
@@ -2754,7 +2754,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    
             if(lb - lev > 1) {
                mpot[ic]++;
-               new_count++; icount++;
+               icount++;
                continue;
             }
 
@@ -2764,21 +2764,20 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
 
             if(lbr - lev > 1) {
                mpot[ic]++;
-               new_count++; icount++;
+               icount++;
                continue;
             }
     
          }
 
+         icount_global = icount;
          if (mesh->parallel) {
-            int new_count_global;
-            MPI_Allreduce(&new_count, &new_count_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-            new_count = new_count_global;
+            MPI_Allreduce(&icount, &icount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          }
 
 //         printf("%d: new_count is %d levmx %d\n",levcount,new_count,mesh->levmx);
       //} while (new_count > 0 && levcount < 10);
-      } while (new_count > 0 && levcount < mesh->levmx);
+      } while (icount_global > icount_global_old && levcount < mesh->levmx);
    }
 
 /*
