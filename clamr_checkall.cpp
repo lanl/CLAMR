@@ -1080,7 +1080,7 @@ extern "C" void do_calc(void)
                    mcount += mpot[ic] ? 2 : 1;
                 }
             }
-            if (mcount != ioffset[ig]) printf("%d: DEBUG ig %d ioffset %d mcount %d\n",mype,ig,ioffset[ig],mcount);
+            if (mtotal != ioffset[ig]) printf("%d: DEBUG ig %d ioffset %d mtotal %d\n",mype,ig,ioffset[ig],mtotal);
             mtotal += mcount;
          }
 
@@ -1098,8 +1098,8 @@ extern "C" void do_calc(void)
                    mcount += mpot_global[ic] ? 2 : 1;
                 }
             }
-            if (mcount != ioffset_global[ig]) {
-               printf("DEBUG global ig %d ioffset %d mcount %d\n",ig,ioffset_global[ig],mcount);
+            if (mtotal != ioffset_global[ig]) {
+               printf("DEBUG global ig %d ioffset %d mtotal %d\n",ig,ioffset_global[ig],mtotal);
                count++;
             }
             if (count > 10) exit(0);
@@ -1108,6 +1108,7 @@ extern "C" void do_calc(void)
 
       }
       if (do_gpu_sync) {
+        mtotal = 0;
         for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
            mcount = 0;
            for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
@@ -1118,9 +1119,11 @@ extern "C" void do_calc(void)
                   mcount += mpot[ic] ? 2 : 1;
                }
            }
-           ioffset[ig] = mcount;
+           //ioffset[ig] = mtotal;
+           mtotal += mcount;
         }
         ezcl_enqueue_write_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
+        mtotal = 0;
         for (uint ig=0; ig<(old_ncells_global+TILE_SIZE-1)/TILE_SIZE; ig++){
            mcount = 0;
            for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
@@ -1131,7 +1134,8 @@ extern "C" void do_calc(void)
                   mcount += mpot_global[ic] ? 2 : 1;
                }
            }
-           ioffset_global[ig] = mcount;
+           //ioffset_global[ig] = mtotal;
+           mtotal += mcount;
          }
          ezcl_enqueue_write_buffer(command_queue, dev_ioffset_global, CL_TRUE, 0, block_size_global*sizeof(cl_int),       &ioffset_global[0], NULL);
       }
