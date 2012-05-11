@@ -664,7 +664,7 @@ extern "C" void do_calc(void)
             exit(-1); }
       }  //  Complete NAN check.
       
-      mpot.resize(ncells);
+      mpot.resize(ncells_ghost);
       state->calc_refine_potential_local(mesh, mpot, icount, jcount);
       nlft.clear();
       nrht.clear();
@@ -682,7 +682,7 @@ extern "C" void do_calc(void)
          int icount_test;
          MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          if (icount_test != icount_global) {
-            printf("%d: DEBUG -- icount is %d icount_test %d icount_global is %d\n",mype,icount,icount_test,icount_global);
+            printf("%d: DEBUG -- icount is %d icount_test %d icount_global is %d\n", mype,icount,icount_test,icount_global);
          }
 
          // Compare mpot to mpot_global

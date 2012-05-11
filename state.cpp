@@ -2780,8 +2780,6 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
 
 void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icount, int &jcount)
 {
-// MPI_Barrier(MPI_COMM_WORLD);  
-
    struct timeval tstart_cpu;
 
    cpu_timer_start(&tstart_cpu);
@@ -2793,7 +2791,10 @@ void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icoun
    vector<int> &ntop    = mesh->ntop;
    vector<int> &level   = mesh->level;
 
+   vector<double> Q(ncells);
+
    int nl, nr, nt, nb; 
+   int nlt, nrt, ntr, nbr;
    double Hic, Hl, Hr, Hb, Ht;
    double Uic, Ul, Ur, Ub, Ut;
    double Vic, Vl, Vr, Vb, Vt;
@@ -2888,12 +2889,124 @@ void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icoun
       qpot = max(fabs(duminus1/Hic), fabs(duhalf1/Hic));
       if (qpot > qmax) qmax = qpot;
 
+      Q[ic] = qmax;
+   }
+
+   for(uint ic=0; ic<ncells; ic++) {
       mpot[ic]=0;
-      if (qmax > .10 && level[ic] < mesh->levmx) {
+      if (Q[ic] > REFINE_GRADIENT && level[ic] < mesh->levmx) {
          mpot[ic]=1;
          icount++;
       }
+   }
 
+   int icount_global = icount;
+   MPI_Allreduce(&icount, &icount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+   if(icount_global > 0) {
+      int lev, ll, lr, lt, lb;
+      int llt, lrt, ltr, lbr;
+      int new_count, new_count_global;
+      int levcount = 0;
+      do {
+         levcount++; 
+         new_count=0;
+
+         L7_Update(&mpot[0], L7_INT, mesh->cell_handle);
+
+         for(uint ic = 0; ic < ncells; ic++) {
+            lev = level[ic];
+            if(mpot[ic] > 0) lev++;
+   
+            nl = nlft[ic];
+            ll = level[nl];
+            if(mpot[nl] > 0) ll++;
+   
+            if(ll - lev > 1) {
+               mpot[ic]++;
+               new_count++; icount++;
+               continue;
+            }
+
+            nlt = ntop[nl];
+            llt = level[nlt];
+            if(mpot[nlt] > 0) llt++;
+
+            if(llt - lev > 1) {
+               mpot[ic]++;
+               new_count++; icount++;
+               continue;
+            }
+
+            nr = nrht[ic];
+            lr = level[nr];
+            if(mpot[nr] > 0) lr++;
+   
+            if(lr - lev > 1) {
+               mpot[ic]++;
+               new_count++; icount++;
+               continue;
+            }
+
+            nrt = ntop[nr];
+            lrt = level[nrt];
+            if(mpot[nrt] > 0) lrt++;
+
+            if(lrt - lev > 1) {
+               mpot[ic]++;
+               new_count++; icount++;
+               continue;
+            }
+
+            nt = ntop[ic];
+            lt = level[nt];
+            if(mpot[nt] > 0) lt++;
+   
+            if(lt - lev > 1) {
+               mpot[ic]++;
+               new_count++; icount++;
+               continue;
+            }
+
+            ntr = nrht[nt];
+            ltr = level[ntr];
+            if(mpot[ntr] > 0) ltr++;
+
+            if(ltr - lev > 1) {
+               mpot[ic]++;
+               new_count++; icount++;
+               continue;
+            }
+
+            nb = nbot[ic];
+            lb = level[nb];
+            if(mpot[nb] > 0) lb++;
+   
+            if(lb - lev > 1) {
+               mpot[ic]++;
+               new_count++; icount++;
+               continue;
+            }
+
+            nbr = nrht[nb];
+            lbr = level[nbr];
+            if(mpot[nbr] > 0) lbr++;
+
+            if(lbr - lev > 1) {
+               mpot[ic]++;
+               new_count++; icount++;
+               continue;
+            }
+    
+         }
+
+         new_count_global = new_count;
+         
+         MPI_Allreduce(&new_count, &new_count_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+//         printf("%d: new_count is %d levmx %d\n",levcount,new_count,mesh->levmx);
+      //} while (new_count > 0 && levcount < 10);
+      } while (new_count_global > 0 && levcount < mesh->levmx);
    }
 
 /*
