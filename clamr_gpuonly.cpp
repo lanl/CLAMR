@@ -379,15 +379,38 @@ extern "C" void do_calc(void)
       DrawGLScene();
       if (verbose) sleep(5);
 #endif
-      //  Set flag to show mesh results rather than domain decomposition.
-      view_mode = 1;
-      //  Clear superposition of circle on grid output.
-      circle_radius = -1.0;
-
       gettimeofday(&tstart, NULL);
       return;
    }
+   
+   //  Set flag to show mesh results rather than domain decomposition.
+   view_mode = 1;
+   
+   //  Clear superposition of circle on grid output.
+   if (n > 2)
+   {  circle_radius = -1.0; }
+   
+   //  Output final results and timing information.
+   if (n > niter) {
+      //free_display();
+      
+      //  Get overall program timing.
+      gettimeofday(&tstop, NULL);
+      tresult.tv_sec = tstop.tv_sec - tstart.tv_sec;
+      tresult.tv_usec = tstop.tv_usec - tstart.tv_usec;
+      double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
+      
+      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
 
+      if (do_comparison_calc) {
+         mesh->print_partition_measure();
+      }
+      mesh->print_calc_neighbor_type();
+      mesh->print_partition_type();
+
+      exit(0);
+   }  //  Complete final output.
+   
    vector<int>     mpot;
    
    size_t old_ncells = ncells;
@@ -618,12 +641,8 @@ extern "C" void do_calc(void)
       }
 
 #ifdef HAVE_OPENGL
-      set_mysize(ncells);
-      if (do_comparison_calc && n < outputInterval){
-         mesh->calc_spatial_coordinates(0);
-         set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
-         set_cell_data(&H[0]);
-      }
+      set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+      set_cell_data(&H[0]);
 #endif
 
       if (! mesh->have_boundary) {
@@ -689,22 +708,14 @@ extern "C" void do_calc(void)
          if (fabs(H_sum - summer) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", H_sum, summer);
       }
 
-
+      mesh->proc.resize(ncells);
 /*
-      if (do_comparison_calc) {
-         if (icount) {
-            mesh->proc.resize(ncells);
-
-            mesh->calc_spatial_coordinates(0);
-            set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
-            set_cell_data(&H[0]);
-
-            vector<int> index(ncells);
-            cpu_timer_start(&tstart_cpu);
-            mesh->partition_cells(numpe, mesh->proc, index, cycle_reorder);
-            state->state_reorder(index);
-            cpu_time_partition += cpu_timer_stop(tstart_cpu); 
-         }
+      if (icount)
+      {  vector<int> index(ncells);
+         cpu_timer_start(&tstart_cpu);
+         mesh->partition_cells(numpe, mesh->proc, index, cycle_reorder);
+         state->state_reorder(index);
+         cpu_time_partition += cpu_timer_stop(tstart_cpu); 
       }
 */
       
@@ -725,39 +736,27 @@ extern "C" void do_calc(void)
          printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
             n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
 #ifdef HAVE_OPENGL
+         vector<real> x_save(ncells);
+         vector<real> dx_save(ncells);
+         vector<real> y_save(ncells);
+         vector<real> dy_save(ncells);
+         vector<real> H_save(ncells);
          cl_mem dev_x  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
          cl_mem dev_dx = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
          cl_mem dev_y  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
          cl_mem dev_dy = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
          mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
-
-         if (! do_comparison_calc) {
-            x.resize(ncells);
-            dx.resize(ncells);
-            y.resize(ncells);
-            dy.resize(ncells);
-            H.resize(ncells);
-
-            ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x[0],  &start_read_event);
-            ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx[0], NULL);
-            ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y[0],  NULL);
-            ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dy[0], NULL);
-            ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H[0],  &end_read_event);
-         }
+         ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x_save[0],  &start_read_event);
+         ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx_save[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y_save[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dy_save[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H_save[0],  &end_read_event);
+         ezcl_device_memory_remove(dev_x);
+         ezcl_device_memory_remove(dev_dx);
+         ezcl_device_memory_remove(dev_y);
+         ezcl_device_memory_remove(dev_dy);
 
          if (do_comparison_calc) {
-            vector<real> x_save(ncells);
-            vector<real> dx_save(ncells);
-            vector<real> y_save(ncells);
-            vector<real> dy_save(ncells);
-            vector<real> H_save(ncells);
-
-            ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x_save[0],  &start_read_event);
-            ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx_save[0], NULL);
-            ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y_save[0],  NULL);
-            ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dy_save[0], NULL);
-            ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H_save[0],  &end_read_event);
-
             mesh->calc_spatial_coordinates(0);
 
             for (uint ic = 0; ic < ncells; ic++){
@@ -773,18 +772,12 @@ extern "C" void do_calc(void)
                }
             }
          }
-
-         ezcl_device_memory_remove(dev_x);
-         ezcl_device_memory_remove(dev_dx);
-         ezcl_device_memory_remove(dev_y);
-         ezcl_device_memory_remove(dev_dy);
-
          state->gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
 
          set_mysize(ncells);
          set_viewmode(view_mode);
-         set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
-         set_cell_data(&H[0]);
+         set_cell_coordinates(&x_save[0], &dx_save[0], &y_save[0], &dy_save[0]);
+         set_cell_data(&H_save[0]);
          set_cell_proc(&mesh->proc[0]);
          set_circle_radius(circle_radius);
          DrawGLScene();
@@ -794,26 +787,5 @@ extern "C" void do_calc(void)
       simTime += deltaT;
       
    }
-
-   //  Output final results and timing information.
-   if (n > niter) {
-      //free_display();
-      
-      //  Get overall program timing.
-      gettimeofday(&tstop, NULL);
-      tresult.tv_sec = tstop.tv_sec - tstart.tv_sec;
-      tresult.tv_usec = tstop.tv_usec - tstart.tv_usec;
-      double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
-      
-      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
-
-      if (do_comparison_calc) {
-         mesh->print_partition_measure();
-      }
-      mesh->print_calc_neighbor_type();
-      mesh->print_partition_type();
-
-      exit(0);
-   }  //  Complete final output.
 }
 

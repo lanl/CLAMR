@@ -1298,8 +1298,8 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
    nbot.resize(new_ncells, -1);
    ntop.resize(new_ncells, -1);
    
-   //ibase    = 0;
-   //calc_spatial_coordinates(ibase);
+   ibase    = 0;
+   calc_spatial_coordinates(ibase);
 
    calc_celltype();
 
