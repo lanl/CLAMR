@@ -402,10 +402,10 @@ extern "C" void do_calc(void)
       tresult.tv_usec = tstop.tv_usec - tstart.tv_usec;
       double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
       
-      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
       if (do_comparison_calc) {
          state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
       }
+      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
