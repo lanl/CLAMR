@@ -1,4 +1,4 @@
-/**
+/*
  *  Copyright (c) 2011, Los Alamos National Security, LLC.
  *  All rights Reserved.
  *
@@ -104,6 +104,7 @@ int display_mysize    = 0;
 real *x=NULL, *y=NULL, *dx=NULL, *dy=NULL;
 real *data=NULL;
 int *display_proc=NULL;
+int mype = 0;
 
 int DrawString(float x, float y, float z, char* string) {
    char *c;
@@ -123,16 +124,25 @@ void InitGL(int width, int height) {
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
 }
-void init_display(int *argc, char **argv, const char *title){
+void init_display(int *argc, char **argv, const char *title, int mype_in){
+   if (mype_in) mype = mype_in;
+
    Scale();
    width = (WINSIZE / (display_ymax - display_ymin)) * (display_xmax - display_xmin);
    glutInit(argc, argv);
    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
-   glutInitWindowSize(width, WINSIZE);
-   glutInitWindowPosition(50, 50);
+   if (mype == 0) {
+      glutInitWindowSize(width, WINSIZE);
+      glutInitWindowPosition(20, 20);
+   } else {
+      glutInitWindowSize(1,1);
+      glutInitWindowPosition(5, 5);
+   }
+
    window = glutCreateWindow(title);
 
    glutDisplayFunc(&DrawGLScene);
+
    glutKeyboardFunc(&keyPressed);
    glutMouseFunc(&mouseClick);
    glutMotionFunc(&mouseDrag);
@@ -339,6 +349,7 @@ void set_outline(int display_outline_in){
    display_outline = display_outline_in;
 }
 void DrawGLScene(void) {
+   if (mype) return;
 
    char c[10];
 

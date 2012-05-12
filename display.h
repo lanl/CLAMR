@@ -83,7 +83,7 @@ extern "C"
 {
 #endif
 
-void init_display(int *argc, char **argv, const char* string);
+void init_display(int *argc, char **argv, const char* string, int mype_in);
 void free_display(void);
 void set_viewmode(int display_view_mode_in);
 void set_outline(int display_outline_in);

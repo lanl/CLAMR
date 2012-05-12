@@ -290,7 +290,7 @@ int main(int argc, char **argv) {
    set_viewmode(view_mode);
    set_window(mesh->xmin, mesh->xmax, mesh->ymin, mesh->ymax);
    set_outline((int)outline);
-   init_display(&argc, argv, "Shallow Water");
+   init_display(&argc, argv, "Shallow Water", mype);
    glutIdleFunc(&do_calc);
    glutMainLoop();
 #else
