@@ -534,18 +534,14 @@ extern "C" void do_calc(void)
          if (do_sync) {
             ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
          }
-      }
 
-      int mcount, mtotal;
 
-/*
-      mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
-*/
-
-      if (do_comparison_calc) {
+         // Should not need this -- count comes back from refine potential?
          new_ncells = old_ncells+mesh->rezone_count(mpot);
 
          ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
+
+         int mcount, mtotal;
          mtotal = 0;
          for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
             mcount = 0;
@@ -561,8 +557,6 @@ extern "C" void do_calc(void)
             if (mtotal != ioffset[ig]) printf("DEBUG ig %d ioffset %d mcount %d\n",ig,ioffset[ig],mtotal);
             mtotal += mcount;
          }
-         ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
-
       }
 
       int result;
