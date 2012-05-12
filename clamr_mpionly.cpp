@@ -88,7 +88,7 @@
 #include <mpi.h>
 #endif
 
-#define DO_COMPARISON
+//#define DO_COMPARISON
 
 //TODO:  command-line option for OpenGL?
 #ifdef DO_COMPARISON
@@ -381,40 +381,16 @@ extern "C" void do_calc(void)
       DrawGLScene();
       if (verbose) sleep(5);
 #endif
+      //  Set flag to show mesh results rather than domain decomposition.
+      view_mode = 1;
+   
+      //  Clear superposition of circle on grid output.
+      if (n > 2) circle_radius = -1.0;
+   
       gettimeofday(&tstart, NULL);
       return;
    }
 
-   //  Set flag to show mesh results rather than domain decomposition.
-   view_mode = 1;
-   
-   //  Clear superposition of circle on grid output.
-   if (n > 2)
-   {  circle_radius = -1.0; }
-   
-   //  Output final results and timing information.
-   if (n > niter) {
-      //free_display();
-      
-      //  Get overall program timing.
-      gettimeofday(&tstop, NULL);
-      tresult.tv_sec = tstop.tv_sec - tstart.tv_sec;
-      tresult.tv_usec = tstop.tv_usec - tstart.tv_usec;
-      double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
-      
-      if (do_comparison_calc) {
-         state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
-      }
-      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
-
-      mesh->print_partition_measure();
-      mesh->print_calc_neighbor_type();
-      mesh->print_partition_type();
-
-      L7_Terminate();
-      exit(0);
-   }  //  Complete final output.
-   
    vector<int>     mpot;
    vector<int>     mpot_global;
    
@@ -755,10 +731,10 @@ extern "C" void do_calc(void)
       //   gpu_time_read             += ezcl_timer_calc(&start_read_event,       &start_read_event);
       //}
 
-#ifdef HAVE_OPENGL
-      set_cell_data(&H_global[0]);
-      set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-#endif
+//#ifdef HAVE_OPENGL
+//      set_cell_data(&H_global[0]);
+//      set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+//#endif
 
       double H_sum = -1.0;
 
@@ -798,6 +774,8 @@ extern "C" void do_calc(void)
                n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
          }
 #ifdef HAVE_OPENGL
+         mesh_global->calc_spatial_coordinates(0);
+
          set_mysize(ncells_global);
          set_viewmode(view_mode);
          set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
@@ -812,5 +790,29 @@ extern "C" void do_calc(void)
       simTime += deltaT;
       
    }
+
+   //  Output final results and timing information.
+   if (n > niter) {
+      //free_display();
+      
+      //  Get overall program timing.
+      gettimeofday(&tstop, NULL);
+      tresult.tv_sec = tstop.tv_sec - tstart.tv_sec;
+      tresult.tv_usec = tstop.tv_usec - tstart.tv_usec;
+      double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
+      
+      if (do_comparison_calc) {
+         state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
+      }
+      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
+
+      mesh->print_partition_measure();
+      mesh->print_calc_neighbor_type();
+      mesh->print_partition_type();
+
+      L7_Terminate();
+      exit(0);
+   }  //  Complete final output.
+   
 }
 

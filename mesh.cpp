@@ -483,8 +483,7 @@ void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partitio
       }
    }
 
-// ibase = 0;
-   calc_spatial_coordinates(ibase);
+   calc_spatial_coordinates(0);
    calc_minmax();
 
    nlft.resize(ncells);
@@ -534,10 +533,10 @@ void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partitio
       if (! special_case) rezone_spread(mpot);
       int add_ncells = rezone_count(mpot);
       rezone_all(mpot, add_ncells);
+
+      calc_spatial_coordinates(0);
    }  // End lev loop here
    
-   calc_spatial_coordinates(0);
-
    int ncells_corners = 4;
    int i_corner[] = {   0,   0,imax,imax};
    int j_corner[] = {   0,jmax,   0,jmax};
@@ -1298,9 +1297,6 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
    nbot.resize(new_ncells, -1);
    ntop.resize(new_ncells, -1);
    
-   ibase    = 0;
-   calc_spatial_coordinates(ibase);
-
    calc_celltype();
 
    cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
