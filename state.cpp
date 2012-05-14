@@ -2481,7 +2481,6 @@ void State::symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index
 
 }
 
-
 void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int &jcount)
 {
    struct timeval tstart_cpu;
@@ -2511,7 +2510,15 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    icount=0;
    jcount=0;
 
-   for(uint ic = 0; ic < ncells; ic++) {
+#ifdef HAVE_MPI
+   if (mesh->parallel) {
+      L7_Update(&H[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&U[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&V[0], L7_REAL, mesh->cell_handle);
+   }
+#endif
+
+   for (uint ic=0; ic<ncells; ic++) {
 
       Hic = H[ic];
       Uic = U[ic];
@@ -2592,249 +2599,6 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
       if (qpot > qmax) qmax = qpot;
 
       Q[ic] = qmax;
-
-   }
-
-   for(uint ic=0; ic<ncells; ic++) {
-      mpot[ic]=0;
-      if (Q[ic] > REFINE_GRADIENT && level[ic] < mesh->levmx) {
-         mpot[ic]=1;
-         icount++;
-      }
-   }
-
-   if(icount > 0) {
-      int lev, ll, lr, lt, lb;
-      int llt, lrt, ltr, lbr;
-      int new_count;
-      int levcount = 0;
-      do {
-         levcount++; 
-         new_count=0;
-         for(uint ic = 0; ic < ncells; ic++) {
-            lev = level[ic];
-            if(mpot[ic] > 0) lev++;
-   
-            nl = nlft[ic];
-            ll = level[nl];
-            if(mpot[nl] > 0) ll++;
-   
-            if(ll - lev > 1) {
-               mpot[ic]++;
-               new_count++; icount++;
-               continue;
-            }
-
-            nlt = ntop[nl];
-            llt = level[nlt];
-            if(mpot[nlt] > 0) llt++;
-
-            if(llt - lev > 1) {
-               mpot[ic]++;
-               new_count++; icount++;
-               continue;
-            }
-
-            nr = nrht[ic];
-            lr = level[nr];
-            if(mpot[nr] > 0) lr++;
-   
-            if(lr - lev > 1) {
-               mpot[ic]++;
-               new_count++; icount++;
-               continue;
-            }
-
-            nrt = ntop[nr];
-            lrt = level[nrt];
-            if(mpot[nrt] > 0) lrt++;
-
-            if(lrt - lev > 1) {
-               mpot[ic]++;
-               new_count++; icount++;
-               continue;
-            }
-
-            nt = ntop[ic];
-            lt = level[nt];
-            if(mpot[nt] > 0) lt++;
-   
-            if(lt - lev > 1) {
-               mpot[ic]++;
-               new_count++; icount++;
-               continue;
-            }
-
-            ntr = nrht[nt];
-            ltr = level[ntr];
-            if(mpot[ntr] > 0) ltr++;
-
-            if(ltr - lev > 1) {
-               mpot[ic]++;
-               new_count++; icount++;
-               continue;
-            }
-
-            nb = nbot[ic];
-            lb = level[nb];
-            if(mpot[nb] > 0) lb++;
-   
-            if(lb - lev > 1) {
-               mpot[ic]++;
-               new_count++; icount++;
-               continue;
-            }
-
-            nbr = nrht[nb];
-            lbr = level[nbr];
-            if(mpot[nbr] > 0) lbr++;
-
-            if(lbr - lev > 1) {
-               mpot[ic]++;
-               new_count++; icount++;
-               continue;
-            }
-    
-         }
-//         printf("%d: new_count is %d levmx %d\n",levcount,new_count,mesh->levmx);
-      //} while (new_count > 0 && levcount < 10);
-      } while (new_count > 0 && levcount < mesh->levmx);
-   }
-
-
-
-
-/*
-      if (Q[ic] < .02 && level[ic] > 0) {
-         nr = nrht[ic];
-         nt = ntop[ic];
-         nrt = nrht[nt];
-         if (i[ic]%2 == 0 && j[ic]%2 == 0 &&
-             level[ic]==level[nr]  && Q[nr]  < .02 &&
-             level[ic]==level[nt]  && Q[nt]  < .02 &&
-             level[ic]==level[nrt] && Q[nrt] < .02 ) {
-            jcount++;
-         }
-      }
-*/
-
-   cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
-}
-
-void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icount, int &jcount)
-{
-   struct timeval tstart_cpu;
-
-   cpu_timer_start(&tstart_cpu);
-
-   size_t &ncells       = mesh->ncells;
-   vector<int> &nlft    = mesh->nlft;
-   vector<int> &nrht    = mesh->nrht;
-   vector<int> &nbot    = mesh->nbot;
-   vector<int> &ntop    = mesh->ntop;
-   vector<int> &level   = mesh->level;
-
-   vector<double> Q(ncells);
-
-   int nl, nr, nt, nb; 
-   int nlt, nrt, ntr, nbr;
-   double Hic, Hl, Hr, Hb, Ht;
-   double Uic, Ul, Ur, Ub, Ut;
-   double Vic, Vl, Vr, Vb, Vt;
-
-   double duplus1, duminus1, duhalf1;
-   double duplus2, duminus2, duhalf2;
-
-   double qpot, qmax;
-
-   icount=0;
-   jcount=0;
-
-#ifdef HAVE_MPI
-   L7_Update(&H[0], L7_REAL, mesh->cell_handle);
-   L7_Update(&U[0], L7_REAL, mesh->cell_handle);
-   L7_Update(&V[0], L7_REAL, mesh->cell_handle);
-#endif
-
-   for (uint ic=0; ic<ncells; ic++) {
-
-      Hic = H[ic];
-      Uic = U[ic];
-      Vic = V[ic];
-
-      nl = nlft[ic];
-      Hl = H[nl];
-      Ul = U[nl];
-      Vl = V[nl];
-
-      if (level[nl] > level[ic]){
-         int nlt = ntop[nl];
-         Hl = 0.5 * (Hl + H[nlt]);
-      }
-
-      nr = nrht[ic];
-      Hr = H[nr];
-      Ur = U[nr];
-      Vr = V[nr];
-      if (level[nr] > level[ic]){
-         int nrt = ntop[nr];
-         Hr = 0.5 * (Hr + H[nrt]);
-      }
-
-      nb = nbot[ic];
-      Hb = H[nb];
-      Ub = U[nb];
-      Vb = V[nb];
-      if (level[nb] > level[ic]){
-         int nbr = nrht[nb];
-         Hb = 0.5 * (Hb + H[nbr]);
-      }
-
-      nt = ntop[ic];
-      Ht = H[nt];
-      Ut = U[nt];
-      Vt = V[nt];
-
-      if (level[nt] > level[ic]){
-         int ntr = nrht[nt];
-         Ht = 0.5 * (Ht + H[ntr]);
-      }
-
-      duplus1 = Hr-Hic;
-      duplus2 = Ur-Uic;
-      duhalf1 = Hic-Hl;
-      duhalf2 = Uic-Ul;
-
-      qmax = -1000.0;
-
-      qpot = max(fabs(duplus1/Hic), fabs(duhalf1/Hic));
-      if (qpot > qmax) qmax = qpot;
-
-      duminus1 = Hic-Hl;
-      duminus2 = Uic-Ul;
-      duhalf1 = Hr-Hic;
-      duhalf2 = Ur-Uic;
-
-      qpot = max(fabs(duminus1/Hic), fabs(duhalf1/Hic));
-      if (qpot > qmax) qmax = qpot;
-
-      duplus1 = Ht-Hic;
-      duplus2 = Vt-Vic;
-      duhalf1 = Hic-Hb;
-      duhalf2 = Vic-Vb;
-
-      qpot = max(fabs(duplus1/Hic), fabs(duhalf1/Hic));
-      if (qpot > qmax) qmax = qpot;
-
-      duminus1 = Hic-Hb;
-      duminus2 = Vic-Vb;
-      duhalf1 = Ht-Hic;
-      duhalf2 = Vt-Vic;
-
-      qpot = max(fabs(duminus1/Hic), fabs(duhalf1/Hic));
-      if (qpot > qmax) qmax = qpot;
-
-      Q[ic] = qmax;
    }
 
    for(uint ic=0; ic<ncells; ic++) {
@@ -2847,7 +2611,9 @@ void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icoun
 
    int icount_global = icount;
 #ifdef HAVE_MPI
-   MPI_Allreduce(&icount, &icount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   if (mesh->parallel) {
+      MPI_Allreduce(&icount, &icount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   }
 #endif
 
    if(icount_global > 0) {
@@ -2860,7 +2626,9 @@ void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icoun
          new_count=0;
 
 #ifdef HAVE_MPI
-         L7_Update(&mpot[0], L7_INT, mesh->cell_handle);
+         if (mesh->parallel) {
+            L7_Update(&mpot[0], L7_INT, mesh->cell_handle);
+         }
 #endif
 
          for(uint ic = 0; ic < ncells; ic++) {
@@ -2952,7 +2720,9 @@ void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icoun
          new_count_global = new_count;
          
 #ifdef HAVE_MPI
-         MPI_Allreduce(&new_count, &new_count_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         if (mesh->parallel) {
+            MPI_Allreduce(&new_count, &new_count_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         }
 #endif
 
 //         printf("%d: new_count is %d levmx %d\n",levcount,new_count,mesh->levmx);

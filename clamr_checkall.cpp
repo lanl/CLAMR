@@ -941,7 +941,7 @@ extern "C" void do_calc(void)
          mpot.resize(ncells);
          mpot_global.resize(ncells_global);
          state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
-         state_local->calc_refine_potential_local(mesh_local, mpot, icount, jcount);
+         state_local->calc_refine_potential(mesh_local, mpot, icount, jcount);
          nlft.clear();
          nrht.clear();
          nbot.clear();

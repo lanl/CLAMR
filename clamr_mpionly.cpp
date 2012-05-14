@@ -627,7 +627,7 @@ extern "C" void do_calc(void)
       }  //  Complete NAN check.
       
       mpot.resize(ncells_ghost);
-      state->calc_refine_potential_local(mesh, mpot, icount, jcount);
+      state->calc_refine_potential(mesh, mpot, icount, jcount);
       nlft.clear();
       nrht.clear();
       nbot.clear();
