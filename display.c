@@ -61,10 +61,14 @@
 #define ESCAPE 27
 #ifdef HAVE_OPENGL
 #define NCOLORS 1000
-#endif
+#else
 #ifdef HAVE_MPE
 #define NCOLORS 256
+#else
+#define NCOLORS 1000
 #endif
+#endif
+
 #define WINSIZE 800
 
 int DrawString(float x, float y, float z, char* string);
@@ -116,9 +120,12 @@ real display_xmin=0.0, display_xmax=0.0, display_ymin=0.0, display_ymax=0.0;
 
 #ifdef HAVE_OPENGL
 GLfloat xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
-#endif
+#else
 #ifdef HAVE_MPE
 double xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
+#else
+double xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
+#endif
 #endif
 
 int display_outline;
