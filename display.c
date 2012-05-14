@@ -77,6 +77,7 @@ void mouseDrag(int x, int y);
 void keyPressed(unsigned char key, int x, int y);
 void Scale();
 void mpe_main_loop(void);
+void display_get_event(void);
 
 struct ColorTable {
    float Red;
@@ -687,7 +688,142 @@ void mpe_main_loop(void)
 {
 #ifdef HAVE_MPE
    while (1) {
+      display_get_event();
       idlefunction();
    }
 #endif
 }
+
+/********************************************************************************/
+void display_get_event(void)
+/********************************************************************************/
+{
+   //double xmid, ymid;
+   //int xrel, yrel;
+   XEvent event;
+   long EventMask;
+   int EventFlag;
+   char keys[20];
+   int numChar;
+   KeySym keysym;
+   XComposeStatus compose;
+   int rank=0;
+   char key;
+   int button, xloc, yloc, special_event;
+   double xcor, ycor;
+
+#ifdef HAVE_MPE
+
+#ifdef HAVE_MPI
+   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+
+   if (window->Cookie != MPE_G_COOKIE) {
+      printf("Handle argument is incorrect or corrupted\n" );
+   }
+
+   key = '\0';
+   button = -1;
+   xcor = 0.0;
+   ycor = 0.0;
+   special_event = 0;
+
+   EventMask= ButtonPressMask | ButtonReleaseMask | KeyPressMask | ExposureMask | StructureNotifyMask ;
+
+
+   EventFlag=0;
+   //if (rank ==0){
+      if(XCheckWindowEvent(window->xwin->disp,window->xwin->win,EventMask,&event)){
+         EventFlag=1;
+      }
+   //}
+#ifdef HAVE_MPI
+   MPI_Bcast(&EventFlag, 1, MPI_INT, 0, MPI_COMM_WORLD);
+#endif
+     
+   if (EventFlag){
+#ifdef HAVE_MPI
+      MPI_Bcast(&event, sizeof(XEvent), MPI_BYTE, 0, MPI_COMM_WORLD);
+#endif
+
+      //printf("Event type is %d\n",event.type);
+      switch(event.type){
+         case ButtonPress:
+            //printf("Button Press is %d\n",event.xbutton.button);
+            button=event.xbutton.button;
+            xloc=event.xbutton.x;
+            yloc=event.xbutton.y;
+            xcor=display_xmin+(double)xloc/xconv;
+            ycor=display_ymin+(double)(height-yloc -1)/yconv;
+
+            int state = 1; // Button Down
+            mouseClick(event.xbutton.button, state, xloc, yloc);
+
+            //printf("DEBUG graphics -- button is %d loc is %d %d cor is %lf %lf\n",
+            //                       button,    xloc,yloc,xcor,ycor);
+            break;
+         case KeyPress:
+            if (rank == 0) {
+               numChar=XLookupString((XKeyEvent *) &event, keys, 20, &keysym, &compose);
+               printf("%c:%c:%d:\n",keys[0],keys[1],(int)keysym);
+               if(((keysym>=XK_KP_Space)&&(keysym<=XK_KP_9))
+                  ||((keysym>XK_space)&&(keysym<XK_asciitilde))){
+                  key=keys[0];
+               }
+            }
+#ifdef HAVE_MPI
+            MPI_Bcast(key,           1, MPI_CHAR,   0, MPI_COMM_WORLD);
+#endif
+     
+            xloc=event.xkey.x;
+            yloc=event.xkey.y;
+     
+            xcor=display_xmin+(double)xloc/xconv;
+            ycor=display_ymin+(double)(height-yloc-1)/yconv;
+
+            keyPressed(key, xloc, yloc);
+     
+            //printf("DEBUG graphics -- key is '%c' loc is %d %d cor is %lf %lf\n",
+            //                         key,      xloc,yloc,xcor,ycor);
+            break;
+         case Expose:
+            if (event.xexpose.count == 0){
+               special_event=1;
+            }
+            //printf("DEBUG graphics -- special event is \n",*special_event);
+            break;
+         case ConfigureNotify:
+            /* Window has been resized */
+/*
+            width=event.xconfigure.width; //-SCALEWIDTH;
+            double ratio = (double)event.xconfigure.height/(double)height;
+            height *= ratio;
+     
+            conHeight *= ratio;
+            conWidth  = width - SCALEWIDTH;
+     
+            graHeight = height - conHeight - 2*TEXTHEIGHT;
+            if (graHeight < 0) graHeight  = 0;
+            graWidth  = width - SCALEWIDTH;
+     
+            xconv = (double)conWidth/ (display_xmax-xmin);
+            yconv = (double)conHeight/(display_ymax-display_ymin);
+*/
+
+            //printf("DEBUG graphics -- window has been resized to %d %d\n",width, height);
+            break;
+      } // switch
+     
+      //printf("DEBUG -- button is %d key is '%c' loc is %d %d cor is %lf %lf\n",
+      //                button,     key,      xloc,yloc,xcor,ycor);
+   }
+     
+   //MPE_Update(window);
+   //usleep(300000);
+     
+#endif
+
+   return;
+}
+   
+
