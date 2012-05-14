@@ -155,7 +155,6 @@ public:
    void symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index, double eps, 
                        SIGN_RULE sign_rule, int &flag);
    double mass_sum(Mesh *mesh, bool enhanced_precision_sum);
-   double mass_sum_local(Mesh *mesh, bool enhanced_precision_sum);
    double gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum);
    double gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum);
 

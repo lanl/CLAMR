@@ -725,7 +725,7 @@ extern "C" void do_calc(void)
       double H_sum = -1.0;
 
       if (do_comparison_calc) {
-         H_sum = state->mass_sum_local(mesh, enhanced_precision_sum);
+         H_sum = state->mass_sum(mesh, enhanced_precision_sum);
 
          double H_sum_global = state_global->mass_sum(mesh_global, enhanced_precision_sum);
 
@@ -753,7 +753,7 @@ extern "C" void do_calc(void)
 
       if (n % outputInterval == 0) {
          if (H_sum < 0) {
-            H_sum = state->mass_sum_local(mesh, enhanced_precision_sum);
+            H_sum = state->mass_sum(mesh, enhanced_precision_sum);
          }
          if (mype == 0){
             printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",

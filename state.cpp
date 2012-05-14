@@ -3312,43 +3312,6 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 
 double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
 {
-   size_t &ncells = mesh->ncells;
-   vector<int> &celltype = mesh->celltype;
-   vector<int> &level    = mesh->level;
-
-   struct timeval tstart_cpu;
-   double summer = 0.0;
-
-   cpu_timer_start(&tstart_cpu);
-
-   if (enhanced_precision_sum) {
-      double correction, corrected_next_term, new_sum;
-      correction = 0.0;
-
-      for (uint ic = 0; ic < ncells; ic++) {
-         if (celltype[ic] == REAL_CELL) {
-            //  Exclude boundary cells.
-            corrected_next_term= H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]] + correction;
-            new_sum            = summer + corrected_next_term;
-            correction         = corrected_next_term - (new_sum - summer);
-            summer             = new_sum;
-         }
-      }
-   } else {
-      for (uint ic=0; ic < ncells; ic++){
-         if (celltype[ic] == REAL_CELL) {
-            summer += H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]];
-         }
-      }
-   }
-
-   cpu_time_mass_sum += cpu_timer_stop(tstart_cpu);
-
-   return(summer);
-}
-
-double State::mass_sum_local(Mesh *mesh, bool enhanced_precision_sum)
-{
 
    size_t &ncells = mesh->ncells;
    vector<int> &celltype = mesh->celltype;
@@ -3377,9 +3340,15 @@ double State::mass_sum_local(Mesh *mesh, bool enhanced_precision_sum)
          }
       }
 #ifdef HAVE_MPI
-      MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
+      if (mesh->parallel) {
+         MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
+         total_sum = global.sum + global.correction;
+      } else {
+         total_sum = local.sum + local.correction;
+      }
+#else
+      total_sum = local.sum + local.correction;
 #endif
-      total_sum = global.sum + global.correction;
    } else {
       for (uint ic=0; ic < ncells; ic++){
          if (celltype[ic] == REAL_CELL) {
@@ -3387,7 +3356,13 @@ double State::mass_sum_local(Mesh *mesh, bool enhanced_precision_sum)
          }
       }
 #ifdef HAVE_MPI
-      MPI_Allreduce(&summer, &total_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      if (mesh->parallel) {
+         MPI_Allreduce(&summer, &total_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      } else {
+         total_sum = summer;
+      }
+#else
+      total_sum = summer;
 #endif
    }
 
