@@ -103,7 +103,7 @@ int window;
 #endif
 #ifdef HAVE_MPE
 static MPE_Color *color_array;
-static unsigned int ncolors=256;
+static int ncolors=256;
 static MPE_XGraph window;
 static double xconv = 0.0;
 static double yconv = 0.0;
@@ -192,7 +192,7 @@ void init_display(int *argc, char **argv, const char *title, int rank_in){
    if (displayname == NULL){
       displayname = getenv("DISPLAY");
       if (displayname == NULL){
-         displayname = (char *)malloc(28);
+         displayname = (char *)malloc((size_t)28);
          displayname = ":0";
       }
    }
@@ -470,7 +470,7 @@ void DrawSquares(void) {
    glEnd();
 #endif
 #ifdef HAVE_MPE
-   double xloc_old, yloc_old;
+   int xloc_old, yloc_old;
    xloc_old = (int)((x[0]+0.5*dx[0]-display_xmin)*xconv);
    yloc_old = (int)((y[0]+0.5*dy[0]-display_ymin)*yconv);
    for(i = 1; i < display_mysize; i++) {
@@ -486,10 +486,10 @@ void DrawSquares(void) {
 
 void DrawBoxes(void) {
 
+#ifdef HAVE_OPENGL
    int i, color, step = NCOLORS/(display_proc[display_mysize-1]+1);
    //step utilizes whole range of color, assumes last element of proc is last processor
 
-#ifdef HAVE_OPENGL
    glFrustum(display_xmin-1, display_xmax, display_ymin-1, display_ymax, 5.0, 10.0);
    glTranslatef(0.0f, 0.0f, -6.0f); //must move into screen to draw
 
@@ -717,7 +717,7 @@ void display_get_event(void)
    KeySym keysym;
    XComposeStatus compose;
    int rank=0;
-   char key;
+   unsigned char key;
    int button, xloc, yloc, special_event;
    double xcor, ycor;
 
@@ -751,7 +751,7 @@ void display_get_event(void)
      
    if (EventFlag){
 #ifdef HAVE_MPI
-      MPI_Bcast(&event, sizeof(XEvent), MPI_BYTE, 0, MPI_COMM_WORLD);
+      MPI_Bcast(&event, (int)sizeof(XEvent), MPI_BYTE, 0, MPI_COMM_WORLD);
 #endif
 
       //printf("Event type is %d\n",event.type);
@@ -765,7 +765,7 @@ void display_get_event(void)
             ycor=display_ymin+(double)(height-yloc -1)/yconv;
 
             int state = 1; // Button Down
-            mouseClick(event.xbutton.button, state, xloc, yloc);
+            mouseClick((int)event.xbutton.button, state, xloc, yloc);
 
             //printf("DEBUG graphics -- button is %d loc is %d %d cor is %lf %lf\n",
             //                       button,    xloc,yloc,xcor,ycor);
@@ -780,7 +780,7 @@ void display_get_event(void)
                }
             }
 #ifdef HAVE_MPI
-            MPI_Bcast(key,           1, MPI_CHAR,   0, MPI_COMM_WORLD);
+            MPI_Bcast(&key,           1, MPI_CHAR,   0, MPI_COMM_WORLD);
 #endif
      
             xloc=event.xkey.x;
