@@ -385,7 +385,8 @@ extern "C" void do_calc(void)
    size_t new_ncells = 0;
 
    //  Main loop.
-   for (int iburst = 0; iburst < outputInterval; iburst++) {
+   int output_flag = 0;
+   while (! output_flag) {
       if (n > niter) break;
 
       size_t local_work_size  = MIN(ncells, TILE_SIZE);
@@ -597,15 +598,6 @@ extern "C" void do_calc(void)
       }
 
 
-#ifdef HAVE_GRAPHICS
-      set_mysize(ncells);
-      if (n < outputInterval){
-         mesh->calc_spatial_coordinates(0);
-         set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
-         set_cell_data(&H[0]);
-      }
-#endif
-
       if (do_comparison_calc)
       {
           if (! mesh->have_boundary) {
@@ -754,6 +746,7 @@ extern "C" void do_calc(void)
          set_circle_radius(circle_radius);
          draw_scene();
 #endif
+         output_flag = 1;
       }  //  Complete output interval.
       ++n;
       simTime += deltaT;

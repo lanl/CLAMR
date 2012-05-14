@@ -395,7 +395,8 @@ extern "C" void do_calc(void)
    size_t new_ncells_global = 0;
 
    //  Main loop.
-   for (int iburst = 0; iburst < outputInterval; iburst++) {
+   int output_flag = 0;
+   while (! output_flag) {
       if (n > niter) break;
 
       //  Define basic domain decomposition parameters for GPU.
@@ -769,6 +770,7 @@ extern "C" void do_calc(void)
          set_circle_radius(circle_radius);
          draw_scene();
 #endif
+         output_flag = 1;
       }  //  Complete output interval.
 
       ++n;
