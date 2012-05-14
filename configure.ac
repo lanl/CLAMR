@@ -145,7 +145,8 @@ if test "${enable_mpe}" != "no"; then
 
   if test -z "${MPE_BIN}"; then
     if test -z "${MPEHOME}"; then
-      AC_CHECK_FILE(/users/brobey/mpe/include/mpe.h, MPEHOME="/users/brobey/mpe")
+      AC_CHECK_FILE(${HOME}/mpe/include/mpe.h, MPEHOME="${HOME}/mpe")
+      AC_CHECK_FILE(${HOME}/mpe-1.9.1/include/mpe.h, MPEHOME="${HOME}/mpe-1.9.1")
     fi
   fi
 
