@@ -3167,6 +3167,8 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
 
       ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
 
+      gpu_time_refine_potential  += ezcl_timer_calc(&refine_smooth_event,  &refine_smooth_event);
+
 //      printf("result = %d after %d refine smooths\n",result,which_smooth);
 //      sleep(1);
 //      which_smooth++;
@@ -3175,8 +3177,6 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
       ezcl_device_memory_remove(dev_newcount);
 
       mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
-
-      gpu_time_refine_potential  += ezcl_timer_calc(&refine_smooth_event,  &refine_smooth_event);
    }
 
    gpu_time_refine_potential  += ezcl_timer_calc(&refine_potential_event,  &refine_potential_event);

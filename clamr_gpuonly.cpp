@@ -594,10 +594,6 @@ extern "C" void do_calc(void)
             if (j[ic] != j_check[ic] ) printf("DEBUG -- j: ic %d j %d j_check %d\n",ic, j[ic], j_check[ic]);
          }
       
-      } else if (n % outputInterval == 0) {
-         vector<real> H_save(ncells);
-         ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_TRUE,  0, ncells*sizeof(cl_real), &H_save[0], &start_read_event);
-         state->gpu_time_read             += ezcl_timer_calc(&start_read_event,       &start_read_event);
       }
 
       if (! mesh->have_boundary) {
