@@ -735,17 +735,13 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 
    mesh->rezone_all(mpot, add_ncells);
 
+   int global_add_ncells = add_ncells;
 #ifdef HAVE_MPI
    if (mesh->parallel) {
-      int global_add_ncells;
       MPI_Allreduce(&add_ncells, &global_add_ncells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      if (global_add_ncells == 0 ) return;
-   } else {
-      if (add_ncells == 0 ) return;
    }
-#else
-   if (add_ncells == 0 ) return;
 #endif
+   if (global_add_ncells == 0 ) return;
 
    cpu_timer_start(&tstart_cpu);
 
