@@ -698,6 +698,8 @@ void mpe_main_loop(void)
 void display_get_event(void)
 /********************************************************************************/
 {
+
+#ifdef HAVE_MPE
    //double xmid, ymid;
    //int xrel, yrel;
    XEvent event;
@@ -712,7 +714,6 @@ void display_get_event(void)
    int button, xloc, yloc, special_event;
    double xcor, ycor;
 
-#ifdef HAVE_MPE
 
 #ifdef HAVE_MPI
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
