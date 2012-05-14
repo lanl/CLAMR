@@ -70,6 +70,8 @@
 #define TILE_SIZE 128
 
 #define SWAP_PTR(xnew,xold,xtmp) (xtmp=xnew, xnew=xold, xold=xtmp)
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;

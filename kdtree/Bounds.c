@@ -56,6 +56,10 @@
  */
 #include "Bounds.h"
 
+#define MEMCPY(s,d,n,t) {memcpy((void*)d, (void*)s, n * sizeof(t)); }
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+
 void Bounds_Copy(TBounds* src, TBounds* dest) {
    assert(src && dest);
    MEMCPY(src, dest, 1, TBounds);

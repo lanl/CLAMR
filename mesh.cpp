@@ -56,6 +56,7 @@
 #include <algorithm>
 #include <unistd.h>
 #include "hsfc/hsfc.h"
+#include "kdtree/KDTree.h"
 #include "mesh.h"
 #include "reorder.h"
 #include "ezcl/ezcl.h"
@@ -69,6 +70,8 @@
 #ifndef DEBUG
 #define DEBUG 0
 #endif
+
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;

@@ -89,17 +89,9 @@ typedef unsigned char boolean;
 #define false ((boolean)0)
 #endif
 
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-
 #ifndef SWAP
 #define SWAP(a,b,t) {t h; h = a; a = b; b = h; }
 #endif
-
-#define MALLOC(n,t) ((t*)(malloc(n * sizeof(t))))
-#define REALLOC(p,n,t) ((t*)(realloc((void*)p, n * sizeof(t))))
-#define FREE(p) { if (p) free(p); }
-#define MEMCPY(s,d,n,t) {memcpy((void*)d, (void*)s, n * sizeof(t)); }
 
 #ifdef __cplusplus
 }

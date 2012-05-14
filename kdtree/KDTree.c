@@ -57,6 +57,10 @@
 #include <math.h>
 #include "KDTree.h"
 
+#define MALLOC(n,t) ((t*)(malloc(n * sizeof(t))))
+#define REALLOC(p,n,t) ((t*)(realloc((void*)p, n * sizeof(t))))
+#define FREE(p) { if (p) free(p); }
+
 static void median_sort(TKDTree* t,
                         unsigned int cut_direction, int k, int num, int* idx)
 {

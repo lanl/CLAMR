@@ -61,7 +61,6 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
-#include "display.h"
 #include "ezcl/ezcl.h"
 #include "input.h"
 #include "mesh.h"
@@ -71,22 +70,10 @@
 #include "timer/timer.h"
 #include "l7/l7.h"
 
-//#undef HAVE_OPENGL
-#ifdef HAVE_OPENGL
-#ifdef __APPLE_CC__
-#include <GLUT/glut.h>
-#include <OpenGL/gl.h>
-#include <OpenGL/glu.h>
-#else
-#include <GL/glut.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
-#endif
-#endif
-
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
+#include "display.h"
 
 //#define DO_COMPARISON
 
@@ -283,7 +270,7 @@ int main(int argc, char **argv) {
    MPI_Scatterv(&y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &y[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dy[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
 
-#ifdef HAVE_OPENGL
+#ifdef HAVE_GRAPHICS
    set_cell_data(&H_global[0]);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
    set_mysize(ncells_global);
@@ -291,8 +278,8 @@ int main(int argc, char **argv) {
    set_window(mesh_global->xmin, mesh_global->xmax, mesh_global->ymin, mesh_global->ymax);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
-   glutIdleFunc(&do_calc);
-   glutMainLoop();
+   set_idle_function(&do_calc);
+   start_main_loop();
 #else
    for (int it = 0; it < 10000000; it++) {
       do_calc();
@@ -371,14 +358,14 @@ extern "C" void do_calc(void)
       n++;
       
       //  Set up grid.
-#ifdef HAVE_OPENGL
+#ifdef HAVE_GRAPHICS
       set_mysize(ncells_global);
       set_viewmode(view_mode);
       set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
       set_cell_data(&H_global[0]);
       set_cell_proc(&mesh_global->proc[0]);
       set_circle_radius(circle_radius);
-      DrawGLScene();
+      draw_scene();
       if (verbose) sleep(5);
 #endif
       //  Set flag to show mesh results rather than domain decomposition.
@@ -731,7 +718,7 @@ extern "C" void do_calc(void)
       //   gpu_time_read             += ezcl_timer_calc(&start_read_event,       &start_read_event);
       //}
 
-//#ifdef HAVE_OPENGL
+//#ifdef HAVE_GRAPHICS
 //      set_cell_data(&H_global[0]);
 //      set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
 //#endif
@@ -773,7 +760,7 @@ extern "C" void do_calc(void)
             printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
                n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
          }
-#ifdef HAVE_OPENGL
+#ifdef HAVE_GRAPHICS
          mesh_global->calc_spatial_coordinates(0);
 
          set_mysize(ncells_global);
@@ -782,7 +769,7 @@ extern "C" void do_calc(void)
          set_cell_data(&H_global[0]);
          set_cell_proc(&mesh_global->proc[0]);
          set_circle_radius(circle_radius);
-         DrawGLScene();
+         draw_scene();
 #endif
       }  //  Complete output interval.
 

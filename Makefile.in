@@ -328,7 +328,7 @@ clamr_checkall_CXX_SRCS = clamr_checkall.cpp mesh.cpp partition.cpp state.cpp in
 clamr_checkall_C_SRCS = display.c reduce.c 
 clamr_checkall_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_checkall_SOURCES = ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${clamr_checkall_H_SRCS}
-LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ll7 -ll7 -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lX11 -lm
+LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ll7 -ll7 -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm
 EXTRA_DIST = wave_kern.cl wave_kern_calc.cl reduce.cl config.h clamr.xcodeproj/project.pbxproj clamr.1 fileamr.in AUTHORS ChangeLog runtests.sh newbatch.sh LICENSE
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive

@@ -3,6 +3,12 @@
 /* Has OpenCL double type */
 #undef HAVE_CL_DOUBLE
 
+/* Has Real-time Graphics */
+#undef HAVE_GRAPHICS
+
+/* "Use MPE for graphics" */
+#undef HAVE_MPE
+
 /* Has MPI libraries */
 #undef HAVE_MPI
 
@@ -38,9 +44,6 @@
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
-
-/* "Use MPE for graphics" */
-#undef USE_MPE
 
 /* Version number of package */
 #undef VERSION

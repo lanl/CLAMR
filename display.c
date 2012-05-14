@@ -58,11 +58,14 @@
 #include <unistd.h>
 #include <math.h>
 #include "display.h"                                                                                                   
-#ifdef HAVE_OPENGL
-
 #define ESCAPE 27
+#ifdef HAVE_OPENGL
 #define NCOLORS 1000
-#define WINSIZE 800.0
+#endif
+#ifdef HAVE_MPE
+#define NCOLORS 256
+#endif
+#define WINSIZE 800
 
 int DrawString(float x, float y, float z, char* string);
 void InitGL(int width, int height);
@@ -73,6 +76,7 @@ void mouseClick(int button, int state, int x, int y);
 void mouseDrag(int x, int y);
 void keyPressed(unsigned char key, int x, int y);
 void Scale();
+void mpe_main_loop(void);
 
 struct ColorTable {
    float Red;
@@ -84,18 +88,36 @@ int autoscale = 0;
 
 double display_circle_radius=-1.0;
 
+#ifndef HAVE_MPI
+int MPI_COMM_WORLD=0;
+#endif
+
+#ifdef HAVE_OPENGL
 struct ColorTable Rainbow[NCOLORS];
+int window;
+#endif
+#ifdef HAVE_MPE
+static MPE_Color *color_array;
+static unsigned int ncolors=256;
+static MPE_XGraph window;
+static double xconv = 0.0;
+static double yconv = 0.0;
+static XFontStruct *font_info;
+void (*idlefunction)(void);
+#endif
 
 real xstart, ystart, xend, yend;
 enum mode_choice {EYE, MOVE, DRAW};
 int mode = MOVE;
 
-int window;
-real width;
+int width, height;
 real display_xmin=0.0, display_xmax=0.0, display_ymin=0.0, display_ymax=0.0;
 
 #ifdef HAVE_OPENGL
-GLfloat xrot = 0, yrot = 0, xloc = 0, zloc = 0;
+GLfloat xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
+#endif
+#ifdef HAVE_MPE
+double xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
 #endif
 
 int display_outline;
@@ -104,9 +126,10 @@ int display_mysize    = 0;
 real *x=NULL, *y=NULL, *dx=NULL, *dy=NULL;
 real *data=NULL;
 int *display_proc=NULL;
-int mype = 0;
+int rank = 0;
 
 int DrawString(float x, float y, float z, char* string) {
+#ifdef HAVE_OPENGL
    char *c;
    glColor3f(0.0f, 0.0f, 0.0f);
    glRasterPos3f(x, y, z);
@@ -114,8 +137,12 @@ int DrawString(float x, float y, float z, char* string) {
       glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_10, *c);
       //glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *c);
    }
+#endif
+#ifdef HAVE_MPE
+#endif
    return 1;
 }
+#ifdef HAVE_OPENGL
 void InitGL(int width, int height) {
    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
    glDepthFunc(GL_LESS);
@@ -124,14 +151,15 @@ void InitGL(int width, int height) {
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
 }
-void init_display(int *argc, char **argv, const char *title, int mype_in){
-   if (mype_in) mype = mype_in;
+#endif
+void init_display(int *argc, char **argv, const char *title, int rank_in){
+   if (rank_in) rank = rank_in;
 
-   Scale();
    width = (WINSIZE / (display_ymax - display_ymin)) * (display_xmax - display_xmin);
+#ifdef HAVE_OPENGL
    glutInit(argc, argv);
    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
-   if (mype == 0) {
+   if (rank == 0) {
       glutInitWindowSize(width, WINSIZE);
       glutInitWindowPosition(20, 20);
    } else {
@@ -140,14 +168,92 @@ void init_display(int *argc, char **argv, const char *title, int mype_in){
    }
 
    window = glutCreateWindow(title);
+#endif
 
-   glutDisplayFunc(&DrawGLScene);
+#ifdef HAVE_MPE
+   char fontname[30];
+   char *displayname=NULL;
+
+   /* Open the graphics display */
+
+   if (*argc > 2 && strcmp( argv[1], "-display" ) == 0) {
+      displayname = (char *)malloc( strlen( argv[2] ) + 1 );
+      strcpy(displayname, argv[2]);
+   }
+
+   if (displayname == NULL){
+      displayname = getenv("DISPLAY");
+      if (displayname == NULL){
+         displayname = (char *)malloc(28);
+         displayname = ":0";
+      }
+   }
+
+   int mpi_init_flag=0;
+#ifdef HAVE_MPI
+   MPI_Initialized(&mpi_init_flag);
+   if (mpi_init_flag){
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   } else {
+      MPI_Init(argc, argv);
+   }
+#endif
+   if (MPE_Open_graphics( &window, MPI_COMM_WORLD, displayname,
+                         -1, -1, WINSIZE, WINSIZE, 0) != MPE_SUCCESS){
+      printf("Problem opening graphics window\n");
+      exit(-1);
+   }
+
+   xconv = (double)WINSIZE/ (display_xmax-display_xmin);
+   yconv = (double)WINSIZE/(display_ymax-display_ymin);
+
+   if (rank == 0){
+      XSelectInput( window->xwin->disp, window->xwin->win, MPE_XEVT_IDLE_MASK |
+                  ButtonPressMask   |
+                  ButtonReleaseMask |
+                  Button1MotionMask |
+                  KeyPressMask      |
+                  ExposureMask      |
+                  StructureNotifyMask);
+   }
+
+   MPE_Update(window);
+
+   // if we want to change fonts, we can load a new one with the following
+   strcpy(fontname,"fixed");
+   font_info = XLoadQueryFont( window->xwin->disp, fontname );
+#endif
+
+   Scale();
+
+#ifdef HAVE_OPENGL
+   glutDisplayFunc(&draw_scene);
 
    glutKeyboardFunc(&keyPressed);
    glutMouseFunc(&mouseClick);
    glutMotionFunc(&mouseDrag);
    InitGL(width, WINSIZE);
+#endif
 }
+
+void set_idle_function(void (*function)(void)){
+#ifdef HAVE_OPENGL
+   glutIdleFunc(function);
+#endif
+#ifdef HAVE_MPE
+   idlefunction = function;
+#endif
+}
+
+void start_main_loop(void){
+#ifdef HAVE_OPENGL
+   glutMainLoop();
+#endif
+#ifdef HAVE_MPE
+   mpe_main_loop();
+#endif
+}
+   
 void set_window(real display_xmin_in, real display_xmax_in, real display_ymin_in, real display_ymax_in){
    display_xmin = display_xmin_in;
    display_xmax = display_xmax_in;
@@ -167,7 +273,9 @@ void set_cell_coordinates(real *x_in, real *dx_in, real *y_in, real *dy_in){
    dy = dy_in;
 }
 void free_display(void){
+#ifdef HAVE_OPENGL
    glutDestroyWindow(window);
+#endif
 }
 void DisplayState(void) {
    double scaleMax = 25.0, scaleMin = 0.0;
@@ -185,9 +293,12 @@ void DisplayState(void) {
 
    double step = NCOLORS/(scaleMax - scaleMin);
   
+#ifdef HAVE_OPENGL
    //set up 2D viewing
    gluOrtho2D(display_xmin, display_xmax, display_ymin, display_ymax);
+#endif
   
+#ifdef HAVE_OPENGL
    for(i = 0; i < display_mysize; i++) {
       /*Draw filled cells with color set by state value*/
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -219,7 +330,40 @@ void DisplayState(void) {
          glEnd();
       }
    }
+#endif
+#ifdef HAVE_MPE
+   int xloc, xwid, yloc, ywid;
+   int xloc1, xloc2, yloc1, yloc2;
+   for(i = 0; i < display_mysize; i++) {
+      color = (int)(data[i]-scaleMin)*step;
+      if (color < 0) {
+         color=0;
+      }
+      if (color >= NCOLORS) color = NCOLORS-1;
+
+      //printf("DEBUG mesh -- xconv is %lf xmin %lf x[%d]=%lf\n",xconv,display_xmin,i,x[i]);
+      xloc = (int)((x[i]-display_xmin)*xconv);
+      xwid = (int)((x[i]+dx[i]-display_xmin)*xconv-xloc + 0.5);
+      yloc = (int)((y[i]-display_ymin)*yconv);
+      ywid = (int)((y[i]+dy[i]-display_ymin)*yconv-yloc + 0.5);
+      //printf("xloc is %d xwid %d yloc is %d ywid %d color is  %d step is %d\n",xloc,xwid,yloc,ywid,color,step);
+      MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, color_array[color]);
+
+      xloc1 = (int)((x[i]-display_xmin)*xconv);
+      xloc2 = (int)((x[i]+dx[i]-display_xmin)*xconv);
+      yloc1 = (int)((y[i]-display_ymin)*yconv);
+      yloc2 = (int)((y[i]+dy[i]-display_ymin)*yconv);
+      //printf("xloc1 is %d xloc2 %d yloc1 is %d yloc2 %d\n",xloc1,xloc2,yloc1,yloc2);
+      MPE_Draw_line(window, xloc1, yloc2, xloc2, yloc2, MPE_BLACK);
+      MPE_Draw_line(window, xloc1, yloc1, xloc2, yloc1, MPE_BLACK);
+      MPE_Draw_line(window, xloc1, yloc1, xloc1, yloc2, MPE_BLACK);
+      MPE_Draw_line(window, xloc2, yloc1, xloc2, yloc2, MPE_BLACK);
+   }
+   MPE_Update(window);
+#endif
+
   
+#ifdef HAVE_OPENGL
    glColor3f(0.0f, 0.0f, 0.0f);
 
    /* Draw circle for initial conditions */
@@ -232,14 +376,16 @@ void DisplayState(void) {
       }
       glEnd();
    }
-  
+#endif
 }
+
 void DrawSquares(void) {
    int i, color, step;
    if (display_proc == NULL) return;
    step = NCOLORS/(display_proc[display_mysize-1]+1);
    //step utilizes whole range of color, assumes last element of proc is last processor
 
+#ifdef HAVE_OPENGL
    gluOrtho2D(display_xmin, display_xmax, display_ymin, display_ymax);
    //set up 2D viewing
 
@@ -266,7 +412,35 @@ void DrawSquares(void) {
          glVertex2f(x[i],       y[i]+dy[i]);
       glEnd();
    }
-  
+#endif
+#ifdef HAVE_MPE
+   int xloc, xwid, yloc, ywid;
+   int xloc1, xloc2, yloc1, yloc2;
+   for(i = 0; i < display_mysize; i++) {
+      //printf("DEBUG mesh -- xconv is %lf xmin %lf x[%d]=%lf\n",xconv,display_xmin,i,x[i]);
+      xloc = (int)((x[i]-display_xmin)*xconv);
+      xwid = (int)((x[i]+dx[i]-display_xmin)*xconv-xloc + 0.5);
+      yloc = (int)((y[i]-display_ymin)*yconv);
+      ywid = (int)((y[i]+dy[i]-display_ymin)*yconv-yloc + 0.5);
+      color = display_proc[i]*step;
+      //printf("xloc is %d xwid %d yloc is %d ywid %d color is  %d step is %d\n",xloc,xwid,yloc,ywid,color,step);
+      MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, color_array[color]);
+
+      xloc1 = (int)((x[i]-display_xmin)*xconv);
+      xloc2 = (int)((x[i]+dx[i]-display_xmin)*xconv);
+      yloc1 = (int)((y[i]-display_ymin)*yconv);
+      yloc2 = (int)((y[i]+dy[i]-display_ymin)*yconv);
+      //printf("xloc1 is %d xloc2 %d yloc1 is %d yloc2 %d\n",xloc1,xloc2,yloc1,yloc2);
+      MPE_Draw_line(window, xloc1, yloc2, xloc2, yloc2, MPE_BLACK);
+      MPE_Draw_line(window, xloc1, yloc1, xloc2, yloc1, MPE_BLACK);
+      MPE_Draw_line(window, xloc1, yloc1, xloc1, yloc2, MPE_BLACK);
+      MPE_Draw_line(window, xloc2, yloc1, xloc2, yloc2, MPE_BLACK);
+
+      //MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, MPE_RED);
+   }
+#endif
+
+#ifdef HAVE_OPENGL
    /* Draw circle for initial conditions */
    if (display_circle_radius > 0.0) {
       double radians;
@@ -277,19 +451,37 @@ void DrawSquares(void) {
       }
       glEnd();
    }
+#endif
   
+#ifdef HAVE_OPENGL
    /*Trace order of cells with line going from center to center*/
    glBegin(GL_LINE_STRIP);
       for(i = 0; i < display_mysize; i++) {
          glVertex2f(x[i]+dx[i]/2, y[i]+dy[i]/2);
       }
    glEnd();
+#endif
+#ifdef HAVE_MPE
+   double xloc_old, yloc_old;
+   xloc_old = (int)((x[0]+0.5*dx[0]-display_xmin)*xconv);
+   yloc_old = (int)((y[0]+0.5*dy[0]-display_ymin)*yconv);
+   for(i = 1; i < display_mysize; i++) {
+      xloc = (int)((x[i]+0.5*dx[i]-display_xmin)*xconv);
+      yloc = (int)((y[i]+0.5*dy[i]-display_ymin)*yconv);
+      MPE_Draw_line(window,xloc_old,yloc_old,xloc,yloc,MPE_BLACK);
+      xloc_old = xloc;
+      yloc_old = yloc;
+   }
+   MPE_Update(window);
+#endif
 }
+
 void DrawBoxes(void) {
 
    int i, color, step = NCOLORS/(display_proc[display_mysize-1]+1);
    //step utilizes whole range of color, assumes last element of proc is last processor
 
+#ifdef HAVE_OPENGL
    glFrustum(display_xmin-1, display_xmax, display_ymin-1, display_ymax, 5.0, 10.0);
    glTranslatef(0.0f, 0.0f, -6.0f); //must move into screen to draw
 
@@ -332,6 +524,7 @@ void DrawBoxes(void) {
          glVertex3f(x[i]+dx[i], y[i]+dy[i], 0.0f);
       glEnd();
    }
+#endif
 }
 
 
@@ -348,13 +541,20 @@ void set_circle_radius(double display_circle_radius_in){
 void set_outline(int display_outline_in){
    display_outline = display_outline_in;
 }
-void DrawGLScene(void) {
-   if (mype) return;
+
+void draw_scene(void) {
+#ifdef HAVE_OPENGL
+   if (rank) return;
 
    char c[10];
 
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    glLoadIdentity();
+#endif
+#ifdef HAVE_MPE
+   MPE_Fill_rectangle(window, 0, 0, WINSIZE, WINSIZE, MPE_WHITE);
+   //MPE_Update(window);
+#endif
 
    if (display_view_mode == 0) {
       DrawSquares();
@@ -362,6 +562,7 @@ void DrawGLScene(void) {
       DisplayState();
    }
 
+#ifdef HAVE_OPENGL
    /*for(int i = 0; i < display_mysize; i++) {
       sprintf(c, "%d", i);
       //DrawString(x[i]+dx[i]/2, y[i]+dy[i]/2, 0.0, c);
@@ -375,10 +576,11 @@ void DrawGLScene(void) {
    glutSwapBuffers();
 
    sleep(0);
-
+#endif
 }
 
 
+#ifdef HAVE_OPENGL
 void SelectionRec(void) {
    glColor3f(0.0f, 0.0f, 0.0f);
    glLineWidth(2.0f);
@@ -390,8 +592,10 @@ void SelectionRec(void) {
    glEnd();
    glLineWidth(1.0f);
 }
+#endif
 
 void mouseClick(int button, int state, int x, int y) {
+#ifdef HAVE_OPENGL
    if(state == GLUT_DOWN) {
       mode = EYE;
       xstart = (display_xmax-display_ymin)*(x/width)+display_ymin;
@@ -403,12 +607,15 @@ void mouseClick(int button, int state, int x, int y) {
       xend = (display_xmax-display_ymin)*(x/width)+display_ymin;
       yend = (display_xmax-display_ymin)*((float)(WINSIZE-y)/WINSIZE)+display_ymin;
    }
+#endif
 }
 void mouseDrag(int x, int y) {
+#ifdef HAVE_OPENGL
    glutPostRedisplay();
    mode = DRAW;
    xend = (display_xmax-display_ymin)*(x/width)+display_ymin;
    yend = (display_xmax-display_ymin)*((float)(WINSIZE-y)/WINSIZE)+display_ymin;
+#endif
 }
 
 void keyPressed(unsigned char key, int x, int y) {
@@ -416,7 +623,7 @@ void keyPressed(unsigned char key, int x, int y) {
     usleep(100);
 
     if(key == ESCAPE) {
-       glutDestroyWindow(window);
+       free_display();
 #ifdef HAVE_OPENCL
        ezcl_finish();
 #endif
@@ -438,6 +645,7 @@ void keyPressed(unsigned char key, int x, int y) {
     }
 }
 void Scale() {
+#ifdef HAVE_OPENGL
    int i;
    double r;
    for (i=0, r=0.0; i<200; i++, r+=.005) {
@@ -465,8 +673,21 @@ void Scale() {
          Rainbow[800+i].Green = 0.0;
          Rainbow[800+i].Blue = r;
    }
-}
+#endif
+#ifdef HAVE_MPE
+   color_array = (MPE_Color *) malloc(sizeof(MPE_Color)*ncolors);
 
+   int ierr = MPE_Make_color_array(window, ncolors, color_array);
+   if (ierr && rank == 0) printf("Error(Make_color_array): ierr is %d\n",ierr);
 
 #endif
+}
 
+void mpe_main_loop(void)
+{
+#ifdef HAVE_MPE
+   while (1) {
+      idlefunction();
+   }
+#endif
+}

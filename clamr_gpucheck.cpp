@@ -53,8 +53,6 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
-#define MAILBOX 1
-//#define GRAPHICS_OUTPUT
 
 #include <algorithm>
 #include <math.h>
@@ -73,23 +71,9 @@
 #include "timer/timer.h"
 #include "l7/l7.h"
 
-//#undef HAVE_OPENGL
-#ifdef HAVE_OPENGL
-#ifdef __APPLE_CC__
-#include <GLUT/glut.h>
-#include <OpenGL/gl.h>
-#include <OpenGL/glu.h>
-#else
-#include <GL/glut.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
-#endif
-#endif
-
 // Sync is to reduce numerical drift between cpu and gpu
 #define DO_SYNC 
 
-//TODO:  command-line option for OpenGL?
 int do_comparison_calc = 1;
 int do_cpu_calc = 1;
 int do_gpu_calc = 1;
@@ -278,14 +262,14 @@ int main(int argc, char **argv) {
    dev_j_new        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
    dev_level_new    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
 
-#ifdef HAVE_OPENGL
+#ifdef HAVE_GRAPHICS
    set_mysize(ncells);
    set_viewmode(view_mode);
    set_window(mesh->xmin, mesh->xmax, mesh->ymin, mesh->ymax);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
-   glutIdleFunc(&do_calc);
-   glutMainLoop();
+   set_idle_function(&do_calc);
+   start_main_loop();
 #else
    for (int it = 0; it < 10000000; it++) {
       do_calc();
@@ -365,14 +349,14 @@ extern "C" void do_calc(void)
 #ifdef GRAPHICS_OUTPUT
       mesh->write_grid(n);
 #endif
-#ifdef HAVE_OPENGL
+#ifdef HAVE_GRAPHICS
       set_mysize(ncells);
       set_viewmode(view_mode);
       set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
       set_cell_data(&H[0]);
       set_cell_proc(&mesh->proc[0]);
       set_circle_radius(circle_radius);
-      DrawGLScene();
+      draw_scene();
       if (verbose) sleep(5);
 #endif
       //  Set flag to show mesh results rather than domain decomposition.
@@ -699,7 +683,7 @@ extern "C" void do_calc(void)
         // state->gpu_time_read             += ezcl_timer_calc(&start_read_event,       &start_read_event);
       //}
 
-#ifdef HAVE_OPENGL
+#ifdef HAVE_GRAPHICS
       set_mysize(ncells);
       if (n < outputInterval) {
          mesh->calc_spatial_coordinates(0);
@@ -804,7 +788,7 @@ extern "C" void do_calc(void)
          }
          printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
             n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
-#ifdef HAVE_OPENGL
+#ifdef HAVE_GRAPHICS
          if (do_cpu_calc){
             mesh->calc_spatial_coordinates(0);
          }
@@ -857,7 +841,7 @@ extern "C" void do_calc(void)
          set_cell_data(&H[0]);
          set_cell_proc(&mesh->proc[0]);
          set_circle_radius(circle_radius);
-         DrawGLScene();
+         draw_scene();
 #endif
       }  //  Complete output interval.
       ++n;

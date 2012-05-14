@@ -72,18 +72,45 @@
 #endif
 #endif
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#define OMPI_SKIP_MPICXX 1
+
+#ifdef HAVE_MPE
+#ifdef USE_MPI
+#include <mpi.h>
+#else
+//#define MPE_NOMPI
+//#define CLOG_NOMPI
+#endif
+#define MPE_INTERNAL
+#define MPE_GRAPHICS
+#include "mpe.h"
+#define MPE_DRAG_FIXED_RECT 8
+#include <X11/Xlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+//keyboard input files
+#include <termios.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <string.h>
+#include <math.h>
+#endif
+
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
 #else
 typedef float       real;
 #endif
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 void init_display(int *argc, char **argv, const char* string, int mype_in);
+void set_idle_function(void (*function)(void));
+void start_main_loop(void);
 void free_display(void);
 void set_viewmode(int display_view_mode_in);
 void set_outline(int display_outline_in);
@@ -93,7 +120,7 @@ void set_cell_coordinates(real *x_in, real *dx_in, real *y_in, real *dy_in);
 void set_cell_data(real *data_in);
 void set_cell_proc(int *display_proc_in);
 void set_circle_radius(double display_circle_radius_in);
-void DrawGLScene(void);
+void draw_scene(void);
 
 #ifdef __cplusplus
 }

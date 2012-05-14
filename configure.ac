@@ -36,7 +36,7 @@ AC_ARG_ENABLE( mpi,
 
 AC_ARG_ENABLE( mpe, 
  [--enable-mpe                       - Compiles code with mpe library ],,
- enable_mpe=yes)
+ enable_mpe=no)
 
 AC_ARG_ENABLE( opengl, 
  [--enable-opengl                    - Compiles code with opengl library ],,
@@ -45,6 +45,15 @@ AC_ARG_ENABLE( opengl,
 AC_ARG_ENABLE( opencl, 
  [--enable-opencl                    - Compiles code with opencl library ],,
  enable_opencl=yes)
+
+if test "${enable_mpe}" = "yes"; then
+   enable_opengl=no
+fi
+
+if test "${enable_opengl}" != "no"; then
+   enable_mpe=no
+fi
+
 
 #AM_WITH_DMALLOC
 
@@ -142,8 +151,9 @@ if test "${enable_mpe}" != "no"; then
 
   if test ! -z "${MPEHOME}"; then
     AC_CHECK_FILE(${MPEHOME}/include/mpe.h, INCLUDES="${INCLUDES} -I${MPEHOME}/include")
-    LIBS="${LIBS} -L${MPEHOME}/lib -lmpe_nompi -L/usr/X11/lib -lX11 -lm"
-    AC_DEFINE([USE_MPE],"yes","Use MPE for graphics")
+    LIBS="${LIBS} -L${MPEHOME}/lib -lmpe -L/usr/X11/lib -lX11 -lm"
+    AC_DEFINE([HAVE_MPE],"yes","Use MPE for graphics")
+    AC_DEFINE(HAVE_GRAPHICS,1,[Has Real-time Graphics])
     if test "${RPATH_LIBS}x" = "x"; then
       RPATH_LIBS="${MPEHOME}/lib"
     else
@@ -255,7 +265,8 @@ dnl ---------------------------------------------------------------
    )
    if test "x$ac_cv_opengl" = "xyes"; then
       AC_DEFINE(HAVE_OPENGL,1,[Has OpenGL libraries])
-      LIBS="${LIBS} -lGLU -lglut -lGL"
+      AC_DEFINE(HAVE_GRAPHICS,1,[Has Real-time Graphics])
+      LIBS="${LIBS} -L/usr/X11/lib -lGLU -lglut -lGL"
    fi
 
    CFLAGS=$SAVE_C_FLAGS
