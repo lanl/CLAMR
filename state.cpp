@@ -735,94 +735,17 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 
    mesh->rezone_all(mpot, add_ncells);
 
-   if (add_ncells == 0 ) return;
-
-   cpu_timer_start(&tstart_cpu);
-
-   int new_ncells = ncells + add_ncells;
-
-   vector<real>H_old(new_ncells);
-   vector<real>U_old(new_ncells);
-   vector<real>V_old(new_ncells);
-   H.swap(H_old);
-   U.swap(U_old);
-   V.swap(V_old);
-
-   for (ic=0, nc=0; ic<ncells; ic++) {
-
-      if (mpot[ic] == 0) {
-         H[nc] = H_old[ic];
-         U[nc] = U_old[ic];
-         V[nc] = V_old[ic];
-         nc++;
-      } else if (mpot[ic] < 0){
-         int nr = nrht[ic];
-         int nt = ntop[ic];
-         int nrt = nrht[nt];
-         H[nc] = (H_old[ic] + H_old[nr] + H_old[nt] + H_old[nrt])*0.25;
-         U[nc] = (U_old[ic] + U_old[nr] + U_old[nt] + U_old[nrt])*0.25;
-         V[nc] = (V_old[ic] + V_old[nr] + V_old[nt] + V_old[nrt])*0.25;
-         nc++;
-
-      } else if (mpot[ic] > 0){
-         // lower left
-         H[nc] = H_old[ic];
-         U[nc] = U_old[ic];
-         V[nc] = V_old[ic];
-         nc++;
-
-         // lower right
-         H[nc] = H_old[ic];
-         U[nc] = U_old[ic];
-         V[nc] = V_old[ic];
-         nc++;
-
-         if (celltype_save[ic] == REAL_CELL){
-            // upper left
-            H[nc] = H_old[ic];
-            U[nc] = U_old[ic];
-            V[nc] = V_old[ic];
-            nc++;
-
-            // upper right
-            H[nc] = H_old[ic];
-            U[nc] = U_old[ic];
-            V[nc] = V_old[ic];
-            nc++;
-         }
-
-      }
-
-   }
-
-   cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
-}
-
-void State::rezone_all_local(Mesh *mesh, vector<int> mpot, int add_ncells)
-{
-   int ic, nc;
-   struct timeval tstart_cpu;
-
-   vector<int> &celltype = mesh->celltype;
-   //vector<int> &nlft     = mesh->nlft;
-   vector<int> &nrht     = mesh->nrht;
-   //vector<int> &nbot     = mesh->nbot;
-   vector<int> &ntop     = mesh->ntop;
-
-   int ncells = mesh->ncells;
-
-   vector<int> celltype_save(ncells);
-   for (int ic=0; ic < ncells; ic++){
-      celltype_save[ic] = celltype[ic];
-   }
-
-   mesh->rezone_all(mpot, add_ncells);
-
-   int global_add_ncells;
 #ifdef HAVE_MPI
-   MPI_Allreduce(&add_ncells, &global_add_ncells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   if (mesh->parallel) {
+      int global_add_ncells;
+      MPI_Allreduce(&add_ncells, &global_add_ncells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      if (global_add_ncells == 0 ) return;
+   } else {
+      if (add_ncells == 0 ) return;
+   }
+#else
+   if (add_ncells == 0 ) return;
 #endif
-   if (global_add_ncells == 0 ) return;
 
    cpu_timer_start(&tstart_cpu);
 

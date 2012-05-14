@@ -1134,7 +1134,7 @@ extern "C" void do_calc(void)
          int add_ncells = new_ncells - old_ncells;
          //printf("%d: DEBUG add %d new %d old %d\n",mype,add_ncells,new_ncells,old_ncells);
          state_global->rezone_all(mesh_global, mpot_global, add_ncells_global);
-         state_local->rezone_all_local(mesh_local, mpot, add_ncells);
+         state_local->rezone_all(mesh_local, mpot, add_ncells);
          mpot_global.clear();
          mpot.clear();
       }

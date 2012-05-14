@@ -664,7 +664,7 @@ extern "C" void do_calc(void)
       }
 
       int add_ncells = new_ncells - old_ncells;
-      state->rezone_all_local(mesh, mpot, add_ncells);
+      state->rezone_all(mesh, mpot, add_ncells);
       mpot.clear();
       MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
       ndispl[0]=0;
