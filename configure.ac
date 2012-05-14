@@ -151,7 +151,8 @@ if test "${enable_mpe}" != "no"; then
 
   if test ! -z "${MPEHOME}"; then
     AC_CHECK_FILE(${MPEHOME}/include/mpe.h, INCLUDES="${INCLUDES} -I${MPEHOME}/include")
-    LIBS="${LIBS} -L${MPEHOME}/lib -lmpe -L/usr/X11/lib -lX11 -lm"
+    MPE_LIBS="${MPE_LIBS} -L${MPEHOME}/lib -lmpe -L/usr/X11/lib -lX11 -lm"
+    MPE_NOMPI_LIBS="${MPE_NOMPI_LIBS} -L${MPEHOME}/lib -lmpe_nompi -L/usr/X11/lib -lX11 -lm"
     AC_DEFINE([HAVE_MPE],"yes","Use MPE for graphics")
     AC_DEFINE(HAVE_GRAPHICS,1,[Has Real-time Graphics])
     if test "${RPATH_LIBS}x" = "x"; then
@@ -334,6 +335,8 @@ AC_SUBST(INCLUDES)
 AC_SUBST(LDFLAGS)
 AC_SUBST(LIBS)
 AC_SUBST(MPI_LIBS)
+AC_SUBST(MPE_LIBS)
+AC_SUBST(MPE_NOMPI_LIBS)
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([l7/Makefile])

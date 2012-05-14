@@ -586,6 +586,8 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+MPE_NOMPI_LIBS
+MPE_LIBS
 MPI_LIBS
 INCLUDES
 MPI_BIN
@@ -5000,7 +5002,8 @@ if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
   INCLUDES="${INCLUDES} -I${MPEHOME}/include"
 fi
 
-    LIBS="${LIBS} -L${MPEHOME}/lib -lmpe -L/usr/X11/lib -lX11 -lm"
+    MPE_LIBS="${MPE_LIBS} -L${MPEHOME}/lib -lmpe -L/usr/X11/lib -lX11 -lm"
+    MPE_NOMPI_LIBS="${MPE_NOMPI_LIBS} -L${MPEHOME}/lib -lmpe_nompi -L/usr/X11/lib -lX11 -lm"
 
 $as_echo "#define HAVE_MPE \"yes\"" >>confdefs.h
 
@@ -5447,6 +5450,8 @@ fi
 if test ! -z "${RPATH_LIBS}"; then
    LIBS="${LIBS} ${RPATH_PREFIX}-rpath ${RPATH_PREFIX}${RPATH_LIBS}"
 fi
+
+
 
 
 

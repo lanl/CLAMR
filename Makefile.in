@@ -89,7 +89,8 @@ am_clamr_checkall_OBJECTS = $(am__objects_1) $(am__objects_2) \
 	$(am__objects_3)
 clamr_checkall_OBJECTS = $(am_clamr_checkall_OBJECTS)
 am__DEPENDENCIES_1 =
-clamr_checkall_DEPENDENCIES = $(am__DEPENDENCIES_1)
+clamr_checkall_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 am__objects_4 = clamr_cpuonly-clamr_cpuonly.$(OBJEXT) \
 	clamr_cpuonly-mesh.$(OBJEXT) clamr_cpuonly-partition.$(OBJEXT) \
 	clamr_cpuonly-state.$(OBJEXT) clamr_cpuonly-input.$(OBJEXT)
@@ -98,8 +99,7 @@ am__objects_5 = clamr_cpuonly-display.$(OBJEXT) \
 am_clamr_cpuonly_OBJECTS = $(am__objects_4) $(am__objects_5) \
 	$(am__objects_3)
 clamr_cpuonly_OBJECTS = $(am_clamr_cpuonly_OBJECTS)
-clamr_cpuonly_LDADD = $(LDADD)
-clamr_cpuonly_DEPENDENCIES =
+clamr_cpuonly_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__objects_6 = clamr_gpucheck-clamr_gpucheck.$(OBJEXT) \
 	clamr_gpucheck-mesh.$(OBJEXT) \
 	clamr_gpucheck-partition.$(OBJEXT) \
@@ -109,8 +109,7 @@ am__objects_7 = clamr_gpucheck-display.$(OBJEXT) \
 am_clamr_gpucheck_OBJECTS = $(am__objects_6) $(am__objects_7) \
 	$(am__objects_3)
 clamr_gpucheck_OBJECTS = $(am_clamr_gpucheck_OBJECTS)
-clamr_gpucheck_LDADD = $(LDADD)
-clamr_gpucheck_DEPENDENCIES =
+clamr_gpucheck_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__objects_8 = clamr_gpuonly-clamr_gpuonly.$(OBJEXT) \
 	clamr_gpuonly-mesh.$(OBJEXT) clamr_gpuonly-partition.$(OBJEXT) \
 	clamr_gpuonly-state.$(OBJEXT) clamr_gpuonly-input.$(OBJEXT)
@@ -119,8 +118,7 @@ am__objects_9 = clamr_gpuonly-display.$(OBJEXT) \
 am_clamr_gpuonly_OBJECTS = $(am__objects_8) $(am__objects_9) \
 	$(am__objects_3)
 clamr_gpuonly_OBJECTS = $(am_clamr_gpuonly_OBJECTS)
-clamr_gpuonly_LDADD = $(LDADD)
-clamr_gpuonly_DEPENDENCIES =
+clamr_gpuonly_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__objects_10 = clamr_mpionly-clamr_mpionly.$(OBJEXT) \
 	clamr_mpionly-mesh.$(OBJEXT) clamr_mpionly-partition.$(OBJEXT) \
 	clamr_mpionly-state.$(OBJEXT) clamr_mpionly-input.$(OBJEXT)
@@ -129,7 +127,8 @@ am__objects_11 = clamr_mpionly-display.$(OBJEXT) \
 am_clamr_mpionly_OBJECTS = $(am__objects_10) $(am__objects_11) \
 	$(am__objects_3)
 clamr_mpionly_OBJECTS = $(am_clamr_mpionly_OBJECTS)
-clamr_mpionly_DEPENDENCIES = $(am__DEPENDENCIES_1)
+clamr_mpionly_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/./config/depcomp
 am__depfiles_maybe = depfiles
@@ -249,6 +248,8 @@ LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
 MPE_BIN = @MPE_BIN@
+MPE_LIBS = @MPE_LIBS@
+MPE_NOMPI_LIBS = @MPE_NOMPI_LIBS@
 MPI_BIN = @MPI_BIN@
 MPI_LIBS = @MPI_LIBS@
 OBJEXT = @OBJEXT@
@@ -316,7 +317,6 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-#bin_PROGRAMS = clamr clamr_checkall clamr_gpuonly
 SUBDIRS = l7 kdtree hsfc s7 timer ezcl zorder
 
 #clamr_CXX_SRCS = clamr.cpp mesh.cpp partition.cpp state.cpp input.cpp
@@ -328,30 +328,32 @@ clamr_gpuonly_CXX_SRCS = clamr_gpuonly.cpp mesh.cpp partition.cpp state.cpp inpu
 clamr_gpuonly_C_SRCS = display.c reduce.c
 clamr_gpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_gpuonly_CPPFLAGS = -UHAVE_MPI
+clamr_gpuonly_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm ${MPE_NOMPI_LIBS}
 clamr_gpuonly_SOURCES = ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS}
 clamr_cpuonly_CXX_SRCS = clamr_cpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_cpuonly_C_SRCS = display.c reduce.c
 clamr_cpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_cpuonly_CPPFLAGS = -UHAVE_MPI
+clamr_cpuonly_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm ${MPE_NOMPI_LIBS}
 clamr_cpuonly_SOURCES = ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr_cpuonly_H_SRCS}
 clamr_mpionly_CXX_SRCS = clamr_mpionly.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_mpionly_C_SRCS = display.c reduce.c
 clamr_mpionly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_mpionly_CPPFLAGS = -DHAVE_MPI=1
-clamr_mpionly_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm -Ll7 -ll7 ${MPI_LIBS}
+clamr_mpionly_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm -Ll7 -ll7 ${MPE_LIBS} ${MPI_LIBS}
 clamr_mpionly_SOURCES = ${clamr_mpionly_CXX_SRCS} ${clamr_mpionly_C_SRCS} ${clamr_mpionly_H_SRCS}
 clamr_gpucheck_CXX_SRCS = clamr_gpucheck.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_gpucheck_C_SRCS = display.c reduce.c
 clamr_gpucheck_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_gpucheck_CPPFLAGS = -UHAVE_MPI
+clamr_gpucheck_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm ${MPE_NOMPI_LIBS}
 clamr_gpucheck_SOURCES = ${clamr_gpucheck_CXX_SRCS} ${clamr_gpucheck_C_SRCS} ${clamr_gpucheck_H_SRCS}
 clamr_checkall_CXX_SRCS = clamr_checkall.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_checkall_C_SRCS = display.c reduce.c 
 clamr_checkall_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_checkall_CPPFLAGS = -DHAVE_MPI=1
-clamr_checkall_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm -Ll7 -ll7 ${MPI_LIBS}
+clamr_checkall_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm -Ll7 -ll7 ${MPE_LIBS} ${MPI_LIBS}
 clamr_checkall_SOURCES = ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${clamr_checkall_H_SRCS}
-LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm
 EXTRA_DIST = wave_kern.cl wave_kern_calc.cl reduce.cl config.h clamr.xcodeproj/project.pbxproj clamr.1 fileamr.in AUTHORS ChangeLog runtests.sh newbatch.sh LICENSE
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive

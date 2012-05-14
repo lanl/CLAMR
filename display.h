@@ -80,11 +80,11 @@ extern "C"
 #define OMPI_SKIP_MPICXX 1
 
 #ifdef HAVE_MPE
-#ifdef USE_MPI
+#ifdef HAVE_MPI
 #include <mpi.h>
 #else
-//#define MPE_NOMPI
-//#define CLOG_NOMPI
+#define MPE_NOMPI
+#define CLOG_NOMPI
 #endif
 #define MPE_INTERNAL
 #define MPE_GRAPHICS
