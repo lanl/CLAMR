@@ -286,7 +286,7 @@ dnl ---------------------------------------------------------------
   FOUND_MPI_INCLUDE="no"
   FOUND_MPI_LIB="no"
   AC_CHECK_FILE(${MPIHOME}/include/mpi.h, INCLUDES="${INCLUDES} -I${MPIHOME}/include" && FOUND_MPI_INCLUDE="yes")
-  AC_CHECK_FILE(${MPIHOME}/lib/libmpi.so, LIBS="${LIBS} -L${MPIHOME}/lib -lmpi" && FOUND_MPI_LIB="yes")
+  AC_CHECK_FILE(${MPIHOME}/lib/libmpi.so, MPI_LIBS="${MPI_LIBS} -L${MPIHOME}/lib -lmpi" && FOUND_MPI_LIB="yes")
   if test "${FOUND_MPI_INCLUDE}" = "no"; then
     AC_CHECK_FILE(${MPI_ROOT}/include/mpi.h, MPI_HOME=${MPI_ROOT} && INCLUDES="${INCLUDES} -I${MPI_HOME}/include" && FOUND_MPI_INCLUDE="yes")
   fi
@@ -312,8 +312,8 @@ dnl ---------------------------------------------------------------
       ac_cv_mpi=yes, ac_cv_mpi=no
    )
    if test "x$ac_cv_mpi" = "xyes"; then
-      AC_DEFINE(HAVE_MPI,1,[Has MPI libraries])
-      LIBS="${LIBS} -lmpi_cxx -lmpi"
+      dnl AC_DEFINE(HAVE_MPI,1,[Has MPI libraries])
+      MPI_LIBS="${MPI_LIBS} -lmpi_cxx -lmpi"
    fi
 
    CFLAGS=$SAVE_C_FLAGS
@@ -333,6 +333,7 @@ AC_SUBST(CXXFLAGS)
 AC_SUBST(INCLUDES)
 AC_SUBST(LDFLAGS)
 AC_SUBST(LIBS)
+AC_SUBST(MPI_LIBS)
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([l7/Makefile])

@@ -14,4 +14,5 @@ C_SRCS = l7p_sizeof.c  l7_terminate.c      l7_init.c    l7_update.c \
          l7_free.c     l7p_set_database.c  l7_setup.c
 
 libl7_a_SOURCES = ${C_SRCS} ${H_SRCS}
+libl7_a_CPPFLAGS = -DHAVE_MPI=1
 

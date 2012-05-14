@@ -174,7 +174,9 @@ int main(int argc, char **argv) {
     // Needed for code to compile correctly on the Mac
    int mype=0;
    int numpe=-1;
+#ifdef HAVE_MPI
    L7_Init(&mype, &numpe, &argc, argv);
+#endif
 
    //  Process command-line arguments, if any.
    parseInput(argc, argv);

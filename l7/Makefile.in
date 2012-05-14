@@ -96,9 +96,10 @@ AR = ar
 ARFLAGS = cru
 libl7_a_AR = $(AR) $(ARFLAGS)
 libl7_a_LIBADD =
-am__objects_1 = l7p_sizeof.$(OBJEXT) l7_terminate.$(OBJEXT) \
-	l7_init.$(OBJEXT) l7_update.$(OBJEXT) l7_free.$(OBJEXT) \
-	l7p_set_database.$(OBJEXT) l7_setup.$(OBJEXT)
+am__objects_1 = libl7_a-l7p_sizeof.$(OBJEXT) \
+	libl7_a-l7_terminate.$(OBJEXT) libl7_a-l7_init.$(OBJEXT) \
+	libl7_a-l7_update.$(OBJEXT) libl7_a-l7_free.$(OBJEXT) \
+	libl7_a-l7p_set_database.$(OBJEXT) libl7_a-l7_setup.$(OBJEXT)
 am__objects_2 =
 am_libl7_a_OBJECTS = $(am__objects_1) $(am__objects_2)
 libl7_a_OBJECTS = $(am_libl7_a_OBJECTS)
@@ -158,6 +159,7 @@ MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
 MPE_BIN = @MPE_BIN@
 MPI_BIN = @MPI_BIN@
+MPI_LIBS = @MPI_LIBS@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
@@ -232,6 +234,7 @@ C_SRCS = l7p_sizeof.c  l7_terminate.c      l7_init.c    l7_update.c \
          l7_free.c     l7p_set_database.c  l7_setup.c
 
 libl7_a_SOURCES = ${C_SRCS} ${H_SRCS}
+libl7_a_CPPFLAGS = -DHAVE_MPI=1
 all: all-am
 
 .SUFFIXES:
@@ -308,13 +311,13 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/l7_free.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/l7_init.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/l7_setup.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/l7_terminate.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/l7_update.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/l7p_set_database.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/l7p_sizeof.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libl7_a-l7_free.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libl7_a-l7_init.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libl7_a-l7_setup.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libl7_a-l7_terminate.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libl7_a-l7_update.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libl7_a-l7p_set_database.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libl7_a-l7p_sizeof.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -329,6 +332,104 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
+libl7_a-l7p_sizeof.o: l7p_sizeof.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7p_sizeof.o -MD -MP -MF $(DEPDIR)/libl7_a-l7p_sizeof.Tpo -c -o libl7_a-l7p_sizeof.o `test -f 'l7p_sizeof.c' || echo '$(srcdir)/'`l7p_sizeof.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7p_sizeof.Tpo $(DEPDIR)/libl7_a-l7p_sizeof.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7p_sizeof.c' object='libl7_a-l7p_sizeof.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7p_sizeof.o `test -f 'l7p_sizeof.c' || echo '$(srcdir)/'`l7p_sizeof.c
+
+libl7_a-l7p_sizeof.obj: l7p_sizeof.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7p_sizeof.obj -MD -MP -MF $(DEPDIR)/libl7_a-l7p_sizeof.Tpo -c -o libl7_a-l7p_sizeof.obj `if test -f 'l7p_sizeof.c'; then $(CYGPATH_W) 'l7p_sizeof.c'; else $(CYGPATH_W) '$(srcdir)/l7p_sizeof.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7p_sizeof.Tpo $(DEPDIR)/libl7_a-l7p_sizeof.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7p_sizeof.c' object='libl7_a-l7p_sizeof.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7p_sizeof.obj `if test -f 'l7p_sizeof.c'; then $(CYGPATH_W) 'l7p_sizeof.c'; else $(CYGPATH_W) '$(srcdir)/l7p_sizeof.c'; fi`
+
+libl7_a-l7_terminate.o: l7_terminate.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7_terminate.o -MD -MP -MF $(DEPDIR)/libl7_a-l7_terminate.Tpo -c -o libl7_a-l7_terminate.o `test -f 'l7_terminate.c' || echo '$(srcdir)/'`l7_terminate.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7_terminate.Tpo $(DEPDIR)/libl7_a-l7_terminate.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7_terminate.c' object='libl7_a-l7_terminate.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7_terminate.o `test -f 'l7_terminate.c' || echo '$(srcdir)/'`l7_terminate.c
+
+libl7_a-l7_terminate.obj: l7_terminate.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7_terminate.obj -MD -MP -MF $(DEPDIR)/libl7_a-l7_terminate.Tpo -c -o libl7_a-l7_terminate.obj `if test -f 'l7_terminate.c'; then $(CYGPATH_W) 'l7_terminate.c'; else $(CYGPATH_W) '$(srcdir)/l7_terminate.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7_terminate.Tpo $(DEPDIR)/libl7_a-l7_terminate.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7_terminate.c' object='libl7_a-l7_terminate.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7_terminate.obj `if test -f 'l7_terminate.c'; then $(CYGPATH_W) 'l7_terminate.c'; else $(CYGPATH_W) '$(srcdir)/l7_terminate.c'; fi`
+
+libl7_a-l7_init.o: l7_init.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7_init.o -MD -MP -MF $(DEPDIR)/libl7_a-l7_init.Tpo -c -o libl7_a-l7_init.o `test -f 'l7_init.c' || echo '$(srcdir)/'`l7_init.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7_init.Tpo $(DEPDIR)/libl7_a-l7_init.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7_init.c' object='libl7_a-l7_init.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7_init.o `test -f 'l7_init.c' || echo '$(srcdir)/'`l7_init.c
+
+libl7_a-l7_init.obj: l7_init.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7_init.obj -MD -MP -MF $(DEPDIR)/libl7_a-l7_init.Tpo -c -o libl7_a-l7_init.obj `if test -f 'l7_init.c'; then $(CYGPATH_W) 'l7_init.c'; else $(CYGPATH_W) '$(srcdir)/l7_init.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7_init.Tpo $(DEPDIR)/libl7_a-l7_init.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7_init.c' object='libl7_a-l7_init.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7_init.obj `if test -f 'l7_init.c'; then $(CYGPATH_W) 'l7_init.c'; else $(CYGPATH_W) '$(srcdir)/l7_init.c'; fi`
+
+libl7_a-l7_update.o: l7_update.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7_update.o -MD -MP -MF $(DEPDIR)/libl7_a-l7_update.Tpo -c -o libl7_a-l7_update.o `test -f 'l7_update.c' || echo '$(srcdir)/'`l7_update.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7_update.Tpo $(DEPDIR)/libl7_a-l7_update.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7_update.c' object='libl7_a-l7_update.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7_update.o `test -f 'l7_update.c' || echo '$(srcdir)/'`l7_update.c
+
+libl7_a-l7_update.obj: l7_update.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7_update.obj -MD -MP -MF $(DEPDIR)/libl7_a-l7_update.Tpo -c -o libl7_a-l7_update.obj `if test -f 'l7_update.c'; then $(CYGPATH_W) 'l7_update.c'; else $(CYGPATH_W) '$(srcdir)/l7_update.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7_update.Tpo $(DEPDIR)/libl7_a-l7_update.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7_update.c' object='libl7_a-l7_update.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7_update.obj `if test -f 'l7_update.c'; then $(CYGPATH_W) 'l7_update.c'; else $(CYGPATH_W) '$(srcdir)/l7_update.c'; fi`
+
+libl7_a-l7_free.o: l7_free.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7_free.o -MD -MP -MF $(DEPDIR)/libl7_a-l7_free.Tpo -c -o libl7_a-l7_free.o `test -f 'l7_free.c' || echo '$(srcdir)/'`l7_free.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7_free.Tpo $(DEPDIR)/libl7_a-l7_free.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7_free.c' object='libl7_a-l7_free.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7_free.o `test -f 'l7_free.c' || echo '$(srcdir)/'`l7_free.c
+
+libl7_a-l7_free.obj: l7_free.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7_free.obj -MD -MP -MF $(DEPDIR)/libl7_a-l7_free.Tpo -c -o libl7_a-l7_free.obj `if test -f 'l7_free.c'; then $(CYGPATH_W) 'l7_free.c'; else $(CYGPATH_W) '$(srcdir)/l7_free.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7_free.Tpo $(DEPDIR)/libl7_a-l7_free.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7_free.c' object='libl7_a-l7_free.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7_free.obj `if test -f 'l7_free.c'; then $(CYGPATH_W) 'l7_free.c'; else $(CYGPATH_W) '$(srcdir)/l7_free.c'; fi`
+
+libl7_a-l7p_set_database.o: l7p_set_database.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7p_set_database.o -MD -MP -MF $(DEPDIR)/libl7_a-l7p_set_database.Tpo -c -o libl7_a-l7p_set_database.o `test -f 'l7p_set_database.c' || echo '$(srcdir)/'`l7p_set_database.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7p_set_database.Tpo $(DEPDIR)/libl7_a-l7p_set_database.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7p_set_database.c' object='libl7_a-l7p_set_database.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7p_set_database.o `test -f 'l7p_set_database.c' || echo '$(srcdir)/'`l7p_set_database.c
+
+libl7_a-l7p_set_database.obj: l7p_set_database.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7p_set_database.obj -MD -MP -MF $(DEPDIR)/libl7_a-l7p_set_database.Tpo -c -o libl7_a-l7p_set_database.obj `if test -f 'l7p_set_database.c'; then $(CYGPATH_W) 'l7p_set_database.c'; else $(CYGPATH_W) '$(srcdir)/l7p_set_database.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7p_set_database.Tpo $(DEPDIR)/libl7_a-l7p_set_database.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7p_set_database.c' object='libl7_a-l7p_set_database.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7p_set_database.obj `if test -f 'l7p_set_database.c'; then $(CYGPATH_W) 'l7p_set_database.c'; else $(CYGPATH_W) '$(srcdir)/l7p_set_database.c'; fi`
+
+libl7_a-l7_setup.o: l7_setup.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7_setup.o -MD -MP -MF $(DEPDIR)/libl7_a-l7_setup.Tpo -c -o libl7_a-l7_setup.o `test -f 'l7_setup.c' || echo '$(srcdir)/'`l7_setup.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7_setup.Tpo $(DEPDIR)/libl7_a-l7_setup.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7_setup.c' object='libl7_a-l7_setup.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7_setup.o `test -f 'l7_setup.c' || echo '$(srcdir)/'`l7_setup.c
+
+libl7_a-l7_setup.obj: l7_setup.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libl7_a-l7_setup.obj -MD -MP -MF $(DEPDIR)/libl7_a-l7_setup.Tpo -c -o libl7_a-l7_setup.obj `if test -f 'l7_setup.c'; then $(CYGPATH_W) 'l7_setup.c'; else $(CYGPATH_W) '$(srcdir)/l7_setup.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libl7_a-l7_setup.Tpo $(DEPDIR)/libl7_a-l7_setup.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='l7_setup.c' object='libl7_a-l7_setup.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libl7_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libl7_a-l7_setup.obj `if test -f 'l7_setup.c'; then $(CYGPATH_W) 'l7_setup.c'; else $(CYGPATH_W) '$(srcdir)/l7_setup.c'; fi`
 install-includeHEADERS: $(include_HEADERS)
 	@$(NORMAL_INSTALL)
 	@list='$(include_HEADERS)'; test -n "$(includedir)" || list=; \

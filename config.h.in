@@ -9,9 +9,6 @@
 /* "Use MPE for graphics" */
 #undef HAVE_MPE
 
-/* Has MPI libraries */
-#undef HAVE_MPI
-
 /* Has OpenGL libraries */
 #undef HAVE_OPENGL
 

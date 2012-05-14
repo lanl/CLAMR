@@ -55,7 +55,9 @@
  */
 #include <unistd.h>
 #include <stdio.h>
+#ifdef HAVE_MPI
 #include <mpi.h>
+#endif
 #include "mesh.h"
 #include "state.h"
 #include "kdtree/KDTree.h"
@@ -87,10 +89,12 @@ struct esum_type{
    double sum;
    double correction;
 };
+#ifdef HAVE_MPI
 MPI_Datatype MPI_TWO_DOUBLES;
 MPI_Op KAHAN_SUM;
 int commutative = 1;
 void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES);
+#endif
 
 int save_ncells;
 
@@ -211,14 +215,17 @@ void State::init(int ncells, cl_context context, int do_gpu_calc)
    V.resize(ncells);
 
    int mpi_init;
+#ifdef HAVE_MPI
    MPI_Initialized(&mpi_init);
    if (mpi_init){
       MPI_Type_contiguous(2, MPI_DOUBLE, &MPI_TWO_DOUBLES);
       MPI_Type_commit(&MPI_TWO_DOUBLES);
       MPI_Op_create((MPI_User_function *)kahan_sum, commutative, &KAHAN_SUM);
    }
+#endif
 }
 
+#ifdef HAVE_MPI
 void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES)
 {
    double corrected_next_term, new_sum;
@@ -228,6 +235,7 @@ void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Data
    inout->correction = corrected_next_term - (new_sum - inout->sum);
    inout->sum = new_sum;
 }
+#endif
 
 void State::add_boundary_cells(Mesh *mesh)
 {
@@ -550,7 +558,9 @@ double State::set_timestep(Mesh *mesh, double g, double sigma)
       }
    }
 
+#ifdef HAVE_MPI
    if (parallel) MPI_Allreduce(&mindeltaT, &globalmindeltaT, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+#endif
 
    cpu_time_set_timestep += cpu_timer_stop(tstart_cpu);
 
@@ -641,7 +651,9 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
    ezcl_enqueue_read_buffer(command_queue, dev_deltaT, CL_TRUE,  0, sizeof(cl_real), &deltaT_local, &start_read_event);
    deltaT = deltaT_local;
 
+#ifdef HAVE_MPI
    if (parallel) MPI_Allreduce(&deltaT, &globalmindeltaT, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+#endif
 
    ezcl_device_memory_remove(dev_redscratch);
 
@@ -807,7 +819,9 @@ void State::rezone_all_local(Mesh *mesh, vector<int> mpot, int add_ncells)
    mesh->rezone_all(mpot, add_ncells);
 
    int global_add_ncells;
+#ifdef HAVE_MPI
    MPI_Allreduce(&add_ncells, &global_add_ncells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+#endif
    if (global_add_ncells == 0 ) return;
 
    cpu_timer_start(&tstart_cpu);
@@ -1041,6 +1055,7 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    int level_first = 0;
    int level_last  = 0;
 
+#ifdef HAVE_MPI
    MPI_Request req[12];
    MPI_Status status[12];
 
@@ -1069,6 +1084,7 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    MPI_Irecv(&level_last,          1,MPI_INT,next,1,MPI_COMM_WORLD,req+11);
 
    MPI_Waitall(12, req, status);
+#endif
 
    cl_mem dev_ijadd;
 
@@ -2227,9 +2243,11 @@ void State::calc_finite_difference_local(Mesh *mesh, double deltaT){
    U.swap(Unew);
    V.swap(Vnew);
 
+#ifdef HAVE_MPI
    L7_Update(&H[0], L7_REAL, mesh->cell_handle);
    L7_Update(&U[0], L7_REAL, mesh->cell_handle);
    L7_Update(&V[0], L7_REAL, mesh->cell_handle);
+#endif
 
    Hnew.clear();
    Unew.clear();
@@ -2399,9 +2417,11 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], &end_read_event);
    gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
 
+#ifdef HAVE_MPI
    L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
    L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
    L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
+#endif
    //fprintf(mesh->fp,"Line %d\n",__LINE__);
    //for (int ic=0; ic<mesh->ncells_ghost; ic++){
    //   if (mesh->i_local[ic] < 63 || mesh->i_local[ic] > 66 || mesh->j_local[ic] < 63 || mesh->j_local[ic] > 66) continue;
@@ -2807,9 +2827,11 @@ void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icoun
    icount=0;
    jcount=0;
 
+#ifdef HAVE_MPI
    L7_Update(&H[0], L7_REAL, mesh->cell_handle);
    L7_Update(&U[0], L7_REAL, mesh->cell_handle);
    L7_Update(&V[0], L7_REAL, mesh->cell_handle);
+#endif
 
    for (uint ic=0; ic<ncells; ic++) {
 
@@ -2901,7 +2923,9 @@ void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icoun
    }
 
    int icount_global = icount;
+#ifdef HAVE_MPI
    MPI_Allreduce(&icount, &icount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+#endif
 
    if(icount_global > 0) {
       int lev, ll, lr, lt, lb;
@@ -2912,7 +2936,9 @@ void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icoun
          levcount++; 
          new_count=0;
 
+#ifdef HAVE_MPI
          L7_Update(&mpot[0], L7_INT, mesh->cell_handle);
+#endif
 
          for(uint ic = 0; ic < ncells; ic++) {
             lev = level[ic];
@@ -3002,7 +3028,9 @@ void State::calc_refine_potential_local(Mesh *mesh, vector<int> &mpot,int &icoun
 
          new_count_global = new_count;
          
+#ifdef HAVE_MPI
          MPI_Allreduce(&new_count, &new_count_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+#endif
 
 //         printf("%d: new_count is %d levmx %d\n",levcount,new_count,mesh->levmx);
       //} while (new_count > 0 && levcount < 10);
@@ -3159,7 +3187,9 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 {
    cl_event refine_potential_event;
 
+#ifdef HAVE_MPI
 // MPI_Barrier(MPI_COMM_WORLD);
+#endif
 
    struct timeval tstart_gpu;
 
@@ -3196,9 +3226,11 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], NULL);
 
+#ifdef HAVE_MPI
    L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
    L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
    L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
+#endif
 
    size_t nghost_local = mesh->ncells_ghost - ncells;
    //fprintf(mesh->fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
@@ -3344,7 +3376,9 @@ double State::mass_sum_local(Mesh *mesh, bool enhanced_precision_sum)
             local.sum          = new_sum;
          }
       }
+#ifdef HAVE_MPI
       MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
+#endif
       total_sum = global.sum + global.correction;
    } else {
       for (uint ic=0; ic < ncells; ic++){
@@ -3352,7 +3386,9 @@ double State::mass_sum_local(Mesh *mesh, bool enhanced_precision_sum)
             summer += H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]];
          }
       }
+#ifdef HAVE_MPI
       MPI_Allreduce(&summer, &total_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+#endif
    }
 
    cpu_time_mass_sum += cpu_timer_stop(tstart_cpu);
@@ -3569,7 +3605,9 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
       ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real2), &mass_sum, &start_read_event);
       local.sum = mass_sum.s0;
       local.correction = mass_sum.s1;
+#ifdef HAVE_MPI
       MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
+#endif
       total_sum = global.sum + global.correction;
    } else {
       dev_mass_sum = ezcl_malloc(NULL, &one,    sizeof(cl_real), CL_MEM_READ_WRITE, 0);
@@ -3619,7 +3657,9 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
 
       ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real), &mass_sum, &start_read_event);
       local_sum = mass_sum;
+#ifdef HAVE_MPI
       MPI_Allreduce(&local_sum, &global_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+#endif
       total_sum = global_sum;
    }
 
@@ -3836,7 +3876,9 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
 void State::parallel_timer_output(int numpe, int mype, const char *string, double local_time)
 {
    vector<double> global_times(numpe);
+#ifdef HAVE_MPI
    MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#endif
    if (mype == 0) {
       printf("%s\t",string);
       for(int ip = 0; ip < numpe; ip++){

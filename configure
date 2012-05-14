@@ -586,6 +586,7 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+MPI_LIBS
 INCLUDES
 MPI_BIN
 MPE_BIN
@@ -5366,7 +5367,7 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  LIBS="${LIBS} -L${MPIHOME}/lib -lmpi" && FOUND_MPI_LIB="yes"
+  MPI_LIBS="${MPI_LIBS} -L${MPIHOME}/lib -lmpi" && FOUND_MPI_LIB="yes"
 fi
 
   if test "${FOUND_MPI_INCLUDE}" = "no"; then
@@ -5433,10 +5434,7 @@ else
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
    if test "x$ac_cv_mpi" = "xyes"; then
-
-$as_echo "#define HAVE_MPI 1" >>confdefs.h
-
-      LIBS="${LIBS} -lmpi_cxx -lmpi"
+            MPI_LIBS="${MPI_LIBS} -lmpi_cxx -lmpi"
    fi
 
    CFLAGS=$SAVE_C_FLAGS
@@ -5449,6 +5447,7 @@ fi
 if test ! -z "${RPATH_LIBS}"; then
    LIBS="${LIBS} ${RPATH_PREFIX}-rpath ${RPATH_PREFIX}${RPATH_LIBS}"
 fi
+
 
 
 
