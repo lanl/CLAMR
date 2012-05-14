@@ -1695,7 +1695,7 @@ void reduction_epsum_within_tile(__local  real2  *tile)
 }
 
 __kernel void calc_spatial_coordinates_cl(
-          const    ulong isize,
+          const    int   isize,
           const    real   xmin,
           const    real   ymin,
           __global real   *lev_deltax,
