@@ -30,6 +30,13 @@ To build the CLAMR executables
 use ./configure --help to see all the options available. The most common is 
  --disable-opengl: to disable the real-time graphics
 
+There are two real-time graphics packages. The default is OpenGL. An alternative
+real-time graphics package uses MPE. To use this package, configure with 
+"./configure --enable-mpe". The OpenGL option is automatically turned off when
+selecting MPE. MPE is part of the MPICH package from Argonne National Laboratory.
+It usually is not on a system and will need to be installed. A setup script and
+version 1.9.1 of the MPE package are available in the download directory.
+
 make
 
 Two executables are currently built
