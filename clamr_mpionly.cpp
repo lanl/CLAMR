@@ -364,6 +364,7 @@ extern "C" void do_calc(void)
       set_circle_radius(circle_radius);
       draw_scene();
       if (verbose) sleep(5);
+      sleep(3);
 #endif
       //  Set flag to show mesh results rather than domain decomposition.
       view_mode = 1;
