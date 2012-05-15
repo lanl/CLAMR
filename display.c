@@ -359,15 +359,17 @@ void DisplayState(void) {
       //printf("xloc is %d xwid %d yloc is %d ywid %d color is  %d step is %d\n",xloc,xwid,yloc,ywid,color,step);
       MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, color_array[color]);
 
-      xloc1 = (int)((x[i]-display_xmin)*xconv);
-      xloc2 = (int)((x[i]+dx[i]-display_xmin)*xconv);
-      yloc1 = (int)((display_ymax-y[i])*yconv);
-      yloc2 = (int)((display_ymax-(y[i]+dy[i]))*yconv);
-      //printf("xloc1 is %d xloc2 %d yloc1 is %d yloc2 %d\n",xloc1,xloc2,yloc1,yloc2);
-      MPE_Draw_line(window, xloc1, yloc2, xloc2, yloc2, MPE_BLACK);
-      MPE_Draw_line(window, xloc1, yloc1, xloc2, yloc1, MPE_BLACK);
-      MPE_Draw_line(window, xloc1, yloc1, xloc1, yloc2, MPE_BLACK);
-      MPE_Draw_line(window, xloc2, yloc1, xloc2, yloc2, MPE_BLACK);
+      if (display_outline) {
+         xloc1 = (int)((x[i]-display_xmin)*xconv);
+         xloc2 = (int)((x[i]+dx[i]-display_xmin)*xconv);
+         yloc1 = (int)((display_ymax-y[i])*yconv);
+         yloc2 = (int)((display_ymax-(y[i]+dy[i]))*yconv);
+         //printf("xloc1 is %d xloc2 %d yloc1 is %d yloc2 %d\n",xloc1,xloc2,yloc1,yloc2);
+         MPE_Draw_line(window, xloc1, yloc2, xloc2, yloc2, MPE_BLACK);
+         MPE_Draw_line(window, xloc1, yloc1, xloc2, yloc1, MPE_BLACK);
+         MPE_Draw_line(window, xloc1, yloc1, xloc1, yloc2, MPE_BLACK);
+         MPE_Draw_line(window, xloc2, yloc1, xloc2, yloc2, MPE_BLACK);
+      }
    }
    MPE_Update(window);
 #endif
@@ -483,6 +485,9 @@ void DrawSquares(void) {
       xloc_old = xloc;
       yloc_old = yloc;
    }
+#ifdef HAVE_MPI
+   MPI_Barrier(MPI_COMM_WORLD);
+#endif
    MPE_Update(window);
 #endif
 }
@@ -563,8 +568,13 @@ void draw_scene(void) {
    glLoadIdentity();
 #endif
 #ifdef HAVE_MPE
-   MPE_Fill_rectangle(window, 0, 0, WINSIZE, WINSIZE, MPE_WHITE);
-   //MPE_Update(window);
+   if (rank == 0) {
+      MPE_Fill_rectangle(window, 0, 0, WINSIZE, WINSIZE, MPE_WHITE);
+   }
+#ifdef HAVE_MPI
+   MPI_Barrier(MPI_COMM_WORLD);
+#endif
+   MPE_Update(window);
 #endif
 
    if (display_view_mode == 0) {

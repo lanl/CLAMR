@@ -207,11 +207,13 @@ int main(int argc, char **argv) {
    vector<int>   &i        = mesh->i;
    vector<int>   &j        = mesh->j;
    vector<int>   &level    = mesh->level;
+   vector<int>   &proc     = mesh->proc;
 
    vector<int>   &celltype_global = mesh_global->celltype;
    vector<int>   &i_global        = mesh_global->i;
    vector<int>   &j_global        = mesh_global->j;
    vector<int>   &level_global    = mesh_global->level;
+   vector<int>   &proc_global     = mesh_global->proc;
 
    vector<real> &H = state->H;
    vector<real> &U = state->U;
@@ -243,11 +245,13 @@ int main(int argc, char **argv) {
    level.resize(ncells);
    i.resize(ncells);
    j.resize(ncells);
+   proc.resize(ncells);
 
    MPI_Scatterv(&celltype_global[0], &nsizes[0], &ndispl[0], MPI_INT, &celltype[0], nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&level_global[0],    &nsizes[0], &ndispl[0], MPI_INT, &level[0],    nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&i_global[0],        &nsizes[0], &ndispl[0], MPI_INT, &i[0],        nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&j_global[0],        &nsizes[0], &ndispl[0], MPI_INT, &j[0],        nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
+   MPI_Scatterv(&proc_global[0],     &nsizes[0], &ndispl[0], MPI_INT, &proc[0],     nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
 
    H.resize(ncells);
    U.resize(ncells);
@@ -268,11 +272,19 @@ int main(int argc, char **argv) {
    MPI_Scatterv(&dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dy[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
 
 #ifdef HAVE_GRAPHICS
+#ifdef HAVE_OPENGL
+   set_mysize(ncells_global);
    set_cell_data(&H_global[0]);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-   set_mysize(ncells_global);
-   set_viewmode(view_mode);
+#endif
+#ifdef HAVE_MPE
+   set_mysize(ncells);
+   set_cell_data(&H[0]);
+   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+#endif
+
    set_window(mesh_global->xmin, mesh_global->xmax, mesh_global->ymin, mesh_global->ymax);
+   set_viewmode(view_mode);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
    set_idle_function(&do_calc);
@@ -356,15 +368,24 @@ extern "C" void do_calc(void)
       
       //  Set up grid.
 #ifdef HAVE_GRAPHICS
+#ifdef HAVE_OPENGL
       set_mysize(ncells_global);
-      set_viewmode(view_mode);
       set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
       set_cell_data(&H_global[0]);
       set_cell_proc(&mesh_global->proc[0]);
+#endif
+#ifdef HAVE_MPE
+      set_mysize(ncells);
+      set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+      set_cell_data(&H[0]);
+      set_cell_proc(&mesh->proc[0]);
+#endif
+
+      set_viewmode(view_mode);
       set_circle_radius(circle_radius);
       draw_scene();
       if (verbose) sleep(5);
-      sleep(3);
+      sleep(2);
 #endif
       //  Set flag to show mesh results rather than domain decomposition.
       view_mode = 1;
@@ -781,6 +802,7 @@ extern "C" void do_calc(void)
                if (fabs(H_global[ic] -H_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d H_global  & H_check_global  %d %lf %lf \n",n,ic,H_global[ic], H_check_global[ic]);
             }
          } else {
+#ifdef HAVE_OPENGL
             MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
  
             x_global.resize(ncells_global);
@@ -793,13 +815,22 @@ extern "C" void do_calc(void)
             MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
             MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
             MPI_Allgatherv(&H[0],  nsizes[mype], MPI_C_REAL, &H_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+#endif
          }
 
+#ifdef HAVE_MPE
+         set_mysize(ncells);
+         set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+         set_cell_data(&H[0]);
+         set_cell_proc(&mesh->proc[0]);
+#endif
+#ifdef HAVE_OPENGL
          set_mysize(ncells_global);
-         set_viewmode(view_mode);
          set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
          set_cell_data(&H_global[0]);
          set_cell_proc(&mesh_global->proc[0]);
+#endif
+         set_viewmode(view_mode);
          set_circle_radius(circle_radius);
          draw_scene();
 #endif
