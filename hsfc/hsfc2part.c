@@ -63,7 +63,7 @@ typedef struct {
   int      part ;     /* Partition containing this cell */
   unsigned weight ;   /* Weight of nodes in the cell */
   unsigned addweight ;
-  unsigned newcell ;
+  int      newcell ;
 } sfc_grid ;
 
 typedef void (*maptonorm)(
@@ -345,7 +345,7 @@ void hsfc2part(
   /* Ordering output, sort by { cell , key } */
 
   if ( 1 < ldinfo ) {
-    qsort( SFC , npt , sizeof(sfc_node) , nodecellkeycomp );
+    qsort( SFC , (size_t)npt , sizeof(sfc_node) , nodecellkeycomp );
 
     /* Output */
 
