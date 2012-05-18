@@ -65,9 +65,7 @@
 #include "input.h"
 #include "mesh.h"
 #include "partition.h"
-#include "reduce.h"
 #include "state.h"
-#include "timer/timer.h"
 #include "l7/l7.h"
 
 #include <mpi.h>

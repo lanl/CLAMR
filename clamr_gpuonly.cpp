@@ -68,8 +68,6 @@
 #include "partition.h"
 #include "reduce.h"
 #include "state.h"
-#include "timer/timer.h"
-#include "l7/l7.h"
 
 // Sync is to reduce numerical drift between cpu and gpu
 #define DO_SYNC 
@@ -180,9 +178,6 @@ int main(int argc, char **argv) {
     // Needed for code to compile correctly on the Mac
    int mype=0;
    int numpe=-1;
-#ifdef HAVE_MPI
-   L7_Init(&mype, &numpe, &argc, argv);
-#endif
 
    //  Process command-line arguments, if any.
    parseInput(argc, argv);
