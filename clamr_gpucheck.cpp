@@ -256,7 +256,7 @@ double  H_sum_initial = 0.0;
 extern "C" void do_calc(void)
 {  double g     = 9.80;
    double sigma = 0.95;
-   int icount, jcount, bcount;
+   int icount, jcount;
 
    if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
       do_comparison_calc = 1;
@@ -650,7 +650,8 @@ extern "C" void do_calc(void)
       //}
 
       if (do_gpu_calc) {
-         mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset);
+         int bcount = 0;
+         mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset, &bcount);
       }
 
       if (do_gpu_calc) {

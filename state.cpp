@@ -214,8 +214,8 @@ void State::init(int ncells, cl_context context, int do_gpu_calc)
    U.resize(ncells);
    V.resize(ncells);
 
-   int mpi_init;
 #ifdef HAVE_MPI
+   int mpi_init;
    MPI_Initialized(&mpi_init);
    if (mpi_init){
       MPI_Type_contiguous(2, MPI_DOUBLE, &MPI_TWO_DOUBLES);
@@ -543,7 +543,9 @@ double State::set_timestep(Mesh *mesh, double g, double sigma)
    cpu_timer_start(&tstart_cpu);
 
    size_t &ncells        = mesh->ncells;
+#ifdef HAVE_MPI
    int &parallel         = mesh->parallel;
+#endif
    vector<int> &celltype = mesh->celltype;
    vector<int> &level    = mesh->level;
 
@@ -558,17 +560,14 @@ double State::set_timestep(Mesh *mesh, double g, double sigma)
       }
    }
 
+   globalmindeltaT = mindeltaT;
 #ifdef HAVE_MPI
    if (parallel) MPI_Allreduce(&mindeltaT, &globalmindeltaT, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 #endif
 
    cpu_time_set_timestep += cpu_timer_stop(tstart_cpu);
 
-   if (parallel) {
-      return(globalmindeltaT);
-   } else {
-      return(mindeltaT);
-   }
+   return(globalmindeltaT);
 }
 
 double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, double sigma)
@@ -580,7 +579,9 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
    double deltaT, globalmindeltaT;
 
    size_t &ncells       = mesh->ncells;
+#ifdef HAVE_MPI
    int &parallel        = mesh->parallel;
+#endif
    cl_mem &dev_level    = mesh->dev_level;
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_levdx    = mesh->dev_levdx;
@@ -651,6 +652,7 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
    ezcl_enqueue_read_buffer(command_queue, dev_deltaT, CL_TRUE,  0, sizeof(cl_real), &deltaT_local, &start_read_event);
    deltaT = deltaT_local;
 
+   globalmindeltaT = deltaT;
 #ifdef HAVE_MPI
    if (parallel) MPI_Allreduce(&deltaT, &globalmindeltaT, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 #endif
@@ -663,11 +665,7 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
    }
    gpu_time_read              += ezcl_timer_calc(&start_read_event,    &start_read_event);
 
-   if (parallel) {
-      return(globalmindeltaT);
-   } else {
-      return(deltaT);
-   }
+   return(globalmindeltaT);
 }
 
 void State::fill_circle(Mesh   *mesh,       //  Mesh.
@@ -3015,7 +3013,10 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
    if (enhanced_precision_sum) {
       double correction, corrected_next_term, new_sum;
       correction = 0.0;
-      struct esum_type local, global;
+      struct esum_type local;
+#ifdef HAVE_MPI
+      struct esum_type global;
+#endif
 
       local.sum = 0.0;
       local.correction = 0.0;
@@ -3269,6 +3270,8 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
       ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real2), &mass_sum, &start_read_event);
       local.sum = mass_sum.s0;
       local.correction = mass_sum.s1;
+      global.sum = local.sum;
+      global.correction = local.correction;
 #ifdef HAVE_MPI
       MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
 #endif
@@ -3321,6 +3324,7 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
 
       ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real), &mass_sum, &start_read_event);
       local_sum = mass_sum;
+      global_sum = local_sum;
 #ifdef HAVE_MPI
       MPI_Allreduce(&local_sum, &global_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #endif

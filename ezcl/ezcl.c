@@ -177,7 +177,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
       printf("\n");
    }
    
-   clGetDeviceIDs(platforms[0],CL_DEVICE_TYPE_ALL,0,0,&nDevices);
+   clGetDeviceIDs(platforms[0],(size_t)CL_DEVICE_TYPE_ALL,0,0,&nDevices);
    if (nDevices == 0) {
       printf("EZCL_INIT: Error -- No opencl devices detected in file %s at line %d\n", file, line);
       //exit(-1);
@@ -199,7 +199,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
    devices = (cl_device_id *)malloc(nDevices*sizeof(cl_device_id));
    ezcl_malloc_memory_add(devices, nDevices*sizeof(cl_device_id));
 
-   ierr = clGetDeviceIDs(platforms[0],CL_DEVICE_TYPE_ALL,num_devices_requested,devices,&nDevices);
+   ierr = clGetDeviceIDs(platforms[0],(size_t)CL_DEVICE_TYPE_ALL,num_devices_requested,devices,&nDevices);
    if (ierr != CL_SUCCESS) {
      /* Possible Errors
       *  CL_INVALID_PLATFORM:
@@ -217,7 +217,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
       }
    }
    
-   *ezcl_gpu_context = clCreateContextFromType(NULL, CL_DEVICE_TYPE_GPU, NULL, NULL, &ierr);
+   *ezcl_gpu_context = clCreateContextFromType(NULL, (size_t)CL_DEVICE_TYPE_GPU, NULL, NULL, &ierr);
    if (ierr == CL_INVALID_VALUE){
       printf("Invalid value in clCreateContext call\n");
       if (devices == NULL) printf("Devices is NULL\n");
@@ -240,7 +240,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
       if (DEBUG) printf("EZCL_INIT: No gpu device found in file %s at line %d\n", file, line);
    }
    
-   *ezcl_cpu_context = clCreateContextFromType(0, CL_DEVICE_TYPE_CPU, NULL, NULL, &ierr);
+   *ezcl_cpu_context = clCreateContextFromType(0, (size_t)CL_DEVICE_TYPE_CPU, NULL, NULL, &ierr);
    if (ierr == CL_INVALID_VALUE){
       printf("Invalid value in clCreateContext call\n");
       if (devices == NULL) printf("Devices is NULL\n");
@@ -262,7 +262,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
       if (DEBUG) printf("EZCL_INIT: No cpu device found\n");
    }
 
-   *ezcl_accelerator_context = clCreateContextFromType(0, CL_DEVICE_TYPE_ACCELERATOR, NULL, NULL, &ierr);
+   *ezcl_accelerator_context = clCreateContextFromType(0, (size_t)CL_DEVICE_TYPE_ACCELERATOR, NULL, NULL, &ierr);
    if (ierr == CL_INVALID_VALUE){
       printf("Invalid value in clCreateContext call\n");
       if (devices == NULL) printf("Devices is NULL\n");
@@ -625,7 +625,7 @@ cl_context ezcl_get_context_p(const char *file, const int line){
    return(context);
 }
 
-cl_mem ezcl_malloc_p(void *host_mem_ptr, size_t dims[], size_t elsize, int flags, int ezcl_flags, const char *file, const int line){
+cl_mem ezcl_malloc_p(void *host_mem_ptr, size_t dims[], size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line){
    cl_int ierr;
    void *buf_mem_ptr = NULL;
    cl_mem mem_ptr = NULL;
@@ -651,9 +651,9 @@ cl_mem ezcl_malloc_p(void *host_mem_ptr, size_t dims[], size_t elsize, int flags
          ezcl_device_memory_add(buf_mem_ptr, size);
 
          if (flags & CL_MEM_READ_ONLY){
-           mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, CL_MAP_WRITE, 0L, size, 0, NULL, NULL, NULL);
+           mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, (size_t)CL_MAP_WRITE, 0L, size, 0, NULL, NULL, NULL);
          }else if (flags & CL_MEM_WRITE_ONLY){
-           mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, CL_MAP_READ, 0L, size, 0, NULL, NULL, NULL);
+           mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, (size_t)CL_MAP_READ, 0L, size, 0, NULL, NULL, NULL);
          } else {
            mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, 0L, 0L, size, 0, NULL, NULL, NULL);
          }
@@ -877,10 +877,10 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
    }
    
    stat(filename, &statbuf);
-   source = (char *)malloc((unsigned)(statbuf.st_size + 1));
-   ezcl_malloc_memory_add(source, (unsigned)(statbuf.st_size + 1));
+   source = (char *)malloc((size_t)(statbuf.st_size + 1));
+   ezcl_malloc_memory_add(source, (size_t)(statbuf.st_size + 1));
    
-   if (fread(source, statbuf.st_size, 1L, fh) != 1) {
+   if (fread(source, (size_t)statbuf.st_size, 1L, fh) != 1) {
       printf("ERROR: problem reading program source file %s\n",filename);
       exit(-1);
    }

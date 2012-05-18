@@ -196,7 +196,7 @@ cl_command_queue ezcl_get_command_queue_p(const char *file, const int line);
 cl_context ezcl_get_context_p(const char *file, const int line);
 
 /* memory routines */
-cl_mem ezcl_malloc_p(void *host_mem_ptr, size_t dims[], size_t elsize, int flags, int ezcl_flags, const char *file, const int line);
+cl_mem ezcl_malloc_p(void *host_mem_ptr, size_t dims[], size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line);
 void *ezcl_malloc_memory_add_p(void *malloc_mem_ptr, size_t size, const char *file, const int line);
 void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, size_t size, const char *file, const int line);
 void ezcl_mapped_memory_add_p(cl_mem map_mem_ptr, size_t size, const char *file, const int line);

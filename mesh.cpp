@@ -1803,6 +1803,7 @@ void Mesh::calc_neighbors_local(void)
          //   border_cell_i[ic],border_cell_j[ic],border_cell_level[ic]);
       }
 
+      nbsize_global = nbsize_local;
 #ifdef HAVE_MPI
       MPI_Allreduce(&nbsize_local, &nbsize_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 #endif
@@ -2894,6 +2895,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    int nbsize_global;
    int nbsize_local=border_cell_num.size();
 
+   nbsize_global = nbsize_local;
 #ifdef HAVE_MPI
    MPI_Allreduce(&nbsize_local, &nbsize_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 #endif
@@ -3563,7 +3565,7 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
    }
 }
 
-void Mesh::gpu_count_BCs(cl_command_queue command_queue, size_t block_size, size_t local_work_size, size_t global_work_size, cl_mem dev_ioffset)
+void Mesh::gpu_count_BCs(cl_command_queue command_queue, size_t block_size, size_t local_work_size, size_t global_work_size, cl_mem dev_ioffset, int *bcount)
 {
    cl_event count_BCs_stage1_event, count_BCs_stage2_event;
 
@@ -3603,9 +3605,8 @@ void Mesh::gpu_count_BCs(cl_command_queue command_queue, size_t block_size, size
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_int_stage2of2, 1, NULL, &local_work_size, &local_work_size, &count_BCs_stage2_event);
       }
 
-      vector<int> ioffset(5);
-      ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, 1*sizeof(cl_int), &ioffset[0], NULL);
-      int bcount = ioffset[0];
+      ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, 1*sizeof(cl_int), &bcount, NULL);
+ 
       //printf("DEBUG -- bcount is %d\n",bcount);
       //state->gpu_time_read += ezcl_timer_calc(&start_read_event, &start_read_event);
 

@@ -562,7 +562,8 @@ extern "C" void do_calc(void)
 
 
       if (do_comparison_calc) {
-         mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset);
+         int bcount = 0;
+         mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset, &bcount);
       }
 
       if (do_comparison_calc) {
