@@ -3358,7 +3358,7 @@ void State::resize_old_device_memory(size_t ncells)
 
 static double total_time = 0.0;
 
-void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, long gpu_time_count_BCs, double elapsed_time)
+void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, double elapsed_time)
 {
    int &mype  = mesh->mype;
    int &numpe = mesh->numpe;
@@ -3417,7 +3417,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
                             mesh->get_gpu_time_calc_neighbors() +
                             get_gpu_time_mass_sum() +
                             mesh->get_gpu_time_calc_spatial_coordinates() +
-                            gpu_time_count_BCs;
+                            mesh->gpu_time_count_BCs;
          gpu_elapsed_time   = get_gpu_time_write() + gpu_time_compute + get_gpu_time_read();
 
          if (mype == 0) {
@@ -3434,7 +3434,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
             printf("GPU:  kernel_mass_sum          time was\t %8.4f\ts\n",    (double) get_gpu_time_mass_sum()          * 1.0e-9);
             printf("GPU:  kernel_calc_spatial_coor time was\t %8.4f\ts\n",    (double) mesh->get_gpu_time_calc_spatial_coordinates() * 1.0e-9);
             if (! mesh->have_boundary) {
-               printf("GPU:  kernel_count_BCs         time was\t %8.4f\ts\n",    (double) gpu_time_count_BCs        * 1.0e-9);
+               printf("GPU:  kernel_count_BCs         time was\t %8.4f\ts\n",    (double) mesh->gpu_time_count_BCs        * 1.0e-9);
             }
             printf("=============================================================\n");
             printf("Profiling: Total GPU          time was\t%8.4f\ts or\t%4.2f min\n", (double) gpu_elapsed_time * 1.0e-9, (double) gpu_elapsed_time * 1.0e-9/60.0);
@@ -3494,7 +3494,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
                             mesh->get_gpu_time_calc_neighbors() +
                             get_gpu_time_mass_sum() +
                             mesh->get_gpu_time_calc_spatial_coordinates() +
-                            gpu_time_count_BCs;
+                            mesh->gpu_time_count_BCs;
          gpu_elapsed_time   = get_gpu_time_write() + gpu_time_compute + get_gpu_time_read();
 
          if (mype == 0) printf("\nGPU: Parallel timings\n\n");
@@ -3513,7 +3513,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, lon
          parallel_timer_output(numpe,mype,"GPU:  kernel_mass_sum          time was",(double) get_gpu_time_mass_sum()          * 1.0e-9 );
 
          if (! mesh->have_boundary) {
-            parallel_timer_output(numpe,mype,"GPU:  kernel_count_BCs         time was",(double) gpu_time_count_BCs        * 1.0e-9 );
+            parallel_timer_output(numpe,mype,"GPU:  kernel_count_BCs         time was",(double) mesh->gpu_time_count_BCs        * 1.0e-9 );
          }
 
          if (mype == 0) printf("=============================================================\n");

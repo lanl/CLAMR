@@ -66,7 +66,6 @@
 #include "input.h"
 #include "mesh.h"
 #include "partition.h"
-#include "reduce.h"
 #include "state.h"
 #include "timer/timer.h"
 
@@ -141,8 +140,6 @@ struct timeval tstart, tstop, tresult;
 struct timeval tstart_cpu;
 cl_event start_write_event, end_write_event,
          start_read_event,  end_read_event,
-         count_BCs_stage1_event,
-         count_BCs_stage2_event,
          hsfc2d_event;
 double   cpu_time_start,
          cpu_time_end,
@@ -156,13 +153,11 @@ long     gpu_time_start,
          gpu_time_end,
          gpu_time_compute            = 0,
          gpu_time_total              = 0,
-         gpu_time_count_BCs          = 0,
          gpu_time_hsfc2d             = 0;
 
 #ifdef HAVE_OPENCL
 cl_context          context                 = NULL;
 cl_command_queue    command_queue           = NULL;
-cl_kernel           kernel_count_BCs        = NULL;
 #endif
 
 int main(int argc, char **argv) {
@@ -204,14 +199,6 @@ int main(int argc, char **argv) {
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe, mesh->proc);
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
-   
-#ifdef HAVE_OPENCL
-   init_kernel_2stage_sum(context);
-   init_kernel_2stage_sum_int(context);
-   if (! mesh->have_boundary){
-     kernel_count_BCs       = ezcl_create_kernel(context, "wave_kern.cl",      "count_BCs_cl",             0);
-   }
-#endif
    
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_i        = mesh->dev_i;
@@ -307,11 +294,6 @@ extern "C" void do_calc(void)
    vector<int>   &ntop     = mesh->ntop;
 
    size_t ncells    = mesh->ncells;
-
-   cl_mem &dev_levibeg  = mesh->dev_levibeg;
-   cl_mem &dev_leviend  = mesh->dev_leviend;
-   cl_mem &dev_levjbeg  = mesh->dev_levjbeg;
-   cl_mem &dev_levjend  = mesh->dev_levjend;
 
    vector<real>  &x        = mesh->x;
    vector<real>  &dx       = mesh->dx;
@@ -682,49 +664,8 @@ extern "C" void do_calc(void)
         // state->gpu_time_read             += ezcl_timer_calc(&start_read_event,       &start_read_event);
       //}
 
-      if (do_gpu_calc)
-      {
-          if (! mesh->have_boundary) {
-              /*
-              __kernel void count_BCs(
-                               const int    isize,      // 0   
-                      __global const int   *i,         // 1
-                      __global const int   *j,         // 2
-                      __global const int   *level,     // 3
-                      __global const int   *lev_ibeg,  // 4
-                      __global const int   *lev_iend,  // 5
-                      __global const int   *lev_jbeg,  // 6
-                      __global const int   *lev_jend,  // 7
-                      __global       int   *scratch,   // 8
-                      __local        int   *tile)      // 9
-              */
-            size_t shared_spd_sum_int = local_work_size * sizeof(cl_int);
-            ezcl_set_kernel_arg(kernel_count_BCs, 0, sizeof(cl_int), (void *)&ncells);
-            ezcl_set_kernel_arg(kernel_count_BCs, 1, sizeof(cl_mem), (void *)&dev_i);
-            ezcl_set_kernel_arg(kernel_count_BCs, 2, sizeof(cl_mem), (void *)&dev_j);
-            ezcl_set_kernel_arg(kernel_count_BCs, 3, sizeof(cl_mem), (void *)&dev_level);
-            ezcl_set_kernel_arg(kernel_count_BCs, 4, sizeof(cl_mem), (void *)&dev_levibeg);
-            ezcl_set_kernel_arg(kernel_count_BCs, 5, sizeof(cl_mem), (void *)&dev_leviend);
-            ezcl_set_kernel_arg(kernel_count_BCs, 6, sizeof(cl_mem), (void *)&dev_levjbeg);
-            ezcl_set_kernel_arg(kernel_count_BCs, 7, sizeof(cl_mem), (void *)&dev_levjend);
-            ezcl_set_kernel_arg(kernel_count_BCs, 8, sizeof(cl_mem), (void *)&dev_ioffset);
-            ezcl_set_kernel_arg(kernel_count_BCs, 9, shared_spd_sum_int, 0);
-
-            ezcl_set_kernel_arg(kernel_reduce_sum_int_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
-            ezcl_set_kernel_arg(kernel_reduce_sum_int_stage2of2, 1, sizeof(cl_mem), (void *)&dev_ioffset);
-            ezcl_set_kernel_arg(kernel_reduce_sum_int_stage2of2, 2, shared_spd_sum_int, 0);
-
-            ezcl_enqueue_ndrange_kernel(command_queue, kernel_count_BCs, 1, NULL, &global_work_size, &local_work_size, &count_BCs_stage1_event);
-
-            if (block_size > 1) {
-               ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_int_stage2of2, 1, NULL, &local_work_size, &local_work_size, &count_BCs_stage2_event);
-            }
-
-            ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, 1*sizeof(cl_int), &ioffset[0], NULL);
-            bcount = ioffset[0];
-            //printf("DEBUG -- bcount is %d\n",bcount);
-            //state->gpu_time_read += ezcl_timer_calc(&start_read_event, &start_read_event);
-         }
+      if (do_gpu_calc) {
+         mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset);
       }
 
       if (do_gpu_calc) {
@@ -838,13 +779,6 @@ extern "C" void do_calc(void)
       ++n;
       simTime += deltaT;
       
-      //  Calculate timings for this time step.
-      if (do_gpu_calc) {
-         if (! mesh->have_boundary) {
-            gpu_time_count_BCs        += ezcl_timer_calc(&count_BCs_stage1_event, &count_BCs_stage1_event);
-            gpu_time_count_BCs        += ezcl_timer_calc(&count_BCs_stage2_event, &count_BCs_stage2_event);
-         }
-      }
    }
 
    //  Output final results and timing information.
@@ -857,7 +791,7 @@ extern "C" void do_calc(void)
       tresult.tv_usec = tstop.tv_usec - tstart.tv_usec;
       double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
       
-      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
+      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();

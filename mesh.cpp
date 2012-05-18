@@ -65,6 +65,7 @@
 #include "mpi.h"
 #include "l7/l7.h"
 #endif
+#include "reduce.h"
 
 #define DEBUG 0
 #define NEIGHBOR_CHECK 0
@@ -116,6 +117,7 @@ cl_kernel      kernel_reduction_scan;
 cl_kernel      kernel_hash_size;
 cl_kernel      kernel_finish_hash_size;
 cl_kernel      kernel_calc_spatial_coordinates;
+cl_kernel      kernel_count_BCs;
 
 void Mesh::write_grid(int ncycle)
 {
@@ -316,6 +318,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
    gpu_time_hash_setup         = 0;
    gpu_time_calc_neighbors     = 0;
    gpu_time_rezone_all         = 0;
+   gpu_time_count_BCs          = 0;
    gpu_time_calc_spatial_coordinates = 0;
 
    ndim   = ndim_in;
@@ -446,6 +449,12 @@ void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partitio
       kernel_hash_size         = ezcl_create_kernel(context, "wave_kern.cl",      "calc_hash_size_cl",        0);
       kernel_finish_hash_size  = ezcl_create_kernel(context, "wave_kern.cl",      "finish_reduction_minmax4_cl",        0);
       kernel_calc_spatial_coordinates = ezcl_create_kernel(context, "wave_kern.cl",      "calc_spatial_coordinates_cl",        0);
+      init_kernel_2stage_sum(context);
+      init_kernel_2stage_sum_int(context);
+      if (! have_boundary){
+        kernel_count_BCs       = ezcl_create_kernel(context, "wave_kern.cl",      "count_BCs_cl",             0);
+      }
+
    }
 
    int istart = 1,
@@ -3550,6 +3559,60 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
       box.max.y = -1.0*(y[ic]+0.5*dy[ic]);
       KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
       if (num == 1) ysym[ic]=index_list[0];
+
+   }
+}
+
+void Mesh::gpu_count_BCs(cl_command_queue command_queue, size_t block_size, size_t local_work_size, size_t global_work_size, cl_mem dev_ioffset)
+{
+   cl_event count_BCs_stage1_event, count_BCs_stage2_event;
+
+   if (! have_boundary) {
+       /*
+       __kernel void count_BCs(
+                        const int    isize,      // 0   
+               __global const int   *i,         // 1
+               __global const int   *j,         // 2
+               __global const int   *level,     // 3
+               __global const int   *lev_ibeg,  // 4
+               __global const int   *lev_iend,  // 5
+               __global const int   *lev_jbeg,  // 6
+               __global const int   *lev_jend,  // 7
+               __global       int   *scratch,   // 8
+               __local        int   *tile)      // 9
+       */
+      size_t shared_spd_sum_int = local_work_size * sizeof(cl_int);
+      ezcl_set_kernel_arg(kernel_count_BCs, 0, sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_count_BCs, 1, sizeof(cl_mem), (void *)&dev_i);
+      ezcl_set_kernel_arg(kernel_count_BCs, 2, sizeof(cl_mem), (void *)&dev_j);
+      ezcl_set_kernel_arg(kernel_count_BCs, 3, sizeof(cl_mem), (void *)&dev_level);
+      ezcl_set_kernel_arg(kernel_count_BCs, 4, sizeof(cl_mem), (void *)&dev_levibeg);
+      ezcl_set_kernel_arg(kernel_count_BCs, 5, sizeof(cl_mem), (void *)&dev_leviend);
+      ezcl_set_kernel_arg(kernel_count_BCs, 6, sizeof(cl_mem), (void *)&dev_levjbeg);
+      ezcl_set_kernel_arg(kernel_count_BCs, 7, sizeof(cl_mem), (void *)&dev_levjend);
+      ezcl_set_kernel_arg(kernel_count_BCs, 8, sizeof(cl_mem), (void *)&dev_ioffset);
+      ezcl_set_kernel_arg(kernel_count_BCs, 9, shared_spd_sum_int, 0);
+
+      ezcl_set_kernel_arg(kernel_reduce_sum_int_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
+      ezcl_set_kernel_arg(kernel_reduce_sum_int_stage2of2, 1, sizeof(cl_mem), (void *)&dev_ioffset);
+      ezcl_set_kernel_arg(kernel_reduce_sum_int_stage2of2, 2, shared_spd_sum_int, 0);
+
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_count_BCs, 1, NULL, &global_work_size, &local_work_size, &count_BCs_stage1_event);
+
+      if (block_size > 1) {
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_int_stage2of2, 1, NULL, &local_work_size, &local_work_size, &count_BCs_stage2_event);
+      }
+
+      vector<int> ioffset(5);
+      ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, 1*sizeof(cl_int), &ioffset[0], NULL);
+      int bcount = ioffset[0];
+      //printf("DEBUG -- bcount is %d\n",bcount);
+      //state->gpu_time_read += ezcl_timer_calc(&start_read_event, &start_read_event);
+
+      gpu_time_count_BCs        += ezcl_timer_calc(&count_BCs_stage1_event, &count_BCs_stage1_event);
+      if (block_size > 1) {
+         gpu_time_count_BCs     += ezcl_timer_calc(&count_BCs_stage2_event, &count_BCs_stage2_event);
+      }
 
    }
 }

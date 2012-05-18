@@ -142,20 +142,15 @@ State      *state;    //  Object containing state information corresponding to m
 //  Set up timing information.
 struct timeval tstart, tstop, tresult;
 struct timeval tstart_cpu;
-cl_event start_write_event, end_write_event,
-         count_BCs_stage1_event,
-         count_BCs_stage2_event;
+cl_event start_write_event, end_write_event;
 double   cpu_time_start,
          cpu_time_end;
 long     gpu_time_start,
-         gpu_time_end,
-         gpu_time_count_BCs          = 0,
-         gpu_time_count_BCs_parallel = 0;
+         gpu_time_end;
 
 #ifdef HAVE_OPENCL
 cl_context          context                 = NULL;
 cl_command_queue    command_queue           = NULL;
-cl_kernel           kernel_count_BCs        = NULL;
 #endif
 
 int main(int argc, char **argv) {
@@ -852,9 +847,9 @@ extern "C" void do_calc(void)
       double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
       
       if (do_comparison_calc) {
-         state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs, elapsed_time);
+         state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, elapsed_time);
       }
-      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, gpu_time_count_BCs_parallel, elapsed_time);
+      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();

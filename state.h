@@ -156,7 +156,7 @@ public:
    double gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum);
    double gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum);
 
-   void output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, long gpu_time_count_BCs, double elapsed_time);
+   void output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, double elapsed_time);
 private:
    void parallel_timer_output(int numpe, int mype, const char *string, double local_time);
 
