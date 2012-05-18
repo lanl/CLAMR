@@ -137,10 +137,8 @@ State      *state;          //  Object containing state information correspondin
 
 //  Set up timing information.
 struct timeval tstart, tstop, tresult;
-struct timeval tstart_cpu;
 cl_event start_write_event, end_write_event,
          start_read_event,  end_read_event;
-double   cpu_time_partition          = 0;
 
 #ifdef HAVE_OPENCL
 cl_context          context                 = NULL;
@@ -682,7 +680,6 @@ extern "C" void do_calc(void)
       mesh->proc.resize(ncells);
       if (icount)
       {  vector<int> index(ncells);
-         cpu_timer_start(&tstart_cpu);
          mesh->partition_cells(numpe, mesh->proc, index, cycle_reorder);
          state->state_reorder(index);
          if (do_gpu_sync) {
@@ -691,7 +688,6 @@ extern "C" void do_calc(void)
             ezcl_enqueue_write_buffer(command_queue, dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],  NULL);
             ezcl_enqueue_write_buffer(command_queue, dev_level, CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&level[0],  NULL);
          }
-         cpu_time_partition += cpu_timer_stop(tstart_cpu); 
       }
       
       if (do_gpu_sync) {

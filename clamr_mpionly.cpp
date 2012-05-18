@@ -141,7 +141,6 @@ State      *state;    //  Object containing state information corresponding to m
 
 //  Set up timing information.
 struct timeval tstart, tstop, tresult;
-struct timeval tstart_cpu;
 cl_event start_write_event, end_write_event;
 double   cpu_time_start,
          cpu_time_end;
