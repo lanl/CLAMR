@@ -780,60 +780,6 @@ extern "C" void do_calc(void)
             printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
                n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
          }
-#ifdef HAVE_GRAPHICS
-         mesh->calc_spatial_coordinates(0);
-         if (do_comparison_calc) {
-            mesh_global->calc_spatial_coordinates(0);
-            vector<real> x_check_global(ncells_global);
-            vector<real> dx_check_global(ncells_global);
-            vector<real> y_check_global(ncells_global);
-            vector<real> dy_check_global(ncells_global);
-            vector<real> H_check_global(ncells_global);
-            MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-            MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_check_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-            MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-            MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_check_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-            MPI_Allgatherv(&H[0],  nsizes[mype], MPI_C_REAL, &H_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-            for (uint ic = 0; ic < ncells_global; ic++){
-               if (fabs(x_global[ic] -x_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d x_global  & x_check_global  %d %lf %lf \n",n,ic,x_global[ic], x_check_global[ic]);
-               if (fabs(dx_global[ic]-dx_check_global[ic]) > STATE_EPS) printf("DEBUG graphics at cycle %d dx_global & dx_check_global %d %lf %lf \n",n,ic,dx_global[ic],dx_check_global[ic]);
-               if (fabs(y_global[ic] -y_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d y_global  & y_check_global  %d %lf %lf \n",n,ic,y_global[ic], y_check_global[ic]);
-               if (fabs(dy_global[ic]-dy_check_global[ic]) > STATE_EPS) printf("DEBUG graphics at cycle %d dy_global & dy_check_global %d %lf %lf \n",n,ic,dy_global[ic],dy_check_global[ic]);
-               if (fabs(H_global[ic] -H_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d H_global  & H_check_global  %d %lf %lf \n",n,ic,H_global[ic], H_check_global[ic]);
-            }
-         } else {
-#ifdef HAVE_OPENGL
-            MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
- 
-            x_global.resize(ncells_global);
-            dx_global.resize(ncells_global);
-            y_global.resize(ncells_global);
-            dy_global.resize(ncells_global);
-            H_global.resize(ncells_global);
-            MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-            MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-            MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-            MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-            MPI_Allgatherv(&H[0],  nsizes[mype], MPI_C_REAL, &H_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-#endif
-         }
-
-#ifdef HAVE_MPE
-         set_mysize(ncells);
-         set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
-         set_cell_data(&H[0]);
-         set_cell_proc(&mesh->proc[0]);
-#endif
-#ifdef HAVE_OPENGL
-         set_mysize(ncells_global);
-         set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-         set_cell_data(&H_global[0]);
-         set_cell_proc(&mesh_global->proc[0]);
-#endif
-         set_viewmode(view_mode);
-         set_circle_radius(circle_radius);
-         draw_scene();
-#endif
          output_flag = 1;
       }  //  Complete output interval.
 
@@ -841,6 +787,61 @@ extern "C" void do_calc(void)
       simTime += deltaT;
       
    }
+
+#ifdef HAVE_GRAPHICS
+   mesh->calc_spatial_coordinates(0);
+   if (do_comparison_calc) {
+      mesh_global->calc_spatial_coordinates(0);
+      vector<real> x_check_global(ncells_global);
+      vector<real> dx_check_global(ncells_global);
+      vector<real> y_check_global(ncells_global);
+      vector<real> dy_check_global(ncells_global);
+      vector<real> H_check_global(ncells_global);
+      MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_check_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_check_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Allgatherv(&H[0],  nsizes[mype], MPI_C_REAL, &H_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      for (uint ic = 0; ic < ncells_global; ic++){
+         if (fabs(x_global[ic] -x_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d x_global  & x_check_global  %d %lf %lf \n",n,ic,x_global[ic], x_check_global[ic]);
+         if (fabs(dx_global[ic]-dx_check_global[ic]) > STATE_EPS) printf("DEBUG graphics at cycle %d dx_global & dx_check_global %d %lf %lf \n",n,ic,dx_global[ic],dx_check_global[ic]);
+         if (fabs(y_global[ic] -y_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d y_global  & y_check_global  %d %lf %lf \n",n,ic,y_global[ic], y_check_global[ic]);
+         if (fabs(dy_global[ic]-dy_check_global[ic]) > STATE_EPS) printf("DEBUG graphics at cycle %d dy_global & dy_check_global %d %lf %lf \n",n,ic,dy_global[ic],dy_check_global[ic]);
+         if (fabs(H_global[ic] -H_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d H_global  & H_check_global  %d %lf %lf \n",n,ic,H_global[ic], H_check_global[ic]);
+      }
+   } else {
+#ifdef HAVE_OPENGL
+      MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+      x_global.resize(ncells_global);
+      dx_global.resize(ncells_global);
+      y_global.resize(ncells_global);
+      dy_global.resize(ncells_global);
+      H_global.resize(ncells_global);
+      MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Allgatherv(&H[0],  nsizes[mype], MPI_C_REAL, &H_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+#endif
+   }
+
+#ifdef HAVE_MPE
+   set_mysize(ncells);
+   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_cell_data(&H[0]);
+   set_cell_proc(&mesh->proc[0]);
+#endif
+#ifdef HAVE_OPENGL
+   set_mysize(ncells_global);
+   set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+   set_cell_data(&H_global[0]);
+   set_cell_proc(&mesh_global->proc[0]);
+#endif
+   set_viewmode(view_mode);
+   set_circle_radius(circle_radius);
+   draw_scene();
+#endif
 
    //  Output final results and timing information.
    if (n > niter) {
