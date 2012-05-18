@@ -144,20 +144,8 @@ State      *state;          //  Object containing state information correspondin
 struct timeval tstart, tstop, tresult;
 struct timeval tstart_cpu;
 cl_event start_write_event, end_write_event,
-         start_read_event,  end_read_event,
-         hsfc2d_event;
-double   cpu_time_start,
-         cpu_time_end,
-         cpu_time_compute            = 0,
-         cpu_time_read               = 0,
-         cpu_time_write              = 0,
-         cpu_time_total              = 0,
-         cpu_time_partition          = 0,
-         cpu_time_hsfc2d             = 0;
-long     gpu_time_start,
-         gpu_time_end,
-         gpu_time_compute            = 0,
-         gpu_time_total              = 0;
+         start_read_event,  end_read_event;
+double   cpu_time_partition          = 0;
 
 #ifdef HAVE_OPENCL
 cl_context          context                 = NULL;
