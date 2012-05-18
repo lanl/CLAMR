@@ -3373,12 +3373,12 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
    double cpu_elapsed_time=0.0;
    long gpu_elapsed_time=0;
 
+   if (mype == 0) {
+      printf("\n");
+      printf("~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~\n");
+   }
    if (! mesh->parallel) {
       //  Output timing information.
-      if (mype == 0) {
-         printf("\n");
-         printf("~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~\n");
-      }
       if (do_cpu_calc) {
          cpu_time_compute = get_cpu_time_apply_BCs() +
                             get_cpu_time_set_timestep() +
