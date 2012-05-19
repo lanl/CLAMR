@@ -146,6 +146,19 @@ __kernel void copy_state_ghost_data_cl(
    V[ncells+giX] = V_add[giX];
 }
 
+__kernel void copy_mpot_ghost_data_cl(
+                          const int  ncells,        // 0 
+                          const int  nghost,        // 1 
+                 __global       int  *mpot,         // 2 
+                 __global       int  *mpot_add)     // 3 
+{
+   const unsigned int giX  = get_global_id(0);
+
+   if (giX >= nghost) return;
+
+   mpot[ncells+giX] = mpot_add[giX];
+}
+
 
 #ifndef SET_TILE_VARIABLES
 #define SET_TILE_VARIABLES

@@ -112,6 +112,7 @@ cl_kernel kernel_set_timestep;
 cl_kernel kernel_reduction_min;
 cl_kernel kernel_copy_state_data;
 cl_kernel kernel_copy_state_ghost_data;
+cl_kernel kernel_copy_mpot_ghost_data;
 cl_kernel kernel_calc_finite_difference;
 cl_kernel kernel_refine_potential;
 cl_kernel kernel_refine_smooth;
@@ -200,6 +201,7 @@ void State::init(int ncells, cl_context context, int do_gpu_calc)
       kernel_reduction_min     = ezcl_create_kernel(context, "wave_kern.cl",      "finish_reduction_min_cl",  0);
       kernel_copy_state_data   = ezcl_create_kernel(context, "wave_kern_calc.cl", "copy_state_data_cl",  0);
       kernel_copy_state_ghost_data   = ezcl_create_kernel(context, "wave_kern_calc.cl", "copy_state_ghost_data_cl",  0);
+      kernel_copy_mpot_ghost_data   = ezcl_create_kernel(context, "wave_kern_calc.cl", "copy_mpot_ghost_data_cl",  0);
       kernel_calc_finite_difference = ezcl_create_kernel(context, "wave_kern_calc.cl", "calc_finite_difference_cl",  0);
       kernel_refine_potential  = ezcl_create_kernel(context, "wave_kern_calc.cl", "refine_potential_cl", 0);
       kernel_refine_smooth     = ezcl_create_kernel(context, "wave_kern_calc.cl", "refine_smooth_cl", 0);
@@ -2874,14 +2876,6 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 {
    cl_event refine_potential_event;
 
-#ifdef HAVE_MPI
-// MPI_Barrier(MPI_COMM_WORLD);
-#endif
-
-   struct timeval tstart_gpu;
-
-   cpu_timer_start(&tstart_gpu);
-
    size_t &ncells       = mesh->ncells;
    int &levmx           = mesh->levmx;
    cl_mem &dev_nlft     = mesh->dev_nlft;
@@ -2949,6 +2943,7 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+   size_t block_size = global_work_size/local_work_size;
 
      /*
      __kernel void refine_potential
@@ -2992,7 +2987,93 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_potential, 1, NULL, &global_work_size, &local_work_size,
        &refine_potential_event);
 
-   gpu_time_refine_potential += ((long)(cpu_timer_stop(tstart_gpu)*1e9));  
+   mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+
+// XXX Maybe figure out way to get rid of reading off device?? XXX
+
+
+   size_t result = 0;
+   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+
+//   printf("result = %d after first refine potential\n",(result-ncells));
+//   int which_smooth = 1;
+
+//   sleep(1);
+   int icount = result - ncells;
+   int icount_global = icount;
+#ifdef HAVE_MPI
+   if (mesh->parallel) {
+      MPI_Allreduce(&icount, &icount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   }
+#endif
+
+   if( (icount_global) > 0) {
+      cl_event refine_smooth_event;
+      cl_event copy_mpot_ghost_data_event;
+      cl_mem dev_newcount   = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
+      int new_count_global = 0;
+
+      do {
+         vector<int> mpot_tmp(mesh->ncells_ghost,0);
+         ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
+#ifdef HAVE_MPI
+         L7_Update(&mpot_tmp[0], L7_INT, mesh->cell_handle);
+#endif
+
+         cl_mem dev_mpot_add = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+         ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
+
+         size_t ghost_local_work_size = 32;
+         size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
+
+         // Fill in ghost
+         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
+         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
+         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot);
+         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
+
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_mpot_ghost_data_event);
+
+         ezcl_set_kernel_arg(kernel_refine_smooth, 0, sizeof(cl_int),  (void *)&ncells);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 1, sizeof(cl_int),  (void *)&levmx);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 2, sizeof(cl_mem),  (void *)&dev_nlft);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 3, sizeof(cl_mem),  (void *)&dev_nrht);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 4, sizeof(cl_mem),  (void *)&dev_ntop);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 5, sizeof(cl_mem),  (void *)&dev_nbot);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 6, sizeof(cl_mem),  (void *)&dev_level);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 7, sizeof(cl_mem),  (void *)&dev_celltype);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 8, sizeof(cl_mem),  (void *)&dev_mpot);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 9, sizeof(cl_mem),  (void *)&dev_ioffset);
+         ezcl_set_kernel_arg(kernel_refine_smooth,10, sizeof(cl_mem),  (void *)&dev_newcount);
+         ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_result);
+         ezcl_set_kernel_arg(kernel_refine_smooth,12, local_work_size*sizeof(cl_int2),    NULL);
+
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_smooth, 1, NULL, &global_work_size, &local_work_size, &refine_smooth_event);
+
+         mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_newcount, dev_result);
+
+         ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+
+         gpu_time_refine_potential  += ezcl_timer_calc(&copy_mpot_ghost_data_event, &copy_mpot_ghost_data_event);
+         gpu_time_refine_potential  += ezcl_timer_calc(&refine_smooth_event,  &refine_smooth_event);
+
+//         printf("result = %d after %d refine smooths\n",result,which_smooth);
+//         sleep(1);
+//         which_smooth++;
+         int new_count = result;
+         new_count_global = new_count;
+#ifdef HAVE_MPI
+         if (mesh->parallel) {
+            MPI_Allreduce(&new_count, &new_count_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         }
+#endif
+
+      } while(new_count_global > 0);
+
+      ezcl_device_memory_remove(dev_newcount);
+
+      mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+   }
 
    gpu_time_refine_potential += ezcl_timer_calc(&refine_potential_event,  &refine_potential_event);
 }

@@ -924,7 +924,7 @@ extern "C" void do_calc(void)
       cl_mem dev_ioffset_global    = ezcl_malloc(NULL, &block_size_global, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
       if (do_cpu_calc) {
-         mpot.resize(ncells);
+         mpot.resize(ncells_ghost);
          mpot_global.resize(ncells_global);
          state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
          state_local->calc_refine_potential(mesh_local, mpot, icount, jcount);
@@ -937,12 +937,12 @@ extern "C" void do_calc(void)
          nbot_global.clear();
          ntop_global.clear();
       }  //  Complete CPU calculation.
-  
+
       size_t result_size = 1;
       cl_mem dev_result = NULL;
       cl_mem dev_result_global = NULL;
       if (do_gpu_calc) {
-         dev_mpot     = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+         dev_mpot     = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
          dev_mpot_global     = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
          dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          dev_result_global  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -1091,12 +1091,14 @@ extern "C" void do_calc(void)
       if (do_cpu_calc) {
          new_ncells_global = old_ncells_global+mesh_global->rezone_count(mpot_global);
          new_ncells = old_ncells+mesh_local->rezone_count(mpot);
+         //printf("new_ncells %d old_ncells %d rezone_count %d\n",new_ncells, old_ncells, mesh_local->rezone_count(mpot)) ;
+         //printf("new_ncells_global %d old_ncells_global %d rezone_count_global %d\n",new_ncells_global, old_ncells_global, mesh_global->rezone_count(mpot_global));
       }
 
-      if (do_gpu_calc) {
-         mesh_global->gpu_rezone_count(command_queue, block_size_global, local_work_size_global, dev_ioffset_global, dev_result_global);
-         mesh_local->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
-      }
+      //if (do_gpu_calc) {
+      //   mesh_global->gpu_rezone_count(command_queue, block_size_global, local_work_size_global, dev_ioffset_global, dev_result_global);
+      //   mesh_local->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+      //}
 
       if (do_comparison_calc) {
          int result;
