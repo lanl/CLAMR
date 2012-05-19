@@ -74,6 +74,7 @@ typedef struct
 typedef cl_double2  cl_real2;
 #define L7_REAL L7_DOUBLE
 #define STATE_EPS        .02
+#define MPI_C_REAL MPI_DOUBLE
 #else
 typedef struct
 {
@@ -83,6 +84,7 @@ typedef struct
 typedef cl_float2   cl_real2;
 #define L7_REAL L7_FLOAT
 #define STATE_EPS      15.0
+#define MPI_C_REAL MPI_FLOAT
 #endif
 
 typedef unsigned int uint;
@@ -3659,3 +3661,21 @@ void State::compare_state_gpu_global_to_cpu_global(cl_command_queue command_queu
       if (fabs(V[ic]-V_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d V & V_check %d %lf %lf\n",string,cycle,ic,V[ic],V_check[ic]);
    }
 }
+
+void State::compare_state_cpu_local_to_cpu_global(Mesh *mesh, const char* string, int cycle, int ncells_global, int *nsizes, int *ndispl)
+{
+#ifdef HAVE_MPI
+   vector<real>H_check(ncells_global);
+   vector<real>U_check(ncells_global);
+   vector<real>V_check(ncells_global);
+   MPI_Allgatherv(&H[0], nsizes[mesh->mype], MPI_C_REAL, &H_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U[0], nsizes[mesh->mype], MPI_C_REAL, &U_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V[0], nsizes[mesh->mype], MPI_C_REAL, &V_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   for (uint ic = 0; ic < ncells_global; ic++){
+      if (fabs(H[ic]-H_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d H & H_check %d %lf %lf\n",string,cycle,ic,H[ic],H_check[ic]);
+      if (fabs(U[ic]-U_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d U & U_check %d %lf %lf\n",string,cycle,ic,U[ic],U_check[ic]);
+      if (fabs(V[ic]-V_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d V & V_check %d %lf %lf\n",string,cycle,ic,V[ic],V_check[ic]);
+   }
+#endif
+}
+
