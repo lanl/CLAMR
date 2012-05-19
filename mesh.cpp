@@ -79,9 +79,11 @@
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
 #define MPI_C_REAL MPI_DOUBLE
+#define CONSERVATION_EPS    .02
 #else
 typedef float       real;
 #define MPI_C_REAL MPI_FLOAT
+#define CONSERVATION_EPS    .1
 #endif
 
 typedef unsigned int uint;
@@ -329,6 +331,32 @@ void Mesh::compare_neighbors_gpu_global_to_cpu_global(cl_command_queue command_q
    //printf("\n%d:                 Finished comparing mesh for dev_local to local\n\n",mype);
 }
 
+void Mesh::compare_coordinates_gpu_global_to_cpu_global(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real *H)
+{
+   vector<real>x_check(ncells);
+   vector<real>dx_check(ncells);
+   vector<real>y_check(ncells);
+   vector<real>dy_check(ncells);
+   vector<real>H_check(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_x,   CL_FALSE, 0, ncells*sizeof(cl_real), &x_check[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_dx,  CL_FALSE, 0, ncells*sizeof(cl_real), &dx_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_y,   CL_FALSE, 0, ncells*sizeof(cl_real), &y_check[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_dy,  CL_FALSE, 0, ncells*sizeof(cl_real), &dy_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_TRUE,  0, ncells*sizeof(cl_real), &H_check[0],  NULL);
+   for (uint ic = 0; ic < ncells; ic++){
+      if (x[ic] != x_check[ic] || dx[ic] != dx_check[ic] || y[ic] != y_check[ic] || dy[ic] != dy_check[ic] ) {
+         printf("Error -- mismatch in spatial coordinates for cell %d is gpu %lf %lf %lf %lf cpu %lf %lf %lf %lf\n",ic    ,x_check[ic],dx_check[ic],y_check[ic],dy_check[ic],x[ic],dx[ic],y[ic],dy[ic]);
+         exit(0);
+      }
+   }  
+   for (uint ic = 0; ic < ncells; ic++){
+      if (fabs(H[ic] - H_check[ic]) > CONSERVATION_EPS) {
+         printf("Error -- mismatch in H for cell %d is gpu %lf cpu %lf\n",ic,H_check[ic],H[ic]);
+         exit(0);
+      }
+   }
+}
+
 void Mesh::compare_mpot_gpu_global_to_cpu_global(cl_command_queue command_queue, int *mpot, cl_mem dev_mpot)
 {
    vector<int>mpot_check(ncells);
@@ -336,6 +364,29 @@ void Mesh::compare_mpot_gpu_global_to_cpu_global(cl_command_queue command_queue,
 
    for (uint ic=0; ic<ncells; ic++) {
       if (mpot[ic] != mpot_check[ic]) printf("DEBUG -- mpot: ic %d mpot %d mpot_check %d\n",ic, mpot[ic], mpot_check[ic]);
+   }
+}
+
+void Mesh::compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, int old_ncells, int block_size, int *mpot, cl_mem dev_ioffset)
+{
+   vector<int> ioffset(block_size); 
+   ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
+
+   int mcount, mtotal;
+   mtotal = 0;
+   for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
+      mcount = 0;
+      for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
+          if (ic >= old_ncells) break;
+
+          if (celltype[ic] == REAL_CELL){
+             mcount += mpot[ic] ? 4 : 1;
+          } else {
+             mcount += mpot[ic] ? 2 : 1;
+          }
+      }
+      if (mtotal != ioffset[ig]) printf("DEBUG ig %d ioffset %d mcount %d\n",ig,ioffset[ig],mtotal);
+      mtotal += mcount;
    }
 }
 
