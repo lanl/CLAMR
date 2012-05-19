@@ -457,7 +457,6 @@ extern "C" void do_calc(void)
       }  //  Complete NAN check.
       
       vector<int>      ioffset(block_size);
-      cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
       if (do_cpu_calc) {
          mpot.resize(ncells);
@@ -469,10 +468,13 @@ extern "C" void do_calc(void)
          ntop.clear();
       }  //  Complete CPU calculation.
 
+      cl_mem dev_ioffset = NULL;
+
       size_t result_size = 1;
       cl_mem dev_result = NULL;
       if (do_gpu_calc) {
-         dev_mpot     = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+         dev_ioffset = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
+         dev_mpot    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
          dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
          state->gpu_calc_refine_potential(command_queue, mesh, dev_mpot, dev_result, dev_ioffset);
@@ -485,14 +487,9 @@ extern "C" void do_calc(void)
       
       if (do_comparison_calc) {
          // Need to compare dev_mpot to mpot
-         vector<int>mpot_save(ncells);
-         ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_save[0], NULL);
-         for (uint ic = 0; ic < ncells; ic++){
-            if (fabs(mpot[ic]-mpot_save[ic]) > STATE_EPS) {
-               printf("DEBUG refine_potential at cycle %d mpot & mpot_save %d %d %d \n",n,ic,mpot[ic],mpot_save[ic]);
-            }
-         }
+         mesh->compare_mpot_gpu_global_to_cpu_global(command_queue, &mpot[0], dev_mpot);
       }
+
       // Sync up cpu array with gpu version to reduce differences due to minor numerical differences
       // otherwise cell count will diverge causing code problems and crashes
       if (do_sync) {

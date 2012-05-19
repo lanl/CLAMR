@@ -329,6 +329,16 @@ void Mesh::compare_neighbors_gpu_global_to_cpu_global(cl_command_queue command_q
    //printf("\n%d:                 Finished comparing mesh for dev_local to local\n\n",mype);
 }
 
+void Mesh::compare_mpot_gpu_global_to_cpu_global(cl_command_queue command_queue, int *mpot, cl_mem dev_mpot)
+{
+   vector<int>mpot_check(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_mpot,  CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_check[0], NULL);
+
+   for (uint ic=0; ic<ncells; ic++) {
+      if (mpot[ic] != mpot_check[ic]) printf("DEBUG -- mpot: ic %d mpot %d mpot_check %d\n",ic, mpot[ic], mpot_check[ic]);
+   }
+}
+
 Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary, int parallel_in, int do_gpu_calc)
 {
    cpu_time_calc_neighbors     = 0.0;

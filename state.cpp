@@ -3007,6 +3007,7 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 //   int which_smooth = 1;
 
 //   sleep(1);
+
    int newcount = result - ncells;
    int newcount_global = newcount;
 #ifdef HAVE_MPI
@@ -3070,6 +3071,7 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 //         printf("result = %d after %d refine smooths\n",result,which_smooth);
 //         sleep(1);
 //         which_smooth++;
+
          newcount = result;
          newcount_global = newcount;
 #ifdef HAVE_MPI

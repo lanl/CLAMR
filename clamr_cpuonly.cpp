@@ -272,10 +272,6 @@ extern "C" void do_calc(void)
       do_gpu_sync = 1;
    }
    
-#ifdef HAVE_OPENCL
-   cl_mem dev_mpot  = NULL;
-#endif
-
    //  Initialize state variables for GPU calculation.
    vector<int>   &celltype = mesh->celltype;
    vector<int>   &i        = mesh->i;
@@ -343,6 +339,7 @@ extern "C" void do_calc(void)
    }
    
    vector<int>     mpot;
+   vector<int>     ioffset;
    
    size_t old_ncells = ncells;
    size_t new_ncells = 0;
@@ -407,25 +404,16 @@ extern "C" void do_calc(void)
       
       //  Check for NANs.
       for (uint ic=0; ic<ncells; ic++) {
-         if (isnan(H[ic]))
-         {  printf("Got a NAN on cell %d cycle %d\n",ic,n);
-            H[ic]=0.0;
-            sleep(100);
-#ifdef HAVE_OPENCL
+         if (isnan(H[ic])) {
+            printf("Got a NAN on cell %d cycle %d\n",ic,n);
             //  Release kernels and finalize the OpenCL elements.
             ezcl_finalize();
-#endif
-            exit(-1); }
+            exit(-1);
+         }
       }  //  Complete NAN check.
-      
-      vector<int>      ioffset(block_size);
-
-      cl_mem dev_ioffset=NULL;
-      if (do_gpu_calc) {
-         dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
-      }
 
       mpot.resize(ncells);
+      ioffset.resize(block_size);
       state->calc_refine_potential(mesh, mpot, icount, jcount);
 
       nlft.clear();
@@ -433,9 +421,13 @@ extern "C" void do_calc(void)
       nbot.clear();
       ntop.clear();
 
+      cl_mem dev_ioffset=NULL;
+      cl_mem dev_mpot  = NULL;
+
       size_t result_size = 1;
       cl_mem dev_result = NULL;
       if (do_comparison_calc) {
+         dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
          dev_mpot     = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
          dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
@@ -447,13 +439,8 @@ extern "C" void do_calc(void)
          ezcl_device_memory_remove(dev_ntop);
       
          // Need to compare dev_mpot to mpot
-         vector<int>mpot_save(ncells);
-         ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_save[0], NULL);
-         for (uint ic = 0; ic < ncells; ic++){
-            if (mpot[ic] != mpot_save[ic]) {
-               printf("DEBUG refine_potential at cycle %d cell %d mpot & mpot_save %d %d \n",n,ic,mpot[ic],mpot_save[ic]);
-            }
-         }
+         mesh->compare_mpot_gpu_global_to_cpu_global(command_queue, &mpot[0], dev_mpot);
+
          // Sync up cpu array with gpu version to reduce differences due to minor numerical differences
          // otherwise cell count will diverge causing code problems and crashes
          if (do_gpu_sync) {
