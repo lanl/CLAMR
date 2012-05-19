@@ -1336,6 +1336,7 @@ extern "C" void do_calc(void)
                n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
          }
 #ifdef HAVE_GRAPHICS
+         mesh_global->calc_spatial_coordinates(0);
          set_mysize(ncells_global);
          set_viewmode(view_mode);
          set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
