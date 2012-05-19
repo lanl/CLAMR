@@ -264,6 +264,7 @@ public:
    void print_local(void);
    void print_dev_local(cl_command_queue);
    void compare_dev_local_to_local(cl_command_queue);
+   void compare_neighbors_gpu_global_to_cpu_global(cl_command_queue command_queue);
    void partition_measure(void);
    void print_partition_measure(void);
    void print_calc_neighbor_type(void);

@@ -307,6 +307,28 @@ void Mesh::compare_dev_local_to_local(cl_command_queue command_queue)
    fprintf(fp,"\n%d:                 Finished comparing mesh for dev_local to local\n\n",mype);
 }
 
+
+void Mesh::compare_neighbors_gpu_global_to_cpu_global(cl_command_queue command_queue)
+{
+   vector<int>nlft_check(ncells);
+   vector<int>nrht_check(ncells);
+   vector<int>nbot_check(ncells);
+   vector<int>ntop_check(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_nlft,  CL_FALSE, 0, ncells*sizeof(cl_int), &nlft_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_nrht,  CL_FALSE, 0, ncells*sizeof(cl_int), &nrht_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_nbot,  CL_FALSE, 0, ncells*sizeof(cl_int), &nbot_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_ntop,  CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_check[0], NULL);
+
+   //printf("\n%d:                      Comparing neighbors for gpu_global to cpu_global\n\n",mype);
+   for (uint ic=0; ic<ncells; ic++) {
+      if (nlft[ic] != nlft_check[ic]) printf("DEBUG -- nlft: ic %d nlft %d nlft_check %d\n",ic, nlft[ic], nlft_check[ic]);
+      if (nrht[ic] != nrht_check[ic]) printf("DEBUG -- nrht: ic %d nrht %d nrht_check %d\n",ic, nrht[ic], nrht_check[ic]);
+      if (nbot[ic] != nbot_check[ic]) printf("DEBUG -- nbot: ic %d nbot %d nbot_check %d\n",ic, nbot[ic], nbot_check[ic]);
+      if (ntop[ic] != ntop_check[ic]) printf("DEBUG -- ntop: ic %d ntop %d ntop_check %d\n",ic, ntop[ic], ntop_check[ic]);
+   }
+   //printf("\n%d:                 Finished comparing mesh for dev_local to local\n\n",mype);
+}
+
 Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary, int parallel_in, int do_gpu_calc)
 {
    cpu_time_calc_neighbors     = 0.0;

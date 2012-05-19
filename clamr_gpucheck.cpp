@@ -388,22 +388,9 @@ extern "C" void do_calc(void)
       }
 
       if (do_comparison_calc) {
-         vector<int> nlft_check(ncells);
-         vector<int> nrht_check(ncells);
-         vector<int> nbot_check(ncells);
-         vector<int> ntop_check(ncells);
-         ezcl_enqueue_read_buffer(command_queue, dev_nlft,     CL_FALSE, 0, ncells*sizeof(cl_int),  &nlft_check[0],      NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_nrht,     CL_FALSE, 0, ncells*sizeof(cl_int),  &nrht_check[0],      NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_nbot,     CL_FALSE, 0, ncells*sizeof(cl_int),  &nbot_check[0],      NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_ntop,     CL_TRUE,  0, ncells*sizeof(cl_int),  &ntop_check[0],      NULL);
-
-         for (uint ic=0; ic<ncells; ic++){
-            if (nlft[ic] != nlft_check[ic]) printf("DEBUG -- nlft: ic %d nlft %d nlft_check %d\n",ic, nlft[ic], nlft_check[ic]);
-            if (nrht[ic] != nrht_check[ic]) printf("DEBUG -- nrht: ic %d nrht %d nrht_check %d\n",ic, nrht[ic], nrht_check[ic]);
-            if (nbot[ic] != nbot_check[ic]) printf("DEBUG -- nbot: ic %d nbot %d nbot_check %d\n",ic, nbot[ic], nbot_check[ic]);
-            if (ntop[ic] != ntop_check[ic]) printf("DEBUG -- ntop: ic %d ntop %d ntop_check %d\n",ic, ntop[ic], ntop_check[ic]);
-         }
+         mesh->compare_neighbors_gpu_global_to_cpu_global(command_queue);
       }
+
       mesh->partition_measure();
 
       // Currently not working -- may need to be earlier?
@@ -429,17 +416,7 @@ extern "C" void do_calc(void)
       
       if (do_comparison_calc) {
          // Need to compare dev_H to H, etc
-         vector<real>H_save(ncells);
-         vector<real>U_save(ncells);
-         vector<real>V_save(ncells);
-         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_save[0], NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_save[0], NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_save[0], NULL);
-         for (uint ic = 0; ic < ncells; ic++){
-            if (fabs(H[ic]-H_save[ic]) > STATE_EPS) printf("DEBUG finite_difference at cycle %d H & H_save %d %lf %lf \n",n,ic,H[ic],H_save[ic]);
-            if (fabs(U[ic]-U_save[ic]) > STATE_EPS) printf("DEBUG finite_difference at cycle %d U & U_save %d %lf %lf \n",n,ic,U[ic],U_save[ic]);
-            if (fabs(V[ic]-V_save[ic]) > STATE_EPS) printf("DEBUG finite_difference at cycle %d V & V_save %d %lf %lf \n",n,ic,V[ic],V_save[ic]);
-         }
+         state->compare_state_gpu_global_to_cpu_global(command_queue,"finite difference",n,ncells);
       }
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0

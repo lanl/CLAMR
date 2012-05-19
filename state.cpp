@@ -73,6 +73,7 @@ typedef struct
 }  real2;
 typedef cl_double2  cl_real2;
 #define L7_REAL L7_DOUBLE
+#define STATE_EPS        .02
 #else
 typedef struct
 {
@@ -81,6 +82,7 @@ typedef struct
 }  real2;
 typedef cl_float2   cl_real2;
 #define L7_REAL L7_FLOAT
+#define STATE_EPS      15.0
 #endif
 
 typedef unsigned int uint;
@@ -3643,3 +3645,17 @@ void State::parallel_timer_output(int numpe, int mype, const char *string, doubl
    }
 }
 
+void State::compare_state_gpu_global_to_cpu_global(cl_command_queue command_queue, const char* string, int cycle, int ncells)
+{
+   vector<real>H_check(ncells);
+   vector<real>U_check(ncells);
+   vector<real>V_check(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_check[0], NULL);
+   for (uint ic = 0; ic < ncells; ic++){
+      if (fabs(H[ic]-H_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d H & H_check %d %lf %lf\n",string,cycle,ic,H[ic],H_check[ic]);
+      if (fabs(U[ic]-U_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d U & U_check %d %lf %lf\n",string,cycle,ic,U[ic],U_check[ic]);
+      if (fabs(V[ic]-V_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d V & V_check %d %lf %lf\n",string,cycle,ic,V[ic],V_check[ic]);
+   }
+}
