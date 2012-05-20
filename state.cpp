@@ -3649,7 +3649,7 @@ void State::parallel_timer_output(int numpe, int mype, const char *string, doubl
    }
 }
 
-void State::compare_state_gpu_global_to_cpu_global(cl_command_queue command_queue, const char* string, int cycle, int ncells)
+void State::compare_state_gpu_global_to_cpu_global(cl_command_queue command_queue, const char* string, int cycle, uint ncells)
 {
    vector<real>H_check(ncells);
    vector<real>U_check(ncells);
@@ -3664,20 +3664,25 @@ void State::compare_state_gpu_global_to_cpu_global(cl_command_queue command_queu
    }
 }
 
-void State::compare_state_cpu_local_to_cpu_global(Mesh *mesh, const char* string, int cycle, int ncells_global, int *nsizes, int *ndispl)
+void State::compare_state_cpu_local_to_cpu_global(State *state_global, const char* string, int cycle, uint ncells, uint ncells_global, int *nsizes, int *ndispl)
 {
-#ifdef HAVE_MPI
+   vector<real> &H_global = state_global->H;
+   vector<real> &U_global = state_global->U;
+   vector<real> &V_global = state_global->V;
+
    vector<real>H_check(ncells_global);
    vector<real>U_check(ncells_global);
    vector<real>V_check(ncells_global);
-   MPI_Allgatherv(&H[0], nsizes[mesh->mype], MPI_C_REAL, &H_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&U[0], nsizes[mesh->mype], MPI_C_REAL, &U_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&V[0], nsizes[mesh->mype], MPI_C_REAL, &V_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   for (uint ic = 0; ic < ncells_global; ic++){
-      if (fabs(H[ic]-H_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d H & H_check %d %lf %lf\n",string,cycle,ic,H[ic],H_check[ic]);
-      if (fabs(U[ic]-U_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d U & U_check %d %lf %lf\n",string,cycle,ic,U[ic],U_check[ic]);
-      if (fabs(V[ic]-V_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d V & V_check %d %lf %lf\n",string,cycle,ic,V[ic],V_check[ic]);
-   }
+#ifdef HAVE_MPI
+   MPI_Allgatherv(&H[0], ncells, MPI_C_REAL, &H_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U[0], ncells, MPI_C_REAL, &U_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V[0], ncells, MPI_C_REAL, &V_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 #endif
+
+   for (uint ic = 0; ic < ncells_global; ic++){
+      if (fabs(H_global[ic]-H_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d H & H_check %d %lf %lf\n",string,cycle,ic,H_global[ic],H_check[ic]);
+      if (fabs(U_global[ic]-U_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d U & U_check %d %lf %lf\n",string,cycle,ic,U_global[ic],U_check[ic]);
+      if (fabs(V_global[ic]-V_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d V & V_check %d %lf %lf\n",string,cycle,ic,V_global[ic],V_check[ic]);
+   }
 }
 

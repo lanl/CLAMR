@@ -308,19 +308,11 @@ extern "C" void do_calc(void)
    vector<int>   &nsizes   = mesh_global->nsizes;
    vector<int>   &ndispl   = mesh_global->ndispl;
 
-   vector<int>   &celltype_global = mesh_global->celltype;
-   vector<int>   &i_global        = mesh_global->i;
-   vector<int>   &j_global        = mesh_global->j;
-   vector<int>   &level_global    = mesh_global->level;
    vector<int>   &nlft_global     = mesh_global->nlft;
    vector<int>   &nrht_global     = mesh_global->nrht;
    vector<int>   &nbot_global     = mesh_global->nbot;
    vector<int>   &ntop_global     = mesh_global->ntop;
 
-   vector<int>   &celltype = mesh->celltype;
-   vector<int>   &i        = mesh->i;
-   vector<int>   &j        = mesh->j;
-   vector<int>   &level    = mesh->level;
    vector<int>   &nlft     = mesh->nlft;
    vector<int>   &nrht     = mesh->nrht;
    vector<int>   &nbot     = mesh->nbot;
@@ -333,8 +325,6 @@ extern "C" void do_calc(void)
    int &cell_handle         = mesh->cell_handle;
 
    vector<real>  &H_global = state_global->H;
-   vector<real>  &U_global = state_global->U;
-   vector<real>  &V_global = state_global->V;
 
    vector<real>  &H = state->H;
    vector<real>  &U = state->U;
@@ -451,135 +441,7 @@ extern "C" void do_calc(void)
          mesh_global->calc_neighbors();
 
          // Checking CPU parallel to CPU global
-         vector<int> Test(ncells_ghost);
-         for(uint ic=0; ic<ncells; ic++){
-            Test[ic] = mype*1000 +ic;
-         }
-         L7_Update(&Test[0], L7_INT, cell_handle);
-
-         vector<int> Test_global(ncells_global);
-         MPI_Allgatherv(&Test[0], nsizes[mype], MPI_INT, &Test_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-
-         vector<int> Test_check(ncells);
-         vector<int> Test_check_global(ncells_global);
-
-         // ==================== check left value ====================
-         for (uint ic=0; ic<ncells; ic++){
-            Test_check[ic] = Test[nlft[ic]];
-            //if (mype == 1 && ic==0) printf("%d: nlft check for ic 0 is %d\n",mype,nlft[0]);
-         }
-
-         MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-
-         for (uint ic=0; ic<ncells_global; ic++){
-            //if (Test_global[nlft_global[ic]] != Test_check_global[ic]) {
-               //if (mype == 0) printf("%d: Error with nlft for cell %d -- nlft %d global %d check %d\n",mype,ic,nlft_global[ic],Test_global[nlft_global[ic]],Test_check_global[ic]);
-            //}
-         }
-         
-         // ==================== check left left value ====================
-         for (uint ic=0; ic<ncells; ic++){
-            Test_check[ic] = Test[nlft[nlft[ic]]];
-         }
-
-         MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-
-         for (uint ic=0; ic<ncells_global; ic++){
-            if (Test_global[nlft_global[nlft_global[ic]]] != Test_check_global[ic]) {
-               printf("%d: Error with nlft nlft for cell %5d -- nlftg %5d nlftg nlftg %5d global %5d\n",
-                  mype,ic,nlft_global[ic],nlft_global[nlft_global[ic]],Test_global[nlft_global[nlft_global[ic]]]);
-               printf("%d:                         check %5d -- nlftl %5d nlftl nlftl %5d check  %5d\n",
-                  mype,ic,nlft[ic],nlft[nlft[ic]],Test_check_global[ic]);
-            }
-         }
-         
-         // ==================== check right value ====================
-         for (uint ic=0; ic<ncells; ic++){
-            Test_check[ic] = Test[nrht[ic]];
-         }
-
-         MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-
-         for (uint ic=0; ic<ncells_global; ic++){
-            if (Test_global[nrht_global[ic]] != Test_check_global[ic]) {
-               if (mype == 0) printf("%d: Error with nrht for cell %d -- %d %d\n",mype,ic,Test_global[nrht_global[ic]],Test_check_global[ic]);
-            }
-         }
-         
-         // ==================== check right right value ====================
-         for (uint ic=0; ic<ncells; ic++){
-            Test_check[ic] = Test[nrht[nrht[ic]]];
-         }
-
-         MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-
-         for (uint ic=0; ic<ncells_global; ic++){
-            if (Test_global[nrht_global[nrht_global[ic]]] != Test_check_global[ic]) {
-               printf("%d: Error with nrht nrht for cell %5d -- nrhtg %5d nrhtg nrhtg %5d global %5d\n",
-                  mype,ic,nrht_global[ic],nrht_global[nrht_global[ic]],Test_global[nrht_global[nrht_global[ic]]]);
-               printf("%d:                         check %5d -- nrhtl %5d nrhtl nrhtl %5d check  %5d\n",
-                  mype,ic,nrht[ic],nrht[nrht[ic]],Test_check_global[ic]);
-            }
-         }
-         
-         // ==================== check bottom value ====================
-         for (uint ic=0; ic<ncells; ic++){
-            Test_check[ic] = Test[nbot[ic]];
-         }
-
-         MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-
-         for (uint ic=0; ic<ncells_global; ic++){
-            if (Test_global[nbot_global[ic]] != Test_check_global[ic]) {
-               if (mype == 0) printf("%d: Error with nbot for cell %d -- %d %d\n",mype,ic,Test_global[nbot_global[ic]],Test_check_global[ic]);
-            }
-         }
-         
-         // ==================== check bottom bottom value ====================
-         for (uint ic=0; ic<ncells; ic++){
-            Test_check[ic] = Test[nbot[nbot[ic]]];
-         }
-
-         MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-
-         for (uint ic=0; ic<ncells_global; ic++){
-            if (Test_global[nbot_global[nbot_global[ic]]] != Test_check_global[ic]) {
-               printf("%d: Error with nbot nbot for cell %5d -- nbotg %5d nbotg nbotg %5d global %5d\n",
-                  mype,ic,nbot_global[ic],nbot_global[nbot_global[ic]],Test_global[nbot_global[nbot_global[ic]]]);
-               printf("%d:                         check %5d -- nbotl %5d nbotl nbotl %5d check  %5d\n",
-                  mype,ic,nbot[ic],nbot[nbot[ic]],Test_check_global[ic]);
-            }
-         }
-         
-         // ==================== check top value ====================
-         for (uint ic=0; ic<ncells; ic++){
-            Test_check[ic] = Test[ntop[ic]];
-         }
-
-         MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-
-         for (uint ic=0; ic<ncells_global; ic++){
-            if (Test_global[ntop_global[ic]] != Test_check_global[ic]) {
-               if (mype == 0) printf("%d: Error with ntop for cell %d -- %d %d\n",mype,ic,Test_global[ntop_global[ic]],Test_check_global[ic]);
-            }
-         }
-
-         // ==================== check top top value ====================
-         for (uint ic=0; ic<ncells; ic++){
-            Test_check[ic] = Test[ntop[ntop[ic]]];
-         }
-
-         MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-
-         for (uint ic=0; ic<ncells_global; ic++){
-            if (Test_global[ntop_global[ntop_global[ic]]] != Test_check_global[ic]) {
-               printf("%d: Error with ntop ntop for cell %5d -- ntopg %5d ntopg ntopg %5d global %5d\n",
-                  mype,ic,ntop_global[ic],ntop_global[ntop_global[ic]],Test_global[ntop_global[ntop_global[ic]]]);
-               printf("%d:                         check %5d -- ntopl %5d ntopl ntopl %5d check  %5d\n",
-                  mype,ic,ntop[ic],ntop[ntop[ic]],Test_check_global[ic]);
-            }
-         }
-         
+         mesh->compare_neighbors_cpu_local_to_cpu_global(ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);
       }
 
       mesh->partition_measure();
@@ -605,7 +467,7 @@ extern "C" void do_calc(void)
          state_global->calc_finite_difference(mesh_global, deltaT);
 
          // Compare H gathered to H_global, etc
-         state->compare_state_cpu_local_to_cpu_global(mesh, "finite difference", n, ncells_global, &nsizes[0], &ndispl[0]);
+         state->compare_state_cpu_local_to_cpu_global(state_global, "finite difference", n, ncells, ncells_global, &nsizes[0], &ndispl[0]);
       }
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
@@ -651,13 +513,7 @@ extern "C" void do_calc(void)
          }
 
          // Compare mpot to mpot_global
-         vector<int>mpot_save_global(ncells_global);
-         MPI_Allgatherv(&mpot[0], nsizes[mype], MPI_INT, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-         for (uint ic = 0; ic < ncells_global; ic++){
-            if (mpot_global[ic] != mpot_save_global[ic]) {
-               if (mype == 0) printf("%d: DEBUG refine_potential 3 at cycle %d cell %d mpot_global & mpot_save_global %d %d \n",mype,n,ic,mpot_global[ic],mpot_save_global[ic]);
-            }    
-         }    
+         mesh->compare_mpot_cpu_local_to_cpu_global(ncells_global, &nsizes[0], &ndispl[0], &mpot[0], &mpot_global[0], n);
       }
 
       new_ncells = old_ncells+mesh->rezone_count(mpot);
@@ -688,30 +544,9 @@ extern "C" void do_calc(void)
          //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
 
          // And compare H gathered to H_global, etc
-         vector<real>H_check_global(ncells_global);
-         vector<real>U_check_global(ncells_global);
-         vector<real>V_check_global(ncells_global);
-         vector<int>celltype_check_global(ncells_global);
-         vector<int>i_check_global(ncells_global);
-         vector<int>j_check_global(ncells_global);
-         vector<int>level_check_global(ncells_global);
-         MPI_Allgatherv(&H[0],        nsizes[mype], MPI_C_REAL, &H_check_global[0],        &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-         MPI_Allgatherv(&U[0],        nsizes[mype], MPI_C_REAL, &U_check_global[0],        &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-         MPI_Allgatherv(&V[0],        nsizes[mype], MPI_C_REAL, &V_check_global[0],        &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-         MPI_Allgatherv(&celltype[0], nsizes[mype], MPI_INT,    &celltype_check_global[0], &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
-         MPI_Allgatherv(&i[0],        nsizes[mype], MPI_INT,    &i_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
-         MPI_Allgatherv(&j[0],        nsizes[mype], MPI_INT,    &j_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
-         MPI_Allgatherv(&level[0],    nsizes[mype], MPI_INT,    &level_check_global[0],    &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
-         for (uint ic = 0; ic < ncells_global; ic++){
-            if (fabs(H_global[ic]-H_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 3 at cycle %d H_global & H_check_global %d %lf %lf \n",n,ic,H_global[ic],H_check_global[ic]);
-            if (fabs(U_global[ic]-U_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 3 at cycle %d U_global & U_check_global %d %lf %lf \n",n,ic,U_global[ic],U_check_global[ic]);
-            if (fabs(V_global[ic]-V_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 3 at cycle %d V_global & V_check_global %d %lf %lf \n",n,ic,V_global[ic],V_check_global[ic]);
-            if (celltype_global[ic] != celltype_check_global[ic])  printf("DEBUG rezone 3 at cycle %d celltype_global & celltype_check_global %d %d  %d  \n",n,ic,celltype_global[ic],celltype_check_global[ic]);
-            if (i_global[ic] != i_check_global[ic])                printf("DEBUG rezone 3 at cycle %d i_global & i_check_global %d %d  %d  \n",n,ic,i_global[ic],i_check_global[ic]);
-            if (j_global[ic] != j_check_global[ic])                printf("DEBUG rezone 3 at cycle %d j_global & j_check_global %d %d  %d  \n",n,ic,j_global[ic],j_check_global[ic]);
-            if (level_global[ic] != level_check_global[ic])        printf("DEBUG rezone 3 at cycle %d level_global & level_check_global %d %d  %d  \n",n,ic,level_global[ic],level_check_global[ic]);
-         }
+         state->compare_state_cpu_local_to_cpu_global(state_global, "rezone all", n, ncells, ncells_global, &nsizes[0], &ndispl[0]);
 
+         mesh->compare_indices_cpu_local_to_cpu_global(ncells_global, mesh_global, &nsizes[0], &ndispl[0], n);
       } // do_comparison_calc
 
       //if (n % outputInterval == 0) {
@@ -774,23 +609,9 @@ extern "C" void do_calc(void)
    mesh->calc_spatial_coordinates(0);
    if (do_comparison_calc) {
       mesh_global->calc_spatial_coordinates(0);
-      vector<real> x_check_global(ncells_global);
-      vector<real> dx_check_global(ncells_global);
-      vector<real> y_check_global(ncells_global);
-      vector<real> dy_check_global(ncells_global);
-      vector<real> H_check_global(ncells_global);
-      MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_check_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_check_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      MPI_Allgatherv(&H[0],  nsizes[mype], MPI_C_REAL, &H_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      for (uint ic = 0; ic < ncells_global; ic++){
-         if (fabs(x_global[ic] -x_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d x_global  & x_check_global  %d %lf %lf \n",n,ic,x_global[ic], x_check_global[ic]);
-         if (fabs(dx_global[ic]-dx_check_global[ic]) > STATE_EPS) printf("DEBUG graphics at cycle %d dx_global & dx_check_global %d %lf %lf \n",n,ic,dx_global[ic],dx_check_global[ic]);
-         if (fabs(y_global[ic] -y_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d y_global  & y_check_global  %d %lf %lf \n",n,ic,y_global[ic], y_check_global[ic]);
-         if (fabs(dy_global[ic]-dy_check_global[ic]) > STATE_EPS) printf("DEBUG graphics at cycle %d dy_global & dy_check_global %d %lf %lf \n",n,ic,dy_global[ic],dy_check_global[ic]);
-         if (fabs(H_global[ic] -H_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d H_global  & H_check_global  %d %lf %lf \n",n,ic,H_global[ic], H_check_global[ic]);
-      }
+
+      mesh->compare_coordinates_cpu_local_to_cpu_global(ncells_global, &nsizes[0], &ndispl[0], &x[0], &dx[0], &y[0], &dy[0], &H[0], &x_global[0], &dx_global[0], &y_global[0], &dy_global[0], &H_global[0], n);
+
    } else {
 #ifdef HAVE_OPENGL
       MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
