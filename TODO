@@ -4,13 +4,10 @@
 
 ADD COMMENTS TO ALL THE CODE!!!
 
-Add mesh smoothing for MPI versions
+Fix mpi neighbors calc
 Add coarsening to the grid
 Fix boundary conditions
 Add load balance coding
-Add MPE option?
-	- Not as portable but could include necessary libraries in the tar file
-	  of clamr itself
 
 Run valgrind to find sources of memory errors
 
@@ -24,6 +21,7 @@ Possible work tasks:
    Alternative to current hash key
    Putting kD Tree on the GPU
    Adding pseudo-Z-order insertion
+   Add hash circle function
 
 Command line options
    Add different problem setups such as sloped wave in x, y, and diagonal directions to help check algorithm
