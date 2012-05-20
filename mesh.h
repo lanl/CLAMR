@@ -268,6 +268,7 @@ public:
    void compare_mpot_gpu_global_to_cpu_global(cl_command_queue command_queue, int *mpot, cl_mem dev_mpot);
    void compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, int old_ncells, int block_size, int *mpot, cl_mem dev_ioffset);
    void compare_coordinates_gpu_global_to_cpu_global(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real *H);
+   void compare_indices_gpu_global_to_cpu_global(cl_command_queue command_queue);
    void partition_measure(void);
    void print_partition_measure(void);
    void print_calc_neighbor_type(void);

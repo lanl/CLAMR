@@ -309,7 +309,6 @@ void Mesh::compare_dev_local_to_local(cl_command_queue command_queue)
    fprintf(fp,"\n%d:                 Finished comparing mesh for dev_local to local\n\n",mype);
 }
 
-
 void Mesh::compare_neighbors_gpu_global_to_cpu_global(cl_command_queue command_queue)
 {
    vector<int>nlft_check(ncells);
@@ -329,6 +328,25 @@ void Mesh::compare_neighbors_gpu_global_to_cpu_global(cl_command_queue command_q
       if (ntop[ic] != ntop_check[ic]) printf("DEBUG -- ntop: ic %d ntop %d ntop_check %d\n",ic, ntop[ic], ntop_check[ic]);
    }
    //printf("\n%d:                 Finished comparing mesh for dev_local to local\n\n",mype);
+}
+
+void Mesh::compare_indices_gpu_global_to_cpu_global(cl_command_queue command_queue)
+{
+   vector<int> i_check(ncells);
+   vector<int> j_check(ncells);
+   vector<int> level_check(ncells);
+   vector<int> celltype_check(ncells);
+   /// Set read buffers for data.
+   ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int), &i_check[0],        NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j_check[0],        NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int), &level_check[0],    NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells*sizeof(cl_int), &celltype_check[0], NULL);
+   for (uint ic = 0; ic < ncells; ic++){
+      if (i[ic]        != i_check[ic] )        printf("DEBUG -- i: ic %d i %d i_check %d\n",ic, i[ic], i_check[ic]);
+      if (j[ic]        != j_check[ic] )        printf("DEBUG -- j: ic %d j %d j_check %d\n",ic, j[ic], j_check[ic]);
+      if (level[ic]    != level_check[ic] )    printf("DEBUG -- level: ic %d level %d level_check %d\n",ic, level[ic], level_check[ic]);
+      if (celltype[ic] != celltype_check[ic] ) printf("DEBUG -- celltype: ic %d celltype %d celltype_check %d\n",ic, celltype[ic], celltype_check[ic]);
+   }
 }
 
 void Mesh::compare_coordinates_gpu_global_to_cpu_global(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real *H)

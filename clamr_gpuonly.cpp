@@ -293,10 +293,6 @@ extern "C" void do_calc(void)
    cl_mem &dev_U        = state->dev_U;
    cl_mem &dev_V        = state->dev_V;
 
-   cl_mem &dev_celltype = mesh->dev_celltype;
-   cl_mem &dev_i        = mesh->dev_i;
-   cl_mem &dev_j        = mesh->dev_j;
-   cl_mem &dev_level    = mesh->dev_level;
    cl_mem &dev_nlft     = mesh->dev_nlft;
    cl_mem &dev_nrht     = mesh->dev_nrht;
    cl_mem &dev_nbot     = mesh->dev_nbot;
@@ -471,22 +467,7 @@ extern "C" void do_calc(void)
 
          state->compare_state_gpu_global_to_cpu_global(command_queue,"rezone all",n,ncells);
 
-         vector<int> i_check(ncells);
-         vector<int> j_check(ncells);
-         vector<int> level_check(ncells);
-         vector<int> celltype_check(ncells);
-         /// Set read buffers for data.
-         ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &i_check[0],         NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  &j_check[0],         NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  &level_check[0],     NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells*sizeof(cl_int),  &celltype_check[0],  NULL);
-         for (uint ic = 0; ic < ncells; ic++){
-            if (i[ic]        != i_check[ic] ) printf("DEBUG -- i: ic %d i %d i_check %d\n",ic, i[ic], i_check[ic]);
-            if (j[ic]        != j_check[ic] )        printf("DEBUG -- j: ic %d j %d j_check %d\n",ic, j[ic], j_check[ic]);
-            if (level[ic]    != level_check[ic] )    printf("DEBUG -- level: ic %d level %d level_check %d\n",ic, level[ic], level_check[ic]);
-            if (celltype[ic] != celltype_check[ic] ) printf("DEBUG -- celltype: ic %d celltype %d celltype_check %d\n",ic, celltype[ic], celltype_check[ic]);
-         }
-      
+         mesh->compare_indices_gpu_global_to_cpu_global(command_queue);
       }
 
       int bcount = 0;
