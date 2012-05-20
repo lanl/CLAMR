@@ -428,9 +428,7 @@ extern "C" void do_calc(void)
       ezcl_device_memory_remove(dev_nbot);
       ezcl_device_memory_remove(dev_ntop);
       
-      vector<int>      ioffset;
       if (do_comparison_calc) {
-         ioffset.resize(block_size);
          mpot.resize(ncells);
          state->calc_refine_potential(mesh, mpot, icount, jcount);
 
@@ -521,7 +519,6 @@ extern "C" void do_calc(void)
       double H_sum = -1.0;
 
       if (do_comparison_calc) {
-         ioffset.clear();
          H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
          double summer = state->mass_sum(mesh, enhanced_precision_sum);
          if (fabs(H_sum - summer) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", H_sum, summer);
