@@ -469,34 +469,22 @@ extern "C" void do_calc(void)
          state->rezone_all(mesh, mpot, add_ncells);
          mpot.clear();
 
-         vector<real> H_save(ncells);
-         vector<real> U_save(ncells);
-         vector<real> V_save(ncells);
-         vector<int> level_check(ncells);
-         vector<int> celltype_check(ncells);
+         state->compare_state_gpu_global_to_cpu_global(command_queue,"rezone all",n,ncells);
+
          vector<int> i_check(ncells);
          vector<int> j_check(ncells);
+         vector<int> level_check(ncells);
+         vector<int> celltype_check(ncells);
          /// Set read buffers for data.
-         if (n % outputInterval == 0) {
-            ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_TRUE,  0, ncells*sizeof(cl_real), &H_save[0], &start_read_event);
-            state->gpu_time_read += ezcl_timer_calc(&start_read_event, &start_read_event);
-         } else {
-            ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_FALSE, 0, ncells*sizeof(cl_real), &H_save[0], NULL);
-         }
-         ezcl_enqueue_read_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real), &U_save[0],          NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V,        CL_FALSE, 0, ncells*sizeof(cl_real), &V_save[0],          NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  &level_check[0],     NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  &celltype_check[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &i_check[0],         NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_TRUE,  0, ncells*sizeof(cl_int),  &j_check[0],         NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  &j_check[0],         NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  &level_check[0],     NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells*sizeof(cl_int),  &celltype_check[0],  NULL);
          for (uint ic = 0; ic < ncells; ic++){
-            if (fabs(H[ic]-H_save[ic]) > STATE_EPS) printf("DEBUG diff at cycle %d H & H_save %d %lf %lf \n",n,ic,H[ic],H_save[ic]);
-            if (fabs(U[ic]-U_save[ic]) > STATE_EPS) printf("DEBUG diff at cycle %d U & U_save %d %lf %lf \n",n,ic,U[ic],U_save[ic]);
-            if (fabs(V[ic]-V_save[ic]) > STATE_EPS) printf("DEBUG diff at cycle %d V & V_save %d %lf %lf \n",n,ic,V[ic],V_save[ic]);
-            if (level[ic] != level_check[ic] ) printf("DEBUG -- level: ic %d level %d level_check %d\n",ic, level[ic], level_check[ic]);
+            if (i[ic]        != i_check[ic] ) printf("DEBUG -- i: ic %d i %d i_check %d\n",ic, i[ic], i_check[ic]);
+            if (j[ic]        != j_check[ic] )        printf("DEBUG -- j: ic %d j %d j_check %d\n",ic, j[ic], j_check[ic]);
+            if (level[ic]    != level_check[ic] )    printf("DEBUG -- level: ic %d level %d level_check %d\n",ic, level[ic], level_check[ic]);
             if (celltype[ic] != celltype_check[ic] ) printf("DEBUG -- celltype: ic %d celltype %d celltype_check %d\n",ic, celltype[ic], celltype_check[ic]);
-            if (i[ic] != i_check[ic] ) printf("DEBUG -- i: ic %d i %d i_check %d\n",ic, i[ic], i_check[ic]);
-            if (j[ic] != j_check[ic] ) printf("DEBUG -- j: ic %d j %d j_check %d\n",ic, j[ic], j_check[ic]);
          }
       
       }
