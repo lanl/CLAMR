@@ -357,7 +357,6 @@ void Mesh::compare_coordinates_gpu_global_to_cpu_global(cl_command_queue command
    }
 }
 
-
 void Mesh::compare_mpot_gpu_global_to_cpu_global(cl_command_queue command_queue, int *mpot, cl_mem dev_mpot)
 {
    vector<int>mpot_check(ncells);
@@ -365,6 +364,29 @@ void Mesh::compare_mpot_gpu_global_to_cpu_global(cl_command_queue command_queue,
 
    for (uint ic=0; ic<ncells; ic++) {
       if (mpot[ic] != mpot_check[ic]) printf("DEBUG -- mpot: ic %d mpot %d mpot_check %d\n",ic, mpot[ic], mpot_check[ic]);
+   }
+}
+
+void Mesh::compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, int old_ncells, int block_size, int *mpot, cl_mem dev_ioffset)
+{
+   vector<int> ioffset_check(block_size);
+   ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset_check[0], NULL);
+
+   int mcount, mtotal;
+   mtotal = 0;
+   for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
+      mcount = 0;
+      for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
+          if (ic >= old_ncells) break;
+
+          if (celltype[ic] == REAL_CELL){
+             mcount += mpot[ic] ? 4 : 1;
+          } else {
+             mcount += mpot[ic] ? 2 : 1;
+          }
+      }
+      if (mtotal != ioffset_check[ig]) printf("DEBUG ig %d ioffset %d mcount %d\n",ig,ioffset_check[ig],mtotal);
+      mtotal += mcount;
    }
 }
 

@@ -452,24 +452,7 @@ extern "C" void do_calc(void)
          // Should not need this -- count comes back from refine potential?
          new_ncells = old_ncells+mesh->rezone_count(mpot);
 
-         ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
-
-         int mcount, mtotal;
-         mtotal = 0;
-         for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
-            mcount = 0;
-            for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
-                if (ic >= old_ncells) break;
-
-                if (celltype[ic] == REAL_CELL){
-                   mcount += mpot[ic] ? 4 : 1;
-                } else {
-                   mcount += mpot[ic] ? 2 : 1;
-                }
-            }
-            if (mtotal != ioffset[ig]) printf("DEBUG ig %d ioffset %d mcount %d\n",ig,ioffset[ig],mtotal);
-            mtotal += mcount;
-         }
+         mesh->compare_ioffset_gpu_global_to_cpu_global(command_queue, old_ncells, block_size, &mpot[0], dev_ioffset);
       }
 
       int result;
@@ -589,6 +572,8 @@ extern "C" void do_calc(void)
             ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y[0],  NULL);
             ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dy[0], NULL);
             ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H[0],  &end_read_event);
+
+            state->gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
          }
 
          if (do_comparison_calc) {
@@ -602,7 +587,6 @@ extern "C" void do_calc(void)
          ezcl_device_memory_remove(dev_y);
          ezcl_device_memory_remove(dev_dy);
 
-         //state->gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
 
          set_mysize(ncells);
          set_viewmode(view_mode);
