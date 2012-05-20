@@ -339,7 +339,6 @@ extern "C" void do_calc(void)
    }
    
    vector<int>     mpot;
-   vector<int>     ioffset;
    
    size_t old_ncells = ncells;
    size_t new_ncells = 0;
@@ -413,7 +412,6 @@ extern "C" void do_calc(void)
       }  //  Complete NAN check.
 
       mpot.resize(ncells);
-      ioffset.resize(block_size);
       state->calc_refine_potential(mesh, mpot, icount, jcount);
 
       nlft.clear();
@@ -450,25 +448,8 @@ extern "C" void do_calc(void)
 
       new_ncells = old_ncells+mesh->rezone_count(mpot);
 
-      int mcount, mtotal;
       if (do_comparison_calc) {
-         ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
-         mtotal = 0;
-         for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
-            mcount = 0;
-            for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
-                if (ic >= old_ncells) break;
-
-                if (celltype[ic] == REAL_CELL){
-                   mcount += mpot[ic] ? 4 : 1;
-                } else {
-                   mcount += mpot[ic] ? 2 : 1;
-                }
-            }
-            if (mtotal != ioffset[ig]) printf("DEBUG ig %d ioffset %d mcount %d\n",ig,ioffset[ig],mtotal);
-            mtotal += mcount;
-         }
-
+         mesh->compare_ioffset_gpu_global_to_cpu_global(command_queue, old_ncells, block_size, &mpot[0], dev_ioffset);
          int result;
          ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
          new_ncells = result;
@@ -488,42 +469,10 @@ extern "C" void do_calc(void)
       if (do_comparison_calc) {
          state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil, dev_mpot, dev_ioffset);
 
-         vector<real> H_save(ncells);
-         vector<real> U_save(ncells);
-         vector<real> V_save(ncells);
-         vector<int> level_check(ncells);
-         vector<int> celltype_check(ncells);
-         vector<int> i_check(ncells);
-         vector<int> j_check(ncells);
-         /// Set read buffers for data.
-         if (n % outputInterval == 0) {
-            ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_TRUE,  0, ncells*sizeof(cl_real), &H_save[0], &start_read_event);
-            state->gpu_time_read += ezcl_timer_calc(&start_read_event, &start_read_event);
-         } else {
-            ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_FALSE, 0, ncells*sizeof(cl_real), &H_save[0], NULL);
-         }
-         ezcl_enqueue_read_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real), &U_save[0],          NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V,        CL_FALSE, 0, ncells*sizeof(cl_real), &V_save[0],          NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  &level_check[0],     NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  &celltype_check[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &i_check[0],         NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_TRUE,  0, ncells*sizeof(cl_int),  &j_check[0],         NULL);
-         for (uint ic = 0; ic < ncells; ic++){
-            if (fabs(H[ic]-H_save[ic]) > STATE_EPS) printf("DEBUG diff at cycle %d H & H_save %d %lf %lf \n",n,ic,H[ic],H_save[ic]);
-            if (fabs(U[ic]-U_save[ic]) > STATE_EPS) printf("DEBUG diff at cycle %d U & U_save %d %lf %lf \n",n,ic,U[ic],U_save[ic]);
-            if (fabs(V[ic]-V_save[ic]) > STATE_EPS) printf("DEBUG diff at cycle %d V & V_save %d %lf %lf \n",n,ic,V[ic],V_save[ic]);
-            if (level[ic] != level_check[ic] ) printf("DEBUG -- level: ic %d level %d level_check %d\n",ic, level[ic], level_check[ic]);
-            if (celltype[ic] != celltype_check[ic] ) printf("DEBUG -- celltype: ic %d celltype %d celltype_check %d\n",ic, celltype[ic], celltype_check[ic]);
-            if (i[ic] != i_check[ic] ) printf("DEBUG -- i: ic %d i %d i_check %d\n",ic, i[ic], i_check[ic]);
-            if (j[ic] != j_check[ic] ) printf("DEBUG -- j: ic %d j %d j_check %d\n",ic, j[ic], j_check[ic]);
-         }
-      
-//    } else if (n % outputInterval == 0) {
-//       vector<real> H_save(ncells);
-//       ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_TRUE,  0, ncells*sizeof(cl_real), &H_save[0], &start_read_event);
-//       state->gpu_time_read             += ezcl_timer_calc(&start_read_event,       &start_read_event);
-      }
+         state->compare_state_gpu_global_to_cpu_global(command_queue,"finite difference",n,ncells);
 
+         mesh->compare_indices_gpu_global_to_cpu_global(command_queue);
+      }
 
       if (do_comparison_calc) {
          int bcount = 0;
@@ -541,8 +490,6 @@ extern "C" void do_calc(void)
             level.resize(ncells);
          }
       }
-
-      ioffset.clear();
 
       ezcl_device_memory_remove(dev_ioffset);
 
