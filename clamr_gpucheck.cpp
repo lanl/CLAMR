@@ -499,72 +499,34 @@ extern "C" void do_calc(void)
          ezcl_enqueue_write_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
       }
 
-      int mcount, mtotal;
-/*
-// XXX Buggy here b/c gpu_rezone_count moved into gpu_calc_refine_potential XXX
-      if (do_comparison_calc) {
-         // This compares ioffset for each block in the calculation
-         ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
-         mtotal = 0;
-         for (int ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
-            mcount = 0;
-            for (int ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
-                if (ic >= old_ncells) break;
-                if (celltype[ic] == REAL_CELL) {
-                   mcount += mpot[ic] ? 4 : 1;
-                } else {
-                   mcount += mpot[ic] ? 2 : 1;
-                }
-            }
-            if (mcount != ioffset[ig]) printf("DEBUG ig %d ioffset %d mcount %d\n",ig,ioffset[ig],mcount);
-            mtotal += mcount;
-         }
-      }
-// XXX XXX
-      if (do_gpu_sync) {
-         for (int ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
-            mcount = 0;
-            for (int ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
-                if (ic >= old_ncells) break;
-                if (celltype[ic] == REAL_CELL) {
-                   mcount += mpot[ic] ? 4 : 1;
-                } else {
-                   mcount += mpot[ic] ? 2 : 1;
-                }
-            }
-            ioffset[ig] = mcount;
-         }
-         ezcl_enqueue_write_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
-      }
-// XXX XXX
-*/
       if (do_cpu_calc) {
          new_ncells = old_ncells+mesh->rezone_count(mpot);
       }
 
-/*      if (do_gpu_calc) {
-         mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
-      }
-*/
       if (do_comparison_calc) {
-         ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
-         mtotal = 0;
-         for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
-            mcount = 0;
-            for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
-                if (ic >= old_ncells) break;
+         // This compares ioffset for each block in the calculation
+         mesh->compare_ioffset_gpu_global_to_cpu_global(command_queue, old_ncells, block_size, &mpot[0], dev_ioffset);
+      }
 
-                if (celltype[ic] == REAL_CELL){
+      if (do_gpu_sync) {
+         int mtotal = 0;
+         for (int ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
+            int mcount = 0;
+            for (int ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
+                if (ic >= old_ncells) break;
+                if (celltype[ic] == REAL_CELL) {
                    mcount += mpot[ic] ? 4 : 1;
                 } else {
                    mcount += mpot[ic] ? 2 : 1;
                 }
             }
-            if (mtotal != ioffset[ig]) printf("DEBUG ig %d ioffset %d mcount %d\n",ig,ioffset[ig],mtotal);
+            ioffset[ig] = mtotal;
             mtotal += mcount;
          }
-         ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
+      }
 
+      if (do_comparison_calc) {
          int result;
          ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
          new_ncells = result;
