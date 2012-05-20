@@ -587,40 +587,19 @@ extern "C" void do_calc(void)
          mesh->calc_spatial_coordinates(0);
 
          if (do_comparison_calc) {
-            vector<real> x_save(ncells);
-            vector<real> dx_save(ncells);
-            vector<real> y_save(ncells);
-            vector<real> dy_save(ncells);
-            vector<real> H_save(ncells);
             cl_mem dev_x  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
             cl_mem dev_dx = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
             cl_mem dev_y  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
             cl_mem dev_dy = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+
             mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
-            ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x_save[0],  &start_read_event);
-            ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx_save[0], NULL);
-            ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y_save[0],  NULL);
-            ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dy_save[0], NULL);
-            ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H_save[0],  &end_read_event);
+
+            mesh->compare_coordinates_gpu_global_to_cpu_global(command_queue, dev_x, dev_dx, dev_y, dev_dy, dev_H, &H[0]);
+
             ezcl_device_memory_remove(dev_x);
             ezcl_device_memory_remove(dev_dx);
             ezcl_device_memory_remove(dev_y);
             ezcl_device_memory_remove(dev_dy);
-
-            for (uint ic = 0; ic < ncells; ic++){
-               if (x[ic] != x_save[ic] || dx[ic] != dx_save[ic] || y[ic] != y_save[ic] || dy[ic] != dy_save[ic] ) {
-                  printf("Error -- mismatch in spatial coordinates for cell %d is gpu %lf %lf %lf %lf cpu %lf %lf %lf %lf\n",ic,x_save[ic],dx_save[ic],y_save[ic],dy_save[ic],x[ic],dx[ic],y[ic],dy[ic]);
-                  exit(0);
-               }
-            }
-            for (uint ic = 0; ic < ncells; ic++){
-               if (fabs(H[ic] - H_save[ic]) > CONSERVATION_EPS) {
-                  printf("Error -- mismatch in H for cell %d is gpu %lf cpu %lf\n",ic,H_save[ic],H[ic]);
-                  exit(0);
-               }
-            }
-
-            state->gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
          }
 
          set_mysize(ncells);
