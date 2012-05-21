@@ -283,7 +283,9 @@ dnl ---------------------------------------------------------------
 
   if test ! -z "${MPI_BIN}"; then
     MPIHOME=`dirname ${MPI_BIN}`
-    MPIHOME=`dirname ${MPIHOME}`
+    if test `echo ${MPIHOME} |grep '\bin' |wc -l` != "0"; then
+       MPIHOME=`dirname ${MPIHOME}`
+    fi
   fi
 
   dnl Find mpi include
