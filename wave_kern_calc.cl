@@ -1418,10 +1418,15 @@ __kernel void refine_potential_cl(
     //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
     if (tiX < 32)
     {  itile[tiX].s0 += itile[tiX+32].s0;
+       barrier(CLK_LOCAL_MEM_FENCE);
        itile[tiX].s0 += itile[tiX+16].s0;
+       barrier(CLK_LOCAL_MEM_FENCE);
        itile[tiX].s0 += itile[tiX+8].s0;
+       barrier(CLK_LOCAL_MEM_FENCE);
        itile[tiX].s0 += itile[tiX+4].s0;
+       barrier(CLK_LOCAL_MEM_FENCE);
        itile[tiX].s0 += itile[tiX+2].s0;
+       barrier(CLK_LOCAL_MEM_FENCE);
        itile[tiX].s0 += itile[tiX+1].s0; }
 
     if (tiX == 0) {

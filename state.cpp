@@ -3004,21 +3004,24 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 
 //   sleep(1);
 
-   int icount = result - ncells;
-   int icount_global = icount;
+   int newcount = result - ncells;
+   int newcount_global = newcount;
 #ifdef HAVE_MPI
    if (mesh->parallel) {
-      MPI_Allreduce(&icount, &icount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
    }
 #endif
 
-   if( (icount_global) > 0) {
+   int levcount = 1;
+
+   if( (newcount_global) > 0) {
       cl_event refine_smooth_event;
       cl_event copy_mpot_ghost_data_event;
       cl_mem dev_newcount   = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
-      int new_count_global = 0;
 
-      do {
+      while (newcount_global) {
+         levcount++;
+
          vector<int> mpot_tmp(mesh->ncells_ghost,0);
          ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
 #ifdef HAVE_MPI
@@ -3066,15 +3069,15 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 //         sleep(1);
 //         which_smooth++;
 
-         int new_count = result;
-         new_count_global = new_count;
+         newcount = result;
+         newcount_global = newcount;
 #ifdef HAVE_MPI
          if (mesh->parallel) {
-            MPI_Allreduce(&new_count, &new_count_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          }
 #endif
 
-      } while(new_count_global > 0);
+      }
 
       ezcl_device_memory_remove(dev_newcount);
 
