@@ -272,7 +272,7 @@ public:
    void compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *displ, int *mpot, int *     mpot_global, int cycle);
    void compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, uint old_ncells, int block_size, int *mpot, cl_mem dev_ioffset);
    void compare_coordinates_gpu_global_to_cpu_global(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real *H);
-   void compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, real *x, real *dx, real *y, real      *dy, real *H, real *x_global, real *dx_global, real *y_global, real *dy_global, real *H_global, int cycle);
+   void compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, real *x, real *dx, real *y, real*dy, real *H, real *x_global, real *dx_global, real *y_global, real *dy_global, real *H_global, int cycle);
    void compare_indices_gpu_global_to_cpu_global(cl_command_queue command_queue);
    void compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl, int cycle);
    void partition_measure(void);

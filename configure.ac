@@ -283,41 +283,16 @@ dnl ---------------------------------------------------------------
 
   if test ! -z "${MPI_BIN}"; then
     MPIHOME=`dirname ${MPI_BIN}`
-    if test `echo ${MPIHOME} |grep '\bin' |wc -l` != "0"; then
-       MPIHOME=`dirname ${MPIHOME}`
-    fi
   fi
 
-  dnl Find mpi include
-  dnl ----------------
   FOUND_MPI_INCLUDE="no"
+  FOUND_MPI_LIB="no"
   AC_CHECK_FILE(${MPIHOME}/include/mpi.h, INCLUDES="${INCLUDES} -I${MPIHOME}/include" && FOUND_MPI_INCLUDE="yes")
+  AC_CHECK_FILE(${MPIHOME}/lib/libmpi.so, MPI_LIBS="${MPI_LIBS} -L${MPIHOME}/lib -lmpi" && FOUND_MPI_LIB="yes")
   if test "${FOUND_MPI_INCLUDE}" = "no"; then
     AC_CHECK_FILE(${MPI_ROOT}/include/mpi.h, MPI_HOME=${MPI_ROOT} && INCLUDES="${INCLUDES} -I${MPI_HOME}/include" && FOUND_MPI_INCLUDE="yes")
   fi
 
-  dnl Find mpi c++ library
-  dnl ----------------
-  FOUND_MPI_CPP_LIB="no"
-  AC_CHECK_FILE(${MPIHOME}/lib/libmpi_cxx.so, MPI_LIBS="${MPI_LIBS} -L${MPIHOME}/lib -lmpi_cxx" && FOUND_MPI_CPP_LIB="yes" && MPI_LIB_LOCATE="${MPIHOME}")
-  if test "${FOUND_MPI_CPP_LIB}" = "no"; then
-     AC_CHECK_FILE(${MPIHOME}/lib/libmpi_cxx.dylib, MPI_LIBS="${MPI_LIBS} -L${MPIHOME}/lib -lmpi_cxx" && FOUND_MPI__CPP_LIB="yes" && MPI_LIB_LOCATE="${MPIHOME}")
-  fi
-
-  dnl Find mpi library
-  dnl ----------------
-  FOUND_MPI_LIB="no"
-  if test "${MPI_LIB_LOCATE}x" = "${MPIHOME}x"; then
-     AC_CHECK_FILE(${MPIHOME}/lib/libmpi.so, MPI_LIBS="${MPI_LIBS} -lmpi" && FOUND_MPI_LIB="yes")
-     if test "${FOUND_MPI_LIB}" = "no"; then
-        AC_CHECK_FILE(${MPIHOME}/lib/libmpi.dylib, MPI_LIBS="${MPI_LIBS} -lmpi" && FOUND_MPI_LIB="yes")
-     fi
-  else
-     AC_CHECK_FILE(${MPIHOME}/lib/libmpi.so, MPI_LIBS="${MPI_LIBS} -L${MPIHOME}/lib -lmpi" && FOUND_MPI_LIB="yes")
-     if test "${FOUND_MPI_LIB}" = "no"; then
-        AC_CHECK_FILE(${MPIHOME}/lib/libmpi.dylib, MPI_LIBS="${MPI_LIBS} -L${MPIHOME}/lib -lmpi" && FOUND_MPI_LIB="yes")
-     fi
-  fi
 
  
    AC_MSG_CHECKING(MPI compile)
@@ -340,9 +315,7 @@ dnl ---------------------------------------------------------------
    )
    if test "x$ac_cv_mpi" = "xyes"; then
       dnl AC_DEFINE(HAVE_MPI,1,[Has MPI libraries])
-      if test "${FOUND_MPI_LIB}" = "no"; then
-         MPI_LIBS="${MPI_LIBS} -lmpi_cxx -lmpi"
-      fi
+      MPI_LIBS="${MPI_LIBS} -lmpi_cxx -lmpi"
    fi
 
    CFLAGS=$SAVE_C_FLAGS
