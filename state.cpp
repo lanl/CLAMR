@@ -3011,15 +3011,14 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
       MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
    }
 #endif
-
    int levcount = 1;
 
-   if( (newcount_global) > 0) {
+   if(newcount_global > 0 && levcount < levmx) {
       cl_event refine_smooth_event;
       cl_event copy_mpot_ghost_data_event;
       cl_mem dev_newcount   = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
-      while (newcount_global) {
+      while (newcount_global > 0 && levcount < levmx) {
          levcount++;
 
          vector<int> mpot_tmp(mesh->ncells_ghost,0);
