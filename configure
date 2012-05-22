@@ -5303,8 +5303,7 @@ fi
     MPIHOME=`dirname ${MPI_BIN}`
   fi
 
-  FOUND_MPI_INCLUDE="no"
-  FOUND_MPI_LIB="no"
+      FOUND_MPI_INCLUDE="no"
   as_ac_File=`$as_echo "ac_cv_file_${MPIHOME}/include/mpi.h" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${MPIHOME}/include/mpi.h" >&5
 $as_echo_n "checking for ${MPIHOME}/include/mpi.h... " >&6; }
@@ -5324,27 +5323,6 @@ eval ac_res=\$$as_ac_File
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
   INCLUDES="${INCLUDES} -I${MPIHOME}/include" && FOUND_MPI_INCLUDE="yes"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${MPIHOME}/lib/libmpi.so" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${MPIHOME}/lib/libmpi.so" >&5
-$as_echo_n "checking for ${MPIHOME}/lib/libmpi.so... " >&6; }
-if eval "test \"\${$as_ac_File+set}\"" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${MPIHOME}/lib/libmpi.so"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  MPI_LIBS="${MPI_LIBS} -L${MPIHOME}/lib -lmpi" && FOUND_MPI_LIB="yes"
 fi
 
   if test "${FOUND_MPI_INCLUDE}" = "no"; then
@@ -5371,6 +5349,144 @@ fi
 
   fi
 
+      FOUND_MPI_CPP_LIB="no"
+  as_ac_File=`$as_echo "ac_cv_file_${MPIHOME}/lib/libmpi_cxx.so" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${MPIHOME}/lib/libmpi_cxx.so" >&5
+$as_echo_n "checking for ${MPIHOME}/lib/libmpi_cxx.so... " >&6; }
+if eval "test \"\${$as_ac_File+set}\"" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${MPIHOME}/lib/libmpi_cxx.so"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  MPI_LIBS="${MPI_LIBS} -L${MPIHOME}/lib -lmpi_cxx" && FOUND_MPI_CPP_LIB="yes" && MPI_LIB_LOCATE="${MPIHOME}"
+fi
+
+  if test "${FOUND_MPI_CPP_LIB}" = "no"; then
+     as_ac_File=`$as_echo "ac_cv_file_${MPIHOME}/lib/libmpi_cxx.dylib" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${MPIHOME}/lib/libmpi_cxx.dylib" >&5
+$as_echo_n "checking for ${MPIHOME}/lib/libmpi_cxx.dylib... " >&6; }
+if eval "test \"\${$as_ac_File+set}\"" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${MPIHOME}/lib/libmpi_cxx.dylib"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  MPI_LIBS="${MPI_LIBS} -L${MPIHOME}/lib -lmpi_cxx" && FOUND_MPI__CPP_LIB="yes" && MPI_LIB_LOCATE="${MPIHOME}"
+fi
+
+  fi
+
+      FOUND_MPI_LIB="no"
+  if test "${MPI_LIB_LOCATE}x" = "${MPIHOME}x"; then
+     as_ac_File=`$as_echo "ac_cv_file_${MPIHOME}/lib/libmpi.so" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${MPIHOME}/lib/libmpi.so" >&5
+$as_echo_n "checking for ${MPIHOME}/lib/libmpi.so... " >&6; }
+if eval "test \"\${$as_ac_File+set}\"" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${MPIHOME}/lib/libmpi.so"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  MPI_LIBS="${MPI_LIBS} -lmpi" && FOUND_MPI_LIB="yes"
+fi
+
+     if test "${FOUND_MPI_LIB}" = "no"; then
+        as_ac_File=`$as_echo "ac_cv_file_${MPIHOME}/lib/libmpi.dylib" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${MPIHOME}/lib/libmpi.dylib" >&5
+$as_echo_n "checking for ${MPIHOME}/lib/libmpi.dylib... " >&6; }
+if eval "test \"\${$as_ac_File+set}\"" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${MPIHOME}/lib/libmpi.dylib"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  MPI_LIBS="${MPI_LIBS} -lmpi" && FOUND_MPI_LIB="yes"
+fi
+
+     fi
+  else
+     as_ac_File=`$as_echo "ac_cv_file_${MPIHOME}/lib/libmpi.so" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${MPIHOME}/lib/libmpi.so" >&5
+$as_echo_n "checking for ${MPIHOME}/lib/libmpi.so... " >&6; }
+if eval "test \"\${$as_ac_File+set}\"" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${MPIHOME}/lib/libmpi.so"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  MPI_LIBS="${MPI_LIBS} -L${MPIHOME}/lib -lmpi" && FOUND_MPI_LIB="yes"
+fi
+
+     if test "${FOUND_MPI_LIB}" = "no"; then
+        as_ac_File=`$as_echo "ac_cv_file_${MPIHOME}/lib/libmpi.dylib" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${MPIHOME}/lib/libmpi.dylib" >&5
+$as_echo_n "checking for ${MPIHOME}/lib/libmpi.dylib... " >&6; }
+if eval "test \"\${$as_ac_File+set}\"" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${MPIHOME}/lib/libmpi.dylib"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  MPI_LIBS="${MPI_LIBS} -L${MPIHOME}/lib -lmpi" && FOUND_MPI_LIB="yes"
+fi
+
+     fi
+  fi
 
 
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking MPI compile" >&5
@@ -5411,7 +5527,9 @@ else
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
    if test "x$ac_cv_mpi" = "xyes"; then
-            MPI_LIBS="${MPI_LIBS} -lmpi_cxx -lmpi"
+            if test "${FOUND_MPI_LIB}" = "no"; then
+         MPI_LIBS="${MPI_LIBS} -lmpi_cxx -lmpi"
+      fi
    fi
 
    CFLAGS=$SAVE_C_FLAGS
