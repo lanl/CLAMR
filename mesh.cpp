@@ -588,7 +588,7 @@ void Mesh::compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes,
 #endif
    for (uint ic = 0; ic < ncells_global; ic++){
       if (mpot_global[ic] != mpot_save_global[ic]) {
-         if (mype == 0) printf("%d: DEBUG refine_potential 3 at cycle %d cell %d mpot_global & mpot_save    _global %d %d \n",mype,cycle,ic,mpot_global[ic],mpot_save_global[ic]);
+         if (mype == 0) printf("%d: DEBUG refine_potential 3 at cycle %d cell %d mpot_global & mpot_save_global %d %d \n",mype,cycle,ic,mpot_global[ic],mpot_save_global[ic]);
       }
    }
 

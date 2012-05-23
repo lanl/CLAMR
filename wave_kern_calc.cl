@@ -1169,7 +1169,8 @@ __kernel void refine_potential_cl(
 
    setup_tile(tile, itile, ncells, H, U, V, nlft, nrht, ntop, nbot, level);
 
-   int cell_add = (celltype[giX] == REAL_CELL) ? 4 : 2;
+   int ctype = celltype[giX];
+   int cell_add = (ctype == REAL_CELL) ? 4 : 2;
 
    barrier (CLK_LOCAL_MEM_FENCE);
 
@@ -1204,205 +1205,207 @@ __kernel void refine_potential_cl(
    //////////////////////////////
    //////////////////////////////
 
+   int mpotval = 0;
 
-   // Setting the left and left-left neighbor state values for the control volume based
-   // on the state variables of the actual left, left-left, and left-top neighbor cells
+   if (ctype > 0){
+      // Setting the left and left-left neighbor state values for the control volume based
+      // on the state variables of the actual left, left-left, and left-top neighbor cells
 
-   // Using global access for the left neighbor values
-   if(nl < 0) {
-      nl = abs(nl+1);
-      Hl = H[nl];
-      Ul = U[nl];
-      Vl = V[nl];
+      // Using global access for the left neighbor values
+      if(nl < 0) {
+         nl = abs(nl+1);
+         Hl = H[nl];
+         Ul = U[nl];
+         Vl = V[nl];
 
-      if (level[nl] > lvl) {
-         nlt = ntop[nl];
-         Hl = HALF * (Hl + H[nlt]);
-         Ul = HALF * (Ul + U[nlt]);
-         Vl = HALF * (Vl + V[nlt]);
-      }
-   }
-   // Using local access for the left neighbor
-   else {
-      Hl = Hval(nl);
-      Ul = Uval(nl);
-      Vl = Vval(nl);
-
-      // The left neighbor is more refined than the current cell
-      if (levelval(nl) > lvl) {
-         nlt = ntopval(nl);
-         if(nlt >= 0) {
-            Hl = HALF * (Hl + Hval(nlt));
-            Ul = HALF * (Ul + Uval(nlt));
-            Vl = HALF * (Vl + Vval(nlt));
-         }
-         else {
-            nlt = abs(nlt+1);
+         if (level[nl] > lvl) {
+            nlt = ntop[nl];
             Hl = HALF * (Hl + H[nlt]);
             Ul = HALF * (Ul + U[nlt]);
             Vl = HALF * (Vl + V[nlt]);
          }
       }
-   }
-   /////////////////////////////////////////////////////////////////////////////////////////////////
+      // Using local access for the left neighbor
+      else {
+         Hl = Hval(nl);
+         Ul = Uval(nl);
+         Vl = Vval(nl);
 
-   // Setting the right and right-right neighbor state values for the control volume based
-   // on the state variables of the actual right, right-right, and right-top neighbor cells
-
-   // Using global access for the right neighbor values
-   if(nr < 0) {
-      nr = abs(nr+1);
-      Hr = H[nr];
-      Ur = U[nr];
-      Vr = V[nr];
-   
-      if (level[nr] > lvl) {
-         nrt = ntop[nr];
-         Hr = HALF * (Hr + H[nrt]);
-         Ur = HALF * (Ur + U[nrt]);
-         Vr = HALF * (Vr + V[nrt]);
-      }
-   }
-   // Using local access for the right neighbor
-   else {
-      Hr = Hval(nr);
-      Ur = Uval(nr);
-      Vr = Vval(nr);
-
-      if (levelval(nr) > lvl) {
-         nrt = ntopval(nr);
-         if(nrt >= 0) {
-            Hr = HALF * (Hr + Hval(nrt));
-            Ur = HALF * (Ur + Uval(nrt));
-            Vr = HALF * (Vr + Vval(nrt));
+         // The left neighbor is more refined than the current cell
+         if (levelval(nl) > lvl) {
+            nlt = ntopval(nl);
+            if(nlt >= 0) {
+               Hl = HALF * (Hl + Hval(nlt));
+               Ul = HALF * (Ul + Uval(nlt));
+               Vl = HALF * (Vl + Vval(nlt));
+            }
+            else {
+               nlt = abs(nlt+1);
+               Hl = HALF * (Hl + H[nlt]);
+               Ul = HALF * (Ul + U[nlt]);
+               Vl = HALF * (Vl + V[nlt]);
+            }
          }
-         else {
-            nrt = abs(nrt+1);
+      }
+      /////////////////////////////////////////////////////////////////////////////////////////////////
+
+      // Setting the right and right-right neighbor state values for the control volume based
+      // on the state variables of the actual right, right-right, and right-top neighbor cells
+
+      // Using global access for the right neighbor values
+      if(nr < 0) {
+         nr = abs(nr+1);
+         Hr = H[nr];
+         Ur = U[nr];
+         Vr = V[nr];
+   
+         if (level[nr] > lvl) {
+            nrt = ntop[nr];
             Hr = HALF * (Hr + H[nrt]);
             Ur = HALF * (Ur + U[nrt]);
             Vr = HALF * (Vr + V[nrt]);
          }
       }
-   }
-   /////////////////////////////////////////////////////////////////////////////////////////////////
+      // Using local access for the right neighbor
+      else {
+         Hr = Hval(nr);
+         Ur = Uval(nr);
+         Vr = Vval(nr);
 
-
-
-   // Setting the bottom and bottom-bottom neighbor state values for the control volume based
-   // on the state variables of the actual bottom, bottom-bottom, and bottom-right neighbor cells
-
-   // Using global access for the bottom neighbor values
-   if (nb < 0) {
-      nb = abs(nb+1);
-      Hb = H[nb];
-      Ub = U[nb];
-      Vb = V[nb];
-
-      if (level[nb] > lvl) {
-         nbr = nrht[nb];
-         Hb = HALF * (Hb + H[nbr]);
-         Ub = HALF * (Ub + U[nbr]);
-         Vb = HALF * (Vb + V[nbr]);
-      }
-   }
-   // Using local access for the bottom neighbor
-   else {
-      Hb = Hval(nb);
-      Ub = Uval(nb);
-      Vb = Vval(nb);
-
-      if (levelval(nb) > lvl) {
-         nbr = nrhtval(nb);
-         if(nbr >= 0) {
-            Hb = HALF * (Hb + Hval(nbr));
-            Ub = HALF * (Ub + Uval(nbr));
-            Vb = HALF * (Vb + Vval(nbr));
+         if (levelval(nr) > lvl) {
+            nrt = ntopval(nr);
+            if(nrt >= 0) {
+               Hr = HALF * (Hr + Hval(nrt));
+               Ur = HALF * (Ur + Uval(nrt));
+               Vr = HALF * (Vr + Vval(nrt));
+            }
+            else {
+               nrt = abs(nrt+1);
+               Hr = HALF * (Hr + H[nrt]);
+               Ur = HALF * (Ur + U[nrt]);
+               Vr = HALF * (Vr + V[nrt]);
+            }
          }
-         else {
-            nbr = abs(nbr+1);
+      }
+      /////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+      // Setting the bottom and bottom-bottom neighbor state values for the control volume based
+      // on the state variables of the actual bottom, bottom-bottom, and bottom-right neighbor cells
+
+      // Using global access for the bottom neighbor values
+      if (nb < 0) {
+         nb = abs(nb+1);
+         Hb = H[nb];
+         Ub = U[nb];
+         Vb = V[nb];
+
+         if (level[nb] > lvl) {
+            nbr = nrht[nb];
             Hb = HALF * (Hb + H[nbr]);
             Ub = HALF * (Ub + U[nbr]);
             Vb = HALF * (Vb + V[nbr]);
          }
       }
-   }
-   /////////////////////////////////////////////////////////////////////////////////////////////////
+      // Using local access for the bottom neighbor
+      else {
+         Hb = Hval(nb);
+         Ub = Uval(nb);
+         Vb = Vval(nb);
 
-
-   // Setting the top and top-top neighbor state values for the control volume based
-   // on the state variables of the actual top, top-top, and top-right neighbor cells
-  
-   // Using global access for the top neighbor values
-   if (nt < 0) {
-      nt = abs(nt+1);
-      Ht = H[nt];
-      Ut = U[nt];
-      Vt = V[nt];
-
-      if (level[nt] > lvl) {
-         ntr = nrht[nt];
-         Ht = HALF * (Ht + H[ntr]);
-         Ut = HALF * (Ut + U[ntr]);
-         Vt = HALF * (Vt + V[ntr]);
-      }
-   }
-   // Using local access for the top neighbor
-   else {
-      Ht = Hval(nt);
-      Ut = Uval(nt);
-      Vt = Vval(nt);
-
-      if (levelval(nt) > lvl) {
-         ntr = nrhtval(nt);
-         if(ntr >= 0) {
-            Ht = HALF * (Ht + Hval(ntr));
-            Ut = HALF * (Ut + Uval(ntr));
-            Vt = HALF * (Vt + Vval(ntr));
+         if (levelval(nb) > lvl) {
+            nbr = nrhtval(nb);
+            if(nbr >= 0) {
+               Hb = HALF * (Hb + Hval(nbr));
+               Ub = HALF * (Ub + Uval(nbr));
+               Vb = HALF * (Vb + Vval(nbr));
+            }
+            else {
+               nbr = abs(nbr+1);
+               Hb = HALF * (Hb + H[nbr]);
+               Ub = HALF * (Ub + U[nbr]);
+               Vb = HALF * (Vb + V[nbr]);
+            }
          }
-         else {
-            ntr = abs(ntr+1);
+      }
+      /////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+      // Setting the top and top-top neighbor state values for the control volume based
+      // on the state variables of the actual top, top-top, and top-right neighbor cells
+  
+      // Using global access for the top neighbor values
+      if (nt < 0) {
+         nt = abs(nt+1);
+         Ht = H[nt];
+         Ut = U[nt];
+         Vt = V[nt];
+
+         if (level[nt] > lvl) {
+            ntr = nrht[nt];
             Ht = HALF * (Ht + H[ntr]);
             Ut = HALF * (Ut + U[ntr]);
             Vt = HALF * (Vt + V[ntr]);
          }
       }
-   }
-   /////////////////////////////////////////////////////////////////////////////////////////////////
+      // Using local access for the top neighbor
+      else {
+         Ht = Hval(nt);
+         Ut = Uval(nt);
+         Vt = Vval(nt);
 
-    //--CALCULATIONS------------------------------------------------------------
-    //  Calculate the gradient between the right and left neighbors and the
-    //  main cell.
-    real invHic = ONE / Hic; //  For faster math.
-    real qmax = -THOUSAND;          //  Set the default maximum low to catch the real one.
+         if (levelval(nt) > lvl) {
+            ntr = nrhtval(nt);
+            if(ntr >= 0) {
+               Ht = HALF * (Ht + Hval(ntr));
+               Ut = HALF * (Ut + Uval(ntr));
+               Vt = HALF * (Vt + Vval(ntr));
+            }
+            else {
+               ntr = abs(ntr+1);
+               Ht = HALF * (Ht + H[ntr]);
+               Ut = HALF * (Ut + U[ntr]);
+               Vt = HALF * (Vt + V[ntr]);
+            }
+         }
+      }
+      /////////////////////////////////////////////////////////////////////////////////////////////////
+
+       //--CALCULATIONS------------------------------------------------------------
+       //  Calculate the gradient between the right and left neighbors and the
+       //  main cell.
+       real invHic = ONE / Hic; //  For faster math.
+       real qmax = -THOUSAND;          //  Set the default maximum low to catch the real one.
     
-    duplus1 = Hr - Hic;
-    duhalf1 = Hic - Hl;
-    qpot = max(fabs(duplus1 * invHic), fabs(duhalf1 * invHic));
-    if (qpot > qmax) qmax = qpot;
+       duplus1 = Hr - Hic;
+       duhalf1 = Hic - Hl;
+       qpot = max(fabs(duplus1 * invHic), fabs(duhalf1 * invHic));
+       if (qpot > qmax) qmax = qpot;
     
-    duminus1= Hic - Hl;
-    duhalf1 = Hr - Hic;
-    qpot = max(fabs(duminus1 * invHic), fabs(duhalf1 * invHic));
-    if (qpot > qmax) qmax = qpot;
+       duminus1= Hic - Hl;
+       duhalf1 = Hr - Hic;
+       qpot = max(fabs(duminus1 * invHic), fabs(duhalf1 * invHic));
+       if (qpot > qmax) qmax = qpot;
     
-    //  Calculate the gradient between the top and bottom neighbors and the
-    //  main cell.
-    duplus1 = Ht - Hic;
-    duhalf1 = Hic - Hb;
-    qpot = max(fabs(duplus1 * invHic), fabs(duhalf1 * invHic));
-    if (qpot > qmax) qmax = qpot;
+       //  Calculate the gradient between the top and bottom neighbors and the
+       //  main cell.
+       duplus1 = Ht - Hic;
+       duhalf1 = Hic - Hb;
+       qpot = max(fabs(duplus1 * invHic), fabs(duhalf1 * invHic));
+       if (qpot > qmax) qmax = qpot;
     
-    duminus1= Hic - Hb;
-    duhalf1 = Ht - Hic;
-    qpot = max(fabs(duminus1 * invHic), fabs(duhalf1 * invHic));
-    if (qpot > qmax) qmax = qpot;
+       duminus1= Hic - Hb;
+       duhalf1 = Ht - Hic;
+       qpot = max(fabs(duminus1 * invHic), fabs(duhalf1 * invHic));
+       if (qpot > qmax) qmax = qpot;
 
 
-    //--CALCULATIONS------------------------------------------------------------
-    //  Refine the mesh if the gradient is large
-    int mpotval = 0;
-    if (qmax > 0.10 && lvl < levmx)  //  XXX:  eliminate hard-coded vars
-    {   mpotval = 1; }
+       //--CALCULATIONS------------------------------------------------------------
+       //  Refine the mesh if the gradient is large
+       if (qmax > 0.10 && lvl < levmx)  //  XXX:  eliminate hard-coded vars
+       {   mpotval = 1; }
+    }
     
     itile[tiX].s0 = mpotval ? cell_add : 1;
 
@@ -1720,7 +1723,86 @@ __kernel void finish_reduction_scan_cl(
 
 }
 
+#define LEFT_BOUNDARY   -1
+#define RIGHT_BOUNDARY  -2
+#define BOTTOM_BOUNDARY -3
+#define TOP_BOUNDARY    -4
 
+__kernel void set_boundary_refinement(
+               const int ncells,     // 0 Total number of cells
+      __global const int  *nlft,     // 1
+      __global const int  *nrht,     // 2
+      __global const int  *nbot,     // 3
+      __global const int  *ntop,     // 4
+      __global const int  *celltype, // 5
+      __global       int  *mpot,     // 6 refinement flag
+      __global       int  *ioffset,  // 7 reduction array
+      __global       int  *result,   // 8 new cell count
+      __local        int  *itile     // 9 Scratch to do reduction
+                                 )
+{
+   const uint tiX = get_local_id(0);
+   const uint giX = get_global_id(0);
+   const uint gID = get_group_id(0);
+   const uint ntX = get_local_size(0);
+
+   itile[tiX] = 0;
+
+   if (giX >= ncells) return;
+
+   int ctype = celltype[giX];
+   int mpotval = mpot[giX];
+   int cell_add = (ctype == REAL_CELL) ? 4:2;
+
+   if (ctype < 0) {
+      switch (ctype) {
+
+      case LEFT_BOUNDARY:
+         if (mpot[nrht[giX]] > 0) {mpotval = 1; mpot[giX]++;}
+         break;
+      case RIGHT_BOUNDARY:
+         if (mpot[nlft[giX]] > 0) {mpotval = 1; mpot[giX]++;}
+         break;
+      case BOTTOM_BOUNDARY:
+         if (mpot[ntop[giX]] > 0) {mpotval = 1; mpot[giX]++;}
+         break;
+      case TOP_BOUNDARY:
+         if (mpot[nbot[giX]] > 0) {mpotval = 1; mpot[giX]++;}
+         break;
+      }
+   }
+
+   itile[tiX] = mpotval ? cell_add : 1;
+
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+
+   for (int offset = ntX >> 1; offset > 32; offset >>= 1) {
+      if (tiX < offset) {
+         itile[tiX] += itile[tiX+offset];
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+   }
+
+   //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
+   if (tiX < 32)
+   {  itile[tiX] += itile[tiX+32];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+16];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+8];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+4];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+2];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+1]; }
+
+   if (tiX == 0) {
+     ioffset[gID] = itile[0];
+     (*result) = itile[0];
+   }
+}
 
 void setup_tile(__local        real4  *tile, 
                 __local        int8   *itile, 

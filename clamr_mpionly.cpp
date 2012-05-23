@@ -595,7 +595,7 @@ extern "C" void do_calc(void)
          }
          if (mype == 0){
             printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
-               n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
+               n, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
          }
          output_flag = 1;
       }  //  Complete output interval.

@@ -125,6 +125,7 @@ cl_kernel kernel_reduce_sum_mass_stage1of2;
 cl_kernel kernel_reduce_sum_mass_stage2of2;
 cl_kernel kernel_reduce_epsum_mass_stage1of2;
 cl_kernel kernel_reduce_epsum_mass_stage2of2;
+cl_kernel kernel_set_boundary_refinement;
 
 real U_halfstep(// XXX Fix the subindices to be more intuitive XXX
         real    deltaT,     // Timestep
@@ -214,6 +215,7 @@ void State::init(int ncells, cl_context context, int do_gpu_calc)
       kernel_reduce_sum_mass_stage2of2 = ezcl_create_kernel(context, "wave_kern.cl", "reduce_sum_mass_stage2of2_cl",  0);
       kernel_reduce_epsum_mass_stage1of2 = ezcl_create_kernel(context, "wave_kern.cl", "reduce_epsum_mass_stage1of2_cl",  0);
       kernel_reduce_epsum_mass_stage2of2 = ezcl_create_kernel(context, "wave_kern.cl", "reduce_epsum_mass_stage2of2_cl",  0);
+      kernel_set_boundary_refinement = ezcl_create_kernel(context, "wave_kern_calc.cl", "set_boundary_refinement",  0);
    }
 
    H.resize(ncells);
@@ -2520,6 +2522,8 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
 
    for (uint ic=0; ic<ncells; ic++) {
 
+      if (mesh->celltype[ic] < 0) {Q[ic] = 0.0; continue;}
+
       Hic = H[ic];
       Uic = U[ic];
       Vic = V[ic];
@@ -2609,21 +2613,21 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
       }
    }
 
-   int icount_global = icount;
+   int newcount = icount;
+   int newcount_global = icount;
 #ifdef HAVE_MPI
    if (mesh->parallel) {
-      MPI_Allreduce(&icount, &icount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
    }
 #endif
 
-   if(icount_global > 0) {
+   if(newcount_global > 0 && mesh->levmx > 1) {
       int lev, ll, lr, lt, lb;
       int llt, lrt, ltr, lbr;
-      int new_count, new_count_global;
-      int levcount = 0;
-      do {
+      int levcount = 1;
+      while (newcount_global > 0 && levcount < mesh->levmx){
          levcount++; 
-         new_count=0;
+         newcount=0;
 
 #ifdef HAVE_MPI
          if (mesh->parallel) {
@@ -2633,7 +2637,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
 
          for(uint ic = 0; ic < ncells; ic++) {
             lev = level[ic];
-            if(mpot[ic] > 0) lev++;
+            if(mpot[ic] > 0) continue;
    
             nl = nlft[ic];
             ll = level[nl];
@@ -2641,18 +2645,20 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    
             if(ll - lev > 1) {
                mpot[ic]++;
-               new_count++; icount++;
+               newcount++;
                continue;
             }
 
-            nlt = ntop[nl];
-            llt = level[nlt];
-            if(mpot[nlt] > 0) llt++;
+            if (ll > lev) {
+               nlt = ntop[nl];
+               llt = level[nlt];
+               if(mpot[nlt] > 0) llt++;
 
-            if(llt - lev > 1) {
-               mpot[ic]++;
-               new_count++; icount++;
-               continue;
+               if(llt - lev > 1) {
+                  mpot[ic]++;
+                  newcount++;
+                  continue;
+               }
             }
 
             nr = nrht[ic];
@@ -2661,18 +2667,20 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    
             if(lr - lev > 1) {
                mpot[ic]++;
-               new_count++; icount++;
+               newcount++;
                continue;
             }
 
-            nrt = ntop[nr];
-            lrt = level[nrt];
-            if(mpot[nrt] > 0) lrt++;
+            if (lr > lev) {
+               nrt = ntop[nr];
+               lrt = level[nrt];
+               if(mpot[nrt] > 0) lrt++;
 
-            if(lrt - lev > 1) {
-               mpot[ic]++;
-               new_count++; icount++;
-               continue;
+               if(lrt - lev > 1) {
+                  mpot[ic]++;
+                  newcount++;
+                  continue;
+               }
             }
 
             nt = ntop[ic];
@@ -2681,18 +2689,20 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    
             if(lt - lev > 1) {
                mpot[ic]++;
-               new_count++; icount++;
+               newcount++;
                continue;
             }
 
-            ntr = nrht[nt];
-            ltr = level[ntr];
-            if(mpot[ntr] > 0) ltr++;
+            if (lt > lev) {
+               ntr = nrht[nt];
+               ltr = level[ntr];
+               if(mpot[ntr] > 0) ltr++;
 
-            if(ltr - lev > 1) {
-               mpot[ic]++;
-               new_count++; icount++;
-               continue;
+               if(ltr - lev > 1) {
+                  mpot[ic]++;
+                  newcount++;
+                  continue;
+               }
             }
 
             nb = nbot[ic];
@@ -2701,33 +2711,66 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    
             if(lb - lev > 1) {
                mpot[ic]++;
-               new_count++; icount++;
+               newcount++;
                continue;
             }
 
-            nbr = nrht[nb];
-            lbr = level[nbr];
-            if(mpot[nbr] > 0) lbr++;
+            if (lb > lev) {
+               nbr = nrht[nb];
+               lbr = level[nbr];
+               if(mpot[nbr] > 0) lbr++;
 
-            if(lbr - lev > 1) {
-               mpot[ic]++;
-               new_count++; icount++;
-               continue;
+               if(lbr - lev > 1) {
+                  mpot[ic]++;
+                  newcount++;
+                  continue;
+               }
             }
-    
          }
 
-         new_count_global = new_count;
+         newcount_global = newcount;
+         icount += newcount;
          
 #ifdef HAVE_MPI
          if (mesh->parallel) {
-            MPI_Allreduce(&new_count, &new_count_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          }
 #endif
 
-//         printf("%d: new_count is %d levmx %d\n",levcount,new_count,mesh->levmx);
-      //} while (new_count > 0 && levcount < 10);
-      } while (new_count_global > 0 && levcount < mesh->levmx);
+//         printf("%d: newcount is %d levmx %d\n",levcount,newcount,mesh->levmx);
+      //} while (newcount > 0 && levcount < 10);
+      } while (newcount_global > 0 && levcount < mesh->levmx);
+   }
+
+   for (uint ic=0; ic<ncells; ic++) {
+      if (mesh->celltype[ic] < 0) {
+         switch (mesh->celltype[ic]) {
+            case LEFT_BOUNDARY:
+               if (mpot[nrht[ic]] > 0) {
+                  mpot[ic]++;
+                  icount++;
+               }
+               break;
+            case RIGHT_BOUNDARY:
+               if (mpot[nlft[ic]] > 0) {
+                  mpot[ic]++;
+                  icount++;
+               }
+               break;
+            case BOTTOM_BOUNDARY:
+               if (mpot[ntop[ic]] > 0) {
+                  mpot[ic]++;
+                  icount++;
+               }
+               break;
+            case TOP_BOUNDARY:
+               if (mpot[nbot[ic]] > 0) {
+                  mpot[ic]++;
+                  icount++;
+               }
+               break;
+         }
+      }
    }
 
 /*
@@ -2751,6 +2794,7 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
 {
    cl_event refine_potential_event;
    cl_event refine_smooth_event;
+   cl_event set_boundary_refinement_event;
 
    size_t &ncells       = mesh->ncells;
    int &levmx           = mesh->levmx;
@@ -2873,16 +2917,32 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
       }
 
       ezcl_device_memory_remove(dev_newcount);
-
-      mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
    }
 
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 0, sizeof(cl_int), (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 1, sizeof(cl_mem), (void *)&dev_nlft);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 2, sizeof(cl_mem), (void *)&dev_nrht);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 3, sizeof(cl_mem), (void *)&dev_nbot);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 4, sizeof(cl_mem), (void *)&dev_ntop);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 5, sizeof(cl_mem), (void *)&dev_celltype);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 6, sizeof(cl_mem), (void *)&dev_mpot);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 7, sizeof(cl_mem), (void *)&dev_ioffset);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 8, sizeof(cl_mem), (void *)&dev_result);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 9, local_work_size*sizeof(cl_int),    NULL);
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_boundary_refinement, 1, NULL, &global_work_size, &local_work_size, &set_boundary_refinement_event);
+
+   mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+
    gpu_time_refine_potential  += ezcl_timer_calc(&refine_potential_event,  &refine_potential_event);
+   gpu_time_refine_potential  += ezcl_timer_calc(&set_boundary_refinement_event,  &set_boundary_refinement_event);
 }
 
 void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_mpot, cl_mem dev_result, cl_mem dev_ioffset)
 {
    cl_event refine_potential_event;
+   cl_event set_boundary_refinement_event;
+   cl_event copy_mpot_ghost_data_event;
 
    size_t &ncells       = mesh->ncells;
    int &levmx           = mesh->levmx;
@@ -3019,7 +3079,6 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 
    if(newcount_global > 0 && levcount < levmx) {
       cl_event refine_smooth_event;
-      cl_event copy_mpot_ghost_data_event;
       cl_mem dev_newcount   = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
       while (newcount_global > 0 && levcount < levmx) {
@@ -3083,11 +3142,46 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
       }
 
       ezcl_device_memory_remove(dev_newcount);
-
-      mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
    }
 
-   gpu_time_refine_potential += ezcl_timer_calc(&refine_potential_event,  &refine_potential_event);
+   vector<int> mpot_tmp(mesh->ncells_ghost,0);
+   ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
+#ifdef HAVE_MPI
+   L7_Update(&mpot_tmp[0], L7_INT, mesh->cell_handle);
+#endif
+
+   cl_mem dev_mpot_add = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
+
+   size_t ghost_local_work_size = 32;
+   size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
+
+   // Fill in ghost
+   ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
+   ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot);
+   ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_mpot_ghost_data_event);
+
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 0, sizeof(cl_int), (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 1, sizeof(cl_mem), (void *)&dev_nlft);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 2, sizeof(cl_mem), (void *)&dev_nrht);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 3, sizeof(cl_mem), (void *)&dev_nbot);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 4, sizeof(cl_mem), (void *)&dev_ntop);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 5, sizeof(cl_mem), (void *)&dev_celltype);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 6, sizeof(cl_mem), (void *)&dev_mpot);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 7, sizeof(cl_mem), (void *)&dev_ioffset);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 8, sizeof(cl_mem), (void *)&dev_result);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 9, local_work_size*sizeof(cl_int),    NULL);
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_boundary_refinement, 1, NULL, &global_work_size, &local_work_size, &set_boundary_refinement_event);
+
+   mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+
+   gpu_time_refine_potential  += ezcl_timer_calc(&copy_mpot_ghost_data_event,  &copy_mpot_ghost_data_event);
+   gpu_time_refine_potential  += ezcl_timer_calc(&refine_potential_event,  &refine_potential_event);
+   gpu_time_refine_potential  += ezcl_timer_calc(&set_boundary_refinement_event,  &set_boundary_refinement_event);
 }
 
 double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)

@@ -283,6 +283,9 @@ dnl ---------------------------------------------------------------
 
   if test ! -z "${MPI_BIN}"; then
     MPIHOME=`dirname ${MPI_BIN}`
+    if test "${host}" = "darwin"; then
+       MPIHOME=`dirname ${MPIHOME}`
+    fi
   fi
 
   dnl Find mpi include
