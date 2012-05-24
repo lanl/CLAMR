@@ -344,6 +344,7 @@ void DisplayState(void) {
    int xloc1, xloc2, yloc1, yloc2;
    for(i = 0; i < display_mysize; i++) {
       color = (int)(data[i]-scaleMin)*step;
+      color = NCOLORS-color;
       if (color < 0) {
          color=0;
       }
