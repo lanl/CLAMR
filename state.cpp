@@ -2893,7 +2893,6 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
    int levcount = 1;
 
    if( (result) > 0 && levcount < levmx) {
-      cl_mem dev_newcount = ezcl_malloc(NULL, &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_mpot_old = ezcl_malloc(NULL, &ncells,     sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_ptr;
 
@@ -2913,13 +2912,12 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
          ezcl_set_kernel_arg(kernel_refine_smooth, 8, sizeof(cl_mem),  (void *)&dev_mpot_old);
          ezcl_set_kernel_arg(kernel_refine_smooth, 9, sizeof(cl_mem),  (void *)&dev_mpot);
          ezcl_set_kernel_arg(kernel_refine_smooth,10, sizeof(cl_mem),  (void *)&dev_ioffset);
-         ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_newcount);
-         ezcl_set_kernel_arg(kernel_refine_smooth,12, sizeof(cl_mem),  (void *)&dev_result);
-         ezcl_set_kernel_arg(kernel_refine_smooth,13, local_work_size*sizeof(cl_int2),    NULL);
+         ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_result);
+         ezcl_set_kernel_arg(kernel_refine_smooth,12, local_work_size*sizeof(cl_int),    NULL);
 
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_smooth, 1, NULL, &global_work_size, &local_work_size, &refine_smooth_event);
 
-         mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_newcount, dev_result);
+         mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
 
          ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
 
@@ -2930,7 +2928,6 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
 //       which_smooth++;
       }
 
-      ezcl_device_memory_remove(dev_newcount);
       ezcl_device_memory_remove(dev_mpot_old);
    }
 
@@ -3094,7 +3091,6 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 
    if(newcount_global > 0 && levcount < levmx) {
       cl_event refine_smooth_event;
-      cl_mem dev_newcount = ezcl_malloc(NULL, &block_size,   sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_mpot_old = ezcl_malloc(NULL, &mesh->ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_ptr;
 
@@ -3133,13 +3129,12 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
          ezcl_set_kernel_arg(kernel_refine_smooth, 8, sizeof(cl_mem),  (void *)&dev_mpot_old);
          ezcl_set_kernel_arg(kernel_refine_smooth, 9, sizeof(cl_mem),  (void *)&dev_mpot);
          ezcl_set_kernel_arg(kernel_refine_smooth,10, sizeof(cl_mem),  (void *)&dev_ioffset);
-         ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_newcount);
-         ezcl_set_kernel_arg(kernel_refine_smooth,12, sizeof(cl_mem),  (void *)&dev_result);
-         ezcl_set_kernel_arg(kernel_refine_smooth,13, local_work_size*sizeof(cl_int2),    NULL);
+         ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_result);
+         ezcl_set_kernel_arg(kernel_refine_smooth,12, local_work_size*sizeof(cl_int),    NULL);
 
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_smooth, 1, NULL, &global_work_size, &local_work_size, &refine_smooth_event);
 
-         mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_newcount, dev_result);
+         mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
 
          ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
 
@@ -3160,7 +3155,6 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 
       }
 
-      ezcl_device_memory_remove(dev_newcount);
       ezcl_device_memory_remove(dev_mpot_old);
    }
 

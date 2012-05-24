@@ -1458,10 +1458,9 @@ __kernel void refine_smooth_cl(
         __global const int   *celltype, // 7  Array of celltype information.
         __global const int   *mpot_old, // 8  Array of mesh potential information.
         __global       int   *mpot,     // 9  Array of mesh potential information.
-        __global       int   *ioffset,  // 10 Array of new giX offsets.
         __global       int   *newcount, // 11  Array of number of cells smoothed per tile
         __global       int   *result,   // 12
-        __local        int2  *itile)    // 13  Tile size in int2.
+        __local        int   *itile)    // 13  Tile size in int2.
 {
 
    const unsigned int giX  = get_global_id(0);
@@ -1471,8 +1470,7 @@ __kernel void refine_smooth_cl(
 
    const unsigned int ntX  = get_local_size(0);
 
-   itile[tiX].s0 = 0;
-   itile[tiX].s1 = 0;
+   itile[tiX] = 0;
 
    if(giX >= ncells)
       return;
@@ -1582,46 +1580,34 @@ __kernel void refine_smooth_cl(
       }
    }
 
-   itile[tiX].s1 = new_count;
-
-   // XXX NOTE the global writes to mpot[ic] above... change this eventually XXX
-   int cell_add = (celltype[giX] == REAL_CELL) ? 4 : 2;
-   itile[tiX].s0 = mpot[ic] ? cell_add : 1;
+   itile[tiX] = new_count;
 
    barrier(CLK_LOCAL_MEM_FENCE);
 
    for (int offset = ntX >> 1; offset > 32; offset >>= 1) {
       if (tiX < offset) {
-         itile[tiX].s1 += itile[tiX+offset].s1; 
-         itile[tiX].s0 += itile[tiX+offset].s0; 
+         itile[tiX] += itile[tiX+offset]; 
       }
       barrier(CLK_LOCAL_MEM_FENCE);
    }
 
    //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
    if (tiX < 32)
-   {  itile[tiX].s1 += itile[tiX+32].s1;
-      itile[tiX].s0 += itile[tiX+32].s0;
+   {  itile[tiX] += itile[tiX+32];
       barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-      itile[tiX].s1 += itile[tiX+16].s1;
-      itile[tiX].s0 += itile[tiX+16].s0;
+      itile[tiX] += itile[tiX+16];
       barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-      itile[tiX].s1 += itile[tiX+8].s1;
-      itile[tiX].s0 += itile[tiX+8].s0;
+      itile[tiX] += itile[tiX+8];
       barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-      itile[tiX].s1 += itile[tiX+4].s1;
-      itile[tiX].s0 += itile[tiX+4].s0;
+      itile[tiX] += itile[tiX+4];
       barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-      itile[tiX].s1 += itile[tiX+2].s1;
-      itile[tiX].s0 += itile[tiX+2].s0;
+      itile[tiX] += itile[tiX+2];
       barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-      itile[tiX].s1 += itile[tiX+1].s1;
-      itile[tiX].s0 += itile[tiX+1].s0; }
+      itile[tiX] += itile[tiX+1]; }
 
    if (tiX == 0) {
-     newcount[group_id] = itile[0].s1;
-     ioffset[group_id] = itile[0].s0;
-     (*result) = itile[0].s0;
+     newcount[group_id] = itile[0];
+     (*result) = itile[0];
    }
 
 }
