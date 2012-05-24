@@ -203,7 +203,7 @@ void init_display(int *argc, char **argv, const char *title, int rank_in){
    if (mpi_init_flag){
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    } else {
-      MPI_Init(argc, argv);
+      MPI_Init(argc, &argv);
    }
 #endif
    if (MPE_Open_graphics( &window, MPI_COMM_WORLD, displayname,
