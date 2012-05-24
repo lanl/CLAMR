@@ -519,55 +519,55 @@ extern "C" void do_calc(void)
          }
          printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
             n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
-#ifdef HAVE_GRAPHICS
-         cl_mem dev_x  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-         cl_mem dev_dx = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-         cl_mem dev_y  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-         cl_mem dev_dy = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-         mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
-
-         if (! do_comparison_calc) {
-            x.resize(ncells);
-            dx.resize(ncells);
-            y.resize(ncells);
-            dy.resize(ncells);
-            H.resize(ncells);
-
-            ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x[0],  &start_read_event);
-            ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx[0], NULL);
-            ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y[0],  NULL);
-            ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dy[0], NULL);
-            ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H[0],  &end_read_event);
-
-            state->gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
-         }
-
-         if (do_comparison_calc) {
-            mesh->calc_spatial_coordinates(0);
-
-            mesh->compare_coordinates_gpu_global_to_cpu_global(command_queue, dev_x, dev_dx, dev_y, dev_dy, dev_H, &H[0]);
-         }
-
-         ezcl_device_memory_remove(dev_x);
-         ezcl_device_memory_remove(dev_dx);
-         ezcl_device_memory_remove(dev_y);
-         ezcl_device_memory_remove(dev_dy);
-
-
-         set_mysize(ncells);
-         set_viewmode(view_mode);
-         set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
-         set_cell_data(&H[0]);
-         set_cell_proc(&mesh->proc[0]);
-         set_circle_radius(circle_radius);
-         draw_scene();
-#endif
          output_flag = 1;
       }  //  Complete output interval.
       ++n;
       simTime += deltaT;
       
    }
+
+#ifdef HAVE_GRAPHICS
+   cl_mem dev_x  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   cl_mem dev_dx = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   cl_mem dev_y  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   cl_mem dev_dy = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
+
+   if (! do_comparison_calc) {
+      x.resize(ncells);
+      dx.resize(ncells);
+      y.resize(ncells);
+      dy.resize(ncells);
+      H.resize(ncells);
+
+      ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x[0],  &start_read_event);
+      ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y[0],  NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dy[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H[0],  &end_read_event);
+
+      state->gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
+   }
+
+   if (do_comparison_calc) {
+      mesh->calc_spatial_coordinates(0);
+
+      mesh->compare_coordinates_gpu_global_to_cpu_global(command_queue, dev_x, dev_dx, dev_y, dev_dy, dev_H, &H[0]);
+   }
+
+   ezcl_device_memory_remove(dev_x);
+   ezcl_device_memory_remove(dev_dx);
+   ezcl_device_memory_remove(dev_y);
+   ezcl_device_memory_remove(dev_dy);
+
+   set_mysize(ncells);
+   set_viewmode(view_mode);
+   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_cell_data(&H[0]);
+   set_cell_proc(&mesh->proc[0]);
+   set_circle_radius(circle_radius);
+   draw_scene();
+#endif
 
    //  Output final results and timing information.
    if (n > niter) {

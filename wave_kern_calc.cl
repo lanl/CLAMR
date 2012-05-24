@@ -1456,11 +1456,12 @@ __kernel void refine_smooth_cl(
         __global const int   *nbot,     // 5  Array of top neighbors.
         __global const int   *level,    // 6  Array of level information.
         __global const int   *celltype, // 7  Array of celltype information.
-        __global       int   *mpot,     // 8  Array of mesh potential information.
-        __global       int   *ioffset,  // 9  Array of new giX offsets.
-        __global       int   *newcount, // 10  Array of number of cells smoothed per tile
-        __global       int   *result,   // 11
-        __local        int2  *itile)    // 12  Tile size in int2.
+        __global const int   *mpot_old, // 8  Array of mesh potential information.
+        __global       int   *mpot,     // 9  Array of mesh potential information.
+        __global       int   *ioffset,  // 10 Array of new giX offsets.
+        __global       int   *newcount, // 11  Array of number of cells smoothed per tile
+        __global       int   *result,   // 12
+        __local        int2  *itile)    // 13  Tile size in int2.
 {
 
    const unsigned int giX  = get_global_id(0);
@@ -1487,88 +1488,98 @@ __kernel void refine_smooth_cl(
    int new_count = 0;
 
    int ic = giX;
+   mpot[giX] = mpot_old[giX];
 
    lev = level[ic];
-   if(mpot[ic] > 0) lev++;
+   if(mpot_old[ic] <= 0) {
 
-   nl = nlft[ic];
-   ll = level[nl];
-   if(mpot[nl] > 0) ll++;
+      nl = nlft[ic];
+      ll = level[nl];
+      if(mpot_old[nl] > 0) ll++;
    
-   if(ll - lev > 1) {
-      mpot[ic]++;
-      new_count++;
-      lev = levmx;
-   }
+      if(ll - lev > 1) {
+         mpot[ic]++;
+         new_count++;
+         lev = levmx;
+      }
 
-   nlt = ntop[nl];
-   llt = level[nlt];
-   if(mpot[nlt] > 0) llt++;
+      if (ll > lev) {
+         nlt = ntop[nl];
+         llt = level[nlt];
+         if(mpot_old[nlt] > 0) llt++;
 
-   if(llt - lev > 1) {
-      mpot[ic]++;
-      new_count++;
-      lev = levmx;
-   }
+         if(llt - lev > 1) {
+            mpot[ic]++;
+            new_count++;
+            lev = levmx;
+         }
+      }
 
-   nr = nrht[ic];
-   lr = level[nr];
-   if(mpot[nr] > 0) lr++;
+      nr = nrht[ic];
+      lr = level[nr];
+      if(mpot_old[nr] > 0) lr++;
    
-   if(lr - lev > 1) {
-      mpot[ic]++;
-      new_count++;
-      lev = levmx;
-   }
+      if(lr - lev > 1) {
+         mpot[ic]++;
+         new_count++;
+         lev = levmx;
+      }
 
-   nrt = ntop[nr];
-   lrt = level[nrt];
-   if(mpot[nrt] > 0) lrt++;
+      if (lr > lev) {
+         nrt = ntop[nr];
+         lrt = level[nrt];
+         if(mpot_old[nrt] > 0) lrt++;
 
-   if(lrt - lev > 1) {
-      mpot[ic]++;
-      new_count++;
-      lev = levmx;
-   }
+         if(lrt - lev > 1) {
+            mpot[ic]++;
+            new_count++;
+            lev = levmx;
+         }
+      }
 
-   nt = ntop[ic];
-   lt = level[nt];
-   if(mpot[nt] > 0) lt++;
+      nt = ntop[ic];
+      lt = level[nt];
+      if(mpot_old[nt] > 0) lt++;
    
-   if(lt - lev > 1) {
-      mpot[ic]++;
-      new_count++;
-      lev = levmx;
-   }
+      if(lt - lev > 1) {
+         mpot[ic]++;
+         new_count++;
+         lev = levmx;
+      }
 
-   ntr = nrht[nt];
-   ltr = level[ntr];
-   if(mpot[ntr] > 0) ltr++;
+      if (lt > lev) {
+         ntr = nrht[nt];
+         ltr = level[ntr];
+         if(mpot_old[ntr] > 0) ltr++;
 
-   if(ltr - lev > 1) {
-      mpot[ic]++;
-      new_count++;
-      lev = levmx;
-   }
+         if(ltr - lev > 1) {
+            mpot[ic]++;
+            new_count++;
+            lev = levmx;
+         }
+      }
 
-   nb = nbot[ic];
-   lb = level[nb];
-   if(mpot[nb] > 0) lb++;
+      nb = nbot[ic];
+      lb = level[nb];
+      if(mpot_old[nb] > 0) lb++;
    
-   if(lb - lev > 1) {
-      mpot[ic]++;
-      new_count++;
-      lev = levmx;
-   }
+      if(lb - lev > 1) {
+         mpot[ic]++;
+         new_count++;
+         lev = levmx;
+      }
 
-   nbr = nrht[nb];
-   lbr = level[nbr];
-   if(mpot[nbr] > 0) lbr++;
+      if (lb > lev) {
+         nbr = nrht[nb];
+         lbr = level[nbr];
+         if(mpot_old[nbr] > 0) lbr++;
 
-   if(lbr - lev > 1) {
-      mpot[ic]++;
-      new_count++;
-      lev = levmx;
+         if(lbr - lev > 1) {
+            mpot[ic]++;
+            new_count++;
+            lev = levmx;
+         }
+      }
    }
 
    itile[tiX].s1 = new_count;
