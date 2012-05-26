@@ -77,36 +77,22 @@
 // Sync is to reduce numerical drift between cpu and gpu
 #define DO_SYNC 
 #define DO_COMPARISON
-//#define DO_CPU
-//#define DO_GPU
 
 //TODO:  command-line option for OpenGL?
 #ifdef DO_COMPARISON
-#define DO_CPU
-#define DO_GPU
 int do_comparison_calc = 1;
 #else
 int do_comparison_calc = 0;
 #endif
 
-#ifdef DO_CPU
-int do_cpu_calc = 1;
-#else
 int do_cpu_calc = 0;
-#endif
-
-#ifdef DO_GPU
 int do_gpu_calc = 1;
-#else
-int do_gpu_calc = 0;
-#endif
 
 #ifdef DO_SYNC
 int do_sync = 1;
 #else
 int do_sync = 0;
 #endif
-int do_gpu_sync = 0;
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
@@ -435,8 +421,8 @@ extern "C" void do_calc(void)
    int icount_global, jcount_global;
 
    if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
-      do_sync = 0;
-      do_gpu_sync = 1;
+      printf("Can't do this problem with GPU\n");
+      exit(0);
    }
    
 #ifdef HAVE_OPENCL
@@ -882,7 +868,7 @@ extern "C" void do_calc(void)
       }
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
-      if (do_cpu_calc) {
+      if (do_comparison_calc) {
          state_global->remove_boundary_cells(mesh_global);
          state->remove_boundary_cells(mesh);
       }
@@ -989,10 +975,6 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_int), &mpot_global[0], NULL);
       }
-      if (do_gpu_sync) {
-         ezcl_enqueue_write_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_int), &mpot_global[0], NULL);
-      }
 
       int mcount, mtotal;
       if (do_comparison_calc) {
@@ -1036,50 +1018,13 @@ extern "C" void do_calc(void)
          }
 
       }
-      if (do_gpu_sync) {
-        mtotal = 0;
-        for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
-           mcount = 0;
-           for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
-               if (ic >= old_ncells) break;
-               if (celltype[ic] == REAL_CELL) {
-                  mcount += mpot[ic] ? 4 : 1;
-               } else {
-                  mcount += mpot[ic] ? 2 : 1;
-               }
-           }
-           //ioffset[ig] = mtotal;
-           mtotal += mcount;
-        }
-        ezcl_enqueue_write_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
-        mtotal = 0;
-        for (uint ig=0; ig<(old_ncells_global+TILE_SIZE-1)/TILE_SIZE; ig++){
-           mcount = 0;
-           for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
-               if (ic >= old_ncells_global) break;
-               if (celltype_global[ic] == REAL_CELL) {
-                  mcount += mpot_global[ic] ? 4 : 1;
-               } else {
-                  mcount += mpot_global[ic] ? 2 : 1;
-               }
-           }
-           //ioffset_global[ig] = mtotal;
-           mtotal += mcount;
-         }
-         ezcl_enqueue_write_buffer(command_queue, dev_ioffset_global, CL_TRUE, 0, block_size_global*sizeof(cl_int),       &ioffset_global[0], NULL);
-      }
 
-      if (do_cpu_calc) {
+      if (do_comparison_calc) {
          new_ncells_global = old_ncells_global+mesh_global->rezone_count(mpot_global);
          new_ncells = old_ncells+mesh->rezone_count(mpot);
          //printf("new_ncells %d old_ncells %d rezone_count %d\n",new_ncells, old_ncells, mesh->rezone_count(mpot)) ;
          //printf("new_ncells_global %d old_ncells_global %d rezone_count_global %d\n",new_ncells_global, old_ncells_global, mesh_global->rezone_count(mpot_global));
       }
-
-      //if (do_gpu_calc) {
-      //   mesh_global->gpu_rezone_count(command_queue, block_size_global, local_work_size_global, dev_ioffset_global, dev_result_global);
-      //   mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
-      //}
 
       if (do_comparison_calc) {
          int result;
@@ -1093,28 +1038,31 @@ extern "C" void do_calc(void)
          new_ncells_global = result;
       }
 
-      if (do_gpu_calc) {
-         ezcl_device_memory_remove(dev_result);
+      ezcl_device_memory_remove(dev_result);
+
+      if (do_comparison_calc) {
          ezcl_device_memory_remove(dev_result_global);
       }
 
-      if (do_cpu_calc) {
-         int add_ncells_global = new_ncells_global - old_ncells_global;
-         int add_ncells = new_ncells - old_ncells;
+
+      int add_ncells_global=0, add_ncells=0;
+      if (do_comparison_calc) {
+         add_ncells_global = new_ncells_global - old_ncells_global;
+         add_ncells = new_ncells - old_ncells;
          //printf("%d: DEBUG add %d new %d old %d\n",mype,add_ncells,new_ncells,old_ncells);
+      }
+
+      //  Resize the mesh, inserting cells where refinement is necessary.
+      state->gpu_rezone_all_local(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil, dev_mpot, dev_ioffset);
+
+      if (do_comparison_calc) {
          state_global->rezone_all(mesh_global, mpot_global, add_ncells_global);
          state->rezone_all(mesh, mpot, add_ncells);
          mpot_global.clear();
          mpot.clear();
-      }
 
-      //  Resize the mesh, inserting cells where refinement is necessary.
-      if (do_gpu_calc) {
          state_global->gpu_rezone_all(command_queue, mesh_global, ncells_global, new_ncells_global, old_ncells_global, localStencil, dev_mpot_global, dev_ioffset_global);
-         state->gpu_rezone_all_local(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil, dev_mpot, dev_ioffset);
-      }
 
-      if (do_comparison_calc) {
          //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
          MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
          ndispl[0]=0;
@@ -1227,21 +1175,20 @@ extern "C" void do_calc(void)
 #endif
 
 #ifdef XXX // not rewritten yet
-      if (do_gpu_calc) {
-         mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset);
-      }
+      mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset);
 #endif
 
-      if (do_gpu_calc) {
-         if (ncells != old_ncells){
-            H.resize(ncells);
-            U.resize(ncells);
-            V.resize(ncells);
-            level.resize(ncells);
-            i.resize(ncells);
-            j.resize(ncells);
-            celltype.resize(ncells);
-         }
+      if (ncells != old_ncells){
+         H.resize(ncells);
+         U.resize(ncells);
+         V.resize(ncells);
+         level.resize(ncells);
+         i.resize(ncells);
+         j.resize(ncells);
+         celltype.resize(ncells);
+      }
+
+      if (do_comparison_calc) {
          if (ncells_global != old_ncells_global){
             H_global.resize(ncells_global);
             U_global.resize(ncells_global);
@@ -1286,28 +1233,8 @@ extern "C" void do_calc(void)
          mesh_global->partition_cells(numpe, mesh_global->proc, index_global, cycle_reorder);
          mesh->partition_cells(numpe, mesh->proc, index, cycle_reorder);
          //state->state_reorder(index);
-         if (do_gpu_sync) {
-            ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&celltype[0],  NULL);
-            ezcl_enqueue_write_buffer(command_queue, dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],  NULL);
-            ezcl_enqueue_write_buffer(command_queue, dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],  NULL);
-            ezcl_enqueue_write_buffer(command_queue, dev_level, CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&level[0],  NULL);
-            ezcl_enqueue_write_buffer(command_queue, dev_celltype_global, CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&celltype_global[0],  NULL);
-            ezcl_enqueue_write_buffer(command_queue, dev_i_global,     CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&i_global[0],  NULL);
-            ezcl_enqueue_write_buffer(command_queue, dev_j_global,     CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&j_global[0],  NULL);
-            ezcl_enqueue_write_buffer(command_queue, dev_level_global, CL_TRUE,  0, ncells_global*sizeof(cl_int),  (void *)&level_global[0],  NULL);
-         }
       }
 
-      if (do_gpu_sync) {
-         ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&H_global[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&U_global[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_real),  (void *)&V_global[0],  NULL);
-      }
-
-      
       if (n % outputInterval == 0) {
          if (H_sum < 0) {
             H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
