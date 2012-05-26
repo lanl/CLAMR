@@ -597,36 +597,29 @@ extern "C" void do_calc(void)
       old_ncells_global = ncells_global;
 
       //  Calculate the real time step for the current discrete time step.
-      double deltaT_cpu = -1.0;
-      double deltaT_cpu_local = -1.0;
-      if (do_cpu_calc) {
-         deltaT_cpu = state_global->set_timestep(mesh_global, g, sigma);
-         deltaT_cpu_local = state->set_timestep(mesh, g, sigma);
-      }  //  Complete CPU timestep calculation.
+      double deltaT = state->gpu_set_timestep(command_queue, mesh, sigma);
 
-      double deltaT_gpu = -1.0;
-      double deltaT_gpu_local = -1.0;
-      if (do_gpu_calc) {
-         deltaT_gpu = state_global->gpu_set_timestep(command_queue, mesh_global, sigma);
-         deltaT_gpu_local = state->gpu_set_timestep(command_queue, mesh, sigma);
-      }  //  Complete GPU calculation.
-
-      //  Compare time step values and pass deltaT in to the kernel.
       if (do_comparison_calc) {
+         double deltaT_cpu_global = state_global->set_timestep(mesh_global, g, sigma);
+         double deltaT_cpu_local = state->set_timestep(mesh, g, sigma);
+
+         double deltaT_gpu_global = state_global->gpu_set_timestep(command_queue, mesh_global, sigma);
+
+         //  Compare time step values and pass deltaT in to the kernel.
          int iflag = 0;
-         if (fabs(deltaT_cpu_local - deltaT_cpu) > .000001) iflag = 1;
-         if (fabs(deltaT_gpu_local - deltaT_gpu) > .000001) iflag = 1;
-         if (fabs(deltaT_gpu - deltaT_cpu) > .000001) iflag = 1;
-         if (fabs(deltaT_gpu_local - deltaT_cpu_local) > .000001) iflag = 1;
+         if (fabs(deltaT_cpu_local - deltaT_cpu_global) > .000001) iflag = 1;
+         if (fabs(deltaT - deltaT_gpu_global) > .000001) iflag = 1;
+         if (fabs(deltaT_gpu_global - deltaT_cpu_global) > .000001) iflag = 1;
+         if (fabs(deltaT - deltaT_cpu_local) > .000001) iflag = 1;
          if (iflag) {
             printf("Error with deltaT calc --- cpu_local %lf cpu_global %lf gpu_local %lf gpu_global %lf\n",
-               deltaT_cpu_local, deltaT_cpu, deltaT_gpu_local, deltaT_gpu);
+               deltaT_cpu_local, deltaT_cpu_global, deltaT, deltaT_gpu_global);
          }
       }
       
-      double deltaT = (do_gpu_calc) ? deltaT_gpu_local : deltaT_cpu_local;
+      mesh->gpu_calc_neighbors_local(command_queue);
 
-      if (do_cpu_calc) {
+      if (do_comparison_calc) {
          mesh_global->calc_neighbors();
          mesh->calc_neighbors_local();
 
@@ -645,14 +638,9 @@ extern "C" void do_calc(void)
          L7_Update(&dx[0], L7_REAL, cell_handle);
          L7_Update(&y[0], L7_REAL, cell_handle);
          L7_Update(&dy[0], L7_REAL, cell_handle);
-      }
 
-      if (do_gpu_calc) {
          mesh_global->gpu_calc_neighbors(command_queue);
-         mesh->gpu_calc_neighbors_local(command_queue);
-      }
 
-      if (do_comparison_calc) {
          // Checking CPU parallel to CPU global
          vector<int> Test(ncells_ghost);
          for(uint ic=0; ic<ncells; ic++){
@@ -821,12 +809,12 @@ extern "C" void do_calc(void)
       mesh->partition_measure();
 
       // Currently not working -- may need to be earlier?
-      //if (do_cpu_calc && ! mesh->have_boundary) {
+      //if (do_comparison_calc && ! mesh->have_boundary) {
       //  state->add_boundary_cells(mesh);
       //}
 
       // Need ghost cells for this routine
-      if (do_cpu_calc) {
+      if (do_comparison_calc) {
         state_global->apply_boundary_conditions(mesh_global);
         state->apply_boundary_conditions(mesh);
       }
@@ -834,17 +822,14 @@ extern "C" void do_calc(void)
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
-      if (do_cpu_calc) {
+      state->gpu_calc_finite_difference_local(command_queue, mesh, deltaT);
+
+      if (do_comparison_calc) {
          state_global->calc_finite_difference(mesh_global, deltaT);
          state->calc_finite_difference_local(mesh, deltaT);
-      }
       
-      if (do_gpu_calc) {
          state_global->gpu_calc_finite_difference(command_queue, mesh_global, deltaT);
-         state->gpu_calc_finite_difference_local(command_queue, mesh, deltaT);
-      }
       
-      if (do_comparison_calc) {
          // Need to compare dev_H to H, etc
          vector<real>H_save(ncells);
          vector<real>U_save(ncells);
@@ -916,14 +901,19 @@ extern "C" void do_calc(void)
             exit(-1); }
       }  //  Complete NAN check.
       
+      size_t result_size = 1;
+      cl_mem dev_result = NULL;
+      cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
+      dev_mpot     = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+      dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+
       vector<int>      ioffset(block_size);
       vector<int>      ioffset_global(block_size_global);
-      //vector<int>      newcount_global(block_size_global);
 
-      cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
       cl_mem dev_ioffset_global    = ezcl_malloc(NULL, &block_size_global, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
-      if (do_cpu_calc) {
+      cl_mem dev_result_global = NULL;
+      if (do_comparison_calc) {
          mpot.resize(ncells_ghost);
          mpot_global.resize(ncells_global);
          state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
@@ -936,15 +926,8 @@ extern "C" void do_calc(void)
          nrht_global.clear();
          nbot_global.clear();
          ntop_global.clear();
-      }  //  Complete CPU calculation.
 
-      size_t result_size = 1;
-      cl_mem dev_result = NULL;
-      cl_mem dev_result_global = NULL;
-      if (do_gpu_calc) {
-         dev_mpot     = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
          dev_mpot_global     = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-         dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          dev_result_global  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
          state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_mpot_global, dev_result_global, dev_ioffset_global);
@@ -958,9 +941,7 @@ extern "C" void do_calc(void)
          ezcl_device_memory_remove(dev_nrht_global);
          ezcl_device_memory_remove(dev_nbot_global);
          ezcl_device_memory_remove(dev_ntop_global);
-      }
       
-      if (do_comparison_calc) {
          int icount_test;
          MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          if (icount_test != icount_global) {
