@@ -1175,17 +1175,6 @@ extern "C" void do_calc(void)
 
       } // do_comparison_calc
 
-      //if (n % outputInterval == 0) {
-      //   vector<real> H_save(ncells);
-      //   ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_TRUE,  0, ncells*sizeof(cl_real), &H_save[0], &start_read_event);
-      //   gpu_time_read             += ezcl_timer_calc(&start_read_event,       &start_read_event);
-      //}
-
-#ifdef HAVE_GRAPHICS
-      set_cell_data(&H_global[0]);
-      set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-#endif
-
 #ifdef XXX // not rewritten yet
       mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset);
 #endif
@@ -1248,9 +1237,9 @@ extern "C" void do_calc(void)
       }
 
       if (n % outputInterval == 0) {
-         if (! do_comparison_calc) {
-            MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-         }
+         //if (! do_comparison_calc) {
+         //   MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         //}
          if (H_sum < 0) {
             H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
          }
@@ -1258,22 +1247,23 @@ extern "C" void do_calc(void)
             printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
                n, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
          }
-#ifdef HAVE_GRAPHICS
-         mesh_global->calc_spatial_coordinates(0);
-         set_mysize(ncells_global);
-         set_viewmode(view_mode);
-         set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-         set_cell_data(&H_global[0]);
-         set_cell_proc(&mesh_global->proc[0]);
-         set_circle_radius(circle_radius);
-         draw_scene();
-#endif
       }
       ++n;
       simTime += deltaT;
       
       output_flag = 1;
    }  //  Complete output interval.
+
+#ifdef HAVE_GRAPHICS
+   mesh_global->calc_spatial_coordinates(0);
+   set_mysize(ncells_global);
+   set_viewmode(view_mode);
+   set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+   set_cell_data(&H_global[0]);
+   set_cell_proc(&mesh_global->proc[0]);
+   set_circle_radius(circle_radius);
+   draw_scene();
+#endif
 
    //  Output final results and timing information.
    if (n > niter) {
