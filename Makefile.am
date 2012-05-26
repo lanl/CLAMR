@@ -1,12 +1,14 @@
-bin_PROGRAMS = clamr_gpuonly clamr_cpuonly clamr_mpionly clamr_gpucheck clamr_checkall
+bin_PROGRAMS = clamr clamr_gpuonly clamr_cpuonly clamr_mpionly clamr_gpucheck clamr_checkall
 
 SUBDIRS = l7 kdtree hsfc s7 timer ezcl zorder
 
-#clamr_CXX_SRCS = clamr.cpp mesh.cpp partition.cpp state.cpp input.cpp
-#clamr_C_SRCS = display.c reduce.c
-#clamr_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
+clamr_CXX_SRCS = clamr.cpp mesh.cpp partition.cpp state.cpp input.cpp
+clamr_C_SRCS = display.c reduce.c
+clamr_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
+clamr_CPPFLAGS = -DHAVE_MPI=1
+clamr_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm -Ll7 -ll7 ${MPE_LIBS} ${MPI_LIBS}
 
-#clamr_SOURCES = ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS}
+clamr_SOURCES = ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS}
 
 clamr_gpuonly_CXX_SRCS = clamr_gpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_gpuonly_C_SRCS = display.c reduce.c
