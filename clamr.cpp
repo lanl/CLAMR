@@ -560,14 +560,16 @@ extern "C" void do_calc(void)
       if (n > niter) break;
 
       // To reduce drift in solution
-      if (do_sync) {
-         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],  NULL);
+      if (do_comparison_calc){
+         if (do_sync) {
+            ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],  NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],  NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],  NULL);
 
-         ezcl_enqueue_read_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&H_global[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&U_global[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_real),  (void *)&V_global[0],  NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&H_global[0],  NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&U_global[0],  NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_real),  (void *)&V_global[0],  NULL);
+         }
       }
 
       size_t local_work_size_global  = MIN(ncells_global, TILE_SIZE);
@@ -792,7 +794,9 @@ extern "C" void do_calc(void)
          }
       }
 
-      mesh->partition_measure();
+      if (do_comparison_calc) {
+         mesh->partition_measure();
+      }
 
       // Currently not working -- may need to be earlier?
       //if (do_comparison_calc && ! mesh->have_boundary) {
@@ -898,6 +902,13 @@ extern "C" void do_calc(void)
 
       cl_mem dev_ioffset_global    = ezcl_malloc(NULL, &block_size_global, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
+      state->gpu_calc_refine_potential_local(command_queue, mesh, dev_mpot, dev_result, dev_ioffset);
+
+      ezcl_device_memory_remove(dev_nlft);
+      ezcl_device_memory_remove(dev_nrht);
+      ezcl_device_memory_remove(dev_nbot);
+      ezcl_device_memory_remove(dev_ntop);
+
       cl_mem dev_result_global = NULL;
       if (do_comparison_calc) {
          mpot.resize(ncells_ghost);
@@ -917,12 +928,6 @@ extern "C" void do_calc(void)
          dev_result_global  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
          state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_mpot_global, dev_result_global, dev_ioffset_global);
-         state->gpu_calc_refine_potential_local(command_queue, mesh, dev_mpot, dev_result, dev_ioffset);
-
-         ezcl_device_memory_remove(dev_nlft);
-         ezcl_device_memory_remove(dev_nrht);
-         ezcl_device_memory_remove(dev_nbot);
-         ezcl_device_memory_remove(dev_ntop);
          ezcl_device_memory_remove(dev_nlft_global);
          ezcl_device_memory_remove(dev_nrht_global);
          ezcl_device_memory_remove(dev_nbot_global);
@@ -971,9 +976,11 @@ extern "C" void do_calc(void)
 
       // Sync up cpu array with gpu version to reduce differences due to minor numerical differences
       // otherwise cell count will diverge causing code problems and crashes
-      if (do_sync) {
-         ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_int), &mpot_global[0], NULL);
+      if (do_comparison_calc){
+         if (do_sync) {
+            ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_int), &mpot_global[0], NULL);
+         }
       }
 
       int mcount, mtotal;
@@ -1037,6 +1044,11 @@ extern "C" void do_calc(void)
          if (new_ncells_global != result) printf("%d: DEBUG new_ncells_global not correct %ld %d\n",mype,new_ncells_global,result);
          new_ncells_global = result;
       }
+
+      int result;
+      ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
+      new_ncells = result;
+      //printf("Result is %d %d %d\n",result, ncells,__LINE__);
 
       ezcl_device_memory_remove(dev_result);
 
@@ -1236,12 +1248,15 @@ extern "C" void do_calc(void)
       }
 
       if (n % outputInterval == 0) {
+         if (! do_comparison_calc) {
+            MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         }
          if (H_sum < 0) {
             H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
          }
          if (mype == 0){
             printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
-               n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
+               n, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
          }
 #ifdef HAVE_GRAPHICS
          mesh_global->calc_spatial_coordinates(0);
