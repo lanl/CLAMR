@@ -739,7 +739,6 @@ extern "C" void do_calc(void)
          }
       }
 
-      int mcount, mtotal;
       if (do_comparison_calc) {
          mesh->compare_ioffset_all_to_gpu_local(command_queue, old_ncells, old_ncells_global, block_size, block_size_global, &mpot[0], &mpot_global[0], dev_ioffset, dev_ioffset_global, &ioffset[0], &ioffset_global[0], &celltype_global[0]);
       }
@@ -804,26 +803,19 @@ extern "C" void do_calc(void)
            noffset += nsizes[ip];
          }
 
+         state->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, n, &nsizes[0], &ndispl[0]);
+
          // Need to compare dev_H to H, etc
-         vector<real> H_check(ncells);
-         vector<real> U_check(ncells);
-         vector<real> V_check(ncells);
          vector<int> level_check(ncells);
          vector<int> celltype_check(ncells);
          vector<int> i_check(ncells);
          vector<int> j_check(ncells);
          /// Set read buffers for data.
-         ezcl_enqueue_read_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_real), &H_check[0],         NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real), &U_check[0],         NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V,        CL_FALSE, 0, ncells*sizeof(cl_real), &V_check[0],         NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  &level_check[0],     NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  &celltype_check[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &i_check[0],         NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_TRUE,  0, ncells*sizeof(cl_int),  &j_check[0],         NULL);
          for (uint ic = 0; ic < ncells; ic++){
-            if (fabs(H[ic]-H_check[ic]) > STATE_EPS) printf("%d: DEBUG rezone 1 cell %d H %lf H_check %lf\n",mype, ic,H[ic],H_check[ic]);
-            if (fabs(U[ic]-U_check[ic]) > STATE_EPS) printf("%d: DEBUG rezone 1 cell %d U %lf U_check %lf\n",mype, ic,U[ic],U_check[ic]);
-            if (fabs(V[ic]-V_check[ic]) > STATE_EPS) printf("%d: DEBUG rezone 1 cell %d V %lf V_check %lf\n",mype, ic,V[ic],V_check[ic]);
             if (level[ic] != level_check[ic] )       printf("%d: DEBUG rezone 1 cell %d level %d level_check %d\n",mype, ic, level[ic], level_check[ic]);
             if (celltype[ic] != celltype_check[ic] ) printf("%d: DEBUG rezone 1 cell %d celltype %d celltype_check %d\n",mype, ic, celltype[ic], celltype_check[ic]);
             if (i[ic] != i_check[ic] )               printf("%d: DEBUG rezone 1 cell %d i %d i_check %d\n",mype, ic, i[ic], i_check[ic]);
@@ -831,24 +823,15 @@ extern "C" void do_calc(void)
          }
       
          // And compare dev_H gathered to H_global, etc
-         vector<real>H_check_global(ncells_global);
-         vector<real>U_check_global(ncells_global);
-         vector<real>V_check_global(ncells_global);
          vector<int>celltype_check_global(ncells_global);
          vector<int>i_check_global(ncells_global);
          vector<int>j_check_global(ncells_global);
          vector<int>level_check_global(ncells_global);
-         MPI_Allgatherv(&H_check[0],        nsizes[mype], MPI_C_REAL, &H_check_global[0],        &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-         MPI_Allgatherv(&U_check[0],        nsizes[mype], MPI_C_REAL, &U_check_global[0],        &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-         MPI_Allgatherv(&V_check[0],        nsizes[mype], MPI_C_REAL, &V_check_global[0],        &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
          MPI_Allgatherv(&celltype_check[0], nsizes[mype], MPI_INT,    &celltype_check_global[0], &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
          MPI_Allgatherv(&i_check[0],        nsizes[mype], MPI_INT,    &i_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
          MPI_Allgatherv(&j_check[0],        nsizes[mype], MPI_INT,    &j_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
          MPI_Allgatherv(&level_check[0],    nsizes[mype], MPI_INT,    &level_check_global[0],    &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
          for (uint ic = 0; ic < ncells_global; ic++){
-            if (fabs(H_global[ic]-H_check_global[ic]) > STATE_EPS) printf("%d: DEBUG rezone 2 cell %d H_global %lf H_check_global %lf \n",mype,ic,H_global[ic],H_check_global[ic]);
-            if (fabs(U_global[ic]-U_check_global[ic]) > STATE_EPS) printf("%d: DEBUG rezone 2 cell %d U_global %lf U_check_global %lf \n",mype,ic,U_global[ic],U_check_global[ic]);
-            if (fabs(V_global[ic]-V_check_global[ic]) > STATE_EPS) printf("%d: DEBUG rezone 2 cell %d V_global %lf V_check_global %lf \n",mype,ic,V_global[ic],V_check_global[ic]);
             if (level_global[ic] != level_check_global[ic] )       printf("%d: DEBUG rezone 2 cell %d level_global %d level_check_global %d\n",mype, ic, level_global[ic], level_check_global[ic]);
             if (celltype_global[ic] != celltype_check_global[ic] ) printf("%d: DEBUG rezone 2 cell %d celltype_global %d celltype_check_global %d\n",mype, ic, celltype_global[ic], celltype_check_global[ic]);
             if (i_global[ic] != i_check_global[ic] )               printf("%d: DEBUG rezone 2 cell %d i_global %d i_check_global %d\n",mype, ic, i_global[ic], i_check_global[ic]);
@@ -856,17 +839,11 @@ extern "C" void do_calc(void)
          }
 
          // And compare H gathered to H_global, etc
-         MPI_Allgatherv(&H[0],        nsizes[mype], MPI_C_REAL, &H_check_global[0],        &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-         MPI_Allgatherv(&U[0],        nsizes[mype], MPI_C_REAL, &U_check_global[0],        &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-         MPI_Allgatherv(&V[0],        nsizes[mype], MPI_C_REAL, &V_check_global[0],        &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
          MPI_Allgatherv(&celltype[0], nsizes[mype], MPI_INT,    &celltype_check_global[0], &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
          MPI_Allgatherv(&i[0],        nsizes[mype], MPI_INT,    &i_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
          MPI_Allgatherv(&j[0],        nsizes[mype], MPI_INT,    &j_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
          MPI_Allgatherv(&level[0],    nsizes[mype], MPI_INT,    &level_check_global[0],    &nsizes[0], &ndispl[0], MPI_INT,    MPI_COMM_WORLD);
          for (uint ic = 0; ic < ncells_global; ic++){
-            if (fabs(H_global[ic]-H_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 3 at cycle %d H_global & H_check_global %d %lf %lf \n",n,ic,H_global[ic],H_check_global[ic]);
-            if (fabs(U_global[ic]-U_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 3 at cycle %d U_global & U_check_global %d %lf %lf \n",n,ic,U_global[ic],U_check_global[ic]);
-            if (fabs(V_global[ic]-V_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 3 at cycle %d V_global & V_check_global %d %lf %lf \n",n,ic,V_global[ic],V_check_global[ic]);
             if (celltype_global[ic] != celltype_check_global[ic])  printf("DEBUG rezone 3 at cycle %d celltype_global & celltype_check_global %d %d  %d  \n",n,ic,celltype_global[ic],celltype_check_global[ic]);
             if (i_global[ic] != i_check_global[ic])                printf("DEBUG rezone 3 at cycle %d i_global & i_check_global %d %d  %d  \n",n,ic,i_global[ic],i_check_global[ic]);
             if (j_global[ic] != j_check_global[ic])                printf("DEBUG rezone 3 at cycle %d j_global & j_check_global %d %d  %d  \n",n,ic,j_global[ic],j_check_global[ic]);
@@ -874,17 +851,11 @@ extern "C" void do_calc(void)
          }
 
          // Now the global dev_H_global to H_global, etc
-         ezcl_enqueue_read_buffer(command_queue, dev_H_global,        CL_FALSE, 0, ncells_global*sizeof(cl_real), &H_check_global[0],        NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_U_global,        CL_FALSE, 0, ncells_global*sizeof(cl_real), &U_check_global[0],        NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V_global,        CL_FALSE, 0, ncells_global*sizeof(cl_real), &V_check_global[0],        NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_celltype_global, CL_FALSE, 0, ncells_global*sizeof(cl_int),  &celltype_check_global[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_i_global,        CL_FALSE, 0, ncells_global*sizeof(cl_int),  &i_check_global[0],        NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_j_global,        CL_FALSE, 0, ncells_global*sizeof(cl_int),  &j_check_global[0],        NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_level_global,    CL_TRUE,  0, ncells_global*sizeof(cl_int),  &level_check_global[0],    NULL);
          for (uint ic = 0; ic < ncells_global; ic++){
-            if (fabs(H_global[ic]-H_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 4 at cycle %d H_global & H_check_global %d %lf %lf \n",n,ic,H_global[ic],H_check_global[ic]);
-            if (fabs(U_global[ic]-U_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 4 at cycle %d U_global & U_check_global %d %lf %lf \n",n,ic,U_global[ic],U_check_global[ic]);
-            if (fabs(V_global[ic]-V_check_global[ic]) > STATE_EPS) printf("DEBUG rezone 4 at cycle %d V_global & V_check_global %d %lf %lf \n",n,ic,V_global[ic],V_check_global[ic]);
             if (celltype_global[ic] != celltype_check_global[ic])  printf("DEBUG rezone 4 at cycle %d celltype_global & celltype_check_global %d %d  %d  \n",n,ic,celltype_global[ic],celltype_check_global[ic]);
             if (i_global[ic] != i_check_global[ic])                printf("DEBUG rezone 4 at cycle %d i_global & i_check_global %d %d  %d  \n",n,ic,i_global[ic],i_check_global[ic]);
             if (j_global[ic] != j_check_global[ic])                printf("DEBUG rezone 4 at cycle %d j_global & j_check_global %d %d  %d  \n",n,ic,j_global[ic],j_check_global[ic]);
