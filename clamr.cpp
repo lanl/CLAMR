@@ -692,10 +692,14 @@ extern "C" void do_calc(void)
             exit(-1); }
       }  //  Complete NAN check.
       
+      size_t result_size = 1;
+      cl_mem dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
+      dev_mpot     = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+
       vector<int>      ioffset(block_size);
       vector<int>      ioffset_global(block_size_global);
 
-      cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
       cl_mem dev_ioffset_global    = ezcl_malloc(NULL, &block_size_global, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
 
       if (do_cpu_calc) {
@@ -713,13 +717,9 @@ extern "C" void do_calc(void)
          ntop_global.clear();
       }  //  Complete CPU calculation.
 
-      size_t result_size = 1;
-      cl_mem dev_result = NULL;
       cl_mem dev_result_global = NULL;
       if (do_gpu_calc) {
-         dev_mpot     = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
          dev_mpot_global     = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-         dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          dev_result_global  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
          state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_mpot_global, dev_result_global, dev_ioffset_global);
