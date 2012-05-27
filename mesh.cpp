@@ -838,6 +838,48 @@ void Mesh::compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_que
    }
 }
 
+void Mesh::compare_ioffset_all_to_gpu_local(cl_command_queue command_queue, uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global)
+{
+   // This compares ioffset for each block in the calculation
+   ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int), &ioffset[0], NULL);
+   int mtotal = 0; 
+   for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
+      int mcount = 0; 
+      for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
+          if (ic >= old_ncells) break;
+          if (celltype[ic] == REAL_CELL) {
+             mcount += mpot[ic] ? 4 : 1; 
+          } else {
+             mcount += mpot[ic] ? 2 : 1; 
+          }    
+      }    
+      if (mtotal != ioffset[ig]) printf("%d: DEBUG ig %d ioffset %d mtotal %d\n",mype,ig,ioffset[ig],mtotal);
+      mtotal += mcount;
+   }    
+
+   // For global This compares ioffset for each block in the calculation
+   ezcl_enqueue_read_buffer(command_queue, dev_ioffset_global, CL_TRUE, 0, block_size_global*sizeof(cl_int), &ioffset_global[0], NULL);
+   mtotal = 0; 
+   int count = 0; 
+   for (uint ig=0; ig<(old_ncells_global+TILE_SIZE-1)/TILE_SIZE; ig++){
+      int mcount = 0; 
+      for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
+          if (ic >= old_ncells_global) break;
+          if (celltype_global[ic] == REAL_CELL) {
+             mcount += mpot_global[ic] ? 4 : 1; 
+          } else {
+             mcount += mpot_global[ic] ? 2 : 1; 
+          }    
+      }    
+      if (mtotal != ioffset_global[ig]) {
+         printf("DEBUG global ig %d ioffset %d mtotal %d\n",ig,ioffset_global[ig],mtotal);
+         count++;
+      }    
+      if (count > 10) exit(0);
+      mtotal += mcount;
+   }    
+}
+
 Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary, int parallel_in, int do_gpu_calc)
 {
    cpu_time_calc_neighbors     = 0.0;
