@@ -76,7 +76,7 @@
 
 // Sync is to reduce numerical drift between cpu and gpu
 #define DO_SYNC 
-#define DO_COMPARISON
+//#define DO_COMPARISON
 
 //TODO:  command-line option for OpenGL?
 #ifdef DO_COMPARISON
@@ -755,6 +755,11 @@ extern "C" void do_calc(void)
          if (new_ncells_global != result) printf("%d: DEBUG new_ncells_global not correct %ld %d\n",mype,new_ncells_global,result);
          new_ncells_global = result;
       }
+
+      int result;
+      ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
+      new_ncells = result;
+      //printf("Result is %d %d %d\n",result, ncells,__LINE__);
 
       ezcl_device_memory_remove(dev_result);
 
