@@ -489,19 +489,11 @@ extern "C" void do_calc(void)
    cl_mem &dev_U  = state->dev_U;
    cl_mem &dev_V  = state->dev_V;
 
-   cl_mem &dev_celltype_global = mesh_global->dev_celltype;
-   cl_mem &dev_i_global        = mesh_global->dev_i;
-   cl_mem &dev_j_global        = mesh_global->dev_j;
-   cl_mem &dev_level_global    = mesh_global->dev_level;
    cl_mem &dev_nlft_global     = mesh_global->dev_nlft;
    cl_mem &dev_nrht_global     = mesh_global->dev_nrht;
    cl_mem &dev_nbot_global     = mesh_global->dev_nbot;
    cl_mem &dev_ntop_global     = mesh_global->dev_ntop;
 
-   cl_mem &dev_celltype = mesh->dev_celltype;
-   cl_mem &dev_i        = mesh->dev_i;
-   cl_mem &dev_j        = mesh->dev_j;
-   cl_mem &dev_level    = mesh->dev_level;
    cl_mem &dev_nlft     = mesh->dev_nlft;
    cl_mem &dev_nrht     = mesh->dev_nrht;
    cl_mem &dev_nbot     = mesh->dev_nbot;
@@ -697,6 +689,7 @@ extern "C" void do_calc(void)
       // Should not need this call! -- 
       state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_mpot_global, dev_result_global, dev_ioffset_global);
       state->gpu_calc_refine_potential_local(command_queue, mesh, dev_mpot, dev_result, dev_ioffset);
+
       ezcl_device_memory_remove(dev_nlft);
       ezcl_device_memory_remove(dev_nrht);
       ezcl_device_memory_remove(dev_nbot);
@@ -773,13 +766,13 @@ extern "C" void do_calc(void)
       if (do_comparison_calc) {
          add_ncells_global = new_ncells_global - old_ncells_global;
          add_ncells = new_ncells - old_ncells;
+         //printf("%d: DEBUG add %d new %d old %d\n",mype,add_ncells,new_ncells,old_ncells);
       }
 
       //  Resize the mesh, inserting cells where refinement is necessary.
       state->gpu_rezone_all_local(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil, dev_mpot, dev_ioffset);
 
       if (do_comparison_calc) {
-         //printf("%d: DEBUG add %d new %d old %d\n",mype,add_ncells,new_ncells,old_ncells);
          state_global->rezone_all(mesh_global, mpot_global, add_ncells_global);
          state->rezone_all(mesh, mpot, add_ncells);
          mpot_global.clear();
