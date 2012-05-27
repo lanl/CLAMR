@@ -268,6 +268,7 @@ public:
    void compare_dev_local_to_local(cl_command_queue);
    void compare_neighbors_gpu_global_to_cpu_global(cl_command_queue command_queue);
    void compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl);
+   void compare_neighbors_all_to_gpu_local(cl_command_queue command_queue, Mesh *mesh_global, int *nsizes, int *ndispl);
    void compare_mpot_gpu_global_to_cpu_global(cl_command_queue command_queue, int *mpot, cl_mem dev_mpot);
    void compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *displ, int *mpot, int *     mpot_global, int cycle);
    void compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, uint old_ncells, int block_size, int *mpot, cl_mem dev_ioffset);

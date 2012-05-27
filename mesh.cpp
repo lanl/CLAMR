@@ -472,6 +472,188 @@ void Mesh::compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint nce
 #endif
 }
 
+void Mesh::compare_neighbors_all_to_gpu_local(cl_command_queue command_queue, Mesh *mesh_global, int *nsizes, int *ndispl)
+//uint ncells_ghost, uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl)
+{
+#ifdef HAVE_MPI
+   size_t &ncells_global = mesh_global->ncells;
+   vector<int> &nlft_global = mesh_global->nlft;
+   vector<int> &nrht_global = mesh_global->nrht;
+   vector<int> &nbot_global = mesh_global->nbot;
+   vector<int> &ntop_global = mesh_global->ntop;
+
+   // Checking CPU parallel to CPU global
+   vector<int> Test(ncells_ghost);
+   for(uint ic=0; ic<ncells; ic++){
+      Test[ic] = mype*1000 +ic; 
+   }    
+   L7_Update(&Test[0], L7_INT, cell_handle);
+
+   vector<int> Test_global(ncells_global);
+   MPI_Allgatherv(&Test[0], nsizes[mype], MPI_INT, &Test_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+
+   vector<int> Test_check(ncells);
+   vector<int> Test_check_global(ncells_global);
+
+   // ==================== check left value ====================
+   for (uint ic=0; ic<ncells; ic++){
+      Test_check[ic] = Test[nlft[ic]];
+      //if (mype == 1 && ic==0) printf("%d: nlft check for ic 0 is %d\n",mype,nlft[0]);
+   }    
+
+   MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+
+   for (uint ic=0; ic<ncells_global; ic++){
+      //if (Test_global[nlft_global[ic]] != Test_check_global[ic]) {
+         //if (mype == 0) printf("%d: Error with nlft for cell %d -- nlft %d global %d check %d\n",mype,ic,nlft_global[ic],Test_global[nlft_global[ic]],Test_check_global[ic]);
+      //}  
+   }    
+     
+   // ==================== check left left value ====================
+   for (uint ic=0; ic<ncells; ic++){
+      Test_check[ic] = Test[nlft[nlft[ic]]];
+   }    
+
+   MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+
+   for (uint ic=0; ic<ncells_global; ic++){
+      if (Test_global[nlft_global[nlft_global[ic]]] != Test_check_global[ic]) {
+         printf("%d: Error with nlft nlft for cell %5d -- nlftg %5d nlftg nlftg %5d global %5d\n",
+            mype,ic,nlft_global[ic],nlft_global[nlft_global[ic]],Test_global[nlft_global[nlft_global[ic]]]);               printf("%d:                         check %5d -- nlftl %5d nlftl nlftl %5d check  %5d\n",
+            mype,ic,nlft[ic],nlft[nlft[ic]],Test_check_global[ic]);
+      }          
+   }       
+              
+   // ==================== check right value ====================
+   for (uint ic=0; ic<ncells; ic++){
+      Test_check[ic] = Test[nrht[ic]];
+   }       
+
+   MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   for (uint ic=0; ic<ncells_global; ic++){
+      if (Test_global[nrht_global[ic]] != Test_check_global[ic]) {
+         if (mype == 0) printf("%d: Error with nrht for cell %d -- %d %d\n",mype,ic,Test_global[nrht_global[ic]],Test_check_global[ic]);
+      }
+   }
+
+   // ==================== check right right value ====================
+   for (uint ic=0; ic<ncells; ic++){
+      Test_check[ic] = Test[nrht[nrht[ic]]];
+   }
+
+   MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+
+   for (uint ic=0; ic<ncells_global; ic++){
+      if (Test_global[nrht_global[nrht_global[ic]]] != Test_check_global[ic]) {
+         printf("%d: Error with nrht nrht for cell %5d -- nrhtg %5d nrhtg nrhtg %5d global %5d\n",
+            mype,ic,nrht_global[ic],nrht_global[nrht_global[ic]],Test_global[nrht_global[nrht_global[ic]]]);
+         printf("%d:                         check %5d -- nrhtl %5d nrhtl nrhtl %5d check  %5d\n",
+            mype,ic,nrht[ic],nrht[nrht[ic]],Test_check_global[ic]);
+      }
+   }
+
+   // ==================== check bottom value ====================
+   for (uint ic=0; ic<ncells; ic++){
+      Test_check[ic] = Test[nbot[ic]];
+   }
+
+   MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+
+   for (uint ic=0; ic<ncells_global; ic++){
+      if (Test_global[nbot_global[ic]] != Test_check_global[ic]) {
+         if (mype == 0) printf("%d: Error with nbot for cell %d -- %d %d\n",mype,ic,Test_global[nbot_global[ic]],Test_check_global[ic]);
+      }
+   }
+
+   // ==================== check bottom bottom value ====================
+   for (uint ic=0; ic<ncells; ic++){
+      Test_check[ic] = Test[nbot[nbot[ic]]];
+   }
+
+   MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+
+   for (uint ic=0; ic<ncells_global; ic++){
+      if (Test_global[nbot_global[nbot_global[ic]]] != Test_check_global[ic]) {
+         printf("%d: Error with nbot nbot for cell %5d -- nbotg %5d nbotg nbotg %5d global %5d\n",
+            mype,ic,nbot_global[ic],nbot_global[nbot_global[ic]],Test_global[nbot_global[nbot_global[ic]]]);
+         printf("%d:                         check %5d -- nbotl %5d nbotl nbotl %5d check  %5d\n",
+            mype,ic,nbot[ic],nbot[nbot[ic]],Test_check_global[ic]);
+      }
+   }
+   // ==================== check top value ====================
+   for (uint ic=0; ic<ncells; ic++){
+      Test_check[ic] = Test[ntop[ic]];
+   }
+   MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+
+   for (uint ic=0; ic<ncells_global; ic++){
+      if (Test_global[ntop_global[ic]] != Test_check_global[ic]) {
+         if (mype == 0) printf("%d: Error with ntop for cell %d -- %d %d\n",mype,ic,Test_global[ntop_global[ic]],Test_check_global[ic]);
+      }
+   }
+
+   // ==================== check top top value ====================
+   for (uint ic=0; ic<ncells; ic++){
+      Test_check[ic] = Test[ntop[ntop[ic]]];
+   }
+
+   MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+
+   for (uint ic=0; ic<ncells_global; ic++){
+      if (Test_global[ntop_global[ntop_global[ic]]] != Test_check_global[ic]) {
+         printf("%d: Error with ntop ntop for cell %5d -- ntopg %5d ntopg ntopg %5d global %5d\n",
+            mype,ic,ntop_global[ic],ntop_global[ntop_global[ic]],Test_global[ntop_global[ntop_global[ic]]]);
+         printf("%d:                         check %5d -- ntopl %5d ntopl ntopl %5d check  %5d\n",
+            mype,ic,ntop[ic],ntop[ntop[ic]],Test_check_global[ic]);
+      }
+   }
+   // checking gpu results
+   vector<int> nlft_check(ncells_ghost);         vector<int> nrht_check(ncells_ghost);
+   vector<int> nbot_check(ncells_ghost);         vector<int> ntop_check(ncells_ghost);
+   ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells_ghost*sizeof(cl_int),  &nlft_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells_ghost*sizeof(cl_int),  &nrht_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells_ghost*sizeof(cl_int),  &nbot_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells_ghost*sizeof(cl_int),  &ntop_check[0], NULL);
+
+   for (uint ic=0; ic<ncells_ghost; ic++){
+      if (nlft[ic] != nlft_check[ic]) printf("%d: Error with gpu calculated nlft for cell %d nlft %d check %d\n",mype,ic,nlft[ic],nlft_check[ic]);
+      if (nrht[ic] != nrht_check[ic]) printf("%d: Error with gpu calculated nrht for cell %d nrht %d check %d\n",mype,ic,nrht[ic],nrht_check[ic]);
+      if (nbot[ic] != nbot_check[ic]) printf("%d: Error with gpu calculated nbot for cell %d nbot %d check %d\n",mype,ic,nbot[ic],nbot_check[ic]);
+      if (ntop[ic] != ntop_check[ic]) printf("%d: Error with gpu calculated ntop for cell %d ntop %d check %d\n",mype,ic,ntop[ic],ntop_check[ic]);
+   }
+
+   // ==================== check top top value ====================
+   for (uint ic=0; ic<ncells; ic++){
+      Test_check[ic] = Test[ntop[ntop[ic]]];
+   }
+
+   MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+
+   for (uint ic=0; ic<ncells_global; ic++){
+      if (Test_global[ntop_global[ntop_global[ic]]] != Test_check_global[ic]) {
+         printf("%d: Error with ntop ntop for cell %5d -- ntopg %5d ntopg ntopg %5d global %5d\n",
+            mype,ic,ntop_global[ic],ntop_global[ntop_global[ic]],Test_global[ntop_global[ntop_global[ic]]]);
+         printf("%d:                         check %5d -- ntopl %5d ntopl ntopl %5d check  %5d\n",
+            mype,ic,ntop[ic],ntop[ntop[ic]],Test_check_global[ic]);
+      }
+   }
+   // checking gpu results
+   //vector<int> nlft_check(ncells_ghost);         vector<int> nrht_check(ncells_ghost);
+   //vector<int> nbot_check(ncells_ghost);         vector<int> ntop_check(ncells_ghost);
+   ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells_ghost*sizeof(cl_int),  &nlft_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells_ghost*sizeof(cl_int),  &nrht_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells_ghost*sizeof(cl_int),  &nbot_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells_ghost*sizeof(cl_int),  &ntop_check[0], NULL);
+
+   for (uint ic=0; ic<ncells_ghost; ic++){
+      if (nlft[ic] != nlft_check[ic]) printf("%d: Error with gpu calculated nlft for cell %d nlft %d check %d\n",mype,ic,nlft[ic],nlft_check[ic]);
+      if (nrht[ic] != nrht_check[ic]) printf("%d: Error with gpu calculated nrht for cell %d nrht %d check %d\n",mype,ic,nrht[ic],nrht_check[ic]);
+      if (nbot[ic] != nbot_check[ic]) printf("%d: Error with gpu calculated nbot for cell %d nbot %d check %d\n",mype,ic,nbot[ic],nbot_check[ic]);
+      if (ntop[ic] != ntop_check[ic]) printf("%d: Error with gpu calculated ntop for cell %d ntop %d check %d\n",mype,ic,ntop[ic],ntop_check[ic]);
+   }
+#endif
+}
+
 void Mesh::compare_indices_gpu_global_to_cpu_global(cl_command_queue command_queue)
 {
    vector<int> i_check(ncells);
