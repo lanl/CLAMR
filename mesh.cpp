@@ -776,6 +776,45 @@ void Mesh::compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes,
 
 }
 
+void Mesh::compare_mpot_all_to_gpu_local(cl_command_queue command_queue, int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle)
+{
+#ifdef HAVE_MPI
+   // Need to compare dev_mpot to mpot 
+   vector<int>mpot_save(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_save[0], NULL);
+   for (uint ic = 0; ic < ncells; ic++){
+      if (mpot[ic] != mpot_save[ic]) {
+         printf("%d: DEBUG refine_potential 1 at cycle %d cell %d mpot & mpot_save %d %d \n",mype,ncycle,ic,mpot[ic],mpot_save[ic]);
+      }    
+   }    
+
+   // Compare dev_mpot to mpot_global
+   vector<int>mpot_save_global(ncells_global);
+   MPI_Allgatherv(&mpot_save[0], nsizes[mype], MPI_INT, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   for (uint ic = 0; ic < ncells_global; ic++){
+      if (mpot_global[ic] != mpot_save_global[ic]) {
+         if (mype == 0) printf("%d: DEBUG refine_potential 2 at cycle %d cell %d mpot_global & mpot_save_global %d %d \n",mype,ncycle,ic,mpot_global[ic],mpot_save_global[ic]);
+      }    
+   }    
+
+   // Compare mpot to mpot_global
+   MPI_Allgatherv(&mpot[0], nsizes[mype], MPI_INT, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   for (uint ic = 0; ic < ncells_global; ic++){
+      if (mpot_global[ic] != mpot_save_global[ic]) {
+         if (mype == 0) printf("%d: DEBUG refine_potential 3 at cycle %d cell %d mpot_global & mpot_save_global %d %d \n",mype,ncycle,ic,mpot_global[ic],mpot_save_global[ic]);
+      }    
+   }    
+
+   // Compare dev_mpot_global to mpot_global
+   ezcl_enqueue_read_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_int), &mpot_save_global[0], NULL);
+   for (uint ic = 0; ic < ncells_global; ic++){
+      if (mpot_global[ic] != mpot_save_global[ic]) {
+         if (mype == 0) printf("%d: DEBUG refine_potential 4 at cycle %d cell %u mpot_global & mpot_save_global %d %d \n",mype,ncycle,ic,mpot_global[ic],mpot_save_global[ic]);
+      }    
+   }    
+#endif
+}
+
 void Mesh::compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, uint old_ncells, int block_size, int *mpot, cl_mem dev_ioffset)
 {
    vector<int> ioffset_check(block_size);

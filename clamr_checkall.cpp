@@ -757,39 +757,7 @@ extern "C" void do_calc(void)
             printf("%d: DEBUG -- icount is %d icount_test %d icount_global is %d\n",mype,icount,icount_test,icount_global);
          }
 
-         // Need to compare dev_mpot to mpot
-         vector<int>mpot_save(ncells);
-         ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_save[0], NULL);
-         for (uint ic = 0; ic < ncells; ic++){
-            if (mpot[ic] != mpot_save[ic]) {
-               printf("%d: DEBUG refine_potential 1 at cycle %d cell %d mpot & mpot_save %d %d \n",mype,n,ic,mpot[ic],mpot_save[ic]);
-            }    
-         }    
-
-         // Compare dev_mpot to mpot_global
-         vector<int>mpot_save_global(ncells_global);
-         MPI_Allgatherv(&mpot_save[0], nsizes[mype], MPI_INT, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-         for (uint ic = 0; ic < ncells_global; ic++){
-            if (mpot_global[ic] != mpot_save_global[ic]) {
-               if (mype == 0) printf("%d: DEBUG refine_potential 2 at cycle %d cell %d mpot_global & mpot_save_global %d %d \n",mype,n,ic,mpot_global[ic],mpot_save_global[ic]);
-            }    
-         }    
-
-         // Compare mpot to mpot_global
-         MPI_Allgatherv(&mpot[0], nsizes[mype], MPI_INT, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-         for (uint ic = 0; ic < ncells_global; ic++){
-            if (mpot_global[ic] != mpot_save_global[ic]) {
-               if (mype == 0) printf("%d: DEBUG refine_potential 3 at cycle %d cell %d mpot_global & mpot_save_global %d %d \n",mype,n,ic,mpot_global[ic],mpot_save_global[ic]);
-            }    
-         }    
-
-         // Compare dev_mpot_global to mpot_global
-         ezcl_enqueue_read_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_int), &mpot_save_global[0], NULL);
-         for (uint ic = 0; ic < ncells_global; ic++){
-            if (mpot_global[ic] != mpot_save_global[ic]) {
-               if (mype == 0) printf("%d: DEBUG refine_potential 4 at cycle %d cell %u mpot_global & mpot_save_global %d %d \n",mype,n,ic,mpot_global[ic],mpot_save_global[ic]);
-            }    
-         }    
+         mesh_local->compare_mpot_all_to_gpu_local(command_queue, &mpot[0], &mpot_global[0], dev_mpot, dev_mpot_global, ncells_global, &nsizes[0], &ndispl[0], n);
       }
 
       // Sync up cpu array with gpu version to reduce differences due to minor numerical differences
