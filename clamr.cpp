@@ -794,6 +794,7 @@ extern "C" void do_calc(void)
          for (int ip=0; ip<mype; ip++){
            noffset += nsizes[ip];
          }
+         MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
          state->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, n, &nsizes[0], &ndispl[0]);
 
@@ -862,9 +863,6 @@ extern "C" void do_calc(void)
       }
 
       if (n % outputInterval == 0) {
-         //if (! do_comparison_calc) {
-         //   MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-         //}
          if (H_sum < 0) {
             H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
          }
@@ -880,7 +878,42 @@ extern "C" void do_calc(void)
    }  //  Complete output interval.
 
 #ifdef HAVE_GRAPHICS
-   mesh_global->calc_spatial_coordinates(0);
+   cl_mem dev_x  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   cl_mem dev_dx = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   cl_mem dev_y  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   cl_mem dev_dy = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+
+   mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
+
+   x.resize(ncells_ghost);
+   dx.resize(ncells_ghost);
+   y.resize(ncells_ghost);
+   dy.resize(ncells_ghost);
+   H.resize(ncells_ghost);
+
+   ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dy[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_H,  CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H[0],  NULL);
+
+   ezcl_device_memory_remove(dev_x);
+   ezcl_device_memory_remove(dev_dx);
+   ezcl_device_memory_remove(dev_y);
+   ezcl_device_memory_remove(dev_dy);
+
+   x_global.resize(ncells_global);
+   dx_global.resize(ncells_global);
+   y_global.resize(ncells_global);
+   dy_global.resize(ncells_global);
+   H_global.resize(ncells_global);
+
+   MPI_Allgatherv(&x[0],  ncells, MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dx[0], ncells, MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&y[0],  ncells, MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dy[0], ncells, MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0],  ncells, MPI_C_REAL, &H_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+
    set_mysize(ncells_global);
    set_viewmode(view_mode);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
