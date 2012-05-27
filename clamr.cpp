@@ -77,29 +77,17 @@
 // Sync is to reduce numerical drift between cpu and gpu
 #define DO_SYNC 
 #define DO_COMPARISON
-//#define DO_CPU
-//#define DO_GPU
 
 //TODO:  command-line option for OpenGL?
 #ifdef DO_COMPARISON
-#define DO_CPU
-#define DO_GPU
 int do_comparison_calc = 1;
-#else
-int do_comparison_calc = 0;
-#endif
-
-#ifdef DO_CPU
 int do_cpu_calc = 1;
 #else
+int do_comparison_calc = 0;
 int do_cpu_calc = 0;
 #endif
 
-#ifdef DO_GPU
 int do_gpu_calc = 1;
-#else
-int do_gpu_calc = 0;
-#endif
 
 #ifdef DO_SYNC
 int do_sync = 1;
@@ -817,21 +805,20 @@ extern "C" void do_calc(void)
       } // do_comparison_calc
 
 #ifdef XXX // not rewritten yet
-      if (do_gpu_calc) {
-         mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset);
-      }
+      mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset);
 #endif
 
-      if (do_gpu_calc) {
-         if (ncells != old_ncells){
-            H.resize(ncells);
-            U.resize(ncells);
-            V.resize(ncells);
-            level.resize(ncells);
-            i.resize(ncells);
-            j.resize(ncells);
-            celltype.resize(ncells);
-         }
+      if (ncells != old_ncells){
+         H.resize(ncells);
+         U.resize(ncells);
+         V.resize(ncells);
+         level.resize(ncells);
+         i.resize(ncells);
+         j.resize(ncells);
+         celltype.resize(ncells);
+      }
+
+      if (do_comparison_calc) {
          if (ncells_global != old_ncells_global){
             H_global.resize(ncells_global);
             U_global.resize(ncells_global);
