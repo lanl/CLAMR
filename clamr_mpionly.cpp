@@ -534,6 +534,7 @@ extern "C" void do_calc(void)
       for (int ip=0; ip<mype; ip++){
          noffset += nsizes[ip];
       }
+      MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
       if (do_comparison_calc) {
          int add_ncells_global = new_ncells_global - old_ncells_global;
