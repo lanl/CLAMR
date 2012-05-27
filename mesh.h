@@ -278,6 +278,7 @@ public:
    void compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, real *x, real *dx, real *y, real *dy, real *H, real *x_global, real *dx_global, real *y_global, real *dy_global, real *H_global, int cycle);
    void compare_indices_gpu_global_to_cpu_global(cl_command_queue command_queue);
    void compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl, int cycle);
+   void compare_indices_all_to_gpu_local(cl_command_queue command_queue, Mesh *mesh_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
    void partition_measure(void);
    void print_partition_measure(void);
    void print_calc_neighbor_type(void);
