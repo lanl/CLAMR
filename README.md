@@ -27,8 +27,9 @@ To build the CLAMR executables
 
 ./configure
 
-use ./configure --help to see all the options available. The most common is 
+use ./configure --help to see all the options available. The most common are
  --disable-opengl: to disable the real-time graphics
+ --enable-mpe: enables the mpe real-time graphics instead of the opengl
 
 There are two real-time graphics packages. The default is OpenGL. An alternative
 real-time graphics package uses MPE. To use this package, configure with 
@@ -39,7 +40,11 @@ version 1.9.1 of the MPE package are available in the download directory.
 
 make
 
-Two executables are currently built
+Six executables are currently built. The first four are "standalone" versions which
+run one implementation of the routines
+
+clamr: Calls the MPI/GPU versions of each call. Option to check the results against
+other verisons
 
 clamr_gpuonly: Calls the GPU versions of each call. Option to check the results
 against the cpu calls
@@ -49,6 +54,9 @@ against the gpu calls
 
 clamr_mpionly: Calls the MPI versions of each call. Option to check the results
 against the cpu calls
+
+Check versions. These versions run multiple implementations and check correctness of
+the implementations
 
 clamr_gpucheck: Calls the GPU and CPU versions of each call and checks the results
 against each other
@@ -61,8 +69,11 @@ More executables are planned
 Currently the executables run only on NVIDIA GPUs. Fixing the kernels to run on
 ATI GPUs is of great interest
 
-The refinement smoothing is only added for the GPU and CPU versions -- it still needs
-to be added to the MPI versions
+The clamr version using MPI/GPU still has a bug giving wrong cell counts and eventually
+crashing on Tesla 2050s
+
+The numerical algorithm still does not handle "dry" conditions properly and will
+crash
 
 Many other limitations exist -- coarsening has not been implemented and boundary
 conditions need some more work
