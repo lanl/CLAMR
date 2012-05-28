@@ -811,8 +811,7 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 }
 
 
-void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil,
-      cl_mem dev_mpot, cl_mem dev_ioffset)
+void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil, cl_mem dev_ioffset)
 {
    cl_event rezone_all_event;
 
@@ -828,6 +827,7 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    cl_mem &dev_celltype_new = mesh->dev_celltype_new;
    cl_mem &dev_levdx        = mesh->dev_levdx;
    cl_mem &dev_levdy        = mesh->dev_levdy;
+   cl_mem &dev_mpot         = mesh->dev_mpot;
 
    assert(dev_mpot);
    assert(dev_level);
@@ -930,8 +930,7 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    gpu_time_rezone_all        += ezcl_timer_calc(&rezone_all_event,        &rezone_all_event);
 }
 
-void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil,
-      cl_mem dev_mpot, cl_mem dev_ioffset)
+void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil, cl_mem dev_ioffset)
 {
    cl_event rezone_all_event;
 
@@ -947,6 +946,7 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    cl_mem &dev_celltype_new = mesh->dev_celltype_new;
    cl_mem &dev_levdx        = mesh->dev_levdx;
    cl_mem &dev_levdy        = mesh->dev_levdy;
+   cl_mem &dev_mpot         = mesh->dev_mpot;
 
    assert(dev_mpot);
    assert(dev_level);
@@ -2798,7 +2798,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
 }
 
-void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh, cl_mem &dev_mpot, cl_mem dev_result, cl_mem dev_ioffset)
+void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_result, cl_mem dev_ioffset)
 {
    cl_event refine_potential_event;
    cl_event refine_smooth_event;
@@ -2811,6 +2811,7 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
    cl_mem &dev_nbot     = mesh->dev_nbot;
    cl_mem &dev_ntop     = mesh->dev_ntop;
    cl_mem &dev_level    = mesh->dev_level;
+   cl_mem &dev_mpot     = mesh->dev_mpot;
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_levdx    = mesh->dev_levdx;
    cl_mem &dev_levdy    = mesh->dev_levdy;
@@ -2950,7 +2951,7 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
    gpu_time_refine_potential  += ezcl_timer_calc(&set_boundary_refinement_event,  &set_boundary_refinement_event);
 }
 
-void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh *mesh, cl_mem &dev_mpot, cl_mem dev_result, cl_mem dev_ioffset)
+void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_result, cl_mem dev_ioffset)
 {
    cl_event refine_potential_event;
    cl_event set_boundary_refinement_event;
@@ -2962,6 +2963,7 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    cl_mem &dev_nrht     = mesh->dev_nrht;
    cl_mem &dev_nbot     = mesh->dev_nbot;
    cl_mem &dev_ntop     = mesh->dev_ntop;
+   cl_mem &dev_mpot     = mesh->dev_mpot;
    cl_mem &dev_level    = mesh->dev_level;
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_levdx    = mesh->dev_levdx;

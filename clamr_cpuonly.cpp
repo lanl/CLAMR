@@ -306,6 +306,8 @@ extern "C" void do_calc(void)
    cl_mem &dev_nbot     = mesh->dev_nbot;
    cl_mem &dev_ntop     = mesh->dev_ntop;
 
+   cl_mem &dev_mpot     = mesh->dev_mpot;
+
    //  Kahan-type enhanced precision sum implementation.
    if (n < 0)
    {
@@ -420,7 +422,6 @@ extern "C" void do_calc(void)
       ntop.clear();
 
       cl_mem dev_ioffset=NULL;
-      cl_mem dev_mpot  = NULL;
 
       size_t result_size = 1;
       cl_mem dev_result = NULL;
@@ -429,7 +430,7 @@ extern "C" void do_calc(void)
          dev_mpot     = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
          dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
-         state->gpu_calc_refine_potential(command_queue, mesh, dev_mpot, dev_result, dev_ioffset);
+         state->gpu_calc_refine_potential(command_queue, mesh, dev_result, dev_ioffset);
 
          ezcl_device_memory_remove(dev_nlft);
          ezcl_device_memory_remove(dev_nrht);
@@ -467,7 +468,7 @@ extern "C" void do_calc(void)
       ncells = new_ncells;
 
       if (do_comparison_calc) {
-         state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil, dev_mpot, dev_ioffset);
+         state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil, dev_ioffset);
 
          state->compare_state_gpu_global_to_cpu_global(command_queue,"finite difference",n,ncells);
 

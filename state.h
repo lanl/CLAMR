@@ -137,13 +137,11 @@ public:
    void fill_circle(Mesh *mesh, double circ_radius, double fill_value, double background);
    void state_reorder(vector<int> iorder);
    void rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells);
-   void gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil, 
-      cl_mem dev_mpot, cl_mem dev_ioffset);
-   void gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil, 
-      cl_mem dev_mpot, cl_mem dev_ioffset);
+   void gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil, cl_mem dev_ioffset);
+   void gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil, cl_mem dev_ioffset);
    void calc_refine_potential(Mesh *mesh, vector<int> &mpot, int &icount, int &jcount);
-   void gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh, cl_mem &dev_mpot, cl_mem dev_result, cl_mem dev_ioffset);
-   void gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh *mesh, cl_mem &dev_mpot, cl_mem dev_result, cl_mem dev_ioffset);
+   void gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_result, cl_mem dev_ioffset);
+   void gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_result, cl_mem dev_ioffset);
    
    void calc_finite_difference(Mesh *mesh, double deltaT);
    void calc_finite_difference_local(Mesh *mesh, double deltaT);

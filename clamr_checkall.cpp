@@ -439,11 +439,6 @@ extern "C" void do_calc(void)
       do_gpu_sync = 1;
    }
    
-#ifdef HAVE_OPENCL
-   cl_mem dev_mpot  = NULL;
-   cl_mem dev_mpot_global  = NULL;
-#endif
-
    //  Initialize state variables for GPU calculation.
    int &mype = mesh_local->mype;
    int &numpe = mesh_local->numpe;
@@ -511,6 +506,8 @@ extern "C" void do_calc(void)
    cl_mem &dev_nbot_global     = mesh_global->dev_nbot;
    cl_mem &dev_ntop_global     = mesh_global->dev_ntop;
 
+   cl_mem &dev_mpot_global     = mesh_global->dev_mpot;
+
    cl_mem &dev_celltype = mesh_local->dev_celltype;
    cl_mem &dev_i        = mesh_local->dev_i;
    cl_mem &dev_j        = mesh_local->dev_j;
@@ -519,6 +516,8 @@ extern "C" void do_calc(void)
    cl_mem &dev_nrht     = mesh_local->dev_nrht;
    cl_mem &dev_nbot     = mesh_local->dev_nbot;
    cl_mem &dev_ntop     = mesh_local->dev_ntop;
+
+   cl_mem &dev_mpot     = mesh_local->dev_mpot;
 
    //  Kahan-type enhanced precision sum implementation.
    if (n < 0)
@@ -737,8 +736,8 @@ extern "C" void do_calc(void)
          dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          dev_result_global  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
-         state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_mpot_global, dev_result_global, dev_ioffset_global);
-         state_local->gpu_calc_refine_potential_local(command_queue, mesh_local, dev_mpot, dev_result, dev_ioffset);
+         state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_result_global, dev_ioffset_global);
+         state_local->gpu_calc_refine_potential_local(command_queue, mesh_local, dev_result, dev_ioffset);
 
          ezcl_device_memory_remove(dev_nlft);
          ezcl_device_memory_remove(dev_nrht);
@@ -849,8 +848,8 @@ extern "C" void do_calc(void)
 
       //  Resize the mesh, inserting cells where refinement is necessary.
       if (do_gpu_calc) {
-         state_global->gpu_rezone_all(command_queue, mesh_global, ncells_global, new_ncells_global, old_ncells_global, localStencil, dev_mpot_global, dev_ioffset_global);
-         state_local->gpu_rezone_all_local(command_queue, mesh_local, old_ncells, new_ncells, old_ncells, localStencil, dev_mpot, dev_ioffset);
+         state_global->gpu_rezone_all(command_queue, mesh_global, ncells_global, new_ncells_global, old_ncells_global, localStencil, dev_ioffset_global);
+         state_local->gpu_rezone_all_local(command_queue, mesh_local, old_ncells, new_ncells, old_ncells, localStencil, dev_ioffset);
       }
 
       if (do_comparison_calc) {

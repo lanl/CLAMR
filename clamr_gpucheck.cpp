@@ -264,10 +264,6 @@ extern "C" void do_calc(void)
       do_gpu_sync = 1;
    }
    
-#ifdef HAVE_OPENCL
-   cl_mem dev_mpot  = NULL;
-#endif
-
    //  Initialize state variables for GPU calculation.
    vector<int>   &celltype = mesh->celltype;
    vector<int>   &i        = mesh->i;
@@ -301,6 +297,8 @@ extern "C" void do_calc(void)
    cl_mem &dev_nrht     = mesh->dev_nrht;
    cl_mem &dev_nbot     = mesh->dev_nbot;
    cl_mem &dev_ntop     = mesh->dev_ntop;
+
+   cl_mem &dev_mpot     = mesh->dev_mpot;
 
    //  Kahan-type enhanced precision sum implementation.
    if (n < 0)
@@ -475,7 +473,7 @@ extern "C" void do_calc(void)
          dev_mpot    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
          dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
-         state->gpu_calc_refine_potential(command_queue, mesh, dev_mpot, dev_result, dev_ioffset);
+         state->gpu_calc_refine_potential(command_queue, mesh, dev_result, dev_ioffset);
 
          ezcl_device_memory_remove(dev_nlft);
          ezcl_device_memory_remove(dev_nrht);
@@ -544,7 +542,7 @@ extern "C" void do_calc(void)
 
       //  Resize the mesh, inserting cells where refinement is necessary.
       if (do_gpu_calc) {
-         state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil, dev_mpot, dev_ioffset);
+         state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil, dev_ioffset);
       }
 
       if (do_comparison_calc) {

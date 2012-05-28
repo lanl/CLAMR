@@ -76,7 +76,7 @@
 
 // Sync is to reduce numerical drift between cpu and gpu
 #define DO_SYNC 
-//#define DO_COMPARISON
+#define DO_COMPARISON
 
 //TODO:  command-line option for OpenGL?
 #ifdef DO_COMPARISON
@@ -426,11 +426,6 @@ extern "C" void do_calc(void)
       exit(0);
    }
    
-#ifdef HAVE_OPENCL
-   cl_mem dev_mpot  = NULL;
-   cl_mem dev_mpot_global  = NULL;
-#endif
-
    //  Initialize state variables for GPU calculation.
    int &mype = mesh->mype;
    int &numpe = mesh->numpe;
@@ -494,10 +489,14 @@ extern "C" void do_calc(void)
    cl_mem &dev_nbot_global     = mesh_global->dev_nbot;
    cl_mem &dev_ntop_global     = mesh_global->dev_ntop;
 
+   cl_mem &dev_mpot_global     = mesh_global->dev_mpot;
+
    cl_mem &dev_nlft     = mesh->dev_nlft;
    cl_mem &dev_nrht     = mesh->dev_nrht;
    cl_mem &dev_nbot     = mesh->dev_nbot;
    cl_mem &dev_ntop     = mesh->dev_ntop;
+
+   cl_mem &dev_mpot     = mesh->dev_mpot;
 
    //  Kahan-type enhanced precision sum implementation.
    if (n < 0)
@@ -687,8 +686,8 @@ extern "C" void do_calc(void)
       dev_result_global  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
  
       // Should not need this call! -- 
-      state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_mpot_global, dev_result_global, dev_ioffset_global);
-      state->gpu_calc_refine_potential_local(command_queue, mesh, dev_mpot, dev_result, dev_ioffset);
+      state->gpu_calc_refine_potential_local(command_queue, mesh, dev_result, dev_ioffset);
+
 
       ezcl_device_memory_remove(dev_nlft);
       ezcl_device_memory_remove(dev_nrht);
@@ -709,7 +708,7 @@ extern "C" void do_calc(void)
          nbot_global.clear();
          ntop_global.clear();
 
-         state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_mpot_global, dev_result_global, dev_ioffset_global);
+         state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_result_global, dev_ioffset_global);
          ezcl_device_memory_remove(dev_nlft_global);
          ezcl_device_memory_remove(dev_nrht_global);
          ezcl_device_memory_remove(dev_nbot_global);
@@ -775,7 +774,7 @@ extern "C" void do_calc(void)
       }
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      state->gpu_rezone_all_local(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil, dev_mpot, dev_ioffset);
+      state->gpu_rezone_all_local(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil, dev_ioffset);
 
       if (do_comparison_calc) {
          state_global->rezone_all(mesh_global, mpot_global, add_ncells_global);
@@ -783,7 +782,7 @@ extern "C" void do_calc(void)
          mpot_global.clear();
          mpot.clear();
 
-         state_global->gpu_rezone_all(command_queue, mesh_global, ncells_global, new_ncells_global, old_ncells_global, localStencil, dev_mpot_global, dev_ioffset_global);
+         state_global->gpu_rezone_all(command_queue, mesh_global, ncells_global, new_ncells_global, old_ncells_global, localStencil, dev_ioffset_global);
 
          //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
          MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
