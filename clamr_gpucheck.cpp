@@ -145,6 +145,8 @@ cl_context          context                 = NULL;
 cl_command_queue    command_queue           = NULL;
 #endif
 
+double  H_sum_initial = 0.0;
+
 int main(int argc, char **argv) {
 #ifdef HAVE_OPENCL
    int ierr;
@@ -208,6 +210,11 @@ int main(int argc, char **argv) {
    vector<real>  &U        = state->U;
    vector<real>  &V        = state->V;
 
+   vector<real>  &x        = mesh->x;
+   vector<real>  &dx       = mesh->dx;
+   vector<real>  &y        = mesh->y;
+   vector<real>  &dy       = mesh->dy;
+
    state->allocate_device_memory(ncells);
 
    size_t one = 1;
@@ -232,12 +239,38 @@ int main(int argc, char **argv) {
    dev_j_new        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
    dev_level_new    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
 
+   //  Kahan-type enhanced precision sum implementation.
+   double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+   printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
+   H_sum_initial = H_sum;
+
+   //  Set up grid.
+#ifdef GRAPHICS_OUTPUT
+   mesh->write_grid(n);
+#endif
+
 #ifdef HAVE_GRAPHICS
    set_mysize(ncells);
    set_viewmode(view_mode);
    set_window(mesh->xmin, mesh->xmax, mesh->ymin, mesh->ymax);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
+   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_cell_data(&H[0]);
+   set_cell_proc(&mesh->proc[0]);
+   set_circle_radius(circle_radius);
+   draw_scene();
+   //if (verbose) sleep(5);
+   sleep(2);
+
+   //  Set flag to show mesh results rather than domain decomposition.
+   view_mode = 1;
+   
+   //  Clear superposition of circle on grid output.
+   circle_radius = -1.0;
+   
+   gettimeofday(&tstart, NULL);
+
    set_idle_function(&do_calc);
    start_main_loop();
 #else
@@ -249,9 +282,8 @@ int main(int argc, char **argv) {
    return 0;
 }
 
-int     n       = -1;
+int     n       = 0;
 double  simTime = 0.0;
-double  H_sum_initial = 0.0;
 
 extern "C" void do_calc(void)
 {  double g     = 9.80;
@@ -300,38 +332,6 @@ extern "C" void do_calc(void)
 
    cl_mem &dev_mpot     = mesh->dev_mpot;
 
-   //  Kahan-type enhanced precision sum implementation.
-   if (n < 0)
-   {
-      double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
-      printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
-      H_sum_initial = H_sum;
-      n++;
-      
-      //  Set up grid.
-#ifdef GRAPHICS_OUTPUT
-      mesh->write_grid(n);
-#endif
-#ifdef HAVE_GRAPHICS
-      set_mysize(ncells);
-      set_viewmode(view_mode);
-      set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
-      set_cell_data(&H[0]);
-      set_cell_proc(&mesh->proc[0]);
-      set_circle_radius(circle_radius);
-      draw_scene();
-      if (verbose) sleep(5);
-#endif
-      //  Set flag to show mesh results rather than domain decomposition.
-      view_mode = 1;
-   
-      //  Clear superposition of circle on grid output.
-      if (n > 2) circle_radius = -1.0;
-   
-      gettimeofday(&tstart, NULL);
-      return;
-   }
-   
    vector<int>     mpot;
    
    size_t old_ncells = ncells;

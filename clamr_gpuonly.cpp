@@ -251,7 +251,7 @@ int main(int argc, char **argv) {
 
    //  Set up grid.
 #ifdef GRAPHICS_OUTPUT
-      mesh->write_grid(n);
+   mesh->write_grid(n);
 #endif
 
 #ifdef HAVE_GRAPHICS
