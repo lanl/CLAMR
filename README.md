@@ -69,9 +69,6 @@ More executables are planned
 Currently the executables run only on NVIDIA GPUs. Fixing the kernels to run on
 ATI GPUs is of great interest
 
-The clamr version using MPI/GPU still has a bug giving wrong cell counts and eventually
-crashing on Tesla 2050s
-
 The numerical algorithm still does not handle "dry" conditions properly and will
 crash
 
