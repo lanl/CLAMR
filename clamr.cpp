@@ -936,7 +936,9 @@ extern "C" void do_calc(void)
       //  Release kernels and finalize the OpenCL elements.
       ezcl_finalize();
       
-      state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, elapsed_time);
+      if (do_comparison_calc){
+         state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, elapsed_time);
+      }
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
 
       mesh->print_partition_measure();

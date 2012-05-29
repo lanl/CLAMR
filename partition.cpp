@@ -212,7 +212,7 @@ void Mesh::print_partition_measure()
             }
             printf("without duplicates\n");
          }
-      } else if (measure_type == CVALUE) {
+      } else if (measure_type == CVALUE && meas_count != 0) {
          local_time = meas_sum_average/(double)meas_count;
 #ifdef HAVE_MPI
          MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
