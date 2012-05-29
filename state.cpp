@@ -3101,7 +3101,7 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
          SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
 
          vector<int> mpot_tmp(mesh->ncells_ghost,0);
-         ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_mpot_old, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
 #ifdef HAVE_MPI
          L7_Update(&mpot_tmp[0], L7_INT, mesh->cell_handle);
 #endif
@@ -3115,7 +3115,7 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
          // Fill in ghost
          ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
          ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
-         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot);
+         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot_old);
          ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
 
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_mpot_ghost_data_event);
