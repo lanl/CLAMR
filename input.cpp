@@ -100,8 +100,8 @@ extern int  outputInterval,
             initial_order,
             cycle_reorder;
 
-extern int  do_cpu_calc,
-            do_gpu_calc;
+//extern int  do_cpu_calc,
+//            do_gpu_calc;
 
 void outputHelp()
 {   cout << "CLAMR is an experimental adaptive mesh refinement code for the GPU." << endl
@@ -181,11 +181,11 @@ void parseInput(const int argc, char** argv)
         while (val != NULL)
         {   switch (val[0])
             {   case 'c':   //  Turn on CPU profiling.
-                    do_cpu_calc = 1;
+                    //do_cpu_calc = 1;
                     break;
                     
                 case 'g':   //  Turn on GPU profiling.
-                    do_gpu_calc = 1;
+                    //do_gpu_calc = 1;
                     break;
                     
                 case 'h':   //  Output help.

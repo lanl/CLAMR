@@ -74,13 +74,13 @@
 //#define DO_COMPARISON
 
 #ifdef DO_COMPARISON
-int do_comparison_calc = 1;
+static int do_comparison_calc = 1;
 #else
-int do_comparison_calc = 0;
+static int do_comparison_calc = 0;
 #endif
 
-int do_cpu_calc = 1;
-int do_gpu_calc = 0;
+static int do_cpu_calc = 1;
+static int do_gpu_calc = 0;
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
@@ -116,9 +116,9 @@ typedef cl_float8   cl_real8;
 
 typedef unsigned int uint;
 
-double circle_radius=-1.0;
+static double circle_radius=-1.0;
 
-int view_mode = 0;
+static int view_mode = 0;
 
 bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
@@ -134,25 +134,25 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
 
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
-Mesh       *mesh_global;    //  Object containing mesh information; init in grid.cpp::main().
-State      *state_global;   //  Object containing state information corresponding to mesh; init in grid.cpp::main().
-Mesh       *mesh;           //  Object containing mesh information; init in grid.cpp::main().
-State      *state;    //  Object containing state information corresponding to mesh; init in grid.cpp::main().
+static Mesh       *mesh_global;    //  Object containing mesh information; init in grid.cpp::main().
+static State      *state_global;   //  Object containing state information corresponding to mesh; init in grid.cpp::main().
+static Mesh       *mesh;           //  Object containing mesh information; init in grid.cpp::main().
+static State      *state;    //  Object containing state information corresponding to mesh; init in grid.cpp::main().
 
 //  Set up timing information.
-struct timeval tstart, tstop, tresult;
-cl_event start_write_event, end_write_event;
-double   cpu_time_start,
-         cpu_time_end;
-long     gpu_time_start,
-         gpu_time_end;
+static struct timeval tstart, tstop, tresult;
+static cl_event start_write_event, end_write_event;
+static double   cpu_time_start,
+                cpu_time_end;
+static long     gpu_time_start,
+                gpu_time_end;
 
 #ifdef HAVE_OPENCL
-cl_context          context                 = NULL;
-cl_command_queue    command_queue           = NULL;
+static cl_context          context                 = NULL;
+static cl_command_queue    command_queue           = NULL;
 #endif
 
-double  H_sum_initial = 0.0;
+static double  H_sum_initial = 0.0;
 
 int main(int argc, char **argv) {
 
@@ -316,8 +316,8 @@ int main(int argc, char **argv) {
    return 0;
 }
 
-int     n       = 0;
-double  simTime = 0.0;
+static int     n       = 0;
+static double  simTime = 0.0;
 
 extern "C" void do_calc(void)
 {  double g     = 9.80;

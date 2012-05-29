@@ -69,18 +69,18 @@
 #ifdef HAVE_OPENCL
 
 // Control flags
-struct {
+static struct {
    unsigned int timing     : 1;
 } ezcl_flags={1};
 
-cl_uint          nPlatforms = 0;
-cl_uint          nDevices = 0;
-cl_platform_id  *platforms;
-cl_device_id    *devices;
-cl_command_queue command_queue;
-cl_context       context;
-cl_program       program;
-cl_platform_id   platform = NULL;
+static cl_uint          nPlatforms = 0;
+static cl_uint          nDevices = 0;
+static cl_platform_id  *platforms;
+static cl_device_id    *devices;
+static cl_command_queue command_queue;
+static cl_context       context;
+static cl_program       program;
+static cl_platform_id   platform = NULL;
 
 SLIST_HEAD(slist_device_memory_head, device_memory_entry) device_memory_head = SLIST_HEAD_INITIALIZER(device_memory_head);
 struct slist_device_memory_head *device_memory_headp;

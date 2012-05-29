@@ -89,17 +89,17 @@ struct ColorTable {
    float Blue;
 };
 
-int autoscale = 0;
+static int autoscale = 0;
 
-double display_circle_radius=-1.0;
+static double display_circle_radius=-1.0;
 
 #ifndef HAVE_MPI
-int MPI_COMM_WORLD=0;
+static int MPI_COMM_WORLD=0;
 #endif
 
 #ifdef HAVE_OPENGL
-struct ColorTable Rainbow[NCOLORS];
-int window;
+static struct ColorTable Rainbow[NCOLORS];
+static int window;
 #endif
 #ifdef HAVE_MPE
 static MPE_Color *color_array;
@@ -111,30 +111,30 @@ static XFontStruct *font_info;
 void (*idlefunction)(void);
 #endif
 
-real xstart, ystart, xend, yend;
+static real xstart, ystart, xend, yend;
 enum mode_choice {EYE, MOVE, DRAW};
-int mode = MOVE;
+static int mode = MOVE;
 
-int width, height;
-real display_xmin=0.0, display_xmax=0.0, display_ymin=0.0, display_ymax=0.0;
+static int width, height;
+static real display_xmin=0.0, display_xmax=0.0, display_ymin=0.0, display_ymax=0.0;
 
 #ifdef HAVE_OPENGL
-GLfloat xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
+static GLfloat xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
 #else
 #ifdef HAVE_MPE
-double xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
+static double xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
 #else
-double xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
+static double xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
 #endif
 #endif
 
-int display_outline;
-int display_view_mode = 0;
-int display_mysize    = 0;
-real *x=NULL, *y=NULL, *dx=NULL, *dy=NULL;
-real *data=NULL;
-int *display_proc=NULL;
-int rank = 0;
+static int display_outline;
+static int display_view_mode = 0;
+static int display_mysize    = 0;
+static real *x=NULL, *y=NULL, *dx=NULL, *dy=NULL;
+static real *data=NULL;
+static int *display_proc=NULL;
+static int rank = 0;
 
 int DrawString(float x, float y, float z, char* string) {
 #ifdef HAVE_OPENGL
