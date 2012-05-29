@@ -274,6 +274,7 @@ int main(int argc, char **argv) {
    set_idle_function(&do_calc);
    start_main_loop();
 #else
+   gettimeofday(&tstart, NULL);
    for (int it = 0; it < 10000000; it++) {
       do_calc();
    }

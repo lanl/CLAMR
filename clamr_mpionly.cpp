@@ -152,6 +152,8 @@ cl_context          context                 = NULL;
 cl_command_queue    command_queue           = NULL;
 #endif
 
+double  H_sum_initial = 0.0;
+
 int main(int argc, char **argv) {
 
    //  Process command-line arguments, if any.
@@ -263,25 +265,49 @@ int main(int argc, char **argv) {
    MPI_Scatterv(&y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &y[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dy[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
 
+   //  Kahan-type enhanced precision sum implementation.
+   double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
+   if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
+   H_sum_initial = H_sum;
+
+   //  Set up grid.
+
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL
    set_mysize(ncells_global);
    set_cell_data(&H_global[0]);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+   set_cell_proc(&mesh_global->proc[0]);
 #endif
 #ifdef HAVE_MPE
    set_mysize(ncells);
    set_cell_data(&H[0]);
    set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_cell_proc(&mesh->proc[0]);
 #endif
 
    set_window(mesh_global->xmin, mesh_global->xmax, mesh_global->ymin, mesh_global->ymax);
    set_viewmode(view_mode);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
+      
+   set_circle_radius(circle_radius);
+   draw_scene();
+   if (verbose) sleep(5);
+   sleep(2);
+
+   //  Set flag to show mesh results rather than domain decomposition.
+   view_mode = 1;
+   
+   //  Clear superposition of circle on grid output.
+   circle_radius = -1.0;
+   
+   gettimeofday(&tstart, NULL);
+
    set_idle_function(&do_calc);
    start_main_loop();
 #else
+   gettimeofday(&tstart, NULL);
    for (int it = 0; it < 10000000; it++) {
       do_calc();
    }
@@ -290,9 +316,8 @@ int main(int argc, char **argv) {
    return 0;
 }
 
-int     n       = -1;
+int     n       = 0;
 double  simTime = 0.0;
-double  H_sum_initial = 0.0;
 
 extern "C" void do_calc(void)
 {  double g     = 9.80;
@@ -340,44 +365,6 @@ extern "C" void do_calc(void)
    vector<real>  &y_global  = mesh_global->y;
    vector<real>  &dy_global = mesh_global->dy;
 
-   //  Kahan-type enhanced precision sum implementation.
-   if (n < 0)
-   {
-      double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
-      if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
-      H_sum_initial = H_sum;
-      n++;
-      
-      //  Set up grid.
-#ifdef HAVE_GRAPHICS
-#ifdef HAVE_OPENGL
-      set_mysize(ncells_global);
-      set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-      set_cell_data(&H_global[0]);
-      set_cell_proc(&mesh_global->proc[0]);
-#endif
-#ifdef HAVE_MPE
-      set_mysize(ncells);
-      set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
-      set_cell_data(&H[0]);
-      set_cell_proc(&mesh->proc[0]);
-#endif
-
-      set_viewmode(view_mode);
-      set_circle_radius(circle_radius);
-      draw_scene();
-      if (verbose) sleep(5);
-      sleep(2);
-#endif
-      //  Set flag to show mesh results rather than domain decomposition.
-      view_mode = 1;
-   
-      //  Clear superposition of circle on grid output.
-      if (n > 2) circle_radius = -1.0;
-   
-      gettimeofday(&tstart, NULL);
-      return;
-   }
 
    vector<int>     mpot;
    vector<int>     mpot_global;
