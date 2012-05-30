@@ -244,6 +244,8 @@ int main(int argc, char **argv) {
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
+   printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
+
    //  Set up grid.
 #ifdef GRAPHICS_OUTPUT
    mesh->write_grid(n);
@@ -283,7 +285,7 @@ int main(int argc, char **argv) {
    return 0;
 }
 
-static int     n       = 0;
+static int     ncycle  = 0;
 static double  simTime = 0.0;
 
 extern "C" void do_calc(void)
@@ -337,12 +339,11 @@ extern "C" void do_calc(void)
    
    size_t old_ncells = ncells;
    size_t new_ncells = 0;
+   double H_sum = -1.0;
+   double deltaT = 0.0;
 
    //  Main loop.
-   int output_flag = 0;
-   while (! output_flag)
-   {
-      if (n > niter) break;
+   for (int nburst = 0; nburst < outputInterval && ncycle <= niter; nburst++, ncycle++) {
 
       // To reduce drift in solution
       if (do_sync) {
@@ -376,7 +377,8 @@ extern "C" void do_calc(void)
       {  if (fabs(deltaT_gpu - deltaT_cpu) > .000001)
          {  printf("Error with deltaT calc --- cpu %lf gpu %lf\n",deltaT_cpu,deltaT_gpu); } }
       
-      double deltaT = (do_gpu_calc) ? deltaT_gpu : deltaT_cpu;
+      deltaT = (do_gpu_calc) ? deltaT_gpu : deltaT_cpu;
+      simTime += deltaT;
 
       if (do_cpu_calc) {
          mesh->calc_neighbors();
@@ -415,7 +417,7 @@ extern "C" void do_calc(void)
       
       if (do_comparison_calc) {
          // Need to compare dev_H to H, etc
-         state->compare_state_gpu_global_to_cpu_global(command_queue,"finite difference",n,ncells);
+         state->compare_state_gpu_global_to_cpu_global(command_queue,"finite difference",ncycle,ncells);
       }
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
@@ -438,14 +440,14 @@ extern "C" void do_calc(void)
 #endif
       
       if (flag) {
-         printf("Cycle is %d\n",n);
+         printf("Cycle is %d\n",ncycle);
          sleep(2);
       }
 
       //  Check for NANs.
       for (uint ic=0; ic<ncells; ic++) {
          if (isnan(H[ic]))
-         {  printf("Got a NAN on cell %d cycle %d\n",ic,n);
+         {  printf("Got a NAN on cell %d cycle %d\n",ic,ncycle);
             H[ic]=0.0;
             sleep(100);
 #ifdef HAVE_OPENCL
@@ -547,7 +549,7 @@ extern "C" void do_calc(void)
       }
 
       if (do_comparison_calc) {
-         state->compare_state_gpu_global_to_cpu_global(command_queue,"rezone all",n,ncells);
+         state->compare_state_gpu_global_to_cpu_global(command_queue,"rezone all",ncycle,ncells);
 
          mesh->compare_indices_gpu_global_to_cpu_global(command_queue);
       }
@@ -571,7 +573,7 @@ extern "C" void do_calc(void)
 
       ezcl_device_memory_remove(dev_ioffset);
 
-      double H_sum = -1.0;
+      H_sum = -1.0;
 
       if (do_comparison_calc) {
          H_sum = state->mass_sum(mesh, enhanced_precision_sum);
@@ -597,52 +599,47 @@ extern "C" void do_calc(void)
          ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],  NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],  NULL);
       }
+   } // End burst loop
 
-      if (n % outputInterval == 0) {
-         if (H_sum < 0) {
-            H_sum = state->mass_sum(mesh, enhanced_precision_sum);
-         }
-         printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
-            n, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
+   if (H_sum < 0) {
+      H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+   }
+   printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
+      ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
+
 #ifdef HAVE_GRAPHICS
-         if (do_cpu_calc){
-            mesh->calc_spatial_coordinates(0);
-         }
-         if (do_gpu_calc){
-            cl_mem dev_x  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-            cl_mem dev_dx = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-            cl_mem dev_y  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-            cl_mem dev_dy = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   if (do_cpu_calc){
+      mesh->calc_spatial_coordinates(0);
+   }
+   if (do_gpu_calc){
+      cl_mem dev_x  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_dx = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_y  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_dy = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
 
-            mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
+      mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
 
-            if (do_comparison_calc){
-               mesh->compare_coordinates_gpu_global_to_cpu_global(command_queue, dev_x, dev_dx, dev_y, dev_dy, dev_H, &H[0]);
-            }
+      if (do_comparison_calc){
+         mesh->compare_coordinates_gpu_global_to_cpu_global(command_queue, dev_x, dev_dx, dev_y, dev_dy, dev_H, &H[0]);
+      }
 
-            ezcl_device_memory_remove(dev_x);
-            ezcl_device_memory_remove(dev_dx);
-            ezcl_device_memory_remove(dev_y);
-            ezcl_device_memory_remove(dev_dy);
-         }
-
-         set_mysize(ncells);
-         set_viewmode(view_mode);
-         set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
-         set_cell_data(&H[0]);
-         set_cell_proc(&mesh->proc[0]);
-         set_circle_radius(circle_radius);
-         draw_scene();
-#endif
-         output_flag = 1;
-      }  //  Complete output interval.
-      ++n;
-      simTime += deltaT;
-      
+      ezcl_device_memory_remove(dev_x);
+      ezcl_device_memory_remove(dev_dx);
+      ezcl_device_memory_remove(dev_y);
+      ezcl_device_memory_remove(dev_dy);
    }
 
+   set_mysize(ncells);
+   set_viewmode(view_mode);
+   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_cell_data(&H[0]);
+   set_cell_proc(&mesh->proc[0]);
+   set_circle_radius(circle_radius);
+   draw_scene();
+#endif
+
    //  Output final results and timing information.
-   if (n > niter) {
+   if (ncycle > niter) {
       //free_display();
       
       //  Get overall program timing.
