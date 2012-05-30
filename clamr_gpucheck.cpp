@@ -343,7 +343,7 @@ extern "C" void do_calc(void)
    double deltaT = 0.0;
 
    //  Main loop.
-   for (int nburst = 0; nburst < outputInterval && ncycle <= niter; nburst++, ncycle++) {
+   for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
       // To reduce drift in solution
       if (do_sync) {
@@ -639,7 +639,7 @@ extern "C" void do_calc(void)
 #endif
 
    //  Output final results and timing information.
-   if (ncycle > niter) {
+   if (ncycle >= niter) {
       //free_display();
       
       //  Get overall program timing.

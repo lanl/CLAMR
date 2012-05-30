@@ -351,7 +351,7 @@ extern "C" void do_calc(void)
    double deltaT = 0.0;
 
    //  Main loop.
-   for (int nburst = 0; nburst < outputInterval && ncycle <= niter; nburst++, ncycle++) {
+   for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
       size_t local_work_size  = MIN(ncells, TILE_SIZE);
       size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -567,7 +567,7 @@ extern "C" void do_calc(void)
 #endif
 
    //  Output final results and timing information.
-   if (ncycle > niter) {
+   if (ncycle >= niter) {
       //free_display();
       
       //  Get overall program timing.

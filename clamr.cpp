@@ -399,6 +399,10 @@ int main(int argc, char **argv) {
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
+   if (mype == 0) {
+      printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells_global, H_sum);
+   }
+
    //  Set up grid.
 
 #ifdef HAVE_GRAPHICS
@@ -435,7 +439,7 @@ int main(int argc, char **argv) {
    return 0;
 }
 
-static int     n       = 0;
+static int     ncycle  = 0;
 static double  simTime = 0.0;
 
 extern "C" void do_calc(void)
@@ -539,12 +543,11 @@ extern "C" void do_calc(void)
    size_t old_ncells_global = ncells_global;
    size_t new_ncells = 0;
    size_t new_ncells_global = 0;
+   double H_sum = -1.0;
+   double deltaT = 0.0;
 
    //  Main loop.
-   int output_flag = 0;
-   while (! output_flag)
-   {  
-      if (n > niter) break;
+   for (int nburst = 0; nburst < outputInterval && ncycle <= niter; nburst++, ncycle++) {
 
       // To reduce drift in solution
       if (do_comparison_calc){
@@ -572,7 +575,8 @@ extern "C" void do_calc(void)
       old_ncells_global = ncells_global;
 
       //  Calculate the real time step for the current discrete time step.
-      double deltaT = state->gpu_set_timestep(command_queue, mesh, sigma);
+      deltaT = state->gpu_set_timestep(command_queue, mesh, sigma);
+      simTime += deltaT;
 
       if (do_comparison_calc) {
          double deltaT_cpu_global = state_global->set_timestep(mesh_global, g, sigma);
@@ -643,7 +647,7 @@ extern "C" void do_calc(void)
       
          state_global->gpu_calc_finite_difference(command_queue, mesh_global, deltaT);
       
-         state->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, n, &nsizes[0], &ndispl[0]);
+         state->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
       }
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
@@ -655,7 +659,7 @@ extern "C" void do_calc(void)
       //  Check for NANs.
       for (uint ic=0; ic<ncells; ic++) {
          if (isnan(H[ic]))
-         {  printf("Got a NAN on cell %d cycle %d\n",ic,n);
+         {  printf("Got a NAN on cell %d cycle %d\n",ic,ncycle);
             H[ic]=0.0;
             sleep(100);
 #ifdef HAVE_OPENCL
@@ -715,7 +719,7 @@ extern "C" void do_calc(void)
             printf("%d: DEBUG -- icount is %d icount_test %d icount_global is %d\n",mype,icount,icount_test,icount_global);
          }
 
-         mesh->compare_mpot_all_to_gpu_local(command_queue, &mpot[0], &mpot_global[0], dev_mpot, dev_mpot_global, ncells_global, &nsizes[0], &ndispl[0], n);
+         mesh->compare_mpot_all_to_gpu_local(command_queue, &mpot[0], &mpot_global[0], dev_mpot, dev_mpot_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);
       }
 
       // Sync up cpu array with gpu version to reduce differences due to minor numerical differences
@@ -795,9 +799,9 @@ extern "C" void do_calc(void)
       MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
       if (do_comparison_calc){
-         state->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, n, &nsizes[0], &ndispl[0]);
+         state->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
 
-         mesh->compare_indices_all_to_gpu_local(command_queue, mesh_global, ncells_global, &nsizes[0], &ndispl[0], n);
+         mesh->compare_indices_all_to_gpu_local(command_queue, mesh_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);
       } // do_comparison_calc
 
 #ifdef XXX // not rewritten yet
@@ -832,7 +836,7 @@ extern "C" void do_calc(void)
       ezcl_device_memory_remove(dev_ioffset);
       ezcl_device_memory_remove(dev_ioffset_global);
 
-      double H_sum = -1.0;
+      H_sum = -1.0;
 
       if (do_comparison_calc) {
          double cpu_mass_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
@@ -860,21 +864,15 @@ extern "C" void do_calc(void)
          mesh->partition_cells(numpe, mesh->proc, index, cycle_reorder);
          //state->state_reorder(index);
       }
+   }  //  End burst loop
 
-      if (n % outputInterval == 0) {
-         if (H_sum < 0) {
-            H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
-         }
-         if (mype == 0){
-            printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
-               n, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
-         }
-      }
-      ++n;
-      simTime += deltaT;
-      
-      output_flag = 1;
-   }  //  Complete output interval.
+   if (H_sum < 0) {
+      H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
+   }
+   if (mype == 0){
+      printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
+         ncycle, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
+   }
 
 #ifdef HAVE_GRAPHICS
    cl_mem dev_x  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
@@ -923,7 +921,7 @@ extern "C" void do_calc(void)
 #endif
 
    //  Output final results and timing information.
-   if (n > niter) {
+   if (ncycle >= niter) {
       //free_display();
       
       //  Get overall program timing.

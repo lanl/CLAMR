@@ -361,6 +361,7 @@ extern "C" void do_calc(void)
       //  Calculate the real time step for the current discrete time step.
       
       deltaT = state->gpu_set_timestep(command_queue, mesh, sigma);
+      simTime += deltaT;
 
       //  Compare time step values
       if (do_comparison_calc) {
@@ -387,7 +388,6 @@ extern "C" void do_calc(void)
 
       //  Execute main kernel
       state->gpu_calc_finite_difference(command_queue, mesh, deltaT);
-      simTime += deltaT;
       
       if (do_comparison_calc) {
          // Need ghost cells for this routine
