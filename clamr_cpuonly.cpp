@@ -144,8 +144,7 @@ static State      *state;          //  Object containing state information corre
 
 //  Set up timing information.
 static struct timeval tstart, tstop, tresult;
-static cl_event start_write_event, end_write_event,
-         start_read_event,  end_read_event;
+static cl_event start_write_event, end_write_event;
 
 #ifdef HAVE_OPENCL
 static cl_context          context                 = NULL;

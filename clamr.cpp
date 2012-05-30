@@ -154,12 +154,7 @@ static State      *state;    //  Object containing state information correspondi
 
 //  Set up timing information.
 static struct timeval tstart, tstop, tresult;
-static struct timeval tstart_cpu;
 static cl_event start_write_event, end_write_event;
-static double   cpu_time_start,
-         cpu_time_end;
-static long     gpu_time_start,
-         gpu_time_end;
 
 #ifdef HAVE_OPENCL
 static cl_context          context                 = NULL;
@@ -445,8 +440,8 @@ static double  simTime = 0.0;
 extern "C" void do_calc(void)
 {  double g     = 9.80;
    double sigma = 0.95; 
-   int icount, jcount;
-   int icount_global, jcount_global;
+   int icount=0, jcount=0;
+   int icount_global=0, jcount_global=0;
 
    if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
       printf("Can't do this problem with GPU\n");
@@ -715,8 +710,8 @@ extern "C" void do_calc(void)
       
          int icount_test;
          MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-         if (icount_test != icount_global) {
-            printf("%d: DEBUG -- icount is %d icount_test %d icount_global is %d\n",mype,icount,icount_test,icount_global);
+		 if (icount_test != icount_global) {
+		    printf("%d: DEBUG -- icount is %d icount_test %d icount_global is %d\n",mype,icount,icount_test,icount_global);
          }
 
          mesh->compare_mpot_all_to_gpu_local(command_queue, &mpot[0], &mpot_global[0], dev_mpot, dev_mpot_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);

@@ -167,12 +167,7 @@ static State      *state_local;    //  Object containing state information corre
 
 //  Set up timing information.
 static struct timeval tstart, tstop, tresult;
-static struct timeval tstart_cpu;
 static cl_event start_write_event, end_write_event;
-static double   cpu_time_start,
-         cpu_time_end;
-static long     gpu_time_start,
-         gpu_time_end;
 
 #ifdef HAVE_OPENCL
 static cl_context          context                 = NULL;
