@@ -1,16 +1,16 @@
-default: libs7.a
-all: libs7.a
+default: libs7.la
+all: libs7.la
 
 AM_MAKEFLAGS = -j 4
 
 DEFAULT_INCLUDES=-I. -I..
 
-lib_LIBRARIES = libs7.a
+lib_LTLIBRARIES = libs7.la
 include_HEADERS = s7.h
 
 H_SRCS = s7.h
 
 C_SRCS = s7.c
 
-libs7_a_SOURCES = ${C_SRCS} ${H_SRCS}
+libs7_la_SOURCES = ${C_SRCS} ${H_SRCS}
 

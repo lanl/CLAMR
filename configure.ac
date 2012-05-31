@@ -6,6 +6,8 @@ AM_INIT_AUTOMAKE([foreign])
 
 AC_CONFIG_HEADER(config.h)
 
+AC_CONFIG_MACRO_DIR([config])
+
 dnl
 dnl Caching is usually WRONG for systems with cross-mounted file systems
 dnl  the cache file may correspond to a different system.
@@ -63,7 +65,8 @@ AC_PROG_CXX
 AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
-AC_PROG_RANLIB
+dnl AC_PROG_RANLIB
+AC_PROG_LIBTOOL
 
 AC_CHECK_PROG([HAVE_ADDR2LINE], [addr2line], [yes])
 

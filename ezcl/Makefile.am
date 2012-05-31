@@ -1,16 +1,16 @@
-default: libezcl.a
-all: libezcl.a
+default: libezcl.la
+all: libezcl.la
 
 AM_MAKEFLAGS = -j 4
 
 DEFAULT_INCLUDES=-I. -I..
 
-lib_LIBRARIES = libezcl.a
+lib_LTLIBRARIES = libezcl.la
 include_HEADERS = ezcl.h
 
 H_SRCS = ezcl.h
 
 C_SRCS = ezcl.c
 
-libezcl_a_SOURCES = ${C_SRCS} ${H_SRCS}
+libezcl_la_SOURCES = ${C_SRCS} ${H_SRCS}
 

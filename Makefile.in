@@ -42,9 +42,13 @@ DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/configure ./config/compile ./config/config.guess \
 	./config/config.sub ./config/depcomp ./config/install-sh \
-	./config/missing AUTHORS ChangeLog TODO
+	./config/ltmain.sh ./config/missing AUTHORS ChangeLog TODO
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/config/libtool.m4 \
+	$(top_srcdir)/config/ltoptions.m4 \
+	$(top_srcdir)/config/ltsugar.m4 \
+	$(top_srcdir)/config/ltversion.m4 \
+	$(top_srcdir)/config/lt~obsolete.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -63,7 +67,10 @@ am__objects_3 =
 am_clamr_OBJECTS = $(am__objects_1) $(am__objects_2) $(am__objects_3)
 clamr_OBJECTS = $(am_clamr_OBJECTS)
 am__DEPENDENCIES_1 =
-clamr_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+clamr_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
+	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
+	timer/libtimer.la l7/libl7.la $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 am__objects_4 = clamr_checkall-clamr_checkall.$(OBJEXT) \
 	clamr_checkall-mesh.$(OBJEXT) \
 	clamr_checkall-partition.$(OBJEXT) \
@@ -73,7 +80,9 @@ am__objects_5 = clamr_checkall-display.$(OBJEXT) \
 am_clamr_checkall_OBJECTS = $(am__objects_4) $(am__objects_5) \
 	$(am__objects_3)
 clamr_checkall_OBJECTS = $(am_clamr_checkall_OBJECTS)
-clamr_checkall_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+clamr_checkall_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
+	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
+	timer/libtimer.la l7/libl7.la $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
 am__objects_6 = clamr_cpuonly-clamr_cpuonly.$(OBJEXT) \
 	clamr_cpuonly-mesh.$(OBJEXT) clamr_cpuonly-partition.$(OBJEXT) \
@@ -83,7 +92,9 @@ am__objects_7 = clamr_cpuonly-display.$(OBJEXT) \
 am_clamr_cpuonly_OBJECTS = $(am__objects_6) $(am__objects_7) \
 	$(am__objects_3)
 clamr_cpuonly_OBJECTS = $(am_clamr_cpuonly_OBJECTS)
-clamr_cpuonly_DEPENDENCIES = $(am__DEPENDENCIES_1)
+clamr_cpuonly_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
+	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
+	timer/libtimer.la $(am__DEPENDENCIES_1)
 am__objects_8 = clamr_gpucheck-clamr_gpucheck.$(OBJEXT) \
 	clamr_gpucheck-mesh.$(OBJEXT) \
 	clamr_gpucheck-partition.$(OBJEXT) \
@@ -93,7 +104,9 @@ am__objects_9 = clamr_gpucheck-display.$(OBJEXT) \
 am_clamr_gpucheck_OBJECTS = $(am__objects_8) $(am__objects_9) \
 	$(am__objects_3)
 clamr_gpucheck_OBJECTS = $(am_clamr_gpucheck_OBJECTS)
-clamr_gpucheck_DEPENDENCIES = $(am__DEPENDENCIES_1)
+clamr_gpucheck_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
+	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
+	timer/libtimer.la $(am__DEPENDENCIES_1)
 am__objects_10 = clamr_gpuonly-clamr_gpuonly.$(OBJEXT) \
 	clamr_gpuonly-mesh.$(OBJEXT) clamr_gpuonly-partition.$(OBJEXT) \
 	clamr_gpuonly-state.$(OBJEXT) clamr_gpuonly-input.$(OBJEXT)
@@ -102,7 +115,9 @@ am__objects_11 = clamr_gpuonly-display.$(OBJEXT) \
 am_clamr_gpuonly_OBJECTS = $(am__objects_10) $(am__objects_11) \
 	$(am__objects_3)
 clamr_gpuonly_OBJECTS = $(am_clamr_gpuonly_OBJECTS)
-clamr_gpuonly_DEPENDENCIES = $(am__DEPENDENCIES_1)
+clamr_gpuonly_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
+	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
+	timer/libtimer.la $(am__DEPENDENCIES_1)
 am__objects_12 = clamr_mpionly-clamr_mpionly.$(OBJEXT) \
 	clamr_mpionly-mesh.$(OBJEXT) clamr_mpionly-partition.$(OBJEXT) \
 	clamr_mpionly-state.$(OBJEXT) clamr_mpionly-input.$(OBJEXT)
@@ -111,7 +126,9 @@ am__objects_13 = clamr_mpionly-display.$(OBJEXT) \
 am_clamr_mpionly_OBJECTS = $(am__objects_12) $(am__objects_13) \
 	$(am__objects_3)
 clamr_mpionly_OBJECTS = $(am_clamr_mpionly_OBJECTS)
-clamr_mpionly_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+clamr_mpionly_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
+	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
+	timer/libtimer.la l7/libl7.la $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/./config/depcomp
@@ -119,13 +136,22 @@ am__depfiles_maybe = depfiles
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+	--mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
-LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+LTCXXCOMPILE = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+	--mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
-CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
-	-o $@
+CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
 SOURCES = $(clamr_SOURCES) $(clamr_checkall_SOURCES) \
 	$(clamr_cpuonly_SOURCES) $(clamr_gpucheck_SOURCES) \
 	$(clamr_gpuonly_SOURCES) $(clamr_mpionly_SOURCES)
@@ -185,6 +211,7 @@ distuninstallcheck_listfiles = find . -type f -print
 distcleancheck_listfiles = find . -type f -print
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
+AR = @AR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -195,16 +222,20 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
+CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
+DSYMUTIL = @DSYMUTIL@
+DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+FGREP = @FGREP@
 GREP = @GREP@
 HAVE_ADDR2LINE = @HAVE_ADDR2LINE@
 INCLUDES = @INCLUDES@
@@ -213,9 +244,13 @@ INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
+LIBTOOL = @LIBTOOL@
+LIPO = @LIPO@
+LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
@@ -224,7 +259,12 @@ MPE_LIBS = @MPE_LIBS@
 MPE_NOMPI_LIBS = @MPE_NOMPI_LIBS@
 MPI_BIN = @MPI_BIN@
 MPI_LIBS = @MPI_LIBS@
+NM = @NM@
+NMEDIT = @NMEDIT@
+OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OTOOL = @OTOOL@
+OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -234,6 +274,7 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 RANLIB = @RANLIB@
+SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
@@ -244,6 +285,7 @@ abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
+ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
@@ -290,48 +332,49 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = l7 kdtree hsfc s7 timer ezcl zorder
+ACLOCAL_AMFLAGS = -I config
 clamr_CXX_SRCS = clamr.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_C_SRCS = display.c reduce.c
 clamr_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_CPPFLAGS = -DHAVE_MPI=1
-clamr_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm -Ll7 -ll7 ${MPE_LIBS} ${MPI_LIBS}
+clamr_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la l7/libl7.la -lm ${MPE_LIBS} ${MPI_LIBS}
 clamr_SOURCES = ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS}
 clamr_gpuonly_CXX_SRCS = clamr_gpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_gpuonly_C_SRCS = display.c reduce.c
 clamr_gpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_gpuonly_CPPFLAGS = -UHAVE_MPI
-clamr_gpuonly_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm ${MPE_NOMPI_LIBS}
+clamr_gpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la -lm ${MPE_NOMPI_LIBS}
 clamr_gpuonly_SOURCES = ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS}
 clamr_cpuonly_CXX_SRCS = clamr_cpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_cpuonly_C_SRCS = display.c reduce.c
 clamr_cpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_cpuonly_CPPFLAGS = -UHAVE_MPI
-clamr_cpuonly_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm ${MPE_NOMPI_LIBS}
+clamr_cpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la -lm ${MPE_NOMPI_LIBS}
 clamr_cpuonly_SOURCES = ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr_cpuonly_H_SRCS}
 clamr_mpionly_CXX_SRCS = clamr_mpionly.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_mpionly_C_SRCS = display.c reduce.c
 clamr_mpionly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_mpionly_CPPFLAGS = -DHAVE_MPI=1
-clamr_mpionly_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm -Ll7 -ll7 ${MPE_LIBS} ${MPI_LIBS}
+clamr_mpionly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la l7/libl7.la -lm ${MPE_LIBS} ${MPI_LIBS}
 clamr_mpionly_SOURCES = ${clamr_mpionly_CXX_SRCS} ${clamr_mpionly_C_SRCS} ${clamr_mpionly_H_SRCS}
 clamr_gpucheck_CXX_SRCS = clamr_gpucheck.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_gpucheck_C_SRCS = display.c reduce.c
 clamr_gpucheck_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_gpucheck_CPPFLAGS = -UHAVE_MPI
-clamr_gpucheck_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm ${MPE_NOMPI_LIBS}
+clamr_gpucheck_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la -lm ${MPE_NOMPI_LIBS}
 clamr_gpucheck_SOURCES = ${clamr_gpucheck_CXX_SRCS} ${clamr_gpucheck_C_SRCS} ${clamr_gpucheck_H_SRCS}
 clamr_checkall_CXX_SRCS = clamr_checkall.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_checkall_C_SRCS = display.c reduce.c 
 clamr_checkall_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_checkall_CPPFLAGS = -DHAVE_MPI=1
-clamr_checkall_LDADD = -Lhsfc -lhsfc -Lkdtree -lkdtree -Lzorder -lzorder -Ls7 -ls7 -Lezcl -lezcl -Ltimer -ltimer -lm -Ll7 -ll7 ${MPE_LIBS} ${MPI_LIBS}
+clamr_checkall_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la l7/libl7.la -lm ${MPE_LIBS} ${MPI_LIBS}
 clamr_checkall_SOURCES = ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${clamr_checkall_H_SRCS}
 EXTRA_DIST = wave_kern.cl wave_kern_calc.cl reduce.cl config.h clamr.xcodeproj/project.pbxproj clamr.1 fileamr.in AUTHORS ChangeLog runtests.sh newbatch.sh LICENSE
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
 .SUFFIXES:
-.SUFFIXES: .c .cpp .o .obj
+.SUFFIXES: .c .cpp .lo .o .obj
 am--refresh:
 	@:
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
@@ -389,7 +432,7 @@ install-binPROGRAMS: $(bin_PROGRAMS)
 	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
 	for p in $$list; do echo "$$p $$p"; done | \
 	sed 's/$(EXEEXT)$$//' | \
-	while read p p1; do if test -f $$p; \
+	while read p p1; do if test -f $$p || test -f $$p1; \
 	  then echo "$$p"; echo "$$p"; else :; fi; \
 	done | \
 	sed -e 'p;s,.*/,,;n;h' -e 's|.*|.|' \
@@ -403,8 +446,8 @@ install-binPROGRAMS: $(bin_PROGRAMS)
 	while read type dir files; do \
 	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
 	    test -z "$$files" || { \
-	      echo " $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(bindir)$$dir'"; \
-	      $(INSTALL_PROGRAM_ENV) $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(bindir)$$dir" || exit $$?; \
+	    echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(bindir)$$dir'"; \
+	    $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(bindir)$$dir" || exit $$?; \
 	    } \
 	; done
 
@@ -419,7 +462,13 @@ uninstall-binPROGRAMS:
 	cd "$(DESTDIR)$(bindir)" && rm -f $$files
 
 clean-binPROGRAMS:
-	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
+	@list='$(bin_PROGRAMS)'; test -n "$$list" || exit 0; \
+	echo " rm -f" $$list; \
+	rm -f $$list || exit $$?; \
+	test -n "$(EXEEXT)" || exit 0; \
+	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
+	echo " rm -f" $$list; \
+	rm -f $$list
 clamr$(EXEEXT): $(clamr_OBJECTS) $(clamr_DEPENDENCIES) 
 	@rm -f clamr$(EXEEXT)
 	$(CXXLINK) $(clamr_OBJECTS) $(clamr_LDADD) $(LIBS)
@@ -501,6 +550,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
+.c.lo:
+@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
 clamr-display.o: display.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT clamr-display.o -MD -MP -MF $(DEPDIR)/clamr-display.Tpo -c -o clamr-display.o `test -f 'display.c' || echo '$(srcdir)/'`display.c
@@ -683,6 +739,13 @@ clamr_mpionly-reduce.obj: reduce.c
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+.cpp.lo:
+@am__fastdepCXX_TRUE@	$(LTCXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LTCXXCOMPILE) -c -o $@ $<
 
 clamr-clamr.o: clamr.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT clamr-clamr.o -MD -MP -MF $(DEPDIR)/clamr-clamr.Tpo -c -o clamr-clamr.o `test -f 'clamr.cpp' || echo '$(srcdir)/'`clamr.cpp
@@ -1104,6 +1167,15 @@ clamr_mpionly-input.obj: input.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpionly_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o clamr_mpionly-input.obj `if test -f 'input.cpp'; then $(CYGPATH_W) 'input.cpp'; else $(CYGPATH_W) '$(srcdir)/input.cpp'; fi`
 
+mostlyclean-libtool:
+	-rm -f *.lo
+
+clean-libtool:
+	-rm -rf .libs _libs
+
+distclean-libtool:
+	-rm -f libtool config.lt
+
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run `make' without going through this Makefile.
 # To change the values of `make' variables: instead of editing Makefiles,
@@ -1449,14 +1521,14 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
-	distclean-hdr distclean-local distclean-tags
+	distclean-hdr distclean-libtool distclean-local distclean-tags
 
 dvi: dvi-recursive
 
@@ -1507,7 +1579,8 @@ maintainer-clean-am: distclean-am maintainer-clean-generic
 
 mostlyclean: mostlyclean-recursive
 
-mostlyclean-am: mostlyclean-compile mostlyclean-generic
+mostlyclean-am: mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool
 
 pdf: pdf-recursive
 
@@ -1524,21 +1597,44 @@ uninstall-am: uninstall-binPROGRAMS
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
 	all all-am am--refresh check check-am clean clean-binPROGRAMS \
-	clean-generic ctags ctags-recursive dist dist-all dist-bzip2 \
-	dist-gzip dist-lzma dist-shar dist-tarZ dist-xz dist-zip \
-	distcheck distclean distclean-compile distclean-generic \
-	distclean-hdr distclean-local distclean-tags distcleancheck \
-	distdir distuninstallcheck dvi dvi-am html html-am info \
-	info-am install install-am install-binPROGRAMS install-data \
+	clean-generic clean-libtool ctags ctags-recursive dist \
+	dist-all dist-bzip2 dist-gzip dist-lzma dist-shar dist-tarZ \
+	dist-xz dist-zip distcheck distclean distclean-compile \
+	distclean-generic distclean-hdr distclean-libtool \
+	distclean-local distclean-tags distcleancheck distdir \
+	distuninstallcheck dvi dvi-am html html-am info info-am \
+	install install-am install-binPROGRAMS install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
 	install-info-am install-man install-pdf install-pdf-am \
 	install-ps install-ps-am install-strip installcheck \
 	installcheck-am installdirs installdirs-am maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic pdf pdf-am ps ps-am tags tags-recursive \
-	uninstall uninstall-am uninstall-binPROGRAMS
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags tags-recursive uninstall uninstall-am \
+	uninstall-binPROGRAMS
 
+
+l7/libl7.la:
+	cd l7; make
+
+hsfc/libhsfc.la:
+	cd hsfc; make
+
+kdtree/libkdtree.la:
+	cd kdtree; make
+
+zorder/libzorder.la:
+	cd zorder; make
+
+s7/libs7.la:
+	cd s7; make
+
+ezcl/libezcl.la:
+	cd ezcl; make
+
+timer/libtimer.la:
+	cd timer; make
 
 distclean-local:
 	rm -f config.h.in~
