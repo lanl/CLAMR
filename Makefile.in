@@ -69,7 +69,8 @@ clamr_OBJECTS = $(am_clamr_OBJECTS)
 am__DEPENDENCIES_1 =
 clamr_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
 	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
-	timer/libtimer.la l7/libl7.la $(am__DEPENDENCIES_1) \
+	timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
 am__objects_4 = clamr_checkall-clamr_checkall.$(OBJEXT) \
 	clamr_checkall-mesh.$(OBJEXT) \
@@ -82,7 +83,8 @@ am_clamr_checkall_OBJECTS = $(am__objects_4) $(am__objects_5) \
 clamr_checkall_OBJECTS = $(am_clamr_checkall_OBJECTS)
 clamr_checkall_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
 	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
-	timer/libtimer.la l7/libl7.la $(am__DEPENDENCIES_1) \
+	timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
 am__objects_6 = clamr_cpuonly-clamr_cpuonly.$(OBJEXT) \
 	clamr_cpuonly-mesh.$(OBJEXT) clamr_cpuonly-partition.$(OBJEXT) \
@@ -94,7 +96,8 @@ am_clamr_cpuonly_OBJECTS = $(am__objects_6) $(am__objects_7) \
 clamr_cpuonly_OBJECTS = $(am_clamr_cpuonly_OBJECTS)
 clamr_cpuonly_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
 	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
-	timer/libtimer.la $(am__DEPENDENCIES_1)
+	timer/libtimer.la genmalloc/libgenmalloc.la \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am__objects_8 = clamr_gpucheck-clamr_gpucheck.$(OBJEXT) \
 	clamr_gpucheck-mesh.$(OBJEXT) \
 	clamr_gpucheck-partition.$(OBJEXT) \
@@ -106,7 +109,8 @@ am_clamr_gpucheck_OBJECTS = $(am__objects_8) $(am__objects_9) \
 clamr_gpucheck_OBJECTS = $(am_clamr_gpucheck_OBJECTS)
 clamr_gpucheck_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
 	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
-	timer/libtimer.la $(am__DEPENDENCIES_1)
+	timer/libtimer.la genmalloc/libgenmalloc.la \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am__objects_10 = clamr_gpuonly-clamr_gpuonly.$(OBJEXT) \
 	clamr_gpuonly-mesh.$(OBJEXT) clamr_gpuonly-partition.$(OBJEXT) \
 	clamr_gpuonly-state.$(OBJEXT) clamr_gpuonly-input.$(OBJEXT)
@@ -117,18 +121,18 @@ am_clamr_gpuonly_OBJECTS = $(am__objects_10) $(am__objects_11) \
 clamr_gpuonly_OBJECTS = $(am_clamr_gpuonly_OBJECTS)
 clamr_gpuonly_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
 	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
-	timer/libtimer.la $(am__DEPENDENCIES_1)
+	timer/libtimer.la genmalloc/libgenmalloc.la \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am__objects_12 = clamr_mpionly-clamr_mpionly.$(OBJEXT) \
 	clamr_mpionly-mesh.$(OBJEXT) clamr_mpionly-partition.$(OBJEXT) \
 	clamr_mpionly-state.$(OBJEXT) clamr_mpionly-input.$(OBJEXT)
-am__objects_13 = clamr_mpionly-display.$(OBJEXT) \
-	clamr_mpionly-reduce.$(OBJEXT)
+am__objects_13 = clamr_mpionly-display.$(OBJEXT)
 am_clamr_mpionly_OBJECTS = $(am__objects_12) $(am__objects_13) \
 	$(am__objects_3)
 clamr_mpionly_OBJECTS = $(am_clamr_mpionly_OBJECTS)
 clamr_mpionly_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
-	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
-	timer/libtimer.la l7/libl7.la $(am__DEPENDENCIES_1) \
+	zorder/libzorder.la s7/libs7.la timer/libtimer.la l7/libl7.la \
+	genmalloc/libgenmalloc.la $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/./config/depcomp
@@ -263,6 +267,7 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OPENCL_LIBS = @OPENCL_LIBS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
@@ -331,43 +336,43 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = l7 kdtree hsfc s7 timer ezcl zorder
+SUBDIRS = l7 kdtree hsfc s7 timer ezcl zorder genmalloc
 ACLOCAL_AMFLAGS = -I config
 clamr_CXX_SRCS = clamr.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_C_SRCS = display.c reduce.c
 clamr_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
-clamr_CPPFLAGS = -DHAVE_MPI=1
-clamr_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la l7/libl7.la -lm ${MPE_LIBS} ${MPI_LIBS}
+clamr_CPPFLAGS = -DHAVE_MPI=1 -DHAVE_OPENCL=1
+clamr_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la -lm ${MPE_LIBS} ${MPI_LIBS} ${OPENCL_LIBS}
 clamr_SOURCES = ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS}
 clamr_gpuonly_CXX_SRCS = clamr_gpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_gpuonly_C_SRCS = display.c reduce.c
 clamr_gpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
-clamr_gpuonly_CPPFLAGS = -UHAVE_MPI
-clamr_gpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la -lm ${MPE_NOMPI_LIBS}
+clamr_gpuonly_CPPFLAGS = -UHAVE_MPI -DHAVE_OPENCL=1
+clamr_gpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la genmalloc/libgenmalloc.la -lm ${MPE_NOMPI_LIBS} ${OPENCL_LIBS}
 clamr_gpuonly_SOURCES = ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS}
 clamr_cpuonly_CXX_SRCS = clamr_cpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_cpuonly_C_SRCS = display.c reduce.c
 clamr_cpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
-clamr_cpuonly_CPPFLAGS = -UHAVE_MPI
-clamr_cpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la -lm ${MPE_NOMPI_LIBS}
+clamr_cpuonly_CPPFLAGS = -UHAVE_MPI -DHAVE_OPENCL=1
+clamr_cpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la genmalloc/libgenmalloc.la -lm ${MPE_NOMPI_LIBS} ${OPENCL_LIBS}
 clamr_cpuonly_SOURCES = ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr_cpuonly_H_SRCS}
 clamr_mpionly_CXX_SRCS = clamr_mpionly.cpp mesh.cpp partition.cpp state.cpp input.cpp
-clamr_mpionly_C_SRCS = display.c reduce.c
-clamr_mpionly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
-clamr_mpionly_CPPFLAGS = -DHAVE_MPI=1
-clamr_mpionly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la l7/libl7.la -lm ${MPE_LIBS} ${MPI_LIBS}
+clamr_mpionly_C_SRCS = display.c
+clamr_mpionly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h
+clamr_mpionly_CPPFLAGS = -DHAVE_MPI=1 -UHAVE_OPENCL
+clamr_mpionly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la -lm ${MPE_LIBS} ${MPI_LIBS}
 clamr_mpionly_SOURCES = ${clamr_mpionly_CXX_SRCS} ${clamr_mpionly_C_SRCS} ${clamr_mpionly_H_SRCS}
 clamr_gpucheck_CXX_SRCS = clamr_gpucheck.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_gpucheck_C_SRCS = display.c reduce.c
 clamr_gpucheck_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
-clamr_gpucheck_CPPFLAGS = -UHAVE_MPI
-clamr_gpucheck_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la -lm ${MPE_NOMPI_LIBS}
+clamr_gpucheck_CPPFLAGS = -UHAVE_MPI -DHAVE_OPENCL=1
+clamr_gpucheck_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la genmalloc/libgenmalloc.la -lm ${MPE_NOMPI_LIBS} ${OPENCL_LIBS}
 clamr_gpucheck_SOURCES = ${clamr_gpucheck_CXX_SRCS} ${clamr_gpucheck_C_SRCS} ${clamr_gpucheck_H_SRCS}
 clamr_checkall_CXX_SRCS = clamr_checkall.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_checkall_C_SRCS = display.c reduce.c 
 clamr_checkall_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
-clamr_checkall_CPPFLAGS = -DHAVE_MPI=1
-clamr_checkall_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la l7/libl7.la -lm ${MPE_LIBS} ${MPI_LIBS}
+clamr_checkall_CPPFLAGS = -DHAVE_MPI=1 -DHAVE_OPENCL=1
+clamr_checkall_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la -lm ${MPE_LIBS} ${MPI_LIBS} ${OPENCL_LIBS}
 clamr_checkall_SOURCES = ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${clamr_checkall_H_SRCS}
 EXTRA_DIST = wave_kern.cl wave_kern_calc.cl reduce.cl config.h clamr.xcodeproj/project.pbxproj clamr.1 fileamr.in AUTHORS ChangeLog runtests.sh newbatch.sh LICENSE
 all: config.h
@@ -534,7 +539,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpionly-input.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpionly-mesh.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpionly-partition.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpionly-reduce.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpionly-state.Po@am__quote@
 
 .c.o:
@@ -711,20 +715,6 @@ clamr_mpionly-display.obj: display.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='display.c' object='clamr_mpionly-display.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpionly_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o clamr_mpionly-display.obj `if test -f 'display.c'; then $(CYGPATH_W) 'display.c'; else $(CYGPATH_W) '$(srcdir)/display.c'; fi`
-
-clamr_mpionly-reduce.o: reduce.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpionly_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT clamr_mpionly-reduce.o -MD -MP -MF $(DEPDIR)/clamr_mpionly-reduce.Tpo -c -o clamr_mpionly-reduce.o `test -f 'reduce.c' || echo '$(srcdir)/'`reduce.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpionly-reduce.Tpo $(DEPDIR)/clamr_mpionly-reduce.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='reduce.c' object='clamr_mpionly-reduce.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpionly_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o clamr_mpionly-reduce.o `test -f 'reduce.c' || echo '$(srcdir)/'`reduce.c
-
-clamr_mpionly-reduce.obj: reduce.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpionly_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT clamr_mpionly-reduce.obj -MD -MP -MF $(DEPDIR)/clamr_mpionly-reduce.Tpo -c -o clamr_mpionly-reduce.obj `if test -f 'reduce.c'; then $(CYGPATH_W) 'reduce.c'; else $(CYGPATH_W) '$(srcdir)/reduce.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpionly-reduce.Tpo $(DEPDIR)/clamr_mpionly-reduce.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='reduce.c' object='clamr_mpionly-reduce.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpionly_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o clamr_mpionly-reduce.obj `if test -f 'reduce.c'; then $(CYGPATH_W) 'reduce.c'; else $(CYGPATH_W) '$(srcdir)/reduce.c'; fi`
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -1635,6 +1625,9 @@ ezcl/libezcl.la:
 
 timer/libtimer.la:
 	cd timer; make
+
+genmalloc/libgenmalloc.la:
+	cd genmalloc; make
 
 distclean-local:
 	rm -f config.h.in~

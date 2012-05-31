@@ -66,8 +66,6 @@
 
 #include "ezcl.h"
 
-#ifdef HAVE_OPENCL
-
 // Control flags
 static struct {
    unsigned int timing     : 1;
@@ -1362,88 +1360,3 @@ void ezcl_print_error(const int ierr, const char *routine, const char *cl_routin
    exit(-1);
 }
 
-void *genvector_p(int inum, size_t elsize, const char *file, const int line)
-{
-   void *out;
-   size_t mem_size;
-
-   mem_size = inum*elsize;
-   out      = (void *)calloc((size_t)inum, elsize);
-   ezcl_malloc_memory_add(out, mem_size);
-
-   return (out);
-}
-
-void genvectorfree_p(void *var, const char *file, const int line)
-{
-   ezcl_malloc_memory_remove(var);
-}
-
-void **genmatrix_p(int jnum, int inum, size_t elsize, const char *file, const int line)
-{
-   void **out;
-   size_t mem_size;
-  
-   mem_size = jnum*sizeof(void *);
-   out      = (void **)malloc(mem_size);
-   ezcl_malloc_memory_add(out, mem_size);
-  
-   mem_size = jnum*inum*elsize;
-   out[0]    = (void *)calloc((size_t)jnum*(size_t)inum, elsize);
-   ezcl_malloc_memory_add(out[0], mem_size);
-  
-   for (int i = 1; i < jnum; i++) {
-      out[i] = out[i-1] + inum*elsize;
-   }
-  
-   return (out);
-}
-
-void genmatrixfree_p(void **var, const char *file, const int line)
-{
-   ezcl_malloc_memory_remove(var[0]);
-   ezcl_malloc_memory_remove(var);
-}
-
-void ***gentrimatrix_p(int knum, int jnum, int inum, size_t elsize, const char *file, const int line)
-{
-   void ***out;
-   size_t mem_size;
-
-   mem_size  = knum*sizeof(void **);
-   out       = (void ***)malloc(mem_size);
-   ezcl_malloc_memory_add(out, mem_size);
-
-   mem_size  = knum*jnum*sizeof(void *);
-   out[0]    = (void **) malloc(mem_size);
-   ezcl_malloc_memory_add(out[0], mem_size);
-
-   mem_size  = knum*jnum*inum*elsize;
-   out[0][0] = (void *)calloc((size_t)knum*(size_t)jnum*(size_t)inum, elsize);
-   ezcl_malloc_memory_add(out[0][0], mem_size);
-
-   for (int k = 0; k < knum; k++)
-   {
-      if (k > 0)
-      {
-         out[k] = out[k-1] + jnum*sizeof(void *);
-         out[k][0] = out[k-1][0] + (jnum*inum);
-      }
-
-      for (int j = 1; j < jnum; j++)
-      {
-         out[k][j] = out[k][j-1] + inum*elsize;
-      }
-   }
-  
-   return (out);
-}
-
-void gentrimatrixfree_p(void ***var, const char *file, const int line)
-{
-   ezcl_malloc_memory_remove(var[0][0]);
-   ezcl_malloc_memory_remove(var[0]);
-   ezcl_malloc_memory_remove(var);
-}
-
-#endif

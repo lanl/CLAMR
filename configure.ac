@@ -181,7 +181,7 @@ if test "${enable_opencl}" != "no"; then
          fi
          found="no"
          if test "$found" = "no"; then
-           AC_CHECK_FILE(/usr/lib/libOpenCL.so, LIBS="${LIBS} -lOpenCL" && found="yes")
+           AC_CHECK_FILE(/usr/lib/libOpenCL.so, OPENCL_LIBS="${OPENCL_LIBS} -lOpenCL" && found="yes")
            if test "${found}" = "yes"; then
              if test "${RPATH_LIBS}x" = "x"; then
                RPATH_LIBS="/usr/lib"
@@ -196,7 +196,7 @@ if test "${enable_opencl}" != "no"; then
            AC_CHECK_FILE(/home/opt/AMDAPP_v2.6/include/CL/cl.h, INCLUDES="${INCLUDES} -I/home/opt/AMDAPP_v2.6/include" && found="yes")
            found="no"
            if test "$found" = "no"; then
-             AC_CHECK_FILE(/home/opt/AMDAPP_v2.6/lib/x86_64/libOpenCL.so, LIBS="${LIBS} -L/home/opt/AMDAPP_v2.6/lib/x86_64 -lOpenCL" && found="yes")
+             AC_CHECK_FILE(/home/opt/AMDAPP_v2.6/lib/x86_64/libOpenCL.so, OPENCL_LIBS="${OPENCL_LIBS} -L/home/opt/AMDAPP_v2.6/lib/x86_64 -lOpenCL" && found="yes")
              if test "${found}" = "yes"; then
                if test "${RPATH_LIBS}x" = "x"; then
                  RPATH_LIBS="/home/opt/AMDAPP_v2.6/lib/x86_64"
@@ -209,7 +209,7 @@ if test "${enable_opencl}" != "no"; then
       fi
       ;;
     *darwin*)
-      LIBS="${LIBS} -framework OpenCL"
+      OPENCL_LIBS="${OPENCL_LIBS} -framework OpenCL"
       ;;
   esac
 
@@ -368,6 +368,7 @@ AC_SUBST(LIBS)
 AC_SUBST(MPI_LIBS)
 AC_SUBST(MPE_LIBS)
 AC_SUBST(MPE_NOMPI_LIBS)
+AC_SUBST(OPENCL_LIBS)
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([l7/Makefile])
@@ -377,6 +378,7 @@ AC_CONFIG_FILES([s7/Makefile])
 AC_CONFIG_FILES([timer/Makefile])
 AC_CONFIG_FILES([ezcl/Makefile])
 AC_CONFIG_FILES([zorder/Makefile])
+AC_CONFIG_FILES([genmalloc/Makefile])
 
 AC_OUTPUT
 
