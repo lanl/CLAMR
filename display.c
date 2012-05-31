@@ -596,9 +596,9 @@ void draw_scene(void) {
    glLoadIdentity();
 
    glutSwapBuffers();
+#endif
 
    sleep(0);
-#endif
 }
 
 
