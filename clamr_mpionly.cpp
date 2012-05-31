@@ -61,7 +61,6 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
-#include "ezcl/ezcl.h"
 #include "input.h"
 #include "mesh.h"
 #include "partition.h"
@@ -89,10 +88,6 @@ typedef struct
    double s0;
    double s1;
 }  real2;
-typedef cl_double   cl_real;
-typedef cl_double2  cl_real2;
-typedef cl_double4  cl_real4;
-typedef cl_double8  cl_real8;
 #define CONSERVATION_EPS    .00001
 #define STATE_EPS        .025
 #define MPI_C_REAL MPI_DOUBLE
@@ -104,10 +99,6 @@ typedef struct
    float s0;
    float s1;
 }  real2;
-typedef cl_float    cl_real;
-typedef cl_float2   cl_real2;
-typedef cl_float4   cl_real4;
-typedef cl_float8   cl_real8;
 #define CONSERVATION_EPS    .1
 #define STATE_EPS      15.0
 #define MPI_C_REAL MPI_FLOAT
@@ -509,9 +500,8 @@ extern "C" void do_calc(void)
       MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 
       noffset=0;
-      for (int ip=0; ip<mype; ip++){
-         noffset += nsizes[ip];
-      }
+      MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      noffset -= ncells;
 
       int ncells_old = ncells;
 
@@ -524,17 +514,15 @@ extern "C" void do_calc(void)
       int do_load_balance_global = 0;
       MPI_Allreduce(&do_load_balance, &do_load_balance_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-      if (do_load_balance) {
+      if (do_load_balance_global) {
          //printf("%d: DEBUG ncells_old %d ncells %d\n",mype,ncells_old,ncells);
 
          MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 
          int noffset_old = noffset;
 
-         noffset=0;
-         for (int ip=0; ip<mype; ip++){
-            noffset += nsizes[ip];
-         }
+         MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         noffset -= ncells;
 
          int lower_block_start = noffset;
          int lower_block_end   = noffset_old-1;
@@ -563,6 +551,7 @@ extern "C" void do_calc(void)
       }
 
 
+      MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 
       ndispl[0]=0;
       for (int ip=1; ip<numpe; ip++){
