@@ -525,7 +525,7 @@ extern "C" void do_calc(void)
       MPI_Allreduce(&do_load_balance, &do_load_balance_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
       if (do_load_balance) {
-         printf("%d: DEBUG ncells_old %d ncells %d\n",mype,ncells_old,ncells);
+         //printf("%d: DEBUG ncells_old %d ncells %d\n",mype,ncells_old,ncells);
 
          MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 
@@ -540,11 +540,11 @@ extern "C" void do_calc(void)
          int lower_block_end   = noffset_old-1;
          int upper_block_start = noffset_old+ncells_old+1;
          int upper_block_end   = noffset+ncells;
-         printf("%d: DEBUG lower %d %d upper %d %d\n",mype,lower_block_start,lower_block_end,upper_block_start,upper_block_end);
+         //printf("%d: DEBUG lower %d %d upper %d %d\n",mype,lower_block_start,lower_block_end,upper_block_start,upper_block_end);
 
          int indices_needed_count = max(lower_block_end-lower_block_start+1,0)+
                                     max(upper_block_end-upper_block_start+1,0);
-         printf("%d: indices_needed_count %d\n",mype,indices_needed_count);
+         //printf("%d: indices_needed_count %d\n",mype,indices_needed_count);
          vector<int> indices_needed(indices_needed_count);
          int in=0;
          for (int iz = lower_block_start; iz <= lower_block_end; iz++, in++){
@@ -554,9 +554,9 @@ extern "C" void do_calc(void)
             indices_needed[in]=iz;
          }
 
-         for (int iz=0; iz<indices_needed_count; iz++){
-            printf("%d: indices_needed[%d] = %d\n",mype,iz,indices_needed[iz]);
-         }
+         //for (int iz=0; iz<indices_needed_count; iz++){
+         //   printf("%d: indices_needed[%d] = %d\n",mype,iz,indices_needed[iz]);
+         //}
 
          int load_balance_handle = 0;
          L7_Setup(0, noffset, ncells, &indices_needed[0], indices_needed_count, &load_balance_handle);
