@@ -146,17 +146,13 @@ static State      *state;          //  Object containing state information corre
 static struct timeval tstart;
 static cl_event start_write_event, end_write_event;
 
-#ifdef HAVE_OPENCL
 static cl_context          context                 = NULL;
 static cl_command_queue    command_queue           = NULL;
-#endif
 
 static double  H_sum_initial = 0.0;
 
 int main(int argc, char **argv) {
-#ifdef HAVE_OPENCL
    int ierr;
-#endif
 
     // Needed for code to compile correctly on the Mac
    int mype=0;

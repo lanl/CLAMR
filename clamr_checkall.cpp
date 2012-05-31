@@ -69,10 +69,7 @@
 #include "state.h"
 #include "timer/timer.h"
 #include "l7/l7.h"
-
-#ifdef HAVE_MPI
 #include <mpi.h>
-#endif
 
 // Sync is to reduce numerical drift between cpu and gpu
 #define DO_SYNC 
@@ -169,17 +166,13 @@ static State      *state_local;    //  Object containing state information corre
 static struct timeval tstart;
 static cl_event start_write_event, end_write_event;
 
-#ifdef HAVE_OPENCL
 static cl_context          context                 = NULL;
 static cl_command_queue    command_queue           = NULL;
-#endif
 
 static double  H_sum_initial = 0.0;
 
 int main(int argc, char **argv) {
-#ifdef HAVE_OPENCL
    int ierr;
-#endif
 
    //  Process command-line arguments, if any.
    int mype=0;
@@ -188,14 +181,9 @@ int main(int argc, char **argv) {
    //MPI_Init(&argc, &argv);
    parseInput(argc, argv);
 
-#ifdef HAVE_MPI
    //MPI_Comm_size(MPI_COMM_WORLD, &numpe);
    //MPI_Comm_rank(MPI_COMM_WORLD, &mype);
-#else
-   numpe = 16;
-#endif
 
-#ifdef HAVE_OPENCL
    ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &context, &command_queue, mype);
    if (ierr == EZCL_NODEVICE) {
       ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &context, &command_queue, mype);
@@ -205,7 +193,6 @@ int main(int argc, char **argv) {
       L7_Terminate();
       exit(-1);
    }
-#endif
 
    double circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.
@@ -690,10 +677,9 @@ extern "C" void do_calc(void)
          {  printf("Got a NAN on cell %d cycle %d\n",ic,ncycle);
             H[ic]=0.0;
             sleep(100);
-#ifdef HAVE_OPENCL
             //  Release kernels and finalize the OpenCL elements.
             ezcl_finalize();
-#endif
+
             L7_Terminate();
             exit(-1); }
       }  //  Complete NAN check.
@@ -1006,7 +992,6 @@ extern "C" void do_calc(void)
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       
-#ifdef HAVE_OPENCL
       //  Release kernels and finalize the OpenCL elements.
       ezcl_finalize();
       
@@ -1016,7 +1001,7 @@ extern "C" void do_calc(void)
       mesh_local->print_partition_measure();
       mesh_local->print_calc_neighbor_type();
       mesh_local->print_partition_type();
-#endif
+
       L7_Terminate();
       exit(0);
    }  //  Complete final output.

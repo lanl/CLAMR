@@ -152,9 +152,7 @@ static cl_command_queue    command_queue           = NULL;
 static double H_sum_initial = 0.0;
 
 int main(int argc, char **argv) {
-#ifdef HAVE_OPENCL
    int ierr;
-#endif
 
     // Needed for code to compile correctly on the Mac
    int mype=0;
@@ -165,7 +163,6 @@ int main(int argc, char **argv) {
    
    numpe = 16;
 
-#ifdef HAVE_OPENCL
    ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &context, &command_queue, 0);
    if (ierr == EZCL_NODEVICE) {
       ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &context, &command_queue, 0);
@@ -174,7 +171,6 @@ int main(int argc, char **argv) {
       printf("No opencl device available -- aborting\n");
       exit(-1);
    }
-#endif
 
    double circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.
@@ -564,7 +560,7 @@ extern "C" void do_calc(void)
 #endif
 
    //  Output final results and timing information.
-   if (ncycle > niter) {
+   if (ncycle >= niter) {
       //free_display();
       
       //  Get overall program timing.
