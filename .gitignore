@@ -1,7 +1,10 @@
 *.o
+*.lo
 *.a
+*.la
 Makefile
 .deps
+.libs
 config.log
 config.status
 stamp-h1
