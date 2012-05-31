@@ -60,20 +60,14 @@
 #include "config.h"
 #endif
 
-#ifdef HAVE_CL_DOUBLE
-typedef double      real;
-#else
-typedef float       real;
-#endif
-
 #include "timer.h"
 
 void cpu_timer_start(struct timeval *tstart_cpu){
    gettimeofday(tstart_cpu, NULL);
 }
 
-real cpu_timer_stop(struct timeval tstart_cpu){
-   real result;
+double cpu_timer_stop(struct timeval tstart_cpu){
+   double result;
    struct timeval tstop_cpu, tresult;
 
    gettimeofday(&tstop_cpu, NULL);

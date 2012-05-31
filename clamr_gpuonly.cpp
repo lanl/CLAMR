@@ -67,6 +67,7 @@
 #include "mesh.h"
 #include "partition.h"
 #include "state.h"
+#include "timer/timer.h"
 
 // Sync is to reduce numerical drift between cpu and gpu
 #define DO_SYNC 
@@ -141,7 +142,7 @@ static Mesh  *mesh;           //  Object containing mesh information; init in gr
 static State *state;          //  Object containing state information corresponding to mesh; init in grid.cpp::main().
 
 //  Set up timing information.
-static struct timeval tstart, tstop, tresult;
+static struct timeval tstart;
 static cl_event start_write_event, end_write_event,
                 start_read_event,  end_read_event;
 
@@ -273,12 +274,12 @@ int main(int argc, char **argv) {
    //  Clear superposition of circle on grid output.
    circle_radius = -1.0;
 
-   gettimeofday(&tstart, NULL);
+   cpu_timer_start(&tstart);
 
    set_idle_function(&do_calc);
    start_main_loop();
 #else
-   gettimeofday(&tstart, NULL);
+   cpu_timer_start(&tstart);
    for (int it = 0; it < 10000000; it++) {
       do_calc();
    }
@@ -567,10 +568,7 @@ extern "C" void do_calc(void)
       //free_display();
       
       //  Get overall program timing.
-      gettimeofday(&tstop, NULL);
-      tresult.tv_sec = tstop.tv_sec - tstart.tv_sec;
-      tresult.tv_usec = tstop.tv_usec - tstart.tv_usec;
-      double elapsed_time = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
+      double elapsed_time = cpu_timer_stop(tstart);
       
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
 
