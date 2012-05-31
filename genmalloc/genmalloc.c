@@ -55,8 +55,9 @@
  */
 
 #include <sys/types.h>
-#include <malloc.h>
 #include <sys/queue.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "genmalloc.h"
 
 #ifndef DEBUG
