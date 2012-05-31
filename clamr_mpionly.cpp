@@ -142,8 +142,6 @@ static State      *state;    //  Object containing state information correspondi
 //  Set up timing information.
 static struct timeval tstart, tstop, tresult;
 
-static cl_context          context                 = NULL;
-
 static double  H_sum_initial = 0.0;
 
 int main(int argc, char **argv) {
@@ -162,17 +160,17 @@ int main(int argc, char **argv) {
    if (special_case) circ_radius = .75;
 
    mesh_global  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
-   mesh_global->init(nx, ny, circ_radius, context, initial_order, special_case, do_gpu_calc);
+   mesh_global->init(nx, ny, circ_radius, initial_order, special_case, do_gpu_calc);
    size_t &ncells_global = mesh_global->ncells;
-   state_global = new State(ncells_global, context);
-   state_global->init(ncells_global, context, do_gpu_calc);
+   state_global = new State(ncells_global);
+   state_global->init(ncells_global, do_gpu_calc);
    mesh_global->proc.resize(ncells_global);
    mesh_global->calc_distribution(numpe, mesh_global->proc);
    state_global->fill_circle(mesh_global, circ_radius, 100.0, 5.0);
    
    parallel_in = 1;
    mesh = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
-   state = new State(mesh->ncells, context);
+   state = new State(mesh->ncells);
 
    size_t &ncells = mesh->ncells;
    int &noffset = mesh->noffset;
@@ -467,10 +465,6 @@ extern "C" void do_calc(void)
          {  printf("Got a NAN on cell %d cycle %d\n",ic,ncycle);
             H[ic]=0.0;
             sleep(100);
-#ifdef HAVE_OPENCL
-            //  Release kernels and finalize the OpenCL elements.
-            ezcl_finalize();
-#endif
             L7_Terminate();
             exit(-1); }
       }  //  Complete NAN check.

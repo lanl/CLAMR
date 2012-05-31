@@ -646,9 +646,6 @@ void keyPressed(unsigned char key, int x, int y) {
 
     if(key == ESCAPE) {
        free_display();
-#ifdef HAVE_OPENCL
-       ezcl_finish();
-#endif
        exit(0);
     }
     if(key == 'm')   { mode = MOVE; }

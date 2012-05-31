@@ -59,13 +59,16 @@
 #include "kdtree/KDTree.h"
 #include "mesh.h"
 #include "reorder.h"
+#ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
+#endif
 #include "timer/timer.h"
 #ifdef HAVE_MPI
 #include "mpi.h"
 #include "l7/l7.h"
 #endif
 #include "reduce.h"
+#include "genmalloc/genmalloc.h"
 
 #define DEBUG 0
 #define NEIGHBOR_CHECK 0
@@ -256,6 +259,7 @@ void Mesh::print_local()
    }
 }
 
+#ifdef HAVE_OPENCL
 void Mesh::print_dev_local(cl_command_queue command_queue)
 {
    vector<int>i_tmp(ncells_ghost);
@@ -331,6 +335,7 @@ void Mesh::compare_neighbors_gpu_global_to_cpu_global(cl_command_queue command_q
    }
    //printf("\n%d:                 Finished comparing mesh for dev_local to local\n\n",mype);
 }
+#endif
 
 void Mesh::compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl)
 {
@@ -472,6 +477,7 @@ void Mesh::compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint nce
 #endif
 }
 
+#ifdef HAVE_OPENCL
 void Mesh::compare_neighbors_all_to_gpu_local(cl_command_queue command_queue, Mesh *mesh_global, int *nsizes, int *ndispl)
 //uint ncells_ghost, uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl)
 {
@@ -672,6 +678,7 @@ void Mesh::compare_indices_gpu_global_to_cpu_global(cl_command_queue command_que
       if (celltype[ic] != celltype_check[ic] ) printf("DEBUG -- celltype: ic %d celltype %d celltype_check %d\n",ic, celltype[ic], celltype_check[ic]);
    }
 }
+#endif
 
 void Mesh::compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl, int cycle)
 {
@@ -700,6 +707,7 @@ void Mesh::compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mes
    }
 }
 
+#ifdef HAVE_OPENCL
 void Mesh::compare_indices_all_to_gpu_local(cl_command_queue command_queue, Mesh *mesh_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle)
 {
 #ifdef HAVE_MPI
@@ -771,6 +779,7 @@ void Mesh::compare_indices_all_to_gpu_local(cl_command_queue command_queue, Mesh
    }
 #endif
 }
+
 void Mesh::compare_coordinates_gpu_global_to_cpu_global(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real *H)
 {
    vector<real>x_check(ncells);
@@ -796,6 +805,7 @@ void Mesh::compare_coordinates_gpu_global_to_cpu_global(cl_command_queue command
       }
    }
 }
+#endif
 
 void Mesh::compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, real *x, real *dx, real *y, real *dy, real *H, real *x_global, real *dx_global, real *y_global, real *dy_global, real *H_global, int cycle)
 {
@@ -823,6 +833,7 @@ void Mesh::compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *
 
 }
 
+#ifdef HAVE_OPENCL
 void Mesh::compare_mpot_gpu_global_to_cpu_global(cl_command_queue command_queue, int *mpot, cl_mem dev_mpot)
 {
    vector<int>mpot_check(ncells);
@@ -832,6 +843,7 @@ void Mesh::compare_mpot_gpu_global_to_cpu_global(cl_command_queue command_queue,
       if (mpot[ic] != mpot_check[ic]) printf("DEBUG -- mpot: ic %d mpot %d mpot_check %d\n",ic, mpot[ic], mpot_check[ic]);
    }
 }
+#endif
 
 void Mesh::compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, int *mpot, int *mpot_global, int cycle)
 {
@@ -847,6 +859,7 @@ void Mesh::compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes,
 
 }
 
+#ifdef HAVE_OPENCL
 void Mesh::compare_mpot_all_to_gpu_local(cl_command_queue command_queue, int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle)
 {
 #ifdef HAVE_MPI
@@ -950,6 +963,7 @@ void Mesh::compare_ioffset_all_to_gpu_local(cl_command_queue command_queue, uint
       mtotal += mcount;
    }    
 }
+#endif
 
 Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary, int parallel_in, int do_gpu_calc)
 {
@@ -1047,6 +1061,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
       levtable[lev] = (int)pow(2,lev);
    }
 
+#ifdef HAVE_OPENCL
    // The copy host ptr flag will have the data copied to the GPU as part of the allocation
    if (do_gpu_calc) {
       dev_levtable = ezcl_malloc(&levtable[0],   &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
@@ -1057,6 +1072,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
       dev_levjbeg  = ezcl_malloc(&lev_jbegin[0], &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
       dev_levjend  = ezcl_malloc(&lev_jend[0],   &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
    }
+#endif
 
    ibase = 0;
 
@@ -1075,8 +1091,13 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
 
 }
 
+#ifdef HAVE_OPENCL
 void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, bool special_case, int do_gpu_calc)
+#else
+void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_order, bool special_case, int do_gpu_calc)
+#endif
 {
+#ifdef HAVE_OPENCL
    if (do_gpu_calc) {
       kernel_reduction_scan    = ezcl_create_kernel(context, "wave_kern_calc.cl", "finish_reduction_scan_cl", 0);
       kernel_hash_init         = ezcl_create_kernel(context, "wave_kern.cl",      "hash_init_cl",             0);
@@ -1100,6 +1121,7 @@ void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partitio
       }
 
    }
+#endif
 
    int istart = 1,
        jstart = 1,
@@ -1255,6 +1277,7 @@ int Mesh::rezone_count(vector<int> mpot)
    return(icount);
 }
 
+#ifdef HAVE_OPENCL
 void Mesh::gpu_rezone_count(cl_command_queue command_queue, size_t block_size, size_t local_work_size,
     cl_mem dev_ioffset, cl_mem &dev_result)
 {
@@ -1278,6 +1301,7 @@ void Mesh::gpu_rezone_count(cl_command_queue command_queue, size_t block_size, s
 
    gpu_time_reduction_scan    += ezcl_timer_calc(&reduction_scan_event,    &reduction_scan_event);
 }
+#endif
 
 void Mesh::kdtree_setup()
 {
@@ -1323,6 +1347,7 @@ void Mesh::calc_spatial_coordinates(int ibase)
    cpu_time_calc_spatial_coordinates += cpu_timer_stop(tstart_cpu);
 }
 
+#ifdef HAVE_OPENCL
 void Mesh::gpu_calc_spatial_coordinates(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy)
 {
    cl_event calc_spatial_coordinates_event;
@@ -1360,6 +1385,7 @@ void Mesh::gpu_calc_spatial_coordinates(cl_command_queue command_queue, cl_mem d
 
    gpu_time_calc_spatial_coordinates += ezcl_timer_calc(&calc_spatial_coordinates_event, &calc_spatial_coordinates_event);
 }
+#endif
 
 void Mesh::calc_minmax(void)
 {
@@ -3160,6 +3186,7 @@ void Mesh::calc_neighbors_local(void)
    cpu_time_calc_neighbors += cpu_timer_stop(tstart_cpu);
 }
 
+#ifdef HAVE_OPENCL
 void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
 {
    cl_event hash_init_event;
@@ -4147,6 +4174,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    }
 
 }
+#endif
 
 void Mesh::print_calc_neighbor_type(void)
 {
@@ -4209,6 +4237,7 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
    }
 }
 
+#ifdef HAVE_OPENCL
 void Mesh::gpu_count_BCs(cl_command_queue command_queue, size_t block_size, size_t local_work_size, size_t global_work_size, cl_mem dev_ioffset, int *bcount)
 {
    cl_event count_BCs_stage1_event, count_BCs_stage2_event;
@@ -4261,8 +4290,10 @@ void Mesh::gpu_count_BCs(cl_command_queue command_queue, size_t block_size, size
 
    }
 }
+#endif
 void Mesh::resize_old_device_memory(size_t ncells)
 {
+#ifdef HAVE_OPENCL
    ezcl_device_memory_remove(dev_level);
    ezcl_device_memory_remove(dev_i);
    ezcl_device_memory_remove(dev_j);
@@ -4271,9 +4302,11 @@ void Mesh::resize_old_device_memory(size_t ncells)
    dev_i        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
    dev_j        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
    dev_celltype = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+#endif
 }
 void Mesh::resize_new_device_memory(size_t ncells)
 {
+#ifdef HAVE_OPENCL
    ezcl_device_memory_remove(dev_level_new);
    ezcl_device_memory_remove(dev_i_new);
    ezcl_device_memory_remove(dev_j_new);
@@ -4282,12 +4315,15 @@ void Mesh::resize_new_device_memory(size_t ncells)
    dev_i_new        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
    dev_j_new        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
    dev_celltype_new = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+#endif
 }
 void Mesh::swap_device_memory_ptrs(void)
 {
+#ifdef HAVE_OPENCL
    cl_mem dev_ptr;
    SWAP_PTR(dev_level_new,    dev_level,    dev_ptr);
    SWAP_PTR(dev_i_new,        dev_i,        dev_ptr);
    SWAP_PTR(dev_j_new,        dev_j,        dev_ptr);
    SWAP_PTR(dev_celltype_new, dev_celltype, dev_ptr);
+#endif
 }

@@ -604,6 +604,7 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+OPENCL_LIBS
 MPE_NOMPI_LIBS
 MPE_LIBS
 MPI_LIBS
@@ -14867,7 +14868,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file__usr_lib_libOpenCL_so" >&5
 $as_echo "$ac_cv_file__usr_lib_libOpenCL_so" >&6; }
 if test "x$ac_cv_file__usr_lib_libOpenCL_so" = x""yes; then :
-  LIBS="${LIBS} -lOpenCL" && found="yes"
+  OPENCL_LIBS="${OPENCL_LIBS} -lOpenCL" && found="yes"
 fi
 
            if test "${found}" = "yes"; then
@@ -14918,7 +14919,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file__home_opt_AMDAPP_v2_6_lib_x86_64_libOpenCL_so" >&5
 $as_echo "$ac_cv_file__home_opt_AMDAPP_v2_6_lib_x86_64_libOpenCL_so" >&6; }
 if test "x$ac_cv_file__home_opt_AMDAPP_v2_6_lib_x86_64_libOpenCL_so" = x""yes; then :
-  LIBS="${LIBS} -L/home/opt/AMDAPP_v2.6/lib/x86_64 -lOpenCL" && found="yes"
+  OPENCL_LIBS="${OPENCL_LIBS} -L/home/opt/AMDAPP_v2.6/lib/x86_64 -lOpenCL" && found="yes"
 fi
 
              if test "${found}" = "yes"; then
@@ -14933,7 +14934,7 @@ fi
       fi
       ;;
     *darwin*)
-      LIBS="${LIBS} -framework OpenCL"
+      OPENCL_LIBS="${OPENCL_LIBS} -framework OpenCL"
       ;;
   esac
 
@@ -15347,6 +15348,7 @@ fi
 
 
 
+
 ac_config_files="$ac_config_files Makefile"
 
 ac_config_files="$ac_config_files l7/Makefile"
@@ -15362,6 +15364,8 @@ ac_config_files="$ac_config_files timer/Makefile"
 ac_config_files="$ac_config_files ezcl/Makefile"
 
 ac_config_files="$ac_config_files zorder/Makefile"
+
+ac_config_files="$ac_config_files genmalloc/Makefile"
 
 
 
@@ -16377,6 +16381,7 @@ do
     "timer/Makefile") CONFIG_FILES="$CONFIG_FILES timer/Makefile" ;;
     "ezcl/Makefile") CONFIG_FILES="$CONFIG_FILES ezcl/Makefile" ;;
     "zorder/Makefile") CONFIG_FILES="$CONFIG_FILES zorder/Makefile" ;;
+    "genmalloc/Makefile") CONFIG_FILES="$CONFIG_FILES genmalloc/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

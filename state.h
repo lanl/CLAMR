@@ -57,7 +57,9 @@
 #define STATE_H_
 
 #include "mesh.h"
+#ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
+#endif
 #include "l7/l7.h"
 
 extern "C" void do_calc(void);
@@ -77,6 +79,7 @@ public:
    vector<real> U;
    vector<real> V;
 
+#ifdef HAVE_OPENCL
    cl_mem dev_H;
    cl_mem dev_U;
    cl_mem dev_V;
@@ -85,6 +88,7 @@ public:
    cl_mem dev_deltaT;
 
    cl_event apply_BCs_event;
+#endif
 
    double   cpu_time_apply_BCs,
             cpu_time_set_timestep,
@@ -103,11 +107,19 @@ public:
             gpu_time_write;
 
    // constructor -- allocates state arrays to size ncells
-   State(int ncells, cl_context context);
+#ifdef HAVE_OPENCL
+   State(size_t ncells, cl_context context);
+#else
+   State(size_t ncells);
+#endif
 
    State(const State&); // To block copy constructor so copies are not made inadvertently
 
-   void init(int ncells, cl_context context, int do_gpu_calc);
+#ifdef HAVE_OPENCL
+   void init(size_t ncells, cl_context context, int do_gpu_calc);
+#else
+   void init(size_t ncells, int do_gpu_calc);
+#endif
 
    double get_cpu_time_apply_BCs(void)         {return(cpu_time_apply_BCs);};
    double get_cpu_time_set_timestep(void)      {return(cpu_time_set_timestep);};
@@ -132,32 +144,46 @@ public:
    void apply_boundary_conditions(Mesh *mesh);
    void remove_boundary_cells(Mesh *mesh);
    double set_timestep(Mesh *mesh, double g, double sigma);
+#ifdef HAVE_OPENCL
    double gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, double sigma);
+#endif
    
    void fill_circle(Mesh *mesh, double circ_radius, double fill_value, double background);
    void state_reorder(vector<int> iorder);
    void rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells);
+#ifdef HAVE_OPENCL
    void gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil, cl_mem dev_ioffset);
    void gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil, cl_mem dev_ioffset);
+#endif
    void calc_refine_potential(Mesh *mesh, vector<int> &mpot, int &icount, int &jcount);
+#ifdef HAVE_OPENCL
    void gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_result, cl_mem dev_ioffset);
    void gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_result, cl_mem dev_ioffset);
+#endif
    
    void calc_finite_difference(Mesh *mesh, double deltaT);
    void calc_finite_difference_local(Mesh *mesh, double deltaT);
+#ifdef HAVE_OPENCL
    void gpu_calc_finite_difference(cl_command_queue, Mesh *mesh, double deltaT);
    void gpu_calc_finite_difference_local(cl_command_queue, Mesh *mesh, double deltaT);
+#endif
 
    void symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index, double eps, 
                        SIGN_RULE sign_rule, int &flag);
    double mass_sum(Mesh *mesh, bool enhanced_precision_sum);
+#ifdef HAVE_OPENCL
    double gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum);
    double gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum);
+#endif
 
    void output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, double elapsed_time);
+#ifdef HAVE_OPENCL
    void compare_state_gpu_global_to_cpu_global(cl_command_queue command_queue, const char* string, int cycle, uint ncells);
+#endif
    void compare_state_cpu_local_to_cpu_global(State *state_global, const char* string, int cycle, uint ncells, uint ncells_global, int *nsizes, int *ndispl);
+#ifdef HAVE_OPENCL
    void compare_state_all_to_gpu_local(cl_command_queue command_queue, State *state_global, uint ncells, uint ncells_global, int mype, int ncycle, int *nsizes, int *ndispl);
+#endif
 private:
    void parallel_timer_output(int numpe, int mype, const char *string, double local_time);
 

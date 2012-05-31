@@ -71,7 +71,9 @@ typedef struct
    double s0;
    double s1;
 }  real2;
+#ifdef HAVE_OPENCL
 typedef cl_double2  cl_real2;
+#endif
 #define L7_REAL L7_DOUBLE
 #define STATE_EPS        .02
 #define MPI_C_REAL MPI_DOUBLE
@@ -81,7 +83,9 @@ typedef struct
    float s0;
    float s1;
 }  real2;
+#ifdef HAVE_OPENCL
 typedef cl_float2   cl_real2;
+#endif
 #define L7_REAL L7_FLOAT
 #define STATE_EPS      15.0
 #define MPI_C_REAL MPI_FLOAT
@@ -112,6 +116,7 @@ int save_ncells;
 #define EPSILON 1.0e-30
 #define MIN3(x,y,z) ( min( min(x,y), z) )
 
+#ifdef HAVE_OPENCL
 cl_kernel kernel_set_timestep;
 cl_kernel kernel_reduction_min;
 cl_kernel kernel_copy_state_data;
@@ -126,6 +131,7 @@ cl_kernel kernel_reduce_sum_mass_stage2of2;
 cl_kernel kernel_reduce_epsum_mass_stage1of2;
 cl_kernel kernel_reduce_epsum_mass_stage2of2;
 cl_kernel kernel_set_boundary_refinement;
+#endif
 
 real U_halfstep(// XXX Fix the subindices to be more intuitive XXX
         real    deltaT,     // Timestep
@@ -180,7 +186,11 @@ real w_corrector(
 }
 
 
-State::State(int ncells, cl_context context)
+#ifdef HAVE_OPENCL
+State::State(size_t ncells, cl_context context)
+#else
+State::State(size_t ncells)
+#endif
 {
    cpu_time_apply_BCs          = 0;
    cpu_time_set_timestep       = 0;
@@ -199,8 +209,13 @@ State::State(int ncells, cl_context context)
    gpu_time_write              = 0;
 }
 
-void State::init(int ncells, cl_context context, int do_gpu_calc)
+#ifdef HAVE_OPENCL
+void State::init(size_t ncells, cl_context context, int do_gpu_calc)
+#else
+void State::init(size_t ncells, int do_gpu_calc)
+#endif
 {
+#ifdef HAVE_OPENCL
    if (do_gpu_calc) {
       kernel_set_timestep      = ezcl_create_kernel(context, "wave_kern.cl",      "set_timestep_cl",    0);
       kernel_reduction_min     = ezcl_create_kernel(context, "wave_kern.cl",      "finish_reduction_min_cl",  0);
@@ -217,6 +232,7 @@ void State::init(int ncells, cl_context context, int do_gpu_calc)
       kernel_reduce_epsum_mass_stage2of2 = ezcl_create_kernel(context, "wave_kern.cl", "reduce_epsum_mass_stage2of2_cl",  0);
       kernel_set_boundary_refinement = ezcl_create_kernel(context, "wave_kern_calc.cl", "set_boundary_refinement",  0);
    }
+#endif
 
    H.resize(ncells);
    U.resize(ncells);
@@ -578,6 +594,7 @@ double State::set_timestep(Mesh *mesh, double g, double sigma)
    return(globalmindeltaT);
 }
 
+#ifdef HAVE_OPENCL
 double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, double sigma)
 {
    cl_event set_timestep_event;
@@ -675,6 +692,7 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
 
    return(globalmindeltaT);
 }
+#endif
 
 void State::fill_circle(Mesh   *mesh,       //  Mesh.
                         double  circ_radius,//  Radius of circle in grid units.
@@ -811,6 +829,7 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 }
 
 
+#ifdef HAVE_OPENCL
 void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil, cl_mem dev_ioffset)
 {
    cl_event rezone_all_event;
@@ -1094,6 +1113,7 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
 
    gpu_time_rezone_all        += ezcl_timer_calc(&rezone_all_event,        &rezone_all_event);
 }
+#endif
 
 //define macro for squaring a number
 #define SQ(x) ((x)*(x))
@@ -2181,6 +2201,7 @@ void State::calc_finite_difference_local(Mesh *mesh, double deltaT){
    cpu_time_finite_difference += cpu_timer_stop(tstart_cpu);
 }
 
+#ifdef HAVE_OPENCL
 void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mesh, double deltaT)
 {
    cl_event finite_difference_event;
@@ -2446,6 +2467,7 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    }
    gpu_time_finite_difference += ezcl_timer_calc(&finite_difference_event,     &finite_difference_event);
 }
+#endif
 
 void State::symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index, double eps,
                            SIGN_RULE sign_rule, int &flag)
@@ -2798,6 +2820,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
 }
 
+#ifdef HAVE_OPENCL
 void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_result, cl_mem dev_ioffset)
 {
    cl_event refine_potential_event;
@@ -3199,6 +3222,7 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    gpu_time_refine_potential  += ezcl_timer_calc(&refine_potential_event,  &refine_potential_event);
    gpu_time_refine_potential  += ezcl_timer_calc(&set_boundary_refinement_event,  &set_boundary_refinement_event);
 }
+#endif
 
 double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
 {
@@ -3264,6 +3288,7 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
    return(total_sum);
 }
 
+#ifdef HAVE_OPENCL
 double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum)
 {
    cl_event mass_sum_stage1_event;
@@ -3546,21 +3571,26 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
 
    return(total_sum);
 }
+#endif
 
 void State::allocate_device_memory(size_t ncells)
 {
+#ifdef HAVE_OPENCL
    dev_H = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
    dev_U = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
    dev_V = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+#endif
 }
 void State::resize_old_device_memory(size_t ncells)
 {
+#ifdef HAVE_OPENCL
    ezcl_device_memory_remove(dev_H);
    ezcl_device_memory_remove(dev_U);
    ezcl_device_memory_remove(dev_V);
    dev_H = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    dev_U = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    dev_V = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+#endif
 }
 
 static double total_time = 0.0;
@@ -3759,6 +3789,7 @@ void State::parallel_timer_output(int numpe, int mype, const char *string, doubl
    }
 }
 
+#ifdef HAVE_OPENCL
 void State::compare_state_gpu_global_to_cpu_global(cl_command_queue command_queue, const char* string, int cycle, uint ncells)
 {
    vector<real>H_check(ncells);
@@ -3773,6 +3804,7 @@ void State::compare_state_gpu_global_to_cpu_global(cl_command_queue command_queu
       if (fabs(V[ic]-V_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d V & V_check %d %lf %lf\n",string,cycle,ic,V[ic],V_check[ic]);
    }
 }
+#endif
 
 void State::compare_state_cpu_local_to_cpu_global(State *state_global, const char* string, int cycle, uint ncells, uint ncells_global, int *nsizes, int *ndispl)
 {
@@ -3796,6 +3828,7 @@ void State::compare_state_cpu_local_to_cpu_global(State *state_global, const cha
    }
 }
 
+#ifdef HAVE_OPENCL
 void State::compare_state_all_to_gpu_local(cl_command_queue command_queue, State *state_global, uint ncells, uint ncells_global, int mype, int ncycle, int *nsizes, int *ndispl)
 {
 #ifdef HAVE_MPI
@@ -3857,3 +3890,4 @@ void State::compare_state_all_to_gpu_local(cl_command_queue command_queue, State
    }
 #endif
 }
+#endif

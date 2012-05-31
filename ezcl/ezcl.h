@@ -53,13 +53,9 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
-#define HAVE_OPENCL 1
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
-#ifdef HAVE_OPENCL
 
 #ifdef __APPLE_CC__
 #include <OpenCL/OpenCL.h>
@@ -132,18 +128,6 @@ extern "C"
       ( ezcl_malloc_memory_remove_p(malloc_mem_ptr, __FILE__, __LINE__) )
 #define ezcl_mem_free_all() \
       ( ezcl_mem_free_all_p(__FILE__, __LINE__) ) 
-#define genvector(  inum, elsize) \
-      ( genvector_p(inum, elsize, __FILE__, __LINE__) )
-#define genvectorfree(  var) \
-      ( genvectorfree_p(var, __FILE__, __LINE__) )
-#define genmatrix(  jnum, inum, elsize) \
-      ( genmatrix_p(jnum, inum, elsize, __FILE__, __LINE__) )
-#define gentrimatrix(  knum, jnum, inum, elsize) \
-      ( gentrimatrix_p(knum, jnum, inum, elsize, __FILE__, __LINE__) )
-#define genmatrixfree(  var) \
-      ( genmatrixfree_p(var, __FILE__, __LINE__) )
-#define gentrimatrixfree(  var) \
-      ( gentrimatrixfree_p(var, __FILE__, __LINE__) )
 
 /* kernel and program routines */
 #define ezcl_create_kernel(  context, filename, kernel_name, flags) \
@@ -204,12 +188,6 @@ void ezcl_device_memory_remove_p(void *dev_mem_ptr, const char *file, const int 
 void ezcl_mapped_memory_remove_p(void *map_mem_ptr, const char *file, const int line);   
 void ezcl_malloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const int line);   
 void ezcl_mem_free_all_p(const char *file, const int line);
-void *genvector_p(int inum, size_t elsize, const char *file, const int line);
-void genvectorfree_p(void *var, const char *file, const int line);
-void **genmatrix_p(int jnum, int inum, size_t elsize, const char *file, const int line);
-void ***gentrimatrix_p(int knum, int jnum, int inum, size_t elsize, const char *file, const int line);
-void genmatrixfree_p(void **var, const char *file, const int line);
-void gentrimatrixfree_p(void ***var, const char *file, const int line);
 
 /* kernel and program routines */
 cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const char *kernel_name, int flags, const char *file, const int line);
@@ -238,5 +216,4 @@ long ezcl_timer_calc_p(cl_event *start_read_event, cl_event *end_read_event, con
 }
 #endif
 
-#endif
       

@@ -65,7 +65,9 @@
 #include <math.h>
 #include "kdtree/KDTree.h"
 #include "partition.h"
+#ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
+#endif
 
 #define TILE_SIZE 128
 
@@ -194,6 +196,7 @@ public:
                   z,            //  1D ordered index of mesh element z-coordinates.
                   dz;           //  1D ordered index of mesh element z-coordinate spacings.
 
+#ifdef HAVE_OPENCL
    cl_mem         dev_celltype,       
                   dev_i,       
                   dev_j,       
@@ -220,13 +223,18 @@ public:
 
    cl_mem         dev_corners_i,
                   dev_corners_j;
+#endif
 
    //   Public constructors.
    Mesh(FILE *fin, int *numpe);
    Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe, int boundary, int parallel_in, int do_gpu_calc);
 
    //   Member functions.
+#ifdef HAVE_OPENCL
    void init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, bool special_case, int do_gpu_calc);
+#else
+   void init(int nx, int ny, double circ_radius, partition_method initial_order, bool special_case, int do_gpu_calc);
+#endif
    void mesh_reorder(vector<int> iorder);
 
    void resize_old_device_memory(size_t ncells);
@@ -258,29 +266,43 @@ public:
 
    void write_grid(int ncycle);
    void calc_spatial_coordinates(int ibase);
+#ifdef HAVE_OPENCL
    void gpu_calc_spatial_coordinates(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy);
+#endif
    void kdtree_setup(void);
    void calc_centerminmax(void);
    int  rezone_count(vector<int> mpot);
+#ifdef HAVE_OPENCL
    void gpu_rezone_count(cl_command_queue command_queue, size_t block_size, size_t local_work_size, cl_mem dev_ioffset, cl_mem &dev_result);
+#endif
    void rezone_all(vector<int> mpot, int add_ncells);
    void print(void);
    void print_local(void);
+#ifdef HAVE_OPENCL
    void print_dev_local(cl_command_queue);
    void compare_dev_local_to_local(cl_command_queue);
    void compare_neighbors_gpu_global_to_cpu_global(cl_command_queue command_queue);
+#endif
    void compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl);
+#ifdef HAVE_OPENCL
    void compare_neighbors_all_to_gpu_local(cl_command_queue command_queue, Mesh *mesh_global, int *nsizes, int *ndispl);
    void compare_mpot_gpu_global_to_cpu_global(cl_command_queue command_queue, int *mpot, cl_mem dev_mpot);
+#endif
    void compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *displ, int *mpot, int *mpot_global, int cycle);
+#ifdef HAVE_OPENCL
    void compare_mpot_all_to_gpu_local(cl_command_queue command_queue, int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
    void compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, uint old_ncells, int block_size, int *mpot, cl_mem dev_ioffset);
    void compare_ioffset_all_to_gpu_local(cl_command_queue command_queue, uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global);
    void compare_coordinates_gpu_global_to_cpu_global(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real *H);
+#endif
    void compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, real *x, real *dx, real *y, real *dy, real *H, real *x_global, real *dx_global, real *y_global, real *dy_global, real *H_global, int cycle);
+#ifdef HAVE_OPENCL
    void compare_indices_gpu_global_to_cpu_global(cl_command_queue command_queue);
+#endif
    void compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl, int cycle);
+#ifdef HAVE_OPENCL
    void compare_indices_all_to_gpu_local(cl_command_queue command_queue, Mesh *mesh_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
+#endif
    void partition_measure(void);
    void print_partition_measure(void);
    void print_calc_neighbor_type(void);
@@ -294,10 +316,14 @@ public:
                   vector<int> &ysym);
    void calc_neighbors(void);
    void calc_neighbors_local(void);
+#ifdef HAVE_OPENCL
    void gpu_calc_neighbors(cl_command_queue command_queue);
    void gpu_calc_neighbors_local(cl_command_queue command_queue);
+#endif
    void calc_distribution(int numpe, vector<int> &proc);
+#ifdef HAVE_OPENCL
    void gpu_count_BCs(cl_command_queue command_queue, size_t block_size, size_t local_work_size, size_t global_work_size, cl_mem dev_ioffset, int *bcount);
+#endif
 
 private:
    //   Private constructors.

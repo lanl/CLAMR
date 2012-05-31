@@ -35,7 +35,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = hsfc
+subdir = genmalloc
 DIST_COMMON = $(include_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -73,11 +73,11 @@ am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libhsfc_la_LIBADD =
-am__objects_1 = hsfc2part.lo hsfc.lo hsfcsort.lo
+libgenmalloc_la_LIBADD =
+am__objects_1 = genmalloc.lo
 am__objects_2 =
-am_libhsfc_la_OBJECTS = $(am__objects_1) $(am__objects_2)
-libhsfc_la_OBJECTS = $(am_libhsfc_la_OBJECTS)
+am_libgenmalloc_la_OBJECTS = $(am__objects_1) $(am__objects_2)
+libgenmalloc_la_OBJECTS = $(am_libgenmalloc_la_OBJECTS)
 depcomp = $(SHELL) $(top_srcdir)/./config/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
@@ -90,8 +90,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(libhsfc_la_SOURCES)
-DIST_SOURCES = $(libhsfc_la_SOURCES)
+SOURCES = $(libgenmalloc_la_SOURCES)
+DIST_SOURCES = $(libgenmalloc_la_SOURCES)
 HEADERS = $(include_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -221,11 +221,11 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_MAKEFLAGS = -j 4
 DEFAULT_INCLUDES = -I. -I..
-lib_LTLIBRARIES = libhsfc.la
-include_HEADERS = hsfc.h
-H_SRCS = hsfc.h
-C_SRCS = hsfc2part.c hsfc.c hsfcsort.c
-libhsfc_la_SOURCES = ${C_SRCS} ${H_SRCS}
+lib_LTLIBRARIES = libgenmalloc.la
+include_HEADERS = genmalloc.h
+H_SRCS = genmalloc.h
+C_SRCS = genmalloc.c
+libgenmalloc_la_SOURCES = ${C_SRCS} ${H_SRCS}
 all: all-am
 
 .SUFFIXES:
@@ -239,9 +239,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign hsfc/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign genmalloc/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign hsfc/Makefile
+	  $(AUTOMAKE) --foreign genmalloc/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -291,8 +291,8 @@ clean-libLTLIBRARIES:
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
-libhsfc.la: $(libhsfc_la_OBJECTS) $(libhsfc_la_DEPENDENCIES) 
-	$(LINK) -rpath $(libdir) $(libhsfc_la_OBJECTS) $(libhsfc_la_LIBADD) $(LIBS)
+libgenmalloc.la: $(libgenmalloc_la_OBJECTS) $(libgenmalloc_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(libgenmalloc_la_OBJECTS) $(libgenmalloc_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -300,9 +300,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hsfc.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hsfc2part.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hsfcsort.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/genmalloc.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -553,8 +551,8 @@ uninstall-am: uninstall-includeHEADERS uninstall-libLTLIBRARIES
 	tags uninstall uninstall-am uninstall-includeHEADERS \
 	uninstall-libLTLIBRARIES
 
-default: libhsfc.la
-all: libhsfc.la
+default: libgenmalloc.la
+all: libgenmalloc.la
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
