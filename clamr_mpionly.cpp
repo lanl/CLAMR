@@ -71,6 +71,10 @@
 #include <mpi.h>
 #include "display.h"
 
+#ifndef DEBUG 
+#define DEBUG 0
+#endif
+
 //#define DO_COMPARISON
 
 #ifdef DO_COMPARISON
@@ -506,14 +510,16 @@ extern "C" void do_calc(void)
 
       int ncells_old = ncells;
 
-      uint ncells = ncells_global/numpe;
-      if (mype < ncells_global%numpe) ncells++;
+      //uint ncells = ncells_global/numpe;
+      //if (mype < ncells_global%numpe) ncells++;
 
       int do_load_balance = 0;
       if (ncells_old != ncells) do_load_balance = 1;
 
       int do_load_balance_global = 0;
       MPI_Allreduce(&do_load_balance, &do_load_balance_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+      //printf("%d: DEBUG ncells_old %d ncells %d\n",mype,ncells_old,ncells);
 
       if (do_load_balance_global) {
          //printf("%d: DEBUG ncells_old %d ncells %d\n",mype,ncells_old,ncells);
@@ -633,6 +639,16 @@ extern "C" void do_calc(void)
       MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
       MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
       MPI_Allgatherv(&H[0],  nsizes[mype], MPI_C_REAL, &H_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+
+      if (view_mode == 0) {
+         mesh->proc.resize(ncells);
+         for (int ii = 0; ii<ncells; ii++){
+            mesh->proc[ii] = mesh->mype;
+         }
+      
+         mesh_global->proc.resize(ncells_global);
+         MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &mesh_global->proc[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      }
 #endif
    }
 
