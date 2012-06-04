@@ -71,6 +71,10 @@
 #include "l7/l7.h"
 #include <mpi.h>
 
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
 // Sync is to reduce numerical drift between cpu and gpu
 #define DO_SYNC 
 //#define DO_COMPARISON
