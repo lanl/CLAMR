@@ -1501,6 +1501,7 @@ __kernel void refine_smooth_cl(
          lev = levmx;
       }
 
+      ll = level[nl];
       if (ll > lev) {
          nlt = ntop[nl];
          llt = level[nlt];
@@ -1523,6 +1524,7 @@ __kernel void refine_smooth_cl(
          lev = levmx;
       }
 
+      lr = level[nr];
       if (lr > lev) {
          nrt = ntop[nr];
          lrt = level[nrt];
@@ -1545,6 +1547,7 @@ __kernel void refine_smooth_cl(
          lev = levmx;
       }
 
+      lt = level[nt];
       if (lt > lev) {
          ntr = nrht[nt];
          ltr = level[ntr];
@@ -1567,6 +1570,7 @@ __kernel void refine_smooth_cl(
          lev = levmx;
       }
 
+      lb = level[nb];
       if (lb > lev) {
          nbr = nrht[nb];
          lbr = level[nbr];
