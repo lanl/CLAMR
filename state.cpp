@@ -136,7 +136,7 @@ cl_kernel kernel_reduce_epsum_mass_stage2of2;
 cl_kernel kernel_set_boundary_refinement;
 #endif
 
-real U_halfstep(// XXX Fix the subindices to be more intuitive XXX
+inline real U_halfstep(// XXX Fix the subindices to be more intuitive XXX
         real    deltaT,     // Timestep
         real    U_i,        // Initial cell's (downwind's) state variable
         real    U_n,        // Next cell's    (upwind's)   state variable
@@ -155,7 +155,7 @@ real U_halfstep(// XXX Fix the subindices to be more intuitive XXX
 
 }
 
-real U_fullstep(
+inline real U_fullstep(
         real    deltaT,
         real    dr,
         real    U,
@@ -169,7 +169,7 @@ real U_fullstep(
 }
 
 
-real w_corrector(
+inline real w_corrector(
         real    deltaT,       // Timestep
         real    dr,           // Cell's center to face distance
         real    U_eigen,      // State variable's eigenvalue (speed)
