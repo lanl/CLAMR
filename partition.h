@@ -62,8 +62,6 @@
 
 using namespace std;
 
-#define DEBUG 0
-
 enum partition_method {
    ORIGINAL_ORDER,
    HILBERT_SORT,

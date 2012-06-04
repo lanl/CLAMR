@@ -67,6 +67,10 @@
 #include "zorder/zorder.h"
 #include "timer/timer.h"
 
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
 typedef unsigned int uint;
 
 int measure_type;
