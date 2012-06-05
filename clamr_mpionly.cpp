@@ -614,7 +614,7 @@ extern "C" void do_calc(void)
       H_sum = state->mass_sum(mesh, enhanced_precision_sum);
    }
    if (mype == 0){
-      printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
+      printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
          ncycle, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
    }
 

@@ -513,7 +513,7 @@ extern "C" void do_calc(void)
       printf("Got a NAN on cycle %d\n",ncycle);
       exit(-1);
    }
-   printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %14.12lg\n",
+   printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
       ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
 
 #ifdef HAVE_GRAPHICS
