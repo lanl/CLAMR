@@ -691,7 +691,8 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
    if (block_size > 1) {
       gpu_time_set_timestep   += ezcl_timer_calc(&reduction_min_event, &reduction_min_event);
    }
-   gpu_time_read              += ezcl_timer_calc(&start_read_event,    &start_read_event);
+   //gpu_time_read              += ezcl_timer_calc(&start_read_event,    &start_read_event);
+   gpu_time_set_timestep      += ezcl_timer_calc(&start_read_event,    &start_read_event);
 
    return(globalmindeltaT);
 }
@@ -2907,6 +2908,7 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
    cl_event refine_potential_event;
    cl_event refine_smooth_event;
    cl_event set_boundary_refinement_event;
+   cl_event start_read_event;
 
    size_t &ncells       = mesh->ncells;
    int &levmx           = mesh->levmx;
@@ -2986,7 +2988,9 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
 
 
    size_t result = 0;
-   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, &start_read_event);
+
+   gpu_time_refine_potential += ezcl_timer_calc(&start_read_event, &start_read_event);
 
 //   printf("result = %d after first refine potential\n",(result-ncells));
 //   int which_smooth = 1;
@@ -3024,9 +3028,10 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
 
          mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
 
-         ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, &start_read_event);
 
          gpu_time_refine_potential  += ezcl_timer_calc(&refine_smooth_event,  &refine_smooth_event);
+         gpu_time_refine_potential += ezcl_timer_calc(&start_read_event, &start_read_event);
 
 //       printf("result = %d after %d refine smooths\n",result,which_smooth);
 //       sleep(1);
@@ -3499,7 +3504,8 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
    if (block_size > 1) {
       gpu_time_mass_sum  += ezcl_timer_calc(&mass_sum_stage2_event, &mass_sum_stage2_event);
    }
-   gpu_time_read         += ezcl_timer_calc(&start_read_event,      &start_read_event);
+   //gpu_time_read         += ezcl_timer_calc(&start_read_event,      &start_read_event);
+   gpu_time_mass_sum     += ezcl_timer_calc(&start_read_event,      &start_read_event);
 
    return(gpu_mass_sum);
 }
@@ -3643,11 +3649,12 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
    ezcl_device_memory_remove(dev_redscratch);
    ezcl_device_memory_remove(dev_mass_sum);
 
-   gpu_time_set_timestep      += ezcl_timer_calc(&mass_sum_stage1_event, &mass_sum_stage1_event); 
+   gpu_time_mass_sum      += ezcl_timer_calc(&mass_sum_stage1_event, &mass_sum_stage1_event); 
    if (block_size > 1) {
-      gpu_time_set_timestep   += ezcl_timer_calc(&mass_sum_stage2_event, &mass_sum_stage2_event);
+      gpu_time_mass_sum   += ezcl_timer_calc(&mass_sum_stage2_event, &mass_sum_stage2_event);
    }
-   gpu_time_read              += ezcl_timer_calc(&start_read_event,      &start_read_event);
+   //gpu_time_read          += ezcl_timer_calc(&start_read_event,      &start_read_event);
+   gpu_time_mass_sum      += ezcl_timer_calc(&start_read_event,      &start_read_event);
 
 
    return(total_sum);

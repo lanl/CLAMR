@@ -3737,17 +3737,19 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
       /*
                     const int  isize,     // 0
                     const int  levmx,     // 1
-                    const int  imaxsize,  // 2
-                    const int  jmaxsize,  // 3
-           __global       int  *levtable, // 4
-           __global       int  *level,    // 5
-           __global       int  *i,        // 6
-           __global       int  *j,        // 7
-           __global       int  *nlft,     // 8
-           __global       int  *nrht,     // 9
-           __global       int  *nbot,     // 10
-           __global       int  *ntop,     // 11
-           __global       int  *hash)     // 12
+                    const int  imax,      // 2
+                    const int  jmax,      // 3
+                    const int  imaxsize,  // 4
+                    const int  jmaxsize,  // 5
+           __global       int  *levtable, // 6
+           __global       int  *level,    // 7
+           __global       int  *i,        // 8
+           __global       int  *j,        // 9
+           __global       int  *nlft,     // 10
+           __global       int  *nrht,     // 11
+           __global       int  *nbot,     // 12
+           __global       int  *ntop,     // 13
+           __global       int  *hash)     // 14
       */
 
    ezcl_set_kernel_arg(kernel_calc_neighbors, 0,  sizeof(cl_int), (void *)&ncells);
