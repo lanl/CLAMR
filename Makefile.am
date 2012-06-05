@@ -2,6 +2,8 @@ bin_PROGRAMS = clamr clamr_gpuonly clamr_cpuonly clamr_mpionly clamr_gpucheck cl
 
 SUBDIRS = l7 kdtree hsfc s7 timer ezcl zorder genmalloc
 
+AM_MAKEFLAGS = -j 4
+
 ACLOCAL_AMFLAGS = -I config
 
 clamr_CXX_SRCS = clamr.cpp mesh.cpp partition.cpp state.cpp input.cpp

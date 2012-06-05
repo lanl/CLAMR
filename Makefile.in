@@ -337,6 +337,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = l7 kdtree hsfc s7 timer ezcl zorder genmalloc
+AM_MAKEFLAGS = -j 4
 ACLOCAL_AMFLAGS = -I config
 clamr_CXX_SRCS = clamr.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_C_SRCS = display.c reduce.c
