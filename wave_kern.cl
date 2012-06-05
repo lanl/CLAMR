@@ -758,6 +758,41 @@ __kernel void hash_setup_cl(
    int ii = i[giX];
    int jj = j[giX];
 
+#define HASH_SETUP_NEW
+
+#ifdef HASH_SETUP_NEW
+   if(lev == levmx) {
+      hashval(jj,ii) = giX;
+      return;
+   }
+
+   int wid = levtable[levmx-lev];
+   jj *= wid;
+   ii *= wid;
+   hashval(jj,ii) = giX;
+
+   ii += wid/2;
+   hashval(jj,ii) = giX;
+   if(wid > 2) {
+      ii = ii + wid/2 - 1;
+      hashval(jj,ii) = giX;
+      ii = ii - wid/2 + 1;
+   }
+   ii -= wid/2;
+   jj += wid/2;
+   hashval(jj,ii) = giX;
+   ii = ii + wid - 1;
+   hashval(jj,ii) = giX;
+
+   if(wid > 2) {
+      ii = ii - wid + 1;
+      jj = jj + wid/2 - 1;
+      hashval(jj,ii) = giX;
+      ii += wid/2;
+      hashval(jj,ii) = giX;
+   }
+#endif
+#ifdef HASH_SETUP_OLD
    int levdiff = levmx-lev;
 
    int iimin =  ii   *levtable[levdiff];
@@ -775,7 +810,7 @@ __kernel void hash_setup_cl(
          hashval(jjj, iii) = giX;
       }
    }
-
+#endif
 }
 
 __kernel void hash_setup_local_cl(
