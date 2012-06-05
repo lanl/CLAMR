@@ -2353,7 +2353,7 @@ void Mesh::calc_neighbors_local(void)
          }
       }
       
-      int ii, jj, lev, iii, jjj, levmult;
+      int ii, jj, lev, iii=0, jjj=0, levmult;
 
       // Set neighbors to global cell numbers from hash
       int jmaxcalc = (jmax+1)*levtable[levmx];
@@ -2512,7 +2512,7 @@ void Mesh::calc_neighbors_local(void)
          //fprintf(fp,"%d: DEBUG cell %d i %d j %d\n",mype,ic,border_cell_i_global[ic],border_cell_j_global[ic]);
          if (border_cell_j_global[ic]*levmult < jminsize || border_cell_j_global[ic]*levmult >= jmaxsize) continue;
          if (border_cell_i_global[ic]*levmult < iminsize || border_cell_i_global[ic]*levmult >= imaxsize) continue;
-         if (border_cell_num_global[ic] >= noffset && border_cell_num_global[ic] < noffset+ncells) continue;
+         if (border_cell_num_global[ic] >= (int)noffset && border_cell_num_global[ic] < (int)(noffset+ncells)) continue;
          //fprintf(fp,"%d: ic is %d inew is %d\n",mype,ic,inew);
          if (inew != ic){
             border_cell_num_global[inew] = border_cell_num_global[ic];
@@ -2629,7 +2629,7 @@ void Mesh::calc_neighbors_local(void)
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
                   int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < ncells) ) {
+                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
                         fprintf(fp,"%5d",nlft[hashval]);
                   } else {
                         fprintf(fp,"     ");
@@ -2650,7 +2650,7 @@ void Mesh::calc_neighbors_local(void)
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
                   int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < ncells) ) {
+                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
                      fprintf(fp,"%5d",nrht[hashval]);
                   } else {
                      fprintf(fp,"     ");
@@ -2671,7 +2671,7 @@ void Mesh::calc_neighbors_local(void)
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
                   int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < ncells) ) {
+                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
                      fprintf(fp,"%5d",nbot[hashval]);
                   } else {
                      fprintf(fp,"     ");
@@ -2692,7 +2692,7 @@ void Mesh::calc_neighbors_local(void)
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
                   int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < ncells) ) {
+                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
                      fprintf(fp,"%5d",ntop[hashval]);
                   } else {
                      fprintf(fp,"     ");
@@ -2722,8 +2722,15 @@ void Mesh::calc_neighbors_local(void)
          lev = level[ic];
 
          int nl = nlft[ic];
+
          if (nl < start_idx || nl >= end_idx) {
+#ifdef DEBUG
+            //if (mype == 1) printf("\nline %d ic %d nl %d\n",__LINE__,ic+noffset,nl]);
+#endif
             offtile_list.push_back(nl);
+#ifdef DEBUG
+            //if (mype == 1) printf("PUSHES %d: ic %d %d nl is %d\n",mype,ic,ic+noffset,nl);
+#endif
             int ig;
             for (ig = 0; ig < nbsize_local; ig++) {
                if (border_cell_num_global[ig] == nl) break;
@@ -2735,26 +2742,149 @@ void Mesh::calc_neighbors_local(void)
 #endif
                exit(-1);
             }
+            // Get the left neighbor information
             int nlev = border_cell_level_global[ig];
             int levmult      = levtable[levmx-nlev];
+            int levmultminus = levtable[max(levmx-nlev-1,0)];
             int iii = border_cell_i_global[ig];
             int jjj = border_cell_j_global[ig];
+#ifdef DEBUG
             //fprintf(fp,"%d: DEBUG nl is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nl, ig, border_cell_num_global[ig], nlev, iii, jjj);
-            int nll = hash[(      jjj   *levmult               )-jminsize][(max(  iii   *levmult-1, 0         ))-iminsize];
-            //printf("%d: ic %d nll is %d\n",mype,ic,nll);
-            if (nll != nl && nll > 0 && (nll < start_idx || nll >= end_idx) ) offtile_list.push_back(nll);
-            if (nlev < levmx) {
-               int levmult      = levtable[levmx-nlev];
-               int levmultminus = levtable[levmx-nlev-1];
+#endif
 
-               int ntll = hash[(min( (jjj*2+1)*levmultminus, jmaxcalc-1))-jminsize][(max(  iii     *levmult-1,    0))         -iminsize];
-               if (ntll != nll && ntll > 0 && (ntll < start_idx || ntll >= end_idx)) offtile_list.push_back(ntll);
+            if (nlev == levmx) {
+               // Multiplying by levmult get the bottom left cell of the left neighbor. Subtract
+               // one from that to get the bottom right cell in the left left neighbor
+               int nll = hash[(jjj*levmult)-jminsize][max((iii-1)*levmult, 0)-iminsize];
+               if (nll != nl && nll > 0 && (nll < start_idx || nll >= end_idx) ) 
+#ifdef DEBUG
+               {
+#endif
+                  offtile_list.push_back(nll);
+#ifdef DEBUG
+                  //if (mype == 1) printf("PUSHES %d: ic %d %d nll is %d\n",mype,ic,ic+noffset,nll);
+               } else {
+                  //if (mype == 1) printf("FAILS %d: ic %d %d nll is %d\n",mype,ic,ic+noffset,nll);
+               }
+#endif
+            } else {
+               int nll = hash[jjj*levmult-jminsize][max((iii*2-1)*levmultminus, 0)-iminsize];
+               if (nll != nl && nll > 0 && (nll < start_idx || nll >= end_idx) ) 
+#ifdef DEBUG
+               {
+#endif
+                  offtile_list.push_back(nll);
+#ifdef DEBUG
+                  //if (mype == 5) printf("PUSHES %d: ic %d %d nll is %d\n",mype,ic,ic+noffset,nll);
+               } else {
+                  //if (mype == 5) printf("FAILS %d: ic %d %d nll is %d\n",mype,ic,ic+noffset,nll);
+               }
+#endif
+
+               int ntll = hash[(jjj*2+1)*levmultminus-jminsize][max((iii*2-1)*levmultminus, 0)-iminsize];
+               if (ntll != nll && ntll > 0 && (ntll < start_idx || ntll >= end_idx) )
+#ifdef DEBUG
+               {
+#endif
+                  offtile_list.push_back(ntll);
+#ifdef DEBUG
+                  //if (mype == 5) printf("PUSHES %d: ic %d %d ntll is %d\n",mype,ic,ic+noffset,ntll);
+               } else {
+                  //if (mype == 5) printf("FAILS %d: ic %d %d ntll is %d\n",mype,ic,ic+noffset,ntll);
+               }
+#endif
+            }
+         }
+
+         if (lev < levmx) {
+            int levmultminus = levtable[max(levmx-lev-1,0)];
+            int ntl = hash[min((jj*2+1)*levmultminus,jmaxcalc-1)-jminsize][max((ii*2-1)*levmultminus,0)-iminsize];
+            if (ntl != nl && ntl > 0 && (ntl < start_idx || ntl >= end_idx) ) {
+               offtile_list.push_back(ntl);
+#ifdef DEBUG
+               //if (mype == 5) printf("DEBUGGING PUSHES %d: ic %d %d ntl is %d\n",mype,ic,ic+noffset,ntl);
+#endif
+
+               int ig;
+               for (ig = 0; ig < nbsize_local; ig++) {
+                  if (border_cell_num_global[ig] == ntl) break;
+               }
+               if (ig == nbsize_local) {
+                  printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, ntl);
+#ifdef HAVE_MPI
+                  //L7_Terminate();
+#endif
+                  //exit(-1);
+               }
+               int nlev = border_cell_level_global[ig];
+               int iii = border_cell_i_global[ig];
+               int jjj = border_cell_j_global[ig];
+               int levmult      = levtable[levmx-nlev];
+               levmultminus = levtable[max(levmx-nlev-1,0)];
+#ifdef DEBUG
+               //if (mype == 5) printf("DEBUGGING %d: DEBUG ntl is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,ntl, ig, border_cell_num_global[ig], nlev, iii, jjj);
+#endif
+
+               if (nlev == levmx) {
+                  int nltl = hash[jjj*levmult-jminsize][max((iii-1)*levmult-iminsize,0)];
+#ifdef DEBUG
+                  //if (mype == 5) printf("DEBUGGING ic %d %d nltl is %d iii %d jjj %d\n",ic,ic+noffset,nltl,iii*levmult,min((jjj-1)*levmult,jmaxcalc-1));
+#endif
+                  if (nltl != ntl && nltl > 0 && (nltl < start_idx || nltl >= end_idx) )
+#ifdef DEBUG
+                  {
+#endif
+                     offtile_list.push_back(nltl);
+#ifdef DEBUG
+                     //if (mype == 5) printf("DEBUGGING PUSHES %d: ic %d %d nltl is %d iii %d jjj %d\n",mype,ic,ic+noffset,nltl,iii*levmult,min((jjj+1)*levmult,jmaxcalc-1));
+                  } else {
+                     //if (mype == 5) printf("DEBUGGING FAILS %d: ic %d %d nltl is %d iii %d jjj %d\n",mype,ic,ic+noffset,nltl,iii*levmult,min((jjj+1)*levmult,jmaxcalc-1));
+                  }
+#endif
+               } else {
+                  // And we need both cells here
+                  int nltl = hash[(jjj*2)*levmultminus-jminsize][max((iii*2-1)*levmultminus-iminsize,0)];
+#ifdef DEBUG
+                  //if (mype == 5) printf("DEBUGGING ic %d %d nltl is %d iii %d jjj %d\n",ic,ic+noffset,nltl,(iii*2)*levmultminus,min((jjj+1)*2*levmultminus,jmaxcalc-1));
+#endif
+                  if (nltl != ntl && nltl > 0 && (nltl < start_idx || nltl >= end_idx) )
+#ifdef DEBUG
+                  {
+#endif
+                     offtile_list.push_back(nltl);
+#ifdef DEBUG
+                     //if (mype == 5) printf("DEBUGGING PUSHES %d: ic %d %d nltl is %d iii %d jjj %d\n",mype,ic,ic+noffset,nltl,(iii*2)*levmultminus,min((jjj*2+1)*levmultminus,jmaxcalc-1))     ;
+                  } else {
+                     //if (mype == 5) printf("DEBUGGING FAILS %d: ic %d %d nltl is %d iii %d jjj %d\n",mype,ic,ic+noffset,nltl,(iii*2)*levmultminus,min((jjj*2+1)*levmultminus,jmaxcalc-1));
+                  }
+#endif
+                  int ntltl = hash[min((jjj*2+1)*levmultminus,jmaxcalc-1)-jminsize][max((iii*2-1)*levmultminus,0)-iminsize];
+                  if (ntltl != nltl && ntltl > 0 && (ntltl < start_idx || ntltl >= end_idx))
+#ifdef DEBUG
+                  {
+#endif
+                     offtile_list.push_back(ntltl);
+#ifdef DEBUG
+                     //if (mype == 5) printf("DEBUGGING PUSHES %d: ic %d %d ntltl is %d iii %d jjj %d\n",mype,ic,ic+noffset,ntltl,(iii*2+1)*levmultminus,(jjj+1)*2*levmultminus);
+                  } else {
+                     //if (mype == 5) printf("DEBUGGING FAILS %d: ic %d %d ntltl is %d iii %d jjj %d\n",mype,ic,ic+noffset,ntltl,(iii*2+1)*levmultminus,(jjj+1)*2*levmultminus);
+                  }
+#endif
+               }
+
             }
          }
 
          int nr = nrht[ic];
+
          if (nr < start_idx || nr >= end_idx) {
+#ifdef DEBUG
+            //if (mype == 2) printf("\nline %d ic %d nr %d\n",__LINE__,ic+noffset,nr);
+#endif
             offtile_list.push_back(nr);
+#ifdef DEBUG
+            //if (mype == 2) printf("PUSHES %d: ic %d %d nr is %d\n",mype,ic,ic+noffset,nr);
+#endif
             int ig;
             for (ig = 0; ig < nbsize_local; ig++) {
                if (border_cell_num_global[ig] == nr) break;
@@ -2762,29 +2892,156 @@ void Mesh::calc_neighbors_local(void)
             if (ig == nbsize_local) {
                printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nr);
 #ifdef HAVE_MPI
-               L7_Terminate();
+               //L7_Terminate();
 #endif
-               exit(-1);
+               //exit(-1);
             }
             int nlev = border_cell_level_global[ig];
             int levmult      = levtable[levmx-nlev];
+            int levmultminus = levtable[max(levmx-nlev-1,0)];
             int iii = border_cell_i_global[ig];
             int jjj = border_cell_j_global[ig];
+#ifdef DEBUG
             //fprintf(fp,"%d: DEBUG nr is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nr, ig, border_cell_num_global[ig], nlev, iii, jjj);
-            int nrr = hash[(      jjj   *levmult               )-jminsize][(min( (iii+1)*levmult,   imaxcalc-1))-iminsize];
-            if (nrr != nr && nrr > 0 && (nrr < start_idx || nrr >= end_idx) ) offtile_list.push_back(nrr);
-            if (nlev < levmx) {
-               int levmult      = levtable[levmx-nlev];
-               int levmultminus = levtable[levmx-nlev-1];
+#endif
 
-               int ntrr = hash[(min( (jjj*2+1)*levmultminus, jmaxcalc-1))-jminsize][(min( (iii+1)  *levmult,      imaxcalc-1))-iminsize];
-               if (ntrr != nrr && ntrr > 0 && (ntrr < start_idx || ntrr >= end_idx)) offtile_list.push_back(ntrr);
+            if (nlev == levmx) {
+               // Multiplying by levmult gets the bottom left cell of the right neighbor. Add
+               // one to that to get the bottom left cell of the right right neighbor
+               int nrr = hash[(jjj*levmult)-jminsize][min((iii+1)*levmult,imaxcalc-1)-iminsize];
+               if (nrr != nr && nrr > 0 && (nrr < start_idx || nrr >= end_idx) )
+#ifdef DEBUG
+               {
+#endif
+                  offtile_list.push_back(nrr);
+#ifdef DEBUG
+                  //if (mype == 2) printf("PUSHES %d: ic %d %d nrr is %d\n",mype,ic,ic+noffset,nrr);
+               } else {
+                  //if (mype == 2) printf("FAILS %d: ic %d %d nrr is %d\n",mype,ic,ic+noffset,nrr);
+               }
+#endif
+            } else {
+               int nrr = hash[(jjj*levmult)-jminsize][(min((iii+1)*levmult,imaxcalc-1))-iminsize];
+               if (nrr != nr && nrr > 0 && (nrr < start_idx || nrr >= end_idx) )
+#ifdef DEBUG
+               {
+#endif
+                  offtile_list.push_back(nrr);
+#ifdef DEBUG
+                  //if (mype == 2) printf("PUSHES %d: ic %d %d nrr is %d\n",mype,ic,ic+noffset,nrr);
+               } else {
+                  //if (mype == 2) printf("FAILS %d: ic %d %d nrr is %d\n",mype,ic,ic+noffset,nrr);
+               }
+#endif
+
+               int ntrr = hash[min((jjj*2+1)*levmultminus,jmaxcalc-1)-jminsize][min((iii+1)*levmult,imaxcalc-1)-iminsize];
+               if (ntrr != nrr && ntrr > 0 && (ntrr < start_idx || ntrr >= end_idx))
+#ifdef DEBUG
+               {
+#endif
+                  offtile_list.push_back(ntrr);
+#ifdef DEBUG
+                  //if (mype == 2) printf("PUSHES %d: ic %d %d ntrr is %d\n",mype,ic,ic+noffset,ntrr);
+               } else {
+                  //if (mype == 2) printf("FAILS %d: ic %d %d ntrr is %d\n",mype,ic,ic+noffset,ntrr);
+               }
+#endif
+            }
+
+         }
+
+         if (lev < levmx) {
+            int levmultminus = levtable[max(levmx-lev-1,0)];
+            int ntr = hash[min((jj*2+1)*levmultminus,jmaxcalc-1)-jminsize][min((ii+1)*2*levmultminus,imaxcalc-1)-iminsize];
+            if (ntr != nr && ntr > 0 && (ntr < start_idx || ntr >= end_idx) ) {
+               offtile_list.push_back(ntr);
+#ifdef DEBUG
+               //if (mype == 2) printf("DEBUGGING PUSHES %d: ic %d %d ntr is %d\n",mype,ic,ic+noffset,ntr);
+#endif
+
+               int ig;
+               for (ig = 0; ig < nbsize_local; ig++) {
+                  if (border_cell_num_global[ig] == ntr) break;
+               }
+               if (ig == nbsize_local) {
+                  printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, ntr);
+#ifdef HAVE_MPI
+                  //L7_Terminate();
+#endif
+                  //exit(-1);
+               }
+               int nlev = border_cell_level_global[ig];
+               int iii = border_cell_i_global[ig];
+               int jjj = border_cell_j_global[ig];
+               int levmult      = levtable[levmx-nlev];
+               levmultminus = levtable[max(levmx-nlev-1,0)];
+#ifdef DEBUG
+               //if (mype == 2) printf("DEBUGGING %d: DEBUG ntr is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,ntr, ig, border_cell_num_global[ig], nlev, iii, jjj);
+#endif
+
+               // Multiplying by levmult gets the bottom left cell of the top neighbor. Add
+               // one to that to get the bottom left cell of the top top neighbor
+
+               if (nlev == levmx) {
+                  int nrtr = hash[jjj*levmult-jminsize][min((iii+1)*levmult-iminsize,imaxcalc-1)];
+#ifdef DEBUG
+                  //if (mype == 2) printf("DEBUGGING ic %d %d nrtr is %d iii %d jjj %d\n",ic,ic+noffset,nrtr,iii*levmult,min((jjj+1)*levmult,jmaxcalc-1));
+#endif
+                  if (nrtr != ntr && nrtr > 0 && (nrtr < start_idx || nrtr >= end_idx) )
+#ifdef DEBUG
+                  {
+#endif
+                     offtile_list.push_back(nrtr);
+#ifdef DEBUG
+                     //if (mype == 2) printf("DEBUGGING PUSHES %d: ic %d %d nrtr is %d iii %d jjj %d\n",mype,ic,ic+noffset,nrtr,iii*levmult,min((jjj+1)*levmult,jmaxcalc-1));
+                  } else {
+                     //if (mype == 2) printf("DEBUGGING FAILS %d: ic %d %d nrtr is %d iii %d jjj %d\n",mype,ic,ic+noffset,nrtr,iii*levmult,min((jjj+1)*levmult,jmaxcalc-1));
+                  }
+#endif
+               } else {
+                  // And we need both cells here
+                  int nrtr = hash[(jjj*2)*levmultminus-jminsize][min((iii+1)*2*levmultminus-iminsize,imaxcalc-1)];
+#ifdef DEBUG
+                  //if (mype == 2) printf("DEBUGGING ic %d %d nrtr is %d iii %d jjj %d\n",ic,ic+noffset,nrtr,(iii*2)*levmultminus,min((jjj+1)*2*levmultminus,jmaxcalc-1));
+#endif
+                  if (nrtr != ntr && nrtr > 0 && (nrtr < start_idx || nrtr >= end_idx) )
+#ifdef DEBUG
+                  {
+#endif
+                     offtile_list.push_back(nrtr);
+#ifdef DEBUG
+                     //if (mype == 2) printf("DEBUGGING PUSHES %d: ic %d %d nrtr is %d iii %d jjj %d\n",mype,ic,ic+noffset,nrtr,(iii*2)*levmultminus,min((jjj*2+1)*levmultminus,jmaxcalc-1))     ;
+                  } else {
+                     //if (mype == 2) printf("DEBUGGING FAILS %d: ic %d %d nrtr is %d iii %d jjj %d\n",mype,ic,ic+noffset,nrtr,(iii*2)*levmultminus,min((jjj*2+1)*levmultminus,jmaxcalc-1));
+                  }
+#endif
+                  int ntrtr = hash[min((jjj*2+1)*levmultminus,jmaxcalc-1)-jminsize][min((iii+1)*2*levmultminus,imaxcalc-1)-iminsize];
+                  if (ntrtr != nrtr && ntrtr > 0 && (ntrtr < start_idx || ntrtr >= end_idx))
+#ifdef DEBUG
+                  {
+#endif
+                     offtile_list.push_back(ntrtr);
+#ifdef DEBUG
+                     //if (mype == 2) printf("DEBUGGING PUSHES %d: ic %d %d ntrtr is %d iii %d jjj %d\n",mype,ic,ic+noffset,ntrtr,(iii*2+1)*levmultminus,(jjj+1)*2*levmultminus);
+                  } else {
+                     //if (mype == 2) printf("DEBUGGING FAILS %d: ic %d %d ntrtr is %d iii %d jjj %d\n",mype,ic,ic+noffset,ntrtr,(iii*2+1)*levmultminus,(jjj+1)*2*levmultminus);
+                  }
+#endif
+               }
             }
          }
 
+
          int nb = nbot[ic];
+
          if (nb < start_idx || nb >= end_idx) {
+#ifdef DEBUG
+            //if (mype == 5) printf("\nline %d ic %d nb %d\n",__LINE__,ic+noffset,nb);
+#endif
             offtile_list.push_back(nb);
+#ifdef DEBUG
+            //if (mype == 5) printf("PUSHES %d: ic %d %d nb is %d\n",mype,ic,ic+noffset,nb);
+#endif
             int ig;
             for (ig = 0; ig < nbsize_local; ig++) {
                if (border_cell_num_global[ig] == nb) break;
@@ -2792,28 +3049,152 @@ void Mesh::calc_neighbors_local(void)
             if (ig == nbsize_local) {
                printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nb);
 #ifdef HAVE_MPI
-               L7_Terminate();
+               //L7_Terminate();
 #endif
-               exit(-1);
+               //exit(-1);
             }
+            // Get the bottom neighbor information
             int nlev = border_cell_level_global[ig];
             int levmult      = levtable[levmx-nlev];
+            int levmultminus = levtable[max(levmx-nlev-1,0)];
             int iii = border_cell_i_global[ig];
             int jjj = border_cell_j_global[ig];
-            //fprintf(fp,"%d: DEBUG nb is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nb, ig, border_cell_num_global[ig], nlev, iii, jjj);
-            int nbb = hash[(max(  jjj   *levmult-1, 0)         )-jminsize][(      iii   *levmult               )-iminsize];
-            if (nbb != nb && nbb > 0 && (nbb < start_idx || nbb >= end_idx) ) offtile_list.push_back(nbb);
-            if (nlev < levmx) {
-               int levmult      = levtable[levmx-nlev];
-               int levmultminus = levtable[levmx-nlev-1];
+#ifdef DEBUG
+            //if (mype == 5) printf("%d: DEBUG nb is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nb, ig, border_cell_num_global[ig], nlev, iii, jjj);
+#endif
 
-               int nrbb = hash[(max(  jjj     *levmult-1,    0))         -jminsize][(min( (iii*2+1)*levmultminus, imaxcalc-1))-iminsize];
-               if (nrbb != nbb && nrbb > 0 && (nrbb < start_idx || nrbb >= end_idx)) offtile_list.push_back(nrbb);
+            if (nlev == levmx) {
+               // Multiplying by levmult gets the bottom left cell of the bottom neighbor. Subtract
+               // one from that to get the top left cell in the bottom bottom neighbor
+               int nbb = hash[(max((jjj-1)*levmult, 0))-jminsize][(iii*levmult)-iminsize];
+               if (nbb != nb && nbb > 0 && (nbb < start_idx || nbb >= end_idx) )
+#ifdef DEBUG
+               {
+#endif
+                  offtile_list.push_back(nbb);
+#ifdef DEBUG
+                  //if (mype == 5) printf("PUSHES %d: ic %d %d nbb is %d\n",mype,ic,ic+noffset,nbb);
+               } else {
+                  //if (mype == 5) printf("FAILS %d: ic %d %d nbb is %d\n",mype,ic,ic+noffset,nbb);
+               }
+#endif
+            } else {
+#ifdef DEBUG
+               //if (mype == 5) printf("DEBUG jjj %d iii %d\n",max((jjj*2-1)*levmultminus, 0),iii*levmult);
+#endif
+               int nbb = hash[max((jjj*2-1)*levmultminus, 0)-jminsize][iii*levmult-iminsize];
+               if (nbb != nb && nbb > 0 && (nbb < start_idx || nbb >= end_idx) )
+#ifdef DEBUG
+               {
+#endif
+                  offtile_list.push_back(nbb);
+#ifdef DEBUG
+                  //if (mype == 5) printf("PUSHES %d: ic %d %d nbb is %d\n",mype,ic,ic+noffset,nbb);
+               } else {
+                  //if (mype == 5) printf("FAILS %d: ic %d %d nbb is %d\n",mype,ic,ic+noffset,nbb);
+               }
+#endif
+               int nrbb = hash[max((jjj*2-1)*levmultminus, 0)-jminsize][(iii*2+1)*levmultminus-iminsize];
+               if (nrbb != nbb && nrbb > 0 && (nrbb < start_idx || nrbb >= end_idx) )
+#ifdef DEBUG
+               {
+#endif
+                  offtile_list.push_back(nrbb);
+#ifdef DEBUG
+                  //if (mype == 5) printf("PUSHES %d: ic %d %d nrbb is %d\n",mype,ic,ic+noffset,nrbb);
+               } else {
+                  //if (mype == 5) printf("FAILS %d: ic %d %d nrbb is %d\n",mype,ic,ic+noffset,nrbb);
+               }
+#endif
+            }
+
+         }
+
+         if (lev < levmx) {
+            int levmultminus = levtable[max(levmx-lev-1,0)];
+            int nrb = hash[max((jj*2-1)*levmultminus,0)-jminsize][min((ii*2+1)*levmultminus,imaxcalc-1)-iminsize];
+            if (nrb != nb && nrb > 0 && (nrb < start_idx || nrb >= end_idx) ) {
+               offtile_list.push_back(nrb);
+#ifdef DEBUG
+               //if (mype == 5) printf("DEBUGGING PUSHES %d: ic %d %d nrb is %d\n",mype,ic,ic+noffset,nrb);
+#endif
+
+               int ig;
+               for (ig = 0; ig < nbsize_local; ig++) {
+                  if (border_cell_num_global[ig] == nrb) break;
+               }
+               if (ig == nbsize_local) {
+                  printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nrb);
+#ifdef HAVE_MPI
+                  //L7_Terminate();
+#endif
+                  //exit(-1);
+               }
+               int nlev = border_cell_level_global[ig];
+               int iii = border_cell_i_global[ig];
+               int jjj = border_cell_j_global[ig];
+               int levmult      = levtable[levmx-nlev];
+               levmultminus = levtable[max(levmx-nlev-1,0)];
+#ifdef DEBUG
+               //if (mype == 5) printf("DEBUGGING %d: DEBUG nrb is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nrb, ig, border_cell_num_global[ig], nlev, iii, jjj);
+#endif
+
+               if (nlev == levmx) {
+                  int nbrb = hash[max((jjj-1)*levmult,0)-jminsize][iii*levmult-iminsize];
+#ifdef DEBUG
+                  //if (mype == 5) printf("DEBUGGING ic %d %d nbrb is %d iii %d jjj %d\n",ic,ic+noffset,nbrb,iii*levmult,min((jjj-1)*levmult,jmaxcalc-1));
+#endif
+                  if (nbrb != nrb && nbrb > 0 && (nbrb < start_idx || nbrb >= end_idx) )
+#ifdef DEBUG
+                  {
+#endif
+                     offtile_list.push_back(nbrb);
+#ifdef DEBUG
+                     //if (mype == 5) printf("DEBUGGING PUSHES %d: ic %d %d nbrb is %d iii %d jjj %d\n",mype,ic,ic+noffset,nbrb,iii*levmult,min((jjj+1)*levmult,jmaxcalc-1));
+                  } else {
+                     //if (mype == 5) printf("DEBUGGING FAILS %d: ic %d %d nbrb is %d iii %d jjj %d\n",mype,ic,ic+noffset,nbrb,iii*levmult,min((jjj+1)*levmult,jmaxcalc-1));
+                  }
+#endif
+               } else {
+                  // And we need both cells here
+                  int nbrb = hash[max((jjj*2-1)*levmultminus,0)-jminsize][(iii*2)*levmultminus-iminsize];
+#ifdef DEBUG
+                  //if (mype == 5) printf("DEBUGGING ic %d %d nbrb is %d iii %d jjj %d\n",ic,ic+noffset,nbrb,(iii*2)*levmultminus,min((jjj+1)*2*levmultminus,jmaxcalc-1));
+#endif
+                  if (nbrb != nrb && nbrb > 0 && (nbrb < start_idx || nbrb >= end_idx) )
+#ifdef DEBUG
+                  {
+#endif
+                     offtile_list.push_back(nbrb);
+#ifdef DEBUG
+                     //if (mype == 5) printf("DEBUGGING PUSHES %d: ic %d %d nbrb is %d iii %d jjj %d\n",mype,ic,ic+noffset,nbrb,(iii*2)*levmultminus,min((jjj*2+1)*levmultminus,jmaxcalc-1));
+                  } else {
+                     //if (mype == 5) printf("DEBUGGING FAILS %d: ic %d %d nbrb is %d iii %d jjj %d\n",mype,ic,ic+noffset,nbrb,(iii*2)*levmultminus,min((jjj*2+1)*levmultminus,jmaxcalc-1));
+                  }
+#endif
+                  int nrbrb = hash[max((jjj*2-1)*levmultminus,0)-jminsize][min((iii*2+1)*levmultminus,imaxcalc-1)-iminsize];
+                  if (nrbrb != nbrb && nrbrb > 0 && (nrbrb < start_idx || nrbrb >= end_idx))
+#ifdef DEBUG
+                  {
+#endif
+                     offtile_list.push_back(nrbrb);
+#ifdef DEBUG
+                     //if (mype == 5) printf("DEBUGGING PUSHES %d: ic %d %d nrbrb is %d iii %d jjj %d\n",mype,ic,ic+noffset,nrbrb,(iii*2+1)*levmultminus,(jjj+1)*2*levmultminus);
+                  } else {
+                     //if (mype == 5) printf("DEBUGGING FAILS %d: ic %d %d nrbrb is %d iii %d jjj %d\n",mype,ic,ic+noffset,nrbrb,(iii*2+1)*levmultminus,(jjj+1)*2*levmultminus);
+                  }
+#endif
+               }
+
             }
          }
 
          int nt = ntop[ic];
+
          if (nt < start_idx || nt >= end_idx) {
+#ifdef DEBUG
+            //if (mype == 2) printf("\nline %d ic %d nt %d\n",__LINE__,ic+noffset,nt);
+#endif
             offtile_list.push_back(nt);
             int ig;
             for (ig = 0; ig < nbsize_local; ig++) {
@@ -2822,43 +3203,144 @@ void Mesh::calc_neighbors_local(void)
             if (ig == nbsize_local) {
                printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nt);
 #ifdef HAVE_MPI
-               L7_Terminate();
+               //L7_Terminate();
 #endif
-               exit(-1);
+               //exit(-1);
             }
             int nlev = border_cell_level_global[ig];
-            int levmult      = levtable[levmx-nlev];
             int iii = border_cell_i_global[ig];
             int jjj = border_cell_j_global[ig];
+            int levmult      = levtable[levmx-nlev];
+            int levmultminus = levtable[max(levmx-nlev-1,0)];
+#ifdef DEBUG
             //fprintf(fp,"%d: DEBUG nt is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nt, ig, border_cell_num_global[ig], nlev, iii, jjj);
-            int ntt = hash[(min( (jjj+1)*levmult,   jmaxcalc-1))-jminsize][(      iii   *levmult               )-iminsize];
-            if (ntt != nt && ntt > 0 && (ntt < start_idx || ntt >= end_idx) ) offtile_list.push_back(ntt);
-            if (nlev < levmx) {
-               int levmult      = levtable[levmx-nlev];
-               int levmultminus = levtable[levmx-nlev-1];
+#endif
 
-               int nrtt = hash[(min( (jjj+1)  *levmult,      jmaxcalc-1))-jminsize][(min( (iii*2+1)*levmultminus, imaxcalc-1))-iminsize];
-               if (nrtt != ntt && nrtt > 0 && (nrtt < start_idx || nrtt >= end_idx)) offtile_list.push_back(nrtt);
+            if (nlev == levmx) {
+               // Multiplying by levmult gets the bottom left cell of the top neighbor. Add
+               // one to that to get the bottom left cell of the top top neighbor
+               int ntt = hash[(min((jjj+1)*levmult,jmaxcalc-1))-jminsize][(iii*levmult)-iminsize];
+               if (ntt != nt && ntt > 0 && (ntt < start_idx || ntt >= end_idx) )
+#ifdef DEBUG
+               {
+#endif
+                  offtile_list.push_back(ntt);
+#ifdef DEBUG
+                  //if (mype == 2) printf("PUSHES %d: ic %d %d ntt is %d\n",mype,ic,ic+noffset,ntt);
+               } else {
+                  //if (mype == 2) printf("FAILS %d: ic %d %d ntt is %d\n",mype,ic,ic+noffset,ntt);
+               }
+#endif
+            } else {
+               int ntt = hash[(min((jjj+1)*levmult,jmaxcalc-1))-jminsize][(iii*levmult)-iminsize];
+               if (ntt != nt && ntt > 0 && (ntt < start_idx || ntt >= end_idx) )
+#ifdef DEBUG
+               {
+#endif
+                  offtile_list.push_back(ntt);
+#ifdef DEBUG
+                  //if (mype == 2) printf("PUSHES %d: ic %d %d ntt is %d\n",mype,ic,ic+noffset,ntt);
+               } else {
+                  //if (mype == 2) printf("FAILS %d: ic %d %d ntt is %d\n",mype,ic,ic+noffset,ntt);
+               }
+#endif
+
+               int nrtt = hash[min((jjj+1)*levmult,jmaxcalc-1)-jminsize][min((iii*2+1)*levmultminus,imaxcalc-1)-iminsize];
+               if (nrtt != ntt && nrtt > 0 && (nrtt < start_idx || nrtt >= end_idx))
+#ifdef DEBUG
+               {
+#endif
+                  offtile_list.push_back(nrtt);
+#ifdef DEBUG
+                  //if (mype == 2) printf("PUSHES %d: ic %d %d nrtt is %d\n",mype,ic,ic+noffset,nrtt);
+               } else {
+                  //if (mype == 2) printf("FAILS %d: ic %d %d nrtt is %d\n",mype,ic,ic+noffset,nrtt);
+               }
+#endif
             }
          }
 
          if (lev < levmx) {
-            int levmult      = levtable[levmx-lev];
-            int levmultminus = levtable[levmx-lev-1];
+            int levmultminus = levtable[max(levmx-lev-1,0)];
+            int nrt = hash[min((jj+1)*2*levmultminus,jmaxcalc-1)-jminsize][min((ii*2+1)*levmultminus,imaxcalc-1)-iminsize];
+            if (nrt != nt && nrt > 0 && (nrt < start_idx || nrt >= end_idx) ) {
+               offtile_list.push_back(nrt);
+#ifdef DEBUG
+               //if (mype == 2) printf("DEBUGGING PUSHES %d: ic %d %d nrt is %d\n",mype,ic,ic+noffset,nrt);
+#endif
 
-            int ntl = hash[(min( (jj*2+1)*levmultminus, jmaxcalc-1))-jminsize][(max(  ii     *levmult-1,    0))         -iminsize];
-            if (ntl != nt && ntl > 0 && (ntl < start_idx || ntl >= end_idx)) offtile_list.push_back(ntl);
+               int ig;
+               for (ig = 0; ig < nbsize_local; ig++) {
+                  if (border_cell_num_global[ig] == nrt) break;
+               }
+               if (ig == nbsize_local) {
+                  printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nrt);
+#ifdef HAVE_MPI
+                  //L7_Terminate();
+#endif
+                  //exit(-1);
+               }
+               int nlev = border_cell_level_global[ig];
+               int iii = border_cell_i_global[ig];
+               int jjj = border_cell_j_global[ig];
+               int levmult      = levtable[levmx-nlev];
+               levmultminus = levtable[max(levmx-nlev-1,0)];
+#ifdef DEBUG
+               //if (mype == 2) printf("DEBUGGING %d: DEBUG nrt is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nrt, ig, border_cell_num_global[ig], nlev, iii, jjj);
+#endif
 
-            int ntr = hash[(min( (jj*2+1)*levmultminus, jmaxcalc-1))-jminsize][(min( (ii+1)  *levmult,      imaxcalc-1))-iminsize];
-            if (ntr != nt && ntr > 0 && (ntr < start_idx || ntr >= end_idx)) offtile_list.push_back(ntr);
+               // Multiplying by levmult gets the bottom left cell of the top neighbor. Add
+               // one to that to get the bottom left cell of the top top neighbor
 
-            int nrb = hash[(max(  jj     *levmult-1,    0))         -jminsize][(min( (ii*2+1)*levmultminus, imaxcalc-1))-iminsize];
-            if (nrb != nt && nrb > 0 && (nrb < start_idx || nrb >= end_idx)) offtile_list.push_back(nrb);
-
-            int nrt = hash[(min( (jj+1)  *levmult,      jmaxcalc-1))-jminsize][(min( (ii*2+1)*levmultminus, imaxcalc-1))-iminsize];
-            if (nrt != nt && nrt > 0 && (nrt < start_idx || nrt >= end_idx)) offtile_list.push_back(nrt);
+               if (nlev == levmx) {
+                  int ntrt = hash[min((jjj+1)*levmult,jmaxcalc-1)-jminsize][iii*levmult-iminsize];
+#ifdef DEBUG
+                  //if (mype == 2) printf("DEBUGGING ic %d %d ntrt is %d iii %d jjj %d\n",ic,ic+noffset,ntrt,iii*levmult,min((jjj+1)*levmult,jmaxcalc-1));
+#endif
+                  if (ntrt != nrt && ntrt > 0 && (ntrt < start_idx || ntrt >= end_idx) )
+#ifdef DEBUG
+                  {
+#endif
+                     offtile_list.push_back(ntrt);
+#ifdef DEBUG
+                     //if (mype == 2) printf("DEBUGGING PUSHES %d: ic %d %d ntrt is %d iii %d jjj %d\n",mype,ic,ic+noffset,ntrt,iii*levmult,min((jjj+1)*levmult,jmaxcalc-1));
+                  } else {
+                     //if (mype == 2) printf("DEBUGGING FAILS %d: ic %d %d ntrt is %d iii %d jjj %d\n",mype,ic,ic+noffset,ntrt,iii*levmult,min((jjj+1)*levmult,jmaxcalc-1));
+                  }
+#endif
+               } else {
+                  // And we need both cells here
+                  int ntrt = hash[min((jjj+1)*2*levmultminus,jmaxcalc-1)-jminsize][(iii*2)*levmultminus-iminsize];
+#ifdef DEBUG
+                  //if (mype == 2) printf("DEBUGGING ic %d %d ntrt is %d iii %d jjj %d\n",ic,ic+noffset,ntrt,(iii*2)*levmultminus,min((jjj+1)*2*levmultminus,jmaxcalc-1));
+#endif
+                  if (ntrt != nrt && ntrt > 0 && (ntrt < start_idx || ntrt >= end_idx) )
+#ifdef DEBUG
+                  {
+#endif
+                     offtile_list.push_back(ntrt);
+#ifdef DEBUG
+                     //if (mype == 2) printf("DEBUGGING PUSHES %d: ic %d %d ntrt is %d iii %d jjj %d\n",mype,ic,ic+noffset,ntrt,(iii*2)*levmultminus,min((jjj*2+1)*levmultminus,jmaxcalc-1));
+                  } else {
+                     //if (mype == 2) printf("DEBUGGING FAILS %d: ic %d %d ntrt is %d iii %d jjj %d\n",mype,ic,ic+noffset,ntrt,(iii*2)*levmultminus,min((jjj*2+1)*levmultminus,jmaxcalc-1));
+                  }
+#endif
+                  int nrtrt = hash[min((jjj+1)*2*levmultminus,jmaxcalc-1)-jminsize][min((iii*2+1)*levmultminus,imaxcalc-1)-iminsize];
+                  if (nrtrt != ntrt && nrtrt > 0 && (nrtrt < start_idx || nrtrt >= end_idx))
+#ifdef DEBUG
+                  {
+#endif
+                     offtile_list.push_back(nrtrt);
+#ifdef DEBUG
+                     //if (mype == 2) printf("DEBUGGING PUSHES %d: ic %d %d nrtrt is %d iii %d jjj %d\n",mype,ic,ic+noffset,nrtrt,(iii*2+1)*levmultminus,(jjj+1)*2*levmultminus);
+                  } else {
+                     //if (mype == 2) printf("DEBUGGING FAILS %d: ic %d %d nrtrt is %d iii %d jjj %d\n",mype,ic,ic+noffset,nrtrt,(iii*2+1)*levmultminus,(jjj+1)*2*levmultminus);
+                  }
+#endif
+               }
+            }
          }
-      }
+      } // ncells loop
 
       sort(offtile_list.begin(), offtile_list.end());
       p_end = unique(offtile_list.begin(), offtile_list.end());
@@ -2876,6 +3358,7 @@ void Mesh::calc_neighbors_local(void)
       offtile_local_count++;
       offtile_ratio_local /= offtile_local_count;
 
+      //printf("%d ncells size is %ld ncells_ghost size is %ld nghost %d\n",mype,ncells,ncells_ghost,nghost);
       //fprintf(fp,"%d ncells_ghost size is %ld nghost %d\n",mype,ncells_ghost,nghost);
 
 #ifdef HAVE_MPI
@@ -2936,7 +3419,7 @@ void Mesh::calc_neighbors_local(void)
       //}
 
       for (uint ic=0; ic<ncells_ghost; ic++){
-         if (nlft[ic] >= noffset && nlft[ic] < noffset+ncells) {
+         if (nlft[ic] >= noffset && nlft[ic] < (int)(noffset+ncells)) {
             nlft[ic] -= noffset;
             //fprintf(fp,"%d: 1: ic %d nlft is %d\n",mype,ic,nlft[ic]);
          } else {
@@ -2956,21 +3439,21 @@ void Mesh::calc_neighbors_local(void)
             }
 #endif
          }
-         if (nrht[ic] >= noffset && nrht[ic] < noffset+ncells) {
+         if (nrht[ic] >= noffset && nrht[ic] < (int)(noffset+ncells)) {
             nrht[ic] -= noffset;
          } else {
             for (int ig=0; ig<nghost; ig++){
                if (nrht[ic]==indices_needed[ig]) {nrht[ic] = ig+ncells; break;}
             }
          }
-         if (nbot[ic] >= noffset && nbot[ic] < noffset+ncells) {
+         if (nbot[ic] >= noffset && nbot[ic] < (int)(noffset+ncells)) {
             nbot[ic] -= noffset;
          } else {
             for (int ig=0; ig<nghost; ig++){
                if (nbot[ic]==indices_needed[ig]) {nbot[ic] = ig+ncells; break;}
             }
          }
-         if (ntop[ic] >= noffset && ntop[ic] < noffset+ncells) {
+         if (ntop[ic] >= noffset && ntop[ic] < (int)(noffset+ncells)) {
             ntop[ic] -= noffset;
          } else {
             for (int ig=0; ig<nghost; ig++){
@@ -3035,7 +3518,7 @@ void Mesh::calc_neighbors_local(void)
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
                   int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < ncells) ) {
+                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
                         fprintf(fp,"%5d",nlft[hashval]);
                   } else {
                         fprintf(fp,"     ");
@@ -3056,7 +3539,7 @@ void Mesh::calc_neighbors_local(void)
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
                   int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < ncells) ) {
+                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
                      fprintf(fp,"%5d",nrht[hashval]);
                   } else {
                      fprintf(fp,"     ");
@@ -3077,7 +3560,7 @@ void Mesh::calc_neighbors_local(void)
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
                   int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < ncells) ) {
+                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
                      fprintf(fp,"%5d",nbot[hashval]);
                   } else {
                      fprintf(fp,"     ");
@@ -3098,7 +3581,7 @@ void Mesh::calc_neighbors_local(void)
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
                   int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < ncells) ) {
+                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
                      fprintf(fp,"%5d",ntop[hashval]);
                   } else {
                      fprintf(fp,"     ");
@@ -3620,7 +4103,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       //fprintf(fp,"%d: DEBUG cell %d i %d j %d\n",mype,ic,border_cell_i_global[ic],border_cell_j_global[ic]);
       if (border_cell_j_global[ic]*levmult < jminsize || border_cell_j_global[ic]*levmult >= jmaxsize) continue;
       if (border_cell_i_global[ic]*levmult < iminsize || border_cell_i_global[ic]*levmult >= imaxsize) continue;
-      if (border_cell_num_global[ic] >= noffset && border_cell_num_global[ic] < noffset+ncells) continue;
+      if (border_cell_num_global[ic] >= noffset && border_cell_num_global[ic] < (int)(noffset+ncells)) continue;
       //fprintf(fp,"%d: ic is %d inew is %d\n",mype,ic,inew);
       if (inew != ic){
          border_cell_num_global[inew] = border_cell_num_global[ic];
@@ -3724,7 +4207,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          if (jj >= jminsize && jj < jmaxsize) {
             for (int ii = 0; ii<imaxglobal; ii++){
                int hashval = hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]-noffset;
-               if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < ncells) ) {
+               if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
                      fprintf(fp,"%5d",nlft_tmp[hashval]);
                } else {
                      fprintf(fp,"     ");
@@ -3745,7 +4228,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          if (jj >= jminsize && jj < jmaxsize) {
             for (int ii = 0; ii<imaxglobal; ii++){
                int hashval = hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]-noffset;
-               if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < ncells) ) {
+               if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
                   fprintf(fp,"%5d",nrht_tmp[hashval]);
                } else {
                   fprintf(fp,"     ");
@@ -3766,7 +4249,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          if (jj >= jminsize && jj < jmaxsize) {
             for (int ii = 0; ii<imaxglobal; ii++){
                int hashval = hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]-noffset;
-               if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < ncells) ) {
+               if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
                   fprintf(fp,"%5d",nbot_tmp[hashval]);
                } else {
                   fprintf(fp,"     ");
@@ -3787,7 +4270,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          if (jj >= jminsize && jj < jmaxsize) {
             for (int ii = 0; ii<imaxglobal; ii++){
                int hashval = hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]-noffset;
-               if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < ncells) ) {
+               if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
                   fprintf(fp,"%5d",ntop_tmp[hashval]);
                } else {
                   fprintf(fp,"     ");
@@ -3818,6 +4301,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       lev = level_tmp[ic];
 
       int nl = nlft_tmp[ic];
+
       if (nl < start_idx || nl >= end_idx) {
          offtile_list.push_back(nl);
          int ig;
@@ -3831,23 +4315,73 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 #endif
             exit(-1);
          }
+         // Get the left neighbor information
          int nlev = border_cell_level_global[ig];
          int levmult      = levtable[levmx-nlev];
+         int levmultminus = levtable[max(levmx-nlev-1,0)];
          int iii = border_cell_i_global[ig];
          int jjj = border_cell_j_global[ig];
          //fprintf(fp,"%d: DEBUG nl is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nl, ig, border_cell_num_global[ig], nlev, iii, jjj);
-         int nll = hash_tmp[((      jjj   *levmult               )-jminsize)*(imaxsize-iminsize)+((max(  iii   *levmult-1, 0         ))-iminsize)];
-         if (nll != nl && nll > 0 && (nll < start_idx || nll >= end_idx) ) offtile_list.push_back(nll);
-         if (nlev < levmx) {
-            int levmult      = levtable[levmx-nlev];
-            int levmultminus = levtable[levmx-nlev-1];
 
-            int ntll = hash_tmp[((min( (jjj*2+1)*levmultminus, jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((max(  iii     *levmult-1,    0))         -iminsize)];
-            if (ntll != nll && ntll > 0 && (ntll < start_idx || ntll >= end_idx)) offtile_list.push_back(ntll);
+         if (nlev == levmx) {
+            // Multiplying by levmult get the bottom left cell of the left neighbor. Subtract
+            // one from that to get the bottom right cell in the left left neighbor
+            int nll = hash_tmp[((jjj*levmult)-jminsize)*(imaxsize-iminsize)+(max((iii-1)*levmult, 0)-iminsize)];
+            if (nll != nl && nll > 0 && (nll < start_idx || nll >= end_idx) ) 
+               offtile_list.push_back(nll);
+         } else {
+            int nll = hash_tmp[(jjj*levmult-jminsize)*(imaxsize-iminsize)+(max((iii*2-1)*levmultminus, 0)-iminsize)];
+            if (nll != nl && nll > 0 && (nll < start_idx || nll >= end_idx) ) 
+               offtile_list.push_back(nll);
+
+            int ntll = hash_tmp[((jjj*2+1)*levmultminus-jminsize)*(imaxsize-iminsize)+(max((iii*2-1)*levmultminus, 0)-iminsize)];
+            if (ntll != nll && ntll > 0 && (ntll < start_idx || ntll >= end_idx) )
+               offtile_list.push_back(ntll);
+         }
+      }
+
+      if (lev < levmx) {
+         int levmultminus = levtable[max(levmx-lev-1,0)];
+         int ntl = hash_tmp[(min((jj*2+1)*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(max((ii*2-1)*levmultminus,0)-iminsize)];
+         if (ntl != nl && ntl > 0 && (ntl < start_idx || ntl >= end_idx) ) {
+            offtile_list.push_back(ntl);
+
+            int ig;
+            for (ig = 0; ig < nbsize_local; ig++) {
+               if (border_cell_num_global[ig] == ntl) break;
+            }
+            if (ig == nbsize_local) {
+               printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, ntl);
+#ifdef HAVE_MPI
+               //L7_Terminate();
+#endif
+               //exit(-1);
+            }
+            int nlev = border_cell_level_global[ig];
+            int iii = border_cell_i_global[ig];
+            int jjj = border_cell_j_global[ig];
+            int levmult      = levtable[levmx-nlev];
+            levmultminus = levtable[max(levmx-nlev-1,0)];
+
+            if (nlev == levmx) {
+               int nltl = hash_tmp[(jjj*levmult-jminsize)*(imaxsize-iminsize)+(max((iii-1)*levmult-iminsize,0))];
+               if (nltl != ntl && nltl > 0 && (nltl < start_idx || nltl >= end_idx) )
+                  offtile_list.push_back(nltl);
+            } else {
+               // And we need both cells here
+               int nltl = hash_tmp[((jjj*2)*levmultminus-jminsize)*(imaxsize-iminsize)+(max((iii*2-1)*levmultminus-iminsize,0))];
+               if (nltl != ntl && nltl > 0 && (nltl < start_idx || nltl >= end_idx) )
+                  offtile_list.push_back(nltl);
+               int ntltl = hash_tmp[(min((jjj*2+1)*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(max((iii*2-1)*levmultminus,0)-iminsize)];
+               if (ntltl != nltl && ntltl > 0 && (ntltl < start_idx || ntltl >= end_idx))
+                  offtile_list.push_back(ntltl);
+            }
+
          }
       }
 
       int nr = nrht_tmp[ic];
+
       if (nr < start_idx || nr >= end_idx) {
          offtile_list.push_back(nr);
          int ig;
@@ -3857,27 +4391,79 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          if (ig == nbsize_local) {
             printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nr);
 #ifdef HAVE_MPI
-            L7_Terminate();
+            //L7_Terminate();
 #endif
-            exit(-1);
+            //exit(-1);
          }
          int nlev = border_cell_level_global[ig];
          int levmult      = levtable[levmx-nlev];
+         int levmultminus = levtable[max(levmx-nlev-1,0)];
          int iii = border_cell_i_global[ig];
          int jjj = border_cell_j_global[ig];
-         //fprintf(fp,"%d: DEBUG nr is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nr, ig, border_cell_num_global[ig], nlev, iii, jjj);
-         int nrr = hash_tmp[((      jjj   *levmult               )-jminsize)*(imaxsize-iminsize)+((min( (iii+1)*levmult,   imaxcalc-1))-iminsize)];
-         if (nrr != nr && nrr > 0 && (nrr < start_idx || nrr >= end_idx) ) offtile_list.push_back(nrr);
-         if (nlev < levmx) {
-            int levmult      = levtable[levmx-nlev];
-            int levmultminus = levtable[levmx-nlev-1];
 
-            int ntrr = hash_tmp[((min( (jjj*2+1)*levmultminus, jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((min( (iii+1)  *levmult,      imaxcalc-1))-iminsize)];
-            if (ntrr != nrr && ntrr > 0 && (ntrr < start_idx || ntrr >= end_idx)) offtile_list.push_back(ntrr);
+         if (nlev == levmx) {
+            // Multiplying by levmult gets the bottom left cell of the right neighbor. Add
+            // one to that to get the bottom left cell of the right right neighbor
+            int nrr = hash_tmp[((jjj*levmult)-jminsize)*(imaxsize-iminsize)+(min((iii+1)*levmult,imaxcalc-1)-iminsize)];
+            if (nrr != nr && nrr > 0 && (nrr < start_idx || nrr >= end_idx) )
+               offtile_list.push_back(nrr);
+         } else {
+            int nrr = hash_tmp[((jjj*levmult)-jminsize)*(imaxsize-iminsize)+((min((iii+1)*levmult,imaxcalc-1))-iminsize)];
+            if (nrr != nr && nrr > 0 && (nrr < start_idx || nrr >= end_idx) )
+               offtile_list.push_back(nrr);
+
+            int ntrr = hash_tmp[(min((jjj*2+1)*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min((iii+1)*levmult,imaxcalc-1)-iminsize)];
+            if (ntrr != nrr && ntrr > 0 && (ntrr < start_idx || ntrr >= end_idx))
+               offtile_list.push_back(ntrr);
+         }
+
+      }
+
+      if (lev < levmx) {
+         int levmultminus = levtable[max(levmx-lev-1,0)];
+         int ntr = hash_tmp[(min((jj*2+1)*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min((ii+1)*2*levmultminus,imaxcalc-1)-iminsize)];
+         if (ntr != nr && ntr > 0 && (ntr < start_idx || ntr >= end_idx) ) {
+            offtile_list.push_back(ntr);
+
+            int ig;
+            for (ig = 0; ig < nbsize_local; ig++) {
+               if (border_cell_num_global[ig] == ntr) break;
+            }
+            if (ig == nbsize_local) {
+               printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, ntr);
+#ifdef HAVE_MPI
+               //L7_Terminate();
+#endif
+               //exit(-1);
+            }
+            int nlev = border_cell_level_global[ig];
+            int iii = border_cell_i_global[ig];
+            int jjj = border_cell_j_global[ig];
+            int levmult      = levtable[levmx-nlev];
+            levmultminus = levtable[max(levmx-nlev-1,0)];
+
+            // Multiplying by levmult gets the bottom left cell of the top neighbor. Add
+            // one to that to get the bottom left cell of the top top neighbor
+
+            if (nlev == levmx) {
+               int nrtr = hash_tmp[(jjj*levmult-jminsize)*(imaxsize-iminsize)+(min((iii+1)*levmult-iminsize,imaxcalc-1))];
+               if (nrtr != ntr && nrtr > 0 && (nrtr < start_idx || nrtr >= end_idx) )
+                  offtile_list.push_back(nrtr);
+            } else {
+               // And we need both cells here
+               int nrtr = hash_tmp[((jjj*2)*levmultminus-jminsize)*(imaxsize-iminsize)+(min((iii+1)*2*levmultminus-iminsize,imaxcalc-1))];
+               if (nrtr != ntr && nrtr > 0 && (nrtr < start_idx || nrtr >= end_idx) )
+                  offtile_list.push_back(nrtr);
+               int ntrtr = hash_tmp[(min((jjj*2+1)*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min((iii+1)*2*levmultminus,imaxcalc-1)-iminsize)];
+               if (ntrtr != nrtr && ntrtr > 0 && (ntrtr < start_idx || ntrtr >= end_idx))
+                  offtile_list.push_back(ntrtr);
+            }
          }
       }
 
+
       int nb = nbot_tmp[ic];
+
       if (nb < start_idx || nb >= end_idx) {
          offtile_list.push_back(nb);
          int ig;
@@ -3887,27 +4473,76 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          if (ig == nbsize_local) {
             printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nb);
 #ifdef HAVE_MPI
-            L7_Terminate();
+            //L7_Terminate();
 #endif
-            exit(-1);
+            //exit(-1);
          }
+         // Get the bottom neighbor information
          int nlev = border_cell_level_global[ig];
          int levmult      = levtable[levmx-nlev];
+         int levmultminus = levtable[max(levmx-nlev-1,0)];
          int iii = border_cell_i_global[ig];
          int jjj = border_cell_j_global[ig];
-         //fprintf(fp,"%d: DEBUG nb is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nb, ig, border_cell_num_global[ig], nlev, iii, jjj);
-         int nbb = hash_tmp[((max(  jjj   *levmult-1, 0)         )-jminsize)*(imaxsize-iminsize)+((      iii   *levmult               )-iminsize)];
-         if (nbb != nb && nbb > 0 && (nbb < start_idx || nbb >= end_idx) ) offtile_list.push_back(nbb);
-         if (nlev < levmx) {
-            int levmult      = levtable[levmx-nlev];
-            int levmultminus = levtable[levmx-nlev-1];
 
-            int nrbb = hash_tmp[((max(  jjj     *levmult-1,    0))         -jminsize)*(imaxsize-iminsize)+((min( (iii*2+1)*levmultminus, imaxcalc-1))-iminsize)];
-            if (nrbb != nbb && nrbb > 0 && (nrbb < start_idx || nrbb >= end_idx)) offtile_list.push_back(nrbb);
+         if (nlev == levmx) {
+            // Multiplying by levmult gets the bottom left cell of the bottom neighbor. Subtract
+            // one from that to get the top left cell in the bottom bottom neighbor
+            int nbb = hash_tmp[((max((jjj-1)*levmult, 0))-jminsize)*(imaxsize-iminsize)+((iii*levmult)-iminsize)];
+            if (nbb != nb && nbb > 0 && (nbb < start_idx || nbb >= end_idx) )
+               offtile_list.push_back(nbb);
+         } else {
+            int nbb = hash_tmp[(max((jjj*2-1)*levmultminus, 0)-jminsize)*(imaxsize-iminsize)+(iii*levmult-iminsize)];
+            if (nbb != nb && nbb > 0 && (nbb < start_idx || nbb >= end_idx) )
+               offtile_list.push_back(nbb);
+            int nrbb = hash_tmp[(max((jjj*2-1)*levmultminus, 0)-jminsize)*(imaxsize-iminsize)+((iii*2+1)*levmultminus-iminsize)];
+            if (nrbb != nbb && nrbb > 0 && (nrbb < start_idx || nrbb >= end_idx) )
+               offtile_list.push_back(nrbb);
+         }
+
+      }
+
+      if (lev < levmx) {
+         int levmultminus = levtable[max(levmx-lev-1,0)];
+         int nrb = hash_tmp[(max((jj*2-1)*levmultminus,0)-jminsize)*(imaxsize-iminsize)+(min((ii*2+1)*levmultminus,imaxcalc-1)-iminsize)];
+         if (nrb != nb && nrb > 0 && (nrb < start_idx || nrb >= end_idx) ) {
+            offtile_list.push_back(nrb);
+
+            int ig;
+            for (ig = 0; ig < nbsize_local; ig++) {
+               if (border_cell_num_global[ig] == nrb) break;
+            }
+            if (ig == nbsize_local) {
+               printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nrb);
+#ifdef HAVE_MPI
+               //L7_Terminate();
+#endif
+               //exit(-1);
+            }
+            int nlev = border_cell_level_global[ig];
+            int iii = border_cell_i_global[ig];
+            int jjj = border_cell_j_global[ig];
+            int levmult      = levtable[levmx-nlev];
+            levmultminus = levtable[max(levmx-nlev-1,0)];
+
+            if (nlev == levmx) {
+               int nbrb = hash_tmp[(max((jjj-1)*levmult,0)-jminsize)*(imaxsize-iminsize)+(iii*levmult-iminsize)];
+               if (nbrb != nrb && nbrb > 0 && (nbrb < start_idx || nbrb >= end_idx) )
+                  offtile_list.push_back(nbrb);
+            } else {
+               // And we need both cells here
+               int nbrb = hash_tmp[(max((jjj*2-1)*levmultminus,0)-jminsize)*(imaxsize-iminsize)+((iii*2)*levmultminus-iminsize)];
+               if (nbrb != nrb && nbrb > 0 && (nbrb < start_idx || nbrb >= end_idx) )
+                  offtile_list.push_back(nbrb);
+               int nrbrb = hash_tmp[(max((jjj*2-1)*levmultminus,0)-jminsize)*(imaxsize-iminsize)+(min((iii*2+1)*levmultminus,imaxcalc-1)-iminsize)];
+               if (nrbrb != nbrb && nrbrb > 0 && (nrbrb < start_idx || nrbrb >= end_idx))
+                  offtile_list.push_back(nrbrb);
+            }
+
          }
       }
 
       int nt = ntop_tmp[ic];
+
       if (nt < start_idx || nt >= end_idx) {
          offtile_list.push_back(nt);
          int ig;
@@ -3917,43 +4552,75 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          if (ig == nbsize_local) {
             printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nt);
 #ifdef HAVE_MPI
-            L7_Terminate();
+            //L7_Terminate();
 #endif
-            exit(-1);
+            //exit(-1);
          }
          int nlev = border_cell_level_global[ig];
-         int levmult      = levtable[levmx-nlev];
          int iii = border_cell_i_global[ig];
          int jjj = border_cell_j_global[ig];
-         //fprintf(fp,"%d: DEBUG nt is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nt, ig, border_cell_num_global[ig], nlev, iii, jjj);
-         int ntt = hash_tmp[((min( (jjj+1)*levmult,   jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((      iii   *levmult               )-iminsize)];
-         if (ntt != nt && ntt > 0 && (ntt < start_idx || ntt >= end_idx) ) offtile_list.push_back(ntt);
-         if (nlev < levmx) {
-            int levmult      = levtable[levmx-nlev];
-            int levmultminus = levtable[levmx-nlev-1];
+         int levmult      = levtable[levmx-nlev];
+         int levmultminus = levtable[max(levmx-nlev-1,0)];
 
-            int nrtt = hash_tmp[((min( (jjj+1)  *levmult,      jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((min( (iii*2+1)*levmultminus, imaxcalc-1))-iminsize)];
-            if (nrtt != ntt && nrtt > 0 && (nrtt < start_idx || nrtt >= end_idx)) offtile_list.push_back(nrtt);
+         if (nlev == levmx) {
+            // Multiplying by levmult gets the bottom left cell of the top neighbor. Add
+            // one to that to get the bottom left cell of the top top neighbor
+            int ntt = hash_tmp[((min((jjj+1)*levmult,jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((iii*levmult)-iminsize)];
+            if (ntt != nt && ntt > 0 && (ntt < start_idx || ntt >= end_idx) )
+               offtile_list.push_back(ntt);
+         } else {
+            int ntt = hash_tmp[((min((jjj+1)*levmult,jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((iii*levmult)-iminsize)];
+            if (ntt != nt && ntt > 0 && (ntt < start_idx || ntt >= end_idx) )
+               offtile_list.push_back(ntt);
+
+            int nrtt = hash_tmp[(min((jjj+1)*levmult,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min((iii*2+1)*levmultminus,imaxcalc-1)-iminsize)];
+            if (nrtt != ntt && nrtt > 0 && (nrtt < start_idx || nrtt >= end_idx))
+               offtile_list.push_back(nrtt);
          }
       }
 
       if (lev < levmx) {
-         int levmult      = levtable[levmx-lev];
-         int levmultminus = levtable[levmx-lev-1];
+         int levmultminus = levtable[max(levmx-lev-1,0)];
+         int nrt = hash_tmp[(min((jj+1)*2*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min((ii*2+1)*levmultminus,imaxcalc-1)-iminsize)];
+         if (nrt != nt && nrt > 0 && (nrt < start_idx || nrt >= end_idx) ) {
+            offtile_list.push_back(nrt);
 
-         int ntl = hash_tmp[((min( (jj*2+1)*levmultminus, jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((max(  ii     *levmult-1,    0))         -iminsize)];
-         if (ntl != nt && ntl > 0 && (ntl < start_idx || ntl >= end_idx)) offtile_list.push_back(ntl);
+            int ig;
+            for (ig = 0; ig < nbsize_local; ig++) {
+               if (border_cell_num_global[ig] == nrt) break;
+            }
+            if (ig == nbsize_local) {
+               printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nrt);
+#ifdef HAVE_MPI
+               //L7_Terminate();
+#endif
+               //exit(-1);
+            }
+            int nlev = border_cell_level_global[ig];
+            int iii = border_cell_i_global[ig];
+            int jjj = border_cell_j_global[ig];
+            int levmult      = levtable[levmx-nlev];
+            levmultminus = levtable[max(levmx-nlev-1,0)];
 
-         int ntr = hash_tmp[((min( (jj*2+1)*levmultminus, jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((min( (ii+1)  *levmult,      imaxcalc-1))-iminsize)];
-         if (ntr != nt && ntr > 0 && (ntr < start_idx || ntr >= end_idx)) offtile_list.push_back(ntr);
+            // Multiplying by levmult gets the bottom left cell of the top neighbor. Add
+            // one to that to get the bottom left cell of the top top neighbor
 
-         int nrb = hash_tmp[((max(  jj     *levmult-1,    0))         -jminsize)*(imaxsize-iminsize)+((min( (ii*2+1)*levmultminus, imaxcalc-1))-iminsize)];
-         if (nrb != nt && nrb > 0 && (nrb < start_idx || nrb >= end_idx)) offtile_list.push_back(nrb);
-
-         int nrt = hash_tmp[((min( (jj+1)  *levmult,      jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((min( (ii*2+1)*levmultminus, imaxcalc-1))-iminsize)];
-         if (nrt != nt && nrt > 0 && (nrt < start_idx || nrt >= end_idx)) offtile_list.push_back(nrt);
+            if (nlev == levmx) {
+               int ntrt = hash_tmp[(min((jjj+1)*levmult,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(iii*levmult-iminsize)];
+               if (ntrt != nrt && ntrt > 0 && (ntrt < start_idx || ntrt >= end_idx) )
+                  offtile_list.push_back(ntrt);
+            } else {
+               // And we need both cells here
+               int ntrt = hash_tmp[(min((jjj+1)*2*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+((iii*2)*levmultminus-iminsize)];
+               if (ntrt != nrt && ntrt > 0 && (ntrt < start_idx || ntrt >= end_idx) )
+                  offtile_list.push_back(ntrt);
+               int nrtrt = hash_tmp[(min((jjj+1)*2*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min((iii*2+1)*levmultminus,imaxcalc-1)-iminsize)];
+               if (nrtrt != ntrt && nrtrt > 0 && (nrtrt < start_idx || nrtrt >= end_idx))
+                  offtile_list.push_back(nrtrt);
+            }
+         }
       }
-   }
+   } // ncells loop
 
    sort(offtile_list.begin(), offtile_list.end());
    p_end = unique(offtile_list.begin(), offtile_list.end());
