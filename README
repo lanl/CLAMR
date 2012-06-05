@@ -10,6 +10,9 @@ source [file]	// read this file (in a shell form)
 
 // code checking
 valgrind	// check memory errors
+// To run valgrind with libtool built code
+libtool --mode=execute valgrind --tool=memcheck --leak-check=full --show-reachable=yes --track-origins=yes --leak-resolution=high --num-callers=20 --log-file=vgdump clamr_cpuonly -n 16 -i 1 -t 1
+
 ddd		// debugger
 totalview (there is a module on yellowrail and turing)
 

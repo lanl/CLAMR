@@ -574,6 +574,9 @@ extern "C" void do_calc(void)
       mesh->print_calc_neighbor_type();
       mesh->print_partition_type();
 
+      delete mesh;
+      delete state;
+
       exit(0);
    }  //  Complete final output.
    
