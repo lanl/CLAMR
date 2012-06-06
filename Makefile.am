@@ -2,7 +2,7 @@ bin_PROGRAMS = clamr clamr_gpuonly clamr_cpuonly clamr_mpionly clamr_gpucheck cl
 
 SUBDIRS = l7 kdtree hsfc s7 timer ezcl zorder genmalloc
 
-AM_MAKEFLAGS = -j 4
+AM_MAKEFLAGS = -j
 
 ACLOCAL_AMFLAGS = -I config
 
