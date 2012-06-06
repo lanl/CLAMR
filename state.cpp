@@ -213,13 +213,14 @@ State::State(size_t ncells)
 }
 
 #ifdef HAVE_OPENCL
-void State::init(size_t ncells, cl_context context, int do_gpu_calc)
+void State::init(size_t ncells, cl_context context, int compute_device, int do_gpu_calc)
 #else
 void State::init(size_t ncells, int do_gpu_calc)
 #endif
 {
 #ifdef HAVE_OPENCL
    if (do_gpu_calc) {
+      if (compute_device == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in state\n");
       kernel_set_timestep      = ezcl_create_kernel(context, "wave_kern.cl",      "set_timestep_cl",    0);
       kernel_reduction_min     = ezcl_create_kernel(context, "wave_kern.cl",      "finish_reduction_min_cl",  0);
       kernel_copy_state_data   = ezcl_create_kernel(context, "wave_kern_calc.cl", "copy_state_data_cl",  0);
@@ -234,6 +235,7 @@ void State::init(size_t ncells, int do_gpu_calc)
       kernel_reduce_epsum_mass_stage1of2 = ezcl_create_kernel(context, "wave_kern.cl", "reduce_epsum_mass_stage1of2_cl",  0);
       kernel_reduce_epsum_mass_stage2of2 = ezcl_create_kernel(context, "wave_kern.cl", "reduce_epsum_mass_stage2of2_cl",  0);
       kernel_set_boundary_refinement = ezcl_create_kernel(context, "wave_kern_calc.cl", "set_boundary_refinement",  0);
+      if (compute_device == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in state\n");
    }
 #endif
 
@@ -661,21 +663,22 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_timestep, 1, NULL, &global_work_size, &local_work_size, &set_timestep_event);
 
-      /*
-      __kernel void finish_reduction_min_cl(
-        const    int    isize,
-        __global real  *redscratch,
-        __global real  *deltaT,
-        __local  real  *tile)
-      */
-   ezcl_set_kernel_arg(kernel_reduction_min, 0, sizeof(cl_int),  (void *)&block_size);
-   ezcl_set_kernel_arg(kernel_reduction_min, 1, sizeof(cl_mem),  (void *)&dev_redscratch);
-   ezcl_set_kernel_arg(kernel_reduction_min, 2, sizeof(cl_mem),  (void *)&dev_deltaT);
-   ezcl_set_kernel_arg(kernel_reduction_min, 3, local_work_size*sizeof(cl_real), NULL);
-
    if (block_size > 1){
+         /*
+         __kernel void finish_reduction_min_cl(
+           const    int    isize,
+           __global real  *redscratch,
+           __global real  *deltaT,
+           __local  real  *tile)
+         */
+      ezcl_set_kernel_arg(kernel_reduction_min, 0, sizeof(cl_int),  (void *)&block_size);
+      ezcl_set_kernel_arg(kernel_reduction_min, 1, sizeof(cl_mem),  (void *)&dev_redscratch);
+      ezcl_set_kernel_arg(kernel_reduction_min, 2, sizeof(cl_mem),  (void *)&dev_deltaT);
+      ezcl_set_kernel_arg(kernel_reduction_min, 3, local_work_size*sizeof(cl_real), NULL);
+
      ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduction_min, 1, NULL, &local_work_size, &local_work_size, &reduction_min_event);
    }
+
    real deltaT_local;
    ezcl_enqueue_read_buffer(command_queue, dev_deltaT, CL_TRUE,  0, sizeof(cl_real), &deltaT_local, &start_read_event);
    deltaT = deltaT_local;
@@ -3474,19 +3477,19 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, &mass_sum_stage1_event);
 
-        /*
-        __kernel void reduce_sum_cl(
-                         const int    isize,      // 0
-                __global       int   *redscratch, // 1   Array to be reduced.
-                __local        real  *tile)       // 2
-        */
-
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 3, local_work_size*sizeof(cl_real), NULL);
-
       if (block_size > 1) {
+           /*
+           __kernel void reduce_sum_cl(
+                            const int    isize,      // 0
+                   __global       int   *redscratch, // 1   Array to be reduced.
+                   __local        real  *tile)       // 2
+           */
+
+         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
+         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
+         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
+         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 3, local_work_size*sizeof(cl_real), NULL);
+
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage2of2, 1, NULL, &local_work_size, &local_work_size, &mass_sum_stage2_event);
       }
 

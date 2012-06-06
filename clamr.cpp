@@ -159,6 +159,7 @@ static cl_event start_write_event, end_write_event;
 
 static cl_context          context                 = NULL;
 static cl_command_queue    command_queue           = NULL;
+static int compute_device = 0;
 
 static double  H_sum_initial = 0.0;
 
@@ -175,9 +176,9 @@ int main(int argc, char **argv) {
    //MPI_Comm_size(MPI_COMM_WORLD, &numpe);
    //MPI_Comm_rank(MPI_COMM_WORLD, &mype);
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &context, &command_queue, mype);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &context, &command_queue, &compute_device, mype);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &context, &command_queue, mype);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &context, &command_queue, &compute_device, mype);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -193,10 +194,10 @@ int main(int argc, char **argv) {
    if (special_case) circ_radius = .75;
 
    mesh_global  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
-   mesh_global->init(nx, ny, circ_radius, context, initial_order, special_case, do_gpu_calc);
+   mesh_global->init(nx, ny, circ_radius, context, initial_order, special_case, compute_device, do_gpu_calc);
    size_t &ncells_global = mesh_global->ncells;
    state_global = new State(ncells_global, context);
-   state_global->init(ncells_global, context, do_gpu_calc);
+   state_global->init(ncells_global, context, compute_device, do_gpu_calc);
    mesh_global->proc.resize(ncells_global);
    mesh_global->calc_distribution(numpe, mesh_global->proc);
    state_global->fill_circle(mesh_global, circ_radius, 100.0, 5.0);

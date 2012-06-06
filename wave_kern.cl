@@ -475,7 +475,6 @@ __kernel void rezone_all_cl(
                   in_direction = 'E';
                }
 
-
                // Left Out
                if( (djr_out == 0 && (dir_out == crf*HALF || dir_out == crf || dir_out == crf*TWO)) || (djr_out == -crf*HALF && dir_out == crf*HALF) || (djr_out == crf && dir_out == crf*TWO) ) {
                   out_direction = 'L';
@@ -637,6 +636,7 @@ __kernel void rezone_all_cl(
          } // End local stencil version
 
          for (int ii = 0; ii < 4; ii++){
+#ifdef IS_NVIDIA
             switch (order[ii]) {
             case SW:
                 // lower left
@@ -659,6 +659,7 @@ __kernel void rezone_all_cl(
                 j_new[indexval+ii] = jval*2+1;
                 break;
             }
+#endif
          }
       } else if (ctype == LEFT_BOUNDARY) {
          i_new[indexval]   = ival*2+1;

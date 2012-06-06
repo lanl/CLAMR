@@ -1102,14 +1102,28 @@ __kernel void calc_finite_difference_cl(
                        Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                   - wminusy_V + wplusy_V;
 
+#ifdef ATI
+   // ATI fails on correction terms
+   Hic += -(deltaT / dxic)*(Hxfluxplus - Hxfluxminus + Hyfluxplus - Hyfluxminus);
+   //Hic += -wminusx_H + wplusx_H - wminusy_H + wplusy_H;
+
+   Uic += -(deltaT / dxic)*(Uxfluxplus - Uxfluxminus + Uyfluxplus - Uyfluxminus);
+   //Uic += - wminusx_U + wplusx_U;
+
+   Vic += -(deltaT / dxic)*(Vxfluxplus - Vxfluxminus + Vyfluxplus - Vyfluxminus);
+   //Vic += - wminusy_V + wplusy_V;
+#endif
+
 // XXX How does this barrier effect the finite difference calculation? XXX
    barrier(CLK_LOCAL_MEM_FENCE);
    
 
     //  Write values for the main cell back to global memory.
+#ifdef IS_NVIDIA
     H_new[giX] = Hic;
     U_new[giX] = Uic;
     V_new[giX] = Vic;
+#endif
 
 //////////////////////////////////////////////////////////////////
 ////////////////////          END           //////////////////////
@@ -1407,6 +1421,7 @@ __kernel void refine_potential_cl(
        {   mpotval = 1; }
     }
     
+#ifdef IS_NVIDIA
     itile[tiX].s0 = mpotval ? cell_add : 1;
 
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -1444,6 +1459,7 @@ __kernel void refine_potential_cl(
     //  Put the mesh potential on the global array.
     mpot[giX] = mpotval; /**/
 
+#endif
 }
 
 // XXX Refinement Smoothing XXX
