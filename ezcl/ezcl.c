@@ -458,7 +458,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_contex
    char info[1024];
 
    *compute_device = 0;
-   clGetDeviceInfo(device, CL_DEVICE_VENDOR, sizeof(info), &info, NULL);
+   clGetDeviceInfo(devices[0], CL_DEVICE_VENDOR, sizeof(info), &info, NULL);
    if (! strncmp(info,"NVIDIA",6) ) *compute_device = COMPUTE_DEVICE_NVIDIA;
    //printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,*compute_device);
    my_compute_device = *compute_device;
