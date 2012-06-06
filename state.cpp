@@ -3431,19 +3431,19 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, &mass_sum_stage1_event);
 
-        /*
-        __kernel void reduce_sum_cl(
-                         const int    isize,      // 0
-                __global       int   *redscratch, // 1   Array to be reduced.
-                __local        real  *tile)       // 2
-        */
-
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 3, local_work_size*sizeof(cl_real2), NULL);
-
       if (block_size > 1) {
+           /*
+           __kernel void reduce_sum_cl(
+                            const int    isize,      // 0
+                   __global       int   *redscratch, // 1   Array to be reduced.
+                   __local        real  *tile)       // 2
+           */
+
+         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
+         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
+         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
+         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 3, local_work_size*sizeof(cl_real2), NULL);
+
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage2of2, 1, NULL, &local_work_size, &local_work_size, &mass_sum_stage2_event);
       }
 
@@ -3566,19 +3566,19 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, &mass_sum_stage1_event);
 
-        /*
-        __kernel void reduce_sum_cl(
-                         const int    isize,      // 0
-                __global       int   *redscratch, // 1   Array to be reduced.
-                __local        real  *tile)       // 2
-        */
-
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 3, local_work_size*sizeof(cl_real2), NULL);
-
       if (block_size > 1) {
+           /*
+           __kernel void reduce_sum_cl(
+                            const int    isize,      // 0
+                   __global       int   *redscratch, // 1   Array to be reduced.
+                   __local        real  *tile)       // 2
+           */
+
+         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
+         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
+         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
+         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 3, local_work_size*sizeof(cl_real2), NULL);
+
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage2of2, 1, NULL, &local_work_size, &local_work_size, &mass_sum_stage2_event);
       }
 
@@ -3621,19 +3621,19 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, &mass_sum_stage1_event);
 
-        /*
-        __kernel void reduce_sum_cl(
-                         const int    isize,      // 0
-                __global       int   *redscratch, // 1   Array to be reduced.
-                __local        real  *tile)       // 2
-        */
-
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 3, local_work_size*sizeof(cl_real), NULL);
-
       if (block_size > 1) {
+           /*
+           __kernel void reduce_sum_cl(
+                            const int    isize,      // 0
+                   __global       int   *redscratch, // 1   Array to be reduced.
+                   __local        real  *tile)       // 2
+           */
+
+         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
+         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
+         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
+         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 3, local_work_size*sizeof(cl_real), NULL);
+
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage2of2, 1, NULL, &local_work_size, &local_work_size, &mass_sum_stage2_event);
       }
 
