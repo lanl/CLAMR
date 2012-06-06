@@ -1092,13 +1092,15 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, bool special_case, int do_gpu_calc)
+void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, bool special_case, int compute_device, int do_gpu_calc)
 #else
 void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_order, bool special_case, int do_gpu_calc)
 #endif
 {
 #ifdef HAVE_OPENCL
    if (do_gpu_calc) {
+      if (compute_device == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in mesh\n");
+
       kernel_reduction_scan    = ezcl_create_kernel(context, "wave_kern_calc.cl", "finish_reduction_scan_cl", 0);
       kernel_hash_init         = ezcl_create_kernel(context, "wave_kern.cl",      "hash_init_cl",             0);
       kernel_hash_init_corners = ezcl_create_kernel(context, "wave_kern.cl",      "hash_init_corners_cl",      0);
@@ -1119,7 +1121,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       if (! have_boundary){
         kernel_count_BCs       = ezcl_create_kernel(context, "wave_kern.cl",      "count_BCs_cl",             0);
       }
-
+      if (compute_device == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in mesh\n");
    }
 #endif
 

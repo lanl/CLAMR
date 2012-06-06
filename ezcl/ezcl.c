@@ -79,6 +79,7 @@ static cl_command_queue command_queue;
 static cl_context       context;
 static cl_program       program;
 static cl_platform_id   platform = NULL;
+static int              my_compute_device = 0;
 
 SLIST_HEAD(slist_device_memory_head, device_memory_entry) device_memory_head = SLIST_HEAD_INITIALIZER(device_memory_head);
 struct slist_device_memory_head *device_memory_headp;
@@ -286,7 +287,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
    return(0);
 }
 
-cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_context, cl_command_queue *return_command_queue, const int mype, const char *file, int line){
+cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_context, cl_command_queue *return_command_queue, int *compute_device, const int mype, const char *file, int line){
    cl_device_id device;
    int ierr;
 
@@ -453,6 +454,14 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_contex
    if (DEBUG == 2){
       ezcl_device_info(device);
    }
+
+   char info[1024];
+
+   *compute_device = 0;
+   clGetDeviceInfo(device, CL_DEVICE_VENDOR, sizeof(info), &info, NULL);
+   if (! strncmp(info,"NVIDIA",6) ) *compute_device = COMPUTE_DEVICE_NVIDIA;
+   //printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,*compute_device);
+   my_compute_device = *compute_device;
 
    command_queue = ezcl_create_command_queue(context, mype);
    *return_command_queue = ezcl_get_command_queue();
@@ -901,9 +910,17 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
    }
    
 #ifdef HAVE_CL_DOUBLE
-   ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE", NULL, NULL);
+   if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
+      ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
+   } else {
+      ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE", NULL, NULL);
+   }
 #else
-   ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE", NULL, NULL);
+   if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
+      ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
+   } else {
+      ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE", NULL, NULL);
+   }
 #endif
    if (ierr != CL_SUCCESS){
       printf("EZCL_CREATE_KERNEL: clBuildProgram returned an error %d in file %s at line %d\n",ierr, file, line);

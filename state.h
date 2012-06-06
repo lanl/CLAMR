@@ -116,7 +116,7 @@ public:
    State(const State&); // To block copy constructor so copies are not made inadvertently
 
 #ifdef HAVE_OPENCL
-   void init(size_t ncells, cl_context context, int do_gpu_calc);
+   void init(size_t ncells, cl_context context, int compute_device, int do_gpu_calc);
 #else
    void init(size_t ncells, int do_gpu_calc);
 #endif

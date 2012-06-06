@@ -148,6 +148,7 @@ static cl_event start_write_event, end_write_event,
 
 static cl_context          context                 = NULL;
 static cl_command_queue    command_queue           = NULL;
+static int compute_device = 0;
 
 static double H_sum_initial = 0.0;
 
@@ -163,9 +164,9 @@ int main(int argc, char **argv) {
    
    numpe = 16;
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &context, &command_queue, 0);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &context, &command_queue, &compute_device, 0);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &context, &command_queue, 0);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &context, &command_queue, &compute_device, 0);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -179,10 +180,10 @@ int main(int argc, char **argv) {
    int parallel_in = 0;
    
    mesh  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
-   mesh->init(nx, ny, circ_radius, context, initial_order, special_case, do_gpu_calc);
+   mesh->init(nx, ny, circ_radius, context, initial_order, special_case, compute_device, do_gpu_calc);
    size_t &ncells = mesh->ncells;
    state = new State(ncells, context);
-   state->init(ncells, context, do_gpu_calc);
+   state->init(ncells, context, compute_device, do_gpu_calc);
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe, mesh->proc);
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
@@ -238,6 +239,8 @@ int main(int argc, char **argv) {
    dev_i_new        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
    dev_j_new        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
    dev_level_new    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+
+   if (compute_device == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
@@ -408,6 +411,12 @@ extern "C" void do_calc(void)
             }
          }  //  Complete NAN check.
       
+      }
+
+      if (compute_device == COMPUTE_DEVICE_ATI) {
+         printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
+         fflush(stdout);
+         exit(0);
       }
 
       cl_mem dev_ioffset  = ezcl_malloc(NULL, &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
