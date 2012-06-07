@@ -4909,9 +4909,17 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::gpu_count_BCs(cl_command_queue command_queue, size_t block_size, size_t local_work_size, size_t global_work_size, cl_mem dev_ioffset, int *bcount)
+void Mesh::gpu_count_BCs(cl_command_queue command_queue, int *bcount)
 {
    cl_event count_BCs_stage1_event, count_BCs_stage2_event;
+
+   size_t local_work_size  = MIN(ncells, TILE_SIZE);
+   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+
+   //size_t block_size = (ncells + TILE_SIZE - 1) / TILE_SIZE; //  For on-device global reduction kernel.
+   size_t block_size     = global_work_size/local_work_size;
+
+   cl_mem dev_ioffset  = ezcl_malloc(NULL, &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
    if (! have_boundary) {
        /*
@@ -4953,6 +4961,8 @@ void Mesh::gpu_count_BCs(cl_command_queue command_queue, size_t block_size, size
  
       //printf("DEBUG -- bcount is %d\n",bcount);
       //state->gpu_time_read += ezcl_timer_calc(&start_read_event, &start_read_event);
+
+      ezcl_device_memory_remove(dev_ioffset);
 
       gpu_time_count_BCs        += ezcl_timer_calc(&count_BCs_stage1_event, &count_BCs_stage1_event);
       if (block_size > 1) {

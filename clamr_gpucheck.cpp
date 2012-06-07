@@ -228,6 +228,8 @@ int main(int argc, char **argv) {
    dev_j_new        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
    dev_level_new    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
 
+   if (compute_device == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
+
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
@@ -396,6 +398,12 @@ extern "C" void do_calc(void)
          state->compare_state_gpu_global_to_cpu_global(command_queue,"finite difference",ncycle,ncells);
       }
 
+      if (compute_device == COMPUTE_DEVICE_ATI) {
+         printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
+         fflush(stdout);
+         exit(0);
+      }
+
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       state->remove_boundary_cells(mesh);
       
@@ -512,6 +520,8 @@ extern "C" void do_calc(void)
          state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil, dev_ioffset);
       }
 
+      ezcl_device_memory_remove(dev_ioffset);
+
       if (do_comparison_calc) {
          state->compare_state_gpu_global_to_cpu_global(command_queue,"rezone all",ncycle,ncells);
 
@@ -520,7 +530,7 @@ extern "C" void do_calc(void)
 
       if (do_gpu_calc) {
          int bcount = 0;
-         mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset, &bcount);
+         mesh->gpu_count_BCs(command_queue, &bcount);
       }
 
       if (do_gpu_calc) {
@@ -534,8 +544,6 @@ extern "C" void do_calc(void)
             level.resize(ncells);
          }
       }
-
-      ezcl_device_memory_remove(dev_ioffset);
 
       H_sum = -1.0;
 

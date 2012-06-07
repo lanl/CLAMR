@@ -447,9 +447,11 @@ extern "C" void do_calc(void)
          mesh->compare_indices_gpu_global_to_cpu_global(command_queue);
       }
 
+      ezcl_device_memory_remove(dev_ioffset);
+
       if (do_comparison_calc) {
          int bcount = 0;
-         mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset, &bcount);
+         mesh->gpu_count_BCs(command_queue, &bcount);
       }
 
       if (do_comparison_calc) {
@@ -463,8 +465,6 @@ extern "C" void do_calc(void)
             level.resize(ncells);
          }
       }
-
-      ezcl_device_memory_remove(dev_ioffset);
 
       H_sum = -1.0;
 

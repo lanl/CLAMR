@@ -322,7 +322,7 @@ public:
 #endif
    void calc_distribution(int numpe, vector<int> &proc);
 #ifdef HAVE_OPENCL
-   void gpu_count_BCs(cl_command_queue command_queue, size_t block_size, size_t local_work_size, size_t global_work_size, cl_mem dev_ioffset, int *bcount);
+   void gpu_count_BCs(cl_command_queue command_queue, int *bcount);
 #endif
 
 private:
