@@ -604,15 +604,6 @@ extern "C" void do_calc(void)
          L7_Update(&H[0], L7_REAL, cell_handle);
          L7_Update(&U[0], L7_REAL, cell_handle);
          L7_Update(&V[0], L7_REAL, cell_handle);
-
-         x.resize(ncells_ghost,0.0);
-         dx.resize(ncells_ghost,0.0);
-         y.resize(ncells_ghost,0.0);
-         dy.resize(ncells_ghost,0.0);
-         L7_Update(&x[0], L7_REAL, cell_handle);
-         L7_Update(&dx[0], L7_REAL, cell_handle);
-         L7_Update(&y[0], L7_REAL, cell_handle);
-         L7_Update(&dy[0], L7_REAL, cell_handle);
       }
 
       if (do_gpu_calc) {
