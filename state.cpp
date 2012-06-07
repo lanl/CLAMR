@@ -2902,6 +2902,11 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
       }
 */
 
+   nlft.clear();
+   nrht.clear();
+   nbot.clear();
+   ntop.clear();
+
    cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
 }
 
@@ -3058,6 +3063,11 @@ void State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_boundary_refinement, 1, NULL, &global_work_size, &local_work_size, &set_boundary_refinement_event);
 
    mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+
+   ezcl_device_memory_remove(dev_nlft);
+   ezcl_device_memory_remove(dev_nrht);
+   ezcl_device_memory_remove(dev_nbot);
+   ezcl_device_memory_remove(dev_ntop);
 
    gpu_time_refine_potential  += ezcl_timer_calc(&refine_potential_event,  &refine_potential_event);
    gpu_time_refine_potential  += ezcl_timer_calc(&set_boundary_refinement_event,  &set_boundary_refinement_event);
@@ -3306,6 +3316,11 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_boundary_refinement, 1, NULL, &global_work_size, &local_work_size, &set_boundary_refinement_event);
 
    mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+
+   ezcl_device_memory_remove(dev_nlft);
+   ezcl_device_memory_remove(dev_nrht);
+   ezcl_device_memory_remove(dev_nbot);
+   ezcl_device_memory_remove(dev_ntop);
 
    gpu_time_refine_potential  += ezcl_timer_calc(&copy_mpot_ghost_data_event,  &copy_mpot_ghost_data_event);
    gpu_time_refine_potential  += ezcl_timer_calc(&refine_potential_event,  &refine_potential_event);

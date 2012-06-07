@@ -465,19 +465,11 @@ extern "C" void do_calc(void)
    vector<int>   &i_global        = mesh_global->i;
    vector<int>   &j_global        = mesh_global->j;
    vector<int>   &level_global    = mesh_global->level;
-   vector<int>   &nlft_global     = mesh_global->nlft;
-   vector<int>   &nrht_global     = mesh_global->nrht;
-   vector<int>   &nbot_global     = mesh_global->nbot;
-   vector<int>   &ntop_global     = mesh_global->ntop;
 
    vector<int>   &celltype = mesh_local->celltype;
    vector<int>   &i        = mesh_local->i;
    vector<int>   &j        = mesh_local->j;
    vector<int>   &level    = mesh_local->level;
-   vector<int>   &nlft     = mesh_local->nlft;
-   vector<int>   &nrht     = mesh_local->nrht;
-   vector<int>   &nbot     = mesh_local->nbot;
-   vector<int>   &ntop     = mesh_local->ntop;
 
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh_global->ncells;
@@ -515,10 +507,6 @@ extern "C" void do_calc(void)
    cl_mem &dev_i_global        = mesh_global->dev_i;
    cl_mem &dev_j_global        = mesh_global->dev_j;
    cl_mem &dev_level_global    = mesh_global->dev_level;
-   cl_mem &dev_nlft_global     = mesh_global->dev_nlft;
-   cl_mem &dev_nrht_global     = mesh_global->dev_nrht;
-   cl_mem &dev_nbot_global     = mesh_global->dev_nbot;
-   cl_mem &dev_ntop_global     = mesh_global->dev_ntop;
 
    cl_mem &dev_mpot_global     = mesh_global->dev_mpot;
 
@@ -526,10 +514,6 @@ extern "C" void do_calc(void)
    cl_mem &dev_i        = mesh_local->dev_i;
    cl_mem &dev_j        = mesh_local->dev_j;
    cl_mem &dev_level    = mesh_local->dev_level;
-   cl_mem &dev_nlft     = mesh_local->dev_nlft;
-   cl_mem &dev_nrht     = mesh_local->dev_nrht;
-   cl_mem &dev_nbot     = mesh_local->dev_nbot;
-   cl_mem &dev_ntop     = mesh_local->dev_ntop;
 
    cl_mem &dev_mpot     = mesh_local->dev_mpot;
 
@@ -701,14 +685,6 @@ extern "C" void do_calc(void)
          mpot_global.resize(ncells_global);
          state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
          state_local->calc_refine_potential(mesh_local, mpot, icount, jcount);
-         nlft.clear();
-         nrht.clear();
-         nbot.clear();
-         ntop.clear();
-         nlft_global.clear();
-         nrht_global.clear();
-         nbot_global.clear();
-         ntop_global.clear();
       }  //  Complete CPU calculation.
 
       size_t result_size = 1;
@@ -722,15 +698,6 @@ extern "C" void do_calc(void)
  
          state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_result_global, dev_ioffset_global);
          state_local->gpu_calc_refine_potential_local(command_queue, mesh_local, dev_result, dev_ioffset);
-
-         ezcl_device_memory_remove(dev_nlft);
-         ezcl_device_memory_remove(dev_nrht);
-         ezcl_device_memory_remove(dev_nbot);
-         ezcl_device_memory_remove(dev_ntop);
-         ezcl_device_memory_remove(dev_nlft_global);
-         ezcl_device_memory_remove(dev_nrht_global);
-         ezcl_device_memory_remove(dev_nbot_global);
-         ezcl_device_memory_remove(dev_ntop_global);
       }
       
       if (do_comparison_calc) {

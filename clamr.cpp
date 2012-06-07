@@ -452,19 +452,11 @@ extern "C" void do_calc(void)
    vector<int>   &i_global        = mesh_global->i;
    vector<int>   &j_global        = mesh_global->j;
    vector<int>   &level_global    = mesh_global->level;
-   vector<int>   &nlft_global     = mesh_global->nlft;
-   vector<int>   &nrht_global     = mesh_global->nrht;
-   vector<int>   &nbot_global     = mesh_global->nbot;
-   vector<int>   &ntop_global     = mesh_global->ntop;
 
    vector<int>   &celltype = mesh->celltype;
    vector<int>   &i        = mesh->i;
    vector<int>   &j        = mesh->j;
    vector<int>   &level    = mesh->level;
-   vector<int>   &nlft     = mesh->nlft;
-   vector<int>   &nrht     = mesh->nrht;
-   vector<int>   &nbot     = mesh->nbot;
-   vector<int>   &ntop     = mesh->ntop;
 
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh_global->ncells;
@@ -498,17 +490,7 @@ extern "C" void do_calc(void)
    cl_mem &dev_U  = state->dev_U;
    cl_mem &dev_V  = state->dev_V;
 
-   cl_mem &dev_nlft_global     = mesh_global->dev_nlft;
-   cl_mem &dev_nrht_global     = mesh_global->dev_nrht;
-   cl_mem &dev_nbot_global     = mesh_global->dev_nbot;
-   cl_mem &dev_ntop_global     = mesh_global->dev_ntop;
-
    cl_mem &dev_mpot_global     = mesh_global->dev_mpot;
-
-   cl_mem &dev_nlft     = mesh->dev_nlft;
-   cl_mem &dev_nrht     = mesh->dev_nrht;
-   cl_mem &dev_nbot     = mesh->dev_nbot;
-   cl_mem &dev_ntop     = mesh->dev_ntop;
 
    cl_mem &dev_mpot     = mesh->dev_mpot;
 
@@ -672,31 +654,13 @@ extern "C" void do_calc(void)
       // Should not need this call! -- 
       state->gpu_calc_refine_potential_local(command_queue, mesh, dev_result, dev_ioffset);
 
-
-      ezcl_device_memory_remove(dev_nlft);
-      ezcl_device_memory_remove(dev_nrht);
-      ezcl_device_memory_remove(dev_nbot);
-      ezcl_device_memory_remove(dev_ntop);
-
       if (do_comparison_calc) {
          mpot.resize(ncells_ghost);
          mpot_global.resize(ncells_global);
          state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
          state->calc_refine_potential(mesh, mpot, icount, jcount);
-         nlft.clear();
-         nrht.clear();
-         nbot.clear();
-         ntop.clear();
-         nlft_global.clear();
-         nrht_global.clear();
-         nbot_global.clear();
-         ntop_global.clear();
 
          state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_result_global, dev_ioffset_global);
-         ezcl_device_memory_remove(dev_nlft_global);
-         ezcl_device_memory_remove(dev_nrht_global);
-         ezcl_device_memory_remove(dev_nbot_global);
-         ezcl_device_memory_remove(dev_ntop_global);
       
          int icount_test;
          MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);

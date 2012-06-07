@@ -308,10 +308,6 @@ extern "C" void do_calc(void)
    vector<int>   &i        = mesh->i;
    vector<int>   &j        = mesh->j;
    vector<int>   &level    = mesh->level;
-   vector<int>   &nlft     = mesh->nlft;
-   vector<int>   &nrht     = mesh->nrht;
-   vector<int>   &nbot     = mesh->nbot;
-   vector<int>   &ntop     = mesh->ntop;
 
    size_t &ncells    = mesh->ncells;
 
@@ -332,10 +328,6 @@ extern "C" void do_calc(void)
    cl_mem &dev_i        = mesh->dev_i;
    cl_mem &dev_j        = mesh->dev_j;
    cl_mem &dev_level    = mesh->dev_level;
-   cl_mem &dev_nlft     = mesh->dev_nlft;
-   cl_mem &dev_nrht     = mesh->dev_nrht;
-   cl_mem &dev_nbot     = mesh->dev_nbot;
-   cl_mem &dev_ntop     = mesh->dev_ntop;
 
    cl_mem &dev_mpot     = mesh->dev_mpot;
 
@@ -416,11 +408,6 @@ extern "C" void do_calc(void)
       mpot.resize(ncells);
       state->calc_refine_potential(mesh, mpot, icount, jcount);
 
-      nlft.clear();
-      nrht.clear();
-      nbot.clear();
-      ntop.clear();
-
       cl_mem dev_ioffset=NULL;
 
       size_t result_size = 1;
@@ -432,11 +419,6 @@ extern "C" void do_calc(void)
  
          state->gpu_calc_refine_potential(command_queue, mesh, dev_result, dev_ioffset);
 
-         ezcl_device_memory_remove(dev_nlft);
-         ezcl_device_memory_remove(dev_nrht);
-         ezcl_device_memory_remove(dev_nbot);
-         ezcl_device_memory_remove(dev_ntop);
-      
          // Need to compare dev_mpot to mpot
          mesh->compare_mpot_gpu_global_to_cpu_global(command_queue, &mpot[0], dev_mpot);
 

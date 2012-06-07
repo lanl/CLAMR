@@ -323,16 +323,6 @@ extern "C" void do_calc(void)
    vector<int>   &nsizes   = mesh_global->nsizes;
    vector<int>   &ndispl   = mesh_global->ndispl;
 
-   vector<int>   &nlft_global     = mesh_global->nlft;
-   vector<int>   &nrht_global     = mesh_global->nrht;
-   vector<int>   &nbot_global     = mesh_global->nbot;
-   vector<int>   &ntop_global     = mesh_global->ntop;
-
-   vector<int>   &nlft     = mesh->nlft;
-   vector<int>   &nrht     = mesh->nrht;
-   vector<int>   &nbot     = mesh->nbot;
-   vector<int>   &ntop     = mesh->ntop;
-
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh_global->ncells;
    size_t &ncells           = mesh->ncells;
@@ -467,18 +457,10 @@ extern "C" void do_calc(void)
       
       mpot.resize(ncells_ghost);
       state->calc_refine_potential(mesh, mpot, icount, jcount);
-      nlft.clear();
-      nrht.clear();
-      nbot.clear();
-      ntop.clear();
   
       if (do_comparison_calc) {
          mpot_global.resize(ncells_global);
          state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
-         nlft_global.clear();
-         nrht_global.clear();
-         nbot_global.clear();
-         ntop_global.clear();
 
          int icount_test;
          MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
