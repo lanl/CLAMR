@@ -285,7 +285,12 @@ int main(int argc, char **argv) {
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);
-   MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+
+   for (int ip=0; ip<numpe; ip++){
+      nsizes[ip] = ncells_global/numpe;
+      if (ip < ncells_global%numpe) nsizes[ip]++;
+   }
+
    ndispl[0]=0;
    for (int ip=1; ip<numpe; ip++){
       ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
@@ -294,6 +299,7 @@ int main(int argc, char **argv) {
    for (int ip=0; ip<mype; ip++){
      noffset += nsizes[ip];
    }
+
 
    size_t corners_size = corners_i_global.size();
 
