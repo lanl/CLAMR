@@ -211,11 +211,6 @@ int main(int argc, char **argv) {
    vector<real>  &U        = state->U;
    vector<real>  &V        = state->V;
 
-   vector<real>  &x        = mesh->x;
-   vector<real>  &dx       = mesh->dx;
-   vector<real>  &y        = mesh->y;
-   vector<real>  &dy       = mesh->dy;
-
    state->allocate_device_memory(ncells);
 
    size_t one = 1;
@@ -260,7 +255,7 @@ int main(int argc, char **argv) {
    set_window(mesh->xmin, mesh->xmax, mesh->ymin, mesh->ymax);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
-   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
    set_cell_data(&H[0]);
    set_cell_proc(&mesh->proc[0]);
    set_circle_radius(circle_radius);
@@ -270,6 +265,9 @@ int main(int argc, char **argv) {
 
    //  Set flag to show mesh results rather than domain decomposition.
    view_mode = 1;
+   set_cell_proc(NULL);
+   mesh->proc.clear();
+   mesh->index.clear();
    //  Clear superposition of circle on grid output.
    circle_radius = -1.0;
 
@@ -307,11 +305,6 @@ extern "C" void do_calc(void)
    vector<int>   &level    = mesh->level;
 
    size_t &ncells    = mesh->ncells;
-
-   vector<real>  &x        = mesh->x;
-   vector<real>  &dx       = mesh->dx;
-   vector<real>  &y        = mesh->y;
-   vector<real>  &dy       = mesh->dy;
 
    vector<real>  &H        = state->H;
    vector<real>  &U        = state->U;
@@ -514,16 +507,16 @@ extern "C" void do_calc(void)
    mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
 
    if (! do_comparison_calc) {
-      x.resize(ncells);
-      dx.resize(ncells);
-      y.resize(ncells);
-      dy.resize(ncells);
+      mesh->x.resize(ncells);
+      mesh->dx.resize(ncells);
+      mesh->y.resize(ncells);
+      mesh->dy.resize(ncells);
       H.resize(ncells);
 
-      ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x[0],  &start_read_event);
-      ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y[0],  NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dy[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->x[0],  &start_read_event);
+      ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->dx[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->y[0],  NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->dy[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H[0],  &end_read_event);
 
       state->gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
@@ -542,9 +535,9 @@ extern "C" void do_calc(void)
 
    set_mysize(ncells);
    set_viewmode(view_mode);
-   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
    set_cell_data(&H[0]);
-   set_cell_proc(&mesh->proc[0]);
+   set_cell_proc(NULL);
    set_circle_radius(circle_radius);
    draw_scene();
 #endif

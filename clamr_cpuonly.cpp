@@ -213,11 +213,6 @@ int main(int argc, char **argv) {
    vector<real>  &U        = state->U;
    vector<real>  &V        = state->V;
 
-   vector<real>  &x        = mesh->x;
-   vector<real>  &dx       = mesh->dx;
-   vector<real>  &y        = mesh->y;
-   vector<real>  &dy       = mesh->dy;
-
    if (do_gpu_calc) {
       state->allocate_device_memory(ncells);
 
@@ -262,7 +257,7 @@ int main(int argc, char **argv) {
    set_window(mesh->xmin, mesh->xmax, mesh->ymin, mesh->ymax);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
-   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
    set_cell_data(&H[0]);
    set_cell_proc(&mesh->proc[0]);
    set_circle_radius(circle_radius);
@@ -310,11 +305,6 @@ extern "C" void do_calc(void)
    vector<int>   &level    = mesh->level;
 
    size_t &ncells    = mesh->ncells;
-
-   vector<real>  &x        = mesh->x;
-   vector<real>  &dx       = mesh->dx;
-   vector<real>  &y        = mesh->y;
-   vector<real>  &dy       = mesh->dy;
 
    vector<real>  &H        = state->H;
    vector<real>  &U        = state->U;
@@ -537,7 +527,7 @@ extern "C" void do_calc(void)
 
    set_mysize(ncells);
    set_viewmode(view_mode);
-   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
    set_cell_data(&H[0]);
    set_cell_proc(&mesh->proc[0]);
    set_circle_radius(circle_radius);
