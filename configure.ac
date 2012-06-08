@@ -21,31 +21,31 @@ echo "Configuring Clamr with $ac_configure_args"
 #
 
 AC_ARG_ENABLE( debug,
- [--enable-debug                     - Compiles code with debug flags ],
+ [  --enable-debug          compiles code with debug flags ],
  )
 
 AC_ARG_ENABLE( bounds-check,
- [--enable-bounds-check              - Compiles code with bounds check flags ],
+ [  --enable-bounds-check   compiles code with bounds check flags ],
  )
 
 AC_ARG_ENABLE( prof,
- [--enable-prof                      - Compiles code with profiling flags ],
+ [  --enable-prof           compiles code with profiling flags ],
  )
 
 AC_ARG_ENABLE( mpi, 
- [--enable-mpi                       - Compiles code with mpi library ],,
+ [  --enable-mpi            compiles code with mpi library ],,
  enable_mpi=yes)
 
 AC_ARG_ENABLE( mpe, 
- [--enable-mpe                       - Compiles code with mpe library ],,
+ [  --enable-mpe            compiles code with mpe library ],,
  enable_mpe=no)
 
 AC_ARG_ENABLE( opengl, 
- [--enable-opengl                    - Compiles code with opengl library ],,
+ [  --enable-opengl         compiles code with opengl library ],,
  enable_opengl=yes)
 
 AC_ARG_ENABLE( opencl, 
- [--enable-opencl                    - Compiles code with opencl library ],,
+ [  --enable-opencl         compiles code with opencl library ],,
  enable_opencl=yes)
 
 if test "${enable_mpe}" = "yes"; then

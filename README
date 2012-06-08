@@ -66,6 +66,9 @@ Totalview on darwin
 
 /home/ccs/opt/x86_64/bin/totalview
 
+Example -- need to have -all-static in LDFLAGS with libtool to make this work
+/home/ccs/opt/x86_64/bin/totalview mpirun -a -n 2 ./clamr_mpionly -n 512 -l 2 -i 100 -t 10000
+
 ////////////////
 // GIT Commands
 ////////////////

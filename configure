@@ -1513,13 +1513,13 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
---enable-debug                     - Compiles code with debug flags
---enable-bounds-check              - Compiles code with bounds check flags
---enable-prof                      - Compiles code with profiling flags
---enable-mpi                       - Compiles code with mpi library
---enable-mpe                       - Compiles code with mpe library
---enable-opengl                    - Compiles code with opengl library
---enable-opencl                    - Compiles code with opencl library
+  --enable-debug          compiles code with debug flags
+  --enable-bounds-check   compiles code with bounds check flags
+  --enable-prof           compiles code with profiling flags
+  --enable-mpi            compiles code with mpi library
+  --enable-mpe            compiles code with mpe library
+  --enable-opengl         compiles code with opengl library
+  --enable-opencl         compiles code with opencl library
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
   --enable-shared[=PKGS]  build shared libraries [default=yes]
