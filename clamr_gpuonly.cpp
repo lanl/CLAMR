@@ -267,19 +267,11 @@ extern "C" void do_calc(void)
 
    cl_mem &dev_mpot     = mesh->dev_mpot;
 
-   size_t new_ncells = 0;
    double deltaT = 0.0;
 
    //  Main loop.
    for (int nburst = 0; nburst < outputInterval && ncycle <= niter; nburst++, ncycle++) {
 
-      size_t local_work_size  = MIN(ncells, TILE_SIZE);
-      size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
-
-      //size_t block_size = (ncells + TILE_SIZE - 1) / TILE_SIZE; //  For on-device global reduction kernel.
-      size_t block_size     = global_work_size/local_work_size;
-
-      //  Define basic domain decomposition parameters for GPU.
       size_t old_ncells = ncells;
 
       //  Calculate the real time step for the current discrete time step.
@@ -297,28 +289,12 @@ extern "C" void do_calc(void)
       //  Execute main kernel
       state->gpu_calc_finite_difference(command_queue, mesh, deltaT);
       
-      cl_mem dev_ioffset  = ezcl_malloc(NULL, &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      dev_mpot     = ezcl_malloc(NULL, &ncells,     sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-
-      size_t result_size = 1;
-      cl_mem dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
- 
-      state->gpu_calc_refine_potential(command_queue, mesh, dev_result, dev_ioffset);
-
-      int result;
-      ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-      new_ncells = result;
-      //printf("Result is %d %d %d\n",result, ncells,__LINE__);
-
-      ezcl_device_memory_remove(dev_result);
+      size_t new_ncells = state->gpu_calc_refine_potential(command_queue, mesh);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil, dev_ioffset);
+      state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil);
 
-      ezcl_device_memory_remove(dev_ioffset);
-
-      int bcount = 0;
-      mesh->gpu_count_BCs(command_queue, &bcount);
+      int bcount = mesh->gpu_count_BCs(command_queue);
 
    } // End burst loop
 

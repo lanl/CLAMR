@@ -88,6 +88,10 @@ public:
    cl_mem dev_deltaT;
 
    cl_event apply_BCs_event;
+
+   cl_mem dev_mpot;
+   cl_mem dev_ioffset;
+   cl_mem dev_result;
 #endif
 
    double   cpu_time_apply_BCs,
@@ -152,12 +156,12 @@ public:
    void state_reorder(vector<int> iorder);
    void rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells);
 #ifdef HAVE_OPENCL
-   void gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil, cl_mem dev_ioffset);
+   void gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil);
    void gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil, cl_mem dev_ioffset);
 #endif
    void calc_refine_potential(Mesh *mesh, vector<int> &mpot, int &icount, int &jcount);
 #ifdef HAVE_OPENCL
-   void gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_result, cl_mem dev_ioffset);
+   size_t gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh);
    void gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_result, cl_mem dev_ioffset);
 #endif
    

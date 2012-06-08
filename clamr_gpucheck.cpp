@@ -317,6 +317,7 @@ extern "C" void do_calc(void)
    
    size_t old_ncells = ncells;
    size_t new_ncells = 0;
+   size_t new_ncells_gpu = 0;
    double H_sum = -1.0;
    double deltaT = 0.0;
 
@@ -329,12 +330,6 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],  NULL);
       }
-
-      size_t local_work_size  = MIN(ncells, TILE_SIZE);
-      size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
-
-      //size_t block_size = (ncells + TILE_SIZE - 1) / TILE_SIZE; //  For on-device global reduction kernel.
-      size_t block_size     = global_work_size/local_work_size;
 
       //  Define basic domain decomposition parameters for GPU.
       old_ncells = ncells;
@@ -444,16 +439,8 @@ extern "C" void do_calc(void)
          state->calc_refine_potential(mesh, mpot, icount, jcount);
       }  //  Complete CPU calculation.
 
-      cl_mem dev_ioffset = NULL;
-
-      size_t result_size = 1;
-      cl_mem dev_result = NULL;
       if (do_gpu_calc) {
-         dev_ioffset = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
-         dev_mpot    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-         dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
- 
-         state->gpu_calc_refine_potential(command_queue, mesh, dev_result, dev_ioffset);
+         new_ncells_gpu = state->gpu_calc_refine_potential(command_queue, mesh);
       }
       
       if (do_comparison_calc) {
@@ -476,10 +463,16 @@ extern "C" void do_calc(void)
 
       if (do_comparison_calc) {
          // This compares ioffset for each block in the calculation
-         mesh->compare_ioffset_gpu_global_to_cpu_global(command_queue, old_ncells, block_size, &mpot[0], dev_ioffset);
+         mesh->compare_ioffset_gpu_global_to_cpu_global(command_queue, old_ncells, &mpot[0], state->dev_ioffset);
       }
 
       if (do_gpu_sync) {
+         size_t local_work_size  = MIN(old_ncells, TILE_SIZE);
+         size_t global_work_size = ((old_ncells+local_work_size - 1) /local_work_size) * local_work_size;
+
+         //size_t block_size = (ncells + TILE_SIZE - 1) / TILE_SIZE; //  For on-device global reduction kernel.
+         size_t block_size     = global_work_size/local_work_size;
+
          vector<int>      ioffset(block_size);
          int mtotal = 0;
          for (int ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
@@ -495,18 +488,11 @@ extern "C" void do_calc(void)
             ioffset[ig] = mtotal;
             mtotal += mcount;
          }
-         ezcl_enqueue_write_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
+         ezcl_enqueue_write_buffer(command_queue, state->dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
       }
 
       if (do_comparison_calc) {
-         int result;
-         ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-         new_ncells = result;
-         //printf("Result is %d\n",result);
-      }
-
-      if (do_gpu_calc) {
-         ezcl_device_memory_remove(dev_result);
+         new_ncells = new_ncells_gpu;
       }
 
       if (do_cpu_calc) {
@@ -517,10 +503,10 @@ extern "C" void do_calc(void)
 
       //  Resize the mesh, inserting cells where refinement is necessary.
       if (do_gpu_calc) {
-         state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil, dev_ioffset);
+         state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil);
       }
 
-      ezcl_device_memory_remove(dev_ioffset);
+      //ezcl_device_memory_remove(dev_ioffset);
 
       if (do_comparison_calc) {
          state->compare_state_gpu_global_to_cpu_global(command_queue,"rezone all",ncycle,ncells);
@@ -529,8 +515,7 @@ extern "C" void do_calc(void)
       }
 
       if (do_gpu_calc) {
-         int bcount = 0;
-         mesh->gpu_count_BCs(command_queue, &bcount);
+         int bcount = mesh->gpu_count_BCs(command_queue);
       }
 
       if (do_gpu_calc) {

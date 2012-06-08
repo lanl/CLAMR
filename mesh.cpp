@@ -899,8 +899,14 @@ void Mesh::compare_mpot_all_to_gpu_local(cl_command_queue command_queue, int *mp
 #endif
 }
 
-void Mesh::compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, uint old_ncells, int block_size, int *mpot, cl_mem dev_ioffset)
+void Mesh::compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, uint old_ncells, int *mpot, cl_mem dev_ioffset)
 {
+   size_t local_work_size  = MIN(ncells, TILE_SIZE);
+   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+
+   //size_t block_size = (ncells + TILE_SIZE - 1) / TILE_SIZE; //  For on-device global reduction kernel.
+   size_t block_size     = global_work_size/local_work_size;
+
    vector<int> ioffset_check(block_size);
    ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int), &ioffset_check[0], NULL);
 
@@ -4909,7 +4915,7 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::gpu_count_BCs(cl_command_queue command_queue, int *bcount)
+int Mesh::gpu_count_BCs(cl_command_queue command_queue)
 {
    cl_event count_BCs_stage1_event, count_BCs_stage2_event;
 
@@ -4920,6 +4926,8 @@ void Mesh::gpu_count_BCs(cl_command_queue command_queue, int *bcount)
    size_t block_size     = global_work_size/local_work_size;
 
    cl_mem dev_ioffset  = ezcl_malloc(NULL, &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+
+   int bcount = 0;
 
    if (! have_boundary) {
        /*
@@ -4970,6 +4978,8 @@ void Mesh::gpu_count_BCs(cl_command_queue command_queue, int *bcount)
       }
 
    }
+
+   return(bcount);
 }
 #endif
 void Mesh::resize_old_device_memory(size_t ncells)

@@ -657,7 +657,7 @@ extern "C" void do_calc(void)
          state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
          state->calc_refine_potential(mesh, mpot, icount, jcount);
 
-         state_global->gpu_calc_refine_potential(command_queue, mesh_global, dev_result_global, dev_ioffset_global);
+         new_ncells_global = state_global->gpu_calc_refine_potential(command_queue, mesh_global);
       
          int icount_test;
          MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -695,9 +695,9 @@ extern "C" void do_calc(void)
          new_ncells = result;
          //printf("Result is %d\n",result[0]);
 
-         ezcl_enqueue_read_buffer(command_queue, dev_result_global, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-         if (new_ncells_global != result) printf("%d: DEBUG new_ncells_global not correct %ld %d\n",mype,new_ncells_global,result);
-         new_ncells_global = result;
+         //ezcl_enqueue_read_buffer(command_queue, dev_result_global, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
+         //if (new_ncells_global != result) printf("%d: DEBUG new_ncells_global not correct %ld %d\n",mype,new_ncells_global,result);
+         //new_ncells_global = result;
       }
 
       int result;
@@ -727,7 +727,7 @@ extern "C" void do_calc(void)
          mpot_global.clear();
          mpot.clear();
 
-         state_global->gpu_rezone_all(command_queue, mesh_global, ncells_global, new_ncells_global, old_ncells_global, localStencil, dev_ioffset_global);
+         state_global->gpu_rezone_all(command_queue, mesh_global, ncells_global, new_ncells_global, old_ncells_global, localStencil);
       }
 
       ncells = new_ncells;

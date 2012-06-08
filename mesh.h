@@ -291,7 +291,7 @@ public:
    void compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *displ, int *mpot, int *mpot_global, int cycle);
 #ifdef HAVE_OPENCL
    void compare_mpot_all_to_gpu_local(cl_command_queue command_queue, int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
-   void compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, uint old_ncells, int block_size, int *mpot, cl_mem dev_ioffset);
+   void compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, uint old_ncells, int *mpot, cl_mem dev_ioffset);
    void compare_ioffset_all_to_gpu_local(cl_command_queue command_queue, uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global);
    void compare_coordinates_gpu_global_to_cpu_global(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real *H);
 #endif
@@ -322,7 +322,7 @@ public:
 #endif
    void calc_distribution(int numpe, vector<int> &proc);
 #ifdef HAVE_OPENCL
-   void gpu_count_BCs(cl_command_queue command_queue, int *bcount);
+   int gpu_count_BCs(cl_command_queue command_queue);
 #endif
 
 private:

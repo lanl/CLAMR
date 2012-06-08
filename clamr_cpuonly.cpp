@@ -331,13 +331,6 @@ extern "C" void do_calc(void)
    //  Main loop.
    for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
-      size_t local_work_size  = MIN(ncells, TILE_SIZE);
-      size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
-
-      //size_t block_size = (ncells + TILE_SIZE - 1) / TILE_SIZE; //  For on-device global reduction kernel.
-      size_t block_size     = global_work_size/local_work_size;
-
-      //  Define basic domain decomposition parameters for GPU.
       old_ncells = ncells;
 
       //  Calculate the real time step for the current discrete time step.
@@ -398,16 +391,8 @@ extern "C" void do_calc(void)
       mpot.resize(ncells);
       state->calc_refine_potential(mesh, mpot, icount, jcount);
 
-      cl_mem dev_ioffset=NULL;
-
-      size_t result_size = 1;
-      cl_mem dev_result = NULL;
       if (do_comparison_calc) {
-         dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
-         dev_mpot     = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-         dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
- 
-         state->gpu_calc_refine_potential(command_queue, mesh, dev_result, dev_ioffset);
+         state->gpu_calc_refine_potential(command_queue, mesh);
 
          // Need to compare dev_mpot to mpot
          mesh->compare_mpot_gpu_global_to_cpu_global(command_queue, &mpot[0], dev_mpot);
@@ -422,13 +407,7 @@ extern "C" void do_calc(void)
       new_ncells = old_ncells+mesh->rezone_count(mpot);
 
       if (do_comparison_calc) {
-         mesh->compare_ioffset_gpu_global_to_cpu_global(command_queue, old_ncells, block_size, &mpot[0], dev_ioffset);
-         int result;
-         ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-         new_ncells = result;
-         //printf("Result is %d\n",result);
-
-         ezcl_device_memory_remove(dev_result);
+         mesh->compare_ioffset_gpu_global_to_cpu_global(command_queue, old_ncells, &mpot[0], state->dev_ioffset);
       }
 
       //  Resize the mesh, inserting cells where refinement is necessary.
@@ -440,18 +419,15 @@ extern "C" void do_calc(void)
       ncells = new_ncells;
 
       if (do_comparison_calc) {
-         state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil, dev_ioffset);
+         state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil);
 
          state->compare_state_gpu_global_to_cpu_global(command_queue,"finite difference",ncycle,ncells);
 
          mesh->compare_indices_gpu_global_to_cpu_global(command_queue);
       }
 
-      ezcl_device_memory_remove(dev_ioffset);
-
       if (do_comparison_calc) {
-         int bcount = 0;
-         mesh->gpu_count_BCs(command_queue, &bcount);
+         int bcount = mesh->gpu_count_BCs(command_queue);
       }
 
       if (do_comparison_calc) {
