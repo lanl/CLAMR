@@ -89,6 +89,9 @@ clamr_checkall_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
 	timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
+clamr_checkall_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(clamr_checkall_LDFLAGS) $(LDFLAGS) -o $@
 am__objects_6 = clamr_cpuonly-clamr_cpuonly.$(OBJEXT) \
 	clamr_cpuonly-mesh.$(OBJEXT) clamr_cpuonly-partition.$(OBJEXT) \
 	clamr_cpuonly-state.$(OBJEXT) clamr_cpuonly-input.$(OBJEXT)
@@ -117,6 +120,9 @@ clamr_gpucheck_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
 	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
 	timer/libtimer.la genmalloc/libgenmalloc.la \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+clamr_gpucheck_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(clamr_gpucheck_LDFLAGS) $(LDFLAGS) -o $@
 am__objects_10 = clamr_gpuonly-clamr_gpuonly.$(OBJEXT) \
 	clamr_gpuonly-mesh.$(OBJEXT) clamr_gpuonly-partition.$(OBJEXT) \
 	clamr_gpuonly-state.$(OBJEXT) clamr_gpuonly-input.$(OBJEXT)
@@ -129,6 +135,9 @@ clamr_gpuonly_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
 	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
 	timer/libtimer.la genmalloc/libgenmalloc.la \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+clamr_gpuonly_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(clamr_gpuonly_LDFLAGS) $(LDFLAGS) -o $@
 am__objects_12 = clamr_mpionly-clamr_mpionly.$(OBJEXT) \
 	clamr_mpionly-mesh.$(OBJEXT) clamr_mpionly-partition.$(OBJEXT) \
 	clamr_mpionly-state.$(OBJEXT) clamr_mpionly-input.$(OBJEXT)
@@ -348,6 +357,8 @@ top_srcdir = @top_srcdir@
 SUBDIRS = l7 kdtree hsfc s7 timer ezcl zorder genmalloc
 AM_MAKEFLAGS = -j
 ACLOCAL_AMFLAGS = -I config
+
+# -all-static flag is to make debugging easier. Removing it will enable dynamic libraries instead
 clamr_CXX_SRCS = clamr.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_C_SRCS = display.c reduce.c
 clamr_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
@@ -360,6 +371,7 @@ clamr_gpuonly_C_SRCS = display.c reduce.c
 clamr_gpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_gpuonly_CPPFLAGS = -UHAVE_MPI -DHAVE_OPENCL=1
 clamr_gpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la genmalloc/libgenmalloc.la -lm ${MPE_NOMPI_LIBS} ${OPENCL_LIBS}
+clamr_gpuonly_LDFLAGS = -all-static
 clamr_gpuonly_SOURCES = ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS}
 clamr_cpuonly_CXX_SRCS = clamr_cpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_cpuonly_C_SRCS = display.c reduce.c
@@ -380,12 +392,14 @@ clamr_gpucheck_C_SRCS = display.c reduce.c
 clamr_gpucheck_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_gpucheck_CPPFLAGS = -UHAVE_MPI -DHAVE_OPENCL=1
 clamr_gpucheck_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la genmalloc/libgenmalloc.la -lm ${MPE_NOMPI_LIBS} ${OPENCL_LIBS}
+clamr_gpucheck_LDFLAGS = -all-static
 clamr_gpucheck_SOURCES = ${clamr_gpucheck_CXX_SRCS} ${clamr_gpucheck_C_SRCS} ${clamr_gpucheck_H_SRCS}
 clamr_checkall_CXX_SRCS = clamr_checkall.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_checkall_C_SRCS = display.c reduce.c 
 clamr_checkall_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_checkall_CPPFLAGS = -DHAVE_MPI=1 -DHAVE_OPENCL=1
 clamr_checkall_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la -lm ${MPE_LIBS} ${MPI_LIBS} ${OPENCL_LIBS}
+clamr_checkall_LDFLAGS = -all-static
 clamr_checkall_SOURCES = ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${clamr_checkall_H_SRCS}
 EXTRA_DIST = wave_kern.cl wave_kern_calc.cl reduce.cl config.h clamr.xcodeproj/project.pbxproj clamr.1 fileamr.in AUTHORS ChangeLog runtests.sh newbatch.sh LICENSE
 all: config.h
@@ -492,16 +506,16 @@ clamr$(EXEEXT): $(clamr_OBJECTS) $(clamr_DEPENDENCIES)
 	$(clamr_LINK) $(clamr_OBJECTS) $(clamr_LDADD) $(LIBS)
 clamr_checkall$(EXEEXT): $(clamr_checkall_OBJECTS) $(clamr_checkall_DEPENDENCIES) 
 	@rm -f clamr_checkall$(EXEEXT)
-	$(CXXLINK) $(clamr_checkall_OBJECTS) $(clamr_checkall_LDADD) $(LIBS)
+	$(clamr_checkall_LINK) $(clamr_checkall_OBJECTS) $(clamr_checkall_LDADD) $(LIBS)
 clamr_cpuonly$(EXEEXT): $(clamr_cpuonly_OBJECTS) $(clamr_cpuonly_DEPENDENCIES) 
 	@rm -f clamr_cpuonly$(EXEEXT)
 	$(clamr_cpuonly_LINK) $(clamr_cpuonly_OBJECTS) $(clamr_cpuonly_LDADD) $(LIBS)
 clamr_gpucheck$(EXEEXT): $(clamr_gpucheck_OBJECTS) $(clamr_gpucheck_DEPENDENCIES) 
 	@rm -f clamr_gpucheck$(EXEEXT)
-	$(CXXLINK) $(clamr_gpucheck_OBJECTS) $(clamr_gpucheck_LDADD) $(LIBS)
+	$(clamr_gpucheck_LINK) $(clamr_gpucheck_OBJECTS) $(clamr_gpucheck_LDADD) $(LIBS)
 clamr_gpuonly$(EXEEXT): $(clamr_gpuonly_OBJECTS) $(clamr_gpuonly_DEPENDENCIES) 
 	@rm -f clamr_gpuonly$(EXEEXT)
-	$(CXXLINK) $(clamr_gpuonly_OBJECTS) $(clamr_gpuonly_LDADD) $(LIBS)
+	$(clamr_gpuonly_LINK) $(clamr_gpuonly_OBJECTS) $(clamr_gpuonly_LDADD) $(LIBS)
 clamr_mpionly$(EXEEXT): $(clamr_mpionly_OBJECTS) $(clamr_mpionly_DEPENDENCIES) 
 	@rm -f clamr_mpionly$(EXEEXT)
 	$(clamr_mpionly_LINK) $(clamr_mpionly_OBJECTS) $(clamr_mpionly_LDADD) $(LIBS)
