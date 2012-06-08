@@ -74,30 +74,10 @@ static int do_gpu_calc = 1;
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
-typedef struct
-{
-   double s0;
-   double s1;
-}  real2;
 typedef cl_double   cl_real;
-typedef cl_double2  cl_real2;
-typedef cl_double4  cl_real4;
-typedef cl_double8  cl_real8;
-#define CONSERVATION_EPS    .02
-#define STATE_EPS        .02
 #else
 typedef float       real;
-typedef struct
-{
-   float s0;
-   float s1;
-}  real2;
 typedef cl_float    cl_real;
-typedef cl_float2   cl_real2;
-typedef cl_float4   cl_real4;
-typedef cl_float8   cl_real8;
-#define CONSERVATION_EPS    .1
-#define STATE_EPS      15.0
 #endif
 
 typedef unsigned int uint;
@@ -171,6 +151,11 @@ int main(int argc, char **argv) {
    mesh->calc_distribution(numpe, mesh->proc);
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
    
+   if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
+      printf("GPU only calc currently does not work with this cycle_reorder");
+      exit(-1);
+   }
+   
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_i        = mesh->dev_i;
    cl_mem &dev_j        = mesh->dev_j;
@@ -204,13 +189,13 @@ int main(int argc, char **argv) {
    dev_j        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
    dev_level    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
 
-   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&celltype[0], NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],        NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],        NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&level[0],    NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],       NULL              );
-   ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],       NULL              );
-   ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],       NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  &celltype[0], NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &i[0],        NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  &j[0],        NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  &level[0],    NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_real), &H[0],        NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real), &U[0],        NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_real), &V[0],        NULL);
    //state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
 
    dev_celltype_new = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
@@ -276,22 +261,13 @@ extern "C" void do_calc(void)
    double sigma = 0.95;
    int icount, jcount;
 
-   if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
-      printf("GPU only calc currently does not work with this cycle_reorder");
-      exit(-1);
-   }
-   
    //  Initialize state variables for GPU calculation.
 
    size_t &ncells    = mesh->ncells;
 
    cl_mem &dev_mpot     = mesh->dev_mpot;
 
-   vector<int>     mpot;
-   
-   size_t old_ncells = ncells;
    size_t new_ncells = 0;
-   double H_sum = -1.0;
    double deltaT = 0.0;
 
    //  Main loop.
@@ -304,7 +280,7 @@ extern "C" void do_calc(void)
       size_t block_size     = global_work_size/local_work_size;
 
       //  Define basic domain decomposition parameters for GPU.
-      old_ncells = ncells;
+      size_t old_ncells = ncells;
 
       //  Calculate the real time step for the current discrete time step.
       
@@ -346,7 +322,7 @@ extern "C" void do_calc(void)
 
    } // End burst loop
 
-   H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
+   double H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
 
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
