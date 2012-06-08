@@ -14944,51 +14944,51 @@ fi
       else
          if test "`lspci | grep "VGA compatible controller" | grep ATI | wc -l`" != "0"; then
            found="no"
-           { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /home/opt/AMDAPP_v2.6/include/CL/cl.h" >&5
-$as_echo_n "checking for /home/opt/AMDAPP_v2.6/include/CL/cl.h... " >&6; }
-if test "${ac_cv_file__home_opt_AMDAPP_v2_6_include_CL_cl_h+set}" = set; then :
+           { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /home/opt/AMDAPP_v2.7/include/CL/cl.h" >&5
+$as_echo_n "checking for /home/opt/AMDAPP_v2.7/include/CL/cl.h... " >&6; }
+if test "${ac_cv_file__home_opt_AMDAPP_v2_7_include_CL_cl_h+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "/home/opt/AMDAPP_v2.6/include/CL/cl.h"; then
-  ac_cv_file__home_opt_AMDAPP_v2_6_include_CL_cl_h=yes
+if test -r "/home/opt/AMDAPP_v2.7/include/CL/cl.h"; then
+  ac_cv_file__home_opt_AMDAPP_v2_7_include_CL_cl_h=yes
 else
-  ac_cv_file__home_opt_AMDAPP_v2_6_include_CL_cl_h=no
+  ac_cv_file__home_opt_AMDAPP_v2_7_include_CL_cl_h=no
 fi
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file__home_opt_AMDAPP_v2_6_include_CL_cl_h" >&5
-$as_echo "$ac_cv_file__home_opt_AMDAPP_v2_6_include_CL_cl_h" >&6; }
-if test "x$ac_cv_file__home_opt_AMDAPP_v2_6_include_CL_cl_h" = x""yes; then :
-  INCLUDES="${INCLUDES} -I/home/opt/AMDAPP_v2.6/include" && found="yes"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file__home_opt_AMDAPP_v2_7_include_CL_cl_h" >&5
+$as_echo "$ac_cv_file__home_opt_AMDAPP_v2_7_include_CL_cl_h" >&6; }
+if test "x$ac_cv_file__home_opt_AMDAPP_v2_7_include_CL_cl_h" = x""yes; then :
+  INCLUDES="${INCLUDES} -I/home/opt/AMDAPP_v2.7/include" && found="yes"
 fi
 
            found="no"
            if test "$found" = "no"; then
-             { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /home/opt/AMDAPP_v2.6/lib/x86_64/libOpenCL.so" >&5
-$as_echo_n "checking for /home/opt/AMDAPP_v2.6/lib/x86_64/libOpenCL.so... " >&6; }
-if test "${ac_cv_file__home_opt_AMDAPP_v2_6_lib_x86_64_libOpenCL_so+set}" = set; then :
+             { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /home/opt/AMDAPP_v2.7/lib/x86_64/libOpenCL.so" >&5
+$as_echo_n "checking for /home/opt/AMDAPP_v2.7/lib/x86_64/libOpenCL.so... " >&6; }
+if test "${ac_cv_file__home_opt_AMDAPP_v2_7_lib_x86_64_libOpenCL_so+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "/home/opt/AMDAPP_v2.6/lib/x86_64/libOpenCL.so"; then
-  ac_cv_file__home_opt_AMDAPP_v2_6_lib_x86_64_libOpenCL_so=yes
+if test -r "/home/opt/AMDAPP_v2.7/lib/x86_64/libOpenCL.so"; then
+  ac_cv_file__home_opt_AMDAPP_v2_7_lib_x86_64_libOpenCL_so=yes
 else
-  ac_cv_file__home_opt_AMDAPP_v2_6_lib_x86_64_libOpenCL_so=no
+  ac_cv_file__home_opt_AMDAPP_v2_7_lib_x86_64_libOpenCL_so=no
 fi
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file__home_opt_AMDAPP_v2_6_lib_x86_64_libOpenCL_so" >&5
-$as_echo "$ac_cv_file__home_opt_AMDAPP_v2_6_lib_x86_64_libOpenCL_so" >&6; }
-if test "x$ac_cv_file__home_opt_AMDAPP_v2_6_lib_x86_64_libOpenCL_so" = x""yes; then :
-  OPENCL_LIBS="${OPENCL_LIBS} -L/home/opt/AMDAPP_v2.6/lib/x86_64 -lOpenCL" && found="yes"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file__home_opt_AMDAPP_v2_7_lib_x86_64_libOpenCL_so" >&5
+$as_echo "$ac_cv_file__home_opt_AMDAPP_v2_7_lib_x86_64_libOpenCL_so" >&6; }
+if test "x$ac_cv_file__home_opt_AMDAPP_v2_7_lib_x86_64_libOpenCL_so" = x""yes; then :
+  OPENCL_LIBS="${OPENCL_LIBS} -L/home/opt/AMDAPP_v2.7/lib/x86_64 -lOpenCL" && found="yes"
 fi
 
              if test "${found}" = "yes"; then
                if test "${RPATH_LIBS}x" = "x"; then
-                 RPATH_LIBS="/home/opt/AMDAPP_v2.6/lib/x86_64"
+                 RPATH_LIBS="/home/opt/AMDAPP_v2.7/lib/x86_64"
                else
-                 RPATH_LIBS="${RPATH_LIBS}:/home/opt/AMDAPP_v2.6/lib/x86_64"
+                 RPATH_LIBS="${RPATH_LIBS}:/home/opt/AMDAPP_v2.7/lib/x86_64"
                fi
              fi
            fi

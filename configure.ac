@@ -193,15 +193,15 @@ if test "${enable_opencl}" != "no"; then
       else
          if test "`lspci | grep "VGA compatible controller" | grep ATI | wc -l`" != "0"; then 
            found="no"
-           AC_CHECK_FILE(/home/opt/AMDAPP_v2.6/include/CL/cl.h, INCLUDES="${INCLUDES} -I/home/opt/AMDAPP_v2.6/include" && found="yes")
+           AC_CHECK_FILE(/home/opt/AMDAPP_v2.7/include/CL/cl.h, INCLUDES="${INCLUDES} -I/home/opt/AMDAPP_v2.7/include" && found="yes")
            found="no"
            if test "$found" = "no"; then
-             AC_CHECK_FILE(/home/opt/AMDAPP_v2.6/lib/x86_64/libOpenCL.so, OPENCL_LIBS="${OPENCL_LIBS} -L/home/opt/AMDAPP_v2.6/lib/x86_64 -lOpenCL" && found="yes")
+             AC_CHECK_FILE(/home/opt/AMDAPP_v2.7/lib/x86_64/libOpenCL.so, OPENCL_LIBS="${OPENCL_LIBS} -L/home/opt/AMDAPP_v2.7/lib/x86_64 -lOpenCL" && found="yes")
              if test "${found}" = "yes"; then
                if test "${RPATH_LIBS}x" = "x"; then
-                 RPATH_LIBS="/home/opt/AMDAPP_v2.6/lib/x86_64"
+                 RPATH_LIBS="/home/opt/AMDAPP_v2.7/lib/x86_64"
                else
-                 RPATH_LIBS="${RPATH_LIBS}:/home/opt/AMDAPP_v2.6/lib/x86_64"
+                 RPATH_LIBS="${RPATH_LIBS}:/home/opt/AMDAPP_v2.7/lib/x86_64"
                fi
              fi
            fi
