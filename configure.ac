@@ -101,7 +101,8 @@ case "$host" in
           CFLAGS="-pg ${CFLAGS}"
           CXXFLAGS="-pg ${CXXFLAGS}"
         fi
-        LDFLAGS="-rdynamic"
+        dnl LDFLAGS="-rdynamic"
+        LDFLAGS="-all-static"
         RPATH_PREFIX="-Wl,"
 
         ;;
