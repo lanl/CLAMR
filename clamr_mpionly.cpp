@@ -323,6 +323,16 @@ extern "C" void do_calc(void)
    vector<int>   &nsizes   = mesh_global->nsizes;
    vector<int>   &ndispl   = mesh_global->ndispl;
 
+   vector<int>   &nlft_global     = mesh_global->nlft;
+   vector<int>   &nrht_global     = mesh_global->nrht;
+   vector<int>   &nbot_global     = mesh_global->nbot;
+   vector<int>   &ntop_global     = mesh_global->ntop;
+
+   vector<int>   &nlft     = mesh->nlft;
+   vector<int>   &nrht     = mesh->nrht;
+   vector<int>   &nbot     = mesh->nbot;
+   vector<int>   &ntop     = mesh->ntop;
+
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh_global->ncells;
    size_t &ncells           = mesh->ncells;
@@ -345,6 +355,10 @@ extern "C" void do_calc(void)
    vector<real>  &y_global  = mesh_global->y;
    vector<real>  &dy_global = mesh_global->dy;
 
+   vector<int> &i     = mesh->i;
+   vector<int> &j     = mesh->j;
+   vector<int> &level = mesh->level;
+   vector<int> &celltype = mesh->celltype;
 
    vector<int>     mpot;
    vector<int>     mpot_global;
@@ -457,10 +471,18 @@ extern "C" void do_calc(void)
       
       mpot.resize(ncells_ghost);
       state->calc_refine_potential(mesh, mpot, icount, jcount);
+      nlft.clear();
+      nrht.clear();
+      nbot.clear();
+      ntop.clear();
   
       if (do_comparison_calc) {
          mpot_global.resize(ncells_global);
          state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
+         nlft_global.clear();
+         nrht_global.clear();
+         nbot_global.clear();
+         ntop_global.clear();
 
          int icount_test;
          MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -484,43 +506,52 @@ extern "C" void do_calc(void)
 
       MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-      MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+// XXX Why is this MPI_Allgather here? Another one is done later, and nsizes[] is never used in between...
+//      MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 
       noffset=0;
       MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       noffset -= ncells;
 
+#define DO_LOAD_BALANCE
+
+#ifdef DO_LOAD_BALANCE
       int ncells_old = ncells;
 
-      //uint ncells = ncells_global/numpe;
-      //if (mype < ncells_global%numpe) ncells++;
+      ncells = (ncells_global) / ((size_t)numpe);
+      if (mype < (ncells_global%((size_t)numpe))) ncells++;
 
       int do_load_balance = 0;
       if (ncells_old != ncells) do_load_balance = 1;
 
       int do_load_balance_global = 0;
       MPI_Allreduce(&do_load_balance, &do_load_balance_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-
+#else
+      int do_load_balance_global = 0;
+#endif
       //printf("%d: DEBUG ncells_old %d ncells %d\n",mype,ncells_old,ncells);
 
       if (do_load_balance_global) {
+// if(mype == 0) printf("MYPE %d: Line %d Iteration %d \n", mype, __LINE__, ncycle);
          //printf("%d: DEBUG ncells_old %d ncells %d\n",mype,ncells_old,ncells);
-
-         MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 
          int noffset_old = noffset;
 
          MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          noffset -= ncells;
 
+         // Indices of blocks to be added to load balance
          int lower_block_start = noffset;
          int lower_block_end   = noffset_old-1;
-         int upper_block_start = noffset_old+ncells_old+1;
-         int upper_block_end   = noffset+ncells;
+         int upper_block_start = noffset_old+ncells_old;
+         int upper_block_end   = noffset+ncells-1;
          //printf("%d: DEBUG lower %d %d upper %d %d\n",mype,lower_block_start,lower_block_end,upper_block_start,upper_block_end);
 
-         int indices_needed_count = max(lower_block_end-lower_block_start+1,0)+
-                                    max(upper_block_end-upper_block_start+1,0);
+         int lower_block_size = max(lower_block_end-lower_block_start+1,0);
+         if(lower_block_end < 0) lower_block_size = 0;
+         int upper_block_size = max(upper_block_end-upper_block_start+1,0);
+         int indices_needed_count = lower_block_size + upper_block_size;
+ 
          //printf("%d: indices_needed_count %d\n",mype,indices_needed_count);
          vector<int> indices_needed(indices_needed_count);
          int in=0;
@@ -531,14 +562,120 @@ extern "C" void do_calc(void)
             indices_needed[in]=iz;
          }
 
-         //for (int iz=0; iz<indices_needed_count; iz++){
-         //   printf("%d: indices_needed[%d] = %d\n",mype,iz,indices_needed[iz]);
-         //}
+         // for (int iz = 0; iz < indices_needed_count; iz++) {
+         //    printf("%d: indices_needed[%d] = %d\n", mype, iz, indices_needed[iz]);
+         // }
+
+// XXX
+//if(indices_needed_count == 0)
+//   printf("MYPE%d: ncells_old = %d   ncells = %d   , but indices needed = 0?\n", mype, ncells_old, ncells);
 
          int load_balance_handle = 0;
-         L7_Setup(0, noffset, ncells, &indices_needed[0], indices_needed_count, &load_balance_handle);
-      }
+         L7_Setup(0, noffset_old, ncells_old, &indices_needed[0], indices_needed_count, &load_balance_handle);
 
+         H.resize(ncells_old+indices_needed_count,0.0);
+         U.resize(ncells_old+indices_needed_count,0.0);
+         V.resize(ncells_old+indices_needed_count,0.0);
+         L7_Update(&H[0], L7_REAL, load_balance_handle);
+         L7_Update(&U[0], L7_REAL, load_balance_handle);
+         L7_Update(&V[0], L7_REAL, load_balance_handle);
+
+         i.resize(ncells_old+indices_needed_count,0.0);
+         j.resize(ncells_old+indices_needed_count,0.0);
+         level.resize(ncells_old+indices_needed_count,0.0);
+         celltype.resize(ncells_old+indices_needed_count,0.0);
+         L7_Update(&i[0], L7_INT, load_balance_handle);
+         L7_Update(&j[0], L7_INT, load_balance_handle);
+         L7_Update(&level[0], L7_INT, load_balance_handle);
+         L7_Update(&celltype[0], L7_INT, load_balance_handle);
+
+         L7_Free(&load_balance_handle);
+         load_balance_handle = 0;
+  
+         vector<real> H_temp(ncells);
+         vector<real> U_temp(ncells);
+         vector<real> V_temp(ncells);
+
+         vector<int> i_temp(ncells);
+         vector<int> j_temp(ncells);
+         vector<int> level_temp(ncells);
+         vector<int> celltype_temp(ncells);
+
+         vector<int> indexes(ncells);
+
+         in = 0;
+         int ic = lower_block_size;
+         if(ic > 0) {
+            for(; (in < ic) && (in < ncells); in++) {
+               H_temp[in] = H[ncells_old + in];
+               U_temp[in] = U[ncells_old + in];
+               V_temp[in] = V[ncells_old + in];
+
+               i_temp[in]     = i[ncells_old + in];
+               j_temp[in]     = j[ncells_old + in];
+               level_temp[in] = level[ncells_old + in];
+               celltype_temp[in] = celltype[ncells_old + in];
+
+//               indexes[in] = lower_block_start + in;
+            }
+         }
+
+         ic = noffset - noffset_old;
+         if(ic < 0) ic = 0;
+         for(; (ic < ncells_old) && (in < ncells); ic++, in++) {
+            H_temp[in] = H[ic];
+            U_temp[in] = U[ic];
+            V_temp[in] = V[ic];
+
+            i_temp[in]     = i[ic];
+            j_temp[in]     = j[ic];
+            level_temp[in] = level[ic];
+            celltype_temp[in] = celltype[ic];
+
+//            indexes[in] = noffset_old + ic;
+         }
+
+         ic = upper_block_size;
+         if(ic > 0) {
+            ic = ncells_old + lower_block_size;
+            for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < ncells); k++, in++) {
+               H_temp[in] = H[ic+k];
+               U_temp[in] = U[ic+k];
+               V_temp[in] = V[ic+k];
+
+               i_temp[in]     = i[ic+k];
+               j_temp[in]     = j[ic+k];
+               level_temp[in] = level[ic+k];
+               celltype_temp[in] = celltype[ic+k];
+
+//               if(mype == 0)
+//                  printf("H[%d] = %12.6lg\n", ic+k, H[ic+k]);
+//               indexes[in] = upper_block_start + k;
+            }
+         }
+
+// XXX
+//printf("Old global array:\n");
+//for(int k = 0; k < ncells_old; k++)
+//   printf("%d::%12.6lg\n", mype, H[k]);
+//printf("New global array:\n");
+//for(int k = 0; k < ncells; k++)
+//   printf("%d::%12.6lg\n", mype, H_temp[k]);
+// XXX
+
+         H.swap(H_temp);
+         U.swap(U_temp);
+         V.swap(V_temp);
+
+         i.swap(i_temp);
+         j.swap(j_temp);
+         level.swap(level_temp);
+         celltype.swap(celltype_temp);
+
+//         for(int k = 0; k < ncells; k++)
+//            printf("MYPE%d: indexes[%d] = %d \n", mype, k, indexes[k]);
+
+      }
 
       MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 
@@ -574,27 +711,34 @@ extern "C" void do_calc(void)
          }
       }
 
-      mesh->proc.resize(ncells);
-      if (icount) {
-         vector<int> index(ncells);
-         mesh->partition_cells(numpe, mesh->proc, index, cycle_reorder);
-      }
 
-      if (do_comparison_calc) {
-         mesh_global->proc.resize(ncells_global);
+// XXX
+//      mesh->proc.resize(ncells);
+//      if (icount) {
+//         vector<int> index(ncells);
+//         mesh->partition_cells(numpe, mesh->proc, index, cycle_reorder);
+//      }
 
-         if (icount) {
-            vector<int> index_global(ncells_global);
-            mesh_global->partition_cells(numpe, mesh_global->proc, index_global, cycle_reorder);
+//      if (do_comparison_calc) {
+//         mesh_global->proc.resize(ncells_global);
+
+//         if (icount) {
+//            vector<int> index_global(ncells_global);
+//            mesh_global->partition_cells(numpe, mesh_global->proc, index_global, cycle_reorder);
             //state->state_reorder(index);
-         }
-      }
+//         }
+//      }
 
    } // End burst loop
+
+// XXX if(ncycle == 1) mesh->m_ncycle = 1;
 
    if (H_sum < 0) {
       H_sum = state->mass_sum(mesh, enhanced_precision_sum);
    }
+
+// XXX (mesh->m_ncycle)++;
+
    if (mype == 0){
       printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
          ncycle, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
