@@ -2587,7 +2587,7 @@ void State::symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index
 
 }
 
-void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int &jcount)
+size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int &jcount)
 {
    struct timeval tstart_cpu;
 
@@ -2599,6 +2599,7 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    vector<int> &nbot  = mesh->nbot;
    vector<int> &ntop  = mesh->ntop;
    vector<int> &level = mesh->level;
+   vector<int> &celltype = mesh->celltype;
 
    vector<double> Q(ncells);
 
@@ -2907,6 +2908,30 @@ void State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int
    nrht.clear();
    nbot.clear();
    ntop.clear();
+
+   icount = 0;
+
+   for (uint ic=0; ic<ncells; ++ic){
+      if (mpot[ic] < 0) {
+         if (celltype[ic] == REAL_CELL) {
+            icount -= 3;
+         } else {
+            icount --;
+         }
+      }// XXX When coarsening is introduced, the issue arises that icount could become 0 even though
+       // XXX both refinements and coarsenings will be needed
+      if (mpot[ic] > 0) {
+         //printf("mpot[%d] = %d\n",ic,mpot[ic]);
+         if (celltype[ic] == REAL_CELL){
+            icount += 3;
+         } else {
+            icount ++;
+         }
+      }
+   }
+   //printf("icount is %d\n",icount);
+
+   return(ncells+icount);
 
    cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
 }

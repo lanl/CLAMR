@@ -92,30 +92,12 @@ static int do_gpu_sync = 0;
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
-typedef struct
-{
-   double s0;
-   double s1;
-}  real2;
 typedef cl_double   cl_real;
-typedef cl_double2  cl_real2;
-typedef cl_double4  cl_real4;
-typedef cl_double8  cl_real8;
 #define CONSERVATION_EPS    .02
-#define STATE_EPS        .02
 #else
 typedef float       real;
-typedef struct
-{
-   float s0;
-   float s1;
-}  real2;
 typedef cl_float    cl_real;
-typedef cl_float2   cl_real2;
-typedef cl_float4   cl_real4;
-typedef cl_float8   cl_real8;
 #define CONSERVATION_EPS    .1
-#define STATE_EPS      15.0
 #endif
 
 typedef unsigned int uint;
@@ -389,10 +371,10 @@ extern "C" void do_calc(void)
       }  //  Complete NAN check.
 
       mpot.resize(ncells);
-      state->calc_refine_potential(mesh, mpot, icount, jcount);
+      size_t new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
 
       if (do_comparison_calc) {
-         state->gpu_calc_refine_potential(command_queue, mesh);
+         size_t new_ncells_gpu = state->gpu_calc_refine_potential(command_queue, mesh);
 
          // Need to compare dev_mpot to mpot
          mesh->compare_mpot_gpu_global_to_cpu_global(command_queue, &mpot[0], dev_mpot);
@@ -404,7 +386,8 @@ extern "C" void do_calc(void)
          }
       }
 
-      new_ncells = old_ncells+mesh->rezone_count(mpot);
+      //new_ncells = old_ncells+mesh->rezone_count(mpot);
+      //printf("icount %d old_ncells %d new_ncells %d\n",icount,old_ncells,new_ncells);
 
       if (do_comparison_calc) {
          mesh->compare_ioffset_gpu_global_to_cpu_global(command_queue, old_ncells, &mpot[0], state->dev_ioffset);
