@@ -147,6 +147,9 @@ int DrawString(float x, float y, float z, char* string) {
    }
 #endif
 #ifdef HAVE_MPE
+   int xloc = (int)((x-display_xmin)*xconv);
+   int yloc = (int)((display_ymax-y)*yconv);
+   MPE_Draw_string(window, xloc, yloc, MPE_BLACK, string);
 #endif
    return 1;
 }
@@ -563,8 +566,6 @@ void draw_scene(void) {
 #ifdef HAVE_OPENGL
    if (rank) return;
 
-   char c[10];
-
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    glLoadIdentity();
 #endif
@@ -584,11 +585,15 @@ void draw_scene(void) {
       DisplayState();
    }
 
+   if (display_mysize <=500) {
+      char c[10];
+      for(int i = 0; i < display_mysize; i++) {
+         sprintf(c, "%d", i);
+         DrawString(x[i]+0.5*dx[i], y[i]+0.5*dy[i], 0.0, c);
+      }
+   }
+
 #ifdef HAVE_OPENGL
-   /*for(int i = 0; i < display_mysize; i++) {
-      sprintf(c, "%d", i);
-      //DrawString(x[i]+dx[i]/2, y[i]+dy[i]/2, 0.0, c);
-   }*/
    if(mode == DRAW) {
       SelectionRec();
    }
