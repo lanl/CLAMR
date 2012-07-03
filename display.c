@@ -573,10 +573,10 @@ void draw_scene(void) {
    if (rank == 0) {
       MPE_Fill_rectangle(window, 0, 0, WINSIZE, WINSIZE, MPE_WHITE);
    }
+   MPE_Update(window);
 #ifdef HAVE_MPI
    MPI_Barrier(MPI_COMM_WORLD);
 #endif
-   MPE_Update(window);
 #endif
 
    if (display_view_mode == 0) {
@@ -601,6 +601,13 @@ void draw_scene(void) {
    glLoadIdentity();
 
    glutSwapBuffers();
+#endif
+
+#ifdef HAVE_MPE
+#ifdef HAVE_MPI
+   MPI_Barrier(MPI_COMM_WORLD);
+#endif
+   MPE_Update(window);
 #endif
 
    sleep(0);
