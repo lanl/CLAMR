@@ -539,8 +539,11 @@ extern "C" void do_calc(void)
       }
 
       mesh->proc.resize(ncells);
-      if (icount)
-      {  vector<int> index(ncells);
+      if (icount) {  
+         if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
+            mesh->calc_spatial_coordinates(0);
+         }
+         vector<int> index(ncells);
          mesh->partition_cells(numpe, mesh->proc, index, cycle_reorder);
          state->state_reorder(index);
          if (do_gpu_sync) {
