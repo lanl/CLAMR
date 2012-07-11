@@ -3119,6 +3119,8 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    cl_event set_boundary_refinement_event;
    cl_event copy_mpot_ghost_data_event;
 
+   cl_mem dev_mpot_add = NULL;
+
    size_t &ncells       = mesh->ncells;
    int &levmx           = mesh->levmx;
    cl_mem &dev_nlft     = mesh->dev_nlft;
@@ -3268,7 +3270,7 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
          L7_Update(&mpot_tmp[0], L7_INT, mesh->cell_handle);
 #endif
 
-         cl_mem dev_mpot_add = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+         dev_mpot_add = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
 
          size_t ghost_local_work_size = 32;
@@ -3316,6 +3318,7 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
             MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          }
 #endif
+         ezcl_device_memory_remove(dev_mpot_add);
 
       }
 
@@ -3328,19 +3331,21 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    L7_Update(&mpot_tmp[0], L7_INT, mesh->cell_handle);
 #endif
 
-   cl_mem dev_mpot_add = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
+   if (mesh->numpe > 1) {
+      dev_mpot_add = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
 
-   size_t ghost_local_work_size = 32;
-   size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
+      size_t ghost_local_work_size = 32;
+      size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
 
-   // Fill in ghost
-   ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
-   ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot);
-   ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
+      // Fill in ghost
+      ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
+      ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot);
+      ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_mpot_ghost_data_event);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_mpot_ghost_data_event);
+   }
 
    ezcl_set_kernel_arg(kernel_set_boundary_refinement, 0, sizeof(cl_int), (void *)&ncells);
    ezcl_set_kernel_arg(kernel_set_boundary_refinement, 1, sizeof(cl_mem), (void *)&dev_nlft);
@@ -3362,7 +3367,10 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    ezcl_device_memory_remove(dev_nbot);
    ezcl_device_memory_remove(dev_ntop);
 
-   gpu_time_refine_potential  += ezcl_timer_calc(&copy_mpot_ghost_data_event,  &copy_mpot_ghost_data_event);
+   if (mesh->numpe > 1) {
+      ezcl_device_memory_remove(dev_mpot_add);
+      gpu_time_refine_potential  += ezcl_timer_calc(&copy_mpot_ghost_data_event,  &copy_mpot_ghost_data_event);
+   }
    gpu_time_refine_potential  += ezcl_timer_calc(&refine_potential_event,  &refine_potential_event);
    gpu_time_refine_potential  += ezcl_timer_calc(&set_boundary_refinement_event,  &set_boundary_refinement_event);
 }
