@@ -2570,9 +2570,22 @@ void Mesh::calc_neighbors_local(void)
          //fprintf(fp,"%d:Neighbors input for ic %d ii %d jj %d levmult %d lev %d\n",mype,ic, ii, jj, levmult,lev);
          //fprintf(fp,"%d:Neighbors befor ic %d nlft %d nrht %d nbot %d ntop %d\n",mype,ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
          if (nlft[ic] == -1) nlft[ic] = hash[(      jj   *levmult               )-jminsize][(max(  ii   *levmult-1, 0         ))-iminsize];
+         if (celltype[ic] == BOTTOM_BOUNDARY && nlft[ic] == -1){
+            if (nlft[ic] == -1) nlft[ic] = hash[(jj*levmult+1)-jminsize][(max(  ii   *levmult-1, 0         ))-iminsize];
+         }
          if (nrht[ic] == -1) nrht[ic] = hash[(      jj   *levmult               )-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
+         if (celltype[ic] == BOTTOM_BOUNDARY && nrht[ic] == -1){
+            if (nrht[ic] == -1) nrht[ic] = hash[(jj*levmult+1)-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
+            //if (ic == 3 && mype == 0) printf("DEBUG line %d -- ic %d celltype %d nrht %d\n",__LINE__,ic,celltype[ic],nrht[ic]);
+         }
          if (nbot[ic] == -1) nbot[ic] = hash[(max(  jj   *levmult-1, 0)         )-jminsize][(      ii   *levmult               )-iminsize];
+         if (celltype[ic] == LEFT_BOUNDARY && ntop[ic] == -1){
+            if (nbot[ic] == -1) nbot[ic] = hash[(max(  jj   *levmult-1, 0)         )-jminsize][(      ii   *levmult+1             )-iminsize];
+         }
          if (ntop[ic] == -1) ntop[ic] = hash[(min( (jj+1)*levmult,   jmaxcalc-1))-jminsize][(      ii   *levmult               )-iminsize];
+         if (celltype[ic] == LEFT_BOUNDARY && ntop[ic] == -1){
+            if (ntop[ic] == -1) ntop[ic] = hash[(min( (jj+1)*levmult,   jmaxcalc-1))-jminsize][(      ii   *levmult+1             )-iminsize];
+         }
          //fprintf(fp,"%d:Neighbors after ic %d nlft %d nrht %d nbot %d ntop %d\n",mype,ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
       }
 
@@ -2887,7 +2900,7 @@ void Mesh::calc_neighbors_local(void)
 
          if (nr < start_idx || nr >= end_idx) {
 #ifdef DEBUG
-            //if (mype == 2) printf("\nline %d ic %d nr %d\n",__LINE__,ic+noffset,nr);
+            //if (mype == 0 && ic == 3) printf("\nline %d ic %d nr %d\n",__LINE__,ic+noffset,nr);
 #endif
             offtile_list.push_back(nr);
 #ifdef DEBUG
@@ -2898,7 +2911,7 @@ void Mesh::calc_neighbors_local(void)
                if (border_cell_num_global[ig] == nr) break;
             }
             if (ig == nbsize_local) {
-               printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nr);
+               printf("%d: Line %d Error with global cell match %d for cell %d\n",mype, __LINE__, nr, ic);
 #ifdef HAVE_MPI
                //L7_Terminate();
 #endif
