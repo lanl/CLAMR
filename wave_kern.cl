@@ -686,6 +686,114 @@ __kernel void rezone_all_cl(
 
 }
 
+
+__kernel void do_load_balance_cl_lower(
+         __global            *dev_H_new,
+         __global            *dev_U_new,
+         __global            *dev_V_new,
+         __global            *dev_i_new,
+         __global            *dev_j_new,
+         __global            *dev_level_new,
+         __global            *dev_celltype_new,
+         __global const real *dev_H_lower,
+         __global const real *dev_U_lower,
+         __global const real *dev_V_lower,
+         __global const int  *dev_i_lower,
+         __global const int  *dev_j_lower,
+         __global const int  *dev_level_lower,
+         __global const int  *dev_celltype_lower,
+         const int            lower_block_size)
+{
+
+   const unsigned int giX = get_global_id(0);
+
+   if(giX >= lower_block_size) return;
+
+   dev_H_new[giX]        = dev_H_lower[giX];
+   dev_U_new[giX]        = dev_U_lower[giX];
+   dev_V_new[giX]        = dev_V_lower[giX];
+   dev_i_new[giX]        = dev_i_lower[giX];
+   dev_j_new[giX]        = dev_j_lower[giX];
+   dev_level_new[giX]    = dev_level_lower[giX];
+   dev_celltype_new[giX] = dev_celltype_lower[giX];
+
+}
+
+
+__kernel void do_load_balance_cl_middle(
+         __global            *dev_H_new,
+         __global            *dev_U_new,
+         __global            *dev_V_new,
+         __global            *dev_i_new,
+         __global            *dev_j_new,
+         __global            *dev_level_new,
+         __global            *dev_celltype_new,
+         __global const real *dev_H,
+         __global const real *dev_U,
+         __global const real *dev_V,
+         __global const int  *dev_i,
+         __global const int  *dev_j,
+         __global const int  *dev_level,
+         __global const int  *dev_celltype,
+         const int            lower_block_size,
+         const int            middle_block_size,
+         const int            middle_block_start)
+{
+
+   const unsigned int giX = get_global_id(0);
+
+   if(giX >= middle_block_size) return;
+
+   const unsigned int rgiX = lower_block_size + giX;
+   const unsigned int dgiX = middle_block_start + giX;
+
+   dev_H_new[rgiX]        = dev_H[dgiX];
+   dev_U_new[rgiX]        = dev_U[dgiX];
+   dev_V_new[rgiX]        = dev_V[dgiX];
+   dev_i_new[rgiX]        = dev_i[dgiX];
+   dev_j_new[rgiX]        = dev_j[dgiX];
+   dev_level_new[rgiX]    = dev_level[dgiX];
+   dev_celltype_new[rgiX] = dev_celltype[dgiX];
+
+}
+
+
+__kernel void do_load_balance_cl_upper(
+         __global            *dev_H_new,
+         __global            *dev_U_new,
+         __global            *dev_V_new,
+         __global            *dev_i_new,
+         __global            *dev_j_new,
+         __global            *dev_level_new,
+         __global            *dev_celltype_new,
+         __global const real *dev_H_upper,
+         __global const real *dev_U_upper,
+         __global const real *dev_V_upper,
+         __global const int  *dev_i_upper,
+         __global const int  *dev_j_upper,
+         __global const int  *dev_level_upper,
+         __global const int  *dev_celltype_upper,
+         const int            lower_block_size,
+         const int            middle_block_size,
+         const int            upper_block_size)
+{
+
+   const unsigned int giX = get_global_id(0);
+
+   if(giX >= upper_block_size) return;
+
+   const unsigned int rgiX = lower_block_size + middle_block_size + giX;
+
+   dev_H_new[rgiX]        = dev_H_upper[giX];
+   dev_U_new[rgiX]        = dev_U_upper[giX];
+   dev_V_new[rgiX]        = dev_V_upper[giX];
+   dev_i_new[rgiX]        = dev_i_upper[giX];
+   dev_j_new[rgiX]        = dev_j_upper[giX];
+   dev_level_new[rgiX]    = dev_level_upper[giX];
+   dev_celltype_new[rgiX] = dev_celltype_upper[giX];
+
+}
+
 #define hashval(j,i) hash[(j)*imaxsize+(i)]
 
 __kernel void hash_init_cl(

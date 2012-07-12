@@ -513,6 +513,9 @@ extern "C" void do_calc(void)
       MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       noffset -= ncells;
 
+
+      mesh->do_load_balance(ncells_global, H, U, V);
+/*
 #define DO_LOAD_BALANCE
 
 #ifdef DO_LOAD_BALANCE
@@ -542,19 +545,20 @@ extern "C" void do_calc(void)
 
          // Indices of blocks to be added to load balance
          int lower_block_start = noffset;
-         int lower_block_end   = noffset_old-1;
-         int upper_block_start = noffset_old+ncells_old;
+         int lower_block_end   = min(noffset_old-1, (int)(noffset+ncells-1));
+         int upper_block_start = max(noffset_old+ncells_old, noffset);
          int upper_block_end   = noffset+ncells-1;
          //printf("%d: DEBUG lower %d %d upper %d %d\n",mype,lower_block_start,lower_block_end,upper_block_start,upper_block_end);
 
          int lower_block_size = max(lower_block_end-lower_block_start+1,0);
-         if(lower_block_end < 0) lower_block_size = 0;
+         if(lower_block_end < 0) lower_block_size = 0; // Handles segfault at start of array
          int upper_block_size = max(upper_block_end-upper_block_start+1,0);
          int indices_needed_count = lower_block_size + upper_block_size;
+
+         int in = 0;
  
          //printf("%d: indices_needed_count %d\n",mype,indices_needed_count);
          vector<int> indices_needed(indices_needed_count);
-         int in=0;
          for (int iz = lower_block_start; iz <= lower_block_end; iz++, in++){
             indices_needed[in]=iz;
          }
@@ -567,8 +571,10 @@ extern "C" void do_calc(void)
          // }
 
 // XXX
-//if(indices_needed_count == 0)
+// if(indices_needed_count == 0)
 //   printf("MYPE%d: ncells_old = %d   ncells = %d   , but indices needed = 0?\n", mype, ncells_old, ncells);
+
+// if(indices_needed_count != 0) {
 
          int load_balance_handle = 0;
          L7_Setup(0, noffset_old, ncells_old, &indices_needed[0], indices_needed_count, &load_balance_handle);
@@ -591,7 +597,7 @@ extern "C" void do_calc(void)
 
          L7_Free(&load_balance_handle);
          load_balance_handle = 0;
-  
+// }  
          vector<real> H_temp(ncells);
          vector<real> U_temp(ncells);
          vector<real> V_temp(ncells);
@@ -676,6 +682,7 @@ extern "C" void do_calc(void)
 //            printf("MYPE%d: indexes[%d] = %d \n", mype, k, indexes[k]);
 
       }
+*/
 
       MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 

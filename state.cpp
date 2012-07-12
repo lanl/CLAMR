@@ -3350,6 +3350,10 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
    vector<int> &celltype = mesh->celltype;
    vector<int> &level    = mesh->level;
 
+#ifdef HAVE_MPI
+   int &mype = mesh->mype;
+#endif
+
    struct timeval tstart_cpu;
    double summer = 0.0;
    double total_sum = 0.0;
@@ -3375,6 +3379,8 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
             local.sum          = new_sum;
          }
       }
+
+
 #ifdef HAVE_MPI
       if (mesh->parallel) {
          MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
@@ -3382,6 +3388,9 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
       } else {
          total_sum = local.sum + local.correction;
       }
+
+//if(mype == 0) printf("MYPE %d: Line %d Iteration %d \t local_sum = %12.6lg, global_sum = %12.6lg\n", mype, __LINE__, mesh->m_ncycle, local.sum, global.sum);
+
 #else
       total_sum = local.sum + local.correction;
 #endif
@@ -3831,6 +3840,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
          parallel_timer_output(numpe,mype,"CPU:  mesh->rezone_all         time was",(get_cpu_time_rezone_all() + mesh->get_cpu_time_rezone_all() ) );
          parallel_timer_output(numpe,mype,"CPU:  mesh->partition_cells    time was",mesh->cpu_time_partition);
          parallel_timer_output(numpe,mype,"CPU:  mesh->calc_neighbors     time was",mesh->get_cpu_time_calc_neighbors() );
+         parallel_timer_output(numpe,mype,"CPU:  mesh->calc_load_balance  time was",mesh->get_cpu_time_load_balance() );
          parallel_timer_output(numpe,mype,"CPU:  mesh->calc_spatial_coor  time was",mesh->get_cpu_time_calc_spatial_coordinates() );
          parallel_timer_output(numpe,mype,"CPU:  mass_sum                 time was",get_cpu_time_mass_sum() );
 

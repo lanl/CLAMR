@@ -730,9 +730,12 @@ extern "C" void do_calc(void)
          state_global->gpu_rezone_all(command_queue, mesh_global, ncells_global, new_ncells_global, old_ncells_global, localStencil);
       }
 
-      ncells = new_ncells;
-      mesh->ncells = ncells;
-      //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
+      // XXX XXX XXX
+      // ncells        = new_ncells;
+      // printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
+
+      mesh->do_load_balance_local(command_queue, ncells_global, H, dev_H, U, dev_U, V, dev_V);
+
       MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
       ndispl[0]=0;
       for (int ip=1; ip<numpe; ip++){

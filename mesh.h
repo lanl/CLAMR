@@ -111,7 +111,8 @@ public:
    double   cpu_time_calc_neighbors,
             cpu_time_rezone_all,
             cpu_time_partition,
-            cpu_time_calc_spatial_coordinates;
+            cpu_time_calc_spatial_coordinates,
+            cpu_time_load_balance;
 
    long     gpu_time_reduction_scan,
             gpu_time_hash_setup,
@@ -125,6 +126,9 @@ public:
                   parallel,
                   cell_handle,
                   noffset;
+
+   // XXX Remember to delete this! XXX
+   int            m_ncycle;
 
    double         offtile_ratio_local;
    int            offtile_local_count;
@@ -257,6 +261,7 @@ public:
    double get_cpu_time_rezone_all(void)               {return(cpu_time_rezone_all); };
    double get_cpu_time_partition(void)                {return(cpu_time_partition); };
    double get_cpu_time_calc_spatial_coordinates(void) {return(cpu_time_calc_spatial_coordinates); };
+   double get_cpu_time_load_balance(void)           {return(cpu_time_load_balance); };
 
    long get_gpu_time_reduction_scan(void)           {return(gpu_time_reduction_scan); };
    long get_gpu_time_hash_setup(void)               {return(gpu_time_hash_setup); };
@@ -316,7 +321,9 @@ public:
                   vector<int> &ysym);
    void calc_neighbors(void);
    void calc_neighbors_local(void);
+   void do_load_balance(const int &ncells_global, vector<real> &H, vector<real> &U, vector<real> &V);
 #ifdef HAVE_OPENCL
+   void do_load_balance_local(cl_command_queue command_queue, const int &ncells_global, vector<real> &H, cl_mem dev_H, vector<real> &U, cl_mem dev_U, vector<real> &V, cl_mem dev_V);
    void gpu_calc_neighbors(cl_command_queue command_queue);
    void gpu_calc_neighbors_local(cl_command_queue command_queue);
 #endif
