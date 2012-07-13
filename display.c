@@ -149,10 +149,11 @@ int DrawString(float x, float y, float z, char* string) {
 #ifdef HAVE_MPE
    int xloc = (int)((x-display_xmin)*xconv);
    int yloc = (int)((display_ymax-y)*yconv);
-   MPE_Draw_string(window, xloc, yloc, MPE_BLACK, string);
+   //MPE_Draw_string(window, xloc, yloc, MPE_BLACK, string);
 #endif
    return 1;
 }
+
 #ifdef HAVE_OPENGL
 void InitGL(int width, int height) {
    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -578,6 +579,7 @@ void draw_scene(void) {
    MPI_Barrier(MPI_COMM_WORLD);
 #endif
 #endif
+
 
    if (display_view_mode == 0) {
       DrawSquares();
