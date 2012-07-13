@@ -870,6 +870,29 @@ __kernel void hash_setup_cl(
 #define HASH_SETUP_NEW
 
 #ifdef HASH_SETUP_NEW
+   if (ii < lev_ibeg[lev] || ii > lev_iend[lev] || jj < lev_jbeg[lev] || jj > lev_jend[lev]) {
+#endif
+      int levdiff = levmx-lev;
+   
+      int iimin =  ii   *levtable[levdiff];
+      int iimax = (ii+1)*levtable[levdiff];
+      int jjmin =  jj   *levtable[levdiff];
+      int jjmax = (jj+1)*levtable[levdiff];
+
+      if      (ii < lev_ibeg[lev]) iimin = 0;                        // left boundary
+      else if (ii > lev_iend[lev]) iimax = (imax+1)*levtable[levmx]; // right boundary
+      else if (jj < lev_jbeg[lev]) jjmin = 0;                        // bottom boundary
+      else if (jj > lev_jend[lev]) jjmax = (jmax+1)*levtable[levmx]; // top boundary 
+   
+      for (   int jjj = jjmin; jjj < jjmax; jjj++) {
+         for (int iii = iimin; iii < iimax; iii++) {
+            hashval(jjj, iii) = giX;
+         }
+      }
+#ifdef HASH_SETUP_NEW
+      return;
+   }
+
    if(lev == levmx) {
       hashval(jj,ii) = giX;
       return;
@@ -899,25 +922,6 @@ __kernel void hash_setup_cl(
       hashval(jj,ii) = giX;
       ii += wid/2;
       hashval(jj,ii) = giX;
-   }
-#endif
-#ifdef HASH_SETUP_OLD
-   int levdiff = levmx-lev;
-
-   int iimin =  ii   *levtable[levdiff];
-   int iimax = (ii+1)*levtable[levdiff];
-   int jjmin =  jj   *levtable[levdiff];
-   int jjmax = (jj+1)*levtable[levdiff];
-
-   if      (ii < lev_ibeg[lev]) iimin = 0;                        // left boundary
-   else if (ii > lev_iend[lev]) iimax = (imax+1)*levtable[levmx]; // right boundary
-   else if (jj < lev_jbeg[lev]) jjmin = 0;                        // bottom boundary
-   else if (jj > lev_jend[lev]) jjmax = (jmax+1)*levtable[levmx]; // top boundary 
-
-   for (   int jjj = jjmin; jjj < jjmax; jjj++) {
-      for (int iii = iimin; iii < iimax; iii++) {
-         hashval(jjj, iii) = giX;
-      }
    }
 #endif
 }
