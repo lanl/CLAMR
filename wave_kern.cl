@@ -870,7 +870,7 @@ __kernel void hash_setup_cl(
 #define HASH_SETUP_NEW
 
 #ifdef HASH_SETUP_NEW
-   if (ii < lev_ibeg[lev] || ii > lev_iend[lev] || jj < lev_jbeg[lev] || jj > lev_jend[lev]) {
+   if (lev > 0 && (ii < lev_ibeg[lev] || ii > lev_iend[lev] || jj < lev_jbeg[lev] || jj > lev_jend[lev]) ) {
 #endif
       int levdiff = levmx-lev;
    
