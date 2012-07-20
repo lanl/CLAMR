@@ -14892,23 +14892,23 @@ fi
 
          fi
          if test "$found" = "no"; then
-           { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /home/cuda/sdk4.0.13/OpenCL/common/inc/CL/cl.h" >&5
-$as_echo_n "checking for /home/cuda/sdk4.0.13/OpenCL/common/inc/CL/cl.h... " >&6; }
-if test "${ac_cv_file__home_cuda_sdk4_0_13_OpenCL_common_inc_CL_cl_h+set}" = set; then :
+           { $as_echo "$as_me:${as_lineno-$LINENO}: checking for /home/cuda/cuda4.2/include/CL/cl.h" >&5
+$as_echo_n "checking for /home/cuda/cuda4.2/include/CL/cl.h... " >&6; }
+if test "${ac_cv_file__home_cuda_cuda4_2_include_CL_cl_h+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
   test "$cross_compiling" = yes &&
   as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "/home/cuda/sdk4.0.13/OpenCL/common/inc/CL/cl.h"; then
-  ac_cv_file__home_cuda_sdk4_0_13_OpenCL_common_inc_CL_cl_h=yes
+if test -r "/home/cuda/cuda4.2/include/CL/cl.h"; then
+  ac_cv_file__home_cuda_cuda4_2_include_CL_cl_h=yes
 else
-  ac_cv_file__home_cuda_sdk4_0_13_OpenCL_common_inc_CL_cl_h=no
+  ac_cv_file__home_cuda_cuda4_2_include_CL_cl_h=no
 fi
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file__home_cuda_sdk4_0_13_OpenCL_common_inc_CL_cl_h" >&5
-$as_echo "$ac_cv_file__home_cuda_sdk4_0_13_OpenCL_common_inc_CL_cl_h" >&6; }
-if test "x$ac_cv_file__home_cuda_sdk4_0_13_OpenCL_common_inc_CL_cl_h" = x""yes; then :
-  INCLUDES="${INCLUDES} -I/home/cuda/sdk4.0.13/OpenCL/common/inc" && found="yes"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_file__home_cuda_cuda4_2_include_CL_cl_h" >&5
+$as_echo "$ac_cv_file__home_cuda_cuda4_2_include_CL_cl_h" >&6; }
+if test "x$ac_cv_file__home_cuda_cuda4_2_include_CL_cl_h" = x""yes; then :
+  INCLUDES="${INCLUDES} -I/home/cuda/cuda4.2/include" && found="yes"
 fi
 
          fi
