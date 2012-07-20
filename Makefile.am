@@ -1,4 +1,4 @@
-bin_PROGRAMS = clamr clamr_gpuonly clamr_cpuonly clamr_mpionly clamr_gpucheck clamr_checkall
+bin_PROGRAMS = clamr clamr_gpuonly clamr_cpuonly clamr_mpionly clamr_gpucheck clamr_mpicheck clamr_checkall
 
 SUBDIRS = l7 kdtree hsfc s7 timer ezcl zorder genmalloc
 
@@ -39,6 +39,14 @@ clamr_mpionly_CPPFLAGS = -DHAVE_MPI=1 -UHAVE_OPENCL
 clamr_mpionly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la -lm ${MPE_LIBS} ${MPI_LIBS}
 
 clamr_mpionly_SOURCES = ${clamr_mpionly_CXX_SRCS} ${clamr_mpionly_C_SRCS} ${clamr_mpionly_H_SRCS}
+
+clamr_mpicheck_CXX_SRCS = clamr_mpicheck.cpp mesh.cpp partition.cpp state.cpp input.cpp
+clamr_mpicheck_C_SRCS = display.c
+clamr_mpicheck_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h
+clamr_mpicheck_CPPFLAGS = -DHAVE_MPI=1 -UHAVE_OPENCL
+clamr_mpicheck_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la -lm ${MPE_LIBS} ${MPI_LIBS}
+
+clamr_mpicheck_SOURCES = ${clamr_mpicheck_CXX_SRCS} ${clamr_mpicheck_C_SRCS} ${clamr_mpicheck_H_SRCS}
 
 clamr_gpucheck_CXX_SRCS = clamr_gpucheck.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_gpucheck_C_SRCS = display.c reduce.c

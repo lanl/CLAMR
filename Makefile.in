@@ -36,7 +36,8 @@ build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = clamr$(EXEEXT) clamr_gpuonly$(EXEEXT) \
 	clamr_cpuonly$(EXEEXT) clamr_mpionly$(EXEEXT) \
-	clamr_gpucheck$(EXEEXT) clamr_checkall$(EXEEXT)
+	clamr_gpucheck$(EXEEXT) clamr_mpicheck$(EXEEXT) \
+	clamr_checkall$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
@@ -123,11 +124,23 @@ clamr_gpuonly_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
 	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
 	timer/libtimer.la genmalloc/libgenmalloc.la \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
-am__objects_12 = clamr_mpionly-clamr_mpionly.$(OBJEXT) \
+am__objects_12 = clamr_mpicheck-clamr_mpicheck.$(OBJEXT) \
+	clamr_mpicheck-mesh.$(OBJEXT) \
+	clamr_mpicheck-partition.$(OBJEXT) \
+	clamr_mpicheck-state.$(OBJEXT) clamr_mpicheck-input.$(OBJEXT)
+am__objects_13 = clamr_mpicheck-display.$(OBJEXT)
+am_clamr_mpicheck_OBJECTS = $(am__objects_12) $(am__objects_13) \
+	$(am__objects_3)
+clamr_mpicheck_OBJECTS = $(am_clamr_mpicheck_OBJECTS)
+clamr_mpicheck_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
+	zorder/libzorder.la s7/libs7.la timer/libtimer.la l7/libl7.la \
+	genmalloc/libgenmalloc.la $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
+am__objects_14 = clamr_mpionly-clamr_mpionly.$(OBJEXT) \
 	clamr_mpionly-mesh.$(OBJEXT) clamr_mpionly-partition.$(OBJEXT) \
 	clamr_mpionly-state.$(OBJEXT) clamr_mpionly-input.$(OBJEXT)
-am__objects_13 = clamr_mpionly-display.$(OBJEXT)
-am_clamr_mpionly_OBJECTS = $(am__objects_12) $(am__objects_13) \
+am__objects_15 = clamr_mpionly-display.$(OBJEXT)
+am_clamr_mpionly_OBJECTS = $(am__objects_14) $(am__objects_15) \
 	$(am__objects_3)
 clamr_mpionly_OBJECTS = $(am_clamr_mpionly_OBJECTS)
 clamr_mpionly_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
@@ -158,10 +171,12 @@ CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(clamr_SOURCES) $(clamr_checkall_SOURCES) \
 	$(clamr_cpuonly_SOURCES) $(clamr_gpucheck_SOURCES) \
-	$(clamr_gpuonly_SOURCES) $(clamr_mpionly_SOURCES)
+	$(clamr_gpuonly_SOURCES) $(clamr_mpicheck_SOURCES) \
+	$(clamr_mpionly_SOURCES)
 DIST_SOURCES = $(clamr_SOURCES) $(clamr_checkall_SOURCES) \
 	$(clamr_cpuonly_SOURCES) $(clamr_gpucheck_SOURCES) \
-	$(clamr_gpuonly_SOURCES) $(clamr_mpionly_SOURCES)
+	$(clamr_gpuonly_SOURCES) $(clamr_mpicheck_SOURCES) \
+	$(clamr_mpionly_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -365,6 +380,12 @@ clamr_mpionly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h
 clamr_mpionly_CPPFLAGS = -DHAVE_MPI=1 -UHAVE_OPENCL
 clamr_mpionly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la -lm ${MPE_LIBS} ${MPI_LIBS}
 clamr_mpionly_SOURCES = ${clamr_mpionly_CXX_SRCS} ${clamr_mpionly_C_SRCS} ${clamr_mpionly_H_SRCS}
+clamr_mpicheck_CXX_SRCS = clamr_mpicheck.cpp mesh.cpp partition.cpp state.cpp input.cpp
+clamr_mpicheck_C_SRCS = display.c
+clamr_mpicheck_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h
+clamr_mpicheck_CPPFLAGS = -DHAVE_MPI=1 -UHAVE_OPENCL
+clamr_mpicheck_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la -lm ${MPE_LIBS} ${MPI_LIBS}
+clamr_mpicheck_SOURCES = ${clamr_mpicheck_CXX_SRCS} ${clamr_mpicheck_C_SRCS} ${clamr_mpicheck_H_SRCS}
 clamr_gpucheck_CXX_SRCS = clamr_gpucheck.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_gpucheck_C_SRCS = display.c reduce.c
 clamr_gpucheck_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
@@ -492,6 +513,9 @@ clamr_gpucheck$(EXEEXT): $(clamr_gpucheck_OBJECTS) $(clamr_gpucheck_DEPENDENCIES
 clamr_gpuonly$(EXEEXT): $(clamr_gpuonly_OBJECTS) $(clamr_gpuonly_DEPENDENCIES) 
 	@rm -f clamr_gpuonly$(EXEEXT)
 	$(CXXLINK) $(clamr_gpuonly_OBJECTS) $(clamr_gpuonly_LDADD) $(LIBS)
+clamr_mpicheck$(EXEEXT): $(clamr_mpicheck_OBJECTS) $(clamr_mpicheck_DEPENDENCIES) 
+	@rm -f clamr_mpicheck$(EXEEXT)
+	$(CXXLINK) $(clamr_mpicheck_OBJECTS) $(clamr_mpicheck_LDADD) $(LIBS)
 clamr_mpionly$(EXEEXT): $(clamr_mpionly_OBJECTS) $(clamr_mpionly_DEPENDENCIES) 
 	@rm -f clamr_mpionly$(EXEEXT)
 	$(CXXLINK) $(clamr_mpionly_OBJECTS) $(clamr_mpionly_LDADD) $(LIBS)
@@ -537,6 +561,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_gpuonly-partition.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_gpuonly-reduce.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_gpuonly-state.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpicheck-clamr_mpicheck.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpicheck-display.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpicheck-input.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpicheck-mesh.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpicheck-partition.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpicheck-state.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpionly-clamr_mpionly.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpionly-display.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_mpionly-input.Po@am__quote@
@@ -704,6 +734,20 @@ clamr_gpuonly-reduce.obj: reduce.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='reduce.c' object='clamr_gpuonly-reduce.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_gpuonly_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o clamr_gpuonly-reduce.obj `if test -f 'reduce.c'; then $(CYGPATH_W) 'reduce.c'; else $(CYGPATH_W) '$(srcdir)/reduce.c'; fi`
+
+clamr_mpicheck-display.o: display.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT clamr_mpicheck-display.o -MD -MP -MF $(DEPDIR)/clamr_mpicheck-display.Tpo -c -o clamr_mpicheck-display.o `test -f 'display.c' || echo '$(srcdir)/'`display.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpicheck-display.Tpo $(DEPDIR)/clamr_mpicheck-display.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='display.c' object='clamr_mpicheck-display.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o clamr_mpicheck-display.o `test -f 'display.c' || echo '$(srcdir)/'`display.c
+
+clamr_mpicheck-display.obj: display.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT clamr_mpicheck-display.obj -MD -MP -MF $(DEPDIR)/clamr_mpicheck-display.Tpo -c -o clamr_mpicheck-display.obj `if test -f 'display.c'; then $(CYGPATH_W) 'display.c'; else $(CYGPATH_W) '$(srcdir)/display.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpicheck-display.Tpo $(DEPDIR)/clamr_mpicheck-display.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='display.c' object='clamr_mpicheck-display.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o clamr_mpicheck-display.obj `if test -f 'display.c'; then $(CYGPATH_W) 'display.c'; else $(CYGPATH_W) '$(srcdir)/display.c'; fi`
 
 clamr_mpionly-display.o: display.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpionly_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT clamr_mpionly-display.o -MD -MP -MF $(DEPDIR)/clamr_mpionly-display.Tpo -c -o clamr_mpionly-display.o `test -f 'display.c' || echo '$(srcdir)/'`display.c
@@ -1089,6 +1133,76 @@ clamr_gpuonly-input.obj: input.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='input.cpp' object='clamr_gpuonly-input.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_gpuonly_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o clamr_gpuonly-input.obj `if test -f 'input.cpp'; then $(CYGPATH_W) 'input.cpp'; else $(CYGPATH_W) '$(srcdir)/input.cpp'; fi`
+
+clamr_mpicheck-clamr_mpicheck.o: clamr_mpicheck.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT clamr_mpicheck-clamr_mpicheck.o -MD -MP -MF $(DEPDIR)/clamr_mpicheck-clamr_mpicheck.Tpo -c -o clamr_mpicheck-clamr_mpicheck.o `test -f 'clamr_mpicheck.cpp' || echo '$(srcdir)/'`clamr_mpicheck.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpicheck-clamr_mpicheck.Tpo $(DEPDIR)/clamr_mpicheck-clamr_mpicheck.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='clamr_mpicheck.cpp' object='clamr_mpicheck-clamr_mpicheck.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o clamr_mpicheck-clamr_mpicheck.o `test -f 'clamr_mpicheck.cpp' || echo '$(srcdir)/'`clamr_mpicheck.cpp
+
+clamr_mpicheck-clamr_mpicheck.obj: clamr_mpicheck.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT clamr_mpicheck-clamr_mpicheck.obj -MD -MP -MF $(DEPDIR)/clamr_mpicheck-clamr_mpicheck.Tpo -c -o clamr_mpicheck-clamr_mpicheck.obj `if test -f 'clamr_mpicheck.cpp'; then $(CYGPATH_W) 'clamr_mpicheck.cpp'; else $(CYGPATH_W) '$(srcdir)/clamr_mpicheck.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpicheck-clamr_mpicheck.Tpo $(DEPDIR)/clamr_mpicheck-clamr_mpicheck.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='clamr_mpicheck.cpp' object='clamr_mpicheck-clamr_mpicheck.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o clamr_mpicheck-clamr_mpicheck.obj `if test -f 'clamr_mpicheck.cpp'; then $(CYGPATH_W) 'clamr_mpicheck.cpp'; else $(CYGPATH_W) '$(srcdir)/clamr_mpicheck.cpp'; fi`
+
+clamr_mpicheck-mesh.o: mesh.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT clamr_mpicheck-mesh.o -MD -MP -MF $(DEPDIR)/clamr_mpicheck-mesh.Tpo -c -o clamr_mpicheck-mesh.o `test -f 'mesh.cpp' || echo '$(srcdir)/'`mesh.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpicheck-mesh.Tpo $(DEPDIR)/clamr_mpicheck-mesh.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='mesh.cpp' object='clamr_mpicheck-mesh.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o clamr_mpicheck-mesh.o `test -f 'mesh.cpp' || echo '$(srcdir)/'`mesh.cpp
+
+clamr_mpicheck-mesh.obj: mesh.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT clamr_mpicheck-mesh.obj -MD -MP -MF $(DEPDIR)/clamr_mpicheck-mesh.Tpo -c -o clamr_mpicheck-mesh.obj `if test -f 'mesh.cpp'; then $(CYGPATH_W) 'mesh.cpp'; else $(CYGPATH_W) '$(srcdir)/mesh.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpicheck-mesh.Tpo $(DEPDIR)/clamr_mpicheck-mesh.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='mesh.cpp' object='clamr_mpicheck-mesh.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o clamr_mpicheck-mesh.obj `if test -f 'mesh.cpp'; then $(CYGPATH_W) 'mesh.cpp'; else $(CYGPATH_W) '$(srcdir)/mesh.cpp'; fi`
+
+clamr_mpicheck-partition.o: partition.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT clamr_mpicheck-partition.o -MD -MP -MF $(DEPDIR)/clamr_mpicheck-partition.Tpo -c -o clamr_mpicheck-partition.o `test -f 'partition.cpp' || echo '$(srcdir)/'`partition.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpicheck-partition.Tpo $(DEPDIR)/clamr_mpicheck-partition.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='partition.cpp' object='clamr_mpicheck-partition.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o clamr_mpicheck-partition.o `test -f 'partition.cpp' || echo '$(srcdir)/'`partition.cpp
+
+clamr_mpicheck-partition.obj: partition.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT clamr_mpicheck-partition.obj -MD -MP -MF $(DEPDIR)/clamr_mpicheck-partition.Tpo -c -o clamr_mpicheck-partition.obj `if test -f 'partition.cpp'; then $(CYGPATH_W) 'partition.cpp'; else $(CYGPATH_W) '$(srcdir)/partition.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpicheck-partition.Tpo $(DEPDIR)/clamr_mpicheck-partition.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='partition.cpp' object='clamr_mpicheck-partition.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o clamr_mpicheck-partition.obj `if test -f 'partition.cpp'; then $(CYGPATH_W) 'partition.cpp'; else $(CYGPATH_W) '$(srcdir)/partition.cpp'; fi`
+
+clamr_mpicheck-state.o: state.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT clamr_mpicheck-state.o -MD -MP -MF $(DEPDIR)/clamr_mpicheck-state.Tpo -c -o clamr_mpicheck-state.o `test -f 'state.cpp' || echo '$(srcdir)/'`state.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpicheck-state.Tpo $(DEPDIR)/clamr_mpicheck-state.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='state.cpp' object='clamr_mpicheck-state.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o clamr_mpicheck-state.o `test -f 'state.cpp' || echo '$(srcdir)/'`state.cpp
+
+clamr_mpicheck-state.obj: state.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT clamr_mpicheck-state.obj -MD -MP -MF $(DEPDIR)/clamr_mpicheck-state.Tpo -c -o clamr_mpicheck-state.obj `if test -f 'state.cpp'; then $(CYGPATH_W) 'state.cpp'; else $(CYGPATH_W) '$(srcdir)/state.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpicheck-state.Tpo $(DEPDIR)/clamr_mpicheck-state.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='state.cpp' object='clamr_mpicheck-state.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o clamr_mpicheck-state.obj `if test -f 'state.cpp'; then $(CYGPATH_W) 'state.cpp'; else $(CYGPATH_W) '$(srcdir)/state.cpp'; fi`
+
+clamr_mpicheck-input.o: input.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT clamr_mpicheck-input.o -MD -MP -MF $(DEPDIR)/clamr_mpicheck-input.Tpo -c -o clamr_mpicheck-input.o `test -f 'input.cpp' || echo '$(srcdir)/'`input.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpicheck-input.Tpo $(DEPDIR)/clamr_mpicheck-input.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='input.cpp' object='clamr_mpicheck-input.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o clamr_mpicheck-input.o `test -f 'input.cpp' || echo '$(srcdir)/'`input.cpp
+
+clamr_mpicheck-input.obj: input.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT clamr_mpicheck-input.obj -MD -MP -MF $(DEPDIR)/clamr_mpicheck-input.Tpo -c -o clamr_mpicheck-input.obj `if test -f 'input.cpp'; then $(CYGPATH_W) 'input.cpp'; else $(CYGPATH_W) '$(srcdir)/input.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/clamr_mpicheck-input.Tpo $(DEPDIR)/clamr_mpicheck-input.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='input.cpp' object='clamr_mpicheck-input.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpicheck_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o clamr_mpicheck-input.obj `if test -f 'input.cpp'; then $(CYGPATH_W) 'input.cpp'; else $(CYGPATH_W) '$(srcdir)/input.cpp'; fi`
 
 clamr_mpionly-clamr_mpionly.o: clamr_mpionly.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_mpionly_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT clamr_mpionly-clamr_mpionly.o -MD -MP -MF $(DEPDIR)/clamr_mpionly-clamr_mpionly.Tpo -c -o clamr_mpionly-clamr_mpionly.o `test -f 'clamr_mpionly.cpp' || echo '$(srcdir)/'`clamr_mpionly.cpp
