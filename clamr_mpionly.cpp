@@ -470,7 +470,7 @@ extern "C" void do_calc(void)
       }  //  Complete NAN check.
       
       mpot.resize(ncells_ghost);
-      state->calc_refine_potential(mesh, mpot, icount, jcount);
+      new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
       nlft.clear();
       nrht.clear();
       nbot.clear();
@@ -478,7 +478,7 @@ extern "C" void do_calc(void)
   
       if (do_comparison_calc) {
          mpot_global.resize(ncells_global);
-         state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
+         new_ncells_global = state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
          nlft_global.clear();
          nrht_global.clear();
          nbot_global.clear();
@@ -494,195 +494,18 @@ extern "C" void do_calc(void)
          mesh->compare_mpot_cpu_local_to_cpu_global(ncells_global, &nsizes[0], &ndispl[0], &mpot[0], &mpot_global[0], ncycle);
       }
 
-      new_ncells = old_ncells+mesh->rezone_count(mpot);
-
-      if (do_comparison_calc) {
-         new_ncells_global = old_ncells_global+mesh_global->rezone_count(mpot_global);
-      }
-
       int add_ncells = new_ncells - old_ncells;
       state->rezone_all(mesh, mpot, add_ncells);
       mpot.clear();
 
-      MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-
-// XXX Why is this MPI_Allgather here? Another one is done later, and nsizes[] is never used in between...
-//      MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+      int mesh_local_ncells_global;
+      MPI_Allreduce(&ncells, &mesh_local_ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
       noffset=0;
       MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       noffset -= ncells;
 
-
-      mesh->do_load_balance(ncells_global, H, U, V);
-/*
-#define DO_LOAD_BALANCE
-
-#ifdef DO_LOAD_BALANCE
-      int ncells_old = ncells;
-
-      ncells = (ncells_global) / ((size_t)numpe);
-      if (mype < (ncells_global%((size_t)numpe))) ncells++;
-
-      int do_load_balance = 0;
-      if (ncells_old != ncells) do_load_balance = 1;
-
-      int do_load_balance_global = 0;
-      MPI_Allreduce(&do_load_balance, &do_load_balance_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-#else
-      int do_load_balance_global = 0;
-#endif
-      //printf("%d: DEBUG ncells_old %d ncells %d\n",mype,ncells_old,ncells);
-
-      if (do_load_balance_global) {
-// if(mype == 0) printf("MYPE %d: Line %d Iteration %d \n", mype, __LINE__, ncycle);
-         //printf("%d: DEBUG ncells_old %d ncells %d\n",mype,ncells_old,ncells);
-
-         int noffset_old = noffset;
-
-         MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-         noffset -= ncells;
-
-         // Indices of blocks to be added to load balance
-         int lower_block_start = noffset;
-         int lower_block_end   = min(noffset_old-1, (int)(noffset+ncells-1));
-         int upper_block_start = max(noffset_old+ncells_old, noffset);
-         int upper_block_end   = noffset+ncells-1;
-         //printf("%d: DEBUG lower %d %d upper %d %d\n",mype,lower_block_start,lower_block_end,upper_block_start,upper_block_end);
-
-         int lower_block_size = max(lower_block_end-lower_block_start+1,0);
-         if(lower_block_end < 0) lower_block_size = 0; // Handles segfault at start of array
-         int upper_block_size = max(upper_block_end-upper_block_start+1,0);
-         int indices_needed_count = lower_block_size + upper_block_size;
-
-         int in = 0;
- 
-         //printf("%d: indices_needed_count %d\n",mype,indices_needed_count);
-         vector<int> indices_needed(indices_needed_count);
-         for (int iz = lower_block_start; iz <= lower_block_end; iz++, in++){
-            indices_needed[in]=iz;
-         }
-         for (int iz = upper_block_start; iz <= upper_block_end; iz++, in++){
-            indices_needed[in]=iz;
-         }
-
-         // for (int iz = 0; iz < indices_needed_count; iz++) {
-         //    printf("%d: indices_needed[%d] = %d\n", mype, iz, indices_needed[iz]);
-         // }
-
-// XXX
-// if(indices_needed_count == 0)
-//   printf("MYPE%d: ncells_old = %d   ncells = %d   , but indices needed = 0?\n", mype, ncells_old, ncells);
-
-// if(indices_needed_count != 0) {
-
-         int load_balance_handle = 0;
-         L7_Setup(0, noffset_old, ncells_old, &indices_needed[0], indices_needed_count, &load_balance_handle);
-
-         H.resize(ncells_old+indices_needed_count,0.0);
-         U.resize(ncells_old+indices_needed_count,0.0);
-         V.resize(ncells_old+indices_needed_count,0.0);
-         L7_Update(&H[0], L7_REAL, load_balance_handle);
-         L7_Update(&U[0], L7_REAL, load_balance_handle);
-         L7_Update(&V[0], L7_REAL, load_balance_handle);
-
-         i.resize(ncells_old+indices_needed_count,0.0);
-         j.resize(ncells_old+indices_needed_count,0.0);
-         level.resize(ncells_old+indices_needed_count,0.0);
-         celltype.resize(ncells_old+indices_needed_count,0.0);
-         L7_Update(&i[0], L7_INT, load_balance_handle);
-         L7_Update(&j[0], L7_INT, load_balance_handle);
-         L7_Update(&level[0], L7_INT, load_balance_handle);
-         L7_Update(&celltype[0], L7_INT, load_balance_handle);
-
-         L7_Free(&load_balance_handle);
-         load_balance_handle = 0;
-// }  
-         vector<real> H_temp(ncells);
-         vector<real> U_temp(ncells);
-         vector<real> V_temp(ncells);
-
-         vector<int> i_temp(ncells);
-         vector<int> j_temp(ncells);
-         vector<int> level_temp(ncells);
-         vector<int> celltype_temp(ncells);
-
-         vector<int> indexes(ncells);
-
-         in = 0;
-         int ic = lower_block_size;
-         if(ic > 0) {
-            for(; (in < ic) && (in < ncells); in++) {
-               H_temp[in] = H[ncells_old + in];
-               U_temp[in] = U[ncells_old + in];
-               V_temp[in] = V[ncells_old + in];
-
-               i_temp[in]     = i[ncells_old + in];
-               j_temp[in]     = j[ncells_old + in];
-               level_temp[in] = level[ncells_old + in];
-               celltype_temp[in] = celltype[ncells_old + in];
-
-//               indexes[in] = lower_block_start + in;
-            }
-         }
-
-         ic = noffset - noffset_old;
-         if(ic < 0) ic = 0;
-         for(; (ic < ncells_old) && (in < ncells); ic++, in++) {
-            H_temp[in] = H[ic];
-            U_temp[in] = U[ic];
-            V_temp[in] = V[ic];
-
-            i_temp[in]     = i[ic];
-            j_temp[in]     = j[ic];
-            level_temp[in] = level[ic];
-            celltype_temp[in] = celltype[ic];
-
-//            indexes[in] = noffset_old + ic;
-         }
-
-         ic = upper_block_size;
-         if(ic > 0) {
-            ic = ncells_old + lower_block_size;
-            for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < ncells); k++, in++) {
-               H_temp[in] = H[ic+k];
-               U_temp[in] = U[ic+k];
-               V_temp[in] = V[ic+k];
-
-               i_temp[in]     = i[ic+k];
-               j_temp[in]     = j[ic+k];
-               level_temp[in] = level[ic+k];
-               celltype_temp[in] = celltype[ic+k];
-
-//               if(mype == 0)
-//                  printf("H[%d] = %12.6lg\n", ic+k, H[ic+k]);
-//               indexes[in] = upper_block_start + k;
-            }
-         }
-
-// XXX
-//printf("Old global array:\n");
-//for(int k = 0; k < ncells_old; k++)
-//   printf("%d::%12.6lg\n", mype, H[k]);
-//printf("New global array:\n");
-//for(int k = 0; k < ncells; k++)
-//   printf("%d::%12.6lg\n", mype, H_temp[k]);
-// XXX
-
-         H.swap(H_temp);
-         U.swap(U_temp);
-         V.swap(V_temp);
-
-         i.swap(i_temp);
-         j.swap(j_temp);
-         level.swap(level_temp);
-         celltype.swap(celltype_temp);
-
-//         for(int k = 0; k < ncells; k++)
-//            printf("MYPE%d: indexes[%d] = %d \n", mype, k, indexes[k]);
-
-      }
-*/
+      mesh->do_load_balance(mesh_local_ncells_global, H, U, V);
 
       MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 

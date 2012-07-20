@@ -2859,6 +2859,12 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
       } while (newcount_global > 0 && levcount < mesh->levmx);
    }
 
+#ifdef HAVE_MPI
+   if (mesh->parallel) {
+      L7_Update(&mpot[0], L7_INT, mesh->cell_handle);
+  }
+#endif
+
    for (uint ic=0; ic<ncells; ic++) {
       if (mesh->celltype[ic] < 0) {
          switch (mesh->celltype[ic]) {
