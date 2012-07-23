@@ -171,7 +171,16 @@ fi
 if test "${enable_opencl}" != "no"; then
   case "$host" in
     *linux*)
+      NVIDIA="no"
       if test "`lspci | grep "VGA compatible controller" | grep nVidia | wc -l`" != "0"; then
+         NVIDIA="yes"
+      else
+         if test "`lspci | grep "3D controller" | grep nVidia | wc -l`" != "0"; then
+            NVIDIA="yes"
+         fi
+      fi
+
+      if test "$NVIDIA"="yes"; then
          found="no"
          AC_CHECK_FILE(/usr/local/NVIDIA_GPU_Computing_SDK/OpenCL/common/inc/CL/cl.h, INCLUDES="${INCLUDES} -I/usr/local/NVIDIA_GPU_Computing_SDK/OpenCL/common/inc" && found="yes")
          if test "$found" = "no"; then

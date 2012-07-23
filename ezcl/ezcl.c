@@ -127,7 +127,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
 
    ierr = clGetPlatformIDs(0, 0, &nPlatforms);
    if (ierr != CL_SUCCESS){
-      printf("EZCL_INIT: Error with clGetDeviceIDs call in file %s at line %d\n", file, line);
+      printf("EZCL_INIT: Error with clGetPlatformIDs call in file %s at line %d\n", file, line);
       if (ierr == CL_INVALID_VALUE){
          printf("Invalid value in clGetPlatformID call\n");
       }
@@ -290,6 +290,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
 cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_context, cl_command_queue *return_command_queue, int *compute_device, const int mype, const char *file, int line){
    cl_device_id device;
    int ierr;
+   cl_uint nDevices_selected;
 
    cl_uint nPlatforms;
    //cl_uint nDevices;
@@ -348,7 +349,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_contex
 
    // Get the number of devices, allocate, and get the devices
    for (int iplatform=0; iplatform<nPlatforms; iplatform++){
-      ierr = clGetDeviceIDs(platforms[0],device_type,0,NULL,&nDevices);
+      ierr = clGetDeviceIDs(platforms[iplatform],device_type,0,NULL,&nDevices);
       if (ierr == CL_DEVICE_NOT_FOUND) {
          if (DEBUG) {
            printf("Warning: Device of requested type not found for platform %d in clGetDeviceID call\n",iplatform);
@@ -369,12 +370,15 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_contex
       }
       platform_selected = iplatform;
       platform = platforms[iplatform];
+      nDevices_selected = nDevices;
    }
 
    if (platform_selected == -1){
       printf("Warning: Device of requested type not found in clGetDeviceID call\n");
       return(EZCL_NODEVICE);
    }
+
+   nDevices = nDevices_selected;
 
    devices = (cl_device_id *)malloc(nDevices*sizeof(cl_device_id));
    ezcl_malloc_memory_add(devices, nDevices*sizeof(cl_device_id));
