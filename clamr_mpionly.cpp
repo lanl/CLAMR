@@ -75,14 +75,6 @@
 #define DEBUG 0
 #endif
 
-//#define DO_COMPARISON
-
-#ifdef DO_COMPARISON
-static int do_comparison_calc = 1;
-#else
-static int do_comparison_calc = 0;
-#endif
-
 static int do_cpu_calc = 1;
 static int do_gpu_calc = 0;
 
@@ -313,7 +305,6 @@ extern "C" void do_calc(void)
 {  double g     = 9.80;
    double sigma = 0.95; 
    int icount, jcount;
-   int icount_global, jcount_global;
 
    //  Initialize state variables for GPU calculation.
    int &mype = mesh->mype;
@@ -322,11 +313,6 @@ extern "C" void do_calc(void)
 
    vector<int>   &nsizes   = mesh_global->nsizes;
    vector<int>   &ndispl   = mesh_global->ndispl;
-
-   vector<int>   &nlft_global     = mesh_global->nlft;
-   vector<int>   &nrht_global     = mesh_global->nrht;
-   vector<int>   &nbot_global     = mesh_global->nbot;
-   vector<int>   &ntop_global     = mesh_global->ntop;
 
    vector<int>   &nlft     = mesh->nlft;
    vector<int>   &nrht     = mesh->nrht;
@@ -355,11 +341,6 @@ extern "C" void do_calc(void)
    vector<real>  &y_global  = mesh_global->y;
    vector<real>  &dy_global = mesh_global->dy;
 
-   vector<int> &i     = mesh->i;
-   vector<int> &j     = mesh->j;
-   vector<int> &level = mesh->level;
-   vector<int> &celltype = mesh->celltype;
-
    vector<int>     mpot;
    vector<int>     mpot_global;
    
@@ -376,7 +357,6 @@ extern "C" void do_calc(void)
    size_t old_ncells = ncells;
    size_t old_ncells_global = ncells_global;
    size_t new_ncells = 0;
-   size_t new_ncells_global = 0;
    double H_sum = -1.0;
    double deltaT = 0.0;
 
@@ -390,16 +370,6 @@ extern "C" void do_calc(void)
       //  Calculate the real time step for the current discrete time step.
       deltaT = state->set_timestep(mesh, g, sigma);
       simTime += deltaT;
-
-      //  Compare time step values and pass deltaT in to the kernel.
-      if (do_comparison_calc) {
-         double deltaT_cpu_global = state_global->set_timestep(mesh_global, g, sigma);
-
-         if (fabs(deltaT - deltaT_cpu_global) > .000001) {
-            printf("Error with deltaT calc --- cpu_local %lf cpu_global %lf\n",
-               deltaT, deltaT_cpu_global);
-         }
-      }
 
       mesh->calc_neighbors_local();
 
@@ -419,13 +389,6 @@ extern "C" void do_calc(void)
       L7_Update(&y[0], L7_REAL, cell_handle);
       L7_Update(&dy[0], L7_REAL, cell_handle);
 
-      if (do_comparison_calc) {
-         mesh_global->calc_neighbors();
-
-         // Checking CPU parallel to CPU global
-         mesh->compare_neighbors_cpu_local_to_cpu_global(ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);
-      }
-
       mesh->partition_measure();
 
       // Currently not working -- may need to be earlier?
@@ -436,29 +399,14 @@ extern "C" void do_calc(void)
       // Need ghost cells for this routine
       state->apply_boundary_conditions(mesh);
 
-      if (do_comparison_calc) {
-        state_global->apply_boundary_conditions(mesh_global);
-      }
-
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
       state->calc_finite_difference_local(mesh, deltaT);
 
-      if (do_comparison_calc) {
-         state_global->calc_finite_difference(mesh_global, deltaT);
-
-         // Compare H gathered to H_global, etc
-         state->compare_state_cpu_local_to_cpu_global(state_global, "finite difference", ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
-      }
-
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       state->remove_boundary_cells(mesh);
 
-      if (do_comparison_calc) {
-         state_global->remove_boundary_cells(mesh_global);
-      }
-      
       //  Check for NANs.
       for (uint ic=0; ic<ncells; ic++) {
          if (isnan(H[ic]))
@@ -476,24 +424,6 @@ extern "C" void do_calc(void)
       nbot.clear();
       ntop.clear();
   
-      if (do_comparison_calc) {
-         mpot_global.resize(ncells_global);
-         new_ncells_global = state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
-         nlft_global.clear();
-         nrht_global.clear();
-         nbot_global.clear();
-         ntop_global.clear();
-
-         int icount_test;
-         MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-         if (icount_test != icount_global) {
-            printf("%d: DEBUG -- icount is %d icount_test %d icount_global is %d\n", mype,icount,icount_test,icount_global);
-         }
-
-         // Compare mpot to mpot_global
-         mesh->compare_mpot_cpu_local_to_cpu_global(ncells_global, &nsizes[0], &ndispl[0], &mpot[0], &mpot_global[0], ncycle);
-      }
-
       int add_ncells = new_ncells - old_ncells;
       state->rezone_all(mesh, mpot, add_ncells);
       mpot.clear();
@@ -514,49 +444,13 @@ extern "C" void do_calc(void)
          ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
       }
 
-      if (do_comparison_calc) {
-         int add_ncells_global = new_ncells_global - old_ncells_global;
-         //printf("%d: DEBUG add %d new %d old %d\n",mype,add_ncells,new_ncells,old_ncells);
-         state_global->rezone_all(mesh_global, mpot_global, add_ncells_global);
-         mpot_global.clear();
-
-         //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
-
-         // And compare H gathered to H_global, etc
-         state->compare_state_cpu_local_to_cpu_global(state_global, "rezone all", ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
-
-         mesh->compare_indices_cpu_local_to_cpu_global(ncells_global, mesh_global, &nsizes[0], &ndispl[0], ncycle);
-      } // do_comparison_calc
-
       H_sum = -1.0;
-
-      if (do_comparison_calc) {
-         H_sum = state->mass_sum(mesh, enhanced_precision_sum);
-
-         double H_sum_global = state_global->mass_sum(mesh_global, enhanced_precision_sum);
-
-         if (fabs(H_sum - H_sum_global) > CONSERVATION_EPS) {
-            printf("Error with mass sum calculation -- mass_sum %lf mass_sum_global %lf\n",
-                    H_sum, H_sum_global);
-         }
-      }
-
 
 // XXX
 //      mesh->proc.resize(ncells);
 //      if (icount) {
 //         vector<int> index(ncells);
 //         mesh->partition_cells(numpe, mesh->proc, index, cycle_reorder);
-//      }
-
-//      if (do_comparison_calc) {
-//         mesh_global->proc.resize(ncells_global);
-
-//         if (icount) {
-//            vector<int> index_global(ncells_global);
-//            mesh_global->partition_cells(numpe, mesh_global->proc, index_global, cycle_reorder);
-            //state->state_reorder(index);
-//         }
 //      }
 
    } // End burst loop
@@ -576,37 +470,31 @@ extern "C" void do_calc(void)
 
 #ifdef HAVE_GRAPHICS
    mesh->calc_spatial_coordinates(0);
-   if (do_comparison_calc) {
-      mesh_global->calc_spatial_coordinates(0);
 
-      mesh->compare_coordinates_cpu_local_to_cpu_global(ncells_global, &nsizes[0], &ndispl[0], &x[0], &dx[0], &y[0], &dy[0], &H[0], &x_global[0], &dx_global[0], &y_global[0], &dy_global[0], &H_global[0], ncycle);
-
-   } else {
 #ifdef HAVE_OPENGL
-      MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-      x_global.resize(ncells_global);
-      dx_global.resize(ncells_global);
-      y_global.resize(ncells_global);
-      dy_global.resize(ncells_global);
-      H_global.resize(ncells_global);
-      MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      MPI_Allgatherv(&H[0],  nsizes[mype], MPI_C_REAL, &H_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   x_global.resize(ncells_global);
+   dx_global.resize(ncells_global);
+   y_global.resize(ncells_global);
+   dy_global.resize(ncells_global);
+   H_global.resize(ncells_global);
+   MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0],  nsizes[mype], MPI_C_REAL, &H_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
-      if (view_mode == 0) {
-         mesh->proc.resize(ncells);
-         for (int ii = 0; ii<ncells; ii++){
-            mesh->proc[ii] = mesh->mype;
-         }
-      
-         mesh_global->proc.resize(ncells_global);
-         MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &mesh_global->proc[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   if (view_mode == 0) {
+      mesh->proc.resize(ncells);
+      for (size_t ii = 0; ii<ncells; ii++){
+         mesh->proc[ii] = mesh->mype;
       }
-#endif
+   
+      mesh_global->proc.resize(ncells_global);
+      MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &mesh_global->proc[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    }
+#endif
 
 #ifdef HAVE_MPE
    set_mysize(ncells);
@@ -632,9 +520,6 @@ extern "C" void do_calc(void)
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       
-      if (do_comparison_calc) {
-         state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, elapsed_time);
-      }
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
 
       mesh->print_partition_measure();

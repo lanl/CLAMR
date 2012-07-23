@@ -355,11 +355,6 @@ extern "C" void do_calc(void)
    vector<real>  &y_global  = mesh_global->y;
    vector<real>  &dy_global = mesh_global->dy;
 
-   vector<int> &i     = mesh->i;
-   vector<int> &j     = mesh->j;
-   vector<int> &level = mesh->level;
-   vector<int> &celltype = mesh->celltype;
-
    vector<int>     mpot;
    vector<int>     mpot_global;
    
@@ -598,7 +593,7 @@ extern "C" void do_calc(void)
 
       if (view_mode == 0) {
          mesh->proc.resize(ncells);
-         for (int ii = 0; ii<ncells; ii++){
+         for (size_t ii = 0; ii<ncells; ii++){
             mesh->proc[ii] = mesh->mype;
          }
       

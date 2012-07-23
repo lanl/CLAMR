@@ -5007,10 +5007,10 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
       L7_Update(&U[0], L7_REAL, load_balance_handle);
       L7_Update(&V[0], L7_REAL, load_balance_handle);
 
-      i.resize(ncells_old+indices_needed_count,0.0);
-      j.resize(ncells_old+indices_needed_count,0.0);
-      level.resize(ncells_old+indices_needed_count,0.0);
-      celltype.resize(ncells_old+indices_needed_count,0.0);
+      i.resize(ncells_old+indices_needed_count,0);
+      j.resize(ncells_old+indices_needed_count,0);
+      level.resize(ncells_old+indices_needed_count,0);
+      celltype.resize(ncells_old+indices_needed_count,0);
       L7_Update(&i[0], L7_INT, load_balance_handle);
       L7_Update(&j[0], L7_INT, load_balance_handle);
       L7_Update(&level[0], L7_INT, load_balance_handle);
@@ -5152,10 +5152,10 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
       L7_Update(&U[0], L7_REAL, load_balance_handle);
       L7_Update(&V[0], L7_REAL, load_balance_handle);
 
-      i.resize(ncells_old+indices_needed_count,0.0);
-      j.resize(ncells_old+indices_needed_count,0.0);
-      level.resize(ncells_old+indices_needed_count,0.0);
-      celltype.resize(ncells_old+indices_needed_count,0.0);
+      i.resize(ncells_old+indices_needed_count,0);
+      j.resize(ncells_old+indices_needed_count,0);
+      level.resize(ncells_old+indices_needed_count,0);
+      celltype.resize(ncells_old+indices_needed_count,0);
 
       // gpu_timer_load_balance_read += (end_read_event - start_read_event);
 
@@ -5350,10 +5350,10 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
       ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_V, CL_FALSE, 0, ncells*sizeof(cl_real), &V[0], NULL);
 
-      i.resize(ncells,0.0);
-      j.resize(ncells,0.0);
-      level.resize(ncells,0.0);
-      celltype.resize(ncells,0.0);
+      i.resize(ncells,0);
+      j.resize(ncells,0);
+      level.resize(ncells,0);
+      celltype.resize(ncells,0);
 
       ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int), &i[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j[0],        NULL);
