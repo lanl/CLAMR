@@ -102,7 +102,7 @@ case "$host" in
           CXXFLAGS="-pg ${CXXFLAGS}"
         fi
         dnl LDFLAGS="-rdynamic"
-        LDFLAGS="-all-static"
+        dnl LDFLAGS="-all-static"
         RPATH_PREFIX="-Wl,"
 
         ;;
@@ -189,6 +189,9 @@ if test "${enable_opencl}" != "no"; then
          if test "$found" = "no"; then
            AC_CHECK_FILE(/home/cuda/cuda4.2/include/CL/cl.h, INCLUDES="${INCLUDES} -I/home/cuda/cuda4.2/include" && found="yes")
          fi
+         if test "$found" = "no"; then
+            AC_CHECK_FILE(/opt/cudatoolkit-4.1/include/CL/cl.h, INCLUDES="${INCLUDES} -I/opt/cudatoolkit-4.1/include" && found="yes")
+         fi
          found="no"
          if test "$found" = "no"; then
            AC_CHECK_FILE(/usr/lib/libOpenCL.so, OPENCL_LIBS="${OPENCL_LIBS} -lOpenCL" && found="yes")
@@ -197,6 +200,16 @@ if test "${enable_opencl}" != "no"; then
                RPATH_LIBS="/usr/lib"
              else
                RPATH_LIBS="${RPATH_LIBS}:/usr/lib"
+             fi
+           fi
+           if test "$found" = "no"; then
+              AC_CHECK_FILE(/usr/lib64/libOpenCL.so, OPENCL_LIBS="${OPENCL_LIBS} -L/usr/lib64 -lOpenCL" && found="yes")
+             if test "${found}" = "yes"; then
+               if test "${RPATH_LIBS}x" = "x"; then
+                 RPATH_LIBS="/usr/lib64"
+               else
+                 RPATH_LIBS="${RPATH_LIBS}:/usr/lib64"
+               fi
              fi
            fi
          fi
