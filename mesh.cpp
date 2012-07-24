@@ -4958,7 +4958,7 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   int ncells_old = ncells;
+   size_t ncells_old = ncells;
 
    ncells = ncells_global / numpe;
    if (mype < (ncells_global%numpe)) ncells++;
@@ -4979,7 +4979,7 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
       // Indices of blocks to be added to load balance
       int lower_block_start = noffset;
       int lower_block_end   = min(noffset_old-1, (int)(noffset+ncells-1));
-      int upper_block_start = max(noffset_old+ncells_old, noffset);
+      int upper_block_start = max((int)(noffset_old+ncells_old), noffset);
       int upper_block_end   = noffset+ncells-1;
 
       int lower_block_size = max(lower_block_end-lower_block_start+1,0);
@@ -4987,7 +4987,7 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
       int upper_block_size = max(upper_block_end-upper_block_start+1,0);
       int indices_needed_count = lower_block_size + upper_block_size;
 
-      int in = 0;
+      size_t in = 0;
  
       vector<int> indices_needed(indices_needed_count);
       for (int iz = lower_block_start; iz <= lower_block_end; iz++, in++){
@@ -5031,7 +5031,7 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
       vector<int> indexes(ncells);
 
       in = 0;
-      int ic = lower_block_size;
+      size_t ic = lower_block_size;
       if(ic > 0) {
          for(; (in < ic) && (in < ncells); in++) {
             H_temp[in] = H[ncells_old + in];
@@ -5092,7 +5092,7 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
 void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncells_global, vector<real> &H, cl_mem dev_H, vector<real> &U, cl_mem dev_U, vector<real> &V, cl_mem dev_V)
 {
 
-   int ncells_old = ncells;
+   size_t ncells_old = ncells;
    ncells = ncells_global / numpe;
    if(mype < (ncells_global%numpe)) ncells++;
 
@@ -5112,7 +5112,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
       // Indices of blocks to be added to load balance
       int lower_block_start = noffset;
       int lower_block_end   = min(noffset_old-1, (int)(noffset+ncells-1));
-      int upper_block_start = max(noffset_old+ncells_old, noffset);
+      int upper_block_start = max((int)(noffset_old+ncells_old), noffset);
       int upper_block_end   = noffset+ncells-1;
 
       size_t lower_block_size = max(lower_block_end-lower_block_start+1,0);

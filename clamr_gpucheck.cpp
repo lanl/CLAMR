@@ -311,7 +311,7 @@ extern "C" void do_calc(void)
    cl_mem &dev_j        = mesh->dev_j;
    cl_mem &dev_level    = mesh->dev_level;
 
-   cl_mem &dev_mpot     = mesh->dev_mpot;
+   cl_mem &dev_mpot     = state->dev_mpot;
 
    vector<int>     mpot;
    

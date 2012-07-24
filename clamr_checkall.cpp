@@ -508,14 +508,14 @@ extern "C" void do_calc(void)
    cl_mem &dev_j_global        = mesh_global->dev_j;
    cl_mem &dev_level_global    = mesh_global->dev_level;
 
-   cl_mem &dev_mpot_global     = mesh_global->dev_mpot;
+   cl_mem &dev_mpot_global     = state_global->dev_mpot;
 
    cl_mem &dev_celltype = mesh_local->dev_celltype;
    cl_mem &dev_i        = mesh_local->dev_i;
    cl_mem &dev_j        = mesh_local->dev_j;
    cl_mem &dev_level    = mesh_local->dev_level;
 
-   cl_mem &dev_mpot     = mesh_local->dev_mpot;
+   cl_mem &dev_mpot     = state_local->dev_mpot;
 
    vector<int>     mpot;
    vector<int>     mpot_global;
@@ -668,9 +668,6 @@ extern "C" void do_calc(void)
       vector<int>      ioffset_global(block_size_global);
       //vector<int>      newcount_global(block_size_global);
 
-      cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
-      //cl_mem dev_ioffset_global    = ezcl_malloc(NULL, &block_size_global, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
-
       if (do_cpu_calc) {
          mpot.resize(ncells_ghost);
          mpot_global.resize(ncells_global);
@@ -678,17 +675,9 @@ extern "C" void do_calc(void)
          state_local->calc_refine_potential(mesh_local, mpot, icount, jcount);
       }  //  Complete CPU calculation.
 
-      size_t result_size = 1;
-      cl_mem dev_result = NULL;
-      //cl_mem dev_result_global = NULL;
       if (do_gpu_calc) {
-         dev_mpot     = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-         //dev_mpot_global     = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-         dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         //dev_result_global  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
- 
          new_ncells_global = state_global->gpu_calc_refine_potential(command_queue, mesh_global);
-         state_local->gpu_calc_refine_potential_local(command_queue, mesh_local, dev_result, dev_ioffset);
+         new_ncells = state_local->gpu_calc_refine_potential_local(command_queue, mesh_local);
       }
       
       if (do_comparison_calc) {
@@ -698,7 +687,7 @@ extern "C" void do_calc(void)
             printf("%d: DEBUG -- icount is %d icount_test %d icount_global is %d\n",mype,icount,icount_test,icount_global);
          }
 
-         mesh_local->compare_mpot_all_to_gpu_local(command_queue, &mpot[0], &mpot_global[0], dev_mpot, dev_mpot_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);
+         mesh_local->compare_mpot_all_to_gpu_local(command_queue, &mpot[0], &mpot_global[0], state_local->dev_mpot, state_global->dev_mpot, ncells_global, &nsizes[0], &ndispl[0], ncycle);
       }
 
       // Sync up cpu array with gpu version to reduce differences due to minor numerical differences
@@ -714,7 +703,7 @@ extern "C" void do_calc(void)
 
       int mcount, mtotal;
       if (do_comparison_calc) {
-         mesh_local->compare_ioffset_all_to_gpu_local(command_queue, old_ncells, old_ncells_global, block_size, block_size_global, &mpot[0], &mpot_global[0], dev_ioffset, state_global->dev_ioffset, &ioffset[0], &ioffset_global[0], &celltype_global[0]);
+         mesh_local->compare_ioffset_all_to_gpu_local(command_queue, old_ncells, old_ncells_global, block_size, block_size_global, &mpot[0], &mpot_global[0], state_local->dev_ioffset, state_global->dev_ioffset, &ioffset[0], &ioffset_global[0], &celltype_global[0]);
       }
       if (do_gpu_sync) {
         mtotal = 0;
@@ -731,7 +720,7 @@ extern "C" void do_calc(void)
            //ioffset[ig] = mtotal;
            mtotal += mcount;
         }
-        ezcl_enqueue_write_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
+        ezcl_enqueue_write_buffer(command_queue, state_local->dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
         mtotal = 0;
         for (uint ig=0; ig<(old_ncells_global+TILE_SIZE-1)/TILE_SIZE; ig++){
            mcount = 0;
@@ -756,28 +745,6 @@ extern "C" void do_calc(void)
          //printf("new_ncells_global %d old_ncells_global %d rezone_count_global %d\n",new_ncells_global, old_ncells_global, mesh_global->rezone_count(mpot_global));
       }
 
-      //if (do_gpu_calc) {
-      //   mesh_global->gpu_rezone_count(command_queue, block_size_global, local_work_size_global, dev_ioffset_global, dev_result_global);
-      //   mesh_local->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
-      //}
-
-      if (do_comparison_calc) {
-         int result;
-         ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-         if (new_ncells != result) printf("%d: DEBUG new_ncells not correct %ld %d\n",mype,new_ncells,result);
-         new_ncells = result;
-         //printf("Result is %d\n",result[0]);
-
-         //ezcl_enqueue_read_buffer(command_queue, dev_result_global, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-         //if (new_ncells_global != result) printf("%d: DEBUG new_ncells_global not correct %ld %d\n",mype,new_ncells_global,result);
-         //new_ncells_global = result;
-      }
-
-      if (do_gpu_calc) {
-         ezcl_device_memory_remove(dev_result);
-         //ezcl_device_memory_remove(dev_result_global);
-      }
-
       if (do_cpu_calc) {
          int add_ncells_global = new_ncells_global - old_ncells_global;
          int add_ncells = new_ncells - old_ncells;
@@ -791,7 +758,7 @@ extern "C" void do_calc(void)
       //  Resize the mesh, inserting cells where refinement is necessary.
       if (do_gpu_calc) {
          state_global->gpu_rezone_all(command_queue, mesh_global, ncells_global, new_ncells_global, old_ncells_global, localStencil);
-         state_local->gpu_rezone_all_local(command_queue, mesh_local, old_ncells, new_ncells, old_ncells, localStencil, dev_ioffset);
+         state_local->gpu_rezone_all_local(command_queue, mesh_local, old_ncells, new_ncells, old_ncells, localStencil);
       }
 
       if (do_cpu_calc) {
@@ -848,9 +815,6 @@ extern "C" void do_calc(void)
 
       ioffset.clear();
       ioffset_global.clear();
-
-      ezcl_device_memory_remove(dev_ioffset);
-      //ezcl_device_memory_remove(dev_ioffset_global);
 
       H_sum = -1.0;
 

@@ -853,7 +853,7 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    cl_mem &dev_celltype_new = mesh->dev_celltype_new;
    cl_mem &dev_levdx        = mesh->dev_levdx;
    cl_mem &dev_levdy        = mesh->dev_levdy;
-   cl_mem &dev_mpot         = mesh->dev_mpot;
+   //cl_mem &dev_mpot         = mesh->dev_mpot;
 
    assert(dev_mpot);
    assert(dev_level);
@@ -957,7 +957,7 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    gpu_time_rezone_all        += ezcl_timer_calc(&rezone_all_event,        &rezone_all_event);
 }
 
-void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil, cl_mem dev_ioffset)
+void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil)
 {
    cl_event rezone_all_event;
 
@@ -973,7 +973,7 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    cl_mem &dev_celltype_new = mesh->dev_celltype_new;
    cl_mem &dev_levdx        = mesh->dev_levdx;
    cl_mem &dev_levdy        = mesh->dev_levdy;
-   cl_mem &dev_mpot         = mesh->dev_mpot;
+   //cl_mem &dev_mpot         = mesh->dev_mpot;
 
    assert(dev_mpot);
    assert(dev_level);
@@ -1038,6 +1038,15 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    MPI_Waitall(12, req, status);
 #endif
 
+   if (new_ncells != old_ncells){
+      ncells = new_ncells;
+      mesh->resize_new_device_memory(ncells);
+   }
+
+   cl_mem dev_H_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_U_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_V_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+
    cl_mem dev_ijadd;
 
    vector<int>ijadd(6);
@@ -1051,15 +1060,6 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    size_t six = 6;
    dev_ijadd = ezcl_malloc(NULL, &six, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
    ezcl_enqueue_write_buffer(command_queue, dev_ijadd, CL_TRUE, 0, 6*sizeof(cl_int), (void*)&ijadd[0], &start_write_event);
-
-   if (new_ncells != old_ncells){
-      ncells = new_ncells;
-      mesh->resize_new_device_memory(ncells);
-   }
-
-   cl_mem dev_H_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_U_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_V_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
    int stencil = 0;
    if (localStencil) stencil = 1;
@@ -1114,6 +1114,7 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
 
    ezcl_device_memory_remove(dev_mpot);
    ezcl_device_memory_remove(dev_ijadd);
+   ezcl_device_memory_remove(dev_ioffset);
 
    ezcl_device_memory_remove(dev_H_new);
    ezcl_device_memory_remove(dev_U_new);
@@ -2957,7 +2958,7 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
    cl_mem &dev_nbot     = mesh->dev_nbot;
    cl_mem &dev_ntop     = mesh->dev_ntop;
    cl_mem &dev_level    = mesh->dev_level;
-   cl_mem &dev_mpot     = mesh->dev_mpot;
+   //cl_mem &dev_mpot     = mesh->dev_mpot;
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_levdx    = mesh->dev_levdx;
    cl_mem &dev_levdy    = mesh->dev_levdy;
@@ -3119,11 +3120,12 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
    return((size_t)my_result);
 }
 
-void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh *mesh, cl_mem dev_result, cl_mem dev_ioffset)
+size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh *mesh)
 {
    cl_event refine_potential_event;
    cl_event set_boundary_refinement_event;
    cl_event copy_mpot_ghost_data_event;
+   cl_event start_read_event;
 
    cl_mem dev_mpot_add = NULL;
 
@@ -3133,7 +3135,7 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    cl_mem &dev_nrht     = mesh->dev_nrht;
    cl_mem &dev_nbot     = mesh->dev_nbot;
    cl_mem &dev_ntop     = mesh->dev_ntop;
-   cl_mem &dev_mpot     = mesh->dev_mpot;
+   //cl_mem &dev_mpot     = mesh->dev_mpot;
    cl_mem &dev_level    = mesh->dev_level;
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_levdx    = mesh->dev_levdx;
@@ -3147,8 +3149,8 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    assert(dev_nbot);
    assert(dev_ntop);
    assert(dev_level);
-   assert(dev_mpot);
-   assert(dev_ioffset);
+   //assert(dev_mpot);
+   //assert(dev_ioffset);
    assert(dev_levdx);
    assert(dev_levdy);
 
@@ -3196,6 +3198,12 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
    size_t block_size = global_work_size/local_work_size;
+
+   dev_ioffset  = ezcl_malloc(NULL, &block_size,   sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   dev_mpot     = ezcl_malloc(NULL, &mesh->ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+
+   size_t result_size = 1;
+   cl_mem dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
      /*
      __kernel void refine_potential
@@ -3245,7 +3253,9 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
 
 
    size_t result = 0;
-   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, &start_read_event);
+
+   gpu_time_refine_potential  += ezcl_timer_calc(&start_read_event,  &start_read_event);
 
 //   printf("result = %d after first refine potential\n",(result-ncells));
 //   int which_smooth = 1;
@@ -3379,6 +3389,14 @@ void State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh
    }
    gpu_time_refine_potential  += ezcl_timer_calc(&refine_potential_event,  &refine_potential_event);
    gpu_time_refine_potential  += ezcl_timer_calc(&set_boundary_refinement_event,  &set_boundary_refinement_event);
+
+   int my_result;
+   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int), &my_result, NULL);
+   //printf("Result is %d %d %d\n",my_result, ncells,__LINE__);
+
+   ezcl_device_memory_remove(dev_result);
+
+   return((size_t)my_result);
 }
 #endif
 
@@ -3390,7 +3408,7 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
    vector<int> &level    = mesh->level;
 
 #ifdef HAVE_MPI
-   int &mype = mesh->mype;
+   //int &mype = mesh->mype;
 #endif
 
    struct timeval tstart_cpu;

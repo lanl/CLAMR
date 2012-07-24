@@ -210,7 +210,7 @@ public:
                   dev_nbot,       
                   dev_ntop;       
 
-   cl_mem         dev_mpot;
+   //cl_mem         dev_mpot;
 
    cl_mem         dev_celltype_new,       
                   dev_i_new,       
