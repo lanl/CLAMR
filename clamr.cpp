@@ -685,8 +685,9 @@ extern "C" void do_calc(void)
       }
 
       // XXX XXX XXX
-      // ncells        = new_ncells;
-      // printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
+      ncells        = new_ncells;
+      MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
 
       mesh->do_load_balance_local(command_queue, ncells_global, H, dev_H, U, dev_U, V, dev_V);
 
@@ -770,7 +771,7 @@ extern "C" void do_calc(void)
       H_sum = state->gpu_mass_sum_local(command_queue, mesh, enhanced_precision_sum);
    }
    if (mype == 0){
-      printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
+      printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
          ncycle, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
    }
 

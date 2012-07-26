@@ -5089,7 +5089,7 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncells_global, vector<real> &H, cl_mem dev_H, vector<real> &U, cl_mem dev_U, vector<real> &V, cl_mem dev_V)
+void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncells_global, vector<real> &H, cl_mem &dev_H, vector<real> &U, cl_mem &dev_U, vector<real> &V, cl_mem &dev_V)
 {
 
    size_t ncells_old = ncells;
@@ -5367,8 +5367,8 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
 #else
 void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<real> &U, vector<real> &V) {return;}
 #ifdef HAVE_OPENCL
-void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncells_global, vector<real> &H, cl_mem dev_H, vector<real> &U, cl_mem dev_U, vector<real> &V, cl_mem dev_V) {return;}
 #endif
+void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncells_global, vector<real> &H, cl_mem &dev_H, vector<real> &U, cl_mem &dev_U, vector<real> &V, cl_mem &dev_V) {return;}
 #endif
 
 #ifdef HAVE_OPENCL

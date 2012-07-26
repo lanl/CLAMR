@@ -323,7 +323,7 @@ public:
    void calc_neighbors_local(void);
    void do_load_balance(const int &ncells_global, vector<real> &H, vector<real> &U, vector<real> &V);
 #ifdef HAVE_OPENCL
-   void do_load_balance_local(cl_command_queue command_queue, const int &ncells_global, vector<real> &H, cl_mem dev_H, vector<real> &U, cl_mem dev_U, vector<real> &V, cl_mem dev_V);
+   void do_load_balance_local(cl_command_queue command_queue, const int &ncells_global, vector<real> &H, cl_mem &dev_H, vector<real> &U, cl_mem &dev_U, vector<real> &V, cl_mem &dev_V);
    void gpu_calc_neighbors(cl_command_queue command_queue);
    void gpu_calc_neighbors_local(cl_command_queue command_queue);
 #endif
