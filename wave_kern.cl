@@ -688,13 +688,13 @@ __kernel void rezone_all_cl(
 
 
 __kernel void do_load_balance_cl_lower(
-         __global            *dev_H_new,
-         __global            *dev_U_new,
-         __global            *dev_V_new,
-         __global            *dev_i_new,
-         __global            *dev_j_new,
-         __global            *dev_level_new,
-         __global            *dev_celltype_new,
+         __global       real *dev_H_new,
+         __global       real *dev_U_new,
+         __global       real *dev_V_new,
+         __global       int  *dev_i_new,
+         __global       int  *dev_j_new,
+         __global       int  *dev_level_new,
+         __global       int  *dev_celltype_new,
          __global const real *dev_H_lower,
          __global const real *dev_U_lower,
          __global const real *dev_V_lower,
@@ -721,13 +721,13 @@ __kernel void do_load_balance_cl_lower(
 
 
 __kernel void do_load_balance_cl_middle(
-         __global            *dev_H_new,
-         __global            *dev_U_new,
-         __global            *dev_V_new,
-         __global            *dev_i_new,
-         __global            *dev_j_new,
-         __global            *dev_level_new,
-         __global            *dev_celltype_new,
+         __global       real *dev_H_new,
+         __global       real *dev_U_new,
+         __global       real *dev_V_new,
+         __global       int  *dev_i_new,
+         __global       int  *dev_j_new,
+         __global       int  *dev_level_new,
+         __global       int  *dev_celltype_new,
          __global const real *dev_H,
          __global const real *dev_U,
          __global const real *dev_V,
@@ -759,13 +759,13 @@ __kernel void do_load_balance_cl_middle(
 
 
 __kernel void do_load_balance_cl_upper(
-         __global            *dev_H_new,
-         __global            *dev_U_new,
-         __global            *dev_V_new,
-         __global            *dev_i_new,
-         __global            *dev_j_new,
-         __global            *dev_level_new,
-         __global            *dev_celltype_new,
+         __global       real *dev_H_new,
+         __global       real *dev_U_new,
+         __global       real *dev_V_new,
+         __global       int  *dev_i_new,
+         __global       int  *dev_j_new,
+         __global       int  *dev_level_new,
+         __global       int  *dev_celltype_new,
          __global const real *dev_H_upper,
          __global const real *dev_U_upper,
          __global const real *dev_V_upper,

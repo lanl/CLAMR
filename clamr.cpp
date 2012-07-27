@@ -567,6 +567,17 @@ extern "C" void do_calc(void)
          }
       }
 
+      //ezcl_device_memory_remove(mesh->dev_nlft);
+      //ezcl_device_memory_remove(mesh->dev_nrht);
+      //ezcl_device_memory_remove(mesh->dev_nbot);
+      //ezcl_device_memory_remove(mesh->dev_ntop);
+      //ezcl_device_memory_remove(mesh->dev_celltype);
+      //mesh->dev_nlft = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      //mesh->dev_nrht = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      //mesh->dev_nbot = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      //mesh->dev_ntop = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      //mesh->dev_celltype = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+
       mesh->gpu_calc_neighbors_local(command_queue);
 
       if (do_comparison_calc) {
@@ -685,7 +696,8 @@ extern "C" void do_calc(void)
       }
 
       // XXX XXX XXX
-      ncells        = new_ncells;
+      ncells       = new_ncells;
+      //mesh->ncells = new_ncells;
       MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
 
