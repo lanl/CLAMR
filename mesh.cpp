@@ -4959,7 +4959,7 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   size_t ncells_old = ncells;
+   int ncells_old = ncells;
 
    ncells = ncells_global / numpe;
    if (mype < (ncells_global%numpe)) ncells++;
@@ -4970,9 +4970,12 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
    int do_load_balance_global = 0;
    MPI_Allreduce(&do_load_balance, &do_load_balance_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
+   int noffset_old = noffset;
+
    if (do_load_balance_global) {
 
-      int noffset_old = noffset;
+      MPI_Scan(&ncells_old, &noffset_old, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      noffset_old -= ncells_old;
 
       MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       noffset -= ncells;

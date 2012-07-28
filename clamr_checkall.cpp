@@ -761,6 +761,12 @@ extern "C" void do_calc(void)
          state_local->gpu_rezone_all_local(command_queue, mesh_local, old_ncells, new_ncells, old_ncells, localStencil);
       }
 
+      ncells = new_ncells;
+      mesh_local->ncells = new_ncells;
+
+      ncells_global = new_ncells_global;
+      mesh_global->ncells = new_ncells_global;
+
       if (do_cpu_calc) {
          mesh_local->do_load_balance(ncells_global, H, U, V);
       }
