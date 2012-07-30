@@ -265,7 +265,7 @@ extern "C" void do_calc(void)
 
    size_t &ncells    = mesh->ncells;
 
-   cl_mem &dev_mpot     = mesh->dev_mpot;
+   cl_mem &dev_mpot     = state->dev_mpot;
 
    double deltaT = 0.0;
 

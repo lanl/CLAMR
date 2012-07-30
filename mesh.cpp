@@ -1391,6 +1391,7 @@ void Mesh::gpu_calc_spatial_coordinates(cl_command_queue command_queue, cl_mem d
 //     level
 //     i
 //     j
+
    ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  0, sizeof(cl_int),    (void *)&ncells);
    ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  1, sizeof(cl_real),   (void *)&xmin);
    ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  2, sizeof(cl_real),   (void *)&ymin);
@@ -4969,9 +4970,12 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
    int do_load_balance_global = 0;
    MPI_Allreduce(&do_load_balance, &do_load_balance_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
+   int noffset_old = noffset;
+
    if (do_load_balance_global) {
 
-      int noffset_old = noffset;
+      MPI_Scan(&ncells_old, &noffset_old, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      noffset_old -= ncells_old;
 
       MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       noffset -= ncells;
@@ -4979,7 +4983,7 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
       // Indices of blocks to be added to load balance
       int lower_block_start = noffset;
       int lower_block_end   = min(noffset_old-1, (int)(noffset+ncells-1));
-      int upper_block_start = max(noffset_old+ncells_old, noffset);
+      int upper_block_start = max((int)(noffset_old+ncells_old), noffset);
       int upper_block_end   = noffset+ncells-1;
 
       int lower_block_size = max(lower_block_end-lower_block_start+1,0);
@@ -4987,7 +4991,7 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
       int upper_block_size = max(upper_block_end-upper_block_start+1,0);
       int indices_needed_count = lower_block_size + upper_block_size;
 
-      int in = 0;
+      size_t in = 0;
  
       vector<int> indices_needed(indices_needed_count);
       for (int iz = lower_block_start; iz <= lower_block_end; iz++, in++){
@@ -5031,7 +5035,7 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
       vector<int> indexes(ncells);
 
       in = 0;
-      int ic = lower_block_size;
+      size_t ic = lower_block_size;
       if(ic > 0) {
          for(; (in < ic) && (in < ncells); in++) {
             H_temp[in] = H[ncells_old + in];
@@ -5089,7 +5093,7 @@ void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<rea
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncells_global, vector<real> &H, cl_mem dev_H, vector<real> &U, cl_mem dev_U, vector<real> &V, cl_mem dev_V)
+void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncells_global, vector<real> &H, cl_mem &dev_H, vector<real> &U, cl_mem &dev_U, vector<real> &V, cl_mem &dev_V)
 {
 
    int ncells_old = ncells;
@@ -5102,9 +5106,12 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
    int do_load_balance_global = 0;
    MPI_Allreduce(&do_load_balance, &do_load_balance_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
+   int noffset_old = noffset;
+
    if(do_load_balance_global) {
 
-      int noffset_old = noffset;
+      MPI_Scan(&ncells_old, &noffset_old, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      noffset_old -= ncells_old;
 
       MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       noffset -= ncells;
@@ -5112,7 +5119,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
       // Indices of blocks to be added to load balance
       int lower_block_start = noffset;
       int lower_block_end   = min(noffset_old-1, (int)(noffset+ncells-1));
-      int upper_block_start = max(noffset_old+ncells_old, noffset);
+      int upper_block_start = max((int)(noffset_old+ncells_old), noffset);
       int upper_block_end   = noffset+ncells-1;
 
       size_t lower_block_size = max(lower_block_end-lower_block_start+1,0);
@@ -5146,7 +5153,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
 
       ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells_old*sizeof(cl_real), &H[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells_old*sizeof(cl_real), &U[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_FALSE, 0, ncells_old*sizeof(cl_real), &V[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells_old*sizeof(cl_real), &V[0], NULL);
 
       L7_Update(&H[0], L7_REAL, load_balance_handle);
       L7_Update(&U[0], L7_REAL, load_balance_handle);
@@ -5162,7 +5169,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
       ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells_old*sizeof(cl_int), &i[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells_old*sizeof(cl_int), &j[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells_old*sizeof(cl_int), &level[0],    NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells_old*sizeof(cl_int), &celltype[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells_old*sizeof(cl_int), &celltype[0], NULL);
 
       L7_Update(&i[0],        L7_INT, load_balance_handle);
       L7_Update(&j[0],        L7_INT, load_balance_handle);
@@ -5182,7 +5189,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
          dev_V_lower = ezcl_malloc(NULL, &lower_block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
          ezcl_enqueue_write_buffer(command_queue, dev_H_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_real), (void*)&H[ncells_old], NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_U_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_real), (void*)&U[ncells_old], NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_real), (void*)&V[ncells_old], NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_V_lower, CL_TRUE,  0, lower_block_size*sizeof(cl_real), (void*)&V[ncells_old], NULL);
 
          dev_i_lower        = ezcl_malloc(NULL, &lower_block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          dev_j_lower        = ezcl_malloc(NULL, &lower_block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -5191,7 +5198,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
          ezcl_enqueue_write_buffer(command_queue, dev_i_lower,        CL_FALSE, 0, lower_block_size*sizeof(cl_int), (void*)&i[ncells_old],        NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_j_lower,        CL_FALSE, 0, lower_block_size*sizeof(cl_int), (void*)&j[ncells_old],        NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_level_lower,    CL_FALSE, 0, lower_block_size*sizeof(cl_int), (void*)&level[ncells_old],    NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_celltype_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_int), (void*)&celltype[ncells_old], NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_celltype_lower, CL_TRUE,  0, lower_block_size*sizeof(cl_int), (void*)&celltype[ncells_old], NULL);
 
       }
 
@@ -5204,7 +5211,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
          dev_V_upper = ezcl_malloc(NULL, &upper_block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
          ezcl_enqueue_write_buffer(command_queue, dev_H_upper, CL_FALSE, 0, upper_block_size*sizeof(cl_real), (void*)&H[ncells_old+lower_block_size], NULL); 
          ezcl_enqueue_write_buffer(command_queue, dev_U_upper, CL_FALSE, 0, upper_block_size*sizeof(cl_real), (void*)&U[ncells_old+lower_block_size], NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V_upper, CL_FALSE, 0, upper_block_size*sizeof(cl_real), (void*)&V[ncells_old+lower_block_size], NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_V_upper, CL_TRUE,  0, upper_block_size*sizeof(cl_real), (void*)&V[ncells_old+lower_block_size], NULL);
 
          dev_i_upper        = ezcl_malloc(NULL, &upper_block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          dev_j_upper        = ezcl_malloc(NULL, &upper_block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -5213,7 +5220,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
          ezcl_enqueue_write_buffer(command_queue, dev_i_upper,        CL_FALSE, 0, upper_block_size*sizeof(cl_int), (void*)&i[ncells_old+lower_block_size],        NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_j_upper,        CL_FALSE, 0, upper_block_size*sizeof(cl_int), (void*)&j[ncells_old+lower_block_size],        NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_level_upper,    CL_FALSE, 0, upper_block_size*sizeof(cl_int), (void*)&level[ncells_old+lower_block_size],    NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_celltype_upper, CL_FALSE, 0, upper_block_size*sizeof(cl_int), (void*)&celltype[ncells_old+lower_block_size], NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_celltype_upper, CL_TRUE,  0, upper_block_size*sizeof(cl_int), (void*)&celltype[ncells_old+lower_block_size], NULL);
 
       }
 
@@ -5348,7 +5355,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
 
       ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_FALSE, 0, ncells*sizeof(cl_real), &V[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V[0], NULL);
 
       i.resize(ncells,0);
       j.resize(ncells,0);
@@ -5358,7 +5365,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
       ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int), &i[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int), &level[0],    NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int), &celltype[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells*sizeof(cl_int), &celltype[0], NULL);
 
    }
 
@@ -5367,8 +5374,8 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncel
 #else
 void Mesh::do_load_balance(const int &ncells_global, vector<real> &H, vector<real> &U, vector<real> &V) {return;}
 #ifdef HAVE_OPENCL
-void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncells_global, vector<real> &H, cl_mem dev_H, vector<real> &U, cl_mem dev_U, vector<real> &V, cl_mem dev_V) {return;}
 #endif
+void Mesh::do_load_balance_local(cl_command_queue command_queue, const int &ncells_global, vector<real> &H, cl_mem &dev_H, vector<real> &U, cl_mem &dev_U, vector<real> &V, cl_mem &dev_V) {return;}
 #endif
 
 #ifdef HAVE_OPENCL

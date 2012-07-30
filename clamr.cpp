@@ -170,11 +170,7 @@ int main(int argc, char **argv) {
    int mype=0;
    int numpe=0;
    L7_Init(&mype, &numpe, &argc, argv);
-   //MPI_Init(&argc, &argv);
    parseInput(argc, argv);
-
-   //MPI_Comm_size(MPI_COMM_WORLD, &numpe);
-   //MPI_Comm_rank(MPI_COMM_WORLD, &mype);
 
    ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &context, &command_queue, &compute_device, mype);
    if (ierr == EZCL_NODEVICE) {
@@ -281,14 +277,14 @@ int main(int argc, char **argv) {
    vector<real> &dy = mesh->dy;
 
    ncells = ncells_global/numpe;
-   if (mype < ncells_global%numpe) ncells++;
+   if (mype < (int)ncells_global%numpe) ncells++;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);
 
    for (int ip=0; ip<numpe; ip++){
       nsizes[ip] = ncells_global/numpe;
-      if (ip < ncells_global%numpe) nsizes[ip]++;
+      if (ip < (int)ncells_global%numpe) nsizes[ip]++;
    }
 
    ndispl[0]=0;
@@ -496,9 +492,9 @@ extern "C" void do_calc(void)
    cl_mem &dev_U  = state->dev_U;
    cl_mem &dev_V  = state->dev_V;
 
-   cl_mem &dev_mpot_global     = mesh_global->dev_mpot;
+   cl_mem &dev_mpot_global     = state_global->dev_mpot;
 
-   cl_mem &dev_mpot     = mesh->dev_mpot;
+   cl_mem &dev_mpot     = state->dev_mpot;
 
 
    vector<int>     mpot;
@@ -571,6 +567,17 @@ extern "C" void do_calc(void)
          }
       }
 
+      //ezcl_device_memory_remove(mesh->dev_nlft);
+      //ezcl_device_memory_remove(mesh->dev_nrht);
+      //ezcl_device_memory_remove(mesh->dev_nbot);
+      //ezcl_device_memory_remove(mesh->dev_ntop);
+      //ezcl_device_memory_remove(mesh->dev_celltype);
+      //mesh->dev_nlft = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      //mesh->dev_nrht = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      //mesh->dev_nbot = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      //mesh->dev_ntop = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      //mesh->dev_celltype = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+
       mesh->gpu_calc_neighbors_local(command_queue);
 
       if (do_comparison_calc) {
@@ -634,28 +641,16 @@ extern "C" void do_calc(void)
             exit(-1); }
       }  //  Complete NAN check.
       
-      size_t result_size = 1;
-      cl_mem dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_ioffset    = ezcl_malloc(NULL, &block_size, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
-      dev_mpot     = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-
       vector<int>      ioffset(block_size);
       vector<int>      ioffset_global(block_size_global);
 
-      cl_mem dev_ioffset_global    = ezcl_malloc(NULL, &block_size_global, sizeof(cl_int),   CL_MEM_READ_WRITE, 0);
-
-      cl_mem dev_result_global = NULL;
-      dev_mpot_global     = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-      dev_result_global  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
- 
-      // Should not need this call! -- 
-      state->gpu_calc_refine_potential_local(command_queue, mesh, dev_result, dev_ioffset);
+      new_ncells = state->gpu_calc_refine_potential_local(command_queue, mesh);
 
       if (do_comparison_calc) {
          mpot.resize(ncells_ghost);
          mpot_global.resize(ncells_global);
-         state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
-         state->calc_refine_potential(mesh, mpot, icount, jcount);
+         new_ncells_global = state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
+         new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
 
          new_ncells_global = state_global->gpu_calc_refine_potential(command_queue, mesh_global);
       
@@ -665,7 +660,7 @@ extern "C" void do_calc(void)
 		    printf("%d: DEBUG -- icount is %d icount_test %d icount_global is %d\n",mype,icount,icount_test,icount_global);
          }
 
-         mesh->compare_mpot_all_to_gpu_local(command_queue, &mpot[0], &mpot_global[0], dev_mpot, dev_mpot_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);
+         mesh->compare_mpot_all_to_gpu_local(command_queue, &mpot[0], &mpot_global[0], state->dev_mpot, state_global->dev_mpot, ncells_global, &nsizes[0], &ndispl[0], ncycle);
       }
 
       // Sync up cpu array with gpu version to reduce differences due to minor numerical differences
@@ -678,37 +673,7 @@ extern "C" void do_calc(void)
       }
 
       if (do_comparison_calc) {
-         mesh->compare_ioffset_all_to_gpu_local(command_queue, old_ncells, old_ncells_global, block_size, block_size_global, &mpot[0], &mpot_global[0], dev_ioffset, dev_ioffset_global, &ioffset[0], &ioffset_global[0], &celltype_global[0]);
-      }
-
-      if (do_comparison_calc) {
-         new_ncells_global = old_ncells_global+mesh_global->rezone_count(mpot_global);
-         new_ncells = old_ncells+mesh->rezone_count(mpot);
-         //printf("new_ncells %d old_ncells %d rezone_count %d\n",new_ncells, old_ncells, mesh->rezone_count(mpot)) ;
-         //printf("new_ncells_global %d old_ncells_global %d rezone_count_global %d\n",new_ncells_global, old_ncells_global, mesh_global->rezone_count(mpot_global));
-      }
-
-      if (do_comparison_calc) {
-         int result;
-         ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-         if (new_ncells != result) printf("%d: DEBUG new_ncells not correct %ld %d\n",mype,new_ncells,result);
-         new_ncells = result;
-         //printf("Result is %d\n",result[0]);
-
-         //ezcl_enqueue_read_buffer(command_queue, dev_result_global, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-         //if (new_ncells_global != result) printf("%d: DEBUG new_ncells_global not correct %ld %d\n",mype,new_ncells_global,result);
-         //new_ncells_global = result;
-      }
-
-      int result;
-      ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int),       &result, NULL);
-      new_ncells = result;
-      //printf("Result is %d %d %d\n",result, ncells,__LINE__);
-
-      ezcl_device_memory_remove(dev_result);
-
-      if (do_comparison_calc) {
-         ezcl_device_memory_remove(dev_result_global);
+         mesh->compare_ioffset_all_to_gpu_local(command_queue, old_ncells, old_ncells_global, block_size, block_size_global, &mpot[0], &mpot_global[0], state->dev_ioffset, state_global->dev_ioffset, &ioffset[0], &ioffset_global[0], &celltype_global[0]);
       }
 
       int add_ncells_global=0, add_ncells=0;
@@ -719,7 +684,7 @@ extern "C" void do_calc(void)
       }
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      state->gpu_rezone_all_local(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil, dev_ioffset);
+      state->gpu_rezone_all_local(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil);
 
       if (do_comparison_calc) {
          state_global->rezone_all(mesh_global, mpot_global, add_ncells_global);
@@ -731,8 +696,10 @@ extern "C" void do_calc(void)
       }
 
       // XXX XXX XXX
-      // ncells        = new_ncells;
-      // printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
+      ncells       = new_ncells;
+      //mesh->ncells = new_ncells;
+      MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
 
       mesh->do_load_balance_local(command_queue, ncells_global, H, dev_H, U, dev_U, V, dev_V);
 
@@ -782,9 +749,6 @@ extern "C" void do_calc(void)
       ioffset.clear();
       ioffset_global.clear();
 
-      ezcl_device_memory_remove(dev_ioffset);
-      ezcl_device_memory_remove(dev_ioffset_global);
-
       H_sum = -1.0;
 
       if (do_comparison_calc) {
@@ -819,7 +783,7 @@ extern "C" void do_calc(void)
       H_sum = state->gpu_mass_sum_local(command_queue, mesh, enhanced_precision_sum);
    }
    if (mype == 0){
-      printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
+      printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
          ncycle, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
    }
 
