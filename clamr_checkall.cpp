@@ -888,11 +888,11 @@ extern "C" void do_calc(void)
 
    mesh_local->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
 
-   x.resize(ncells_ghost);
-   dx.resize(ncells_ghost);
-   y.resize(ncells_ghost);
-   dy.resize(ncells_ghost);
-   H.resize(ncells_ghost);
+   x.resize(ncells);
+   dx.resize(ncells);
+   y.resize(ncells);
+   dy.resize(ncells);
+   H.resize(max(ncells,ncells_ghost));
 
    ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x[0],  NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx[0], NULL);
