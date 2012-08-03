@@ -78,9 +78,17 @@ void init_kernel_2stage_sum(cl_context context)
 {   kernel_reduce_sum_stage1of2 = ezcl_create_kernel(context, "reduce.cl", "reduce_sum_stage1of2_cl", 0);
     kernel_reduce_sum_stage2of2 = ezcl_create_kernel(context, "reduce.cl", "reduce_sum_stage2of2_cl", 0); }
 
+void terminate_kernel_2stage_sum(void)
+{   ezcl_kernel_release(kernel_reduce_sum_stage1of2);
+    ezcl_kernel_release(kernel_reduce_sum_stage2of2);}
+
 void init_kernel_2stage_sum_int(cl_context context)
 {   kernel_reduce_sum_int_stage1of2 = ezcl_create_kernel(context, "reduce.cl", "reduce_sum_int_stage1of2_cl", 0);
     kernel_reduce_sum_int_stage2of2 = ezcl_create_kernel(context, "reduce.cl", "reduce_sum_int_stage2of2_cl", 0); }
+
+void terminate_kernel_2stage_sum_int(void)
+{   ezcl_kernel_release(kernel_reduce_sum_int_stage1of2);
+    ezcl_kernel_release(kernel_reduce_sum_int_stage2of2);}
 
 void init_kernel_product(cl_context context)
 {   kernel_reduce_product = ezcl_create_kernel(context, "reduce.cl", "reduce_product_cl", 0); }

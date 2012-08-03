@@ -90,6 +90,9 @@ void init_kernel_2stage_max(cl_context context);
 void init_kernel_min(cl_context context);
 void init_kernel_2stage_min(cl_context context);
 
+void terminate_kernel_2stage_sum(void);
+void terminate_kernel_2stage_sum_int(void);
+
 void release_kernels_reduce();
 void release_kernel_sum();
 void release_kernel_2stage_sum();

@@ -1260,6 +1260,48 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    }
 }
 
+#ifdef HAVE_OPENCL
+void Mesh::terminate(void)
+{
+      ezcl_device_memory_remove(dev_levtable);
+      ezcl_device_memory_remove(dev_levdx);
+      ezcl_device_memory_remove(dev_levdy);
+      ezcl_device_memory_remove(dev_levibeg);
+      ezcl_device_memory_remove(dev_leviend);
+      ezcl_device_memory_remove(dev_levjbeg);
+      ezcl_device_memory_remove(dev_levjend);
+
+      ezcl_device_memory_remove(dev_level);
+      ezcl_device_memory_remove(dev_i);
+      ezcl_device_memory_remove(dev_j);
+      ezcl_device_memory_remove(dev_celltype);
+
+      ezcl_kernel_release(kernel_reduction_scan);
+      ezcl_kernel_release(kernel_hash_init);
+      ezcl_kernel_release(kernel_hash_init_corners);
+      ezcl_kernel_release(kernel_hash_setup);
+      ezcl_kernel_release(kernel_hash_setup_local);
+      ezcl_kernel_release(kernel_hash_setup_border);
+      ezcl_kernel_release(kernel_calc_neighbors);
+      ezcl_kernel_release(kernel_calc_neighbors_local);
+      ezcl_kernel_release(kernel_calc_neighbors_local2);
+      ezcl_kernel_release(kernel_copy_mesh_data);
+      ezcl_kernel_release(kernel_copy_ghost_data);
+      ezcl_kernel_release(kernel_adjust_neighbors);
+      ezcl_kernel_release(kernel_hash_size);
+      ezcl_kernel_release(kernel_finish_hash_size);
+      ezcl_kernel_release(kernel_calc_spatial_coordinates);
+      ezcl_kernel_release(kernel_do_load_balance_lower);
+      ezcl_kernel_release(kernel_do_load_balance_middle);
+      ezcl_kernel_release(kernel_do_load_balance_upper);
+      terminate_kernel_2stage_sum();
+      terminate_kernel_2stage_sum_int();
+      if (! have_boundary){
+        ezcl_kernel_release(kernel_count_BCs);
+      }
+}
+#endif
+
 void Mesh::rezone_spread(vector<int> &mpot)
 {
    for (uint ic=0; ic<ncells; ++ic) {
@@ -5411,11 +5453,11 @@ int Mesh::gpu_count_BCs(cl_command_queue command_queue)
    //size_t block_size = (ncells + TILE_SIZE - 1) / TILE_SIZE; //  For on-device global reduction kernel.
    size_t block_size     = global_work_size/local_work_size;
 
-   cl_mem dev_ioffset  = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-
    int bcount = 0;
 
    if (! have_boundary) {
+      cl_mem dev_ioffset  = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+
        /*
        __kernel void count_BCs(
                         const int    isize,      // 0   
@@ -5488,10 +5530,10 @@ void Mesh::resize_new_device_memory(size_t ncells)
    ezcl_device_memory_remove(dev_i_new);
    ezcl_device_memory_remove(dev_j_new);
    ezcl_device_memory_remove(dev_celltype_new);
-   dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-   dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-   dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-   dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+   dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+   dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+   dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+   dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
 #endif
 }
 void Mesh::swap_device_memory_ptrs(void)

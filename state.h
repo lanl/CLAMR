@@ -121,6 +121,7 @@ public:
 
 #ifdef HAVE_OPENCL
    void init(size_t ncells, cl_context context, int compute_device, int do_gpu_calc);
+   void terminate(void);
 #else
    void init(size_t ncells, int do_gpu_calc);
 #endif

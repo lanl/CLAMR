@@ -236,6 +236,7 @@ public:
    //   Member functions.
 #ifdef HAVE_OPENCL
    void init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, bool special_case, int compute_device, int do_gpu_calc);
+   void terminate(void);
 #else
    void init(int nx, int ny, double circ_radius, partition_method initial_order, bool special_case, int do_gpu_calc);
 #endif

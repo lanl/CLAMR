@@ -254,6 +254,31 @@ void State::init(size_t ncells, int do_gpu_calc)
 #endif
 }
 
+#ifdef HAVE_OPENCL
+void State::terminate(void)
+{
+   ezcl_device_memory_remove(dev_deltaT);
+   ezcl_device_memory_remove(dev_H);
+   ezcl_device_memory_remove(dev_U);
+   ezcl_device_memory_remove(dev_V);
+
+   ezcl_kernel_release(kernel_set_timestep);
+   ezcl_kernel_release(kernel_reduction_min);
+   ezcl_kernel_release(kernel_copy_state_data);
+   ezcl_kernel_release(kernel_copy_state_ghost_data);
+   ezcl_kernel_release(kernel_copy_mpot_ghost_data);
+   ezcl_kernel_release(kernel_calc_finite_difference);
+   ezcl_kernel_release(kernel_refine_potential);
+   ezcl_kernel_release(kernel_refine_smooth);
+   ezcl_kernel_release(kernel_rezone_all);
+   ezcl_kernel_release(kernel_reduce_sum_mass_stage1of2);
+   ezcl_kernel_release(kernel_reduce_sum_mass_stage2of2);
+   ezcl_kernel_release(kernel_reduce_epsum_mass_stage1of2);
+   ezcl_kernel_release(kernel_reduce_epsum_mass_stage2of2);
+   ezcl_kernel_release(kernel_set_boundary_refinement);
+}
+#endif
+
 #ifdef HAVE_MPI
 void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES)
 {

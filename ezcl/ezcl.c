@@ -1387,6 +1387,15 @@ cl_int ezcl_finalize_p(const char *file, const int line){
    return(0);
 }
 
+void ezcl_terminate_p(const char *file, const int line){
+
+   ezcl_malloc_memory_remove(devices);
+   ezcl_malloc_memory_remove(platforms);
+
+   ezcl_command_queue_release(command_queue);
+   ezcl_context_release(context);
+}
+
 void ezcl_print_error(const int ierr, const char *routine, const char *cl_routine, const char *file, const int line)
 {
    switch (ierr){

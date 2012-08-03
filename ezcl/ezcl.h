@@ -99,6 +99,8 @@ extern "C"
       ( ezcl_devtype_init_p(device_type, return_context, return_command_queue, return_compute_device, mype, __FILE__, __LINE__) )
 #define ezcl_finalize() \
       ( ezcl_finalize_p(__FILE__,__LINE__) )
+#define ezcl_terminate() \
+      ( ezcl_terminate_p(__FILE__,__LINE__) )
 
 /* device based routines */
 #define ezcl_get_device(  context) \
@@ -171,6 +173,7 @@ extern "C"
 cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, cl_context *ezcl_accelerator_context, const char *file, const int line);
 cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_context, cl_command_queue *return_command_queue, int *compute_device, const int mype, const char *file, const int line);
 cl_int ezcl_finalize_p(const char *file, const int line);
+void ezcl_terminate_p(const char *file, const int line);
 
 /* Error reporting */
 void ezcl_print_error(const int ierr, const char *routine, const char *cl_routine, const char *file, const int line);
