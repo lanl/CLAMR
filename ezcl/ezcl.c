@@ -86,7 +86,7 @@ struct slist_device_memory_head *device_memory_headp;
 struct device_memory_entry {
    cl_mem cl_mem_ptr;
    size_t mem_size;
-   char   name[20];
+   char   name[31];
    SLIST_ENTRY(device_memory_entry) device_memory_entries;
 } *device_memory_item;
 
@@ -95,7 +95,7 @@ struct slist_mapped_memory_head *mapped_memory_headp;
 struct mapped_memory_entry {
    cl_mem cl_mem_ptr;
    size_t mem_size;
-   char   name[20];
+   char   name[31];
    SLIST_ENTRY(mapped_memory_entry) mapped_memory_entries;
 } *mapped_memory_item;
 
@@ -104,7 +104,7 @@ struct slist_malloc_memory_head *malloc_memory_headp;
 struct malloc_memory_entry {
    void *mem_ptr;
    size_t mem_size;
-   char   name[20];
+   char   name[31];
    SLIST_ENTRY(malloc_memory_entry) malloc_memory_entries;
 } *malloc_memory_item;
 
@@ -466,8 +466,8 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_contex
 
    *compute_device = 0;
    clGetDeviceInfo(devices[0], CL_DEVICE_VENDOR, sizeof(info), &info, NULL);
-   if (! strncmp(info,"NVIDIA",6) ) *compute_device = COMPUTE_DEVICE_NVIDIA;
-   if (! strncmp(info,"Advanced Micro Devices",6) ) *compute_device = COMPUTE_DEVICE_ATI;
+   if (! strncmp(info,"NVIDIA",(size_t)6) ) *compute_device = COMPUTE_DEVICE_NVIDIA;
+   if (! strncmp(info,"Advanced Micro Devices",(size_t)6) ) *compute_device = COMPUTE_DEVICE_ATI;
    //printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,*compute_device);
    my_compute_device = *compute_device;
 
@@ -647,7 +647,7 @@ cl_mem ezcl_malloc_p(void *host_mem_ptr, char *name, size_t dims[], size_t elsiz
    size_t size=0;
 
    size=dims[0]*elsize;
-   //printf("EZCL_MALLOC: variable %20s dims %d elsize is %d called from file %s line %d\n",name,dims[0],elsize,file,line);
+   if (DEBUG) printf("EZCL_MALLOC: variable %20s dims %ld elsize is %ld called from file %s line %d\n",name,dims[0],elsize,file,line);
 
    if (flags & CL_MEM_ALLOC_HOST_PTR){
       if (ezcl_flags & EZCL_PINNED_MEMORY){
@@ -701,7 +701,7 @@ void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t size,
    if (SLIST_EMPTY(&device_memory_head)) SLIST_INIT(&device_memory_head);
 
    device_memory_item = malloc(sizeof(struct device_memory_entry));
-   sprintf(device_memory_item->name,"%20s",name);
+   snprintf(device_memory_item->name,(size_t)30,"%30s",name);
    device_memory_item->cl_mem_ptr = dev_mem_ptr;
    device_memory_item->mem_size=size;
    if (DEBUG) printf("EZCL_DEVICE_MEMORY_ADD: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
@@ -712,7 +712,7 @@ void ezcl_mapped_memory_add_p(cl_mem map_mem_ptr, const char *name, size_t size,
    if (SLIST_EMPTY(&mapped_memory_head)) SLIST_INIT(&mapped_memory_head);
 
    mapped_memory_item = malloc(sizeof(struct mapped_memory_entry));
-   sprintf(mapped_memory_item->name,"%20s",name);
+   snprintf(mapped_memory_item->name,(size_t)30,"%30s",name);
    mapped_memory_item->cl_mem_ptr = map_mem_ptr;
    mapped_memory_item->mem_size=size;
    if (DEBUG) printf("EZCL_MAPPED_MEMORY_ADD: DEBUG -- cl memory pointer is %p\n",map_mem_ptr);
@@ -723,7 +723,7 @@ void *ezcl_malloc_memory_add_p(void *malloc_mem_ptr, const char *name, size_t si
    if (SLIST_EMPTY(&malloc_memory_head)) SLIST_INIT(&malloc_memory_head);
    
    malloc_memory_item = malloc(sizeof(struct malloc_memory_entry));
-   sprintf(malloc_memory_item->name,"%20s",name);
+   snprintf(malloc_memory_item->name,(size_t)30,"%30s",name);
    malloc_memory_item->mem_ptr = malloc_mem_ptr;
    malloc_memory_item->mem_size = size;
    if (DEBUG) printf("EZCL_MALLOC_MEMORY_ADD: DEBUG -- malloc memory pointer is %p\n",malloc_mem_ptr);
@@ -847,6 +847,56 @@ void ezcl_mem_free_all_p(const char *file, const int line){
       free(malloc_memory_item);
    }
    
+   while (!SLIST_EMPTY(&object_head)) {
+      object_item = SLIST_FIRST(&object_head);
+      switch(object_item->object_type){
+      case PROGRAM_OBJECT:
+        if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing program %p %s\n",object_item->program, object_item->filename);
+        free(object_item->filename);
+        clReleaseProgram(object_item->program);
+        break;
+        case KERNEL_OBJECT:
+          if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing kernel %p\n",object_item->kernel);
+          clReleaseKernel(object_item->kernel);
+          break;
+        case COMMAND_QUEUE_OBJECT:
+          if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing command_queue %p\n",object_item->command_queue);
+          clReleaseCommandQueue(object_item->command_queue);
+          break;
+        case CONTEXT_OBJECT:
+          if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing context %p\n",object_item->context);
+          clReleaseContext(object_item->context);
+          break;
+        case EVENT_OBJECT:
+          if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing event %p\n",object_item->event);
+          clReleaseEvent(object_item->event);
+          break;
+      }
+      SLIST_REMOVE_HEAD(&object_head, object_entries);
+      free(object_item);
+   }
+   
+}
+
+void ezcl_mem_walk_all_p(const char *file, const int line){
+   printf("\n ------ DEVICE MEMORY ALLOCATIONS -----\n");
+   SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
+      printf("EZCL_MEM_WALK_ALL: DEBUG -- cl device memory %p name %30s size %ld\n",
+         device_memory_item->cl_mem_ptr,
+         device_memory_item->name,
+         device_memory_item->mem_size);
+   }
+
+   printf("\n ------ MALLOC MEMORY ALLOCATIONS -----\n");
+   SLIST_FOREACH(malloc_memory_item, &malloc_memory_head, malloc_memory_entries){
+      printf("EZCL_MEM_WALK_ALL: DEBUG -- cl malloc memory %p name %30s size %ld\n",
+         malloc_memory_item->mem_ptr,
+         malloc_memory_item->name,
+         malloc_memory_item->mem_size);
+   }
+   return;
+
+
    while (!SLIST_EMPTY(&object_head)) {
       object_item = SLIST_FIRST(&object_head);
       switch(object_item->object_type){

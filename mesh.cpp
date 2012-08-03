@@ -4019,6 +4019,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    vector<int> j_tmp(ncells);
    vector<int> level_tmp(ncells);
 
+   //printf("%d: DEBUG -- ncells %ld\n",mype,ncells);
+   //if (! mype) ezcl_mem_walk_all();
+#ifdef HAVE_MPI
+   //L7_Terminate();
+#endif
+   //exit(0);
+
    ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int), &celltype_tmp[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0],        NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0],        NULL);

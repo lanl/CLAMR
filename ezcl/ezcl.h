@@ -131,6 +131,8 @@ extern "C"
       ( ezcl_malloc_memory_remove_p(malloc_mem_ptr, __FILE__, __LINE__) )
 #define ezcl_mem_free_all() \
       ( ezcl_mem_free_all_p(__FILE__, __LINE__) ) 
+#define ezcl_mem_walk_all() \
+      ( ezcl_mem_walk_all_p(__FILE__, __LINE__) ) 
 
 /* kernel and program routines */
 #define ezcl_create_kernel(  context, filename, kernel_name, flags) \
@@ -191,6 +193,7 @@ void ezcl_device_memory_remove_p(void *dev_mem_ptr, const char *file, const int 
 void ezcl_mapped_memory_remove_p(void *map_mem_ptr, const char *file, const int line);   
 void ezcl_malloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const int line);   
 void ezcl_mem_free_all_p(const char *file, const int line);
+void ezcl_mem_walk_all_p(const char *file, const int line);
 
 /* kernel and program routines */
 cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const char *kernel_name, int flags, const char *file, const int line);
