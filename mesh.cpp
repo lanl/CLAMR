@@ -737,6 +737,13 @@ void Mesh::compare_indices_all_to_gpu_local(cl_command_queue command_queue, Mesh
    vector<int> i_check(ncells);
    vector<int> j_check(ncells);
    /// Set read buffers for data.
+   //printf("%d: DEBUG before walk all ncells %d\n",mype,ncells);
+   //if (! mype) ezcl_mem_walk_all();
+#ifdef HAVE_MPI
+   //L7_Terminate();
+#endif
+   //exit(0);
+
    ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  &level_check[0],     NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  &celltype_check[0],  NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &i_check[0],         NULL);
@@ -4833,6 +4840,10 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_device_memory_remove(dev_nrht_add);
       ezcl_device_memory_remove(dev_nbot_add);
       ezcl_device_memory_remove(dev_ntop_add);
+      ezcl_device_memory_remove(dev_celltype_add);
+      ezcl_device_memory_remove(dev_i_add);
+      ezcl_device_memory_remove(dev_j_add);
+      ezcl_device_memory_remove(dev_level_add);
 
       size_t nc_ghost_local_work_size = 32;
       size_t nc_ghost_global_work_size = ((ncells_ghost + nc_ghost_local_work_size - 1) /nc_ghost_local_work_size) * nc_ghost_local_work_size;
@@ -4847,6 +4858,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_adjust_neighbors, 7,  sizeof(cl_mem), (void *)&dev_ntop);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_adjust_neighbors,   1, NULL, &nc_ghost_global_work_size, &nc_ghost_local_work_size, &adjust_neighbors_event);
+
+      ezcl_device_memory_remove(dev_indices_needed);
    } // if (numpe > 1)
 
    if (DEBUG) {

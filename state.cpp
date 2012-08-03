@@ -3193,6 +3193,10 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
       ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 7, sizeof(cl_mem), (void *)&dev_V_add);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
+
+      ezcl_device_memory_remove(dev_H_add);
+      ezcl_device_memory_remove(dev_U_add);
+      ezcl_device_memory_remove(dev_V_add);
    }
 
    size_t local_work_size = 128;
