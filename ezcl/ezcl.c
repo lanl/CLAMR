@@ -97,8 +97,11 @@ SLIST_HEAD(slist_mapped_memory_head, mapped_memory_entry) mapped_memory_head = S
 struct slist_mapped_memory_head *mapped_memory_headp;
 struct mapped_memory_entry {
    cl_mem cl_mem_ptr;
-   size_t mem_size;
+   size_t num_elements;
+   size_t el_size;
    char   name[31];
+   int    line;
+   char   file[31];
    SLIST_ENTRY(mapped_memory_entry) mapped_memory_entries;
 } *mapped_memory_item;
 
@@ -123,6 +126,9 @@ struct object_entry {
    cl_context context;
    cl_event event;
    char *filename;
+   char name[31];
+   int  line;
+   char file[31];
    SLIST_ENTRY(object_entry) object_entries;
 } *object_item;
 
@@ -455,6 +461,8 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_contex
    object_item = malloc(sizeof(struct object_entry));
    object_item->object_type = CONTEXT_OBJECT;
    object_item->context = context;
+   object_item->line = line;
+   snprintf(object_item->file,(size_t)30,"%-30s",file);
    if (DEBUG) printf("EZCL_DEVTYPE_INIT: DEBUG -- context is %p\n",context);
    SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
 
@@ -631,6 +639,8 @@ cl_command_queue ezcl_create_command_queue_p(cl_context context, const int mype,
    object_item = malloc(sizeof(struct object_entry));
    object_item->object_type = COMMAND_QUEUE_OBJECT;
    object_item->command_queue = command_queue;
+   object_item->line = line;
+   snprintf(object_item->file,(size_t)30,"%-30s",file);
    if (DEBUG) printf("EZCL_DEVTYPE_INIT: DEBUG -- command_queue is %p\n",command_queue);
    SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
 
@@ -677,7 +687,7 @@ cl_mem ezcl_malloc_p(void *host_mem_ptr, char *name, size_t dims[], size_t elsiz
          } else {
            mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, 0L, 0L, size, 0, NULL, NULL, NULL);
          }
-         ezcl_mapped_memory_add(mem_ptr, name, size);
+         ezcl_mapped_memory_add_p(mem_ptr, name, dims[0], elsize, file, line);
 
       } else {
          mem_ptr = malloc(size);
@@ -716,13 +726,16 @@ void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t num_e
    SLIST_INSERT_HEAD(&device_memory_head, device_memory_item, device_memory_entries);
 }
 
-void ezcl_mapped_memory_add_p(cl_mem map_mem_ptr, const char *name, size_t size, const char *file, const int line){
+void ezcl_mapped_memory_add_p(cl_mem map_mem_ptr, const char *name, size_t num_elements, size_t elsize, const char *file, const int line){
    if (SLIST_EMPTY(&mapped_memory_head)) SLIST_INIT(&mapped_memory_head);
 
    mapped_memory_item = malloc(sizeof(struct mapped_memory_entry));
    snprintf(mapped_memory_item->name,(size_t)30,"%s",name);
    mapped_memory_item->cl_mem_ptr = map_mem_ptr;
-   mapped_memory_item->mem_size=size;
+   mapped_memory_item->num_elements=num_elements;
+   mapped_memory_item->el_size=elsize;
+   mapped_memory_item->line=line;
+   snprintf(mapped_memory_item->file,(size_t)30,"%s",file);
    if (DEBUG) printf("EZCL_MAPPED_MEMORY_ADD: DEBUG -- cl memory pointer is %p\n",map_mem_ptr);
    SLIST_INSERT_HEAD(&mapped_memory_head, mapped_memory_item, mapped_memory_entries);
 }
@@ -865,22 +878,22 @@ void ezcl_mem_free_all_p(const char *file, const int line){
         free(object_item->filename);
         clReleaseProgram(object_item->program);
         break;
-        case KERNEL_OBJECT:
-          if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing kernel %p\n",object_item->kernel);
-          clReleaseKernel(object_item->kernel);
-          break;
-        case COMMAND_QUEUE_OBJECT:
-          if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing command_queue %p\n",object_item->command_queue);
-          clReleaseCommandQueue(object_item->command_queue);
-          break;
-        case CONTEXT_OBJECT:
-          if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing context %p\n",object_item->context);
-          clReleaseContext(object_item->context);
-          break;
-        case EVENT_OBJECT:
-          if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing event %p\n",object_item->event);
-          clReleaseEvent(object_item->event);
-          break;
+      case KERNEL_OBJECT:
+        if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing kernel %p\n",object_item->kernel);
+        clReleaseKernel(object_item->kernel);
+        break;
+      case COMMAND_QUEUE_OBJECT:
+        if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing command_queue %p\n",object_item->command_queue);
+        clReleaseCommandQueue(object_item->command_queue);
+        break;
+      case CONTEXT_OBJECT:
+        if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing context %p\n",object_item->context);
+        clReleaseContext(object_item->context);
+        break;
+      case EVENT_OBJECT:
+        if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing event %p\n",object_item->event);
+        clReleaseEvent(object_item->event);
+        break;
       }
       SLIST_REMOVE_HEAD(&object_head, object_entries);
       free(object_item);
@@ -889,58 +902,135 @@ void ezcl_mem_free_all_p(const char *file, const int line){
 }
 
 void ezcl_mem_walk_all_p(const char *file, const int line){
-   printf("\n ------ DEVICE MEMORY ALLOCATIONS -----\n");
-   SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
-      printf("EZCL_MEM_WALK_ALL: DEBUG -- cl device memory %p name %-30s num_elements %ld element size %ld at line %d in file %s\n",
-         device_memory_item->cl_mem_ptr,
-         device_memory_item->name,
-         device_memory_item->num_elements,
-         device_memory_item->el_size,
-         device_memory_item->line,
-         device_memory_item->file);
-   }
-
-   printf("\n ------ MALLOC MEMORY ALLOCATIONS -----\n");
-   SLIST_FOREACH(malloc_memory_item, &malloc_memory_head, malloc_memory_entries){
-      printf("EZCL_MEM_WALK_ALL: DEBUG -- cl malloc memory %p name %-30s size %ld at line %d in file %s\n",
-         malloc_memory_item->mem_ptr,
-         malloc_memory_item->name,
-         malloc_memory_item->mem_size,
-         malloc_memory_item->line,
-         malloc_memory_item->file);
-   }
-   return;
-
-
-   while (!SLIST_EMPTY(&object_head)) {
-      object_item = SLIST_FIRST(&object_head);
-      switch(object_item->object_type){
-      case PROGRAM_OBJECT:
-        if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing program %p %s\n",object_item->program, object_item->filename);
-        free(object_item->filename);
-        clReleaseProgram(object_item->program);
-        break;
-        case KERNEL_OBJECT:
-          if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing kernel %p\n",object_item->kernel);
-          clReleaseKernel(object_item->kernel);
-          break;
-        case COMMAND_QUEUE_OBJECT:
-          if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing command_queue %p\n",object_item->command_queue);
-          clReleaseCommandQueue(object_item->command_queue);
-          break;
-        case CONTEXT_OBJECT:
-          if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing context %p\n",object_item->context);
-          clReleaseContext(object_item->context);
-          break;
-        case EVENT_OBJECT:
-          if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- releasing event %p\n",object_item->event);
-          clReleaseEvent(object_item->event);
-          break;
+   if (! SLIST_EMPTY(&device_memory_head)){
+      printf("\n ------ DEVICE MEMORY ALLOCATIONS -----\n");
+      SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
+         printf("EZCL_MEM_WALK_ALL: cl device memory %p name %-30s num %ld elsize %ld at line %d in file %s\n",
+            device_memory_item->cl_mem_ptr,
+            device_memory_item->name,
+            device_memory_item->num_elements,
+            device_memory_item->el_size,
+            device_memory_item->line,
+            device_memory_item->file);
       }
-      SLIST_REMOVE_HEAD(&object_head, object_entries);
-      free(object_item);
    }
+
+   if (! SLIST_EMPTY(&malloc_memory_head)){
+      printf("\n ------ MALLOC MEMORY ALLOCATIONS -----\n");
+      SLIST_FOREACH(malloc_memory_item, &malloc_memory_head, malloc_memory_entries){
+         printf("EZCL_MEM_WALK_ALL: cl malloc memory %p name %-30s size %ld at line %d in file %s\n",
+            malloc_memory_item->mem_ptr,
+            malloc_memory_item->name,
+            malloc_memory_item->mem_size,
+            malloc_memory_item->line,
+            malloc_memory_item->file);
+      }
+   }
+
+   if (! SLIST_EMPTY(&mapped_memory_head)){
+      printf("\n ------ MAPPED MEMORY ALLOCATIONS -----\n");
+      SLIST_FOREACH(mapped_memory_item, &mapped_memory_head, mapped_memory_entries){
+         printf("EZCL_MEM_WALK_ALL: cl mapped memory %p name %-30s num %ld elsize %ld at line %d in file %s\n",
+            mapped_memory_item->cl_mem_ptr,
+            mapped_memory_item->name,
+            mapped_memory_item->num_elements,
+            mapped_memory_item->el_size,
+            mapped_memory_item->line,
+            mapped_memory_item->file);
+      }
+   }
+
+   if (! SLIST_EMPTY(&object_head)){
+      int nprogram_objects = 0;
+      int nkernel_objects = 0;
+      int ncommand_queue_objects = 0;
+      int ncontext_objects = 0;
+      int nevent_objects = 0;
+      SLIST_FOREACH(object_item, &object_head, object_entries){
+         switch (object_item->object_type){
+         case PROGRAM_OBJECT:
+            nprogram_objects++;
+            break;
+         case KERNEL_OBJECT:
+            nkernel_objects++;
+            break;
+         case COMMAND_QUEUE_OBJECT:
+            ncommand_queue_objects++;
+            break;
+         case CONTEXT_OBJECT:
+            ncontext_objects++;
+            break;
+         case EVENT_OBJECT:
+            nevent_objects++;
+            break;
+         }
+      }
+
+      printf("\n ====== OBJECT ALLOCATIONS ======\n");
+
+      if (nprogram_objects) {
+         printf("\n ------ PROGRAM OBJECTS -----\n");
+         SLIST_FOREACH(object_item, &object_head, object_entries){
+            if (object_item->object_type == PROGRAM_OBJECT){
+               printf("EZCL_MEM_WALK_ALL: program object %p name %-30s at line %d in file %s\n",
+                  object_item->program,
+                  object_item->name,
+                  object_item->line,
+                  object_item->file);
+            }
+         }
+      }
+
+      if (nkernel_objects) {
+         printf("\n ------ KERNEL OBJECTS -----\n");
+         SLIST_FOREACH(object_item, &object_head, object_entries){
+            if (object_item->object_type == KERNEL_OBJECT){
+               printf("EZCL_MEM_WALK_ALL: kernel object %p name %-30s at line %d in file %s\n",
+                  object_item->kernel,
+                  object_item->name,
+                  object_item->line,
+                  object_item->file);
+            }
+         }
+      }
+
+      if (ncommand_queue_objects) {
+         printf("\n ------ COMMAND_QUEUE OBJECTS -----\n");
+         SLIST_FOREACH(object_item, &object_head, object_entries){
+            if (object_item->object_type == COMMAND_QUEUE_OBJECT){
+               printf("EZCL_MEM_WALK_ALL: command_queue object %p at line %d in file %s\n",
+                  object_item->command_queue,
+                  object_item->line,
+                  object_item->file);
+            }
+         }
+      }
+
+      if (ncontext_objects) {
+         printf("\n ------ CONTEXT OBJECTS -----\n");
+         SLIST_FOREACH(object_item, &object_head, object_entries){
+            if (object_item->object_type == CONTEXT_OBJECT){
+               printf("EZCL_MEM_WALK_ALL: context object %p at line %d in file %s\n",
+                  object_item->context,
+                  object_item->line,
+                  object_item->file);
+            }
+         }
+      }
    
+      if (nevent_objects) {
+         printf("\n ------ EVENT OBJECTS -----\n");
+         SLIST_FOREACH(object_item, &object_head, object_entries){
+            if (object_item->object_type == EVENT_OBJECT){
+               printf("EZCL_MEM_WALK_ALL: event object %p name %-30s at line %d in file %s\n",
+                  object_item->event,
+                  object_item->name,
+                  object_item->line,
+                  object_item->file);
+            }
+         }
+      }
+   }
 }
 
 cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const char *kernel_name, int flags, const char *file, const int line){
@@ -986,7 +1076,7 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
    }
 
    ezcl_malloc_memory_remove(source);
-   
+
 #ifdef HAVE_CL_DOUBLE
    if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
       ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
@@ -1071,6 +1161,9 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
    object_item = malloc(sizeof(struct object_entry));
    object_item->object_type = PROGRAM_OBJECT;
    object_item->program = program;
+   snprintf(object_item->name,(size_t)30,"%-30s",kernel_name);
+   object_item->line = line;
+   snprintf(object_item->file,(size_t)30,"%-30s",file);
    filename_copy = (char *)malloc(strlen(filename) + 1);
    strcpy(filename_copy, filename);
    object_item->filename = filename_copy;
@@ -1094,8 +1187,13 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
    object_item = malloc(sizeof(struct object_entry));
    object_item->object_type = KERNEL_OBJECT;
    object_item->kernel = kernel;
+   snprintf(object_item->name,(size_t)30,"%-30s",kernel_name);
+   object_item->line = line;
+   snprintf(object_item->file,(size_t)30,"%-30s",file);
    if (DEBUG) printf("EZCL_CREATE_KERNEL: DEBUG -- kernel is %p\n",kernel);
    SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
+
+   ezcl_program_release(program);
 
    return(kernel);
 }
@@ -1121,6 +1219,9 @@ void ezcl_enqueue_write_buffer_p(cl_command_queue command_queue, cl_mem mem_buff
       object_item = malloc(sizeof(struct object_entry));
       object_item->object_type = EVENT_OBJECT;
       object_item->event = *event;
+      sprintf(object_item->name,"Write Buffer");
+      object_item->line = line;
+      snprintf(object_item->file,(size_t)30,"%-30s",file);
       if (DEBUG) printf("EZCL_DEVTYPE_INIT: DEBUG -- event is %p\n",*event);
       SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
    }
@@ -1147,6 +1248,9 @@ void ezcl_enqueue_read_buffer_p(cl_command_queue command_queue, cl_mem mem_buffe
       object_item = malloc(sizeof(struct object_entry));
       object_item->object_type = EVENT_OBJECT;
       object_item->event = *event;
+      sprintf(object_item->name,"Read Buffer");
+      object_item->line = line;
+      snprintf(object_item->file,(size_t)30,"%-30s",file);
       if (DEBUG) printf("EZCL_DEVTYPE_INIT: DEBUG -- event is %p\n",*event);
       SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
    }
@@ -1181,6 +1285,9 @@ void ezcl_enqueue_ndrange_kernel_p(cl_command_queue command_queue, cl_kernel ker
       object_item = malloc(sizeof(struct object_entry));
       object_item->object_type = EVENT_OBJECT;
       object_item->event = *event;
+      sprintf(object_item->name,"NDRange Kernel");
+      object_item->line = line;
+      snprintf(object_item->file,(size_t)30,"%-30s",file);
       if (DEBUG) printf("EZCL_DEVTYPE_INIT: DEBUG -- event is %p\n",*event);
       SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
    }

@@ -894,6 +894,7 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    size_t six = 6;
    dev_ijadd = ezcl_malloc(NULL, const_cast<char *>("dev_ijadd"), &six, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
    ezcl_enqueue_write_buffer(command_queue, dev_ijadd, CL_TRUE, 0, 6*sizeof(cl_int), (void*)&ijadd[0], &start_write_event);
+   gpu_time_write += ezcl_timer_calc(&start_write_event, &start_write_event);
 
    int stencil = 0;
    if (localStencil) stencil = 1;
@@ -999,6 +1000,7 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0],     &start_read_event);
    ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0],     NULL);
    ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_TRUE,  0, ncells*sizeof(cl_int), &level_tmp[0], &end_read_event);
+   gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
 
    int ifirst      = 0;
    int ilast       = 0;
@@ -1060,6 +1062,7 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    size_t six = 6;
    dev_ijadd = ezcl_malloc(NULL, const_cast<char *>("dev_ijadd"), &six, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
    ezcl_enqueue_write_buffer(command_queue, dev_ijadd, CL_TRUE, 0, 6*sizeof(cl_int), (void*)&ijadd[0], &start_write_event);
+   gpu_time_write += ezcl_timer_calc(&start_write_event, &start_write_event);
 
    int stencil = 0;
    if (localStencil) stencil = 1;
