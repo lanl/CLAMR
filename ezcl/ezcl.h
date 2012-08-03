@@ -119,8 +119,8 @@ extern "C"
       ( ezcl_malloc_p(host_mem_ptr, name, dims, elsize, flags, ezcl_flags, __FILE__, __LINE__) )
 #define ezcl_malloc_memory_add(  malloc_mem_ptr, name, size) \
       ( ezcl_malloc_memory_add_p(malloc_mem_ptr, name, size, __FILE__, __LINE__) )
-#define ezcl_device_memory_add(  dev_mem_ptr, name, size) \
-      ( ezcl_device_memory_add_p(dev_mem_ptr, name, size, __FILE__, __LINE__) )
+#define ezcl_device_memory_add(  dev_mem_ptr, name, num_elements, elsize) \
+      ( ezcl_device_memory_add_p(dev_mem_ptr, name, num_elements, elsize, __FILE__, __LINE__) )
 #define ezcl_mapped_memory_add(  map_mem_ptr, name, size) \
       ( ezcl_mapped_memory_add_p(map_mem_ptr, name, size, __FILE__, __LINE__) )
 #define ezcl_device_memory_remove(  dev_mem_ptr) \
@@ -187,7 +187,7 @@ cl_context ezcl_get_context_p(const char *file, const int line);
 /* memory routines */
 cl_mem ezcl_malloc_p(void *host_mem_ptr, char *name, size_t dims[], size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line);
 void *ezcl_malloc_memory_add_p(void *malloc_mem_ptr, const char *name, size_t size, const char *file, const int line);
-void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t size, const char *file, const int line);
+void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t num_elements, size_t elsize, const char *file, const int line);
 void ezcl_mapped_memory_add_p(cl_mem map_mem_ptr, const char *name, size_t size, const char *file, const int line);
 void ezcl_device_memory_remove_p(void *dev_mem_ptr, const char *file, const int line);   
 void ezcl_mapped_memory_remove_p(void *map_mem_ptr, const char *file, const int line);   

@@ -85,8 +85,11 @@ SLIST_HEAD(slist_device_memory_head, device_memory_entry) device_memory_head = S
 struct slist_device_memory_head *device_memory_headp;
 struct device_memory_entry {
    cl_mem cl_mem_ptr;
-   size_t mem_size;
+   size_t num_elements;
+   size_t el_size;
    char   name[31];
+   int    line;
+   char   file[31];
    SLIST_ENTRY(device_memory_entry) device_memory_entries;
 } *device_memory_item;
 
@@ -105,6 +108,8 @@ struct malloc_memory_entry {
    void *mem_ptr;
    size_t mem_size;
    char   name[31];
+   int    line;
+   char   file[31];
    SLIST_ENTRY(malloc_memory_entry) malloc_memory_entries;
 } *malloc_memory_item;
 
@@ -663,7 +668,7 @@ cl_mem ezcl_malloc_p(void *host_mem_ptr, char *name, size_t dims[], size_t elsiz
             */
            ezcl_print_error(ierr, "EZCL_MALLOC", "clCreateBuffer", file, line);
          }
-         ezcl_device_memory_add(buf_mem_ptr, name, size);
+         ezcl_device_memory_add_p(buf_mem_ptr, name, dims[0], elsize, file, line);
 
          if (flags & CL_MEM_READ_ONLY){
            mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, (size_t)CL_MAP_WRITE, 0L, size, 0, NULL, NULL, NULL);
@@ -691,19 +696,22 @@ cl_mem ezcl_malloc_p(void *host_mem_ptr, char *name, size_t dims[], size_t elsiz
          */
         ezcl_print_error(ierr, "EZCL_MALLOC", "clCreateBuffer", file, line);
       }
-      ezcl_device_memory_add(mem_ptr, name, size);
+      ezcl_device_memory_add_p(mem_ptr, name, dims[0], elsize, file, line);
    }
 
    return(mem_ptr);
 }
 
-void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t size, const char *file, const int line){
+void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t num_elements, size_t elsize, const char *file, const int line){
    if (SLIST_EMPTY(&device_memory_head)) SLIST_INIT(&device_memory_head);
 
    device_memory_item = malloc(sizeof(struct device_memory_entry));
-   snprintf(device_memory_item->name,(size_t)30,"%30s",name);
+   snprintf(device_memory_item->name,(size_t)30,"%s",name);
    device_memory_item->cl_mem_ptr = dev_mem_ptr;
-   device_memory_item->mem_size=size;
+   device_memory_item->num_elements=num_elements;
+   device_memory_item->el_size=elsize;
+   device_memory_item->line=line;
+   snprintf(device_memory_item->file,(size_t)30,"%s",file);
    if (DEBUG) printf("EZCL_DEVICE_MEMORY_ADD: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
    SLIST_INSERT_HEAD(&device_memory_head, device_memory_item, device_memory_entries);
 }
@@ -712,7 +720,7 @@ void ezcl_mapped_memory_add_p(cl_mem map_mem_ptr, const char *name, size_t size,
    if (SLIST_EMPTY(&mapped_memory_head)) SLIST_INIT(&mapped_memory_head);
 
    mapped_memory_item = malloc(sizeof(struct mapped_memory_entry));
-   snprintf(mapped_memory_item->name,(size_t)30,"%30s",name);
+   snprintf(mapped_memory_item->name,(size_t)30,"%s",name);
    mapped_memory_item->cl_mem_ptr = map_mem_ptr;
    mapped_memory_item->mem_size=size;
    if (DEBUG) printf("EZCL_MAPPED_MEMORY_ADD: DEBUG -- cl memory pointer is %p\n",map_mem_ptr);
@@ -723,9 +731,11 @@ void *ezcl_malloc_memory_add_p(void *malloc_mem_ptr, const char *name, size_t si
    if (SLIST_EMPTY(&malloc_memory_head)) SLIST_INIT(&malloc_memory_head);
    
    malloc_memory_item = malloc(sizeof(struct malloc_memory_entry));
-   snprintf(malloc_memory_item->name,(size_t)30,"%30s",name);
+   snprintf(malloc_memory_item->name,(size_t)30,"%s",name);
    malloc_memory_item->mem_ptr = malloc_mem_ptr;
    malloc_memory_item->mem_size = size;
+   malloc_memory_item->line     = line;
+   snprintf(malloc_memory_item->file,(size_t)30,"%s",file);
    if (DEBUG) printf("EZCL_MALLOC_MEMORY_ADD: DEBUG -- malloc memory pointer is %p\n",malloc_mem_ptr);
 
    SLIST_INSERT_HEAD(&malloc_memory_head, malloc_memory_item, malloc_memory_entries);
@@ -881,18 +891,23 @@ void ezcl_mem_free_all_p(const char *file, const int line){
 void ezcl_mem_walk_all_p(const char *file, const int line){
    printf("\n ------ DEVICE MEMORY ALLOCATIONS -----\n");
    SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
-      printf("EZCL_MEM_WALK_ALL: DEBUG -- cl device memory %p name %30s size %ld\n",
+      printf("EZCL_MEM_WALK_ALL: DEBUG -- cl device memory %p name %-30s num_elements %ld element size %ld at line %d in file %s\n",
          device_memory_item->cl_mem_ptr,
          device_memory_item->name,
-         device_memory_item->mem_size);
+         device_memory_item->num_elements,
+         device_memory_item->el_size,
+         device_memory_item->line,
+         device_memory_item->file);
    }
 
    printf("\n ------ MALLOC MEMORY ALLOCATIONS -----\n");
    SLIST_FOREACH(malloc_memory_item, &malloc_memory_head, malloc_memory_entries){
-      printf("EZCL_MEM_WALK_ALL: DEBUG -- cl malloc memory %p name %30s size %ld\n",
+      printf("EZCL_MEM_WALK_ALL: DEBUG -- cl malloc memory %p name %-30s size %ld at line %d in file %s\n",
          malloc_memory_item->mem_ptr,
          malloc_memory_item->name,
-         malloc_memory_item->mem_size);
+         malloc_memory_item->mem_size,
+         malloc_memory_item->line,
+         malloc_memory_item->file);
    }
    return;
 
@@ -969,6 +984,8 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
         break;
      }
    }
+
+   ezcl_malloc_memory_remove(source);
    
 #ifdef HAVE_CL_DOUBLE
    if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
