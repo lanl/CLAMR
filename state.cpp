@@ -629,7 +629,7 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
    size_t block_size     = global_work_size/local_work_size;
 
-   cl_mem dev_redscratch = ezcl_malloc(NULL, &block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
       /*
       __kernel void set_timestep_cl(
@@ -876,9 +876,9 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
       mesh->resize_new_device_memory(ncells);
    }
 
-   cl_mem dev_H_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_U_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_V_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
    cl_event start_write_event;
    cl_mem dev_ijadd;
@@ -892,7 +892,7 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    ijadd[5] = 0;
 
    size_t six = 6;
-   dev_ijadd = ezcl_malloc(NULL, &six, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   dev_ijadd = ezcl_malloc(NULL, const_cast<char *>("dev_ijadd"), &six, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
    ezcl_enqueue_write_buffer(command_queue, dev_ijadd, CL_TRUE, 0, 6*sizeof(cl_int), (void*)&ijadd[0], &start_write_event);
 
    int stencil = 0;
@@ -933,9 +933,9 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
       ezcl_device_memory_remove(dev_H);
       ezcl_device_memory_remove(dev_U);
       ezcl_device_memory_remove(dev_V);
-      dev_H = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_U = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_V = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_H = ezcl_malloc(NULL, const_cast<char *>("dev_H"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_U = ezcl_malloc(NULL, const_cast<char *>("dev_U"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_V = ezcl_malloc(NULL, const_cast<char *>("dev_V"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
       mesh->resize_old_device_memory(ncells);
    }
@@ -1043,9 +1043,9 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
       mesh->resize_new_device_memory(ncells);
    }
 
-   cl_mem dev_H_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_U_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_V_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
    cl_mem dev_ijadd;
 
@@ -1058,7 +1058,7 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    ijadd[5] = level_last;
 
    size_t six = 6;
-   dev_ijadd = ezcl_malloc(NULL, &six, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   dev_ijadd = ezcl_malloc(NULL, const_cast<char *>("dev_ijadd"), &six, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
    ezcl_enqueue_write_buffer(command_queue, dev_ijadd, CL_TRUE, 0, 6*sizeof(cl_int), (void*)&ijadd[0], &start_write_event);
 
    int stencil = 0;
@@ -1099,9 +1099,9 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
       ezcl_device_memory_remove(dev_H);
       ezcl_device_memory_remove(dev_U);
       ezcl_device_memory_remove(dev_V);
-      dev_H = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_U = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_V = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_H = ezcl_malloc(NULL, const_cast<char *>("dev_H"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_U = ezcl_malloc(NULL, const_cast<char *>("dev_U"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_V = ezcl_malloc(NULL, const_cast<char *>("dev_V"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
       mesh->resize_old_device_memory(ncells);
    }
@@ -2312,9 +2312,9 @@ void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mes
    assert(dev_levdx);
    assert(dev_levdy);
 
-   cl_mem dev_H_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_U_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_V_new = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -2406,9 +2406,9 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    assert(dev_levdx);
    assert(dev_levdy);
 
-   cl_mem dev_H_new = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_U_new = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_V_new = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -2461,9 +2461,9 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    //fprintf(mesh->fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
 
    if (mesh->numpe > 1) {
-      cl_mem dev_H_add       = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_U_add       = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_V_add       = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_H_add       = ezcl_malloc(NULL, const_cast<char *>("dev_H_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_U_add       = ezcl_malloc(NULL, const_cast<char *>("dev_U_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_V_add       = ezcl_malloc(NULL, const_cast<char *>("dev_V_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       ezcl_enqueue_write_buffer(command_queue, dev_H_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&H_tmp[ncells], &start_write_event);
       ezcl_enqueue_write_buffer(command_queue, dev_U_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&U_tmp[ncells], NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_V_add, CL_TRUE,  0, nghost_local*sizeof(cl_real), (void*)&V_tmp[ncells], &end_write_event);
@@ -2487,9 +2487,9 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
       ezcl_device_memory_remove(dev_H_new);
       ezcl_device_memory_remove(dev_U_new);
       ezcl_device_memory_remove(dev_V_new);
-      dev_H_new = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_U_new = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_V_new = ezcl_malloc(NULL, &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    }
 
      /*
@@ -2980,11 +2980,11 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
    size_t block_size = global_work_size/local_work_size;
 
-   dev_ioffset  = ezcl_malloc(NULL, &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   dev_mpot     = ezcl_malloc(NULL, &ncells,     sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   dev_ioffset  = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   dev_mpot     = ezcl_malloc(NULL, const_cast<char *>("dev_mpot"), &ncells,     sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
    size_t result_size = 1;
-   cl_mem dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"), &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
      /*
      __kernel void refine_potential
@@ -3049,7 +3049,7 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
    int levcount = 1;
 
    if( (result) > 0 && levcount < levmx) {
-      cl_mem dev_mpot_old = ezcl_malloc(NULL, &ncells,     sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells,     sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_ptr;
 
       while (result > 0 && levcount < levmx) {
@@ -3172,9 +3172,9 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
 
 
    if (mesh->numpe > 1) {
-      cl_mem dev_H_add       = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_U_add       = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_V_add       = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_H_add       = ezcl_malloc(NULL, const_cast<char *>("dev_H_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_U_add       = ezcl_malloc(NULL, const_cast<char *>("dev_U_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_V_add       = ezcl_malloc(NULL, const_cast<char *>("dev_V_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       ezcl_enqueue_write_buffer(command_queue, dev_H_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&H_tmp[ncells],     NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_U_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&U_tmp[ncells],     NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_V_add, CL_TRUE,  0, nghost_local*sizeof(cl_real), (void*)&V_tmp[ncells],     NULL);
@@ -3199,11 +3199,11 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
    size_t block_size = global_work_size/local_work_size;
 
-   dev_ioffset  = ezcl_malloc(NULL, &block_size,   sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   dev_mpot     = ezcl_malloc(NULL, &mesh->ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   dev_ioffset  = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &block_size,   sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   dev_mpot     = ezcl_malloc(NULL, const_cast<char *>("dev_mpot"), &mesh->ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
    size_t result_size = 1;
-   cl_mem dev_result  = ezcl_malloc(NULL, &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"), &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
      /*
      __kernel void refine_potential
@@ -3273,7 +3273,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
 
    if(newcount_global > 0 && levcount < levmx) {
       cl_event refine_smooth_event;
-      cl_mem dev_mpot_old = ezcl_malloc(NULL, &mesh->ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &mesh->ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_ptr;
 
       while (newcount_global > 0 && levcount < levmx) {
@@ -3286,7 +3286,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
          L7_Update(&mpot_tmp[0], L7_INT, mesh->cell_handle);
 #endif
 
-         dev_mpot_add = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+         dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
 
          size_t ghost_local_work_size = 32;
@@ -3348,7 +3348,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
 #endif
 
    if (mesh->numpe > 1) {
-      dev_mpot_add = ezcl_malloc(NULL, &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
 
       size_t ghost_local_work_size = 32;
@@ -3501,8 +3501,8 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
    size_t block_size     = global_work_size/local_work_size;
 
    if (enhanced_precision_sum) {
-      dev_mass_sum = ezcl_malloc(NULL, &one,    sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
-      dev_redscratch = ezcl_malloc(NULL, &block_size, sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
+      dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_one"), &one,    sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
+      dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
 
         /*
         __kernel void reduce_sum_cl(
@@ -3547,8 +3547,8 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
       ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real2), &mass_sum, &start_read_event);               
       gpu_mass_sum = mass_sum.s0 + mass_sum.s1;
    } else {
-      dev_mass_sum = ezcl_malloc(NULL, &one,    sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_redscratch = ezcl_malloc(NULL, &block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_sum"), &one,    sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
         /*
         __kernel void reduce_sum_cl(
@@ -3636,8 +3636,8 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
    size_t block_size     = global_work_size/local_work_size;
 
    if (enhanced_precision_sum) {
-      dev_mass_sum = ezcl_malloc(NULL, &one,    sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
-      dev_redscratch = ezcl_malloc(NULL, &block_size, sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
+      dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_sum"), &one,    sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
+      dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
 
         /*
      __   kernel void reduce_sum_cl(
@@ -3691,8 +3691,8 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
 #endif
       total_sum = global.sum + global.correction;
    } else {
-      dev_mass_sum = ezcl_malloc(NULL, &one,    sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_redscratch = ezcl_malloc(NULL, &block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_one"), &one,    sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
         /*
      __   kernel void reduce_sum_cl(
@@ -3763,9 +3763,9 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
 void State::allocate_device_memory(size_t ncells)
 {
 #ifdef HAVE_OPENCL
-   dev_H = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-   dev_U = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-   dev_V = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   dev_H = ezcl_malloc(NULL, const_cast<char *>("dev_H"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   dev_U = ezcl_malloc(NULL, const_cast<char *>("dev_U"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   dev_V = ezcl_malloc(NULL, const_cast<char *>("dev_V"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
 #endif
 }
 void State::resize_old_device_memory(size_t ncells)
@@ -3774,9 +3774,9 @@ void State::resize_old_device_memory(size_t ncells)
    ezcl_device_memory_remove(dev_H);
    ezcl_device_memory_remove(dev_U);
    ezcl_device_memory_remove(dev_V);
-   dev_H = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   dev_U = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   dev_V = ezcl_malloc(NULL, &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   dev_H = ezcl_malloc(NULL, const_cast<char *>("dev_H"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   dev_U = ezcl_malloc(NULL, const_cast<char *>("dev_U"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   dev_V = ezcl_malloc(NULL, const_cast<char *>("dev_V"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 #endif
 }
 

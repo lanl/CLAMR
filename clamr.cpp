@@ -299,11 +299,11 @@ int main(int argc, char **argv) {
 
    size_t corners_size = corners_i_global.size();
 
-   dev_corners_i_global  = ezcl_malloc(&corners_i_global[0],  &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-   dev_corners_j_global  = ezcl_malloc(&corners_j_global[0],  &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+   dev_corners_i_global  = ezcl_malloc(&corners_i_global[0],  const_cast<char *>("dev_corners_i_global"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+   dev_corners_j_global  = ezcl_malloc(&corners_j_global[0],  const_cast<char *>("dev_corners_j_global"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
 
-   dev_corners_i_local  = ezcl_malloc(&corners_i_local[0],  &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-   dev_corners_j_local  = ezcl_malloc(&corners_j_local[0],  &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+   dev_corners_i_local  = ezcl_malloc(&corners_i_local[0],  const_cast<char *>("dev_corners_i_local"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+   dev_corners_j_local  = ezcl_malloc(&corners_j_local[0],  const_cast<char *>("dev_corners_j_local"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
 
    // Distribute level, celltype, H, U, V
 
@@ -317,10 +317,10 @@ int main(int argc, char **argv) {
    MPI_Scatterv(&i_global[0],        &nsizes[0], &ndispl[0], MPI_INT, &i[0],        nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&j_global[0],        &nsizes[0], &ndispl[0], MPI_INT, &j[0],        nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
 
-   dev_celltype  = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   dev_i         = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
-   dev_j         = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
-   dev_level     = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_celltype  = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_i         = ezcl_malloc(NULL, const_cast<char *>("dev_i"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
+   dev_j         = ezcl_malloc(NULL, const_cast<char *>("dev_j"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
+   dev_level     = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
    H.resize(ncells);
    U.resize(ncells);
@@ -344,13 +344,13 @@ int main(int argc, char **argv) {
    state->allocate_device_memory(ncells);
 
    size_t one = 1;
-   state_global->dev_deltaT   = ezcl_malloc(NULL, &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-   state->dev_deltaT   = ezcl_malloc(NULL, &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   state_global->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT_global"), &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   state->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT"),               &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
 
-   dev_celltype_global = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
-   dev_i_global        = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
-   dev_j_global        = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
-   dev_level_global    = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
+   dev_celltype_global = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_global"), &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
+   dev_i_global        = ezcl_malloc(NULL, const_cast<char *>("dev_i_global"),        &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
+   dev_j_global        = ezcl_malloc(NULL, const_cast<char *>("dev_j_global"),        &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
+   dev_level_global    = ezcl_malloc(NULL, const_cast<char *>("dev_level_global"),    &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
 
    //  Set write buffers for data.
    ezcl_enqueue_write_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&H_global[0],  &start_write_event);
@@ -373,15 +373,15 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&level[0],    &end_write_event);
    state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
 
-   dev_celltype_new_global = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_i_new_global        = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_j_new_global        = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_level_new_global    = ezcl_malloc(NULL, &ncells_global, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+   dev_celltype_new_global = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new_global"), &ncells_global, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+   dev_i_new_global        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new_global"),        &ncells_global, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+   dev_j_new_global        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new_global"),        &ncells_global, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+   dev_level_new_global    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new_glocal"),    &ncells_global, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
 
-   dev_celltype_new_local = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_i_new_local        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_j_new_local        = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_level_new_local    = ezcl_malloc(NULL, &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+   dev_celltype_new_local = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new_local"), &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+   dev_i_new_local        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new_local"),        &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+   dev_j_new_local        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new_local"),        &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
+   dev_level_new_local    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new_local"),    &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
@@ -701,7 +701,7 @@ extern "C" void do_calc(void)
       MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
 
-      mesh->do_load_balance_local(command_queue, ncells_global, H, dev_H, U, dev_U, V, dev_V);
+      mesh->do_load_balance_local(command_queue, new_ncells, ncells_global, H, dev_H, U, dev_U, V, dev_V);
 
       MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
       ndispl[0]=0;
@@ -788,10 +788,10 @@ extern "C" void do_calc(void)
    }
 
 #ifdef HAVE_GRAPHICS
-   cl_mem dev_x  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-   cl_mem dev_dx = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-   cl_mem dev_y  = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-   cl_mem dev_dy = ezcl_malloc(NULL, &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   cl_mem dev_x  = ezcl_malloc(NULL, const_cast<char *>("dev_x"),  &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   cl_mem dev_dx = ezcl_malloc(NULL, const_cast<char *>("dev_dx"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   cl_mem dev_y  = ezcl_malloc(NULL, const_cast<char *>("dev_y"),  &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   cl_mem dev_dy = ezcl_malloc(NULL, const_cast<char *>("dev_dy"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
 
    mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
 

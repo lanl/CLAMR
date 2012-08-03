@@ -86,6 +86,7 @@ struct slist_device_memory_head *device_memory_headp;
 struct device_memory_entry {
    cl_mem cl_mem_ptr;
    size_t mem_size;
+   char   name[20];
    SLIST_ENTRY(device_memory_entry) device_memory_entries;
 } *device_memory_item;
 
@@ -94,6 +95,7 @@ struct slist_mapped_memory_head *mapped_memory_headp;
 struct mapped_memory_entry {
    cl_mem cl_mem_ptr;
    size_t mem_size;
+   char   name[20];
    SLIST_ENTRY(mapped_memory_entry) mapped_memory_entries;
 } *mapped_memory_item;
 
@@ -102,6 +104,7 @@ struct slist_malloc_memory_head *malloc_memory_headp;
 struct malloc_memory_entry {
    void *mem_ptr;
    size_t mem_size;
+   char   name[20];
    SLIST_ENTRY(malloc_memory_entry) malloc_memory_entries;
 } *malloc_memory_item;
 
@@ -143,7 +146,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
    
    cl_uint num_platforms_requested = nPlatforms;
    platforms = (cl_platform_id *)malloc(nPlatforms*sizeof(cl_platform_id));
-   ezcl_malloc_memory_add(platforms, nPlatforms*sizeof(cl_platform_id));
+   ezcl_malloc_memory_add(platforms, "PLATFORMS", nPlatforms*sizeof(cl_platform_id));
    
    ierr = clGetPlatformIDs(num_platforms_requested, platforms, &nPlatforms);
    if (ierr != CL_SUCCESS || nPlatforms != num_platforms_requested){
@@ -196,7 +199,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
    
    cl_uint num_devices_requested = nDevices;
    devices = (cl_device_id *)malloc(nDevices*sizeof(cl_device_id));
-   ezcl_malloc_memory_add(devices, nDevices*sizeof(cl_device_id));
+   ezcl_malloc_memory_add(devices, "DEVICES", nDevices*sizeof(cl_device_id));
 
    ierr = clGetDeviceIDs(platforms[0],(size_t)CL_DEVICE_TYPE_ALL,num_devices_requested,devices,&nDevices);
    if (ierr != CL_SUCCESS) {
@@ -314,7 +317,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_contex
    }
 
    platforms = (cl_platform_id *)malloc(nPlatforms*sizeof(cl_platform_id));
-   ezcl_malloc_memory_add(platforms, nPlatforms*sizeof(cl_platform_id));
+   ezcl_malloc_memory_add(platforms, "PLATFORMS", nPlatforms*sizeof(cl_platform_id));
 
    ierr = clGetPlatformIDs(nPlatforms, platforms, NULL);
    if (ierr != CL_SUCCESS){
@@ -381,7 +384,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_contex
    nDevices = nDevices_selected;
 
    devices = (cl_device_id *)malloc(nDevices*sizeof(cl_device_id));
-   ezcl_malloc_memory_add(devices, nDevices*sizeof(cl_device_id));
+   ezcl_malloc_memory_add(devices, "DEVICES", nDevices*sizeof(cl_device_id));
 
    ierr = clGetDeviceIDs(platforms[platform_selected],device_type,nDevices,devices,NULL);
    if (ierr != CL_SUCCESS) {
@@ -637,14 +640,14 @@ cl_context ezcl_get_context_p(const char *file, const int line){
    return(context);
 }
 
-cl_mem ezcl_malloc_p(void *host_mem_ptr, size_t dims[], size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line){
+cl_mem ezcl_malloc_p(void *host_mem_ptr, char *name, size_t dims[], size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line){
    cl_int ierr;
    void *buf_mem_ptr = NULL;
    cl_mem mem_ptr = NULL;
    size_t size=0;
 
    size=dims[0]*elsize;
-   //printf("size is %d\n",size);
+   //printf("EZCL_MALLOC: variable %20s dims %d elsize is %d called from file %s line %d\n",name,dims[0],elsize,file,line);
 
    if (flags & CL_MEM_ALLOC_HOST_PTR){
       if (ezcl_flags & EZCL_PINNED_MEMORY){
@@ -660,7 +663,7 @@ cl_mem ezcl_malloc_p(void *host_mem_ptr, size_t dims[], size_t elsize, size_t fl
             */
            ezcl_print_error(ierr, "EZCL_MALLOC", "clCreateBuffer", file, line);
          }
-         ezcl_device_memory_add(buf_mem_ptr, size);
+         ezcl_device_memory_add(buf_mem_ptr, name, size);
 
          if (flags & CL_MEM_READ_ONLY){
            mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, (size_t)CL_MAP_WRITE, 0L, size, 0, NULL, NULL, NULL);
@@ -669,11 +672,11 @@ cl_mem ezcl_malloc_p(void *host_mem_ptr, size_t dims[], size_t elsize, size_t fl
          } else {
            mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, 0L, 0L, size, 0, NULL, NULL, NULL);
          }
-         ezcl_mapped_memory_add(mem_ptr, size);
+         ezcl_mapped_memory_add(mem_ptr, name, size);
 
       } else {
          mem_ptr = malloc(size);
-         ezcl_malloc_memory_add(mem_ptr, size);
+         ezcl_malloc_memory_add(mem_ptr, name, size);
       }
    } else {
       mem_ptr = clCreateBuffer(context, flags, size, host_mem_ptr, &ierr);
@@ -688,36 +691,39 @@ cl_mem ezcl_malloc_p(void *host_mem_ptr, size_t dims[], size_t elsize, size_t fl
          */
         ezcl_print_error(ierr, "EZCL_MALLOC", "clCreateBuffer", file, line);
       }
-      ezcl_device_memory_add(mem_ptr, size);
+      ezcl_device_memory_add(mem_ptr, name, size);
    }
 
    return(mem_ptr);
 }
 
-void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, size_t size, const char *file, const int line){
+void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t size, const char *file, const int line){
    if (SLIST_EMPTY(&device_memory_head)) SLIST_INIT(&device_memory_head);
 
    device_memory_item = malloc(sizeof(struct device_memory_entry));
+   sprintf(device_memory_item->name,"%20s",name);
    device_memory_item->cl_mem_ptr = dev_mem_ptr;
    device_memory_item->mem_size=size;
    if (DEBUG) printf("EZCL_DEVICE_MEMORY_ADD: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
    SLIST_INSERT_HEAD(&device_memory_head, device_memory_item, device_memory_entries);
 }
 
-void ezcl_mapped_memory_add_p(cl_mem map_mem_ptr, size_t size, const char *file, const int line){
+void ezcl_mapped_memory_add_p(cl_mem map_mem_ptr, const char *name, size_t size, const char *file, const int line){
    if (SLIST_EMPTY(&mapped_memory_head)) SLIST_INIT(&mapped_memory_head);
 
    mapped_memory_item = malloc(sizeof(struct mapped_memory_entry));
+   sprintf(mapped_memory_item->name,"%20s",name);
    mapped_memory_item->cl_mem_ptr = map_mem_ptr;
    mapped_memory_item->mem_size=size;
    if (DEBUG) printf("EZCL_MAPPED_MEMORY_ADD: DEBUG -- cl memory pointer is %p\n",map_mem_ptr);
    SLIST_INSERT_HEAD(&mapped_memory_head, mapped_memory_item, mapped_memory_entries);
 }
 
-void *ezcl_malloc_memory_add_p(void *malloc_mem_ptr, size_t size, const char *file, const int line){
+void *ezcl_malloc_memory_add_p(void *malloc_mem_ptr, const char *name, size_t size, const char *file, const int line){
    if (SLIST_EMPTY(&malloc_memory_head)) SLIST_INIT(&malloc_memory_head);
    
    malloc_memory_item = malloc(sizeof(struct malloc_memory_entry));
+   sprintf(malloc_memory_item->name,"%20s",name);
    malloc_memory_item->mem_ptr = malloc_mem_ptr;
    malloc_memory_item->mem_size = size;
    if (DEBUG) printf("EZCL_MALLOC_MEMORY_ADD: DEBUG -- malloc memory pointer is %p\n",malloc_mem_ptr);
@@ -890,7 +896,7 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
    
    stat(filename, &statbuf);
    source = (char *)malloc((size_t)(statbuf.st_size + 1));
-   ezcl_malloc_memory_add(source, (size_t)(statbuf.st_size + 1));
+   ezcl_malloc_memory_add(source, kernel_name, (size_t)(statbuf.st_size + 1));
    
    if (fread(source, (size_t)statbuf.st_size, 1L, fh) != 1) {
       printf("ERROR: problem reading program source file %s\n",filename);
