@@ -135,6 +135,12 @@ extern "C"
       ( ezcl_mem_free_all_p(__FILE__, __LINE__) ) 
 #define ezcl_mem_walk_all() \
       ( ezcl_mem_walk_all_p(__FILE__, __LINE__) ) 
+#define ezcl_mem_walk_one(mem_buffer) \
+      ( ezcl_mem_walk_one_p(mem_buffer, __FILE__, __LINE__) ) 
+#define ezcl_get_device_mem_nelements(mem_buffer) \
+      ( ezcl_get_device_mem_nelements(mem_buffer, __FILE__, __LINE__) ) 
+#define ezcl_get_device_mem_elsize(mem_buffer) \
+      ( ezcl_get_device_mem_elsize(mem_buffer, __FILE__, __LINE__) ) 
 
 /* kernel and program routines */
 #define ezcl_create_kernel(  context, filename, kernel_name, flags) \
@@ -197,6 +203,9 @@ void ezcl_mapped_memory_remove_p(void *map_mem_ptr, const char *file, const int 
 void ezcl_malloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const int line);   
 void ezcl_mem_free_all_p(const char *file, const int line);
 void ezcl_mem_walk_all_p(const char *file, const int line);
+void ezcl_mem_walk_one_p(cl_mem mem_buffer, const char *file, const int line);
+int ezcl_get_device_mem_nelements_p(cl_mem mem_buffer, const char *file, const int line);
+int ezcl_get_device_mem_elsize_p(cl_mem mem_buffer, const char *file, const int line);
 
 /* kernel and program routines */
 cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const char *kernel_name, int flags, const char *file, const int line);
