@@ -136,7 +136,7 @@ struct object_entry {
 cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, cl_context *ezcl_accelerator_context, const char *file, int line)
 {
    int ierr;
-   cl_uint nPlatforms;
+   //cl_uint nPlatforms;
    //cl_uint nDevices = 0;
 
    ierr = clGetPlatformIDs(0, 0, &nPlatforms);
@@ -304,9 +304,9 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
 cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_context, cl_command_queue *return_command_queue, int *compute_device, const int mype, const char *file, int line){
    cl_device_id device;
    int ierr;
-   cl_uint nDevices_selected;
+   cl_uint nDevices_selected=0;
 
-   cl_uint nPlatforms;
+   //cl_uint nPlatforms;
    //cl_uint nDevices;
    cl_int platform_selected = -1;
 

@@ -2512,6 +2512,9 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_state_ghost_data_event);
 
+      ezcl_device_memory_remove(dev_H_add);
+      ezcl_device_memory_remove(dev_U_add);
+      ezcl_device_memory_remove(dev_V_add);
       ezcl_device_memory_remove(dev_H_new);
       ezcl_device_memory_remove(dev_U_new);
       ezcl_device_memory_remove(dev_V_new);
