@@ -789,6 +789,7 @@ extern "C" void do_calc(void)
 
          state_local->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
 
+         //state_local->print_object_info();
          mesh_local->compare_indices_all_to_gpu_local(command_queue, mesh_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);
       } // do_comparison_calc
 

@@ -4114,3 +4114,31 @@ void State::compare_state_all_to_gpu_local(cl_command_queue command_queue, State
 #endif
 }
 #endif
+
+void State::print_object_info(void)
+{
+   printf(" ---- State object info -----\n");
+
+#ifdef HAVE_OPENCL
+   int num_elements, elsize;
+
+   num_elements = ezcl_get_device_mem_nelements(dev_H);
+   elsize = ezcl_get_device_mem_elsize(dev_H);
+   printf("dev_H       ptr : %p nelements %d elsize %d\n",dev_H,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_U);
+   elsize = ezcl_get_device_mem_elsize(dev_U);
+   printf("dev_U       ptr : %p nelements %d elsize %d\n",dev_U,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_V);
+   elsize = ezcl_get_device_mem_elsize(dev_V);
+   printf("dev_V       ptr : %p nelements %d elsize %d\n",dev_V,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_mpot);
+   elsize = ezcl_get_device_mem_elsize(dev_mpot);
+   printf("dev_mpot    ptr : %p nelements %d elsize %d\n",dev_mpot,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_ioffset);
+   elsize = ezcl_get_device_mem_elsize(dev_ioffset);
+   printf("dev_ioffset ptr : %p nelements %d elsize %d\n",dev_ioffset,num_elements,elsize);
+#endif
+   printf("vector H    ptr : %p nelements %d elsize %d\n",&H[0],H.size(),sizeof(H[0]));
+   printf("vector U    ptr : %p nelements %d elsize %d\n",&U[0],U.size(),sizeof(U[0]));
+   printf("vector V    ptr : %p nelements %d elsize %d\n",&V[0],V.size(),sizeof(V[0]));
+} 

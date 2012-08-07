@@ -189,6 +189,8 @@ public:
 #ifdef HAVE_OPENCL
    void compare_state_all_to_gpu_local(cl_command_queue command_queue, State *state_global, uint ncells, uint ncells_global, int mype, int ncycle, int *nsizes, int *ndispl);
 #endif
+   void print_object_info(void);
+
 private:
    void parallel_timer_output(int numpe, int mype, const char *string, double local_time);
 
