@@ -738,7 +738,8 @@ void Mesh::compare_indices_all_to_gpu_local(cl_command_queue command_queue, Mesh
    vector<int> j_check(ncells);
    /// Set read buffers for data.
    //printf("%d: DEBUG before walk all ncells %d\n",mype,ncells);
-   //if (! mype) ezcl_mem_walk_all();
+   //ezcl_mem_walk_all();
+   //print_object_info();
 #ifdef HAVE_MPI
    //L7_Terminate();
 #endif
@@ -5545,4 +5546,62 @@ void Mesh::swap_device_memory_ptrs(void)
    SWAP_PTR(dev_j_new,        dev_j,        dev_ptr);
    SWAP_PTR(dev_celltype_new, dev_celltype, dev_ptr);
 #endif
+}
+void Mesh::print_object_info(void)
+{
+   printf(" ---- Mesh object info -----\n");
+   printf("Dimensionality : %d\n",ndim);
+   printf("Parallel info  : mype %d numpe %d noffset %d parallel %d\n",mype,numpe,noffset,parallel);
+   printf("Sizes          : ncells %d ncells_ghost %d\n\n",ncells,ncells_ghost);
+#ifdef HAVE_OPENCL
+   int num_elements, elsize;
+
+   num_elements = ezcl_get_device_mem_nelements(dev_celltype);
+   elsize = ezcl_get_device_mem_elsize(dev_celltype);
+   printf("dev_celltype     ptr : %p nelements %d elsize %d\n",dev_celltype,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_level);
+   elsize = ezcl_get_device_mem_elsize(dev_level);
+   printf("dev_level        ptr : %p nelements %d elsize %d\n",dev_level,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_i);
+   elsize = ezcl_get_device_mem_elsize(dev_i);
+   printf("dev_i            ptr : %p nelements %d elsize %d\n",dev_i,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_j);
+   elsize = ezcl_get_device_mem_elsize(dev_j);
+   printf("dev_j            ptr : %p nelements %d elsize %d\n",dev_j,num_elements,elsize);
+
+   num_elements = ezcl_get_device_mem_nelements(dev_celltype_new);
+   elsize = ezcl_get_device_mem_elsize(dev_celltype_new);
+   printf("dev_celltype_new ptr : %p nelements %d elsize %d\n",dev_celltype_new,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_level_new);
+   elsize = ezcl_get_device_mem_elsize(dev_level_new);
+   printf("dev_level_new    ptr : %p nelements %d elsize %d\n",dev_level_new,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_i_new);
+   elsize = ezcl_get_device_mem_elsize(dev_i_new);
+   printf("dev_i_new        ptr : %p nelements %d elsize %d\n",dev_i_new,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_j_new);
+   elsize = ezcl_get_device_mem_elsize(dev_j_new);
+   printf("dev_j_new        ptr : %p nelements %d elsize %d\n",dev_j_new,num_elements,elsize);
+
+   num_elements = ezcl_get_device_mem_nelements(dev_nlft);
+   elsize = ezcl_get_device_mem_elsize(dev_nlft);
+   printf("dev_nlft         ptr : %p nelements %d elsize %d\n",dev_nlft,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_nrht);
+   elsize = ezcl_get_device_mem_elsize(dev_nrht);
+   printf("dev_nrht         ptr : %p nelements %d elsize %d\n",dev_nrht,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_nbot);
+   elsize = ezcl_get_device_mem_elsize(dev_nbot);
+   printf("dev_nbot         ptr : %p nelements %d elsize %d\n",dev_nbot,num_elements,elsize);
+   num_elements = ezcl_get_device_mem_nelements(dev_ntop);
+   elsize = ezcl_get_device_mem_elsize(dev_ntop);
+   printf("dev_ntop         ptr : %p nelements %d elsize %d\n",dev_ntop,num_elements,elsize);
+#endif
+   printf("vector celltype  ptr : %p nelements %d elsize %d\n",&celltype[0],celltype.size(),sizeof(celltype[0])); 
+   printf("vector level     ptr : %p nelements %d elsize %d\n",&level[0],   level.size(),   sizeof(level[0])); 
+   printf("vector i         ptr : %p nelements %d elsize %d\n",&i[0],       i.size(),       sizeof(i[0])); 
+   printf("vector j         ptr : %p nelements %d elsize %d\n",&j[0],       j.size(),       sizeof(j[0])); 
+
+   printf("vector nlft      ptr : %p nelements %d elsize %d\n",&nlft[0],    nlft.size(),    sizeof(nlft[0])); 
+   printf("vector nrht      ptr : %p nelements %d elsize %d\n",&nrht[0],    nrht.size(),    sizeof(nrht[0])); 
+   printf("vector nbot      ptr : %p nelements %d elsize %d\n",&nbot[0],    nbot.size(),    sizeof(nbot[0])); 
+   printf("vector ntop      ptr : %p nelements %d elsize %d\n",&ntop[0],    ntop.size(),    sizeof(ntop[0])); 
 }

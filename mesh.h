@@ -333,6 +333,8 @@ public:
    int gpu_count_BCs(cl_command_queue command_queue);
 #endif
 
+   void print_object_info();
+
 private:
    //   Private constructors.
    Mesh(const Mesh&);   //   Blocks copy constructor so copies are not made inadvertently.

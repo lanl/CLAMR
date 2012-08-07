@@ -137,10 +137,10 @@ extern "C"
       ( ezcl_mem_walk_all_p(__FILE__, __LINE__) ) 
 #define ezcl_mem_walk_one(mem_buffer) \
       ( ezcl_mem_walk_one_p(mem_buffer, __FILE__, __LINE__) ) 
-#define ezcl_get_device_mem_nelements(mem_buffer) \
-      ( ezcl_get_device_mem_nelements(mem_buffer, __FILE__, __LINE__) ) 
-#define ezcl_get_device_mem_elsize(mem_buffer) \
-      ( ezcl_get_device_mem_elsize(mem_buffer, __FILE__, __LINE__) ) 
+#define ezcl_get_device_mem_nelements(  mem_buffer) \
+      ( ezcl_get_device_mem_nelements_p(mem_buffer, __FILE__, __LINE__) ) 
+#define ezcl_get_device_mem_elsize(  mem_buffer) \
+      ( ezcl_get_device_mem_elsize_p(mem_buffer, __FILE__, __LINE__) ) 
 
 /* kernel and program routines */
 #define ezcl_create_kernel(  context, filename, kernel_name, flags) \
