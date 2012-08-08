@@ -5564,7 +5564,7 @@ void Mesh::print_object_info(void)
    printf(" ---- Mesh object info -----\n");
    printf("Dimensionality : %d\n",ndim);
    printf("Parallel info  : mype %d numpe %d noffset %d parallel %d\n",mype,numpe,noffset,parallel);
-   printf("Sizes          : ncells %d ncells_ghost %d\n\n",ncells,ncells_ghost);
+   printf("Sizes          : ncells %ld ncells_ghost %ld\n\n",ncells,ncells_ghost);
 #ifdef HAVE_OPENCL
    int num_elements, elsize;
 
@@ -5607,13 +5607,13 @@ void Mesh::print_object_info(void)
    elsize = ezcl_get_device_mem_elsize(dev_ntop);
    printf("dev_ntop         ptr : %p nelements %d elsize %d\n",dev_ntop,num_elements,elsize);
 #endif
-   printf("vector celltype  ptr : %p nelements %d elsize %d\n",&celltype[0],celltype.size(),sizeof(celltype[0])); 
-   printf("vector level     ptr : %p nelements %d elsize %d\n",&level[0],   level.size(),   sizeof(level[0])); 
-   printf("vector i         ptr : %p nelements %d elsize %d\n",&i[0],       i.size(),       sizeof(i[0])); 
-   printf("vector j         ptr : %p nelements %d elsize %d\n",&j[0],       j.size(),       sizeof(j[0])); 
+   printf("vector celltype  ptr : %p nelements %ld elsize %ld\n",&celltype[0],celltype.size(),sizeof(celltype[0])); 
+   printf("vector level     ptr : %p nelements %ld elsize %ld\n",&level[0],   level.size(),   sizeof(level[0])); 
+   printf("vector i         ptr : %p nelements %ld elsize %ld\n",&i[0],       i.size(),       sizeof(i[0])); 
+   printf("vector j         ptr : %p nelements %ld elsize %ld\n",&j[0],       j.size(),       sizeof(j[0])); 
 
-   printf("vector nlft      ptr : %p nelements %d elsize %d\n",&nlft[0],    nlft.size(),    sizeof(nlft[0])); 
-   printf("vector nrht      ptr : %p nelements %d elsize %d\n",&nrht[0],    nrht.size(),    sizeof(nrht[0])); 
-   printf("vector nbot      ptr : %p nelements %d elsize %d\n",&nbot[0],    nbot.size(),    sizeof(nbot[0])); 
-   printf("vector ntop      ptr : %p nelements %d elsize %d\n",&ntop[0],    ntop.size(),    sizeof(ntop[0])); 
+   printf("vector nlft      ptr : %p nelements %ld elsize %ld\n",&nlft[0],    nlft.size(),    sizeof(nlft[0])); 
+   printf("vector nrht      ptr : %p nelements %ld elsize %ld\n",&nrht[0],    nrht.size(),    sizeof(nrht[0])); 
+   printf("vector nbot      ptr : %p nelements %ld elsize %ld\n",&nbot[0],    nbot.size(),    sizeof(nbot[0])); 
+   printf("vector ntop      ptr : %p nelements %ld elsize %ld\n",&ntop[0],    ntop.size(),    sizeof(ntop[0])); 
 }
