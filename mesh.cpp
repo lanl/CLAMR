@@ -5296,10 +5296,14 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
       cl_mem dev_H_new        = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"),        &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       cl_mem dev_U_new        = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"),        &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       cl_mem dev_V_new        = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"),        &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      ezcl_device_memory_remove(dev_i_new);
+      ezcl_device_memory_remove(dev_j_new);
+      ezcl_device_memory_remove(dev_level_new);
+      ezcl_device_memory_remove(dev_celltype_new);
+      dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
       // Set kernel arguments and call lower block kernel
       if(lower_block_size > 0) {
@@ -5408,10 +5412,10 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
       ezcl_device_memory_remove(dev_H_new);
       ezcl_device_memory_remove(dev_U_new);
       ezcl_device_memory_remove(dev_V_new);
-      ezcl_device_memory_remove(dev_i_new);
-      ezcl_device_memory_remove(dev_j_new);
-      ezcl_device_memory_remove(dev_level_new);
-      ezcl_device_memory_remove(dev_celltype_new);
+      //ezcl_device_memory_remove(dev_i_new);
+      //ezcl_device_memory_remove(dev_j_new);
+      //ezcl_device_memory_remove(dev_level_new);
+      //ezcl_device_memory_remove(dev_celltype_new);
 
       // Read off of GPU to CPU
       H.resize(ncells,0.0);
@@ -5432,6 +5436,14 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
       ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int), &level[0],    NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells*sizeof(cl_int), &celltype[0], NULL);
 
+      ezcl_device_memory_remove(dev_i_new);
+      ezcl_device_memory_remove(dev_j_new);
+      ezcl_device_memory_remove(dev_level_new);
+      ezcl_device_memory_remove(dev_celltype_new);
+      dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
    }
 
 }
