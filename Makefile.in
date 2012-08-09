@@ -90,15 +90,13 @@ clamr_checkall_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
 am__objects_6 = clamr_cpuonly-clamr_cpuonly.$(OBJEXT) \
 	clamr_cpuonly-mesh.$(OBJEXT) clamr_cpuonly-partition.$(OBJEXT) \
 	clamr_cpuonly-state.$(OBJEXT) clamr_cpuonly-input.$(OBJEXT)
-am__objects_7 = clamr_cpuonly-display.$(OBJEXT) \
-	clamr_cpuonly-reduce.$(OBJEXT)
+am__objects_7 = clamr_cpuonly-display.$(OBJEXT)
 am_clamr_cpuonly_OBJECTS = $(am__objects_6) $(am__objects_7) \
 	$(am__objects_3)
 clamr_cpuonly_OBJECTS = $(am_clamr_cpuonly_OBJECTS)
 clamr_cpuonly_DEPENDENCIES = hsfc/libhsfc.la kdtree/libkdtree.la \
-	zorder/libzorder.la s7/libs7.la ezcl/libezcl.la \
-	timer/libtimer.la genmalloc/libgenmalloc.la \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+	zorder/libzorder.la s7/libs7.la timer/libtimer.la \
+	genmalloc/libgenmalloc.la $(am__DEPENDENCIES_1)
 am__objects_8 = clamr_gpucheck-clamr_gpucheck.$(OBJEXT) \
 	clamr_gpucheck-mesh.$(OBJEXT) \
 	clamr_gpucheck-partition.$(OBJEXT) \
@@ -369,10 +367,10 @@ clamr_gpuonly_CPPFLAGS = -UHAVE_MPI -DHAVE_OPENCL=1
 clamr_gpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la genmalloc/libgenmalloc.la -lm ${MPE_NOMPI_LIBS} ${OPENCL_LIBS}
 clamr_gpuonly_SOURCES = ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS}
 clamr_cpuonly_CXX_SRCS = clamr_cpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp
-clamr_cpuonly_C_SRCS = display.c reduce.c
-clamr_cpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
-clamr_cpuonly_CPPFLAGS = -UHAVE_MPI -DHAVE_OPENCL=1
-clamr_cpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la genmalloc/libgenmalloc.la -lm ${MPE_NOMPI_LIBS} ${OPENCL_LIBS}
+clamr_cpuonly_C_SRCS = display.c
+clamr_cpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h
+clamr_cpuonly_CPPFLAGS = -UHAVE_MPI -UHAVE_OPENCL
+clamr_cpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la timer/libtimer.la genmalloc/libgenmalloc.la -lm ${MPE_NOMPI_LIBS}
 clamr_cpuonly_SOURCES = ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr_cpuonly_H_SRCS}
 clamr_mpionly_CXX_SRCS = clamr_mpionly.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_mpionly_C_SRCS = display.c
@@ -545,7 +543,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_cpuonly-input.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_cpuonly-mesh.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_cpuonly-partition.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_cpuonly-reduce.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_cpuonly-state.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_gpucheck-clamr_gpucheck.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clamr_gpucheck-display.Po@am__quote@
@@ -664,20 +661,6 @@ clamr_cpuonly-display.obj: display.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='display.c' object='clamr_cpuonly-display.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_cpuonly_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o clamr_cpuonly-display.obj `if test -f 'display.c'; then $(CYGPATH_W) 'display.c'; else $(CYGPATH_W) '$(srcdir)/display.c'; fi`
-
-clamr_cpuonly-reduce.o: reduce.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_cpuonly_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT clamr_cpuonly-reduce.o -MD -MP -MF $(DEPDIR)/clamr_cpuonly-reduce.Tpo -c -o clamr_cpuonly-reduce.o `test -f 'reduce.c' || echo '$(srcdir)/'`reduce.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/clamr_cpuonly-reduce.Tpo $(DEPDIR)/clamr_cpuonly-reduce.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='reduce.c' object='clamr_cpuonly-reduce.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_cpuonly_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o clamr_cpuonly-reduce.o `test -f 'reduce.c' || echo '$(srcdir)/'`reduce.c
-
-clamr_cpuonly-reduce.obj: reduce.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_cpuonly_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT clamr_cpuonly-reduce.obj -MD -MP -MF $(DEPDIR)/clamr_cpuonly-reduce.Tpo -c -o clamr_cpuonly-reduce.obj `if test -f 'reduce.c'; then $(CYGPATH_W) 'reduce.c'; else $(CYGPATH_W) '$(srcdir)/reduce.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/clamr_cpuonly-reduce.Tpo $(DEPDIR)/clamr_cpuonly-reduce.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='reduce.c' object='clamr_cpuonly-reduce.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_cpuonly_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o clamr_cpuonly-reduce.obj `if test -f 'reduce.c'; then $(CYGPATH_W) 'reduce.c'; else $(CYGPATH_W) '$(srcdir)/reduce.c'; fi`
 
 clamr_gpucheck-display.o: display.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(clamr_gpucheck_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT clamr_gpucheck-display.o -MD -MP -MF $(DEPDIR)/clamr_gpucheck-display.Tpo -c -o clamr_gpucheck-display.o `test -f 'display.c' || echo '$(srcdir)/'`display.c

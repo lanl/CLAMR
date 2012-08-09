@@ -25,10 +25,10 @@ clamr_gpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7
 clamr_gpuonly_SOURCES = ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS}
 
 clamr_cpuonly_CXX_SRCS = clamr_cpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp
-clamr_cpuonly_C_SRCS = display.c reduce.c
-clamr_cpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
-clamr_cpuonly_CPPFLAGS = -UHAVE_MPI -DHAVE_OPENCL=1
-clamr_cpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la genmalloc/libgenmalloc.la -lm ${MPE_NOMPI_LIBS} ${OPENCL_LIBS}
+clamr_cpuonly_C_SRCS = display.c
+clamr_cpuonly_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h
+clamr_cpuonly_CPPFLAGS = -UHAVE_MPI -UHAVE_OPENCL
+clamr_cpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la timer/libtimer.la genmalloc/libgenmalloc.la -lm ${MPE_NOMPI_LIBS}
 
 clamr_cpuonly_SOURCES = ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr_cpuonly_H_SRCS}
 

@@ -5154,8 +5154,10 @@ void Mesh::do_load_balance(const size_t new_ncells, const int &ncells_global, ve
    cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
 
 }
+#endif
 
 #ifdef HAVE_OPENCL
+#ifdef HAVE_MPI
 void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, const int &ncells_global, vector<real> &H, cl_mem &dev_H, vector<real> &U, cl_mem &dev_U, vector<real> &V, cl_mem &dev_V)
 {
 
@@ -5438,11 +5440,6 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
 
 }
 #endif
-#else
-void Mesh::do_load_balance(const size_t new_ncells, const int &ncells_global, vector<real> &H, vector<real> &U, vector<real> &V) {return;}
-#ifdef HAVE_OPENCL
-#endif
-void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, const int &ncells_global, vector<real> &H, cl_mem &dev_H, vector<real> &U, cl_mem &dev_U, vector<real> &V, cl_mem &dev_V) {return;}
 #endif
 
 #ifdef HAVE_OPENCL
