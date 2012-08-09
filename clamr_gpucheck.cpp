@@ -186,11 +186,6 @@ int main(int argc, char **argv) {
    cl_mem &dev_j        = mesh->dev_j;
    cl_mem &dev_level    = mesh->dev_level;
 
-   cl_mem &dev_celltype_new = mesh->dev_celltype_new;
-   cl_mem &dev_i_new        = mesh->dev_i_new;
-   cl_mem &dev_j_new        = mesh->dev_j_new;
-   cl_mem &dev_level_new    = mesh->dev_level_new;
-
    cl_mem &dev_H    = state->dev_H;
    cl_mem &dev_U    = state->dev_U;
    cl_mem &dev_V    = state->dev_V;
@@ -222,11 +217,6 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],       NULL              );
    ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],       &end_write_event  );
    state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
-
-   dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
 
    if (compute_device == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
 

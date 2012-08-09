@@ -5296,14 +5296,11 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
       cl_mem dev_H_new        = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"),        &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       cl_mem dev_U_new        = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"),        &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       cl_mem dev_V_new        = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"),        &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      ezcl_device_memory_remove(dev_i_new);
-      ezcl_device_memory_remove(dev_j_new);
-      ezcl_device_memory_remove(dev_level_new);
-      ezcl_device_memory_remove(dev_celltype_new);
-      dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+
+      cl_mem dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
       // Set kernel arguments and call lower block kernel
       if(lower_block_size > 0) {
@@ -5404,6 +5401,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
       SWAP_PTR(dev_H_new, dev_H, dev_ptr);
       SWAP_PTR(dev_U_new, dev_U, dev_ptr);
       SWAP_PTR(dev_V_new, dev_V, dev_ptr);
+
       SWAP_PTR(dev_i_new, dev_i, dev_ptr);
       SWAP_PTR(dev_j_new, dev_j, dev_ptr);
       SWAP_PTR(dev_level_new, dev_level, dev_ptr);
@@ -5412,10 +5410,11 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
       ezcl_device_memory_remove(dev_H_new);
       ezcl_device_memory_remove(dev_U_new);
       ezcl_device_memory_remove(dev_V_new);
-      //ezcl_device_memory_remove(dev_i_new);
-      //ezcl_device_memory_remove(dev_j_new);
-      //ezcl_device_memory_remove(dev_level_new);
-      //ezcl_device_memory_remove(dev_celltype_new);
+
+      ezcl_device_memory_remove(dev_i_new);
+      ezcl_device_memory_remove(dev_j_new);
+      ezcl_device_memory_remove(dev_level_new);
+      ezcl_device_memory_remove(dev_celltype_new);
 
       // Read off of GPU to CPU
       H.resize(ncells,0.0);
@@ -5435,15 +5434,6 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
       ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int), &level[0],    NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells*sizeof(cl_int), &celltype[0], NULL);
-
-      ezcl_device_memory_remove(dev_i_new);
-      ezcl_device_memory_remove(dev_j_new);
-      ezcl_device_memory_remove(dev_level_new);
-      ezcl_device_memory_remove(dev_celltype_new);
-      dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
    }
 
 }
@@ -5536,29 +5526,6 @@ void Mesh::resize_old_device_memory(size_t ncells)
    dev_celltype = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
 #endif
 }
-void Mesh::resize_new_device_memory(size_t ncells)
-{
-#ifdef HAVE_OPENCL
-   ezcl_device_memory_remove(dev_level_new);
-   ezcl_device_memory_remove(dev_i_new);
-   ezcl_device_memory_remove(dev_j_new);
-   ezcl_device_memory_remove(dev_celltype_new);
-   dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-   dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-   dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-   dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-#endif
-}
-void Mesh::swap_device_memory_ptrs(void)
-{
-#ifdef HAVE_OPENCL
-   cl_mem dev_ptr;
-   SWAP_PTR(dev_level_new,    dev_level,    dev_ptr);
-   SWAP_PTR(dev_i_new,        dev_i,        dev_ptr);
-   SWAP_PTR(dev_j_new,        dev_j,        dev_ptr);
-   SWAP_PTR(dev_celltype_new, dev_celltype, dev_ptr);
-#endif
-}
 void Mesh::print_object_info(void)
 {
    printf(" ---- Mesh object info -----\n");
@@ -5580,19 +5547,6 @@ void Mesh::print_object_info(void)
    num_elements = ezcl_get_device_mem_nelements(dev_j);
    elsize = ezcl_get_device_mem_elsize(dev_j);
    printf("dev_j            ptr : %p nelements %d elsize %d\n",dev_j,num_elements,elsize);
-
-   num_elements = ezcl_get_device_mem_nelements(dev_celltype_new);
-   elsize = ezcl_get_device_mem_elsize(dev_celltype_new);
-   printf("dev_celltype_new ptr : %p nelements %d elsize %d\n",dev_celltype_new,num_elements,elsize);
-   num_elements = ezcl_get_device_mem_nelements(dev_level_new);
-   elsize = ezcl_get_device_mem_elsize(dev_level_new);
-   printf("dev_level_new    ptr : %p nelements %d elsize %d\n",dev_level_new,num_elements,elsize);
-   num_elements = ezcl_get_device_mem_nelements(dev_i_new);
-   elsize = ezcl_get_device_mem_elsize(dev_i_new);
-   printf("dev_i_new        ptr : %p nelements %d elsize %d\n",dev_i_new,num_elements,elsize);
-   num_elements = ezcl_get_device_mem_nelements(dev_j_new);
-   elsize = ezcl_get_device_mem_elsize(dev_j_new);
-   printf("dev_j_new        ptr : %p nelements %d elsize %d\n",dev_j_new,num_elements,elsize);
 
    num_elements = ezcl_get_device_mem_nelements(dev_nlft);
    elsize = ezcl_get_device_mem_elsize(dev_nlft);

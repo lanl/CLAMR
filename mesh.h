@@ -210,13 +210,6 @@ public:
                   dev_nbot,       
                   dev_ntop;       
 
-   //cl_mem         dev_mpot;
-
-   cl_mem         dev_celltype_new,       
-                  dev_i_new,       
-                  dev_j_new,       
-                  dev_level_new;
-
    cl_mem         dev_levdx,    // corresponds to lev_deltax
                   dev_levdy,    // corresponds to lev_deltay
                   dev_levibeg,
@@ -243,8 +236,6 @@ public:
    void mesh_reorder(vector<int> iorder);
 
    void resize_old_device_memory(size_t ncells);
-   void resize_new_device_memory(size_t ncells);
-   void swap_device_memory_ptrs(void);
 
    int  is_left_boundary(int ic)    { return (i[ic] < lev_ibegin[level[ic]]); }
    int  is_right_boundary(int ic)   { return (i[ic] > lev_iend[  level[ic]]); }

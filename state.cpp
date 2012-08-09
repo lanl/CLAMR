@@ -872,10 +872,6 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    cl_mem &dev_i            = mesh->dev_i;
    cl_mem &dev_j            = mesh->dev_j;
    cl_mem &dev_celltype     = mesh->dev_celltype;
-   cl_mem &dev_level_new    = mesh->dev_level_new;
-   cl_mem &dev_i_new        = mesh->dev_i_new;
-   cl_mem &dev_j_new        = mesh->dev_j_new;
-   cl_mem &dev_celltype_new = mesh->dev_celltype_new;
    cl_mem &dev_levdx        = mesh->dev_levdx;
    cl_mem &dev_levdy        = mesh->dev_levdy;
    //cl_mem &dev_mpot         = mesh->dev_mpot;
@@ -888,22 +884,22 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    assert(dev_H);
    assert(dev_U);
    assert(dev_V);
-   assert(dev_level_new);
-   assert(dev_i_new);
-   assert(dev_j_new);
-   assert(dev_celltype_new);
    assert(dev_ioffset);
    assert(dev_levdx);
    assert(dev_levdy);
 
    if (new_ncells != old_ncells){
       ncells = new_ncells;
-      mesh->resize_new_device_memory(ncells);
    }
 
    cl_mem dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+
+   cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
    cl_event start_write_event;
    cl_mem dev_ijadd;
@@ -970,7 +966,10 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    SWAP_PTR(dev_U_new, dev_U, dev_ptr);
    SWAP_PTR(dev_V_new, dev_V, dev_ptr);
 
-   mesh->swap_device_memory_ptrs();
+   SWAP_PTR(dev_celltype_new, dev_celltype, dev_ptr);
+   SWAP_PTR(dev_level_new, dev_level, dev_ptr);
+   SWAP_PTR(dev_i_new, dev_i, dev_ptr);
+   SWAP_PTR(dev_j_new, dev_j, dev_ptr);
 
    ezcl_device_memory_remove(dev_mpot);
    ezcl_device_memory_remove(dev_ijadd);
@@ -979,6 +978,11 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    ezcl_device_memory_remove(dev_H_new);
    ezcl_device_memory_remove(dev_U_new);
    ezcl_device_memory_remove(dev_V_new);
+
+   ezcl_device_memory_remove(dev_celltype_new);
+   ezcl_device_memory_remove(dev_level_new);
+   ezcl_device_memory_remove(dev_i_new);
+   ezcl_device_memory_remove(dev_j_new);
 
    gpu_time_rezone_all        += ezcl_timer_calc(&rezone_all_event,        &rezone_all_event);
 }
@@ -993,10 +997,6 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    cl_mem &dev_i            = mesh->dev_i;
    cl_mem &dev_j            = mesh->dev_j;
    cl_mem &dev_celltype     = mesh->dev_celltype;
-   cl_mem &dev_level_new    = mesh->dev_level_new;
-   cl_mem &dev_i_new        = mesh->dev_i_new;
-   cl_mem &dev_j_new        = mesh->dev_j_new;
-   cl_mem &dev_celltype_new = mesh->dev_celltype_new;
    cl_mem &dev_levdx        = mesh->dev_levdx;
    cl_mem &dev_levdy        = mesh->dev_levdy;
    //cl_mem &dev_mpot         = mesh->dev_mpot;
@@ -1009,10 +1009,6 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    assert(dev_H);
    assert(dev_U);
    assert(dev_V);
-   assert(dev_level_new);
-   assert(dev_i_new);
-   assert(dev_j_new);
-   assert(dev_celltype_new);
    assert(dev_ioffset);
    assert(dev_levdx);
    assert(dev_levdy);
@@ -1067,12 +1063,16 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
 
    if (new_ncells != old_ncells){
       ncells = new_ncells;
-      mesh->resize_new_device_memory(ncells);
    }
 
    cl_mem dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+
+   cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
    cl_mem dev_ijadd;
 
@@ -1138,7 +1138,10 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    SWAP_PTR(dev_U_new, dev_U, dev_ptr);
    SWAP_PTR(dev_V_new, dev_V, dev_ptr);
 
-   mesh->swap_device_memory_ptrs();
+   SWAP_PTR(dev_celltype_new, dev_celltype, dev_ptr);
+   SWAP_PTR(dev_level_new,    dev_level,    dev_ptr);
+   SWAP_PTR(dev_i_new,        dev_i,        dev_ptr);
+   SWAP_PTR(dev_j_new,        dev_j,        dev_ptr);
 
    ezcl_device_memory_remove(dev_mpot);
    ezcl_device_memory_remove(dev_ijadd);

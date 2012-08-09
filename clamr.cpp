@@ -229,16 +229,6 @@ int main(int argc, char **argv) {
    cl_mem &dev_j_global        = mesh_global->dev_j;
    cl_mem &dev_level_global    = mesh_global->dev_level;
 
-   cl_mem &dev_celltype_new_global = mesh_global->dev_celltype_new;
-   cl_mem &dev_i_new_global        = mesh_global->dev_i_new;
-   cl_mem &dev_j_new_global        = mesh_global->dev_j_new;
-   cl_mem &dev_level_new_global    = mesh_global->dev_level_new;
-
-   cl_mem &dev_celltype_new_local = mesh->dev_celltype_new;
-   cl_mem &dev_i_new_local        = mesh->dev_i_new;
-   cl_mem &dev_j_new_local        = mesh->dev_j_new;
-   cl_mem &dev_level_new_local    = mesh->dev_level_new;
-
    vector<int>   &celltype = mesh->celltype;
    vector<int>   &i        = mesh->i;
    vector<int>   &j        = mesh->j;
@@ -354,16 +344,6 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],        NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&level[0],    &end_write_event);
    state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
-
-   dev_celltype_new_global = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new_global"), &ncells_global, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_i_new_global        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new_global"),        &ncells_global, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_j_new_global        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new_global"),        &ncells_global, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_level_new_global    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new_global"),    &ncells_global, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-
-   dev_celltype_new_local = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new_local"), &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_i_new_local        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new_local"),        &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_j_new_local        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new_local"),        &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
-   dev_level_new_local    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new_local"),    &ncells, sizeof(cl_int),  CL_MEM_WRITE_ONLY, 0);
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
