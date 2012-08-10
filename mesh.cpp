@@ -5214,31 +5214,29 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
       // Read current H, U, V, i, j, level, celltype values from GPU and write to CPU arrays
       // Update arrays with L7
        
-      // cl_event start_read_event, end_read_event, start_write_event;
+      cl_event start_read_event, end_read_event, start_write_event;
 
       H.resize(ncells_old+indices_needed_count,0.0);
       U.resize(ncells_old+indices_needed_count,0.0);
       V.resize(ncells_old+indices_needed_count,0.0);
-
-      ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells_old*sizeof(cl_real), &H[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells_old*sizeof(cl_real), &U[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells_old*sizeof(cl_real), &V[0], NULL);
-
-      L7_Update(&H[0], L7_REAL, load_balance_handle);
-      L7_Update(&U[0], L7_REAL, load_balance_handle);
-      L7_Update(&V[0], L7_REAL, load_balance_handle);
 
       i.resize(ncells_old+indices_needed_count,0);
       j.resize(ncells_old+indices_needed_count,0);
       level.resize(ncells_old+indices_needed_count,0);
       celltype.resize(ncells_old+indices_needed_count,0);
 
-      // gpu_timer_load_balance_read += (end_read_event - start_read_event);
+      ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells_old*sizeof(cl_real), &H[0], &start_read_event);
+      ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells_old*sizeof(cl_real), &U[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells_old*sizeof(cl_real), &V[0], NULL);
 
       ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells_old*sizeof(cl_int), &i[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells_old*sizeof(cl_int), &j[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells_old*sizeof(cl_int), &level[0],    NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells_old*sizeof(cl_int), &celltype[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells_old*sizeof(cl_int), &celltype[0], &end_read_event);
+
+      L7_Update(&H[0], L7_REAL, load_balance_handle);
+      L7_Update(&U[0], L7_REAL, load_balance_handle);
+      L7_Update(&V[0], L7_REAL, load_balance_handle);
 
       L7_Update(&i[0],        L7_INT, load_balance_handle);
       L7_Update(&j[0],        L7_INT, load_balance_handle);
@@ -5438,6 +5436,8 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
       ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int), &level[0],    NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells*sizeof(cl_int), &celltype[0], NULL);
+
+      gpu_time_load_balance += ezcl_timer_calc(&end_read_event, &start_read_event);
 
       if(lower_block_size > 0) {
          gpu_time_load_balance += ezcl_timer_calc(&do_load_balance_lower_event, &do_load_balance_lower_event);
