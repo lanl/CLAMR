@@ -5433,25 +5433,6 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
       ezcl_device_memory_remove(dev_level_new);
       ezcl_device_memory_remove(dev_celltype_new);
 
-      // Read off of GPU to CPU
-      H.resize(ncells,0.0);
-      U.resize(ncells,0.0);
-      V.resize(ncells,0.0);
-
-      //ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H[0], NULL);
-      //ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U[0], NULL);
-      //ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V[0], NULL);
-
-      i.resize(ncells,0);
-      j.resize(ncells,0);
-      level.resize(ncells,0);
-      celltype.resize(ncells,0);
-
-      //ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int), &i[0],        NULL);
-      //ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j[0],        NULL);
-      //ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int), &level[0],    NULL);
-      //ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells*sizeof(cl_int), &celltype[0], NULL);
-
       gpu_time_load_balance += ezcl_timer_calc(&start_read_event, &end_read_event);
 
       if(lower_block_size > 0) {
