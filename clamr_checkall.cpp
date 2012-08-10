@@ -748,11 +748,11 @@ extern "C" void do_calc(void)
       mesh_global->ncells = new_ncells_global;
 
       if (do_cpu_calc) {
-         mesh_local->do_load_balance(new_ncells, ncells_global, H, U, V);
+         mesh_local->do_load_balance_local(new_ncells, ncells_global, H, U, V);
       }
 
       if (do_gpu_calc) {
-         mesh_local->do_load_balance_local(command_queue, new_ncells, ncells_global, H, dev_H, U, dev_U, V, dev_V);
+         mesh_local->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, H, dev_H, U, dev_U, V, dev_V);
       }
 
       if (do_comparison_calc) {

@@ -500,7 +500,7 @@ extern "C" void do_calc(void)
       MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       noffset -= ncells;
 
-      mesh->do_load_balance(new_ncells, mesh_local_ncells_global, H, U, V);
+      mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, H, U, V);
 
       MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 

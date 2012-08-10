@@ -316,11 +316,11 @@ public:
    void calc_neighbors(void);
    void calc_neighbors_local(void);
 #ifdef HAVE_MPI
-   void do_load_balance(const size_t new_ncells, const int &ncells_global, vector<real> &H, vector<real> &U, vector<real> &V);
+   void do_load_balance_local(const size_t new_ncells, const int &ncells_global, vector<real> &H, vector<real> &U, vector<real> &V);
 #endif
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-   void do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, const int &ncells_global, vector<real> &H, cl_mem &dev_H, vector<real> &U, cl_mem &dev_U, vector<real> &V, cl_mem &dev_V);
+   void gpu_do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, const int &ncells_global, vector<real> &H, cl_mem &dev_H, vector<real> &U, cl_mem &dev_U, vector<real> &V, cl_mem &dev_V);
 #endif
    void gpu_calc_neighbors(cl_command_queue command_queue);
    void gpu_calc_neighbors_local(cl_command_queue command_queue);

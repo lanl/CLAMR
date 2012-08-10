@@ -1021,7 +1021,7 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0],     &start_read_event);
    ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0],     NULL);
    ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_TRUE,  0, ncells*sizeof(cl_int), &level_tmp[0], &end_read_event);
-   gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
+   gpu_time_finite_difference += ezcl_timer_calc(&start_read_event, &end_read_event);
 
    int ifirst      = 0;
    int ilast       = 0;
@@ -2475,7 +2475,7 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], &start_read_event);
    ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], &end_read_event);
-   gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
+   gpu_time_finite_difference += ezcl_timer_calc(&start_read_event, &end_read_event);
 
 #ifdef HAVE_MPI
    L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
