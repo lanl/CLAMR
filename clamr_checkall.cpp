@@ -747,16 +747,7 @@ extern "C" void do_calc(void)
       ncells_global = new_ncells_global;
       mesh_global->ncells = new_ncells_global;
 
-      if (do_cpu_calc) {
-         mesh_local->do_load_balance_local(new_ncells, ncells_global, H, U, V);
-      }
-
-      if (do_gpu_calc) {
-         mesh_local->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, H, dev_H, U, dev_U, V, dev_V);
-      }
-
       if (do_comparison_calc) {
-         //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
          MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
          ndispl[0]=0;
          for (int ip=1; ip<numpe; ip++){
@@ -769,7 +760,30 @@ extern "C" void do_calc(void)
 
          state_local->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
 
-         //state_local->print_object_info();
+         mesh_local->compare_indices_all_to_gpu_local(command_queue, mesh_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);
+      } // do_comparison_calc
+
+      if (do_cpu_calc) {
+         mesh_local->do_load_balance_local(new_ncells, ncells_global, H, U, V);
+      }
+
+      if (do_gpu_calc) {
+         mesh_local->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, dev_H, dev_U, dev_V);
+      }
+
+      if (do_comparison_calc) {
+         MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+         ndispl[0]=0;
+         for (int ip=1; ip<numpe; ip++){
+            ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+         }
+         noffset=0;
+         for (int ip=0; ip<mype; ip++){
+           noffset += nsizes[ip];
+         }
+
+         state_local->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
+
          mesh_local->compare_indices_all_to_gpu_local(command_queue, mesh_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);
       } // do_comparison_calc
 
@@ -779,6 +793,7 @@ extern "C" void do_calc(void)
       }
 #endif
 
+/*
       if (do_gpu_calc) {
          if (ncells != old_ncells){
             H.resize(ncells);
@@ -799,6 +814,7 @@ extern "C" void do_calc(void)
             celltype_global.resize(ncells_global);
          }
       }
+*/
 
       ioffset.clear();
       ioffset_global.clear();

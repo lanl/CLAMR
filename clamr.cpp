@@ -523,7 +523,7 @@ extern "C" void do_calc(void)
       MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
 
-      mesh->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, H, dev_H, U, dev_U, V, dev_V);
+      mesh->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, dev_H, dev_U, dev_V);
 
       MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
       ndispl[0]=0;
