@@ -119,7 +119,8 @@ public:
             gpu_time_calc_neighbors,
             gpu_time_rezone_all,
             gpu_time_count_BCs,
-            gpu_time_calc_spatial_coordinates;
+            gpu_time_calc_spatial_coordinates,
+            gpu_time_load_balance;
 
    int            mype,
                   numpe,
@@ -260,6 +261,7 @@ public:
    long get_gpu_time_calc_neighbors(void)           {return(gpu_time_calc_neighbors); };
    long get_gpu_time_rezone_all(void)               {return(gpu_time_rezone_all); };
    long get_gpu_time_calc_spatial_coordinates(void) {return(gpu_time_calc_spatial_coordinates); };
+   long get_gpu_time_load_balance(void)             {return(gpu_time_load_balance); };
 
    void write_grid(int ncycle);
    void calc_spatial_coordinates(int ibase);

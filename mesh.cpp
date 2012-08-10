@@ -1003,6 +1003,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
    gpu_time_rezone_all         = 0;
    gpu_time_count_BCs          = 0;
    gpu_time_calc_spatial_coordinates = 0;
+   gpu_time_load_balance       = 0;
 
    ndim   = ndim_in;
    levmx  = levmx_in;
@@ -5160,6 +5161,7 @@ void Mesh::do_load_balance(const size_t new_ncells, const int &ncells_global, ve
 #ifdef HAVE_MPI
 void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, const int &ncells_global, vector<real> &H, cl_mem &dev_H, vector<real> &U, cl_mem &dev_U, vector<real> &V, cl_mem &dev_V)
 {
+   cl_event do_load_balance_lower_event, do_load_balance_middle_event, do_load_balance_upper_event; 
 
    int ncells_old = new_ncells;
    ncells = ncells_global / numpe;
@@ -5325,7 +5327,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
          ezcl_set_kernel_arg(kernel_do_load_balance_lower, 13, sizeof(cl_mem),  (void *)&dev_celltype_lower);
          ezcl_set_kernel_arg(kernel_do_load_balance_lower, 14, sizeof(cl_int), (void *)&lower_block_size);
 
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance_lower,   1, NULL, &global_work_size, &local_work_size, NULL); // &do_load_balance_lower_event);
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance_lower,   1, NULL, &global_work_size, &local_work_size, &do_load_balance_lower_event);
 
          ezcl_device_memory_remove(dev_H_lower);
          ezcl_device_memory_remove(dev_U_lower);
@@ -5360,7 +5362,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
          ezcl_set_kernel_arg(kernel_do_load_balance_middle, 15, sizeof(cl_int), (void *)&middle_block_size);
          ezcl_set_kernel_arg(kernel_do_load_balance_middle, 16, sizeof(cl_int), (void *)&middle_block_start);
 
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance_middle,   1, NULL, &global_work_size, &local_work_size, NULL); // &do_load_balance_middle_event);
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance_middle,   1, NULL, &global_work_size, &local_work_size, &do_load_balance_middle_event);
 
       }
 
@@ -5387,7 +5389,7 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
          ezcl_set_kernel_arg(kernel_do_load_balance_upper, 15, sizeof(cl_int), (void *)&middle_block_size);
          ezcl_set_kernel_arg(kernel_do_load_balance_upper, 16, sizeof(cl_int), (void *)&upper_block_size);
 
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance_upper,   1, NULL, &global_work_size, &local_work_size, NULL); // &do_load_balance_middle_event);
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance_upper,   1, NULL, &global_work_size, &local_work_size, &do_load_balance_upper_event);
 
          ezcl_device_memory_remove(dev_H_upper);
          ezcl_device_memory_remove(dev_U_upper);
@@ -5436,8 +5438,18 @@ void Mesh::do_load_balance_local(cl_command_queue command_queue, const size_t ne
       ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int), &level[0],    NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells*sizeof(cl_int), &celltype[0], NULL);
-   }
 
+      if(lower_block_size > 0) {
+         gpu_time_load_balance += ezcl_timer_calc(&do_load_balance_lower_event, &do_load_balance_lower_event);
+      }
+      if(middle_block_size > 0) {
+         gpu_time_load_balance += ezcl_timer_calc(&do_load_balance_middle_event, &do_load_balance_middle_event);
+      }
+      if(upper_block_size > 0) {
+         gpu_time_load_balance += ezcl_timer_calc(&do_load_balance_upper_event, &do_load_balance_upper_event);
+      }
+
+   }
 }
 #endif
 #endif
