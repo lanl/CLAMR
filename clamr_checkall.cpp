@@ -793,29 +793,6 @@ extern "C" void do_calc(void)
       }
 #endif
 
-/*
-      if (do_gpu_calc) {
-         if (ncells != old_ncells){
-            H.resize(ncells);
-            U.resize(ncells);
-            V.resize(ncells);
-            level.resize(ncells);
-            i.resize(ncells);
-            j.resize(ncells);
-            celltype.resize(ncells);
-         }
-         if (ncells_global != old_ncells_global){
-            H_global.resize(ncells_global);
-            U_global.resize(ncells_global);
-            V_global.resize(ncells_global);
-            level_global.resize(ncells_global);
-            i_global.resize(ncells_global);
-            j_global.resize(ncells_global);
-            celltype_global.resize(ncells_global);
-         }
-      }
-*/
-
       ioffset.clear();
       ioffset_global.clear();
 

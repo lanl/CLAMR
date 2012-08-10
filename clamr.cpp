@@ -536,16 +536,6 @@ extern "C" void do_calc(void)
       }
       MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-      if (ncells != old_ncells){
-         H.resize(ncells);
-         U.resize(ncells);
-         V.resize(ncells);
-         level.resize(ncells);
-         i.resize(ncells);
-         j.resize(ncells);
-         celltype.resize(ncells);
-      }
-
       ioffset.clear();
       ioffset_global.clear();
 
