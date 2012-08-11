@@ -234,8 +234,8 @@ int main(int argc, char **argv) {
    vector<int>   &corners_i_local  = mesh_local->corners_i;
    vector<int>   &corners_j_local  = mesh_local->corners_j;
 
-   vector<int>   &nsizes     = mesh_global->nsizes;
-   vector<int>   &ndispl     = mesh_global->ndispl;
+   vector<int>   &nsizes     = mesh_local->nsizes;
+   vector<int>   &ndispl     = mesh_local->ndispl;
 
    vector<real>  &H_global = state_global->H;
    vector<real>  &U_global = state_global->U;
@@ -438,8 +438,8 @@ extern "C" void do_calc(void)
    int &numpe = mesh_local->numpe;
    int &noffset = mesh_local->noffset;
 
-   vector<int>   &nsizes   = mesh_global->nsizes;
-   vector<int>   &ndispl   = mesh_global->ndispl;
+   vector<int>   &nsizes   = mesh_local->nsizes;
+   vector<int>   &ndispl   = mesh_local->ndispl;
 
    vector<int>   &celltype_global = mesh_global->celltype;
    vector<int>   &i_global        = mesh_global->i;
@@ -518,7 +518,7 @@ extern "C" void do_calc(void)
    double deltaT = 0.0;
 
    //  Main loop.
-    for (int nburst = 0; nburst < outputInterval && ncycle <= niter; nburst++, ncycle++) {
+   for (int nburst = 0; nburst < outputInterval && ncycle <= niter; nburst++, ncycle++) {
 
       // To reduce drift in solution
       if (do_sync) {
@@ -753,10 +753,7 @@ extern "C" void do_calc(void)
          for (int ip=1; ip<numpe; ip++){
             ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
          }
-         noffset=0;
-         for (int ip=0; ip<mype; ip++){
-           noffset += nsizes[ip];
-         }
+         noffset=ndispl[mype];
 
          state_local->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
 
@@ -777,10 +774,7 @@ extern "C" void do_calc(void)
          for (int ip=1; ip<numpe; ip++){
             ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
          }
-         noffset=0;
-         for (int ip=0; ip<mype; ip++){
-           noffset += nsizes[ip];
-         }
+         noffset=ndispl[mype];
 
          state_local->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
 

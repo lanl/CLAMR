@@ -5162,30 +5162,29 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
    cl_event do_load_balance_lower_event, do_load_balance_middle_event, do_load_balance_upper_event; 
 
    int ncells_old = new_ncells;
-   ncells = ncells_global / numpe;
-   if(mype < (ncells_global%numpe)) ncells++;
 
-   //printf("%d: DEBUG DO_LOAD_BALANCE_LOCAL -- ncells_old %d ncells %d H.size %d\n",mype,ncells_old,ncells,H.size());
-
-   int do_load_balance = 0;
-   if(ncells_old != ncells) do_load_balance = 1;
+   int noffset_old = ndispl[mype];
 
    int do_load_balance_global = 0;
-   MPI_Allreduce(&do_load_balance, &do_load_balance_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-
-   int noffset_old = noffset;
+   int nsizes_old = 0;
+   for (int ip=0; ip<numpe; ip++){
+      nsizes_old = nsizes[ip];
+      nsizes[ip] = ncells_global/numpe;
+      if (ip < (ncells_global%numpe)) nsizes[ip]++;
+      if (nsizes_old != nsizes[ip]) do_load_balance_global = 1;
+   }
+   ndispl[0]=0;
+   for (int ip=1; ip<numpe; ip++){
+      ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+   }
+   ncells = nsizes[mype];
+   noffset=ndispl[mype];
 
    if(do_load_balance_global) {
 
       struct timeval tstart_cpu;
 
       cpu_timer_start(&tstart_cpu);
-
-      MPI_Scan(&ncells_old, &noffset_old, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      noffset_old -= ncells_old;
-
-      MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      noffset -= ncells;
 
       // Indices of blocks to be added to load balance
       int lower_block_start = noffset;

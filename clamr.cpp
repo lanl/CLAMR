@@ -199,8 +199,8 @@ int main(int argc, char **argv) {
    vector<int>   &corners_i_local  = mesh->corners_i;
    vector<int>   &corners_j_local  = mesh->corners_j;
 
-   vector<int>   &nsizes     = mesh_global->nsizes;
-   vector<int>   &ndispl     = mesh_global->ndispl;
+   vector<int>   &nsizes     = mesh->nsizes;
+   vector<int>   &ndispl     = mesh->ndispl;
 
    vector<real>  &H_global = state_global->H;
    vector<real>  &U_global = state_global->U;
@@ -408,8 +408,8 @@ extern "C" void do_calc(void)
    int &numpe = mesh->numpe;
    int &noffset = mesh->noffset;
 
-   vector<int>   &nsizes   = mesh_global->nsizes;
-   vector<int>   &ndispl   = mesh_global->ndispl;
+   vector<int>   &nsizes   = mesh->nsizes;
+   vector<int>   &ndispl   = mesh->ndispl;
 
    vector<int>   &celltype = mesh->celltype;
    vector<int>   &i        = mesh->i;
@@ -523,6 +523,13 @@ extern "C" void do_calc(void)
       MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
 
+      MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+      ndispl[0]=0;
+      for (int ip=1; ip<numpe; ip++){
+         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+      }
+      noffset=ndispl[mype];
+
       mesh->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, dev_H, dev_U, dev_V);
 
       MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
@@ -530,10 +537,8 @@ extern "C" void do_calc(void)
       for (int ip=1; ip<numpe; ip++){
          ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
       }
-      noffset=0;
-      for (int ip=0; ip<mype; ip++){
-        noffset += nsizes[ip];
-      }
+      noffset=ndispl[mype];
+
       MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
       ioffset.clear();

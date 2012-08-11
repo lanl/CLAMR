@@ -163,8 +163,8 @@ int main(int argc, char **argv) {
    size_t &ncells = mesh->ncells;
    int &noffset = mesh->noffset;
 
-   vector<int>   &nsizes     = mesh_global->nsizes;
-   vector<int>   &ndispl     = mesh_global->ndispl;
+   vector<int>   &nsizes     = mesh->nsizes;
+   vector<int>   &ndispl     = mesh->ndispl;
 
    vector<real>  &H_global = state_global->H;
    vector<real>  &U_global = state_global->U;
@@ -311,8 +311,8 @@ extern "C" void do_calc(void)
    int &numpe = mesh->numpe;
    int &noffset = mesh->noffset;
 
-   vector<int>   &nsizes   = mesh_global->nsizes;
-   vector<int>   &ndispl   = mesh_global->ndispl;
+   vector<int>   &nsizes   = mesh->nsizes;
+   vector<int>   &ndispl   = mesh->ndispl;
 
    vector<int>   &nlft     = mesh->nlft;
    vector<int>   &nrht     = mesh->nrht;
