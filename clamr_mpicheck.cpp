@@ -500,8 +500,6 @@ extern "C" void do_calc(void)
       MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       noffset -= ncells;
 
-      mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, H, U, V);
-
       MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 
       ndispl[0]=0;
@@ -522,6 +520,25 @@ extern "C" void do_calc(void)
 
          mesh->compare_indices_cpu_local_to_cpu_global(ncells_global, mesh_global, &nsizes[0], &ndispl[0], ncycle);
       } // do_comparison_calc
+
+      mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, H, U, V);
+
+      noffset=0;
+      MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      noffset -= ncells;
+
+      MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+
+      ndispl[0]=0;
+      for (int ip=1; ip<numpe; ip++){
+         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+      }
+
+      if (do_comparison_calc) {
+         // And compare H gathered to H_global, etc
+         state->compare_state_cpu_local_to_cpu_global(state_global, "rezone all", ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
+         mesh->compare_indices_cpu_local_to_cpu_global(ncells_global, mesh_global, &nsizes[0], &ndispl[0], ncycle);
+      }
 
       H_sum = -1.0;
 

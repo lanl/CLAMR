@@ -5036,7 +5036,6 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
    int noffset_old = noffset;
 
    if (do_load_balance_global) {
-      printf("DEBUG -- line 5039\n");
 
       MPI_Scan(&ncells_old, &noffset_old, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       noffset_old -= ncells_old;
@@ -5099,7 +5098,7 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
       vector<int> indexes(ncells);
 
       in = 0;
-      size_t ic = lower_block_size;
+      int ic = lower_block_size;
       if(ic > 0) {
          for(; (in < ic) && (in < ncells); in++) {
             H_temp[in] = H[ncells_old + in];
@@ -5217,7 +5216,7 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
       // Read current H, U, V, i, j, level, celltype values from GPU and write to CPU arrays
       // Update arrays with L7
        
-      cl_event start_read_event, end_read_event, start_write_event;
+      cl_event start_read_event, end_read_event;
 
       vector<real> H_tmp(ncells_old+indices_needed_count,0.0);
       vector<real> U_tmp(ncells_old+indices_needed_count,0.0);
@@ -5228,7 +5227,7 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
       vector<int> level_tmp(ncells_old+indices_needed_count,0);
       vector<int> celltype_tmp(ncells_old+indices_needed_count,0);
 
-      gpu_time_load_balance += cpu_timer_stop(tstart_cpu)*1.0e9;
+      gpu_time_load_balance += (long int)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
       ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells_old*sizeof(cl_real), &H_tmp[0], &start_read_event);
       ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells_old*sizeof(cl_real), &U_tmp[0], NULL);
@@ -5256,7 +5255,7 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
       // Allocate and set lower block on GPU
       cl_mem dev_H_lower, dev_U_lower, dev_V_lower, dev_i_lower, dev_j_lower, dev_level_lower, dev_celltype_lower;
 
-      gpu_time_load_balance += cpu_timer_stop(tstart_cpu)*1.0e9;
+      gpu_time_load_balance += (long int)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
       if(lower_block_size > 0) {
          cl_event start_write_event, end_write_event;
