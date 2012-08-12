@@ -5162,7 +5162,6 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
    cl_event do_load_balance_lower_event, do_load_balance_middle_event, do_load_balance_upper_event; 
 
    int ncells_old = new_ncells;
-
    int noffset_old = ndispl[mype];
 
    int do_load_balance_global = 0;
@@ -5173,24 +5172,25 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
       if (ip < (ncells_global%numpe)) nsizes[ip]++;
       if (nsizes_old != nsizes[ip]) do_load_balance_global = 1;
    }
-   ndispl[0]=0;
-   for (int ip=1; ip<numpe; ip++){
-      ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-   }
-   ncells = nsizes[mype];
-   noffset=ndispl[mype];
 
    if(do_load_balance_global) {
 
       struct timeval tstart_cpu;
-
       cpu_timer_start(&tstart_cpu);
+
+      ndispl[0]=0;
+      for (int ip=1; ip<numpe; ip++){
+         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+      }
+      ncells = nsizes[mype];
+      noffset=ndispl[mype];
 
       // Indices of blocks to be added to load balance
       int lower_block_start = noffset;
       int lower_block_end   = min(noffset_old-1, (int)(noffset+ncells-1));
       int upper_block_start = max((int)(noffset_old+ncells_old), noffset);
       int upper_block_end   = noffset+ncells-1;
+      //printf("%d: lbs %d lbe %d ubs %d ube %d\n",mype,lower_block_start-noffset_old,lower_block_end-noffset_old,upper_block_start-noffset_old,upper_block_end-noffset_old);
 
       size_t lower_block_size = max(lower_block_end-lower_block_start+1,0);
       if(lower_block_end < 0) lower_block_size = 0; // Handles segfault at start of array
@@ -5204,9 +5204,11 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
       vector<int> indices_needed(indices_needed_count);
       for (int iz = lower_block_start; iz <= lower_block_end; iz++, in++){
          indices_needed[in]=iz;
+         //printf("%d: DEBUG lower_block in %d ind needed %d\n",mype,in,indices_needed[in]);
       }
       for (int iz = upper_block_start; iz <= upper_block_end; iz++, in++){
          indices_needed[in]=iz;
+         //printf("%d: DEBUG upper_block in %d ind needed %d\n",mype,in,indices_needed[in]);
       }
 
       int load_balance_handle = 0;
@@ -5268,14 +5270,14 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
          dev_level_lower    = ezcl_malloc(NULL, const_cast<char *>("dev_level_lower"),    &lower_block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          dev_celltype_lower = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_lower"), &lower_block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-         ezcl_enqueue_write_buffer(command_queue, dev_H_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_real), (void*)&H_tmp[ncells_old], &start_write_event);
-         ezcl_enqueue_write_buffer(command_queue, dev_U_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_real), (void*)&U_tmp[ncells_old], NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_real), (void*)&V_tmp[ncells_old], NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_H_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_real), &H_tmp[ncells_old], &start_write_event);
+         ezcl_enqueue_write_buffer(command_queue, dev_U_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_real), &U_tmp[ncells_old], NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_V_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_real), &V_tmp[ncells_old], NULL);
 
-         ezcl_enqueue_write_buffer(command_queue, dev_i_lower,        CL_FALSE, 0, lower_block_size*sizeof(cl_int), (void*)&i_tmp[ncells_old],        NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_j_lower,        CL_FALSE, 0, lower_block_size*sizeof(cl_int), (void*)&j_tmp[ncells_old],        NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_level_lower,    CL_FALSE, 0, lower_block_size*sizeof(cl_int), (void*)&level_tmp[ncells_old],    NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_celltype_lower, CL_TRUE,  0, lower_block_size*sizeof(cl_int), (void*)&celltype_tmp[ncells_old], &end_write_event);
+         ezcl_enqueue_write_buffer(command_queue, dev_i_lower,        CL_FALSE, 0, lower_block_size*sizeof(cl_int), &i_tmp[ncells_old],        NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_j_lower,        CL_FALSE, 0, lower_block_size*sizeof(cl_int), &j_tmp[ncells_old],        NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_level_lower,    CL_FALSE, 0, lower_block_size*sizeof(cl_int), &level_tmp[ncells_old],    NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_celltype_lower, CL_TRUE,  0, lower_block_size*sizeof(cl_int), &celltype_tmp[ncells_old], &end_write_event);
 
          gpu_time_load_balance += ezcl_timer_calc(&start_write_event, &end_write_event);
       }
@@ -5294,14 +5296,14 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
          dev_level_upper    = ezcl_malloc(NULL, const_cast<char *>("dev_level_upper"),    &upper_block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          dev_celltype_upper = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_upper"), &upper_block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-         ezcl_enqueue_write_buffer(command_queue, dev_H_upper, CL_FALSE, 0, upper_block_size*sizeof(cl_real), (void*)&H_tmp[ncells_old+lower_block_size], &start_write_event); 
-         ezcl_enqueue_write_buffer(command_queue, dev_U_upper, CL_FALSE, 0, upper_block_size*sizeof(cl_real), (void*)&U_tmp[ncells_old+lower_block_size], NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V_upper, CL_TRUE,  0, upper_block_size*sizeof(cl_real), (void*)&V_tmp[ncells_old+lower_block_size], NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_H_upper, CL_FALSE, 0, upper_block_size*sizeof(cl_real), &H_tmp[ncells_old+lower_block_size], &start_write_event); 
+         ezcl_enqueue_write_buffer(command_queue, dev_U_upper, CL_FALSE, 0, upper_block_size*sizeof(cl_real), &U_tmp[ncells_old+lower_block_size], NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_V_upper, CL_TRUE,  0, upper_block_size*sizeof(cl_real), &V_tmp[ncells_old+lower_block_size], NULL);
 
-         ezcl_enqueue_write_buffer(command_queue, dev_i_upper,        CL_FALSE, 0, upper_block_size*sizeof(cl_int), (void*)&i_tmp[ncells_old+lower_block_size],        NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_j_upper,        CL_FALSE, 0, upper_block_size*sizeof(cl_int), (void*)&j_tmp[ncells_old+lower_block_size],        NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_level_upper,    CL_FALSE, 0, upper_block_size*sizeof(cl_int), (void*)&level_tmp[ncells_old+lower_block_size],    NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_celltype_upper, CL_TRUE,  0, upper_block_size*sizeof(cl_int), (void*)&celltype_tmp[ncells_old+lower_block_size], &end_write_event);
+         ezcl_enqueue_write_buffer(command_queue, dev_i_upper,        CL_FALSE, 0, upper_block_size*sizeof(cl_int), &i_tmp[ncells_old+lower_block_size],        NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_j_upper,        CL_FALSE, 0, upper_block_size*sizeof(cl_int), &j_tmp[ncells_old+lower_block_size],        NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_level_upper,    CL_FALSE, 0, upper_block_size*sizeof(cl_int), &level_tmp[ncells_old+lower_block_size],    NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_celltype_upper, CL_TRUE,  0, upper_block_size*sizeof(cl_int), &celltype_tmp[ncells_old+lower_block_size], &end_write_event);
       }
 
       size_t local_work_size = 128;
@@ -5322,21 +5324,21 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
 
          size_t global_work_size = ((lower_block_size + local_work_size - 1) / local_work_size) * local_work_size;
 
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 0,  sizeof(cl_mem),  (void *)&dev_H_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 1,  sizeof(cl_mem),  (void *)&dev_U_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 2,  sizeof(cl_mem),  (void *)&dev_V_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 3,  sizeof(cl_mem),  (void *)&dev_i_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 4,  sizeof(cl_mem),  (void *)&dev_j_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 5,  sizeof(cl_mem),  (void *)&dev_level_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 6,  sizeof(cl_mem),  (void *)&dev_celltype_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 7,  sizeof(cl_mem),  (void *)&dev_H_lower);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 8,  sizeof(cl_mem),  (void *)&dev_U_lower);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 9,  sizeof(cl_mem),  (void *)&dev_V_lower);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 10, sizeof(cl_mem),  (void *)&dev_i_lower);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 11, sizeof(cl_mem),  (void *)&dev_j_lower);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 12, sizeof(cl_mem),  (void *)&dev_level_lower);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 13, sizeof(cl_mem),  (void *)&dev_celltype_lower);
-         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 14, sizeof(cl_int), (void *)&lower_block_size);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 0,  sizeof(cl_mem), &dev_H_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 1,  sizeof(cl_mem), &dev_U_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 2,  sizeof(cl_mem), &dev_V_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 3,  sizeof(cl_mem), &dev_i_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 4,  sizeof(cl_mem), &dev_j_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 5,  sizeof(cl_mem), &dev_level_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 6,  sizeof(cl_mem), &dev_celltype_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 7,  sizeof(cl_mem), &dev_H_lower);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 8,  sizeof(cl_mem), &dev_U_lower);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 9,  sizeof(cl_mem), &dev_V_lower);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 10, sizeof(cl_mem), &dev_i_lower);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 11, sizeof(cl_mem), &dev_j_lower);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 12, sizeof(cl_mem), &dev_level_lower);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 13, sizeof(cl_mem), &dev_celltype_lower);
+         ezcl_set_kernel_arg(kernel_do_load_balance_lower, 14, sizeof(cl_int), &lower_block_size);
 
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance_lower,   1, NULL, &global_work_size, &local_work_size, &do_load_balance_lower_event);
 
@@ -5355,23 +5357,23 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
 
          size_t global_work_size = ((middle_block_size + local_work_size - 1) / local_work_size) * local_work_size;
 
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 0,  sizeof(cl_mem), (void *)&dev_H_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 1,  sizeof(cl_mem), (void *)&dev_U_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 2,  sizeof(cl_mem), (void *)&dev_V_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 3,  sizeof(cl_mem), (void *)&dev_i_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 4,  sizeof(cl_mem), (void *)&dev_j_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 5,  sizeof(cl_mem), (void *)&dev_level_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 6,  sizeof(cl_mem), (void *)&dev_celltype_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 7,  sizeof(cl_mem), (void *)&dev_H);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 8,  sizeof(cl_mem), (void *)&dev_U);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 9,  sizeof(cl_mem), (void *)&dev_V);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 10, sizeof(cl_mem), (void *)&dev_i);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 11, sizeof(cl_mem), (void *)&dev_j);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 12, sizeof(cl_mem), (void *)&dev_level);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 13, sizeof(cl_mem), (void *)&dev_celltype);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 14, sizeof(cl_int), (void *)&lower_block_size);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 15, sizeof(cl_int), (void *)&middle_block_size);
-         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 16, sizeof(cl_int), (void *)&middle_block_start);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 0,  sizeof(cl_mem), &dev_H_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 1,  sizeof(cl_mem), &dev_U_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 2,  sizeof(cl_mem), &dev_V_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 3,  sizeof(cl_mem), &dev_i_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 4,  sizeof(cl_mem), &dev_j_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 5,  sizeof(cl_mem), &dev_level_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 6,  sizeof(cl_mem), &dev_celltype_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 7,  sizeof(cl_mem), &dev_H);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 8,  sizeof(cl_mem), &dev_U);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 9,  sizeof(cl_mem), &dev_V);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 10, sizeof(cl_mem), &dev_i);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 11, sizeof(cl_mem), &dev_j);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 12, sizeof(cl_mem), &dev_level);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 13, sizeof(cl_mem), &dev_celltype);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 14, sizeof(cl_int), &lower_block_size);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 15, sizeof(cl_int), &middle_block_size);
+         ezcl_set_kernel_arg(kernel_do_load_balance_middle, 16, sizeof(cl_int), &middle_block_start);
 
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance_middle,   1, NULL, &global_work_size, &local_work_size, &do_load_balance_middle_event);
 
@@ -5382,23 +5384,23 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
 
          size_t global_work_size = ((upper_block_size + local_work_size - 1) / local_work_size) * local_work_size;
 
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 0,  sizeof(cl_mem), (void *)&dev_H_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 1,  sizeof(cl_mem), (void *)&dev_U_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 2,  sizeof(cl_mem), (void *)&dev_V_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 3,  sizeof(cl_mem), (void *)&dev_i_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 4,  sizeof(cl_mem), (void *)&dev_j_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 5,  sizeof(cl_mem), (void *)&dev_level_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 6,  sizeof(cl_mem), (void *)&dev_celltype_new);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 7,  sizeof(cl_mem), (void *)&dev_H_upper);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 8,  sizeof(cl_mem), (void *)&dev_U_upper);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 9,  sizeof(cl_mem), (void *)&dev_V_upper);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 10, sizeof(cl_mem), (void *)&dev_i_upper);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 11, sizeof(cl_mem), (void *)&dev_j_upper);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 12, sizeof(cl_mem), (void *)&dev_level_upper);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 13, sizeof(cl_mem), (void *)&dev_celltype_upper);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 14, sizeof(cl_int), (void *)&lower_block_size);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 15, sizeof(cl_int), (void *)&middle_block_size);
-         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 16, sizeof(cl_int), (void *)&upper_block_size);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 0,  sizeof(cl_mem), &dev_H_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 1,  sizeof(cl_mem), &dev_U_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 2,  sizeof(cl_mem), &dev_V_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 3,  sizeof(cl_mem), &dev_i_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 4,  sizeof(cl_mem), &dev_j_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 5,  sizeof(cl_mem), &dev_level_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 6,  sizeof(cl_mem), &dev_celltype_new);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 7,  sizeof(cl_mem), &dev_H_upper);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 8,  sizeof(cl_mem), &dev_U_upper);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 9,  sizeof(cl_mem), &dev_V_upper);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 10, sizeof(cl_mem), &dev_i_upper);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 11, sizeof(cl_mem), &dev_j_upper);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 12, sizeof(cl_mem), &dev_level_upper);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 13, sizeof(cl_mem), &dev_celltype_upper);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 14, sizeof(cl_int), &lower_block_size);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 15, sizeof(cl_int), &middle_block_size);
+         ezcl_set_kernel_arg(kernel_do_load_balance_upper, 16, sizeof(cl_int), &upper_block_size);
 
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance_upper,   1, NULL, &global_work_size, &local_work_size, &do_load_balance_upper_event);
 
