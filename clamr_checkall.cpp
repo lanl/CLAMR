@@ -760,22 +760,23 @@ extern "C" void do_calc(void)
          mesh_local->compare_indices_all_to_gpu_local(command_queue, mesh_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);
       } // do_comparison_calc
 
+      vector<int> nsizes_save(numpe);
+      vector<int> ndispl_save(numpe);
+      nsizes_save = nsizes;
+      ndispl_save = ndispl;
+
       if (do_cpu_calc) {
          mesh_local->do_load_balance_local(new_ncells, ncells_global, H, U, V);
       }
+
+      nsizes = nsizes_save;
+      ndispl = ndispl_save;
 
       if (do_gpu_calc) {
          mesh_local->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, dev_H, dev_U, dev_V);
       }
 
       if (do_comparison_calc) {
-         MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-         ndispl[0]=0;
-         for (int ip=1; ip<numpe; ip++){
-            ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-         }
-         noffset=ndispl[mype];
-
          state_local->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
 
          mesh_local->compare_indices_all_to_gpu_local(command_queue, mesh_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);

@@ -411,11 +411,6 @@ extern "C" void do_calc(void)
    vector<int>   &nsizes   = mesh->nsizes;
    vector<int>   &ndispl   = mesh->ndispl;
 
-   vector<int>   &celltype = mesh->celltype;
-   vector<int>   &i        = mesh->i;
-   vector<int>   &j        = mesh->j;
-   vector<int>   &level    = mesh->level;
-
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh_global->ncells;
    size_t &ncells           = mesh->ncells;
@@ -424,8 +419,6 @@ extern "C" void do_calc(void)
    vector<real>  &H_global = state_global->H;
 
    vector<real>  &H = state->H;
-   vector<real>  &U = state->U;
-   vector<real>  &V = state->V;
 
    vector<real>  &x  = mesh->x;
    vector<real>  &dx = mesh->dx;
@@ -531,15 +524,6 @@ extern "C" void do_calc(void)
       noffset=ndispl[mype];
 
       mesh->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, dev_H, dev_U, dev_V);
-
-      MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-      ndispl[0]=0;
-      for (int ip=1; ip<numpe; ip++){
-         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-      }
-      noffset=ndispl[mype];
-
-      MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
       ioffset.clear();
       ioffset_global.clear();
