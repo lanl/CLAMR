@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
    vector<real> &dy = mesh->dy;
 
    ncells = ncells_global/numpe;
-   if (mype < ncells_global%numpe) ncells++;
+   if (mype < (int)(ncells_global%numpe)) ncells++;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);
@@ -308,8 +308,6 @@ extern "C" void do_calc(void)
 
    //  Initialize state variables for GPU calculation.
    int &mype = mesh->mype;
-   int &numpe = mesh->numpe;
-   int &noffset = mesh->noffset;
 
    vector<int>   &nsizes   = mesh->nsizes;
    vector<int>   &ndispl   = mesh->ndispl;
@@ -431,18 +429,7 @@ extern "C" void do_calc(void)
       int mesh_local_ncells_global;
       MPI_Allreduce(&ncells, &mesh_local_ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-      noffset=0;
-      MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      noffset -= ncells;
-
       mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, H, U, V);
-
-      MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-
-      ndispl[0]=0;
-      for (int ip=1; ip<numpe; ip++){
-         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-      }
 
       H_sum = -1.0;
 

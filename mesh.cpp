@@ -5009,39 +5009,29 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
 #ifdef HAVE_MPI
 void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_global, vector<real> &H, vector<real> &U, vector<real> &V)
 {
-   // XXX Make sure this remains in do_calc XXX
-   // MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   // noffset = 0;
-   // MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   // noffset -= ncells;
-
-   // vector<real> &H = state->H;
-   // vector<real> &U = state->U;
-   // vector<real> &V = state->V;
-
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    int ncells_old = new_ncells;
-
-   ncells = ncells_global / numpe;
-   if (mype < (ncells_global%numpe)) ncells++;
-
-   int do_load_balance = 0;
-   if (ncells_old != ncells) do_load_balance = 1;
+   int noffset_old = ndispl[mype];
 
    int do_load_balance_global = 0;
-   MPI_Allreduce(&do_load_balance, &do_load_balance_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-
-   int noffset_old = noffset;
+   int nsizes_old = 0;
+   for (int ip=0; ip<numpe; ip++){
+      nsizes_old = nsizes[ip];
+      nsizes[ip] = ncells_global/numpe;
+      if (ip < (ncells_global%numpe)) nsizes[ip]++;
+      if (nsizes_old != nsizes[ip]) do_load_balance_global = 1;
+   }
 
    if (do_load_balance_global) {
 
-      MPI_Scan(&ncells_old, &noffset_old, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      noffset_old -= ncells_old;
-
-      MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      noffset -= ncells;
+      ndispl[0]=0;
+      for (int ip=1; ip<numpe; ip++){
+         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+      }
+      ncells = nsizes[mype];
+      noffset=ndispl[mype];
 
       // Indices of blocks to be added to load balance
       int lower_block_start = noffset;
@@ -5054,7 +5044,7 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
       int upper_block_size = max(upper_block_end-upper_block_start+1,0);
       int indices_needed_count = lower_block_size + upper_block_size;
 
-      size_t in = 0;
+      int in = 0;
  
       vector<int> indices_needed(indices_needed_count);
       for (int iz = lower_block_start; iz <= lower_block_end; iz++, in++){
@@ -5100,7 +5090,7 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
       in = 0;
       int ic = lower_block_size;
       if(ic > 0) {
-         for(; (in < ic) && (in < ncells); in++) {
+         for(; (in < ic) && (in < (int)ncells); in++) {
             H_temp[in] = H[ncells_old + in];
             U_temp[in] = U[ncells_old + in];
             V_temp[in] = V[ncells_old + in];
@@ -5114,7 +5104,7 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
 
       ic = noffset - noffset_old;
       if(ic < 0) ic = 0;
-      for(; (ic < ncells_old) && (in < ncells); ic++, in++) {
+      for(; (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
          H_temp[in] = H[ic];
          U_temp[in] = U[ic];
          V_temp[in] = V[ic];
@@ -5128,7 +5118,7 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
       ic = upper_block_size;
       if(ic > 0) {
          ic = ncells_old + lower_block_size;
-         for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < ncells); k++, in++) {
+         for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
             H_temp[in] = H[ic+k];
             U_temp[in] = U[ic+k];
             V_temp[in] = V[ic+k];

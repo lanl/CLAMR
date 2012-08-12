@@ -214,10 +214,7 @@ int main(int argc, char **argv) {
    for (int ip=1; ip<numpe; ip++){
       ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
    }
-   noffset=0;
-   for (int ip=0; ip<mype; ip++){
-     noffset += nsizes[ip];
-   }
+   noffset=ndispl[mype];
 
    // Distribute level, celltype, H, U, V
 
@@ -317,8 +314,6 @@ extern "C" void do_calc(void)
 
    //  Initialize state variables for GPU calculation.
    int &mype = mesh->mype;
-   int &numpe = mesh->numpe;
-   int &noffset = mesh->noffset;
 
    vector<int>   &nsizes   = mesh->nsizes;
    vector<int>   &ndispl   = mesh->ndispl;
@@ -496,17 +491,6 @@ extern "C" void do_calc(void)
       int mesh_local_ncells_global;
       MPI_Allreduce(&ncells, &mesh_local_ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-      noffset=0;
-      MPI_Scan(&ncells, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      noffset -= ncells;
-
-      MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-
-      ndispl[0]=0;
-      for (int ip=1; ip<numpe; ip++){
-         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-      }
-
       if (do_comparison_calc) {
          int add_ncells_global = new_ncells_global - old_ncells_global;
          //printf("%d: DEBUG add %d new %d old %d\n",mype,add_ncells,new_ncells,old_ncells);
@@ -522,13 +506,6 @@ extern "C" void do_calc(void)
       } // do_comparison_calc
 
       mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, H, U, V);
-
-      MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-
-      ndispl[0]=0;
-      for (int ip=1; ip<numpe; ip++){
-         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-      }
 
       if (do_comparison_calc) {
          // And compare H gathered to H_global, etc

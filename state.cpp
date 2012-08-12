@@ -857,6 +857,18 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 
    }
 
+#ifdef HAVE_MPI
+   if (mesh->parallel) {
+      MPI_Allgather(&new_ncells, 1, MPI_INT, &mesh->nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+
+      mesh->ndispl[0]=0;
+      for (int ip=1; ip<mesh->numpe; ip++){
+         mesh->ndispl[ip] = mesh->ndispl[ip-1] + mesh->nsizes[ip-1];
+      }
+      mesh->noffset=mesh->ndispl[mesh->mype];
+   }
+#endif
+
    cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
 }
 
@@ -1150,6 +1162,18 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    ezcl_device_memory_remove(dev_H_new);
    ezcl_device_memory_remove(dev_U_new);
    ezcl_device_memory_remove(dev_V_new);
+
+#ifdef HAVE_MPI
+   if (mesh->parallel) {
+      MPI_Allgather(&new_ncells, 1, MPI_INT, &mesh->nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+
+      mesh->ndispl[0]=0;
+      for (int ip=1; ip<mesh->numpe; ip++){
+         mesh->ndispl[ip] = mesh->ndispl[ip-1] + mesh->nsizes[ip-1];
+      }
+      mesh->noffset=mesh->ndispl[mesh->mype];
+   }
+#endif
 
    gpu_time_rezone_all        += ezcl_timer_calc(&rezone_all_event,        &rezone_all_event);
 }
@@ -4146,7 +4170,7 @@ void State::print_object_info(void)
    elsize = ezcl_get_device_mem_elsize(dev_ioffset);
    printf("dev_ioffset ptr : %p nelements %d elsize %d\n",dev_ioffset,num_elements,elsize);
 #endif
-   printf("vector H    ptr : %p nelements %d elsize %d\n",&H[0],H.size(),sizeof(H[0]));
-   printf("vector U    ptr : %p nelements %d elsize %d\n",&U[0],U.size(),sizeof(U[0]));
-   printf("vector V    ptr : %p nelements %d elsize %d\n",&V[0],V.size(),sizeof(V[0]));
+   printf("vector H    ptr : %p nelements %ld elsize %ld\n",&H[0],H.size(),sizeof(H[0]));
+   printf("vector U    ptr : %p nelements %ld elsize %ld\n",&U[0],U.size(),sizeof(U[0]));
+   printf("vector V    ptr : %p nelements %ld elsize %ld\n",&V[0],V.size(),sizeof(V[0]));
 } 
