@@ -5190,15 +5190,22 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
       size_t middle_block_size = ncells - lower_block_size - upper_block_size;
       int middle_block_start = max(noffset - noffset_old, 0);
 
+      int lower_segment_size = noffset-noffset_old;
+      int lower_segment_start = noffset-noffset;
+      int do_whole_segment = 0;
+      if (lower_segment_size > ncells_old) do_whole_segment = 1;
+
+      int upper_segment_size = ( (noffset_old+ncells_old) - (noffset+ncells) );
+      int upper_segment_start = (noffset_old+ncells_old) - upper_segment_size - noffset_old;
+      if (upper_segment_size > ncells_old) do_whole_segment=1;
+
       int in = 0;
       vector<int> indices_needed(indices_needed_count);
       for (int iz = lower_block_start; iz <= lower_block_end; iz++, in++){
          indices_needed[in]=iz;
-         //printf("%d: DEBUG lower_block in %d ind needed %d\n",mype,in,indices_needed[in]);
       }
       for (int iz = upper_block_start; iz <= upper_block_end; iz++, in++){
          indices_needed[in]=iz;
-         //printf("%d: DEBUG upper_block in %d ind needed %d\n",mype,in,indices_needed[in]);
       }
 
       int load_balance_handle = 0;
@@ -5220,14 +5227,42 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
 
       gpu_time_load_balance += (long int)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
-      ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells_old*sizeof(cl_real), &H_tmp[0], &start_read_event);
-      ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells_old*sizeof(cl_real), &U_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_FALSE, 0, ncells_old*sizeof(cl_real), &V_tmp[0], NULL);
+      if (do_whole_segment) {
+         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells_old*sizeof(cl_real), &H_tmp[0], &start_read_event);
+         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells_old*sizeof(cl_real), &U_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_FALSE, 0, ncells_old*sizeof(cl_real), &V_tmp[0], NULL);
 
-      ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells_old*sizeof(cl_int), &i_tmp[0],        NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells_old*sizeof(cl_int), &j_tmp[0],        NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells_old*sizeof(cl_int), &level_tmp[0],    NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells_old*sizeof(cl_int), &celltype_tmp[0], &end_read_event);
+         ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells_old*sizeof(cl_int), &i_tmp[0],        NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells_old*sizeof(cl_int), &j_tmp[0],        NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells_old*sizeof(cl_int), &level_tmp[0],    NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells_old*sizeof(cl_int), &celltype_tmp[0], &end_read_event);
+
+         gpu_time_load_balance += ezcl_timer_calc(&start_read_event, &end_read_event);
+      } else {
+         if (lower_segment_size > 0) {
+            ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, lower_segment_size*sizeof(cl_real), &H_tmp[0], &start_read_event);
+            ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, lower_segment_size*sizeof(cl_real), &U_tmp[0], NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_V, CL_FALSE, 0, lower_segment_size*sizeof(cl_real), &V_tmp[0], NULL);
+
+            ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, lower_segment_size*sizeof(cl_int), &i_tmp[0],        NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, lower_segment_size*sizeof(cl_int), &j_tmp[0],        NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, lower_segment_size*sizeof(cl_int), &level_tmp[0],    NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, lower_segment_size*sizeof(cl_int), &celltype_tmp[0], &end_read_event);
+
+            gpu_time_load_balance += ezcl_timer_calc(&start_read_event, &end_read_event);
+         }
+         if (upper_segment_size > 0) {
+            ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, upper_segment_start*sizeof(cl_real), upper_segment_size*sizeof(cl_real), &H_tmp[upper_segment_start], &start_read_event);
+            ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, upper_segment_start*sizeof(cl_real), upper_segment_size*sizeof(cl_real), &U_tmp[upper_segment_start], NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_V, CL_FALSE, upper_segment_start*sizeof(cl_real), upper_segment_size*sizeof(cl_real), &V_tmp[upper_segment_start], NULL);
+
+            ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, upper_segment_start*sizeof(cl_int), upper_segment_size*sizeof(cl_int), &i_tmp[upper_segment_start],        NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, upper_segment_start*sizeof(cl_int), upper_segment_size*sizeof(cl_int), &j_tmp[upper_segment_start],        NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, upper_segment_start*sizeof(cl_int), upper_segment_size*sizeof(cl_int), &level_tmp[upper_segment_start],    NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  upper_segment_start*sizeof(cl_int), upper_segment_size*sizeof(cl_int), &celltype_tmp[upper_segment_start], &end_read_event);
+            gpu_time_load_balance += ezcl_timer_calc(&start_read_event, &end_read_event);
+         }
+      }
 
       cpu_timer_start(&tstart_cpu);
 
@@ -5423,7 +5458,7 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
       ezcl_device_memory_remove(dev_level_new);
       ezcl_device_memory_remove(dev_celltype_new);
 
-      gpu_time_load_balance += ezcl_timer_calc(&start_read_event, &end_read_event);
+      //gpu_time_load_balance += ezcl_timer_calc(&start_read_event, &end_read_event);
 
       if(lower_block_size > 0) {
          gpu_time_load_balance += ezcl_timer_calc(&do_load_balance_lower_event, &do_load_balance_lower_event);
