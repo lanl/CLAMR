@@ -708,10 +708,14 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
    ezcl_enqueue_read_buffer(command_queue, dev_deltaT, CL_TRUE,  0, sizeof(cl_real), &deltaT_local, &start_read_event);
    deltaT = deltaT_local;
 
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
    globalmindeltaT = deltaT;
 #ifdef HAVE_MPI
    if (parallel) MPI_Allreduce(&deltaT, &globalmindeltaT, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 #endif
+   gpu_time_set_timestep += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
 
    ezcl_device_memory_remove(dev_redscratch);
 
@@ -2501,11 +2505,17 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], &end_read_event);
    gpu_time_finite_difference += ezcl_timer_calc(&start_read_event, &end_read_event);
 
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
 #ifdef HAVE_MPI
    L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
    L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
    L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
 #endif
+
+   gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
+   
    //fprintf(mesh->fp,"Line %d\n",__LINE__);
    //for (int ic=0; ic<mesh->ncells_ghost; ic++){
    //   if (mesh->i_local[ic] < 63 || mesh->i_local[ic] > 66 || mesh->j_local[ic] < 63 || mesh->j_local[ic] > 66) continue;
@@ -3676,6 +3686,7 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
    cl_event mass_sum_stage1_event;
    cl_event mass_sum_stage2_event;
    cl_event start_read_event;
+   struct timeval tstart_cpu;
 
    size_t &ncells       = mesh->ncells;
    cl_mem &dev_levdx    = mesh->dev_levdx;
@@ -3744,6 +3755,9 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
       real2 mass_sum;
 
       ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real2), &mass_sum, &start_read_event);
+
+      cpu_timer_start(&tstart_cpu);
+
       local.sum = mass_sum.s0;
       local.correction = mass_sum.s1;
       global.sum = local.sum;
@@ -3752,6 +3766,8 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
       MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
 #endif
       total_sum = global.sum + global.correction;
+
+      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
    } else {
       dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_one"), &one,    sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
@@ -3799,12 +3815,17 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
       real mass_sum;
 
       ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real), &mass_sum, &start_read_event);
+
+      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
+
       local_sum = mass_sum;
       global_sum = local_sum;
 #ifdef HAVE_MPI
       MPI_Allreduce(&local_sum, &global_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #endif
       total_sum = global_sum;
+
+      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
    }
 
    ezcl_device_memory_remove(dev_redscratch);
@@ -3816,6 +3837,7 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
    }
    //gpu_time_read          += ezcl_timer_calc(&start_read_event,      &start_read_event);
    gpu_time_mass_sum      += ezcl_timer_calc(&start_read_event,      &start_read_event);
+
 
 
    return(total_sum);

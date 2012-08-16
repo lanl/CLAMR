@@ -144,6 +144,7 @@ static cl_command_queue    command_queue           = NULL;
 static int compute_device = 0;
 
 static double  H_sum_initial = 0.0;
+static long gpu_time_graphics = 0;
 
 int main(int argc, char **argv) {
    int ierr;
@@ -397,6 +398,7 @@ extern "C" void do_calc(void)
 {
    double sigma = 0.95; 
    int icount=0;
+   static cl_event start_read_event, end_read_event;
 
    if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
       printf("Can't do this problem with GPU\n");
@@ -406,7 +408,6 @@ extern "C" void do_calc(void)
    //  Initialize state variables for GPU calculation.
    int &mype = mesh->mype;
    int &numpe = mesh->numpe;
-   int &noffset = mesh->noffset;
 
    vector<int>   &nsizes   = mesh->nsizes;
    vector<int>   &ndispl   = mesh->ndispl;
@@ -557,11 +558,16 @@ extern "C" void do_calc(void)
    dy.resize(ncells);
    H.resize(max(ncells,ncells_ghost));
 
-   ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x[0],  &start_read_event);
    ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y[0],  NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dy[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_H,  CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_H,  CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H[0],  &end_read_event);
+
+   gpu_time_graphics += ezcl_timer_calc(&start_read_event, &end_read_event);
+
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
 
    ezcl_device_memory_remove(dev_x);
    ezcl_device_memory_remove(dev_dx);
@@ -587,6 +593,8 @@ extern "C" void do_calc(void)
    set_cell_proc(&mesh_global->proc[0]);
    set_circle_radius(circle_radius);
    draw_scene();
+
+   gpu_time_graphics += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
 #endif
 
    //  Output final results and timing information.
@@ -600,6 +608,7 @@ extern "C" void do_calc(void)
       ezcl_finalize();
       
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
+      state->parallel_timer_output(numpe,mype,"GPU:  graphics                 time was",(double) gpu_time_graphics * 1.0e-9 );
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();

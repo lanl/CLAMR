@@ -191,8 +191,8 @@ public:
 #endif
    void print_object_info(void);
 
-private:
    void parallel_timer_output(int numpe, int mype, const char *string, double local_time);
+private:
 
 };
 
