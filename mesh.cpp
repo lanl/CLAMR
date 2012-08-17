@@ -4394,6 +4394,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       fprintf(fp,"\n");
    }
    
+   cpu_timer_start(&tstart_cpu);
+
    vector<int> offtile_list;
 
    int start_idx = noffset;
@@ -4798,6 +4800,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       //for (int ic=0; ic<ncells_ghost; ic++){
       //   fprintf(fp,"%d: test after update ic %d = %d\n",mype,ic,itest[ic]);
       //}
+
+   gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 
    if (numpe > 1) {
       cl_mem dev_celltype_old = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
