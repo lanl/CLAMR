@@ -106,14 +106,14 @@ static State *state;          //  Object containing state information correspond
 
 //  Set up timing information.
 static struct timeval tstart;
-static cl_event start_write_event, end_write_event,
-                start_read_event,  end_read_event;
+static cl_event start_read_event,  end_read_event;
 
 static cl_context          context                 = NULL;
 static cl_command_queue    command_queue           = NULL;
 static int compute_device = 0;
 
 static double H_sum_initial = 0.0;
+static long gpu_time_graphics = 0;
 
 int main(int argc, char **argv) {
    int ierr;
@@ -247,15 +247,12 @@ static int     ncycle  = 0;
 static double  simTime = 0.0;
 
 extern "C" void do_calc(void)
-{  double g     = 9.80;
+{
    double sigma = 0.95;
-   int icount, jcount;
 
    //  Initialize state variables for GPU calculation.
 
    size_t &ncells    = mesh->ncells;
-
-   cl_mem &dev_mpot     = state->dev_mpot;
 
    double deltaT = 0.0;
 
@@ -316,7 +313,10 @@ extern "C" void do_calc(void)
    ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->dy[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&state->H[0],  &end_read_event);
 
-   state->gpu_time_read += ezcl_timer_calc(&start_read_event, &end_read_event);
+   gpu_time_graphics += ezcl_timer_calc(&start_read_event, &end_read_event);
+
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
 
    ezcl_device_memory_remove(dev_x);
    ezcl_device_memory_remove(dev_dx);
@@ -330,6 +330,8 @@ extern "C" void do_calc(void)
    set_cell_proc(NULL);
    set_circle_radius(circle_radius);
    draw_scene();
+
+   gpu_time_graphics += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
 #endif
 
    //  Output final results and timing information.
@@ -340,6 +342,7 @@ extern "C" void do_calc(void)
       double elapsed_time = cpu_timer_stop(tstart);
       
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
+      printf("GPU:  graphics                 time was\t%8.4f\ts\n", (double)gpu_time_graphics * 1.0e-9);
 
       mesh->print_calc_neighbor_type();
       mesh->print_partition_type();

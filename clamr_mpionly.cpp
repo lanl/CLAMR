@@ -131,6 +131,7 @@ static State      *state;    //  Object containing state information correspondi
 static struct timeval tstart;
 
 static double  H_sum_initial = 0.0;
+static double  cpu_time_graphics = 0.0;
 
 int main(int argc, char **argv) {
 
@@ -307,7 +308,8 @@ extern "C" void do_calc(void)
    int icount, jcount;
 
    //  Initialize state variables for GPU calculation.
-   int &mype = mesh->mype;
+   int &mype  = mesh->mype;
+   int &numpe = mesh->numpe;
 
    vector<int>   &nsizes   = mesh->nsizes;
    vector<int>   &ndispl   = mesh->ndispl;
@@ -458,6 +460,9 @@ extern "C" void do_calc(void)
 #ifdef HAVE_GRAPHICS
    mesh->calc_spatial_coordinates(0);
 
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
 #ifdef HAVE_OPENGL
    MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
@@ -500,6 +505,8 @@ extern "C" void do_calc(void)
    draw_scene();
 #endif
 
+   cpu_time_graphics += cpu_timer_stop(tstart_cpu);
+
    //  Output final results and timing information.
    if (ncycle >= niter) {
       //free_display();
@@ -508,6 +515,8 @@ extern "C" void do_calc(void)
       double elapsed_time = cpu_timer_stop(tstart);
       
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
+
+      state->parallel_timer_output(numpe,mype,"CPU:  graphics                 time was",cpu_time_graphics);
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();

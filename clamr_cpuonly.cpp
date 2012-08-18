@@ -108,16 +108,11 @@ static State      *state;          //  Object containing state information corre
 
 //  Set up timing information.
 static struct timeval tstart;
-static cl_event start_write_event, end_write_event;
-
-static cl_context          context                 = NULL;
-static cl_command_queue    command_queue           = NULL;
-static int compute_device = 0;
 
 static double  H_sum_initial = 0.0;
+static double  cpu_time_graphics = 0.0;
 
 int main(int argc, char **argv) {
-   int ierr;
 
     // Needed for code to compile correctly on the Mac
    int mype=0;
@@ -143,14 +138,7 @@ int main(int argc, char **argv) {
    mesh->calc_distribution(numpe, mesh->proc);
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
    
-   vector<int>   &celltype = mesh->celltype;
-   vector<int>   &i        = mesh->i;
-   vector<int>   &j        = mesh->j;
-   vector<int>   &level    = mesh->level;
-
    vector<real>  &H        = state->H;
-   vector<real>  &U        = state->U;
-   vector<real>  &V        = state->V;
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
@@ -207,16 +195,9 @@ extern "C" void do_calc(void)
    int icount, jcount;
 
    //  Initialize state variables for GPU calculation.
-   vector<int>   &celltype = mesh->celltype;
-   vector<int>   &i        = mesh->i;
-   vector<int>   &j        = mesh->j;
-   vector<int>   &level    = mesh->level;
-
    size_t &ncells    = mesh->ncells;
 
    vector<real>  &H        = state->H;
-   vector<real>  &U        = state->U;
-   vector<real>  &V        = state->V;
 
    vector<int>     mpot;
    
@@ -264,7 +245,7 @@ extern "C" void do_calc(void)
       }  //  Complete NAN check.
 
       mpot.resize(ncells);
-      size_t new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
+      new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
 
       //new_ncells = old_ncells+mesh->rezone_count(mpot);
       //printf("icount %d old_ncells %d new_ncells %d\n",icount,old_ncells,new_ncells);
@@ -292,6 +273,9 @@ extern "C" void do_calc(void)
    printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
       ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
 
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
 #ifdef HAVE_GRAPHICS
    mesh->calc_spatial_coordinates(0);
 
@@ -304,6 +288,8 @@ extern "C" void do_calc(void)
    draw_scene();
 #endif
 
+   cpu_time_graphics += cpu_timer_stop(tstart_cpu);
+
    //  Output final results and timing information.
    if (ncycle >= niter) {
       //free_display();
@@ -312,6 +298,7 @@ extern "C" void do_calc(void)
       double elapsed_time = cpu_timer_stop(tstart);
       
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
+      printf("CPU:  graphics                 time was\t %8.4f\ts\n",     cpu_time_graphics );
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
