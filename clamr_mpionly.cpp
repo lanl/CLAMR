@@ -457,10 +457,10 @@ extern "C" void do_calc(void)
          ncycle, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
    }
 
+   struct timeval tstart_cpu;
 #ifdef HAVE_GRAPHICS
    mesh->calc_spatial_coordinates(0);
 
-   struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
 #ifdef HAVE_OPENGL
