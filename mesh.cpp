@@ -2119,10 +2119,37 @@ void Mesh::calc_neighbors(void)
          } else if (lev == levmx) {
             hash[j[ic]][i[ic]] = ic;
          } else {
+/* Original Write to Hash Table
             for (int jj = j[ic]*levtable[levmx-lev]; jj < (j[ic]+1)*levtable[levmx-lev]; jj++) {
                for (int ii=i[ic]*levtable[levmx-lev]; ii<(i[ic]+1)*levtable[levmx-lev]; ii++) {
                   hash[jj][ii] = ic;
                }
+            }
+*/
+/* Optimization: Always writes to max of 7 hash buckets, 4 if cell is l=levmx-1 */
+            int wid = levtable[levmx-lev];
+            int jj = j[ic]*wid;
+            int ii = i[ic]*wid;
+            hash[jj][ii] = ic;
+            ii += wid/2;
+            hash[jj][ii] = ic;
+            if(wid > 2) {
+               ii = ii + wid/2 - 1;
+               hash[jj][ii] = ic;
+               ii = ii - wid/2 + 1;
+            }
+            ii -= wid/2;
+            jj += wid/2;
+            hash[jj][ii] = ic;
+            ii = ii + wid - 1;
+            hash[jj][ii] = ic;
+
+            if(wid > 2) {
+               ii = ii - wid + 1;
+               jj = jj + wid/2 - 1;
+               hash[jj][ii] = ic;
+               ii += wid/2;
+               hash[jj][ii] = ic;
             }
          }
       }
@@ -2422,11 +2449,38 @@ void Mesh::calc_neighbors_local(void)
             //printf("%d: max j %d i %d\n",mype,j[ic]-jminsize,i[ic]-iminsize);
             hash[j[ic]-jminsize][i[ic]-iminsize] = ic+noffset;
          } else {
+/* Original Write to Hash Table
             for (int    jj = j[ic]*levtable[levmx-lev]-jminsize; jj < (j[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
                for (int ii = i[ic]*levtable[levmx-lev]-iminsize; ii < (i[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
                   //printf("%d: block j %d i %d\n",mype,jj,ii);
                   hash[jj][ii] = ic+noffset;
                }
+            }
+*/
+/* Optimization: Always writes to max of 7 hash buckets, 4 if cell is l=levmx-1 */
+            int wid = levtable[levmx-lev];
+            int jj = j[ic]*wid - jminsize;
+            int ii = i[ic]*wid - iminsize;
+            hash[jj][ii] = ic + noffset;
+            ii += wid/2;
+            hash[jj][ii] = ic + noffset;
+            if(wid > 2) {
+               ii = ii + wid/2 - 1;
+               hash[jj][ii] = ic + noffset;
+               ii = ii - wid/2 + 1;
+            }
+            ii -= wid/2;
+            jj += wid/2;
+            hash[jj][ii] = ic + noffset;
+            ii = ii + wid - 1;
+            hash[jj][ii] = ic + noffset;
+
+            if(wid > 2) {
+               ii = ii - wid + 1;
+               jj = jj + wid/2 - 1;
+               hash[jj][ii] = ic + noffset;
+               ii += wid/2;
+               hash[jj][ii] = ic + noffset;
             }
          }
       }
