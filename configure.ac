@@ -187,6 +187,9 @@ if test "${enable_opencl}" != "no"; then
            AC_CHECK_FILE(/usr/local/cuda/include/CL/cl.h, INCLUDES="${INCLUDES} -I/usr/local/cuda/include" && found="yes")
          fi
          if test "$found" = "no"; then
+           AC_CHECK_FILE(/usr/projects/hpcsoft/moonlight/cudatoolkit-4.2/include/CL/cl.h, INCLUDES="${INCLUDES} -I/usr/projects/hpcsoft/moonlight/cudatoolkit-4.2/include" && found="yes")
+         fi
+         if test "$found" = "no"; then
            AC_CHECK_FILE(/home/cuda/cuda4.2/include/CL/cl.h, INCLUDES="${INCLUDES} -I/home/cuda/cuda4.2/include" && found="yes")
          fi
          if test "$found" = "no"; then
