@@ -1172,6 +1172,11 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
    ezcl_device_memory_remove(dev_U_new);
    ezcl_device_memory_remove(dev_V_new);
 
+   ezcl_device_memory_remove(dev_i_new);
+   ezcl_device_memory_remove(dev_j_new);
+   ezcl_device_memory_remove(dev_celltype_new);
+   ezcl_device_memory_remove(dev_level_new);
+
    cpu_timer_start(&tstart_cpu);
 
 #ifdef HAVE_MPI

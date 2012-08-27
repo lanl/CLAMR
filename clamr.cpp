@@ -604,15 +604,28 @@ extern "C" void do_calc(void)
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       
-      //  Release kernels and finalize the OpenCL elements.
-      ezcl_finalize();
-      
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
       state->parallel_timer_output(numpe,mype,"GPU:  graphics                 time was",(double) gpu_time_graphics * 1.0e-9 );
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
       mesh->print_partition_type();
+
+      ezcl_device_memory_remove(mesh->dev_corners_i);
+      ezcl_device_memory_remove(mesh->dev_corners_j);
+      ezcl_device_memory_remove(mesh_global->dev_corners_i);
+      ezcl_device_memory_remove(mesh_global->dev_corners_j);
+      mesh->terminate();
+      state->terminate();
+      mesh_global->terminate();
+      state_global->terminate();
+      ezcl_terminate();
+
+      ezcl_mem_walk_all();
+
+      //  Release kernels and finalize the OpenCL elements.
+      ezcl_finalize();
+      
       L7_Terminate();
       exit(0);
    }  //  Complete final output.
