@@ -1263,7 +1263,9 @@ void ezcl_enqueue_write_buffer_p(cl_command_queue command_queue, cl_mem mem_buff
      int num_elements = ezcl_get_device_mem_nelements_p(mem_buffer, file, line);
      int elsize = ezcl_get_device_mem_elsize_p(mem_buffer, file, line);
      //ezcl_mem_walk_one_p(mem_buffer, file, line);
-     printf("\nERROR: EZCL_ENQUEUE_WRITE_BUFFER -- buffer %p has %d elements with elsize %d for total of %d bytes but trying to write %d bytes\n",mem_buffer, num_elements, elsize, num_elements*elsize, size);
+     if (num_elements*elsize != size){
+        printf("\nERROR: EZCL_ENQUEUE_WRITE_BUFFER -- buffer %p has %d elements with elsize %d for total of %d bytes but trying to write %d bytes\n",mem_buffer, num_elements, elsize, num_elements*elsize, size);
+     }
      ezcl_print_error(ierr, "EZCL_ENQUEUE_WRITE_BUFFER", "clEnqueueWriteBuffer", file, line);
    }
    if (event != NULL) {
@@ -1296,7 +1298,9 @@ void ezcl_enqueue_read_buffer_p(cl_command_queue command_queue, cl_mem mem_buffe
      int num_elements = ezcl_get_device_mem_nelements_p(mem_buffer, file, line);
      int elsize = ezcl_get_device_mem_elsize_p(mem_buffer, file, line);
      //ezcl_mem_walk_one_p(mem_buffer, file, line);
-     printf("\nERROR: EZCL_ENQUEUE_READ_BUFFER -- buffer %p has %d elements with element size %d for total of %d bytes but trying to read %d bytes\n",mem_buffer, num_elements, elsize, num_elements*elsize, size);
+     if (num_elements*elsize != size){
+        printf("\nERROR: EZCL_ENQUEUE_READ_BUFFER -- buffer %p has %d elements with element size %d for total of %d bytes but trying to read %d bytes\n",mem_buffer, num_elements, elsize, num_elements*elsize, size);
+     }
      ezcl_print_error(ierr, "EZCL_ENQUEUE_READ_BUFFER", "clEnqueueReadBuffer", file, line);
    }
    if (event != NULL) {
