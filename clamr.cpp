@@ -615,6 +615,7 @@ extern "C" void do_calc(void)
       ezcl_device_memory_remove(mesh->dev_corners_j);
       ezcl_device_memory_remove(mesh_global->dev_corners_i);
       ezcl_device_memory_remove(mesh_global->dev_corners_j);
+
       mesh->terminate();
       state->terminate();
       mesh_global->terminate();

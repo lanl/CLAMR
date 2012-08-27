@@ -5345,6 +5345,8 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
          ezcl_enqueue_write_buffer(command_queue, dev_j_upper,        CL_FALSE, 0, upper_block_size*sizeof(cl_int), &j_tmp[ncells_old+lower_block_size],        NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_level_upper,    CL_FALSE, 0, upper_block_size*sizeof(cl_int), &level_tmp[ncells_old+lower_block_size],    NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_celltype_upper, CL_TRUE,  0, upper_block_size*sizeof(cl_int), &celltype_tmp[ncells_old+lower_block_size], &end_write_event);
+
+         gpu_time_load_balance += ezcl_timer_calc(&start_write_event, &end_write_event);
       }
 
       size_t local_work_size = 128;
