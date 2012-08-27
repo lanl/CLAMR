@@ -313,29 +313,12 @@ int main(int argc, char **argv) {
    MPI_Scatterv(&y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &y[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dy[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
 
-   state_global->allocate_device_memory(ncells_global);
    state->allocate_device_memory(ncells);
 
    size_t one = 1;
-   state_global->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT_global"), &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
    state->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT"),               &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
 
-   dev_celltype_global = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_global"), &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
-   dev_i_global        = ezcl_malloc(NULL, const_cast<char *>("dev_i_global"),        &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
-   dev_j_global        = ezcl_malloc(NULL, const_cast<char *>("dev_j_global"),        &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
-   dev_level_global    = ezcl_malloc(NULL, const_cast<char *>("dev_level_global"),    &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
-
    //  Set write buffers for data.
-   ezcl_enqueue_write_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&H_global[0],  &start_write_event);
-   ezcl_enqueue_write_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&U_global[0],  NULL              );
-   ezcl_enqueue_write_buffer(command_queue, dev_V_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&V_global[0],  NULL              );
-
-   ezcl_enqueue_write_buffer(command_queue, dev_celltype_global, CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&celltype_global[0], NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_i_global,        CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&i_global[0],        NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_j_global,        CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&j_global[0],        NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_level_global,    CL_TRUE,  0, ncells_global*sizeof(cl_int),  (void *)&level_global[0],    &end_write_event);
-   state_global->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
-
    ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],  &start_write_event);
    ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],  NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_V, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&V[0],  NULL);
@@ -619,7 +602,7 @@ extern "C" void do_calc(void)
       mesh->terminate();
       state->terminate();
       mesh_global->terminate();
-      state_global->terminate();
+      //state_global->terminate();
       ezcl_terminate();
 
       ezcl_mem_walk_all();
