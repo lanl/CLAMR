@@ -145,12 +145,12 @@ static int compute_device = 0;
 
 static double  H_sum_initial = 0.0;
 static long gpu_time_graphics = 0;
-static double cpu_time_timestep = 0.0;
-static double cpu_time_finite_diff = 0.0;
-static double cpu_time_refine_potential = 0.0;
-static double cpu_time_rezone = 0.0;
-static double cpu_time_neighbors = 0.0;
-static double cpu_time_load_balance = 0.0;
+//static double cpu_time_timestep = 0.0;
+//static double cpu_time_finite_diff = 0.0;
+//static double cpu_time_refine_potential = 0.0;
+//static double cpu_time_rezone = 0.0;
+//static double cpu_time_neighbors = 0.0;
+//static double cpu_time_load_balance = 0.0;
 
 int main(int argc, char **argv) {
    int ierr;
@@ -222,19 +222,10 @@ int main(int argc, char **argv) {
    cl_mem &dev_U  = state->dev_U;
    cl_mem &dev_V  = state->dev_V;
 
-   cl_mem &dev_H_global  = state_global->dev_H;
-   cl_mem &dev_U_global  = state_global->dev_U;
-   cl_mem &dev_V_global  = state_global->dev_V;
-
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_i        = mesh->dev_i;
    cl_mem &dev_j        = mesh->dev_j;
    cl_mem &dev_level    = mesh->dev_level;
-
-   cl_mem &dev_celltype_global = mesh_global->dev_celltype;
-   cl_mem &dev_i_global        = mesh_global->dev_i;
-   cl_mem &dev_j_global        = mesh_global->dev_j;
-   cl_mem &dev_level_global    = mesh_global->dev_level;
 
    vector<int>   &celltype = mesh->celltype;
    vector<int>   &i        = mesh->i;
@@ -385,7 +376,7 @@ static double  simTime = 0.0;
 
 extern "C" void do_calc(void)
 {
-   struct timeval tstart_cpu;
+   //struct timeval tstart_cpu;
 
    double sigma = 0.95; 
    int icount=0;
@@ -460,22 +451,22 @@ extern "C" void do_calc(void)
       old_ncells = ncells;
       old_ncells_global = ncells_global;
 
-      cpu_timer_start(&tstart_cpu);
+      //cpu_timer_start(&tstart_cpu);
       //  Calculate the real time step for the current discrete time step.
       deltaT = state->gpu_set_timestep(command_queue, mesh, sigma);
       simTime += deltaT;
-      cpu_time_timestep += cpu_timer_stop(tstart_cpu);
+      //cpu_time_timestep += cpu_timer_stop(tstart_cpu);
 
-      cpu_timer_start(&tstart_cpu);
+      //cpu_timer_start(&tstart_cpu);
       mesh->gpu_calc_neighbors_local(command_queue);
-      cpu_time_neighbors += cpu_timer_stop(tstart_cpu);
+      //cpu_time_neighbors += cpu_timer_stop(tstart_cpu);
 
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
-      cpu_timer_start(&tstart_cpu);
+      //cpu_timer_start(&tstart_cpu);
       state->gpu_calc_finite_difference_local(command_queue, mesh, deltaT);
-      cpu_time_finite_diff += cpu_timer_stop(tstart_cpu);
+      //cpu_time_finite_diff += cpu_timer_stop(tstart_cpu);
 
       //  Check for NANs.
       for (uint ic=0; ic<ncells; ic++) {
@@ -492,14 +483,14 @@ extern "C" void do_calc(void)
       vector<int>      ioffset(block_size);
       vector<int>      ioffset_global(block_size_global);
 
-      cpu_timer_start(&tstart_cpu);
+      //cpu_timer_start(&tstart_cpu);
       new_ncells = state->gpu_calc_refine_potential_local(command_queue, mesh);
-      cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
+      //cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      cpu_timer_start(&tstart_cpu);
+      //cpu_timer_start(&tstart_cpu);
       state->gpu_rezone_all_local(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil);
-      cpu_time_rezone += cpu_timer_stop(tstart_cpu);
+      //cpu_time_rezone += cpu_timer_stop(tstart_cpu);
 
       // XXX XXX XXX
       ncells       = new_ncells;
@@ -507,9 +498,9 @@ extern "C" void do_calc(void)
       MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
 
-      cpu_timer_start(&tstart_cpu);
+      //cpu_timer_start(&tstart_cpu);
       mesh->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, dev_H, dev_U, dev_V);
-      cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
+      //cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
 
       ioffset.clear();
       ioffset_global.clear();
@@ -598,12 +589,12 @@ extern "C" void do_calc(void)
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
       state->parallel_timer_output(numpe,mype,"GPU:  graphics                 time was",(double) gpu_time_graphics * 1.0e-9 );
 
-      state->parallel_timer_output(numpe,mype,"CPU:  timestep calc            time was",cpu_time_timestep);
-      state->parallel_timer_output(numpe,mype,"CPU:  finite_diff              time was",cpu_time_finite_diff);
-      state->parallel_timer_output(numpe,mype,"CPU:  refine_potential         time was",cpu_time_refine_potential);
-      state->parallel_timer_output(numpe,mype,"CPU:  rezone                   time was",cpu_time_rezone);
-      state->parallel_timer_output(numpe,mype,"CPU:  neighbors                time was",cpu_time_neighbors);
-      state->parallel_timer_output(numpe,mype,"CPU:  load_balance             time was",cpu_time_load_balance);
+      //state->parallel_timer_output(numpe,mype,"CPU:  timestep calc            time was",cpu_time_timestep);
+      //state->parallel_timer_output(numpe,mype,"CPU:  finite_diff              time was",cpu_time_finite_diff);
+      //state->parallel_timer_output(numpe,mype,"CPU:  refine_potential         time was",cpu_time_refine_potential);
+      //state->parallel_timer_output(numpe,mype,"CPU:  rezone                   time was",cpu_time_rezone);
+      //state->parallel_timer_output(numpe,mype,"CPU:  neighbors                time was",cpu_time_neighbors);
+      //state->parallel_timer_output(numpe,mype,"CPU:  load_balance             time was",cpu_time_load_balance);
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
