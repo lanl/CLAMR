@@ -715,7 +715,7 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
 #ifdef HAVE_MPI
    if (parallel) MPI_Allreduce(&deltaT, &globalmindeltaT, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 #endif
-   gpu_time_set_timestep += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
+   gpu_time_set_timestep += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
    ezcl_device_memory_remove(dev_redscratch);
 
@@ -1084,7 +1084,7 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
       ncells = new_ncells;
    }
 
-   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e-9);
+   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 
    cl_mem dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
@@ -1190,7 +1190,7 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
       mesh->noffset=mesh->ndispl[mesh->mype];
    }
 #endif
-   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e-9);
+   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 
    gpu_time_rezone_all        += ezcl_timer_calc(&rezone_all_event,        &rezone_all_event);
 }
@@ -2527,7 +2527,7 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
 #endif
 
-   gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
+   gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
    
    //fprintf(mesh->fp,"Line %d\n",__LINE__);
    //for (int ic=0; ic<mesh->ncells_ghost; ic++){
@@ -3253,7 +3253,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
    L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
    L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
 #endif
-   gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
+   gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
    size_t nghost_local = mesh->ncells_ghost - ncells;
    //fprintf(mesh->fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
@@ -3365,7 +3365,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
       MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
    }
 #endif
-   gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
+   gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
    int levcount = 1;
 
@@ -3386,7 +3386,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
 #ifdef HAVE_MPI
          L7_Update(&mpot_tmp[0], L7_INT, mesh->cell_handle);
 #endif
-         gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
+         gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
          dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
@@ -3438,7 +3438,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
             MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          }
 #endif
-         gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
+         gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
          ezcl_device_memory_remove(dev_mpot_add);
       }
@@ -3454,7 +3454,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
 #ifdef HAVE_MPI
    L7_Update(&mpot_tmp[0], L7_INT, mesh->cell_handle);
 #endif
-   gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
+   gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
    if (mesh->numpe > 1) {
       dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -3807,7 +3807,7 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
 #endif
       total_sum = global.sum + global.correction;
 
-      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
+      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
    } else {
       dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_one"), &one,    sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
@@ -3856,7 +3856,7 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
 
       ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real), &mass_sum, &start_read_event);
 
-      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
+      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
       local_sum = mass_sum;
       global_sum = local_sum;
@@ -3865,7 +3865,7 @@ double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, boo
 #endif
       total_sum = global_sum;
 
-      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
+      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
    }
 
    ezcl_device_memory_remove(dev_redscratch);
