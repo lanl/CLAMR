@@ -3055,9 +3055,9 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
    }
    //printf("icount is %d\n",icount);
 
-   return(ncells+icount);
-
    cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
+
+   return(ncells+icount);
 }
 
 #ifdef HAVE_OPENCL
@@ -4105,7 +4105,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
          parallel_timer_output(numpe,mype,"CPU:  state->set_timestep      time was",get_cpu_time_set_timestep() );
          parallel_timer_output(numpe,mype,"CPU:  state->apply_BCs         time was",get_cpu_time_apply_BCs() );
          parallel_timer_output(numpe,mype,"CPU:  state->finite_difference time was",get_cpu_time_finite_difference() );
-         parallel_timer_output(numpe,mype,"CPU:  mesh->refine_potential   time was",get_cpu_time_refine_potential() );
+         parallel_timer_output(numpe,mype,"CPU:  state->refine_potential  time was",get_cpu_time_refine_potential() );
          parallel_timer_output(numpe,mype,"CPU:  mesh->rezone_all         time was",(get_cpu_time_rezone_all() + mesh->get_cpu_time_rezone_all() ) );
          parallel_timer_output(numpe,mype,"CPU:  mesh->partition_cells    time was",mesh->cpu_time_partition);
          parallel_timer_output(numpe,mype,"CPU:  mesh->calc_neighbors     time was",mesh->get_cpu_time_calc_neighbors() );
