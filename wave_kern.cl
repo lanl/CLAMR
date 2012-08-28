@@ -982,11 +982,42 @@ __kernel void hash_setup_local_cl(
    } else if (lev == levmx) {
       hash[(j[giX]-jminsize)*(imaxsize-iminsize)+(i[giX]-iminsize)] = giX+noffset;
    } else {
+/* Original Hash Setup
       for (   int jj = j[giX]*levtable[levmx-lev]-jminsize; jj < (j[giX]+1)*levtable[levmx-lev]-jminsize; jj++) {
          for (int ii = i[giX]*levtable[levmx-lev]-iminsize; ii < (i[giX]+1)*levtable[levmx-lev]-iminsize; ii++) {
             hash[jj*(imaxsize-iminsize)+ii] = giX+noffset;
          }
       }
+*/
+/* Optimized Hash Setup */
+      int wid = levtable[levmx-lev];
+      int jj = j[giX]*wid - jminsize;
+      int ii = i[giX]*wid - iminsize;
+      #define hashv(jj,ii) ( hash[(jj)*(imaxsize-iminsize)+(ii)] )
+
+      hashv(jj,ii) = giX + noffset;
+
+      ii += wid/2;
+      hashv(jj,ii) = giX + noffset;
+      if(wid > 2) {
+         ii = ii + wid/2 - 1;
+         hashv(jj,ii) = giX + noffset;
+         ii = ii - wid/2 + 1;
+      }
+      ii -= wid/2;
+      jj += wid/2;
+      hashv(jj,ii) = giX + noffset;
+      ii = ii + wid - 1;
+      hashv(jj,ii) = giX + noffset;
+
+      if(wid > 2) {
+         ii = ii - wid + 1;
+         jj = jj + wid/2 - 1;
+         hashv(jj,ii) = giX + noffset;
+         ii += wid/2;
+         hashv(jj,ii) = giX + noffset;
+      }
+
    }
 
 }
