@@ -3455,21 +3455,27 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
 #endif
          gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
-         dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
+         if (nghost_local > 0){
+            dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+            ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
+
+            cpu_timer_start(&tstart_cpu);
+
+            size_t ghost_local_work_size = 32;
+            size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
+
+            // Fill in ghost
+            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
+            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
+            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot_old);
+            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
+
+            ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_mpot_ghost_data_event);
+
+            gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
+         }
 
          cpu_timer_start(&tstart_cpu);
-
-         size_t ghost_local_work_size = 32;
-         size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
-
-         // Fill in ghost
-         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
-         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
-         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot_old);
-         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
-
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_mpot_ghost_data_event);
 
          ezcl_set_kernel_arg(kernel_refine_smooth, 0, sizeof(cl_int),  (void *)&ncells);
          ezcl_set_kernel_arg(kernel_refine_smooth, 1, sizeof(cl_int),  (void *)&levmx);
@@ -3494,7 +3500,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
          ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, &start_read_event);
          gpu_time_refine_potential  += ezcl_timer_calc(&start_read_event,  &start_read_event);
 
-         gpu_time_refine_potential  += ezcl_timer_calc(&copy_mpot_ghost_data_event, &copy_mpot_ghost_data_event);
+         if (nghost_local > 0) gpu_time_refine_potential  += ezcl_timer_calc(&copy_mpot_ghost_data_event, &copy_mpot_ghost_data_event);
          gpu_time_refine_potential  += ezcl_timer_calc(&refine_smooth_event,  &refine_smooth_event);
 
 //         printf("result = %d after %d refine smooths\n",result,which_smooth);
@@ -3510,7 +3516,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
             MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          }
 #endif
-         ezcl_device_memory_remove(dev_mpot_add);
+         if (nghost_local > 0) ezcl_device_memory_remove(dev_mpot_add);
 
          gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
       }
