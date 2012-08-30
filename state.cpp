@@ -2480,8 +2480,6 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
 
    cl_mem dev_ptr = NULL;
 
-   cpu_timer_start(&tstart_cpu);
-
    size_t &ncells    = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
    int &levmx        = mesh->levmx;
@@ -2507,6 +2505,8 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    cl_mem dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+
+   cpu_timer_start(&tstart_cpu);
 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -2573,7 +2573,7 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
       ezcl_enqueue_write_buffer(command_queue, dev_H_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&H_tmp[ncells], &start_write_event);
       ezcl_enqueue_write_buffer(command_queue, dev_U_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&U_tmp[ncells], NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_V_add, CL_TRUE,  0, nghost_local*sizeof(cl_real), (void*)&V_tmp[ncells], &end_write_event);
-      gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
+      gpu_time_finite_difference += ezcl_timer_calc(&start_write_event, &end_write_event);
 
       cpu_timer_start(&tstart_cpu);
 
@@ -2592,6 +2592,8 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_state_ghost_data_event);
 
+      gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
+
       ezcl_device_memory_remove(dev_H_add);
       ezcl_device_memory_remove(dev_U_add);
       ezcl_device_memory_remove(dev_V_add);
@@ -2601,8 +2603,6 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
       dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-
-      gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
    }
 
      /*
@@ -2655,11 +2655,11 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    SWAP_PTR(dev_U_new, dev_U, dev_ptr);
    SWAP_PTR(dev_V_new, dev_V, dev_ptr);
 
+   gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
+
    ezcl_device_memory_remove(dev_H_new);
    ezcl_device_memory_remove(dev_U_new);
    ezcl_device_memory_remove(dev_V_new);
-
-   gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
    gpu_time_finite_difference += ezcl_timer_calc(&copy_state_data_event,       &copy_state_data_event);
    if (mesh->numpe > 1) {
@@ -3455,7 +3455,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
 #endif
          gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
-         if (nghost_local > 0){
+         if (mesh->numpe > 1) {
             dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
             ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
 
@@ -3471,7 +3471,6 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
             ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
 
             ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_mpot_ghost_data_event);
-
             gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
          }
 
@@ -3500,7 +3499,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
          ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, &start_read_event);
          gpu_time_refine_potential  += ezcl_timer_calc(&start_read_event,  &start_read_event);
 
-         if (nghost_local > 0) gpu_time_refine_potential  += ezcl_timer_calc(&copy_mpot_ghost_data_event, &copy_mpot_ghost_data_event);
+         if (mesh->numpe > 1) gpu_time_refine_potential  += ezcl_timer_calc(&copy_mpot_ghost_data_event, &copy_mpot_ghost_data_event);
          gpu_time_refine_potential  += ezcl_timer_calc(&refine_smooth_event,  &refine_smooth_event);
 
 //         printf("result = %d after %d refine smooths\n",result,which_smooth);
@@ -3516,7 +3515,8 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
             MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          }
 #endif
-         if (nghost_local > 0) ezcl_device_memory_remove(dev_mpot_add);
+         if (mesh->numpe > 1) ezcl_device_memory_remove(dev_mpot_add);
+         ezcl_device_memory_remove(dev_mpot_add);
 
          gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
       }

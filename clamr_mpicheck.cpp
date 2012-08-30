@@ -289,11 +289,13 @@ int main(int argc, char **argv) {
    //  Clear superposition of circle on grid output.
    circle_radius = -1.0;
    
+   MPI_Barrier(MPI_COMM_WORLD);
    cpu_timer_start(&tstart);
 
    set_idle_function(&do_calc);
    start_main_loop();
 #else
+   MPI_Barrier(MPI_COMM_WORLD);
    cpu_timer_start(&tstart);
    for (int it = 0; it < 10000000; it++) {
       do_calc();
@@ -454,7 +456,7 @@ extern "C" void do_calc(void)
          if (isnan(H[ic]))
          {  printf("Got a NAN on cell %d cycle %d\n",ic,ncycle);
             H[ic]=0.0;
-            sleep(100);
+            //sleep(100);
             L7_Terminate();
             exit(-1); }
       }  //  Complete NAN check.

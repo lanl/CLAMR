@@ -418,7 +418,7 @@ extern "C" void do_calc(void)
          if (isnan(H[ic]))
          {  printf("Got a NAN on cell %d cycle %d\n",ic,ncycle);
             H[ic]=0.0;
-            sleep(100);
+            //sleep(100);
             //  Release kernels and finalize the OpenCL elements.
             ezcl_finalize();
             exit(-1); }
