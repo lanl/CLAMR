@@ -844,7 +844,7 @@ void ezcl_context_release_p(cl_context context, const char *file, const int line
 void ezcl_event_release_p(cl_event event, const char *file, const int line){
     SLIST_FOREACH(object_item, &object_head, object_entries){
         if (object_item->object_type == EVENT_OBJECT && object_item->event == event) {
-            if (DEBUG) printf("EZCL_EVENT_RELEASE: DEBUG -- releasing context %p\n",event);
+            if (DEBUG) printf("EZCL_EVENT_RELEASE: DEBUG -- releasing event %p\n",event);
             clReleaseEvent(event);
             SLIST_REMOVE(&object_head, object_item, object_entry, object_entries);
             free(object_item);
@@ -1406,6 +1406,20 @@ void ezcl_get_event_profiling_info_p(cl_event event, cl_profiling_info param_nam
       *  CL_INVALID_EVENT:
       */
      ezcl_print_error(ierr, "EZCL_GET_EVENT_PROFILING_INFO", "clGetEventProfilingInfo", file, line);
+   }
+}
+
+void ezcl_wait_for_events_p(int num_events, cl_event *events, const char *file, const int line)
+{
+   int ierr;
+   ierr=clWaitForEvents(num_events, events);
+   if (ierr != CL_SUCCESS) {
+     /* Possible Errors
+      *  CL_INVALID_VALUE:
+      *  CL_INVALID_CONTEXT;
+      *  CL_INVALID_EVENT:
+      */
+     ezcl_print_error(ierr, "EZCL_WAIT_FOR_EVENTS", "clWaitForEvents", file, line);
    }
 }
 

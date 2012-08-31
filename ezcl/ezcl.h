@@ -154,6 +154,8 @@ extern "C"
       ( ezcl_command_queue_release_p(command_queue, __FILE__, __LINE__) )
 #define ezcl_context_release(  context) \
       ( ezcl_context_release_p(context, __FILE__, __LINE__) )
+#define ezcl_event_release(  event) \
+      ( ezcl_event_release_p(event, __FILE__, __LINE__) )
 
 #define ezcl_enqueue_write_buffer(  command_queue, mem_buffer, blocking_flag, offset, size, ptr, event) \
       ( ezcl_enqueue_write_buffer_p(command_queue, mem_buffer, blocking_flag, offset, size, ptr, event, __FILE__, __LINE__) )
@@ -169,6 +171,8 @@ extern "C"
       ( ezcl_finish_p(command_queue, __FILE__, __LINE__) )
 #define ezcl_get_event_profiling_info(  event, param_name, param_value_size, param_value) \
       ( ezcl_get_event_profiling_info_p(event, param_name, param_value_size, param_value, __FILE__, __LINE__) )
+#define ezcl_wait_for_events(  num_events, events) \
+      ( ezcl_wait_for_events_p(num_events, events, __FILE__, __LINE__) )
 
 #define ezcl_timer_calc(  start_read_event, end_read_event) \
       ( ezcl_timer_calc_p(start_read_event, end_read_event, __FILE__, __LINE__) )
@@ -215,6 +219,7 @@ void ezcl_program_release_p(cl_program program, const char *file, const int line
 void ezcl_kernel_release_p(cl_kernel kernel, const char *file, const int line);
 void ezcl_command_queue_release_p(cl_command_queue command_queue, const char *file, const int line);
 void ezcl_context_release_p(cl_context context, const char *file, const int line);
+void ezcl_event_release_p(cl_event event, const char *file, const int line);
 
 void ezcl_enqueue_write_buffer_p(cl_command_queue command_queue, cl_mem mem_buffer, cl_bool blocking_flag,
                                size_t offset, size_t size, const void *ptr, cl_event *event, const char *file, const int line);
@@ -226,6 +231,7 @@ void ezcl_set_kernel_arg_p(cl_kernel kernel, cl_uint arg_index, size_t arg_size,
 void ezcl_flush_p(cl_command_queue command_queue, const char *file, const int line);
 void ezcl_finish_p(cl_command_queue command_queue, const char *file, const int line);
 void ezcl_get_event_profiling_info_p(cl_event event, cl_profiling_info param_name, size_t param_value_size, void *param_value, const char *file, const int line);
+void ezcl_wait_for_events_p(int num_events, cl_event *events, const char *file, const int line);
 
 void ezcl_set_timing_flag(void);
 long ezcl_timer_calc_p(cl_event *start_read_event, cl_event *end_read_event, const char *file, const int line);
