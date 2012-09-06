@@ -2360,12 +2360,6 @@ void State::calc_finite_difference_local(Mesh *mesh, double deltaT){
    U.swap(Unew);
    V.swap(Vnew);
 
-#ifdef HAVE_MPI
-   L7_Update(&H[0], L7_REAL, mesh->cell_handle);
-   L7_Update(&U[0], L7_REAL, mesh->cell_handle);
-   L7_Update(&V[0], L7_REAL, mesh->cell_handle);
-#endif
-
    Hnew.clear();
    Unew.clear();
    Vnew.clear();

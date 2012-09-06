@@ -382,15 +382,6 @@ extern "C" void do_calc(void)
       L7_Update(&U[0], L7_REAL, cell_handle);
       L7_Update(&V[0], L7_REAL, cell_handle);
 
-      x.resize(ncells_ghost,0.0);
-      dx.resize(ncells_ghost,0.0);
-      y.resize(ncells_ghost,0.0);
-      dy.resize(ncells_ghost,0.0);
-      L7_Update(&x[0], L7_REAL, cell_handle);
-      L7_Update(&dx[0], L7_REAL, cell_handle);
-      L7_Update(&y[0], L7_REAL, cell_handle);
-      L7_Update(&dy[0], L7_REAL, cell_handle);
-
       mesh->partition_measure();
 
       // Currently not working -- may need to be earlier?
@@ -489,6 +480,8 @@ extern "C" void do_calc(void)
       MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &mesh_global->proc[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    }
 #endif
+
+   cpu_timer_start(&tstart_cpu);
 
 #ifdef HAVE_MPE
    set_mysize(ncells);
