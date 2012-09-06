@@ -2470,7 +2470,6 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    cl_event copy_state_data_event;
    cl_event copy_state_ghost_data_event;
    cl_event start_read_event, end_read_event;
-   cl_event start_write_event, end_write_event;
 
    cl_mem dev_ptr = NULL;
 
@@ -2541,26 +2540,20 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], &end_read_event);
    gpu_time_finite_difference += ezcl_timer_calc(&start_read_event, &end_read_event);
 
-   cpu_timer_start(&tstart_cpu);
-
 #ifdef HAVE_MPI
-   L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
-   L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
-   L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
-#endif
-
-   //fprintf(mesh->fp,"Line %d\n",__LINE__);
-   //for (int ic=0; ic<mesh->ncells_ghost; ic++){
-   //   if (mesh->i_local[ic] < 63 || mesh->i_local[ic] > 66 || mesh->j_local[ic] < 63 || mesh->j_local[ic] > 66) continue;
-   //   fprintf(mesh->fp,"%d: ic %d H %lf U %lf V %lf\n",mesh->mype,ic,H_tmp[ic],U_tmp[ic],V_tmp[ic]);
-   //}
-
-   size_t nghost_local = mesh->ncells_ghost - ncells;
-   //fprintf(mesh->fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
-
-   gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
-   
    if (mesh->numpe > 1) {
+      cl_event start_write_event, end_write_event;
+      cpu_timer_start(&tstart_cpu);
+
+      L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
+
+      size_t nghost_local = mesh->ncells_ghost - ncells;
+      //fprintf(mesh->fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
+
+      gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
+   
       cl_mem dev_H_add       = ezcl_malloc(NULL, const_cast<char *>("dev_H_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       cl_mem dev_U_add       = ezcl_malloc(NULL, const_cast<char *>("dev_U_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       cl_mem dev_V_add       = ezcl_malloc(NULL, const_cast<char *>("dev_V_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
@@ -2598,6 +2591,7 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
       dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    }
+#endif
 
      /*
      __kernel void calc_finite_difference_cl(
@@ -3257,7 +3251,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
    cl_event copy_state_ghost_data_event;
    cl_event copy_mpot_ghost_data_event;
    cl_event start_read_event, end_read_event;
-   cl_event start_write_event, end_write_event;
+   cl_event start_write_event;
 
    cl_mem dev_mpot_add = NULL;
 
@@ -3298,19 +3292,21 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
 
    gpu_time_refine_potential += ezcl_timer_calc(&start_read_event, &end_read_event);
 
-   cpu_timer_start(&tstart_cpu);
-#ifdef HAVE_MPI
-   L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
-   L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
-   L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
-#endif
-
    size_t nghost_local = mesh->ncells_ghost - ncells;
    //fprintf(mesh->fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
 
-   gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
-
+#ifdef HAVE_MPI
    if (mesh->numpe > 1) {
+      cl_event end_write_event;
+
+      cpu_timer_start(&tstart_cpu);
+
+      L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
+
+      gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
+
       cl_mem dev_H_add       = ezcl_malloc(NULL, const_cast<char *>("dev_H_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       cl_mem dev_U_add       = ezcl_malloc(NULL, const_cast<char *>("dev_U_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       cl_mem dev_V_add       = ezcl_malloc(NULL, const_cast<char *>("dev_V_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
@@ -3343,6 +3339,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
 
       gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
    }
+#endif
 
    cpu_timer_start(&tstart_cpu);
 
