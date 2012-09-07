@@ -1875,7 +1875,6 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
 void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mesh, double deltaT)
 {
    struct timeval tstart_cpu;
-   cl_event finite_difference_event;
 
    cpu_timer_start(&tstart_cpu);
 
@@ -1951,7 +1950,7 @@ void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mes
    ezcl_set_kernel_arg(kernel_calc_finite_difference,16, local_work_size*sizeof(cl_real4),    NULL);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,17, local_work_size*sizeof(cl_int8),    NULL);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference,   1, NULL, &global_work_size, &local_work_size, &finite_difference_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    SWAP_PTR(dev_H_new, dev_H, dev_ptr);
    SWAP_PTR(dev_U_new, dev_U, dev_ptr);
@@ -1962,17 +1961,11 @@ void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mes
    ezcl_device_memory_remove(dev_V_new);
 
    gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
-
-   gpu_time_finite_difference += ezcl_timer_calc(&finite_difference_event, &finite_difference_event);
 }
 
 void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mesh *mesh, double deltaT)
 {
    struct timeval tstart_cpu;
-
-   //cl_event finite_difference_event;
-   //cl_event copy_state_data_event;
-   //cl_event copy_state_ghost_data_event;
 
    cpu_timer_start(&tstart_cpu);
 
@@ -2139,7 +2132,6 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    ezcl_finish(command_queue);
 
    gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
-
 }
 #endif
 

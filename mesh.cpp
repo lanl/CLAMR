@@ -1007,22 +1007,23 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
 
    ndim   = ndim_in;
    levmx  = levmx_in;
-   numpe  = numpe_in;
-   mype   = 0;
 
    offtile_ratio_local = 0;
    offtile_local_count = 1;
 
+   mype  = 0;
+   numpe = 1;
+   parallel = 0;
+   ncells = 0;
+   ncells_ghost = 0;
    parallel = parallel_in;
+   
 #ifdef HAVE_MPI
    int mpi_init;
    MPI_Initialized(&mpi_init);
-   if (mpi_init){
+   if (mpi_init && parallel){
       MPI_Comm_rank(MPI_COMM_WORLD,&mype);
       MPI_Comm_size(MPI_COMM_WORLD,&numpe);
-   } else {
-      mype  = 0;
-      numpe = 1;
    }
 #endif
    cell_handle = 0;
@@ -1260,6 +1261,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
          }
       }
    }
+   ncells_ghost = ncells;
 }
 
 #ifdef HAVE_OPENCL
