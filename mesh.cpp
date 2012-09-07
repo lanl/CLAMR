@@ -3811,9 +3811,8 @@ void Mesh::calc_neighbors_local(void)
 #ifdef HAVE_OPENCL
 void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
 {
-   cl_event hash_init_event;
-   cl_event hash_setup_event;
-   cl_event calc_neighbors_event;
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
 
    assert(dev_levtable);
    assert(dev_level);
@@ -3838,7 +3837,7 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
 
    ezcl_set_kernel_arg(kernel_hash_init, 0, sizeof(cl_int), (void *)&hashsize);
    ezcl_set_kernel_arg(kernel_hash_init, 1, sizeof(cl_mem), (void *)&dev_hash);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, &hash_init_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, NULL);
 
       /*
                     const int  isize,     // 0
@@ -3871,7 +3870,7 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
    ezcl_set_kernel_arg(kernel_hash_setup, 11, sizeof(cl_mem), (void *)&dev_i);
    ezcl_set_kernel_arg(kernel_hash_setup, 12, sizeof(cl_mem), (void *)&dev_j);
    ezcl_set_kernel_arg(kernel_hash_setup, 13, sizeof(cl_mem), (void *)&dev_hash);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_setup,   1, NULL, &global_work_size, &local_work_size, &hash_setup_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_setup,   1, NULL, &global_work_size, &local_work_size, NULL);
 
       /*
                     const int  isize,     // 0
@@ -3906,36 +3905,17 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
    ezcl_set_kernel_arg(kernel_calc_neighbors, 12, sizeof(cl_mem), (void *)&dev_nbot);
    ezcl_set_kernel_arg(kernel_calc_neighbors, 13, sizeof(cl_mem), (void *)&dev_ntop);
    ezcl_set_kernel_arg(kernel_calc_neighbors, 14, sizeof(cl_mem), (void *)&dev_hash);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors,   1, NULL, &global_work_size, &local_work_size, &calc_neighbors_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    ezcl_device_memory_remove(dev_hash);
 
-   gpu_time_hash_setup        += ezcl_timer_calc(&hash_init_event,         &hash_init_event);
-   gpu_time_hash_setup        += ezcl_timer_calc(&hash_setup_event,        &hash_setup_event);
-   gpu_time_calc_neighbors    += ezcl_timer_calc(&calc_neighbors_event,    &calc_neighbors_event);
+   gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
 
 
 void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 {
    struct timeval tstart_cpu;
-
-   cl_event hash_size_event;
-   //if (block_size > 1)
-      cl_event finish_hash_size_event;
-   cl_event start_read_event, end_read_event;
-   cl_event start_write_event, end_write_event;
-   cl_event hash_init_event;
-   cl_event corners_init_event;
-   cl_event hash_setup_event;
-   cl_event calc_neighbors_init_event;
-   //if (numpe > 1)
-      cl_event hash_setup_border_event;
-      cl_event calc_neighbors_event;
-      cl_event copy_mesh_data_event;
-      cl_event copy_ghost_data_event;                                                                                        
-      cl_event adjust_neighbors_event;                                                                                        
-
    cpu_timer_start(&tstart_cpu);
 
    assert(dev_levtable);
@@ -3981,7 +3961,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    ezcl_set_kernel_arg(kernel_hash_size, 7, sizeof(cl_mem), (void *)&dev_sizes);
    ezcl_set_kernel_arg(kernel_hash_size, 8, local_work_size*sizeof(cl_int4), NULL);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_size,   1, NULL, &global_work_size, &local_work_size, &hash_size_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_size,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    if (block_size > 1) {
          /*
@@ -3996,18 +3976,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_finish_hash_size, 2, sizeof(cl_mem), (void *)&dev_sizes);
       ezcl_set_kernel_arg(kernel_finish_hash_size, 3, local_work_size*sizeof(cl_int4), NULL);
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_finish_hash_size,   1, NULL, &local_work_size, &local_work_size, &finish_hash_size_event);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_finish_hash_size,   1, NULL, &local_work_size, &local_work_size, NULL);
    }
 
    ezcl_device_memory_remove(dev_redscratch);
 
-   gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
-
    cl_int sizes[4];
-   ezcl_enqueue_read_buffer(command_queue, dev_sizes, CL_TRUE,  0, 1*sizeof(cl_int4), &sizes, &start_read_event);
-   gpu_time_hash_setup += ezcl_timer_calc(&start_read_event, &start_read_event);
-
-   cpu_timer_start(&tstart_cpu);
+   ezcl_enqueue_read_buffer(command_queue, dev_sizes, CL_TRUE,  0, 1*sizeof(cl_int4), &sizes, NULL);
 
    int iminsize = sizes[0];
    int imaxsize = sizes[1];
@@ -4038,7 +4013,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    //printf("%d: hash size is %d lws %d gws %d\n",mype,hashsize,hash_local_work_size,hash_global_work_size);
    ezcl_set_kernel_arg(kernel_hash_init, 0, sizeof(cl_int), (void *)&hashsize);
    ezcl_set_kernel_arg(kernel_hash_init, 1, sizeof(cl_mem), (void *)&dev_hash);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, &hash_init_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, NULL);
 
    int csize = corners_i.size();
    //for (int ic=0; ic<csize; ic++){
@@ -4057,7 +4032,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    ezcl_set_kernel_arg(kernel_hash_init_corners, 6, sizeof(cl_mem), (void *)&dev_corners_j);
    ezcl_set_kernel_arg(kernel_hash_init_corners, 7, sizeof(cl_mem), (void *)&dev_sizes);
    ezcl_set_kernel_arg(kernel_hash_init_corners, 8, sizeof(cl_mem), (void *)&dev_hash);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init_corners,   1, NULL, &corners_global_work_size, &corners_local_work_size, &corners_init_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init_corners,   1, NULL, &corners_global_work_size, &corners_local_work_size, NULL);
 
       /*
                     const int  isize,     // 0
@@ -4088,7 +4063,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    ezcl_set_kernel_arg(kernel_hash_setup_local, 12, sizeof(cl_mem), (void *)&dev_i);
    ezcl_set_kernel_arg(kernel_hash_setup_local, 13, sizeof(cl_mem), (void *)&dev_j);
    ezcl_set_kernel_arg(kernel_hash_setup_local, 14, sizeof(cl_mem), (void *)&dev_hash);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_setup_local,   1, NULL, &global_work_size, &local_work_size, &hash_setup_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_setup_local,   1, NULL, &global_work_size, &local_work_size, NULL);
 
       /*
                     const int  isize,     // 0
@@ -4120,7 +4095,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    ezcl_set_kernel_arg(kernel_calc_neighbors_local, 11, sizeof(cl_mem), (void *)&dev_nbot);
    ezcl_set_kernel_arg(kernel_calc_neighbors_local, 12, sizeof(cl_mem), (void *)&dev_ntop);
    ezcl_set_kernel_arg(kernel_calc_neighbors_local, 13, sizeof(cl_mem), (void *)&dev_hash);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors_local,   1, NULL, &global_work_size, &local_work_size, &calc_neighbors_init_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors_local,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    vector<int> nlft_tmp(ncells);
    vector<int> nrht_tmp(ncells);
@@ -4132,16 +4107,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    vector<int> j_tmp(ncells);
    vector<int> level_tmp(ncells);
 
-   //printf("%d: DEBUG -- ncells %ld\n",mype,ncells);
-   //if (! mype) ezcl_mem_walk_all();
-#ifdef HAVE_MPI
-   //L7_Terminate();
-#endif
-   //exit(0);
-
-   gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
-
-   ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int), &celltype_tmp[0], &start_read_event);
+   ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int), &celltype_tmp[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0],        NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0],        NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int), &level_tmp[0],    NULL);
@@ -4149,10 +4115,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells*sizeof(cl_int), &nlft_tmp[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells*sizeof(cl_int), &nrht_tmp[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells*sizeof(cl_int), &nbot_tmp[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], &end_read_event);
-   gpu_time_calc_neighbors += ezcl_timer_calc(&start_read_event, &end_read_event);
-
-   cpu_timer_start(&tstart_cpu);
+   ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], NULL);
 
    vector<int> border_cell;
 
@@ -4278,8 +4241,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    }
    nbsize_local = inew;
 
-   gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
-
    //fprintf(fp,"%d: nbsize_local is %d\n",mype,nbsize_local);
    //for (int ic = 0; ic < nbsize_local; ic++) {
    //   fprintf(fp,"%d: Local Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
@@ -4293,13 +4254,10 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       cl_mem dev_border_j     = ezcl_malloc(NULL, const_cast<char *>("dev_border_j"),     &nbsize, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_border_num   = ezcl_malloc(NULL, const_cast<char *>("dev_border_num"),   &nbsize, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-      ezcl_enqueue_write_buffer(command_queue, dev_border_level, CL_FALSE,  0, nbsize*sizeof(cl_int), &border_cell_level_global[0], &start_write_event);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_level, CL_FALSE,  0, nbsize*sizeof(cl_int), &border_cell_level_global[0], NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_border_i    , CL_FALSE,  0, nbsize*sizeof(cl_int), &border_cell_i_global[0],     NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_border_j    , CL_FALSE,  0, nbsize*sizeof(cl_int), &border_cell_j_global[0],     NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_border_num  , CL_TRUE,   0, nbsize*sizeof(cl_int), &border_cell_num_global[0],   &end_write_event);
-      gpu_time_calc_neighbors += ezcl_timer_calc(&start_write_event, &end_write_event);
-
-      cpu_timer_start(&tstart_cpu);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_num  , CL_TRUE,   0, nbsize*sizeof(cl_int), &border_cell_num_global[0],   NULL);
 
       //size_t border_local_work_size = MIN(nbsize,TILE_SIZE);
       size_t border_local_work_size = 32;
@@ -4316,7 +4274,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_hash_setup_border, 7, sizeof(cl_mem), (void *)&dev_border_j);
       ezcl_set_kernel_arg(kernel_hash_setup_border, 8, sizeof(cl_mem), (void *)&dev_border_num);
       ezcl_set_kernel_arg(kernel_hash_setup_border, 9, sizeof(cl_mem), (void *)&dev_hash);
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_setup_border,  1, NULL, &border_global_work_size, &border_local_work_size, &hash_setup_border_event);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_setup_border,  1, NULL, &border_global_work_size, &border_local_work_size, NULL);
 
       ezcl_device_memory_remove(dev_border_level);
       ezcl_device_memory_remove(dev_border_i);
@@ -4337,20 +4295,18 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 11, sizeof(cl_mem), (void *)&dev_nbot);
       ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 12, sizeof(cl_mem), (void *)&dev_ntop);
       ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 13, sizeof(cl_mem), (void *)&dev_hash);
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors_local2,   1, NULL, &global_work_size, &local_work_size, &calc_neighbors_event);
-      gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors_local2,   1, NULL, &global_work_size, &local_work_size, NULL);
    } // if (numpe > 1)
 
    ezcl_device_memory_remove(dev_sizes);
 
    vector<int> hash_tmp(hashsize);
-   ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], &start_read_event);
+   ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
 
    ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells*sizeof(cl_int), &nlft_tmp[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells*sizeof(cl_int), &nrht_tmp[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells*sizeof(cl_int), &nbot_tmp[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], &end_read_event);
-   gpu_time_calc_neighbors += ezcl_timer_calc(&start_read_event, &end_read_event);
+   ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], NULL);
 
    if (DEBUG) {
 
@@ -4461,8 +4417,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       fprintf(fp,"\n");
    }
    
-   cpu_timer_start(&tstart_cpu);
-
    vector<int> offtile_list;
 
    int start_idx = noffset;
@@ -4868,11 +4822,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       //   fprintf(fp,"%d: test after update ic %d = %d\n",mype,ic,itest[ic]);
       //}
 
-   gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
-
    if (numpe > 1) {
-      cpu_timer_start(&tstart_cpu);
-
       cl_mem dev_celltype_old = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_i_old        = ezcl_malloc(NULL, const_cast<char *>("dev_i_old"),        &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_j_old        = ezcl_malloc(NULL, const_cast<char *>("dev_j_old"),        &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -4910,7 +4860,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_copy_mesh_data, 15, sizeof(cl_mem), (void *)&dev_ntop_old);
       ezcl_set_kernel_arg(kernel_copy_mesh_data, 16, sizeof(cl_mem), (void *)&dev_ntop);
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mesh_data,   1, NULL, &global_work_size, &local_work_size, &copy_mesh_data_event);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mesh_data,   1, NULL, &global_work_size, &local_work_size, NULL);
    
       ezcl_device_memory_remove(dev_celltype_old);
       ezcl_device_memory_remove(dev_i_old);
@@ -4931,9 +4881,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       cl_mem dev_j_add          = ezcl_malloc(NULL, const_cast<char *>("dev_j_add"),          &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_level_add      = ezcl_malloc(NULL, const_cast<char *>("dev_level_add"),      &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_indices_needed = ezcl_malloc(NULL, const_cast<char *>("dev_indices_needed"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 
-      ezcl_enqueue_write_buffer(command_queue, dev_nlft_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nlft_tmp[ncells],     &start_write_event);
+      ezcl_enqueue_write_buffer(command_queue, dev_nlft_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nlft_tmp[ncells],     NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_nrht_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nrht_tmp[ncells],     NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_nbot_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nbot_tmp[ncells],     NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_ntop_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&ntop_tmp[ncells],     NULL);
@@ -4941,11 +4890,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_write_buffer(command_queue, dev_i_add,          CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&i_tmp[ncells],        NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_j_add,          CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&j_tmp[ncells],        NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_level_add,      CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&level_tmp[ncells],    NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_indices_needed, CL_TRUE,  0, nghost*sizeof(cl_int), (void*)&indices_needed[0],    &end_write_event);
-
-      gpu_time_calc_neighbors += ezcl_timer_calc(&start_write_event, &end_write_event);
-
-      cpu_timer_start(&tstart_cpu);
+      ezcl_enqueue_write_buffer(command_queue, dev_indices_needed, CL_TRUE,  0, nghost*sizeof(cl_int), (void*)&indices_needed[0],    NULL);
 
       //size_t border_local_work_size = MIN(nbsize,TILE_SIZE);
       size_t ghost_local_work_size = 32;
@@ -4970,7 +4915,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_copy_ghost_data, 16, sizeof(cl_mem), (void *)&dev_level);
       ezcl_set_kernel_arg(kernel_copy_ghost_data, 17, sizeof(cl_mem), (void *)&dev_level_add);
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_ghost_data_event);                                                                                                      
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);                                                                                                      
       ezcl_device_memory_remove(dev_nlft_add);
       ezcl_device_memory_remove(dev_nrht_add);
       ezcl_device_memory_remove(dev_nbot_add);
@@ -4992,11 +4937,9 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_adjust_neighbors, 6,  sizeof(cl_mem), (void *)&dev_nbot);
       ezcl_set_kernel_arg(kernel_adjust_neighbors, 7,  sizeof(cl_mem), (void *)&dev_ntop);
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_adjust_neighbors,   1, NULL, &nc_ghost_global_work_size, &nc_ghost_local_work_size, &adjust_neighbors_event);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_adjust_neighbors,   1, NULL, &nc_ghost_global_work_size, &nc_ghost_local_work_size, NULL);
 
       ezcl_device_memory_remove(dev_indices_needed);
-
-      gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
    } // if (numpe > 1)
 
    if (DEBUG) {
@@ -5018,23 +4961,9 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
    ezcl_device_memory_remove(dev_hash);
 
-   gpu_time_hash_setup     += ezcl_timer_calc(&hash_size_event,         &hash_size_event);
-   if (block_size > 1){
-      gpu_time_hash_setup     += ezcl_timer_calc(&finish_hash_size_event,  &finish_hash_size_event);
-   }
-   //gpu_time_hash_setup     += ezcl_timer_calc(&start_read_event,        &start_read_event);
-   gpu_time_hash_setup     += ezcl_timer_calc(&hash_init_event,         &hash_init_event);
-   gpu_time_hash_setup     += ezcl_timer_calc(&corners_init_event,      &corners_init_event);
-   gpu_time_hash_setup     += ezcl_timer_calc(&hash_setup_event,        &hash_setup_event);
-   gpu_time_hash_setup     += ezcl_timer_calc(&calc_neighbors_init_event, &calc_neighbors_init_event);
-   if (numpe > 1) {
-      gpu_time_hash_setup     += ezcl_timer_calc(&hash_setup_border_event, &hash_setup_border_event);
-      gpu_time_calc_neighbors += ezcl_timer_calc(&calc_neighbors_event,    &calc_neighbors_event);
-      gpu_time_hash_setup     += ezcl_timer_calc(&copy_mesh_data_event,    &copy_mesh_data_event);
-      gpu_time_hash_setup     += ezcl_timer_calc(&copy_ghost_data_event,   &copy_ghost_data_event);
-      gpu_time_hash_setup     += ezcl_timer_calc(&adjust_neighbors_event,  &adjust_neighbors_event);
-   }
+   ezcl_finish(command_queue);
 
+   gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
 #endif
 
