@@ -402,7 +402,7 @@ extern "C" void do_calc(void)
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
-      state->calc_finite_difference_local(mesh, deltaT);
+      state->calc_finite_difference(mesh, deltaT);
 
       if (do_comparison_calc) {
          state_global->calc_finite_difference(mesh_global, deltaT);

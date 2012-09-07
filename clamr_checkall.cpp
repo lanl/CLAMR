@@ -602,7 +602,7 @@ extern "C" void do_calc(void)
       //  Execute main kernel
       if (do_cpu_calc) {
          state_global->calc_finite_difference(mesh_global, deltaT);
-         state_local->calc_finite_difference_local(mesh_local, deltaT);
+         state_local->calc_finite_difference(mesh_local, deltaT);
       }
       
       if (do_gpu_calc) {

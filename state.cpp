@@ -1295,9 +1295,23 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
 
    cpu_timer_start(&tstart_cpu);
 
+   size_t &ncells     = mesh->ncells;
+   size_t &ncells_ghost = mesh->ncells_ghost;
+   if (ncells_ghost < ncells) ncells_ghost = ncells;
+
+#ifdef HAVE_MPI
+   if (mesh->numpe > 1) {
+      H.resize(ncells_ghost,0.0);
+      U.resize(ncells_ghost,0.0);
+      V.resize(ncells_ghost,0.0);
+      L7_Update(&H[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&U[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&V[0], L7_REAL, mesh->cell_handle);
+   }
+#endif
+
    apply_boundary_conditions(mesh);
 
-   size_t &ncells     = mesh->ncells;
    vector<int> &nlft  = mesh->nlft;
    vector<int> &nrht  = mesh->nrht;
    vector<int> &nbot  = mesh->nbot;
@@ -1318,9 +1332,9 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
    double Uyminus, Uyplus;
    double Vyminus, Vyplus;
 
-   vector<real> H_new(ncells);
-   vector<real> U_new(ncells);
-   vector<real> V_new(ncells);
+   vector<real> H_new(ncells_ghost);
+   vector<real> U_new(ncells_ghost);
+   vector<real> V_new(ncells_ghost);
 
    double dxic, dxl, dxr, dyic, dyb, dyt;
    double Hic, Hl, Hr, Hb, Ht;
@@ -1339,7 +1353,7 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
    double Vxminus2=0.0, Vxplus2=0.0;
 
    double Hyminus2=0.0, Hyplus2=0.0;
-   double Uyminus2, Uyplus2;
+   double Uyminus2=0.0, Uyplus2=0.0;
    double Vyminus2=0.0, Vyplus2=0.0;
 
    double dric, drl, drr, drt, drb;
@@ -1380,511 +1394,6 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
    real Hbb2=ZERO;
 
    int ntrt=0;
-   real Htt2=ZERO;
-
-   real Vbb2=ZERO;
-   real Vtt2=ZERO;
-
-   for(uint gix = 0; gix < ncells; gix++) {
-
-      lvl     = level[gix];
-      nl      = nlft[gix];
-      nr      = nrht[gix];
-      nt      = ntop[gix];
-      nb      = nbot[gix];
-
-      Hic     = H[gix];
-      Uic     = U[gix];
-      Vic     = V[gix];
-
-      nll     = nlft[nl];
-      Hl      = H[nl];
-      Ul      = U[nl];
-      Vl      = V[nl];
-
-      nrr     = nrht[nr];
-      Hr      = H[nr];
-      Ur      = U[nr];
-      Vr      = V[nr];
-
-      ntt     = ntop[nt];
-      Ht      = H[nt];
-      Ut      = U[nt];
-      Vt      = V[nt];
-
-      nbb     = nbot[nb];
-      Hb      = H[nb];
-      Ub      = U[nb];
-      Vb      = V[nb];
-
-      nlt     = ntop[nl];
-      nrt     = ntop[nr];
-      ntr     = nrht[nt];
-      nbr     = nrht[nb];
-
-      Hll     = H[nll];
-      Ull     = U[nll];
-      Vll     = V[nll];
-
-      Hrr     = H[nrr];
-      Urr     = U[nrr];
-      Vrr     = V[nrr];
-
-      Htt     = H[ntt];
-      Utt     = U[ntt];
-      Vtt     = V[ntt];
-
-      Hbb     = H[nbb];
-      Ubb     = U[nbb];
-      Vbb     = V[nbb];
-
-      dxic    = lev_deltax[lvl];
-      dyic    = lev_deltay[lvl];
- 
-      dxl     = lev_deltax[level[nl]];
-      dxr     = lev_deltax[level[nr]];
- 
-      dyt     = lev_deltay[level[nt]];
-      dyb     = lev_deltay[level[nb]];
- 
-      drl     = dxl;
-      drr     = dxr;
-      drt     = dyt;
-      drb     = dyb;
-
-      dric    = dxic;
-
-      if(lvl < level[nl]) {
-         Hlt     = H[ ntop[nl] ];
-         Ult     = U[ ntop[nl] ]; 
-         Vlt     = V[ ntop[nl] ]; 
-         nltl    = nlft[nlt];
-         Hll2 = H[nltl];
-         Ull2 = U[nltl];
-      }
-    
-      if(lvl < level[nr]) {
-         Hrt     = H[ ntop[nr] ];
-         Urt     = U[ ntop[nr] ];
-         Vrt     = V[ ntop[nr] ];
-         nrtr    = nrht[nrt];
-         Hrr2 = H[nrtr];
-         Urr2 = U[nrtr];
-      }
-
-      if(lvl < level[nb]) {
-         Hbr     = H[ nrht[nb] ];
-         Ubr     = U[ nrht[nb] ];
-         Vbr     = V[ nrht[nb] ];
-         nbrb    = nbot[nbr];
-         Hbb2 = H[nbrb];
-         Vbb2 = V[nbrb];
-      }
-
-      if(lvl < level[nt]) {
-         Htr     = H[ nrht[nt] ];
-         Utr     = U[ nrht[nt] ];
-         Vtr     = V[ nrht[nt] ];
-         ntrt    = ntop[ntr];
-         Htt2 = H[ntrt];
-         Vtt2 = V[ntrt];
-      }
-
-
-      Hxminus = U_halfstep(deltaT, Hl, Hic, HXFLUXNL, HXFLUXIC,
-                           dxl, dxic, dxl, dxic, SQR(dxl), SQR(dxic));
-      Uxminus = U_halfstep(deltaT, Ul, Uic, UXFLUXNL, UXFLUXIC,
-                           dxl, dxic, dxl, dxic, SQR(dxl), SQR(dxic));
-      Vxminus = U_halfstep(deltaT, Vl, Vic, UVFLUXNL, UVFLUXIC,
-                           dxl, dxic, dxl, dxic, SQR(dxl), SQR(dxic));
-
-      Hxplus  = U_halfstep(deltaT, Hic, Hr, HXFLUXIC, HXFLUXNR,
-                           dxic, dxr, dxic, dxr, SQR(dxic), SQR(dxr));
-      Uxplus  = U_halfstep(deltaT, Uic, Ur, UXFLUXIC, UXFLUXNR,
-                           dxic, dxr, dxic, dxr, SQR(dxic), SQR(dxr));
-      Vxplus  = U_halfstep(deltaT, Vic, Vr, UVFLUXIC, UVFLUXNR,
-                           dxic, dxr, dxic, dxr, SQR(dxic), SQR(dxr));
-
-      Hyminus = U_halfstep(deltaT, Hb, Hic, HYFLUXNB, HYFLUXIC,
-                           dyb, dyic, dyb, dyic, SQR(dyb), SQR(dyic));
-      Uyminus = U_halfstep(deltaT, Ub, Uic, VUFLUXNB, VUFLUXIC,
-                           dyb, dyic, dyb, dyic, SQR(dyb), SQR(dyic));
-      Vyminus = U_halfstep(deltaT, Vb, Vic, VYFLUXNB, VYFLUXIC,
-                           dyb, dyic, dyb, dyic, SQR(dyb), SQR(dyic));
-
-      Hyplus  = U_halfstep(deltaT, Hic, Ht, HYFLUXIC, HYFLUXNT,
-                           dyic, dyt, dyic, dyt, SQR(dyic), SQR(dyt));
-      Uyplus  = U_halfstep(deltaT, Uic, Ut, VUFLUXIC, VUFLUXNT,
-                           dyic, dyt, dyic, dyt, SQR(dyic), SQR(dyt));
-      Vyplus  = U_halfstep(deltaT, Vic, Vt, VYFLUXIC, VYFLUXNT,
-                           dyic, dyt, dyic, dyt, SQR(dyic), SQR(dyt));
-
-      Hxfluxminus = HNEWXFLUXMINUS;
-      Uxfluxminus = UNEWXFLUXMINUS;
-      Vxfluxminus = UVNEWFLUXMINUS;
-
-      Hxfluxplus  = HNEWXFLUXPLUS;
-      Uxfluxplus  = UNEWXFLUXPLUS;
-      Vxfluxplus  = UVNEWFLUXPLUS;
-
-      Hyfluxminus = HNEWYFLUXMINUS;
-      Uyfluxminus = VUNEWFLUXMINUS;
-      Vyfluxminus = VNEWYFLUXMINUS;
-
-      Hyfluxplus  = HNEWYFLUXPLUS;
-      Uyfluxplus  = VUNEWFLUXPLUS;
-      Vyfluxplus  = VNEWYFLUXPLUS;
-
-
-      if(lvl < level[nl]) {
-
-         Hxminus2 = U_halfstep(deltaT, Hlt, Hic, HXFLUXNLT, HXFLUXIC,
-                               drl, dric, drl, dric, SQR(drl), SQR(dric));
-         Uxminus2 = U_halfstep(deltaT, Ult, Uic, UXFLUXNLT, UXFLUXIC,
-                               drl, dric, drl, dric, SQR(drl), SQR(dric));
-         Vxminus2 = U_halfstep(deltaT, Vlt, Vic, UVFLUXNLT, UVFLUXIC,
-                               drl, dric, drl, dric, SQR(drl), SQR(dric));
-
-         Hxfluxminus = (Hxfluxminus + HNEWXFLUXMINUS2) * HALF;
-         Uxfluxminus = (Uxfluxminus + UNEWXFLUXMINUS2) * HALF;
-         Vxfluxminus = (Vxfluxminus + UVNEWFLUXMINUS2) * HALF;
-
-      }
-
-      if(lvl < level[nr]) {
-
-         Hxplus2  = U_halfstep(deltaT, Hic, Hrt, HXFLUXIC, HXFLUXNRT,
-                               dric, drr, dric, drr, SQR(dric), SQR(drr));
-         Uxplus2  = U_halfstep(deltaT, Uic, Urt, UXFLUXIC, UXFLUXNRT,
-                               dric, drr, dric, drr, SQR(dric), SQR(drr));
-         Vxplus2  = U_halfstep(deltaT, Vic, Vrt, UVFLUXIC, UVFLUXNRT,
-                               dric, drr, dric, drr, SQR(dric), SQR(drr));
-
-         Hxfluxplus  = (Hxfluxplus + HNEWXFLUXPLUS2) * HALF;
-         Uxfluxplus  = (Uxfluxplus + UNEWXFLUXPLUS2) * HALF;
-         Vxfluxplus  = (Vxfluxplus + UVNEWFLUXPLUS2) * HALF;
-
-      }
-
-      if(lvl < level[nb]) {
-
-         Hyminus2 = U_halfstep(deltaT, Hbr, Hic, HYFLUXNBR, HYFLUXIC,
-                               drb, dric, drb, dric, SQR(drb), SQR(dric));
-         Uyminus2 = U_halfstep(deltaT, Ubr, Uic, VUFLUXNBR, VUFLUXIC,
-                               drb, dric, drb, dric, SQR(drb), SQR(dric));
-         Vyminus2 = U_halfstep(deltaT, Vbr, Vic, VYFLUXNBR, VYFLUXIC,
-                               drb, dric, drb, dric, SQR(drb), SQR(dric));
-
-         Hyfluxminus = (Hyfluxminus + HNEWYFLUXMINUS2) * HALF;
-         Uyfluxminus = (Uyfluxminus + VUNEWFLUXMINUS2) * HALF;
-         Vyfluxminus = (Vyfluxminus + VNEWYFLUXMINUS2) * HALF;
-
-      }
-
-      if(lvl < level[nt]) {
-
-         Hyplus2  = U_halfstep(deltaT, Hic, Htr, HYFLUXIC, HYFLUXNTR,
-                               dric, drt, dric, drt, SQR(dric), SQR(drt));
-         Uyplus2  = U_halfstep(deltaT, Uic, Utr, VUFLUXIC, VUFLUXNTR,
-                               dric, drt, dric, drt, SQR(dric), SQR(drt));
-         Vyplus2  = U_halfstep(deltaT, Vic, Vtr, VYFLUXIC, VYFLUXNTR,
-                               dric, drt, dric, drt, SQR(dric), SQR(drt));
-
-         Hyfluxplus  = (Hyfluxplus + HNEWYFLUXPLUS2) * HALF;
-         Uyfluxplus  = (Uyfluxplus + VUNEWFLUXPLUS2) * HALF;
-         Vyfluxplus  = (Vyfluxplus + VNEWYFLUXPLUS2) * HALF;
-
-      }
-
-
-
-   ////////////////////////////////////////
-   /// Artificial Viscosity corrections ///
-   ////////////////////////////////////////
-
-
-   if(level[nl] < level[nll]) {
-      Hll = (Hll + H[ ntop[nll] ]) * HALF;
-      Ull = (Ull + U[ ntop[nll] ]) * HALF;
-   }
-
-   real Hr2 = Hr;
-   real Ur2 = Ur;
-   if(lvl < level[nr]) {
-      Hr2 = (Hr2 + Hrt) * HALF;
-      Ur2 = (Ur2 + Urt) * HALF;
-   }
-
-   wminusx_H = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                           Hic-Hl, Hl-Hll, Hr2-Hic);
-
-   wminusx_H *= Hic - Hl;
-
-   if(lvl < level[nl]) {
-      if(level[nlt] < level[nltl])
-         Hll2 = (Hll2 + H[ ntop[nltl] ]) * HALF;
-      wminusx_H = ((w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus2/Hxminus2) +
-                               sqrt(g*Hxminus2), Hic-Hlt, Hlt-Hll2, Hr2-Hic) *
-                   (Hic - Hlt)) + wminusx_H)*HALF*HALF;
-   }
-
-
-   if(level[nr] < level[nrr]) {
-      Hrr = (Hrr + H[ ntop[nrr] ]) * HALF;
-      Urr = (Urr + U[ ntop[nrr] ]) * HALF;
-   }
-
-   real Hl2 = Hl;
-   real Ul2 = Ul;
-   if(lvl < level[nl]) {
-      Hl2 = (Hl2 + Hlt) * HALF;
-      Ul2 = (Ul2 + Ult) * HALF;
-   }
-
-   wplusx_H = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                           Hr-Hic, Hic-Hl2, Hrr-Hr);
-
-   wplusx_H *= Hr - Hic;
-
-   if(lvl < level[nr]) {
-      if(level[nrt] < level[nrtr])
-         Hrr2 = (Hrr2 + H[ ntop[nrtr] ]) * HALF;
-      wplusx_H = ((w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus2/Hxplus2) +
-                               sqrt(g*Hxplus2), Hrt-Hic, Hic-Hl2, Hrr2-Hrt) *
-                   (Hrt - Hic))+wplusx_H)*HALF*HALF;
-   }
-
-
-   wminusx_U = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                           Uic-Ul, Ul-Ull, Ur2-Uic);
-
-   wminusx_U *= Uic - Ul;
-
-   if(lvl < level[nl]) {
-      if(level[nlt] < level[nltl])
-         Ull2 = (Ull2 + U[ ntop[nltl] ]) * HALF;
-      wminusx_U = ((w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus2/Hxminus2) +
-                               sqrt(g*Hxminus2), Uic-Ult, Ult-Ull2, Ur2-Uic) *
-                   (Uic - Ult))+wminusx_U)*HALF*HALF;
-   }
-
-
-   wplusx_U = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                           Ur-Uic, Uic-Ul2, Urr-Ur);
-
-   wplusx_U *= Ur - Uic;
-
-   if(lvl < level[nr]) {
-      if(level[nrt] < level[nrtr])
-         Urr2 = (Urr2 + U[ ntop[nrtr] ]) * HALF;
-      wplusx_U = ((w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus2/Hxplus2) +
-                               sqrt(g*Hxplus2), Urt-Uic, Uic-Ul2, Urr2-Urt) *
-                   (Urt - Uic))+wplusx_U)*HALF*HALF;
-   }
-
-
-   if(level[nb] < level[nbb]) {
-      Hbb = (Hbb + H[ nrht[nbb] ]) * HALF;
-      Vbb = (Vbb + V[ nrht[nbb] ]) * HALF;
-   }
-
-   real Ht2 = Ht;
-   real Vt2 = Vt;
-   if(lvl < level[nt]) {
-      Ht2 = (Ht2 + Htr) * HALF;
-      Vt2 = (Vt2 + Vtr) * HALF;
-   }
-
-   wminusy_H = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                           Hic-Hb, Hb-Hbb, Ht2-Hic);
-
-   wminusy_H *= Hic - Hb;
-
-   if(lvl < level[nb]) {
-      if(level[nbr] < level[nbrb])
-         Hbb2 = (Hbb2 + H[ nrht[nbrb] ]) * HALF;
-      wminusy_H = ((w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus2/Hyminus2) +
-                               sqrt(g*Hyminus2), Hic-Hbr, Hbr-Hbb2, Ht2-Hic) *
-                   (Hic - Hbr))+wminusy_H)*HALF*HALF;
-   }
-
-
-   if(level[nt] < level[ntt]) {
-      Htt = (Htt + H[ nrht[ntt] ]) * HALF;
-      Vtt = (Vtt + V[ nrht[ntt] ]) * HALF;
-   }
-
-   real Hb2 = Hb;
-   real Vb2 = Vb;
-   if(lvl < level[nb]) {
-      Hb2 = (Hb2 + Hbr) * HALF;
-      Vb2 = (Vb2 + Vbr) * HALF;
-   }
-
-   wplusy_H = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                           Ht-Hic, Hic-Hb2, Htt-Ht);
-
-   wplusy_H *= Ht - Hic;
-
-   if(lvl < level[nt]) {
-      if(level[ntr] < level[ntrt])
-         Htt2 = (Htt2 + H[ nrht[ntrt] ]) * HALF;
-      wplusy_H = ((w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus2/Hyplus2) +
-                               sqrt(g*Hyplus2), Htr-Hic, Hic-Hb2, Htt2-Htr) *
-                   (Htr - Hic))+wplusy_H)*HALF*HALF;
-   }
-
-   wminusy_V = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                           Vic-Vb, Vb-Vbb, Vt2-Vic);
-
-   wminusy_V *= Vic - Vb;
-
-   if(lvl < level[nb]) {
-      if(level[nbr] < level[nbrb])
-         Vbb2 = (Vbb2 + V[ nrht[nbrb] ]) * HALF;
-      wminusy_V = ((w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus2/Hyminus2) +
-                               sqrt(g*Hyminus2), Vic-Vbr, Vbr-Vbb2, Vt2-Vic) *
-                   (Vic - Vbr))+wminusy_V)*HALF*HALF;
-   }
-
-   wplusy_V = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                           Vt-Vic, Vic-Vb2, Vtt-Vt);
-
-   wplusy_V *= Vt - Vic;
-
-   if(lvl < level[nt]) {
-      if(level[ntr] < level[ntrt])
-         Vtt2 = (Vtt2 + V[ nrht[ntrt] ]) * HALF;
-      wplusy_V = ((w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus2/Hyplus2) +
-                               sqrt(g*Hyplus2), Vtr-Vic, Vic-Vb2, Vtt2-Vtr) *
-                   (Vtr - Vic))+wplusy_V)*HALF*HALF;
-   }
-
-      H_new[gix] = U_fullstep(deltaT, dxic, Hic,
-                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
-                  - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
-      U_new[gix] = U_fullstep(deltaT, dxic, Uic,
-                       Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
-                  - wminusx_U + wplusx_U;
-      V_new[gix] = U_fullstep(deltaT, dxic, Vic,
-                       Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
-                  - wminusy_V + wplusy_V;
-
-   }
-
-   H.swap(H_new);
-   U.swap(U_new);
-   V.swap(V_new);
-
-   H_new.clear();
-   U_new.clear();
-   V_new.clear();
-
-   cpu_time_finite_difference += cpu_timer_stop(tstart_cpu);
-}
-
-void State::calc_finite_difference_local(Mesh *mesh, double deltaT){
-#ifdef HAVE_MPI
-   double   g     = 9.80;   // gravitational constant
-   double   ghalf = 0.5*g;
-
-   struct timeval tstart_cpu;
-
-   cpu_timer_start(&tstart_cpu);
-
-   H.resize(mesh->ncells_ghost,0.0);
-   U.resize(mesh->ncells_ghost,0.0);
-   V.resize(mesh->ncells_ghost,0.0);
-   L7_Update(&H[0], L7_REAL, mesh->cell_handle);
-   L7_Update(&U[0], L7_REAL, mesh->cell_handle);
-   L7_Update(&V[0], L7_REAL, mesh->cell_handle);
-
-   apply_boundary_conditions(mesh);
-
-   size_t &ncells     = mesh->ncells;
-   size_t &ncells_ghost = mesh->ncells_ghost;
-   vector<int> &nlft  = mesh->nlft;
-   vector<int> &nrht  = mesh->nrht;
-   vector<int> &nbot  = mesh->nbot;
-   vector<int> &ntop  = mesh->ntop;
-   vector<int> &level = mesh->level;
-
-   vector<real> &lev_deltax = mesh->lev_deltax;
-   vector<real> &lev_deltay = mesh->lev_deltay;
-
-   size_t nl, nr, nb, nt;
-   size_t nll, nrr, nbb, ntt;
-   size_t nlt, nrt, nbr, ntr;
-   double Hxminus, Hxplus;
-   double Uxminus, Uxplus;
-   double Vxminus, Vxplus;
-
-   double Hyminus, Hyplus;
-   double Uyminus, Uyplus;
-   double Vyminus, Vyplus;
-
-   vector<real> Hnew(ncells_ghost);
-   vector<real> Unew(ncells_ghost);
-   vector<real> Vnew(ncells_ghost);
-
-   double dxic, dxl, dxr, dyic, dyb, dyt;
-   double Hic, Hl, Hr, Hb, Ht;
-   double Hll, Hrr, Hbb, Htt;
-   double Uic, Ul, Ur, Ub, Ut;
-   double Ull, Urr, Ubb, Utt;
-   double Vic, Vl, Vr, Vb, Vt;
-   double Vll, Vrr, Vbb, Vtt;
-
-   double Hlt=0.0, Hrt=0.0, Htr=0.0, Hbr=0.0;
-   double Ult=0.0, Urt=0.0, Utr=0.0, Ubr=0.0;
-   double Vlt=0.0, Vrt=0.0, Vtr=0.0, Vbr=0.0;
-
-   double Hxminus2=0.0, Hxplus2=0.0;
-   double Uxminus2=0.0, Uxplus2=0.0;
-   double Vxminus2, Vxplus2;
-
-   double Hyminus2=0.0, Hyplus2=0.0;
-   double Uyminus2, Uyplus2;
-   double Vyminus2=0.0, Vyplus2=0.0;
-
-   double dric, drl, drr, drt, drb;
-
-   double Hxfluxminus;
-   double Uxfluxminus;
-   double Vxfluxminus;
-
-   double Hxfluxplus;
-   double Uxfluxplus;
-   double Vxfluxplus;
-
-   double Hyfluxminus;
-   double Uyfluxminus;
-   double Vyfluxminus;
-
-   double Hyfluxplus;
-   double Uyfluxplus;
-   double Vyfluxplus;
-
-   int lvl;
-
-   real wminusx_H, wminusx_U;
-   real wplusx_H, wplusx_U;
-   real wminusy_H, wminusy_V;
-   real wplusy_H, wplusy_V;
-
-   size_t nltl=0;
-   real Hll2=ZERO;
-
-   size_t nrtr=0;
-   real Hrr2=ZERO;
-
-   real Ull2=ZERO;
-   real Urr2=ZERO;
-
-   size_t nbrb=0;
-   real Hbb2=ZERO;
-
-   size_t ntrt=0;
    real Htt2=ZERO;
 
    real Vbb2=ZERO;
@@ -2339,29 +1848,27 @@ void State::calc_finite_difference_local(Mesh *mesh, double deltaT){
                       (Vtr - Vic))+wplusy_V)*HALF*HALF;
       }
 
-      Hnew[gix] = U_fullstep(deltaT, dxic, Hic,
+      H_new[gix] = U_fullstep(deltaT, dxic, Hic,
                        Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
                   - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
-      Unew[gix] = U_fullstep(deltaT, dxic, Uic,
+      U_new[gix] = U_fullstep(deltaT, dxic, Uic,
                        Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
                   - wminusx_U + wplusx_U;
-      Vnew[gix] = U_fullstep(deltaT, dxic, Vic,
+      V_new[gix] = U_fullstep(deltaT, dxic, Vic,
                        Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                   - wminusy_V + wplusy_V;
 
-
    } // cell loop
 
-   H.swap(Hnew);
-   U.swap(Unew);
-   V.swap(Vnew);
+   H.swap(H_new);
+   U.swap(U_new);
+   V.swap(V_new);
 
-   Hnew.clear();
-   Unew.clear();
-   Vnew.clear();
+   H_new.clear();
+   U_new.clear();
+   V_new.clear();
 
    cpu_time_finite_difference += cpu_timer_stop(tstart_cpu);
-#endif
 }
 
 #ifdef HAVE_OPENCL

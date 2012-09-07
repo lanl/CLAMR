@@ -382,7 +382,7 @@ extern "C" void do_calc(void)
 
       //  Execute main kernel
       cpu_timer_start(&tstart_cpu);
-      state->calc_finite_difference_local(mesh, deltaT);
+      state->calc_finite_difference(mesh, deltaT);
       cpu_time_finite_diff += cpu_timer_stop(tstart_cpu);
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0

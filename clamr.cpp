@@ -467,7 +467,7 @@ extern "C" void do_calc(void)
 
       //  Execute main kernel
       cpu_timer_start(&tstart_cpu);
-      state->gpu_calc_finite_difference_local(command_queue, mesh, deltaT);
+      state->gpu_calc_finite_difference(command_queue, mesh, deltaT);
       cpu_time_finite_diff += cpu_timer_stop(tstart_cpu);
 
       vector<int>      ioffset(block_size);
