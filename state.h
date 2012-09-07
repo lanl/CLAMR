@@ -163,7 +163,6 @@ public:
    size_t calc_refine_potential(Mesh *mesh, vector<int> &mpot, int &icount, int &jcount);
 #ifdef HAVE_OPENCL
    size_t gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh);
-   size_t gpu_calc_refine_potential_local(cl_command_queue command_queue, Mesh *mesh);
 #endif
    
    void calc_finite_difference(Mesh *mesh, double deltaT);

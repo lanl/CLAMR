@@ -646,7 +646,7 @@ extern "C" void do_calc(void)
 
       if (do_gpu_calc) {
          new_ncells_global = state_global->gpu_calc_refine_potential(command_queue, mesh_global);
-         new_ncells = state_local->gpu_calc_refine_potential_local(command_queue, mesh_local);
+         new_ncells = state_local->gpu_calc_refine_potential(command_queue, mesh_local);
       }
       
       if (do_comparison_calc) {

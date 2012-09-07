@@ -474,7 +474,7 @@ extern "C" void do_calc(void)
       vector<int>      ioffset_global(block_size_global);
 
       cpu_timer_start(&tstart_cpu);
-      new_ncells = state->gpu_calc_refine_potential_local(command_queue, mesh);
+      new_ncells = state->gpu_calc_refine_potential(command_queue, mesh);
       cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
 
       //  Resize the mesh, inserting cells where refinement is necessary.

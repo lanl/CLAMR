@@ -460,10 +460,10 @@ extern "C" void do_calc(void)
 
          vector<int>      ioffset(block_size);
          int mtotal = 0;
-         for (int ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
+         for (int ig=0; ig<(int)(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
             int mcount = 0;
             for (int ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
-                if (ic >= old_ncells) break;
+                if (ic >= (int)old_ncells) break;
                 if (celltype[ic] == REAL_CELL) {
                    mcount += mpot[ic] ? 4 : 1;
                 } else {
@@ -499,9 +499,9 @@ extern "C" void do_calc(void)
          mesh->compare_indices_gpu_global_to_cpu_global(command_queue);
       }
 
-      if (do_gpu_calc) {
-         int bcount = mesh->gpu_count_BCs(command_queue);
-      }
+      //if (do_gpu_calc) {
+      //   int bcount = mesh->gpu_count_BCs(command_queue);
+      //}
 
       if (do_gpu_calc) {
          if (ncells != old_ncells){

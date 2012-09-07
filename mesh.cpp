@@ -1328,8 +1328,6 @@ void Mesh::rezone_spread(vector<int> &mpot)
 int Mesh::rezone_count(vector<int> mpot)
 {
    int icount=0;
-   struct timeval tstart_cpu;
-   cpu_timer_start(&tstart_cpu);
 
    for (uint ic=0; ic<ncells; ++ic){
       if (mpot[ic] < 0) {
@@ -1351,8 +1349,6 @@ int Mesh::rezone_count(vector<int> mpot)
    }
    //printf("icount is %d\n",icount);
 
-   cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
-
    return(icount);
 }
 
@@ -1360,11 +1356,6 @@ int Mesh::rezone_count(vector<int> mpot)
 void Mesh::gpu_rezone_count(cl_command_queue command_queue, size_t block_size, size_t local_work_size,
     cl_mem dev_ioffset, cl_mem &dev_result)
 {
-   struct timeval tstart_cpu;
-   cl_event reduction_scan_event;
-
-   cpu_timer_start(&tstart_cpu);
-
      /*
      __kernel void finish_reduction_scan_cl(
                        const    int   isize,    // 0
@@ -1379,10 +1370,7 @@ void Mesh::gpu_rezone_count(cl_command_queue command_queue, size_t block_size, s
    ezcl_set_kernel_arg(kernel_reduction_scan, 3, local_work_size*sizeof(cl_int),    NULL);
    ezcl_set_kernel_arg(kernel_reduction_scan, 4, local_work_size*sizeof(cl_int),    NULL);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduction_scan, 1, NULL, &local_work_size, &local_work_size, &reduction_scan_event);
-
-   gpu_time_reduction_scan += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
-   gpu_time_reduction_scan    += ezcl_timer_calc(&reduction_scan_event,    &reduction_scan_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduction_scan, 1, NULL, &local_work_size, &local_work_size, NULL);
 }
 #endif
 
