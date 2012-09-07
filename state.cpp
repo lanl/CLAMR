@@ -900,13 +900,16 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
 
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
-      vector<int> i_tmp(ncells);
-      vector<int> j_tmp(ncells);
-      vector<int> level_tmp(ncells);
+      int i_tmp_first, i_tmp_last;
+      int j_tmp_first, j_tmp_last;
+      int level_tmp_first, level_tmp_last;
 
-      ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0],     NULL);
-      ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0],     NULL);
-      ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_TRUE,  0, ncells*sizeof(cl_int), &level_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, 0, 1*sizeof(cl_int), &i_tmp_first,     NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, 0, 1*sizeof(cl_int), &j_tmp_first,     NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_FALSE, 0, 1*sizeof(cl_int), &level_tmp_first, NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, 0, 1*sizeof(cl_int), &i_tmp_last,      NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, 0, 1*sizeof(cl_int), &j_tmp_last,      NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_TRUE,  0, 1*sizeof(cl_int), &level_tmp_last,  NULL);
 
       MPI_Request req[12];
       MPI_Status status[12];
@@ -917,23 +920,23 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
       if (mesh->mype != 0)               prev = mesh->mype-1;
       if (mesh->mype < mesh->numpe - 1)  next = mesh->mype+1;
 
-      MPI_Isend(&i_tmp[ncells-1],     1,MPI_INT,next,1,MPI_COMM_WORLD,req+0);
-      MPI_Irecv(&ifirst,              1,MPI_INT,prev,1,MPI_COMM_WORLD,req+1);
+      MPI_Isend(&i_tmp_last,      1,MPI_INT,next,1,MPI_COMM_WORLD,req+0);
+      MPI_Irecv(&ifirst,          1,MPI_INT,prev,1,MPI_COMM_WORLD,req+1);
 
-      MPI_Isend(&i_tmp[0],            1,MPI_INT,prev,1,MPI_COMM_WORLD,req+2);
-      MPI_Irecv(&ilast,               1,MPI_INT,next,1,MPI_COMM_WORLD,req+3);
+      MPI_Isend(&i_tmp_first,     1,MPI_INT,prev,1,MPI_COMM_WORLD,req+2);
+      MPI_Irecv(&ilast,           1,MPI_INT,next,1,MPI_COMM_WORLD,req+3);
 
-      MPI_Isend(&j_tmp[ncells-1],     1,MPI_INT,next,1,MPI_COMM_WORLD,req+4);
-      MPI_Irecv(&jfirst,              1,MPI_INT,prev,1,MPI_COMM_WORLD,req+5);
+      MPI_Isend(&j_tmp_last,      1,MPI_INT,next,1,MPI_COMM_WORLD,req+4);
+      MPI_Irecv(&jfirst,          1,MPI_INT,prev,1,MPI_COMM_WORLD,req+5);
 
-      MPI_Isend(&j_tmp[0],            1,MPI_INT,prev,1,MPI_COMM_WORLD,req+6);
-      MPI_Irecv(&jlast,               1,MPI_INT,next,1,MPI_COMM_WORLD,req+7);
+      MPI_Isend(&j_tmp_first,     1,MPI_INT,prev,1,MPI_COMM_WORLD,req+6);
+      MPI_Irecv(&jlast,           1,MPI_INT,next,1,MPI_COMM_WORLD,req+7);
 
-      MPI_Isend(&level_tmp[ncells-1], 1,MPI_INT,next,1,MPI_COMM_WORLD,req+8);
-      MPI_Irecv(&level_first,         1,MPI_INT,prev,1,MPI_COMM_WORLD,req+9);
+      MPI_Isend(&level_tmp_last,  1,MPI_INT,next,1,MPI_COMM_WORLD,req+8);
+      MPI_Irecv(&level_first,     1,MPI_INT,prev,1,MPI_COMM_WORLD,req+9);
 
-      MPI_Isend(&level_tmp[0],        1,MPI_INT,prev,1,MPI_COMM_WORLD,req+10);
-      MPI_Irecv(&level_last,          1,MPI_INT,next,1,MPI_COMM_WORLD,req+11);
+      MPI_Isend(&level_tmp_first, 1,MPI_INT,prev,1,MPI_COMM_WORLD,req+10);
+      MPI_Irecv(&level_last,      1,MPI_INT,next,1,MPI_COMM_WORLD,req+11);
 
       MPI_Waitall(12, req, status);
    }
