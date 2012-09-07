@@ -2736,10 +2736,10 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
 #endif
 
    struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
    double summer = 0.0;
    double total_sum = 0.0;
-
-   cpu_timer_start(&tstart_cpu);
 
    if (enhanced_precision_sum) {
       double correction, corrected_next_term, new_sum;
@@ -2800,9 +2800,8 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
 #ifdef HAVE_OPENCL
 double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum)
 {
-   cl_event mass_sum_stage1_event;
-   cl_event mass_sum_stage2_event;
-   cl_event start_read_event;
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
 
    size_t &ncells       = mesh->ncells;
    cl_mem &dev_levdx    = mesh->dev_levdx;
@@ -2825,7 +2824,7 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
    size_t block_size     = global_work_size/local_work_size;
 
    if (enhanced_precision_sum) {
-      dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_one"), &one,    sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
+      dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_sum"), &one,    sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
       dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
 
         /*
@@ -2849,7 +2848,7 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
       ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 7, sizeof(cl_mem), (void *)&dev_redscratch);
       ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 8, local_work_size*sizeof(cl_real2), NULL);
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, &mass_sum_stage1_event);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, NULL);
 
       if (block_size > 1) {
            /*
@@ -2864,12 +2863,22 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
          ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
          ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 3, local_work_size*sizeof(cl_real2), NULL);
 
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage2of2, 1, NULL, &local_work_size, &local_work_size, &mass_sum_stage2_event);
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage2of2, 1, NULL, &local_work_size, &local_work_size, NULL);
       }
 
+      struct esum_type local, global;
       real2 mass_sum;
-      ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real2), &mass_sum, &start_read_event);               
-      gpu_mass_sum = mass_sum.s0 + mass_sum.s1;
+
+      ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real2), &mass_sum, NULL);
+
+      local.sum = mass_sum.s0;
+      local.correction = mass_sum.s1;
+      global.sum = local.sum;
+      global.correction = local.correction;
+#ifdef HAVE_MPI
+      MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
+#endif
+      gpu_mass_sum = global.sum + global.correction;
    } else {
       dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_sum"), &one,    sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
@@ -2895,7 +2904,7 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
       ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 7, sizeof(cl_mem), (void *)&dev_redscratch);
       ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 8, local_work_size*sizeof(cl_real), NULL);
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, &mass_sum_stage1_event);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, NULL);
 
       if (block_size > 1) {
            /*
@@ -2910,196 +2919,30 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
          ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
          ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 3, local_work_size*sizeof(cl_real), NULL);
 
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage2of2, 1, NULL, &local_work_size, &local_work_size, &mass_sum_stage2_event);
-      }
-
-      real mass_sum;
-      ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real), &mass_sum, &start_read_event);               
-      gpu_mass_sum = mass_sum;
-   }
-
-   //gpu_time_read += ezcl_timer_calc(start_read_event, start_read_event);
-
-   ezcl_device_memory_remove(dev_redscratch);
-   ezcl_device_memory_remove(dev_mass_sum);
-
-   gpu_time_mass_sum     += ezcl_timer_calc(&mass_sum_stage1_event, &mass_sum_stage1_event); 
-   if (block_size > 1) {
-      gpu_time_mass_sum  += ezcl_timer_calc(&mass_sum_stage2_event, &mass_sum_stage2_event);
-   }
-   //gpu_time_read         += ezcl_timer_calc(&start_read_event,      &start_read_event);
-   gpu_time_mass_sum     += ezcl_timer_calc(&start_read_event,      &start_read_event);
-
-   return(gpu_mass_sum);
-}
-
-double State::gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum)
-{
-   cl_event mass_sum_stage1_event;
-   cl_event mass_sum_stage2_event;
-   cl_event start_read_event;
-   struct timeval tstart_cpu;
-
-   cpu_timer_start(&tstart_cpu);
-
-   size_t &ncells       = mesh->ncells;
-   cl_mem &dev_levdx    = mesh->dev_levdx;
-   cl_mem &dev_levdy    = mesh->dev_levdy;
-   cl_mem &dev_celltype = mesh->dev_celltype;
-   cl_mem &dev_level    = mesh->dev_level;
-
-   assert(dev_H);
-   assert(dev_level);
-   assert(dev_levdx);
-   assert(dev_levdy);
-   assert(dev_celltype);
-
-   size_t one = 1;
-   cl_mem dev_mass_sum, dev_redscratch;
-   double total_sum;
-
-   size_t local_work_size = 128;
-   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
-   size_t block_size     = global_work_size/local_work_size;
-
-   if (enhanced_precision_sum) {
-
-      dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_sum"), &one,    sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
-      dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
-
-        /*
-     __   kernel void reduce_sum_cl(
-                         const int    isize,      // 0
-                __global       int   *array,      // 1   Array to be reduced.
-                __global       int   *level,      // 2
-                __global       int   *levdx,      // 3
-                __global       int   *levdy,      // 4
-                __global       int   *celltype,   // 5
-                __global       real  *redscratch, // 6   Final result of operation.
-                __local        real  *tile)       // 7
-        */
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 1, sizeof(cl_mem), (void *)&dev_H);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 2, sizeof(cl_mem), (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 3, sizeof(cl_mem), (void *)&dev_levdx);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 4, sizeof(cl_mem), (void *)&dev_levdy);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 5, sizeof(cl_mem), (void *)&dev_celltype);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 6, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 7, sizeof(cl_mem), (void *)&dev_redscratch);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 8, local_work_size*sizeof(cl_real2), NULL);
-
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, &mass_sum_stage1_event);
-
-      if (block_size > 1) {
-           /*
-           __kernel void reduce_sum_cl(
-                            const int    isize,      // 0
-                   __global       int   *redscratch, // 1   Array to be reduced.
-                   __local        real  *tile)       // 2
-           */
-
-         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
-         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
-         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
-         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 3, local_work_size*sizeof(cl_real2), NULL);
-
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage2of2, 1, NULL, &local_work_size, &local_work_size, &mass_sum_stage2_event);
-      }
-
-      struct esum_type local, global;
-      real2 mass_sum;
-
-      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
-
-      ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real2), &mass_sum, &start_read_event);
-
-      cpu_timer_start(&tstart_cpu);
-
-      local.sum = mass_sum.s0;
-      local.correction = mass_sum.s1;
-      global.sum = local.sum;
-      global.correction = local.correction;
-#ifdef HAVE_MPI
-      MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
-#endif
-      total_sum = global.sum + global.correction;
-
-      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
-   } else {
-      dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_one"), &one,    sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-
-        /*
-     __   kernel void reduce_sum_cl(
-                         const int    isize,      // 0
-                __global       int   *array,      // 1   Array to be reduced.
-                __global       int   *level,      // 2
-                __global       int   *levdx,      // 3
-                __global       int   *levdy,      // 4
-                __global       int   *celltype,   // 5
-                __global       real  *redscratch, // 6   Final result of operation.
-                __local        real  *tile)       // 7
-        */
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 1, sizeof(cl_mem), (void *)&dev_H);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 2, sizeof(cl_mem), (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 3, sizeof(cl_mem), (void *)&dev_levdx);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 4, sizeof(cl_mem), (void *)&dev_levdy);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 5, sizeof(cl_mem), (void *)&dev_celltype);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 6, sizeof(cl_mem), (void *)&dev_mass_sum);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 7, sizeof(cl_mem), (void *)&dev_redscratch);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 8, local_work_size*sizeof(cl_real), NULL);
-
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, &mass_sum_stage1_event);
-
-      if (block_size > 1) {
-           /*
-           __kernel void reduce_sum_cl(
-                            const int    isize,      // 0
-                   __global       int   *redscratch, // 1   Array to be reduced.
-                   __local        real  *tile)       // 2
-           */
-
-         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
-         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
-         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
-         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 3, local_work_size*sizeof(cl_real), NULL);
-
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage2of2, 1, NULL, &local_work_size, &local_work_size, &mass_sum_stage2_event);
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage2of2, 1, NULL, &local_work_size, &local_work_size, NULL);
       }
 
       double local_sum, global_sum;
       real mass_sum;
 
-      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
-
-      ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real), &mass_sum, &start_read_event);
+      ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real), &mass_sum, NULL);
       
-      cpu_timer_start(&tstart_cpu);
-
       local_sum = mass_sum;
       global_sum = local_sum;
 #ifdef HAVE_MPI
       MPI_Allreduce(&local_sum, &global_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #endif
-      total_sum = global_sum;
-
-      gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
+      gpu_mass_sum = global_sum;
    }
 
    ezcl_device_memory_remove(dev_redscratch);
    ezcl_device_memory_remove(dev_mass_sum);
 
-   gpu_time_mass_sum      += ezcl_timer_calc(&mass_sum_stage1_event, &mass_sum_stage1_event); 
-   if (block_size > 1) {
-      gpu_time_mass_sum   += ezcl_timer_calc(&mass_sum_stage2_event, &mass_sum_stage2_event);
-   }
-   //gpu_time_read          += ezcl_timer_calc(&start_read_event,      &start_read_event);
-   gpu_time_mass_sum      += ezcl_timer_calc(&start_read_event,      &start_read_event);
+   ezcl_finish(command_queue);
 
+   gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
-
-   return(total_sum);
+   return(gpu_mass_sum);
 }
 #endif
 

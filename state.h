@@ -175,7 +175,6 @@ public:
    double mass_sum(Mesh *mesh, bool enhanced_precision_sum);
 #ifdef HAVE_OPENCL
    double gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum);
-   double gpu_mass_sum_local(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum);
 #endif
 
    void output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, double elapsed_time);

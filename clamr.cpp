@@ -510,7 +510,7 @@ extern "C" void do_calc(void)
    }  //  End burst loop
 
    if (H_sum < 0) {
-      H_sum = state->gpu_mass_sum_local(command_queue, mesh, enhanced_precision_sum);
+      H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
    }
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);

@@ -281,7 +281,7 @@ extern "C" void do_calc(void)
       //  Resize the mesh, inserting cells where refinement is necessary.
       state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil);
 
-      int bcount = mesh->gpu_count_BCs(command_queue);
+      //int bcount = mesh->gpu_count_BCs(command_queue);
 
    } // End burst loop
 

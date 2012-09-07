@@ -779,7 +779,7 @@ extern "C" void do_calc(void)
          double cpu_mass_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
          double cpu_mass_sum_local = state_local->mass_sum(mesh_local, enhanced_precision_sum);
          double gpu_mass_sum = state_global->gpu_mass_sum(command_queue, mesh_global, enhanced_precision_sum);
-         H_sum = state_local->gpu_mass_sum_local(command_queue, mesh_local, enhanced_precision_sum);
+         H_sum = state_local->gpu_mass_sum(command_queue, mesh_local, enhanced_precision_sum);
          int iflag = 0;
          if (fabs(cpu_mass_sum_local - cpu_mass_sum) > CONSERVATION_EPS) iflag = 1;
          //if (fabs(H_sum - gpu_mass_sum) > CONSERVATION_EPS) iflag = 1;
