@@ -2463,9 +2463,11 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
 {
    struct timeval tstart_cpu;
 
-   cl_event finite_difference_event;
-   cl_event copy_state_data_event;
-   cl_event copy_state_ghost_data_event;
+   //cl_event finite_difference_event;
+   //cl_event copy_state_data_event;
+   //cl_event copy_state_ghost_data_event;
+
+   cpu_timer_start(&tstart_cpu);
 
    cl_mem dev_ptr = NULL;
 
@@ -2495,8 +2497,6 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
-   cpu_timer_start(&tstart_cpu);
-
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
 
@@ -2519,7 +2519,8 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    ezcl_set_kernel_arg(kernel_copy_state_data, 5, sizeof(cl_mem), (void *)&dev_U_new);
    ezcl_set_kernel_arg(kernel_copy_state_data, 6, sizeof(cl_mem), (void *)&dev_V_new);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, &copy_state_data_event);
+   //ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, &copy_state_data_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    SWAP_PTR(dev_H_new, dev_H, dev_ptr);
    SWAP_PTR(dev_U_new, dev_U, dev_ptr);
@@ -2529,19 +2530,11 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    vector<real> U_tmp(mesh->ncells_ghost,0.0);
    vector<real> V_tmp(mesh->ncells_ghost,0.0);
 
-   gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
-   
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
-      cl_event start_write_event, end_write_event;
-      cl_event start_read_event, end_read_event;
-
-      ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], &start_read_event);
+      ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], &end_read_event);
-      gpu_time_finite_difference += ezcl_timer_calc(&start_read_event, &end_read_event);
-
-      cpu_timer_start(&tstart_cpu);
+      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], NULL);
 
       L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
       L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
@@ -2550,17 +2543,12 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
       size_t nghost_local = mesh->ncells_ghost - ncells;
       //fprintf(mesh->fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
 
-      gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
-   
       cl_mem dev_H_add       = ezcl_malloc(NULL, const_cast<char *>("dev_H_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       cl_mem dev_U_add       = ezcl_malloc(NULL, const_cast<char *>("dev_U_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       cl_mem dev_V_add       = ezcl_malloc(NULL, const_cast<char *>("dev_V_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      ezcl_enqueue_write_buffer(command_queue, dev_H_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&H_tmp[ncells], &start_write_event);
+      ezcl_enqueue_write_buffer(command_queue, dev_H_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&H_tmp[ncells], NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_U_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&U_tmp[ncells], NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_V_add, CL_TRUE,  0, nghost_local*sizeof(cl_real), (void*)&V_tmp[ncells], &end_write_event);
-      gpu_time_finite_difference += ezcl_timer_calc(&start_write_event, &end_write_event);
-
-      cpu_timer_start(&tstart_cpu);
+      ezcl_enqueue_write_buffer(command_queue, dev_V_add, CL_TRUE,  0, nghost_local*sizeof(cl_real), (void*)&V_tmp[ncells], NULL);
 
       size_t ghost_local_work_size = 32;
       size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
@@ -2575,9 +2563,7 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
       ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 6, sizeof(cl_mem), (void *)&dev_V);
       ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 7, sizeof(cl_mem), (void *)&dev_V_add);
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, &copy_state_ghost_data_event);
-
-      gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
 
       ezcl_device_memory_remove(dev_H_add);
       ezcl_device_memory_remove(dev_U_add);
@@ -2613,8 +2599,6 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
              __local        int8  *itile)    // 17  Tile size in int8.
      */
 
-   cpu_timer_start(&tstart_cpu);
-
    real deltaT_local = deltaT;
    ezcl_set_kernel_arg(kernel_calc_finite_difference, 0, sizeof(cl_int),  (void *)&ncells);
    ezcl_set_kernel_arg(kernel_calc_finite_difference, 1, sizeof(cl_int),  (void *)&levmx);
@@ -2635,23 +2619,20 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    ezcl_set_kernel_arg(kernel_calc_finite_difference,16, local_work_size*sizeof(cl_real4),    NULL);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,17, local_work_size*sizeof(cl_int8),    NULL);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference,   1, NULL, &global_work_size, &local_work_size, &finite_difference_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    SWAP_PTR(dev_H_new, dev_H, dev_ptr);
    SWAP_PTR(dev_U_new, dev_U, dev_ptr);
    SWAP_PTR(dev_V_new, dev_V, dev_ptr);
 
-   gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
-
    ezcl_device_memory_remove(dev_H_new);
    ezcl_device_memory_remove(dev_U_new);
    ezcl_device_memory_remove(dev_V_new);
 
-   gpu_time_finite_difference += ezcl_timer_calc(&copy_state_data_event,       &copy_state_data_event);
-   if (mesh->numpe > 1) {
-      gpu_time_finite_difference += ezcl_timer_calc(&copy_state_ghost_data_event, &copy_state_ghost_data_event);
-   }
-   gpu_time_finite_difference += ezcl_timer_calc(&finite_difference_event,     &finite_difference_event);
+   ezcl_finish(command_queue);
+
+   gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
+
 }
 #endif
 
