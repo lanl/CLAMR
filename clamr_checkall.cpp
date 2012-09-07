@@ -708,13 +708,6 @@ extern "C" void do_calc(void)
       }
 
       if (do_cpu_calc) {
-         new_ncells_global = old_ncells_global+mesh_global->rezone_count(mpot_global);
-         new_ncells = old_ncells+mesh_local->rezone_count(mpot);
-         //printf("new_ncells %d old_ncells %d rezone_count %d\n",new_ncells, old_ncells, mesh_local->rezone_count(mpot)) ;
-         //printf("new_ncells_global %d old_ncells_global %d rezone_count_global %d\n",new_ncells_global, old_ncells_global, mesh_global->rezone_count(mpot_global));
-      }
-
-      if (do_cpu_calc) {
          int add_ncells_global = new_ncells_global - old_ncells_global;
          int add_ncells = new_ncells - old_ncells;
          //printf("%d: DEBUG add %d new %d old %d\n",mype,add_ncells,new_ncells,old_ncells);

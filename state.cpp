@@ -765,6 +765,7 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 {
    int ic, nc;
    struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
 
    vector<int> &celltype = mesh->celltype;
    //vector<int> &nlft     = mesh->nlft;
@@ -787,9 +788,10 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
       MPI_Allreduce(&add_ncells, &global_add_ncells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
    }
 #endif
-   if (global_add_ncells == 0 ) return;
-
-   cpu_timer_start(&tstart_cpu);
+   if (global_add_ncells == 0 ) {
+      cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
+      return;
+   }
 
    int new_ncells = ncells + add_ncells;
 
