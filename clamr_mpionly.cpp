@@ -398,12 +398,14 @@ extern "C" void do_calc(void)
             exit(-1); }
       }  //  Complete NAN check.
       
+      cpu_timer_start(&tstart_cpu);
       mpot.resize(ncells_ghost);
       new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
       nlft.clear();
       nrht.clear();
       nbot.clear();
       ntop.clear();
+      cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
   
       cpu_timer_start(&tstart_cpu);
       int add_ncells = new_ncells - old_ncells;
