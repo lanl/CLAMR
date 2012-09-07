@@ -496,7 +496,6 @@ void State::add_boundary_cells(Mesh *mesh)
 
 void State::apply_boundary_conditions(Mesh *mesh)
 {
-   struct timeval tstart_cpu;
    int nl, nr, nb, nt;
 
    size_t &ncells = mesh->ncells;
@@ -504,8 +503,6 @@ void State::apply_boundary_conditions(Mesh *mesh)
    vector<int> &nrht = mesh->nrht;
    vector<int> &nbot = mesh->nbot;
    vector<int> &ntop = mesh->ntop;
-
-   cpu_timer_start(&tstart_cpu);
 
    // This is for a mesh with boundary cells
    for (uint ic=0; ic<ncells; ic++) {
@@ -534,8 +531,6 @@ void State::apply_boundary_conditions(Mesh *mesh)
          V[ic] = -V[nb];
       }
    }
-
-   cpu_time_apply_BCs += cpu_timer_stop(tstart_cpu);
 }
 
 void State::remove_boundary_cells(Mesh *mesh)
@@ -1311,6 +1306,8 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
 
    cpu_timer_start(&tstart_cpu);
 
+   apply_boundary_conditions(mesh);
+
    size_t &ncells     = mesh->ncells;
    vector<int> &nlft  = mesh->nlft;
    vector<int> &nrht  = mesh->nrht;
@@ -1798,12 +1795,22 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
 }
 
 void State::calc_finite_difference_local(Mesh *mesh, double deltaT){
+#ifdef HAVE_MPI
    double   g     = 9.80;   // gravitational constant
    double   ghalf = 0.5*g;
 
    struct timeval tstart_cpu;
 
    cpu_timer_start(&tstart_cpu);
+
+   H.resize(mesh->ncells_ghost,0.0);
+   U.resize(mesh->ncells_ghost,0.0);
+   V.resize(mesh->ncells_ghost,0.0);
+   L7_Update(&H[0], L7_REAL, mesh->cell_handle);
+   L7_Update(&U[0], L7_REAL, mesh->cell_handle);
+   L7_Update(&V[0], L7_REAL, mesh->cell_handle);
+
+   apply_boundary_conditions(mesh);
 
    size_t &ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
@@ -2365,6 +2372,7 @@ void State::calc_finite_difference_local(Mesh *mesh, double deltaT){
    Vnew.clear();
 
    cpu_time_finite_difference += cpu_timer_stop(tstart_cpu);
+#endif
 }
 
 #ifdef HAVE_OPENCL
@@ -4010,8 +4018,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
    if (! mesh->parallel) {
       //  Output timing information.
       if (do_cpu_calc) {
-         cpu_time_compute = get_cpu_time_apply_BCs() +
-                            get_cpu_time_set_timestep() +
+         cpu_time_compute = get_cpu_time_set_timestep() +
                             get_cpu_time_finite_difference() +
                             get_cpu_time_refine_potential() +
                             get_cpu_time_rezone_all() +
@@ -4026,7 +4033,6 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
          if (mype == 0) {
             printf("CPU: Device compute           time was\t%8.4f \ts\n",     cpu_time_compute);
             printf("CPU:  state->set_timestep      time was\t %8.4f\ts\n",     get_cpu_time_set_timestep() );
-            printf("CPU:  state->apply_BCs         time was\t %8.4f\ts\n",     get_cpu_time_apply_BCs() );
             printf("CPU:  state->finite_difference time was\t %8.4f\ts\n",     get_cpu_time_finite_difference() );
             printf("CPU:  mesh->refine_potential   time was\t %8.4f\ts\n",     get_cpu_time_refine_potential() );
             printf("CPU:  mesh->rezone_all         time was\t %8.4f\ts\n",     (get_cpu_time_rezone_all() + mesh->get_cpu_time_rezone_all() ) );
@@ -4085,8 +4091,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
       }
    } else {
       if (do_cpu_calc) {
-         cpu_time_compute = get_cpu_time_apply_BCs() +
-                            get_cpu_time_set_timestep() +
+         cpu_time_compute = get_cpu_time_set_timestep() +
                             get_cpu_time_finite_difference() +
                             get_cpu_time_refine_potential() +
                             get_cpu_time_rezone_all() +
@@ -4102,7 +4107,6 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
 
          parallel_timer_output(numpe,mype,"CPU: Device compute           time was" ,cpu_time_compute);
          parallel_timer_output(numpe,mype,"CPU:  state->set_timestep      time was",get_cpu_time_set_timestep() );
-         parallel_timer_output(numpe,mype,"CPU:  state->apply_BCs         time was",get_cpu_time_apply_BCs() );
          parallel_timer_output(numpe,mype,"CPU:  state->finite_difference time was",get_cpu_time_finite_difference() );
          parallel_timer_output(numpe,mype,"CPU:  state->refine_potential  time was",get_cpu_time_refine_potential() );
          parallel_timer_output(numpe,mype,"CPU:  mesh->rezone_all         time was",(get_cpu_time_rezone_all() + mesh->get_cpu_time_rezone_all() ) );

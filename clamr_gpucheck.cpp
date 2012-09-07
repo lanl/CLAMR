@@ -362,11 +362,6 @@ extern "C" void do_calc(void)
       //  state->add_boundary_cells(mesh);
       //}
 
-      // Need ghost cells for this routine
-      if (do_cpu_calc) {
-        state->apply_boundary_conditions(mesh);
-      }
-      
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel

@@ -325,7 +325,6 @@ extern "C" void do_calc(void)
    size_t &ncells_global    = mesh_global->ncells;
    size_t &ncells           = mesh->ncells;
    size_t &ncells_ghost     = mesh->ncells_ghost;
-   int &cell_handle         = mesh->cell_handle;
 
    vector<real>  &H_global = state_global->H;
 
@@ -375,22 +374,12 @@ extern "C" void do_calc(void)
 
       mesh->calc_neighbors_local();
 
-      H.resize(ncells_ghost,0.0);
-      U.resize(ncells_ghost,0.0);
-      V.resize(ncells_ghost,0.0);
-      L7_Update(&H[0], L7_REAL, cell_handle);
-      L7_Update(&U[0], L7_REAL, cell_handle);
-      L7_Update(&V[0], L7_REAL, cell_handle);
-
       mesh->partition_measure();
 
       // Currently not working -- may need to be earlier?
       //if (mesh->have_boundary) {
       //  state->add_boundary_cells(mesh);
       //}
-
-      // Need ghost cells for this routine
-      state->apply_boundary_conditions(mesh);
 
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
