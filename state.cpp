@@ -2469,7 +2469,6 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    cl_event finite_difference_event;
    cl_event copy_state_data_event;
    cl_event copy_state_ghost_data_event;
-   cl_event start_read_event, end_read_event;
 
    cl_mem dev_ptr = NULL;
 
@@ -2535,14 +2534,16 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
 
    gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
    
-   ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], &start_read_event);
-   ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], &end_read_event);
-   gpu_time_finite_difference += ezcl_timer_calc(&start_read_event, &end_read_event);
-
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
       cl_event start_write_event, end_write_event;
+      cl_event start_read_event, end_read_event;
+
+      ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], &start_read_event);
+      ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], &end_read_event);
+      gpu_time_finite_difference += ezcl_timer_calc(&start_read_event, &end_read_event);
+
       cpu_timer_start(&tstart_cpu);
 
       L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
@@ -3250,7 +3251,7 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
    cl_event set_boundary_refinement_event;
    cl_event copy_state_ghost_data_event;
    cl_event copy_mpot_ghost_data_event;
-   cl_event start_read_event, end_read_event;
+   cl_event start_read_event;
    cl_event start_write_event;
 
    cl_mem dev_mpot_add = NULL;
@@ -3286,18 +3287,19 @@ size_t State::gpu_calc_refine_potential_local(cl_command_queue command_queue, Me
 
    gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
-   ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], &start_read_event);
-   ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], &end_read_event);
-
-   gpu_time_refine_potential += ezcl_timer_calc(&start_read_event, &end_read_event);
-
    size_t nghost_local = mesh->ncells_ghost - ncells;
    //fprintf(mesh->fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
 
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
       cl_event end_write_event;
+      cl_event end_read_event;
+
+      ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], &start_read_event);
+      ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], &end_read_event);
+
+      gpu_time_refine_potential += ezcl_timer_calc(&start_read_event, &end_read_event);
 
       cpu_timer_start(&tstart_cpu);
 
