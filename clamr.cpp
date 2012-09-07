@@ -479,7 +479,7 @@ extern "C" void do_calc(void)
 
       //  Resize the mesh, inserting cells where refinement is necessary.
       cpu_timer_start(&tstart_cpu);
-      state->gpu_rezone_all_local(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil);
+      state->gpu_rezone_all(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil);
       cpu_time_rezone += cpu_timer_stop(tstart_cpu);
 
       // XXX XXX XXX

@@ -867,8 +867,6 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil)
 {
    struct timeval tstart_cpu;
-   cl_event rezone_all_event;
-
    cpu_timer_start(&tstart_cpu);
 
    cl_mem dev_ptr = NULL;
@@ -893,6 +891,54 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    assert(dev_levdx);
    assert(dev_levdy);
 
+   int ifirst      = 0;
+   int ilast       = 0;
+   int jfirst      = 0;
+   int jlast       = 0;
+   int level_first = 0;
+   int level_last  = 0;
+
+#ifdef HAVE_MPI
+   if (mesh->numpe > 1) {
+      vector<int> i_tmp(ncells);
+      vector<int> j_tmp(ncells);
+      vector<int> level_tmp(ncells);
+
+      ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0],     NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0],     NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_TRUE,  0, ncells*sizeof(cl_int), &level_tmp[0], NULL);
+
+      MPI_Request req[12];
+      MPI_Status status[12];
+
+      static int prev     = MPI_PROC_NULL;
+      static int next     = MPI_PROC_NULL;
+
+      if (mesh->mype != 0)               prev = mesh->mype-1;
+      if (mesh->mype < mesh->numpe - 1)  next = mesh->mype+1;
+
+      MPI_Isend(&i_tmp[ncells-1],     1,MPI_INT,next,1,MPI_COMM_WORLD,req+0);
+      MPI_Irecv(&ifirst,              1,MPI_INT,prev,1,MPI_COMM_WORLD,req+1);
+
+      MPI_Isend(&i_tmp[0],            1,MPI_INT,prev,1,MPI_COMM_WORLD,req+2);
+      MPI_Irecv(&ilast,               1,MPI_INT,next,1,MPI_COMM_WORLD,req+3);
+
+      MPI_Isend(&j_tmp[ncells-1],     1,MPI_INT,next,1,MPI_COMM_WORLD,req+4);
+      MPI_Irecv(&jfirst,              1,MPI_INT,prev,1,MPI_COMM_WORLD,req+5);
+
+      MPI_Isend(&j_tmp[0],            1,MPI_INT,prev,1,MPI_COMM_WORLD,req+6);
+      MPI_Irecv(&jlast,               1,MPI_INT,next,1,MPI_COMM_WORLD,req+7);
+
+      MPI_Isend(&level_tmp[ncells-1], 1,MPI_INT,next,1,MPI_COMM_WORLD,req+8);
+      MPI_Irecv(&level_first,         1,MPI_INT,prev,1,MPI_COMM_WORLD,req+9);
+
+      MPI_Isend(&level_tmp[0],        1,MPI_INT,prev,1,MPI_COMM_WORLD,req+10);
+      MPI_Irecv(&level_last,          1,MPI_INT,next,1,MPI_COMM_WORLD,req+11);
+
+      MPI_Waitall(12, req, status);
+   }
+#endif
+
    if (new_ncells != old_ncells){
       ncells = new_ncells;
    }
@@ -906,25 +952,21 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    cl_mem dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
    cl_mem dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-   cl_event start_write_event;
    cl_mem dev_ijadd;
 
    vector<int>ijadd(6);
-   ijadd[0] = 0;
-   ijadd[1] = 0;
-   ijadd[2] = 0;
-   ijadd[3] = 0;
-   ijadd[4] = 0;
-   ijadd[5] = 0;
-
-   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
+   if (mesh->numpe > 1) {
+      ijadd[0] = ifirst;
+      ijadd[1] = ilast;
+      ijadd[2] = jfirst;
+      ijadd[3] = jlast;
+      ijadd[4] = level_first;
+      ijadd[5] = level_last;
+   }
 
    size_t six = 6;
    dev_ijadd = ezcl_malloc(NULL, const_cast<char *>("dev_ijadd"), &six, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   ezcl_enqueue_write_buffer(command_queue, dev_ijadd, CL_TRUE, 0, 6*sizeof(cl_int), (void*)&ijadd[0], &start_write_event);
-   gpu_time_rezone_all += ezcl_timer_calc(&start_write_event, &start_write_event);
-
-   cpu_timer_start(&tstart_cpu);
+   ezcl_enqueue_write_buffer(command_queue, dev_ijadd, CL_TRUE, 0, 6*sizeof(cl_int), (void*)&ijadd[0], NULL);
 
    int stencil = 0;
    if (localStencil) stencil = 1;
@@ -958,194 +1000,7 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    ezcl_set_kernel_arg(kernel_rezone_all, 23, local_work_size * sizeof(cl_uint), NULL);
    ezcl_set_kernel_arg(kernel_rezone_all, 24, local_work_size * sizeof(cl_real4),    NULL);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, &rezone_all_event);
-
-   if (ncells != old_ncells){
-      ezcl_device_memory_remove(dev_H);
-      ezcl_device_memory_remove(dev_U);
-      ezcl_device_memory_remove(dev_V);
-      dev_H = ezcl_malloc(NULL, const_cast<char *>("dev_H"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_U = ezcl_malloc(NULL, const_cast<char *>("dev_U"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_V = ezcl_malloc(NULL, const_cast<char *>("dev_V"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-
-      mesh->resize_old_device_memory(ncells);
-   }
-
-   SWAP_PTR(dev_H_new, dev_H, dev_ptr);
-   SWAP_PTR(dev_U_new, dev_U, dev_ptr);
-   SWAP_PTR(dev_V_new, dev_V, dev_ptr);
-
-   SWAP_PTR(dev_celltype_new, dev_celltype, dev_ptr);
-   SWAP_PTR(dev_level_new, dev_level, dev_ptr);
-   SWAP_PTR(dev_i_new, dev_i, dev_ptr);
-   SWAP_PTR(dev_j_new, dev_j, dev_ptr);
-
-   ezcl_device_memory_remove(dev_mpot);
-   ezcl_device_memory_remove(dev_ijadd);
-   ezcl_device_memory_remove(dev_ioffset);
-
-   ezcl_device_memory_remove(dev_H_new);
-   ezcl_device_memory_remove(dev_U_new);
-   ezcl_device_memory_remove(dev_V_new);
-
-   ezcl_device_memory_remove(dev_celltype_new);
-   ezcl_device_memory_remove(dev_level_new);
-   ezcl_device_memory_remove(dev_i_new);
-   ezcl_device_memory_remove(dev_j_new);
-
-   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
-
-   gpu_time_rezone_all        += ezcl_timer_calc(&rezone_all_event,        &rezone_all_event);
-}
-
-void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil)
-{
-   struct timeval tstart_cpu;
-
-   cl_event rezone_all_event;
-
-   cpu_timer_start(&tstart_cpu);
-
-   cl_mem dev_ptr = NULL;
-
-   cl_mem &dev_level        = mesh->dev_level;
-   cl_mem &dev_i            = mesh->dev_i;
-   cl_mem &dev_j            = mesh->dev_j;
-   cl_mem &dev_celltype     = mesh->dev_celltype;
-   cl_mem &dev_levdx        = mesh->dev_levdx;
-   cl_mem &dev_levdy        = mesh->dev_levdy;
-   //cl_mem &dev_mpot         = mesh->dev_mpot;
-
-   assert(dev_mpot);
-   assert(dev_level);
-   assert(dev_i);
-   assert(dev_j);
-   assert(dev_celltype);
-   assert(dev_H);
-   assert(dev_U);
-   assert(dev_V);
-   assert(dev_ioffset);
-   assert(dev_levdx);
-   assert(dev_levdy);
-
-   cl_event start_read_event, end_read_event, start_write_event;
-
-   vector<int> i_tmp(ncells);
-   vector<int> j_tmp(ncells);
-   vector<int> level_tmp(ncells);
-
-   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
-
-   ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0],     &start_read_event);
-   ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0],     NULL);
-   ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_TRUE,  0, ncells*sizeof(cl_int), &level_tmp[0], &end_read_event);
-   gpu_time_rezone_all += ezcl_timer_calc(&start_read_event, &end_read_event);
-
-   cpu_timer_start(&tstart_cpu);
-
-   int ifirst      = 0;
-   int ilast       = 0;
-   int jfirst      = 0;
-   int jlast       = 0;
-   int level_first = 0;
-   int level_last  = 0;
-
-#ifdef HAVE_MPI
-   MPI_Request req[12];
-   MPI_Status status[12];
-
-   static int prev     = MPI_PROC_NULL;
-   static int next     = MPI_PROC_NULL;
-
-   if (mesh->mype != 0)               prev = mesh->mype-1;
-   if (mesh->mype < mesh->numpe - 1)  next = mesh->mype+1;
-
-   MPI_Isend(&i_tmp[ncells-1],     1,MPI_INT,next,1,MPI_COMM_WORLD,req+0);
-   MPI_Irecv(&ifirst,              1,MPI_INT,prev,1,MPI_COMM_WORLD,req+1);
-
-   MPI_Isend(&i_tmp[0],            1,MPI_INT,prev,1,MPI_COMM_WORLD,req+2);
-   MPI_Irecv(&ilast,               1,MPI_INT,next,1,MPI_COMM_WORLD,req+3);
-
-   MPI_Isend(&j_tmp[ncells-1],     1,MPI_INT,next,1,MPI_COMM_WORLD,req+4);
-   MPI_Irecv(&jfirst,              1,MPI_INT,prev,1,MPI_COMM_WORLD,req+5);
-
-   MPI_Isend(&j_tmp[0],            1,MPI_INT,prev,1,MPI_COMM_WORLD,req+6);
-   MPI_Irecv(&jlast,               1,MPI_INT,next,1,MPI_COMM_WORLD,req+7);
-
-   MPI_Isend(&level_tmp[ncells-1], 1,MPI_INT,next,1,MPI_COMM_WORLD,req+8);
-   MPI_Irecv(&level_first,         1,MPI_INT,prev,1,MPI_COMM_WORLD,req+9);
-
-   MPI_Isend(&level_tmp[0],        1,MPI_INT,prev,1,MPI_COMM_WORLD,req+10);
-   MPI_Irecv(&level_last,          1,MPI_INT,next,1,MPI_COMM_WORLD,req+11);
-
-   MPI_Waitall(12, req, status);
-#endif
-
-   if (new_ncells != old_ncells){
-      ncells = new_ncells;
-   }
-
-   cl_mem dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-
-   cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-
-   cl_mem dev_ijadd;
-
-   vector<int>ijadd(6);
-   ijadd[0] = ifirst;
-   ijadd[1] = ilast;
-   ijadd[2] = jfirst;
-   ijadd[3] = jlast;
-   ijadd[4] = level_first;
-   ijadd[5] = level_last;
-
-   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
-
-   size_t six = 6;
-   dev_ijadd = ezcl_malloc(NULL, const_cast<char *>("dev_ijadd"), &six, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   ezcl_enqueue_write_buffer(command_queue, dev_ijadd, CL_TRUE, 0, 6*sizeof(cl_int), (void*)&ijadd[0], &start_write_event);
-   gpu_time_rezone_all += ezcl_timer_calc(&start_write_event, &start_write_event);
-
-   cpu_timer_start(&tstart_cpu);
-
-   int stencil = 0;
-   if (localStencil) stencil = 1;
-
-   size_t local_work_size = 128;
-   size_t global_work_size = ((old_ncells+local_work_size - 1) /local_work_size) * local_work_size;
-
-   ezcl_set_kernel_arg(kernel_rezone_all, 0,  sizeof(cl_int),  (void *)&old_ncells);
-   ezcl_set_kernel_arg(kernel_rezone_all, 1,  sizeof(cl_int),  (void *)&stencil);
-   ezcl_set_kernel_arg(kernel_rezone_all, 2,  sizeof(cl_int),  (void *)&mesh->levmx);
-   ezcl_set_kernel_arg(kernel_rezone_all, 3,  sizeof(cl_mem),  (void *)&dev_mpot);
-   ezcl_set_kernel_arg(kernel_rezone_all, 4,  sizeof(cl_mem),  (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_rezone_all, 5,  sizeof(cl_mem),  (void *)&dev_i);
-   ezcl_set_kernel_arg(kernel_rezone_all, 6,  sizeof(cl_mem),  (void *)&dev_j);
-   ezcl_set_kernel_arg(kernel_rezone_all, 7,  sizeof(cl_mem),  (void *)&dev_celltype);
-   ezcl_set_kernel_arg(kernel_rezone_all, 8,  sizeof(cl_mem),  (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_rezone_all, 9,  sizeof(cl_mem),  (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_rezone_all, 10, sizeof(cl_mem),  (void *)&dev_V);
-   ezcl_set_kernel_arg(kernel_rezone_all, 11, sizeof(cl_mem),  (void *)&dev_level_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 12, sizeof(cl_mem),  (void *)&dev_i_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 13, sizeof(cl_mem),  (void *)&dev_j_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 14, sizeof(cl_mem),  (void *)&dev_celltype_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 15, sizeof(cl_mem),  (void *)&dev_H_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 16, sizeof(cl_mem),  (void *)&dev_U_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 17, sizeof(cl_mem),  (void *)&dev_V_new);
-   ezcl_set_kernel_arg(kernel_rezone_all, 18, sizeof(cl_mem),  (void *)&dev_ioffset);
-   ezcl_set_kernel_arg(kernel_rezone_all, 19, sizeof(cl_mem),  (void *)&dev_levdx);
-   ezcl_set_kernel_arg(kernel_rezone_all, 20, sizeof(cl_mem),  (void *)&dev_levdy);
-   ezcl_set_kernel_arg(kernel_rezone_all, 21, sizeof(cl_mem),  (void *)&mesh->dev_levtable);
-   ezcl_set_kernel_arg(kernel_rezone_all, 22, sizeof(cl_mem),  (void *)&dev_ijadd);
-   ezcl_set_kernel_arg(kernel_rezone_all, 23, local_work_size * sizeof(cl_int), NULL);
-   ezcl_set_kernel_arg(kernel_rezone_all, 24, local_work_size * sizeof(cl_real4),    NULL);
-
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, &rezone_all_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    if (ncells != old_ncells){
       ezcl_device_memory_remove(dev_H);
@@ -1191,9 +1046,10 @@ void State::gpu_rezone_all_local(cl_command_queue command_queue, Mesh *mesh, siz
       mesh->noffset=mesh->ndispl[mesh->mype];
    }
 #endif
-   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 
-   gpu_time_rezone_all        += ezcl_timer_calc(&rezone_all_event,        &rezone_all_event);
+   ezcl_finish(command_queue);
+
+   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
 #endif
 
