@@ -622,14 +622,11 @@ double State::set_timestep(Mesh *mesh, double g, double sigma)
 #ifdef HAVE_OPENCL
 double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, double sigma)
 {
-   cl_event set_timestep_event;
-   cl_event reduction_min_event;
-   cl_event start_read_event;
-
    double deltaT, globalmindeltaT;
    struct timeval tstart_cpu;
 
    cpu_timer_start(&tstart_cpu);
+
    size_t &ncells       = mesh->ncells;
 #ifdef HAVE_MPI
    int &parallel        = mesh->parallel;
@@ -683,7 +680,7 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
    ezcl_set_kernel_arg(kernel_set_timestep, 10, sizeof(cl_mem),  (void *)&dev_deltaT);
    ezcl_set_kernel_arg(kernel_set_timestep, 11, local_work_size*sizeof(cl_real),  NULL);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_timestep, 1, NULL, &global_work_size, &local_work_size, &set_timestep_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_timestep, 1, NULL, &global_work_size, &local_work_size, NULL);
 
    if (block_size > 1){
          /*
@@ -698,30 +695,22 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
       ezcl_set_kernel_arg(kernel_reduction_min, 2, sizeof(cl_mem),  (void *)&dev_deltaT);
       ezcl_set_kernel_arg(kernel_reduction_min, 3, local_work_size*sizeof(cl_real), NULL);
 
-     ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduction_min, 1, NULL, &local_work_size, &local_work_size, &reduction_min_event);
+     ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduction_min, 1, NULL, &local_work_size, &local_work_size, NULL);
    }
-   gpu_time_set_timestep += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
    real deltaT_local;
-   ezcl_enqueue_read_buffer(command_queue, dev_deltaT, CL_TRUE,  0, sizeof(cl_real), &deltaT_local, &start_read_event);
+   ezcl_enqueue_read_buffer(command_queue, dev_deltaT, CL_TRUE,  0, sizeof(cl_real), &deltaT_local, NULL);
    deltaT = deltaT_local;
-
-   cpu_timer_start(&tstart_cpu);
 
    globalmindeltaT = deltaT;
 #ifdef HAVE_MPI
    if (parallel) MPI_Allreduce(&deltaT, &globalmindeltaT, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 #endif
-   gpu_time_set_timestep += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
    ezcl_device_memory_remove(dev_redscratch);
 
-   gpu_time_set_timestep      += ezcl_timer_calc(&set_timestep_event,  &set_timestep_event); 
-   if (block_size > 1) {
-      gpu_time_set_timestep   += ezcl_timer_calc(&reduction_min_event, &reduction_min_event);
-   }
-   //gpu_time_read              += ezcl_timer_calc(&start_read_event,    &start_read_event);
-   gpu_time_set_timestep      += ezcl_timer_calc(&start_read_event,    &start_read_event);
+   ezcl_finish(command_queue);
+   gpu_time_set_timestep += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
    return(globalmindeltaT);
 }

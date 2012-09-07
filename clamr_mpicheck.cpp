@@ -139,6 +139,7 @@ static State      *state;    //  Object containing state information correspondi
 static struct timeval tstart;
 
 static double  H_sum_initial = 0.0;
+static double cpu_time_graphics = 0.0;
 
 int main(int argc, char **argv) {
 
@@ -205,7 +206,7 @@ int main(int argc, char **argv) {
    vector<real> &dy = mesh->dy;
 
    ncells = ncells_global/numpe;
-   if (mype < ncells_global%numpe) ncells++;
+   if (mype < (int)ncells_global%numpe) ncells++;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);
@@ -313,9 +314,11 @@ extern "C" void do_calc(void)
    double sigma = 0.95; 
    int icount, jcount;
    int icount_global, jcount_global;
+   struct timeval tstart_cpu;
 
    //  Initialize state variables for GPU calculation.
    int &mype = mesh->mype;
+   int &numpe = mesh->numpe;
 
    vector<int>   &nsizes   = mesh->nsizes;
    vector<int>   &ndispl   = mesh->ndispl;
@@ -335,21 +338,9 @@ extern "C" void do_calc(void)
    size_t &ncells           = mesh->ncells;
    size_t &ncells_ghost     = mesh->ncells_ghost;
 
-   vector<real>  &H_global = state_global->H;
-
    vector<real>  &H = state->H;
    vector<real>  &U = state->U;
    vector<real>  &V = state->V;
-
-   vector<real>  &x  = mesh->x;
-   vector<real>  &dx = mesh->dx;
-   vector<real>  &y  = mesh->y;
-   vector<real>  &dy = mesh->dy;
-
-   vector<real>  &x_global  = mesh_global->x;
-   vector<real>  &dx_global = mesh_global->dx;
-   vector<real>  &y_global  = mesh_global->y;
-   vector<real>  &dy_global = mesh_global->dy;
 
    vector<int>     mpot;
    vector<int>     mpot_global;
@@ -538,6 +529,20 @@ extern "C" void do_calc(void)
    }
 
 #ifdef HAVE_GRAPHICS
+   cpu_timer_start(&tstart_cpu);
+
+   vector<real>  &H_global = state_global->H;
+
+   vector<real>  &x  = mesh->x;
+   vector<real>  &dx = mesh->dx;
+   vector<real>  &y  = mesh->y;
+   vector<real>  &dy = mesh->dy;
+
+   vector<real>  &x_global  = mesh_global->x;
+   vector<real>  &dx_global = mesh_global->dx;
+   vector<real>  &y_global  = mesh_global->y;
+   vector<real>  &dy_global = mesh_global->dy;
+
    mesh->calc_spatial_coordinates(0);
    if (do_comparison_calc) {
       mesh_global->calc_spatial_coordinates(0);
@@ -586,6 +591,10 @@ extern "C" void do_calc(void)
    set_viewmode(view_mode);
    set_circle_radius(circle_radius);
    draw_scene();
+
+   MPI_Barrier(MPI_COMM_WORLD);
+
+   cpu_time_graphics += cpu_timer_stop(tstart_cpu);
 #endif
 
    //  Output final results and timing information.
@@ -599,6 +608,8 @@ extern "C" void do_calc(void)
          state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, elapsed_time);
       }
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
+
+      state->parallel_timer_output(numpe,mype,"CPU:  graphics                 time was",cpu_time_graphics);
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();

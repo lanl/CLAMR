@@ -569,6 +569,7 @@ extern "C" void do_calc(void)
    set_cell_proc(&mesh_global->proc[0]);
    set_circle_radius(circle_radius);
    draw_scene();
+   MPI_Barrier(MPI_COMM_WORLD);
 
    gpu_time_graphics += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 #endif

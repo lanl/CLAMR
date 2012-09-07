@@ -130,8 +130,14 @@ static State      *state;    //  Object containing state information correspondi
 //  Set up timing information.
 static struct timeval tstart;
 
-static double  H_sum_initial = 0.0;
-static double  cpu_time_graphics = 0.0;
+static double H_sum_initial = 0.0;
+static double cpu_time_graphics = 0.0;
+static double cpu_time_timestep = 0.0;
+static double cpu_time_finite_diff = 0.0;
+static double cpu_time_refine_potential = 0.0;
+static double cpu_time_rezone = 0.0;
+static double cpu_time_neighbors = 0.0;
+static double cpu_time_load_balance = 0.0;
 
 int main(int argc, char **argv) {
 
@@ -258,14 +264,14 @@ int main(int argc, char **argv) {
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL
    set_mysize(ncells_global);
-   set_cell_data(&H_global[0]);
-   set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+   set_cell_data(&state_global->H[0]);
+   set_cell_coordinates(&mesh_global->x[0], &mesh_global->dx[0], &mesh_global->y[0], &mesh_global->dy[0]);
    set_cell_proc(&mesh_global->proc[0]);
 #endif
 #ifdef HAVE_MPE
    set_mysize(ncells);
    set_cell_data(&H[0]);
-   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
    set_cell_proc(&mesh->proc[0]);
 #endif
 
@@ -308,13 +314,11 @@ extern "C" void do_calc(void)
 {  double g     = 9.80;
    double sigma = 0.95; 
    int icount, jcount;
+   struct timeval tstart_cpu;
 
    //  Initialize state variables for GPU calculation.
    int &mype  = mesh->mype;
    int &numpe = mesh->numpe;
-
-   vector<int>   &nsizes   = mesh->nsizes;
-   vector<int>   &ndispl   = mesh->ndispl;
 
    vector<int>   &nlft     = mesh->nlft;
    vector<int>   &nrht     = mesh->nrht;
@@ -326,21 +330,9 @@ extern "C" void do_calc(void)
    size_t &ncells           = mesh->ncells;
    size_t &ncells_ghost     = mesh->ncells_ghost;
 
-   vector<real>  &H_global = state_global->H;
-
    vector<real>  &H = state->H;
    vector<real>  &U = state->U;
    vector<real>  &V = state->V;
-
-   vector<real>  &x  = mesh->x;
-   vector<real>  &dx = mesh->dx;
-   vector<real>  &y  = mesh->y;
-   vector<real>  &dy = mesh->dy;
-
-   vector<real>  &x_global  = mesh_global->x;
-   vector<real>  &dx_global = mesh_global->dx;
-   vector<real>  &y_global  = mesh_global->y;
-   vector<real>  &dy_global = mesh_global->dy;
 
    vector<int>     mpot;
    vector<int>     mpot_global;
@@ -368,11 +360,16 @@ extern "C" void do_calc(void)
       old_ncells = ncells;
       old_ncells_global = ncells_global;
 
+      MPI_Barrier(MPI_COMM_WORLD);
+      cpu_timer_start(&tstart_cpu);
       //  Calculate the real time step for the current discrete time step.
       deltaT = state->set_timestep(mesh, g, sigma);
       simTime += deltaT;
+      cpu_time_timestep += cpu_timer_stop(tstart_cpu);
 
+      cpu_timer_start(&tstart_cpu);
       mesh->calc_neighbors_local();
+      cpu_time_neighbors += cpu_timer_stop(tstart_cpu);
 
       mesh->partition_measure();
 
@@ -384,7 +381,9 @@ extern "C" void do_calc(void)
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
+      cpu_timer_start(&tstart_cpu);
       state->calc_finite_difference_local(mesh, deltaT);
+      cpu_time_finite_diff += cpu_timer_stop(tstart_cpu);
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       state->remove_boundary_cells(mesh);
@@ -406,14 +405,18 @@ extern "C" void do_calc(void)
       nbot.clear();
       ntop.clear();
   
+      cpu_timer_start(&tstart_cpu);
       int add_ncells = new_ncells - old_ncells;
       state->rezone_all(mesh, mpot, add_ncells);
       mpot.clear();
+      cpu_time_rezone += cpu_timer_stop(tstart_cpu);
 
       int mesh_local_ncells_global;
       MPI_Allreduce(&ncells, &mesh_local_ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
+      cpu_timer_start(&tstart_cpu);
       mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, H, U, V);
+      cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
 
       H_sum = -1.0;
 
@@ -439,25 +442,27 @@ extern "C" void do_calc(void)
          ncycle, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
    }
 
-   struct timeval tstart_cpu;
 #ifdef HAVE_GRAPHICS
    mesh->calc_spatial_coordinates(0);
 
    cpu_timer_start(&tstart_cpu);
 
 #ifdef HAVE_OPENGL
+   vector<int>   &nsizes   = mesh->nsizes;
+   vector<int>   &ndispl   = mesh->ndispl;
+
    MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-   x_global.resize(ncells_global);
-   dx_global.resize(ncells_global);
-   y_global.resize(ncells_global);
-   dy_global.resize(ncells_global);
-   H_global.resize(ncells_global);
-   MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&H[0],  nsizes[mype], MPI_C_REAL, &H_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   mesh_global->x.resize(ncells_global);
+   mesh_global->dx.resize(ncells_global);
+   mesh_global->y.resize(ncells_global);
+   mesh_global->dy.resize(ncells_global);
+   state_global->H.resize(ncells_global);
+   MPI_Allgatherv(&mesh->x[0],  nsizes[mype], MPI_C_REAL, &mesh_global->x[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&mesh->dx[0], nsizes[mype], MPI_C_REAL, &mesh_global->dx[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&mesh->y[0],  nsizes[mype], MPI_C_REAL, &mesh_global->y[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&mesh->dy[0], nsizes[mype], MPI_C_REAL, &mesh_global->dy[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&state->H[0], nsizes[mype], MPI_C_REAL, &state_global->H[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
    if (view_mode == 0) {
       mesh->proc.resize(ncells);
@@ -470,8 +475,6 @@ extern "C" void do_calc(void)
    }
 #endif
 
-   cpu_timer_start(&tstart_cpu);
-
 #ifdef HAVE_MPE
    set_mysize(ncells);
    set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
@@ -480,16 +483,18 @@ extern "C" void do_calc(void)
 #endif
 #ifdef HAVE_OPENGL
    set_mysize(ncells_global);
-   set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-   set_cell_data(&H_global[0]);
+   set_cell_coordinates(&mesh_global->x[0], &mesh_global->dx[0], &mesh_global->y[0], &mesh_global->dy[0]);
+   set_cell_data(&state_global->H[0]);
    set_cell_proc(&mesh_global->proc[0]);
 #endif
    set_viewmode(view_mode);
    set_circle_radius(circle_radius);
    draw_scene();
-#endif
+
+   MPI_Barrier(MPI_COMM_WORLD);
 
    cpu_time_graphics += cpu_timer_stop(tstart_cpu);
+#endif
 
    //  Output final results and timing information.
    if (ncycle >= niter) {
@@ -501,6 +506,13 @@ extern "C" void do_calc(void)
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
 
       state->parallel_timer_output(numpe,mype,"CPU:  graphics                 time was",cpu_time_graphics);
+
+      state->parallel_timer_output(numpe,mype,"CPU:  timestep calc            time was",cpu_time_timestep);
+      state->parallel_timer_output(numpe,mype,"CPU:  finite_diff              time was",cpu_time_finite_diff);
+      state->parallel_timer_output(numpe,mype,"CPU:  refine_potential         time was",cpu_time_refine_potential);
+      state->parallel_timer_output(numpe,mype,"CPU:  rezone                   time was",cpu_time_rezone);
+      state->parallel_timer_output(numpe,mype,"CPU:  neighbors                time was",cpu_time_neighbors);
+      state->parallel_timer_output(numpe,mype,"CPU:  load_balance             time was",cpu_time_load_balance);
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
