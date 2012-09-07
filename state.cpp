@@ -1881,98 +1881,8 @@ void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mes
    cl_mem dev_ptr = NULL;
 
    size_t &ncells    = mesh->ncells;
-   int &levmx        = mesh->levmx;
-   cl_mem &dev_nlft  = mesh->dev_nlft;
-   cl_mem &dev_nrht  = mesh->dev_nrht;
-   cl_mem &dev_nbot  = mesh->dev_nbot;
-   cl_mem &dev_ntop  = mesh->dev_ntop;
-   cl_mem &dev_level = mesh->dev_level;
-   cl_mem &dev_levdx = mesh->dev_levdx;
-   cl_mem &dev_levdy = mesh->dev_levdy;
-
-   assert(dev_H);
-   assert(dev_U);
-   assert(dev_V);
-   assert(dev_nlft);
-   assert(dev_nrht);
-   assert(dev_nbot);
-   assert(dev_ntop);
-   assert(dev_level);
-   assert(dev_levdx);
-   assert(dev_levdy);
-
-   cl_mem dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-
-   size_t local_work_size = 128;
-   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
-
-     /*
-     __kernel void calc_finite_difference_cl(
-                      const int    ncells,   // 0  Total number of cells.
-                      const int    lvmax,    // 1  Maximum level
-             __global       real  *H,        // 2
-             __global       real  *U,        // 3
-             __global       real  *V,        // 4
-             __global       real  *H_new,    // 5
-             __global       real  *U_new,    // 6
-             __global       real  *V_new,    // 7
-             __global const int   *nlft,     // 8  Array of left neighbors.
-             __global const int   *nrht,     // 9  Array of right neighbors.
-             __global const int   *ntop,     // 10  Array of bottom neighbors.
-             __global const int   *nbot,     // 11  Array of top neighbors.
-             __global const int   *level,    // 12  Array of level information.
-                      const real   deltaT,   // 13  Size of time step.
-             __global const real  *lev_dx,   // 14
-             __global const real  *lev_dy,   // 15
-             __local        real4 *tile,     // 16  Tile size in real4.
-             __local        int8  *itile)    // 17  Tile size in int8.
-     */
-
-   real deltaT_local = deltaT;
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 0, sizeof(cl_int),  (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 1, sizeof(cl_int),  (void *)&levmx);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 2, sizeof(cl_mem),  (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 3, sizeof(cl_mem),  (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 4, sizeof(cl_mem),  (void *)&dev_V);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 5, sizeof(cl_mem),  (void *)&dev_H_new);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 6, sizeof(cl_mem),  (void *)&dev_U_new);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 7, sizeof(cl_mem),  (void *)&dev_V_new);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 8, sizeof(cl_mem),  (void *)&dev_nlft);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference, 9, sizeof(cl_mem),  (void *)&dev_nrht);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,10, sizeof(cl_mem),  (void *)&dev_ntop);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,11, sizeof(cl_mem),  (void *)&dev_nbot);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,12, sizeof(cl_mem),  (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,13, sizeof(cl_real), (void *)&deltaT_local);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,14, sizeof(cl_mem),  (void *)&dev_levdx);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,15, sizeof(cl_mem),  (void *)&dev_levdy);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,16, local_work_size*sizeof(cl_real4),    NULL);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,17, local_work_size*sizeof(cl_int8),    NULL);
-
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference,   1, NULL, &global_work_size, &local_work_size, NULL);
-
-   SWAP_PTR(dev_H_new, dev_H, dev_ptr);
-   SWAP_PTR(dev_U_new, dev_U, dev_ptr);
-   SWAP_PTR(dev_V_new, dev_V, dev_ptr);
-
-   ezcl_device_memory_remove(dev_H_new);
-   ezcl_device_memory_remove(dev_U_new);
-   ezcl_device_memory_remove(dev_V_new);
-
-   gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
-}
-
-void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mesh *mesh, double deltaT)
-{
-   struct timeval tstart_cpu;
-
-   cpu_timer_start(&tstart_cpu);
-
-   cl_mem dev_ptr = NULL;
-
-   size_t &ncells    = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
+   if (ncells_ghost < ncells) ncells_ghost = ncells;
    int &levmx        = mesh->levmx;
    cl_mem &dev_nlft  = mesh->dev_nlft;
    cl_mem &dev_nrht  = mesh->dev_nrht;
@@ -2000,80 +1910,82 @@ void State::gpu_calc_finite_difference_local(cl_command_queue command_queue, Mes
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
 
-     /*
-     __kernel void copy_state_data_cl(
-                      const int  isize,         // 0
-             __global      real  *H,            // 1
-             __global      real  *U,            // 2
-             __global      real  *V,            // 3
-             __global      real  *H_new,        // 4
-             __global      real  *U_new,        // 5
-             __global      real  *V_new)        // 6
-     */
-
-   ezcl_set_kernel_arg(kernel_copy_state_data, 0, sizeof(cl_int), (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_copy_state_data, 1, sizeof(cl_mem), (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_copy_state_data, 2, sizeof(cl_mem), (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_copy_state_data, 3, sizeof(cl_mem), (void *)&dev_V);
-   ezcl_set_kernel_arg(kernel_copy_state_data, 4, sizeof(cl_mem), (void *)&dev_H_new);
-   ezcl_set_kernel_arg(kernel_copy_state_data, 5, sizeof(cl_mem), (void *)&dev_U_new);
-   ezcl_set_kernel_arg(kernel_copy_state_data, 6, sizeof(cl_mem), (void *)&dev_V_new);
-
-   //ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, &copy_state_data_event);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, NULL);
-
-   SWAP_PTR(dev_H_new, dev_H, dev_ptr);
-   SWAP_PTR(dev_U_new, dev_U, dev_ptr);
-   SWAP_PTR(dev_V_new, dev_V, dev_ptr);
-
-   vector<real> H_tmp(mesh->ncells_ghost,0.0);
-   vector<real> U_tmp(mesh->ncells_ghost,0.0);
-   vector<real> V_tmp(mesh->ncells_ghost,0.0);
-
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
-      ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], NULL);
+        /*
+        __kernel void copy_state_data_cl(
+                         const int  isize,         // 0
+                __global      real  *H,            // 1
+                __global      real  *U,            // 2
+                __global      real  *V,            // 3
+                __global      real  *H_new,        // 4
+                __global      real  *U_new,        // 5
+                __global      real  *V_new)        // 6
+        */
 
-      L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
-      L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
-      L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 0, sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 1, sizeof(cl_mem), (void *)&dev_H);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 2, sizeof(cl_mem), (void *)&dev_U);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 3, sizeof(cl_mem), (void *)&dev_V);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 4, sizeof(cl_mem), (void *)&dev_H_new);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 5, sizeof(cl_mem), (void *)&dev_U_new);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 6, sizeof(cl_mem), (void *)&dev_V_new);
 
-      size_t nghost_local = mesh->ncells_ghost - ncells;
-      //fprintf(mesh->fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
+      //ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, &copy_state_data_event);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, NULL);
 
-      cl_mem dev_H_add       = ezcl_malloc(NULL, const_cast<char *>("dev_H_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_U_add       = ezcl_malloc(NULL, const_cast<char *>("dev_U_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_V_add       = ezcl_malloc(NULL, const_cast<char *>("dev_V_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      ezcl_enqueue_write_buffer(command_queue, dev_H_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&H_tmp[ncells], NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_U_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&U_tmp[ncells], NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_V_add, CL_TRUE,  0, nghost_local*sizeof(cl_real), (void*)&V_tmp[ncells], NULL);
+      SWAP_PTR(dev_H_new, dev_H, dev_ptr);
+      SWAP_PTR(dev_U_new, dev_U, dev_ptr);
+      SWAP_PTR(dev_V_new, dev_V, dev_ptr);
 
-      size_t ghost_local_work_size = 32;
-      size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
+      vector<real> H_tmp(mesh->ncells_ghost,0.0);
+      vector<real> U_tmp(mesh->ncells_ghost,0.0);
+      vector<real> V_tmp(mesh->ncells_ghost,0.0);
 
-      // Fill in ghost
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 2, sizeof(cl_mem), (void *)&dev_H);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 3, sizeof(cl_mem), (void *)&dev_H_add);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 4, sizeof(cl_mem), (void *)&dev_U);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 5, sizeof(cl_mem), (void *)&dev_U_add);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 6, sizeof(cl_mem), (void *)&dev_V);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 7, sizeof(cl_mem), (void *)&dev_V_add);
+      if (mesh->numpe > 1) {
+         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], NULL);
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
+         L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
+         L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
+         L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
 
-      ezcl_device_memory_remove(dev_H_add);
-      ezcl_device_memory_remove(dev_U_add);
-      ezcl_device_memory_remove(dev_V_add);
-      ezcl_device_memory_remove(dev_H_new);
-      ezcl_device_memory_remove(dev_U_new);
-      ezcl_device_memory_remove(dev_V_new);
-      dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+         size_t nghost_local = mesh->ncells_ghost - ncells;
+         //fprintf(mesh->fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
+
+         cl_mem dev_H_add       = ezcl_malloc(NULL, const_cast<char *>("dev_H_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+         cl_mem dev_U_add       = ezcl_malloc(NULL, const_cast<char *>("dev_U_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+         cl_mem dev_V_add       = ezcl_malloc(NULL, const_cast<char *>("dev_V_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+         ezcl_enqueue_write_buffer(command_queue, dev_H_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&H_tmp[ncells], NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_U_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&U_tmp[ncells], NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_V_add, CL_TRUE,  0, nghost_local*sizeof(cl_real), (void*)&V_tmp[ncells], NULL);
+
+         size_t ghost_local_work_size = 32;
+         size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
+
+         // Fill in ghost
+         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
+         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
+         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 2, sizeof(cl_mem), (void *)&dev_H);
+         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 3, sizeof(cl_mem), (void *)&dev_H_add);
+         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 4, sizeof(cl_mem), (void *)&dev_U);
+         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 5, sizeof(cl_mem), (void *)&dev_U_add);
+         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 6, sizeof(cl_mem), (void *)&dev_V);
+         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 7, sizeof(cl_mem), (void *)&dev_V_add);
+
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
+
+         ezcl_device_memory_remove(dev_H_add);
+         ezcl_device_memory_remove(dev_U_add);
+         ezcl_device_memory_remove(dev_V_add);
+         ezcl_device_memory_remove(dev_H_new);
+         ezcl_device_memory_remove(dev_U_new);
+         ezcl_device_memory_remove(dev_V_new);
+         dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+         dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+         dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      }
    }
 #endif
 

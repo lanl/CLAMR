@@ -169,7 +169,6 @@ public:
    void calc_finite_difference(Mesh *mesh, double deltaT);
 #ifdef HAVE_OPENCL
    void gpu_calc_finite_difference(cl_command_queue, Mesh *mesh, double deltaT);
-   void gpu_calc_finite_difference_local(cl_command_queue, Mesh *mesh, double deltaT);
 #endif
 
    void symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index, double eps, 

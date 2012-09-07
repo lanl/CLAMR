@@ -607,7 +607,7 @@ extern "C" void do_calc(void)
       
       if (do_gpu_calc) {
          state_global->gpu_calc_finite_difference(command_queue, mesh_global, deltaT);
-         state_local->gpu_calc_finite_difference_local(command_queue, mesh_local, deltaT);
+         state_local->gpu_calc_finite_difference(command_queue, mesh_local, deltaT);
       }
       
       if (do_comparison_calc) {
