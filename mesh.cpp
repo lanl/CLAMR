@@ -1242,7 +1242,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       KDTree_Destroy(&tree);
       //  Refine the cells.
       if (! special_case) rezone_spread(mpot);
-      int add_ncells = rezone_count(mpot);
+      int add_ncells = rezone_smooth(mpot);
       rezone_all(mpot, add_ncells);
 
       calc_spatial_coordinates(0);
@@ -1261,6 +1261,221 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       }
    }
    ncells_ghost = ncells;
+}
+
+size_t Mesh::rezone_smooth(vector<int> &mpot)
+{
+   int nl, nr, nt, nb;
+   int nlt, nrt, ntr, nbr;
+
+   int icount = rezone_count(mpot);
+
+   int newcount = icount;
+   int newcount_global = icount;
+#ifdef HAVE_MPI
+   if (parallel) {
+      MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   }
+#endif
+
+   if(newcount_global > 0 && levmx > 1) {
+      int lev, ll, lr, lt, lb;
+      int llt, lrt, ltr, lbr;
+      int levcount = 1;
+      size_t my_ncells=ncells;
+      if (parallel) my_ncells=ncells_ghost;
+
+      vector<int> mpot_old(my_ncells);
+
+      while (newcount_global > 0 && levcount < levmx){
+         levcount++; 
+         newcount=0;
+
+         mpot.swap(mpot_old);
+
+#ifdef HAVE_MPI
+         if (parallel) {
+            L7_Update(&mpot_old[0], L7_INT, cell_handle);
+         }
+#endif
+
+         for(uint ic = 0; ic < ncells; ic++) {
+            lev = level[ic];
+            mpot[ic] = mpot_old[ic];
+            if(mpot_old[ic] > 0) continue;
+   
+            nl = nlft[ic];
+            ll = level[nl];
+            if(mpot_old[nl] > 0) ll++;
+   
+            if(ll - lev > 1) {
+               mpot[ic]++;
+               newcount++;
+               continue;
+            }
+
+            ll = level[nl];
+            if (ll > lev) {
+               nlt = ntop[nl];
+               llt = level[nlt];
+               if(mpot_old[nlt] > 0) llt++;
+
+               if(llt - lev > 1) {
+                  mpot[ic]++;
+                  newcount++;
+                  continue;
+               }
+            }
+
+            nr = nrht[ic];
+            lr = level[nr];
+            if(mpot_old[nr] > 0) lr++;
+   
+            if(lr - lev > 1) {
+               mpot[ic]++;
+               newcount++;
+               continue;
+            }
+
+            lr = level[nr];
+            if (lr > lev) {
+               nrt = ntop[nr];
+               lrt = level[nrt];
+               if(mpot_old[nrt] > 0) lrt++;
+
+               if(lrt - lev > 1) {
+                  mpot[ic]++;
+                  newcount++;
+                  continue;
+               }
+            }
+
+            nt = ntop[ic];
+            lt = level[nt];
+            if(mpot_old[nt] > 0) lt++;
+   
+            if(lt - lev > 1) {
+               mpot[ic]++;
+               newcount++;
+               continue;
+            }
+
+            lt = level[nt];
+            if (lt > lev) {
+               ntr = nrht[nt];
+               ltr = level[ntr];
+               if(mpot_old[ntr] > 0) ltr++;
+
+               if(ltr - lev > 1) {
+                  mpot[ic]++;
+                  newcount++;
+                  continue;
+               }
+            }
+
+            nb = nbot[ic];
+            lb = level[nb];
+            if(mpot_old[nb] > 0) lb++;
+   
+            if(lb - lev > 1) {
+               mpot[ic]++;
+               newcount++;
+               continue;
+            }
+
+            lb = level[nb];
+            if (lb > lev) {
+               nbr = nrht[nb];
+               lbr = level[nbr];
+               if(mpot_old[nbr] > 0) lbr++;
+
+               if(lbr - lev > 1) {
+                  mpot[ic]++;
+                  newcount++;
+                  continue;
+               }
+            }
+         }
+
+         newcount_global = newcount;
+         icount += newcount;
+         
+#ifdef HAVE_MPI
+         if (parallel) {
+            MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         }
+#endif
+
+//         printf("%d: newcount is %d levmx %d\n",levcount,newcount,levmx);
+      //} while (newcount > 0 && levcount < 10);
+      } while (newcount_global > 0 && levcount < levmx);
+   }
+
+#ifdef HAVE_MPI
+   if (parallel) {
+      L7_Update(&mpot[0], L7_INT, cell_handle);
+  }
+#endif
+
+   for (uint ic=0; ic<ncells; ic++) {
+      if (celltype[ic] < 0) {
+         switch (celltype[ic]) {
+            case LEFT_BOUNDARY:
+               if (mpot[nrht[ic]] > 0) {
+                  mpot[ic]++;
+                  icount++;
+               }
+               break;
+            case RIGHT_BOUNDARY:
+               if (mpot[nlft[ic]] > 0) {
+                  mpot[ic]++;
+                  icount++;
+               }
+               break;
+            case BOTTOM_BOUNDARY:
+               if (mpot[ntop[ic]] > 0) {
+                  mpot[ic]++;
+                  icount++;
+               }
+               break;
+            case TOP_BOUNDARY:
+               if (mpot[nbot[ic]] > 0) {
+                  mpot[ic]++;
+                  icount++;
+               }
+               break;
+         }
+      }
+   }
+
+   nlft.clear();
+   nrht.clear();
+   nbot.clear();
+   ntop.clear();
+
+   icount = 0;
+
+   for (uint ic=0; ic<ncells; ++ic){
+      if (mpot[ic] < 0) {
+         if (celltype[ic] == REAL_CELL) {
+            icount -= 3;
+         } else {
+            icount --;
+         }
+      }// XXX When coarsening is introduced, the issue arises that icount could become 0 even though
+       // XXX both refinements and coarsenings will be needed
+      if (mpot[ic] > 0) {
+         //printf("mpot[%d] = %d\n",ic,mpot[ic]);
+         if (celltype[ic] == REAL_CELL){
+            icount += 3;
+         } else {
+            icount ++;
+         }
+      }
+   }
+   //printf("icount is %d\n",icount);
+
+   return(ncells+icount);
 }
 
 #ifdef HAVE_OPENCL
@@ -3029,7 +3244,7 @@ void Mesh::calc_neighbors_local(void)
                if (border_cell_num_global[ig] == nr) break;
             }
             if (ig == nbsize_local) {
-               printf("%d: Line %d Error with global cell match %d for cell %d\n",mype, __LINE__, nr, ic);
+               printf("%d: Line %d Error with global cell match %d for cell %d\n",mype, __LINE__, nr, ic+noffset);
 #ifdef HAVE_MPI
                //L7_Terminate();
 #endif
@@ -3186,7 +3401,7 @@ void Mesh::calc_neighbors_local(void)
                if (border_cell_num_global[ig] == nb) break;
             }
             if (ig == nbsize_local) {
-               printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nb);
+               printf("%d: Line %d Error with bottom global cell match %d for cell %d\n",mype, __LINE__, nb, ic+noffset);
 #ifdef HAVE_MPI
                //L7_Terminate();
 #endif

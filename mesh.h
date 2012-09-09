@@ -347,6 +347,8 @@ private:
                   vector<int> &nbak,
                   vector<int> index);
    void calc_celltype(void);
-   void rezone_spread(vector<int> &mpot); };
+   void rezone_spread(vector<int> &mpot);
+   size_t rezone_smooth(vector<int> &mpot);
+};
 
 #endif /* MESH_H */
