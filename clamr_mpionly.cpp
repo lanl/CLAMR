@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
    //  Scale the circle appropriately for the mesh size.
    circ_radius = circ_radius * (double) nx / 128.0;
    int boundary = 1;
-   int parallel_in = 1;
+   int parallel_in = 0;
    if (special_case) circ_radius = .75;
 
    mesh_global  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);

@@ -1013,7 +1013,6 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
 
    mype  = 0;
    numpe = 1;
-   parallel = 0;
    ncells = 0;
    ncells_ghost = 0;
    parallel = parallel_in;
@@ -2693,8 +2692,9 @@ void Mesh::calc_neighbors_local(void)
          }
          if (nrht[ic] == -1) nrht[ic] = hash[(      jj   *levmult               )-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
          if (celltype[ic] == BOTTOM_BOUNDARY && nrht[ic] == -1){
-            if (nrht[ic] == -1) nrht[ic] = hash[(jj*levmult+1)-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
+            if (nrht[ic] == -1) nrht[ic] = hash[(jj+1)*levmult-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
             //if (ic == 3 && mype == 0) printf("DEBUG line %d -- ic %d celltype %d nrht %d\n",__LINE__,ic,celltype[ic],nrht[ic]);
+            //printf("DEBUG line %d -- ic %d celltype %d nrht %d jj %d ii %d\n",__LINE__,ic,celltype[ic],nrht[ic],(jj+1)*levmult-jminsize,(min( (ii+1)*levmult,   imaxcalc-1))-iminsize);
          }
          if (nbot[ic] == -1) nbot[ic] = hash[(max(  jj   *levmult-1, 0)         )-jminsize][(      ii   *levmult               )-iminsize];
          if (celltype[ic] == LEFT_BOUNDARY && ntop[ic] == -1){
