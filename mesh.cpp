@@ -2688,7 +2688,7 @@ void Mesh::calc_neighbors_local(void)
          //fprintf(fp,"%d:Neighbors befor ic %d nlft %d nrht %d nbot %d ntop %d\n",mype,ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
          if (nlft[ic] == -1) nlft[ic] = hash[(      jj   *levmult               )-jminsize][(max(  ii   *levmult-1, 0         ))-iminsize];
          if (celltype[ic] == BOTTOM_BOUNDARY && nlft[ic] == -1){
-            if (nlft[ic] == -1) nlft[ic] = hash[(jj*levmult+1)-jminsize][(max(  ii   *levmult-1, 0         ))-iminsize];
+            if (nrht[ic] == -1) nrht[ic] = hash[(jj+1)*levmult-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
          }
          if (nrht[ic] == -1) nrht[ic] = hash[(      jj   *levmult               )-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
          if (celltype[ic] == BOTTOM_BOUNDARY && nrht[ic] == -1){
@@ -2875,7 +2875,7 @@ void Mesh::calc_neighbors_local(void)
                if (border_cell_num_global[ig] == nl) break;
             }
             if (ig == nbsize_local) {
-               printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nl);
+               printf("%d: Line %d Error with global cell match %d ic %d\n",mype, __LINE__, nl, ic+noffset);
 #ifdef HAVE_MPI
                L7_Terminate();
 #endif
