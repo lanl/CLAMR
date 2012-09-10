@@ -997,7 +997,6 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
    cpu_time_calc_spatial_coordinates = 0.0;
    cpu_time_load_balance       = 0.0;
 
-   gpu_time_reduction_scan     = 0;
    gpu_time_hash_setup         = 0;
    gpu_time_calc_neighbors     = 0;
    gpu_time_rezone_all         = 0;
@@ -1118,9 +1117,9 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, bool special_case, int compute_device, int do_gpu_calc)
+void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, int compute_device, int do_gpu_calc)
 #else
-void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_order, bool special_case, int do_gpu_calc)
+void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_order, int do_gpu_calc)
 #endif
 {
 #ifdef HAVE_OPENCL
@@ -1241,7 +1240,6 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
 
       KDTree_Destroy(&tree);
       //  Refine the cells.
-      if (! special_case) rezone_spread(mpot);
       int add_ncells = rezone_smooth(mpot);
       rezone_all(mpot, add_ncells);
 

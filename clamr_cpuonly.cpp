@@ -91,8 +91,7 @@ static int view_mode = 0;
 bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
             outline,        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
-            enhanced_precision_sum,//  Flag for enhanced precision sum (default true); init in input.cpp::parseInput().
-            special_case;   //  Flag for special case debugging (default false); init in input.cpp::parseInput().
+            enhanced_precision_sum;//  Flag for enhanced precision sum (default true); init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
             levmx,          //  Maximum number of refinement levels; init in input.cpp::parseInput().
             nx,             //  x-resolution of coarse grid; init in input.cpp::parseInput().
@@ -130,7 +129,7 @@ int main(int argc, char **argv) {
    int parallel_in = 0;
    
    mesh  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
-   mesh->init(nx, ny, circ_radius, initial_order, special_case, do_gpu_calc);
+   mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
    size_t &ncells = mesh->ncells;
    state = new State(ncells);
    state->init(ncells, do_gpu_calc);

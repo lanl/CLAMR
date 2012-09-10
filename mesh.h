@@ -114,8 +114,7 @@ public:
             cpu_time_calc_spatial_coordinates,
             cpu_time_load_balance;
 
-   long     gpu_time_reduction_scan,
-            gpu_time_hash_setup,
+   long     gpu_time_hash_setup,
             gpu_time_calc_neighbors,
             gpu_time_rezone_all,
             gpu_time_count_BCs,
@@ -229,10 +228,10 @@ public:
 
    //   Member functions.
 #ifdef HAVE_OPENCL
-   void init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, bool special_case, int compute_device, int do_gpu_calc);
+   void init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, int compute_device, int do_gpu_calc);
    void terminate(void);
 #else
-   void init(int nx, int ny, double circ_radius, partition_method initial_order, bool special_case, int do_gpu_calc);
+   void init(int nx, int ny, double circ_radius, partition_method initial_order, int do_gpu_calc);
 #endif
    void mesh_reorder(vector<int> iorder);
 
@@ -256,7 +255,6 @@ public:
    double get_cpu_time_calc_spatial_coordinates(void) {return(cpu_time_calc_spatial_coordinates); };
    double get_cpu_time_load_balance(void)           {return(cpu_time_load_balance); };
 
-   long get_gpu_time_reduction_scan(void)           {return(gpu_time_reduction_scan); };
    long get_gpu_time_hash_setup(void)               {return(gpu_time_hash_setup); };
    long get_gpu_time_calc_neighbors(void)           {return(gpu_time_calc_neighbors); };
    long get_gpu_time_rezone_all(void)               {return(gpu_time_rezone_all); };

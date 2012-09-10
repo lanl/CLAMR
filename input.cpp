@@ -87,8 +87,7 @@ char progVers[8];       //  Program version.
 extern bool verbose,
             localStencil,
             outline,
-            enhanced_precision_sum,
-            special_case;
+            enhanced_precision_sum;
 extern int  outputInterval,
             tmax,
             levmx,
@@ -137,8 +136,7 @@ void outputHelp()
          << "  -T                execute with TVD;" << endl
          << "  -t <t>            specify T time steps to run;" << endl
          << "  -V                use verbose output;" << endl
-         << "  -v                display version information." << endl
-         << "  -z                special case for debugging." << endl; }
+         << "  -v                display version information." << endl; }
 
 void outputVersion()
 {   cout << progName << " " << progVers << endl; }
@@ -172,7 +170,6 @@ void parseInput(const int argc, char** argv)
     cycle_reorder      = ORIGINAL_ORDER;
     levmx              = 1;
     enhanced_precision_sum = true;
-    special_case       = false;
     
     char   *val;
     if (argc > 1)
@@ -295,10 +292,6 @@ void parseInput(const int argc, char** argv)
                     outputVersion();
                     cout.flush();
                     exit(EXIT_SUCCESS);
-                    break;
-                    
-                case 'z':   //  Special case for debugging
-                    special_case = true;
                     break;
                     
                 default:    //  Unknown parameter encountered.

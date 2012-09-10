@@ -119,8 +119,7 @@ static int view_mode = 0;
 bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
             outline,        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
-            enhanced_precision_sum,//  Flag for enhanced precision sum (default true); init in input.cpp::parseInput().
-            special_case;   //  Flag for special case for debugging (default false); init in input.cpp::parseInput().
+            enhanced_precision_sum;//  Flag for enhanced precision sum (default true); init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
             levmx,          //  Maximum number of refinement levels; init in input.cpp::parseInput().
             nx,             //  x-resolution of coarse grid; init in input.cpp::parseInput().
@@ -176,10 +175,9 @@ int main(int argc, char **argv) {
    circ_radius = circ_radius * (double) nx / 128.0;
    int boundary = 1;
    int parallel_in = 0;
-   if (special_case) circ_radius = .75;
 
    mesh_global  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
-   mesh_global->init(nx, ny, circ_radius, context, initial_order, special_case, compute_device, do_gpu_calc);
+   mesh_global->init(nx, ny, circ_radius, context, initial_order, compute_device, do_gpu_calc);
    size_t &ncells_global = mesh_global->ncells;
    state_global = new State(ncells_global, context);
    state_global->init(ncells_global, context, compute_device, do_gpu_calc);
