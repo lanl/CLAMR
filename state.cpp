@@ -2845,6 +2845,12 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
       printf("~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~\n");
    }
    if (! mesh->parallel) {
+      // We need to get rank info for check routines
+      int rank = 0;
+#ifdef HAVE_MPI
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+      
       //  Output timing information.
       if (do_cpu_calc) {
          cpu_time_compute = get_cpu_time_set_timestep() +
@@ -2859,7 +2865,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
          cpu_elapsed_time =                  cpu_time_compute;
          total_time = cpu_elapsed_time;
 
-         if (mype == 0) {
+         if (rank == 0) {
             printf("CPU: Device compute           time was\t%8.4f \ts\n",     cpu_time_compute);
             printf("CPU:  state->set_timestep      time was\t %8.4f\ts\n",     get_cpu_time_set_timestep() );
             printf("CPU:  state->finite_difference time was\t %8.4f\ts\n",     get_cpu_time_finite_difference() );
@@ -2888,7 +2894,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
                             mesh->gpu_time_count_BCs;
          gpu_elapsed_time   = get_gpu_time_write() + gpu_time_compute + get_gpu_time_read();
 
-         if (mype == 0) {
+         if (rank == 0) {
             printf("GPU: Write to device          time was\t%8.4f\ts\n",    (double) get_gpu_time_write()         * 1.0e-9); /* Convert nanoseconds to msecs */
             printf("GPU: Read from device         time was\t%8.4f\ts\n",    (double) get_gpu_time_read()          * 1.0e-9);
             printf("GPU: Device compute           time was\t%8.4f\ts\n",    (double) gpu_time_compute             * 1.0e-9);
