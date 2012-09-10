@@ -4345,7 +4345,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
             }
          }
       }
-      if (nrht_tmp[ic] == -1 || (level_tmp[nrht[ic]-noffset] > level_tmp[ic] && ntop_tmp[nrht_tmp[ic]-noffset]) ){
+      if (nrht_tmp[ic] == -1 || (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nrht_tmp[ic]-noffset]) ){
          //printf("%d: Cell is %d nrht %d\n",mype,ic+noffset,nrht_tmp[ic]);
          border_cell.push_back(ic+noffset);
          if (nlft_tmp[ic] >= 0) {
