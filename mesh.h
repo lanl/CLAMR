@@ -329,6 +329,7 @@ public:
 #endif
 
    void print_object_info();
+   size_t rezone_smooth(vector<int> &mpot);
 
 private:
    //   Private constructors.
@@ -346,7 +347,6 @@ private:
                   vector<int> index);
    void calc_celltype(void);
    void rezone_spread(vector<int> &mpot);
-   size_t rezone_smooth(vector<int> &mpot);
 };
 
 #endif /* MESH_H */
