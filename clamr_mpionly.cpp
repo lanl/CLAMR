@@ -248,6 +248,11 @@ int main(int argc, char **argv) {
    MPI_Scatterv(&y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &y[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dy[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
 
+   mesh->nlft.clear();
+   mesh->nrht.clear();
+   mesh->nbot.clear();
+   mesh->ntop.clear();
+
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
@@ -361,7 +366,7 @@ extern "C" void do_calc(void)
       cpu_time_timestep += cpu_timer_stop(tstart_cpu);
 
       cpu_timer_start(&tstart_cpu);
-      mesh->calc_neighbors_local();
+      if (mesh->nlft.size() == 0) mesh->calc_neighbors_local();
       cpu_time_neighbors += cpu_timer_stop(tstart_cpu);
 
       mesh->partition_measure();
@@ -396,7 +401,7 @@ extern "C" void do_calc(void)
       MPI_Allreduce(&ncells, &mesh_local_ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
       cpu_timer_start(&tstart_cpu);
-      mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, H, U, V);
+      if (mesh->nlft.size() == 0) mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, H, U, V);
       cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
 
       H_sum = -1.0;

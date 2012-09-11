@@ -247,6 +247,15 @@ int main(int argc, char **argv) {
    MPI_Scatterv(&y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &y[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dy[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
 
+   mesh->nlft.clear();
+   mesh->nrht.clear();
+   mesh->nbot.clear();
+   mesh->ntop.clear();
+   mesh_global->nlft.clear();
+   mesh_global->nrht.clear();
+   mesh_global->nbot.clear();
+   mesh_global->ntop.clear();
+
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
@@ -371,10 +380,10 @@ extern "C" void do_calc(void)
          }
       }
 
-      mesh->calc_neighbors_local();
+      if (mesh->nlft.size() == 0) mesh->calc_neighbors_local();
 
       if (do_comparison_calc) {
-         mesh_global->calc_neighbors();
+         if (mesh_global->nlft.size() == 0) mesh_global->calc_neighbors();
 
          // Checking CPU parallel to CPU global
          mesh->compare_neighbors_cpu_local_to_cpu_global(ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);
@@ -444,7 +453,7 @@ extern "C" void do_calc(void)
          mesh->compare_indices_cpu_local_to_cpu_global(ncells_global, mesh_global, &nsizes[0], &ndispl[0], ncycle);
       } // do_comparison_calc
 
-      mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, H, U, V);
+      if (mesh->nlft.size() == 0) mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, H, U, V);
 
       if (do_comparison_calc) {
          // And compare H gathered to H_global, etc

@@ -780,8 +780,6 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
       celltype_save[ic] = celltype[ic];
    }
 
-   mesh->rezone_all(mpot, add_ncells);
-
    int global_add_ncells = add_ncells;
 #ifdef HAVE_MPI
    if (mesh->parallel) {
@@ -792,6 +790,8 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
       cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
       return;
    }
+
+   mesh->rezone_all(mpot, add_ncells);
 
    int new_ncells = ncells + add_ncells;
 

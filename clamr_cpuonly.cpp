@@ -136,6 +136,10 @@ int main(int argc, char **argv) {
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe, mesh->proc);
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
+   mesh->nlft.clear();
+   mesh->nrht.clear();
+   mesh->nbot.clear();
+   mesh->ntop.clear();
    
    vector<real>  &H        = state->H;
 
@@ -214,7 +218,7 @@ extern "C" void do_calc(void)
       deltaT = state->set_timestep(mesh, g, sigma);
       simTime += deltaT;
       
-      mesh->calc_neighbors();
+      if (mesh->nlft.size() == 0) mesh->calc_neighbors();
 
       mesh->partition_measure();
 

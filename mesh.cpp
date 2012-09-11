@@ -1446,11 +1446,6 @@ size_t Mesh::rezone_smooth(vector<int> &mpot)
       }
    }
 
-   nlft.clear();
-   nrht.clear();
-   nbot.clear();
-   ntop.clear();
-
    icount = 0;
 
    for (uint ic=0; ic<ncells; ++ic){
@@ -1472,6 +1467,13 @@ size_t Mesh::rezone_smooth(vector<int> &mpot)
       }
    }
    //printf("icount is %d\n",icount);
+
+   if (icount > 0) {
+      nlft.clear();
+      nrht.clear();
+      nbot.clear();
+      ntop.clear();
+   }
 
    return(ncells+icount);
 }
@@ -2259,15 +2261,6 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
    } //  Complete addition of new cells to the mesh.
 
    ncells = nc;
-   
-   nlft.empty();
-   nrht.empty();
-   nbot.empty();
-   ntop.empty();
-   nlft.resize(new_ncells, -1);
-   nrht.resize(new_ncells, -1);
-   nbot.resize(new_ncells, -1);
-   ntop.resize(new_ncells, -1);
    
    calc_celltype();
 
