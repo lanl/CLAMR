@@ -1042,7 +1042,7 @@ __kernel void hash_setup_border_cl(
    int iminsize = sizes[0].s0;
    int imaxsize = sizes[0].s1;
    int jminsize = sizes[0].s2;
-   //int jmaxsize = sizes[0].s3;
+   int jmaxsize = sizes[0].s3;
 
    int lev = border_level[giX];
    int ii  = border_i[giX];
@@ -1052,8 +1052,8 @@ __kernel void hash_setup_border_cl(
    if (lev == levmx) {
       hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)] = num;
    } else {
-      for (   int jjj = jj*levtable[levmx-lev]-jminsize; jjj < (jj+1)*levtable[levmx-lev]-jminsize; jjj++) {
-         for (int iii = ii*levtable[levmx-lev]-iminsize; iii < (ii+1)*levtable[levmx-lev]-iminsize; iii++) {
+      for (   int jjj = max(jj*levtable[levmx-lev]-jminsize,0); jjj < min((jj+1)*levtable[levmx-lev],jmaxsize)-jminsize; jjj++) {
+         for (int iii = max(ii*levtable[levmx-lev]-iminsize,0); iii < min((ii+1)*levtable[levmx-lev],imaxsize)-iminsize; iii++) {
             hash[jjj*(imaxsize-iminsize)+iii] = num;
          }
       }

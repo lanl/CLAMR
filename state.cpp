@@ -2834,22 +2834,25 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
    int &mype  = mesh->mype;
    int &numpe = mesh->numpe;
 
+   int rank = mype;
+   if (! mesh->parallel) {
+      // We need to get rank info for check routines
+#ifdef HAVE_MPI
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+   }
+
    double cpu_time_compute;
    long gpu_time_compute;
 
    double cpu_elapsed_time=0.0;
    long gpu_elapsed_time=0;
 
-   if (mype == 0) {
+   if (rank == 0) {
       printf("\n");
       printf("~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~\n");
    }
    if (! mesh->parallel) {
-      // We need to get rank info for check routines
-      int rank = 0;
-#ifdef HAVE_MPI
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
       
       //  Output timing information.
       if (do_cpu_calc) {
@@ -2913,7 +2916,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
             printf("=============================================================\n\n");
          }
       }
-      if (mype == 0) {
+      if (rank == 0) {
          printf("=============================================================\n");
          printf("Profiling: Total              time was\t%8.4f\ts or\t%4.2f min\n",    elapsed_time,     elapsed_time/60.0);
          if (do_cpu_calc && do_gpu_calc) {

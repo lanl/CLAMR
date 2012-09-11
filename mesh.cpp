@@ -2880,8 +2880,8 @@ void Mesh::calc_neighbors_local(void)
             //fprintf(fp,"%d: cell %d max j %d i %d\n",mype,ic,j[ic]-jminsize,i[ic]-iminsize);
             hash[border_cell_j_global[ic]-jminsize][border_cell_i_global[ic]-iminsize] = border_cell_num_global[ic];
          } else {
-            for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
-               for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
+            for (int    jj = max(border_cell_j_global[ic]*levmult-jminsize,0); jj < min((border_cell_j_global[ic]+1)*levmult,jmaxsize)-jminsize; jj++) {
+               for (int ii = max(border_cell_i_global[ic]*levmult-iminsize,0); ii < min((border_cell_i_global[ic]+1)*levmult,imaxsize)-iminsize; ii++) {
                   //fprintf(fp,"%d: cell %d block j %d i %d\n",mype,ic,jj,ii);
                   hash[jj][ii] = border_cell_num_global[ic];
                }
