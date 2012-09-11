@@ -217,6 +217,16 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],       &end_write_event  );
    state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
 
+   mesh->nlft.clear();
+   mesh->nrht.clear();
+   mesh->nbot.clear();
+   mesh->ntop.clear();
+
+   mesh->dev_nlft = NULL;
+   mesh->dev_nrht = NULL;
+   mesh->dev_nbot = NULL;
+   mesh->dev_ntop = NULL;
+
    if (compute_device == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
 
    //  Kahan-type enhanced precision sum implementation.
@@ -343,11 +353,11 @@ extern "C" void do_calc(void)
       simTime += deltaT;
 
       if (do_cpu_calc) {
-         mesh->calc_neighbors();
+         if (mesh->nlft.size() == 0) mesh->calc_neighbors();
       }
 
       if (do_gpu_calc) {
-         mesh->gpu_calc_neighbors(command_queue);
+         if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors(command_queue);
       }
 
       if (do_comparison_calc) {

@@ -2075,6 +2075,8 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
 
    int newcount = mesh->rezone_smooth(mpot);
 
+   cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
+
    return(newcount);
 }
 
@@ -2341,10 +2343,6 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
 
    mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
 
-   ezcl_device_memory_remove(dev_nlft);
-   ezcl_device_memory_remove(dev_nrht);
-   ezcl_device_memory_remove(dev_nbot);
-   ezcl_device_memory_remove(dev_ntop);
 
    if (mesh->numpe > 1) {
       ezcl_device_memory_remove(dev_mpot_add);
@@ -2355,6 +2353,17 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
    //printf("Result is %d %d %d\n",my_result, ncells,__LINE__);
 
    ezcl_device_memory_remove(dev_result);
+
+   if (my_result != ncells) {
+      ezcl_device_memory_remove(dev_nlft);
+      ezcl_device_memory_remove(dev_nrht);
+      ezcl_device_memory_remove(dev_nbot);
+      ezcl_device_memory_remove(dev_ntop);
+      dev_nlft = NULL;
+      dev_nrht = NULL;
+      dev_nbot = NULL;
+      dev_ntop = NULL;
+   }
 
    ezcl_finish(command_queue);
 
