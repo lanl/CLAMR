@@ -407,17 +407,6 @@ extern "C" void do_calc(void)
          sleep(2);
       }
 
-      //  Check for NANs.
-      for (uint ic=0; ic<ncells; ic++) {
-         if (isnan(H[ic]))
-         {  printf("Got a NAN on cell %d cycle %d\n",ic,ncycle);
-            H[ic]=0.0;
-            //sleep(100);
-            //  Release kernels and finalize the OpenCL elements.
-            ezcl_finalize();
-            exit(-1); }
-      }  //  Complete NAN check.
-      
       if (do_cpu_calc) {
          mpot.resize(ncells);
          state->calc_refine_potential(mesh, mpot, icount, jcount);
@@ -547,6 +536,10 @@ extern "C" void do_calc(void)
 
    if (H_sum < 0) {
       H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+   }
+   if (isnan(H_sum)) {
+      printf("Got a NAN on cycle %d\n",ncycle);
+      exit(-1);
    }
    printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
       ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);

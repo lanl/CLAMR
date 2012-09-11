@@ -318,11 +318,6 @@ extern "C" void do_calc(void)
    int &mype  = mesh->mype;
    int &numpe = mesh->numpe;
 
-   vector<int>   &nlft     = mesh->nlft;
-   vector<int>   &nrht     = mesh->nrht;
-   vector<int>   &nbot     = mesh->nbot;
-   vector<int>   &ntop     = mesh->ntop;
-
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh_global->ncells;
    size_t &ncells           = mesh->ncells;
@@ -386,23 +381,9 @@ extern "C" void do_calc(void)
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       state->remove_boundary_cells(mesh);
 
-      //  Check for NANs.
-      for (uint ic=0; ic<ncells; ic++) {
-         if (isnan(H[ic]))
-         {  printf("Got a NAN on cell %d cycle %d\n",ic,ncycle);
-            H[ic]=0.0;
-            //sleep(100);
-            L7_Terminate();
-            exit(-1); }
-      }  //  Complete NAN check.
-      
       cpu_timer_start(&tstart_cpu);
       mpot.resize(ncells_ghost);
       new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
-      nlft.clear();
-      nrht.clear();
-      nbot.clear();
-      ntop.clear();
       cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
   
       cpu_timer_start(&tstart_cpu);
@@ -429,14 +410,13 @@ extern "C" void do_calc(void)
 
    } // End burst loop
 
-// XXX if(ncycle == 1) mesh->m_ncycle = 1;
-
    if (H_sum < 0) {
       H_sum = state->mass_sum(mesh, enhanced_precision_sum);
    }
-
-// XXX (mesh->m_ncycle)++;
-
+   if (isnan(H_sum)) {
+      printf("Got a NAN on cycle %d\n",ncycle);
+      exit(-1);
+   }
    if (mype == 0){
       printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
          ncycle, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);

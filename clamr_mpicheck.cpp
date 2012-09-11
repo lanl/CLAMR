@@ -321,16 +321,6 @@ extern "C" void do_calc(void)
    vector<int>   &nsizes   = mesh->nsizes;
    vector<int>   &ndispl   = mesh->ndispl;
 
-   vector<int>   &nlft_global     = mesh_global->nlft;
-   vector<int>   &nrht_global     = mesh_global->nrht;
-   vector<int>   &nbot_global     = mesh_global->nbot;
-   vector<int>   &ntop_global     = mesh_global->ntop;
-
-   vector<int>   &nlft     = mesh->nlft;
-   vector<int>   &nrht     = mesh->nrht;
-   vector<int>   &nbot     = mesh->nbot;
-   vector<int>   &ntop     = mesh->ntop;
-
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh_global->ncells;
    size_t &ncells           = mesh->ncells;
@@ -416,30 +406,12 @@ extern "C" void do_calc(void)
          state_global->remove_boundary_cells(mesh_global);
       }
       
-      //  Check for NANs.
-      for (uint ic=0; ic<ncells; ic++) {
-         if (isnan(H[ic]))
-         {  printf("Got a NAN on cell %d cycle %d\n",ic,ncycle);
-            H[ic]=0.0;
-            //sleep(100);
-            L7_Terminate();
-            exit(-1); }
-      }  //  Complete NAN check.
-      
       mpot.resize(ncells_ghost);
       new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
-      nlft.clear();
-      nrht.clear();
-      nbot.clear();
-      ntop.clear();
   
       if (do_comparison_calc) {
          mpot_global.resize(ncells_global);
          new_ncells_global = state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
-         nlft_global.clear();
-         nrht_global.clear();
-         nbot_global.clear();
-         ntop_global.clear();
 
          int icount_test;
          MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -513,14 +485,14 @@ extern "C" void do_calc(void)
 
    } // End burst loop
 
-// XXX if(ncycle == 1) mesh->m_ncycle = 1;
 
    if (H_sum < 0) {
       H_sum = state->mass_sum(mesh, enhanced_precision_sum);
    }
-
-// XXX (mesh->m_ncycle)++;
-
+   if (isnan(H_sum)) {
+      printf("Got a NAN on cycle %d\n",ncycle);
+      exit(-1);
+   }
    if (mype == 0){
       printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
          ncycle, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);

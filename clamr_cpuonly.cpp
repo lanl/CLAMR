@@ -231,15 +231,6 @@ extern "C" void do_calc(void)
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       state->remove_boundary_cells(mesh);
       
-      //  Check for NANs.
-      for (uint ic=0; ic<ncells; ic++) {
-         if (isnan(H[ic])) {
-            printf("Got a NAN on cell %d cycle %d\n",ic,ncycle);
-            //  Release kernels and finalize the OpenCL elements.
-            exit(-1);
-         }
-      }  //  Complete NAN check.
-
       mpot.resize(ncells);
       new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
 
@@ -266,6 +257,10 @@ extern "C" void do_calc(void)
    }
 
    H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+   if (isnan(H_sum)) {
+      printf("Got a NAN on cycle %d\n",ncycle);
+      exit(-1);
+   }
    printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
       ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
 
