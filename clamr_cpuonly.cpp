@@ -147,6 +147,7 @@ int main(int argc, char **argv) {
    mesh->cpu_time_calc_neighbors=0.0;
    mesh->cpu_rezone_counter=0;
    mesh->cpu_time_rezone_all=0.0;
+   mesh->cpu_refine_smooth_counter=0;
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(mesh, enhanced_precision_sum);

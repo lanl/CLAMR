@@ -1317,6 +1317,8 @@ size_t Mesh::refine_smooth(vector<int> &mpot)
       size_t my_ncells=ncells;
       if (parallel) my_ncells=ncells_ghost;
 
+      cpu_refine_smooth_counter++;
+
       vector<int> mpot_old(my_ncells);
 
       while (newcount_global > 0 && levcount < levmx){
@@ -1576,8 +1578,6 @@ void Mesh::rezone_spread(vector<int> &mpot)
 int Mesh::rezone_count(vector<int> mpot)
 {
    int icount=0;
-
-   cpu_refine_smooth_counter++;
 
    for (uint ic=0; ic<ncells; ++ic){
       if (mpot[ic] < 0) {

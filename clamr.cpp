@@ -338,6 +338,7 @@ int main(int argc, char **argv) {
    mesh_global->cpu_time_calc_neighbors=0.0;
    mesh_global->cpu_rezone_counter=0;
    mesh_global->cpu_time_rezone_all=0.0;
+   mesh_global->cpu_refine_smooth_counter=0;
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
