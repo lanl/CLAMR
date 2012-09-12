@@ -66,6 +66,7 @@
 
 #undef DEBUG
 //#define DEBUG 1
+#define TIMING_LEVEL 2
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
@@ -199,6 +200,8 @@ State::State(size_t ncells)
    cpu_time_set_timestep       = 0;
    cpu_time_finite_difference  = 0;
    cpu_time_refine_potential   = 0;
+     cpu_time_calc_mpot        = 0;
+     cpu_time_refine_smooth    = 0;
    cpu_time_rezone_all         = 0;
    cpu_time_mass_sum           = 0;
 
@@ -206,6 +209,8 @@ State::State(size_t ncells)
    gpu_time_set_timestep       = 0;
    gpu_time_finite_difference  = 0;
    gpu_time_refine_potential   = 0;
+      gpu_time_calc_mpot       = 0;
+      gpu_time_refine_smooth   = 0;
    gpu_time_rezone_all         = 0;
    gpu_time_mass_sum           = 0;
    gpu_time_read               = 0;
@@ -1949,6 +1954,9 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   struct timeval tstart_lev2;
+   if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+
    size_t &ncells     = mesh->ncells;
    vector<int> &nlft  = mesh->nlft;
    vector<int> &nrht  = mesh->nrht;
@@ -2071,8 +2079,13 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
          mpot[ic]=1;
       }
    }
+   if (TIMING_LEVEL >= 2) cpu_time_calc_mpot += cpu_timer_stop(tstart_lev2);
+
+   if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
    int newcount = mesh->refine_smooth(mpot);
+
+   if (TIMING_LEVEL >= 2) cpu_time_refine_smooth += cpu_timer_stop(tstart_lev2);
 
    cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
 
@@ -2083,8 +2096,10 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
 size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh)
 {
    struct timeval tstart_cpu;
-
    cpu_timer_start(&tstart_cpu);
+
+   struct timeval tstart_lev2;
+   if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
    cl_mem dev_mpot_add = NULL;
 
@@ -2210,6 +2225,16 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
    ezcl_set_kernel_arg(kernel_refine_potential,17, local_work_size*sizeof(cl_int8),    NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_potential, 1, NULL, &global_work_size, &local_work_size, NULL);
+
+
+   if (TIMING_LEVEL >= 2) {
+      ezcl_finish(command_queue);
+
+      gpu_time_calc_mpot += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+
+      cpu_timer_start(&tstart_lev2);
+   }
+
 
    mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
 
@@ -2376,6 +2401,7 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
    }
 
    ezcl_finish(command_queue);
+   if (TIMING_LEVEL >= 2) gpu_time_refine_smooth += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
 
    gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
@@ -2671,6 +2697,8 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
             printf("CPU:  state->set_timestep      time was\t %8.4f\ts\n",     get_cpu_time_set_timestep() );
             printf("CPU:  state->finite_difference time was\t %8.4f\ts\n",     get_cpu_time_finite_difference() );
             printf("CPU:  mesh->refine_potential   time was\t %8.4f\ts\n",     get_cpu_time_refine_potential() );
+            printf("CPU:    mesh->calc_mpot          time was\t %8.4f\ts\n",     get_cpu_time_calc_mpot() );
+            printf("CPU:    mesh->refine_smooth      time was\t %8.4f\ts\n",     get_cpu_time_refine_smooth() );
             printf("CPU:  mesh->rezone_all         time was\t %8.4f\ts\n",     (get_cpu_time_rezone_all() + mesh->get_cpu_time_rezone_all() ) );
             printf("CPU:  mesh->partition_cells    time was\t %8.4f\ts\n",     mesh->cpu_time_partition);
             printf("CPU:  mesh->calc_neighbors     time was\t %8.4f\ts\n",     mesh->get_cpu_time_calc_neighbors() );
@@ -2701,6 +2729,8 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
             printf("GPU:  kernel_set_timestep      time was\t %8.4f\ts\n",    (double) get_gpu_time_set_timestep()      * 1.0e-9);
             printf("GPU:  kernel_calc_finite_diff  time was\t %8.4f\ts\n",    (double) get_gpu_time_finite_difference() * 1.0e-9);
             printf("GPU:  kernel_refine_potential  time was\t %8.4f\ts\n",    (double) get_gpu_time_refine_potential()  * 1.0e-9);
+            printf("GPU:    kernel_calc_mpot         time was\t %8.4f\ts\n",    (double) get_gpu_time_calc_mpot()  * 1.0e-9);
+            printf("GPU:    kernel_refine_smooth     time was\t %8.4f\ts\n",    (double) get_gpu_time_refine_smooth()  * 1.0e-9);
             printf("GPU:  kernel_rezone_all        time was\t %8.4f\ts\n",    (double) (get_gpu_time_rezone_all() + mesh->get_gpu_time_rezone_all() ) * 1.0e-9);
             //printf("GPU:  kernel_hash_setup        time was\t %8.4f\ts\n",    (double) mesh->get_gpu_time_hash_setup()        * 1.0e-9);
             printf("GPU:  kernel_calc_neighbors    time was\t %8.4f\ts\n",    (double) mesh->get_gpu_time_calc_neighbors()    * 1.0e-9);
@@ -2742,6 +2772,8 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
          parallel_timer_output(numpe,mype,"CPU:  state->set_timestep      time was",get_cpu_time_set_timestep() );
          parallel_timer_output(numpe,mype,"CPU:  state->finite_difference time was",get_cpu_time_finite_difference() );
          parallel_timer_output(numpe,mype,"CPU:  state->refine_potential  time was",get_cpu_time_refine_potential() );
+         parallel_timer_output(numpe,mype,"CPU:    state->calc_mpot         time was",get_cpu_time_calc_mpot() );
+         parallel_timer_output(numpe,mype,"CPU:    state->refine_smooth     time was",get_cpu_time_refine_smooth() );
          parallel_timer_output(numpe,mype,"CPU:  mesh->rezone_all         time was",(get_cpu_time_rezone_all() + mesh->get_cpu_time_rezone_all() ) );
          parallel_timer_output(numpe,mype,"CPU:  mesh->partition_cells    time was",mesh->cpu_time_partition);
          parallel_timer_output(numpe,mype,"CPU:  mesh->calc_neighbors     time was",mesh->get_cpu_time_calc_neighbors() );
@@ -2777,6 +2809,8 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
          parallel_timer_output(numpe,mype,"GPU:  kernel_set_timestep      time was",(double) get_gpu_time_set_timestep()      * 1.0e-9 );
          parallel_timer_output(numpe,mype,"GPU:  kernel_calc_finite_diff  time was",(double) get_gpu_time_finite_difference() * 1.0e-9 );
          parallel_timer_output(numpe,mype,"GPU:  kernel_refine_potential  time was",(double) get_gpu_time_refine_potential()  * 1.0e-9 );
+         parallel_timer_output(numpe,mype,"GPU:    kernel_calc_mpot         time was",(double) get_gpu_time_calc_mpot()  * 1.0e-9 );
+         parallel_timer_output(numpe,mype,"GPU:    kernel_refine_smooth     time was",(double) get_gpu_time_refine_smooth()  * 1.0e-9 );
          parallel_timer_output(numpe,mype,"GPU:  kernel_rezone_all        time was",(double) (get_gpu_time_rezone_all() + mesh->get_gpu_time_rezone_all() ) * 1.0e-9 );
          //parallel_timer_output(numpe,mype,"GPU:  kernel_hash_setup        time was",(double) mesh->get_gpu_time_hash_setup()         * 1.0e-9 );
          parallel_timer_output(numpe,mype,"GPU:  kernel_calc_neighbors    time was",(double) mesh->get_gpu_time_calc_neighbors()     * 1.0e-9 );
