@@ -256,6 +256,11 @@ int main(int argc, char **argv) {
    mesh_global->nbot.clear();
    mesh_global->ntop.clear();
 
+   mesh_global->cpu_calc_neigh_counter=0;
+   mesh_global->cpu_time_calc_neighbors=0.0;
+   mesh_global->cpu_rezone_counter=0;
+   mesh_global->cpu_time_rezone_all=0.0;
+
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
@@ -593,6 +598,15 @@ extern "C" void do_calc(void)
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
       mesh->print_partition_type();
+
+      if (mype == 0) {
+         printf("CPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_cpu_rezone_count()/(double)ncycle*100.0 );
+         printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_cpu_calc_neigh_count()/(double)ncycle*100.0 );
+         printf("CPU:  calc load balance               \t %8.4f\tpercent\n",     (double)mesh->get_cpu_load_balance_count()/(double)ncycle*100.0 );
+         printf("CPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh_global->get_cpu_rezone_count()/(double)ncycle*100.0 );
+         printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh_global->get_cpu_calc_neigh_count()/(double)ncycle*100.0 );
+         printf("CPU:  calc load balance               \t %8.4f\tpercent\n",     (double)mesh_global->get_cpu_load_balance_count()/(double)ncycle*100.0 );
+      }
 
       L7_Terminate();
       exit(0);

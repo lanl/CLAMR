@@ -876,6 +876,8 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   mesh->gpu_rezone_counter++;
+
    cl_mem dev_ptr = NULL;
 
    cl_mem &dev_level        = mesh->dev_level;

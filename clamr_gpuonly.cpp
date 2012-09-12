@@ -197,6 +197,11 @@ int main(int argc, char **argv) {
    mesh->dev_nbot = NULL;
    mesh->dev_ntop = NULL;
 
+   mesh->cpu_calc_neigh_counter=0;
+   mesh->cpu_time_calc_neighbors=0.0;
+   mesh->cpu_rezone_counter=0;
+   mesh->cpu_time_rezone_all=0.0;
+
    if (compute_device == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
 
    //  Kahan-type enhanced precision sum implementation.
@@ -350,6 +355,9 @@ extern "C" void do_calc(void)
 
       mesh->print_calc_neighbor_type();
       mesh->print_partition_type();
+
+      printf("GPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_gpu_rezone_count()/(double)ncycle*100.0 );
+      printf("GPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_gpu_calc_neigh_count()/(double)ncycle*100.0 );
 
       ezcl_device_memory_remove(mesh->dev_nlft);
       ezcl_device_memory_remove(mesh->dev_nrht);

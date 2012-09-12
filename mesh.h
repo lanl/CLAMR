@@ -121,6 +121,13 @@ public:
             gpu_time_calc_spatial_coordinates,
             gpu_time_load_balance;
 
+   int      cpu_rezone_counter;
+   int      cpu_calc_neigh_counter;
+   int      cpu_load_balance_counter;
+   int      gpu_rezone_counter;
+   int      gpu_calc_neigh_counter;
+   int      gpu_load_balance_counter;
+
    int            mype,
                   numpe,
                   parallel,
@@ -260,6 +267,13 @@ public:
    long get_gpu_time_rezone_all(void)               {return(gpu_time_rezone_all); };
    long get_gpu_time_calc_spatial_coordinates(void) {return(gpu_time_calc_spatial_coordinates); };
    long get_gpu_time_load_balance(void)             {return(gpu_time_load_balance); };
+
+   int get_cpu_load_balance_count(void)           {return(cpu_load_balance_counter); };
+   int get_cpu_rezone_count(void)                 {return(cpu_rezone_counter); };
+   int get_cpu_calc_neigh_count(void)             {return(cpu_calc_neigh_counter); };
+   int get_gpu_load_balance_count(void)           {return(gpu_load_balance_counter); };
+   int get_gpu_rezone_count(void)                 {return(gpu_rezone_counter); };
+   int get_gpu_calc_neigh_count(void)             {return(gpu_calc_neigh_counter); };
 
    void write_grid(int ncycle);
    void calc_spatial_coordinates(int ibase);

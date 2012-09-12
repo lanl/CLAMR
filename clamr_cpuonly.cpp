@@ -143,6 +143,11 @@ int main(int argc, char **argv) {
    
    vector<real>  &H        = state->H;
 
+   mesh->cpu_calc_neigh_counter=0;
+   mesh->cpu_time_calc_neighbors=0.0;
+   mesh->cpu_rezone_counter=0;
+   mesh->cpu_time_rezone_all=0.0;
+
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
@@ -299,6 +304,9 @@ extern "C" void do_calc(void)
       mesh->print_calc_neighbor_type();
       mesh->print_partition_type();
 
+      printf("CPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_cpu_rezone_count()/(double)ncycle*100.0 );
+      printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_cpu_calc_neigh_count()/(double)ncycle*100.0 );
+
       delete mesh;
       delete state;
 
@@ -306,4 +314,3 @@ extern "C" void do_calc(void)
    }  //  Complete final output.
    
 }
-

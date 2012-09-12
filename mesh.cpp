@@ -1004,6 +1004,13 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
    gpu_time_calc_spatial_coordinates = 0;
    gpu_time_load_balance       = 0;
 
+   cpu_rezone_counter       = 0;
+   cpu_calc_neigh_counter   = 0;
+   cpu_load_balance_counter = 0;
+   gpu_rezone_counter       = 0;
+   gpu_calc_neigh_counter   = 0;
+   gpu_load_balance_counter = 0;
+
    ndim   = ndim_in;
    levmx  = levmx_in;
 
@@ -1744,6 +1751,8 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
 
    cpu_timer_start(&tstart_cpu);
 
+   cpu_rezone_counter++;
+
    //  Check for requested mesh refinements; if there are none, return.
    if (parallel) {
 #ifdef HAVE_MPI
@@ -2272,6 +2281,8 @@ void Mesh::calc_neighbors(void)
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   cpu_calc_neigh_counter++;
+
    nlft.resize(ncells);
    nrht.resize(ncells);
    nbot.resize(ncells);
@@ -2560,6 +2571,8 @@ void Mesh::calc_neighbors_local(void)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
+
+   cpu_calc_neigh_counter++;
 
    nlft.resize(ncells,-98);
    nrht.resize(ncells,-98);
@@ -4021,6 +4034,8 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   gpu_calc_neigh_counter++;
+
    assert(dev_levtable);
    assert(dev_level);
    assert(dev_i);
@@ -4124,6 +4139,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
+
+   gpu_calc_neigh_counter++;
 
    assert(dev_levtable);
    assert(dev_level);
@@ -5255,6 +5272,8 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
 
    if (do_load_balance_global) {
 
+      cpu_load_balance_counter++;
+
       ndispl[0]=0;
       for (int ip=1; ip<numpe; ip++){
          ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
@@ -5394,6 +5413,8 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
    }
 
    if(do_load_balance_global) {
+
+      gpu_load_balance_counter++;
 
       ndispl[0]=0;
       for (int ip=1; ip<numpe; ip++){

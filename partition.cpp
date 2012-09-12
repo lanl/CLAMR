@@ -415,7 +415,7 @@ void Mesh::calc_distribution(int numpe,  //  Number of work items between which 
    uint ic    = 0;            //   Overall work item index.
    for (int ip = 0; ip < numpe; ++ip) {
       lsize += proc.size()/numpe;
-      if (ip < proc.size()%numpe) lsize++;
+      if (ip < (int)proc.size()%numpe) lsize++;
       for (; ic < lsize;) {
          proc[ic] = ip;
          ic++;
