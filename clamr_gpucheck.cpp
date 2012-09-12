@@ -334,15 +334,9 @@ extern "C" void do_calc(void)
       old_ncells = ncells;
 
       //  Calculate the real time step for the current discrete time step.
-      double deltaT_cpu=0.0;
-      if (do_cpu_calc) {
-         deltaT_cpu = state->set_timestep(mesh, g, sigma);
-      }  //  Complete CPU timestep calculation.
+      double deltaT_cpu = state->set_timestep(mesh, g, sigma);
       
-      double deltaT_gpu=0.0;
-      if (do_gpu_calc) {
-         deltaT_gpu = state->gpu_set_timestep(command_queue, mesh, sigma);
-      }  //  Complete GPU calculation.
+      double deltaT_gpu = state->gpu_set_timestep(command_queue, mesh, sigma);
 
       //  Compare time step values and pass deltaT in to the kernel.
       if (do_comparison_calc)
@@ -352,13 +346,9 @@ extern "C" void do_calc(void)
       deltaT = (do_gpu_calc) ? deltaT_gpu : deltaT_cpu;
       simTime += deltaT;
 
-      if (do_cpu_calc) {
-         if (mesh->nlft.size() == 0) mesh->calc_neighbors();
-      }
+      if (mesh->nlft.size() == 0) mesh->calc_neighbors();
 
-      if (do_gpu_calc) {
-         if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors(command_queue);
-      }
+      if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors(command_queue);
 
       if (do_comparison_calc) {
          mesh->compare_neighbors_gpu_global_to_cpu_global(command_queue);
@@ -374,13 +364,9 @@ extern "C" void do_calc(void)
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
-      if (do_cpu_calc) {
-         state->calc_finite_difference(mesh, deltaT);
-      }
+      state->calc_finite_difference(mesh, deltaT);
       
-      if (do_gpu_calc) {
-         state->gpu_calc_finite_difference(command_queue, mesh, deltaT);
-      }
+      state->gpu_calc_finite_difference(command_queue, mesh, deltaT);
       
       if (do_comparison_calc) {
          // Need to compare dev_H to H, etc
@@ -396,35 +382,10 @@ extern "C" void do_calc(void)
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       state->remove_boundary_cells(mesh);
       
-      //  Set flag for checking symmetry.
-      int flag = 0;
-      
-#ifdef CHECK_SYMMETRY
-      double eps=0.0001;
-      
-      vector<int> dsym(ncells);
-      vector<int> xsym(ncells);
-      vector<int> ysym(ncells);
-      
-      mesh->calc_symmetry(dsym, xsym, ysym);
-      state->symmetry_check(mesh, "Diagonal", dsym, eps, DIAG_RULE, flag);
-      state->symmetry_check(mesh, "Xaxis",    xsym, eps, X_RULE,    flag);
-      state->symmetry_check(mesh, "Yaxis",    ysym, eps, Y_RULE,    flag);
-#endif
-      
-      if (flag) {
-         printf("Cycle is %d\n",ncycle);
-         sleep(2);
-      }
+      mpot.resize(ncells);
+      new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
 
-      if (do_cpu_calc) {
-         mpot.resize(ncells);
-         new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
-      }  //  Complete CPU calculation.
-
-      if (do_gpu_calc) {
-         new_ncells_gpu = state->gpu_calc_refine_potential(command_queue, mesh);
-      }
+      new_ncells_gpu = state->gpu_calc_refine_potential(command_queue, mesh);
       
       if (do_comparison_calc) {
          // Need to compare dev_mpot to mpot
@@ -443,10 +404,6 @@ extern "C" void do_calc(void)
             ezcl_enqueue_write_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
          }
       }
-
-      //if (do_cpu_calc) {
-         //new_ncells = old_ncells+mesh->rezone_count(mpot);
-      //}
 
       if (do_comparison_calc) {
          // This compares ioffset for each block in the calculation
@@ -486,16 +443,12 @@ extern "C" void do_calc(void)
          new_ncells = new_ncells_gpu;
       }
 
-      if (do_cpu_calc) {
-         int add_ncells = new_ncells - old_ncells;
-         state->rezone_all(mesh, mpot, add_ncells);
-         mpot.clear();
-      }
+      int add_ncells = new_ncells - old_ncells;
+      state->rezone_all(mesh, mpot, add_ncells);
+      mpot.clear();
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      if (do_gpu_calc) {
-         if (mesh->dev_nlft == NULL) state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil);
-      }
+      if (mesh->dev_nlft == NULL) state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil);
 
       //ezcl_device_memory_remove(dev_ioffset);
 
@@ -508,18 +461,6 @@ extern "C" void do_calc(void)
       //if (do_gpu_calc) {
       //   int bcount = mesh->gpu_count_BCs(command_queue);
       //}
-
-      if (do_gpu_calc) {
-         if (ncells != old_ncells){
-            H.resize(ncells);
-            U.resize(ncells);
-            V.resize(ncells);
-            celltype.resize(ncells);
-            i.resize(ncells);
-            j.resize(ncells);
-            level.resize(ncells);
-         }
-      }
 
       H_sum = -1.0;
 
