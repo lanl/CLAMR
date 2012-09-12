@@ -2354,7 +2354,15 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
 
    ezcl_device_memory_remove(dev_result);
 
-   if (my_result != ncells) {
+   int size_changed = (my_result != (int)ncells); 
+   int size_changed_global = size_changed;
+#ifdef HAVE_MPI
+   if (mesh->parallel) {
+      MPI_Allreduce(&size_changed, &size_changed_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   }
+#endif
+
+   if (size_changed_global) {
       ezcl_device_memory_remove(dev_nlft);
       ezcl_device_memory_remove(dev_nrht);
       ezcl_device_memory_remove(dev_nbot);
@@ -2363,6 +2371,9 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
       dev_nrht = NULL;
       dev_nbot = NULL;
       dev_ntop = NULL;
+   } else {
+      ezcl_device_memory_remove(dev_mpot);
+      ezcl_device_memory_remove(dev_ioffset);
    }
 
    ezcl_finish(command_queue);

@@ -324,6 +324,16 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&level[0],    &end_write_event);
    state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
 
+   mesh->nlft.clear();
+   mesh->nrht.clear();
+   mesh->nbot.clear();
+   mesh->ntop.clear();
+
+   mesh->dev_nlft = NULL;
+   mesh->dev_nrht = NULL;
+   mesh->dev_nbot = NULL;
+   mesh->dev_ntop = NULL;
+
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
@@ -458,7 +468,7 @@ extern "C" void do_calc(void)
       cpu_time_timestep += cpu_timer_stop(tstart_cpu);
 
       cpu_timer_start(&tstart_cpu);
-      mesh->gpu_calc_neighbors_local(command_queue);
+      if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors_local(command_queue);
       cpu_time_neighbors += cpu_timer_stop(tstart_cpu);
 
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
@@ -475,19 +485,21 @@ extern "C" void do_calc(void)
       new_ncells = state->gpu_calc_refine_potential(command_queue, mesh);
       cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
 
+      int ncells_global_old = ncells_global;
+      MPI_Allreduce(&new_ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
+
       //  Resize the mesh, inserting cells where refinement is necessary.
       cpu_timer_start(&tstart_cpu);
-      state->gpu_rezone_all(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil);
+      if (ncells_global_old != ncells_global) state->gpu_rezone_all(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil);
       cpu_time_rezone += cpu_timer_stop(tstart_cpu);
 
       // XXX XXX XXX
       ncells       = new_ncells;
       //mesh->ncells = new_ncells;
-      MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
 
       cpu_timer_start(&tstart_cpu);
-      mesh->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, dev_H, dev_U, dev_V);
+      if (mesh->dev_nlft == NULL) mesh->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, dev_H, dev_U, dev_V);
       cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
 
       ioffset.clear();
@@ -597,6 +609,11 @@ extern "C" void do_calc(void)
       ezcl_device_memory_remove(mesh->dev_corners_j);
       ezcl_device_memory_remove(mesh_global->dev_corners_i);
       ezcl_device_memory_remove(mesh_global->dev_corners_j);
+
+      ezcl_device_memory_remove(mesh->dev_nlft);
+      ezcl_device_memory_remove(mesh->dev_nrht);
+      ezcl_device_memory_remove(mesh->dev_nbot);
+      ezcl_device_memory_remove(mesh->dev_ntop);
 
       mesh->terminate();
       state->terminate();
