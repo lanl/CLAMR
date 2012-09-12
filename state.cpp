@@ -1947,7 +1947,6 @@ void State::symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index
 size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int &jcount)
 {
    struct timeval tstart_cpu;
-
    cpu_timer_start(&tstart_cpu);
 
    size_t &ncells     = mesh->ncells;
@@ -2073,7 +2072,7 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
       }
    }
 
-   int newcount = mesh->rezone_smooth(mpot);
+   int newcount = mesh->refine_smooth(mpot);
 
    cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
 

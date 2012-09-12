@@ -329,7 +329,7 @@ public:
 #endif
 
    void print_object_info();
-   size_t rezone_smooth(vector<int> &mpot);
+   size_t refine_smooth(vector<int> &mpot);
 
 private:
    //   Private constructors.

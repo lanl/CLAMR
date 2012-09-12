@@ -1240,7 +1240,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
 
       KDTree_Destroy(&tree);
       //  Refine the cells.
-      int add_ncells = rezone_smooth(mpot);
+      int add_ncells = refine_smooth(mpot);
       rezone_all(mpot, add_ncells);
 
       calc_spatial_coordinates(0);
@@ -1261,7 +1261,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    ncells_ghost = ncells;
 }
 
-size_t Mesh::rezone_smooth(vector<int> &mpot)
+size_t Mesh::refine_smooth(vector<int> &mpot)
 {
    int nl, nr, nt, nb;
    int nlt, nrt, ntr, nbr;
