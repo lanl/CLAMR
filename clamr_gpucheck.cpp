@@ -554,8 +554,10 @@ extern "C" void do_calc(void)
 
       printf("CPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_cpu_rezone_count()/(double)ncycle*100.0 );
       printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_cpu_calc_neigh_count()/(double)ncycle*100.0 );
+      printf("CPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_cpu_refine_smooth_count()/(double)mesh->get_cpu_rezone_count() );
       printf("GPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_gpu_rezone_count()/(double)ncycle*100.0 );
       printf("GPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_gpu_calc_neigh_count()/(double)ncycle*100.0 );
+      printf("GPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_gpu_refine_smooth_count()/(double)mesh->get_gpu_rezone_count() );
 
       exit(0);
    }  //  Complete final output.

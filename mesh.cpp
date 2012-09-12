@@ -77,6 +77,8 @@
 #define DEBUG 0
 #endif
 
+#define TIMING_LEVEL 2
+
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
 #ifdef HAVE_CL_DOUBLE
@@ -992,22 +994,47 @@ void Mesh::compare_ioffset_all_to_gpu_local(cl_command_queue command_queue, uint
 Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary, int parallel_in, int do_gpu_calc)
 {
    cpu_time_calc_neighbors     = 0.0;
+      cpu_time_hash_setup      = 0.0;
+      cpu_time_hash_query      = 0.0;
+      cpu_time_find_boundary   = 0.0;
+      cpu_time_gather_boundary = 0.0;
+      cpu_time_hash_setup2     = 0.0;
+      cpu_time_hash_query2     = 0.0;
+      cpu_time_offtile_list    = 0.0;
+      cpu_time_setup_comm      = 0.0;
+      cpu_time_do_ghost_comm   = 0.0;
+
+      cpu_time_kdtree_setup    = 0.0;
+      cpu_time_kdtree_query    = 0.0;
    cpu_time_rezone_all         = 0.0;
    cpu_time_partition          = 0.0;
    cpu_time_calc_spatial_coordinates = 0.0;
    cpu_time_load_balance       = 0.0;
 
-   gpu_time_hash_setup         = 0;
    gpu_time_calc_neighbors     = 0;
+      gpu_time_hash_setup      = 0;
+      gpu_time_hash_query      = 0;
+      gpu_time_find_boundary   = 0;
+      gpu_time_gather_boundary = 0;
+      gpu_time_hash_setup2     = 0;
+      gpu_time_hash_query2     = 0;
+      gpu_time_offtile_list    = 0;
+      gpu_time_setup_comm      = 0;
+      gpu_time_do_ghost_comm   = 0;
+
+      gpu_time_kdtree_setup    = 0;
+      gpu_time_kdtree_query    = 0;
    gpu_time_rezone_all         = 0;
    gpu_time_count_BCs          = 0;
    gpu_time_calc_spatial_coordinates = 0;
    gpu_time_load_balance       = 0;
 
    cpu_rezone_counter       = 0;
+   cpu_refine_smooth_counter = 0;
    cpu_calc_neigh_counter   = 0;
    cpu_load_balance_counter = 0;
    gpu_rezone_counter       = 0;
+   gpu_refine_smooth_counter = 0;
    gpu_calc_neigh_counter   = 0;
    gpu_load_balance_counter = 0;
 
@@ -1549,6 +1576,8 @@ void Mesh::rezone_spread(vector<int> &mpot)
 int Mesh::rezone_count(vector<int> mpot)
 {
    int icount=0;
+
+   cpu_refine_smooth_counter++;
 
    for (uint ic=0; ic<ncells; ++ic){
       if (mpot[ic] < 0) {
@@ -2290,6 +2319,9 @@ void Mesh::calc_neighbors(void)
 
    if (calc_neighbor_type == HASH_TABLE) {
 
+      struct timeval tstart_lev2;
+      if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+
       int jmaxsize = (jmax+1)*levtable[levmx];
       int imaxsize = (imax+1)*levtable[levmx];
       int **hash = (int **)genmatrix(jmaxsize,imaxsize,sizeof(int));
@@ -2362,6 +2394,11 @@ void Mesh::calc_neighbors(void)
                hash[jj][ii] = ic;
             }
          }
+      }
+
+      if (TIMING_LEVEL >= 2) {
+         cpu_time_hash_setup += cpu_timer_stop(tstart_lev2);
+         cpu_timer_start(&tstart_lev2);
       }
 
       int ii, jj, lev, iii, jjj, levmult;
@@ -2510,8 +2547,15 @@ void Mesh::calc_neighbors(void)
 
       genmatrixfree((void **)hash);
 
+      if (TIMING_LEVEL >= 2) cpu_time_hash_query += cpu_timer_stop(tstart_lev2);
+
    } else if (calc_neighbor_type == KDTREE) {
+
+      struct timeval tstart_lev2;
+      if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+
       TBounds box;
+// Hard coded size may be a problem later
       vector<int> index_list(20);
 
       int num;
@@ -2520,6 +2564,11 @@ void Mesh::calc_neighbors(void)
       calc_spatial_coordinates(ibase);
 
       kdtree_setup();
+
+      if (TIMING_LEVEL >= 2) {
+         cpu_time_kdtree_setup += cpu_timer_stop(tstart_lev2);
+         cpu_timer_start(&tstart_lev2);
+      }
 
       for (uint ic=0; ic<ncells; ic++) {
 
@@ -2562,6 +2611,8 @@ void Mesh::calc_neighbors(void)
 
       KDTree_Destroy(&tree);
 
+      if (TIMING_LEVEL >= 2) cpu_time_kdtree_query += cpu_timer_stop(tstart_lev2);
+
    } // calc_neighbor_type
 
    cpu_time_calc_neighbors += cpu_timer_stop(tstart_cpu);
@@ -2581,6 +2632,9 @@ void Mesh::calc_neighbors_local(void)
 
 
    if (calc_neighbor_type == HASH_TABLE) {
+
+      struct timeval tstart_lev2;
+      if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
       // Find maximum i column and j row for this processor
       int jminsize = (jmax+1)*levtable[levmx];
@@ -2697,6 +2751,11 @@ void Mesh::calc_neighbors_local(void)
          }
       }
       
+      if (TIMING_LEVEL >= 2) {
+         cpu_time_hash_setup += cpu_timer_stop(tstart_lev2);
+         cpu_timer_start(&tstart_lev2);
+      }
+
       int ii, jj, lev, iii=0, jjj=0, levmult;
 
       // Set neighbors to global cell numbers from hash
@@ -2744,6 +2803,11 @@ void Mesh::calc_neighbors_local(void)
             jjj = j[ic]*levmult;
             ntop[ic] = hash[jjj-jminsize][iii-iminsize];
          }
+      }
+
+      if (TIMING_LEVEL >= 2) {
+         cpu_time_hash_query += cpu_timer_stop(tstart_lev2);
+         cpu_timer_start(&tstart_lev2);
       }
 
       vector<int> border_cell;
@@ -2818,6 +2882,11 @@ void Mesh::calc_neighbors_local(void)
          //   border_cell_i[ic],border_cell_j[ic],border_cell_level[ic]);
       }
 
+      if (TIMING_LEVEL >= 2) {
+         cpu_time_find_boundary += cpu_timer_stop(tstart_lev2);
+         cpu_timer_start(&tstart_lev2);
+      }
+
       nbsize_global = nbsize_local;
 #ifdef HAVE_MPI
       MPI_Allreduce(&nbsize_local, &nbsize_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -2849,6 +2918,11 @@ void Mesh::calc_neighbors_local(void)
       //   fprintf(fp,"%d: Global Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
       //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
       //}
+
+      if (TIMING_LEVEL >= 2) {
+         cpu_time_gather_boundary += cpu_timer_stop(tstart_lev2);
+         cpu_timer_start(&tstart_lev2);
+      }
 
       int inew=0;
       for (int ic = 0; ic < nbsize_global; ic++) {
@@ -2893,6 +2967,11 @@ void Mesh::calc_neighbors_local(void)
                }
             }
          }
+      }
+
+      if (TIMING_LEVEL >= 2) {
+         cpu_time_hash_setup2 += cpu_timer_stop(tstart_lev2);
+         cpu_timer_start(&tstart_lev2);
       }
 
       // Set neighbors to global cell numbers from hash
@@ -2957,6 +3036,11 @@ void Mesh::calc_neighbors_local(void)
             jjj = j[ic]*levmult;
             ntop[ic] = hash[jjj-jminsize][iii-iminsize];
          }
+      }
+
+      if (TIMING_LEVEL >= 2) {
+         cpu_time_hash_query2 += cpu_timer_stop(tstart_lev2);
+         cpu_timer_start(&tstart_lev2);
       }
 
       if (DEBUG) {
@@ -3710,6 +3794,11 @@ void Mesh::calc_neighbors_local(void)
          indices_needed.push_back(*p);
       }
 
+      if (TIMING_LEVEL >= 2) {
+         cpu_time_offtile_list += cpu_timer_stop(tstart_lev2);
+         cpu_timer_start(&tstart_lev2);
+      }
+
       int nghost = indices_needed.size();
       ncells_ghost = ncells + nghost;
 
@@ -3730,6 +3819,11 @@ void Mesh::calc_neighbors_local(void)
 #ifdef HAVE_MPI
       L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
 #endif
+
+      if (TIMING_LEVEL >= 2) {
+         cpu_time_setup_comm += cpu_timer_stop(tstart_lev2);
+         cpu_timer_start(&tstart_lev2);
+      }
 
       //vector<int> itest(ncells_ghost);
       //for (int ic=0; ic<ncells; ic++){
@@ -3971,7 +4065,12 @@ void Mesh::calc_neighbors_local(void)
 
       genmatrixfree((void **)hash);
 
+      if (TIMING_LEVEL >= 2) cpu_time_do_ghost_comm += cpu_timer_stop(tstart_lev2);
+
    } else if (calc_neighbor_type == KDTREE) {
+      struct timeval tstart_lev2;
+      if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+
       TBounds box;
       vector<int> index_list(20);
 
@@ -3981,6 +4080,11 @@ void Mesh::calc_neighbors_local(void)
       calc_spatial_coordinates(ibase);
 
       kdtree_setup();
+
+      if (TIMING_LEVEL >= 2) {
+         cpu_time_kdtree_setup += cpu_timer_stop(tstart_lev2);
+         cpu_timer_start(&tstart_lev2);
+      }
 
       for (uint ic=0; ic<ncells; ic++) {
 
@@ -4023,6 +4127,8 @@ void Mesh::calc_neighbors_local(void)
 
       KDTree_Destroy(&tree);
 
+      if (TIMING_LEVEL >= 2) cpu_time_kdtree_query += cpu_timer_stop(tstart_lev2);
+
    } // calc_neighbor_type
 
    cpu_time_calc_neighbors += cpu_timer_stop(tstart_cpu);
@@ -4033,6 +4139,9 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
+
+   struct timeval tstart_lev2;
+   cpu_timer_start(&tstart_lev2);
 
    gpu_calc_neigh_counter++;
 
@@ -4112,6 +4221,12 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
            __global       int  *hash)     // 14
       */
 
+   if (TIMING_LEVEL >= 2) {
+      ezcl_finish(command_queue);
+      gpu_time_hash_setup += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+      cpu_timer_start(&tstart_lev2);
+   }
+
    ezcl_set_kernel_arg(kernel_calc_neighbors, 0,  sizeof(cl_int), (void *)&ncells);
    ezcl_set_kernel_arg(kernel_calc_neighbors, 1,  sizeof(cl_int), (void *)&levmx);
    ezcl_set_kernel_arg(kernel_calc_neighbors, 2,  sizeof(cl_int), (void *)&imax);
@@ -4131,6 +4246,10 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
 
    ezcl_device_memory_remove(dev_hash);
 
+   ezcl_finish(command_queue);
+
+   if (TIMING_LEVEL >= 2) gpu_time_hash_query += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+
    gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
 
@@ -4139,6 +4258,9 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
+
+   struct timeval tstart_lev2;
+   if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
    gpu_calc_neigh_counter++;
 
@@ -4289,6 +4411,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    ezcl_set_kernel_arg(kernel_hash_setup_local, 14, sizeof(cl_mem), (void *)&dev_hash);
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_setup_local,   1, NULL, &global_work_size, &local_work_size, NULL);
 
+   if (TIMING_LEVEL >= 2) {
+      ezcl_finish(command_queue);
+      gpu_time_hash_setup += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+      cpu_timer_start(&tstart_lev2);
+   }
+
       /*
                     const int  isize,     // 0
                     const int  levmx,     // 1
@@ -4320,6 +4448,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    ezcl_set_kernel_arg(kernel_calc_neighbors_local, 12, sizeof(cl_mem), (void *)&dev_ntop);
    ezcl_set_kernel_arg(kernel_calc_neighbors_local, 13, sizeof(cl_mem), (void *)&dev_hash);
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors_local,   1, NULL, &global_work_size, &local_work_size, NULL);
+
+   if (TIMING_LEVEL >= 2) {
+      ezcl_finish(command_queue);
+      gpu_time_hash_setup += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+      cpu_timer_start(&tstart_lev2);
+   }
 
    vector<int> nlft_tmp(ncells);
    vector<int> nrht_tmp(ncells);
@@ -4396,6 +4530,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       border_cell_num.push_back(*p);
    }
 
+   if (TIMING_LEVEL >= 2) {
+      ezcl_finish(command_queue);
+      gpu_time_find_boundary += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+      cpu_timer_start(&tstart_lev2);
+   }
+
    int nbsize_global;
    int nbsize_local=border_cell_num.size();
 
@@ -4441,6 +4581,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    MPI_Allgatherv(&border_cell_level[0], nbsizes[mype], MPI_INT, &border_cell_level_global[0], &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
 #endif
 
+   if (TIMING_LEVEL >= 2) {
+      ezcl_finish(command_queue);
+      gpu_time_gather_boundary += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+      cpu_timer_start(&tstart_lev2);
+   }
+
    //for (int ic = 0; ic < nbsize_global; ic++) {
    //   fprintf(fp,"%d: Global Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
    //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
@@ -4470,6 +4616,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    //   fprintf(fp,"%d: Local Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
    //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
    //}
+
+   if (TIMING_LEVEL >= 2) {
+      ezcl_finish(command_queue);
+      gpu_time_hash_setup2 += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+      cpu_timer_start(&tstart_lev2);
+   }
 
    size_t nbsize = nbsize_local;
    if (numpe > 1) {
@@ -4505,6 +4657,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_device_memory_remove(dev_border_j);
       ezcl_device_memory_remove(dev_border_num);
 
+      if (TIMING_LEVEL >= 2) {
+         ezcl_finish(command_queue);
+         gpu_time_hash_setup2 += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         cpu_timer_start(&tstart_lev2);
+      }
+
       ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 0,  sizeof(cl_int), (void *)&ncells);
       ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 1,  sizeof(cl_int), (void *)&levmx);
       ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 2,  sizeof(cl_int), (void *)&imax);
@@ -4520,6 +4678,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 12, sizeof(cl_mem), (void *)&dev_ntop);
       ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 13, sizeof(cl_mem), (void *)&dev_hash);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors_local2,   1, NULL, &global_work_size, &local_work_size, NULL);
+
+      if (TIMING_LEVEL >= 2) {
+         ezcl_finish(command_queue);
+         gpu_time_hash_query2 += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         cpu_timer_start(&tstart_lev2);
+      }
+
    } // if (numpe > 1)
 
    ezcl_device_memory_remove(dev_sizes);
@@ -5001,6 +5166,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
 #endif
 
+   if (TIMING_LEVEL >= 2) {
+      ezcl_finish(command_queue);
+      gpu_time_setup_comm += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+      cpu_timer_start(&tstart_lev2);
+   }
+
    celltype_tmp.resize(ncells_ghost);
    i_tmp.resize(ncells_ghost);
    j_tmp.resize(ncells_ghost);
@@ -5187,6 +5358,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
    ezcl_finish(command_queue);
 
+   if (TIMING_LEVEL >= 2) gpu_time_do_ghost_comm += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+
    gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
 #endif
@@ -5198,6 +5371,10 @@ void Mesh::print_calc_neighbor_type(void)
    } else {
       if (mype == 0) printf("Using k-D tree to calculate neighbors\n");
    }
+}
+int Mesh::get_calc_neighbor_type(void)
+{
+   return(calc_neighbor_type );
 }
 
 void Mesh::calc_celltype(void)

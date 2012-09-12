@@ -512,6 +512,7 @@ extern "C" void do_calc(void)
          printf("CPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_cpu_rezone_count()/(double)ncycle*100.0 );
          printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_cpu_calc_neigh_count()/(double)ncycle*100.0 );
          printf("CPU:  load balance frequency          \t %8.4f\tpercent\n",     (double)mesh->get_cpu_load_balance_count()/(double)ncycle*100.0 );
+         printf("CPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_cpu_refine_smooth_count()/(double)mesh->get_cpu_rezone_count() );
       }
 
       L7_Terminate();
