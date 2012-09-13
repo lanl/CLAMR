@@ -4451,7 +4451,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
    if (TIMING_LEVEL >= 2) {
       ezcl_finish(command_queue);
-      gpu_time_hash_setup += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+      gpu_time_hash_query += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
       cpu_timer_start(&tstart_lev2);
    }
 
@@ -5149,6 +5149,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
    for (vector<int>::iterator p=offtile_list.begin(); p < p_end; p++){
       indices_needed.push_back(*p);
+   }
+
+   if (TIMING_LEVEL >= 2) {
+      ezcl_finish(command_queue);
+      gpu_time_offtile_list += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+      cpu_timer_start(&tstart_lev2);
    }
 
    int nghost = indices_needed.size();
