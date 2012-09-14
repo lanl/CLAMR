@@ -415,3 +415,69 @@ void L7_UPDATE(
 
     L7_Update(data_buffer, *l7_datatype, *l7_id);
 }
+
+int L7_Get_Num_Indices(const int l7_id)
+{
+   int ierr;
+
+   l7_id_database
+     *l7_id_db;            /* database associated with l7_id.    */
+
+   if (l7_id <= 0){
+      ierr = -1;
+      L7_ASSERT( l7_id > 0, "l7_id <= 0", ierr);
+   }
+
+   l7_id_db = l7p_set_database(l7_id);
+   if (l7_id_db == NULL){
+      ierr = -1;
+      L7_ASSERT(l7_id_db != NULL, "Failed to find database.", ierr);
+   }
+
+   int num_indices = 0;
+
+   int num_sends = l7_id_db->num_sends;
+   
+   for (int i=0; i<num_sends; i++){
+      /* Load data to be sent. */
+      
+      num_indices += l7_id_db->send_counts[i];
+   }
+
+   return(num_indices);
+}
+
+void L7_Get_Local_Indices(const int l7_id, int *local_indices)
+{
+   int ierr;
+
+   l7_id_database
+     *l7_id_db;            /* database associated with l7_id.    */
+
+   if (l7_id <= 0){
+      ierr = -1;
+      L7_ASSERT( l7_id > 0, "l7_id <= 0", ierr);
+   }
+
+   l7_id_db = l7p_set_database(l7_id);
+   if (l7_id_db == NULL){
+      ierr = -1;
+      L7_ASSERT(l7_id_db != NULL, "Failed to find database.", ierr);
+   }
+
+   int num_indices = 0;
+
+   int num_sends = l7_id_db->num_sends;
+   
+   int offset = 0;
+
+   for (int i=0; i<num_sends; i++){
+      /* Load data to be sent. */
+      
+      int send_count = l7_id_db->send_counts[i];
+      for (int j=0; j<send_count; j++){
+          local_indices[offset] = l7_id_db->indices_local_to_send[offset];
+          offset++;
+      }
+   }
+}
