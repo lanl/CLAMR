@@ -361,10 +361,12 @@ extern "C" void do_calc(void)
       printf("GPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_gpu_calc_neigh_count()/(double)ncycle*100.0 );
       printf("GPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_gpu_refine_smooth_count()/(double)mesh->get_gpu_rezone_count() );
 
-      ezcl_device_memory_remove(mesh->dev_nlft);
-      ezcl_device_memory_remove(mesh->dev_nrht);
-      ezcl_device_memory_remove(mesh->dev_nbot);
-      ezcl_device_memory_remove(mesh->dev_ntop);
+      if (mesh->dev_nlft != NULL){
+         ezcl_device_memory_remove(mesh->dev_nlft);
+         ezcl_device_memory_remove(mesh->dev_nrht);
+         ezcl_device_memory_remove(mesh->dev_nbot);
+         ezcl_device_memory_remove(mesh->dev_ntop);
+      }
 
       mesh->terminate();
       state->terminate();

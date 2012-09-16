@@ -944,15 +944,17 @@ extern "C" void do_calc(void)
       ezcl_device_memory_remove(mesh_global->dev_corners_i);
       ezcl_device_memory_remove(mesh_global->dev_corners_j);
 
-      ezcl_device_memory_remove(mesh_local->dev_nlft);
-      ezcl_device_memory_remove(mesh_local->dev_nrht);
-      ezcl_device_memory_remove(mesh_local->dev_nbot);
-      ezcl_device_memory_remove(mesh_local->dev_ntop);
+      if (mesh_local->dev_nlft != NULL){
+         ezcl_device_memory_remove(mesh_local->dev_nlft);
+         ezcl_device_memory_remove(mesh_local->dev_nrht);
+         ezcl_device_memory_remove(mesh_local->dev_nbot);
+         ezcl_device_memory_remove(mesh_local->dev_ntop);
 
-      ezcl_device_memory_remove(mesh_global->dev_nlft);
-      ezcl_device_memory_remove(mesh_global->dev_nrht);
-      ezcl_device_memory_remove(mesh_global->dev_nbot);
-      ezcl_device_memory_remove(mesh_global->dev_ntop);
+         ezcl_device_memory_remove(mesh_global->dev_nlft);
+         ezcl_device_memory_remove(mesh_global->dev_nrht);
+         ezcl_device_memory_remove(mesh_global->dev_nbot);
+         ezcl_device_memory_remove(mesh_global->dev_ntop);
+      }
 
       mesh_local->terminate();
       state_local->terminate();

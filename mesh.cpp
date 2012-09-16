@@ -1504,13 +1504,6 @@ size_t Mesh::refine_smooth(vector<int> &mpot)
    }
    //printf("icount is %d\n",icount);
 
-   if (icount > 0) {
-      nlft.clear();
-      nrht.clear();
-      nbot.clear();
-      ntop.clear();
-   }
-
    return(ncells+icount);
 }
 
@@ -2555,8 +2548,7 @@ void Mesh::calc_neighbors(void)
       if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
       TBounds box;
-// Hard coded size may be a problem later
-      vector<int> index_list(20);
+      vector<int> index_list(pow(2,levmx*levmx) );
 
       int num;
 
@@ -4072,7 +4064,7 @@ void Mesh::calc_neighbors_local(void)
       if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
       TBounds box;
-      vector<int> index_list(20);
+      vector<int> index_list(pow(2,levmx*levmx) );
 
       int num;
 
@@ -5399,7 +5391,7 @@ void Mesh::calc_celltype(void)
 void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym)
 {
    TBounds box;
-   vector<int> index_list(20);
+   vector<int> index_list(pow(2,levmx*levmx) );
 
    int num;
    for (uint ic=0; ic<ncells; ic++) {

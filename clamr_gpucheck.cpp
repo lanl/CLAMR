@@ -344,10 +344,12 @@ extern "C" void do_calc(void)
       
       double deltaT_gpu = state->gpu_set_timestep(command_queue, mesh, sigma);
 
+#ifdef XXX
       //  Compare time step values and pass deltaT in to the kernel.
       if (do_comparison_calc)
       {  if (fabs(deltaT_gpu - deltaT_cpu) > .000001)
          {  printf("Error with deltaT calc --- cpu %lf gpu %lf\n",deltaT_cpu,deltaT_gpu); } }
+#endif
       
       deltaT = (do_gpu_calc) ? deltaT_gpu : deltaT_cpu;
       simTime += deltaT;
@@ -559,6 +561,19 @@ extern "C" void do_calc(void)
       printf("GPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_gpu_rezone_count()/(double)ncycle*100.0 );
       printf("GPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_gpu_calc_neigh_count()/(double)ncycle*100.0 );
       printf("GPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_gpu_refine_smooth_count()/(double)mesh->get_gpu_rezone_count() );
+
+      if (mesh->dev_nlft != NULL){
+         ezcl_device_memory_remove(mesh->dev_nlft);
+         ezcl_device_memory_remove(mesh->dev_nrht);
+         ezcl_device_memory_remove(mesh->dev_nbot);
+         ezcl_device_memory_remove(mesh->dev_ntop);
+      }
+
+      mesh->terminate();
+      state->terminate();
+      ezcl_terminate();
+
+      ezcl_mem_walk_all();
 
       exit(0);
    }  //  Complete final output.

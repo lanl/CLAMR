@@ -1,4 +1,4 @@
-AC_INIT(Clamr, v2.0.0)
+AC_INIT(Clamr, v2.0.4)
 
 AC_CONFIG_AUX_DIR(./config)
 
@@ -102,7 +102,7 @@ case "$host" in
           CXXFLAGS="-pg ${CXXFLAGS}"
         fi
         dnl LDFLAGS="-rdynamic"
-        dnl LDFLAGS="-all-static"
+        LDFLAGS="-static"
         RPATH_PREFIX="-Wl,"
 
         ;;
