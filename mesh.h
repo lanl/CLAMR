@@ -159,8 +159,8 @@ public:
                   cell_handle,
                   noffset;
 
-   // XXX Remember to delete this! XXX
-   int            m_ncycle;
+   vector<int>local_indices_start;
+   vector<int>local_indices_stop;
 
    double         offtile_ratio_local;
    int            offtile_local_count;
@@ -195,6 +195,7 @@ public:
                   kmin,         //  Lowest z-index in use.
                   kmax;         //  Highest z-index in use.
    size_t         ncells,       //  Number of cells in mesh.
+                  ncells_global, //  Global number of cells for parallel runs
                   ncells_ghost; //  Number of cells in mesh with ghost cells.
    real           xmin,         //  Lowest x-coordinate in use.
                   xmax,         //  Highest x-coordinate in use.
@@ -368,7 +369,6 @@ public:
    int get_calc_neighbor_type(void);
    void print_partition_type(void);
    void partition_cells(int numpe,
-                   vector<int> &proc,
                    vector<int> &order,
                    enum partition_method method);
    void calc_symmetry(vector<int> &dsym,
@@ -386,7 +386,7 @@ public:
    void gpu_calc_neighbors(cl_command_queue command_queue);
    void gpu_calc_neighbors_local(cl_command_queue command_queue);
 #endif
-   void calc_distribution(int numpe, vector<int> &proc);
+   void calc_distribution(int numpe);
 #ifdef HAVE_OPENCL
    int gpu_count_BCs(cl_command_queue command_queue);
 #endif

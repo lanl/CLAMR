@@ -291,7 +291,6 @@ void Mesh::print_partition_type()
 }
 void Mesh::partition_cells(
                     int          numpe,             //  
-                    vector<int> &proc,              //  Work units by assigned work group.
                     vector<int> &z_order,           //  Resulting index ordering.
                     enum partition_method method)   //  Assigned partitioning method.
 {  
@@ -307,14 +306,37 @@ void Mesh::partition_cells(
    vector<double> junit;     //
 
    struct timeval tstart_cpu;
-
    cpu_timer_start(&tstart_cpu);
 
    //  Initialize ordered curve index.
    z_index.resize(ncells, 0);
    z_order.resize(ncells, 0);
+
+   if (parallel) {
+#ifdef HAVE_MPI
+      nsizes.resize(numpe);
+      ndispl.resize(numpe);
+      MPI_Allgather(&ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+      ndispl[0]=0;
+      for (int ip=1; ip<numpe; ip++){
+         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+      }
+      noffset=0;
+      for (int ip=0; ip<mype; ip++){
+        noffset += nsizes[ip];
+      }
+#endif
+   } else {
+      //   Adjust the number of required work items to the number of cells.
+      proc.resize(ncells);
+      //   Decompose the domain equitably.
+      calc_distribution(numpe);
+      noffset = 0;
+   }
+
    
    //  Partition cells according to one of several possible orderings.
+   int have_spatial_variables=0;
    switch (method)
    {   case ORIGINAL_ORDER:
          //  Set z_order to the current cell order.
@@ -328,6 +350,11 @@ void Mesh::partition_cells(
 
        case HILBERT_SORT:
          //  Resort the curve by Hilbert order.
+         have_spatial_variables = 1;
+         if (x.size() < ncells) {
+            calc_spatial_coordinates(0);
+            have_spatial_variables = 0;
+         }
          calc_centerminmax();
          iunit.resize(ncells);
          junit.resize(ncells);
@@ -336,49 +363,317 @@ void Mesh::partition_cells(
          iscale = 1.0 / (xcentermax - xcentermin);
          jscale = 1.0 / (ycentermax - ycentermin);
 
-         // XXX NOT NEEDED XXX //
-//         if (iscale > jscale) iscale = jscale;
-//         if (jscale > iscale) jscale = iscale;
-
          //   Scale the indices to a normalized [0, 1] range for hsfc.
-         for (uint ic = 0; ic < ncells; ++ic)
-         {   iunit[ic] = (x[ic] + 0.5 * dx[ic] - xcentermin) * iscale;
-             junit[ic] = (y[ic] + 0.5 * dy[ic] - ycentermin) * jscale; }
-         info = (int *)malloc(sizeof(int) * 3 * ncells);
+         for (uint ic = 0; ic < ncells; ++ic){
+             iunit[ic] = (x[ic] + 0.5 * dx[ic] - xcentermin) * iscale;
+             junit[ic] = (y[ic] + 0.5 * dy[ic] - ycentermin) * jscale;
+         }
 
-         //   Sort the mesh into an ordered space-filling curve from hsfc.
-         hsfc2sort(ncells, &(iunit[0]), &(junit[0]), 0, info, 1);
+         if (have_spatial_variables == 0){
+            x.clear();
+            dx.clear();
+            y.clear();
+            dy.clear();
+         }
 
-         //   Copy the cell order information from info into z_order.
-         for (uint ic = 0; ic < ncells; ++ic)
-         {   z_order[ic] = info[ic]; }
-         free(info);
+         if (parallel){
+#ifdef HAVE_MPI
+            info = (int *)malloc(sizeof(int) * 3 * ncells_global);
+            vector<double>iunit_global(ncells_global);
+            vector<double>junit_global(ncells_global);
+            vector<int>z_order_global(ncells_global);
+
+            MPI_Allgatherv(&iunit[0], ncells, MPI_DOUBLE, &iunit_global[0], &nsizes[0], &ndispl[0], MPI_DOUBLE, MPI_COMM_WORLD);
+            MPI_Allgatherv(&junit[0], ncells, MPI_DOUBLE, &junit_global[0], &nsizes[0], &ndispl[0], MPI_DOUBLE, MPI_COMM_WORLD);
+            //   Sort the mesh into an ordered space-filling curve from hsfc.
+            hsfc2sort(ncells_global, &iunit_global[0], &junit_global[0], 0, info, 1);
+
+            //   Copy the cell order information from info into z_order.
+            for (uint ic = 0; ic < ncells_global; ++ic)
+            {   z_order_global[ic] = info[ic]; }
+            free(info);
+
+            //   Order the mesh according to the calculated order (note that z_order is for both curves).
+            vector<int> int_global(ncells_global);
+            vector<int> int_global_new(ncells_global);
+
+            // gather, reorder and scatter i
+            MPI_Allgatherv(&i[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+            for (int ic = 0; ic<(int)ncells_global; ic++){
+               int_global_new[ic] = int_global[z_order_global[ic]];
+            }
+            MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &i[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+
+            // gather, reorder and scatter j
+            MPI_Allgatherv(&j[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+            for (int ic = 0; ic<(int)ncells_global; ic++){
+               int_global_new[ic] = int_global[z_order_global[ic]];
+            }
+            MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &j[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+
+            // gather, reorder and scatter level
+            MPI_Allgatherv(&level[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+            for (int ic = 0; ic<(int)ncells_global; ic++){
+               int_global_new[ic] = int_global[z_order_global[ic]];
+            }
+            MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &level[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+
+            // It is faster just to recalculate these variables instead of communicating them
+            if (celltype.size() >= ncells) {
+               calc_celltype();
+            }
+
+            if (have_spatial_variables) {
+               calc_spatial_coordinates(0);
+            }
+
+            // Need to add neighbors
+
+            MPI_Scatterv(&z_order_global[0], &nsizes[0], &ndispl[0], MPI_REAL, &z_order[0], ncells, MPI_REAL, 0, MPI_COMM_WORLD);
+#endif
+         } else {
+            info = (int *)malloc(sizeof(int) * 3 * ncells);
+
+            //   Sort the mesh into an ordered space-filling curve from hsfc.
+            hsfc2sort(ncells, &iunit[0], &junit[0], 0, info, 1);
+
+            //   Copy the cell order information from info into z_order.
+            for (uint ic = 0; ic < ncells; ++ic)
+            {   z_order[ic] = info[ic]; }
+            free(info);
+
+            //   Order the mesh according to the calculated order (note that z_order is for both curves).
+            vector<int> int_local(ncells);
+
+            // reorder i
+            for (int ic = 0; ic<(int)ncells; ic++){
+               int_local[ic] = i[ic];
+            }
+            for (int ic = 0; ic<(int)ncells; ic++){
+               i[ic] = int_local[z_order[ic]];
+            }
+
+            // reorder j
+            for (int ic = 0; ic<(int)ncells; ic++){
+               int_local[ic] = j[ic];
+            }
+            for (int ic = 0; ic<(int)ncells; ic++){
+               j[ic] = int_local[z_order[ic]];
+            }
+
+            // reorder level
+            for (int ic = 0; ic<(int)ncells; ic++){
+               int_local[ic] = level[ic];
+            }
+            for (int ic = 0; ic<(int)ncells; ic++){
+               level[ic] = int_local[z_order[ic]];
+            }
+
+            // reorder celltype
+            for (int ic = 0; ic<(int)ncells; ic++){
+               int_local[ic] = celltype[ic];
+            }
+            for (int ic = 0; ic<(int)ncells; ic++){
+               celltype[ic] = int_local[z_order[ic]];
+            }
+
+            if (x.size() >= ncells) {
+               vector<real> real_local(ncells);
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  real_local[ic] = x[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  x[ic] = real_local[z_order[ic]];
+               }
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  real_local[ic] = dx[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  dx[ic] = real_local[z_order[ic]];
+               }
+           
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  real_local[ic] = y[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  y[ic] = real_local[z_order[ic]];
+               }
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  real_local[ic] = dy[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  dy[ic] = real_local[z_order[ic]];
+               }
+            }
+
+         }
 
          break;
 
       case ZORDER:
          //  Resort the curve by z-order.
-         i_scaled.resize(ncells);
-         j_scaled.resize(ncells);
+         if (parallel) {
+#ifdef HAVE_MPI
+            vector<int>i_global(ncells_global);
+            vector<int>j_global(ncells_global);
+            vector<int>level_global(ncells_global);
+            vector<int>z_index_global(ncells_global);
+            vector<int>z_order_global(ncells_global);
+            MPI_Allgatherv(&i[0], ncells, MPI_REAL, &i_global[0], &nsizes[0], &ndispl[0], MPI_REAL, MPI_COMM_WORLD);
+            MPI_Allgatherv(&j[0], ncells, MPI_REAL, &j_global[0], &nsizes[0], &ndispl[0], MPI_REAL, MPI_COMM_WORLD);
+            MPI_Allgatherv(&level[0], ncells, MPI_REAL, &level_global[0], &nsizes[0], &ndispl[0], MPI_REAL, MPI_COMM_WORLD);
 
-         //
-         imax = 0;
-         jmax = 0;
-         for (uint ic = 0; ic < ncells; ++ic)
-         {   if (i[ic] > imax) imax = i[ic];
-            if (j[ic] > jmax) jmax = j[ic]; }
+            i_scaled.resize(ncells_global);
+            j_scaled.resize(ncells_global);
 
-         //
-         iscale = 16.0 / (double)imax;
-         jscale = 16.0 / (double)jmax;
+            //
+            imax = 0;
+            jmax = 0;
+            for (uint ic = 0; ic < ncells_global; ++ic)
+            {   if (i_global[ic] > imax) imax = i_global[ic];
+               if (j_global[ic] > jmax) jmax = j_global[ic]; }
 
-         //
-         for (uint ic = 0; ic < ncells; ++ic)
-         {   i_scaled[ic]=(int) ( (double)i[ic]*iscale);
-            j_scaled[ic]=(int) ( (double)j[ic]*jscale); }
+            //
+            iscale = 16.0 / (double)imax;
+            jscale = 16.0 / (double)jmax;
 
-         //
-         calc_zorder(ncells, &(i_scaled[0]), &(j_scaled[0]), &(level[0]), levmx, ibase, &(z_index[0]), &(z_order[0]));
+            //
+            for (uint ic = 0; ic < ncells_global; ++ic)
+            {   i_scaled[ic]=(int) ( (double)i_global[ic]*iscale);
+               j_scaled[ic]=(int) ( (double)j_global[ic]*jscale); }
+
+            //
+            calc_zorder(ncells_global, &i_scaled[0], &j_scaled[0], &level_global[0], levmx, ibase, &z_index_global[0], &z_order_global[0]);
+
+            //   Order the mesh according to the calculated order (note that z_order is for both curves).
+            vector<int> int_global(ncells_global);
+            vector<int> int_global_new(ncells_global);
+
+            // gather, reorder and scatter i
+            MPI_Allgatherv(&i[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+            for (int ic = 0; ic<(int)ncells_global; ic++){
+               int_global_new[ic] = int_global[z_order_global[ic]];
+            }
+            MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &i[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+
+            // gather, reorder and scatter j
+            MPI_Allgatherv(&j[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+            for (int ic = 0; ic<(int)ncells_global; ic++){
+               int_global_new[ic] = int_global[z_order_global[ic]];
+            }
+            MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &j[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+
+            // gather, reorder and scatter level
+            MPI_Allgatherv(&level[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+            for (int ic = 0; ic<(int)ncells_global; ic++){
+               int_global_new[ic] = int_global[z_order_global[ic]];
+            }
+            MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &level[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+
+            // It is faster just to recalculate these variables instead of communicating them
+            if (celltype.size() >= ncells) {
+               calc_celltype();
+            }
+
+            if (x.size() >= ncells) {
+               calc_spatial_coordinates(0);
+            }
+
+            MPI_Scatterv(&z_order_global[0], &nsizes[0], &ndispl[0], MPI_REAL, &z_order[0], ncells, MPI_REAL, 0, MPI_COMM_WORLD);
+#endif
+         } else {
+            i_scaled.resize(ncells);
+            j_scaled.resize(ncells);
+
+            //
+            imax = 0;
+            jmax = 0;
+            for (uint ic = 0; ic < ncells; ++ic)
+            {   if (i[ic] > imax) imax = i[ic];
+               if (j[ic] > jmax) jmax = j[ic]; }
+
+            //
+            iscale = 16.0 / (double)imax;
+            jscale = 16.0 / (double)jmax;
+
+            //
+            for (uint ic = 0; ic < ncells; ++ic)
+            {   i_scaled[ic]=(int) ( (double)i[ic]*iscale);
+               j_scaled[ic]=(int) ( (double)j[ic]*jscale); }
+
+            //
+            calc_zorder(ncells, &i_scaled[0], &j_scaled[0], &level[0], levmx, ibase, &z_index[0], &z_order[0]);
+
+            //   Order the mesh according to the calculated order (note that z_order is for both curves).
+            vector<int> int_local(ncells);
+
+            // reorder i
+            for (int ic = 0; ic<(int)ncells; ic++){
+               int_local[ic] = i[ic];
+            }
+            for (int ic = 0; ic<(int)ncells; ic++){
+               i[ic] = int_local[z_order[ic]];
+            }
+
+            // reorder j
+            for (int ic = 0; ic<(int)ncells; ic++){
+               int_local[ic] = j[ic];
+            }
+            for (int ic = 0; ic<(int)ncells; ic++){
+               j[ic] = int_local[z_order[ic]];
+            }
+
+            // reorder level
+            for (int ic = 0; ic<(int)ncells; ic++){
+               int_local[ic] = level[ic];
+            }
+            for (int ic = 0; ic<(int)ncells; ic++){
+               level[ic] = int_local[z_order[ic]];
+            }
+
+            // reorder celltype
+            for (int ic = 0; ic<(int)ncells; ic++){
+               int_local[ic] = celltype[ic];
+            }
+            for (int ic = 0; ic<(int)ncells; ic++){
+               celltype[ic] = int_local[z_order[ic]];
+            }
+
+            if (x.size() >= ncells) {
+               vector<real> real_local(ncells);
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  real_local[ic] = x[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  x[ic] = real_local[z_order[ic]];
+               }
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  real_local[ic] = dx[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  dx[ic] = real_local[z_order[ic]];
+               }
+           
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  real_local[ic] = y[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  y[ic] = real_local[z_order[ic]];
+               }
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  real_local[ic] = dy[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  dy[ic] = real_local[z_order[ic]];
+               }
+            }
+         }
 
          break;
 
@@ -387,11 +682,6 @@ void Mesh::partition_cells(
          break;
    }
    
-   //   Adjust the number of required work items to the number of cells.
-   proc.resize(ncells);
-   
-   //   Order the mesh according to the calculated order (note that z_order is for both curves).
-   mesh_reorder(z_order);
    
    //   Output ordered mesh information.
    if (DEBUG)
@@ -401,15 +691,11 @@ void Mesh::partition_cells(
          printf(" %8.2lf %8.2lf %8.2lf %8.2lf", x[ic], x[ic]+dx[ic], y[ic], y[ic]+dy[ic]);
          printf(" %6d    %5d\n", z_index[ic], z_order[ic]); } }
 
-   //   Decompose the domain equitably.
-   calc_distribution(numpe, proc);
-
    cpu_time_partition += cpu_timer_stop(tstart_cpu);
 }
 
 //   The distribution needs to be modified in order to spread out extra cells equitably among the work items.
-void Mesh::calc_distribution(int numpe,  //  Number of work items between which the domain is to be divided.
-                             vector<int> &proc)   //   List of work items.
+void Mesh::calc_distribution(int numpe)
 {  
    uint lsize = 0;     //
    uint ic    = 0;            //   Overall work item index.

@@ -739,14 +739,6 @@ void Mesh::compare_indices_all_to_gpu_local(cl_command_queue command_queue, Mesh
    vector<int> i_check(ncells);
    vector<int> j_check(ncells);
    /// Set read buffers for data.
-   //printf("%d: DEBUG before walk all ncells %d\n",mype,ncells);
-   //ezcl_mem_walk_all();
-   //print_object_info();
-#ifdef HAVE_MPI
-   //L7_Terminate();
-#endif
-   //exit(0);
-
    ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  &level_check[0],     NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  &celltype_check[0],  NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &i_check[0],         NULL);
@@ -1090,6 +1082,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
    
    xmin = -deltax * 0.5 * (real)nxx;
    ymin = -deltay * 0.5 * (real)nyy;
+   xmax =  deltax * 0.5 * (real)nxx;
+   ymax =  deltay * 0.5 * (real)nyy;
    
    size_t lvlMxSize = levmx + 1;
 
@@ -1187,6 +1181,8 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    }
 #endif
 
+   KDTree_Initialize(&tree);
+
    int istart = 1,
        jstart = 1,
        iend   = nx,
@@ -1205,6 +1201,26 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    if (ndim == 2) ncells = nxx * nyy - have_boundary * 4;
    else           ncells = nxx * nyy;
 
+   noffset = 0;
+   if (parallel) {
+      ncells_global = ncells;
+      
+      nsizes.resize(numpe);
+      ndispl.resize(numpe);
+
+      for (int ip=0; ip<numpe; ip++){
+         nsizes[ip] = ncells_global/numpe;
+         if (ip < (int)(ncells_global%numpe)) nsizes[ip]++;
+      }
+
+      ndispl[0]=0;
+      for (int ip=1; ip<numpe; ip++){
+         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+      }
+      ncells= nsizes[mype];
+      noffset=ndispl[mype];
+   }
+
    index.resize(ncells);
    i.resize(ncells);
    j.resize(ncells);
@@ -1219,16 +1235,18 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
          if (have_boundary && ii == iend && jj == 0   ) continue;
          if (have_boundary && ii == iend && jj == jend) continue;
 
-         index[ic] = ic;
-         i[ic]     = ii;
-         j[ic]     = jj;
-         level[ic] = 0;
+         if (ic >= (int)noffset && ic < (int)(ncells+noffset)){
+            int iclocal = ic-noffset;
+            index[iclocal] = ic;
+            i[iclocal]     = ii;
+            j[iclocal]     = jj;
+            level[iclocal] = 0;
+         }
          ic++;
       }
    }
 
    calc_spatial_coordinates(0);
-   calc_minmax();
 
    nlft.resize(ncells);
    nrht.resize(ncells);
@@ -1245,11 +1263,9 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
 
    celltype.resize(ncells);
 
+   partition_cells(numpe, index, initial_order);
+
    calc_celltype();
-
-   calc_neighbors();
-
-   partition_cells(numpe, proc, index, initial_order);
 
    //  Start lev loop here
    for (int ilevel=1; ilevel<=levmx; ilevel++) {
@@ -1736,6 +1752,20 @@ void Mesh::calc_minmax(void)
       }
    }
 
+#ifdef HAVE_MPI
+   if (parallel) {
+      real xmin_global,xmax_global,ymin_global,ymax_global;
+      MPI_Allreduce(&xmin, &xmin_global, 1, MPI_C_REAL, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(&xmax, &xmax_global, 1, MPI_C_REAL, MPI_MAX, MPI_COMM_WORLD);
+      MPI_Allreduce(&ymin, &ymin_global, 1, MPI_C_REAL, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(&ymax, &ymax_global, 1, MPI_C_REAL, MPI_MAX, MPI_COMM_WORLD);
+      xmin = xmin_global;
+      xmax = xmax_global;
+      ymin = ymin_global;
+      ymax = ymax_global;
+   }
+#endif
+
 }
 void Mesh::calc_centerminmax(void)
 {
@@ -1760,6 +1790,20 @@ void Mesh::calc_centerminmax(void)
          if (zmid > zcentermax) zcentermax = zmid;
       }
    }
+
+#ifdef HAVE_MPI
+   if (parallel) {
+      real xcentermin_global,xcentermax_global,ycentermin_global,ycentermax_global;
+      MPI_Allreduce(&xcentermin, &xcentermin_global, 1, MPI_C_REAL, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(&xcentermax, &xcentermax_global, 1, MPI_C_REAL, MPI_MAX, MPI_COMM_WORLD);
+      MPI_Allreduce(&ycentermin, &ycentermin_global, 1, MPI_C_REAL, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(&ycentermax, &ycentermax_global, 1, MPI_C_REAL, MPI_MAX, MPI_COMM_WORLD);
+      xcentermin = xcentermin_global;
+      xcentermax = xcentermax_global;
+      ycentermin = ycentermin_global;
+      ycentermax = ycentermax_global;
+   }
+#endif
 
 }
 
@@ -2860,8 +2904,12 @@ void Mesh::calc_neighbors_local(void)
          }
          //printf("%d: border cell size is %d\n",mype,border_cell_num.size());
 
-         int nbsize_local, nbsize_global;
-         nbsize_local=border_cell_num.size();
+         int nbsize_local = 0;
+         for (vector<int>::iterator p=border_cell.begin(); p < p_end; p++){
+            nbsize_local++;
+         }
+
+         int nbsize_global;
 
          vector<int> border_cell_i(nbsize_local);
          vector<int> border_cell_j(nbsize_local);
@@ -3513,6 +3561,7 @@ void Mesh::calc_neighbors_local(void)
 #ifdef HAVE_MPI
          L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
 #endif
+
 
          if (TIMING_LEVEL >= 2) {
             cpu_time_setup_comm += cpu_timer_stop(tstart_lev2);
@@ -4808,6 +4857,81 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       //}
 #ifdef HAVE_MPI
       L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
+
+      int num_indices=L7_Get_Num_Indices(cell_handle);
+
+      vector<int>local_indices(num_indices);
+
+      L7_Get_Local_Indices(cell_handle, &local_indices[0]);
+
+/* */
+      vector<int> indices_array(ncells,0);
+
+      for (int ic = 0; ic < num_indices; ic++){
+         indices_array[local_indices[ic]]++;
+      }
+
+      num_indices=0;
+      for (int ic = 0; ic < (int)ncells; ic++){
+         if (indices_array[ic] > 0) {
+            local_indices[num_indices]=ic;
+            num_indices++;
+         }
+      }
+/* */
+
+/*
+         //if (mype ==1) printf("DEBUG -- num_indices is %d\n",num_indices);
+
+         sort(local_indices.begin(),local_indices.end());
+         vector<int>::iterator pt_end = unique(local_indices.begin(),local_indices.end());
+
+         num_indices = 0;
+         for (vector<int>::iterator p=local_indices.begin(); p < pt_end; p++){
+            num_indices++;
+         }
+         //printf("%d: border cell size is %d\n",mype,border_cell_num.size());
+*/
+
+
+         //if (mype ==1) printf("DEBUG -- num_indices is %d %d\n",num_indices,local_indices.size());
+
+         int nblocks=0;
+         for (int ic = 0; ic < num_indices; ic++){
+            for (int in = local_indices[ic]+1; local_indices[ic+1] == in && ic < num_indices; in++,ic++);
+            //for (int in = local_indices[ic]+1; local_indices[ic+1] <= in+5 && ic < num_indices; in=local_indices[ic+1],ic++);
+            nblocks++;
+         }
+         vector<int>local_indices_start(nblocks);
+         vector<int>local_indices_stop(nblocks);
+
+         int ib=0;
+         for (int ic = 0; ic < num_indices; ic++){
+            local_indices_start[ib]=local_indices[ic];
+            for (int in = local_indices[ic]+1; in == local_indices[ic+1] && ic < num_indices; in++,ic++);
+            //for (int in = local_indices[ic]+1; local_indices[ic+1] <= in+5 && ic < num_indices; in=local_indices[ic+1],ic++);
+            local_indices_stop[ib]=local_indices[ic];
+            ib++;
+         }
+
+/*
+         for (int ib = 0; ib < nblocks; ib++){
+            if (mype == 1) printf("%d: DEBUG block %d start %d stop %d\n",mype,ib,local_indices_start[ib],local_indices_stop[ib]);
+         }
+*/
+
+         int ic = 0;
+         for (int ib = 0; ib < nblocks; ib++){
+            for (int in = local_indices_start[ib]; in <= local_indices_stop[ib]; in++){
+               //while (in != local_indices[ic]) {in++;}
+               if (in != local_indices[ic]) printf("%d: DEBUG ic %d ib %d local_indices[ic] %d block_index %d\n",mype,ic,ib,local_indices[ic],in);
+               ic++;
+            }
+         }
+         if (ic != num_indices) printf("%d: DEBUG -- mismatch on indices count\n",mype);
+
+
+         local_indices.clear();
 #endif
 
       if (TIMING_LEVEL >= 2) {

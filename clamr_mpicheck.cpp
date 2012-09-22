@@ -157,25 +157,25 @@ int main(int argc, char **argv) {
    mesh_global  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
    mesh_global->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
    size_t &ncells_global = mesh_global->ncells;
-   state_global = new State(ncells_global);
-   state_global->init(ncells_global, do_gpu_calc);
    mesh_global->proc.resize(ncells_global);
-   mesh_global->calc_distribution(numpe, mesh_global->proc);
-   state_global->fill_circle(mesh_global, circ_radius, 100.0, 5.0);
+   mesh_global->calc_distribution(numpe);
    
    parallel_in = 1;
    mesh = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
    state = new State(mesh->ncells);
+   state->init(mesh->ncells, do_gpu_calc);
 
    size_t &ncells = mesh->ncells;
    int &noffset = mesh->noffset;
 
-   vector<int>   &nsizes     = mesh->nsizes;
-   vector<int>   &ndispl     = mesh->ndispl;
-
+   state_global = new State(ncells_global);
+   state_global->init(ncells_global, do_gpu_calc);
    vector<real>  &H_global = state_global->H;
    vector<real>  &U_global = state_global->U;
    vector<real>  &V_global = state_global->V;
+
+   vector<int>   &nsizes     = mesh->nsizes;
+   vector<int>   &ndispl     = mesh->ndispl;
 
    vector<real>  &x_global  = mesh_global->x;
    vector<real>  &dx_global = mesh_global->dx;
@@ -238,14 +238,16 @@ int main(int argc, char **argv) {
    y.resize(ncells);
    dy.resize(ncells);
 
-   MPI_Scatterv(&H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &H[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&U_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &U[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&V_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &V[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
-
    MPI_Scatterv(&x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &x[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dx[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &y[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dy[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
+
+   state->fill_circle(mesh, circ_radius, 100.0, 5.0);
+
+   MPI_Allgatherv(&H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U[0], nsizes[mype], MPI_C_REAL, &U_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V[0], nsizes[mype], MPI_C_REAL, &V_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
    mesh->nlft.clear();
    mesh->nrht.clear();
@@ -256,20 +258,20 @@ int main(int argc, char **argv) {
    mesh_global->nbot.clear();
    mesh_global->ntop.clear();
 
-   mesh_global->cpu_calc_neigh_counter=0;
-   mesh_global->cpu_time_calc_neighbors=0.0;
-   mesh_global->cpu_rezone_counter=0;
-   mesh_global->cpu_time_rezone_all=0.0;
-   mesh_global->cpu_refine_smooth_counter=0;
-
    //  Kahan-type enhanced precision sum implementation.
-   double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
+   double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
    if (mype ==0) {
       printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells_global, H_sum);
    }
+
+   mesh_global->cpu_calc_neigh_counter=0;
+   mesh_global->cpu_time_calc_neighbors=0.0;
+   mesh_global->cpu_rezone_counter=0;
+   mesh_global->cpu_time_rezone_all=0.0;
+   mesh_global->cpu_refine_smooth_counter=0;
 
    //  Set up grid.
 
@@ -485,7 +487,7 @@ extern "C" void do_calc(void)
 //      mesh->proc.resize(ncells);
 //      if (icount) {
 //         vector<int> index(ncells);
-//         mesh->partition_cells(numpe, mesh->proc, index, cycle_reorder);
+//         mesh->partition_cells(numpe, index, cycle_reorder);
 //      }
 
 //      if (do_comparison_calc) {
@@ -493,7 +495,7 @@ extern "C" void do_calc(void)
 
 //         if (icount) {
 //            vector<int> index_global(ncells_global);
-//            mesh_global->partition_cells(numpe, mesh_global->proc, index_global, cycle_reorder);
+//            mesh_global->partition_cells(numpe, index_global, cycle_reorder);
             //state->state_reorder(index);
 //         }
 //      }
@@ -529,6 +531,7 @@ extern "C" void do_calc(void)
    vector<real>  &dy_global = mesh_global->dy;
 
    mesh->calc_spatial_coordinates(0);
+
    if (do_comparison_calc) {
       mesh_global->calc_spatial_coordinates(0);
 

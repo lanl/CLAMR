@@ -190,11 +190,7 @@ inline real w_corrector(
 }
 
 
-#ifdef HAVE_OPENCL
-State::State(size_t ncells, cl_context context)
-#else
 State::State(size_t ncells)
-#endif
 {
    cpu_time_apply_BCs          = 0;
    cpu_time_set_timestep       = 0;
@@ -737,7 +733,7 @@ void State::fill_circle(Mesh   *mesh,       //  Mesh.
       U[ic] = V[ic] = 0.0; }
    
    //  Clear the old k-D tree and generate new data (slow but necessary here).
-   KDTree_Destroy(&mesh->tree);
+   //KDTree_Destroy(&mesh->tree);
    mesh->kdtree_setup();
    
    int nez;
@@ -2430,7 +2426,6 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
 
 double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
 {
-
    size_t &ncells = mesh->ncells;
    vector<int> &celltype = mesh->celltype;
    vector<int> &level    = mesh->level;
@@ -2464,7 +2459,6 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
             local.sum          = new_sum;
          }
       }
-
 
 #ifdef HAVE_MPI
       if (mesh->parallel) {

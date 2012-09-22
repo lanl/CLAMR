@@ -144,10 +144,10 @@ int main(int argc, char **argv) {
    mesh  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
    mesh->init(nx, ny, circ_radius, context, initial_order, compute_device, do_gpu_calc);
    size_t &ncells = mesh->ncells;
-   state = new State(ncells, context);
+   state = new State(ncells);
    state->init(ncells, context, compute_device, do_gpu_calc);
    mesh->proc.resize(ncells);
-   mesh->calc_distribution(numpe, mesh->proc);
+   mesh->calc_distribution(numpe);
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
    
    if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
@@ -197,12 +197,6 @@ int main(int argc, char **argv) {
    mesh->dev_nbot = NULL;
    mesh->dev_ntop = NULL;
 
-   mesh->cpu_calc_neigh_counter=0;
-   mesh->cpu_time_calc_neighbors=0.0;
-   mesh->cpu_rezone_counter=0;
-   mesh->cpu_time_rezone_all=0.0;
-   mesh->cpu_refine_smooth_counter=0;
-
    if (compute_device == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
 
    //  Kahan-type enhanced precision sum implementation.
@@ -211,6 +205,12 @@ int main(int argc, char **argv) {
    H_sum_initial = H_sum;
 
    printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
+
+   mesh->cpu_calc_neigh_counter=0;
+   mesh->cpu_time_calc_neighbors=0.0;
+   mesh->cpu_rezone_counter=0;
+   mesh->cpu_time_rezone_all=0.0;
+   mesh->cpu_refine_smooth_counter=0;
 
    //  Set up grid.
 #ifdef GRAPHICS_OUTPUT

@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
    state = new State(ncells);
    state->init(ncells, do_gpu_calc);
    mesh->proc.resize(ncells);
-   mesh->calc_distribution(numpe, mesh->proc);
+   mesh->calc_distribution(numpe);
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
    mesh->nlft.clear();
    mesh->nrht.clear();
@@ -143,18 +143,18 @@ int main(int argc, char **argv) {
    
    vector<real>  &H        = state->H;
 
-   mesh->cpu_calc_neigh_counter=0;
-   mesh->cpu_time_calc_neighbors=0.0;
-   mesh->cpu_rezone_counter=0;
-   mesh->cpu_time_rezone_all=0.0;
-   mesh->cpu_refine_smooth_counter=0;
-
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
     printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
+
+   mesh->cpu_calc_neigh_counter=0;
+   mesh->cpu_time_calc_neighbors=0.0;
+   mesh->cpu_rezone_counter=0;
+   mesh->cpu_time_rezone_all=0.0;
+   mesh->cpu_refine_smooth_counter=0;
 
    //  Set up grid.
 #ifdef GRAPHICS_OUTPUT
@@ -258,7 +258,7 @@ extern "C" void do_calc(void)
       mesh->proc.resize(ncells);
       if (icount)
       {  vector<int> index(ncells);
-         mesh->partition_cells(numpe, mesh->proc, index, cycle_reorder);
+         mesh->partition_cells(numpe, index, cycle_reorder);
          state->state_reorder(index);
       }
       

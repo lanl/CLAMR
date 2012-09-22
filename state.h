@@ -115,11 +115,7 @@ public:
             gpu_time_write;
 
    // constructor -- allocates state arrays to size ncells
-#ifdef HAVE_OPENCL
-   State(size_t ncells, cl_context context);
-#else
    State(size_t ncells);
-#endif
 
    State(const State&); // To block copy constructor so copies are not made inadvertently
 

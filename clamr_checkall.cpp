@@ -208,18 +208,22 @@ int main(int argc, char **argv) {
    mesh_global  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
    mesh_global->init(nx, ny, circ_radius, context, initial_order, compute_device, do_gpu_calc);
    size_t &ncells_global = mesh_global->ncells;
-   state_global = new State(ncells_global, context);
-   state_global->init(ncells_global, context, compute_device, do_gpu_calc);
    mesh_global->proc.resize(ncells_global);
-   mesh_global->calc_distribution(numpe, mesh_global->proc);
-   state_global->fill_circle(mesh_global, circ_radius, 100.0, 5.0);
+   mesh_global->calc_distribution(numpe);
    
    parallel_in = 1;
    mesh_local = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
-   state_local = new State(mesh_local->ncells, context);
+   state_local = new State(mesh_local->ncells);
+   state_local->init(mesh_local->ncells, context, compute_device, do_gpu_calc);
 
    size_t &ncells = mesh_local->ncells;
    int &noffset = mesh_local->noffset;
+
+   state_global = new State(ncells_global);
+   //state_global->init(ncells_global, context, compute_device, do_gpu_calc);
+   state_global->H.resize(ncells_global);
+   state_global->U.resize(ncells_global);
+   state_global->V.resize(ncells_global);
 
    cl_mem &dev_corners_i_global  = mesh_global->dev_corners_i;
    cl_mem &dev_corners_j_global  = mesh_global->dev_corners_j;
@@ -331,14 +335,16 @@ int main(int argc, char **argv) {
    y.resize(ncells);
    dy.resize(ncells);
 
-   MPI_Scatterv(&H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &H[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&U_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &U[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&V_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &V[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
-
    MPI_Scatterv(&x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &x[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dx[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &y[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Scatterv(&dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dy[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
+
+   state_local->fill_circle(mesh_local, circ_radius, 100.0, 5.0);
+
+   MPI_Allgatherv(&H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U[0], nsizes[mype], MPI_C_REAL, &U_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V[0], nsizes[mype], MPI_C_REAL, &V_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
    state_global->allocate_device_memory(ncells_global);
    state_local->allocate_device_memory(ncells);
@@ -393,20 +399,20 @@ int main(int argc, char **argv) {
    mesh_local->dev_nbot = NULL;
    mesh_local->dev_ntop = NULL;
 
-   mesh_global->cpu_calc_neigh_counter=0;
-   mesh_global->cpu_time_calc_neighbors=0.0;
-   mesh_global->cpu_rezone_counter=0;
-   mesh_global->cpu_time_rezone_all=0.0;
-   mesh_global->cpu_refine_smooth_counter=0;
-
    //  Kahan-type enhanced precision sum implementation.
-   double H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
+   double H_sum = state_local->mass_sum(mesh_local, enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
    if (mype == 0) {
       printf("Iteration    0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells_global, H_sum);
    }
+
+   mesh_global->cpu_calc_neigh_counter=0;
+   mesh_global->cpu_time_calc_neighbors=0.0;
+   mesh_global->cpu_rezone_counter=0;
+   mesh_global->cpu_time_rezone_all=0.0;
+   mesh_global->cpu_refine_smooth_counter=0;
 
    //  Set up grid.
 
@@ -813,8 +819,8 @@ extern "C" void do_calc(void)
       if (icount) {
          vector<int> index(ncells);
          vector<int> index_global(ncells_global);
-         mesh_global->partition_cells(numpe, mesh_global->proc, index_global, cycle_reorder);
-         mesh_local->partition_cells(numpe, mesh_local->proc, index, cycle_reorder);
+         mesh_global->partition_cells(numpe, index_global, cycle_reorder);
+         mesh_local->partition_cells(numpe, index, cycle_reorder);
          //state->state_reorder(index);
          if (do_gpu_sync) {
             ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&celltype[0],  NULL);
@@ -840,7 +846,7 @@ extern "C" void do_calc(void)
    }  //  End burst loop
 
    if (H_sum < 0) {
-      H_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
+      H_sum = state_local->mass_sum(mesh_local, enhanced_precision_sum);
    }
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);

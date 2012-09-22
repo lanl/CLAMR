@@ -1,4 +1,4 @@
-AC_INIT(Clamr, v2.0.5)
+AC_INIT(Clamr, v2.0.7)
 
 AC_CONFIG_AUX_DIR(./config)
 
