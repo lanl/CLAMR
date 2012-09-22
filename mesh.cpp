@@ -1270,11 +1270,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    //  Start lev loop here
    for (int ilevel=1; ilevel<=levmx; ilevel++) {
 
-      vector<int> mpot(ncells);
-
-      for (uint ic=0; ic<ncells; ++ic) {
-         mpot[ic]=0;
-      }
+      ncells_ghost = ncells;
 
       calc_neighbors();
 
@@ -1284,13 +1280,18 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       vector<int> ind(ncells);
 
       KDTree_QueryCircleIntersect(&tree, &nez, &(ind[0]), circ_radius, ncells, &x[0], &dx[0], &y[0], &dy[0]);
-      for (int i=0; i<nez; ++i){
-         if (level[ind[i]] < levmx) mpot[ind[i]] = 1;
+
+      vector<int> mpot(ncells_ghost,0);
+
+      for (int ic=0; ic<nez; ++ic){
+         if (level[ind[ic]] < levmx) mpot[ind[ic]] = 1;
       }
 
       KDTree_Destroy(&tree);
       //  Refine the cells.
-      int add_ncells = refine_smooth(mpot);
+      int new_ncells = refine_smooth(mpot);
+      int add_ncells = new_ncells - ncells;
+
       rezone_all(mpot, add_ncells);
 
       calc_spatial_coordinates(0);
