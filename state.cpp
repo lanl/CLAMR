@@ -1983,7 +1983,7 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
    jcount=0;
 
 #ifdef HAVE_MPI
-   if (mesh->parallel) {
+   if (mesh->numpe > 1) {
       L7_Update(&H[0], L7_REAL, mesh->cell_handle);
       L7_Update(&U[0], L7_REAL, mesh->cell_handle);
       L7_Update(&V[0], L7_REAL, mesh->cell_handle);
