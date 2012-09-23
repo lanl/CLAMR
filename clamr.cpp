@@ -61,15 +61,16 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
-#include "display.h"
 #include "ezcl/ezcl.h"
 #include "input.h"
 #include "mesh.h"
 #include "partition.h"
 #include "state.h"
-#include "timer/timer.h"
 #include "l7/l7.h"
+#include "timer/timer.h"
+
 #include <mpi.h>
+#include "display.h"
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -183,6 +184,15 @@ int main(int argc, char **argv) {
    
    parallel_in = 1;
    mesh = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
+   if (DEBUG) {
+      //if (mype == 0) mesh->print();
+
+      char filename[10];
+      sprintf(filename,"out%1d",mype);
+      mesh->fp=fopen(filename,"w");
+
+      //mesh->print_local();
+   }
 
    size_t &ncells = mesh->ncells;
    int &noffset = mesh->noffset;
@@ -246,18 +256,15 @@ int main(int argc, char **argv) {
 
    for (int ip=0; ip<numpe; ip++){
       nsizes[ip] = ncells_global/numpe;
-      if (ip < (int)ncells_global%numpe) nsizes[ip]++;
+      if (ip < (int)(ncells_global%numpe)) nsizes[ip]++;
    }
 
    ndispl[0]=0;
    for (int ip=1; ip<numpe; ip++){
       ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
    }
-   noffset=0;
-   for (int ip=0; ip<mype; ip++){
-     noffset += nsizes[ip];
-   }
-
+   ncells = nsizes[mype];
+   noffset = ndispl[mype];
 
    size_t corners_size = corners_i_global.size();
 
@@ -341,18 +348,49 @@ int main(int argc, char **argv) {
    //  Set up grid.
 
 #ifdef HAVE_GRAPHICS
+#ifdef HAVE_OPENGL
    set_mysize(ncells_global);
-   set_viewmode(view_mode);
+   vector<real> H_global(ncells_global);
+   vector<real> x_global(ncells_global);
+   vector<real> dx_global(ncells_global);
+   vector<real> y_global(ncells_global);
+   vector<real> dy_global(ncells_global);
+   vector<int> proc_global(ncells_global);
+   MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+
+   set_cell_data(&H_global[0]);
+   set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+
+   if (view_mode == 0) {
+      mesh->proc.resize(ncells);
+      for (size_t ii = 0; ii<ncells; ii++){
+         mesh->proc[ii] = mesh->mype;
+      }
+   
+      MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   }
+
+   set_cell_proc(&proc_global[0]);
+#endif
+#ifdef HAVE_MPE
+   set_mysize(ncells);
+   set_cell_data(&H[0]);
+   set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+   set_cell_proc(&mesh->proc[0]);
+#endif
+
    set_window(mesh_global->xmin, mesh_global->xmax, mesh_global->ymin, mesh_global->ymax);
+   set_viewmode(view_mode);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
-   set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-   vector<real> H_global(ncells_global);
-   set_cell_data(&H_global[0]);
-   set_cell_proc(&mesh_global->proc[0]);
+
    set_circle_radius(circle_radius);
    draw_scene();
-   //if (verbose) sleep(5);
+   if (verbose) sleep(5);
    sleep(2);
 
    //  Set flag to show mesh results rather than domain decomposition.
@@ -394,7 +432,7 @@ extern "C" void do_calc(void)
    }
    
    //  Initialize state variables for GPU calculation.
-   int &mype = mesh->mype;
+   int &mype  = mesh->mype;
    int &numpe = mesh->numpe;
 
    vector<int>   &nsizes   = mesh->nsizes;
@@ -473,7 +511,6 @@ extern "C" void do_calc(void)
       cpu_time_finite_diff += cpu_timer_stop(tstart_cpu);
 
       vector<int>      ioffset(block_size);
-      vector<int>      ioffset_global(block_size_global);
 
       cpu_timer_start(&tstart_cpu);
       new_ncells = state->gpu_calc_refine_potential(command_queue, mesh);
@@ -497,7 +534,6 @@ extern "C" void do_calc(void)
       cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
 
       ioffset.clear();
-      ioffset_global.clear();
 
       H_sum = -1.0;
 
@@ -554,10 +590,10 @@ extern "C" void do_calc(void)
    ezcl_device_memory_remove(dev_y);
    ezcl_device_memory_remove(dev_dy);
 
-   x_global.resize(ncells_global);
-   dx_global.resize(ncells_global);
-   y_global.resize(ncells_global);
-   dy_global.resize(ncells_global);
+   vector<real> x_global(ncells_global);
+   vector<real> dx_global(ncells_global);
+   vector<real> y_global(ncells_global);
+   vector<real> dy_global(ncells_global);
    vector<real> H_global(ncells_global);
 
    MPI_Allgatherv(&x[0],  ncells, MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
@@ -566,11 +602,21 @@ extern "C" void do_calc(void)
    MPI_Allgatherv(&dy[0], ncells, MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&H[0],  ncells, MPI_C_REAL, &H_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
+   vector<int> proc_global(ncells_global);
+   if (view_mode == 0) {
+      mesh->proc.resize(ncells);
+      for (size_t ii = 0; ii<ncells; ii++){
+         mesh->proc[ii] = mesh->mype;
+      }
+   
+      MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   }
+
    set_mysize(ncells_global);
    set_viewmode(view_mode);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
    set_cell_data(&H_global[0]);
-   set_cell_proc(&mesh_global->proc[0]);
+   set_cell_proc(&proc_global[0]);
    set_circle_radius(circle_radius);
    draw_scene();
    MPI_Barrier(MPI_COMM_WORLD);

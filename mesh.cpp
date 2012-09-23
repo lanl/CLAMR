@@ -1248,6 +1248,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
 
    calc_spatial_coordinates(0);
 
+/*
    nlft.resize(ncells);
    nrht.resize(ncells);
    nbot.resize(ncells);
@@ -1260,6 +1261,11 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       nbot[ic]=-1;
       ntop[ic]=-1;
    }
+*/
+   nlft.clear();
+   nrht.clear();
+   nbot.clear();
+   ntop.clear();
 
    celltype.resize(ncells);
 

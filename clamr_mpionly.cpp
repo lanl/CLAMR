@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
 
    for (int ip=0; ip<numpe; ip++){
       nsizes[ip] = ncells_global/numpe;
-      if (ip < (ncells_global%numpe)) nsizes[ip]++;
+      if (ip < (int)(ncells_global%numpe)) nsizes[ip]++;
    }
 
    ndispl[0]=0;
@@ -237,7 +237,7 @@ int main(int argc, char **argv) {
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
-   if (mype ==0) {
+   if (mype == 0) {
       printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells_global, H_sum);
    }
 
@@ -257,6 +257,7 @@ int main(int argc, char **argv) {
    vector<real> dx_global(ncells_global);
    vector<real> y_global(ncells_global);
    vector<real> dy_global(ncells_global);
+   vector<int> proc_global(ncells_global);
    MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
@@ -272,11 +273,10 @@ int main(int argc, char **argv) {
          mesh->proc[ii] = mesh->mype;
       }
    
-      mesh_global->proc.resize(ncells_global);
-      MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &mesh_global->proc[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    }
 
-   set_cell_proc(&mesh_global->proc[0]);
+   set_cell_proc(&proc_global[0]);
 #endif
 #ifdef HAVE_MPE
    set_mysize(ncells);
@@ -451,14 +451,14 @@ extern "C" void do_calc(void)
 
    MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
+   vector<int> proc_global(ncells_global);
    if (view_mode == 0) {
       mesh->proc.resize(ncells);
       for (size_t ii = 0; ii<ncells; ii++){
          mesh->proc[ii] = mesh->mype;
       }
    
-      mesh_global->proc.resize(ncells_global);
-      MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &mesh_global->proc[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    }
 
    set_mysize(ncells_global);
@@ -474,7 +474,7 @@ extern "C" void do_calc(void)
    MPI_Allgatherv(&H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
    set_cell_data(&H_global[0]);
-   set_cell_proc(&mesh_global->proc[0]);
+   set_cell_proc(&proc_global[0]);
 #endif
    set_viewmode(view_mode);
    set_circle_radius(circle_radius);
