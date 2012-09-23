@@ -71,7 +71,7 @@
 #include <mpi.h>
 #include "display.h"
 
-#ifndef DEBUG 
+#ifndef DEBUG
 #define DEBUG 0
 #endif
 
@@ -158,6 +158,15 @@ int main(int argc, char **argv) {
    
    parallel_in = 1;
    mesh = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
+   if (DEBUG) {
+      //if (mype == 0) mesh->print();
+
+      char filename[10];
+      sprintf(filename,"out%1d",mype);
+      mesh->fp=fopen(filename,"w");
+
+      //mesh->print_local();
+   }
 
    size_t &ncells = mesh->ncells;
    int &noffset = mesh->noffset;
@@ -199,8 +208,8 @@ int main(int argc, char **argv) {
    for (int ip=1; ip<numpe; ip++){
       ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
    }
-   ncells= nsizes[mype];
-   noffset=ndispl[mype];
+   ncells = nsizes[mype];
+   noffset = ndispl[mype];
 
    // Distribute level, celltype, H, U, V
 
@@ -289,7 +298,7 @@ int main(int argc, char **argv) {
    set_viewmode(view_mode);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
-      
+
    set_circle_radius(circle_radius);
    draw_scene();
    if (verbose) sleep(5);

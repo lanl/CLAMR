@@ -215,11 +215,6 @@ int main(int argc, char **argv) {
    vector<int>   &nsizes     = mesh->nsizes;
    vector<int>   &ndispl     = mesh->ndispl;
 
-   vector<real>  &x_global  = mesh_global->x;
-   vector<real>  &dx_global = mesh_global->dx;
-   vector<real>  &y_global  = mesh_global->y;
-   vector<real>  &dy_global = mesh_global->dy;
-
    cl_mem &dev_H  = state->dev_H;
    cl_mem &dev_U  = state->dev_U;
    cl_mem &dev_V  = state->dev_V;
@@ -273,8 +268,6 @@ int main(int argc, char **argv) {
 
    dev_corners_i_local  = ezcl_malloc(&corners_i_local[0],  const_cast<char *>("dev_corners_i_local"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
    dev_corners_j_local  = ezcl_malloc(&corners_j_local[0],  const_cast<char *>("dev_corners_j_local"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-
-   // Distribute level, celltype, H, U, V
 
    celltype.resize(ncells);
    level.resize(ncells);
@@ -449,11 +442,6 @@ extern "C" void do_calc(void)
    vector<real>  &dx = mesh->dx;
    vector<real>  &y  = mesh->y;
    vector<real>  &dy = mesh->dy;
-
-   vector<real>  &x_global  = mesh_global->x;
-   vector<real>  &dx_global = mesh_global->dx;
-   vector<real>  &y_global  = mesh_global->y;
-   vector<real>  &dy_global = mesh_global->dy;
 
    cl_mem &dev_H  = state->dev_H;
    cl_mem &dev_U  = state->dev_U;
