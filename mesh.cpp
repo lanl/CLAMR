@@ -1272,6 +1272,9 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    partition_cells(numpe, index, initial_order);
 
    calc_celltype();
+   //printf("%d:LINE%d size is %lu %lu %lu %lu %lu\n",mype,__LINE__,index.size(), i.size(), level.size(), nlft.size(), x.size());
+ 
+   calc_spatial_coordinates(0);
 
    //  Start lev loop here
    for (int ilevel=1; ilevel<=levmx; ilevel++) {
@@ -1298,11 +1301,58 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       int new_ncells = refine_smooth(mpot);
       int add_ncells = new_ncells - ncells;
 
+/*
+      for (int ic=0; ic<mpot.size(); ic++){
+         if (mpot[ic] > 0) printf("%d ic %d mpot %d\n",mype,ic,mpot[ic]);
+      }
+
+   printf("%d:Add cells is %d \n",mype,add_ncells);
+   printf("%d:LINE%d size is %lu %lu %lu %lu %lu\n",mype,__LINE__,index.size(), i.size(), level.size(), nlft.size(), x.size());
+*/
       rezone_all(mpot, add_ncells);
 
       calc_spatial_coordinates(0);
+/*
+      printf("%d: ncells is %d x.size is %d\n",mype,ncells,x.size() );
+   printf("%d:LINE%d size is %lu %lu %lu %lu %lu\n",mype,__LINE__,index.size(), i.size(), level.size(), nlft.size(), x.size());
+
+   if (nlft.size() >= ncells){
+      fprintf(fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop x  dx   y dy\n",mype);
+      for (uint ic=0; ic<ncells; ic++) {
+         fprintf(fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d %lf %lf %lf %lf\n",
+           mype,ic, ic+noffset,i[ic], j[ic], level     [ic], nlft[ic], nrht[ic], nbot[ic], ntop[ic], x[ic], dx[ic],y[ic],dy[ic]);
+      }
+   } else {
+      fprintf(fp,"%d:    index   i     j     lev\n",mype);
+      for (uint ic=0; ic<ncells; ic++) {
+         fprintf(fp,"%d: %6d  %4d  %4d   %4d  \n", mype,ic, i[ic], j[ic], level[ic]);
+      }
+   }
+*/
+
    }  // End lev loop here
-   
+
+/*
+   fprintf(fp,"after lev loop\n");
+
+   if (nlft.size() >= ncells){
+      fprintf(fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mype);
+      for (uint ic=0; ic<ncells; ic++) {
+         fprintf(fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mype,ic, ic+noffset,i[ic], j[ic], level     [ic], nlft[ic], nrht[ic], nbot[ic], ntop[ic]);
+      }
+   } else {
+      fprintf(fp,"%d:    index   i     j     lev\n",mype);
+      for (uint ic=0; ic<ncells; ic++) {
+         fprintf(fp,"%d: %6d  %4d  %4d   %4d  \n", mype,ic, i[ic], j[ic], level[ic]);
+      }
+   }
+
+#ifdef HAVE_MPI
+   L7_Terminate();
+#endif
+   exit(0);
+*/
+
    int ncells_corners = 4;
    int i_corner[] = {   0,   0,imax,imax};
    int j_corner[] = {   0,jmax,   0,jmax};
