@@ -1246,6 +1246,20 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       }
    }
 
+#ifdef HAVE_MPI
+   if (parallel && numpe > 1) {
+      int ncells_int = ncells;
+      MPI_Allreduce(&ncells_int, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+      MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+      ndispl[0]=0;
+      for (int ip=1; ip<numpe; ip++){
+         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+      }
+      noffset=ndispl[mype];
+   }
+#endif
+      
    calc_spatial_coordinates(0);
 
 /*
@@ -1279,9 +1293,23 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    //  Start lev loop here
    for (int ilevel=1; ilevel<=levmx; ilevel++) {
 
-      ncells_ghost = ncells;
+      int old_ncells = ncells;
 
-      calc_neighbors();
+#ifdef HAVE_MPI
+      if (parallel && numpe > 1) {
+         int ncells_int = ncells;
+         MPI_Allreduce(&ncells_int, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   
+         MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+         ndispl[0]=0;
+         for (int ip=1; ip<numpe; ip++){
+            ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+         }
+         noffset=ndispl[mype];
+      }
+#endif
+      
+      calc_neighbors_local();
 
       kdtree_setup();
 
@@ -1299,7 +1327,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       KDTree_Destroy(&tree);
       //  Refine the cells.
       int new_ncells = refine_smooth(mpot);
-      int add_ncells = new_ncells - ncells;
+      int add_ncells = new_ncells - old_ncells;
 
 /*
       for (int ic=0; ic<mpot.size(); ic++){
@@ -1312,8 +1340,10 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       rezone_all(mpot, add_ncells);
 
       calc_spatial_coordinates(0);
+
+      ncells = new_ncells;
+   
 /*
-      printf("%d: ncells is %d x.size is %d\n",mype,ncells,x.size() );
    printf("%d:LINE%d size is %lu %lu %lu %lu %lu\n",mype,__LINE__,index.size(), i.size(), level.size(), nlft.size(), x.size());
 
    if (nlft.size() >= ncells){

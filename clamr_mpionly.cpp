@@ -121,8 +121,7 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
 
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
-static Mesh       *mesh_global;    //  Object containing mesh information; init in grid.cpp::main().
-static Mesh       *mesh;           //  Object containing mesh information; init in grid.cpp::main().
+static Mesh       *mesh;     //  Object containing mesh information; init in grid.cpp::main().
 static State      *state;    //  Object containing state information corresponding to mesh; init in grid.cpp::main().
 
 //  Set up timing information.
@@ -149,14 +148,8 @@ int main(int argc, char **argv) {
    //  Scale the circle appropriately for the mesh size.
    circ_radius = circ_radius * (double) nx / 128.0;
    int boundary = 1;
-   int parallel_in = 0;
+   int parallel_in = 1;
 
-   mesh_global  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
-   mesh_global->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
-
-   size_t &ncells_global = mesh_global->ncells;
-   
-   parallel_in = 1;
    mesh = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
    if (DEBUG) {
       //if (mype == 0) mesh->print();
@@ -167,9 +160,13 @@ int main(int argc, char **argv) {
 
       //mesh->print_local();
    }
+   mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
 
    size_t &ncells = mesh->ncells;
+   size_t &ncells_global = mesh->ncells_global;
    int &noffset = mesh->noffset;
+
+   MPI_Allreduce(&ncells, &ncells_global, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 
    state = new State(ncells);
    state->init(ncells, do_gpu_calc);
@@ -181,11 +178,6 @@ int main(int argc, char **argv) {
    vector<int>   &i        = mesh->i;
    vector<int>   &j        = mesh->j;
    vector<int>   &level    = mesh->level;
-
-   vector<int>   &celltype_global = mesh_global->celltype;
-   vector<int>   &i_global        = mesh_global->i;
-   vector<int>   &j_global        = mesh_global->j;
-   vector<int>   &level_global    = mesh_global->level;
 
    vector<real> &H = state->H;
    vector<real> &U = state->U;
@@ -199,29 +191,23 @@ int main(int argc, char **argv) {
    nsizes.resize(numpe);
    ndispl.resize(numpe);
 
-   for (int ip=0; ip<numpe; ip++){
-      nsizes[ip] = ncells_global/numpe;
-      if (ip < (int)(ncells_global%numpe)) nsizes[ip]++;
-   }
+   int ncells_int = ncells;
+   MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 
    ndispl[0]=0;
    for (int ip=1; ip<numpe; ip++){
       ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
    }
-   ncells = nsizes[mype];
    noffset = ndispl[mype];
-
-   // Distribute level, celltype, H, U, V
+   //printf("%d: DEBUG ncells %d noffset %d\n",mype,ncells,noffset);
+   //for (int ip=1; ip<numpe; ip++){
+   //   printf("%d: DEBUG ip %d nsizes %d ndispl %d\n",mype,ip,nsizes[ip],ndispl[ip]);
+   //}
 
    celltype.resize(ncells);
    level.resize(ncells);
    i.resize(ncells);
    j.resize(ncells);
-
-   MPI_Scatterv(&celltype_global[0], &nsizes[0], &ndispl[0], MPI_INT, &celltype[0], nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&level_global[0],    &nsizes[0], &ndispl[0], MPI_INT, &level[0],    nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&i_global[0],        &nsizes[0], &ndispl[0], MPI_INT, &i[0],        nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&j_global[0],        &nsizes[0], &ndispl[0], MPI_INT, &j[0],        nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
 
    H.resize(ncells);
    U.resize(ncells);
@@ -250,13 +236,11 @@ int main(int argc, char **argv) {
       printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells_global, H_sum);
    }
 
-   mesh_global->cpu_calc_neigh_counter=0;
-   mesh_global->cpu_time_calc_neighbors=0.0;
-   mesh_global->cpu_rezone_counter=0;
-   mesh_global->cpu_time_rezone_all=0.0;
-   mesh_global->cpu_refine_smooth_counter=0;
-
-   //  Set up grid.
+   mesh->cpu_calc_neigh_counter=0;
+   mesh->cpu_time_calc_neighbors=0.0;
+   mesh->cpu_rezone_counter=0;
+   mesh->cpu_time_rezone_all=0.0;
+   mesh->cpu_refine_smooth_counter=0;
 
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL
@@ -294,7 +278,7 @@ int main(int argc, char **argv) {
    set_cell_proc(&mesh->proc[0]);
 #endif
 
-   set_window(mesh_global->xmin, mesh_global->xmax, mesh_global->ymin, mesh_global->ymax);
+   set_window(mesh->xmin, mesh->xmax, mesh->ymin, mesh->ymax);
    set_viewmode(view_mode);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
@@ -340,7 +324,7 @@ extern "C" void do_calc(void)
    int &numpe = mesh->numpe;
 
    //int levmx        = mesh->levmx;
-   size_t &ncells_global    = mesh_global->ncells;
+   size_t &ncells_global    = mesh->ncells_global;
    size_t &ncells           = mesh->ncells;
    size_t &ncells_ghost     = mesh->ncells_ghost;
 

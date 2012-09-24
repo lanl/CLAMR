@@ -130,7 +130,6 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
 
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
-static Mesh       *mesh_global;    //  Object containing mesh information; init in grid.cpp::main().
 static Mesh       *mesh;     //  Object containing mesh information; init in grid.cpp::main().
 static State      *state;    //  Object containing state information corresponding to mesh; init in grid.cpp::main().
 
@@ -144,6 +143,7 @@ static int compute_device = 0;
 
 static double H_sum_initial = 0.0;
 static long gpu_time_graphics = 0;
+double cpu_time_main_setup = 0.0;
 static double cpu_time_timestep = 0.0;
 static double cpu_time_finite_diff = 0.0;
 static double cpu_time_refine_potential = 0.0;
@@ -170,19 +170,15 @@ int main(int argc, char **argv) {
       exit(-1);
    }
 
+   struct timeval tstart_setup;
+   cpu_timer_start(&tstart_setup);
+
    double circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.
    circ_radius = circ_radius * (double) nx / 128.0;
    int boundary = 1;
-   int parallel_in = 0;
+   int parallel_in = 1;
 
-   mesh_global  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
-   mesh_global->init(nx, ny, circ_radius, context, initial_order, compute_device, do_gpu_calc);
-   size_t &ncells_global = mesh_global->ncells;
-   mesh_global->proc.resize(ncells_global);
-   mesh_global->calc_distribution(numpe);
-   
-   parallel_in = 1;
    mesh = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
    if (DEBUG) {
       //if (mype == 0) mesh->print();
@@ -194,20 +190,19 @@ int main(int argc, char **argv) {
       //mesh->print_local();
    }
 
+   mesh->init(nx, ny, circ_radius, context, initial_order, compute_device, do_gpu_calc);
+
    size_t &ncells = mesh->ncells;
+   size_t &ncells_global = mesh->ncells_global;
    int &noffset = mesh->noffset;
+
+   MPI_Allreduce(&ncells, &ncells_global, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 
    state = new State(ncells);
    state->init(ncells, context, compute_device, do_gpu_calc);
 
-   cl_mem &dev_corners_i_global  = mesh_global->dev_corners_i;
-   cl_mem &dev_corners_j_global  = mesh_global->dev_corners_j;
-
    cl_mem &dev_corners_i_local  = mesh->dev_corners_i;
    cl_mem &dev_corners_j_local  = mesh->dev_corners_j;
-
-   vector<int>   &corners_i_global  = mesh_global->corners_i;
-   vector<int>   &corners_j_global  = mesh_global->corners_j;
 
    vector<int>   &corners_i_local  = mesh->corners_i;
    vector<int>   &corners_j_local  = mesh->corners_j;
@@ -229,11 +224,6 @@ int main(int argc, char **argv) {
    vector<int>   &j        = mesh->j;
    vector<int>   &level    = mesh->level;
 
-   vector<int>   &celltype_global = mesh_global->celltype;
-   vector<int>   &i_global        = mesh_global->i;
-   vector<int>   &j_global        = mesh_global->j;
-   vector<int>   &level_global    = mesh_global->level;
-
    vector<real> &H = state->H;
    vector<real> &U = state->U;
    vector<real> &V = state->V;
@@ -243,28 +233,19 @@ int main(int argc, char **argv) {
    vector<real> &y  = mesh->y;
    vector<real> &dy = mesh->dy;
 
-   ncells = ncells_global/numpe;
-   if (mype < (int)ncells_global%numpe) ncells++;
-
    nsizes.resize(numpe);
    ndispl.resize(numpe);
 
-   for (int ip=0; ip<numpe; ip++){
-      nsizes[ip] = ncells_global/numpe;
-      if (ip < (int)(ncells_global%numpe)) nsizes[ip]++;
-   }
+   int ncells_int = ncells;
+   MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 
    ndispl[0]=0;
    for (int ip=1; ip<numpe; ip++){
       ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
    }
-   ncells = nsizes[mype];
    noffset = ndispl[mype];
 
-   size_t corners_size = corners_i_global.size();
-
-   dev_corners_i_global  = ezcl_malloc(&corners_i_global[0],  const_cast<char *>("dev_corners_i_global"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-   dev_corners_j_global  = ezcl_malloc(&corners_j_global[0],  const_cast<char *>("dev_corners_j_global"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+   size_t corners_size = corners_i_local.size();
 
    dev_corners_i_local  = ezcl_malloc(&corners_i_local[0],  const_cast<char *>("dev_corners_i_local"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
    dev_corners_j_local  = ezcl_malloc(&corners_j_local[0],  const_cast<char *>("dev_corners_j_local"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
@@ -273,11 +254,6 @@ int main(int argc, char **argv) {
    level.resize(ncells);
    i.resize(ncells);
    j.resize(ncells);
-
-   MPI_Scatterv(&celltype_global[0], &nsizes[0], &ndispl[0], MPI_INT, &celltype[0], nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&level_global[0],    &nsizes[0], &ndispl[0], MPI_INT, &level[0],    nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&i_global[0],        &nsizes[0], &ndispl[0], MPI_INT, &i[0],        nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&j_global[0],        &nsizes[0], &ndispl[0], MPI_INT, &j[0],        nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
 
    dev_celltype  = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
    dev_i         = ezcl_malloc(NULL, const_cast<char *>("dev_i"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
@@ -323,6 +299,9 @@ int main(int argc, char **argv) {
    mesh->dev_nbot = NULL;
    mesh->dev_ntop = NULL;
 
+   double cpu_time_main_setup = cpu_timer_stop(tstart_setup);
+   state->parallel_timer_output(numpe,mype,"CPU:  setup time               time was",cpu_time_main_setup);
+
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
@@ -332,13 +311,11 @@ int main(int argc, char **argv) {
       printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells_global, H_sum);
    }
 
-   mesh_global->cpu_calc_neigh_counter=0;
-   mesh_global->cpu_time_calc_neighbors=0.0;
-   mesh_global->cpu_rezone_counter=0;
-   mesh_global->cpu_time_rezone_all=0.0;
-   mesh_global->cpu_refine_smooth_counter=0;
-
-   //  Set up grid.
+   mesh->cpu_calc_neigh_counter=0;
+   mesh->cpu_time_calc_neighbors=0.0;
+   mesh->cpu_rezone_counter=0;
+   mesh->cpu_time_rezone_all=0.0;
+   mesh->cpu_refine_smooth_counter=0;
 
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL
@@ -376,7 +353,7 @@ int main(int argc, char **argv) {
    set_cell_proc(&mesh->proc[0]);
 #endif
 
-   set_window(mesh_global->xmin, mesh_global->xmax, mesh_global->ymin, mesh_global->ymax);
+   set_window(mesh->xmin, mesh->xmax, mesh->ymin, mesh->ymax);
    set_viewmode(view_mode);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
@@ -432,7 +409,7 @@ extern "C" void do_calc(void)
    vector<int>   &ndispl   = mesh->ndispl;
 
    //int levmx        = mesh->levmx;
-   size_t &ncells_global    = mesh_global->ncells;
+   size_t &ncells_global    = mesh->ncells_global;
    size_t &ncells           = mesh->ncells;
    size_t &ncells_ghost     = mesh->ncells_ghost;
 
@@ -467,7 +444,7 @@ extern "C" void do_calc(void)
    double deltaT = 0.0;
 
    //  Main loop.
-   for (int nburst = 0; nburst < outputInterval && ncycle <= niter; nburst++, ncycle++) {
+   for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
       size_t local_work_size_global  = MIN(ncells_global, TILE_SIZE);
       size_t global_work_size_global = ((ncells_global+local_work_size_global - 1) /local_work_size_global) * local_work_size_global;
@@ -525,15 +502,13 @@ extern "C" void do_calc(void)
 
       H_sum = -1.0;
 
-      mesh_global->proc.resize(ncells_global);
-      mesh->proc.resize(ncells);
-      if (icount) {
-         vector<int> index(ncells);
-         vector<int> index_global(ncells_global);
-         mesh_global->partition_cells(numpe, index_global, cycle_reorder);
-         mesh->partition_cells(numpe, index, cycle_reorder);
-         //state->state_reorder(index);
-      }
+//      mesh->proc.resize(ncells);
+//      if (icount) {
+//         vector<int> index(ncells);
+//         vector<int> index_global(ncells_global);
+//         mesh->partition_cells(numpe, index, cycle_reorder);
+//         //state->state_reorder(index);
+//      }
 
    }  //  End burst loop
 
@@ -620,6 +595,7 @@ extern "C" void do_calc(void)
       double elapsed_time = cpu_timer_stop(tstart);
       
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
+      state->parallel_timer_output(numpe,mype,"CPU:  setup time               time was",cpu_time_main_setup);
       state->parallel_timer_output(numpe,mype,"GPU:  graphics                 time was",(double) gpu_time_graphics * 1.0e-9 );
 
       state->parallel_timer_output(numpe,mype,"CPU:  timestep calc            time was",cpu_time_timestep);
@@ -642,8 +618,6 @@ extern "C" void do_calc(void)
 
       ezcl_device_memory_remove(mesh->dev_corners_i);
       ezcl_device_memory_remove(mesh->dev_corners_j);
-      ezcl_device_memory_remove(mesh_global->dev_corners_i);
-      ezcl_device_memory_remove(mesh_global->dev_corners_j);
 
       if (mesh->dev_nlft != NULL){
          ezcl_device_memory_remove(mesh->dev_nlft);
@@ -654,7 +628,6 @@ extern "C" void do_calc(void)
 
       mesh->terminate();
       state->terminate();
-      mesh_global->terminate();
       ezcl_terminate();
 
       ezcl_mem_walk_all();

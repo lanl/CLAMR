@@ -267,7 +267,7 @@ extern "C" void do_calc(void)
    double deltaT = 0.0;
 
    //  Main loop.
-   for (int nburst = 0; nburst < outputInterval && ncycle <= niter; nburst++, ncycle++) {
+   for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
       size_t old_ncells = ncells;
 
