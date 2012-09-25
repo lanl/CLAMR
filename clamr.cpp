@@ -320,17 +320,25 @@ int main(int argc, char **argv) {
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL
    set_mysize(ncells_global);
-   vector<real> H_global(ncells_global);
-   vector<real> x_global(ncells_global);
-   vector<real> dx_global(ncells_global);
-   vector<real> y_global(ncells_global);
-   vector<real> dy_global(ncells_global);
-   vector<int> proc_global(ncells_global);
-   MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   vector<real> H_global;
+   vector<real> x_global;
+   vector<real> dx_global;
+   vector<real> y_global;
+   vector<real> dy_global;
+   vector<int> proc_global;
+   if (mype == 0){
+      H_global.resize(ncells_global);
+      x_global.resize(ncells_global);
+      dx_global.resize(ncells_global);
+      y_global.resize(ncells_global);
+      dy_global.resize(ncells_global);
+      proc_global.resize(ncells_global);
+   }
+   MPI_Gatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
 
    set_cell_data(&H_global[0]);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
@@ -341,7 +349,7 @@ int main(int argc, char **argv) {
          mesh->proc[ii] = mesh->mype;
       }
    
-      MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Gatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
    }
 
    set_cell_proc(&proc_global[0]);
@@ -553,26 +561,35 @@ extern "C" void do_calc(void)
    ezcl_device_memory_remove(dev_y);
    ezcl_device_memory_remove(dev_dy);
 
-   vector<real> x_global(ncells_global);
-   vector<real> dx_global(ncells_global);
-   vector<real> y_global(ncells_global);
-   vector<real> dy_global(ncells_global);
-   vector<real> H_global(ncells_global);
+   set_mysize(ncells_global);
+   vector<real> x_global;
+   vector<real> dx_global;
+   vector<real> y_global;
+   vector<real> dy_global;
+   vector<real> H_global;
+   vector<int> proc_global;
+   if (mype == 0) {
+      x_global.resize(ncells_global);
+      dx_global.resize(ncells_global);
+      y_global.resize(ncells_global);
+      dy_global.resize(ncells_global);
+      H_global.resize(ncells_global);
+      proc_global.resize(ncells_global);
+   }
 
-   MPI_Allgatherv(&x[0],  ncells, MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&dx[0], ncells, MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&y[0],  ncells, MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&dy[0], ncells, MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&H[0],  ncells, MPI_C_REAL, &H_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Gatherv(&x[0],  ncells, MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&dx[0], ncells, MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&y[0],  ncells, MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&dy[0], ncells, MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&H[0],  ncells, MPI_C_REAL, &H_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
 
-   vector<int> proc_global(ncells_global);
    if (view_mode == 0) {
       mesh->proc.resize(ncells);
       for (size_t ii = 0; ii<ncells; ii++){
          mesh->proc[ii] = mesh->mype;
       }
    
-      MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Gatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
    }
 
    set_mysize(ncells_global);
