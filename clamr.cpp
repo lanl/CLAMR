@@ -304,14 +304,19 @@ int main(int argc, char **argv) {
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
-   if (mype == 0) {
-      printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells_global, H_sum);
-   }
-
    double cpu_time_main_setup = cpu_timer_stop(tstart_setup);
    state->parallel_timer_output(numpe,mype,"CPU:  setup time               time was",cpu_time_main_setup);
 
-   state->parallel_memory_output(numpe,mype,"Memory used in startup ",timer_memused());
+   long long mem_used = timer_memused();
+   if (mem_used > 0) {
+      state->parallel_memory_output(numpe,mype,"Memory used      in startup ",mem_used);
+      state->parallel_memory_output(numpe,mype,"Memory free      at startup ",timer_memfree());
+      state->parallel_memory_output(numpe,mype,"Memory available at startup ",timer_memtotal());
+   }
+
+   if (mype == 0) {
+      printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells_global, H_sum);
+   }
 
    mesh->cpu_calc_neigh_counter=0;
    mesh->cpu_time_calc_neighbors=0.0;
@@ -613,7 +618,13 @@ extern "C" void do_calc(void)
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       
-      state->parallel_memory_output(numpe,mype,"Memory used ",timer_memused());
+      long long mem_used = timer_memused();
+      if (mem_used > 0) {
+         state->parallel_memory_output(numpe,mype,"Memory used      in startup ",mem_used);
+         state->parallel_memory_output(numpe,mype,"Memory free      at startup ",timer_memfree());
+         state->parallel_memory_output(numpe,mype,"Memory available at startup ",timer_memtotal());
+      }
+
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
       state->parallel_timer_output(numpe,mype,"CPU:  setup time               time was",cpu_time_main_setup);
       state->parallel_timer_output(numpe,mype,"GPU:  graphics                 time was",(double) gpu_time_graphics * 1.0e-9 );

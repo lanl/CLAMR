@@ -2921,7 +2921,7 @@ void State::parallel_memory_output(int numpe, int mype, const char *string, long
    if (mype == 0) {
       printf("%s\t",string);
       for(int ip = 0; ip < numpe; ip++){
-         printf("%lld\t", global_memory_value[ip]);
+         printf("%10lld\t", global_memory_value[ip]);
       }
       printf("kB\n");
    }

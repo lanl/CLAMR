@@ -114,7 +114,7 @@ long long timer_memused(){
       return(-1);
    }
 
-   while (!feof(stat_fp){
+   while (!feof(stat_fp)){
       fgets(str, 132, stat_fp);
       p = strtok(str,":");
       //printf("p is |%s|\n",p);
@@ -126,6 +126,7 @@ long long timer_memused(){
          if (memdebug) {
             printf("VmRSS %lld\n",mem_current);
          }
+         break;
       }
    }
    return(mem_current);
@@ -133,14 +134,13 @@ long long timer_memused(){
 
 #define TIMER_ONEK 1024
 long long timer_memfree(){
-   int err, found;
-   long long freemem, cachedmem;
+   int err;
+   long long freemem;
    int memdebug = 0;
    char buf[260];
    char *p;
 
    freemem = -1;
-   cachedmem = 0;
 
    if (!meminfo_fp){
       meminfo_fp = fopen("/proc/meminfo", "r");
@@ -161,45 +161,20 @@ long long timer_memfree(){
       return(-1);
    }
 
-   found = 0;
-   while (!found && !feof(meminfo_fp)) {
+   while (!feof(meminfo_fp)) {
       if (fgets(buf, 255, meminfo_fp)) { /* read header */
-         printf("buf is %s\n",buf);
-         p = strtok(buf, " ");
+         //printf("buf is %s\n",buf);
+         p = strtok(buf, ":");
          if (memdebug){
-            printf("p: %s\n",p);
+            printf("p: |%s|\n",p);
          }
-         if (!strcmp(p, "MemFree:")) found = 1;
-      } else {
-         break;
-      }
-   }
-
-   if (found){
-      p = strtok('\0', " "); /* should now point to free memory string */
-      freemem = atoll(p)*TIMER_ONEK;
-
-      if (memdebug) printf("MEMINFO: freemem %lld \n",freemem);
-   }
-
-   found = 0;
-   while (!found && !feof(meminfo_fp)) {
-      if (fgets(buf, 255, meminfo_fp)) { /* read header */
-         p = strtok(buf, " ");
-         if (memdebug){
-            printf("p: %s\n",p);
+         if (!strcmp(p, "MemFree")) {
+            p = strtok('\0', " ");
+            //printf("p is %s\n",p);
+            freemem = atoll(p); // in kB
+            break;
          }
-         if (!strcmp(p, "Cached:")) found = 1;
-      } else {
-         break;
       }
-   }
-
-   if (found){
-      p = strtok('\0', " "); /* should now point to cached memory string */
-      cachedmem = atoll(p)*TIMER_ONEK;
-
-      if (memdebug) printf("MEMINFO: cachedmem %lld \n",cachedmem);
    }
 
    //return(freemem+cachedmem);
@@ -207,7 +182,7 @@ long long timer_memfree(){
 }
 
 long long timer_memtotal(){
-   int err, found;
+   int err;
    long long totalmem;
    int memdebug = 0;
    char buf[260];
@@ -234,24 +209,20 @@ long long timer_memtotal(){
       return(-1);
    }
 
-   found = 0;
-   while (!found && !feof(meminfo_fp)) {
+   while (!feof(meminfo_fp)) {
       if (fgets(buf, 255, meminfo_fp)) { /* read header */
-         p = strtok(buf, " ");
+         //printf("buf is %s\n",buf);
+         p = strtok(buf, ":");
          if (memdebug){
-            printf("p: %s\n",p);
+            printf("p: |%s|\n",p);
          }
-         if (!strcmp(p, "MemTotal:")) found = 1;
-      } else {
-         break;
+         if (!strcmp(p, "MemTotal")) {
+            p = strtok('\0', " ");
+            //printf("p is %s\n",p);
+            totalmem = atoll(p); // in kB
+            break;
+         }
       }
-   }
-
-   if (found){
-      p = strtok('\0', " "); /* should now point to total memory string */
-      totalmem = atoll(p)*TIMER_ONEK;
-
-      if (memdebug) printf("MEMINFO: totalmem %lld \n",totalmem);
    }
 
    return(totalmem);
