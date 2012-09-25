@@ -1290,6 +1290,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       }
 #endif
       
+      ncells_ghost = ncells;
       calc_neighbors_local();
 
       kdtree_setup();

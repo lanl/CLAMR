@@ -470,11 +470,13 @@ void Mesh::partition_cells(
             }
 
             // reorder celltype
-            for (int ic = 0; ic<(int)ncells; ic++){
-               int_local[ic] = celltype[ic];
-            }
-            for (int ic = 0; ic<(int)ncells; ic++){
-               celltype[ic] = int_local[z_order[ic]];
+            if (celltype.size() >= ncells){
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  int_local[ic] = celltype[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  celltype[ic] = int_local[z_order[ic]];
+               }
             }
 
             if (x.size() >= ncells) {
@@ -635,11 +637,13 @@ void Mesh::partition_cells(
             }
 
             // reorder celltype
-            for (int ic = 0; ic<(int)ncells; ic++){
-               int_local[ic] = celltype[ic];
-            }
-            for (int ic = 0; ic<(int)ncells; ic++){
-               celltype[ic] = int_local[z_order[ic]];
+            if (celltype.size() >= ncells){
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  int_local[ic] = celltype[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  celltype[ic] = int_local[z_order[ic]];
+               }
             }
 
             if (x.size() >= ncells) {
