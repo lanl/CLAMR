@@ -81,30 +81,14 @@ static int do_gpu_calc = 1;
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
-typedef struct
-{
-   double s0;
-   double s1;
-}  real2;
 typedef cl_double   cl_real;
-typedef cl_double2  cl_real2;
-typedef cl_double4  cl_real4;
-typedef cl_double8  cl_real8;
 #define CONSERVATION_EPS    .00001
 #define STATE_EPS        .025
 #define MPI_C_REAL MPI_DOUBLE
 #define L7_REAL L7_DOUBLE
 #else
 typedef float       real;
-typedef struct
-{
-   float s0;
-   float s1;
-}  real2;
 typedef cl_float    cl_real;
-typedef cl_float2   cl_real2;
-typedef cl_float4   cl_real4;
-typedef cl_float8   cl_real8;
 #define CONSERVATION_EPS    .1
 #define STATE_EPS      15.0
 #define MPI_C_REAL MPI_FLOAT

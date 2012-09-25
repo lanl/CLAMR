@@ -213,15 +213,6 @@ int main(int argc, char **argv) {
    U.resize(ncells);
    V.resize(ncells);
 
-#ifdef XXX
-   x.resize(ncells);
-   dx.resize(ncells);
-   y.resize(ncells);
-   dy.resize(ncells);
-
-   mesh->calc_spatial_coordinates(0);
-#endif
-
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
 
    mesh->nlft.clear();
