@@ -231,6 +231,7 @@ int main(int argc, char **argv) {
    if (mype == 0) {
       printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells_global, H_sum);
    }
+   printf("%d: Memory Used %lu \n",mype,timer_memused() );
 
    mesh->cpu_calc_neigh_counter=0;
    mesh->cpu_time_calc_neighbors=0.0;

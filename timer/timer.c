@@ -55,6 +55,10 @@
  */
 #include <sys/time.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <string.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -77,4 +81,192 @@ double cpu_timer_stop(struct timeval tstart_cpu){
    return(result);
 }
 
+pid_t pid;
+FILE *stat_fp, *meminfo_fp;
+
+long long timer_memused(){
+   char proc_stat_file[50];
+   char str[140];
+   char *p;
+   int i, err;
+   int memdebug = 1;
+   long long mem_current;
+   long long page_size = 1; //4096
+
+   if (!stat_fp){
+      pid = getpid();
+      sprintf(proc_stat_file, "/proc/%d/stat", pid);
+      stat_fp = fopen(proc_stat_file, "r");
+      if (!stat_fp){
+         printf("fopen %s failed: \n", proc_stat_file);
+         return(-1);
+      }
+   }
+
+   err = fflush(stat_fp);
+   if (err) {
+      printf("fflush %s failed: %s\n", proc_stat_file, strerror(err));
+      return(-1);
+   }
+   err = fseek(stat_fp, 0L, 0);
+   if (err) {
+      printf("fseek %s failed: %s\n", proc_stat_file, strerror(err));
+      return(-1);
+   }
+
+   fgets(str, 132, stat_fp);
+   if (memdebug) {
+      printf("str: %s\n",str);
+   }
+   if (ferror(stat_fp)) {
+      printf("fgets %s failed: %s\n", proc_stat_file, strerror(err));
+      return(-1);
+   }
+
+   p = strtok(str," ");
+   for (i=0; i<21; ++i){
+      p = strtok('\0'," ");
+      if (memdebug) {
+         printf("p: %d %s\n",i,p);
+      }
+   }
+
+/* Getting 23rd field which is rss size in pages */
+   p = strtok('\0'," ");
+   if (memdebug) {
+      printf("rss size token: %s\n",p);
+   }
+
+   mem_current = atoll(p)*page_size;
+   if (memdebug) {
+      printf("STAT rss: %lld \n",mem_current);
+   }
+
+   return(mem_current);
+}
+
+#define TIMER_ONEK 1024
+long long timer_memfree(){
+   int err, found;
+   long long freemem, cachedmem;
+   int memdebug = 0;
+   char buf[260];
+   char *p;
+
+   freemem = -1;
+   cachedmem = 0;
+
+   if (!meminfo_fp){
+      meminfo_fp = fopen("/proc/meminfo", "r");
+      if (!meminfo_fp){
+         printf("fopen failed: \n");
+         return(-1);
+      }
+   }
+
+   err = fflush(meminfo_fp);
+   if (err) {
+      printf("fflush failed: %s\n", strerror(err));
+      return(-1);
+   }
+   err = fseek(meminfo_fp, 0L, 0);
+   if (err) {
+      printf("fseek failed: %s\n", strerror(err));
+      return(-1);
+   }
+
+   found = 0;
+   while (!found && !feof(meminfo_fp)) {
+      if (fgets(buf, 255, meminfo_fp)) { /* read header */
+         p = strtok(buf, " ");
+         if (memdebug){
+            printf("p: %s\n",p);
+         }
+         if (!strcmp(p, "MemFree:")) found = 1;
+      } else {
+         break;
+      }
+   }
+
+   if (found){
+      p = strtok('\0', " "); /* should now point to free memory string */
+      freemem = atoll(p)*TIMER_ONEK;
+
+      if (memdebug) printf("MEMINFO: freemem %lld \n",freemem);
+   }
+
+   found = 0;
+   while (!found && !feof(meminfo_fp)) {
+      if (fgets(buf, 255, meminfo_fp)) { /* read header */
+         p = strtok(buf, " ");
+         if (memdebug){
+            printf("p: %s\n",p);
+         }
+         if (!strcmp(p, "Cached:")) found = 1;
+      } else {
+         break;
+      }
+   }
+
+   if (found){
+      p = strtok('\0', " "); /* should now point to cached memory string */
+      cachedmem = atoll(p)*TIMER_ONEK;
+
+      if (memdebug) printf("MEMINFO: cachedmem %lld \n",cachedmem);
+   }
+
+   //return(freemem+cachedmem);
+   return(freemem);
+}
+
+long long timer_memtotal(){
+   int err, found;
+   long long totalmem;
+   int memdebug = 0;
+   char buf[260];
+   char *p;
+
+   totalmem = -1;
+
+   if (!meminfo_fp){
+      meminfo_fp = fopen("/proc/meminfo", "r");
+      if (!meminfo_fp){
+         printf("fopen failed: \n");
+         return(-1);
+      }
+   }
+
+   err = fflush(meminfo_fp);
+   if (err) {
+      printf("fflush failed: %s\n", strerror(err));
+      return(-1);
+   }
+   err = fseek(meminfo_fp, 0L, 0);
+   if (err) {
+      printf("fseek failed: %s\n", strerror(err));
+      return(-1);
+   }
+
+   found = 0;
+   while (!found && !feof(meminfo_fp)) {
+      if (fgets(buf, 255, meminfo_fp)) { /* read header */
+         p = strtok(buf, " ");
+         if (memdebug){
+            printf("p: %s\n",p);
+         }
+         if (!strcmp(p, "MemTotal:")) found = 1;
+      } else {
+         break;
+      }
+   }
+
+   if (found){
+      p = strtok('\0', " "); /* should now point to total memory string */
+      totalmem = atoll(p)*TIMER_ONEK;
+
+      if (memdebug) printf("MEMINFO: totalmem %lld \n",totalmem);
+   }
+
+   return(totalmem);
+}
 
