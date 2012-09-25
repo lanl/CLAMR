@@ -129,6 +129,7 @@ static struct timeval tstart;
 
 static double H_sum_initial = 0.0;
 static double cpu_time_graphics = 0.0;
+double cpu_time_main_setup = 0.0;
 static double cpu_time_timestep = 0.0;
 static double cpu_time_finite_diff = 0.0;
 static double cpu_time_refine_potential = 0.0;
@@ -143,6 +144,9 @@ int main(int argc, char **argv) {
    int numpe=0;
    L7_Init(&mype, &numpe, &argc, argv);
    parseInput(argc, argv);
+
+   struct timeval tstart_setup;
+   cpu_timer_start(&tstart_setup);
 
    double circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.
@@ -231,7 +235,11 @@ int main(int argc, char **argv) {
    if (mype == 0) {
       printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells_global, H_sum);
    }
-   printf("%d: Memory Used %lu \n",mype,timer_memused() );
+
+   double cpu_time_main_setup = cpu_timer_stop(tstart_setup);
+   state->parallel_timer_output(numpe,mype,"CPU:  setup time               time was",cpu_time_main_setup);
+
+   state->parallel_memory_output(numpe,mype,"Memory used in startup ",timer_memused());
 
    mesh->cpu_calc_neigh_counter=0;
    mesh->cpu_time_calc_neighbors=0.0;
@@ -499,6 +507,7 @@ extern "C" void do_calc(void)
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       
+      state->parallel_memory_output(numpe,mype,"Memory used ",timer_memused());
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
 
       state->parallel_timer_output(numpe,mype,"CPU:  graphics                 time was",cpu_time_graphics);

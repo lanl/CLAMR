@@ -191,6 +191,7 @@ public:
    void print_object_info(void);
 
    void parallel_timer_output(int numpe, int mype, const char *string, double local_time);
+   void parallel_memory_output(int numpe, int mype, const char *string, long long local_time);
 private:
 
 };

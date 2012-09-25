@@ -2912,6 +2912,21 @@ void State::parallel_timer_output(int numpe, int mype, const char *string, doubl
    }
 }
 
+void State::parallel_memory_output(int numpe, int mype, const char *string, long long local_time)
+{
+   vector<long long> global_memory_value(numpe);
+#ifdef HAVE_MPI
+   MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_memory_value[0], 1, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
+#endif
+   if (mype == 0) {
+      printf("%s\t",string);
+      for(int ip = 0; ip < numpe; ip++){
+         printf("%lld\t", global_memory_value[ip]);
+      }
+      printf("kB\n");
+   }
+}
+
 #ifdef HAVE_OPENCL
 void State::compare_state_gpu_global_to_cpu_global(cl_command_queue command_queue, const char* string, int cycle, uint ncells)
 {

@@ -89,13 +89,13 @@ long long timer_memused(){
    char str[140];
    char *p;
    int i, err;
-   int memdebug = 1;
+   int memdebug = 0;
    long long mem_current;
    long long page_size = 1; //4096
 
    if (!stat_fp){
       pid = getpid();
-      sprintf(proc_stat_file, "/proc/%d/stat", pid);
+      sprintf(proc_stat_file, "/proc/%d/status", pid);
       stat_fp = fopen(proc_stat_file, "r");
       if (!stat_fp){
          printf("fopen %s failed: \n", proc_stat_file);
@@ -114,34 +114,20 @@ long long timer_memused(){
       return(-1);
    }
 
-   fgets(str, 132, stat_fp);
-   if (memdebug) {
-      printf("str: %s\n",str);
-   }
-   if (ferror(stat_fp)) {
-      printf("fgets %s failed: %s\n", proc_stat_file, strerror(err));
-      return(-1);
-   }
-
-   p = strtok(str," ");
-   for (i=0; i<21; ++i){
-      p = strtok('\0'," ");
-      if (memdebug) {
-         printf("p: %d %s\n",i,p);
+   while (!feof(stat_fp){
+      fgets(str, 132, stat_fp);
+      p = strtok(str,":");
+      //printf("p is |%s|\n",p);
+      if (!strcmp(p, "VmRSS")) {
+         p = strtok('\0'," ");
+         p = strtok('\0'," ");
+         //mem_current = atoll(p)*1024; // Size is in kB 
+         mem_current = atoll(p); // Size is in kB 
+         if (memdebug) {
+            printf("VmRSS %lld\n",mem_current);
+         }
       }
    }
-
-/* Getting 23rd field which is rss size in pages */
-   p = strtok('\0'," ");
-   if (memdebug) {
-      printf("rss size token: %s\n",p);
-   }
-
-   mem_current = atoll(p)*page_size;
-   if (memdebug) {
-      printf("STAT rss: %lld \n",mem_current);
-   }
-
    return(mem_current);
 }
 
@@ -178,6 +164,7 @@ long long timer_memfree(){
    found = 0;
    while (!found && !feof(meminfo_fp)) {
       if (fgets(buf, 255, meminfo_fp)) { /* read header */
+         printf("buf is %s\n",buf);
          p = strtok(buf, " ");
          if (memdebug){
             printf("p: %s\n",p);
