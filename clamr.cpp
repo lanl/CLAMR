@@ -604,9 +604,9 @@ extern "C" void do_calc(void)
       
       long long mem_used = timer_memused();
       if (mem_used > 0) {
-         state->parallel_memory_output(numpe,mype,"Memory used      in startup ",mem_used);
-         state->parallel_memory_output(numpe,mype,"Memory free      at startup ",timer_memfree());
-         state->parallel_memory_output(numpe,mype,"Memory available at startup ",timer_memtotal());
+         state->parallel_memory_output(numpe,mype,"Memory used      ",mem_used);
+         state->parallel_memory_output(numpe,mype,"Memory free      ",timer_memfree());
+         state->parallel_memory_output(numpe,mype,"Memory available ",timer_memtotal());
       }
 
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);

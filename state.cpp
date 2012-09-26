@@ -2920,7 +2920,7 @@ void State::parallel_timer_output(int numpe, int mype, const char *string, doubl
          } else {
             median_value = global_times[half_value+1];
          }
-         printf("min %8.4f\t median %8.4f\t max %8.4f\n",global_times[0],median_value,global_times[numpe-1]);
+         printf(" %8.4f\t %8.4f\t %8.4f secs min/median/max\n",global_times[0],median_value,global_times[numpe-1]);
       }
    }
 }
@@ -2947,7 +2947,7 @@ void State::parallel_memory_output(int numpe, int mype, const char *string, long
          } else {
             median_value = global_memory_value[half_value+1];
          }
-         printf("min %10lld\t median %10lld\t max %10lld\n",global_memory_value[0],median_value,global_memory_value[numpe-1]);
+         printf(" %10lld\t %10lld\t %10lld kb min/median/max\n",global_memory_value[0],median_value,global_memory_value[numpe-1]);
       }
    }
 }
