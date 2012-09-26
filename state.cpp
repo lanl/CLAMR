@@ -55,6 +55,7 @@
  */
 #include <unistd.h>
 #include <stdio.h>
+#include <algorithm>
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -2905,10 +2906,22 @@ void State::parallel_timer_output(int numpe, int mype, const char *string, doubl
 #endif
    if (mype == 0) {
       printf("%s\t",string);
-      for(int ip = 0; ip < numpe; ip++){
-         printf("%8.4f\t", global_times[ip]);
+      if (numpe <= 4) {
+         for(int ip = 0; ip < numpe; ip++){
+            printf("%8.4f\t", global_times[ip]);
+         }
+         printf("s\n");
+      } else {
+         sort(global_times.begin(),global_times.end());
+         double median_value;
+         int half_value = numpe/2;
+         if (numpe%2 == 0) {
+            median_value = (global_times[half_value-1]+global_times[half_value])/2.0;
+         } else {
+            median_value = global_times[half_value+1];
+         }
+         printf("min %8.4f\t median %8.4f\t max %8.4f\n",global_times[0],median_value,global_times[numpe-1]);
       }
-      printf("s\n");
    }
 }
 
@@ -2920,10 +2933,22 @@ void State::parallel_memory_output(int numpe, int mype, const char *string, long
 #endif
    if (mype == 0) {
       printf("%s\t",string);
-      for(int ip = 0; ip < numpe; ip++){
-         printf("%10lld\t", global_memory_value[ip]);
+      if (numpe <= 4) {
+         for(int ip = 0; ip < numpe; ip++){
+            printf("%10lld\t", global_memory_value[ip]);
+         }
+         printf("kB\n");
+      } else {
+         sort(global_memory_value.begin(),global_memory_value.end());
+         long long median_value;
+         int half_value = numpe/2;
+         if (numpe%2 == 0) {
+            median_value = (global_memory_value[half_value-1]+global_memory_value[half_value])/2;
+         } else {
+            median_value = global_memory_value[half_value+1];
+         }
+         printf("min %10lld\t median %10lld\t max %10lld\n",global_memory_value[0],median_value,global_memory_value[numpe-1]);
       }
-      printf("kB\n");
    }
 }
 
