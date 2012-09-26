@@ -98,7 +98,7 @@ long long timer_memused(){
       sprintf(proc_stat_file, "/proc/%d/status", pid);
       stat_fp = fopen(proc_stat_file, "r");
       if (!stat_fp){
-         printf("fopen %s failed: \n", proc_stat_file);
+         //printf("fopen %s failed: \n", proc_stat_file);
          return(-1);
       }
    }

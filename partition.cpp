@@ -427,7 +427,36 @@ void Mesh::partition_cells(
                calc_spatial_coordinates(0);
             }
 
-            // Need to add neighbors
+            if (nlft.size() >= ncells) {
+               vector<int> inv_z_order(ncells_global);
+               for (int ic = 0; ic<(int)ncells_global; ic++){
+                  inv_z_order[z_order_global[ic]] = ic;
+               }
+
+               MPI_Allgatherv(&nlft[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+               for (int ic = 0; ic<(int)ncells_global; ic++){
+                  int_global_new[ic] = inv_z_order[int_global[z_order_global[ic]]];
+               }
+               MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &nlft[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+
+               MPI_Allgatherv(&nrht[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+               for (int ic = 0; ic<(int)ncells_global; ic++){
+                  int_global_new[ic] = inv_z_order[int_global[z_order_global[ic]]];
+               }
+               MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &nrht[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+
+               MPI_Allgatherv(&nbot[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+               for (int ic = 0; ic<(int)ncells_global; ic++){
+                  int_global_new[ic] = inv_z_order[int_global[z_order_global[ic]]];
+               }
+               MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &nbot[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+
+               MPI_Allgatherv(&ntop[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+               for (int ic = 0; ic<(int)ncells_global; ic++){
+                  int_global_new[ic] = inv_z_order[int_global[z_order_global[ic]]];
+               }
+               MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &ntop[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+            }
 
             MPI_Scatterv(&z_order_global[0], &nsizes[0], &ndispl[0], MPI_REAL, &z_order[0], ncells, MPI_REAL, 0, MPI_COMM_WORLD);
 #endif
@@ -511,6 +540,41 @@ void Mesh::partition_cells(
                }
             }
 
+            if (nlft.size() >= ncells) {
+               vector<int> inv_z_order(ncells);
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  inv_z_order[z_order[ic]] = ic;
+               }
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  int_local[ic] = nlft[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  nlft[ic] = inv_z_order[int_local[z_order[ic]]];
+               }
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  int_local[ic] = nrht[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  nrht[ic] = inv_z_order[int_local[z_order[ic]]];
+               }
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  int_local[ic] = nbot[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  nbot[ic] = inv_z_order[int_local[z_order[ic]]];
+               }
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  int_local[ic] = ntop[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  ntop[ic] = inv_z_order[int_local[z_order[ic]]];
+               }
+            }
+
          }
 
          break;
@@ -584,6 +648,36 @@ void Mesh::partition_cells(
                calc_spatial_coordinates(0);
             }
 
+            if (nlft.size() >= ncells) {
+               vector<int> inv_z_order(ncells_global);
+               for (int ic = 0; ic<(int)ncells_global; ic++){
+                  inv_z_order[z_order_global[ic]] = ic;
+               }
+
+               MPI_Allgatherv(&nlft[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+               for (int ic = 0; ic<(int)ncells_global; ic++){
+                  int_global_new[ic] = inv_z_order[int_global[z_order_global[ic]]];
+               }
+               MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &nlft[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+
+               MPI_Allgatherv(&nrht[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+               for (int ic = 0; ic<(int)ncells_global; ic++){
+                  int_global_new[ic] = inv_z_order[int_global[z_order_global[ic]]];
+               }
+               MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &nrht[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+
+               MPI_Allgatherv(&nbot[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+               for (int ic = 0; ic<(int)ncells_global; ic++){
+                  int_global_new[ic] = inv_z_order[int_global[z_order_global[ic]]];
+               }
+               MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &nbot[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+
+               MPI_Allgatherv(&ntop[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+               for (int ic = 0; ic<(int)ncells_global; ic++){
+                  int_global_new[ic] = inv_z_order[int_global[z_order_global[ic]]];
+               }
+               MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &ntop[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+            }
             MPI_Scatterv(&z_order_global[0], &nsizes[0], &ndispl[0], MPI_REAL, &z_order[0], ncells, MPI_REAL, 0, MPI_COMM_WORLD);
 #endif
          } else {
@@ -675,6 +769,41 @@ void Mesh::partition_cells(
                }
                for (int ic = 0; ic<(int)ncells; ic++){
                   dy[ic] = real_local[z_order[ic]];
+               }
+            }
+
+            if (nlft.size() >= ncells) {
+               vector<int> inv_z_order(ncells);
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  inv_z_order[z_order[ic]] = ic;
+               }
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  int_local[ic] = nlft[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  nlft[ic] = inv_z_order[int_local[z_order[ic]]];
+               }
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  int_local[ic] = nrht[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  nrht[ic] = inv_z_order[int_local[z_order[ic]]];
+               }
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  int_local[ic] = nbot[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  nbot[ic] = inv_z_order[int_local[z_order[ic]]];
+               }
+
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  int_local[ic] = ntop[ic];
+               }
+               for (int ic = 0; ic<(int)ncells; ic++){
+                  ntop[ic] = inv_z_order[int_local[z_order[ic]]];
                }
             }
          }
