@@ -132,6 +132,54 @@ long long timer_memused(){
    return(mem_current);
 }
 
+long long timer_mempeak(){
+   char proc_stat_file[50];
+   char str[140];
+   char *p;
+   int i, err;
+   int memdebug = 0;
+   long long mem_current;
+   long long page_size = 1; //4096
+
+   if (!stat_fp){
+      pid = getpid();
+      sprintf(proc_stat_file, "/proc/%d/status", pid);
+      stat_fp = fopen(proc_stat_file, "r");
+      if (!stat_fp){
+         //printf("fopen %s failed: \n", proc_stat_file);
+         return(-1);
+      }
+   }
+
+   err = fflush(stat_fp);
+   if (err) {
+      printf("fflush %s failed: %s\n", proc_stat_file, strerror(err));
+      return(-1);
+   }
+   err = fseek(stat_fp, 0L, 0);
+   if (err) {
+      printf("fseek %s failed: %s\n", proc_stat_file, strerror(err));
+      return(-1);
+   }
+
+   while (!feof(stat_fp)){
+      fgets(str, 132, stat_fp);
+      p = strtok(str,":");
+      //printf("p is |%s|\n",p);
+      if (!strcmp(p, "VmHWM")) {
+         p = strtok('\0'," ");
+         p = strtok('\0'," ");
+         //mem_current = atoll(p)*1024; // Size is in kB 
+         mem_current = atoll(p); // Size is in kB 
+         if (memdebug) {
+            printf("VmRSS %lld\n",mem_current);
+         }
+         break;
+      }
+   }
+   return(mem_current);
+}
+
 #define TIMER_ONEK 1024
 long long timer_memfree(){
    int err;

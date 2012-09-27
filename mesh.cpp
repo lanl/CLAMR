@@ -3880,8 +3880,8 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
    size_t hash_local_work_size  = MIN(hashsize, TILE_SIZE);
    size_t hash_global_work_size = ((hashsize+hash_local_work_size - 1) /hash_local_work_size) * hash_local_work_size;
 
-   ezcl_set_kernel_arg(kernel_hash_init, 0, sizeof(cl_int), (void *)&hashsize);
-   ezcl_set_kernel_arg(kernel_hash_init, 1, sizeof(cl_mem), (void *)&dev_hash);
+   ezcl_set_kernel_arg(kernel_hash_init, 0, sizeof(cl_ulong), (void *)&hashsize);
+   ezcl_set_kernel_arg(kernel_hash_init, 1, sizeof(cl_mem),   (void *)&dev_hash);
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, NULL);
 
       /*
@@ -4073,8 +4073,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    size_t hash_global_work_size = ((hashsize+hash_local_work_size - 1) /hash_local_work_size) * hash_local_work_size;
 
    //printf("%d: hash size is %d lws %d gws %d\n",mype,hashsize,hash_local_work_size,hash_global_work_size);
-   ezcl_set_kernel_arg(kernel_hash_init, 0, sizeof(cl_int), (void *)&hashsize);
-   ezcl_set_kernel_arg(kernel_hash_init, 1, sizeof(cl_mem), (void *)&dev_hash);
+   ezcl_set_kernel_arg(kernel_hash_init, 0, sizeof(cl_ulong), (void *)&hashsize);
+   ezcl_set_kernel_arg(kernel_hash_init, 1, sizeof(cl_mem),   (void *)&dev_hash);
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, NULL);
 
    int csize = corners_i.size();

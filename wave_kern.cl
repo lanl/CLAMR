@@ -797,10 +797,10 @@ __kernel void do_load_balance_cl_upper(
 #define hashval(j,i) hash[(j)*imaxsize+(i)]
 
 __kernel void hash_init_cl(
-                          const int  isize,     // 0 
-                 __global       int  *hash)     // 1 
+                          const ulong isize,     // 0 
+                 __global       int   *hash)     // 1 
 {
-   const unsigned int giX  = get_global_id(0);
+   const ulong giX  = get_global_id(0);
 
    if (giX >= isize) return;
 
