@@ -1,0 +1,32 @@
+#!/bin/tcsh
+#MSUB -l walltime=1:00:00
+#MSUB -l nodes=1:ppn=2
+#MSUB -o myjob.out002
+#MSUB -j oe
+#MSUB -V
+
+##### These are shell commands
+date
+limit maxproc unlimited
+limit descriptors unlimited
+limit memorylocked unlimited
+
+cd ${RUNS_DIR}
+
+##### Weak Scaling
+mpirun -np 2 -npersocket 1  ${BUILD_DIR}/clamr -n 724  -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/weak_hilb_out002_2h_clamronly
+
+##### Weak Scaling
+mpirun -np 2 -npersocket 1  ${BUILD_DIR}/clamr -n 724  -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/weak_orig_out002_2h_clamronly
+
+##### Strong Scaling
+mpirun -np 2 -npersocket 1 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/strong_hilb_out002_2h_clamronly
+mpirun -np 2 -npersocket 1 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 4 > ${RUNS_DIR}/strong_hilb_out002_4h_clamronly
+
+##### Strong Scaling
+mpirun -np 2 -npersocket 1 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/strong_orig_out002_2h_clamronly
+mpirun -np 2 -npersocket 1 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "original_order" -p "original_order" -l 4 > ${RUNS_DIR}/strong_orig_out002_4h_clamronly
+
+date
+echo 'Done'
+

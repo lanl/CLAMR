@@ -1,0 +1,24 @@
+#!/bin/tcsh
+setenv BUILD_DIR /scratch/brobey/CLAMR
+setenv RUNS_DIR /scratch/brobey/test
+
+mkdir -p ${RUNS_DIR}
+cp ${BUILD_DIR}/*.cl ${RUNS_DIR}
+cd ${RUNS_DIR}
+
+msub ../scripts/msub001
+msub ../scripts/msub002
+msub ../scripts/msub004
+msub ../scripts/msub008
+msub ../scripts/msub016
+msub ../scripts/msub032
+msub ../scripts/msub064
+msub ../scripts/msub128
+
+msub ../scripts/msub_mpi002
+msub ../scripts/msub_mpi004
+msub ../scripts/msub_mpi008
+msub ../scripts/msub_mpi016
+msub ../scripts/msub_mpi032
+msub ../scripts/msub_mpi064
+msub ../scripts/msub_mpi128
