@@ -4177,12 +4177,10 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       vector<int> nbot_tmp(ncells);
       vector<int> ntop_tmp(ncells);
 
-      vector<int> celltype_tmp(ncells);
       vector<int> i_tmp(ncells);
       vector<int> j_tmp(ncells);
       vector<int> level_tmp(ncells);
 
-      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int), &celltype_tmp[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int), &level_tmp[0],    NULL);
@@ -4965,7 +4963,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          cpu_timer_start(&tstart_lev2);
       }
 
-      celltype_tmp.resize(ncells_ghost);
       i_tmp.resize(ncells_ghost);
       j_tmp.resize(ncells_ghost);
       level_tmp.resize(ncells_ghost);
@@ -4975,7 +4972,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ntop_tmp.resize(ncells_ghost,-98);
 
 #ifdef HAVE_MPI
-      L7_Update(&celltype_tmp[0], L7_INT, cell_handle);
       L7_Update(&i_tmp[0],        L7_INT, cell_handle);
       L7_Update(&j_tmp[0],        L7_INT, cell_handle);
       L7_Update(&level_tmp[0],    L7_INT, cell_handle);
@@ -5070,11 +5066,20 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          cl_mem dev_level_add      = ezcl_malloc(NULL, const_cast<char *>("dev_level_add"),      &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          cl_mem dev_indices_needed = ezcl_malloc(NULL, const_cast<char *>("dev_indices_needed"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
+         vector<int> celltype_tmp(nghost);
+         for (int ic = 0; ic < nghost; ic++){
+            celltype_tmp[ic] = REAL_CELL;
+            if (i_tmp[ic+ncells] < lev_ibegin[level_tmp[ic+ncells]]) celltype_tmp[ic] = LEFT_BOUNDARY;
+            if (i_tmp[ic+ncells] > lev_iend[  level_tmp[ic+ncells]]) celltype_tmp[ic] = RIGHT_BOUNDARY;
+            if (j_tmp[ic+ncells] < lev_jbegin[level_tmp[ic+ncells]]) celltype_tmp[ic] = BOTTOM_BOUNDARY;
+            if (j_tmp[ic+ncells] > lev_jend[  level_tmp[ic+ncells]]) celltype_tmp[ic] = TOP_BOUNDARY;
+         }
+
          ezcl_enqueue_write_buffer(command_queue, dev_nlft_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nlft_tmp[ncells],     NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_nrht_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nrht_tmp[ncells],     NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_nbot_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nbot_tmp[ncells],     NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_ntop_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&ntop_tmp[ncells],     NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_celltype_add,   CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&celltype_tmp[ncells], NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_celltype_add,   CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&celltype_tmp, NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_i_add,          CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&i_tmp[ncells],        NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_j_add,          CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&j_tmp[ncells],        NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_level_add,      CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&level_tmp[ncells],    NULL);
