@@ -4190,59 +4190,56 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells*sizeof(cl_int), &nbot_tmp[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], NULL);
 
-      vector<int> border_cell;
+      vector<int> border_cell(ncells,-1);
 
       // Scan for corner boundary cells and also push list of unsatisfied neighbor cells
       for (uint ic=0; ic<ncells; ic++){
          if (nlft_tmp[ic] == -1 || (level_tmp[nlft_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nlft_tmp[ic]-noffset]) ){
             //printf("%d: Cell is %d nlft %d\n",mype,ic+noffset,nlft_tmp[ic]);
-            border_cell.push_back(ic+noffset);
+            border_cell[ic]=1;
             if (nrht_tmp[ic] >= 0) {
-               border_cell.push_back(nrht_tmp[ic]);
+               border_cell[nrht_tmp[ic]-noffset]=1;
                if (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic]) {
-                  if (ntop_tmp[nrht_tmp[ic]-noffset] >= 0) border_cell.push_back(ntop_tmp[nrht_tmp[ic]-noffset]);
+                  if (ntop_tmp[nrht_tmp[ic]-noffset] >= 0) border_cell[ntop_tmp[nrht_tmp[ic]-noffset]-noffset]=1;
                }
             }
          }
          if (nrht_tmp[ic] == -1 || (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nrht_tmp[ic]-noffset]) ){
             //printf("%d: Cell is %d nrht %d\n",mype,ic+noffset,nrht_tmp[ic]);
-            border_cell.push_back(ic+noffset);
+            border_cell[ic]=1;
             if (nlft_tmp[ic] >= 0) {
-               border_cell.push_back(nlft_tmp[ic]);
+               border_cell[nlft_tmp[ic]-noffset]=1;
                if (level_tmp[nlft_tmp[ic]-noffset] > level_tmp[ic]) {
-                  if (ntop_tmp[nlft_tmp[ic]-noffset] >= 0) border_cell.push_back(ntop_tmp[nlft_tmp[ic]-noffset]);
+                  if (ntop_tmp[nlft_tmp[ic]-noffset] >= 0) border_cell[ntop_tmp[nlft_tmp[ic]-noffset]-noffset]=1;
                }
             }
          }
          if (nbot_tmp[ic] == -1 || (level_tmp[nbot_tmp[ic]-noffset] > level_tmp[ic] && nrht_tmp[nbot_tmp[ic]-noffset]) ) {
             //printf("%d: Cell is %d nbot %d\n",mype,ic+noffset,nbot_tmp[ic]);
-            border_cell.push_back(ic+noffset);
+            border_cell[ic]=1;
             if (ntop_tmp[ic] >= 0) {
-               border_cell.push_back(ntop_tmp[ic]);
+               border_cell[ntop_tmp[ic]-noffset]=1;
                if (level_tmp[ntop_tmp[ic]-noffset] > level_tmp[ic]) {
-                  if (nrht_tmp[ntop_tmp[ic]-noffset] >= 0) border_cell.push_back(nrht_tmp[ntop_tmp[ic]-noffset]);
+                  if (nrht_tmp[ntop_tmp[ic]-noffset] >= 0) border_cell[nrht_tmp[ntop_tmp[ic]-noffset]-noffset]=1;
                }
             }
          }
          if (ntop_tmp[ic] == -1 || ( level_tmp[ntop_tmp[ic]-noffset] > level_tmp[ic] && nrht_tmp[ntop_tmp[ic]-noffset] == -1) ) {
             //printf("%d: Cell is %d ntop %d\n",mype,ic+noffset,ntop_tmp[ic]);
-            border_cell.push_back(ic+noffset);
+            border_cell[ic]=1;
             if (nbot_tmp[ic] >= 0) {
-               border_cell.push_back(nbot_tmp[ic]);
+               border_cell[nbot_tmp[ic]-noffset]=1;
                if (level_tmp[nbot_tmp[ic]-noffset] > level_tmp[ic]) {
-                  if (nrht_tmp[nbot_tmp[ic]-noffset] >= 0) border_cell.push_back(nrht_tmp[nbot_tmp[ic]-noffset]);
+                  if (nrht_tmp[nbot_tmp[ic]-noffset] >= 0) border_cell[nrht_tmp[nbot_tmp[ic]-noffset]-noffset]=1;
                }
             }
          }
       }
 
-      sort(border_cell.begin(),border_cell.end());
-      vector<int>::iterator p_end = unique(border_cell.begin(),border_cell.end());
-
       vector<int> border_cell_num;
 
-      for (vector<int>::iterator p=border_cell.begin(); p < p_end; p++){
-         border_cell_num.push_back(*p);
+      for(int ic = 0; ic < (int)ncells; ic++){
+         if (border_cell[ic] > 0) border_cell_num.push_back(ic+noffset);
       }
 
       if (TIMING_LEVEL >= 2) {
@@ -4853,7 +4850,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       } // ncells loop
 
       sort(offtile_list.begin(), offtile_list.end());
-      p_end = unique(offtile_list.begin(), offtile_list.end());
+      vector<int>::iterator p_end = unique(offtile_list.begin(), offtile_list.end());
 
       vector<int> indices_needed;
 
@@ -4989,22 +4986,22 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       L7_Update(&ntop_tmp[0], L7_INT, cell_handle);
 #endif
 
-         //vector<int> itest(ncells_ghost);
-         //for (int ic=0; ic<ncells; ic++){
-         //   itest[ic] = mype*1000 + ic;
-         //   fprintf(fp,"%d: test is filled with ic %d = %d\n",mype,ic,itest[ic]);
-         //}
-         //for (int ic=ncells; ic<ncells_ghost; ic++){
-         //   itest[ic] = 0;
-         //}
+      //vector<int> itest(ncells_ghost);
+      //for (int ic=0; ic<ncells; ic++){
+      //   itest[ic] = mype*1000 + ic;
+      //   fprintf(fp,"%d: test is filled with ic %d = %d\n",mype,ic,itest[ic]);
+      //}
+      //for (int ic=ncells; ic<ncells_ghost; ic++){
+      //   itest[ic] = 0;
+      //}
 
 #ifdef HAVE_MPI
-         //L7_Update(&itest[0], L7_INT, cell_handle);
+      //L7_Update(&itest[0], L7_INT, cell_handle);
 #endif
 
-         //for (int ic=0; ic<ncells_ghost; ic++){
-         //   fprintf(fp,"%d: test after update ic %d = %d\n",mype,ic,itest[ic]);
-         //}
+      //for (int ic=0; ic<ncells_ghost; ic++){
+      //   fprintf(fp,"%d: test after update ic %d = %d\n",mype,ic,itest[ic]);
+      //}
 
       if (numpe > 1) {
          cl_mem dev_celltype_old = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
