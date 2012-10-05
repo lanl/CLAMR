@@ -4177,10 +4177,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       vector<int> nbot_tmp(ncells);
       vector<int> ntop_tmp(ncells);
 
+      vector<int> celltype_tmp(ncells);
       vector<int> i_tmp(ncells);
       vector<int> j_tmp(ncells);
       vector<int> level_tmp(ncells);
 
+      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int), &celltype_tmp[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int), &level_tmp[0],    NULL);
@@ -4190,56 +4192,59 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells*sizeof(cl_int), &nbot_tmp[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], NULL);
 
-      vector<int> border_cell(ncells,-1);
+      vector<int> border_cell;
 
       // Scan for corner boundary cells and also push list of unsatisfied neighbor cells
       for (uint ic=0; ic<ncells; ic++){
          if (nlft_tmp[ic] == -1 || (level_tmp[nlft_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nlft_tmp[ic]-noffset]) ){
             //printf("%d: Cell is %d nlft %d\n",mype,ic+noffset,nlft_tmp[ic]);
-            border_cell[ic]=1;
+            border_cell.push_back(ic+noffset);
             if (nrht_tmp[ic] >= 0) {
-               border_cell[nrht_tmp[ic]-noffset]=1;
+               border_cell.push_back(nrht_tmp[ic]);
                if (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic]) {
-                  if (ntop_tmp[nrht_tmp[ic]-noffset] >= 0) border_cell[ntop_tmp[nrht_tmp[ic]-noffset]-noffset]=1;
+                  if (ntop_tmp[nrht_tmp[ic]-noffset] >= 0) border_cell.push_back(ntop_tmp[nrht_tmp[ic]-noffset]);
                }
             }
          }
          if (nrht_tmp[ic] == -1 || (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nrht_tmp[ic]-noffset]) ){
             //printf("%d: Cell is %d nrht %d\n",mype,ic+noffset,nrht_tmp[ic]);
-            border_cell[ic]=1;
+            border_cell.push_back(ic+noffset);
             if (nlft_tmp[ic] >= 0) {
-               border_cell[nlft_tmp[ic]-noffset]=1;
+               border_cell.push_back(nlft_tmp[ic]);
                if (level_tmp[nlft_tmp[ic]-noffset] > level_tmp[ic]) {
-                  if (ntop_tmp[nlft_tmp[ic]-noffset] >= 0) border_cell[ntop_tmp[nlft_tmp[ic]-noffset]-noffset]=1;
+                  if (ntop_tmp[nlft_tmp[ic]-noffset] >= 0) border_cell.push_back(ntop_tmp[nlft_tmp[ic]-noffset]);
                }
             }
          }
          if (nbot_tmp[ic] == -1 || (level_tmp[nbot_tmp[ic]-noffset] > level_tmp[ic] && nrht_tmp[nbot_tmp[ic]-noffset]) ) {
             //printf("%d: Cell is %d nbot %d\n",mype,ic+noffset,nbot_tmp[ic]);
-            border_cell[ic]=1;
+            border_cell.push_back(ic+noffset);
             if (ntop_tmp[ic] >= 0) {
-               border_cell[ntop_tmp[ic]-noffset]=1;
+               border_cell.push_back(ntop_tmp[ic]);
                if (level_tmp[ntop_tmp[ic]-noffset] > level_tmp[ic]) {
-                  if (nrht_tmp[ntop_tmp[ic]-noffset] >= 0) border_cell[nrht_tmp[ntop_tmp[ic]-noffset]-noffset]=1;
+                  if (nrht_tmp[ntop_tmp[ic]-noffset] >= 0) border_cell.push_back(nrht_tmp[ntop_tmp[ic]-noffset]);
                }
             }
          }
          if (ntop_tmp[ic] == -1 || ( level_tmp[ntop_tmp[ic]-noffset] > level_tmp[ic] && nrht_tmp[ntop_tmp[ic]-noffset] == -1) ) {
             //printf("%d: Cell is %d ntop %d\n",mype,ic+noffset,ntop_tmp[ic]);
-            border_cell[ic]=1;
+            border_cell.push_back(ic+noffset);
             if (nbot_tmp[ic] >= 0) {
-               border_cell[nbot_tmp[ic]-noffset]=1;
+               border_cell.push_back(nbot_tmp[ic]);
                if (level_tmp[nbot_tmp[ic]-noffset] > level_tmp[ic]) {
-                  if (nrht_tmp[nbot_tmp[ic]-noffset] >= 0) border_cell[nrht_tmp[nbot_tmp[ic]-noffset]-noffset]=1;
+                  if (nrht_tmp[nbot_tmp[ic]-noffset] >= 0) border_cell.push_back(nrht_tmp[nbot_tmp[ic]-noffset]);
                }
             }
          }
       }
 
+      sort(border_cell.begin(),border_cell.end());
+      vector<int>::iterator p_end = unique(border_cell.begin(),border_cell.end());
+
       vector<int> border_cell_num;
 
-      for(int ic = 0; ic < (int)ncells; ic++){
-         if (border_cell[ic] > 0) border_cell_num.push_back(ic+noffset);
+      for (vector<int>::iterator p=border_cell.begin(); p < p_end; p++){
+         border_cell_num.push_back(*p);
       }
 
       if (TIMING_LEVEL >= 2) {
@@ -4850,7 +4855,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       } // ncells loop
 
       sort(offtile_list.begin(), offtile_list.end());
-      vector<int>::iterator p_end = unique(offtile_list.begin(), offtile_list.end());
+      p_end = unique(offtile_list.begin(), offtile_list.end());
 
       vector<int> indices_needed;
 
@@ -4960,6 +4965,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          cpu_timer_start(&tstart_lev2);
       }
 
+      celltype_tmp.resize(ncells_ghost);
       i_tmp.resize(ncells_ghost);
       j_tmp.resize(ncells_ghost);
       level_tmp.resize(ncells_ghost);
@@ -4969,6 +4975,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ntop_tmp.resize(ncells_ghost,-98);
 
 #ifdef HAVE_MPI
+      L7_Update(&celltype_tmp[0], L7_INT, cell_handle);
       L7_Update(&i_tmp[0],        L7_INT, cell_handle);
       L7_Update(&j_tmp[0],        L7_INT, cell_handle);
       L7_Update(&level_tmp[0],    L7_INT, cell_handle);
@@ -4986,22 +4993,22 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       L7_Update(&ntop_tmp[0], L7_INT, cell_handle);
 #endif
 
-      //vector<int> itest(ncells_ghost);
-      //for (int ic=0; ic<ncells; ic++){
-      //   itest[ic] = mype*1000 + ic;
-      //   fprintf(fp,"%d: test is filled with ic %d = %d\n",mype,ic,itest[ic]);
-      //}
-      //for (int ic=ncells; ic<ncells_ghost; ic++){
-      //   itest[ic] = 0;
-      //}
+         //vector<int> itest(ncells_ghost);
+         //for (int ic=0; ic<ncells; ic++){
+         //   itest[ic] = mype*1000 + ic;
+         //   fprintf(fp,"%d: test is filled with ic %d = %d\n",mype,ic,itest[ic]);
+         //}
+         //for (int ic=ncells; ic<ncells_ghost; ic++){
+         //   itest[ic] = 0;
+         //}
 
 #ifdef HAVE_MPI
-      //L7_Update(&itest[0], L7_INT, cell_handle);
+         //L7_Update(&itest[0], L7_INT, cell_handle);
 #endif
 
-      //for (int ic=0; ic<ncells_ghost; ic++){
-      //   fprintf(fp,"%d: test after update ic %d = %d\n",mype,ic,itest[ic]);
-      //}
+         //for (int ic=0; ic<ncells_ghost; ic++){
+         //   fprintf(fp,"%d: test after update ic %d = %d\n",mype,ic,itest[ic]);
+         //}
 
       if (numpe > 1) {
          cl_mem dev_celltype_old = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -5063,20 +5070,11 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          cl_mem dev_level_add      = ezcl_malloc(NULL, const_cast<char *>("dev_level_add"),      &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          cl_mem dev_indices_needed = ezcl_malloc(NULL, const_cast<char *>("dev_indices_needed"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-         vector<int> celltype_tmp(nghost);
-         for (int ic = 0; ic < nghost; ic++){
-            celltype_tmp[ic] = REAL_CELL;
-            if (i_tmp[ic+ncells] < lev_ibegin[level_tmp[ic+ncells]]) celltype_tmp[ic] = LEFT_BOUNDARY;
-            if (i_tmp[ic+ncells] > lev_iend[  level_tmp[ic+ncells]]) celltype_tmp[ic] = RIGHT_BOUNDARY;
-            if (j_tmp[ic+ncells] < lev_jbegin[level_tmp[ic+ncells]]) celltype_tmp[ic] = BOTTOM_BOUNDARY;
-            if (j_tmp[ic+ncells] > lev_jend[  level_tmp[ic+ncells]]) celltype_tmp[ic] = TOP_BOUNDARY;
-         }
-
          ezcl_enqueue_write_buffer(command_queue, dev_nlft_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nlft_tmp[ncells],     NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_nrht_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nrht_tmp[ncells],     NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_nbot_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nbot_tmp[ncells],     NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_ntop_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&ntop_tmp[ncells],     NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_celltype_add,   CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&celltype_tmp, NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_celltype_add,   CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&celltype_tmp[ncells], NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_i_add,          CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&i_tmp[ncells],        NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_j_add,          CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&j_tmp[ncells],        NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_level_add,      CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&level_tmp[ncells],    NULL);
