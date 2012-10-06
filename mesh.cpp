@@ -2877,7 +2877,7 @@ void Mesh::calc_neighbors_local(void)
 
          // Push list of unsatisfied neighbor cells
          for (uint ic=0; ic<ncells; ic++){
-            if (nlft[ic] == -1 || (level[nlft[ic]-noffset] > level[ic] && ntop[nlft[ic]-noffset]) ){
+            if (nlft[ic] == -1 || (level[nlft[ic]-noffset] > level[ic] && ntop[nlft[ic]-noffset] == -1) ){
                //fprintf(fp,"%d: Cell is %d nlft %d\n",mype,ic+noffset,nlft[ic]);
                border_cell.push_back(ic+noffset);
                if (nrht[ic] >= 0) {
@@ -2887,7 +2887,7 @@ void Mesh::calc_neighbors_local(void)
                   }
                }
             }
-            if (nrht[ic] == -1 || (level[nrht[ic]-noffset] > level[ic] && ntop[nrht[ic]-noffset]) ){
+            if (nrht[ic] == -1 || (level[nrht[ic]-noffset] > level[ic] && ntop[nrht[ic]-noffset] == -1) ){
                //fprintf(fp,"%d: Cell is %d nrht %d\n",mype,ic+noffset,nrht[ic]);
                border_cell.push_back(ic+noffset);
                if (nlft[ic] >= 0) {
@@ -2897,7 +2897,7 @@ void Mesh::calc_neighbors_local(void)
                   }
                }
             }
-            if (nbot[ic] == -1 || (level[nbot[ic]-noffset] > level[ic] && nrht[nbot[ic]-noffset]) ) {
+            if (nbot[ic] == -1 || (level[nbot[ic]-noffset] > level[ic] && nrht[nbot[ic]-noffset] == -1) ) {
                //fprintf(fp,"%d: Cell is %d nbot %d\n",mype,ic+noffset,nbot[ic]);
                border_cell.push_back(ic+noffset);
                if (ntop[ic] >= 0) {
@@ -4196,7 +4196,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
       // Scan for corner boundary cells and also push list of unsatisfied neighbor cells
       for (uint ic=0; ic<ncells; ic++){
-         if (nlft_tmp[ic] == -1 || (level_tmp[nlft_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nlft_tmp[ic]-noffset]) ){
+         if (nlft_tmp[ic] == -1 || (level_tmp[nlft_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nlft_tmp[ic]-noffset] == -1) ){
             //printf("%d: Cell is %d nlft %d\n",mype,ic+noffset,nlft_tmp[ic]);
             border_cell[ic]=1;
             if (nrht_tmp[ic] >= 0) {
@@ -4206,7 +4206,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
                }
             }
          }
-         if (nrht_tmp[ic] == -1 || (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nrht_tmp[ic]-noffset]) ){
+         if (nrht_tmp[ic] == -1 || (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nrht_tmp[ic]-noffset] == -1) ){
             //printf("%d: Cell is %d nrht %d\n",mype,ic+noffset,nrht_tmp[ic]);
             border_cell[ic]=1;
             if (nlft_tmp[ic] >= 0) {
@@ -4216,7 +4216,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
                }
             }
          }
-         if (nbot_tmp[ic] == -1 || (level_tmp[nbot_tmp[ic]-noffset] > level_tmp[ic] && nrht_tmp[nbot_tmp[ic]-noffset]) ) {
+         if (nbot_tmp[ic] == -1 || (level_tmp[nbot_tmp[ic]-noffset] > level_tmp[ic] && nrht_tmp[nbot_tmp[ic]-noffset] == -1) ) {
             //printf("%d: Cell is %d nbot %d\n",mype,ic+noffset,nbot_tmp[ic]);
             border_cell[ic]=1;
             if (ntop_tmp[ic] >= 0) {
