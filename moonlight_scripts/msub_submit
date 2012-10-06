@@ -1,7 +1,7 @@
 #!/bin/tcsh
 setenv BUILD_DIR /scratch/brobey/CLAMR
 setenv RUNS_DIR /scratch/brobey/test
-setenv SCRIPTS_DIR ${BUILD_DIR}/moonlight
+setenv SCRIPTS_DIR ${BUILD_DIR}/moonlight_scripts
 
 mkdir -p ${RUNS_DIR}
 cp ${BUILD_DIR}/*.cl ${RUNS_DIR}
