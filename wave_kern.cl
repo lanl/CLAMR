@@ -1536,10 +1536,15 @@ void reduction_max_within_tile1(__local  real  *tile)
 
     if (tiX < 32){
       if (tile[tiX+32] > tile[tiX]) tile[tiX] = tile[tiX+32];
+      barrier(CLK_LOCAL_MEM_FENCE);
       if (tile[tiX+16] > tile[tiX]) tile[tiX] = tile[tiX+16];
+      barrier(CLK_LOCAL_MEM_FENCE);
       if (tile[tiX+8] > tile[tiX]) tile[tiX] = tile[tiX+8];
+      barrier(CLK_LOCAL_MEM_FENCE);
       if (tile[tiX+4] > tile[tiX]) tile[tiX] = tile[tiX+4];
+      barrier(CLK_LOCAL_MEM_FENCE);
       if (tile[tiX+2] > tile[tiX]) tile[tiX] = tile[tiX+2];
+      barrier(CLK_LOCAL_MEM_FENCE);
       if (tile[tiX+1] > tile[tiX]) tile[tiX] = tile[tiX+1];
     }
 
@@ -1559,10 +1564,15 @@ void reduction_min_within_tile1(__local  real  *tile)
 
     if (tiX < 32){
       if (tile[tiX+32] < tile[tiX]) tile[tiX] = tile[tiX+32];
+      barrier(CLK_LOCAL_MEM_FENCE);
       if (tile[tiX+16] < tile[tiX]) tile[tiX] = tile[tiX+16];
+      barrier(CLK_LOCAL_MEM_FENCE);
       if (tile[tiX+8] < tile[tiX]) tile[tiX] = tile[tiX+8];
+      barrier(CLK_LOCAL_MEM_FENCE);
       if (tile[tiX+4] < tile[tiX]) tile[tiX] = tile[tiX+4];
+      barrier(CLK_LOCAL_MEM_FENCE);
       if (tile[tiX+2] < tile[tiX]) tile[tiX] = tile[tiX+2];
+      barrier(CLK_LOCAL_MEM_FENCE);
       if (tile[tiX+1] < tile[tiX]) tile[tiX] = tile[tiX+1];
     }
 
