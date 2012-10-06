@@ -1373,32 +1373,30 @@ __kernel void calc_border_cells2_cl(
                  __global const int *nrht,      // 3
                  __global const int *nbot,      // 4
                  __global const int *ntop,      // 5
-                 __global       int *border_cell_out //6
+                 __global const int *border_cell_in, //6
+                 __global       int *border_cell_out //7
                                   )
 {
    const unsigned int giX = get_global_id(0);
 
    if (giX >= isize) return;
 
-   int border_cell = -1;
+   int border_cell = border_cell_in[giX];
 
-   if (nlft[giX]-noffset >= 0 && nlft[giX]-noffset < isize && border_cell_out[nlft[giX]-noffset] > 0) {
+   if (nlft[giX]-noffset >= 0 && nlft[giX]-noffset < isize && border_cell_in[nlft[giX]-noffset] > 0) {
       border_cell = 11;
    }
-   if (nrht[giX]-noffset >= 0 && nrht[giX]-noffset < isize && border_cell_out[nrht[giX]-noffset] > 0) {
+   if (nrht[giX]-noffset >= 0 && nrht[giX]-noffset < isize && border_cell_in[nrht[giX]-noffset] > 0) {
       border_cell = 12;
    }
-   if (nbot[giX]-noffset >= 0 && nbot[giX]-noffset < isize && border_cell_out[nbot[giX]-noffset] > 0) {
+   if (nbot[giX]-noffset >= 0 && nbot[giX]-noffset < isize && border_cell_in[nbot[giX]-noffset] > 0) {
       border_cell = 13;
    }
-   //if (giX == 1) border_cell=nbot[giX];
-   if (ntop[giX]-noffset >= 0 && ntop[giX]-noffset < isize && border_cell_out[ntop[giX]-noffset] > 0) {
-      //border_cell = border_cell_out[ntop[giX]-noffset];
-      //border_cell = ntop[giX]-noffset;
+   if (ntop[giX]-noffset >= 0 && ntop[giX]-noffset < isize && border_cell_in[ntop[giX]-noffset] > 0) {
       border_cell = 14;
    }
 
-   if (border_cell > 0) border_cell_out[giX] = border_cell;
+   border_cell_out[giX] = border_cell;
 }
 
 /*
