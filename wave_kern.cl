@@ -1332,6 +1332,123 @@ __kernel void calc_neighbors_local_cl(
    ntop[giX] = ntopval;
 }
 
+__kernel void calc_border_cells_cl(
+                          const int isize,      // 0
+                          const int noffset,    // 1
+                 __global const int *nlft,      // 2
+                 __global const int *nrht,      // 3
+                 __global const int *nbot,      // 4
+                 __global const int *ntop,      // 5
+                 __global const int *level,     // 6
+                 __global       int *border_cell_out //7
+                                  )
+{
+   const unsigned int giX = get_global_id(0);
+
+   if (giX >= isize) return;
+
+   int border_cell = -1;
+
+   if (nlft[giX] == -1 || (level[nlft[giX]-noffset] > level[giX] && ntop[nlft[giX]-noffset] == -1) ){
+      border_cell = 1;
+   }
+   if (nrht[giX] == -1 || (level[nrht[giX]-noffset] > level[giX] && ntop[nrht[giX]-noffset] == -1) ){
+      border_cell = 2;
+   }
+   if (nbot[giX] == -1 || (level[nbot[giX]-noffset] > level[giX] && nrht[nbot[giX]-noffset] == -1) ) {
+      border_cell = 3;
+   }
+   // top neighbor is undefined -- or -- if top is at finer level check top right for undefined
+   if (ntop[giX] == -1 || ( level[ntop[giX]-noffset] > level[giX] && nrht[ntop[giX]-noffset] == -1) ) {
+      border_cell = 4;
+   }
+
+   border_cell_out[giX] = border_cell;
+}
+
+__kernel void calc_border_cells2_cl(
+                          const int isize,      // 0
+                          const int noffset,    // 1
+                 __global const int *nlft,      // 2
+                 __global const int *nrht,      // 3
+                 __global const int *nbot,      // 4
+                 __global const int *ntop,      // 5
+                 __global       int *border_cell_out //6
+                                  )
+{
+   const unsigned int giX = get_global_id(0);
+
+   if (giX >= isize) return;
+
+   int border_cell = -1;
+
+   if (nlft[giX]-noffset >= 0 && nlft[giX]-noffset < isize && border_cell_out[nlft[giX]-noffset] > 0) {
+      border_cell = 11;
+   }
+   if (nrht[giX]-noffset >= 0 && nrht[giX]-noffset < isize && border_cell_out[nrht[giX]-noffset] > 0) {
+      border_cell = 12;
+   }
+   if (nbot[giX]-noffset >= 0 && nbot[giX]-noffset < isize && border_cell_out[nbot[giX]-noffset] > 0) {
+      border_cell = 13;
+   }
+   //if (giX == 1) border_cell=nbot[giX];
+   if (ntop[giX]-noffset >= 0 && ntop[giX]-noffset < isize && border_cell_out[ntop[giX]-noffset] > 0) {
+      //border_cell = border_cell_out[ntop[giX]-noffset];
+      //border_cell = ntop[giX]-noffset;
+      border_cell = 14;
+   }
+
+   if (border_cell > 0) border_cell_out[giX] = border_cell;
+}
+
+/*
+4198       vector<int> border_cell(ncells,-1);
+4199 
+4200       // Scan for corner boundary cells and also push list of unsatisfied neighbor cells
+4201       for (uint ic=0; ic<ncells; ic++){
+4202          if (nlft_tmp[ic] == -1 || (level_tmp[nlft_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nlft_tmp[ic]-noffset]) ){
+4203             //printf("%d: Cell is %d nlft %d\n",mype,ic+noffset,nlft_tmp[ic]);
+4204             border_cell[ic]=1;
+4205             if (nrht_tmp[ic] >= 0) {
+4206                border_cell[nrht_tmp[ic]-noffset]=1;
+4207                if (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic]) {
+4208                   if (ntop_tmp[nrht_tmp[ic]-noffset] >= 0) border_cell[ntop_tmp[nrht_tmp[ic]-noffset]-noffset]=1;
+4209                }
+4210             }
+4211          }
+4212          if (nrht_tmp[ic] == -1 || (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nrht_tmp[ic]-noffset]) ){
+4213             //printf("%d: Cell is %d nrht %d\n",mype,ic+noffset,nrht_tmp[ic]);
+4214             border_cell[ic]=1;
+4215             if (nlft_tmp[ic] >= 0) {
+4216                border_cell[nlft_tmp[ic]-noffset]=1;
+4217                if (level_tmp[nlft_tmp[ic]-noffset] > level_tmp[ic]) {
+4218                   if (ntop_tmp[nlft_tmp[ic]-noffset] >= 0) border_cell[ntop_tmp[nlft_tmp[ic]-noffset]-noffset]=1;
+4219                }
+4220             }
+4221          }
+4222          if (nbot_tmp[ic] == -1 || (level_tmp[nbot_tmp[ic]-noffset] > level_tmp[ic] && nrht_tmp[nbot_tmp[ic]-noffset]) ) {
+4223             //printf("%d: Cell is %d nbot %d\n",mype,ic+noffset,nbot_tmp[ic]);
+4224             border_cell[ic]=1;
+4225             if (ntop_tmp[ic] >= 0) {
+4226                border_cell[ntop_tmp[ic]-noffset]=1;
+4227                if (level_tmp[ntop_tmp[ic]-noffset] > level_tmp[ic]) {
+4228                   if (nrht_tmp[ntop_tmp[ic]-noffset] >= 0) border_cell[nrht_tmp[ntop_tmp[ic]-noffset]-noffset]=1;
+4229                }
+4230             }
+4231          }
+4232          if (ntop_tmp[ic] == -1 || ( level_tmp[ntop_tmp[ic]-noffset] > level_tmp[ic] && nrht_tmp[ntop_tmp[ic]-noffset] == -1) ) {
+4233             //printf("%d: Cell is %d ntop %d\n",mype,ic+noffset,ntop_tmp[ic]);
+4234             border_cell[ic]=1;
+4235             if (nbot_tmp[ic] >= 0) {
+4236                border_cell[nbot_tmp[ic]-noffset]=1;
+4237                if (level_tmp[nbot_tmp[ic]-noffset] > level_tmp[ic]) {
+4238                   if (nrht_tmp[nbot_tmp[ic]-noffset] >= 0) border_cell[nrht_tmp[nbot_tmp[ic]-noffset]-noffset]=1;
+4239                }
+4240             }
+4241          }
+4242       }
+*/
+
 __kernel void calc_neighbors_local2_cl(
                           const int  isize,     // 0 
                           const int  levmx,     // 1 
