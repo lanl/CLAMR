@@ -1347,20 +1347,20 @@ __kernel void calc_border_cells_cl(
 
    if (giX >= isize) return;
 
-   int border_cell = -1;
+   int border_cell = 0;
 
    if (nlft[giX] == -1 || (level[nlft[giX]-noffset] > level[giX] && ntop[nlft[giX]-noffset] == -1) ){
-      border_cell = 1;
+      border_cell |= 0x0001;
    }
    if (nrht[giX] == -1 || (level[nrht[giX]-noffset] > level[giX] && ntop[nrht[giX]-noffset] == -1) ){
-      border_cell = 2;
+      border_cell |= 0x0002;
    }
    if (nbot[giX] == -1 || (level[nbot[giX]-noffset] > level[giX] && nrht[nbot[giX]-noffset] == -1) ) {
-      border_cell = 3;
+      border_cell |= 0x0004;
    }
    // top neighbor is undefined -- or -- if top is at finer level check top right for undefined
    if (ntop[giX] == -1 || ( level[ntop[giX]-noffset] > level[giX] && nrht[ntop[giX]-noffset] == -1) ) {
-      border_cell = 4;
+      border_cell |= 0x0008;
    }
 
    border_cell_out[giX] = border_cell;
@@ -1383,16 +1383,16 @@ __kernel void calc_border_cells2_cl(
 
    int border_cell = border_cell_in[giX];
 
-   if (nlft[giX]-noffset >= 0 && nlft[giX]-noffset < isize && border_cell_in[nlft[giX]-noffset] > 0) {
+   if (nlft[giX]-noffset >= 0 && nlft[giX]-noffset < isize && (border_cell_in[nlft[giX]-noffset] & 0x0001) == 0x0001) {
       border_cell = 11;
    }
-   if (nrht[giX]-noffset >= 0 && nrht[giX]-noffset < isize && border_cell_in[nrht[giX]-noffset] > 0) {
+   if (nrht[giX]-noffset >= 0 && nrht[giX]-noffset < isize && (border_cell_in[nrht[giX]-noffset] & 0x0002) == 0x0002) {
       border_cell = 12;
    }
-   if (nbot[giX]-noffset >= 0 && nbot[giX]-noffset < isize && border_cell_in[nbot[giX]-noffset] > 0) {
+   if (nbot[giX]-noffset >= 0 && nbot[giX]-noffset < isize && (border_cell_in[nbot[giX]-noffset] & 0x0004) == 0x0004) {
       border_cell = 13;
    }
-   if (ntop[giX]-noffset >= 0 && ntop[giX]-noffset < isize && border_cell_in[ntop[giX]-noffset] > 0) {
+   if (ntop[giX]-noffset >= 0 && ntop[giX]-noffset < isize && (border_cell_in[ntop[giX]-noffset] & 0x0008) == 0x0008) {
       border_cell = 14;
    }
 
