@@ -4178,7 +4178,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    }
 
    if (numpe > 1) {
-      vector<int> border_cell(ncells);
+      vector<int> border_cell_tmp(ncells);
 
       cl_mem dev_border_cell = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
       cl_mem dev_border_cell2 = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell2"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
@@ -4203,7 +4203,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_border_cells2, 7,  sizeof(cl_mem), (void *)&dev_border_cell2);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_border_cells2, 1, NULL, &global_work_size, &local_work_size, NULL); 
 
-      ezcl_enqueue_read_buffer(command_queue, dev_border_cell2, CL_TRUE,  0, ncells*sizeof(cl_int), &border_cell[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_border_cell2, CL_TRUE,  0, ncells*sizeof(cl_int), &border_cell_tmp[0], NULL);
 
       ezcl_device_memory_remove(dev_border_cell);
       ezcl_device_memory_remove(dev_border_cell2);
@@ -4221,14 +4221,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int), &celltype_tmp[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0],        NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_TRUE,  0, ncells*sizeof(cl_int), &level_tmp[0],    NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int), &level_tmp[0],    NULL);
 
-      //ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells*sizeof(cl_int), &nlft_tmp[0], NULL);
-      //ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells*sizeof(cl_int), &nrht_tmp[0], NULL);
-      //ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells*sizeof(cl_int), &nbot_tmp[0], NULL);
-      //ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells*sizeof(cl_int), &nlft_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells*sizeof(cl_int), &nrht_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells*sizeof(cl_int), &nbot_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], NULL);
 
-#ifdef XXX
       vector<int> border_cell(ncells,-1);
 
       // Scan for corner boundary cells and also push list of unsatisfied neighbor cells
@@ -4292,7 +4291,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          }
       }
       //if (icount>0) sleep(20);
-#endif
 
       vector<int> border_cell_num;
 
