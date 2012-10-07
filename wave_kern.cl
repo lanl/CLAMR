@@ -1384,16 +1384,16 @@ __kernel void calc_border_cells2_cl(
    int border_cell = border_cell_in[giX];
 
    if (nlft[giX]-noffset >= 0 && nlft[giX]-noffset < isize && (border_cell_in[nlft[giX]-noffset] & 0x0001) == 0x0001) {
-      border_cell = 11;
+      border_cell |= 0x0016;
    }
    if (nrht[giX]-noffset >= 0 && nrht[giX]-noffset < isize && (border_cell_in[nrht[giX]-noffset] & 0x0002) == 0x0002) {
-      border_cell = 12;
+      border_cell |= 0x0032;
    }
    if (nbot[giX]-noffset >= 0 && nbot[giX]-noffset < isize && (border_cell_in[nbot[giX]-noffset] & 0x0004) == 0x0004) {
-      border_cell = 13;
+      border_cell |= 0x0064;
    }
    if (ntop[giX]-noffset >= 0 && ntop[giX]-noffset < isize && (border_cell_in[ntop[giX]-noffset] & 0x0008) == 0x0008) {
-      border_cell = 14;
+      border_cell |= 0x0128;
    }
 
    border_cell_out[giX] = border_cell;

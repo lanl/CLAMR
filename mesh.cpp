@@ -4228,55 +4228,57 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells*sizeof(cl_int), &nbot_tmp[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], NULL);
 
-      vector<int> border_cell(ncells,-1);
+      vector<int> border_cell(ncells,0);
 
       // Scan for corner boundary cells and also push list of unsatisfied neighbor cells
       for (uint ic=0; ic<ncells; ic++){
          if (nlft_tmp[ic] == -1 || (level_tmp[nlft_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nlft_tmp[ic]-noffset] == -1) ){
             //printf("%d: Cell is %d nlft %d\n",mype,ic+noffset,nlft_tmp[ic]);
-            border_cell[ic]=1;
-            if (nrht_tmp[ic] >= 0) {
-               border_cell[nrht_tmp[ic]-noffset]=11;
+            border_cell[ic] |= 0x0001;
+            if (nrht_tmp[ic] >= 0 && nrht_tmp[ic] != ic+noffset) {
+               border_cell[nrht_tmp[ic]-noffset] |= 0x0016;
                if (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic]) {
-                  if (ntop_tmp[nrht_tmp[ic]-noffset] >= 0) border_cell[ntop_tmp[nrht_tmp[ic]-noffset]-noffset]=12;
+                  if (ntop_tmp[nrht_tmp[ic]-noffset] >= 0) border_cell[ntop_tmp[nrht_tmp[ic]-noffset]-noffset] |= 0x0016;
                }
             }
          }
          if (nrht_tmp[ic] == -1 || (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nrht_tmp[ic]-noffset] == -1) ){
             //printf("%d: Cell is %d nrht %d\n",mype,ic+noffset,nrht_tmp[ic]);
-            border_cell[ic]=2;
-            if (nlft_tmp[ic] >= 0) {
-               border_cell[nlft_tmp[ic]-noffset]=21;
+            border_cell[ic] |= 0x0002;
+            if (nlft_tmp[ic] >= 0 && nlft_tmp[ic] != ic+noffset) {
+               border_cell[nlft_tmp[ic]-noffset] |= 0x0032;
                if (level_tmp[nlft_tmp[ic]-noffset] > level_tmp[ic]) {
-                  if (ntop_tmp[nlft_tmp[ic]-noffset] >= 0) border_cell[ntop_tmp[nlft_tmp[ic]-noffset]-noffset]=22;
+                  if (ntop_tmp[nlft_tmp[ic]-noffset] >= 0) border_cell[ntop_tmp[nlft_tmp[ic]-noffset]-noffset] |= 0x0032;
                }
             }
          }
          if (nbot_tmp[ic] == -1 || (level_tmp[nbot_tmp[ic]-noffset] > level_tmp[ic] && nrht_tmp[nbot_tmp[ic]-noffset] == -1) ) {
             //printf("%d: Cell is %d nbot %d\n",mype,ic+noffset,nbot_tmp[ic]);
-            border_cell[ic]=3;
-            if (ntop_tmp[ic] >= 0) {
-               border_cell[ntop_tmp[ic]-noffset]=31;
+            border_cell[ic] |= 0x0004;
+            if (ntop_tmp[ic] >= 0 && ntop_tmp[ic] != ic+noffset) {
+               border_cell[ntop_tmp[ic]-noffset] |= 0x0064;
                if (level_tmp[ntop_tmp[ic]-noffset] > level_tmp[ic]) {
-                  if (nrht_tmp[ntop_tmp[ic]-noffset] >= 0) border_cell[nrht_tmp[ntop_tmp[ic]-noffset]-noffset]=32;
+                  if (nrht_tmp[ntop_tmp[ic]-noffset] >= 0) border_cell[nrht_tmp[ntop_tmp[ic]-noffset]-noffset] |= 0x0064;
                }
             }
          }
          if (ntop_tmp[ic] == -1 || ( level_tmp[ntop_tmp[ic]-noffset] > level_tmp[ic] && nrht_tmp[ntop_tmp[ic]-noffset] == -1) ) {
             //printf("%d: Cell is %d ntop %d\n",mype,ic+noffset,ntop_tmp[ic]);
-            border_cell[ic]=4;
-            if (nbot_tmp[ic] >= 0) {
-               border_cell[nbot_tmp[ic]-noffset]=41;
+            border_cell[ic] |= 0x0008;
+            if (nbot_tmp[ic] >= 0 && nbot_tmp[ic] != ic+noffset) {
+               border_cell[nbot_tmp[ic]-noffset] |= 0x0128;
                if (level_tmp[nbot_tmp[ic]-noffset] > level_tmp[ic]) {
-                  if (nrht_tmp[nbot_tmp[ic]-noffset] >= 0) border_cell[nrht_tmp[nbot_tmp[ic]-noffset]-noffset]=42;
+                  if (nrht_tmp[nbot_tmp[ic]-noffset] >= 0) border_cell[nrht_tmp[nbot_tmp[ic]-noffset]-noffset] |= 0x0128;
                }
             }
          }
       }
 
+#ifdef XXX
       int icount = 0;
       for(int ic = 0; ic < (int)ncells; ic++){
-         if ((border_cell[ic] > 0 && border_cell_tmp[ic] < 0) || (border_cell[ic] < 0 && border_cell_tmp[ic] > 0) ) {
+         //if ((border_cell[ic] > 0 && border_cell_tmp[ic] < 0) || (border_cell[ic] < 0 && border_cell_tmp[ic] > 0) ) {
+         if (border_cell[ic] != border_cell_tmp[ic]) {
             printf("%d: DEBUG ic %d border_cell %d border_cell_tmp %d\n",mype,ic,border_cell[ic],border_cell_tmp[ic]);
             //printf("%d: ic %d i %d j %d level %d nlft %d nrht %d nbot %d ntop %d\n",mype,ic,i_tmp[ic],j_tmp[ic],level_tmp[ic], nlft_tmp[ic], nrht_tmp[ic], nbot_tmp[ic], ntop_tmp[ic]);
             //printf("%d: ic %d border nlft %d border nrht %d border nbot %d border ntop %d\n",mype,ic, border_cell_tmp[nlft_tmp[ic]-noffset], border_cell_tmp[nrht_tmp[ic]-noffset], border_cell_tmp[nbot_tmp[ic]-noffset], border_cell_tmp[ntop_tmp[ic]-noffset]);
@@ -4291,6 +4293,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          }
       }
       //if (icount>0) sleep(20);
+#endif
 
       vector<int> border_cell_num;
 
