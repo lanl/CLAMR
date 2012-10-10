@@ -4310,18 +4310,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
       //}
 
-      vector<int> nlft_tmp(ncells);
-      vector<int> nrht_tmp(ncells);
-      vector<int> nbot_tmp(ncells);
-      vector<int> ntop_tmp(ncells);
-      vector<int> celltype_tmp(ncells);
-
-      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int), &celltype_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells*sizeof(cl_int), &nlft_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells*sizeof(cl_int), &nrht_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells*sizeof(cl_int), &nbot_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], NULL);
-
       if (TIMING_LEVEL >= 2) {
          ezcl_finish(command_queue);
          gpu_time_hash_setup2 += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
@@ -4391,6 +4379,15 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
       vector<int> hash_tmp(hashsize);
       ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
+
+      vector<int> celltype_tmp(ncells);
+
+      vector<int> nlft_tmp(ncells);
+      vector<int> nrht_tmp(ncells);
+      vector<int> nbot_tmp(ncells);
+      vector<int> ntop_tmp(ncells);
+
+      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int), &celltype_tmp[0], NULL);
 
       ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells*sizeof(cl_int), &nlft_tmp[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells*sizeof(cl_int), &nrht_tmp[0], NULL);
