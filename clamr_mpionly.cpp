@@ -445,13 +445,17 @@ extern "C" void do_calc(void)
    }
 
 #ifdef HAVE_GRAPHICS
+   mesh->x.resize(ncells);
+   mesh->dx.resize(ncells);
+   mesh->y.resize(ncells);
+   mesh->dy.resize(ncells);
    mesh->calc_spatial_coordinates(0);
 
    cpu_timer_start(&tstart_cpu);
 
 #ifdef HAVE_MPE
    set_mysize(ncells);
-   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
    set_cell_data(&H[0]);
    set_cell_proc(&mesh->proc[0]);
 #endif

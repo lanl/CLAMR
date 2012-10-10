@@ -553,6 +553,7 @@ extern "C" void do_calc(void)
    ezcl_device_memory_remove(dev_y);
    ezcl_device_memory_remove(dev_dy);
 
+#ifdef HAVE_OPENGL
    set_mysize(ncells_global);
    vector<real> x_global;
    vector<real> dx_global;
@@ -584,7 +585,6 @@ extern "C" void do_calc(void)
       MPI_Gatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
    }
 
-   set_mysize(ncells_global);
    set_viewmode(view_mode);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
    set_cell_data(&H_global[0]);
@@ -592,6 +592,18 @@ extern "C" void do_calc(void)
    set_circle_radius(circle_radius);
    draw_scene();
    MPI_Barrier(MPI_COMM_WORLD);
+#endif
+#ifdef HAVE_MPE
+   set_mysize(ncells);
+   set_viewmode(view_mode);
+   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_cell_data(&H[0]);
+   set_cell_proc(&mesh->proc[0]);
+   set_circle_radius(circle_radius);
+   draw_scene();
+   MPI_Barrier(MPI_COMM_WORLD);
+   if (ncycle == 6) sleep(300);
+#endif
 
    gpu_time_graphics += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 #endif

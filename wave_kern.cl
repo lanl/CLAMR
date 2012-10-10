@@ -1340,7 +1340,7 @@ __kernel void calc_border_cells_cl(
                  __global const int *nbot,      // 4
                  __global const int *ntop,      // 5
                  __global const int *level,     // 6
-                 __global       int *border_cell_out //7
+                 __global       uint *border_cell_out //7
                                   )
 {
    const unsigned int giX = get_global_id(0);
@@ -1373,8 +1373,9 @@ __kernel void calc_border_cells2_cl(
                  __global const int *nrht,      // 3
                  __global const int *nbot,      // 4
                  __global const int *ntop,      // 5
-                 __global const int *border_cell_in, //6
-                 __global       int *border_cell_out //7
+                 __global const int *level,     // 6
+                 __global const uint *border_cell_in, //7
+                 __global       uint *border_cell_out //8
                                   )
 {
    const unsigned int giX = get_global_id(0);
@@ -1383,69 +1384,56 @@ __kernel void calc_border_cells2_cl(
 
    int border_cell = border_cell_in[giX];
 
-   if (nlft[giX]-noffset >= 0 && nlft[giX]-noffset < isize && (border_cell_in[nlft[giX]-noffset] & 0x0001) == 0x0001) {
-      border_cell |= 0x0016;
-   }
-   if (nrht[giX]-noffset >= 0 && nrht[giX]-noffset < isize && (border_cell_in[nrht[giX]-noffset] & 0x0002) == 0x0002) {
-      border_cell |= 0x0032;
-   }
-   if (nbot[giX]-noffset >= 0 && nbot[giX]-noffset < isize && (border_cell_in[nbot[giX]-noffset] & 0x0004) == 0x0004) {
-      border_cell |= 0x0064;
-   }
-   if (ntop[giX]-noffset >= 0 && ntop[giX]-noffset < isize && (border_cell_in[ntop[giX]-noffset] & 0x0008) == 0x0008) {
-      border_cell |= 0x0128;
+   if (border_cell == 0) {
+
+      int nl = nlft[giX]-noffset;
+      if (nl >= 0 && nl < isize) {
+         if ((border_cell_in[nl] & 0x0001) == 0x0001) {
+            border_cell |= 0x0016;
+         } else if (level[nl] > level[giX]){
+            int ntl = ntop[nl]-noffset;
+            if (ntl >= 0 && ntl < isize && (border_cell_in[ntl] & 0x0001) == 0x0001) {
+               border_cell |= 0x0016;
+            }
+         }
+      }
+      int nr = nrht[giX]-noffset;
+      if (nr >= 0 && nr < isize) {
+         if ((border_cell_in[nrht[giX]-noffset] & 0x0002) == 0x0002) {
+            border_cell |= 0x0032;
+         } else if (level[nr] > level[giX]){
+            int ntr = ntop[nr]-noffset;
+            if (ntr >= 0 && ntr < isize && (border_cell_in[ntr] & 0x0002) == 0x0002) {
+               border_cell |= 0x0032;
+            }
+         }
+      }
+      int nb = nbot[giX]-noffset;
+      if (nb >= 0 && nb < isize) {
+         if ((border_cell_in[nb] & 0x0004) == 0x0004) {
+            border_cell |= 0x0064;
+         } else if (level[nb] > level[giX]){
+            int nrb = nrht[nb]-noffset;
+            if (nrb >= 0 && nrb < isize && (border_cell_in[nrb] & 0x0004) == 0x0004) {
+               border_cell |= 0x0064;
+            }
+         }
+      }
+      int nt = ntop[giX]-noffset;
+      if (nt >= 0 && nt < isize) {
+         if ((border_cell_in[nt] & 0x0008) == 0x0008) {
+            border_cell |= 0x0128;
+         } else if (level[nt] > level[giX]){
+            int nrt = nrht[nt]-noffset;
+            if (nrt >= 0 && nrt < isize && (border_cell_in[nrt] & 0x0008) == 0x0008) {
+               border_cell |= 0x0128;
+            }
+         }
+      }
    }
 
    border_cell_out[giX] = border_cell;
 }
-
-/*
-4198       vector<int> border_cell(ncells,-1);
-4199 
-4200       // Scan for corner boundary cells and also push list of unsatisfied neighbor cells
-4201       for (uint ic=0; ic<ncells; ic++){
-4202          if (nlft_tmp[ic] == -1 || (level_tmp[nlft_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nlft_tmp[ic]-noffset]) ){
-4203             //printf("%d: Cell is %d nlft %d\n",mype,ic+noffset,nlft_tmp[ic]);
-4204             border_cell[ic]=1;
-4205             if (nrht_tmp[ic] >= 0) {
-4206                border_cell[nrht_tmp[ic]-noffset]=1;
-4207                if (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic]) {
-4208                   if (ntop_tmp[nrht_tmp[ic]-noffset] >= 0) border_cell[ntop_tmp[nrht_tmp[ic]-noffset]-noffset]=1;
-4209                }
-4210             }
-4211          }
-4212          if (nrht_tmp[ic] == -1 || (level_tmp[nrht_tmp[ic]-noffset] > level_tmp[ic] && ntop_tmp[nrht_tmp[ic]-noffset]) ){
-4213             //printf("%d: Cell is %d nrht %d\n",mype,ic+noffset,nrht_tmp[ic]);
-4214             border_cell[ic]=1;
-4215             if (nlft_tmp[ic] >= 0) {
-4216                border_cell[nlft_tmp[ic]-noffset]=1;
-4217                if (level_tmp[nlft_tmp[ic]-noffset] > level_tmp[ic]) {
-4218                   if (ntop_tmp[nlft_tmp[ic]-noffset] >= 0) border_cell[ntop_tmp[nlft_tmp[ic]-noffset]-noffset]=1;
-4219                }
-4220             }
-4221          }
-4222          if (nbot_tmp[ic] == -1 || (level_tmp[nbot_tmp[ic]-noffset] > level_tmp[ic] && nrht_tmp[nbot_tmp[ic]-noffset]) ) {
-4223             //printf("%d: Cell is %d nbot %d\n",mype,ic+noffset,nbot_tmp[ic]);
-4224             border_cell[ic]=1;
-4225             if (ntop_tmp[ic] >= 0) {
-4226                border_cell[ntop_tmp[ic]-noffset]=1;
-4227                if (level_tmp[ntop_tmp[ic]-noffset] > level_tmp[ic]) {
-4228                   if (nrht_tmp[ntop_tmp[ic]-noffset] >= 0) border_cell[nrht_tmp[ntop_tmp[ic]-noffset]-noffset]=1;
-4229                }
-4230             }
-4231          }
-4232          if (ntop_tmp[ic] == -1 || ( level_tmp[ntop_tmp[ic]-noffset] > level_tmp[ic] && nrht_tmp[ntop_tmp[ic]-noffset] == -1) ) {
-4233             //printf("%d: Cell is %d ntop %d\n",mype,ic+noffset,ntop_tmp[ic]);
-4234             border_cell[ic]=1;
-4235             if (nbot_tmp[ic] >= 0) {
-4236                border_cell[nbot_tmp[ic]-noffset]=1;
-4237                if (level_tmp[nbot_tmp[ic]-noffset] > level_tmp[ic]) {
-4238                   if (nrht_tmp[nbot_tmp[ic]-noffset] >= 0) border_cell[nrht_tmp[nbot_tmp[ic]-noffset]-noffset]=1;
-4239                }
-4240             }
-4241          }
-4242       }
-*/
 
 __kernel void calc_neighbors_local2_cl(
                           const int  isize,     // 0 
