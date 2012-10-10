@@ -4178,8 +4178,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    }
 
    if (numpe > 1) {
-      vector<uint> border_cell_tmp1(ncells);
-      vector<uint> border_cell_tmp2(ncells);
+      vector<uint> border_cell_tmp(ncells);
 
       cl_mem dev_border_cell1 = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell1"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
       cl_mem dev_border_cell2 = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell2"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
@@ -4205,8 +4204,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_border_cells2, 8,  sizeof(cl_mem), (void *)&dev_border_cell2);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_border_cells2, 1, NULL, &global_work_size, &local_work_size, NULL); 
 
-      ezcl_enqueue_read_buffer(command_queue, dev_border_cell1, CL_TRUE,  0, ncells*sizeof(cl_uint), &border_cell_tmp1[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_border_cell2, CL_TRUE,  0, ncells*sizeof(cl_uint), &border_cell_tmp2[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_border_cell2, CL_TRUE,  0, ncells*sizeof(cl_uint), &border_cell_tmp[0], NULL);
 
       ezcl_device_memory_remove(dev_border_cell1);
       ezcl_device_memory_remove(dev_border_cell2);
@@ -4231,6 +4229,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells*sizeof(cl_int), &nbot_tmp[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], NULL);
 
+#ifdef XXX
       vector<uint> border_cell1(ncells,0);
       vector<uint> border_cell2(ncells,0);
 
@@ -4333,11 +4332,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          }
       }
       //if (icount>0) sleep(20);
+#endif
 
       vector<int> border_cell_num;
 
       for(int ic = 0; ic < (int)ncells; ic++){
-         if (border_cell2[ic] > 0) border_cell_num.push_back(ic+noffset);
+         if (border_cell_tmp[ic] > 0) border_cell_num.push_back(ic+noffset);
       }
 
       if (TIMING_LEVEL >= 2) {
