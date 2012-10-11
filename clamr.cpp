@@ -446,10 +446,6 @@ extern "C" void do_calc(void)
    //  Main loop.
    for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
-      size_t local_work_size_global  = MIN(ncells_global, TILE_SIZE);
-      size_t global_work_size_global = ((ncells_global+local_work_size_global - 1) /local_work_size_global) * local_work_size_global;
-      size_t block_size_global     = global_work_size_global/local_work_size_global;
-
       size_t local_work_size  = MIN(ncells, TILE_SIZE);
       size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
       size_t block_size     = global_work_size/local_work_size;
