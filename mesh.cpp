@@ -3697,8 +3697,6 @@ void Mesh::calc_neighbors_local(void)
 
       if (TIMING_LEVEL >= 2) cpu_time_do_ghost_comm += cpu_timer_stop(tstart_lev2);
 
-      fflush(fp);
-
    } else if (calc_neighbor_type == KDTREE) {
       struct timeval tstart_lev2;
       if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
