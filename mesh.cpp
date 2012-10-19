@@ -4672,18 +4672,9 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          cpu_timer_start(&tstart_lev2);
       }
 
-      i_tmp.resize(ncells_ghost);
-      j_tmp.resize(ncells_ghost);
-      level_tmp.resize(ncells_ghost);
-
       vector<int> celltype_tmp(ncells_ghost);
 
-      vector<int> nlft_tmp(ncells_ghost);
-      vector<int> nrht_tmp(ncells_ghost);
-      vector<int> nbot_tmp(ncells_ghost);
-      vector<int> ntop_tmp(ncells_ghost);
-
-      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int), &celltype_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_TRUE,  0, ncells*sizeof(cl_int), &celltype_tmp[0], NULL);
 #ifdef HAVE_MPI
       L7_Update(&celltype_tmp[0], L7_INT, cell_handle);
 #endif
@@ -4691,7 +4682,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       size_t nghost_local = nghost;
       cl_mem dev_celltype_add   = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_add"),   &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-      ezcl_enqueue_write_buffer(command_queue, dev_celltype_add,   CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&celltype_tmp[ncells], NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_celltype_add,   CL_TRUE,  0, nghost*sizeof(cl_int), (void*)&celltype_tmp[ncells], NULL);
 
       ezcl_set_kernel_arg(kernel_copy_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
       ezcl_set_kernel_arg(kernel_copy_ghost_data, 1, sizeof(cl_int), (void *)&nghost);
@@ -4705,6 +4696,10 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_FALSE, 0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
 
+         vector<int> nlft_tmp(ncells_ghost);
+         vector<int> nrht_tmp(ncells_ghost);
+         vector<int> nbot_tmp(ncells_ghost);
+         vector<int> ntop_tmp(ncells_ghost);
          ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nlft_tmp[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nrht_tmp[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nbot_tmp[0], NULL);
@@ -4823,6 +4818,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
       
       if (DEBUG) {
+         vector<int> i_tmp(ncells_ghost);
+         vector<int> j_tmp(ncells_ghost);
+         vector<int> level_tmp(ncells_ghost);
+         vector<int> nlft_tmp(ncells_ghost);
+         vector<int> nrht_tmp(ncells_ghost);
+         vector<int> nbot_tmp(ncells_ghost);
+         vector<int> ntop_tmp(ncells_ghost);
          ezcl_enqueue_read_buffer(command_queue, dev_i, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &i_tmp[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_j, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &j_tmp[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_level, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &level_tmp[0], NULL);
