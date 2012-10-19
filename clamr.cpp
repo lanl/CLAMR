@@ -427,16 +427,6 @@ extern "C" void do_calc(void)
    vector<int>     mpot;
    vector<int>     mpot_global;
    
-   if (DEBUG) {
-      //if (mype == 0) mesh->print();
-
-      char filename[10];
-      sprintf(filename,"out%1d",mype);
-      mesh->fp=fopen(filename,"w");
-
-      //mesh->print_local();
-   }
-
    size_t old_ncells = ncells;
    size_t old_ncells_global = ncells_global;
    size_t new_ncells = 0;

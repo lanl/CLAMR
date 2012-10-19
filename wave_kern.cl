@@ -867,7 +867,7 @@ __kernel void hash_setup_cl(
    int ii = i[giX];
    int jj = j[giX];
 
-#define HASH_SETUP_NEW
+//#define HASH_SETUP_NEW
 
 #ifdef HASH_SETUP_NEW
    if (lev > 0 && (ii < lev_ibeg[lev] || ii > lev_iend[lev] || jj < lev_jbeg[lev] || jj > lev_jend[lev]) ) {
@@ -1435,6 +1435,442 @@ __kernel void calc_border_cells2_cl(
    border_cell_out[giX] = border_cell;
 }
 
+__kernel void calc_layer1_cl (
+                          const int  isize,               // 0 
+                          const int  levmx,               // 1 
+                          const int  imax,                // 2 
+                          const int  jmax,                // 3 
+                 __global const int4 *sizes,              // 4 
+                 __global const int  *levtable,           // 5 
+                 __global const int  *border_cell_i,      // 6
+                 __global const int  *border_cell_j,      // 7
+                 __global const int  *border_cell_level,  // 8
+                 __global       int  *border_cell_needed, // 9
+                 __global const int  *hash)               // 10
+{
+   const uint giX = get_global_id(0);
+
+   if (giX >= isize) return;
+
+   int iminsize = sizes[0].s0;
+   int imaxsize = sizes[0].s1;
+   int jminsize = sizes[0].s2;
+   int jmaxsize = sizes[0].s3;
+
+   int imaxcalc = (imax+1)*levtable[levmx];
+   int jmaxcalc = (jmax+1)*levtable[levmx];
+
+   int ii = border_cell_i[giX];
+   int jj = border_cell_j[giX];
+   int lev = border_cell_level[giX];
+   int levmult = levtable[levmx-lev];
+
+   int iborder = 0;
+
+   if (max(ii*levmult-1, 0)-iminsize >= 0 && min((jj+1)*levmult -1,jmaxcalc-1) < jmaxsize) {  // Test for cell to left
+      if (hash[(    (jj   *levmult)              -jminsize)*(imaxsize-iminsize)+(max(ii*levmult-1, 0)-iminsize)] >= 0 ||
+          hash[(min((jj+1)*levmult -1,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(max(ii*levmult-1, 0)-iminsize)] >= 0 ) {
+         iborder |= 0x0001;
+      }
+   }
+   if (min( (ii+1)*levmult,   imaxcalc-1) < imaxsize && min((jj+1)*levmult -1,jmaxcalc-1) < jmaxsize){ // Test for cell to right
+      if (hash[(    (jj   *levmult)              -jminsize)*(imaxsize-iminsize)+(min( (ii+1)*levmult,imaxcalc-1)-iminsize)] >= 0 ||
+          hash[(min((jj+1)*levmult -1,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min( (ii+1)*levmult,imaxcalc-1)-iminsize)] >= 0 ) {
+         iborder |= 0x0002;
+      }
+   }
+   if (max(jj*levmult-1, 0)-jminsize >= 0 && min((ii+1)*levmult -1,imaxcalc-1) < imaxsize){ // Test for cell to bottom
+      if (hash[((max(jj*levmult-1, 0) )-jminsize)*(imaxsize-iminsize)+(    (ii   *levmult)              -iminsize)] >= 0 ||
+          hash[((max(jj*levmult-1, 0) )-jminsize)*(imaxsize-iminsize)+(min((ii+1)*levmult -1,imaxcalc-1)-iminsize)] >= 0 ) {
+         iborder |= 0x0004;
+      }
+   }
+   if ((min( (jj+1)*levmult,   jmaxcalc-1)) < jmaxsize && min((ii+1)*levmult -1,imaxcalc-1) < imaxsize){ // Test for cell to top
+      if (hash[((min( (jj+1)*levmult, jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+(    (ii   *levmult)              -iminsize)] >= 0 ||
+          hash[((min( (jj+1)*levmult, jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+(min((ii+1)*levmult -1,imaxcalc-1)-iminsize)] >= 0 ) {
+         iborder |= 0x0008;
+      }
+   }
+   if (iborder) border_cell_needed[giX] = iborder;
+}
+
+__kernel void calc_layer1_sethash_cl (
+                          const int  isize,               // 0 
+                          const int  ncells,              // 1 
+                          const int  noffset,             // 2 
+                          const int  levmx,               // 3 
+                 __global const int4 *sizes,              // 4 
+                 __global const int  *levtable,           // 5 
+                 __global const int  *border_cell_i,      // 6
+                 __global const int  *border_cell_j,      // 7
+                 __global const int  *border_cell_level,  // 8
+                 __global       int  *border_cell_needed, // 9
+                 __global       int  *hash)               // 10
+{
+   const uint giX = get_global_id(0);
+
+   if (giX >= isize) return;
+
+   int iminsize = sizes[0].s0;
+   int imaxsize = sizes[0].s1;
+   int jminsize = sizes[0].s2;
+   int jmaxsize = sizes[0].s3;
+
+   int ii = border_cell_i[giX];
+   int jj = border_cell_j[giX];
+   int lev = border_cell_level[giX];
+   int levmult = levtable[levmx-lev];
+
+   int iborder = border_cell_needed[giX];
+
+   if (iborder) {
+      if (lev == levmx) {
+         hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)] = ncells+noffset+giX;
+      } else {
+         for (int    j = max(jj*levmult-jminsize,0); j < min((jj+1)*levmult,jmaxsize)-jminsize; j++) {
+            for (int i = max(ii*levmult-iminsize,0); i < min((ii+1)*levmult,imaxsize)-iminsize; i++) {
+               hash[j*(imaxsize-iminsize)+i] = ncells+noffset+giX;
+            }
+         }
+      }
+   }
+}
+
+__kernel void calc_layer2_cl (
+                          const int  isize,                   // 0 
+                          const int  ncells,                  // 1 
+                          const int  noffset,                 // 2 
+                          const int  levmx,                   // 3 
+                          const int  imax,                    // 4 
+                          const int  jmax,                    // 5 
+                 __global const int4 *sizes,                  // 6 
+                 __global const int  *levtable,               // 7 
+                 __global const int  *border_cell_i,          // 8
+                 __global const int  *border_cell_j,          // 9
+                 __global const int  *border_cell_level,      // 10
+                 __global const int  *border_cell_needed,     // 11
+                 __global       int  *border_cell_needed_out, // 12
+                 __global const int  *hash)                   // 13
+{
+   const uint giX = get_global_id(0);
+
+   if (giX >= isize) return;
+
+   int iminsize = sizes[0].s0;
+   int imaxsize = sizes[0].s1;
+   int jminsize = sizes[0].s2;
+   int jmaxsize = sizes[0].s3;
+
+   int imaxcalc = (imax+1)*levtable[levmx];
+   int jmaxcalc = (jmax+1)*levtable[levmx];
+
+   int ii = border_cell_i[giX];
+   int jj = border_cell_j[giX];
+   int lev = border_cell_level[giX];
+   int levmult = levtable[levmx-lev];
+
+   int iborder = border_cell_needed[giX];
+
+   if (iborder <= 0) {
+      if (max(ii*levmult-1, 0)-iminsize >= 0) {  // Test for cell to left
+         int nl  = hash[(    (jj   *levmult)            -jminsize)*(imaxsize-iminsize)+(max(ii*levmult-1, 0)-iminsize)];
+         if ( nl  >= (int)(ncells+noffset) && (border_cell_needed[nl -ncells-noffset] & 0x0001) == 0x0001) {
+            iborder = 0x0001;
+         } else if (min((jj+1)*levmult -1,jmaxcalc-1) < jmaxsize) {
+            int nlt = hash[(min((jj+1)*levmult -1,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(max(ii*levmult-1, 0)-iminsize)];
+            if ( nlt >= (int)(ncells+noffset) && (border_cell_needed[nlt-ncells-noffset] & 0x0001) == 0x0001) iborder = 0x0001;
+         }
+      }
+      if (min( (ii+1)*levmult, imaxcalc-1) < imaxsize){ // Test for cell to right
+         int nr  = hash[((jj *levmult)-jminsize)*(imaxsize-iminsize)+((min( (ii+1)*levmult,   imaxcalc-1))-iminsize)];
+         if ( nr  >= (int)(ncells+noffset) && (border_cell_needed[nr -ncells-noffset] & 0x0002) == 0x0002) {
+            iborder = 0x0002;
+         } else if (min((jj+1)*levmult -1,jmaxcalc-1) < jmaxsize) {
+            int nrt = hash[(min((jj+1)*levmult -1,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min( (ii+1)*levmult,imaxcalc-1)-iminsize)];
+            if ( nrt >= (int)(ncells+noffset) && (border_cell_needed[nrt-ncells-noffset] & 0x0002) == 0x0002) iborder = 0x0002;
+         }
+      }
+      if (max(jj*levmult-1, 0)-jminsize >= 0){ // Test for cell to bottom
+         int nb  = hash[((max(jj*levmult-1, 0) )-jminsize)*(imaxsize-iminsize)+((ii*levmult)-iminsize)];
+         if ( nb  >= (int)(ncells+noffset) && (border_cell_needed[nb -ncells-noffset] & 0x0004) == 0x0004) {
+            iborder = 0x0004;
+         } else if (min((ii+1)*levmult -1,imaxcalc-1) < imaxsize) {
+            int nbr = hash[((max(jj*levmult-1, 0) )-jminsize)*(imaxsize-iminsize)+(min((ii+1)*levmult -1,imaxcalc-1)-iminsize)];
+            if ( nbr >= (int)(ncells+noffset) && (border_cell_needed[nbr-ncells-noffset] & 0x0004) == 0x0004) iborder = 0x0004;
+         }
+      }
+      if (min( (jj+1)*levmult, jmaxcalc-1) < jmaxsize){ // Test for cell to top
+         int nt  = hash[((min( (jj+1)*levmult, jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((ii*levmult)-iminsize)];
+         if ( nt  >= (int)(ncells+noffset) && (border_cell_needed[nt -ncells-noffset] & 0x0008) == 0x0008) {
+            iborder = 0x0008;
+         } else if (min((ii+1)*levmult -1,imaxcalc-1) < imaxsize) {
+            int ntr = hash[((min( (jj+1)*levmult, jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+(min((ii+1)*levmult -1,imaxcalc)-iminsize)];
+            if ( ntr >= (int)(ncells+noffset) && (border_cell_needed[ntr-ncells-noffset] & 0x0008) == 0x0008) iborder = 0x0008;
+         }
+      }
+      if (iborder) iborder |= 0x0016;
+   }
+   border_cell_needed_out[giX] = iborder;
+}
+
+__kernel void calc_layer2_sethash_cl (
+                          const int  isize,               // 0 
+                          const int  ncells,              // 1 
+                          const int  noffset,             // 2 
+                          const int  levmx,               // 3 
+                 __global const int4 *sizes,              // 4 
+                 __global const int  *levtable,           // 5 
+                 __global const int  *border_cell_i,      // 6
+                 __global const int  *border_cell_j,      // 7
+                 __global const int  *border_cell_level,  // 8
+                 __global const int  *border_cell_num,    // 9
+                 __global       int  *border_cell_needed, // 10
+                 __global       int  *hash)               // 11
+{
+   const uint giX = get_global_id(0);
+
+   if (giX >= isize) return;
+
+   int iminsize = sizes[0].s0;
+   int imaxsize = sizes[0].s1;
+   int jminsize = sizes[0].s2;
+   int jmaxsize = sizes[0].s3;
+
+   int iborder = border_cell_needed[giX];
+
+   if (iborder) {
+      int ii = border_cell_i[giX];
+      int jj = border_cell_j[giX];
+      int lev = border_cell_level[giX];
+      int cell_number = border_cell_num[giX];
+      int levmult = levtable[levmx-lev];
+
+      if (lev == levmx) {
+         hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)] = cell_number;
+      } else {
+         for (int    j = max(jj*levmult-jminsize,0); j < min((jj+1)*levmult,jmaxsize)-jminsize; j++) {
+            for (int i = max(ii*levmult-iminsize,0); i < min((ii+1)*levmult,imaxsize)-iminsize; i++) {
+               hash[j*(imaxsize-iminsize)+i] = cell_number;
+            }
+         }
+      }
+   }
+}
+
+__kernel void fill_mesh_ghost_cl (
+                          const int  isize,              // 0 
+                          const int  ncells,             // 1 
+                 __global const int  *border_cell_i,     // 2
+                 __global const int  *border_cell_j,     // 3
+                 __global const int  *border_cell_level, // 4
+                 __global       int  *i,                 // 5 
+                 __global       int  *j,                 // 6 
+                 __global       int  *level,             // 8 
+                 __global       int  *nlft,              // 9 
+                 __global       int  *nrht,              // 10
+                 __global       int  *nbot,              // 11
+                 __global       int  *ntop)              // 12
+{
+   const uint giX = get_global_id(0);
+
+   if (giX >= isize) return;
+
+   i[ncells+giX]     = border_cell_i[giX];
+   j[ncells+giX]     = border_cell_j[giX];
+   level[ncells+giX] = border_cell_level[giX];
+   nlft[ncells+giX]  = -98;
+   nrht[ncells+giX]  = -98;
+   nbot[ncells+giX]  = -98;
+   ntop[ncells+giX]  = -98;
+}
+
+__kernel void fill_neighbor_ghost_cl (
+                          const int  ncells_ghost, // 0 
+                          const int  levmx,        // 1 
+                          const int  imax,         // 2 
+                          const int  jmax,         // 3 
+                 __global const int4 *sizes,       // 4 
+                 __global const int  *levtable,    // 5 
+                 __global const int  *i,           // 6 
+                 __global const int  *j,           // 7 
+                 __global const int  *level,       // 8 
+                 __global const int  *hash,        // 9 
+                 __global       int  *nlft,        // 10
+                 __global       int  *nrht,        // 11
+                 __global       int  *nbot,        // 12
+                 __global       int  *ntop)        // 13
+{
+   const uint giX  = get_global_id(0);
+
+   if (giX >= ncells_ghost) return;
+
+   int nlftval = nlft[giX];
+   int nrhtval = nrht[giX];
+   int nbotval = nbot[giX];
+   int ntopval = ntop[giX];
+
+   int iminsize = sizes[0].s0;
+   int imaxsize = sizes[0].s1;
+   int jminsize = sizes[0].s2;
+   int jmaxsize = sizes[0].s3;
+
+   int imaxcalc = (imax+1)*levtable[levmx];
+   int jmaxcalc = (jmax+1)*levtable[levmx];
+
+   int ii = i[giX];
+   int jj = j[giX];
+   int lev = level[giX];
+   int levmult = levtable[levmx-lev];
+
+   if (nlftval < 0){
+      if (max(ii*levmult-1, 0)-iminsize >= 0) {  // Test for cell to left
+         nlft[giX] = hash[((      jj   *levmult               )-jminsize)*(imaxsize-iminsize)+((max(  ii   *levmult-1, 0         ))-iminsize)];
+      }
+   }
+   if (nrhtval < 0){
+      if (min( (ii+1)*levmult, imaxcalc-1) < imaxsize){ // Test for cell to right
+         nrht[giX] = hash[((      jj   *levmult               )-jminsize)*(imaxsize-iminsize)+((min( (ii+1)*levmult,   imaxcalc-1))-iminsize)];
+      }
+   }
+   if (nbotval < 0){
+      if (max(jj*levmult-1, 0)-jminsize >= 0){ // Test for cell to bottom
+         nbot[giX] = hash[((max(  jj   *levmult-1, 0)         )-jminsize)*(imaxsize-iminsize)+((      ii   *levmult               )-iminsize)];
+      }
+   }
+   if (ntopval < 0) {
+      if (min( (jj+1)*levmult, jmaxcalc-1) < jmaxsize){ // Test for cell to top
+         ntop[giX] = hash[((min( (jj+1)*levmult,   jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((      ii   *levmult               )-iminsize)];
+      }
+   }
+}
+
+__kernel void set_corner_neighbor_cl(
+                          const int  nghost,    // 0 
+                          const int  ncells,    // 1 
+                          const int  levmx,     // 2 
+                 __global const int4 *sizes,    // 3 
+                 __global const int  *levtable, // 4 
+                 __global const int  *i,        // 5 
+                 __global const int  *j,        // 6 
+                 __global const int  *level,    // 7 
+                 __global const int  *hash,     // 8 
+                 __global       int  *nlft,     // 9 
+                 __global       int  *nrht,     // 10
+                 __global       int  *nbot,     // 11
+                 __global       int  *ntop)     // 12
+{
+   uint giX  = get_global_id(0);
+
+   if (giX >= nghost) return;
+
+   giX += ncells;
+
+   int nlftval = nlft[giX];
+   int nrhtval = nrht[giX];
+   int nbotval = nbot[giX];
+   int ntopval = ntop[giX];
+  
+   if (nlftval == -99){
+      int iminsize = sizes[0].s0;
+      int imaxsize = sizes[0].s1;
+      int jminsize = sizes[0].s2;
+      int jmaxsize = sizes[0].s3;
+      int lev = level[giX];
+      int levmult = levtable[levmx-lev];
+      int jj = j[giX]*levmult;
+      int ii = i[giX]*levmult;
+      nlft[giX] = hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)];
+   }
+   if (nrhtval == -99){
+      int iminsize = sizes[0].s0;
+      int imaxsize = sizes[0].s1;
+      int jminsize = sizes[0].s2;
+      int jmaxsize = sizes[0].s3;
+      int lev = level[giX];
+      int levmult = levtable[levmx-lev];
+      int jj = j[giX]*levmult;
+      int ii = i[giX]*levmult;
+      nrht[giX] = hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)];
+   }
+   if (nbotval == -99) {
+      int iminsize = sizes[0].s0;
+      int imaxsize = sizes[0].s1;
+      int jminsize = sizes[0].s2;
+      int jmaxsize = sizes[0].s3;
+      int lev = level[giX];
+      int levmult = levtable[levmx-lev];
+      int jj = j[giX]*levmult;
+      int ii = i[giX]*levmult;
+      nbot[giX] = hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)];
+   }
+   if (ntopval == -99) {
+      int iminsize = sizes[0].s0;
+      int imaxsize = sizes[0].s1;
+      int jminsize = sizes[0].s2;
+      int jmaxsize = sizes[0].s3;
+      int lev = level[giX];
+      int levmult = levtable[levmx-lev];
+      int jj = j[giX]*levmult;
+      int ii = i[giX]*levmult;
+      ntop[giX] = hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)];
+   }
+}
+
+__kernel void adjust_neighbors_local_cl(
+                          const int  ncells_ghost,    // 0 
+                          const int  ncells,          // 1 
+                          const int  noffset,         // 2 
+                 __global const int  *indices_needed, // 3 
+                 __global       int  *nlft,           // 4 
+                 __global       int  *nrht,           // 5
+                 __global       int  *nbot,           // 6
+                 __global       int  *ntop)           // 7
+{
+   const uint giX  = get_global_id(0);
+
+   if (giX >= ncells_ghost) return;
+
+   int nghost = ncells_ghost - ncells;
+   int nlftval = nlft[giX];
+   int nrhtval = nrht[giX];
+   int nbotval = nbot[giX];
+   int ntopval = ntop[giX];
+
+   if (nlftval >= noffset && nlftval < noffset+ncells) {
+      nlftval -= noffset;
+   } else {
+      for (int ig=0; ig<nghost; ig++){
+         if (nlftval ==indices_needed[ig]) {nlftval = ig+ncells; break;}
+      }
+   }
+   if (nrhtval >= noffset && nrhtval < noffset+ncells) {
+      nrhtval -= noffset;
+   } else {
+      for (int ig=0; ig<nghost; ig++){
+         if (nrhtval==indices_needed[ig]) {nrhtval = ig+ncells; break;}
+      }
+   }
+   if (nbotval >= noffset && nbotval < noffset+ncells) {
+      nbotval -= noffset;
+   } else {
+      for (int ig=0; ig<nghost; ig++){
+         if (nbotval==indices_needed[ig]) {nbotval = ig+ncells; break;}
+      }
+   }
+   if (ntopval >= noffset && ntopval < noffset+ncells) {
+      ntopval -= noffset;
+   } else {
+      for (int ig=0; ig<nghost; ig++){
+         if (ntopval==indices_needed[ig]) {ntopval = ig+ncells; break;}
+      }
+   }
+
+   nlft[giX] = nlftval;
+   nrht[giX] = nrhtval;
+   nbot[giX] = nbotval;
+   ntop[giX] = ntopval;
+}
+
 __kernel void calc_neighbors_local2_cl(
                           const int  isize,     // 0 
                           const int  levmx,     // 1 
@@ -1544,35 +1980,14 @@ __kernel void copy_mesh_data_cl(
 __kernel void copy_ghost_data_cl(
                           const int  ncells,        // 0 
                           const int  nghost,        // 1 
-                 __global       int  *nlft,         // 2 
-                 __global const int  *nlft_add,     // 3 
-                 __global       int  *nrht,         // 4 
-                 __global const int  *nrht_add,     // 5 
-                 __global       int  *nbot,         // 6 
-                 __global const int  *nbot_add,     // 7 
-                 __global       int  *ntop,         // 8 
-                 __global const int  *ntop_add,     // 9 
-                 __global       int  *celltype,     // 10
-                 __global const int  *celltype_add, // 11
-                 __global       int  *i,            // 12
-                 __global const int  *i_add,        // 13
-                 __global       int  *j,            // 14
-                 __global const int  *j_add,        // 15
-                 __global       int  *level,        // 16
-                 __global const int  *level_add)    // 17
+                 __global       int  *celltype,     // 2
+                 __global const int  *celltype_add) // 3
 {
    const unsigned int giX  = get_global_id(0);
 
    if (giX >= nghost) return;
 
-   nlft[ncells+giX]     = nlft_add[giX];
-   nrht[ncells+giX]     = nrht_add[giX];
-   nbot[ncells+giX]     = nbot_add[giX];
-   ntop[ncells+giX]     = ntop_add[giX];
    celltype[ncells+giX] = celltype_add[giX];
-   i[ncells+giX]        = i_add[giX];
-   j[ncells+giX]        = j_add[giX];
-   level[ncells+giX]    = level_add[giX];
 }
 
 __kernel void adjust_neighbors_cl(

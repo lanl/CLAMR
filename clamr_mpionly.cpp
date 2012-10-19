@@ -136,6 +136,12 @@ static double cpu_time_refine_potential = 0.0;
 static double cpu_time_rezone = 0.0;
 static double cpu_time_neighbors = 0.0;
 static double cpu_time_load_balance = 0.0;
+vector<real> H_global;
+vector<real> x_global;
+vector<real> dx_global;
+vector<real> y_global;
+vector<real> dy_global;
+vector<int> proc_global;
 
 int main(int argc, char **argv) {
 
@@ -254,12 +260,12 @@ int main(int argc, char **argv) {
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL
    set_mysize(ncells_global);
-   vector<real> H_global;
-   vector<real> x_global;
-   vector<real> dx_global;
-   vector<real> y_global;
-   vector<real> dy_global;
-   vector<int> proc_global;
+   //vector<real> H_global;
+   //vector<real> x_global;
+   //vector<real> dx_global;
+   //vector<real> y_global;
+   //vector<real> dy_global;
+   //vector<int> proc_global;
    if (mype == 0){
       H_global.resize(ncells_global);
       x_global.resize(ncells_global);
@@ -352,20 +358,9 @@ extern "C" void do_calc(void)
    vector<int>     mpot;
    vector<int>     mpot_global;
    
-   if (DEBUG) {
-      //if (mype == 0) mesh->print();
-
-      char filename[10];
-      sprintf(filename,"out%1d",mype);
-      mesh->fp=fopen(filename,"w");
-
-      //mesh->print_local();
-   }
-
    size_t old_ncells = ncells;
    size_t old_ncells_global = ncells_global;
    size_t new_ncells = 0;
-   double H_sum = -1.0;
    double deltaT = 0.0;
 
    //  Main loop.
@@ -421,8 +416,6 @@ extern "C" void do_calc(void)
       if (mesh->nlft.size() == 0) mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, H, U, V);
       cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
 
-      H_sum = -1.0;
-
 // XXX
 //      mesh->proc.resize(ncells);
 //      if (icount) {
@@ -432,9 +425,7 @@ extern "C" void do_calc(void)
 
    } // End burst loop
 
-   if (H_sum < 0) {
-      H_sum = state->mass_sum(mesh, enhanced_precision_sum);
-   }
+   double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
       exit(-1);
@@ -466,12 +457,12 @@ extern "C" void do_calc(void)
    MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
    set_mysize(ncells_global);
-   vector<real> x_global;
-   vector<real> dx_global;
-   vector<real> y_global;
-   vector<real> dy_global;
-   vector<real> H_global;
-   vector<int> proc_global;
+   //vector<real> x_global;
+   //vector<real> dx_global;
+   //vector<real> y_global;
+   //vector<real> dy_global;
+   //vector<real> H_global;
+   //vector<int> proc_global;
    if (mype == 0) {
       x_global.resize(ncells_global);
       dx_global.resize(ncells_global);

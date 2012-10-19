@@ -1160,7 +1160,7 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
           break;
         case CL_BUILD_PROGRAM_FAILURE:
           printf("Build program failure in clBuildProgram\n");
-          ierr = clGetProgramBuildInfo(program, ezcl_get_device(context), CL_PROGRAM_BUILD_LOG, 0L, NULL, &nReportSize);
+          ierr = clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, 0L, NULL, &nReportSize);
           if (ierr != CL_SUCCESS) {
             switch (ierr){
                case CL_INVALID_DEVICE:
@@ -1177,7 +1177,7 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
                  
             BuildReport = (char *)malloc(nReportSize);
                  
-            ierr = clGetProgramBuildInfo(program, ezcl_get_device(context), CL_PROGRAM_BUILD_LOG, nReportSize, BuildReport, NULL);
+            ierr = clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, nReportSize, BuildReport, NULL);
             if (ierr != CL_SUCCESS) {
                switch (ierr){
                   case CL_INVALID_DEVICE:

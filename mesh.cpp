@@ -126,8 +126,16 @@ cl_kernel      kernel_calc_neighbors;
 cl_kernel      kernel_calc_neighbors_local;
 cl_kernel      kernel_calc_border_cells;
 cl_kernel      kernel_calc_border_cells2;
+cl_kernel      kernel_calc_layer1;
+cl_kernel      kernel_calc_layer1_sethash;
+cl_kernel      kernel_calc_layer2;
+cl_kernel      kernel_calc_layer2_sethash;
 cl_kernel      kernel_calc_neighbors_local2;
 cl_kernel      kernel_copy_mesh_data;
+cl_kernel      kernel_fill_mesh_ghost;
+cl_kernel      kernel_fill_neighbor_ghost;
+cl_kernel      kernel_set_corner_neighbor;
+cl_kernel      kernel_adjust_neighbors_local;
 cl_kernel      kernel_copy_ghost_data;
 cl_kernel      kernel_adjust_neighbors;
 cl_kernel      kernel_reduction_scan;
@@ -260,14 +268,17 @@ void Mesh::print(void)
 void Mesh::print_local()
 {  //printf("size is %lu %lu %lu %lu %lu\n",index.size(), i.size(), level.size(), nlft.size(), x.size());
 
-   if (nlft.size() >= ncells){
+   if (nlft.size() >= ncells_ghost){
       fprintf(fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mype);
       for (uint ic=0; ic<ncells; ic++) {
          fprintf(fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mype,ic, ic+noffset,i[ic], j[ic], level[ic], nlft[ic], nrht[ic], nbot[ic], ntop[ic]);
       }
+      for (uint ic=ncells; ic<ncells_ghost; ic++) {
+         fprintf(fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mype,ic, ic+noffset,i[ic], j[ic], level[ic], nlft[ic], nrht[ic], nbot[ic], ntop[ic]);
+      }
    } else {
       fprintf(fp,"%d:    index   i     j     lev\n",mype);
-      for (uint ic=0; ic<ncells; ic++) {
+      for (uint ic=0; ic<ncells_ghost; ic++) {
          fprintf(fp,"%d: %6d  %4d  %4d   %4d  \n", mype,ic, i[ic], j[ic], level[ic]);
       }
    }
@@ -291,13 +302,13 @@ void Mesh::print_dev_local(cl_command_queue command_queue)
    ezcl_enqueue_read_buffer(command_queue, dev_nbot,  CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nbot_tmp[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_ntop,  CL_TRUE,  0, ncells_ghost*sizeof(cl_int), &ntop_tmp[0], NULL);
 
-   fprintf(fp,"\n%d:                    Printing mesh for dev_local\n\n",mype);
+   //fprintf(fp,"\n%d:                    Printing mesh for dev_local\n\n",mype);
 
    fprintf(fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mype);
    for (uint ic=0; ic<ncells_ghost; ic++) {
       fprintf(fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mype,ic, ic+noffset,i_tmp[ic], j_tmp[ic], level_tmp[ic], nlft_tmp[ic], nrht_tmp[ic], nbot_tmp[ic], ntop_tmp[ic]);
    }
-   fprintf(fp,"\n%d:              Finished printing mesh for dev_local\n\n",mype);
+   //fprintf(fp,"\n%d:              Finished printing mesh for dev_local\n\n",mype);
 }
 
 void Mesh::compare_dev_local_to_local(cl_command_queue command_queue)
@@ -539,7 +550,8 @@ void Mesh::compare_neighbors_all_to_gpu_local(cl_command_queue command_queue, Me
    for (uint ic=0; ic<ncells_global; ic++){
       if (Test_global[nlft_global[nlft_global[ic]]] != Test_check_global[ic]) {
          printf("%d: Error with nlft nlft for cell %5d -- nlftg %5d nlftg nlftg %5d global %5d\n",
-            mype,ic,nlft_global[ic],nlft_global[nlft_global[ic]],Test_global[nlft_global[nlft_global[ic]]]);               printf("%d:                         check %5d -- nlftl %5d nlftl nlftl %5d check  %5d\n",
+            mype,ic,nlft_global[ic],nlft_global[nlft_global[ic]],Test_global[nlft_global[nlft_global[ic]]]);
+         printf("%d:                           check %5d -- nlftl %5d nlftl nlftl %5d check  %5d\n",
             mype,ic,nlft[ic],nlft[nlft[ic]],Test_check_global[ic]);
       }          
    }       
@@ -1166,8 +1178,16 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       kernel_calc_neighbors_local = ezcl_create_kernel(context, "wave_kern.cl",      "calc_neighbors_local_cl",        0);
       kernel_calc_border_cells = ezcl_create_kernel(context, "wave_kern.cl",      "calc_border_cells_cl",        0);
       kernel_calc_border_cells2 = ezcl_create_kernel(context, "wave_kern.cl",      "calc_border_cells2_cl",        0);
+      kernel_calc_layer1       = ezcl_create_kernel(context, "wave_kern.cl",      "calc_layer1_cl",        0);
+      kernel_calc_layer1_sethash = ezcl_create_kernel(context, "wave_kern.cl",      "calc_layer1_sethash_cl",        0);
+      kernel_calc_layer2       = ezcl_create_kernel(context, "wave_kern.cl",      "calc_layer2_cl",        0);
+      kernel_calc_layer2_sethash = ezcl_create_kernel(context, "wave_kern.cl",      "calc_layer2_sethash_cl",        0);
       kernel_calc_neighbors_local2 = ezcl_create_kernel(context, "wave_kern.cl",      "calc_neighbors_local2_cl",        0);
       kernel_copy_mesh_data = ezcl_create_kernel(context, "wave_kern.cl",      "copy_mesh_data_cl",        0);
+      kernel_fill_mesh_ghost = ezcl_create_kernel(context, "wave_kern.cl",      "fill_mesh_ghost_cl",        0);
+      kernel_fill_neighbor_ghost = ezcl_create_kernel(context, "wave_kern.cl",      "fill_neighbor_ghost_cl",        0);
+      kernel_set_corner_neighbor = ezcl_create_kernel(context, "wave_kern.cl",      "set_corner_neighbor_cl",        0);
+      kernel_adjust_neighbors_local = ezcl_create_kernel(context, "wave_kern.cl",      "adjust_neighbors_local_cl",        0);
       kernel_copy_ghost_data = ezcl_create_kernel(context, "wave_kern.cl",      "copy_ghost_data_cl",        0);
       kernel_adjust_neighbors = ezcl_create_kernel(context, "wave_kern.cl",      "adjust_neighbors_cl",        0);
       kernel_hash_size         = ezcl_create_kernel(context, "wave_kern.cl",      "calc_hash_size_cl",        0);
@@ -1578,8 +1598,16 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_calc_neighbors_local);
       ezcl_kernel_release(kernel_calc_border_cells);
       ezcl_kernel_release(kernel_calc_border_cells2);
+      ezcl_kernel_release(kernel_calc_layer1);
+      ezcl_kernel_release(kernel_calc_layer1_sethash);
+      ezcl_kernel_release(kernel_calc_layer2);
+      ezcl_kernel_release(kernel_calc_layer2_sethash);
       ezcl_kernel_release(kernel_calc_neighbors_local2);
       ezcl_kernel_release(kernel_copy_mesh_data);
+      ezcl_kernel_release(kernel_fill_mesh_ghost);
+      ezcl_kernel_release(kernel_fill_neighbor_ghost);
+      ezcl_kernel_release(kernel_set_corner_neighbor);
+      ezcl_kernel_release(kernel_adjust_neighbors_local);
       ezcl_kernel_release(kernel_copy_ghost_data);
       ezcl_kernel_release(kernel_adjust_neighbors);
       ezcl_kernel_release(kernel_hash_size);
@@ -2783,15 +2811,15 @@ void Mesh::calc_neighbors_local(void)
             //printf("%d: max j %d i %d\n",mype,j[ic]-jminsize,i[ic]-iminsize);
             hash[j[ic]-jminsize][i[ic]-iminsize] = ic+noffset;
          } else {
-/* Original Write to Hash Table
+/* Original Write to Hash Table */
             for (int    jj = j[ic]*levtable[levmx-lev]-jminsize; jj < (j[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
                for (int ii = i[ic]*levtable[levmx-lev]-iminsize; ii < (i[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
                   //printf("%d: block j %d i %d\n",mype,jj,ii);
                   hash[jj][ii] = ic+noffset;
                }
             }
-*/
 /* Optimization: Always writes to max of 7 hash buckets, 4 if cell is l=levmx-1 */
+/*
             int wid = levtable[levmx-lev];
             int jj = j[ic]*wid - jminsize;
             int ii = i[ic]*wid - iminsize;
@@ -2816,6 +2844,7 @@ void Mesh::calc_neighbors_local(void)
                ii += wid/2;
                hash[jj][ii] = ic + noffset;
             }
+*/
          }
       }
       
@@ -2871,6 +2900,114 @@ void Mesh::calc_neighbors_local(void)
             jjj = j[ic]*levmult;
             ntop[ic] = hash[jjj-jminsize][iii-iminsize];
          }
+      }
+
+      if (DEBUG) {
+         int jmaxglobal = (jmax+1)*levtable[levmx];
+         int imaxglobal = (imax+1)*levtable[levmx];
+         fprintf(fp,"\n                                    HASH 0 numbering\n");
+         for (int jj = jmaxglobal-1; jj>=0; jj--){
+            fprintf(fp,"%2d: %4d:",mype,jj);
+            if (jj >= jminsize && jj < jmaxsize) {
+               for (int ii = 0; ii<imaxglobal; ii++){
+                  if (ii >= iminsize && ii < imaxsize) {
+                     fprintf(fp,"%5d",hash[jj-jminsize][ii-iminsize]);
+                  } else {
+                     fprintf(fp,"     ");
+                  }
+               }
+            }
+            fprintf(fp,"\n");
+         }
+         fprintf(fp,"%2d:      ",mype);
+         for (int ii = 0; ii<imaxglobal; ii++){
+            fprintf(fp,"%4d:",ii);
+         }
+         fprintf(fp,"\n");
+
+         fprintf(fp,"\n                                    nlft numbering\n");
+         for (int jj = jmaxglobal-1; jj>=0; jj--){
+            fprintf(fp,"%2d: %4d:",mype,jj);
+            if (jj >= jminsize && jj < jmaxsize) {
+               for (int ii = 0; ii<imaxglobal; ii++){
+                  int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
+                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
+                        fprintf(fp,"%5d",nlft[hashval]);
+                  } else {
+                        fprintf(fp,"     ");
+                  }
+               }
+            }
+            fprintf(fp,"\n");
+         }
+         fprintf(fp,"%2d:      ",mype);
+         for (int ii = 0; ii<imaxglobal; ii++){
+            fprintf(fp,"%4d:",ii);
+         }
+         fprintf(fp,"\n");
+      
+         fprintf(fp,"\n                                    nrht numbering\n");
+         for (int jj = jmaxglobal-1; jj>=0; jj--){
+            fprintf(fp,"%2d: %4d:",mype,jj);
+            if (jj >= jminsize && jj < jmaxsize) {
+               for (int ii = 0; ii<imaxglobal; ii++){
+                  int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
+                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
+                     fprintf(fp,"%5d",nrht[hashval]);
+                  } else {
+                     fprintf(fp,"     ");
+                  }
+               }
+            }
+            fprintf(fp,"\n");
+         }
+         fprintf(fp,"%2d:      ",mype);
+         for (int ii = 0; ii<imaxglobal; ii++){
+            fprintf(fp,"%4d:",ii);
+         }
+         fprintf(fp,"\n");
+
+         fprintf(fp,"\n                                    nbot numbering\n");
+         for (int jj = jmaxglobal-1; jj>=0; jj--){
+            fprintf(fp,"%2d: %4d:",mype,jj);
+            if (jj >= jminsize && jj < jmaxsize) {
+               for (int ii = 0; ii<imaxglobal; ii++){
+                  int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
+                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
+                     fprintf(fp,"%5d",nbot[hashval]);
+                  } else {
+                     fprintf(fp,"     ");
+                  }
+               }
+            }
+            fprintf(fp,"\n");
+         }
+         fprintf(fp,"%2d:      ",mype);
+         for (int ii = 0; ii<imaxglobal; ii++){
+            fprintf(fp,"%4d:",ii);
+         }
+         fprintf(fp,"\n");
+
+         fprintf(fp,"\n                                    ntop numbering\n");
+         for (int jj = jmaxglobal-1; jj>=0; jj--){
+            fprintf(fp,"%2d: %4d:",mype,jj);
+            if (jj >= jminsize && jj < jmaxsize) {
+               for (int ii = 0; ii<imaxglobal; ii++){
+                  int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
+                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
+                     fprintf(fp,"%5d",ntop[hashval]);
+                  } else {
+                     fprintf(fp,"     ");
+                  }
+               }
+            }
+            fprintf(fp,"\n");
+         }
+         fprintf(fp,"%2d:      ",mype);
+         for (int ii = 0; ii<imaxglobal; ii++){
+            fprintf(fp,"%4d:",ii);
+         }
+         fprintf(fp,"\n");
       }
 
       if (TIMING_LEVEL >= 2) {
@@ -2935,12 +3072,7 @@ void Mesh::calc_neighbors_local(void)
          }
          //printf("%d: border cell size is %d\n",mype,border_cell_num.size());
 
-         int nbsize_local = 0;
-         for (vector<int>::iterator p=border_cell.begin(); p < p_end; p++){
-            nbsize_local++;
-         }
-
-         int nbsize_global;
+         int nbsize_local = border_cell_num.size();
 
          vector<int> border_cell_i(nbsize_local);
          vector<int> border_cell_j(nbsize_local);
@@ -2960,7 +3092,7 @@ void Mesh::calc_neighbors_local(void)
             cpu_timer_start(&tstart_lev2);
          }
 
-         nbsize_global = nbsize_local;
+         int nbsize_global = nbsize_local;
 #ifdef HAVE_MPI
          MPI_Allreduce(&nbsize_local, &nbsize_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 #endif
@@ -2997,35 +3129,195 @@ void Mesh::calc_neighbors_local(void)
             cpu_timer_start(&tstart_lev2);
          }
 
+         // Filter out only the data within our hash array boundaries
          int inew=0;
+         vector<int> border_cell_needed_global(nbsize_global);
          for (int ic = 0; ic < nbsize_global; ic++) {
             int lev = border_cell_level_global[ic];
             int levmult = levtable[levmx-lev];
-            //fprintf(fp,"%d: DEBUG cell %d i %d j %d\n",mype,ic,border_cell_i_global[ic],border_cell_j_global[ic]);
-            if (border_cell_j_global[ic]*levmult < jminsize || border_cell_j_global[ic]*levmult >= jmaxsize) continue;
-            if (border_cell_i_global[ic]*levmult < iminsize || border_cell_i_global[ic]*levmult >= imaxsize) continue;
-            if (border_cell_num_global[ic] >= (int)noffset && border_cell_num_global[ic] < (int)(noffset+ncells)) continue;
-            //fprintf(fp,"%d: ic is %d inew is %d\n",mype,ic,inew);
-            if (inew != ic){
-               border_cell_num_global[inew] = border_cell_num_global[ic];
-               border_cell_i_global[inew] = border_cell_i_global[ic];
-               border_cell_j_global[inew] = border_cell_j_global[ic];
-               border_cell_level_global[inew] = border_cell_level_global[ic];
-            }
+
+            if (border_cell_j_global[ic]*levmult < jminsize || border_cell_j_global[ic]*levmult >= jmaxsize) continue;  // Outside vertical boundaries
+            if (border_cell_i_global[ic]*levmult < iminsize || border_cell_i_global[ic]*levmult >= imaxsize) continue;  // Outside horizontal boundaries
+            if (border_cell_num_global[ic] >= (int)noffset && border_cell_num_global[ic] < (int)(noffset+ncells)) continue; // Skip my own cells
+
+            border_cell_num_global[inew]    = border_cell_num_global[ic];
+            border_cell_i_global[inew]      = border_cell_i_global[ic];
+            border_cell_j_global[inew]      = border_cell_j_global[ic];
+            border_cell_level_global[inew]  = border_cell_level_global[ic];
+            border_cell_needed_global[inew] = 0;
+
             inew++;
          }
          nbsize_local = inew;
 
-
-         //fprintf(fp,"%d: nbsize_local is %d\n",mype,nbsize_local);
          //for (int ic = 0; ic < nbsize_local; ic++) {
          //   fprintf(fp,"%d: Local Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
          //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
          //}
 
+         if (DEBUG) {
+            int jmaxglobal = (jmax+1)*levtable[levmx];
+            int imaxglobal = (imax+1)*levtable[levmx];
+            fprintf(fp,"\n                                    HASH numbering before layer 1\n");
+            for (int jj = jmaxglobal-1; jj>=0; jj--){
+               fprintf(fp,"%2d: %4d:",mype,jj);
+               if (jj >= jminsize && jj < jmaxsize) {
+                  for (int ii = 0; ii<imaxglobal; ii++){
+                     if (ii >= iminsize && ii < imaxsize) {
+                        fprintf(fp,"%5d",hash[jj-jminsize][ii-iminsize]);
+                     } else {
+                        fprintf(fp,"     ");
+                     }
+                  }
+               }
+               fprintf(fp,"\n");
+            }
+            fprintf(fp,"%2d:      ",mype);
+            for (int ii = 0; ii<imaxglobal; ii++){
+               fprintf(fp,"%4d:",ii);
+            }
+            fprintf(fp,"\n");
+         }
+
+         // Layer 1
+         for (int ic =0; ic<nbsize_local; ic++){
+            //if (border_cell_needed_global[ic] < ilayer && border_cell_needed_global[ic] > 0) continue;
+            int jj = border_cell_j_global[ic];
+            int ii = border_cell_i_global[ic];
+            int lev = border_cell_level_global[ic];
+            int levmult = levtable[levmx-lev];
+            //fprintf(fp,"DEBUG layer ic %d num %d i %d j %d lev %d\n",ic,border_cell_num_global[ic],ii,jj,lev);
+   
+            int iborder = 0;
+            if (max(ii*levmult-1, 0)-iminsize >= 0 && min((jj+1)*levmult -1,jmaxcalc-1) < jmaxsize) {  // Test for cell to left
+               if (hash[    (jj   *levmult)              -jminsize][max(ii*levmult-1, 0)-iminsize] >= 0 ||
+                   hash[min((jj+1)*levmult -1,jmaxcalc-1)-jminsize][max(ii*levmult-1, 0)-iminsize] >= 0 ) {
+                  iborder |= 0x0001;
+               }
+            }
+            if (min( (ii+1)*levmult,   imaxcalc-1) < imaxsize && min((jj+1)*levmult -1,jmaxcalc-1) < jmaxsize){ // Test for cell to right
+               if (hash[    (jj   *levmult)              -jminsize][min( (ii+1)*levmult,imaxcalc-1)-iminsize] >= 0 ||
+                   hash[min((jj+1)*levmult -1,jmaxcalc-1)-jminsize][min( (ii+1)*levmult,imaxcalc-1)-iminsize] >= 0 ) {
+                  iborder |= 0x0002;
+               }
+            }
+            if (max(jj*levmult-1, 0)-jminsize >= 0 && min((ii+1)*levmult -1,imaxcalc-1) < imaxsize){ // Test for cell to bottom
+               if (hash[(max(jj*levmult-1, 0) )-jminsize][    (ii   *levmult)              -iminsize] >= 0 ||
+                   hash[(max(jj*levmult-1, 0) )-jminsize][min((ii+1)*levmult -1,imaxcalc-1)-iminsize] >= 0 ) {
+                  iborder |= 0x0004;
+               }
+            }
+            if ((min( (jj+1)*levmult,   jmaxcalc-1)) < jmaxsize && min((ii+1)*levmult -1,imaxcalc-1) < imaxsize){ // Test for cell to top
+               if (hash[(min( (jj+1)*levmult, jmaxcalc-1))-jminsize][    (ii   *levmult)              -iminsize] >= 0 ||
+                   hash[(min( (jj+1)*levmult, jmaxcalc-1))-jminsize][min((ii+1)*levmult -1,imaxcalc-1)-iminsize] >= 0 ) {
+                  iborder |= 0x0008;
+               }
+            }
+            if (iborder) border_cell_needed_global[ic] = iborder;
+         }
+
+         //for(int ic=0; ic<nbsize_local; ic++){
+         //   if (border_cell_needed_global[ic] == 0) continue;
+         //   fprintf(fp,"%d: First set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+         //}
+
+         // Walk through cell array and set hash to border local index plus ncells+noffset for next pass
+         //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
+         for(int ic=0; ic<nbsize_local; ic++){
+            if (border_cell_needed_global[ic] == 0) continue;
+            //fprintf(fp,"%d: cell %d i %d j %d\n",mype,ic,border_cell_i_global[ic],border_cell_j_global[ic]);
+            int lev = border_cell_level_global[ic];
+            int levmult = levtable[levmx-lev];
+            if (lev == levmx) {
+               //fprintf(fp,"%d: cell %d max j %d i %d\n",mype,ic,j[ic]-jminsize,i[ic]-iminsize);
+               hash[border_cell_j_global[ic]-jminsize][border_cell_i_global[ic]-iminsize] = ncells+noffset+ic;
+            } else {
+               for (int    jj = max(border_cell_j_global[ic]*levmult-jminsize,0); jj < min((border_cell_j_global[ic]+1)*levmult,jmaxsize)-jminsize; jj++) {
+                  for (int ii = max(border_cell_i_global[ic]*levmult-iminsize,0); ii < min((border_cell_i_global[ic]+1)*levmult,imaxsize)-iminsize; ii++) {
+                     //fprintf(fp,"%d: cell %d block j %d i %d\n",mype,ic,jj,ii);
+                     hash[jj][ii] = ncells+noffset+ic;
+                  }
+               }
+            }
+         }
+
+         if (DEBUG) {
+            int jmaxglobal = (jmax+1)*levtable[levmx];
+            int imaxglobal = (imax+1)*levtable[levmx];
+            fprintf(fp,"\n                                    HASH numbering for 1 layer\n");
+            for (int jj = jmaxglobal-1; jj>=0; jj--){
+               fprintf(fp,"%2d: %4d:",mype,jj);
+               if (jj >= jminsize && jj < jmaxsize) {
+                  for (int ii = 0; ii<imaxglobal; ii++){
+                     if (ii >= iminsize && ii < imaxsize) {
+                        fprintf(fp,"%5d",hash[jj-jminsize][ii-iminsize]);
+                     } else {
+                        fprintf(fp,"     ");
+                     }
+                  }
+               }
+               fprintf(fp,"\n");
+            }
+            fprintf(fp,"%2d:      ",mype);
+            for (int ii = 0; ii<imaxglobal; ii++){
+               fprintf(fp,"%4d:",ii);
+            }
+            fprintf(fp,"\n");
+         }
+
+         // Layer 2
+         for (int ic =0; ic<nbsize_local; ic++){
+            if (border_cell_needed_global[ic] > 0) continue;
+            int jj = border_cell_j_global[ic];
+            int ii = border_cell_i_global[ic];
+            int lev = border_cell_level_global[ic];
+            int levmult = levtable[levmx-lev];
+            //fprintf(fp,"DEBUG layer ic %d num %d i %d j %d lev %d\n",ic,border_cell_num_global[ic],ii,jj,lev);
+   
+            int iborder = 0;
+            if (max(ii*levmult-1, 0)-iminsize >= 0) {  // Test for cell to left
+               int nl  = hash[    (jj   *levmult)            -jminsize][max(ii*levmult-1, 0)-iminsize];
+               if ( nl  >= (int)(ncells+noffset) && (border_cell_needed_global[nl -ncells-noffset] & 0x0001) == 0x0001) {
+                  iborder = 0x0001;
+               } else if (min((jj+1)*levmult -1,jmaxcalc-1) < jmaxsize) {
+                  int nlt = hash[min((jj+1)*levmult -1,jmaxcalc-1)-jminsize][max(ii*levmult-1, 0)-iminsize];
+                  if ( nlt >= (int)(ncells+noffset) && (border_cell_needed_global[nlt-ncells-noffset] & 0x0001) == 0x0001) iborder = 0x0001;
+               }
+            }
+            if (min( (ii+1)*levmult, imaxcalc-1) < imaxsize){ // Test for cell to right
+               int nr  = hash[(jj *levmult)-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
+               if ( nr  >= (int)(ncells+noffset) && (border_cell_needed_global[nr -ncells-noffset] & 0x0002) == 0x0002) {
+                  iborder = 0x0002;
+               } else if (min((jj+1)*levmult -1,jmaxcalc-1) < jmaxsize) {
+                  int nrt = hash[min((jj+1)*levmult -1,jmaxcalc-1)-jminsize][min( (ii+1)*levmult,imaxcalc-1)-iminsize];
+                  if ( nrt >= (int)(ncells+noffset) && (border_cell_needed_global[nrt-ncells-noffset] & 0x0002) == 0x0002) iborder = 0x0002;
+               }
+            }
+            if (max(jj*levmult-1, 0)-jminsize >= 0){ // Test for cell to bottom
+               int nb  = hash[(max(jj*levmult-1, 0) )-jminsize][(ii*levmult)-iminsize];
+               if ( nb  >= (int)(ncells+noffset) && (border_cell_needed_global[nb -ncells-noffset] & 0x0004) == 0x0004) {
+                  iborder = 0x0004;
+               } else if (min((ii+1)*levmult -1,imaxcalc-1) < imaxsize) {
+                  int nbr = hash[(max(jj*levmult-1, 0) )-jminsize][min((ii+1)*levmult -1,imaxcalc-1)-iminsize];
+                  if ( nbr >= (int)(ncells+noffset) && (border_cell_needed_global[nbr-ncells-noffset] & 0x0004) == 0x0004) iborder = 0x0004;
+               }
+            }
+            if (min( (jj+1)*levmult, jmaxcalc-1) < jmaxsize){ // Test for cell to top
+               int nt  = hash[(min( (jj+1)*levmult, jmaxcalc-1))-jminsize][(ii*levmult)-iminsize];
+               if ( nt  >= (int)(ncells+noffset) && (border_cell_needed_global[nt -ncells-noffset] & 0x0008) == 0x0008) {
+                  iborder = 0x0008;
+               } else if (min((ii+1)*levmult -1,imaxcalc-1) < imaxsize) {
+                  int ntr = hash[(min( (jj+1)*levmult, jmaxcalc-1))-jminsize][min((ii+1)*levmult -1,imaxcalc)-iminsize];
+                  if ( ntr >= (int)(ncells+noffset) && (border_cell_needed_global[ntr-ncells-noffset] & 0x0008) == 0x0008) iborder = 0x0008;
+               }
+            }
+            if (iborder) border_cell_needed_global[ic] = iborder |= 0x0016;
+         }
+
          // Walk through cell array and set hash to global cell values
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
          for(int ic=0; ic<nbsize_local; ic++){
+            if (border_cell_needed_global[ic] == 0) continue;
             //fprintf(fp,"%d: cell %d i %d j %d\n",mype,ic,border_cell_i_global[ic],border_cell_j_global[ic]);
             int lev = border_cell_level_global[ic];
             int levmult = levtable[levmx-lev];
@@ -3042,15 +3334,107 @@ void Mesh::calc_neighbors_local(void)
             }
          }
 
+         if (DEBUG) {
+            int jmaxglobal = (jmax+1)*levtable[levmx];
+            int imaxglobal = (imax+1)*levtable[levmx];
+            fprintf(fp,"\n                                    HASH numbering for 2 layer\n");
+            for (int jj = jmaxglobal-1; jj>=0; jj--){
+               fprintf(fp,"%2d: %4d:",mype,jj);
+               if (jj >= jminsize && jj < jmaxsize) {
+                  for (int ii = 0; ii<imaxglobal; ii++){
+                     if (ii >= iminsize && ii < imaxsize) {
+                        fprintf(fp,"%5d",hash[jj-jminsize][ii-iminsize]);
+                     } else {
+                        fprintf(fp,"     ");
+                     }
+                  }
+               }
+               fprintf(fp,"\n");
+            }
+            fprintf(fp,"%2d:      ",mype);
+            for (int ii = 0; ii<imaxglobal; ii++){
+               fprintf(fp,"%4d:",ii);
+            }
+            fprintf(fp,"\n");
+         }
+
+         vector<int> indices_needed;
+         inew = 0;
+         for(int ic=0; ic<nbsize_local; ic++){
+            if (border_cell_needed_global[ic] <= 0) continue;
+            //if (border_cell_needed_global[ic] <  0x0016) fprintf(fp,"%d: First  set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+            //if (border_cell_needed_global[ic] >= 0x0016) fprintf(fp,"%d: Second set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+            indices_needed.push_back(border_cell_num_global[ic]);
+
+            border_cell_num_global[inew]    = border_cell_num_global[ic];
+            border_cell_i_global[inew]      = border_cell_i_global[ic];
+            border_cell_j_global[inew]      = border_cell_j_global[ic];
+            border_cell_level_global[inew]  = border_cell_level_global[ic];
+            border_cell_needed_global[inew] = 1;
+
+            inew++;
+         }
+         nbsize_local = inew;
+
          if (TIMING_LEVEL >= 2) {
             cpu_time_hash_setup2 += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
-         // Set neighbors to global cell numbers from hash
-         jmaxcalc = (jmax+1)*levtable[levmx];
-         imaxcalc = (imax+1)*levtable[levmx];
+         int nghost = nbsize_local;
+         ncells_ghost = ncells + nghost;
 
+         celltype.resize(ncells_ghost);
+         i.resize(ncells_ghost);
+         j.resize(ncells_ghost);
+         level.resize(ncells_ghost);
+         nlft.resize(ncells_ghost,-98);
+         nrht.resize(ncells_ghost,-98);
+         nbot.resize(ncells_ghost,-98);
+         ntop.resize(ncells_ghost,-98);
+
+         for(int ic=0; ic<nbsize_local; ic++){
+            i[ncells+ic]     = border_cell_i_global[ic];
+            j[ncells+ic]     = border_cell_j_global[ic];
+            level[ncells+ic] = border_cell_level_global[ic];
+         }
+
+         //fprintf(fp,"After copying i,j, level to ghost cells\n");
+         //print_local();
+
+         for (uint ic=0; ic<ncells_ghost; ic++){
+            ii = i[ic];
+            jj = j[ic];
+            lev = level[ic];
+            levmult = levtable[levmx-lev];
+            //fprintf(fp,"DEBUG neigh ic %d nlft %d ii %d levmult %d iminsize %d icheck %d\n",ic,nlft[ic],ii,levmult,iminsize,(max(  ii   *levmult-1, 0))-iminsize);
+            if (nlft[ic] < 0){
+               if (max(ii*levmult-1, 0)-iminsize >= 0) {  // Test for cell to left
+                  nlft[ic] = hash[(      jj   *levmult               )-jminsize][(max(  ii   *levmult-1, 0         ))-iminsize];
+               }
+            }
+            if (nrht[ic] < 0){
+               if (min( (ii+1)*levmult, imaxcalc-1) < imaxsize){ // Test for cell to right
+                  nrht[ic] = hash[(      jj   *levmult               )-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
+               }
+            }
+            if (nbot[ic] < 0){
+               if (max(jj*levmult-1, 0)-jminsize >= 0){ // Test for cell to bottom
+                  nbot[ic] = hash[(max(  jj   *levmult-1, 0)         )-jminsize][(      ii   *levmult               )-iminsize];
+               }
+            }
+            if (ntop[ic] < 0) {
+               if (min( (jj+1)*levmult, jmaxcalc-1) < jmaxsize){ // Test for cell to top
+                  ntop[ic] = hash[(min( (jj+1)*levmult,   jmaxcalc-1))-jminsize][(      ii   *levmult               )-iminsize];
+               }
+            }
+         }
+
+         //fprintf(fp,"After setting neighbors through ghost cells\n");
+         //print_local();
+
+/*
+         // Set neighbors to global cell numbers from hash
          for (uint ic=0; ic<ncells; ic++){
             ii = i[ic];
             jj = j[ic];
@@ -3069,7 +3453,7 @@ void Mesh::calc_neighbors_local(void)
                //printf("DEBUG line %d -- ic %d celltype %d nrht %d jj %d ii %d\n",__LINE__,ic,celltype[ic],nrht[ic],(jj+1)*levmult-jminsize,(min( (ii+1)*levmult,   imaxcalc-1))-iminsize);
             }
             if (nbot[ic] == -1) nbot[ic] = hash[(max(  jj   *levmult-1, 0)         )-jminsize][(      ii   *levmult               )-iminsize];
-            if (celltype[ic] == LEFT_BOUNDARY && ntop[ic] == -1){
+            if (celltype[ic] == LEFT_BOUNDARY && nbot[ic] == -1){
                if (nbot[ic] == -1) nbot[ic] = hash[(max(  jj   *levmult-1, 0)         )-jminsize][(      ii   *levmult+1             )-iminsize];
             }
             if (ntop[ic] == -1) ntop[ic] = hash[(min( (jj+1)*levmult,   jmaxcalc-1))-jminsize][(      ii   *levmult               )-iminsize];
@@ -3078,9 +3462,10 @@ void Mesh::calc_neighbors_local(void)
             }
             //fprintf(fp,"%d:Neighbors after ic %d nlft %d nrht %d nbot %d ntop %d\n",mype,ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
          }
+*/
 
          // Scan for corner boundary cells
-         for (uint ic=0; ic<ncells; ic++){
+         for (uint ic=ncells; ic<ncells_ghost; ic++){
             if (nlft[ic] == -99){
                lev = level[ic];
                levmult = levtable[levmx-lev];
@@ -3111,530 +3496,16 @@ void Mesh::calc_neighbors_local(void)
             }
          }
 
-         if (TIMING_LEVEL >= 2) {
-            cpu_time_hash_query2 += cpu_timer_stop(tstart_lev2);
-            cpu_timer_start(&tstart_lev2);
-         }
+         //fprintf(fp,"After setting corner neighbors\n");
+         //print_local();
 
-         if (DEBUG) {
-            int jmaxglobal = (jmax+1)*levtable[levmx];
-            int imaxglobal = (imax+1)*levtable[levmx];
-            fprintf(fp,"\n                                    HASH 0 numbering\n");
-            for (int jj = jmaxglobal-1; jj>=0; jj--){
-               fprintf(fp,"%2d: %4d:",mype,jj);
-               if (jj >= jminsize && jj < jmaxsize) {
-                  for (int ii = 0; ii<imaxglobal; ii++){
-                     if (ii >= iminsize && ii < imaxsize) {
-                        fprintf(fp,"%5d",hash[jj-jminsize][ii-iminsize]);
-                     } else {
-                        fprintf(fp,"     ");
-                     }
-                  }
-               }
-               fprintf(fp,"\n");
-            }
-            fprintf(fp,"%2d:      ",mype);
-            for (int ii = 0; ii<imaxglobal; ii++){
-               fprintf(fp,"%4d:",ii);
-            }
-            fprintf(fp,"\n");
-
-            fprintf(fp,"\n                                    nlft numbering\n");
-            for (int jj = jmaxglobal-1; jj>=0; jj--){
-               fprintf(fp,"%2d: %4d:",mype,jj);
-               if (jj >= jminsize && jj < jmaxsize) {
-                  for (int ii = 0; ii<imaxglobal; ii++){
-                     int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                     if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
-                           fprintf(fp,"%5d",nlft[hashval]);
-                     } else {
-                           fprintf(fp,"     ");
-                     }
-                  }
-               }
-               fprintf(fp,"\n");
-            }
-            fprintf(fp,"%2d:      ",mype);
-            for (int ii = 0; ii<imaxglobal; ii++){
-               fprintf(fp,"%4d:",ii);
-            }
-            fprintf(fp,"\n");
-      
-            fprintf(fp,"\n                                    nrht numbering\n");
-            for (int jj = jmaxglobal-1; jj>=0; jj--){
-               fprintf(fp,"%2d: %4d:",mype,jj);
-               if (jj >= jminsize && jj < jmaxsize) {
-                  for (int ii = 0; ii<imaxglobal; ii++){
-                     int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                     if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
-                        fprintf(fp,"%5d",nrht[hashval]);
-                     } else {
-                        fprintf(fp,"     ");
-                     }
-                  }
-               }
-               fprintf(fp,"\n");
-            }
-            fprintf(fp,"%2d:      ",mype);
-            for (int ii = 0; ii<imaxglobal; ii++){
-               fprintf(fp,"%4d:",ii);
-            }
-            fprintf(fp,"\n");
-
-            fprintf(fp,"\n                                    nbot numbering\n");
-            for (int jj = jmaxglobal-1; jj>=0; jj--){
-               fprintf(fp,"%2d: %4d:",mype,jj);
-               if (jj >= jminsize && jj < jmaxsize) {
-                  for (int ii = 0; ii<imaxglobal; ii++){
-                     int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                     if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
-                        fprintf(fp,"%5d",nbot[hashval]);
-                     } else {
-                        fprintf(fp,"     ");
-                     }
-                  }
-               }
-               fprintf(fp,"\n");
-            }
-            fprintf(fp,"%2d:      ",mype);
-            for (int ii = 0; ii<imaxglobal; ii++){
-               fprintf(fp,"%4d:",ii);
-            }
-            fprintf(fp,"\n");
-
-            fprintf(fp,"\n                                    ntop numbering\n");
-            for (int jj = jmaxglobal-1; jj>=0; jj--){
-               fprintf(fp,"%2d: %4d:",mype,jj);
-               if (jj >= jminsize && jj < jmaxsize) {
-                  for (int ii = 0; ii<imaxglobal; ii++){
-                     int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                     if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
-                        fprintf(fp,"%5d",ntop[hashval]);
-                     } else {
-                        fprintf(fp,"     ");
-                     }
-                  }
-               }
-               fprintf(fp,"\n");
-            }
-            fprintf(fp,"%2d:      ",mype);
-            for (int ii = 0; ii<imaxglobal; ii++){
-               fprintf(fp,"%4d:",ii);
-            }
-            fprintf(fp,"\n");
-      
-         }
-
-         if (DEBUG) print_local();
-
-         vector<int> offtile_list;
-
-         int start_idx = noffset;
-         int end_idx   = noffset+ncells;
-
-         for (uint ic = 0; ic < ncells; ic++){
-            ii = i[ic];
-            jj = j[ic];
-            lev = level[ic];
-
-            int nl = nlft[ic];
-
-            if (nl < start_idx || nl >= end_idx) {
-               offtile_list.push_back(nl);
-               int ig;
-               for (ig = 0; ig < nbsize_local; ig++) {
-                  if (border_cell_num_global[ig] == nl) break;
-               }
-               if (ig == nbsize_local) {
-                  printf("%d: Line %d Error with global cell match %d ic %d\n",mype, __LINE__, nl, ic+noffset);
-#ifdef HAVE_MPI
-                  L7_Terminate();
-#endif
-                  exit(-1);
-               }
-               // Get the left neighbor information
-               int nlev = border_cell_level_global[ig];
-               int levmult      = levtable[levmx-nlev];
-               int levmultminus = levtable[max(levmx-nlev-1,0)];
-               int iii = border_cell_i_global[ig];
-               int jjj = border_cell_j_global[ig];
-
-               if (nlev == levmx) {
-                  // Multiplying by levmult get the bottom left cell of the left neighbor. Subtract
-                  // one from that to get the bottom right cell in the left left neighbor
-                  int nll = hash[(jjj*levmult)-jminsize][max((iii-1)*levmult, 0)-iminsize];
-                  if (nll != nl && nll > 0 && (nll < start_idx || nll >= end_idx) ) 
-                     offtile_list.push_back(nll);
-               } else {
-                  int nll = hash[jjj*levmult-jminsize][max((iii*2-1)*levmultminus, 0)-iminsize];
-                  if (nll != nl && nll > 0 && (nll < start_idx || nll >= end_idx) ) 
-                     offtile_list.push_back(nll);
-
-                  int ntll = hash[(jjj*2+1)*levmultminus-jminsize][max((iii*2-1)*levmultminus, 0)-iminsize];
-                  if (ntll != nll && ntll > 0 && (ntll < start_idx || ntll >= end_idx) )
-                     offtile_list.push_back(ntll);
-               }
-            }
-
-            if (lev < levmx) {
-               int levmultminus = levtable[max(levmx-lev-1,0)];
-               int ntl = hash[min((jj*2+1)*levmultminus,jmaxcalc-1)-jminsize][max((ii*2-1)*levmultminus,0)-iminsize];
-               if (ntl != nl && ntl > 0 && (ntl < start_idx || ntl >= end_idx) ) {
-                  offtile_list.push_back(ntl);
-
-                  int ig;
-                  for (ig = 0; ig < nbsize_local; ig++) {
-                     if (border_cell_num_global[ig] == ntl) break;
-                  }
-                  if (ig == nbsize_local) {
-                     printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, ntl);
-#ifdef HAVE_MPI
-                     //L7_Terminate();
-#endif
-                     //exit(-1);
-                  }
-                  int nlev = border_cell_level_global[ig];
-                  int iii = border_cell_i_global[ig];
-                  int jjj = border_cell_j_global[ig];
-                  int levmult      = levtable[levmx-nlev];
-                  levmultminus = levtable[max(levmx-nlev-1,0)];
-
-                  if (nlev == levmx) {
-                     int nltl = hash[jjj*levmult-jminsize][max((iii-1)*levmult-iminsize,0)];
-                     if (nltl != ntl && nltl > 0 && (nltl < start_idx || nltl >= end_idx) )
-                        offtile_list.push_back(nltl);
-                  } else {
-                     // And we need both cells here
-                     int nltl = hash[(jjj*2)*levmultminus-jminsize][max((iii*2-1)*levmultminus-iminsize,0)];
-                     if (nltl != ntl && nltl > 0 && (nltl < start_idx || nltl >= end_idx) )
-                        offtile_list.push_back(nltl);
-                     int ntltl = hash[min((jjj*2+1)*levmultminus,jmaxcalc-1)-jminsize][max((iii*2-1)*levmultminus,0)-iminsize];
-                     if (ntltl != nltl && ntltl > 0 && (ntltl < start_idx || ntltl >= end_idx))
-                        offtile_list.push_back(ntltl);
-                  }
-
-               }
-            }
-
-            int nr = nrht[ic];
-
-            if (nr < start_idx || nr >= end_idx) {
-               offtile_list.push_back(nr);
-               int ig;
-               for (ig = 0; ig < nbsize_local; ig++) {
-                  if (border_cell_num_global[ig] == nr) break;
-               }
-               if (ig == nbsize_local) {
-                  printf("%d: Line %d Error with global cell match %d for cell %d\n",mype, __LINE__, nr, ic+noffset);
-#ifdef HAVE_MPI
-                  //L7_Terminate();
-#endif
-                  //exit(-1);
-               }
-               int nlev = border_cell_level_global[ig];
-               int levmult      = levtable[levmx-nlev];
-               int levmultminus = levtable[max(levmx-nlev-1,0)];
-               int iii = border_cell_i_global[ig];
-               int jjj = border_cell_j_global[ig];
-
-               if (nlev == levmx) {
-                  // Multiplying by levmult gets the bottom left cell of the right neighbor. Add
-                  // one to that to get the bottom left cell of the right right neighbor
-                  int nrr = hash[(jjj*levmult)-jminsize][min((iii+1)*levmult,imaxcalc-1)-iminsize];
-                  if (nrr != nr && nrr > 0 && (nrr < start_idx || nrr >= end_idx) )
-                     offtile_list.push_back(nrr);
-               } else {
-                  int nrr = hash[(jjj*levmult)-jminsize][(min((iii+1)*levmult,imaxcalc-1))-iminsize];
-                  if (nrr != nr && nrr > 0 && (nrr < start_idx || nrr >= end_idx) )
-                     offtile_list.push_back(nrr);
-
-                  int ntrr = hash[min((jjj*2+1)*levmultminus,jmaxcalc-1)-jminsize][min((iii+1)*levmult,imaxcalc-1)-iminsize];
-                  if (ntrr != nrr && ntrr > 0 && (ntrr < start_idx || ntrr >= end_idx))
-                     offtile_list.push_back(ntrr);
-               }
-
-            }
-
-            if (lev < levmx) {
-               int levmultminus = levtable[max(levmx-lev-1,0)];
-               int ntr = hash[min((jj*2+1)*levmultminus,jmaxcalc-1)-jminsize][min((ii+1)*2*levmultminus,imaxcalc-1)-iminsize];
-               if (ntr != nr && ntr > 0 && (ntr < start_idx || ntr >= end_idx) ) {
-                  offtile_list.push_back(ntr);
-
-                  int ig;
-                  for (ig = 0; ig < nbsize_local; ig++) {
-                     if (border_cell_num_global[ig] == ntr) break;
-                  }
-                  if (ig == nbsize_local) {
-                     printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, ntr);
-#ifdef HAVE_MPI
-                     //L7_Terminate();
-#endif
-                     //exit(-1);
-                  }
-                  int nlev = border_cell_level_global[ig];
-                  int iii = border_cell_i_global[ig];
-                  int jjj = border_cell_j_global[ig];
-                  int levmult      = levtable[levmx-nlev];
-                  levmultminus = levtable[max(levmx-nlev-1,0)];
-
-                  // Multiplying by levmult gets the bottom left cell of the top neighbor. Add
-                  // one to that to get the bottom left cell of the top top neighbor
-
-                  if (nlev == levmx) {
-                     int nrtr = hash[jjj*levmult-jminsize][min((iii+1)*levmult-iminsize,imaxcalc-1)];
-                     if (nrtr != ntr && nrtr > 0 && (nrtr < start_idx || nrtr >= end_idx) )
-                        offtile_list.push_back(nrtr);
-                  } else {
-                     // And we need both cells here
-                     int nrtr = hash[(jjj*2)*levmultminus-jminsize][min((iii+1)*2*levmultminus-iminsize,imaxcalc-1)];
-                     if (nrtr != ntr && nrtr > 0 && (nrtr < start_idx || nrtr >= end_idx) )
-                        offtile_list.push_back(nrtr);
-                     int ntrtr = hash[min((jjj*2+1)*levmultminus,jmaxcalc-1)-jminsize][min((iii+1)*2*levmultminus,imaxcalc-1)-iminsize];
-                     if (ntrtr != nrtr && ntrtr > 0 && (ntrtr < start_idx || ntrtr >= end_idx))
-                        offtile_list.push_back(ntrtr);
-                  }
-               }
-            }
-
-
-            int nb = nbot[ic];
-
-            if (nb < start_idx || nb >= end_idx) {
-               offtile_list.push_back(nb);
-               int ig;
-               for (ig = 0; ig < nbsize_local; ig++) {
-                  if (border_cell_num_global[ig] == nb) break;
-               }
-               if (ig == nbsize_local) {
-                  printf("%d: Line %d Error with bottom global cell match %d for cell %d\n",mype, __LINE__, nb, ic+noffset);
-#ifdef HAVE_MPI
-                  //L7_Terminate();
-#endif
-                  //exit(-1);
-               }
-               // Get the bottom neighbor information
-               int nlev = border_cell_level_global[ig];
-               int levmult      = levtable[levmx-nlev];
-               int levmultminus = levtable[max(levmx-nlev-1,0)];
-               int iii = border_cell_i_global[ig];
-               int jjj = border_cell_j_global[ig];
-
-               if (nlev == levmx) {
-                  // Multiplying by levmult gets the bottom left cell of the bottom neighbor. Subtract
-                  // one from that to get the top left cell in the bottom bottom neighbor
-                  int nbb = hash[(max((jjj-1)*levmult, 0))-jminsize][(iii*levmult)-iminsize];
-                  if (nbb != nb && nbb > 0 && (nbb < start_idx || nbb >= end_idx) )
-                     offtile_list.push_back(nbb);
-               } else {
-                  int nbb = hash[max((jjj*2-1)*levmultminus, 0)-jminsize][iii*levmult-iminsize];
-                  if (nbb != nb && nbb > 0 && (nbb < start_idx || nbb >= end_idx) )
-                     offtile_list.push_back(nbb);
-                  int nrbb = hash[max((jjj*2-1)*levmultminus, 0)-jminsize][(iii*2+1)*levmultminus-iminsize];
-                  if (nrbb != nbb && nrbb > 0 && (nrbb < start_idx || nrbb >= end_idx) )
-                     offtile_list.push_back(nrbb);
-               }
-
-            }
-
-            if (lev < levmx) {
-               int levmultminus = levtable[max(levmx-lev-1,0)];
-               int nrb = hash[max((jj*2-1)*levmultminus,0)-jminsize][min((ii*2+1)*levmultminus,imaxcalc-1)-iminsize];
-               if (nrb != nb && nrb > 0 && (nrb < start_idx || nrb >= end_idx) ) {
-                  offtile_list.push_back(nrb);
-
-                  int ig;
-                  for (ig = 0; ig < nbsize_local; ig++) {
-                     if (border_cell_num_global[ig] == nrb) break;
-                  }
-                  if (ig == nbsize_local) {
-                     printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nrb);
-#ifdef HAVE_MPI
-                     //L7_Terminate();
-#endif
-                     //exit(-1);
-                  }
-                  int nlev = border_cell_level_global[ig];
-                  int iii = border_cell_i_global[ig];
-                  int jjj = border_cell_j_global[ig];
-                  int levmult      = levtable[levmx-nlev];
-                  levmultminus = levtable[max(levmx-nlev-1,0)];
-
-                  if (nlev == levmx) {
-                     int nbrb = hash[max((jjj-1)*levmult,0)-jminsize][iii*levmult-iminsize];
-                     if (nbrb != nrb && nbrb > 0 && (nbrb < start_idx || nbrb >= end_idx) )
-                        offtile_list.push_back(nbrb);
-                  } else {
-                     // And we need both cells here
-                     int nbrb = hash[max((jjj*2-1)*levmultminus,0)-jminsize][(iii*2)*levmultminus-iminsize];
-                     if (nbrb != nrb && nbrb > 0 && (nbrb < start_idx || nbrb >= end_idx) )
-                        offtile_list.push_back(nbrb);
-                     int nrbrb = hash[max((jjj*2-1)*levmultminus,0)-jminsize][min((iii*2+1)*levmultminus,imaxcalc-1)-iminsize];
-                     if (nrbrb != nbrb && nrbrb > 0 && (nrbrb < start_idx || nrbrb >= end_idx))
-                        offtile_list.push_back(nrbrb);
-                  }
-
-               }
-            }
-
-            int nt = ntop[ic];
-
-            if (nt < start_idx || nt >= end_idx) {
-               offtile_list.push_back(nt);
-               int ig;
-               for (ig = 0; ig < nbsize_local; ig++) {
-                  if (border_cell_num_global[ig] == nt) break;
-               }
-               if (ig == nbsize_local) {
-                  printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nt);
-#ifdef HAVE_MPI
-                  //L7_Terminate();
-#endif
-                  //exit(-1);
-               }
-               int nlev = border_cell_level_global[ig];
-               int iii = border_cell_i_global[ig];
-               int jjj = border_cell_j_global[ig];
-               int levmult      = levtable[levmx-nlev];
-               int levmultminus = levtable[max(levmx-nlev-1,0)];
-
-               if (nlev == levmx) {
-                  // Multiplying by levmult gets the bottom left cell of the top neighbor. Add
-                  // one to that to get the bottom left cell of the top top neighbor
-                  int ntt = hash[(min((jjj+1)*levmult,jmaxcalc-1))-jminsize][(iii*levmult)-iminsize];
-                  if (ntt != nt && ntt > 0 && (ntt < start_idx || ntt >= end_idx) )
-                     offtile_list.push_back(ntt);
-               } else {
-                  int ntt = hash[(min((jjj+1)*levmult,jmaxcalc-1))-jminsize][(iii*levmult)-iminsize];
-                  if (ntt != nt && ntt > 0 && (ntt < start_idx || ntt >= end_idx) )
-                     offtile_list.push_back(ntt);
-
-                  int nrtt = hash[min((jjj+1)*levmult,jmaxcalc-1)-jminsize][min((iii*2+1)*levmultminus,imaxcalc-1)-iminsize];
-                  if (nrtt != ntt && nrtt > 0 && (nrtt < start_idx || nrtt >= end_idx))
-                     offtile_list.push_back(nrtt);
-               }
-            }
-
-            if (lev < levmx) {
-               int levmultminus = levtable[max(levmx-lev-1,0)];
-               int nrt = hash[min((jj+1)*2*levmultminus,jmaxcalc-1)-jminsize][min((ii*2+1)*levmultminus,imaxcalc-1)-iminsize];
-               if (nrt != nt && nrt > 0 && (nrt < start_idx || nrt >= end_idx) ) {
-                  offtile_list.push_back(nrt);
-
-                  int ig;
-                  for (ig = 0; ig < nbsize_local; ig++) {
-                     if (border_cell_num_global[ig] == nrt) break;
-                  }
-                  if (ig == nbsize_local) {
-                     printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nrt);
-#ifdef HAVE_MPI
-                     //L7_Terminate();
-#endif
-                     //exit(-1);
-                  }
-                  int nlev = border_cell_level_global[ig];
-                  int iii = border_cell_i_global[ig];
-                  int jjj = border_cell_j_global[ig];
-                  int levmult      = levtable[levmx-nlev];
-                  levmultminus = levtable[max(levmx-nlev-1,0)];
-
-                  // Multiplying by levmult gets the bottom left cell of the top neighbor. Add
-                  // one to that to get the bottom left cell of the top top neighbor
-
-                  if (nlev == levmx) {
-                     int ntrt = hash[min((jjj+1)*levmult,jmaxcalc-1)-jminsize][iii*levmult-iminsize];
-                     if (ntrt != nrt && ntrt > 0 && (ntrt < start_idx || ntrt >= end_idx) )
-                        offtile_list.push_back(ntrt);
-                  } else {
-                     // And we need both cells here
-                     int ntrt = hash[min((jjj+1)*2*levmultminus,jmaxcalc-1)-jminsize][(iii*2)*levmultminus-iminsize];
-                     if (ntrt != nrt && ntrt > 0 && (ntrt < start_idx || ntrt >= end_idx) )
-                        offtile_list.push_back(ntrt);
-                     int nrtrt = hash[min((jjj+1)*2*levmultminus,jmaxcalc-1)-jminsize][min((iii*2+1)*levmultminus,imaxcalc-1)-iminsize];
-                     if (nrtrt != ntrt && nrtrt > 0 && (nrtrt < start_idx || nrtrt >= end_idx))
-                        offtile_list.push_back(nrtrt);
-                  }
-               }
-            }
-         } // ncells loop
-
-         sort(offtile_list.begin(), offtile_list.end());
-         p_end = unique(offtile_list.begin(), offtile_list.end());
-
-         vector<int> indices_needed;
-
-         for (vector<int>::iterator p=offtile_list.begin(); p < p_end; p++){
-            indices_needed.push_back(*p);
-         }
-
-         if (TIMING_LEVEL >= 2) {
-            cpu_time_offtile_list += cpu_timer_stop(tstart_lev2);
-            cpu_timer_start(&tstart_lev2);
-         }
-
-         int nghost = indices_needed.size();
-         ncells_ghost = ncells + nghost;
-
-         offtile_ratio_local = (offtile_ratio_local*(double)offtile_local_count) + ((double)nghost / (double)ncells);
-         offtile_local_count++;
-         offtile_ratio_local /= offtile_local_count;
-
-         //printf("%d ncells size is %ld ncells_ghost size is %ld nghost %d\n",mype,ncells,ncells_ghost,nghost);
-         //fprintf(fp,"%d ncells_ghost size is %ld nghost %d\n",mype,ncells_ghost,nghost);
-
-#ifdef HAVE_MPI
-         if (cell_handle) L7_Free(&cell_handle);
-#endif
-         cell_handle=0;
-         //for (int ig = 0; ig<nghost; ig++){
-         //   fprintf(fp,"%d: indices_needed[%d]=%d\n",mype,ig,indices_needed[ig]);
-         //}
-#ifdef HAVE_MPI
-         L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
-#endif
-
-
-         if (TIMING_LEVEL >= 2) {
-            cpu_time_setup_comm += cpu_timer_stop(tstart_lev2);
-            cpu_timer_start(&tstart_lev2);
-         }
-
-         celltype.resize(ncells_ghost);
-         i.resize(ncells_ghost);
-         j.resize(ncells_ghost);
-         level.resize(ncells_ghost);
-         nlft.resize(ncells_ghost,-98);
-         nrht.resize(ncells_ghost,-98);
-         nbot.resize(ncells_ghost,-98);
-         ntop.resize(ncells_ghost,-98);
-
-#ifdef HAVE_MPI
-         L7_Update(&celltype[0], L7_INT, cell_handle);
-         L7_Update(&i[0],        L7_INT, cell_handle);
-         L7_Update(&j[0],        L7_INT, cell_handle);
-         L7_Update(&level[0],    L7_INT, cell_handle);
-#endif
-         //for (int ic=0; ic<ncells; ic++){
-         //   fprintf(fp,"%d: before update ic %d        i %d j %d lev %d nlft %d nrht %d nbot %d ntop %d\n",
-         //       mype,ic,i[ic],j[ic],level[ic],nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
-         //}
-#ifdef HAVE_MPI
-         L7_Update(&nlft[0], L7_INT, cell_handle);
-         L7_Update(&nrht[0], L7_INT, cell_handle);
-         L7_Update(&nbot[0], L7_INT, cell_handle);
-         L7_Update(&ntop[0], L7_INT, cell_handle);
-#endif
-         //for (int ic=0; ic<ncells_ghost; ic++){
-         //   fprintf(fp,"%d: 1655 nlft for %5d is %5d\n",mype,ic,nlft[ic]);
-         //}
-
+         // Adjusting neighbors to local indices
          for (uint ic=0; ic<ncells_ghost; ic++){
+            //fprintf(fp,"%d: ic %d nlft %d noffset %d ncells %ld\n",mype,ic,nlft[ic],noffset,ncells);
             if (nlft[ic] >= noffset && nlft[ic] < (int)(noffset+ncells)) {
                nlft[ic] -= noffset;
-               //fprintf(fp,"%d: 1: ic %d nlft is %d\n",mype,ic,nlft[ic]);
             } else {
                for (int ig=0; ig<nghost; ig++){
-                  //if (nlft[ic]==indices_needed[ig]) {nlft[ic] = ig+ncells; fprintf(fp,"%d: 2: ic %d nlft is %d\n",mype,ic,nlft[ic]); break;}
                   if (nlft[ic]==indices_needed[ig]) {nlft[ic] = ig+ncells; break;}
                }
             }
@@ -3661,10 +3532,48 @@ void Mesh::calc_neighbors_local(void)
             }
          }
 
+         //fprintf(fp,"After adjusting neighbors to local indices\n");
+         //print_local();
+         
+         if (TIMING_LEVEL >= 2) {
+            cpu_time_hash_query2 += cpu_timer_stop(tstart_lev2);
+            cpu_timer_start(&tstart_lev2);
+         }
+
+         offtile_ratio_local = (offtile_ratio_local*(double)offtile_local_count) + ((double)nghost / (double)ncells);
+         offtile_local_count++;
+         offtile_ratio_local /= offtile_local_count;
+
+         //printf("%d ncells size is %ld ncells_ghost size is %ld nghost %d\n",mype,ncells,ncells_ghost,nghost);
+         //fprintf(fp,"%d ncells_ghost size is %ld nghost %d\n",mype,ncells_ghost,nghost);
+
+#ifdef HAVE_MPI
+         if (cell_handle) L7_Free(&cell_handle);
+#endif
+         cell_handle=0;
+         //fprintf(fp,"%d: SETUP ncells %ld noffset %d nghost %d\n",mype,ncells,noffset,nghost);
+         //for (int ig = 0; ig<nghost; ig++){
+         //   fprintf(fp,"%d: indices needed ic %d index %d\n",mype,ig,indices_needed[ig]);
+         //}
+#ifdef HAVE_MPI
+         L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
+#endif
+
+         if (TIMING_LEVEL >= 2) {
+            cpu_time_setup_comm += cpu_timer_stop(tstart_lev2);
+            cpu_timer_start(&tstart_lev2);
+         }
+
+         celltype.resize(ncells_ghost);
+
+#ifdef HAVE_MPI
+         L7_Update(&celltype[0], L7_INT, cell_handle);
+#endif
+
          if (DEBUG) {
             int jmaxglobal = (jmax+1)*levtable[levmx];
             int imaxglobal = (imax+1)*levtable[levmx];
-            fprintf(fp,"\n                                    HASH 1 numbering\n");
+            fprintf(fp,"\n                                    HASH numbering\n");
             for (int jj = jmaxglobal-1; jj>=0; jj--){
                fprintf(fp,"%2d: %4d:",mype,jj);
                if (jj >= jminsize && jj < jmaxsize) {
@@ -3769,6 +3678,7 @@ void Mesh::calc_neighbors_local(void)
             fprintf(fp,"\n");
       
          }
+         //print_local();
 
          if (DEBUG) {
             for (uint ic=0; ic<ncells; ic++){
@@ -3786,6 +3696,8 @@ void Mesh::calc_neighbors_local(void)
       genmatrixfree((void **)hash);
 
       if (TIMING_LEVEL >= 2) cpu_time_do_ghost_comm += cpu_timer_stop(tstart_lev2);
+
+      fflush(fp);
 
    } else if (calc_neighbor_type == KDTREE) {
       struct timeval tstart_lev2;
@@ -4285,91 +4197,380 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
       //}
 
+      // Filter out only the data within our hash array boundaries
       int inew=0;
+      vector<int> border_cell_needed_global(nbsize_global);
       for (int ic = 0; ic < nbsize_global; ic++) {
          int lev = border_cell_level_global[ic];
          int levmult = levtable[levmx-lev];
-         //fprintf(fp,"%d: DEBUG cell %d i %d j %d\n",mype,ic,border_cell_i_global[ic],border_cell_j_global[ic]);
-         if (border_cell_j_global[ic]*levmult < jminsize || border_cell_j_global[ic]*levmult >= jmaxsize) continue;
-         if (border_cell_i_global[ic]*levmult < iminsize || border_cell_i_global[ic]*levmult >= imaxsize) continue;
-         if (border_cell_num_global[ic] >= noffset && border_cell_num_global[ic] < (int)(noffset+ncells)) continue;
-         //fprintf(fp,"%d: ic is %d inew is %d\n",mype,ic,inew);
-         if (inew != ic){
-            border_cell_num_global[inew] = border_cell_num_global[ic];
-            border_cell_i_global[inew] = border_cell_i_global[ic];
-            border_cell_j_global[inew] = border_cell_j_global[ic];
-            border_cell_level_global[inew] = border_cell_level_global[ic];
-         }
+
+         if (border_cell_j_global[ic]*levmult < jminsize || border_cell_j_global[ic]*levmult >= jmaxsize) continue;  // Outside vertical boundaries
+         if (border_cell_i_global[ic]*levmult < iminsize || border_cell_i_global[ic]*levmult >= imaxsize) continue;  // Outside horizontal boundaries
+         if (border_cell_num_global[ic] >= (int)noffset && border_cell_num_global[ic] < (int)(noffset+ncells)) continue; // Skip my own cells
+
+         border_cell_num_global[inew]    = border_cell_num_global[ic];
+         border_cell_i_global[inew]      = border_cell_i_global[ic];
+         border_cell_j_global[inew]      = border_cell_j_global[ic];
+         border_cell_level_global[inew]  = border_cell_level_global[ic];
+         border_cell_needed_global[inew] = 0;
+
          inew++;
       }
       nbsize_local = inew;
 
-      //fprintf(fp,"%d: nbsize_local is %d\n",mype,nbsize_local);
+      size_t nbsize = nbsize_local;
+
       //for (int ic = 0; ic < nbsize_local; ic++) {
       //   fprintf(fp,"%d: Local Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
       //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
       //}
 
+      cl_mem dev_border_cell_num    = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_num"),    &nbsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_i      = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_i"),      &nbsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_j      = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_j"),      &nbsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_level  = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_level"),  &nbsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_needed = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_needed"), &nbsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_num,    CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_num_global[0], NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_i,      CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_i_global[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_j,      CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_j_global[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_level,  CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_level_global[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
+
+      if (DEBUG) {
+         vector<int> hash_tmp(hashsize);
+         ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
+
+         int jmaxglobal = (jmax+1)*levtable[levmx];
+         int imaxglobal = (imax+1)*levtable[levmx];
+         fprintf(fp,"\n                                    HASH numbering before layer 1\n");
+         for (int jj = jmaxglobal-1; jj>=0; jj--){
+            fprintf(fp,"%2d: %4d:",mype,jj);
+            if (jj >= jminsize && jj < jmaxsize) {
+               for (int ii = 0; ii<imaxglobal; ii++){
+                  if (ii >= iminsize && ii < imaxsize) {
+                     fprintf(fp,"%5d",hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]);
+                  } else {
+                     fprintf(fp,"     ");
+                  }
+               }
+            }
+            fprintf(fp,"\n");
+         }
+         fprintf(fp,"%2d:      ",mype);
+         for (int ii = 0; ii<imaxglobal; ii++){
+            fprintf(fp,"%4d:",ii);
+         }
+         fprintf(fp,"\n");
+      }
+
+      size_t nb_local_work_size = 128;
+      size_t nb_global_work_size = ((nbsize_local + local_work_size - 1) /local_work_size) * local_work_size;
+
+      ezcl_set_kernel_arg(kernel_calc_layer1,  0,  sizeof(cl_int), (void *)&nbsize_local);
+      ezcl_set_kernel_arg(kernel_calc_layer1,  1,  sizeof(cl_int), (void *)&levmx);
+      ezcl_set_kernel_arg(kernel_calc_layer1,  2,  sizeof(cl_int), (void *)&imax);
+      ezcl_set_kernel_arg(kernel_calc_layer1,  3,  sizeof(cl_int), (void *)&jmax);
+      ezcl_set_kernel_arg(kernel_calc_layer1,  4,  sizeof(cl_mem), (void *)&dev_sizes);
+      ezcl_set_kernel_arg(kernel_calc_layer1,  5,  sizeof(cl_mem), (void *)&dev_levtable);
+      ezcl_set_kernel_arg(kernel_calc_layer1,  6,  sizeof(cl_mem), (void *)&dev_border_cell_i);
+      ezcl_set_kernel_arg(kernel_calc_layer1,  7,  sizeof(cl_mem), (void *)&dev_border_cell_j);
+      ezcl_set_kernel_arg(kernel_calc_layer1,  8,  sizeof(cl_mem), (void *)&dev_border_cell_level);
+      ezcl_set_kernel_arg(kernel_calc_layer1,  9,  sizeof(cl_mem), (void *)&dev_border_cell_needed);
+      ezcl_set_kernel_arg(kernel_calc_layer1, 10,  sizeof(cl_mem), (void *)&dev_hash);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer1, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
+
+      if (DEBUG){
+         ezcl_enqueue_read_buffer(command_queue, dev_border_cell_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
+
+         for(int ic=0; ic<nbsize_local; ic++){
+            if (border_cell_needed_global[ic] == 0) continue;
+            fprintf(fp,"%d: First set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+         }
+      }
+
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  0,  sizeof(cl_int), (void *)&nbsize_local);
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  1,  sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  2,  sizeof(cl_int), (void *)&noffset);
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  3,  sizeof(cl_int), (void *)&levmx);
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  4,  sizeof(cl_mem), (void *)&dev_sizes);
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  5,  sizeof(cl_mem), (void *)&dev_levtable);
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  6,  sizeof(cl_mem), (void *)&dev_border_cell_i);
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  7,  sizeof(cl_mem), (void *)&dev_border_cell_j);
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  8,  sizeof(cl_mem), (void *)&dev_border_cell_level);
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  9,  sizeof(cl_mem), (void *)&dev_border_cell_needed);
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash, 10,  sizeof(cl_mem), (void *)&dev_hash);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer1_sethash, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
+
+      if (DEBUG) {
+         vector<int> hash_tmp(hashsize);
+         ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
+ 
+         int jmaxglobal = (jmax+1)*levtable[levmx];
+         int imaxglobal = (imax+1)*levtable[levmx];
+         fprintf(fp,"\n                                    HASH numbering for 1 layer\n");
+         for (int jj = jmaxglobal-1; jj>=0; jj--){
+            fprintf(fp,"%2d: %4d:",mype,jj);
+            if (jj >= jminsize && jj < jmaxsize) {
+               for (int ii = 0; ii<imaxglobal; ii++){
+                  if (ii >= iminsize && ii < imaxsize) {
+                     fprintf(fp,"%5d",hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]);
+                  } else {
+                     fprintf(fp,"     ");
+                  }
+               }
+            }
+            fprintf(fp,"\n");
+         }
+         fprintf(fp,"%2d:      ",mype);
+         for (int ii = 0; ii<imaxglobal; ii++){
+            fprintf(fp,"%4d:",ii);
+         }
+         fprintf(fp,"\n");
+      }
+
+      cl_mem dev_border_cell_needed_out = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_needed_out"), &nbsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+
+      ezcl_set_kernel_arg(kernel_calc_layer2,  0,  sizeof(cl_int), (void *)&nbsize_local);
+      ezcl_set_kernel_arg(kernel_calc_layer2,  1,  sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_calc_layer2,  2,  sizeof(cl_int), (void *)&noffset);
+      ezcl_set_kernel_arg(kernel_calc_layer2,  3,  sizeof(cl_int), (void *)&levmx);
+      ezcl_set_kernel_arg(kernel_calc_layer2,  4,  sizeof(cl_int), (void *)&imax);
+      ezcl_set_kernel_arg(kernel_calc_layer2,  5,  sizeof(cl_int), (void *)&jmax);
+      ezcl_set_kernel_arg(kernel_calc_layer2,  6,  sizeof(cl_mem), (void *)&dev_sizes);
+      ezcl_set_kernel_arg(kernel_calc_layer2,  7,  sizeof(cl_mem), (void *)&dev_levtable);
+      ezcl_set_kernel_arg(kernel_calc_layer2,  8,  sizeof(cl_mem), (void *)&dev_border_cell_i);
+      ezcl_set_kernel_arg(kernel_calc_layer2,  9,  sizeof(cl_mem), (void *)&dev_border_cell_j);
+      ezcl_set_kernel_arg(kernel_calc_layer2, 10,  sizeof(cl_mem), (void *)&dev_border_cell_level);
+      ezcl_set_kernel_arg(kernel_calc_layer2, 11,  sizeof(cl_mem), (void *)&dev_border_cell_needed);
+      ezcl_set_kernel_arg(kernel_calc_layer2, 12,  sizeof(cl_mem), (void *)&dev_border_cell_needed_out);
+      ezcl_set_kernel_arg(kernel_calc_layer2, 13,  sizeof(cl_mem), (void *)&dev_hash);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer2, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
+
+
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  0,  sizeof(cl_int), (void *)&nbsize_local);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  1,  sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  2,  sizeof(cl_int), (void *)&noffset);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  3,  sizeof(cl_int), (void *)&levmx);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  4,  sizeof(cl_mem), (void *)&dev_sizes);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  5,  sizeof(cl_mem), (void *)&dev_levtable);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  6,  sizeof(cl_mem), (void *)&dev_border_cell_i);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  7,  sizeof(cl_mem), (void *)&dev_border_cell_j);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  8,  sizeof(cl_mem), (void *)&dev_border_cell_level);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  9,  sizeof(cl_mem), (void *)&dev_border_cell_num);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 10,  sizeof(cl_mem), (void *)&dev_border_cell_needed_out);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 11,  sizeof(cl_mem), (void *)&dev_hash);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer2_sethash, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
+
+      if (DEBUG) {
+         vector<int> hash_tmp(hashsize);
+         ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
+
+         int jmaxglobal = (jmax+1)*levtable[levmx];
+         int imaxglobal = (imax+1)*levtable[levmx];
+         fprintf(fp,"\n                                    HASH numbering for 2 layer\n");
+         for (int jj = jmaxglobal-1; jj>=0; jj--){
+            fprintf(fp,"%2d: %4d:",mype,jj);
+            if (jj >= jminsize && jj < jmaxsize) {
+               for (int ii = 0; ii<imaxglobal; ii++){
+                  if (ii >= iminsize && ii < imaxsize) {
+                     fprintf(fp,"%5d",hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]);
+                  } else {
+                     fprintf(fp,"     ");
+                  }
+               }
+            }
+            fprintf(fp,"\n");
+         }
+         fprintf(fp,"%2d:      ",mype);
+         for (int ii = 0; ii<imaxglobal; ii++){
+            fprintf(fp,"%4d:",ii);
+         }
+         fprintf(fp,"\n");
+      }
+
+      ezcl_device_memory_remove(dev_border_cell_num);
+
+      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_i,          CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_i_global[0],   NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_j,          CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_j_global[0],   NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_level,      CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_level_global[0],   NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_needed_out, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
+
+      vector<int> indices_needed;
+      inew = 0;
+      for(int ic=0; ic<nbsize_local; ic++){
+         if (border_cell_needed_global[ic] <= 0) continue;
+         //if (border_cell_needed_global[ic] <  0x0016) fprintf(fp,"%d: First  set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+         //if (border_cell_needed_global[ic] >= 0x0016) fprintf(fp,"%d: Second set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+         indices_needed.push_back(border_cell_num_global[ic]);
+
+         //border_cell_num_global[inew]    = border_cell_num_global[ic];
+         border_cell_i_global[inew]      = border_cell_i_global[ic];
+         border_cell_j_global[inew]      = border_cell_j_global[ic];
+         border_cell_level_global[inew]  = border_cell_level_global[ic];
+         //border_cell_needed_global[inew] = 1;
+
+         inew++;
+      }
+      nbsize_local = inew;
+      nbsize = nbsize_local;
+
+      ezcl_device_memory_remove(dev_border_cell_needed);
+      ezcl_device_memory_remove(dev_border_cell_needed_out);
+
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_i,          CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_i_global[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_j,          CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_j_global[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_level,      CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_level_global[0],   NULL);
+
       if (TIMING_LEVEL >= 2) {
          ezcl_finish(command_queue);
          gpu_time_hash_setup2 += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
-      size_t nbsize = nbsize_local;
-      cl_mem dev_border_level = ezcl_malloc(NULL, const_cast<char *>("dev_border_level"), &nbsize, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_i     = ezcl_malloc(NULL, const_cast<char *>("dev_border_i"),     &nbsize, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_j     = ezcl_malloc(NULL, const_cast<char *>("dev_border_j"),     &nbsize, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_num   = ezcl_malloc(NULL, const_cast<char *>("dev_border_num"),   &nbsize, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      int nghost = nbsize_local;
+      ncells_ghost = ncells + nghost;
 
-      ezcl_enqueue_write_buffer(command_queue, dev_border_level, CL_FALSE,  0, nbsize*sizeof(cl_int), &border_cell_level_global[0], NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_border_i    , CL_FALSE,  0, nbsize*sizeof(cl_int), &border_cell_i_global[0],     NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_border_j    , CL_FALSE,  0, nbsize*sizeof(cl_int), &border_cell_j_global[0],     NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_border_num  , CL_TRUE,   0, nbsize*sizeof(cl_int), &border_cell_num_global[0],   NULL);
+      cl_mem dev_celltype_old = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_i_old        = ezcl_malloc(NULL, const_cast<char *>("dev_i_old"),        &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_j_old        = ezcl_malloc(NULL, const_cast<char *>("dev_j_old"),        &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_level_old    = ezcl_malloc(NULL, const_cast<char *>("dev_level_old"),    &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_nlft_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nlft_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_nrht_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nrht_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_nbot_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nbot_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_ntop_old     = ezcl_malloc(NULL, const_cast<char *>("dev_ntop_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-      //size_t border_local_work_size = MIN(nbsize,TILE_SIZE);
-      size_t border_local_work_size = 32;
-      size_t border_global_work_size = ((nbsize + border_local_work_size - 1) /border_local_work_size) * border_local_work_size;
-      //printf("%d: blws %d bgws %d\n",mype,border_local_work_size,border_global_work_size);
+      cl_mem dev_tmp;
+      SWAP_PTR(dev_celltype_old, dev_celltype, dev_tmp);
+      SWAP_PTR(dev_i_old,        dev_i,        dev_tmp);
+      SWAP_PTR(dev_j_old,        dev_j,        dev_tmp);
+      SWAP_PTR(dev_level_old,    dev_level,    dev_tmp);
+      SWAP_PTR(dev_nlft_old,     dev_nlft,     dev_tmp);
+      SWAP_PTR(dev_nrht_old,     dev_nrht,     dev_tmp);
+      SWAP_PTR(dev_nbot_old,     dev_nbot,     dev_tmp);
+      SWAP_PTR(dev_ntop_old,     dev_ntop,     dev_tmp);
 
-      ezcl_set_kernel_arg(kernel_hash_setup_border, 0, sizeof(cl_int), (void *)&nbsize_local);
-      ezcl_set_kernel_arg(kernel_hash_setup_border, 1, sizeof(cl_int), (void *)&levmx);
-      ezcl_set_kernel_arg(kernel_hash_setup_border, 2, sizeof(cl_int), (void *)&noffset);
-      ezcl_set_kernel_arg(kernel_hash_setup_border, 3, sizeof(cl_mem), (void *)&dev_sizes);
-      ezcl_set_kernel_arg(kernel_hash_setup_border, 4, sizeof(cl_mem), (void *)&dev_levtable);
-      ezcl_set_kernel_arg(kernel_hash_setup_border, 5, sizeof(cl_mem), (void *)&dev_border_level);
-      ezcl_set_kernel_arg(kernel_hash_setup_border, 6, sizeof(cl_mem), (void *)&dev_border_i);
-      ezcl_set_kernel_arg(kernel_hash_setup_border, 7, sizeof(cl_mem), (void *)&dev_border_j);
-      ezcl_set_kernel_arg(kernel_hash_setup_border, 8, sizeof(cl_mem), (void *)&dev_border_num);
-      ezcl_set_kernel_arg(kernel_hash_setup_border, 9, sizeof(cl_mem), (void *)&dev_hash);
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_setup_border,  1, NULL, &border_global_work_size, &border_local_work_size, NULL);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 0,  sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 1,  sizeof(cl_mem), (void *)&dev_celltype_old);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 2,  sizeof(cl_mem), (void *)&dev_celltype);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 3,  sizeof(cl_mem), (void *)&dev_i_old);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 4,  sizeof(cl_mem), (void *)&dev_i);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 5,  sizeof(cl_mem), (void *)&dev_j_old);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 6,  sizeof(cl_mem), (void *)&dev_j);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 7,  sizeof(cl_mem), (void *)&dev_level_old);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 8,  sizeof(cl_mem), (void *)&dev_level);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 9,  sizeof(cl_mem), (void *)&dev_nlft_old);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 10, sizeof(cl_mem), (void *)&dev_nlft);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 11, sizeof(cl_mem), (void *)&dev_nrht_old);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 12, sizeof(cl_mem), (void *)&dev_nrht);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 13, sizeof(cl_mem), (void *)&dev_nbot_old);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 14, sizeof(cl_mem), (void *)&dev_nbot);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 15, sizeof(cl_mem), (void *)&dev_ntop_old);
+      ezcl_set_kernel_arg(kernel_copy_mesh_data, 16, sizeof(cl_mem), (void *)&dev_ntop);
 
-      ezcl_device_memory_remove(dev_border_level);
-      ezcl_device_memory_remove(dev_border_i);
-      ezcl_device_memory_remove(dev_border_j);
-      ezcl_device_memory_remove(dev_border_num);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mesh_data,   1, NULL, &global_work_size, &local_work_size, NULL);
+      
+      ezcl_device_memory_remove(dev_celltype_old);
+      ezcl_device_memory_remove(dev_i_old);
+      ezcl_device_memory_remove(dev_j_old);
+      ezcl_device_memory_remove(dev_level_old);
+      ezcl_device_memory_remove(dev_nlft_old);
+      ezcl_device_memory_remove(dev_nrht_old);
+      ezcl_device_memory_remove(dev_nbot_old);
+      ezcl_device_memory_remove(dev_ntop_old);
 
-      if (TIMING_LEVEL >= 2) {
-         ezcl_finish(command_queue);
-         gpu_time_hash_setup2 += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
-         cpu_timer_start(&tstart_lev2);
+      nb_global_work_size = ((nbsize_local + local_work_size - 1) /local_work_size) * local_work_size;
+
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  0,  sizeof(cl_int), (void *)&nbsize_local);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  1,  sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  2,  sizeof(cl_mem), (void *)&dev_border_cell_i);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  3,  sizeof(cl_mem), (void *)&dev_border_cell_j);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  4,  sizeof(cl_mem), (void *)&dev_border_cell_level);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  5,  sizeof(cl_mem), (void *)&dev_i);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  6,  sizeof(cl_mem), (void *)&dev_j);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  7,  sizeof(cl_mem), (void *)&dev_level);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  8,  sizeof(cl_mem), (void *)&dev_nlft);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  9,  sizeof(cl_mem), (void *)&dev_nrht);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost, 10,  sizeof(cl_mem), (void *)&dev_nbot);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost, 11,  sizeof(cl_mem), (void *)&dev_ntop);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_fill_mesh_ghost, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
+
+      if (DEBUG){
+         fprintf(fp,"After copying i,j, level to ghost cells\n");
+         print_dev_local(command_queue);
       }
 
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 0,  sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 1,  sizeof(cl_int), (void *)&levmx);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 2,  sizeof(cl_int), (void *)&imax);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 3,  sizeof(cl_int), (void *)&jmax);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 4,  sizeof(cl_mem), (void *)&dev_sizes);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 5,  sizeof(cl_mem), (void *)&dev_levtable);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 6,  sizeof(cl_mem), (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 7,  sizeof(cl_mem), (void *)&dev_i);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 8,  sizeof(cl_mem), (void *)&dev_j);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 9,  sizeof(cl_mem), (void *)&dev_nlft);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 10, sizeof(cl_mem), (void *)&dev_nrht);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 11, sizeof(cl_mem), (void *)&dev_nbot);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 12, sizeof(cl_mem), (void *)&dev_ntop);
-      ezcl_set_kernel_arg(kernel_calc_neighbors_local2, 13, sizeof(cl_mem), (void *)&dev_hash);
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors_local2,   1, NULL, &global_work_size, &local_work_size, NULL);
+      ezcl_device_memory_remove(dev_border_cell_i);
+      ezcl_device_memory_remove(dev_border_cell_j);
+      ezcl_device_memory_remove(dev_border_cell_level);
+
+      size_t ghost_local_work_size = 128;
+      size_t ghost_global_work_size = ((ncells_ghost + local_work_size - 1) /local_work_size) * local_work_size;
+
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost,  0,  sizeof(cl_int), (void *)&ncells_ghost);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost,  1,  sizeof(cl_int), (void *)&levmx);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost,  2,  sizeof(cl_int), (void *)&imax);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost,  3,  sizeof(cl_int), (void *)&jmax);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost,  4,  sizeof(cl_mem), (void *)&dev_sizes);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost,  5,  sizeof(cl_mem), (void *)&dev_levtable);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost,  6,  sizeof(cl_mem), (void *)&dev_i);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost,  7,  sizeof(cl_mem), (void *)&dev_j);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost,  8,  sizeof(cl_mem), (void *)&dev_level);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost,  9,  sizeof(cl_mem), (void *)&dev_hash);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost, 10,  sizeof(cl_mem), (void *)&dev_nlft);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost, 11,  sizeof(cl_mem), (void *)&dev_nrht);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost, 12,  sizeof(cl_mem), (void *)&dev_nbot);
+      ezcl_set_kernel_arg(kernel_fill_neighbor_ghost, 13,  sizeof(cl_mem), (void *)&dev_ntop);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_fill_neighbor_ghost, 1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL); 
+
+      if (DEBUG){
+         fprintf(fp,"After setting neighbors through ghost cells\n");
+         print_dev_local(command_queue);
+      }
+
+      size_t nghost_local_work_size = 128;
+      size_t nghost_global_work_size = ((nghost + local_work_size - 1) /local_work_size) * local_work_size;
+
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor,  0,  sizeof(cl_int), (void *)&nghost);
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor,  1,  sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor,  2,  sizeof(cl_int), (void *)&levmx);
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor,  3,  sizeof(cl_mem), (void *)&dev_sizes);
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor,  4,  sizeof(cl_mem), (void *)&dev_levtable);
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor,  5,  sizeof(cl_mem), (void *)&dev_i);
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor,  6,  sizeof(cl_mem), (void *)&dev_j);
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor,  7,  sizeof(cl_mem), (void *)&dev_level);
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor,  8,  sizeof(cl_mem), (void *)&dev_hash);
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor,  9,  sizeof(cl_mem), (void *)&dev_nlft);
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor, 10,  sizeof(cl_mem), (void *)&dev_nrht);
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor, 11,  sizeof(cl_mem), (void *)&dev_nbot);
+      ezcl_set_kernel_arg(kernel_set_corner_neighbor, 12,  sizeof(cl_mem), (void *)&dev_ntop);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_corner_neighbor, 1, NULL, &nghost_global_work_size, &nghost_local_work_size, NULL); 
+
+      if (DEBUG){
+         fprintf(fp,"After setting corner neighbors\n");
+         print_dev_local(command_queue);
+      }
+
+      cl_mem dev_indices_needed = ezcl_malloc(NULL, const_cast<char *>("dev_indices_needed"),     &nbsize, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      ezcl_enqueue_write_buffer(command_queue, dev_indices_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &indices_needed[0],     NULL);
+
+      ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  0,  sizeof(cl_int), (void *)&ncells_ghost);
+      ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  1,  sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  2,  sizeof(cl_int), (void *)&noffset);
+      ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  3,  sizeof(cl_mem), (void *)&dev_indices_needed);
+      ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  4,  sizeof(cl_mem), (void *)&dev_nlft);
+      ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  5,  sizeof(cl_mem), (void *)&dev_nrht);
+      ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  6,  sizeof(cl_mem), (void *)&dev_nbot);
+      ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  7,  sizeof(cl_mem), (void *)&dev_ntop);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_adjust_neighbors_local, 1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL); 
+
+
+      ezcl_device_memory_remove(dev_indices_needed);
+
+      if (DEBUG){
+         fprintf(fp,"After adjusting neighbors to local indices\n");
+         print_dev_local(command_queue);
+      }
 
       if (TIMING_LEVEL >= 2) {
          ezcl_finish(command_queue);
@@ -4377,24 +4578,139 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          cpu_timer_start(&tstart_lev2);
       }
 
-      vector<int> hash_tmp(hashsize);
-      ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
+      offtile_ratio_local = (offtile_ratio_local*(double)offtile_local_count) + ((double)nghost / (double)ncells);
+      offtile_local_count++;
+      offtile_ratio_local /= offtile_local_count;
 
-      vector<int> celltype_tmp(ncells);
+#ifdef HAVE_MPI
+      if (cell_handle) L7_Free(&cell_handle);
+#endif
+      cell_handle=0;
+      //for (int ic=0; ic<nghost; ic++){
+      //   fprintf(fp,"%d: indices needed ic %d index %d\n",mype,ic,indices_needed[ic]);
+      //}
+#ifdef HAVE_MPI
+      L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
 
-      vector<int> nlft_tmp(ncells);
-      vector<int> nrht_tmp(ncells);
-      vector<int> nbot_tmp(ncells);
-      vector<int> ntop_tmp(ncells);
+      int num_indices=L7_Get_Num_Indices(cell_handle);
+
+      vector<int>local_indices(num_indices);
+
+      L7_Get_Local_Indices(cell_handle, &local_indices[0]);
+
+/* */
+      vector<int> indices_array(ncells,0);
+
+      for (int ic = 0; ic < num_indices; ic++){
+         indices_array[local_indices[ic]]++;
+      }
+
+      num_indices=0;
+      for (int ic = 0; ic < (int)ncells; ic++){
+         if (indices_array[ic] > 0) {
+            local_indices[num_indices]=ic;
+            num_indices++;
+         }
+      }
+/* */
+
+/*
+         //if (mype ==1) printf("DEBUG -- num_indices is %d\n",num_indices);
+
+         sort(local_indices.begin(),local_indices.end());
+         vector<int>::iterator pt_end = unique(local_indices.begin(),local_indices.end());
+
+         num_indices = 0;
+         for (vector<int>::iterator p=local_indices.begin(); p < pt_end; p++){
+            num_indices++;
+         }
+         //printf("%d: border cell size is %d\n",mype,border_cell_num.size());
+*/
+
+
+         //if (mype ==1) printf("DEBUG -- num_indices is %d %d\n",num_indices,local_indices.size());
+
+         int nblocks=0;
+         for (int ic = 0; ic < num_indices; ic++){
+            for (int in = local_indices[ic]+1; local_indices[ic+1] == in && ic < num_indices; in++,ic++);
+            //for (int in = local_indices[ic]+1; local_indices[ic+1] <= in+5 && ic < num_indices; in=local_indices[ic+1],ic++);
+            nblocks++;
+         }
+         vector<int>local_indices_start(nblocks);
+         vector<int>local_indices_stop(nblocks);
+
+         int ib=0;
+         for (int ic = 0; ic < num_indices; ic++){
+            local_indices_start[ib]=local_indices[ic];
+            for (int in = local_indices[ic]+1; in == local_indices[ic+1] && ic < num_indices; in++,ic++);
+            //for (int in = local_indices[ic]+1; local_indices[ic+1] <= in+5 && ic < num_indices; in=local_indices[ic+1],ic++);
+            local_indices_stop[ib]=local_indices[ic];
+            ib++;
+         }
+
+/*
+         for (int ib = 0; ib < nblocks; ib++){
+            if (mype == 1) printf("%d: DEBUG block %d start %d stop %d\n",mype,ib,local_indices_start[ib],local_indices_stop[ib]);
+         }
+*/
+
+         int ic = 0;
+         for (int ib = 0; ib < nblocks; ib++){
+            for (int in = local_indices_start[ib]; in <= local_indices_stop[ib]; in++){
+               //while (in != local_indices[ic]) {in++;}
+               if (in != local_indices[ic]) printf("%d: DEBUG ic %d ib %d local_indices[ic] %d block_index %d\n",mype,ic,ib,local_indices[ic],in);
+               ic++;
+            }
+         }
+         if (ic != num_indices) printf("%d: DEBUG -- mismatch on indices count\n",mype);
+
+
+         local_indices.clear();
+#endif
+
+      if (TIMING_LEVEL >= 2) {
+         ezcl_finish(command_queue);
+         gpu_time_setup_comm += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         cpu_timer_start(&tstart_lev2);
+      }
+
+      i_tmp.resize(ncells_ghost);
+      j_tmp.resize(ncells_ghost);
+      level_tmp.resize(ncells_ghost);
+
+      vector<int> celltype_tmp(ncells_ghost);
+
+      vector<int> nlft_tmp(ncells_ghost);
+      vector<int> nrht_tmp(ncells_ghost);
+      vector<int> nbot_tmp(ncells_ghost);
+      vector<int> ntop_tmp(ncells_ghost);
 
       ezcl_enqueue_read_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int), &celltype_tmp[0], NULL);
+#ifdef HAVE_MPI
+      L7_Update(&celltype_tmp[0], L7_INT, cell_handle);
+#endif
 
-      ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells*sizeof(cl_int), &nlft_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells*sizeof(cl_int), &nrht_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells*sizeof(cl_int), &nbot_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], NULL);
+      size_t nghost_local = nghost;
+      cl_mem dev_celltype_add   = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_add"),   &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+
+      ezcl_enqueue_write_buffer(command_queue, dev_celltype_add,   CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&celltype_tmp[ncells], NULL);
+
+      ezcl_set_kernel_arg(kernel_copy_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_copy_ghost_data, 1, sizeof(cl_int), (void *)&nghost);
+      ezcl_set_kernel_arg(kernel_copy_ghost_data, 2, sizeof(cl_mem), (void *)&dev_celltype);
+      ezcl_set_kernel_arg(kernel_copy_ghost_data, 3, sizeof(cl_mem), (void *)&dev_celltype_add);
+
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_ghost_data,   1, NULL, &nghost_global_work_size, &nghost_local_work_size, NULL);                                                                                                      
+      ezcl_device_memory_remove(dev_celltype_add);
 
       if (DEBUG) {
+         vector<int> hash_tmp(hashsize);
+         ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_FALSE, 0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
+
+         ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nlft_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nrht_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nbot_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells_ghost*sizeof(cl_int), &ntop_tmp[0], NULL);
 
          int jmaxglobal = (jmax+1)*levtable[levmx];
          int imaxglobal = (imax+1)*levtable[levmx];
@@ -4502,620 +4818,16 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          }
          fprintf(fp,"\n");
       }
-      
-      vector<int> offtile_list;
-
-      int start_idx = noffset;
-      int end_idx   = noffset+ncells;
-      int ii, jj, lev;
-
-      int jmaxcalc = (jmax+1)*levtable[levmx];
-      int imaxcalc = (imax+1)*levtable[levmx];
-
-      for (uint ic = 0; ic < ncells; ic++){
-         ii = i_tmp[ic];
-         jj = j_tmp[ic];
-         lev = level_tmp[ic];
-
-         int nl = nlft_tmp[ic];
-
-         if (nl < start_idx || nl >= end_idx) {
-            offtile_list.push_back(nl);
-            int ig;
-            for (ig = 0; ig < nbsize_local; ig++) {
-               if (border_cell_num_global[ig] == nl) break;
-            }
-            if (ig == nbsize_local) {
-               printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nl);
-#ifdef HAVE_MPI
-               L7_Terminate();
-#endif
-               exit(-1);
-            }
-            // Get the left neighbor information
-            int nlev = border_cell_level_global[ig];
-            int levmult      = levtable[levmx-nlev];
-            int levmultminus = levtable[max(levmx-nlev-1,0)];
-            int iii = border_cell_i_global[ig];
-            int jjj = border_cell_j_global[ig];
-            //fprintf(fp,"%d: DEBUG nl is %d ig is %d cell num is %d lev %d i %d j %d\n",mype,nl, ig, border_cell_num_global[ig], nlev, iii, jjj);
-
-            if (nlev == levmx) {
-               // Multiplying by levmult get the bottom left cell of the left neighbor. Subtract
-               // one from that to get the bottom right cell in the left left neighbor
-               int nll = hash_tmp[((jjj*levmult)-jminsize)*(imaxsize-iminsize)+(max((iii-1)*levmult, 0)-iminsize)];
-               if (nll != nl && nll > 0 && (nll < start_idx || nll >= end_idx) ) 
-                  offtile_list.push_back(nll);
-            } else {
-               int nll = hash_tmp[(jjj*levmult-jminsize)*(imaxsize-iminsize)+(max((iii*2-1)*levmultminus, 0)-iminsize)];
-               if (nll != nl && nll > 0 && (nll < start_idx || nll >= end_idx) ) 
-                  offtile_list.push_back(nll);
-
-               int ntll = hash_tmp[((jjj*2+1)*levmultminus-jminsize)*(imaxsize-iminsize)+(max((iii*2-1)*levmultminus, 0)-iminsize)];
-               if (ntll != nll && ntll > 0 && (ntll < start_idx || ntll >= end_idx) )
-                  offtile_list.push_back(ntll);
-            }
-         }
-
-         if (lev < levmx) {
-            int levmultminus = levtable[max(levmx-lev-1,0)];
-            int ntl = hash_tmp[(min((jj*2+1)*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(max((ii*2-1)*levmultminus,0)-iminsize)];
-            if (ntl != nl && ntl > 0 && (ntl < start_idx || ntl >= end_idx) ) {
-               offtile_list.push_back(ntl);
-
-               int ig;
-               for (ig = 0; ig < nbsize_local; ig++) {
-                  if (border_cell_num_global[ig] == ntl) break;
-               }
-               if (ig == nbsize_local) {
-                  printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, ntl);
-#ifdef HAVE_MPI
-                  //L7_Terminate();
-#endif
-                  //exit(-1);
-               }
-               int nlev = border_cell_level_global[ig];
-               int iii = border_cell_i_global[ig];
-               int jjj = border_cell_j_global[ig];
-               int levmult      = levtable[levmx-nlev];
-               levmultminus = levtable[max(levmx-nlev-1,0)];
-
-               if (nlev == levmx) {
-                  int nltl = hash_tmp[(jjj*levmult-jminsize)*(imaxsize-iminsize)+(max((iii-1)*levmult-iminsize,0))];
-                  if (nltl != ntl && nltl > 0 && (nltl < start_idx || nltl >= end_idx) )
-                     offtile_list.push_back(nltl);
-               } else {
-                  // And we need both cells here
-                  int nltl = hash_tmp[((jjj*2)*levmultminus-jminsize)*(imaxsize-iminsize)+(max((iii*2-1)*levmultminus-iminsize,0))];
-                  if (nltl != ntl && nltl > 0 && (nltl < start_idx || nltl >= end_idx) )
-                     offtile_list.push_back(nltl);
-                  int ntltl = hash_tmp[(min((jjj*2+1)*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(max((iii*2-1)*levmultminus,0)-iminsize)];
-                  if (ntltl != nltl && ntltl > 0 && (ntltl < start_idx || ntltl >= end_idx))
-                     offtile_list.push_back(ntltl);
-               }
-
-            }
-         }
-
-         int nr = nrht_tmp[ic];
-
-         if (nr < start_idx || nr >= end_idx) {
-            offtile_list.push_back(nr);
-            int ig;
-            for (ig = 0; ig < nbsize_local; ig++) {
-               if (border_cell_num_global[ig] == nr) break;
-            }
-            if (ig == nbsize_local) {
-               printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nr);
-#ifdef HAVE_MPI
-               //L7_Terminate();
-#endif
-               //exit(-1);
-            }
-            int nlev = border_cell_level_global[ig];
-            int levmult      = levtable[levmx-nlev];
-            int levmultminus = levtable[max(levmx-nlev-1,0)];
-            int iii = border_cell_i_global[ig];
-            int jjj = border_cell_j_global[ig];
-
-            if (nlev == levmx) {
-               // Multiplying by levmult gets the bottom left cell of the right neighbor. Add
-               // one to that to get the bottom left cell of the right right neighbor
-               int nrr = hash_tmp[((jjj*levmult)-jminsize)*(imaxsize-iminsize)+(min((iii+1)*levmult,imaxcalc-1)-iminsize)];
-               if (nrr != nr && nrr > 0 && (nrr < start_idx || nrr >= end_idx) )
-                  offtile_list.push_back(nrr);
-            } else {
-               int nrr = hash_tmp[((jjj*levmult)-jminsize)*(imaxsize-iminsize)+((min((iii+1)*levmult,imaxcalc-1))-iminsize)];
-               if (nrr != nr && nrr > 0 && (nrr < start_idx || nrr >= end_idx) )
-                  offtile_list.push_back(nrr);
-
-               int ntrr = hash_tmp[(min((jjj*2+1)*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min((iii+1)*levmult,imaxcalc-1)-iminsize)];
-               if (ntrr != nrr && ntrr > 0 && (ntrr < start_idx || ntrr >= end_idx))
-                  offtile_list.push_back(ntrr);
-            }
-
-         }
-
-         if (lev < levmx) {
-            int levmultminus = levtable[max(levmx-lev-1,0)];
-            int ntr = hash_tmp[(min((jj*2+1)*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min((ii+1)*2*levmultminus,imaxcalc-1)-iminsize)];
-            if (ntr != nr && ntr > 0 && (ntr < start_idx || ntr >= end_idx) ) {
-               offtile_list.push_back(ntr);
-
-               int ig;
-               for (ig = 0; ig < nbsize_local; ig++) {
-                  if (border_cell_num_global[ig] == ntr) break;
-               }
-               if (ig == nbsize_local) {
-                  printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, ntr);
-#ifdef HAVE_MPI
-                  //L7_Terminate();
-#endif
-                  //exit(-1);
-               }
-               int nlev = border_cell_level_global[ig];
-               int iii = border_cell_i_global[ig];
-               int jjj = border_cell_j_global[ig];
-               int levmult      = levtable[levmx-nlev];
-               levmultminus = levtable[max(levmx-nlev-1,0)];
-
-               // Multiplying by levmult gets the bottom left cell of the top neighbor. Add
-               // one to that to get the bottom left cell of the top top neighbor
-
-               if (nlev == levmx) {
-                  int nrtr = hash_tmp[(jjj*levmult-jminsize)*(imaxsize-iminsize)+(min((iii+1)*levmult-iminsize,imaxcalc-1))];
-                  if (nrtr != ntr && nrtr > 0 && (nrtr < start_idx || nrtr >= end_idx) )
-                     offtile_list.push_back(nrtr);
-               } else {
-                  // And we need both cells here
-                  int nrtr = hash_tmp[((jjj*2)*levmultminus-jminsize)*(imaxsize-iminsize)+(min((iii+1)*2*levmultminus-iminsize,imaxcalc-1))];
-                  if (nrtr != ntr && nrtr > 0 && (nrtr < start_idx || nrtr >= end_idx) )
-                     offtile_list.push_back(nrtr);
-                  int ntrtr = hash_tmp[(min((jjj*2+1)*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min((iii+1)*2*levmultminus,imaxcalc-1)-iminsize)];
-                  if (ntrtr != nrtr && ntrtr > 0 && (ntrtr < start_idx || ntrtr >= end_idx))
-                     offtile_list.push_back(ntrtr);
-               }
-            }
-         }
-
-
-         int nb = nbot_tmp[ic];
-
-         if (nb < start_idx || nb >= end_idx) {
-            offtile_list.push_back(nb);
-            int ig;
-            for (ig = 0; ig < nbsize_local; ig++) {
-               if (border_cell_num_global[ig] == nb) break;
-            }
-            if (ig == nbsize_local) {
-               printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nb);
-#ifdef HAVE_MPI
-               //L7_Terminate();
-#endif
-               //exit(-1);
-            }
-            // Get the bottom neighbor information
-            int nlev = border_cell_level_global[ig];
-            int levmult      = levtable[levmx-nlev];
-            int levmultminus = levtable[max(levmx-nlev-1,0)];
-            int iii = border_cell_i_global[ig];
-            int jjj = border_cell_j_global[ig];
-
-            if (nlev == levmx) {
-               // Multiplying by levmult gets the bottom left cell of the bottom neighbor. Subtract
-               // one from that to get the top left cell in the bottom bottom neighbor
-               int nbb = hash_tmp[((max((jjj-1)*levmult, 0))-jminsize)*(imaxsize-iminsize)+((iii*levmult)-iminsize)];
-               if (nbb != nb && nbb > 0 && (nbb < start_idx || nbb >= end_idx) )
-                  offtile_list.push_back(nbb);
-            } else {
-               int nbb = hash_tmp[(max((jjj*2-1)*levmultminus, 0)-jminsize)*(imaxsize-iminsize)+(iii*levmult-iminsize)];
-               if (nbb != nb && nbb > 0 && (nbb < start_idx || nbb >= end_idx) )
-                  offtile_list.push_back(nbb);
-               int nrbb = hash_tmp[(max((jjj*2-1)*levmultminus, 0)-jminsize)*(imaxsize-iminsize)+((iii*2+1)*levmultminus-iminsize)];
-               if (nrbb != nbb && nrbb > 0 && (nrbb < start_idx || nrbb >= end_idx) )
-                  offtile_list.push_back(nrbb);
-            }
-
-         }
-
-         if (lev < levmx) {
-            int levmultminus = levtable[max(levmx-lev-1,0)];
-            int nrb = hash_tmp[(max((jj*2-1)*levmultminus,0)-jminsize)*(imaxsize-iminsize)+(min((ii*2+1)*levmultminus,imaxcalc-1)-iminsize)];
-            if (nrb != nb && nrb > 0 && (nrb < start_idx || nrb >= end_idx) ) {
-               offtile_list.push_back(nrb);
-
-               int ig;
-               for (ig = 0; ig < nbsize_local; ig++) {
-                  if (border_cell_num_global[ig] == nrb) break;
-               }
-               if (ig == nbsize_local) {
-                  printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nrb);
-#ifdef HAVE_MPI
-                  //L7_Terminate();
-#endif
-                  //exit(-1);
-               }
-               int nlev = border_cell_level_global[ig];
-               int iii = border_cell_i_global[ig];
-               int jjj = border_cell_j_global[ig];
-               int levmult      = levtable[levmx-nlev];
-               levmultminus = levtable[max(levmx-nlev-1,0)];
-
-               if (nlev == levmx) {
-                  int nbrb = hash_tmp[(max((jjj-1)*levmult,0)-jminsize)*(imaxsize-iminsize)+(iii*levmult-iminsize)];
-                  if (nbrb != nrb && nbrb > 0 && (nbrb < start_idx || nbrb >= end_idx) )
-                     offtile_list.push_back(nbrb);
-               } else {
-                  // And we need both cells here
-                  int nbrb = hash_tmp[(max((jjj*2-1)*levmultminus,0)-jminsize)*(imaxsize-iminsize)+((iii*2)*levmultminus-iminsize)];
-                  if (nbrb != nrb && nbrb > 0 && (nbrb < start_idx || nbrb >= end_idx) )
-                     offtile_list.push_back(nbrb);
-                  int nrbrb = hash_tmp[(max((jjj*2-1)*levmultminus,0)-jminsize)*(imaxsize-iminsize)+(min((iii*2+1)*levmultminus,imaxcalc-1)-iminsize)];
-                  if (nrbrb != nbrb && nrbrb > 0 && (nrbrb < start_idx || nrbrb >= end_idx))
-                     offtile_list.push_back(nrbrb);
-               }
-
-            }
-         }
-
-         int nt = ntop_tmp[ic];
-
-         if (nt < start_idx || nt >= end_idx) {
-            offtile_list.push_back(nt);
-            int ig;
-            for (ig = 0; ig < nbsize_local; ig++) {
-               if (border_cell_num_global[ig] == nt) break;
-            }
-            if (ig == nbsize_local) {
-               printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nt);
-#ifdef HAVE_MPI
-               //L7_Terminate();
-#endif
-               //exit(-1);
-            }
-            int nlev = border_cell_level_global[ig];
-            int iii = border_cell_i_global[ig];
-            int jjj = border_cell_j_global[ig];
-            int levmult      = levtable[levmx-nlev];
-            int levmultminus = levtable[max(levmx-nlev-1,0)];
-
-            if (nlev == levmx) {
-               // Multiplying by levmult gets the bottom left cell of the top neighbor. Add
-               // one to that to get the bottom left cell of the top top neighbor
-               int ntt = hash_tmp[((min((jjj+1)*levmult,jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((iii*levmult)-iminsize)];
-               if (ntt != nt && ntt > 0 && (ntt < start_idx || ntt >= end_idx) )
-                  offtile_list.push_back(ntt);
-            } else {
-               int ntt = hash_tmp[((min((jjj+1)*levmult,jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((iii*levmult)-iminsize)];
-               if (ntt != nt && ntt > 0 && (ntt < start_idx || ntt >= end_idx) )
-                  offtile_list.push_back(ntt);
-
-               int nrtt = hash_tmp[(min((jjj+1)*levmult,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min((iii*2+1)*levmultminus,imaxcalc-1)-iminsize)];
-               if (nrtt != ntt && nrtt > 0 && (nrtt < start_idx || nrtt >= end_idx))
-                  offtile_list.push_back(nrtt);
-            }
-         }
-
-         if (lev < levmx) {
-            int levmultminus = levtable[max(levmx-lev-1,0)];
-            int nrt = hash_tmp[(min((jj+1)*2*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min((ii*2+1)*levmultminus,imaxcalc-1)-iminsize)];
-            if (nrt != nt && nrt > 0 && (nrt < start_idx || nrt >= end_idx) ) {
-               offtile_list.push_back(nrt);
-
-               int ig;
-               for (ig = 0; ig < nbsize_local; ig++) {
-                  if (border_cell_num_global[ig] == nrt) break;
-               }
-               if (ig == nbsize_local) {
-                  printf("%d: Line %d Error with global cell match %d\n",mype, __LINE__, nrt);
-#ifdef HAVE_MPI
-                  //L7_Terminate();
-#endif
-                  //exit(-1);
-               }
-               int nlev = border_cell_level_global[ig];
-               int iii = border_cell_i_global[ig];
-               int jjj = border_cell_j_global[ig];
-               int levmult      = levtable[levmx-nlev];
-               levmultminus = levtable[max(levmx-nlev-1,0)];
-
-               // Multiplying by levmult gets the bottom left cell of the top neighbor. Add
-               // one to that to get the bottom left cell of the top top neighbor
-
-               if (nlev == levmx) {
-                  int ntrt = hash_tmp[(min((jjj+1)*levmult,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(iii*levmult-iminsize)];
-                  if (ntrt != nrt && ntrt > 0 && (ntrt < start_idx || ntrt >= end_idx) )
-                     offtile_list.push_back(ntrt);
-               } else {
-                  // And we need both cells here
-                  int ntrt = hash_tmp[(min((jjj+1)*2*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+((iii*2)*levmultminus-iminsize)];
-                  if (ntrt != nrt && ntrt > 0 && (ntrt < start_idx || ntrt >= end_idx) )
-                     offtile_list.push_back(ntrt);
-                  int nrtrt = hash_tmp[(min((jjj+1)*2*levmultminus,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(min((iii*2+1)*levmultminus,imaxcalc-1)-iminsize)];
-                  if (nrtrt != ntrt && nrtrt > 0 && (nrtrt < start_idx || nrtrt >= end_idx))
-                     offtile_list.push_back(nrtrt);
-               }
-            }
-         }
-      } // ncells loop
-
-      sort(offtile_list.begin(), offtile_list.end());
-      vector<int>::iterator p_end = unique(offtile_list.begin(), offtile_list.end());
-
-      vector<int> indices_needed;
-
-      for (vector<int>::iterator p=offtile_list.begin(); p < p_end; p++){
-         indices_needed.push_back(*p);
-      }
-
-      if (TIMING_LEVEL >= 2) {
-         ezcl_finish(command_queue);
-         gpu_time_offtile_list += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
-         cpu_timer_start(&tstart_lev2);
-      }
-
-      int nghost = indices_needed.size();
-      ncells_ghost = ncells + nghost;
-      //fprintf(fp,"%d ncells_ghost size is %ld nghost %d\n",mype,ncells_ghost,nghost);
-
-#ifdef HAVE_MPI
-      if (cell_handle) L7_Free(&cell_handle);
-#endif
-      cell_handle=0;
-      //for (int ic=0; ic<nghost; ic++){
-      //   fprintf(fp,"%d: indices needed ic %d index %d\n",mype,ic,indices_needed[ic]);
-      //}
-#ifdef HAVE_MPI
-      L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
-
-      int num_indices=L7_Get_Num_Indices(cell_handle);
-
-      vector<int>local_indices(num_indices);
-
-      L7_Get_Local_Indices(cell_handle, &local_indices[0]);
-
-/* */
-      vector<int> indices_array(ncells,0);
-
-      for (int ic = 0; ic < num_indices; ic++){
-         indices_array[local_indices[ic]]++;
-      }
-
-      num_indices=0;
-      for (int ic = 0; ic < (int)ncells; ic++){
-         if (indices_array[ic] > 0) {
-            local_indices[num_indices]=ic;
-            num_indices++;
-         }
-      }
-/* */
-
-/*
-         //if (mype ==1) printf("DEBUG -- num_indices is %d\n",num_indices);
-
-         sort(local_indices.begin(),local_indices.end());
-         vector<int>::iterator pt_end = unique(local_indices.begin(),local_indices.end());
-
-         num_indices = 0;
-         for (vector<int>::iterator p=local_indices.begin(); p < pt_end; p++){
-            num_indices++;
-         }
-         //printf("%d: border cell size is %d\n",mype,border_cell_num.size());
-*/
-
-
-         //if (mype ==1) printf("DEBUG -- num_indices is %d %d\n",num_indices,local_indices.size());
-
-         int nblocks=0;
-         for (int ic = 0; ic < num_indices; ic++){
-            for (int in = local_indices[ic]+1; local_indices[ic+1] == in && ic < num_indices; in++,ic++);
-            //for (int in = local_indices[ic]+1; local_indices[ic+1] <= in+5 && ic < num_indices; in=local_indices[ic+1],ic++);
-            nblocks++;
-         }
-         vector<int>local_indices_start(nblocks);
-         vector<int>local_indices_stop(nblocks);
-
-         int ib=0;
-         for (int ic = 0; ic < num_indices; ic++){
-            local_indices_start[ib]=local_indices[ic];
-            for (int in = local_indices[ic]+1; in == local_indices[ic+1] && ic < num_indices; in++,ic++);
-            //for (int in = local_indices[ic]+1; local_indices[ic+1] <= in+5 && ic < num_indices; in=local_indices[ic+1],ic++);
-            local_indices_stop[ib]=local_indices[ic];
-            ib++;
-         }
-
-/*
-         for (int ib = 0; ib < nblocks; ib++){
-            if (mype == 1) printf("%d: DEBUG block %d start %d stop %d\n",mype,ib,local_indices_start[ib],local_indices_stop[ib]);
-         }
-*/
-
-         int ic = 0;
-         for (int ib = 0; ib < nblocks; ib++){
-            for (int in = local_indices_start[ib]; in <= local_indices_stop[ib]; in++){
-               //while (in != local_indices[ic]) {in++;}
-               if (in != local_indices[ic]) printf("%d: DEBUG ic %d ib %d local_indices[ic] %d block_index %d\n",mype,ic,ib,local_indices[ic],in);
-               ic++;
-            }
-         }
-         if (ic != num_indices) printf("%d: DEBUG -- mismatch on indices count\n",mype);
-
-
-         local_indices.clear();
-#endif
-
-      if (TIMING_LEVEL >= 2) {
-         ezcl_finish(command_queue);
-         gpu_time_setup_comm += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
-         cpu_timer_start(&tstart_lev2);
-      }
-
-      celltype_tmp.resize(ncells_ghost);
-      i_tmp.resize(ncells_ghost);
-      j_tmp.resize(ncells_ghost);
-      level_tmp.resize(ncells_ghost);
-      nlft_tmp.resize(ncells_ghost,-98);
-      nrht_tmp.resize(ncells_ghost,-98);
-      nbot_tmp.resize(ncells_ghost,-98);
-      ntop_tmp.resize(ncells_ghost,-98);
-
-#ifdef HAVE_MPI
-      L7_Update(&celltype_tmp[0], L7_INT, cell_handle);
-      L7_Update(&i_tmp[0],        L7_INT, cell_handle);
-      L7_Update(&j_tmp[0],        L7_INT, cell_handle);
-      L7_Update(&level_tmp[0],    L7_INT, cell_handle);
-#endif
-
-      //for (int ic=0; ic<ncells; ic++){
-      //   fprintf(fp,"%d: before update ic %d        i %d j %d lev %d nlft %d nrht %d nbot %d ntop %d\n",
-      //       mype,ic,i[ic],j[ic],level[ic],nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
-      //}
-
-#ifdef HAVE_MPI
-      L7_Update(&nlft_tmp[0], L7_INT, cell_handle);
-      L7_Update(&nrht_tmp[0], L7_INT, cell_handle);
-      L7_Update(&nbot_tmp[0], L7_INT, cell_handle);
-      L7_Update(&ntop_tmp[0], L7_INT, cell_handle);
-#endif
-
-         //vector<int> itest(ncells_ghost);
-         //for (int ic=0; ic<ncells; ic++){
-         //   itest[ic] = mype*1000 + ic;
-         //   fprintf(fp,"%d: test is filled with ic %d = %d\n",mype,ic,itest[ic]);
-         //}
-         //for (int ic=ncells; ic<ncells_ghost; ic++){
-         //   itest[ic] = 0;
-         //}
-
-#ifdef HAVE_MPI
-         //L7_Update(&itest[0], L7_INT, cell_handle);
-#endif
-
-         //for (int ic=0; ic<ncells_ghost; ic++){
-         //   fprintf(fp,"%d: test after update ic %d = %d\n",mype,ic,itest[ic]);
-         //}
-
-      if (numpe > 1) {
-         cl_mem dev_celltype_old = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_i_old        = ezcl_malloc(NULL, const_cast<char *>("dev_i_old"),        &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_j_old        = ezcl_malloc(NULL, const_cast<char *>("dev_j_old"),        &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_level_old    = ezcl_malloc(NULL, const_cast<char *>("dev_level_old"),    &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_nlft_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nlft_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_nrht_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nrht_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_nbot_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nbot_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_ntop_old     = ezcl_malloc(NULL, const_cast<char *>("dev_ntop_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-
-         cl_mem dev_tmp;
-         SWAP_PTR(dev_celltype_old, dev_celltype, dev_tmp);
-         SWAP_PTR(dev_i_old,        dev_i,        dev_tmp);
-         SWAP_PTR(dev_j_old,        dev_j,        dev_tmp);
-         SWAP_PTR(dev_level_old,    dev_level,    dev_tmp);
-         SWAP_PTR(dev_nlft_old,     dev_nlft,     dev_tmp);
-         SWAP_PTR(dev_nrht_old,     dev_nrht,     dev_tmp);
-         SWAP_PTR(dev_nbot_old,     dev_nbot,     dev_tmp);
-         SWAP_PTR(dev_ntop_old,     dev_ntop,     dev_tmp);
-
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 0,  sizeof(cl_int), (void *)&ncells);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 1,  sizeof(cl_mem), (void *)&dev_celltype_old);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 2,  sizeof(cl_mem), (void *)&dev_celltype);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 3,  sizeof(cl_mem), (void *)&dev_i_old);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 4,  sizeof(cl_mem), (void *)&dev_i);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 5,  sizeof(cl_mem), (void *)&dev_j_old);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 6,  sizeof(cl_mem), (void *)&dev_j);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 7,  sizeof(cl_mem), (void *)&dev_level_old);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 8,  sizeof(cl_mem), (void *)&dev_level);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 9,  sizeof(cl_mem), (void *)&dev_nlft_old);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 10, sizeof(cl_mem), (void *)&dev_nlft);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 11, sizeof(cl_mem), (void *)&dev_nrht_old);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 12, sizeof(cl_mem), (void *)&dev_nrht);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 13, sizeof(cl_mem), (void *)&dev_nbot_old);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 14, sizeof(cl_mem), (void *)&dev_nbot);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 15, sizeof(cl_mem), (void *)&dev_ntop_old);
-         ezcl_set_kernel_arg(kernel_copy_mesh_data, 16, sizeof(cl_mem), (void *)&dev_ntop);
-
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mesh_data,   1, NULL, &global_work_size, &local_work_size, NULL);
-      
-         ezcl_device_memory_remove(dev_celltype_old);
-         ezcl_device_memory_remove(dev_i_old);
-         ezcl_device_memory_remove(dev_j_old);
-         ezcl_device_memory_remove(dev_level_old);
-         ezcl_device_memory_remove(dev_nlft_old);
-         ezcl_device_memory_remove(dev_nrht_old);
-         ezcl_device_memory_remove(dev_nbot_old);
-         ezcl_device_memory_remove(dev_ntop_old);
-
-         size_t nghost_local = nghost;
-         cl_mem dev_nlft_add       = ezcl_malloc(NULL, const_cast<char *>("dev_nlft_add"),       &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_nrht_add       = ezcl_malloc(NULL, const_cast<char *>("dev_nrht_add"),       &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_nbot_add       = ezcl_malloc(NULL, const_cast<char *>("dev_nbot_add"),       &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_ntop_add       = ezcl_malloc(NULL, const_cast<char *>("dev_ntop_add"),       &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_celltype_add   = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_add"),   &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_i_add          = ezcl_malloc(NULL, const_cast<char *>("dev_i_add"),          &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_j_add          = ezcl_malloc(NULL, const_cast<char *>("dev_j_add"),          &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_level_add      = ezcl_malloc(NULL, const_cast<char *>("dev_level_add"),      &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_indices_needed = ezcl_malloc(NULL, const_cast<char *>("dev_indices_needed"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-
-         ezcl_enqueue_write_buffer(command_queue, dev_nlft_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nlft_tmp[ncells],     NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_nrht_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nrht_tmp[ncells],     NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_nbot_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&nbot_tmp[ncells],     NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_ntop_add,       CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&ntop_tmp[ncells],     NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_celltype_add,   CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&celltype_tmp[ncells], NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_i_add,          CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&i_tmp[ncells],        NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_j_add,          CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&j_tmp[ncells],        NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_level_add,      CL_FALSE, 0, nghost*sizeof(cl_int), (void*)&level_tmp[ncells],    NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_indices_needed, CL_TRUE,  0, nghost*sizeof(cl_int), (void*)&indices_needed[0],    NULL);
-
-         //size_t border_local_work_size = MIN(nbsize,TILE_SIZE);
-         size_t ghost_local_work_size = 32;
-         size_t ghost_global_work_size = ((nghost + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
-
-         ezcl_set_kernel_arg(kernel_copy_ghost_data,  0, sizeof(cl_int), (void *)&ncells);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data,  1, sizeof(cl_int), (void *)&nghost);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data,  2, sizeof(cl_mem), (void *)&dev_nlft);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data,  3, sizeof(cl_mem), (void *)&dev_nlft_add);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data,  4, sizeof(cl_mem), (void *)&dev_nrht);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data,  5, sizeof(cl_mem), (void *)&dev_nrht_add);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data,  6, sizeof(cl_mem), (void *)&dev_nbot);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data,  7, sizeof(cl_mem), (void *)&dev_nbot_add);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data,  8, sizeof(cl_mem), (void *)&dev_ntop);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data,  9, sizeof(cl_mem), (void *)&dev_ntop_add);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data, 10, sizeof(cl_mem), (void *)&dev_celltype);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data, 11, sizeof(cl_mem), (void *)&dev_celltype_add);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data, 12, sizeof(cl_mem), (void *)&dev_i);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data, 13, sizeof(cl_mem), (void *)&dev_i_add);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data, 14, sizeof(cl_mem), (void *)&dev_j);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data, 15, sizeof(cl_mem), (void *)&dev_j_add);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data, 16, sizeof(cl_mem), (void *)&dev_level);
-         ezcl_set_kernel_arg(kernel_copy_ghost_data, 17, sizeof(cl_mem), (void *)&dev_level_add);
-
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);                                                                                                      
-         ezcl_device_memory_remove(dev_nlft_add);
-         ezcl_device_memory_remove(dev_nrht_add);
-         ezcl_device_memory_remove(dev_nbot_add);
-         ezcl_device_memory_remove(dev_ntop_add);
-         ezcl_device_memory_remove(dev_celltype_add);
-         ezcl_device_memory_remove(dev_i_add);
-         ezcl_device_memory_remove(dev_j_add);
-         ezcl_device_memory_remove(dev_level_add);
-
-         size_t nc_ghost_local_work_size = 32;
-         size_t nc_ghost_global_work_size = ((ncells_ghost + nc_ghost_local_work_size - 1) /nc_ghost_local_work_size) * nc_ghost_local_work_size;
-
-         ezcl_set_kernel_arg(kernel_adjust_neighbors, 0,  sizeof(cl_int), (void *)&ncells_ghost);
-         ezcl_set_kernel_arg(kernel_adjust_neighbors, 1,  sizeof(cl_int), (void *)&nghost);
-         ezcl_set_kernel_arg(kernel_adjust_neighbors, 2,  sizeof(cl_int), (void *)&noffset);
-         ezcl_set_kernel_arg(kernel_adjust_neighbors, 3,  sizeof(cl_mem), (void *)&dev_indices_needed);
-         ezcl_set_kernel_arg(kernel_adjust_neighbors, 4,  sizeof(cl_mem), (void *)&dev_nlft);
-         ezcl_set_kernel_arg(kernel_adjust_neighbors, 5,  sizeof(cl_mem), (void *)&dev_nrht);
-         ezcl_set_kernel_arg(kernel_adjust_neighbors, 6,  sizeof(cl_mem), (void *)&dev_nbot);
-         ezcl_set_kernel_arg(kernel_adjust_neighbors, 7,  sizeof(cl_mem), (void *)&dev_ntop);
-
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_adjust_neighbors,   1, NULL, &nc_ghost_global_work_size, &nc_ghost_local_work_size, NULL);
-
-         ezcl_device_memory_remove(dev_indices_needed);
-      } // if (numpe > 1)
 
       if (DEBUG) {
+        print_dev_local(command_queue);
+      }
+
+      
+      if (DEBUG) {
+         ezcl_enqueue_read_buffer(command_queue, dev_i, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &i_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_j, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &j_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_level, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &level_tmp[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nlft_tmp[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nrht_tmp[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nbot_tmp[0], NULL);
