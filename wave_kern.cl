@@ -1660,28 +1660,44 @@ __kernel void calc_layer2_sethash_cl (
 __kernel void fill_mesh_ghost_cl (
                           const int  isize,              // 0 
                           const int  ncells,             // 1 
-                 __global const int  *border_cell_i,     // 2
-                 __global const int  *border_cell_j,     // 3
-                 __global const int  *border_cell_level, // 4
-                 __global       int  *i,                 // 5 
-                 __global       int  *j,                 // 6 
-                 __global       int  *level,             // 8 
-                 __global       int  *nlft,              // 9 
-                 __global       int  *nrht,              // 10
-                 __global       int  *nbot,              // 11
-                 __global       int  *ntop)              // 12
+                 __global const int  *lev_ibegin,        // 2
+                 __global const int  *lev_iend,          // 3
+                 __global const int  *lev_jbegin,        // 4
+                 __global const int  *lev_jend,          // 5
+                 __global const int  *border_cell_i,     // 6
+                 __global const int  *border_cell_j,     // 7
+                 __global const int  *border_cell_level, // 8
+                 __global       int  *i,                 // 9 
+                 __global       int  *j,                 // 10
+                 __global       int  *level,             // 11
+                 __global       int  *celltype,          // 12
+                 __global       int  *nlft,              // 13
+                 __global       int  *nrht,              // 14
+                 __global       int  *nbot,              // 15
+                 __global       int  *ntop)              // 16
 {
    const uint giX = get_global_id(0);
 
    if (giX >= isize) return;
 
-   i[ncells+giX]     = border_cell_i[giX];
-   j[ncells+giX]     = border_cell_j[giX];
-   level[ncells+giX] = border_cell_level[giX];
-   nlft[ncells+giX]  = -98;
-   nrht[ncells+giX]  = -98;
-   nbot[ncells+giX]  = -98;
-   ntop[ncells+giX]  = -98;
+   int ncout = ncells+giX;
+
+   int ii  = border_cell_i[giX];
+   int jj  = border_cell_j[giX];
+   int lev = border_cell_level[giX];
+
+   if (ii < lev_ibegin[lev]) celltype[ncout] = LEFT_BOUNDARY;
+   if (ii > lev_iend[lev])   celltype[ncout] = RIGHT_BOUNDARY;
+   if (jj < lev_jbegin[lev]) celltype[ncout] = BOTTOM_BOUNDARY;
+   if (jj > lev_jend[lev])   celltype[ncout] = TOP_BOUNDARY;
+
+   i[ncout]     = ii;
+   j[ncout]     = jj;
+   level[ncout] = lev;
+   nlft[ncout]  = -98;
+   nrht[ncout]  = -98;
+   nbot[ncout]  = -98;
+   ntop[ncout]  = -98;
 }
 
 __kernel void fill_neighbor_ghost_cl (
