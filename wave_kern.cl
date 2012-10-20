@@ -1022,6 +1022,7 @@ __kernel void hash_setup_local_cl(
 
 }
 
+#ifdef XXX
 __kernel void hash_setup_border_cl(
                           const int  isize,         // 0 
                           const int  levmx,         // 1 
@@ -1060,6 +1061,7 @@ __kernel void hash_setup_border_cl(
    }
 
 }
+#endif
 
 __kernel void calc_hash_size_cl(
                           const int   ncells,      // 0 
@@ -1887,6 +1889,7 @@ __kernel void adjust_neighbors_local_cl(
    ntop[giX] = ntopval;
 }
 
+#ifdef XXX
 __kernel void calc_neighbors_local2_cl(
                           const int  isize,     // 0 
                           const int  levmx,     // 1 
@@ -1958,6 +1961,7 @@ __kernel void calc_neighbors_local2_cl(
    nbot[giX] = nbotval;
    ntop[giX] = ntopval;
 }
+#endif
 
 __kernel void copy_mesh_data_cl(
                           const int  isize,         // 0 
@@ -1993,6 +1997,7 @@ __kernel void copy_mesh_data_cl(
    ntop[giX]     = ntop_old[giX];
 }
 
+#ifdef XXX
 __kernel void copy_ghost_data_cl(
                           const int  ncells,        // 0 
                           const int  nghost,        // 1 
@@ -2005,7 +2010,9 @@ __kernel void copy_ghost_data_cl(
 
    celltype[ncells+giX] = celltype_add[giX];
 }
+#endif
 
+#ifdef XXX
 __kernel void adjust_neighbors_cl(
                           const int  ncells_ghost,    // 0 
                           const int  nghost,          // 1 
@@ -2055,6 +2062,7 @@ __kernel void adjust_neighbors_cl(
       }
    }
 }
+#endif
 
 void reduction_max_within_tile1(__local  real  *tile) 
 {
