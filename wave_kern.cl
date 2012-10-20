@@ -867,7 +867,7 @@ __kernel void hash_setup_cl(
    int ii = i[giX];
    int jj = j[giX];
 
-//#define HASH_SETUP_NEW
+#define HASH_SETUP_NEW
 
 #ifdef HASH_SETUP_NEW
    if (lev > 0 && (ii < lev_ibeg[lev] || ii > lev_iend[lev] || jj < lev_jbeg[lev] || jj > lev_jend[lev]) ) {

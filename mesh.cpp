@@ -2811,15 +2811,15 @@ void Mesh::calc_neighbors_local(void)
             //printf("%d: max j %d i %d\n",mype,j[ic]-jminsize,i[ic]-iminsize);
             hash[j[ic]-jminsize][i[ic]-iminsize] = ic+noffset;
          } else {
-/* Original Write to Hash Table */
+/* Original Write to Hash Table
             for (int    jj = j[ic]*levtable[levmx-lev]-jminsize; jj < (j[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
                for (int ii = i[ic]*levtable[levmx-lev]-iminsize; ii < (i[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
                   //printf("%d: block j %d i %d\n",mype,jj,ii);
                   hash[jj][ii] = ic+noffset;
                }
             }
+*/
 /* Optimization: Always writes to max of 7 hash buckets, 4 if cell is l=levmx-1 */
-/*
             int wid = levtable[levmx-lev];
             int jj = j[ic]*wid - jminsize;
             int ii = i[ic]*wid - iminsize;
@@ -2844,7 +2844,6 @@ void Mesh::calc_neighbors_local(void)
                ii += wid/2;
                hash[jj][ii] = ic + noffset;
             }
-*/
          }
       }
       
