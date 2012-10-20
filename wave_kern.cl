@@ -1511,19 +1511,19 @@ __kernel void calc_layer1_sethash_cl (
 
    if (giX >= isize) return;
 
-   int iminsize = sizes[0].s0;
-   int imaxsize = sizes[0].s1;
-   int jminsize = sizes[0].s2;
-   int jmaxsize = sizes[0].s3;
-
-   int ii = border_cell_i[giX];
-   int jj = border_cell_j[giX];
-   int lev = border_cell_level[giX];
-   int levmult = levtable[levmx-lev];
-
    int iborder = border_cell_needed[giX];
 
    if (iborder) {
+      int iminsize = sizes[0].s0;
+      int imaxsize = sizes[0].s1;
+      int jminsize = sizes[0].s2;
+      int jmaxsize = sizes[0].s3;
+
+      int ii = border_cell_i[giX];
+      int jj = border_cell_j[giX];
+      int lev = border_cell_level[giX];
+      int levmult = levtable[levmx-lev];
+
       if (lev == levmx) {
          hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)] = ncells+noffset+giX;
       } else {
@@ -1556,22 +1556,22 @@ __kernel void calc_layer2_cl (
 
    if (giX >= isize) return;
 
-   int iminsize = sizes[0].s0;
-   int imaxsize = sizes[0].s1;
-   int jminsize = sizes[0].s2;
-   int jmaxsize = sizes[0].s3;
-
-   int imaxcalc = (imax+1)*levtable[levmx];
-   int jmaxcalc = (jmax+1)*levtable[levmx];
-
-   int ii = border_cell_i[giX];
-   int jj = border_cell_j[giX];
-   int lev = border_cell_level[giX];
-   int levmult = levtable[levmx-lev];
-
    int iborder = border_cell_needed[giX];
 
    if (iborder <= 0) {
+      int iminsize = sizes[0].s0;
+      int imaxsize = sizes[0].s1;
+      int jminsize = sizes[0].s2;
+      int jmaxsize = sizes[0].s3;
+
+      int imaxcalc = (imax+1)*levtable[levmx];
+      int jmaxcalc = (jmax+1)*levtable[levmx];
+
+      int ii = border_cell_i[giX];
+      int jj = border_cell_j[giX];
+      int lev = border_cell_level[giX];
+      int levmult = levtable[levmx-lev];
+
       if (max(ii*levmult-1, 0)-iminsize >= 0) {  // Test for cell to left
          int nl  = hash[(    (jj   *levmult)            -jminsize)*(imaxsize-iminsize)+(max(ii*levmult-1, 0)-iminsize)];
          if ( nl  >= (int)(ncells+noffset) && (border_cell_needed[nl -ncells-noffset] & 0x0001) == 0x0001) {
@@ -1631,14 +1631,14 @@ __kernel void calc_layer2_sethash_cl (
 
    if (giX >= isize) return;
 
-   int iminsize = sizes[0].s0;
-   int imaxsize = sizes[0].s1;
-   int jminsize = sizes[0].s2;
-   int jmaxsize = sizes[0].s3;
-
    int iborder = border_cell_needed[giX];
 
    if (iborder) {
+      int iminsize = sizes[0].s0;
+      int imaxsize = sizes[0].s1;
+      int jminsize = sizes[0].s2;
+      int jmaxsize = sizes[0].s3;
+
       int ii = border_cell_i[giX];
       int jj = border_cell_j[giX];
       int lev = border_cell_level[giX];
