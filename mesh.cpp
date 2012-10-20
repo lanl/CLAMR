@@ -3393,9 +3393,16 @@ void Mesh::calc_neighbors_local(void)
          ntop.resize(ncells_ghost,-98);
 
          for(int ic=0; ic<nbsize_local; ic++){
-            i[ncells+ic]     = border_cell_i_global[ic];
-            j[ncells+ic]     = border_cell_j_global[ic];
-            level[ncells+ic] = border_cell_level_global[ic];
+            int ii = border_cell_i_global[ic];
+            int jj = border_cell_j_global[ic];
+            int lev = border_cell_level_global[ic];
+            if (ii < lev_ibegin[lev]) celltype[ncells+ic] = LEFT_BOUNDARY;
+            if (ii > lev_iend[lev])   celltype[ncells+ic] = RIGHT_BOUNDARY;
+            if (jj < lev_jbegin[lev]) celltype[ncells+ic] = BOTTOM_BOUNDARY;
+            if (jj > lev_jend[lev])   celltype[ncells+ic] = TOP_BOUNDARY;
+            i[ncells+ic]     = ii;
+            j[ncells+ic]     = jj;
+            level[ncells+ic] = lev;
          }
 
          //fprintf(fp,"After copying i,j, level to ghost cells\n");
@@ -3562,12 +3569,6 @@ void Mesh::calc_neighbors_local(void)
             cpu_time_setup_comm += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
-
-         celltype.resize(ncells_ghost);
-
-#ifdef HAVE_MPI
-         L7_Update(&celltype[0], L7_INT, cell_handle);
-#endif
 
          if (DEBUG) {
             int jmaxglobal = (jmax+1)*levtable[levmx];
