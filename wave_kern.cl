@@ -1438,7 +1438,7 @@ __kernel void calc_border_cells2_cl(
 }
 
 __kernel void calc_layer1_cl (
-                          const int  isize,               // 0 
+                          const ulong  isize,               // 0 
                           const int  levmx,               // 1 
                           const int  imax,                // 2 
                           const int  jmax,                // 3 
@@ -1497,7 +1497,7 @@ __kernel void calc_layer1_cl (
 }
 
 __kernel void calc_layer1_sethash_cl (
-                          const int  isize,               // 0 
+                          const ulong isize,               // 0 
                           const int  ncells,              // 1 
                           const int  noffset,             // 2 
                           const int  levmx,               // 3 

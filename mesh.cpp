@@ -4087,6 +4087,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       cpu_timer_start(&tstart_lev2);
    }
 
+#ifdef HAVE_MPI
    if (numpe > 1) {
       vector<uint> border_cell(ncells);
 
@@ -4123,8 +4124,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       vector<int> j_tmp(ncells);
       vector<int> level_tmp(ncells);
 
-      ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0],        NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0],        NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_i,        CL_TRUE,  0, ncells*sizeof(cl_int), &i_tmp[0],        NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_j,        CL_TRUE,  0, ncells*sizeof(cl_int), &j_tmp[0],        NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_level,    CL_TRUE,  0, ncells*sizeof(cl_int), &level_tmp[0],    NULL);
 
       vector<int> border_cell_num;
@@ -4139,21 +4140,26 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          cpu_timer_start(&tstart_lev2);
       }
 
-      int nbsize_global;
-      int nbsize_local=border_cell_num.size();
+      size_t nbsize_global;
+      size_t nbsize_local=border_cell_num.size();
 
+      MPI_Barrier(MPI_COMM_WORLD);
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
+      MPI_Barrier(MPI_COMM_WORLD);
       nbsize_global = nbsize_local;
-#ifdef HAVE_MPI
-      MPI_Allreduce(&nbsize_local, &nbsize_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-#endif
+      MPI_Allreduce(&nbsize_local, &nbsize_global, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
+      MPI_Barrier(MPI_COMM_WORLD);
 
-      //printf("%d: border cell size is %d global is %d\n",mype,nbsize_local,nbsize_global);
+      //printf("%d: border cell size is %ld global is %ld\n",mype,nbsize_local,nbsize_global);
 
       vector<int> border_cell_i(nbsize_local);
       vector<int> border_cell_j(nbsize_local);
       vector<int> border_cell_level(nbsize_local);
     
-      for (int ic = 0; ic <nbsize_local; ic++){
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
+      for (uint ic = 0; ic <nbsize_local; ic++){
          int cell_num = border_cell_num[ic]-noffset;
          border_cell_i[ic] = i_tmp[cell_num]; 
          border_cell_j[ic] = j_tmp[cell_num]; 
@@ -4162,11 +4168,14 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          //   border_cell_i[ic],border_cell_j[ic],border_cell_level[ic]);
       }
 
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
+
       vector<int> nbsizes(numpe);
       vector<int> nbdispl(numpe);
-#ifdef HAVE_MPI
-      MPI_Allgather(&nbsize_local, 1, MPI_INT, &nbsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-#endif
+
+      int nbsize_int = nbsize_local;
+      MPI_Allgather(&nbsize_int, 1, MPI_INT, &nbsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+
       nbdispl[0]=0;
       for (int ip=1; ip<numpe; ip++){
          nbdispl[ip] += nbdispl[ip-1] + nbsizes[ip-1];
@@ -4177,12 +4186,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       vector<int>border_cell_j_global(nbsize_global);
       vector<int>border_cell_level_global(nbsize_global);
 
-#ifdef HAVE_MPI
       MPI_Allgatherv(&border_cell_num[0],   nbsizes[mype], MPI_INT, &border_cell_num_global[0],   &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
       MPI_Allgatherv(&border_cell_i[0],     nbsizes[mype], MPI_INT, &border_cell_i_global[0],     &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
       MPI_Allgatherv(&border_cell_j[0],     nbsizes[mype], MPI_INT, &border_cell_j_global[0],     &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
       MPI_Allgatherv(&border_cell_level[0], nbsizes[mype], MPI_INT, &border_cell_level_global[0], &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
-#endif
+
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
+
 
       if (TIMING_LEVEL >= 2) {
          ezcl_finish(command_queue);
@@ -4198,7 +4208,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       // Filter out only the data within our hash array boundaries
       int inew=0;
       vector<int> border_cell_needed_global(nbsize_global);
-      for (int ic = 0; ic < nbsize_global; ic++) {
+      for (uint ic = 0; ic < nbsize_global; ic++) {
          int lev = border_cell_level_global[ic];
          int levmult = levtable[levmx-lev];
 
@@ -4216,24 +4226,27 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       }
       nbsize_local = inew;
 
-      size_t nbsize = nbsize_local;
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
       //for (int ic = 0; ic < nbsize_local; ic++) {
       //   fprintf(fp,"%d: Local Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
       //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
       //}
 
-      cl_mem dev_border_cell_num    = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_num"),    &nbsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_i      = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_i"),      &nbsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_j      = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_j"),      &nbsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_level  = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_level"),  &nbsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_needed = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_needed"), &nbsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_num        = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_num"),        &nbsize_local, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_i          = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_i"),          &nbsize_local, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_j          = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_j"),          &nbsize_local, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_level      = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_level"),      &nbsize_local, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_needed     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_needed"),     &nbsize_local, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_needed_out = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_needed_out"), &nbsize_local, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
-      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_num,    CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_num_global[0], NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_i,      CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_i_global[0],   NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_j,      CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_j_global[0],   NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_level,  CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_level_global[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_num,    CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_num_global[0], NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_i,      CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_i_global[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_j,      CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_j_global[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_level,  CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_level_global[0],   NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_border_cell_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
+
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
       if (DEBUG) {
          vector<int> hash_tmp(hashsize);
@@ -4265,7 +4278,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       size_t nb_local_work_size = 128;
       size_t nb_global_work_size = ((nbsize_local + nb_local_work_size - 1) /nb_local_work_size) * nb_local_work_size;
 
-      ezcl_set_kernel_arg(kernel_calc_layer1,  0,  sizeof(cl_int), (void *)&nbsize_local);
+      ezcl_set_kernel_arg(kernel_calc_layer1,  0,  sizeof(cl_ulong), (void *)&nbsize_local);
       ezcl_set_kernel_arg(kernel_calc_layer1,  1,  sizeof(cl_int), (void *)&levmx);
       ezcl_set_kernel_arg(kernel_calc_layer1,  2,  sizeof(cl_int), (void *)&imax);
       ezcl_set_kernel_arg(kernel_calc_layer1,  3,  sizeof(cl_int), (void *)&jmax);
@@ -4281,13 +4294,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       if (DEBUG){
          ezcl_enqueue_read_buffer(command_queue, dev_border_cell_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
 
-         for(int ic=0; ic<nbsize_local; ic++){
+         for(uint ic=0; ic<nbsize_local; ic++){
             if (border_cell_needed_global[ic] == 0) continue;
             fprintf(fp,"%d: First set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
          }
       }
 
-      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  0,  sizeof(cl_int), (void *)&nbsize_local);
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  0,  sizeof(cl_ulong), (void *)&nbsize_local);
       ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  1,  sizeof(cl_int), (void *)&ncells);
       ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  2,  sizeof(cl_int), (void *)&noffset);
       ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  3,  sizeof(cl_int), (void *)&levmx);
@@ -4299,6 +4312,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  9,  sizeof(cl_mem), (void *)&dev_border_cell_needed);
       ezcl_set_kernel_arg(kernel_calc_layer1_sethash, 10,  sizeof(cl_mem), (void *)&dev_hash);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer1_sethash, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
+
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
       if (DEBUG) {
          vector<int> hash_tmp(hashsize);
@@ -4327,7 +4342,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          fprintf(fp,"\n");
       }
 
-      cl_mem dev_border_cell_needed_out = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_needed_out"), &nbsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
       ezcl_set_kernel_arg(kernel_calc_layer2,  0,  sizeof(cl_int), (void *)&nbsize_local);
       ezcl_set_kernel_arg(kernel_calc_layer2,  1,  sizeof(cl_int), (void *)&ncells);
@@ -4345,6 +4359,9 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_layer2, 13,  sizeof(cl_mem), (void *)&dev_hash);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer2, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
 
+   MPI_Barrier(MPI_COMM_WORLD);
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
+
 
       ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  0,  sizeof(cl_int), (void *)&nbsize_local);
       ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  1,  sizeof(cl_int), (void *)&ncells);
@@ -4360,6 +4377,9 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 11,  sizeof(cl_mem), (void *)&dev_hash);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer2_sethash, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
 
+   MPI_Barrier(MPI_COMM_WORLD);
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
+
       if (DEBUG) {
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
@@ -4368,11 +4388,11 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          int imaxglobal = (imax+1)*levtable[levmx];
          fprintf(fp,"\n                                    HASH numbering for 2 layer\n");
          for (int jj = jmaxglobal-1; jj>=0; jj--){
-            fprintf(fp,"%2d: %4d:",mype,jj);
+            fprintf(fp,"%3d: %5d:",mype,jj);
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
                   if (ii >= iminsize && ii < imaxsize) {
-                     fprintf(fp,"%5d",hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]);
+                     fprintf(fp,"%6d",hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]);
                   } else {
                      fprintf(fp,"     ");
                   }
@@ -4385,21 +4405,29 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
             fprintf(fp,"%4d:",ii);
          }
          fprintf(fp,"\n");
+         fflush(fp);
       }
 
-      ezcl_device_memory_remove(dev_border_cell_num);
+   MPI_Barrier(MPI_COMM_WORLD);
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
-      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_i,          CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_i_global[0],   NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_j,          CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_j_global[0],   NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_level,      CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_level_global[0],   NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_i,          CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_i_global[0],   NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_j,          CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_j_global[0],   NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_level,      CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_level_global[0],   NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_border_cell_needed_out, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
+
+   MPI_Barrier(MPI_COMM_WORLD);
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
       vector<int> indices_needed;
       inew = 0;
       for(int ic=0; ic<nbsize_local; ic++){
          if (border_cell_needed_global[ic] <= 0) continue;
-         //if (border_cell_needed_global[ic] <  0x0016) fprintf(fp,"%d: First  set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
-         //if (border_cell_needed_global[ic] >= 0x0016) fprintf(fp,"%d: Second set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+         //if (DEBUG){
+            //if (border_cell_needed_global[ic] <  0x0016) fprintf(fp,"%d: First  set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+            //if (border_cell_needed_global[ic] >= 0x0016) fprintf(fp,"%d: Second set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+            //fflush(fp);
+         //}
          indices_needed.push_back(border_cell_num_global[ic]);
 
          //border_cell_num_global[inew]    = border_cell_num_global[ic];
@@ -4411,13 +4439,16 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          inew++;
       }
       nbsize_local = inew;
-      nbsize = nbsize_local;
 
+   MPI_Barrier(MPI_COMM_WORLD);
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
+
+      ezcl_device_memory_remove(dev_border_cell_num);
       ezcl_device_memory_remove(dev_border_cell_needed);
       ezcl_device_memory_remove(dev_border_cell_needed_out);
 
-      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_i,          CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_i_global[0],   NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_j,          CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_j_global[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_i,          CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_i_global[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_j,          CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_j_global[0],   NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_border_cell_level,      CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_level_global[0],   NULL);
 
       if (TIMING_LEVEL >= 2) {
@@ -4468,6 +4499,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mesh_data,   1, NULL, &global_work_size, &local_work_size, NULL);
       
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
+
       ezcl_device_memory_remove(dev_celltype_old);
       ezcl_device_memory_remove(dev_i_old);
       ezcl_device_memory_remove(dev_j_old);
@@ -4499,13 +4532,17 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_fill_mesh_ghost, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
 
       if (DEBUG){
+      //if (mype == 42){
          fprintf(fp,"After copying i,j, level to ghost cells\n");
          print_dev_local(command_queue);
+         fflush(fp);
       }
 
       ezcl_device_memory_remove(dev_border_cell_i);
       ezcl_device_memory_remove(dev_border_cell_j);
       ezcl_device_memory_remove(dev_border_cell_level);
+
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
       size_t ghost_local_work_size = 128;
       size_t ghost_global_work_size = ((ncells_ghost + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
@@ -4554,7 +4591,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          print_dev_local(command_queue);
       }
 
-      cl_mem dev_indices_needed = ezcl_malloc(NULL, const_cast<char *>("dev_indices_needed"),     &nbsize, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_indices_needed = ezcl_malloc(NULL, const_cast<char *>("dev_indices_needed"),     &nbsize_local, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       ezcl_enqueue_write_buffer(command_queue, dev_indices_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &indices_needed[0],     NULL);
 
       ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  0,  sizeof(cl_int), (void *)&ncells_ghost);
@@ -4566,6 +4603,9 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  6,  sizeof(cl_mem), (void *)&dev_nbot);
       ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  7,  sizeof(cl_mem), (void *)&dev_ntop);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_adjust_neighbors_local, 1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL); 
+
+   MPI_Barrier(MPI_COMM_WORLD);
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
 
       ezcl_device_memory_remove(dev_indices_needed);
@@ -4581,18 +4621,19 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          cpu_timer_start(&tstart_lev2);
       }
 
+   //MPI_Barrier(MPI_COMM_WORLD);
+   //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
       offtile_ratio_local = (offtile_ratio_local*(double)offtile_local_count) + ((double)nghost / (double)ncells);
       offtile_local_count++;
       offtile_ratio_local /= offtile_local_count;
 
-#ifdef HAVE_MPI
       if (cell_handle) L7_Free(&cell_handle);
-#endif
       cell_handle=0;
+
       //for (int ic=0; ic<nghost; ic++){
       //   fprintf(fp,"%d: indices needed ic %d index %d\n",mype,ic,indices_needed[ic]);
       //}
-#ifdef HAVE_MPI
+
       L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
 
 #ifdef XXX
@@ -4670,7 +4711,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
 
          local_indices.clear();
-#endif
 #endif
 
       if (TIMING_LEVEL >= 2) {
@@ -4831,6 +4871,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          }
       }
    }
+#endif
 
    ezcl_device_memory_remove(dev_sizes);
 
