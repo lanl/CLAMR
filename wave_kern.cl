@@ -1369,18 +1369,25 @@ __kernel void calc_border_cells_cl(
 }
 
 __kernel void calc_border_cells2_cl(
-                          const int isize,      // 0
-                          const int noffset,    // 1
-                 __global const int *nlft,      // 2
-                 __global const int *nrht,      // 3
-                 __global const int *nbot,      // 4
-                 __global const int *ntop,      // 5
-                 __global const int *level,     // 6
-                 __global const uint *border_cell_in, //7
-                 __global       uint *border_cell_out //8
-                                  )
+                          const int   isize,            // 0
+                          const int   noffset,          // 1
+                 __global const int   *nlft,            // 2
+                 __global const int   *nrht,            // 3
+                 __global const int   *nbot,            // 4
+                 __global const int   *ntop,            // 5
+                 __global const int   *level,           // 6
+                 __global const uint  *border_cell_in,  // 7
+                 __global       uint  *border_cell_out, // 8
+                 __global       uint  *ioffset,         // 9
+                 __global       ulong *nbsize,          // 10
+                 __local        int   *itile)           // 11
 {
-   const unsigned int giX = get_global_id(0);
+   const uint giX = get_global_id(0);
+   const uint tiX = get_local_id(0);
+   const uint group_id = get_group_id(0);
+   const uint ntX = get_local_size(0);
+
+   itile[tiX] = 0;
 
    if (giX >= isize) return;
 
@@ -1434,8 +1441,179 @@ __kernel void calc_border_cells2_cl(
       }
    }
 
+// Setting up for scan of border cells
+   if (border_cell) itile[tiX] = 1;
+
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   for (int offset = ntX >> 1; offset > 32; offset >>= 1) { 
+      if (tiX < offset) {
+         itile[tiX] += itile[tiX+offset]; 
+      }    
+      barrier(CLK_LOCAL_MEM_FENCE);
+   }    
+
+   //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
+   if (tiX < 32)
+   {  itile[tiX] += itile[tiX+32];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+16];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+8];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+4];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+2];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+1]; }
+
+   if (tiX == 0) { 
+     ioffset[group_id] = itile[0];
+     (*nbsize) = itile[0];
+   }    
+
    border_cell_out[giX] = border_cell;
 }
+
+inline uint scan_workgroup_exclusive(
+    __local uint* itile,
+    const uint tiX,
+    const uint lane,
+    const uint warpID) {
+    
+    // Step 1: scan each warp
+    uint val = scan_warp_exclusive(itile, tiX, lane);
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+    // Step 2: Collect per-warp sums
+    if (lane == 31) itile[warpID] = itile[tiX];
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+    // Step 3: Use 1st warp to scan per-warp sums
+    if (warpID == 0) scan_warp_inclusive(itile, tiX, lane);
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+    // Step 4: Accumulate results from Steps 1 and 3
+    if (warpID > 0) val += itile[warpID-1];
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+    // Step 6: Write and return the final result
+    itile[tiX] = val;
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+    return val;
+}
+
+__kernel void finish_scan_cl(
+                          const int   size,       // 0
+                 __global       uint  *ioffset,   // 1
+                 __global       ulong *nbsize,    // 2
+                 __local        int   *itile)     // 3
+{
+   const uint tiX = get_local_id(0);
+   const uint group_id = get_group_id(0);
+   const uint ntX = get_local_size(0);
+
+   const uint lane = tiX & 31; 
+   const uint warpID = tiX >> 5;
+   const uint EPT = (size+ntX-1)/ntX; //elements_per_thread;
+    
+   uint reduceValue = 0;
+    
+//  #pragma unroll 4
+   for(uint i = 0; i < EPT; ++i)
+   {   
+      uint offsetIdx = i * ntX + tiX;
+
+#ifdef IS_NVIDIA
+//    if (offsetIdx >= size) return;
+#endif
+    
+      // Step 1: Read ntX elements from global (off-chip) memory to local memory (on-chip)
+      uint input = 0;
+      if (offsetIdx < size) input = ioffset[offsetIdx];    
+      itile[tiX] = input;    
+      barrier(CLK_LOCAL_MEM_FENCE);
+   
+      // Step 2: Perform scan on ntX elements
+      uint val = scan_workgroup_exclusive(itile, tiX, lane, warpID);
+   
+      // Step 3: Propagate reduced result from previous block of ntX elements
+      val += reduceValue;
+   
+      // Step 4: Write out data to global memory
+      if (offsetIdx < size) ioffset[offsetIdx] = val;
+       
+      // Step 5: Choose reduced value for next iteration
+      if (tiX == (ntX-1)) itile[tiX] = input + val;
+      barrier(CLK_LOCAL_MEM_FENCE);
+
+      reduceValue = itile[ntX-1];
+      barrier(CLK_LOCAL_MEM_FENCE);
+   }
+   (*nbsize) = itile[ntX-1];
+}
+
+__kernel void get_border_data_cl(
+                          const int  isize,              // 0
+                          const int  noffset,            // 1
+                 __global       uint *ioffset,           // 2
+                 __global const int  *border_cell,       // 3
+                 __global const int  *i,                 // 4
+                 __global const int  *j,                 // 5
+                 __global const int  *level,             // 6
+                 __global       int  *border_cell_i,     // 8
+                 __global       int  *border_cell_j,     // 9
+                 __global       int  *border_cell_level, // 10
+                 __global       int  *border_cell_num,   // 11
+                 __local        uint *itile)             // 12
+{
+   const uint giX = get_global_id(0);
+   const uint tiX = get_local_id(0);
+   const uint group_id = get_group_id(0);
+
+   const uint lane   = tiX & 31; 
+   const uint warpid = tiX >> 5;
+
+   int cell_num = giX-noffset;
+
+   // Step 1: load global data into tile
+   int temp_val = 0;
+   if (giX < isize) temp_val = border_cell[giX];
+   itile[tiX] = 0;
+   if (temp_val > 0) itile[tiX] = 1;
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   // Step 2: scan each warp
+   uint val = scan_warp_exclusive(itile, tiX, lane);
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   // Step 3: Collect per-warp sums
+   if (lane == 31) itile[warpid] = itile[tiX];
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   // Step 4: Use 1st warp to scan per-warp sums
+   if (warpid == 0) scan_warp_inclusive(itile, tiX, lane);
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   // Step 5: Accumulate results from Steps 2 and 4
+   if (warpid > 0) val += itile[warpid-1];
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   if (giX >= isize || temp_val <= 0) return;
+
+   // Step 6: Write and return the final result
+   //itile[tiX] = val;
+   //barrier(CLK_LOCAL_MEM_FENCE);
+
+   val += ioffset[group_id];   //index to write to for each thread
+
+   border_cell_i[val]     = i[giX];
+   border_cell_j[val]     = j[giX];
+   border_cell_level[val] = level[giX];
+   border_cell_num[val]   = giX+noffset;
+}
+
 
 __kernel void calc_layer1_cl (
                           const ulong  isize,               // 0 
