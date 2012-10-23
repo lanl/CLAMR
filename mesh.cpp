@@ -4457,9 +4457,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       vector<int> indices_needed(nbsize_test);
 
       // read gpu border cell data 
-      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_i_new,     CL_FALSE, 0, nbsize_test*sizeof(cl_int), &border_cell_i[0],     NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_j_new,     CL_FALSE, 0, nbsize_test*sizeof(cl_int), &border_cell_j[0],     NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_border_cell_level_new, CL_FALSE, 0, nbsize_test*sizeof(cl_int), &border_cell_level[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_indices_needed_new,    CL_TRUE,  0, nbsize_test*sizeof(cl_int), &indices_needed[0],    NULL);
 
       ezcl_device_memory_remove(dev_border_cell_i);
