@@ -1717,22 +1717,30 @@ __kernel void calc_layer1_sethash_cl (
 }
 
 __kernel void calc_layer2_cl (
-                          const int  isize,                   // 0 
-                          const int  ncells,                  // 1 
-                          const int  noffset,                 // 2 
-                          const int  levmx,                   // 3 
-                          const int  imax,                    // 4 
-                          const int  jmax,                    // 5 
-                 __global const int4 *sizes,                  // 6 
-                 __global const int  *levtable,               // 7 
-                 __global const int  *border_cell_i,          // 8
-                 __global const int  *border_cell_j,          // 9
-                 __global const int  *border_cell_level,      // 10
-                 __global const int  *border_cell_needed,     // 11
-                 __global       int  *border_cell_needed_out, // 12
-                 __global const int  *hash)                   // 13
+                          const ulong isize,                   // 0 
+                          const int   ncells,                  // 1 
+                          const int   noffset,                 // 2 
+                          const int   levmx,                   // 3 
+                          const int   imax,                    // 4 
+                          const int   jmax,                    // 5 
+                 __global const int4  *sizes,                  // 6 
+                 __global const int   *levtable,               // 7 
+                 __global const int   *border_cell_i,          // 8
+                 __global const int   *border_cell_j,          // 9
+                 __global const int   *border_cell_level,      // 10
+                 __global const int   *border_cell_needed,     // 11
+                 __global       int   *border_cell_needed_out, // 12
+                 __global const int   *hash,                   // 13
+                 __global       int   *ioffset,                // 14
+                 __global       ulong *nbsize_new,             // 15
+                 __local        int   *itile)                  // 16
 {
    const uint giX = get_global_id(0);
+   const uint tiX = get_local_id(0);
+   const uint group_id = get_group_id(0);
+   const uint ntX = get_local_size(0);
+
+   itile[tiX] = 0;
 
    if (giX >= isize) return;
 
@@ -1790,8 +1798,99 @@ __kernel void calc_layer2_cl (
       }
       if (iborder) iborder |= 0x0016;
    }
+
+// Setting up for scan of border cells
+   if (iborder) itile[tiX] = 1; 
+
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   for (int offset = ntX >> 1; offset > 32; offset >>= 1) { 
+      if (tiX < offset) {
+         itile[tiX] += itile[tiX+offset]; 
+      }    
+      barrier(CLK_LOCAL_MEM_FENCE);
+   }    
+
+   //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
+   if (tiX < 32)
+   {  itile[tiX] += itile[tiX+32];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+16];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+8];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+4];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+2];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+1]; }
+
+   if (tiX == 0) { 
+     ioffset[group_id] = itile[0];
+     (*nbsize_new) = itile[0];
+   }    
+
    border_cell_needed_out[giX] = iborder;
 }
+
+__kernel void get_border_data2_cl(
+                          const int   isize,                  // 0
+                 __global       uint  *ioffset,               // 1
+                 __global const int   *border_cell,           // 2
+                 __global const int   *border_cell_i,         // 3
+                 __global const int   *border_cell_j,         // 4
+                 __global const int   *border_cell_level,     // 5
+                 __global const int   *border_cell_num,       // 6
+                 __global       int   *border_cell_i_new,     // 7
+                 __global       int   *border_cell_j_new,     // 8
+                 __global       int   *border_cell_level_new, // 9
+                 __global       int   *indices_needed,        // 10
+                 __local        uint  *itile)                 // 11
+{
+   const uint giX = get_global_id(0);
+   const uint tiX = get_local_id(0);
+   const uint group_id = get_group_id(0);
+
+   const uint lane   = tiX & 31; 
+   const uint warpid = tiX >> 5;
+
+   // Step 1: load global data into tile
+   int temp_val = 0;
+   if (giX < isize) temp_val = border_cell[giX];
+   itile[tiX] = 0;
+   if (temp_val > 0) itile[tiX] = 1;
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   // Step 2: scan each warp
+   uint val = scan_warp_exclusive(itile, tiX, lane);
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   // Step 3: Collect per-warp sums
+   if (lane == 31) itile[warpid] = itile[tiX];
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   // Step 4: Use 1st warp to scan per-warp sums
+   if (warpid == 0) scan_warp_inclusive(itile, tiX, lane);
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   // Step 5: Accumulate results from Steps 2 and 4
+   if (warpid > 0) val += itile[warpid-1];
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   if (giX >= isize || temp_val <= 0) return;
+
+   // Step 6: Write and return the final result
+   //itile[tiX] = val;
+   //barrier(CLK_LOCAL_MEM_FENCE);
+
+   val += ioffset[group_id];   //index to write to for each thread
+
+   border_cell_i_new[val]     = border_cell_i[giX];
+   border_cell_j_new[val]     = border_cell_j[giX];
+   border_cell_level_new[val] = border_cell_level[giX];
+   indices_needed[val]        = border_cell_num[giX];
+}
+
 
 __kernel void calc_layer2_sethash_cl (
                           const int  isize,               // 0 
