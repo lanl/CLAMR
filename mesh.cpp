@@ -4462,9 +4462,9 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_read_buffer(command_queue, dev_border_cell_level_new, CL_FALSE, 0, nbsize_test*sizeof(cl_int), &border_cell_level[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_indices_needed_new,    CL_TRUE,  0, nbsize_test*sizeof(cl_int), &indices_needed[0],    NULL);
 
-      ezcl_device_memory_remove(dev_border_cell_i_new);
-      ezcl_device_memory_remove(dev_border_cell_j_new);
-      ezcl_device_memory_remove(dev_border_cell_level_new);
+      ezcl_device_memory_remove(dev_border_cell_i);
+      ezcl_device_memory_remove(dev_border_cell_j);
+      ezcl_device_memory_remove(dev_border_cell_level);
       ezcl_device_memory_remove(dev_indices_needed_new);
 
       MPI_Barrier(MPI_COMM_WORLD);
@@ -4585,9 +4585,9 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  3,  sizeof(cl_mem), (void *)&dev_leviend);
       ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  4,  sizeof(cl_mem), (void *)&dev_levjbeg);
       ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  5,  sizeof(cl_mem), (void *)&dev_levjend);
-      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  6,  sizeof(cl_mem), (void *)&dev_border_cell_i);
-      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  7,  sizeof(cl_mem), (void *)&dev_border_cell_j);
-      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  8,  sizeof(cl_mem), (void *)&dev_border_cell_level);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  6,  sizeof(cl_mem), (void *)&dev_border_cell_i_new);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  7,  sizeof(cl_mem), (void *)&dev_border_cell_j_new);
+      ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  8,  sizeof(cl_mem), (void *)&dev_border_cell_level_new);
       ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  9,  sizeof(cl_mem), (void *)&dev_i);
       ezcl_set_kernel_arg(kernel_fill_mesh_ghost, 10,  sizeof(cl_mem), (void *)&dev_j);
       ezcl_set_kernel_arg(kernel_fill_mesh_ghost, 11,  sizeof(cl_mem), (void *)&dev_level);
@@ -4603,9 +4603,10 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          print_dev_local(command_queue);
       }
 
-      ezcl_device_memory_remove(dev_border_cell_i);
-      ezcl_device_memory_remove(dev_border_cell_j);
-      ezcl_device_memory_remove(dev_border_cell_level);
+      ezcl_device_memory_remove(dev_border_cell_i_new);
+      ezcl_device_memory_remove(dev_border_cell_j_new);
+      ezcl_device_memory_remove(dev_border_cell_level_new);
+
 
       //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
