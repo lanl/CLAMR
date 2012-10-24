@@ -1379,7 +1379,7 @@ __kernel void calc_border_cells2_cl(
                  __global const uint  *border_cell_in,  // 7
                  __global       uint  *border_cell_out, // 8
                  __global       uint  *ioffset,         // 9
-                 __global       ulong *nbsize,          // 10
+                 __global       int   *nbsize,          // 10
                  __local        int   *itile)           // 11
 {
    const uint giX = get_global_id(0);
@@ -1507,7 +1507,7 @@ inline uint scan_workgroup_exclusive(
 __kernel void finish_scan_cl(
                           const int   size,       // 0
                  __global       uint  *ioffset,   // 1
-                 __global       ulong *nbsize,    // 2
+                 __global       int   *nbsize,    // 2
                  __local        int   *itile)     // 3
 {
    const uint tiX = get_local_id(0);
@@ -1616,7 +1616,7 @@ __kernel void get_border_data_cl(
 
 
 __kernel void calc_layer1_cl (
-                          const ulong  isize,               // 0 
+                          const int  isize,               // 0 
                           const int  levmx,               // 1 
                           const int  imax,                // 2 
                           const int  jmax,                // 3 
@@ -1675,7 +1675,7 @@ __kernel void calc_layer1_cl (
 }
 
 __kernel void calc_layer1_sethash_cl (
-                          const ulong isize,               // 0 
+                          const int  isize,               // 0 
                           const int  ncells,              // 1 
                           const int  noffset,             // 2 
                           const int  levmx,               // 3 
@@ -1717,7 +1717,7 @@ __kernel void calc_layer1_sethash_cl (
 }
 
 __kernel void calc_layer2_cl (
-                          const ulong isize,                   // 0 
+                          const int isize,                   // 0 
                           const int   ncells,                  // 1 
                           const int   noffset,                 // 2 
                           const int   levmx,                   // 3 
@@ -1732,7 +1732,7 @@ __kernel void calc_layer2_cl (
                  __global       int   *border_cell_needed_out, // 12
                  __global const int   *hash,                   // 13
                  __global       int   *ioffset,                // 14
-                 __global       ulong *nbsize_new,             // 15
+                 __global       int   *nbsize_new,             // 15
                  __local        int   *itile)                  // 16
 {
    const uint giX = get_global_id(0);

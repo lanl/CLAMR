@@ -4100,7 +4100,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    if (numpe > 1) {
       vector<uint> border_cell(ncells);
 
-      cl_mem dev_border_cell1 = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell1"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell1"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
       ezcl_set_kernel_arg(kernel_calc_border_cells, 0,  sizeof(cl_int), (void *)&ncells);
       ezcl_set_kernel_arg(kernel_calc_border_cells, 1,  sizeof(cl_int), (void *)&noffset);
@@ -4109,13 +4109,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_border_cells, 4,  sizeof(cl_mem), (void *)&dev_nbot);
       ezcl_set_kernel_arg(kernel_calc_border_cells, 5,  sizeof(cl_mem), (void *)&dev_ntop);
       ezcl_set_kernel_arg(kernel_calc_border_cells, 6,  sizeof(cl_mem), (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_calc_border_cells, 7,  sizeof(cl_mem), (void *)&dev_border_cell1);
+      ezcl_set_kernel_arg(kernel_calc_border_cells, 7,  sizeof(cl_mem), (void *)&dev_border_cell);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_border_cells, 1, NULL, &global_work_size, &local_work_size, NULL); 
 
-      cl_mem dev_border_cell2 = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell2"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_new = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell2"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
       size_t one = 1;
-      cl_mem dev_nbsize = ezcl_malloc(NULL, const_cast<char *>("dev_nbsize"), &one, sizeof(cl_ulong), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_nbsize = ezcl_malloc(NULL, const_cast<char *>("dev_nbsize"), &one, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_ioffset = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
       ezcl_set_kernel_arg(kernel_calc_border_cells2,  0,  sizeof(cl_int), (void *)&ncells);
@@ -4125,15 +4125,16 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_border_cells2,  4,  sizeof(cl_mem), (void *)&dev_nbot);
       ezcl_set_kernel_arg(kernel_calc_border_cells2,  5,  sizeof(cl_mem), (void *)&dev_ntop);
       ezcl_set_kernel_arg(kernel_calc_border_cells2,  6,  sizeof(cl_mem), (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_calc_border_cells2,  7,  sizeof(cl_mem), (void *)&dev_border_cell1);
-      ezcl_set_kernel_arg(kernel_calc_border_cells2,  8,  sizeof(cl_mem), (void *)&dev_border_cell2);
+      ezcl_set_kernel_arg(kernel_calc_border_cells2,  7,  sizeof(cl_mem), (void *)&dev_border_cell);
+      ezcl_set_kernel_arg(kernel_calc_border_cells2,  8,  sizeof(cl_mem), (void *)&dev_border_cell_new);
       ezcl_set_kernel_arg(kernel_calc_border_cells2,  9,  sizeof(cl_mem), (void *)&dev_ioffset);
       ezcl_set_kernel_arg(kernel_calc_border_cells2, 10,  sizeof(cl_mem), (void *)&dev_nbsize);
       ezcl_set_kernel_arg(kernel_calc_border_cells2, 11,  local_work_size*sizeof(cl_int), NULL);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_border_cells2, 1, NULL, &global_work_size, &local_work_size, NULL); 
 
-      ezcl_device_memory_remove(dev_border_cell1);
-      ezcl_enqueue_read_buffer(command_queue, dev_border_cell2, CL_TRUE,  0, ncells*sizeof(cl_uint), &border_cell[0], NULL);
+      cl_mem dev_tmp;
+      SWAP_PTR(dev_border_cell, dev_border_cell_new, dev_tmp);
+      ezcl_device_memory_remove(dev_border_cell_new);
 
       int group_size = (int)(global_work_size/local_work_size);
 
@@ -4143,8 +4144,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_finish_scan, 3,  local_work_size*sizeof(cl_int), NULL);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_finish_scan, 1, NULL, &local_work_size, &local_work_size, NULL); 
 
-      size_t nbsize_local;
-      ezcl_enqueue_read_buffer(command_queue, dev_nbsize, CL_TRUE,  0, 1*sizeof(cl_ulong), &nbsize_local, NULL);
+      int nbsize_local;
+      ezcl_enqueue_read_buffer(command_queue, dev_nbsize, CL_TRUE,  0, 1*sizeof(cl_int), &nbsize_local, NULL);
       ezcl_device_memory_remove(dev_nbsize);
 
       if (TIMING_LEVEL >= 2) {
@@ -4154,13 +4155,15 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       }
 
       //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
-      MPI_Barrier(MPI_COMM_WORLD);
-      size_t nbsize_global;
-      MPI_Allreduce(&nbsize_local, &nbsize_global, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
-      MPI_Barrier(MPI_COMM_WORLD);
+      //MPI_Barrier(MPI_COMM_WORLD);
+
+      int nbsize_global;
+      MPI_Allreduce(&nbsize_local, &nbsize_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+      //MPI_Barrier(MPI_COMM_WORLD);
       //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
-      //printf("%d: border cell size is %ld global is %ld\n",mype,nbsize_local,nbsize_global);
+      //printf("%d: border cell size is %d global is %ld\n",mype,nbsize_local,nbsize_global);
 
       vector<int> border_cell_num(nbsize_local);
       vector<int> border_cell_i(nbsize_local);
@@ -4170,15 +4173,16 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
       // allocate new test vectors
-      cl_mem dev_border_cell_i_test     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_i_test"),     &nbsize_local, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_j_test     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_j_test"),     &nbsize_local, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_level_test = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_level_test"), &nbsize_local, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_num_test   = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_num_test"),   &nbsize_local, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      size_t nbsize_long = nbsize_local;
+      cl_mem dev_border_cell_i_test     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_i_test"),     &nbsize_long, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_j_test     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_j_test"),     &nbsize_long, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_level_test = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_level_test"), &nbsize_long, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_num_test   = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_num_test"),   &nbsize_long, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
       ezcl_set_kernel_arg(kernel_get_border_data,  0,  sizeof(cl_int), (void *)&ncells);
       ezcl_set_kernel_arg(kernel_get_border_data,  1,  sizeof(cl_int), (void *)&noffset);
       ezcl_set_kernel_arg(kernel_get_border_data,  2,  sizeof(cl_mem), (void *)&dev_ioffset);
-      ezcl_set_kernel_arg(kernel_get_border_data,  3,  sizeof(cl_mem), (void *)&dev_border_cell2);
+      ezcl_set_kernel_arg(kernel_get_border_data,  3,  sizeof(cl_mem), (void *)&dev_border_cell);
       ezcl_set_kernel_arg(kernel_get_border_data,  4,  sizeof(cl_mem), (void *)&dev_i);
       ezcl_set_kernel_arg(kernel_get_border_data,  5,  sizeof(cl_mem), (void *)&dev_j);
       ezcl_set_kernel_arg(kernel_get_border_data,  6,  sizeof(cl_mem), (void *)&dev_level);
@@ -4189,7 +4193,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_get_border_data, 11,  local_work_size*sizeof(cl_uint), NULL);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_get_border_data, 1, NULL, &global_work_size, &local_work_size, NULL); 
 
-      ezcl_device_memory_remove(dev_border_cell2);
+      ezcl_device_memory_remove(dev_border_cell);
 
       // read gpu border cell data
       ezcl_enqueue_read_buffer(command_queue, dev_border_cell_i_test,     CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_i[0],     NULL);
@@ -4242,7 +4246,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       // Filter out only the data within our hash array boundaries
       int inew=0;
       vector<int> border_cell_needed_global(nbsize_global);
-      for (uint ic = 0; ic < nbsize_global; ic++) {
+      for (int ic = 0; ic < nbsize_global; ic++) {
          int lev = border_cell_level_global[ic];
          int levmult = levtable[levmx-lev];
 
@@ -4267,12 +4271,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
       //}
 
-      cl_mem dev_border_cell_num        = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_num"),        &nbsize_local, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_i          = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_i"),          &nbsize_local, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_j          = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_j"),          &nbsize_local, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_level      = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_level"),      &nbsize_local, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_needed     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_needed"),     &nbsize_local, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_needed_out = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_needed_out"), &nbsize_local, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      nbsize_long = nbsize_local;
+      cl_mem dev_border_cell_num        = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_num"),        &nbsize_long, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_i          = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_i"),          &nbsize_long, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_j          = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_j"),          &nbsize_long, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_level      = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_level"),      &nbsize_long, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_needed     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_needed"),     &nbsize_long, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_needed_out = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_needed_out"), &nbsize_long, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
       ezcl_enqueue_write_buffer(command_queue, dev_border_cell_num,    CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_num_global[0], NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_border_cell_i,      CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_i_global[0],   NULL);
@@ -4312,7 +4317,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       size_t nb_local_work_size = 128;
       size_t nb_global_work_size = ((nbsize_local + nb_local_work_size - 1) /nb_local_work_size) * nb_local_work_size;
 
-      ezcl_set_kernel_arg(kernel_calc_layer1,  0,  sizeof(cl_ulong), (void *)&nbsize_local);
+      ezcl_set_kernel_arg(kernel_calc_layer1,  0,  sizeof(cl_int), (void *)&nbsize_local);
       ezcl_set_kernel_arg(kernel_calc_layer1,  1,  sizeof(cl_int), (void *)&levmx);
       ezcl_set_kernel_arg(kernel_calc_layer1,  2,  sizeof(cl_int), (void *)&imax);
       ezcl_set_kernel_arg(kernel_calc_layer1,  3,  sizeof(cl_int), (void *)&jmax);
@@ -4328,13 +4333,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       if (DEBUG){
          ezcl_enqueue_read_buffer(command_queue, dev_border_cell_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
 
-         for(uint ic=0; ic<nbsize_local; ic++){
+         for(int ic=0; ic<nbsize_local; ic++){
             if (border_cell_needed_global[ic] == 0) continue;
             fprintf(fp,"%d: First set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
          }
       }
 
-      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  0,  sizeof(cl_ulong), (void *)&nbsize_local);
+      ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  0,  sizeof(cl_int), (void *)&nbsize_local);
       ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  1,  sizeof(cl_int),   (void *)&ncells);
       ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  2,  sizeof(cl_int),   (void *)&noffset);
       ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  3,  sizeof(cl_int),   (void *)&levmx);
@@ -4376,7 +4381,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          fprintf(fp,"\n");
       }
 
-      cl_mem dev_nbsize_new = ezcl_malloc(NULL, const_cast<char *>("dev_nbsize_new"), &one, sizeof(cl_ulong),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_nbsize_new = ezcl_malloc(NULL, const_cast<char *>("dev_nbsize_new"), &one, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
       dev_ioffset = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &nb_local_work_size, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
       ezcl_set_kernel_arg(kernel_calc_layer2,  0,  sizeof(cl_int), (void *)&nbsize_local);
@@ -4408,8 +4413,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_finish_scan, 3,  nb_local_work_size*sizeof(cl_int), NULL);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_finish_scan, 1, NULL, &nb_local_work_size, &nb_local_work_size, NULL); 
 
-      size_t nbsize_test;
-      ezcl_enqueue_read_buffer(command_queue, dev_nbsize_new, CL_TRUE,  0, 1*sizeof(cl_ulong), &nbsize_test, NULL);
+      int nbsize_test;
+      ezcl_enqueue_read_buffer(command_queue, dev_nbsize_new, CL_TRUE,  0, 1*sizeof(cl_int), &nbsize_test, NULL);
 
       MPI_Barrier(MPI_COMM_WORLD);
       //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
@@ -4428,12 +4433,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 11,  sizeof(cl_mem), (void *)&dev_hash);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer2_sethash, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
 
-      cl_mem dev_border_cell_i_new     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_i_new"),     &nbsize_local, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_j_new     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_j_new"),     &nbsize_local, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_border_cell_level_new = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_level_new"), &nbsize_local, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_indices_needed_new    = ezcl_malloc(NULL, const_cast<char *>("dev_indices_needed_new"),    &nbsize_local, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      nbsize_long = nbsize_local;
+      cl_mem dev_border_cell_i_new     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_i_new"),     &nbsize_long, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_j_new     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_j_new"),     &nbsize_long, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_border_cell_level_new = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_level_new"), &nbsize_long, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_indices_needed_new    = ezcl_malloc(NULL, const_cast<char *>("dev_indices_needed_new"),    &nbsize_long, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-      ezcl_set_kernel_arg(kernel_get_border_data2,  0,  sizeof(cl_ulong), (void *)&nbsize_local);
+      ezcl_set_kernel_arg(kernel_get_border_data2,  0,  sizeof(cl_int), (void *)&nbsize_local);
       ezcl_set_kernel_arg(kernel_get_border_data2,  1,  sizeof(cl_mem),   (void *)&dev_ioffset);
       ezcl_set_kernel_arg(kernel_get_border_data2,  2,  sizeof(cl_mem),   (void *)&dev_border_cell_needed_out);
       ezcl_set_kernel_arg(kernel_get_border_data2,  3,  sizeof(cl_mem),   (void *)&dev_border_cell_i);
@@ -4500,7 +4506,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
       if (DEBUG){
          ezcl_enqueue_read_buffer(command_queue, dev_border_cell_needed_out, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
-         for(uint ic=0; ic<nbsize_local; ic++){
+         for(int ic=0; ic<nbsize_local; ic++){
             if (border_cell_needed_global[ic] <= 0) continue;
             if (border_cell_needed_global[ic] <  0x0016) fprintf(fp,"%d: First  set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
             if (border_cell_needed_global[ic] >= 0x0016) fprintf(fp,"%d: Second set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
@@ -4533,7 +4539,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       cl_mem dev_nbot_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nbot_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_ntop_old     = ezcl_malloc(NULL, const_cast<char *>("dev_ntop_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-      cl_mem dev_tmp;
       SWAP_PTR(dev_celltype_old, dev_celltype, dev_tmp);
       SWAP_PTR(dev_i_old,        dev_i,        dev_tmp);
       SWAP_PTR(dev_j_old,        dev_j,        dev_tmp);
@@ -4654,7 +4659,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          print_dev_local(command_queue);
       }
 
-      cl_mem dev_indices_needed = ezcl_malloc(NULL, const_cast<char *>("dev_indices_needed"),     &nbsize_local, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      nbsize_long = nbsize_local;
+      cl_mem dev_indices_needed = ezcl_malloc(NULL, const_cast<char *>("dev_indices_needed"),     &nbsize_long, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       ezcl_enqueue_write_buffer(command_queue, dev_indices_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &indices_needed[0],     NULL);
 
       ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  0,  sizeof(cl_int), (void *)&ncells_ghost);
