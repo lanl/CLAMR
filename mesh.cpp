@@ -4114,7 +4114,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
       size_t one = 1;
       cl_mem dev_nbsize = ezcl_malloc(NULL, const_cast<char *>("dev_nbsize"), &one, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_ioffset = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_ioffset = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &block_size, sizeof(cl_uint), CL_MEM_READ_WRITE, 0);
 
       ezcl_set_kernel_arg(kernel_calc_border_cells2,  0,  sizeof(cl_int), (void *)&ncells);
       ezcl_set_kernel_arg(kernel_calc_border_cells2,  1,  sizeof(cl_int), (void *)&noffset);
@@ -4191,6 +4191,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_get_border_data, 11,  local_work_size*sizeof(cl_uint), NULL);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_get_border_data, 1, NULL, &global_work_size, &local_work_size, NULL); 
 
+      ezcl_device_memory_remove(dev_ioffset);
       ezcl_device_memory_remove(dev_border_cell);
 
       // read gpu border cell data
@@ -4199,7 +4200,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_read_buffer(command_queue, dev_border_cell_level, CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_level[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_border_cell_num,   CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_num[0],   NULL);
 
-      ezcl_device_memory_remove(dev_ioffset);
       ezcl_device_memory_remove(dev_border_cell_i);
       ezcl_device_memory_remove(dev_border_cell_j);
       ezcl_device_memory_remove(dev_border_cell_level);
@@ -4210,8 +4210,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       vector<int> nbsizes(numpe);
       vector<int> nbdispl(numpe);
 
-      int nbsize_int = nbsize_local;
-      MPI_Allgather(&nbsize_int, 1, MPI_INT, &nbsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+      MPI_Allgather(&nbsize_local, 1, MPI_INT, &nbsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
 
       nbdispl[0]=0;
       for (int ip=1; ip<numpe; ip++){
