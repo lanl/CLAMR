@@ -113,11 +113,12 @@ public:
                cpu_time_hash_query,
                cpu_time_find_boundary,
                cpu_time_gather_boundary,
-               cpu_time_hash_setup2,
-               cpu_time_hash_query2,
-               cpu_time_offtile_list,
+               cpu_time_local_list,
+               cpu_time_layer1,
+               cpu_time_layer2,
+               cpu_time_layer_list,
+               cpu_time_ghost_fill,
                cpu_time_setup_comm,
-               cpu_time_do_ghost_comm,
 
                cpu_time_kdtree_setup,
                cpu_time_kdtree_query,
@@ -131,11 +132,12 @@ public:
                gpu_time_hash_query,
                gpu_time_find_boundary,
                gpu_time_gather_boundary,
-               gpu_time_hash_setup2,
-               gpu_time_hash_query2,
-               gpu_time_offtile_list,
+               gpu_time_local_list,
+               gpu_time_layer1,
+               gpu_time_layer2,
+               gpu_time_layer_list,
+               gpu_time_ghost_fill,
                gpu_time_setup_comm,
-               gpu_time_do_ghost_comm,
 
                gpu_time_kdtree_setup,
                gpu_time_kdtree_query,
@@ -287,11 +289,12 @@ public:
    double get_cpu_time_hash_query(void)               {return(cpu_time_hash_query); };
    double get_cpu_time_find_boundary(void)            {return(cpu_time_find_boundary); };
    double get_cpu_time_gather_boundary(void)          {return(cpu_time_gather_boundary); };
-   double get_cpu_time_hash_setup2(void)              {return(cpu_time_hash_setup2); };
-   double get_cpu_time_hash_query2(void)              {return(cpu_time_hash_query2); };
-   double get_cpu_time_offtile_list(void)             {return(cpu_time_offtile_list); };
+   double get_cpu_time_local_list(void)               {return(cpu_time_local_list); };
+   double get_cpu_time_layer1(void)                   {return(cpu_time_layer1); };
+   double get_cpu_time_layer2(void)                   {return(cpu_time_layer2); };
+   double get_cpu_time_layer_list(void)               {return(cpu_time_layer_list); };
+   double get_cpu_time_ghost_fill(void)               {return(cpu_time_ghost_fill); };
    double get_cpu_time_setup_comm(void)               {return(cpu_time_setup_comm); };
-   double get_cpu_time_do_ghost_comm(void)            {return(cpu_time_do_ghost_comm); };
    double get_cpu_time_kdtree_setup(void)             {return(cpu_time_kdtree_setup); };
    double get_cpu_time_kdtree_query(void)             {return(cpu_time_kdtree_query); };
    double get_cpu_time_rezone_all(void)               {return(cpu_time_rezone_all); };
@@ -304,11 +307,12 @@ public:
    long get_gpu_time_hash_query(void)               {return(gpu_time_hash_query); };
    long get_gpu_time_find_boundary(void)            {return(gpu_time_find_boundary); };
    long get_gpu_time_gather_boundary(void)          {return(gpu_time_gather_boundary); };
-   long get_gpu_time_hash_setup2(void)              {return(gpu_time_hash_setup2); };
-   long get_gpu_time_hash_query2(void)              {return(gpu_time_hash_query2); };
-   long get_gpu_time_offtile_list(void)             {return(gpu_time_offtile_list); };
+   long get_gpu_time_local_list(void)               {return(gpu_time_local_list); };
+   long get_gpu_time_layer1(void)                   {return(gpu_time_layer1); };
+   long get_gpu_time_layer2(void)                   {return(gpu_time_layer2); };
+   long get_gpu_time_layer_list(void)               {return(gpu_time_layer_list); };
+   long get_gpu_time_ghost_fill(void)               {return(gpu_time_ghost_fill); };
    long get_gpu_time_setup_comm(void)               {return(gpu_time_setup_comm); };
-   long get_gpu_time_do_ghost_comm(void)            {return(gpu_time_do_ghost_comm); };
    long get_gpu_time_kdtree_setup(void)             {return(gpu_time_kdtree_setup); };
    long get_gpu_time_kdtree_query(void)             {return(gpu_time_kdtree_query); };
    long get_gpu_time_rezone_all(void)               {return(gpu_time_rezone_all); };
