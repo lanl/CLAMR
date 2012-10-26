@@ -4492,9 +4492,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          cpu_timer_start(&tstart_lev2);
       }
 
-      border_cell_i.resize(nbsize_test);
-      border_cell_j.resize(nbsize_test);
-      border_cell_level.resize(nbsize_test);
       vector<int> indices_needed(nbsize_test);
 
       // read gpu border cell data 
