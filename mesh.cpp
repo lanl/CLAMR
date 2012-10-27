@@ -4129,7 +4129,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
           ezcl_get_device_mem_nelements(dev_nrht) < (int)ncells || 
           ezcl_get_device_mem_nelements(dev_nbot) < (int)ncells || 
           ezcl_get_device_mem_nelements(dev_ntop) < (int)ncells ) {
-         printf("%d: Warning -- sizes for dev_neigh too small ncells %ld neigh %d\n",mype,ncells,ezcl_get_device_mem_nelements(dev_nlft));
+         printf("%d: Warning -- sizes for dev_neigh too small ncells %ld neigh %d %d %d %d\n",mype,ncells,ezcl_get_device_mem_nelements(dev_nlft),ezcl_get_device_mem_nelements(dev_nrht),ezcl_get_device_mem_nelements(dev_nbot),ezcl_get_device_mem_nelements(dev_ntop));
       }
    }
 
