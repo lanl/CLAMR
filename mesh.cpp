@@ -3905,6 +3905,7 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
 }
 
 
+#define CHECK 1
 void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 {
    struct timeval tstart_cpu;
@@ -3949,6 +3950,14 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
                  __global       int4  *sizes,      // 7
                  __local        int4  *tile)       // 8
       */
+
+   if (CHECK) {
+      if (ezcl_get_device_mem_nelements(dev_i) < (int)ncells || 
+          ezcl_get_device_mem_nelements(dev_j) < (int)ncells ||
+          ezcl_get_device_mem_nelements(dev_level) < (int)ncells ){
+         printf("%d: Warning ncells %ld size dev_i %d dev_j %d dev_level %d\n",mype,ncells,ezcl_get_device_mem_nelements(dev_i),ezcl_get_device_mem_nelements(dev_j),ezcl_get_device_mem_nelements(dev_level));
+      }
+   }
 
    ezcl_set_kernel_arg(kernel_hash_size, 0, sizeof(cl_int), (void *)&ncells);
    ezcl_set_kernel_arg(kernel_hash_size, 1, sizeof(cl_int), (void *)&levmx);
@@ -4015,10 +4024,19 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, NULL);
 
    int csize = corners_i.size();
-   //for (int ic=0; ic<csize; ic++){
-   //   printf("%d: corners i %d j %d hash %d\n",mype,corners_i[ic],corners_j[ic],
-   //      (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize));
-   //}
+   if (CHECK) {
+      for (int ic=0; ic<csize; ic++){
+         if (corners_i[ic] >= iminsize) continue;
+         if (corners_j[ic] >= jminsize) continue;
+         if (corners_i[ic] <  imaxsize) continue;
+         if (corners_j[ic] <  jmaxsize) continue;
+         if ( (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize) < 0 ||
+              (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize) > (int)hashsize){
+            printf("%d: corners i %d j %d hash %d\n",mype,corners_i[ic],corners_j[ic],
+               (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize));
+         }
+      }
+   }
    size_t corners_local_work_size  = MIN(csize, TILE_SIZE);
    size_t corners_global_work_size = ((csize+corners_local_work_size - 1) /corners_local_work_size) * corners_local_work_size;
 
@@ -4045,6 +4063,26 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
    local_work_size = 128;
    global_work_size = ((ncells + local_work_size - 1) /local_work_size) * local_work_size;
+
+   if (CHECK) {
+      vector<int> i_tmp(ncells);
+      vector<int> j_tmp(ncells);
+      vector<int> level_tmp(ncells);
+      ezcl_enqueue_read_buffer(command_queue, dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_level, CL_TRUE,  0, ncells*sizeof(cl_int), &level_tmp[0], NULL);
+      for (int ic=0; ic<(int)ncells; ic++){
+         int lev = level_tmp[ic];
+         for (   int jj = j_tmp[ic]*levtable[levmx-lev]-jminsize; jj < (j_tmp[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
+            for (int ii = i_tmp[ic]*levtable[levmx-lev]-iminsize; ii < (i_tmp[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
+               if (jj*(imaxsize-iminsize)+ii < 0 ||
+                   jj*(imaxsize-iminsize)+ii >= (int)hashsize){
+                  printf("%d: Warning ncell %d writes to hash out-of-bounds  ii %d jj %d val %d\n",mype,ic,ii,jj,jj*(imaxsize-iminsize)+ii);
+               }
+            }
+         }
+      }
+   }
 
    //printf("%d: lws %d gws %d \n",mype,local_work_size,global_work_size);
    ezcl_set_kernel_arg(kernel_hash_setup_local,  0, sizeof(cl_int), (void *)&ncells);
