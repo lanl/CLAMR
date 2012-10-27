@@ -4032,7 +4032,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          if (corners_j[ic] <  jmaxsize) continue;
          if ( (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize) < 0 ||
               (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize) > (int)hashsize){
-            printf("%d: corners i %d j %d hash %d\n",mype,corners_i[ic],corners_j[ic],
+            printf("%d: Warning corners i %d j %d hash %d\n",mype,corners_i[ic],corners_j[ic],
                (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize));
          }
       }
@@ -4123,6 +4123,15 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
            __global       int  *ntop,     // 11
            __global       int  *hash)     // 12
       */
+
+   if (CHECK) {
+      if (ezcl_get_device_mem_nelements(dev_nlft) < (int)ncells || 
+          ezcl_get_device_mem_nelements(dev_nrht) < (int)ncells || 
+          ezcl_get_device_mem_nelements(dev_nbot) < (int)ncells || 
+          ezcl_get_device_mem_nelements(dev_ntop) < (int)ncells ) {
+         printf("%d: Warning -- sizes for dev_neigh too small ncells %ld neigh %d\n",mype,ncells,ezcl_get_device_mem_nelements(dev_nlft));
+      }
+   }
 
    ezcl_set_kernel_arg(kernel_calc_neighbors_local, 0,  sizeof(cl_int), (void *)&ncells);
    ezcl_set_kernel_arg(kernel_calc_neighbors_local, 1,  sizeof(cl_int), (void *)&levmx);
