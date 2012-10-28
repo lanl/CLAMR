@@ -1180,6 +1180,7 @@ __kernel void finish_reduction_minmax4_cl(
      if (redscratch[giX].s1 > tile[tiX].s1) tile[tiX].s1 = redscratch[giX].s1;
      if (redscratch[giX].s2 < tile[tiX].s2) tile[tiX].s2 = redscratch[giX].s2;
      if (redscratch[giX].s3 > tile[tiX].s3) tile[tiX].s3 = redscratch[giX].s3;
+     barrier(CLK_LOCAL_MEM_FENCE);
    }
 
    barrier(CLK_LOCAL_MEM_FENCE);
