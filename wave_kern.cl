@@ -1077,10 +1077,10 @@ __kernel void calc_hash_size_cl(
    const unsigned int giX  = get_global_id(0);
    const unsigned int tiX  = get_local_id(0);
 
-   tile[tiX].s0 =  9999;
-   tile[tiX].s1 = -9999;
-   tile[tiX].s2 =  9999;
-   tile[tiX].s3 = -9999;
+   tile[tiX].s0 =  2147483647;
+   tile[tiX].s1 = -2147483647-1;
+   tile[tiX].s2 =  2147483647;
+   tile[tiX].s3 = -2147483647-1;
 
    if (giX >= ncells) return;
 
@@ -1168,10 +1168,10 @@ __kernel void finish_reduction_minmax4_cl(
 
    int giX = tiX;
 
-   tile[tiX].s0 =  9999;
-   tile[tiX].s1 = -9999;
-   tile[tiX].s2 =  9999;
-   tile[tiX].s3 = -9999;
+   tile[tiX].s0 =  2147483647;
+   tile[tiX].s1 = -2147483647-1;
+   tile[tiX].s2 =  2147483647;
+   tile[tiX].s3 = -2147483647-1;
 
    if (tiX < isize) tile[tiX].s0123 = redscratch[giX].s0123;
 

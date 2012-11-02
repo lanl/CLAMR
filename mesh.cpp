@@ -3905,7 +3905,7 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
 }
 
 
-#define CHECK 1
+#define CHECK 0
 void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 {
    struct timeval tstart_cpu;
@@ -4451,8 +4451,11 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          fprintf(fp,"\n");
       }
 
+      group_size = (int)(nb_global_work_size/nb_local_work_size);
+
       cl_mem dev_nbpacked = ezcl_malloc(NULL, const_cast<char *>("dev_nbpacked"), &one, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      dev_ioffset = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &nb_local_work_size, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      size_t group_size_long = group_size;
+      dev_ioffset = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &group_size_long, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
       ezcl_set_kernel_arg(kernel_calc_layer2,  0,  sizeof(cl_int), (void *)&nbsize_local);
       ezcl_set_kernel_arg(kernel_calc_layer2,  1,  sizeof(cl_int), (void *)&ncells);
@@ -4474,8 +4477,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer2, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
 
       ezcl_device_memory_remove(dev_border_cell_needed);
-
-      group_size = (int)(nb_global_work_size/nb_local_work_size);
 
       ezcl_set_kernel_arg(kernel_finish_scan, 0,  sizeof(cl_int), (void *)&group_size);
       ezcl_set_kernel_arg(kernel_finish_scan, 1,  sizeof(cl_mem), (void *)&dev_ioffset);
