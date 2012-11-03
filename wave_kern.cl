@@ -1284,49 +1284,66 @@ __kernel void calc_neighbors_local_cl(
 
    if (giX >= isize) return;
 
-   int ii, jj, iii, jjj, lev, levmult;
-   int nlftval;
-   int nrhtval;
-   int nbotval;
-   int ntopval;
+   int iii, jjj;
 
    int iminsize = sizes[0].s0;
    int imaxsize = sizes[0].s1;
    int jminsize = sizes[0].s2;
-   //int jmaxsize = sizes[0].s3;
+   int jmaxsize = sizes[0].s3;
 
    int imaxcalc = (imax+1)*levtable[levmx];
    int jmaxcalc = (jmax+1)*levtable[levmx];
 
-   ii = i[giX];
-   jj = j[giX];
-   lev = level[giX];
-   levmult = levtable[levmx-lev];
-   nlftval = hash[ ( (      jj   *levmult               )-jminsize) *(imaxsize-iminsize) + ( (max(  ii   *levmult-1, 0         ))-iminsize)];
-   nrhtval = hash[ ( (      jj   *levmult               )-jminsize) *(imaxsize-iminsize) + ( (min( (ii+1)*levmult,   imaxcalc-1))-iminsize)];
-   nbotval = hash[ ( (max(  jj   *levmult-1, 0)         )-jminsize) *(imaxsize-iminsize) + ( (      ii   *levmult               )-iminsize)];
-   ntopval = hash[ ( (min( (jj+1)*levmult,   jmaxcalc-1))-jminsize) *(imaxsize-iminsize) + ( (      ii   *levmult               )-iminsize)];
+   int ii = i[giX];
+   int jj = j[giX];
+   int lev = level[giX];
+   int levmult = levtable[levmx-lev];
+
+   int nlftval = -1;
+   int nrhtval = -1;
+   int nbotval = -1;
+   int ntopval = -1;
 
    // Handles the four boundary corners
-   if (nlftval == -99){
-      iii = ii*levmult;
-      jjj = jj*levmult;
-      nlftval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];
+   iii = max(ii*levmult-1, 0)-iminsize;
+   jjj = (jj*levmult)-jminsize;
+   if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){
+      nlftval = hash[jjj*(imaxsize-iminsize) + iii];
+      if (nlftval == -99){ // nlftval
+         int iiii = ii*levmult;
+         int jjjj = jj*levmult;
+         nlftval = hash[(jjjj-jminsize)*(imaxsize-iminsize)+(iiii-iminsize)];
+      }
    }
-   if (nrhtval == -99){
-      iii = ii*levmult;
-      jjj = jj*levmult;
-      nrhtval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];
+   iii = min((ii+1)*levmult, imaxcalc-1)-iminsize;
+   jjj = (jj*levmult)-jminsize;
+   if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){
+      nrhtval = hash[jjj*(imaxsize-iminsize) + iii];
+      if (nrhtval == -99){ // nrhtval
+         int iiii = ii*levmult;
+         int jjjj = jj*levmult;
+         nrhtval = hash[(jjjj-jminsize)*(imaxsize-iminsize)+(iiii-iminsize)];
+      }
    }
-   if (nbotval == -99) {
-      iii = ii*levmult;
-      jjj = jj*levmult;
-      nbotval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];
+   iii = (ii*levmult)-iminsize;
+   jjj = max(jj*levmult-1, 0)-jminsize;
+   if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){
+      nbotval = hash[jjj*(imaxsize-iminsize) + iii];
+      if (nbotval == -99){ // nbotval
+         int iiii = ii*levmult;
+         int jjjj = jj*levmult;
+         nbotval = hash[(jjjj-jminsize)*(imaxsize-iminsize)+(iiii-iminsize)];
+      }
    }
-   if (ntopval == -99) {
-      iii = ii*levmult;
-      jjj = jj*levmult;
-      ntopval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];
+   iii = (ii*levmult)-iminsize;
+   jjj = min((jj+1)*levmult, jmaxcalc-1)-jminsize;
+   if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){
+      ntopval = hash[jjj*(imaxsize-iminsize) + iii];
+      if (ntopval == -99){
+         int iiii = ii*levmult;
+         int jjjj = jj*levmult;
+         ntopval = hash[(jjjj-jminsize)*(imaxsize-iminsize)+(iiii-iminsize)];
+      }
    }
 
    nlft[giX] = nlftval;
@@ -2019,23 +2036,31 @@ __kernel void fill_neighbor_ghost_cl (
    int levmult = levtable[levmx-lev];
 
    if (nlftval < 0){
-      if (max(ii*levmult-1, 0)-iminsize >= 0) {  // Test for cell to left
-         nlft[giX] = hash[((      jj   *levmult               )-jminsize)*(imaxsize-iminsize)+((max(  ii   *levmult-1, 0         ))-iminsize)];
+      int iii = max(ii*levmult-1, 0)-iminsize;
+      int jjj = (jj*levmult)-jminsize;
+      if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){  // Test for cell to left
+         nlft[giX] = hash[jjj*(imaxsize-iminsize)+iii];
       }
    }
    if (nrhtval < 0){
-      if (min( (ii+1)*levmult, imaxcalc-1) < imaxsize){ // Test for cell to right
-         nrht[giX] = hash[((      jj   *levmult               )-jminsize)*(imaxsize-iminsize)+((min( (ii+1)*levmult,   imaxcalc-1))-iminsize)];
+      int iii = min( (ii+1)*levmult, imaxcalc-1)-iminsize;
+      int jjj = (jj*levmult)-jminsize;
+      if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){ // Test for cell to right
+         nrht[giX] = hash[jjj*(imaxsize-iminsize)+iii];
       }
    }
    if (nbotval < 0){
-      if (max(jj*levmult-1, 0)-jminsize >= 0){ // Test for cell to bottom
-         nbot[giX] = hash[((max(  jj   *levmult-1, 0)         )-jminsize)*(imaxsize-iminsize)+((      ii   *levmult               )-iminsize)];
+      int iii = (ii*levmult)-iminsize;
+      int jjj = max(jj*levmult-1, 0)-jminsize;
+      if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){ // Test for cell to bottom
+         nbot[giX] = hash[jjj*(imaxsize-iminsize)+iii];
       }
    }
    if (ntopval < 0) {
-      if (min( (jj+1)*levmult, jmaxcalc-1) < jmaxsize){ // Test for cell to top
-         ntop[giX] = hash[((min( (jj+1)*levmult,   jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((      ii   *levmult               )-iminsize)];
+      int iii = (ii*levmult)-iminsize;
+      int jjj = min((jj+1)*levmult,jmaxcalc-1)-jminsize;
+      if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){ // Test for cell to top
+         ntop[giX] = hash[jjj*(imaxsize-iminsize)+iii];
       }
    }
 }
