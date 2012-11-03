@@ -1011,7 +1011,11 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
       cpu_time_layer1          = 0.0;
       cpu_time_layer2          = 0.0;
       cpu_time_layer_list      = 0.0;
-      cpu_time_ghost_fill      = 0.0;
+      cpu_time_copy_mesh_data  = 0.0;
+      cpu_time_fill_mesh_ghost = 0.0;
+      cpu_time_fill_neigh_ghost = 0.0;
+      cpu_time_set_corner_neigh = 0.0;
+      cpu_time_neigh_adjust    = 0.0;
       cpu_time_setup_comm      = 0.0;
 
       cpu_time_kdtree_setup    = 0.0;
@@ -1030,7 +1034,11 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
       gpu_time_layer1          = 0;
       gpu_time_layer2          = 0;
       gpu_time_layer_list      = 0;
-      gpu_time_ghost_fill      = 0;
+      gpu_time_copy_mesh_data  = 0;
+      gpu_time_fill_mesh_ghost = 0;
+      gpu_time_fill_neigh_ghost = 0;
+      gpu_time_set_corner_neigh = 0;
+      gpu_time_neigh_adjust    = 0;
       gpu_time_setup_comm      = 0;
 
       gpu_time_kdtree_setup    = 0;
@@ -3418,6 +3426,11 @@ void Mesh::calc_neighbors_local(void)
          nbot.resize(ncells_ghost,-98);
          ntop.resize(ncells_ghost,-98);
 
+         if (TIMING_LEVEL >= 2) {
+            cpu_time_copy_mesh_data += cpu_timer_stop(tstart_lev2);
+            cpu_timer_start(&tstart_lev2);
+         }
+
          for(int ic=0; ic<nbsize_local; ic++){
             int ii = border_cell_i_global[ic];
             int jj = border_cell_j_global[ic];
@@ -3429,6 +3442,11 @@ void Mesh::calc_neighbors_local(void)
             i[ncells+ic]     = ii;
             j[ncells+ic]     = jj;
             level[ncells+ic] = lev;
+         }
+
+         if (TIMING_LEVEL >= 2) {
+            cpu_time_fill_mesh_ghost += cpu_timer_stop(tstart_lev2);
+            cpu_timer_start(&tstart_lev2);
          }
 
          //fprintf(fp,"After copying i,j, level to ghost cells\n");
@@ -3460,6 +3478,11 @@ void Mesh::calc_neighbors_local(void)
                   ntop[ic] = hash[(min( (jj+1)*levmult,   jmaxcalc-1))-jminsize][(      ii   *levmult               )-iminsize];
                }
             }
+         }
+
+         if (TIMING_LEVEL >= 2) {
+            cpu_time_fill_neigh_ghost += cpu_timer_stop(tstart_lev2);
+            cpu_timer_start(&tstart_lev2);
          }
 
          //fprintf(fp,"After setting neighbors through ghost cells\n");
@@ -3528,6 +3551,11 @@ void Mesh::calc_neighbors_local(void)
             }
          }
 
+         if (TIMING_LEVEL >= 2) {
+            cpu_time_set_corner_neigh += cpu_timer_stop(tstart_lev2);
+            cpu_timer_start(&tstart_lev2);
+         }
+
          //fprintf(fp,"After setting corner neighbors\n");
          //print_local();
 
@@ -3568,7 +3596,7 @@ void Mesh::calc_neighbors_local(void)
          //print_local();
          
          if (TIMING_LEVEL >= 2) {
-            cpu_time_ghost_fill += cpu_timer_stop(tstart_lev2);
+            cpu_time_neigh_adjust += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -4629,6 +4657,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_device_memory_remove(dev_nbot_old);
       ezcl_device_memory_remove(dev_ntop_old);
 
+      if (TIMING_LEVEL >= 2) {
+         ezcl_finish(command_queue);
+         gpu_time_copy_mesh_data += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         cpu_timer_start(&tstart_lev2);
+      }
+
       nb_global_work_size = ((nbpacked + nb_local_work_size - 1) /nb_local_work_size) * nb_local_work_size;
 
       ezcl_set_kernel_arg(kernel_fill_mesh_ghost,  0,  sizeof(cl_int), (void *)&nbpacked);
@@ -4650,7 +4684,11 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_fill_mesh_ghost, 16,  sizeof(cl_mem), (void *)&dev_ntop);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_fill_mesh_ghost, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
 
-      ezcl_finish(command_queue);
+      if (TIMING_LEVEL >= 2) {
+         ezcl_finish(command_queue);
+         gpu_time_fill_mesh_ghost += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         cpu_timer_start(&tstart_lev2);
+      }
 
       if (DEBUG){
          fprintf(fp,"After copying i,j, level to ghost cells\n");
@@ -4660,10 +4698,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_device_memory_remove(dev_border_cell_i_new);
       ezcl_device_memory_remove(dev_border_cell_j_new);
       ezcl_device_memory_remove(dev_border_cell_level_new);
-
-      ezcl_finish(command_queue);
-
-      //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
       size_t ghost_local_work_size = 128;
       size_t ghost_global_work_size = ((ncells_ghost + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
@@ -4684,7 +4718,11 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_fill_neighbor_ghost, 13,  sizeof(cl_mem), (void *)&dev_ntop);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_fill_neighbor_ghost, 1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL); 
 
-      ezcl_finish(command_queue);
+      if (TIMING_LEVEL >= 2) {
+         ezcl_finish(command_queue);
+         gpu_time_fill_neigh_ghost += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         cpu_timer_start(&tstart_lev2);
+      }
 
       if (DEBUG){
          fprintf(fp,"After setting neighbors through ghost cells\n");
@@ -4709,7 +4747,11 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_set_corner_neighbor, 12,  sizeof(cl_mem), (void *)&dev_ntop);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_corner_neighbor, 1, NULL, &nghost_global_work_size, &nghost_local_work_size, NULL); 
 
-      ezcl_finish(command_queue);
+      if (TIMING_LEVEL >= 2) {
+         ezcl_finish(command_queue);
+         gpu_time_set_corner_neigh += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         cpu_timer_start(&tstart_lev2);
+      }
 
       if (DEBUG){
          fprintf(fp,"After setting corner neighbors\n");
@@ -4720,7 +4762,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       //cl_mem dev_indices_needed = ezcl_malloc(NULL, const_cast<char *>("dev_indices_needed"),     &nbsize_long, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       //ezcl_enqueue_write_buffer(command_queue, dev_indices_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &indices_needed[0],     NULL);
 
-      //if (CHECK) {
+      if (CHECK) {
          if (ezcl_get_device_mem_nelements(dev_nlft) < (int)ncells_ghost || 
              ezcl_get_device_mem_nelements(dev_nrht) < (int)ncells_ghost ||
              ezcl_get_device_mem_nelements(dev_nbot) < (int)ncells_ghost ||
@@ -4730,7 +4772,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          if (ezcl_get_device_mem_nelements(dev_indices_needed) < (int)(ncells_ghost-ncells) ){
             printf("%d: Warning indices size wrong nghost %d size indices_needed\n",mype,ncells_ghost-ncells,ezcl_get_device_mem_nelements(dev_indices_needed));
          }
-      //}
+      }
 
       ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  0,  sizeof(cl_int), (void *)&ncells_ghost);
       ezcl_set_kernel_arg(kernel_adjust_neighbors_local,  1,  sizeof(cl_int), (void *)&ncells);
@@ -4744,9 +4786,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
       ezcl_finish(command_queue);
 
-      MPI_Barrier(MPI_COMM_WORLD);
-      //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
-
       ezcl_device_memory_remove(dev_indices_needed);
 
       if (DEBUG){
@@ -4756,7 +4795,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
       if (TIMING_LEVEL >= 2) {
          ezcl_finish(command_queue);
-         gpu_time_ghost_fill += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_time_neigh_adjust += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 

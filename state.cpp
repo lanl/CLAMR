@@ -2813,7 +2813,11 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
            parallel_timer_output(numpe,mype,"CPU:    mesh->layer1             time was",mesh->get_cpu_time_layer1() );
            parallel_timer_output(numpe,mype,"CPU:    mesh->layer2             time was",mesh->get_cpu_time_layer2() );
            parallel_timer_output(numpe,mype,"CPU:    mesh->layer_list         time was",mesh->get_cpu_time_layer_list() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->ghost_fill         time was",mesh->get_cpu_time_ghost_fill() );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->copy_mesh_data     time was",mesh->get_cpu_time_copy_mesh_data() );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->fill_mesh_ghost    time was",mesh->get_cpu_time_fill_mesh_ghost() );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->fill_neigh_ghost   time was",mesh->get_cpu_time_fill_neigh_ghost() );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->set_corner_neigh   time was",mesh->get_cpu_time_set_corner_neigh() );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->neigh_adjust       time was",mesh->get_cpu_time_neigh_adjust() );
            parallel_timer_output(numpe,mype,"CPU:    mesh->setup_comm         time was",mesh->get_cpu_time_setup_comm() );
          } else {
            parallel_timer_output(numpe,mype,"CPU:    mesh->kdtree_setup         time was",mesh->get_cpu_time_kdtree_setup() );
@@ -2865,7 +2869,11 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
            parallel_timer_output(numpe,mype,"GPU:    kernel_layer1            time was",(double) mesh->get_gpu_time_layer1()     * 1.0e-9 );
            parallel_timer_output(numpe,mype,"GPU:    kernel_layer2            time was",(double) mesh->get_gpu_time_layer2()     * 1.0e-9 );
            parallel_timer_output(numpe,mype,"GPU:    kernel_layer_list        time was",(double) mesh->get_gpu_time_layer_list()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_ghost_fill        time was",(double) mesh->get_gpu_time_ghost_fill()     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_copy_mesh_data    time was",(double) mesh->get_gpu_time_copy_mesh_data()     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_fill_mesh_ghost   time was",(double) mesh->get_gpu_time_fill_mesh_ghost()     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_fill_neigh_ghost  time was",(double) mesh->get_gpu_time_fill_neigh_ghost()     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_set_corner_neigh  time was",(double) mesh->get_gpu_time_set_corner_neigh()     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_neigh_adjust      time was",(double) mesh->get_gpu_time_neigh_adjust()     * 1.0e-9 );
            parallel_timer_output(numpe,mype,"GPU:    kernel_setup_comm        time was",(double) mesh->get_gpu_time_setup_comm()     * 1.0e-9 );
          } else {
            parallel_timer_output(numpe,mype,"GPU:    kernel_kdtree_setup        time was",(double) mesh->get_gpu_time_kdtree_setup()     * 1.0e-9 );

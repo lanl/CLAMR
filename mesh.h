@@ -117,7 +117,11 @@ public:
                cpu_time_layer1,
                cpu_time_layer2,
                cpu_time_layer_list,
-               cpu_time_ghost_fill,
+               cpu_time_copy_mesh_data,
+               cpu_time_fill_mesh_ghost,
+               cpu_time_fill_neigh_ghost,
+               cpu_time_set_corner_neigh,
+               cpu_time_neigh_adjust,
                cpu_time_setup_comm,
 
                cpu_time_kdtree_setup,
@@ -136,7 +140,11 @@ public:
                gpu_time_layer1,
                gpu_time_layer2,
                gpu_time_layer_list,
-               gpu_time_ghost_fill,
+               gpu_time_copy_mesh_data,
+               gpu_time_fill_mesh_ghost,
+               gpu_time_fill_neigh_ghost,
+               gpu_time_set_corner_neigh,
+               gpu_time_neigh_adjust,
                gpu_time_setup_comm,
 
                gpu_time_kdtree_setup,
@@ -293,7 +301,11 @@ public:
    double get_cpu_time_layer1(void)                   {return(cpu_time_layer1); };
    double get_cpu_time_layer2(void)                   {return(cpu_time_layer2); };
    double get_cpu_time_layer_list(void)               {return(cpu_time_layer_list); };
-   double get_cpu_time_ghost_fill(void)               {return(cpu_time_ghost_fill); };
+   double get_cpu_time_copy_mesh_data(void)           {return(cpu_time_copy_mesh_data); };
+   double get_cpu_time_fill_mesh_ghost(void)          {return(cpu_time_fill_mesh_ghost); };
+   double get_cpu_time_fill_neigh_ghost(void)         {return(cpu_time_fill_neigh_ghost); };
+   double get_cpu_time_set_corner_neigh(void)         {return(cpu_time_set_corner_neigh); };
+   double get_cpu_time_neigh_adjust(void)             {return(cpu_time_neigh_adjust); };
    double get_cpu_time_setup_comm(void)               {return(cpu_time_setup_comm); };
    double get_cpu_time_kdtree_setup(void)             {return(cpu_time_kdtree_setup); };
    double get_cpu_time_kdtree_query(void)             {return(cpu_time_kdtree_query); };
@@ -311,7 +323,11 @@ public:
    long get_gpu_time_layer1(void)                   {return(gpu_time_layer1); };
    long get_gpu_time_layer2(void)                   {return(gpu_time_layer2); };
    long get_gpu_time_layer_list(void)               {return(gpu_time_layer_list); };
-   long get_gpu_time_ghost_fill(void)               {return(gpu_time_ghost_fill); };
+   long get_gpu_time_copy_mesh_data(void)           {return(gpu_time_copy_mesh_data); };
+   long get_gpu_time_fill_mesh_ghost(void)          {return(gpu_time_fill_mesh_ghost); };
+   long get_gpu_time_fill_neigh_ghost(void)         {return(gpu_time_fill_neigh_ghost); };
+   long get_gpu_time_set_corner_neigh(void)         {return(gpu_time_set_corner_neigh); };
+   long get_gpu_time_neigh_adjust(void)             {return(gpu_time_neigh_adjust); };
    long get_gpu_time_setup_comm(void)               {return(gpu_time_setup_comm); };
    long get_gpu_time_kdtree_setup(void)             {return(gpu_time_kdtree_setup); };
    long get_gpu_time_kdtree_query(void)             {return(gpu_time_kdtree_query); };
