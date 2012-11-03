@@ -4211,9 +4211,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          cpu_timer_start(&tstart_lev2);
       }
 
-      //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
-      //MPI_Barrier(MPI_COMM_WORLD);
-
       //printf("%d: border cell size is %d global is %ld\n",mype,nbsize_local,nbsize_global);
 
       vector<int> border_cell_num(nbsize_local);
@@ -4221,8 +4218,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       vector<int> border_cell_j(nbsize_local);
       vector<int> border_cell_level(nbsize_local);
     
-      //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
-
       // allocate new border memory
       size_t nbsize_long = nbsize_local;
       cl_mem dev_border_cell_i     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_i"),     &nbsize_long, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -4349,8 +4344,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          cpu_timer_start(&tstart_lev2);
       }
 
-      //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
-
       if (DEBUG) {
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
@@ -4415,8 +4408,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_layer1_sethash,  9,  sizeof(cl_mem),   (void *)&dev_border_cell_needed);
       ezcl_set_kernel_arg(kernel_calc_layer1_sethash, 10,  sizeof(cl_mem),   (void *)&dev_hash);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer1_sethash, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
-
-      //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
       if (TIMING_LEVEL >= 2) {
          ezcl_finish(command_queue);
@@ -4487,9 +4478,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       int nbpacked;
       ezcl_enqueue_read_buffer(command_queue, dev_nbpacked, CL_TRUE,  0, 1*sizeof(cl_int), &nbpacked, NULL);
 
-      MPI_Barrier(MPI_COMM_WORLD);
-      //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
-
       ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  0,  sizeof(cl_int), (void *)&nbsize_local);
       ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  1,  sizeof(cl_int), (void *)&ncells);
       ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  2,  sizeof(cl_int), (void *)&noffset);
@@ -4549,9 +4537,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_device_memory_remove(dev_border_cell_j);
       ezcl_device_memory_remove(dev_border_cell_level);
 
-      MPI_Barrier(MPI_COMM_WORLD);
-      //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
-
       if (DEBUG) {
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
@@ -4580,9 +4565,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          fflush(fp);
       }
 
-      MPI_Barrier(MPI_COMM_WORLD);
-      //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
-
       if (DEBUG){
          ezcl_enqueue_read_buffer(command_queue, dev_border_cell_needed_out, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
          for(int ic=0; ic<nbsize_local; ic++){
@@ -4596,9 +4578,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
       nbsize_local = nbpacked;
       //printf("%d: DEBUG nbsize is %ld test is %ld\n",mype,nbsize_local,nbpacked);
-
-      MPI_Barrier(MPI_COMM_WORLD);
-      //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
       int nghost = nbpacked;
       ncells_ghost = ncells + nghost;
@@ -4640,8 +4619,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_copy_mesh_data, 16, sizeof(cl_mem), (void *)&dev_ntop);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mesh_data,   1, NULL, &global_work_size, &local_work_size, NULL);
-      
-      //if (mype == 0) printf("DEBUG line %d file %s\n",__LINE__,__FILE__);
 
       ezcl_device_memory_remove(dev_celltype_old);
       ezcl_device_memory_remove(dev_i_old);
