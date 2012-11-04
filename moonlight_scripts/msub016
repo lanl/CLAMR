@@ -7,9 +7,6 @@
 
 ##### These are shell commands
 date
-limit maxproc unlimited
-limit descriptors unlimited
-limit memorylocked unlimited
 
 cd ${RUNS_DIR}
 
