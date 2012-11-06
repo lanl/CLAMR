@@ -797,8 +797,8 @@ __kernel void do_load_balance_cl_upper(
 #define hashval(j,i) hash[(j)*imaxsize+(i)]
 
 __kernel void hash_init_cl(
-                          const ulong isize,     // 0 
-                 __global       int   *hash)     // 1 
+                          const int isize,     // 0 
+                 __global       int *hash)     // 1 
 {
    const ulong giX  = get_global_id(0);
 
@@ -1928,27 +1928,23 @@ __kernel void calc_layer2_sethash_cl (
 
    if (giX >= isize) return;
 
-   int iborder = border_cell_needed[giX];
+   int iminsize = sizes[0].s0;
+   int imaxsize = sizes[0].s1;
+   int jminsize = sizes[0].s2;
+   int jmaxsize = sizes[0].s3;
 
-   if (iborder) {
-      int iminsize = sizes[0].s0;
-      int imaxsize = sizes[0].s1;
-      int jminsize = sizes[0].s2;
-      int jmaxsize = sizes[0].s3;
+   int ii = border_cell_i[giX];
+   int jj = border_cell_j[giX];
+   int lev = border_cell_level[giX];
+   int cell_number = border_cell_num[giX];
+   int levmult = levtable[levmx-lev];
 
-      int ii = border_cell_i[giX];
-      int jj = border_cell_j[giX];
-      int lev = border_cell_level[giX];
-      int cell_number = border_cell_num[giX];
-      int levmult = levtable[levmx-lev];
-
-      if (lev == levmx) {
-         hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)] = cell_number;
-      } else {
-         for (int    j = max(jj*levmult-jminsize,0); j < min((jj+1)*levmult,jmaxsize)-jminsize; j++) {
-            for (int i = max(ii*levmult-iminsize,0); i < min((ii+1)*levmult,imaxsize)-iminsize; i++) {
-               hash[j*(imaxsize-iminsize)+i] = cell_number;
-            }
+   if (lev == levmx) {
+      hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)] = cell_number;
+   } else {
+      for (int    j = max(jj*levmult-jminsize,0); j < min((jj+1)*levmult,jmaxsize)-jminsize; j++) {
+         for (int i = max(ii*levmult-iminsize,0); i < min((ii+1)*levmult,imaxsize)-iminsize; i++) {
+            hash[j*(imaxsize-iminsize)+i] = cell_number;
          }
       }
    }

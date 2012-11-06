@@ -1,5 +1,5 @@
 #!/bin/tcsh
-#MSUB -l walltime=3:00:00
+#MSUB -l walltime=1:00:00
 #MSUB -l nodes=64:ppn=2
 #MSUB -o myjob.out128
 #MSUB -j oe

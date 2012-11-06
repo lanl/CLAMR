@@ -711,7 +711,6 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
 
    ezcl_device_memory_remove(dev_redscratch);
 
-   ezcl_finish(command_queue);
    gpu_time_set_timestep += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
    return(globalmindeltaT);
@@ -1055,8 +1054,6 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
       mesh->noffset=mesh->ndispl[mesh->mype];
    }
 #endif
-
-   ezcl_finish(command_queue);
 
    gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
@@ -1906,8 +1903,6 @@ void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mes
    ezcl_device_memory_remove(dev_U_new);
    ezcl_device_memory_remove(dev_V_new);
 
-   ezcl_finish(command_queue);
-
    gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 }
 #endif
@@ -2220,6 +2215,9 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
      __local        real4 *tile,     // 16  Tile size in real4.
      __local        int8  *itile)    // 17  Tile size in int8.
      */
+
+   cl_event refine_potential_event;
+
    ezcl_set_kernel_arg(kernel_refine_potential, 0, sizeof(cl_int),  (void *)&ncells);
    ezcl_set_kernel_arg(kernel_refine_potential, 1, sizeof(cl_int),  (void *)&levmx);
    ezcl_set_kernel_arg(kernel_refine_potential, 2, sizeof(cl_mem),  (void *)&dev_H);
@@ -2239,12 +2237,13 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
    ezcl_set_kernel_arg(kernel_refine_potential,16, local_work_size*sizeof(cl_real4),    NULL);
    ezcl_set_kernel_arg(kernel_refine_potential,17, local_work_size*sizeof(cl_int8),    NULL);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_potential, 1, NULL, &global_work_size, &local_work_size, NULL);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_potential, 1, NULL, &global_work_size, &local_work_size, &refine_potential_event);
 
+
+   ezcl_wait_for_events(1, &refine_potential_event);
+   ezcl_event_release(refine_potential_event);
 
    if (TIMING_LEVEL >= 2) {
-      ezcl_finish(command_queue);
-
       gpu_time_calc_mpot += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
 
       cpu_timer_start(&tstart_lev2);
@@ -2416,7 +2415,6 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
       ezcl_device_memory_remove(dev_ioffset);
    }
 
-   ezcl_finish(command_queue);
    if (TIMING_LEVEL >= 2) gpu_time_refine_smooth += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
 
    gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
@@ -2636,8 +2634,6 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
 
    ezcl_device_memory_remove(dev_redscratch);
    ezcl_device_memory_remove(dev_mass_sum);
-
-   ezcl_finish(command_queue);
 
    gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
