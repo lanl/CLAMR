@@ -3033,6 +3033,7 @@ void Mesh::calc_neighbors_local(void)
          cpu_timer_start(&tstart_lev2);
       }
 
+#ifdef HAVE_MPI
       if (numpe > 1) {
          vector<int> border_cell;
 
@@ -3111,15 +3112,13 @@ void Mesh::calc_neighbors_local(void)
          }
 
          int nbsize_global = nbsize_local;
-#ifdef HAVE_MPI
          MPI_Allreduce(&nbsize_local, &nbsize_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-#endif
 
          vector<int> nbsizes(numpe);
          vector<int> nbdispl(numpe);
-#ifdef HAVE_MPI
+
          MPI_Allgather(&nbsize_local, 1, MPI_INT, &nbsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-#endif
+
          nbdispl[0]=0;
          for (int ip=1; ip<numpe; ip++){
             nbdispl[ip] += nbdispl[ip-1] + nbsizes[ip-1];
@@ -3130,12 +3129,10 @@ void Mesh::calc_neighbors_local(void)
          vector<int>border_cell_j_global(nbsize_global);
          vector<int>border_cell_level_global(nbsize_global);
 
-#ifdef HAVE_MPI
          MPI_Allgatherv(&border_cell_num[0],   nbsizes[mype], MPI_INT, &border_cell_num_global[0],   &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
          MPI_Allgatherv(&border_cell_i[0],     nbsizes[mype], MPI_INT, &border_cell_i_global[0],     &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
          MPI_Allgatherv(&border_cell_j[0],     nbsizes[mype], MPI_INT, &border_cell_j_global[0],     &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
          MPI_Allgatherv(&border_cell_level[0], nbsizes[mype], MPI_INT, &border_cell_level_global[0], &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
-#endif
 
          //for (int ic = 0; ic < nbsize_global; ic++) {
          //   fprintf(fp,"%d: Global Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
@@ -3607,17 +3604,13 @@ void Mesh::calc_neighbors_local(void)
          //printf("%d ncells size is %ld ncells_ghost size is %ld nghost %d\n",mype,ncells,ncells_ghost,nghost);
          //fprintf(fp,"%d ncells_ghost size is %ld nghost %d\n",mype,ncells_ghost,nghost);
 
-#ifdef HAVE_MPI
          if (cell_handle) L7_Free(&cell_handle);
-#endif
          cell_handle=0;
          //fprintf(fp,"%d: SETUP ncells %ld noffset %d nghost %d\n",mype,ncells,noffset,nghost);
          //for (int ig = 0; ig<nghost; ig++){
          //   fprintf(fp,"%d: indices needed ic %d index %d\n",mype,ig,indices_needed[ig]);
          //}
-#ifdef HAVE_MPI
          L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
-#endif
 
          if (TIMING_LEVEL >= 2) cpu_time_setup_comm += cpu_timer_stop(tstart_lev2);
 
@@ -3743,6 +3736,7 @@ void Mesh::calc_neighbors_local(void)
             }
          }
       }
+#endif
 
       genmatrixfree((void **)hash);
 
