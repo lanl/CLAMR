@@ -83,6 +83,11 @@ typedef float4  real4;
 #define fabs(a) ( (a) < 0 ? -(a) : a)
 #endif
 
+#ifndef INT_MIN
+#define INT_MAX 2147483647
+#define INT_MIN (–2147483647–1)
+#endif
+
 #define TWO 2
 //#define __OLD_STENCIL__
 #define __NEW_STENCIL__
@@ -800,7 +805,7 @@ __kernel void hash_init_cl(
                           const int isize,     // 0 
                  __global       int *hash)     // 1 
 {
-   const ulong giX  = get_global_id(0);
+   const uint giX  = get_global_id(0);
 
    if (giX >= isize) return;
 
@@ -818,10 +823,11 @@ __kernel void hash_init_corners_cl(
                  __global const int4 *sizes,     // 7
                  __global       int  *hash)      // 8 
 {
-   const unsigned int giX  = get_global_id(0);
+   const uint giX  = get_global_id(0);
 
    if (giX >= isize) return;
 
+   // Expand size by 2*coarse_cells
    sizes[0].s0 = max(sizes[0].s0-2*levtable[levmx],0);
    sizes[0].s1 = min(sizes[0].s1+2*levtable[levmx],(imax+1)*levtable[levmx]);
    sizes[0].s2 = max(sizes[0].s2-2*levtable[levmx],0);
@@ -832,12 +838,12 @@ __kernel void hash_init_corners_cl(
    int jminsize = sizes[0].s2;
    int jmaxsize = sizes[0].s3;
 
-   int ii = corners_i[giX];
-   int jj = corners_j[giX];
+   int ii = corners_i[giX]-iminsize;
+   int jj = corners_j[giX]-jminsize;
 
-   if (ii >= iminsize && ii < imaxsize &&
-       jj >= jminsize && jj < jmaxsize) {
-      hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)] = -99;
+   if (ii >= 0 && ii < imaxsize-iminsize &&
+       jj >= 0 && jj < jmaxsize-jminsize) {
+      hash[jj*(imaxsize-iminsize)+ii] = INT_MIN;
    }
 
 }
@@ -1077,10 +1083,10 @@ __kernel void calc_hash_size_cl(
    const unsigned int giX  = get_global_id(0);
    const unsigned int tiX  = get_local_id(0);
 
-   tile[tiX].s0 =  2147483647;
-   tile[tiX].s1 = -2147483647-1;
-   tile[tiX].s2 =  2147483647;
-   tile[tiX].s3 = -2147483647-1;
+   tile[tiX].s0 = 2147483647;
+   tile[tiX].s1 = 0;
+   tile[tiX].s2 = 2147483647;
+   tile[tiX].s3 = 0;
 
    if (giX >= ncells) return;
 
@@ -1168,10 +1174,10 @@ __kernel void finish_reduction_minmax4_cl(
 
    int giX = tiX;
 
-   tile[tiX].s0 =  2147483647;
-   tile[tiX].s1 = -2147483647-1;
-   tile[tiX].s2 =  2147483647;
-   tile[tiX].s3 = -2147483647-1;
+   tile[tiX].s0 = 2147483647;
+   tile[tiX].s1 = 0;
+   tile[tiX].s2 = 2147483647;
+   tile[tiX].s3 = 0;
 
    if (tiX < isize) tile[tiX].s0123 = redscratch[giX].s0123;
 
@@ -1309,7 +1315,7 @@ __kernel void calc_neighbors_local_cl(
    jjj = (jj*levmult)-jminsize;
    if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){
       nlftval = hash[jjj*(imaxsize-iminsize) + iii];
-      if (nlftval == -99){ // nlftval
+      if (nlftval == INT_MIN){ // nlftval
          int iiii = ii*levmult;
          int jjjj = jj*levmult;
          nlftval = hash[(jjjj-jminsize)*(imaxsize-iminsize)+(iiii-iminsize)];
@@ -1319,7 +1325,7 @@ __kernel void calc_neighbors_local_cl(
    jjj = (jj*levmult)-jminsize;
    if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){
       nrhtval = hash[jjj*(imaxsize-iminsize) + iii];
-      if (nrhtval == -99){ // nrhtval
+      if (nrhtval == INT_MIN){ // nrhtval
          int iiii = ii*levmult;
          int jjjj = jj*levmult;
          nrhtval = hash[(jjjj-jminsize)*(imaxsize-iminsize)+(iiii-iminsize)];
@@ -1329,7 +1335,7 @@ __kernel void calc_neighbors_local_cl(
    jjj = max(jj*levmult-1, 0)-jminsize;
    if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){
       nbotval = hash[jjj*(imaxsize-iminsize) + iii];
-      if (nbotval == -99){ // nbotval
+      if (nbotval == INT_MIN){ // nbotval
          int iiii = ii*levmult;
          int jjjj = jj*levmult;
          nbotval = hash[(jjjj-jminsize)*(imaxsize-iminsize)+(iiii-iminsize)];
@@ -1339,7 +1345,7 @@ __kernel void calc_neighbors_local_cl(
    jjj = min((jj+1)*levmult, jmaxcalc-1)-jminsize;
    if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){
       ntopval = hash[jjj*(imaxsize-iminsize) + iii];
-      if (ntopval == -99){
+      if (ntopval == INT_MIN){
          int iiii = ii*levmult;
          int jjjj = jj*levmult;
          ntopval = hash[(jjjj-jminsize)*(imaxsize-iminsize)+(iiii-iminsize)];
@@ -2087,7 +2093,7 @@ __kernel void set_corner_neighbor_cl(
    int nbotval = nbot[giX];
    int ntopval = ntop[giX];
   
-   if (nlftval == -99){
+   if (nlftval == INT_MIN){
       int iminsize = sizes[0].s0;
       int imaxsize = sizes[0].s1;
       int jminsize = sizes[0].s2;
@@ -2098,7 +2104,7 @@ __kernel void set_corner_neighbor_cl(
       int ii = i[giX]*levmult;
       nlft[giX] = hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)];
    }
-   if (nrhtval == -99){
+   if (nrhtval == INT_MIN){
       int iminsize = sizes[0].s0;
       int imaxsize = sizes[0].s1;
       int jminsize = sizes[0].s2;
@@ -2109,7 +2115,7 @@ __kernel void set_corner_neighbor_cl(
       int ii = i[giX]*levmult;
       nrht[giX] = hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)];
    }
-   if (nbotval == -99) {
+   if (nbotval == INT_MIN) {
       int iminsize = sizes[0].s0;
       int imaxsize = sizes[0].s1;
       int jminsize = sizes[0].s2;
@@ -2120,7 +2126,7 @@ __kernel void set_corner_neighbor_cl(
       int ii = i[giX]*levmult;
       nbot[giX] = hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)];
    }
-   if (ntopval == -99) {
+   if (ntopval == INT_MIN) {
       int iminsize = sizes[0].s0;
       int imaxsize = sizes[0].s1;
       int jminsize = sizes[0].s2;
@@ -2234,22 +2240,22 @@ __kernel void calc_neighbors_local2_cl(
    if (ntopval == -1) ntopval = hash[ ( (min( (jj+1)*levmult,   jmaxcalc-1))-jminsize) *(imaxsize-iminsize) + ( (      ii   *levmult               )-iminsize)];
 
    // Handles the four boundary corners
-   if (nlftval == -99){
+   if (nlftval == INT_MIN){
       iii = ii*levmult;
       jjj = jj*levmult;
       nlftval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];
    }
-   if (nrhtval == -99){
+   if (nrhtval == INT_MIN){
       iii = ii*levmult;
       jjj = jj*levmult;
       nrhtval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];
    }
-   if (nbotval == -99) {
+   if (nbotval == INT_MIN) {
       iii = ii*levmult;
       jjj = jj*levmult;
       nbotval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];
    }
-   if (ntopval == -99) {
+   if (ntopval == INT_MIN) {
       iii = ii*levmult;
       jjj = jj*levmult;
       ntopval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];

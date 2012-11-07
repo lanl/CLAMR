@@ -4023,7 +4023,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    int jminsize = sizes[2];
    int jmaxsize = sizes[3];
 
-   //fprintf(fp,"%d: sizes %d %d     %d %d   \n",mype,sizes[0],sizes[1],sizes[2],sizes[3]);
    //fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
 
    // Expand size by 2*coarse_cells for ghost cells
@@ -4034,14 +4033,11 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    //fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
 
    // Allocate partial hash table
-   //int **hash = (int **)genmatrix(jmaxsize-jminsize,imaxsize-iminsize,sizeof(int));
+   size_t hashsize = (jmaxsize-jminsize)*(imaxsize-iminsize);
+   //if (numpe > 16) hashsize *= 1.5;
 
-   //int imaxsize = (imax+1)*levtable[levmx];
-   //int jmaxsize = (jmax+1)*levtable[levmx];
-
-   size_t hashsize = 1.6*(jmaxsize-jminsize+1)*(imaxsize-iminsize+1);
    cl_mem dev_hash = ezcl_malloc(NULL, const_cast<char *>("dev_hash"), &hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   size_t hash_local_work_size  = MIN(hashsize, TILE_SIZE);
+   size_t hash_local_work_size  = TILE_SIZE;
    size_t hash_global_work_size = ((hashsize+hash_local_work_size - 1) /hash_local_work_size) * hash_local_work_size;
 
    //printf("%d: hash size is %d lws %d gws %d\n",mype,hashsize,hash_local_work_size,hash_global_work_size);
