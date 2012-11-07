@@ -72,7 +72,7 @@
 #include "genmalloc/genmalloc.h"
 
 #define DEBUG 0
-#define BOUNDS_CHECK 0
+//#define BOUNDS_CHECK 1
 
 #ifndef DEBUG
 #define DEBUG 0

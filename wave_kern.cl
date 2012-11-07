@@ -1286,7 +1286,7 @@ __kernel void calc_neighbors_local_cl(
                  __global const int  *hash)     // 13
 {
                 
-   const unsigned int giX  = get_global_id(0);
+   const uint giX  = get_global_id(0);
 
    if (giX >= isize) return;
 
@@ -1295,7 +1295,7 @@ __kernel void calc_neighbors_local_cl(
    int iminsize = sizes[0].s0;
    int imaxsize = sizes[0].s1;
    int jminsize = sizes[0].s2;
-   int jmaxsize = sizes[0].s3;
+   //int jmaxsize = sizes[0].s3;
 
    int imaxcalc = (imax+1)*levtable[levmx];
    int jmaxcalc = (jmax+1)*levtable[levmx];
@@ -1304,52 +1304,31 @@ __kernel void calc_neighbors_local_cl(
    int jj = j[giX];
    int lev = level[giX];
    int levmult = levtable[levmx-lev];
-
-   int nlftval = -1;
-   int nrhtval = -1;
-   int nbotval = -1;
-   int ntopval = -1;
+   int nlftval = hash[ ( (      jj   *levmult               )-jminsize) *(imaxsize-iminsize) + ( (max(  ii   *levmult-1, 0         ))-iminsize)];
+   int nrhtval = hash[ ( (      jj   *levmult               )-jminsize) *(imaxsize-iminsize) + ( (min( (ii+1)*levmult,   imaxcalc-1))-iminsize)];
+   int nbotval = hash[ ( (max(  jj   *levmult-1, 0)         )-jminsize) *(imaxsize-iminsize) + ( (      ii   *levmult               )-iminsize)];
+   int ntopval = hash[ ( (min( (jj+1)*levmult,   jmaxcalc-1))-jminsize) *(imaxsize-iminsize) + ( (      ii   *levmult               )-iminsize)];
 
    // Handles the four boundary corners
-   iii = max(ii*levmult-1, 0)-iminsize;
-   jjj = (jj*levmult)-jminsize;
-   if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){
-      nlftval = hash[jjj*(imaxsize-iminsize) + iii];
-      if (nlftval == INT_MIN){ // nlftval
-         int iiii = ii*levmult;
-         int jjjj = jj*levmult;
-         nlftval = hash[(jjjj-jminsize)*(imaxsize-iminsize)+(iiii-iminsize)];
-      }
+   if (nlftval == INT_MIN){
+      iii = ii*levmult;
+      jjj = jj*levmult;
+      nlftval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];
    }
-   iii = min((ii+1)*levmult, imaxcalc-1)-iminsize;
-   jjj = (jj*levmult)-jminsize;
-   if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){
-      nrhtval = hash[jjj*(imaxsize-iminsize) + iii];
-      if (nrhtval == INT_MIN){ // nrhtval
-         int iiii = ii*levmult;
-         int jjjj = jj*levmult;
-         nrhtval = hash[(jjjj-jminsize)*(imaxsize-iminsize)+(iiii-iminsize)];
-      }
+   if (nrhtval == INT_MIN){
+      iii = ii*levmult;
+      jjj = jj*levmult;
+      nrhtval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];
    }
-   iii = (ii*levmult)-iminsize;
-   jjj = max(jj*levmult-1, 0)-jminsize;
-   if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){
-      nbotval = hash[jjj*(imaxsize-iminsize) + iii];
-      if (nbotval == INT_MIN){ // nbotval
-         int iiii = ii*levmult;
-         int jjjj = jj*levmult;
-         nbotval = hash[(jjjj-jminsize)*(imaxsize-iminsize)+(iiii-iminsize)];
-      }
+   if (nbotval == INT_MIN) {
+      iii = ii*levmult;
+      jjj = jj*levmult;
+      nbotval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];
    }
-   iii = (ii*levmult)-iminsize;
-   jjj = min((jj+1)*levmult, jmaxcalc-1)-jminsize;
-   if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){
-      ntopval = hash[jjj*(imaxsize-iminsize) + iii];
-      if (ntopval == INT_MIN){
-         int iiii = ii*levmult;
-         int jjjj = jj*levmult;
-         ntopval = hash[(jjjj-jminsize)*(imaxsize-iminsize)+(iiii-iminsize)];
-      }
+   if (ntopval == INT_MIN) {
+      iii = ii*levmult;
+      jjj = jj*levmult;
+      ntopval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];
    }
 
    nlft[giX] = nlftval;
