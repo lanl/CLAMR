@@ -224,8 +224,20 @@ void Mesh::print_partition_measure()
 #endif
          if (mype == 0) {
             printf("The GPU Partition Quality Avg C value  \t");  
-            for(int ip = 0; ip < numpe; ip++){
-               printf("%8.4f\t", global_times[ip]);
+            if (numpe <=4){
+               for(int ip = 0; ip < numpe; ip++){
+                  printf("%8.4f\t", global_times[ip]);
+               }
+            } else {
+               sort(global_times.begin(),global_times.end());
+               double median_value;
+               int half_value = numpe/2;
+               if (numpe%2 == 0) {
+                  median_value = (global_times[half_value-1]+global_times[half_value])/2.0;
+               } else {
+                  median_value = global_times[half_value+1];
+               }
+               printf("%8.4f\t %8.4f\t %8.4f\t min/median/max \t",global_times[0],median_value,global_times[numpe-1]);
             }
             printf("\n");
          }

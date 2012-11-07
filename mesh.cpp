@@ -55,6 +55,7 @@
  */
 #include <algorithm>
 #include <unistd.h>
+#include <limits.h>
 #include "hsfc/hsfc.h"
 #include "kdtree/KDTree.h"
 #include "mesh.h"
@@ -71,7 +72,7 @@
 #include "genmalloc/genmalloc.h"
 
 #define DEBUG 0
-#define NEIGHBOR_CHECK 0
+#define BOUNDS_CHECK 0
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -2763,7 +2764,6 @@ void Mesh::calc_neighbors_local(void)
          if ( i[ic]   *levtable[levmx-lev] < iminsize) iminsize =  i[ic]   *levtable[levmx-lev];
          if ((i[ic]+1)*levtable[levmx-lev] > imaxsize) imaxsize = (i[ic]+1)*levtable[levmx-lev];
       }
-      //fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
 
       // Expand size by 2*coarse_cells for ghost cells
       jminsize = max(jminsize-2*levtable[levmx],0);
@@ -2784,7 +2784,7 @@ void Mesh::calc_neighbors_local(void)
 
       //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);
 
-      // Setting corners to -99
+      // Setting corners to INT_MIN
       int ncells_corners = 4;
       int i_corner[] = {   0,   0,imax,imax};
       int j_corner[] = {   0,jmax,   0,jmax};
@@ -2794,9 +2794,13 @@ void Mesh::calc_neighbors_local(void)
             for (int ii = i_corner[ic]*levtable[levmx]-iminsize; ii < (i_corner[ic]+1)*levtable[levmx]-iminsize; ii++) {
                //printf("%d: block j %d i %d\n",mype,jj,ii);
                if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) continue;
-               hash[jj][ii] = -99;
+               hash[jj][ii] = INT_MIN;
             }
          }
+      }
+ 
+      if (DEBUG) {
+         fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
       }
 
       // Walk through cell array and set hash to global cell values
@@ -2805,29 +2809,48 @@ void Mesh::calc_neighbors_local(void)
          if (i[ic] < lev_ibegin[lev]) { // left boundary
             for (int    jj = j[ic]*levtable[levmx-lev]-jminsize; jj < (j[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
                for (int ii = 0; ii < (i[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
+#ifdef BOUNDS_CHECK
+                  if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
                   hash[jj][ii] = ic+noffset;
                }
             }
          } else if (i[ic] > lev_iend[lev]) { // right boundary
             for (int    jj = j[ic]*levtable[levmx-lev]-jminsize; jj < (j[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
                for (int ii = i[ic]*levtable[levmx-lev]-iminsize; ii < (imax+1)*levtable[levmx]-iminsize; ii++) {
+#ifdef BOUNDS_CHECK
+                  if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
                   hash[jj][ii] = ic+noffset;
                }
             }
          } else if (j[ic] < lev_jbegin[lev]) { // bottom boundary
             for (int    jj = 0; jj < (j[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
                for (int ii = i[ic]*levtable[levmx-lev]-iminsize; ii < (i[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
+#ifdef BOUNDS_CHECK
+                     if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
                   hash[jj][ii] = ic+noffset;
                }
             }
          } else if (j[ic] > lev_jend[lev]) { // top boundary
             for (int    jj = j[ic]*levtable[levmx-lev]-jminsize; jj < (jmax+1)*levtable[levmx]-jminsize; jj++) {
                for (int ii = i[ic]*levtable[levmx-lev]-iminsize; ii < (i[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
+#ifdef BOUNDS_CHECK
+                  if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
                   hash[jj][ii] = ic+noffset;
                }
             }
          } else if (lev == levmx) {
             //printf("%d: max j %d i %d\n",mype,j[ic]-jminsize,i[ic]-iminsize);
+#ifdef BOUNDS_CHECK
+            {
+               int jj = j[ic]-jminsize;
+               int ii = i[ic]-iminsize;
+               if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+            }
+#endif
             hash[j[ic]-jminsize][i[ic]-iminsize] = ic+noffset;
          } else {
 /* Original Write to Hash Table
@@ -2842,25 +2865,46 @@ void Mesh::calc_neighbors_local(void)
             int wid = levtable[levmx-lev];
             int jj = j[ic]*wid - jminsize;
             int ii = i[ic]*wid - iminsize;
+#ifdef BOUNDS_CHECK
+            if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
             hash[jj][ii] = ic + noffset;
             ii += wid/2;
+#ifdef BOUNDS_CHECK
+            if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
             hash[jj][ii] = ic + noffset;
             if(wid > 2) {
                ii = ii + wid/2 - 1;
+#ifdef BOUNDS_CHECK
+               if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
                hash[jj][ii] = ic + noffset;
                ii = ii - wid/2 + 1;
             }
             ii -= wid/2;
             jj += wid/2;
+#ifdef BOUNDS_CHECK
+            if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
             hash[jj][ii] = ic + noffset;
             ii = ii + wid - 1;
+#ifdef BOUNDS_CHECK
+            if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
             hash[jj][ii] = ic + noffset;
 
             if(wid > 2) {
                ii = ii - wid + 1;
                jj = jj + wid/2 - 1;
+#ifdef BOUNDS_CHECK
+               if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
                hash[jj][ii] = ic + noffset;
                ii += wid/2;
+#ifdef BOUNDS_CHECK
+               if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
                hash[jj][ii] = ic + noffset;
             }
          }
@@ -2881,6 +2925,22 @@ void Mesh::calc_neighbors_local(void)
          jj = j[ic];
          lev = level[ic];
          levmult = levtable[levmx-lev];
+#ifdef BOUNDS_CHECK
+         {
+            int jjj=jj   *levmult-jminsize;
+            int iii=max(  ii   *levmult-1, 0         )-iminsize;
+            if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+            jjj=jj   *levmult-jminsize;
+            iii=min( (ii+1)*levmult,   imaxcalc-1)-iminsize;
+            if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+            jjj=max(  jj   *levmult-1, 0) -jminsize;
+            iii=ii   *levmult   -iminsize;
+            if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+            jjj=min( (jj+1)*levmult,   jmaxcalc-1)-jminsize;
+            iii=ii   *levmult   -iminsize;
+            if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+         }
+#endif
          nlft[ic] = hash[(      jj   *levmult               )-jminsize][(max(  ii   *levmult-1, 0         ))-iminsize];
          nrht[ic] = hash[(      jj   *levmult               )-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
          nbot[ic] = hash[(max(  jj   *levmult-1, 0)         )-jminsize][(      ii   *levmult               )-iminsize];
@@ -2890,33 +2950,45 @@ void Mesh::calc_neighbors_local(void)
 
       // Scan for corner boundary cells
       for (uint ic=0; ic<ncells; ic++){
-         if (nlft[ic] == -99){
+         if (nlft[ic] == INT_MIN){
             lev = level[ic];
             levmult = levtable[levmx-lev];
-            jjj = j[ic]*levmult;
-            iii = i[ic]*levmult;
-            nlft[ic] = hash[jjj-jminsize][iii-iminsize];
+            jjj = j[ic]*levmult-jminsize;
+            iii = i[ic]*levmult-iminsize;
+#ifdef BOUNDS_CHECK
+            if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
+            nlft[ic] = hash[jjj][iii];
          }
-         if (nrht[ic] == -99){
+         if (nrht[ic] == INT_MIN){
             lev = level[ic];
             levmult = levtable[levmx-lev];
-            jjj = j[ic]*levmult;
-            iii = i[ic]*levmult;
-            nrht[ic] = hash[jjj-jminsize][iii-iminsize];
+            jjj = j[ic]*levmult-jminsize;
+            iii = i[ic]*levmult-iminsize;
+#ifdef BOUNDS_CHECK
+            if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
+           nrht[ic] = hash[jjj][iii];
          }
-         if (nbot[ic] == -99) {
+         if (nbot[ic] == INT_MIN) {
             lev = level[ic];
             levmult = levtable[levmx-lev];
-            iii = i[ic]*levmult;
-            jjj = j[ic]*levmult;
-            nbot[ic] = hash[jjj-jminsize][iii-iminsize];
+            iii = i[ic]*levmult-iminsize;
+            jjj = j[ic]*levmult-jminsize;
+#ifdef BOUNDS_CHECK
+            if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
+            nbot[ic] = hash[jjj][iii];
          }
-         if (ntop[ic] == -99) {
+         if (ntop[ic] == INT_MIN) {
             lev = level[ic];
             levmult = levtable[levmx-lev];
-            iii = i[ic]*levmult;
-            jjj = j[ic]*levmult;
-            ntop[ic] = hash[jjj-jminsize][iii-iminsize];
+            iii = i[ic]*levmult-iminsize;
+            jjj = j[ic]*levmult-jminsize;
+#ifdef BOUNDS_CHECK
+            if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+#endif
+            ntop[ic] = hash[jjj][iii];
          }
       }
 
@@ -3501,8 +3573,8 @@ void Mesh::calc_neighbors_local(void)
             if (nrht[ic] == -1) nrht[ic] = hash[(      jj   *levmult               )-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
             if (celltype[ic] == BOTTOM_BOUNDARY && nrht[ic] == -1){
                if (nrht[ic] == -1) nrht[ic] = hash[(jj+1)*levmult-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
-               //if (ic == 3 && mype == 0) printf("DEBUG line %d -- ic %d celltype %d nrht %d\n",__LINE__,ic,celltype[ic],nrht[ic]);
-               //printf("DEBUG line %d -- ic %d celltype %d nrht %d jj %d ii %d\n",__LINE__,ic,celltype[ic],nrht[ic],(jj+1)*levmult-jminsize,(min( (ii+1)*levmult,   imaxcalc-1))-iminsize);
+               //if (ic == 3 && mype == 0) printf("DEBUG line %d -- ic %d celltype %d nrht %d\n",__line__,ic,celltype[ic],nrht[ic]);
+               //printf("DEBUG line %d -- ic %d celltype %d nrht %d jj %d ii %d\n",__line__,ic,celltype[ic],nrht[ic],(jj+1)*levmult-jminsize,(min( (ii+1)*levmult,   imaxcalc-1))-iminsize);
             }
             if (nbot[ic] == -1) nbot[ic] = hash[(max(  jj   *levmult-1, 0)         )-jminsize][(      ii   *levmult               )-iminsize];
             if (celltype[ic] == LEFT_BOUNDARY && nbot[ic] == -1){
@@ -3518,28 +3590,28 @@ void Mesh::calc_neighbors_local(void)
 
          // Scan for corner boundary cells
          for (uint ic=ncells; ic<ncells_ghost; ic++){
-            if (nlft[ic] == -99){
+            if (nlft[ic] == INT_MIN){
                lev = level[ic];
                levmult = levtable[levmx-lev];
                jjj = j[ic]*levmult;
                iii = i[ic]*levmult;
                nlft[ic] = hash[jjj-jminsize][iii-iminsize];
             }
-            if (nrht[ic] == -99){
+            if (nrht[ic] == INT_MIN){
                lev = level[ic];
                levmult = levtable[levmx-lev];
                jjj = j[ic]*levmult;
                iii = i[ic]*levmult;
                nrht[ic] = hash[jjj-jminsize][iii-iminsize];
             }
-            if (nbot[ic] == -99) {
+            if (nbot[ic] == INT_MIN) {
                lev = level[ic];
                levmult = levtable[levmx-lev];
                iii = i[ic]*levmult;
                jjj = j[ic]*levmult;
                nbot[ic] = hash[jjj-jminsize][iii-iminsize];
             }
-            if (ntop[ic] == -99) {
+            if (ntop[ic] == INT_MIN) {
                lev = level[ic];
                levmult = levtable[levmx-lev];
                iii = i[ic]*levmult;
@@ -3928,7 +4000,6 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
 }
 
 
-#define CHECK 0
 void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 {
    struct timeval tstart_cpu;
@@ -3977,13 +4048,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
                  __local        int4  *tile)       // 8
       */
 
-   if (CHECK) {
-      if (ezcl_get_device_mem_nelements(dev_i) < (int)ncells || 
-          ezcl_get_device_mem_nelements(dev_j) < (int)ncells ||
-          ezcl_get_device_mem_nelements(dev_level) < (int)ncells ){
-         printf("%d: Warning ncells %ld size dev_i %d dev_j %d dev_level %d\n",mype,ncells,ezcl_get_device_mem_nelements(dev_i),ezcl_get_device_mem_nelements(dev_j),ezcl_get_device_mem_nelements(dev_level));
-      }
+#ifdef BOUNDS_CHECK
+   if (ezcl_get_device_mem_nelements(dev_i) < (int)ncells || 
+       ezcl_get_device_mem_nelements(dev_j) < (int)ncells ||
+       ezcl_get_device_mem_nelements(dev_level) < (int)ncells ){
+      printf("%d: Warning ncells %ld size dev_i %d dev_j %d dev_level %d\n",mype,ncells,ezcl_get_device_mem_nelements(dev_i),ezcl_get_device_mem_nelements(dev_j),ezcl_get_device_mem_nelements(dev_level));
    }
+#endif
 
    ezcl_set_kernel_arg(kernel_hash_size, 0, sizeof(cl_int), (void *)&ncells);
    ezcl_set_kernel_arg(kernel_hash_size, 1, sizeof(cl_int), (void *)&levmx);
@@ -4023,9 +4094,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    int jminsize = sizes[2];
    int jmaxsize = sizes[3];
 
-   //fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
-
    // Expand size by 2*coarse_cells for ghost cells
+   // TODO: May want to get fancier here and calc based on cell level
    jminsize = max(jminsize-2*levtable[levmx],0);
    jmaxsize = min(jmaxsize+2*levtable[levmx],(jmax+1)*levtable[levmx]);
    iminsize = max(iminsize-2*levtable[levmx],0);
@@ -4034,7 +4104,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
    // Allocate partial hash table
    size_t hashsize = (jmaxsize-jminsize)*(imaxsize-iminsize);
-   //if (numpe > 16) hashsize *= 1.5;
+   //if (numpe > 16) hashsize = (jmax+1)*levtable[levmx] * (imax+1)*levtable[levmx];
 
    cl_mem dev_hash = ezcl_malloc(NULL, const_cast<char *>("dev_hash"), &hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
    size_t hash_local_work_size  = TILE_SIZE;
@@ -4046,19 +4116,20 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, NULL);
 
    int csize = corners_i.size();
-   if (CHECK) {
-      for (int ic=0; ic<csize; ic++){
-         if (corners_i[ic] >= iminsize) continue;
-         if (corners_j[ic] >= jminsize) continue;
-         if (corners_i[ic] <  imaxsize) continue;
-         if (corners_j[ic] <  jmaxsize) continue;
-         if ( (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize) < 0 ||
-              (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize) > (int)hashsize){
-            printf("%d: Warning corners i %d j %d hash %d\n",mype,corners_i[ic],corners_j[ic],
-               (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize));
-         }
+#ifdef BOUNDS_CHECK
+   for (int ic=0; ic<csize; ic++){
+      if (corners_i[ic] >= iminsize) continue;
+      if (corners_j[ic] >= jminsize) continue;
+      if (corners_i[ic] <  imaxsize) continue;
+      if (corners_j[ic] <  jmaxsize) continue;
+      if ( (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize) < 0 ||
+           (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize) > (int)hashsize){
+         printf("%d: Warning corners i %d j %d hash %d\n",mype,corners_i[ic],corners_j[ic],
+            (corners_j[ic]-jminsize)*(imaxsize-iminsize)+(corners_i[ic]-iminsize));
       }
    }
+#endif
+
    size_t corners_local_work_size  = MIN(csize, TILE_SIZE);
    size_t corners_global_work_size = ((csize+corners_local_work_size - 1) /corners_local_work_size) * corners_local_work_size;
 
@@ -4073,6 +4144,16 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    ezcl_set_kernel_arg(kernel_hash_init_corners, 8, sizeof(cl_mem), (void *)&dev_hash);
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init_corners,   1, NULL, &corners_global_work_size, &corners_local_work_size, NULL);
 
+   if (DEBUG){
+      vector<int> sizes_tmp(4);
+      ezcl_enqueue_read_buffer(command_queue, dev_sizes, CL_TRUE,  0, 1*sizeof(cl_int4), &sizes_tmp[0], NULL);
+      int iminsize_tmp = sizes_tmp[0];
+      int imaxsize_tmp = sizes_tmp[1];
+      int jminsize_tmp = sizes_tmp[2];
+      int jmaxsize_tmp = sizes_tmp[3];
+      fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize_tmp,imaxsize_tmp,jminsize_tmp,jmaxsize_tmp);
+   }
+
       /*
                     const int  isize,     // 0
                     const int  levmx,     // 1
@@ -4086,7 +4167,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    local_work_size = 128;
    global_work_size = ((ncells + local_work_size - 1) /local_work_size) * local_work_size;
 
-   if (CHECK) {
+#ifdef BOUNDS_CHECK
+   {
       vector<int> i_tmp(ncells);
       vector<int> j_tmp(ncells);
       vector<int> level_tmp(ncells);
@@ -4097,14 +4179,14 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          int lev = level_tmp[ic];
          for (   int jj = j_tmp[ic]*levtable[levmx-lev]-jminsize; jj < (j_tmp[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
             for (int ii = i_tmp[ic]*levtable[levmx-lev]-iminsize; ii < (i_tmp[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
-               if (jj*(imaxsize-iminsize)+ii < 0 ||
-                   jj*(imaxsize-iminsize)+ii >= (int)hashsize){
-                  printf("%d: Warning ncell %d writes to hash out-of-bounds  ii %d jj %d val %d\n",mype,ic,ii,jj,jj*(imaxsize-iminsize)+ii);
+               if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) {
+                  printf("%d: Warning ncell %d writes to hash out-of-bounds at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,ic,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
                }
             }
          }
       }
    }
+#endif
 
    //printf("%d: lws %d gws %d \n",mype,local_work_size,global_work_size);
    cl_event hash_setup_local_event;
@@ -4150,7 +4232,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
            __global       int  *hash)     // 12
       */
 
-   if (CHECK)  {
+#ifdef BOUNDS_CHECK
+   {
       if (ezcl_get_device_mem_nelements(dev_nlft)  < (int)ncells ||
           ezcl_get_device_mem_nelements(dev_nrht)  < (int)ncells ||
           ezcl_get_device_mem_nelements(dev_nbot)  < (int)ncells ||
@@ -4174,6 +4257,65 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       if (iflag > 20) {fflush(stdout); L7_Terminate(); exit(0);}
 #endif
    }
+#endif
+
+#ifdef BOUNDS_CHECK
+   {
+      int jmaxcalc = (jmax+1)*levtable[levmx];
+      int imaxcalc = (imax+1)*levtable[levmx];
+      vector<int> i_tmp(ncells);
+      vector<int> j_tmp(ncells);
+      vector<int> level_tmp(ncells);
+      vector<int> hash_tmp(hashsize);
+      ezcl_enqueue_read_buffer(command_queue, dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int), &i_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int), &j_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_level, CL_TRUE,  0, ncells*sizeof(cl_int), &level_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_hash,  CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
+      for (int ic=0; ic<(int)ncells; ic++){
+         int ii  = i_tmp[ic];
+         int jj  = j_tmp[ic];
+         int lev = level_tmp[ic];
+         int levmult = levtable[levmx-lev];
+         int jjj=jj   *levmult-jminsize;
+         int iii=max(  ii   *levmult-1, 0         )-iminsize;
+         if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+         jjj=jj   *levmult-jminsize;
+         iii=min( (ii+1)*levmult,   imaxcalc-1)-iminsize;
+         if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+         jjj=max(  jj   *levmult-1, 0) -jminsize;
+         iii=ii   *levmult   -iminsize;
+         if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+         jjj=min( (jj+1)*levmult,   jmaxcalc-1)-jminsize;
+         iii=ii   *levmult   -iminsize;
+         if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+         int nlftval = hash_tmp[((      jj   *levmult               )-jminsize)*(imaxsize-iminsize)+((max(  ii   *levmult-1, 0         ))-iminsize)];
+         int nrhtval = hash_tmp[((      jj   *levmult               )-jminsize)*(imaxsize-iminsize)+((min( (ii+1)*levmult,   imaxcalc-1))-iminsize)];
+         int nbotval = hash_tmp[((max(  jj   *levmult-1, 0)         )-jminsize)*(imaxsize-iminsize)+((      ii   *levmult               )-iminsize)];
+         int ntopval = hash_tmp[((min( (jj+1)*levmult,   jmaxcalc-1))-jminsize)*(imaxsize-iminsize)+((      ii   *levmult               )-iminsize)];
+
+         if (nlftval == INT_MIN){
+            jjj = jj*levmult-jminsize;
+            iii = ii*levmult-iminsize;
+            if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+         }
+         if (nrhtval == INT_MIN){
+            jjj = jj*levmult-jminsize;
+            iii = ii*levmult-iminsize;
+            if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+         }
+         if (nbotval == INT_MIN) {
+            iii = ii*levmult-iminsize;
+            jjj = jj*levmult-jminsize;
+            if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+         }
+         if (ntopval == INT_MIN) {
+            iii = ii*levmult-iminsize;
+            jjj = jj*levmult-jminsize;
+            if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
+         }
+      }
+   }
+#endif
 
    cl_event calc_neighbors_local_event;
 
@@ -4707,23 +4849,23 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
       nb_global_work_size = ((nbpacked + nb_local_work_size - 1) /nb_local_work_size) * nb_local_work_size;
 
-      if (CHECK) {
-         if (ezcl_get_device_mem_nelements(dev_i) < (int)ncells_ghost || 
-             ezcl_get_device_mem_nelements(dev_j) < (int)ncells_ghost || 
-             ezcl_get_device_mem_nelements(dev_level) < (int)ncells_ghost || 
-             ezcl_get_device_mem_nelements(dev_celltype) < (int)ncells_ghost || 
-             ezcl_get_device_mem_nelements(dev_nlft) < (int)ncells_ghost || 
-             ezcl_get_device_mem_nelements(dev_nrht) < (int)ncells_ghost || 
-             ezcl_get_device_mem_nelements(dev_nbot) < (int)ncells_ghost || 
-             ezcl_get_device_mem_nelements(dev_ntop) < (int)ncells_ghost ){
-                printf("DEBUG size issue at %d\n",__LINE__);
-         }
-         if (ezcl_get_device_mem_nelements(dev_border_cell_i) < nbpacked || 
-             ezcl_get_device_mem_nelements(dev_border_cell_j) < nbpacked || 
-             ezcl_get_device_mem_nelements(dev_border_cell_level) < nbpacked ){
-                printf("DEBUG size issue at %d\n",__LINE__);
-         }
+#ifdef BOUNDS_CHECK
+      if (ezcl_get_device_mem_nelements(dev_i) < (int)ncells_ghost || 
+          ezcl_get_device_mem_nelements(dev_j) < (int)ncells_ghost || 
+          ezcl_get_device_mem_nelements(dev_level) < (int)ncells_ghost || 
+          ezcl_get_device_mem_nelements(dev_celltype) < (int)ncells_ghost || 
+          ezcl_get_device_mem_nelements(dev_nlft) < (int)ncells_ghost || 
+          ezcl_get_device_mem_nelements(dev_nrht) < (int)ncells_ghost || 
+          ezcl_get_device_mem_nelements(dev_nbot) < (int)ncells_ghost || 
+          ezcl_get_device_mem_nelements(dev_ntop) < (int)ncells_ghost ){
+             printf("DEBUG size issue at %d\n",__LINE__);
       }
+      if (ezcl_get_device_mem_nelements(dev_border_cell_i) < nbpacked || 
+          ezcl_get_device_mem_nelements(dev_border_cell_j) < nbpacked || 
+          ezcl_get_device_mem_nelements(dev_border_cell_level) < nbpacked ){
+             printf("DEBUG size issue at %d\n",__LINE__);
+      }
+#endif
  
       cl_event fill_mesh_ghost_event;
 
@@ -4797,14 +4939,14 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          print_dev_local(command_queue);
       }
 
-      if (CHECK) {
-         if (ezcl_get_device_mem_nelements(dev_nlft) < (int)ncells_ghost || 
-             ezcl_get_device_mem_nelements(dev_nrht) < (int)ncells_ghost ||
-             ezcl_get_device_mem_nelements(dev_nbot) < (int)ncells_ghost ||
-             ezcl_get_device_mem_nelements(dev_ntop) < (int)ncells_ghost ){
-            printf("%d: Warning sizes for set_corner_neighbor not right ncells ghost %d nlft size %d\n",mype,ncells_ghost,ezcl_get_device_mem_nelements(dev_nlft));
-         }
+#ifdef BOUNDS_CHECK
+      if (ezcl_get_device_mem_nelements(dev_nlft) < (int)ncells_ghost || 
+          ezcl_get_device_mem_nelements(dev_nrht) < (int)ncells_ghost ||
+          ezcl_get_device_mem_nelements(dev_nbot) < (int)ncells_ghost ||
+          ezcl_get_device_mem_nelements(dev_ntop) < (int)ncells_ghost ){
+         printf("%d: Warning sizes for set_corner_neighbor not right ncells ghost %d nlft size %d\n",mype,ncells_ghost,ezcl_get_device_mem_nelements(dev_nlft));
       }
+#endif
 
       size_t nghost_local_work_size = 128;
       size_t nghost_global_work_size = ((nghost + nghost_local_work_size - 1) /nghost_local_work_size) * nghost_local_work_size;
@@ -4839,17 +4981,17 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          print_dev_local(command_queue);
       }
 
-      if (CHECK) {
-         if (ezcl_get_device_mem_nelements(dev_nlft) < (int)ncells_ghost || 
-             ezcl_get_device_mem_nelements(dev_nrht) < (int)ncells_ghost ||
-             ezcl_get_device_mem_nelements(dev_nbot) < (int)ncells_ghost ||
-             ezcl_get_device_mem_nelements(dev_ntop) < (int)ncells_ghost ){
-            printf("%d: Warning sizes for adjust neighbors not right ncells ghost %d nlft size %d\n",mype,ncells_ghost,ezcl_get_device_mem_nelements(dev_nlft));
-         }
-         if (ezcl_get_device_mem_nelements(dev_indices_needed) < (int)(ncells_ghost-ncells) ){
-            printf("%d: Warning indices size wrong nghost %d size indices_needed\n",mype,ncells_ghost-ncells,ezcl_get_device_mem_nelements(dev_indices_needed));
-         }
+#ifdef BOUNDS_CHECK
+      if (ezcl_get_device_mem_nelements(dev_nlft) < (int)ncells_ghost || 
+          ezcl_get_device_mem_nelements(dev_nrht) < (int)ncells_ghost ||
+          ezcl_get_device_mem_nelements(dev_nbot) < (int)ncells_ghost ||
+          ezcl_get_device_mem_nelements(dev_ntop) < (int)ncells_ghost ){
+         printf("%d: Warning sizes for adjust neighbors not right ncells ghost %d nlft size %d\n",mype,ncells_ghost,ezcl_get_device_mem_nelements(dev_nlft));
       }
+      if (ezcl_get_device_mem_nelements(dev_indices_needed) < (int)(ncells_ghost-ncells) ){
+         printf("%d: Warning indices size wrong nghost %d size indices_needed\n",mype,ncells_ghost-ncells,ezcl_get_device_mem_nelements(dev_indices_needed));
+      }
+#endif
 
       cl_event adjust_neighbors_local_event;
 

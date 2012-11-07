@@ -1532,7 +1532,7 @@ __kernel void finish_scan_cl(
                           const int   size,       // 0
                  __global       uint  *ioffset,   // 1
                  __global       int   *nbsize,    // 2
-                 __local        int   *itile)     // 3
+                 __local        uint  *itile)     // 3
 {
    const uint tiX = get_local_id(0);
    const uint group_id = get_group_id(0);
