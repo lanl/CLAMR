@@ -3123,59 +3123,113 @@ void Mesh::calc_neighbors_local(void)
 
 #ifdef HAVE_MPI
       if (numpe > 1) {
-         vector<int> border_cell;
+         vector<int> border_cell(ncells);
 
-         // Push list of unsatisfied neighbor cells
+#ifdef BOUNDS_CHECK
          for (uint ic=0; ic<ncells; ic++){
-            if (nlft[ic] == -1 || (level[nlft[ic]-noffset] > level[ic] && ntop[nlft[ic]-noffset] == -1) ){
-               //fprintf(fp,"%d: Cell is %d nlft %d\n",mype,ic+noffset,nlft[ic]);
-               border_cell.push_back(ic+noffset);
-               if (nrht[ic] >= 0) {
-                  border_cell.push_back(nrht[ic]);
-                  if (level[nrht[ic]-noffset] > level[ic]) {
-                     if (ntop[nrht[ic]-noffset] >= 0) border_cell.push_back(ntop[nrht[ic]-noffset]);
-                  }
-               }
+            int nl = nlft[ic];
+            if (nl != -1){
+               nl -= noffset;
+               if (nl<0 || nl>= ncells) printf("%d: Warning at line %d cell %d nlft %d\n",mype,__LINE__,ic,nl);
             }
-            if (nrht[ic] == -1 || (level[nrht[ic]-noffset] > level[ic] && ntop[nrht[ic]-noffset] == -1) ){
-               //fprintf(fp,"%d: Cell is %d nrht %d\n",mype,ic+noffset,nrht[ic]);
-               border_cell.push_back(ic+noffset);
-               if (nlft[ic] >= 0) {
-                  border_cell.push_back(nlft[ic]);
-                  if (level[nlft[ic]-noffset] > level[ic]) {
-                     if (ntop[nlft[ic]-noffset] >= 0) border_cell.push_back(ntop[nlft[ic]-noffset]);
-                  }
-               }
+            int nr = nrht[ic];
+            if (nr != -1){
+               nr -= noffset;
+               if (nr<0 || nr>= ncells) printf("%d: Warning at line %d cell %d nrht %d\n",mype,__LINE__,ic,nr);
             }
-            if (nbot[ic] == -1 || (level[nbot[ic]-noffset] > level[ic] && nrht[nbot[ic]-noffset] == -1) ) {
-               //fprintf(fp,"%d: Cell is %d nbot %d\n",mype,ic+noffset,nbot[ic]);
-               border_cell.push_back(ic+noffset);
-               if (ntop[ic] >= 0) {
-                  border_cell.push_back(ntop[ic]);
-                  if (level[ntop[ic]-noffset] > level[ic]) {
-                     if (nrht[ntop[ic]-noffset] >= 0) border_cell.push_back(nrht[ntop[ic]-noffset]);
-                  }
-               }
+            int nb = nbot[ic];
+            if (nb != -1){
+               nb -= noffset;
+               if (nb<0 || nb>= ncells) printf("%d: Warning at line %d cell %d nbot %d\n",mype,__LINE__,ic,nb);
             }
-            if (ntop[ic] == -1 || ( level[ntop[ic]-noffset] > level[ic] && nrht[ntop[ic]-noffset] == -1) ) {
-               //fprintf(fp,"%d: Cell is %d ntop %d\n",mype,ic+noffset,ntop[ic]);
-               border_cell.push_back(ic+noffset);
-               if (nbot[ic] >= 0) {
-                  border_cell.push_back(nbot[ic]);
-                  if (level[nbot[ic]-noffset] > level[ic]) {
-                     if (nrht[nbot[ic]-noffset] >= 0) border_cell.push_back(nrht[nbot[ic]-noffset]);
-                  }
-               }
+            int nt = ntop[ic];
+            if (nt != -1){
+               nt -= noffset;
+               if (nt<0 || nt>= ncells) printf("%d: Warning at line %d cell %d ntop %d\n",mype,__LINE__,ic,nt);
             }
          }
+#endif
 
-         sort(border_cell.begin(),border_cell.end());
-         vector<int>::iterator p_end = unique(border_cell.begin(),border_cell.end());
+         for (uint ic=0; ic<ncells; ic++){
+            int iborder_cell = 0;
+
+            // left neighbor is undefined -- or -- if left is at finer level check left top for undefined
+            if (nlft[ic] == -1 || (level[nlft[ic]-noffset] > level[ic] && ntop[nlft[ic]-noffset] == -1) ){
+               iborder_cell |= 0x0001;
+            }
+            if (nrht[ic] == -1 || (level[nrht[ic]-noffset] > level[ic] && ntop[nrht[ic]-noffset] == -1) ){
+               iborder_cell |= 0x0002;
+            }
+            if (nbot[ic] == -1 || (level[nbot[ic]-noffset] > level[ic] && nrht[nbot[ic]-noffset] == -1) ) {
+               iborder_cell |= 0x0004;
+            }
+            if (ntop[ic] == -1 || (level[ntop[ic]-noffset] > level[ic] && nrht[ntop[ic]-noffset] == -1) ) {
+               iborder_cell |= 0x0008;
+            }
+   
+            border_cell[ic] = iborder_cell;
+         }
+
+         vector<int> border_cell_out(ncells);
+
+         for (uint ic=0; ic<ncells; ic++){
+            int iborder_cell = border_cell[ic];
+
+            if (iborder_cell == 0) {
+
+               int nl = nlft[ic]-noffset;
+               if (nl >= 0 && nl < ncells) {
+                  if ((border_cell[nl] & 0x0001) == 0x0001) {
+                     iborder_cell |= 0x0016;
+                  } else if (level[nl] > level[ic]){
+                     int ntl = ntop[nl]-noffset;
+                     if (ntl >= 0 && ntl < ncells && (border_cell[ntl] & 0x0001) == 0x0001) {
+                        iborder_cell |= 0x0016;
+                     }
+                  }
+               }
+               int nr = nrht[ic]-noffset;
+               if (nr >= 0 && nr < ncells) {
+                  if ((border_cell[nrht[ic]-noffset] & 0x0002) == 0x0002) {
+                     iborder_cell |= 0x0032;
+                  } else if (level[nr] > level[ic]){
+                     int ntr = ntop[nr]-noffset;
+                     if (ntr >= 0 && ntr < ncells && (border_cell[ntr] & 0x0002) == 0x0002) {
+                        iborder_cell |= 0x0032;
+                     }
+                  }
+               }
+               int nb = nbot[ic]-noffset;
+               if (nb >= 0 && nb < ncells) {
+                  if ((border_cell[nb] & 0x0004) == 0x0004) {
+                     iborder_cell |= 0x0064;
+                  } else if (level[nb] > level[ic]){
+                     int nrb = nrht[nb]-noffset;
+                     if (nrb >= 0 && nrb < ncells && (border_cell[nrb] & 0x0004) == 0x0004) {
+                        iborder_cell |= 0x0064;
+                     }
+                  }
+               }
+               int nt = ntop[ic]-noffset;
+               if (nt >= 0 && nt < ncells) {
+                  if ((border_cell[nt] & 0x0008) == 0x0008) {
+                     iborder_cell |= 0x0128;
+                  } else if (level[nt] > level[ic]){
+                     int nrt = nrht[nt]-noffset;
+                     if (nrt >= 0 && nrt < ncells && (border_cell[nrt] & 0x0008) == 0x0008) {
+                        iborder_cell |= 0x0128;
+                     }
+                  }
+               }
+            }
+
+            border_cell_out[ic] = iborder_cell;
+         }
 
          vector<int> border_cell_num;
 
-         for (vector<int>::iterator p=border_cell.begin(); p < p_end; p++){
-            border_cell_num.push_back(*p);
+         for (int ic=0; ic<ncells; ic++){
+            if (border_cell_out[ic] > 0) border_cell_num.push_back(ic+noffset);
          }
          //printf("%d: border cell size is %d\n",mype,border_cell_num.size());
 
@@ -3190,8 +3244,14 @@ void Mesh::calc_neighbors_local(void)
             border_cell_i[ic] = i[cell_num]; 
             border_cell_j[ic] = j[cell_num]; 
             border_cell_level[ic] = level[cell_num]; 
-            //fprintf(fp,"%d: Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num[ic],
-            //   border_cell_i[ic],border_cell_j[ic],border_cell_level[ic]);
+         }
+
+         if (DEBUG) {
+            fprintf(fp,"%d: Border cell size is %d\n",mype,nbsize_local);
+            for (int ib = 0; ib <nbsize_local; ib++){
+               fprintf(fp,"%d: Border cell %d is %d i %d j %d level %d\n",mype,ib,border_cell_num[ib],
+                  border_cell_i[ib],border_cell_j[ib],border_cell_level[ib]);
+            }
          }
 
          if (TIMING_LEVEL >= 2) {
@@ -4034,7 +4094,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    assert(dev_j);
 
    size_t one = 1;
-   int read_check;
    cl_mem dev_check = ezcl_malloc(NULL, const_cast<char *>("dev_check"), &one, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
    dev_nlft = ezcl_malloc(NULL, const_cast<char *>("dev_nlft"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
@@ -4497,6 +4556,42 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
 #ifdef HAVE_MPI
    if (numpe > 1) {
+
+#ifdef BOUNDS_CHECK
+      {
+         vector<int> nlft_tmp(ncells_ghost);
+         vector<int> nrht_tmp(ncells_ghost);
+         vector<int> nbot_tmp(ncells_ghost);
+         vector<int> ntop_tmp(ncells_ghost);
+         ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells*sizeof(cl_int), &nlft_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells*sizeof(cl_int), &nrht_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells*sizeof(cl_int), &nbot_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells*sizeof(cl_int), &ntop_tmp[0], NULL);
+         for (uint ic=0; ic<ncells; ic++){
+            int nl = nlft_tmp[ic];
+            if (nl != -1){
+               nl -= noffset;
+               if (nl<0 || nl>= ncells) printf("%d: Warning at line %d cell %d nlft %d\n",mype,__LINE__,ic,nl);
+            }
+            int nr = nrht_tmp[ic];
+            if (nr != -1){
+               nr -= noffset;
+               if (nr<0 || nr>= ncells) printf("%d: Warning at line %d cell %d nrht %d\n",mype,__LINE__,ic,nr);
+            }
+            int nb = nbot_tmp[ic];
+            if (nb != -1){
+               nb -= noffset;
+               if (nb<0 || nb>= ncells) printf("%d: Warning at line %d cell %d nbot %d\n",mype,__LINE__,ic,nb);
+            }
+            int nt = ntop_tmp[ic];
+            if (nt != -1){
+               nt -= noffset;
+               if (nt<0 || nt>= ncells) printf("%d: Warning at line %d cell %d ntop %d\n",mype,__LINE__,ic,nt);
+            }
+         }
+      }
+#endif
+
       cl_mem dev_border_cell = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell1"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
       ezcl_set_kernel_arg(kernel_calc_border_cells, 0,  sizeof(cl_int), (void *)&ncells);
@@ -4591,6 +4686,14 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_read_buffer(command_queue, dev_border_cell_j,     CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_j[0],     NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_border_cell_level, CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_level[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_border_cell_num,   CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_num[0],   NULL);
+
+      if (DEBUG) {
+         fprintf(fp,"%d: Border cell size is %d\n",mype,nbsize_local);
+         for (int ib=0; ib<nbsize_local; ib++){
+            fprintf(fp,"%d: Border cell %d is %d i %d j %d level %d\n",mype,ib,border_cell_num[ib],
+               border_cell_i[ib],border_cell_j[ib],border_cell_level[ib]);
+         }
+      }
 
       ezcl_device_memory_remove(dev_border_cell_i);
       ezcl_device_memory_remove(dev_border_cell_j);
