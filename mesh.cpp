@@ -3020,11 +3020,15 @@ void Mesh::calc_neighbors_local(void)
             fprintf(fp,"%2d: %4d:",mype,jj);
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
-                  int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
+                  if (ii >= iminsize && ii < imaxsize) {
+                     int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
+                     if (hashval >= 0 && hashval < (int)ncells) {
                         fprintf(fp,"%5d",nlft[hashval]);
-                  } else {
+                     } else {
                         fprintf(fp,"     ");
+                     }
+                  } else {
+                     fprintf(fp,"     ");
                   }
                }
             }
@@ -3041,9 +3045,13 @@ void Mesh::calc_neighbors_local(void)
             fprintf(fp,"%2d: %4d:",mype,jj);
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
-                  int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
-                     fprintf(fp,"%5d",nrht[hashval]);
+                  if (ii >= iminsize && ii < imaxsize) {
+                     int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
+                     if (hashval >= 0 && hashval < (int)ncells) {
+                        fprintf(fp,"%5d",nrht[hashval]);
+                     } else {
+                        fprintf(fp,"     ");
+                     }
                   } else {
                      fprintf(fp,"     ");
                   }
@@ -3062,9 +3070,13 @@ void Mesh::calc_neighbors_local(void)
             fprintf(fp,"%2d: %4d:",mype,jj);
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
-                  int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
-                     fprintf(fp,"%5d",nbot[hashval]);
+                  if (ii >= iminsize && ii < imaxsize) {
+                     int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
+                     if (hashval >= 0 && hashval < (int)ncells) {
+                        fprintf(fp,"%5d",nbot[hashval]);
+                     } else {
+                        fprintf(fp,"     ");
+                     }
                   } else {
                      fprintf(fp,"     ");
                   }
@@ -3083,9 +3095,13 @@ void Mesh::calc_neighbors_local(void)
             fprintf(fp,"%2d: %4d:",mype,jj);
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
-                  int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
-                  if ( (ii >= iminsize && ii < imaxsize) && (hashval >= 0 && hashval < (int)ncells) ) {
-                     fprintf(fp,"%5d",ntop[hashval]);
+                  if (ii >= iminsize && ii < imaxsize) {
+                     int hashval = hash[jj-jminsize][ii-iminsize]-noffset;
+                     if (hashval >= 0 && hashval < (int)ncells) {
+                        fprintf(fp,"%5d",ntop[hashval]);
+                     } else {
+                        fprintf(fp,"     ");
+                     }
                   } else {
                      fprintf(fp,"     ");
                   }
@@ -4341,6 +4357,142 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    if (TIMING_LEVEL >= 2) {
       gpu_time_hash_query += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
       cpu_timer_start(&tstart_lev2);
+   }
+
+   if (DEBUG) {
+      vector<int> hash_tmp(hashsize);
+      ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_FALSE, 0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
+
+      vector<int> nlft_tmp(ncells_ghost);
+      vector<int> nrht_tmp(ncells_ghost);
+      vector<int> nbot_tmp(ncells_ghost);
+      vector<int> ntop_tmp(ncells_ghost);
+      ezcl_enqueue_read_buffer(command_queue, dev_nlft, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nlft_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_nrht, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nrht_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nbot_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells_ghost*sizeof(cl_int), &ntop_tmp[0], NULL);
+
+      int jmaxglobal = (jmax+1)*levtable[levmx];
+      int imaxglobal = (imax+1)*levtable[levmx];
+      fprintf(fp,"\n                                    HASH 0 numbering\n");
+      for (int jj = jmaxglobal-1; jj>=0; jj--){
+         fprintf(fp,"%2d: %4d:",mype,jj);
+         if (jj >= jminsize && jj < jmaxsize) {
+            for (int ii = 0; ii<imaxglobal; ii++){
+               if (ii >= iminsize && ii < imaxsize) {
+                  fprintf(fp,"%5d",hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]);
+               } else {
+                  fprintf(fp,"     ");
+               }
+            }
+         }
+         fprintf(fp,"\n");
+      }
+      fprintf(fp,"%2d:      ",mype);
+      for (int ii = 0; ii<imaxglobal; ii++){
+         fprintf(fp,"%4d:",ii);
+      }
+      fprintf(fp,"\n");
+
+      fprintf(fp,"\n                                    nlft numbering\n");
+      for (int jj = jmaxglobal-1; jj>=0; jj--){
+         fprintf(fp,"%2d: %4d:",mype,jj);
+         if (jj >= jminsize && jj < jmaxsize) {
+            for (int ii = 0; ii<imaxglobal; ii++){
+               if (ii >= iminsize && ii < imaxsize) {
+                  int hashval = hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]-noffset;
+                  if (hashval >= 0 && hashval < (int)ncells) {
+                     fprintf(fp,"%5d",nlft_tmp[hashval]);
+                  } else {
+                     fprintf(fp,"     ");
+                  }
+               } else {
+                  fprintf(fp,"     ");
+               }
+            }
+         }
+         fprintf(fp,"\n");
+      }
+      fprintf(fp,"%2d:      ",mype);
+      for (int ii = 0; ii<imaxglobal; ii++){
+         fprintf(fp,"%4d:",ii);
+      }
+      fprintf(fp,"\n");
+   
+      fprintf(fp,"\n                                    nrht numbering\n");
+      for (int jj = jmaxglobal-1; jj>=0; jj--){
+         fprintf(fp,"%2d: %4d:",mype,jj);
+         if (jj >= jminsize && jj < jmaxsize) {
+            for (int ii = 0; ii<imaxglobal; ii++){
+               if (ii >= iminsize && ii < imaxsize) {
+                  int hashval = hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]-noffset;
+                  if (hashval >= 0 && hashval < (int)ncells) {
+                     fprintf(fp,"%5d",nrht_tmp[hashval]);
+                  } else {
+                     fprintf(fp,"     ");
+                  }
+               } else {
+                  fprintf(fp,"     ");
+               }
+            }
+         }
+         fprintf(fp,"\n");
+      }
+      fprintf(fp,"%2d:      ",mype);
+      for (int ii = 0; ii<imaxglobal; ii++){
+         fprintf(fp,"%4d:",ii);
+      }
+      fprintf(fp,"\n");
+
+      fprintf(fp,"\n                                    nbot numbering\n");
+      for (int jj = jmaxglobal-1; jj>=0; jj--){
+         fprintf(fp,"%2d: %4d:",mype,jj);
+         if (jj >= jminsize && jj < jmaxsize) {
+            for (int ii = 0; ii<imaxglobal; ii++){
+               if (ii >= iminsize && ii < imaxsize) {
+                  int hashval = hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]-noffset;
+                  if (hashval >= 0 && hashval < (int)ncells) {
+                     fprintf(fp,"%5d",nbot_tmp[hashval]);
+                  } else {
+                     fprintf(fp,"     ");
+                  }
+               } else {
+                  fprintf(fp,"     ");
+               }
+            }
+         }
+         fprintf(fp,"\n");
+      }
+      fprintf(fp,"%2d:      ",mype);
+      for (int ii = 0; ii<imaxglobal; ii++){
+         fprintf(fp,"%4d:",ii);
+      }
+      fprintf(fp,"\n");
+
+      fprintf(fp,"\n                                    ntop numbering\n");
+      for (int jj = jmaxglobal-1; jj>=0; jj--){
+         fprintf(fp,"%2d: %4d:",mype,jj);
+         if (jj >= jminsize && jj < jmaxsize) {
+            for (int ii = 0; ii<imaxglobal; ii++){
+               if (ii >= iminsize && ii < imaxsize) {
+                  int hashval = hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]-noffset;
+                  if (hashval >= 0 && hashval < (int)ncells) {
+                     fprintf(fp,"%5d",ntop_tmp[hashval]);
+                  } else {
+                     fprintf(fp,"     ");
+                  }
+               } else {
+                  fprintf(fp,"     ");
+               }
+            }
+         }
+         fprintf(fp,"\n");
+      }
+      fprintf(fp,"%2d:      ",mype);
+      for (int ii = 0; ii<imaxglobal; ii++){
+         fprintf(fp,"%4d:",ii);
+      }
+      fprintf(fp,"\n");
    }
 
 #ifdef HAVE_MPI
