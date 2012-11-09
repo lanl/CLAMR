@@ -12,7 +12,7 @@ clamr_CXX_SRCS = clamr.cpp mesh.cpp partition.cpp state.cpp input.cpp
 clamr_C_SRCS = display.c reduce.c
 clamr_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_CPPFLAGS = -DHAVE_MPI=1 -DHAVE_OPENCL=1
-clamr_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la -lm ${MPE_LIBS} ${MPI_LIBS} ${OPENCL_LIBS}
+clamr_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libpezcl.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la -lm ${MPE_LIBS} ${MPI_LIBS} ${OPENCL_LIBS}
 
 clamr_SOURCES = ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS}
 
@@ -60,7 +60,7 @@ clamr_checkall_CXX_SRCS = clamr_checkall.cpp mesh.cpp partition.cpp state.cpp in
 clamr_checkall_C_SRCS = display.c reduce.c 
 clamr_checkall_H_SRCS = display.h mesh.h partition.h reorder.h state.h input.h reduce.h
 clamr_checkall_CPPFLAGS = -DHAVE_MPI=1 -DHAVE_OPENCL=1
-clamr_checkall_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la -lm ${MPE_LIBS} ${MPI_LIBS} ${OPENCL_LIBS}
+clamr_checkall_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libpezcl.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la -lm ${MPE_LIBS} ${MPI_LIBS} ${OPENCL_LIBS}
 
 clamr_checkall_SOURCES = ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${clamr_checkall_H_SRCS}
 

@@ -2477,14 +2477,14 @@ void Mesh::calc_neighbors(void)
          } else if (lev == levmx) {
             hash[j[ic]][i[ic]] = ic;
          } else {
-/* Original Write to Hash Table
+/* Original Write to Hash Table */
             for (int jj = j[ic]*levtable[levmx-lev]; jj < (j[ic]+1)*levtable[levmx-lev]; jj++) {
                for (int ii=i[ic]*levtable[levmx-lev]; ii<(i[ic]+1)*levtable[levmx-lev]; ii++) {
                   hash[jj][ii] = ic;
                }
             }
-*/
-/* Optimization: Always writes to max of 7 hash buckets, 4 if cell is l=levmx-1 */
+/* */
+/* Optimization: Always writes to max of 7 hash buckets, 4 if cell is l=levmx-1
             int wid = levtable[levmx-lev];
             int jj = j[ic]*wid;
             int ii = i[ic]*wid;
@@ -2509,6 +2509,7 @@ void Mesh::calc_neighbors(void)
                ii += wid/2;
                hash[jj][ii] = ic;
             }
+*/
          }
       }
 

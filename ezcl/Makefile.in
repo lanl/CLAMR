@@ -74,10 +74,14 @@ am__base_list = \
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libezcl_la_LIBADD =
-am__objects_1 = ezcl.lo
+am__objects_1 = libezcl_la-ezcl.lo
 am__objects_2 =
 am_libezcl_la_OBJECTS = $(am__objects_1) $(am__objects_2)
 libezcl_la_OBJECTS = $(am_libezcl_la_OBJECTS)
+libpezcl_la_LIBADD =
+am__objects_3 = libpezcl_la-ezcl.lo
+am_libpezcl_la_OBJECTS = $(am__objects_3) $(am__objects_2)
+libpezcl_la_OBJECTS = $(am_libpezcl_la_OBJECTS)
 depcomp = $(SHELL) $(top_srcdir)/./config/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
@@ -90,8 +94,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(libezcl_la_SOURCES)
-DIST_SOURCES = $(libezcl_la_SOURCES)
+SOURCES = $(libezcl_la_SOURCES) $(libpezcl_la_SOURCES)
+DIST_SOURCES = $(libezcl_la_SOURCES) $(libpezcl_la_SOURCES)
 HEADERS = $(include_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -220,11 +224,14 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_MAKEFLAGS = -j 4
 DEFAULT_INCLUDES = -I. -I..
-lib_LTLIBRARIES = libezcl.la
+lib_LTLIBRARIES = libezcl.la libpezcl.la
 include_HEADERS = ezcl.h
 H_SRCS = ezcl.h
 C_SRCS = ezcl.c
+libezcl_la_CPPFLAGS = -UHAVE_MPI
 libezcl_la_SOURCES = ${C_SRCS} ${H_SRCS}
+libpezcl_la_CPPFLAGS = -DHAVE_MPI=1
+libpezcl_la_SOURCES = ${C_SRCS} ${H_SRCS}
 all: all-am
 
 .SUFFIXES:
@@ -292,6 +299,8 @@ clean-libLTLIBRARIES:
 	done
 libezcl.la: $(libezcl_la_OBJECTS) $(libezcl_la_DEPENDENCIES) 
 	$(LINK) -rpath $(libdir) $(libezcl_la_OBJECTS) $(libezcl_la_LIBADD) $(LIBS)
+libpezcl.la: $(libpezcl_la_OBJECTS) $(libpezcl_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(libpezcl_la_OBJECTS) $(libpezcl_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -299,7 +308,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ezcl.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libezcl_la-ezcl.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpezcl_la-ezcl.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -321,6 +331,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
+
+libezcl_la-ezcl.lo: ezcl.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libezcl_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libezcl_la-ezcl.lo -MD -MP -MF $(DEPDIR)/libezcl_la-ezcl.Tpo -c -o libezcl_la-ezcl.lo `test -f 'ezcl.c' || echo '$(srcdir)/'`ezcl.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libezcl_la-ezcl.Tpo $(DEPDIR)/libezcl_la-ezcl.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ezcl.c' object='libezcl_la-ezcl.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libezcl_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libezcl_la-ezcl.lo `test -f 'ezcl.c' || echo '$(srcdir)/'`ezcl.c
+
+libpezcl_la-ezcl.lo: ezcl.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libpezcl_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libpezcl_la-ezcl.lo -MD -MP -MF $(DEPDIR)/libpezcl_la-ezcl.Tpo -c -o libpezcl_la-ezcl.lo `test -f 'ezcl.c' || echo '$(srcdir)/'`ezcl.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libpezcl_la-ezcl.Tpo $(DEPDIR)/libpezcl_la-ezcl.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ezcl.c' object='libpezcl_la-ezcl.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libpezcl_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libpezcl_la-ezcl.lo `test -f 'ezcl.c' || echo '$(srcdir)/'`ezcl.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -550,8 +574,8 @@ uninstall-am: uninstall-includeHEADERS uninstall-libLTLIBRARIES
 	tags uninstall uninstall-am uninstall-includeHEADERS \
 	uninstall-libLTLIBRARIES
 
-default: libezcl.la
-all: libezcl.la
+default: libezcl.la libpezcl.la
+all: libezcl.la libpezcl.la
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
