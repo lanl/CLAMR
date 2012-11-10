@@ -4046,6 +4046,7 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
       */
 
    ezcl_wait_for_events(1, &hash_setup_event);
+   ezcl_event_release(hash_setup_event);
 
    if (TIMING_LEVEL >= 2) {
       gpu_time_hash_setup += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
