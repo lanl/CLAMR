@@ -83,7 +83,7 @@ public:
    void *memory_realloc(size_t nelem, size_t elsize, void *malloc_mem_ptr);
    void *memory_realloc(size_t nelem, size_t elsize, const char *name);
 
-   void *memory_realloc_all(size_t nelem);
+   void memory_realloc_all(size_t nelem);
 
    void *memory_replace(void *malloc_mem_ptr_old, void * const malloc_mem_ptr_new);
 

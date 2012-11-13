@@ -108,11 +108,8 @@ void *MallocPlus::memory_realloc(size_t nelem, size_t elsize, void *malloc_mem_p
    void *mem_ptr=NULL;
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
-      //printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
-      if (malloc_mem_ptr == it->mem_ptr) {
-         //printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
-         break;
-      }
+      if (DEBUG) printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
+      if (malloc_mem_ptr == it->mem_ptr) break;
    }
    if (it != memory_list.end()){
       if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC: DEBUG -- reallocated memory pointer %p\n",it->mem_ptr);
@@ -132,10 +129,7 @@ void *MallocPlus::memory_realloc(size_t nelem, size_t elsize, const char *name){
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
       if (DEBUG) printf("Testing it name %s input name %s\n",it->mem_name,name);
-      if (! strcmp(name,it->mem_name)) {
-         if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
-         break;
-      }
+      if (! strcmp(name,it->mem_name)) break;
    }
    if (it != memory_list.end()){
       if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC: DEBUG -- reallocated memory pointer %p\n",it->mem_ptr);
@@ -149,18 +143,16 @@ void *MallocPlus::memory_realloc(size_t nelem, size_t elsize, const char *name){
    return(mem_ptr);
 }
 
-void *MallocPlus::memory_realloc_all(size_t nelem){
+void MallocPlus::memory_realloc_all(size_t nelem){
    list<malloc_plus_memory_entry>::iterator it;
    void *mem_ptr=NULL;
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
-      //printf("Testing it ptr %p name %s\n",it->mem_ptr,it->mem_name);
       mem_ptr=realloc(it->mem_ptr, nelem*it->mem_elsize);
       if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC_ALL: DEBUG -- reallocated memory pointer %p new pointer %p\n",it->mem_ptr,mem_ptr);
       it->mem_nelem = nelem;
       it->mem_ptr   = mem_ptr;
    }
-   return(mem_ptr);
 }
 
 void *MallocPlus::memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, const char *name){
@@ -184,12 +176,10 @@ real *MallocPlus::memory_reorder(real *malloc_mem_ptr, int *iorder){
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
       if (DEBUG) printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
-      if (malloc_mem_ptr == it->mem_ptr) {
-         if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
-         break;
-      }
+      if (malloc_mem_ptr == it->mem_ptr) break;
    }
    if (it != memory_list.end() ){
+      if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
       real *tmp = (real *)malloc(it->mem_nelem*it->mem_elsize);
       for (uint ic = 0; ic < it->mem_nelem; ic++){
          tmp[ic] = malloc_mem_ptr[iorder[ic]];
@@ -207,7 +197,7 @@ real *MallocPlus::memory_reorder(real *malloc_mem_ptr, int *iorder){
 void MallocPlus::memory_report(void){
    list<malloc_plus_memory_entry>::iterator it;
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
-      if (DEBUG) printf("MallocPlus %10s ptr %p nelements %lu elsize %lu\n",it->mem_name,it->mem_ptr,it->mem_nelem,it->mem_elsize);
+      printf("MallocPlus %10s ptr %p nelements %lu elsize %lu\n",it->mem_name,it->mem_ptr,it->mem_nelem,it->mem_elsize);
    }
 }
 
@@ -215,7 +205,7 @@ void MallocPlus::memory_remove(void *malloc_mem_ptr){
    list<malloc_plus_memory_entry>::iterator it;
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
-      //printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
+      if (DEBUG) printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
       if (malloc_mem_ptr == it->mem_ptr) break;
    }
    if (it != memory_list.end()){
@@ -232,10 +222,7 @@ void MallocPlus::memory_remove(const char *name){
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
       if (DEBUG) printf("Testing it name %s input name %s\n",it->mem_name,name);
-      if (! strcmp(name,it->mem_name)) {
-         if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
-         break;
-      }
+      if (! strcmp(name,it->mem_name)) break;
    }
    if (it != memory_list.end()){
       if (DEBUG) printf("MALLOC_PLUS_MEMORY_REMOVE: DEBUG -- removed memory pointer %p\n",it->mem_ptr);
@@ -271,13 +258,11 @@ size_t MallocPlus::get_memory_size(void *malloc_mem_ptr){
    list<malloc_plus_memory_entry>::iterator it;
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
-      //printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
-      if (malloc_mem_ptr == it->mem_ptr) {
-         //printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
-         break;
-      }
+      if (DEBUG) printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
+      if (malloc_mem_ptr == it->mem_ptr) break;
    }
    if (it != memory_list.end()){
+      if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
       return(it->mem_nelem);
    } else {
       if (DEBUG) printf("Warning -- memory not found\n");
@@ -289,18 +274,13 @@ void *MallocPlus::memory_replace(void *malloc_mem_ptr_old, void * const malloc_m
    list<malloc_plus_memory_entry>::iterator it, it_old=memory_list.end(), it_new=memory_list.end();
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
-      //printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
-      if (malloc_mem_ptr_old == it->mem_ptr) {
-         //printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
-         it_old = it;
-      }
-      if (malloc_mem_ptr_new == it->mem_ptr) {
-         //printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
-         it_new = it;
-      }
+      if (DEBUG) printf("Testing it ptr %p ptr old %p ptr new %p name %s\n",it->mem_ptr,malloc_mem_ptr_old,malloc_mem_ptr_new,it->mem_name);
+      if (malloc_mem_ptr_old == it->mem_ptr) it_old = it;
+      if (malloc_mem_ptr_new == it->mem_ptr) it_new = it;
       if (it_new != memory_list.end() && it_old != memory_list.end() ) break;
    }
    if (it != memory_list.end()){
+      if (DEBUG) printf("Found it ptr_old %p name %s ptr_new %p name %s\n",it_old->mem_ptr,it_old->mem_name,it_new->mem_ptr,it_new->mem_name);
       free(it_old->mem_ptr);
       it_old->mem_ptr    = it_new->mem_ptr;
       it_old->mem_nelem  = it_new->mem_nelem;
@@ -319,13 +299,11 @@ void *MallocPlus::get_memory_ptr(const char *name){
    list<malloc_plus_memory_entry>::iterator it;
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
-      //printf("Testing it name %s input name %s\n",it->mem_name,name);
-      if (! strcmp(name,it->mem_name) ) {
-         //printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
-         break;
-      }
+      if (DEBUG) printf("Testing it name %s input name %s\n",it->mem_name,name);
+      if (! strcmp(name,it->mem_name) ) break;
    }
    if (it != memory_list.end()){
+      if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
       return(it->mem_ptr);
    } else {
       if (DEBUG) printf("Warning -- memory not found\n");
