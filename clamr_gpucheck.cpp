@@ -69,6 +69,10 @@
 #include "state.h"
 #include "timer/timer.h"
 
+#ifndef DEBUG 
+#define DEBUG 0
+#endif
+
 // Sync is to reduce numerical drift between cpu and gpu
 #define DO_SYNC 
 
@@ -172,6 +176,15 @@ int main(int argc, char **argv) {
    int parallel_in = 0;
    
    mesh  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
+   if (DEBUG) {
+      //if (mype == 0) mesh->print();
+
+      char filename[10];
+      sprintf(filename,"out%1d",mype);
+      mesh->fp=fopen(filename,"w");
+
+      //mesh->print_local();
+   } 
    mesh->init(nx, ny, circ_radius, context, initial_order, compute_device, do_gpu_calc);
    size_t &ncells = mesh->ncells;
    state = new State(ncells);
@@ -194,9 +207,9 @@ int main(int argc, char **argv) {
    vector<int>   &j        = mesh->j;
    vector<int>   &level    = mesh->level;
 
-   vector<real>  &H        = state->H;
-   vector<real>  &U        = state->U;
-   vector<real>  &V        = state->V;
+   real  *H        = state->H;
+   real  *U        = state->U;
+   real  *V        = state->V;
 
    state->allocate_device_memory(ncells);
 
@@ -303,9 +316,9 @@ extern "C" void do_calc(void)
 
    size_t ncells    = mesh->ncells;
 
-   vector<real>  &H        = state->H;
-   vector<real>  &U        = state->U;
-   vector<real>  &V        = state->V;
+   //real  *H        = state->H;
+   //real  *U        = state->U;
+   //real  *V        = state->V;
 
    cl_mem &dev_H        = state->dev_H;
    cl_mem &dev_U        = state->dev_U;
@@ -331,9 +344,9 @@ extern "C" void do_calc(void)
 
       // To reduce drift in solution
       if (do_sync) {
-         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->H[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->U[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&state->V[0],  NULL);
       }
 
       //  Define basic domain decomposition parameters for GPU.
@@ -495,9 +508,9 @@ extern "C" void do_calc(void)
       }
       
       if (do_gpu_sync) {
-         ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->H[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->U[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&state->V[0],  NULL);
       }
    } // End burst loop
 
@@ -524,7 +537,7 @@ extern "C" void do_calc(void)
       mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
 
       if (do_comparison_calc){
-         mesh->compare_coordinates_gpu_global_to_cpu_global(command_queue, dev_x, dev_dx, dev_y, dev_dy, dev_H, &H[0]);
+         mesh->compare_coordinates_gpu_global_to_cpu_global(command_queue, dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
       }
 
       ezcl_device_memory_remove(dev_x);
@@ -536,7 +549,7 @@ extern "C" void do_calc(void)
    set_mysize(ncells);
    set_viewmode(view_mode);
    set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-   set_cell_data(&H[0]);
+   set_cell_data(&state->H[0]);
    set_cell_proc(&mesh->proc[0]);
    set_circle_radius(circle_radius);
    draw_scene();

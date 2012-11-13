@@ -56,6 +56,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <algorithm>
+#include <queue>
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -241,9 +242,12 @@ void State::init(size_t ncells, int do_gpu_calc)
    }
 #endif
 
-   H.resize(ncells);
-   U.resize(ncells);
-   V.resize(ncells);
+   //printf("\nDEBUG -- Calling state memory memory malloc at line %d\n",__LINE__);
+   H = (real *)state_memory.memory_malloc(ncells, sizeof(real), "H");
+   U = (real *)state_memory.memory_malloc(ncells, sizeof(real), "U");
+   V = (real *)state_memory.memory_malloc(ncells, sizeof(real), "V");
+   //state_memory.memory_report();
+   //printf("DEBUG -- Finished state memory memory malloc at line %d\n\n",__LINE__);
 
 #ifdef HAVE_MPI
    int mpi_init;
@@ -254,6 +258,25 @@ void State::init(size_t ncells, int do_gpu_calc)
       MPI_Op_create((MPI_User_function *)kahan_sum, commutative, &KAHAN_SUM);
    }
 #endif
+}
+
+void State::resize(size_t new_ncells){
+   //printf("\nDEBUG -- Calling state memory resize at line %d\n",__LINE__);
+
+   size_t current_size = state_memory.get_memory_size(H);
+   if (new_ncells > current_size) state_memory.memory_realloc_all(new_ncells);
+
+   //state_memory.memory_report();
+   //printf("DEBUG -- Finished state memory resize at line %d\n\n",__LINE__);
+}
+
+void State::memory_reset_ptrs(void){
+   H = (real *)state_memory.get_memory_ptr("H");
+   U = (real *)state_memory.get_memory_ptr("U");
+   V = (real *)state_memory.get_memory_ptr("V");
+   //printf("\nDEBUG -- Calling state memory reset_ptrs at line %d\n",__LINE__);
+   //state_memory.memory_report();
+   //printf("DEBUG -- Finished state memory reset_ptrs at line %d\n\n",__LINE__);
 }
 
 #ifdef HAVE_OPENCL
@@ -332,9 +355,13 @@ void State::add_boundary_cells(Mesh *mesh)
       
    int new_ncells = ncells + icount;
    // Increase the arrays for the new boundary cells
-   H.resize(new_ncells);
-   U.resize(new_ncells);
-   V.resize(new_ncells);
+   H=(real *)state_memory.memory_realloc(new_ncells, sizeof(real), H);
+   U=(real *)state_memory.memory_realloc(new_ncells, sizeof(real), U);
+   V=(real *)state_memory.memory_realloc(new_ncells, sizeof(real), V);
+   //printf("\nDEBUG add_boundary cells\n"); 
+   //state_memory.memory_report();
+   //printf("DEBUG end add_boundary cells\n\n"); 
+
    i.resize(new_ncells);
    j.resize(new_ncells);
    nlft.resize(new_ncells);
@@ -556,9 +583,13 @@ void State::remove_boundary_cells(Mesh *mesh)
 
    // Resize to drop all the boundary cells
    ncells = save_ncells;
-   H.resize(save_ncells);
-   U.resize(save_ncells);
-   V.resize(save_ncells);
+   H=(real *)state_memory.memory_realloc(save_ncells, sizeof(real), H);
+   U=(real *)state_memory.memory_realloc(save_ncells, sizeof(real), U);
+   V=(real *)state_memory.memory_realloc(save_ncells, sizeof(real), V);
+   //printf("\nDEBUG remove_boundary cells\n"); 
+   //state_memory.memory_report();
+   //printf("DEBUG end remove_boundary cells\n\n"); 
+
    nlft.resize(save_ncells);
    nrht.resize(save_ncells);
    nbot.resize(save_ncells);
@@ -757,9 +788,12 @@ void State::fill_circle(Mesh   *mesh,       //  Mesh.
 
 void State::state_reorder(vector<int> iorder)
 {
-   reorder(H, iorder);
-   reorder(U, iorder);
-   reorder(V, iorder);
+   H = state_memory.memory_reorder(H, &iorder[0]);
+   U = state_memory.memory_reorder(U, &iorder[0]);
+   V = state_memory.memory_reorder(V, &iorder[0]);
+   //printf("\nDEBUG reorder cells\n"); 
+   //state_memory.memory_report();
+   //printf("DEBUG end reorder cells\n\n"); 
 }
 
 void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
@@ -796,53 +830,51 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 
    int new_ncells = ncells + add_ncells;
 
-   vector<real>H_old(new_ncells);
-   vector<real>U_old(new_ncells);
-   vector<real>V_old(new_ncells);
-   H.swap(H_old);
-   U.swap(U_old);
-   V.swap(V_old);
+   //printf("\nDEBUG rezone all \n"); 
+   real *H_new = (real *)state_memory.memory_malloc(new_ncells, sizeof(real), "H_new");
+   real *U_new = (real *)state_memory.memory_malloc(new_ncells, sizeof(real), "U_new");
+   real *V_new = (real *)state_memory.memory_malloc(new_ncells, sizeof(real), "V_new");
 
    for (ic=0, nc=0; ic<ncells; ic++) {
 
       if (mpot[ic] == 0) {
-         H[nc] = H_old[ic];
-         U[nc] = U_old[ic];
-         V[nc] = V_old[ic];
+         H_new[nc] = H[ic];
+         U_new[nc] = U[ic];
+         V_new[nc] = V[ic];
          nc++;
       } else if (mpot[ic] < 0){
          int nr = nrht[ic];
          int nt = ntop[ic];
          int nrt = nrht[nt];
-         H[nc] = (H_old[ic] + H_old[nr] + H_old[nt] + H_old[nrt])*0.25;
-         U[nc] = (U_old[ic] + U_old[nr] + U_old[nt] + U_old[nrt])*0.25;
-         V[nc] = (V_old[ic] + V_old[nr] + V_old[nt] + V_old[nrt])*0.25;
+         H_new[nc] = (H[ic] + H[nr] + H[nt] + H[nrt])*0.25;
+         U_new[nc] = (U[ic] + U[nr] + U[nt] + U[nrt])*0.25;
+         V_new[nc] = (V[ic] + V[nr] + V[nt] + V[nrt])*0.25;
          nc++;
 
       } else if (mpot[ic] > 0){
          // lower left
-         H[nc] = H_old[ic];
-         U[nc] = U_old[ic];
-         V[nc] = V_old[ic];
+         H_new[nc] = H[ic];
+         U_new[nc] = U[ic];
+         V_new[nc] = V[ic];
          nc++;
 
          // lower right
-         H[nc] = H_old[ic];
-         U[nc] = U_old[ic];
-         V[nc] = V_old[ic];
+         H_new[nc] = H[ic];
+         U_new[nc] = U[ic];
+         V_new[nc] = V[ic];
          nc++;
 
          if (celltype_save[ic] == REAL_CELL){
             // upper left
-            H[nc] = H_old[ic];
-            U[nc] = U_old[ic];
-            V[nc] = V_old[ic];
+            H_new[nc] = H[ic];
+            U_new[nc] = U[ic];
+            V_new[nc] = V[ic];
             nc++;
 
             // upper right
-            H[nc] = H_old[ic];
-            U[nc] = U_old[ic];
-            V[nc] = V_old[ic];
+            H_new[nc] = H[ic];
+            U_new[nc] = U[ic];
+            V_new[nc] = V[ic];
             nc++;
          }
 
@@ -861,6 +893,13 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
       mesh->noffset=mesh->ndispl[mesh->mype];
    }
 #endif
+
+   H = (real *)state_memory.memory_replace(H, H_new);
+   U = (real *)state_memory.memory_replace(U, U_new);
+   V = (real *)state_memory.memory_replace(V, V_new);
+
+   //state_memory.memory_report();
+   //printf("DEBUG end rezone all \n\n"); 
 
    cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
 }
@@ -1161,11 +1200,12 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
    size_t &ncells_ghost = mesh->ncells_ghost;
    if (ncells_ghost < ncells) ncells_ghost = ncells;
 
+   //printf("\nDEBUG finite diff\n"); 
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
-      H.resize(ncells_ghost,0.0);
-      U.resize(ncells_ghost,0.0);
-      V.resize(ncells_ghost,0.0);
+      H=(real *)state_memory.memory_realloc(ncells_ghost, sizeof(real), H);
+      U=(real *)state_memory.memory_realloc(ncells_ghost, sizeof(real), U);
+      V=(real *)state_memory.memory_realloc(ncells_ghost, sizeof(real), V);
       L7_Update(&H[0], L7_REAL, mesh->cell_handle);
       L7_Update(&U[0], L7_REAL, mesh->cell_handle);
       L7_Update(&V[0], L7_REAL, mesh->cell_handle);
@@ -1194,9 +1234,9 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
    double Uyminus, Uyplus;
    double Vyminus, Vyplus;
 
-   vector<real> H_new(ncells_ghost);
-   vector<real> U_new(ncells_ghost);
-   vector<real> V_new(ncells_ghost);
+   real *H_new = (real *)state_memory.memory_malloc(ncells_ghost, sizeof(real), "H_new");
+   real *U_new = (real *)state_memory.memory_malloc(ncells_ghost, sizeof(real), "U_new");
+   real *V_new = (real *)state_memory.memory_malloc(ncells_ghost, sizeof(real), "V_new");
 
    double dxic, dxl, dxr, dyic, dyb, dyt;
    double Hic, Hl, Hr, Hb, Ht;
@@ -1722,13 +1762,14 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
 
    } // cell loop
 
-   H.swap(H_new);
-   U.swap(U_new);
-   V.swap(V_new);
+   // Replace H with H_new and deallocate H. New memory will have the characteristics
+   // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
+   H = (real *)state_memory.memory_replace(H, H_new);
+   U = (real *)state_memory.memory_replace(U, U_new);
+   V = (real *)state_memory.memory_replace(V, V_new);
 
-   H_new.clear();
-   U_new.clear();
-   V_new.clear();
+   //state_memory.memory_report();
+   //printf("DEBUG end finite diff\n\n"); 
 
    cpu_time_finite_difference += cpu_timer_stop(tstart_cpu);
 }
@@ -1814,7 +1855,7 @@ void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mes
          L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
 
          size_t nghost_local = mesh->ncells_ghost - ncells;
-         //fprintf(mesh->fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
+         //fprintf(fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
 
          cl_mem dev_H_add       = ezcl_malloc(NULL, const_cast<char *>("dev_H_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
          cl_mem dev_U_add       = ezcl_malloc(NULL, const_cast<char *>("dev_U_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
@@ -2146,7 +2187,7 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
       vector<real> U_tmp(mesh->ncells_ghost,0.0);
       vector<real> V_tmp(mesh->ncells_ghost,0.0);
 
-      //fprintf(mesh->fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
+      //fprintf(fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
 
       ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
@@ -2977,9 +3018,9 @@ void State::compare_state_gpu_global_to_cpu_global(cl_command_queue command_queu
 
 void State::compare_state_cpu_local_to_cpu_global(State *state_global, const char* string, int cycle, uint ncells, uint ncells_global, int *nsizes, int *ndispl)
 {
-   vector<real> &H_global = state_global->H;
-   vector<real> &U_global = state_global->U;
-   vector<real> &V_global = state_global->V;
+   real *H_global = state_global->H;
+   real *U_global = state_global->U;
+   real *V_global = state_global->V;
 
    vector<real>H_check(ncells_global);
    vector<real>U_check(ncells_global);
@@ -3001,9 +3042,9 @@ void State::compare_state_cpu_local_to_cpu_global(State *state_global, const cha
 void State::compare_state_all_to_gpu_local(cl_command_queue command_queue, State *state_global, uint ncells, uint ncells_global, int mype, int ncycle, int *nsizes, int *ndispl)
 {
 #ifdef HAVE_MPI
-   vector<real> &H_global = state_global->H;
-   vector<real> &U_global = state_global->U;
-   vector<real> &V_global = state_global->V;
+   real *H_global = state_global->H;
+   real *U_global = state_global->U;
+   real *V_global = state_global->V;
    cl_mem &dev_H_global = state_global->dev_H;
    cl_mem &dev_U_global = state_global->dev_U;
    cl_mem &dev_V_global = state_global->dev_V;
@@ -3086,7 +3127,9 @@ void State::print_object_info(void)
    elsize = ezcl_get_device_mem_elsize(dev_ioffset);
    printf("dev_ioffset ptr : %p nelements %d elsize %d\n",dev_ioffset,num_elements,elsize);
 #endif
-   printf("vector H    ptr : %p nelements %ld elsize %ld\n",&H[0],H.size(),sizeof(H[0]));
-   printf("vector U    ptr : %p nelements %ld elsize %ld\n",&U[0],U.size(),sizeof(U[0]));
-   printf("vector V    ptr : %p nelements %ld elsize %ld\n",&V[0],V.size(),sizeof(V[0]));
-} 
+   state_memory.memory_report();
+   //printf("vector H    ptr : %p nelements %ld elsize %ld\n",&H[0],H.size(),sizeof(H[0]));
+   //printf("vector U    ptr : %p nelements %ld elsize %ld\n",&U[0],U.size(),sizeof(U[0]));
+   //printf("vector V    ptr : %p nelements %ld elsize %ld\n",&V[0],V.size(),sizeof(V[0]));
+}
+

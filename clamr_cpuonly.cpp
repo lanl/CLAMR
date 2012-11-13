@@ -69,6 +69,10 @@
 #include "state.h"
 #include "timer/timer.h"
 
+#ifndef DEBUG 
+#define DEBUG 0
+#endif
+
 static int do_gpu_calc = 0;
 static int do_cpu_calc = 1;
 
@@ -129,6 +133,15 @@ int main(int argc, char **argv) {
    int parallel_in = 0;
    
    mesh  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
+   if (DEBUG) {
+      //if (mype == 0) mesh->print();
+
+      char filename[10];
+      sprintf(filename,"out%1d",mype);
+      mesh->fp=fopen(filename,"w");
+
+      //mesh->print_local();
+   } 
    mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
    size_t &ncells = mesh->ncells;
    state = new State(ncells);
@@ -141,8 +154,6 @@ int main(int argc, char **argv) {
    mesh->nbot.clear();
    mesh->ntop.clear();
    
-   vector<real>  &H        = state->H;
-
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
@@ -168,7 +179,7 @@ int main(int argc, char **argv) {
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
    set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-   set_cell_data(&H[0]);
+   set_cell_data(&state->H[0]);
    set_cell_proc(&mesh->proc[0]);
    set_circle_radius(circle_radius);
    draw_scene();
@@ -205,8 +216,6 @@ extern "C" void do_calc(void)
 
    //  Initialize state variables for GPU calculation.
    size_t &ncells    = mesh->ncells;
-
-   vector<real>  &H        = state->H;
 
    vector<int>     mpot;
    
@@ -260,6 +269,7 @@ extern "C" void do_calc(void)
       {  vector<int> index(ncells);
          mesh->partition_cells(numpe, index, cycle_reorder);
          state->state_reorder(index);
+         state->memory_reset_ptrs();
       }
       
       mesh->ncells = ncells;
@@ -283,7 +293,7 @@ extern "C" void do_calc(void)
    set_mysize(ncells);
    set_viewmode(view_mode);
    set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-   set_cell_data(&H[0]);
+   set_cell_data(&state->H[0]);
    set_cell_proc(&mesh->proc[0]);
    set_circle_radius(circle_radius);
    draw_scene();

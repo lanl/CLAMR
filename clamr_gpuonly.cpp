@@ -69,6 +69,10 @@
 #include "state.h"
 #include "timer/timer.h"
 
+#ifndef DEBUG 
+#define DEBUG 0
+#endif
+
 static int do_cpu_calc = 0;
 static int do_gpu_calc = 1;
 
@@ -142,6 +146,15 @@ int main(int argc, char **argv) {
    int parallel_in = 0;
    
    mesh  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
+   if (DEBUG) {
+      //if (mype == 0) mesh->print();
+
+      char filename[10];
+      sprintf(filename,"out%1d",mype);
+      mesh->fp=fopen(filename,"w");
+
+      //mesh->print_local();
+   } 
    mesh->init(nx, ny, circ_radius, context, initial_order, compute_device, do_gpu_calc);
    size_t &ncells = mesh->ncells;
    state = new State(ncells);
@@ -169,9 +182,9 @@ int main(int argc, char **argv) {
    vector<int>   &j        = mesh->j;
    vector<int>   &level    = mesh->level;
 
-   vector<real>  &H        = state->H;
-   vector<real>  &U        = state->U;
-   vector<real>  &V        = state->V;
+   real  *H        = state->H;
+   real  *U        = state->U;
+   real  *V        = state->V;
 
    state->allocate_device_memory(ncells);
 
@@ -315,13 +328,13 @@ extern "C" void do_calc(void)
    mesh->dx.resize(ncells);
    mesh->y.resize(ncells);
    mesh->dy.resize(ncells);
-   state->H.resize(ncells);
+   vector<real> H_graphics(ncells);
 
    ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->x[0],  &start_read_event);
    ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->dx[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->y[0],  NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->dy[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&state->H[0],  &end_read_event);
+   ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H_graphics[0],  &end_read_event);
 
    gpu_time_graphics += ezcl_timer_calc(&start_read_event, &end_read_event);
 
@@ -336,7 +349,7 @@ extern "C" void do_calc(void)
    set_mysize(ncells);
    set_viewmode(view_mode);
    set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-   set_cell_data(&state->H[0]);
+   set_cell_data(&H_graphics[0]);
    set_cell_proc(NULL);
    set_circle_radius(circle_radius);
    draw_scene();

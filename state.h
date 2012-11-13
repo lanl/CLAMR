@@ -56,6 +56,8 @@
 #ifndef STATE_H_
 #define STATE_H_
 
+#include <list>
+#include "MallocPlus/MallocPlus.h"
 #include "mesh.h"
 #ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
@@ -75,9 +77,13 @@ using namespace std;
 class State {
    
 public:
-   vector<real> H;
-   vector<real> U;
-   vector<real> V;
+   MallocPlus state_memory;
+   real *H;
+   real *U;
+   real *V;
+   //vector<real> H;
+   //vector<real> U;
+   //vector<real> V;
 
 #ifdef HAVE_OPENCL
    cl_mem dev_H;
@@ -125,6 +131,8 @@ public:
 #else
    void init(size_t ncells, int do_gpu_calc);
 #endif
+   void resize(size_t ncells);
+   void memory_reset_ptrs(void);
 
    double get_cpu_time_apply_BCs(void)         {return(cpu_time_apply_BCs);};
    double get_cpu_time_set_timestep(void)      {return(cpu_time_set_timestep);};

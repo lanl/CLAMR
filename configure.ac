@@ -405,6 +405,7 @@ AC_CONFIG_FILES([timer/Makefile])
 AC_CONFIG_FILES([ezcl/Makefile])
 AC_CONFIG_FILES([zorder/Makefile])
 AC_CONFIG_FILES([genmalloc/Makefile])
+AC_CONFIG_FILES([MallocPlus/Makefile])
 
 AC_OUTPUT
 

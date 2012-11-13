@@ -68,6 +68,7 @@
 #ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
 #endif
+#include "MallocPlus/MallocPlus.h"
 
 #define TILE_SIZE 128
 
@@ -397,7 +398,7 @@ public:
    void calc_neighbors(void);
    void calc_neighbors_local(void);
 #ifdef HAVE_MPI
-   void do_load_balance_local(const size_t new_ncells, const int &ncells_global, vector<real> &H, vector<real> &U, vector<real> &V);
+   void do_load_balance_local(const size_t new_ncells, const int &ncells_global, MallocPlus &state_memory);
 #endif
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI

@@ -3179,45 +3179,45 @@ void Mesh::calc_neighbors_local(void)
             if (iborder_cell == 0) {
 
                int nl = nlft[ic]-noffset;
-               if (nl >= 0 && nl < ncells) {
+               if (nl >= 0 && nl < (int)ncells) {
                   if ((border_cell[nl] & 0x0001) == 0x0001) {
                      iborder_cell |= 0x0016;
                   } else if (level[nl] > level[ic]){
                      int ntl = ntop[nl]-noffset;
-                     if (ntl >= 0 && ntl < ncells && (border_cell[ntl] & 0x0001) == 0x0001) {
+                     if (ntl >= 0 && ntl < (int)ncells && (border_cell[ntl] & 0x0001) == 0x0001) {
                         iborder_cell |= 0x0016;
                      }
                   }
                }
                int nr = nrht[ic]-noffset;
-               if (nr >= 0 && nr < ncells) {
+               if (nr >= 0 && nr < (int)ncells) {
                   if ((border_cell[nrht[ic]-noffset] & 0x0002) == 0x0002) {
                      iborder_cell |= 0x0032;
                   } else if (level[nr] > level[ic]){
                      int ntr = ntop[nr]-noffset;
-                     if (ntr >= 0 && ntr < ncells && (border_cell[ntr] & 0x0002) == 0x0002) {
+                     if (ntr >= 0 && ntr < (int)ncells && (border_cell[ntr] & 0x0002) == 0x0002) {
                         iborder_cell |= 0x0032;
                      }
                   }
                }
                int nb = nbot[ic]-noffset;
-               if (nb >= 0 && nb < ncells) {
+               if (nb >= 0 && nb < (int)ncells) {
                   if ((border_cell[nb] & 0x0004) == 0x0004) {
                      iborder_cell |= 0x0064;
                   } else if (level[nb] > level[ic]){
                      int nrb = nrht[nb]-noffset;
-                     if (nrb >= 0 && nrb < ncells && (border_cell[nrb] & 0x0004) == 0x0004) {
+                     if (nrb >= 0 && nrb < (int)ncells && (border_cell[nrb] & 0x0004) == 0x0004) {
                         iborder_cell |= 0x0064;
                      }
                   }
                }
                int nt = ntop[ic]-noffset;
-               if (nt >= 0 && nt < ncells) {
+               if (nt >= 0 && nt < (int)ncells) {
                   if ((border_cell[nt] & 0x0008) == 0x0008) {
                      iborder_cell |= 0x0128;
                   } else if (level[nt] > level[ic]){
                      int nrt = nrht[nt]-noffset;
-                     if (nrt >= 0 && nrt < ncells && (border_cell[nrt] & 0x0008) == 0x0008) {
+                     if (nrt >= 0 && nrt < (int)ncells && (border_cell[nrt] & 0x0008) == 0x0008) {
                         iborder_cell |= 0x0128;
                      }
                   }
@@ -3229,7 +3229,7 @@ void Mesh::calc_neighbors_local(void)
 
          vector<int> border_cell_num;
 
-         for (int ic=0; ic<ncells; ic++){
+         for (int ic=0; ic<(int)ncells; ic++){
             if (border_cell_out[ic] > 0) border_cell_num.push_back(ic+noffset);
          }
          //printf("%d: border cell size is %d\n",mype,border_cell_num.size());
@@ -5604,7 +5604,7 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
 }
 
 #ifdef HAVE_MPI
-void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_global, vector<real> &H, vector<real> &U, vector<real> &V)
+void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_global, MallocPlus &state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -5656,12 +5656,35 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
       int load_balance_handle = 0;
       L7_Setup(0, noffset_old, ncells_old, &indices_needed[0], indices_needed_count, &load_balance_handle);
 
-      H.resize(ncells_old+indices_needed_count,0.0);
-      U.resize(ncells_old+indices_needed_count,0.0);
-      V.resize(ncells_old+indices_needed_count,0.0);
-      L7_Update(&H[0], L7_REAL, load_balance_handle);
-      L7_Update(&U[0], L7_REAL, load_balance_handle);
-      L7_Update(&V[0], L7_REAL, load_balance_handle);
+      //printf("\n%d: DEBUG load balance report\n",mype);
+
+      state_memory.memory_realloc_all(ncells_old+indices_needed_count);
+
+      MallocPlus state_memory_old = state_memory;
+
+      for (real *mem_ptr=(real *)state_memory_old.memory_begin(); mem_ptr!=NULL; mem_ptr=(real *)state_memory_old.memory_next() ){
+         real *state_temp = (real *)state_memory.memory_malloc(ncells, sizeof(real), "state_temp");
+         //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
+         L7_Update(mem_ptr, L7_REAL, load_balance_handle);
+         in = 0;
+         if(lower_block_size > 0) {
+            for(; in < MIN(lower_block_size, (int)ncells); in++) {
+               state_temp[in] = mem_ptr[ncells_old + in];
+            }
+         }
+
+         for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
+            state_temp[in] = mem_ptr[ic];
+         }
+
+         if(upper_block_size > 0) {
+            int ic = ncells_old + lower_block_size;
+            for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
+               state_temp[in] = mem_ptr[ic+k];
+            }
+         }
+         state_memory.memory_replace(mem_ptr, state_temp);
+      }
 
       i.resize(ncells_old+indices_needed_count,0);
       j.resize(ncells_old+indices_needed_count,0);
@@ -5675,10 +5698,6 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
       L7_Free(&load_balance_handle);
       load_balance_handle = 0;
  
-      vector<real> H_temp(ncells);
-      vector<real> U_temp(ncells);
-      vector<real> V_temp(ncells);
-
       vector<int> i_temp(ncells);
       vector<int> j_temp(ncells);
       vector<int> level_temp(ncells);
@@ -5690,10 +5709,6 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
       int ic = lower_block_size;
       if(ic > 0) {
          for(; (in < ic) && (in < (int)ncells); in++) {
-            H_temp[in] = H[ncells_old + in];
-            U_temp[in] = U[ncells_old + in];
-            V_temp[in] = V[ncells_old + in];
-
             i_temp[in]     = i[ncells_old + in];
             j_temp[in]     = j[ncells_old + in];
             level_temp[in] = level[ncells_old + in];
@@ -5704,10 +5719,6 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
       ic = noffset - noffset_old;
       if(ic < 0) ic = 0;
       for(; (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
-         H_temp[in] = H[ic];
-         U_temp[in] = U[ic];
-         V_temp[in] = V[ic];
-
          i_temp[in]     = i[ic];
          j_temp[in]     = j[ic];
          level_temp[in] = level[ic];
@@ -5718,10 +5729,6 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
       if(ic > 0) {
          ic = ncells_old + lower_block_size;
          for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
-            H_temp[in] = H[ic+k];
-            U_temp[in] = U[ic+k];
-            V_temp[in] = V[ic+k];
-
             i_temp[in]     = i[ic+k];
             j_temp[in]     = j[ic+k];
             level_temp[in] = level[ic+k];
@@ -5729,9 +5736,8 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
          }
       }
 
-      H.swap(H_temp);
-      U.swap(U_temp);
-      V.swap(V_temp);
+      //state_memory.memory_report(void);
+      //printf(%d: DEBUG end load balance report\n\n",mype);
 
       i.swap(i_temp);
       j.swap(j_temp);

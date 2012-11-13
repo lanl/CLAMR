@@ -612,7 +612,7 @@ void draw_scene(void) {
    MPE_Update(window);
 #endif
 
-   sleep(0);
+   if (display_mysize <= 500) sleep(1);
 }
 
 

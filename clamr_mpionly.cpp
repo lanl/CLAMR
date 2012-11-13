@@ -189,10 +189,6 @@ int main(int argc, char **argv) {
    vector<int>   &j        = mesh->j;
    vector<int>   &level    = mesh->level;
 
-   vector<real> &H = state->H;
-   vector<real> &U = state->U;
-   vector<real> &V = state->V;
-
    vector<real> &x  = mesh->x;
    vector<real> &dx = mesh->dx;
    vector<real> &y  = mesh->y;
@@ -215,9 +211,10 @@ int main(int argc, char **argv) {
    i.resize(ncells);
    j.resize(ncells);
 
-   H.resize(ncells);
-   U.resize(ncells);
-   V.resize(ncells);
+   //H.resize(ncells);
+   //U.resize(ncells);
+   //V.resize(ncells);
+   state->resize(ncells);
 
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
 
@@ -278,7 +275,7 @@ int main(int argc, char **argv) {
    MPI_Gatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Gatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Gatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&state->H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
 
    set_cell_data(&H_global[0]);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
@@ -351,10 +348,6 @@ extern "C" void do_calc(void)
    size_t &ncells           = mesh->ncells;
    size_t &ncells_ghost     = mesh->ncells_ghost;
 
-   vector<real>  &H = state->H;
-   vector<real>  &U = state->U;
-   vector<real>  &V = state->V;
-
    vector<int>     mpot;
    vector<int>     mpot_global;
    
@@ -413,7 +406,10 @@ extern "C" void do_calc(void)
       MPI_Allreduce(&ncells, &mesh_local_ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
       cpu_timer_start(&tstart_cpu);
-      if (mesh->nlft.size() == 0) mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, H, U, V);
+      if (mesh->nlft.size() == 0) {
+         mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, state->state_memory);
+         state->memory_reset_ptrs();
+      }
       cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
 
 // XXX
@@ -475,7 +471,7 @@ extern "C" void do_calc(void)
    MPI_Gatherv(&mesh->dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Gatherv(&mesh->y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
    MPI_Gatherv(&mesh->dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&state->H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
 
    if (view_mode == 0) {
       mesh->proc.resize(ncells);

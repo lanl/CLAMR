@@ -203,28 +203,33 @@ int main(int argc, char **argv) {
    //  Scale the circle appropriately for the mesh size.
    circ_radius = circ_radius * (double) nx / 128.0;
    int boundary = 1;
-   int parallel_in = 0;
-
-   mesh_global  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
-   mesh_global->init(nx, ny, circ_radius, context, initial_order, compute_device, do_gpu_calc);
-   size_t &ncells_global = mesh_global->ncells;
-   mesh_global->proc.resize(ncells_global);
-   mesh_global->calc_distribution(numpe);
-   
-   parallel_in = 1;
+   int parallel_in = 1;
    mesh_local = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
-   state_local = new State(mesh_local->ncells);
-   state_local->init(mesh_local->ncells, context, compute_device, do_gpu_calc);
+   if (DEBUG) { 
+      //if (mype == 0) mesh->print();
 
+      char filename[10];
+      sprintf(filename,"out%1d",mype);
+      mesh_local->fp=fopen(filename,"w");
+
+      //mesh->print_local();
+   }    
+   mesh_local->init(nx, ny, circ_radius, context, initial_order, compute_device, do_gpu_calc);
    size_t &ncells = mesh_local->ncells;
    int &noffset = mesh_local->noffset;
 
-   state_global = new State(ncells_global);
-   //state_global->init(ncells_global, context, compute_device, do_gpu_calc);
-   state_global->H.resize(ncells_global);
-   state_global->U.resize(ncells_global);
-   state_global->V.resize(ncells_global);
+   int parallel_global_in = 0;
+   mesh_global  = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_global_in, do_gpu_calc);
+   size_t &ncells_global = mesh_global->ncells;
 
+   MPI_Allreduce(&ncells, &ncells_global, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
+   
+   state_local = new State(mesh_local->ncells);
+   state_local->init(mesh_local->ncells, context, compute_device, do_gpu_calc);
+
+   state_global = new State(ncells_global);
+   state_global->init(mesh_global->ncells, context, compute_device, do_gpu_calc);
+   
    cl_mem &dev_corners_i_global  = mesh_global->dev_corners_i;
    cl_mem &dev_corners_j_global  = mesh_global->dev_corners_j;
 
@@ -239,10 +244,6 @@ int main(int argc, char **argv) {
 
    vector<int>   &nsizes     = mesh_local->nsizes;
    vector<int>   &ndispl     = mesh_local->ndispl;
-
-   vector<real>  &H_global = state_global->H;
-   vector<real>  &U_global = state_global->U;
-   vector<real>  &V_global = state_global->V;
 
    vector<real>  &x_global  = mesh_global->x;
    vector<real>  &dx_global = mesh_global->dx;
@@ -276,18 +277,12 @@ int main(int argc, char **argv) {
    vector<int>   &i_global        = mesh_global->i;
    vector<int>   &j_global        = mesh_global->j;
    vector<int>   &level_global    = mesh_global->level;
-
-   vector<real> &H = state_local->H;
-   vector<real> &U = state_local->U;
-   vector<real> &V = state_local->V;
+   vector<int>   &proc_global    = mesh_global->proc;
 
    vector<real> &x  = mesh_local->x;
    vector<real> &dx = mesh_local->dx;
    vector<real> &y  = mesh_local->y;
    vector<real> &dy = mesh_local->dy;
-
-   ncells = ncells_global/numpe;
-   if (mype < (int)(ncells_global%numpe)) ncells++;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);
@@ -309,42 +304,52 @@ int main(int argc, char **argv) {
    dev_corners_i_local  = ezcl_malloc(&corners_i_local[0],  const_cast<char *>("dev_corners_i_local"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
    dev_corners_j_local  = ezcl_malloc(&corners_j_local[0],  const_cast<char *>("dev_corners_j_local"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
 
-   // Distribute level, celltype, H, U, V
+   // Gather level, celltype, H, U, V for global calc
 
-   celltype.resize(ncells);
-   level.resize(ncells);
-   i.resize(ncells);
-   j.resize(ncells);
+   celltype_global.resize(ncells_global);
+   level_global.resize(ncells_global);
+   i_global.resize(ncells_global);
+   j_global.resize(ncells_global);
+   proc_global.resize(ncells_global);
 
-   MPI_Scatterv(&celltype_global[0], &nsizes[0], &ndispl[0], MPI_INT, &celltype[0], nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&level_global[0],    &nsizes[0], &ndispl[0], MPI_INT, &level[0],    nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&i_global[0],        &nsizes[0], &ndispl[0], MPI_INT, &i[0],        nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&j_global[0],        &nsizes[0], &ndispl[0], MPI_INT, &j[0],        nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
+   MPI_Allgatherv(&celltype[0], ncells, MPI_INT, &celltype_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   MPI_Allgatherv(&level[0], ncells, MPI_INT, &level_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   MPI_Allgatherv(&i[0], ncells, MPI_INT, &i_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   MPI_Allgatherv(&j[0], ncells, MPI_INT, &j_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+
+   mesh_local->proc.resize(ncells);
+   for (uint ic=0; ic<ncells; ic++){
+      mesh_local->proc[ic] = mesh_local->mype;
+   }
+   MPI_Allgatherv(&mesh_local->proc[0], ncells, MPI_INT, &proc_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
    dev_celltype  = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
    dev_i         = ezcl_malloc(NULL, const_cast<char *>("dev_i"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
    dev_j         = ezcl_malloc(NULL, const_cast<char *>("dev_j"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
    dev_level     = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
-   H.resize(ncells);
-   U.resize(ncells);
-   V.resize(ncells);
+   //H.resize(ncells);
+   //U.resize(ncells);
+   //V.resize(ncells);
+   state_local->resize(ncells);
 
-   x.resize(ncells);
-   dx.resize(ncells);
-   y.resize(ncells);
-   dy.resize(ncells);
+   state_global->resize(ncells_global);
 
-   MPI_Scatterv(&x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &x[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dx[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, &y[0],  nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Scatterv(&dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, &dy[0], nsizes[mype], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   x_global.resize(ncells_global);
+   dx_global.resize(ncells_global);
+   y_global.resize(ncells_global);
+   dy_global.resize(ncells_global);
+
+   MPI_Allgatherv(&x[0],  ncells, MPI_C_REAL, &x_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dx[0], ncells, MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&y[0],  ncells, MPI_C_REAL, &y_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dy[0], ncells, MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
    state_local->fill_circle(mesh_local, circ_radius, 100.0, 5.0);
 
-   MPI_Allgatherv(&H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&U[0], nsizes[mype], MPI_C_REAL, &U_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&V[0], nsizes[mype], MPI_C_REAL, &V_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&state_local->H[0], ncells, MPI_C_REAL, &state_global->H[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&state_local->U[0], ncells, MPI_C_REAL, &state_global->U[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&state_local->V[0], ncells, MPI_C_REAL, &state_global->V[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
    state_global->allocate_device_memory(ncells_global);
    state_local->allocate_device_memory(ncells);
@@ -359,9 +364,9 @@ int main(int argc, char **argv) {
    dev_level_global    = ezcl_malloc(NULL, const_cast<char *>("dev_level_global"),    &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
 
    //  Set write buffers for data.
-   ezcl_enqueue_write_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&H_global[0],  &start_write_event);
-   ezcl_enqueue_write_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&U_global[0],  NULL              );
-   ezcl_enqueue_write_buffer(command_queue, dev_V_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&V_global[0],  NULL              );
+   ezcl_enqueue_write_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->H[0],  &start_write_event);
+   ezcl_enqueue_write_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->U[0],  NULL              );
+   ezcl_enqueue_write_buffer(command_queue, dev_V_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->V[0],  NULL              );
 
    ezcl_enqueue_write_buffer(command_queue, dev_celltype_global, CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&celltype_global[0], NULL            );
    ezcl_enqueue_write_buffer(command_queue, dev_i_global,        CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&i_global[0],        NULL            );
@@ -369,9 +374,9 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_level_global,    CL_TRUE,  0, ncells_global*sizeof(cl_int),  (void *)&level_global[0],    &end_write_event);
    state_global->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
 
-   ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],  &start_write_event);
-   ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],  NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_V, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&V[0],  NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->H[0],  &start_write_event);
+   ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->U[0],  NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_V, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->V[0],  NULL);
 
    ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&celltype[0], NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],        NULL);
@@ -423,7 +428,7 @@ int main(int argc, char **argv) {
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-   set_cell_data(&H_global[0]);
+   set_cell_data(&state_global->H[0]);
    set_cell_proc(&mesh_global->proc[0]);
    set_circle_radius(circle_radius);
    draw_scene();
@@ -489,14 +494,6 @@ extern "C" void do_calc(void)
    size_t &ncells           = mesh_local->ncells;
    size_t &ncells_ghost     = mesh_local->ncells_ghost;
 
-   vector<real>  &H_global = state_global->H;
-   vector<real>  &U_global = state_global->U;
-   vector<real>  &V_global = state_global->V;
-
-   vector<real>  &H = state_local->H;
-   vector<real>  &U = state_local->U;
-   vector<real>  &V = state_local->V;
-
    vector<real>  &x  = mesh_local->x;
    vector<real>  &dx = mesh_local->dx;
    vector<real>  &y  = mesh_local->y;
@@ -531,16 +528,6 @@ extern "C" void do_calc(void)
 
    vector<int>     mpot;
    vector<int>     mpot_global;
-   
-   if (DEBUG) {
-      //if (mype == 0) mesh->print();
-
-      char filename[10];
-      sprintf(filename,"out%1d",mype);
-      mesh_local->fp=fopen(filename,"w");
-
-      //mesh->print_local();
-   }
 
    size_t old_ncells = ncells;
    size_t old_ncells_global = ncells_global;
@@ -554,13 +541,13 @@ extern "C" void do_calc(void)
 
       // To reduce drift in solution
       if (do_sync) {
-         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->H[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->U[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&state_local->V[0],  NULL);
 
-         ezcl_enqueue_read_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&H_global[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&U_global[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_real),  (void *)&V_global[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->H[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->U[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_real),  (void *)&state_global->V[0],  NULL);
       }
 
       size_t local_work_size_global  = MIN(ncells_global, TILE_SIZE);
@@ -770,7 +757,8 @@ extern "C" void do_calc(void)
       ndispl_save = ndispl;
 
       if (do_cpu_calc) {
-         mesh_local->do_load_balance_local(new_ncells, ncells_global, H, U, V);
+         mesh_local->do_load_balance_local(new_ncells, ncells_global, state_local->state_memory);
+         state_local->memory_reset_ptrs();
       }
 
       nsizes = nsizes_save;
@@ -835,12 +823,12 @@ extern "C" void do_calc(void)
       }
 
       if (do_gpu_sync) {
-         ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&H_global[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&U_global[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_real),  (void *)&V_global[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->H[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->U[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&state_local->V[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->H[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->U[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_real),  (void *)&state_global->V[0],  NULL);
       }
       
    }  //  End burst loop
@@ -869,13 +857,13 @@ extern "C" void do_calc(void)
    dx.resize(ncells);
    y.resize(ncells);
    dy.resize(ncells);
-   H.resize(max(ncells,ncells_ghost));
+   vector<real> H_graphics(ncells);
 
    ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x[0],  &start_read_event);
    ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y[0],  NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dy[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_H,  CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H[0],  &end_read_event);
+   ezcl_enqueue_read_buffer(command_queue, dev_H,  CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H_graphics[0],  &end_read_event);
 
    gpu_time_graphics += ezcl_timer_calc(&start_read_event, &end_read_event);
 
@@ -891,21 +879,21 @@ extern "C" void do_calc(void)
    dx_global.resize(ncells_global);
    y_global.resize(ncells_global);
    dy_global.resize(ncells_global);
-   H_global.resize(ncells_global);
+   vector<real> H_graphics_global(ncells_global);
 
    MPI_Allgatherv(&x[0],  ncells, MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&dx[0], ncells, MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&y[0],  ncells, MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&dy[0], ncells, MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&H[0],  ncells, MPI_C_REAL, &H_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H_graphics[0],  ncells, MPI_C_REAL, &H_graphics_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
-   for (int ic=0; ic<ncells; ic++){mesh_local->proc[ic]=mype;} 
+   for (int ic=0; ic<(int)ncells; ic++){mesh_local->proc[ic]=mype;} 
    MPI_Allgatherv(&mesh_local->proc[0],  ncells, MPI_INT, &mesh_global->proc[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
    set_mysize(ncells_global);
    set_viewmode(view_mode);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-   set_cell_data(&H_global[0]);
+   set_cell_data(&H_graphics_global[0]);
    set_cell_proc(&mesh_global->proc[0]);
    set_circle_radius(circle_radius);
    draw_scene();
@@ -971,10 +959,10 @@ extern "C" void do_calc(void)
       state_global->terminate();
       ezcl_terminate();
 
-      ezcl_mem_walk_all();
-
       //  Release kernels and finalize the OpenCL elements.
       ezcl_finalize();
+
+      ezcl_mem_walk_all();
 
       L7_Terminate();
       exit(0);
