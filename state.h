@@ -131,6 +131,7 @@ public:
 #else
    void init(size_t ncells, int do_gpu_calc);
 #endif
+   void allocate(size_t ncells);
    void resize(size_t ncells);
    void memory_reset_ptrs(void);
 

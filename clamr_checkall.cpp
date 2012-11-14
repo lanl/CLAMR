@@ -228,7 +228,7 @@ int main(int argc, char **argv) {
    state_local->init(mesh_local->ncells, context, compute_device, do_gpu_calc);
 
    state_global = new State(ncells_global);
-   state_global->init(mesh_global->ncells, context, compute_device, do_gpu_calc);
+   state_global->allocate(mesh_global->ncells);
    
    cl_mem &dev_corners_i_global  = mesh_global->dev_corners_i;
    cl_mem &dev_corners_j_global  = mesh_global->dev_corners_j;
