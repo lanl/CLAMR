@@ -243,9 +243,7 @@ void State::init(size_t ncells, int do_gpu_calc)
 #endif
 
    //printf("\nDEBUG -- Calling state memory memory malloc at line %d\n",__LINE__);
-   H = (real *)state_memory.memory_malloc(ncells, sizeof(real), "H");
-   U = (real *)state_memory.memory_malloc(ncells, sizeof(real), "U");
-   V = (real *)state_memory.memory_malloc(ncells, sizeof(real), "V");
+   allocate(ncells);
    //state_memory.memory_report();
    //printf("DEBUG -- Finished state memory memory malloc at line %d\n\n",__LINE__);
 
@@ -260,12 +258,17 @@ void State::init(size_t ncells, int do_gpu_calc)
 #endif
 }
 
-void State::resize(size_t new_ncells){
-   //printf("\nDEBUG -- Calling state memory resize at line %d\n",__LINE__);
+void State::allocate(size_t ncells){
+   H = (real *)state_memory.memory_malloc(ncells, sizeof(real), "H");
+   U = (real *)state_memory.memory_malloc(ncells, sizeof(real), "U");
+   V = (real *)state_memory.memory_malloc(ncells, sizeof(real), "V");
+}
 
+void State::resize(size_t new_ncells){
    size_t current_size = state_memory.get_memory_size(H);
    if (new_ncells > current_size) state_memory.memory_realloc_all(new_ncells);
 
+   //printf("\nDEBUG -- Calling state memory resize at line %d\n",__LINE__);
    //state_memory.memory_report();
    //printf("DEBUG -- Finished state memory resize at line %d\n\n",__LINE__);
 }
@@ -274,6 +277,7 @@ void State::memory_reset_ptrs(void){
    H = (real *)state_memory.get_memory_ptr("H");
    U = (real *)state_memory.get_memory_ptr("U");
    V = (real *)state_memory.get_memory_ptr("V");
+
    //printf("\nDEBUG -- Calling state memory reset_ptrs at line %d\n",__LINE__);
    //state_memory.memory_report();
    //printf("DEBUG -- Finished state memory reset_ptrs at line %d\n\n",__LINE__);

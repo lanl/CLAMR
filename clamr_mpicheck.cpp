@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
    state->init(mesh->ncells, do_gpu_calc);
 
    state_global = new State(ncells_global);
-   state_global->init(ncells_global, do_gpu_calc);
+   state_global->allocate(ncells_global);
    real  *H_global = state_global->H;
    real  *U_global = state_global->U;
    real  *V_global = state_global->V;
