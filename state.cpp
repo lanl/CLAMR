@@ -2204,7 +2204,7 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
       ezcl_enqueue_write_buffer(command_queue, dev_U_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&U_tmp[ncells], NULL);
       ezcl_enqueue_write_buffer(command_queue, dev_V_add, CL_TRUE,  0, nghost_local*sizeof(cl_real), (void*)&V_tmp[ncells], NULL);
 
-      size_t ghost_local_work_size = 32;
+      size_t ghost_local_work_size = 64;
       size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
 
       // Fill in ghost
