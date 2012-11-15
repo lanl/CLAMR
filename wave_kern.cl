@@ -989,10 +989,23 @@ __kernel void hash_setup_local_cl(
       hash[(j[giX]-jminsize)*(imaxsize-iminsize)+(i[giX]-iminsize)] = giX+noffset;
    } else {
 /* Original Hash Setup */
+      //for (   int jj = j[giX]*levtable[levmx-lev]-jminsize; jj < (j[giX]+1)*levtable[levmx-lev]-jminsize; jj++) {
+      //   for (int ii = i[giX]*levtable[levmx-lev]-iminsize; ii < (i[giX]+1)*levtable[levmx-lev]-iminsize; ii++) {
+      //      hash[jj*(imaxsize-iminsize)+ii] = giX+noffset;
+      //   }
+      //}
+      int j1 = j[giX]*levtable[levmx-lev]-jminsize;
+      int j2 = (j[giX]+1)*levtable[levmx-lev]-1-jminsize;
+      for (int ii=i[giX]*levtable[levmx-lev]; ii<(i[giX]+1)*levtable[levmx-lev]; ii++) {
+         hash[j1*(imaxsize-iminsize)+ii] = giX+noffset;
+         hash[j2*(imaxsize-iminsize)+ii] = giX+noffset;
+      }
+      int i1 = i[giX]*levtable[levmx-lev]-iminsize;
+      int i2 = (i[giX]+1)*levtable[levmx-lev]-1-iminsize;
+      //for (int jj = j1+1; jj < j2; jj++) {
       for (   int jj = j[giX]*levtable[levmx-lev]-jminsize; jj < (j[giX]+1)*levtable[levmx-lev]-jminsize; jj++) {
-         for (int ii = i[giX]*levtable[levmx-lev]-iminsize; ii < (i[giX]+1)*levtable[levmx-lev]-iminsize; ii++) {
-            hash[jj*(imaxsize-iminsize)+ii] = giX+noffset;
-         }
+         hash[jj*(imaxsize-iminsize)+i1] = giX+noffset;
+         hash[jj*(imaxsize-iminsize)+i2] = giX+noffset;
       }
 /* */
 /* Optimized Hash Setup
