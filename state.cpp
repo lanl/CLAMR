@@ -952,12 +952,12 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
       int j_tmp_first, j_tmp_last;
       int level_tmp_first, level_tmp_last;
 
-      ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, 0, 1*sizeof(cl_int), &i_tmp_first,     NULL);
-      ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, 0, 1*sizeof(cl_int), &j_tmp_first,     NULL);
-      ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_FALSE, 0, 1*sizeof(cl_int), &level_tmp_first, NULL);
-      ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, 0, 1*sizeof(cl_int), &i_tmp_last,      NULL);
-      ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, 0, 1*sizeof(cl_int), &j_tmp_last,      NULL);
-      ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_TRUE,  0, 1*sizeof(cl_int), &level_tmp_last,  NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, 0,                             1*sizeof(cl_int), &i_tmp_first,     NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, 0,                             1*sizeof(cl_int), &j_tmp_first,     NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_FALSE, 0,                             1*sizeof(cl_int), &level_tmp_first, NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, (old_ncells-1)*sizeof(cl_int), 1*sizeof(cl_int), &i_tmp_last,      NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, (old_ncells-1)*sizeof(cl_int), 1*sizeof(cl_int), &j_tmp_last,      NULL);
+      ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_TRUE,  (old_ncells-1)*sizeof(cl_int), 1*sizeof(cl_int), &level_tmp_last,  NULL);
 
       MPI_Request req[12];
       MPI_Status status[12];
@@ -2227,6 +2227,52 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
       ezcl_device_memory_remove(dev_U_add);
       ezcl_device_memory_remove(dev_V_add);
    }
+#endif
+
+#ifdef BOUNDS_CHECK
+      {
+         vector<int> nlft_tmp(mesh->ncells_ghost);
+         vector<int> nrht_tmp(mesh->ncells_ghost);
+         vector<int> nbot_tmp(mesh->ncells_ghost);
+         vector<int> ntop_tmp(mesh->ncells_ghost);
+         vector<int> level_tmp(mesh->ncells_ghost);
+         vector<real> H_tmp(mesh->ncells_ghost);
+         ezcl_enqueue_read_buffer(command_queue, dev_nlft,  CL_FALSE, 0, mesh->ncells_ghost*sizeof(cl_int), &nlft_tmp[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_nrht,  CL_FALSE, 0, mesh->ncells_ghost*sizeof(cl_int), &nrht_tmp[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_nbot,  CL_FALSE, 0, mesh->ncells_ghost*sizeof(cl_int), &nbot_tmp[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_ntop,  CL_TRUE,  0, mesh->ncells_ghost*sizeof(cl_int), &ntop_tmp[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_level, CL_TRUE,  0, mesh->ncells_ghost*sizeof(cl_int), &level_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_H,     CL_TRUE,  0, mesh->ncells_ghost*sizeof(cl_int), &H_tmp[0],     NULL);
+         for (uint ic=0; ic<ncells; ic++){
+            int nl = nlft_tmp[ic];
+            if (nl<0 || nl>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d nlft %d\n",mesh->mype,__LINE__,ic,nl);
+            if (level_tmp[nl] > level_tmp[ic]){
+               int ntl = ntop_tmp[nl];
+               if (ntl<0 || ntl>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d global %d nlft %d ntop of nlft %d\n",mesh->mype,__LINE__,ic,ic+mesh->noffset,nl,ntl);
+            }
+            int nr = nrht_tmp[ic];
+            if (nr<0 || nr>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d nrht %d\n",mesh->mype,__LINE__,ic,nr);
+            if (level_tmp[nr] > level_tmp[ic]){
+               int ntr = ntop_tmp[nr];
+               if (ntr<0 || ntr>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d ntop of nrht %d\n",mesh->mype,__LINE__,ic,ntr);
+            }
+            int nb = nbot_tmp[ic];
+            if (nb<0 || nb>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d nbot %d\n",mesh->mype,__LINE__,ic,nb);
+            if (level_tmp[nb] > level_tmp[ic]){
+               int nlb = nlft_tmp[nb];
+               if (nlb<0 || nlb>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d nlft of nbot %d\n",mesh->mype,__LINE__,ic,nlb);
+            }
+            int nt = ntop_tmp[ic];
+            if (nt<0 || nt>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d ntop %d\n",mesh->mype,__LINE__,ic,nt);
+            if (level_tmp[nt] > level_tmp[ic]){
+               int nlt = nlft_tmp[nt];
+               if (nlt<0 || nlt>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d nlft of ntop %d\n",mesh->mype,__LINE__,ic,nlt);
+            }
+         }
+         for (uint ic=0; ic<mesh->ncells_ghost; ic++){
+            if (H_tmp[ic] < 1.0) printf("%d: Warning at line %d cell %d H %lf\n",mesh->mype,__LINE__,ic,H_tmp[ic]);
+         }
+      }
 #endif
 
    size_t local_work_size = 128;

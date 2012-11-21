@@ -1069,6 +1069,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
    ncells = 0;
    ncells_ghost = 0;
    parallel = parallel_in;
+   noffset = 0;
    
 #ifdef HAVE_MPI
    int mpi_init;
@@ -1978,14 +1979,12 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
    }
 
    for (ic = 0, nc = 0; ic < ncells; ic++)
-   {  index[nc] = -1;
-      
+   {
       if (mpot[ic] == 0)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
          i[nc]     = i_old[ic];
          j[nc]     = j_old[ic];
          level[nc] = level_old[ic];
-         index[nc] = ic;
          nc++;
       } //  Complete no change needed.
       
@@ -2089,7 +2088,7 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
                   ir[2] = ilast * levtable[levmx-level_last];
                   jr[2] = jlast * levtable[levmx-level_last];
                }
-               //printf("%d cell %d %d nc %d ir/jr %d %d %d %d %d %d\n",mype,ic,ic+noffset,nc,ir[0],jr[0],ir[1],jr[1],ir[2],jr[2]);
+               //if (parallel) fprintf(fp,"%d: DEBUG rezone top boundary -- ic %d global %d noffset %d nc %d i %d j %d level %d\n",mype,ic,ic+noffset,noffset,nc,i[nc],j[nc],level[nc]);
 
                int dir_in  = ir[1] - ir[0];
                int dir_out = ir[1] - ir[2];
@@ -2316,7 +2315,6 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
             //  Create the cells in the correct order and orientation.
             for (int ii = 0; ii < 4; ii++)
             {  level[nc] = level_old[ic] + 1;
-               index[nc] = ic;
                switch (order[ii])
                {  case SW:
                      // lower left
@@ -2356,14 +2354,12 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
             i[nc]  = i_old[ic]*2 + 1;
             j[nc]  = j_old[ic]*2;
             level[nc] = level_old[ic] + 1;
-            index[nc] = ic;
             nc++;
             
             // upper
             i[nc] = i_old[ic]*2 + 1;
             j[nc] = j_old[ic]*2 + 1;
             level[nc] = level_old[ic] + 1;
-            index[nc] = ic;
             nc++;
          }
          else if (celltype[ic] == RIGHT_BOUNDARY) {
@@ -2371,14 +2367,12 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
             i[nc]  = i_old[ic]*2;
             j[nc]  = j_old[ic]*2;
             level[nc] = level_old[ic] + 1;
-            index[nc] = ic;
             nc++;
             
             // upper
             i[nc] = i_old[ic]*2;
             j[nc] = j_old[ic]*2 + 1;
             level[nc] = level_old[ic] + 1;
-            index[nc] = ic;
             nc++;
          }
          else if (celltype[ic] == BOTTOM_BOUNDARY) {
@@ -2386,14 +2380,12 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
             i[nc]  = i_old[ic]*2;
             j[nc]  = j_old[ic]*2 + 1;
             level[nc] = level_old[ic] + 1;
-            index[nc] = ic;
             nc++;
             
             // right
             i[nc] = i_old[ic]*2 + 1;
             j[nc] = j_old[ic]*2 + 1;
             level[nc] = level_old[ic] + 1;
-            index[nc] = ic;
             nc++;
          }
          else if (celltype[ic] == TOP_BOUNDARY) {
@@ -2401,14 +2393,12 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
             i[nc] = i_old[ic]*2 + 1;
             j[nc] = j_old[ic]*2;
             level[nc] = level_old[ic] + 1;
-            index[nc] = ic;
             nc++;
 
             // left
             i[nc]  = i_old[ic]*2;
             j[nc]  = j_old[ic]*2;
             level[nc] = level_old[ic] + 1;
-            index[nc] = ic;
             nc++;
          }
       } //  Complete refinement needed.
@@ -3504,10 +3494,35 @@ void Mesh::calc_neighbors_local(void)
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
          for(int ic=0; ic<nbsize_local; ic++){
             if (border_cell_needed_global[ic] == 0) continue;
-            //fprintf(fp,"%d: cell %d i %d j %d\n",mype,ic,border_cell_i_global[ic],border_cell_j_global[ic]);
             int lev = border_cell_level_global[ic];
             int levmult = levtable[levmx-lev];
-            if (lev == levmx) {
+            //fprintf(fp,"%d: cell %d number %d i %d j %d ibegin/end %d %d jbegin/jend %d %d\n",mype,ic,border_cell_num_global[ic],
+            //    border_cell_i_global[ic],border_cell_j_global[ic],lev_ibegin[lev],lev_iend[lev],lev_jbegin[lev],lev_jend[lev]);
+            if (border_cell_i_global[ic] < lev_ibegin[lev]) { // left boundary
+               for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
+                  for (int ii = 0;                                         ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
+                     hash[jj][ii] = border_cell_num_global[ic];
+                  }    
+               }    
+            } else if (border_cell_i_global[ic] > lev_iend[lev]) { // right boundary
+               for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
+                  for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (imax+1)*levtable[levmx]-iminsize;             ii++) {
+                     hash[jj][ii] = border_cell_num_global[ic];
+                  }    
+               }    
+            } else if (border_cell_j_global[ic] < lev_jbegin[lev]) { // bottom boundary
+               for (int    jj = 0;                                         jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
+                  for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
+                     hash[jj][ii] = border_cell_num_global[ic];
+                  }    
+               }    
+            } else if (border_cell_j_global[ic] > lev_jend[lev]) { // top boundary
+               for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (jmax+1)*levtable[levmx]-jminsize;             jj++) {
+                  for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
+                     hash[jj][ii] = border_cell_num_global[ic];
+                  }    
+               }    
+            } else if (lev == levmx) {
                //fprintf(fp,"%d: cell %d max j %d i %d\n",mype,ic,j[ic]-jminsize,i[ic]-iminsize);
                hash[border_cell_j_global[ic]-jminsize][border_cell_i_global[ic]-iminsize] = border_cell_num_global[ic];
             } else {
@@ -3900,6 +3915,37 @@ void Mesh::calc_neighbors_local(void)
 #endif
 
       genmatrixfree((void **)hash);
+
+#ifdef BOUNDS_CHECK
+      {
+         for (uint ic=0; ic<ncells; ic++){
+            int nl = nlft[ic];
+            if (nl<0 || nl>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nlft %d\n",mype,__LINE__,ic,nl);
+            if (level[nl] > level[ic]){
+               int ntl = ntop[nl];
+               if (ntl<0 || ntl>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d global %d nlft %d ntop of nlft %d\n",mype,__LINE__,ic,ic+noffset,nl,ntl);
+            }
+            int nr = nrht[ic];
+            if (nr<0 || nr>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nrht %d\n",mype,__LINE__,ic,nr);
+            if (level[nr] > level[ic]){
+               int ntr = ntop[nr];
+               if (ntr<0 || ntr>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d ntop of nrht %d\n",mype,__LINE__,ic,ntr);
+            }
+            int nb = nbot[ic];
+            if (nb<0 || nb>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nbot %d\n",mype,__LINE__,ic,nb);
+            if (level[nb] > level[ic]){
+               int nlb = nlft[nb];
+               if (nlb<0 || nlb>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nlft of nbot %d\n",mype,__LINE__,ic,nlb);
+            }
+            int nt = ntop[ic];
+            if (nt<0 || nt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d ntop %d\n",mype,__LINE__,ic,nt);
+            if (level[nt] > level[ic]){
+               int nlt = nlft[nt];
+               if (nlt<0 || nlt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nlft of ntop %d\n",mype,__LINE__,ic,nlt);
+            }
+         }
+      }
+#endif
 
    } else if (calc_neighbor_type == KDTREE) {
       struct timeval tstart_lev2;
@@ -4985,14 +5031,20 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  1,  sizeof(cl_int), (void *)&ncells);
       ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  2,  sizeof(cl_int), (void *)&noffset);
       ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  3,  sizeof(cl_int), (void *)&levmx);
-      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  4,  sizeof(cl_mem), (void *)&dev_sizes);
-      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  5,  sizeof(cl_mem), (void *)&dev_levtable);
-      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  6,  sizeof(cl_mem), (void *)&dev_border_cell_i);
-      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  7,  sizeof(cl_mem), (void *)&dev_border_cell_j);
-      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  8,  sizeof(cl_mem), (void *)&dev_border_cell_level);
-      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  9,  sizeof(cl_mem), (void *)&dev_indices_needed);
-      ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 10,  sizeof(cl_mem), (void *)&dev_border_cell_needed_out);
-      ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 11,  sizeof(cl_mem), (void *)&dev_hash);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  4,  sizeof(cl_int), (void *)&imax);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  5,  sizeof(cl_int), (void *)&jmax);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  6,  sizeof(cl_mem), (void *)&dev_sizes);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  7,  sizeof(cl_mem), (void *)&dev_levtable);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  8,  sizeof(cl_mem), (void *)&dev_levibeg);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash,  9,  sizeof(cl_mem), (void *)&dev_leviend);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 10,  sizeof(cl_mem), (void *)&dev_levjbeg);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 11,  sizeof(cl_mem), (void *)&dev_levjend);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 12,  sizeof(cl_mem), (void *)&dev_border_cell_i);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 13,  sizeof(cl_mem), (void *)&dev_border_cell_j);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 14,  sizeof(cl_mem), (void *)&dev_border_cell_level);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 15,  sizeof(cl_mem), (void *)&dev_indices_needed);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 16,  sizeof(cl_mem), (void *)&dev_border_cell_needed_out);
+      ezcl_set_kernel_arg(kernel_calc_layer2_sethash, 17,  sizeof(cl_mem), (void *)&dev_hash);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer2_sethash, 1, NULL, &nbp_global_work_size, &nbp_local_work_size, &calc_layer2_sethash_event); 
 
       ezcl_wait_for_events(1, &calc_layer2_sethash_event);
@@ -5301,6 +5353,48 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       //}
 
       L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
+
+#ifdef BOUNDS_CHECK
+      {
+         vector<int> nlft_tmp(ncells_ghost);
+         vector<int> nrht_tmp(ncells_ghost);
+         vector<int> nbot_tmp(ncells_ghost);
+         vector<int> ntop_tmp(ncells_ghost);
+         vector<int> level_tmp(ncells_ghost);
+         vector<real> H_tmp(ncells_ghost);
+         ezcl_enqueue_read_buffer(command_queue, dev_nlft,  CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nlft_tmp[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_nrht,  CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nrht_tmp[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_nbot,  CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nbot_tmp[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_ntop,  CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &ntop_tmp[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_level, CL_TRUE,  0, ncells_ghost*sizeof(cl_int), &level_tmp[0], NULL);
+         for (uint ic=0; ic<ncells; ic++){
+            int nl = nlft_tmp[ic];
+            if (nl<0 || nl>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nlft %d\n",mype,__LINE__,ic,nl);
+            if (level_tmp[nl] > level_tmp[ic]){
+               int ntl = ntop_tmp[nl];
+               if (ntl<0 || ntl>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d global %d nlft %d ntop of nlft %d\n",mype,__LINE__,ic,ic+noffset,nl,ntl);
+            }
+            int nr = nrht_tmp[ic];
+            if (nr<0 || nr>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nrht %d\n",mype,__LINE__,ic,nr);
+            if (level_tmp[nr] > level_tmp[ic]){
+               int ntr = ntop_tmp[nr];
+               if (ntr<0 || ntr>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d ntop of nrht %d\n",mype,__LINE__,ic,ntr);
+            }
+            int nb = nbot_tmp[ic];
+            if (nb<0 || nb>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nbot %d\n",mype,__LINE__,ic,nb);
+            if (level_tmp[nb] > level_tmp[ic]){
+               int nlb = nlft_tmp[nb];
+               if (nlb<0 || nlb>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nlft of nbot %d\n",mype,__LINE__,ic,nlb);
+            }
+            int nt = ntop_tmp[ic];
+            if (nt<0 || nt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d ntop %d\n",mype,__LINE__,ic,nt);
+            if (level_tmp[nt] > level_tmp[ic]){
+               int nlt = nlft_tmp[nt];
+               if (nlt<0 || nlt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nlft of ntop %d\n",mype,__LINE__,ic,nlt);
+            }
+         }
+      }
+#endif
 
 #ifdef XXX
       int num_indices=L7_Get_Num_Indices(cell_handle);

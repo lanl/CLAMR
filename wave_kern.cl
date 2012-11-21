@@ -989,11 +989,13 @@ __kernel void hash_setup_local_cl(
       hash[(j[giX]-jminsize)*(imaxsize-iminsize)+(i[giX]-iminsize)] = giX+noffset;
    } else {
 /* Original Hash Setup */
-      //for (   int jj = j[giX]*levtable[levmx-lev]-jminsize; jj < (j[giX]+1)*levtable[levmx-lev]-jminsize; jj++) {
-      //   for (int ii = i[giX]*levtable[levmx-lev]-iminsize; ii < (i[giX]+1)*levtable[levmx-lev]-iminsize; ii++) {
-      //      hash[jj*(imaxsize-iminsize)+ii] = giX+noffset;
-      //   }
-      //}
+/*
+      for (   int jj = j[giX]*levtable[levmx-lev]-jminsize; jj < (j[giX]+1)*levtable[levmx-lev]-jminsize; jj++) {
+         for (int ii = i[giX]*levtable[levmx-lev]-iminsize; ii < (i[giX]+1)*levtable[levmx-lev]-iminsize; ii++) {
+            hash[jj*(imaxsize-iminsize)+ii] = giX+noffset;
+         }
+      }
+*/
       int j1 = j[giX]*levtable[levmx-lev]-jminsize;
       int j2 = (j[giX]+1)*levtable[levmx-lev]-1-jminsize;
       for (int ii=i[giX]*levtable[levmx-lev]; ii<(i[giX]+1)*levtable[levmx-lev]; ii++) {
@@ -1914,14 +1916,20 @@ __kernel void calc_layer2_sethash_cl (
                           const int  ncells,              // 1 
                           const int  noffset,             // 2 
                           const int  levmx,               // 3 
-                 __global const int4 *sizes,              // 4 
-                 __global const int  *levtable,           // 5 
-                 __global const int  *border_cell_i,      // 6
-                 __global const int  *border_cell_j,      // 7
-                 __global const int  *border_cell_level,  // 8
-                 __global const int  *border_cell_num,    // 9
-                 __global       int  *border_cell_needed, // 10
-                 __global       int  *hash)               // 11
+                          const int   imax,               // 4 
+                          const int   jmax,               // 5 
+                 __global const int4 *sizes,              // 6 
+                 __global const int  *levtable,           // 7 
+                 __global const int  *lev_ibeg,           // 8 
+                 __global const int  *lev_iend,           // 9 
+                 __global const int  *lev_jbeg,           // 10
+                 __global const int  *lev_jend,           // 11
+                 __global const int  *border_cell_i,      // 12
+                 __global const int  *border_cell_j,      // 13
+                 __global const int  *border_cell_level,  // 14
+                 __global const int  *border_cell_num,    // 15
+                 __global       int  *border_cell_needed, // 16
+                 __global       int  *hash)               // 17
 {
    const uint giX = get_global_id(0);
 
@@ -1938,7 +1946,31 @@ __kernel void calc_layer2_sethash_cl (
    int cell_number = border_cell_num[giX];
    int levmult = levtable[levmx-lev];
 
-   if (lev == levmx) {
+   if (ii < lev_ibeg[lev]) { // left boundary
+      for (int    jjj = jj*levmult-jminsize; jjj < (jj+1)*levmult-jminsize; jjj++) {
+         for (int iii = 0;                   iii < (ii+1)*levmult-iminsize; iii++) {
+            hash[jjj*(imaxsize-iminsize)+iii] = cell_number;
+         }
+      }
+   } else if (ii > lev_iend[lev]) { // right boundary
+      for (int    jjj = jj*levmult-jminsize; jjj < (jj+1)*levmult-jminsize;   jjj++) {
+         for (int iii = ii*levmult-iminsize; iii < (imax+1)*levtable[levmx]-iminsize; iii++) {
+            hash[jjj*(imaxsize-iminsize)+iii] = cell_number;
+         }
+      }
+   } else if (jj < lev_jbeg[lev]) { // bottom boundary
+      for (int    jjj = 0;                   jjj < (jj+1)*levmult-jminsize; jjj++) {
+         for (int iii = ii*levmult-iminsize; iii < (ii+1)*levmult-iminsize; iii++) {
+            hash[jjj*(imaxsize-iminsize)+iii] = cell_number;
+         }
+      }
+   } else if (jj > lev_jend[lev]) { // top boundary
+      for (int    jjj = jj*levmult-jminsize; jjj < (jmax+1)*levtable[levmx]-jminsize; jjj++) {
+         for (int iii = ii*levmult-iminsize; iii < (ii+1)*levmult-iminsize;   iii++) {
+            hash[jjj*(imaxsize-iminsize)+iii] = cell_number;
+         }
+      }
+   } else if (lev == levmx) {
       hash[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)] = cell_number;
    } else {
       for (int    j = max(jj*levmult-jminsize,0); j < min((jj+1)*levmult,jmaxsize)-jminsize; j++) {
