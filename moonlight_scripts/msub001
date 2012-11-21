@@ -6,6 +6,8 @@
 #MSUB -V
 
 ##### These are shell commands
+echo -n "NODES: "
+printenv SLURM_NODELIST
 date
 
 cd ${RUNS_DIR}
