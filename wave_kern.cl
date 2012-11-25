@@ -989,13 +989,13 @@ __kernel void hash_setup_local_cl(
       hash[(j[giX]-jminsize)*(imaxsize-iminsize)+(i[giX]-iminsize)] = giX+noffset;
    } else {
 /* Original Hash Setup */
-/*
+/* */
       for (   int jj = j[giX]*levtable[levmx-lev]-jminsize; jj < (j[giX]+1)*levtable[levmx-lev]-jminsize; jj++) {
          for (int ii = i[giX]*levtable[levmx-lev]-iminsize; ii < (i[giX]+1)*levtable[levmx-lev]-iminsize; ii++) {
             hash[jj*(imaxsize-iminsize)+ii] = giX+noffset;
          }
       }
-*/
+/*
       int j1 = j[giX]*levtable[levmx-lev]-jminsize;
       int j2 = (j[giX]+1)*levtable[levmx-lev]-1-jminsize;
       for (int ii=i[giX]*levtable[levmx-lev]; ii<(i[giX]+1)*levtable[levmx-lev]; ii++) {
@@ -1009,7 +1009,7 @@ __kernel void hash_setup_local_cl(
          hash[jj*(imaxsize-iminsize)+i1] = giX+noffset;
          hash[jj*(imaxsize-iminsize)+i2] = giX+noffset;
       }
-/* */
+*/
 /* Optimized Hash Setup
       int wid = levtable[levmx-lev];
       int jj = j[giX]*wid - jminsize;
@@ -1916,12 +1916,12 @@ __kernel void calc_layer2_sethash_cl (
                           const int  ncells,              // 1 
                           const int  noffset,             // 2 
                           const int  levmx,               // 3 
-                          const int   imax,               // 4 
-                          const int   jmax,               // 5 
+                          const int  imax,                // 4 
+                          const int  jmax,                // 5 
                  __global const int4 *sizes,              // 6 
                  __global const int  *levtable,           // 7 
-                 __global const int  *lev_ibeg,           // 8 
-                 __global const int  *lev_iend,           // 9 
+                 __global const int  *lev_ibeg,           // 8
+                 __global const int  *lev_iend,           // 9
                  __global const int  *lev_jbeg,           // 10
                  __global const int  *lev_jend,           // 11
                  __global const int  *border_cell_i,      // 12
@@ -1953,7 +1953,7 @@ __kernel void calc_layer2_sethash_cl (
          }
       }
    } else if (ii > lev_iend[lev]) { // right boundary
-      for (int    jjj = jj*levmult-jminsize; jjj < (jj+1)*levmult-jminsize;   jjj++) {
+      for (int    jjj = jj*levmult-jminsize; jjj < (jj+1)*levmult-jminsize;           jjj++) {
          for (int iii = ii*levmult-iminsize; iii < (imax+1)*levtable[levmx]-iminsize; iii++) {
             hash[jjj*(imaxsize-iminsize)+iii] = cell_number;
          }
@@ -1966,7 +1966,7 @@ __kernel void calc_layer2_sethash_cl (
       }
    } else if (jj > lev_jend[lev]) { // top boundary
       for (int    jjj = jj*levmult-jminsize; jjj < (jmax+1)*levtable[levmx]-jminsize; jjj++) {
-         for (int iii = ii*levmult-iminsize; iii < (ii+1)*levmult-iminsize;   iii++) {
+         for (int iii = ii*levmult-iminsize; iii < (ii+1)*levmult-iminsize;           iii++) {
             hash[jjj*(imaxsize-iminsize)+iii] = cell_number;
          }
       }

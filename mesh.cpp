@@ -2468,11 +2468,12 @@ void Mesh::calc_neighbors(void)
             hash[j[ic]][i[ic]] = ic;
          } else {
 /* Original Write to Hash Table */
-            //for (int jj = j[ic]*levtable[levmx-lev]; jj < (j[ic]+1)*levtable[levmx-lev]; jj++) {
-            //   for (int ii=i[ic]*levtable[levmx-lev]; ii<(i[ic]+1)*levtable[levmx-lev]; ii++) {
-            //      hash[jj][ii] = ic;
-            //   }
-            //}
+            for (int jj = j[ic]*levtable[levmx-lev]; jj < (j[ic]+1)*levtable[levmx-lev]; jj++) {
+               for (int ii=i[ic]*levtable[levmx-lev]; ii<(i[ic]+1)*levtable[levmx-lev]; ii++) {
+                  hash[jj][ii] = ic;
+               }
+            }
+/*
             int j1 = j[ic]*levtable[levmx-lev];
             int j2 = (j[ic]+1)*levtable[levmx-lev]-1;
             for (int ii=i[ic]*levtable[levmx-lev]; ii<(i[ic]+1)*levtable[levmx-lev]; ii++) {
@@ -2485,7 +2486,7 @@ void Mesh::calc_neighbors(void)
                hash[jj][i1] = ic;
                hash[jj][i2] = ic;
             }
-/* */
+*/
 /* Optimization: Always writes to max of 7 hash buckets, 4 if cell is l=levmx-1
             int wid = levtable[levmx-lev];
             int jj = j[ic]*wid;
@@ -3934,14 +3935,14 @@ void Mesh::calc_neighbors_local(void)
             int nb = nbot[ic];
             if (nb<0 || nb>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nbot %d\n",mype,__LINE__,ic,nb);
             if (level[nb] > level[ic]){
-               int nlb = nlft[nb];
-               if (nlb<0 || nlb>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nlft of nbot %d\n",mype,__LINE__,ic,nlb);
+               int nrb = nrht[nb];
+               if (nrb<0 || nrb>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nrht of nbot %d\n",mype,__LINE__,ic,nrb);
             }
             int nt = ntop[ic];
             if (nt<0 || nt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d ntop %d\n",mype,__LINE__,ic,nt);
             if (level[nt] > level[ic]){
-               int nlt = nlft[nt];
-               if (nlt<0 || nlt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nlft of ntop %d\n",mype,__LINE__,ic,nlt);
+               int nrt = nrht[nt];
+               if (nrt<0 || nrt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nrht of ntop %d\n",mype,__LINE__,ic,nrt);
             }
          }
       }
@@ -5383,14 +5384,14 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
             int nb = nbot_tmp[ic];
             if (nb<0 || nb>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nbot %d\n",mype,__LINE__,ic,nb);
             if (level_tmp[nb] > level_tmp[ic]){
-               int nlb = nlft_tmp[nb];
-               if (nlb<0 || nlb>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nlft of nbot %d\n",mype,__LINE__,ic,nlb);
+               int nrb = nrht_tmp[nb];
+               if (nrb<0 || nrb>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nrht of nbot %d\n",mype,__LINE__,ic,nrb);
             }
             int nt = ntop_tmp[ic];
-            if (nt<0 || nt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d ntop %d\n",mype,__LINE__,ic,nt);
+            if (nt<0 || nt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d global %d ntop %d ncells %d ncells_ghost %d\n",mype,__LINE__,ic,ic+noffset,nt,ncells,ncells_ghost);
             if (level_tmp[nt] > level_tmp[ic]){
-               int nlt = nlft_tmp[nt];
-               if (nlt<0 || nlt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nlft of ntop %d\n",mype,__LINE__,ic,nlt);
+               int nrt = nrht_tmp[nt];
+               if (nrt<0 || nrt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nrht of ntop %d\n",mype,__LINE__,ic,nrt);
             }
          }
       }
