@@ -2259,14 +2259,14 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
             int nb = nbot_tmp[ic];
             if (nb<0 || nb>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d nbot %d\n",mesh->mype,__LINE__,ic,nb);
             if (level_tmp[nb] > level_tmp[ic]){
-               int nlb = nlft_tmp[nb];
-               if (nlb<0 || nlb>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d nlft of nbot %d\n",mesh->mype,__LINE__,ic,nlb);
+               int nrb = nrht_tmp[nb];
+               if (nrb<0 || nrb>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d nrht of nbot %d\n",mesh->mype,__LINE__,ic,nrb);
             }
             int nt = ntop_tmp[ic];
             if (nt<0 || nt>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d ntop %d\n",mesh->mype,__LINE__,ic,nt);
             if (level_tmp[nt] > level_tmp[ic]){
-               int nlt = nlft_tmp[nt];
-               if (nlt<0 || nlt>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d nlft of ntop %d\n",mesh->mype,__LINE__,ic,nlt);
+               int nrt = nrht_tmp[nt];
+               if (nrt<0 || nrt>= (int)mesh->ncells_ghost) printf("%d: Warning at line %d cell %d nrht of ntop %d\n",mesh->mype,__LINE__,ic,nrt);
             }
          }
          for (uint ic=0; ic<mesh->ncells_ghost; ic++){
