@@ -6,6 +6,10 @@
 #MSUB -V
 
 ##### These are shell commands
+echo -n "JOBID: "
+printenv SLURM_JOB_ID
+echo -n "NUM_NODES: "
+printenv SLURM_JOB_NUM_NODES
 echo -n "NODES: "
 printenv SLURM_NODELIST
 date
