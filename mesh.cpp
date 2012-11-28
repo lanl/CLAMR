@@ -82,6 +82,8 @@
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
+#define HASH_SETUP_OPT_LEVEL 1
+
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
 #define MPI_C_REAL MPI_DOUBLE
@@ -2438,83 +2440,115 @@ void Mesh::calc_neighbors(void)
          }
       }
 
+#if HASH_SETUP_OPT_LEVEL == 0
       for(uint ic=0; ic<ncells; ic++){
          int lev = level[ic];
-         if (i[ic] < lev_ibegin[lev]) { // left boundary
-            for (int    jj = j[ic]*levtable[levmx-lev]; jj < (j[ic]+1)*levtable[levmx-lev]; jj++) {
-               for (int ii = 0; ii < (i[ic]+1)*levtable[levmx-lev]; ii++) {
-                  hash[jj][ii] = ic;
-               }
-            }
-         } else if (i[ic] > lev_iend[lev]) { // right boundary
-            for (int    jj = j[ic]*levtable[levmx-lev]; jj < (j[ic]+1)*levtable[levmx-lev]; jj++) {
-               for (int ii = i[ic]*levtable[levmx-lev]; ii < (imax+1)*levtable[levmx]; ii++) {
-                  hash[jj][ii] = ic;
-               }
-            }
-         } else if (j[ic] < lev_jbegin[lev]) { // bottom boundary
-            for (int    jj = 0; jj < (j[ic]+1)*levtable[levmx-lev]; jj++) {
-               for (int ii = i[ic]*levtable[levmx-lev]; ii < (i[ic]+1)*levtable[levmx-lev]; ii++) {
-                  hash[jj][ii] = ic;
-               }
-            }
-         } else if (j[ic] > lev_jend[lev]) { // top boundary
-            for (int    jj = j[ic]*levtable[levmx-lev]; jj < (jmax+1)*levtable[levmx]; jj++) {
-               for (int ii = i[ic]*levtable[levmx-lev]; ii < (i[ic]+1)*levtable[levmx-lev]; ii++) {
-                  hash[jj][ii] = ic;
-               }
-            }
-         } else if (lev == levmx) {
-            hash[j[ic]][i[ic]] = ic;
-         } else {
-/* Original Write to Hash Table */
-            for (int jj = j[ic]*levtable[levmx-lev]; jj < (j[ic]+1)*levtable[levmx-lev]; jj++) {
-               for (int ii=i[ic]*levtable[levmx-lev]; ii<(i[ic]+1)*levtable[levmx-lev]; ii++) {
-                  hash[jj][ii] = ic;
-               }
-            }
-/*
-            int j1 = j[ic]*levtable[levmx-lev];
-            int j2 = (j[ic]+1)*levtable[levmx-lev]-1;
-            for (int ii=i[ic]*levtable[levmx-lev]; ii<(i[ic]+1)*levtable[levmx-lev]; ii++) {
-               hash[j1][ii] = ic;
-               hash[j2][ii] = ic;
-            }
-            int i1 = i[ic]*levtable[levmx-lev];
-            int i2 = (i[ic]+1)*levtable[levmx-lev]-1;
-            for (int jj = j1+1; jj < j2; jj++) {
-               hash[jj][i1] = ic;
-               hash[jj][i2] = ic;
-            }
-*/
-/* Optimization: Always writes to max of 7 hash buckets, 4 if cell is l=levmx-1
-            int wid = levtable[levmx-lev];
-            int jj = j[ic]*wid;
-            int ii = i[ic]*wid;
-            hash[jj][ii] = ic;
-            ii += wid/2;
-            hash[jj][ii] = ic;
-            if(wid > 2) {
-               ii = ii + wid/2 - 1;
-               hash[jj][ii] = ic;
-               ii = ii - wid/2 + 1;
-            }
-            ii -= wid/2;
-            jj += wid/2;
-            hash[jj][ii] = ic;
-            ii = ii + wid - 1;
-            hash[jj][ii] = ic;
+         int ii = i[ic];
+         int jj = j[ic];
+         int levmult = levtable[levmx-lev];
 
-            if(wid > 2) {
-               ii = ii - wid + 1;
-               jj = jj + wid/2 - 1;
-               hash[jj][ii] = ic;
-               ii += wid/2;
-               hash[jj][ii] = ic;
+         int iimin =  ii   *levmult;
+         int iimax = (ii+1)*levmult;
+         int jjmin =  jj   *levmult;
+         int jjmax = (jj+1)*levmult;
+
+         if      (ii < lev_ibegin[lev]) iimin = 0;                        // left boundary
+         else if (ii > lev_iend[lev])   iimax = (imax+1)*levtable[levmx]; // right boundary
+         else if (jj < lev_jbegin[lev]) jjmin = 0;                        // bottom boundary
+         else if (jj > lev_jend[lev])   jjmax = (jmax+1)*levtable[levmx]; // top boundary
+
+         for (   int jjj = jjmin; jjj < jjmax; jjj++) {
+            for (int iii = iimin; iii < iimax; iii++) {
+               hash[jjj][iii] = ic;
             }
-*/
          }
       }
+#elif HASH_SETUP_OPT_LEVEL == 1
+
+      for(uint ic=0; ic<ncells; ic++){
+         int lev = level[ic];
+         int ii = i[ic];
+         int jj = j[ic];
+         int levmult = levtable[levmx-lev];
+
+         int iimin =  ii   *levmult;
+         int iimax = (ii+1)*levmult;
+         int jjmin =  jj   *levmult;
+         int jjmax = (jj+1)*levmult;
+
+         if      (ii < lev_ibegin[lev]) iimin = 0;                        // left boundary
+         else if (ii > lev_iend[lev])   iimax = (imax+1)*levtable[levmx]; // right boundary
+         else if (jj < lev_jbegin[lev]) jjmin = 0;                        // bottom boundary
+         else if (jj > lev_jend[lev])   jjmax = (jmax+1)*levtable[levmx]; // top boundary
+
+         for (int iii = iimin; iii < iimax; iii++) {
+            hash[jjmin][iii]   = ic;
+            hash[jjmax-1][iii] = ic;
+         }
+         for (int jjj = jjmin+1; jjj < jjmax-1; jjj++) {
+            hash[jjj][iimin]   = ic;
+            hash[jjj][iimax-1] = ic;
+         }
+      }
+
+#elif HASH_SETUP_OPT_LEVEL == 2
+      for(uint ic=0; ic<ncells; ic++){
+         int lev = level[ic];
+         int ii = i[ic];
+         int jj = j[ic];
+         int levmult = levtable[levmx-lev];
+
+         if (lev > 0 && (ii < lev_ibegin[lev] || ii > lev_iend[lev] || jj < lev_jbegin[lev] || jj > lev_jend[lev]) ) {
+  
+            int iimin =  ii   *levmult;
+            int iimax = (ii+1)*levmult;
+            int jjmin =  jj   *levmult;
+            int jjmax = (jj+1)*levmult;
+
+            if      (ii < lev_ibegin[lev]) iimin = 0;                        // left boundary
+            else if (ii > lev_iend[lev])   iimax = (imax+1)*levtable[levmx]; // right boundary
+            else if (jj < lev_jbegin[lev]) jjmin = 0;                        // bottom boundary
+            else if (jj > lev_jend[lev])   jjmax = (jmax+1)*levtable[levmx]; // top boundary
+  
+            for (   int jjj = jjmin; jjj < jjmax; jjj++) {
+               for (int iii = iimin; iii < iimax; iii++) {
+                  hash[jjj][iii] = ic;
+               }
+            }
+            continue;
+         }
+
+         if(lev == levmx) {
+            hash[jj][ii] = ic;
+            continue;
+         }
+
+         jj *= levmult;
+         ii *= levmult;
+         hash[jj][ii] = ic;
+
+         ii += levmult/2;
+         hash[jj][ii] = ic;
+         if(levmult > 2) {
+            ii += levmult/2 - 1;
+            hash[jj][ii] = ic;
+            ii -= levmult/2 - 1;
+         }
+         ii -= levmult/2;
+         jj += levmult/2;
+         hash[jj][ii] = ic;
+         ii += levmult - 1;
+         hash[jj][ii] = ic;
+      
+         if(levmult > 2) {
+            ii -= levmult - 1;
+            jj += levmult/2 - 1;
+            hash[jj][ii] = ic;
+            ii += levmult/2;
+            hash[jj][ii] = ic;
+         }
+      }
+#endif
 
       if (TIMING_LEVEL >= 2) {
          cpu_time_hash_setup += cpu_timer_stop(tstart_lev2);
@@ -2807,114 +2841,122 @@ void Mesh::calc_neighbors_local(void)
          fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
       }
 
+#if HASH_SETUP_OPT_LEVEL == 0
       // Walk through cell array and set hash to global cell values
+      /* Original Hash Setup */
       for(uint ic=0; ic<ncells; ic++){
+         int ii = i[ic];
+         int jj = j[ic];
          int lev = level[ic];
-         if (i[ic] < lev_ibegin[lev]) { // left boundary
-            for (int    jj = j[ic]*levtable[levmx-lev]-jminsize; jj < (j[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
-               for (int ii = 0; ii < (i[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
-#ifdef BOUNDS_CHECK
-                  if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
-#endif
-                  hash[jj][ii] = ic+noffset;
-               }
-            }
-         } else if (i[ic] > lev_iend[lev]) { // right boundary
-            for (int    jj = j[ic]*levtable[levmx-lev]-jminsize; jj < (j[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
-               for (int ii = i[ic]*levtable[levmx-lev]-iminsize; ii < (imax+1)*levtable[levmx]-iminsize; ii++) {
-#ifdef BOUNDS_CHECK
-                  if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
-#endif
-                  hash[jj][ii] = ic+noffset;
-               }
-            }
-         } else if (j[ic] < lev_jbegin[lev]) { // bottom boundary
-            for (int    jj = 0; jj < (j[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
-               for (int ii = i[ic]*levtable[levmx-lev]-iminsize; ii < (i[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
-#ifdef BOUNDS_CHECK
-                     if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
-#endif
-                  hash[jj][ii] = ic+noffset;
-               }
-            }
-         } else if (j[ic] > lev_jend[lev]) { // top boundary
-            for (int    jj = j[ic]*levtable[levmx-lev]-jminsize; jj < (jmax+1)*levtable[levmx]-jminsize; jj++) {
-               for (int ii = i[ic]*levtable[levmx-lev]-iminsize; ii < (i[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
-#ifdef BOUNDS_CHECK
-                  if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
-#endif
-                  hash[jj][ii] = ic+noffset;
-               }
-            }
-         } else if (lev == levmx) {
-            //printf("%d: max j %d i %d\n",mype,j[ic]-jminsize,i[ic]-iminsize);
-#ifdef BOUNDS_CHECK
-            {
-               int jj = j[ic]-jminsize;
-               int ii = i[ic]-iminsize;
-               if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
-            }
-#endif
-            hash[j[ic]-jminsize][i[ic]-iminsize] = ic+noffset;
-         } else {
-/* Original Write to Hash Table */
-            for (int    jj = j[ic]*levtable[levmx-lev]-jminsize; jj < (j[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
-               for (int ii = i[ic]*levtable[levmx-lev]-iminsize; ii < (i[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
-                  //printf("%d: block j %d i %d\n",mype,jj,ii);
-                  hash[jj][ii] = ic+noffset;
-               }
-            }
-/* */
-/* Optimization: Always writes to max of 7 hash buckets, 4 if cell is l=levmx-1
-            int wid = levtable[levmx-lev];
-            int jj = j[ic]*wid - jminsize;
-            int ii = i[ic]*wid - iminsize;
-#ifdef BOUNDS_CHECK
-            if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
-#endif
-            hash[jj][ii] = ic + noffset;
-            ii += wid/2;
-#ifdef BOUNDS_CHECK
-            if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
-#endif
-            hash[jj][ii] = ic + noffset;
-            if(wid > 2) {
-               ii = ii + wid/2 - 1;
-#ifdef BOUNDS_CHECK
-               if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
-#endif
-               hash[jj][ii] = ic + noffset;
-               ii = ii - wid/2 + 1;
-            }
-            ii -= wid/2;
-            jj += wid/2;
-#ifdef BOUNDS_CHECK
-            if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
-#endif
-            hash[jj][ii] = ic + noffset;
-            ii = ii + wid - 1;
-#ifdef BOUNDS_CHECK
-            if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
-#endif
-            hash[jj][ii] = ic + noffset;
+         int levmult = levtable[levmx-lev];
+         int cellnumber = ic+noffset;
 
-            if(wid > 2) {
-               ii = ii - wid + 1;
-               jj = jj + wid/2 - 1;
+         int iimin =  ii   *levmult-iminsize;
+         int iimax = (ii+1)*levmult-iminsize;
+         int jjmin =  jj   *levmult-jminsize;
+         int jjmax = (jj+1)*levmult-jminsize;
+
+         if      (ii < lev_ibegin[lev]) iimin = 0;                                 // left boundary
+         else if (ii > lev_iend[lev])   iimax = (imax+1)*levtable[levmx]-iminsize; // right boundary
+         else if (jj < lev_jbegin[lev]) jjmin = 0;                                 // bottom boundary
+         else if (jj > lev_jend[lev])   jjmax = (jmax+1)*levtable[levmx]-jminsize; // top boundary
+
+         for (   int jjj = jjmin; jjj < jjmax; jjj++) {
+            for (int iii = iimin; iii < iimax; iii++) {
 #ifdef BOUNDS_CHECK
-               if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
+               if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
 #endif
-               hash[jj][ii] = ic + noffset;
-               ii += wid/2;
-#ifdef BOUNDS_CHECK
-               if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
-#endif
-               hash[jj][ii] = ic + noffset;
+               hash[jjj][iii] = cellnumber;
             }
-*/
          }
       }
-      
+#elif HASH_SETUP_OPT_LEVEL == 1
+      /* Just the outer cells */
+      for(uint ic=0; ic<ncells; ic++){
+         int ii = i[ic];
+         int jj = j[ic];
+         int lev = level[ic];
+         int levmult = levtable[levmx-lev];
+         int cellnumber = ic+noffset;
+
+         int iimin =  ii   *levmult-iminsize;
+         int iimax = (ii+1)*levmult-iminsize;
+         int jjmin =  jj   *levmult-jminsize;
+         int jjmax = (jj+1)*levmult-jminsize;
+
+         if      (ii < lev_ibegin[lev]) iimin = 0;                                 // left boundary
+         else if (ii > lev_iend[lev])   iimax = (imax+1)*levtable[levmx]-iminsize; // right boundary
+         else if (jj < lev_jbegin[lev]) jjmin = 0;                                 // bottom boundary
+         else if (jj > lev_jend[lev])   jjmax = (jmax+1)*levtable[levmx]-jminsize; // top boundary
+
+         for (int iii = iimin; iii < iimax; iii++) {
+            hash[jjmin][iii]   = cellnumber;
+            hash[jjmax-1][iii] = cellnumber;
+         }
+         for (int jjj = jjmin+1; jjj < jjmax-1; jjj++) {
+            hash[jjj][iimin]   = cellnumber;
+            hash[jjj][iimax-1] = cellnumber;
+         }
+      }
+#elif HASH_SETUP_OPT_LEVEL == 2
+     /* Optimized Hash Setup */
+      for(uint ic=0; ic<ncells; ic++){
+         int ii = i[ic];
+         int jj = j[ic];
+         int lev = level[ic];
+         int levmult = levtable[levmx-lev];
+         int cellnumber = ic+noffset;
+
+         if (lev > 0 && (ii < lev_ibegin[lev] || ii > lev_iend[lev] || jj < lev_jbegin[lev] || jj > lev_jend[lev]) ) {
+       
+            int iimin =  ii   *levmult-iminsize;
+            int iimax = (ii+1)*levmult-iminsize;
+            int jjmin =  jj   *levmult-jminsize;
+            int jjmax = (jj+1)*levmult-jminsize;
+     
+            if      (ii < lev_ibegin[lev]) iimin = 0;                                 // left boundary
+            else if (ii > lev_iend[lev])   iimax = (imax+1)*levtable[levmx]-iminsize; // right boundary
+            else if (jj < lev_jbegin[lev]) jjmin = 0;                                 // bottom boundary
+            else if (jj > lev_jend[lev])   jjmax = (jmax+1)*levtable[levmx]-jminsize; // top boundary
+       
+            for (   int jjj = jjmin; jjj < jjmax; jjj++) {
+               for (int iii = iimin; iii < iimax; iii++) {
+                  hash[jjj][iii] = cellnumber;
+               }
+            }
+         }  else if (lev == levmx) {
+            hash[jj-jminsize][ii-iminsize] = cellnumber;
+         } else {
+     
+            jj = jj*levmult - jminsize;
+            ii = ii*levmult - iminsize;
+     
+            hash[jj][ii] = cellnumber; // lower left corner
+     
+            ii += levmult/2;
+            hash[jj][ii] = cellnumber; // lower boundary mid-point
+            if(levmult > 2) {
+               ii += levmult/2 - 1;
+               hash[jj][ii] = cellnumber; // lower right corner
+               ii -= levmult/2 - 1;
+            }
+            ii -= levmult/2;
+            jj += levmult/2;
+            hash[jj][ii] = cellnumber; // left boundary mid-point
+            ii += levmult - 1;
+            hash[jj][ii] = cellnumber; // right boundary mid-point
+     
+            if(levmult > 2) {
+               ii -= levmult - 1;
+               jj += levmult/2 - 1;
+               hash[jj][ii] = cellnumber; // upper left boundary
+               ii += levmult/2;
+               hash[jj][ii] = cellnumber; // upper boundary mid-point
+            }
+         }
+      }
+#endif
+
       if (TIMING_LEVEL >= 2) {
          cpu_time_hash_setup += cpu_timer_stop(tstart_lev2);
          cpu_timer_start(&tstart_lev2);
@@ -5389,7 +5431,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
                if (nrb<0 || nrb>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nrht of nbot %d\n",mype,__LINE__,ic,nrb);
             }
             int nt = ntop_tmp[ic];
-            if (nt<0 || nt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d global %d ntop %d ncells %d ncells_ghost %d\n",mype,__LINE__,ic,ic+noffset,nt,ncells,ncells_ghost);
+            if (nt<0 || nt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d global %d ntop %d ncells %ld ncells_ghost %ld\n",mype,__LINE__,ic,ic+noffset,nt,ncells,ncells_ghost);
             if (level_tmp[nt] > level_tmp[ic]){
                int nrt = nrht_tmp[nt];
                if (nrt<0 || nrt>= (int)ncells_ghost) printf("%d: Warning at line %d cell %d nrht of ntop %d\n",mype,__LINE__,ic,nrt);
