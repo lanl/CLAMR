@@ -1000,7 +1000,7 @@ __kernel void hash_setup_local_cl(
    int jj = j[giX];
    int lev = level[giX];
    int levmult = levtable[levmx-lev];
-   int cellnumber = giX+noffset;
+   int cell_number = giX+noffset;
 
 #if HASH_SETUP_OPT_LEVEL == 0
 /* Original Hash Setup */
@@ -1017,7 +1017,7 @@ __kernel void hash_setup_local_cl(
 
    for (   int jjj = jjmin; jjj < jjmax; jjj++) {
       for (int iii = iimin; iii < iimax; iii++) {
-         hashval_local(jjj, iii) = cellnumber;
+         hashval_local(jjj, iii) = cell_number;
       }
    }
 
@@ -1035,12 +1035,12 @@ __kernel void hash_setup_local_cl(
    else if (jj > lev_jend[lev]) jjmax = (jmax+1)*levtable[levmx]-jminsize; // top boundary 
 
    for (int iii = iimin; iii < iimax; iii++) {
-      hashval_local(jjmin,   iii) = cellnumber;
-      hashval_local(jjmax-1, iii) = cellnumber;
+      hashval_local(jjmin,   iii) = cell_number;
+      hashval_local(jjmax-1, iii) = cell_number;
    }
    for (int jjj = jjmin+1; jjj < jjmax-1; jjj++) {
-      hashval_local(jjj, iimin) = cellnumber;
-      hashval_local(jjj, iimax-1) = cellnumber;
+      hashval_local(jjj, iimin) = cell_number;
+      hashval_local(jjj, iimax-1) = cell_number;
    }
 
 #elif HASH_SETUP_OPT_LEVEL == 2
@@ -1059,41 +1059,41 @@ __kernel void hash_setup_local_cl(
    
       for (   int jjj = jjmin; jjj < jjmax; jjj++) {
          for (int iii = iimin; iii < iimax; iii++) {
-            hashval_local(jjj, iii) = cellnumber;
+            hashval_local(jjj, iii) = cell_number;
          }
       }
       return;
    }
 
    if(lev == levmx) {
-      hashval_local(jj-jminsize,ii-iminsize) = cellnumber;
+      hashval_local(jj-jminsize,ii-iminsize) = cell_number;
       return;
    }
 
    jj = jj*levmult - jminsize;
    ii = ii*levmult - iminsize;
 
-   hashval_local(jj,ii) = cellnumber; // lower left corner
+   hashval_local(jj,ii) = cell_number; // lower left corner
 
    ii += levmult/2;
-   hashval_local(jj,ii) = cellnumber; // lower boundary mid-point
+   hashval_local(jj,ii) = cell_number; // lower boundary mid-point
    if(levmult > 2) {
       ii += levmult/2 - 1;
-      hashval_local(jj,ii) = cellnumber; // lower right corner
+      hashval_local(jj,ii) = cell_number; // lower right corner
       ii -= levmult/2 - 1;
    }
    ii -= levmult/2;
    jj += levmult/2;
-   hashval_local(jj,ii) = cellnumber; // left boundary mid-point
+   hashval_local(jj,ii) = cell_number; // left boundary mid-point
    ii += levmult - 1;
-   hashval_local(jj,ii) = cellnumber; // right boundary mid-point
+   hashval_local(jj,ii) = cell_number; // right boundary mid-point
 
    if(levmult > 2) {
       ii -= levmult - 1;
       jj += levmult/2 - 1;
-      hashval_local(jj,ii) = cellnumber; // upper left boundary
+      hashval_local(jj,ii) = cell_number; // upper left boundary
       ii += levmult/2;
-      hashval_local(jj,ii) = cellnumber; // upper boundary mid-point
+      hashval_local(jj,ii) = cell_number; // upper boundary mid-point
    }
 #endif
 
@@ -2001,6 +2001,50 @@ __kernel void calc_layer2_sethash_cl (
    int cell_number = border_cell_num[giX];
    int levmult = levtable[levmx-lev];
 
+#if HASH_SETUP_OPT_LEVEL == 0
+   /* Original Hash Setup */
+
+   int iimin =  ii   *levmult-iminsize;
+   int iimax = (ii+1)*levmult-iminsize;
+   int jjmin =  jj   *levmult-jminsize;
+   int jjmax = (jj+1)*levmult-jminsize;
+
+   if      (ii < lev_ibeg[lev]) iimin = 0;                                 // left boundary
+   else if (ii > lev_iend[lev]) iimax = (imax+1)*levtable[levmx]-iminsize; // right boundary
+   else if (jj < lev_jbeg[lev]) jjmin = 0;                                 // bottom boundary
+   else if (jj > lev_jend[lev]) jjmax = (jmax+1)*levtable[levmx]-jminsize; // top boundary
+
+   for (   int jjj = jjmin; jjj < jjmax; jjj++) {
+      for (int iii = iimin; iii < iimax; iii++) {
+         hashval_local(jjj, iii) = cell_number;
+      }
+   }
+
+#elif HASH_SETUP_OPT_LEVEL >= 1
+   /* Just the outer cells */
+
+   int iimin =  ii   *levmult-iminsize;
+   int iimax = (ii+1)*levmult-iminsize;
+   int jjmin =  jj   *levmult-jminsize;
+   int jjmax = (jj+1)*levmult-jminsize;
+
+   if      (ii < lev_ibeg[lev]) iimin = 0;                                 // left boundary
+   else if (ii > lev_iend[lev]) iimax = (imax+1)*levtable[levmx]-iminsize; // right boundary
+   else if (jj < lev_jbeg[lev]) jjmin = 0;                                 // bottom boundary
+   else if (jj > lev_jend[lev]) jjmax = (jmax+1)*levtable[levmx]-jminsize; // top boundary
+
+   for (int iii = iimin; iii < iimax; iii++) {
+      hashval_local(jjmin,   iii) = cell_number;
+      hashval_local(jjmax-1, iii) = cell_number;
+   }
+   for (int jjj = jjmin+1; jjj < jjmax-1; jjj++) {
+      hashval_local(jjj, iimin) = cell_number;
+      hashval_local(jjj, iimax-1) = cell_number;
+   }
+#endif
+
+
+#ifdef XXX
    if (ii < lev_ibeg[lev]) { // left boundary
       for (int    jjj = jj*levmult-jminsize; jjj < (jj+1)*levmult-jminsize; jjj++) {
          for (int iii = 0;                   iii < (ii+1)*levmult-iminsize; iii++) {
@@ -2034,6 +2078,8 @@ __kernel void calc_layer2_sethash_cl (
          }
       }
    }
+#endif
+
 }
 
 __kernel void fill_mesh_ghost_cl (
