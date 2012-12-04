@@ -170,6 +170,8 @@ public:
                   cell_handle,
                   noffset;
 
+   float          mem_factor;
+
    vector<int>local_indices_start;
    vector<int>local_indices_stop;
 

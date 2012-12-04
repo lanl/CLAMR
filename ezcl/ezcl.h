@@ -82,6 +82,9 @@ typedef cl_float4 cl_real4;
 
 #define EZCL_PINNED_MEMORY   1
 
+#define EZCL_REGULAR_MEMORY  0x0001
+#define EZCL_MANAGED_MEMORY  0x0002
+
 #define COMPUTE_DEVICE_NVIDIA   1
 #define COMPUTE_DEVICE_ATI      2
 
@@ -121,10 +124,16 @@ extern "C"
       ( ezcl_malloc_p(host_mem_ptr, name, dims, elsize, flags, ezcl_flags, __FILE__, __LINE__) )
 #define ezcl_malloc_memory_add(  malloc_mem_ptr, name, size) \
       ( ezcl_malloc_memory_add_p(malloc_mem_ptr, name, size, __FILE__, __LINE__) )
-#define ezcl_device_memory_add(  dev_mem_ptr, name, num_elements, elsize) \
-      ( ezcl_device_memory_add_p(dev_mem_ptr, name, num_elements, elsize, __FILE__, __LINE__) )
+#define ezcl_device_memory_add(  dev_mem_ptr, name, num_elements, elsize, flags, ezcl_flags) \
+      ( ezcl_device_memory_add_p(dev_mem_ptr, name, num_elements, elsize, flags, ezcl_flags, __FILE__, __LINE__) )
 #define ezcl_mapped_memory_add(  map_mem_ptr, name, num_elements, elsize) \
       ( ezcl_mapped_memory_add_p(map_mem_ptr, name, num_elements, elsize, __FILE__, __LINE__) )
+#define ezcl_device_memory_malloc(  context, host_mem_ptr, name, num_elements, elsize, flags, ezcl_flags) \
+      ( ezcl_device_memory_malloc_p(context, host_mem_ptr, name, num_elements, elsize, flags, ezcl_flags, __FILE__, __LINE__) )
+#define ezcl_device_memory_realloc(  dev_mem_ptr, num_elements) \
+      ( ezcl_device_memory_realloc_p(dev_mem_ptr, num_elements, __FILE__, __LINE__) )
+#define ezcl_device_memory_request(  dev_mem_ptr, capacity) \
+      ( ezcl_device_memory_request_p(dev_mem_ptr, capacity, __FILE__, __LINE__) )
 #define ezcl_device_memory_remove(  dev_mem_ptr) \
       ( ezcl_device_memory_remove_p(dev_mem_ptr, __FILE__, __LINE__) )
 #define ezcl_mapped_memory_remove(  map_mem_ptr) \
@@ -141,6 +150,8 @@ extern "C"
       ( ezcl_get_device_mem_nelements_p(mem_buffer, __FILE__, __LINE__) ) 
 #define ezcl_get_device_mem_elsize(  mem_buffer) \
       ( ezcl_get_device_mem_elsize_p(mem_buffer, __FILE__, __LINE__) ) 
+#define ezcl_get_device_mem_capacity(  mem_buffer) \
+      ( ezcl_get_device_mem_capacity_p(mem_buffer, __FILE__, __LINE__) ) 
 
 /* kernel and program routines */
 #define ezcl_create_kernel(  context, filename, kernel_name, flags) \
@@ -200,8 +211,11 @@ cl_context ezcl_get_context_p(const char *file, const int line);
 /* memory routines */
 cl_mem ezcl_malloc_p(void *host_mem_ptr, char *name, size_t dims[], size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line);
 void *ezcl_malloc_memory_add_p(void *malloc_mem_ptr, const char *name, size_t size, const char *file, const int line);
-void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t num_elements, size_t elsize, const char *file, const int line);
+void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t num_elements, size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line);
 void ezcl_mapped_memory_add_p(cl_mem map_mem_ptr, const char *name, size_t num_elements, size_t elsize, const char *file, const int line);
+cl_mem ezcl_device_memory_malloc_p(cl_context context, void *host_mem_ptr, const char *name, size_t num_elements, size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line);
+cl_mem ezcl_device_memory_realloc_p(cl_mem dev_mem_ptr, size_t num_elements, const char *file, const int line);   
+cl_mem ezcl_device_memory_request_p(cl_mem dev_mem_ptr, size_t capacity, const char *file, const int line);   
 void ezcl_device_memory_remove_p(void *dev_mem_ptr, const char *file, const int line);   
 void ezcl_mapped_memory_remove_p(void *map_mem_ptr, const char *file, const int line);   
 void ezcl_malloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const int line);   
@@ -210,6 +224,7 @@ void ezcl_mem_walk_all_p(const char *file, const int line);
 void ezcl_mem_walk_one_p(cl_mem mem_buffer, const char *file, const int line);
 int ezcl_get_device_mem_nelements_p(cl_mem mem_buffer, const char *file, const int line);
 int ezcl_get_device_mem_elsize_p(cl_mem mem_buffer, const char *file, const int line);
+size_t ezcl_get_device_mem_capacity_p(cl_mem mem_buffer, const char *file, const int line);
 
 /* kernel and program routines */
 cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const char *kernel_name, int flags, const char *file, const int line);
@@ -231,7 +246,7 @@ void ezcl_set_kernel_arg_p(cl_kernel kernel, cl_uint arg_index, size_t arg_size,
 void ezcl_flush_p(cl_command_queue command_queue, const char *file, const int line);
 void ezcl_finish_p(cl_command_queue command_queue, const char *file, const int line);
 void ezcl_get_event_profiling_info_p(cl_event event, cl_profiling_info param_name, size_t param_value_size, void *param_value, const char *file, const int line);
-void ezcl_wait_for_events_p(int num_events, cl_event *events, const char *file, const int line);
+void ezcl_wait_for_events_p(unsigned int num_events, cl_event *events, const char *file, const int line);
 
 void ezcl_set_timing_flag(void);
 long ezcl_timer_calc_p(cl_event *start_read_event, cl_event *end_read_event, const char *file, const int line);

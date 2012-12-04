@@ -1072,6 +1072,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
    ncells_ghost = 0;
    parallel = parallel_in;
    noffset = 0;
+   mem_factor = 1.5;
    
 #ifdef HAVE_MPI
    int mpi_init;
@@ -1082,6 +1083,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
    }
 #endif
    cell_handle = 0;
+
+   if (numpe == 1) mem_factor = 1.0;
 
    deltax = 1.0;
    deltay = 1.0;
@@ -1310,6 +1313,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    ntop.clear();
    celltype.clear();
 
+   if (numpe > 1 && (initial_order != HILBERT_SORT && initial_order != HILBERT_PARTITION) ) mem_factor = 2.0;
    partition_cells(numpe, index, initial_order);
 
    calc_celltype();
@@ -4074,10 +4078,11 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
    assert(dev_i);
    assert(dev_j);
 
-   dev_nlft     = ezcl_malloc(NULL, const_cast<char *>("dev_nlft"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   dev_nrht     = ezcl_malloc(NULL, const_cast<char *>("dev_nrht"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   dev_nbot     = ezcl_malloc(NULL, const_cast<char *>("dev_nbot"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   dev_ntop     = ezcl_malloc(NULL, const_cast<char *>("dev_ntop"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   size_t mem_request = (int)((float)ncells*mem_factor);
+   dev_nlft     = ezcl_malloc(NULL, const_cast<char *>("dev_nlft"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_nrht     = ezcl_malloc(NULL, const_cast<char *>("dev_nrht"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_nbot     = ezcl_malloc(NULL, const_cast<char *>("dev_nbot"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_ntop     = ezcl_malloc(NULL, const_cast<char *>("dev_ntop"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
    size_t local_work_size = MIN(ncells, TILE_SIZE);
    size_t global_work_size = ((ncells + local_work_size - 1) /local_work_size) * local_work_size;
@@ -4200,10 +4205,11 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    size_t one = 1;
    cl_mem dev_check = ezcl_malloc(NULL, const_cast<char *>("dev_check"), &one, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-   dev_nlft = ezcl_malloc(NULL, const_cast<char *>("dev_nlft"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   dev_nrht = ezcl_malloc(NULL, const_cast<char *>("dev_nrht"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   dev_nbot = ezcl_malloc(NULL, const_cast<char *>("dev_nbot"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   dev_ntop = ezcl_malloc(NULL, const_cast<char *>("dev_ntop"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   size_t mem_request = (int)((float)ncells*mem_factor);
+   dev_nlft = ezcl_malloc(NULL, const_cast<char *>("dev_nlft"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_nrht = ezcl_malloc(NULL, const_cast<char *>("dev_nrht"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_nbot = ezcl_malloc(NULL, const_cast<char *>("dev_nbot"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_ntop = ezcl_malloc(NULL, const_cast<char *>("dev_ntop"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
    size_t local_work_size =  64;
    size_t global_work_size = ((ncells + local_work_size - 1) /local_work_size) * local_work_size;
@@ -5155,57 +5161,70 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       int nghost = nbpacked;
       ncells_ghost = ncells + nghost;
 
-      cl_mem dev_celltype_old = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_i_old        = ezcl_malloc(NULL, const_cast<char *>("dev_i_old"),        &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_j_old        = ezcl_malloc(NULL, const_cast<char *>("dev_j_old"),        &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_level_old    = ezcl_malloc(NULL, const_cast<char *>("dev_level_old"),    &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_nlft_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nlft_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_nrht_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nrht_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_nbot_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nbot_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_ntop_old     = ezcl_malloc(NULL, const_cast<char *>("dev_ntop_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      //if (mype == 1) printf("%d: DEBUG before expanding memory ncells %ld ncells_ghost %ld capacity %ld\n",mype,ncells,ncells_ghost,ezcl_get_device_mem_capacity(dev_i));
+      if (ezcl_get_device_mem_capacity(dev_celltype) < ncells_ghost ||
+          ezcl_get_device_mem_capacity(dev_i)        < ncells_ghost ||
+          ezcl_get_device_mem_capacity(dev_j)        < ncells_ghost ||
+          ezcl_get_device_mem_capacity(dev_level)    < ncells_ghost ||
+          ezcl_get_device_mem_capacity(dev_nlft)     < ncells_ghost ||
+          ezcl_get_device_mem_capacity(dev_nrht)     < ncells_ghost ||
+          ezcl_get_device_mem_capacity(dev_nbot)     < ncells_ghost ||
+          ezcl_get_device_mem_capacity(dev_ntop)     < ncells_ghost ) {
 
-      SWAP_PTR(dev_celltype_old, dev_celltype, dev_tmp);
-      SWAP_PTR(dev_i_old,        dev_i,        dev_tmp);
-      SWAP_PTR(dev_j_old,        dev_j,        dev_tmp);
-      SWAP_PTR(dev_level_old,    dev_level,    dev_tmp);
-      SWAP_PTR(dev_nlft_old,     dev_nlft,     dev_tmp);
-      SWAP_PTR(dev_nrht_old,     dev_nrht,     dev_tmp);
-      SWAP_PTR(dev_nbot_old,     dev_nbot,     dev_tmp);
-      SWAP_PTR(dev_ntop_old,     dev_ntop,     dev_tmp);
+         //if (mype == 0) printf("%d: DEBUG expanding memory ncells %ld ncells_ghost %ld capacity %ld\n",mype,ncells,ncells_ghost,ezcl_get_device_mem_capacity(dev_i));
+         //printf("%d: DEBUG expanding memory ncells %ld ncells_ghost %ld capacity %ld\n",mype,ncells,ncells_ghost,ezcl_get_device_mem_capacity(dev_i));
+         cl_mem dev_celltype_old = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+         cl_mem dev_i_old        = ezcl_malloc(NULL, const_cast<char *>("dev_i_old"),        &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+         cl_mem dev_j_old        = ezcl_malloc(NULL, const_cast<char *>("dev_j_old"),        &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+         cl_mem dev_level_old    = ezcl_malloc(NULL, const_cast<char *>("dev_level_old"),    &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+         cl_mem dev_nlft_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nlft_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+         cl_mem dev_nrht_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nrht_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+         cl_mem dev_nbot_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nbot_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+         cl_mem dev_ntop_old     = ezcl_malloc(NULL, const_cast<char *>("dev_ntop_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-      cl_event copy_mesh_data_event;
+         SWAP_PTR(dev_celltype_old, dev_celltype, dev_tmp);
+         SWAP_PTR(dev_i_old,        dev_i,        dev_tmp);
+         SWAP_PTR(dev_j_old,        dev_j,        dev_tmp);
+         SWAP_PTR(dev_level_old,    dev_level,    dev_tmp);
+         SWAP_PTR(dev_nlft_old,     dev_nlft,     dev_tmp);
+         SWAP_PTR(dev_nrht_old,     dev_nrht,     dev_tmp);
+         SWAP_PTR(dev_nbot_old,     dev_nbot,     dev_tmp);
+         SWAP_PTR(dev_ntop_old,     dev_ntop,     dev_tmp);
 
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 0,  sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 1,  sizeof(cl_mem), (void *)&dev_celltype_old);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 2,  sizeof(cl_mem), (void *)&dev_celltype);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 3,  sizeof(cl_mem), (void *)&dev_i_old);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 4,  sizeof(cl_mem), (void *)&dev_i);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 5,  sizeof(cl_mem), (void *)&dev_j_old);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 6,  sizeof(cl_mem), (void *)&dev_j);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 7,  sizeof(cl_mem), (void *)&dev_level_old);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 8,  sizeof(cl_mem), (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 9,  sizeof(cl_mem), (void *)&dev_nlft_old);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 10, sizeof(cl_mem), (void *)&dev_nlft);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 11, sizeof(cl_mem), (void *)&dev_nrht_old);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 12, sizeof(cl_mem), (void *)&dev_nrht);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 13, sizeof(cl_mem), (void *)&dev_nbot_old);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 14, sizeof(cl_mem), (void *)&dev_nbot);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 15, sizeof(cl_mem), (void *)&dev_ntop_old);
-      ezcl_set_kernel_arg(kernel_copy_mesh_data, 16, sizeof(cl_mem), (void *)&dev_ntop);
+         cl_event copy_mesh_data_event;
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mesh_data,   1, NULL, &global_work_size, &local_work_size, &copy_mesh_data_event);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 0,  sizeof(cl_int), (void *)&ncells);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 1,  sizeof(cl_mem), (void *)&dev_celltype_old);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 2,  sizeof(cl_mem), (void *)&dev_celltype);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 3,  sizeof(cl_mem), (void *)&dev_i_old);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 4,  sizeof(cl_mem), (void *)&dev_i);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 5,  sizeof(cl_mem), (void *)&dev_j_old);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 6,  sizeof(cl_mem), (void *)&dev_j);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 7,  sizeof(cl_mem), (void *)&dev_level_old);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 8,  sizeof(cl_mem), (void *)&dev_level);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 9,  sizeof(cl_mem), (void *)&dev_nlft_old);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 10, sizeof(cl_mem), (void *)&dev_nlft);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 11, sizeof(cl_mem), (void *)&dev_nrht_old);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 12, sizeof(cl_mem), (void *)&dev_nrht);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 13, sizeof(cl_mem), (void *)&dev_nbot_old);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 14, sizeof(cl_mem), (void *)&dev_nbot);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 15, sizeof(cl_mem), (void *)&dev_ntop_old);
+         ezcl_set_kernel_arg(kernel_copy_mesh_data, 16, sizeof(cl_mem), (void *)&dev_ntop);
 
-      ezcl_device_memory_remove(dev_celltype_old);
-      ezcl_device_memory_remove(dev_i_old);
-      ezcl_device_memory_remove(dev_j_old);
-      ezcl_device_memory_remove(dev_level_old);
-      ezcl_device_memory_remove(dev_nlft_old);
-      ezcl_device_memory_remove(dev_nrht_old);
-      ezcl_device_memory_remove(dev_nbot_old);
-      ezcl_device_memory_remove(dev_ntop_old);
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mesh_data,   1, NULL, &global_work_size, &local_work_size, &copy_mesh_data_event);
 
-      ezcl_wait_for_events(1, &copy_mesh_data_event);
-      ezcl_event_release(copy_mesh_data_event);
+         ezcl_device_memory_remove(dev_celltype_old);
+         ezcl_device_memory_remove(dev_i_old);
+         ezcl_device_memory_remove(dev_j_old);
+         ezcl_device_memory_remove(dev_level_old);
+         ezcl_device_memory_remove(dev_nlft_old);
+         ezcl_device_memory_remove(dev_nrht_old);
+         ezcl_device_memory_remove(dev_nbot_old);
+         ezcl_device_memory_remove(dev_ntop_old);
+
+         ezcl_wait_for_events(1, &copy_mesh_data_event);
+         ezcl_event_release(copy_mesh_data_event);
+      }
 
       if (TIMING_LEVEL >= 2) {
          gpu_time_copy_mesh_data += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
@@ -6075,10 +6094,11 @@ void Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_
       cl_mem dev_U_new        = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"),        &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
       cl_mem dev_V_new        = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"),        &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
-      cl_mem dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      size_t mem_request = (int)((float)ncells*mem_factor);
+      cl_mem dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
       // Set kernel arguments and call lower block kernel
       if(lower_block_size > 0) {
@@ -6272,10 +6292,11 @@ void Mesh::resize_old_device_memory(size_t ncells)
    ezcl_device_memory_remove(dev_i);
    ezcl_device_memory_remove(dev_j);
    ezcl_device_memory_remove(dev_celltype);
-   dev_level    = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-   dev_i        = ezcl_malloc(NULL, const_cast<char *>("dev_i"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-   dev_j        = ezcl_malloc(NULL, const_cast<char *>("dev_j"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
-   dev_celltype = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+   size_t mem_request = (int)((float)ncells*mem_factor);
+   dev_level    = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+   dev_i        = ezcl_malloc(NULL, const_cast<char *>("dev_i"),        &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+   dev_j        = ezcl_malloc(NULL, const_cast<char *>("dev_j"),        &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+   dev_celltype = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
 #endif
 }
 void Mesh::print_object_info(void)

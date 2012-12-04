@@ -323,10 +323,11 @@ int main(int argc, char **argv) {
    }
    MPI_Allgatherv(&mesh_local->proc[0], ncells, MPI_INT, &proc_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
-   dev_celltype  = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   dev_i         = ezcl_malloc(NULL, const_cast<char *>("dev_i"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
-   dev_j         = ezcl_malloc(NULL, const_cast<char *>("dev_j"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
-   dev_level     = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   size_t mem_request = (int)((float)ncells*mem_factor);
+   dev_celltype  = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_i         = ezcl_malloc(NULL, const_cast<char *>("dev_i"),        &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
+   dev_j         = ezcl_malloc(NULL, const_cast<char *>("dev_j"),        &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
+   dev_level     = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
    //H.resize(ncells);
    //U.resize(ncells);

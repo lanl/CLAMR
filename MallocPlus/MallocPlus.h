@@ -65,12 +65,17 @@ typedef double real;
 typedef float real;
 #endif
 
+#define REGULAR_MEMORY 0x00000
+#define MANAGED_MEMORY 0x00001
+
 using namespace std;
 
 struct malloc_plus_memory_entry {
    void  *mem_ptr;
+   size_t mem_capacity;
    size_t mem_nelem;
    size_t mem_elsize;
+   int    mem_flags;
    char  *mem_name;
 };
 
@@ -79,15 +84,22 @@ class MallocPlus {
    
 public:
    void *memory_malloc(size_t nelem, size_t elsize, const char *name);
+   void *memory_malloc(size_t nelem, size_t elsize, int flags, const char *name);
 
    void *memory_realloc(size_t nelem, size_t elsize, void *malloc_mem_ptr);
    void *memory_realloc(size_t nelem, size_t elsize, const char *name);
 
+   void *memory_request(size_t nelem, size_t elsize, void *malloc_mem_ptr);
+   void *memory_request(size_t nelem, size_t elsize, const char *name);
+
    void memory_realloc_all(size_t nelem);
+
+   void memory_request_all(size_t nelem);
 
    void *memory_replace(void *malloc_mem_ptr_old, void * const malloc_mem_ptr_new);
 
    void *memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, const char *name);
+   void *memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, int flags, const char *name);
 
    real *memory_reorder(real *malloc_mem_ptr, int *iorder);
 
@@ -100,6 +112,7 @@ public:
    void *memory_next(void);
 
    size_t get_memory_size(void *malloc_mem_ptr);
+   size_t get_memory_capacity(void *malloc_mem_ptr);
 
    void *get_memory_ptr(const char *name);
 };

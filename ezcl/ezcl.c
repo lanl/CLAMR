@@ -57,6 +57,8 @@
 #define DEBUG 0
 #endif
 
+#define EZCL_MEM_FACTOR 1.6
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -90,6 +92,9 @@ struct device_memory_entry {
    cl_mem cl_mem_ptr;
    size_t num_elements;
    size_t el_size;
+   size_t capacity;
+   size_t flags;
+   int    ezcl_flags;
    char   name[31];
    int    line;
    char   file[31];
@@ -659,7 +664,6 @@ cl_context ezcl_get_context_p(const char *file, const int line){
 }
 
 cl_mem ezcl_malloc_p(void *host_mem_ptr, char *name, size_t dims[], size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line){
-   cl_int ierr;
    void *buf_mem_ptr = NULL;
    cl_mem mem_ptr = NULL;
    size_t size=0;
@@ -669,19 +673,7 @@ cl_mem ezcl_malloc_p(void *host_mem_ptr, char *name, size_t dims[], size_t elsiz
 
    if (flags & CL_MEM_ALLOC_HOST_PTR){
       if (ezcl_flags & EZCL_PINNED_MEMORY){
-         buf_mem_ptr = clCreateBuffer(context, flags, size, host_mem_ptr, &ierr);
-         if (ierr != CL_SUCCESS) {
-           /* Possible Errors
-            *  CL_INVALID_CONTEXT:
-            *  CL_INVALID_VALUE:
-            *  CL_INVALID_BUFFER_SIZE:
-            *  CL_INVALID_HOST_PTR:
-            *  CL_MEM_OBJECT_ALLOCATION_FAILURE:
-            *  CL_OUT_OF_HOST_MEMORY:
-            */
-           ezcl_print_error(ierr, "EZCL_MALLOC", "clCreateBuffer", file, line);
-         }
-         ezcl_device_memory_add_p(buf_mem_ptr, name, dims[0], elsize, file, line);
+         buf_mem_ptr = ezcl_device_memory_malloc_p(context, host_mem_ptr, name, dims[0], elsize, flags, ezcl_flags, file, line);
 
          if (flags & CL_MEM_READ_ONLY){
            mem_ptr = clEnqueueMapBuffer(command_queue, buf_mem_ptr, CL_TRUE, (size_t)CL_MAP_WRITE, 0L, size, 0, NULL, NULL, NULL);
@@ -697,36 +689,161 @@ cl_mem ezcl_malloc_p(void *host_mem_ptr, char *name, size_t dims[], size_t elsiz
          ezcl_malloc_memory_add(mem_ptr, name, size);
       }
    } else {
-      mem_ptr = clCreateBuffer(context, flags, size, host_mem_ptr, &ierr);
-      if (ierr != CL_SUCCESS) {
-        /* Possible Errors
-         *  CL_INVALID_CONTEXT:
-         *  CL_INVALID_VALUE:
-         *  CL_INVALID_BUFFER_SIZE:
-         *  CL_INVALID_HOST_PTR:
-         *  CL_MEM_OBJECT_ALLOCATION_FAILURE:
-         *  CL_OUT_OF_HOST_MEMORY:
-         */
-        ezcl_print_error(ierr, "EZCL_MALLOC", "clCreateBuffer", file, line);
-      }
-      ezcl_device_memory_add_p(mem_ptr, name, dims[0], elsize, file, line);
+      //printf("DEBUG line 691 ezcl_flags %d\n",ezcl_flags);
+      mem_ptr = ezcl_device_memory_malloc_p(context, host_mem_ptr, name, dims[0], elsize, flags, ezcl_flags, file, line);
    }
 
    return(mem_ptr);
 }
 
-void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t num_elements, size_t elsize, const char *file, const int line){
+void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t num_elements, size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line){
    if (SLIST_EMPTY(&device_memory_head)) SLIST_INIT(&device_memory_head);
 
    device_memory_item = malloc(sizeof(struct device_memory_entry));
    snprintf(device_memory_item->name,(size_t)30,"%s",name);
    device_memory_item->cl_mem_ptr = dev_mem_ptr;
    device_memory_item->num_elements=num_elements;
+   device_memory_item->flags=flags;
+   device_memory_item->ezcl_flags=ezcl_flags;
+   device_memory_item->capacity=num_elements;
    device_memory_item->el_size=elsize;
    device_memory_item->line=line;
    snprintf(device_memory_item->file,(size_t)30,"%s",file);
    if (DEBUG) printf("EZCL_DEVICE_MEMORY_ADD: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
    SLIST_INSERT_HEAD(&device_memory_head, device_memory_item, device_memory_entries);
+}
+
+cl_mem ezcl_device_memory_malloc_p(cl_context context, void *host_mem_ptr, const char *name, size_t num_elements, size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line){
+   if (SLIST_EMPTY(&device_memory_head)) SLIST_INIT(&device_memory_head);
+   device_memory_item = malloc(sizeof(struct device_memory_entry));
+   snprintf(device_memory_item->name,(size_t)30,"%s",name);
+
+   int ierr=0;
+   size_t size = 0;
+   //printf("DEBUG ezcl device memory malloc %d test %d\n",ezcl_flags,ezcl_flags & EZCL_MANAGED_MEMORY);
+   if (ezcl_flags & EZCL_MANAGED_MEMORY) {
+      size = EZCL_MEM_FACTOR*num_elements*elsize;
+      device_memory_item->capacity=EZCL_MEM_FACTOR*num_elements;
+   } else {
+      size = num_elements*elsize;
+      device_memory_item->capacity=num_elements;
+   }
+   cl_mem dev_mem_ptr = clCreateBuffer(context, flags, size, host_mem_ptr, &ierr);
+   if (ierr != CL_SUCCESS) {
+       /* Possible Errors
+        *  CL_INVALID_CONTEXT:
+        *  CL_INVALID_VALUE:
+        *  CL_INVALID_BUFFER_SIZE:
+        *  CL_INVALID_HOST_PTR:
+        *  CL_MEM_OBJECT_ALLOCATION_FAILURE:
+        *  CL_OUT_OF_HOST_MEMORY:
+        */
+      ezcl_print_error(ierr, "EZCL_DEVICE_MEMORY_MALLOC", "clCreateBuffer", file, line);
+   }
+
+   device_memory_item->cl_mem_ptr = dev_mem_ptr;
+   device_memory_item->num_elements=num_elements;
+   device_memory_item->flags=flags;
+   device_memory_item->ezcl_flags=ezcl_flags;
+   device_memory_item->el_size=elsize;
+   device_memory_item->line=line;
+   snprintf(device_memory_item->file,(size_t)30,"%s",file);
+   if (DEBUG) printf("EZCL_DEVICE_MEMORY_MALLOC: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
+   SLIST_INSERT_HEAD(&device_memory_head, device_memory_item, device_memory_entries);
+
+   return(dev_mem_ptr);
+}
+
+cl_mem ezcl_device_memory_realloc_p(cl_mem dev_mem_ptr, size_t num_elements, const char *file, const int line){
+
+   SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
+      if (device_memory_item->cl_mem_ptr == dev_mem_ptr) {
+
+         if (device_memory_item->ezcl_flags & EZCL_MANAGED_MEMORY){
+            if (num_elements > device_memory_item->capacity){
+
+               int ierr=0;
+               size_t size = EZCL_MEM_FACTOR*num_elements*device_memory_item->el_size;
+               device_memory_item->capacity=EZCL_MEM_FACTOR*num_elements;
+
+               cl_mem dev_mem_ptr = clCreateBuffer(context, device_memory_item->flags, size, NULL, &ierr);
+               if (ierr != CL_SUCCESS) {
+                   /* Possible Errors
+                    *  CL_INVALID_CONTEXT:
+                    *  CL_INVALID_VALUE:
+                    *  CL_INVALID_BUFFER_SIZE:
+                    *  CL_INVALID_HOST_PTR:
+                    *  CL_MEM_OBJECT_ALLOCATION_FAILURE:
+                    *  CL_OUT_OF_HOST_MEMORY:
+                    */
+                  ezcl_print_error(ierr, "EZCL_MALLOC", "clCreateBuffer", file, line);
+               }
+
+               device_memory_item->cl_mem_ptr = dev_mem_ptr;
+               device_memory_item->num_elements=num_elements;
+               device_memory_item->line=line;
+               snprintf(device_memory_item->file,(size_t)30,"%s",file);
+            } else {
+               device_memory_item->num_elements = num_elements;
+            }
+         } else {
+            int ierr=0;
+            size_t size = num_elements*device_memory_item->el_size;
+
+            cl_mem dev_mem_ptr = clCreateBuffer(context, device_memory_item->flags, size, NULL, &ierr);
+            if (ierr != CL_SUCCESS) {
+                /* Possible Errors
+                 *  CL_INVALID_CONTEXT:
+                 *  CL_INVALID_VALUE:
+                 *  CL_INVALID_BUFFER_SIZE:
+                 *  CL_INVALID_HOST_PTR:
+                 *  CL_MEM_OBJECT_ALLOCATION_FAILURE:
+                 *  CL_OUT_OF_HOST_MEMORY:
+                 */
+               ezcl_print_error(ierr, "EZCL_DEVICE_MEMORY_REALLOC", "clCreateBuffer", file, line);
+            }
+            device_memory_item->cl_mem_ptr = dev_mem_ptr;
+            device_memory_item->num_elements=num_elements;
+            device_memory_item->capacity=num_elements;
+            device_memory_item->line=line;
+            snprintf(device_memory_item->file,(size_t)30,"%s",file);
+         }
+         if (DEBUG) printf("EZCL_DEVICE_MEMORY_REALLOC: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
+      }
+   }
+   return(dev_mem_ptr);
+}
+
+cl_mem ezcl_device_memory_request_p(cl_mem dev_mem_ptr, size_t capacity, const char *file, const int line){
+
+   SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
+      if (device_memory_item->cl_mem_ptr == dev_mem_ptr) {
+
+         int ierr=0;
+         size_t size = capacity*device_memory_item->el_size;
+         device_memory_item->capacity=capacity;
+
+         cl_mem dev_mem_ptr = clCreateBuffer(context, device_memory_item->flags, size, NULL, &ierr);
+         if (ierr != CL_SUCCESS) {
+             /* Possible Errors
+              *  CL_INVALID_CONTEXT:
+              *  CL_INVALID_VALUE:
+              *  CL_INVALID_BUFFER_SIZE:
+              *  CL_INVALID_HOST_PTR:
+              *  CL_MEM_OBJECT_ALLOCATION_FAILURE:
+              *  CL_OUT_OF_HOST_MEMORY:
+              */
+            ezcl_print_error(ierr, "EZCL_DEVICE_MEMORY_REQUEST", "clCreateBuffer", file, line);
+         }
+
+         device_memory_item->cl_mem_ptr = dev_mem_ptr;
+         device_memory_item->line=line;
+         snprintf(device_memory_item->file,(size_t)30,"%s",file);
+
+         if (DEBUG) printf("EZCL_DEVICE_MEMORY_REQUEST: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
+      }
+   }
+   return(dev_mem_ptr);
 }
 
 void ezcl_mapped_memory_add_p(cl_mem map_mem_ptr, const char *name, size_t num_elements, size_t elsize, const char *file, const int line){
@@ -930,6 +1047,20 @@ int ezcl_get_device_mem_elsize_p(cl_mem mem_buffer, const char *file, const int 
       }
    }
    return(elsize);
+}
+
+size_t ezcl_get_device_mem_capacity_p(cl_mem mem_buffer, const char *file, const int line)
+{
+   size_t capacity = 0;
+   if (! SLIST_EMPTY(&device_memory_head)){
+      SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
+         if (mem_buffer == device_memory_item->cl_mem_ptr){
+            capacity = device_memory_item->capacity;
+            break;
+         }
+      }
+   }
+   return(capacity);
 }
 
 void ezcl_mem_walk_one_p(cl_mem mem_buffer, const char *file, const int line){
@@ -1267,7 +1398,7 @@ void ezcl_enqueue_write_buffer_p(cl_command_queue command_queue, cl_mem mem_buff
      int elsize = ezcl_get_device_mem_elsize_p(mem_buffer, file, line);
      //ezcl_mem_walk_one_p(mem_buffer, file, line);
      if (size + offset > num_elements*elsize){
-        printf("\nERROR: EZCL_ENQUEUE_WRITE_BUFFER -- buffer %p has %d elements with elsize %d for total of %d bytes but trying to write %d bytes\n",mem_buffer, num_elements, elsize, num_elements*elsize, size);
+        printf("\nERROR: EZCL_ENQUEUE_WRITE_BUFFER -- buffer %p has %d elements with elsize %d for total of %d bytes but trying to write %ld bytes\n",mem_buffer, num_elements, elsize, num_elements*elsize, size);
      }
      ezcl_print_error(ierr, "EZCL_ENQUEUE_WRITE_BUFFER", "clEnqueueWriteBuffer", file, line);
    }
@@ -1302,7 +1433,7 @@ void ezcl_enqueue_read_buffer_p(cl_command_queue command_queue, cl_mem mem_buffe
      int elsize = ezcl_get_device_mem_elsize_p(mem_buffer, file, line);
      //ezcl_mem_walk_one_p(mem_buffer, file, line);
      if (size+offset > num_elements*elsize){
-        printf("\nERROR: EZCL_ENQUEUE_READ_BUFFER -- buffer %p has %d elements with element size %d for total of %d bytes but trying to read %d bytes with an offset of %d\n",mem_buffer, num_elements, elsize, num_elements*elsize, size, offset);
+        printf("\nERROR: EZCL_ENQUEUE_READ_BUFFER -- buffer %p has %d elements with element size %d for total of %d bytes but trying to read %ld bytes with an offset of %ld\n",mem_buffer, num_elements, elsize, num_elements*elsize, size, offset);
      }
      ezcl_print_error(ierr, "EZCL_ENQUEUE_READ_BUFFER", "clEnqueueReadBuffer", file, line);
    }
@@ -1412,7 +1543,7 @@ void ezcl_get_event_profiling_info_p(cl_event event, cl_profiling_info param_nam
    }
 }
 
-void ezcl_wait_for_events_p(int num_events, cl_event *events, const char *file, const int line)
+void ezcl_wait_for_events_p(unsigned int num_events, cl_event *events, const char *file, const int line)
 {
    int ierr;
    ierr=clWaitForEvents(num_events, events);

@@ -998,10 +998,11 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
    cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
-   cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   size_t mem_request = (int)((float)ncells*mesh->mem_factor);
+   cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
    cl_mem dev_ijadd;
 

@@ -235,10 +235,11 @@ int main(int argc, char **argv) {
    i.resize(ncells);
    j.resize(ncells);
 
-   dev_celltype  = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   dev_i         = ezcl_malloc(NULL, const_cast<char *>("dev_i"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
-   dev_j         = ezcl_malloc(NULL, const_cast<char *>("dev_j"),        &ncells, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
-   dev_level     = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &ncells, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   size_t mem_request = (int)((float)ncells*mesh->mem_factor);
+   dev_celltype  = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_i         = ezcl_malloc(NULL, const_cast<char *>("dev_i"),        &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
+   dev_j         = ezcl_malloc(NULL, const_cast<char *>("dev_j"),        &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
+   dev_level     = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
    state->resize(ncells);
 
