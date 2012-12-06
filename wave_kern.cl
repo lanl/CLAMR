@@ -2016,7 +2016,7 @@ __kernel void calc_layer2_sethash_cl (
 
    for (   int jjj = jjmin; jjj < jjmax; jjj++) {
       for (int iii = iimin; iii < iimax; iii++) {
-         hashval_local(jjj, iii) = cell_number;
+         hashval_local(jjj, iii) = -(ncells+giX);
       }
    }
 
@@ -2034,12 +2034,12 @@ __kernel void calc_layer2_sethash_cl (
    else if (jj > lev_jend[lev]) jjmax = (jmax+1)*levtable[levmx]-jminsize; // top boundary
 
    for (int iii = iimin; iii < iimax; iii++) {
-      hashval_local(jjmin,   iii) = cell_number;
-      hashval_local(jjmax-1, iii) = cell_number;
+      hashval_local(jjmin,   iii) = -(ncells+giX);
+      hashval_local(jjmax-1, iii) = -(ncells+giX);
    }
    for (int jjj = jjmin+1; jjj < jjmax-1; jjj++) {
-      hashval_local(jjj, iimin) = cell_number;
-      hashval_local(jjj, iimax-1) = cell_number;
+      hashval_local(jjj, iimin) = -(ncells+giX);
+      hashval_local(jjj, iimax-1) = -(ncells+giX);
    }
 #endif
 
@@ -2119,10 +2119,10 @@ __kernel void fill_mesh_ghost_cl (
    i[ncout]     = ii;
    j[ncout]     = jj;
    level[ncout] = lev;
-   nlft[ncout]  = -98;
-   nrht[ncout]  = -98;
-   nbot[ncout]  = -98;
-   ntop[ncout]  = -98;
+   nlft[ncout]  = -1;
+   nrht[ncout]  = -1;
+   nbot[ncout]  = -1;
+   ntop[ncout]  = -1;
 }
 
 __kernel void fill_neighbor_ghost_cl (
@@ -2163,28 +2163,28 @@ __kernel void fill_neighbor_ghost_cl (
    int lev = level[giX];
    int levmult = levtable[levmx-lev];
 
-   if (nlftval < 0){
+   if (nlftval == -1){
       int iii = max(ii*levmult-1, 0)-iminsize;
       int jjj = (jj*levmult)-jminsize;
       if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){  // Test for cell to left
          nlft[giX] = hash[jjj*(imaxsize-iminsize)+iii];
       }
    }
-   if (nrhtval < 0){
+   if (nrhtval == -1){
       int iii = min( (ii+1)*levmult, imaxcalc-1)-iminsize;
       int jjj = (jj*levmult)-jminsize;
       if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){ // Test for cell to right
          nrht[giX] = hash[jjj*(imaxsize-iminsize)+iii];
       }
    }
-   if (nbotval < 0){
+   if (nbotval == -1){
       int iii = (ii*levmult)-iminsize;
       int jjj = max(jj*levmult-1, 0)-jminsize;
       if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){ // Test for cell to bottom
          nbot[giX] = hash[jjj*(imaxsize-iminsize)+iii];
       }
    }
-   if (ntopval < 0) {
+   if (ntopval == -1) {
       int iii = (ii*levmult)-iminsize;
       int jjj = min((jj+1)*levmult,jmaxcalc-1)-jminsize;
       if (iii >= 0 && iii < imaxsize-iminsize && jjj >= 0 && jjj < jmaxsize-jminsize){ // Test for cell to top
@@ -2285,33 +2285,25 @@ __kernel void adjust_neighbors_local_cl(
    int nbotval = nbot[giX];
    int ntopval = ntop[giX];
 
-   if (nlftval >= noffset && nlftval < noffset+ncells) {
+   if (nlftval <= -ncells && nlftval > -ncells_ghost){
+      nlftval = abs(nlftval);
+   } else if (nlftval >= noffset && nlftval < noffset+ncells) {
       nlftval -= noffset;
-   } else {
-      for (int ig=0; ig<nghost; ig++){
-         if (nlftval ==indices_needed[ig]) {nlftval = ig+ncells; break;}
-      }
    }
-   if (nrhtval >= noffset && nrhtval < noffset+ncells) {
+   if (nrhtval <= -ncells && nrhtval > -ncells_ghost){
+      nrhtval = abs(nrhtval);
+   } else if (nrhtval >= noffset && nrhtval < noffset+ncells) {
       nrhtval -= noffset;
-   } else {
-      for (int ig=0; ig<nghost; ig++){
-         if (nrhtval==indices_needed[ig]) {nrhtval = ig+ncells; break;}
-      }
    }
-   if (nbotval >= noffset && nbotval < noffset+ncells) {
+   if (nbotval <= -ncells && nbotval > -ncells_ghost){
+      nbotval = abs(nbotval);
+   } else if (nbotval >= noffset && nbotval < noffset+ncells) {
       nbotval -= noffset;
-   } else {
-      for (int ig=0; ig<nghost; ig++){
-         if (nbotval==indices_needed[ig]) {nbotval = ig+ncells; break;}
-      }
    }
-   if (ntopval >= noffset && ntopval < noffset+ncells) {
+   if (ntopval <= -ncells && ntopval > -ncells_ghost){
+      ntopval = abs(ntopval);
+   } else if (ntopval >= noffset && ntopval < noffset+ncells) {
       ntopval -= noffset;
-   } else {
-      for (int ig=0; ig<nghost; ig++){
-         if (ntopval==indices_needed[ig]) {ntopval = ig+ncells; break;}
-      }
    }
 
    nlft[giX] = nlftval;

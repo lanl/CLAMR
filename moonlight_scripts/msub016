@@ -17,12 +17,12 @@ date
 cd ${RUNS_DIR}
 
 ##### Strong Scaling
-mpirun -np 16 -npersocket 1 ${BUILD_DIR}/clamr -n 1448 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/strong_hilb_out016_2h_clamronly
-mpirun -np 16 -npersocket 1 ${BUILD_DIR}/clamr -n 1448 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 4 > ${RUNS_DIR}/strong_hilb_out016_4h_clamronly
+mpirun -np 16 -npersocket 1 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/strong_hilb_out016_2h_clamronly
+mpirun -np 16 -npersocket 1 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 4 > ${RUNS_DIR}/strong_hilb_out016_4h_clamronly
 
 ##### Strong Scaling
-mpirun -np 16 -npersocket 1 ${BUILD_DIR}/clamr -n 1448 -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/strong_orig_out016_2h_clamronly
-mpirun -np 16 -npersocket 1 ${BUILD_DIR}/clamr -n 1448 -i 100 -t 500 -P "original_order" -p "original_order" -l 4 > ${RUNS_DIR}/strong_orig_out016_4h_clamronly
+mpirun -np 16 -npersocket 1 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/strong_orig_out016_2h_clamronly
+mpirun -np 16 -npersocket 1 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "original_order" -p "original_order" -l 4 > ${RUNS_DIR}/strong_orig_out016_4h_clamronly
 
 ##### Weak Scaling
 mpirun -np 16 -npersocket 1 ${BUILD_DIR}/clamr -n 2048 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/weak_hilb_out016_2h_clamronly

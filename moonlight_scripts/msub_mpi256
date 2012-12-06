@@ -1,7 +1,7 @@
 #!/bin/tcsh
 #MSUB -l walltime=0:30:00
-#MSUB -l nodes=16:ppn=8
-#MSUB -o myjob_mpi.out128
+#MSUB -l nodes=32:ppn=8
+#MSUB -o myjob_mpi.out256
 #MSUB -j oe
 #MSUB -V
 
@@ -17,14 +17,14 @@ date
 cd ${RUNS_DIR}
 
 ##### Weak Scaling
-mpirun -np 128 -npersocket 4  ${BUILD_DIR}/clamr_mpionly -n 5792 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/weak_hilb_out128_2h_mpionly
+mpirun -np 128 -npersocket 4  ${BUILD_DIR}/clamr_mpionly -n 8192 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/weak_hilb_out128_2h_mpionly
 
 ##### Strong Scaling
 mpirun -np 128 -npersocket 4 ${BUILD_DIR}/clamr_mpionly -n 1024 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/strong_hilb_out128_2h_mpionly
 mpirun -np 128 -npersocket 4 ${BUILD_DIR}/clamr_mpionly -n 1024 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 4 > ${RUNS_DIR}/strong_hilb_out128_4h_mpionly
 
 ##### Weak Scaling
-mpirun -np 128 -npersocket 4  ${BUILD_DIR}/clamr_mpionly -n 5792 -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/weak_orig_out128_2h_mpionly
+mpirun -np 128 -npersocket 4  ${BUILD_DIR}/clamr_mpionly -n 8192 -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/weak_orig_out128_2h_mpionly
 
 ##### Strong Scaling
 mpirun -np 128 -npersocket 4 ${BUILD_DIR}/clamr_mpionly -n 1024 -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/strong_orig_out128_2h_mpionly

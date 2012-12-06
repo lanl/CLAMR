@@ -1072,7 +1072,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
    ncells_ghost = 0;
    parallel = parallel_in;
    noffset = 0;
-   mem_factor = 1.5;
+   mem_factor = 1.0;
+   //mem_factor = 1.5;
    
 #ifdef HAVE_MPI
    int mpi_init;
@@ -1313,7 +1314,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    ntop.clear();
    celltype.clear();
 
-   if (numpe > 1 && (initial_order != HILBERT_SORT && initial_order != HILBERT_PARTITION) ) mem_factor = 2.0;
+   //if (numpe > 1 && (initial_order != HILBERT_SORT && initial_order != HILBERT_PARTITION) ) mem_factor = 2.0;
    partition_cells(numpe, index, initial_order);
 
    calc_celltype();
@@ -5173,6 +5174,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
          //if (mype == 0) printf("%d: DEBUG expanding memory ncells %ld ncells_ghost %ld capacity %ld\n",mype,ncells,ncells_ghost,ezcl_get_device_mem_capacity(dev_i));
          //printf("%d: DEBUG expanding memory ncells %ld ncells_ghost %ld capacity %ld\n",mype,ncells,ncells_ghost,ezcl_get_device_mem_capacity(dev_i));
+         mem_factor = (float)(ncells_ghost/ncells);
          cl_mem dev_celltype_old = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          cl_mem dev_i_old        = ezcl_malloc(NULL, const_cast<char *>("dev_i_old"),        &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          cl_mem dev_j_old        = ezcl_malloc(NULL, const_cast<char *>("dev_j_old"),        &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);

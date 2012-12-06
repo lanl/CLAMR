@@ -23,12 +23,12 @@ mpirun -np 8 -npersocket 1  ${BUILD_DIR}/clamr -n 1448  -i 100 -t 500 -P "hilber
 mpirun -np 8 -npersocket 1  ${BUILD_DIR}/clamr -n 1448  -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/weak_orig_out008_2h_clamronly
 
 ##### Strong Scaling
-mpirun -np 8 -npersocket 1 ${BUILD_DIR}/clamr -n 1448 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/strong_hilb_out008_2h_clamronly
-mpirun -np 8 -npersocket 1 ${BUILD_DIR}/clamr -n 1448 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 4 > ${RUNS_DIR}/strong_hilb_out008_4h_clamronly
+mpirun -np 8 -npersocket 1 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/strong_hilb_out008_2h_clamronly
+mpirun -np 8 -npersocket 1 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 4 > ${RUNS_DIR}/strong_hilb_out008_4h_clamronly
 
 ##### Strong Scaling
-mpirun -np 8 -npersocket 1 ${BUILD_DIR}/clamr -n 1448 -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/strong_orig_out008_2h_clamronly
-mpirun -np 8 -npersocket 1 ${BUILD_DIR}/clamr -n 1448 -i 100 -t 500 -P "original_order" -p "original_order" -l 4 > ${RUNS_DIR}/strong_orig_out008_4h_clamronly
+mpirun -np 8 -npersocket 1 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/strong_orig_out008_2h_clamronly
+mpirun -np 8 -npersocket 1 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "original_order" -p "original_order" -l 4 > ${RUNS_DIR}/strong_orig_out008_4h_clamronly
 
 date
 echo 'Done'
