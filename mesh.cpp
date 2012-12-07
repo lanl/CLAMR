@@ -3643,10 +3643,10 @@ void Mesh::calc_neighbors_local(void)
          i.resize(ncells_ghost);
          j.resize(ncells_ghost);
          level.resize(ncells_ghost);
-         nlft.resize(ncells_ghost,-98);
-         nrht.resize(ncells_ghost,-98);
-         nbot.resize(ncells_ghost,-98);
-         ntop.resize(ncells_ghost,-98);
+         nlft.resize(ncells_ghost,-1);
+         nrht.resize(ncells_ghost,-1);
+         nbot.resize(ncells_ghost,-1);
+         ntop.resize(ncells_ghost,-1);
 
          if (TIMING_LEVEL >= 2) {
             cpu_time_copy_mesh_data += cpu_timer_stop(tstart_lev2);
