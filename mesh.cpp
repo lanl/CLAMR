@@ -3541,6 +3541,7 @@ void Mesh::calc_neighbors_local(void)
 
          // Walk through cell array and set hash to global cell values
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
+         int ib = 0;
          for(int ic=0; ic<nbsize_local; ic++){
             if (border_cell_needed_global[ic] == 0) continue;
             int lev = border_cell_level_global[ic];
@@ -3550,38 +3551,39 @@ void Mesh::calc_neighbors_local(void)
             if (border_cell_i_global[ic] < lev_ibegin[lev]) { // left boundary
                for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
                   for (int ii = 0;                                         ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
-                     hash[jj][ii] = -(ncells+ic);
+                     hash[jj][ii] = -(ncells+ib);
                   }    
                }    
             } else if (border_cell_i_global[ic] > lev_iend[lev]) { // right boundary
                for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
                   for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (imax+1)*levtable[levmx]-iminsize;             ii++) {
-                     hash[jj][ii] = -(ncells+ic);
+                     hash[jj][ii] = -(ncells+ib);
                   }    
                }    
             } else if (border_cell_j_global[ic] < lev_jbegin[lev]) { // bottom boundary
                for (int    jj = 0;                                         jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
                   for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
-                     hash[jj][ii] = -(ncells+ic);
+                     hash[jj][ii] = -(ncells+ib);
                   }    
                }    
             } else if (border_cell_j_global[ic] > lev_jend[lev]) { // top boundary
                for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (jmax+1)*levtable[levmx]-jminsize;             jj++) {
                   for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
-                     hash[jj][ii] = -(ncells+ic);
+                     hash[jj][ii] = -(ncells+ib);
                   }    
                }    
             } else if (lev == levmx) {
                //fprintf(fp,"%d: cell %d max j %d i %d\n",mype,ic,j[ic]-jminsize,i[ic]-iminsize);
-               hash[border_cell_j_global[ic]-jminsize][border_cell_i_global[ic]-iminsize] = -(ncells+ic);
+               hash[border_cell_j_global[ic]-jminsize][border_cell_i_global[ic]-iminsize] = -(ncells+ib);
             } else {
                for (int    jj = max(border_cell_j_global[ic]*levmult-jminsize,0); jj < min((border_cell_j_global[ic]+1)*levmult,jmaxsize)-jminsize; jj++) {
                   for (int ii = max(border_cell_i_global[ic]*levmult-iminsize,0); ii < min((border_cell_i_global[ic]+1)*levmult,imaxsize)-iminsize; ii++) {
                      //fprintf(fp,"%d: cell %d block j %d i %d\n",mype,ic,jj,ii);
-                     hash[jj][ii] = -(ncells+ic);
+                     hash[jj][ii] = -(ncells+ib);
                   }
                }
             }
+            ib++;
          }
 
          if (TIMING_LEVEL >= 2) {
