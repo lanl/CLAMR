@@ -3550,35 +3550,35 @@ void Mesh::calc_neighbors_local(void)
             if (border_cell_i_global[ic] < lev_ibegin[lev]) { // left boundary
                for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
                   for (int ii = 0;                                         ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
-                     hash[jj][ii] = -(ncells+ic);
+                     hash[jj][ii] = border_cell_num_global[ic];
                   }    
                }    
             } else if (border_cell_i_global[ic] > lev_iend[lev]) { // right boundary
                for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
                   for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (imax+1)*levtable[levmx]-iminsize;             ii++) {
-                     hash[jj][ii] = -(ncells+ic);
+                     hash[jj][ii] = border_cell_num_global[ic];
                   }    
                }    
             } else if (border_cell_j_global[ic] < lev_jbegin[lev]) { // bottom boundary
                for (int    jj = 0;                                         jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
                   for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
-                     hash[jj][ii] = -(ncells+ic);
+                     hash[jj][ii] = border_cell_num_global[ic];
                   }    
                }    
             } else if (border_cell_j_global[ic] > lev_jend[lev]) { // top boundary
                for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (jmax+1)*levtable[levmx]-jminsize;             jj++) {
                   for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
-                     hash[jj][ii] = -(ncells+ic);
+                     hash[jj][ii] = border_cell_num_global[ic];
                   }    
                }    
             } else if (lev == levmx) {
                //fprintf(fp,"%d: cell %d max j %d i %d\n",mype,ic,j[ic]-jminsize,i[ic]-iminsize);
-               hash[border_cell_j_global[ic]-jminsize][border_cell_i_global[ic]-iminsize] = -(ncells+ic);
+               hash[border_cell_j_global[ic]-jminsize][border_cell_i_global[ic]-iminsize] = border_cell_num_global[ic];
             } else {
                for (int    jj = max(border_cell_j_global[ic]*levmult-jminsize,0); jj < min((border_cell_j_global[ic]+1)*levmult,jmaxsize)-jminsize; jj++) {
                   for (int ii = max(border_cell_i_global[ic]*levmult-iminsize,0); ii < min((border_cell_i_global[ic]+1)*levmult,imaxsize)-iminsize; ii++) {
                      //fprintf(fp,"%d: cell %d block j %d i %d\n",mype,ic,jj,ii);
-                     hash[jj][ii] = -(ncells+ic);
+                     hash[jj][ii] = border_cell_num_global[ic];
                   }
                }
             }
@@ -3680,22 +3680,22 @@ void Mesh::calc_neighbors_local(void)
             lev = level[ic];
             levmult = levtable[levmx-lev];
             //fprintf(fp,"DEBUG neigh ic %d nlft %d ii %d levmult %d iminsize %d icheck %d\n",ic,nlft[ic],ii,levmult,iminsize,(max(  ii   *levmult-1, 0))-iminsize);
-            if (nlft[ic] == -1){
+            if (nlft[ic] < 0){
                if (max(ii*levmult-1, 0)-iminsize >= 0) {  // Test for cell to left
                   nlft[ic] = hash[(      jj   *levmult               )-jminsize][(max(  ii   *levmult-1, 0         ))-iminsize];
                }
             }
-            if (nrht[ic] == -1){
+            if (nrht[ic] < 0){
                if (min( (ii+1)*levmult, imaxcalc-1) < imaxsize){ // Test for cell to right
                   nrht[ic] = hash[(      jj   *levmult               )-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
                }
             }
-            if (nbot[ic] == -1){
+            if (nbot[ic] < 0){
                if (max(jj*levmult-1, 0)-jminsize >= 0){ // Test for cell to bottom
                   nbot[ic] = hash[(max(  jj   *levmult-1, 0)         )-jminsize][(      ii   *levmult               )-iminsize];
                }
             }
-            if (ntop[ic] == -1) {
+            if (ntop[ic] < 0) {
                if (min( (jj+1)*levmult, jmaxcalc-1) < jmaxsize){ // Test for cell to top
                   ntop[ic] = hash[(min( (jj+1)*levmult,   jmaxcalc-1))-jminsize][(      ii   *levmult               )-iminsize];
                }
@@ -3784,25 +3784,33 @@ void Mesh::calc_neighbors_local(void)
          // Adjusting neighbors to local indices
          for (uint ic=0; ic<ncells_ghost; ic++){
             //fprintf(fp,"%d: ic %d nlft %d noffset %d ncells %ld\n",mype,ic,nlft[ic],noffset,ncells);
-            if (nlft[ic] <= -(int)ncells && nlft[ic] > -(int)ncells_ghost){
-               nlft[ic] = abs(nlft[ic]);
-            } else if (nlft[ic] >= noffset && nlft[ic] < (int)(noffset+ncells)) {
+            if (nlft[ic] >= noffset && nlft[ic] < (int)(noffset+ncells)) {
                nlft[ic] -= noffset;
+            } else {
+               for (int ig=0; ig<nghost; ig++){
+                  if (nlft[ic]==indices_needed[ig]) {nlft[ic] = ig+ncells; break;}
+               }
             }
-            if (nrht[ic] <= -(int)ncells && nrht[ic] > -(int)ncells_ghost){
-               nrht[ic] = abs(nrht[ic]);
-            } else if (nrht[ic] >= noffset && nrht[ic] < (int)(noffset+ncells)) {
+            if (nrht[ic] >= noffset && nrht[ic] < (int)(noffset+ncells)) {
                nrht[ic] -= noffset;
+            } else {
+               for (int ig=0; ig<nghost; ig++){
+                  if (nrht[ic]==indices_needed[ig]) {nrht[ic] = ig+ncells; break;}
+               }
             }
-            if (nbot[ic] <= -(int)ncells && nbot[ic] > -(int)ncells_ghost){
-               nbot[ic] = abs(nbot[ic]);
-            } else if (nbot[ic] >= noffset && nbot[ic] < (int)(noffset+ncells)) {
+            if (nbot[ic] >= noffset && nbot[ic] < (int)(noffset+ncells)) {
                nbot[ic] -= noffset;
+            } else {
+               for (int ig=0; ig<nghost; ig++){
+                  if (nbot[ic]==indices_needed[ig]) {nbot[ic] = ig+ncells; break;}
+               }
             }
-            if (ntop[ic] <= -(int)ncells && ntop[ic] > -(int)ncells_ghost){
-               ntop[ic] = abs(ntop[ic]);
-            } else if (ntop[ic] >= noffset && ntop[ic] < (int)(noffset+ncells)) {
+            if (ntop[ic] >= noffset && ntop[ic] < (int)(noffset+ncells)) {
                ntop[ic] -= noffset;
+            } else {
+               for (int ig=0; ig<nghost; ig++){
+                  if (ntop[ic]==indices_needed[ig]) {ntop[ic] = ig+ncells; break;}
+               }
             }
          }
 
