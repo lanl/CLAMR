@@ -3541,7 +3541,6 @@ void Mesh::calc_neighbors_local(void)
 
          // Walk through cell array and set hash to global cell values
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
-         int ib = 0;
          for(int ic=0; ic<nbsize_local; ic++){
             if (border_cell_needed_global[ic] == 0) continue;
             int lev = border_cell_level_global[ic];
@@ -3583,7 +3582,6 @@ void Mesh::calc_neighbors_local(void)
                   }
                }
             }
-            ib++;
          }
 
          if (TIMING_LEVEL >= 2) {
