@@ -738,6 +738,9 @@ cl_mem ezcl_device_memory_malloc_p(cl_context context, void *host_mem_ptr, const
         *  CL_MEM_OBJECT_ALLOCATION_FAILURE:
         *  CL_OUT_OF_HOST_MEMORY:
         */
+      if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
+         system("nvidia-smi -q -d MEMORY");
+      }
       ezcl_print_error(ierr, "EZCL_DEVICE_MEMORY_MALLOC", "clCreateBuffer", file, line);
    }
 
@@ -1472,6 +1475,9 @@ void ezcl_enqueue_ndrange_kernel_p(cl_command_queue command_queue, cl_kernel ker
       *  CL_INVALID_EVENT_WAIT_LIST:
       *  CL_OUT_OF_HOST_MEMORY:
       */
+     if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
+         system("nvidia-smi -q -d MEMORY");
+     }
      ezcl_print_error(ierr, "EZCL_ENQUEUE_NDRANGE_KERNEL", "clEnqueueNDRangeKernel", file, line);
    }
    if (event != NULL) {
@@ -1617,6 +1623,9 @@ void ezcl_print_error(const int ierr, const char *routine, const char *cl_routin
          break;
       case CL_MEM_OBJECT_ALLOCATION_FAILURE:   //#define CL_MEM_OBJECT_ALLOCATION_FAILURE    -4
          printf("\nERROR: %s -- Mem object allocation failure in %s at line %d in file %s\n", routine, cl_routine, line, file);
+         if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
+            system("nvidia-smi -q -d MEMORY");
+         }
          break;
       case CL_OUT_OF_RESOURCES:                //#define CL_OUT_OF_RESOURCES                 -5
          printf("\nERROR: %s -- Out of resources in %s at line %d in file %s\n", routine, cl_routine, line, file);
