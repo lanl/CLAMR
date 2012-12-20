@@ -322,6 +322,9 @@ dnl ---------------------------------------------------------------
   FOUND_MPI_INCLUDE="no"
   AC_CHECK_FILE(${MPIHOME}/include/mpi.h, INCLUDES="${INCLUDES} -I${MPIHOME}/include" && FOUND_MPI_INCLUDE="yes")
   if test "${FOUND_MPI_INCLUDE}" = "no"; then
+     AC_CHECK_FILE(${MPIHOME}/include/mpi/mpi.h, INCLUDES="${INCLUDES} -I${MPIHOME}/mpi/include" && FOUND_MPI_INCLUDE="yes")
+  fi
+  if test "${FOUND_MPI_INCLUDE}" = "no"; then
     AC_CHECK_FILE(${MPI_ROOT}/include/mpi.h, MPI_HOME=${MPI_ROOT} && INCLUDES="${INCLUDES} -I${MPI_HOME}/include" && FOUND_MPI_INCLUDE="yes")
   fi
 

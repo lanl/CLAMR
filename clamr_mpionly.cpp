@@ -293,7 +293,7 @@ int main(int argc, char **argv) {
 #endif
 #ifdef HAVE_MPE
    set_mysize(ncells);
-   set_cell_data(&H[0]);
+   set_cell_data(&state->H[0]);
    set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
    set_cell_proc(&mesh->proc[0]);
 #endif
@@ -443,7 +443,7 @@ extern "C" void do_calc(void)
 #ifdef HAVE_MPE
    set_mysize(ncells);
    set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-   set_cell_data(&H[0]);
+   set_cell_data(&state->H[0]);
    set_cell_proc(&mesh->proc[0]);
 #endif
 #ifdef HAVE_OPENGL
