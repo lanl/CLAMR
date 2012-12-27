@@ -3182,22 +3182,22 @@ void Mesh::calc_neighbors_local(void)
             int nl = nlft[ic];
             if (nl != -1){
                nl -= noffset;
-               if (nl<0 || nl>= ncells) printf("%d: Warning at line %d cell %d nlft %d\n",mype,__LINE__,ic,nl);
+               if (nl<0 || nl>= (int)ncells) printf("%d: Warning at line %d cell %d nlft %d\n",mype,__LINE__,ic,nl);
             }
             int nr = nrht[ic];
             if (nr != -1){
                nr -= noffset;
-               if (nr<0 || nr>= ncells) printf("%d: Warning at line %d cell %d nrht %d\n",mype,__LINE__,ic,nr);
+               if (nr<0 || nr>= (int)ncells) printf("%d: Warning at line %d cell %d nrht %d\n",mype,__LINE__,ic,nr);
             }
             int nb = nbot[ic];
             if (nb != -1){
                nb -= noffset;
-               if (nb<0 || nb>= ncells) printf("%d: Warning at line %d cell %d nbot %d\n",mype,__LINE__,ic,nb);
+               if (nb<0 || nb>= (int)ncells) printf("%d: Warning at line %d cell %d nbot %d\n",mype,__LINE__,ic,nb);
             }
             int nt = ntop[ic];
             if (nt != -1){
                nt -= noffset;
-               if (nt<0 || nt>= ncells) printf("%d: Warning at line %d cell %d ntop %d\n",mype,__LINE__,ic,nt);
+               if (nt<0 || nt>= (int)ncells) printf("%d: Warning at line %d cell %d ntop %d\n",mype,__LINE__,ic,nt);
             }
          }
 #endif
@@ -3784,22 +3784,22 @@ void Mesh::calc_neighbors_local(void)
          // Adjusting neighbors to local indices
          for (uint ic=0; ic<ncells_ghost; ic++){
             //fprintf(fp,"%d: ic %d nlft %d noffset %d ncells %ld\n",mype,ic,nlft[ic],noffset,ncells);
-            if (nlft[ic] <= -ncells && nlft[ic] > -ncells_ghost){
+            if (nlft[ic] <= -(int)ncells && nlft[ic] > -(int)ncells_ghost){
                nlft[ic] = abs(nlft[ic]);
             } else if (nlft[ic] >= noffset && nlft[ic] < (int)(noffset+ncells)) {
                nlft[ic] -= noffset;
             }
-            if (nrht[ic] <= -ncells && nrht[ic] > -ncells_ghost){
+            if (nrht[ic] <= -(int)ncells && nrht[ic] > -(int)ncells_ghost){
                nrht[ic] = abs(nrht[ic]);
             } else if (nrht[ic] >= noffset && nrht[ic] < (int)(noffset+ncells)) {
                nrht[ic] -= noffset;
             }
-            if (nbot[ic] <= -ncells && nbot[ic] > -ncells_ghost){
+            if (nbot[ic] <= -(int)ncells && nbot[ic] > -(int)ncells_ghost){
                nbot[ic] = abs(nbot[ic]);
             } else if (nbot[ic] >= noffset && nbot[ic] < (int)(noffset+ncells)) {
                nbot[ic] -= noffset;
             }
-            if (ntop[ic] <= -ncells && ntop[ic] > -ncells_ghost){
+            if (ntop[ic] <= -(int)ncells && ntop[ic] > -(int)ncells_ghost){
                ntop[ic] = abs(ntop[ic]);
             } else if (ntop[ic] >= noffset && ntop[ic] < (int)(noffset+ncells)) {
                ntop[ic] -= noffset;
