@@ -2141,6 +2141,8 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
       ntop.clear();
    }
 
+   icount = newcount - ncells;
+
    if (TIMING_LEVEL >= 2) cpu_time_refine_smooth += cpu_timer_stop(tstart_lev2);
 
    cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
