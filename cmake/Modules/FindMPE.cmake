@@ -54,6 +54,8 @@ endif()
 if (MPE_INCLUDE_PATH)
 else (MPE_INCLUDE_PATH)
    FIND_PATH(MPE_INCLUDE_PATH mpe.h PATHS 
+      /usr/local/mpe/include
+      /usr/local/mpe-1.9.1/include
       ${HOME}/mpe/include
       ${HOME}/mpe-1.9.1/include
    )
@@ -62,6 +64,8 @@ endif(MPE_INCLUDE_PATH)
 if (MPE_LIBRARIES)
 else (MPE_LIBRARIES)
    FIND_LIBRARY(MPE_LIBRARIES mpe PATHS
+      /usr/local/mpe/lib
+      /usr/local/mpe-1.9.1/lib      
       ${HOME}/mpe/lib
       ${HOME}/mpe-1.9.1/lib      
    )

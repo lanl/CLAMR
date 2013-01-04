@@ -10,18 +10,15 @@ set (CLAMR_VERSION_MAJOR 2)
 set (CLAMR_VERSION_MINOR 0.7)
 set (CLAMR_VERSION "${CLAMR_VERSION_MAJOR}.${CLAMR_VERSION_MINOR}")
  
-# configure a header file to pass some of the CMake settings
-# to the source code
-configure_file ( "${PROJECT_SOURCE_DIR}/config.h.in" "${PROJECT_BINARY_DIR}/config.h")
- 
-add_definitions(-DHAVE_CONFIG_H)
+if (NOT CMAKE_BUILD_TYPE)
+   set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif(NOT CMAKE_BUILD_TYPE)
 
-# add the binary tree to the search path for include files
-# so that we will find config.h
-include_directories("${PROJECT_BINARY_DIR}")
-
-set(CMAKE_C_FLAGS "-std=c99 -g -O3")
-set(CMAKE_CXX_FLAGS "-g -O3")
+set(CMAKE_C_FLAGS "-std=c99")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
 
 find_package(OpenCL REQUIRED)
 #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
@@ -38,13 +35,25 @@ endif (MPI_FOUND)
 find_package(OpenGL)
 find_package(MPE)
 if (OPENGL_FOUND)
-   add_definitions(-DHAVE_GRAPHICS)
-   add_definitions(-DHAVE_OPENGL)
+   set (HAVE_GRAPHICS on)
+   set (HAVE_OPENGL on)
 endif (OPENGL_FOUND)
-if (MPE_FOUND)
-   add_definitions(-DHAVE_GRAPHICS)
-   add_definitions(-DHAVE_MPE)
-endif (MPE_FOUND)
+if (NOT OPENGL_FOUND)
+   if (MPE_FOUND)
+      set (HAVE_GRAPHICS on)
+      set (HAVE_MPE on)
+   endif (MPE_FOUND)
+endif (NOT OPENGL_FOUND)
+
+# configure a header file to pass some of the CMake settings
+# to the source code
+configure_file ( "${PROJECT_SOURCE_DIR}/config.h.in" "${PROJECT_BINARY_DIR}/config.h")
+ 
+add_definitions(-DHAVE_CONFIG_H)
+
+# add the binary tree to the search path for include files
+# so that we will find config.h
+include_directories("${PROJECT_BINARY_DIR}")
 
 add_subdirectory(l7)
 add_subdirectory(kdtree)

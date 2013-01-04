@@ -20,11 +20,18 @@ totalview (there is a module on yellowrail and turing)
 //
 // Use configure which takes various commands for install directory,
 // location of libraries, etc.
-//
-configure --help		// shows help menu
-configure --enable-debug	// enter debug mode
-configure --prefix		// install directory
-configure --enable-prof		// profiling, turns on flags for gprof
+// 
+//configure --help		// shows help menu
+//configure --enable-debug	// enter debug mode
+//configure --prefix		// install directory
+//configure --enable-prof		// profiling, turns on flags for gprof
+
+// We have switched to cmake so the configure step is 
+cmake .                         // in-tree build
+cmake <path-to-src>             // out-of-tree build
+cmake -DCMAKE_BUILD_TYPE=debug <path-to-src>
+cmake -DCMAKE_BUILD_TYPE=release <path-to-src>
+
 //
 // need to edit configure.ac (b/c using autoconf package)
 //
