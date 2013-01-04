@@ -60,6 +60,11 @@
 #include "config.h"
 #endif
 
+#ifdef HAVE_MPI_AND_OPENCL
+#define HAVE_MPI    1
+#define HAVE_OPENCL 1
+#endif
+
 #include <stdio.h>
 #include <vector>
 #include <math.h>

@@ -69,10 +69,6 @@
 #include "partition.h"
 #include "mesh.h"
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #define OUTPUT_INTERVAL 20
 #define COARSE_GRID_RES 128
 #define MAX_TIME_STEP 5000

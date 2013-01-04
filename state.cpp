@@ -57,14 +57,14 @@
 #include <stdio.h>
 #include <algorithm>
 #include <queue>
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
 #include "mesh.h"
 #include "state.h"
 #include "kdtree/KDTree.h"
 #include "reorder.h"
 #include "timer/timer.h"
+#ifdef HAVE_MPI
+#include <mpi.h>
+#endif
 
 #undef DEBUG
 //#define DEBUG 1

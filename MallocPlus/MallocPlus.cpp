@@ -58,7 +58,7 @@
 #include <algorithm>
 #include <queue>
 #include "string.h"
-#include "MallocPlus/MallocPlus.h"
+#include "MallocPlus.h"
 
 //#undef DEBUG
 //#define DEBUG 1

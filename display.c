@@ -656,7 +656,7 @@ void mouseDrag(int x, int y) {
 
 void keyPressed(unsigned char key, int x, int y) {
 
-    usleep(100);
+    //usleep(100);
 
     if(key == ESCAPE) {
        free_display();

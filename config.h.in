@@ -1,19 +1,11 @@
-/* config.h.in.  Generated from configure.ac by autoheader.  */
-
 /* Has OpenCL double type */
-#undef HAVE_CL_DOUBLE
+#cmakedefine HAVE_CL_DOUBLE
 
-/* Define to 1 if you have the <dlfcn.h> header file. */
-#undef HAVE_DLFCN_H
+/* Does not have OpenCL double type */
+#cmakedefine NO_CL_DOUBLE
 
 /* Has Real-time Graphics */
 #undef HAVE_GRAPHICS
-
-/* Define to 1 if you have the <inttypes.h> header file. */
-#undef HAVE_INTTYPES_H
-
-/* Define to 1 if you have the <memory.h> header file. */
-#undef HAVE_MEMORY_H
 
 /* "Use MPE for graphics" */
 #undef HAVE_MPE
@@ -21,33 +13,8 @@
 /* Has OpenGL libraries */
 #undef HAVE_OPENGL
 
-/* Define to 1 if you have the <stdint.h> header file. */
-#undef HAVE_STDINT_H
-
-/* Define to 1 if you have the <stdlib.h> header file. */
-#undef HAVE_STDLIB_H
-
-/* Define to 1 if you have the <strings.h> header file. */
-#undef HAVE_STRINGS_H
-
-/* Define to 1 if you have the <string.h> header file. */
-#undef HAVE_STRING_H
-
-/* Define to 1 if you have the <sys/stat.h> header file. */
-#undef HAVE_SYS_STAT_H
-
-/* Define to 1 if you have the <sys/types.h> header file. */
-#undef HAVE_SYS_TYPES_H
-
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
-
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
-#undef LT_OBJDIR
-
-/* Does not have OpenCL double type */
-#undef NO_CL_DOUBLE
 
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
 #undef NO_MINUS_C_MINUS_O
@@ -69,9 +36,7 @@
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
-
-/* Define to 1 if you have the ANSI C header files. */
-#undef STDC_HEADERS
+#define PACKAGE_VERSION "@PACKAGE_VERSION@"
 
 /* Version number of package */
 #undef VERSION

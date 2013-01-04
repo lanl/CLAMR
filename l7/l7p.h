@@ -53,6 +53,7 @@ enum
 #define L7_EXTERN extern
 #endif
 
+#include "l7_assert.h"
 
 #if ! defined (HAVE_MPI)
 
@@ -64,7 +65,6 @@ enum
 
 #else
    
-#include "l7_assert.h"
 
 L7_EXTERN MPI_Comm L7_mpi_comm_world_i4; 
 

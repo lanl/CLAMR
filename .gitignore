@@ -8,3 +8,6 @@ Makefile
 config.log
 config.status
 stamp-h1
+cmake_install.cmake
+CMakeFiles
+config.h
