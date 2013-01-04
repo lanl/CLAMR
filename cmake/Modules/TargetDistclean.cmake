@@ -15,6 +15,8 @@ IF (UNIX)
    core core.*
    gmon.out
    *~
+   CMakeFiles
+   */CMakeFiles
   )
   
   ADD_CUSTOM_COMMAND(
