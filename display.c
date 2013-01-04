@@ -58,6 +58,11 @@
 #include <unistd.h>
 #include <math.h>
 #include "display.h"                                                                                                   
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #define ESCAPE 27
 #ifdef HAVE_OPENGL
 #define NCOLORS 1000
