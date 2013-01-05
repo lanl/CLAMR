@@ -12,3 +12,5 @@ cmake_install.cmake
 CMakeFiles
 config.h
 *.dylib
+*.so
+lib*.so.*

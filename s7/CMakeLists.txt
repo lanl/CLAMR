@@ -7,7 +7,7 @@ set(s7_LIB_SRCS ${C_SRCS} ${H_SRCS})
 ########### s7 target ###############
 add_library(s7 SHARED ${s7_LIB_SRCS})
 
-set_target_properties(s7 PROPERTIES VERSION 2.0.7 SOVERSION 2)
+set_target_properties(s7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
 install(TARGETS s7 DESTINATION lib)
 
 ########### install files ###############
