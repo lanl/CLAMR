@@ -10,6 +10,7 @@ set(ezcl_LIB_SRCS ${C_SRCS} ${H_SRCS})
 add_library(ezcl SHARED ${ezcl_LIB_SRCS})
 
 set_target_properties(ezcl PROPERTIES VERSION 2.0.0 SOVERSION 2)
+target_link_libraries(ezcl ${OPENCL_LIBRARIES})
 install(TARGETS ezcl DESTINATION lib)
 
 ########### pezcl target ###############
@@ -20,6 +21,8 @@ add_library(pezcl SHARED ${pezcl_LIB_SRCS})
 
 set_target_properties(pezcl PROPERTIES VERSION 2.0.0 SOVERSION 2)
 set_target_properties(pezcl PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+target_link_libraries(pezcl ${OPENCL_LIBRARIES})
+target_link_libraries(pezcl ${MPI_LIBRARIES})
 install(TARGETS pezcl DESTINATION lib)
 
 ########### install files ###############

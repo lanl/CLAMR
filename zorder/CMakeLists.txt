@@ -8,6 +8,7 @@ set(zorder_LIB_SRCS ${C_SRCS} ${H_SRCS})
 add_library(zorder SHARED ${zorder_LIB_SRCS})
 
 set_target_properties(zorder PROPERTIES VERSION 2.0.0 SOVERSION 2)
+target_link_libraries(zorder s7)
 install(TARGETS zorder DESTINATION lib)
 
 ########### install files ###############

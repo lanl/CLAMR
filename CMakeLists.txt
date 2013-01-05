@@ -45,14 +45,16 @@ if (GRAPHICS_TYPE STREQUAL "MPE")
    find_package(X11)
 endif (GRAPHICS_TYPE STREQUAL "MPE")
 
-#message("GRAPHICS_TYPE is ${GRAPHICS_TYPE}")
-#message("MPE_INCLUDE is ${MPE_INCLUDE_DIR}")
+message("MPI_LIBRARIES ${MPI_LIBRARIES}")
+message("MPI_INCLUDE_PATH ${MPI_INCLUDE_PATH}")
+message("GRAPHICS_TYPE is ${GRAPHICS_TYPE}")
+message("MPE_INCLUDE is ${MPE_INCLUDE_DIR}")
 
 if (OPENGL_FOUND)
    set (HAVE_GRAPHICS on)
    set (HAVE_OPENGL on)
    include_directories(${OPENGL_INCLUDE_DIR})
-   set (OPENGL_LIBS ${OPENGL_LIBRARIES} glut)
+   find_package(GLUT)
 endif (OPENGL_FOUND)
 
 if (NOT OPENGL_FOUND)
@@ -69,13 +71,13 @@ if (NOT OPENGL_FOUND)
    endif (MPE_FOUND)
 endif (NOT OPENGL_FOUND)
 
-#message("MPE_LIBRARIES ${MPE_LIBRARIES}")
-#message("MPE_LIBS ${MPE_LIBS}")
-#message("MPE_NOMPI_LIBS ${MPE_NOMPI_LIBS}")
-#message("OPENGL_LIBRARIES ${OPENGL_LIBRARIES}")
-#message("OPENGL_LIBS ${OPENGL_LIBS}")
-#message("X11_LIBRARIES ${X11_LIBRARIES}")
-#message("X11_LIBS ${X11_LIBS}")
+message("MPE_LIBRARIES ${MPE_LIBRARIES}")
+message("MPE_LIBS ${MPE_LIBS}")
+message("MPE_NOMPI_LIBS ${MPE_NOMPI_LIBS}")
+message("OPENGL_LIBRARIES ${OPENGL_LIBRARIES}")
+message("GLUT_LIBRARIES ${GLUT_LIBRARIES}")
+message("X11_LIBRARIES ${X11_LIBRARIES}")
+message("X11_LIBS ${X11_LIBS}")
 
 # configure a header file to pass some of the CMake settings
 # to the source code
@@ -112,7 +114,7 @@ target_link_libraries(clamr hsfc kdtree zorder s7 pezcl timer l7 genmalloc Mallo
 target_link_libraries(clamr ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr ${MPI_LIBRARIES})
 target_link_libraries(clamr ${OPENCL_LIBRARIES})
-target_link_libraries(clamr ${OPENGL_LIBS})
+target_link_libraries(clamr ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
 install(TARGETS clamr DESTINATION bin)
 
@@ -129,7 +131,7 @@ set_target_properties(clamr_gpuonly PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 target_link_libraries(clamr_gpuonly hsfc kdtree zorder s7 ezcl timer genmalloc MallocPlus m)
 target_link_libraries(clamr_gpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_gpuonly ${OPENCL_LIBRARIES})
-target_link_libraries(clamr_gpuonly ${OPENGL_LIBS})
+target_link_libraries(clamr_gpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
 install(TARGETS clamr_gpuonly DESTINATION bin)
 
@@ -145,7 +147,7 @@ add_executable(clamr_cpuonly ${clamr_cpuonly_SRCS})
 
 target_link_libraries(clamr_cpuonly hsfc kdtree zorder s7 timer genmalloc MallocPlus m)
 target_link_libraries(clamr_cpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
-target_link_libraries(clamr_cpuonly ${OPENGL_LIBS})
+target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
 install(TARGETS clamr_cpuonly DESTINATION bin)
 
@@ -163,7 +165,7 @@ set_target_properties(clamr_mpionly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 target_link_libraries(clamr_mpionly hsfc kdtree zorder s7 timer l7 genmalloc MallocPlus m)
 target_link_libraries(clamr_mpionly ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_mpionly ${MPI_LIBRARIES})
-target_link_libraries(clamr_mpionly ${OPENGL_LIBS})
+target_link_libraries(clamr_mpionly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
 install(TARGETS clamr_mpionly DESTINATION bin)
 
@@ -181,7 +183,7 @@ set_target_properties(clamr_gpucheck PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 target_link_libraries(clamr_gpucheck hsfc kdtree zorder s7 ezcl timer genmalloc MallocPlus m)
 target_link_libraries(clamr_gpucheck ${MPE_NOMPI_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_gpucheck ${OPENCL_LIBRARIES})
-target_link_libraries(clamr_gpucheck ${OPENGL_LIBS})
+target_link_libraries(clamr_gpucheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
 install(TARGETS clamr_gpucheck DESTINATION bin)
 
@@ -199,7 +201,7 @@ set_target_properties(clamr_mpicheck PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 target_link_libraries(clamr_mpicheck hsfc kdtree zorder s7 timer l7 genmalloc MallocPlus m)
 target_link_libraries(clamr_mpicheck ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_mpicheck ${MPI_LIBRARIES})
-target_link_libraries(clamr_mpicheck ${OPENGL_LIBS})
+target_link_libraries(clamr_mpicheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
 install(TARGETS clamr_mpicheck DESTINATION bin)
 
@@ -218,7 +220,7 @@ target_link_libraries(clamr_checkall hsfc kdtree zorder s7 pezcl timer l7 genmal
 target_link_libraries(clamr_checkall ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_checkall ${MPI_LIBRARIES})
 target_link_libraries(clamr_checkall ${OPENCL_LIBRARIES})
-target_link_libraries(clamr_checkall ${OPENGL_LIBS})
+target_link_libraries(clamr_checkall ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
 install(TARGETS clamr_checkall DESTINATION bin)
 
