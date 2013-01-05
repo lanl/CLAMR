@@ -32,8 +32,22 @@ if (MPI_FOUND)
    include_directories(${MPI_INCLUDE_PATH})
 endif (MPI_FOUND)
 
-find_package(OpenGL)
-find_package(MPE)
+if (NOT GRAPHICS_TYPE)
+   set (GRAPHICS_TYPE OpenGL)
+endif (NOT GRAPHICS_TYPE)
+
+if (GRAPHICS_TYPE STREQUAL "OpenGL")
+   find_package(OpenGL)
+endif (GRAPHICS_TYPE STREQUAL "OpenGL")
+
+if (GRAPHICS_TYPE STREQUAL "MPE")
+   find_package(MPE)
+   find_package(X11)
+endif (GRAPHICS_TYPE STREQUAL "MPE")
+
+#message("GRAPHICS_TYPE is ${GRAPHICS_TYPE}")
+#message("MPE_INCLUDE is ${MPE_INCLUDE_DIR}")
+
 if (OPENGL_FOUND)
    set (HAVE_GRAPHICS on)
    set (HAVE_OPENGL on)
@@ -46,10 +60,22 @@ if (NOT OPENGL_FOUND)
       set (HAVE_GRAPHICS on)
       set (HAVE_MPE on)
       include_directories(${MPE_INCLUDE_DIR})
+      if (X11_FOUND)
+         include_directories(${X11_INCLUDE_DIR})
+      endif (X11_FOUND)
       set (MPE_LIBS ${MPE_LIBRARIES})
       set (MPE_NOMPI_LIBS ${MPE_NOMPI_LIBRARIES})
+      set (X11_LIBS ${X11_LIBRARIES})
    endif (MPE_FOUND)
 endif (NOT OPENGL_FOUND)
+
+#message("MPE_LIBRARIES ${MPE_LIBRARIES}")
+#message("MPE_LIBS ${MPE_LIBS}")
+#message("MPE_NOMPI_LIBS ${MPE_NOMPI_LIBS}")
+#message("OPENGL_LIBRARIES ${OPENGL_LIBRARIES}")
+#message("OPENGL_LIBS ${OPENGL_LIBS}")
+#message("X11_LIBRARIES ${X11_LIBRARIES}")
+#message("X11_LIBS ${X11_LIBS}")
 
 # configure a header file to pass some of the CMake settings
 # to the source code
@@ -76,8 +102,6 @@ add_subdirectory(MallocPlus)
 set(clamr_CXX_SRCS clamr.cpp mesh.cpp partition.cpp state.cpp input.cpp)
 set(clamr_C_SRCS display.c reduce.c)
 set(clamr_H_SRCS display.h mesh.h partition.h reorder.h state.h input.h reduce.h)
-#clamr_LDADD hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libpezcl.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la MallocPlus/libMallocPlus.la -lm ${MPE_LIBS} ${MPI_LIBS} ${OPENCL_LIBS})
-
 set(clamr_SRCS ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS})
 
 add_executable(clamr ${clamr_SRCS})
@@ -85,6 +109,7 @@ add_executable(clamr ${clamr_SRCS})
 set_target_properties(clamr PROPERTIES COMPILE_DEFINITIONS HAVE_MPI_AND_OPENCL)
 
 target_link_libraries(clamr hsfc kdtree zorder s7 pezcl timer l7 genmalloc MallocPlus m)
+target_link_libraries(clamr ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr ${MPI_LIBRARIES})
 target_link_libraries(clamr ${OPENCL_LIBRARIES})
 target_link_libraries(clamr ${OPENGL_LIBS})
@@ -95,17 +120,16 @@ install(TARGETS clamr DESTINATION bin)
 set(clamr_gpuonly_CXX_SRCS clamr_gpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp)
 set(clamr_gpuonly_C_SRCS display.c reduce.c)
 set(clamr_gpuonly_H_SRCS display.h mesh.h partition.h reorder.h state.h input.h reduce.h)
-#clamr_gpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la genmalloc/libgenmalloc.la MallocPlus/libMallocPlus.la -lm ${MPE_NOMPI_LIBS} ${OPENCL_LIBS}
-
 set(clamr_gpuonly_SRCS ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS})
 
 add_executable(clamr_gpuonly ${clamr_gpuonly_SRCS})
 
 set_target_properties(clamr_gpuonly PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
-target_link_libraries(clamr_gpuonly hsfc kdtree zorder s7 ezcl timer genmalloc
-   MallocPlus ${OPENGL_LIBS} m)
+target_link_libraries(clamr_gpuonly hsfc kdtree zorder s7 ezcl timer genmalloc MallocPlus m)
+target_link_libraries(clamr_gpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_gpuonly ${OPENCL_LIBRARIES})
+target_link_libraries(clamr_gpuonly ${OPENGL_LIBS})
 
 install(TARGETS clamr_gpuonly DESTINATION bin)
 
@@ -114,14 +138,14 @@ install(TARGETS clamr_gpuonly DESTINATION bin)
 set(clamr_cpuonly_CXX_SRCS clamr_cpuonly.cpp mesh.cpp partition.cpp state.cpp input.cpp)
 set(clamr_cpuonly_C_SRCS display.c)
 set(clamr_cpuonly_H_SRCS display.h mesh.h partition.h reorder.h state.h input.h)
-#clamr_cpuonly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la timer/libtimer.la genmalloc/libgenmalloc.la MallocPlus/libMallocPlus.la -lm ${MPE_NOMPI_LIBS}
 
 set(clamr_cpuonly_SRCS ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr_cpuonly_H_SRCS})
 
 add_executable(clamr_cpuonly ${clamr_cpuonly_SRCS})
 
-target_link_libraries(clamr_cpuonly hsfc kdtree zorder s7 timer genmalloc
-   MallocPlus ${OPENGL_LIBS} m)
+target_link_libraries(clamr_cpuonly hsfc kdtree zorder s7 timer genmalloc MallocPlus m)
+target_link_libraries(clamr_cpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
+target_link_libraries(clamr_cpuonly ${OPENGL_LIBS})
 
 install(TARGETS clamr_cpuonly DESTINATION bin)
 
@@ -129,7 +153,6 @@ install(TARGETS clamr_cpuonly DESTINATION bin)
 set(clamr_mpionly_CXX_SRCS clamr_mpionly.cpp mesh.cpp partition.cpp state.cpp input.cpp)
 set(clamr_mpionly_C_SRCS display.c)
 set(clamr_mpionly_H_SRCS display.h mesh.h partition.h reorder.h state.h input.h)
-#clamr_mpionly_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la MallocPlus/libMallocPlus.la -lm ${MPE_LIBS} ${MPI_LIBS}
 
 set(clamr_mpionly_SRCS ${clamr_mpionly_CXX_SRCS} ${clamr_mpionly_C_SRCS} ${clamr_mpionly_H_SRCS})
 
@@ -137,9 +160,10 @@ add_executable(clamr_mpionly ${clamr_mpionly_SRCS})
 
 set_target_properties(clamr_mpionly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 
-target_link_libraries(clamr_mpionly hsfc kdtree zorder s7 timer l7 genmalloc
-   MallocPlus ${OPENGL_LIBS} m)
+target_link_libraries(clamr_mpionly hsfc kdtree zorder s7 timer l7 genmalloc MallocPlus m)
+target_link_libraries(clamr_mpionly ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_mpionly ${MPI_LIBRARIES})
+target_link_libraries(clamr_mpionly ${OPENGL_LIBS})
 
 install(TARGETS clamr_mpionly DESTINATION bin)
 
@@ -147,7 +171,6 @@ install(TARGETS clamr_mpionly DESTINATION bin)
 set(clamr_gpucheck_CXX_SRCS clamr_gpucheck.cpp mesh.cpp partition.cpp state.cpp input.cpp)
 set(clamr_gpucheck_C_SRCS display.c reduce.c)
 set(clamr_gpucheck_H_SRCS display.h mesh.h partition.h reorder.h state.h input.h reduce.h)
-#clamr_gpucheck_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libezcl.la timer/libtimer.la genmalloc/libgenmalloc.la MallocPlus/libMallocPlus.la -lm ${MPE_NOMPI_LIBS} ${OPENCL_LIBS}
 
 set(clamr_gpucheck_SRCS ${clamr_gpucheck_CXX_SRCS} ${clamr_gpucheck_C_SRCS} ${clamr_gpucheck_H_SRCS})
 
@@ -155,9 +178,10 @@ add_executable(clamr_gpucheck ${clamr_gpucheck_SRCS})
 
 set_target_properties(clamr_gpucheck PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
-target_link_libraries(clamr_gpucheck hsfc kdtree zorder s7 ezcl timer
-   genmalloc MallocPlus ${OPENGL_LIBS} m)
+target_link_libraries(clamr_gpucheck hsfc kdtree zorder s7 ezcl timer genmalloc MallocPlus m)
+target_link_libraries(clamr_gpucheck ${MPE_NOMPI_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_gpucheck ${OPENCL_LIBRARIES})
+target_link_libraries(clamr_gpucheck ${OPENGL_LIBS})
 
 install(TARGETS clamr_gpucheck DESTINATION bin)
 
@@ -165,7 +189,6 @@ install(TARGETS clamr_gpucheck DESTINATION bin)
 set(clamr_mpicheck_CXX_SRCS clamr_mpicheck.cpp mesh.cpp partition.cpp state.cpp input.cpp)
 set(clamr_mpicheck_C_SRCS display.c)
 set(clamr_mpicheck_H_SRCS display.h mesh.h partition.h reorder.h state.h input.h)
-#clamr_mpicheck_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la MallocPlus/libMallocPlus.la -lm ${MPE_LIBS} ${MPI_LIBS}
 
 set(clamr_mpicheck_SRCS ${clamr_mpicheck_CXX_SRCS} ${clamr_mpicheck_C_SRCS} ${clamr_mpicheck_H_SRCS})
 
@@ -173,9 +196,10 @@ add_executable(clamr_mpicheck ${clamr_mpicheck_SRCS})
 
 set_target_properties(clamr_mpicheck PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 
-target_link_libraries(clamr_mpicheck hsfc kdtree zorder s7 timer l7 genmalloc
-   MallocPlus ${OPENGL_LIBS} m)
+target_link_libraries(clamr_mpicheck hsfc kdtree zorder s7 timer l7 genmalloc MallocPlus m)
+target_link_libraries(clamr_mpicheck ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_mpicheck ${MPI_LIBRARIES})
+target_link_libraries(clamr_mpicheck ${OPENGL_LIBS})
 
 install(TARGETS clamr_mpicheck DESTINATION bin)
 
@@ -183,7 +207,6 @@ install(TARGETS clamr_mpicheck DESTINATION bin)
 set(clamr_checkall_CXX_SRCS clamr_checkall.cpp mesh.cpp partition.cpp state.cpp input.cpp)
 set(clamr_checkall_C_SRCS display.c reduce.c)
 set(clamr_checkall_H_SRCS display.h mesh.h partition.h reorder.h state.h input.h reduce.h)
-#clamr_checkall_LDADD = hsfc/libhsfc.la kdtree/libkdtree.la zorder/libzorder.la s7/libs7.la ezcl/libpezcl.la timer/libtimer.la l7/libl7.la genmalloc/libgenmalloc.la MallocPlus/libMallocPlus.la -lm ${MPE_LIBS} ${MPI_LIBS} ${OPENCL_LIBS}
 
 set(clamr_checkall_SRCS ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${clamr_checkall_H_SRCS})
 
@@ -191,10 +214,11 @@ add_executable(clamr_checkall ${clamr_checkall_SRCS})
 
 set_target_properties(clamr_checkall PROPERTIES COMPILE_DEFINITIONS HAVE_MPI_AND_OPENCL)
 
-target_link_libraries(clamr_checkall hsfc kdtree zorder s7 pezcl timer l7
-   genmalloc MallocPlus ${OPENGL_LIBS} m)
+target_link_libraries(clamr_checkall hsfc kdtree zorder s7 pezcl timer l7 genmalloc MallocPlus m)
+target_link_libraries(clamr_checkall ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_checkall ${MPI_LIBRARIES})
 target_link_libraries(clamr_checkall ${OPENCL_LIBRARIES})
+target_link_libraries(clamr_checkall ${OPENGL_LIBS})
 
 install(TARGETS clamr_checkall DESTINATION bin)
 

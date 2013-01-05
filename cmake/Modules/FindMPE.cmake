@@ -9,12 +9,13 @@
 # This module will set the following variables:
 # MPE_FOUND             TRUE if we have found MPE
 # MPE_COMPILE_FLAGS Compilation flags for MPI logging with MPE.
-# MPE_INCLUDE_PATH  Include path(s) for MPI logging with MPE.
+# MPE_INCLUDE_DIR  Include path(s) for MPI logging with MPE.
 # MPE_LINK_FLAGS    Linking flags for MPI logging with MPE.
 # MPE_LIBRARIES     Libraries to link against for MPI logging with MPE.
+# MPE_NOMPI_LIBRARIES     Libraries to link against for MPI logging with MPE.
 #
-# This module will auto-detect these setting by looking for an MPE
-# compiler (mpecc) and use the -show flag to retrieve compiler options.
+# This module will auto-detect these setting by looking for the clog2alog
+# utility and use the path to discover the include and library locations
 #
 # Note that this module does not attempt to ensure that the version
 # of MPE you are using is compatible with the version of MPI that
@@ -34,7 +35,7 @@ find_program(MPE_CLOG2ALOG
   DOC "MPE clog2alog command.  Used only to detect MPE install location."
   )
 
-if (MPE_INCLUDE_PATH AND MPE_LIBRARIES)
+if (MPE_INCLUDE_DIR AND MPE_LIBRARIES)
   # Do nothing: we already have the necessary options.
 elseif (MPE_CLOG2ALOG)
   exec_program(${MPE_CLOG2ALOG}
@@ -45,25 +46,25 @@ elseif (MPE_CLOG2ALOG)
   if (NOT MPE_COMPILE_RETURN EQUAL 0)
     message(STATUS, "Unable to determine MPE from MPE driver ${MPE_CLOG2ALOG}")
   endif (NOT MPE_COMPILE_RETURN EQUAL 0)
-endif (MPE_INCLUDE_PATH AND MPE_LIBRARIES)
+endif (MPE_INCLUDE_DIR AND MPE_LIBRARIES)
 
 if (DEFINED ENV{HOME})
    set(HOME $ENV{HOME})
 endif()
 
-if (MPE_INCLUDE_PATH)
-else (MPE_INCLUDE_PATH)
-   FIND_PATH(MPE_INCLUDE_PATH mpe.h PATHS 
+if (MPE_INCLUDE_DIR)
+else (MPE_INCLUDE_DIR)
+   FIND_PATH(MPE_INCLUDE_DIR mpe.h DIRS 
       /usr/local/mpe/include
       /usr/local/mpe-1.9.1/include
       ${HOME}/mpe/include
       ${HOME}/mpe-1.9.1/include
    )
-endif(MPE_INCLUDE_PATH)
+endif(MPE_INCLUDE_DIR)
 
 if (MPE_LIBRARIES)
 else (MPE_LIBRARIES)
-   FIND_LIBRARY(MPE_LIBRARIES mpe PATHS
+   FIND_LIBRARY(MPE_LIBRARIES mpe DIRS
       /usr/local/mpe/lib
       /usr/local/mpe-1.9.1/lib      
       ${HOME}/mpe/lib
@@ -71,7 +72,7 @@ else (MPE_LIBRARIES)
    )
 endif (MPE_LIBRARIES)
 
-if (MPE_INCLUDE_PATH AND MPE_LIBRARIES)
+if (MPE_INCLUDE_DIR AND MPE_LIBRARIES)
 elseif (MPE_COMPILE_CMDLINE)
   # Extract compile flags from the compile command line.
   string(REGEX MATCHALL "-D([^\" ]+|\"[^\"]+\")"
@@ -88,25 +89,25 @@ elseif (MPE_COMPILE_CMDLINE)
 
   # Extract include paths from compile command line
   string(REGEX MATCHALL "-I([^\" ]+|\"[^\"]+\")"
-    MPE_ALL_INCLUDE_PATHS
+    MPE_ALL_INCLUDE_DIRS
     "${MPE_COMPILE_CMDLINE}")
-  set(MPE_INCLUDE_PATH_WORK)
-  foreach(IPATH ${MPE_ALL_INCLUDE_PATHS})
-    string(REGEX REPLACE "^-I" "" IPATH ${IPATH})
-    string(REGEX REPLACE "//" "/" IPATH ${IPATH})
-    list(APPEND MPE_INCLUDE_PATH_WORK ${IPATH})
-  endforeach(IPATH)
+  set(MPE_INCLUDE_DIR_WORK)
+  foreach(IDIR ${MPE_ALL_INCLUDE_DIRS})
+    string(REGEX REPLACE "^-I" "" IDIR ${IDIR})
+    string(REGEX REPLACE "//" "/" IDIR ${IDIR})
+    list(APPEND MPE_INCLUDE_DIR_WORK ${IDIR})
+  endforeach(IDIR)
 
   # Extract linker paths from the link command line
   string(REGEX MATCHALL "-L([^\" ]+|\"[^\"]+\")"
-    MPE_ALL_LINK_PATHS
+    MPE_ALL_LINK_DIRS
     "${MPE_COMPILE_CMDLINE}")
-  set(MPE_LINK_PATH)
-  foreach(LPATH ${MPE_ALL_LINK_PATHS})
-    string(REGEX REPLACE "^-L" "" LPATH ${LPATH})
-    string(REGEX REPLACE "//" "/" LPATH ${LPATH})
-    list(APPEND MPE_LINK_PATH ${LPATH})
-  endforeach(LPATH)
+  set(MPE_LINK_DIR)
+  foreach(LDIR ${MPE_ALL_LINK_DIRS})
+    string(REGEX REPLACE "^-L" "" LDIR ${LDIR})
+    string(REGEX REPLACE "//" "/" LDIR ${LDIR})
+    list(APPEND MPE_LINK_DIR ${LDIR})
+  endforeach(LDIR)
 
   # Extract linker flags from the link command line
   string(REGEX MATCHALL "-Wl,([^\" ]+|\"[^\"]+\")"
@@ -132,8 +133,8 @@ elseif (MPE_COMPILE_CMDLINE)
   set(MPE_LIBRARIES_WORK)
   foreach(LIB ${MPE_LIBNAMES})
     string(REGEX REPLACE "^-l" "" LIB ${LIB})
-    set(MPE_LIB "MPE_LIB-NOTFOUND" CACHE FILEPATH "Cleared" FORCE)
-    find_library(MPE_LIB ${LIB} HINTS ${MPE_LINK_PATH})
+    set(MPE_LIB "MPE_LIB-NOTFOUND" CACHE FILEDIR "Cleared" FORCE)
+    find_library(MPE_LIB ${LIB} HINTS ${MPE_LINK_DIR})
     if (MPE_LIB)
       list(APPEND MPE_LIBRARIES_WORK ${MPE_LIB})
     else (MPE_LIB)
@@ -146,19 +147,22 @@ elseif (MPE_COMPILE_CMDLINE)
   # Set up all of the appropriate cache entries
   set(MPE_COMPILE_FLAGS ${MPE_COMPILE_FLAGS_WORK}
     CACHE STRING "MPE log compilation flags" FORCE)
-  set(MPE_INCLUDE_PATH ${MPE_INCLUDE_PATH_WORK}
+  set(MPE_INCLUDE_DIR ${MPE_INCLUDE_DIR_WORK}
     CACHE STRING "MPE log include path" FORCE)
   set(MPE_LINK_FLAGS ${MPE_LINK_FLAGS_WORK}
     CACHE STRING "MPE log linking flags" FORCE)
   set(MPE_LIBRARIES ${MPE_LIBRARIES_WORK}
-    CACHE PATH "MPE log libraries" FORCE)
-endif (MPE_INCLUDE_PATH AND MPE_LIBRARIES)
+    CACHE DIR "MPE log libraries" FORCE)
+endif (MPE_INCLUDE_DIR AND MPE_LIBRARIES)
 
-if (MPE_INCLUDE_PATH AND MPE_LIBRARIES)
+if (MPE_INCLUDE_DIR AND MPE_LIBRARIES)
   set(MPE_FOUND TRUE)
-else (MPE_INCLUDE_PATH AND MPE_LIBRARIES)
+else (MPE_INCLUDE_DIR AND MPE_LIBRARIES)
   set(MPE_FOUND FALSE)
-endif (MPE_INCLUDE_PATH AND MPE_LIBRARIES)
+endif (MPE_INCLUDE_DIR AND MPE_LIBRARIES)
+
+GET_FILENAME_COMPONENT(MPE_LIB_DIR ${MPE_LIBRARIES} PATH)
+set (MPE_NOMPI_LIBRARIES ${MPE_LIB_DIR}/libmpe_nompi.a)
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments
@@ -166,12 +170,12 @@ find_package_handle_standard_args(
   MPE
   DEFAULT_MSG
   MPE_LIBRARIES
-  MPE_INCLUDE_PATH
+  MPE_INCLUDE_DIR
   )
 
 mark_as_advanced(
   MPE_COMPILE_FLAGS
-  MPE_INCLUDE_PATH
+  MPE_INCLUDE_DIR
   MPE_LINK_FLAGS
   MPE_LIBRARIES
   )

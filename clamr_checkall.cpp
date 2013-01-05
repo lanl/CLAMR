@@ -61,12 +61,12 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
-#include "display.h"
 #include "ezcl/ezcl.h"
 #include "input.h"
 #include "mesh.h"
 #include "partition.h"
 #include "state.h"
+#include "display.h"
 #include "timer/timer.h"
 #include "l7/l7.h"
 #include <mpi.h>

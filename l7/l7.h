@@ -345,7 +345,7 @@ int L7_Get_Num_Indices(
       const int               l7_id
       );
 
-void L7_Get_Local_Indices(
+int L7_Get_Local_Indices(
       const int               l7_id,
       int                     *local_indices
       );

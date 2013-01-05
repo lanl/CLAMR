@@ -32,6 +32,10 @@ cmake <path-to-src>             // out-of-tree build
 cmake -DCMAKE_BUILD_TYPE=debug <path-to-src>
 cmake -DCMAKE_BUILD_TYPE=release <path-to-src>
 
+cmake -DGRAPHICS_TYPE=None   <path-to-src>  // Turn off real-time graphics
+cmake -DGRAPHICS_TYPE=OpenGL <path-to-src>  // Default
+cmake -DGRAPHICS_TYPE=MPE    <path-to-src>  // Alternate real-time graphics
+
 //
 // need to edit configure.ac (b/c using autoconf package)
 //
