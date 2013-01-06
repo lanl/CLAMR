@@ -13,3 +13,5 @@ CMakeFiles
 config.h
 *.dylib
 CMakeCache.txt
+*.so
+lib*.so.*
