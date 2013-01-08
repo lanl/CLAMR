@@ -54,7 +54,7 @@
  * 
  */
 
-#define HASH_SETUP_OPT_LEVEL 1
+#define HASH_SETUP_OPT_LEVEL 2
 
 #ifndef GPU_DOUBLE_SUPPORT
 #define GPU_DOUBLE_SUPPORT
@@ -1002,6 +1002,7 @@ __kernel void hash_setup_local_cl(
    int levmult = levtable[levmx-lev];
    int cell_number = giX+noffset;
 
+#define HASH_SETUP_OPT_LEVEL 2
 #if HASH_SETUP_OPT_LEVEL == 0
 /* Original Hash Setup */
 
@@ -1096,6 +1097,7 @@ __kernel void hash_setup_local_cl(
       hashval_local(jj,ii) = cell_number; // upper boundary mid-point
    }
 #endif
+#define HASH_SETUP_OPT_LEVEL 2
 
 }
 
@@ -1723,7 +1725,7 @@ __kernel void calc_layer1_cl (
 
    if (max(ii*levmult-1, 0)-iminsize >= 0 && min((jj+1)*levmult -1,jmaxcalc-1) < jmaxsize) {  // Test for cell to left
       if (hash[(    (jj   *levmult)              -jminsize)*(imaxsize-iminsize)+(max(ii*levmult-1, 0)-iminsize)] >= 0 ||
-          hash[(min((jj+1)*levmult -1,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(max(ii*levmult-1, 0)-iminsize)] >= 0 ) {
+          hash[(min(jj*levmult + levmult/2,jmaxcalc-1)-jminsize)*(imaxsize-iminsize)+(max(ii*levmult-1, 0)-iminsize)] >= 0 ) {
          iborder |= 0x0001;
       }
    }
@@ -1735,7 +1737,7 @@ __kernel void calc_layer1_cl (
    }
    if (max(jj*levmult-1, 0)-jminsize >= 0 && min((ii+1)*levmult -1,imaxcalc-1) < imaxsize){ // Test for cell to bottom
       if (hash[((max(jj*levmult-1, 0) )-jminsize)*(imaxsize-iminsize)+(    (ii   *levmult)              -iminsize)] >= 0 ||
-          hash[((max(jj*levmult-1, 0) )-jminsize)*(imaxsize-iminsize)+(min((ii+1)*levmult -1,imaxcalc-1)-iminsize)] >= 0 ) {
+          hash[((max(jj*levmult-1, 0) )-jminsize)*(imaxsize-iminsize)+(min(ii*levmult+levmult/2,imaxcalc-1)-iminsize)] >= 0 ) {
          iborder |= 0x0004;
       }
    }

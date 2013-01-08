@@ -484,14 +484,6 @@ extern "C" void do_calc(void)
       //   int bcount = mesh->gpu_count_BCs(command_queue);
       //}
 
-      H_sum = -1.0;
-
-      if (do_comparison_calc) {
-         H_sum = state->mass_sum(mesh, enhanced_precision_sum);
-         double total_mass = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
-         if (fabs(total_mass - H_sum) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", total_mass, H_sum);/***/
-      }
-
       mesh->proc.resize(ncells);
       if (icount) {  
          if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
@@ -515,13 +507,17 @@ extern "C" void do_calc(void)
       }
    } // End burst loop
 
-   if (H_sum < 0) {
-      H_sum = state->mass_sum(mesh, enhanced_precision_sum);
-   }
+   H_sum = state->mass_sum(mesh, enhanced_precision_sum);
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
       exit(-1);
    }
+   if (do_comparison_calc) {
+      H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+      double total_mass = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
+      if (fabs(total_mass - H_sum) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", total_mass, H_sum);/***/
+   }
+
    printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
       ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
 

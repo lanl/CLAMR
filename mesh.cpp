@@ -82,7 +82,7 @@
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
-#define HASH_SETUP_OPT_LEVEL 1
+#define HASH_SETUP_OPT_LEVEL 2
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
