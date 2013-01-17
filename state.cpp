@@ -224,20 +224,20 @@ void State::init(size_t ncells, int do_gpu_calc)
 #ifdef HAVE_OPENCL
    if (do_gpu_calc) {
       if (compute_device == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in state\n");
-      kernel_set_timestep      = ezcl_create_kernel(context, "wave_kern.cl",      "set_timestep_cl",    0);
-      kernel_reduction_min     = ezcl_create_kernel(context, "wave_kern.cl",      "finish_reduction_min_cl",  0);
-      kernel_copy_state_data   = ezcl_create_kernel(context, "wave_kern_calc.cl", "copy_state_data_cl",  0);
-      kernel_copy_state_ghost_data   = ezcl_create_kernel(context, "wave_kern_calc.cl", "copy_state_ghost_data_cl",  0);
-      kernel_copy_mpot_ghost_data   = ezcl_create_kernel(context, "wave_kern_calc.cl", "copy_mpot_ghost_data_cl",  0);
-      kernel_calc_finite_difference = ezcl_create_kernel(context, "wave_kern_calc.cl", "calc_finite_difference_cl",  0);
-      kernel_refine_potential  = ezcl_create_kernel(context, "wave_kern_calc.cl", "refine_potential_cl", 0);
-      kernel_refine_smooth     = ezcl_create_kernel(context, "wave_kern_calc.cl", "refine_smooth_cl", 0);
-      kernel_rezone_all        = ezcl_create_kernel(context, "wave_kern.cl",      "rezone_all_cl",      0);
-      kernel_reduce_sum_mass_stage1of2 = ezcl_create_kernel(context, "wave_kern.cl", "reduce_sum_mass_stage1of2_cl",  0);
-      kernel_reduce_sum_mass_stage2of2 = ezcl_create_kernel(context, "wave_kern.cl", "reduce_sum_mass_stage2of2_cl",  0);
-      kernel_reduce_epsum_mass_stage1of2 = ezcl_create_kernel(context, "wave_kern.cl", "reduce_epsum_mass_stage1of2_cl",  0);
-      kernel_reduce_epsum_mass_stage2of2 = ezcl_create_kernel(context, "wave_kern.cl", "reduce_epsum_mass_stage2of2_cl",  0);
-      kernel_set_boundary_refinement = ezcl_create_kernel(context, "wave_kern_calc.cl", "set_boundary_refinement",  0);
+      kernel_set_timestep                = ezcl_create_kernel(context, "state_kern.cl", "set_timestep_cl",                0);
+      kernel_reduction_min               = ezcl_create_kernel(context, "state_kern.cl", "finish_reduction_min_cl",        0);
+      kernel_copy_state_data             = ezcl_create_kernel(context, "state_kern.cl", "copy_state_data_cl",             0);
+      kernel_copy_state_ghost_data       = ezcl_create_kernel(context, "state_kern.cl", "copy_state_ghost_data_cl",       0);
+      kernel_copy_mpot_ghost_data        = ezcl_create_kernel(context, "state_kern.cl", "copy_mpot_ghost_data_cl",        0);
+      kernel_calc_finite_difference      = ezcl_create_kernel(context, "state_kern.cl", "calc_finite_difference_cl",      0);
+      kernel_refine_potential            = ezcl_create_kernel(context, "state_kern.cl", "refine_potential_cl",            0);
+      kernel_refine_smooth               = ezcl_create_kernel(context, "state_kern.cl", "refine_smooth_cl",               0);
+      kernel_rezone_all                  = ezcl_create_kernel(context, "state_kern.cl", "rezone_all_cl",                  0);
+      kernel_reduce_sum_mass_stage1of2   = ezcl_create_kernel(context, "state_kern.cl", "reduce_sum_mass_stage1of2_cl",   0);
+      kernel_reduce_sum_mass_stage2of2   = ezcl_create_kernel(context, "state_kern.cl", "reduce_sum_mass_stage2of2_cl",   0);
+      kernel_reduce_epsum_mass_stage1of2 = ezcl_create_kernel(context, "state_kern.cl", "reduce_epsum_mass_stage1of2_cl", 0);
+      kernel_reduce_epsum_mass_stage2of2 = ezcl_create_kernel(context, "state_kern.cl", "reduce_epsum_mass_stage2of2_cl", 0);
+      kernel_set_boundary_refinement     = ezcl_create_kernel(context, "state_kern.cl", "set_boundary_refinement",        0);
       if (compute_device == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in state\n");
    }
 #endif
