@@ -101,6 +101,7 @@ add_subdirectory(kdtree)
 add_subdirectory(hsfc)
 add_subdirectory(s7)
 add_subdirectory(timer)
+add_subdirectory(memstats)
 add_subdirectory(ezcl)
 add_subdirectory(zorder)
 add_subdirectory(genmalloc)
@@ -117,7 +118,7 @@ add_executable(clamr ${clamr_SRCS})
 
 set_target_properties(clamr PROPERTIES COMPILE_DEFINITIONS HAVE_MPI_AND_OPENCL)
 
-target_link_libraries(clamr hsfc kdtree zorder s7 pezcl timer l7 genmalloc MallocPlus m)
+target_link_libraries(clamr hsfc kdtree zorder s7 pezcl timer memstats l7 genmalloc MallocPlus m)
 target_link_libraries(clamr ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr ${MPI_LIBRARIES})
 target_link_libraries(clamr ${OPENCL_LIBRARIES})
@@ -135,7 +136,7 @@ add_executable(clamr_gpuonly ${clamr_gpuonly_SRCS})
 
 set_target_properties(clamr_gpuonly PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
-target_link_libraries(clamr_gpuonly hsfc kdtree zorder s7 ezcl timer genmalloc MallocPlus m)
+target_link_libraries(clamr_gpuonly hsfc kdtree zorder s7 ezcl timer memstats genmalloc MallocPlus m)
 target_link_libraries(clamr_gpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_gpuonly ${OPENCL_LIBRARIES})
 target_link_libraries(clamr_gpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
@@ -152,7 +153,7 @@ set(clamr_cpuonly_SRCS ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr
 
 add_executable(clamr_cpuonly ${clamr_cpuonly_SRCS})
 
-target_link_libraries(clamr_cpuonly hsfc kdtree zorder s7 timer genmalloc MallocPlus m)
+target_link_libraries(clamr_cpuonly hsfc kdtree zorder s7 timer memstats genmalloc MallocPlus m)
 target_link_libraries(clamr_cpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
@@ -169,7 +170,7 @@ add_executable(clamr_mpionly ${clamr_mpionly_SRCS})
 
 set_target_properties(clamr_mpionly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 
-target_link_libraries(clamr_mpionly hsfc kdtree zorder s7 timer l7 genmalloc MallocPlus m)
+target_link_libraries(clamr_mpionly hsfc kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
 target_link_libraries(clamr_mpionly ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_mpionly ${MPI_LIBRARIES})
 target_link_libraries(clamr_mpionly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
@@ -187,7 +188,7 @@ add_executable(clamr_gpucheck ${clamr_gpucheck_SRCS})
 
 set_target_properties(clamr_gpucheck PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
-target_link_libraries(clamr_gpucheck hsfc kdtree zorder s7 ezcl timer genmalloc MallocPlus m)
+target_link_libraries(clamr_gpucheck hsfc kdtree zorder s7 ezcl timer memstats genmalloc MallocPlus m)
 target_link_libraries(clamr_gpucheck ${MPE_NOMPI_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_gpucheck ${OPENCL_LIBRARIES})
 target_link_libraries(clamr_gpucheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
@@ -205,7 +206,7 @@ add_executable(clamr_mpicheck ${clamr_mpicheck_SRCS})
 
 set_target_properties(clamr_mpicheck PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 
-target_link_libraries(clamr_mpicheck hsfc kdtree zorder s7 timer l7 genmalloc MallocPlus m)
+target_link_libraries(clamr_mpicheck hsfc kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
 target_link_libraries(clamr_mpicheck ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_mpicheck ${MPI_LIBRARIES})
 target_link_libraries(clamr_mpicheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
@@ -223,7 +224,7 @@ add_executable(clamr_checkall ${clamr_checkall_SRCS})
 
 set_target_properties(clamr_checkall PROPERTIES COMPILE_DEFINITIONS HAVE_MPI_AND_OPENCL)
 
-target_link_libraries(clamr_checkall hsfc kdtree zorder s7 pezcl timer l7 genmalloc MallocPlus m)
+target_link_libraries(clamr_checkall hsfc kdtree zorder s7 pezcl timer memstats l7 genmalloc MallocPlus m)
 target_link_libraries(clamr_checkall ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_checkall ${MPI_LIBRARIES})
 target_link_libraries(clamr_checkall ${OPENCL_LIBRARIES})

@@ -64,11 +64,6 @@ extern "C"
 void cpu_timer_start(struct timeval *tstart_cpu);
 double cpu_timer_stop(struct timeval tstart_cpu);
 
-long long timer_memused();
-long long timer_mempeak();
-long long timer_memfree();
-long long timer_memtotal();
-
 #ifdef __cplusplus
 }
 #endif

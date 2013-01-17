@@ -67,6 +67,7 @@
 #include "state.h"
 #include "l7/l7.h"
 #include "timer/timer.h"
+#include "memstats/memstats.h"
 
 #include <mpi.h>
 #include "display.h"
@@ -236,12 +237,12 @@ int main(int argc, char **argv) {
    double cpu_time_main_setup = cpu_timer_stop(tstart_setup);
    state->parallel_timer_output(numpe,mype,"CPU:  setup time               time was",cpu_time_main_setup);
 
-   long long mem_used = timer_memused();
+   long long mem_used = memstats_memused();
    if (mem_used > 0) {
       state->parallel_memory_output(numpe,mype,"Memory used      in startup ",mem_used);
-      state->parallel_memory_output(numpe,mype,"Memory peak      in startup ",timer_mempeak());
-      state->parallel_memory_output(numpe,mype,"Memory free      at startup ",timer_memfree());
-      state->parallel_memory_output(numpe,mype,"Memory available at startup ",timer_memtotal());
+      state->parallel_memory_output(numpe,mype,"Memory peak      in startup ",memstats_mempeak());
+      state->parallel_memory_output(numpe,mype,"Memory free      at startup ",memstats_memfree());
+      state->parallel_memory_output(numpe,mype,"Memory available at startup ",memstats_memtotal());
    }
 
    if (mype == 0) {
@@ -502,12 +503,12 @@ extern "C" void do_calc(void)
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       
-      long long mem_used = timer_memused();
+      long long mem_used = memstats_memused();
       if (mem_used > 0) {
          state->parallel_memory_output(numpe,mype,"Memory used      ",mem_used);
-         state->parallel_memory_output(numpe,mype,"Memory peak      ",timer_mempeak());
-         state->parallel_memory_output(numpe,mype,"Memory free      ",timer_memfree());
-         state->parallel_memory_output(numpe,mype,"Memory available ",timer_memtotal());
+         state->parallel_memory_output(numpe,mype,"Memory peak      ",memstats_mempeak());
+         state->parallel_memory_output(numpe,mype,"Memory free      ",memstats_memfree());
+         state->parallel_memory_output(numpe,mype,"Memory available ",memstats_memtotal());
       }
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
 

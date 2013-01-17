@@ -53,31 +53,22 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
-#include <sys/time.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <string.h>
+#ifndef _MEMSTATS_H
+#define _MEMSTATS_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
+#ifdef __cplusplus
+extern "C"
+{
 #endif
 
-#include "timer.h"
+long long memstats_memused();
+long long memstats_mempeak();
+long long memstats_memfree();
+long long memstats_memtotal();
 
-void cpu_timer_start(struct timeval *tstart_cpu){
-   gettimeofday(tstart_cpu, NULL);
+#ifdef __cplusplus
 }
+#endif
 
-double cpu_timer_stop(struct timeval tstart_cpu){
-   double result;
-   struct timeval tstop_cpu, tresult;
-
-   gettimeofday(&tstop_cpu, NULL);
-   tresult.tv_sec = tstop_cpu.tv_sec - tstart_cpu.tv_sec;
-   tresult.tv_usec = tstop_cpu.tv_usec - tstart_cpu.tv_usec;
-   result = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
-   return(result);
-}
+#endif  /* _MEMSTATS_H */
 
