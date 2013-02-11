@@ -82,7 +82,7 @@
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
-#define HASH_SETUP_OPT_LEVEL 2
+#define HASH_SETUP_OPT_LEVEL 3
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
@@ -2543,6 +2543,15 @@ void Mesh::calc_neighbors(void)
             hash[jj][ii] = ic;
          }
       }
+#elif HASH_SETUP_OPT_LEVEL == 3
+      for(uint ic=0; ic<ncells; ic++){
+         int lev = level[ic];
+         int levmult = levtable[levmx-lev];
+         int ii = i[ic]*levmult;
+         int jj = j[ic]*levmult;
+
+         hash[jj][ii] = ic;
+      }
 #endif
 
       if (TIMING_LEVEL >= 2) {
@@ -2557,17 +2566,13 @@ void Mesh::calc_neighbors(void)
          jj = j[ic];
          lev = level[ic];
          levmult = levtable[levmx-lev];
+#if HASH_SETUP_OPT_LEVEL <= 2
          nlft[ic] = hash[      jj   *levmult               ][max(  ii   *levmult-1, 0         )];
          nrht[ic] = hash[      jj   *levmult               ][min( (ii+1)*levmult,   imaxsize-1)];
          nbot[ic] = hash[max(  jj   *levmult-1, 0)         ][      ii   *levmult               ];
          ntop[ic] = hash[min( (jj+1)*levmult,   jmaxsize-1)][      ii   *levmult               ];
-      }
 
-      for (uint ic=0; ic<ncells; ic++){
          if (nlft[ic] < 0){
-            lev = level[ic];
-            ii = i[ic];
-            jj = j[ic];
             levmult = levtable[levmx-lev];
             iii = max( ii*levmult-1, 0);
             jjj = jj*levmult;
@@ -2575,9 +2580,6 @@ void Mesh::calc_neighbors(void)
             nlft[ic] = hash[jjj][iii];
          }
          if (nrht[ic] < 0){
-            lev = level[ic];
-            ii = i[ic];
-            jj = j[ic];
             levmult = levtable[levmx-lev];
             iii = min( (ii+1)*levmult, imaxsize-1);
             jjj = jj*levmult;
@@ -2585,9 +2587,6 @@ void Mesh::calc_neighbors(void)
             nrht[ic] = hash[jjj][iii];
          }
          if (nbot[ic] < 0) {
-            lev = level[ic];
-            ii = i[ic];
-            jj = j[ic];
             levmult = levtable[levmx-lev];
             iii = ii*levmult;
             jjj = max( jj*levmult-1, 0);
@@ -2595,15 +2594,110 @@ void Mesh::calc_neighbors(void)
             nbot[ic] = hash[jjj][iii];
          }
          if (ntop[ic] < 0) {
-            lev = level[ic];
-            ii = i[ic];
-            jj = j[ic];
             levmult = levtable[levmx-lev];
             iii = ii*levmult;
             jjj = min( (jj+1)*levmult, jmaxsize-1);
             if ( (iii < 1*levtable[levmx] || iii > imax*levtable[levmx]-1 ) && jjj > jmax*levtable[levmx]-1 ) jjj = jj*levmult;
             ntop[ic] = hash[jjj][iii];
          }
+#elif HASH_SETUP_OPT_LEVEL == 3
+         int iicur = ii*levmult;
+         int iilft = max( (ii-1)*levmult, 0         );
+         int iirht = min( (ii+1)*levmult, imaxsize-1);
+         int jjcur = jj*levmult;
+         int jjbot = max( (jj-1)*levmult, 0         );
+         int jjtop = min( (jj+1)*levmult, jmaxsize-1);
+
+         int nlftval = -1;
+         int nrhtval = -1;
+         int nbotval = -1;
+         int ntopval = -1;
+
+         // need to check for finer neighbor first
+         if (lev != levmx) {
+            int iilftfiner = iicur-(iicur-iilft)/2;
+            int iirhtfiner = (iicur+iirht)/2;
+            int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+            int jjtopfiner = (jjcur+jjtop)/2;
+            nlftval = hash[jjcur][iilftfiner];
+            nrhtval = hash[jjcur][iirhtfiner];
+            nbotval = hash[jjbotfiner][iicur];
+            ntopval = hash[jjtopfiner][iicur];
+         }
+
+         // same size neighbor
+         if (nlftval < 0) nlftval = hash[jjcur][iilft];
+         if (nrhtval < 0) nrhtval = hash[jjcur][iirht];
+         if (nbotval < 0) nbotval = hash[jjbot][iicur];
+         if (ntopval < 0) ntopval = hash[jjtop][iicur];
+         
+         // coarser neighbor
+         if (lev != 0){
+            if (iilft > 0 && nlftval < 0) {
+               iilft -= iicur-iilft;
+               int jjlft = (jjcur/2)*2;
+               nlftval = hash[jjlft][iilft];
+            }
+            if (nrhtval < 0 && iirht < imaxsize-1 && (jjcur/2)*2 != jjcur) {
+               int jjrht = (jjcur/2)*2;
+               nrhtval = hash[jjrht][iirht];
+            }
+            if (jjbot > 0 && nbotval < 0) {
+               jjbot -= jjcur-jjbot;
+               int iibot = (iicur/2)*2;
+               nbotval = hash[jjbot][iibot];
+            }
+            if (ntopval < 0 && jjtop < jmaxsize-1 && (iicur/2)*2 != iicur) {
+               int iitop = (iicur/2)*2;
+               ntopval = hash[jjtop][iitop];
+            }
+         }
+
+         // Take care of the corner neighbors
+         if (nlftval < 0){
+            iii = max( ii*levmult-1, 0);
+            jjj = jj*levmult;
+            if ( (jjj < 1*levtable[levmx] || jjj > (jmax-1)*levtable[levmx] ) && iii < 1*levtable[levmx] ) iii = ii*levmult;
+            nlftval = hash[jjj][iii];
+            if (nlftval < 0 && iii < 1*levtable[levmx]) nlftval = hash[jjj][1*levtable[levmx]-1];
+            if (nlftval < 0 && jjj < 1*levtable[levmx]) nlftval = hash[1*levtable[levmx]-1][iii];
+         }
+
+         if (nrhtval < 0){
+            iii = min( (ii+1)*levmult, imaxsize-1);
+            jjj = jj*levmult;
+            if ( (jjj < 1*levtable[levmx] || jjj > jmax*levtable[levmx]-1 ) && iii > imax*levtable[levmx]-1 ) iii = ii*levmult;
+            //if (ic == 0) printf("DEBUG jjj %d iii %d hash %d\n",jjj,iii,hash[jjj][iii]);
+            nrhtval = hash[jjj][iii];
+            if (nrhtval < 0 && jjj < 1*levtable[levmx]) nrhtval = hash[1*levtable[levmx]-1][iii];
+            if (nrhtval < 0 && iii > imax*levtable[levmx]-1) nrhtval = hash[jjj][imax*levtable[levmx]];
+         }
+
+         if (nbotval < 0) {
+            iii = ii*levmult;
+            jjj = max( jj*levmult-1, 0);
+            if ( (iii < 1*levtable[levmx] || iii > (imax-1)*levtable[levmx] ) && jjj < 1*levtable[levmx] ) jjj = jj*levmult;
+            nbotval = hash[jjj][iii];
+            if (nbotval < 0 && jjj < 1*levtable[levmx]) nbotval = hash[1*levtable[levmx]-1][iii];
+            if (nbotval < 0 && iii < 1*levtable[levmx]) nbotval = hash[jjj][1*levtable[levmx]-1];
+         }
+
+         if (ntopval < 0) {
+            iii = ii*levmult;
+            jjj = min( (jj+1)*levmult, jmaxsize-1);
+            if ( (iii < 1*levtable[levmx] || iii > imax*levtable[levmx]-1 ) && jjj > jmax*levtable[levmx]-1 ) jjj = jj*levmult;
+            ntopval = hash[jjj][iii];
+            if (ntopval < 0 && iii < 1*levtable[levmx]) ntopval = hash[jjj][1*levtable[levmx]-1];
+            if (ntopval < 0 && jjj > jmax*levtable[levmx]-1) ntopval = hash[jmax*levtable[levmx]][iii];
+         }
+
+         nlft[ic] = nlftval;
+         nrht[ic] = nrhtval;
+         nbot[ic] = nbotval;
+         ntop[ic] = ntopval;
+
+         //printf("neighbors[%d] = %d %d %d %d\n",ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
+#endif
       }
  
       if (DEBUG) {
@@ -2893,7 +2987,7 @@ void Mesh::calc_neighbors_local(void)
             hash[jjj][iimax-1] = cellnumber;
          }
       }
-#elif HASH_SETUP_OPT_LEVEL == 2
+#elif HASH_SETUP_OPT_LEVEL >= 2
      /* Optimized Hash Setup */
       for(uint ic=0; ic<ncells; ic++){
          int ii = i[ic];

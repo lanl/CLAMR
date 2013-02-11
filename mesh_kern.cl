@@ -54,7 +54,7 @@
  * 
  */
 
-#define HASH_SETUP_OPT_LEVEL 2
+#define HASH_SETUP_OPT_LEVEL 3
 
 #ifndef GPU_DOUBLE_SUPPORT
 #define GPU_DOUBLE_SUPPORT
@@ -279,6 +279,10 @@ __kernel void hash_setup_cl(
       ii += levmult/2;
       hashval(jj,ii) = giX;
    }
+#elif HASH_SETUP_OPT_LEVEL == 3
+   jj *= levmult;
+   ii *= levmult;
+   hashval(jj,ii) = giX;
 #endif
 }
 
@@ -315,7 +319,6 @@ __kernel void hash_setup_local_cl(
    int levmult = levtable[levmx-lev];
    int cell_number = giX+noffset;
 
-#define HASH_SETUP_OPT_LEVEL 2
 #if HASH_SETUP_OPT_LEVEL == 0
 /* Original Hash Setup */
 
@@ -357,7 +360,7 @@ __kernel void hash_setup_local_cl(
       hashval_local(jjj, iimax-1) = cell_number;
    }
 
-#elif HASH_SETUP_OPT_LEVEL == 2
+#elif HASH_SETUP_OPT_LEVEL >= 2
 /* Optimized Hash Setup */
    if (lev > 0 && (ii < lev_ibeg[lev] || ii > lev_iend[lev] || jj < lev_jbeg[lev] || jj > lev_jend[lev]) ) {
 
@@ -410,7 +413,6 @@ __kernel void hash_setup_local_cl(
       hashval_local(jj,ii) = cell_number; // upper boundary mid-point
    }
 #endif
-#define HASH_SETUP_OPT_LEVEL 2
 
 }
 
@@ -437,16 +439,17 @@ __kernel void calc_neighbors_cl(
    if (giX >= isize) return;
 
    int ii, jj, iii, jjj, lev, levmult;
-   int nlftval, nrhtval, nbotval, ntopval;
 
    ii = i[giX];
    jj = j[giX];
    lev = level[giX];
    levmult = levtable[levmx-lev];
-   nlftval = hashval(      jj   *levmult               , max(  ii   *levmult-1, 0         ));
-   nrhtval = hashval(      jj   *levmult               , min( (ii+1)*levmult,   imaxsize-1));
-   nbotval = hashval(max(  jj   *levmult-1, 0)         ,       ii   *levmult               );
-   ntopval = hashval(min( (jj+1)*levmult,   jmaxsize-1),       ii   *levmult               );
+
+#if HASH_SETUP_OPT_LEVEL <= 2
+   int nlftval = hashval(      jj   *levmult               , max(  ii   *levmult-1, 0         ));
+   int nrhtval = hashval(      jj   *levmult               , min( (ii+1)*levmult,   imaxsize-1));
+   int nbotval = hashval(max(  jj   *levmult-1, 0)         ,       ii   *levmult               );
+   int ntopval = hashval(min( (jj+1)*levmult,   jmaxsize-1),       ii   *levmult               );
 
    // Handles the four boundary corners
    if (nlftval < 0){
@@ -477,6 +480,98 @@ __kernel void calc_neighbors_cl(
             jjj > jmax*levtable[levmx]-1 ) jjj = jj*levmult;
       ntopval = hashval(jjj, iii);
    }
+#else
+
+   int iicur = ii*levmult;
+   int iilft = max( (ii-1)*levmult, 0         );   
+   int iirht = min( (ii+1)*levmult, imaxsize-1);
+   int jjcur = jj*levmult;
+   int jjbot = max( (jj-1)*levmult, 0         );   
+   int jjtop = min( (jj+1)*levmult, jmaxsize-1);
+
+   int nlftval = -1;
+   int nrhtval = -1;
+   int nbotval = -1;
+   int ntopval = -1;
+
+   // need to check for finer neighbor first
+   if (lev != levmx) {
+      int iilftfiner = iicur-(iicur-iilft)/2;
+      int iirhtfiner = (iicur+iirht)/2;
+      int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+      int jjtopfiner = (jjcur+jjtop)/2;
+      nlftval = hashval(jjcur,iilftfiner);
+      nrhtval = hashval(jjcur,iirhtfiner);
+      nbotval = hashval(jjbotfiner,iicur);
+      ntopval = hashval(jjtopfiner,iicur);
+   }    
+
+   // same size neighbor
+   if (nlftval < 0) nlftval = hashval(jjcur,iilft);
+   if (nrhtval < 0) nrhtval = hashval(jjcur,iirht);
+   if (nbotval < 0) nbotval = hashval(jjbot,iicur);
+   if (ntopval < 0) ntopval = hashval(jjtop,iicur);
+
+   // coarser neighbor
+   if (lev != 0){
+      if (iilft > 0 && nlftval < 0) { 
+         iilft -= iicur-iilft;
+         int jjlft = (jjcur/2)*2;
+         nlftval = hashval(jjlft,iilft);
+      }    
+      if (nrhtval < 0 && iirht < imaxsize-1 && (jjcur/2)*2 != jjcur) {
+         int jjrht = (jjcur/2)*2;
+         nrhtval = hashval(jjrht,iirht);
+      }    
+      if (jjbot > 0 && nbotval < 0) { 
+         jjbot -= jjcur-jjbot;
+         int iibot = (iicur/2)*2;
+         nbotval = hashval(jjbot,iibot);
+      }                
+      if (ntopval < 0 && jjtop < jmaxsize-1 && (iicur/2)*2 != iicur) {
+         int iitop = (iicur/2)*2;
+         ntopval = hashval(jjtop,iitop);
+      }    
+   }
+
+   // Handles the four boundary corners
+   if (nlftval < 0){
+      iii = max( ii*levmult-1, 0);
+      jjj = jj*levmult;
+      if ( (jjj < 1*levtable[levmx] || jjj > (jmax-1)*levtable[levmx] ) &&
+            iii < 1*levtable[levmx] ) iii = ii*levmult;
+      nlftval = hashval(jjj, iii);
+      if (nlftval < 0 && iii < 1*levtable[levmx]) nlftval = hashval(jjj,1*levtable[levmx]-1);
+      if (nlftval < 0 && jjj < 1*levtable[levmx]) nlftval = hashval(1*levtable[levmx]-1,iii);
+   }
+   if (nrhtval < 0){
+      iii = min( (ii+1)*levmult, imaxsize-1);
+      jjj = jj*levmult;
+      if ( (jjj < 1*levtable[levmx] || jjj > jmax*levtable[levmx]-1 ) &&
+            iii > imax*levtable[levmx]-1 ) iii = ii*levmult;
+      nrhtval = hashval(jjj, iii);
+      if (nrhtval < 0 && jjj < 1*levtable[levmx]) nrhtval = hashval(1*levtable[levmx]-1,iii);
+      if (nrhtval < 0 && iii > imax*levtable[levmx]-1) nrhtval = hashval(jjj,imax*levtable[levmx]);
+   }
+   if (nbotval < 0) {
+      iii = ii*levmult;
+      jjj = max( jj*levmult-1, 0);
+      if ( (iii < 1*levtable[levmx] || iii > (imax-1)*levtable[levmx] ) &&
+            jjj < 1*levtable[levmx] ) jjj = jj*levmult;
+      nbotval = hashval(jjj, iii);
+      if (nbotval < 0 && jjj < 1*levtable[levmx]) nbotval = hashval(1*levtable[levmx]-1,iii);
+      if (nbotval < 0 && iii < 1*levtable[levmx]) nbotval = hashval(jjj,1*levtable[levmx]-1);
+   }
+   if (ntopval < 0) {
+      iii = ii*levmult;
+      jjj = min( (jj+1)*levmult, jmaxsize-1);
+      if ( (iii < 1*levtable[levmx] || iii > imax*levtable[levmx]-1 ) &&
+            jjj > jmax*levtable[levmx]-1 ) jjj = jj*levmult;
+      ntopval = hashval(jjj, iii);
+      if (ntopval < 0 && iii < 1*levtable[levmx]) ntopval = hashval(jjj,1*levtable[levmx]-1);
+      if (ntopval < 0 && jjj > jmax*levtable[levmx]-1) ntopval = hashval(jmax*levtable[levmx],iii);
+   }
+#endif
 
    nlft[giX] = nlftval;
    nrht[giX] = nrhtval;
