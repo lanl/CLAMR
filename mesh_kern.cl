@@ -54,7 +54,7 @@
  * 
  */
 
-#define HASH_SETUP_OPT_LEVEL 3
+#define HASH_SETUP_OPT_LEVEL 2
 
 #ifndef GPU_DOUBLE_SUPPORT
 #define GPU_DOUBLE_SUPPORT
