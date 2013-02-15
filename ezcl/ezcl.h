@@ -140,6 +140,12 @@ extern "C"
       ( ezcl_mapped_memory_remove_p(map_mem_ptr, __FILE__, __LINE__) )
 #define ezcl_malloc_memory_remove(  malloc_mem_ptr) \
       ( ezcl_malloc_memory_remove_p(malloc_mem_ptr, __FILE__, __LINE__) )
+#define ezcl_device_memory_delete(  dev_mem_ptr) \
+      ( ezcl_device_memory_delete_p(dev_mem_ptr, __FILE__, __LINE__) )
+#define ezcl_mapped_memory_delete(  map_mem_ptr) \
+      ( ezcl_mapped_memory_delete_p(map_mem_ptr, __FILE__, __LINE__) )
+#define ezcl_malloc_memory_delete(  malloc_mem_ptr) \
+      ( ezcl_malloc_memory_delete_p(malloc_mem_ptr, __FILE__, __LINE__) )
 #define ezcl_mem_free_all() \
       ( ezcl_mem_free_all_p(__FILE__, __LINE__) ) 
 #define ezcl_mem_walk_all() \
@@ -209,7 +215,7 @@ cl_command_queue ezcl_get_command_queue_p(const char *file, const int line);
 cl_context ezcl_get_context_p(const char *file, const int line);
 
 /* memory routines */
-cl_mem ezcl_malloc_p(void *host_mem_ptr, char *name, size_t dims[], size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line);
+cl_mem ezcl_malloc_p(void *host_mem_ptr, const char *name, size_t dims[], size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line);
 void *ezcl_malloc_memory_add_p(void *malloc_mem_ptr, const char *name, size_t size, const char *file, const int line);
 void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t num_elements, size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line);
 void ezcl_mapped_memory_add_p(cl_mem map_mem_ptr, const char *name, size_t num_elements, size_t elsize, const char *file, const int line);
@@ -219,6 +225,9 @@ cl_mem ezcl_device_memory_request_p(cl_mem dev_mem_ptr, size_t capacity, const c
 void ezcl_device_memory_remove_p(void *dev_mem_ptr, const char *file, const int line);   
 void ezcl_mapped_memory_remove_p(void *map_mem_ptr, const char *file, const int line);   
 void ezcl_malloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const int line);   
+void ezcl_device_memory_delete_p(void *dev_mem_ptr, const char *file, const int line);   
+void ezcl_mapped_memory_delete_p(void *map_mem_ptr, const char *file, const int line);   
+void ezcl_malloc_memory_delete_p(void *malloc_mem_ptr, const char *file, const int line);   
 void ezcl_mem_free_all_p(const char *file, const int line);
 void ezcl_mem_walk_all_p(const char *file, const int line);
 void ezcl_mem_walk_one_p(cl_mem mem_buffer, const char *file, const int line);

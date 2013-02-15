@@ -286,10 +286,11 @@ void State::memory_reset_ptrs(void){
 #ifdef HAVE_OPENCL
 void State::terminate(void)
 {
-   ezcl_device_memory_remove(dev_deltaT);
-   ezcl_device_memory_remove(dev_H);
-   ezcl_device_memory_remove(dev_U);
-   ezcl_device_memory_remove(dev_V);
+   ezcl_device_memory_delete(dev_deltaT);
+
+   gpu_state_memory.memory_delete(dev_H);
+   gpu_state_memory.memory_delete(dev_U);
+   gpu_state_memory.memory_delete(dev_V);
 
    ezcl_kernel_release(kernel_set_timestep);
    ezcl_kernel_release(kernel_reduction_min);
@@ -744,7 +745,7 @@ double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, doubl
    if (parallel) MPI_Allreduce(&deltaT, &globalmindeltaT, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 #endif
 
-   ezcl_device_memory_remove(dev_redscratch);
+   ezcl_device_memory_delete(dev_redscratch);
 
    gpu_time_set_timestep += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
@@ -994,9 +995,9 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
       ncells = new_ncells;
    }
 
-   cl_mem dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
+   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
+   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
 
    size_t mem_request = (int)((float)ncells*mesh->mem_factor);
    cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -1055,37 +1056,26 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    if (ncells != old_ncells){
-      ezcl_device_memory_remove(dev_H);
-      ezcl_device_memory_remove(dev_U);
-      ezcl_device_memory_remove(dev_V);
-      dev_H = ezcl_malloc(NULL, const_cast<char *>("dev_H"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_U = ezcl_malloc(NULL, const_cast<char *>("dev_U"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_V = ezcl_malloc(NULL, const_cast<char *>("dev_V"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-
       mesh->resize_old_device_memory(ncells);
    }
-
-   SWAP_PTR(dev_H_new, dev_H, dev_ptr);
-   SWAP_PTR(dev_U_new, dev_U, dev_ptr);
-   SWAP_PTR(dev_V_new, dev_V, dev_ptr);
 
    SWAP_PTR(dev_celltype_new, dev_celltype, dev_ptr);
    SWAP_PTR(dev_level_new,    dev_level,    dev_ptr);
    SWAP_PTR(dev_i_new,        dev_i,        dev_ptr);
    SWAP_PTR(dev_j_new,        dev_j,        dev_ptr);
 
-   ezcl_device_memory_remove(dev_mpot);
-   ezcl_device_memory_remove(dev_ijadd);
-   ezcl_device_memory_remove(dev_ioffset);
+   ezcl_device_memory_delete(dev_mpot);
+   ezcl_device_memory_delete(dev_ijadd);
+   ezcl_device_memory_delete(dev_ioffset);
 
-   ezcl_device_memory_remove(dev_H_new);
-   ezcl_device_memory_remove(dev_U_new);
-   ezcl_device_memory_remove(dev_V_new);
+   dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
+   dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
+   dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
 
-   ezcl_device_memory_remove(dev_i_new);
-   ezcl_device_memory_remove(dev_j_new);
-   ezcl_device_memory_remove(dev_celltype_new);
-   ezcl_device_memory_remove(dev_level_new);
+   ezcl_device_memory_delete(dev_i_new);
+   ezcl_device_memory_delete(dev_j_new);
+   ezcl_device_memory_delete(dev_celltype_new);
+   ezcl_device_memory_delete(dev_level_new);
 
 #ifdef HAVE_MPI
    if (mesh->parallel) {
@@ -1811,9 +1801,9 @@ void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mes
    assert(dev_levdx);
    assert(dev_levdy);
 
-   cl_mem dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
+   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
+   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -1842,58 +1832,54 @@ void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mes
       //ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, &copy_state_data_event);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, NULL);
 
-      SWAP_PTR(dev_H_new, dev_H, dev_ptr);
-      SWAP_PTR(dev_U_new, dev_U, dev_ptr);
-      SWAP_PTR(dev_V_new, dev_V, dev_ptr);
+      dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
+      dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
+      dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
 
       vector<real> H_tmp(mesh->ncells_ghost,0.0);
       vector<real> U_tmp(mesh->ncells_ghost,0.0);
       vector<real> V_tmp(mesh->ncells_ghost,0.0);
 
-      if (mesh->numpe > 1) {
-         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], NULL);
 
-         L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
-         L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
-         L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
 
-         size_t nghost_local = mesh->ncells_ghost - ncells;
-         //fprintf(fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
+      size_t nghost_local = mesh->ncells_ghost - ncells;
+      //fprintf(fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
 
-         cl_mem dev_H_add       = ezcl_malloc(NULL, const_cast<char *>("dev_H_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_U_add       = ezcl_malloc(NULL, const_cast<char *>("dev_U_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-         cl_mem dev_V_add       = ezcl_malloc(NULL, const_cast<char *>("dev_V_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-         ezcl_enqueue_write_buffer(command_queue, dev_H_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&H_tmp[ncells], NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_U_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&U_tmp[ncells], NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V_add, CL_TRUE,  0, nghost_local*sizeof(cl_real), (void*)&V_tmp[ncells], NULL);
+      cl_mem dev_H_add       = ezcl_malloc(NULL, const_cast<char *>("dev_H_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_U_add       = ezcl_malloc(NULL, const_cast<char *>("dev_U_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_V_add       = ezcl_malloc(NULL, const_cast<char *>("dev_V_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      ezcl_enqueue_write_buffer(command_queue, dev_H_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&H_tmp[ncells], NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_U_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&U_tmp[ncells], NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_V_add, CL_TRUE,  0, nghost_local*sizeof(cl_real), (void*)&V_tmp[ncells], NULL);
 
-         size_t ghost_local_work_size = 32;
-         size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
+      size_t ghost_local_work_size = 32;
+      size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
 
-         // Fill in ghost
-         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
-         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
-         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 2, sizeof(cl_mem), (void *)&dev_H);
-         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 3, sizeof(cl_mem), (void *)&dev_H_add);
-         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 4, sizeof(cl_mem), (void *)&dev_U);
-         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 5, sizeof(cl_mem), (void *)&dev_U_add);
-         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 6, sizeof(cl_mem), (void *)&dev_V);
-         ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 7, sizeof(cl_mem), (void *)&dev_V_add);
+      // Fill in ghost
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 2, sizeof(cl_mem), (void *)&dev_H);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 3, sizeof(cl_mem), (void *)&dev_H_add);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 4, sizeof(cl_mem), (void *)&dev_U);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 5, sizeof(cl_mem), (void *)&dev_U_add);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 6, sizeof(cl_mem), (void *)&dev_V);
+      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 7, sizeof(cl_mem), (void *)&dev_V_add);
 
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
 
-         ezcl_device_memory_remove(dev_H_add);
-         ezcl_device_memory_remove(dev_U_add);
-         ezcl_device_memory_remove(dev_V_add);
-         ezcl_device_memory_remove(dev_H_new);
-         ezcl_device_memory_remove(dev_U_new);
-         ezcl_device_memory_remove(dev_V_new);
-         dev_H_new = ezcl_malloc(NULL, const_cast<char *>("dev_H_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-         dev_U_new = ezcl_malloc(NULL, const_cast<char *>("dev_U_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-         dev_V_new = ezcl_malloc(NULL, const_cast<char *>("dev_V_new"), &ncells_ghost, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      }
+      ezcl_device_memory_delete(dev_H_add);
+      ezcl_device_memory_delete(dev_U_add);
+      ezcl_device_memory_delete(dev_V_add);
+
+      dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
+      dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
+      dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
    }
 #endif
 
@@ -1941,13 +1927,9 @@ void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mes
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference,   1, NULL, &global_work_size, &local_work_size, NULL);
 
-   SWAP_PTR(dev_H_new, dev_H, dev_ptr);
-   SWAP_PTR(dev_U_new, dev_U, dev_ptr);
-   SWAP_PTR(dev_V_new, dev_V, dev_ptr);
-
-   ezcl_device_memory_remove(dev_H_new);
-   ezcl_device_memory_remove(dev_U_new);
-   ezcl_device_memory_remove(dev_V_new);
+   dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
+   dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
+   dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
 
    gpu_time_finite_difference += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 }
@@ -2226,9 +2208,9 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
 
-      ezcl_device_memory_remove(dev_H_add);
-      ezcl_device_memory_remove(dev_U_add);
-      ezcl_device_memory_remove(dev_V_add);
+      ezcl_device_memory_delete(dev_H_add);
+      ezcl_device_memory_delete(dev_U_add);
+      ezcl_device_memory_delete(dev_V_add);
    }
 #endif
 
@@ -2431,11 +2413,11 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
             MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          }
 #endif
-         if (mesh->numpe > 1) ezcl_device_memory_remove(dev_mpot_add);
-         ezcl_device_memory_remove(dev_mpot_add);
+         if (mesh->numpe > 1) ezcl_device_memory_delete(dev_mpot_add);
+         ezcl_device_memory_delete(dev_mpot_add);
       }
 
-      ezcl_device_memory_remove(dev_mpot_old);
+      ezcl_device_memory_delete(dev_mpot_old);
    }
 
 #ifdef HAVE_MPI
@@ -2478,14 +2460,14 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
 
 
    if (mesh->numpe > 1) {
-      ezcl_device_memory_remove(dev_mpot_add);
+      ezcl_device_memory_delete(dev_mpot_add);
    }
 
    int my_result;
    ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int), &my_result, NULL);
    //printf("Result is %d %d %d\n",my_result, ncells,__LINE__);
 
-   ezcl_device_memory_remove(dev_result);
+   ezcl_device_memory_delete(dev_result);
 
    int size_changed = (my_result != (int)ncells); 
    int size_changed_global = size_changed;
@@ -2496,17 +2478,17 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
 #endif
 
    if (size_changed_global) {
-      ezcl_device_memory_remove(dev_nlft);
-      ezcl_device_memory_remove(dev_nrht);
-      ezcl_device_memory_remove(dev_nbot);
-      ezcl_device_memory_remove(dev_ntop);
+      ezcl_device_memory_delete(dev_nlft);
+      ezcl_device_memory_delete(dev_nrht);
+      ezcl_device_memory_delete(dev_nbot);
+      ezcl_device_memory_delete(dev_ntop);
       dev_nlft = NULL;
       dev_nrht = NULL;
       dev_nbot = NULL;
       dev_ntop = NULL;
    } else {
-      ezcl_device_memory_remove(dev_mpot);
-      ezcl_device_memory_remove(dev_ioffset);
+      ezcl_device_memory_delete(dev_mpot);
+      ezcl_device_memory_delete(dev_ioffset);
    }
 
    if (TIMING_LEVEL >= 2) gpu_time_refine_smooth += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
@@ -2726,8 +2708,8 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
       gpu_mass_sum = global_sum;
    }
 
-   ezcl_device_memory_remove(dev_redscratch);
-   ezcl_device_memory_remove(dev_mass_sum);
+   ezcl_device_memory_delete(dev_redscratch);
+   ezcl_device_memory_delete(dev_mass_sum);
 
    gpu_time_mass_sum += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
@@ -2738,22 +2720,49 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
 void State::allocate_device_memory(size_t ncells)
 {
 #ifdef HAVE_OPENCL
-   dev_H = ezcl_malloc(NULL, const_cast<char *>("dev_H"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-   dev_U = ezcl_malloc(NULL, const_cast<char *>("dev_U"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-   dev_V = ezcl_malloc(NULL, const_cast<char *>("dev_V"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
+   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
+   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
 #endif
 }
 void State::resize_old_device_memory(size_t ncells)
 {
 #ifdef HAVE_OPENCL
-   ezcl_device_memory_remove(dev_H);
-   ezcl_device_memory_remove(dev_U);
-   ezcl_device_memory_remove(dev_V);
-   dev_H = ezcl_malloc(NULL, const_cast<char *>("dev_H"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   dev_U = ezcl_malloc(NULL, const_cast<char *>("dev_U"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-   dev_V = ezcl_malloc(NULL, const_cast<char *>("dev_V"), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   gpu_state_memory.memory_delete(dev_H);
+   gpu_state_memory.memory_delete(dev_U);
+   gpu_state_memory.memory_delete(dev_V);
+   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
+   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
+   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
 #endif
 }
+
+#ifdef HAVE_MPI
+void State::do_load_balance_local(Mesh *mesh, const size_t new_ncells, const int &ncells_global){
+   mesh->do_load_balance_local(new_ncells, ncells_global, state_memory);
+   memory_reset_ptrs();
+}
+#endif
+#ifdef HAVE_OPENCL
+#ifdef HAVE_MPI
+void State::gpu_do_load_balance_local(cl_command_queue command_queue, Mesh *mesh, const size_t new_ncells, const int &ncells_global){
+   if (mesh->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, gpu_state_memory) ){
+      //gpu_state_memory.memory_report();
+      dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H");
+      dev_U = (cl_mem)gpu_state_memory.get_memory_ptr("dev_U");
+      dev_V = (cl_mem)gpu_state_memory.get_memory_ptr("dev_V");
+/*
+      if (dev_H == NULL){
+         dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H_new");
+         dev_U = (cl_mem)gpu_state_memory.get_memory_ptr("dev_U_new");
+         dev_V = (cl_mem)gpu_state_memory.get_memory_ptr("dev_V_new");
+      }
+      printf("DEBUG memory for proc %d dev_H is %p dev_U is %p dev_V is %p\n",mesh->mype,dev_H,dev_U,dev_V);
+*/
+   }
+}
+#endif
+#endif
 
 static double total_time = 0.0;
 

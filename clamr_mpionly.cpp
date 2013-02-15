@@ -408,8 +408,7 @@ extern "C" void do_calc(void)
 
       cpu_timer_start(&tstart_cpu);
       if (mesh->nlft.size() == 0) {
-         mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, state->state_memory);
-         state->memory_reset_ptrs();
+         state->do_load_balance_local(mesh, new_ncells, mesh_local_ncells_global);
       }
       cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
 

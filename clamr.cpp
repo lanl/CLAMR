@@ -461,7 +461,11 @@ extern "C" void do_calc(void)
       ncells       = new_ncells;
       //mesh->ncells = new_ncells;
 
-      if (mesh->dev_nlft == NULL) mesh->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, dev_H, dev_U, dev_V);
+      if (mesh->dev_nlft == NULL) state->gpu_do_load_balance_local(command_queue, mesh, new_ncells, ncells_global);
+      //dev_H = (cl_mem)state->gpu_state_memory.get_memory_ptr("dev_H_new");
+      //dev_U = (cl_mem)state->gpu_state_memory.get_memory_ptr("dev_U_new");
+      //dev_V = (cl_mem)state->gpu_state_memory.get_memory_ptr("dev_V_new");
+      //printf("DEBUG memory for proc %d is %p dev_H is %p dev_U is %p dev_V is %p\n",mype,dev_H,dev_U,dev_V);
 
       ioffset.clear();
 
@@ -619,7 +623,7 @@ extern "C" void do_calc(void)
       ezcl_terminate();
 
       //  Release kernels and finalize the OpenCL elements.
-      ezcl_finalize();
+      //ezcl_finalize();
       
       ezcl_mem_walk_all();
 

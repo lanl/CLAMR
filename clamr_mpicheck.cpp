@@ -456,8 +456,7 @@ extern "C" void do_calc(void)
       } // do_comparison_calc
 
       if (mesh->nlft.size() == 0) {
-         mesh->do_load_balance_local(new_ncells, mesh_local_ncells_global, state->state_memory);
-         state->memory_reset_ptrs();
+         state->do_load_balance_local(mesh, new_ncells, mesh_local_ncells_global);
       }
 
       if (do_comparison_calc) {

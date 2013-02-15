@@ -65,8 +65,9 @@ typedef double real;
 typedef float real;
 #endif
 
-#define REGULAR_MEMORY 0x00000
-#define MANAGED_MEMORY 0x00001
+#define HOST_REGULAR_MEMORY   0x00000
+#define HOST_MANAGED_MEMORY   0x00001
+#define DEVICE_REGULAR_MEMORY 0x00002
 
 using namespace std;
 
@@ -105,14 +106,21 @@ public:
 
    void memory_report(void);
 
+   void memory_delete(void *malloc_mem_ptr);
+   void memory_delete(const char *name);
+
    void memory_remove(void *malloc_mem_ptr);
    void memory_remove(const char *name);
 
    void *memory_begin(void);
    void *memory_next(void);
 
+   list<malloc_plus_memory_entry>::iterator memory_entry_begin(void);
+   list<malloc_plus_memory_entry>::iterator memory_entry_next(void);
+
    size_t get_memory_size(void *malloc_mem_ptr);
    size_t get_memory_capacity(void *malloc_mem_ptr);
+   const char *get_memory_name(void *malloc_mem_ptr);
 
    void *get_memory_ptr(const char *name);
 };

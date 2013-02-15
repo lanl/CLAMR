@@ -1818,17 +1818,41 @@ __kernel void calc_spatial_coordinates_cl(
    dy[giX] =        lev_deltay[lev];
 }
 
-__kernel void do_load_balance_cl_lower(
-         __global       real *dev_H_new,
-         __global       real *dev_U_new,
-         __global       real *dev_V_new,
+__kernel void do_load_balance_cl(
+                  const int   ncells,
+                  const int   lower_block_size,
+                  const int   middle_block_size,
+                  const int   middle_block_start,
+         __global const real *state_var_old,
+         __global const real *state_var_lower,
+         __global const real *state_var_upper,
+         __global       real *state_var_new)
+{
+   const uint giX = get_global_id(0);
+
+   //if(giX >= ncells) return;
+
+   //state_var_new[giX] = 0.0;
+
+   if(giX < lower_block_size) {
+      state_var_new[giX] = state_var_lower[giX];
+   } else if(giX < lower_block_size + middle_block_size) {
+      //const uint destgiX = giX;
+      const uint srcgiX = middle_block_start + giX - lower_block_size;
+
+      state_var_new[giX] = state_var_old[srcgiX];
+   } else if(giX < ncells) {
+      const uint srcgiX = giX - (lower_block_size + middle_block_size);
+
+      state_var_new[giX] = state_var_upper[srcgiX];
+   }
+}
+
+__kernel void do_load_balance_lower_cl(
          __global       int  *dev_i_new,
          __global       int  *dev_j_new,
          __global       int  *dev_level_new,
          __global       int  *dev_celltype_new,
-         __global const real *dev_H_lower,
-         __global const real *dev_U_lower,
-         __global const real *dev_V_lower,
          __global const int  *dev_i_lower,
          __global const int  *dev_j_lower,
          __global const int  *dev_level_lower,
@@ -1840,9 +1864,6 @@ __kernel void do_load_balance_cl_lower(
 
    if(giX >= lower_block_size) return;
 
-   dev_H_new[giX]        = dev_H_lower[giX];
-   dev_U_new[giX]        = dev_U_lower[giX];
-   dev_V_new[giX]        = dev_V_lower[giX];
    dev_i_new[giX]        = dev_i_lower[giX];
    dev_j_new[giX]        = dev_j_lower[giX];
    dev_level_new[giX]    = dev_level_lower[giX];
@@ -1851,17 +1872,11 @@ __kernel void do_load_balance_cl_lower(
 }
 
 
-__kernel void do_load_balance_cl_middle(
-         __global       real *dev_H_new,
-         __global       real *dev_U_new,
-         __global       real *dev_V_new,
+__kernel void do_load_balance_middle_cl(
          __global       int  *dev_i_new,
          __global       int  *dev_j_new,
          __global       int  *dev_level_new,
          __global       int  *dev_celltype_new,
-         __global const real *dev_H,
-         __global const real *dev_U,
-         __global const real *dev_V,
          __global const int  *dev_i,
          __global const int  *dev_j,
          __global const int  *dev_level,
@@ -1878,9 +1893,6 @@ __kernel void do_load_balance_cl_middle(
    const unsigned int rgiX = lower_block_size + giX;
    const unsigned int dgiX = middle_block_start + giX;
 
-   dev_H_new[rgiX]        = dev_H[dgiX];
-   dev_U_new[rgiX]        = dev_U[dgiX];
-   dev_V_new[rgiX]        = dev_V[dgiX];
    dev_i_new[rgiX]        = dev_i[dgiX];
    dev_j_new[rgiX]        = dev_j[dgiX];
    dev_level_new[rgiX]    = dev_level[dgiX];
@@ -1889,17 +1901,11 @@ __kernel void do_load_balance_cl_middle(
 }
 
 
-__kernel void do_load_balance_cl_upper(
-         __global       real *dev_H_new,
-         __global       real *dev_U_new,
-         __global       real *dev_V_new,
+__kernel void do_load_balance_upper_cl(
          __global       int  *dev_i_new,
          __global       int  *dev_j_new,
          __global       int  *dev_level_new,
          __global       int  *dev_celltype_new,
-         __global const real *dev_H_upper,
-         __global const real *dev_U_upper,
-         __global const real *dev_V_upper,
          __global const int  *dev_i_upper,
          __global const int  *dev_j_upper,
          __global const int  *dev_level_upper,
@@ -1915,9 +1921,6 @@ __kernel void do_load_balance_cl_upper(
 
    const unsigned int rgiX = lower_block_size + middle_block_size + giX;
 
-   dev_H_new[rgiX]        = dev_H_upper[giX];
-   dev_U_new[rgiX]        = dev_U_upper[giX];
-   dev_V_new[rgiX]        = dev_V_upper[giX];
    dev_i_new[rgiX]        = dev_i_upper[giX];
    dev_j_new[rgiX]        = dev_j_upper[giX];
    dev_level_new[rgiX]    = dev_level_upper[giX];

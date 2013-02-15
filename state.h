@@ -83,6 +83,7 @@ class State {
    
 public:
    MallocPlus state_memory;
+   MallocPlus gpu_state_memory;
    real *H;
    real *U;
    real *V;
@@ -180,6 +181,15 @@ public:
    size_t calc_refine_potential(Mesh *mesh, vector<int> &mpot, int &icount, int &jcount);
 #ifdef HAVE_OPENCL
    size_t gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh);
+#endif
+
+#ifdef HAVE_MPI
+   void do_load_balance_local(Mesh *mesh, const size_t new_ncells, const int &ncells_global);
+#endif
+#ifdef HAVE_OPENCL
+#ifdef HAVE_MPI
+   void gpu_do_load_balance_local(cl_command_queue command_queue, Mesh *mesh, const size_t new_ncells, const int &ncells_global);
+#endif
 #endif
    
    void calc_finite_difference(Mesh *mesh, double deltaT);

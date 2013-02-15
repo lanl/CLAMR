@@ -118,7 +118,7 @@ add_executable(clamr ${clamr_SRCS})
 
 set_target_properties(clamr PROPERTIES COMPILE_DEFINITIONS HAVE_MPI_AND_OPENCL)
 
-target_link_libraries(clamr hsfc kdtree zorder s7 pezcl timer memstats l7 genmalloc MallocPlus m)
+target_link_libraries(clamr hsfc kdtree zorder s7 pezcl timer memstats l7 genmalloc dMallocPlus m)
 target_link_libraries(clamr ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr ${MPI_LIBRARIES})
 target_link_libraries(clamr ${OPENCL_LIBRARIES})
@@ -136,7 +136,7 @@ add_executable(clamr_gpuonly ${clamr_gpuonly_SRCS})
 
 set_target_properties(clamr_gpuonly PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
-target_link_libraries(clamr_gpuonly hsfc kdtree zorder s7 ezcl timer memstats genmalloc MallocPlus m)
+target_link_libraries(clamr_gpuonly hsfc kdtree zorder s7 ezcl timer memstats genmalloc dMallocPlus m)
 target_link_libraries(clamr_gpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_gpuonly ${OPENCL_LIBRARIES})
 target_link_libraries(clamr_gpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
@@ -188,7 +188,7 @@ add_executable(clamr_gpucheck ${clamr_gpucheck_SRCS})
 
 set_target_properties(clamr_gpucheck PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
-target_link_libraries(clamr_gpucheck hsfc kdtree zorder s7 ezcl timer memstats genmalloc MallocPlus m)
+target_link_libraries(clamr_gpucheck hsfc kdtree zorder s7 ezcl timer memstats genmalloc dMallocPlus m)
 target_link_libraries(clamr_gpucheck ${MPE_NOMPI_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_gpucheck ${OPENCL_LIBRARIES})
 target_link_libraries(clamr_gpucheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
@@ -224,7 +224,7 @@ add_executable(clamr_checkall ${clamr_checkall_SRCS})
 
 set_target_properties(clamr_checkall PROPERTIES COMPILE_DEFINITIONS HAVE_MPI_AND_OPENCL)
 
-target_link_libraries(clamr_checkall hsfc kdtree zorder s7 pezcl timer memstats l7 genmalloc MallocPlus m)
+target_link_libraries(clamr_checkall hsfc kdtree zorder s7 pezcl timer memstats l7 genmalloc dMallocPlus m)
 target_link_libraries(clamr_checkall ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_checkall ${MPI_LIBRARIES})
 target_link_libraries(clamr_checkall ${OPENCL_LIBRARIES})

@@ -509,10 +509,6 @@ extern "C" void do_calc(void)
    cl_mem &dev_U_global = state_global->dev_U;
    cl_mem &dev_V_global = state_global->dev_V;
 
-   cl_mem &dev_H  = state_local->dev_H;
-   cl_mem &dev_U  = state_local->dev_U;
-   cl_mem &dev_V  = state_local->dev_V;
-
    cl_mem &dev_celltype_global = mesh_global->dev_celltype;
    cl_mem &dev_i_global        = mesh_global->dev_i;
    cl_mem &dev_j_global        = mesh_global->dev_j;
@@ -542,9 +538,9 @@ extern "C" void do_calc(void)
 
       // To reduce drift in solution
       if (do_sync) {
-         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->H[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->U[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&state_local->V[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, state_local->dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->H[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, state_local->dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->U[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, state_local->dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&state_local->V[0],  NULL);
 
          ezcl_enqueue_read_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->H[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->U[0],  NULL);
@@ -758,15 +754,14 @@ extern "C" void do_calc(void)
       ndispl_save = ndispl;
 
       if (do_cpu_calc) {
-         mesh_local->do_load_balance_local(new_ncells, ncells_global, state_local->state_memory);
-         state_local->memory_reset_ptrs();
+         state_local->do_load_balance_local(mesh_local, new_ncells, ncells_global);
       }
 
       nsizes = nsizes_save;
       ndispl = ndispl_save;
 
       if (do_gpu_calc) {
-         mesh_local->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, dev_H, dev_U, dev_V);
+         state_local->gpu_do_load_balance_local(command_queue, mesh_local, new_ncells, ncells_global);
       }
 
       if (do_comparison_calc) {
@@ -824,9 +819,9 @@ extern "C" void do_calc(void)
       }
 
       if (do_gpu_sync) {
-         ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->H[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->U[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&state_local->V[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, state_local->dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->H[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, state_local->dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state_local->U[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, state_local->dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&state_local->V[0],  NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->H[0],  NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->U[0],  NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_real),  (void *)&state_global->V[0],  NULL);
@@ -864,7 +859,7 @@ extern "C" void do_calc(void)
    ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y[0],  NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dy[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_H,  CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H_graphics[0],  &end_read_event);
+   ezcl_enqueue_read_buffer(command_queue, state_local->dev_H,  CL_TRUE,  0, ncells*sizeof(cl_real), (void *)&H_graphics[0],  &end_read_event);
 
    gpu_time_graphics += ezcl_timer_calc(&start_read_event, &end_read_event);
 

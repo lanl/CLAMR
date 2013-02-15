@@ -409,7 +409,7 @@ public:
 #endif
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-   void gpu_do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, const int &ncells_global, cl_mem &dev_H, cl_mem &dev_U, cl_mem &dev_V);
+   int gpu_do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, const int &ncells_global, MallocPlus &gpu_state_memory);
 #endif
    void gpu_calc_neighbors(cl_command_queue command_queue);
    void gpu_calc_neighbors_local(cl_command_queue command_queue);

@@ -663,7 +663,7 @@ cl_context ezcl_get_context_p(const char *file, const int line){
    return(context);
 }
 
-cl_mem ezcl_malloc_p(void *host_mem_ptr, char *name, size_t dims[], size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line){
+cl_mem ezcl_malloc_p(void *host_mem_ptr, const char *name, size_t dims[], size_t elsize, size_t flags, int ezcl_flags, const char *file, const int line){
    void *buf_mem_ptr = NULL;
    cl_mem mem_ptr = NULL;
    size_t size=0;
@@ -879,14 +879,49 @@ void *ezcl_malloc_memory_add_p(void *malloc_mem_ptr, const char *name, size_t si
    return(malloc_mem_ptr);
 }
 
+void ezcl_device_memory_delete_p(void *dev_mem_ptr, const char *file, const int line){
+   SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
+      if (device_memory_item->cl_mem_ptr == dev_mem_ptr) {
+         if (DEBUG) printf("EZCL_DEVICE_MEMORY_DELETE: DEBUG -- freeing device memory pointer %p\n",dev_mem_ptr);
+         clReleaseMemObject((void *)device_memory_item->cl_mem_ptr);
+         SLIST_REMOVE(&device_memory_head, device_memory_item, device_memory_entry, device_memory_entries);
+         free(device_memory_item);
+         break;         
+      }
+   }
+}   
+
+void ezcl_mapped_memory_delete_p(void *map_mem_ptr, const char *file, const int line){
+   SLIST_FOREACH(mapped_memory_item, &mapped_memory_head, mapped_memory_entries){
+      if (mapped_memory_item->cl_mem_ptr == map_mem_ptr) {
+         if (DEBUG) printf("EZCL_MAPPED_MEMORY_DELETE: DEBUG -- freeing mapped memory pointer %p\n",map_mem_ptr);
+         clReleaseMemObject((void *)mapped_memory_item->cl_mem_ptr);
+         SLIST_REMOVE(&mapped_memory_head, mapped_memory_item, mapped_memory_entry, mapped_memory_entries);
+         free(mapped_memory_item);
+         break;
+      }
+   }
+}
+
+void ezcl_malloc_memory_delete_p(void *malloc_mem_ptr, const char *file, const int line){
+   SLIST_FOREACH(malloc_memory_item, &malloc_memory_head, malloc_memory_entries){
+      if (malloc_memory_item->mem_ptr == malloc_mem_ptr) {
+         if (DEBUG) printf("EZCL_MALLOC_MEMORY_DELETE: DEBUG -- freeing malloc memory pointer %p\n",malloc_mem_ptr);
+         free(malloc_mem_ptr);
+         SLIST_REMOVE(&malloc_memory_head, malloc_memory_item, malloc_memory_entry, malloc_memory_entries);
+         free(malloc_memory_item);
+         break;         
+      }
+   }
+}   
+
 void ezcl_device_memory_remove_p(void *dev_mem_ptr, const char *file, const int line){
    SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
       if (device_memory_item->cl_mem_ptr == dev_mem_ptr) {
          if (DEBUG) printf("EZCL_DEVICE_MEMORY_REMOVE: DEBUG -- freeing device memory pointer %p\n",dev_mem_ptr);
          clReleaseMemObject((void *)device_memory_item->cl_mem_ptr);
          SLIST_REMOVE(&device_memory_head, device_memory_item, device_memory_entry, device_memory_entries);
-         free(device_memory_item);
-            break;         
+         break;         
       }
    }
 }   
@@ -897,7 +932,6 @@ void ezcl_mapped_memory_remove_p(void *map_mem_ptr, const char *file, const int 
          if (DEBUG) printf("EZCL_MAPPED_MEMORY_REMOVE: DEBUG -- freeing mapped memory pointer %p\n",map_mem_ptr);
          clReleaseMemObject((void *)mapped_memory_item->cl_mem_ptr);
          SLIST_REMOVE(&mapped_memory_head, mapped_memory_item, mapped_memory_entry, mapped_memory_entries);
-         free(mapped_memory_item);
          break;
       }
    }
@@ -909,7 +943,6 @@ void ezcl_malloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const i
          if (DEBUG) printf("EZCL_MALLOC_MEMORY_REMOVE: DEBUG -- freeing malloc memory pointer %p\n",malloc_mem_ptr);
          free(malloc_mem_ptr);
          SLIST_REMOVE(&malloc_memory_head, malloc_memory_item, malloc_memory_entry, malloc_memory_entries);
-         free(malloc_memory_item);
          break;         
       }
    }
@@ -1259,7 +1292,7 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
      }
    }
 
-   ezcl_malloc_memory_remove(source);
+   ezcl_malloc_memory_delete(source);
 
 #ifdef HAVE_CL_DOUBLE
    if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
@@ -1602,8 +1635,8 @@ cl_int ezcl_finalize_p(const char *file, const int line){
 
 void ezcl_terminate_p(const char *file, const int line){
 
-   ezcl_malloc_memory_remove(devices);
-   ezcl_malloc_memory_remove(platforms);
+   ezcl_malloc_memory_delete(devices);
+   ezcl_malloc_memory_delete(platforms);
 
    ezcl_command_queue_release(command_queue);
    ezcl_context_release(context);
