@@ -6086,7 +6086,6 @@ int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_t
       size_t up_block_size = MAX(1, upper_block_size);
       cl_mem dev_state_var_upper = ezcl_malloc(NULL, const_cast<char *>("dev_state_var_upper"), &up_block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
-      int ivar = 0;
       for (cl_mem dev_state_mem_ptr=(cl_mem)gpu_state_memory.memory_begin(); dev_state_mem_ptr!=NULL; dev_state_mem_ptr=(cl_mem)gpu_state_memory.memory_next() ){
 
          vector<real> state_var_tmp(ncells_old+indices_needed_count,0.0);
@@ -6105,23 +6104,8 @@ int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_t
             }
          }
 
-/*
-         if (ivar == 2) {
-            for (int ic = 0; ic<ncells_old+indices_needed_count; ic++){
-               state_var_tmp[ic] = mype*1000+ic;
-               //printf("DEBUG before update -- mype %d ic %d state_var_tmp %lf\n",mype,ic,state_var_tmp[ic]);
-            }
-         }
-*/
-
          // Update arrays with L7
          L7_Update(&state_var_tmp[0], L7_REAL, load_balance_handle);
-
-/*
-         if (ivar == 2) {
-            ezcl_enqueue_write_buffer(command_queue, dev_state_mem_ptr, CL_TRUE, 0, ncells_old*sizeof(cl_real), &state_var_tmp[0], NULL);
-         }
-*/
 
          // Set lower block on GPU
          if(lower_block_size > 0) {
@@ -6150,28 +6134,10 @@ int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_t
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance,   1, NULL, &global_work_size, &local_work_size, NULL);
 
          gpu_state_memory.memory_replace(dev_state_mem_ptr, dev_state_var_new);
-
-         ivar++;
       }
 
       ezcl_device_memory_delete(dev_state_var_lower);
       ezcl_device_memory_delete(dev_state_var_upper);
-
-/*
-      vector<real> H_check(ncells);
-      cl_mem dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H_new");
-      ezcl_enqueue_read_buffer(command_queue, dev_H, CL_TRUE, 0, ncells*sizeof(cl_real), &H_check[0], NULL);
-      for (int ic = 0; ic<ncells; ic++){
-         printf("DEBUG after kernel -- mype %d ic %d H_tmp %lf\n",mype,ic,H_check[ic]);
-      }
-
-      cl_mem dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H_new");
-      cl_mem dev_U = (cl_mem)gpu_state_memory.get_memory_ptr("dev_U_new");
-      cl_mem dev_V = (cl_mem)gpu_state_memory.get_memory_ptr("dev_V_new");
-      printf("DEBUG memory for proc %d dev_H is %p dev_U is %p dev_V is %p\n",mype,dev_H,dev_U,dev_V);
-
-      gpu_state_memory.memory_report();
-*/
 
       vector<int> i_tmp(ncells_old+indices_needed_count,0);
       vector<int> j_tmp(ncells_old+indices_needed_count,0);
