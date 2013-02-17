@@ -19,6 +19,7 @@ add_library(dMallocPlus SHARED ${dMallocPlus_LIB_SRCS})
 set_target_properties(dMallocPlus PROPERTIES VERSION 2.0.0 SOVERSION 2)
 set_target_properties(dMallocPlus PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 target_link_libraries(dMallocPlus ${OPENCL_LIBRARIES})
+target_link_libraries(dMallocPlus ezcl)
 install(TARGETS dMallocPlus DESTINATION lib)
 
 ########### install files ###############
