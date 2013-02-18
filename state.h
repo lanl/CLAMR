@@ -161,7 +161,9 @@ public:
    long get_gpu_time_read(void)              {return(gpu_time_read);};
    long get_gpu_time_write(void)             {return(gpu_time_write);};
 
-   void allocate_device_memory(size_t ncells);
+#ifdef HAVE_OPENCL
+   void allocate_device_memory(size_t ncells, cl_context context);
+#endif
    void resize_old_device_memory(size_t ncells);
 
    void add_boundary_cells(Mesh *mesh);

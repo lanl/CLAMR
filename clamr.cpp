@@ -251,7 +251,7 @@ int main(int argc, char **argv) {
 
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
 
-   state->allocate_device_memory(ncells);
+   state->allocate_device_memory(ncells, context);
 
    size_t one = 1;
    state->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT"),               &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);

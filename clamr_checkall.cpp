@@ -352,8 +352,8 @@ int main(int argc, char **argv) {
    MPI_Allgatherv(&state_local->U[0], ncells, MPI_C_REAL, &state_global->U[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&state_local->V[0], ncells, MPI_C_REAL, &state_global->V[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
-   state_global->allocate_device_memory(ncells_global);
-   state_local->allocate_device_memory(ncells);
+   state_global->allocate_device_memory(ncells_global, context);
+   state_local->allocate_device_memory(ncells, context);
 
    size_t one = 1;
    state_global->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT_global"), &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);

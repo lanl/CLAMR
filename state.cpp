@@ -2717,14 +2717,16 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
 }
 #endif
 
-void State::allocate_device_memory(size_t ncells)
-{
 #ifdef HAVE_OPENCL
+void State::allocate_device_memory(size_t ncells, cl_context context)
+{
+   gpu_state_memory.init(context);
    dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
    dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
    dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
-#endif
 }
+#endif
+
 void State::resize_old_device_memory(size_t ncells)
 {
 #ifdef HAVE_OPENCL

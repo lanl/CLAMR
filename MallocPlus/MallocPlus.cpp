@@ -118,7 +118,7 @@ void *MallocPlus::memory_malloc(size_t nelem, size_t elsize, int flags, const ch
    if ((flags & DEVICE_REGULAR_MEMORY) != 0){
 #ifdef HAVE_OPENCL
       memory_item.mem_capacity = nelem;
-      memory_item.mem_ptr      = ezcl_malloc(NULL, name, &nelem, elsize, CL_MEM_READ_WRITE, 0);
+      memory_item.mem_ptr      = ezcl_device_memory_malloc(context, NULL, name, nelem, elsize, CL_MEM_READ_WRITE, 0);
 #endif
    } else if ((flags & HOST_MANAGED_MEMORY) != 0){
       memory_item.mem_capacity = nelem;

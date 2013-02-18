@@ -82,8 +82,14 @@ struct malloc_plus_memory_entry {
 
 class MallocPlus {
    list<malloc_plus_memory_entry> memory_list;
+#ifdef HAVE_OPENCL
+   cl_context context;
+#endif
    
 public:
+#ifdef HAVE_OPENCL
+   void init(cl_context context_in) { context = context_in; }
+#endif
    void *memory_malloc(size_t nelem, size_t elsize, const char *name);
    void *memory_malloc(size_t nelem, size_t elsize, int flags, const char *name);
 
