@@ -5862,7 +5862,7 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
 }
 
 #ifdef HAVE_MPI
-void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_global, MallocPlus &state_memory)
+void Mesh::do_load_balance_local(const size_t new_ncells, const int ncells_global, MallocPlus &state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -6010,7 +6010,7 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int &ncells_glob
 
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, const int &ncells_global, MallocPlus &gpu_state_memory)
+int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, const int ncells_global, MallocPlus &gpu_state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
