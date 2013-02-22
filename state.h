@@ -186,11 +186,11 @@ public:
 #endif
 
 #ifdef HAVE_MPI
-   void do_load_balance_local(Mesh *mesh, const size_t new_ncells, const int &ncells_global);
+   void do_load_balance_local(Mesh *mesh, const size_t new_ncells);
 #endif
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-   void gpu_do_load_balance_local(cl_command_queue command_queue, Mesh *mesh, const size_t new_ncells, const int &ncells_global);
+   void gpu_do_load_balance_local(cl_command_queue command_queue, Mesh *mesh, const size_t new_ncells);
 #endif
 #endif
    

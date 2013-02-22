@@ -179,8 +179,6 @@ int main(int argc, char **argv) {
    size_t &ncells_global = mesh->ncells_global;
    int &noffset = mesh->noffset;
 
-   MPI_Allreduce(&ncells, &ncells_global, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
-
    state = new State(ncells);
    state->init(ncells, context, compute_device, do_gpu_calc);
 
@@ -461,7 +459,7 @@ extern "C" void do_calc(void)
       ncells       = new_ncells;
       //mesh->ncells = new_ncells;
 
-      if (mesh->dev_nlft == NULL) state->gpu_do_load_balance_local(command_queue, mesh, new_ncells, ncells_global);
+      if (mesh->dev_nlft == NULL) state->gpu_do_load_balance_local(command_queue, mesh, new_ncells);
       //dev_H = (cl_mem)state->gpu_state_memory.get_memory_ptr("dev_H_new");
       //dev_U = (cl_mem)state->gpu_state_memory.get_memory_ptr("dev_U_new");
       //dev_V = (cl_mem)state->gpu_state_memory.get_memory_ptr("dev_V_new");

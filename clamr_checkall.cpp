@@ -754,14 +754,14 @@ extern "C" void do_calc(void)
       ndispl_save = ndispl;
 
       if (do_cpu_calc) {
-         state_local->do_load_balance_local(mesh_local, new_ncells, ncells_global);
+         state_local->do_load_balance_local(mesh_local, new_ncells);
       }
 
       nsizes = nsizes_save;
       ndispl = ndispl_save;
 
       if (do_gpu_calc) {
-         state_local->gpu_do_load_balance_local(command_queue, mesh_local, new_ncells, ncells_global);
+         state_local->gpu_do_load_balance_local(command_queue, mesh_local, new_ncells);
       }
 
       if (do_comparison_calc) {

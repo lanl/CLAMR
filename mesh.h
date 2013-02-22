@@ -412,16 +412,15 @@ public:
    *       the ncells in the mesh object if a load balance is done.
    *    weight -- weighting array per cell for balancing. Currently not used. Null value
    *       indicates even weighting of cells for load balance. 
-   *    ncells_global -- local copy of ncells global so mpicheck works
    *    state_memory or gpu_state_memory -- linked-list of arrays from physics routine
    *       to be load balanced. 
    * Output -- arrays will be returned load balanced with new sizes. Pointers to arrays
    *       will need to be reset
    **************************************************************************************/
 #ifdef HAVE_MPI
-   void do_load_balance_local(const size_t new_ncells, const int ncells_global, MallocPlus &state_memory);
+   void do_load_balance_local(const size_t new_ncells, MallocPlus &state_memory);
 #ifdef HAVE_OPENCL
-   int gpu_do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, const int ncells_global, MallocPlus &gpu_state_memory);
+   int gpu_do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, MallocPlus &gpu_state_memory);
 #endif
 #endif
 

@@ -2405,6 +2405,9 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
    } //  Complete addition of new cells to the mesh.
 
    ncells = nc;
+#ifdef HAVE_MPI
+   MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+#endif
    
    calc_celltype();
 
@@ -5862,7 +5865,7 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
 }
 
 #ifdef HAVE_MPI
-void Mesh::do_load_balance_local(const size_t new_ncells, const int ncells_global, MallocPlus &state_memory)
+void Mesh::do_load_balance_local(const size_t new_ncells, MallocPlus &state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -6010,7 +6013,7 @@ void Mesh::do_load_balance_local(const size_t new_ncells, const int ncells_globa
 
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, const int ncells_global, MallocPlus &gpu_state_memory)
+int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, MallocPlus &gpu_state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);

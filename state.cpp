@@ -1086,6 +1086,7 @@ void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &n
          mesh->ndispl[ip] = mesh->ndispl[ip-1] + mesh->nsizes[ip-1];
       }
       mesh->noffset=mesh->ndispl[mesh->mype];
+      mesh->ncells_global = mesh->ndispl[mesh->numpe-1]+mesh->nsizes[mesh->numpe-1];
    }
 #endif
 
@@ -2740,15 +2741,15 @@ void State::resize_old_device_memory(size_t ncells)
 }
 
 #ifdef HAVE_MPI
-void State::do_load_balance_local(Mesh *mesh, const size_t new_ncells, const int &ncells_global){
-   mesh->do_load_balance_local(new_ncells, ncells_global, state_memory);
+void State::do_load_balance_local(Mesh *mesh, const size_t new_ncells){
+   mesh->do_load_balance_local(new_ncells, state_memory);
    memory_reset_ptrs();
 }
 #endif
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-void State::gpu_do_load_balance_local(cl_command_queue command_queue, Mesh *mesh, const size_t new_ncells, const int &ncells_global){
-   if (mesh->gpu_do_load_balance_local(command_queue, new_ncells, ncells_global, gpu_state_memory) ){
+void State::gpu_do_load_balance_local(cl_command_queue command_queue, Mesh *mesh, const size_t new_ncells){
+   if (mesh->gpu_do_load_balance_local(command_queue, new_ncells, gpu_state_memory) ){
       //gpu_state_memory.memory_report();
       dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H");
       dev_U = (cl_mem)gpu_state_memory.get_memory_ptr("dev_U");

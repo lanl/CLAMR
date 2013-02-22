@@ -438,9 +438,6 @@ extern "C" void do_calc(void)
       state->rezone_all(mesh, mpot, add_ncells);
       mpot.clear();
 
-      int mesh_local_ncells_global;
-      MPI_Allreduce(&ncells, &mesh_local_ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-
       if (do_comparison_calc) {
          int add_ncells_global = new_ncells_global - old_ncells_global;
          //printf("%d: DEBUG add %d new %d old %d\n",mype,add_ncells,new_ncells,old_ncells);
@@ -456,7 +453,7 @@ extern "C" void do_calc(void)
       } // do_comparison_calc
 
       if (mesh->nlft.size() == 0) {
-         state->do_load_balance_local(mesh, new_ncells, mesh_local_ncells_global);
+         state->do_load_balance_local(mesh, new_ncells);
       }
 
       if (do_comparison_calc) {
@@ -539,8 +536,6 @@ extern "C" void do_calc(void)
    set_cell_proc(&mesh->proc[0]);
 #endif
 #ifdef HAVE_OPENGL
-      MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-
       x_global.resize(ncells_global);
       dx_global.resize(ncells_global);
       y_global.resize(ncells_global);

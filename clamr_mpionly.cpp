@@ -177,8 +177,6 @@ int main(int argc, char **argv) {
    size_t &ncells_global = mesh->ncells_global;
    int &noffset = mesh->noffset;
 
-   MPI_Allreduce(&ncells, &ncells_global, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
-
    state = new State(ncells);
    state->init(ncells, do_gpu_calc);
 
@@ -403,12 +401,9 @@ extern "C" void do_calc(void)
       mpot.clear();
       cpu_time_rezone += cpu_timer_stop(tstart_cpu);
 
-      int mesh_local_ncells_global;
-      MPI_Allreduce(&ncells, &mesh_local_ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-
       cpu_timer_start(&tstart_cpu);
       if (mesh->nlft.size() == 0) {
-         state->do_load_balance_local(mesh, new_ncells, mesh_local_ncells_global);
+         state->do_load_balance_local(mesh, new_ncells);
       }
       cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
 
@@ -449,8 +444,6 @@ extern "C" void do_calc(void)
 #ifdef HAVE_OPENGL
    vector<int>   &nsizes   = mesh->nsizes;
    vector<int>   &ndispl   = mesh->ndispl;
-
-   MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
    set_mysize(ncells_global);
    //vector<real> x_global;
