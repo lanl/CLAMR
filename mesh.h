@@ -284,7 +284,6 @@ public:
 #else
    void init(int nx, int ny, double circ_radius, partition_method initial_order, int do_gpu_calc);
 #endif
-   void mesh_reorder(vector<int> iorder);
 
    void resize_old_device_memory(size_t ncells);
 
@@ -353,21 +352,90 @@ public:
    int get_gpu_calc_neigh_count(void)             {return(gpu_calc_neigh_counter); };
 
    void write_grid(int ncycle);
-   void calc_spatial_coordinates(int ibase);
-#ifdef HAVE_OPENCL
-   void gpu_calc_spatial_coordinates(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy);
-#endif
    void kdtree_setup(void);
    void calc_centerminmax(void);
    int  rezone_count(vector<int> mpot);
 #ifdef HAVE_OPENCL
    void gpu_rezone_count(cl_command_queue command_queue, size_t block_size, size_t local_work_size, cl_mem dev_ioffset, cl_mem &dev_result);
 #endif
-   void rezone_all(vector<int> mpot, int add_ncells);
    void print(void);
    void print_local(void);
+
+   void partition_measure(void);
+   void print_partition_measure(void);
+   void print_calc_neighbor_type(void);
+   int get_calc_neighbor_type(void);
+   void print_partition_type(void);
+   void partition_cells(int numpe,
+                   vector<int> &order,
+                   enum partition_method method);
+   void calc_symmetry(vector<int> &dsym,
+                  vector<int> &xsym,
+                  vector<int> &ysym);
+
+   /**************************************************************************************
+   * Calculate neighbors
+   **************************************************************************************/
+   void calc_neighbors(void);
+   void calc_neighbors_local(void);
 #ifdef HAVE_OPENCL
-   void print_dev_local(cl_command_queue);
+   void gpu_calc_neighbors(cl_command_queue command_queue);
+   void gpu_calc_neighbors_local(cl_command_queue command_queue);
+#endif
+   //   TODO:  Not created yet; overloading for 3D mesh support. (davis68)
+   void calc_neighbors(vector<int> &nlft,
+                  vector<int> &nrht,
+                  vector<int> &nbot,
+                  vector<int> &ntop,
+                  vector<int> &nfrt,
+                  vector<int> &nbak,
+                  vector<int> index);
+
+   /**************************************************************************************
+   * Rezone mesh
+   **************************************************************************************/
+   void rezone_all(vector<int> mpot, int add_ncells);
+
+   /**************************************************************************************
+   * Load balance -- only needed for parallel (MPI) runs
+   *  Input
+   *    numcells -- ncells from rezone all routine. The load balance will reset
+   *       the numcells argument and in the mesh object if a load balance is done.
+   *    weight -- weighting array per cell for balancing. Currently not used. Null value
+   *       indicates even weighting of cells for load balance. 
+   *    state_memory or gpu_state_memory -- linked-list of arrays from physics routine
+   *       to be load balanced. 
+   * Output -- arrays will be returned load balanced with new sizes. Pointers to arrays
+   *       will need to be reset
+   **************************************************************************************/
+#ifdef HAVE_MPI
+   void do_load_balance_local(size_t &numcells, float *weight, MallocPlus &state_memory);
+#ifdef HAVE_OPENCL
+   int gpu_do_load_balance_local(cl_command_queue command_queue, size_t &numcells, float *weight, MallocPlus &gpu_state_memory);
+#endif
+#endif
+
+   /**************************************************************************************
+   * Calculate spatial coordinates
+   **************************************************************************************/
+   void calc_spatial_coordinates(int ibase);
+#ifdef HAVE_OPENCL
+   void gpu_calc_spatial_coordinates(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy);
+#endif
+
+   void calc_distribution(int numpe);
+#ifdef HAVE_OPENCL
+   int gpu_count_BCs(cl_command_queue command_queue);
+#endif
+
+   void print_object_info();
+   size_t refine_smooth(vector<int> &mpot);
+
+
+   /**************************************************************************************
+   * Testing routines
+   **************************************************************************************/
+#ifdef HAVE_OPENCL
    void compare_dev_local_to_local(cl_command_queue);
    void compare_neighbors_gpu_global_to_cpu_global(cl_command_queue command_queue);
 #endif
@@ -391,50 +459,8 @@ public:
 #ifdef HAVE_OPENCL
    void compare_indices_all_to_gpu_local(cl_command_queue command_queue, Mesh *mesh_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
 #endif
-   void partition_measure(void);
-   void print_partition_measure(void);
-   void print_calc_neighbor_type(void);
-   int get_calc_neighbor_type(void);
-   void print_partition_type(void);
-   void partition_cells(int numpe,
-                   vector<int> &order,
-                   enum partition_method method);
-   void calc_symmetry(vector<int> &dsym,
-                  vector<int> &xsym,
-                  vector<int> &ysym);
-   void calc_neighbors(void);
-   void calc_neighbors_local(void);
 
-   /**************************************************************************************
-   * Load balance -- only needed for parallel (MPI) runs
-   *  Input
-   *    new_ncells -- ncells from rezone all routine. The load balance will reset
-   *       the ncells in the mesh object if a load balance is done.
-   *    weight -- weighting array per cell for balancing. Currently not used. Null value
-   *       indicates even weighting of cells for load balance. 
-   *    state_memory or gpu_state_memory -- linked-list of arrays from physics routine
-   *       to be load balanced. 
-   * Output -- arrays will be returned load balanced with new sizes. Pointers to arrays
-   *       will need to be reset
-   **************************************************************************************/
-#ifdef HAVE_MPI
-   void do_load_balance_local(const size_t new_ncells, MallocPlus &state_memory);
-#ifdef HAVE_OPENCL
-   int gpu_do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, MallocPlus &gpu_state_memory);
-#endif
-#endif
 
-#ifdef HAVE_OPENCL
-   void gpu_calc_neighbors(cl_command_queue command_queue);
-   void gpu_calc_neighbors_local(cl_command_queue command_queue);
-#endif
-   void calc_distribution(int numpe);
-#ifdef HAVE_OPENCL
-   int gpu_count_BCs(cl_command_queue command_queue);
-#endif
-
-   void print_object_info();
-   size_t refine_smooth(vector<int> &mpot);
 
 private:
    //   Private constructors.
@@ -442,16 +468,14 @@ private:
 
    //   Member functions.
    void calc_minmax(void);
-   //   TODO:  Not created yet; overloading for 3D mesh support. (davis68)
-   void calc_neighbors(vector<int> &nlft,
-                  vector<int> &nrht,
-                  vector<int> &nbot,
-                  vector<int> &ntop,
-                  vector<int> &nfrt,
-                  vector<int> &nbak,
-                  vector<int> index);
    void calc_celltype(void);
+#ifdef HAVE_OPENCL
+   void print_dev_local(cl_command_queue);
+#endif
+
+/* Not currently called */
    void rezone_spread(vector<int> &mpot);
+   void mesh_reorder(vector<int> iorder);
 };
 
 #endif /* MESH_H */

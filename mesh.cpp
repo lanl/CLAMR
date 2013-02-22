@@ -5865,13 +5865,16 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
 }
 
 #ifdef HAVE_MPI
-void Mesh::do_load_balance_local(const size_t new_ncells, MallocPlus &state_memory)
+void Mesh::do_load_balance_local(size_t &numcells, float *weight, MallocPlus &state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   int ncells_old = new_ncells;
+   int ncells_old = numcells;
    int noffset_old = ndispl[mype];
+
+// Need to add weight array to load balance if it is not NULL
+// Need to add tolerance to when load balance is done
 
    int do_load_balance_global = 0;
    int nsizes_old = 0;
@@ -5890,6 +5893,7 @@ void Mesh::do_load_balance_local(const size_t new_ncells, MallocPlus &state_memo
       for (int ip=1; ip<numpe; ip++){
          ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
       }
+      numcells = nsizes[mype];
       ncells = nsizes[mype];
       noffset=ndispl[mype];
 
@@ -6013,13 +6017,16 @@ void Mesh::do_load_balance_local(const size_t new_ncells, MallocPlus &state_memo
 
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_t new_ncells, MallocPlus &gpu_state_memory)
+int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, size_t &numcells, float *weight, MallocPlus &gpu_state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   int ncells_old = new_ncells;
+   int ncells_old = numcells;
    int noffset_old = ndispl[mype];
+
+// Need to add weight array to load balance if it is not NULL
+// Need to add tolerance to when load balance is done
 
    int do_load_balance_global = 0;
    int nsizes_old = 0;
@@ -6038,6 +6045,7 @@ int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, const size_t
       for (int ip=1; ip<numpe; ip++){
          ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
       }
+      numcells = nsizes[mype];
       ncells = nsizes[mype];
       noffset=ndispl[mype];
 

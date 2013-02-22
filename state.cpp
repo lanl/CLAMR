@@ -2741,15 +2741,15 @@ void State::resize_old_device_memory(size_t ncells)
 }
 
 #ifdef HAVE_MPI
-void State::do_load_balance_local(Mesh *mesh, const size_t new_ncells){
-   mesh->do_load_balance_local(new_ncells, state_memory);
+void State::do_load_balance_local(Mesh *mesh, size_t &numcells){
+   mesh->do_load_balance_local(numcells, NULL, state_memory);
    memory_reset_ptrs();
 }
 #endif
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-void State::gpu_do_load_balance_local(cl_command_queue command_queue, Mesh *mesh, const size_t new_ncells){
-   if (mesh->gpu_do_load_balance_local(command_queue, new_ncells, gpu_state_memory) ){
+void State::gpu_do_load_balance_local(cl_command_queue command_queue, Mesh *mesh, size_t &numcells){
+   if (mesh->gpu_do_load_balance_local(command_queue, numcells, NULL, gpu_state_memory) ){
       //gpu_state_memory.memory_report();
       dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H");
       dev_U = (cl_mem)gpu_state_memory.get_memory_ptr("dev_U");
