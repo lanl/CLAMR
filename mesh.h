@@ -399,8 +399,9 @@ public:
    /**************************************************************************************
    * Load balance -- only needed for parallel (MPI) runs
    *  Input
-   *    numcells -- ncells from rezone all routine. The load balance will reset
-   *       the numcells argument and in the mesh object if a load balance is done.
+   *    numcells -- ncells from rezone all routine. This is a copy in so that a local
+   *       value can be used for load_balance and gpu_load_balance without it getting
+   *       reset for clamr_checkall routine
    *    weight -- weighting array per cell for balancing. Currently not used. Null value
    *       indicates even weighting of cells for load balance. 
    *    state_memory or gpu_state_memory -- linked-list of arrays from physics routine
@@ -409,9 +410,9 @@ public:
    *       will need to be reset
    **************************************************************************************/
 #ifdef HAVE_MPI
-   void do_load_balance_local(size_t &numcells, float *weight, MallocPlus &state_memory);
+   void do_load_balance_local(size_t numcells, float *weight, MallocPlus &state_memory);
 #ifdef HAVE_OPENCL
-   int gpu_do_load_balance_local(cl_command_queue command_queue, size_t &numcells, float *weight, MallocPlus &gpu_state_memory);
+   int gpu_do_load_balance_local(cl_command_queue command_queue, size_t numcells, float *weight, MallocPlus &gpu_state_memory);
 #endif
 #endif
 

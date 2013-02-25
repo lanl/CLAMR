@@ -5865,7 +5865,7 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
 }
 
 #ifdef HAVE_MPI
-void Mesh::do_load_balance_local(size_t &numcells, float *weight, MallocPlus &state_memory)
+void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -5893,7 +5893,6 @@ void Mesh::do_load_balance_local(size_t &numcells, float *weight, MallocPlus &st
       for (int ip=1; ip<numpe; ip++){
          ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
       }
-      numcells = nsizes[mype];
       ncells = nsizes[mype];
       noffset=ndispl[mype];
 
@@ -6017,7 +6016,7 @@ void Mesh::do_load_balance_local(size_t &numcells, float *weight, MallocPlus &st
 
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, size_t &numcells, float *weight, MallocPlus &gpu_state_memory)
+int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, size_t numcells, float *weight, MallocPlus &gpu_state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -6045,7 +6044,6 @@ int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, size_t &numc
       for (int ip=1; ip<numpe; ip++){
          ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
       }
-      numcells = nsizes[mype];
       ncells = nsizes[mype];
       noffset=ndispl[mype];
 
