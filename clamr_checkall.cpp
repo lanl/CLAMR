@@ -753,6 +753,7 @@ extern "C" void do_calc(void)
       nsizes_save = nsizes;
       ndispl_save = ndispl;
 
+      size_t gpu_new_ncells = new_ncells;
       if (do_cpu_calc) {
          state_local->do_load_balance_local(mesh_local, new_ncells);
       }
@@ -761,7 +762,7 @@ extern "C" void do_calc(void)
       ndispl = ndispl_save;
 
       if (do_gpu_calc) {
-         state_local->gpu_do_load_balance_local(command_queue, mesh_local, new_ncells);
+         state_local->gpu_do_load_balance_local(command_queue, mesh_local, gpu_new_ncells);
       }
 
       if (do_comparison_calc) {
