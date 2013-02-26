@@ -2567,46 +2567,48 @@ void Mesh::calc_neighbors(void)
 
       int ii, jj, lev, iii, jjj, levmult;
 
+#if HASH_SETUP_OPT_LEVEL <= 2
       for (uint ic=0; ic<ncells; ic++){
          ii = i[ic];
          jj = j[ic];
          lev = level[ic];
          levmult = levtable[levmx-lev];
-#if HASH_SETUP_OPT_LEVEL <= 2
          nlft[ic] = hash[      jj   *levmult               ][max(  ii   *levmult-1, 0         )];
          nrht[ic] = hash[      jj   *levmult               ][min( (ii+1)*levmult,   imaxsize-1)];
          nbot[ic] = hash[max(  jj   *levmult-1, 0)         ][      ii   *levmult               ];
          ntop[ic] = hash[min( (jj+1)*levmult,   jmaxsize-1)][      ii   *levmult               ];
 
          if (nlft[ic] < 0){
-            levmult = levtable[levmx-lev];
             iii = max( ii*levmult-1, 0);
             jjj = jj*levmult;
             if ( (jjj < 1*levtable[levmx] || jjj > (jmax-1)*levtable[levmx] ) && iii < 1*levtable[levmx] ) iii = ii*levmult;
             nlft[ic] = hash[jjj][iii];
          }
          if (nrht[ic] < 0){
-            levmult = levtable[levmx-lev];
             iii = min( (ii+1)*levmult, imaxsize-1);
             jjj = jj*levmult;
             if ( (jjj < 1*levtable[levmx] || jjj > jmax*levtable[levmx]-1 ) && iii > imax*levtable[levmx]-1 ) iii = ii*levmult;
             nrht[ic] = hash[jjj][iii];
          }
          if (nbot[ic] < 0) {
-            levmult = levtable[levmx-lev];
             iii = ii*levmult;
             jjj = max( jj*levmult-1, 0);
             if ( (iii < 1*levtable[levmx] || iii > (imax-1)*levtable[levmx] ) && jjj < 1*levtable[levmx] ) jjj = jj*levmult;
             nbot[ic] = hash[jjj][iii];
          }
          if (ntop[ic] < 0) {
-            levmult = levtable[levmx-lev];
             iii = ii*levmult;
             jjj = min( (jj+1)*levmult, jmaxsize-1);
             if ( (iii < 1*levtable[levmx] || iii > imax*levtable[levmx]-1 ) && jjj > jmax*levtable[levmx]-1 ) jjj = jj*levmult;
             ntop[ic] = hash[jjj][iii];
          }
+      }
 #elif HASH_SETUP_OPT_LEVEL == 3
+      for (uint ic=0; ic<ncells; ic++){
+         ii = i[ic];
+         jj = j[ic];
+         lev = level[ic];
+         levmult = levtable[levmx-lev];
          int iicur = ii*levmult;
          int iilft = max( (ii-1)*levmult, 0         );
          int iirht = min( (ii+1)*levmult, imaxsize-1);
@@ -2703,8 +2705,8 @@ void Mesh::calc_neighbors(void)
          ntop[ic] = ntopval;
 
          //printf("neighbors[%d] = %d %d %d %d\n",ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
-#endif
       }
+#endif
  
       if (DEBUG) {
          printf("\n                                    HASH numbering\n");
@@ -3067,6 +3069,11 @@ void Mesh::calc_neighbors_local(void)
          jj = j[ic];
          lev = level[ic];
          levmult = levtable[levmx-lev];
+
+         int nlftval = -1;
+         int nrhtval = -1;
+         int nbotval = -1;
+         int ntopval = -1;
 #ifdef BOUNDS_CHECK
          {
             int jjj=jj   *levmult-jminsize;
@@ -3083,55 +3090,50 @@ void Mesh::calc_neighbors_local(void)
             if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
          }
 #endif
-         nlft[ic] = hash[(      jj   *levmult               )-jminsize][(max(  ii   *levmult-1, 0         ))-iminsize];
-         nrht[ic] = hash[(      jj   *levmult               )-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
-         nbot[ic] = hash[(max(  jj   *levmult-1, 0)         )-jminsize][(      ii   *levmult               )-iminsize];
-         ntop[ic] = hash[(min( (jj+1)*levmult,   jmaxcalc-1))-jminsize][(      ii   *levmult               )-iminsize];
-         //fprintf(fp,"%d: DEBUG -- ic %d %d ntop[ic] %d \n",mype,ic,ic+noffset,ntop[ic]);
-      }
+         nlftval = hash[(      jj   *levmult               )-jminsize][(max(  ii   *levmult-1, 0         ))-iminsize];
+         nrhtval = hash[(      jj   *levmult               )-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
+         nbotval = hash[(max(  jj   *levmult-1, 0)         )-jminsize][(      ii   *levmult               )-iminsize];
+         ntopval = hash[(min( (jj+1)*levmult,   jmaxcalc-1))-jminsize][(      ii   *levmult               )-iminsize];
+         //fprintf(fp,"%d: DEBUG -- ic %d %d ntopval %d \n",mype,ic,ic+noffset,ntopval);
 
-      // Scan for corner boundary cells
-      for (uint ic=0; ic<ncells; ic++){
-         if (nlft[ic] == INT_MIN){
-            lev = level[ic];
-            levmult = levtable[levmx-lev];
-            jjj = j[ic]*levmult-jminsize;
-            iii = i[ic]*levmult-iminsize;
+         // Scan for corner boundary cells
+         if (nlftval == INT_MIN){
+            jjj = jj*levmult-jminsize;
+            iii = ii*levmult-iminsize;
 #ifdef BOUNDS_CHECK
             if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
 #endif
-            nlft[ic] = hash[jjj][iii];
+            nlftval = hash[jjj][iii];
          }
-         if (nrht[ic] == INT_MIN){
-            lev = level[ic];
-            levmult = levtable[levmx-lev];
-            jjj = j[ic]*levmult-jminsize;
-            iii = i[ic]*levmult-iminsize;
+         if (nrhtval == INT_MIN){
+            jjj = jj*levmult-jminsize;
+            iii = ii*levmult-iminsize;
 #ifdef BOUNDS_CHECK
             if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
 #endif
-           nrht[ic] = hash[jjj][iii];
+           nrhtval = hash[jjj][iii];
          }
-         if (nbot[ic] == INT_MIN) {
-            lev = level[ic];
-            levmult = levtable[levmx-lev];
-            iii = i[ic]*levmult-iminsize;
-            jjj = j[ic]*levmult-jminsize;
+         if (nbotval == INT_MIN) {
+            iii = ii*levmult-iminsize;
+            jjj = jj*levmult-jminsize;
 #ifdef BOUNDS_CHECK
             if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
 #endif
-            nbot[ic] = hash[jjj][iii];
+            nbotval = hash[jjj][iii];
          }
-         if (ntop[ic] == INT_MIN) {
-            lev = level[ic];
-            levmult = levtable[levmx-lev];
-            iii = i[ic]*levmult-iminsize;
-            jjj = j[ic]*levmult-jminsize;
+         if (ntopval == INT_MIN) {
+            iii = ii*levmult-iminsize;
+            jjj = jj*levmult-jminsize;
 #ifdef BOUNDS_CHECK
             if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
 #endif
-            ntop[ic] = hash[jjj][iii];
+            ntopval = hash[jjj][iii];
          }
+
+         nlft[ic] = nlftval;
+         nrht[ic] = nrhtval;
+         nbot[ic] = nbotval;
+         ntop[ic] = ntopval;
       }
 
       if (DEBUG) {

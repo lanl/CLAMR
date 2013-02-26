@@ -480,7 +480,7 @@ __kernel void calc_neighbors_cl(
             jjj > jmax*levtable[levmx]-1 ) jjj = jj*levmult;
       ntopval = hashval(jjj, iii);
    }
-#else
+#elif HASH_SETUP_OPT_LEVEL == 3
 
    int iicur = ii*levmult;
    int iilft = max( (ii-1)*levmult, 0         );   
@@ -514,7 +514,7 @@ __kernel void calc_neighbors_cl(
 
    // coarser neighbor
    if (lev != 0){
-      if (iilft > 0 && nlftval < 0) { 
+      if (nlftval < 0 && iilft > 0) { 
          iilft -= iicur-iilft;
          int jjlft = (jj/2)*2*levmult;
          nlftval = hashval(jjlft,iilft);
@@ -523,7 +523,7 @@ __kernel void calc_neighbors_cl(
          int jjrht = (jj/2)*2*levmult;
          nrhtval = hashval(jjrht,iirht);
       }    
-      if (jjbot > 0 && nbotval < 0) { 
+      if (nbotval < 0 && jjbot > 0) { 
          jjbot -= jjcur-jjbot;
          int iibot = (ii/2)*2*levmult;
          nbotval = hashval(jjbot,iibot);
