@@ -54,7 +54,7 @@
  * 
  */
 
-#define HASH_SETUP_OPT_LEVEL 2
+#define HASH_SETUP_OPT_LEVEL 3
 
 #ifndef GPU_DOUBLE_SUPPORT
 #define GPU_DOUBLE_SUPPORT
@@ -516,20 +516,20 @@ __kernel void calc_neighbors_cl(
    if (lev != 0){
       if (iilft > 0 && nlftval < 0) { 
          iilft -= iicur-iilft;
-         int jjlft = (jjcur/2)*2;
+         int jjlft = (jj/2)*2*levmult;
          nlftval = hashval(jjlft,iilft);
       }    
-      if (nrhtval < 0 && iirht < imaxsize-1 && (jjcur/2)*2 != jjcur) {
-         int jjrht = (jjcur/2)*2;
+      if (nrhtval < 0 && iirht < imaxsize-1 && (jj/2)*2*levmult != jjcur) {
+         int jjrht = (jj/2)*2*levmult;
          nrhtval = hashval(jjrht,iirht);
       }    
       if (jjbot > 0 && nbotval < 0) { 
          jjbot -= jjcur-jjbot;
-         int iibot = (iicur/2)*2;
+         int iibot = (ii/2)*2*levmult;
          nbotval = hashval(jjbot,iibot);
       }                
-      if (ntopval < 0 && jjtop < jmaxsize-1 && (iicur/2)*2 != iicur) {
-         int iitop = (iicur/2)*2;
+      if (ntopval < 0 && jjtop < jmaxsize-1 && (ii/2)*2*levmult != iicur) {
+         int iitop = (ii/2)*2*levmult;
          ntopval = hashval(jjtop,iitop);
       }    
    }
