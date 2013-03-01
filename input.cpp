@@ -94,6 +94,8 @@ extern int  outputInterval,
             calc_neighbor_type,
             initial_order,
             cycle_reorder;
+extern float
+            mem_opt_factor;
 
 //extern int  do_cpu_calc,
 //            do_gpu_calc;
@@ -107,6 +109,7 @@ void outputHelp()
          << "  -h                display this help message;" << endl
          << "  -i <I>            specify I steps between output files;" << endl
          << "  -l <l>            max number of levels;" << endl
+         << "  -M <M>            memory optimization factor 1.0 <= M <=100.0 (default 1.0 -- represents 1/20 perfect hash);" << endl
          << "  -m <m>            specify partition measure type;" << endl
          << "      \"with_duplicates\"" << endl
          << "      \"without_duplicates\"" << endl
@@ -165,6 +168,7 @@ void parseInput(const int argc, char** argv)
     initial_order      = HILBERT_SORT;
     cycle_reorder      = ORIGINAL_ORDER;
     levmx              = 1;
+    mem_opt_factor     = 1.0;
     enhanced_precision_sum = true;
     
     char   *val;
@@ -195,6 +199,11 @@ void parseInput(const int argc, char** argv)
                 case 'l':   //  max level specified.
                     val = strtok(argv[i++], " ,");
                     levmx = atoi(val);
+                    break;
+                    
+                case 'M':   //  memory optimization factor
+                    val = strtok(argv[i++], " ,");
+                    mem_opt_factor = atof(val);
                     break;
                     
                 case 'm':   //  partition measure specified.

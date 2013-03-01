@@ -131,12 +131,6 @@ static struct timeval tstart;
 static double H_sum_initial = 0.0;
 static double cpu_time_graphics = 0.0;
 double cpu_time_main_setup = 0.0;
-static double cpu_time_timestep = 0.0;
-static double cpu_time_finite_diff = 0.0;
-static double cpu_time_refine_potential = 0.0;
-static double cpu_time_rezone = 0.0;
-static double cpu_time_neighbors = 0.0;
-static double cpu_time_load_balance = 0.0;
 vector<real> H_global;
 vector<real> x_global;
 vector<real> dx_global;
@@ -250,7 +244,6 @@ int main(int argc, char **argv) {
    mesh->cpu_calc_neigh_counter=0;
    mesh->cpu_time_calc_neighbors=0.0;
    mesh->cpu_rezone_counter=0;
-   mesh->cpu_time_rezone_all=0.0;
    mesh->cpu_refine_smooth_counter=0;
 
 #ifdef HAVE_GRAPHICS
@@ -367,11 +360,9 @@ extern "C" void do_calc(void)
       //  Calculate the real time step for the current discrete time step.
       deltaT = state->set_timestep(mesh, g, sigma);
       simTime += deltaT;
-      cpu_time_timestep += cpu_timer_stop(tstart_cpu);
 
       cpu_timer_start(&tstart_cpu);
       if (mesh->nlft.size() == 0) mesh->calc_neighbors_local();
-      cpu_time_neighbors += cpu_timer_stop(tstart_cpu);
 
       mesh->partition_measure();
 
@@ -385,7 +376,6 @@ extern "C" void do_calc(void)
       //  Execute main kernel
       cpu_timer_start(&tstart_cpu);
       state->calc_finite_difference(mesh, deltaT);
-      cpu_time_finite_diff += cpu_timer_stop(tstart_cpu);
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       state->remove_boundary_cells(mesh);
@@ -393,19 +383,16 @@ extern "C" void do_calc(void)
       cpu_timer_start(&tstart_cpu);
       mpot.resize(ncells_ghost);
       new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
-      cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
   
       cpu_timer_start(&tstart_cpu);
       int add_ncells = new_ncells - old_ncells;
       state->rezone_all(mesh, mpot, add_ncells);
       mpot.clear();
-      cpu_time_rezone += cpu_timer_stop(tstart_cpu);
 
       cpu_timer_start(&tstart_cpu);
       if (mesh->nlft.size() == 0) {
          state->do_load_balance_local(mesh, new_ncells);
       }
-      cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
 
 // XXX
 //      mesh->proc.resize(ncells);
@@ -505,13 +492,6 @@ extern "C" void do_calc(void)
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
 
       state->parallel_timer_output(numpe,mype,"CPU:  graphics                 time was",cpu_time_graphics);
-
-      state->parallel_timer_output(numpe,mype,"CPU:  timestep calc            time was",cpu_time_timestep);
-      state->parallel_timer_output(numpe,mype,"CPU:  finite_diff              time was",cpu_time_finite_diff);
-      state->parallel_timer_output(numpe,mype,"CPU:  refine_potential         time was",cpu_time_refine_potential);
-      state->parallel_timer_output(numpe,mype,"CPU:  rezone                   time was",cpu_time_rezone);
-      state->parallel_timer_output(numpe,mype,"CPU:  neighbors                time was",cpu_time_neighbors);
-      state->parallel_timer_output(numpe,mype,"CPU:  load_balance             time was",cpu_time_load_balance);
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();

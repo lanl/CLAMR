@@ -68,6 +68,7 @@
 #include "partition.h"
 #include "state.h"
 #include "timer/timer.h"
+#include "memstats/memstats.h"
 
 #ifndef DEBUG 
 #define DEBUG 0
@@ -123,6 +124,9 @@ int main(int argc, char **argv) {
 
    //  Process command-line arguments, if any.
    parseInput(argc, argv);
+
+   struct timeval tstart_setup;
+   cpu_timer_start(&tstart_setup);
    
    numpe = 16;
 
@@ -159,7 +163,18 @@ int main(int argc, char **argv) {
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
-    printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
+   double cpu_time_main_setup = cpu_timer_stop(tstart_setup);
+   state->parallel_timer_output(numpe,mype,"CPU:  setup time               time was",cpu_time_main_setup);
+
+   long long mem_used = memstats_memused();
+   if (mem_used > 0) {
+      printf("Memory used      in startup %lld kB\n",mem_used);
+      printf("Memory peak      in startup %lld kB\n",memstats_mempeak());
+      printf("Memory free      at startup %lld kB\n",memstats_memfree());
+      printf("Memory available at startup %lld kB\n",memstats_memtotal());
+   }
+
+   printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
 
    mesh->cpu_calc_neigh_counter=0;
    mesh->cpu_time_calc_neighbors=0.0;
@@ -308,6 +323,13 @@ extern "C" void do_calc(void)
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       
+      long long mem_used = memstats_memused();
+      //if (mem_used > 0) {
+         printf("Memory used      %lld kB\n",mem_used);
+         printf("Memory peak      %lld kB\n",memstats_mempeak());
+         printf("Memory free      %lld kB\n",memstats_memfree());
+         printf("Memory available %lld kB\n",memstats_memtotal());
+      //}
       state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
       printf("CPU:  graphics                 time was\t %8.4f\ts\n",     cpu_time_graphics );
 

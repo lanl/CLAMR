@@ -89,6 +89,8 @@ typedef float       real;
 
 typedef unsigned int uint;
 
+//float mem_opt_factor = 1.0;
+
 enum boundary
 {  REAL_CELL      =  1,         //  Denotes cell type of real cell.
    LEFT_BOUNDARY  = -1,         //  Denotes left boundary ghost cell.
@@ -366,6 +368,7 @@ public:
    void print_calc_neighbor_type(void);
    int get_calc_neighbor_type(void);
    void print_partition_type(void);
+   void final_hash_collision_report(void);
    void partition_cells(int numpe,
                    vector<int> &order,
                    enum partition_method method);
