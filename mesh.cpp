@@ -3008,16 +3008,26 @@ void Mesh::calc_neighbors(void)
          int nbotval = -1;
          int ntopval = -1;
 
+         // Taking care of boundary cells
+         // Force each boundary cell to point to itself on its boundary direction
+         if (iicur <    1*levtable[levmx]  ) nlftval = ic;
+         if (jjcur <    1*levtable[levmx]  ) nbotval = ic;
+         if (iicur > imax*levtable[levmx]-1) nrhtval = ic;
+         if (jjcur > jmax*levtable[levmx]-1) ntopval = ic;
+         // Boundary cells next to corner boundary need special checks
+         if (iicur ==    1*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur > (jmax-1)*levtable[levmx] ) ) nlftval = ic;
+         if (jjcur ==    1*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur > (imax-1)*levtable[levmx] ) ) nbotval = ic;
+         if (iirht == imax*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur > (jmax-1)*levtable[levmx] ) ) nrhtval = ic;
+         if (jjtop == jmax*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur > (imax-1)*levtable[levmx] ) ) ntopval = ic;
+
          // need to check for finer neighbor first
+         // Right and top neighbor don't change for finer, so drop through to same size
+         // Left and bottom need to be half of same size index for finer test
          if (lev != levmx) {
             int iilftfiner = iicur-(iicur-iilft)/2;
-            int iirhtfiner = (iicur+iirht)/2;
             int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-            int jjtopfiner = (jjcur+jjtop)/2;
-            nlftval = hash[jjcur][iilftfiner];
-            //nrhtval = hash[jjcur][iirhtfiner];
-            nbotval = hash[jjbotfiner][iicur];
-            //ntopval = hash[jjtopfiner][iicur];
+            if (nlftval < 0) nlftval = hash[jjcur][iilftfiner];
+            if (nbotval < 0) nbotval = hash[jjbotfiner][iicur];
          }
 
          // same size neighbor
@@ -3026,64 +3036,52 @@ void Mesh::calc_neighbors(void)
          if (nbotval < 0) nbotval = hash[jjbot][iicur];
          if (ntopval < 0) ntopval = hash[jjtop][iicur];
          
+         // Now we need to take care of special case where bottom and left boundary need adjustment since
+         // expected cell doesn't exist on these boundaries if it is finer than current cell
+         if (jjcur < 1*levtable[levmx]) {
+            if (nrhtval < 0) {
+               int jjtopfiner = (jjcur+jjtop)/2;
+               nrhtval = hash[jjtopfiner][iirht];
+            }
+            if (nlftval < 0) {
+               int iilftfiner = iicur-(iicur-iilft)/2;
+               int jjtopfiner = (jjcur+jjtop)/2;
+               nlftval = hash[jjtopfiner][iilftfiner];
+            }
+         }
+         
+         if (iicur < 1*levtable[levmx]) {
+            if (ntopval < 0) {
+               int iirhtfiner = (iicur+iirht)/2;
+               ntopval = hash[jjtop][iirhtfiner]);
+            }
+            if (nbotval < 0) {
+               int iirhtfiner = (iicur+iirht)/2;
+               int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+               nbotval = hash[jjbotfiner][iirhtfiner];
+            }
+         }
+         
          // coarser neighbor
          if (lev != 0){
-            if (iilft > 0 && nlftval < 0) {
+            if (nlftval < 0) {
                iilft -= iicur-iilft;
                int jjlft = (jj/2)*2*levmult;
                nlftval = hash[jjlft][iilft];
             }
-            if (nrhtval < 0 && iirht < imaxsize-1 && (jj/2)*2*levmult != jjcur) {
+            if (nrhtval < 0) {
                int jjrht = (jj/2)*2*levmult;
                nrhtval = hash[jjrht][iirht];
             }
-            if (jjbot > 0 && nbotval < 0) {
+            if (nbotval < 0) {
                jjbot -= jjcur-jjbot;
                int iibot = (ii/2)*2*levmult;
                nbotval = hash[jjbot][iibot];
             }
-            if (ntopval < 0 && jjtop < jmaxsize-1 && (ii/2)*2*levmult != iicur) {
+            if (ntopval < 0) {
                int iitop = (ii/2)*2*levmult;
                ntopval = hash[jjtop][iitop];
             }
-         }
-
-         // Take care of the corner neighbors
-         if (nlftval < 0){
-            iii = max( ii*levmult-1, 0);
-            jjj = jj*levmult;
-            if ( (jjj < 1*levtable[levmx] || jjj > (jmax-1)*levtable[levmx] ) && iii < 1*levtable[levmx] ) iii = ii*levmult;
-            nlftval = hash[jjj][iii];
-            if (nlftval < 0 && iii < 1*levtable[levmx]) nlftval = hash[jjj][1*levtable[levmx]-1];
-            if (nlftval < 0 && jjj < 1*levtable[levmx]) nlftval = hash[1*levtable[levmx]-1][iii];
-         }
-
-         if (nrhtval < 0){
-            iii = min( (ii+1)*levmult, imaxsize-1);
-            jjj = jj*levmult;
-            if ( (jjj < 1*levtable[levmx] || jjj > jmax*levtable[levmx]-1 ) && iii > imax*levtable[levmx]-1 ) iii = ii*levmult;
-            //if (ic == 0) printf("DEBUG jjj %d iii %d hash %d\n",jjj,iii,hash[jjj][iii]);
-            nrhtval = hash[jjj][iii];
-            if (nrhtval < 0 && jjj < 1*levtable[levmx]) nrhtval = hash[1*levtable[levmx]-1][iii];
-            if (nrhtval < 0 && iii > imax*levtable[levmx]-1) nrhtval = hash[jjj][imax*levtable[levmx]];
-         }
-
-         if (nbotval < 0) {
-            iii = ii*levmult;
-            jjj = max( jj*levmult-1, 0);
-            if ( (iii < 1*levtable[levmx] || iii > (imax-1)*levtable[levmx] ) && jjj < 1*levtable[levmx] ) jjj = jj*levmult;
-            nbotval = hash[jjj][iii];
-            if (nbotval < 0 && jjj < 1*levtable[levmx]) nbotval = hash[1*levtable[levmx]-1][iii];
-            if (nbotval < 0 && iii < 1*levtable[levmx]) nbotval = hash[jjj][1*levtable[levmx]-1];
-         }
-
-         if (ntopval < 0) {
-            iii = ii*levmult;
-            jjj = min( (jj+1)*levmult, jmaxsize-1);
-            if ( (iii < 1*levtable[levmx] || iii > imax*levtable[levmx]-1 ) && jjj > jmax*levtable[levmx]-1 ) jjj = jj*levmult;
-            ntopval = hash[jjj][iii];
-            if (ntopval < 0 && iii < 1*levtable[levmx]) ntopval = hash[jjj][1*levtable[levmx]-1];
-            if (ntopval < 0 && jjj > jmax*levtable[levmx]-1) ntopval = hash[jmax*levtable[levmx]][iii];
          }
 
          nlft[ic] = nlftval;
