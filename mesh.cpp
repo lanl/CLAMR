@@ -104,7 +104,9 @@ typedef float       real;
 #endif
 
 typedef unsigned int uint;
+#ifdef __APPLE_CC__
 typedef unsigned long long ulong;
+#endif
 
 #define TWO 2
 #define HALF 0.5
