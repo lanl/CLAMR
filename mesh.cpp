@@ -104,6 +104,7 @@ typedef float       real;
 #endif
 
 typedef unsigned int uint;
+typedef unsigned long long ulong;
 
 #define TWO 2
 #define HALF 0.5
@@ -198,7 +199,7 @@ int *compact_hash_init(int ncells, uint imaxsize, uint jmaxsize, uint report_lev
       AA = (ulong)(1.0+(double)(prime-1)*drand48());
       BB = (ulong)(0.0+(double)(prime-1)*drand48());
       if (AA > prime-1 || BB > prime-1) exit(0);
-      if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",AA,BB);
+      if (hash_report_level > 1) printf("Factors AA %llu BB %llu\n",AA,BB);
 
       hash = (int *)genvector(2*hashtablesize,sizeof(int));
       for (int ii = 0; ii<2*hashtablesize; ii+=2){
@@ -214,7 +215,7 @@ int *compact_hash_init(int ncells, uint imaxsize, uint jmaxsize, uint report_lev
    }
 
    if (hash_report_level >= 2) {
-      printf("Hash table size %lu perfect hash table size %ld memory savings %ld by percentage %lf\n",
+      printf("Hash table size %u perfect hash table size %u memory savings %u by percentage %lf\n",
         hashtablesize,imaxsize*imaxsize,imaxsize*imaxsize-hashtablesize,
         (double)hashtablesize/(double)(imaxsize*imaxsize));
    }
@@ -245,12 +246,12 @@ void write_hash(uint ic, ulong hashkey, int *hash){
       } else if (hash_report_level == 3) {
          hash_ncells++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %d ii %d jj %d\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          icount++;
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
             int hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %d ii %d jj %d\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             icount++;
             write_hash_collisions++;
          }
@@ -279,12 +280,12 @@ void write_hash(uint ic, ulong hashkey, int *hash){
          hash_ncells++;
          icount++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %d ii %d jj %d\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          icount++;
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             int hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %d ii %d jj %d\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             icount++;
             write_hash_collisions++;
          }
@@ -314,12 +315,12 @@ void write_hash(uint ic, ulong hashkey, int *hash){
          hash_ncells++;
          icount++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %d ii %d jj %d\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          icount++;
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             int hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %d ii %d jj %d\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             icount++;
             write_hash_collisions++;
          }
@@ -366,12 +367,12 @@ int read_hash(ulong hashkey, int *hash){
       } else if (hash_report_level == 3) {
          hash_queries++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %d ii %d jj %d\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          icount++;
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
             uint hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %d ii %d jj %d\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             read_hash_collisions++;
             icount++;
             if (icount > max_collisions_allowed) {
@@ -407,12 +408,12 @@ int read_hash(ulong hashkey, int *hash){
       } else if (hash_report_level == 3) {
          hash_queries++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %d ii %d jj %d\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          icount++;
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             uint hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %d ii %d jj %d\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             read_hash_collisions++;
             icount++;
             if (icount > max_collisions_allowed) {
@@ -449,12 +450,12 @@ int read_hash(ulong hashkey, int *hash){
       } else if (hash_report_level == 3) {
          hash_queries++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %d ii %d jj %d\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          icount++;
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             uint hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %d ii %d jj %d\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             read_hash_collisions++;
             icount++;
             if (icount > max_collisions_allowed) {
@@ -3014,9 +3015,9 @@ void Mesh::calc_neighbors(void)
             int jjbotfiner = jjcur-(jjcur-jjbot)/2;
             int jjtopfiner = (jjcur+jjtop)/2;
             nlftval = hash[jjcur][iilftfiner];
-            nrhtval = hash[jjcur][iirhtfiner];
+            //nrhtval = hash[jjcur][iirhtfiner];
             nbotval = hash[jjbotfiner][iicur];
-            ntopval = hash[jjtopfiner][iicur];
+            //ntopval = hash[jjtopfiner][iicur];
          }
 
          // same size neighbor
@@ -3093,6 +3094,7 @@ void Mesh::calc_neighbors(void)
          //printf("neighbors[%d] = %d %d %d %d\n",ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
       }
 #elif HASH_SETUP_OPT_LEVEL == 4
+      //fprintf(fp,"DEBUG ncells is %lu\n",ncells);
       for (uint ic=0; ic<ncells; ic++){
          ii = i[ic];
          jj = j[ic];
@@ -3105,88 +3107,103 @@ void Mesh::calc_neighbors(void)
          int jjbot = max( (jj-1)*levmult, 0         );
          int jjtop = min( (jj+1)*levmult, jmaxsize-1);
 
+         //if (ncells >= 111) fprintf(fp,"DEBUG current -- ic %d ii %d jj %d lev %d iicur %d jjcur %d iilft %d iirht %d jjbot %d jjtop %d\n",ic,ii,jj,lev,iicur,jjcur,iilft,iirht,jjbot,jjtop);
+
          int nlftval = -1;
          int nrhtval = -1;
          int nbotval = -1;
          int ntopval = -1;
 
+         // Taking care of boundary cells
+         // Force each boundary cell to point to itself on its boundary direction
+         if (iicur <    1*levtable[levmx]  ) nlftval = ic;
+         if (jjcur <    1*levtable[levmx]  ) nbotval = ic;
+         if (iicur > imax*levtable[levmx]-1) nrhtval = ic;
+         if (jjcur > jmax*levtable[levmx]-1) ntopval = ic;
+         // Boundary cells next to corner boundary need special checks
+         if (iicur ==    1*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur > (jmax-1)*levtable[levmx] ) ) nlftval = ic;
+         if (jjcur ==    1*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur > (imax-1)*levtable[levmx] ) ) nbotval = ic;
+         if (iirht == imax*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur > (jmax-1)*levtable[levmx] ) ) nrhtval = ic;
+         if (jjtop == jmax*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur > (imax-1)*levtable[levmx] ) ) ntopval = ic;
+
          // need to check for finer neighbor first
+         // Right and top neighbor don't change for finer, so drop through to same size
+         // Left and bottom need to be half of same size index for finer test
          if (lev != levmx) {
             int iilftfiner = iicur-(iicur-iilft)/2;
-            int iirhtfiner = (iicur+iirht)/2;
+            //int iirhtfiner = (iicur+iirht)/2;
             int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-            int jjtopfiner = (jjcur+jjtop)/2;
-            nlftval = read_hash(jjcur*imaxsize+iilftfiner, hash);
-            nrhtval = read_hash(jjcur*imaxsize+iirhtfiner, hash);
-            nbotval = read_hash(jjbotfiner*imaxsize+iicur, hash);
-            ntopval = read_hash(jjtopfiner*imaxsize+iicur, hash);
+            //int jjtopfiner = (jjcur+jjtop)/2;
+            //if (ncells >= 111) fprintf(fp,"DEBUG finer -- ic %d iilftfiner %d iirhtfiner %d jjbotfiner %d jjtopfiner %d\n",ic,iilftfiner,iirhtfiner,jjbotfiner,jjtopfiner);
+            if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilftfiner, hash);
+            if (nbotval < 0) nbotval = read_hash(jjbotfiner*imaxsize+iicur, hash);
          }
 
          // same size neighbor
+         //if (ncells >= 111) fprintf(fp,"DEBUG same size -- ic %d iicur %d jjcur %d iilft %d iirht %d jjbot %d jjtop %d nlftval %d nrhtval %d nbotval %d ntopval %d\n",ic,iicur,jjcur,iilft,iirht,jjbot,jjtop,nlftval,nrhtval,nbotval,ntopval);
          if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilft, hash);
          if (nrhtval < 0) nrhtval = read_hash(jjcur*imaxsize+iirht, hash);
          if (nbotval < 0) nbotval = read_hash(jjbot*imaxsize+iicur, hash);
          if (ntopval < 0) ntopval = read_hash(jjtop*imaxsize+iicur, hash);
+
+         // Now we need to take care of special case where bottom and left boundary need adjustment since
+         // expected cell doesn't exist on these boundaries if it is finer than current cell
+         if (jjcur < 1*levtable[levmx]) {
+            if (nrhtval < 0) {
+               int jjtopfiner = (jjcur+jjtop)/2;
+               //if (ncells >= 111) fprintf(fp,"DEBUG BOTTOM BOUNDARY -- ic %d jjtopfiner %d iirht %d hash %d\n",ic,jjtopfiner,iirht,read_hash(jjtopfiner*imaxsize+iirht, hash));
+               nrhtval = read_hash(jjtopfiner*imaxsize+iirht, hash);
+            }
+            if (nlftval < 0) {
+               int iilftfiner = iicur-(iicur-iilft)/2;
+               int jjtopfiner = (jjcur+jjtop)/2;
+               //if (ncells >= 111) fprintf(fp,"DEBUG BOTTOM BOUNDARY -- ic %d jjtopfiner %d iilftfiner %d hash %d\n",ic,jjtopfiner,iilftfiner,read_hash(jjtopfiner*imaxsize+iilftfiner, hash));
+               nlftval = read_hash(jjtopfiner*imaxsize+iilftfiner, hash);
+            }
+         }
+         
+         if (iicur < 1*levtable[levmx]) {
+            if (ntopval < 0) {
+               int iirhtfiner = (iicur+iirht)/2;
+               //if (ncells >= 111) fprintf(fp,"DEBUG LEFT BOUNDARY -- ic %d jjtop %d iirhtfiner %d hash %d\n",ic,jjtop,iirhtfiner,read_hash(jjtop*imaxsize+iirhtfiner, hash));
+               ntopval = read_hash(jjtop*imaxsize+iirhtfiner, hash);
+            }
+            if (nbotval < 0) {
+               int iirhtfiner = (iicur+iirht)/2;
+               int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+               //if (ncells >= 111) fprintf(fp,"DEBUG LEFT BOUNDARY -- ic %d jjbotfiner %d iirhtfiner %d hash %d\n",ic,jjbotfiner,iirhtfiner,read_hash(jjbotfiner*imaxsize+iirhtfiner, hash));
+               nbotval = read_hash(jjbotfiner*imaxsize+iirhtfiner, hash);
+            }
+         }
          
          // coarser neighbor
+         //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iicur %d jjcur %d iilft %d iirht %d jjbot %d jjtop %d nlftval %d nrhtval %d nbotval %d ntopval %d\n",ic,iicur,jjcur,iilft,iirht,jjbot,jjtop,nlftval,nrhtval,nbotval,ntopval);
          if (lev != 0){
-            if (iilft > 0 && nlftval < 0) {
+            if (nlftval < 0) {
                iilft -= iicur-iilft;
                int jjlft = (jj/2)*2*levmult;
+               //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iilft %d jjlft %d\n",ic,iilft,jjlft);
                nlftval = read_hash(jjlft*imaxsize+iilft, hash);
             }
-            if (nrhtval < 0 && iirht < imaxsize-1 && (jj/2)*2*levmult != jjcur) {
+            if (nrhtval < 0) {
                int jjrht = (jj/2)*2*levmult;
+               //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iirht %d jjrht %d\n",ic,iirht,jjrht);
                nrhtval = read_hash(jjrht*imaxsize+iirht, hash);
             }
-            if (jjbot > 0 && nbotval < 0) {
+            if (nbotval < 0) {
                jjbot -= jjcur-jjbot;
                int iibot = (ii/2)*2*levmult;
+               //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iibot %d jjbot %d\n",ic,iibot,jjbot);
                nbotval = read_hash(jjbot*imaxsize+iibot, hash);
             }
-            if (ntopval < 0 && jjtop < jmaxsize-1 && (ii/2)*2*levmult != iicur) {
+            if (ntopval < 0) {
                int iitop = (ii/2)*2*levmult;
+               //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iitop %d jjtop %d\n",ic,iitop,jjtop);
                ntopval = read_hash(jjtop*imaxsize+iitop, hash);
             }
          }
 
-         // Take care of the corner neighbors
-         if (nlftval < 0){
-            iii = max( ii*levmult-1, 0);
-            jjj = jj*levmult;
-            if ( (jjj < 1*levtable[levmx] || jjj > (jmax-1)*levtable[levmx] ) && iii < 1*levtable[levmx] ) iii = ii*levmult;
-            nlftval = read_hash(jjj*imaxsize+iii, hash);
-            if (nlftval < 0 && iii < 1*levtable[levmx]) nlftval = read_hash(jjj*imaxsize+1*levtable[levmx]-1, hash);
-            if (nlftval < 0 && jjj < 1*levtable[levmx]) nlftval = read_hash((1*levtable[levmx]-1)*imaxsize+iii, hash);
-         }
-
-         if (nrhtval < 0){
-            iii = min( (ii+1)*levmult, imaxsize-1);
-            jjj = jj*levmult;
-            if ( (jjj < 1*levtable[levmx] || jjj > jmax*levtable[levmx]-1 ) && iii > imax*levtable[levmx]-1 ) iii = ii*levmult;
-            //if (ic == 0) printf("DEBUG jjj %d iii %d hash %d\n",jjj,iii,hash[jjj][iii]);
-            nrhtval = read_hash(jjj*imaxsize+iii, hash);
-            if (nrhtval < 0 && jjj < 1*levtable[levmx]) nrhtval = read_hash((1*levtable[levmx]-1)*imaxsize+iii, hash);
-            if (nrhtval < 0 && iii > imax*levtable[levmx]-1) nrhtval = read_hash(jjj*imaxsize+imax*levtable[levmx], hash);
-         }
-
-         if (nbotval < 0) {
-            iii = ii*levmult;
-            jjj = max( jj*levmult-1, 0);
-            if ( (iii < 1*levtable[levmx] || iii > (imax-1)*levtable[levmx] ) && jjj < 1*levtable[levmx] ) jjj = jj*levmult;
-            nbotval = read_hash(jjj*imaxsize+iii, hash);
-            if (nbotval < 0 && jjj < 1*levtable[levmx]) nbotval = read_hash((1*levtable[levmx]-1)*imaxsize+iii, hash);
-            if (nbotval < 0 && iii < 1*levtable[levmx]) nbotval = read_hash(jjj*imaxsize+1*levtable[levmx]-1, hash);
-         }
-
-         if (ntopval < 0) {
-            iii = ii*levmult;
-            jjj = min( (jj+1)*levmult, jmaxsize-1);
-            if ( (iii < 1*levtable[levmx] || iii > imax*levtable[levmx]-1 ) && jjj > jmax*levtable[levmx]-1 ) jjj = jj*levmult;
-            ntopval = read_hash(jjj*imaxsize+iii, hash);
-            if (ntopval < 0 && iii < 1*levtable[levmx]) ntopval = read_hash(jjj*imaxsize+1*levtable[levmx]-1, hash);
-            if (ntopval < 0 && jjj > jmax*levtable[levmx]-1) ntopval = read_hash(jmax*levtable[levmx]*imaxsize+iii, hash);
-         }
+         //if (ncells >= 1111 && (nlftval < 0 || nrhtval < 0 || nbotval < 0 || ntopval < 0) ) fprintf(fp,"DEBUG end -- ic %d nlftval %d nrhtval %d nbotval %d ntopval %d\n",ic,nlftval,nrhtval,nbotval,ntopval);
 
          nlft[ic] = nlftval;
          nrht[ic] = nrhtval;
