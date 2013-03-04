@@ -518,7 +518,7 @@ extern "C" void do_calc(void)
       if (fabs(total_mass - H_sum) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", total_mass, H_sum);/***/
    }
 
-   printf("Iteration %d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
+   printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
       ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
 
 #ifdef HAVE_GRAPHICS

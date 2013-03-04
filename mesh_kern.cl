@@ -54,7 +54,7 @@
  * 
  */
 
-#define HASH_SETUP_OPT_LEVEL 3
+#define HASH_SETUP_OPT_LEVEL 4
 
 #ifndef GPU_DOUBLE_SUPPORT
 #define GPU_DOUBLE_SUPPORT
@@ -117,11 +117,46 @@ int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
 #define hashval(j,i) hash[(j)*imaxsize+(i)]
 #define hashval_local(j,i) hash[(j)*(imaxsize-iminsize)+(i)]
 
+static ulong AA = 1;
+static ulong BB = 0;
+static int do_compact_hash = 0;
+static int hash_method     = 0;
+static int hash_table_size = 0;
+static int imaxsize        = 0;
+
+void write_hash(
+   const uint giX,
+   const ulong hashkey,
+   __global int *hash)
+{
+   if (! do_compact_hash) hash[hashkey] = giX;
+}
+
+int read_hash(
+   const ulong hashkey,
+   __global int *hash)
+{
+   if (! do_compact_hash) return(hash[hashkey]);
+}
+
 __kernel void hash_init_cl(
-                          const int isize,     // 0
-                 __global       int *hash)     // 1
+                          const int isize,              // 0
+                          const int do_compact_hash_in, // 1
+                          const int hash_method_in,     // 2
+                          const int hash_table_size_in, // 2
+                          const ulong AA_in,            // 3
+                          const ulong BB_in,            // 4
+                 __global       int *hash)              // 5
 {
    const uint giX  = get_global_id(0);
+
+   if (giX == 0) {
+      do_compact_hash = do_compact_hash_in;
+      hash_method     = hash_method_in;
+      hash_table_size = hash_table_size_in;
+      AA              = AA_in;
+      BB              = BB_in;
+   }
 
    if (giX >= isize) return;
 
@@ -165,23 +200,23 @@ __kernel void hash_init_corners_cl(
 }
 
 __kernel void hash_setup_cl(
-                          const int  isize,     // 0
-                          const int  levmx,     // 1
-                          const int  imax,      // 2
-                          const int  jmax,      // 3
-                          const int  imaxsize,  // 4
-                 __global const int  *levtable, // 5
-                 __global const int  *lev_ibeg, // 6
-                 __global const int  *lev_iend, // 7
-                 __global const int  *lev_jbeg, // 8
-                 __global const int  *lev_jend, // 9
-                 __global const int  *level,    // 10
-                 __global const int  *i,        // 11
-                 __global const int  *j,        // 12
-                 __global       int  *hash)     // 13
+                          const int  isize,           // 0
+                          const int  levmx,           // 1
+                          const int  imax,            // 2
+                          const int  jmax,            // 3
+                          const int  imaxsize,        // 4
+                 __global const int  *levtable,       // 5
+                 __global const int  *lev_ibeg,       // 6
+                 __global const int  *lev_iend,       // 7
+                 __global const int  *lev_jbeg,       // 8
+                 __global const int  *lev_jend,       // 9
+                 __global const int  *level,          // 10
+                 __global const int  *i,              // 11
+                 __global const int  *j,              // 12
+                 __global       int  *hash)           // 13
 {
 
-   const unsigned int giX  = get_global_id(0);
+   const uint giX  = get_global_id(0);
 
    if (giX >= isize) return;
 
@@ -283,6 +318,11 @@ __kernel void hash_setup_cl(
    jj *= levmult;
    ii *= levmult;
    hashval(jj,ii) = giX;
+#elif HASH_SETUP_OPT_LEVEL == 4
+   jj *= levmult;
+   ii *= levmult;
+   write_hash(giX, jj*imaxsize+ii, hash);
+   //hashval(jj,ii) = giX;
 #endif
 }
 
@@ -417,21 +457,21 @@ __kernel void hash_setup_local_cl(
 }
 
 __kernel void calc_neighbors_cl(
-                          const int  isize,     // 0 
-                          const int  levmx,     // 1 
-                          const int  imax,      // 2 
-                          const int  jmax,      // 3 
-                          const int  imaxsize,  // 2 
-                          const int  jmaxsize,  // 3 
-                 __global const int  *levtable, // 4 
-                 __global const int  *level,    // 5 
-                 __global const int  *i,        // 6 
-                 __global const int  *j,        // 7 
-                 __global       int  *nlft,     // 8 
-                 __global       int  *nrht,     // 9 
-                 __global       int  *nbot,     // 10
-                 __global       int  *ntop,     // 11
-                 __global const int  *hash)     // 12
+                          const int  isize,           // 0 
+                          const int  levmx,           // 1 
+                          const int  imax,            // 2 
+                          const int  jmax,            // 3 
+                          const int  imaxsize,        // 4 
+                          const int  jmaxsize,        // 5 
+                 __global const int  *levtable,       // 6 
+                 __global const int  *level,          // 7 
+                 __global const int  *i,              // 8
+                 __global const int  *j,              // 9
+                 __global       int  *nlft,           // 10
+                 __global       int  *nrht,           // 11
+                 __global       int  *nbot,           // 12
+                 __global       int  *ntop,           // 13
+                 __global const int  *hash)           // 14
 {
                 
    const unsigned int giX  = get_global_id(0);
@@ -565,6 +605,93 @@ __kernel void calc_neighbors_cl(
       if (ntopval < 0) {
          int iitop = (ii/2)*2*levmult;
          ntopval = hashval(jjtop,iitop);
+      }    
+   }
+#elif HASH_SETUP_OPT_LEVEL == 4
+
+   int iicur = ii*levmult;
+   int iilft = max( (ii-1)*levmult, 0         );   
+   int iirht = min( (ii+1)*levmult, imaxsize-1);
+   int jjcur = jj*levmult;
+   int jjbot = max( (jj-1)*levmult, 0         );   
+   int jjtop = min( (jj+1)*levmult, jmaxsize-1);
+
+   int nlftval = -1;
+   int nrhtval = -1;
+   int nbotval = -1;
+   int ntopval = -1;
+
+   // Taking care of boundary cells
+   // Force each boundary cell to point to itself on its boundary direction
+   if (iicur <    1*levtable[levmx]  ) nlftval = giX;
+   if (jjcur <    1*levtable[levmx]  ) nbotval = giX;
+   if (iicur > imax*levtable[levmx]-1) nrhtval = giX;
+   if (jjcur > jmax*levtable[levmx]-1) ntopval = giX;
+   // Boundary cells next to corner boundary need special checks
+   if (iicur ==    1*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur > (jmax-1)*levtable[levmx] ) ) nlftval = giX;
+   if (jjcur ==    1*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur > (imax-1)*levtable[levmx] ) ) nbotval = giX;
+   if (iirht == imax*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur > (jmax-1)*levtable[levmx] ) ) nrhtval = giX;
+   if (jjtop == jmax*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur > (imax-1)*levtable[levmx] ) ) ntopval = giX;
+
+   // need to check for finer neighbor first
+   if (lev != levmx) {
+      int iilftfiner = iicur-(iicur-iilft)/2;
+      int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+      if (nlftval < 0) nlftval = read_hash(jjcur     *imaxsize+iilftfiner, hash);
+      if (nbotval < 0) nbotval = read_hash(jjbotfiner*imaxsize+iicur,      hash);
+   }    
+
+   // same size neighbor
+   if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilft, hash);
+   if (nrhtval < 0) nrhtval = read_hash(jjcur*imaxsize+iirht, hash);
+   if (nbotval < 0) nbotval = read_hash(jjbot*imaxsize+iicur, hash);
+   if (ntopval < 0) ntopval = read_hash(jjtop*imaxsize+iicur, hash);
+
+   // Now we need to take care of special case where bottom and left boundary need adjustment since
+   // expected cell doesn't exist on these boundaries if it is finer than current cell
+   if (jjcur < 1*levtable[levmx]) {
+      if (nrhtval < 0) {
+         int jjtopfiner = (jjcur+jjtop)/2;
+         nrhtval = read_hash(jjtopfiner*imaxsize+iirht, hash);
+      }
+      if (nlftval < 0) {
+         int iilftfiner = iicur-(iicur-iilft)/2;
+         int jjtopfiner = (jjcur+jjtop)/2;
+         nlftval = read_hash(jjtopfiner*imaxsize+iilftfiner, hash);
+      }
+   }
+
+   if (iicur < 1*levtable[levmx]) {
+      if (ntopval < 0) {
+         int iirhtfiner = (iicur+iirht)/2;
+         ntopval = read_hash(jjtop*imaxsize+iirhtfiner, hash);
+      }
+      if (nbotval < 0) {
+         int iirhtfiner = (iicur+iirht)/2;
+         int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+         nbotval = read_hash(jjbotfiner*imaxsize+iirhtfiner, hash);
+      }
+   }
+
+   // coarser neighbor
+   if (lev != 0){
+      if (nlftval < 0) { 
+         iilft -= iicur-iilft;
+         int jjlft = (jj/2)*2*levmult;
+         nlftval = read_hash(jjlft*imaxsize+iilft, hash);
+      }    
+      if (nrhtval < 0) {
+         int jjrht = (jj/2)*2*levmult;
+         nrhtval = read_hash(jjrht*imaxsize+iirht, hash);
+      }    
+      if (nbotval < 0) { 
+         jjbot -= jjcur-jjbot;
+         int iibot = (ii/2)*2*levmult;
+         nbotval = read_hash(jjbot*imaxsize+iibot, hash);
+      }                
+      if (ntopval < 0) {
+         int iitop = (ii/2)*2*levmult;
+         ntopval = read_hash(jjtop*imaxsize+iitop, hash);
       }    
    }
 #endif
