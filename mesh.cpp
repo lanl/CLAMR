@@ -4951,13 +4951,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    ulong gpu_hash_table_size = hashsize;
 
    //printf("%d: hash size is %d lws %d gws %d\n",mype,hashsize,hash_local_work_size,hash_global_work_size);
-   ezcl_set_kernel_arg(kernel_hash_init, 0, sizeof(cl_int), (void *)&hashsize);
-   ezcl_set_kernel_arg(kernel_hash_init, 1, sizeof(cl_int), (void *)&gpu_do_compact_hash);
-   ezcl_set_kernel_arg(kernel_hash_init, 2, sizeof(cl_int), (void *)&gpu_hash_method);
-   ezcl_set_kernel_arg(kernel_hash_init, 3, sizeof(cl_int), (void *)&gpu_hash_table_size);
-   ezcl_set_kernel_arg(kernel_hash_init, 4, sizeof(cl_uint),(void *)&gpu_AA);
-   ezcl_set_kernel_arg(kernel_hash_init, 5, sizeof(cl_uint),(void *)&gpu_BB);
-   ezcl_set_kernel_arg(kernel_hash_init, 6, sizeof(cl_mem), (void *)&dev_hash);
+   ezcl_set_kernel_arg(kernel_hash_init, 0, sizeof(cl_int),  (void *)&hashsize);
+   ezcl_set_kernel_arg(kernel_hash_init, 1, sizeof(cl_int),  (void *)&gpu_do_compact_hash);
+   ezcl_set_kernel_arg(kernel_hash_init, 2, sizeof(cl_int),  (void *)&gpu_hash_method);
+   ezcl_set_kernel_arg(kernel_hash_init, 3, sizeof(cl_int),  (void *)&gpu_hash_table_size);
+   ezcl_set_kernel_arg(kernel_hash_init, 4, sizeof(cl_ulong),(void *)&gpu_AA);
+   ezcl_set_kernel_arg(kernel_hash_init, 5, sizeof(cl_ulong),(void *)&gpu_BB);
+   ezcl_set_kernel_arg(kernel_hash_init, 6, sizeof(cl_mem),  (void *)&dev_hash);
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, NULL);
 
    int csize = corners_i.size();
