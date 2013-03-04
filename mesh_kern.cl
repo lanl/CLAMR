@@ -117,24 +117,23 @@ int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
 #define hashval(j,i) hash[(j)*imaxsize+(i)]
 #define hashval_local(j,i) hash[(j)*(imaxsize-iminsize)+(i)]
 
-static ulong AA = 1;
-static ulong BB = 0;
-static int do_compact_hash = 0;
-static int hash_method     = 0;
-static int hash_table_size = 0;
-static int imaxsize        = 0;
+__constant ulong AA = 1;
+__constant ulong BB = 0;
+__constant int do_compact_hash = 0;
+__constant int hash_method     = 0;
+__constant int hash_table_size = 0;
 
 void write_hash(
-   const uint giX,
-   const ulong hashkey,
-   __global int *hash)
+            const uint  giX,
+            const ulong hashkey,
+   __global       int   *hash)
 {
    if (! do_compact_hash) hash[hashkey] = giX;
 }
 
 int read_hash(
-   const ulong hashkey,
-   __global int *hash)
+            const ulong hashkey,
+   __global const int   *hash)
 {
    if (! do_compact_hash) return(hash[hashkey]);
 }
@@ -151,11 +150,11 @@ __kernel void hash_init_cl(
    const uint giX  = get_global_id(0);
 
    if (giX == 0) {
-      do_compact_hash = do_compact_hash_in;
-      hash_method     = hash_method_in;
-      hash_table_size = hash_table_size_in;
-      AA              = AA_in;
-      BB              = BB_in;
+      //do_compact_hash = do_compact_hash_in;
+      //hash_method     = hash_method_in;
+      //hash_table_size = hash_table_size_in;
+      //AA              = AA_in;
+      //BB              = BB_in;
    }
 
    if (giX >= isize) return;
