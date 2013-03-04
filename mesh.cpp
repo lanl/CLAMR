@@ -4706,7 +4706,7 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
    int imaxsize = (imax+1)*levtable[levmx];
    int jmaxsize = (jmax+1)*levtable[levmx];
 
-#ifdef HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
    size_t hashsize = jmaxsize*imaxsize;
    cl_mem dev_hash = ezcl_malloc(NULL, const_cast<char *>("dev_hash"), &hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
@@ -4731,7 +4731,7 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
       if (hash_report_level > 1) printf("Factors AA %llu BB %llu\n",AA,BB);
    }
 
-   size_t hashsize = (do_compact_hash) : gpu_compact_hash_size ? gpu_perfect_hash_size;
+   size_t hashsize = (do_compact_hash) ? gpu_compact_hash_size : gpu_perfect_hash_size;
    cl_mem dev_hash = ezcl_malloc(NULL, const_cast<char *>("dev_hash"), &hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 #endif
 
