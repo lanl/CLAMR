@@ -117,6 +117,9 @@ int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
 #define hashval(j,i) hash[(j)*imaxsize+(i)]
 #define hashval_local(j,i) hash[(j)*(imaxsize-iminsize)+(i)]
 
+__constant ulong prime = 4294967291;
+__constant uint hash_jump_prime = 41;
+
 void write_hash(
             const int   hash_method,
             const ulong hash_table_size,
@@ -126,15 +129,30 @@ void write_hash(
             const ulong hashkey,
    __global       int   *hash)
 {
+   uint hashloc;
+   int icount = 1;
+   uint jump;
+
    switch (hash_method) {
    case -1:
       hash[hashkey] = giX;
       break;
    case 0:
+      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; atomic_cmpxchg(&hash[2*hashloc],-1,hashkey) != -1; hashloc++,hashloc = hashloc%hash_table_size);
+      hash[2*hashloc+1] = giX;
       break;
    case 1:
+      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; atomic_cmpxchg(&hash[2*hashloc],-1,hashkey) != -1; hashloc+=(icount*icount),hashloc = hashloc%hash_table_size){
+         icount++;
+      }
+      hash[2*hashloc+1] = giX;
       break;
    case 2:
+      jump = 1+hashkey%hash_jump_prime;
+      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; atomic_cmpxchg(&hash[2*hashloc],-1,hashkey) != -1; hashloc+=(icount*jump),hashloc = hashloc%hash_table_size){
+         icount++;
+      }
+      hash[2*hashloc+1] = giX;
       break;
    }
 }
@@ -147,15 +165,34 @@ int read_hash(
             const ulong hashkey,
    __global const int   *hash)
 {
+   int hashval = -1;
+   uint hashloc;
+   int icount = 1;
+   uint jump;
+
    switch (hash_method) {
    case -1:
       return(hash[hashkey]);
       break;
    case 0:
+      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hash_table_size);
+      if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+      return(hashval);
       break;
    case 1:
+      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hash_table_size){
+         icount++;
+      }
+      if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+      return(hashval);
       break;
    case 2:
+      jump = 1+hashkey%hash_jump_prime;
+      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hash_table_size){
+         icount++;
+      }
+      if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+      return(hashval);
       break;
    }
 }

@@ -4715,23 +4715,22 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
    uint gpu_perfect_hash_size = (uint)(imaxsize*jmaxsize);
    float gpu_hash_mem_factor = 20.0;
    float gpu_hash_mem_ratio = (double)gpu_perfect_hash_size/(double)gpu_compact_hash_size;
-   //if (gpu_mem_opt_factor != 1.0) gpu_hash_mem_factor /= (gpu_mem_opt_factor*0.2);
-   //gpu_do_compact_hash = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? 0 : 1;
+   if (mem_opt_factor != 1.0) gpu_hash_mem_factor /= (mem_opt_factor*0.2);
+   gpu_do_compact_hash = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? 0 : 1;
 #ifdef __APPLE_CC__
    gpu_do_compact_hash = 0;
-#else
-   gpu_do_compact_hash = 0;
 #endif
-   gpu_hash_method     = -1;
+   gpu_do_compact_hash = 1;
 
-   if (do_compact_hash) {
+   if (gpu_do_compact_hash) {
+      gpu_hash_method = 1;
       gpu_AA = (ulong)(1.0+(double)(prime-1)*drand48());
       gpu_BB = (ulong)(0.0+(double)(prime-1)*drand48());
       if (gpu_AA > prime-1 || gpu_BB > prime-1) exit(0);
       if (hash_report_level > 1) printf("Factors AA %llu BB %llu\n",gpu_AA,gpu_BB);
    }
 
-   size_t hashsize = (do_compact_hash) ? gpu_compact_hash_size : gpu_perfect_hash_size;
+   size_t hashsize = (gpu_do_compact_hash) ? gpu_compact_hash_size : gpu_perfect_hash_size;
    cl_mem dev_hash = ezcl_malloc(NULL, const_cast<char *>("dev_hash"), &hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 #endif
 
@@ -4808,25 +4807,25 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
            __global       int  *hash)     // 14
       */
 
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 0,  sizeof(cl_int), (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 1,  sizeof(cl_int), (void *)&levmx);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 2,  sizeof(cl_int), (void *)&imax);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 3,  sizeof(cl_int), (void *)&jmax);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 4,  sizeof(cl_int), (void *)&imaxsize);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 5,  sizeof(cl_int), (void *)&jmaxsize);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 0,  sizeof(cl_int),   (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 1,  sizeof(cl_int),   (void *)&levmx);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 2,  sizeof(cl_int),   (void *)&imax);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 3,  sizeof(cl_int),   (void *)&jmax);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 4,  sizeof(cl_int),   (void *)&imaxsize);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 5,  sizeof(cl_int),   (void *)&jmaxsize);
    ezcl_set_kernel_arg(kernel_calc_neighbors, 6,  sizeof(cl_int),   (void *)&gpu_hash_method);
    ezcl_set_kernel_arg(kernel_calc_neighbors, 7,  sizeof(cl_ulong), (void *)&gpu_hash_table_size);
    ezcl_set_kernel_arg(kernel_calc_neighbors, 8,  sizeof(cl_ulong), (void *)&gpu_AA);
    ezcl_set_kernel_arg(kernel_calc_neighbors, 9,  sizeof(cl_ulong), (void *)&gpu_BB);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 10, sizeof(cl_mem), (void *)&dev_levtable);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 11, sizeof(cl_mem), (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 12, sizeof(cl_mem), (void *)&dev_i);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 13, sizeof(cl_mem), (void *)&dev_j);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 14, sizeof(cl_mem), (void *)&dev_nlft);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 15, sizeof(cl_mem), (void *)&dev_nrht);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 16, sizeof(cl_mem), (void *)&dev_nbot);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 17, sizeof(cl_mem), (void *)&dev_ntop);
-   ezcl_set_kernel_arg(kernel_calc_neighbors, 18, sizeof(cl_mem), (void *)&dev_hash);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 10, sizeof(cl_mem),   (void *)&dev_levtable);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 11, sizeof(cl_mem),   (void *)&dev_level);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 12, sizeof(cl_mem),   (void *)&dev_i);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 13, sizeof(cl_mem),   (void *)&dev_j);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 14, sizeof(cl_mem),   (void *)&dev_nlft);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 15, sizeof(cl_mem),   (void *)&dev_nrht);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 16, sizeof(cl_mem),   (void *)&dev_nbot);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 17, sizeof(cl_mem),   (void *)&dev_ntop);
+   ezcl_set_kernel_arg(kernel_calc_neighbors, 18, sizeof(cl_mem),   (void *)&dev_hash);
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    ezcl_device_memory_delete(dev_hash);
