@@ -133,9 +133,12 @@ void write_hash(
    int icount = 1;
    uint jump;
 
+#ifndef __APPLE_CC__
    switch (hash_method) {
    case -1:
+#endif
       hash[hashkey] = giX;
+#ifndef __APPLE_CC__
       break;
    case 0:
       for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; atomic_cmpxchg(&hash[2*hashloc],-1,hashkey) != -1; hashloc++,hashloc = hashloc%hash_table_size);
@@ -155,6 +158,7 @@ void write_hash(
       hash[2*hashloc+1] = giX;
       break;
    }
+#endif
 }
 
 int read_hash(
@@ -170,9 +174,12 @@ int read_hash(
    int icount = 1;
    uint jump;
 
+#ifndef __APPLE_CC__
    switch (hash_method) {
    case -1:
+#endif
       return(hash[hashkey]);
+#ifndef __APPLE_CC__
       break;
    case 0:
       for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hash_table_size);
@@ -195,6 +202,7 @@ int read_hash(
       return(hashval);
       break;
    }
+#endif
 }
 
 __kernel void hash_init_cl(
