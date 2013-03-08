@@ -3441,6 +3441,7 @@ void Mesh::calc_neighbors_local(void)
 
       //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);
 
+#if HASH_SETUP_OPT_LEVEL <= 3
       // Setting corners to INT_MIN
       int ncells_corners = 4;
       int i_corner[] = {   0,   0,imax,imax};
@@ -3451,14 +3452,12 @@ void Mesh::calc_neighbors_local(void)
             for (int ii = i_corner[ic]*levtable[levmx]-iminsize; ii < (i_corner[ic]+1)*levtable[levmx]-iminsize; ii++) {
                //printf("%d: block j %d i %d\n",mype,jj,ii);
                if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) continue;
-#if HASH_SETUP_OPT_LEVEL <= 3
                hash[jj][ii] = INT_MIN;
-#elif HASH_SETUP_OPT_LEVEL == 4
                write_hash(INT_MIN, jj*(imaxsize-iminsize)+ii, hash);
-#endif
             }
          }
       }
+#endif
  
       if (DEBUG) {
          fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
