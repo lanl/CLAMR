@@ -5761,7 +5761,6 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
       gpu_BB = (ulong)(0.0+(double)(prime-1)*drand48());
       if (gpu_AA > prime-1 || gpu_BB > prime-1) exit(0);
       if (hash_report_level > 1) printf("Factors AA %llu BB %llu\n",gpu_AA,gpu_BB);
-      printf("Factors AA %llu BB %llu\n",gpu_AA,gpu_BB);
    } else {
       gpu_hash_table_size = gpu_perfect_hash_size;
       hashsize = gpu_perfect_hash_size;
