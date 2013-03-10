@@ -797,7 +797,7 @@ void Mesh::compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint nce
             mype,ic,nrht[ic],nrht[nrht[ic]],Test_check_global[ic]);
       }
    }
-   
+
    // ==================== check bottom value ====================
    for (uint ic=0; ic<ncells; ic++){
       Test_check[ic] = Test[nbot[ic]];
@@ -3040,27 +3040,29 @@ void Mesh::calc_neighbors(void)
          
          // Now we need to take care of special case where bottom and left boundary need adjustment since
          // expected cell doesn't exist on these boundaries if it is finer than current cell
-         if (jjcur < 1*levtable[levmx]) {
-            if (nrhtval < 0) {
-               int jjtopfiner = (jjcur+jjtop)/2;
-               nrhtval = hash[jjtopfiner][iirht];
+         if (lev != levmx) {
+            if (jjcur < 1*levtable[levmx]) {
+               if (nrhtval < 0) {
+                  int jjtopfiner = (jjcur+jjtop)/2;
+                  nrhtval = hash[jjtopfiner][iirht];
+               }
+               if (nlftval < 0) {
+                  int iilftfiner = iicur-(iicur-iilft)/2;
+                  int jjtopfiner = (jjcur+jjtop)/2;
+                  nlftval = hash[jjtopfiner][iilftfiner];
+               }
             }
-            if (nlftval < 0) {
-               int iilftfiner = iicur-(iicur-iilft)/2;
-               int jjtopfiner = (jjcur+jjtop)/2;
-               nlftval = hash[jjtopfiner][iilftfiner];
-            }
-         }
          
-         if (iicur < 1*levtable[levmx]) {
-            if (ntopval < 0) {
-               int iirhtfiner = (iicur+iirht)/2;
-               ntopval = hash[jjtop][iirhtfiner]);
-            }
-            if (nbotval < 0) {
-               int iirhtfiner = (iicur+iirht)/2;
-               int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-               nbotval = hash[jjbotfiner][iirhtfiner];
+            if (iicur < 1*levtable[levmx]) {
+               if (ntopval < 0) {
+                  int iirhtfiner = (iicur+iirht)/2;
+                  ntopval = hash[jjtop][iirhtfiner]);
+               }
+               if (nbotval < 0) {
+                  int iirhtfiner = (iicur+iirht)/2;
+                  int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+                  nbotval = hash[jjbotfiner][iirhtfiner];
+               }
             }
          }
          
@@ -3107,8 +3109,6 @@ void Mesh::calc_neighbors(void)
          int jjbot = max( (jj-1)*levmult, 0         );
          int jjtop = min( (jj+1)*levmult, jmaxsize-1);
 
-         //if (ncells >= 111) fprintf(fp,"DEBUG current -- ic %d ii %d jj %d lev %d iicur %d jjcur %d iilft %d iirht %d jjbot %d jjtop %d\n",ic,ii,jj,lev,iicur,jjcur,iilft,iirht,jjbot,jjtop);
-
          int nlftval = -1;
          int nrhtval = -1;
          int nbotval = -1;
@@ -3134,13 +3134,11 @@ void Mesh::calc_neighbors(void)
             //int iirhtfiner = (iicur+iirht)/2;
             int jjbotfiner = jjcur-(jjcur-jjbot)/2;
             //int jjtopfiner = (jjcur+jjtop)/2;
-            //if (ncells >= 111) fprintf(fp,"DEBUG finer -- ic %d iilftfiner %d iirhtfiner %d jjbotfiner %d jjtopfiner %d\n",ic,iilftfiner,iirhtfiner,jjbotfiner,jjtopfiner);
             if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilftfiner, hash);
             if (nbotval < 0) nbotval = read_hash(jjbotfiner*imaxsize+iicur, hash);
          }
 
          // same size neighbor
-         //if (ncells >= 111) fprintf(fp,"DEBUG same size -- ic %d iicur %d jjcur %d iilft %d iirht %d jjbot %d jjtop %d nlftval %d nrhtval %d nbotval %d ntopval %d\n",ic,iicur,jjcur,iilft,iirht,jjbot,jjtop,nlftval,nrhtval,nbotval,ntopval);
          if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilft, hash);
          if (nrhtval < 0) nrhtval = read_hash(jjcur*imaxsize+iirht, hash);
          if (nbotval < 0) nbotval = read_hash(jjbot*imaxsize+iicur, hash);
@@ -3148,36 +3146,33 @@ void Mesh::calc_neighbors(void)
 
          // Now we need to take care of special case where bottom and left boundary need adjustment since
          // expected cell doesn't exist on these boundaries if it is finer than current cell
-         if (jjcur < 1*levtable[levmx]) {
-            if (nrhtval < 0) {
-               int jjtopfiner = (jjcur+jjtop)/2;
-               //if (ncells >= 111) fprintf(fp,"DEBUG BOTTOM BOUNDARY -- ic %d jjtopfiner %d iirht %d hash %d\n",ic,jjtopfiner,iirht,read_hash(jjtopfiner*imaxsize+iirht, hash));
-               nrhtval = read_hash(jjtopfiner*imaxsize+iirht, hash);
+         if (lev != levmx) {
+            if (jjcur < 1*levtable[levmx]) {
+               if (nrhtval < 0) {
+                  int jjtopfiner = (jjcur+jjtop)/2;
+                  nrhtval = read_hash(jjtopfiner*imaxsize+iirht, hash);
+               }
+               if (nlftval < 0) {
+                  int iilftfiner = iicur-(iicur-iilft)/2;
+                  int jjtopfiner = (jjcur+jjtop)/2;
+                  nlftval = read_hash(jjtopfiner*imaxsize+iilftfiner, hash);
+               }
             }
-            if (nlftval < 0) {
-               int iilftfiner = iicur-(iicur-iilft)/2;
-               int jjtopfiner = (jjcur+jjtop)/2;
-               //if (ncells >= 111) fprintf(fp,"DEBUG BOTTOM BOUNDARY -- ic %d jjtopfiner %d iilftfiner %d hash %d\n",ic,jjtopfiner,iilftfiner,read_hash(jjtopfiner*imaxsize+iilftfiner, hash));
-               nlftval = read_hash(jjtopfiner*imaxsize+iilftfiner, hash);
-            }
-         }
          
-         if (iicur < 1*levtable[levmx]) {
-            if (ntopval < 0) {
-               int iirhtfiner = (iicur+iirht)/2;
-               //if (ncells >= 111) fprintf(fp,"DEBUG LEFT BOUNDARY -- ic %d jjtop %d iirhtfiner %d hash %d\n",ic,jjtop,iirhtfiner,read_hash(jjtop*imaxsize+iirhtfiner, hash));
-               ntopval = read_hash(jjtop*imaxsize+iirhtfiner, hash);
-            }
-            if (nbotval < 0) {
-               int iirhtfiner = (iicur+iirht)/2;
-               int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-               //if (ncells >= 111) fprintf(fp,"DEBUG LEFT BOUNDARY -- ic %d jjbotfiner %d iirhtfiner %d hash %d\n",ic,jjbotfiner,iirhtfiner,read_hash(jjbotfiner*imaxsize+iirhtfiner, hash));
-               nbotval = read_hash(jjbotfiner*imaxsize+iirhtfiner, hash);
+            if (iicur < 1*levtable[levmx]) {
+               if (ntopval < 0) {
+                  int iirhtfiner = (iicur+iirht)/2;
+                  ntopval = read_hash(jjtop*imaxsize+iirhtfiner, hash);
+               }
+               if (nbotval < 0) {
+                  int iirhtfiner = (iicur+iirht)/2;
+                  int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+                  nbotval = read_hash(jjbotfiner*imaxsize+iirhtfiner, hash);
+               }
             }
          }
          
          // coarser neighbor
-         //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iicur %d jjcur %d iilft %d iirht %d jjbot %d jjtop %d nlftval %d nrhtval %d nbotval %d ntopval %d\n",ic,iicur,jjcur,iilft,iirht,jjbot,jjtop,nlftval,nrhtval,nbotval,ntopval);
          if (lev != 0){
             if (nlftval < 0) {
                iilft -= iicur-iilft;
@@ -3187,23 +3182,18 @@ void Mesh::calc_neighbors(void)
             }
             if (nrhtval < 0) {
                int jjrht = (jj/2)*2*levmult;
-               //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iirht %d jjrht %d\n",ic,iirht,jjrht);
                nrhtval = read_hash(jjrht*imaxsize+iirht, hash);
             }
             if (nbotval < 0) {
                jjbot -= jjcur-jjbot;
                int iibot = (ii/2)*2*levmult;
-               //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iibot %d jjbot %d\n",ic,iibot,jjbot);
                nbotval = read_hash(jjbot*imaxsize+iibot, hash);
             }
             if (ntopval < 0) {
                int iitop = (ii/2)*2*levmult;
-               //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iitop %d jjtop %d\n",ic,iitop,jjtop);
                ntopval = read_hash(jjtop*imaxsize+iitop, hash);
             }
          }
-
-         //if (ncells >= 1111 && (nlftval < 0 || nrhtval < 0 || nbotval < 0 || ntopval < 0) ) fprintf(fp,"DEBUG end -- ic %d nlftval %d nrhtval %d nbotval %d ntopval %d\n",ic,nlftval,nrhtval,nbotval,ntopval);
 
          nlft[ic] = nlftval;
          nrht[ic] = nrhtval;
@@ -3733,27 +3723,29 @@ void Mesh::calc_neighbors_local(void)
               
          // Now we need to take care of special case where bottom and left boundary need adjustment since
          // expected cell doesn't exist on these boundaries if it is finer than current cell
-         if (jjcur < 1*levtable[levmx]) {
-            if (nrhtval < 0) {
-               int jjtopfiner = (jjcur+jjtop)/2;
-               nrhtval = hash[jjtopfiner][iirht];
+         if (lev != levmx) {
+            if (jjcur < 1*levtable[levmx]) {
+               if (nrhtval < 0) {
+                  int jjtopfiner = (jjcur+jjtop)/2;
+                  nrhtval = hash[jjtopfiner][iirht];
+               }
+               if (nlftval < 0) {
+                  int iilftfiner = iicur-(iicur-iilft)/2;
+                  int jjtopfiner = (jjcur+jjtop)/2;
+                  nlftval = hash[jjtopfiner][iilftfiner];
+               }
             }
-            if (nlftval < 0) {
-               int iilftfiner = iicur-(iicur-iilft)/2;
-               int jjtopfiner = (jjcur+jjtop)/2;
-               nlftval = hash[jjtopfiner][iilftfiner];
-            }
-         }
 
-         if (iicur < 1*levtable[levmx]) {
-            if (ntopval < 0) {
-               int iirhtfiner = (iicur+iirht)/2;
-               ntopval = hash[jjtop][iirhtfiner];
-            }
-            if (nbotval < 0) {
-               int iirhtfiner = (iicur+iirht)/2;
-               int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-               nbotval = hash[jjbotfiner][iirhtfiner];
+            if (iicur < 1*levtable[levmx]) {
+               if (ntopval < 0) {
+                  int iirhtfiner = (iicur+iirht)/2;
+                  ntopval = hash[jjtop][iirhtfiner];
+               }
+               if (nbotval < 0) {
+                  int iirhtfiner = (iicur+iirht)/2;
+                  int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+                  nbotval = hash[jjbotfiner][iirhtfiner];
+               }
             }
          }
 
@@ -3835,27 +3827,29 @@ void Mesh::calc_neighbors_local(void)
               
          // Now we need to take care of special case where bottom and left boundary need adjustment since
          // expected cell doesn't exist on these boundaries if it is finer than current cell
-         if (jjcur < 1*levtable[levmx]) {
-            if (nrhtval < 0) {
-               int jjtopfiner = (jjcur+jjtop)/2;
-               nrhtval = read_hash(jjtopfiner*(imaxsize-iminsize)+iirht, hash);
+         if (lev != levmx) {
+            if (jjcur < 1*levtable[levmx]) {
+               if (nrhtval < 0) {
+                  int jjtopfiner = (jjcur+jjtop)/2;
+                  nrhtval = read_hash(jjtopfiner*(imaxsize-iminsize)+iirht, hash);
+               }
+               if (nlftval < 0) {
+                  int iilftfiner = iicur-(iicur-iilft)/2;
+                  int jjtopfiner = (jjcur+jjtop)/2;
+                  nlftval = read_hash(jjtopfiner*(imaxsize-iminsize)+iilftfiner, hash);
+               }
             }
-            if (nlftval < 0) {
-               int iilftfiner = iicur-(iicur-iilft)/2;
-               int jjtopfiner = (jjcur+jjtop)/2;
-               nlftval = read_hash(jjtopfiner*(imaxsize-iminsize)+iilftfiner, hash);
-            }
-         }
 
-         if (iicur < 1*levtable[levmx]) {
-            if (ntopval < 0) {
-               int iirhtfiner = (iicur+iirht)/2;
-               ntopval = read_hash(jjtop*(imaxsize-iminsize)+iirhtfiner, hash);
-            }
-            if (nbotval < 0) {
-               int iirhtfiner = (iicur+iirht)/2;
-               int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-               nbotval = read_hash(jjbotfiner*(imaxsize-iminsize)+iirhtfiner, hash);
+            if (iicur < 1*levtable[levmx]) {
+               if (ntopval < 0) {
+                  int iirhtfiner = (iicur+iirht)/2;
+                  ntopval = read_hash(jjtop*(imaxsize-iminsize)+iirhtfiner, hash);
+               }
+               if (nbotval < 0) {
+                  int iirhtfiner = (iicur+iirht)/2;
+                  int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+                  nbotval = read_hash(jjbotfiner*(imaxsize-iminsize)+iirhtfiner, hash);
+               }
             }
          }
 
@@ -5307,8 +5301,8 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (DEBUG) {
-            //fprintf(fp,"After setting neighbors through ghost cells\n");
-            //print_local();
+            fprintf(fp,"After setting neighbors through ghost cells\n");
+            print_local();
          }
 
 /*
@@ -5442,6 +5436,8 @@ void Mesh::calc_neighbors_local(void)
          if (TIMING_LEVEL >= 2) cpu_time_setup_comm += cpu_timer_stop(tstart_lev2);
 
          if (DEBUG) {
+            print_local();
+
             int jmaxglobal = (jmax+1)*levtable[levmx];
             int imaxglobal = (imax+1)*levtable[levmx];
             fprintf(fp,"\n                                    HASH numbering\n");
