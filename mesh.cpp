@@ -3039,27 +3039,29 @@ void Mesh::calc_neighbors(void)
          
          // Now we need to take care of special case where bottom and left boundary need adjustment since
          // expected cell doesn't exist on these boundaries if it is finer than current cell
-         if (jjcur < 1*levtable[levmx]) {
-            if (nrhtval < 0) {
-               int jjtopfiner = (jjcur+jjtop)/2;
-               nrhtval = hash[jjtopfiner][iirht];
+         if (lev != levmx) {
+            if (jjcur < 1*levtable[levmx]) {
+               if (nrhtval < 0) {
+                  int jjtopfiner = (jjcur+jjtop)/2;
+                  nrhtval = hash[jjtopfiner][iirht];
+               }
+               if (nlftval < 0) {
+                  int iilftfiner = iicur-(iicur-iilft)/2;
+                  int jjtopfiner = (jjcur+jjtop)/2;
+                  nlftval = hash[jjtopfiner][iilftfiner];
+               }
             }
-            if (nlftval < 0) {
-               int iilftfiner = iicur-(iicur-iilft)/2;
-               int jjtopfiner = (jjcur+jjtop)/2;
-               nlftval = hash[jjtopfiner][iilftfiner];
-            }
-         }
          
-         if (iicur < 1*levtable[levmx]) {
-            if (ntopval < 0) {
-               int iirhtfiner = (iicur+iirht)/2;
-               ntopval = hash[jjtop][iirhtfiner]);
-            }
-            if (nbotval < 0) {
-               int iirhtfiner = (iicur+iirht)/2;
-               int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-               nbotval = hash[jjbotfiner][iirhtfiner];
+            if (iicur < 1*levtable[levmx]) {
+               if (ntopval < 0) {
+                  int iirhtfiner = (iicur+iirht)/2;
+                  ntopval = hash[jjtop][iirhtfiner]);
+               }
+               if (nbotval < 0) {
+                  int iirhtfiner = (iicur+iirht)/2;
+                  int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+                  nbotval = hash[jjbotfiner][iirhtfiner];
+               }
             }
          }
          
@@ -3143,27 +3145,29 @@ void Mesh::calc_neighbors(void)
 
          // Now we need to take care of special case where bottom and left boundary need adjustment since
          // expected cell doesn't exist on these boundaries if it is finer than current cell
-         if (jjcur < 1*levtable[levmx]) {
-            if (nrhtval < 0) {
-               int jjtopfiner = (jjcur+jjtop)/2;
-               nrhtval = read_hash(jjtopfiner*imaxsize+iirht, hash);
+         if (lev != levmx) {
+            if (jjcur < 1*levtable[levmx]) {
+               if (nrhtval < 0) {
+                  int jjtopfiner = (jjcur+jjtop)/2;
+                  nrhtval = read_hash(jjtopfiner*imaxsize+iirht, hash);
+               }
+               if (nlftval < 0) {
+                  int iilftfiner = iicur-(iicur-iilft)/2;
+                  int jjtopfiner = (jjcur+jjtop)/2;
+                  nlftval = read_hash(jjtopfiner*imaxsize+iilftfiner, hash);
+               }
             }
-            if (nlftval < 0) {
-               int iilftfiner = iicur-(iicur-iilft)/2;
-               int jjtopfiner = (jjcur+jjtop)/2;
-               nlftval = read_hash(jjtopfiner*imaxsize+iilftfiner, hash);
-            }
-         }
          
-         if (iicur < 1*levtable[levmx]) {
-            if (ntopval < 0) {
-               int iirhtfiner = (iicur+iirht)/2;
-               ntopval = read_hash(jjtop*imaxsize+iirhtfiner, hash);
-            }
-            if (nbotval < 0) {
-               int iirhtfiner = (iicur+iirht)/2;
-               int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-               nbotval = read_hash(jjbotfiner*imaxsize+iirhtfiner, hash);
+            if (iicur < 1*levtable[levmx]) {
+               if (ntopval < 0) {
+                  int iirhtfiner = (iicur+iirht)/2;
+                  ntopval = read_hash(jjtop*imaxsize+iirhtfiner, hash);
+               }
+               if (nbotval < 0) {
+                  int iirhtfiner = (iicur+iirht)/2;
+                  int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+                  nbotval = read_hash(jjbotfiner*imaxsize+iirhtfiner, hash);
+               }
             }
          }
          
