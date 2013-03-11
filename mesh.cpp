@@ -742,15 +742,14 @@ void Mesh::compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint nce
    // ==================== check left value ====================
    for (uint ic=0; ic<ncells; ic++){
       Test_check[ic] = Test[nlft[ic]];
-      //if (mype == 1 && ic==0) printf("%d: nlft check for ic 0 is %d\n",mype,nlft[0]);
    }
 
    MPI_Allgatherv(&Test_check[0], nsizes[mype], MPI_INT, &Test_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
    for (uint ic=0; ic<ncells_global; ic++){
-      //if (Test_global[nlft_global[ic]] != Test_check_global[ic]) {
-         //if (mype == 0) printf("%d: Error with nlft for cell %d -- nlft %d global %d check %d\n",mype,ic,nlft_global[ic],Test_global[nlft_global[ic]],Test_check_global[ic]);
-      //}
+      if (Test_global[nlft_global[ic]] != Test_check_global[ic]) {
+         if (mype == 0) printf("%d: Error with nlft for cell %d -- nlft %d global %d check %d\n",mype,ic,nlft_global[ic],Test_global[nlft_global[ic]],Test_check_global[ic]);
+      }
    }
    
    // ==================== check left left value ====================
