@@ -661,7 +661,7 @@ void Mesh::print_dev_local(cl_command_queue command_queue)
    //fprintf(fp,"\n%d:                    Printing mesh for dev_local\n\n",mype);
 
    fprintf(fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mype);
-   for (uint ic=0; ic<ncells_ghost; ic++) {
+   for (uint ic=0; ic<MAX(ncells_ghost,ncells); ic++) {
       fprintf(fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mype,ic, ic+noffset,i_tmp[ic], j_tmp[ic], level_tmp[ic], nlft_tmp[ic], nrht_tmp[ic], nbot_tmp[ic], ntop_tmp[ic]);
    }
    //fprintf(fp,"\n%d:              Finished printing mesh for dev_local\n\n",mype);
@@ -797,7 +797,7 @@ void Mesh::compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint nce
             mype,ic,nrht[ic],nrht[nrht[ic]],Test_check_global[ic]);
       }
    }
-   
+
    // ==================== check bottom value ====================
    for (uint ic=0; ic<ncells; ic++){
       Test_check[ic] = Test[nbot[ic]];
@@ -3107,8 +3107,6 @@ void Mesh::calc_neighbors(void)
          int jjbot = max( (jj-1)*levmult, 0         );
          int jjtop = min( (jj+1)*levmult, jmaxsize-1);
 
-         //if (ncells >= 111) fprintf(fp,"DEBUG current -- ic %d ii %d jj %d lev %d iicur %d jjcur %d iilft %d iirht %d jjbot %d jjtop %d\n",ic,ii,jj,lev,iicur,jjcur,iilft,iirht,jjbot,jjtop);
-
          int nlftval = -1;
          int nrhtval = -1;
          int nbotval = -1;
@@ -3134,13 +3132,11 @@ void Mesh::calc_neighbors(void)
             //int iirhtfiner = (iicur+iirht)/2;
             int jjbotfiner = jjcur-(jjcur-jjbot)/2;
             //int jjtopfiner = (jjcur+jjtop)/2;
-            //if (ncells >= 111) fprintf(fp,"DEBUG finer -- ic %d iilftfiner %d iirhtfiner %d jjbotfiner %d jjtopfiner %d\n",ic,iilftfiner,iirhtfiner,jjbotfiner,jjtopfiner);
             if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilftfiner, hash);
             if (nbotval < 0) nbotval = read_hash(jjbotfiner*imaxsize+iicur, hash);
          }
 
          // same size neighbor
-         //if (ncells >= 111) fprintf(fp,"DEBUG same size -- ic %d iicur %d jjcur %d iilft %d iirht %d jjbot %d jjtop %d nlftval %d nrhtval %d nbotval %d ntopval %d\n",ic,iicur,jjcur,iilft,iirht,jjbot,jjtop,nlftval,nrhtval,nbotval,ntopval);
          if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilft, hash);
          if (nrhtval < 0) nrhtval = read_hash(jjcur*imaxsize+iirht, hash);
          if (nbotval < 0) nbotval = read_hash(jjbot*imaxsize+iicur, hash);
@@ -3151,13 +3147,11 @@ void Mesh::calc_neighbors(void)
          if (jjcur < 1*levtable[levmx]) {
             if (nrhtval < 0) {
                int jjtopfiner = (jjcur+jjtop)/2;
-               //if (ncells >= 111) fprintf(fp,"DEBUG BOTTOM BOUNDARY -- ic %d jjtopfiner %d iirht %d hash %d\n",ic,jjtopfiner,iirht,read_hash(jjtopfiner*imaxsize+iirht, hash));
                nrhtval = read_hash(jjtopfiner*imaxsize+iirht, hash);
             }
             if (nlftval < 0) {
                int iilftfiner = iicur-(iicur-iilft)/2;
                int jjtopfiner = (jjcur+jjtop)/2;
-               //if (ncells >= 111) fprintf(fp,"DEBUG BOTTOM BOUNDARY -- ic %d jjtopfiner %d iilftfiner %d hash %d\n",ic,jjtopfiner,iilftfiner,read_hash(jjtopfiner*imaxsize+iilftfiner, hash));
                nlftval = read_hash(jjtopfiner*imaxsize+iilftfiner, hash);
             }
          }
@@ -3165,45 +3159,36 @@ void Mesh::calc_neighbors(void)
          if (iicur < 1*levtable[levmx]) {
             if (ntopval < 0) {
                int iirhtfiner = (iicur+iirht)/2;
-               //if (ncells >= 111) fprintf(fp,"DEBUG LEFT BOUNDARY -- ic %d jjtop %d iirhtfiner %d hash %d\n",ic,jjtop,iirhtfiner,read_hash(jjtop*imaxsize+iirhtfiner, hash));
                ntopval = read_hash(jjtop*imaxsize+iirhtfiner, hash);
             }
             if (nbotval < 0) {
                int iirhtfiner = (iicur+iirht)/2;
                int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-               //if (ncells >= 111) fprintf(fp,"DEBUG LEFT BOUNDARY -- ic %d jjbotfiner %d iirhtfiner %d hash %d\n",ic,jjbotfiner,iirhtfiner,read_hash(jjbotfiner*imaxsize+iirhtfiner, hash));
                nbotval = read_hash(jjbotfiner*imaxsize+iirhtfiner, hash);
             }
          }
          
          // coarser neighbor
-         //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iicur %d jjcur %d iilft %d iirht %d jjbot %d jjtop %d nlftval %d nrhtval %d nbotval %d ntopval %d\n",ic,iicur,jjcur,iilft,iirht,jjbot,jjtop,nlftval,nrhtval,nbotval,ntopval);
          if (lev != 0){
             if (nlftval < 0) {
                iilft -= iicur-iilft;
                int jjlft = (jj/2)*2*levmult;
-               //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iilft %d jjlft %d\n",ic,iilft,jjlft);
                nlftval = read_hash(jjlft*imaxsize+iilft, hash);
             }
             if (nrhtval < 0) {
                int jjrht = (jj/2)*2*levmult;
-               //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iirht %d jjrht %d\n",ic,iirht,jjrht);
                nrhtval = read_hash(jjrht*imaxsize+iirht, hash);
             }
             if (nbotval < 0) {
                jjbot -= jjcur-jjbot;
                int iibot = (ii/2)*2*levmult;
-               //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iibot %d jjbot %d\n",ic,iibot,jjbot);
                nbotval = read_hash(jjbot*imaxsize+iibot, hash);
             }
             if (ntopval < 0) {
                int iitop = (ii/2)*2*levmult;
-               //if (ncells >= 111) fprintf(fp,"DEBUG coarser -- ic %d iitop %d jjtop %d\n",ic,iitop,jjtop);
                ntopval = read_hash(jjtop*imaxsize+iitop, hash);
             }
          }
-
-         //if (ncells >= 1111 && (nlftval < 0 || nrhtval < 0 || nbotval < 0 || ntopval < 0) ) fprintf(fp,"DEBUG end -- ic %d nlftval %d nrhtval %d nbotval %d ntopval %d\n",ic,nlftval,nrhtval,nbotval,ntopval);
 
          nlft[ic] = nlftval;
          nrht[ic] = nrhtval;
@@ -4076,6 +4061,8 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (DEBUG) {
+            print_local();
+
             int jmaxglobal = (jmax+1)*levtable[levmx];
             int imaxglobal = (imax+1)*levtable[levmx];
             fprintf(fp,"\n                                    HASH numbering for 1 layer\n");
@@ -4316,8 +4303,10 @@ void Mesh::calc_neighbors_local(void)
             cpu_timer_start(&tstart_lev2);
          }
 
-         //fprintf(fp,"After setting neighbors through ghost cells\n");
-         //print_local();
+         if (DEBUG) {
+            fprintf(fp,"After setting neighbors through ghost cells\n");
+            print_local();
+         }
 
 /*
          // Set neighbors to global cell numbers from hash
@@ -4387,8 +4376,10 @@ void Mesh::calc_neighbors_local(void)
             cpu_timer_start(&tstart_lev2);
          }
 
-         //fprintf(fp,"After setting corner neighbors\n");
-         //print_local();
+         if (DEBUG) {
+            fprintf(fp,"After setting corner neighbors\n");
+            print_local();
+         }
 
          // Adjusting neighbors to local indices
          for (uint ic=0; ic<ncells_ghost; ic++){
@@ -4415,8 +4406,10 @@ void Mesh::calc_neighbors_local(void)
             }
          }
 
-         //fprintf(fp,"After adjusting neighbors to local indices\n");
-         //print_local();
+         if (DEBUG) {
+            fprintf(fp,"After adjusting neighbors to local indices\n");
+            print_local();
+         }
          
          if (TIMING_LEVEL >= 2) {
             cpu_time_neigh_adjust += cpu_timer_stop(tstart_lev2);
@@ -4432,10 +4425,12 @@ void Mesh::calc_neighbors_local(void)
 
          if (cell_handle) L7_Free(&cell_handle);
          cell_handle=0;
-         //fprintf(fp,"%d: SETUP ncells %ld noffset %d nghost %d\n",mype,ncells,noffset,nghost);
-         //for (int ig = 0; ig<nghost; ig++){
-         //   fprintf(fp,"%d: indices needed ic %d index %d\n",mype,ig,indices_needed[ig]);
-         //}
+         if (DEBUG) {
+            fprintf(fp,"%d: SETUP ncells %ld noffset %d nghost %d\n",mype,ncells,noffset,nghost);
+            for (int ig = 0; ig<nghost; ig++){
+               fprintf(fp,"%d: indices needed ic %d index %d\n",mype,ig,indices_needed[ig]);
+            }
+         }
          L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
 
          if (TIMING_LEVEL >= 2) cpu_time_setup_comm += cpu_timer_stop(tstart_lev2);
@@ -5632,6 +5627,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       }
 
       if (DEBUG) {
+         print_dev_local(command_queue);
+
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
  
@@ -5682,6 +5679,15 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_set_kernel_arg(kernel_calc_layer2, 15,  sizeof(cl_mem), (void *)&dev_nbpacked);
       ezcl_set_kernel_arg(kernel_calc_layer2, 16,  nb_local_work_size*sizeof(cl_mem), NULL);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer2, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
+
+      if (DEBUG){
+         ezcl_enqueue_read_buffer(command_queue, dev_border_cell_needed_out, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
+         for(int ic=0; ic<nbsize_local; ic++){
+            if (border_cell_needed_global[ic] <= 0) continue;
+            if (border_cell_needed_global[ic] <  0x0016) fprintf(fp,"%d: First  set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+            if (border_cell_needed_global[ic] >= 0x0016) fprintf(fp,"%d: Second set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+         }
+      }
 
       ezcl_device_memory_delete(dev_border_cell_needed);
 
@@ -5776,6 +5782,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_device_memory_delete(dev_border_cell_level_new);
 
       if (DEBUG) {
+         print_dev_local(command_queue);
+
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
 
@@ -5783,11 +5791,11 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          int imaxglobal = (imax+1)*levtable[levmx];
          fprintf(fp,"\n                                    HASH numbering for 2 layer\n");
          for (int jj = jmaxglobal-1; jj>=0; jj--){
-            fprintf(fp,"%3d: %5d:",mype,jj);
+            fprintf(fp,"%2d: %4d:",mype,jj);
             if (jj >= jminsize && jj < jmaxsize) {
                for (int ii = 0; ii<imaxglobal; ii++){
                   if (ii >= iminsize && ii < imaxsize) {
-                     fprintf(fp,"%6d",hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]);
+                     fprintf(fp,"%5d",hash_tmp[(jj-jminsize)*(imaxsize-iminsize)+(ii-iminsize)]);
                   } else {
                      fprintf(fp,"     ");
                   }
@@ -6068,9 +6076,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       if (cell_handle) L7_Free(&cell_handle);
       cell_handle=0;
 
-      //for (int ic=0; ic<nghost; ic++){
-      //   fprintf(fp,"%d: indices needed ic %d index %d\n",mype,ic,indices_needed[ic]);
-      //}
+      if (DEBUG){
+         fprintf(fp,"%d: SETUP ncells %ld noffset %d nghost %d\n",mype,ncells,noffset,nghost);
+         for (int ic=0; ic<nghost; ic++){
+            fprintf(fp,"%d: indices needed ic %d index %d\n",mype,ic,indices_needed[ic]);
+         }
+      }
 
       L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
 
