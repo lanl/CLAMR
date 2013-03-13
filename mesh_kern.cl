@@ -130,8 +130,10 @@ void write_hash(
    __global       int   *hash)
 {
    uint hashloc;
-   int icount = 1;
+   int icount = 0;
    uint jump;
+   int old_key;
+   int MaxTries = 1000;
 
 #ifndef __APPLE_CC__
    switch (hash_method) {
@@ -141,21 +143,44 @@ void write_hash(
 #ifndef __APPLE_CC__
       break;
    case 0:
-      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; atomic_cmpxchg(&hash[2*hashloc],-1,hashkey) != -1; hashloc++,hashloc = hashloc%hash_table_size);
-      hash[2*hashloc+1] = giX;
+      hashloc = (hashkey*AA+BB)%prime%hash_table_size;
+      old_key = atomic_cmpxchg(&hash[2*hashloc],-1,hashkey);
+
+      for (int icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
+         hashloc++;
+         hashloc %= hash_table_size;
+      
+         old_key = atomic_cmpxchg(&hash[2*hashloc],-1,hashkey);
+      }
+
+      if (icount < MaxTries) hash[2*hashloc+1] = giX;
       break;
    case 1:
-      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; atomic_cmpxchg(&hash[2*hashloc],-1,hashkey) != -1; hashloc+=(icount*icount),hashloc = hashloc%hash_table_size){
-         icount++;
+      hashloc = (hashkey*AA+BB)%prime%hash_table_size;
+      old_key = atomic_cmpxchg(&hash[2*hashloc],-1,hashkey);
+
+      for (int icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
+         hashloc+=(icount*icount);
+         hashloc %= hash_table_size;
+      
+         old_key = atomic_cmpxchg(&hash[2*hashloc],-1,hashkey);
       }
-      hash[2*hashloc+1] = giX;
+
+      if (icount < MaxTries) hash[2*hashloc+1] = giX;
       break;
    case 2:
       jump = 1+hashkey%hash_jump_prime;
-      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; atomic_cmpxchg(&hash[2*hashloc],-1,hashkey) != -1; hashloc+=(icount*jump),hashloc = hashloc%hash_table_size){
-         icount++;
+      hashloc = (hashkey*AA+BB)%prime%hash_table_size;
+      old_key = atomic_cmpxchg(&hash[2*hashloc],-1,hashkey);
+
+      for (int icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
+         hashloc += (icount*jump);
+         hashloc %= hash_table_size;
+      
+         old_key = atomic_cmpxchg(&hash[2*hashloc],-1,hashkey);
       }
-      hash[2*hashloc+1] = giX;
+
+      if (icount < MaxTries) hash[2*hashloc+1] = giX;
       break;
    }
 #endif
@@ -171,7 +196,7 @@ int read_hash(
 {
    int hashval = -1;
    uint hashloc;
-   int icount = 1;
+   int icount = 0;
    uint jump;
 
 #ifndef __APPLE_CC__
@@ -182,12 +207,12 @@ int read_hash(
 #ifndef __APPLE_CC__
       break;
    case 0:
-      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hash_table_size);
+      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc %= hash_table_size);
       if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
       return(hashval);
       break;
    case 1:
-      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hash_table_size){
+      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc %= hash_table_size){
          icount++;
       }
       if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
@@ -195,7 +220,7 @@ int read_hash(
       break;
    case 2:
       jump = 1+hashkey%hash_jump_prime;
-      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hash_table_size){
+      for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc %= hash_table_size){
          icount++;
       }
       if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
