@@ -234,15 +234,15 @@ void write_hash(uint ic, ulong hashkey, int *hash){
    }
    if (hash_method == 0){
       if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize);
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc++,hashloc = hashloc%hashtablesize);
       } else if (hash_report_level == 1) {
          hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc++,hashloc = hashloc%hashtablesize){
             write_hash_collisions++;
          }
       } else if (hash_report_level == 2) {
          hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc++,hashloc = hashloc%hashtablesize){
             write_hash_collisions++;
          }
       } else if (hash_report_level == 3) {
@@ -250,82 +250,82 @@ void write_hash(uint ic, ulong hashkey, int *hash){
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
          printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          icount++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc++,hashloc = hashloc%hashtablesize){
             int hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
             printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             icount++;
-            write_hash_collisions++;
          }
+         write_hash_collisions += icount-1;
       }
    } else if (hash_method == 1){
       if (hash_report_level == 0) {
          icount++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize) {
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize) {
             icount++;
          }
       } else if (hash_report_level == 1) {
          hash_ncells++;
          icount++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
-            write_hash_collisions++;
          }
+         write_hash_collisions += icount-1;
       } else if (hash_report_level == 2) {
          hash_ncells++;
          icount++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
-            write_hash_collisions++;
          }
+         write_hash_collisions += icount-1;
       } else if (hash_report_level == 3) {
          hash_ncells++;
          icount++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
          printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          icount++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             int hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
             printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             icount++;
-            write_hash_collisions++;
          }
+         write_hash_collisions += icount-1;
       }
    } else if (hash_method == 2){
       uint jump = 1+hashkey%hash_jump_prime;
       if (hash_report_level == 0) {
          icount++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize) {
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize) {
             icount++;
          }
       } else if (hash_report_level == 1) {
          hash_ncells++;
          icount++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
-            write_hash_collisions++;
          }
+         write_hash_collisions += icount-1;
       } else if (hash_report_level == 2) {
          hash_ncells++;
          icount++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
-            write_hash_collisions++;
          }
+         write_hash_collisions += icount-1;
       } else if (hash_report_level == 3) {
          hash_ncells++;
          icount++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
          printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          icount++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             int hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
             printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             icount++;
-            write_hash_collisions++;
          }
+         write_hash_collisions += icount-1;
       }
    }
 
