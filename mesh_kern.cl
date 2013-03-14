@@ -417,21 +417,25 @@ __kernel void hash_setup_cl(
 }
 
 __kernel void hash_setup_local_cl(
-                          const int  isize,     // 0
-                          const int  levmx,     // 1
-                          const int  imax,      // 2
-                          const int  jmax,      // 3
-                          const int  noffset,   // 4
-                 __global const int4 *sizes,    // 5
-                 __global const int  *levtable, // 6
-                 __global const int  *lev_ibeg, // 7
-                 __global const int  *lev_iend, // 8
-                 __global const int  *lev_jbeg, // 9
-                 __global const int  *lev_jend, // 10
-                 __global const int  *level,    // 11
-                 __global const int  *i,        // 12
-                 __global const int  *j,        // 13
-                 __global       int  *hash)     // 14
+                          const int   isize,           // 0
+                          const int   levmx,           // 1
+                          const int   imax,            // 2
+                          const int   jmax,            // 3
+                          const int   noffset,         // 4
+                          const int   hash_method,     // 5
+                          const ulong hash_table_size, // 6
+                          const ulong AA,              // 7
+                          const ulong BB,              // 8
+                 __global const int4  *sizes,          // 9
+                 __global const int   *levtable,       // 10
+                 __global const int   *lev_ibeg,       // 11
+                 __global const int   *lev_iend,       // 12
+                 __global const int   *lev_jbeg,       // 13
+                 __global const int   *lev_jend,       // 14
+                 __global const int   *level,          // 15
+                 __global const int   *i,              // 16
+                 __global const int   *j,              // 17
+                 __global       int   *hash)           // 18
 {
 
    const unsigned int giX  = get_global_id(0);
@@ -571,7 +575,11 @@ __kernel void hash_setup_local_cl(
    int ii = i[giX]*levmult-iminsize;
    int jj = j[giX]*levmult-jminsize;
 
+#if HASH_SETUP_OPT_LEVEL == 3
    hashval_local(jj,ii) = cell_number;
+#elif HASH_SETUP_OPT_LEVEL == 4
+   write_hash(hash_method, hash_table_size, AA, BB, cell_number, jj*(imaxsize-iminsize)+ii, hash);
+#endif
 #endif
 
 }
@@ -831,21 +839,25 @@ __kernel void calc_neighbors_cl(
 }
 
 __kernel void calc_neighbors_local_cl(
-                          const int  isize,     // 0 
-                          const int  levmx,     // 1 
-                          const int  imax,      // 2 
-                          const int  jmax,      // 3 
-                          const int  noffset,   // 4
-                 __global const int4 *sizes,    // 5
-                 __global const int  *levtable, // 6
-                 __global const int  *level,    // 7
-                 __global const int  *i,        // 8
-                 __global const int  *j,        // 9
-                 __global       int  *nlft,     // 10
-                 __global       int  *nrht,     // 11
-                 __global       int  *nbot,     // 12
-                 __global       int  *ntop,     // 13
-                 __global const int  *hash)     // 14
+                          const int   isize,           // 0 
+                          const int   levmx,           // 1 
+                          const int   imax,            // 2 
+                          const int   jmax,            // 3 
+                          const int   noffset,         // 4
+                          const int   hash_method,     // 6
+                          const ulong hash_table_size, // 7
+                          const ulong AA,              // 8
+                          const ulong BB,              // 9
+                 __global const int4  *sizes,          // 5
+                 __global const int   *levtable,       // 6
+                 __global const int   *level,          // 7
+                 __global const int   *i,              // 8
+                 __global const int   *j,              // 9
+                 __global       int   *nlft,           // 10
+                 __global       int   *nrht,           // 11
+                 __global       int   *nbot,           // 12
+                 __global       int   *ntop,           // 13
+                 __global const int   *hash)           // 14
 {
                 
    const uint giX  = get_global_id(0);
@@ -930,15 +942,27 @@ __kernel void calc_neighbors_local_cl(
    if (lev != levmx) {
       int iilftfiner = iicur-(iicur-iilft)/2;
       int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+#if HASH_SETUP_OPT_LEVEL == 3
       if (nlftval < 0) nlftval = hashval_local(jjcur,iilftfiner);
       if (nbotval < 0) nbotval = hashval_local(jjbotfiner,iicur);
+#elif HASH_SETUP_OPT_LEVEL == 4
+      if (nlftval < 0) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjcur     *(imaxsize-iminsize)+iilftfiner, hash);
+      if (nbotval < 0) nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjbotfiner*(imaxsize-iminsize)+iicur,      hash);
+#endif
    }
 
    // same size neighbor
+#if HASH_SETUP_OPT_LEVEL == 3
    if (nlftval < 0) nlftval = hashval_local(jjcur,iilft);
    if (nrhtval < 0) nrhtval = hashval_local(jjcur,iirht);
    if (nbotval < 0) nbotval = hashval_local(jjbot,iicur);
    if (ntopval < 0) ntopval = hashval_local(jjtop,iicur);
+#elif HASH_SETUP_OPT_LEVEL == 4
+   if (nlftval < 0) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iilft, hash);
+   if (nrhtval < 0) nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iirht, hash);
+   if (nbotval < 0) nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjbot*(imaxsize-iminsize)+iicur, hash);
+   if (ntopval < 0) ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iicur, hash);
+#endif
 
    // Now we need to take care of special case where bottom and left boundary need adjustment since
    // expected cell doesn't exist on these boundaries if it is finer than current cell
@@ -946,24 +970,40 @@ __kernel void calc_neighbors_local_cl(
       if (jjcur < 1*levtable[levmx]) {
          if (nrhtval < 0) {
             int jjtopfiner = (jjcur+jjtop)/2;
+#if HASH_SETUP_OPT_LEVEL == 3
             nrhtval = hashval_local(jjtopfiner,iirht);
+#elif HASH_SETUP_OPT_LEVEL == 4
+            nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjtopfiner*(imaxsize-iminsize)+iirht, hash);
+#endif
          }
          if (nlftval < 0) {
             int iilftfiner = iicur-(iicur-iilft)/2;
             int jjtopfiner = (jjcur+jjtop)/2;
+#if HASH_SETUP_OPT_LEVEL == 3
             nlftval = hashval_local(jjtopfiner,iilftfiner);
+#elif HASH_SETUP_OPT_LEVEL == 4
+            nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjtopfiner*(imaxsize-iminsize)+iilftfiner, hash);
+#endif
          }
       }
 
       if (iicur < 1*levtable[levmx]) {
          if (ntopval < 0) {
             int iirhtfiner = (iicur+iirht)/2;
+#if HASH_SETUP_OPT_LEVEL == 3
             ntopval = hashval_local(jjtop,iirhtfiner);
+#elif HASH_SETUP_OPT_LEVEL == 4
+            ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iirhtfiner, hash);
+#endif
          }
          if (nbotval < 0) {
             int iirhtfiner = (iicur+iirht)/2;
             int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+#if HASH_SETUP_OPT_LEVEL == 3
             nbotval = hashval_local(jjbotfiner,iirhtfiner);
+#elif HASH_SETUP_OPT_LEVEL == 4
+            nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjbotfiner*(imaxsize-iminsize)+iirhtfiner, hash);
+#endif
          }
       }
    }
@@ -973,20 +1013,36 @@ __kernel void calc_neighbors_local_cl(
       if (nlftval < 0) {
          iilft -= iicur-iilft;
          int jjlft = (jj/2)*2*levmult-jminsize;
+#if HASH_SETUP_OPT_LEVEL == 3
          nlftval = hashval_local(jjlft,iilft);
+#elif HASH_SETUP_OPT_LEVEL == 4
+         nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjlft*(imaxsize-iminsize)+iilft, hash);
+#endif
       }
       if (nrhtval < 0) {
          int jjrht = (jj/2)*2*levmult-jminsize;
+#if HASH_SETUP_OPT_LEVEL == 3
          nrhtval = hashval_local(jjrht,iirht);
+#elif HASH_SETUP_OPT_LEVEL == 4
+         nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjrht*(imaxsize-iminsize)+iirht, hash);
+#endif
       }
       if (nbotval < 0) {
          jjbot -= jjcur-jjbot;
          int iibot = (ii/2)*2*levmult-iminsize;
+#if HASH_SETUP_OPT_LEVEL == 3
          nbotval = hashval_local(jjbot,iibot);
+#elif HASH_SETUP_OPT_LEVEL == 4
+         nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjbot*(imaxsize-iminsize)+iibot, hash);
+#endif
       }
       if (ntopval < 0) {
          int iitop = (ii/2)*2*levmult-iminsize;
+#if HASH_SETUP_OPT_LEVEL == 3
          ntopval = hashval_local(jjtop,iitop);
+#elif HASH_SETUP_OPT_LEVEL == 4
+         ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iitop, hash);
+#endif
       }
    }
 #endif
@@ -1299,20 +1355,24 @@ __kernel void get_border_data_cl(
 
 
 __kernel void calc_layer1_cl (
-                          const int  isize,               // 0 
-                          const int  ncells,              // 1 
-                          const int  levmx,               // 2 
-                          const int  imax,                // 3 
-                          const int  jmax,                // 4 
-                          const int  noffset,             // 5 
-                 __global const int4 *sizes,              // 6 
-                 __global const int  *levtable,           // 7 
-                 __global const int  *level,              // 8 
-                 __global const int  *border_cell_i,      // 9
-                 __global const int  *border_cell_j,      // 10
-                 __global const int  *border_cell_level,  // 11
-                 __global       int  *border_cell_needed, // 12
-                 __global const int  *hash)               // 13
+                          const int   isize,               // 0 
+                          const int   ncells,              // 1 
+                          const int   levmx,               // 2 
+                          const int   imax,                // 3 
+                          const int   jmax,                // 4 
+                          const int   noffset,             // 5 
+                          const int   hash_method,         // 6
+                          const ulong hash_table_size,     // 7
+                          const ulong AA,                  // 8
+                          const ulong BB,                  // 9
+                 __global const int4  *sizes,              // 10
+                 __global const int   *levtable,           // 11
+                 __global const int   *level,              // 12
+                 __global const int   *border_cell_i,      // 13
+                 __global const int   *border_cell_j,      // 14
+                 __global const int   *border_cell_level,  // 15
+                 __global       int   *border_cell_needed, // 16
+                 __global const int   *hash)               // 17
 {
    const uint giX = get_global_id(0);
 
@@ -1379,28 +1439,28 @@ __kernel void calc_layer1_cl (
       // Check for finer cell left and bottom side
       if (lev != levmx){                                // finer neighbor
          int iilftfiner = iicur-(iicur-iilft)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
          nlftval = hashval_local(jjcur,iilftfiner);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//         nlftval = read_hash(jjcur*(imaxsize-iminsize)+iilftfiner, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+         nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iilftfiner, hash);
+#endif
          // Also check for finer cell left and top side
          if (nlftval < 0) {
             int jjtopfiner = (jjcur+jjtop)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             nlftval = hashval_local(jjtopfiner,iilftfiner);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            nlftval = read_hash(jjtopfiner*(imaxsize-iminsize)+iilftfiner, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjtopfiner*(imaxsize-iminsize)+iilftfiner, hash);
+#endif
          }
       }
 
       if (nlftval < 0 && iilft >= 0) {  // same size
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
          int nlfttry = hashval_local(jjcur,iilft);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//         int nlfttry = read_hash(jjcur*(imaxsize-iminsize)+iilft, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+         int nlfttry = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iilft, hash);
+#endif
          // we have to test for same level or it could be a finer cell one cell away that it is matching
          if (nlfttry-noffset >= 0 && nlfttry-noffset < ncells && level[nlfttry-noffset] == lev) {
             nlftval = nlfttry;
@@ -1410,11 +1470,11 @@ __kernel void calc_layer1_cl (
       if (lev != 0 && nlftval < 0 && iilft-(iicur-iilft) >= 0){      // coarser neighbor
          iilft -= iicur-iilft;
          int jjlft = (jj/2)*2*levmult-jminsize;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
          int nlfttry = hashval_local(jjlft,iilft);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//         int nlfttry = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+         int nlfttry = read_hash(hash_method, hash_table_size, AA, BB, jjlft*(imaxsize-iminsize)+iilft, hash);
+#endif
          // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
          if (nlfttry-noffset >= 0 && nlfttry-noffset < ncells && level[nlfttry-noffset] == lev-1) {
            nlftval = nlfttry;
@@ -1427,28 +1487,28 @@ __kernel void calc_layer1_cl (
    if (iirht < imaxsize-iminsize && iirht >= 0 && jjcur >= 0 && jjtop < jmaxsize-jminsize) {
       int nrhtval = -1;
       // right neighbor -- finer, same size and coarser
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       nrhtval = hashval_local(jjcur,iirht);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iirht, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iirht, hash);
+#endif
       // right neighbor -- finer right top test
       if (nrhtval < 0 && lev != levmx){
          int jjtopfiner = (jjcur+jjtop)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
          nrhtval = hashval_local(jjtopfiner,iirht);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//         nrhtval = read_hash(jjtopfiner*(imaxsize-iminsize)+iirht, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+         nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjtopfiner*(imaxsize-iminsize)+iirht, hash);
+#endif
       }
       if (nrhtval < 0 && lev != 0) { // test for coarser, but not directly above
          int jjrhtcoarser = (jj/2)*2*levmult-jminsize;
          if (jjrhtcoarser != jjcur) {
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             int nrhttry = hashval_local(jjrhtcoarser,iirht);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            int nrhttry = read_hash(jjrhtcoarser*(imaxsize-iminsize)+iirht, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            int nrhttry = read_hash(hash_method, hash_table_size, AA, BB, jjrhtcoarser*(imaxsize-iminsize)+iirht, hash);
+#endif
             if (nrhttry-noffset >= 0 && nrhttry-noffset < ncells && level[nrhttry-noffset] == lev-1) {
                nrhtval = nrhttry;
             }
@@ -1463,28 +1523,28 @@ __kernel void calc_layer1_cl (
       // Check for finer cell below and left side
       if (lev != levmx){                                // finer neighbor
          int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
          nbotval = hashval_local(jjbotfiner,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//         nbotval = read_hash(jjbotfiner*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+         nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjbotfiner*(imaxsize-iminsize)+iicur, hash);
+#endif
          // Also check for finer cell below and right side
          if (nbotval < 0) {
             int iirhtfiner = (iicur+iirht)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             nbotval = hashval_local(jjbotfiner,iirhtfiner);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            nbotval = read_hash(jjbotfiner*(imaxsize-iminsize)+iirhtfiner, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjbotfiner*(imaxsize-iminsize)+iirhtfiner, hash);
+#endif
          }
       }
 
       if (nbotval < 0 && jjbot >= 0) {  // same size
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
          int nbottry = hashval_local(jjbot,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//         int nbottry = read_hash(jjbot*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+         int nbottry = read_hash(hash_method, hash_table_size, AA, BB, jjbot*(imaxsize-iminsize)+iicur, hash);
+#endif
          // we have to test for same level or it could be a finer cell one cell away that it is matching
          if (nbottry-noffset >= 0 && nbottry-noffset < ncells && level[nbottry-noffset] == lev) {
             nbotval = nbottry;
@@ -1494,11 +1554,11 @@ __kernel void calc_layer1_cl (
       if (lev != 0 && nbotval < 0 && jjbot-(jjcur-jjbot) >= 0){      // coarser neighbor
          jjbot -= jjcur-jjbot;
          int iibot = (ii/2)*2*levmult-iminsize;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
          int nbottry = hashval_local(jjbot,iibot);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//         int nbottry = read_hash(jjbot*(imaxsize-iminsize)+iibot, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+         int nbottry = read_hash(hash_method, hash_table_size, AA, BB, jjbot*(imaxsize-iminsize)+iibot, hash);
+#endif
          // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
          if (nbottry-noffset >= 0 && nbottry-noffset < ncells && level[nbottry-noffset] == lev-1) {
            nbotval = nbottry;
@@ -1511,28 +1571,28 @@ __kernel void calc_layer1_cl (
    if (iirht < imaxsize-iminsize && iicur >= 0 && jjtop >= 0 && jjtop < jmaxsize-jminsize) {
       int ntopval = -1;
       // top neighbor -- finer, same size and coarser
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       ntopval = hashval_local(jjtop,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      ntopval = read_hash(jjtop*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iicur, hash);
+#endif
       // top neighbor -- finer top right test
       if (ntopval < 0 && lev != levmx){
          int iirhtfiner = (iicur+iirht)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
          ntopval = hashval_local(jjtop,iirhtfiner);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//         ntopval = read_hash(jjtop*(imaxsize-iminsize)+iirhtfiner, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+         ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iirhtfiner, hash);
+#endif
       }
       if (ntopval < 0 && lev != 0) { // test for coarser, but not directly above
          int iitopcoarser = (ii/2)*2*levmult-iminsize;
          if (iitopcoarser != iicur) {
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             int ntoptry = hashval_local(jjtop,iitopcoarser);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            int ntoptry = read_hash(jjtop*(imaxsize-iminsize)+iitopcoarser, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            int ntoptry = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iitopcoarser, hash);
+#endif
             if (ntoptry-noffset >= 0 && ntoptry-noffset < ncells && level[ntoptry-noffset] == lev-1) {
                ntopval = ntoptry;
             }
@@ -1547,17 +1607,21 @@ __kernel void calc_layer1_cl (
 }
 
 __kernel void calc_layer1_sethash_cl (
-                          const int  isize,               // 0 
-                          const int  ncells,              // 1 
-                          const int  noffset,             // 2 
-                          const int  levmx,               // 3 
-                 __global const int4 *sizes,              // 4 
-                 __global const int  *levtable,           // 5 
-                 __global const int  *border_cell_i,      // 6
-                 __global const int  *border_cell_j,      // 7
-                 __global const int  *border_cell_level,  // 8
-                 __global       int  *border_cell_needed, // 9
-                 __global       int  *hash)               // 10
+                          const int   isize,               // 0 
+                          const int   ncells,              // 1 
+                          const int   noffset,             // 2 
+                          const int   levmx,               // 3 
+                          const int   hash_method,         // 4
+                          const ulong hash_table_size,     // 5
+                          const ulong AA,                  // 6
+                          const ulong BB,                  // 7
+                 __global const int4  *sizes,              // 8 
+                 __global const int   *levtable,           // 9 
+                 __global const int   *border_cell_i,      // 10
+                 __global const int   *border_cell_j,      // 11
+                 __global const int   *border_cell_level,  // 12
+                 __global       int   *border_cell_needed, // 13
+                 __global       int   *hash)               // 14
 {
    const uint giX = get_global_id(0);
 
@@ -1592,7 +1656,11 @@ __kernel void calc_layer1_sethash_cl (
       int ii = border_cell_i[giX]*levmult-iminsize;
       int jj = border_cell_j[giX]*levmult-jminsize;
 
+#if HASH_SETUP_OPT_LEVEL == 3
       hashval_local(jj,ii) = ncells+noffset+giX;
+#elif HASH_SETUP_OPT_LEVEL == 4
+      write_hash(hash_method, hash_table_size, AA, BB, ncells+noffset+giX, jj*(imaxsize-iminsize)+ii, hash);
+#endif
 #endif
    }
 }
@@ -1604,18 +1672,22 @@ __kernel void calc_layer2_cl (
                           const int   levmx,                   // 3 
                           const int   imax,                    // 4 
                           const int   jmax,                    // 5 
-                 __global const int4  *sizes,                  // 6 
-                 __global const int   *levtable,               // 7 
-                 __global const int   *level,                  // 8 
-                 __global const int   *border_cell_i,          // 9
-                 __global const int   *border_cell_j,          // 10
-                 __global const int   *border_cell_level,      // 11
-                 __global const int   *border_cell_needed,     // 12
-                 __global       int   *border_cell_needed_out, // 13
-                 __global const int   *hash,                   // 14
-                 __global       int   *ioffset,                // 15
-                 __global       int   *nbsize_new,             // 16
-                 __local        int   *itile)                  // 17
+                          const int   hash_method,             // 6
+                          const ulong hash_table_size,         // 7
+                          const ulong AA,                      // 8
+                          const ulong BB,                      // 9
+                 __global const int4  *sizes,                  // 10
+                 __global const int   *levtable,               // 11
+                 __global const int   *level,                  // 12
+                 __global const int   *border_cell_i,          // 13
+                 __global const int   *border_cell_j,          // 14
+                 __global const int   *border_cell_level,      // 15
+                 __global const int   *border_cell_needed,     // 16
+                 __global       int   *border_cell_needed_out, // 17
+                 __global const int   *hash,                   // 18
+                 __global       int   *ioffset,                // 19
+                 __global       int   *nbsize_new,             // 20
+                 __local        int   *itile)                  // 21
 {
    const uint giX = get_global_id(0);
    const uint tiX = get_local_id(0);
@@ -1706,32 +1778,32 @@ __kernel void calc_layer2_cl (
          // Check for finer cell left and bottom side
          if (lev != levmx){                                // finer neighbor
             int iilftfiner = iicur-(iicur-iilft)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             int nl = hashval_local(jjcur,iilftfiner);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            int nl = read_hash(jjcur*(imaxsize-iminsize)+iilftfiner, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            int nl = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iilftfiner, hash);
+#endif
             if (nl >= (int)(ncells+noffset) && (border_cell_needed[nl-ncells-noffset] & 0x0001) == 0x0001) {
                iborder = 0x0001;
             } else {
                // Also check for finer cell left and top side
                int jjtopfiner = (jjcur+jjtop)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
                int nlt = hashval_local(jjtopfiner,iilftfiner);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//               int nlt = read_hash(jjtopfiner*(imaxsize-iminsize)+iilftfiner, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+               int nlt = read_hash(hash_method, hash_table_size, AA, BB, jjtopfiner*(imaxsize-iminsize)+iilftfiner, hash);
+#endif
                if ( nlt >= (int)(ncells+noffset) && (border_cell_needed[nlt-ncells-noffset] & 0x0001) == 0x0001) {
                   iborder = 0x0001;
                }
             }
          }
          if ( (iborder & 0x0001) == 0 && iilft >= 0) { //same size
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             int nl = hashval_local(jjcur,iilft);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            int nl = read_hash(jjcur*(imaxsize-iminsize)+iilft, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            int nl = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iilft, hash);
+#endif
             int levcheck = -1;
             if (nl-noffset >= 0 && nl-noffset < ncells) {
                levcheck = level[nl-noffset];
@@ -1743,11 +1815,11 @@ __kernel void calc_layer2_cl (
             } else if (lev != 0 && iilft-(iicur-iilft) >= 0){      // coarser neighbor
                iilft -= iicur-iilft;
                int jjlft = (jj/2)*2*levmult-jminsize;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
                nl = hashval_local(jjlft,iilft);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//               nl = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+               nl = read_hash(hash_method, hash_table_size, AA, BB, jjlft*(imaxsize-iminsize)+iilft, hash);
+#endif
                levcheck = -1;
                if (nl-noffset >= 0 && nl-noffset < ncells) {
                   levcheck = level[nl-noffset];
@@ -1765,21 +1837,21 @@ __kernel void calc_layer2_cl (
       // Test for cell to right
       if (iirht < imaxsize-iminsize && iirht >= 0 && jjcur >= 0 && jjtop < jmaxsize-jminsize) {
          // right neighbor -- finer, same size and coarser
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
          int nr = hashval_local(jjcur,iirht);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//         int nr = read_hash(jjcur*(imaxsize-iminsize)+iirht, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+         int nr = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iirht, hash);
+#endif
          if (nr >= (int)(ncells+noffset) && (border_cell_needed[nr-ncells-noffset] & 0x0002) == 0x0002) {
             iborder = 0x0002;
          } else if (lev != levmx){
             // right neighbor -- finer right top test
             int jjtopfiner = (jjcur+jjtop)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             int nrt = hashval_local(jjtopfiner,iirht);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            int nrt = read_hash(jjtopfiner*(imaxsize-iminsize)+iirht, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            int nrt = read_hash(hash_method, hash_table_size, AA, BB, jjtopfiner*(imaxsize-iminsize)+iirht, hash);
+#endif
             if (nrt >= (int)(ncells+noffset) && (border_cell_needed[nrt-ncells-noffset] & 0x0002) == 0x0002) {
                iborder = 0x0002;
             }
@@ -1787,11 +1859,11 @@ __kernel void calc_layer2_cl (
          if ( (iborder & 0x0002) == 0  && lev != 0) { // test for coarser, but not directly right
             int jjrhtcoarser = (jj/2)*2*levmult-jminsize;
             if (jjrhtcoarser != jjcur) {
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
                int nr = hashval_local(jjrhtcoarser,iirht);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//               int nr = read_hash(jjrhtcoarser*(imaxsize-iminsize)+iirht, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+               int nr = read_hash(hash_method, hash_table_size, AA, BB, jjrhtcoarser*(imaxsize-iminsize)+iirht, hash);
+#endif
                int levcheck = -1;
                if (nr-noffset >= 0 && nr-noffset < ncells) {
                   levcheck = level[nr-noffset];
@@ -1810,32 +1882,32 @@ __kernel void calc_layer2_cl (
          // Check for finer cell below and left side
          if (lev != levmx){                                // finer neighbor
             int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             int nb = hashval_local(jjbotfiner,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            int nb = read_hash(jjbotfiner*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            int nb = read_hash(hash_method, hash_table_size, AA, BB, jjbotfiner*(imaxsize-iminsize)+iicur, hash);
+#endif
             if (nb >= (int)(ncells+noffset) && (border_cell_needed[nb-ncells-noffset] & 0x0004) == 0x0004) {
                iborder = 0x0004;
             } else {
                // Also check for finer cell below and right side
                int iirhtfiner = (iicur+iirht)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
                int nbr = hashval_local(jjbotfiner,iirhtfiner);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//               int nbr = read_hash(jjbotfiner*(imaxsize-iminsize)+iirhtfiner, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+               int nbr = read_hash(hash_method, hash_table_size, AA, BB, jjbotfiner*(imaxsize-iminsize)+iirhtfiner, hash);
+#endif
                if (nbr >= (int)(ncells+noffset) && (border_cell_needed[nbr-ncells-noffset] & 0x0004) == 0x0004) {
                   iborder = 0x0004;
                }
             }
          }
          if ( (iborder & 0x0004) == 0 && jjbot >= 0) { //same size
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             int nb = hashval_local(jjbot,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            int nb = read_hash(jjbot*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            int nb = read_hash(hash_method, hash_table_size, AA, BB, jjbot*(imaxsize-iminsize)+iicur, hash);
+#endif
             int levcheck = -1;
             if (nb-noffset >= 0 && nb-noffset < ncells) {
                levcheck = level[nb-noffset];
@@ -1847,11 +1919,11 @@ __kernel void calc_layer2_cl (
             } else if (lev != 0 && jjbot-(jjcur-jjbot) >= 0){      // coarser neighbor
                jjbot -= jjcur-jjbot;
                int iibot = (ii/2)*2*levmult-iminsize;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
                nb = hashval_local(jjbot,iibot);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//               nb = read_hash(jjbot*(imaxsize-iminsize)+iibot, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+               nb = read_hash(hash_method, hash_table_size, AA, BB, jjbot*(imaxsize-iminsize)+iibot, hash);
+#endif
                levcheck = -1;
                if (nb-noffset >= 0 && nb-noffset < ncells) {
                   levcheck = level[nb-noffset];
@@ -1869,20 +1941,20 @@ __kernel void calc_layer2_cl (
       // Test for cell to top
       if (iirht < imaxsize-iminsize && iicur >= 0 && jjtop >= 0 && jjtop < jmaxsize-jminsize) {
          // top neighbor -- finer, same size and coarser
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
          int nt = hashval_local(jjtop,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//         int nt = read_hash(jjtop*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+         int nt = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iicur, hash);
+#endif
          if (nt  >= (int)(ncells+noffset) && (border_cell_needed[nt-ncells-noffset] & 0x0008) == 0x0008) {
             iborder = 0x0008;
          } else if (lev != levmx){
             int iirhtfiner = (iicur+iirht)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             int ntr = hashval_local(jjtop,iirhtfiner);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            int ntr = read_hash(jjtop*(imaxsize-iminsize)+iirhtfiner, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            int ntr = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iirhtfiner, hash);
+#endif
             if ( ntr >= (int)(ncells+noffset) && (border_cell_needed[ntr-ncells-noffset] & 0x0008) == 0x0008) {
                iborder = 0x0008;
             }
@@ -1890,11 +1962,11 @@ __kernel void calc_layer2_cl (
          if ( (iborder & 0x0008) == 0  && lev != 0) { // test for coarser, but not directly above
             int iitopcoarser = (ii/2)*2*levmult-iminsize;
             if (iitopcoarser != iicur) {
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
                int nb = hashval_local(jjtop,iitopcoarser);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//               int nb = read_hash(jjtop*(imaxsize-iminsize)+iitopcoarser, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+               int nb = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iitopcoarser, hash);
+#endif
                int levcheck = -1;
                if (nb-noffset >= 0 && nb-noffset < ncells) {
                   levcheck = level[nb-noffset];
@@ -2005,24 +2077,28 @@ __kernel void get_border_data2_cl(
 
 
 __kernel void calc_layer2_sethash_cl (
-                          const int  isize,               // 0 
-                          const int  ncells,              // 1 
-                          const int  noffset,             // 2 
-                          const int  levmx,               // 3 
-                          const int  imax,                // 4 
-                          const int  jmax,                // 5 
-                 __global const int4 *sizes,              // 6 
-                 __global const int  *levtable,           // 7 
-                 __global const int  *lev_ibeg,           // 8
-                 __global const int  *lev_iend,           // 9
-                 __global const int  *lev_jbeg,           // 10
-                 __global const int  *lev_jend,           // 11
-                 __global const int  *border_cell_i,      // 12
-                 __global const int  *border_cell_j,      // 13
-                 __global const int  *border_cell_level,  // 14
-                 __global const int  *border_cell_num,    // 15
-                 __global       int  *border_cell_needed, // 16
-                 __global       int  *hash)               // 17
+                          const int   isize,               // 0 
+                          const int   ncells,              // 1 
+                          const int   noffset,             // 2 
+                          const int   levmx,               // 3 
+                          const int   imax,                // 4 
+                          const int   jmax,                // 5 
+                          const int   hash_method,         // 6
+                          const ulong hash_table_size,     // 7
+                          const ulong AA,                  // 8
+                          const ulong BB,                  // 9
+                 __global const int4  *sizes,              // 10
+                 __global const int   *levtable,           // 11
+                 __global const int   *lev_ibeg,           // 12
+                 __global const int   *lev_iend,           // 13
+                 __global const int   *lev_jbeg,           // 14
+                 __global const int   *lev_jend,           // 15
+                 __global const int   *border_cell_i,      // 16
+                 __global const int   *border_cell_j,      // 17
+                 __global const int   *border_cell_level,  // 18
+                 __global const int   *border_cell_num,    // 19
+                 __global       int   *border_cell_needed, // 20
+                 __global       int   *hash)               // 21
 {
    const uint giX = get_global_id(0);
 
@@ -2091,7 +2167,11 @@ __kernel void calc_layer2_sethash_cl (
    int ii = border_cell_i[giX]*levmult-iminsize;
    int jj = border_cell_j[giX]*levmult-jminsize;
 
+#if HASH_SETUP_OPT_LEVEL == 3
    hashval_local(jj,ii) = -(ncells+giX);
+#elif HASH_SETUP_OPT_LEVEL == 4
+   write_hash(hash_method, hash_table_size, AA, BB, -(ncells+giX), jj*(imaxsize-iminsize)+ii, hash);
+#endif
 #endif
 
 }
@@ -2174,20 +2254,24 @@ __kernel void fill_mesh_ghost_cl (
 }
 
 __kernel void fill_neighbor_ghost_cl (
-                          const int  ncells_ghost, // 0 
-                          const int  levmx,        // 1 
-                          const int  imax,         // 2 
-                          const int  jmax,         // 3 
-                 __global const int4 *sizes,       // 4 
-                 __global const int  *levtable,    // 5 
-                 __global const int  *i,           // 6 
-                 __global const int  *j,           // 7 
-                 __global const int  *level,       // 8 
-                 __global const int  *hash,        // 9 
-                 __global       int  *nlft,        // 10
-                 __global       int  *nrht,        // 11
-                 __global       int  *nbot,        // 12
-                 __global       int  *ntop)        // 13
+                          const int   ncells_ghost,    // 0 
+                          const int   levmx,           // 1 
+                          const int   imax,            // 2 
+                          const int   jmax,            // 3 
+                          const int   hash_method,     // 4
+                          const ulong hash_table_size, // 5
+                          const ulong AA,              // 6
+                          const ulong BB,              // 7
+                 __global const int4  *sizes,          // 8 
+                 __global const int   *levtable,       // 9 
+                 __global const int   *i,              // 10
+                 __global const int   *j,              // 11
+                 __global const int   *level,          // 12
+                 __global const int   *hash,           // 13
+                 __global       int   *nlft,           // 14
+                 __global       int   *nrht,           // 15
+                 __global       int   *nbot,           // 16
+                 __global       int   *ntop)           // 17
 {
    const uint giX  = get_global_id(0);
 
@@ -2251,37 +2335,37 @@ __kernel void fill_neighbor_ghost_cl (
    if (nlftval == -1){
       // Taking care of boundary cells
       // Force each boundary cell to point to itself on its boundary direction
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       if (iicur <    1*levtable[levmx]  -iminsize) nlftval = hashval_local(jjcur,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      if (iicur <    1*levtable[levmx]  -iminsize) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      if (iicur <    1*levtable[levmx]  -iminsize) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iicur, hash);
+#endif
 
       // Boundary cells next to corner boundary need special checks
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
                if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nlftval = hashval_local(jjcur,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//               if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nlftval = read_hash(jjcur*(imaxs     ize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+               if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iicur, hash);
+#endif
 
       // need to check for finer neighbor first
       // Right and top neighbor don't change for finer, so drop through to same size
       // Left and bottom need to be half of same size index for finer test
       if (lev != levmx) {
          int iilftfiner = iicur-(iicur-iilft)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
          if (nlftval == -1) nlftval = hashval_local(jjcur,iilftfiner);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//         if (nlftval == -1) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iilftfiner, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+         if (nlftval == -1) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iilftfiner, hash);
+#endif
       }
 
       // same size neighbor
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       if (nlftval == -1 && iilft >= 0) nlftval = hashval_local(jjcur,iilft);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      if (nlftval == -1 && iilft >= 0) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iilft, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      if (nlftval == -1 && iilft >= 0) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iilft, hash);
+#endif
 
       // Now we need to take care of special case where bottom and left boundary need adjustment since
       // expected cell doesn't exist on these boundaries if it is finer than current cell
@@ -2289,11 +2373,11 @@ __kernel void fill_neighbor_ghost_cl (
          if (nlftval == -1) {
             int iilftfiner = iicur-(iicur-iilft)/2;
             int jjtopfiner = (jjcur+jjtop)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             if (jjtopfiner < jmaxsize-jminsize && iilftfiner >= 0) nlftval = hashval_local(jjtopfiner,iilftfiner);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            if (jjtopfiner < jmaxsize-jminsize && iilftfiner >= 0) nlftval = read_hash(jjtopfiner*(imaxsize-iminsize)+iilftfiner, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            if (jjtopfiner < jmaxsize-jminsize && iilftfiner >= 0) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjtopfiner*(imaxsize-iminsize)+iilftfiner, hash);
+#endif
          }
       }
 
@@ -2302,11 +2386,11 @@ __kernel void fill_neighbor_ghost_cl (
          if (nlftval == -1) {
             int iilftcoarser = iilft - (iicur-iilft);
             int jjlft = (jj/2)*2*levmult-jminsize;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             if (iilftcoarser >=0) nlftval = hashval_local(jjlft,iilftcoarser);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            if (iilftcoarser >=0) nlftval = read_hash(jjlft*(imaxsize-iminsize)+iilftcoarser, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            if (iilftcoarser >=0) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjlft*(imaxsize-iminsize)+iilftcoarser, hash);
+#endif
          }
       }
 
@@ -2316,36 +2400,36 @@ __kernel void fill_neighbor_ghost_cl (
    if (nrhtval == -1) {
       // Taking care of boundary cells
       // Force each boundary cell to point to itself on its boundary direction
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       if (iicur > imax*levtable[levmx]-1-iminsize) nrhtval = hashval_local(jjcur,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      if (iicur > imax*levtable[levmx]-1-iminsize) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      if (iicur > imax*levtable[levmx]-1-iminsize) nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iicur, hash);
+#endif
 
       // Boundary cells next to corner boundary need special checks
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       if (iirht == imax*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nrhtval = hashval_local(jjcur,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      if (iirht == imax*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nrhtval = read_hash(jjcur*(imaxs     ize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      if (iirht == imax*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iicur, hash);
+#endif
 
       // same size neighbor
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       if (nrhtval == -1 && iirht < imaxsize-iminsize) nrhtval = hashval_local(jjcur,iirht);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      if (nrhtval == -1 && iirht < imaxsize-iminsize) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iirht, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      if (nrhtval == -1 && iirht < imaxsize-iminsize) nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iirht, hash);
+#endif
 
       // Now we need to take care of special case where bottom and left boundary need adjustment since
       // expected cell doesn't exist on these boundaries if it is finer than current cell
       if (lev != levmx && jjcur < 1*levtable[levmx]) {
          if (nrhtval == -1) {
             int jjtopfiner = (jjcur+jjtop)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             if (jjtopfiner < jmaxsize-jminsize && iirht < imaxsize-iminsize) nrhtval = hashval_local(jjtopfiner,iirht);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            if (jjtopfiner < jmaxsize-jminsize && iirht < imaxsize-iminsize) nrhtval = read_hash(jjtopfiner*(imaxsize-iminsize)+iirht, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            if (jjtopfiner < jmaxsize-jminsize && iirht < imaxsize-iminsize) nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjtopfiner*(imaxsize-iminsize)+iirht, hash);
+#endif
          }
       }
 
@@ -2353,11 +2437,11 @@ __kernel void fill_neighbor_ghost_cl (
       if (lev != 0){
          if (nrhtval == -1) {
             int jjrht = (jj/2)*2*levmult-jminsize;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             if (iirht < imaxsize-iminsize) nrhtval = hashval_local(jjrht,iirht);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            if (iirht < imaxsize-iminsize) nrhtval = read_hash(jjrht*(imaxsize-iminsize)+iirht, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            if (iirht < imaxsize-iminsize) nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjrht*(imaxsize-iminsize)+iirht, hash);
+#endif
          }
       }
       if (nrhtval != -1) nrht[giX] = nrhtval;
@@ -2366,36 +2450,36 @@ __kernel void fill_neighbor_ghost_cl (
    if (nbotval == -1) {
       // Taking care of boundary cells
       // Force each boundary cell to point to itself on its boundary direction
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       if (jjcur <    1*levtable[levmx]  -jminsize) nbotval = hashval_local(jjcur,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      if (jjcur <    1*levtable[levmx]  -jminsize) nbotval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      if (jjcur <    1*levtable[levmx]  -jminsize) nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iicur, hash);
+#endif
       // Boundary cells next to corner boundary need special checks
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       if (jjcur ==    1*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur > (imax-1)*levtable[levmx]-iminsize ) ) nbotval = hashval_local(jjcur,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      if (jjcur ==    1*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur > (imax-1)*levtable[levmx]-iminsize ) ) nbotval = read_hash(jjcur*(imaxs     ize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      if (jjcur ==    1*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur > (imax-1)*levtable[levmx]-iminsize ) ) nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iicur, hash);
+#endif
 
       // need to check for finer neighbor first
       // Right and top neighbor don't change for finer, so drop through to same size
       // Left and bottom need to be half of same size index for finer test
       if (lev != levmx) {
          int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
          if (nbotval == -1 && jjbotfiner >= 0) nbotval = hashval_local(jjbotfiner,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//         if (nbotval == -1 && jjbotfiner >= 0) nbotval = read_hash(jjbotfiner*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+         if (nbotval == -1 && jjbotfiner >= 0) nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjbotfiner*(imaxsize-iminsize)+iicur, hash);
+#endif
       }
 
       // same size neighbor
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       if (nbotval == -1 && jjbot >=0) nbotval = hashval_local(jjbot,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      if (nbotval == -1 && jjbot >=0) nbotval = read_hash(jjbot*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      if (nbotval == -1 && jjbot >=0) nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjbot*(imaxsize-iminsize)+iicur, hash);
+#endif
 
       // Now we need to take care of special case where bottom and left boundary need adjustment since
       // expected cell doesn't exist on these boundaries if it is finer than current cell
@@ -2403,11 +2487,11 @@ __kernel void fill_neighbor_ghost_cl (
          if (nbotval == -1) {
             int iirhtfiner = (iicur+iirht)/2;
             int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             if (jjbotfiner >= 0 && iirhtfiner < imaxsize-iminsize) nbotval = hashval_local(jjbotfiner,iirhtfiner);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            if (jjbotfiner >= 0 && iirhtfiner < imaxsize-iminsize) nbotval = read_hash(jjbotfiner*(imaxsize-iminsize)+iirhtfiner, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            if (jjbotfiner >= 0 && iirhtfiner < imaxsize-iminsize) nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjbotfiner*(imaxsize-iminsize)+iirhtfiner, hash);
+#endif
          }
       }
 
@@ -2416,11 +2500,11 @@ __kernel void fill_neighbor_ghost_cl (
          if (nbotval == -1) {
             int jjbotcoarser = jjbot - (jjcur-jjbot);
             int iibot = (ii/2)*2*levmult-iminsize;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             if (jjbotcoarser >= 0 && iibot >= 0) nbotval = hashval_local(jjbotcoarser,iibot);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            if (jjbotcoarser >= 0 && iibot >= 0) nbotval = read_hash(jjbotcoarser*(imaxsize-iminsize)+iibot, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            if (jjbotcoarser >= 0 && iibot >= 0) nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjbotcoarser*(imaxsize-iminsize)+iibot, hash);
+#endif
          }
       }
       if (nbotval != -1) nbot[giX] = nbotval;
@@ -2429,33 +2513,33 @@ __kernel void fill_neighbor_ghost_cl (
    if (ntopval == -1) {
       // Taking care of boundary cells
       // Force each boundary cell to point to itself on its boundary direction
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       if (jjcur > jmax*levtable[levmx]-1-jminsize) ntopval = hashval_local(jjcur,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      if (jjcur > jmax*levtable[levmx]-1-jminsize) ntopval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      if (jjcur > jmax*levtable[levmx]-1-jminsize) ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iicur, hash);
+#endif
       // Boundary cells next to corner boundary need special checks
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       if (jjtop == jmax*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur > (imax-1)*levtable[levmx]-iminsize ) ) ntopval = hashval_local(jjcur,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      if (jjtop == jmax*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur > (imax-1)*levtable[levmx]-iminsize ) ) ntopval = read_hash(jjcur*(imaxs     ize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      if (jjtop == jmax*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur > (imax-1)*levtable[levmx]-iminsize ) ) ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iicur, hash);
+#endif
 
       // same size neighbor
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
       if (ntopval == -1 && jjtop < jmaxsize-jminsize) ntopval = hashval_local(jjtop,iicur);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//      if (ntopval == -1 && jjtop < jmaxsize-jminsize) ntopval = read_hash(jjtop*(imaxsize-iminsize)+iicur, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+      if (ntopval == -1 && jjtop < jmaxsize-jminsize) ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iicur, hash);
+#endif
   
       if (iicur < 1*levtable[levmx]) {
          if (ntopval == -1) {
             int iirhtfiner = (iicur+iirht)/2;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             if (jjtop < jmaxsize-jminsize && iirhtfiner < imaxsize-iminsize) ntopval = hashval_local(jjtop,iirhtfiner);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            if (jjtop < jmaxsize-jminsize && iirhtfiner < imaxsize-iminsize) ntopval = read_hash(jjtop*(imaxsize-iminsize)+iirhtfiner, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            if (jjtop < jmaxsize-jminsize && iirhtfiner < imaxsize-iminsize) ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iirhtfiner, hash);
+#endif
          }
       }
   
@@ -2463,11 +2547,11 @@ __kernel void fill_neighbor_ghost_cl (
       if (lev != 0){
          if (ntopval == -1) {
             int iitop = (ii/2)*2*levmult-iminsize;
-//#if HASH_SETUP_OPT_LEVEL <= 3
+#if HASH_SETUP_OPT_LEVEL <= 3
             if (jjtop < jmaxsize-jminsize && iitop < imaxsize-iminsize) ntopval = hashval_local(jjtop,iitop);
-//#elif HASH_SETUP_OPT_LEVEL == 4
-//            if (jjtop < jmaxsize-jminsize && iitop < imaxsize-iminsize) ntopval = read_hash(jjtop*(imaxsize-iminsize)+iitop, hash);
-//#endif
+#elif HASH_SETUP_OPT_LEVEL == 4
+            if (jjtop < jmaxsize-jminsize && iitop < imaxsize-iminsize) ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iitop, hash);
+#endif
          }
       }
       if (ntopval != -1) ntop[giX] = ntopval;
