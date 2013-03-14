@@ -2343,9 +2343,9 @@ __kernel void fill_neighbor_ghost_cl (
 
       // Boundary cells next to corner boundary need special checks
 #if HASH_SETUP_OPT_LEVEL <= 3
-               if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nlftval = hashval_local(jjcur,iicur);
+      if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nlftval = hashval_local(jjcur,iicur);
 #elif HASH_SETUP_OPT_LEVEL == 4
-               if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iicur, hash);
+      if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iicur, hash);
 #endif
 
       // need to check for finer neighbor first
@@ -2354,9 +2354,9 @@ __kernel void fill_neighbor_ghost_cl (
       if (lev != levmx) {
          int iilftfiner = iicur-(iicur-iilft)/2;
 #if HASH_SETUP_OPT_LEVEL <= 3
-         if (nlftval == -1) nlftval = hashval_local(jjcur,iilftfiner);
+         if (nlftval == -1 && iilftfiner >= 0) nlftval = hashval_local(jjcur,iilftfiner);
 #elif HASH_SETUP_OPT_LEVEL == 4
-         if (nlftval == -1) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iilftfiner, hash);
+         if (nlftval == -1 && iilftfiner >= 0) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iilftfiner, hash);
 #endif
       }
 

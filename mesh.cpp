@@ -5187,9 +5187,9 @@ void Mesh::calc_neighbors_local(void)
                if (lev != levmx) {
                   int iilftfiner = iicur-(iicur-iilft)/2;
 #if HASH_SETUP_OPT_LEVEL <= 3
-                  if (nlftval == -1) nlftval = hash[jjcur][iilftfiner];
+                  if (nlftval == -1 && iilftfiner >= 0) nlftval = hash[jjcur][iilftfiner];
 #elif HASH_SETUP_OPT_LEVEL == 4
-                  if (nlftval == -1) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iilftfiner, hash);
+                  if (nlftval == -1 && iilftfiner >= 0) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iilftfiner, hash);
 #endif
                }
 
