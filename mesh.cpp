@@ -5701,7 +5701,7 @@ void Mesh::calc_neighbors_local(void)
 
 #if HASH_SETUP_OPT_LEVEL <= 3
       genmatrixfree((void **)hash);
-#elif HASH_SETUP_OPT_LEVEL == 3
+#elif HASH_SETUP_OPT_LEVEL == 4
       write_hash_collision_report();
       read_hash_collision_report();
       compact_hash_delete(hash);
