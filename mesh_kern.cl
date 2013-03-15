@@ -953,14 +953,26 @@ __kernel void calc_neighbors_local_cl(
 
    // same size neighbor
 #if HASH_SETUP_OPT_LEVEL == 3
-   if (nlftval < 0) nlftval = hashval_local(jjcur,iilft);
+   if (nlftval < 0) {
+      int nlfttry = hashval_local(jjcur,iilft);
+      if (nlfttry >= 0 && nlfttry < ncells && level[nlfttry] == lev) nlftval = nlfttry;
+   }
    if (nrhtval < 0) nrhtval = hashval_local(jjcur,iirht);
-   if (nbotval < 0) nbotval = hashval_local(jjbot,iicur);
+   if (nbotval < 0) {
+      int nbottry = hashval_local(jjbot,iicur);
+      if (nbottry >= 0 && nbottry < ncells && level[nbottry] == lev) nbotval = nbottry;
+   }
    if (ntopval < 0) ntopval = hashval_local(jjtop,iicur);
 #elif HASH_SETUP_OPT_LEVEL == 4
-   if (nlftval < 0) nlftval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iilft, hash);
+   if (nlftval < 0) {
+      int nlfttry = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iilft, hash);
+      if (nlfttry >= 0 && nlfttry < ncells && level[nlfttry] == lev) nlftval = nlfttry;
+   }
    if (nrhtval < 0) nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjcur*(imaxsize-iminsize)+iirht, hash);
-   if (nbotval < 0) nbotval = read_hash(hash_method, hash_table_size, AA, BB, jjbot*(imaxsize-iminsize)+iicur, hash);
+   if (nbotval < 0) { 
+      int nbottry = read_hash(hash_method, hash_table_size, AA, BB, jjbot*(imaxsize-iminsize)+iicur, hash);
+      if (nbottry >= 0 && nbottry < ncells && level[nbottry] == lev) nbotval = nbottry;
+   }
    if (ntopval < 0) ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iicur, hash);
 #endif
 
@@ -1023,11 +1035,10 @@ __kernel void calc_neighbors_local_cl(
       if (nrhtval < 0) {
          int jjrht = (jj/2)*2*levmult-jminsize;
 #if HASH_SETUP_OPT_LEVEL == 3
-         int nrhttry = hashval_local(jjrht,iirht);
+         nrhtval = hashval_local(jjrht,iirht);
 #elif HASH_SETUP_OPT_LEVEL == 4
-         int nrhttry = read_hash(hash_method, hash_table_size, AA, BB, jjrht*(imaxsize-iminsize)+iirht, hash);
+         nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjrht*(imaxsize-iminsize)+iirht, hash);
 #endif
-         if (nrhttry >= 0 && nrhttry < ncells && level[nrhttry] == lev-1) nrhtval = nrhttry;
       }
       if (nbotval < 0) {
          jjbot -= jjcur-jjbot;
@@ -1042,11 +1053,10 @@ __kernel void calc_neighbors_local_cl(
       if (ntopval < 0) {
          int iitop = (ii/2)*2*levmult-iminsize;
 #if HASH_SETUP_OPT_LEVEL == 3
-         int ntoptry = hashval_local(jjtop,iitop);
+         ntopval = hashval_local(jjtop,iitop);
 #elif HASH_SETUP_OPT_LEVEL == 4
-         int ntoptry = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iitop, hash);
+         ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iitop, hash);
 #endif
-         if (ntoptry >= 0 && ntoptry < ncells && level[ntoptry] == lev-1) ntopval = ntoptry;
       }
    }
 #endif

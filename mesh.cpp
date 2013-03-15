@@ -3919,9 +3919,15 @@ void Mesh::calc_neighbors_local(void)
          }
 
          // same size neighbor
-         if (nlftval < 0) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iilft, hash);
+         if (nlftval < 0) {
+            int nlfttry = read_hash(jjcur*(imaxsize-iminsize)+iilft, hash);
+            if (nlfttry >= 0 && nlfttry < ncells && level[nlfttry] == lev) nlftval = nlfttry;
+         }
          if (nrhtval < 0) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iirht, hash);
-         if (nbotval < 0) nbotval = read_hash(jjbot*(imaxsize-iminsize)+iicur, hash);
+         if (nbotval < 0) {
+            int nbottry = read_hash(jjbot*(imaxsize-iminsize)+iicur, hash);
+            if (nbottry >= 0 && nbottry < ncells && level[nbottry] == lev) nbotval = nbottry;
+         }
          if (ntopval < 0) ntopval = read_hash(jjtop*(imaxsize-iminsize)+iicur, hash);
               
          // Now we need to take care of special case where bottom and left boundary need adjustment since
