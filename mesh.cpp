@@ -3957,20 +3957,24 @@ void Mesh::calc_neighbors_local(void)
             if (nlftval < 0) {
                iilft -= iicur-iilft;
                int jjlft = (jj/2)*2*levmult-jminsize;
-               nlftval = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
+               int nlfttry = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
+               if (nlfttry >= 0 && nlfttry < ncells && level[nlfttry] == lev-1) nlftval = nlfttry;
             }       
             if (nrhtval < 0) {
                int jjrht = (jj/2)*2*levmult-jminsize;
-               nrhtval = read_hash(jjrht*(imaxsize-iminsize)+iirht, hash);
+               int nrhttry = read_hash(jjrht*(imaxsize-iminsize)+iirht, hash);
+               if (nrhttry >= 0 && nrhttry < ncells && level[nrhttry] == lev-1) nrhtval = nrhttry;
             }       
             if (nbotval < 0) {
                jjbot -= jjcur-jjbot;
                int iibot = (ii/2)*2*levmult-iminsize;
-               nbotval = read_hash(jjbot*(imaxsize-iminsize)+iibot, hash);
+               int nbottry = read_hash(jjbot*(imaxsize-iminsize)+iibot, hash);
+               if (nbottry >= 0 && nbottry < ncells && level[nbottry] == lev-1) nbotval = nbottry;
             }       
             if (ntopval < 0) {
                int iitop = (ii/2)*2*levmult-iminsize;
-               ntopval = read_hash(jjtop*(imaxsize-iminsize)+iitop, hash);
+               int ntoptry = read_hash(jjtop*(imaxsize-iminsize)+iitop, hash);
+               if (ntoptry >= 0 && ntoptry < ncells && level[ntoptry] == lev-1) ntopval = ntoptry;
             }       
          }       
 
@@ -4417,7 +4421,7 @@ void Mesh::calc_neighbors_local(void)
             int jjtop = min( (jj+1)*levmult, jmaxcalc-1)-jminsize;
 
             //fprintf(fp,"DEBUG layer ic %d num %d i %d j %d lev %d\n",ic,border_cell_num_global[ic],ii,jj,lev);
-   
+
             int iborder = 0;
 
             // Test for cell to left
