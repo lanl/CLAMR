@@ -179,17 +179,17 @@ void compact_hash_delete(int *hash){
       genvectorfree((void *)hash);
 }
 
-int *compact_hash_init(int ncells, uint imaxsize, uint jmaxsize, uint report_level){
+int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
    hash_ncells = 0;
    write_hash_collisions = 0;
    read_hash_collisions = 0;
    hash_queries = 0;
    hash_report_level = report_level;
-   hash_stride = imaxsize;
+   hash_stride = isize;
    int *hash = NULL;
 
    uint compact_hash_size = (uint)((double)ncells*hash_mult);
-   uint perfect_hash_size = (uint)(imaxsize*jmaxsize);
+   uint perfect_hash_size = (uint)(isize*jsize);
    float hash_mem_factor = 20.0;
    float hash_mem_ratio = (double)perfect_hash_size/(double)compact_hash_size;
    if (mem_opt_factor != 1.0) hash_mem_factor /= (mem_opt_factor*0.2); 
@@ -218,8 +218,8 @@ int *compact_hash_init(int ncells, uint imaxsize, uint jmaxsize, uint report_lev
 
    if (hash_report_level >= 2) {
       printf("Hash table size %u perfect hash table size %u memory savings %u by percentage %lf\n",
-        hashtablesize,imaxsize*imaxsize,imaxsize*imaxsize-hashtablesize,
-        (double)hashtablesize/(double)(imaxsize*imaxsize));
+        hashtablesize,isize*jsize,isize*jsize-hashtablesize,
+        (double)hashtablesize/(double)(isize*jsize));
    }
 
    return(hash);
