@@ -4785,7 +4785,7 @@ void Mesh::calc_neighbors_local(void)
                   int levcheck = -1;
                   if (nl-noffset >= 0 && nl-noffset < ncells) {
                      levcheck = level[nl-noffset];
-                  } else if (nl >= 0) {
+                  } else if (nl >= 0 && nl-ncells-noffset >= 0 && nl-ncells-noffset < nbsize_local) {
                      levcheck = border_cell_level_global[nl-ncells-noffset];
                   }
                   if (nl >= (int)(ncells+noffset) && levcheck == lev && (border_cell_needed_global[nl-ncells-noffset] & 0x0001) == 0x0001) {
@@ -4801,7 +4801,7 @@ void Mesh::calc_neighbors_local(void)
                      levcheck = -1;
                      if (nl-noffset >= 0 && nl-noffset < ncells) {
                         levcheck = level[nl-noffset];
-                     } else if (nl >= 0) {
+                     } else if (nl >= 0 && nl-ncells-noffset >= 0 && nl-ncells-noffset < nbsize_local) {
                         levcheck = border_cell_level_global[nl-ncells-noffset];
                      }
                      // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
@@ -4845,7 +4845,7 @@ void Mesh::calc_neighbors_local(void)
                      int levcheck = -1;
                      if (nr-noffset >= 0 && nr-noffset < ncells) {
                         levcheck = level[nr-noffset];
-                     } else if (nr >= 0) {
+                     } else if (nr >= 0 && nr-ncells-noffset >= 0 && nr-ncells-noffset < nbsize_local) {
                         levcheck = border_cell_level_global[nr-ncells-noffset];
                      }
                      if (nr >= (int)(ncells+noffset) && levcheck == lev-1 && (border_cell_needed_global[nr-ncells-noffset] & 0x0002) == 0x0002) {
@@ -4889,7 +4889,7 @@ void Mesh::calc_neighbors_local(void)
                   int levcheck = -1;
                   if (nb-noffset >= 0 && nb-noffset < ncells) {
                      levcheck = level[nb-noffset];
-                  } else if (nb >= 0) {
+                  } else if (nb >= 0 && nb-ncells-noffset >= 0 && nb-ncells-noffset < nbsize_local) {
                      levcheck = border_cell_level_global[nb-ncells-noffset];
                   }
                   if (nb >= (int)(ncells+noffset) && levcheck == lev && (border_cell_needed_global[nb-ncells-noffset] & 0x0004) == 0x0004) {
@@ -4905,7 +4905,7 @@ void Mesh::calc_neighbors_local(void)
                      levcheck = -1;
                      if (nb-noffset >= 0 && nb-noffset < ncells) {
                         levcheck = level[nb-noffset];
-                     } else if (nb >= 0) {
+                     } else if (nb >= 0 && nb-ncells-noffset >= 0 && nb-ncells-noffset < nbsize_local) {
                         levcheck = border_cell_level_global[nb-ncells-noffset];
                      }
                      // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
@@ -4948,7 +4948,7 @@ void Mesh::calc_neighbors_local(void)
                      int levcheck = -1;
                      if (nb-noffset >= 0 && nb-noffset < ncells) {
                         levcheck = level[nb-noffset];
-                     } else if (nb >= 0) {
+                     } else if (nb >= 0 && nb-ncells-noffset >= 0 && nb-ncells-noffset < nbsize_local) {
                         levcheck = border_cell_level_global[nb-ncells-noffset];
                      }
                      if (nb-noffset >= (int)(ncells-noffset) && levcheck == lev-1 && (border_cell_needed_global[nb-ncells-noffset] & 0x0008) == 0x0008) {

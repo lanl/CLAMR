@@ -1680,7 +1680,7 @@ __kernel void calc_layer1_sethash_cl (
 }
 
 __kernel void calc_layer2_cl (
-                          const int   isize,                   // 0 
+                          const int   nbsize_local,            // 0 
                           const int   ncells,                  // 1 
                           const int   noffset,                 // 2 
                           const int   levmx,                   // 3 
@@ -1710,7 +1710,7 @@ __kernel void calc_layer2_cl (
 
    itile[tiX] = 0;
 
-   if (giX >= isize) return;
+   if (giX >= nbsize_local) return;
 
    int iborder = border_cell_needed[giX];
 
@@ -1821,7 +1821,7 @@ __kernel void calc_layer2_cl (
             int levcheck = -1;
             if (nl-noffset >= 0 && nl-noffset < ncells) {
                levcheck = level[nl-noffset];
-            } else if (nl >= 0) {
+            } else if (nl >= 0 && nl-ncells-noffset >= 0 && nl-ncells-noffset < nbsize_local) {
                levcheck = border_cell_level[nl-ncells-noffset];
             }
             if (nl >= (int)(ncells+noffset) && levcheck == lev && (border_cell_needed[nl-ncells-noffset] & 0x0001) == 0x0001) {
@@ -1837,7 +1837,7 @@ __kernel void calc_layer2_cl (
                levcheck = -1;
                if (nl-noffset >= 0 && nl-noffset < ncells) {
                   levcheck = level[nl-noffset];
-               } else if (nl >= 0) {
+               } else if (nl >= 0 && nl-ncells-noffset >= 0 && nl-ncells-noffset < nbsize_local) {
                   levcheck = border_cell_level[nl-ncells-noffset];
                }
                // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
@@ -1881,7 +1881,7 @@ __kernel void calc_layer2_cl (
                int levcheck = -1;
                if (nr-noffset >= 0 && nr-noffset < ncells) {
                   levcheck = level[nr-noffset];
-               } else if (nr >= 0) {
+               } else if (nr >= 0  && nr-ncells-noffset >= 0 && nr-ncells-noffset < nbsize_local) {
                   levcheck = border_cell_level[nr-ncells-noffset];
                }
                if (nr >= (int)(ncells+noffset) && levcheck == lev-1 && (border_cell_needed[nr-ncells-noffset] & 0x0002) == 0x0002) {
@@ -1925,7 +1925,7 @@ __kernel void calc_layer2_cl (
             int levcheck = -1;
             if (nb-noffset >= 0 && nb-noffset < ncells) {
                levcheck = level[nb-noffset];
-            } else if (nb >= 0) {
+            } else if (nb >= 0  && nb-ncells-noffset >= 0 && nb-ncells-noffset < nbsize_local) {
                levcheck = border_cell_level[nb-ncells-noffset];
             }
             if (nb >= (int)(ncells+noffset) && levcheck == lev && (border_cell_needed[nb-ncells-noffset] & 0x0004) == 0x0004) {
@@ -1941,7 +1941,7 @@ __kernel void calc_layer2_cl (
                levcheck = -1;
                if (nb-noffset >= 0 && nb-noffset < ncells) {
                   levcheck = level[nb-noffset];
-               } else if (nb >= 0) {
+               } else if (nb >= 0  && nb-ncells-noffset >= 0 && nb-ncells-noffset < nbsize_local) {
                   levcheck = border_cell_level[nb-ncells-noffset];
                }
                // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
@@ -1984,7 +1984,7 @@ __kernel void calc_layer2_cl (
                int levcheck = -1;
                if (nb-noffset >= 0 && nb-noffset < ncells) {
                   levcheck = level[nb-noffset];
-               } else if (nb >= 0) {
+               } else if (nb >= 0 && nb-ncells-noffset >= 0 && nb-ncells-noffset < nbsize_local) {
                   levcheck = border_cell_level[nb-ncells-noffset];
                }
                if (nb-noffset >= (int)(ncells-noffset) && levcheck == lev-1 && (border_cell_needed[nb-ncells-noffset] & 0x0008) == 0x0008) {
