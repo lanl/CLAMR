@@ -201,17 +201,17 @@ int *compact_hash_init(int ncells, uint imaxsize, uint jmaxsize, uint report_lev
       AA = (ulong)(1.0+(double)(prime-1)*drand48());
       BB = (ulong)(0.0+(double)(prime-1)*drand48());
       if (AA > prime-1 || BB > prime-1) exit(0);
-      if (hash_report_level > 1) printf("Factors AA %llu BB %llu\n",AA,BB);
+      if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",AA,BB);
 
       hash = (int *)genvector(2*hashtablesize,sizeof(int));
-      for (int ii = 0; ii<2*hashtablesize; ii+=2){
+      for (uint ii = 0; ii<2*hashtablesize; ii+=2){
          hash[ii] = -1;
       }
    } else {
       hashtablesize = perfect_hash_size;
 
       hash = (int *)genvector(hashtablesize,sizeof(int));
-      for (int ii = 0; ii<hashtablesize; ii++){
+      for (uint ii = 0; ii<hashtablesize; ii++){
          hash[ii] = -1;
       }
    }
@@ -234,85 +234,85 @@ void write_hash(uint ic, ulong hashkey, int *hash){
    }
    if (hash_method == 0){
       if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc++,hashloc = hashloc%hashtablesize);
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize);
       } else if (hash_report_level == 1) {
          hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc++,hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize){
             write_hash_collisions++;
          }
       } else if (hash_report_level == 2) {
          hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc++,hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize){
             write_hash_collisions++;
          }
       } else if (hash_report_level == 3) {
          hash_ncells++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc++,hashloc = hashloc%hashtablesize){
+         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize){
             int hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             icount++;
          }
          write_hash_collisions += icount;
       }
    } else if (hash_method == 1){
       if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize) {
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize) {
             icount++;
          }
       } else if (hash_report_level == 1) {
          hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
          }
          write_hash_collisions += icount;
       } else if (hash_report_level == 2) {
          hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
          }
          write_hash_collisions += icount;
       } else if (hash_report_level == 3) {
          hash_ncells++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
             int hashloctmp = hashloc+icount*icount;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          }
          write_hash_collisions += icount;
       }
    } else if (hash_method == 2){
       uint jump = 1+hashkey%hash_jump_prime;
       if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize) {
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize) {
             icount++;
          }
       } else if (hash_report_level == 1) {
          hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
          }
          write_hash_collisions += icount;
       } else if (hash_report_level == 2) {
          hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
          }
          write_hash_collisions += icount;
       } else if (hash_report_level == 3) {
          hash_ncells++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
             int hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          }
          write_hash_collisions += icount;
       }
@@ -332,18 +332,18 @@ int read_hash(ulong hashkey, int *hash){
    }
    if (hash_method == 0) {
       if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
             icount++;
          }
       } else if (hash_report_level == 1) {
          hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
             icount++;
          }
          read_hash_collisions += icount;
       } else if (hash_report_level == 2) {
          hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
             icount++;
             if (icount > max_collisions_allowed) {
                printf("Error -- too many read hash collisions\n");
@@ -354,12 +354,12 @@ int read_hash(ulong hashkey, int *hash){
       } else if (hash_report_level == 3) {
          hash_queries++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
             icount++;
             uint hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             if (icount > max_collisions_allowed) {
                printf("Error -- too many read hash collisions\n");
                exit(0);
@@ -369,18 +369,18 @@ int read_hash(ulong hashkey, int *hash){
       }
    } else if (hash_method == 1) {
       if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
          }
       } else if (hash_report_level == 1) {
          hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
          }
          read_hash_collisions += icount;
       } else if (hash_report_level == 2) {
          hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
             if (icount > max_collisions_allowed) {
                printf("Error -- too many read hash collisions\n");
@@ -391,12 +391,12 @@ int read_hash(ulong hashkey, int *hash){
       } else if (hash_report_level == 3) {
          hash_queries++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
             uint hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             if (icount > max_collisions_allowed) {
                printf("Error -- too many read hash collisions\n");
                exit(0);
@@ -407,18 +407,18 @@ int read_hash(ulong hashkey, int *hash){
    } else if (hash_method == 2) {
       uint jump = 1+hashkey%hash_jump_prime;
       if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
          }
       } else if (hash_report_level == 1) {
          hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
          }
          read_hash_collisions += icount;
       } else if (hash_report_level == 2) {
          hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
             if (icount > max_collisions_allowed) {
                printf("Error -- too many read hash collisions\n");
@@ -429,12 +429,12 @@ int read_hash(ulong hashkey, int *hash){
       } else if (hash_report_level == 3) {
          hash_queries++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
             uint hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             if (icount > max_collisions_allowed) {
                printf("Error -- too many read hash collisions\n");
                exit(0);
@@ -459,18 +459,18 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
    }
    if (hash_method == 0) {
       if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
             icount++;
          }
       } else if (hash_report_level == 1) {
          hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
             icount++;
          }
          read_hash_collisions += icount;
       } else if (hash_report_level == 2) {
          hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
             icount++;
             if (icount > max_collisions_allowed) {
                printf("Error -- too many read hash collisions\n");
@@ -481,12 +481,12 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
       } else if (hash_report_level == 3) {
          hash_queries++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
             icount++;
             uint hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             if (icount > max_collisions_allowed) {
                printf("Error -- too many read hash collisions\n");
                exit(0);
@@ -496,18 +496,18 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
       }
    } else if (hash_method == 1) {
       if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
          }
       } else if (hash_report_level == 1) {
          hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
          }
          read_hash_collisions += icount;
       } else if (hash_report_level == 2) {
          hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
             if (icount > max_collisions_allowed) {
                printf("Error -- too many read hash collisions\n");
@@ -518,12 +518,12 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
       } else if (hash_report_level == 3) {
          hash_queries++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
             uint hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             if (icount > max_collisions_allowed) {
                printf("Error -- too many read hash collisions\n");
                exit(0);
@@ -534,18 +534,18 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
    } else if (hash_method == 2) {
       uint jump = 1+hashkey%hash_jump_prime;
       if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
          }
       } else if (hash_report_level == 1) {
          hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
          }
          read_hash_collisions += icount;
       } else if (hash_report_level == 2) {
          hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
             if (icount > max_collisions_allowed) {
                printf("Error -- too many read hash collisions\n");
@@ -556,12 +556,12 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
       } else if (hash_report_level == 3) {
          hash_queries++;
          hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
             icount++;
             uint hashloctmp = hashloc+1;
             hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %llu ii %llu jj %llu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
             if (icount > max_collisions_allowed) {
                printf("Error -- too many read hash collisions\n");
                exit(0);
@@ -3056,9 +3056,10 @@ void Mesh::calc_neighbors(void)
          cpu_timer_start(&tstart_lev2);
       }
 
-      int ii, jj, lev, iii, jjj, levmult;
+      int ii, jj, lev, levmult;
 
 #if HASH_SETUP_OPT_LEVEL <= 2
+      int iii, jjj;
       for (uint ic=0; ic<ncells; ic++){
          ii = i[ic];
          jj = j[ic];
@@ -3694,7 +3695,7 @@ void Mesh::calc_neighbors_local(void)
          cpu_timer_start(&tstart_lev2);
       }
 
-      int ii, jj, lev, iii=0, jjj=0, levmult;
+      int ii, jj, lev, levmult;
 
       // Set neighbors to global cell numbers from hash
       int jmaxcalc = (jmax+1)*levtable[levmx];
@@ -3921,12 +3922,12 @@ void Mesh::calc_neighbors_local(void)
          // same size neighbor
          if (nlftval < 0) {
             int nlfttry = read_hash(jjcur*(imaxsize-iminsize)+iilft, hash);
-            if (nlfttry >= 0 && nlfttry < ncells && level[nlfttry] == lev) nlftval = nlfttry;
+            if (nlfttry >= 0 && nlfttry < (int)ncells && level[nlfttry] == lev) nlftval = nlfttry;
          }
          if (nrhtval < 0) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iirht, hash);
          if (nbotval < 0) {
             int nbottry = read_hash(jjbot*(imaxsize-iminsize)+iicur, hash);
-            if (nbottry >= 0 && nbottry < ncells && level[nbottry] == lev) nbotval = nbottry;
+            if (nbottry >= 0 && nbottry < (int)ncells && level[nbottry] == lev) nbotval = nbottry;
          }
          if (ntopval < 0) ntopval = read_hash(jjtop*(imaxsize-iminsize)+iicur, hash);
               
@@ -3964,23 +3965,23 @@ void Mesh::calc_neighbors_local(void)
                iilft -= iicur-iilft;
                int jjlft = (jj/2)*2*levmult-jminsize;
                int nlfttry = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
-               if (nlfttry >= 0 && nlfttry < ncells && level[nlfttry] == lev-1) nlftval = nlfttry;
+               if (nlfttry >= 0 && nlfttry < (int)ncells && level[nlfttry] == lev-1) nlftval = nlfttry;
             }       
             if (nrhtval < 0) {
                int jjrht = (jj/2)*2*levmult-jminsize;
                int nrhttry = read_hash(jjrht*(imaxsize-iminsize)+iirht, hash);
-               if (nrhttry >= 0 && nrhttry < ncells && level[nrhttry] == lev-1) nrhtval = nrhttry;
+               if (nrhttry >= 0 && nrhttry < (int)ncells && level[nrhttry] == lev-1) nrhtval = nrhttry;
             }       
             if (nbotval < 0) {
                jjbot -= jjcur-jjbot;
                int iibot = (ii/2)*2*levmult-iminsize;
                int nbottry = read_hash(jjbot*(imaxsize-iminsize)+iibot, hash);
-               if (nbottry >= 0 && nbottry < ncells && level[nbottry] == lev-1) nbotval = nbottry;
+               if (nbottry >= 0 && nbottry < (int)ncells && level[nbottry] == lev-1) nbotval = nbottry;
             }       
             if (ntopval < 0) {
                int iitop = (ii/2)*2*levmult-iminsize;
                int ntoptry = read_hash(jjtop*(imaxsize-iminsize)+iitop, hash);
-               if (ntoptry >= 0 && ntoptry < ncells && level[ntoptry] == lev-1) ntopval = ntoptry;
+               if (ntoptry >= 0 && ntoptry < (int)ncells && level[ntoptry] == lev-1) ntopval = ntoptry;
             }       
          }       
 
@@ -4459,7 +4460,7 @@ void Mesh::calc_neighbors_local(void)
                   int nlfttry = read_hash(jjcur*(imaxsize-iminsize)+iilft, hash);
 #endif
                   // we have to test for same level or it could be a finer cell one cell away that it is matching
-                  if (nlfttry-noffset >= 0 && nlfttry-noffset < ncells && level[nlfttry-noffset] == lev) {
+                  if (nlfttry-noffset >= 0 && nlfttry-noffset < (int)ncells && level[nlfttry-noffset] == lev) {
                      nlftval = nlfttry;
                   }
                }
@@ -4473,7 +4474,7 @@ void Mesh::calc_neighbors_local(void)
                   int nlfttry = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
 #endif
                   // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
-                  if (nlfttry-noffset >= 0 && nlfttry-noffset < ncells && level[nlfttry-noffset] == lev-1) {
+                  if (nlfttry-noffset >= 0 && nlfttry-noffset < (int)ncells && level[nlfttry-noffset] == lev-1) {
                     nlftval = nlfttry;
                   }
                }
@@ -4506,7 +4507,7 @@ void Mesh::calc_neighbors_local(void)
 #elif HASH_SETUP_OPT_LEVEL == 4
                      int nrhttry = read_hash(jjrhtcoarser*(imaxsize-iminsize)+iirht, hash);
 #endif
-                     if (nrhttry-noffset >= 0 && nrhttry-noffset < ncells && level[nrhttry-noffset] == lev-1) {
+                     if (nrhttry-noffset >= 0 && nrhttry-noffset < (int)ncells && level[nrhttry-noffset] == lev-1) {
                         nrhtval = nrhttry;
                      }
                   }
@@ -4543,7 +4544,7 @@ void Mesh::calc_neighbors_local(void)
                   int nbottry = read_hash(jjbot*(imaxsize-iminsize)+iicur, hash);
 #endif
                   // we have to test for same level or it could be a finer cell one cell away that it is matching
-                  if (nbottry-noffset >= 0 && nbottry-noffset < ncells && level[nbottry-noffset] == lev) {
+                  if (nbottry-noffset >= 0 && nbottry-noffset < (int)ncells && level[nbottry-noffset] == lev) {
                      nbotval = nbottry;
                   }
                }
@@ -4557,7 +4558,7 @@ void Mesh::calc_neighbors_local(void)
                   int nbottry = read_hash(jjbot*(imaxsize-iminsize)+iibot, hash);
 #endif
                   // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
-                  if (nbottry-noffset >= 0 && nbottry-noffset < ncells && level[nbottry-noffset] == lev-1) {
+                  if (nbottry-noffset >= 0 && nbottry-noffset < (int)ncells && level[nbottry-noffset] == lev-1) {
                     nbotval = nbottry;
                   }
                }
@@ -4590,7 +4591,7 @@ void Mesh::calc_neighbors_local(void)
 #elif HASH_SETUP_OPT_LEVEL == 4
                      int ntoptry = read_hash(jjtop*(imaxsize-iminsize)+iitopcoarser, hash);
 #endif
-                     if (ntoptry-noffset >= 0 && ntoptry-noffset < ncells && level[ntoptry-noffset] == lev-1) {
+                     if (ntoptry-noffset >= 0 && ntoptry-noffset < (int)ncells && level[ntoptry-noffset] == lev-1) {
                         ntopval = ntoptry;
                      }
                   }
@@ -4783,7 +4784,7 @@ void Mesh::calc_neighbors_local(void)
                   int nl = read_hash(jjcur*(imaxsize-iminsize)+iilft, hash);
 #endif
                   int levcheck = -1;
-                  if (nl-noffset >= 0 && nl-noffset < ncells) {
+                  if (nl-noffset >= 0 && nl-noffset < (int)ncells) {
                      levcheck = level[nl-noffset];
                   } else if (nl >= 0) {
                      levcheck = border_cell_level_global[nl-ncells-noffset];
@@ -4799,7 +4800,7 @@ void Mesh::calc_neighbors_local(void)
                      nl = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
 #endif
                      levcheck = -1;
-                     if (nl-noffset >= 0 && nl-noffset < ncells) {
+                     if (nl-noffset >= 0 && nl-noffset < (int)ncells) {
                         levcheck = level[nl-noffset];
                      } else if (nl >= 0) {
                         levcheck = border_cell_level_global[nl-ncells-noffset];
@@ -4843,7 +4844,7 @@ void Mesh::calc_neighbors_local(void)
                      int nr = read_hash(jjrhtcoarser*(imaxsize-iminsize)+iirht, hash);
 #endif
                      int levcheck = -1;
-                     if (nr-noffset >= 0 && nr-noffset < ncells) {
+                     if (nr-noffset >= 0 && nr-noffset < (int)ncells) {
                         levcheck = level[nr-noffset];
                      } else if (nr >= 0) {
                         levcheck = border_cell_level_global[nr-ncells-noffset];
@@ -4887,7 +4888,7 @@ void Mesh::calc_neighbors_local(void)
                   int nb = read_hash(jjbot*(imaxsize-iminsize)+iicur, hash);
 #endif
                   int levcheck = -1;
-                  if (nb-noffset >= 0 && nb-noffset < ncells) {
+                  if (nb-noffset >= 0 && nb-noffset < (int)ncells) {
                      levcheck = level[nb-noffset];
                   } else if (nb >= 0) {
                      levcheck = border_cell_level_global[nb-ncells-noffset];
@@ -4903,7 +4904,7 @@ void Mesh::calc_neighbors_local(void)
                      nb = read_hash(jjbot*(imaxsize-iminsize)+iibot, hash);
 #endif
                      levcheck = -1;
-                     if (nb-noffset >= 0 && nb-noffset < ncells) {
+                     if (nb-noffset >= 0 && nb-noffset < (int)ncells) {
                         levcheck = level[nb-noffset];
                      } else if (nb >= 0) {
                         levcheck = border_cell_level_global[nb-ncells-noffset];
@@ -4946,7 +4947,7 @@ void Mesh::calc_neighbors_local(void)
                      int nb = read_hash(jjtop*(imaxsize-iminsize)+iitopcoarser, hash);
 #endif
                      int levcheck = -1;
-                     if (nb-noffset >= 0 && nb-noffset < ncells) {
+                     if (nb-noffset >= 0 && nb-noffset < (int)ncells) {
                         levcheck = level[nb-noffset];
                      } else if (nb >= 0) {
                         levcheck = border_cell_level_global[nb-ncells-noffset];
@@ -5862,7 +5863,7 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
       gpu_AA = (ulong)(1.0+(double)(prime-1)*drand48());
       gpu_BB = (ulong)(0.0+(double)(prime-1)*drand48());
       if (gpu_AA > prime-1 || gpu_BB > prime-1) exit(0);
-      if (hash_report_level > 1) printf("Factors AA %llu BB %llu\n",gpu_AA,gpu_BB);
+      if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",gpu_AA,gpu_BB);
    } else {
       gpu_hash_table_size = gpu_perfect_hash_size;
       hashsize = gpu_perfect_hash_size;
@@ -6106,7 +6107,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       gpu_AA = (ulong)(1.0+(double)(prime-1)*drand48());
       gpu_BB = (ulong)(0.0+(double)(prime-1)*drand48());
       if (gpu_AA > prime-1 || gpu_BB > prime-1) exit(0);
-      if (hash_report_level > 1) printf("Factors AA %llu BB %llu\n",gpu_AA,gpu_BB);
+      if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",gpu_AA,gpu_BB);
    } else {
       gpu_hash_table_size = gpu_perfect_hash_size;
       hashsize = gpu_perfect_hash_size;
@@ -7710,7 +7711,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
    for (int ip=0; ip<numpe; ip++){
       nsizes_old = nsizes[ip];
       nsizes[ip] = ncells_global/numpe;
-      if (ip < (ncells_global%numpe)) nsizes[ip]++;
+      if (ip < (int)(ncells_global%numpe)) nsizes[ip]++;
       if (nsizes_old != nsizes[ip]) do_load_balance_global = 1;
    }
 
@@ -7861,7 +7862,7 @@ int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, size_t numce
    for (int ip=0; ip<numpe; ip++){
       nsizes_old = nsizes[ip];
       nsizes[ip] = ncells_global/numpe;
-      if (ip < (ncells_global%numpe)) nsizes[ip]++;
+      if (ip < (int)(ncells_global%numpe)) nsizes[ip]++;
       if (nsizes_old != nsizes[ip]) do_load_balance_global = 1;
    }
 

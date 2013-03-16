@@ -73,10 +73,10 @@ long long memstats_memused(){
    char proc_stat_file[50];
    char str[140];
    char *p;
-   int i, err;
+   int err;
    int memdebug = 0;
    long long mem_current;
-   long long page_size = 1; //4096
+   //long long page_size = 1; //4096
 
    if (!stat_fp){
       pid = getpid();
@@ -121,10 +121,10 @@ long long memstats_mempeak(){
    char proc_stat_file[50];
    char str[140];
    char *p;
-   int i, err;
+   int err;
    int memdebug = 0;
    long long mem_current;
-   long long page_size = 1; //4096
+   //long long page_size = 1; //4096
 
    if (!stat_fp){
       pid = getpid();
