@@ -105,7 +105,7 @@ typedef float       real;
 
 typedef unsigned int uint;
 #ifdef __APPLE_CC__
-typedef unsigned long long ulong;
+typedef unsigned long ulong;
 #endif
 
 #define TWO 2
@@ -3497,24 +3497,25 @@ void Mesh::calc_neighbors_local(void)
       ncells_ghost = ncells;
 
       // Find maximum i column and j row for this processor
-      int jminsize = (jmax+1)*levtable[levmx];
-      int iminsize = (imax+1)*levtable[levmx];
-      int jmaxsize = 0;
-      int imaxsize = 0;
+      int jmintile = (jmax+1)*levtable[levmx];
+      int imintile = (imax+1)*levtable[levmx];
+      int jmaxtile = 0;
+      int imaxtile = 0;
       for(uint ic=0; ic<ncells; ic++){
          int lev = level[ic];
-         if ( j[ic]   *levtable[levmx-lev] < jminsize) jminsize =  j[ic]   *levtable[levmx-lev];
-         if ((j[ic]+1)*levtable[levmx-lev] > jmaxsize) jmaxsize = (j[ic]+1)*levtable[levmx-lev];
-         if ( i[ic]   *levtable[levmx-lev] < iminsize) iminsize =  i[ic]   *levtable[levmx-lev];
-         if ((i[ic]+1)*levtable[levmx-lev] > imaxsize) imaxsize = (i[ic]+1)*levtable[levmx-lev];
+         if ( j[ic]   *levtable[levmx-lev]   < jmintile) jmintile =  j[ic]   *levtable[levmx-lev]  ;
+         if ((j[ic]+1)*levtable[levmx-lev]-1 > jmaxtile) jmaxtile = (j[ic]+1)*levtable[levmx-lev]-1;
+         if ( i[ic]   *levtable[levmx-lev]   < imintile) imintile =  i[ic]   *levtable[levmx-lev]  ;
+         if ((i[ic]+1)*levtable[levmx-lev]-1 > imaxtile) imaxtile = (i[ic]+1)*levtable[levmx-lev]-1;
       }
+      //if (DEBUG) fprintf(fp,"%d: Tile Sizes are imin %d imax %d jmin %d jmax %d\n",mype,imintile,imaxtile,jmintile,jmaxtile);
 
       // Expand size by 2*coarse_cells for ghost cells
-      jminsize = max(jminsize-2*levtable[levmx],0);
-      jmaxsize = min(jmaxsize+2*levtable[levmx],(jmax+1)*levtable[levmx]);
-      iminsize = max(iminsize-2*levtable[levmx],0);
-      imaxsize = min(imaxsize+2*levtable[levmx],(imax+1)*levtable[levmx]);
-      //fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
+      int jminsize = max(jmintile-2*levtable[levmx],0);
+      int jmaxsize = min(jmaxtile+2*levtable[levmx],(jmax+1)*levtable[levmx]);
+      int iminsize = max(imintile-2*levtable[levmx],0);
+      int imaxsize = min(imaxtile+2*levtable[levmx],(imax+1)*levtable[levmx]);
+      //if (DEBUG) fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
 
 #if HASH_SETUP_OPT_LEVEL <= 3
       // Allocate partial hash table
@@ -4147,6 +4148,29 @@ void Mesh::calc_neighbors_local(void)
 
 #ifdef HAVE_MPI
       if (numpe > 1) {
+         vector<int> iminsize_global(numpe);
+         vector<int> imaxsize_global(numpe);
+         vector<int> jminsize_global(numpe);
+         vector<int> jmaxsize_global(numpe);
+         vector<int> comm_partner(numpe,-1);
+
+         MPI_Allgather(&iminsize, 1, MPI_INT, &iminsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
+         MPI_Allgather(&imaxsize, 1, MPI_INT, &imaxsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
+         MPI_Allgather(&jminsize, 1, MPI_INT, &jminsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
+         MPI_Allgather(&jmaxsize, 1, MPI_INT, &jmaxsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
+
+         int num_comm_partners = 0;
+         for (int ip = 0; ip < numpe; ip++){
+            if (ip == mype) continue;
+            if (iminsize_global[ip] > imaxtile) continue;
+            if (imaxsize_global[ip] < imintile) continue;
+            if (jminsize_global[ip] > jmaxtile) continue;
+            if (jmaxsize_global[ip] < jmintile) continue;
+            comm_partner[num_comm_partners] = ip;
+            num_comm_partners++;
+            //if (DEBUG) fprintf(fp,"%d: overlap with processor %d bounding box is %d %d %d %d\n",mype,ip,iminsize_global[ip],imaxsize_global[ip],jminsize_global[ip],jmaxsize_global[ip]);
+         }
+
          vector<int> border_cell(ncells);
 
 #ifdef BOUNDS_CHECK
@@ -4283,69 +4307,92 @@ void Mesh::calc_neighbors_local(void)
             cpu_timer_start(&tstart_lev2);
          }
 
-         int nbsize_global = nbsize_local;
-         MPI_Allreduce(&nbsize_local, &nbsize_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         // Allocate push database
 
-         vector<int> nbsizes(numpe);
-         vector<int> nbdispl(numpe);
-
-         MPI_Allgather(&nbsize_local, 1, MPI_INT, &nbsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-
-         nbdispl[0]=0;
-         for (int ip=1; ip<numpe; ip++){
-            nbdispl[ip] += nbdispl[ip-1] + nbsizes[ip-1];
+         int **send_database = (int**)malloc(num_comm_partners*sizeof(int *));
+         for (int ip = 0; ip < num_comm_partners; ip++){
+            send_database[ip] = (int *)malloc(nbsize_local*sizeof(int));
          }
 
-         vector<int>border_cell_num_global(nbsize_global);
-         vector<int>border_cell_i_global(nbsize_global);
-         vector<int>border_cell_j_global(nbsize_global);
-         vector<int>border_cell_level_global(nbsize_global);
+         // Compute the overlap between processor bounding boxes and set up push database
 
-         MPI_Allgatherv(&border_cell_num[0],   nbsizes[mype], MPI_INT, &border_cell_num_global[0],   &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
-         MPI_Allgatherv(&border_cell_i[0],     nbsizes[mype], MPI_INT, &border_cell_i_global[0],     &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
-         MPI_Allgatherv(&border_cell_j[0],     nbsizes[mype], MPI_INT, &border_cell_j_global[0],     &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
-         MPI_Allgatherv(&border_cell_level[0], nbsizes[mype], MPI_INT, &border_cell_level_global[0], &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
+         vector<int> send_buffer_count(num_comm_partners);
+         for (int ip = 0; ip < num_comm_partners; ip++){
+            int icount = 0;
+            for (int ib = 0; ib <nbsize_local; ib++){
+               lev = border_cell_level[ib];
+               levmult = levtable[levmx-lev];
+               if (border_cell_i[ib]*levmult >= iminsize_global[comm_partner[ip]] && 
+                   border_cell_i[ib]*levmult <= imaxsize_global[comm_partner[ip]] && 
+                   border_cell_j[ib]*levmult >= jminsize_global[comm_partner[ip]] && 
+                   border_cell_j[ib]*levmult <= jmaxsize_global[comm_partner[ip]] ) {
+                  //   border_cell_i[ib],border_cell_j[ib],border_cell_level[ib]);
+                  send_database[ip][icount] = ib;
+                  icount++;
+               }
+            }
+            send_buffer_count[ip]=icount;
+         }
 
-         //for (int ic = 0; ic < nbsize_global; ic++) {
-         //   fprintf(fp,"%d: Global Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
-         //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
-         //}
+         // Initialize L7_Push_Setup with num_comm_partners, comm_partner, send_database and 
+         // send_buffer_count. L7_Push_Setup will copy data and determine recv_buffer_counts.
+         // It will return receive_count_total for use in allocations
+
+         int receive_count_total;
+         int i_push_handle = L7_Push_Setup(num_comm_partners, &comm_partner[0], &send_buffer_count[0],
+            send_database, &receive_count_total);
+
+         if (DEBUG) {
+            fprintf(fp,"DEBUG num_comm_partners %d\n",num_comm_partners);
+            for (int ip = 0; ip < num_comm_partners; ip++){
+               fprintf(fp,"DEBUG comm partner is %d data count is %d\n",comm_partner[ip],send_buffer_count[ip]);
+               for (int ic = 0; ic < send_buffer_count[ip]; ic++){
+                  int ib = send_database[ip][ic];
+                  fprintf(fp,"DEBUG \t index %d cell number %d i %d j %d level %d\n",ib,border_cell_num[ib],
+                     border_cell_i[ib],border_cell_j[ib],border_cell_level[ib]);
+               }
+            }
+         }
+
+         // Can now free the send database. Other arrays are vectors and will automatically 
+         // deallocate
+
+         for (int ip = 0; ip < num_comm_partners; ip++){
+            free(send_database[ip]);
+         }
+         free(send_database);
+
+         // Push the data needed to the adjacent processors
+
+         int *border_cell_num_local = (int *)malloc(receive_count_total*sizeof(int));
+         int *border_cell_i_local = (int *)malloc(receive_count_total*sizeof(int));
+         int *border_cell_j_local = (int *)malloc(receive_count_total*sizeof(int));
+         int *border_cell_level_local = (int *)malloc(receive_count_total*sizeof(int));
+         L7_Push_Update(i_push_handle, &border_cell_num[0],   border_cell_num_local);
+         L7_Push_Update(i_push_handle, &border_cell_i[0],     border_cell_i_local);
+         L7_Push_Update(i_push_handle, &border_cell_j[0],     border_cell_j_local);
+         L7_Push_Update(i_push_handle, &border_cell_level[0], border_cell_level_local);
+
+         L7_Push_Free(i_push_handle);
+
+         nbsize_local = receive_count_total; 
+
+         if (DEBUG) {
+            for (int ic = 0; ic < nbsize_local; ic++) {
+               fprintf(fp,"%d: Local Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_local[ic],
+                  border_cell_i_local[ic],border_cell_j_local[ic],border_cell_level_local[ic]);
+            }
+         }
 
          if (TIMING_LEVEL >= 2) {
             cpu_time_gather_boundary += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
-         // Filter out only the data within our hash array boundaries
-         int inew=0;
-         vector<int> border_cell_needed_global(nbsize_global);
-         for (int ic = 0; ic < nbsize_global; ic++) {
-            int lev = border_cell_level_global[ic];
-            int levmult = levtable[levmx-lev];
-
-            if (border_cell_j_global[ic]*levmult < jminsize || border_cell_j_global[ic]*levmult >= jmaxsize) continue;  // Outside vertical boundaries
-            if (border_cell_i_global[ic]*levmult < iminsize || border_cell_i_global[ic]*levmult >= imaxsize) continue;  // Outside horizontal boundaries
-            if (border_cell_num_global[ic] >= (int)noffset && border_cell_num_global[ic] < (int)(noffset+ncells)) continue; // Skip my own cells
-
-            border_cell_num_global[inew]    = border_cell_num_global[ic];
-            border_cell_i_global[inew]      = border_cell_i_global[ic];
-            border_cell_j_global[inew]      = border_cell_j_global[ic];
-            border_cell_level_global[inew]  = border_cell_level_global[ic];
-            border_cell_needed_global[inew] = 0;
-
-            inew++;
-         }
-         nbsize_local = inew;
-
          if (TIMING_LEVEL >= 2) {
             cpu_time_local_list += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
-
-         //for (int ic = 0; ic < nbsize_local; ic++) {
-         //   fprintf(fp,"%d: Local Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
-         //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
-         //}
 
          if (DEBUG) {
             int jmaxglobal = (jmax+1)*levtable[levmx];
@@ -4375,15 +4422,17 @@ void Mesh::calc_neighbors_local(void)
             fprintf(fp,"\n");
          }
 
+         vector<int> border_cell_needed_local(nbsize_local, 0);
+
 #if HASH_SETUP_OPT_LEVEL <= 2
          // Layer 1
          for (int ic =0; ic<nbsize_local; ic++){
-            //if (border_cell_needed_global[ic] < ilayer && border_cell_needed_global[ic] > 0) continue;
-            int jj = border_cell_j_global[ic];
-            int ii = border_cell_i_global[ic];
-            int lev = border_cell_level_global[ic];
+            //if (border_cell_needed_local[ic] < ilayer && border_cell_needed_local[ic] > 0) continue;
+            int jj = border_cell_j_local[ic];
+            int ii = border_cell_i_local[ic];
+            int lev = border_cell_level_local[ic];
             int levmult = levtable[levmx-lev];
-            //fprintf(fp,"DEBUG layer ic %d num %d i %d j %d lev %d\n",ic,border_cell_num_global[ic],ii,jj,lev);
+            //fprintf(fp,"DEBUG layer ic %d num %d i %d j %d lev %d\n",ic,border_cell_num_local[ic],ii,jj,lev);
    
             int iborder = 0;
             if (max(ii*levmult-1, 0)-iminsize >= 0 && min((jj+1)*levmult -1,jmaxcalc-1) < jmaxsize) {  // Test for cell to left
@@ -4410,14 +4459,14 @@ void Mesh::calc_neighbors_local(void)
                   iborder |= 0x0008;
                }
             }
-            if (iborder) border_cell_needed_global[ic] = iborder;
+            if (iborder) border_cell_needed_local[ic] = iborder;
          }
 #elif HASH_SETUP_OPT_LEVEL >= 3
          // Layer 1
          for (int ic =0; ic<nbsize_local; ic++){
-            int jj = border_cell_j_global[ic];
-            int ii = border_cell_i_global[ic];
-            int lev = border_cell_level_global[ic];
+            int jj = border_cell_j_local[ic];
+            int ii = border_cell_i_local[ic];
+            int lev = border_cell_level_local[ic];
             int levmult = levtable[levmx-lev];
 
             int iicur = ii*levmult-iminsize;
@@ -4427,7 +4476,7 @@ void Mesh::calc_neighbors_local(void)
             int jjbot = max( (jj-1)*levmult, 0         )-jminsize;
             int jjtop = min( (jj+1)*levmult, jmaxcalc-1)-jminsize;
 
-            //fprintf(fp,"DEBUG layer ic %d num %d i %d j %d lev %d\n",ic,border_cell_num_global[ic],ii,jj,lev);
+            //fprintf(fp,"DEBUG layer ic %d num %d i %d j %d lev %d\n",ic,border_cell_num_local[ic],ii,jj,lev);
 
             int iborder = 0;
 
@@ -4599,14 +4648,14 @@ void Mesh::calc_neighbors_local(void)
                if (ntopval > 0)  iborder |= 0x0008;
             }
 
-            if (iborder) border_cell_needed_global[ic] = iborder;
+            if (iborder) border_cell_needed_local[ic] = iborder;
          }
 #endif
 
          if (DEBUG) {
             for(int ic=0; ic<nbsize_local; ic++){
-               if (border_cell_needed_global[ic] == 0) continue;
-               fprintf(fp,"%d: First set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+               if (border_cell_needed_local[ic] == 0) continue;
+               fprintf(fp,"%d: First set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_local[ic],border_cell_needed_local[ic]);
             }
          }
 
@@ -4614,16 +4663,16 @@ void Mesh::calc_neighbors_local(void)
          // Walk through cell array and set hash to border local index plus ncells+noffset for next pass
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
          for(int ic=0; ic<nbsize_local; ic++){
-            if (border_cell_needed_global[ic] == 0) continue;
-            //fprintf(fp,"%d: cell %d i %d j %d\n",mype,ic,border_cell_i_global[ic],border_cell_j_global[ic]);
-            int lev = border_cell_level_global[ic];
+            if (border_cell_needed_local[ic] == 0) continue;
+            //fprintf(fp,"%d: cell %d i %d j %d\n",mype,ic,border_cell_i_local[ic],border_cell_j_local[ic]);
+            int lev = border_cell_level_local[ic];
             int levmult = levtable[levmx-lev];
             if (lev == levmx) {
                //fprintf(fp,"%d: cell %d max j %d i %d\n",mype,ic,j[ic]-jminsize,i[ic]-iminsize);
-               hash[border_cell_j_global[ic]-jminsize][border_cell_i_global[ic]-iminsize] = ncells+noffset+ic;
+               hash[border_cell_j_local[ic]-jminsize][border_cell_i_local[ic]-iminsize] = ncells+noffset+ic;
             } else {
-               for (int    jj = max(border_cell_j_global[ic]*levmult-jminsize,0); jj < min((border_cell_j_global[ic]+1)*levmult,jmaxsize)-jminsize; jj++) {
-                  for (int ii = max(border_cell_i_global[ic]*levmult-iminsize,0); ii < min((border_cell_i_global[ic]+1)*levmult,imaxsize)-iminsize; ii++) {
+               for (int    jj = max(border_cell_j_local[ic]*levmult-jminsize,0); jj < min((border_cell_j_local[ic]+1)*levmult,jmaxsize)-jminsize; jj++) {
+                  for (int ii = max(border_cell_i_local[ic]*levmult-iminsize,0); ii < min((border_cell_i_local[ic]+1)*levmult,imaxsize)-iminsize; ii++) {
                      //fprintf(fp,"%d: cell %d block j %d i %d\n",mype,ic,jj,ii);
                      hash[jj][ii] = ncells+noffset+ic;
                   }
@@ -4634,12 +4683,12 @@ void Mesh::calc_neighbors_local(void)
          // Walk through cell array and set hash to border local index plus ncells+noffset for next pass
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
          for(int ic=0; ic<nbsize_local; ic++){
-            if (border_cell_needed_global[ic] == 0) continue;
-            //fprintf(fp,"%d: index %d cell %d i %d j %d\n",mype,ic,border_cell_num_global[ic],border_cell_i_global[ic],border_cell_j_global[ic]);
-            int lev = border_cell_level_global[ic];
+            if (border_cell_needed_local[ic] == 0) continue;
+            //fprintf(fp,"%d: index %d cell %d i %d j %d\n",mype,ic,border_cell_num_local[ic],border_cell_i_local[ic],border_cell_j_local[ic]);
+            int lev = border_cell_level_local[ic];
             int levmult = levtable[levmx-lev];
-            ii = border_cell_i_global[ic]*levmult-iminsize;
-            jj = border_cell_j_global[ic]*levmult-jminsize;
+            ii = border_cell_i_local[ic]*levmult-iminsize;
+            jj = border_cell_j_local[ic]*levmult-jminsize;
 #if HASH_SETUP_OPT_LEVEL <= 3
             hash[jj][ii] = ncells+noffset+ic;
 #elif HASH_SETUP_OPT_LEVEL == 4
@@ -4686,59 +4735,59 @@ void Mesh::calc_neighbors_local(void)
 #if HASH_SETUP_OPT_LEVEL <= 2
          // Layer 2
          for (int ic =0; ic<nbsize_local; ic++){
-            if (border_cell_needed_global[ic] > 0) continue;
-            int jj = border_cell_j_global[ic];
-            int ii = border_cell_i_global[ic];
-            int lev = border_cell_level_global[ic];
+            if (border_cell_needed_local[ic] > 0) continue;
+            int jj = border_cell_j_local[ic];
+            int ii = border_cell_i_local[ic];
+            int lev = border_cell_level_local[ic];
             int levmult = levtable[levmx-lev];
-            //fprintf(fp,"DEBUG layer ic %d num %d i %d j %d lev %d\n",ic,border_cell_num_global[ic],ii,jj,lev);
+            //fprintf(fp,"DEBUG layer ic %d num %d i %d j %d lev %d\n",ic,border_cell_num_local[ic],ii,jj,lev);
    
             int iborder = 0;
             if (max(ii*levmult-1, 0)-iminsize >= 0) {  // Test for cell to left
                int nl  = hash[    (jj   *levmult)            -jminsize][max(ii*levmult-1, 0)-iminsize];
-               if ( nl  >= (int)(ncells+noffset) && (border_cell_needed_global[nl -ncells-noffset] & 0x0001) == 0x0001) {
+               if ( nl  >= (int)(ncells+noffset) && (border_cell_needed_local[nl -ncells-noffset] & 0x0001) == 0x0001) {
                   iborder = 0x0001;
                } else if (min((jj+1)*levmult -1,jmaxcalc-1) < jmaxsize) {
                   int nlt = hash[min((jj+1)*levmult -1,jmaxcalc-1)-jminsize][max(ii*levmult-1, 0)-iminsize];
-                  if ( nlt >= (int)(ncells+noffset) && (border_cell_needed_global[nlt-ncells-noffset] & 0x0001) == 0x0001) iborder = 0x0001;
+                  if ( nlt >= (int)(ncells+noffset) && (border_cell_needed_local[nlt-ncells-noffset] & 0x0001) == 0x0001) iborder = 0x0001;
                }
             }
             if (min( (ii+1)*levmult, imaxcalc-1) < imaxsize){ // Test for cell to right
                int nr  = hash[(jj *levmult)-jminsize][(min( (ii+1)*levmult,   imaxcalc-1))-iminsize];
-               if ( nr  >= (int)(ncells+noffset) && (border_cell_needed_global[nr -ncells-noffset] & 0x0002) == 0x0002) {
+               if ( nr  >= (int)(ncells+noffset) && (border_cell_needed_local[nr -ncells-noffset] & 0x0002) == 0x0002) {
                   iborder = 0x0002;
                } else if (min((jj+1)*levmult -1,jmaxcalc-1) < jmaxsize) {
                   int nrt = hash[min((jj+1)*levmult -1,jmaxcalc-1)-jminsize][min( (ii+1)*levmult,imaxcalc-1)-iminsize];
-                  if ( nrt >= (int)(ncells+noffset) && (border_cell_needed_global[nrt-ncells-noffset] & 0x0002) == 0x0002) iborder = 0x0002;
+                  if ( nrt >= (int)(ncells+noffset) && (border_cell_needed_local[nrt-ncells-noffset] & 0x0002) == 0x0002) iborder = 0x0002;
                }
             }
             if (max(jj*levmult-1, 0)-jminsize >= 0){ // Test for cell to bottom
                int nb  = hash[(max(jj*levmult-1, 0) )-jminsize][(ii*levmult)-iminsize];
-               if ( nb  >= (int)(ncells+noffset) && (border_cell_needed_global[nb -ncells-noffset] & 0x0004) == 0x0004) {
+               if ( nb  >= (int)(ncells+noffset) && (border_cell_needed_local[nb -ncells-noffset] & 0x0004) == 0x0004) {
                   iborder = 0x0004;
                } else if (min((ii+1)*levmult -1,imaxcalc-1) < imaxsize) {
                   int nbr = hash[(max(jj*levmult-1, 0) )-jminsize][min((ii+1)*levmult -1,imaxcalc-1)-iminsize];
-                  if ( nbr >= (int)(ncells+noffset) && (border_cell_needed_global[nbr-ncells-noffset] & 0x0004) == 0x0004) iborder = 0x0004;
+                  if ( nbr >= (int)(ncells+noffset) && (border_cell_needed_local[nbr-ncells-noffset] & 0x0004) == 0x0004) iborder = 0x0004;
                }
             }
             if (min( (jj+1)*levmult, jmaxcalc-1) < jmaxsize){ // Test for cell to top
                int nt  = hash[(min( (jj+1)*levmult, jmaxcalc-1))-jminsize][(ii*levmult)-iminsize];
-               if ( nt  >= (int)(ncells+noffset) && (border_cell_needed_global[nt -ncells-noffset] & 0x0008) == 0x0008) {
+               if ( nt  >= (int)(ncells+noffset) && (border_cell_needed_local[nt -ncells-noffset] & 0x0008) == 0x0008) {
                   iborder = 0x0008;
                } else if (min((ii+1)*levmult -1,imaxcalc-1) < imaxsize) {
                   int ntr = hash[(min( (jj+1)*levmult, jmaxcalc-1))-jminsize][min((ii+1)*levmult -1,imaxcalc)-iminsize];
-                  if ( ntr >= (int)(ncells+noffset) && (border_cell_needed_global[ntr-ncells-noffset] & 0x0008) == 0x0008) iborder = 0x0008;
+                  if ( ntr >= (int)(ncells+noffset) && (border_cell_needed_local[ntr-ncells-noffset] & 0x0008) == 0x0008) iborder = 0x0008;
                }
             }
-            if (iborder) border_cell_needed_global[ic] = iborder |= 0x0016;
+            if (iborder) border_cell_needed_local[ic] = iborder |= 0x0016;
          }
 #elif HASH_SETUP_OPT_LEVEL <=4
          // Layer 2
          for (int ic =0; ic<nbsize_local; ic++){
-            if (border_cell_needed_global[ic] > 0) continue;
-            int jj = border_cell_j_global[ic];
-            int ii = border_cell_i_global[ic];
-            int lev = border_cell_level_global[ic];
+            if (border_cell_needed_local[ic] > 0) continue;
+            int jj = border_cell_j_local[ic];
+            int ii = border_cell_i_local[ic];
+            int lev = border_cell_level_local[ic];
             int levmult = levtable[levmx-lev];
 
             int iicur = ii*levmult-iminsize;
@@ -4748,7 +4797,7 @@ void Mesh::calc_neighbors_local(void)
             int jjbot = max( (jj-1)*levmult, 0         )-jminsize;
             int jjtop = min( (jj+1)*levmult, jmaxcalc-1)-jminsize;
 
-            //fprintf(fp,"            DEBUG layer2 ic %d num %d i %d j %d lev %d\n",ic,border_cell_num_global[ic],ii,jj,lev);
+            //fprintf(fp,"            DEBUG layer2 ic %d num %d i %d j %d lev %d\n",ic,border_cell_num_local[ic],ii,jj,lev);
    
             int iborder = 0;
 
@@ -4762,7 +4811,7 @@ void Mesh::calc_neighbors_local(void)
 #elif HASH_SETUP_OPT_LEVEL == 4
                   int nl = read_hash(jjcur*(imaxsize-iminsize)+iilftfiner, hash);
 #endif
-                  if (nl >= (int)(ncells+noffset) && (border_cell_needed_global[nl-ncells-noffset] & 0x0001) == 0x0001) {
+                  if (nl >= (int)(ncells+noffset) && (border_cell_needed_local[nl-ncells-noffset] & 0x0001) == 0x0001) {
                      iborder = 0x0001;
                   } else {
                      // Also check for finer cell left and top side
@@ -4772,7 +4821,7 @@ void Mesh::calc_neighbors_local(void)
 #elif HASH_SETUP_OPT_LEVEL == 4
                      int nlt = read_hash(jjtopfiner*(imaxsize-iminsize)+iilftfiner, hash);
 #endif
-                     if ( nlt >= (int)(ncells+noffset) && (border_cell_needed_global[nlt-ncells-noffset] & 0x0001) == 0x0001) {
+                     if ( nlt >= (int)(ncells+noffset) && (border_cell_needed_local[nlt-ncells-noffset] & 0x0001) == 0x0001) {
                         iborder = 0x0001;
                      }
                   }
@@ -4786,10 +4835,10 @@ void Mesh::calc_neighbors_local(void)
                   int levcheck = -1;
                   if (nl-noffset >= 0 && nl-noffset < (int)ncells) {
                      levcheck = level[nl-noffset];
-                  } else if (nl >= 0 && nl-ncells-noffset >= 0 && nl-ncells-noffset < nbsize_local) {
-                     levcheck = border_cell_level_global[nl-ncells-noffset];
+                  } else if (nl >= 0 && (int)(nl-ncells-noffset) >= 0 && (int)(nl-ncells-noffset) < nbsize_local) {
+                     levcheck = border_cell_level_local[nl-ncells-noffset];
                   }
-                  if (nl >= (int)(ncells+noffset) && levcheck == lev && (border_cell_needed_global[nl-ncells-noffset] & 0x0001) == 0x0001) {
+                  if (nl >= (int)(ncells+noffset) && levcheck == lev && (border_cell_needed_local[nl-ncells-noffset] & 0x0001) == 0x0001) {
                      iborder = 0x0001;
                   } else if (lev != 0 && iilft-(iicur-iilft) >= 0){      // coarser neighbor
                      iilft -= iicur-iilft;
@@ -4802,11 +4851,11 @@ void Mesh::calc_neighbors_local(void)
                      levcheck = -1;
                      if (nl-noffset >= 0 && nl-noffset < (int)ncells) {
                         levcheck = level[nl-noffset];
-                     } else if (nl >= 0 && nl-ncells-noffset >= 0 && nl-ncells-noffset < nbsize_local) {
-                        levcheck = border_cell_level_global[nl-ncells-noffset];
+                     } else if (nl >= 0 && (int)(nl-ncells-noffset) >= 0 && (int)(nl-ncells-noffset) < nbsize_local) {
+                        levcheck = border_cell_level_local[nl-ncells-noffset];
                      }
                      // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
-                     if (nl  >= (int)(ncells+noffset) && levcheck == lev-1 && (border_cell_needed_global[nl-ncells-noffset] & 0x0001) == 0x0001) {
+                     if (nl  >= (int)(ncells+noffset) && levcheck == lev-1 && (border_cell_needed_local[nl-ncells-noffset] & 0x0001) == 0x0001) {
                         iborder = 0x0001;
                      }
                   }
@@ -4821,7 +4870,7 @@ void Mesh::calc_neighbors_local(void)
 #elif HASH_SETUP_OPT_LEVEL == 4
                int nr = read_hash(jjcur*(imaxsize-iminsize)+iirht, hash);
 #endif
-               if (nr >= (int)(ncells+noffset) && (border_cell_needed_global[nr-ncells-noffset] & 0x0002) == 0x0002) {
+               if (nr >= (int)(ncells+noffset) && (border_cell_needed_local[nr-ncells-noffset] & 0x0002) == 0x0002) {
                   iborder = 0x0002;
                } else if (lev != levmx){
                   // right neighbor -- finer right top test
@@ -4831,7 +4880,7 @@ void Mesh::calc_neighbors_local(void)
 #elif HASH_SETUP_OPT_LEVEL == 4
                   int nrt = read_hash(jjtopfiner*(imaxsize-iminsize)+iirht, hash);
 #endif
-                  if (nrt >= (int)(ncells+noffset) && (border_cell_needed_global[nrt-ncells-noffset] & 0x0002) == 0x0002) {
+                  if (nrt >= (int)(ncells+noffset) && (border_cell_needed_local[nrt-ncells-noffset] & 0x0002) == 0x0002) {
                      iborder = 0x0002;
                   }
                }
@@ -4846,10 +4895,10 @@ void Mesh::calc_neighbors_local(void)
                      int levcheck = -1;
                      if (nr-noffset >= 0 && nr-noffset < (int)ncells) {
                         levcheck = level[nr-noffset];
-                     } else if (nr >= 0 && nr-ncells-noffset >= 0 && nr-ncells-noffset < nbsize_local) {
-                        levcheck = border_cell_level_global[nr-ncells-noffset];
+                     } else if (nr >= 0 && (int)(nr-ncells-noffset) >= 0 && (int)(nr-ncells-noffset) < nbsize_local) {
+                        levcheck = border_cell_level_local[nr-ncells-noffset];
                      }
-                     if (nr >= (int)(ncells+noffset) && levcheck == lev-1 && (border_cell_needed_global[nr-ncells-noffset] & 0x0002) == 0x0002) {
+                     if (nr >= (int)(ncells+noffset) && levcheck == lev-1 && (border_cell_needed_local[nr-ncells-noffset] & 0x0002) == 0x0002) {
                         iborder = 0x0002;
                      }
                   }
@@ -4866,7 +4915,7 @@ void Mesh::calc_neighbors_local(void)
 #elif HASH_SETUP_OPT_LEVEL == 4
                   int nb = read_hash(jjbotfiner*(imaxsize-iminsize)+iicur, hash);
 #endif
-                  if (nb >= (int)(ncells+noffset) && (border_cell_needed_global[nb-ncells-noffset] & 0x0004) == 0x0004) {
+                  if (nb >= (int)(ncells+noffset) && (border_cell_needed_local[nb-ncells-noffset] & 0x0004) == 0x0004) {
                      iborder = 0x0004;
                   } else {
                      // Also check for finer cell below and right side
@@ -4876,7 +4925,7 @@ void Mesh::calc_neighbors_local(void)
 #elif HASH_SETUP_OPT_LEVEL == 4
                      int nbr = read_hash(jjbotfiner*(imaxsize-iminsize)+iirhtfiner, hash);
 #endif
-                     if (nbr >= (int)(ncells+noffset) && (border_cell_needed_global[nbr-ncells-noffset] & 0x0004) == 0x0004) {
+                     if (nbr >= (int)(ncells+noffset) && (border_cell_needed_local[nbr-ncells-noffset] & 0x0004) == 0x0004) {
                         iborder = 0x0004;
                      }
                   }
@@ -4890,10 +4939,10 @@ void Mesh::calc_neighbors_local(void)
                   int levcheck = -1;
                   if (nb-noffset >= 0 && nb-noffset < (int)ncells) {
                      levcheck = level[nb-noffset];
-                  } else if (nb >= 0 && nb-ncells-noffset >= 0 && nb-ncells-noffset < nbsize_local) {
-                     levcheck = border_cell_level_global[nb-ncells-noffset];
+                  } else if (nb >= 0 && (int)(nb-ncells-noffset) >= 0 && (int)(nb-ncells-noffset) < nbsize_local) {
+                     levcheck = border_cell_level_local[nb-ncells-noffset];
                   }
-                  if (nb >= (int)(ncells+noffset) && levcheck == lev && (border_cell_needed_global[nb-ncells-noffset] & 0x0004) == 0x0004) {
+                  if (nb >= (int)(ncells+noffset) && levcheck == lev && (border_cell_needed_local[nb-ncells-noffset] & 0x0004) == 0x0004) {
                      iborder = 0x0004;
                   } else if (lev != 0 && jjbot-(jjcur-jjbot) >= 0){      // coarser neighbor
                      jjbot -= jjcur-jjbot;
@@ -4906,11 +4955,11 @@ void Mesh::calc_neighbors_local(void)
                      levcheck = -1;
                      if (nb-noffset >= 0 && nb-noffset < (int)ncells) {
                         levcheck = level[nb-noffset];
-                     } else if (nb >= 0 && nb-ncells-noffset >= 0 && nb-ncells-noffset < nbsize_local) {
-                        levcheck = border_cell_level_global[nb-ncells-noffset];
+                     } else if (nb >= 0 && (int)(nb-ncells-noffset) >= 0 && (int)(nb-ncells-noffset) < nbsize_local) {
+                        levcheck = border_cell_level_local[nb-ncells-noffset];
                      }
                      // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
-                     if (nb >= (int)(ncells+noffset) && levcheck == lev-1 && (border_cell_needed_global[nb-ncells-noffset] & 0x0004) == 0x0004) {
+                     if (nb >= (int)(ncells+noffset) && levcheck == lev-1 && (border_cell_needed_local[nb-ncells-noffset] & 0x0004) == 0x0004) {
                         iborder = 0x0004;
                      }
                   }
@@ -4925,7 +4974,7 @@ void Mesh::calc_neighbors_local(void)
 #elif HASH_SETUP_OPT_LEVEL == 4
                int nt = read_hash(jjtop*(imaxsize-iminsize)+iicur, hash);
 #endif
-               if (nt  >= (int)(ncells+noffset) && (border_cell_needed_global[nt-ncells-noffset] & 0x0008) == 0x0008) {
+               if (nt  >= (int)(ncells+noffset) && (border_cell_needed_local[nt-ncells-noffset] & 0x0008) == 0x0008) {
                   iborder = 0x0008;
                } else if (lev != levmx){
                   int iirhtfiner = (iicur+iirht)/2;
@@ -4934,7 +4983,7 @@ void Mesh::calc_neighbors_local(void)
 #elif HASH_SETUP_OPT_LEVEL == 4
                   int ntr = read_hash(jjtop*(imaxsize-iminsize)+iirhtfiner, hash);
 #endif
-                  if ( ntr >= (int)(ncells+noffset) && (border_cell_needed_global[ntr-ncells-noffset] & 0x0008) == 0x0008) {
+                  if ( ntr >= (int)(ncells+noffset) && (border_cell_needed_local[ntr-ncells-noffset] & 0x0008) == 0x0008) {
                      iborder = 0x0008;
                   }
                }
@@ -4949,35 +4998,35 @@ void Mesh::calc_neighbors_local(void)
                      int levcheck = -1;
                      if (nb-noffset >= 0 && nb-noffset < (int)ncells) {
                         levcheck = level[nb-noffset];
-                     } else if (nb >= 0 && nb-ncells-noffset >= 0 && nb-ncells-noffset < nbsize_local) {
-                        levcheck = border_cell_level_global[nb-ncells-noffset];
+                     } else if (nb >= 0 && (int)(nb-ncells-noffset) >= 0 && (int)(nb-ncells-noffset) < nbsize_local) {
+                        levcheck = border_cell_level_local[nb-ncells-noffset];
                      }
-                     if (nb-noffset >= (int)(ncells-noffset) && levcheck == lev-1 && (border_cell_needed_global[nb-ncells-noffset] & 0x0008) == 0x0008) {
+                     if (nb-noffset >= (int)(ncells-noffset) && levcheck == lev-1 && (border_cell_needed_local[nb-ncells-noffset] & 0x0008) == 0x0008) {
                         iborder = 0x0008;
                      }
                   }
                }
             }
 
-            if (iborder) border_cell_needed_global[ic] = iborder |= 0x0016;
+            if (iborder) border_cell_needed_local[ic] = iborder |= 0x0016;
          }
 #endif
 
          vector<int> indices_needed;
-         inew = 0;
+         int inew = 0;
          for(int ic=0; ic<nbsize_local; ic++){
-            if (border_cell_needed_global[ic] <= 0) continue;
+            if (border_cell_needed_local[ic] <= 0) continue;
             if (DEBUG) {
-               if (border_cell_needed_global[ic] <  0x0016) fprintf(fp,"%d: First  set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
-               if (border_cell_needed_global[ic] >= 0x0016) fprintf(fp,"%d: Second set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+               if (border_cell_needed_local[ic] <  0x0016) fprintf(fp,"%d: First  set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_local[ic],border_cell_needed_local[ic]);
+               if (border_cell_needed_local[ic] >= 0x0016) fprintf(fp,"%d: Second set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_local[ic],border_cell_needed_local[ic]);
             }
-            indices_needed.push_back(border_cell_num_global[ic]);
+            indices_needed.push_back(border_cell_num_local[ic]);
 
-            border_cell_num_global[inew]    = border_cell_num_global[ic];
-            border_cell_i_global[inew]      = border_cell_i_global[ic];
-            border_cell_j_global[inew]      = border_cell_j_global[ic];
-            border_cell_level_global[inew]  = border_cell_level_global[ic];
-            border_cell_needed_global[inew] = 1;
+            border_cell_num_local[inew]    = border_cell_num_local[ic];
+            border_cell_i_local[inew]      = border_cell_i_local[ic];
+            border_cell_j_local[inew]      = border_cell_j_local[ic];
+            border_cell_level_local[inew]  = border_cell_level_local[ic];
+            border_cell_needed_local[inew] = 1;
 
             inew++;
          }
@@ -4987,41 +5036,41 @@ void Mesh::calc_neighbors_local(void)
          // Walk through cell array and set hash to global cell values
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
          for(int ic=0; ic<nbsize_local; ic++){
-            if (border_cell_needed_global[ic] == 0) continue;
-            int lev = border_cell_level_global[ic];
+            if (border_cell_needed_local[ic] == 0) continue;
+            int lev = border_cell_level_local[ic];
             int levmult = levtable[levmx-lev];
-            //fprintf(fp,"%d: cell %d number %d i %d j %d ibegin/end %d %d jbegin/jend %d %d\n",mype,ic,border_cell_num_global[ic],
-            //    border_cell_i_global[ic],border_cell_j_global[ic],lev_ibegin[lev],lev_iend[lev],lev_jbegin[lev],lev_jend[lev]);
-            if (border_cell_i_global[ic] < lev_ibegin[lev]) { // left boundary
-               for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
-                  for (int ii = 0;                                         ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
+            //fprintf(fp,"%d: cell %d number %d i %d j %d ibegin/end %d %d jbegin/jend %d %d\n",mype,ic,border_cell_num_local[ic],
+            //    border_cell_i_local[ic],border_cell_j_local[ic],lev_ibegin[lev],lev_iend[lev],lev_jbegin[lev],lev_jend[lev]);
+            if (border_cell_i_local[ic] < lev_ibegin[lev]) { // left boundary
+               for (int    jj = border_cell_j_local[ic]*levmult-jminsize; jj < (border_cell_j_local[ic]+1)*levmult-jminsize; jj++) {
+                  for (int ii = 0;                                         ii < (border_cell_i_local[ic]+1)*levmult-iminsize; ii++) {
                      hash[jj][ii] = -(ncells+ic);
                   }    
                }    
-            } else if (border_cell_i_global[ic] > lev_iend[lev]) { // right boundary
-               for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
-                  for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (imax+1)*levtable[levmx]-iminsize;             ii++) {
+            } else if (border_cell_i_local[ic] > lev_iend[lev]) { // right boundary
+               for (int    jj = border_cell_j_local[ic]*levmult-jminsize; jj < (border_cell_j_local[ic]+1)*levmult-jminsize; jj++) {
+                  for (int ii = border_cell_i_local[ic]*levmult-iminsize; ii < (imax+1)*levtable[levmx]-iminsize;             ii++) {
                      hash[jj][ii] = -(ncells+ic);
                   }    
                }    
-            } else if (border_cell_j_global[ic] < lev_jbegin[lev]) { // bottom boundary
-               for (int    jj = 0;                                         jj < (border_cell_j_global[ic]+1)*levmult-jminsize; jj++) {
-                  for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
+            } else if (border_cell_j_local[ic] < lev_jbegin[lev]) { // bottom boundary
+               for (int    jj = 0;                                         jj < (border_cell_j_local[ic]+1)*levmult-jminsize; jj++) {
+                  for (int ii = border_cell_i_local[ic]*levmult-iminsize; ii < (border_cell_i_local[ic]+1)*levmult-iminsize; ii++) {
                      hash[jj][ii] = -(ncells+ic);
                   }    
                }    
-            } else if (border_cell_j_global[ic] > lev_jend[lev]) { // top boundary
-               for (int    jj = border_cell_j_global[ic]*levmult-jminsize; jj < (jmax+1)*levtable[levmx]-jminsize;             jj++) {
-                  for (int ii = border_cell_i_global[ic]*levmult-iminsize; ii < (border_cell_i_global[ic]+1)*levmult-iminsize; ii++) {
+            } else if (border_cell_j_local[ic] > lev_jend[lev]) { // top boundary
+               for (int    jj = border_cell_j_local[ic]*levmult-jminsize; jj < (jmax+1)*levtable[levmx]-jminsize;             jj++) {
+                  for (int ii = border_cell_i_local[ic]*levmult-iminsize; ii < (border_cell_i_local[ic]+1)*levmult-iminsize; ii++) {
                      hash[jj][ii] = -(ncells+ic);
                   }    
                }    
             } else if (lev == levmx) {
                //fprintf(fp,"%d: cell %d max j %d i %d\n",mype,ic,j[ic]-jminsize,i[ic]-iminsize);
-               hash[border_cell_j_global[ic]-jminsize][border_cell_i_global[ic]-iminsize] = -(ncells+ic);
+               hash[border_cell_j_local[ic]-jminsize][border_cell_i_local[ic]-iminsize] = -(ncells+ic);
             } else {
-               for (int    jj = max(border_cell_j_global[ic]*levmult-jminsize,0); jj < min((border_cell_j_global[ic]+1)*levmult,jmaxsize)-jminsize; jj++) {
-                  for (int ii = max(border_cell_i_global[ic]*levmult-iminsize,0); ii < min((border_cell_i_global[ic]+1)*levmult,imaxsize)-iminsize; ii++) {
+               for (int    jj = max(border_cell_j_local[ic]*levmult-jminsize,0); jj < min((border_cell_j_local[ic]+1)*levmult,jmaxsize)-jminsize; jj++) {
+                  for (int ii = max(border_cell_i_local[ic]*levmult-iminsize,0); ii < min((border_cell_i_local[ic]+1)*levmult,imaxsize)-iminsize; ii++) {
                      //fprintf(fp,"%d: cell %d block j %d i %d\n",mype,ic,jj,ii);
                      hash[jj][ii] = -(ncells+ic);
                   }
@@ -5032,11 +5081,11 @@ void Mesh::calc_neighbors_local(void)
          // Walk through cell array and set hash to global cell values
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
          for(int ic=0; ic<nbsize_local; ic++){
-            int lev = border_cell_level_global[ic];
+            int lev = border_cell_level_local[ic];
             int levmult = levtable[levmx-lev];
 
-            int ii = border_cell_i_global[ic]*levmult-iminsize;
-            int jj = border_cell_j_global[ic]*levmult-jminsize;
+            int ii = border_cell_i_local[ic]*levmult-iminsize;
+            int jj = border_cell_j_local[ic]*levmult-jminsize;
 #if HASH_SETUP_OPT_LEVEL <= 3
             hash[jj][ii] = -(ncells+ic);
 #elif HASH_SETUP_OPT_LEVEL == 4
@@ -5103,9 +5152,9 @@ void Mesh::calc_neighbors_local(void)
          }
 
          for(int ic=0; ic<nbsize_local; ic++){
-            int ii = border_cell_i_global[ic];
-            int jj = border_cell_j_global[ic];
-            int lev = border_cell_level_global[ic];
+            int ii = border_cell_i_local[ic];
+            int jj = border_cell_j_local[ic];
+            int lev = border_cell_level_local[ic];
             if (ii < lev_ibegin[lev]) celltype[ncells+ic] = LEFT_BOUNDARY;
             if (ii > lev_iend[lev])   celltype[ncells+ic] = RIGHT_BOUNDARY;
             if (jj < lev_jbegin[lev]) celltype[ncells+ic] = BOTTOM_BOUNDARY;
@@ -6068,17 +6117,17 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    cl_int sizes[4];
    ezcl_enqueue_read_buffer(command_queue, dev_sizes, CL_TRUE,  0, 1*sizeof(cl_int4), &sizes, NULL);
 
-   int iminsize = sizes[0];
-   int imaxsize = sizes[1];
-   int jminsize = sizes[2];
-   int jmaxsize = sizes[3];
+   int imintile = sizes[0];
+   int imaxtile = sizes[1];
+   int jmintile = sizes[2];
+   int jmaxtile = sizes[3];
 
    // Expand size by 2*coarse_cells for ghost cells
    // TODO: May want to get fancier here and calc based on cell level
-   jminsize = max(jminsize-2*levtable[levmx],0);
-   jmaxsize = min(jmaxsize+2*levtable[levmx],(jmax+1)*levtable[levmx]);
-   iminsize = max(iminsize-2*levtable[levmx],0);
-   imaxsize = min(imaxsize+2*levtable[levmx],(imax+1)*levtable[levmx]);
+   int jminsize = max(jmintile-2*levtable[levmx],0);
+   int jmaxsize = min(jmaxtile+2*levtable[levmx],(jmax+1)*levtable[levmx]);
+   int iminsize = max(imintile-2*levtable[levmx],0);
+   int imaxsize = min(imaxtile+2*levtable[levmx],(imax+1)*levtable[levmx]);
    //fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
 
    //ezcl_enqueue_write_buffer(command_queue, dev_sizes, CL_TRUE,  0, 1*sizeof(cl_int4), &sizes, NULL);
@@ -6531,6 +6580,28 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
 #ifdef HAVE_MPI
    if (numpe > 1) {
+         vector<int> iminsize_global(numpe);
+         vector<int> imaxsize_global(numpe);
+         vector<int> jminsize_global(numpe);
+         vector<int> jmaxsize_global(numpe);
+         vector<int> comm_partner(numpe,-1);
+
+         MPI_Allgather(&iminsize, 1, MPI_INT, &iminsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
+         MPI_Allgather(&imaxsize, 1, MPI_INT, &imaxsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
+         MPI_Allgather(&jminsize, 1, MPI_INT, &jminsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
+         MPI_Allgather(&jmaxsize, 1, MPI_INT, &jmaxsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
+
+         int num_comm_partners = 0; 
+         for (int ip = 0; ip < numpe; ip++){
+            if (ip == mype) continue;
+            if (iminsize_global[ip] > imaxtile) continue;
+            if (imaxsize_global[ip] < imintile) continue;
+            if (jminsize_global[ip] > jmaxtile) continue;
+            if (jmaxsize_global[ip] < jmintile) continue;
+            comm_partner[num_comm_partners] = ip;
+            num_comm_partners++;
+            //if (DEBUG) fprintf(fp,"%d: overlap with processor %d bounding box is %d %d %d %d\n",mype,ip,iminsize_global[ip],imaxsize_global[ip],jminsize_global[ip],jmaxsize_global[ip]);
+         }    
 
 #ifdef BOUNDS_CHECK
       {
@@ -6620,11 +6691,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_wait_for_events(1, &finish_scan_event);
       ezcl_event_release(finish_scan_event);
 
-      if (TIMING_LEVEL >= 2) {
-         gpu_time_find_boundary += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
-         cpu_timer_start(&tstart_lev2);
-      }
-
       //printf("%d: border cell size is %d global is %ld\n",mype,nbsize_local,nbsize_global);
 
       vector<int> border_cell_num(nbsize_local);
@@ -6662,82 +6728,99 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_read_buffer(command_queue, dev_border_cell_level, CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_level[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_border_cell_num,   CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_num[0],   NULL);
 
+      if (TIMING_LEVEL >= 2) {
+         gpu_time_find_boundary += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         cpu_timer_start(&tstart_lev2);
+      }
+
+      // Allocate push database
+
+      int **send_database = (int**)malloc(num_comm_partners*sizeof(int *));
+      for (int ip = 0; ip < num_comm_partners; ip++){
+         send_database[ip] = (int *)malloc(nbsize_local*sizeof(int));
+      }
+
+      // Compute the overlap between processor bounding boxes and set up push database
+
+      vector<int> send_buffer_count(num_comm_partners);
+      for (int ip = 0; ip < num_comm_partners; ip++){
+         int icount = 0;
+         for (int ib = 0; ib <nbsize_local; ib++){
+            int lev = border_cell_level[ib];
+            int levmult = levtable[levmx-lev];
+            if (border_cell_i[ib]*levmult >= iminsize_global[comm_partner[ip]] && 
+                border_cell_i[ib]*levmult <= imaxsize_global[comm_partner[ip]] && 
+                border_cell_j[ib]*levmult >= jminsize_global[comm_partner[ip]] && 
+                border_cell_j[ib]*levmult <= jmaxsize_global[comm_partner[ip]] ) {
+               send_database[ip][icount] = ib;
+               icount++;
+            }
+         }
+         send_buffer_count[ip]=icount;
+      }
+
+      // Initialize L7_Push_Setup with num_comm_partners, comm_partner, send_database and 
+      // send_buffer_count. L7_Push_Setup will copy data and determine recv_buffer_counts.
+      // It will return receive_count_total for use in allocations
+
+      int receive_count_total;
+      int i_push_handle = L7_Push_Setup(num_comm_partners, &comm_partner[0], &send_buffer_count[0],
+         send_database, &receive_count_total);
+
       if (DEBUG) {
-         fprintf(fp,"%d: Border cell size is %d\n",mype,nbsize_local);
-         for (int ib=0; ib<nbsize_local; ib++){
-            fprintf(fp,"%d: Border cell %d is %d i %d j %d level %d\n",mype,ib,border_cell_num[ib],
-               border_cell_i[ib],border_cell_j[ib],border_cell_level[ib]);
+         fprintf(fp,"DEBUG num_comm_partners %d\n",num_comm_partners);
+         for (int ip = 0; ip < num_comm_partners; ip++){
+            fprintf(fp,"DEBUG comm partner is %d data count is %d\n",comm_partner[ip],send_buffer_count[ip]);
+            for (int ic = 0; ic < send_buffer_count[ip]; ic++){
+               int ib = send_database[ip][ic];
+               fprintf(fp,"DEBUG \t index %d cell number %d i %d j %d level %d\n",ib,border_cell_num[ib],
+                  border_cell_i[ib],border_cell_j[ib],border_cell_level[ib]);
+            }
          }
       }
+
+      // Can now free the send database. Other arrays are vectors and will automatically 
+      // deallocate
+
+      for (int ip = 0; ip < num_comm_partners; ip++){
+         free(send_database[ip]);
+      }
+      free(send_database);
+
+      // Push the data needed to the adjacent processors
+
+      int *border_cell_num_local = (int *)malloc(receive_count_total*sizeof(int));
+      int *border_cell_i_local = (int *)malloc(receive_count_total*sizeof(int));
+      int *border_cell_j_local = (int *)malloc(receive_count_total*sizeof(int));
+      int *border_cell_level_local = (int *)malloc(receive_count_total*sizeof(int));
+      L7_Push_Update(i_push_handle, &border_cell_num[0],   border_cell_num_local);
+      L7_Push_Update(i_push_handle, &border_cell_i[0],     border_cell_i_local);
+      L7_Push_Update(i_push_handle, &border_cell_j[0],     border_cell_j_local);
+      L7_Push_Update(i_push_handle, &border_cell_level[0], border_cell_level_local);
+
+      L7_Push_Free(i_push_handle);
 
       ezcl_device_memory_delete(dev_border_cell_i);
       ezcl_device_memory_delete(dev_border_cell_j);
       ezcl_device_memory_delete(dev_border_cell_level);
       ezcl_device_memory_delete(dev_border_cell_num);
 
-      vector<int> nbsizes(numpe);
-      vector<int> nbdispl(numpe);
+      nbsize_local = receive_count_total;
 
-      MPI_Allgather(&nbsize_local, 1, MPI_INT, &nbsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-    
-      int nbsize_global=0;
-      for (int ip = 0; ip < numpe; ip++){
-         nbsize_global += nbsizes[ip];
+      if (DEBUG) {
+         for (int ic = 0; ic < nbsize_local; ic++) {
+            fprintf(fp,"%d: Local Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_local[ic],
+               border_cell_i_local[ic],border_cell_j_local[ic],border_cell_level_local[ic]);
+         }
       }
-
-      nbdispl[0]=0;
-      for (int ip=1; ip<numpe; ip++){
-         nbdispl[ip] += nbdispl[ip-1] + nbsizes[ip-1];
-      }
-
-      vector<int>border_cell_num_global(nbsize_global);
-      vector<int>border_cell_i_global(nbsize_global);
-      vector<int>border_cell_j_global(nbsize_global);
-      vector<int>border_cell_level_global(nbsize_global);
-
-      MPI_Allgatherv(&border_cell_num[0],   nbsizes[mype], MPI_INT, &border_cell_num_global[0],   &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
-      MPI_Allgatherv(&border_cell_i[0],     nbsizes[mype], MPI_INT, &border_cell_i_global[0],     &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
-      MPI_Allgatherv(&border_cell_j[0],     nbsizes[mype], MPI_INT, &border_cell_j_global[0],     &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
-      MPI_Allgatherv(&border_cell_level[0], nbsizes[mype], MPI_INT, &border_cell_level_global[0], &nbsizes[0], &nbdispl[0], MPI_INT, MPI_COMM_WORLD);
 
       if (TIMING_LEVEL >= 2) {
-         MPI_Barrier(MPI_COMM_WORLD);
          gpu_time_gather_boundary += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
-      //for (int ic = 0; ic < nbsize_global; ic++) {
-      //   fprintf(fp,"%d: Global Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
-      //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
-      //}
-
-      // Filter out only the data within our hash array boundaries
-      int inew=0;
-      vector<int> border_cell_needed_global(nbsize_global);
-      for (int ic = 0; ic < nbsize_global; ic++) {
-         int lev = border_cell_level_global[ic];
-         int levmult = levtable[levmx-lev];
-
-         if (border_cell_j_global[ic]*levmult < jminsize || border_cell_j_global[ic]*levmult >= jmaxsize) continue;  // Outside vertical boundaries
-         if (border_cell_i_global[ic]*levmult < iminsize || border_cell_i_global[ic]*levmult >= imaxsize) continue;  // Outside horizontal boundaries
-         if (border_cell_num_global[ic] >= (int)noffset && border_cell_num_global[ic] < (int)(noffset+ncells)) continue; // Skip my own cells
-
-         border_cell_num_global[inew]    = border_cell_num_global[ic];
-         border_cell_i_global[inew]      = border_cell_i_global[ic];
-         border_cell_j_global[inew]      = border_cell_j_global[ic];
-         border_cell_level_global[inew]  = border_cell_level_global[ic];
-         border_cell_needed_global[inew] = 0;
-
-         inew++;
-      }
-      nbsize_local = inew;
-
-      //for (int ic = 0; ic < nbsize_local; ic++) {
-      //   fprintf(fp,"%d: Local Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_global[ic],
-      //      border_cell_i_global[ic],border_cell_j_global[ic],border_cell_level_global[ic]);
-      //}
-
       nbsize_long = nbsize_local;
+
       dev_border_cell_num        = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_num"),        &nbsize_long, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
       dev_border_cell_i          = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_i"),          &nbsize_long, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
       dev_border_cell_j          = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_j"),          &nbsize_long, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
@@ -6745,11 +6828,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       cl_mem dev_border_cell_needed     = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_needed"),     &nbsize_long, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
       cl_mem dev_border_cell_needed_out = ezcl_malloc(NULL, const_cast<char *>("dev_border_cell_needed_out"), &nbsize_long, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
-      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_num,    CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_num_global[0], NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_i,      CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_i_global[0],   NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_j,      CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_j_global[0],   NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_level,  CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_level_global[0],   NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_num,    CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_num_local[0], NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_i,      CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_i_local[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_j,      CL_FALSE, 0, nbsize_local*sizeof(cl_int), &border_cell_j_local[0],   NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_border_cell_level,  CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_level_local[0],   NULL);
+
+      //ezcl_enqueue_write_buffer(command_queue, dev_border_cell_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_local[0],   NULL);
 
       if (TIMING_LEVEL >= 2) {
          gpu_time_local_list += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
@@ -6811,11 +6895,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer1, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
 
       if (DEBUG){
-         ezcl_enqueue_read_buffer(command_queue, dev_border_cell_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
+         vector<int> border_cell_needed_local(nbsize_local);
+
+         ezcl_enqueue_read_buffer(command_queue, dev_border_cell_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_local[0],   NULL);
 
          for(int ic=0; ic<nbsize_local; ic++){
-            if (border_cell_needed_global[ic] == 0) continue;
-            fprintf(fp,"%d: First set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+            if (border_cell_needed_local[ic] == 0) continue;
+            fprintf(fp,"%d: First set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_local[ic],border_cell_needed_local[ic]);
          }
       }
 
@@ -6910,11 +6996,13 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_layer2, 1, NULL, &nb_global_work_size, &nb_local_work_size, NULL); 
 
       if (DEBUG){
-         ezcl_enqueue_read_buffer(command_queue, dev_border_cell_needed_out, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_global[0],   NULL);
+         vector<int> border_cell_needed_local(nbsize_local);
+
+         ezcl_enqueue_read_buffer(command_queue, dev_border_cell_needed_out, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_local[0],   NULL);
          for(int ic=0; ic<nbsize_local; ic++){
-            if (border_cell_needed_global[ic] <= 0) continue;
-            if (border_cell_needed_global[ic] <  0x0016) fprintf(fp,"%d: First  set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
-            if (border_cell_needed_global[ic] >= 0x0016) fprintf(fp,"%d: Second set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_global[ic],border_cell_needed_global[ic]);
+            if (border_cell_needed_local[ic] <= 0) continue;
+            if (border_cell_needed_local[ic] <  0x0016) fprintf(fp,"%d: First  set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_local[ic],border_cell_needed_local[ic]);
+            if (border_cell_needed_local[ic] >= 0x0016) fprintf(fp,"%d: Second set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_local[ic],border_cell_needed_local[ic]);
          }
       }
 

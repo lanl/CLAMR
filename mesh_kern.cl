@@ -2826,11 +2826,11 @@ __kernel void calc_hash_size_cl(
 
    int lev = level[giX];
 
-   tile[tiX].s0 = i[giX]   *levtable[levmx-lev]; // imincalc
-   tile[tiX].s1 =(i[giX]+1)*levtable[levmx-lev]; // imaxcalc
+   tile[tiX].s0 = i[giX]   *levtable[levmx-lev]  ; // imincalc
+   tile[tiX].s1 =(i[giX]+1)*levtable[levmx-lev]-1; // imaxcalc
 
-   tile[tiX].s2 = j[giX]   *levtable[levmx-lev]; // jmincalc
-   tile[tiX].s3 =(j[giX]+1)*levtable[levmx-lev]; // jmaxcalc
+   tile[tiX].s2 = j[giX]   *levtable[levmx-lev]  ; // jmincalc
+   tile[tiX].s3 =(j[giX]+1)*levtable[levmx-lev]-1; // jmaxcalc
 
    barrier(CLK_LOCAL_MEM_FENCE);
    reduction_minmax_within_tile4(tile);

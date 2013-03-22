@@ -465,7 +465,7 @@ int L7_Get_Local_Indices(const int l7_id, int *local_indices)
       L7_ASSERT(l7_id_db != NULL, "Failed to find database.", ierr);
    }
 
-   int num_indices = 0;
+   //int num_indices = 0;
 
    int num_sends = l7_id_db->num_sends;
    
@@ -480,4 +480,6 @@ int L7_Get_Local_Indices(const int l7_id, int *local_indices)
           offset++;
       }
    }
+
+   return(0);
 }

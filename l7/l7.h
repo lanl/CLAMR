@@ -350,6 +350,24 @@ int L7_Get_Local_Indices(
       int                     *local_indices
       );
 
+int L7_Push_Setup(
+      const int               num_comm_partners,
+      int                     *comm_partner,
+      int                     *send_buffer_count,
+      int                     **send_database, 
+      int                     *receive_count_total
+      );
+
+void L7_Push_Update(
+      int                     ihandle,
+      int                     *array,
+      int                     *return_array
+      );
+
+void L7_Push_Free(
+      int                     ihandle
+      );
+
 /*
  * L7 File Prototypes.
  */

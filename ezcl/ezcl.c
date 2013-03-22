@@ -97,7 +97,7 @@ struct device_memory_entry {
    int    ezcl_flags;
    char   name[31];
    int    line;
-   char   file[31];
+   char   file[41];
    SLIST_ENTRY(device_memory_entry) device_memory_entries;
 } *device_memory_item;
 
@@ -109,7 +109,7 @@ struct mapped_memory_entry {
    size_t el_size;
    char   name[31];
    int    line;
-   char   file[31];
+   char   file[41];
    SLIST_ENTRY(mapped_memory_entry) mapped_memory_entries;
 } *mapped_memory_item;
 
@@ -120,7 +120,7 @@ struct malloc_memory_entry {
    size_t mem_size;
    char   name[31];
    int    line;
-   char   file[31];
+   char   file[41];
    SLIST_ENTRY(malloc_memory_entry) malloc_memory_entries;
 } *malloc_memory_item;
 
@@ -136,7 +136,7 @@ struct object_entry {
    char *filename;
    char name[31];
    int  line;
-   char file[31];
+   char file[41];
    SLIST_ENTRY(object_entry) object_entries;
 } *object_item;
 
@@ -708,7 +708,7 @@ void ezcl_device_memory_add_p(cl_mem dev_mem_ptr, const char *name, size_t num_e
    device_memory_item->capacity=num_elements;
    device_memory_item->el_size=elsize;
    device_memory_item->line=line;
-   snprintf(device_memory_item->file,(size_t)30,"%s",file);
+   snprintf(device_memory_item->file,(size_t)40,"%s",file);
    if (DEBUG) printf("EZCL_DEVICE_MEMORY_ADD: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
    SLIST_INSERT_HEAD(&device_memory_head, device_memory_item, device_memory_entries);
 }
@@ -750,7 +750,7 @@ cl_mem ezcl_device_memory_malloc_p(cl_context context, void *host_mem_ptr, const
    device_memory_item->ezcl_flags=ezcl_flags;
    device_memory_item->el_size=elsize;
    device_memory_item->line=line;
-   snprintf(device_memory_item->file,(size_t)30,"%s",file);
+   snprintf(device_memory_item->file,(size_t)40,"%s",file);
    if (DEBUG) printf("EZCL_DEVICE_MEMORY_MALLOC: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
    SLIST_INSERT_HEAD(&device_memory_head, device_memory_item, device_memory_entries);
 
@@ -785,7 +785,7 @@ cl_mem ezcl_device_memory_realloc_p(cl_mem dev_mem_ptr, size_t num_elements, con
                device_memory_item->cl_mem_ptr = dev_mem_ptr;
                device_memory_item->num_elements=num_elements;
                device_memory_item->line=line;
-               snprintf(device_memory_item->file,(size_t)30,"%s",file);
+               snprintf(device_memory_item->file,(size_t)40,"%s",file);
             } else {
                device_memory_item->num_elements = num_elements;
             }
@@ -809,7 +809,7 @@ cl_mem ezcl_device_memory_realloc_p(cl_mem dev_mem_ptr, size_t num_elements, con
             device_memory_item->num_elements=num_elements;
             device_memory_item->capacity=num_elements;
             device_memory_item->line=line;
-            snprintf(device_memory_item->file,(size_t)30,"%s",file);
+            snprintf(device_memory_item->file,(size_t)40,"%s",file);
          }
          if (DEBUG) printf("EZCL_DEVICE_MEMORY_REALLOC: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
       }
@@ -841,7 +841,7 @@ cl_mem ezcl_device_memory_request_p(cl_mem dev_mem_ptr, size_t capacity, const c
 
          device_memory_item->cl_mem_ptr = dev_mem_ptr;
          device_memory_item->line=line;
-         snprintf(device_memory_item->file,(size_t)30,"%s",file);
+         snprintf(device_memory_item->file,(size_t)40,"%s",file);
 
          if (DEBUG) printf("EZCL_DEVICE_MEMORY_REQUEST: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
       }
@@ -858,7 +858,7 @@ void ezcl_mapped_memory_add_p(cl_mem map_mem_ptr, const char *name, size_t num_e
    mapped_memory_item->num_elements=num_elements;
    mapped_memory_item->el_size=elsize;
    mapped_memory_item->line=line;
-   snprintf(mapped_memory_item->file,(size_t)30,"%s",file);
+   snprintf(mapped_memory_item->file,(size_t)40,"%s",file);
    if (DEBUG) printf("EZCL_MAPPED_MEMORY_ADD: DEBUG -- cl memory pointer is %p\n",map_mem_ptr);
    SLIST_INSERT_HEAD(&mapped_memory_head, mapped_memory_item, mapped_memory_entries);
 }
@@ -871,7 +871,7 @@ void *ezcl_malloc_memory_add_p(void *malloc_mem_ptr, const char *name, size_t si
    malloc_memory_item->mem_ptr = malloc_mem_ptr;
    malloc_memory_item->mem_size = size;
    malloc_memory_item->line     = line;
-   snprintf(malloc_memory_item->file,(size_t)30,"%s",file);
+   snprintf(malloc_memory_item->file,(size_t)40,"%s",file);
    if (DEBUG) printf("EZCL_MALLOC_MEMORY_ADD: DEBUG -- malloc memory pointer is %p\n",malloc_mem_ptr);
 
    SLIST_INSERT_HEAD(&malloc_memory_head, malloc_memory_item, malloc_memory_entries);
