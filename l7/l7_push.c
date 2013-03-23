@@ -52,6 +52,7 @@ struct push_comm_type {
    int *recv_buffer_count;
    int **send_database;
    int receive_count_total;
+   int **send_buffer;
 } push_comm;
 
 int L7_Push_Setup(int num_comm_partners, int *comm_partner, int *send_buffer_count, int **send_database, int *receive_count_total)
@@ -107,6 +108,11 @@ int L7_Push_Setup(int num_comm_partners, int *comm_partner, int *send_buffer_cou
    }
    push_comm.receive_count_total = *receive_count_total;
 
+   push_comm.send_buffer = (int **) malloc(push_comm.num_comm_partners*sizeof(int *)); 
+   for (int ip = 0; ip < push_comm.num_comm_partners; ip++){
+      push_comm.send_buffer[ip] = (int *) malloc(push_comm.send_buffer_count[ip]*sizeof(int));
+   }    
+
    return(1);
 }
 
@@ -115,15 +121,10 @@ void L7_Push_Update(int ihandle, int *array, int *return_array)
    int mype;
    MPI_Comm_rank(MPI_COMM_WORLD, &mype);
 
-   int **send_buffer = (int **) malloc(push_comm.num_comm_partners*sizeof(int *)); 
-   for (int ip = 0; ip < push_comm.num_comm_partners; ip++){
-      send_buffer[ip] = (int *) malloc(push_comm.send_buffer_count[ip]*sizeof(int));
-   }    
-
    for (int ip = 0; ip < push_comm.num_comm_partners; ip++){
       for (int ic = 0; ic < push_comm.send_buffer_count[ip]; ic++){
          int ib = push_comm.send_database[ip][ic];
-         send_buffer[ip][ic] = array[ib];
+         push_comm.send_buffer[ip][ic] = array[ib];
       }    
    }    
 
@@ -140,7 +141,7 @@ void L7_Push_Update(int ihandle, int *array, int *return_array)
    }
 
    for (int ip = 0; ip < push_comm.num_comm_partners; ip++){
-      MPI_Isend(send_buffer[ip], push_comm.send_buffer_count[ip], MPI_INT, push_comm.comm_partner[ip], mype, MPI_COMM_WORLD, &request[push_comm.num_comm_partners+ip]);
+      MPI_Isend(push_comm.send_buffer[ip], push_comm.send_buffer_count[ip], MPI_INT, push_comm.comm_partner[ip], mype, MPI_COMM_WORLD, &request[push_comm.num_comm_partners+ip]);
    }    
    MPI_Waitall(2*push_comm.num_comm_partners, request, status);
 
@@ -168,6 +169,12 @@ void L7_Push_Free(int i_handle)
    }
    free(push_comm.send_database);
    push_comm.send_database = NULL;
+
+   for (int ip = 0; ip < push_comm.num_comm_partners; ip++){
+      free(push_comm.send_buffer[ip]);
+   }    
+   free(push_comm.send_buffer);
+   push_comm.send_buffer = NULL;
 
    push_comm.num_comm_partners = -1;
 }
