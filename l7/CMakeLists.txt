@@ -4,8 +4,9 @@ set(CMAKE_C_FLAGS "-std=c99 -DHAVE_MPI=1")
 set(H_SRCS l7.h l7_assert.h l7p.h)
 
 set(C_SRCS
-      l7p_sizeof.c  l7_terminate.c      l7_init.c    l7_update.c 
-      l7_free.c     l7p_set_database.c  l7_setup.c   l7_push.c
+      l7p_sizeof.c      l7_terminate.c      l7_init.c    l7_update.c 
+      l7_free.c         l7p_set_database.c  l7_setup.c   l7_push_setup.c
+      l7_push_update.c  l7_push_free.c
 )
 
 set(l7_LIB_SRCS ${C_SRCS} ${H_SRCS})

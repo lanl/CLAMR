@@ -352,20 +352,21 @@ int L7_Get_Local_Indices(
 
 int L7_Push_Setup(
       const int               num_comm_partners,
-      int                     *comm_partner,
-      int                     *send_buffer_count,
+      const int               *comm_partner,
+      const int               *send_buffer_count,
       int                     **send_database, 
-      int                     *receive_count_total
+      int                     *receive_count_total,
+      int                     *l7_push_id
       );
 
-void L7_Push_Update(
-      int                     ihandle,
-      int                     *array,
-      int                     *return_array
+int L7_Push_Update(
+      const int               *array,
+      int                     *return_array,
+      const int               l7_push_id
       );
 
-void L7_Push_Free(
-      int                     ihandle
+int L7_Push_Free(
+      const int               *l7_push_id
       );
 
 /*

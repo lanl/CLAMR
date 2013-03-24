@@ -4339,8 +4339,9 @@ void Mesh::calc_neighbors_local(void)
          // It will return receive_count_total for use in allocations
 
          int receive_count_total;
-         int i_push_handle = L7_Push_Setup(num_comm_partners, &comm_partner[0], &send_buffer_count[0],
-            send_database, &receive_count_total);
+         int i_push_handle = 0;
+         L7_Push_Setup(num_comm_partners, &comm_partner[0], &send_buffer_count[0],
+                       send_database, &receive_count_total, &i_push_handle);
 
          if (DEBUG) {
             fprintf(fp,"DEBUG num_comm_partners %d\n",num_comm_partners);
@@ -4368,12 +4369,12 @@ void Mesh::calc_neighbors_local(void)
          int *border_cell_i_local = (int *)malloc(receive_count_total*sizeof(int));
          int *border_cell_j_local = (int *)malloc(receive_count_total*sizeof(int));
          int *border_cell_level_local = (int *)malloc(receive_count_total*sizeof(int));
-         L7_Push_Update(i_push_handle, &border_cell_num[0],   border_cell_num_local);
-         L7_Push_Update(i_push_handle, &border_cell_i[0],     border_cell_i_local);
-         L7_Push_Update(i_push_handle, &border_cell_j[0],     border_cell_j_local);
-         L7_Push_Update(i_push_handle, &border_cell_level[0], border_cell_level_local);
+         L7_Push_Update(&border_cell_num[0],   border_cell_num_local,   i_push_handle);
+         L7_Push_Update(&border_cell_i[0],     border_cell_i_local,     i_push_handle);
+         L7_Push_Update(&border_cell_j[0],     border_cell_j_local,     i_push_handle);
+         L7_Push_Update(&border_cell_level[0], border_cell_level_local, i_push_handle);
 
-         L7_Push_Free(i_push_handle);
+         L7_Push_Free(&i_push_handle);
 
          nbsize_local = receive_count_total; 
 
@@ -6764,8 +6765,9 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       // It will return receive_count_total for use in allocations
 
       int receive_count_total;
-      int i_push_handle = L7_Push_Setup(num_comm_partners, &comm_partner[0], &send_buffer_count[0],
-         send_database, &receive_count_total);
+      int i_push_handle = 0;
+      L7_Push_Setup(num_comm_partners, &comm_partner[0], &send_buffer_count[0],
+                    send_database, &receive_count_total, &i_push_handle);
 
       if (DEBUG) {
          fprintf(fp,"DEBUG num_comm_partners %d\n",num_comm_partners);
@@ -6793,12 +6795,12 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       int *border_cell_i_local = (int *)malloc(receive_count_total*sizeof(int));
       int *border_cell_j_local = (int *)malloc(receive_count_total*sizeof(int));
       int *border_cell_level_local = (int *)malloc(receive_count_total*sizeof(int));
-      L7_Push_Update(i_push_handle, &border_cell_num[0],   border_cell_num_local);
-      L7_Push_Update(i_push_handle, &border_cell_i[0],     border_cell_i_local);
-      L7_Push_Update(i_push_handle, &border_cell_j[0],     border_cell_j_local);
-      L7_Push_Update(i_push_handle, &border_cell_level[0], border_cell_level_local);
+      L7_Push_Update(&border_cell_num[0],   border_cell_num_local,   i_push_handle);
+      L7_Push_Update(&border_cell_i[0],     border_cell_i_local,     i_push_handle);
+      L7_Push_Update(&border_cell_j[0],     border_cell_j_local,     i_push_handle);
+      L7_Push_Update(&border_cell_level[0], border_cell_level_local, i_push_handle);
 
-      L7_Push_Free(i_push_handle);
+      L7_Push_Free(&i_push_handle);
 
       ezcl_device_memory_delete(dev_border_cell_i);
       ezcl_device_memory_delete(dev_border_cell_j);

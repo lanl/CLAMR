@@ -150,6 +150,32 @@ typedef struct l7_id_database
    
 } l7_id_database;
 
+typedef struct l7_push_id_database
+{
+   int
+     num_comm_partners,        /* Number of processors to communicate with. */
+     *comm_partner,            /* List of processors to communicate with.
+                                  Length of this and next two arrays will 
+                                  will be num_comm_partners                 */
+     *send_buffer_count,       /* Count of data to send to each processor   */
+     *recv_buffer_count,       /* Count of data to receive from each proc   */
+     **send_database,          /* List of data indices to send to each
+                                  processor. This is a 'ragged right' array
+                                  with first index num_comm_partners and
+                                  the second send_buffer_count              */
+     receive_count_total,      /* Total receive size for each processor.
+                                  This is a sum of the recv_buffer_count
+                                  array                                     */
+     **send_buffer,            /* A preallocated int datatype buffer to be
+                                  used for packing data to send in
+                                  L7_Push_Update. It is allocated in setup
+                                  and deallocated in free.                  */
+     l7_push_id;               /* As input to L7_PUSH_SETUP.                */
+   
+   struct l7_push_id_database
+     *next_push_db;            /* Link to next database.                    */
+   
+} l7_push_id_database;
 
 #endif /* HAVE_MPI */
 
@@ -173,12 +199,17 @@ typedef struct
      *first_db,                /* For linked list of dbs.              */
      *last_db;
    
+   l7_push_id_database
+     *first_push_db,           /* For linked list of push dbs.         */
+     *last_push_db;
+   
    int
      data_check_len,           /* Number of bytes in array data_check. */
      initialized,              /* 1 if L7 initialized, else 0          */
      initialized_mpi,          /* 1 if L7 initialized MPI, else 0      */
      mpi_initialized,          /* 1 if L7_init sets use mpi, else 0    */
      num_dbs,                  /* Number of databases allocated.       */
+     num_push_dbs,             /* Number of push databases allocated.  */
      numpes,                   /* Number of processors in mpi job      */
      penum;                    /* Process id for currently set db.     */
    
