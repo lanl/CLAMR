@@ -874,12 +874,12 @@ __kernel void calc_neighbors_local_cl(
    int imaxcalc = (imax+1)*levtable[levmx];
    int jmaxcalc = (jmax+1)*levtable[levmx];
 
+#if HASH_SETUP_OPT_LEVEL <= 2
    int ii = i[giX];
    int jj = j[giX];
    int lev = level[giX];
    int levmult = levtable[levmx-lev];
 
-#if HASH_SETUP_OPT_LEVEL <= 2
    int nlftval = hash[ ( (      jj   *levmult               )-jminsize) *(imaxsize-iminsize) + ( (max(  ii   *levmult-1, 0         ))-iminsize)];
    int nrhtval = hash[ ( (      jj   *levmult               )-jminsize) *(imaxsize-iminsize) + ( (min( (ii+1)*levmult,   imaxcalc-1))-iminsize)];
    int nbotval = hash[ ( (max(  jj   *levmult-1, 0)         )-jminsize) *(imaxsize-iminsize) + ( (      ii   *levmult               )-iminsize)];
@@ -907,10 +907,10 @@ __kernel void calc_neighbors_local_cl(
       ntopval = hash[(jjj-jminsize)*(imaxsize-iminsize)+(iii-iminsize)];
    }
 #elif HASH_SETUP_OPT_LEVEL >= 3
-   ii = i[giX];
-   jj = j[giX];
-   lev = level[giX];
-   levmult = levtable[levmx-lev];
+   int ii = i[giX];
+   int jj = j[giX];
+   int lev = level[giX];
+   int levmult = levtable[levmx-lev];
 
    int iicur = ii*levmult-iminsize;
    int iilft = max( (ii-1)*levmult, 0         )-iminsize;
@@ -1035,10 +1035,11 @@ __kernel void calc_neighbors_local_cl(
       if (nrhtval < 0) {
          int jjrht = (jj/2)*2*levmult-jminsize;
 #if HASH_SETUP_OPT_LEVEL == 3
-         nrhtval = hashval_local(jjrht,iirht);
+         int nrhttry = hashval_local(jjrht,iirht);
 #elif HASH_SETUP_OPT_LEVEL == 4
-         nrhtval = read_hash(hash_method, hash_table_size, AA, BB, jjrht*(imaxsize-iminsize)+iirht, hash);
+         int nrhttry = read_hash(hash_method, hash_table_size, AA, BB, jjrht*(imaxsize-iminsize)+iirht, hash);
 #endif
+         if (nrhttry >= 0 && nrhttry < (int)ncells && level[nrhttry] == lev-1) nrhtval = nrhttry;
       }
       if (nbotval < 0) {
          jjbot -= jjcur-jjbot;
@@ -1053,10 +1054,11 @@ __kernel void calc_neighbors_local_cl(
       if (ntopval < 0) {
          int iitop = (ii/2)*2*levmult-iminsize;
 #if HASH_SETUP_OPT_LEVEL == 3
-         ntopval = hashval_local(jjtop,iitop);
+         int ntoptry = hashval_local(jjtop,iitop);
 #elif HASH_SETUP_OPT_LEVEL == 4
-         ntopval = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iitop, hash);
+         int ntoptry = read_hash(hash_method, hash_table_size, AA, BB, jjtop*(imaxsize-iminsize)+iitop, hash);
 #endif
+         if (ntoptry >= 0 && ntoptry < (int)ncells && level[ntoptry] == lev-1) ntopval = ntoptry;
       }
    }
 #endif
@@ -1391,6 +1393,8 @@ __kernel void calc_layer1_cl (
    const uint giX = get_global_id(0);
 
    if (giX >= isize) return;
+
+   border_cell_needed[giX] = 0;
 
    int iminsize = sizes[0].s0;
    int imaxsize = sizes[0].s1;
