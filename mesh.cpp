@@ -6064,6 +6064,14 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
    cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_int4), CL_MEM_READ_WRITE, 0);
    cl_mem dev_sizes = ezcl_malloc(NULL, const_cast<char *>("dev_sizes"), &one, sizeof(cl_int4),  CL_MEM_READ_WRITE, 0);
 
+#ifdef BOUNDS_CHECK
+   if (ezcl_get_device_mem_nelements(dev_i) < (int)ncells || 
+       ezcl_get_device_mem_nelements(dev_j) < (int)ncells ||
+       ezcl_get_device_mem_nelements(dev_level) < (int)ncells ){
+      printf("%d: Warning ncells %ld size dev_i %d dev_j %d dev_level %d\n",mype,ncells,ezcl_get_device_mem_nelements(dev_i),ezcl_get_device_mem_nelements(dev_j),ezcl_get_device_mem_nelements(dev_level));
+   }
+#endif
+
       /*
        __kernel void calc_hash_size_cl(
                           const int   ncells,      // 0
@@ -6076,14 +6084,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
                  __global       int4  *sizes,      // 7
                  __local        int4  *tile)       // 8
       */
-
-#ifdef BOUNDS_CHECK
-   if (ezcl_get_device_mem_nelements(dev_i) < (int)ncells || 
-       ezcl_get_device_mem_nelements(dev_j) < (int)ncells ||
-       ezcl_get_device_mem_nelements(dev_level) < (int)ncells ){
-      printf("%d: Warning ncells %ld size dev_i %d dev_j %d dev_level %d\n",mype,ncells,ezcl_get_device_mem_nelements(dev_i),ezcl_get_device_mem_nelements(dev_j),ezcl_get_device_mem_nelements(dev_level));
-   }
-#endif
 
    ezcl_set_kernel_arg(kernel_hash_size, 0, sizeof(cl_int), (void *)&ncells);
    ezcl_set_kernel_arg(kernel_hash_size, 1, sizeof(cl_int), (void *)&levmx);
@@ -6213,16 +6213,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize_tmp,imaxsize_tmp,jminsize_tmp,jmaxsize_tmp);
    }
 
-      /*
-                    const int  isize,     // 0
-                    const int  levmx,     // 1
-           __global       int  *levtable, // 2
-           __global       int  *level,    // 3
-           __global       int  *i,        // 4
-           __global       int  *j,        // 5
-           __global       int  *hash)     // 6
-      */
-
    local_work_size = 128;
    global_work_size = ((ncells + local_work_size - 1) /local_work_size) * local_work_size;
 
@@ -6249,6 +6239,16 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
    //printf("%d: lws %d gws %d \n",mype,local_work_size,global_work_size);
    cl_event hash_setup_local_event;
+
+      /*
+                    const int  isize,     // 0
+                    const int  levmx,     // 1
+           __global       int  *levtable, // 2
+           __global       int  *level,    // 3
+           __global       int  *i,        // 4
+           __global       int  *j,        // 5
+           __global       int  *hash)     // 6
+      */
 
    ezcl_set_kernel_arg(kernel_hash_setup_local,  0, sizeof(cl_int),   (void *)&ncells);
    ezcl_set_kernel_arg(kernel_hash_setup_local,  1, sizeof(cl_int),   (void *)&levmx);
@@ -6288,22 +6288,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
       gpu_time_hash_setup += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
       cpu_timer_start(&tstart_lev2);
    }
-
-      /*
-                    const int  isize,     // 0
-                    const int  levmx,     // 1
-                    const int  imaxsize,  // 2
-                    const int  jmaxsize,  // 3
-           __global       int  *levtable, // 4
-           __global       int  *level,    // 5
-           __global       int  *i,        // 6
-           __global       int  *j,        // 7
-           __global       int  *nlft,     // 8
-           __global       int  *nrht,     // 9
-           __global       int  *nbot,     // 10
-           __global       int  *ntop,     // 11
-           __global       int  *hash)     // 12
-      */
 
 #ifdef BOUNDS_CHECK
    {
@@ -6391,6 +6375,22 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 #endif
 
    cl_event calc_neighbors_local_event;
+
+      /*
+                    const int  isize,     // 0
+                    const int  levmx,     // 1
+                    const int  imaxsize,  // 2
+                    const int  jmaxsize,  // 3
+           __global       int  *levtable, // 4
+           __global       int  *level,    // 5
+           __global       int  *i,        // 6
+           __global       int  *j,        // 7
+           __global       int  *nlft,     // 8
+           __global       int  *nrht,     // 9
+           __global       int  *nbot,     // 10
+           __global       int  *ntop,     // 11
+           __global       int  *hash)     // 12
+      */
 
    ezcl_set_kernel_arg(kernel_calc_neighbors_local, 0,  sizeof(cl_int),   (void *)&ncells);
    ezcl_set_kernel_arg(kernel_calc_neighbors_local, 1,  sizeof(cl_int),   (void *)&levmx);
@@ -7529,9 +7529,6 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 #endif
 
       if (TIMING_LEVEL >= 2) {
-#ifdef HAVE_MPI
-         MPI_Barrier(MPI_COMM_WORLD);
-#endif
          gpu_time_setup_comm += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
       }
 
