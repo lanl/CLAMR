@@ -2094,12 +2094,6 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
 // XXX Maybe figure out way to get rid of reading off device?? XXX
 
-   //size_t result = 0;
-   //ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
-
-//   printf("result = %d after first refine potential\n",(result-ncells));
-//   int which_smooth = 1;
-
    int newcount = result - ncells;
    int newcount_global = newcount;
 
@@ -2116,6 +2110,7 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
    if(newcount_global > 0 && levcount < levmx) {
       cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_ptr;
+      if (numpe > 1) dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
       while (newcount_global > 0 && levcount < levmx) {
          levcount++;
@@ -2129,7 +2124,6 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
             L7_Update(&mpot_tmp[0], L7_INT, cell_handle);
 
-            dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
             ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
 
             // Fill in ghost
@@ -2165,7 +2159,6 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
          ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
 
 //       printf("result = %d after %d refine smooths\n",result,which_smooth);
-//       sleep(1);
 //       which_smooth++;
 
          newcount = result;
@@ -2175,7 +2168,6 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
             MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          }
 #endif
-         if (numpe > 1) ezcl_device_memory_delete(dev_mpot_add);
       }
 
       ezcl_device_memory_delete(dev_mpot_old);
@@ -2188,7 +2180,6 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
       L7_Update(&mpot_tmp[0], L7_INT, cell_handle);
 
-      dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells], NULL);
 
       // Fill in ghost
