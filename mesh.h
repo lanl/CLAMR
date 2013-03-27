@@ -134,6 +134,7 @@ public:
 
                cpu_time_kdtree_setup,
                cpu_time_kdtree_query,
+            cpu_time_refine_smooth,
             cpu_time_rezone_all,
             cpu_time_partition,
             cpu_time_calc_spatial_coordinates,
@@ -157,6 +158,7 @@ public:
 
                gpu_time_kdtree_setup,
                gpu_time_kdtree_query,
+            gpu_time_refine_smooth,
             gpu_time_rezone_all,
             gpu_time_count_BCs,
             gpu_time_calc_spatial_coordinates,
@@ -318,10 +320,11 @@ public:
    double get_cpu_time_setup_comm(void)               {return(cpu_time_setup_comm); };
    double get_cpu_time_kdtree_setup(void)             {return(cpu_time_kdtree_setup); };
    double get_cpu_time_kdtree_query(void)             {return(cpu_time_kdtree_query); };
+   double get_cpu_time_refine_smooth(void)            {return(cpu_time_refine_smooth); };
    double get_cpu_time_rezone_all(void)               {return(cpu_time_rezone_all); };
    double get_cpu_time_partition(void)                {return(cpu_time_partition); };
    double get_cpu_time_calc_spatial_coordinates(void) {return(cpu_time_calc_spatial_coordinates); };
-   double get_cpu_time_load_balance(void)           {return(cpu_time_load_balance); };
+   double get_cpu_time_load_balance(void)             {return(cpu_time_load_balance); };
 
    long get_gpu_time_calc_neighbors(void)           {return(gpu_time_calc_neighbors); };
    long get_gpu_time_hash_setup(void)               {return(gpu_time_hash_setup); };
@@ -340,6 +343,7 @@ public:
    long get_gpu_time_setup_comm(void)               {return(gpu_time_setup_comm); };
    long get_gpu_time_kdtree_setup(void)             {return(gpu_time_kdtree_setup); };
    long get_gpu_time_kdtree_query(void)             {return(gpu_time_kdtree_query); };
+   long get_gpu_time_refine_smooth(void)            {return(gpu_time_refine_smooth); };
    long get_gpu_time_rezone_all(void)               {return(gpu_time_rezone_all); };
    long get_gpu_time_calc_spatial_coordinates(void) {return(gpu_time_calc_spatial_coordinates); };
    long get_gpu_time_load_balance(void)             {return(gpu_time_load_balance); };
@@ -435,6 +439,10 @@ public:
    void print_object_info();
    size_t refine_smooth(vector<int> &mpot);
 
+#ifdef HAVE_OPENCL
+   int gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, cl_mem &dev_result,
+       cl_mem &dev_mpot, cl_mem &dev_mpot_add, size_t nghost_local);
+#endif
 
    /**************************************************************************************
    * Testing routines

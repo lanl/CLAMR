@@ -111,7 +111,6 @@ public:
             cpu_time_finite_difference,
             cpu_time_refine_potential,
               cpu_time_calc_mpot,
-              cpu_time_refine_smooth,
             cpu_time_rezone_all,
             cpu_time_mass_sum;
 
@@ -120,7 +119,6 @@ public:
             gpu_time_finite_difference,
             gpu_time_refine_potential,
               gpu_time_calc_mpot,
-              gpu_time_refine_smooth,
             gpu_time_rezone_all,
             gpu_time_mass_sum,
             gpu_time_read,
@@ -146,7 +144,6 @@ public:
    double get_cpu_time_finite_difference(void) {return(cpu_time_finite_difference);};
    double get_cpu_time_refine_potential(void)  {return(cpu_time_refine_potential);};
    double get_cpu_time_calc_mpot(void)         {return(cpu_time_calc_mpot);};
-   double get_cpu_time_refine_smooth(void)     {return(cpu_time_refine_smooth);};
    double get_cpu_time_rezone_all(void)        {return(cpu_time_rezone_all);};
    double get_cpu_time_mass_sum(void)          {return(cpu_time_mass_sum);};
 
@@ -155,7 +152,6 @@ public:
    long get_gpu_time_finite_difference(void) {return(gpu_time_finite_difference);};
    long get_gpu_time_refine_potential(void)  {return(gpu_time_refine_potential);};
    long get_gpu_time_calc_mpot(void)         {return(gpu_time_calc_mpot);};
-   long get_gpu_time_refine_smooth(void)     {return(gpu_time_refine_smooth);};
    long get_gpu_time_rezone_all(void)        {return(gpu_time_rezone_all);};
    long get_gpu_time_mass_sum(void)          {return(gpu_time_mass_sum);};
    long get_gpu_time_read(void)              {return(gpu_time_read);};

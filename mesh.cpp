@@ -153,6 +153,9 @@ cl_kernel      kernel_do_load_balance_lower;
 cl_kernel      kernel_do_load_balance_middle;
 cl_kernel      kernel_do_load_balance_upper;
 cl_kernel      kernel_do_load_balance;
+cl_kernel      kernel_refine_smooth;
+cl_kernel      kernel_copy_mpot_ghost_data;
+cl_kernel      kernel_set_boundary_refinement;
 
 static ulong AA;
 static ulong BB;
@@ -1475,6 +1478,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
 
       cpu_time_kdtree_setup    = 0.0;
       cpu_time_kdtree_query    = 0.0;
+   cpu_time_refine_smooth      = 0.0;
    cpu_time_rezone_all         = 0.0;
    cpu_time_partition          = 0.0;
    cpu_time_calc_spatial_coordinates = 0.0;
@@ -1498,6 +1502,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
 
       gpu_time_kdtree_setup    = 0;
       gpu_time_kdtree_query    = 0;
+   gpu_time_refine_smooth      = 0;
    gpu_time_rezone_all         = 0;
    gpu_time_count_BCs          = 0;
    gpu_time_calc_spatial_coordinates = 0;
@@ -1669,6 +1674,9 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       kernel_do_load_balance_middle   = ezcl_create_kernel(context, "mesh_kern.cl", "do_load_balance_middle_cl",   0);
       kernel_do_load_balance_upper    = ezcl_create_kernel(context, "mesh_kern.cl", "do_load_balance_upper_cl",    0);
       kernel_do_load_balance          = ezcl_create_kernel(context, "mesh_kern.cl", "do_load_balance_cl",          0);
+      kernel_refine_smooth            = ezcl_create_kernel(context, "state_kern.cl", "refine_smooth_cl",           0);
+      kernel_copy_mpot_ghost_data     = ezcl_create_kernel(context, "state_kern.cl", "copy_mpot_ghost_data_cl",    0);
+      kernel_set_boundary_refinement  = ezcl_create_kernel(context, "state_kern.cl", "set_boundary_refinement",    0);
       init_kernel_2stage_sum(context);
       init_kernel_2stage_sum_int(context);
       if (! have_boundary){
@@ -1843,6 +1851,10 @@ size_t Mesh::refine_smooth(vector<int> &mpot)
 
    int newcount = icount;
    int newcount_global = icount;
+
+   struct timeval tstart_lev2;
+   if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+
 #ifdef HAVE_MPI
    if (parallel) {
       MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -2043,8 +2055,190 @@ size_t Mesh::refine_smooth(vector<int> &mpot)
    }
    //printf("icount is %d\n",icount);
 
+   if (TIMING_LEVEL >= 2) cpu_time_refine_smooth += cpu_timer_stop(tstart_lev2);
+
    return(ncells+icount);
 }
+
+#ifdef HAVE_OPENCL
+int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, cl_mem &dev_result,
+    cl_mem &dev_mpot, cl_mem &dev_mpot_add, size_t nghost_local)
+{
+   struct timeval tstart_lev2;
+   if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+
+   size_t local_work_size = 128;
+   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+   size_t block_size = global_work_size/local_work_size;
+
+   gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+
+// XXX Maybe figure out way to get rid of reading off device?? XXX
+
+   size_t result = 0;
+   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+
+//   printf("result = %d after first refine potential\n",(result-ncells));
+//   int which_smooth = 1;
+
+   int newcount = result - ncells;
+   int newcount_global = newcount;
+
+#ifdef HAVE_MPI
+   if (parallel) {
+      MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   }
+#endif
+
+   int levcount = 1;
+
+   if(newcount_global > 0 && levcount < levmx) {
+      cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_ptr;
+
+      while (newcount_global > 0 && levcount < levmx) {
+         levcount++;
+
+         SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
+
+#ifdef HAVE_MPI
+         if (numpe > 1) {
+            vector<int> mpot_tmp(ncells_ghost,0);
+            ezcl_enqueue_read_buffer(command_queue, dev_mpot_old, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
+
+            L7_Update(&mpot_tmp[0], L7_INT, cell_handle);
+
+            dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+            ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
+
+            size_t ghost_local_work_size = 32;
+            size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
+
+            // Fill in ghost
+            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
+            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
+            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot_old);
+            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
+
+            ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
+         }
+#endif
+         gpu_refine_smooth_counter++;
+
+         ezcl_set_kernel_arg(kernel_refine_smooth, 0, sizeof(cl_int),  (void *)&ncells);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 1, sizeof(cl_int),  (void *)&levmx);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 2, sizeof(cl_mem),  (void *)&dev_nlft);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 3, sizeof(cl_mem),  (void *)&dev_nrht);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 4, sizeof(cl_mem),  (void *)&dev_ntop);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 5, sizeof(cl_mem),  (void *)&dev_nbot);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 6, sizeof(cl_mem),  (void *)&dev_level);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 7, sizeof(cl_mem),  (void *)&dev_celltype);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 8, sizeof(cl_mem),  (void *)&dev_mpot_old);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 9, sizeof(cl_mem),  (void *)&dev_mpot);
+         ezcl_set_kernel_arg(kernel_refine_smooth,10, sizeof(cl_mem),  (void *)&dev_ioffset);
+         ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_result);
+         ezcl_set_kernel_arg(kernel_refine_smooth,12, local_work_size*sizeof(cl_int),    NULL);
+
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_smooth, 1, NULL, &global_work_size, &local_work_size, NULL);
+
+         gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+
+         ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+
+//       printf("result = %d after %d refine smooths\n",result,which_smooth);
+//       sleep(1);
+//       which_smooth++;
+
+         newcount = result;
+         newcount_global = newcount;
+#ifdef HAVE_MPI
+         if (parallel) {
+            MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         }
+#endif
+         if (numpe > 1) ezcl_device_memory_delete(dev_mpot_add);
+         ezcl_device_memory_delete(dev_mpot_add);
+      }
+
+      ezcl_device_memory_delete(dev_mpot_old);
+   }
+
+#ifdef HAVE_MPI
+   if (numpe > 1) {
+      vector<int> mpot_tmp(ncells_ghost,0);
+      ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
+
+      L7_Update(&mpot_tmp[0], L7_INT, cell_handle);
+
+      dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells], NULL);
+
+      size_t ghost_local_work_size = 32;
+      size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
+
+      // Fill in ghost
+      ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
+      ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot);
+      ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
+
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
+   }
+#endif
+
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 0, sizeof(cl_int), (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 1, sizeof(cl_mem), (void *)&dev_nlft);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 2, sizeof(cl_mem), (void *)&dev_nrht);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 3, sizeof(cl_mem), (void *)&dev_nbot);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 4, sizeof(cl_mem), (void *)&dev_ntop);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 5, sizeof(cl_mem), (void *)&dev_celltype);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 6, sizeof(cl_mem), (void *)&dev_mpot);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 7, sizeof(cl_mem), (void *)&dev_ioffset);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 8, sizeof(cl_mem), (void *)&dev_result);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 9, local_work_size*sizeof(cl_int),    NULL);
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_boundary_refinement, 1, NULL, &global_work_size, &local_work_size, NULL);
+
+   gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+
+
+   if (numpe > 1) {
+      ezcl_device_memory_delete(dev_mpot_add);
+   }
+
+   int my_result;
+   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int), &my_result, NULL);
+   //printf("Result is %d %d %d\n",my_result, ncells,__LINE__);
+
+   ezcl_device_memory_delete(dev_result);
+
+   int size_changed = (my_result != (int)ncells); 
+   int size_changed_global = size_changed;
+#ifdef HAVE_MPI
+   if (parallel) {
+      MPI_Allreduce(&size_changed, &size_changed_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   }
+#endif
+
+   if (size_changed_global) {
+      ezcl_device_memory_delete(dev_nlft);
+      ezcl_device_memory_delete(dev_nrht);
+      ezcl_device_memory_delete(dev_nbot);
+      ezcl_device_memory_delete(dev_ntop);
+      dev_nlft = NULL;
+      dev_nrht = NULL;
+      dev_nbot = NULL;
+      dev_ntop = NULL;
+   } else {
+      ezcl_device_memory_delete(dev_mpot);
+      ezcl_device_memory_delete(dev_ioffset);
+   }
+
+   if (TIMING_LEVEL >= 2) gpu_time_refine_smooth += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+
+   return my_result;
+}
+#endif
 
 #ifdef HAVE_OPENCL
 void Mesh::terminate(void)
@@ -2093,6 +2287,9 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_do_load_balance_middle);
       ezcl_kernel_release(kernel_do_load_balance_upper);
       ezcl_kernel_release(kernel_do_load_balance);
+      ezcl_kernel_release(kernel_refine_smooth);
+      ezcl_kernel_release(kernel_copy_mpot_ghost_data);
+      ezcl_kernel_release(kernel_set_boundary_refinement);
       terminate_kernel_2stage_sum();
       terminate_kernel_2stage_sum_int();
       if (! have_boundary){
