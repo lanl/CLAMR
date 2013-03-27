@@ -1674,9 +1674,9 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       kernel_do_load_balance_middle   = ezcl_create_kernel(context, "mesh_kern.cl", "do_load_balance_middle_cl",   0);
       kernel_do_load_balance_upper    = ezcl_create_kernel(context, "mesh_kern.cl", "do_load_balance_upper_cl",    0);
       kernel_do_load_balance          = ezcl_create_kernel(context, "mesh_kern.cl", "do_load_balance_cl",          0);
-      kernel_refine_smooth            = ezcl_create_kernel(context, "state_kern.cl", "refine_smooth_cl",           0);
-      kernel_copy_mpot_ghost_data     = ezcl_create_kernel(context, "state_kern.cl", "copy_mpot_ghost_data_cl",    0);
-      kernel_set_boundary_refinement  = ezcl_create_kernel(context, "state_kern.cl", "set_boundary_refinement",    0);
+      kernel_refine_smooth            = ezcl_create_kernel(context, "mesh_kern.cl", "refine_smooth_cl",            0);
+      kernel_copy_mpot_ghost_data     = ezcl_create_kernel(context, "mesh_kern.cl", "copy_mpot_ghost_data_cl",     0);
+      kernel_set_boundary_refinement  = ezcl_create_kernel(context, "mesh_kern.cl", "set_boundary_refinement",     0);
       init_kernel_2stage_sum(context);
       init_kernel_2stage_sum_int(context);
       if (! have_boundary){
@@ -1890,94 +1890,110 @@ size_t Mesh::refine_smooth(vector<int> &mpot)
             if(mpot_old[ic] > 0) continue;
    
             nl = nlft[ic];
-            ll = level[nl];
-            if(mpot_old[nl] > 0) ll++;
+            if (nl >= 0 && nl < ncells_ghost) {
+               ll = level[nl];
+               if(mpot_old[nl] > 0) ll++;
    
-            if(ll - lev > 1) {
-               mpot[ic]++;
-               newcount++;
-               continue;
-            }
-
-            ll = level[nl];
-            if (ll > lev) {
-               nlt = ntop[nl];
-               llt = level[nlt];
-               if(mpot_old[nlt] > 0) llt++;
-
-               if(llt - lev > 1) {
+               if(ll - lev > 1) {
                   mpot[ic]++;
                   newcount++;
                   continue;
+               }
+
+               ll = level[nl];
+               if (ll > lev) {
+                  nlt = ntop[nl];
+                  if (nlt >= 0 && nlt < ncells_ghost) {
+                     llt = level[nlt];
+                     if(mpot_old[nlt] > 0) llt++;
+
+                     if(llt - lev > 1) {
+                        mpot[ic]++;
+                        newcount++;
+                        continue;
+                     }
+                  }
                }
             }
 
             nr = nrht[ic];
-            lr = level[nr];
-            if(mpot_old[nr] > 0) lr++;
+            if (nr >= 0 && nr < ncells_ghost) {
+               lr = level[nr];
+               if(mpot_old[nr] > 0) lr++;
    
-            if(lr - lev > 1) {
-               mpot[ic]++;
-               newcount++;
-               continue;
-            }
-
-            lr = level[nr];
-            if (lr > lev) {
-               nrt = ntop[nr];
-               lrt = level[nrt];
-               if(mpot_old[nrt] > 0) lrt++;
-
-               if(lrt - lev > 1) {
+               if(lr - lev > 1) {
                   mpot[ic]++;
                   newcount++;
                   continue;
+               }
+
+               lr = level[nr];
+               if (lr > lev) {
+                  nrt = ntop[nr];
+                  if (nrt >= 0 && nrt < ncells_ghost) {
+                     lrt = level[nrt];
+                     if(mpot_old[nrt] > 0) lrt++;
+
+                     if(lrt - lev > 1) {
+                        mpot[ic]++;
+                        newcount++;
+                        continue;
+                     }
+                  }
                }
             }
 
             nt = ntop[ic];
-            lt = level[nt];
-            if(mpot_old[nt] > 0) lt++;
+            if (nt >= 0 && nt < ncells_ghost) {
+               lt = level[nt];
+               if(mpot_old[nt] > 0) lt++;
    
-            if(lt - lev > 1) {
-               mpot[ic]++;
-               newcount++;
-               continue;
-            }
-
-            lt = level[nt];
-            if (lt > lev) {
-               ntr = nrht[nt];
-               ltr = level[ntr];
-               if(mpot_old[ntr] > 0) ltr++;
-
-               if(ltr - lev > 1) {
+               if(lt - lev > 1) {
                   mpot[ic]++;
                   newcount++;
                   continue;
                }
+
+               lt = level[nt];
+               if (lt > lev) {
+                  ntr = nrht[nt];
+                  if (ntr >= 0 && ntr < ncells_ghost) {
+                     ltr = level[ntr];
+                     if(mpot_old[ntr] > 0) ltr++;
+
+                     if(ltr - lev > 1) {
+                        mpot[ic]++;
+                        newcount++;
+                        continue;
+                     }
+                  }
+               }
             }
 
             nb = nbot[ic];
-            lb = level[nb];
-            if(mpot_old[nb] > 0) lb++;
+            if (nb >= 0 && nb < ncells_ghost) {
+               lb = level[nb];
+               if(mpot_old[nb] > 0) lb++;
    
-            if(lb - lev > 1) {
-               mpot[ic]++;
-               newcount++;
-               continue;
-            }
-
-            lb = level[nb];
-            if (lb > lev) {
-               nbr = nrht[nb];
-               lbr = level[nbr];
-               if(mpot_old[nbr] > 0) lbr++;
-
-               if(lbr - lev > 1) {
+               if(lb - lev > 1) {
                   mpot[ic]++;
                   newcount++;
                   continue;
+               }
+
+               lb = level[nb];
+               if (lb > lev) {
+                  nbr = nrht[nb];
+                  if (nbr >= 0 && nbr < ncells_ghost) {
+                     lbr = level[nbr];
+                     if(mpot_old[nbr] > 0) lbr++;
+
+                     if(lbr - lev > 1) {
+                        mpot[ic]++;
+                        newcount++;
+                        continue;
+                     }
+                  }
                }
             }
          }
@@ -2062,7 +2078,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot)
 
 #ifdef HAVE_OPENCL
 int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, cl_mem &dev_result,
-    cl_mem &dev_mpot, cl_mem &dev_mpot_add, size_t nghost_local)
+    cl_mem &dev_mpot, cl_mem &dev_mpot_add)
 {
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
@@ -2070,6 +2086,8 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
    size_t block_size = global_work_size/local_work_size;
+
+   size_t nghost_local = ncells_ghost - ncells;
 
    gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
 
@@ -2126,18 +2144,19 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
          gpu_refine_smooth_counter++;
 
          ezcl_set_kernel_arg(kernel_refine_smooth, 0, sizeof(cl_int),  (void *)&ncells);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 1, sizeof(cl_int),  (void *)&levmx);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 2, sizeof(cl_mem),  (void *)&dev_nlft);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 3, sizeof(cl_mem),  (void *)&dev_nrht);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 4, sizeof(cl_mem),  (void *)&dev_ntop);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 5, sizeof(cl_mem),  (void *)&dev_nbot);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 6, sizeof(cl_mem),  (void *)&dev_level);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 7, sizeof(cl_mem),  (void *)&dev_celltype);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 8, sizeof(cl_mem),  (void *)&dev_mpot_old);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 9, sizeof(cl_mem),  (void *)&dev_mpot);
-         ezcl_set_kernel_arg(kernel_refine_smooth,10, sizeof(cl_mem),  (void *)&dev_ioffset);
-         ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_result);
-         ezcl_set_kernel_arg(kernel_refine_smooth,12, local_work_size*sizeof(cl_int),    NULL);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 1, sizeof(cl_int),  (void *)&ncells_ghost);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 2, sizeof(cl_int),  (void *)&levmx);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 3, sizeof(cl_mem),  (void *)&dev_nlft);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 4, sizeof(cl_mem),  (void *)&dev_nrht);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 5, sizeof(cl_mem),  (void *)&dev_ntop);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 6, sizeof(cl_mem),  (void *)&dev_nbot);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 7, sizeof(cl_mem),  (void *)&dev_level);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 8, sizeof(cl_mem),  (void *)&dev_celltype);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 9, sizeof(cl_mem),  (void *)&dev_mpot_old);
+         ezcl_set_kernel_arg(kernel_refine_smooth,10, sizeof(cl_mem),  (void *)&dev_mpot);
+         ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_ioffset);
+         ezcl_set_kernel_arg(kernel_refine_smooth,12, sizeof(cl_mem),  (void *)&dev_result);
+         ezcl_set_kernel_arg(kernel_refine_smooth,13, local_work_size*sizeof(cl_int),    NULL);
 
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_smooth, 1, NULL, &global_work_size, &local_work_size, NULL);
 

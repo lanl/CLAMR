@@ -441,7 +441,7 @@ public:
 
 #ifdef HAVE_OPENCL
    int gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, cl_mem &dev_result,
-       cl_mem &dev_mpot, cl_mem &dev_mpot_add, size_t nghost_local);
+       cl_mem &dev_mpot, cl_mem &dev_mpot_add);
 #endif
 
    /**************************************************************************************
