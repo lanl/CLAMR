@@ -2082,11 +2082,8 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
-// XXX Maybe figure out way to get rid of reading off device?? XXX
-
    int newcount = result - ncells;
    int newcount_global = newcount;
-
 #ifdef HAVE_MPI
    if (parallel) {
       MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -2104,7 +2101,9 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
       size_t ghost_local_work_size;
       size_t ghost_global_work_size;
+      vector<int> mpot_tmp;
       if (numpe > 1) {
+         mpot_tmp.resize(ncells_ghost);
          ghost_local_work_size = 64;
          ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
       }
@@ -2125,7 +2124,6 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
 #ifdef HAVE_MPI
          if (numpe > 1) {
-            vector<int> mpot_tmp(ncells_ghost,0);
             ezcl_enqueue_read_buffer(command_queue, dev_mpot_old, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
 
             L7_Update(&mpot_tmp[0], L7_INT, cell_handle);
@@ -2180,7 +2178,6 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
 #ifdef HAVE_MPI
       if (numpe > 1 && newcount_global > 0) {
-         vector<int> mpot_tmp(ncells_ghost,0);
          ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
 
          L7_Update(&mpot_tmp[0], L7_INT, cell_handle);
