@@ -2077,8 +2077,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot)
 }
 
 #ifdef HAVE_OPENCL
-int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, cl_mem &dev_result,
-    cl_mem &dev_mpot, cl_mem &dev_mpot_add)
+int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result)
 {
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
@@ -2088,13 +2087,15 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
    size_t block_size = global_work_size/local_work_size;
 
    size_t nghost_local = ncells_ghost - ncells;
+   cl_mem dev_mpot_add = NULL;
 
-   gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+   size_t result_size = 1;
+   cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"), &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
 // XXX Maybe figure out way to get rid of reading off device?? XXX
 
-   size_t result = 0;
-   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+   //size_t result = 0;
+   //ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
 
 //   printf("result = %d after first refine potential\n",(result-ncells));
 //   int which_smooth = 1;
@@ -2109,6 +2110,8 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 #endif
 
    int levcount = 1;
+   size_t ghost_local_work_size = 64;
+   size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
 
    if(newcount_global > 0 && levcount < levmx) {
       cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -2128,9 +2131,6 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
             dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
             ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
-
-            size_t ghost_local_work_size = 32;
-            size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
 
             // Fill in ghost
             ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
@@ -2176,14 +2176,13 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
          }
 #endif
          if (numpe > 1) ezcl_device_memory_delete(dev_mpot_add);
-         ezcl_device_memory_delete(dev_mpot_add);
       }
 
       ezcl_device_memory_delete(dev_mpot_old);
    }
 
 #ifdef HAVE_MPI
-   if (numpe > 1) {
+   if (numpe > 1 && newcount_global > 0) {
       vector<int> mpot_tmp(ncells_ghost,0);
       ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
 
@@ -2191,9 +2190,6 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
       dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells], NULL);
-
-      size_t ghost_local_work_size = 32;
-      size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
 
       // Fill in ghost
       ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
@@ -2220,15 +2216,13 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
    gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
 
-
-   if (numpe > 1) {
-      ezcl_device_memory_delete(dev_mpot_add);
-   }
-
    int my_result;
    ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int), &my_result, NULL);
    //printf("Result is %d %d %d\n",my_result, ncells,__LINE__);
 
+   if (numpe > 1) {
+      ezcl_device_memory_delete(dev_mpot_add);
+   }
    ezcl_device_memory_delete(dev_result);
 
    int size_changed = (my_result != (int)ncells); 

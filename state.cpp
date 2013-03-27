@@ -2128,8 +2128,6 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
-   cl_mem dev_mpot_add = NULL;
-
    size_t &ncells       = mesh->ncells;
    int &levmx           = mesh->levmx;
    cl_mem &dev_nlft     = mesh->dev_nlft;
@@ -2308,12 +2306,19 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
 
    if (TIMING_LEVEL >= 2) {
       gpu_time_calc_mpot += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
-
-      cpu_timer_start(&tstart_lev2);
    }
 
+   mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
 
-   int my_result = mesh->gpu_refine_smooth(command_queue, dev_ioffset, dev_result, dev_mpot, dev_mpot_add);
+   size_t result = 0;
+   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+
+//   printf("result = %d after first refine potential\n",(result-ncells));
+//   int which_smooth = 1;
+
+   ezcl_device_memory_delete(dev_result);
+
+   int my_result = mesh->gpu_refine_smooth(command_queue, dev_ioffset, dev_mpot, result);
 
    gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 

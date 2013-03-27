@@ -440,8 +440,7 @@ public:
    size_t refine_smooth(vector<int> &mpot);
 
 #ifdef HAVE_OPENCL
-   int gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, cl_mem &dev_result,
-       cl_mem &dev_mpot, cl_mem &dev_mpot_add);
+   int gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result);
 #endif
 
    /**************************************************************************************
