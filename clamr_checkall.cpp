@@ -198,6 +198,7 @@ int main(int argc, char **argv) {
       L7_Terminate();
       exit(-1);
    }
+   L7_Dev_Init();
 
    double circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.

@@ -162,6 +162,14 @@ int L7_Free(
    if (&l7_db->mpi_comm_l7)
       MPI_Comm_free(&l7_db->mpi_comm_l7);
    
+#ifdef HAVE_OPENCL
+   if (l7_db->indices_have)
+      free(l7_db->indices_have);
+
+   if (l7_db->dev_indices_have)
+      ezcl_device_memory_delete(l7_db->dev_indices_have);
+#endif
+   
    /*
     * Assign pointers to next, first, and last if needed
     */

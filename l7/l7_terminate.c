@@ -109,6 +109,12 @@ int L7_Terminate (void)
 	}
 	
 	l7.initialized = 0;
+#ifdef HAVE_OPENCL
+        if (l7.numpes > 1){
+           ezcl_kernel_release(l7.kernel_pack_int_have_data);
+           ezcl_kernel_release(l7.kernel_copy_ghost_data);
+        }
+#endif
 	
 #endif /* HAVE_MPI */
 	

@@ -145,6 +145,14 @@ typedef struct l7_id_database
    MPI_Status
      *mpi_status;
    
+#ifdef HAVE_OPENCL
+   int
+     num_indices_have,         /* Count of indices needed for send in update */
+     *indices_have;            /* list of indices have on pe for send       */
+
+   cl_mem dev_indices_have;    /* list of indices on the device             */
+#endif
+
    struct l7_id_database
      *next_db;                 /* Link to next database.                    */
    
@@ -229,6 +237,11 @@ typedef struct
                                 * When done, reset assert_outfile to
                                 * NULL.
                                 */
+#ifdef HAVE_OPENCL
+   cl_kernel
+     kernel_pack_int_have_data,
+     kernel_copy_ghost_data;
+#endif
    
    int
      io_profiling_level;       /* L7_IO_PROF_OFF / SIMPLE / VERBOSE    */

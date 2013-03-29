@@ -44,6 +44,9 @@
 #define L7_EXTERN
 #include "l7.h"
 #include "l7p.h"
+#ifdef HAVE_OPENCL
+#include "ezcl/ezcl.h"
+#endif
 
 #define L7_LOCATION "L7_INIT"
 
@@ -140,6 +143,7 @@ int L7_Init (
     
    l7.initialized = 1;
 
+
 #else
 
    *mype = 0;
@@ -148,4 +152,14 @@ int L7_Init (
 #endif /* HAVE_MPI */
 
    return(ierr);     
+}
+int L7_Dev_Init(void)
+{
+#ifdef HAVE_OPENCL
+   if (l7.numpes > 1) {
+        cl_context context = ezcl_get_context();
+        l7.kernel_pack_int_have_data  = ezcl_create_kernel(context, "l7/l7_kern.cl", "pack_int_have_data_cl",  0);
+        l7.kernel_copy_ghost_data     = ezcl_create_kernel(context, "l7/l7_kern.cl", "copy_ghost_data_cl",     0);
+   }
+#endif
 }

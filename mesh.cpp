@@ -2099,23 +2099,11 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
       size_t nghost_local = ncells_ghost - ncells;
 
-      size_t ghost_local_work_size;
-      size_t ghost_global_work_size;
-      vector<int> mpot_tmp;
-      if (numpe > 1) {
-         mpot_tmp.resize(ncells_ghost);
-         ghost_local_work_size = 64;
-         ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
-      }
-
-      cl_mem dev_mpot_add = NULL;
-
       size_t result_size = 1;
       cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"), &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
       cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_ptr;
-      if (numpe > 1) dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
       while (newcount_global > 0 && levcount < levmx) {
          levcount++;
@@ -2124,19 +2112,7 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
 #ifdef HAVE_MPI
          if (numpe > 1) {
-            ezcl_enqueue_read_buffer(command_queue, dev_mpot_old, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
-
-            L7_Update(&mpot_tmp[0], L7_INT, cell_handle);
-
-            ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
-
-            // Fill in ghost
-            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
-            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
-            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot_old);
-            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
-
-            ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
+            L7_Dev_Update(dev_mpot_old, L7_INT, cell_handle);
          }
 #endif
          gpu_refine_smooth_counter++;
@@ -2178,19 +2154,7 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
 #ifdef HAVE_MPI
       if (numpe > 1 && newcount_global > 0) {
-         ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
-
-         L7_Update(&mpot_tmp[0], L7_INT, cell_handle);
-
-         ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells], NULL);
-
-         // Fill in ghost
-         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
-         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
-         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot);
-         ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
-
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
+         L7_Dev_Update(dev_mpot, L7_INT, cell_handle);
       }
 #endif
 
@@ -2212,9 +2176,6 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
       ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int), &my_result, NULL);
       //printf("Result is %d %d %d\n",my_result, ncells,__LINE__);
 
-      if (numpe > 1) {
-         ezcl_device_memory_delete(dev_mpot_add);
-      }
       ezcl_device_memory_delete(dev_result);
 
    } // if newcount_global > 0
@@ -7611,7 +7572,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          }
       }
 
-      L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
+      L7_Dev_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
 
 #ifdef BOUNDS_CHECK
       {

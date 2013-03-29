@@ -38,6 +38,9 @@
  */  
 #ifndef L7_H_
 #define L7_H_
+#ifdef HAVE_OPENCL
+#include "ezcl/ezcl.h"
+#endif
 
 //#define _L7_DEBUG
 
@@ -126,6 +129,8 @@ int L7_Init (
 	int *argc,
 	char **argv
 	);
+
+int L7_Dev_Init(void);
 
 int L7_Terminate(void);
 
@@ -325,6 +330,17 @@ int L7_Setup(
         int             *l7_id
         );
 
+int L7_Dev_Setup(
+        const int       num_base,
+        const int       my_start_index,
+        const int       num_indices_owned,
+        int             *indices_needed,
+        const int       num_indices_needed,
+        /* Remove for now until can be made portable and is needed */
+        //const MPI_Comm  *mpi_comm_user, 
+        int             *l7_id
+        );
+
 int L7_Free(
         const int   *l7_id
         );
@@ -334,6 +350,14 @@ int L7_Update(
       const enum L7_Datatype  l7_datatype,
       const int               l7_id
       );
+
+#ifdef HAVE_OPENCL
+int L7_Dev_Update(
+      cl_mem                  dev_data_buffer,
+      const enum L7_Datatype  l7_datatype,
+      const int               l7_id
+      );
+#endif
 
 int L7_Update_Check(
       void                    *data_buffer,
