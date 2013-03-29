@@ -2082,28 +2082,35 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
+   size_t local_work_size = 128;
+   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+   size_t block_size = global_work_size/local_work_size;
+
+   size_t nghost_local = ncells_ghost - ncells;
+   cl_mem dev_mpot_add = NULL;
+
+   size_t result_size = 1;
+   cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"), &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+
+// XXX Maybe figure out way to get rid of reading off device?? XXX
+
    int newcount = result - ncells;
    int newcount_global = newcount;
+
 #ifdef HAVE_MPI
    if (parallel) {
       MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
    }
 #endif
 
-   int my_result;
    int levcount = 1;
+   size_t ghost_local_work_size = 64;
+   size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
+
    if(newcount_global > 0 && levcount < levmx) {
-      size_t local_work_size = 128;
-      size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
-      size_t block_size = global_work_size/local_work_size;
-
-      size_t nghost_local = ncells_ghost - ncells;
-
-      size_t result_size = 1;
-      cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"), &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-
       cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_ptr;
+      if (numpe > 1) dev_mpot_add = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_add"), &nghost_local,  sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
       while (newcount_global > 0 && levcount < levmx) {
          levcount++;
@@ -2112,7 +2119,20 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
 #ifdef HAVE_MPI
          if (numpe > 1) {
-            L7_Dev_Update(dev_mpot_old, L7_INT, cell_handle);
+            vector<int> mpot_tmp(ncells_ghost,0);
+            ezcl_enqueue_read_buffer(command_queue, dev_mpot_old, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
+
+            L7_Update(&mpot_tmp[0], L7_INT, cell_handle);
+
+            ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells],     NULL);
+
+            // Fill in ghost
+            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
+            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
+            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot_old);
+            ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
+
+            ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
          }
 #endif
          gpu_refine_smooth_counter++;
@@ -2151,34 +2171,50 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
       }
 
       ezcl_device_memory_delete(dev_mpot_old);
+   }
 
 #ifdef HAVE_MPI
-      if (numpe > 1 && newcount_global > 0) {
-         L7_Dev_Update(dev_mpot, L7_INT, cell_handle);
-      }
+   if (numpe > 1 && newcount_global > 0) {
+      vector<int> mpot_tmp(ncells_ghost,0);
+      ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_int), &mpot_tmp[0], NULL);
+
+      L7_Update(&mpot_tmp[0], L7_INT, cell_handle);
+
+      ezcl_enqueue_write_buffer(command_queue, dev_mpot_add, CL_TRUE,  0, nghost_local*sizeof(cl_int), (void*)&mpot_tmp[ncells], NULL);
+
+      // Fill in ghost
+      ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
+      ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 2, sizeof(cl_mem), (void *)&dev_mpot);
+      ezcl_set_kernel_arg(kernel_copy_mpot_ghost_data, 3, sizeof(cl_mem), (void *)&dev_mpot_add);
+
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_mpot_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
+   }
 #endif
 
-      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 1, sizeof(cl_mem), (void *)&dev_nlft);
-      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 2, sizeof(cl_mem), (void *)&dev_nrht);
-      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 3, sizeof(cl_mem), (void *)&dev_nbot);
-      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 4, sizeof(cl_mem), (void *)&dev_ntop);
-      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 5, sizeof(cl_mem), (void *)&dev_celltype);
-      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 6, sizeof(cl_mem), (void *)&dev_mpot);
-      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 7, sizeof(cl_mem), (void *)&dev_ioffset);
-      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 8, sizeof(cl_mem), (void *)&dev_result);
-      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 9, local_work_size*sizeof(cl_int),    NULL);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 0, sizeof(cl_int), (void *)&ncells);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 1, sizeof(cl_mem), (void *)&dev_nlft);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 2, sizeof(cl_mem), (void *)&dev_nrht);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 3, sizeof(cl_mem), (void *)&dev_nbot);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 4, sizeof(cl_mem), (void *)&dev_ntop);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 5, sizeof(cl_mem), (void *)&dev_celltype);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 6, sizeof(cl_mem), (void *)&dev_mpot);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 7, sizeof(cl_mem), (void *)&dev_ioffset);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 8, sizeof(cl_mem), (void *)&dev_result);
+   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 9, local_work_size*sizeof(cl_int),    NULL);
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_boundary_refinement, 1, NULL, &global_work_size, &local_work_size, NULL);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_boundary_refinement, 1, NULL, &global_work_size, &local_work_size, NULL);
 
-      gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+   gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
 
-      ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int), &my_result, NULL);
-      //printf("Result is %d %d %d\n",my_result, ncells,__LINE__);
+   int my_result;
+   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int), &my_result, NULL);
+   //printf("Result is %d %d %d\n",my_result, ncells,__LINE__);
 
-      ezcl_device_memory_delete(dev_result);
-
-   } // if newcount_global > 0
+   if (numpe > 1) {
+      ezcl_device_memory_delete(dev_mpot_add);
+   }
+   ezcl_device_memory_delete(dev_result);
 
    int size_changed = (my_result != (int)ncells); 
    int size_changed_global = size_changed;
@@ -7572,7 +7608,7 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
          }
       }
 
-      L7_Dev_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
+      L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
 
 #ifdef BOUNDS_CHECK
       {
@@ -7614,6 +7650,83 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
             }
          }
       }
+#endif
+
+#ifdef XXX
+      int num_indices=L7_Get_Num_Indices(cell_handle);
+
+      vector<int>local_indices(num_indices);
+
+      L7_Get_Local_Indices(cell_handle, &local_indices[0]);
+
+/* */
+      vector<int> indices_array(ncells,0);
+
+      for (int ic = 0; ic < num_indices; ic++){
+         indices_array[local_indices[ic]]++;
+      }
+
+      num_indices=0;
+      for (int ic = 0; ic < (int)ncells; ic++){
+         if (indices_array[ic] > 0) {
+            local_indices[num_indices]=ic;
+            num_indices++;
+         }
+      }
+/* */
+
+/*
+         //if (mype ==1) printf("DEBUG -- num_indices is %d\n",num_indices);
+
+         sort(local_indices.begin(),local_indices.end());
+         vector<int>::iterator pt_end = unique(local_indices.begin(),local_indices.end());
+
+         num_indices = 0;
+         for (vector<int>::iterator p=local_indices.begin(); p < pt_end; p++){
+            num_indices++;
+         }
+         //printf("%d: border cell size is %d\n",mype,border_cell_num.size());
+*/
+
+
+         //if (mype ==1) printf("DEBUG -- num_indices is %d %d\n",num_indices,local_indices.size());
+
+         int nblocks=0;
+         for (int ic = 0; ic < num_indices; ic++){
+            for (int in = local_indices[ic]+1; local_indices[ic+1] == in && ic < num_indices; in++,ic++);
+            //for (int in = local_indices[ic]+1; local_indices[ic+1] <= in+5 && ic < num_indices; in=local_indices[ic+1],ic++);
+            nblocks++;
+         }
+         vector<int>local_indices_start(nblocks);
+         vector<int>local_indices_stop(nblocks);
+
+         int ib=0;
+         for (int ic = 0; ic < num_indices; ic++){
+            local_indices_start[ib]=local_indices[ic];
+            for (int in = local_indices[ic]+1; in == local_indices[ic+1] && ic < num_indices; in++,ic++);
+            //for (int in = local_indices[ic]+1; local_indices[ic+1] <= in+5 && ic < num_indices; in=local_indices[ic+1],ic++);
+            local_indices_stop[ib]=local_indices[ic];
+            ib++;
+         }
+
+/*
+         for (int ib = 0; ib < nblocks; ib++){
+            if (mype == 1) printf("%d: DEBUG block %d start %d stop %d\n",mype,ib,local_indices_start[ib],local_indices_stop[ib]);
+         }
+*/
+
+         int ic = 0;
+         for (int ib = 0; ib < nblocks; ib++){
+            for (int in = local_indices_start[ib]; in <= local_indices_stop[ib]; in++){
+               //while (in != local_indices[ic]) {in++;}
+               if (in != local_indices[ic]) printf("%d: DEBUG ic %d ib %d local_indices[ic] %d block_index %d\n",mype,ic,ib,local_indices[ic],in);
+               ic++;
+            }
+         }
+         if (ic != num_indices) printf("%d: DEBUG -- mismatch on indices count\n",mype);
+
+
+         local_indices.clear();
 #endif
 
       if (TIMING_LEVEL >= 2) {

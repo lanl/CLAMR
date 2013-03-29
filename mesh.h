@@ -181,6 +181,9 @@ public:
 
    float          mem_factor;
 
+   vector<int>local_indices_start;
+   vector<int>local_indices_stop;
+
    double         offtile_ratio_local;
    int            offtile_local_count;
 

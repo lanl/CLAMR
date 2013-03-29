@@ -152,7 +152,6 @@ int main(int argc, char **argv) {
       L7_Terminate();
       exit(-1);
    }
-   L7_Dev_Init();
 
    struct timeval tstart_setup;
    cpu_timer_start(&tstart_setup);

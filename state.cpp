@@ -2157,14 +2157,9 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
    size_t nghost_local = mesh->ncells_ghost - ncells;
 
    if (mesh->numpe > 1) {
-#ifdef USE_DEV_UPDATE
-      L7_Dev_Update(dev_H, L7_REAL, mesh->cell_handle);
-      L7_Dev_Update(dev_U, L7_REAL, mesh->cell_handle);
-      L7_Dev_Update(dev_V, L7_REAL, mesh->cell_handle);
-#else
-      vector<real> H_tmp(mesh->ncells_ghost);
-      vector<real> U_tmp(mesh->ncells_ghost);
-      vector<real> V_tmp(mesh->ncells_ghost);
+      vector<real> H_tmp(mesh->ncells_ghost,0.0);
+      vector<real> U_tmp(mesh->ncells_ghost,0.0);
+      vector<real> V_tmp(mesh->ncells_ghost,0.0);
 
       //fprintf(fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
 
@@ -2201,7 +2196,6 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
       ezcl_device_memory_delete(dev_H_add);
       ezcl_device_memory_delete(dev_U_add);
       ezcl_device_memory_delete(dev_V_add);
-#endif
    }
 #endif
 
