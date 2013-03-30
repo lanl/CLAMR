@@ -198,6 +198,7 @@ int main(int argc, char **argv) {
       L7_Terminate();
       exit(-1);
    }
+   L7_Dev_Init();
 
    double circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.
@@ -957,6 +958,8 @@ extern "C" void do_calc(void)
 
       //  Release kernels and finalize the OpenCL elements.
       ezcl_finalize();
+      L7_Free(&mesh_local->cell_handle);
+      L7_Dev_Free();
 
       ezcl_mem_walk_all();
 

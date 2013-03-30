@@ -1800,7 +1800,7 @@ void ezcl_print_error(const int ierr, const char *routine, const char *cl_routin
       const char command_string[80];
 #endif
       char** strs = backtrace_symbols(callstack, frames);
-      printf("\n  =============== Backtrace ===============\n");
+      fprintf(stderr,"\n  =============== Backtrace ===============\n");
       for (int i = 1; i < frames-1; ++i) {
           fprintf(stderr,"   %s    \t", strs[i]);
 #ifdef HAVE_ADDR2LINE
@@ -1809,11 +1809,10 @@ void ezcl_print_error(const int ierr, const char *routine, const char *cl_routin
           sprintf(command_string,"addr2line -e clamr -f -s -i -p %s",hex_address);
           system(command_string);
           // on mac, need to install binutils using macports "port install binutils"
-#else
-          printf("\n");
 #endif
+          fprintf(stderr,"\n");
       }
-      printf("  =============== Backtrace ===============\n\n");
+      fprintf(stderr,"  =============== Backtrace ===============\n\n");
       free(strs);
    }
 

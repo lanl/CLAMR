@@ -213,6 +213,8 @@ int L7_Dev_Update(
 
          ezcl_enqueue_ndrange_kernel(command_queue, l7.kernel_copy_ghost_int_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
 
+         ezcl_device_memory_delete(dev_data_buffer_add);
+
          break;
       case L7_FLOAT:
          dev_packed_data = ezcl_malloc(NULL, "dev_packed_data", &num_indices_have, sizeof(cl_float), CL_MEM_READ_WRITE, 0);
@@ -255,6 +257,8 @@ int L7_Dev_Update(
 
          ezcl_enqueue_ndrange_kernel(command_queue, l7.kernel_copy_ghost_float_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
 
+         ezcl_device_memory_delete(dev_data_buffer_add);
+
          break;
       case L7_DOUBLE:
          dev_packed_data = ezcl_malloc(NULL, "dev_packed_data", &num_indices_have, sizeof(cl_double), CL_MEM_READ_WRITE, 0);
@@ -296,6 +300,8 @@ int L7_Dev_Update(
          ezcl_set_kernel_arg(l7.kernel_copy_ghost_double_data, 3, sizeof(cl_mem), (void *)&dev_data_buffer_add);
 
          ezcl_enqueue_ndrange_kernel(command_queue, l7.kernel_copy_ghost_double_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
+
+         ezcl_device_memory_delete(dev_data_buffer_add);
 
          break;
    }

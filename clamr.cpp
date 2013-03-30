@@ -152,6 +152,7 @@ int main(int argc, char **argv) {
       L7_Terminate();
       exit(-1);
    }
+   L7_Dev_Init();
 
    struct timeval tstart_setup;
    cpu_timer_start(&tstart_setup);
@@ -619,6 +620,8 @@ extern "C" void do_calc(void)
       mesh->terminate();
       state->terminate();
       ezcl_terminate();
+      L7_Free(&mesh->cell_handle);
+      L7_Dev_Free();
 
       //  Release kernels and finalize the OpenCL elements.
       //ezcl_finalize();

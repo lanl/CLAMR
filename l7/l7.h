@@ -345,6 +345,10 @@ int L7_Free(
         const int   *l7_id
         );
 
+int L7_Dev_Free(
+        void
+        );
+
 int L7_Update(
       void                    *data_buffer,
       const enum L7_Datatype  l7_datatype,

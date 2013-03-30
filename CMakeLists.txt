@@ -118,7 +118,7 @@ add_executable(clamr ${clamr_SRCS})
 
 set_target_properties(clamr PROPERTIES COMPILE_DEFINITIONS HAVE_MPI_AND_OPENCL)
 
-target_link_libraries(clamr hsfc kdtree zorder s7 pezcl timer memstats l7 genmalloc dMallocPlus m)
+target_link_libraries(clamr hsfc kdtree zorder s7 pezcl timer memstats dl7 genmalloc dMallocPlus m)
 target_link_libraries(clamr ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr ${MPI_LIBRARIES})
 target_link_libraries(clamr ${OPENCL_LIBRARIES})
@@ -224,7 +224,7 @@ add_executable(clamr_checkall ${clamr_checkall_SRCS})
 
 set_target_properties(clamr_checkall PROPERTIES COMPILE_DEFINITIONS HAVE_MPI_AND_OPENCL)
 
-target_link_libraries(clamr_checkall hsfc kdtree zorder s7 pezcl timer memstats l7 genmalloc dMallocPlus m)
+target_link_libraries(clamr_checkall hsfc kdtree zorder s7 pezcl timer memstats dl7 genmalloc dMallocPlus m)
 target_link_libraries(clamr_checkall ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_checkall ${MPI_LIBRARIES})
 target_link_libraries(clamr_checkall ${OPENCL_LIBRARIES})
