@@ -2087,7 +2087,6 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
    size_t block_size = global_work_size/local_work_size;
 
    size_t nghost_local = ncells_ghost - ncells;
-   cl_mem dev_mpot_add = NULL;
 
    size_t result_size = 1;
    cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"), &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
