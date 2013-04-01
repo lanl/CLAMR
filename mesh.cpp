@@ -2155,7 +2155,7 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
    }
 
 #ifdef HAVE_MPI
-   if (numpe > 1 && newcount_global > 0) {
+   if (numpe > 1) {
       L7_Dev_Update(dev_mpot, L7_INT, cell_handle);
    }
 #endif

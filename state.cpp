@@ -2277,8 +2277,6 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
      __local        int8  *itile)    // 17  Tile size in int8.
      */
 
-   cl_event refine_potential_event;
-
    ezcl_set_kernel_arg(kernel_refine_potential, 0, sizeof(cl_int),  (void *)&ncells);
    ezcl_set_kernel_arg(kernel_refine_potential, 1, sizeof(cl_int),  (void *)&levmx);
    ezcl_set_kernel_arg(kernel_refine_potential, 2, sizeof(cl_mem),  (void *)&dev_H);
@@ -2298,15 +2296,7 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
    ezcl_set_kernel_arg(kernel_refine_potential,16, local_work_size*sizeof(cl_real4),    NULL);
    ezcl_set_kernel_arg(kernel_refine_potential,17, local_work_size*sizeof(cl_int8),    NULL);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_potential, 1, NULL, &global_work_size, &local_work_size, &refine_potential_event);
-
-
-   ezcl_wait_for_events(1, &refine_potential_event);
-   ezcl_event_release(refine_potential_event);
-
-   if (TIMING_LEVEL >= 2) {
-      gpu_time_calc_mpot += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
-   }
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_potential, 1, NULL, &global_work_size, &local_work_size, NULL);
 
    mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
 
@@ -2317,6 +2307,10 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
 //   int which_smooth = 1;
 
    ezcl_device_memory_delete(dev_result);
+
+   if (TIMING_LEVEL >= 2) {
+      gpu_time_calc_mpot += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+   }
 
    int my_result = mesh->gpu_refine_smooth(command_queue, dev_ioffset, dev_mpot, result);
 

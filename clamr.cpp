@@ -620,7 +620,7 @@ extern "C" void do_calc(void)
       mesh->terminate();
       state->terminate();
       ezcl_terminate();
-      L7_Free(&mesh->cell_handle);
+      if (mesh->numpe > 1) L7_Free(&mesh->cell_handle);
       L7_Dev_Free();
 
       //  Release kernels and finalize the OpenCL elements.

@@ -955,11 +955,11 @@ extern "C" void do_calc(void)
       mesh_global->terminate();
       state_global->terminate();
       ezcl_terminate();
+      if (mesh_local->numpe > 1) L7_Free(&mesh_local->cell_handle);
+      L7_Dev_Free();
 
       //  Release kernels and finalize the OpenCL elements.
       ezcl_finalize();
-      L7_Free(&mesh_local->cell_handle);
-      L7_Dev_Free();
 
       ezcl_mem_walk_all();
 
