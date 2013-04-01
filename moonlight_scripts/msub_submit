@@ -5,8 +5,8 @@ setenv SCRIPTS_DIR ${BUILD_DIR}/moonlight_scripts
 
 mkdir -p ${RUNS_DIR}
 cp ${BUILD_DIR}/*.cl ${RUNS_DIR}
-mkdir ${RUNS_DIR}/l7
-cp ${BUILD_DIR}/l7/*.cl ${RUNS_DIR}/l7
+#mkdir ${RUNS_DIR}/l7
+#cp ${BUILD_DIR}/l7/*.cl ${RUNS_DIR}/l7
 cd ${RUNS_DIR}
 
 msub ${SCRIPTS_DIR}/msub001

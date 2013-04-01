@@ -54,15 +54,20 @@
  * 
  */
 
-#ifndef GPU_DOUBLE_SUPPORT
-#define GPU_DOUBLE_SUPPORT
+/* Macro to convert source to string to embed in executable */
+STRINGIFY(
+
+\n
 #ifdef HAVE_CL_DOUBLE
+\n
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
-typedef double  real;
+\n
+typedef double  real;\n
 #else
-typedef float   real;
+\n
+typedef float   real;\n
 #endif
-#endif
+\n
 
 __kernel void pack_int_have_data_cl(
                           const int  num_indices_have, // 0
@@ -143,4 +148,4 @@ __kernel void copy_ghost_double_data_cl(
    data_buffer[ncells+giX] = data_buffer_add[giX];
 }
 
-
+) /* string conversion macro */

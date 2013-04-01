@@ -162,6 +162,8 @@ extern "C"
 /* kernel and program routines */
 #define ezcl_create_kernel(  context, filename, kernel_name, flags) \
       ( ezcl_create_kernel_p(context, filename, kernel_name, flags, __FILE__, __LINE__) )
+#define ezcl_create_kernel_wsource(  context, source, kernel_name, flags) \
+      ( ezcl_create_kernel_wsource_p(context, source, kernel_name, flags, __FILE__, __LINE__) )
 
 #define ezcl_program_release(  program) \
       ( ezcl_program_release_p(program, __FILE__, __LINE__) )
@@ -237,6 +239,7 @@ size_t ezcl_get_device_mem_capacity_p(cl_mem mem_buffer, const char *file, const
 
 /* kernel and program routines */
 cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const char *kernel_name, int flags, const char *file, const int line);
+cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, const char *kernel_name, int flags, const char *file, const int line);
 //cl_command_queue ezcl_create_command_queue(void);
 
 void ezcl_program_release_p(cl_program program, const char *file, const int line);
