@@ -44,9 +44,6 @@
 #define L7_EXTERN
 #include "l7.h"
 #include "l7p.h"
-#ifdef HAVE_OPENCL
-#include "ezcl/ezcl.h"
-#endif
 
 #define L7_LOCATION "L7_INIT"
 

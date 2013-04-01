@@ -13,7 +13,7 @@ set(C_SRCS
 ########### l7 target ###############
 set(l7_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
-add_library(l7 SHARED ${l7_LIB_SRCS})
+add_library(l7 STATIC ${l7_LIB_SRCS})
 
 set_target_properties(l7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
 target_link_libraries(l7 ${MPI_LIBRARIES})
@@ -22,7 +22,7 @@ install(TARGETS l7 DESTINATION lib)
 ########### dl7 target ###############
 set(dl7_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
-add_library(dl7 SHARED ${l7_LIB_SRCS})
+add_library(dl7 STATIC ${l7_LIB_SRCS})
 
 set_target_properties(dl7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
 set_target_properties(dl7 PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)

@@ -37,9 +37,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */  
 #include <stdlib.h>
-#ifdef HAVE_OPENCL
-#include "ezcl/ezcl.h"
-#endif
 #include "l7.h"
 #include "l7p.h"
 
