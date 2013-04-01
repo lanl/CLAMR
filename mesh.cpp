@@ -1637,12 +1637,14 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, int compute_device, int do_gpu_calc)
+void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_order, int compute_device, int do_gpu_calc)
 #else
 void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_order, int do_gpu_calc)
 #endif
 {
 #ifdef HAVE_OPENCL
+   cl_context context = ezcl_get_context();
+
    if (do_gpu_calc) {
       if (compute_device == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in mesh\n");
 
@@ -2077,10 +2079,12 @@ size_t Mesh::refine_smooth(vector<int> &mpot)
 }
 
 #ifdef HAVE_OPENCL
-int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result)
+int Mesh::gpu_refine_smooth(cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result)
 {
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -2135,7 +2139,7 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_smooth, 1, NULL, &global_work_size, &local_work_size, NULL);
 
-         gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+         gpu_rezone_count(block_size, local_work_size, dev_ioffset, dev_result);
 
          ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
 
@@ -2173,7 +2177,7 @@ int Mesh::gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, 
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_boundary_refinement, 1, NULL, &global_work_size, &local_work_size, NULL);
 
-   gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+   gpu_rezone_count(block_size, local_work_size, dev_ioffset, dev_result);
 
    int my_result;
    ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int), &my_result, NULL);
@@ -2314,9 +2318,10 @@ int Mesh::rezone_count(vector<int> mpot)
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::gpu_rezone_count(cl_command_queue command_queue, size_t block_size, size_t local_work_size,
-    cl_mem dev_ioffset, cl_mem &dev_result)
+void Mesh::gpu_rezone_count(size_t block_size, size_t local_work_size, cl_mem dev_ioffset, cl_mem &dev_result)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
      /*
      __kernel void finish_reduction_scan_cl(
                        const    int   isize,    // 0
@@ -8022,7 +8027,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
 
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, size_t numcells, float *weight, MallocPlus &gpu_state_memory)
+int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &gpu_state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -8043,6 +8048,8 @@ int Mesh::gpu_do_load_balance_local(cl_command_queue command_queue, size_t numce
    }
 
    if(do_load_balance_global) {
+
+      cl_command_queue command_queue = ezcl_get_command_queue();
 
       gpu_load_balance_counter++;
 

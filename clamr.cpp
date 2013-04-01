@@ -126,7 +126,6 @@ static State      *state;    //  Object containing state information correspondi
 static struct timeval tstart;
 static cl_event start_write_event, end_write_event;
 
-static cl_context          context                 = NULL;
 static cl_command_queue    command_queue           = NULL;
 static int compute_device = 0;
 
@@ -143,9 +142,9 @@ int main(int argc, char **argv) {
    L7_Init(&mype, &numpe, &argc, argv);
    parseInput(argc, argv);
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &context, &command_queue, &compute_device, mype);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &command_queue, &compute_device, mype);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &context, &command_queue, &compute_device, mype);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &command_queue, &compute_device, mype);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -174,14 +173,14 @@ int main(int argc, char **argv) {
       //mesh->print_local();
    }
 
-   mesh->init(nx, ny, circ_radius, context, initial_order, compute_device, do_gpu_calc);
+   mesh->init(nx, ny, circ_radius, initial_order, compute_device, do_gpu_calc);
 
    size_t &ncells = mesh->ncells;
    size_t &ncells_global = mesh->ncells_global;
    int &noffset = mesh->noffset;
 
    state = new State(ncells);
-   state->init(ncells, context, compute_device, do_gpu_calc);
+   state->init(ncells, compute_device, do_gpu_calc);
 
    cl_mem &dev_corners_i_local  = mesh->dev_corners_i;
    cl_mem &dev_corners_j_local  = mesh->dev_corners_j;
@@ -250,7 +249,7 @@ int main(int argc, char **argv) {
 
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
 
-   state->allocate_device_memory(ncells, context);
+   state->allocate_device_memory(ncells);
 
    size_t one = 1;
    state->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT"),               &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
@@ -460,7 +459,7 @@ extern "C" void do_calc(void)
       ncells       = new_ncells;
       //mesh->ncells = new_ncells;
 
-      if (mesh->dev_nlft == NULL) state->gpu_do_load_balance_local(command_queue, mesh, new_ncells);
+      if (mesh->dev_nlft == NULL) state->gpu_do_load_balance_local(mesh, new_ncells);
       //dev_H = (cl_mem)state->gpu_state_memory.get_memory_ptr("dev_H_new");
       //dev_U = (cl_mem)state->gpu_state_memory.get_memory_ptr("dev_U_new");
       //dev_V = (cl_mem)state->gpu_state_memory.get_memory_ptr("dev_V_new");

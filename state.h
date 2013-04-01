@@ -130,7 +130,7 @@ public:
    State(const State&); // To block copy constructor so copies are not made inadvertently
 
 #ifdef HAVE_OPENCL
-   void init(size_t ncells, cl_context context, int compute_device, int do_gpu_calc);
+   void init(size_t ncells, int compute_device, int do_gpu_calc);
    void terminate(void);
 #else
    void init(size_t ncells, int do_gpu_calc);
@@ -158,7 +158,7 @@ public:
    long get_gpu_time_write(void)             {return(gpu_time_write);};
 
 #ifdef HAVE_OPENCL
-   void allocate_device_memory(size_t ncells, cl_context context);
+   void allocate_device_memory(size_t ncells);
 #endif
    void resize_old_device_memory(size_t ncells);
 
@@ -186,7 +186,7 @@ public:
 #endif
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-   void gpu_do_load_balance_local(cl_command_queue command_queue, Mesh *mesh, size_t &numcells);
+   void gpu_do_load_balance_local(Mesh *mesh, size_t &numcells);
 #endif
 #endif
    

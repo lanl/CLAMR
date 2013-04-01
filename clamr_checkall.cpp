@@ -169,7 +169,6 @@ static State      *state_local;    //  Object containing state information corre
 static struct timeval tstart;
 static cl_event start_write_event, end_write_event;
 
-static cl_context          context                 = NULL;
 static cl_command_queue    command_queue           = NULL;
 static int compute_device = 0;
 
@@ -189,9 +188,9 @@ int main(int argc, char **argv) {
    //MPI_Comm_size(MPI_COMM_WORLD, &numpe);
    //MPI_Comm_rank(MPI_COMM_WORLD, &mype);
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &context, &command_queue, &compute_device, mype);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &command_queue, &compute_device, mype);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &context, &command_queue, &compute_device, mype);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &command_queue, &compute_device, mype);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -215,7 +214,7 @@ int main(int argc, char **argv) {
 
       //mesh->print_local();
    }    
-   mesh_local->init(nx, ny, circ_radius, context, initial_order, compute_device, do_gpu_calc);
+   mesh_local->init(nx, ny, circ_radius, initial_order, compute_device, do_gpu_calc);
    size_t &ncells = mesh_local->ncells;
    int &noffset = mesh_local->noffset;
 
@@ -226,7 +225,7 @@ int main(int argc, char **argv) {
    MPI_Allreduce(&ncells, &ncells_global, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
    
    state_local = new State(mesh_local->ncells);
-   state_local->init(mesh_local->ncells, context, compute_device, do_gpu_calc);
+   state_local->init(mesh_local->ncells, compute_device, do_gpu_calc);
 
    state_global = new State(ncells_global);
    state_global->allocate(mesh_global->ncells);
@@ -353,8 +352,8 @@ int main(int argc, char **argv) {
    MPI_Allgatherv(&state_local->U[0], ncells, MPI_C_REAL, &state_global->U[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&state_local->V[0], ncells, MPI_C_REAL, &state_global->V[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
-   state_global->allocate_device_memory(ncells_global, context);
-   state_local->allocate_device_memory(ncells, context);
+   state_global->allocate_device_memory(ncells_global);
+   state_local->allocate_device_memory(ncells);
 
    size_t one = 1;
    state_global->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT_global"), &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
@@ -762,7 +761,7 @@ extern "C" void do_calc(void)
       ndispl = ndispl_save;
 
       if (do_gpu_calc) {
-         state_local->gpu_do_load_balance_local(command_queue, mesh_local, new_ncells);
+         state_local->gpu_do_load_balance_local(mesh_local, new_ncells);
       }
 
       if (do_comparison_calc) {

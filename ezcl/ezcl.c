@@ -309,7 +309,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
    return(0);
 }
 
-cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_context, cl_command_queue *return_command_queue, int *compute_device, const int mype, const char *file, int line){
+cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_command_queue *return_command_queue, int *compute_device, const int mype, const char *file, int line){
    cl_device_id device;
    int ierr;
    cl_uint nDevices_selected=0;
@@ -463,8 +463,6 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_context *return_contex
          if (DEBUG == 2) printf("EZCL_DEVTYPE_INIT: No device of type specified found\n");
       }
    }
-
-   *return_context = ezcl_get_context();
 
    object_item = malloc(sizeof(struct object_entry));
    object_item->object_type = CONTEXT_OBJECT;

@@ -211,13 +211,15 @@ State::State(size_t ncells)
 }
 
 #ifdef HAVE_OPENCL
-void State::init(size_t ncells, cl_context context, int compute_device, int do_gpu_calc)
+void State::init(size_t ncells, int compute_device, int do_gpu_calc)
 #else
 void State::init(size_t ncells, int do_gpu_calc)
 #endif
 {
 #ifdef HAVE_OPENCL
    if (do_gpu_calc) {
+      cl_context context = ezcl_get_context();
+
       if (compute_device == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in state\n");
       kernel_set_timestep                = ezcl_create_kernel(context, "state_kern.cl", "set_timestep_cl",                0);
       kernel_reduction_min               = ezcl_create_kernel(context, "state_kern.cl", "finish_reduction_min_cl",        0);
@@ -2298,7 +2300,7 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_potential, 1, NULL, &global_work_size, &local_work_size, NULL);
 
-   mesh->gpu_rezone_count(command_queue, block_size, local_work_size, dev_ioffset, dev_result);
+   mesh->gpu_rezone_count(block_size, local_work_size, dev_ioffset, dev_result);
 
    size_t result = 0;
    ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
@@ -2312,7 +2314,7 @@ size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *me
       gpu_time_calc_mpot += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
    }
 
-   int my_result = mesh->gpu_refine_smooth(command_queue, dev_ioffset, dev_mpot, result);
+   int my_result = mesh->gpu_refine_smooth(dev_ioffset, dev_mpot, result);
 
    gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
@@ -2539,9 +2541,8 @@ double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enha
 #endif
 
 #ifdef HAVE_OPENCL
-void State::allocate_device_memory(size_t ncells, cl_context context)
+void State::allocate_device_memory(size_t ncells)
 {
-   gpu_state_memory.init(context);
    dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
    dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
    dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
@@ -2568,8 +2569,8 @@ void State::do_load_balance_local(Mesh *mesh, size_t &numcells){
 #endif
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-void State::gpu_do_load_balance_local(cl_command_queue command_queue, Mesh *mesh, size_t &numcells){
-   if (mesh->gpu_do_load_balance_local(command_queue, numcells, NULL, gpu_state_memory) ){
+void State::gpu_do_load_balance_local(Mesh *mesh, size_t &numcells){
+   if (mesh->gpu_do_load_balance_local(numcells, NULL, gpu_state_memory) ){
       //gpu_state_memory.memory_report();
       dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H");
       dev_U = (cl_mem)gpu_state_memory.get_memory_ptr("dev_U");

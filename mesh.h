@@ -280,7 +280,7 @@ public:
 
    //   Member functions.
 #ifdef HAVE_OPENCL
-   void init(int nx, int ny, double circ_radius, cl_context context, partition_method initial_order, int compute_device, int do_gpu_calc);
+   void init(int nx, int ny, double circ_radius, partition_method initial_order, int compute_device, int do_gpu_calc);
    void terminate(void);
 #else
    void init(int nx, int ny, double circ_radius, partition_method initial_order, int do_gpu_calc);
@@ -359,7 +359,7 @@ public:
    void calc_centerminmax(void);
    int  rezone_count(vector<int> mpot);
 #ifdef HAVE_OPENCL
-   void gpu_rezone_count(cl_command_queue command_queue, size_t block_size, size_t local_work_size, cl_mem dev_ioffset, cl_mem &dev_result);
+   void gpu_rezone_count(size_t block_size, size_t local_work_size, cl_mem dev_ioffset, cl_mem &dev_result);
 #endif
    void print(void);
    void print_local(void);
@@ -416,7 +416,7 @@ public:
 #ifdef HAVE_MPI
    void do_load_balance_local(size_t numcells, float *weight, MallocPlus &state_memory);
 #ifdef HAVE_OPENCL
-   int gpu_do_load_balance_local(cl_command_queue command_queue, size_t numcells, float *weight, MallocPlus &gpu_state_memory);
+   int gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &gpu_state_memory);
 #endif
 #endif
 
@@ -437,7 +437,7 @@ public:
    size_t refine_smooth(vector<int> &mpot);
 
 #ifdef HAVE_OPENCL
-   int gpu_refine_smooth(cl_command_queue command_queue, cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result);
+   int gpu_refine_smooth(cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result);
 #endif
 
    /**************************************************************************************
