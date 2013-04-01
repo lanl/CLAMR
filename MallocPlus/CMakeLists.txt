@@ -6,7 +6,7 @@ set(CXX_SRCS MallocPlus.cpp)
 ########### MallocPlus target ###############
 set(MallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
 
-add_library(MallocPlus SHARED ${MallocPlus_LIB_SRCS})
+add_library(MallocPlus STATIC ${MallocPlus_LIB_SRCS})
 
 set_target_properties(MallocPlus PROPERTIES VERSION 2.0.0 SOVERSION 2)
 install(TARGETS MallocPlus DESTINATION lib)
@@ -14,7 +14,7 @@ install(TARGETS MallocPlus DESTINATION lib)
 ########### dMallocPlus target ###############
 set(dMallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
 
-add_library(dMallocPlus SHARED ${dMallocPlus_LIB_SRCS})
+add_library(dMallocPlus STATIC ${dMallocPlus_LIB_SRCS})
 
 set_target_properties(dMallocPlus PROPERTIES VERSION 2.0.0 SOVERSION 2)
 set_target_properties(dMallocPlus PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
