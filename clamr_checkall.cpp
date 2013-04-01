@@ -607,7 +607,7 @@ extern "C" void do_calc(void)
       }
 
       if (do_comparison_calc) {
-         mesh_local->compare_neighbors_all_to_gpu_local(command_queue, mesh_global, &nsizes[0], &ndispl[0]);
+         mesh_local->compare_neighbors_all_to_gpu_local(mesh_global, &nsizes[0], &ndispl[0]);
       }
 
       mesh_local->partition_measure();

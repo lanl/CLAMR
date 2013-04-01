@@ -747,8 +747,10 @@ void Mesh::print_local()
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::print_dev_local(cl_command_queue command_queue)
+void Mesh::print_dev_local(void)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
    vector<int>i_tmp(ncells_ghost);
    vector<int>j_tmp(ncells_ghost);
    vector<int>level_tmp(ncells_ghost);
@@ -773,8 +775,10 @@ void Mesh::print_dev_local(cl_command_queue command_queue)
    //fprintf(fp,"\n%d:              Finished printing mesh for dev_local\n\n",mype);
 }
 
-void Mesh::compare_dev_local_to_local(cl_command_queue command_queue)
+void Mesh::compare_dev_local_to_local(void)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
    vector<int>i_tmp(ncells_ghost);
    vector<int>j_tmp(ncells_ghost);
    vector<int>level_tmp(ncells_ghost);
@@ -966,9 +970,11 @@ void Mesh::compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint nce
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::compare_neighbors_all_to_gpu_local(cl_command_queue command_queue, Mesh *mesh_global, int *nsizes, int *ndispl)
+void Mesh::compare_neighbors_all_to_gpu_local(Mesh *mesh_global, int *nsizes, int *ndispl)
 //uint ncells_ghost, uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
 #ifdef HAVE_MPI
    size_t &ncells_global = mesh_global->ncells;
    vector<int> &nlft_global = mesh_global->nlft;
@@ -1273,8 +1279,10 @@ void Mesh::compare_indices_all_to_gpu_local(Mesh *mesh_global, uint ncells_globa
 #endif
 }
 
-void Mesh::compare_coordinates_gpu_global_to_cpu_global(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real *H)
+void Mesh::compare_coordinates_gpu_global_to_cpu_global(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real *H)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
    vector<real>x_check(ncells);
    vector<real>dx_check(ncells);
    vector<real>y_check(ncells);
@@ -2399,9 +2407,11 @@ void Mesh::calc_spatial_coordinates(int ibase)
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::gpu_calc_spatial_coordinates(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy)
+void Mesh::gpu_calc_spatial_coordinates(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy)
 {
    cl_event calc_spatial_coordinates_event;
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
 
    size_t local_work_size = MIN(ncells, TILE_SIZE);
    size_t global_work_size = ((ncells + local_work_size - 1) /local_work_size) * local_work_size;
@@ -6611,7 +6621,7 @@ void Mesh::gpu_calc_neighbors_local(void)
    }
 
    if (DEBUG) {
-      print_dev_local(command_queue);
+      print_dev_local();
 
       vector<int> hash_tmp(hashsize);
       ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_FALSE, 0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
@@ -7124,7 +7134,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       }
 
       if (DEBUG) {
-         print_dev_local(command_queue);
+         print_dev_local();
 
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
@@ -7294,7 +7304,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       ezcl_device_memory_delete(dev_border_cell_level_new);
 
       if (DEBUG) {
-         print_dev_local(command_queue);
+         print_dev_local();
 
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
@@ -7454,7 +7464,7 @@ void Mesh::gpu_calc_neighbors_local(void)
 
       if (DEBUG){
          fprintf(fp,"After copying i,j, level to ghost cells\n");
-         print_dev_local(command_queue);
+         print_dev_local();
       }
 
       ezcl_device_memory_delete(dev_border_cell_i);
@@ -7496,7 +7506,7 @@ void Mesh::gpu_calc_neighbors_local(void)
 
       if (DEBUG){
          fprintf(fp,"After setting neighbors through ghost cells\n");
-         print_dev_local(command_queue);
+         print_dev_local();
       }
 
 #ifdef BOUNDS_CHECK
@@ -7540,7 +7550,7 @@ void Mesh::gpu_calc_neighbors_local(void)
 
       if (DEBUG){
          fprintf(fp,"After setting corner neighbors\n");
-         print_dev_local(command_queue);
+         print_dev_local();
       }
 
 #ifdef BOUNDS_CHECK
@@ -7571,7 +7581,7 @@ void Mesh::gpu_calc_neighbors_local(void)
 
       if (DEBUG){
          fprintf(fp,"After adjusting neighbors to local indices\n");
-         print_dev_local(command_queue);
+         print_dev_local();
       }
 
       ezcl_wait_for_events(1, &adjust_neighbors_local_event);
@@ -7645,7 +7655,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       }
 
       if (DEBUG) {
-         print_dev_local(command_queue);
+         print_dev_local();
 
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_FALSE, 0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
@@ -7787,7 +7797,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       }
 
       if (DEBUG) {
-         print_dev_local(command_queue);
+         print_dev_local();
 
          vector<int> i_tmp(ncells_ghost);
          vector<int> j_tmp(ncells_ghost);
@@ -8341,7 +8351,7 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
 #endif
 
 #ifdef HAVE_OPENCL
-int Mesh::gpu_count_BCs(cl_command_queue command_queue)
+int Mesh::gpu_count_BCs(void)
 {
    cl_event count_BCs_stage1_event, count_BCs_stage2_event;
 
@@ -8354,6 +8364,7 @@ int Mesh::gpu_count_BCs(cl_command_queue command_queue)
    int bcount = 0;
 
    if (! have_boundary) {
+      cl_command_queue command_queue = ezcl_get_command_queue();
       cl_mem dev_ioffset  = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
        /*

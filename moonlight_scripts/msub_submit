@@ -19,6 +19,7 @@ msub ${SCRIPTS_DIR}/msub064
 msub ${SCRIPTS_DIR}/msub128
 msub ${SCRIPTS_DIR}/msub256
 
+msub ${SCRIPTS_DIR}/msub_mpi001
 msub ${SCRIPTS_DIR}/msub_mpi002
 msub ${SCRIPTS_DIR}/msub_mpi004
 msub ${SCRIPTS_DIR}/msub_mpi008
