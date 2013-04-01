@@ -167,18 +167,18 @@ public:
    void remove_boundary_cells(Mesh *mesh);
    double set_timestep(Mesh *mesh, double g, double sigma);
 #ifdef HAVE_OPENCL
-   double gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, double sigma);
+   double gpu_set_timestep(Mesh *mesh, double sigma);
 #endif
    
    void fill_circle(Mesh *mesh, double circ_radius, double fill_value, double background);
    void state_reorder(vector<int> iorder);
    void rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells);
 #ifdef HAVE_OPENCL
-   void gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil);
+   void gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil);
 #endif
    size_t calc_refine_potential(Mesh *mesh, vector<int> &mpot, int &icount, int &jcount);
 #ifdef HAVE_OPENCL
-   size_t gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh);
+   size_t gpu_calc_refine_potential(Mesh *mesh);
 #endif
 
 #ifdef HAVE_MPI
@@ -192,23 +192,23 @@ public:
    
    void calc_finite_difference(Mesh *mesh, double deltaT);
 #ifdef HAVE_OPENCL
-   void gpu_calc_finite_difference(cl_command_queue, Mesh *mesh, double deltaT);
+   void gpu_calc_finite_difference(Mesh *mesh, double deltaT);
 #endif
 
    void symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index, double eps, 
                        SIGN_RULE sign_rule, int &flag);
    double mass_sum(Mesh *mesh, bool enhanced_precision_sum);
 #ifdef HAVE_OPENCL
-   double gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum);
+   double gpu_mass_sum(Mesh *mesh, bool enhanced_precision_sum);
 #endif
 
    void output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, double elapsed_time);
 #ifdef HAVE_OPENCL
-   void compare_state_gpu_global_to_cpu_global(cl_command_queue command_queue, const char* string, int cycle, uint ncells);
+   void compare_state_gpu_global_to_cpu_global(const char* string, int cycle, uint ncells);
 #endif
    void compare_state_cpu_local_to_cpu_global(State *state_global, const char* string, int cycle, uint ncells, uint ncells_global, int *nsizes, int *ndispl);
 #ifdef HAVE_OPENCL
-   void compare_state_all_to_gpu_local(cl_command_queue command_queue, State *state_global, uint ncells, uint ncells_global, int mype, int ncycle, int *nsizes, int *ndispl);
+   void compare_state_all_to_gpu_local(State *state_global, uint ncells, uint ncells_global, int mype, int ncycle, int *nsizes, int *ndispl);
 #endif
    void print_object_info(void);
 

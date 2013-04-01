@@ -126,7 +126,6 @@ static State      *state;    //  Object containing state information correspondi
 static struct timeval tstart;
 static cl_event start_write_event, end_write_event;
 
-static cl_command_queue    command_queue           = NULL;
 static int compute_device = 0;
 
 static double H_sum_initial = 0.0;
@@ -142,9 +141,9 @@ int main(int argc, char **argv) {
    L7_Init(&mype, &numpe, &argc, argv);
    parseInput(argc, argv);
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &command_queue, &compute_device, mype);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &compute_device, mype);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &command_queue, &compute_device, mype);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &compute_device, mype);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -255,6 +254,7 @@ int main(int argc, char **argv) {
    state->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT"),               &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
 
    //  Set write buffers for data.
+   cl_command_queue command_queue = ezcl_get_command_queue();
    ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->H[0],  &start_write_event);
    ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->U[0],  NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_V, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->V[0],  NULL);
@@ -434,26 +434,26 @@ extern "C" void do_calc(void)
       old_ncells_global = ncells_global;
 
       //  Calculate the real time step for the current discrete time step.
-      deltaT = state->gpu_set_timestep(command_queue, mesh, sigma);
+      deltaT = state->gpu_set_timestep(mesh, sigma);
       simTime += deltaT;
 
-      if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors_local(command_queue);
+      if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors_local();
 
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
-      state->gpu_calc_finite_difference(command_queue, mesh, deltaT);
+      state->gpu_calc_finite_difference(mesh, deltaT);
 
       vector<int>      ioffset(block_size);
 
-      new_ncells = state->gpu_calc_refine_potential(command_queue, mesh);
+      new_ncells = state->gpu_calc_refine_potential(mesh);
 
       int ncells_global_old = ncells_global;
       MPI_Allreduce(&new_ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      if (ncells_global_old != (int)ncells_global) state->gpu_rezone_all(command_queue, mesh, old_ncells, new_ncells, old_ncells, localStencil);
+      if (ncells_global_old != (int)ncells_global) state->gpu_rezone_all(mesh, old_ncells, new_ncells, old_ncells, localStencil);
 
       // XXX XXX XXX
       ncells       = new_ncells;
@@ -480,7 +480,7 @@ extern "C" void do_calc(void)
    }  //  End burst loop
 
    if (H_sum < 0) {
-      H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
+      H_sum = state->gpu_mass_sum(mesh, enhanced_precision_sum);
    }
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
@@ -497,7 +497,7 @@ extern "C" void do_calc(void)
    cl_mem dev_y  = ezcl_malloc(NULL, const_cast<char *>("dev_y"),  &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
    cl_mem dev_dy = ezcl_malloc(NULL, const_cast<char *>("dev_dy"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
 
-   mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
+   mesh->gpu_calc_spatial_coordinates(dev_x, dev_dx, dev_y, dev_dy);
 
    x.resize(ncells);
    dx.resize(ncells);
@@ -506,6 +506,7 @@ extern "C" void do_calc(void)
    //H.resize(max(ncells,ncells_ghost));
    vector<real>H_graphics(ncells);
 
+   cl_command_queue command_queue = ezcl_get_command_queue();
    ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x[0],  &start_read_event);
    ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&y[0],  NULL);

@@ -309,7 +309,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
    return(0);
 }
 
-cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_command_queue *return_command_queue, int *compute_device, const int mype, const char *file, int line){
+cl_int ezcl_devtype_init_p(cl_device_type device_type, int *compute_device, const int mype, const char *file, int line){
    cl_device_id device;
    int ierr;
    cl_uint nDevices_selected=0;
@@ -491,7 +491,6 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, cl_command_queue *return_
    my_compute_device = *compute_device;
 
    command_queue = ezcl_create_command_queue(context, mype);
-   *return_command_queue = ezcl_get_command_queue();
    
    return(EZCL_SUCCESS);
 }

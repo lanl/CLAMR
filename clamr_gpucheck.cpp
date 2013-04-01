@@ -142,7 +142,6 @@ static State      *state;          //  Object containing state information corre
 static struct timeval tstart;
 static cl_event start_write_event, end_write_event;
 
-static cl_command_queue    command_queue           = NULL;
 static int compute_device = 0;
 
 static double  H_sum_initial = 0.0;
@@ -159,9 +158,9 @@ int main(int argc, char **argv) {
    
    numpe = 16;
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &command_queue, &compute_device, 0);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &compute_device, 0);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &command_queue, &compute_device, 0);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &compute_device, 0);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -221,6 +220,7 @@ int main(int argc, char **argv) {
    dev_j        = ezcl_malloc(NULL, const_cast<char *>("dev_j"),        &mem_request, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
    dev_level    = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &mem_request, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
 
+   cl_command_queue command_queue = ezcl_get_command_queue();
    ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&celltype[0], &start_write_event);
    ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],        NULL            );
    ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],        NULL            );
@@ -339,6 +339,8 @@ extern "C" void do_calc(void)
    double H_sum = -1.0;
    double deltaT = 0.0;
 
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
    //  Main loop.
    for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
@@ -355,7 +357,7 @@ extern "C" void do_calc(void)
       //  Calculate the real time step for the current discrete time step.
       double deltaT_cpu = state->set_timestep(mesh, g, sigma);
       
-      double deltaT_gpu = state->gpu_set_timestep(command_queue, mesh, sigma);
+      double deltaT_gpu = state->gpu_set_timestep(mesh, sigma);
 
 #ifdef XXX
       //  Compare time step values and pass deltaT in to the kernel.
@@ -369,10 +371,10 @@ extern "C" void do_calc(void)
 
       if (mesh->nlft.size() == 0) mesh->calc_neighbors();
 
-      if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors(command_queue);
+      if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors();
 
       if (do_comparison_calc) {
-         mesh->compare_neighbors_gpu_global_to_cpu_global(command_queue);
+         mesh->compare_neighbors_gpu_global_to_cpu_global();
       }
 
       mesh->partition_measure();
@@ -387,11 +389,11 @@ extern "C" void do_calc(void)
       //  Execute main kernel
       state->calc_finite_difference(mesh, deltaT);
       
-      state->gpu_calc_finite_difference(command_queue, mesh, deltaT);
+      state->gpu_calc_finite_difference(mesh, deltaT);
       
       if (do_comparison_calc) {
          // Need to compare dev_H to H, etc
-         state->compare_state_gpu_global_to_cpu_global(command_queue,"finite difference",ncycle,ncells);
+         state->compare_state_gpu_global_to_cpu_global("finite difference",ncycle,ncells);
       }
 
       if (compute_device == COMPUTE_DEVICE_ATI) {
@@ -406,12 +408,12 @@ extern "C" void do_calc(void)
       mpot.resize(ncells);
       new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
 
-      new_ncells_gpu = state->gpu_calc_refine_potential(command_queue, mesh);
+      new_ncells_gpu = state->gpu_calc_refine_potential(mesh);
       
       if (do_comparison_calc) {
          // Need to compare dev_mpot to mpot
          if (mesh->dev_nlft == NULL) {
-            mesh->compare_mpot_gpu_global_to_cpu_global(command_queue, &mpot[0], dev_mpot);
+            mesh->compare_mpot_gpu_global_to_cpu_global(&mpot[0], dev_mpot);
          }
       }
 
@@ -429,7 +431,7 @@ extern "C" void do_calc(void)
       if (do_comparison_calc) {
          // This compares ioffset for each block in the calculation
          if (mesh->dev_nlft == NULL) {
-            mesh->compare_ioffset_gpu_global_to_cpu_global(command_queue, old_ncells, &mpot[0], state->dev_ioffset);
+            mesh->compare_ioffset_gpu_global_to_cpu_global(old_ncells, &mpot[0], state->dev_ioffset);
          }
       }
 
@@ -469,18 +471,18 @@ extern "C" void do_calc(void)
       mpot.clear();
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      if (mesh->dev_nlft == NULL) state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil);
+      if (mesh->dev_nlft == NULL) state->gpu_rezone_all(mesh, ncells, new_ncells, old_ncells, localStencil);
 
       //ezcl_device_memory_remove(dev_ioffset);
 
       if (do_comparison_calc) {
-         state->compare_state_gpu_global_to_cpu_global(command_queue,"rezone all",ncycle,ncells);
+         state->compare_state_gpu_global_to_cpu_global("rezone all",ncycle,ncells);
 
-         mesh->compare_indices_gpu_global_to_cpu_global(command_queue);
+         mesh->compare_indices_gpu_global_to_cpu_global();
       }
 
       //if (do_gpu_calc) {
-      //   int bcount = mesh->gpu_count_BCs(command_queue);
+      //   int bcount = mesh->gpu_count_BCs();
       //}
 
       mesh->proc.resize(ncells);
@@ -513,7 +515,7 @@ extern "C" void do_calc(void)
    }
    if (do_comparison_calc) {
       H_sum = state->mass_sum(mesh, enhanced_precision_sum);
-      double total_mass = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
+      double total_mass = state->gpu_mass_sum(mesh, enhanced_precision_sum);
       if (fabs(total_mass - H_sum) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", total_mass, H_sum);/***/
    }
 
@@ -530,10 +532,10 @@ extern "C" void do_calc(void)
       cl_mem dev_y  = ezcl_malloc(NULL, const_cast<char *>("dev_y"),  &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
       cl_mem dev_dy = ezcl_malloc(NULL, const_cast<char *>("dev_dy"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
 
-      mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
+      mesh->gpu_calc_spatial_coordinates(dev_x, dev_dx, dev_y, dev_dy);
 
       if (do_comparison_calc){
-         mesh->compare_coordinates_gpu_global_to_cpu_global(command_queue, dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
+         mesh->compare_coordinates_gpu_global_to_cpu_global(dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
       }
 
       ezcl_device_memory_remove(dev_x);

@@ -169,7 +169,6 @@ static State      *state_local;    //  Object containing state information corre
 static struct timeval tstart;
 static cl_event start_write_event, end_write_event;
 
-static cl_command_queue    command_queue           = NULL;
 static int compute_device = 0;
 
 static double  H_sum_initial = 0.0;
@@ -188,9 +187,9 @@ int main(int argc, char **argv) {
    //MPI_Comm_size(MPI_COMM_WORLD, &numpe);
    //MPI_Comm_rank(MPI_COMM_WORLD, &mype);
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &command_queue, &compute_device, mype);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &compute_device, mype);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &command_queue, &compute_device, mype);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &compute_device, mype);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -365,6 +364,7 @@ int main(int argc, char **argv) {
    dev_level_global    = ezcl_malloc(NULL, const_cast<char *>("dev_level_global"),    &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
 
    //  Set write buffers for data.
+   cl_command_queue command_queue = ezcl_get_command_queue();
    ezcl_enqueue_write_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->H[0],  &start_write_event);
    ezcl_enqueue_write_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->U[0],  NULL              );
    ezcl_enqueue_write_buffer(command_queue, dev_V_global, CL_FALSE, 0, ncells_global*sizeof(cl_real),  (void *)&state_global->V[0],  NULL              );
@@ -533,6 +533,8 @@ extern "C" void do_calc(void)
    double H_sum = -1.0;
    double deltaT = 0.0;
 
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
    //  Main loop.
    for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
@@ -570,8 +572,8 @@ extern "C" void do_calc(void)
       double deltaT_gpu = -1.0;
       double deltaT_gpu_local = -1.0;
       if (do_gpu_calc) {
-         deltaT_gpu = state_global->gpu_set_timestep(command_queue, mesh_global, sigma);
-         deltaT_gpu_local = state_local->gpu_set_timestep(command_queue, mesh_local, sigma);
+         deltaT_gpu = state_global->gpu_set_timestep(mesh_global, sigma);
+         deltaT_gpu_local = state_local->gpu_set_timestep(mesh_local, sigma);
       }  //  Complete GPU calculation.
 
       //  Compare time step values and pass deltaT in to the kernel.
@@ -599,8 +601,8 @@ extern "C" void do_calc(void)
 
       if (do_gpu_calc) {
          if (mesh_local->dev_nlft == NULL) {
-            mesh_global->gpu_calc_neighbors(command_queue);
-            mesh_local->gpu_calc_neighbors_local(command_queue);
+            mesh_global->gpu_calc_neighbors();
+            mesh_local->gpu_calc_neighbors_local();
          }
       }
 
@@ -624,12 +626,12 @@ extern "C" void do_calc(void)
       }
       
       if (do_gpu_calc) {
-         state_global->gpu_calc_finite_difference(command_queue, mesh_global, deltaT);
-         state_local->gpu_calc_finite_difference(command_queue, mesh_local, deltaT);
+         state_global->gpu_calc_finite_difference(mesh_global, deltaT);
+         state_local->gpu_calc_finite_difference(mesh_local, deltaT);
       }
       
       if (do_comparison_calc) {
-         state_local->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
+         state_local->compare_state_all_to_gpu_local(state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
       }
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
@@ -650,8 +652,8 @@ extern "C" void do_calc(void)
       }  //  Complete CPU calculation.
 
       if (do_gpu_calc) {
-         new_ncells_global = state_global->gpu_calc_refine_potential(command_queue, mesh_global);
-         new_ncells = state_local->gpu_calc_refine_potential(command_queue, mesh_local);
+         new_ncells_global = state_global->gpu_calc_refine_potential(mesh_global);
+         new_ncells = state_local->gpu_calc_refine_potential(mesh_local);
       }
       
       if (do_comparison_calc) {
@@ -662,7 +664,7 @@ extern "C" void do_calc(void)
          }
 
          if (mesh_local->dev_nlft == NULL) {
-            mesh_local->compare_mpot_all_to_gpu_local(command_queue, &mpot[0], &mpot_global[0], state_local->dev_mpot, state_global->dev_mpot, ncells_global, &nsizes[0], &ndispl[0], ncycle);
+            mesh_local->compare_mpot_all_to_gpu_local(&mpot[0], &mpot_global[0], state_local->dev_mpot, state_global->dev_mpot, ncells_global, &nsizes[0], &ndispl[0], ncycle);
          }
       }
 
@@ -682,7 +684,7 @@ extern "C" void do_calc(void)
       if (mesh_local->dev_nlft == NULL) {
          int mcount, mtotal;
          if (do_comparison_calc) {
-            mesh_local->compare_ioffset_all_to_gpu_local(command_queue, old_ncells, old_ncells_global, block_size, block_size_global, &mpot[0], &mpot_global[0], state_local->dev_ioffset, state_global->dev_ioffset, &ioffset[0], &ioffset_global[0], &celltype_global[0]);
+            mesh_local->compare_ioffset_all_to_gpu_local(old_ncells, old_ncells_global, block_size, block_size_global, &mpot[0], &mpot_global[0], state_local->dev_ioffset, state_global->dev_ioffset, &ioffset[0], &ioffset_global[0], &celltype_global[0]);
          }
          if (do_gpu_sync) {
            mtotal = 0;
@@ -731,8 +733,8 @@ extern "C" void do_calc(void)
       //  Resize the mesh, inserting cells where refinement is necessary.
       if (do_gpu_calc) {
          if (mesh_global->dev_nlft == NULL){
-            state_global->gpu_rezone_all(command_queue, mesh_global, ncells_global, new_ncells_global, old_ncells_global, localStencil);
-            state_local->gpu_rezone_all(command_queue, mesh_local, old_ncells, new_ncells, old_ncells, localStencil);
+            state_global->gpu_rezone_all(mesh_global, ncells_global, new_ncells_global, old_ncells_global, localStencil);
+            state_local->gpu_rezone_all(mesh_local, old_ncells, new_ncells, old_ncells, localStencil);
          }
       }
 
@@ -743,9 +745,9 @@ extern "C" void do_calc(void)
       mesh_global->ncells = new_ncells_global;
 
       if (do_comparison_calc) {
-         state_local->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
+         state_local->compare_state_all_to_gpu_local(state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
 
-         mesh_local->compare_indices_all_to_gpu_local(command_queue, mesh_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);
+         mesh_local->compare_indices_all_to_gpu_local(mesh_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);
       } // do_comparison_calc
 
       vector<int> nsizes_save(numpe);
@@ -765,14 +767,14 @@ extern "C" void do_calc(void)
       }
 
       if (do_comparison_calc) {
-         state_local->compare_state_all_to_gpu_local(command_queue, state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
+         state_local->compare_state_all_to_gpu_local(state_global, ncells, ncells_global, mype, ncycle, &nsizes[0], &ndispl[0]);
 
-         mesh_local->compare_indices_all_to_gpu_local(command_queue, mesh_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);
+         mesh_local->compare_indices_all_to_gpu_local(mesh_global, ncells_global, &nsizes[0], &ndispl[0], ncycle);
       } // do_comparison_calc
 
 #ifdef XXX // not rewritten yet
       if (do_gpu_calc) {
-         mesh->gpu_count_BCs(command_queue, block_size, local_work_size, global_work_size, dev_ioffset);
+         mesh->gpu_count_BCs(block_size, local_work_size, global_work_size, dev_ioffset);
       }
 #endif
 
@@ -784,8 +786,8 @@ extern "C" void do_calc(void)
       if (do_comparison_calc) {
          double cpu_mass_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
          double cpu_mass_sum_local = state_local->mass_sum(mesh_local, enhanced_precision_sum);
-         double gpu_mass_sum = state_global->gpu_mass_sum(command_queue, mesh_global, enhanced_precision_sum);
-         H_sum = state_local->gpu_mass_sum(command_queue, mesh_local, enhanced_precision_sum);
+         double gpu_mass_sum = state_global->gpu_mass_sum(mesh_global, enhanced_precision_sum);
+         H_sum = state_local->gpu_mass_sum(mesh_local, enhanced_precision_sum);
          int iflag = 0;
          if (fabs(cpu_mass_sum_local - cpu_mass_sum) > CONSERVATION_EPS) iflag = 1;
          //if (fabs(H_sum - gpu_mass_sum) > CONSERVATION_EPS) iflag = 1;
@@ -847,7 +849,7 @@ extern "C" void do_calc(void)
    cl_mem dev_y  = ezcl_malloc(NULL, const_cast<char *>("dev_y"),  &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
    cl_mem dev_dy = ezcl_malloc(NULL, const_cast<char *>("dev_dy"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
 
-   mesh_local->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
+   mesh_local->gpu_calc_spatial_coordinates(dev_x, dev_dx, dev_y, dev_dy);
 
    x.resize(ncells);
    dx.resize(ncells);

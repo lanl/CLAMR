@@ -649,12 +649,14 @@ double State::set_timestep(Mesh *mesh, double g, double sigma)
 }
 
 #ifdef HAVE_OPENCL
-double State::gpu_set_timestep(cl_command_queue command_queue, Mesh *mesh, double sigma)
+double State::gpu_set_timestep(Mesh *mesh, double sigma)
 {
    double deltaT, globalmindeltaT;
-   struct timeval tstart_cpu;
 
+   struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
 
    size_t &ncells       = mesh->ncells;
 #ifdef HAVE_MPI
@@ -902,10 +904,12 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 
 
 #ifdef HAVE_OPENCL
-void State::gpu_rezone_all(cl_command_queue command_queue, Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil)
+void State::gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
 
    mesh->gpu_rezone_counter++;
 
@@ -1762,11 +1766,12 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
 }
 
 #ifdef HAVE_OPENCL
-void State::gpu_calc_finite_difference(cl_command_queue command_queue, Mesh *mesh, double deltaT)
+void State::gpu_calc_finite_difference(Mesh *mesh, double deltaT)
 {
    struct timeval tstart_cpu;
-
    cpu_timer_start(&tstart_cpu);
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
 
    cl_mem dev_ptr = NULL;
 
@@ -2122,13 +2127,15 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
 }
 
 #ifdef HAVE_OPENCL
-size_t State::gpu_calc_refine_potential(cl_command_queue command_queue, Mesh *mesh)
+size_t State::gpu_calc_refine_potential(Mesh *mesh)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
 
    size_t &ncells       = mesh->ncells;
    int &levmx           = mesh->levmx;
@@ -2394,10 +2401,12 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
 }
 
 #ifdef HAVE_OPENCL
-double State::gpu_mass_sum(cl_command_queue command_queue, Mesh *mesh, bool enhanced_precision_sum)
+double State::gpu_mass_sum(Mesh *mesh, bool enhanced_precision_sum)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
 
    size_t &ncells       = mesh->ncells;
    cl_mem &dev_levdx    = mesh->dev_levdx;
@@ -2886,8 +2895,10 @@ void State::parallel_memory_output(int numpe, int mype, const char *string, long
 }
 
 #ifdef HAVE_OPENCL
-void State::compare_state_gpu_global_to_cpu_global(cl_command_queue command_queue, const char* string, int cycle, uint ncells)
+void State::compare_state_gpu_global_to_cpu_global(const char* string, int cycle, uint ncells)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
    vector<real>H_check(ncells);
    vector<real>U_check(ncells);
    vector<real>V_check(ncells);
@@ -2925,8 +2936,10 @@ void State::compare_state_cpu_local_to_cpu_global(State *state_global, const cha
 }
 
 #ifdef HAVE_OPENCL
-void State::compare_state_all_to_gpu_local(cl_command_queue command_queue, State *state_global, uint ncells, uint ncells_global, int mype, int ncycle, int *nsizes, int *ndispl)
+void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uint ncells_global, int mype, int ncycle, int *nsizes, int *ndispl)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
 #ifdef HAVE_MPI
    real *H_global = state_global->H;
    real *U_global = state_global->U;

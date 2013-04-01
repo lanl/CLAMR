@@ -383,8 +383,8 @@ public:
    void calc_neighbors(void);
    void calc_neighbors_local(void);
 #ifdef HAVE_OPENCL
-   void gpu_calc_neighbors(cl_command_queue command_queue);
-   void gpu_calc_neighbors_local(cl_command_queue command_queue);
+   void gpu_calc_neighbors(void);
+   void gpu_calc_neighbors_local(void);
 #endif
    //   TODO:  Not created yet; overloading for 3D mesh support. (davis68)
    void calc_neighbors(vector<int> &nlft,
@@ -445,27 +445,27 @@ public:
    **************************************************************************************/
 #ifdef HAVE_OPENCL
    void compare_dev_local_to_local(cl_command_queue);
-   void compare_neighbors_gpu_global_to_cpu_global(cl_command_queue command_queue);
+   void compare_neighbors_gpu_global_to_cpu_global();
 #endif
    void compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl);
 #ifdef HAVE_OPENCL
    void compare_neighbors_all_to_gpu_local(cl_command_queue command_queue, Mesh *mesh_global, int *nsizes, int *ndispl);
-   void compare_mpot_gpu_global_to_cpu_global(cl_command_queue command_queue, int *mpot, cl_mem dev_mpot);
+   void compare_mpot_gpu_global_to_cpu_global(int *mpot, cl_mem dev_mpot);
 #endif
    void compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *displ, int *mpot, int *mpot_global, int cycle);
 #ifdef HAVE_OPENCL
-   void compare_mpot_all_to_gpu_local(cl_command_queue command_queue, int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
-   void compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, uint old_ncells, int *mpot, cl_mem dev_ioffset);
-   void compare_ioffset_all_to_gpu_local(cl_command_queue command_queue, uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global);
+   void compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
+   void compare_ioffset_gpu_global_to_cpu_global(uint old_ncells, int *mpot, cl_mem dev_ioffset);
+   void compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global);
    void compare_coordinates_gpu_global_to_cpu_global(cl_command_queue command_queue, cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real *H);
 #endif
    void compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, real *x, real *dx, real *y, real *dy, real *H, real *x_global, real *dx_global, real *y_global, real *dy_global, real *H_global, int cycle);
 #ifdef HAVE_OPENCL
-   void compare_indices_gpu_global_to_cpu_global(cl_command_queue command_queue);
+   void compare_indices_gpu_global_to_cpu_global(void);
 #endif
    void compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl, int cycle);
 #ifdef HAVE_OPENCL
-   void compare_indices_all_to_gpu_local(cl_command_queue command_queue, Mesh *mesh_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
+   void compare_indices_all_to_gpu_local(Mesh *mesh_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
 #endif
 
 

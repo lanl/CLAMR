@@ -802,8 +802,10 @@ void Mesh::compare_dev_local_to_local(cl_command_queue command_queue)
    fprintf(fp,"\n%d:                 Finished comparing mesh for dev_local to local\n\n",mype);
 }
 
-void Mesh::compare_neighbors_gpu_global_to_cpu_global(cl_command_queue command_queue)
+void Mesh::compare_neighbors_gpu_global_to_cpu_global()
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
    vector<int>nlft_check(ncells);
    vector<int>nrht_check(ncells);
    vector<int>nbot_check(ncells);
@@ -1147,8 +1149,10 @@ void Mesh::compare_neighbors_all_to_gpu_local(cl_command_queue command_queue, Me
 #endif
 }
 
-void Mesh::compare_indices_gpu_global_to_cpu_global(cl_command_queue command_queue)
+void Mesh::compare_indices_gpu_global_to_cpu_global(void)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
    vector<int> i_check(ncells);
    vector<int> j_check(ncells);
    vector<int> level_check(ncells);
@@ -1195,8 +1199,10 @@ void Mesh::compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mes
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::compare_indices_all_to_gpu_local(cl_command_queue command_queue, Mesh *mesh_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle)
+void Mesh::compare_indices_all_to_gpu_local(Mesh *mesh_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
 #ifdef HAVE_MPI
    vector<int> &level_global = mesh_global->level;
    vector<int> &celltype_global = mesh_global->celltype;
@@ -1321,8 +1327,10 @@ void Mesh::compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::compare_mpot_gpu_global_to_cpu_global(cl_command_queue command_queue, int *mpot, cl_mem dev_mpot)
+void Mesh::compare_mpot_gpu_global_to_cpu_global(int *mpot, cl_mem dev_mpot)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
    vector<int>mpot_check(ncells);
    ezcl_enqueue_read_buffer(command_queue, dev_mpot,  CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_check[0], NULL);
 
@@ -1347,8 +1355,10 @@ void Mesh::compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes,
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::compare_mpot_all_to_gpu_local(cl_command_queue command_queue, int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle)
+void Mesh::compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
 #ifdef HAVE_MPI
    // Need to compare dev_mpot to mpot 
    vector<int>mpot_save(ncells);
@@ -1386,8 +1396,10 @@ void Mesh::compare_mpot_all_to_gpu_local(cl_command_queue command_queue, int *mp
 #endif
 }
 
-void Mesh::compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_queue, uint old_ncells, int *mpot, cl_mem dev_ioffset)
+void Mesh::compare_ioffset_gpu_global_to_cpu_global(uint old_ncells, int *mpot, cl_mem dev_ioffset)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
    size_t local_work_size  = MIN(ncells, TILE_SIZE);
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
 
@@ -1415,8 +1427,10 @@ void Mesh::compare_ioffset_gpu_global_to_cpu_global(cl_command_queue command_que
    }
 }
 
-void Mesh::compare_ioffset_all_to_gpu_local(cl_command_queue command_queue, uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global)
+void Mesh::compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global)
 {
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
    // This compares ioffset for each block in the calculation
    ezcl_enqueue_read_buffer(command_queue, dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int), &ioffset[0], NULL);
    int mtotal = 0; 
@@ -6028,7 +6042,7 @@ void Mesh::calc_neighbors_local(void)
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
+void Mesh::gpu_calc_neighbors(void)
 {
    int gpu_do_compact_hash   =  0;
    int gpu_hash_method       = -1;
@@ -6041,6 +6055,8 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
 
    struct timeval tstart_lev2;
    cpu_timer_start(&tstart_lev2);
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
 
    gpu_calc_neigh_counter++;
 
@@ -6194,7 +6210,7 @@ void Mesh::gpu_calc_neighbors(cl_command_queue command_queue)
 }
 
 
-void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
+void Mesh::gpu_calc_neighbors_local(void)
 {
    int gpu_do_compact_hash   =  0;
    int gpu_hash_method       = -1;
@@ -6207,6 +6223,8 @@ void Mesh::gpu_calc_neighbors_local(cl_command_queue command_queue)
 
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
 
    gpu_calc_neigh_counter++;
 

@@ -111,7 +111,6 @@ static State *state;          //  Object containing state information correspond
 static struct timeval tstart;
 static cl_event start_read_event,  end_read_event;
 
-static cl_command_queue    command_queue           = NULL;
 static int compute_device = 0;
 
 static double H_sum_initial = 0.0;
@@ -129,9 +128,9 @@ int main(int argc, char **argv) {
    
    numpe = 16;
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &command_queue, &compute_device, 0);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &compute_device, 0);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &command_queue, &compute_device, 0);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &compute_device, 0);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -196,6 +195,7 @@ int main(int argc, char **argv) {
    dev_j        = ezcl_malloc(NULL, const_cast<char *>("dev_j"),        &mem_request, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
    dev_level    = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &mem_request, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
 
+   cl_command_queue command_queue = ezcl_get_command_queue();
    ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  &celltype[0], NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &i[0],        NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  &j[0],        NULL);
@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
    if (compute_device == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
 
    //  Kahan-type enhanced precision sum implementation.
-   double H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
+   double H_sum = state->gpu_mass_sum(mesh, enhanced_precision_sum);
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
@@ -286,10 +286,10 @@ extern "C" void do_calc(void)
 
       //  Calculate the real time step for the current discrete time step.
       
-      deltaT = state->gpu_set_timestep(command_queue, mesh, sigma);
+      deltaT = state->gpu_set_timestep(mesh, sigma);
       simTime += deltaT;
 
-      if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors(command_queue);
+      if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors();
 
       // Currently not working -- may need to be earlier?
       //if (do_cpu_calc && ! mesh->have_boundary) {
@@ -297,18 +297,18 @@ extern "C" void do_calc(void)
       //}
 
       //  Execute main kernel
-      state->gpu_calc_finite_difference(command_queue, mesh, deltaT);
+      state->gpu_calc_finite_difference(mesh, deltaT);
       
-      size_t new_ncells = state->gpu_calc_refine_potential(command_queue, mesh);
+      size_t new_ncells = state->gpu_calc_refine_potential(mesh);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      if (mesh->dev_nlft == NULL) state->gpu_rezone_all(command_queue, mesh, ncells, new_ncells, old_ncells, localStencil);
+      if (mesh->dev_nlft == NULL) state->gpu_rezone_all(mesh, ncells, new_ncells, old_ncells, localStencil);
 
-      //int bcount = mesh->gpu_count_BCs(command_queue);
+      //int bcount = mesh->gpu_count_BCs();
 
    } // End burst loop
 
-   double H_sum = state->gpu_mass_sum(command_queue, mesh, enhanced_precision_sum);
+   double H_sum = state->gpu_mass_sum(mesh, enhanced_precision_sum);
 
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
@@ -322,7 +322,7 @@ extern "C" void do_calc(void)
    cl_mem dev_dx = ezcl_malloc(NULL, const_cast<char *>("dev_dx"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
    cl_mem dev_y  = ezcl_malloc(NULL, const_cast<char *>("dev_y"),  &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
    cl_mem dev_dy = ezcl_malloc(NULL, const_cast<char *>("dev_dy"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-   mesh->gpu_calc_spatial_coordinates(command_queue, dev_x, dev_dx, dev_y, dev_dy);
+   mesh->gpu_calc_spatial_coordinates(dev_x, dev_dx, dev_y, dev_dy);
 
    mesh->x.resize(ncells);
    mesh->dx.resize(ncells);
@@ -330,6 +330,7 @@ extern "C" void do_calc(void)
    mesh->dy.resize(ncells);
    vector<real> H_graphics(ncells);
 
+   cl_command_queue command_queue = ezcl_get_command_queue();
    ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->x[0],  &start_read_event);
    ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->dx[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->y[0],  NULL);
