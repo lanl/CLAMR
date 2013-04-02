@@ -10,6 +10,29 @@ set(C_SRCS
       l7_dev_free.c
 )
 
+
+########### Generate kernel  ###############
+MESSAGE(STATUS "Generating l7_kernel.inc")
+set(input_file "l7_kern.cl")
+set(output_file "l7_kernel.inc")
+# Read the whole input file
+file(READ "${input_file}" contents)
+#Split into lines
+string (REGEX REPLACE ";"  "\\\\;" contents "${contents}")
+string (REGEX REPLACE "\n" "E;"    contents "${contents}")
+# Replace quote with two quotes for embedding into string
+string (REGEX REPLACE "\"" "\"\""  contents "${contents}")
+# Start output file
+file(WRITE "${output_file}" "const char *l7_kernel_source =\n")
+# Send each line to output file
+foreach(lineE ${contents})
+  # Get rid of the trailing "E"
+  string(REGEX REPLACE "^(.*)E$" "\\1" line "${lineE}")
+  file(APPEND "${output_file}" "\"${line}\\n\"\n")
+endforeach()
+# Close output file
+file(APPEND "${output_file}" ";\n")
+
 ########### l7 target ###############
 set(l7_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
@@ -17,6 +40,8 @@ add_library(l7 STATIC ${l7_LIB_SRCS})
 
 set_target_properties(l7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
 target_link_libraries(l7 ${MPI_LIBRARIES})
+add_dependencies(l7 l7_kernel.inc)
+add_dependencies(l7 l7_kern.cl)
 install(TARGETS l7 DESTINATION lib)
 
 ########### dl7 target ###############

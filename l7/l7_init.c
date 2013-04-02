@@ -47,15 +47,7 @@
 
 #define L7_LOCATION "L7_INIT"
 
-#define STRINGIFY(src) #src
-
-inline const char *l7_kernels(void) {
-   const char *l7_kernels_string =
-      "#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n"
-      #include "l7_kern.cl"
-      ;
-   return l7_kernels_string;
-}
+#include "l7_kernel.inc"
 
 int L7_Init (
     int *mype,
@@ -174,12 +166,12 @@ int L7_Dev_Init(void)
         l7.kernel_copy_ghost_double_data = ezcl_create_kernel(context, "l7/l7_kern.cl", "copy_ghost_double_data_cl", 0);
 */
 
-        l7.kernel_pack_int_have_data     = ezcl_create_kernel_wsource(context, l7_kernels(), "pack_int_have_data_cl",     0);
-        l7.kernel_pack_float_have_data   = ezcl_create_kernel_wsource(context, l7_kernels(), "pack_float_have_data_cl",   0);
-        l7.kernel_pack_double_have_data  = ezcl_create_kernel_wsource(context, l7_kernels(), "pack_double_have_data_cl",  0);
-        l7.kernel_copy_ghost_int_data    = ezcl_create_kernel_wsource(context, l7_kernels(), "copy_ghost_int_data_cl",    0);
-        l7.kernel_copy_ghost_float_data  = ezcl_create_kernel_wsource(context, l7_kernels(), "copy_ghost_float_data_cl",  0);
-        l7.kernel_copy_ghost_double_data = ezcl_create_kernel_wsource(context, l7_kernels(), "copy_ghost_double_data_cl", 0);
+        l7.kernel_pack_int_have_data     = ezcl_create_kernel_wsource(context, l7_kernel_source, "pack_int_have_data_cl",     0);
+        l7.kernel_pack_float_have_data   = ezcl_create_kernel_wsource(context, l7_kernel_source, "pack_float_have_data_cl",   0);
+        l7.kernel_pack_double_have_data  = ezcl_create_kernel_wsource(context, l7_kernel_source, "pack_double_have_data_cl",  0);
+        l7.kernel_copy_ghost_int_data    = ezcl_create_kernel_wsource(context, l7_kernel_source, "copy_ghost_int_data_cl",    0);
+        l7.kernel_copy_ghost_float_data  = ezcl_create_kernel_wsource(context, l7_kernel_source, "copy_ghost_float_data_cl",  0);
+        l7.kernel_copy_ghost_double_data = ezcl_create_kernel_wsource(context, l7_kernel_source, "copy_ghost_double_data_cl", 0);
    }
 #endif
 }
