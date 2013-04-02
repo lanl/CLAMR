@@ -10,28 +10,11 @@ set(C_SRCS
       l7_dev_free.c
 )
 
-
-########### Generate kernel  ###############
-MESSAGE(STATUS "Generating l7_kernel.inc")
-set(input_file "l7_kern.cl")
-set(output_file "l7_kernel.inc")
-# Read the whole input file
-file(READ "${input_file}" contents)
-#Split into lines
-string (REGEX REPLACE ";"  "\\\\;" contents "${contents}")
-string (REGEX REPLACE "\n" "E;"    contents "${contents}")
-# Replace quote with two quotes for embedding into string
-string (REGEX REPLACE "\"" "\"\""  contents "${contents}")
-# Start output file
-file(WRITE "${output_file}" "const char *l7_kernel_source =\n")
-# Send each line to output file
-foreach(lineE ${contents})
-  # Get rid of the trailing "E"
-  string(REGEX REPLACE "^(.*)E$" "\\1" line "${lineE}")
-  file(APPEND "${output_file}" "\"${line}\\n\"\n")
-endforeach()
-# Close output file
-file(APPEND "${output_file}" ";\n")
+########### embed source target ###############
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/l7/l7_kernel.inc
+                  COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl ${CMAKE_SOURCE_DIR}/l7/l7_kern.cl > l7_kernel.inc
+                  DEPENDS l7_kern.cl)
+add_custom_target(l7_kernel.inc ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/l7/l7_kernel.inc)
 
 ########### l7 target ###############
 set(l7_LIB_SRCS ${C_SRCS} ${H_SRCS})
@@ -40,8 +23,6 @@ add_library(l7 STATIC ${l7_LIB_SRCS})
 
 set_target_properties(l7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
 target_link_libraries(l7 ${MPI_LIBRARIES})
-add_dependencies(l7 l7_kernel.inc)
-add_dependencies(l7 l7_kern.cl)
 install(TARGETS l7 DESTINATION lib)
 
 ########### dl7 target ###############
@@ -51,9 +32,15 @@ add_library(dl7 STATIC ${l7_LIB_SRCS})
 
 set_target_properties(dl7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
 set_target_properties(dl7 PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
+#set_property(SOURCE l7_init.c APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/l7/l7_kernel.inc)
 target_link_libraries(dl7 ${MPI_LIBRARIES})
 target_link_libraries(dl7 ${OPENCL_LIBRARIES})
+add_dependencies(dl7 l7_kernel.inc)
+#add_dependencies(dl7 l7_kern.cl)
 install(TARGETS dl7 DESTINATION lib)
+
+########### clean files ################
+SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "l7_kernel.inc")
 
 ########### install files ###############
 

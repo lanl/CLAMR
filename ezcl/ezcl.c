@@ -1522,11 +1522,10 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
    snprintf(object_item->name,(size_t)30,"%-30s",kernel_name);
    object_item->line = line;
    snprintf(object_item->file,(size_t)30,"%-30s",file);
-/*
+   char *filename = "dummy";
    filename_copy = (char *)malloc(strlen(filename) + 1);
    strcpy(filename_copy, filename);
    object_item->filename = filename_copy;
-*/
    if (DEBUG) printf("EZCL_CREATE_KERNEL: DEBUG -- program is %p\n",program);
    SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
 
