@@ -47,7 +47,9 @@
 
 #define L7_LOCATION "L7_INIT"
 
+#ifdef HAVE_OPENCL
 #include "l7_kernel.inc"
+#endif
 
 int L7_Init (
     int *mype,

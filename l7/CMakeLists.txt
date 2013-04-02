@@ -14,7 +14,7 @@ set(C_SRCS
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/l7/l7_kernel.inc
                   COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl ${CMAKE_SOURCE_DIR}/l7/l7_kern.cl > l7_kernel.inc
                   DEPENDS l7_kern.cl)
-add_custom_target(l7_kernel.inc ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/l7/l7_kernel.inc)
+add_custom_target(l7_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/l7/l7_kernel.inc)
 
 ########### l7 target ###############
 set(l7_LIB_SRCS ${C_SRCS} ${H_SRCS})
@@ -32,11 +32,9 @@ add_library(dl7 STATIC ${l7_LIB_SRCS})
 
 set_target_properties(dl7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
 set_target_properties(dl7 PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
-#set_property(SOURCE l7_init.c APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/l7/l7_kernel.inc)
 target_link_libraries(dl7 ${MPI_LIBRARIES})
 target_link_libraries(dl7 ${OPENCL_LIBRARIES})
-add_dependencies(dl7 l7_kernel.inc)
-#add_dependencies(dl7 l7_kern.cl)
+add_dependencies(dl7 l7_kernel_source)
 install(TARGETS dl7 DESTINATION lib)
 
 ########### clean files ################

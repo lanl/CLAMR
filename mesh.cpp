@@ -121,6 +121,10 @@ int do_stencil_warning=1;
 int do_stencil_warning=0;
 #endif
 
+#ifdef HAVE_OPENCL
+#include "mesh_kernel.inc"
+#endif
+
 extern bool localStencil;
 int calc_neighbor_type;
 
@@ -1670,41 +1674,41 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    if (do_gpu_calc) {
       if (compute_device == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in mesh\n");
 
-      kernel_reduction_scan           = ezcl_create_kernel(context, "mesh_kern.cl", "finish_reduction_scan_cl",    0);
-      kernel_hash_init                = ezcl_create_kernel(context, "mesh_kern.cl", "hash_init_cl",                0);
-      kernel_hash_init_corners        = ezcl_create_kernel(context, "mesh_kern.cl", "hash_init_corners_cl",        0);
-      kernel_hash_setup               = ezcl_create_kernel(context, "mesh_kern.cl", "hash_setup_cl",               0);
-      kernel_hash_setup_local         = ezcl_create_kernel(context, "mesh_kern.cl", "hash_setup_local_cl",         0);
-      kernel_calc_neighbors           = ezcl_create_kernel(context, "mesh_kern.cl", "calc_neighbors_cl",           0);
-      kernel_calc_neighbors_local     = ezcl_create_kernel(context, "mesh_kern.cl", "calc_neighbors_local_cl",     0);
-      kernel_calc_border_cells        = ezcl_create_kernel(context, "mesh_kern.cl", "calc_border_cells_cl",        0);
-      kernel_calc_border_cells2       = ezcl_create_kernel(context, "mesh_kern.cl", "calc_border_cells2_cl",       0);
-      kernel_finish_scan              = ezcl_create_kernel(context, "mesh_kern.cl", "finish_scan_cl",              0);
-      kernel_get_border_data          = ezcl_create_kernel(context, "mesh_kern.cl", "get_border_data_cl",          0);
-      kernel_calc_layer1              = ezcl_create_kernel(context, "mesh_kern.cl", "calc_layer1_cl",              0);
-      kernel_calc_layer1_sethash      = ezcl_create_kernel(context, "mesh_kern.cl", "calc_layer1_sethash_cl",      0);
-      kernel_calc_layer2              = ezcl_create_kernel(context, "mesh_kern.cl", "calc_layer2_cl",              0);
-      kernel_get_border_data2         = ezcl_create_kernel(context, "mesh_kern.cl", "get_border_data2_cl",         0);
-      kernel_calc_layer2_sethash      = ezcl_create_kernel(context, "mesh_kern.cl", "calc_layer2_sethash_cl",      0);
-      kernel_copy_mesh_data           = ezcl_create_kernel(context, "mesh_kern.cl", "copy_mesh_data_cl",           0);
-      kernel_fill_mesh_ghost          = ezcl_create_kernel(context, "mesh_kern.cl", "fill_mesh_ghost_cl",          0);
-      kernel_fill_neighbor_ghost      = ezcl_create_kernel(context, "mesh_kern.cl", "fill_neighbor_ghost_cl",      0);
-      kernel_set_corner_neighbor      = ezcl_create_kernel(context, "mesh_kern.cl", "set_corner_neighbor_cl",      0);
-      kernel_adjust_neighbors_local   = ezcl_create_kernel(context, "mesh_kern.cl", "adjust_neighbors_local_cl",   0);
-      kernel_hash_size                = ezcl_create_kernel(context, "mesh_kern.cl", "calc_hash_size_cl",           0);
-      kernel_finish_hash_size         = ezcl_create_kernel(context, "mesh_kern.cl", "finish_reduction_minmax4_cl", 0);
-      kernel_calc_spatial_coordinates = ezcl_create_kernel(context, "mesh_kern.cl", "calc_spatial_coordinates_cl", 0);
-      kernel_do_load_balance_lower    = ezcl_create_kernel(context, "mesh_kern.cl", "do_load_balance_lower_cl",    0);
-      kernel_do_load_balance_middle   = ezcl_create_kernel(context, "mesh_kern.cl", "do_load_balance_middle_cl",   0);
-      kernel_do_load_balance_upper    = ezcl_create_kernel(context, "mesh_kern.cl", "do_load_balance_upper_cl",    0);
-      kernel_do_load_balance          = ezcl_create_kernel(context, "mesh_kern.cl", "do_load_balance_cl",          0);
-      kernel_refine_smooth            = ezcl_create_kernel(context, "mesh_kern.cl", "refine_smooth_cl",            0);
-      kernel_copy_mpot_ghost_data     = ezcl_create_kernel(context, "mesh_kern.cl", "copy_mpot_ghost_data_cl",     0);
-      kernel_set_boundary_refinement  = ezcl_create_kernel(context, "mesh_kern.cl", "set_boundary_refinement",     0);
+      kernel_reduction_scan           = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_reduction_scan_cl",    0);
+      kernel_hash_init                = ezcl_create_kernel_wsource(context, mesh_kern_source, "hash_init_cl",                0);
+      kernel_hash_init_corners        = ezcl_create_kernel_wsource(context, mesh_kern_source, "hash_init_corners_cl",        0);
+      kernel_hash_setup               = ezcl_create_kernel_wsource(context, mesh_kern_source, "hash_setup_cl",               0);
+      kernel_hash_setup_local         = ezcl_create_kernel_wsource(context, mesh_kern_source, "hash_setup_local_cl",         0);
+      kernel_calc_neighbors           = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_neighbors_cl",           0);
+      kernel_calc_neighbors_local     = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_neighbors_local_cl",     0);
+      kernel_calc_border_cells        = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_border_cells_cl",        0);
+      kernel_calc_border_cells2       = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_border_cells2_cl",       0);
+      kernel_finish_scan              = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_scan_cl",              0);
+      kernel_get_border_data          = ezcl_create_kernel_wsource(context, mesh_kern_source, "get_border_data_cl",          0);
+      kernel_calc_layer1              = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_layer1_cl",              0);
+      kernel_calc_layer1_sethash      = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_layer1_sethash_cl",      0);
+      kernel_calc_layer2              = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_layer2_cl",              0);
+      kernel_get_border_data2         = ezcl_create_kernel_wsource(context, mesh_kern_source, "get_border_data2_cl",         0);
+      kernel_calc_layer2_sethash      = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_layer2_sethash_cl",      0);
+      kernel_copy_mesh_data           = ezcl_create_kernel_wsource(context, mesh_kern_source, "copy_mesh_data_cl",           0);
+      kernel_fill_mesh_ghost          = ezcl_create_kernel_wsource(context, mesh_kern_source, "fill_mesh_ghost_cl",          0);
+      kernel_fill_neighbor_ghost      = ezcl_create_kernel_wsource(context, mesh_kern_source, "fill_neighbor_ghost_cl",      0);
+      kernel_set_corner_neighbor      = ezcl_create_kernel_wsource(context, mesh_kern_source, "set_corner_neighbor_cl",      0);
+      kernel_adjust_neighbors_local   = ezcl_create_kernel_wsource(context, mesh_kern_source, "adjust_neighbors_local_cl",   0);
+      kernel_hash_size                = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_hash_size_cl",           0);
+      kernel_finish_hash_size         = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_reduction_minmax4_cl", 0);
+      kernel_calc_spatial_coordinates = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_spatial_coordinates_cl", 0);
+      kernel_do_load_balance_lower    = ezcl_create_kernel_wsource(context, mesh_kern_source, "do_load_balance_lower_cl",    0);
+      kernel_do_load_balance_middle   = ezcl_create_kernel_wsource(context, mesh_kern_source, "do_load_balance_middle_cl",   0);
+      kernel_do_load_balance_upper    = ezcl_create_kernel_wsource(context, mesh_kern_source, "do_load_balance_upper_cl",    0);
+      kernel_do_load_balance          = ezcl_create_kernel_wsource(context, mesh_kern_source, "do_load_balance_cl",          0);
+      kernel_refine_smooth            = ezcl_create_kernel_wsource(context, mesh_kern_source, "refine_smooth_cl",            0);
+      kernel_copy_mpot_ghost_data     = ezcl_create_kernel_wsource(context, mesh_kern_source, "copy_mpot_ghost_data_cl",     0);
+      kernel_set_boundary_refinement  = ezcl_create_kernel_wsource(context, mesh_kern_source, "set_boundary_refinement",     0);
       init_kernel_2stage_sum(context);
       init_kernel_2stage_sum_int(context);
       if (! have_boundary){
-        kernel_count_BCs              = ezcl_create_kernel(context, "mesh_kern.cl", "count_BCs_cl",                0);
+        kernel_count_BCs              = ezcl_create_kernel_wsource(context, mesh_kern_source, "count_BCs_cl",                0);
       }
       if (compute_device == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in mesh\n");
    }
