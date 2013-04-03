@@ -118,6 +118,11 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/state_kernel.inc
                   DEPENDS state_kern.cl ${CMAKE_SOURCE_DIR}/embed_source.pl)
 add_custom_target(state_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/state_kernel.inc)
 
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/reduce_kernel.inc
+                  COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl ${CMAKE_SOURCE_DIR}/reduce.cl > reduce_kernel.inc
+                  DEPENDS reduce.cl ${CMAKE_SOURCE_DIR}/embed_source.pl)
+add_custom_target(reduce_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/reduce_kernel.inc)
+
 ########### clamr target ###############
 
 set(clamr_CXX_SRCS clamr.cpp mesh.cpp partition.cpp state.cpp input.cpp)
@@ -136,6 +141,7 @@ target_link_libraries(clamr ${OPENCL_LIBRARIES})
 target_link_libraries(clamr ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 add_dependencies(clamr mesh_kernel_source)
 add_dependencies(clamr state_kernel_source)
+add_dependencies(clamr reduce_kernel_source)
 
 install(TARGETS clamr DESTINATION bin)
 
@@ -155,6 +161,7 @@ target_link_libraries(clamr_gpuonly ${OPENCL_LIBRARIES})
 target_link_libraries(clamr_gpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 add_dependencies(clamr_gpuonly mesh_kernel_source)
 add_dependencies(clamr_gpuonly state_kernel_source)
+add_dependencies(clamr_gpuonly reduce_kernel_source)
 
 install(TARGETS clamr_gpuonly DESTINATION bin)
 
@@ -209,6 +216,7 @@ target_link_libraries(clamr_gpucheck ${OPENCL_LIBRARIES})
 target_link_libraries(clamr_gpucheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 add_dependencies(clamr_gpucheck mesh_kernel_source)
 add_dependencies(clamr_gpucheck state_kernel_source)
+add_dependencies(clamr_gpucheck reduce_kernel_source)
 
 install(TARGETS clamr_gpucheck DESTINATION bin)
 
@@ -248,6 +256,7 @@ target_link_libraries(clamr_checkall ${OPENCL_LIBRARIES})
 target_link_libraries(clamr_checkall ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 add_dependencies(clamr_checkall mesh_kernel_source)
 add_dependencies(clamr_checkall state_kernel_source)
+add_dependencies(clamr_checkall reduce_kernel_source)
 
 install(TARGETS clamr_checkall DESTINATION bin)
 
