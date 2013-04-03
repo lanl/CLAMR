@@ -2209,7 +2209,6 @@ __kernel void rezone_all_cl(
 
                else { // Default to a knot 
                   order[0] = NW; order[1] = SE; order[2] = SW; order[3] = NE;
-                  //printf("Nonlocal case for the stencil.\n");
                }
                //  Determine the relative orientation of the neighboring cells.
                //  There are 12 possible ways across the cell: 4 Ls and 2 straight

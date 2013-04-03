@@ -13,7 +13,7 @@ set(C_SRCS
 ########### embed source target ###############
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/l7/l7_kernel.inc
                   COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl ${CMAKE_SOURCE_DIR}/l7/l7_kern.cl > l7_kernel.inc
-                  DEPENDS l7_kern.cl)
+                  DEPENDS l7_kern.cl ${CMAKE_SOURCE_DIR}/embed_source.pl)
 add_custom_target(l7_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/l7/l7_kernel.inc)
 
 ########### l7 target ###############
