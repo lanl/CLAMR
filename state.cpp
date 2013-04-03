@@ -1837,46 +1837,9 @@ void State::gpu_calc_finite_difference(Mesh *mesh, double deltaT)
       dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
       dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
 
-      vector<real> H_tmp(mesh->ncells_ghost,0.0);
-      vector<real> U_tmp(mesh->ncells_ghost,0.0);
-      vector<real> V_tmp(mesh->ncells_ghost,0.0);
-
-      ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], NULL);
-
-      L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
-      L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
-      L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
-
-      size_t nghost_local = mesh->ncells_ghost - ncells;
-      //fprintf(fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
-
-      cl_mem dev_H_add       = ezcl_malloc(NULL, const_cast<char *>("dev_H_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_U_add       = ezcl_malloc(NULL, const_cast<char *>("dev_U_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_V_add       = ezcl_malloc(NULL, const_cast<char *>("dev_V_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      ezcl_enqueue_write_buffer(command_queue, dev_H_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&H_tmp[ncells], NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_U_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&U_tmp[ncells], NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_V_add, CL_TRUE,  0, nghost_local*sizeof(cl_real), (void*)&V_tmp[ncells], NULL);
-
-      size_t ghost_local_work_size = 32;
-      size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
-
-      // Fill in ghost
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 2, sizeof(cl_mem), (void *)&dev_H);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 3, sizeof(cl_mem), (void *)&dev_H_add);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 4, sizeof(cl_mem), (void *)&dev_U);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 5, sizeof(cl_mem), (void *)&dev_U_add);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 6, sizeof(cl_mem), (void *)&dev_V);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 7, sizeof(cl_mem), (void *)&dev_V_add);
-
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
-
-      ezcl_device_memory_delete(dev_H_add);
-      ezcl_device_memory_delete(dev_U_add);
-      ezcl_device_memory_delete(dev_V_add);
+      L7_Dev_Update(dev_H, L7_REAL, mesh->cell_handle);
+      L7_Dev_Update(dev_U, L7_REAL, mesh->cell_handle);
+      L7_Dev_Update(dev_V, L7_REAL, mesh->cell_handle);
 
       dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
       dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
@@ -2170,45 +2133,9 @@ size_t State::gpu_calc_refine_potential(Mesh *mesh)
    size_t nghost_local = mesh->ncells_ghost - ncells;
 
    if (mesh->numpe > 1) {
-      vector<real> H_tmp(mesh->ncells_ghost,0.0);
-      vector<real> U_tmp(mesh->ncells_ghost,0.0);
-      vector<real> V_tmp(mesh->ncells_ghost,0.0);
-
-      //fprintf(fp,"%d: sizes are ncells %d nghost %d ncells_ghost %d\n",mesh->mype,ncells,nghost_local,mesh->ncells_ghost);
-
-      ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_tmp[0], NULL);
-      ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_tmp[0], NULL);
-
-      L7_Update(&H_tmp[0], L7_REAL, mesh->cell_handle);
-      L7_Update(&U_tmp[0], L7_REAL, mesh->cell_handle);
-      L7_Update(&V_tmp[0], L7_REAL, mesh->cell_handle);
-
-      cl_mem dev_H_add       = ezcl_malloc(NULL, const_cast<char *>("dev_H_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_U_add       = ezcl_malloc(NULL, const_cast<char *>("dev_U_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_V_add       = ezcl_malloc(NULL, const_cast<char *>("dev_V_add"), &nghost_local,  sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      ezcl_enqueue_write_buffer(command_queue, dev_H_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&H_tmp[ncells], NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_U_add, CL_FALSE, 0, nghost_local*sizeof(cl_real), (void*)&U_tmp[ncells], NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_V_add, CL_TRUE,  0, nghost_local*sizeof(cl_real), (void*)&V_tmp[ncells], NULL);
-
-      size_t ghost_local_work_size = 64;
-      size_t ghost_global_work_size = ((nghost_local + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
-
-      // Fill in ghost
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 1, sizeof(cl_int), (void *)&nghost_local);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 2, sizeof(cl_mem), (void *)&dev_H);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 3, sizeof(cl_mem), (void *)&dev_H_add);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 4, sizeof(cl_mem), (void *)&dev_U);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 5, sizeof(cl_mem), (void *)&dev_U_add);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 6, sizeof(cl_mem), (void *)&dev_V);
-      ezcl_set_kernel_arg(kernel_copy_state_ghost_data, 7, sizeof(cl_mem), (void *)&dev_V_add);
-
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_ghost_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
-
-      ezcl_device_memory_delete(dev_H_add);
-      ezcl_device_memory_delete(dev_U_add);
-      ezcl_device_memory_delete(dev_V_add);
+      L7_Dev_Update(dev_H, L7_REAL, mesh->cell_handle);
+      L7_Dev_Update(dev_U, L7_REAL, mesh->cell_handle);
+      L7_Dev_Update(dev_V, L7_REAL, mesh->cell_handle);
    }
 #endif
 
