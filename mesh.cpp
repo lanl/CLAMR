@@ -2099,9 +2099,26 @@ size_t Mesh::refine_smooth(vector<int> &mpot)
    }
    //printf("icount is %d\n",icount);
 
+   newcount = ncells+icount;
+
+   int size_changed = (newcount != (int)ncells);
+   int size_changed_global = size_changed;
+#ifdef HAVE_MPI
+   if (parallel) {
+      MPI_Allreduce(&size_changed, &size_changed_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   }
+#endif
+
+   if (size_changed_global > 0){
+      nlft.clear();
+      nrht.clear();
+      nbot.clear();
+      ntop.clear();
+   }
+
    if (TIMING_LEVEL >= 2) cpu_time_refine_smooth += cpu_timer_stop(tstart_lev2);
 
-   return(ncells+icount);
+   return(newcount);
 }
 
 #ifdef HAVE_OPENCL

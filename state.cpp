@@ -2071,23 +2071,6 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
 
    int newcount = mesh->refine_smooth(mpot);
 
-   int size_changed = (newcount != (int)ncells); 
-   int size_changed_global = size_changed;
-#ifdef HAVE_MPI
-   if (mesh->parallel) {
-      MPI_Allreduce(&size_changed, &size_changed_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   }
-#endif
-
-   if (size_changed_global > 0){
-      nlft.clear();
-      nrht.clear();
-      nbot.clear();
-      ntop.clear();
-   }
-
-   icount = newcount - ncells;
-
    cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
 
    return(newcount);
