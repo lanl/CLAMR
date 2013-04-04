@@ -286,8 +286,10 @@ public:
    void init(int nx, int ny, double circ_radius, partition_method initial_order, int do_gpu_calc);
 #endif
 
+/* memory routines */
    void resize_old_device_memory(size_t ncells);
 
+/* inline "macros" */
    int  is_left_boundary(int ic)    { return (i[ic] < lev_ibegin[level[ic]]); }
    int  is_right_boundary(int ic)   { return (i[ic] > lev_iend[  level[ic]]); }
    int  is_bottom_boundary(int ic)  { return (j[ic] < lev_jbegin[level[ic]]); }
@@ -300,6 +302,7 @@ public:
    int is_upper_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 1); }
    int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
 
+/* accessor routines */
    double get_cpu_time_calc_neighbors(void)           {return(cpu_time_calc_neighbors); };
    double get_cpu_time_hash_setup(void)               {return(cpu_time_hash_setup); };
    double get_cpu_time_hash_query(void)               {return(cpu_time_hash_query); };
@@ -354,31 +357,35 @@ public:
    int get_gpu_refine_smooth_count(void)          {return(gpu_refine_smooth_counter); };
    int get_gpu_calc_neigh_count(void)             {return(gpu_calc_neigh_counter); };
 
-   void write_grid(int ncycle);
-   void kdtree_setup(void);
-   void calc_centerminmax(void);
-   int  rezone_count(vector<int> mpot);
-#ifdef HAVE_OPENCL
-   void gpu_rezone_count(size_t block_size, size_t local_work_size, cl_mem dev_ioffset, cl_mem &dev_result);
-#endif
-   void print(void);
-   void print_local(void);
-
-   void partition_measure(void);
    void print_partition_measure(void);
    void print_calc_neighbor_type(void);
    int get_calc_neighbor_type(void);
    void print_partition_type(void);
    void final_hash_collision_report(void);
+/* end accessor routines */
+
+/* Debugging, internal, or not used yet */
+#ifdef HAVE_OPENCL
+   int gpu_count_BCs();
+#endif
+   void kdtree_setup(void);
+   void partition_measure(void);
    void partition_cells(int numpe,
                    vector<int> &order,
                    enum partition_method method);
+   void calc_distribution(int numpe);
    void calc_symmetry(vector<int> &dsym,
                   vector<int> &xsym,
                   vector<int> &ysym);
 
+/* End of debugging, internal, or not used yet */
+
    /**************************************************************************************
    * Calculate neighbors
+   *  Input -- from within the object
+   *    i, j, level
+   *  Output -- in the object
+   *    nlft, nrht, nbot, ntop arrays
    **************************************************************************************/
    void calc_neighbors(void);
    void calc_neighbors_local(void);
@@ -394,6 +401,31 @@ public:
                   vector<int> &nfrt,
                   vector<int> &nbak,
                   vector<int> index);
+
+   /**************************************************************************************
+   * Calculate rezone count
+   *  Input
+   *    mpot -- potential mesh refinement
+   *    ioffset -- write offset for each cell
+   *  Output
+   *    result -- cell count
+   **************************************************************************************/
+   int  rezone_count(vector<int> mpot);
+#ifdef HAVE_OPENCL
+   void gpu_rezone_count(size_t block_size, size_t local_work_size, cl_mem dev_ioffset, cl_mem &dev_result);
+#endif
+
+   /**************************************************************************************
+   * Refine Smooth -- smooths jump in refinement level so that only a 1 to 2 jump occurs
+   *  Input/Output
+   *    mpot -- potential mesh refinement array, 1 is refine and -1 coarsen
+   *    ioffset -- write offset for each cell to account for new cells
+   *    result -- refinement count
+   **************************************************************************************/
+   size_t refine_smooth(vector<int> &mpot);
+#ifdef HAVE_OPENCL
+   int gpu_refine_smooth(cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result);
+#endif
 
    /**************************************************************************************
    * Rezone mesh
@@ -422,22 +454,15 @@ public:
 
    /**************************************************************************************
    * Calculate spatial coordinates
+   *  Input -- from within the object
+   *    i, j, level
+   *  Output
+   *    x, y -- coordinates for each cell
+   *    dx, dy -- size of each cell
    **************************************************************************************/
    void calc_spatial_coordinates(int ibase);
 #ifdef HAVE_OPENCL
    void gpu_calc_spatial_coordinates(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy);
-#endif
-
-   void calc_distribution(int numpe);
-#ifdef HAVE_OPENCL
-   int gpu_count_BCs();
-#endif
-
-   void print_object_info();
-   size_t refine_smooth(vector<int> &mpot);
-
-#ifdef HAVE_OPENCL
-   int gpu_refine_smooth(cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result);
 #endif
 
    /**************************************************************************************
@@ -473,6 +498,13 @@ public:
 private:
    //   Private constructors.
    Mesh(const Mesh&);   //   Blocks copy constructor so copies are not made inadvertently.
+
+   void print_object_info();
+
+   void write_grid(int ncycle);
+   void calc_centerminmax(void);
+   void print(void);
+   void print_local(void);
 
    //   Member functions.
    void calc_minmax(void);
