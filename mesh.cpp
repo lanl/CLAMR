@@ -7850,6 +7850,7 @@ void Mesh::print_calc_neighbor_type(void)
       if (mype == 0) printf("Using k-D tree to calculate neighbors\n");
    }
 }
+
 int Mesh::get_calc_neighbor_type(void)
 {
    return(calc_neighbor_type );

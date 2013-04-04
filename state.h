@@ -127,18 +127,23 @@ public:
    // constructor -- allocates state arrays to size ncells
    State(size_t ncells);
 
-   State(const State&); // To block copy constructor so copies are not made inadvertently
-
 #ifdef HAVE_OPENCL
    void init(size_t ncells, int compute_device, int do_gpu_calc);
    void terminate(void);
 #else
    void init(size_t ncells, int do_gpu_calc);
 #endif
+
+   /* Memory routines for linked list of state arrays */
    void allocate(size_t ncells);
    void resize(size_t ncells);
    void memory_reset_ptrs(void);
+#ifdef HAVE_OPENCL
+   void allocate_device_memory(size_t ncells);
+#endif
+   void resize_old_device_memory(size_t ncells);
 
+   /* Accessor routines */
    double get_cpu_time_apply_BCs(void)         {return(cpu_time_apply_BCs);};
    double get_cpu_time_set_timestep(void)      {return(cpu_time_set_timestep);};
    double get_cpu_time_finite_difference(void) {return(cpu_time_finite_difference);};
@@ -157,52 +162,103 @@ public:
    long get_gpu_time_read(void)              {return(gpu_time_read);};
    long get_gpu_time_write(void)             {return(gpu_time_write);};
 
-#ifdef HAVE_OPENCL
-   void allocate_device_memory(size_t ncells);
-#endif
-   void resize_old_device_memory(size_t ncells);
-
+   /* Boundary routines -- not currently used */
    void add_boundary_cells(Mesh *mesh);
    void apply_boundary_conditions(Mesh *mesh);
    void remove_boundary_cells(Mesh *mesh);
+
+   /*******************************************************************
+   * set_timestep
+   *  Input
+   *    H, U, V -- from state object
+   *    celltype, level, lev_delta
+   *  Output
+   *    mindeltaT returned
+   *******************************************************************/
    double set_timestep(Mesh *mesh, double g, double sigma);
 #ifdef HAVE_OPENCL
    double gpu_set_timestep(Mesh *mesh, double sigma);
 #endif
-   
-   void fill_circle(Mesh *mesh, double circ_radius, double fill_value, double background);
-   void state_reorder(vector<int> iorder);
-   void rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells);
-#ifdef HAVE_OPENCL
-   void gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil);
-#endif
-   size_t calc_refine_potential(Mesh *mesh, vector<int> &mpot, int &icount, int &jcount);
-#ifdef HAVE_OPENCL
-   size_t gpu_calc_refine_potential(Mesh *mesh);
-#endif
 
-#ifdef HAVE_MPI
-   void do_load_balance_local(Mesh *mesh, size_t &numcells);
-#endif
-#ifdef HAVE_OPENCL
-#ifdef HAVE_MPI
-   void gpu_do_load_balance_local(Mesh *mesh, size_t &numcells);
-#endif
-#endif
-   
+   /*******************************************************************
+   * calc finite difference
+   *      will add ghost region to H, U, V and fill at start of routine
+   *   Input
+   *      H, U, V -- from state object
+   *      nlft, nrht, nbot, ntop, level, celltype -- from mesh object
+   *   Output
+   *      H, U, V
+   *******************************************************************/
    void calc_finite_difference(Mesh *mesh, double deltaT);
 #ifdef HAVE_OPENCL
    void gpu_calc_finite_difference(Mesh *mesh, double deltaT);
 #endif
 
-   void symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index, double eps, 
-                       SIGN_RULE sign_rule, int &flag);
+   /*******************************************************************
+   * calc refine potential -- state has responsibility to calc initial
+   *      refinement potential array that is then passed to mesh for
+   *      smoothing and enforcing refinement ruiles
+   *  Input
+   *    H, U, V -- from state object
+   *  Output
+   *    mpot
+   *    ioffset
+   *    count
+   *******************************************************************/
+   size_t calc_refine_potential(Mesh *mesh, vector<int> &mpot, int &icount, int &jcount);
+#ifdef HAVE_OPENCL
+   size_t gpu_calc_refine_potential(Mesh *mesh);
+#endif
+
+   /*******************************************************************
+   * rezone all -- most of call is done in mesh
+   *  Input
+   *    Mesh and state variables
+   *  Output
+   *    New mesh and state variables on refined mesh
+   *******************************************************************/
+   void rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells);
+#ifdef HAVE_OPENCL
+   void gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil);
+#endif
+
+   /*******************************************************************
+   * load balance -- most of call is done in mesh, but pointers are
+   *    reset to newly allocated state arrays
+   *  Input
+   *    Mesh and state variables
+   *  Output
+   *    New mesh and state variables on refined mesh
+   *******************************************************************/
+#ifdef HAVE_MPI
+   void do_load_balance_local(Mesh *mesh, size_t &numcells);
+#ifdef HAVE_OPENCL
+   void gpu_do_load_balance_local(Mesh *mesh, size_t &numcells);
+#endif
+#endif
+
+   /*******************************************************************
+   * mass sum -- Conservation of mass check
+   *  Input
+   *    H from state object
+   *    Precision type for sum
+   *  Output
+   *    total mass is returned
+   *******************************************************************/
    double mass_sum(Mesh *mesh, bool enhanced_precision_sum);
 #ifdef HAVE_OPENCL
    double gpu_mass_sum(Mesh *mesh, bool enhanced_precision_sum);
 #endif
+   
+   void fill_circle(Mesh *mesh, double circ_radius, double fill_value, double background);
+   void state_reorder(vector<int> iorder);
+
+   void symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index, double eps, 
+                       SIGN_RULE sign_rule, int &flag);
 
    void output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, double elapsed_time);
+
+   /* state comparison routines */
 #ifdef HAVE_OPENCL
    void compare_state_gpu_global_to_cpu_global(const char* string, int cycle, uint ncells);
 #endif
@@ -210,12 +266,14 @@ public:
 #ifdef HAVE_OPENCL
    void compare_state_all_to_gpu_local(State *state_global, uint ncells, uint ncells_global, int mype, int ncycle, int *nsizes, int *ndispl);
 #endif
-   void print_object_info(void);
 
    void parallel_timer_output(int numpe, int mype, const char *string, double local_time);
    void parallel_memory_output(int numpe, int mype, const char *string, long long local_time);
-private:
 
+private:
+   State(const State&); // To block copy constructor so copies are not made inadvertently
+
+   void print_object_info(void);
 };
 
 #endif // ifndef STATE_H_

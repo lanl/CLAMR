@@ -357,9 +357,10 @@ public:
    int get_gpu_refine_smooth_count(void)          {return(gpu_refine_smooth_counter); };
    int get_gpu_calc_neigh_count(void)             {return(gpu_calc_neigh_counter); };
 
+   int get_calc_neighbor_type(void);
+
    void print_partition_measure(void);
    void print_calc_neighbor_type(void);
-   int get_calc_neighbor_type(void);
    void print_partition_type(void);
    void final_hash_collision_report(void);
 /* end accessor routines */
