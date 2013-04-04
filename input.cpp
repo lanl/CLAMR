@@ -66,8 +66,8 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "partition.h"
-#include "mesh.h"
+#include "mesh/partition.h"
+#include "mesh/mesh.h"
 
 #define OUTPUT_INTERVAL 20
 #define COARSE_GRID_RES 128

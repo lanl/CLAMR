@@ -63,8 +63,8 @@
 #include <vector>
 #include "ezcl/ezcl.h"
 #include "input.h"
-#include "mesh.h"
-#include "partition.h"
+#include "mesh/mesh.h"
+#include "mesh/partition.h"
 #include "state.h"
 #include "l7/l7.h"
 #include "timer/timer.h"

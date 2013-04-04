@@ -63,7 +63,7 @@
 
 #include <list>
 #include "MallocPlus/MallocPlus.h"
-#include "mesh.h"
+#include "mesh/mesh.h"
 #ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
 #endif

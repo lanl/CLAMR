@@ -57,10 +57,10 @@
 #include <stdio.h>
 #include <algorithm>
 #include <queue>
-#include "mesh.h"
+#include "mesh/mesh.h"
 #include "state.h"
 #include "kdtree/KDTree.h"
-#include "reorder.h"
+//#include "reorder.h"
 #include "timer/timer.h"
 #ifdef HAVE_MPI
 #include <mpi.h>

@@ -1,0 +1,80 @@
+########### global settings ###############
+set(CMAKE_CXX_FLAGS)
+
+set(H_SRCS mesh.h partition.h reorder.h)
+
+set(CXX_SRCS
+      mesh.cpp partition.cpp
+)
+
+########### embed source target ###############
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mesh/mesh_kernel.inc
+                  COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl ${CMAKE_SOURCE_DIR}/mesh/mesh_kern.cl > mesh_kernel.inc
+                  DEPENDS mesh_kern.cl ${CMAKE_SOURCE_DIR}/embed_source.pl)
+add_custom_target(mesh_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mesh/mesh_kernel.inc)
+
+########### mesh target ###############
+set(mesh_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+
+add_library(mesh STATIC ${mesh_LIB_SRCS})
+
+set_target_properties(mesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+target_link_libraries(mesh)
+install(TARGETS mesh DESTINATION lib)
+
+########### pmesh target ###############
+set(pmesh_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+
+add_library(pmesh STATIC ${pmesh_LIB_SRCS})
+
+set_target_properties(pmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+set_target_properties(pmesh PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+target_link_libraries(pmesh ${MPI_LIBRARIES})
+install(TARGETS pmesh DESTINATION lib)
+
+########### dmesh target ###############
+set(dmesh_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+
+add_library(dmesh STATIC ${dmesh_LIB_SRCS})
+
+set_target_properties(dmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+set_target_properties(dmesh PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
+target_link_libraries(dmesh ${OPENCL_LIBRARIES})
+add_dependencies(dmesh mesh_kernel_source)
+install(TARGETS dmesh DESTINATION lib)
+
+########### dpmesh target ###############
+set(dpmesh_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+
+add_library(dpmesh STATIC ${dpmesh_LIB_SRCS})
+
+set_target_properties(dpmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+set_target_properties(dpmesh PROPERTIES COMPILE_DEFINITIONS HAVE_MPI_AND_OPENCL)
+target_link_libraries(dpmesh ${MPI_LIBRARIES})
+target_link_libraries(dpmesh ${OPENCL_LIBRARIES})
+add_dependencies(dpmesh mesh_kernel_source)
+install(TARGETS dpmesh DESTINATION lib)
+
+########### clean files ################
+SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "mesh_kernel.inc")
+
+########### install files ###############
+
+#install(FILES  l7.h DESTINATION include)
+
+#========== original Makefile.am contents follow ===========
+
+#default: libl7.la
+#all: libl7.la
+#
+#AM_MAKEFLAGS = -j 4
+#
+#DEFAULT_INCLUDES=-I. -I..
+#
+#lib_LTLIBRARIES = libl7.la
+#include_HEADERS = l7.h
+#
+#
+#libl7_la_SOURCES = ${C_SRCS} ${H_SRCS}
+#libl7_la_CPPFLAGS = -DHAVE_MPI=1
+#
