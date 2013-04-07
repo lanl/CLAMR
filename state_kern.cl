@@ -1805,6 +1805,36 @@ inline uint scan_warp_inclusive(__local volatile uint *input, const uint idx, co
     return input[idx];
 }
 
+__kernel void rezone_one_cl(
+                 const int    isize,        // 0
+        __global const int   *mpot,         // 1   Array of mesh potential information.
+        __global const int   *celltype,     // 2
+        __global const int   *indexoffset,  // 3  
+        __global const real  *Var,          // 4
+        __global       real  *Var_new)      // 5
+{
+   uint giX = get_global_id(0);
+
+   if (giX >= isize) return;
+
+   real Varold = Var[giX];
+   int mpotval = mpot[giX];
+   int ctype = celltype[giX];
+   int indexval = indexoffset[giX];
+
+   if (mpotval == 0) {
+      Var_new[indexval] = Varold;
+   } else if (mpotval < 0) {
+   } else if (mpotval > 0) {
+      Var_new[indexval]   = Varold;
+      Var_new[indexval+1] = Varold;
+      if (ctype == REAL_CELL) {
+         Var_new[indexval+2] = Varold;
+         Var_new[indexval+3] = Varold;
+      }
+   }
+
+}
 __kernel void rezone_all_cl(
                  const int    isize,        // 0 
                  const int    stencil,      // 1 
@@ -1814,23 +1844,18 @@ __kernel void rezone_all_cl(
         __global const int   *i,            // 5
         __global const int   *j,            // 6
         __global const int   *celltype,     // 7
-        __global const real  *H,            // 8
-        __global const real  *U,            // 9
-        __global const real  *V,            // 10
-        __global       int   *level_new,    // 11
-        __global       int   *i_new,        // 12
-        __global       int   *j_new,        // 13
-        __global       int   *celltype_new, // 14
-        __global       real  *H_new,        // 15
-        __global       real  *U_new,        // 16
-        __global       real  *V_new,        // 17
-        __global const int   *ioffset,      // 18   
-        __global const real  *lev_dx,       // 19
-        __global const real  *lev_dy,       // 20
-        __global const int   *levtable,     // 21
-        __global const int   *ijadd,        // 22
-        __local        uint  *itile,        // 23
-        __local        real2 *tile)         // 24
+        __global       int   *level_new,    // 8
+        __global       int   *i_new,        // 9
+        __global       int   *j_new,        // 10
+        __global       int   *celltype_new, // 11
+        __global const int   *ioffset,      // 12   
+        __global       int   *indexoffset,  // 13   
+        __global const real  *lev_dx,       // 14
+        __global const real  *lev_dy,       // 15
+        __global const int   *levtable,     // 16
+        __global const int   *ijadd,        // 17
+        __local        uint  *itile,        // 18
+        __local        real2 *tile)         // 19
 { 
    uint tiX = get_local_id(0);
    uint giX = get_global_id(0);
@@ -1876,9 +1901,6 @@ __kernel void rezone_all_cl(
    int lev = level[giX];
    int mpotval = mpot[giX];
    if (mpotval > 0) lev++;
-   real Hval = H[giX];
-   real Uval = U[giX];
-   real Vval = V[giX];
    int ctype = celltype[giX];
    int ival = i[giX];
    int jval = j[giX];
@@ -1888,32 +1910,17 @@ __kernel void rezone_all_cl(
       j_new[indexval] = jval;
       level_new[indexval] = lev;
       celltype_new[indexval] = ctype;
-      H_new[indexval] = Hval;
-      U_new[indexval] = Uval;
-      V_new[indexval] = Vval;
    } else if (mpotval < 0) {
    } else if (mpotval > 0) {
       level_new[indexval] = lev;
       level_new[indexval+1] = lev;
       celltype_new[indexval] = ctype;
       celltype_new[indexval+1] = ctype;
-      H_new[indexval] = Hval;
-      H_new[indexval+1] = Hval;
-      U_new[indexval] = Uval;
-      U_new[indexval+1] = Uval;
-      V_new[indexval] = Vval;
-      V_new[indexval+1] = Vval;
       if (ctype == REAL_CELL) {
          level_new[indexval+2] = lev;
          level_new[indexval+3] = lev;
          celltype_new[indexval+2] = ctype;
          celltype_new[indexval+3] = ctype;
-         H_new[indexval+2] = Hval;
-         H_new[indexval+3] = Hval;
-         U_new[indexval+2] = Uval;
-         U_new[indexval+3] = Uval;
-         V_new[indexval+2] = Vval;
-         V_new[indexval+3] = Vval;
           
          int order[4] = {SW, SE, NW, NE};
          if (stencil) {
@@ -2273,6 +2280,7 @@ __kernel void rezone_all_cl(
       }
    }
 
+   indexoffset[giX] = indexval;
 }
 
 
