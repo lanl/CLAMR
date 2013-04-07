@@ -453,7 +453,8 @@ extern "C" void do_calc(void)
       //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      if (ncells_global_old != (int)ncells_global) state->gpu_rezone_all(mesh, old_ncells, new_ncells, old_ncells, localStencil);
+      size_t add_ncells = new_ncells - old_ncells;
+      if (ncells_global_old != (int)ncells_global) state->gpu_rezone_all(mesh, old_ncells, add_ncells, localStencil);
 
       // XXX XXX XXX
       ncells       = new_ncells;

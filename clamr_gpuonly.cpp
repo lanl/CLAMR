@@ -302,7 +302,8 @@ extern "C" void do_calc(void)
       size_t new_ncells = state->gpu_calc_refine_potential(mesh);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      if (mesh->dev_nlft == NULL) state->gpu_rezone_all(mesh, ncells, new_ncells, old_ncells, localStencil);
+      size_t add_ncells = new_ncells - old_ncells;
+      if (mesh->dev_nlft == NULL) state->gpu_rezone_all(mesh, ncells, add_ncells, localStencil);
 
       //int bcount = mesh->gpu_count_BCs();
 

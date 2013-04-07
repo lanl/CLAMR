@@ -911,12 +911,15 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 
 
 #ifdef HAVE_OPENCL
-void State::gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t new_ncells, size_t old_ncells, bool localStencil)
+void State::gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t add_ncells, bool localStencil)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
+
+   size_t new_ncells = ncells + add_ncells;
+   size_t old_ncells = ncells;
 
    mesh->gpu_rezone_counter++;
 
