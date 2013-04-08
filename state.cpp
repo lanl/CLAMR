@@ -803,7 +803,6 @@ void State::state_reorder(vector<int> iorder)
 
 void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 {
-   int ic, nc;
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
@@ -840,7 +839,7 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
    real *U_new = (real *)state_memory.memory_malloc(new_ncells, sizeof(real), "U_new");
    real *V_new = (real *)state_memory.memory_malloc(new_ncells, sizeof(real), "V_new");
 
-   for (ic=0, nc=0; ic<ncells; ic++) {
+   for (int ic=0, nc=0; ic<ncells; ic++) {
 
       if (mpot[ic] == 0) {
          H_new[nc] = H[ic];
@@ -919,8 +918,6 @@ void State::gpu_rezone_all(Mesh *mesh, size_t add_ncells, bool localStencil)
 
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-   mesh->gpu_rezone_counter++;
-
    cl_mem dev_ptr = NULL;
 
    cl_mem &dev_level        = mesh->dev_level;
@@ -946,6 +943,19 @@ void State::gpu_rezone_all(Mesh *mesh, size_t add_ncells, bool localStencil)
 
    size_t new_ncells = ncells + add_ncells;
    size_t old_ncells = ncells;
+
+   int global_add_ncells = add_ncells;
+#ifdef HAVE_MPI
+   if (mesh->parallel) {
+      MPI_Allreduce(&add_ncells, &global_add_ncells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   }
+#endif
+   if (global_add_ncells == 0 ) {
+      cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
+      return;
+   }
+
+   mesh->gpu_rezone_counter++;
 
    int ifirst      = 0;
    int ilast       = 0;
