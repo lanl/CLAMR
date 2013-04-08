@@ -828,56 +828,49 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
    int new_ncells = ncells + add_ncells;
 
    //printf("\nDEBUG rezone all \n"); 
-   real *H_new = (real *)state_memory.memory_malloc(new_ncells, sizeof(real), "H_new");
-   real *U_new = (real *)state_memory.memory_malloc(new_ncells, sizeof(real), "U_new");
-   real *V_new = (real *)state_memory.memory_malloc(new_ncells, sizeof(real), "V_new");
+   MallocPlus state_memory_old = state_memory;
 
-   for (int ic=0, nc=0; ic<ncells; ic++) {
+   for (real *mem_ptr=(real *)state_memory_old.memory_begin(); mem_ptr != NULL; mem_ptr = (real *)state_memory_old.memory_next() ){
 
-      if (mpot[ic] == 0) {
-         H_new[nc] = H[ic];
-         U_new[nc] = U[ic];
-         V_new[nc] = V[ic];
-         nc++;
-      } else if (mpot[ic] < 0){
-         int nr = nrht[ic];
-         int nt = ntop[ic];
-         int nrt = nrht[nt];
-         H_new[nc] = (H[ic] + H[nr] + H[nt] + H[nrt])*0.25;
-         U_new[nc] = (U[ic] + U[nr] + U[nt] + U[nrt])*0.25;
-         V_new[nc] = (V[ic] + V[nr] + V[nt] + V[nrt])*0.25;
-         nc++;
+      real *state_temp = (real *)state_memory.memory_malloc(new_ncells, sizeof(real), "state_temp");
 
-      } else if (mpot[ic] > 0){
-         // lower left
-         H_new[nc] = H[ic];
-         U_new[nc] = U[ic];
-         V_new[nc] = V[ic];
-         nc++;
+      for (int ic=0, nc=0; ic<ncells; ic++) {
 
-         // lower right
-         H_new[nc] = H[ic];
-         U_new[nc] = U[ic];
-         V_new[nc] = V[ic];
-         nc++;
-
-         if (celltype_save[ic] == REAL_CELL){
-            // upper left
-            H_new[nc] = H[ic];
-            U_new[nc] = U[ic];
-            V_new[nc] = V[ic];
+         if (mpot[ic] == 0) {
+            state_temp[nc] = mem_ptr[ic];
+            nc++;
+         } else if (mpot[ic] < 0){
+            int nr = nrht[ic];
+            int nt = ntop[ic];
+            int nrt = nrht[nt];
+            state_temp[nc] = (mem_ptr[ic] + mem_ptr[nr] + mem_ptr[nt] + mem_ptr[nrt])*0.25;
             nc++;
 
-            // upper right
-            H_new[nc] = H[ic];
-            U_new[nc] = U[ic];
-            V_new[nc] = V[ic];
+         } else if (mpot[ic] > 0){
+            // lower left
+            state_temp[nc] = mem_ptr[ic];
             nc++;
+
+            // lower right
+            state_temp[nc] = mem_ptr[ic];
+            nc++;
+
+            if (celltype_save[ic] == REAL_CELL){
+               // upper left
+               state_temp[nc] = mem_ptr[ic];
+               nc++;
+
+               // upper right
+               state_temp[nc] = mem_ptr[ic];
+               nc++;
+            }
          }
-
       }
 
+      state_memory.memory_replace(mem_ptr, state_temp);
    }
+
+   memory_reset_ptrs();
 
 #ifdef HAVE_MPI
    if (mesh->parallel) {
@@ -891,10 +884,6 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
       mesh->ncells_global = mesh->ndispl[mesh->numpe-1]+mesh->nsizes[mesh->numpe-1];
    }
 #endif
-
-   H = (real *)state_memory.memory_replace(H, H_new);
-   U = (real *)state_memory.memory_replace(U, U_new);
-   V = (real *)state_memory.memory_replace(V, V_new);
 
    //state_memory.memory_report();
    //printf("DEBUG end rezone all \n\n"); 
