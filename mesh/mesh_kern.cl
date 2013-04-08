@@ -3207,6 +3207,37 @@ __kernel void refine_smooth_cl(
 
 }
 
+__kernel void rezone_one_cl(
+                 const int    isize,        // 0
+        __global const int   *mpot,         // 1   Array of mesh potential information.
+        __global const int   *celltype,     // 2
+        __global const int   *indexoffset,  // 3  
+        __global const real  *Var,          // 4
+        __global       real  *Var_new)      // 5
+{
+   uint giX = get_global_id(0);
+
+   if (giX >= isize) return;
+
+   real Varold = Var[giX];
+   int mpotval = mpot[giX];
+   int ctype = celltype[giX];
+   int indexval = indexoffset[giX];
+
+   if (mpotval == 0) {
+      Var_new[indexval] = Varold;
+   } else if (mpotval < 0) {
+   } else if (mpotval > 0) {
+      Var_new[indexval]   = Varold;
+      Var_new[indexval+1] = Varold;
+      if (ctype == REAL_CELL) {
+         Var_new[indexval+2] = Varold;
+         Var_new[indexval+3] = Varold;
+      }
+   }
+
+}
+
 __kernel void copy_mpot_ghost_data_cl(
                           const int  ncells,        // 0
                           const int  nghost,        // 1
