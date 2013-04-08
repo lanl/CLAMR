@@ -433,7 +433,7 @@ public:
    **************************************************************************************/
    void rezone_all(vector<int> mpot, int add_ncells);
 #ifdef HAVE_OPENCL
-   void gpu_rezone_all(int add_ncells, cl_mem &dev_i_new, cl_mem &dev_j_new, cl_mem &dev_celltype_new, cl_mem      &dev_level_new, cl_mem &dev_mpot, cl_mem &dev_ijadd, cl_mem &dev_ioffset, cl_mem &dev_indexoffset, cl_mem &dev_H,      cl_mem &dev_H_new, cl_mem &dev_U, cl_mem &dev_U_new, cl_mem &dev_V, cl_mem &dev_V_new, MallocPlus &gpu_state_memory);
+   void gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset, cl_mem &dev_H, cl_mem &dev_U, cl_mem &dev_V, MallocPlus &gpu_state_memory);
 #endif
 
    /**************************************************************************************
