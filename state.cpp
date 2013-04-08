@@ -207,7 +207,6 @@ State::State(size_t ncells)
    gpu_time_finite_difference  = 0;
    gpu_time_refine_potential   = 0;
       gpu_time_calc_mpot       = 0;
-   gpu_time_rezone_all         = 0;
    gpu_time_mass_sum           = 0;
    gpu_time_read               = 0;
    gpu_time_write              = 0;
@@ -907,122 +906,7 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 #ifdef HAVE_OPENCL
 void State::gpu_rezone_all(Mesh *mesh, size_t add_ncells, bool localStencil)
 {
-   struct timeval tstart_cpu;
-   cpu_timer_start(&tstart_cpu);
-
-   cl_command_queue command_queue = ezcl_get_command_queue();
-
-   cl_mem dev_ptr = NULL;
-
-   cl_mem &dev_level        = mesh->dev_level;
-   cl_mem &dev_i            = mesh->dev_i;
-   cl_mem &dev_j            = mesh->dev_j;
-   cl_mem &dev_celltype     = mesh->dev_celltype;
-   cl_mem &dev_levdx        = mesh->dev_levdx;
-   cl_mem &dev_levdy        = mesh->dev_levdy;
-   //cl_mem &dev_mpot         = mesh->dev_mpot;
-   size_t &ncells           = mesh->ncells;
-
-   assert(dev_mpot);
-   assert(dev_level);
-   assert(dev_i);
-   assert(dev_j);
-   assert(dev_celltype);
-   assert(dev_H);
-   assert(dev_U);
-   assert(dev_V);
-   assert(dev_ioffset);
-   assert(dev_levdx);
-   assert(dev_levdy);
-
-   size_t new_ncells = ncells + add_ncells;
-   size_t old_ncells = ncells;
-
-   int global_add_ncells = add_ncells;
-#ifdef HAVE_MPI
-   if (mesh->parallel) {
-      MPI_Allreduce(&add_ncells, &global_add_ncells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   }
-#endif
-   if (global_add_ncells == 0 ) {
-      cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
-      return;
-   }
-
-   mesh->gpu_rezone_counter++;
-
-#ifdef XXX
-   int ifirst      = 0;
-   int ilast       = 0;
-   int jfirst      = 0;
-   int jlast       = 0;
-   int level_first = 0;
-   int level_last  = 0;
-
-#ifdef HAVE_MPI
-   if (mesh->numpe > 1) {
-      int i_tmp_first, i_tmp_last;
-      int j_tmp_first, j_tmp_last;
-      int level_tmp_first, level_tmp_last;
-
-      ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, 0,                             1*sizeof(cl_int), &i_tmp_first,     NULL);
-      ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, 0,                             1*sizeof(cl_int), &j_tmp_first,     NULL);
-      ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_FALSE, 0,                             1*sizeof(cl_int), &level_tmp_first, NULL);
-      ezcl_enqueue_read_buffer(command_queue,  dev_i,     CL_FALSE, (old_ncells-1)*sizeof(cl_int), 1*sizeof(cl_int), &i_tmp_last,      NULL);
-      ezcl_enqueue_read_buffer(command_queue,  dev_j,     CL_FALSE, (old_ncells-1)*sizeof(cl_int), 1*sizeof(cl_int), &j_tmp_last,      NULL);
-      ezcl_enqueue_read_buffer(command_queue,  dev_level, CL_TRUE,  (old_ncells-1)*sizeof(cl_int), 1*sizeof(cl_int), &level_tmp_last,  NULL);
-
-      MPI_Request req[12];
-      MPI_Status status[12];
-
-      static int prev     = MPI_PROC_NULL;
-      static int next     = MPI_PROC_NULL;
-
-      if (mesh->mype != 0)               prev = mesh->mype-1;
-      if (mesh->mype < mesh->numpe - 1)  next = mesh->mype+1;
-
-      MPI_Isend(&i_tmp_last,      1,MPI_INT,next,1,MPI_COMM_WORLD,req+0);
-      MPI_Irecv(&ifirst,          1,MPI_INT,prev,1,MPI_COMM_WORLD,req+1);
-
-      MPI_Isend(&i_tmp_first,     1,MPI_INT,prev,1,MPI_COMM_WORLD,req+2);
-      MPI_Irecv(&ilast,           1,MPI_INT,next,1,MPI_COMM_WORLD,req+3);
-
-      MPI_Isend(&j_tmp_last,      1,MPI_INT,next,1,MPI_COMM_WORLD,req+4);
-      MPI_Irecv(&jfirst,          1,MPI_INT,prev,1,MPI_COMM_WORLD,req+5);
-
-      MPI_Isend(&j_tmp_first,     1,MPI_INT,prev,1,MPI_COMM_WORLD,req+6);
-      MPI_Irecv(&jlast,           1,MPI_INT,next,1,MPI_COMM_WORLD,req+7);
-
-      MPI_Isend(&level_tmp_last,  1,MPI_INT,next,1,MPI_COMM_WORLD,req+8);
-      MPI_Irecv(&level_first,     1,MPI_INT,prev,1,MPI_COMM_WORLD,req+9);
-
-      MPI_Isend(&level_tmp_first, 1,MPI_INT,prev,1,MPI_COMM_WORLD,req+10);
-      MPI_Irecv(&level_last,      1,MPI_INT,next,1,MPI_COMM_WORLD,req+11);
-
-      MPI_Waitall(12, req, status);
-   }
-#endif
-
-/*
-   if (new_ncells != old_ncells){
-      ncells = new_ncells;
-   }
-*/
-
-   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
-   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
-   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
-
-   size_t mem_request = (int)((float)new_ncells*mesh->mem_factor);
-   cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   cl_mem dev_j_new        = ezcl_malloc(NULL, const_cast<char *>("dev_j_new"),        &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-#endif
-
    mesh->gpu_rezone_all(add_ncells, dev_mpot, dev_ioffset, dev_H, dev_U, dev_V, gpu_state_memory);
-
-   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
 #endif
 
@@ -2514,7 +2398,6 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
                             get_gpu_time_set_timestep() +
                             get_gpu_time_finite_difference() +
                             get_gpu_time_refine_potential() +
-                            get_gpu_time_rezone_all() +
                             mesh->get_gpu_time_rezone_all() +
                             mesh->get_gpu_time_calc_neighbors() +
                             get_gpu_time_mass_sum() +
@@ -2531,7 +2414,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
             printf("GPU:  kernel_refine_potential  time was\t %8.4f\ts\n",    (double) get_gpu_time_refine_potential()  * 1.0e-9);
             printf("GPU:    kernel_calc_mpot         time was\t %8.4f\ts\n",    (double) get_gpu_time_calc_mpot()  * 1.0e-9);
             printf("GPU:    kernel_refine_smooth     time was\t %8.4f\ts\n",    (double) mesh->get_gpu_time_refine_smooth()  * 1.0e-9);
-            printf("GPU:  kernel_rezone_all        time was\t %8.4f\ts\n",    (double) (get_gpu_time_rezone_all() + mesh->get_gpu_time_rezone_all() ) * 1.0e-9);
+            printf("GPU:  kernel_rezone_all        time was\t %8.4f\ts\n",    (double) (mesh->get_gpu_time_rezone_all() ) * 1.0e-9);
             printf("GPU:  kernel_calc_neighbors    time was\t %8.4f\ts\n",    (double) mesh->get_gpu_time_calc_neighbors()    * 1.0e-9);
             if (mesh->get_calc_neighbor_type() == HASH_TABLE) {
               printf("GPU:    mesh->hash_setup         time was\t %8.4f\ts\n",     (double)mesh->get_gpu_time_hash_setup() * 1.0e-9 );
@@ -2617,7 +2500,6 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
                             get_gpu_time_set_timestep() +
                             get_gpu_time_finite_difference() +
                             get_gpu_time_refine_potential() +
-                            get_gpu_time_rezone_all() +
                             mesh->get_gpu_time_rezone_all() +
                             mesh->get_gpu_time_calc_neighbors() +
                             mesh->get_gpu_time_load_balance() +
@@ -2636,7 +2518,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
          parallel_timer_output(numpe,mype,"GPU:  kernel_refine_potential  time was",(double) get_gpu_time_refine_potential()  * 1.0e-9 );
          parallel_timer_output(numpe,mype,"GPU:    kernel_calc_mpot         time was",(double) get_gpu_time_calc_mpot()  * 1.0e-9 );
          parallel_timer_output(numpe,mype,"GPU:    kernel_refine_smooth     time was",(double) mesh->get_gpu_time_refine_smooth()  * 1.0e-9 );
-         parallel_timer_output(numpe,mype,"GPU:  kernel_rezone_all        time was",(double) (get_gpu_time_rezone_all() + mesh->get_gpu_time_rezone_all() ) * 1.0e-9 );
+         parallel_timer_output(numpe,mype,"GPU:  kernel_rezone_all        time was",(double) (mesh->get_gpu_time_rezone_all() ) * 1.0e-9 );
          //parallel_timer_output(numpe,mype,"GPU:  kernel_hash_setup        time was",(double) mesh->get_gpu_time_hash_setup()         * 1.0e-9 );
          parallel_timer_output(numpe,mype,"GPU:  kernel_calc_neighbors    time was",(double) mesh->get_gpu_time_calc_neighbors()     * 1.0e-9 );
          if (mesh->get_calc_neighbor_type() == HASH_TABLE) {

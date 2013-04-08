@@ -3095,10 +3095,38 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
 #ifdef HAVE_OPENCL
 void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset, cl_mem &dev_H, cl_mem &dev_U, cl_mem &dev_V, MallocPlus &gpu_state_memory)
 {
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
    cl_command_queue command_queue = ezcl_get_command_queue();
+
+   assert(dev_mpot);
+   assert(dev_level);
+   assert(dev_i);
+   assert(dev_j);
+   assert(dev_celltype);
+   assert(dev_H);
+   assert(dev_U);
+   assert(dev_V);
+   assert(dev_ioffset);
+   assert(dev_levdx);
+   assert(dev_levdy);
 
    size_t old_ncells = ncells;
    size_t new_ncells = ncells + add_ncells;
+
+   int global_add_ncells = add_ncells;
+#ifdef HAVE_MPI
+   if (parallel) {
+      MPI_Allreduce(&add_ncells, &global_add_ncells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   }
+#endif
+   if (global_add_ncells == 0 ) {
+      gpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
+      return;
+   }
+
+   gpu_rezone_counter++;
 
    int ifirst      = 0;
    int ilast       = 0;
@@ -3157,10 +3185,6 @@ void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset,
    }
 */
 
-   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
-   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
-   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
-
    size_t mem_request = (int)((float)new_ncells*mem_factor);
    cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
    cl_mem dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -3213,6 +3237,10 @@ void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset,
    ezcl_set_kernel_arg(kernel_rezone_all, 19, local_work_size * sizeof(cl_real4),    NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, NULL);
+
+   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
+   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
+   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
 
    ezcl_set_kernel_arg(kernel_rezone_one, 0, sizeof(cl_int),  (void *)&old_ncells);
    ezcl_set_kernel_arg(kernel_rezone_one, 1, sizeof(cl_mem),  (void *)&dev_mpot);
@@ -3280,6 +3308,8 @@ void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset,
       ncells_global = ndispl[numpe-1]+nsizes[numpe-1];
    }
 #endif
+
+   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
 #endif
 
