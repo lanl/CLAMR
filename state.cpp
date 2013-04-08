@@ -199,7 +199,6 @@ State::State(size_t ncells)
    cpu_time_finite_difference  = 0;
    cpu_time_refine_potential   = 0;
      cpu_time_calc_mpot        = 0;
-   cpu_time_rezone_all         = 0;
    cpu_time_mass_sum           = 0;
 
    gpu_time_apply_BCs          = 0;
@@ -796,103 +795,8 @@ void State::state_reorder(vector<int> iorder)
 
 void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 {
-   struct timeval tstart_cpu;
-   cpu_timer_start(&tstart_cpu);
-
-   vector<int> &celltype = mesh->celltype;
-   //vector<int> &nlft     = mesh->nlft;
-   vector<int> &nrht     = mesh->nrht;
-   //vector<int> &nbot     = mesh->nbot;
-   vector<int> &ntop     = mesh->ntop;
-
-   int ncells = mesh->ncells;
-
-#ifdef XXX
-   vector<int> celltype_save(ncells);
-   for (int ic=0; ic < ncells; ic++){
-      celltype_save[ic] = celltype[ic];
-   }
-#endif
-
-   int global_add_ncells = add_ncells;
-#ifdef HAVE_MPI
-   if (mesh->parallel) {
-      MPI_Allreduce(&add_ncells, &global_add_ncells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   }
-#endif
-   if (global_add_ncells == 0 ) {
-      cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
-      return;
-   }
-
    mesh->rezone_all(mpot, add_ncells, 1, state_memory);
-
-   int new_ncells = ncells + add_ncells;
-
-   //printf("\nDEBUG rezone all \n"); 
-#ifdef XXX
-   MallocPlus state_memory_old = state_memory;
-
-   for (real *mem_ptr=(real *)state_memory_old.memory_begin(); mem_ptr != NULL; mem_ptr = (real *)state_memory_old.memory_next() ){
-
-      real *state_temp = (real *)state_memory.memory_malloc(new_ncells, sizeof(real), "state_temp");
-
-      for (int ic=0, nc=0; ic<ncells; ic++) {
-
-         if (mpot[ic] == 0) {
-            state_temp[nc] = mem_ptr[ic];
-            nc++;
-         } else if (mpot[ic] < 0){
-            int nr = nrht[ic];
-            int nt = ntop[ic];
-            int nrt = nrht[nt];
-            state_temp[nc] = (mem_ptr[ic] + mem_ptr[nr] + mem_ptr[nt] + mem_ptr[nrt])*0.25;
-            nc++;
-
-         } else if (mpot[ic] > 0){
-            // lower left
-            state_temp[nc] = mem_ptr[ic];
-            nc++;
-
-            // lower right
-            state_temp[nc] = mem_ptr[ic];
-            nc++;
-
-            if (celltype_save[ic] == REAL_CELL){
-               // upper left
-               state_temp[nc] = mem_ptr[ic];
-               nc++;
-
-               // upper right
-               state_temp[nc] = mem_ptr[ic];
-               nc++;
-            }
-         }
-      }
-
-      state_memory.memory_replace(mem_ptr, state_temp);
-   }
-#endif
-
    memory_reset_ptrs();
-
-#ifdef HAVE_MPI
-   if (mesh->parallel) {
-      MPI_Allgather(&new_ncells, 1, MPI_INT, &mesh->nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-
-      mesh->ndispl[0]=0;
-      for (int ip=1; ip<mesh->numpe; ip++){
-         mesh->ndispl[ip] = mesh->ndispl[ip-1] + mesh->nsizes[ip-1];
-      }
-      mesh->noffset=mesh->ndispl[mesh->mype];
-      mesh->ncells_global = mesh->ndispl[mesh->numpe-1]+mesh->nsizes[mesh->numpe-1];
-   }
-#endif
-
-   //state_memory.memory_report();
-   //printf("DEBUG end rezone all \n\n"); 
-
-   cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
 }
 
 
@@ -2353,7 +2257,6 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
          cpu_time_compute = get_cpu_time_set_timestep() +
                             get_cpu_time_finite_difference() +
                             get_cpu_time_refine_potential() +
-                            get_cpu_time_rezone_all() +
                             mesh->get_cpu_time_rezone_all() +
                             mesh->get_cpu_time_calc_neighbors() +
                             get_cpu_time_mass_sum() +
@@ -2369,7 +2272,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
             printf("CPU:  mesh->refine_potential   time was\t %8.4f\ts\n",     get_cpu_time_refine_potential() );
             printf("CPU:    mesh->calc_mpot          time was\t %8.4f\ts\n",     get_cpu_time_calc_mpot() );
             printf("CPU:    mesh->refine_smooth      time was\t %8.4f\ts\n",     mesh->get_cpu_time_refine_smooth() );
-            printf("CPU:  mesh->rezone_all         time was\t %8.4f\ts\n",     (get_cpu_time_rezone_all() + mesh->get_cpu_time_rezone_all() ) );
+            printf("CPU:  mesh->rezone_all         time was\t %8.4f\ts\n",     mesh->get_cpu_time_rezone_all() );
             printf("CPU:  mesh->partition_cells    time was\t %8.4f\ts\n",     mesh->cpu_time_partition);
             printf("CPU:  mesh->calc_neighbors     time was\t %8.4f\ts\n",     mesh->get_cpu_time_calc_neighbors() );
             if (mesh->get_calc_neighbor_type() == HASH_TABLE) {
@@ -2439,7 +2342,6 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
          cpu_time_compute = get_cpu_time_set_timestep() +
                             get_cpu_time_finite_difference() +
                             get_cpu_time_refine_potential() +
-                            get_cpu_time_rezone_all() +
                             mesh->get_cpu_time_rezone_all() +
                             mesh->get_cpu_time_calc_neighbors() +
                             mesh->get_cpu_time_load_balance() +
@@ -2456,7 +2358,7 @@ void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, dou
          parallel_timer_output(numpe,mype,"CPU:  state->refine_potential  time was",get_cpu_time_refine_potential() );
          parallel_timer_output(numpe,mype,"CPU:    state->calc_mpot         time was",get_cpu_time_calc_mpot() );
          parallel_timer_output(numpe,mype,"CPU:    state->refine_smooth     time was",mesh->get_cpu_time_refine_smooth() );
-         parallel_timer_output(numpe,mype,"CPU:  mesh->rezone_all         time was",(get_cpu_time_rezone_all() + mesh->get_cpu_time_rezone_all() ) );
+         parallel_timer_output(numpe,mype,"CPU:  mesh->rezone_all         time was",mesh->get_cpu_time_rezone_all() );
          parallel_timer_output(numpe,mype,"CPU:  mesh->partition_cells    time was",mesh->cpu_time_partition);
          parallel_timer_output(numpe,mype,"CPU:  mesh->calc_neighbors     time was",mesh->get_cpu_time_calc_neighbors() );
          if (mesh->get_calc_neighbor_type() == HASH_TABLE) {
