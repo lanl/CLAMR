@@ -467,7 +467,7 @@ extern "C" void do_calc(void)
       }
 
       int add_ncells = new_ncells - old_ncells;
-      state->rezone_all(mesh, mpot, add_ncells);
+      state->rezone_all(mesh, add_ncells, mpot);
       mpot.clear();
 
       //  Resize the mesh, inserting cells where refinement is necessary.

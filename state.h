@@ -217,7 +217,7 @@ public:
    *  Output
    *    New mesh and state variables on refined mesh
    *******************************************************************/
-   void rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells);
+   void rezone_all(Mesh *mesh, int add_ncells, vector<int> mpot);
 #ifdef HAVE_OPENCL
    void gpu_rezone_all(Mesh *mesh, size_t add_ncells, bool localStencil);
 #endif

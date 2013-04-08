@@ -1836,7 +1836,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       int add_ncells = new_ncells - old_ncells;
 
       MallocPlus dummy;
-      rezone_all(mpot, add_ncells, 0, dummy);
+      rezone_all(add_ncells, mpot, 0, dummy);
 
       ncells = new_ncells;
    
@@ -2566,7 +2566,7 @@ void Mesh::calc_centerminmax(void)
 
 }
 
-void Mesh::rezone_all(vector<int> mpot, int add_ncells, int have_state, MallocPlus &state_memory)
+void Mesh::rezone_all(int add_ncells, vector<int> mpot, int have_state, MallocPlus &state_memory)
 {
    struct timeval tstart_cpu;
 

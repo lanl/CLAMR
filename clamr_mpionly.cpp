@@ -386,7 +386,7 @@ extern "C" void do_calc(void)
   
       cpu_timer_start(&tstart_cpu);
       int add_ncells = new_ncells - old_ncells;
-      state->rezone_all(mesh, mpot, add_ncells);
+      state->rezone_all(mesh, add_ncells, mpot);
       mpot.clear();
       ncells = new_ncells;
       mesh->ncells = new_ncells;

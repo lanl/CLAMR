@@ -435,7 +435,7 @@ extern "C" void do_calc(void)
       }
 
       int add_ncells = new_ncells - old_ncells;
-      state->rezone_all(mesh, mpot, add_ncells);
+      state->rezone_all(mesh, add_ncells, mpot);
       mpot.clear();
       ncells = new_ncells;
       mesh->ncells = new_ncells;
@@ -443,7 +443,7 @@ extern "C" void do_calc(void)
       if (do_comparison_calc) {
          int add_ncells_global = new_ncells_global - old_ncells_global;
          //printf("%d: DEBUG add %d new %d old %d\n",mype,add_ncells,new_ncells,old_ncells);
-         state_global->rezone_all(mesh_global, mpot_global, add_ncells_global);
+         state_global->rezone_all(mesh_global, add_ncells_global, mpot_global);
          mpot_global.clear();
 
          ncells_global = new_ncells_global;

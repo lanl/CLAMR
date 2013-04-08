@@ -793,9 +793,9 @@ void State::state_reorder(vector<int> iorder)
    //printf("DEBUG end reorder cells\n\n"); 
 }
 
-void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
+void State::rezone_all(Mesh *mesh, int add_ncells, vector<int> mpot)
 {
-   mesh->rezone_all(mpot, add_ncells, 1, state_memory);
+   mesh->rezone_all(add_ncells, mpot, 1, state_memory);
    memory_reset_ptrs();
 }
 
