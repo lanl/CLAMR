@@ -1835,7 +1835,8 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       int new_ncells = refine_smooth(mpot);
       int add_ncells = new_ncells - old_ncells;
 
-      rezone_all(mpot, add_ncells);
+      MallocPlus dummy;
+      rezone_all(mpot, add_ncells, 0, dummy);
 
       ncells = new_ncells;
    
@@ -2565,17 +2566,22 @@ void Mesh::calc_centerminmax(void)
 
 }
 
-void Mesh::rezone_all(vector<int> mpot, int add_ncells)
+void Mesh::rezone_all(vector<int> mpot, int add_ncells, int have_state, MallocPlus &state_memory)
 {
    struct timeval tstart_cpu;
 
-   uint ic,          //  Index for old cell arrays.
-        nc;          //  Index for new cell arrays.
    int set_index = 0;
 
    cpu_timer_start(&tstart_cpu);
 
    cpu_rezone_counter++;
+
+   vector<int> celltype_save(ncells);
+   if (have_state) {
+      for (int ic=0; ic < ncells; ic++){
+         celltype_save[ic] = celltype[ic];
+      }
+   }
 
    //  Check for requested mesh refinements; if there are none, return.
    if (parallel) {
@@ -2656,7 +2662,7 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
 #endif
    }
 
-   for (ic = 0, nc = 0; ic < ncells; ic++)
+   for (int ic = 0, nc = 0; ic < ncells; ic++)
    {
       if (mpot[ic] == 0)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
@@ -3082,12 +3088,56 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
       } //  Complete refinement needed.
    } //  Complete addition of new cells to the mesh.
 
+   calc_celltype(new_ncells);
+
    //ncells = nc;
 #ifdef HAVE_MPI
    MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 #endif
-   
-   calc_celltype(new_ncells);
+
+   if (have_state){
+      MallocPlus state_memory_old = state_memory;
+
+      for (real *mem_ptr=(real *)state_memory_old.memory_begin(); mem_ptr != NULL; mem_ptr = (real *)state_memory_old.memory_next() ){
+
+         real *state_temp = (real *)state_memory.memory_malloc(new_ncells, sizeof(real), "state_temp");
+
+         for (int ic=0, nc=0; ic<ncells; ic++) {
+
+            if (mpot[ic] == 0) {
+               state_temp[nc] = mem_ptr[ic];
+               nc++;
+            } else if (mpot[ic] < 0){
+               int nr = nrht[ic];
+               int nt = ntop[ic];
+               int nrt = nrht[nt];
+               state_temp[nc] = (mem_ptr[ic] + mem_ptr[nr] + mem_ptr[nt] + mem_ptr[nrt])*0.25;
+               nc++;
+
+            } else if (mpot[ic] > 0){
+               // lower left
+               state_temp[nc] = mem_ptr[ic];
+               nc++;
+
+               // lower right
+               state_temp[nc] = mem_ptr[ic];
+               nc++;
+
+               if (celltype_save[ic] == REAL_CELL){
+                  // upper left
+                  state_temp[nc] = mem_ptr[ic];
+                  nc++;
+
+                  // upper right
+                  state_temp[nc] = mem_ptr[ic];
+                  nc++;
+               }
+            }
+         }
+
+         state_memory.memory_replace(mem_ptr, state_temp);
+      }
+   }
 
    cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
 }

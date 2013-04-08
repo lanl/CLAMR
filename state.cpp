@@ -807,10 +807,12 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 
    int ncells = mesh->ncells;
 
+#ifdef XXX
    vector<int> celltype_save(ncells);
    for (int ic=0; ic < ncells; ic++){
       celltype_save[ic] = celltype[ic];
    }
+#endif
 
    int global_add_ncells = add_ncells;
 #ifdef HAVE_MPI
@@ -823,11 +825,12 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
       return;
    }
 
-   mesh->rezone_all(mpot, add_ncells);
+   mesh->rezone_all(mpot, add_ncells, 1, state_memory);
 
    int new_ncells = ncells + add_ncells;
 
    //printf("\nDEBUG rezone all \n"); 
+#ifdef XXX
    MallocPlus state_memory_old = state_memory;
 
    for (real *mem_ptr=(real *)state_memory_old.memory_begin(); mem_ptr != NULL; mem_ptr = (real *)state_memory_old.memory_next() ){
@@ -869,6 +872,7 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 
       state_memory.memory_replace(mem_ptr, state_temp);
    }
+#endif
 
    memory_reset_ptrs();
 
