@@ -3087,8 +3087,12 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::gpu_rezone_all(int add_ncells)
+void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_i_new, cl_mem &dev_j_new, cl_mem &dev_celltype_new, cl_mem &dev_level_new)
 {
+   ezcl_device_memory_delete(dev_i_new);
+   ezcl_device_memory_delete(dev_j_new);
+   ezcl_device_memory_delete(dev_celltype_new);
+   ezcl_device_memory_delete(dev_level_new);
 
 #ifdef HAVE_MPI
    if (parallel) {

@@ -1113,16 +1113,16 @@ void State::gpu_rezone_all(Mesh *mesh, size_t add_ncells, bool localStencil)
    ezcl_device_memory_delete(dev_ijadd);
    ezcl_device_memory_delete(dev_ioffset);
 
+   mesh->gpu_rezone_all(add_ncells, dev_i_new, dev_j_new, dev_celltype_new, dev_level_new);
+
    dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
    dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
    dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
 
-   ezcl_device_memory_delete(dev_i_new);
-   ezcl_device_memory_delete(dev_j_new);
-   ezcl_device_memory_delete(dev_celltype_new);
-   ezcl_device_memory_delete(dev_level_new);
-
-   mesh->gpu_rezone_all(add_ncells);
+// ezcl_device_memory_delete(dev_i_new);
+// ezcl_device_memory_delete(dev_j_new);
+// ezcl_device_memory_delete(dev_celltype_new);
+// ezcl_device_memory_delete(dev_level_new);
 
 //#ifdef HAVE_MPI
 //   if (mesh->parallel) {
