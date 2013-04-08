@@ -1122,18 +1122,20 @@ void State::gpu_rezone_all(Mesh *mesh, size_t add_ncells, bool localStencil)
    ezcl_device_memory_delete(dev_celltype_new);
    ezcl_device_memory_delete(dev_level_new);
 
-#ifdef HAVE_MPI
-   if (mesh->parallel) {
-      MPI_Allgather(&new_ncells, 1, MPI_INT, &mesh->nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+   mesh->gpu_rezone_all(add_ncells);
 
-      mesh->ndispl[0]=0;
-      for (int ip=1; ip<mesh->numpe; ip++){
-         mesh->ndispl[ip] = mesh->ndispl[ip-1] + mesh->nsizes[ip-1];
-      }
-      mesh->noffset=mesh->ndispl[mesh->mype];
-      mesh->ncells_global = mesh->ndispl[mesh->numpe-1]+mesh->nsizes[mesh->numpe-1];
-   }
-#endif
+//#ifdef HAVE_MPI
+//   if (mesh->parallel) {
+//      MPI_Allgather(&new_ncells, 1, MPI_INT, &mesh->nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+//
+//      mesh->ndispl[0]=0;
+//      for (int ip=1; ip<mesh->numpe; ip++){
+//         mesh->ndispl[ip] = mesh->ndispl[ip-1] + mesh->nsizes[ip-1];
+//      }
+//      mesh->noffset=mesh->ndispl[mesh->mype];
+//      mesh->ncells_global = mesh->ndispl[mesh->numpe-1]+mesh->nsizes[mesh->numpe-1];
+//   }
+//#endif
 
    gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }

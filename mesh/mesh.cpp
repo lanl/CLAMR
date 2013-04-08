@@ -3086,6 +3086,26 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
    cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
 }
 
+#ifdef HAVE_OPENCL
+void Mesh::gpu_rezone_all(int add_ncells)
+{
+
+#ifdef HAVE_MPI
+   if (parallel) {
+      int new_ncells = ncells + add_ncells;
+      MPI_Allgather(&new_ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+
+      ndispl[0]=0;
+      for (int ip=1; ip<numpe; ip++){
+         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+      }
+      noffset=ndispl[mype];
+      ncells_global = ndispl[numpe-1]+nsizes[numpe-1];
+   }
+#endif
+}
+#endif
+
 void Mesh::calc_neighbors(void)
 {
    struct timeval tstart_cpu;

@@ -432,6 +432,9 @@ public:
    * Rezone mesh
    **************************************************************************************/
    void rezone_all(vector<int> mpot, int add_ncells);
+#ifdef HAVE_OPENCL
+   void gpu_rezone_all(int add_ncells);
+#endif
 
    /**************************************************************************************
    * Load balance -- only needed for parallel (MPI) runs
