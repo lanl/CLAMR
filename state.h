@@ -219,7 +219,7 @@ public:
    *******************************************************************/
    void rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells);
 #ifdef HAVE_OPENCL
-   void gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t add_ncells, bool localStencil);
+   void gpu_rezone_all(Mesh *mesh, size_t add_ncells, bool localStencil);
 #endif
 
    /*******************************************************************

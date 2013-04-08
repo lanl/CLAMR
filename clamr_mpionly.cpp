@@ -388,11 +388,14 @@ extern "C" void do_calc(void)
       int add_ncells = new_ncells - old_ncells;
       state->rezone_all(mesh, mpot, add_ncells);
       mpot.clear();
+      ncells = new_ncells;
+      mesh->ncells = new_ncells;
 
       cpu_timer_start(&tstart_cpu);
       if (mesh->nlft.size() == 0) {
          state->do_load_balance_local(mesh, new_ncells);
       }
+
 
 // XXX
 //      mesh->proc.resize(ncells);
@@ -439,6 +442,7 @@ extern "C" void do_calc(void)
    //vector<real> dy_global;
    //vector<real> H_global;
    //vector<int> proc_global;
+
    if (mype == 0) {
       x_global.resize(ncells_global);
       dx_global.resize(ncells_global);

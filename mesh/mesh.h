@@ -509,7 +509,7 @@ private:
 
    //   Member functions.
    void calc_minmax(void);
-   void calc_celltype(void);
+   void calc_celltype(size_t ncells);
 #ifdef HAVE_OPENCL
    void print_dev_local();
 #endif

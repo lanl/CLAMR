@@ -445,7 +445,7 @@ void Mesh::partition_cells(
 
             // It is faster just to recalculate these variables instead of communicating them
             if (celltype.size() >= ncells) {
-               calc_celltype();
+               calc_celltype(celltype.size());
             }
 
             if (have_spatial_variables) {
@@ -666,7 +666,7 @@ void Mesh::partition_cells(
 
             // It is faster just to recalculate these variables instead of communicating them
             if (celltype.size() >= ncells) {
-               calc_celltype();
+               calc_celltype(celltype.size());
             }
 
             if (x.size() >= ncells) {

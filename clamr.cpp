@@ -454,7 +454,7 @@ extern "C" void do_calc(void)
 
       //  Resize the mesh, inserting cells where refinement is necessary.
       size_t add_ncells = new_ncells - old_ncells;
-      if (ncells_global_old != (int)ncells_global) state->gpu_rezone_all(mesh, old_ncells, add_ncells, localStencil);
+      if (ncells_global_old != (int)ncells_global) state->gpu_rezone_all(mesh, add_ncells, localStencil);
 
       // XXX XXX XXX
       ncells       = new_ncells;

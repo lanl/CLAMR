@@ -734,9 +734,9 @@ extern "C" void do_calc(void)
       if (do_gpu_calc) {
          if (mesh_global->dev_nlft == NULL){
             size_t add_ncells_global = new_ncells_global - old_ncells_global;
-            state_global->gpu_rezone_all(mesh_global, old_ncells_global, add_ncells_global, localStencil);
+            state_global->gpu_rezone_all(mesh_global, add_ncells_global, localStencil);
             size_t add_ncells = new_ncells - old_ncells;
-            state_local->gpu_rezone_all(mesh_local, old_ncells, add_ncells, localStencil);
+            state_local->gpu_rezone_all(mesh_local, add_ncells, localStencil);
          }
       }
 

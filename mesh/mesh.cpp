@@ -1802,7 +1802,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    //if (numpe > 1 && (initial_order != HILBERT_SORT && initial_order != HILBERT_PARTITION) ) mem_factor = 2.0;
    partition_cells(numpe, index, initial_order);
 
-   calc_celltype();
+   calc_celltype(ncells);
    calc_spatial_coordinates(0);
 
    //  Start lev loop here
@@ -1810,20 +1810,6 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
 
       int old_ncells = ncells;
 
-#ifdef HAVE_MPI
-      if (parallel && numpe > 1) {
-         int ncells_int = ncells;
-         MPI_Allreduce(&ncells_int, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   
-         MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-         ndispl[0]=0;
-         for (int ip=1; ip<numpe; ip++){
-            ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-         }
-         noffset=ndispl[mype];
-      }
-#endif
-      
       ncells_ghost = ncells;
       calc_neighbors_local();
 
@@ -1847,10 +1833,24 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
 
       rezone_all(mpot, add_ncells);
 
-      calc_spatial_coordinates(0);
-
       ncells = new_ncells;
    
+      calc_spatial_coordinates(0);
+
+#ifdef HAVE_MPI
+      if (parallel && numpe > 1) {
+         int ncells_int = ncells;
+         MPI_Allreduce(&ncells_int, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   
+         MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+         ndispl[0]=0;
+         for (int ip=1; ip<numpe; ip++){
+            ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+         }
+         noffset=ndispl[mype];
+      }
+#endif
+      
    }  // End lev loop here
 
    index.clear();
@@ -3076,12 +3076,12 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
       } //  Complete refinement needed.
    } //  Complete addition of new cells to the mesh.
 
-   ncells = nc;
+   //ncells = nc;
 #ifdef HAVE_MPI
    MPI_Allreduce(&ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 #endif
    
-   calc_celltype();
+   calc_celltype(new_ncells);
 
    cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
 }
@@ -7873,7 +7873,7 @@ int Mesh::get_calc_neighbor_type(void)
    return(calc_neighbor_type );
 }
 
-void Mesh::calc_celltype(void)
+void Mesh::calc_celltype(size_t ncells)
 {
    celltype.resize(ncells,REAL_CELL);
 

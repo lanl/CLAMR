@@ -471,7 +471,9 @@ extern "C" void do_calc(void)
       mpot.clear();
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      if (mesh->dev_nlft == NULL) state->gpu_rezone_all(mesh, ncells, add_ncells, localStencil);
+      if (mesh->dev_nlft == NULL) state->gpu_rezone_all(mesh, add_ncells, localStencil);
+      ncells = new_ncells;
+      mesh->ncells = new_ncells;
 
       //ezcl_device_memory_remove(dev_ioffset);
 

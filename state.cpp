@@ -896,6 +896,7 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
          mesh->ndispl[ip] = mesh->ndispl[ip-1] + mesh->nsizes[ip-1];
       }
       mesh->noffset=mesh->ndispl[mesh->mype];
+      mesh->ncells_global = mesh->ndispl[mesh->numpe-1]+mesh->nsizes[mesh->numpe-1];
    }
 #endif
 
@@ -911,15 +912,12 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 
 
 #ifdef HAVE_OPENCL
-void State::gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t add_ncells, bool localStencil)
+void State::gpu_rezone_all(Mesh *mesh, size_t add_ncells, bool localStencil)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
-
-   size_t new_ncells = ncells + add_ncells;
-   size_t old_ncells = ncells;
 
    mesh->gpu_rezone_counter++;
 
@@ -932,6 +930,7 @@ void State::gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t add_ncells, bool l
    cl_mem &dev_levdx        = mesh->dev_levdx;
    cl_mem &dev_levdy        = mesh->dev_levdy;
    //cl_mem &dev_mpot         = mesh->dev_mpot;
+   size_t &ncells           = mesh->ncells;
 
    assert(dev_mpot);
    assert(dev_level);
@@ -944,6 +943,9 @@ void State::gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t add_ncells, bool l
    assert(dev_ioffset);
    assert(dev_levdx);
    assert(dev_levdy);
+
+   size_t new_ncells = ncells + add_ncells;
+   size_t old_ncells = ncells;
 
    int ifirst      = 0;
    int ilast       = 0;
@@ -996,15 +998,17 @@ void State::gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t add_ncells, bool l
    }
 #endif
 
+/*
    if (new_ncells != old_ncells){
       ncells = new_ncells;
    }
+*/
 
-   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
-   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
-   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
+   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
+   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
+   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
 
-   size_t mem_request = (int)((float)ncells*mesh->mem_factor);
+   size_t mem_request = (int)((float)new_ncells*mesh->mem_factor);
    cl_mem dev_celltype_new = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_new"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
    cl_mem dev_level_new    = ezcl_malloc(NULL, const_cast<char *>("dev_level_new"),    &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
    cl_mem dev_i_new        = ezcl_malloc(NULL, const_cast<char *>("dev_i_new"),        &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -1026,7 +1030,7 @@ void State::gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t add_ncells, bool l
    dev_ijadd = ezcl_malloc(NULL, const_cast<char *>("dev_ijadd"), &six, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
    ezcl_enqueue_write_buffer(command_queue, dev_ijadd, CL_TRUE, 0, 6*sizeof(cl_int), (void*)&ijadd[0], NULL);
 
-   cl_mem dev_indexoffset = ezcl_malloc(NULL, const_cast<char *>("dev_indexoffset"), &ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_indexoffset = ezcl_malloc(NULL, const_cast<char *>("dev_indexoffset"), &new_ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
    int stencil = 0;
    if (localStencil) stencil = 1;
@@ -1086,8 +1090,8 @@ void State::gpu_rezone_all(Mesh *mesh, size_t &ncells, size_t add_ncells, bool l
 
    ezcl_device_memory_delete(dev_indexoffset);
 
-   if (ncells != old_ncells){
-      mesh->resize_old_device_memory(ncells);
+   if (new_ncells != old_ncells){
+      mesh->resize_old_device_memory(new_ncells);
    }
 
    SWAP_PTR(dev_celltype_new, dev_celltype, dev_ptr);
