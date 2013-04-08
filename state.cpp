@@ -803,7 +803,10 @@ void State::rezone_all(Mesh *mesh, vector<int> mpot, int add_ncells)
 #ifdef HAVE_OPENCL
 void State::gpu_rezone_all(Mesh *mesh, size_t add_ncells, bool localStencil)
 {
-   mesh->gpu_rezone_all(add_ncells, dev_mpot, dev_ioffset, dev_H, dev_U, dev_V, gpu_state_memory);
+   mesh->gpu_rezone_all(add_ncells, dev_mpot, dev_ioffset, gpu_state_memory);
+   dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H");
+   dev_U = (cl_mem)gpu_state_memory.get_memory_ptr("dev_U");
+   dev_V = (cl_mem)gpu_state_memory.get_memory_ptr("dev_V");
 }
 #endif
 

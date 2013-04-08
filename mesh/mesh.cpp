@@ -3164,7 +3164,7 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells, int have_state, MallocPl
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset, cl_mem &dev_H, cl_mem &dev_U, cl_mem &dev_V, MallocPlus &gpu_state_memory)
+void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset, MallocPlus &gpu_state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -3176,9 +3176,6 @@ void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset,
    assert(dev_i);
    assert(dev_j);
    assert(dev_celltype);
-   assert(dev_H);
-   assert(dev_U);
-   assert(dev_V);
    assert(dev_ioffset);
    assert(dev_levdx);
    assert(dev_levdy);
@@ -3309,40 +3306,21 @@ void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset,
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, NULL);
 
-   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
-   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
-   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
+   for (cl_mem dev_state_mem_ptr = (cl_mem)gpu_state_memory.memory_begin(); dev_state_mem_ptr != NULL; dev_state_mem_ptr = (cl_mem)gpu_state_memory.memory_next() ){
 
-   ezcl_set_kernel_arg(kernel_rezone_one, 0, sizeof(cl_int),  (void *)&old_ncells);
-   ezcl_set_kernel_arg(kernel_rezone_one, 1, sizeof(cl_mem),  (void *)&dev_mpot);
-   ezcl_set_kernel_arg(kernel_rezone_one, 2, sizeof(cl_mem),  (void *)&dev_celltype);
-   ezcl_set_kernel_arg(kernel_rezone_one, 3, sizeof(cl_mem),  (void *)&dev_indexoffset);
-   ezcl_set_kernel_arg(kernel_rezone_one, 4, sizeof(cl_mem),  (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_rezone_one, 5, sizeof(cl_mem),  (void *)&dev_H_new);
+      cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_state_var_new"));
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_one,   1, NULL, &global_work_size, &local_work_size, NULL);
+      ezcl_set_kernel_arg(kernel_rezone_one, 0, sizeof(cl_int),  (void *)&old_ncells);
+      ezcl_set_kernel_arg(kernel_rezone_one, 1, sizeof(cl_mem),  (void *)&dev_mpot);
+      ezcl_set_kernel_arg(kernel_rezone_one, 2, sizeof(cl_mem),  (void *)&dev_celltype);
+      ezcl_set_kernel_arg(kernel_rezone_one, 3, sizeof(cl_mem),  (void *)&dev_indexoffset);
+      ezcl_set_kernel_arg(kernel_rezone_one, 4, sizeof(cl_mem),  (void *)&dev_state_mem_ptr);
+      ezcl_set_kernel_arg(kernel_rezone_one, 5, sizeof(cl_mem),  (void *)&dev_state_var_new);
 
-   ezcl_set_kernel_arg(kernel_rezone_one, 0, sizeof(cl_int),  (void *)&old_ncells);
-   ezcl_set_kernel_arg(kernel_rezone_one, 1, sizeof(cl_mem),  (void *)&dev_mpot);
-   ezcl_set_kernel_arg(kernel_rezone_one, 2, sizeof(cl_mem),  (void *)&dev_celltype);
-   ezcl_set_kernel_arg(kernel_rezone_one, 3, sizeof(cl_mem),  (void *)&dev_indexoffset);
-   ezcl_set_kernel_arg(kernel_rezone_one, 4, sizeof(cl_mem),  (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_rezone_one, 5, sizeof(cl_mem),  (void *)&dev_U_new);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_one,   1, NULL, &global_work_size, &local_work_size, NULL);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_one,   1, NULL, &global_work_size, &local_work_size, NULL);
-
-   ezcl_set_kernel_arg(kernel_rezone_one, 0, sizeof(cl_int),  (void *)&old_ncells);
-   ezcl_set_kernel_arg(kernel_rezone_one, 1, sizeof(cl_mem),  (void *)&dev_mpot);
-   ezcl_set_kernel_arg(kernel_rezone_one, 2, sizeof(cl_mem),  (void *)&dev_celltype);
-   ezcl_set_kernel_arg(kernel_rezone_one, 3, sizeof(cl_mem),  (void *)&dev_indexoffset);
-   ezcl_set_kernel_arg(kernel_rezone_one, 4, sizeof(cl_mem),  (void *)&dev_V);
-   ezcl_set_kernel_arg(kernel_rezone_one, 5, sizeof(cl_mem),  (void *)&dev_V_new);
-
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_one,   1, NULL, &global_work_size, &local_work_size, NULL);
-
-   dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
-   dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
-   dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
+      gpu_state_memory.memory_replace(dev_state_mem_ptr, dev_state_var_new);
+   }
 
    ezcl_device_memory_delete(dev_indexoffset);
 
