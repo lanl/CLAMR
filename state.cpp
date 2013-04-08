@@ -1098,44 +1098,11 @@ void State::gpu_rezone_all(Mesh *mesh, size_t add_ncells, bool localStencil)
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_one,   1, NULL, &global_work_size, &local_work_size, NULL);
 
-   ezcl_device_memory_delete(dev_indexoffset);
-
-   if (new_ncells != old_ncells){
-      mesh->resize_old_device_memory(new_ncells);
-   }
-
-   SWAP_PTR(dev_celltype_new, dev_celltype, dev_ptr);
-   SWAP_PTR(dev_level_new,    dev_level,    dev_ptr);
-   SWAP_PTR(dev_i_new,        dev_i,        dev_ptr);
-   SWAP_PTR(dev_j_new,        dev_j,        dev_ptr);
-
-   ezcl_device_memory_delete(dev_mpot);
-   ezcl_device_memory_delete(dev_ijadd);
-   ezcl_device_memory_delete(dev_ioffset);
-
-   mesh->gpu_rezone_all(add_ncells, dev_i_new, dev_j_new, dev_celltype_new, dev_level_new);
+   mesh->gpu_rezone_all(add_ncells, dev_i_new, dev_j_new, dev_celltype_new, dev_level_new, dev_mpot, dev_ijadd, dev_ioffset, dev_indexoffset);
 
    dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
    dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
    dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
-
-// ezcl_device_memory_delete(dev_i_new);
-// ezcl_device_memory_delete(dev_j_new);
-// ezcl_device_memory_delete(dev_celltype_new);
-// ezcl_device_memory_delete(dev_level_new);
-
-//#ifdef HAVE_MPI
-//   if (mesh->parallel) {
-//      MPI_Allgather(&new_ncells, 1, MPI_INT, &mesh->nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-//
-//      mesh->ndispl[0]=0;
-//      for (int ip=1; ip<mesh->numpe; ip++){
-//         mesh->ndispl[ip] = mesh->ndispl[ip-1] + mesh->nsizes[ip-1];
-//      }
-//      mesh->noffset=mesh->ndispl[mesh->mype];
-//      mesh->ncells_global = mesh->ndispl[mesh->numpe-1]+mesh->nsizes[mesh->numpe-1];
-//   }
-//#endif
 
    gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }

@@ -3087,8 +3087,28 @@ void Mesh::rezone_all(vector<int> mpot, int add_ncells)
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_i_new, cl_mem &dev_j_new, cl_mem &dev_celltype_new, cl_mem &dev_level_new)
+void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_i_new, cl_mem &dev_j_new, cl_mem &dev_celltype_new, cl_mem &dev_level_new, cl_mem &dev_mpot, cl_mem &dev_ijadd, cl_mem &dev_ioffset, cl_mem &dev_indexoffset)
 {
+   size_t old_ncells = ncells;
+   size_t new_ncells = ncells + add_ncells;
+
+   ezcl_device_memory_delete(dev_indexoffset);
+
+   if (new_ncells != old_ncells){
+      resize_old_device_memory(new_ncells);
+   }
+
+   cl_mem dev_ptr;
+
+   SWAP_PTR(dev_celltype_new, dev_celltype, dev_ptr);
+   SWAP_PTR(dev_level_new,    dev_level,    dev_ptr);
+   SWAP_PTR(dev_i_new,        dev_i,        dev_ptr);
+   SWAP_PTR(dev_j_new,        dev_j,        dev_ptr);
+
+   ezcl_device_memory_delete(dev_mpot);
+   ezcl_device_memory_delete(dev_ijadd);
+   ezcl_device_memory_delete(dev_ioffset);
+
    ezcl_device_memory_delete(dev_i_new);
    ezcl_device_memory_delete(dev_j_new);
    ezcl_device_memory_delete(dev_celltype_new);
