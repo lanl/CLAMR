@@ -126,8 +126,6 @@ static State      *state;    //  Object containing state information correspondi
 static struct timeval tstart;
 static cl_event start_write_event, end_write_event;
 
-static int compute_device = 0;
-
 static double H_sum_initial = 0.0;
 static long gpu_time_graphics = 0;
 double cpu_time_main_setup = 0.0;
@@ -141,9 +139,9 @@ int main(int argc, char **argv) {
    L7_Init(&mype, &numpe, &argc, argv);
    parseInput(argc, argv);
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &compute_device, mype);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, mype);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &compute_device, mype);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, mype);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -172,14 +170,14 @@ int main(int argc, char **argv) {
       //mesh->print_local();
    }
 
-   mesh->init(nx, ny, circ_radius, initial_order, compute_device, do_gpu_calc);
+   mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
 
    size_t &ncells = mesh->ncells;
    size_t &ncells_global = mesh->ncells_global;
    int &noffset = mesh->noffset;
 
    state = new State(ncells);
-   state->init(ncells, compute_device, do_gpu_calc);
+   state->init(ncells, do_gpu_calc);
 
    cl_mem &dev_corners_i_local  = mesh->dev_corners_i;
    cl_mem &dev_corners_j_local  = mesh->dev_corners_j;

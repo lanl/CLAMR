@@ -279,11 +279,9 @@ public:
    Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe, int boundary, int parallel_in, int do_gpu_calc);
 
    //   Member functions.
-#ifdef HAVE_OPENCL
-   void init(int nx, int ny, double circ_radius, partition_method initial_order, int compute_device, int do_gpu_calc);
-   void terminate(void);
-#else
    void init(int nx, int ny, double circ_radius, partition_method initial_order, int do_gpu_calc);
+#ifdef HAVE_OPENCL
+   void terminate(void);
 #endif
 
 /* memory routines */

@@ -211,17 +211,13 @@ State::State(size_t ncells)
    gpu_time_write              = 0;
 }
 
-#ifdef HAVE_OPENCL
-void State::init(size_t ncells, int compute_device, int do_gpu_calc)
-#else
 void State::init(size_t ncells, int do_gpu_calc)
-#endif
 {
 #ifdef HAVE_OPENCL
    if (do_gpu_calc) {
       cl_context context = ezcl_get_context();
 
-      if (compute_device == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in state\n");
+      if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in state\n");
       kernel_set_timestep                = ezcl_create_kernel_wsource(context, state_kern_source, "set_timestep_cl",                0);
       kernel_reduction_min               = ezcl_create_kernel_wsource(context, state_kern_source, "finish_reduction_min_cl",        0);
       kernel_copy_state_data             = ezcl_create_kernel_wsource(context, state_kern_source, "copy_state_data_cl",             0);
@@ -232,7 +228,7 @@ void State::init(size_t ncells, int do_gpu_calc)
       kernel_reduce_sum_mass_stage2of2   = ezcl_create_kernel_wsource(context, state_kern_source, "reduce_sum_mass_stage2of2_cl",   0);
       kernel_reduce_epsum_mass_stage1of2 = ezcl_create_kernel_wsource(context, state_kern_source, "reduce_epsum_mass_stage1of2_cl", 0);
       kernel_reduce_epsum_mass_stage2of2 = ezcl_create_kernel_wsource(context, state_kern_source, "reduce_epsum_mass_stage2of2_cl", 0);
-      if (compute_device == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in state\n");
+      if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in state\n");
    }
 #endif
 

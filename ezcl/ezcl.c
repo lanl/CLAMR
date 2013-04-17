@@ -84,7 +84,7 @@ static cl_command_queue command_queue;
 static cl_context       context;
 static cl_program       program;
 static cl_platform_id   platform = NULL;
-static int              my_compute_device = 0;
+static int              compute_device = 0;
 
 SLIST_HEAD(slist_device_memory_head, device_memory_entry) device_memory_head = SLIST_HEAD_INITIALIZER(device_memory_head);
 struct slist_device_memory_head *device_memory_headp;
@@ -309,7 +309,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
    return(0);
 }
 
-cl_int ezcl_devtype_init_p(cl_device_type device_type, int *compute_device, const int mype, const char *file, int line){
+cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const char *file, int line){
    cl_device_id device;
    int ierr;
    cl_uint nDevices_selected=0;
@@ -483,12 +483,10 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, int *compute_device, cons
 
    char info[1024];
 
-   *compute_device = 0;
    clGetDeviceInfo(devices[0], CL_DEVICE_VENDOR, sizeof(info), &info, NULL);
-   if (! strncmp(info,"NVIDIA",(size_t)6) ) *compute_device = COMPUTE_DEVICE_NVIDIA;
-   if (! strncmp(info,"Advanced Micro Devices",(size_t)6) ) *compute_device = COMPUTE_DEVICE_ATI;
-   //printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,*compute_device);
-   my_compute_device = *compute_device;
+   if (! strncmp(info,"NVIDIA",(size_t)6) ) compute_device = COMPUTE_DEVICE_NVIDIA;
+   if (! strncmp(info,"Advanced Micro Devices",(size_t)6) ) compute_device = COMPUTE_DEVICE_ATI;
+   //printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,compute_device);
 
    command_queue = ezcl_create_command_queue(context, mype);
    
@@ -507,6 +505,11 @@ cl_device_id ezcl_get_device_p(cl_context context, const char *file, const int l
      ezcl_print_error(ierr, "EZCL_DEVTYPE_INIT", "clGetContextInfo", file, line);
    }
    return(device);
+}
+
+int ezcl_get_compute_device_p(const char *file, const int line)
+{
+   return(compute_device);
 }
 
 void ezcl_device_info_p(cl_device_id device, const char *file, const int line){
@@ -735,7 +738,7 @@ cl_mem ezcl_device_memory_malloc_p(cl_context context, void *host_mem_ptr, const
         *  CL_MEM_OBJECT_ALLOCATION_FAILURE:
         *  CL_OUT_OF_HOST_MEMORY:
         */
-      if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
+      if (compute_device == COMPUTE_DEVICE_NVIDIA) {
          system("nvidia-smi -q -d MEMORY");
       }
       ezcl_print_error(ierr, "EZCL_DEVICE_MEMORY_MALLOC", "clCreateBuffer", file, line);
@@ -1292,13 +1295,13 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
    ezcl_malloc_memory_delete(source);
 
 #ifdef HAVE_CL_DOUBLE
-   if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
+   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
       ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
    } else {
       ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE", NULL, NULL);
    }
 #else
-   if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
+   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
       ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
    } else {
       ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE", NULL, NULL);
@@ -1436,13 +1439,13 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
    }
 
 #ifdef HAVE_CL_DOUBLE
-   if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
+   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
       ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
    } else {
       ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE", NULL, NULL);
    }
 #else
-   if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
+   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
       ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
    } else {
       ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE", NULL, NULL);
@@ -1650,7 +1653,7 @@ void ezcl_enqueue_ndrange_kernel_p(cl_command_queue command_queue, cl_kernel ker
       *  CL_INVALID_EVENT_WAIT_LIST:
       *  CL_OUT_OF_HOST_MEMORY:
       */
-     if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
+     if (compute_device == COMPUTE_DEVICE_NVIDIA) {
          system("nvidia-smi -q -d MEMORY");
      }
      ezcl_print_error(ierr, "EZCL_ENQUEUE_NDRANGE_KERNEL", "clEnqueueNDRangeKernel", file, line);
@@ -1798,7 +1801,7 @@ void ezcl_print_error(const int ierr, const char *routine, const char *cl_routin
          break;
       case CL_MEM_OBJECT_ALLOCATION_FAILURE:   //#define CL_MEM_OBJECT_ALLOCATION_FAILURE    -4
          printf("\nERROR: %s -- Mem object allocation failure in %s at line %d in file %s\n", routine, cl_routine, line, file);
-         if (my_compute_device == COMPUTE_DEVICE_NVIDIA) {
+         if (compute_device == COMPUTE_DEVICE_NVIDIA) {
             system("nvidia-smi -q -d MEMORY");
          }
          break;

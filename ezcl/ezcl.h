@@ -98,8 +98,8 @@ extern "C"
 /* init and end routines */
 #define ezcl_init(  ezcl_gpu_context, ezcl_cpu_context, ezcl_accelerator_context) \
       ( ezcl_init_p(ezcl_gpu_context, ezcl_cpu_context, ezcl_accelerator_context, __FILE__, __LINE__) )
-#define ezcl_devtype_init(  device_type, return_compute_device, mype) \
-      ( ezcl_devtype_init_p(device_type, return_compute_device, mype, __FILE__, __LINE__) )
+#define ezcl_devtype_init(  device_type, mype) \
+      ( ezcl_devtype_init_p(device_type, mype, __FILE__, __LINE__) )
 #define ezcl_finalize() \
       ( ezcl_finalize_p(__FILE__,__LINE__) )
 #define ezcl_terminate() \
@@ -108,6 +108,8 @@ extern "C"
 /* device based routines */
 #define ezcl_get_device(  context) \
       ( ezcl_get_device_p(context, __FILE__, __LINE__) ) 
+#define ezcl_get_compute_device() \
+      ( ezcl_get_compute_device_p(__FILE__, __LINE__) ) 
 #define ezcl_device_info(  device) \
       ( ezcl_device_info_p(device, __FILE__, __LINE__) )
 
@@ -200,7 +202,7 @@ extern "C"
 /* init and finish routines -- use either ezcl_init or ezcl_devtype_init */
 /*   the devtype_init is the simpler and recommended path */
 cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, cl_context *ezcl_accelerator_context, const char *file, const int line);
-cl_int ezcl_devtype_init_p(cl_device_type device_type, int *compute_device, const int mype, const char *file, const int line);
+cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const char *file, const int line);
 cl_int ezcl_finalize_p(const char *file, const int line);
 void ezcl_terminate_p(const char *file, const int line);
 
@@ -209,6 +211,7 @@ void ezcl_print_error(const int ierr, const char *routine, const char *cl_routin
 
 /* device based routines */
 cl_device_id ezcl_get_device_p(cl_context context, const char *file, const int line);
+int ezcl_get_compute_device_p(const char *file, const int line);
 void ezcl_device_info_p(cl_device_id device, const char *file, const int line);
 
 /* context based routines*/

@@ -169,8 +169,6 @@ static State      *state_local;    //  Object containing state information corre
 static struct timeval tstart;
 static cl_event start_write_event, end_write_event;
 
-static int compute_device = 0;
-
 static double  H_sum_initial = 0.0;
 static long gpu_time_graphics = 0;
 
@@ -187,9 +185,9 @@ int main(int argc, char **argv) {
    //MPI_Comm_size(MPI_COMM_WORLD, &numpe);
    //MPI_Comm_rank(MPI_COMM_WORLD, &mype);
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &compute_device, mype);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, mype);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &compute_device, mype);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, mype);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -213,7 +211,7 @@ int main(int argc, char **argv) {
 
       //mesh->print_local();
    }    
-   mesh_local->init(nx, ny, circ_radius, initial_order, compute_device, do_gpu_calc);
+   mesh_local->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
    size_t &ncells = mesh_local->ncells;
    int &noffset = mesh_local->noffset;
 
@@ -224,7 +222,7 @@ int main(int argc, char **argv) {
    MPI_Allreduce(&ncells, &ncells_global, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
    
    state_local = new State(mesh_local->ncells);
-   state_local->init(mesh_local->ncells, compute_device, do_gpu_calc);
+   state_local->init(mesh_local->ncells, do_gpu_calc);
 
    state_global = new State(ncells_global);
    state_global->allocate(mesh_global->ncells);

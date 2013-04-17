@@ -142,8 +142,6 @@ static State      *state;          //  Object containing state information corre
 static struct timeval tstart;
 static cl_event start_write_event, end_write_event;
 
-static int compute_device = 0;
-
 static double  H_sum_initial = 0.0;
 
 int main(int argc, char **argv) {
@@ -158,9 +156,9 @@ int main(int argc, char **argv) {
    
    numpe = 16;
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, &compute_device, 0);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, 0);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, &compute_device, 0);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, 0);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -183,10 +181,10 @@ int main(int argc, char **argv) {
 
       //mesh->print_local();
    } 
-   mesh->init(nx, ny, circ_radius, initial_order, compute_device, do_gpu_calc);
+   mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
    size_t &ncells = mesh->ncells;
    state = new State(ncells);
-   state->init(ncells, compute_device, do_gpu_calc);
+   state->init(ncells, do_gpu_calc);
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe);
    state->fill_circle(mesh, circ_radius, 100.0, 5.0);
@@ -240,7 +238,7 @@ int main(int argc, char **argv) {
    mesh->dev_nbot = NULL;
    mesh->dev_ntop = NULL;
 
-   if (compute_device == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
+   if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
@@ -396,7 +394,7 @@ extern "C" void do_calc(void)
          state->compare_state_gpu_global_to_cpu_global("finite difference",ncycle,ncells);
       }
 
-      if (compute_device == COMPUTE_DEVICE_ATI) {
+      if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) {
          printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
          fflush(stdout);
          exit(0);

@@ -1664,17 +1664,13 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
 
 }
 
-#ifdef HAVE_OPENCL
-void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_order, int compute_device, int do_gpu_calc)
-#else
 void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_order, int do_gpu_calc)
-#endif
 {
 #ifdef HAVE_OPENCL
    cl_context context = ezcl_get_context();
 
    if (do_gpu_calc) {
-      if (compute_device == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in mesh\n");
+      if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in mesh\n");
 
       kernel_reduction_scan           = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_reduction_scan_cl",    0);
       kernel_hash_init                = ezcl_create_kernel_wsource(context, mesh_kern_source, "hash_init_cl",                0);
@@ -1714,7 +1710,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       if (! have_boundary){
         kernel_count_BCs              = ezcl_create_kernel_wsource(context, mesh_kern_source, "count_BCs_cl",                0);
       }
-      if (compute_device == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in mesh\n");
+      if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in mesh\n");
    }
 #endif
 
@@ -7154,20 +7150,22 @@ void Mesh::gpu_calc_neighbors_local(void)
 
       int group_size = (int)(global_work_size/local_work_size);
 
-      cl_event finish_scan_event;
+      //cl_event finish_scan_event;
 
       ezcl_set_kernel_arg(kernel_finish_scan, 0,  sizeof(cl_int), (void *)&group_size);
       ezcl_set_kernel_arg(kernel_finish_scan, 1,  sizeof(cl_mem), (void *)&dev_ioffset);
       ezcl_set_kernel_arg(kernel_finish_scan, 2,  sizeof(cl_mem), (void *)&dev_nbsize);
       ezcl_set_kernel_arg(kernel_finish_scan, 3,  local_work_size*sizeof(cl_int), NULL);
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_finish_scan, 1, NULL, &local_work_size, &local_work_size, &finish_scan_event); 
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_finish_scan, 1, NULL, &local_work_size, &local_work_size, NULL); 
+
+      //ezcl_enqueue_ndrange_kernel(command_queue, kernel_finish_scan, 1, NULL, &local_work_size, &local_work_size, &finish_scan_event); 
 
       int nbsize_local;
       ezcl_enqueue_read_buffer(command_queue, dev_nbsize, CL_TRUE,  0, 1*sizeof(cl_int), &nbsize_local, NULL);
       ezcl_device_memory_delete(dev_nbsize);
 
-      ezcl_wait_for_events(1, &finish_scan_event);
-      ezcl_event_release(finish_scan_event);
+      //ezcl_wait_for_events(1, &finish_scan_event);
+      //ezcl_event_release(finish_scan_event);
 
       //printf("%d: border cell size is %d global is %ld\n",mype,nbsize_local,nbsize_global);
 

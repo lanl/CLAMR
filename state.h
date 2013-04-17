@@ -128,11 +128,9 @@ public:
    State(size_t ncells);
 
 #ifdef HAVE_OPENCL
-   void init(size_t ncells, int compute_device, int do_gpu_calc);
    void terminate(void);
-#else
-   void init(size_t ncells, int do_gpu_calc);
 #endif
+   void init(size_t ncells, int do_gpu_calc);
 
    /* Memory routines for linked list of state arrays */
    void allocate(size_t ncells);
