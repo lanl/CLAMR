@@ -512,16 +512,16 @@ private:
    //   Private constructors.
    Mesh(const Mesh&);   //   Blocks copy constructor so copies are not made inadvertently.
 
+   //   Member functions.
    void print_object_info();
 
    void write_grid(int ncycle);
    void calc_centerminmax(void);
-   void print(void);
-   void print_local(void);
-
-   //   Member functions.
    void calc_minmax(void);
    void calc_celltype(size_t ncells);
+
+   void print(void);
+   void print_local(void);
 #ifdef HAVE_OPENCL
    void print_dev_local();
 #endif
