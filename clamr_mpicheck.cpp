@@ -604,6 +604,9 @@ extern "C" void do_calc(void)
          printf("CPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh_global->get_cpu_refine_smooth_count()/(double)mesh->get_cpu_rezone_count() );
       }
 
+      mesh->terminate();
+      state->terminate();
+
       L7_Terminate();
       exit(0);
    }  //  Complete final output.

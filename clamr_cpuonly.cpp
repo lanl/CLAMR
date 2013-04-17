@@ -341,6 +341,9 @@ extern "C" void do_calc(void)
       printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_cpu_calc_neigh_count()/(double)ncycle*100.0 );
       printf("CPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_cpu_refine_smooth_count()/(double)mesh->get_cpu_rezone_count() );
 
+      mesh->terminate();
+      state->terminate();
+
       delete mesh;
       delete state;
 

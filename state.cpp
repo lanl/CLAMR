@@ -273,9 +273,9 @@ void State::memory_reset_ptrs(void){
    //printf("DEBUG -- Finished state memory reset_ptrs at line %d\n\n",__LINE__);
 }
 
-#ifdef HAVE_OPENCL
 void State::terminate(void)
 {
+#ifdef HAVE_OPENCL
    ezcl_device_memory_delete(dev_deltaT);
 
    gpu_state_memory.memory_delete(dev_H);
@@ -292,8 +292,8 @@ void State::terminate(void)
    ezcl_kernel_release(kernel_reduce_sum_mass_stage2of2);
    ezcl_kernel_release(kernel_reduce_epsum_mass_stage1of2);
    ezcl_kernel_release(kernel_reduce_epsum_mass_stage2of2);
-}
 #endif
+}
 
 #ifdef HAVE_MPI
 void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES)

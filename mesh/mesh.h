@@ -280,9 +280,7 @@ public:
 
    //   Member functions.
    void init(int nx, int ny, double circ_radius, partition_method initial_order, int do_gpu_calc);
-#ifdef HAVE_OPENCL
    void terminate(void);
-#endif
 
 /* memory routines */
    void resize_old_device_memory(size_t ncells);

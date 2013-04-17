@@ -2257,9 +2257,9 @@ int Mesh::gpu_refine_smooth(cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result)
 }
 #endif
 
-#ifdef HAVE_OPENCL
 void Mesh::terminate(void)
 {
+#ifdef HAVE_OPENCL
       ezcl_device_memory_delete(dev_levtable);
       ezcl_device_memory_delete(dev_levdx);
       ezcl_device_memory_delete(dev_levdy);
@@ -2314,8 +2314,8 @@ void Mesh::terminate(void)
       if (! have_boundary){
         ezcl_kernel_release(kernel_count_BCs);
       }
-}
 #endif
+}
 
 int Mesh::rezone_count(vector<int> mpot)
 {
