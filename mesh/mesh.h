@@ -430,6 +430,15 @@ public:
 
    /**************************************************************************************
    * Rezone mesh
+   *  Input
+   *     add_ncells -- for each processor. A global sum will be done and the main part of
+   *        the rezone will be skipped if no cells are added.
+   *     mpot -- mesh rezone potential
+   *     have_state flag -- 0 (false) for setup when physics state has not been allocated
+   *     ioffset -- partial prefix scan results for starting address to write new cells
+   *     state_memory -- linked list of arrays for state
+   *  Output
+   *     new mesh and state arrays with refinement/coarsening performed
    **************************************************************************************/
    void rezone_all(int add_ncells, vector<int> mpot, int have_state, MallocPlus &state_memory);
 #ifdef HAVE_OPENCL
@@ -518,7 +527,6 @@ private:
 #endif
 
 /* Not currently called */
-   void rezone_spread(vector<int> &mpot);
    void mesh_reorder(vector<int> iorder);
 };
 

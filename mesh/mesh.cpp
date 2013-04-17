@@ -2321,25 +2321,6 @@ void Mesh::terminate(void)
 }
 #endif
 
-void Mesh::rezone_spread(vector<int> &mpot)
-{
-   for (uint ic=0; ic<ncells; ++ic) {
-      if (mpot[ic] > 0) continue;
-      if (mpot[nlft[ic]] == 1 && level[ic] <= level[nlft[ic]]) mpot[ic] = 2;
-      if (mpot[nrht[ic]] == 1 && level[ic] <= level[nrht[ic]]) mpot[ic] = 2;
-      if (mpot[nbot[ic]] == 1 && level[ic] <= level[nbot[ic]]) mpot[ic] = 2;
-      if (mpot[ntop[ic]] == 1 && level[ic] <= level[ntop[ic]]) mpot[ic] = 2;
-   }
-
-
-   for (uint ic=0; ic<ncells; ++ic){
-      if (is_left_boundary(ic)   && mpot[nrht[ic]] > 0) mpot[ic]=3;
-      if (is_right_boundary(ic)  && mpot[nlft[ic]] > 0) mpot[ic]=3;
-      if (is_bottom_boundary(ic) && mpot[ntop[ic]] > 0) mpot[ic]=3;
-      if (is_top_boundary(ic)    && mpot[nbot[ic]] > 0) mpot[ic]=3;
-   }
-}
-
 int Mesh::rezone_count(vector<int> mpot)
 {
    int icount=0;
