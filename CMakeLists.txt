@@ -245,7 +245,7 @@ add_dependencies(clamr_checkall state_kernel_source)
 install(TARGETS clamr_checkall DESTINATION bin)
 
 ########### clean files ################
-SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.inc")
+SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.inc;clamr;clamr_cpuonly;clamr_gpuonly;clamr_mpionly;clamr_gpucheck;clamr_mpicheck;clamr_checkall")
 
 ########### install files ###############
 

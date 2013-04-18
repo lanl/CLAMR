@@ -30,3 +30,6 @@ set (CMAKE_TEST_COMMAND mpirun -n 2 L7Test)
 add_custom_target(check COMMAND ${CMAKE_TEST_COMMAND}
                   DEPENDS L7Test)
 
+########### clean files ################
+SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "L7Test")
+
