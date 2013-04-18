@@ -98,6 +98,7 @@ include_directories("${PROJECT_BINARY_DIR}")
 
 add_subdirectory(mesh)
 add_subdirectory(l7)
+add_subdirectory(l7/tests)
 add_subdirectory(kdtree)
 add_subdirectory(hsfc)
 add_subdirectory(s7)
