@@ -4,6 +4,8 @@
 #include "unistd.h"
 #include <mpi.h>
 
+void broadcast_test();
+void reduction_test();
 void update_test();
 
 int nchars;

@@ -99,7 +99,7 @@ void L7_Sum(
 	   exit(1);
 	   break;
 	}
-	return(0);
+	return;
 #else
    switch (l7_datatype){
    case L7_INT:
