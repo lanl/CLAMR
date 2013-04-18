@@ -14,6 +14,8 @@ set(L7Test_SRCS ${C_SRCS} ${H_SRCS})
 add_executable(L7Test ${L7Test_SRCS})
 
 set_target_properties(L7Test PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+set_target_properties(L7Test PROPERTIES EXCLUDE_FROM_ALL TRUE)
+set_target_properties(L7Test PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD TRUE)
 include_directories(${CMAKE_SOURCE_DIR}/l7)
 target_link_libraries(L7Test l7 ${MPI_LIBRARIES})
 
