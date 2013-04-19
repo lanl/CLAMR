@@ -1,6 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
-#include <malloc.h>
 #include <mpi.h>
 #include "l7.h"
 #include "l7p.h"

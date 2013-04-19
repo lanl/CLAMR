@@ -330,7 +330,7 @@ void reduction_test()
 
    ilong = 1L;
    if (mype == numpes-1) ilong = 0L;
-   ierr = L7_MinLoc(&i, 1, L7_LONG, &iout);
+   ierr = L7_MinLoc(&ilong, 1, L7_LONG, &iout);
    if (mype == 0){
       if (ierr != L7_OK || iout != numpes-1){
          printf("  Error with L7_MinLoc of long type\n");
