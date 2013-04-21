@@ -27,7 +27,7 @@ add_test(L7Test L7Test)
 
 set (CMAKE_TEST_COMMAND mpirun -n 2 L7Test)
 
-add_custom_target(check COMMAND ${CMAKE_TEST_COMMAND}
+add_custom_target(l7_check COMMAND ${CMAKE_TEST_COMMAND}
                   DEPENDS L7Test)
 
 ########### clean files ################
