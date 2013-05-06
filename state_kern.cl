@@ -102,6 +102,13 @@ enum orientation
    NE,                          //  NE quadrant.
    SE };                        //  SE quadrant.
 
+#define REFINE_GRADIENT  0.10
+#define COARSEN_GRADIENT 0.05
+
+int is_lower_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 0); }
+int is_lower_right(int i, int j) { return(i % 2 == 1 && j % 2 == 0); }
+int is_upper_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 1); }
+int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
 
 void reduction_min_within_tile1(__local  real  *tile)
 {
@@ -1251,24 +1258,26 @@ __kernel void calc_finite_difference_cl(
 }
 
 __kernel void refine_potential_cl(
-                 const int    ncells,   // 0  Total number of cells.
-                 const int    levmx,    // 1  Maximum level
-        __global const real  *H,        // 2
-        __global const real  *U,        // 3
-        __global const real  *V,        // 4
-        __global const int   *nlft,     // 5  Array of left neighbors.
-        __global const int   *nrht,     // 6  Array of right neighbors.
-        __global const int   *ntop,     // 7  Array of bottom neighbors.
-        __global const int   *nbot,     // 8  Array of top neighbors.
-        __global const int   *level,    // 9  Array of level information.
-        __global const int   *celltype, // 10  Array of celltype information.
-        __global       int   *mpot,     // 11  Array of mesh potential information.
-        __global       int   *ioffset,  // 12  Array of new giX offsets.
-        __global const real  *lev_dx,   // 13
-        __global const real  *lev_dy,   // 14
-        __global       int   *result,   // 15
-        __local        real4 *tile,     // 16  Tile size in real4.
-        __local        int8  *itile)    // 17  Tile size in int8.
+                 const int    ncells,     // 0  Total number of cells.
+                 const int    levmx,      // 1  Maximum level
+        __global const real  *H,          // 2
+        __global const real  *U,          // 3
+        __global const real  *V,          // 4
+        __global const int   *nlft,       // 5  Array of left neighbors.
+        __global const int   *nrht,       // 6  Array of right neighbors.
+        __global const int   *ntop,       // 7  Array of bottom neighbors.
+        __global const int   *nbot,       // 8  Array of top neighbors.
+        __global const int   *i,          // 9  Array of i values.
+        __global const int   *j,          // 10 Array of j values.
+        __global const int   *level,      // 11 Array of level information.
+        __global const int   *celltype,   // 12  Array of celltype information.
+        __global const real  *lev_dx,     // 13
+        __global const real  *lev_dy,     // 14
+        __global       int   *mpot,       // 15  Array of mesh potential information.
+        __global       int2  *redscratch, // 16  Array of new giX offsets.
+        __global       int2  *result,     // 17
+        __local        real4 *tile,       // 18  Tile size in real4.
+        __local        int8  *itile)      // 19  Tile size in int8.
 {
 
 //////////////////////////////////////////////////////////////////
@@ -1285,14 +1294,14 @@ __kernel void refine_potential_cl(
    /// Get thread identification information ///
    /////////////////////////////////////////////
 
-   const unsigned int giX  = get_global_id(0);
-   const unsigned int tiX  = get_local_id(0);
+   const uint giX  = get_global_id(0);
+   const uint tiX  = get_local_id(0);
 
-   const unsigned int group_id = get_group_id(0);
+   const uint group_id = get_group_id(0);
 
-   const unsigned int ntX  = get_local_size(0);
+   const uint ntX  = get_local_size(0);
 
-   itile[tiX].s0 = 0;
+   itile[tiX].s01 = 0;
 
    if(giX >= ncells)
       return;
@@ -1300,7 +1309,6 @@ __kernel void refine_potential_cl(
    setup_tile(tile, itile, ncells, H, U, V, nlft, nrht, ntop, nbot, level);
 
    int ctype = celltype[giX];
-   int cell_add = (ctype == REAL_CELL) ? 4 : 2;
 
    barrier (CLK_LOCAL_MEM_FENCE);
 
@@ -1337,7 +1345,7 @@ __kernel void refine_potential_cl(
 
    int mpotval = 0;
 
-   if (ctype > 0){
+   if (ctype == REAL_CELL){
       // Setting the left and left-left neighbor state values for the control volume based
       // on the state variables of the actual left, left-left, and left-top neighbor cells
 
@@ -1533,39 +1541,55 @@ __kernel void refine_potential_cl(
 
        //--CALCULATIONS------------------------------------------------------------
        //  Refine the mesh if the gradient is large
-       if (qmax > 0.10 && lvl < levmx)  //  XXX:  eliminate hard-coded vars
-       {   mpotval = 1; }
+       if (qmax > REFINE_GRADIENT && lvl < levmx) {
+          mpotval = 1;
+       } else if (qmax < COARSEN_GRADIENT && lvl > 0) {
+          mpotval = -1;
+       }
+    } 
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    itile[tiX].s01 = 0;
+
+    if (mpotval > 0){
+       itile[tiX].s0 = (ctype == REAL_CELL) ? 3 : 1;
+    } else if (mpotval < 0) {
+       int ival = i[giX];
+       int jval = j[giX];
+       if (ctype == REAL_CELL) {
+          if (! is_lower_left(ival,jval) ) itile[tiX].s1 = 1;
+       } else {
+          if (! is_upper_right(ival,jval) || is_lower_left(ival,jval) ) itile[tiX].s1 = 1;
+       }
     }
-    
-#ifdef IS_NVIDIA
-    itile[tiX].s0 = mpotval ? cell_add : 1;
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
     for (int offset = ntX >> 1; offset > 32; offset >>= 1) {
        if (tiX < offset) {
-          itile[tiX].s0 += itile[tiX+offset].s0; 
+          itile[tiX].s01 += itile[tiX+offset].s01; 
        }
        barrier(CLK_LOCAL_MEM_FENCE);
     }
 
     //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
     if (tiX < 32)
-    {  itile[tiX].s0 += itile[tiX+32].s0;
+    {  itile[tiX].s01 += itile[tiX+32].s01;
        barrier(CLK_LOCAL_MEM_FENCE);
-       itile[tiX].s0 += itile[tiX+16].s0;
+       itile[tiX].s01 += itile[tiX+16].s01;
        barrier(CLK_LOCAL_MEM_FENCE);
-       itile[tiX].s0 += itile[tiX+8].s0;
+       itile[tiX].s01 += itile[tiX+8].s01;
        barrier(CLK_LOCAL_MEM_FENCE);
-       itile[tiX].s0 += itile[tiX+4].s0;
+       itile[tiX].s01 += itile[tiX+4].s01;
        barrier(CLK_LOCAL_MEM_FENCE);
-       itile[tiX].s0 += itile[tiX+2].s0;
+       itile[tiX].s01 += itile[tiX+2].s01;
        barrier(CLK_LOCAL_MEM_FENCE);
-       itile[tiX].s0 += itile[tiX+1].s0; }
+       itile[tiX].s01 += itile[tiX+1].s01; }
 
     if (tiX == 0) {
-      ioffset[group_id] = itile[0].s0;
-      (*result) = itile[0].s0;
+      redscratch[group_id].s01 = itile[0].s01;
+      result[0].s01 = itile[0].s01;
     }
 
     /////////////////////
@@ -1574,8 +1598,6 @@ __kernel void refine_potential_cl(
 
     //  Put the mesh potential on the global array.
     mpot[giX] = mpotval; /**/
-
-#endif
 }
 
 void setup_tile(__local        real4  *tile, 

@@ -154,7 +154,7 @@ int L7_Init (
 
    return(ierr);     
 }
-int L7_Dev_Init(void)
+void L7_Dev_Init(void)
 {
 #ifdef HAVE_OPENCL
    if (l7.numpes > 1) {

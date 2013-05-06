@@ -130,7 +130,7 @@ int L7_Init (
 	char **argv
 	);
 
-int L7_Dev_Init(void);
+void L7_Dev_Init(void);
 
 int L7_Terminate(void);
 

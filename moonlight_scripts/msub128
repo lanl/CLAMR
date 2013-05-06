@@ -26,9 +26,11 @@ mpirun -np 128 -npernode 2 ${BUILD_DIR}/clamr -n 1024 -i 100 -t 500 -P "original
 
 ##### Weak Scaling
 mpirun -np 128 -npernode 2  ${BUILD_DIR}/clamr -n 5792 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/weak_hilb_out128_2h_clamronly
+mpirun -np 128 -npernode 2  ${BUILD_DIR}/clamr -n 5792 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 4 > ${RUNS_DIR}/weak_hilb_out128_4h_clamronly
 
 ##### Weak Scaling
 mpirun -np 128 -npernode 2  ${BUILD_DIR}/clamr -n 5792 -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/weak_orig_out128_2h_clamronly
+mpirun -np 128 -npernode 2  ${BUILD_DIR}/clamr -n 5792 -i 100 -t 500 -P "original_order" -p "original_order" -l 4 > ${RUNS_DIR}/weak_orig_out128_4h_clamronly
 
 date
 echo 'Done'

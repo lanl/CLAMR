@@ -117,7 +117,8 @@ void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Data
 int save_ncells;
 
 #define CONSERVED_EQNS
-#define REFINE_GRADIENT 0.10
+#define REFINE_GRADIENT  0.10
+#define COARSEN_GRADIENT 0.05
 
 #define ZERO 0.0
 #define ONE 1.0
@@ -789,17 +790,17 @@ void State::state_reorder(vector<int> iorder)
    //printf("DEBUG end reorder cells\n\n"); 
 }
 
-void State::rezone_all(Mesh *mesh, int add_ncells, vector<int> mpot)
+void State::rezone_all(Mesh *mesh, int icount, int jcount, vector<int> mpot)
 {
-   mesh->rezone_all(add_ncells, mpot, 1, state_memory);
+   mesh->rezone_all(icount, jcount, mpot, 1, state_memory);
    memory_reset_ptrs();
 }
 
 
 #ifdef HAVE_OPENCL
-void State::gpu_rezone_all(Mesh *mesh, size_t add_ncells, bool localStencil)
+void State::gpu_rezone_all(Mesh *mesh, int icount, int jcount, bool localStencil)
 {
-   mesh->gpu_rezone_all(add_ncells, dev_mpot, dev_ioffset, gpu_state_memory);
+   mesh->gpu_rezone_all(icount, jcount, dev_mpot, gpu_state_memory);
    dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H");
    dev_U = (cl_mem)gpu_state_memory.get_memory_ptr("dev_U");
    dev_V = (cl_mem)gpu_state_memory.get_memory_ptr("dev_V");
@@ -1518,7 +1519,7 @@ void State::gpu_calc_finite_difference(Mesh *mesh, double deltaT)
    cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
    cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
    cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
-
+ 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
 
@@ -1663,8 +1664,6 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
    vector<int> &ntop  = mesh->ntop;
    vector<int> &level = mesh->level;
 
-   vector<double> Q(ncells);
-
    int nl, nr, nt, nb;
    int nlt, nrt, ntr, nbr;
    double Hic, Hl, Hr, Hb, Ht;
@@ -1689,7 +1688,7 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
 
    for (uint ic=0; ic<ncells; ic++) {
 
-      if (mesh->celltype[ic] < 0) {Q[ic] = 0.0; continue;}
+      if (mesh->celltype[ic] != REAL_CELL) continue;
 
       Hic = H[ic];
       Uic = U[ic];
@@ -1769,20 +1768,21 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
       qpot = max(fabs(duminus1/Hic), fabs(duhalf1/Hic));
       if (qpot > qmax) qmax = qpot;
 
-      Q[ic] = qmax;
+      mpot[ic]=0;
+      if (qmax > REFINE_GRADIENT && level[ic] < mesh->levmx) {
+         mpot[ic]=1;
+      } else if (qmax < COARSEN_GRADIENT && level[ic] > 0) {
+         mpot[ic] = -1;
+      }
+      //if (mpot[ic]) printf("DEBUG cpu cell is %d mpot %d\n",ic,mpot[ic]);
    }
 
-   for(uint ic=0; ic<ncells; ic++) {
-      mpot[ic]=0;
-      if (Q[ic] > REFINE_GRADIENT && level[ic] < mesh->levmx) {
-         mpot[ic]=1;
-      }
-   }
    if (TIMING_LEVEL >= 2) {
       cpu_time_calc_mpot += cpu_timer_stop(tstart_lev2);
    }
 
-   int newcount = mesh->refine_smooth(mpot);
+   int newcount = mesh->refine_smooth(mpot, icount, jcount);
+   //printf("DEBUG -- after refine smooth in file %s line %d icount %d jcount %d newcount %d\n",__FILE__,__LINE__,icount,jcount,newcount);
 
    cpu_time_refine_potential += cpu_timer_stop(tstart_cpu);
 
@@ -1790,7 +1790,7 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
 }
 
 #ifdef HAVE_OPENCL
-size_t State::gpu_calc_refine_potential(Mesh *mesh)
+size_t State::gpu_calc_refine_potential(Mesh *mesh, int &icount, int &jcount)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -1807,6 +1807,8 @@ size_t State::gpu_calc_refine_potential(Mesh *mesh)
    cl_mem &dev_nbot     = mesh->dev_nbot;
    cl_mem &dev_ntop     = mesh->dev_ntop;
    //cl_mem &dev_mpot     = mesh->dev_mpot;
+   cl_mem &dev_i        = mesh->dev_i;
+   cl_mem &dev_j        = mesh->dev_j;
    cl_mem &dev_level    = mesh->dev_level;
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_levdx    = mesh->dev_levdx;
@@ -1819,11 +1821,16 @@ size_t State::gpu_calc_refine_potential(Mesh *mesh)
    assert(dev_nrht);
    assert(dev_nbot);
    assert(dev_ntop);
+   assert(dev_i);
+   assert(dev_j);
    assert(dev_level);
    //assert(dev_mpot);
    //assert(dev_ioffset);
    assert(dev_levdx);
    assert(dev_levdy);
+
+   icount = 0;
+   jcount = 0;
 
 #ifdef HAVE_MPI
    size_t nghost_local = mesh->ncells_ghost - ncells;
@@ -1885,32 +1892,33 @@ size_t State::gpu_calc_refine_potential(Mesh *mesh)
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
    size_t block_size = global_work_size/local_work_size;
 
-   dev_ioffset  = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &block_size,   sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-   dev_mpot     = ezcl_malloc(NULL, const_cast<char *>("dev_mpot"), &mesh->ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
    size_t result_size = 1;
-   cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"), &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_result     = ezcl_malloc(NULL, const_cast<char *>("dev_result"),     &result_size,        sizeof(cl_int2), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size,         sizeof(cl_int2), CL_MEM_READ_WRITE, 0);
+
+   dev_mpot              = ezcl_malloc(NULL, const_cast<char *>("dev_mpot"),       &mesh->ncells_ghost, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
      /*
      __kernel void refine_potential
-              const int    ncells,   // 0  Total number of cells.
-              const int    levmx,    // 1  Maximum level
-     __global       real  *H,        // 2
-     __global       real  *U,        // 3
-     __global       real  *V,        // 4
-     __global const int   *nlft,     // 5  Array of left neighbors.
-     __global const int   *nrht,     // 6  Array of right neighbors.
-     __global const int   *ntop,     // 7  Array of bottom neighbors.
-     __global const int   *nbot,     // 8  Array of top neighbors.
-     __global const int   *level,    // 9  Array of level information.
-     __global const int   *celltype, // 10  Array of celltype information.
-     __global       int   *mpot,     // 11  Array of mesh potential information.
-     __global       int   *ioffset,  // 12
-     __global const real  *lev_dx,   // 13
-     __global const real  *lev_dy,   // 14
-     __global const real  *result,   // 15
-     __local        real4 *tile,     // 16  Tile size in real4.
-     __local        int8  *itile)    // 17  Tile size in int8.
+              const int    ncells,     // 0  Total number of cells.
+              const int    levmx,      // 1  Maximum level
+     __global       real  *H,          // 2
+     __global       real  *U,          // 3
+     __global       real  *V,          // 4
+     __global const int   *nlft,       // 5  Array of left neighbors.
+     __global const int   *nrht,       // 6  Array of right neighbors.
+     __global const int   *ntop,       // 7  Array of bottom neighbors.
+     __global const int   *nbot,       // 8  Array of top neighbors.
+     __global const int   *level,      // 9  Array of level information.
+     __global const int   *celltype,   // 10  Array of celltype information.
+     __global       int   *mpot,       // 11  Array of mesh potential information.
+     __global       int2  *redscratch, // 12
+     __global const real  *lev_dx,     // 13
+     __global const real  *lev_dy,     // 14
+     __global       int2  *result,     // 15
+     __local        real4 *tile,       // 16  Tile size in real4.
+     __local        int8  *itile)      // 17  Tile size in int8.
      */
 
    ezcl_set_kernel_arg(kernel_refine_potential, 0, sizeof(cl_int),  (void *)&ncells);
@@ -1922,33 +1930,46 @@ size_t State::gpu_calc_refine_potential(Mesh *mesh)
    ezcl_set_kernel_arg(kernel_refine_potential, 6, sizeof(cl_mem),  (void *)&dev_nrht);
    ezcl_set_kernel_arg(kernel_refine_potential, 7, sizeof(cl_mem),  (void *)&dev_ntop);
    ezcl_set_kernel_arg(kernel_refine_potential, 8, sizeof(cl_mem),  (void *)&dev_nbot);
-   ezcl_set_kernel_arg(kernel_refine_potential, 9, sizeof(cl_mem),  (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_refine_potential,10, sizeof(cl_mem),  (void *)&dev_celltype);
-   ezcl_set_kernel_arg(kernel_refine_potential,11, sizeof(cl_mem),  (void *)&dev_mpot);
-   ezcl_set_kernel_arg(kernel_refine_potential,12, sizeof(cl_mem),  (void *)&dev_ioffset);
+   ezcl_set_kernel_arg(kernel_refine_potential, 9, sizeof(cl_mem),  (void *)&dev_i);
+   ezcl_set_kernel_arg(kernel_refine_potential,10, sizeof(cl_mem),  (void *)&dev_j);
+   ezcl_set_kernel_arg(kernel_refine_potential,11, sizeof(cl_mem),  (void *)&dev_level);
+   ezcl_set_kernel_arg(kernel_refine_potential,12, sizeof(cl_mem),  (void *)&dev_celltype);
    ezcl_set_kernel_arg(kernel_refine_potential,13, sizeof(cl_mem),  (void *)&dev_levdx);
    ezcl_set_kernel_arg(kernel_refine_potential,14, sizeof(cl_mem),  (void *)&dev_levdy);
-   ezcl_set_kernel_arg(kernel_refine_potential,15, sizeof(cl_mem),  (void *)&dev_result);
-   ezcl_set_kernel_arg(kernel_refine_potential,16, local_work_size*sizeof(cl_real4),    NULL);
-   ezcl_set_kernel_arg(kernel_refine_potential,17, local_work_size*sizeof(cl_int8),    NULL);
+   ezcl_set_kernel_arg(kernel_refine_potential,15, sizeof(cl_mem),  (void *)&dev_mpot);
+   ezcl_set_kernel_arg(kernel_refine_potential,16, sizeof(cl_mem),  (void *)&dev_redscratch);
+   ezcl_set_kernel_arg(kernel_refine_potential,17, sizeof(cl_mem),  (void *)&dev_result);
+   ezcl_set_kernel_arg(kernel_refine_potential,18, local_work_size*sizeof(cl_real4),    NULL);
+   ezcl_set_kernel_arg(kernel_refine_potential,19, local_work_size*sizeof(cl_int8),    NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_potential, 1, NULL, &global_work_size, &local_work_size, NULL);
 
-   mesh->gpu_rezone_count(block_size, local_work_size, dev_ioffset, dev_result);
+   mesh->gpu_rezone_count2(block_size, local_work_size, dev_redscratch, dev_result);
 
-   size_t result = 0;
-   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+   int count[2] = {0, 0};
+   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int2), count, NULL);
+   icount  = count[0];
+   jcount  = count[1];
+   size_t result = ncells + icount - jcount;
 
-//   printf("result = %d after first refine potential\n",(result-ncells));
+   //int mpot_check[ncells];
+   //ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_int), mpot_check, NULL);
+   //for (int ic=0; ic<ncells; ic++){
+   //   if (mpot_check[ic]) printf("DEBUG -- cell %d mpot %d\n",ic,mpot_check[ic]);
+   //}
+
+   //printf("result = %lu after first refine potential icount %d jcount %d\n",result, icount, jcount);
 //   int which_smooth = 1;
 
+   ezcl_device_memory_delete(dev_redscratch);
    ezcl_device_memory_delete(dev_result);
 
    if (TIMING_LEVEL >= 2) {
       gpu_time_calc_mpot += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
    }
 
-   int my_result = mesh->gpu_refine_smooth(dev_ioffset, dev_mpot, result);
+   int my_result = mesh->gpu_refine_smooth(dev_mpot, icount, jcount);
+   //printf("DEBUG gpu calc refine potential %d icount %d jcount %d\n",my_result,icount,jcount);
 
    gpu_time_refine_potential += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
@@ -1973,8 +1994,7 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
    double total_sum = 0.0;
 
    if (enhanced_precision_sum) {
-      double correction, corrected_next_term, new_sum;
-      correction = 0.0;
+      double corrected_next_term, new_sum;
       struct esum_type local;
 #ifdef HAVE_MPI
       struct esum_type global;
@@ -2561,9 +2581,9 @@ void State::compare_state_cpu_local_to_cpu_global(State *state_global, const cha
 #ifdef HAVE_OPENCL
 void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uint ncells_global, int mype, int ncycle, int *nsizes, int *ndispl)
 {
+#ifdef HAVE_MPI
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-#ifdef HAVE_MPI
    real *H_global = state_global->H;
    real *U_global = state_global->U;
    real *V_global = state_global->V;
@@ -2645,9 +2665,9 @@ void State::print_object_info(void)
    num_elements = ezcl_get_device_mem_nelements(dev_mpot);
    elsize = ezcl_get_device_mem_elsize(dev_mpot);
    printf("dev_mpot    ptr : %p nelements %d elsize %d\n",dev_mpot,num_elements,elsize);
-   num_elements = ezcl_get_device_mem_nelements(dev_ioffset);
-   elsize = ezcl_get_device_mem_elsize(dev_ioffset);
-   printf("dev_ioffset ptr : %p nelements %d elsize %d\n",dev_ioffset,num_elements,elsize);
+   //num_elements = ezcl_get_device_mem_nelements(dev_ioffset);
+   //elsize = ezcl_get_device_mem_elsize(dev_ioffset);
+   //printf("dev_ioffset ptr : %p nelements %d elsize %d\n",dev_ioffset,num_elements,elsize);
 #endif
    state_memory.memory_report();
    //printf("vector H    ptr : %p nelements %ld elsize %ld\n",&H[0],H.size(),sizeof(H[0]));

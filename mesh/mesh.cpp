@@ -148,7 +148,9 @@ cl_kernel      kernel_fill_mesh_ghost;
 cl_kernel      kernel_fill_neighbor_ghost;
 cl_kernel      kernel_set_corner_neighbor;
 cl_kernel      kernel_adjust_neighbors_local;
-cl_kernel      kernel_reduction_scan;
+cl_kernel      kernel_reduction_scan2;
+cl_kernel      kernel_reduction_count;
+cl_kernel      kernel_reduction_count2;
 cl_kernel      kernel_hash_size;
 cl_kernel      kernel_finish_hash_size;
 cl_kernel      kernel_calc_spatial_coordinates;
@@ -158,6 +160,8 @@ cl_kernel      kernel_do_load_balance_middle;
 cl_kernel      kernel_do_load_balance_upper;
 cl_kernel      kernel_do_load_balance;
 cl_kernel      kernel_refine_smooth;
+cl_kernel      kernel_coarsen_smooth;
+cl_kernel      kernel_coarsen_check_block;
 cl_kernel      kernel_rezone_all;
 cl_kernel      kernel_rezone_one;
 cl_kernel      kernel_copy_mpot_ghost_data;
@@ -1410,7 +1414,7 @@ void Mesh::compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev
 #endif
 }
 
-void Mesh::compare_ioffset_gpu_global_to_cpu_global(uint old_ncells, int *mpot, cl_mem dev_ioffset)
+void Mesh::compare_ioffset_gpu_global_to_cpu_global(uint old_ncells, int *mpot)
 {
    cl_command_queue command_queue = ezcl_get_command_queue();
 
@@ -1428,20 +1432,32 @@ void Mesh::compare_ioffset_gpu_global_to_cpu_global(uint old_ncells, int *mpot, 
    for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
       mcount = 0;
       for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
-          if (ic >= old_ncells) break;
+         if (ic >= old_ncells) break;
 
-          if (celltype[ic] == REAL_CELL){
-             mcount += mpot[ic] ? 4 : 1;
-          } else {
-             mcount += mpot[ic] ? 2 : 1;
-          }
+         if (mpot[ic] < 0) {
+            if (celltype[ic] == REAL_CELL) {
+               // remove all but cell that will remain to get count right when split
+               // across processors
+               if (is_lower_left(i[ic],j[ic]) ) mcount++;
+            } else {
+               // either upper right or lower left will remain for boundary cells
+               if (is_upper_right(i[ic],j[ic]) || is_lower_left(i[ic],j[ic]) ) mcount++;
+            }
+         }
+         if (mpot[ic] >= 0) {
+            if (celltype[ic] == REAL_CELL){
+               mcount += mpot[ic] ? 4 : 1;
+            } else {
+               mcount += mpot[ic] ? 2 : 1;
+            }
+         }
       }
       if (mtotal != ioffset_check[ig]) printf("DEBUG ig %d ioffset %d mcount %d\n",ig,ioffset_check[ig],mtotal);
       mtotal += mcount;
    }
 }
 
-void Mesh::compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global)
+void Mesh::compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global, int *i_global, int *j_global)
 {
    cl_command_queue command_queue = ezcl_get_command_queue();
 
@@ -1451,12 +1467,25 @@ void Mesh::compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_glo
    for (uint ig=0; ig<(old_ncells+TILE_SIZE-1)/TILE_SIZE; ig++){
       int mcount = 0; 
       for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
-          if (ic >= old_ncells) break;
-          if (celltype[ic] == REAL_CELL) {
-             mcount += mpot[ic] ? 4 : 1; 
-          } else {
-             mcount += mpot[ic] ? 2 : 1; 
-          }    
+         if (ic >= old_ncells) break;
+
+         if (mpot[ic] < 0) {
+            if (celltype[ic] == REAL_CELL) {
+               // remove all but cell that will remain to get count right when split
+               // across processors
+               if (is_lower_left(i[ic],j[ic]) ) mcount++;
+            } else {
+               // either upper right or lower left will remain for boundary cells
+               if (is_upper_right(i[ic],j[ic]) || is_lower_left(i[ic],j[ic]) ) mcount++;
+            }
+         }
+         if (mpot[ic] >= 0) {
+            if (celltype[ic] == REAL_CELL){
+               mcount += mpot[ic] ? 4 : 1;
+            } else {
+               mcount += mpot[ic] ? 2 : 1;
+            }
+         }
       }    
       if (mtotal != ioffset[ig]) printf("%d: DEBUG ig %d ioffset %d mtotal %d\n",mype,ig,ioffset[ig],mtotal);
       mtotal += mcount;
@@ -1469,12 +1498,26 @@ void Mesh::compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_glo
    for (uint ig=0; ig<(old_ncells_global+TILE_SIZE-1)/TILE_SIZE; ig++){
       int mcount = 0; 
       for (uint ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
-          if (ic >= old_ncells_global) break;
-          if (celltype_global[ic] == REAL_CELL) {
-             mcount += mpot_global[ic] ? 4 : 1; 
-          } else {
-             mcount += mpot_global[ic] ? 2 : 1; 
-          }    
+         if (ic >= old_ncells_global) break;
+
+         if (mpot_global[ic] < 0) {
+            if (celltype_global[ic] == REAL_CELL) {
+               // remove all but cell that will remain to get count right when split
+               // across processors
+               if (is_lower_left(i_global[ic],j_global[ic]) ) mcount++;
+            } else {
+               // either upper right or lower left will remain for boundary cells
+               if (is_upper_right(i_global[ic],j_global[ic]) || is_lower_left(i_global[ic],j_global[ic]) ) mcount++;
+            }
+         }
+
+         if (mpot_global[ic] >= 0) {
+            if (celltype_global[ic] == REAL_CELL) {
+               mcount += mpot_global[ic] ? 4 : 1; 
+            } else {
+               mcount += mpot_global[ic] ? 2 : 1; 
+            }
+         }    
       }    
       if (mtotal != ioffset_global[ig]) {
          printf("DEBUG global ig %d ioffset %d mtotal %d\n",ig,ioffset_global[ig],mtotal);
@@ -1672,7 +1715,9 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    if (do_gpu_calc) {
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in mesh\n");
 
-      kernel_reduction_scan           = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_reduction_scan_cl",    0);
+      kernel_reduction_scan2          = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_reduction_scan2_cl",   0);
+      kernel_reduction_count          = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_reduction_count_cl",   0);
+      kernel_reduction_count2         = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_reduction_count2_cl",  0);
       kernel_hash_init                = ezcl_create_kernel_wsource(context, mesh_kern_source, "hash_init_cl",                0);
       kernel_hash_init_corners        = ezcl_create_kernel_wsource(context, mesh_kern_source, "hash_init_corners_cl",        0);
       kernel_hash_setup               = ezcl_create_kernel_wsource(context, mesh_kern_source, "hash_setup_cl",               0);
@@ -1701,6 +1746,8 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       kernel_do_load_balance_upper    = ezcl_create_kernel_wsource(context, mesh_kern_source, "do_load_balance_upper_cl",    0);
       kernel_do_load_balance          = ezcl_create_kernel_wsource(context, mesh_kern_source, "do_load_balance_cl",          0);
       kernel_refine_smooth            = ezcl_create_kernel_wsource(context, mesh_kern_source, "refine_smooth_cl",            0);
+      kernel_coarsen_smooth           = ezcl_create_kernel_wsource(context, mesh_kern_source, "coarsen_smooth_cl",           0);
+      kernel_coarsen_check_block      = ezcl_create_kernel_wsource(context, mesh_kern_source, "coarsen_check_block_cl",      0);
       kernel_rezone_all               = ezcl_create_kernel_wsource(context, mesh_kern_source, "rezone_all_cl",               0);
       kernel_rezone_one               = ezcl_create_kernel_wsource(context, mesh_kern_source, "rezone_one_cl",               0);
       kernel_copy_mpot_ghost_data     = ezcl_create_kernel_wsource(context, mesh_kern_source, "copy_mpot_ghost_data_cl",     0);
@@ -1828,11 +1875,12 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
 
       KDTree_Destroy(&tree);
       //  Refine the cells.
-      int new_ncells = refine_smooth(mpot);
-      int add_ncells = new_ncells - old_ncells;
+      int icount = 0;
+      int jcount = 0;
+      int new_ncells = refine_smooth(mpot, icount, jcount);
 
       MallocPlus dummy;
-      rezone_all(add_ncells, mpot, 0, dummy);
+      rezone_all(icount, jcount, mpot, 0, dummy);
 
       ncells = new_ncells;
    
@@ -1851,7 +1899,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
          noffset=ndispl[mype];
       }
 #endif
-      
+
    }  // End lev loop here
 
    index.clear();
@@ -1871,15 +1919,14 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    ncells_ghost = ncells;
 }
 
-size_t Mesh::refine_smooth(vector<int> &mpot)
+size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 {
    int nl, nr, nt, nb;
    int nlt, nrt, ntr, nbr;
 
-   int icount = rezone_count(mpot);
-
+   rezone_count(mpot, icount, jcount);
    int newcount = icount;
-   int newcount_global = icount;
+   int newcount_global = newcount;
 
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
@@ -2047,70 +2094,132 @@ size_t Mesh::refine_smooth(vector<int> &mpot)
   }
 #endif
 
+   vector<int> mpot_old(ncells_ghost);
+
+   mpot_old.swap(mpot);
+
+   for(uint ic=0; ic<ncells; ic++) {
+      mpot[ic] = mpot_old[ic];
+      if (mpot_old[ic] >= 0) continue;
+      if (        is_upper_right(i[ic],j[ic]) ) {
+         int nr = nrht[ic];
+         int lr = level[nr];
+         if (mpot_old[nr] > 0) lr++;
+         int nt = ntop[ic];
+         int lt = level[nt];
+         if (mpot_old[nt] > 0) lt++;
+         if (lr > level[ic] || lt > level[ic]) mpot[ic] = 0;
+      } else if ( is_upper_left(i[ic],j[ic] ) ) {
+         int nl = nlft[ic];
+         int ll = level[nl];
+         if (mpot_old[nl] > 0) ll++;
+         int nt = ntop[ic];
+         int lt = level[nt];
+         if (mpot_old[nt] > 0) lt++;
+         if (ll > level[ic] || lt > level[ic]) mpot[ic] = 0;
+      } else if ( is_lower_right(i[ic],j[ic] ) ) {
+         int nr = nrht[ic];
+         int lr = level[nr];
+         if (mpot_old[nr] > 0) lr++;
+         int nb = nbot[ic];
+         int lb = level[nb];
+         if (mpot_old[nb] > 0) lb++;
+         if (lr > level[ic] || lb > level[ic]) mpot[ic] = 0;
+      } else if ( is_lower_left(i[ic],j[ic] ) ) {
+         int nl = nlft[ic];
+         int ll = level[nl];
+         if (mpot_old[nl] > 0) ll++;
+         int nb = nbot[ic];
+         int lb = level[nb];
+         if (mpot_old[nb] > 0) lb++;
+         if (ll > level[ic] || lb > level[ic]) mpot[ic] = 0;
+      }
+   }
+
+#ifdef HAVE_MPI
+   if (numpe > 1) {
+      L7_Update(&mpot[0], L7_INT, cell_handle);
+  }
+#endif
+
+   mpot_old.swap(mpot);
+
+   int n1, n2, n3;
+   for(uint ic=0; ic<ncells; ic++) {
+      mpot[ic] = mpot_old[ic];
+      if (mpot_old[ic] >= 0) continue;
+      if ( is_upper_right(i[ic],j[ic]) ) {
+         n1 = nbot[ic];
+         n2 = nlft[ic];
+         n3 = nlft[n1];
+      } else if ( is_upper_left(i[ic],j[ic] ) ) {
+         n1 = nbot[ic];
+         n2 = nrht[ic];
+         n3 = nrht[n1];
+      } else if ( is_lower_right(i[ic],j[ic] ) ) {
+         n1 = ntop[ic];
+         n2 = nlft[ic];
+         n3 = nlft[n1];
+      } else if ( is_lower_left(i[ic],j[ic] ) ) {
+         n1 = ntop[ic];
+         n2 = nrht[ic];
+         n3 = nrht[n1];
+      }
+      int lev1 = level[n1];
+      int lev2 = level[n2];
+      int lev3 = level[n3];
+      if (mpot_old[n1] > 0) lev1++;
+      if (mpot_old[n2] > 0) lev2++;
+      if (mpot_old[n3] > 0) lev3++;
+
+      if (mpot_old[n1] != -1 || lev1 != level[ic] ||
+          mpot_old[n2] != -1 || lev2 != level[ic] ||
+          mpot_old[n3] != -1 || lev3 != level[ic]) {
+         mpot[ic] = 0;
+      }
+   }
+
+#ifdef HAVE_MPI
+   if (numpe > 1) {
+      L7_Update(&mpot[0], L7_INT, cell_handle);
+  }
+#endif
+
    for (uint ic=0; ic<ncells; ic++) {
       if (celltype[ic] < 0) {
          switch (celltype[ic]) {
             case LEFT_BOUNDARY:
-               if (mpot[nrht[ic]] > 0) {
-                  mpot[ic]++;
-                  icount++;
-               }
+               mpot[ic] = mpot[nrht[ic]];
                break;
             case RIGHT_BOUNDARY:
-               if (mpot[nlft[ic]] > 0) {
-                  mpot[ic]++;
-                  icount++;
-               }
+               mpot[ic] = mpot[nlft[ic]];
                break;
             case BOTTOM_BOUNDARY:
-               if (mpot[ntop[ic]] > 0) {
-                  mpot[ic]++;
-                  icount++;
-               }
+               mpot[ic] = mpot[ntop[ic]];
                break;
             case TOP_BOUNDARY:
-               if (mpot[nbot[ic]] > 0) {
-                  mpot[ic]++;
-                  icount++;
-               }
+               mpot[ic] = mpot[nbot[ic]];
                break;
          }
       }
    }
 
-   icount = 0;
+   newcount = ncells + rezone_count(mpot, icount, jcount);
 
-   for (uint ic=0; ic<ncells; ++ic){
-      if (mpot[ic] < 0) {
-         if (celltype[ic] == REAL_CELL) {
-            icount -= 3;
-         } else {
-            icount --;
-         }
-      }// XXX When coarsening is introduced, the issue arises that icount could become 0 even though
-       // XXX both refinements and coarsenings will be needed
-      if (mpot[ic] > 0) {
-         //printf("mpot[%d] = %d\n",ic,mpot[ic]);
-         if (celltype[ic] == REAL_CELL){
-            icount += 3;
-         } else {
-            icount ++;
-         }
-      }
-   }
-   //printf("icount is %d\n",icount);
-
-   newcount = ncells+icount;
-
-   int size_changed = (newcount != (int)ncells);
-   int size_changed_global = size_changed;
+   int icount_global = icount;
+   int jcount_global = jcount;
 #ifdef HAVE_MPI
    if (parallel) {
-      MPI_Allreduce(&size_changed, &size_changed_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      int count[2], global_count[2];
+      count[0] = icount;
+      count[1] = jcount;
+      MPI_Allreduce(&count, &global_count, 2, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      icount_global = global_count[0];
+      jcount_global = global_count[1];
    }
 #endif
 
-   if (size_changed_global > 0){
+   if (icount_global || jcount_global){
       nlft.clear();
       nrht.clear();
       nbot.clear();
@@ -2123,12 +2232,13 @@ size_t Mesh::refine_smooth(vector<int> &mpot)
 }
 
 #ifdef HAVE_OPENCL
-int Mesh::gpu_refine_smooth(cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result)
+int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
 {
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
+
 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -2136,24 +2246,32 @@ int Mesh::gpu_refine_smooth(cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result)
 
    size_t nghost_local = ncells_ghost - ncells;
 
-   size_t result_size = 1;
-   cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"), &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-
-   int newcount = result - ncells;
-   int newcount_global = newcount;
+   int icount_global = icount;
+   int jcount_global = jcount;
 
 #ifdef HAVE_MPI
    if (parallel) {
-      MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      int count[2], count_global[2];
+      count[0] = icount;
+      count[1] = jcount;
+      MPI_Allreduce(&count, &count_global, 2, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      icount_global = count_global[0];
+      jcount_global = count_global[1];
    }
 #endif
 
    int levcount = 1;
+   //int which_smooth=0;
 
-   if(newcount_global > 0 && levcount < levmx) {
+   if(icount_global > 0 && levcount < levmx) {
+      size_t result_size = 1;
+      cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"),  &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_ptr;
 
+      int newcount = icount;
+      int newcount_global = icount_global;
       while (newcount_global > 0 && levcount < levmx) {
          levcount++;
 
@@ -2171,73 +2289,174 @@ int Mesh::gpu_refine_smooth(cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result)
          ezcl_set_kernel_arg(kernel_refine_smooth, 2, sizeof(cl_int),  (void *)&levmx);
          ezcl_set_kernel_arg(kernel_refine_smooth, 3, sizeof(cl_mem),  (void *)&dev_nlft);
          ezcl_set_kernel_arg(kernel_refine_smooth, 4, sizeof(cl_mem),  (void *)&dev_nrht);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 5, sizeof(cl_mem),  (void *)&dev_ntop);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 6, sizeof(cl_mem),  (void *)&dev_nbot);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 5, sizeof(cl_mem),  (void *)&dev_nbot);
+         ezcl_set_kernel_arg(kernel_refine_smooth, 6, sizeof(cl_mem),  (void *)&dev_ntop);
          ezcl_set_kernel_arg(kernel_refine_smooth, 7, sizeof(cl_mem),  (void *)&dev_level);
          ezcl_set_kernel_arg(kernel_refine_smooth, 8, sizeof(cl_mem),  (void *)&dev_celltype);
          ezcl_set_kernel_arg(kernel_refine_smooth, 9, sizeof(cl_mem),  (void *)&dev_mpot_old);
          ezcl_set_kernel_arg(kernel_refine_smooth,10, sizeof(cl_mem),  (void *)&dev_mpot);
-         ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_ioffset);
+         ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_redscratch);
          ezcl_set_kernel_arg(kernel_refine_smooth,12, sizeof(cl_mem),  (void *)&dev_result);
          ezcl_set_kernel_arg(kernel_refine_smooth,13, local_work_size*sizeof(cl_int),    NULL);
 
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_smooth, 1, NULL, &global_work_size, &local_work_size, NULL);
 
-         gpu_rezone_count(block_size, local_work_size, dev_ioffset, dev_result);
 
+         gpu_rezone_count(block_size, local_work_size, dev_redscratch, dev_result);
+
+         int result;
          ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
 
-//       printf("result = %d after %d refine smooths\n",result,which_smooth);
-//       which_smooth++;
+         //printf("result = %d after %d refine smooths\n",result,which_smooth);
+         //which_smooth++;
 
-         newcount = result;
+         icount = result;
+         newcount = result-newcount;
          newcount_global = newcount;
 #ifdef HAVE_MPI
          if (parallel) {
             MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          }
 #endif
+         icount_global += newcount_global;
+         //printf("DEBUG -- icount %d icount_global %d newcount %d newcount_global %d\n",icount,icount_global,newcount,newcount_global);
       }
 
       ezcl_device_memory_delete(dev_mpot_old);
+      ezcl_device_memory_delete(dev_redscratch);
+      ezcl_device_memory_delete(dev_result);
    }
 
+   if (jcount_global) {
 #ifdef HAVE_MPI
-   if (numpe > 1) {
-      L7_Dev_Update(dev_mpot, L7_INT, cell_handle);
-   }
+      if (numpe > 1) {
+         L7_Dev_Update(dev_mpot, L7_INT, cell_handle);
+      }
 #endif
 
-   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 0, sizeof(cl_int), (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 1, sizeof(cl_mem), (void *)&dev_nlft);
-   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 2, sizeof(cl_mem), (void *)&dev_nrht);
-   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 3, sizeof(cl_mem), (void *)&dev_nbot);
-   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 4, sizeof(cl_mem), (void *)&dev_ntop);
-   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 5, sizeof(cl_mem), (void *)&dev_celltype);
-   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 6, sizeof(cl_mem), (void *)&dev_mpot);
-   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 7, sizeof(cl_mem), (void *)&dev_ioffset);
-   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 8, sizeof(cl_mem), (void *)&dev_result);
-   ezcl_set_kernel_arg(kernel_set_boundary_refinement, 9, local_work_size*sizeof(cl_int),    NULL);
+      size_t result_size = 1;
+      cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"),  &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_ptr;
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_boundary_refinement, 1, NULL, &global_work_size, &local_work_size, NULL);
+      SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
 
-   gpu_rezone_count(block_size, local_work_size, dev_ioffset, dev_result);
+      ezcl_set_kernel_arg(kernel_coarsen_smooth, 0, sizeof(cl_int),  (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_coarsen_smooth, 1, sizeof(cl_mem),  (void *)&dev_nlft);
+      ezcl_set_kernel_arg(kernel_coarsen_smooth, 2, sizeof(cl_mem),  (void *)&dev_nrht);
+      ezcl_set_kernel_arg(kernel_coarsen_smooth, 3, sizeof(cl_mem),  (void *)&dev_nbot);
+      ezcl_set_kernel_arg(kernel_coarsen_smooth, 4, sizeof(cl_mem),  (void *)&dev_ntop);
+      ezcl_set_kernel_arg(kernel_coarsen_smooth, 5, sizeof(cl_mem),  (void *)&dev_i);
+      ezcl_set_kernel_arg(kernel_coarsen_smooth, 6, sizeof(cl_mem),  (void *)&dev_j);
+      ezcl_set_kernel_arg(kernel_coarsen_smooth, 7, sizeof(cl_mem),  (void *)&dev_level);
+      ezcl_set_kernel_arg(kernel_coarsen_smooth, 8, sizeof(cl_mem),  (void *)&dev_mpot_old);
+      ezcl_set_kernel_arg(kernel_coarsen_smooth, 9, sizeof(cl_mem),  (void *)&dev_mpot);
 
-   int my_result;
-   ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int), &my_result, NULL);
-   //printf("Result is %d %d %d\n",my_result, ncells,__LINE__);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_coarsen_smooth, 1, NULL, &global_work_size, &local_work_size, NULL);
 
-   ezcl_device_memory_delete(dev_result);
-
-   int size_changed = (my_result != (int)ncells); 
-   int size_changed_global = size_changed;
 #ifdef HAVE_MPI
-   if (parallel) {
-      MPI_Allreduce(&size_changed, &size_changed_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   }
+      if (numpe > 1) {
+         L7_Dev_Update(dev_mpot, L7_INT, cell_handle);
+      }
 #endif
 
-   if (size_changed_global) {
+      SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
+
+      ezcl_set_kernel_arg(kernel_coarsen_check_block, 0, sizeof(cl_int),  (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block, 1, sizeof(cl_mem),  (void *)&dev_nlft);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block, 2, sizeof(cl_mem),  (void *)&dev_nrht);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block, 3, sizeof(cl_mem),  (void *)&dev_nbot);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block, 4, sizeof(cl_mem),  (void *)&dev_ntop);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block, 5, sizeof(cl_mem),  (void *)&dev_i);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block, 6, sizeof(cl_mem),  (void *)&dev_j);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block, 7, sizeof(cl_mem),  (void *)&dev_level);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block, 8, sizeof(cl_mem),  (void *)&dev_celltype);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block, 9, sizeof(cl_mem),  (void *)&dev_mpot_old);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block,10, sizeof(cl_mem),  (void *)&dev_mpot);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block,11, sizeof(cl_mem),  (void *)&dev_redscratch);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block,12, sizeof(cl_mem),  (void *)&dev_result);
+      ezcl_set_kernel_arg(kernel_coarsen_check_block,13, local_work_size*sizeof(cl_int),    NULL);
+
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_coarsen_check_block, 1, NULL, &global_work_size, &local_work_size, NULL);
+
+      gpu_rezone_count(block_size, local_work_size, dev_redscratch, dev_result);
+
+      int result;
+      ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+
+      //printf("result = %d after coarsen smooth\n",result);
+
+      jcount = result;
+      jcount_global = jcount;
+
+#ifdef HAVE_MPI
+      if (parallel) {
+         MPI_Allreduce(&jcount, &jcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      }
+#endif
+
+      ezcl_device_memory_delete(dev_mpot_old);
+      ezcl_device_memory_delete(dev_redscratch);
+      ezcl_device_memory_delete(dev_result);
+   }
+
+   if (icount_global || jcount_global) {
+#ifdef HAVE_MPI
+      if (numpe > 1) {
+         L7_Dev_Update(dev_mpot, L7_INT, cell_handle);
+      }
+#endif
+
+      size_t result_size = 1;
+      cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"),  &result_size, sizeof(cl_int2), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_int2), CL_MEM_READ_WRITE, 0);
+      dev_ioffset  = ezcl_malloc(NULL, const_cast<char *>("dev_ioffset"), &block_size,   sizeof(cl_uint), CL_MEM_READ_WRITE, 0);
+
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 0,  sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 1,  sizeof(cl_mem), (void *)&dev_nlft);
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 2,  sizeof(cl_mem), (void *)&dev_nrht);
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 3,  sizeof(cl_mem), (void *)&dev_nbot);
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 4,  sizeof(cl_mem), (void *)&dev_ntop);
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 5,  sizeof(cl_mem), (void *)&dev_i);
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 6,  sizeof(cl_mem), (void *)&dev_j);
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 7,  sizeof(cl_mem), (void *)&dev_celltype);
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 8,  sizeof(cl_mem), (void *)&dev_mpot);
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 9,  sizeof(cl_mem), (void *)&dev_redscratch);
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 10, sizeof(cl_mem), (void *)&dev_ioffset);
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 11, sizeof(cl_mem), (void *)&dev_result);
+      ezcl_set_kernel_arg(kernel_set_boundary_refinement, 12, local_work_size*sizeof(cl_int2),    NULL);
+
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_boundary_refinement, 1, NULL, &global_work_size, &local_work_size, NULL);
+
+      gpu_rezone_count2(block_size, local_work_size, dev_redscratch, dev_result);
+
+      int my_result[2];
+      ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, 1*sizeof(cl_int2), &my_result, NULL);
+      //printf("Result is %lu icount %d jcount %d\n", ncells+my_result[0]-my_result[1],my_result[0],my_result[1]);
+      icount = my_result[0];
+      jcount = my_result[1];
+
+#ifdef HAVE_MPI
+      if (parallel) {
+         int count[2], count_global[2];
+         count[0] = icount;
+         count[1] = jcount;
+         MPI_Allreduce(&count, &count_global, 2, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         icount_global = count_global[0];
+         jcount_global = count_global[1];
+      }
+#endif
+
+      gpu_rezone_scan(block_size, local_work_size, dev_ioffset, dev_result);
+
+      //ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &my_result, NULL);
+      //printf("After scan, Result is %d\n", my_result[0]);
+
+      ezcl_device_memory_delete(dev_result);
+      ezcl_device_memory_delete(dev_redscratch);
+
+/*
       ezcl_device_memory_delete(dev_nlft);
       ezcl_device_memory_delete(dev_nrht);
       ezcl_device_memory_delete(dev_nbot);
@@ -2246,14 +2465,15 @@ int Mesh::gpu_refine_smooth(cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result)
       dev_nrht = NULL;
       dev_nbot = NULL;
       dev_ntop = NULL;
+*/
    } else {
       ezcl_device_memory_delete(dev_mpot);
-      ezcl_device_memory_delete(dev_ioffset);
+      dev_mpot = NULL;
    }
 
    if (TIMING_LEVEL >= 2) gpu_time_refine_smooth += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
 
-   return my_result;
+   return ncells+icount-jcount;
 }
 #endif
 
@@ -2273,7 +2493,9 @@ void Mesh::terminate(void)
       ezcl_device_memory_delete(dev_j);
       ezcl_device_memory_delete(dev_celltype);
 
-      ezcl_kernel_release(kernel_reduction_scan);
+      ezcl_kernel_release(kernel_reduction_scan2);
+      ezcl_kernel_release(kernel_reduction_count);
+      ezcl_kernel_release(kernel_reduction_count2);
       ezcl_kernel_release(kernel_hash_init);
       ezcl_kernel_release(kernel_hash_init_corners);
       ezcl_kernel_release(kernel_hash_setup);
@@ -2305,6 +2527,8 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_do_load_balance_upper);
       ezcl_kernel_release(kernel_do_load_balance);
       ezcl_kernel_release(kernel_refine_smooth);
+      ezcl_kernel_release(kernel_coarsen_smooth);
+      ezcl_kernel_release(kernel_coarsen_check_block);
       ezcl_kernel_release(kernel_rezone_all);
       ezcl_kernel_release(kernel_rezone_one);
       ezcl_kernel_release(kernel_copy_mpot_ghost_data);
@@ -2317,19 +2541,23 @@ void Mesh::terminate(void)
 #endif
 }
 
-int Mesh::rezone_count(vector<int> mpot)
+int Mesh::rezone_count(vector<int> mpot, int &icount, int &jcount)
 {
-   int icount=0;
+   icount=0;
+   jcount=0;
 
    for (uint ic=0; ic<ncells; ++ic){
       if (mpot[ic] < 0) {
          if (celltype[ic] == REAL_CELL) {
-            icount -= 3;
+            // remove all but cell that will remain to get count right when split
+            // across processors
+            if (! is_lower_left(i[ic],j[ic]) ) jcount--;
          } else {
-            icount --;
+            // either upper right or lower left will remain for boundary cells
+            if (! (is_upper_right(i[ic],j[ic]) || is_lower_left(i[ic],j[ic]) ) ) jcount--;
          }
-      }// XXX When coarsening is introduced, the issue arises that icount could become 0 even though
-       // XXX both refinements and coarsenings will be needed
+      }
+
       if (mpot[ic] > 0) {
          //printf("mpot[%d] = %d\n",ic,mpot[ic]);
          if (celltype[ic] == REAL_CELL){
@@ -2341,11 +2569,49 @@ int Mesh::rezone_count(vector<int> mpot)
    }
    //printf("icount is %d\n",icount);
 
-   return(icount);
+   return(icount+jcount);
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::gpu_rezone_count(size_t block_size, size_t local_work_size, cl_mem dev_ioffset, cl_mem &dev_result)
+void Mesh::gpu_rezone_count2(size_t block_size, size_t local_work_size, cl_mem dev_redscratch, cl_mem &dev_result)
+{
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
+     /*
+     __kernel void finish_reduction_count2_cl(
+                       const    int   isize,      // 0
+              __global          int  *redscratch, // 1
+              __global          int  *result,     // 2
+              __local           int  *tile)       // 3
+     */
+   ezcl_set_kernel_arg(kernel_reduction_count2, 0, sizeof(cl_int),  (void *)&block_size);
+   ezcl_set_kernel_arg(kernel_reduction_count2, 1, sizeof(cl_mem),  (void *)&dev_redscratch);
+   ezcl_set_kernel_arg(kernel_reduction_count2, 2, sizeof(cl_mem),  (void *)&dev_result);
+   ezcl_set_kernel_arg(kernel_reduction_count2, 3, local_work_size*sizeof(cl_int2),    NULL);
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduction_count2, 1, NULL, &local_work_size, &local_work_size, NULL);
+}
+
+void Mesh::gpu_rezone_count(size_t block_size, size_t local_work_size, cl_mem dev_redscratch, cl_mem &dev_result)
+{
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
+     /*
+     __kernel void finish_reduction_count_cl(
+                       const    int   isize,      // 0
+              __global          int  *redscratch, // 1
+              __global          int  *result,     // 2
+              __local           int  *tile)       // 3
+     */
+   ezcl_set_kernel_arg(kernel_reduction_count, 0, sizeof(cl_int),  (void *)&block_size);
+   ezcl_set_kernel_arg(kernel_reduction_count, 1, sizeof(cl_mem),  (void *)&dev_redscratch);
+   ezcl_set_kernel_arg(kernel_reduction_count, 2, sizeof(cl_mem),  (void *)&dev_result);
+   ezcl_set_kernel_arg(kernel_reduction_count, 3, local_work_size*sizeof(cl_int2),    NULL);
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduction_count, 1, NULL, &local_work_size, &local_work_size, NULL);
+}
+
+void Mesh::gpu_rezone_scan(size_t block_size, size_t local_work_size, cl_mem dev_ioffset, cl_mem &dev_result)
 {
    cl_command_queue command_queue = ezcl_get_command_queue();
 
@@ -2354,16 +2620,14 @@ void Mesh::gpu_rezone_count(size_t block_size, size_t local_work_size, cl_mem de
                        const    int   isize,    // 0
               __global          int  *ioffset,  // 1
               __global          int  *result,   // 2
-              __local           int  *tile,     // 3
-              __local           int  *tile)     // 4
+              __local           int  *tile)     // 3
      */
-   ezcl_set_kernel_arg(kernel_reduction_scan, 0, sizeof(cl_int),  (void *)&block_size);
-   ezcl_set_kernel_arg(kernel_reduction_scan, 1, sizeof(cl_mem),  (void *)&dev_ioffset);
-   ezcl_set_kernel_arg(kernel_reduction_scan, 2, sizeof(cl_mem),  (void *)&dev_result);
-   ezcl_set_kernel_arg(kernel_reduction_scan, 3, local_work_size*sizeof(cl_int),    NULL);
-   ezcl_set_kernel_arg(kernel_reduction_scan, 4, local_work_size*sizeof(cl_int),    NULL);
+   ezcl_set_kernel_arg(kernel_reduction_scan2, 0, sizeof(cl_int),  (void *)&block_size);
+   ezcl_set_kernel_arg(kernel_reduction_scan2, 1, sizeof(cl_mem),  (void *)&dev_ioffset);
+   ezcl_set_kernel_arg(kernel_reduction_scan2, 2, sizeof(cl_mem),  (void *)&dev_result);
+   ezcl_set_kernel_arg(kernel_reduction_scan2, 3, local_work_size*sizeof(cl_uint2),    NULL);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduction_scan, 1, NULL, &local_work_size, &local_work_size, NULL);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduction_scan2, 1, NULL, &local_work_size, &local_work_size, NULL);
 }
 #endif
 
@@ -2543,7 +2807,7 @@ void Mesh::calc_centerminmax(void)
 
 }
 
-void Mesh::rezone_all(int add_ncells, vector<int> mpot, int have_state, MallocPlus &state_memory)
+void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, MallocPlus &state_memory)
 {
    struct timeval tstart_cpu;
 
@@ -2551,13 +2815,28 @@ void Mesh::rezone_all(int add_ncells, vector<int> mpot, int have_state, MallocPl
 
    cpu_timer_start(&tstart_cpu);
 
-   int global_add_ncells = add_ncells;
+   int add_ncells = icount + jcount;
+
+   int global_icount = icount;
+   int global_jcount = jcount;
 #ifdef HAVE_MPI
+   int global_add_ncells = add_ncells;
    if (parallel) {
-      MPI_Allreduce(&add_ncells, &global_add_ncells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      int count[2], global_count[2];
+      count[0] = icount;
+      count[1] = jcount;
+      MPI_Allreduce(&count, &global_count, 2, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      global_icount = global_count[0];
+      global_jcount = global_count[1];
+      global_add_ncells = global_icount + global_jcount;
    }  
 #endif
-   if (global_add_ncells == 0 ) {
+   if (global_icount == 0 && global_jcount == 0) {
+      index.resize(ncells);
+      for (uint ic=0; ic<ncells; ic++){
+         index[ic]=ic;
+      }
+
       cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
       return;
    }  
@@ -2569,28 +2848,6 @@ void Mesh::rezone_all(int add_ncells, vector<int> mpot, int have_state, MallocPl
       for (int ic=0; ic < ncells; ic++){
          celltype_save[ic] = celltype[ic];
       }
-   }
-
-   //  Check for requested mesh refinements; if there are none, return.
-   if (parallel) {
-#ifdef HAVE_MPI
-      int global_add_ncells;
-      MPI_Allreduce(&add_ncells, &global_add_ncells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      if (global_add_ncells == 0) set_index = 1;
-#endif
-   } else {
-      if (add_ncells == 0) set_index = 1;
-   }
-      
-   //  Clear variables which are now outdated and no longer needed.
-   index.empty();
-
-   if (set_index == 1) {
-      index.resize(ncells);
-      for (uint ic=0; ic<ncells; ic++){
-         index[ic]=ic;
-      }
-      return;
    }
 
    int new_ncells = ncells + add_ncells;
@@ -2661,18 +2918,19 @@ void Mesh::rezone_all(int add_ncells, vector<int> mpot, int have_state, MallocPl
       } //  Complete no change needed.
       
       else if (mpot[ic] < 0)
-      {  //  Coarsening is needed; remove this cell and the following three and replace them with one.  TODO
-         i[nc] = i_old[ic]/2;
-         j[nc] = j_old[ic]/2;
-         if        (i[nc]*2  ==i_old[ic] && j[nc]*2  ==j_old[ic]) {
-            index[nc]=ic;
-         } else if (i[nc]*2 + 1 == i_old[ic] && j[nc]*2     == j_old[ic]) {
-         } else if (i[nc]*2     == i_old[ic] && j[nc]*2 + 1 == j_old[ic]) {
-         } else if (i[nc]*2 + 1 == i_old[ic] && j[nc]*2 + 1 == j_old[ic]) {
+      {  //  Coarsening is needed; remove this cell and the other three and replace them with one.
+         int doit = 0;
+         if (is_lower_left(i_old[ic],j_old[ic]) ) doit = 1;
+         if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) doit = 1;
+         if (doit){
+            //printf("                     %d: DEBUG -- coarsening cell %d nc %d\n",mype,ic,nc);
+            index[nc] = ic;
+            i[nc] = i_old[ic]/2;
+            j[nc] = j_old[ic]/2;
             level[nc] = level_old[ic] - 1;
-            nc++; // XXX TODO Updating of nc assumes the upper right cell is the last to be visited. Also, is it guaranteed that all four cells needing coarsening will have mpot < 0 ? XXX
+            nc++;
          }
-      } //  Complete coarsening needed.
+      } //  Coarsening complete.
       
       else if (mpot[ic] > 0)
       {  //  Refinement is needed; insert four cells where once was one.
@@ -3076,10 +3334,6 @@ void Mesh::rezone_all(int add_ncells, vector<int> mpot, int have_state, MallocPl
       } //  Complete refinement needed.
    } //  Complete addition of new cells to the mesh.
 
-   calc_celltype(new_ncells);
-
-   //ncells = nc;
-
    if (have_state){
       MallocPlus state_memory_old = state_memory;
 
@@ -3093,12 +3347,20 @@ void Mesh::rezone_all(int add_ncells, vector<int> mpot, int have_state, MallocPl
                state_temp[nc] = mem_ptr[ic];
                nc++;
             } else if (mpot[ic] < 0){
-               int nr = nrht[ic];
-               int nt = ntop[ic];
-               int nrt = nrht[nt];
-               state_temp[nc] = (mem_ptr[ic] + mem_ptr[nr] + mem_ptr[nt] + mem_ptr[nrt])*0.25;
-               nc++;
-
+               if (is_lower_left(i_old[ic],j_old[ic]) ) {
+                  int nr = nrht[ic];
+                  int nt = ntop[ic];
+                  int nrt = nrht[nt];
+                  state_temp[nc] = (mem_ptr[ic] + mem_ptr[nr] + mem_ptr[nt] + mem_ptr[nrt])*0.25;
+                  nc++;
+               }
+               if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) {
+                  int nl = nlft[ic];
+                  int nb = nbot[ic];
+                  int nlb = nlft[nb];
+                  state_temp[nc] = (mem_ptr[ic] + mem_ptr[nl] + mem_ptr[nb] + mem_ptr[nlb])*0.25;
+                  nc++;
+               }
             } else if (mpot[ic] > 0){
                // lower left
                state_temp[nc] = mem_ptr[ic];
@@ -3124,6 +3386,10 @@ void Mesh::rezone_all(int add_ncells, vector<int> mpot, int have_state, MallocPl
       }
    }
 
+   calc_celltype(new_ncells);
+
+   //ncells = nc;
+
 #ifdef HAVE_MPI
    if (parallel) {
       MPI_Allgather(&new_ncells, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
@@ -3141,7 +3407,7 @@ void Mesh::rezone_all(int add_ncells, vector<int> mpot, int have_state, MallocPl
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset, MallocPlus &gpu_state_memory)
+void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &gpu_state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -3157,16 +3423,27 @@ void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset,
    assert(dev_levdx);
    assert(dev_levdy);
 
+   int add_ncells = icount - jcount;
+
+   int global_icount = icount;
+   int global_jcount = jcount;
+
    size_t old_ncells = ncells;
    size_t new_ncells = ncells + add_ncells;
 
-   int global_add_ncells = add_ncells;
 #ifdef HAVE_MPI
+   int global_add_ncells = add_ncells;
    if (parallel) {
-      MPI_Allreduce(&add_ncells, &global_add_ncells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      int count[2], global_count[2];
+      count[0] = icount;
+      count[1] = jcount;
+      MPI_Allreduce(&count, &global_count, 2, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      global_icount = global_count[0];
+      global_jcount = global_count[1];
+      global_add_ncells = global_icount + global_jcount;
    }
 #endif
-   if (global_add_ncells == 0 ) {
+   if (global_icount == 0 && global_jcount == 0) {
       gpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
       return;
    }
@@ -3252,7 +3529,7 @@ void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset,
    dev_ijadd = ezcl_malloc(NULL, const_cast<char *>("dev_ijadd"), &six, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
    ezcl_enqueue_write_buffer(command_queue, dev_ijadd, CL_TRUE, 0, 6*sizeof(cl_int), (void*)&ijadd[0], NULL);
 
-   cl_mem dev_indexoffset = ezcl_malloc(NULL, const_cast<char *>("dev_indexoffset"), &new_ncells, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_indexoffset = ezcl_malloc(NULL, const_cast<char *>("dev_indexoffset"), &old_ncells, sizeof(cl_uint), CL_MEM_READ_WRITE, 0);
 
    int stencil = 0;
    if (localStencil) stencil = 1;
@@ -3284,15 +3561,20 @@ void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset,
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    for (cl_mem dev_state_mem_ptr = (cl_mem)gpu_state_memory.memory_begin(); dev_state_mem_ptr != NULL; dev_state_mem_ptr = (cl_mem)gpu_state_memory.memory_next() ){
-
-      cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(new_ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_state_var_new"));
+      cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_state_var_new"));
 
       ezcl_set_kernel_arg(kernel_rezone_one, 0, sizeof(cl_int),  (void *)&old_ncells);
-      ezcl_set_kernel_arg(kernel_rezone_one, 1, sizeof(cl_mem),  (void *)&dev_mpot);
-      ezcl_set_kernel_arg(kernel_rezone_one, 2, sizeof(cl_mem),  (void *)&dev_celltype);
-      ezcl_set_kernel_arg(kernel_rezone_one, 3, sizeof(cl_mem),  (void *)&dev_indexoffset);
-      ezcl_set_kernel_arg(kernel_rezone_one, 4, sizeof(cl_mem),  (void *)&dev_state_mem_ptr);
-      ezcl_set_kernel_arg(kernel_rezone_one, 5, sizeof(cl_mem),  (void *)&dev_state_var_new);
+      ezcl_set_kernel_arg(kernel_rezone_one, 1, sizeof(cl_mem),  (void *)&dev_i);
+      ezcl_set_kernel_arg(kernel_rezone_one, 2, sizeof(cl_mem),  (void *)&dev_j);
+      ezcl_set_kernel_arg(kernel_rezone_one, 3, sizeof(cl_mem),  (void *)&dev_nlft);
+      ezcl_set_kernel_arg(kernel_rezone_one, 4, sizeof(cl_mem),  (void *)&dev_nrht);
+      ezcl_set_kernel_arg(kernel_rezone_one, 5, sizeof(cl_mem),  (void *)&dev_nbot);
+      ezcl_set_kernel_arg(kernel_rezone_one, 6, sizeof(cl_mem),  (void *)&dev_ntop);
+      ezcl_set_kernel_arg(kernel_rezone_one, 7, sizeof(cl_mem),  (void *)&dev_celltype);
+      ezcl_set_kernel_arg(kernel_rezone_one, 8, sizeof(cl_mem),  (void *)&dev_mpot);
+      ezcl_set_kernel_arg(kernel_rezone_one, 9, sizeof(cl_mem),  (void *)&dev_indexoffset);
+      ezcl_set_kernel_arg(kernel_rezone_one,10, sizeof(cl_mem),  (void *)&dev_state_mem_ptr);
+      ezcl_set_kernel_arg(kernel_rezone_one,11, sizeof(cl_mem),  (void *)&dev_state_var_new);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_one,   1, NULL, &global_work_size, &local_work_size, NULL);
 
@@ -3300,6 +3582,15 @@ void Mesh::gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset,
    }
 
    ezcl_device_memory_delete(dev_indexoffset);
+
+   ezcl_device_memory_delete(dev_nlft);
+   ezcl_device_memory_delete(dev_nrht);
+   ezcl_device_memory_delete(dev_nbot);
+   ezcl_device_memory_delete(dev_ntop);
+   dev_nlft = NULL;
+   dev_nrht = NULL;
+   dev_nbot = NULL;
+   dev_ntop = NULL;
 
    if (new_ncells != old_ncells){
       resize_old_device_memory(new_ncells);

@@ -18,6 +18,7 @@ cd ${RUNS_DIR}
 
 ##### Weak Scaling
 mpirun -np 64 -npernode 8  ${BUILD_DIR}/clamr_mpionly -n 4096 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/weak_hilb_out064_2h_mpionly
+mpirun -np 64 -npernode 8  ${BUILD_DIR}/clamr_mpionly -n 4096 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 4 > ${RUNS_DIR}/weak_hilb_out064_4h_mpionly
 
 ##### Strong Scaling
 mpirun -np 64 -npernode 8 ${BUILD_DIR}/clamr_mpionly -n 1024 -i 100 -t 500 -P "hilbert_sort" -p "local_hilbert" -l 2 > ${RUNS_DIR}/strong_hilb_out064_2h_mpionly
@@ -25,6 +26,7 @@ mpirun -np 64 -npernode 8 ${BUILD_DIR}/clamr_mpionly -n 1024 -i 100 -t 500 -P "h
 
 ##### Weak Scaling
 mpirun -np 64 -npernode 8  ${BUILD_DIR}/clamr_mpionly -n 4096 -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/weak_orig_out064_2h_mpionly
+mpirun -np 64 -npernode 8  ${BUILD_DIR}/clamr_mpionly -n 4096 -i 100 -t 500 -P "original_order" -p "original_order" -l 4 > ${RUNS_DIR}/weak_orig_out064_4h_mpionly
 
 ##### Strong Scaling
 mpirun -np 64 -npernode 8 ${BUILD_DIR}/clamr_mpionly -n 1024 -i 100 -t 500 -P "original_order" -p "original_order" -l 2 > ${RUNS_DIR}/strong_orig_out064_2h_mpionly

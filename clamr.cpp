@@ -102,9 +102,11 @@ typedef cl_float    cl_real;
 
 typedef unsigned int uint;
 
+#ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
 
 static int view_mode = 0;
+#endif
 
 bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
@@ -272,6 +274,7 @@ int main(int argc, char **argv) {
    mesh->dev_nrht = NULL;
    mesh->dev_nbot = NULL;
    mesh->dev_ntop = NULL;
+   state->dev_mpot = NULL;
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
@@ -380,11 +383,9 @@ static double  simTime = 0.0;
 
 extern "C" void do_calc(void)
 {
-   struct timeval tstart_cpu;
 
    double sigma = 0.95; 
    //int icount=0;
-   static cl_event start_read_event, end_read_event;
 
    if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
       printf("Can't do this problem with GPU\n");
@@ -395,27 +396,13 @@ extern "C" void do_calc(void)
    int &mype  = mesh->mype;
    int &numpe = mesh->numpe;
 
-   vector<int>   &nsizes   = mesh->nsizes;
-   vector<int>   &ndispl   = mesh->ndispl;
-
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh->ncells_global;
    size_t &ncells           = mesh->ncells;
 
-   vector<real>  &x  = mesh->x;
-   vector<real>  &dx = mesh->dx;
-   vector<real>  &y  = mesh->y;
-   vector<real>  &dy = mesh->dy;
-
-   cl_mem &dev_H  = state->dev_H;
-   cl_mem &dev_U  = state->dev_U;
-   cl_mem &dev_V  = state->dev_V;
-
    vector<int>     mpot;
    vector<int>     mpot_global;
    
-   size_t old_ncells = ncells;
-   size_t old_ncells_global = ncells_global;
    size_t new_ncells = 0;
    double H_sum = -1.0;
    double deltaT = 0.0;
@@ -426,10 +413,6 @@ extern "C" void do_calc(void)
       size_t local_work_size  = MIN(ncells, TILE_SIZE);
       size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
       size_t block_size     = global_work_size/local_work_size;
-
-      //  Define basic domain decomposition parameters for GPU.
-      old_ncells = ncells;
-      old_ncells_global = ncells_global;
 
       //  Calculate the real time step for the current discrete time step.
       deltaT = state->gpu_set_timestep(mesh, sigma);
@@ -444,25 +427,19 @@ extern "C" void do_calc(void)
 
       vector<int>      ioffset(block_size);
 
-      new_ncells = state->gpu_calc_refine_potential(mesh);
+      int icount = 0;
+      int jcount = 0;
+      new_ncells = state->gpu_calc_refine_potential(mesh, icount, jcount);
 
       int ncells_global_old = ncells_global;
       MPI_Allreduce(&new_ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      size_t add_ncells = new_ncells - old_ncells;
-      if (ncells_global_old != (int)ncells_global) state->gpu_rezone_all(mesh, add_ncells, localStencil);
+      if (state->dev_mpot) state->gpu_rezone_all(mesh, icount, jcount, localStencil);
 
-      // XXX XXX XXX
       ncells       = new_ncells;
-      //mesh->ncells = new_ncells;
 
       if (mesh->dev_nlft == NULL) state->gpu_do_load_balance_local(mesh, new_ncells);
-      //dev_H = (cl_mem)state->gpu_state_memory.get_memory_ptr("dev_H_new");
-      //dev_U = (cl_mem)state->gpu_state_memory.get_memory_ptr("dev_U_new");
-      //dev_V = (cl_mem)state->gpu_state_memory.get_memory_ptr("dev_V_new");
-      //printf("DEBUG memory for proc %d is %p dev_H is %p dev_U is %p dev_V is %p\n",mype,dev_H,dev_U,dev_V);
 
       ioffset.clear();
 
@@ -491,6 +468,8 @@ extern "C" void do_calc(void)
    }
 
 #ifdef HAVE_GRAPHICS
+   static cl_event start_read_event, end_read_event;
+
    cl_mem dev_x  = ezcl_malloc(NULL, const_cast<char *>("dev_x"),  &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
    cl_mem dev_dx = ezcl_malloc(NULL, const_cast<char *>("dev_dx"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
    cl_mem dev_y  = ezcl_malloc(NULL, const_cast<char *>("dev_y"),  &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);

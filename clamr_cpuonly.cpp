@@ -268,13 +268,10 @@ extern "C" void do_calc(void)
       mpot.resize(ncells);
       new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
 
-      //new_ncells = old_ncells+mesh->rezone_count(mpot);
-      //printf("icount %d old_ncells %d new_ncells %d\n",icount,old_ncells,new_ncells);
-
       //  Resize the mesh, inserting cells where refinement is necessary.
 
-      int add_ncells = new_ncells - old_ncells;
-      state->rezone_all(mesh, add_ncells, mpot);
+      state->rezone_all(mesh, icount, jcount, mpot);
+
       mpot.clear();
       mesh->ncells = new_ncells;
       ncells = new_ncells;

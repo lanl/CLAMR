@@ -207,6 +207,7 @@ int main(int argc, char **argv) {
    mesh->dev_nrht = NULL;
    mesh->dev_nbot = NULL;
    mesh->dev_ntop = NULL;
+   state->dev_mpot = NULL;
 
    if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
 
@@ -270,6 +271,7 @@ static double  simTime = 0.0;
 extern "C" void do_calc(void)
 {
    double sigma = 0.95;
+   int icount, jcount;
 
    //  Initialize state variables for GPU calculation.
 
@@ -297,11 +299,11 @@ extern "C" void do_calc(void)
       //  Execute main kernel
       state->gpu_calc_finite_difference(mesh, deltaT);
       
-      size_t new_ncells = state->gpu_calc_refine_potential(mesh);
+      size_t new_ncells = state->gpu_calc_refine_potential(mesh, icount, jcount);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
       size_t add_ncells = new_ncells - old_ncells;
-      if (mesh->dev_nlft == NULL) state->gpu_rezone_all(mesh, add_ncells, localStencil);
+      if (state->dev_mpot) state->gpu_rezone_all(mesh, icount, jcount, localStencil);
       ncells = new_ncells;
       mesh->ncells = new_ncells;
 

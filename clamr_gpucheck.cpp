@@ -117,9 +117,11 @@ typedef cl_float8   cl_real8;
 
 typedef unsigned int uint;
 
+#ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
 
 static int view_mode = 0;
+#endif
 
 bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
@@ -405,19 +407,24 @@ extern "C" void do_calc(void)
       
       mpot.resize(ncells);
       new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
+      //printf("DEBUG cpu icount %d jcount %d new_ncells %d\n",icount,jcount,new_ncells);
 
-      new_ncells_gpu = state->gpu_calc_refine_potential(mesh);
-      
+      new_ncells_gpu = state->gpu_calc_refine_potential(mesh, icount, jcount);
+
       if (do_comparison_calc) {
+         if (new_ncells != new_ncells_gpu) {
+            printf("ERROR -- new_ncells cpu %d not equal to new_ncells gpu %d\n",new_ncells,new_ncells_gpu);
+            exit(0);
+         }
          // Need to compare dev_mpot to mpot
-         if (mesh->dev_nlft == NULL) {
+         if (dev_mpot) {
             mesh->compare_mpot_gpu_global_to_cpu_global(&mpot[0], dev_mpot);
          }
       }
 
       // Sync up cpu array with gpu version to reduce differences due to minor numerical differences
       // otherwise cell count will diverge causing code problems and crashes
-      if (mesh->dev_nlft == NULL) {
+      if (dev_mpot) {
          if (do_sync) {
             ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
          }
@@ -428,13 +435,13 @@ extern "C" void do_calc(void)
 
       if (do_comparison_calc) {
          // This compares ioffset for each block in the calculation
-         if (mesh->dev_nlft == NULL) {
-            mesh->compare_ioffset_gpu_global_to_cpu_global(old_ncells, &mpot[0], state->dev_ioffset);
+         if (dev_mpot) {
+            mesh->compare_ioffset_gpu_global_to_cpu_global(old_ncells, &mpot[0]);
          }
       }
 
       if (do_gpu_sync) {
-         if (mesh->dev_nlft == NULL) {
+         if (dev_mpot) {
             size_t local_work_size  = MIN(old_ncells, TILE_SIZE);
             size_t global_work_size = ((old_ncells+local_work_size - 1) /local_work_size) * local_work_size;
 
@@ -456,7 +463,7 @@ extern "C" void do_calc(void)
                ioffset[ig] = mtotal;
                mtotal += mcount;
             }
-            ezcl_enqueue_write_buffer(command_queue, state->dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
+            ezcl_enqueue_write_buffer(command_queue, mesh->dev_ioffset, CL_TRUE, 0, block_size*sizeof(cl_int),       &ioffset[0], NULL);
          }
       }
 
@@ -464,12 +471,12 @@ extern "C" void do_calc(void)
          new_ncells = new_ncells_gpu;
       }
 
-      int add_ncells = new_ncells - old_ncells;
-      state->rezone_all(mesh, add_ncells, mpot);
+      //int add_ncells = new_ncells - old_ncells;
+      state->rezone_all(mesh, icount, jcount, mpot);
       mpot.clear();
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      if (mesh->dev_nlft == NULL) state->gpu_rezone_all(mesh, add_ncells, localStencil);
+      if (dev_mpot) state->gpu_rezone_all(mesh, icount, jcount, localStencil);
       ncells = new_ncells;
       mesh->ncells = new_ncells;
 
@@ -486,13 +493,13 @@ extern "C" void do_calc(void)
       //}
 
       mesh->proc.resize(ncells);
-      if (icount) {  
+      if (icount || jcount) {  
          if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
             mesh->calc_spatial_coordinates(0);
          }
          vector<int> index(ncells);
          mesh->partition_cells(numpe, index, cycle_reorder);
-         state->state_reorder(index);
+         //state->state_reorder(index);
          if (do_gpu_sync) {
             ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&celltype[0],  NULL);
             ezcl_enqueue_write_buffer(command_queue, dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],  NULL);

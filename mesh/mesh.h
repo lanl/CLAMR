@@ -253,6 +253,8 @@ public:
                   dz;           //  1D ordered index of mesh element z-coordinate spacings.
 
 #ifdef HAVE_OPENCL
+   cl_mem         dev_ioffset;
+
    cl_mem         dev_celltype,       
                   dev_i,       
                   dev_j,       
@@ -407,9 +409,11 @@ public:
    *  Output
    *    result -- cell count
    **************************************************************************************/
-   int  rezone_count(vector<int> mpot);
+   int  rezone_count(vector<int> mpot, int &icount, int &jcount);
 #ifdef HAVE_OPENCL
-   void gpu_rezone_count(size_t block_size, size_t local_work_size, cl_mem dev_ioffset, cl_mem &dev_result);
+   void gpu_rezone_count2(size_t block_size, size_t local_work_size, cl_mem dev_redscratch, cl_mem &dev_result);
+   void gpu_rezone_count(size_t block_size, size_t local_work_size, cl_mem dev_redscratch, cl_mem &dev_result);
+   void gpu_rezone_scan(size_t block_size, size_t local_work_size, cl_mem dev_ioffset, cl_mem &dev_result);
 #endif
 
    /**************************************************************************************
@@ -419,9 +423,9 @@ public:
    *    ioffset -- write offset for each cell to account for new cells
    *    result -- refinement count
    **************************************************************************************/
-   size_t refine_smooth(vector<int> &mpot);
+   size_t refine_smooth(vector<int> &mpot, int &icount, int &jcount);
 #ifdef HAVE_OPENCL
-   int gpu_refine_smooth(cl_mem dev_ioffset, cl_mem &dev_mpot, size_t result);
+   int gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount);
 #endif
 
    /**************************************************************************************
@@ -436,9 +440,9 @@ public:
    *  Output
    *     new mesh and state arrays with refinement/coarsening performed
    **************************************************************************************/
-   void rezone_all(int add_ncells, vector<int> mpot, int have_state, MallocPlus &state_memory);
+   void rezone_all(int icount, int jcount, vector<int> mpot, int have_state, MallocPlus &state_memory);
 #ifdef HAVE_OPENCL
-   void gpu_rezone_all(int add_ncells, cl_mem &dev_mpot, cl_mem &dev_ioffset, MallocPlus &gpu_state_memory);
+   void gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &gpu_state_memory);
 #endif
 
    /**************************************************************************************
@@ -489,8 +493,8 @@ public:
    void compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *displ, int *mpot, int *mpot_global, int cycle);
 #ifdef HAVE_OPENCL
    void compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
-   void compare_ioffset_gpu_global_to_cpu_global(uint old_ncells, int *mpot, cl_mem dev_ioffset);
-   void compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global);
+   void compare_ioffset_gpu_global_to_cpu_global(uint old_ncells, int *mpot);
+   void compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global, int *i_global, int *j_global);
    void compare_coordinates_gpu_global_to_cpu_global(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real *H);
 #endif
    void compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, real *x, real *dx, real *y, real *dy, real *H, real *x_global, real *dx_global, real *y_global, real *dy_global, real *H_global, int cycle);

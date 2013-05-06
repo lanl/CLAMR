@@ -1230,6 +1230,27 @@ inline uint scan_warp_inclusive(__local volatile uint *input, const uint idx, co
     return input[idx];
 }
 
+inline int2 scan_warp_exclusive2(__local volatile int2 *input, const uint idx, const uint lane) {
+    int2 zero = 0;
+    if (lane > 0 ) input[idx].s01 += input[idx - 1].s01;
+    if (lane > 1 ) input[idx].s01 += input[idx - 2].s01;
+    if (lane > 3 ) input[idx].s01 += input[idx - 4].s01;
+    if (lane > 7 ) input[idx].s01 += input[idx - 8].s01;
+    if (lane > 15) input[idx].s01 += input[idx - 16].s01;
+
+    return (lane > 0) ? input[idx-1].s01 : zero;
+}
+
+inline int2 scan_warp_inclusive2(__local volatile int2 *input, const uint idx, const uint lane) {
+    if (lane > 0 ) input[idx].s01 += input[idx - 1].s01;
+    if (lane > 1 ) input[idx].s01 += input[idx - 2].s01;
+    if (lane > 3 ) input[idx].s01 += input[idx - 4].s01;
+    if (lane > 7 ) input[idx].s01 += input[idx - 8].s01;
+    if (lane > 15) input[idx].s01 += input[idx - 16].s01;
+
+    return input[idx].s01;
+}
+
 inline uint scan_workgroup_exclusive(
     __local uint* itile,
     const uint tiX,
@@ -1257,6 +1278,35 @@ inline uint scan_workgroup_exclusive(
     barrier(CLK_LOCAL_MEM_FENCE);
 
     return val;
+}
+
+inline int2 scan_workgroup_exclusive2(
+    __local int2* itile,
+    const uint tiX,
+    const uint lane,
+    const uint warpID) {
+
+    // Step 1: scan each warp
+    int2 val = scan_warp_exclusive2(itile, tiX, lane);
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Step 2: Collect per-warp sums
+    if (lane == 31) itile[warpID].s01 = itile[tiX].s01;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Step 3: Use 1st warp to scan per-warp sums
+    if (warpID == 0) scan_warp_inclusive2(itile, tiX, lane);
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Step 4: Accumulate results from Steps 1 and 3
+    if (warpID > 0) val.s01 += itile[warpID-1].s01;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Step 6: Write and return the final result
+    itile[tiX].s01 = val.s01;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    return val.s01;
 }
 
 __kernel void finish_scan_cl(
@@ -2697,12 +2747,107 @@ __kernel void adjust_neighbors_local_cl(
    ntop[giX] = ntopval;
 }
 
-__kernel void finish_reduction_scan_cl(
+__kernel void finish_reduction_count2_cl(
                  const int   isize,
-        __global       int  *ioffset,
-        __global       int  *result,
-        __local        int  *itile_scratch,
-        __local        uint *itile)
+        __global       int2 *redscratch,
+        __global       int2 *result,
+        __local        int2 *itile)
+{
+   const uint tiX = get_local_id(0);
+   const uint ntX = get_local_size(0);
+
+   int giX = tiX;
+
+   itile[tiX].s01 = 0;
+
+   if (tiX < isize) itile[tiX].s01 = redscratch[giX].s01;
+
+   for (giX += ntX; giX < isize; giX += ntX) {
+     itile[tiX].s01 += redscratch[giX].s01;
+   }
+
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   for (int offset=ntX>>1; offset > 32; offset >>= 1){
+      if (tiX < offset){
+        itile[tiX].s01 += itile[tiX+offset].s01;
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+   }
+
+   if (tiX < 32){
+      itile[tiX].s01 += itile[tiX+32].s01;
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX].s01 += itile[tiX+16].s01;
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX].s01 += itile[tiX+8].s01;
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX].s01 += itile[tiX+4].s01;
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX].s01 += itile[tiX+2].s01;
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX].s01 += itile[tiX+1].s01;
+   }
+
+   if (tiX == 0) {
+     redscratch[0].s01 = itile[0].s01;
+     result[0].s01 = itile[0].s01;
+   }
+}
+
+__kernel void finish_reduction_count_cl(
+                 const int   isize,
+        __global       int *redscratch,
+        __global       int *result,
+        __local        int *itile)
+{
+   const uint tiX = get_local_id(0);
+   const uint ntX = get_local_size(0);
+
+   int giX = tiX;
+
+   itile[tiX] = 0;
+
+   if (tiX < isize) itile[tiX] = redscratch[giX];
+
+   for (giX += ntX; giX < isize; giX += ntX) {
+     itile[tiX] += redscratch[giX];
+   }
+
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   for (int offset=ntX>>1; offset > 32; offset >>= 1){
+      if (tiX < offset){
+        itile[tiX] += itile[tiX+offset];
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+   }
+
+   if (tiX < 32){
+      itile[tiX] += itile[tiX+32];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+16];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+8];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+4];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+2];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+1];
+   }
+
+   if (tiX == 0) {
+     redscratch[0] = itile[0];
+     result[0] = itile[0];
+   }
+}
+
+__kernel void finish_reduction_scan2_cl(
+                 const int   isize,
+        __global       uint  *ioffset,
+        __global       uint  *result,
+        __local        uint  *itile)
 {
    const uint tiX = get_local_id(0);
    const uint gID = get_group_id(0);
@@ -2713,7 +2858,7 @@ __kernel void finish_reduction_scan_cl(
    const uint EPT = (isize+ntX-1)/ntX; //elements_per_thread;
    const uint BLOCK_SIZE = EPT * ntX;
 
-   uint reduceValue = 0;
+   int reduceValue = 0;
 
 // #pragma unroll 4
    for(uint i = 0; i < EPT; ++i)
@@ -2725,13 +2870,13 @@ __kernel void finish_reduction_scan_cl(
 #endif
 
       // Step 1: Read ntX elements from global (off-chip) memory to local memory (on-chip)
-      uint input = 0;
+      int input = 0;
       if (offsetIdx < isize) input = ioffset[offsetIdx];           
       itile[tiX] = input;           
       barrier(CLK_LOCAL_MEM_FENCE);
 
       // Step 2: Perform scan on ntX elements
-      uint val = scan_workgroup_exclusive(itile, tiX, lane, warpID);
+      int val = scan_workgroup_exclusive(itile, tiX, lane, warpID);
 
       // Step 3: Propagate reduced result from previous block of ntX elements
       val += reduceValue;
@@ -3027,23 +3172,23 @@ __kernel void refine_smooth_cl(
                  const int    levmx,        // 2  Maximum level
         __global const int   *nlft,         // 3  Array of left neighbors.
         __global const int   *nrht,         // 4  Array of right neighbors.
-        __global const int   *ntop,         // 5  Array of bottom neighbors.
-        __global const int   *nbot,         // 6  Array of top neighbors.
+        __global const int   *nbot,         // 5  Array of bottom neighbors.
+        __global const int   *ntop,         // 6  Array of top neighbors.
         __global const int   *level,        // 7  Array of level information.
         __global const int   *celltype,     // 8  Array of celltype information.
         __global const int   *mpot_old,     // 9  Array of mesh potential information.
         __global       int   *mpot,         // 10 Array of mesh potential information.
-        __global       int   *newcount,     // 11  Array of number of cells smoothed per tile
+        __global       int   *redscratch,   // 11  Array of number of cells smoothed per tile
         __global       int   *result,       // 12
         __local        int   *itile)        // 13  Tile size in int2.
 {
 
-   const unsigned int giX  = get_global_id(0);
-   const unsigned int tiX  = get_local_id(0);
+   const uint giX  = get_global_id(0);
+   const uint tiX  = get_local_id(0);
 
-   const unsigned int group_id = get_group_id(0);
+   const uint group_id = get_group_id(0);
 
-   const unsigned int ntX  = get_local_size(0);
+   const uint ntX  = get_local_size(0);
 
    itile[tiX] = 0;
 
@@ -3058,7 +3203,14 @@ __kernel void refine_smooth_cl(
    int nlt, nrt, ntr, nbr;
    int lev, ll, lr, lt, lb;
    int llt, lrt, ltr, lbr;
+
+   int mpotval = mpot_old[giX];
+   int ctype   = celltype[giX];
+
    int new_count = 0;
+   if (mpotval > 0){
+      new_count = (ctype == REAL_CELL) ? 3 : 1;
+   }
 
    int ic = giX;
    mpot[giX] = mpot_old[giX];
@@ -3201,8 +3353,178 @@ __kernel void refine_smooth_cl(
       itile[tiX] += itile[tiX+1]; }
 
    if (tiX == 0) {
-     newcount[group_id] = itile[0];
-     (*result) = itile[0];
+     redscratch[group_id] = itile[0];
+     result[0] = itile[0];
+   }
+
+}
+
+__kernel void coarsen_smooth_cl(
+                 const int    ncells,       // 0  Total number of cells.
+        __global const int   *nlft,         // 1  Array of left neighbors.
+        __global const int   *nrht,         // 2  Array of right neighbors.
+        __global const int   *nbot,         // 3  Array of bottom neighbors.
+        __global const int   *ntop,         // 4  Array of top neighbors.
+        __global const int   *i,            // 5  Array of i values.
+        __global const int   *j,            // 6  Array of j values.
+        __global const int   *level,        // 7  Array of level information.
+        __global const int   *mpot_old,     // 8  Array of mpot_old information.
+        __global       int   *mpot)         // 9  Array of mpot information.
+{
+   const uint giX  = get_global_id(0);
+
+   if(giX >= ncells)
+      return;
+
+   int ival    = i[giX];
+   int jval    = j[giX];
+   int lev     = level[giX];
+   int mpotval = mpot_old[giX];
+
+   if (mpotval < 0) {
+      if (        is_upper_right(ival,jval) ) {
+         int nr = nrht[giX];
+         int lr = level[nr];
+         if (mpot_old[nr] > 0) lr++;
+         int nt = ntop[giX];
+         int lt = level[nt];
+         if (mpot_old[nt] > 0) lt++;
+         if (lr > lev || lt > lev) mpotval = 0;
+      } else if ( is_upper_left(ival,jval) ) {
+         int nl = nlft[giX];
+         int ll = level[nl];
+         if (mpot_old[nl] > 0) ll++;
+         int nt = ntop[giX];
+         int lt = level[nt];
+         if (mpot_old[nt] > 0) lt++;
+         if (ll > lev || lt > lev) mpotval = 0;
+      } else if ( is_lower_right(ival,jval) ) {
+         int nr = nrht[giX];
+         int lr = level[nr];
+         if (mpot_old[nr] > 0) lr++;
+         int nb = nbot[giX];
+         int lb = level[nb];
+         if (mpot_old[nb] > 0) lb++;
+         if (lr > lev || lb > lev) mpotval = 0;
+      } else if ( is_lower_left(ival,jval) ) {
+         int nl = nlft[giX];
+         int ll = level[nl];
+         if (mpot_old[nl] > 0) ll++;
+         int nb = nbot[giX];
+         int lb = level[nb];
+         if (mpot_old[nb] > 0) lb++;
+         if (ll > lev || lb > lev) mpotval = 0;
+      }
+   }
+
+   mpot[giX] = mpotval;
+}
+
+__kernel void coarsen_check_block_cl(
+                 const int    ncells,       // 0  Total number of cells.
+        __global const int   *nlft,         // 1  Array of left neighbors.
+        __global const int   *nrht,         // 2  Array of right neighbors.
+        __global const int   *nbot,         // 3  Array of bottom neighbors.
+        __global const int   *ntop,         // 4  Array of top neighbors.
+        __global const int   *i,            // 5  Array of i values.
+        __global const int   *j,            // 6  Array of j values.
+        __global const int   *level,        // 7  Array of level information.
+        __global const int   *celltype,     // 8  Array of celltype information.
+        __global const int   *mpot_old,     // 9  Array of mpot_old information.
+        __global       int   *mpot,         // 10 Array of mpot information.
+        __global       int   *redscratch,   // 10 Reduction scratch
+        __global       int   *result,       // 11 Reduction result
+        __local        int   *itile)        // 12 itile scratch.
+{
+   const uint giX      = get_global_id(0);
+   const uint tiX      = get_local_id(0);
+   const uint group_id = get_group_id(0);
+   const uint ntX      = get_local_size(0);
+
+   itile[tiX] = 0;
+
+   if(giX >= ncells)
+      return;
+
+   int ival    = i[giX];
+   int jval    = j[giX];
+   int lev     = level[giX];
+   int mpotval = mpot_old[giX];
+
+   int n1, n2, n3;
+
+   if (mpotval < 0) {
+      if ( is_upper_right(ival,jval) ) {
+         n1 = nbot[giX];
+         n2 = nlft[giX];
+         n3 = nlft[n1];
+      } else if ( is_upper_left(ival,jval) ) {
+         n1 = nbot[giX];
+         n2 = nrht[giX];
+         n3 = nrht[n1];
+      } else if ( is_lower_right(ival,jval) ) {
+         n1 = ntop[giX];
+         n2 = nlft[giX];
+         n3 = nlft[n1];
+      } else if ( is_lower_left(ival,jval) ) {
+         n1 = ntop[giX];
+         n2 = nrht[giX];
+         n3 = nrht[n1];
+      }
+      int lev1 = level[n1];
+      int lev2 = level[n2];
+      int lev3 = level[n3];
+      if (mpot_old[n1] > 0) lev1++;
+      if (mpot_old[n2] > 0) lev2++;
+      if (mpot_old[n3] > 0) lev3++;
+
+      if (mpot_old[n1] != -1 || lev1 != lev ||
+          mpot_old[n2] != -1 || lev2 != lev ||
+          mpot_old[n3] != -1 || lev3 != lev) {
+         mpotval = 0;
+      }
+   }
+
+   if (mpotval < 0){
+      int ival = i[giX];
+      int jval = j[giX];
+      int ctype = celltype[giX];
+      if (ctype == REAL_CELL) {
+         if (! is_lower_left(ival,jval) ) itile[tiX] = 1;
+      } else {
+         if (! is_upper_right(ival,jval) || is_lower_left(ival,jval) ) itile[tiX] = 1;
+      }
+   }
+
+   mpot[giX] = mpotval;
+
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   for (int offset = ntX >> 1; offset > 32; offset >>= 1) {
+      if (tiX < offset) {
+         itile[tiX] += itile[tiX+offset];
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+   }
+
+   //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
+   if (tiX < 32) {
+      itile[tiX] += itile[tiX+32];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+16];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+8];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+4];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+2];
+      barrier(CLK_LOCAL_MEM_FENCE);
+      itile[tiX] += itile[tiX+1];
+   }
+
+   if (tiX == 0) {
+     redscratch[group_id] = itile[0];
+     result[0] = itile[0];
    }
 
 }
@@ -3220,8 +3542,8 @@ __kernel void rezone_all_cl(
         __global       int   *i_new,        // 9
         __global       int   *j_new,        // 10
         __global       int   *celltype_new, // 11
-        __global const int   *ioffset,      // 12   
-        __global       int   *indexoffset,  // 13   
+        __global const uint  *ioffset,      // 12   
+        __global       uint  *indexoffset,  // 13   
         __global const real  *lev_dx,       // 14
         __global const real  *lev_dy,       // 15
         __global const int   *levtable,     // 16
@@ -3244,10 +3566,23 @@ __kernel void rezone_all_cl(
 
    if (giX >= isize) return;
 
-   if (celltype[giX] == REAL_CELL){
-      indexval = mpot[giX] ? 4 : 1;
+   int mpotval = mpot[giX];
+   int ctype = celltype[giX];
+   int ival = i[giX];
+   int jval = j[giX];
+
+   int do_coarsening = 0;
+   if (mpotval < 0){
+      indexval = 0;
+      if (is_lower_left(ival, jval) ) do_coarsening = 1;
+      if (ctype != REAL_CELL && is_upper_right(ival, jval) ) do_coarsening = 1;
+      if (do_coarsening) indexval = 1;
    } else {
-      indexval = mpot[giX] ? 2 : 1;
+      if (celltype[giX] == REAL_CELL){
+         indexval = mpot[giX] ? 4 : 1;
+      } else {
+         indexval = mpot[giX] ? 2 : 1;
+      }
    }
    itile[tiX] = indexval;
    barrier(CLK_LOCAL_MEM_FENCE);
@@ -3271,11 +3606,7 @@ __kernel void rezone_all_cl(
    indexval += ioffset[group_id];
 
    int lev = level[giX];
-   int mpotval = mpot[giX];
    if (mpotval > 0) lev++;
-   int ctype = celltype[giX];
-   int ival = i[giX];
-   int jval = j[giX];
 
    if (mpotval == 0) {
       i_new[indexval] = ival;
@@ -3283,6 +3614,12 @@ __kernel void rezone_all_cl(
       level_new[indexval] = lev;
       celltype_new[indexval] = ctype;
    } else if (mpotval < 0) {
+      if (do_coarsening) {
+         i_new[indexval] = ival/2;
+         j_new[indexval] = jval/2;
+         level_new[indexval] = lev - 1;
+         celltype_new[indexval] = ctype;
+      }
    } else if (mpotval > 0) {
       level_new[indexval] = lev;
       level_new[indexval+1] = lev;
@@ -3657,11 +3994,17 @@ __kernel void rezone_all_cl(
 
 __kernel void rezone_one_cl(
                  const int    isize,        // 0
-        __global const int   *mpot,         // 1   Array of mesh potential information.
-        __global const int   *celltype,     // 2
-        __global const int   *indexoffset,  // 3  
-        __global const real  *Var,          // 4
-        __global       real  *Var_new)      // 5
+        __global const int   *i,            // 1
+        __global const int   *j,            // 2
+        __global const int   *nlft,         // 3
+        __global const int   *nrht,         // 4
+        __global const int   *nbot,         // 5
+        __global const int   *ntop,         // 6
+        __global const int   *celltype,     // 7
+        __global const int   *mpot,         // 8   Array of mesh potential information.
+        __global const uint  *indexoffset,  // 9  
+        __global const real  *Var,          // 10
+        __global       real  *Var_new)      // 11
 {
    uint giX = get_global_id(0);
 
@@ -3675,6 +4018,18 @@ __kernel void rezone_one_cl(
    if (mpotval == 0) {
       Var_new[indexval] = Varold;
    } else if (mpotval < 0) {
+      if (is_lower_left(i[giX],j[giX]) ) {
+         int nr = nrht[giX];
+         int nt = ntop[giX];
+         int nrt = nrht[nt];
+         Var_new[indexval] = (Varold+Var[nr]+Var[nt]+Var[nrt])*0.25;
+      }
+      if (ctype != REAL_CELL && is_upper_right(i[giX],j[giX]) ) {
+         int nl = nlft[giX];
+         int nb = nbot[giX];
+         int nlb = nlft[nb];
+         Var_new[indexval] = (Varold+Var[nl]+Var[nb]+Var[nlb])*0.25;
+      }
    } else if (mpotval > 0) {
       Var_new[indexval]   = Varold;
       Var_new[indexval+1] = Varold;
@@ -3700,30 +4055,33 @@ __kernel void copy_mpot_ghost_data_cl(
 }
 
 __kernel void set_boundary_refinement(
-               const int ncells,     // 0 Total number of cells
-      __global const int  *nlft,     // 1
-      __global const int  *nrht,     // 2
-      __global const int  *nbot,     // 3
-      __global const int  *ntop,     // 4
-      __global const int  *celltype, // 5
-      __global       int  *mpot,     // 6 refinement flag
-      __global       int  *ioffset,  // 7 reduction array
-      __global       int  *result,   // 8 new cell count
-      __local        int  *itile     // 9 Scratch to do reduction
+               const int ncells,       // 0  Total number of cells
+      __global const int  *nlft,       // 1
+      __global const int  *nrht,       // 2
+      __global const int  *nbot,       // 3
+      __global const int  *ntop,       // 4
+      __global const int  *i,          // 5
+      __global const int  *j,          // 6
+      __global const int  *celltype,   // 7
+      __global       int  *mpot,       // 8  refinement flag
+      __global       int2 *redscratch, // 9  reduction array
+      __global       int  *ioffset,    // 10 prefix scan offset array
+      __global       int2 *result,     // 11 new cell count
+      __local        int2 *itile       // 12 Scratch to do reduction
                                  )
 {
    const uint tiX = get_local_id(0);
    const uint giX = get_global_id(0);
    const uint gID = get_group_id(0);
    const uint ntX = get_local_size(0);
+   const uint num_groups = get_num_groups(0);
 
-   itile[tiX] = 0;
+   itile[tiX].s01 = 0;
 
    if (giX >= ncells) return;
 
    int ctype = celltype[giX];
    int mpotval = mpot[giX];
-   int cell_add = (ctype == REAL_CELL) ? 4:2;
 
    if (ctype < 0) {
       switch (ctype) {
@@ -3743,35 +4101,54 @@ __kernel void set_boundary_refinement(
       }
    }
 
-   itile[tiX] = mpotval ? cell_add : 1;
+   if (mpotval < 0){
+      int ival = i[giX];
+      int jval = j[giX];
+      if (ctype == REAL_CELL) {
+         if (! is_lower_left(ival,jval) ) itile[tiX].s1 = 1;
+      } else {
+         if (! is_upper_right(ival,jval) || is_lower_left(ival,jval) ) itile[tiX].s1 = 1;
+      }
+   } else if (mpotval > 0){
+      if (ctype == REAL_CELL) {
+         itile[tiX].s0 = 3;
+      } else {
+         itile[tiX].s0 = 1;
+      }
+   }
 
    barrier(CLK_LOCAL_MEM_FENCE);
 
-
    for (int offset = ntX >> 1; offset > 32; offset >>= 1) {
       if (tiX < offset) {
-         itile[tiX] += itile[tiX+offset];
+         itile[tiX].s01 += itile[tiX+offset].s01;
       }
       barrier(CLK_LOCAL_MEM_FENCE);
    }
 
    //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
-   if (tiX < 32)
-   {  itile[tiX] += itile[tiX+32];
+   if (tiX < 32) {
+      itile[tiX].s01 += itile[tiX+32].s01;
       barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+16];
+      itile[tiX].s01 += itile[tiX+16].s01;
       barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+8];
+      itile[tiX].s01 += itile[tiX+8].s01;
       barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+4];
+      itile[tiX].s01 += itile[tiX+4].s01;
       barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+2];
+      itile[tiX].s01 += itile[tiX+2].s01;
       barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+1]; }
+      itile[tiX].s01 += itile[tiX+1].s01;
+   }
 
    if (tiX == 0) {
-     ioffset[gID] = itile[0];
-     (*result) = itile[0];
+     redscratch[gID].s01 = itile[0].s01;
+     if (gID == num_groups-1){
+        ioffset[gID] = (ncells - (num_groups-1)*ntX)  + itile[0].s0 - itile[0].s1;
+     } else {
+        ioffset[gID] = ntX + itile[0].s0 - itile[0].s1;
+     }
+     result[0] = itile[0].s01;
    }
 }
 
