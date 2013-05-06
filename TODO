@@ -4,23 +4,20 @@
 
 ADD COMMENTS TO ALL THE CODE!!!
 
-Fix mpi neighbors calc
-Add coarsening to the grid
-Fix boundary conditions
-Add load balance coding
+add parser
+add more unit checks
 
 Run valgrind to find sources of memory errors
 
 Profile code
 
-// Keyboard commands to add to exa
+// Keyboard commands to add to CLAMR
 Pause function
 
 Possible work tasks:
    Symmetry checks
    Alternative to current hash key
    Putting kD Tree on the GPU
-   Adding pseudo-Z-order insertion
    Add hash circle function
 
 Command line options

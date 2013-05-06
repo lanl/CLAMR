@@ -1971,7 +1971,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                if(mpot_old[nl] > 0) ll++;
    
                if(ll - lev > 1) {
-                  mpot[ic]++;
+                  mpot[ic]=1;
                   newcount++;
                   continue;
                }
@@ -1984,7 +1984,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                      if(mpot_old[nlt] > 0) llt++;
 
                      if(llt - lev > 1) {
-                        mpot[ic]++;
+                        mpot[ic]=1;
                         newcount++;
                         continue;
                      }
@@ -1998,7 +1998,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                if(mpot_old[nr] > 0) lr++;
    
                if(lr - lev > 1) {
-                  mpot[ic]++;
+                  mpot[ic]=1;
                   newcount++;
                   continue;
                }
@@ -2011,7 +2011,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                      if(mpot_old[nrt] > 0) lrt++;
 
                      if(lrt - lev > 1) {
-                        mpot[ic]++;
+                        mpot[ic]=1;
                         newcount++;
                         continue;
                      }
@@ -2025,7 +2025,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                if(mpot_old[nt] > 0) lt++;
    
                if(lt - lev > 1) {
-                  mpot[ic]++;
+                  mpot[ic]=1;
                   newcount++;
                   continue;
                }
@@ -2038,7 +2038,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                      if(mpot_old[ntr] > 0) ltr++;
 
                      if(ltr - lev > 1) {
-                        mpot[ic]++;
+                        mpot[ic]=1;
                         newcount++;
                         continue;
                      }
@@ -2052,7 +2052,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                if(mpot_old[nb] > 0) lb++;
    
                if(lb - lev > 1) {
-                  mpot[ic]++;
+                  mpot[ic]=1;
                   newcount++;
                   continue;
                }
@@ -2065,7 +2065,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                      if(mpot_old[nbr] > 0) lbr++;
 
                      if(lbr - lev > 1) {
-                        mpot[ic]++;
+                        mpot[ic]=1;
                         newcount++;
                         continue;
                      }
@@ -2083,7 +2083,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
          }
 #endif
 
-//         printf("%d: newcount is %d levmx %d\n",levcount,newcount,levmx);
+      //printf("%d: newcount is %d newcount_global %d levmx %d\n",levcount,newcount,newcount_global,levmx);
       //} while (newcount > 0 && levcount < 10);
       } while (newcount_global > 0 && levcount < levmx);
    }
@@ -2238,7 +2238,6 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
-
 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -2437,6 +2436,8 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
       icount = my_result[0];
       jcount = my_result[1];
 
+      icount_global = icount;
+      jcount_global = jcount;
 #ifdef HAVE_MPI
       if (parallel) {
          int count[2], count_global[2];
@@ -2456,16 +2457,6 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
       ezcl_device_memory_delete(dev_result);
       ezcl_device_memory_delete(dev_redscratch);
 
-/*
-      ezcl_device_memory_delete(dev_nlft);
-      ezcl_device_memory_delete(dev_nrht);
-      ezcl_device_memory_delete(dev_nbot);
-      ezcl_device_memory_delete(dev_ntop);
-      dev_nlft = NULL;
-      dev_nrht = NULL;
-      dev_nbot = NULL;
-      dev_ntop = NULL;
-*/
    } else {
       ezcl_device_memory_delete(dev_mpot);
       dev_mpot = NULL;
@@ -2820,7 +2811,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    int global_icount = icount;
    int global_jcount = jcount;
 #ifdef HAVE_MPI
-   int global_add_ncells = add_ncells;
    if (parallel) {
       int count[2], global_count[2];
       count[0] = icount;
@@ -2828,7 +2818,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       MPI_Allreduce(&count, &global_count, 2, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       global_icount = global_count[0];
       global_jcount = global_count[1];
-      global_add_ncells = global_icount + global_jcount;
    }  
 #endif
    if (global_icount == 0 && global_jcount == 0) {
@@ -4090,8 +4079,13 @@ void Mesh::calc_neighbors(void)
          for (int jj = jmaxsize-1; jj>=0; jj--){
             printf("%4d:",jj);
             for (int ii = 0; ii<imaxsize; ii++){
+#if HASH_SETUP_OPT_LEVEL <=3
                if (hash[jj][ii] >= 0) {
                   printf("%5d",nlft[hash[jj][ii]]);
+#elif HASH_SETUP_OPT_LEVEL == 4
+               if (read_hash(jj*imaxsize+ii,hash) >= 0) {
+                  printf("%5d",nlft[read_hash(jj*imaxsize+ii,hash)]);
+#endif
                } else {
                   printf("     ");
                }

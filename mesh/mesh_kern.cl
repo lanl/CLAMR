@@ -3224,7 +3224,7 @@ __kernel void refine_smooth_cl(
          if(mpot_old[nl] > 0) ll++;
    
          if(ll - lev > 1) {
-            mpot[ic]++;
+            mpot[ic]=1;
             new_count++;
             lev = levmx;
          }
@@ -3237,7 +3237,7 @@ __kernel void refine_smooth_cl(
                if(mpot_old[nlt] > 0) llt++;
 
                if(llt - lev > 1) {
-                  mpot[ic]++;
+                  mpot[ic]=1;
                   new_count++;
                   lev = levmx;
                }
@@ -3251,7 +3251,7 @@ __kernel void refine_smooth_cl(
          if(mpot_old[nr] > 0) lr++;
    
          if(lr - lev > 1) {
-            mpot[ic]++;
+            mpot[ic]=1;
             new_count++;
             lev = levmx;
          }
@@ -3264,7 +3264,7 @@ __kernel void refine_smooth_cl(
                if(mpot_old[nrt] > 0) lrt++;
 
                if(lrt - lev > 1) {
-                  mpot[ic]++;
+                  mpot[ic]=1;
                   new_count++;
                   lev = levmx;
                }
@@ -3278,7 +3278,7 @@ __kernel void refine_smooth_cl(
          if(mpot_old[nt] > 0) lt++;
    
          if(lt - lev > 1) {
-            mpot[ic]++;
+            mpot[ic]=1;
             new_count++;
             lev = levmx;
          }
@@ -3291,7 +3291,7 @@ __kernel void refine_smooth_cl(
                if(mpot_old[ntr] > 0) ltr++;
 
                if(ltr - lev > 1) {
-                  mpot[ic]++;
+                  mpot[ic]=1;
                   new_count++;
                   lev = levmx;
                }
@@ -3305,7 +3305,7 @@ __kernel void refine_smooth_cl(
          if(mpot_old[nb] > 0) lb++;
    
          if(lb - lev > 1) {
-            mpot[ic]++;
+            mpot[ic]=1;
             new_count++;
             lev = levmx;
          }
@@ -3318,7 +3318,7 @@ __kernel void refine_smooth_cl(
                if(mpot_old[nbr] > 0) lbr++;
 
                if(lbr - lev > 1) {
-                  mpot[ic]++;
+                  mpot[ic]=1;
                   new_count++;
                   lev = levmx;
                }
