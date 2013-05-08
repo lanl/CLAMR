@@ -383,7 +383,6 @@ static double  simTime = 0.0;
 
 extern "C" void do_calc(void)
 {
-
    double sigma = 0.95; 
    //int icount=0;
 
@@ -395,6 +394,21 @@ extern "C" void do_calc(void)
    //  Initialize state variables for GPU calculation.
    int &mype  = mesh->mype;
    int &numpe = mesh->numpe;
+
+#ifdef HAVE_GRAPHICS
+   struct timeval tstart_cpu;
+
+   vector<int>   &nsizes   = mesh->nsizes;
+   vector<int>   &ndispl   = mesh->ndispl;
+
+   vector<real>  &x  = mesh->x;
+   vector<real>  &dx = mesh->dx;
+   vector<real>  &y  = mesh->y;
+   vector<real>  &dy = mesh->dy;
+
+   cl_mem &dev_H  = state->dev_H;
+
+#endif
 
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh->ncells_global;
