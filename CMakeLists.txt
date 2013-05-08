@@ -30,6 +30,9 @@ endif (OPENCL_FOUND)
 find_package(MPI REQUIRED)
 if (MPI_FOUND)
    include_directories(${MPI_INCLUDE_PATH})
+   if ( MPI_LIBRARIES MATCHES "1.6.3-gcc-4.7" )
+      set (MPI_LIBRARIES ${MPI_LIBRARIES} -Wl,-rpath -Wl,/usr/projects/hpcsoft/moonlight/openmpi/1.6.3-gcc-4.7/lib)
+   endif ( MPI_LIBRARIES MATCHES "1.6.3-gcc-4.7" )
 endif (MPI_FOUND)
 
 if (NOT GRAPHICS_TYPE)
@@ -132,6 +135,7 @@ target_link_libraries(clamr ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr ${MPI_LIBRARIES})
 target_link_libraries(clamr ${OPENCL_LIBRARIES})
 target_link_libraries(clamr ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+#target_link_libraries(clamr -Wl,-rpath -Wl,/usr/projects/hpcsoft/moonlight/openmpi/1.6.3-gcc-4.7/lib)
 add_dependencies(clamr state_kernel_source)
 
 install(TARGETS clamr DESTINATION bin)
@@ -185,6 +189,7 @@ target_link_libraries(clamr_mpionly pmesh hsfc kdtree zorder s7 timer memstats l
 target_link_libraries(clamr_mpionly ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_mpionly ${MPI_LIBRARIES})
 target_link_libraries(clamr_mpionly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+#target_link_libraries(clamr_mpionly -Wl,-rpath -Wl,/usr/projects/hpcsoft/moonlight/openmpi/1.6.3-gcc-4.7/lib)
 
 install(TARGETS clamr_mpionly DESTINATION bin)
 
@@ -222,6 +227,7 @@ target_link_libraries(clamr_mpicheck pmesh hsfc kdtree zorder s7 timer memstats 
 target_link_libraries(clamr_mpicheck ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_mpicheck ${MPI_LIBRARIES})
 target_link_libraries(clamr_mpicheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+#target_link_libraries(clamr_mpicheck -Wl,-rpath -Wl,/usr/projects/hpcsoft/moonlight/openmpi/1.6.3-gcc-4.7/lib)
 
 install(TARGETS clamr_mpicheck DESTINATION bin)
 
@@ -241,6 +247,7 @@ target_link_libraries(clamr_checkall ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_checkall ${MPI_LIBRARIES})
 target_link_libraries(clamr_checkall ${OPENCL_LIBRARIES})
 target_link_libraries(clamr_checkall ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+#target_link_libraries(clamr_checkall -Wl,-rpath -Wl,/usr/projects/hpcsoft/moonlight/openmpi/1.6.3-gcc-4.7/lib)
 add_dependencies(clamr_checkall state_kernel_source)
 
 install(TARGETS clamr_checkall DESTINATION bin)

@@ -3446,14 +3446,13 @@ __kernel void coarsen_check_block_cl(
    if(giX >= ncells)
       return;
 
-   int ival    = i[giX];
-   int jval    = j[giX];
-   int lev     = level[giX];
    int mpotval = mpot_old[giX];
 
-   int n1, n2, n3;
-
    if (mpotval < 0) {
+      int n1, n2, n3;
+      int ival = i[giX];
+      int jval = j[giX];
+      int lev  = level[giX];
       if ( is_upper_right(ival,jval) ) {
          n1 = nbot[giX];
          n2 = nlft[giX];
@@ -3471,28 +3470,30 @@ __kernel void coarsen_check_block_cl(
          n2 = nrht[giX];
          n3 = nrht[n1];
       }
-      int lev1 = level[n1];
-      int lev2 = level[n2];
-      int lev3 = level[n3];
-      if (mpot_old[n1] > 0) lev1++;
-      if (mpot_old[n2] > 0) lev2++;
-      if (mpot_old[n3] > 0) lev3++;
-
-      if (mpot_old[n1] != -1 || lev1 != lev ||
-          mpot_old[n2] != -1 || lev2 != lev ||
-          mpot_old[n3] != -1 || lev3 != lev) {
+      if (n1 < 0 || n2 < 0 || n3 < 0) {
          mpotval = 0;
-      }
-   }
-
-   if (mpotval < 0){
-      int ival = i[giX];
-      int jval = j[giX];
-      int ctype = celltype[giX];
-      if (ctype == REAL_CELL) {
-         if (! is_lower_left(ival,jval) ) itile[tiX] = 1;
       } else {
-         if (! is_upper_right(ival,jval) || is_lower_left(ival,jval) ) itile[tiX] = 1;
+         int lev1 = level[n1];
+         int lev2 = level[n2];
+         int lev3 = level[n3];
+         if (mpot_old[n1] > 0) lev1++;
+         if (mpot_old[n2] > 0) lev2++;
+         if (mpot_old[n3] > 0) lev3++;
+
+         if (mpot_old[n1] != -1 || lev1 != lev ||
+             mpot_old[n2] != -1 || lev2 != lev ||
+             mpot_old[n3] != -1 || lev3 != lev) {
+            mpotval = 0;
+         }
+      }
+
+      if (mpotval < 0) {
+         int ctype = celltype[giX];
+         if (ctype == REAL_CELL) {
+            if (! is_lower_left(ival,jval) ) itile[tiX] = 1;
+         } else {
+            if (! is_upper_right(ival,jval) || is_lower_left(ival,jval) ) itile[tiX] = 1;
+         }
       }
    }
 
@@ -3526,7 +3527,6 @@ __kernel void coarsen_check_block_cl(
      redscratch[group_id] = itile[0];
      result[0] = itile[0];
    }
-
 }
 
 __kernel void rezone_all_cl(

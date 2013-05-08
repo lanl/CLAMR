@@ -2165,17 +2165,21 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
          n2 = nrht[ic];
          n3 = nrht[n1];
       }
-      int lev1 = level[n1];
-      int lev2 = level[n2];
-      int lev3 = level[n3];
-      if (mpot_old[n1] > 0) lev1++;
-      if (mpot_old[n2] > 0) lev2++;
-      if (mpot_old[n3] > 0) lev3++;
-
-      if (mpot_old[n1] != -1 || lev1 != level[ic] ||
-          mpot_old[n2] != -1 || lev2 != level[ic] ||
-          mpot_old[n3] != -1 || lev3 != level[ic]) {
+      if (n1 < 0 || n2 < 0 || n3 < 0) {
          mpot[ic] = 0;
+      } else {
+         int lev1 = level[n1];
+         int lev2 = level[n2];
+         int lev3 = level[n3];
+         if (mpot_old[n1] > 0) lev1++;
+         if (mpot_old[n2] > 0) lev2++;
+         if (mpot_old[n3] > 0) lev3++;
+
+         if (mpot_old[n1] != -1 || lev1 != level[ic] ||
+             mpot_old[n2] != -1 || lev2 != level[ic] ||
+             mpot_old[n3] != -1 || lev3 != level[ic]) {
+            mpot[ic] = 0;
+         }
       }
    }
 
@@ -2597,7 +2601,7 @@ void Mesh::gpu_rezone_count(size_t block_size, size_t local_work_size, cl_mem de
    ezcl_set_kernel_arg(kernel_reduction_count, 0, sizeof(cl_int),  (void *)&block_size);
    ezcl_set_kernel_arg(kernel_reduction_count, 1, sizeof(cl_mem),  (void *)&dev_redscratch);
    ezcl_set_kernel_arg(kernel_reduction_count, 2, sizeof(cl_mem),  (void *)&dev_result);
-   ezcl_set_kernel_arg(kernel_reduction_count, 3, local_work_size*sizeof(cl_int2),    NULL);
+   ezcl_set_kernel_arg(kernel_reduction_count, 3, local_work_size*sizeof(cl_int),    NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduction_count, 1, NULL, &local_work_size, &local_work_size, NULL);
 }
