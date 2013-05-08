@@ -3470,7 +3470,7 @@ __kernel void coarsen_check_block_cl(
          n2 = nrht[giX];
          n3 = nrht[n1];
       }
-      if (n1 < 0 || n2 < 0 || n3 < 0) {
+      if (n3 < 0) {
          mpotval = 0;
       } else {
          int lev1 = level[n1];

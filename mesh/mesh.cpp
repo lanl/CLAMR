@@ -2165,7 +2165,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
          n2 = nrht[ic];
          n3 = nrht[n1];
       }
-      if (n1 < 0 || n2 < 0 || n3 < 0) {
+      if (n3 < 0) {
          mpot[ic] = 0;
       } else {
          int lev1 = level[n1];
