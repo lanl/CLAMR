@@ -191,7 +191,7 @@ int L7_Update(
       
       ierr = MPI_Irecv (&pc[offset], msg_bytes, MPI_BYTE,
             l7_id_db->recv_from[i], l7_id_db->this_tag_update,
-            l7_id_db->mpi_comm_l7, &l7_id_db->mpi_request[num_outstanding_reqs++] );
+            MPI_COMM_WORLD, &l7_id_db->mpi_request[num_outstanding_reqs++] );
       L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Irecv failure", ierr);
       
       offset += l7_id_db->recv_counts[i]*sizeof_type;
@@ -232,7 +232,7 @@ int L7_Update(
             
             ierr = MPI_Isend(&pintsend_buffer[start_index], msg_bytes, MPI_BYTE,
                   l7_id_db->send_to[i], l7_id_db->this_tag_update,
-                  l7_id_db->mpi_comm_l7, &l7_id_db->mpi_request[num_outstanding_reqs++] );
+                  MPI_COMM_WORLD, &l7_id_db->mpi_request[num_outstanding_reqs++] );
             L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Isend failure", ierr);
             
             start_index += send_count;
@@ -266,7 +266,7 @@ int L7_Update(
             
             ierr = MPI_Isend(&plongsend_buffer[start_index], msg_bytes, MPI_BYTE,
                   l7_id_db->send_to[i], l7_id_db->this_tag_update,
-                  l7_id_db->mpi_comm_l7, &l7_id_db->mpi_request[num_outstanding_reqs++] );
+                  MPI_COMM_WORLD, &l7_id_db->mpi_request[num_outstanding_reqs++] );
             L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Isend failure", ierr);
             
             start_index += send_count;
@@ -300,7 +300,7 @@ int L7_Update(
             
             ierr = MPI_Isend(&pfloatsend_buffer[start_index], msg_bytes, MPI_BYTE,
                   l7_id_db->send_to[i], l7_id_db->this_tag_update,
-                  l7_id_db->mpi_comm_l7, &l7_id_db->mpi_request[num_outstanding_reqs++] );
+                  MPI_COMM_WORLD, &l7_id_db->mpi_request[num_outstanding_reqs++] );
             L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Isend failure", ierr);
             
             start_index += send_count;
@@ -334,7 +334,7 @@ int L7_Update(
             
             ierr = MPI_Isend(&pdoublesend_buffer[start_index], msg_bytes, MPI_BYTE,
                   l7_id_db->send_to[i], l7_id_db->this_tag_update,
-                  l7_id_db->mpi_comm_l7, &l7_id_db->mpi_request[num_outstanding_reqs++] );
+                  MPI_COMM_WORLD, &l7_id_db->mpi_request[num_outstanding_reqs++] );
             L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Isend failure", ierr);
             
             start_index += send_count;
@@ -353,7 +353,7 @@ int L7_Update(
 #if defined _L7_DEBUG
    fflush(stdout);
    
-   ierr = MPI_Barrier(l7_id_db->mpi_comm_l7);
+   ierr = MPI_Barrier(MPI_COMM_WORLD);
    L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Barrier failure", ierr);
    
    for (i=0; i<l7_id_db->numpes; i++){

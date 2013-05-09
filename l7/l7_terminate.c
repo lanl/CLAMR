@@ -82,7 +82,7 @@ int L7_Terminate (void)
 	MPI_Initialized ( &flag  );
 	if ( flag )
 	{
-		ierr = MPI_Comm_rank ( L7_mpi_comm_world_i4, &l7.penum );
+		ierr = MPI_Comm_rank ( MPI_COMM_WORLD, &l7.penum );
 		L7_ASSERT( ierr == MPI_SUCCESS, "MPI_Comm_rank error", ierr );
 	}
 	else{

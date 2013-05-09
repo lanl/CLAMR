@@ -118,15 +118,10 @@ int L7_Init (
     }
       
     if (*numpes != -1) {
-       L7_mpi_comm_world_i4 = MPI_COMM_WORLD;
-          
-       ierr = MPI_Comm_dup (L7_mpi_comm_world_i4, &l7.mpi_comm );
-        L7_ASSERT( ierr == MPI_SUCCESS, "MPI_Comm_dup", ierr );
-          
-        ierr = MPI_Comm_rank (l7.mpi_comm, &l7.penum );
+        ierr = MPI_Comm_rank (MPI_COMM_WORLD, &l7.penum );
         L7_ASSERT( ierr == MPI_SUCCESS, "MPI_Comm_rank", ierr );
 
-        ierr = MPI_Comm_size (l7.mpi_comm, &l7.numpes );
+        ierr = MPI_Comm_size (MPI_COMM_WORLD, &l7.numpes );
         L7_ASSERT( ierr == MPI_SUCCESS, "MPI_Comm_size", ierr );
         *mype = l7.penum;
         *numpes = l7.numpes;

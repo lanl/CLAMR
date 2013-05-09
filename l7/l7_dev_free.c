@@ -81,7 +81,7 @@ int L7_Dev_Free(
       return(0);
    }
    
-   ierr = MPI_Comm_rank(l7.mpi_comm, &l7.penum);
+   ierr = MPI_Comm_rank(MPI_COMM_WORLD, &l7.penum);
    L7_ASSERT( ierr == MPI_SUCCESS, "MPI_Comm_rank error", ierr);
  
    if (l7.initialized != 1){

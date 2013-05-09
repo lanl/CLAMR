@@ -93,7 +93,7 @@ int L7_Broadcast (
 		
 		local_count = count;
 		ierr = MPI_Bcast(data_buffer, local_count, mpi_type, root_pe,
-				l7.mpi_comm);
+				MPI_COMM_WORLD);
 		
 		if (ierr != L7_OK){
 			ierr = -3;

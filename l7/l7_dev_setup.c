@@ -50,7 +50,6 @@ int L7_Dev_Setup(
 		const int      num_indices_owned,
 		int            *indices_needed,
 		const int      num_indices_needed,
-		//const MPI_Comm *mpi_comm_user,
 		int            *l7_id
 		)
 {
@@ -89,10 +88,6 @@ int L7_Dev_Setup(
 	 * num_indices_needed   (input) const L7_INT
 	 *                      Number of indices of interest listed
 	 *                      in array 'num_indices_needed'.
-	 * 
-	 * mpi_comm_user        (input) const MPI_Comm*
-	 *                      MPI communicator. L7 duplicates this
-	 *                      communicator for internal use.
 	 * 
 	 * l7_id                (input/output) int*
 	 *                      Handle to database to be setup.
@@ -156,9 +151,6 @@ int L7_Dev_Setup(
 	l7_id_database
 	  *l7_id_db;
 	
-	MPI_Comm
-	  mpi_comm;                    /* Alias for l7_id_db->mpi_comm_l7        */
-	
 	MPI_Request
 	  *mpi_request;                /* Local alias for l7_id_db->mpi_request. */
 	
@@ -220,13 +212,6 @@ int L7_Dev_Setup(
 				ierr);
 	}
 
-//	if (*mpi_comm_user == MPI_COMM_NULL){
-//		ierr = -1;
-//		L7_ASSERT( *mpi_comm_user != MPI_COMM_NULL,
-//				"mpi_comm_user == MPI_COMM_NULL",
-//				ierr);
-//	}
-	
 	/*
 	 * Setup database structure.
 	 */
@@ -353,29 +338,16 @@ int L7_Dev_Setup(
     
 	l7_id_db->num_indices_needed = num_indices_needed;
 
-//	ierr = MPI_Comm_dup(MPI_Comm_f2c ( (MPI_Fint)(*mpi_comm_user) ),
-//			&l7_id_db->mpi_comm_l7 );
-   ierr = MPI_Comm_dup (L7_mpi_comm_world_i4, &l7_id_db->mpi_comm_l7 );
-	
-	L7_ASSERT( ierr == MPI_SUCCESS, "MPI_Comm_dup", ierr);
-	
-	if (l7_id_db-> mpi_comm_l7 == MPI_COMM_NULL){
-		ierr = -1;
-		L7_ASSERT( l7_id_db->mpi_comm_l7 != MPI_COMM_NULL,
-				"Input MPI communicator is null (MPI_COMM_NULL)", ierr);
-	}
-	
-	ierr = MPI_Comm_rank (l7_id_db->mpi_comm_l7, &l7_id_db->penum );
+	ierr = MPI_Comm_rank (MPI_COMM_WORLD, &l7_id_db->penum );
 	L7_ASSERT( ierr == MPI_SUCCESS, "MPI_Comm_rank", ierr);
 	
-	ierr = MPI_Comm_size (l7_id_db->mpi_comm_l7, &l7_id_db->numpes );
+	ierr = MPI_Comm_size (MPI_COMM_WORLD, &l7_id_db->numpes );
 	L7_ASSERT( ierr == MPI_SUCCESS, "MPI_Comm_size", ierr);
 	
 	l7.penum = l7_id_db->penum;
 	
 	/* Local shorthand */
 	
-	mpi_comm = l7_id_db->mpi_comm_l7;
 	numpes   = l7_id_db->numpes;
 	penum    = l7_id_db->penum;
 	
@@ -405,7 +377,7 @@ int L7_Dev_Setup(
 	
    ierr = MPI_Allgather( &(l7_id_db->num_indices_owned), 1, MPI_INT,
 			&(l7_id_db->starting_indices[1]), 1, MPI_INT,
-			mpi_comm);
+			MPI_COMM_WORLD);
 	L7_ASSERT( ierr == MPI_SUCCESS, "MPI_Allgather (num_indices_owned)",
 			ierr);
 	
@@ -585,7 +557,7 @@ int L7_Dev_Setup(
 	for (i=0; i<l7_id_db->num_recvs; i++)
 	   pi4_in[l7_id_db->recv_from[i]] = 1;
 	
-	ierr = MPI_Allreduce(pi4_in, pi4_out, numpes, MPI_INT, MPI_SUM, mpi_comm);
+	ierr = MPI_Allreduce(pi4_in, pi4_out, numpes, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 	
 	L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Allreduce ( l7_id_db->recv_from )", ierr);
 	
@@ -651,7 +623,7 @@ int L7_Dev_Setup(
 	   
 	   ierr = MPI_Isend(&l7_id_db->recv_counts[i], 1, MPI_INT,
 	         l7_id_db->recv_from[i], L7_SETUP_SEND_COUNT_TAG,
-	         mpi_comm, &mpi_request[num_outstanding_requests++] );
+	         MPI_COMM_WORLD, &mpi_request[num_outstanding_requests++] );
 	   L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Isend (recv_counts[i] )",
 	         ierr);
 	}
@@ -690,7 +662,7 @@ int L7_Dev_Setup(
 	
 	for (i=0; i<l7_id_db->num_sends; i++){
 	   ierr = MPI_Irecv(&l7_id_db->send_counts[i], 1, MPI_INT,
-	         MPI_ANY_SOURCE, L7_SETUP_SEND_COUNT_TAG, mpi_comm,
+	         MPI_ANY_SOURCE, L7_SETUP_SEND_COUNT_TAG, MPI_COMM_WORLD,
 	         &mpi_request[num_outstanding_requests++] );
 	   L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Irecv ( indices_needed[i] )", ierr);
 	}
@@ -764,7 +736,7 @@ int L7_Dev_Setup(
 	   ierr = MPI_Isend(&l7_id_db->indices_needed[offset],
 	         l7_id_db->recv_counts[i], MPI_INT,
 	         l7_id_db->recv_from[i], L7_SETUP_INDICES_NEEDED_TAG,
-	         mpi_comm, &mpi_request[num_outstanding_requests++] );
+	         MPI_COMM_WORLD, &mpi_request[num_outstanding_requests++] );
 	   L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Isend ( indices_needed[i] )", ierr);
 	   
 	   offset+=l7_id_db->recv_counts[i];
@@ -780,7 +752,7 @@ int L7_Dev_Setup(
 	   ierr = MPI_Irecv(&l7_id_db->indices_global_to_send[offset],
 	         l7_id_db->send_counts[i], MPI_INT,
 	         l7_id_db->send_to[i], L7_SETUP_INDICES_NEEDED_TAG,
-	         mpi_comm, &mpi_request[num_outstanding_requests++] );
+	         MPI_COMM_WORLD, &mpi_request[num_outstanding_requests++] );
 	   L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Irecv ( indices_global_to_send )", ierr);
 	   
 	   offset += l7_id_db->send_counts[i];
@@ -797,7 +769,7 @@ int L7_Dev_Setup(
 	
 #if defined _L7_DEBUG
 	
-	ierr = MPI_Barrier(mpi_comm);
+	ierr = MPI_Barrier(MPI_COMM_WORLD);
 	offset = 0;
 	
 	for (j=0; j<numpes; j++){
@@ -832,19 +804,19 @@ int L7_Dev_Setup(
 	
 #if defined _L7_DEBUG
 	
-	ierr = MPI_Barrier(mpi_comm);
+	ierr = MPI_Barrier(MPI_COMM_WORLD);
 	
 	for (i=0; i<numpes; i++){
 	   if (penum == i){
 	      for (j=0; j<l7_id_db->num_sends; j++){
 	         printf("[pe %d] send %d indices to pe %d \n", penum,
 	               l7_id_db->send_counts[j], l7_id_db->send_to[] );
-	         ierr = MPI_Barrier(mpi_comm);
+	         ierr = MPI_Barrier(MPI_COMM_WORLD);
 	      }
 	   }
 	}
 	flush(stdout);
-	ierr = MPI_Barrier(mpi_comm);
+	ierr = MPI_Barrier(MPI_COMM_WORLD);
 	L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Barrier failure", ierr);
 	
 	for (i=0; i<numpes; i++){
@@ -956,7 +928,6 @@ void L7_DEV_SETUP(
         const int       *num_indices_owned,
         int             *indices_needed,
         const int       *num_indices_needed,
-        //const MPI_Comm  *mpi_comm_user,
         int             *l7_id
         )
 {

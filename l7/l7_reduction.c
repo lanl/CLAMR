@@ -32,7 +32,7 @@ void L7_Sum(
 		}
 		if (l7.initialized_mpi){
 			MPI_Allreduce(&local_sum_int, output, 1, MPI_INT, MPI_SUM,
-					l7.mpi_comm);
+					MPI_COMM_WORLD);
 		}
 		else{
 			*((int *)output) = local_sum_int;
@@ -45,7 +45,7 @@ void L7_Sum(
       }
       if (l7.initialized_mpi){
          MPI_Allreduce(&local_sum_long, output, 1, MPI_LONG,
-               MPI_SUM, l7.mpi_comm);
+               MPI_SUM, MPI_COMM_WORLD);
       }
       else{
          *((long *)output) = local_sum_long;
@@ -59,7 +59,7 @@ void L7_Sum(
 		}
 		if (l7.initialized_mpi){
 			MPI_Allreduce(&local_sum_long_long, output, 1, MPI_LONG_LONG_INT,
-					MPI_SUM, l7.mpi_comm);
+					MPI_SUM, MPI_COMM_WORLD);
 		}
 		else{
 			*((long long *)output) = local_sum_long_long;
@@ -73,7 +73,7 @@ void L7_Sum(
 		}
 		if (l7.initialized_mpi){
 			MPI_Allreduce(&local_sum_double, &out_double, 1, MPI_DOUBLE_PRECISION,
-					MPI_SUM, l7.mpi_comm);
+					MPI_SUM, MPI_COMM_WORLD);
 			*((float*)output) = (float)out_double;
 		}
 		else{
@@ -88,7 +88,7 @@ void L7_Sum(
 		}
 		if (l7.initialized_mpi){
 			MPI_Allreduce(&local_sum_double, output, 1, MPI_DOUBLE_PRECISION,
-					MPI_SUM, l7.mpi_comm);
+					MPI_SUM, MPI_COMM_WORLD);
 		}
 		else{
 			*((double*)output) = local_sum_double;
@@ -177,7 +177,7 @@ int L7_Max(
 		}
 		if (l7.initialized_mpi){
 			MPI_Allreduce(&local_max_int, output, 1, MPI_INT, MPI_MAX,
-					l7.mpi_comm);
+					MPI_COMM_WORLD);
 		}
 		else{
 			*((int *)output) = local_max_int;
@@ -192,7 +192,7 @@ int L7_Max(
       }
       if (l7.initialized_mpi){
          MPI_Allreduce(&local_max_long, output, 1, MPI_LONG,
-               MPI_MAX, l7.mpi_comm);
+               MPI_MAX, MPI_COMM_WORLD);
       }
       else{
          *((long *)output) = local_max_long;
@@ -208,7 +208,7 @@ int L7_Max(
 		}
 		if (l7.initialized_mpi){
 			MPI_Allreduce(&local_max_long_long, output, 1, MPI_LONG_LONG_INT,
-					MPI_MAX, l7.mpi_comm);
+					MPI_MAX, MPI_COMM_WORLD);
 		}
 		else{
 			*((long long *)output) = local_max_long_long;
@@ -224,7 +224,7 @@ int L7_Max(
 		}
 		if (l7.initialized_mpi){
 			MPI_Allreduce(&local_max_double, &out_double, 1, MPI_DOUBLE_PRECISION,
-					MPI_MAX, l7.mpi_comm);
+					MPI_MAX, MPI_COMM_WORLD);
          *((float*)output) = (float)out_double;
 		}
 		else{
@@ -241,7 +241,7 @@ int L7_Max(
 		}
 		if (l7.initialized_mpi){
 			MPI_Allreduce(&local_max_double, output, 1, MPI_DOUBLE_PRECISION,
-					MPI_MAX, l7.mpi_comm);
+					MPI_MAX, MPI_COMM_WORLD);
 		}
 		else{
 			*((double*)output) = local_max_double;
@@ -351,7 +351,7 @@ int L7_Min(
       }
       if (l7.initialized_mpi){
          MPI_Allreduce(&local_min_int, output, 1, MPI_INT, MPI_MIN,
-               l7.mpi_comm);
+               MPI_COMM_WORLD);
       }
       else{
          *((int *)output) = local_min_int;
@@ -366,7 +366,7 @@ int L7_Min(
       }
       if (l7.initialized_mpi){
          MPI_Allreduce(&local_min_long, output, 1, MPI_LONG,
-               MPI_MIN, l7.mpi_comm);
+               MPI_MIN, MPI_COMM_WORLD);
       }
       else{
          *((long *)output) = local_min_long;
@@ -382,7 +382,7 @@ int L7_Min(
       }
       if (l7.initialized_mpi){
          MPI_Allreduce(&local_min_long_long, output, 1, MPI_LONG_LONG_INT,
-               MPI_MIN, l7.mpi_comm);
+               MPI_MIN, MPI_COMM_WORLD);
       }
       else{
          *((long long *)output) = local_min_long_long;
@@ -398,7 +398,7 @@ int L7_Min(
       }
       if (l7.initialized_mpi){
          MPI_Allreduce(&local_min_double, &out_double, 1, MPI_DOUBLE_PRECISION,
-               MPI_MIN, l7.mpi_comm);
+               MPI_MIN, MPI_COMM_WORLD);
          *((float*)output) = (float)out_double;
       }
       else{
@@ -415,7 +415,7 @@ int L7_Min(
       }
       if (l7.initialized_mpi){
          MPI_Allreduce(&local_min_double, output, 1, MPI_DOUBLE_PRECISION,
-               MPI_MIN, l7.mpi_comm);
+               MPI_MIN, MPI_COMM_WORLD);
       }
       else{
          *((double*)output) = local_min_double;
@@ -522,7 +522,7 @@ int L7_Any(
 		}
 		if (l7.initialized_mpi){
 			MPI_Allreduce(&local_any_int, output, 1, MPI_INT, MPI_SUM,
-					l7.mpi_comm);
+					MPI_COMM_WORLD);
 			if (*((int*)output)){
 				if (*((int *)output) < 0){
 					*((int *)output) = -1;
@@ -545,7 +545,7 @@ int L7_Any(
       }
       if (l7.initialized_mpi){
          MPI_Allreduce(&local_any_long, output, 1, MPI_LONG, MPI_SUM,
-               l7.mpi_comm);
+               MPI_COMM_WORLD);
          if (*((long*)output)){
             if (*((long *)output) < 0){
                *((long *)output) = -1;
@@ -568,7 +568,7 @@ int L7_Any(
 		}
 		if (l7.initialized_mpi){
 			MPI_Allreduce(&local_any_long_long, output, 1, MPI_LONG_LONG_INT, MPI_SUM,
-					l7.mpi_comm);
+					MPI_COMM_WORLD);
 			if (*((long long*)output)){
 				if (*((long long *)output) < 0){
 					*((long long *)output) = -1;
@@ -663,7 +663,7 @@ int L7_All(
 		}
 		if (l7.initialized_mpi){
 			MPI_Allreduce(&local_all_int, output, 1, MPI_INT, MPI_LAND,
-					l7.mpi_comm);
+					MPI_COMM_WORLD);
 			if (*((int *)output)){
 				*((int *)output) = sign;
 			}
@@ -682,7 +682,7 @@ int L7_All(
       }
       if (l7.initialized_mpi){
          MPI_Allreduce(&local_all_long, output, 1, MPI_LONG, MPI_LAND,
-               l7.mpi_comm);
+               MPI_COMM_WORLD);
          if (*((long *)output)){
             *((long *)output) = sign_long;
          }
@@ -701,7 +701,7 @@ int L7_All(
 		}
 		if (l7.initialized_mpi){
 			MPI_Allreduce(&local_all_long_long, output, 1, MPI_LONG_LONG_INT, MPI_LAND,
-					l7.mpi_comm);
+					MPI_COMM_WORLD);
 			if (*((long long *)output)){
 				*((long long *)output) = sign_long_long;
 			}
@@ -792,7 +792,7 @@ int L7_Array_Sum(
 		if (l7.initialized_mpi){
 			mpi_type = l7p_mpi_type (l7_datatype);
 			MPI_Allreduce(input, output, count, mpi_type, MPI_SUM,
-					l7.mpi_comm);
+					MPI_COMM_WORLD);
 		}
 		break;
    default:
@@ -872,7 +872,7 @@ int L7_Array_Max(
 		if (l7.initialized_mpi){
 			mpi_type = l7p_mpi_type (l7_datatype);
 			MPI_Allreduce(input, output, count, mpi_type, MPI_MAX,
-					l7.mpi_comm);
+					MPI_COMM_WORLD);
 		}
 		break;
    default:
@@ -952,7 +952,7 @@ int L7_Array_Min(
 		if (l7.initialized_mpi){
 			mpi_type = l7p_mpi_type (l7_datatype);
 			MPI_Allreduce(input, output, count, mpi_type, MPI_MIN,
-					l7.mpi_comm);
+					MPI_COMM_WORLD);
 		}
 		break;
    default:
@@ -1065,7 +1065,7 @@ int L7_MaxLoc(
      counts = (int *)malloc(nprocs*sizeof(int));
      local_count[0] = count;
 	  MPI_Allgather(local_count, 1, MPI_INT, counts, 1, MPI_INT,
-			l7.mpi_comm);
+			MPI_COMM_WORLD);
 	  for (iprocs = 0; iprocs < mype; iprocs++){
 	    istart+=counts[iprocs];
 	  }
@@ -1089,7 +1089,7 @@ int L7_MaxLoc(
            in_int.value = int_cur_max;
            in_int.index = local_maxloc;
            MPI_Allreduce(&in_int, &out_int, 1, MPI_2INT,
-               MPI_MAXLOC, l7.mpi_comm);
+               MPI_MAXLOC, MPI_COMM_WORLD);
            *output = out_int.index;
          }
          else {
@@ -1111,7 +1111,7 @@ int L7_MaxLoc(
            in_long.value = long_cur_max;
            in_long.index = local_maxloc;
            MPI_Allreduce(&in_long, &out_long, 1, MPI_LONG_INT,
-               MPI_MAXLOC, l7.mpi_comm);
+               MPI_MAXLOC, MPI_COMM_WORLD);
            *output = out_long.index;
          }
          else {
@@ -1134,7 +1134,7 @@ int L7_MaxLoc(
            in_float.value = float_cur_max;
            in_float.index = local_maxloc;
            MPI_Allreduce(&in_float, &out_float, 1, MPI_FLOAT_INT,
-               MPI_MAXLOC, l7.mpi_comm);
+               MPI_MAXLOC, MPI_COMM_WORLD);
            *output = out_float.index;
          }
          else {
@@ -1157,7 +1157,7 @@ int L7_MaxLoc(
            in_double.value = real_cur_max;
 	   	  in_double.index = local_maxloc;
 		     MPI_Allreduce(&in_double, &out_double, 1, MPI_DOUBLE_INT,
-			   	MPI_MAXLOC, l7.mpi_comm);
+			   	MPI_MAXLOC, MPI_COMM_WORLD);
 	   	  *output = out_double.index;
          }
          else {
@@ -1298,7 +1298,7 @@ int L7_MinLoc(
      counts = (int *)malloc(nprocs*sizeof(int));
      local_count[0] = count;
      MPI_Allgather(local_count, 1, MPI_INT, counts, 1, MPI_INT,
-         l7.mpi_comm);
+         MPI_COMM_WORLD);
      for (iprocs = 0; iprocs < mype; iprocs++){
         istart+=counts[iprocs];
      }
@@ -1322,7 +1322,7 @@ int L7_MinLoc(
            in_int.value = int_cur_min;
            in_int.index = local_minloc;
            MPI_Allreduce(&in_int, &out_int, 1, MPI_2INT,
-               MPI_MINLOC, l7.mpi_comm);
+               MPI_MINLOC, MPI_COMM_WORLD);
            *output = out_int.index;
          }
          else {
@@ -1344,7 +1344,7 @@ int L7_MinLoc(
            in_long.value = long_cur_min;
            in_long.index = local_minloc;
            MPI_Allreduce(&in_long, &out_long, 1, MPI_LONG_INT,
-               MPI_MINLOC, l7.mpi_comm);
+               MPI_MINLOC, MPI_COMM_WORLD);
            *output = out_long.index;
          }
          else {
@@ -1367,7 +1367,7 @@ int L7_MinLoc(
            in_float.value = float_cur_min;
            in_float.index = local_minloc;
            MPI_Allreduce(&in_float, &out_float, 1, MPI_FLOAT_INT,
-               MPI_MINLOC, l7.mpi_comm);
+               MPI_MINLOC, MPI_COMM_WORLD);
            *output = out_float.index;
          }
          else {
@@ -1390,7 +1390,7 @@ int L7_MinLoc(
            in_double.value = real_cur_min;
            in_double.index = local_minloc;
            MPI_Allreduce(&in_double, &out_double, 1, MPI_DOUBLE_INT,
-               MPI_MINLOC, l7.mpi_comm);
+               MPI_MINLOC, MPI_COMM_WORLD);
            *output = out_double.index;
          }
          else {
@@ -1533,7 +1533,7 @@ int L7_MaxValLoc(
      counts = (int *)malloc(nprocs*sizeof(int));
      local_count[0] = count;
      MPI_Allgather(local_count, 1, MPI_INT, counts, 1, MPI_INT,
-         l7.mpi_comm);
+         MPI_COMM_WORLD);
      for (iprocs = 0; iprocs < mype; iprocs++){
         istart+=counts[iprocs];
      }
@@ -1557,7 +1557,7 @@ int L7_MaxValLoc(
            in_int.value = int_cur_max;
            in_int.index = local_maxloc;
            MPI_Allreduce(&in_int, &out_int, 1, MPI_2INT,
-               MPI_MAXLOC, l7.mpi_comm);
+               MPI_MAXLOC, MPI_COMM_WORLD);
            *((int *)val) = out_int.value;
            *loc = out_int.index;
          }
@@ -1581,7 +1581,7 @@ int L7_MaxValLoc(
            in_long.value = long_cur_max;
            in_long.index = local_maxloc;
            MPI_Allreduce(&in_long, &out_long, 1, MPI_LONG_INT,
-               MPI_MAXLOC, l7.mpi_comm);
+               MPI_MAXLOC, MPI_COMM_WORLD);
            *((long *)val) = out_long.value;
            *loc = out_long.index;
          }
@@ -1606,7 +1606,7 @@ int L7_MaxValLoc(
            in_float.value = float_cur_max;
            in_float.index = local_maxloc;
            MPI_Allreduce(&in_float, &out_float, 1, MPI_FLOAT_INT,
-               MPI_MAXLOC, l7.mpi_comm);
+               MPI_MAXLOC, MPI_COMM_WORLD);
            *((float *)val) = out_float.value;
            *loc = out_float.index;
          }
@@ -1632,7 +1632,7 @@ int L7_MaxValLoc(
             in_double.value = real_cur_max;
             in_double.index = local_maxloc;
             MPI_Allreduce(&in_double, &out_double, 1, MPI_DOUBLE_INT,
-               MPI_MAXLOC, l7.mpi_comm);
+               MPI_MAXLOC, MPI_COMM_WORLD);
          
             *((double *)val) = out_double.value;
             *loc = out_double.index;
@@ -1783,7 +1783,7 @@ int L7_MinValLoc(
      counts = (int *)malloc(nprocs*sizeof(int));
      local_count[0] = count;
      MPI_Allgather(local_count, 1, MPI_INT, counts, 1, MPI_INT,
-         l7.mpi_comm);
+         MPI_COMM_WORLD);
      istart = 0;
      for (iprocs = 0; iprocs < mype; iprocs++){
         istart+=counts[iprocs];
@@ -1808,7 +1808,7 @@ int L7_MinValLoc(
            in_int.value = int_cur_min;
            in_int.index = local_minloc;
            MPI_Allreduce(&in_int, &out_int, 1, MPI_2INT,
-               MPI_MINLOC, l7.mpi_comm);
+               MPI_MINLOC, MPI_COMM_WORLD);
            *((int *)val) = out_int.value;
            *loc = out_int.index;
          }
@@ -1832,7 +1832,7 @@ int L7_MinValLoc(
            in_long.value = long_cur_min;
            in_long.index = local_minloc;
            MPI_Allreduce(&in_long, &out_long, 1, MPI_LONG_INT,
-               MPI_MINLOC, l7.mpi_comm);
+               MPI_MINLOC, MPI_COMM_WORLD);
            *((long *)val) = out_long.value;
            *loc = out_long.index;
          }
@@ -1857,7 +1857,7 @@ int L7_MinValLoc(
            in_float.value = float_cur_min;
            in_float.index = local_minloc;
            MPI_Allreduce(&in_float, &out_float, 1, MPI_FLOAT_INT,
-               MPI_MINLOC, l7.mpi_comm);
+               MPI_MINLOC, MPI_COMM_WORLD);
            *((float *)val) = out_float.value;
            *loc = out_float.index;
          }
@@ -1882,7 +1882,7 @@ int L7_MinValLoc(
             in_double.value = real_cur_min;
             in_double.index = local_minloc;
             MPI_Allreduce(&in_double, &out_double, 1, MPI_DOUBLE_INT,
-               MPI_MINLOC, l7.mpi_comm);
+               MPI_MINLOC, MPI_COMM_WORLD);
          
             *((double *)val) = out_double.value;
             *loc = out_double.index;
@@ -2011,7 +2011,7 @@ int L7_MaxValLocLoc_Int4(
 	  counts = (int *)malloc(nprocs*sizeof(int));
 	  local_count[0] = count;
 	  MPI_Allgather(local_count, 1, MPI_INT, counts, 1, MPI_INT,
-			l7.mpi_comm);
+			MPI_COMM_WORLD);
 	  istart = 0;
 	  for (iprocs = 0; iprocs < mype; iprocs++){
 		  istart+=counts[iprocs];
@@ -2037,13 +2037,13 @@ int L7_MaxValLocLoc_Int4(
 		  in_double.value = real_cur_max;
 		  in_double.index = local_maxloc;
 		  MPI_Allreduce(&in_double, &out_double, 1, MPI_DOUBLE_INT,
-				MPI_MAXLOC, l7.mpi_comm);
+				MPI_MAXLOC, MPI_COMM_WORLD);
 		  *((double *)val) = out_double.value;
 		  *((int *)loc) = out_double.index;
 		  
 		  in_double.index = local_maxloc2;
 		  MPI_Allreduce(&in_double, &out_double, 1, MPI_DOUBLE_INT,
-				  MPI_MAXLOC, l7.mpi_comm);
+				  MPI_MAXLOC, MPI_COMM_WORLD);
 		  *((int*)loc2) = out_double.index;
 		}
 		else {
@@ -2133,7 +2133,7 @@ int L7_MaxValLocLoc_Int8(
 	  counts = (int *)malloc(nprocs*sizeof(int));
 	  local_count[0] = count;
 	  MPI_Allgather(local_count, 1, MPI_INT, counts, 1, MPI_INT,
-			l7.mpi_comm);
+			MPI_COMM_WORLD);
 	  istart = 0;
 	  for (iprocs = 0; iprocs < mype; iprocs++){
 		  istart+=counts[iprocs];
@@ -2159,13 +2159,13 @@ int L7_MaxValLocLoc_Int8(
 		  in_double.value = real_cur_max;
 		  in_double.index = local_maxloc;
 		  MPI_Allreduce(&in_double, &out_double, 1, MPI_DOUBLE_INT,
-				MPI_MAXLOC, l7.mpi_comm);
+				MPI_MAXLOC, MPI_COMM_WORLD);
 		  *((double *)val) = out_double.value;
 		  *((int *)loc) = out_double.index;
 		  
 		  in_double.index = local_maxloc2;
 		  MPI_Allreduce(&in_double, &out_double, 1, MPI_DOUBLE_INT,
-				  MPI_MAXLOC, l7.mpi_comm);
+				  MPI_MAXLOC, MPI_COMM_WORLD);
 		  *((int*)loc2) = out_double.index;
 		}
 		else {
@@ -2253,7 +2253,7 @@ int L7_GetGlobal(
 		  counts = (int *)malloc(nprocs*sizeof(int));
 		  local_count[0] = count;
 		  MPI_Allgather(local_count, 1, MPI_INT, counts, 1, MPI_INT,
-				l7.mpi_comm);
+				MPI_COMM_WORLD);
 		  istart = 0;
 		  for (iprocs = 0; iprocs < mype; iprocs++){
 			  istart+=counts[iprocs];

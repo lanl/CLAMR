@@ -94,7 +94,7 @@ int L7_Free(
       return(0);
    }
    
-   ierr = MPI_Comm_rank(l7.mpi_comm, &l7.penum);
+   ierr = MPI_Comm_rank(MPI_COMM_WORLD, &l7.penum);
    L7_ASSERT( ierr == MPI_SUCCESS, "MPI_Comm_rank error", ierr);
  
    if (l7.initialized != 1){
@@ -158,9 +158,6 @@ int L7_Free(
    
    if (l7_db->mpi_status)
       free(l7_db->mpi_status);
-   
-   if (&l7_db->mpi_comm_l7)
-      MPI_Comm_free(&l7_db->mpi_comm_l7);
    
 #ifdef HAVE_OPENCL
    if (l7_db->indices_have)

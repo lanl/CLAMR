@@ -66,8 +66,6 @@ enum
 #else
    
 
-L7_EXTERN MPI_Comm L7_mpi_comm_world_i4; 
-
 /* Some parameters. */
 
 #define Comm_Datatype MPI_Datatype
@@ -120,8 +118,8 @@ typedef struct l7_id_database
      num_recvs,                /* Number of processes this pe recvs from.   */
      num_reqs_outstanding,     /* Num MPI_Requests posted in packing model. */
      num_sends,                /* Number of processes this pe sends to.     */
-     numpes,                   /* Size of mpi_comm_l7.                      */
-     penum,                    /* Process rank in mpi_comm_l7.              */
+     numpes,                   /* Size of MPI_COMM_WORLD                    */
+     penum,                    /* Process rank in MPI_COMM_WORLD            */
      *recv_from,               /* Processes this pe receives from.          */
      recv_from_len,            /* Length (in int) of recv_from.             */
      *recv_counts,             /* Array of msg counts for recv_from pes.    */
@@ -134,10 +132,6 @@ typedef struct l7_id_database
      this_tag_update;          /* Msg tag for updates.                      */
    
    /* MPI parameters */
-   
-   MPI_Comm
-     mpi_comm_user,            /* User MPI Communicator.                    */
-     mpi_comm_l7;              /* Duplicate of user MPI communicator        */
    
    MPI_Request
      *mpi_request;
@@ -220,9 +214,6 @@ typedef struct
      num_push_dbs,             /* Number of push databases allocated.  */
      numpes,                   /* Number of processors in mpi job      */
      penum;                    /* Process id for currently set db.     */
-   
-   MPI_Comm
-     mpi_comm;                 /* Duplicate of MPI_COMM_WORLD.         */
    
    void
      *data_check;              /* Workspace for use in l7_update_check */
