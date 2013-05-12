@@ -35,6 +35,11 @@ if (MPI_FOUND)
 #  endif ( MPI_LIBRARIES MATCHES "1.6.3-gcc-4.7" )
 endif (MPI_FOUND)
 
+find_package( OpenMP REQUIRED)
+if(OpenMP_FOUND)
+message("OPENMP FOUND")
+endif(OpenMP_FOUND)
+
 if (NOT GRAPHICS_TYPE)
    set (GRAPHICS_TYPE OpenGL)
 endif (NOT GRAPHICS_TYPE)
@@ -193,6 +198,26 @@ target_link_libraries(clamr_mpionly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
 install(TARGETS clamr_mpionly DESTINATION bin)
 
+########### clamr_mponly target ###############
+set(clamr_mponly_CXX_SRCS clamr_mponly.cpp state.cpp input.cpp)
+set(clamr_mponly_C_SRCS display.c)
+set(clamr_mponly_H_SRCS display.h state.h input.h)
+
+set(clamr_mponly_SRCS ${clamr_mponly_CXX_SRCS} ${clamr_mponly_C_SRCS} ${clamr_mponly_H_SRCS})
+
+add_executable(clamr_mponly ${clamr_mponly_SRCS})
+
+set_target_properties(clamr_mponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+set_target_properties(clamr_mponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+#set_target_properties(clamr_mponly PROPERTIES LINK_FLAGS ${OpenMP_EXE_LINKER_FLAGS})
+set_target_properties(clamr_mponly PROPERTIES LINK_FLAGS -lgomp)
+
+target_link_libraries(clamr_mponly mesh hsfc kdtree zorder s7 timer memstats genmalloc MallocPlus m)
+target_link_libraries(clamr_mponly ${MPE_NOMPI_LIBS} ${X11_LIBS})
+target_link_libraries(clamr_mponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+
+install(TARGETS clamr_mponly DESTINATION bin)
+
 ########### clamr_gpucheck target ###############
 set(clamr_gpucheck_CXX_SRCS clamr_gpucheck.cpp state.cpp input.cpp)
 set(clamr_gpucheck_C_SRCS display.c)
@@ -257,8 +282,7 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.in
 
 ########### install files ###############
 
-#set (CMAKE_CHECK_COMMAND make -C ${CMAKE_SOURCE_DIR}/mesh/tests mesh_check &&
-#                         make -C ${CMAKE_SOURCE_DIR}/l7/tests   l7_check)
-set (CMAKE_CHECK_COMMAND make -C ${CMAKE_SOURCE_DIR}/mesh/tests mesh_check)
+set (CMAKE_CHECK_COMMAND make -C ${CMAKE_SOURCE_DIR}/mesh/tests mesh_check &&
+                         make -C ${CMAKE_SOURCE_DIR}/l7/tests   l7_check)
 
 add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND})
