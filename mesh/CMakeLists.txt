@@ -26,6 +26,7 @@ add_library(mesh STATIC ${mesh_LIB_SRCS})
 
 set_target_properties(mesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
 target_link_libraries(mesh)
+add_dependencies(mesh reduce_kernel_source)
 install(TARGETS mesh DESTINATION lib)
 
 ########### pmesh target ###############
