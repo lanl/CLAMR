@@ -939,7 +939,7 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
    int gix;
 #pragma omp parallel for \
       private(gix) \
-      shared(deltaT, g, ghalf, H_new, U_new, V_new) \
+      shared(deltaT, g, ghalf, H_new, U_new, V_new, ncells, level, nlft, nrht, nbot, ntop, lev_deltax, lev_deltay) \
       default(none)
    for(gix = 0; gix < (int)ncells; gix++) {
 #ifdef DEBUG
@@ -1634,7 +1634,7 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
    int ic;
 #pragma omp parallel for \
       private(ic) \
-      shared(mesh) \
+      shared(mesh, ncells, nlft, nrht, nbot, ntop, level, mpot) \
       default(none)
    for (ic=0; ic<ncells; ic++) {
 
