@@ -1620,17 +1620,6 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
    vector<int> &ntop  = mesh->ntop;
    vector<int> &level = mesh->level;
 
-   int nl, nr, nt, nb;
-   int nlt, nrt, ntr, nbr;
-   double Hic, Hl, Hr, Hb, Ht;
-   double Uic, Ul, Ur, Ub, Ut;
-   double Vic, Vl, Vr, Vb, Vt;
-
-   double duplus1, duminus1, duhalf1;
-   double duplus2, duminus2, duhalf2;
-
-   double qpot, qmax;
-
    icount=0;
    jcount=0;
 
@@ -1642,62 +1631,71 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
    }
 #endif
 
-   for (uint ic=0; ic<ncells; ic++) {
+   int ic;
+#pragma omp parallel for \
+      private(ic) \
+      shared(mesh) \
+      default(none)
+   for (ic=0; ic<ncells; ic++) {
 
       if (mesh->celltype[ic] != REAL_CELL) continue;
 
-      Hic = H[ic];
-      Uic = U[ic];
-      Vic = V[ic];
+      double Hic = H[ic];
+      double Uic = U[ic];
+      double Vic = V[ic];
 
-      nl = nlft[ic];
-      Hl = H[nl];
-      Ul = U[nl];
-      Vl = V[nl];
+      int nl = nlft[ic];
+      double Hl = H[nl];
+      double Ul = U[nl];
+      double Vl = V[nl];
 
       if (level[nl] > level[ic]){
-         nlt = ntop[nl];
+         int nlt = ntop[nl];
          Hl = 0.5 * (Hl + H[nlt]);
       }
 
-      nr = nrht[ic];
-      Hr = H[nr];
-      Ur = U[nr];
-      Vr = V[nr];
+      int nr = nrht[ic];
+      double Hr = H[nr];
+      double Ur = U[nr];
+      double Vr = V[nr];
 
       if (level[nr] > level[ic]){
-         nrt = ntop[nr];
+         int nrt = ntop[nr];
          Hr = 0.5 * (Hr + H[nrt]);
       }
 
-      nb = nbot[ic];
-      Hb = H[nb];
-      Ub = U[nb];
-      Vb = V[nb];
+      int nb = nbot[ic];
+      double Hb = H[nb];
+      double Ub = U[nb];
+      double Vb = V[nb];
 
       if (level[nb] > level[ic]){
-         nbr = nrht[nb];
+         int nbr = nrht[nb];
          Hb = 0.5 * (Hb + H[nbr]);
       }
 
-      nt = ntop[ic];
-      Ht = H[nt];
-      Ut = U[nt];
-      Vt = V[nt];
+      int nt = ntop[ic];
+      double Ht = H[nt];
+      double Ut = U[nt];
+      double Vt = V[nt];
 
       if (level[nt] > level[ic]){
-         ntr = nrht[nt];
+         int ntr = nrht[nt];
          Ht = 0.5 * (Ht + H[ntr]);
       }
+
+      double duplus1, duplus2;
+      double duhalf1, duhalf2;
+      double duminus1, duminus2;
 
       duplus1 = Hr-Hic;
       duplus2 = Ur-Uic;
       duhalf1 = Hic-Hl;
       duhalf2 = Uic-Ul;
 
-      qmax = -1000.0;
+      double qmax = -1000.0;
 
-      qpot = max(fabs(duplus1/Hic), fabs(duhalf1/Hic));
+      double qpot = max(fabs(duplus1/Hic), fabs(duhalf1/Hic));
       if (qpot > qmax) qmax = qpot;
 
       duminus1 = Hic-Hl;
