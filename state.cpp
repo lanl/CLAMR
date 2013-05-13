@@ -623,7 +623,9 @@ double State::set_timestep(Mesh *mesh, double g, double sigma)
    vector<int> &celltype = mesh->celltype;
    vector<int> &level    = mesh->level;
 
-   for (uint ic=0; ic<ncells; ic++) {
+   int ic;
+#pragma omp parallel for private(ic) reduction(min:mindeltaT)
+   for (ic=0; ic<ncells; ic++) {
       if (celltype[ic] == REAL_CELL) {
          lev = level[ic];
          wavespeed = sqrt(g*H[ic]);
