@@ -209,8 +209,7 @@ add_executable(clamr_openmponly ${clamr_openmponly_SRCS})
 
 set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
 set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
-#set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS ${OpenMP_EXE_LINKER_FLAGS})
-set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS -lgomp)
+set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
 
 target_link_libraries(clamr_openmponly mesh hsfc kdtree zorder s7 timer memstats genmalloc MallocPlus m)
 target_link_libraries(clamr_openmponly ${MPE_NOMPI_LIBS} ${X11_LIBS})

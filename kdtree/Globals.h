@@ -83,11 +83,11 @@ typedef struct {
    double x, y;
 } TVector;
 
-#ifndef _BOOL
-typedef unsigned char boolean;
-#define true  ((boolean)1)
-#define false ((boolean)0)
-#endif
+//#ifndef _BOOL
+//typedef unsigned char boolean;
+//#define true  ((boolean)1)
+//#define false ((boolean)0)
+//#endif
 
 #ifndef SWAP
 #define SWAP(a,b,t) {t h; h = a; a = b; b = h; }
