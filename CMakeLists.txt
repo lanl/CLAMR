@@ -198,25 +198,25 @@ target_link_libraries(clamr_mpionly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
 install(TARGETS clamr_mpionly DESTINATION bin)
 
-########### clamr_mponly target ###############
-set(clamr_mponly_CXX_SRCS clamr_mponly.cpp state.cpp input.cpp)
-set(clamr_mponly_C_SRCS display.c)
-set(clamr_mponly_H_SRCS display.h state.h input.h)
+########### clamr_openmponly target ###############
+set(clamr_openmponly_CXX_SRCS clamr_openmponly.cpp state.cpp input.cpp)
+set(clamr_openmponly_C_SRCS display.c)
+set(clamr_openmponly_H_SRCS display.h state.h input.h)
 
-set(clamr_mponly_SRCS ${clamr_mponly_CXX_SRCS} ${clamr_mponly_C_SRCS} ${clamr_mponly_H_SRCS})
+set(clamr_openmponly_SRCS ${clamr_openmponly_CXX_SRCS} ${clamr_openmponly_C_SRCS} ${clamr_openmponly_H_SRCS})
 
-add_executable(clamr_mponly ${clamr_mponly_SRCS})
+add_executable(clamr_openmponly ${clamr_openmponly_SRCS})
 
-set_target_properties(clamr_mponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
-set_target_properties(clamr_mponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
-#set_target_properties(clamr_mponly PROPERTIES LINK_FLAGS ${OpenMP_EXE_LINKER_FLAGS})
-set_target_properties(clamr_mponly PROPERTIES LINK_FLAGS -lgomp)
+set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+#set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS ${OpenMP_EXE_LINKER_FLAGS})
+set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS -lgomp)
 
-target_link_libraries(clamr_mponly mesh hsfc kdtree zorder s7 timer memstats genmalloc MallocPlus m)
-target_link_libraries(clamr_mponly ${MPE_NOMPI_LIBS} ${X11_LIBS})
-target_link_libraries(clamr_mponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+target_link_libraries(clamr_openmponly mesh hsfc kdtree zorder s7 timer memstats genmalloc MallocPlus m)
+target_link_libraries(clamr_openmponly ${MPE_NOMPI_LIBS} ${X11_LIBS})
+target_link_libraries(clamr_openmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
-install(TARGETS clamr_mponly DESTINATION bin)
+install(TARGETS clamr_openmponly DESTINATION bin)
 
 ########### clamr_gpucheck target ###############
 set(clamr_gpucheck_CXX_SRCS clamr_gpucheck.cpp state.cpp input.cpp)
