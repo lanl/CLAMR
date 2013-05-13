@@ -1958,7 +1958,8 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
 
       local.sum = 0.0;
       local.correction = 0.0;
-      for (uint ic = 0; ic < ncells; ic++) {
+      int ic;
+      for (ic = 0; ic < ncells; ic++) {
          if (celltype[ic] == REAL_CELL) {
             //  Exclude boundary cells.
             corrected_next_term= H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]] + local.correction;
