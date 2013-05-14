@@ -1,5 +1,5 @@
 ########### global settings ###############
-set(CMAKE_C_FLAGS "-std=c99 -DHAVE_MPI=1")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_MPI=1")
 
 set(H_SRCS l7.h l7_assert.h l7p.h)
 

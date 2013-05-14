@@ -1,6 +1,4 @@
 ########### global settings ###############
-set(CMAKE_C_FLAGS "-std=c99")
-
 set(H_SRCS Bounds.h Globals.h KDTree.h)
 
 set(C_SRCS Bounds.c KDTree.c)

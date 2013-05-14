@@ -1,7 +1,4 @@
 ########### global settings ###############
-set(CMAKE_CXX_FLAGS)
-set(CMAKE_C_FLAGS "-std=c99")
-
 set(H_SRCS mesh.h partition.h reorder.h reduce.h)
 
 set(CXX_SRCS mesh.cpp partition.cpp)

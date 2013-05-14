@@ -1,5 +1,4 @@
 ########### global settings ###############
-set(CMAKE_C_FLAGS "-std=c99")
 set(H_SRCS genmalloc.h)
 set(C_SRCS genmalloc.c)
 

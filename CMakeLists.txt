@@ -32,12 +32,9 @@ endif (OPENCL_FOUND)
 find_package(MPI REQUIRED)
 if (MPI_FOUND)
    include_directories(${MPI_INCLUDE_PATH})
-#  if ( MPI_LIBRARIES MATCHES "1.6.3-gcc-4.7" )
-#     set (MPI_LIBRARIES ${MPI_LIBRARIES} -Wl,-rpath -Wl,/usr/projects/hpcsoft/moonlight/openmpi/1.6.3-gcc-4.7/lib)
-#  endif ( MPI_LIBRARIES MATCHES "1.6.3-gcc-4.7" )
 endif (MPI_FOUND)
 
-find_package( OpenMP REQUIRED)
+find_package( OpenMP QUIET)
 if(OpenMP_FOUND)
 message("OPENMP FOUND")
 endif(OpenMP_FOUND)
@@ -217,9 +214,11 @@ set(clamr_openmponly_SRCS ${clamr_openmponly_CXX_SRCS} ${clamr_openmponly_C_SRCS
 
 add_executable(clamr_openmponly ${clamr_openmponly_SRCS})
 
+if(OpenMP_FOUND)
 set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
 set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
 set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
+endif(OpenMP_FOUND)
 
 target_link_libraries(clamr_openmponly mesh hsfc kdtree zorder s7 timer memstats genmalloc MallocPlus m)
 target_link_libraries(clamr_openmponly ${MPE_NOMPI_LIBS} ${X11_LIBS})
