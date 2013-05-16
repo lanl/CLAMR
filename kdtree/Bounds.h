@@ -72,7 +72,7 @@ extern void Bounds_Copy(TBounds* src, TBounds* dest);
 extern void Bounds_Infinite(TBounds* b);
 extern void Bounds_AddBounds(TBounds* b, TBounds* add);
 extern void Bounds_AddEpsilon(TBounds* b, double add);
-extern boolean Bounds_IsOverlappingBounds(TBounds* b, TBounds* tst);
+extern int Bounds_IsOverlappingBounds(TBounds* b, TBounds* tst);
 extern double Bounds_WidthAxis(TBounds* b, unsigned int axis);
 extern double Bounds_CenterAxis(TBounds* b, unsigned int axis);
 

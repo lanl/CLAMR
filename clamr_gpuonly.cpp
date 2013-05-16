@@ -128,6 +128,9 @@ int main(int argc, char **argv) {
 
    ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, 0);
    if (ierr == EZCL_NODEVICE) {
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_ACCELERATOR, 0);
+   }
+   if (ierr == EZCL_NODEVICE) {
       ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, 0);
    }
    if (ierr != EZCL_SUCCESS) {
