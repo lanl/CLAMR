@@ -856,13 +856,11 @@ void Mesh::partition_cells(
 void Mesh::calc_distribution(int numpe)
 {  
    uint lsize = 0;     //
-   uint ic    = 0;            //   Overall work item index.
    for (int ip = 0; ip < numpe; ++ip) {
       lsize += proc.size()/numpe;
       if (ip < (int)proc.size()%numpe) lsize++;
-      for (; ic < lsize;) {
+      for (int ic; ic < lsize; ic++) {
          proc[ic] = ip;
-         ic++;
       }
    }
 }

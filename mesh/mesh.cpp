@@ -2278,43 +2278,46 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
       while (newcount_global > 0 && levcount < levmx) {
          levcount++;
 
-         SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
+         gpu_refine_smooth_counter++;
 
 #ifdef HAVE_MPI
          if (numpe > 1) {
-            L7_Dev_Update(dev_mpot_old, L7_INT, cell_handle);
+            L7_Dev_Update(dev_mpot, L7_INT, cell_handle);
          }
 #endif
-         gpu_refine_smooth_counter++;
 
-         ezcl_set_kernel_arg(kernel_refine_smooth, 0, sizeof(cl_int),  (void *)&ncells);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 1, sizeof(cl_int),  (void *)&ncells_ghost);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 2, sizeof(cl_int),  (void *)&levmx);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 3, sizeof(cl_mem),  (void *)&dev_nlft);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 4, sizeof(cl_mem),  (void *)&dev_nrht);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 5, sizeof(cl_mem),  (void *)&dev_nbot);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 6, sizeof(cl_mem),  (void *)&dev_ntop);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 7, sizeof(cl_mem),  (void *)&dev_level);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 8, sizeof(cl_mem),  (void *)&dev_celltype);
-         ezcl_set_kernel_arg(kernel_refine_smooth, 9, sizeof(cl_mem),  (void *)&dev_mpot_old);
-         ezcl_set_kernel_arg(kernel_refine_smooth,10, sizeof(cl_mem),  (void *)&dev_mpot);
-         ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_redscratch);
-         ezcl_set_kernel_arg(kernel_refine_smooth,12, sizeof(cl_mem),  (void *)&dev_result);
-         ezcl_set_kernel_arg(kernel_refine_smooth,13, local_work_size*sizeof(cl_int),    NULL);
+         if (icount) {
+            SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
 
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_smooth, 1, NULL, &global_work_size, &local_work_size, NULL);
+            ezcl_set_kernel_arg(kernel_refine_smooth, 0, sizeof(cl_int),  (void *)&ncells);
+            ezcl_set_kernel_arg(kernel_refine_smooth, 1, sizeof(cl_int),  (void *)&ncells_ghost);
+            ezcl_set_kernel_arg(kernel_refine_smooth, 2, sizeof(cl_int),  (void *)&levmx);
+            ezcl_set_kernel_arg(kernel_refine_smooth, 3, sizeof(cl_mem),  (void *)&dev_nlft);
+            ezcl_set_kernel_arg(kernel_refine_smooth, 4, sizeof(cl_mem),  (void *)&dev_nrht);
+            ezcl_set_kernel_arg(kernel_refine_smooth, 5, sizeof(cl_mem),  (void *)&dev_nbot);
+            ezcl_set_kernel_arg(kernel_refine_smooth, 6, sizeof(cl_mem),  (void *)&dev_ntop);
+            ezcl_set_kernel_arg(kernel_refine_smooth, 7, sizeof(cl_mem),  (void *)&dev_level);
+            ezcl_set_kernel_arg(kernel_refine_smooth, 8, sizeof(cl_mem),  (void *)&dev_celltype);
+            ezcl_set_kernel_arg(kernel_refine_smooth, 9, sizeof(cl_mem),  (void *)&dev_mpot_old);
+            ezcl_set_kernel_arg(kernel_refine_smooth,10, sizeof(cl_mem),  (void *)&dev_mpot);
+            ezcl_set_kernel_arg(kernel_refine_smooth,11, sizeof(cl_mem),  (void *)&dev_redscratch);
+            ezcl_set_kernel_arg(kernel_refine_smooth,12, sizeof(cl_mem),  (void *)&dev_result);
+            ezcl_set_kernel_arg(kernel_refine_smooth,13, local_work_size*sizeof(cl_int),    NULL);
 
+            ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_smooth, 1, NULL, &global_work_size, &local_work_size, NULL);
 
-         gpu_rezone_count(block_size, local_work_size, dev_redscratch, dev_result);
+            gpu_rezone_count(block_size, local_work_size, dev_redscratch, dev_result);
 
-         int result;
-         ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+            int result;
+            ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
 
-         //printf("result = %d after %d refine smooths\n",result,which_smooth);
-         //which_smooth++;
+            //printf("result = %d after %d refine smooths\n",result,which_smooth);
+            //which_smooth++;
 
-         icount = result;
-         newcount = result-newcount;
+            icount = result;
+         }
+
+         newcount = icount-newcount;
          newcount_global = newcount;
 #ifdef HAVE_MPI
          if (parallel) {
@@ -2337,26 +2340,25 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
       }
 #endif
 
-      size_t result_size = 1;
-      cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"),  &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_ptr;
 
-      SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
+      if (jcount) {
+         SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
 
-      ezcl_set_kernel_arg(kernel_coarsen_smooth, 0, sizeof(cl_int),  (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_coarsen_smooth, 1, sizeof(cl_mem),  (void *)&dev_nlft);
-      ezcl_set_kernel_arg(kernel_coarsen_smooth, 2, sizeof(cl_mem),  (void *)&dev_nrht);
-      ezcl_set_kernel_arg(kernel_coarsen_smooth, 3, sizeof(cl_mem),  (void *)&dev_nbot);
-      ezcl_set_kernel_arg(kernel_coarsen_smooth, 4, sizeof(cl_mem),  (void *)&dev_ntop);
-      ezcl_set_kernel_arg(kernel_coarsen_smooth, 5, sizeof(cl_mem),  (void *)&dev_i);
-      ezcl_set_kernel_arg(kernel_coarsen_smooth, 6, sizeof(cl_mem),  (void *)&dev_j);
-      ezcl_set_kernel_arg(kernel_coarsen_smooth, 7, sizeof(cl_mem),  (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_coarsen_smooth, 8, sizeof(cl_mem),  (void *)&dev_mpot_old);
-      ezcl_set_kernel_arg(kernel_coarsen_smooth, 9, sizeof(cl_mem),  (void *)&dev_mpot);
+         ezcl_set_kernel_arg(kernel_coarsen_smooth, 0, sizeof(cl_int),  (void *)&ncells);
+         ezcl_set_kernel_arg(kernel_coarsen_smooth, 1, sizeof(cl_mem),  (void *)&dev_nlft);
+         ezcl_set_kernel_arg(kernel_coarsen_smooth, 2, sizeof(cl_mem),  (void *)&dev_nrht);
+         ezcl_set_kernel_arg(kernel_coarsen_smooth, 3, sizeof(cl_mem),  (void *)&dev_nbot);
+         ezcl_set_kernel_arg(kernel_coarsen_smooth, 4, sizeof(cl_mem),  (void *)&dev_ntop);
+         ezcl_set_kernel_arg(kernel_coarsen_smooth, 5, sizeof(cl_mem),  (void *)&dev_i);
+         ezcl_set_kernel_arg(kernel_coarsen_smooth, 6, sizeof(cl_mem),  (void *)&dev_j);
+         ezcl_set_kernel_arg(kernel_coarsen_smooth, 7, sizeof(cl_mem),  (void *)&dev_level);
+         ezcl_set_kernel_arg(kernel_coarsen_smooth, 8, sizeof(cl_mem),  (void *)&dev_mpot_old);
+         ezcl_set_kernel_arg(kernel_coarsen_smooth, 9, sizeof(cl_mem),  (void *)&dev_mpot);
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_coarsen_smooth, 1, NULL, &global_work_size, &local_work_size, NULL);
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_coarsen_smooth, 1, NULL, &global_work_size, &local_work_size, NULL);
+      }
 
 #ifdef HAVE_MPI
       if (numpe > 1) {
@@ -2364,33 +2366,43 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
       }
 #endif
 
-      SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
+      if (jcount) {
+         size_t result_size = 1;
+         cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"),  &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+         cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-      ezcl_set_kernel_arg(kernel_coarsen_check_block, 0, sizeof(cl_int),  (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block, 1, sizeof(cl_mem),  (void *)&dev_nlft);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block, 2, sizeof(cl_mem),  (void *)&dev_nrht);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block, 3, sizeof(cl_mem),  (void *)&dev_nbot);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block, 4, sizeof(cl_mem),  (void *)&dev_ntop);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block, 5, sizeof(cl_mem),  (void *)&dev_i);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block, 6, sizeof(cl_mem),  (void *)&dev_j);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block, 7, sizeof(cl_mem),  (void *)&dev_level);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block, 8, sizeof(cl_mem),  (void *)&dev_celltype);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block, 9, sizeof(cl_mem),  (void *)&dev_mpot_old);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block,10, sizeof(cl_mem),  (void *)&dev_mpot);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block,11, sizeof(cl_mem),  (void *)&dev_redscratch);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block,12, sizeof(cl_mem),  (void *)&dev_result);
-      ezcl_set_kernel_arg(kernel_coarsen_check_block,13, local_work_size*sizeof(cl_int),    NULL);
+         SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_coarsen_check_block, 1, NULL, &global_work_size, &local_work_size, NULL);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block, 0, sizeof(cl_int),  (void *)&ncells);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block, 1, sizeof(cl_mem),  (void *)&dev_nlft);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block, 2, sizeof(cl_mem),  (void *)&dev_nrht);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block, 3, sizeof(cl_mem),  (void *)&dev_nbot);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block, 4, sizeof(cl_mem),  (void *)&dev_ntop);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block, 5, sizeof(cl_mem),  (void *)&dev_i);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block, 6, sizeof(cl_mem),  (void *)&dev_j);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block, 7, sizeof(cl_mem),  (void *)&dev_level);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block, 8, sizeof(cl_mem),  (void *)&dev_celltype);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block, 9, sizeof(cl_mem),  (void *)&dev_mpot_old);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block,10, sizeof(cl_mem),  (void *)&dev_mpot);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block,11, sizeof(cl_mem),  (void *)&dev_redscratch);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block,12, sizeof(cl_mem),  (void *)&dev_result);
+         ezcl_set_kernel_arg(kernel_coarsen_check_block,13, local_work_size*sizeof(cl_int),    NULL);
 
-      gpu_rezone_count(block_size, local_work_size, dev_redscratch, dev_result);
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_coarsen_check_block, 1, NULL, &global_work_size, &local_work_size, NULL);
 
-      int result;
-      ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
+         gpu_rezone_count(block_size, local_work_size, dev_redscratch, dev_result);
 
-      //printf("result = %d after coarsen smooth\n",result);
+         int result;
+         ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int), &result, NULL);
 
-      jcount = result;
+         //printf("result = %d after coarsen smooth\n",result);
+
+         jcount = result;
+
+         ezcl_device_memory_delete(dev_redscratch);
+         ezcl_device_memory_delete(dev_result);
+      }
+
       jcount_global = jcount;
 
 #ifdef HAVE_MPI
@@ -2400,8 +2412,6 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
 #endif
 
       ezcl_device_memory_delete(dev_mpot_old);
-      ezcl_device_memory_delete(dev_redscratch);
-      ezcl_device_memory_delete(dev_result);
    }
 
    if (icount_global || jcount_global) {
@@ -2653,17 +2663,19 @@ void Mesh::calc_spatial_coordinates(int ibase)
 
    if (have_boundary) {
       for (uint ic = 0; ic < ncells; ic++) {
-         x[ic]  = xmin + lev_deltax[level[ic]] * (real)(i[ic] - ibase);
-         dx[ic] =        lev_deltax[level[ic]];
-         y[ic]  = ymin + lev_deltay[level[ic]] * (real)(j[ic] - ibase);
-         dy[ic] =        lev_deltay[level[ic]];
+         int lev = level[ic];
+         x[ic]  = xmin + (real)(lev_deltax[lev] * (i[ic] - ibase));
+         dx[ic] =        (real)lev_deltax[lev];
+         y[ic]  = ymin + (real)(lev_deltay[lev] * (j[ic] - ibase));
+         dy[ic] =        (real)lev_deltay[lev];
       }
    } else {
       for (uint ic = 0; ic < ncells; ic++) {
-         x[ic]  = xmin + lev_deltax[level[ic]] * (real)(i[ic] - lev_ibegin[level[ic]]);
-         dx[ic] =        lev_deltax[level[ic]];
-         y[ic]  = ymin + lev_deltay[level[ic]] * (real)(j[ic] - lev_jbegin[level[ic]]);
-         dy[ic] =        lev_deltay[level[ic]];
+         int lev = level[ic];
+         x[ic]  = xmin + (real)(lev_deltax[lev] * (i[ic] - lev_ibegin[lev]));
+         dx[ic] =        (real)lev_deltax[lev];
+         y[ic]  = ymin + (real)(lev_deltay[lev] * (j[ic] - lev_jbegin[lev]));
+         dy[ic] =        (real)lev_deltay[lev];
       }
    }
 
@@ -2838,9 +2850,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    vector<int> celltype_save(ncells);
    if (have_state) {
-      for (int ic=0; ic < ncells; ic++){
-         celltype_save[ic] = celltype[ic];
-      }
+      celltype_save=celltype;
    }
 
    int new_ncells = ncells + add_ncells;
@@ -6895,12 +6905,6 @@ void Mesh::gpu_calc_neighbors_local(void)
 
    //ezcl_enqueue_write_buffer(command_queue, dev_sizes, CL_TRUE,  0, 1*sizeof(cl_int4), &sizes, NULL);
 
-#if HASH_SETUP_OPT_LEVEL <= 3
-   // Allocate partial hash table
-   size_t hashsize = (jmaxsize-jminsize)*(imaxsize-iminsize);
-   cl_mem dev_hash = ezcl_malloc(NULL, const_cast<char *>("dev_hash"), &hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-
-#elif HASH_SETUP_OPT_LEVEL == 4
    uint gpu_compact_hash_size = (uint)((double)ncells*hash_mult);
    uint gpu_perfect_hash_size = (uint)((imaxsize-iminsize)*(jmaxsize-jminsize));
    float gpu_hash_mem_factor = 20.0;
@@ -6908,6 +6912,9 @@ void Mesh::gpu_calc_neighbors_local(void)
    if (mem_opt_factor != 1.0) gpu_hash_mem_factor /= (mem_opt_factor*0.2);
    gpu_do_compact_hash = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? 0 : 1;
 #ifdef __APPLE_CC__
+   gpu_do_compact_hash = 0;
+#endif
+#if HASH_SETUP_OPT_LEVEL <= 3
    gpu_do_compact_hash = 0;
 #endif
    size_t hashsize;
@@ -6926,7 +6933,6 @@ void Mesh::gpu_calc_neighbors_local(void)
    }
 
    cl_mem dev_hash = ezcl_malloc(NULL, const_cast<char *>("dev_hash"), &hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-#endif
 
    size_t hash_local_work_size  = TILE_SIZE;
    size_t hash_global_work_size = ((hashsize+hash_local_work_size - 1) /hash_local_work_size) * hash_local_work_size;
