@@ -1,5 +1,5 @@
 ########### global settings ###############
-set(CMAKE_C_FLAGS "-std=c99 -I${OPENCL_INCLUDE_DIRS}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${OPENCL_INCLUDE_DIRS}")
 
 set(H_SRCS ezcl.h)
 set(C_SRCS ezcl.c)

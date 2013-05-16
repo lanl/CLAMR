@@ -1,5 +1,12 @@
 ########### global settings ###############
-set(CMAKE_C_FLAGS "-std=c99 -DHAVE_MPI=1")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_MPI=1")
+#if (CMAKE_C_COMPILER MATCHES "gcc$")
+#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorizer-verbose=2")
+#endif (CMAKE_C_COMPILER MATCHES "gcc$")
+#if (CMAKE_C_COMPILER MATCHES "icc$")
+#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
+#endif (CMAKE_C_COMPILER MATCHES "icc$")
+
 
 set(H_SRCS l7.h l7_assert.h l7p.h)
 

@@ -386,7 +386,8 @@ int L7_Push_Setup(
         }
 
         for (int ip = 0; ip < num_comm_partners; ip++){
-                for (int ic = 0; ic < send_buffer_count[ip]; ic++){
+                int count = send_buffer_count[ip]; // create simple int count to help vectorization
+                for (int ic = 0; ic < count; ic++){
                         l7_push_id_db->send_database[ip][ic] = send_database[ip][ic];
                 }
         }

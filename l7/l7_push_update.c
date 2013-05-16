@@ -144,9 +144,9 @@ int L7_Push_Update(
     */
 
    for (int ip = 0; ip < l7_push_id_db->num_comm_partners; ip++){
-      for (int ic = 0; ic < l7_push_id_db->send_buffer_count[ip]; ic++){
-         int ib = l7_push_id_db->send_database[ip][ic];
-         l7_push_id_db->send_buffer[ip][ic] = array[ib];
+      int count = l7_push_id_db->send_buffer_count[ip]; // for vectorization
+      for (int ic = 0; ic < count; ic++){
+         l7_push_id_db->send_buffer[ip][ic] = array[l7_push_id_db->send_database[ip][ic]];
       }    
    }    
 

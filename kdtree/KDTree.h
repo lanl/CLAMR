@@ -105,7 +105,7 @@ typedef struct {
    TBounds extent;
    int elements_num, elements_allocated;
    TBounds* elements;
-   int tree_built;
+   bool tree_built;
    int tree_size;
    TBounds* tree_safety_boxes;
    int * tree_link;

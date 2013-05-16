@@ -14,7 +14,13 @@ if (NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif(NOT CMAKE_BUILD_TYPE)
 
-set(CMAKE_C_FLAGS "-std=c99")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mtune=native")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -vec-report3")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g")
@@ -30,10 +36,12 @@ endif (OPENCL_FOUND)
 find_package(MPI REQUIRED)
 if (MPI_FOUND)
    include_directories(${MPI_INCLUDE_PATH})
-#  if ( MPI_LIBRARIES MATCHES "1.6.3-gcc-4.7" )
-#     set (MPI_LIBRARIES ${MPI_LIBRARIES} -Wl,-rpath -Wl,/usr/projects/hpcsoft/moonlight/openmpi/1.6.3-gcc-4.7/lib)
-#  endif ( MPI_LIBRARIES MATCHES "1.6.3-gcc-4.7" )
 endif (MPI_FOUND)
+
+find_package( OpenMP QUIET)
+if(OpenMP_FOUND)
+message("OPENMP FOUND")
+endif(OpenMP_FOUND)
 
 if (NOT GRAPHICS_TYPE)
    set (GRAPHICS_TYPE OpenGL)
@@ -66,6 +74,16 @@ if (OPENGL_FOUND)
       find_package(GLUT)
    endif()
 endif (OPENGL_FOUND)
+
+#if (DEFINED ENV{LD_LIBRARY_PATH})
+#   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,$ENV{LD_LIBRARY_PATH}")
+#   message("CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS}")
+#   #string (REPLACE ":" ";" LDPATH_TMP $ENV{LD_LIBRARY_PATH})
+#   #foreach(LDPATH ${LDPATH_TMP})
+#   #   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${LDPATH}")
+#   #   message("CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS}")
+#   #endforeach(LDPATH)
+#endif (DEFINED ENV{LD_LIBRARY_PATH})
 
 if (NOT OPENGL_FOUND)
    if (MPE_FOUND)
@@ -135,7 +153,6 @@ target_link_libraries(clamr ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr ${MPI_LIBRARIES})
 target_link_libraries(clamr ${OPENCL_LIBRARIES})
 target_link_libraries(clamr ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
-#target_link_libraries(clamr -Wl,-rpath -Wl,/usr/projects/hpcsoft/moonlight/openmpi/1.6.3-gcc-4.7/lib)
 add_dependencies(clamr state_kernel_source)
 
 install(TARGETS clamr DESTINATION bin)
@@ -189,9 +206,29 @@ target_link_libraries(clamr_mpionly pmesh hsfc kdtree zorder s7 timer memstats l
 target_link_libraries(clamr_mpionly ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_mpionly ${MPI_LIBRARIES})
 target_link_libraries(clamr_mpionly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
-#target_link_libraries(clamr_mpionly -Wl,-rpath -Wl,/usr/projects/hpcsoft/moonlight/openmpi/1.6.3-gcc-4.7/lib)
 
 install(TARGETS clamr_mpionly DESTINATION bin)
+
+########### clamr_openmponly target ###############
+set(clamr_openmponly_CXX_SRCS clamr_openmponly.cpp state.cpp input.cpp)
+set(clamr_openmponly_C_SRCS display.c)
+set(clamr_openmponly_H_SRCS display.h state.h input.h)
+
+set(clamr_openmponly_SRCS ${clamr_openmponly_CXX_SRCS} ${clamr_openmponly_C_SRCS} ${clamr_openmponly_H_SRCS})
+
+add_executable(clamr_openmponly ${clamr_openmponly_SRCS})
+
+if(OpenMP_FOUND)
+set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
+endif(OpenMP_FOUND)
+
+target_link_libraries(clamr_openmponly mesh hsfc kdtree zorder s7 timer memstats genmalloc MallocPlus m)
+target_link_libraries(clamr_openmponly ${MPE_NOMPI_LIBS} ${X11_LIBS})
+target_link_libraries(clamr_openmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+
+install(TARGETS clamr_openmponly DESTINATION bin)
 
 ########### clamr_gpucheck target ###############
 set(clamr_gpucheck_CXX_SRCS clamr_gpucheck.cpp state.cpp input.cpp)
@@ -227,7 +264,6 @@ target_link_libraries(clamr_mpicheck pmesh hsfc kdtree zorder s7 timer memstats 
 target_link_libraries(clamr_mpicheck ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_mpicheck ${MPI_LIBRARIES})
 target_link_libraries(clamr_mpicheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
-#target_link_libraries(clamr_mpicheck -Wl,-rpath -Wl,/usr/projects/hpcsoft/moonlight/openmpi/1.6.3-gcc-4.7/lib)
 
 install(TARGETS clamr_mpicheck DESTINATION bin)
 
@@ -247,7 +283,6 @@ target_link_libraries(clamr_checkall ${MPE_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_checkall ${MPI_LIBRARIES})
 target_link_libraries(clamr_checkall ${OPENCL_LIBRARIES})
 target_link_libraries(clamr_checkall ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
-#target_link_libraries(clamr_checkall -Wl,-rpath -Wl,/usr/projects/hpcsoft/moonlight/openmpi/1.6.3-gcc-4.7/lib)
 add_dependencies(clamr_checkall state_kernel_source)
 
 install(TARGETS clamr_checkall DESTINATION bin)
@@ -257,8 +292,7 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.in
 
 ########### install files ###############
 
-#set (CMAKE_CHECK_COMMAND make -C ${CMAKE_SOURCE_DIR}/mesh/tests mesh_check &&
-#                         make -C ${CMAKE_SOURCE_DIR}/l7/tests   l7_check)
-set (CMAKE_CHECK_COMMAND make -C ${CMAKE_SOURCE_DIR}/mesh/tests mesh_check)
+set (CMAKE_CHECK_COMMAND make -C ${CMAKE_SOURCE_DIR}/mesh/tests mesh_check &&
+                         make -C ${CMAKE_SOURCE_DIR}/l7/tests   l7_check)
 
 add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND})

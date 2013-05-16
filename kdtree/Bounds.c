@@ -89,7 +89,7 @@ void Bounds_AddEpsilon(TBounds* b, double add) {
    b->max.y = b->max.y + add;
 }
 
-boolean Bounds_IsOverlappingBounds(TBounds* b, TBounds* tst) {
+bool Bounds_IsOverlappingBounds(TBounds* b, TBounds* tst) {
    assert(b && tst);
    if((tst->max.x < b->min.x) || (tst->min.x > b->max.x))
       return(false);
