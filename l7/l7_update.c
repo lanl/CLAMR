@@ -439,7 +439,7 @@ int L7_Get_Num_Indices(const int l7_id)
    int num_sends = l7_id_db->num_sends;
    
    for (int i=0; i<num_sends; i++){
-      /* Load data to be sent. */
+      /* count data to be sent. */
       
       num_indices += l7_id_db->send_counts[i];
    }
@@ -472,7 +472,7 @@ int L7_Get_Local_Indices(const int l7_id, int *local_indices)
    int offset = 0;
 
    for (int i=0; i<num_sends; i++){
-      /* Load data to be sent. */
+      /* Copy data to be sent. */
       
       int send_count = l7_id_db->send_counts[i];
       for (int j=0; j<send_count; j++){

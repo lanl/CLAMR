@@ -455,7 +455,8 @@ int L7_Setup(
 		}
 		l7_id_db->recv_counts_len = l7_id_db->num_recvs;
 		
-		for (i=0; i<l7_id_db->num_recvs; i++)
+                int num_recvs = l7_id_db->num_recvs; // for vectorization
+		for (i=0; i<num_recvs; i++)
 			l7_id_db->recv_counts[i] = 0; /* calloc does not guarantee = 0. */
 				
 	}
@@ -474,7 +475,8 @@ int L7_Setup(
 	}
 	l7_id_db->recv_from_len = l7_id_db->num_recvs;
 	
-	for (i=0; i<l7_id_db->num_recvs; i++)
+        int num_recvs = l7_id_db->num_recvs; // for vectorization
+	for (i=0; i<num_recvs; i++)
 		l7_id_db->recv_from[i] = -999;
 	}
 	
@@ -793,9 +795,11 @@ int L7_Setup(
 	
 	offset = 0;
 	for (i=0; i<l7_id_db->num_sends; i++){
-	   for (j=0; j<l7_id_db->send_counts[i]; j++){
+           int counts = l7_id_db->send_counts[i]; // for vectorization
+           int adj = (int)(my_start_index) - base_adj; // for vectorization
+	   for (j=0; j<counts; j++){
 	      l7_id_db->indices_local_to_send[offset] =
-	         l7_id_db->indices_global_to_send[offset] - (int)(my_start_index) - base_adj;
+	         l7_id_db->indices_global_to_send[offset] - adj;
 	      offset ++;
 	   }
 	}
