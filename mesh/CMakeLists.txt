@@ -1,4 +1,11 @@
 ########### global settings ###############
+#if (CMAKE_C_COMPILER MATCHES "gcc$")
+#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorizer-verbose=2")
+#endif (CMAKE_C_COMPILER MATCHES "gcc$")
+#if (CMAKE_C_COMPILER MATCHES "icc$")
+#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -vec-report3")
+#endif (CMAKE_C_COMPILER MATCHES "icc$")
+
 set(H_SRCS mesh.h partition.h reorder.h reduce.h)
 
 set(CXX_SRCS mesh.cpp partition.cpp)
