@@ -18,6 +18,8 @@ set(C_SRCS
       l7p_mpi_type.c
 )
 
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 ########### embed source target ###############
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/l7/l7_kernel.inc
                   COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl ${CMAKE_SOURCE_DIR}/l7/l7_kern.cl > l7_kernel.inc

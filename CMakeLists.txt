@@ -26,6 +26,7 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
 
+include_directories(${PROJECT_SOURCE_DIR})
 find_package(OpenCL REQUIRED)
 #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
 #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
