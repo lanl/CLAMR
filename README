@@ -65,8 +65,16 @@ module load openmpi-gcc/1.4.1-64
 To build on Darwin, The OpenCL libraries needed to build are only 
 available on back-end nodes.  To get a node do:
 
+Get a list of hardware partitions
+% sinfo 
+
+For a generic tesla. The Kepler can be requested with the "K20" partition
 % salloc -p tesla -N 1
 % ssh $SLURM_NODELIST
+
+The following modules should be loaded. This line can also be added
+to the .login file to make it automatic
+% module load cmake/2.8.10.2 mpi/openmpi-1.6.4-gcc-4.4.7
 
 You must use a special version of GCC for CUDA that is not the default
 compiler on Darwin.  To use the correct compiler do:
@@ -74,41 +82,43 @@ compiler on Darwin.  To use the correct compiler do:
 % export PATH=/home/opt/gcc/4.4.6/bin:$PATH
 
 Totalview on darwin
+% module load totalview/8.11.0-2
+% totalview <executable> -a <program command line>
 
-/home/ccs/opt/x86_64/bin/totalview
+Example
+% totalview mpirun -a -n 2 ./clamr_mpionly -n 512 -l 2 -i 100 -t 10000
 
-Example -- need to have -all-static in LDFLAGS with libtool to make this work
-/home/ccs/opt/x86_64/bin/totalview mpirun -a -n 2 ./clamr_mpionly -n 512 -l 2 -i 100 -t 10000
+////////////////
+// Moonlight
+////////////////
+
+%ssh -Y ml-fey
+
+Get a backend node. The -nn is the number of nodes and the -np is the number
+of processors per node
+%llogin -nn 1 -np 8
+
+Load modules
+% module load gcc/4.7.2 openmpi/1.6.3  opencl/1.1
+
+Add the following to the .login and you can select the gcc or intel compiler with
+source ~/.login intel (for intel) or source ~/.login (for gcc)
+
+========== .login file ============
+if ("$1" =~ "intel") then
+   module load intel/13.0.1
+else
+   module load gcc/4.7.2
+endif
+
+module load openmpi/1.6.3 opencl/1.1
+===================================
 
 ////////////////
 // GIT Commands
 ////////////////
 
-We are switching to GIT. To checkout the code
+To checkout the code
 
-git clone git@github.com:losalamos/CLAMR.git
-
-// // How to check out of the SVN
-// svn co svn://ccs-dev-fe/xcp_students/Exa-Y-Z/trunk/Exa-Y-Z    Exa-Y-Z
-// // How to check out of gforge with svn
-// svn checkout --username <username>@lanl.gov https://gforge.sandia.gov/svn/clamr/trunk/ clamr
-// 
-// // Copy new materials from the repository (update)
-// svn update
-// 
-// // Are there any local changes to the SVN files
-// svn status
-// 
-// // Have a file to add to the SVN
-// svn add [file]
-// 
-// // Show the newly added file
-// svn commit [file] 
-// 
-// // Show the log of a file
-// svn log [file]
-// 
-// // Shows the difference between new versions of a file
-// svn diff
-
+% git clone git@github.com:losalamos/CLAMR.git
 
