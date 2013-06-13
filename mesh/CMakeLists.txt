@@ -12,6 +12,8 @@ set(CXX_SRCS mesh.cpp partition.cpp)
 
 set(C_SRCS reduce.c)
 
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 ########### embed source target ###############
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mesh/mesh_kernel.inc
                   COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl ${CMAKE_SOURCE_DIR}/mesh/mesh_kern.cl > mesh_kernel.inc
