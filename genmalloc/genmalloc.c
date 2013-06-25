@@ -78,7 +78,11 @@ void *genvector_p(int inum, size_t elsize, const char *file, const int line)
    size_t mem_size;
 
    mem_size = inum*elsize;
+#if DEBUG == 1
    out      = (void *)calloc((size_t)inum, elsize);
+#else
+   out      = (void *)malloc((size_t)inum * elsize);
+#endif
    genmalloc_memory_add(out, mem_size);
 
    return (out);
@@ -99,7 +103,11 @@ void **genmatrix_p(int jnum, int inum, size_t elsize, const char *file, const in
    genmalloc_memory_add(out, mem_size);
   
    mem_size = jnum*inum*elsize;
+#if DEBUG == 1
    out[0]    = (void *)calloc((size_t)jnum*(size_t)inum, elsize);
+#else
+   out[0]    = (void *)malloc((size_t)jnum*(size_t)inum * elsize);
+#endif
    genmalloc_memory_add(out[0], mem_size);
   
    for (int i = 1; i < jnum; i++) {
@@ -129,7 +137,11 @@ void ***gentrimatrix_p(int knum, int jnum, int inum, size_t elsize, const char *
    genmalloc_memory_add(out[0], mem_size);
 
    mem_size  = knum*jnum*inum*elsize;
+#if DEBUG == 1
    out[0][0] = (void *)calloc((size_t)knum*(size_t)jnum*(size_t)inum, elsize);
+#else
+   out[0][0] = (void *)malloc((size_t)knum*(size_t)jnum*(size_t)inum * elsize);
+#endif
    genmalloc_memory_add(out[0][0], mem_size);
 
    for (int k = 0; k < knum; k++)
