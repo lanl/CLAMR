@@ -66,6 +66,7 @@ FIND_PATH(OPENCL_INCLUDE_DIRS CL/cl.h PATHS
 /usr/local/cuda/include
 /usr/projects/hpcsoft/moonlight/cudatoolkit-4.2/include
 /home/cuda/cuda4.2/include
+/opt/cudatoolkit-5.0/include
 /opt/cudatoolkit-4.1/include
 )
 
