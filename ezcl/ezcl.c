@@ -1560,6 +1560,159 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
    return(kernel);
 }
 
+cl_program ezcl_create_program_wsource_p(cl_context context, const char *source, int flags, const char *file, const int line){
+   cl_kernel kernel;
+   cl_int ierr;
+   size_t nReportSize;
+   char *BuildReport;
+   char *filename_copy;
+   
+   program = clCreateProgramWithSource(context, 1, (const char **)&source, NULL, &ierr);
+   if (ierr != CL_SUCCESS){
+      printf("EZCL_CREATE_KERNEL: clBuildProgramWithSource returned an error %d in file %s at line %d\n",ierr, file, line);
+      switch (ierr){
+      case CL_INVALID_CONTEXT:
+       printf("Invalid context in clBuildProgramWithSource\n");
+       break;
+      case CL_INVALID_VALUE:
+        printf("Invalid value in clBuildProgramWithSource\n");
+        break;
+      case CL_OUT_OF_HOST_MEMORY:
+        printf("Out of host memory in clBuildProgramWithSource\n");
+        break;
+     }
+   }
+
+#ifdef HAVE_CL_DOUBLE
+   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
+      ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
+   } else {
+      ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE", NULL, NULL);
+   }
+#else
+   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
+      ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
+   } else {
+      ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE", NULL, NULL);
+   }
+#endif
+   if (ierr != CL_SUCCESS){
+      printf("EZCL_CREATE_KERNEL: clBuildProgram returned an error %d in file %s at line %d\n",ierr, file, line);
+        switch (ierr){
+        case CL_INVALID_PROGRAM:
+          printf("Invalid program in clBuildProgram\n");
+          break;
+        case CL_INVALID_VALUE:
+          printf("Invalid value in clBuildProgram\n");
+          break;
+        case CL_INVALID_DEVICE:
+          printf("Invalid device in clBuildProgram\n");
+          break;
+        case CL_INVALID_BUILD_OPTIONS:
+          printf("Invalid build options in clBuildProgram\n");
+          break;
+        case CL_INVALID_OPERATION:
+          printf("Invalid operation in clBuildProgram\n");
+          break;
+        case CL_COMPILER_NOT_AVAILABLE:
+          printf("CL compiler not available in clBuildProgram\n");
+          break;
+        case CL_BUILD_PROGRAM_FAILURE:
+          printf("Build program failure in clBuildProgram\n");
+          ierr = clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, 0L, NULL, &nReportSize);
+          if (ierr != CL_SUCCESS) {
+            switch (ierr){
+               case CL_INVALID_DEVICE:
+                  printf("Invalid device in clProgramBuildInfo\n");
+                  break;
+               case CL_INVALID_VALUE:
+                  printf("Invalid value in clProgramBuildInfo\n");
+                  break;
+               case CL_INVALID_PROGRAM:
+                  printf("Invalid program in clProgramBuildInfo\n");
+                  break;
+               }
+            }
+                 
+            BuildReport = (char *)malloc(nReportSize);
+                 
+            ierr = clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, nReportSize, BuildReport, NULL);
+            if (ierr != CL_SUCCESS) {
+               switch (ierr){
+                  case CL_INVALID_DEVICE:
+                     printf("Invalid device in clProgramBuildInfo\n");
+                     break;
+                  case CL_INVALID_VALUE:
+                     printf("Invalid value in clProgramBuildInfo\n");
+                     break;
+                  case CL_INVALID_PROGRAM:
+                     printf("Invalid program in clProgramBuildInfo\n");
+                     break;
+               }
+            }
+              
+            printf("EZCL_CREATE_KERNEL: Build Log: %s\n",BuildReport);
+            free(BuildReport);
+            exit(-1);
+            break;
+        case CL_OUT_OF_HOST_MEMORY:
+          printf("Out of host memory in clBuildProgram\n");
+          break;
+        }
+   } else {
+      if (DEBUG)
+         printf("EZCL_CREATE_PROGRAM: Build is SUCCESSFUL with no errors\n");
+   }
+
+   object_item = malloc(sizeof(struct object_entry));
+   object_item->object_type = PROGRAM_OBJECT;
+   object_item->program = program;
+   snprintf(object_item->name,(size_t)30,"%-30s",source);
+   object_item->line = line;
+   snprintf(object_item->file,(size_t)30,"%-30s",file);
+   char *filename = "dummy";
+   filename_copy = (char *)malloc(strlen(filename) + 1);
+   strcpy(filename_copy, filename);
+   object_item->filename = filename_copy;
+   if (DEBUG) printf("EZCL_CREATE_KERNEL: DEBUG -- program is %p\n",program);
+   SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
+
+   return(program);
+}
+
+cl_kernel ezcl_create_kernel_wprogram_p(cl_program program, const char *kernel_name, const char *file, const int line){
+   cl_kernel kernel;
+   cl_int ierr;
+   
+   kernel = clCreateKernel(program, kernel_name, &ierr);
+   if (ierr != CL_SUCCESS){
+      /* Possible Errors
+        case CL_INVALID_PROGRAM:
+        case CL_INVALID_PROGRAM_EXECUTABLE:
+        case CL_INVALID_KERNEL_NAME:
+        case CL_INVALID_KERNEL_DEFINITION:
+        case CL_INVALID_VALUE:
+        case CL_OUT_OF_HOST_MEMORY:
+      */
+      ezcl_print_error(ierr, "EZCL_CREATE_PROGRAM", "clCreateKernel", file, line);
+      exit(-1);
+   }
+
+   object_item = malloc(sizeof(struct object_entry));
+   object_item->object_type = KERNEL_OBJECT;
+   object_item->kernel = kernel;
+   snprintf(object_item->name,(size_t)30,"%-30s",kernel_name);
+   object_item->line = line;
+   snprintf(object_item->file,(size_t)30,"%-30s",file);
+   if (DEBUG) printf("EZCL_CREATE_KERNEL: DEBUG -- kernel is %p\n",kernel);
+   SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
+
+   ezcl_program_release(program);
+
+   return(kernel);
+}
+
+
 void ezcl_enqueue_write_buffer_p(cl_command_queue command_queue, cl_mem mem_buffer, cl_bool blocking_flag, 
                             size_t offset, size_t size, const void *ptr, cl_event *event, const char *file, int line)
 {

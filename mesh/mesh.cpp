@@ -179,7 +179,7 @@ static double write_hash_collisions_runsum = 0.0;
 static double read_hash_collisions_runsum = 0.0;
 static uint write_hash_collisions_count = 0;
 static uint read_hash_collisions_count = 0;
-static uint hash_report_level = 0;
+static uint hash_report_level = 2;
 static uint hash_queries;
 static uint hash_method = 1;
 static uint hash_jump_prime = 41;
@@ -187,6 +187,9 @@ static double hash_mult = 3.0;
 static int do_compact_hash = 0;
 
 float mem_opt_factor;
+
+int   hash_type = DEFAULT_HASH;
+int   choose_hash_method = DEFAULT_METHOD;
 
 void compact_hash_delete(int *hash){
       genvectorfree((void *)hash);
@@ -207,6 +210,11 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
    float hash_mem_ratio = (double)perfect_hash_size/(double)compact_hash_size;
    if (mem_opt_factor != 1.0) hash_mem_factor /= (mem_opt_factor*0.2); 
    do_compact_hash = (hash_mem_ratio < hash_mem_factor) ? 0 : 1;
+   if (hash_type == PERFECT_HASH) do_compact_hash = 0;
+   if (hash_type == COMPACT_HASH) do_compact_hash = 1;
+   if (choose_hash_method == LINEAR) hash_method = 0;
+   if (choose_hash_method == QUADRATIC) hash_method = 1;
+   if (choose_hash_method == PRIME_JUMP) hash_method = 2;
    if (hash_report_level >= 2) printf("DEBUG do_compact_hash %d hash_mem_ratio %f hash_mem_factor %f mem_opt_factor %f perfect_hash_size %u compact_hash_size %u\n",do_compact_hash,hash_mem_ratio,hash_mem_factor,mem_opt_factor,perfect_hash_size,compact_hash_size);
 
    if (do_compact_hash) {
@@ -599,6 +607,7 @@ void write_hash_collision_report(void){
 }
 
 void read_hash_collision_report(void){
+   //printf("hash table size  bytes %ld\n",hashtablesize*sizeof(int));
    if (! do_compact_hash) return;
    if (hash_report_level == 1) {
       read_hash_collisions_runsum += (double)read_hash_collisions/(double)hash_queries;
@@ -611,7 +620,8 @@ void read_hash_collision_report(void){
 }
 
 void Mesh::final_hash_collision_report(void){
-   if (hash_report_level >= 1 && read_hash_collisions_count > 0) {
+   printf("hash table size  bytes %ld\n",hashtablesize*sizeof(int));
+   if (hash_report_level >= 1 && read_hash_collisions_count > 0) { 
       printf("Final hash collision report -- write/read collisions per cell %lf/%lf\n",write_hash_collisions_runsum/(double)write_hash_collisions_count,read_hash_collisions_runsum/(double)read_hash_collisions_count);
    }
 }
@@ -1714,49 +1724,52 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
 
    if (do_gpu_calc) {
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in mesh\n");
+      cl_program program = ezcl_create_program_wsource(context, mesh_kern_source, 0);
 
-      kernel_reduction_scan2          = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_reduction_scan2_cl",   0);
-      kernel_reduction_count          = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_reduction_count_cl",   0);
-      kernel_reduction_count2         = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_reduction_count2_cl",  0);
-      kernel_hash_init                = ezcl_create_kernel_wsource(context, mesh_kern_source, "hash_init_cl",                0);
-      kernel_hash_init_corners        = ezcl_create_kernel_wsource(context, mesh_kern_source, "hash_init_corners_cl",        0);
-      kernel_hash_setup               = ezcl_create_kernel_wsource(context, mesh_kern_source, "hash_setup_cl",               0);
-      kernel_hash_setup_local         = ezcl_create_kernel_wsource(context, mesh_kern_source, "hash_setup_local_cl",         0);
-      kernel_calc_neighbors           = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_neighbors_cl",           0);
-      kernel_calc_neighbors_local     = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_neighbors_local_cl",     0);
-      kernel_calc_border_cells        = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_border_cells_cl",        0);
-      kernel_calc_border_cells2       = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_border_cells2_cl",       0);
-      kernel_finish_scan              = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_scan_cl",              0);
-      kernel_get_border_data          = ezcl_create_kernel_wsource(context, mesh_kern_source, "get_border_data_cl",          0);
-      kernel_calc_layer1              = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_layer1_cl",              0);
-      kernel_calc_layer1_sethash      = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_layer1_sethash_cl",      0);
-      kernel_calc_layer2              = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_layer2_cl",              0);
-      kernel_get_border_data2         = ezcl_create_kernel_wsource(context, mesh_kern_source, "get_border_data2_cl",         0);
-      kernel_calc_layer2_sethash      = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_layer2_sethash_cl",      0);
-      kernel_copy_mesh_data           = ezcl_create_kernel_wsource(context, mesh_kern_source, "copy_mesh_data_cl",           0);
-      kernel_fill_mesh_ghost          = ezcl_create_kernel_wsource(context, mesh_kern_source, "fill_mesh_ghost_cl",          0);
-      kernel_fill_neighbor_ghost      = ezcl_create_kernel_wsource(context, mesh_kern_source, "fill_neighbor_ghost_cl",      0);
-      kernel_set_corner_neighbor      = ezcl_create_kernel_wsource(context, mesh_kern_source, "set_corner_neighbor_cl",      0);
-      kernel_adjust_neighbors_local   = ezcl_create_kernel_wsource(context, mesh_kern_source, "adjust_neighbors_local_cl",   0);
-      kernel_hash_size                = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_hash_size_cl",           0);
-      kernel_finish_hash_size         = ezcl_create_kernel_wsource(context, mesh_kern_source, "finish_reduction_minmax4_cl", 0);
-      kernel_calc_spatial_coordinates = ezcl_create_kernel_wsource(context, mesh_kern_source, "calc_spatial_coordinates_cl", 0);
-      kernel_do_load_balance_lower    = ezcl_create_kernel_wsource(context, mesh_kern_source, "do_load_balance_lower_cl",    0);
-      kernel_do_load_balance_middle   = ezcl_create_kernel_wsource(context, mesh_kern_source, "do_load_balance_middle_cl",   0);
-      kernel_do_load_balance_upper    = ezcl_create_kernel_wsource(context, mesh_kern_source, "do_load_balance_upper_cl",    0);
-      kernel_do_load_balance          = ezcl_create_kernel_wsource(context, mesh_kern_source, "do_load_balance_cl",          0);
-      kernel_refine_smooth            = ezcl_create_kernel_wsource(context, mesh_kern_source, "refine_smooth_cl",            0);
-      kernel_coarsen_smooth           = ezcl_create_kernel_wsource(context, mesh_kern_source, "coarsen_smooth_cl",           0);
-      kernel_coarsen_check_block      = ezcl_create_kernel_wsource(context, mesh_kern_source, "coarsen_check_block_cl",      0);
-      kernel_rezone_all               = ezcl_create_kernel_wsource(context, mesh_kern_source, "rezone_all_cl",               0);
-      kernel_rezone_one               = ezcl_create_kernel_wsource(context, mesh_kern_source, "rezone_one_cl",               0);
-      kernel_copy_mpot_ghost_data     = ezcl_create_kernel_wsource(context, mesh_kern_source, "copy_mpot_ghost_data_cl",     0);
-      kernel_set_boundary_refinement  = ezcl_create_kernel_wsource(context, mesh_kern_source, "set_boundary_refinement",     0);
+      kernel_reduction_scan2          = ezcl_create_kernel_wprogram(program, "finish_reduction_scan2_cl");
+      kernel_reduction_count          = ezcl_create_kernel_wprogram(program, "finish_reduction_count_cl");
+      kernel_reduction_count2         = ezcl_create_kernel_wprogram(program, "finish_reduction_count2_cl");
+      kernel_hash_init                = ezcl_create_kernel_wprogram(program, "hash_init_cl");
+      kernel_hash_init_corners        = ezcl_create_kernel_wprogram(program, "hash_init_corners_cl");
+      kernel_hash_setup               = ezcl_create_kernel_wprogram(program, "hash_setup_cl");
+      kernel_hash_setup_local         = ezcl_create_kernel_wprogram(program, "hash_setup_local_cl");
+      kernel_calc_neighbors           = ezcl_create_kernel_wprogram(program, "calc_neighbors_cl");
+      kernel_calc_neighbors_local     = ezcl_create_kernel_wprogram(program, "calc_neighbors_local_cl");
+      kernel_calc_border_cells        = ezcl_create_kernel_wprogram(program, "calc_border_cells_cl");
+      kernel_calc_border_cells2       = ezcl_create_kernel_wprogram(program, "calc_border_cells2_cl");
+      kernel_finish_scan              = ezcl_create_kernel_wprogram(program, "finish_scan_cl");
+      kernel_get_border_data          = ezcl_create_kernel_wprogram(program, "get_border_data_cl");
+      kernel_calc_layer1              = ezcl_create_kernel_wprogram(program, "calc_layer1_cl");
+      kernel_calc_layer1_sethash      = ezcl_create_kernel_wprogram(program, "calc_layer1_sethash_cl");
+      kernel_calc_layer2              = ezcl_create_kernel_wprogram(program, "calc_layer2_cl");
+      kernel_get_border_data2         = ezcl_create_kernel_wprogram(program, "get_border_data2_cl");
+      kernel_calc_layer2_sethash      = ezcl_create_kernel_wprogram(program, "calc_layer2_sethash_cl");
+      kernel_copy_mesh_data           = ezcl_create_kernel_wprogram(program, "copy_mesh_data_cl");
+      kernel_fill_mesh_ghost          = ezcl_create_kernel_wprogram(program, "fill_mesh_ghost_cl");
+      kernel_fill_neighbor_ghost      = ezcl_create_kernel_wprogram(program, "fill_neighbor_ghost_cl");
+      kernel_set_corner_neighbor      = ezcl_create_kernel_wprogram(program, "set_corner_neighbor_cl");
+      kernel_adjust_neighbors_local   = ezcl_create_kernel_wprogram(program, "adjust_neighbors_local_cl");
+      kernel_hash_size                = ezcl_create_kernel_wprogram(program, "calc_hash_size_cl");
+      kernel_finish_hash_size         = ezcl_create_kernel_wprogram(program, "finish_reduction_minmax4_cl");
+      kernel_calc_spatial_coordinates = ezcl_create_kernel_wprogram(program, "calc_spatial_coordinates_cl");
+      kernel_do_load_balance_lower    = ezcl_create_kernel_wprogram(program, "do_load_balance_lower_cl");
+      kernel_do_load_balance_middle   = ezcl_create_kernel_wprogram(program, "do_load_balance_middle_cl");
+      kernel_do_load_balance_upper    = ezcl_create_kernel_wprogram(program, "do_load_balance_upper_cl");
+      kernel_do_load_balance          = ezcl_create_kernel_wprogram(program, "do_load_balance_cl");
+      kernel_refine_smooth            = ezcl_create_kernel_wprogram(program, "refine_smooth_cl");
+      kernel_coarsen_smooth           = ezcl_create_kernel_wprogram(program, "coarsen_smooth_cl");
+      kernel_coarsen_check_block      = ezcl_create_kernel_wprogram(program, "coarsen_check_block_cl");
+      kernel_rezone_all               = ezcl_create_kernel_wprogram(program, "rezone_all_cl");
+      kernel_rezone_one               = ezcl_create_kernel_wprogram(program, "rezone_one_cl");
+      kernel_copy_mpot_ghost_data     = ezcl_create_kernel_wprogram(program, "copy_mpot_ghost_data_cl");
+      kernel_set_boundary_refinement  = ezcl_create_kernel_wprogram(program, "set_boundary_refinement");
       init_kernel_2stage_sum(context);
       init_kernel_2stage_sum_int(context);
       if (! have_boundary){
-        kernel_count_BCs              = ezcl_create_kernel_wsource(context, mesh_kern_source, "count_BCs_cl",                0);
+        kernel_count_BCs              = ezcl_create_kernel_wprogram(program, "count_BCs_cl");
       }
+
+      ezcl_program_release(program);
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in mesh\n");
    }
 #endif
@@ -3922,7 +3935,7 @@ void Mesh::calc_neighbors(void)
             if (iicur < 1*levtable[levmx]) {
                if (ntopval < 0) {
                   int iirhtfiner = (iicur+iirht)/2;
-                  ntopval = hash[jjtop][iirhtfiner]);
+                  ntopval = hash[jjtop][iirhtfiner];
                }
                if (nbotval < 0) {
                   int iirhtfiner = (iicur+iirht)/2;
@@ -6676,6 +6689,16 @@ void Mesh::gpu_calc_neighbors(void)
 #endif
    size_t hashsize;
 
+// allow imput.c to control hash types and methods
+   if (hash_type == PERFECT_HASH) gpu_do_compact_hash = 0;
+   if (hash_type == COMPACT_HASH) gpu_do_compact_hash = 1;
+   
+   if (choose_hash_method == LINEAR) hash_method = 0;
+   if (choose_hash_method == QUADRATIC) hash_method = 1;
+   if (choose_hash_method == PRIME_JUMP) hash_method = 2;
+//=========
+
+
    if (gpu_do_compact_hash) {
       gpu_hash_method = 1;
       gpu_hash_table_size = gpu_compact_hash_size;
@@ -6683,13 +6706,17 @@ void Mesh::gpu_calc_neighbors(void)
       gpu_AA = (ulong)(1.0+(double)(prime-1)*drand48());
       gpu_BB = (ulong)(0.0+(double)(prime-1)*drand48());
       if (gpu_AA > prime-1 || gpu_BB > prime-1) exit(0);
+
       if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",gpu_AA,gpu_BB);
    } else {
       gpu_hash_table_size = gpu_perfect_hash_size;
       hashsize = gpu_perfect_hash_size;
    }
-
+   
+   hash_report_level = 1;
+   hashtablesize = hashsize;
    cl_mem dev_hash = ezcl_malloc(NULL, const_cast<char *>("dev_hash"), &hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   
 #endif
 
    size_t hash_local_work_size  = MIN(hashsize, TILE_SIZE);
@@ -8414,6 +8441,7 @@ void Mesh::print_calc_neighbor_type(void)
       if (mype == 0) printf("Using hash tables to calculate neighbors\n");
       if (mype == 0 && numpe == 1) final_hash_collision_report();
    } else {
+      printf("hash table size %ld\n",ncells*log(ncells)*sizeof(int));
       if (mype == 0) printf("Using k-D tree to calculate neighbors\n");
    }
 }

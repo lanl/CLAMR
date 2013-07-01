@@ -92,6 +92,8 @@ extern int  outputInterval,
             niter,
             measure_type,
             calc_neighbor_type,
+            hash_type,
+	    choose_hash_method,
             initial_order,
             cycle_reorder;
 extern float
@@ -105,6 +107,13 @@ void outputHelp()
          << "Version is " << PACKAGE_VERSION << endl << endl
          << "Usage:  " << progName << " [options]..." << endl
          << "  -c                turn on CPU profiling;" << endl
+         << "  -e <E>            force hash_method, ie linear, quadratic..." <<endl          
+         << "      \"linear\"" << endl
+         << "      \"quadratic\"" << endl
+         << "      \"prime_jump\"" << endl
+         << "  -f <F>            force perfect or compact hash" <<endl          
+         << "      \"perfect\"" << endl
+         << "      \"compact\"" << endl
          << "  -g                turn on GPU profiling;" << endl
          << "  -h                display this help message;" << endl
          << "  -i <I>            specify I steps between output files;" << endl
@@ -165,6 +174,8 @@ void parseInput(const int argc, char** argv)
     niter              = MAX_TIME_STEP;
     measure_type       = CVALUE;
     calc_neighbor_type = HASH_TABLE;
+    hash_type          = DEFAULT_HASH;
+    choose_hash_method = DEFAULT_METHOD;
     initial_order      = HILBERT_SORT;
     cycle_reorder      = ORIGINAL_ORDER;
     levmx              = 1;
@@ -179,6 +190,26 @@ void parseInput(const int argc, char** argv)
         {   switch (val[0])
             {   case 'c':   //  Turn on CPU profiling.
                     //do_cpu_calc = 1;
+                    break;
+
+                case 'e':   //  hash method specified.
+                    val = strtok(argv[i++], " ,");
+                    if (! strcmp(val,"linear") ) {
+                       choose_hash_method = LINEAR;
+                    } else if (! strcmp(val,"quadratic") ) {
+                       choose_hash_method = QUADRATIC;
+                    } else if (! strcmp(val,"prime_jump") ) {
+                       choose_hash_method = PRIME_JUMP;
+                    }
+                    break;
+
+                case 'f':   //  hash type specified.
+                    val = strtok(argv[i++], " ,");
+                    if (! strcmp(val,"perfect") ) {
+                       hash_type = PERFECT_HASH;
+                    } else if (! strcmp(val,"compact") ) {
+                       hash_type = COMPACT_HASH;
+                    }
                     break;
                     
                 case 'g':   //  Turn on GPU profiling.
