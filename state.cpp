@@ -219,16 +219,20 @@ void State::init(size_t ncells, int do_gpu_calc)
       cl_context context = ezcl_get_context();
 
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in state\n");
-      kernel_set_timestep                = ezcl_create_kernel_wsource(context, state_kern_source, "set_timestep_cl",                0);
-      kernel_reduction_min               = ezcl_create_kernel_wsource(context, state_kern_source, "finish_reduction_min_cl",        0);
-      kernel_copy_state_data             = ezcl_create_kernel_wsource(context, state_kern_source, "copy_state_data_cl",             0);
-      kernel_copy_state_ghost_data       = ezcl_create_kernel_wsource(context, state_kern_source, "copy_state_ghost_data_cl",       0);
-      kernel_calc_finite_difference      = ezcl_create_kernel_wsource(context, state_kern_source, "calc_finite_difference_cl",      0);
-      kernel_refine_potential            = ezcl_create_kernel_wsource(context, state_kern_source, "refine_potential_cl",            0);
-      kernel_reduce_sum_mass_stage1of2   = ezcl_create_kernel_wsource(context, state_kern_source, "reduce_sum_mass_stage1of2_cl",   0);
-      kernel_reduce_sum_mass_stage2of2   = ezcl_create_kernel_wsource(context, state_kern_source, "reduce_sum_mass_stage2of2_cl",   0);
-      kernel_reduce_epsum_mass_stage1of2 = ezcl_create_kernel_wsource(context, state_kern_source, "reduce_epsum_mass_stage1of2_cl", 0);
-      kernel_reduce_epsum_mass_stage2of2 = ezcl_create_kernel_wsource(context, state_kern_source, "reduce_epsum_mass_stage2of2_cl", 0);
+      cl_program program                 = ezcl_create_program_wsource(context, state_kern_source, 0);
+
+      kernel_set_timestep                = ezcl_create_kernel_wprogram(program, "set_timestep_cl");
+      kernel_reduction_min               = ezcl_create_kernel_wprogram(program, "finish_reduction_min_cl");
+      kernel_copy_state_data             = ezcl_create_kernel_wprogram(program, "copy_state_data_cl");
+      kernel_copy_state_ghost_data       = ezcl_create_kernel_wprogram(program, "copy_state_ghost_data_cl");
+      kernel_calc_finite_difference      = ezcl_create_kernel_wprogram(program, "calc_finite_difference_cl");
+      kernel_refine_potential            = ezcl_create_kernel_wprogram(program, "refine_potential_cl");
+      kernel_reduce_sum_mass_stage1of2   = ezcl_create_kernel_wprogram(program, "reduce_sum_mass_stage1of2_cl");
+      kernel_reduce_sum_mass_stage2of2   = ezcl_create_kernel_wprogram(program, "reduce_sum_mass_stage2of2_cl");
+      kernel_reduce_epsum_mass_stage1of2 = ezcl_create_kernel_wprogram(program, "reduce_epsum_mass_stage1of2_cl");
+      kernel_reduce_epsum_mass_stage2of2 = ezcl_create_kernel_wprogram(program, "reduce_epsum_mass_stage2of2_cl");
+
+      ezcl_program_release(program);
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in state\n");
    }
 #endif
