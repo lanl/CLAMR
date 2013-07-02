@@ -239,16 +239,13 @@ __kernel void hash_init_cl(
    hash[giX] = -1;
 }
 
-__kernel void hash_init_corners_cl(
+__kernel void hash_adjust_sizes_cl(
                           const int  isize,      // 0
                           const int  levmx,      // 1
                           const int  imax,       // 2
                           const int  jmax,       // 3
                  __global const int  *levtable,  // 4
-                 __global const int  *corners_i, // 5
-                 __global const int  *corners_j, // 6
-                 __global const int4 *sizes,     // 7
-                 __global       int  *hash)      // 8
+                 __global const int4 *sizes)     // 5
 {
    const uint giX  = get_global_id(0);
 
@@ -264,27 +261,16 @@ __kernel void hash_init_corners_cl(
 __kernel void hash_setup_cl(
                           const int  isize,            // 0
                           const int  levmx,            // 1
-                          const int  imax,             // 2
-                          const int  jmax,             // 3
-                          const int  imaxsize,         // 4
-                          const int  hash_method,      // 5
-                          const ulong hash_table_size, // 6
-                          const ulong AA,              // 7
-                          const ulong BB,              // 8
-                 __global const int  *levtable,        // 9
-                 __global const int  *lev_ibeg,        // 10
-                 __global const int  *lev_iend,        // 11
-                 __global const int  *lev_jbeg,        // 12
-                 __global const int  *lev_jend,        // 13
-                 __global const int  *level,           // 14
-                 __global const int  *i,               // 15
-                 __global const int  *j,               // 16
-                 __global       int  *hash)            // 17
-      //do_compact_hash = do_compact_hash_in;
-      //hash_method     = hash_method_in;
-      //hash_table_size = hash_table_size_in;
-      //AA              = AA_in;
-      //BB              = BB_in;
+                          const int  imaxsize,         // 2
+                          const int  hash_method,      // 3
+                          const ulong hash_table_size, // 4
+                          const ulong AA,              // 5
+                          const ulong BB,              // 6
+                 __global const int  *levtable,        // 7
+                 __global const int  *level,           // 8
+                 __global const int  *i,               // 9
+                 __global const int  *j,               // 10
+                 __global       int  *hash)            // 11
 {
 
    const uint giX  = get_global_id(0);
@@ -314,14 +300,10 @@ __kernel void hash_setup_local_cl(
                           const ulong BB,              // 8
                  __global const int4  *sizes,          // 9
                  __global const int   *levtable,       // 10
-                 __global const int   *lev_ibeg,       // 11
-                 __global const int   *lev_iend,       // 12
-                 __global const int   *lev_jbeg,       // 13
-                 __global const int   *lev_jend,       // 14
-                 __global const int   *level,          // 15
-                 __global const int   *i,              // 16
-                 __global const int   *j,              // 17
-                 __global       int   *hash)           // 18
+                 __global const int   *level,          // 11
+                 __global const int   *i,              // 12
+                 __global const int   *j,              // 13
+                 __global       int   *hash)           // 14
 {
 
    const unsigned int giX  = get_global_id(0);

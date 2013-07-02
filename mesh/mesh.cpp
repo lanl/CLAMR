@@ -127,7 +127,7 @@ extern bool localStencil;
 int calc_neighbor_type;
 
 cl_kernel      kernel_hash_init;
-cl_kernel      kernel_hash_init_corners;
+cl_kernel      kernel_hash_adjust_sizes;
 cl_kernel      kernel_hash_setup;
 cl_kernel      kernel_hash_setup_local;
 cl_kernel      kernel_calc_neighbors;
@@ -1728,7 +1728,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       kernel_reduction_count          = ezcl_create_kernel_wprogram(program, "finish_reduction_count_cl");
       kernel_reduction_count2         = ezcl_create_kernel_wprogram(program, "finish_reduction_count2_cl");
       kernel_hash_init                = ezcl_create_kernel_wprogram(program, "hash_init_cl");
-      kernel_hash_init_corners        = ezcl_create_kernel_wprogram(program, "hash_init_corners_cl");
+      kernel_hash_adjust_sizes        = ezcl_create_kernel_wprogram(program, "hash_adjust_sizes_cl");
       kernel_hash_setup               = ezcl_create_kernel_wprogram(program, "hash_setup_cl");
       kernel_hash_setup_local         = ezcl_create_kernel_wprogram(program, "hash_setup_local_cl");
       kernel_calc_neighbors           = ezcl_create_kernel_wprogram(program, "calc_neighbors_cl");
@@ -2513,7 +2513,7 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_reduction_count);
       ezcl_kernel_release(kernel_reduction_count2);
       ezcl_kernel_release(kernel_hash_init);
-      ezcl_kernel_release(kernel_hash_init_corners);
+      ezcl_kernel_release(kernel_hash_adjust_sizes);
       ezcl_kernel_release(kernel_hash_setup);
       ezcl_kernel_release(kernel_hash_setup_local);
       ezcl_kernel_release(kernel_calc_neighbors);
@@ -5611,42 +5611,34 @@ void Mesh::gpu_calc_neighbors(void)
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, NULL);
 
       /*
-                    const int  isize,     // 0
-                    const int  levmx,     // 1
-                    const int  imax,      // 2
-                    const int  jmax,      // 3
-                    const int  imaxsize,  // 4
-           __global const int  *levtable, // 5
-           __global const int  *lev_ibeg, // 6
-           __global const int  *lev_iend, // 7
-           __global const int  *lev_jbeg, // 8
-           __global const int  *lev_jend, // 9
-           __global       int  *level,    // 10
-           __global       int  *i,        // 11
-           __global       int  *j,        // 12
-           __global       int  *hash)     // 13
+                    const int   isize,           // 0
+                    const int   levmx,           // 1
+                    const int   imaxsize,        // 2
+                    const int   hash_method,     // 3
+                    const int   hash_table_size, // 4
+                    const ulong AA,              // 5
+                    const ulong BB,              // 6
+           __global const int   *levtable,       // 7
+           __global       int   *level,          // 8
+           __global       int   *i,              // 9
+           __global       int   *j,              // 10
+           __global       int   *hash)           // 11
       */
 
    cl_event hash_setup_event;
 
    ezcl_set_kernel_arg(kernel_hash_setup,  0, sizeof(cl_int),   (void *)&ncells);
    ezcl_set_kernel_arg(kernel_hash_setup,  1, sizeof(cl_int),   (void *)&levmx);
-   ezcl_set_kernel_arg(kernel_hash_setup,  2, sizeof(cl_int),   (void *)&imax);
-   ezcl_set_kernel_arg(kernel_hash_setup,  3, sizeof(cl_int),   (void *)&jmax);
-   ezcl_set_kernel_arg(kernel_hash_setup,  4, sizeof(cl_int),   (void *)&imaxsize);
-   ezcl_set_kernel_arg(kernel_hash_setup,  5, sizeof(cl_int),   (void *)&gpu_hash_method);
-   ezcl_set_kernel_arg(kernel_hash_setup,  6, sizeof(cl_ulong), (void *)&gpu_hash_table_size);
-   ezcl_set_kernel_arg(kernel_hash_setup,  7, sizeof(cl_ulong), (void *)&gpu_AA);
-   ezcl_set_kernel_arg(kernel_hash_setup,  8, sizeof(cl_ulong), (void *)&gpu_BB);
-   ezcl_set_kernel_arg(kernel_hash_setup,  9, sizeof(cl_mem),   (void *)&dev_levtable);
-   ezcl_set_kernel_arg(kernel_hash_setup, 10, sizeof(cl_mem),   (void *)&dev_levibeg);
-   ezcl_set_kernel_arg(kernel_hash_setup, 11, sizeof(cl_mem),   (void *)&dev_leviend);
-   ezcl_set_kernel_arg(kernel_hash_setup, 12, sizeof(cl_mem),   (void *)&dev_levjbeg);
-   ezcl_set_kernel_arg(kernel_hash_setup, 13, sizeof(cl_mem),   (void *)&dev_levjend);
-   ezcl_set_kernel_arg(kernel_hash_setup, 14, sizeof(cl_mem),   (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_hash_setup, 15, sizeof(cl_mem),   (void *)&dev_i);
-   ezcl_set_kernel_arg(kernel_hash_setup, 16, sizeof(cl_mem),   (void *)&dev_j);
-   ezcl_set_kernel_arg(kernel_hash_setup, 17, sizeof(cl_mem),   (void *)&dev_hash);
+   ezcl_set_kernel_arg(kernel_hash_setup,  2, sizeof(cl_int),   (void *)&imaxsize);
+   ezcl_set_kernel_arg(kernel_hash_setup,  3, sizeof(cl_int),   (void *)&gpu_hash_method);
+   ezcl_set_kernel_arg(kernel_hash_setup,  4, sizeof(cl_ulong), (void *)&gpu_hash_table_size);
+   ezcl_set_kernel_arg(kernel_hash_setup,  5, sizeof(cl_ulong), (void *)&gpu_AA);
+   ezcl_set_kernel_arg(kernel_hash_setup,  6, sizeof(cl_ulong), (void *)&gpu_BB);
+   ezcl_set_kernel_arg(kernel_hash_setup,  7, sizeof(cl_mem),   (void *)&dev_levtable);
+   ezcl_set_kernel_arg(kernel_hash_setup,  8, sizeof(cl_mem),   (void *)&dev_level);
+   ezcl_set_kernel_arg(kernel_hash_setup,  9, sizeof(cl_mem),   (void *)&dev_i);
+   ezcl_set_kernel_arg(kernel_hash_setup, 10, sizeof(cl_mem),   (void *)&dev_j);
+   ezcl_set_kernel_arg(kernel_hash_setup, 11, sizeof(cl_mem),   (void *)&dev_hash);
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_setup,   1, NULL, &global_work_size, &local_work_size, &hash_setup_event);
 
    ezcl_wait_for_events(1, &hash_setup_event);
@@ -5868,16 +5860,13 @@ void Mesh::gpu_calc_neighbors_local(void)
    size_t corners_local_work_size  = MIN(csize, TILE_SIZE);
    size_t corners_global_work_size = ((csize+corners_local_work_size - 1) /corners_local_work_size) * corners_local_work_size;
 
-   ezcl_set_kernel_arg(kernel_hash_init_corners, 0, sizeof(cl_int), (void *)&csize);
-   ezcl_set_kernel_arg(kernel_hash_init_corners, 1, sizeof(cl_int), (void *)&levmx);
-   ezcl_set_kernel_arg(kernel_hash_init_corners, 2, sizeof(cl_int), (void *)&imax);
-   ezcl_set_kernel_arg(kernel_hash_init_corners, 3, sizeof(cl_int), (void *)&jmax);
-   ezcl_set_kernel_arg(kernel_hash_init_corners, 4, sizeof(cl_mem), (void *)&dev_levtable);
-   ezcl_set_kernel_arg(kernel_hash_init_corners, 5, sizeof(cl_mem), (void *)&dev_corners_i);
-   ezcl_set_kernel_arg(kernel_hash_init_corners, 6, sizeof(cl_mem), (void *)&dev_corners_j);
-   ezcl_set_kernel_arg(kernel_hash_init_corners, 7, sizeof(cl_mem), (void *)&dev_sizes);
-   ezcl_set_kernel_arg(kernel_hash_init_corners, 8, sizeof(cl_mem), (void *)&dev_hash);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init_corners,   1, NULL, &corners_global_work_size, &corners_local_work_size, NULL);
+   ezcl_set_kernel_arg(kernel_hash_adjust_sizes, 0, sizeof(cl_int), (void *)&csize);
+   ezcl_set_kernel_arg(kernel_hash_adjust_sizes, 1, sizeof(cl_int), (void *)&levmx);
+   ezcl_set_kernel_arg(kernel_hash_adjust_sizes, 2, sizeof(cl_int), (void *)&imax);
+   ezcl_set_kernel_arg(kernel_hash_adjust_sizes, 3, sizeof(cl_int), (void *)&jmax);
+   ezcl_set_kernel_arg(kernel_hash_adjust_sizes, 4, sizeof(cl_mem), (void *)&dev_levtable);
+   ezcl_set_kernel_arg(kernel_hash_adjust_sizes, 5, sizeof(cl_mem), (void *)&dev_sizes);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_adjust_sizes,   1, NULL, &corners_global_work_size, &corners_local_work_size, NULL);
 
    if (DEBUG){
       vector<int> sizes_tmp(4);
@@ -5917,13 +5906,21 @@ void Mesh::gpu_calc_neighbors_local(void)
    cl_event hash_setup_local_event;
 
       /*
-                    const int  isize,     // 0
-                    const int  levmx,     // 1
-           __global       int  *levtable, // 2
-           __global       int  *level,    // 3
-           __global       int  *i,        // 4
-           __global       int  *j,        // 5
-           __global       int  *hash)     // 6
+                    const int   isize,           // 0
+                    const int   levmx,           // 1
+                    const int   imax,            // 2
+                    const int   jmax,            // 3
+                    const int   noffset,         // 4
+                    const int   hash_method,     // 5
+                    const int   hash_table_size, // 6
+                    const ulong AA,              // 7
+                    const ulong BB,              // 8
+           __global       int   *sizes,          // 9
+           __global       int   *levtable,       // 10
+           __global       int   *level,          // 11
+           __global       int   *i,              // 12
+           __global       int   *j,              // 13
+           __global       int   *hash)           // 14
       */
 
    ezcl_set_kernel_arg(kernel_hash_setup_local,  0, sizeof(cl_int),   (void *)&ncells);
@@ -5937,14 +5934,10 @@ void Mesh::gpu_calc_neighbors_local(void)
    ezcl_set_kernel_arg(kernel_hash_setup_local,  8, sizeof(cl_ulong), (void *)&gpu_BB);
    ezcl_set_kernel_arg(kernel_hash_setup_local,  9, sizeof(cl_mem),   (void *)&dev_sizes);
    ezcl_set_kernel_arg(kernel_hash_setup_local, 10, sizeof(cl_mem),   (void *)&dev_levtable);
-   ezcl_set_kernel_arg(kernel_hash_setup_local, 11, sizeof(cl_mem),   (void *)&dev_levibeg);
-   ezcl_set_kernel_arg(kernel_hash_setup_local, 12, sizeof(cl_mem),   (void *)&dev_leviend);
-   ezcl_set_kernel_arg(kernel_hash_setup_local, 13, sizeof(cl_mem),   (void *)&dev_levjbeg);
-   ezcl_set_kernel_arg(kernel_hash_setup_local, 14, sizeof(cl_mem),   (void *)&dev_levjend);
-   ezcl_set_kernel_arg(kernel_hash_setup_local, 15, sizeof(cl_mem),   (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_hash_setup_local, 16, sizeof(cl_mem),   (void *)&dev_i);
-   ezcl_set_kernel_arg(kernel_hash_setup_local, 17, sizeof(cl_mem),   (void *)&dev_j);
-   ezcl_set_kernel_arg(kernel_hash_setup_local, 18, sizeof(cl_mem),   (void *)&dev_hash);
+   ezcl_set_kernel_arg(kernel_hash_setup_local, 11, sizeof(cl_mem),   (void *)&dev_level);
+   ezcl_set_kernel_arg(kernel_hash_setup_local, 12, sizeof(cl_mem),   (void *)&dev_i);
+   ezcl_set_kernel_arg(kernel_hash_setup_local, 13, sizeof(cl_mem),   (void *)&dev_j);
+   ezcl_set_kernel_arg(kernel_hash_setup_local, 14, sizeof(cl_mem),   (void *)&dev_hash);
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_setup_local,   1, NULL, &global_work_size, &local_work_size, &hash_setup_local_event);
 
    ezcl_wait_for_events(1, &hash_setup_local_event);
