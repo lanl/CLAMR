@@ -193,7 +193,7 @@ inline real w_corrector(
 }
 
 
-State::State(size_t ncells)
+State::State(Mesh *mesh_in)
 {
    cpu_time_apply_BCs          = 0;
    cpu_time_set_timestep       = 0;
@@ -210,9 +210,11 @@ State::State(size_t ncells)
    gpu_time_mass_sum           = 0;
    gpu_time_read               = 0;
    gpu_time_write              = 0;
+
+   mesh = mesh_in;
 }
 
-void State::init(size_t ncells, int do_gpu_calc)
+void State::init(int do_gpu_calc)
 {
 #ifdef HAVE_OPENCL
    if (do_gpu_calc) {
@@ -238,7 +240,7 @@ void State::init(size_t ncells, int do_gpu_calc)
 #endif
 
    //printf("\nDEBUG -- Calling state memory memory malloc at line %d\n",__LINE__);
-   allocate(ncells);
+   allocate(mesh->ncells);
    //state_memory.memory_report();
    //printf("DEBUG -- Finished state memory memory malloc at line %d\n\n",__LINE__);
 
@@ -312,7 +314,7 @@ void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Data
 }
 #endif
 
-void State::add_boundary_cells(Mesh *mesh)
+void State::add_boundary_cells(void)
 {
    struct timeval tstart_cpu;
 
@@ -519,7 +521,7 @@ void State::add_boundary_cells(Mesh *mesh)
    cpu_time_apply_BCs += cpu_timer_stop(tstart_cpu);
 }
 
-void State::apply_boundary_conditions(Mesh *mesh)
+void State::apply_boundary_conditions(void)
 {
    int nl, nr, nb, nt;
 
@@ -558,7 +560,7 @@ void State::apply_boundary_conditions(Mesh *mesh)
    }
 }
 
-void State::remove_boundary_cells(Mesh *mesh)
+void State::remove_boundary_cells(void)
 {
    size_t &ncells = mesh->ncells;
    vector<int> &nlft     = mesh->nlft;
@@ -610,7 +612,7 @@ void State::remove_boundary_cells(Mesh *mesh)
 
 }
 
-double State::set_timestep(Mesh *mesh, double g, double sigma)
+double State::set_timestep(double g, double sigma)
 {
    int lev;
    double wavespeed, xspeed, yspeed;
@@ -653,7 +655,7 @@ double State::set_timestep(Mesh *mesh, double g, double sigma)
 }
 
 #ifdef HAVE_OPENCL
-double State::gpu_set_timestep(Mesh *mesh, double sigma)
+double State::gpu_set_timestep(double sigma)
 {
    double deltaT, globalmindeltaT;
 
@@ -750,8 +752,7 @@ double State::gpu_set_timestep(Mesh *mesh, double sigma)
 }
 #endif
 
-void State::fill_circle(Mesh   *mesh,       //  Mesh.
-                        double  circ_radius,//  Radius of circle in grid units.
+void State::fill_circle(double  circ_radius,//  Radius of circle in grid units.
                         double  fill_value, //  Circle height for shallow water.
                         double  background) //  Background height for shallow water.
 {  
@@ -798,7 +799,7 @@ void State::state_reorder(vector<int> iorder)
    //printf("DEBUG end reorder cells\n\n"); 
 }
 
-void State::rezone_all(Mesh *mesh, int icount, int jcount, vector<int> mpot)
+void State::rezone_all(int icount, int jcount, vector<int> mpot)
 {
    mesh->rezone_all(icount, jcount, mpot, 1, state_memory);
    memory_reset_ptrs();
@@ -806,7 +807,7 @@ void State::rezone_all(Mesh *mesh, int icount, int jcount, vector<int> mpot)
 
 
 #ifdef HAVE_OPENCL
-void State::gpu_rezone_all(Mesh *mesh, int icount, int jcount, bool localStencil)
+void State::gpu_rezone_all(int icount, int jcount, bool localStencil)
 {
    mesh->gpu_rezone_all(icount, jcount, dev_mpot, gpu_state_memory);
    dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H");
@@ -905,7 +906,7 @@ void State::gpu_rezone_all(Mesh *mesh, int icount, int jcount, bool localStencil
 #define VUNEWFLUXMINUS2  ( Vyminus2*Uyminus2/Hyminus2 )
 #define VUNEWFLUXPLUS2   ( Vyplus2 *Uyplus2 /Hyplus2 )
 
-void State::calc_finite_difference(Mesh *mesh, double deltaT){
+void State::calc_finite_difference(double deltaT){
    double   g     = 9.80;   // gravitational constant
    double   ghalf = 0.5*g;
 
@@ -929,7 +930,7 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
    }
 #endif
 
-   apply_boundary_conditions(mesh);
+   apply_boundary_conditions();
 
    vector<int> &nlft  = mesh->nlft;
    vector<int> &nrht  = mesh->nrht;
@@ -1449,7 +1450,7 @@ void State::calc_finite_difference(Mesh *mesh, double deltaT){
 }
 
 #ifdef HAVE_OPENCL
-void State::gpu_calc_finite_difference(Mesh *mesh, double deltaT)
+void State::gpu_calc_finite_difference(double deltaT)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -1578,7 +1579,7 @@ void State::gpu_calc_finite_difference(Mesh *mesh, double deltaT)
 }
 #endif
 
-void State::symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index, double eps,
+void State::symmetry_check(const char *string, vector<int> sym_index, double eps,
                            SIGN_RULE sign_rule, int &flag)
 {
    size_t &ncells = mesh->ncells;
@@ -1614,7 +1615,7 @@ void State::symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index
 
 }
 
-size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, int &jcount)
+size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -1754,7 +1755,7 @@ size_t State::calc_refine_potential(Mesh *mesh, vector<int> &mpot,int &icount, i
 }
 
 #ifdef HAVE_OPENCL
-size_t State::gpu_calc_refine_potential(Mesh *mesh, int &icount, int &jcount)
+size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -1941,7 +1942,7 @@ size_t State::gpu_calc_refine_potential(Mesh *mesh, int &icount, int &jcount)
 }
 #endif
 
-double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
+double State::mass_sum(bool enhanced_precision_sum)
 {
    size_t &ncells = mesh->ncells;
    vector<int> &celltype = mesh->celltype;
@@ -2013,7 +2014,7 @@ double State::mass_sum(Mesh *mesh, bool enhanced_precision_sum)
 }
 
 #ifdef HAVE_OPENCL
-double State::gpu_mass_sum(Mesh *mesh, bool enhanced_precision_sum)
+double State::gpu_mass_sum(bool enhanced_precision_sum)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -2183,14 +2184,14 @@ void State::resize_old_device_memory(size_t ncells)
 }
 
 #ifdef HAVE_MPI
-void State::do_load_balance_local(Mesh *mesh, size_t &numcells){
+void State::do_load_balance_local(size_t &numcells){
    mesh->do_load_balance_local(numcells, NULL, state_memory);
    memory_reset_ptrs();
 }
 #endif
 #ifdef HAVE_OPENCL
 #ifdef HAVE_MPI
-void State::gpu_do_load_balance_local(Mesh *mesh, size_t &numcells){
+void State::gpu_do_load_balance_local(size_t &numcells){
    if (mesh->gpu_do_load_balance_local(numcells, NULL, gpu_state_memory) ){
       //gpu_state_memory.memory_report();
       dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H");
@@ -2211,7 +2212,7 @@ void State::gpu_do_load_balance_local(Mesh *mesh, size_t &numcells){
 
 static double total_time = 0.0;
 
-void State::output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, double elapsed_time)
+void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_time)
 {
    int &mype  = mesh->mype;
    int &numpe = mesh->numpe;

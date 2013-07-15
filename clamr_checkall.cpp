@@ -221,10 +221,10 @@ int main(int argc, char **argv) {
 
    MPI_Allreduce(&ncells, &ncells_global, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
    
-   state_local = new State(mesh_local->ncells);
-   state_local->init(mesh_local->ncells, do_gpu_calc);
+   state_local = new State(mesh_local);
+   state_local->init(do_gpu_calc);
 
-   state_global = new State(ncells_global);
+   state_global = new State(mesh_global);
    state_global->allocate(mesh_global->ncells);
    
    cl_mem &dev_corners_i_global  = mesh_global->dev_corners_i;
@@ -343,7 +343,7 @@ int main(int argc, char **argv) {
    MPI_Allgatherv(&y[0],  ncells, MPI_C_REAL, &y_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&dy[0], ncells, MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
-   state_local->fill_circle(mesh_local, circ_radius, 100.0, 5.0);
+   state_local->fill_circle(circ_radius, 100.0, 5.0);
 
    MPI_Allgatherv(&state_local->H[0], ncells, MPI_C_REAL, &state_global->H[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&state_local->U[0], ncells, MPI_C_REAL, &state_global->U[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
@@ -404,7 +404,7 @@ int main(int argc, char **argv) {
    mesh_local->dev_ntop = NULL;
 
    //  Kahan-type enhanced precision sum implementation.
-   double H_sum = state_local->mass_sum(mesh_local, enhanced_precision_sum);
+   double H_sum = state_local->mass_sum(enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
@@ -563,15 +563,15 @@ extern "C" void do_calc(void)
       double deltaT_cpu = -1.0;
       double deltaT_cpu_local = -1.0;
       if (do_cpu_calc) {
-         deltaT_cpu = state_global->set_timestep(mesh_global, g, sigma);
-         deltaT_cpu_local = state_local->set_timestep(mesh_local, g, sigma);
+         deltaT_cpu = state_global->set_timestep(g, sigma);
+         deltaT_cpu_local = state_local->set_timestep(g, sigma);
       }  //  Complete CPU timestep calculation.
 
       double deltaT_gpu = -1.0;
       double deltaT_gpu_local = -1.0;
       if (do_gpu_calc) {
-         deltaT_gpu = state_global->gpu_set_timestep(mesh_global, sigma);
-         deltaT_gpu_local = state_local->gpu_set_timestep(mesh_local, sigma);
+         deltaT_gpu = state_global->gpu_set_timestep(sigma);
+         deltaT_gpu_local = state_local->gpu_set_timestep(sigma);
       }  //  Complete GPU calculation.
 
       //  Compare time step values and pass deltaT in to the kernel.
@@ -619,13 +619,13 @@ extern "C" void do_calc(void)
 
       //  Execute main kernel
       if (do_cpu_calc) {
-         state_global->calc_finite_difference(mesh_global, deltaT);
-         state_local->calc_finite_difference(mesh_local, deltaT);
+         state_global->calc_finite_difference(deltaT);
+         state_local->calc_finite_difference(deltaT);
       }
       
       if (do_gpu_calc) {
-         state_global->gpu_calc_finite_difference(mesh_global, deltaT);
-         state_local->gpu_calc_finite_difference(mesh_local, deltaT);
+         state_global->gpu_calc_finite_difference(deltaT);
+         state_local->gpu_calc_finite_difference(deltaT);
       }
       
       if (do_comparison_calc) {
@@ -634,8 +634,8 @@ extern "C" void do_calc(void)
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       if (do_cpu_calc) {
-         state_global->remove_boundary_cells(mesh_global);
-         state_local->remove_boundary_cells(mesh_local);
+         state_global->remove_boundary_cells();
+         state_local->remove_boundary_cells();
       }
       
       vector<int>      ioffset(block_size);
@@ -645,13 +645,13 @@ extern "C" void do_calc(void)
       if (do_cpu_calc) {
          mpot.resize(ncells_ghost);
          mpot_global.resize(ncells_global);
-         state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
-         state_local->calc_refine_potential(mesh_local, mpot, icount, jcount);
+         state_global->calc_refine_potential(mpot_global, icount_global, jcount_global);
+         state_local->calc_refine_potential(mpot, icount, jcount);
       }  //  Complete CPU calculation.
 
       if (do_gpu_calc) {
-         new_ncells_global = state_global->gpu_calc_refine_potential(mesh_global, icount_global, jcount_global);
-         new_ncells = state_local->gpu_calc_refine_potential(mesh_local, icount, jcount);
+         new_ncells_global = state_global->gpu_calc_refine_potential(icount_global, jcount_global);
+         new_ncells = state_local->gpu_calc_refine_potential(icount, jcount);
       }
       
       if (do_comparison_calc) {
@@ -719,8 +719,8 @@ extern "C" void do_calc(void)
       }
 
       if (do_cpu_calc) {
-         state_global->rezone_all(mesh_global, icount_global, jcount_global, mpot_global);
-         state_local->rezone_all(mesh_local, icount, jcount, mpot);
+         state_global->rezone_all(icount_global, jcount_global, mpot_global);
+         state_local->rezone_all(icount, jcount, mpot);
          mpot_global.clear();
          mpot.clear();
       }
@@ -728,8 +728,8 @@ extern "C" void do_calc(void)
       //  Resize the mesh, inserting cells where refinement is necessary.
       if (do_gpu_calc) {
          if (state_local->dev_mpot){
-            state_global->gpu_rezone_all(mesh_global, icount_global, jcount_global, localStencil);
-            state_local->gpu_rezone_all(mesh_local, icount, jcount, localStencil);
+            state_global->gpu_rezone_all(icount_global, jcount_global, localStencil);
+            state_local->gpu_rezone_all(icount, jcount, localStencil);
          }
       }
 
@@ -751,14 +751,14 @@ extern "C" void do_calc(void)
       ndispl_save = ndispl;
 
       if (do_cpu_calc) {
-         state_local->do_load_balance_local(mesh_local, new_ncells);
+         state_local->do_load_balance_local(new_ncells);
       }
 
       nsizes = nsizes_save;
       ndispl = ndispl_save;
 
       if (do_gpu_calc) {
-         state_local->gpu_do_load_balance_local(mesh_local, new_ncells);
+         state_local->gpu_do_load_balance_local(new_ncells);
       }
 
       if (do_comparison_calc) {
@@ -779,10 +779,10 @@ extern "C" void do_calc(void)
       H_sum = -1.0;
 
       if (do_comparison_calc) {
-         double cpu_mass_sum = state_global->mass_sum(mesh_global, enhanced_precision_sum);
-         double cpu_mass_sum_local = state_local->mass_sum(mesh_local, enhanced_precision_sum);
-         double gpu_mass_sum = state_global->gpu_mass_sum(mesh_global, enhanced_precision_sum);
-         H_sum = state_local->gpu_mass_sum(mesh_local, enhanced_precision_sum);
+         double cpu_mass_sum = state_global->mass_sum(enhanced_precision_sum);
+         double cpu_mass_sum_local = state_local->mass_sum(enhanced_precision_sum);
+         double gpu_mass_sum = state_global->gpu_mass_sum(enhanced_precision_sum);
+         H_sum = state_local->gpu_mass_sum(enhanced_precision_sum);
          int iflag = 0;
          if (fabs(cpu_mass_sum_local - cpu_mass_sum) > CONSERVATION_EPS) iflag = 1;
          //if (fabs(H_sum - gpu_mass_sum) > CONSERVATION_EPS) iflag = 1;
@@ -828,7 +828,7 @@ extern "C" void do_calc(void)
    }  //  End burst loop
 
    if (H_sum < 0) {
-      H_sum = state_local->mass_sum(mesh_local, enhanced_precision_sum);
+      H_sum = state_local->mass_sum(enhanced_precision_sum);
    }
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
@@ -903,8 +903,8 @@ extern "C" void do_calc(void)
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       
-      state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, elapsed_time);
-      state_local->output_timing_info(mesh_local, do_cpu_calc, do_gpu_calc, elapsed_time);
+      state_global->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
+      state_local->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
 
       state_local->parallel_timer_output(numpe,mype,"GPU:  graphics                 time was",(double) gpu_time_graphics * 1.0e-9 );
 

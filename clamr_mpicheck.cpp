@@ -174,10 +174,10 @@ int main(int argc, char **argv) {
    size_t &ncells_global = mesh_global->ncells;
    MPI_Allreduce(&ncells, &ncells_global, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
 
-   state = new State(mesh->ncells);
-   state->init(mesh->ncells, do_gpu_calc);
+   state = new State(mesh);
+   state->init(do_gpu_calc);
 
-   state_global = new State(ncells_global);
+   state_global = new State(mesh_global);
    state_global->allocate(ncells_global);
    real  *H_global = state_global->H;
    real  *U_global = state_global->U;
@@ -251,7 +251,7 @@ int main(int argc, char **argv) {
    MPI_Allgatherv(&y[0],  ncells, MPI_C_REAL, &y_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&dy[0], ncells, MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
-   state->fill_circle(mesh, circ_radius, 100.0, 5.0);
+   state->fill_circle(circ_radius, 100.0, 5.0);
 
    MPI_Allgatherv(&state->H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&state->U[0], nsizes[mype], MPI_C_REAL, &U_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
@@ -267,7 +267,7 @@ int main(int argc, char **argv) {
    mesh_global->ntop.clear();
 
    //  Kahan-type enhanced precision sum implementation.
-   double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+   double H_sum = state->mass_sum(enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
@@ -369,12 +369,12 @@ extern "C" void do_calc(void)
       old_ncells_global = ncells_global;
 
       //  Calculate the real time step for the current discrete time step.
-      deltaT = state->set_timestep(mesh, g, sigma);
+      deltaT = state->set_timestep(g, sigma);
       simTime += deltaT;
 
       //  Compare time step values and pass deltaT in to the kernel.
       if (do_comparison_calc) {
-         double deltaT_cpu_global = state_global->set_timestep(mesh_global, g, sigma);
+         double deltaT_cpu_global = state_global->set_timestep(g, sigma);
 
          if (fabs(deltaT - deltaT_cpu_global) > .000001) {
             printf("Error with deltaT calc --- cpu_local %lf cpu_global %lf\n",
@@ -401,28 +401,28 @@ extern "C" void do_calc(void)
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
-      state->calc_finite_difference(mesh, deltaT);
+      state->calc_finite_difference(deltaT);
 
       if (do_comparison_calc) {
-         state_global->calc_finite_difference(mesh_global, deltaT);
+         state_global->calc_finite_difference(deltaT);
 
          // Compare H gathered to H_global, etc
          state->compare_state_cpu_local_to_cpu_global(state_global, "finite difference", ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
       }
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
-      state->remove_boundary_cells(mesh);
+      state->remove_boundary_cells();
 
       if (do_comparison_calc) {
-         state_global->remove_boundary_cells(mesh_global);
+         state_global->remove_boundary_cells();
       }
       
       mpot.resize(ncells_ghost);
-      new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
+      new_ncells = state->calc_refine_potential(mpot, icount, jcount);
   
       if (do_comparison_calc) {
          mpot_global.resize(ncells_global);
-         new_ncells_global = state_global->calc_refine_potential(mesh_global, mpot_global, icount_global, jcount_global);
+         new_ncells_global = state_global->calc_refine_potential(mpot_global, icount_global, jcount_global);
 
          int icount_test;
          MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -435,7 +435,7 @@ extern "C" void do_calc(void)
       }
 
       int add_ncells = new_ncells - old_ncells;
-      state->rezone_all(mesh, icount, jcount, mpot);
+      state->rezone_all(icount, jcount, mpot);
       mpot.clear();
       ncells = new_ncells;
       mesh->ncells = new_ncells;
@@ -443,7 +443,7 @@ extern "C" void do_calc(void)
       if (do_comparison_calc) {
          int add_ncells_global = new_ncells_global - old_ncells_global;
          //printf("%d: DEBUG add %d new %d old %d icount %d jcount %d\n",mype,add_ncells,new_ncells,old_ncells,icount,jcount);
-         state_global->rezone_all(mesh_global, icount_global, jcount_global, mpot_global);
+         state_global->rezone_all(icount_global, jcount_global, mpot_global);
          mpot_global.clear();
 
          ncells_global = new_ncells_global;
@@ -458,7 +458,7 @@ extern "C" void do_calc(void)
       } // do_comparison_calc
 
       if (mesh->nlft.size() == 0) {
-         state->do_load_balance_local(mesh, new_ncells);
+         state->do_load_balance_local(new_ncells);
       }
 
       if (do_comparison_calc) {
@@ -470,9 +470,9 @@ extern "C" void do_calc(void)
       H_sum = -1.0;
 
       if (do_comparison_calc) {
-         H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+         H_sum = state->mass_sum(enhanced_precision_sum);
 
-         double H_sum_global = state_global->mass_sum(mesh_global, enhanced_precision_sum);
+         double H_sum_global = state_global->mass_sum(enhanced_precision_sum);
 
          if (fabs(H_sum - H_sum_global) > CONSERVATION_EPS) {
             printf("Error with mass sum calculation -- mass_sum %lf mass_sum_global %lf\n",
@@ -502,7 +502,7 @@ extern "C" void do_calc(void)
 
 
    if (H_sum < 0) {
-      H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+      H_sum = state->mass_sum(enhanced_precision_sum);
    }
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
@@ -583,9 +583,9 @@ extern "C" void do_calc(void)
       double elapsed_time = cpu_timer_stop(tstart);
       
       if (do_comparison_calc) {
-         state_global->output_timing_info(mesh_global, do_cpu_calc, do_gpu_calc, elapsed_time);
+         state_global->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
       }
-      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
+      state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
 
       state->parallel_timer_output(numpe,mype,"CPU:  graphics                 time was",cpu_time_graphics);
 

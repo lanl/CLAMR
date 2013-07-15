@@ -156,11 +156,11 @@ int main(int argc, char **argv) {
    } 
    mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
    size_t &ncells = mesh->ncells;
-   state = new State(ncells);
-   state->init(ncells, do_gpu_calc);
+   state = new State(mesh);
+   state->init(do_gpu_calc);
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe);
-   state->fill_circle(mesh, circ_radius, 100.0, 5.0);
+   state->fill_circle(circ_radius, 100.0, 5.0);
    
    if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
       printf("GPU only calc currently does not work with this cycle_reorder");
@@ -215,7 +215,7 @@ int main(int argc, char **argv) {
    if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
 
    //  Kahan-type enhanced precision sum implementation.
-   double H_sum = state->gpu_mass_sum(mesh, enhanced_precision_sum);
+   double H_sum = state->gpu_mass_sum(enhanced_precision_sum);
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
@@ -289,7 +289,7 @@ extern "C" void do_calc(void)
 
       //  Calculate the real time step for the current discrete time step.
       
-      deltaT = state->gpu_set_timestep(mesh, sigma);
+      deltaT = state->gpu_set_timestep(sigma);
       simTime += deltaT;
 
       if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors();
@@ -300,13 +300,13 @@ extern "C" void do_calc(void)
       //}
 
       //  Execute main kernel
-      state->gpu_calc_finite_difference(mesh, deltaT);
+      state->gpu_calc_finite_difference(deltaT);
       
-      size_t new_ncells = state->gpu_calc_refine_potential(mesh, icount, jcount);
+      size_t new_ncells = state->gpu_calc_refine_potential(icount, jcount);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
       size_t add_ncells = new_ncells - old_ncells;
-      if (state->dev_mpot) state->gpu_rezone_all(mesh, icount, jcount, localStencil);
+      if (state->dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);
       ncells = new_ncells;
       mesh->ncells = new_ncells;
 
@@ -314,7 +314,7 @@ extern "C" void do_calc(void)
 
    } // End burst loop
 
-   double H_sum = state->gpu_mass_sum(mesh, enhanced_precision_sum);
+   double H_sum = state->gpu_mass_sum(enhanced_precision_sum);
 
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
@@ -371,7 +371,7 @@ extern "C" void do_calc(void)
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       
-      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
+      state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
       printf("GPU:  graphics                 time was\t%8.4f\ts\n", (double)gpu_time_graphics * 1.0e-9);
 
       mesh->print_calc_neighbor_type();

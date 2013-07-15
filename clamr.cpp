@@ -178,8 +178,8 @@ int main(int argc, char **argv) {
    size_t &ncells_global = mesh->ncells_global;
    int &noffset = mesh->noffset;
 
-   state = new State(ncells);
-   state->init(ncells, do_gpu_calc);
+   state = new State(mesh);
+   state->init(do_gpu_calc);
 
    cl_mem &dev_corners_i_local  = mesh->dev_corners_i;
    cl_mem &dev_corners_j_local  = mesh->dev_corners_j;
@@ -246,7 +246,7 @@ int main(int argc, char **argv) {
 
    mesh->calc_spatial_coordinates(0);
 
-   state->fill_circle(mesh, circ_radius, 100.0, 5.0);
+   state->fill_circle(circ_radius, 100.0, 5.0);
 
    state->allocate_device_memory(ncells);
 
@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
    state->dev_mpot = NULL;
 
    //  Kahan-type enhanced precision sum implementation.
-   double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+   double H_sum = state->mass_sum(enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
@@ -429,7 +429,7 @@ extern "C" void do_calc(void)
       size_t block_size     = global_work_size/local_work_size;
 
       //  Calculate the real time step for the current discrete time step.
-      deltaT = state->gpu_set_timestep(mesh, sigma);
+      deltaT = state->gpu_set_timestep(sigma);
       simTime += deltaT;
 
       if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors_local();
@@ -437,23 +437,23 @@ extern "C" void do_calc(void)
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
-      state->gpu_calc_finite_difference(mesh, deltaT);
+      state->gpu_calc_finite_difference(deltaT);
 
       vector<int>      ioffset(block_size);
 
       int icount = 0;
       int jcount = 0;
-      new_ncells = state->gpu_calc_refine_potential(mesh, icount, jcount);
+      new_ncells = state->gpu_calc_refine_potential(icount, jcount);
 
       int ncells_global_old = ncells_global;
       MPI_Allreduce(&new_ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      if (state->dev_mpot) state->gpu_rezone_all(mesh, icount, jcount, localStencil);
+      if (state->dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);
 
       ncells       = new_ncells;
 
-      if (mesh->dev_nlft == NULL) state->gpu_do_load_balance_local(mesh, new_ncells);
+      if (mesh->dev_nlft == NULL) state->gpu_do_load_balance_local(new_ncells);
 
       ioffset.clear();
 
@@ -470,7 +470,7 @@ extern "C" void do_calc(void)
    }  //  End burst loop
 
    if (H_sum < 0) {
-      H_sum = state->gpu_mass_sum(mesh, enhanced_precision_sum);
+      H_sum = state->gpu_mass_sum(enhanced_precision_sum);
    }
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
@@ -584,7 +584,7 @@ extern "C" void do_calc(void)
          state->parallel_memory_output(numpe,mype,"Memory available ",memstats_memtotal());
       }
 
-      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
+      state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
       state->parallel_timer_output(numpe,mype,"CPU:  setup time               time was",cpu_time_main_setup);
       state->parallel_timer_output(numpe,mype,"GPU:  graphics                 time was",(double) gpu_time_graphics * 1.0e-9 );
 

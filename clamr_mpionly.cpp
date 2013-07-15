@@ -171,8 +171,8 @@ int main(int argc, char **argv) {
    size_t &ncells_global = mesh->ncells_global;
    int &noffset = mesh->noffset;
 
-   state = new State(ncells);
-   state->init(ncells, do_gpu_calc);
+   state = new State(mesh);
+   state->init(do_gpu_calc);
 
    vector<int>   &nsizes     = mesh->nsizes;
    vector<int>   &ndispl     = mesh->ndispl;
@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
    //V.resize(ncells);
    state->resize(ncells);
 
-   state->fill_circle(mesh, circ_radius, 100.0, 5.0);
+   state->fill_circle(circ_radius, 100.0, 5.0);
 
    mesh->nlft.clear();
    mesh->nrht.clear();
@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
    dy.clear();
 
    //  Kahan-type enhanced precision sum implementation.
-   double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+   double H_sum = state->mass_sum(enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
@@ -358,7 +358,7 @@ extern "C" void do_calc(void)
       MPI_Barrier(MPI_COMM_WORLD);
       cpu_timer_start(&tstart_cpu);
       //  Calculate the real time step for the current discrete time step.
-      deltaT = state->set_timestep(mesh, g, sigma);
+      deltaT = state->set_timestep(g, sigma);
       simTime += deltaT;
 
       cpu_timer_start(&tstart_cpu);
@@ -368,32 +368,32 @@ extern "C" void do_calc(void)
 
       // Currently not working -- may need to be earlier?
       //if (mesh->have_boundary) {
-      //  state->add_boundary_cells(mesh);
+      //  state->add_boundary_cells();
       //}
 
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
       cpu_timer_start(&tstart_cpu);
-      state->calc_finite_difference(mesh, deltaT);
+      state->calc_finite_difference(deltaT);
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
-      state->remove_boundary_cells(mesh);
+      state->remove_boundary_cells();
 
       cpu_timer_start(&tstart_cpu);
       mpot.resize(ncells_ghost);
-      new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
+      new_ncells = state->calc_refine_potential(mpot, icount, jcount);
   
       cpu_timer_start(&tstart_cpu);
       int add_ncells = new_ncells - old_ncells;
-      state->rezone_all(mesh, icount, jcount, mpot);
+      state->rezone_all(icount, jcount, mpot);
       mpot.clear();
       ncells = new_ncells;
       mesh->ncells = new_ncells;
 
       cpu_timer_start(&tstart_cpu);
       if (mesh->nlft.size() == 0) {
-         state->do_load_balance_local(mesh, new_ncells);
+         state->do_load_balance_local(new_ncells);
       }
 
 
@@ -406,7 +406,7 @@ extern "C" void do_calc(void)
 
    } // End burst loop
 
-   double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+   double H_sum = state->mass_sum(enhanced_precision_sum);
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
       exit(-1);
@@ -493,7 +493,7 @@ extern "C" void do_calc(void)
          state->parallel_memory_output(numpe,mype,"Memory free      ",memstats_memfree());
          state->parallel_memory_output(numpe,mype,"Memory available ",memstats_memtotal());
       }
-      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
+      state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
 
       state->parallel_timer_output(numpe,mype,"CPU:  graphics                 time was",cpu_time_graphics);
 

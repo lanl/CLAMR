@@ -185,11 +185,11 @@ int main(int argc, char **argv) {
    } 
    mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
    size_t &ncells = mesh->ncells;
-   state = new State(ncells);
-   state->init(ncells, do_gpu_calc);
+   state = new State(mesh);
+   state->init(do_gpu_calc);
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe);
-   state->fill_circle(mesh, circ_radius, 100.0, 5.0);
+   state->fill_circle(circ_radius, 100.0, 5.0);
    
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_i        = mesh->dev_i;
@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
    if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
 
    //  Kahan-type enhanced precision sum implementation.
-   double H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+   double H_sum = state->mass_sum(enhanced_precision_sum);
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
@@ -355,9 +355,9 @@ extern "C" void do_calc(void)
       old_ncells = ncells;
 
       //  Calculate the real time step for the current discrete time step.
-      double deltaT_cpu = state->set_timestep(mesh, g, sigma);
+      double deltaT_cpu = state->set_timestep(g, sigma);
       
-      double deltaT_gpu = state->gpu_set_timestep(mesh, sigma);
+      double deltaT_gpu = state->gpu_set_timestep(sigma);
 
 #ifdef XXX
       //  Compare time step values and pass deltaT in to the kernel.
@@ -387,9 +387,9 @@ extern "C" void do_calc(void)
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
-      state->calc_finite_difference(mesh, deltaT);
+      state->calc_finite_difference(deltaT);
       
-      state->gpu_calc_finite_difference(mesh, deltaT);
+      state->gpu_calc_finite_difference(deltaT);
       
       if (do_comparison_calc) {
          // Need to compare dev_H to H, etc
@@ -403,13 +403,13 @@ extern "C" void do_calc(void)
       }
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
-      state->remove_boundary_cells(mesh);
+      state->remove_boundary_cells();
       
       mpot.resize(ncells);
-      new_ncells = state->calc_refine_potential(mesh, mpot, icount, jcount);
+      new_ncells = state->calc_refine_potential(mpot, icount, jcount);
       //printf("DEBUG cpu icount %d jcount %d new_ncells %d\n",icount,jcount,new_ncells);
 
-      new_ncells_gpu = state->gpu_calc_refine_potential(mesh, icount, jcount);
+      new_ncells_gpu = state->gpu_calc_refine_potential(icount, jcount);
 
       if (do_comparison_calc) {
          if (new_ncells != new_ncells_gpu) {
@@ -472,11 +472,11 @@ extern "C" void do_calc(void)
       }
 
       //int add_ncells = new_ncells - old_ncells;
-      state->rezone_all(mesh, icount, jcount, mpot);
+      state->rezone_all(icount, jcount, mpot);
       mpot.clear();
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      if (dev_mpot) state->gpu_rezone_all(mesh, icount, jcount, localStencil);
+      if (dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);
       ncells = new_ncells;
       mesh->ncells = new_ncells;
 
@@ -515,14 +515,14 @@ extern "C" void do_calc(void)
       }
    } // End burst loop
 
-   H_sum = state->mass_sum(mesh, enhanced_precision_sum);
+   H_sum = state->mass_sum(enhanced_precision_sum);
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
       exit(-1);
    }
    if (do_comparison_calc) {
-      H_sum = state->mass_sum(mesh, enhanced_precision_sum);
-      double total_mass = state->gpu_mass_sum(mesh, enhanced_precision_sum);
+      H_sum = state->mass_sum(enhanced_precision_sum);
+      double total_mass = state->gpu_mass_sum(enhanced_precision_sum);
       if (fabs(total_mass - H_sum) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", total_mass, H_sum);/***/
    }
 
@@ -567,7 +567,7 @@ extern "C" void do_calc(void)
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       
-      state->output_timing_info(mesh, do_cpu_calc, do_gpu_calc, elapsed_time);
+      state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();

@@ -84,6 +84,7 @@ class State {
 public:
    MallocPlus state_memory;
    MallocPlus gpu_state_memory;
+   Mesh *mesh;
    real *H;
    real *U;
    real *V;
@@ -125,9 +126,9 @@ public:
             gpu_time_write;
 
    // constructor -- allocates state arrays to size ncells
-   State(size_t ncells);
+   State(Mesh *mesh_in);
 
-   void init(size_t ncells, int do_gpu_calc);
+   void init(int do_gpu_calc);
    void terminate(void);
 
    /* Memory routines for linked list of state arrays */
@@ -159,9 +160,9 @@ public:
    long get_gpu_time_write(void)             {return(gpu_time_write);};
 
    /* Boundary routines -- not currently used */
-   void add_boundary_cells(Mesh *mesh);
-   void apply_boundary_conditions(Mesh *mesh);
-   void remove_boundary_cells(Mesh *mesh);
+   void add_boundary_cells(void);
+   void apply_boundary_conditions(void);
+   void remove_boundary_cells(void);
 
    /*******************************************************************
    * set_timestep
@@ -171,9 +172,9 @@ public:
    *  Output
    *    mindeltaT returned
    *******************************************************************/
-   double set_timestep(Mesh *mesh, double g, double sigma);
+   double set_timestep(double g, double sigma);
 #ifdef HAVE_OPENCL
-   double gpu_set_timestep(Mesh *mesh, double sigma);
+   double gpu_set_timestep(double sigma);
 #endif
 
    /*******************************************************************
@@ -185,9 +186,9 @@ public:
    *   Output
    *      H, U, V
    *******************************************************************/
-   void calc_finite_difference(Mesh *mesh, double deltaT);
+   void calc_finite_difference(double deltaT);
 #ifdef HAVE_OPENCL
-   void gpu_calc_finite_difference(Mesh *mesh, double deltaT);
+   void gpu_calc_finite_difference(double deltaT);
 #endif
 
    /*******************************************************************
@@ -201,9 +202,9 @@ public:
    *    ioffset
    *    count
    *******************************************************************/
-   size_t calc_refine_potential(Mesh *mesh, vector<int> &mpot, int &icount, int &jcount);
+   size_t calc_refine_potential(vector<int> &mpot, int &icount, int &jcount);
 #ifdef HAVE_OPENCL
-   size_t gpu_calc_refine_potential(Mesh *mesh, int &icount, int &jcount);
+   size_t gpu_calc_refine_potential(int &icount, int &jcount);
 #endif
 
    /*******************************************************************
@@ -213,9 +214,9 @@ public:
    *  Output
    *    New mesh and state variables on refined mesh
    *******************************************************************/
-   void rezone_all(Mesh *mesh, int icount, int jcount, vector<int> mpot);
+   void rezone_all(int icount, int jcount, vector<int> mpot);
 #ifdef HAVE_OPENCL
-   void gpu_rezone_all(Mesh *mesh, int icount, int jcount, bool localStencil);
+   void gpu_rezone_all(int icount, int jcount, bool localStencil);
 #endif
 
    /*******************************************************************
@@ -227,9 +228,9 @@ public:
    *    New mesh and state variables on refined mesh
    *******************************************************************/
 #ifdef HAVE_MPI
-   void do_load_balance_local(Mesh *mesh, size_t &numcells);
+   void do_load_balance_local(size_t &numcells);
 #ifdef HAVE_OPENCL
-   void gpu_do_load_balance_local(Mesh *mesh, size_t &numcells);
+   void gpu_do_load_balance_local(size_t &numcells);
 #endif
 #endif
 
@@ -241,18 +242,18 @@ public:
    *  Output
    *    total mass is returned
    *******************************************************************/
-   double mass_sum(Mesh *mesh, bool enhanced_precision_sum);
+   double mass_sum(bool enhanced_precision_sum);
 #ifdef HAVE_OPENCL
-   double gpu_mass_sum(Mesh *mesh, bool enhanced_precision_sum);
+   double gpu_mass_sum(bool enhanced_precision_sum);
 #endif
    
-   void fill_circle(Mesh *mesh, double circ_radius, double fill_value, double background);
+   void fill_circle(double circ_radius, double fill_value, double background);
    void state_reorder(vector<int> iorder);
 
-   void symmetry_check(Mesh *mesh, const char *string, vector<int> sym_index, double eps, 
+   void symmetry_check(const char *string, vector<int> sym_index, double eps, 
                        SIGN_RULE sign_rule, int &flag);
 
-   void output_timing_info(Mesh *mesh, int do_cpu_calc, int do_gpu_calc, double elapsed_time);
+   void output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_time);
 
    /* state comparison routines */
 #ifdef HAVE_OPENCL
