@@ -124,9 +124,11 @@ enum hash_type
 using namespace std;
 
 class Mesh
-{  int ndim;                    //  Dimensionality of mesh (2 or 3).
+{
 
 public:
+   int ndim;                    //  Dimensionality of mesh (2 or 3).
+
    double   cpu_time_calc_neighbors,
                cpu_time_hash_setup,
                cpu_time_hash_query,
@@ -518,6 +520,7 @@ public:
 #endif
 
 
+   void calc_celltype(size_t ncells);
 
 private:
    //   Private constructors.
@@ -529,7 +532,6 @@ private:
    void write_grid(int ncycle);
    void calc_centerminmax(void);
    void calc_minmax(void);
-   void calc_celltype(size_t ncells);
 
    void print(void);
    void print_local(void);

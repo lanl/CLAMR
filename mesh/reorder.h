@@ -53,6 +53,10 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
+
+#ifndef _REORDER_H
+#define _REORDER_H
+
 #include <vector>
 
 typedef unsigned int uint;
@@ -82,3 +86,4 @@ void reorder_indexarray(vector<T> &v, vector<int> const &iorder, vector<int> con
    
    v.swap(tmp);
 }
+#endif  /* _REORDER_H */

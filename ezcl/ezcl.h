@@ -53,6 +53,9 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
+#ifndef _EZCL_H
+#define _EZCL_H
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -276,4 +279,4 @@ long ezcl_timer_calc_p(cl_event *start_read_event, cl_event *end_read_event, con
 }
 #endif
 
-      
+#endif  /* _EZCL_H */

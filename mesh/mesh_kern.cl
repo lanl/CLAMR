@@ -144,7 +144,7 @@ void write_hash(
       hashloc = (hashkey*AA+BB)%prime%hash_table_size;
       old_key = atomic_cmpxchg(&hash[2*hashloc],-1,hashkey);
 
-      for (int icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
+      for (icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
          hashloc++;
          hashloc %= hash_table_size;
       
@@ -157,7 +157,7 @@ void write_hash(
       hashloc = (hashkey*AA+BB)%prime%hash_table_size;
       old_key = atomic_cmpxchg(&hash[2*hashloc],-1,hashkey);
 
-      for (int icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
+      for (icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
          hashloc+=(icount*icount);
          hashloc %= hash_table_size;
       
@@ -171,7 +171,7 @@ void write_hash(
       hashloc = (hashkey*AA+BB)%prime%hash_table_size;
       old_key = atomic_cmpxchg(&hash[2*hashloc],-1,hashkey);
 
-      for (int icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
+      for (icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
          hashloc += (icount*jump);
          hashloc %= hash_table_size;
       
