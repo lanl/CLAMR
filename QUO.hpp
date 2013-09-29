@@ -229,20 +229,6 @@ public:
     }
 
     /* ////////////////////////////////////////////////////////////////////// */
-    int nMachineProcsInType(QUO_obj_type_t inType,
-                            int typeIndex) {
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != (rc = QUO_nmachine_procs_in_type(this->context,
-                                                            inType, typeIndex,
-                                                            &n))) {
-            std::cerr << "!!! QUO_nmachine_procs_in_type failure !!!"
-                      << std::endl;
-            n = 0;
-        }
-        return n;
-    }
-
-    /* ////////////////////////////////////////////////////////////////////// */
     void bindPush(QUO_bind_push_policy_t policy,
                   QUO_obj_type_t type,
                   int obj_index) {

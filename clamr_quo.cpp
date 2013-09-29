@@ -188,8 +188,6 @@ initQUO(int mype)
        // whether or not my current binding falls within a particular hw res
        std::cout << "# Bound Within Core 0: " <<
                     quo->cpuSetInType(QUO_OBJ_CORE, 0) << std::endl;
-       std::cout << "# MPI Procs on Bound Within Socket 0: "
-                 << quo->nMachineProcsInType(QUO_OBJ_SOCKET, 0) << std::endl;
        std::cout << "*** CHANGING BIND POLICY ***" << std::endl;
        quo->bindPush(QUO_BIND_PUSH_OBJ, QUO_OBJ_SOCKET, -1);
        std::cout << "# Hex CPU Set: " << quo->stringifyCBind() << std::endl;
