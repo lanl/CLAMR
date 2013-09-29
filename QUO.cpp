@@ -60,6 +60,7 @@
 #include <cstdlib>
 #include <string>
 #include <algorithm>
+#include <sstream>
 #include <cstdlib>
 
 #include <stdio.h>
@@ -71,19 +72,29 @@
 using namespace std;
 
 /* ////////////////////////////////////////////////////////////////////////// */
+/* Private Utility Routines */
+/* ////////////////////////////////////////////////////////////////////////// */
+
+/* ////////////////////////////////////////////////////////////////////////// */
+template <typename T>
+static string
+n2s(T number)
+{
+    ostringstream s;
+    s << number;
+    return s.str();
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
 /* QUOException Class */
 /* ////////////////////////////////////////////////////////////////////////// */
 
 /* ////////////////////////////////////////////////////////////////////////// */
 QUOException::QUOException(string fileName,
-                           int lineNO,
+                           int lineNo,
                            const std::string &errMsg)
 {
-    char tmpBuf[256];
-
-    std::fill_n(tmpBuf, sizeof(tmpBuf), '\0');
-    (void)snprintf(tmpBuf, sizeof(tmpBuf) - 1, "%d", lineNO);
-    this->whatString = "[" + fileName + " " + string(tmpBuf) + "] " + errMsg;
+    this->whatString = "[" + fileName + " " + n2s(lineNo) + "] " + errMsg;
 }
 
 /* ////////////////////////////////////////////////////////////////////////// */
@@ -101,8 +112,9 @@ QUOException::what(void) const throw()
 void
 QUO::create(void)
 {
-    if (QUO_SUCCESS != QUO_create(&(this->context))) {
-        string estr = "QUO_create failure in create.";
+    int rc = QUO_ERR;
+    if (QUO_SUCCESS != (rc = QUO_create(&(this->context)))) {
+        string estr = "QUO_create failure: rc = " + n2s(rc);
         throw QUOException(CLAMR_QUO_WHERE, estr);
     }
 }
@@ -111,8 +123,198 @@ QUO::create(void)
 void
 QUO::free(void)
 {
-    if (QUO_SUCCESS != QUO_free(this->context)) {
-        std::cerr << "!!! QUO_free failure !!!" << std::endl;
-        std::exit(EXIT_FAILURE);
+    int rc = QUO_ERR;
+    if (QUO_SUCCESS != (rc = QUO_free(this->context))) {
+        string estr = "QUO_free failure: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
     }
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+int
+QUO::nnumanodes(void) {
+    int rc = QUO_ERR, n = 0;
+    if (QUO_SUCCESS != (rc = QUO_nnumanodes(this->context, &n))) {
+        string estr = "QUO_nnumanodes: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return n;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+int
+QUO::nsockets(void) {
+    int rc = QUO_ERR, n = 0;
+    if (QUO_SUCCESS != (rc = QUO_nsockets(this->context, &n))) {
+        string estr = "QUO_nsockets: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return n;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+int
+QUO::ncores(void) {
+    int rc = QUO_ERR, n = 0;
+    if (QUO_SUCCESS != (rc = QUO_ncores(this->context, &n))) {
+        string estr = "QUO_ncores: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return n;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+int
+QUO::npus(void) {
+    int rc = QUO_ERR, n = 0;
+    if (QUO_SUCCESS != (rc = QUO_npus(this->context, &n))) {
+        string estr = "QUO_npus: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return n;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+int
+QUO::nnodes(void) {
+    int rc = QUO_ERR, n = 0;
+    if (QUO_SUCCESS != (rc = QUO_nnodes(this->context, &n))) {
+        string estr = "QUO_nnodes: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return n;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+bool
+QUO::bound(void) {
+    int rc = QUO_ERR, n = 0;
+    if (QUO_SUCCESS != (rc = QUO_bound(this->context, &n))) {
+        string estr = "QUO_bound: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return (1 == n);
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+int
+QUO::id(void) {
+    int rc = QUO_ERR, n = 0;
+    if (QUO_SUCCESS != (rc = QUO_id(this->context, &n))) {
+        string estr = "QUO_id: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return n;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+int
+QUO::nqids(void) {
+    int rc = QUO_ERR, n = 0;
+    if (QUO_SUCCESS != (rc = QUO_nqids(this->context, &n))) {
+        string estr = "QUO_nqids: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return n;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+string
+QUO::stringifyCBind(void) {
+    char *cbind = NULL;
+    int rc = QUO_ERR, n = 0;
+    if (QUO_SUCCESS != QUO_stringify_cbind(this->context, &cbind)) {
+        string estr = "QUO_stringify_cbind: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    std::string resStr(cbind);
+    std::free(cbind); cbind = NULL;
+    return resStr;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+int
+QUO::nObjsByType(QUO_obj_type_t type) {
+    int rc = QUO_ERR, n = 0;
+    if (QUO_SUCCESS != (rc = QUO_nobjs_by_type(this->context, type, &n))) {
+        string estr = "QUO_nobjs_by_type: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return n;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+int
+QUO::nObjsInType(QUO_obj_type_t inType,
+                 int typeIndex,
+                 QUO_obj_type_t type) {
+    int rc = QUO_ERR, n = 0;
+    if (QUO_SUCCESS != (rc = QUO_nobjs_in_type_by_type(this->context,
+                                                       inType, typeIndex,
+                                                       type, &n))) {
+        string estr = "QUO_nobjs_in_type_by_type: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return n;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+bool
+QUO::cpuSetInType(QUO_obj_type_t inType,
+                  int typeIndex) {
+    int rc = QUO_ERR, n = 0;
+    if (QUO_SUCCESS != (rc = QUO_cpuset_in_type(this->context,
+                                                inType, typeIndex, &n))) {
+        string estr = "QUO_cpuset_in_type: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return (1 == n);
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+void
+QUO::bindPush(QUO_bind_push_policy_t policy,
+              QUO_obj_type_t type,
+              int obj_index) {
+
+    int rc = QUO_ERR;
+    if (QUO_SUCCESS != (rc = QUO_bind_push(this->context, policy, type,
+                                           obj_index))) {
+        string estr = "QUO_bind_push: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+void
+QUO::bindPop(void) {
+    int rc = QUO_ERR;
+    if (QUO_SUCCESS != (rc = QUO_bind_pop(this->context))) {
+        string estr = "QUO_bind_pop: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+void
+QUO::barrier(void) {
+    int rc = QUO_ERR;
+    if (QUO_SUCCESS != (rc = QUO_barrier(this->context))) {
+        string estr = "QUO_barrier: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+bool
+QUO::autoDistrib(QUO_obj_type_t distrib_over_this,
+                 int max_qids_per_res_type) {
+    int isel = 0, rc = QUO_ERR;
+    bool selected = false;
+    if (QUO_SUCCESS != (rc = QUO_auto_distrib(this->context, distrib_over_this,
+                                              max_qids_per_res_type, &isel))) {
+        string estr = "QUO_auto_distrib: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return (1 == isel);
 }

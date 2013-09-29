@@ -54,10 +54,6 @@
  *
  */
 
-/* ////////////////////////////////////////////////////////////////////////// */
-// add proper exception handling
-/* ////////////////////////////////////////////////////////////////////////// */
-
 #ifndef QUO_HPP_INCLUDED
 #define QUO_HPP_INCLUDED
 
@@ -77,7 +73,7 @@ public:
     ~QUOException(void) throw() { ; }
 
     QUOException(std::string fileName,
-                 int lineNO,
+                 int lineNo,
                  const std::string &errMsg);
 
     virtual const char *what(void) const throw();
@@ -97,177 +93,43 @@ public:
 
     void free(void);
 
-    /* ////////////////////////////////////////////////////////////////////// */
-    int nnumanodes(void) {
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != (rc = QUO_nnumanodes(this->context, &n))) {
-            std::cerr << "!!! QUO_nnumanodes failure !!!" << std::endl;
-            n = 0;
-        }
-        return n;
-    }
+    int nnumanodes(void);
 
-    /* ////////////////////////////////////////////////////////////////////// */
-    int nsockets(void) {
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != (rc = QUO_nsockets(this->context, &n))) {
-            std::cerr << "!!! QUO_nsockets failure !!!" << std::endl;
-            n = 0;
-        }
-        return n;
-    }
+    int nsockets(void);
 
-    /* ////////////////////////////////////////////////////////////////////// */
-    int ncores(void) {
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != (rc = QUO_ncores(this->context, &n))) {
-            std::cerr << "!!! QUO_ncores failure !!!" << std::endl;
-            n = 0;
-        }
-        return n;
-    }
+    int ncores(void);
 
-    /* ////////////////////////////////////////////////////////////////////// */
-    int npus(void) {
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != (rc = QUO_npus(this->context, &n))) {
-            std::cerr << "!!! QUO_pus failure !!!" << std::endl;
-            n = 0;
-        }
-        return n;
-    }
+    int npus(void);
 
-    /* ////////////////////////////////////////////////////////////////////// */
-    int nnodes(void) {
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != (rc = QUO_nnodes(this->context, &n))) {
-            std::cerr << "!!! QUO_nnodes failure !!!" << std::endl;
-            n = 0;
-        }
-        return n;
-    }
+    int nnodes(void);
 
-    /* ////////////////////////////////////////////////////////////////////// */
-    bool bound(void) {
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != (rc = QUO_bound(this->context, &n))) {
-            std::cerr << "!!! QUO_bound failure !!!" << std::endl;
-            return false;
-        }
-        return (1 == n);
-    }
+    bool bound(void);
 
-    /* ////////////////////////////////////////////////////////////////////// */
-    int id(void) {
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != (rc = QUO_id(this->context, &n))) {
-            std::cerr << "!!! QUO_id failure !!!" << std::endl;
-            n = 0;
-        }
-        return n;
-    }
+    int id(void);
 
-    /* ////////////////////////////////////////////////////////////////////// */
-    int nqids(void) {
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != (rc = QUO_nqids(this->context, &n))) {
-            std::cerr << "!!! QUO_nqids failure !!!" << std::endl;
-            n = 0;
-        }
-        return n;
-    }
+    int nqids(void);
 
-    /* ////////////////////////////////////////////////////////////////////// */
-    std::string stringifyCBind(void) {
-        char *cbind = NULL;
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != QUO_stringify_cbind(this->context, &cbind)) {
-            std::cerr << "!!! QUO_stringify_cbind failure !!!" << std::endl;
-            return std::string("?");
-        }
-        std::string resStr(cbind);
-        std::free(cbind); cbind = NULL;
-        return resStr;
-    }
+    std::string stringifyCBind(void);
 
-    /* ////////////////////////////////////////////////////////////////////// */
-    int nObjsByType(QUO_obj_type_t type) {
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != (rc = QUO_nobjs_by_type(this->context, type, &n))) {
-            std::cerr << "!!! QUO_nobjs_by_type failure !!!" << std::endl;
-            n = 0;
-        }
-        return n;
-    }
+    int nObjsByType(QUO_obj_type_t type);
 
-    /* ////////////////////////////////////////////////////////////////////// */
     int nObjsInType(QUO_obj_type_t inType,
                     int typeIndex,
-                    QUO_obj_type_t type) {
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != (rc = QUO_nobjs_in_type_by_type(this->context,
-                                                           inType, typeIndex,
-                                                           type, &n))) {
-            std::cerr << "!!! QUO_nobjs_in_type_by_type failure !!!"
-                      << std::endl;
-            n = 0;
-        }
-        return n;
-    }
+                    QUO_obj_type_t type);
 
-    /* ////////////////////////////////////////////////////////////////////// */
     bool cpuSetInType(QUO_obj_type_t inType,
-                      int typeIndex) {
-        int rc = QUO_ERR, n = 0;
-        if (QUO_SUCCESS != (rc = QUO_cpuset_in_type(this->context,
-                                                    inType, typeIndex, &n))) {
-            std::cerr << "!!! QUO_cpuset_in_type failure !!!"
-                      << std::endl;
-            return false;
-        }
-        return (1 == n);
-    }
+                      int typeIndex);
 
-    /* ////////////////////////////////////////////////////////////////////// */
     void bindPush(QUO_bind_push_policy_t policy,
                   QUO_obj_type_t type,
-                  int obj_index) {
+                  int obj_index);
 
-        int rc = QUO_ERR;
-        if (QUO_SUCCESS != (rc = QUO_bind_push(this->context, policy, type,
-                                               obj_index))) {
-            std::cerr << "!!! QUO_bind_push failure !!!" << std::endl;
-        }
-    }
+    void bindPop(void);
 
-    /* ////////////////////////////////////////////////////////////////////// */
-    void bindPop(void) {
-        int rc = QUO_ERR;
-        if (QUO_SUCCESS != (rc = QUO_bind_pop(this->context))) {
-            std::cerr << "!!! QUO_bind_pop failure !!!" << std::endl;
-        }
-    }
+    void barrier(void);
 
-    /* ////////////////////////////////////////////////////////////////////// */
-    void barrier(void) {
-        if (QUO_SUCCESS != QUO_barrier(this->context)) {
-            std::cerr << "!!! QUO_barrier failure !!!" << std::endl;
-        }
-    }
-
-    /* ////////////////////////////////////////////////////////////////////// */
     bool autoDistrib(QUO_obj_type_t distrib_over_this,
-                     int max_qids_per_res_type) {
-        int isel = 0;
-        bool selected = false;
-        if (QUO_SUCCESS != QUO_auto_distrib(this->context, distrib_over_this,
-                                            max_qids_per_res_type, &isel)) {
-            std::cerr << "!!! QUO_auto_distrib failure !!!" << std::endl;
-            return false;
-        }
-        return (1 == isel);
-    }
-
+                     int max_qids_per_res_type);
 };
 
 #endif //QUO_HPP_INCLUDED
