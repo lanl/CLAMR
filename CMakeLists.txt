@@ -15,8 +15,8 @@ if (NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mtune=native")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mtune=native")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
@@ -25,6 +25,11 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
+
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fno-alias -restrict -opt_report")
+
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -std=c++11 -pedantic -Wc++11-long-long -Wno-overlength-strings")
+#set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pedantic")
 
 include_directories(${PROJECT_SOURCE_DIR})
 find_package(OpenCL REQUIRED)
@@ -39,9 +44,15 @@ if (MPI_FOUND)
    include_directories(${MPI_INCLUDE_PATH})
 endif (MPI_FOUND)
 
-find_package( OpenMP QUIET)
+#find_package( OpenMP QUIET)
+find_package( OpenMP)
 if(OpenMP_FOUND)
-message("OPENMP FOUND")
+   message("OPENMP FOUND ${OpenMP_CXX_FLAGS}")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_CXX_FLAGS}")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -openmp")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -openmp")
+   message("CMAKE_C_FLAGS ${CMAKE_C_FLAGS}")
 endif(OpenMP_FOUND)
 
 if (NOT GRAPHICS_TYPE)
@@ -230,6 +241,30 @@ target_link_libraries(clamr_openmponly ${MPE_NOMPI_LIBS} ${X11_LIBS})
 target_link_libraries(clamr_openmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
 install(TARGETS clamr_openmponly DESTINATION bin)
+
+########### clamr_mpiopenmponly target ###############
+set(clamr_mpiopenmponly_CXX_SRCS clamr_mpiopenmponly.cpp state.cpp input.cpp)
+set(clamr_mpiopenmponly_C_SRCS display.c)
+set(clamr_mpiopenmponly_H_SRCS display.h state.h input.h)
+
+set(clamr_mpiopenmponly_SRCS ${clamr_mpiopenmponly_CXX_SRCS} ${clamr_mpiopenmponly_C_SRCS} ${clamr_mpiopenmponly_H_SRCS})
+
+add_executable(clamr_mpiopenmponly ${clamr_mpiopenmponly_SRCS})
+
+set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+
+if(OpenMP_FOUND)
+set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+set_target_properties(clamr_mpiopenmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
+endif(OpenMP_FOUND)
+
+target_link_libraries(clamr_mpiopenmponly pmesh hsfc kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
+target_link_libraries(clamr_mpiopenmponly ${MPE_LIBS} ${X11_LIBS})
+target_link_libraries(clamr_mpiopenmponly ${MPI_LIBRARIES})
+target_link_libraries(clamr_mpiopenmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+
+install(TARGETS clamr_mpiopenmponly DESTINATION bin)
 
 ########### clamr_gpucheck target ###############
 set(clamr_gpucheck_CXX_SRCS clamr_gpucheck.cpp state.cpp input.cpp)

@@ -81,7 +81,7 @@ void calc_distribution(int numpe, vector<int> &proc);
 
 typedef void (*maptonorm)( double * , double * , void * );
 
-extern "C"void hsfc2sort(
+extern "C" void hsfc2sort(
                 const int      N ,     /* IN: Number of points */
                 const double * X ,     /* IN: array of X-Coordinates */
                 const double * Y ,     /* IN: array of Y-Coordinates */

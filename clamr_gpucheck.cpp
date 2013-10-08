@@ -413,7 +413,7 @@ extern "C" void do_calc(void)
 
       if (do_comparison_calc) {
          if (new_ncells != new_ncells_gpu) {
-            printf("ERROR -- new_ncells cpu %d not equal to new_ncells gpu %d\n",new_ncells,new_ncells_gpu);
+            printf("ERROR -- new_ncells cpu %lu not equal to new_ncells gpu %lu\n",new_ncells,new_ncells_gpu);
             exit(0);
          }
          // Need to compare dev_mpot to mpot

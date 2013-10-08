@@ -373,6 +373,7 @@ void State::add_boundary_cells(void)
    dx.resize(new_ncells);
    y.resize(new_ncells);
    dy.resize(new_ncells);
+#pragma ivdep
    for (int nc=ncells; nc<new_ncells; nc++) {
       nlft[nc] = -1;
       nrht[nc] = -1;
@@ -946,11 +947,19 @@ void State::calc_finite_difference(double deltaT){
    real *V_new = (real *)state_memory.memory_malloc(ncells_ghost, sizeof(real), "V_new");
 
    int gix;
+#ifdef _OPENMP
+#ifdef __INTEL_COMPILER
+#pragma omp parallel for \
+      private(gix) \
+      shared(deltaT, g, ghalf, H_new, U_new, V_new, ncells, level, nlft, nrht, nbot, ntop, lev_deltax, lev_deltay) \
+      default(none)
+#else
 #pragma omp parallel for \
       private(gix) \
       shared(deltaT, g, ghalf, H_new, U_new, V_new) \
-      //shared(deltaT, g, ghalf, H_new, U_new, V_new, ncells, level, nlft, nrht, nbot, ntop, lev_deltax, lev_deltay) \
       default(none)
+#endif
+#endif
    for(gix = 0; gix < (int)ncells; gix++) {
 #ifdef DEBUG
       printf("%d: DEBUG gix is %d at line %d in file %s\n",mesh->mype,gix,__LINE__,__FILE__);
@@ -1642,11 +1651,19 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 #endif
 
    int ic;
+#ifdef _OPENMP
+#ifdef __INTEL_COMPILER
+#pragma omp parallel for \
+      private(ic) \
+      shared(ncells, nlft, nrht, nbot, ntop, level, mpot) \
+      default(none)
+#else
 #pragma omp parallel for \
       private(ic) \
       shared(mesh) \
-      //shared(mesh, ncells, nlft, nrht, nbot, ntop, level, mpot) \
       default(none)
+#endif
+#endif
    for (ic=0; ic<ncells; ic++) {
 
       if (mesh->celltype[ic] != REAL_CELL) continue;

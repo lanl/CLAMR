@@ -301,6 +301,8 @@ int L7_Dev_Update(
          ezcl_device_memory_delete(dev_data_buffer_add);
 
          break;
+      default:
+         break;
    }
    
 #endif /* HAVE_MPI */
