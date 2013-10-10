@@ -859,7 +859,7 @@ void Mesh::calc_distribution(int numpe)
    for (int ip = 0; ip < numpe; ++ip) {
       lsize += proc.size()/numpe;
       if (ip < (int)proc.size()%numpe) lsize++;
-      for (int ic; ic < lsize; ic++) {
+      for (int ic = 0; ic < lsize; ic++) {
          proc[ic] = ip;
       }
    }

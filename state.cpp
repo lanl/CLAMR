@@ -631,7 +631,8 @@ double State::set_timestep(double g, double sigma)
    vector<int> &level    = mesh->level;
 
    int ic;
-#if (_OPENMP > 200600)
+//#if (_OPENMP > 200600)
+#ifdef _OPENMP
 #pragma omp parallel for private(ic) reduction(min:mindeltaT)
 #endif
    for (ic=0; ic<ncells; ic++) {

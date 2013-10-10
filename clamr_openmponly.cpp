@@ -70,6 +70,8 @@
 #include "timer/timer.h"
 #include "memstats/memstats.h"
 
+#include <omp.h>
+
 #ifndef DEBUG 
 #define DEBUG 0
 #endif
@@ -121,6 +123,17 @@ int main(int argc, char **argv) {
     // Needed for code to compile correctly on the Mac
    int mype=0;
    int numpe=-1;
+
+   int nt = 0;
+   int tid = 0;
+
+   nt = omp_get_num_threads();
+   tid = omp_get_thread_num();
+
+   if (0 == tid) {
+        printf("--- num openmp threads: %d\n", nt);
+        fflush(stdout);
+   }
 
    //  Process command-line arguments, if any.
    parseInput(argc, argv);

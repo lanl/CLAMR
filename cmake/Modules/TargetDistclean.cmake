@@ -11,6 +11,8 @@ IF (UNIX)
    CMakeCache.txt
    cmake.check_cache
    *.cmake
+   *.a
+   */*.a
    Makefile
    core core.*
    gmon.out

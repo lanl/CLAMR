@@ -77,6 +77,236 @@
 #define DEBUG 0
 #endif
 
+#ifdef HAVE_QUO
+/* ////////////////////////////////////////////////////////////////////////// */
+/* ////////////////////////////////////////////////////////////////////////// */
+/* QUO Class */
+/* ////////////////////////////////////////////////////////////////////////// */
+/* ////////////////////////////////////////////////////////////////////////// */
+#include "quo.h"
+#include <iostream>
+#include <cstdlib>
+#include <string>
+
+#ifdef LIBQUO //from quo.h
+
+/* ////////////////////////////////////////////////////////////////////////// */
+// TODO add cpp checks for QUO
+// move this to another file
+// add proper exception handling
+/* ////////////////////////////////////////////////////////////////////////// */
+class QUO {
+private:
+    // the quo context
+    QUO_context context;
+
+public:
+    /* ////////////////////////////////////////////////////////////////////// */
+    QUO(void) {
+        if (QUO_SUCCESS != QUO_create(&(this->context))) {
+            std::cerr << "!!! QUO_create failure !!!" << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    ~QUO(void) {
+        if (QUO_SUCCESS != QUO_free(this->context)) {
+            std::cerr << "!!! QUO_free failure !!!" << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    int nnumanodes(void) {
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != (rc = QUO_nnumanodes(this->context, &n))) {
+            std::cerr << "!!! QUO_nnumanodes failure !!!" << std::endl;
+            n = 0;
+        }
+        return n;
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    int nsockets(void) {
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != (rc = QUO_nsockets(this->context, &n))) {
+            std::cerr << "!!! QUO_nsockets failure !!!" << std::endl;
+            n = 0;
+        }
+        return n;
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    int ncores(void) {
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != (rc = QUO_ncores(this->context, &n))) {
+            std::cerr << "!!! QUO_ncores failure !!!" << std::endl;
+            n = 0;
+        }
+        return n;
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    int npus(void) {
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != (rc = QUO_npus(this->context, &n))) {
+            std::cerr << "!!! QUO_pus failure !!!" << std::endl;
+            n = 0;
+        }
+        return n;
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    int nnodes(void) {
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != (rc = QUO_nnodes(this->context, &n))) {
+            std::cerr << "!!! QUO_nnodes failure !!!" << std::endl;
+            n = 0;
+        }
+        return n;
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    bool bound(void) {
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != (rc = QUO_bound(this->context, &n))) {
+            std::cerr << "!!! QUO_bound failure !!!" << std::endl;
+            return false;
+        }
+        return (1 == n);
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    int id(void) {
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != (rc = QUO_id(this->context, &n))) {
+            std::cerr << "!!! QUO_id failure !!!" << std::endl;
+            n = 0;
+        }
+        return n;
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    int nqids(void) {
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != (rc = QUO_nqids(this->context, &n))) {
+            std::cerr << "!!! QUO_nqids failure !!!" << std::endl;
+            n = 0;
+        }
+        return n;
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    std::string stringifyCBind(void) {
+        char *cbind = NULL;
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != QUO_stringify_cbind(this->context, &cbind)) {
+            std::cerr << "!!! QUO_stringify_cbind failure !!!" << std::endl;
+            return std::string("?");
+        }
+        std::string resStr(cbind);
+        free(cbind); cbind = NULL;
+        return resStr;
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    int nObjsByType(QUO_obj_type_t type) {
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != (rc = QUO_nobjs_by_type(this->context, type, &n))) {
+            std::cerr << "!!! QUO_nobjs_by_type failure !!!" << std::endl;
+            n = 0;
+        }
+        return n;
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    int nObjsInType(QUO_obj_type_t inType,
+                    int typeIndex,
+                    QUO_obj_type_t type) {
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != (rc = QUO_nobjs_in_type_by_type(this->context,
+                                                           inType, typeIndex,
+                                                           type, &n))) {
+            std::cerr << "!!! QUO_nobjs_in_type_by_type failure !!!"
+                      << std::endl;
+            n = 0;
+        }
+        return n;
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    bool cpuSetInType(QUO_obj_type_t inType,
+                      int typeIndex) {
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != (rc = QUO_cpuset_in_type(this->context,
+                                                    inType, typeIndex, &n))) {
+            std::cerr << "!!! QUO_cpuset_in_type failure !!!"
+                      << std::endl;
+            return false;
+        }
+        return (1 == n);
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    int nMachineProcsInType(QUO_obj_type_t inType,
+                            int typeIndex) {
+        int rc = QUO_ERR, n = 0;
+        if (QUO_SUCCESS != (rc = QUO_nmachine_procs_in_type(this->context,
+                                                            inType, typeIndex,
+                                                            &n))) {
+            std::cerr << "!!! QUO_nmachine_procs_in_type failure !!!"
+                      << std::endl;
+            n = 0;
+        }
+        return n;
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    void bindPush(QUO_bind_push_policy_t policy,
+                  QUO_obj_type_t type,
+                  int obj_index) {
+
+        int rc = QUO_ERR;
+        if (QUO_SUCCESS != (rc = QUO_bind_push(this->context, policy, type,
+                                               obj_index))) {
+            std::cerr << "!!! QUO_bind_push failure !!!" << std::endl;
+        }
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    void bindPop(void) {
+        int rc = QUO_ERR;
+        if (QUO_SUCCESS != (rc = QUO_bind_pop(this->context))) {
+            std::cerr << "!!! QUO_bind_pop failure !!!" << std::endl;
+        }
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    void barrier(void) {
+        if (QUO_SUCCESS != QUO_barrier(this->context)) {
+            std::cerr << "!!! QUO_barrier failure !!!" << std::endl;
+        }
+    }
+
+    /* ////////////////////////////////////////////////////////////////////// */
+    bool autoDistrib(QUO_obj_type_t distrib_over_this,
+                     int max_qids_per_res_type) {
+        int isel = 0;
+        bool selected = false;
+        if (QUO_SUCCESS != QUO_auto_distrib(this->context, distrib_over_this,
+                                            max_qids_per_res_type, &isel)) {
+            std::cerr << "!!! QUO_auto_distrib failure !!!" << std::endl;
+            return false;
+        }
+        return (1 == isel);
+    }
+
+};
+
+#endif // LIBQUO
+#endif
+
 static int do_cpu_calc = 1;
 static int do_gpu_calc = 0;
 
@@ -126,6 +356,7 @@ enum partition_method initial_order,  //  Initial order of mesh.
 static Mesh       *mesh;     //  Object containing mesh information; init in grid.cpp::main().
 static State      *state;    //  Object containing state information corresponding to mesh; init in grid.cpp::main().
 
+
 //  Set up timing information.
 static struct timeval tstart;
 
@@ -139,7 +370,201 @@ vector<real> y_global;
 vector<real> dy_global;
 vector<int> proc_global;
 
+/* ////////////////////////////////////////////////////////////////////////// */
+// FIXME
+#ifdef HAVE_QUO
+QUO *quo = NULL;
+#endif
+MPI_Comm subComm;
+bool inSubComm = false;
+int subCommRank = -1;
+int numSubCommPEs = -1;
+
+/* ////////////////////////////////////////////////////////////////////////// */
+// this is more than init. examples in C++
+// TODO put init in try/catch
+static int
+initQUO(int mype)
+{
+#ifdef LIBQUO
+   /* init QUO -- all MPI processes MUST do this at the same time */
+   quo = new QUO();
+
+    /* node info from QUO */
+   if (0 == mype) {
+       std::cout << "### System Info ###" << std::endl;
+       std::cout << "# Nodes: " << quo->nnodes() << std::endl;
+       std::cout << "# NUMA Nodes: " << quo->nnumanodes() << std::endl;
+       std::cout << "# Sockets: " << quo->nsockets() << std::endl;
+       std::cout << "# Cores: " << quo->ncores() << std::endl;
+       std::cout << "# PUs: " << quo->npus() << std::endl;
+       std::cout << "# Cores in Socket 0: " << quo->nObjsInType(QUO_OBJ_SOCKET, 0,
+                                                                QUO_OBJ_CORE)
+                 << std::endl;
+       // just an interface test. the same as ncores
+       std::cout << "# Cores (By Type): " << quo->nObjsByType(QUO_OBJ_CORE)
+                 << std::endl;
+       std::cout << std::endl;
+       std::cout << "### Process Info ###" << std::endl;
+       std::cout << "# QUO ID: " << quo->id() << std::endl;
+       std::cout << "# Bound: " << quo->bound() << std::endl;
+       std::cout << "# MPI Procs on Node: " << quo->nqids() << std::endl;
+       std::cout << "# Hex CPU Set: " << quo->stringifyCBind() << std::endl;
+       // whether or not my current binding falls within a particular hw res
+       std::cout << "# Bound Within Core 0: " <<
+                    quo->cpuSetInType(QUO_OBJ_CORE, 0) << std::endl;
+       std::cout << "# MPI Procs on Bound Within Socket 0: "
+                 << quo->nMachineProcsInType(QUO_OBJ_SOCKET, 0) << std::endl;
+       std::cout << "*** CHANGING BIND POLICY ***" << std::endl;
+       quo->bindPush(QUO_BIND_PUSH_OBJ, QUO_OBJ_SOCKET, -1);
+       std::cout << "# Hex CPU Set: " << quo->stringifyCBind() << std::endl;
+       quo->bindPop();
+       std::cout << "# Hex CPU Set: " << quo->stringifyCBind() << std::endl;
+   }
+   bool onRes = quo->autoDistrib(QUO_OBJ_SOCKET, 1);
+   std::cout << "rank: " << mype << " selected: " << onRes << std::endl;
+   // NOTE: this is a NODE barrier. everyone must enter this to continue
+   quo->barrier();
+   return 0;
+#endif
+   return 0;
+}
+
+#ifdef HAVE_QUO
+/* ////////////////////////////////////////////////////////////////////////// */
+static int
+getSubCommProcs(QUO *q,
+                int numPEs,
+                int *vLen,
+                int **v)
+{
+    QUO_obj_type_t resPrio[] = {QUO_OBJ_NODE,
+                                QUO_OBJ_SOCKET};
+    // default target resource is a NUMA node
+    QUO_obj_type_t targetRes = QUO_OBJ_NODE;
+    // number of target resources and max number of procs per resource
+    int nRes = 0, maxProcPerRes = 1;
+    int res_assigned = 0;
+    int tot_workers = 0;
+    int rc = QUO_ERR;
+    /* array that hold whether or not a particular rank is going to do work */
+    int *work_contribs = NULL;
+    int *worker_ranks = NULL;
+
+    // figure out what we are going to distribute work over
+    for (int i = 0; i < sizeof(resPrio) / sizeof(resPrio[0]); ++i) {
+        if ((nRes = quo->nObjsByType(resPrio[i])) > 0) {
+            targetRes = resPrio[i];
+            break;
+        }
+    }
+    // failure -- fix this path at some point
+    if (0 == nRes) return 1;
+
+    /* let quo distribute workers over the sockets. if p1pe_worker is 1 after
+     * this call, then i have been chosen. */
+    if (quo->autoDistrib(targetRes, maxProcPerRes)) {
+        res_assigned = 1;
+    }
+    /* array that hold whether or not a particular rank is going to do work */
+    work_contribs = (int *)calloc(numPEs, sizeof(*work_contribs));
+    if (!work_contribs) return 1;
+
+    if (MPI_SUCCESS != (rc = MPI_Allgather(&res_assigned, 1, MPI_INT,
+                                           work_contribs, 1, MPI_INT,
+                                           MPI_COMM_WORLD))) {
+        return 1;
+    }
+    /* now iterate over the array and count the total number of workers */
+    for (int i = 0; i < numPEs; ++i) {
+        if (1 == work_contribs[i]) ++tot_workers;
+    }
+    worker_ranks = (int *)calloc(tot_workers, sizeof(*worker_ranks));
+    if (!worker_ranks) return 1;
+    /* populate the array with the worker comm world ranks */
+    for (int i = 0, j = 0; i < numPEs; ++i) {
+        if (1 == work_contribs[i]) {
+            worker_ranks[j++] = i;
+        }
+    }
+    *vLen = tot_workers;
+    *v = worker_ranks;
+    if (work_contribs) free(work_contribs);
+    return 0;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+static int
+subCommInit(QUO *q,
+            int np1s /* number of participants |p1who| */,
+            int *p1who /* the participating ranks (MPI_COMM_WORLD) */)
+{
+    int rc = QUO_SUCCESS;
+    MPI_Group world_group;
+    MPI_Group p1_group;
+    /* ////////////////////////////////////////////////////////////////////// */
+    /* now create our own communicator based on the rank ids passed here */
+    /* ////////////////////////////////////////////////////////////////////// */
+    if (MPI_SUCCESS != MPI_Comm_group(MPI_COMM_WORLD, &world_group)) {
+        rc = QUO_ERR_MPI;
+        goto out;
+    }
+    if (MPI_SUCCESS != MPI_Group_incl(world_group, np1s,
+                                      p1who, &p1_group)) {
+        rc = QUO_ERR_MPI;
+        goto out;
+    }
+    if (MPI_SUCCESS != MPI_Comm_create(MPI_COMM_WORLD,
+                                       p1_group,
+                                       &(subComm))) {
+        rc = QUO_ERR_MPI;
+        goto out;
+    }
+    /* am i in the new communicator? */
+    inSubComm = (MPI_COMM_NULL == subComm) ? false : true;
+    if (inSubComm) {
+        if (MPI_SUCCESS != MPI_Comm_size(subComm, &numSubCommPEs)) {
+            rc = QUO_ERR_MPI;
+            goto out;
+        }
+        if (MPI_SUCCESS != MPI_Comm_rank(subComm, &subCommRank)) {
+            rc = QUO_ERR_MPI;
+            goto out;
+        }
+    }
+out:
+    if (MPI_SUCCESS != MPI_Group_free(&world_group)) return 1;
+    return (QUO_SUCCESS == rc) ? 0 : 1;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+static int
+subCommCreate(QUO *quo, int numPEs)
+{
+    int rc = 1;
+    int numPEsInSubComm = 0;
+    // comm world ranks in subcomm
+    int *cwPEs = NULL;
+    rc = getSubCommProcs(quo, numPEs, &numPEsInSubComm, &cwPEs);
+    if (rc) return rc;
+    if (0 == quo->id()) {
+        // add hostname -- could be diff on diff systems
+        std::cout << "MPI_COMM_WORLD ranks in subComm: ";
+        for (int i = 0; i < numPEsInSubComm; ++i) {
+            std::cout << cwPEs[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+    // now actually create the darn thing...
+    rc = subCommInit(quo, numPEsInSubComm, cwPEs);
+    free(cwPEs);
+    return rc;
+}
+#endif
+
 int main(int argc, char **argv) {
+
+
 
    //  Process command-line arguments, if any.
    int mype=0;
@@ -159,12 +584,25 @@ int main(int argc, char **argv) {
    int nt = 0;
    int tid = 0;
 
-   nt = omp_get_num_threads();
-   tid = omp_get_thread_num();
-
-   if (0 == tid) {
-        printf("--- num openmp threads: %d\n", nt);        fflush(stdout);
-   }     
+   // init QUO
+   if (initQUO(mype)) {
+       fprintf(stderr, "(%d) QUO INIT FAILURE!\n", mype);
+   }
+#ifdef HAVE_QUO
+   // create the sub comm
+   if (subCommCreate(quo, numpe)) {
+       fprintf(stderr, "(%d) subCommCreate FALIURE!\n", mype);
+   }
+   if (inSubComm) {
+       std::cout << "rank: " << mype << " is subComm rank: "
+                 << subCommRank << std::endl;
+   }
+#endif
+   // at this point subComm is ready to use for those inSubComm
+   if (0 == tid && 0 == mype) {
+        printf("--- num openmp threads: %d\n", nt);
+        fflush(stdout);
+   }
 
    mesh = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
    if (DEBUG) {
