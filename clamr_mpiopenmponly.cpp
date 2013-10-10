@@ -156,6 +156,7 @@ int main(int argc, char **argv) {
    int boundary = 1;
    int parallel_in = 1;
 
+#ifdef _OPENMP
    int nt = 0;
    int tid = 0;
 
@@ -165,6 +166,7 @@ int main(int argc, char **argv) {
    if (0 == tid) {
         printf("--- num openmp threads: %d\n", nt);        fflush(stdout);
    }     
+#endif
 
    mesh = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
    if (DEBUG) {

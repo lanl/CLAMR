@@ -152,7 +152,7 @@ set(clamr_SRCS ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS})
 
 add_executable(clamr ${clamr_SRCS})
 
-set_target_properties(clamr PROPERTIES COMPILE_DEFINITIONS HAVE_MPI_AND_OPENCL)
+set_target_properties(clamr PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
 
 target_link_libraries(clamr dpmesh hsfc kdtree zorder s7 pezcl timer memstats dl7 genmalloc dMallocPlus m)
 target_link_libraries(clamr ${MPE_LIBS} ${X11_LIBS})
@@ -339,7 +339,7 @@ set(clamr_checkall_SRCS ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${cl
 
 add_executable(clamr_checkall ${clamr_checkall_SRCS})
 
-set_target_properties(clamr_checkall PROPERTIES COMPILE_DEFINITIONS HAVE_MPI_AND_OPENCL)
+set_target_properties(clamr_checkall PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
 
 target_link_libraries(clamr_checkall dpmesh hsfc kdtree zorder s7 pezcl timer memstats dl7 genmalloc dMallocPlus m)
 target_link_libraries(clamr_checkall ${MPE_LIBS} ${X11_LIBS})
@@ -351,7 +351,7 @@ add_dependencies(clamr_checkall state_kernel_source)
 install(TARGETS clamr_checkall DESTINATION bin)
 
 ########### clean files ################
-SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.inc;clamr;clamr_cpuonly;clamr_gpuonly;clamr_mpionly;clamr_gpucheck;clamr_mpicheck;clamr_checkall")
+SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.inc;clamr;clamr_cpuonly;clamr_gpuonly;clamr_mpionly;clamr_gpucheck;clamr_mpicheck;clamr_checkall;clamr_quo")
 
 ########### install files ###############
 

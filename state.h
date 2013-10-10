@@ -56,11 +56,6 @@
 #ifndef STATE_H_
 #define STATE_H_
 
-#ifdef HAVE_MPI_AND_OPENCL
-#define HAVE_MPI    1
-#define HAVE_OPENCL 1
-#endif
-
 #include <list>
 #include "MallocPlus/MallocPlus.h"
 #include "mesh/mesh.h"

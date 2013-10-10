@@ -124,6 +124,7 @@ int main(int argc, char **argv) {
    int mype=0;
    int numpe=-1;
 
+#ifdef _OPENMP
    int nt = 0;
    int tid = 0;
 
@@ -134,6 +135,7 @@ int main(int argc, char **argv) {
         printf("--- num openmp threads: %d\n", nt);
         fflush(stdout);
    }
+#endif
 
    //  Process command-line arguments, if any.
    parseInput(argc, argv);

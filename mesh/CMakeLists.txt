@@ -63,7 +63,7 @@ set(dpmesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
 add_library(dpmesh STATIC ${dpmesh_LIB_SRCS})
 
 set_target_properties(dpmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
-set_target_properties(dpmesh PROPERTIES COMPILE_DEFINITIONS HAVE_MPI_AND_OPENCL)
+set_target_properties(dpmesh PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
 target_link_libraries(dpmesh ${MPI_LIBRARIES})
 target_link_libraries(dpmesh ${OPENCL_LIBRARIES})
 add_dependencies(dpmesh mesh_kernel_source)
