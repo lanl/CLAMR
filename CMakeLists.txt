@@ -261,9 +261,9 @@ target_link_libraries(clamr_mpiopenmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 install(TARGETS clamr_mpiopenmponly DESTINATION bin)
 
 ########### clamr_quo target ###############
-set(clamr_quo_CXX_SRCS clamr_quo.cpp state.cpp input.cpp)
+set(clamr_quo_CXX_SRCS clamr_quo.cpp state.cpp input.cpp QUO.cpp)
 set(clamr_quo_C_SRCS display.c)
-set(clamr_quo_H_SRCS display.h state.h input.h)
+set(clamr_quo_H_SRCS display.h state.h input.h QUO.hpp)
 
 set(clamr_quo_SRCS ${clamr_quo_CXX_SRCS} ${clamr_quo_C_SRCS} ${clamr_quo_H_SRCS})
 
