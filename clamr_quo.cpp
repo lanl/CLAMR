@@ -396,6 +396,9 @@ int main(int argc, char **argv) {
    int nt = 0;
    int tid = 0;
 
+   nt = omp_get_num_threads();
+   tid = omp_get_thread_num();
+
    // setup our context information
    if (contextSetup(context, mype, numpe)) {
        fprintf(stderr, "(%d) contextSetup Failure!", mype);
@@ -411,6 +414,10 @@ int main(int argc, char **argv) {
    // at this point subComm is ready to use for those inSubComm
    if (0 == tid && 0 == mype) {
         printf("--- num openmp threads: %d\n", nt);
+        int world_size, subcomm_size;
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+        MPI_Comm_size(context.subComm.comm, &subcomm_size);
+        printf("Size comm world %d subComm %d\n",world_size, subcomm_size);
         fflush(stdout);
    }
 

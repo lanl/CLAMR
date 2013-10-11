@@ -45,9 +45,11 @@ if (MPI_FOUND)
 endif (MPI_FOUND)
 
 find_package( OpenMP)
-if(OpenMP_FOUND)
-   message("OPENMP FOUND ${OpenMP_C_FLAGS}")
-endif(OpenMP_FOUND)
+#if(OPENMP_FOUND)
+#   message("OPENMP FOUND ${OpenMP_C_FLAGS}")
+#else (OPENMP_FOUND)
+#   message("OPENMP NOT FOUND")
+#endif(OPENMP_FOUND)
 
 if (NOT GRAPHICS_TYPE)
    set (GRAPHICS_TYPE none)
@@ -224,11 +226,11 @@ set(clamr_openmponly_SRCS ${clamr_openmponly_CXX_SRCS} ${clamr_openmponly_C_SRCS
 
 add_executable(clamr_openmponly ${clamr_openmponly_SRCS})
 
-if(OpenMP_FOUND)
+if(OPENMP_FOUND)
 set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
 set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
 set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
-endif(OpenMP_FOUND)
+endif(OPENMP_FOUND)
 
 target_link_libraries(clamr_openmponly mesh hsfc kdtree zorder s7 timer memstats genmalloc MallocPlus m)
 target_link_libraries(clamr_openmponly ${MPE_NOMPI_LIBS} ${X11_LIBS})
@@ -247,11 +249,11 @@ add_executable(clamr_mpiopenmponly ${clamr_mpiopenmponly_SRCS})
 
 set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 
-if(OpenMP_FOUND)
+if(OPENMP_FOUND)
 set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
 set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
 set_target_properties(clamr_mpiopenmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
-endif(OpenMP_FOUND)
+endif(OPENMP_FOUND)
 
 target_link_libraries(clamr_mpiopenmponly pmesh hsfc kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
 target_link_libraries(clamr_mpiopenmponly ${MPE_LIBS} ${X11_LIBS})
@@ -275,16 +277,18 @@ else (QUO_FOUND)
 set_target_properties(clamr_quo PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI")
 endif (QUO_FOUND)
 
-if(OpenMP_FOUND)
+if(OPENMP_FOUND)
+set(clamr_quo_link_flags "${OpenMP_CXX_FLAGS}")
 set_target_properties(clamr_quo PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
 set_target_properties(clamr_quo PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
-set_target_properties(clamr_quo PROPERTIES LINK_FLAGS "${OpenMP_CXX_FLAGS}")
-endif(OpenMP_FOUND)
+endif(OPENMP_FOUND)
 
 if (QUO_FOUND)
-set_target_properties(clamr_quo PROPERTIES LINK_FLAGS "-L$ENV{QUO_HOME}/lib")
+set(clamr_quo_link_flags "${clamr_quo_link_flags} -L$ENV{QUO_HOME}/lib")
 target_link_libraries(clamr_quo quo)
 endif (QUO_FOUND)
+
+set_target_properties(clamr_quo PROPERTIES LINK_FLAGS "${clamr_quo_link_flags}")
 
 target_link_libraries(clamr_quo pmesh hsfc kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
 target_link_libraries(clamr_quo ${MPE_LIBS} ${X11_LIBS})
