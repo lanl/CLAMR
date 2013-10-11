@@ -213,6 +213,7 @@ contextSetup(Context &c,
     // first stash some of my MPI_COMM_WORLD info
     c.cwRank = cwRank;
     c.cwSize = cwSize;
+    // note that comm info is only valid if a member of the communicator
     c.subComm.rank = -1;
     c.subComm.size= -1;
     c.subComm.member = false;
@@ -242,7 +243,6 @@ finalizeQUO(Context &c)
 #endif
 }
 
-#ifdef HAVE_QUO
 /* ////////////////////////////////////////////////////////////////////////// */
 static int
 getSubCommProcs(Context &c, int *vLen, int **v)
@@ -254,52 +254,58 @@ getSubCommProcs(Context &c, int *vLen, int **v)
     // number of target resources and max number of procs per resource
     int nRes = 0, maxProcPerRes = 1;
     int res_assigned = 0;
-    int tot_workers = 0;
-    int rc = QUO_ERR;
-    /* array that hold whether or not a particular rank is going to do work */
-    int *work_contribs = NULL;
-    int *worker_ranks = NULL;
+    int totalWorkers = 0;
+    int rc = MPI_SUCCESS;
+    // array that hold whether or not a particular rank is going to do work
+    int *workContribs = NULL;
+    // MPI_COMM_WORLD ranks of the selected workers
+    int *workerRanks = NULL;
 
-    // figure out what we are going to distribute work over
-    for (int i = 0; i < sizeof(resPrio) / sizeof(resPrio[0]); ++i) {
-        if ((nRes = c.quo->nObjsByType(resPrio[i])) > 0) {
-            targetRes = resPrio[i];
-            break;
+    try {
+        // figure out what we are going to distribute work over
+        for (int i = 0; i < sizeof(resPrio) / sizeof(resPrio[0]); ++i) {
+            if ((nRes = c.quo->nObjsByType(resPrio[i])) > 0) {
+                targetRes = resPrio[i];
+                break;
+            }
+        }
+        // failure -- fix this path at some point
+        if (0 == nRes) return 1;
+        /* let quo distribute workers over the sockets. if res_assigned is 1
+         * after this call, then i have been chosen. */
+        if (c.quo->autoDistrib(targetRes, maxProcPerRes)) {
+            res_assigned = 1;
         }
     }
-    // failure -- fix this path at some point
-    if (0 == nRes) return 1;
-
-    /* let quo distribute workers over the sockets. if p1pe_worker is 1 after
-     * this call, then i have been chosen. */
-    if (c.quo->autoDistrib(targetRes, maxProcPerRes)) {
-        res_assigned = 1;
-    }
-    /* array that hold whether or not a particular rank is going to do work */
-    work_contribs = (int *)calloc(c.cwSize, sizeof(*work_contribs));
-    if (!work_contribs) return 1;
-
-    if (MPI_SUCCESS != (rc = MPI_Allgather(&res_assigned, 1, MPI_INT,
-                                           work_contribs, 1, MPI_INT,
-                                           MPI_COMM_WORLD))) {
+   catch (QUOException &e) {
+        cerr << e.what() << endl;
         return 1;
-    }
-    /* now iterate over the array and count the total number of workers */
-    for (int i = 0; i < c.cwSize; ++i) {
-        if (1 == work_contribs[i]) ++tot_workers;
-    }
-    worker_ranks = (int *)calloc(tot_workers, sizeof(*worker_ranks));
-    if (!worker_ranks) return 1;
-    /* populate the array with the worker comm world ranks */
-    for (int i = 0, j = 0; i < c.cwSize; ++i) {
-        if (1 == work_contribs[i]) {
-            worker_ranks[j++] = i;
-        }
-    }
-    *vLen = tot_workers;
-    *v = worker_ranks;
-    if (work_contribs) free(work_contribs);
-    return 0;
+   }
+   /* array that hold whether or not a particular rank is going to do work */
+   workContribs = (int *)calloc(c.cwSize, sizeof(*workContribs));
+   if (!workContribs) return 1;
+
+   if (MPI_SUCCESS != (rc = MPI_Allgather(&res_assigned, 1, MPI_INT,
+                                          workContribs, 1, MPI_INT,
+                                          MPI_COMM_WORLD))) {
+       return 1;
+   }
+   /* now iterate over the array and count the total number of workers */
+   for (int i = 0; i < c.cwSize; ++i) {
+       if (1 == workContribs[i]) ++totalWorkers;
+   }
+   workerRanks = (int *)calloc(totalWorkers, sizeof(*workerRanks));
+   if (!workerRanks) return 1;
+   /* populate the array with the worker comm world ranks */
+   for (int i = 0, j = 0; i < c.cwSize; ++i) {
+       if (1 == workContribs[i]) {
+           workerRanks[j++] = i;
+       }
+   }
+   *vLen = totalWorkers;
+   *v = workerRanks;
+   if (workContribs) free(workContribs);
+   return 0;
 }
 
 /* ////////////////////////////////////////////////////////////////////////// */
@@ -369,7 +375,6 @@ subCommCreate(Context &c)
     if (cwPEs) free(cwPEs);
     return rc;
 }
-#endif
 
 int main(int argc, char **argv) {
 
@@ -391,6 +396,7 @@ int main(int argc, char **argv) {
    int nt = 0;
    int tid = 0;
 
+   // setup our context information
    if (contextSetup(context, mype, numpe)) {
        fprintf(stderr, "(%d) contextSetup Failure!", mype);
    }
