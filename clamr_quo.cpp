@@ -394,10 +394,9 @@ int main(int argc, char **argv) {
    int parallel_in = 1;
 
    int nt = 0;
-   int tid = 0;
 
-   nt = omp_get_num_threads();
-   tid = omp_get_thread_num();
+   // figure out the max number of threads that can be spawned
+   nt = omp_get_max_threads();
 
    // setup our context information
    if (contextSetup(context, mype, numpe)) {
@@ -412,7 +411,7 @@ int main(int argc, char **argv) {
                  << context.subComm.rank << std::endl;
    }
    // at this point subComm is ready to use for those inSubComm
-   if (0 == tid && 0 == mype) {
+   if (0 == mype) {
         printf("--- num openmp threads: %d\n", nt);
         int world_size, subcomm_size;
         MPI_Comm_size(MPI_COMM_WORLD, &world_size);

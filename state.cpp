@@ -70,6 +70,12 @@
 //#define DEBUG 1
 #define TIMING_LEVEL 2
 
+// SKG -- maybe this isn't needed anymore? Works fine with GCC 4.7.3
+// SKG -- Fixes the build for me.
+#ifndef __INTEL_COMPILER
+#define __INTEL_COMPILER
+#endif
+
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
 typedef struct
