@@ -107,8 +107,19 @@ int L7_Terminate (void)
 		free ( l7.send_buffer);
 		l7.sizeof_send_buffer = 0;
 	}
-	
+
 	l7.initialized = 0;
+
+#ifdef HAVE_QUO
+        if (l7.subComm.context) {
+           int rc = QUO_ERR;
+           if (QUO_SUCCESS != (rc = QUO_free(l7.subComm.context))) {
+              printf("QUO_free failure: rc = %d\n",rc);
+              exit(0);
+           }
+        }
+#endif
+	
 #ifdef HAVE_OPENCL
         if (l7.numpes > 1){
            ezcl_kernel_release(l7.kernel_pack_int_have_data);
@@ -121,7 +132,7 @@ int L7_Terminate (void)
 #endif
 	
 #endif /* HAVE_MPI */
-	
+
 	return(0);
 
 } /* End L7_Terminate */

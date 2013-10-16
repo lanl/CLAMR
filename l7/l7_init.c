@@ -44,6 +44,7 @@
 #define L7_EXTERN
 #include "l7.h"
 #include "l7p.h"
+#include <stdlib.h>
 
 #define L7_LOCATION "L7_INIT"
 
@@ -51,11 +52,15 @@
 #include "l7_kernel.inc"
 #endif
 
+static int getSubCommProcs(QUO_context c, int numpes, int *vLen, int **v);
+static int subCommInit(QUO_SubComm *subcomm, int np1s, int *p1who);
+
 int L7_Init (
     int *mype,
     int *numpes,
     int *argc,
-    char **argv
+    char **argv,
+    int do_quo_setup
     )
 {
     /*
@@ -139,6 +144,103 @@ int L7_Init (
     
    l7.initialized = 1;
 
+#ifdef HAVE_QUO
+   if (do_quo_setup) {
+      // init QUO -- all MPI processes MUST do this at the same time.
+      // create shorthand for context and Subcomm
+      QUO_context context = l7.subComm.context;
+      QUO_SubComm subcomm = l7.subComm;
+
+      subcomm.rank = -1;
+      subcomm.size = -1;
+
+      int rc = QUO_ERR;
+      if (QUO_SUCCESS != (rc = QUO_create(&context))){
+         printf("QUO_create failure: rc = %d\n",rc);
+      } 
+
+      if (l7.penum == 0) {
+         int nnodes, nnumanodes, nsockets, ncores, npus, nqids;
+         if (QUO_SUCCESS != QUO_nnodes(context, &nnodes)){
+            printf("QUO_nnodes failure\n");
+         }
+         if (QUO_SUCCESS != QUO_nnumanodes(context, &nnumanodes)){
+            printf("QUO_nnumanodes failure\n");
+         }
+         if (QUO_SUCCESS != QUO_nsockets(context, &nsockets)){
+            printf("QUO_nsockets failure\n");
+         }
+         if (QUO_SUCCESS != QUO_ncores(context, &ncores)){
+            printf("QUO_ncores failure\n");
+         }
+         if (QUO_SUCCESS != QUO_npus(context, &npus)){
+            printf("QUO_npus failure\n");
+         }
+         if (QUO_SUCCESS != QUO_nqids(context, &nqids)){
+            printf("QUO_nqids failure\n");
+         }
+
+         printf("### System Info ###\n");
+         printf("# Nodes: %d\n",nnodes);
+         printf("# NUMA Nodes: %d\n",nnumanodes);
+         printf("# Sockets: %d\n",nsockets);
+         printf("# Cores: %d\n",ncores);
+         printf("# PUs: %d\n",npus);
+         printf("# MPI Procs on Node: %d\n",nqids);
+      }
+
+      int numPEsInSubComm = 0;
+      int *cwPEs = NULL;
+      rc = QUO_ERR;
+
+      getSubCommProcs(context, l7.numpes, &numPEsInSubComm, &cwPEs);
+
+      int n;
+      if (QUO_SUCCESS != (rc = QUO_id(context, &n))) {
+         printf("QUO_id: rc = %d\n",rc);
+         exit(1);
+      }
+      if (0 == n) {
+         // add hostname -- could be diff on diff systems
+         printf("MPI_COMM_WORLD ranks in subComm: ");
+         for (int i = 0; i < numPEsInSubComm; ++i) {
+             printf(" %d ",cwPEs[i]);
+         }
+         printf("\n");
+      }
+
+      // now actually create the darn thing...
+      rc = subCommInit(&subcomm, numPEsInSubComm, cwPEs);
+      if (cwPEs) free(cwPEs);
+
+      // at this point subComm is ready to use for those inSubComm
+
+      int member_global[l7.numpes];
+      int subcomm_rank_global[l7.numpes];
+      MPI_Gather(&subcomm.member, 1, MPI_INT,
+                 member_global, 1, MPI_INT,
+                 0, MPI_COMM_WORLD);
+      MPI_Gather(&subcomm.rank, 1, MPI_INT,
+                 subcomm_rank_global, 1, MPI_INT,
+                 0, MPI_COMM_WORLD);
+
+      if (l7.penum == 0) {
+         for (int ip = 0; ip < l7.numpes; ip++){
+            if (member_global[ip]) {
+               printf("rank: %d is subComm rank: %d\n",ip, subcomm_rank_global[ip]);
+            }
+         }
+
+        int world_size, subcomm_size;
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+        MPI_Comm_size(subcomm.comm, &subcomm_size);
+        printf("Size comm world %d subComm %d\n",world_size, subcomm_size);
+      }
+
+   }
+
+#endif
+
 
 #else
 
@@ -164,3 +266,118 @@ void L7_Dev_Init(void)
    }
 #endif
 }
+
+#ifdef HAVE_QUO
+static int getSubCommProcs(QUO_context c, int numpes, int *vLen, int **v)
+{
+    QUO_obj_type_t resPrio[] = {QUO_OBJ_NODE,
+                                QUO_OBJ_SOCKET};
+    // default target resource is a NUMA node
+    QUO_obj_type_t targetRes = QUO_OBJ_NODE;
+    // number of target resources and max number of procs per resource
+    int nRes = 0, maxProcPerRes = 1;
+    int res_assigned = 0;
+    int totalWorkers = 0;
+    int rc = MPI_SUCCESS;
+    // array that hold whether or not a particular rank is going to do work
+    int *workContribs = NULL;
+    // MPI_COMM_WORLD ranks of the selected workers
+    int *workerRanks = NULL;
+
+    // figure out what we are going to distribute work over
+    for (int i = 0; i < sizeof(resPrio) / sizeof(resPrio[0]); ++i) {
+        if (QUO_SUCCESS != (rc = QUO_nobjs_by_type(c, resPrio[i], &nRes))){
+           printf("QUO_nobjs_by_type: rc = %d\n",rc);
+           exit(1);
+        }
+        if (nRes > 0){
+            targetRes = resPrio[i];
+            break;
+        }
+    }
+    // failure -- fix this path at some point
+    if (0 == nRes) return 1;
+    /* let quo distribute workers over the sockets. if res_assigned is 1
+     * after this call, then i have been chosen. */
+    int isel = 0;
+    if (QUO_SUCCESS != (rc = QUO_auto_distrib(c, targetRes,
+                                              maxProcPerRes, &isel))) {
+        printf("QUO_auto_distrib: rc = %d\n",rc);
+        exit(1);
+    }
+    if (isel == 1) {
+    //if (*c.quo->autoDistrib(targetRes, maxProcPerRes)) {
+        res_assigned = 1;
+    }
+
+   /* array that hold whether or not a particular rank is going to do work */
+   workContribs = (int *)calloc(numpes, sizeof(*workContribs));
+   if (!workContribs) return 1;
+
+   if (MPI_SUCCESS != (rc = MPI_Allgather(&res_assigned, 1, MPI_INT,
+                                          workContribs, 1, MPI_INT,
+                                          MPI_COMM_WORLD))) {
+       return 1;
+   }
+   /* now iterate over the array and count the total number of workers */
+   for (int i = 0; i < numpes; ++i) {
+       if (1 == workContribs[i]) ++totalWorkers;
+   }
+   workerRanks = (int *)calloc(totalWorkers, sizeof(*workerRanks));
+   if (!workerRanks) return 1;
+   /* populate the array with the worker comm world ranks */
+   for (int i = 0, j = 0; i < numpes; ++i) {
+       if (1 == workContribs[i]) {
+           workerRanks[j++] = i;
+       }
+   }
+   *vLen = totalWorkers;
+   *v = workerRanks;
+   if (workContribs) free(workContribs);
+   return 0;
+}
+
+static int
+subCommInit(QUO_SubComm *subcomm,
+            int np1s /* number of participants |p1who| */,
+            int *p1who /* the participating ranks (MPI_COMM_WORLD) */)
+{
+    int rc = QUO_SUCCESS;
+    MPI_Group worldGroup;
+    MPI_Group p1_group;
+    /* ////////////////////////////////////////////////////////////////////// */
+    /* now create our own communicator based on the rank ids passed here */
+    /* ////////////////////////////////////////////////////////////////////// */
+    if (MPI_SUCCESS != MPI_Comm_group(MPI_COMM_WORLD, &worldGroup)) {
+        rc = QUO_ERR_MPI;
+        goto out;
+    }
+    if (MPI_SUCCESS != MPI_Group_incl(worldGroup, np1s,
+                                      p1who, &p1_group)) {
+        rc = QUO_ERR_MPI;
+        goto out;
+    }
+    if (MPI_SUCCESS != MPI_Comm_create(MPI_COMM_WORLD,
+                                       p1_group,
+                                       &((*subcomm).comm))) {
+        rc = QUO_ERR_MPI;
+        goto out;
+    }
+    /* am i in the new communicator? */
+    (*subcomm).member = (MPI_COMM_NULL == (*subcomm).comm) ? 0 : 1;
+    if ((*subcomm).member) {
+        if (MPI_SUCCESS != MPI_Comm_size((*subcomm).comm, &(*subcomm).size)) {
+            rc = QUO_ERR_MPI;
+            goto out;
+        }
+        if (MPI_SUCCESS != MPI_Comm_rank((*subcomm).comm, &(*subcomm).rank)) {
+            rc = QUO_ERR_MPI;
+            goto out;
+        }
+    }
+out:
+    if (MPI_SUCCESS != MPI_Group_free(&worldGroup)) return 1;
+    return (QUO_SUCCESS == rc) ? 0 : 1;
+}
+
+#endif

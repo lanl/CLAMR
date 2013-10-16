@@ -127,7 +127,8 @@ int L7_Init (
 	int *mype,
 	int *numpes,
 	int *argc,
-	char **argv
+	char **argv,
+        int do_quo_setup
 	);
 
 void L7_Dev_Init(void);

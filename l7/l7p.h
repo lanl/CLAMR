@@ -15,7 +15,24 @@
 extern "C"
 {
 #endif
-   
+
+#ifdef HAVE_QUO
+#include <quo.h>
+
+typedef struct QUO_SubComm {
+   // context for holding state of QUO
+   QUO_context context;
+   // the SubComm communicator
+   MPI_Comm comm;
+   // my rank in the communicator
+   int rank;
+   // the size of the communicator
+   int size;
+   // whether or not I'm a member of the communicator
+   int member;
+} QUO_SubComm;
+#endif
+
 /*
  * Some L7 parameters.
  */
@@ -214,6 +231,10 @@ typedef struct
      num_push_dbs,             /* Number of push databases allocated.  */
      numpes,                   /* Number of processors in mpi job      */
      penum;                    /* Process id for currently set db.     */
+
+#ifdef HAVE_QUO
+   QUO_SubComm subComm;
+#endif
    
    void
      *data_check;              /* Workspace for use in l7_update_check */

@@ -145,7 +145,8 @@ int main(int argc, char **argv) {
    //  Process command-line arguments, if any.
    int mype=0;
    int numpe=0;
-   L7_Init(&mype, &numpe, &argc, argv);
+   int do_quo_setup = 0;
+   L7_Init(&mype, &numpe, &argc, argv, do_quo_setup);
    parseInput(argc, argv);
 
    double circ_radius = 6.0;

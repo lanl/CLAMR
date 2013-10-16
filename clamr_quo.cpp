@@ -144,244 +144,13 @@ vector<real> y_global;
 vector<real> dy_global;
 vector<int> proc_global;
 
-typedef struct SubComm {
-    // the communicator
-    MPI_Comm comm;
-    // my rank in the communicator
-    int rank;
-    // the size of the communicator
-    int size;
-    // cache whether or not i'm a member of the communicator
-    bool member;
-} SubComm;
-
-typedef struct Context {
-#ifdef HAVE_QUO
-    QUO *quo;
-#endif
-    // MPI_COMM_WORLD rank
-    int cwRank;
-    // size of MPI_COMM_WORLD
-    int cwSize;
-    // sub communicator
-    SubComm subComm;
-} Context;
-
-// my context
-Context context;
-
-/* ////////////////////////////////////////////////////////////////////////// */
-static int
-initQUO(Context &c)
-{
-#ifdef LIBQUO
-   try {
-       // init QUO -- all MPI processes MUST do this at the same time.
-       QUO *q = new QUO();
-       q->create();
-       // stash this in the context
-       c.quo = q;
-
-       // emit some node info... not needed for init, just an example
-       if (0 == c.cwRank) {
-           std::cout << "### System Info ###" << std::endl;
-           std::cout << "# Nodes: " << q->nnodes() << std::endl;
-           std::cout << "# NUMA Nodes: " << q->nnumanodes() << std::endl;
-           std::cout << "# Sockets: " << q->nsockets() << std::endl;
-           std::cout << "# Cores: " << q->ncores() << std::endl;
-           std::cout << "# PUs: " << q->npus() << std::endl;
-           std::cout << "# MPI Procs on Node: " << q->nqids() << std::endl;
-       }
-   }
-   catch (QUOException &e) {
-        cerr << e.what() << endl;
-        return 1;
-   }
-   return 0;
-#else
-   return 0;
-#endif
-}
-
-/* ////////////////////////////////////////////////////////////////////////// */
-static int
-contextSetup(Context &c,
-             int cwRank,
-             int cwSize)
-{
-    int rc = 0;
-    // first stash some of my MPI_COMM_WORLD info
-    c.cwRank = cwRank;
-    c.cwSize = cwSize;
-    // note that comm info is only valid if a member of the communicator
-    c.subComm.rank = -1;
-    c.subComm.size= -1;
-    c.subComm.member = false;
-#ifdef LIBQUO
-    // init QUO
-    rc = initQUO(c);
-#endif
-    return rc;
-}
-
-/* ////////////////////////////////////////////////////////////////////////// */
-static int
-finalizeQUO(Context &c)
-{
-#ifdef LIBQUO
-    try {
-        c.quo->free();
-        delete c.quo;
-    }
-   catch (QUOException &e) {
-        cerr << e.what() << endl;
-        return 1;
-   }
-    return 0;
-#else
-    return 0;
-#endif
-}
-
-/* ////////////////////////////////////////////////////////////////////////// */
-static int
-getSubCommProcs(Context &c, int *vLen, int **v)
-{
-    QUO_obj_type_t resPrio[] = {QUO_OBJ_NODE,
-                                QUO_OBJ_SOCKET};
-    // default target resource is a NUMA node
-    QUO_obj_type_t targetRes = QUO_OBJ_NODE;
-    // number of target resources and max number of procs per resource
-    int nRes = 0, maxProcPerRes = 1;
-    int res_assigned = 0;
-    int totalWorkers = 0;
-    int rc = MPI_SUCCESS;
-    // array that hold whether or not a particular rank is going to do work
-    int *workContribs = NULL;
-    // MPI_COMM_WORLD ranks of the selected workers
-    int *workerRanks = NULL;
-
-    try {
-        // figure out what we are going to distribute work over
-        for (int i = 0; i < sizeof(resPrio) / sizeof(resPrio[0]); ++i) {
-            if ((nRes = c.quo->nObjsByType(resPrio[i])) > 0) {
-                targetRes = resPrio[i];
-                break;
-            }
-        }
-        // failure -- fix this path at some point
-        if (0 == nRes) return 1;
-        /* let quo distribute workers over the sockets. if res_assigned is 1
-         * after this call, then i have been chosen. */
-        if (c.quo->autoDistrib(targetRes, maxProcPerRes)) {
-            res_assigned = 1;
-        }
-    }
-   catch (QUOException &e) {
-        cerr << e.what() << endl;
-        return 1;
-   }
-   /* array that hold whether or not a particular rank is going to do work */
-   workContribs = (int *)calloc(c.cwSize, sizeof(*workContribs));
-   if (!workContribs) return 1;
-
-   if (MPI_SUCCESS != (rc = MPI_Allgather(&res_assigned, 1, MPI_INT,
-                                          workContribs, 1, MPI_INT,
-                                          MPI_COMM_WORLD))) {
-       return 1;
-   }
-   /* now iterate over the array and count the total number of workers */
-   for (int i = 0; i < c.cwSize; ++i) {
-       if (1 == workContribs[i]) ++totalWorkers;
-   }
-   workerRanks = (int *)calloc(totalWorkers, sizeof(*workerRanks));
-   if (!workerRanks) return 1;
-   /* populate the array with the worker comm world ranks */
-   for (int i = 0, j = 0; i < c.cwSize; ++i) {
-       if (1 == workContribs[i]) {
-           workerRanks[j++] = i;
-       }
-   }
-   *vLen = totalWorkers;
-   *v = workerRanks;
-   if (workContribs) free(workContribs);
-   return 0;
-}
-
-/* ////////////////////////////////////////////////////////////////////////// */
-static int
-subCommInit(Context &c,
-            int np1s /* number of participants |p1who| */,
-            int *p1who /* the participating ranks (MPI_COMM_WORLD) */)
-{
-    int rc = QUO_SUCCESS;
-    MPI_Group worldGroup;
-    MPI_Group p1_group;
-    /* ////////////////////////////////////////////////////////////////////// */
-    /* now create our own communicator based on the rank ids passed here */
-    /* ////////////////////////////////////////////////////////////////////// */
-    if (MPI_SUCCESS != MPI_Comm_group(MPI_COMM_WORLD, &worldGroup)) {
-        rc = QUO_ERR_MPI;
-        goto out;
-    }
-    if (MPI_SUCCESS != MPI_Group_incl(worldGroup, np1s,
-                                      p1who, &p1_group)) {
-        rc = QUO_ERR_MPI;
-        goto out;
-    }
-    if (MPI_SUCCESS != MPI_Comm_create(MPI_COMM_WORLD,
-                                       p1_group,
-                                       &(c.subComm.comm))) {
-        rc = QUO_ERR_MPI;
-        goto out;
-    }
-    /* am i in the new communicator? */
-    c.subComm.member = (MPI_COMM_NULL == c.subComm.comm) ? false : true;
-    if (c.subComm.member) {
-        if (MPI_SUCCESS != MPI_Comm_size(c.subComm.comm, &c.subComm.size)) {
-            rc = QUO_ERR_MPI;
-            goto out;
-        }
-        if (MPI_SUCCESS != MPI_Comm_rank(c.subComm.comm, &c.subComm.rank)) {
-            rc = QUO_ERR_MPI;
-            goto out;
-        }
-    }
-out:
-    if (MPI_SUCCESS != MPI_Group_free(&worldGroup)) return 1;
-    return (QUO_SUCCESS == rc) ? 0 : 1;
-}
-
-/* ////////////////////////////////////////////////////////////////////////// */
-static int
-subCommCreate(Context &c)
-{
-    int rc = 1;
-    int numPEsInSubComm = 0;
-    // comm world ranks in subcomm
-    int *cwPEs = NULL;
-    rc = getSubCommProcs(c, &numPEsInSubComm, &cwPEs);
-    if (rc) return rc;
-    if (0 == c.quo->id()) {
-        // add hostname -- could be diff on diff systems
-        std::cout << "MPI_COMM_WORLD ranks in subComm: ";
-        for (int i = 0; i < numPEsInSubComm; ++i) {
-            std::cout << cwPEs[i] << " ";
-        }
-        std::cout << std::endl;
-    }
-    // now actually create the darn thing...
-    rc = subCommInit(c, numPEsInSubComm, cwPEs);
-    if (cwPEs) free(cwPEs);
-    return rc;
-}
-
 int main(int argc, char **argv) {
 
    //  Process command-line arguments, if any.
    int mype=0;
    int numpe=0;
-   L7_Init(&mype, &numpe, &argc, argv);
+   int do_quo_setup = 1;
+   L7_Init(&mype, &numpe, &argc, argv, do_quo_setup);
    parseInput(argc, argv);
 
    struct timeval tstart_setup;
@@ -393,30 +162,10 @@ int main(int argc, char **argv) {
    int boundary = 1;
    int parallel_in = 1;
 
-   int nt = 0;
-
    // figure out the max number of threads that can be spawned
-   nt = omp_get_max_threads();
-
-   // setup our context information
-   if (contextSetup(context, mype, numpe)) {
-       fprintf(stderr, "(%d) contextSetup Failure!", mype);
-   }
-   // create the sub comm
-   if (subCommCreate(context)) {
-       fprintf(stderr, "(%d) subCommCreate Failure!", mype);
-   }
-   if (context.subComm.member) {
-       std::cout << "rank: " << context.cwRank << " is subComm rank: "
-                 << context.subComm.rank << std::endl;
-   }
-   // at this point subComm is ready to use for those inSubComm
    if (0 == mype) {
+        int nt = omp_get_max_threads();
         printf("--- num openmp threads: %d\n", nt);
-        int world_size, subcomm_size;
-        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-        MPI_Comm_size(context.subComm.comm, &subcomm_size);
-        printf("Size comm world %d subComm %d\n",world_size, subcomm_size);
         fflush(stdout);
    }
 
@@ -776,9 +525,6 @@ extern "C" void do_calc(void)
       mesh->terminate();
       state->terminate();
 
-      if (finalizeQUO(context)) {
-          fprintf(stderr, "(%d) finalizeQUO failure\n", context.cwRank);
-      }
       L7_Terminate();
       exit(0);
    }  //  Complete final output.

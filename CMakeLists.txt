@@ -155,6 +155,10 @@ set(clamr_SRCS ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS})
 add_executable(clamr ${clamr_SRCS})
 
 set_target_properties(clamr PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
+if (QUO_FOUND)
+set_target_properties(clamr PROPERTIES LINK_FLAGS "-L$ENV{QUO_HOME}/lib")
+target_link_libraries(clamr quo)
+endif (QUO_FOUND)
 
 target_link_libraries(clamr dpmesh hsfc kdtree zorder s7 pezcl timer memstats dl7 genmalloc dMallocPlus m)
 target_link_libraries(clamr ${MPE_LIBS} ${X11_LIBS})
@@ -209,6 +213,10 @@ set(clamr_mpionly_SRCS ${clamr_mpionly_CXX_SRCS} ${clamr_mpionly_C_SRCS} ${clamr
 add_executable(clamr_mpionly ${clamr_mpionly_SRCS})
 
 set_target_properties(clamr_mpionly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+if (QUO_FOUND)
+set_target_properties(clamr_mpionly PROPERTIES LINK_FLAGS "-L$ENV{QUO_HOME}/lib")
+target_link_libraries(clamr_mpionly quo)
+endif (QUO_FOUND)
 
 target_link_libraries(clamr_mpionly pmesh hsfc kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
 target_link_libraries(clamr_mpionly ${MPE_LIBS} ${X11_LIBS})
@@ -250,10 +258,17 @@ add_executable(clamr_mpiopenmponly ${clamr_mpiopenmponly_SRCS})
 set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 
 if(OPENMP_FOUND)
+set(clamr_mpiopenmponly_link_flags "${OpenMP_CXX_FLAGS}")
 set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
 set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
-set_target_properties(clamr_mpiopenmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
 endif(OPENMP_FOUND)
+
+if (QUO_FOUND)
+set(clamr_mpiopenmponly_link_flags "${clamr_mpiopenmponly_link_flags} -L$ENV{QUO_HOME}/lib")
+target_link_libraries(clamr_mpiopenmponly quo)
+endif (QUO_FOUND)
+
+set_target_properties(clamr_mpiopenmponly PROPERTIES LINK_FLAGS "${clamr_mpiopenmponly_link_flags}")
 
 target_link_libraries(clamr_mpiopenmponly pmesh hsfc kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
 target_link_libraries(clamr_mpiopenmponly ${MPE_LIBS} ${X11_LIBS})
@@ -326,6 +341,10 @@ set(clamr_mpicheck_SRCS ${clamr_mpicheck_CXX_SRCS} ${clamr_mpicheck_C_SRCS} ${cl
 add_executable(clamr_mpicheck ${clamr_mpicheck_SRCS})
 
 set_target_properties(clamr_mpicheck PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+if (QUO_FOUND)
+set_target_properties(clamr_mpicheck PROPERTIES LINK_FLAGS "-L$ENV{QUO_HOME}/lib")
+target_link_libraries(clamr_mpicheck quo)
+endif (QUO_FOUND)
 
 target_link_libraries(clamr_mpicheck pmesh hsfc kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
 target_link_libraries(clamr_mpicheck ${MPE_LIBS} ${X11_LIBS})
@@ -344,6 +363,10 @@ set(clamr_checkall_SRCS ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${cl
 add_executable(clamr_checkall ${clamr_checkall_SRCS})
 
 set_target_properties(clamr_checkall PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
+if (QUO_FOUND)
+set_target_properties(clamr_checkall PROPERTIES LINK_FLAGS "-L$ENV{QUO_HOME}/lib")
+target_link_libraries(clamr_checkall quo)
+endif (QUO_FOUND)
 
 target_link_libraries(clamr_checkall dpmesh hsfc kdtree zorder s7 pezcl timer memstats dl7 genmalloc dMallocPlus m)
 target_link_libraries(clamr_checkall ${MPE_LIBS} ${X11_LIBS})
