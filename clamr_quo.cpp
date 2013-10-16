@@ -77,10 +77,6 @@
 #define DEBUG 0
 #endif
 
-#ifdef HAVE_QUO
-#include "QUO.hpp"
-#endif
-
 static int do_cpu_calc = 1;
 static int do_gpu_calc = 0;
 
