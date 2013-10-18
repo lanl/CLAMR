@@ -68,6 +68,8 @@ typedef float real;
 #define HOST_REGULAR_MEMORY   0x00000
 #define HOST_MANAGED_MEMORY   0x00001
 #define DEVICE_REGULAR_MEMORY 0x00002
+#define INDEX_ARRAY_MEMORY    0x00004
+#define LOAD_BALANCE_MEMORY   0x00008
 
 using namespace std;
 
@@ -106,8 +108,8 @@ public:
 
    void memory_report(void);
 
-   void memory_delete(void *malloc_mem_ptr);
-   void memory_delete(const char *name);
+   void *memory_delete(void *malloc_mem_ptr);
+   void *memory_delete(const char *name);
 
    void memory_remove(void *malloc_mem_ptr);
    void memory_remove(const char *name);
@@ -120,6 +122,8 @@ public:
 
    size_t get_memory_size(void *malloc_mem_ptr);
    size_t get_memory_capacity(void *malloc_mem_ptr);
+   int get_memory_elemsize(void *malloc_mem_ptr);
+   int get_memory_flags(void *malloc_mem_ptr);
    const char *get_memory_name(void *malloc_mem_ptr);
 
    void *get_memory_ptr(const char *name);

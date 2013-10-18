@@ -352,7 +352,7 @@ void MallocPlus::memory_report(void){
    }
 }
 
-void MallocPlus::memory_delete(void *malloc_mem_ptr){
+void *MallocPlus::memory_delete(void *malloc_mem_ptr){
    list<malloc_plus_memory_entry>::iterator it;
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
@@ -374,9 +374,11 @@ void MallocPlus::memory_delete(void *malloc_mem_ptr){
    } else {
       if (DEBUG) printf("Warning -- memory pointer %p not found\n",malloc_mem_ptr);
    }
+
+   return(NULL);
 }
 
-void MallocPlus::memory_delete(const char *name){
+void *MallocPlus::memory_delete(const char *name){
    list<malloc_plus_memory_entry>::iterator it;
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
@@ -397,6 +399,8 @@ void MallocPlus::memory_delete(const char *name){
    } else {
       if (DEBUG) printf("Warning -- memory named %s not found\n",name);
    }
+
+   return(NULL);
 }
 
 void MallocPlus::memory_remove(void *malloc_mem_ptr){
@@ -482,6 +486,38 @@ size_t MallocPlus::get_memory_size(void *malloc_mem_ptr){
    if (it != memory_list.end()){
       if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
       return(it->mem_nelem);
+   } else {
+      if (DEBUG) printf("Warning -- memory not found\n");
+   }
+   return(0);
+}
+
+int MallocPlus::get_memory_elemsize(void *malloc_mem_ptr){
+   list<malloc_plus_memory_entry>::iterator it;
+
+   for ( it=memory_list.begin(); it != memory_list.end(); it++){
+      if (DEBUG) printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
+      if (malloc_mem_ptr == it->mem_ptr) break;
+   }
+   if (it != memory_list.end()){
+      if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
+      return(it->mem_elsize);
+   } else {
+      if (DEBUG) printf("Warning -- memory not found\n");
+   }
+   return(0);
+}
+
+int MallocPlus::get_memory_flags(void *malloc_mem_ptr){
+   list<malloc_plus_memory_entry>::iterator it;
+
+   for ( it=memory_list.begin(); it != memory_list.end(); it++){
+      if (DEBUG) printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
+      if (malloc_mem_ptr == it->mem_ptr) break;
+   }
+   if (it != memory_list.end()){
+      if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
+      return(it->mem_flags);
    } else {
       if (DEBUG) printf("Warning -- memory not found\n");
    }

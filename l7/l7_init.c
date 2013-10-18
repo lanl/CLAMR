@@ -52,8 +52,10 @@
 #include "l7_kernel.inc"
 #endif
 
+#ifdef HAVE_QUO
 static int getSubCommProcs(QUO_context c, int numpes, int *vLen, int **v);
 static int subCommInit(QUO_SubComm *subcomm, int np1s, int *p1who);
+#endif
 
 int L7_Init (
     int *mype,
