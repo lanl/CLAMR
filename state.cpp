@@ -72,9 +72,9 @@
 
 // SKG -- maybe this isn't needed anymore? Works fine with GCC 4.7.3
 // SKG -- Fixes the build for me.
-#ifndef __INTEL_COMPILER
-#define __INTEL_COMPILER
-#endif
+//#ifndef __INTEL_COMPILER
+//#define __INTEL_COMPILER
+//#endif
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
@@ -329,19 +329,20 @@ void State::add_boundary_cells(void)
    // This is for a mesh with no boundary cells -- they are added and
    // the mesh sizes increased
    size_t &ncells        = mesh->ncells;
-   vector<int>  &i        = mesh->i;
-   vector<int>  &j        = mesh->j;
-   vector<int>  &level    = mesh->level;
    vector<int>  &index    = mesh->index;
-   vector<int>  &celltype = mesh->celltype;
-   vector<int>  &nlft     = mesh->nlft;
-   vector<int>  &nrht     = mesh->nrht;
-   vector<int>  &nbot     = mesh->nbot;
-   vector<int>  &ntop     = mesh->ntop;
    vector<real> &x        = mesh->x;
    vector<real> &dx       = mesh->dx;
    vector<real> &y        = mesh->y;
    vector<real> &dy       = mesh->dy;
+
+   int *i        = mesh->i;
+   int *j        = mesh->j;
+   int *level    = mesh->level;
+   int *celltype = mesh->celltype;
+   int *nlft     = mesh->nlft;
+   int *nrht     = mesh->nrht;
+   int *nbot     = mesh->nbot;
+   int *ntop     = mesh->ntop;
 
    vector<int> &lev_ibegin = mesh->lev_ibegin;
    vector<int> &lev_iend   = mesh->lev_iend;
@@ -366,14 +367,24 @@ void State::add_boundary_cells(void)
    //state_memory.memory_report();
    //printf("DEBUG end add_boundary cells\n\n"); 
 
-   i.resize(new_ncells);
-   j.resize(new_ncells);
-   nlft.resize(new_ncells);
-   nrht.resize(new_ncells);
-   nbot.resize(new_ncells);
-   ntop.resize(new_ncells);
-   level.resize(new_ncells);
-   celltype.resize(new_ncells);
+   mesh->i        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), i);
+   mesh->j        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), j);
+   mesh->level    =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), level);
+   mesh->celltype =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), celltype);
+   mesh->nlft     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), nlft);
+   mesh->nrht     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), nrht);
+   mesh->nbot     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), nbot);
+   mesh->ntop     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), ntop);
+   //memory_reset_ptrs();
+   i        = mesh->i;
+   j        = mesh->j;
+   level    = mesh->level;
+   celltype = mesh->celltype;
+   nlft     = mesh->nlft;
+   nrht     = mesh->nrht;
+   nbot     = mesh->nbot;
+   ntop     = mesh->ntop;
+
    index.resize(new_ncells);
    x.resize(new_ncells);
    dx.resize(new_ncells);
@@ -533,10 +544,10 @@ void State::apply_boundary_conditions(void)
    int nl, nr, nb, nt;
 
    size_t &ncells = mesh->ncells;
-   vector<int> &nlft = mesh->nlft;
-   vector<int> &nrht = mesh->nrht;
-   vector<int> &nbot = mesh->nbot;
-   vector<int> &ntop = mesh->ntop;
+   int *nlft = mesh->nlft;
+   int *nrht = mesh->nrht;
+   int *nbot = mesh->nbot;
+   int *ntop = mesh->ntop;
 
    // This is for a mesh with boundary cells
    for (uint ic=0; ic<ncells; ic++) {
@@ -570,19 +581,20 @@ void State::apply_boundary_conditions(void)
 void State::remove_boundary_cells(void)
 {
    size_t &ncells = mesh->ncells;
-   vector<int> &nlft     = mesh->nlft;
-   vector<int> &nrht     = mesh->nrht;
-   vector<int> &nbot     = mesh->nbot;
-   vector<int> &ntop     = mesh->ntop;
-   vector<int> &level    = mesh->level;
-   vector<int> &i        = mesh->i;
-   vector<int> &j        = mesh->j;
-   vector<int> &celltype = mesh->celltype;
    vector<int> &index    = mesh->index;
    vector<real> &x       = mesh->x;
    vector<real> &dx      = mesh->dx;
    vector<real> &y       = mesh->y;
    vector<real> &dy      = mesh->dy;
+
+   int *i        = mesh->i;
+   int *j        = mesh->j;
+   int *level    = mesh->level;
+   int *celltype = mesh->celltype;
+   int *nlft     = mesh->nlft;
+   int *nrht     = mesh->nrht;
+   int *nbot     = mesh->nbot;
+   int *ntop     = mesh->ntop;
 
    if(mesh->have_boundary) return;
 
@@ -595,14 +607,23 @@ void State::remove_boundary_cells(void)
    //state_memory.memory_report();
    //printf("DEBUG end remove_boundary cells\n\n"); 
 
-   nlft.resize(save_ncells);
-   nrht.resize(save_ncells);
-   nbot.resize(save_ncells);
-   ntop.resize(save_ncells);
-   level.resize(save_ncells);
-   i.resize(save_ncells);
-   j.resize(save_ncells);
-   celltype.resize(save_ncells);
+   mesh->i        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), i);
+   mesh->j        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), j);
+   mesh->level    = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), level);
+   mesh->celltype = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), celltype);
+   mesh->nlft     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), nlft);
+   mesh->nrht     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), nrht);
+   mesh->nbot     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), nbot);
+   mesh->ntop     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), ntop);
+   i        = mesh->i;
+   j        = mesh->j;
+   level    = mesh->level;
+   celltype = mesh->celltype;
+   nlft     = mesh->nlft;
+   nrht     = mesh->nrht;
+   nbot     = mesh->nbot;
+   ntop     = mesh->ntop;
+
    index.resize(save_ncells);
    x.resize(save_ncells);
    dx.resize(save_ncells);
@@ -633,15 +654,17 @@ double State::set_timestep(double g, double sigma)
 #ifdef HAVE_MPI
    int &parallel         = mesh->parallel;
 #endif
-   vector<int> &celltype = mesh->celltype;
-   vector<int> &level    = mesh->level;
+   int *&celltype = mesh->celltype;
+   int *&level    = mesh->level;
 
    int ic;
+#ifdef __INTEL_COMPILER
 //#if (_OPENMP > 200600)
 #ifdef _OPENMP
 #pragma omp parallel for private(ic) reduction(min:mindeltaT)
 #endif
-   for (ic=0; ic<ncells; ic++) {
+#endif
+   for (ic=0; ic<(int)ncells; ic++) {
       if (celltype[ic] == REAL_CELL) {
          lev = level[ic];
          wavespeed = sqrt(g*H[ic]);
@@ -940,11 +963,11 @@ void State::calc_finite_difference(double deltaT){
 
    apply_boundary_conditions();
 
-   vector<int> &nlft  = mesh->nlft;
-   vector<int> &nrht  = mesh->nrht;
-   vector<int> &nbot  = mesh->nbot;
-   vector<int> &ntop  = mesh->ntop;
-   vector<int> &level = mesh->level;
+   int *nlft  = mesh->nlft;
+   int *nrht  = mesh->nrht;
+   int *nbot  = mesh->nbot;
+   int *ntop  = mesh->ntop;
+   int *level = mesh->level;
 
    vector<real> &lev_deltax = mesh->lev_deltax;
    vector<real> &lev_deltay = mesh->lev_deltay;
@@ -954,8 +977,8 @@ void State::calc_finite_difference(double deltaT){
    real *V_new = (real *)state_memory.memory_malloc(ncells_ghost, sizeof(real), "V_new");
 
    int gix;
-#ifdef _OPENMP
 #ifdef __INTEL_COMPILER
+#ifdef _OPENMP
 #pragma omp parallel for \
       private(gix) \
       shared(deltaT, g, ghalf, H_new, U_new, V_new, ncells, level, nlft, nrht, nbot, ntop, lev_deltax, lev_deltay) \
@@ -1473,7 +1496,7 @@ void State::gpu_calc_finite_difference(double deltaT)
 
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-   cl_mem dev_ptr = NULL;
+   //cl_mem dev_ptr = NULL;
 
    size_t &ncells    = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
@@ -1640,11 +1663,11 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
    size_t &ncells     = mesh->ncells;
-   vector<int> &nlft  = mesh->nlft;
-   vector<int> &nrht  = mesh->nrht;
-   vector<int> &nbot  = mesh->nbot;
-   vector<int> &ntop  = mesh->ntop;
-   vector<int> &level = mesh->level;
+   int *nlft  = mesh->nlft;
+   int *nrht  = mesh->nrht;
+   int *nbot  = mesh->nbot;
+   int *ntop  = mesh->ntop;
+   int *level = mesh->level;
 
    icount=0;
    jcount=0;
@@ -1664,14 +1687,9 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
       private(ic) \
       shared(ncells, nlft, nrht, nbot, ntop, level, mpot) \
       default(none)
-#else
-#pragma omp parallel for \
-      private(ic) \
-      shared(mesh) \
-      default(none)
 #endif
 #endif
-   for (ic=0; ic<ncells; ic++) {
+   for (ic=0; ic<(int)ncells; ic++) {
 
       if (mesh->celltype[ic] != REAL_CELL) continue;
 
@@ -1682,7 +1700,7 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
       int nl = nlft[ic];
       double Hl = H[nl];
       double Ul = U[nl];
-      double Vl = V[nl];
+      //double Vl = V[nl];
 
       if (level[nl] > level[ic]){
          int nlt = ntop[nl];
@@ -1692,7 +1710,7 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
       int nr = nrht[ic];
       double Hr = H[nr];
       double Ur = U[nr];
-      double Vr = V[nr];
+      //double Vr = V[nr];
 
       if (level[nr] > level[ic]){
          int nrt = ntop[nr];
@@ -1701,7 +1719,7 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 
       int nb = nbot[ic];
       double Hb = H[nb];
-      double Ub = U[nb];
+      //double Ub = U[nb];
       double Vb = V[nb];
 
       if (level[nb] > level[ic]){
@@ -1711,7 +1729,7 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 
       int nt = ntop[ic];
       double Ht = H[nt];
-      double Ut = U[nt];
+      //double Ut = U[nt];
       double Vt = V[nt];
 
       if (level[nt] > level[ic]){
@@ -1822,7 +1840,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
    jcount = 0;
 
 #ifdef HAVE_MPI
-   size_t nghost_local = mesh->ncells_ghost - ncells;
+   //size_t nghost_local = mesh->ncells_ghost - ncells;
 
    if (mesh->numpe > 1) {
       L7_Dev_Update(dev_H, L7_REAL, mesh->cell_handle);
@@ -1939,7 +1957,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
    ezcl_enqueue_read_buffer(command_queue, dev_result, CL_TRUE, 0, sizeof(cl_int2), count, NULL);
    icount  = count[0];
    jcount  = count[1];
-   size_t result = ncells + icount - jcount;
+   //size_t result = ncells + icount - jcount;
 
    //int mpot_check[ncells];
    //ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_int), mpot_check, NULL);
@@ -1969,8 +1987,8 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
 double State::mass_sum(bool enhanced_precision_sum)
 {
    size_t &ncells = mesh->ncells;
-   vector<int> &celltype = mesh->celltype;
-   vector<int> &level    = mesh->level;
+   int *celltype = mesh->celltype;
+   int *level    = mesh->level;
 
 #ifdef HAVE_MPI
    //int &mype = mesh->mype;
@@ -1992,7 +2010,7 @@ double State::mass_sum(bool enhanced_precision_sum)
       local.sum = 0.0;
       local.correction = 0.0;
       int ic;
-      for (ic = 0; ic < ncells; ic++) {
+      for (ic = 0; ic < (int)ncells; ic++) {
          if (celltype[ic] == REAL_CELL) {
             //  Exclude boundary cells.
             corrected_next_term= H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]] + local.correction;

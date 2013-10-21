@@ -99,7 +99,9 @@ static int autoscale = 0;
 static double display_circle_radius=-1.0;
 
 #ifndef HAVE_MPI
+#if defined(HAVE_OPENGL) || defined(HAVE_MPE)
 static int MPI_COMM_WORLD=0;
+#endif
 #endif
 
 #ifdef HAVE_OPENGL
@@ -116,11 +118,16 @@ static XFontStruct *font_info;
 void (*idlefunction)(void);
 #endif
 
+#ifdef HAVE_OPENGL
 static real xstart, ystart, xend, yend;
+#endif
 enum mode_choice {EYE, MOVE, DRAW};
 static int mode = MOVE;
 
-static int width, height;
+#if defined(HAVE_OPENGL) || defined(HAVE_MPE)
+static int height;
+#endif
+static int width;
 static real display_xmin=0.0, display_xmax=0.0, display_ymin=0.0, display_ymax=0.0;
 
 #ifdef HAVE_OPENGL
@@ -296,7 +303,10 @@ void free_display(void){
 }
 void DisplayState(void) {
    double scaleMax = 25.0, scaleMin = 0.0;
-   int i, color;
+   int i;
+#if defined(HAVE_OPENGL) || defined(HAVE_MPE)
+   int color;
+#endif
    //vector<real> &H = state->H;
 
    if (autoscale) {
@@ -308,7 +318,9 @@ void DisplayState(void) {
       }
    }
 
+#if defined(HAVE_OPENGL) || defined(HAVE_MPE)
    double step = NCOLORS/(scaleMax - scaleMin);
+#endif
   
 #ifdef HAVE_OPENGL
    //set up 2D viewing
@@ -402,9 +414,11 @@ void DisplayState(void) {
 }
 
 void DrawSquares(void) {
-   int i, color, step;
    if (display_proc == NULL) return;
-   step = NCOLORS/(display_proc[display_mysize-1]+1);
+#if defined(HAVE_OPENGL) || defined(HAVE_MPE)
+   int i, color;
+   int step = NCOLORS/(display_proc[display_mysize-1]+1);
+#endif
    //step utilizes whole range of color, assumes last element of proc is last processor
 
 #ifdef HAVE_OPENGL

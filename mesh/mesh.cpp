@@ -653,37 +653,72 @@ void Mesh::write_grid(int ncycle)
 void Mesh::mesh_reorder(vector<int> iorder)
 {
    assert(index.size() == ncells);
-   assert(i.size() == ncells);
-   assert(j.size() == ncells);
-   assert(level.size() == ncells);
-   assert(celltype.size() == ncells);
    assert(x.size() == ncells);
    assert(dx.size() == ncells);
    assert(y.size() == ncells);
    assert(dy.size() == ncells);
    assert(iorder.size() == ncells);
 
+   assert(mesh_memory.get_memory_size(i) == ncells);
+   assert(mesh_memory.get_memory_size(j) == ncells);
+   assert(mesh_memory.get_memory_size(level) == ncells);
+   assert(mesh_memory.get_memory_size(celltype) == ncells);
+
+   MallocPlus mesh_memory_old = mesh_memory;
+
+   vector<int> inv_iorder;
+
+   if (nlft != NULL && mesh_memory.get_memory_size(nlft) >= ncells){
+      inv_iorder.resize(ncells);
+
+      for (uint i = 0; i < ncells; i++)
+      {  inv_iorder[iorder[i]] = i; }
+   }
+
+   int       *short_mem_ptr_old;
+   long long *long_mem_ptr_old;
+   int       *short_var_tmp;
+   long long *long_var_tmp;
+   for (void *mem_ptr = mesh_memory_old.memory_begin(); mem_ptr != NULL; mem_ptr = mesh_memory_old.memory_next() ){
+      int nelem = mesh_memory_old.get_memory_size(mem_ptr);
+      int elsize = mesh_memory_old.get_memory_elemsize(mem_ptr);
+      int flags = mesh_memory_old.get_memory_flags(mem_ptr);
+      if ((flags & INDEX_ARRAY_MEMORY) != 0){
+         printf("DEBUG -- index array memory %s being reordered\n",mesh_memory.get_memory_name(mem_ptr));
+         short_mem_ptr_old = (int *)mem_ptr;
+         short_var_tmp = (int *)mesh_memory.memory_malloc(nelem, elsize, "mesh_var_temp");
+         for (uint ic = 0; ic < (uint)nelem; ic++){
+            short_var_tmp[ic] = inv_iorder[short_mem_ptr_old[iorder[ic]]];
+         }
+         mesh_memory.memory_replace(mem_ptr, short_var_tmp);
+      } else {
+         printf("DEBUG -- mesh memory %s being reordered\n",mesh_memory.get_memory_name(mem_ptr));
+         if (elsize == 4){
+            short_mem_ptr_old = (int *)mem_ptr;
+            short_var_tmp = (int *)mesh_memory.memory_malloc(ncells, elsize, "mesh_var_temp");
+            for (uint ic = 0; ic < ncells; ic++){
+               short_var_tmp[ic] = short_mem_ptr_old[iorder[ic]];
+            }
+            mesh_memory.memory_replace(mem_ptr, short_var_tmp);
+         } else {
+            long_mem_ptr_old =  (long long *)mem_ptr;
+            long_var_tmp = (long long *)mesh_memory.memory_malloc(ncells, elsize, "mesh_var_temp");
+            for (uint ic = 0; ic < ncells; ic++){
+               long_var_tmp[ic] = long_mem_ptr_old[iorder[ic]];
+            }
+            mesh_memory.memory_replace(mem_ptr, long_var_tmp);
+         }
+      }
+   }
+
+   memory_reset_ptrs();
+
    reorder(index,   iorder);
-   reorder(i,       iorder);
-   reorder(j,       iorder);
-   reorder(level,   iorder);
-   reorder(celltype,iorder);
    reorder(x,       iorder);
    reorder(dx,      iorder);
    reorder(y,       iorder);
    reorder(dy,      iorder);
 
-   if (nlft.size() >= ncells) {
-      vector<int> inv_iorder(ncells);
-
-      for (uint i = 0; i < ncells; i++)
-      {  inv_iorder[iorder[i]] = i; }
-
-      reorder_indexarray(nlft, iorder, inv_iorder);
-      reorder_indexarray(nrht, iorder, inv_iorder);
-      reorder_indexarray(nbot, iorder, inv_iorder);
-      reorder_indexarray(ntop, iorder, inv_iorder);
-   }
 }
 
 Mesh::Mesh(FILE *fin, int *numpe)
@@ -714,9 +749,11 @@ Mesh::Mesh(FILE *fin, int *numpe)
    if(fgets(string, 80, fin) == NULL) exit(-1);
 
    index.resize(ncells);
-   i.resize(ncells);
-   j.resize(ncells);
-   level.resize(ncells);
+
+   i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), LOAD_BALANCE_MEMORY, "i");
+   j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), LOAD_BALANCE_MEMORY, "j");
+   level = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), LOAD_BALANCE_MEMORY, "level");
+
    uint ic=0;
    while(fgets(string, 80, fin)!=NULL){
       sscanf(string, "%d %d %d %d", &(index[ic]), &(i[ic]), &(j[ic]), &(level[ic]));
@@ -748,7 +785,7 @@ void Mesh::print(void)
 void Mesh::print_local()
 {  //printf("size is %lu %lu %lu %lu %lu\n",index.size(), i.size(), level.size(), nlft.size(), x.size());
 
-   if (nlft.size() >= ncells_ghost){
+   if (mesh_memory.get_memory_size(nlft) >= ncells_ghost){
       fprintf(fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mype);
       for (uint ic=0; ic<ncells; ic++) {
          fprintf(fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mype,ic, ic+noffset,i[ic], j[ic], level[ic], nlft[ic], nrht[ic], nbot[ic], ntop[ic]);
@@ -852,10 +889,10 @@ void Mesh::compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint nce
 {
 
 #ifdef HAVE_MPI
-   vector<int> &nlft_global = mesh_global->nlft;
-   vector<int> &nrht_global = mesh_global->nrht;
-   vector<int> &nbot_global = mesh_global->nbot;
-   vector<int> &ntop_global = mesh_global->ntop;
+   int *nlft_global = mesh_global->nlft;
+   int *nrht_global = mesh_global->nrht;
+   int *nbot_global = mesh_global->nbot;
+   int *ntop_global = mesh_global->ntop;
 
    vector<int> Test(ncells_ghost);
    for(uint ic=0; ic<ncells; ic++){
@@ -991,14 +1028,14 @@ void Mesh::compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint nce
 void Mesh::compare_neighbors_all_to_gpu_local(Mesh *mesh_global, int *nsizes, int *ndispl)
 //uint ncells_ghost, uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl)
 {
+#ifdef HAVE_MPI
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-#ifdef HAVE_MPI
    size_t &ncells_global = mesh_global->ncells;
-   vector<int> &nlft_global = mesh_global->nlft;
-   vector<int> &nrht_global = mesh_global->nrht;
-   vector<int> &nbot_global = mesh_global->nbot;
-   vector<int> &ntop_global = mesh_global->ntop;
+   int *nlft_global = mesh_global->nlft;
+   int *nrht_global = mesh_global->nrht;
+   int *nbot_global = mesh_global->nbot;
+   int *ntop_global = mesh_global->ntop;
 
    // Checking CPU parallel to CPU global
    vector<int> Test(ncells_ghost);
@@ -1197,10 +1234,10 @@ void Mesh::compare_indices_gpu_global_to_cpu_global(void)
 
 void Mesh::compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl, int cycle)
 {
-   vector<int>   &celltype_global = mesh_global->celltype;
-   vector<int>   &i_global        = mesh_global->i;
-   vector<int>   &j_global        = mesh_global->j;
-   vector<int>   &level_global    = mesh_global->level;
+   int *&celltype_global = mesh_global->celltype;
+   int *&i_global        = mesh_global->i;
+   int *&j_global        = mesh_global->j;
+   int *&level_global    = mesh_global->level;
 
    vector<int> i_check_global(ncells_global);
    vector<int> j_check_global(ncells_global);
@@ -1225,13 +1262,13 @@ void Mesh::compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mes
 #ifdef HAVE_OPENCL
 void Mesh::compare_indices_all_to_gpu_local(Mesh *mesh_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle)
 {
+#ifdef HAVE_MPI
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-#ifdef HAVE_MPI
-   vector<int> &level_global = mesh_global->level;
-   vector<int> &celltype_global = mesh_global->celltype;
-   vector<int> &i_global = mesh_global->i;
-   vector<int> &j_global = mesh_global->j;
+   int *level_global = mesh_global->level;
+   int *celltype_global = mesh_global->celltype;
+   int *i_global = mesh_global->i;
+   int *j_global = mesh_global->j;
 
    cl_mem &dev_celltype_global = mesh_global->dev_celltype;
    cl_mem &dev_i_global = mesh_global->dev_i;
@@ -1383,9 +1420,9 @@ void Mesh::compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes,
 #ifdef HAVE_OPENCL
 void Mesh::compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle)
 {
+#ifdef HAVE_MPI
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-#ifdef HAVE_MPI
    // Need to compare dev_mpot to mpot 
    vector<int>mpot_save(ncells);
    ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_save[0], NULL);
@@ -1813,9 +1850,10 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    }
 
    index.resize(ncells);
-   i.resize(ncells);
-   j.resize(ncells);
-   level.resize(ncells);
+
+   i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), LOAD_BALANCE_MEMORY, "i");
+   j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), LOAD_BALANCE_MEMORY, "j");
+   level = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), LOAD_BALANCE_MEMORY, "level");
 
    int ic = 0;
 
@@ -1851,11 +1889,11 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    }
 #endif
       
-   nlft.clear();
-   nrht.clear();
-   nbot.clear();
-   ntop.clear();
-   celltype.clear();
+   nlft = NULL;
+   nrht = NULL;
+   nbot = NULL;
+   ntop = NULL;
+   celltype = NULL;
 
    //if (numpe > 1 && (initial_order != HILBERT_SORT && initial_order != HILBERT_PARTITION) ) mem_factor = 2.0;
    partition_cells(numpe, index, initial_order);
@@ -1866,7 +1904,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    //  Start lev loop here
    for (int ilevel=1; ilevel<=levmx; ilevel++) {
 
-      int old_ncells = ncells;
+      //int old_ncells = ncells;
 
       ncells_ghost = ncells;
       calc_neighbors_local();
@@ -1977,7 +2015,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
             if(mpot_old[ic] > 0) continue;
    
             nl = nlft[ic];
-            if (nl >= 0 && nl < ncells_ghost) {
+            if (nl >= 0 && nl < (int)ncells_ghost) {
                ll = level[nl];
                if(mpot_old[nl] > 0) ll++;
    
@@ -1990,7 +2028,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                ll = level[nl];
                if (ll > lev) {
                   nlt = ntop[nl];
-                  if (nlt >= 0 && nlt < ncells_ghost) {
+                  if (nlt >= 0 && nlt < (int)ncells_ghost) {
                      llt = level[nlt];
                      if(mpot_old[nlt] > 0) llt++;
 
@@ -2004,7 +2042,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
             }
 
             nr = nrht[ic];
-            if (nr >= 0 && nr < ncells_ghost) {
+            if (nr >= 0 && nr < (int)ncells_ghost) {
                lr = level[nr];
                if(mpot_old[nr] > 0) lr++;
    
@@ -2017,7 +2055,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                lr = level[nr];
                if (lr > lev) {
                   nrt = ntop[nr];
-                  if (nrt >= 0 && nrt < ncells_ghost) {
+                  if (nrt >= 0 && nrt < (int)ncells_ghost) {
                      lrt = level[nrt];
                      if(mpot_old[nrt] > 0) lrt++;
 
@@ -2031,7 +2069,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
             }
 
             nt = ntop[ic];
-            if (nt >= 0 && nt < ncells_ghost) {
+            if (nt >= 0 && nt < (int)ncells_ghost) {
                lt = level[nt];
                if(mpot_old[nt] > 0) lt++;
    
@@ -2044,7 +2082,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                lt = level[nt];
                if (lt > lev) {
                   ntr = nrht[nt];
-                  if (ntr >= 0 && ntr < ncells_ghost) {
+                  if (ntr >= 0 && ntr < (int)ncells_ghost) {
                      ltr = level[ntr];
                      if(mpot_old[ntr] > 0) ltr++;
 
@@ -2058,7 +2096,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
             }
 
             nb = nbot[ic];
-            if (nb >= 0 && nb < ncells_ghost) {
+            if (nb >= 0 && nb < (int)ncells_ghost) {
                lb = level[nb];
                if(mpot_old[nb] > 0) lb++;
    
@@ -2071,7 +2109,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                lb = level[nb];
                if (lb > lev) {
                   nbr = nrht[nb];
-                  if (nbr >= 0 && nbr < ncells_ghost) {
+                  if (nbr >= 0 && nbr < (int)ncells_ghost) {
                      lbr = level[nbr];
                      if(mpot_old[nbr] > 0) lbr++;
 
@@ -2221,9 +2259,9 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
    newcount = ncells + rezone_count(mpot, icount, jcount);
 
+#ifdef HAVE_MPI
    int icount_global = icount;
    int jcount_global = jcount;
-#ifdef HAVE_MPI
    if (parallel) {
       int count[2], global_count[2];
       count[0] = icount;
@@ -2233,13 +2271,6 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
       jcount_global = global_count[1];
    }
 #endif
-
-   if (icount_global || jcount_global){
-      nlft.clear();
-      nrht.clear();
-      nbot.clear();
-      ntop.clear();
-   }
 
    if (TIMING_LEVEL >= 2) cpu_time_refine_smooth += cpu_timer_stop(tstart_lev2);
 
@@ -2258,7 +2289,7 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
    size_t block_size = global_work_size/local_work_size;
 
-   size_t nghost_local = ncells_ghost - ncells;
+   //size_t nghost_local = ncells_ghost - ncells;
 
    int icount_global = icount;
    int jcount_global = jcount;
@@ -2829,11 +2860,10 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 {
    struct timeval tstart_cpu;
 
-   int set_index = 0;
-
    cpu_timer_start(&tstart_cpu);
 
-   int add_ncells = icount + jcount;
+// sign for jcount is different in GPU and CPU code -- abs is a quick fix
+   int add_ncells = icount - abs(jcount);
 
    int global_icount = icount;
    int global_jcount = jcount;
@@ -2861,19 +2891,17 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    vector<int> celltype_save(ncells);
    if (have_state) {
-      celltype_save=celltype;
+      for (int ic = 0; ic < (int)ncells; ic++){
+         celltype_save[ic] = celltype[ic];
+      }
    }
 
    int new_ncells = ncells + add_ncells;
 
-   //  Initialize variables for outdated information which is still needed.
-   vector<int> i_old(    new_ncells);
-   vector<int> j_old(    new_ncells);
-   vector<int> level_old(new_ncells);
-
-   i.swap(i_old);
-   j.swap(j_old);
-   level.swap(level_old);
+   //  Initialize new variables
+   int *i_new     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_new");
+   int *j_new     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_new");
+   int *level_new = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_new");
 
    index.resize(new_ncells);
 
@@ -2899,49 +2927,49 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       if (mype != 0)         prev = mype-1;
       if (mype < numpe - 1)  next = mype+1;
 
-      MPI_Isend(&i_old[ncells-1],     1,MPI_INT,next,1,MPI_COMM_WORLD,req+0);
-      MPI_Irecv(&ifirst,              1,MPI_INT,prev,1,MPI_COMM_WORLD,req+1);
+      MPI_Isend(&i[ncells-1],     1,MPI_INT,next,1,MPI_COMM_WORLD,req+0);
+      MPI_Irecv(&ifirst,          1,MPI_INT,prev,1,MPI_COMM_WORLD,req+1);
 
-      MPI_Isend(&i_old[0],            1,MPI_INT,prev,1,MPI_COMM_WORLD,req+2);
-      MPI_Irecv(&ilast,               1,MPI_INT,next,1,MPI_COMM_WORLD,req+3);
+      MPI_Isend(&i[0],            1,MPI_INT,prev,1,MPI_COMM_WORLD,req+2);
+      MPI_Irecv(&ilast,           1,MPI_INT,next,1,MPI_COMM_WORLD,req+3);
 
-      MPI_Isend(&j_old[ncells-1],     1,MPI_INT,next,1,MPI_COMM_WORLD,req+4);
-      MPI_Irecv(&jfirst,              1,MPI_INT,prev,1,MPI_COMM_WORLD,req+5);
+      MPI_Isend(&j[ncells-1],     1,MPI_INT,next,1,MPI_COMM_WORLD,req+4);
+      MPI_Irecv(&jfirst,          1,MPI_INT,prev,1,MPI_COMM_WORLD,req+5);
 
-      MPI_Isend(&j_old[0],            1,MPI_INT,prev,1,MPI_COMM_WORLD,req+6);
-      MPI_Irecv(&jlast,               1,MPI_INT,next,1,MPI_COMM_WORLD,req+7);
+      MPI_Isend(&j[0],            1,MPI_INT,prev,1,MPI_COMM_WORLD,req+6);
+      MPI_Irecv(&jlast,           1,MPI_INT,next,1,MPI_COMM_WORLD,req+7);
 
-      MPI_Isend(&level_old[ncells-1], 1,MPI_INT,next,1,MPI_COMM_WORLD,req+8);
-      MPI_Irecv(&level_first,         1,MPI_INT,prev,1,MPI_COMM_WORLD,req+9);
+      MPI_Isend(&level[ncells-1], 1,MPI_INT,next,1,MPI_COMM_WORLD,req+8);
+      MPI_Irecv(&level_first,     1,MPI_INT,prev,1,MPI_COMM_WORLD,req+9);
 
-      MPI_Isend(&level_old[0],        1,MPI_INT,prev,1,MPI_COMM_WORLD,req+10);
-      MPI_Irecv(&level_last,          1,MPI_INT,next,1,MPI_COMM_WORLD,req+11);
+      MPI_Isend(&level[0],        1,MPI_INT,prev,1,MPI_COMM_WORLD,req+10);
+      MPI_Irecv(&level_last,      1,MPI_INT,next,1,MPI_COMM_WORLD,req+11);
 
       MPI_Waitall(12, req, status);
 #endif
    }
 
-   for (int ic = 0, nc = 0; ic < ncells; ic++)
+   for (int ic = 0, nc = 0; ic < (int)ncells; ic++)
    {
       if (mpot[ic] == 0)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
-         i[nc]     = i_old[ic];
-         j[nc]     = j_old[ic];
-         level[nc] = level_old[ic];
+         i_new[nc]     = i[ic];
+         j_new[nc]     = j[ic];
+         level_new[nc] = level[ic];
          nc++;
       } //  Complete no change needed.
       
       else if (mpot[ic] < 0)
       {  //  Coarsening is needed; remove this cell and the other three and replace them with one.
          int doit = 0;
-         if (is_lower_left(i_old[ic],j_old[ic]) ) doit = 1;
-         if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) doit = 1;
+         if (is_lower_left(i[ic],j[ic]) ) doit = 1;
+         if (celltype[ic] != REAL_CELL && is_upper_right(i[ic],j[ic]) ) doit = 1;
          if (doit){
             //printf("                     %d: DEBUG -- coarsening cell %d nc %d\n",mype,ic,nc);
             index[nc] = ic;
-            i[nc] = i_old[ic]/2;
-            j[nc] = j_old[ic]/2;
-            level[nc] = level_old[ic] - 1;
+            i_new[nc] = i[ic]/2;
+            j_new[nc] = j[ic]/2;
+            level_new[nc] = level[ic] - 1;
             nc++;
          }
       } //  Coarsening complete.
@@ -2958,17 +2986,17 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                real  nx[3],  //  x-coordinates of cells.
                      ny[3];  //  y-coordinates of cells.
                if (ic != 0) {
-                  nx[0] = lev_deltax[level_old[ic-1]] * (real)i_old[ic-1];
-                  ny[0] = lev_deltay[level_old[ic-1]] * (real)j_old[ic-1];
+                  nx[0] = lev_deltax[level[ic-1]] * (real)i[ic-1];
+                  ny[0] = lev_deltay[level[ic-1]] * (real)j[ic-1];
                } else {
                   nx[0] = lev_deltax[level_first] * (real)ifirst;
                   ny[0] = lev_deltay[level_first] * (real)jfirst;
                }
-               nx[1] = lev_deltax[level_old[ic  ]] * (real)i_old[ic  ];
-               ny[1] = lev_deltay[level_old[ic  ]] * (real)j_old[ic  ];
+               nx[1] = lev_deltax[level[ic  ]] * (real)i[ic  ];
+               ny[1] = lev_deltay[level[ic  ]] * (real)j[ic  ];
                if (ic != ncells-1) {
-                  nx[2] = lev_deltax[level_old[ic+1]] * (real)i_old[ic+1];
-                  ny[2] = lev_deltay[level_old[ic+1]] * (real)j_old[ic+1];
+                  nx[2] = lev_deltax[level[ic+1]] * (real)i[ic+1];
+                  ny[2] = lev_deltay[level[ic+1]] * (real)j[ic+1];
                } else {
                   nx[2] = lev_deltax[level_last] * (real)ilast;
                   ny[2] = lev_deltay[level_last] * (real)jlast;
@@ -3012,21 +3040,21 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                    jr[3];   // First j index at finest level of the mesh
                // Cell's Radius at the Finest level of the mesh
 
-               int crf = levtable[levmx-level_old[ic]];
+               int crf = levtable[levmx-level[ic]];
 
                if (ic != 0) {
-                  ir[0] = i_old[ic - 1] * levtable[levmx-level_old[ic - 1]];
-                  jr[0] = j_old[ic - 1] * levtable[levmx-level_old[ic - 1]];
+                  ir[0] = i[ic - 1] * levtable[levmx-level[ic - 1]];
+                  jr[0] = j[ic - 1] * levtable[levmx-level[ic - 1]];
                } else {
                   //printf("%d cell %d is a first\n",mype,ic);
                   ir[0] = ifirst * levtable[levmx-level_first];
                   jr[0] = jfirst * levtable[levmx-level_first];
                }
-               ir[1] = i_old[ic    ] * levtable[levmx-level_old[ic    ]];
-               jr[1] = j_old[ic    ] * levtable[levmx-level_old[ic    ]];
-               if (ic != ncells-1) {
-                  ir[2] = i_old[ic + 1] * levtable[levmx-level_old[ic + 1]];
-                  jr[2] = j_old[ic + 1] * levtable[levmx-level_old[ic + 1]];
+               ir[1] = i[ic    ] * levtable[levmx-level[ic    ]];
+               jr[1] = j[ic    ] * levtable[levmx-level[ic    ]];
+               if (ic != (int)ncells-1) {
+                  ir[2] = i[ic + 1] * levtable[levmx-level[ic + 1]];
+                  jr[2] = j[ic + 1] * levtable[levmx-level[ic + 1]];
                } else {
                   //printf("%d cell %d is a last\n",mype,ic);
                   ir[2] = ilast * levtable[levmx-level_last];
@@ -3051,11 +3079,11 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                   in_direction = 'B';
                }
                // Right In
-               else if( (dir_in == -crf && (djr_in == -crf*HALF || djr_in == 0 || (djr_in == crf && level_old[ic-1] < level_old[ic]))) ) {
+               else if( (dir_in == -crf && (djr_in == -crf*HALF || djr_in == 0 || (djr_in == crf && level[ic-1] < level[ic]))) ) {
                   in_direction = 'R';
                }
                // Top In
-               else if( (djr_in == -crf && (dir_in == -crf*HALF || dir_in == 0 || (dir_in == crf && level_old[ic-1] < level_old[ic]))) ) {
+               else if( (djr_in == -crf && (dir_in == -crf*HALF || dir_in == 0 || (dir_in == crf && level[ic-1] < level[ic]))) ) {
                   in_direction = 'T';
                }
                // Further from the left
@@ -3101,11 +3129,11 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                   out_direction = 'B';
                }
                // Right Out
-               else if( (dir_out == -crf && (djr_out == -crf*HALF || djr_out == 0 || (djr_out == crf && level_old[ic+1] < level_old[ic]))) ) {
+               else if( (dir_out == -crf && (djr_out == -crf*HALF || djr_out == 0 || (djr_out == crf && level[ic+1] < level[ic]))) ) {
                   out_direction = 'R';
                }
                // Top Out
-               else if( (djr_out == -crf && (dir_out == -crf*HALF || dir_out == 0 || (dir_out == crf && level_old[ic+1] < level_old[ic]))) ) {
+               else if( (djr_out == -crf && (dir_out == -crf*HALF || dir_out == 0 || (dir_out == crf && level[ic+1] < level[ic]))) ) {
                   out_direction = 'T';
                }
                // Further from the left
@@ -3258,91 +3286,91 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             
             //  Create the cells in the correct order and orientation.
             for (int ii = 0; ii < 4; ii++)
-            {  level[nc] = level_old[ic] + 1;
+            {  level_new[nc] = level[ic] + 1;
                switch (order[ii])
                {  case SW:
                      // lower left
                      invorder[SW] = ii;
-                     i[nc]     = i_old[ic]*2;
-                     j[nc]     = j_old[ic]*2;
+                     i_new[nc]     = i[ic]*2;
+                     j_new[nc]     = j[ic]*2;
                      nc++;
                      break;
                      
                   case SE:
                      // lower right
                      invorder[SE] = ii;
-                     i[nc]     = i_old[ic]*2 + 1;
-                     j[nc]     = j_old[ic]*2;
+                     i_new[nc]     = i[ic]*2 + 1;
+                     j_new[nc]     = j[ic]*2;
                      nc++;
                      break;
                      
                   case NW:
                      // upper left
                      invorder[NW] = ii;
-                     i[nc]     = i_old[ic]*2;
-                     j[nc]     = j_old[ic]*2 + 1;
+                     i_new[nc]     = i[ic]*2;
+                     j_new[nc]     = j[ic]*2 + 1;
                      nc++;
                      break;
                      
                   case NE:
                      // upper right
                      invorder[NE] = ii;
-                     i[nc]     = i_old[ic]*2 + 1;
-                     j[nc]     = j_old[ic]*2 + 1;
+                     i_new[nc]     = i[ic]*2 + 1;
+                     j_new[nc]     = j[ic]*2 + 1;
                      nc++;
                      break; } } //  Complete cell refinement.
          }  //  Complete real cell refinement.
          
          else if (celltype[ic] == LEFT_BOUNDARY) {
             // lower
-            i[nc]  = i_old[ic]*2 + 1;
-            j[nc]  = j_old[ic]*2;
-            level[nc] = level_old[ic] + 1;
+            i_new[nc]  = i[ic]*2 + 1;
+            j_new[nc]  = j[ic]*2;
+            level_new[nc] = level[ic] + 1;
             nc++;
             
             // upper
-            i[nc] = i_old[ic]*2 + 1;
-            j[nc] = j_old[ic]*2 + 1;
-            level[nc] = level_old[ic] + 1;
+            i_new[nc] = i[ic]*2 + 1;
+            j_new[nc] = j[ic]*2 + 1;
+            level_new[nc] = level[ic] + 1;
             nc++;
          }
          else if (celltype[ic] == RIGHT_BOUNDARY) {
             // lower
-            i[nc]  = i_old[ic]*2;
-            j[nc]  = j_old[ic]*2;
-            level[nc] = level_old[ic] + 1;
+            i_new[nc]  = i[ic]*2;
+            j_new[nc]  = j[ic]*2;
+            level_new[nc] = level[ic] + 1;
             nc++;
             
             // upper
-            i[nc] = i_old[ic]*2;
-            j[nc] = j_old[ic]*2 + 1;
-            level[nc] = level_old[ic] + 1;
+            i_new[nc] = i[ic]*2;
+            j_new[nc] = j[ic]*2 + 1;
+            level_new[nc] = level[ic] + 1;
             nc++;
          }
          else if (celltype[ic] == BOTTOM_BOUNDARY) {
             // left
-            i[nc]  = i_old[ic]*2;
-            j[nc]  = j_old[ic]*2 + 1;
-            level[nc] = level_old[ic] + 1;
+            i_new[nc]  = i[ic]*2;
+            j_new[nc]  = j[ic]*2 + 1;
+            level_new[nc] = level[ic] + 1;
             nc++;
             
             // right
-            i[nc] = i_old[ic]*2 + 1;
-            j[nc] = j_old[ic]*2 + 1;
-            level[nc] = level_old[ic] + 1;
+            i_new[nc] = i[ic]*2 + 1;
+            j_new[nc] = j[ic]*2 + 1;
+            level_new[nc] = level[ic] + 1;
             nc++;
          }
          else if (celltype[ic] == TOP_BOUNDARY) {
             // right
-            i[nc] = i_old[ic]*2 + 1;
-            j[nc] = j_old[ic]*2;
-            level[nc] = level_old[ic] + 1;
+            i_new[nc] = i[ic]*2 + 1;
+            j_new[nc] = j[ic]*2;
+            level_new[nc] = level[ic] + 1;
             nc++;
 
             // left
-            i[nc]  = i_old[ic]*2;
-            j[nc]  = j_old[ic]*2;
-            level[nc] = level_old[ic] + 1;
+            i_new[nc]  = i[ic]*2;
+            j_new[nc]  = j[ic]*2;
+            level_new[nc] = level[ic] + 1;
             nc++;
          }
       } //  Complete refinement needed.
@@ -3355,20 +3383,20 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
          real *state_temp = (real *)state_memory.memory_malloc(new_ncells, sizeof(real), "state_temp");
 
-         for (int ic=0, nc=0; ic<ncells; ic++) {
+         for (int ic=0, nc=0; ic<(int)ncells; ic++) {
 
             if (mpot[ic] == 0) {
                state_temp[nc] = mem_ptr[ic];
                nc++;
             } else if (mpot[ic] < 0){
-               if (is_lower_left(i_old[ic],j_old[ic]) ) {
+               if (is_lower_left(i[ic],j[ic]) ) {
                   int nr = nrht[ic];
                   int nt = ntop[ic];
                   int nrt = nrht[nt];
                   state_temp[nc] = (mem_ptr[ic] + mem_ptr[nr] + mem_ptr[nt] + mem_ptr[nrt])*0.25;
                   nc++;
                }
-               if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) {
+               if (celltype[ic] != REAL_CELL && is_upper_right(i[ic],j[ic]) ) {
                   int nl = nlft[ic];
                   int nb = nbot[ic];
                   int nlb = nlft[nb];
@@ -3400,7 +3428,16 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       }
    }
 
+   i     = (int *)mesh_memory.memory_replace(i,     i_new);
+   j     = (int *)mesh_memory.memory_replace(j,     j_new);
+   level = (int *)mesh_memory.memory_replace(level, level_new);
+
    calc_celltype(new_ncells);
+
+   nlft = (int *)mesh_memory.memory_delete(nlft);
+   nrht = (int *)mesh_memory.memory_delete(nrht);
+   nbot = (int *)mesh_memory.memory_delete(nbot);
+   ntop = (int *)mesh_memory.memory_delete(ntop);
 
    //ncells = nc;
 
@@ -3651,10 +3688,10 @@ void Mesh::calc_neighbors(void)
 
    cpu_calc_neigh_counter++;
 
-   nlft.resize(ncells);
-   nrht.resize(ncells);
-   nbot.resize(ncells);
-   ntop.resize(ncells);
+   nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "nlft");
+   nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "nrht");
+   nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "nbot");
+   ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "ntop");
 
    if (calc_neighbor_type == HASH_TABLE) {
 
@@ -3977,10 +4014,17 @@ void Mesh::calc_neighbors_local(void)
 
    cpu_calc_neigh_counter++;
 
-   nlft.resize(ncells,-98);
-   nrht.resize(ncells,-98);
-   nbot.resize(ncells,-98);
-   ntop.resize(ncells,-98);
+   nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "nlft");
+   nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "nrht");
+   nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "nbot");
+   ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "ntop");
+
+   for (int ic = 0; ic < (int)ncells; ic++){
+      nlft[ic] = -98;
+      nrht[ic] = -98;
+      nbot[ic] = -98;
+      ntop[ic] = -98;
+   }
 
    if (calc_neighbor_type == HASH_TABLE) {
 
@@ -3996,6 +4040,7 @@ void Mesh::calc_neighbors_local(void)
       int imaxtile = 0;
       for(uint ic=0; ic<ncells; ic++){
          int lev = level[ic];
+         if (lev < 0 || lev > levmx) printf("DEBUG -- cell %d lev %d\n",ic,level[ic]);
          if ( j[ic]   *levtable[levmx-lev]   < jmintile) jmintile =  j[ic]   *levtable[levmx-lev]  ;
          if ((j[ic]+1)*levtable[levmx-lev]-1 > jmaxtile) jmaxtile = (j[ic]+1)*levtable[levmx-lev]-1;
          if ( i[ic]   *levtable[levmx-lev]   < imintile) imintile =  i[ic]   *levtable[levmx-lev]  ;
@@ -4988,14 +5033,22 @@ void Mesh::calc_neighbors_local(void)
          int nghost = nbsize_local;
          ncells_ghost = ncells + nghost;
 
-         celltype.resize(ncells_ghost);
-         i.resize(ncells_ghost);
-         j.resize(ncells_ghost);
-         level.resize(ncells_ghost);
-         nlft.resize(ncells_ghost,-1);
-         nrht.resize(ncells_ghost,-1);
-         nbot.resize(ncells_ghost,-1);
-         ntop.resize(ncells_ghost,-1);
+         celltype = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), celltype);
+         i        = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), i);
+         j        = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), j);
+         level    = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), level);
+         nlft     = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), nlft);
+         nrht     = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), nrht);
+         nbot     = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), nbot);
+         ntop     = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), ntop);
+         //memory_reset_ptrs();
+
+         for (int ic = ncells; ic < (int)ncells_ghost; ic++){
+            nlft[ic] = -1;
+            nrht[ic] = -1;
+            nbot[ic] = -1;
+            ntop[ic] = -1;
+         }
 
          if (TIMING_LEVEL >= 2) {
             cpu_time_copy_mesh_data += cpu_timer_stop(tstart_lev2);
@@ -7243,7 +7296,8 @@ int Mesh::get_calc_neighbor_type(void)
 
 void Mesh::calc_celltype(size_t ncells)
 {
-   celltype.resize(ncells,REAL_CELL);
+   if (celltype != NULL) celltype = (int *)mesh_memory.memory_delete(celltype);
+   celltype = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), LOAD_BALANCE_MEMORY, "celltype");
 
    for (uint ic=0; ic<ncells; ++ic) {
       celltype[ic] = REAL_CELL;
@@ -7379,10 +7433,19 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
          state_memory.memory_replace(mem_ptr, state_temp);
       }
 
-      i.resize(ncells_old+indices_needed_count,0);
-      j.resize(ncells_old+indices_needed_count,0);
-      level.resize(ncells_old+indices_needed_count,0);
-      celltype.resize(ncells_old+indices_needed_count,0);
+      i        = (int *)mesh_memory.memory_realloc(ncells_old+indices_needed_count, sizeof(int), i);
+      j        = (int *)mesh_memory.memory_realloc(ncells_old+indices_needed_count, sizeof(int), j);
+      level    = (int *)mesh_memory.memory_realloc(ncells_old+indices_needed_count, sizeof(int), level);
+      celltype = (int *)mesh_memory.memory_realloc(ncells_old+indices_needed_count, sizeof(int), celltype);
+      memory_reset_ptrs();
+
+      for (int ic = ncells_old; ic < ncells_old+indices_needed_count; ic++){
+         i[ic]        = 0;
+         j[ic]        = 0;
+         level[ic]    = 0;
+         celltype[ic] = 0;
+      }
+
       L7_Update(&i[0], L7_INT, load_balance_handle);
       L7_Update(&j[0], L7_INT, load_balance_handle);
       L7_Update(&level[0], L7_INT, load_balance_handle);
@@ -7391,52 +7454,39 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       L7_Free(&load_balance_handle);
       load_balance_handle = 0;
  
-      vector<int> i_temp(ncells);
-      vector<int> j_temp(ncells);
-      vector<int> level_temp(ncells);
-      vector<int> celltype_temp(ncells);
+      MallocPlus mesh_memory_old = mesh_memory;
 
-      vector<int> indexes(ncells);
-
-      in = 0;
-      int ic = lower_block_size;
-      if(ic > 0) {
-         for(; (in < ic) && (in < (int)ncells); in++) {
-            i_temp[in]     = i[ncells_old + in];
-            j_temp[in]     = j[ncells_old + in];
-            level_temp[in] = level[ncells_old + in];
-            celltype_temp[in] = celltype[ncells_old + in];
+      for (real *mem_ptr=(real *)mesh_memory_old.memory_begin(); mem_ptr!=NULL; mem_ptr=(real *)mesh_memory_old.memory_next() ){
+         int flags = mesh_memory.get_memory_flags(mem_ptr);
+         if ((flags & LOAD_BALANCE_MEMORY) == 0) continue;
+         real *mesh_temp = (real *)mesh_memory.memory_malloc(ncells, sizeof(real), "mesh_temp");
+         //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
+         L7_Update(mem_ptr, L7_REAL, load_balance_handle);
+         in = 0;
+         if(lower_block_size > 0) {
+            for(; in < MIN(lower_block_size, (int)ncells); in++) {
+               mesh_temp[in] = mem_ptr[ncells_old + in];
+            }
          }
-      }
 
-      ic = noffset - noffset_old;
-      if(ic < 0) ic = 0;
-      for(; (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
-         i_temp[in]     = i[ic];
-         j_temp[in]     = j[ic];
-         level_temp[in] = level[ic];
-         celltype_temp[in] = celltype[ic];
-      }
-
-      ic = upper_block_size;
-      if(ic > 0) {
-         ic = ncells_old + lower_block_size;
-         for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
-            i_temp[in]     = i[ic+k];
-            j_temp[in]     = j[ic+k];
-            level_temp[in] = level[ic+k];
-            celltype_temp[in] = celltype[ic+k];
+         for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
+            mesh_temp[in] = mem_ptr[ic];
          }
+
+         if(upper_block_size > 0) {
+            int ic = ncells_old + lower_block_size;
+            for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
+               mesh_temp[in] = mem_ptr[ic+k];
+            }
+         }
+         mesh_memory.memory_replace(mem_ptr, mesh_temp);
       }
 
-      //state_memory.memory_report(void);
-      //printf(%d: DEBUG end load balance report\n\n",mype);
+      memory_reset_ptrs();
 
-      i.swap(i_temp);
-      j.swap(j_temp);
-      level.swap(level_temp);
-      celltype.swap(celltype_temp);
-
+      //mesh_memory.memory_report();
+      //state_memory.memory_report();
+      //printf("%d: DEBUG end load balance report\n\n",mype);
    }
 
    cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
@@ -7809,6 +7859,18 @@ int Mesh::gpu_count_BCs(void)
    return(bcount);
 }
 #endif
+
+void Mesh::memory_reset_ptrs(void){
+   i        = (int *)mesh_memory.get_memory_ptr("i");
+   j        = (int *)mesh_memory.get_memory_ptr("j");
+   level    = (int *)mesh_memory.get_memory_ptr("level");
+   celltype = (int *)mesh_memory.get_memory_ptr("celltype");
+   nlft     = (int *)mesh_memory.get_memory_ptr("nlft");
+   nrht     = (int *)mesh_memory.get_memory_ptr("nrht");
+   nbot     = (int *)mesh_memory.get_memory_ptr("nbot");
+   ntop     = (int *)mesh_memory.get_memory_ptr("ntop");
+}
+
 void Mesh::resize_old_device_memory(size_t ncells)
 {
 #ifdef HAVE_OPENCL
@@ -7858,13 +7920,13 @@ void Mesh::print_object_info(void)
    elsize = ezcl_get_device_mem_elsize(dev_ntop);
    printf("dev_ntop         ptr : %p nelements %d elsize %d\n",dev_ntop,num_elements,elsize);
 #endif
-   printf("vector celltype  ptr : %p nelements %ld elsize %ld\n",&celltype[0],celltype.size(),sizeof(celltype[0])); 
-   printf("vector level     ptr : %p nelements %ld elsize %ld\n",&level[0],   level.size(),   sizeof(level[0])); 
-   printf("vector i         ptr : %p nelements %ld elsize %ld\n",&i[0],       i.size(),       sizeof(i[0])); 
-   printf("vector j         ptr : %p nelements %ld elsize %ld\n",&j[0],       j.size(),       sizeof(j[0])); 
+   printf("vector celltype  ptr : %p nelements %ld elsize %ld\n",&celltype[0],mesh_memory.get_memory_size(celltype),sizeof(celltype[0])); 
+   printf("vector level     ptr : %p nelements %ld elsize %ld\n",&level[0],   mesh_memory.get_memory_size(level),   sizeof(level[0])); 
+   printf("vector i         ptr : %p nelements %ld elsize %ld\n",&i[0],       mesh_memory.get_memory_size(i),       sizeof(i[0])); 
+   printf("vector j         ptr : %p nelements %ld elsize %ld\n",&j[0],       mesh_memory.get_memory_size(j),       sizeof(j[0])); 
 
-   printf("vector nlft      ptr : %p nelements %ld elsize %ld\n",&nlft[0],    nlft.size(),    sizeof(nlft[0])); 
-   printf("vector nrht      ptr : %p nelements %ld elsize %ld\n",&nrht[0],    nrht.size(),    sizeof(nrht[0])); 
-   printf("vector nbot      ptr : %p nelements %ld elsize %ld\n",&nbot[0],    nbot.size(),    sizeof(nbot[0])); 
-   printf("vector ntop      ptr : %p nelements %ld elsize %ld\n",&ntop[0],    ntop.size(),    sizeof(ntop[0])); 
+   printf("vector nlft      ptr : %p nelements %ld elsize %ld\n",&nlft[0],    mesh_memory.get_memory_size(nlft),    sizeof(nlft[0])); 
+   printf("vector nrht      ptr : %p nelements %ld elsize %ld\n",&nrht[0],    mesh_memory.get_memory_size(nrht),    sizeof(nrht[0])); 
+   printf("vector nbot      ptr : %p nelements %ld elsize %ld\n",&nbot[0],    mesh_memory.get_memory_size(nbot),    sizeof(nbot[0])); 
+   printf("vector ntop      ptr : %p nelements %ld elsize %ld\n",&ntop[0],    mesh_memory.get_memory_size(ntop),    sizeof(ntop[0])); 
 }

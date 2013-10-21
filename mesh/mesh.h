@@ -123,6 +123,7 @@ class Mesh
 
 public:
    int ndim;                    //  Dimensionality of mesh (2 or 3).
+   MallocPlus mesh_memory; 
 
    double   cpu_time_calc_neighbors,
                cpu_time_hash_setup,
@@ -240,18 +241,19 @@ public:
                   deltay,       //  Grid spacing along y-axis.
                   deltaz;       //  Grid spacing along z-axis.
 
-   vector<int>    index,        //  1D ordered index of mesh elements.
-                  i,            //  1D ordered index of mesh element x-indices for k-D tree.
-                  j,            //  1D ordered index of mesh element y-indices for k-D tree.
-                  k,            //  1D ordered index of mesh element z-indices for k-D tree.
-                  level,        //  1D ordered index of mesh element refinement levels.
-                  nlft,         //  1D ordered index of mesh element left neighbors.
-                  nrht,         //  1D ordered index of mesh element right neighbors.
-                  nbot,         //  1D ordered index of mesh element bottom neighbors.
-                  ntop,         //  1D ordered index of mesh element top neighbors.
-                  nfrt,         //  1D ordered index of mesh element front neighbors.
-                  nbak,         //  1D ordered index of mesh element back neighbors.
-                  celltype;     // 1D ordered index of mesh element cell types (ghost or real).
+   vector<int>    index;        //  1D ordered index of mesh elements.
+
+   int            *i,            //  1D ordered index of mesh element x-indices for k-D tree.
+                  *j,            //  1D ordered index of mesh element y-indices for k-D tree.
+                  *k,            //  1D ordered index of mesh element z-indices for k-D tree.
+                  *level,        //  1D ordered index of mesh element refinement levels.
+                  *nlft,         //  1D ordered index of mesh element left neighbors.
+                  *nrht,         //  1D ordered index of mesh element right neighbors.
+                  *nbot,         //  1D ordered index of mesh element bottom neighbors.
+                  *ntop,         //  1D ordered index of mesh element top neighbors.
+                  *nfrt,         //  1D ordered index of mesh element front neighbors.
+                  *nbak,         //  1D ordered index of mesh element back neighbors.
+                  *celltype;     // 1D ordered index of mesh element cell types (ghost or real).
 
    vector<real>   x,            //  1D ordered index of mesh element x-coordinates.
                   dx,           //  1D ordered index of mesh element x-coordinate spacings.
@@ -294,6 +296,7 @@ public:
 
 /* memory routines */
    void resize_old_device_memory(size_t ncells);
+   void memory_reset_ptrs(void);
 
 /* inline "macros" */
    int  is_left_boundary(int ic)    { return (i[ic] < lev_ibegin[level[ic]]); }

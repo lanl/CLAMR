@@ -335,7 +335,7 @@ void Mesh::partition_cells(
 
    //  Initialize ordered curve index.
    z_index.resize(ncells, 0);
-   z_order.resize(ncells, 0);
+   //z_order.resize(ncells, 0);
 
    if (parallel) {
 #ifdef HAVE_MPI
@@ -444,15 +444,15 @@ void Mesh::partition_cells(
             MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &level[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
 
             // It is faster just to recalculate these variables instead of communicating them
-            if (celltype.size() >= ncells) {
-               calc_celltype(celltype.size());
+            if (mesh_memory.get_memory_size(celltype) >= ncells) {
+               calc_celltype(mesh_memory.get_memory_size(celltype));
             }
 
             if (have_spatial_variables) {
                calc_spatial_coordinates(0);
             }
 
-            if (nlft.size() >= ncells) {
+            if (mesh_memory.get_memory_size(nlft) >= ncells) {
                vector<int> inv_z_order(ncells_global);
                for (int ic = 0; ic<(int)ncells_global; ic++){
                   inv_z_order[z_order_global[ic]] = ic;
@@ -524,7 +524,7 @@ void Mesh::partition_cells(
             }
 
             // reorder celltype
-            if (celltype.size() >= ncells){
+            if (mesh_memory.get_memory_size(celltype) >= ncells){
                for (int ic = 0; ic<(int)ncells; ic++){
                   int_local[ic] = celltype[ic];
                }
@@ -565,7 +565,7 @@ void Mesh::partition_cells(
                }
             }
 
-            if (nlft.size() >= ncells) {
+            if (mesh_memory.get_memory_size(nlft) >= ncells) {
                vector<int> inv_z_order(ncells);
                for (int ic = 0; ic<(int)ncells; ic++){
                   inv_z_order[z_order[ic]] = ic;
@@ -665,15 +665,15 @@ void Mesh::partition_cells(
             MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &level[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
 
             // It is faster just to recalculate these variables instead of communicating them
-            if (celltype.size() >= ncells) {
-               calc_celltype(celltype.size());
+            if (mesh_memory.get_memory_size(celltype) >= ncells) {
+               calc_celltype(mesh_memory.get_memory_size(celltype));
             }
 
             if (x.size() >= ncells) {
                calc_spatial_coordinates(0);
             }
 
-            if (nlft.size() >= ncells) {
+            if (mesh_memory.get_memory_size(nlft) >= ncells) {
                vector<int> inv_z_order(ncells_global);
                for (int ic = 0; ic<(int)ncells_global; ic++){
                   inv_z_order[z_order_global[ic]] = ic;
@@ -756,7 +756,7 @@ void Mesh::partition_cells(
             }
 
             // reorder celltype
-            if (celltype.size() >= ncells){
+            if (mesh_memory.get_memory_size(celltype) >= ncells){
                for (int ic = 0; ic<(int)ncells; ic++){
                   int_local[ic] = celltype[ic];
                }
@@ -797,7 +797,7 @@ void Mesh::partition_cells(
                }
             }
 
-            if (nlft.size() >= ncells) {
+            if (mesh_memory.get_memory_size(nlft) >= ncells) {
                vector<int> inv_z_order(ncells);
                for (int ic = 0; ic<(int)ncells; ic++){
                   inv_z_order[z_order[ic]] = ic;
@@ -859,7 +859,7 @@ void Mesh::calc_distribution(int numpe)
    for (int ip = 0; ip < numpe; ++ip) {
       lsize += proc.size()/numpe;
       if (ip < (int)proc.size()%numpe) lsize++;
-      for (int ic = 0; ic < lsize; ic++) {
+      for (int ic = 0; ic < (int)lsize; ic++) {
          proc[ic] = ip;
       }
    }

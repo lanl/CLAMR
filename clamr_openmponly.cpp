@@ -91,9 +91,11 @@ typedef cl_float    cl_real;
 
 typedef unsigned int uint;
 
+#ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
 
 static int view_mode = 0;
+#endif
 
 bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
@@ -168,10 +170,10 @@ int main(int argc, char **argv) {
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe);
    state->fill_circle(circ_radius, 100.0, 5.0);
-   mesh->nlft.clear();
-   mesh->nrht.clear();
-   mesh->nbot.clear();
-   mesh->ntop.clear();
+   mesh->nlft = NULL;
+   mesh->nrht = NULL;
+   mesh->nbot = NULL;
+   mesh->ntop = NULL;
    
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(enhanced_precision_sum);
@@ -263,7 +265,7 @@ extern "C" void do_calc(void)
       deltaT = state->set_timestep(g, sigma);
       simTime += deltaT;
       
-      if (mesh->nlft.size() == 0) mesh->calc_neighbors();
+      if (mesh->nlft == NULL) mesh->calc_neighbors();
 
       mesh->partition_measure();
 

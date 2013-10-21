@@ -200,11 +200,6 @@ int main(int argc, char **argv) {
    cl_mem &dev_j        = mesh->dev_j;
    cl_mem &dev_level    = mesh->dev_level;
 
-   vector<int>   &celltype = mesh->celltype;
-   vector<int>   &i        = mesh->i;
-   vector<int>   &j        = mesh->j;
-   vector<int>   &level    = mesh->level;
-
    vector<real> &x  = mesh->x;
    vector<real> &dx = mesh->dx;
    vector<real> &y  = mesh->y;
@@ -226,11 +221,6 @@ int main(int argc, char **argv) {
 
    dev_corners_i_local  = ezcl_malloc(&corners_i_local[0],  const_cast<char *>("dev_corners_i_local"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
    dev_corners_j_local  = ezcl_malloc(&corners_j_local[0],  const_cast<char *>("dev_corners_j_local"), &corners_size, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-
-   celltype.resize(ncells);
-   level.resize(ncells);
-   i.resize(ncells);
-   j.resize(ncells);
 
    size_t mem_request = (int)((float)ncells*mesh->mem_factor);
    dev_celltype  = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
@@ -260,16 +250,16 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->U[0],  NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_V, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->V[0],  NULL);
 
-   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&celltype[0], NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],        NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],        NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&level[0],    &end_write_event);
+   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->celltype[0], NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->i[0],        NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->j[0],        NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&mesh->level[0],    &end_write_event);
    state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
 
-   mesh->nlft.clear();
-   mesh->nrht.clear();
-   mesh->nbot.clear();
-   mesh->ntop.clear();
+   mesh->nlft = NULL;
+   mesh->nrht = NULL;
+   mesh->nbot = NULL;
+   mesh->ntop = NULL;
 
    mesh->dev_nlft = NULL;
    mesh->dev_nrht = NULL;
@@ -446,7 +436,7 @@ extern "C" void do_calc(void)
       int jcount = 0;
       new_ncells = state->gpu_calc_refine_potential(icount, jcount);
 
-      int ncells_global_old = ncells_global;
+      //int ncells_global_old = ncells_global;
       MPI_Allreduce(&new_ncells, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
       //  Resize the mesh, inserting cells where refinement is necessary.

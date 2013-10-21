@@ -200,11 +200,6 @@ int main(int argc, char **argv) {
    cl_mem &dev_U    = state->dev_U;
    cl_mem &dev_V    = state->dev_V;
 
-   vector<int>   &celltype = mesh->celltype;
-   vector<int>   &i        = mesh->i;
-   vector<int>   &j        = mesh->j;
-   vector<int>   &level    = mesh->level;
-
    real  *H        = state->H;
    real  *U        = state->U;
    real  *V        = state->V;
@@ -221,19 +216,19 @@ int main(int argc, char **argv) {
    dev_level    = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &mem_request, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
-   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&celltype[0], &start_write_event);
-   ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],        NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],        NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&level[0],    NULL            );
+   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->celltype[0], &start_write_event);
+   ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->i[0],        NULL            );
+   ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->j[0],        NULL            );
+   ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->level[0],    NULL            );
    ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],       NULL              );
    ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],       NULL              );
    ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],       &end_write_event  );
    state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
 
-   mesh->nlft.clear();
-   mesh->nrht.clear();
-   mesh->nbot.clear();
-   mesh->ntop.clear();
+   mesh->nlft = NULL;
+   mesh->nrht = NULL;
+   mesh->nbot = NULL;
+   mesh->ntop = NULL;
 
    mesh->dev_nlft = NULL;
    mesh->dev_nrht = NULL;
@@ -308,17 +303,7 @@ extern "C" void do_calc(void)
       do_gpu_sync = 1;
    }
    
-   //  Initialize state variables for GPU calculation.
-   vector<int>   &celltype = mesh->celltype;
-   vector<int>   &i        = mesh->i;
-   vector<int>   &j        = mesh->j;
-   vector<int>   &level    = mesh->level;
-
    size_t ncells    = mesh->ncells;
-
-   //real  *H        = state->H;
-   //real  *U        = state->U;
-   //real  *V        = state->V;
 
    cl_mem &dev_H        = state->dev_H;
    cl_mem &dev_U        = state->dev_U;
@@ -369,7 +354,7 @@ extern "C" void do_calc(void)
       deltaT = (do_gpu_calc) ? deltaT_gpu : deltaT_cpu;
       simTime += deltaT;
 
-      if (mesh->nlft.size() == 0) mesh->calc_neighbors();
+      if (mesh->nlft == NULL) mesh->calc_neighbors();
 
       if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors();
 
@@ -454,7 +439,7 @@ extern "C" void do_calc(void)
                int mcount = 0;
                for (int ic=ig*TILE_SIZE; ic<(ig+1)*TILE_SIZE; ic++){
                    if (ic >= (int)old_ncells) break;
-                   if (celltype[ic] == REAL_CELL) {
+                   if (mesh->celltype[ic] == REAL_CELL) {
                       mcount += mpot[ic] ? 4 : 1;
                    } else {
                       mcount += mpot[ic] ? 2 : 1;
@@ -501,10 +486,10 @@ extern "C" void do_calc(void)
          mesh->partition_cells(numpe, index, cycle_reorder);
          //state->state_reorder(index);
          if (do_gpu_sync) {
-            ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&celltype[0],  NULL);
-            ezcl_enqueue_write_buffer(command_queue, dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&i[0],  NULL);
-            ezcl_enqueue_write_buffer(command_queue, dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&j[0],  NULL);
-            ezcl_enqueue_write_buffer(command_queue, dev_level, CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&level[0],  NULL);
+            ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->celltype[0],  NULL);
+            ezcl_enqueue_write_buffer(command_queue, dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->i[0],  NULL);
+            ezcl_enqueue_write_buffer(command_queue, dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->j[0],  NULL);
+            ezcl_enqueue_write_buffer(command_queue, dev_level, CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&mesh->level[0],  NULL);
          }
       }
       

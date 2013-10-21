@@ -1561,7 +1561,7 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
 }
 
 cl_program ezcl_create_program_wsource_p(cl_context context, const char *source, int flags, const char *file, const int line){
-   cl_kernel kernel;
+   //cl_kernel kernel;
    cl_int ierr;
    size_t nReportSize;
    char *BuildReport;

@@ -112,9 +112,11 @@ typedef struct
 
 typedef unsigned int uint;
 
+#ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
 
 static int view_mode = 0;
+#endif
 
 bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
@@ -192,16 +194,8 @@ int main(int argc, char **argv) {
    vector<real>  &y_global  = mesh_global->y;
    vector<real>  &dy_global = mesh_global->dy;
 
-   vector<int>   &celltype = mesh->celltype;
-   vector<int>   &i        = mesh->i;
-   vector<int>   &j        = mesh->j;
-   vector<int>   &level    = mesh->level;
    vector<int>   &proc     = mesh->proc;
 
-   vector<int>   &celltype_global = mesh_global->celltype;
-   vector<int>   &i_global        = mesh_global->i;
-   vector<int>   &j_global        = mesh_global->j;
-   vector<int>   &level_global    = mesh_global->level;
    vector<int>   &proc_global     = mesh_global->proc;
 
    vector<real> &x  = mesh->x;
@@ -220,16 +214,17 @@ int main(int argc, char **argv) {
 
    // Gather level, celltype, H, U, V for global calc
 
-   celltype_global.resize(ncells_global);
-   level_global.resize(ncells_global);
-   i_global.resize(ncells_global);
-   j_global.resize(ncells_global);
+   mesh_global->celltype = (int *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(int), "celltype");
+   mesh_global->level    = (int *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(int), "level");
+   mesh_global->i        = (int *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(int), "i");
+   mesh_global->j        = (int *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(int), "j");
+
    proc_global.resize(ncells_global);
 
-   MPI_Allgatherv(&celltype[0], ncells, MPI_INT, &celltype_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-   MPI_Allgatherv(&level[0], ncells, MPI_INT, &level_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-   MPI_Allgatherv(&i[0], ncells, MPI_INT, &i_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
-   MPI_Allgatherv(&j[0], ncells, MPI_INT, &j_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   MPI_Allgatherv(&mesh->celltype[0], ncells, MPI_INT, &mesh_global->celltype[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   MPI_Allgatherv(&mesh->level[0], ncells, MPI_INT, &mesh_global->level[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   MPI_Allgatherv(&mesh->i[0], ncells, MPI_INT, &mesh_global->i[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   MPI_Allgatherv(&mesh->j[0], ncells, MPI_INT, &mesh_global->j[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
    proc.resize(ncells);
    for (uint ic=0; ic<ncells; ic++){
@@ -237,9 +232,6 @@ int main(int argc, char **argv) {
    }
    MPI_Allgatherv(&proc[0], ncells, MPI_INT, &proc_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
-   //H.resize(ncells);
-   //U.resize(ncells);
-   //V.resize(ncells);
    state->resize(ncells);
 
    x_global.resize(ncells_global);
@@ -258,14 +250,14 @@ int main(int argc, char **argv) {
    MPI_Allgatherv(&state->U[0], nsizes[mype], MPI_C_REAL, &U_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&state->V[0], nsizes[mype], MPI_C_REAL, &V_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
-   mesh->nlft.clear();
-   mesh->nrht.clear();
-   mesh->nbot.clear();
-   mesh->ntop.clear();
-   mesh_global->nlft.clear();
-   mesh_global->nrht.clear();
-   mesh_global->nbot.clear();
-   mesh_global->ntop.clear();
+   mesh->nlft = NULL;
+   mesh->nrht = NULL;
+   mesh->nbot = NULL;
+   mesh->ntop = NULL;
+   mesh_global->nlft = NULL;
+   mesh_global->nrht = NULL;
+   mesh_global->nbot = NULL;
+   mesh_global->ntop = NULL;
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(enhanced_precision_sum);
@@ -338,7 +330,6 @@ extern "C" void do_calc(void)
    double sigma = 0.95; 
    int icount, jcount;
    int icount_global, jcount_global;
-   struct timeval tstart_cpu;
 
    //  Initialize state variables for GPU calculation.
    int &mype = mesh->mype;
@@ -383,10 +374,10 @@ extern "C" void do_calc(void)
          }
       }
 
-      if (mesh->nlft.size() == 0) mesh->calc_neighbors_local();
+      if (mesh->nlft == NULL) mesh->calc_neighbors_local();
 
       if (do_comparison_calc) {
-         if (mesh_global->nlft.size() == 0) mesh_global->calc_neighbors();
+         if (mesh_global->nlft == NULL) mesh_global->calc_neighbors();
 
          // Checking CPU parallel to CPU global
          mesh->compare_neighbors_cpu_local_to_cpu_global(ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);
@@ -435,14 +426,14 @@ extern "C" void do_calc(void)
          mesh->compare_mpot_cpu_local_to_cpu_global(ncells_global, &nsizes[0], &ndispl[0], &mpot[0], &mpot_global[0], ncycle);
       }
 
-      int add_ncells = new_ncells - old_ncells;
+      //int add_ncells = new_ncells - old_ncells;
       state->rezone_all(icount, jcount, mpot);
       mpot.clear();
       ncells = new_ncells;
       mesh->ncells = new_ncells;
 
       if (do_comparison_calc) {
-         int add_ncells_global = new_ncells_global - old_ncells_global;
+         //int add_ncells_global = new_ncells_global - old_ncells_global;
          //printf("%d: DEBUG add %d new %d old %d icount %d jcount %d\n",mype,add_ncells,new_ncells,old_ncells,icount,jcount);
          state_global->rezone_all(icount_global, jcount_global, mpot_global);
          mpot_global.clear();
@@ -458,7 +449,7 @@ extern "C" void do_calc(void)
          mesh->compare_indices_cpu_local_to_cpu_global(ncells_global, mesh_global, &nsizes[0], &ndispl[0], ncycle);
       } // do_comparison_calc
 
-      if (mesh->nlft.size() == 0) {
+      if (mesh->nlft == NULL) {
          state->do_load_balance_local(new_ncells);
       }
 

@@ -86,9 +86,11 @@ typedef cl_float    cl_real;
 
 typedef unsigned int uint;
 
+#ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
 
 static int view_mode = 0;
+#endif
 
 bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
@@ -109,7 +111,9 @@ static State *state;          //  Object containing state information correspond
 
 //  Set up timing information.
 static struct timeval tstart;
+#ifdef HAVE_GRAPHICS
 static cl_event start_read_event,  end_read_event;
+#endif
 
 static double H_sum_initial = 0.0;
 static long gpu_time_graphics = 0;
@@ -176,11 +180,6 @@ int main(int argc, char **argv) {
    cl_mem &dev_U    = state->dev_U;
    cl_mem &dev_V    = state->dev_V;
 
-   vector<int>   &celltype = mesh->celltype;
-   vector<int>   &i        = mesh->i;
-   vector<int>   &j        = mesh->j;
-   vector<int>   &level    = mesh->level;
-
    real  *H        = state->H;
    real  *U        = state->U;
    real  *V        = state->V;
@@ -197,10 +196,10 @@ int main(int argc, char **argv) {
    dev_level    = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &mem_request, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
-   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  &celltype[0], NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &i[0],        NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  &j[0],        NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  &level[0],    NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  &mesh->celltype[0], NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &mesh->i[0],        NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  &mesh->j[0],        NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  &mesh->level[0],    NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_real), &H[0],        NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real), &U[0],        NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_real), &V[0],        NULL);
@@ -285,7 +284,7 @@ extern "C" void do_calc(void)
    //  Main loop.
    for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
-      size_t old_ncells = ncells;
+      //size_t old_ncells = ncells;
 
       //  Calculate the real time step for the current discrete time step.
       
@@ -305,7 +304,7 @@ extern "C" void do_calc(void)
       size_t new_ncells = state->gpu_calc_refine_potential(icount, jcount);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      size_t add_ncells = new_ncells - old_ncells;
+      //size_t add_ncells = new_ncells - old_ncells;
       if (state->dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);
       ncells = new_ncells;
       mesh->ncells = new_ncells;

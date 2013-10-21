@@ -106,9 +106,11 @@ typedef struct
 
 typedef unsigned int uint;
 
+#ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
 
 static int view_mode = 0;
+#endif
 
 bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
@@ -187,11 +189,6 @@ int main(int argc, char **argv) {
    vector<int>   &nsizes     = mesh->nsizes;
    vector<int>   &ndispl     = mesh->ndispl;
 
-   vector<int>   &celltype = mesh->celltype;
-   vector<int>   &i        = mesh->i;
-   vector<int>   &j        = mesh->j;
-   vector<int>   &level    = mesh->level;
-
    vector<real> &x  = mesh->x;
    vector<real> &dx = mesh->dx;
    vector<real> &y  = mesh->y;
@@ -209,22 +206,14 @@ int main(int argc, char **argv) {
    }
    noffset = ndispl[mype];
 
-   celltype.resize(ncells);
-   level.resize(ncells);
-   i.resize(ncells);
-   j.resize(ncells);
-
-   //H.resize(ncells);
-   //U.resize(ncells);
-   //V.resize(ncells);
    state->resize(ncells);
 
    state->fill_circle(circ_radius, 100.0, 5.0);
 
-   mesh->nlft.clear();
-   mesh->nrht.clear();
-   mesh->nbot.clear();
-   mesh->ntop.clear();
+   mesh->nlft = NULL;
+   mesh->nrht = NULL;
+   mesh->nbot = NULL;
+   mesh->ntop = NULL;
 
    x.clear();
    dx.clear();
@@ -372,7 +361,7 @@ extern "C" void do_calc(void)
       simTime += deltaT;
 
       cpu_timer_start(&tstart_cpu);
-      if (mesh->nlft.size() == 0) mesh->calc_neighbors_local();
+      if (mesh->nlft == NULL) mesh->calc_neighbors_local();
 
       mesh->partition_measure();
 
@@ -395,14 +384,14 @@ extern "C" void do_calc(void)
       new_ncells = state->calc_refine_potential(mpot, icount, jcount);
   
       cpu_timer_start(&tstart_cpu);
-      int add_ncells = new_ncells - old_ncells;
+      //int add_ncells = new_ncells - old_ncells;
       state->rezone_all(icount, jcount, mpot);
       mpot.clear();
       ncells = new_ncells;
       mesh->ncells = new_ncells;
 
       cpu_timer_start(&tstart_cpu);
-      if (mesh->nlft.size() == 0) {
+      if (mesh->nlft == NULL) {
          state->do_load_balance_local(new_ncells);
       }
 
