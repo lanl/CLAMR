@@ -330,6 +330,9 @@ extern "C" void do_calc(void)
    double sigma = 0.95; 
    int icount, jcount;
    int icount_global, jcount_global;
+#ifdef HAVE_GRAPHICS
+   struct timeval tstart_cpu;
+#endif
 
    //  Initialize state variables for GPU calculation.
    int &mype = mesh->mype;
