@@ -43,10 +43,8 @@
 
 /**
  * TODO
- * replace MPI_Barrier with something faster
- * exchange segment name
- * over alloc for meta (hide)
- * add map insert/del checks
+ * replace MPI_Barrier with something faster if needed
+ * over allocate for metadata (hide our stuff in the sm segment)
  */
 
 #include "j7.h"
@@ -58,13 +56,19 @@
 #include <sstream>
 #include <cstdlib>
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 #define J7_ERR_HERE __FILE__, __LINE__
 // named std::pair used to exchange handle/size mappings
 #define MMSTR "metaHSPair"
+// extra space that we add to the caller's allocation request so we can stash
+// our metadata in the shared-memory segment. if the amount of j7 stored data
+// changes, please update this value. for now, just over allocate a bit.
+#define J7_META_FLUFF_B 128
 
 /* ////////////////////////////////////////////////////////////////////////// */
 /* Private Utility Routines */
@@ -107,7 +111,6 @@ J7::J7(MPI_Comm &smComm,
 {
     using std::string;
     int mpiInitialized = 0;
-
     if (MPI_SUCCESS != MPI_Initialized(&mpiInitialized)) {
         string estr = "MPI_Initialized failure";
         throw J7Exception(J7_ERR_HERE, estr);
@@ -150,10 +153,48 @@ J7::~J7(void)
 
 /* ////////////////////////////////////////////////////////////////////////// */
 void
+J7::setSMSegName(void)
+{
+    using namespace std;
+    if (custodian) {
+        srand((unsigned int)time(NULL));
+        int randn = rand() % 1024;
+        char *me = NULL;
+        if (NULL == (me = getenv("USER"))) {
+            me = const_cast<char *>("unknown");
+        }
+        segName = "j7-" + n2s(randn) + "-" + string(me) + ".shm";
+        int cStrLen = segName.length() + 1;
+        bcast(&cStrLen, 1, MPI_INT, 0, comm);
+        bcast(const_cast<char *>(segName.c_str()), cStrLen, MPI_CHAR, 0, comm);
+    }
+    else {
+        int cStrLen = 0;
+        bcast(&cStrLen, 1, MPI_INT, 0, comm);
+        char *cStr = static_cast<char *>(calloc(cStrLen, sizeof(char)));
+        bcast(cStr, cStrLen, MPI_CHAR, 0, comm);
+        segName = string(cStr);
+        free(cStr);
+    }
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+void
 J7::barrier(void)
 {
     if (MPI_SUCCESS != MPI_Barrier(comm)) {
         std::string estr = "MPI_Barrier failure";
+        throw J7Exception(J7_ERR_HERE, estr);
+    }
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+void
+J7::bcast(void *buffer, int count, MPI_Datatype datatype,
+          int root, MPI_Comm comm)
+{
+    if (MPI_SUCCESS != MPI_Bcast(buffer, count, datatype, root, comm)) {
+        std::string estr = "MPI_Bcast failure";
         throw J7Exception(J7_ERR_HERE, estr);
     }
 }
@@ -166,18 +207,22 @@ J7::smSegInit(void)
     using std::map;
     using std::size_t;
     try {
+        // first agree upon a segment name (hopefully unique on the system)
+        setSMSegName();
         if (custodian) {
-            shared_memory_object::remove("MySharedMemory");
-            msm = new managed_shared_memory(create_only,
-                                            "MySharedMemory",
+            msm = new managed_shared_memory(create_only, segName.c_str(),
                                             segSize);
             smHSPair = msm->construct<HSPair>(MMSTR)[1]();
             barrier();
         }
         else {
             barrier();
-            msm = new managed_shared_memory(open_only, "MySharedMemory");
+            msm = new managed_shared_memory(open_only, segName.c_str());
         }
+        barrier();
+        // remove (probably unlink) the backing store after all attach
+        if (custodian) shared_memory_object::remove(segName.c_str());
+        // make sure everything is okay with the new segment
         smSanity();
     }
     catch (std::exception &e) {
@@ -190,7 +235,9 @@ J7::smSegInit(void)
 void
 J7::smSegFini(void)
 {
-    using namespace std;
+    using namespace boost::interprocess;
+    using std::cerr;
+    using std::endl;
     if (custodian) {
         // destroy named objects
         msm->destroy<HSPair>(MMSTR);

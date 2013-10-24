@@ -131,14 +131,20 @@ main(int argc, char **argv)
         emitElems(smComm, smCommRank, cArray, nElems);
         emitElems(smComm, smCommRank, iArray, nElems);
         emitElems(smComm, smCommRank, spanArray, nElems);
+        // ordering test
+        j7->memFree(iArray);
         // reallocation tests
-        cArray = static_cast<char *>(j7->memRealloc(cArray, sizeof(char) * nElems * 2));
+        cArray = static_cast<char *>
+                 (j7->memRealloc(cArray, sizeof(char) * nElems * 2));
+        // now everyone add stuff to the end of the new space
+        for (int i = nElems; i < nElems * 2; ++i) {
+            cArray[i] = ('A' +  i + smCommRank) % 'z';
+        }
         emitElems(smComm, smCommRank, cArray, nElems * 2);
         // release allocated resources
         MPI_Barrier(smComm);
         j7->memFree(dArray);
         j7->memFree(cArray);
-        j7->memFree(iArray);
         j7->memFree(spanArray);
         delete j7;
     }
