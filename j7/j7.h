@@ -89,6 +89,8 @@ private:
     bool custodian;
     // shared segment size
     std::size_t segSize;
+    // shared segment name
+    std::string segName;
 
     MSM *msm;
 
@@ -108,7 +110,12 @@ private:
 
     HSPair retrieveHSPair(void);
 
+    void setSMSegName(void);
+
     void barrier(void);
+
+    void bcast(void *buffer, int count, MPI_Datatype datatype,
+               int root, MPI_Comm comm);
 
 public:
     J7(MPI_Comm &smComm, std::size_t segSize);

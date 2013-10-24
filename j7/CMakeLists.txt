@@ -5,6 +5,8 @@ if (MPI_FOUND)
     message(STATUS "j7: MPI Found. Using wrapper compiler...")
 endif()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+
 set(j7-H_SRCS j7.h)
 set(j7-CXX_SRCS j7.cpp)
 set(j7-LIB_SRCS ${j7-CXX_SRCS} ${j7-H_SRCS})
