@@ -78,6 +78,7 @@ endif (OPENGL_FOUND)
 
 if(DEFINED ENV{QUO_HOME})
    if(EXISTS "$ENV{QUO_HOME}/include/")
+      message(STATUS "QUO Detected")
       set (QUO_FOUND on)
       include_directories($ENV{QUO_HOME}/include)
    endif (EXISTS "$ENV{QUO_HOME}/include/")
@@ -278,39 +279,39 @@ target_link_libraries(clamr_mpiopenmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 install(TARGETS clamr_mpiopenmponly DESTINATION bin)
 
 ########### clamr_quo target ###############
-set(clamr_quo_CXX_SRCS clamr_quo.cpp state.cpp input.cpp)
-set(clamr_quo_C_SRCS display.c)
-set(clamr_quo_H_SRCS display.h state.h input.h)
+# only build this thing if we have QUO, MPI, and OpenMP
 
-set(clamr_quo_SRCS ${clamr_quo_CXX_SRCS} ${clamr_quo_C_SRCS} ${clamr_quo_H_SRCS})
+if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND)
+    message(STATUS "clamr_quo Minimum Requires Met")
 
-add_executable(clamr_quo ${clamr_quo_SRCS})
+    # for now, only clamr_quo uses j7
+    add_subdirectory(j7)
+    set(clamr_quo_CXX_SRCS clamr_quo.cpp state.cpp input.cpp)
+    set(clamr_quo_C_SRCS display.c)
+    set(clamr_quo_H_SRCS display.h state.h input.h)
 
-if (QUO_FOUND)
-set_target_properties(clamr_quo PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_QUO")
-else (QUO_FOUND)
-set_target_properties(clamr_quo PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI")
-endif (QUO_FOUND)
+    set(clamr_quo_SRCS ${clamr_quo_CXX_SRCS} ${clamr_quo_C_SRCS} ${clamr_quo_H_SRCS})
 
-if(OPENMP_FOUND)
-set(clamr_quo_link_flags "${OpenMP_CXX_FLAGS}")
-set_target_properties(clamr_quo PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
-set_target_properties(clamr_quo PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
-endif(OPENMP_FOUND)
+    add_executable(clamr_quo ${clamr_quo_SRCS})
 
-if (QUO_FOUND)
-set(clamr_quo_link_flags "${clamr_quo_link_flags} -L$ENV{QUO_HOME}/lib")
-target_link_libraries(clamr_quo quo)
-endif (QUO_FOUND)
+    set_target_properties(clamr_quo PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_QUO")
 
-set_target_properties(clamr_quo PROPERTIES LINK_FLAGS "${clamr_quo_link_flags}")
+    set(clamr_quo_link_flags "${OpenMP_CXX_FLAGS}")
+    set_target_properties(clamr_quo PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+    set_target_properties(clamr_quo PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
 
-target_link_libraries(clamr_quo pmesh hsfc kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
-target_link_libraries(clamr_quo ${MPE_LIBS} ${X11_LIBS})
-target_link_libraries(clamr_quo ${MPI_LIBRARIES})
-target_link_libraries(clamr_quo ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+    set(clamr_quo_link_flags "${clamr_quo_link_flags} -L$ENV{QUO_HOME}/lib")
 
-install(TARGETS clamr_quo DESTINATION bin)
+    set_target_properties(clamr_quo PROPERTIES LINK_FLAGS "${clamr_quo_link_flags}")
+
+    target_link_libraries(clamr_quo pmesh hsfc kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
+    target_link_libraries(clamr_quo j7 quo)
+    target_link_libraries(clamr_quo ${MPE_LIBS} ${X11_LIBS})
+    target_link_libraries(clamr_quo ${MPI_LIBRARIES})
+    target_link_libraries(clamr_quo ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+
+    install(TARGETS clamr_quo DESTINATION bin)
+endif()
 
 ########### clamr_gpucheck target ###############
 set(clamr_gpucheck_CXX_SRCS clamr_gpucheck.cpp state.cpp input.cpp)
