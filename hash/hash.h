@@ -21,6 +21,10 @@ void write_hash(uint ic, ulong hashkey, int *hash);
 int read_hash(ulong hashkey, int *hash);
 void compact_hash_delete(int *hash);
 
+void write_hash_collision_report(void);
+void read_hash_collision_report(void);
+void final_hash_collision_report(void);
+
 #ifdef __cplusplus
 }
 #endif

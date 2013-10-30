@@ -369,7 +369,6 @@ public:
    void print_partition_measure(void);
    void print_calc_neighbor_type(void);
    void print_partition_type(void);
-   void final_hash_collision_report(void);
 /* end accessor routines */
 
 /* Debugging, internal, or not used yet */

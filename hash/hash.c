@@ -13,6 +13,10 @@ uint hash_stride;
 uint hash_ncells;
 uint write_hash_collisions;
 uint read_hash_collisions;
+static double write_hash_collisions_runsum = 0.0;
+static double read_hash_collisions_runsum = 0.0;
+static uint write_hash_collisions_count = 0;
+static uint read_hash_collisions_count = 0;
 uint hash_report_level = 2;
 uint hash_queries;
 int hash_method = METHOD_UNSET;
@@ -306,5 +310,35 @@ int read_hash(ulong hashkey, int *hash){
 
 void compact_hash_delete(int *hash){
       genvectorfree((void *)hash);
+}
+
+void write_hash_collision_report(void){
+   if (hash_method == PERFECT_HASH) return;
+   if (hash_report_level == 1) {
+      write_hash_collisions_runsum += (double)write_hash_collisions/(double)hash_ncells;
+      write_hash_collisions_count++;
+   } else if (hash_report_level >= 2) {
+      printf("Write hash collision report -- collisions per cell %lf, collisions %d cells %d\n",(double)write_hash_collisions/(double)hash_ncells,write_hash_collisions,hash_ncells);
+   }
+}
+
+void read_hash_collision_report(void){
+   //printf("hash table size  bytes %ld\n",hashtablesize*sizeof(int));
+   if (hash_method == PERFECT_HASH) return;
+   if (hash_report_level == 1) {
+      read_hash_collisions_runsum += (double)read_hash_collisions/(double)hash_queries;
+      read_hash_collisions_count++;
+   } else if (hash_report_level >= 2) {
+      printf("Read hash collision report -- collisions per cell %lf, collisions %d cells %d\n",(double)read_hash_collisions/(double)hash_queries,read_hash_collisions,hash_queries);
+      hash_queries = 0;
+      read_hash_collisions = 0;
+   }
+}
+
+void final_hash_collision_report(void){
+   printf("hash table size  bytes %ld\n",hashtablesize*sizeof(int));
+   if (hash_report_level >= 1 && read_hash_collisions_count > 0) { 
+      printf("Final hash collision report -- write/read collisions per cell %lf/%lf\n",write_hash_collisions_runsum/(double)write_hash_collisions_count,read_hash_collisions_runsum/(double)read_hash_collisions_count);
+   }
 }
 
