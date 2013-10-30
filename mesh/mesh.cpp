@@ -5621,7 +5621,7 @@ void Mesh::gpu_calc_neighbors(void)
    gpu_hash_method = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? PERFECT_HASH : QUADRATIC;
 
 // allow imput.c to control hash types and methods
-   if (choose_hash_method != DEFAULT_METHOD) hash_method = choose_hash_method;
+   if (choose_hash_method != DEFAULT_METHOD) gpu_hash_method = choose_hash_method;
 //=========
 
    int gpu_do_compact_hash = (gpu_hash_method >= 0) ? 1 : 0;
@@ -5857,7 +5857,7 @@ void Mesh::gpu_calc_neighbors_local(void)
    gpu_hash_method = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? PERFECT_HASH : QUADRATIC;
 
 // allow imput.c to control hash types and methods
-   if (choose_hash_method != DEFAULT_METHOD) hash_method = choose_hash_method;
+   if (choose_hash_method != DEFAULT_METHOD) gpu_hash_method = choose_hash_method;
 //=========
 
    int gpu_do_compact_hash = (gpu_hash_method >= 0) ? 1 : 0;
@@ -5865,7 +5865,6 @@ void Mesh::gpu_calc_neighbors_local(void)
    size_t hashsize;
 
    if (gpu_do_compact_hash) {
-      gpu_hash_method = 1;
       gpu_hash_table_size = gpu_compact_hash_size;
       hashsize = 2*gpu_compact_hash_size;
       gpu_AA = (ulong)(1.0+(double)(prime-1)*drand48());
