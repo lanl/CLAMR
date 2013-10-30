@@ -108,11 +108,11 @@ enum orientation
    SE };                        //  SE quadrant.
 
 enum choose_hash_method
-{  DEFAULT_METHOD = -2,           //  use -2 for default method
-   PERFECT_HASH,                  //  perfect hash -1
-   LINEAR,                        //  linear hash 0
-   QUADRATIC,                     //  quadratic hash 1
-   PRIME_JUMP  };                 //  prime_jump hash 2
+{  METHOD_UNSET = 0,            //  use 0 for no method set
+   PERFECT_HASH,                //  perfect hash 1
+   LINEAR,                      //  linear hash 2
+   QUADRATIC,                   //  quadratic hash 3
+   PRIME_JUMP  };               //  prime_jump hash 4
 
 int is_lower_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 0); }
 int is_lower_right(int i, int j) { return(i % 2 == 1 && j % 2 == 0); }

@@ -179,13 +179,13 @@ static uint write_hash_collisions_count = 0;
 static uint read_hash_collisions_count = 0;
 static uint hash_report_level = 2;
 static uint hash_queries;
-static int hash_method = DEFAULT_METHOD;
+static int hash_method = METHOD_UNSET;
 static uint hash_jump_prime = 41;
 static double hash_mult = 3.0;
 
 float mem_opt_factor;
 
-int   choose_hash_method = DEFAULT_METHOD;
+int   choose_hash_method = METHOD_UNSET;
 
 void compact_hash_delete(int *hash){
       genvectorfree((void *)hash);
@@ -200,12 +200,12 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
    hash_stride = isize;
    int *hash = NULL;
 
-   if (choose_hash_method != DEFAULT_METHOD) hash_method = choose_hash_method;
+   if (choose_hash_method != METHOD_UNSET) hash_method = choose_hash_method;
 
    uint compact_hash_size = (uint)((double)ncells*hash_mult);
    uint perfect_hash_size = (uint)(isize*jsize);
 
-   if (hash_method == DEFAULT_METHOD){
+   if (hash_method == METHOD_UNSET){
       float hash_mem_factor = 20.0;
       float hash_mem_ratio = (double)perfect_hash_size/(double)compact_hash_size;
       if (mem_opt_factor != 1.0) hash_mem_factor /= (mem_opt_factor*0.2); 
@@ -5589,7 +5589,7 @@ void Mesh::calc_neighbors_local(void)
 #ifdef HAVE_OPENCL
 void Mesh::gpu_calc_neighbors(void)
 {
-   int gpu_hash_method       = DEFAULT_METHOD;
+   int gpu_hash_method       = METHOD_UNSET;
    ulong gpu_hash_table_size =  0;
    ulong gpu_AA              =  1;
    ulong gpu_BB              =  0;
@@ -5629,7 +5629,7 @@ void Mesh::gpu_calc_neighbors(void)
    gpu_hash_method = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? PERFECT_HASH : QUADRATIC;
 
 // allow imput.c to control hash types and methods
-   if (choose_hash_method != DEFAULT_METHOD) gpu_hash_method = choose_hash_method;
+   if (choose_hash_method != METHOD_UNSET) gpu_hash_method = choose_hash_method;
 //=========
 
    int gpu_do_compact_hash = (gpu_hash_method == PERFECT_HASH) ? 0 : 1;
@@ -5748,7 +5748,7 @@ void Mesh::gpu_calc_neighbors(void)
 
 void Mesh::gpu_calc_neighbors_local(void)
 {
-   int gpu_hash_method       = DEFAULT_METHOD;
+   int gpu_hash_method       = METHOD_UNSET;
    ulong gpu_hash_table_size =  0;
    ulong gpu_AA              =  1;
    ulong gpu_BB              =  0;
@@ -5865,7 +5865,7 @@ void Mesh::gpu_calc_neighbors_local(void)
    gpu_hash_method = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? PERFECT_HASH : QUADRATIC;
 
 // allow imput.c to control hash types and methods
-   if (choose_hash_method != DEFAULT_METHOD) gpu_hash_method = choose_hash_method;
+   if (choose_hash_method != METHOD_UNSET) gpu_hash_method = choose_hash_method;
 //=========
 
    int gpu_do_compact_hash = (gpu_hash_method == PERFECT_HASH) ? 0 : 1;
