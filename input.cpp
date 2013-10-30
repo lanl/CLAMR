@@ -92,7 +92,6 @@ extern int  outputInterval,
             niter,
             measure_type,
             calc_neighbor_type,
-            hash_type,
 	    choose_hash_method,
             initial_order,
             cycle_reorder;
@@ -174,7 +173,6 @@ void parseInput(const int argc, char** argv)
     niter              = MAX_TIME_STEP;
     measure_type       = CVALUE;
     calc_neighbor_type = HASH_TABLE;
-    hash_type          = DEFAULT_HASH;
     choose_hash_method = DEFAULT_METHOD;
     initial_order      = HILBERT_SORT;
     cycle_reorder      = ORIGINAL_ORDER;
@@ -194,7 +192,9 @@ void parseInput(const int argc, char** argv)
 
                 case 'e':   //  hash method specified.
                     val = strtok(argv[i++], " ,");
-                    if (! strcmp(val,"linear") ) {
+                    if (! strcmp(val,"perfect") ) {
+                       choose_hash_method = PERFECT_HASH;
+                    } else if (! strcmp(val,"linear") ) {
                        choose_hash_method = LINEAR;
                     } else if (! strcmp(val,"quadratic") ) {
                        choose_hash_method = QUADRATIC;
@@ -203,15 +203,6 @@ void parseInput(const int argc, char** argv)
                     }
                     break;
 
-                case 'f':   //  hash type specified.
-                    val = strtok(argv[i++], " ,");
-                    if (! strcmp(val,"perfect") ) {
-                       hash_type = PERFECT_HASH;
-                    } else if (! strcmp(val,"compact") ) {
-                       hash_type = COMPACT_HASH;
-                    }
-                    break;
-                    
                 case 'g':   //  Turn on GPU profiling.
                     //do_gpu_calc = 1;
                     break;

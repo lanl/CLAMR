@@ -106,15 +106,11 @@ enum neighbor_calc
    KDTREE };                    //  kD-tree.
 
 enum choose_hash_method
-{  DEFAULT_METHOD,                //  use -1 for default method ?
-   LINEAR,                        //  force linear hash 0
-   QUADRATIC,                     //  force quadratic hash 1
-   PRIME_JUMP  };                 //  force prime_jump hash 2
-
-enum hash_type
-{  DEFAULT_HASH,                  //  use 0 for default hash
-   PERFECT_HASH,                  //  force perfect hash 1
-   COMPACT_HASH };                //  force compact hash 2
+{  DEFAULT_METHOD = -2,           //  use -2 for default method
+   PERFECT_HASH,                  //  perfect hash -1
+   LINEAR,                        //  linear hash 0
+   QUADRATIC,                     //  quadratic hash 1
+   PRIME_JUMP  };                 //  prime_jump hash 2
 
 using namespace std;
 

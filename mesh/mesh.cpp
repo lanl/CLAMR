@@ -186,7 +186,6 @@ static int do_compact_hash = 0;
 
 float mem_opt_factor;
 
-int   hash_type = DEFAULT_HASH;
 int   choose_hash_method = DEFAULT_METHOD;
 
 void compact_hash_delete(int *hash){
@@ -208,8 +207,7 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
    float hash_mem_ratio = (double)perfect_hash_size/(double)compact_hash_size;
    if (mem_opt_factor != 1.0) hash_mem_factor /= (mem_opt_factor*0.2); 
    do_compact_hash = (hash_mem_ratio < hash_mem_factor) ? 0 : 1;
-   if (hash_type == PERFECT_HASH) do_compact_hash = 0;
-   if (hash_type == COMPACT_HASH) do_compact_hash = 1;
+   if (choose_hash_method == PERFECT_HASH) hash_method = -1;
    if (choose_hash_method == LINEAR) hash_method = 0;
    if (choose_hash_method == QUADRATIC) hash_method = 1;
    if (choose_hash_method == PRIME_JUMP) hash_method = 2;
@@ -5629,9 +5627,7 @@ void Mesh::gpu_calc_neighbors(void)
    size_t hashsize;
 
 // allow imput.c to control hash types and methods
-   if (hash_type == PERFECT_HASH) gpu_do_compact_hash = 0;
-   if (hash_type == COMPACT_HASH) gpu_do_compact_hash = 1;
-   
+   if (choose_hash_method == PERFECT_HASH) hash_method = -1;
    if (choose_hash_method == LINEAR) hash_method = 0;
    if (choose_hash_method == QUADRATIC) hash_method = 1;
    if (choose_hash_method == PRIME_JUMP) hash_method = 2;
