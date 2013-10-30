@@ -24,6 +24,10 @@ int hash_method = METHOD_UNSET;
 uint hash_jump_prime = 41;
 double hash_mult = 3.0;
 
+size_t hash_header_size = 16;
+
+cl_mem dev_hash_header = NULL;
+
 float mem_opt_factor;
 
 int   choose_hash_method = METHOD_UNSET;
@@ -367,13 +371,22 @@ void hash_lib_terminate(void){
    ezcl_kernel_release(kernel_hash_init);
 }
 
-cl_mem gpu_compact_hash_init(ulong hashsize)
+cl_mem gpu_compact_hash_init(int *gpu_hash_method, ulong *gpu_hash_table_size, ulong *gpu_AA, ulong *gpu_BB, ulong hashsize)
 {
    const int TILE_SIZE = 128;
 
    cl_command_queue command_queue = ezcl_get_command_queue();
 
    cl_mem dev_hash = ezcl_malloc(NULL, "dev_hash", &hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   ulong *gpu_hash_header = (ulong *)genvector(hash_header_size, sizeof(ulong));
+   gpu_hash_header[0] = (ulong)(*gpu_hash_method); 
+   gpu_hash_header[1] =        (*gpu_hash_table_size);
+   gpu_hash_header[2] =        (*gpu_AA);
+   gpu_hash_header[3] =        (*gpu_BB);
+   dev_hash_header = ezcl_malloc(NULL, "dev_hash_header", &hash_header_size, sizeof(cl_ulong),  CL_MEM_READ_WRITE, 0);
+   ezcl_enqueue_write_buffer(command_queue, dev_hash_header, CL_TRUE, 0, hash_header_size*sizeof(cl_ulong), &gpu_hash_header[0], NULL);
+
+   genvectorfree(gpu_hash_header);
 
    size_t hash_local_work_size  = MIN(hashsize, TILE_SIZE);
    size_t hash_global_work_size = ((hashsize+hash_local_work_size - 1) /hash_local_work_size) * hash_local_work_size;
@@ -383,6 +396,15 @@ cl_mem gpu_compact_hash_init(ulong hashsize)
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, NULL);
 
    return(dev_hash);
+}
+
+void gpu_compact_hash_delete(cl_mem dev_hash){
+      ezcl_device_memory_delete(dev_hash);
+      ezcl_device_memory_delete(dev_hash_header);
+}
+
+cl_mem gpu_get_hash_header(void){
+   return(dev_hash_header);
 }
 #endif
 
