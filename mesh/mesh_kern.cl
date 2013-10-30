@@ -146,23 +146,25 @@ __kernel void hash_adjust_sizes_cl(
 }
 
 __kernel void hash_setup_cl(
-                          const int  isize,            // 0
-                          const int  levmx,            // 1
-                          const int  imaxsize,         // 2
-                          const int  hash_method,      // 3
-                          const ulong hash_table_size, // 4
-                          const ulong AA,              // 5
-                          const ulong BB,              // 6
-                 __global const int  *levtable,        // 7
-                 __global const int  *level,           // 8
-                 __global const int  *i,               // 9
-                 __global const int  *j,               // 10
-                 __global       int  *hash)            // 11
+                          const int   isize,            // 0
+                          const int   levmx,            // 1
+                          const int   imaxsize,         // 2
+                 __global const int   *levtable,        // 3
+                 __global const int   *level,           // 4
+                 __global const int   *i,               // 5
+                 __global const int   *j,               // 6
+                 __global const ulong *hash_header,     // 7
+                 __global       int   *hash)            // 8
 {
 
    const uint giX  = get_global_id(0);
 
    if (giX >= isize) return;
+
+   const int hash_method       = (int)hash_header[0];
+   const ulong hash_table_size =      hash_header[1];
+   const ulong AA              =      hash_header[2];
+   const ulong BB              =      hash_header[3];
 
    int lev = level[giX];
    int ii = i[giX];
@@ -220,30 +222,32 @@ __kernel void hash_setup_local_cl(
 }
 
 __kernel void calc_neighbors_cl(
-                          const int  isize,            // 0 
-                          const int  levmx,            // 1 
-                          const int  imax,             // 2 
-                          const int  jmax,             // 3 
-                          const int  imaxsize,         // 4 
-                          const int  jmaxsize,         // 5 
-                          const int  hash_method,      // 6
-                          const ulong hash_table_size, // 7
-                          const ulong AA,              // 8
-                          const ulong BB,              // 9
-                 __global const int  *levtable,        // 10
-                 __global const int  *level,           // 11
-                 __global const int  *i,               // 12
-                 __global const int  *j,               // 13
-                 __global       int  *nlft,            // 14
-                 __global       int  *nrht,            // 15
-                 __global       int  *nbot,            // 16
-                 __global       int  *ntop,            // 17
-                 __global const int  *hash)            // 18
+                          const int   isize,            // 0 
+                          const int   levmx,            // 1 
+                          const int   imax,             // 2 
+                          const int   jmax,             // 3 
+                          const int   imaxsize,         // 4 
+                          const int   jmaxsize,         // 5 
+                 __global const int   *levtable,        // 6
+                 __global const int   *level,           // 7
+                 __global const int   *i,               // 8
+                 __global const int   *j,               // 9
+                 __global       int   *nlft,            // 10
+                 __global       int   *nrht,            // 11
+                 __global       int   *nbot,            // 12
+                 __global       int   *ntop,            // 13
+                 __global const ulong *hash_header,     // 14
+                 __global const int   *hash)            // 15
 {
                 
    const unsigned int giX  = get_global_id(0);
 
    if (giX >= isize) return;
+
+   const int hash_method       = (int)hash_header[0];
+   const ulong hash_table_size =      hash_header[1];
+   const ulong AA              =      hash_header[2];
+   const ulong BB              =      hash_header[3];
 
    int ii, jj, iii, jjj, lev, levmult;
 
