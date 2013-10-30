@@ -105,15 +105,6 @@ enum neighbor_calc
 {  HASH_TABLE,                  //  Hash Table.
    KDTREE };                    //  kD-tree.
 
-/*
-enum choose_hash_method
-{  METHOD_UNSET = 0,            //  use 0 for no method set
-   PERFECT_HASH,                //  perfect hash 1
-   LINEAR,                      //  linear hash 2
-   QUADRATIC,                   //  quadratic hash 3
-   PRIME_JUMP  };               //  prime_jump hash 4
-*/
-
 using namespace std;
 
 class Mesh

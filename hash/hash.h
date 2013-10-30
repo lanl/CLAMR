@@ -25,6 +25,8 @@ void write_hash_collision_report(void);
 void read_hash_collision_report(void);
 void final_hash_collision_report(void);
 
+const char *get_hash_kernel_source_string(void);
+
 #ifdef __cplusplus
 }
 #endif

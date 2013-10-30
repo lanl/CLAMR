@@ -1444,7 +1444,11 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
 
    if (do_gpu_calc) {
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in mesh\n");
-      cl_program program = ezcl_create_program_wsource(context, mesh_kern_source, 0);
+      char *bothsources = (char *)malloc(strlen(mesh_kern_source)+strlen(get_hash_kernel_source_string()));
+      strcpy(bothsources, get_hash_kernel_source_string());
+      strcat(bothsources, mesh_kern_source);
+      cl_program program = ezcl_create_program_wsource(context, bothsources, 0);
+      free(bothsources);
 
       kernel_reduction_scan2          = ezcl_create_kernel_wprogram(program, "finish_reduction_scan2_cl");
       kernel_reduction_count          = ezcl_create_kernel_wprogram(program, "finish_reduction_count_cl");

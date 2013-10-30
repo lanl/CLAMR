@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "hash.h"
 #include "genmalloc/genmalloc.h"
+#include "hashlib_source_kern.inc"
 
 
 static ulong AA;
@@ -342,3 +343,7 @@ void final_hash_collision_report(void){
    }
 }
 
+const char *get_hash_kernel_source_string(void)
+{
+   return(hashlib_source_kern_source);
+}
