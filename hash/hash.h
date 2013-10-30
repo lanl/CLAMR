@@ -33,6 +33,8 @@ void hash_lib_terminate(void);
 
 cl_mem gpu_compact_hash_init(ulong hashsize);
 
+int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulong hashkey, int *hash);
+
 #ifdef __cplusplus
 }
 #endif

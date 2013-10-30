@@ -167,12 +167,7 @@ cl_kernel      kernel_set_boundary_refinement;
 
 extern ulong prime;
 extern uint hashtablesize;
-extern uint hash_stride;
-extern uint hash_ncells;
-extern uint write_hash_collisions;
-extern uint read_hash_collisions;
 extern uint hash_report_level;
-extern uint hash_queries;
 extern int hash_method;
 extern uint hash_jump_prime;
 extern double hash_mult;
@@ -180,133 +175,6 @@ extern double hash_mult;
 extern float mem_opt_factor;
 
 extern int   choose_hash_method;
-
-int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulong hashkey, int *hash){
-   //int hash_report_level = 3;
-   int max_collisions_allowed = 1000;
-   int hashval = -1;
-   uint hashloc;
-   int icount=0;
-   if (hash_method == PERFECT_HASH) {
-      return(hash[hashkey]);
-   }
-   if (hash_method == LINEAR) {
-      if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-      } else if (hash_report_level == 1) {
-         hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-         read_hash_collisions += icount;
-      } else if (hash_report_level == 2) {
-         hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
-            icount++;
-            if (icount > max_collisions_allowed) {
-               printf("Error -- too many read hash collisions\n");
-               exit(0);
-            }
-         }
-         read_hash_collisions += icount;
-      } else if (hash_report_level == 3) {
-         hash_queries++;
-         hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
-            icount++;
-            uint hashloctmp = hashloc+1;
-            hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-            if (icount > max_collisions_allowed) {
-               printf("Error -- too many read hash collisions\n");
-               exit(0);
-            }
-         }
-         read_hash_collisions += icount;
-      }
-   } else if (hash_method == QUADRATIC) {
-      if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-      } else if (hash_report_level == 1) {
-         hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-         read_hash_collisions += icount;
-      } else if (hash_report_level == 2) {
-         hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
-            icount++;
-            if (icount > max_collisions_allowed) {
-               printf("Error -- too many read hash collisions\n");
-               exit(0);
-            }
-         }
-         read_hash_collisions += icount;
-      } else if (hash_report_level == 3) {
-         hash_queries++;
-         hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
-            icount++;
-            uint hashloctmp = hashloc+1;
-            hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-            if (icount > max_collisions_allowed) {
-               printf("Error -- too many read hash collisions\n");
-               exit(0);
-            }
-         }
-         read_hash_collisions += icount;
-      }
-   } else if (hash_method == PRIME_JUMP) {
-      uint jump = 1+hashkey%hash_jump_prime;
-      if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-      } else if (hash_report_level == 1) {
-         hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-         read_hash_collisions += icount;
-      } else if (hash_report_level == 2) {
-         hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
-            icount++;
-            if (icount > max_collisions_allowed) {
-               printf("Error -- too many read hash collisions\n");
-               exit(0);
-            }
-         }
-         read_hash_collisions += icount;
-      } else if (hash_report_level == 3) {
-         hash_queries++;
-         hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
-            icount++;
-            uint hashloctmp = hashloc+1;
-            hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-            if (icount > max_collisions_allowed) {
-               printf("Error -- too many read hash collisions\n");
-               exit(0);
-            }
-         }
-         read_hash_collisions += icount;
-      }
-   }
-
-   if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
-   return(hashval);
-}
 
 void Mesh::write_grid(int ncycle)
 {
