@@ -68,6 +68,7 @@
 
 #include "mesh/partition.h"
 #include "mesh/mesh.h"
+#include "hash/hash.h"
 
 #define OUTPUT_INTERVAL 20
 #define COARSE_GRID_RES 128
@@ -173,7 +174,7 @@ void parseInput(const int argc, char** argv)
     niter              = MAX_TIME_STEP;
     measure_type       = CVALUE;
     calc_neighbor_type = HASH_TABLE;
-    choose_hash_method = DEFAULT_METHOD;
+    choose_hash_method = METHOD_UNSET;
     initial_order      = HILBERT_SORT;
     cycle_reorder      = ORIGINAL_ORDER;
     levmx              = 1;

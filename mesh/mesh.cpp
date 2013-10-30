@@ -71,6 +71,7 @@
 #endif
 #include "reduce.h"
 #include "genmalloc/genmalloc.h"
+#include "hash/hash.h"
 
 #define DEBUG 0
 //#define BOUNDS_CHECK 1
@@ -165,28 +166,27 @@ cl_kernel      kernel_rezone_one;
 cl_kernel      kernel_copy_mpot_ghost_data;
 cl_kernel      kernel_set_boundary_refinement;
 
-static ulong AA;
-static ulong BB;
-static ulong prime=4294967291;
-static uint hashtablesize;
-static uint hash_stride;
-static uint hash_ncells;
-static uint write_hash_collisions;
-static uint read_hash_collisions;
+extern ulong prime;
+extern uint hashtablesize;
+extern uint hash_stride;
+extern uint hash_ncells;
+extern uint write_hash_collisions;
+extern uint read_hash_collisions;
 static double write_hash_collisions_runsum = 0.0;
 static double read_hash_collisions_runsum = 0.0;
 static uint write_hash_collisions_count = 0;
 static uint read_hash_collisions_count = 0;
-static uint hash_report_level = 2;
-static uint hash_queries;
-static int hash_method = METHOD_UNSET;
-static uint hash_jump_prime = 41;
-static double hash_mult = 3.0;
+extern uint hash_report_level;
+extern uint hash_queries;
+extern int hash_method;
+extern uint hash_jump_prime;
+extern double hash_mult;
 
-float mem_opt_factor;
+extern float mem_opt_factor;
 
-int   choose_hash_method = METHOD_UNSET;
+extern int   choose_hash_method;
 
+#ifdef XXX
 void compact_hash_delete(int *hash){
       genvectorfree((void *)hash);
 }
@@ -471,6 +471,7 @@ int read_hash(ulong hashkey, int *hash){
    if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
    return(hashval);
 }
+#endif
 
 int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulong hashkey, int *hash){
    //int hash_report_level = 3;
