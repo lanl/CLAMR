@@ -127,8 +127,6 @@ int do_stencil_warning=0;
 extern bool localStencil;
 int calc_neighbor_type;
 
-extern cl_kernel kernel_hash_init;
-//cl_kernel      kernel_hash_init;
 cl_kernel      kernel_hash_adjust_sizes;
 cl_kernel      kernel_hash_setup;
 cl_kernel      kernel_hash_setup_local;
@@ -1455,7 +1453,6 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       kernel_reduction_scan2          = ezcl_create_kernel_wprogram(program, "finish_reduction_scan2_cl");
       kernel_reduction_count          = ezcl_create_kernel_wprogram(program, "finish_reduction_count_cl");
       kernel_reduction_count2         = ezcl_create_kernel_wprogram(program, "finish_reduction_count2_cl");
-      //kernel_hash_init                = ezcl_create_kernel_wprogram(program, "hash_init_cl");
       kernel_hash_adjust_sizes        = ezcl_create_kernel_wprogram(program, "hash_adjust_sizes_cl");
       kernel_hash_setup               = ezcl_create_kernel_wprogram(program, "hash_setup_cl");
       kernel_hash_setup_local         = ezcl_create_kernel_wprogram(program, "hash_setup_local_cl");
@@ -2236,7 +2233,6 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_reduction_scan2);
       ezcl_kernel_release(kernel_reduction_count);
       ezcl_kernel_release(kernel_reduction_count2);
-      //ezcl_kernel_release(kernel_hash_init);
       ezcl_kernel_release(kernel_hash_adjust_sizes);
       ezcl_kernel_release(kernel_hash_setup);
       ezcl_kernel_release(kernel_hash_setup_local);
@@ -5339,14 +5335,7 @@ void Mesh::gpu_calc_neighbors(void)
    
    hash_report_level = 1;
    hashtablesize = hashsize;
-   cl_mem dev_hash = ezcl_malloc(NULL, const_cast<char *>("dev_hash"), &hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   
-   size_t hash_local_work_size  = MIN(hashsize, TILE_SIZE);
-   size_t hash_global_work_size = ((hashsize+hash_local_work_size - 1) /hash_local_work_size) * hash_local_work_size;
-
-   ezcl_set_kernel_arg(kernel_hash_init, 0, sizeof(cl_int),  (void *)&hashsize);
-   ezcl_set_kernel_arg(kernel_hash_init, 1, sizeof(cl_mem),  (void *)&dev_hash);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, NULL);
+   cl_mem dev_hash = gpu_compact_hash_init(hashsize);
 
       /*
                     const int   isize,           // 0
@@ -5572,15 +5561,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       hashsize = gpu_perfect_hash_size;
    }
 
-   cl_mem dev_hash = ezcl_malloc(NULL, const_cast<char *>("dev_hash"), &hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-
-   size_t hash_local_work_size  = TILE_SIZE;
-   size_t hash_global_work_size = ((hashsize+hash_local_work_size - 1) /hash_local_work_size) * hash_local_work_size;
-
-   //printf("%d: hash size is %d lws %d gws %d\n",mype,hashsize,hash_local_work_size,hash_global_work_size);
-   ezcl_set_kernel_arg(kernel_hash_init, 0, sizeof(cl_int),  (void *)&hashsize);
-   ezcl_set_kernel_arg(kernel_hash_init, 1, sizeof(cl_mem),  (void *)&dev_hash);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, NULL);
+   cl_mem dev_hash = gpu_compact_hash_init(hashsize);
 
    int csize = corners_i.size();
 #ifdef BOUNDS_CHECK

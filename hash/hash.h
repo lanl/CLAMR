@@ -31,6 +31,8 @@ const char *get_hash_kernel_source_string(void);
 void hash_lib_init(void);
 void hash_lib_terminate(void);
 
+cl_mem gpu_compact_hash_init(ulong hashsize);
+
 #ifdef __cplusplus
 }
 #endif

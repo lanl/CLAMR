@@ -6,7 +6,6 @@
 #include "hashlib_kern.inc"
 #include "hashlib_source_kern.inc"
 
-
 static ulong AA;
 static ulong BB;
 ulong prime=4294967291;
@@ -28,6 +27,8 @@ double hash_mult = 3.0;
 float mem_opt_factor;
 
 int   choose_hash_method = METHOD_UNSET;
+
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
 
 int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
    hash_ncells = 0;
@@ -350,8 +351,7 @@ const char *get_hash_kernel_source_string(void)
 }
 
 #ifdef HAVE_OPENCL
-//static cl_kernel kernel_hash_init;
-cl_kernel kernel_hash_init;
+static cl_kernel kernel_hash_init;
 void hash_lib_init(void){
 
    cl_context context = ezcl_get_context();
@@ -365,5 +365,23 @@ void hash_lib_init(void){
 
 void hash_lib_terminate(void){
    ezcl_kernel_release(kernel_hash_init);
+}
+
+cl_mem gpu_compact_hash_init(ulong hashsize)
+{
+   const int TILE_SIZE = 128;
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
+   cl_mem dev_hash = ezcl_malloc(NULL, "dev_hash", &hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+
+   size_t hash_local_work_size  = MIN(hashsize, TILE_SIZE);
+   size_t hash_global_work_size = ((hashsize+hash_local_work_size - 1) /hash_local_work_size) * hash_local_work_size;
+
+   ezcl_set_kernel_arg(kernel_hash_init, 0, sizeof(cl_int),  (void *)&hashsize);
+   ezcl_set_kernel_arg(kernel_hash_init, 1, sizeof(cl_mem),  (void *)&dev_hash);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_init,   1, NULL, &hash_global_work_size, &hash_local_work_size, NULL);
+
+   return(dev_hash);
 }
 #endif
