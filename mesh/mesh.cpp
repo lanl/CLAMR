@@ -127,7 +127,8 @@ int do_stencil_warning=0;
 extern bool localStencil;
 int calc_neighbor_type;
 
-cl_kernel      kernel_hash_init;
+extern cl_kernel kernel_hash_init;
+//cl_kernel      kernel_hash_init;
 cl_kernel      kernel_hash_adjust_sizes;
 cl_kernel      kernel_hash_setup;
 cl_kernel      kernel_hash_setup_local;
@@ -1443,6 +1444,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    cl_context context = ezcl_get_context();
 
    if (do_gpu_calc) {
+      hash_lib_init();
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in mesh\n");
       char *bothsources = (char *)malloc(strlen(mesh_kern_source)+strlen(get_hash_kernel_source_string()));
       strcpy(bothsources, get_hash_kernel_source_string());
@@ -1453,7 +1455,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       kernel_reduction_scan2          = ezcl_create_kernel_wprogram(program, "finish_reduction_scan2_cl");
       kernel_reduction_count          = ezcl_create_kernel_wprogram(program, "finish_reduction_count_cl");
       kernel_reduction_count2         = ezcl_create_kernel_wprogram(program, "finish_reduction_count2_cl");
-      kernel_hash_init                = ezcl_create_kernel_wprogram(program, "hash_init_cl");
+      //kernel_hash_init                = ezcl_create_kernel_wprogram(program, "hash_init_cl");
       kernel_hash_adjust_sizes        = ezcl_create_kernel_wprogram(program, "hash_adjust_sizes_cl");
       kernel_hash_setup               = ezcl_create_kernel_wprogram(program, "hash_setup_cl");
       kernel_hash_setup_local         = ezcl_create_kernel_wprogram(program, "hash_setup_local_cl");
@@ -2216,6 +2218,8 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
 void Mesh::terminate(void)
 {
 #ifdef HAVE_OPENCL
+      hash_lib_terminate();
+
       ezcl_device_memory_delete(dev_levtable);
       ezcl_device_memory_delete(dev_levdx);
       ezcl_device_memory_delete(dev_levdy);
@@ -2232,7 +2236,7 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_reduction_scan2);
       ezcl_kernel_release(kernel_reduction_count);
       ezcl_kernel_release(kernel_reduction_count2);
-      ezcl_kernel_release(kernel_hash_init);
+      //ezcl_kernel_release(kernel_hash_init);
       ezcl_kernel_release(kernel_hash_adjust_sizes);
       ezcl_kernel_release(kernel_hash_setup);
       ezcl_kernel_release(kernel_hash_setup_local);

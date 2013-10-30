@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "hash.h"
 #include "genmalloc/genmalloc.h"
+#include "hashlib_kern.inc"
 #include "hashlib_source_kern.inc"
 
 
@@ -347,3 +348,22 @@ const char *get_hash_kernel_source_string(void)
 {
    return(hashlib_source_kern_source);
 }
+
+#ifdef HAVE_OPENCL
+//static cl_kernel kernel_hash_init;
+cl_kernel kernel_hash_init;
+void hash_lib_init(void){
+
+   cl_context context = ezcl_get_context();
+
+   cl_program program = ezcl_create_program_wsource(context, hashlib_kern_source, 0);
+
+   kernel_hash_init = ezcl_create_kernel_wprogram(program, "hash_init_cl");
+
+   ezcl_program_release(program);
+}
+
+void hash_lib_terminate(void){
+   ezcl_kernel_release(kernel_hash_init);
+}
+#endif

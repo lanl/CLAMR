@@ -1,6 +1,8 @@
 #ifndef _HASH_H
 #define _HASH_H
 
+#include "ezcl/ezcl.h"
+
 enum choose_hash_method
 {  METHOD_UNSET = 0,            //  use 0 for no method set
    PERFECT_HASH,                //  perfect hash 1
@@ -26,6 +28,8 @@ void read_hash_collision_report(void);
 void final_hash_collision_report(void);
 
 const char *get_hash_kernel_source_string(void);
+void hash_lib_init(void);
+void hash_lib_terminate(void);
 
 #ifdef __cplusplus
 }
