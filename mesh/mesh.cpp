@@ -179,10 +179,9 @@ static uint write_hash_collisions_count = 0;
 static uint read_hash_collisions_count = 0;
 static uint hash_report_level = 2;
 static uint hash_queries;
-static uint hash_method = 1;
+static int hash_method = DEFAULT_METHOD;
 static uint hash_jump_prime = 41;
 static double hash_mult = 3.0;
-static int do_compact_hash = 0;
 
 float mem_opt_factor;
 
@@ -201,16 +200,25 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
    hash_stride = isize;
    int *hash = NULL;
 
-   uint compact_hash_size = (uint)((double)ncells*hash_mult);
-   uint perfect_hash_size = (uint)(isize*jsize);
-   float hash_mem_factor = 20.0;
-   float hash_mem_ratio = (double)perfect_hash_size/(double)compact_hash_size;
-   if (mem_opt_factor != 1.0) hash_mem_factor /= (mem_opt_factor*0.2); 
-   do_compact_hash = (hash_mem_ratio < hash_mem_factor) ? 0 : 1;
-
    if (choose_hash_method != DEFAULT_METHOD) hash_method = choose_hash_method;
 
-   if (hash_report_level >= 2) printf("DEBUG do_compact_hash %d hash_mem_ratio %f hash_mem_factor %f mem_opt_factor %f perfect_hash_size %u compact_hash_size %u\n",do_compact_hash,hash_mem_ratio,hash_mem_factor,mem_opt_factor,perfect_hash_size,compact_hash_size);
+   uint compact_hash_size = (uint)((double)ncells*hash_mult);
+   uint perfect_hash_size = (uint)(isize*jsize);
+
+   if (hash_method == DEFAULT_METHOD){
+      float hash_mem_factor = 20.0;
+      float hash_mem_ratio = (double)perfect_hash_size/(double)compact_hash_size;
+      if (mem_opt_factor != 1.0) hash_mem_factor /= (mem_opt_factor*0.2); 
+      hash_method = (hash_mem_ratio < hash_mem_factor) ? PERFECT_HASH : QUADRATIC;
+
+      if (hash_report_level >= 2) printf("DEBUG hash_method %d hash_mem_ratio %f hash_mem_factor %f mem_opt_factor %f perfect_hash_size %u compact_hash_size %u\n",
+         hash_method,hash_mem_ratio,hash_mem_factor,mem_opt_factor,perfect_hash_size,compact_hash_size);
+   }
+
+   int do_compact_hash = (hash_method >= 0) ? 1 : 0;
+
+   if (hash_report_level >= 2) printf("DEBUG do_compact_hash %d hash_method %d perfect_hash_size %u compact_hash_size %u\n",
+      do_compact_hash,hash_method,perfect_hash_size,compact_hash_size);
 
    if (do_compact_hash) {
       hashtablesize = compact_hash_size;
@@ -244,11 +252,11 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
 void write_hash(uint ic, ulong hashkey, int *hash){
    int icount = 0;
    uint hashloc;
-   if (! do_compact_hash) {
+   if (hash_method == PERFECT_HASH) {
       hash[hashkey] = ic;
       return;
    }
-   if (hash_method == 0){
+   if (hash_method == LINEAR){
       if (hash_report_level == 0) {
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize);
       } else if (hash_report_level == 1) {
@@ -273,7 +281,7 @@ void write_hash(uint ic, ulong hashkey, int *hash){
          }
          write_hash_collisions += icount;
       }
-   } else if (hash_method == 1){
+   } else if (hash_method == QUADRATIC){
       if (hash_report_level == 0) {
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize) {
             icount++;
@@ -302,7 +310,7 @@ void write_hash(uint ic, ulong hashkey, int *hash){
          }
          write_hash_collisions += icount;
       }
-   } else if (hash_method == 2){
+   } else if (hash_method == PRIME_JUMP){
       uint jump = 1+hashkey%hash_jump_prime;
       if (hash_report_level == 0) {
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize) {
@@ -343,10 +351,10 @@ int read_hash(ulong hashkey, int *hash){
    int hashval = -1;
    uint hashloc;
    int icount=0;
-   if (! do_compact_hash) {
+   if (hash_method == PERFECT_HASH) {
       return(hash[hashkey]);
    }
-   if (hash_method == 0) {
+   if (hash_method == LINEAR) {
       if (hash_report_level == 0) {
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
             icount++;
@@ -383,7 +391,7 @@ int read_hash(ulong hashkey, int *hash){
          }
          read_hash_collisions += icount;
       }
-   } else if (hash_method == 1) {
+   } else if (hash_method == QUADRATIC) {
       if (hash_report_level == 0) {
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
@@ -420,7 +428,7 @@ int read_hash(ulong hashkey, int *hash){
          }
          read_hash_collisions += icount;
       }
-   } else if (hash_method == 2) {
+   } else if (hash_method == PRIME_JUMP) {
       uint jump = 1+hashkey%hash_jump_prime;
       if (hash_report_level == 0) {
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
@@ -592,7 +600,7 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
 }
 
 void write_hash_collision_report(void){
-   if (! do_compact_hash) return;
+   if (hash_method == PERFECT_HASH) return;
    if (hash_report_level == 1) {
       write_hash_collisions_runsum += (double)write_hash_collisions/(double)hash_ncells;
       write_hash_collisions_count++;
@@ -603,7 +611,7 @@ void write_hash_collision_report(void){
 
 void read_hash_collision_report(void){
    //printf("hash table size  bytes %ld\n",hashtablesize*sizeof(int));
-   if (! do_compact_hash) return;
+   if (hash_method == PERFECT_HASH) return;
    if (hash_report_level == 1) {
       read_hash_collisions_runsum += (double)read_hash_collisions/(double)hash_queries;
       read_hash_collisions_count++;
@@ -5581,7 +5589,7 @@ void Mesh::calc_neighbors_local(void)
 #ifdef HAVE_OPENCL
 void Mesh::gpu_calc_neighbors(void)
 {
-   int gpu_hash_method       = -1;
+   int gpu_hash_method       = DEFAULT_METHOD;
    ulong gpu_hash_table_size =  0;
    ulong gpu_AA              =  1;
    ulong gpu_BB              =  0;
@@ -5740,7 +5748,7 @@ void Mesh::gpu_calc_neighbors(void)
 
 void Mesh::gpu_calc_neighbors_local(void)
 {
-   int gpu_hash_method       = -1;
+   int gpu_hash_method       = DEFAULT_METHOD;
    ulong gpu_hash_table_size =  0;
    ulong gpu_AA              =  1;
    ulong gpu_BB              =  0;
