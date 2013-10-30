@@ -107,6 +107,13 @@ enum orientation
    NE,                          //  NE quadrant.
    SE };                        //  SE quadrant.
 
+enum choose_hash_method
+{  DEFAULT_METHOD = -2,           //  use -2 for default method
+   PERFECT_HASH,                  //  perfect hash -1
+   LINEAR,                        //  linear hash 0
+   QUADRATIC,                     //  quadratic hash 1
+   PRIME_JUMP  };                 //  prime_jump hash 2
+
 int is_lower_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 0); }
 int is_lower_right(int i, int j) { return(i % 2 == 1 && j % 2 == 0); }
 int is_upper_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 1); }
@@ -133,14 +140,11 @@ void write_hash(
    int old_key;
    int MaxTries = 1000;
 
-#ifndef __APPLE_CC__
    switch (hash_method) {
-   case -1:
-#endif
+   case PERFECT_HASH:
       hash[hashkey] = giX;
-#ifndef __APPLE_CC__
       break;
-   case 0:
+   case LINEAR:
       hashloc = (hashkey*AA+BB)%prime%hash_table_size;
       old_key = atomic_cmpxchg(&hash[2*hashloc],-1,hashkey);
 
@@ -153,7 +157,7 @@ void write_hash(
 
       if (icount < MaxTries) hash[2*hashloc+1] = giX;
       break;
-   case 1:
+   case QUADRATIC:
       hashloc = (hashkey*AA+BB)%prime%hash_table_size;
       old_key = atomic_cmpxchg(&hash[2*hashloc],-1,hashkey);
 
@@ -166,7 +170,7 @@ void write_hash(
 
       if (icount < MaxTries) hash[2*hashloc+1] = giX;
       break;
-   case 2:
+   case PRIME_JUMP:
       jump = 1+hashkey%hash_jump_prime;
       hashloc = (hashkey*AA+BB)%prime%hash_table_size;
       old_key = atomic_cmpxchg(&hash[2*hashloc],-1,hashkey);
@@ -181,7 +185,6 @@ void write_hash(
       if (icount < MaxTries) hash[2*hashloc+1] = giX;
       break;
    }
-#endif
 }
 
 int read_hash(
@@ -197,26 +200,24 @@ int read_hash(
    int icount = 0;
    uint jump;
 
-#ifndef __APPLE_CC__
    switch (hash_method) {
-   case -1:
-#endif
+   case PERFECT_HASH:
       return(hash[hashkey]);
 #ifndef __APPLE_CC__
       break;
-   case 0:
+   case LINEAR:
       for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc++,hashloc %= hash_table_size);
       if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
       return(hashval);
       break;
-   case 1:
+   case QUADRATIC:
       for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc %= hash_table_size){
          icount++;
       }
       if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
       return(hashval);
       break;
-   case 2:
+   case PRIME_JUMP:
       jump = 1+hashkey%hash_jump_prime;
       for (hashloc = (hashkey*AA+BB)%prime%hash_table_size; hash[2*hashloc] != hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc %= hash_table_size){
          icount++;

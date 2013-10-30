@@ -215,7 +215,7 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
          hash_method,hash_mem_ratio,hash_mem_factor,mem_opt_factor,perfect_hash_size,compact_hash_size);
    }
 
-   int do_compact_hash = (hash_method >= 0) ? 1 : 0;
+   int do_compact_hash = (hash_method == PERFECT_HASH) ? 0 : 1;
 
    if (hash_report_level >= 2) printf("DEBUG do_compact_hash %d hash_method %d perfect_hash_size %u compact_hash_size %u\n",
       do_compact_hash,hash_method,perfect_hash_size,compact_hash_size);
@@ -478,10 +478,10 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
    int hashval = -1;
    uint hashloc;
    int icount=0;
-   if (hash_method == -1) {
+   if (hash_method == PERFECT_HASH) {
       return(hash[hashkey]);
    }
-   if (hash_method == 0) {
+   if (hash_method == LINEAR) {
       if (hash_report_level == 0) {
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
             icount++;
@@ -518,7 +518,7 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
          }
          read_hash_collisions += icount;
       }
-   } else if (hash_method == 1) {
+   } else if (hash_method == QUADRATIC) {
       if (hash_report_level == 0) {
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
             icount++;
@@ -555,7 +555,7 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
          }
          read_hash_collisions += icount;
       }
-   } else if (hash_method == 2) {
+   } else if (hash_method == PRIME_JUMP) {
       uint jump = 1+hashkey%hash_jump_prime;
       if (hash_report_level == 0) {
          for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
@@ -5632,7 +5632,7 @@ void Mesh::gpu_calc_neighbors(void)
    if (choose_hash_method != DEFAULT_METHOD) gpu_hash_method = choose_hash_method;
 //=========
 
-   int gpu_do_compact_hash = (gpu_hash_method >= 0) ? 1 : 0;
+   int gpu_do_compact_hash = (gpu_hash_method == PERFECT_HASH) ? 0 : 1;
 
    size_t hashsize;
 
@@ -5868,7 +5868,7 @@ void Mesh::gpu_calc_neighbors_local(void)
    if (choose_hash_method != DEFAULT_METHOD) gpu_hash_method = choose_hash_method;
 //=========
 
-   int gpu_do_compact_hash = (gpu_hash_method >= 0) ? 1 : 0;
+   int gpu_do_compact_hash = (gpu_hash_method == PERFECT_HASH) ? 0 : 1;
 
    size_t hashsize;
 
