@@ -373,6 +373,16 @@ void hash_lib_terminate(void){
 
 cl_mem gpu_compact_hash_init(int *gpu_hash_method, ulong *gpu_hash_table_size, ulong *gpu_AA, ulong *gpu_BB, ulong hashsize)
 {
+   int gpu_do_compact_hash = ( (*gpu_hash_method) == PERFECT_HASH) ? 0 : 1;
+
+   (*gpu_AA) = 1;
+   (*gpu_BB) = 0;
+   if (gpu_do_compact_hash){
+      (*gpu_AA) = (ulong)(1.0+(double)(prime-1)*drand48());
+      (*gpu_BB) = (ulong)(0.0+(double)(prime-1)*drand48());
+      //if ( (*gpu_AA) > prime-1 || (*gpu_BB) > prime-1) exit(0);
+   }
+
    const int TILE_SIZE = 128;
 
    cl_command_queue command_queue = ezcl_get_command_queue();

@@ -183,21 +183,23 @@ __kernel void hash_setup_local_cl(
                           const int   imax,            // 2
                           const int   jmax,            // 3
                           const int   noffset,         // 4
-                          const int   hash_method,     // 5
-                          const ulong hash_table_size, // 6
-                          const ulong AA,              // 7
-                          const ulong BB,              // 8
-                 __global const int4  *sizes,          // 9
-                 __global const int   *levtable,       // 10
-                 __global const int   *level,          // 11
-                 __global const int   *i,              // 12
-                 __global const int   *j,              // 13
-                 __global       int   *hash)           // 14
+                 __global const int4  *sizes,          // 5
+                 __global const int   *levtable,       // 6
+                 __global const int   *level,          // 7
+                 __global const int   *i,              // 8
+                 __global const int   *j,              // 9
+                 __global const ulong *hash_header,    // 10
+                 __global       int   *hash)           // 11
 {
 
    const unsigned int giX  = get_global_id(0);
 
    if (giX >= isize) return;
+
+   const int hash_method       = (int)hash_header[0];
+   const ulong hash_table_size =      hash_header[1];
+   const ulong AA              =      hash_header[2];
+   const ulong BB              =      hash_header[3];
 
 /*
    // Expand size by 2*coarse_cells
@@ -356,10 +358,6 @@ __kernel void calc_neighbors_local_cl(
                           const int   imax,            // 2 
                           const int   jmax,            // 3 
                           const int   noffset,         // 4
-                          const int   hash_method,     // 6
-                          const ulong hash_table_size, // 7
-                          const ulong AA,              // 8
-                          const ulong BB,              // 9
                  __global const int4  *sizes,          // 5
                  __global const int   *levtable,       // 6
                  __global const int   *level,          // 7
@@ -369,12 +367,18 @@ __kernel void calc_neighbors_local_cl(
                  __global       int   *nrht,           // 11
                  __global       int   *nbot,           // 12
                  __global       int   *ntop,           // 13
-                 __global const int   *hash)           // 14
+                 __global const ulong *hash_header,    // 14
+                 __global const int   *hash)           // 15
 {
                 
    const uint giX  = get_global_id(0);
 
    if (giX >= ncells) return;
+
+   const int hash_method       = (int)hash_header[0];
+   const ulong hash_table_size =      hash_header[1];
+   const ulong AA              =      hash_header[2];
+   const ulong BB              =      hash_header[3];
 
    int iii, jjj;
 
@@ -855,22 +859,24 @@ __kernel void calc_layer1_cl (
                           const int   imax,                // 3 
                           const int   jmax,                // 4 
                           const int   noffset,             // 5 
-                          const int   hash_method,         // 6
-                          const ulong hash_table_size,     // 7
-                          const ulong AA,                  // 8
-                          const ulong BB,                  // 9
-                 __global const int4  *sizes,              // 10
-                 __global const int   *levtable,           // 11
-                 __global const int   *level,              // 12
-                 __global const int   *border_cell_i,      // 13
-                 __global const int   *border_cell_j,      // 14
-                 __global const int   *border_cell_level,  // 15
-                 __global       int   *border_cell_needed, // 16
-                 __global const int   *hash)               // 17
+                 __global const int4  *sizes,              // 6
+                 __global const int   *levtable,           // 7
+                 __global const int   *level,              // 8
+                 __global const int   *border_cell_i,      // 9
+                 __global const int   *border_cell_j,      // 10
+                 __global const int   *border_cell_level,  // 11
+                 __global       int   *border_cell_needed, // 12
+                 __global const ulong *hash_header,        // 13
+                 __global const int   *hash)               // 14
 {
    const uint giX = get_global_id(0);
 
    if (giX >= isize) return;
+
+   const int hash_method       = (int)hash_header[0];
+   const ulong hash_table_size =      hash_header[1];
+   const ulong AA              =      hash_header[2];
+   const ulong BB              =      hash_header[3];
 
    border_cell_needed[giX] = 0;
 
@@ -1017,21 +1023,23 @@ __kernel void calc_layer1_sethash_cl (
                           const int   ncells,              // 1 
                           const int   noffset,             // 2 
                           const int   levmx,               // 3 
-                          const int   hash_method,         // 4
-                          const ulong hash_table_size,     // 5
-                          const ulong AA,                  // 6
-                          const ulong BB,                  // 7
-                 __global const int4  *sizes,              // 8 
-                 __global const int   *levtable,           // 9 
-                 __global const int   *border_cell_i,      // 10
-                 __global const int   *border_cell_j,      // 11
-                 __global const int   *border_cell_level,  // 12
-                 __global       int   *border_cell_needed, // 13
-                 __global       int   *hash)               // 14
+                 __global const int4  *sizes,              // 4 
+                 __global const int   *levtable,           // 5 
+                 __global const int   *border_cell_i,      // 6
+                 __global const int   *border_cell_j,      // 7
+                 __global const int   *border_cell_level,  // 8
+                 __global       int   *border_cell_needed, // 9
+                 __global const ulong *hash_header,        // 10
+                 __global       int   *hash)               // 11
 {
    const uint giX = get_global_id(0);
 
    if (giX >= isize) return;
+
+   const int hash_method       = (int)hash_header[0];
+   const ulong hash_table_size =      hash_header[1];
+   const ulong AA              =      hash_header[2];
+   const ulong BB              =      hash_header[3];
 
    int iborder = border_cell_needed[giX];
 
@@ -1057,22 +1065,19 @@ __kernel void calc_layer2_cl (
                           const int   levmx,                   // 3 
                           const int   imax,                    // 4 
                           const int   jmax,                    // 5 
-                          const int   hash_method,             // 6
-                          const ulong hash_table_size,         // 7
-                          const ulong AA,                      // 8
-                          const ulong BB,                      // 9
-                 __global const int4  *sizes,                  // 10
-                 __global const int   *levtable,               // 11
-                 __global const int   *level,                  // 12
-                 __global const int   *border_cell_i,          // 13
-                 __global const int   *border_cell_j,          // 14
-                 __global const int   *border_cell_level,      // 15
-                 __global const int   *border_cell_needed,     // 16
-                 __global       int   *border_cell_needed_out, // 17
-                 __global const int   *hash,                   // 18
-                 __global       int   *ioffset,                // 19
-                 __global       int   *nbsize_new,             // 20
-                 __local        int   *itile)                  // 21
+                 __global const int4  *sizes,                  // 6
+                 __global const int   *levtable,               // 7
+                 __global const int   *level,                  // 8
+                 __global const int   *border_cell_i,          // 9
+                 __global const int   *border_cell_j,          // 10
+                 __global const int   *border_cell_level,      // 11
+                 __global const int   *border_cell_needed,     // 12
+                 __global       int   *border_cell_needed_out, // 13
+                 __global const ulong *hash_header,            // 14
+                 __global const int   *hash,                   // 15
+                 __global       int   *ioffset,                // 16
+                 __global       int   *nbsize_new,             // 17
+                 __local        int   *itile)                  // 18
 {
    const uint giX = get_global_id(0);
    const uint tiX = get_local_id(0);
@@ -1082,6 +1087,11 @@ __kernel void calc_layer2_cl (
    itile[tiX] = 0;
 
    if (giX >= nbsize_local) return;
+
+   const int hash_method       = (int)hash_header[0];
+   const ulong hash_table_size =      hash_header[1];
+   const ulong AA              =      hash_header[2];
+   const ulong BB              =      hash_header[3];
 
    int iborder = border_cell_needed[giX];
 
@@ -1359,26 +1369,28 @@ __kernel void calc_layer2_sethash_cl (
                           const int   levmx,               // 3 
                           const int   imax,                // 4 
                           const int   jmax,                // 5 
-                          const int   hash_method,         // 6
-                          const ulong hash_table_size,     // 7
-                          const ulong AA,                  // 8
-                          const ulong BB,                  // 9
-                 __global const int4  *sizes,              // 10
-                 __global const int   *levtable,           // 11
-                 __global const int   *lev_ibeg,           // 12
-                 __global const int   *lev_iend,           // 13
-                 __global const int   *lev_jbeg,           // 14
-                 __global const int   *lev_jend,           // 15
-                 __global const int   *border_cell_i,      // 16
-                 __global const int   *border_cell_j,      // 17
-                 __global const int   *border_cell_level,  // 18
-                 __global const int   *border_cell_num,    // 19
-                 __global       int   *border_cell_needed, // 20
-                 __global       int   *hash)               // 21
+                 __global const int4  *sizes,              // 6
+                 __global const int   *levtable,           // 7
+                 __global const int   *lev_ibeg,           // 8
+                 __global const int   *lev_iend,           // 9
+                 __global const int   *lev_jbeg,           // 10
+                 __global const int   *lev_jend,           // 11
+                 __global const int   *border_cell_i,      // 12
+                 __global const int   *border_cell_j,      // 13
+                 __global const int   *border_cell_level,  // 14
+                 __global const int   *border_cell_num,    // 15
+                 __global       int   *border_cell_needed, // 16
+                 __global const ulong *hash_header,        // 17
+                 __global       int   *hash)               // 18
 {
    const uint giX = get_global_id(0);
 
    if (giX >= isize) return;
+
+   const int hash_method       = (int)hash_header[0];
+   const ulong hash_table_size =      hash_header[1];
+   const ulong AA              =      hash_header[2];
+   const ulong BB              =      hash_header[3];
 
    int iminsize = sizes[0].s0;
    int imaxsize = sizes[0].s1;
@@ -1475,24 +1487,26 @@ __kernel void fill_neighbor_ghost_cl (
                           const int   levmx,           // 1 
                           const int   imax,            // 2 
                           const int   jmax,            // 3 
-                          const int   hash_method,     // 4
-                          const ulong hash_table_size, // 5
-                          const ulong AA,              // 6
-                          const ulong BB,              // 7
-                 __global const int4  *sizes,          // 8 
-                 __global const int   *levtable,       // 9 
-                 __global const int   *i,              // 10
-                 __global const int   *j,              // 11
-                 __global const int   *level,          // 12
-                 __global const int   *hash,           // 13
-                 __global       int   *nlft,           // 14
-                 __global       int   *nrht,           // 15
-                 __global       int   *nbot,           // 16
-                 __global       int   *ntop)           // 17
+                 __global const int4  *sizes,          // 4 
+                 __global const int   *levtable,       // 5 
+                 __global const int   *i,              // 6
+                 __global const int   *j,              // 7
+                 __global const int   *level,          // 8
+                 __global const ulong *hash_header,    // 9
+                 __global const int   *hash,           // 10
+                 __global       int   *nlft,           // 11
+                 __global       int   *nrht,           // 12
+                 __global       int   *nbot,           // 13
+                 __global       int   *ntop)           // 14
 {
    const uint giX  = get_global_id(0);
 
    if (giX >= ncells_ghost) return;
+
+   const int hash_method       = (int)hash_header[0];
+   const ulong hash_table_size =      hash_header[1];
+   const ulong AA              =      hash_header[2];
+   const ulong BB              =      hash_header[3];
 
    int iminsize = sizes[0].s0;
    int imaxsize = sizes[0].s1;
