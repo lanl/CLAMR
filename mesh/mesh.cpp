@@ -207,10 +207,9 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
    float hash_mem_ratio = (double)perfect_hash_size/(double)compact_hash_size;
    if (mem_opt_factor != 1.0) hash_mem_factor /= (mem_opt_factor*0.2); 
    do_compact_hash = (hash_mem_ratio < hash_mem_factor) ? 0 : 1;
-   if (choose_hash_method == PERFECT_HASH) hash_method = -1;
-   if (choose_hash_method == LINEAR) hash_method = 0;
-   if (choose_hash_method == QUADRATIC) hash_method = 1;
-   if (choose_hash_method == PRIME_JUMP) hash_method = 2;
+
+   if (choose_hash_method != DEFAULT_METHOD) hash_method = choose_hash_method;
+
    if (hash_report_level >= 2) printf("DEBUG do_compact_hash %d hash_mem_ratio %f hash_mem_factor %f mem_opt_factor %f perfect_hash_size %u compact_hash_size %u\n",do_compact_hash,hash_mem_ratio,hash_mem_factor,mem_opt_factor,perfect_hash_size,compact_hash_size);
 
    if (do_compact_hash) {
@@ -5582,7 +5581,6 @@ void Mesh::calc_neighbors_local(void)
 #ifdef HAVE_OPENCL
 void Mesh::gpu_calc_neighbors(void)
 {
-   int gpu_do_compact_hash   =  0;
    int gpu_hash_method       = -1;
    ulong gpu_hash_table_size =  0;
    ulong gpu_AA              =  1;
@@ -5620,22 +5618,17 @@ void Mesh::gpu_calc_neighbors(void)
    float gpu_hash_mem_factor = 20.0;
    float gpu_hash_mem_ratio = (double)gpu_perfect_hash_size/(double)gpu_compact_hash_size;
    if (mem_opt_factor != 1.0) gpu_hash_mem_factor /= (mem_opt_factor*0.2);
-   gpu_do_compact_hash = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? 0 : 1;
-#ifdef __APPLE_CC__
-   gpu_do_compact_hash = 0;
-#endif
-   size_t hashsize;
+   gpu_hash_method = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? PERFECT_HASH : QUADRATIC;
 
 // allow imput.c to control hash types and methods
-   if (choose_hash_method == PERFECT_HASH) hash_method = -1;
-   if (choose_hash_method == LINEAR) hash_method = 0;
-   if (choose_hash_method == QUADRATIC) hash_method = 1;
-   if (choose_hash_method == PRIME_JUMP) hash_method = 2;
+   if (choose_hash_method != DEFAULT_METHOD) hash_method = choose_hash_method;
 //=========
 
+   int gpu_do_compact_hash = (gpu_hash_method >= 0) ? 1 : 0;
+
+   size_t hashsize;
 
    if (gpu_do_compact_hash) {
-      gpu_hash_method = 1;
       gpu_hash_table_size = gpu_compact_hash_size;
       hashsize = 2*gpu_compact_hash_size;
       gpu_AA = (ulong)(1.0+(double)(prime-1)*drand48());
@@ -5747,7 +5740,6 @@ void Mesh::gpu_calc_neighbors(void)
 
 void Mesh::gpu_calc_neighbors_local(void)
 {
-   int gpu_do_compact_hash   =  0;
    int gpu_hash_method       = -1;
    ulong gpu_hash_table_size =  0;
    ulong gpu_AA              =  1;
@@ -5862,10 +5854,14 @@ void Mesh::gpu_calc_neighbors_local(void)
    float gpu_hash_mem_factor = 20.0;
    float gpu_hash_mem_ratio = (double)gpu_perfect_hash_size/(double)gpu_compact_hash_size;
    if (mem_opt_factor != 1.0) gpu_hash_mem_factor /= (mem_opt_factor*0.2);
-   gpu_do_compact_hash = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? 0 : 1;
-#ifdef __APPLE_CC__
-   gpu_do_compact_hash = 0;
-#endif
+   gpu_hash_method = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? PERFECT_HASH : QUADRATIC;
+
+// allow imput.c to control hash types and methods
+   if (choose_hash_method != DEFAULT_METHOD) hash_method = choose_hash_method;
+//=========
+
+   int gpu_do_compact_hash = (gpu_hash_method >= 0) ? 1 : 0;
+
    size_t hashsize;
 
    if (gpu_do_compact_hash) {
