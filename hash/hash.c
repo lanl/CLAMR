@@ -372,7 +372,7 @@ void hash_lib_terminate(void){
 }
 
 cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int gpu_hash_method, uint hash_report_level_in,
-   ulong *gpu_hash_table_size, ulong *hashsize)
+   ulong *gpu_hash_table_size, ulong *hashsize, cl_mem *dev_hash_header_in)
 {
    hash_report_level = hash_report_level_in;
 
@@ -418,6 +418,8 @@ cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int gpu_h
 
    genvectorfree(gpu_hash_header);
 
+   (*dev_hash_header_in) = dev_hash_header;
+
    size_t hash_local_work_size  = MIN((*hashsize), TILE_SIZE);
    size_t hash_global_work_size = (((*hashsize)+hash_local_work_size - 1) /hash_local_work_size) * hash_local_work_size;
 
@@ -428,7 +430,7 @@ cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int gpu_h
    return(dev_hash);
 }
 
-void gpu_compact_hash_delete(cl_mem dev_hash){
+void gpu_compact_hash_delete(cl_mem dev_hash, cl_mem dev_hash_header){
       ezcl_device_memory_delete(dev_hash);
       ezcl_device_memory_delete(dev_hash_header);
 }

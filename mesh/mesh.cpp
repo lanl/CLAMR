@@ -5170,11 +5170,9 @@ void Mesh::gpu_calc_neighbors(void)
    size_t hashsize;
    
    uint hash_report_level = 1;
+   cl_mem dev_hash_header = NULL;
    cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize, jmaxsize, gpu_hash_method, hash_report_level,
-      &gpu_hash_table_size, &hashsize);
-   cl_mem dev_hash_header = gpu_get_hash_header();
-
-   cl_mem dev_hash_header_check = gpu_get_hash_header();
+      &gpu_hash_table_size, &hashsize, &dev_hash_header);
 
       /*
                     const int   isize,           // 0
@@ -5246,7 +5244,7 @@ void Mesh::gpu_calc_neighbors(void)
    ezcl_set_kernel_arg(kernel_calc_neighbors, 15, sizeof(cl_mem),   (void *)&dev_hash);
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors,   1, NULL, &global_work_size, &local_work_size, NULL);
 
-   gpu_compact_hash_delete(dev_hash);
+   gpu_compact_hash_delete(dev_hash, dev_hash_header);
 
    if (TIMING_LEVEL >= 2) gpu_time_hash_query += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
 
@@ -5370,8 +5368,8 @@ void Mesh::gpu_calc_neighbors_local(void)
    size_t hashsize;
 
    uint hash_report_level = 1;
-   cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, gpu_hash_method, hash_report_level, &gpu_hash_table_size, &hashsize);
-   cl_mem dev_hash_header = gpu_get_hash_header();
+   cl_mem dev_hash_header = NULL;
+   cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, gpu_hash_method, hash_report_level, &gpu_hash_table_size, &hashsize, &dev_hash_header);
 
    int csize = corners_i.size();
 #ifdef BOUNDS_CHECK
@@ -6773,7 +6771,7 @@ void Mesh::gpu_calc_neighbors_local(void)
    ezcl_device_memory_delete(dev_sizes);
    ezcl_device_memory_delete(dev_check);
 
-   gpu_compact_hash_delete(dev_hash);
+   gpu_compact_hash_delete(dev_hash, dev_hash_header);
 
    gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
