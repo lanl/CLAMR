@@ -8,8 +8,8 @@
 
 static ulong AA;
 static ulong BB;
-ulong prime=4294967291;
-uint hashtablesize;
+static ulong prime=4294967291;
+static uint hashtablesize;
 static uint hash_stride;
 static uint hash_ncells;
 static uint write_hash_collisions;
@@ -18,11 +18,11 @@ static double write_hash_collisions_runsum = 0.0;
 static double read_hash_collisions_runsum = 0.0;
 static uint write_hash_collisions_count = 0;
 static uint read_hash_collisions_count = 0;
-uint hash_report_level = 2;
+static uint hash_report_level = 2;
 static uint hash_queries;
-int hash_method = METHOD_UNSET;
-uint hash_jump_prime = 41;
-double hash_mult = 3.0;
+static int hash_method = METHOD_UNSET;
+static uint hash_jump_prime = 41;
+static double hash_mult = 3.0;
 
 size_t hash_header_size = 16;
 
@@ -371,8 +371,11 @@ void hash_lib_terminate(void){
    ezcl_kernel_release(kernel_hash_init);
 }
 
-cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int gpu_hash_method, ulong *gpu_hash_table_size, ulong *hashsize)
+cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int gpu_hash_method, uint hash_report_level_in,
+   ulong *gpu_hash_table_size, ulong *hashsize)
 {
+   hash_report_level = hash_report_level_in;
+
    uint gpu_compact_hash_size = (uint)((double)ncells*hash_mult);
    uint gpu_perfect_hash_size = (uint)(imaxsize*jmaxsize);
 
@@ -397,6 +400,8 @@ cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int gpu_h
       (*gpu_hash_table_size) = gpu_perfect_hash_size;
       (*hashsize) = gpu_perfect_hash_size;
    }
+
+   hashtablesize = (*hashsize);
 
    const int TILE_SIZE = 128;
 

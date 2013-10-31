@@ -165,17 +165,7 @@ cl_kernel      kernel_rezone_one;
 cl_kernel      kernel_copy_mpot_ghost_data;
 cl_kernel      kernel_set_boundary_refinement;
 
-extern ulong prime;
-extern uint hashtablesize;
-extern uint hash_report_level;
-extern int hash_method;
-extern uint hash_jump_prime;
-extern double hash_mult;
-
 extern size_t hash_header_size;
-
-extern float mem_opt_factor;
-
 extern int   choose_hash_method;
 
 void Mesh::write_grid(int ncycle)
@@ -5179,36 +5169,12 @@ void Mesh::gpu_calc_neighbors(void)
 
    size_t hashsize;
    
-   hash_report_level = 1;
-   cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize, jmaxsize, gpu_hash_method, &gpu_hash_table_size, &hashsize);
+   uint hash_report_level = 1;
+   cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize, jmaxsize, gpu_hash_method, hash_report_level,
+      &gpu_hash_table_size, &hashsize);
    cl_mem dev_hash_header = gpu_get_hash_header();
 
-   hashtablesize = hashsize;
-   
-
    cl_mem dev_hash_header_check = gpu_get_hash_header();
-
-/*
-   vector<ulong> hash_header_check(hash_header_size);
-   ezcl_enqueue_read_buffer(command_queue, dev_hash_header_check, CL_TRUE, 0, hash_header_size*sizeof(cl_ulong), &hash_header_check[0], NULL);
-
-   int   gpu_hash_method_check     = (int)hash_header_check[0];
-   ulong gpu_hash_table_size_check =      hash_header_check[1];
-   ulong gpu_AA_check              =      hash_header_check[2];
-   ulong gpu_BB_check              =      hash_header_check[3];
-   if (gpu_hash_method != gpu_hash_method_check) {
-      printf("DEBUG -- gpu_hash_method %d gpu_hash_header_method_check %d\n",gpu_hash_method, gpu_hash_method_check);
-   }
-   if (gpu_hash_table_size != gpu_hash_table_size_check) {
-      printf("DEBUG -- gpu_hash_table_size %lu gpu_hash_header_table_size_check %lu\n",gpu_hash_table_size, gpu_hash_table_size_check);
-   }
-   if (gpu_AA != gpu_AA_check) {
-      printf("DEBUG -- gpu_AA %lu gpu_AA_check %lu\n",gpu_AA, gpu_AA_check);
-   }
-   if (gpu_BB != gpu_BB_check) {
-      printf("DEBUG -- gpu_BB %lu gpu_BB_check %lu\n",gpu_BB, gpu_BB_check);
-   }
-*/
 
       /*
                     const int   isize,           // 0
@@ -5403,11 +5369,10 @@ void Mesh::gpu_calc_neighbors_local(void)
 
    size_t hashsize;
 
-   cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, gpu_hash_method, &gpu_hash_table_size, &hashsize);
+   uint hash_report_level = 1;
+   cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, gpu_hash_method, hash_report_level, &gpu_hash_table_size, &hashsize);
    cl_mem dev_hash_header = gpu_get_hash_header();
 
-   hashtablesize = hashsize;
-   
    int csize = corners_i.size();
 #ifdef BOUNDS_CHECK
    for (int ic=0; ic<csize; ic++){
