@@ -5175,47 +5175,28 @@ void Mesh::gpu_calc_neighbors(void)
    int imaxsize = (imax+1)*levtable[levmx];
    int jmaxsize = (jmax+1)*levtable[levmx];
 
-   uint gpu_compact_hash_size = (uint)((double)ncells*hash_mult);
-   uint gpu_perfect_hash_size = (uint)(imaxsize*jmaxsize);
-   float gpu_hash_mem_factor = 20.0;
-   float gpu_hash_mem_ratio = (double)gpu_perfect_hash_size/(double)gpu_compact_hash_size;
-   if (mem_opt_factor != 1.0) gpu_hash_mem_factor /= (mem_opt_factor*0.2);
-   gpu_hash_method = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? PERFECT_HASH : QUADRATIC;
-
 // allow imput.c to control hash types and methods
    if (choose_hash_method != METHOD_UNSET) gpu_hash_method = choose_hash_method;
 //=========
 
-   int gpu_do_compact_hash = (gpu_hash_method == PERFECT_HASH) ? 0 : 1;
-
    size_t hashsize;
-
-   if (gpu_do_compact_hash) {
-      gpu_hash_table_size = gpu_compact_hash_size;
-      hashsize = 2*gpu_compact_hash_size;
-      //gpu_AA = (ulong)(1.0+(double)(prime-1)*drand48());
-      //gpu_BB = (ulong)(0.0+(double)(prime-1)*drand48());
-      //if (gpu_AA > prime-1 || gpu_BB > prime-1) exit(0);
-      //if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",gpu_AA,gpu_BB);
-   } else {
-      gpu_hash_table_size = gpu_perfect_hash_size;
-      hashsize = gpu_perfect_hash_size;
-   }
    
    hash_report_level = 1;
-   hashtablesize = hashsize;
-   cl_mem dev_hash = gpu_compact_hash_init(&gpu_hash_method, &gpu_hash_table_size, &gpu_AA, &gpu_BB, hashsize);
+   cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize, jmaxsize, &gpu_hash_method, &gpu_hash_table_size, &gpu_AA, &gpu_BB, &hashsize);
    cl_mem dev_hash_header = gpu_get_hash_header();
+
+   hashtablesize = hashsize;
+   
 
    cl_mem dev_hash_header_check = gpu_get_hash_header();
 
    vector<ulong> hash_header_check(hash_header_size);
    ezcl_enqueue_read_buffer(command_queue, dev_hash_header_check, CL_TRUE, 0, hash_header_size*sizeof(cl_ulong), &hash_header_check[0], NULL);
 
-   int gpu_hash_method_check = (int)hash_header_check[0];
-   ulong gpu_hash_table_size_check = hash_header_check[1];
-   ulong gpu_AA_check = hash_header_check[2];
-   ulong gpu_BB_check = hash_header_check[3];
+   int   gpu_hash_method_check     = (int)hash_header_check[0];
+   ulong gpu_hash_table_size_check =      hash_header_check[1];
+   ulong gpu_AA_check              =      hash_header_check[2];
+   ulong gpu_BB_check              =      hash_header_check[3];
    if (gpu_hash_method != gpu_hash_method_check) {
       printf("DEBUG -- gpu_hash_method %d gpu_hash_header_method_check %d\n",gpu_hash_method, gpu_hash_method_check);
    }
@@ -5418,36 +5399,17 @@ void Mesh::gpu_calc_neighbors_local(void)
 
    //ezcl_enqueue_write_buffer(command_queue, dev_sizes, CL_TRUE,  0, 1*sizeof(cl_int4), &sizes, NULL);
 
-   uint gpu_compact_hash_size = (uint)((double)ncells*hash_mult);
-   uint gpu_perfect_hash_size = (uint)((imaxsize-iminsize)*(jmaxsize-jminsize));
-   float gpu_hash_mem_factor = 20.0;
-   float gpu_hash_mem_ratio = (double)gpu_perfect_hash_size/(double)gpu_compact_hash_size;
-   if (mem_opt_factor != 1.0) gpu_hash_mem_factor /= (mem_opt_factor*0.2);
-   gpu_hash_method = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? PERFECT_HASH : QUADRATIC;
-
 // allow imput.c to control hash types and methods
    if (choose_hash_method != METHOD_UNSET) gpu_hash_method = choose_hash_method;
 //=========
 
-   int gpu_do_compact_hash = (gpu_hash_method == PERFECT_HASH) ? 0 : 1;
-
    size_t hashsize;
 
-   if (gpu_do_compact_hash) {
-      gpu_hash_table_size = gpu_compact_hash_size;
-      hashsize = 2*gpu_compact_hash_size;
-      //gpu_AA = (ulong)(1.0+(double)(prime-1)*drand48());
-      //gpu_BB = (ulong)(0.0+(double)(prime-1)*drand48());
-      //if (gpu_AA > prime-1 || gpu_BB > prime-1) exit(0);
-      //if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",gpu_AA,gpu_BB);
-   } else {
-      gpu_hash_table_size = gpu_perfect_hash_size;
-      hashsize = gpu_perfect_hash_size;
-   }
-
-   cl_mem dev_hash = gpu_compact_hash_init(&gpu_hash_method, &gpu_hash_table_size, &gpu_AA, &gpu_BB, hashsize);
+   cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, &gpu_hash_method, &gpu_hash_table_size, &gpu_AA, &gpu_BB, &hashsize);
    cl_mem dev_hash_header = gpu_get_hash_header();
 
+   hashtablesize = hashsize;
+   
    int csize = corners_i.size();
 #ifdef BOUNDS_CHECK
    for (int ic=0; ic<csize; ic++){
@@ -5695,6 +5657,15 @@ void Mesh::gpu_calc_neighbors_local(void)
 
       vector<int> hash_tmp(hashsize);
       ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_FALSE, 0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
+
+      cl_mem dev_hash_header_check = gpu_get_hash_header();
+      vector<ulong> hash_header_check(hash_header_size);
+      ezcl_enqueue_read_buffer(command_queue, dev_hash_header_check, CL_TRUE, 0, hash_header_size*sizeof(cl_ulong), &hash_header_check[0], NULL);
+
+      int   gpu_hash_method     = (int)hash_header_check[0];
+      ulong gpu_hash_table_size =      hash_header_check[1];
+      ulong gpu_AA              =      hash_header_check[2];
+      ulong gpu_BB              =      hash_header_check[3];
 
       vector<int> nlft_tmp(ncells_ghost);
       vector<int> nrht_tmp(ncells_ghost);
@@ -6090,6 +6061,15 @@ void Mesh::gpu_calc_neighbors_local(void)
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
 
+         cl_mem dev_hash_header_check = gpu_get_hash_header();
+         vector<ulong> hash_header_check(hash_header_size);
+         ezcl_enqueue_read_buffer(command_queue, dev_hash_header_check, CL_TRUE, 0, hash_header_size*sizeof(cl_ulong), &hash_header_check[0], NULL);
+
+         int   gpu_hash_method     = (int)hash_header_check[0];
+         ulong gpu_hash_table_size =      hash_header_check[1];
+         ulong gpu_AA              =      hash_header_check[2];
+         ulong gpu_BB              =      hash_header_check[3];
+
          int jmaxglobal = (jmax+1)*levtable[levmx];
          int imaxglobal = (imax+1)*levtable[levmx];
          fprintf(fp,"\n                                    HASH numbering before layer 1\n");
@@ -6174,6 +6154,15 @@ void Mesh::gpu_calc_neighbors_local(void)
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
  
+         cl_mem dev_hash_header_check = gpu_get_hash_header();
+         vector<ulong> hash_header_check(hash_header_size);
+         ezcl_enqueue_read_buffer(command_queue, dev_hash_header_check, CL_TRUE, 0, hash_header_size*sizeof(cl_ulong), &hash_header_check[0], NULL);
+
+         int   gpu_hash_method     = (int)hash_header_check[0];
+         ulong gpu_hash_table_size =      hash_header_check[1];
+         ulong gpu_AA              =      hash_header_check[2];
+         ulong gpu_BB              =      hash_header_check[3];
+
          int jmaxglobal = (jmax+1)*levtable[levmx];
          int imaxglobal = (imax+1)*levtable[levmx];
          fprintf(fp,"\n                                    HASH numbering for 1 layer\n");
@@ -6333,6 +6322,15 @@ void Mesh::gpu_calc_neighbors_local(void)
 
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
+
+         cl_mem dev_hash_header_check = gpu_get_hash_header();
+         vector<ulong> hash_header_check(hash_header_size);
+         ezcl_enqueue_read_buffer(command_queue, dev_hash_header_check, CL_TRUE, 0, hash_header_size*sizeof(cl_ulong), &hash_header_check[0], NULL);
+
+         int   gpu_hash_method     = (int)hash_header_check[0];
+         ulong gpu_hash_table_size =      hash_header_check[1];
+         ulong gpu_AA              =      hash_header_check[2];
+         ulong gpu_BB              =      hash_header_check[3];
 
          int jmaxglobal = (jmax+1)*levtable[levmx];
          int imaxglobal = (imax+1)*levtable[levmx];
@@ -6652,6 +6650,15 @@ void Mesh::gpu_calc_neighbors_local(void)
 
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_FALSE, 0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
+
+         cl_mem dev_hash_header_check = gpu_get_hash_header();
+         vector<ulong> hash_header_check(hash_header_size);
+         ezcl_enqueue_read_buffer(command_queue, dev_hash_header_check, CL_TRUE, 0, hash_header_size*sizeof(cl_ulong), &hash_header_check[0], NULL);
+
+         int   gpu_hash_method     = (int)hash_header_check[0];
+         ulong gpu_hash_table_size =      hash_header_check[1];
+         ulong gpu_AA              =      hash_header_check[2];
+         ulong gpu_BB              =      hash_header_check[3];
 
          vector<int> nlft_tmp(ncells_ghost);
          vector<int> nrht_tmp(ncells_ghost);
