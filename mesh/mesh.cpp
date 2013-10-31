@@ -5143,10 +5143,7 @@ void Mesh::calc_neighbors_local(void)
 #ifdef HAVE_OPENCL
 void Mesh::gpu_calc_neighbors(void)
 {
-   int gpu_hash_method       = METHOD_UNSET;
    ulong gpu_hash_table_size =  0;
-   ulong gpu_AA              =  1;
-   ulong gpu_BB              =  0;
 
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -5175,14 +5172,15 @@ void Mesh::gpu_calc_neighbors(void)
    int imaxsize = (imax+1)*levtable[levmx];
    int jmaxsize = (jmax+1)*levtable[levmx];
 
-// allow imput.c to control hash types and methods
+   int gpu_hash_method       = METHOD_UNSET;
+// allow input.c to control hash types and methods
    if (choose_hash_method != METHOD_UNSET) gpu_hash_method = choose_hash_method;
 //=========
 
    size_t hashsize;
    
    hash_report_level = 1;
-   cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize, jmaxsize, &gpu_hash_method, &gpu_hash_table_size, &gpu_AA, &gpu_BB, &hashsize);
+   cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize, jmaxsize, gpu_hash_method, &gpu_hash_table_size, &hashsize);
    cl_mem dev_hash_header = gpu_get_hash_header();
 
    hashtablesize = hashsize;
@@ -5190,6 +5188,7 @@ void Mesh::gpu_calc_neighbors(void)
 
    cl_mem dev_hash_header_check = gpu_get_hash_header();
 
+/*
    vector<ulong> hash_header_check(hash_header_size);
    ezcl_enqueue_read_buffer(command_queue, dev_hash_header_check, CL_TRUE, 0, hash_header_size*sizeof(cl_ulong), &hash_header_check[0], NULL);
 
@@ -5209,6 +5208,7 @@ void Mesh::gpu_calc_neighbors(void)
    if (gpu_BB != gpu_BB_check) {
       printf("DEBUG -- gpu_BB %lu gpu_BB_check %lu\n",gpu_BB, gpu_BB_check);
    }
+*/
 
       /*
                     const int   isize,           // 0
@@ -5290,10 +5290,7 @@ void Mesh::gpu_calc_neighbors(void)
 
 void Mesh::gpu_calc_neighbors_local(void)
 {
-   int gpu_hash_method       = METHOD_UNSET;
    ulong gpu_hash_table_size =  0;
-   ulong gpu_AA              =  1;
-   ulong gpu_BB              =  0;
 
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -5399,13 +5396,14 @@ void Mesh::gpu_calc_neighbors_local(void)
 
    //ezcl_enqueue_write_buffer(command_queue, dev_sizes, CL_TRUE,  0, 1*sizeof(cl_int4), &sizes, NULL);
 
+   int gpu_hash_method       = METHOD_UNSET;
 // allow imput.c to control hash types and methods
    if (choose_hash_method != METHOD_UNSET) gpu_hash_method = choose_hash_method;
 //=========
 
    size_t hashsize;
 
-   cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, &gpu_hash_method, &gpu_hash_table_size, &gpu_AA, &gpu_BB, &hashsize);
+   cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, gpu_hash_method, &gpu_hash_table_size, &hashsize);
    cl_mem dev_hash_header = gpu_get_hash_header();
 
    hashtablesize = hashsize;

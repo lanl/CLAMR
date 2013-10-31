@@ -371,27 +371,27 @@ void hash_lib_terminate(void){
    ezcl_kernel_release(kernel_hash_init);
 }
 
-cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int *gpu_hash_method, ulong *gpu_hash_table_size, ulong *gpu_AA, ulong *gpu_BB, ulong *hashsize)
+cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int gpu_hash_method, ulong *gpu_hash_table_size, ulong *hashsize)
 {
    uint gpu_compact_hash_size = (uint)((double)ncells*hash_mult);
    uint gpu_perfect_hash_size = (uint)(imaxsize*jmaxsize);
 
-   if ( (*gpu_hash_method) == METHOD_UNSET) {
+   if (gpu_hash_method == METHOD_UNSET) {
       float gpu_hash_mem_factor = 20.0;
       float gpu_hash_mem_ratio = (double)gpu_perfect_hash_size/(double)gpu_compact_hash_size;
       if (mem_opt_factor != 1.0) gpu_hash_mem_factor /= (mem_opt_factor*0.2);
-      (*gpu_hash_method) = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? PERFECT_HASH : QUADRATIC;
+      gpu_hash_method = (gpu_hash_mem_ratio < gpu_hash_mem_factor) ? PERFECT_HASH : QUADRATIC;
    }
 
-   int gpu_do_compact_hash = ( (*gpu_hash_method) == PERFECT_HASH) ? 0 : 1;
+   int gpu_do_compact_hash = (gpu_hash_method == PERFECT_HASH) ? 0 : 1;
 
-   (*gpu_AA) = 1;
-   (*gpu_BB) = 0;
+   ulong gpu_AA = 1;
+   ulong gpu_BB = 0;
    if (gpu_do_compact_hash){
       (*gpu_hash_table_size) = gpu_compact_hash_size;
-      (*gpu_AA) = (ulong)(1.0+(double)(prime-1)*drand48());
-      (*gpu_BB) = (ulong)(0.0+(double)(prime-1)*drand48());
-      //if ( (*gpu_AA) > prime-1 || (*gpu_BB) > prime-1) exit(0);
+      gpu_AA = (ulong)(1.0+(double)(prime-1)*drand48());
+      gpu_BB = (ulong)(0.0+(double)(prime-1)*drand48());
+      //if ( gpu_AA > prime-1 || gpu_BB > prime-1) exit(0);
       (*hashsize) = 2*gpu_compact_hash_size;
    } else {
       (*gpu_hash_table_size) = gpu_perfect_hash_size;
@@ -404,10 +404,10 @@ cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int *gpu_
 
    cl_mem dev_hash = ezcl_malloc(NULL, "dev_hash", hashsize, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
    ulong *gpu_hash_header = (ulong *)genvector(hash_header_size, sizeof(ulong));
-   gpu_hash_header[0] = (ulong)(*gpu_hash_method); 
+   gpu_hash_header[0] = (ulong)gpu_hash_method; 
    gpu_hash_header[1] =        (*gpu_hash_table_size);
-   gpu_hash_header[2] =        (*gpu_AA);
-   gpu_hash_header[3] =        (*gpu_BB);
+   gpu_hash_header[2] =        gpu_AA;
+   gpu_hash_header[3] =        gpu_BB;
    dev_hash_header = ezcl_malloc(NULL, "dev_hash_header", &hash_header_size, sizeof(cl_ulong),  CL_MEM_READ_WRITE, 0);
    ezcl_enqueue_write_buffer(command_queue, dev_hash_header, CL_TRUE, 0, hash_header_size*sizeof(cl_ulong), &gpu_hash_header[0], NULL);
 
