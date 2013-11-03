@@ -3,8 +3,10 @@
 #include <stdlib.h>
 #include "hash.h"
 #include "genmalloc/genmalloc.h"
+#ifdef HAVE_OPENCL
 #include "hashlib_kern.inc"
 #include "hashlib_source_kern.inc"
+#endif
 
 static ulong AA;
 static ulong BB;
@@ -351,7 +353,9 @@ void final_hash_collision_report(void){
 
 const char *get_hash_kernel_source_string(void)
 {
+#ifdef HAVE_OPENCL
    return(hashlib_source_kern_source);
+#endif
 }
 
 #ifdef HAVE_OPENCL
