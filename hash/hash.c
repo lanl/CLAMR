@@ -351,12 +351,12 @@ void final_hash_collision_report(void){
    }
 }
 
+#ifdef HAVE_OPENCL
 const char *get_hash_kernel_source_string(void)
 {
-#ifdef HAVE_OPENCL
    return(hashlib_source_kern_source);
-#endif
 }
+#endif
 
 #ifdef HAVE_OPENCL
 static cl_kernel kernel_hash_init;
