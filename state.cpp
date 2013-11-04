@@ -258,6 +258,9 @@ void State::init(int do_gpu_calc)
       MPI_Type_commit(&MPI_TWO_DOUBLES);
       MPI_Op_create((MPI_User_function *)kahan_sum, commutative, &KAHAN_SUM);
    }
+#ifdef HAVE_J7
+   //state_memory.pinit(MPI_COMM_WORLD, 64 * 1024 * 1024);
+#endif
 #endif
 }
 

@@ -71,7 +71,26 @@ typedef float real;
 #define INDEX_ARRAY_MEMORY    0x00004
 #define LOAD_BALANCE_MEMORY   0x00008
 
+#if 1 // SKG for now don't really include J7 things.
+#ifdef HAVE_J7
+#undef HAVE_J7
+#endif
+#endif
+
+#ifdef HAVE_J7
+#include "mpi.h"
+// forward class declaration here because i don't want to include j7.h here
+// because of namespace conflicts. the "typedef real" thing and boost hate each
+// other because std::complex is included in boost.
+class J7;
+
+// can't use std name space because of real name conflict in std::complex (boost
+// includes this and j7 includes boost...
+using std::list;
+using std::size_t;
+#else
 using namespace std;
+#endif
 
 struct malloc_plus_memory_entry {
    void  *mem_ptr;
@@ -83,9 +102,24 @@ struct malloc_plus_memory_entry {
 };
 
 class MallocPlus {
+protected:
    list<malloc_plus_memory_entry> memory_list;
+
+#ifdef HAVE_J7
+private:
+   J7 *j7;
+#endif
    
 public:
+#ifdef HAVE_J7 // J7 support implies MPI support
+   // parallel (typically MPI) initialization routine
+   void pinit(MPI_Comm smComm, std::size_t memPoolSize);
+   // parallel (typically MPI) finalization routine
+   void pfini(void);
+   // default constructor
+   //MallocPlus(void);
+#endif
+
    void *memory_malloc(size_t nelem, size_t elsize, const char *name);
    void *memory_malloc(size_t nelem, size_t elsize, int flags, const char *name);
 

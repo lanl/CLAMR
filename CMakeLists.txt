@@ -14,6 +14,9 @@ if (NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif(NOT CMAKE_BUILD_TYPE)
 
+# uncomment to build debug
+#set(CMAKE_BUILD_TYPE Debug)
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mtune=native")
@@ -21,8 +24,8 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -vec-report3")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wall -Wextra")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
 
@@ -107,6 +110,11 @@ if (NOT OPENGL_FOUND)
       set (X11_LIBS ${X11_LIBRARIES})
    endif (MPE_FOUND)
 endif (NOT OPENGL_FOUND)
+
+# search for Boost
+# this min version isn't correct -- FIXME
+set (BOOST_MIN_VER "1.45.0")
+find_package(Boost ${BOOST_MIN_VER})
 
 #message("MPE_LIBRARIES ${MPE_LIBRARIES}")
 #message("MPE_LIBS ${MPE_LIBS}")
@@ -295,7 +303,8 @@ if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND)
 
     add_executable(clamr_quo ${clamr_quo_SRCS})
 
-    set_target_properties(clamr_quo PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_QUO")
+    set_target_properties(clamr_quo PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_QUO;HAVE_J7")
+    # XXX add HAVE_J7 only at top-level
 
     set(clamr_quo_link_flags "${OpenMP_CXX_FLAGS}")
     set_target_properties(clamr_quo PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})

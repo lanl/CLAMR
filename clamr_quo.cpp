@@ -60,6 +60,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <signal.h>
 #include <vector>
 #include "input.h"
 #include "mesh/mesh.h"
@@ -149,6 +150,11 @@ int main(int argc, char **argv) {
    int numpe=0;
    int do_quo_setup = 1;
    L7_Init(&mype, &numpe, &argc, argv, do_quo_setup);
+
+#if 1 // SKG make things sane for debugging
+   signal(SIGSEGV, SIG_DFL);
+#endif
+
    parseInput(argc, argv);
 
    struct timeval tstart_setup;
