@@ -79,6 +79,12 @@ emitElems(MPI_Comm comm, int commID, const T &t, int nElems)
     cout << endl;
 }
 
+static size_t
+getNElems(int commID, int baseNElems)
+{
+    return max(1, baseNElems - commID);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -105,7 +111,7 @@ main(int argc, char **argv)
     }
     try {
         char *cArray = NULL;
-        int nElems = 5, *iArray = NULL;
+        int nElems = getNElems(smCommRank, 5), *iArray = NULL;
         double *dArray = NULL, *spanArray = NULL;
 
         j7 = new J7(smComm, segSize);

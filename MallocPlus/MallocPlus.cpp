@@ -70,7 +70,6 @@
 #endif
 
 #ifdef HAVE_CL_DOUBLE
-typedef double      real;
 #ifdef HAVE_OPENCL
 typedef cl_double2  cl_real2;
 #endif
@@ -90,6 +89,44 @@ typedef cl_float2   cl_real2;
 
 typedef unsigned int uint;
 list<malloc_plus_memory_entry>::iterator it_save;
+
+#ifdef HAVE_J7
+
+#include "j7/j7.h"
+
+#if 0
+MallocPlus::MallocPlus(void)
+{
+    j7 = NULL;
+}
+#endif
+
+void
+MallocPlus::pinit(MPI_Comm smComm, std::size_t memPoolSize)
+{
+    try {
+        std::cerr << "*** pinit failure ***" << std::endl;
+        j7 = new J7(smComm, memPoolSize);
+    }
+    catch(...) {
+        std::cerr << "*** pinit failure ***" << std::endl;
+        throw;
+    }
+}
+
+void
+MallocPlus::pfini(void)
+{
+    try {
+        delete j7;
+        j7 = NULL;
+    }
+    catch(...) {
+        std::cerr << "*** pfini failure ***" << std::endl;
+        throw;
+    }
+}
+#endif
 
 void *MallocPlus::memory_malloc(size_t nelem, size_t elsize, const char *name){
    malloc_plus_memory_entry memory_item;
@@ -124,7 +161,8 @@ void *MallocPlus::memory_malloc(size_t nelem, size_t elsize, int flags, const ch
    } else if ((flags & HOST_MANAGED_MEMORY) != 0){
       memory_item.mem_capacity = nelem;
       memory_item.mem_ptr      = malloc(nelem*elsize);
-   } else {
+   }
+   else {
       memory_item.mem_capacity = 2*nelem;
       memory_item.mem_ptr      = malloc(2*nelem*elsize);
    }

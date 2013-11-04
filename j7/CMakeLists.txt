@@ -15,10 +15,7 @@ add_library(j7 STATIC ${j7-LIB_SRCS})
 set_target_properties(j7 PROPERTIES VERSION 0.0.1 SOVERSION 0)
 install(TARGETS j7 DESTINATION lib)
 
-# we use Boost magic in j7, so make sure we have Boost
-# this min version isn't correct
-set (BOOST_MIN_VER "1.45.0")
-find_package(Boost ${BOOST_MIN_VER})
+# we use Boost magic in j7, so make sure we have Boost (top-level does it)
 if (Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     link_directories(${Boost_LIBRARY_DIRS})

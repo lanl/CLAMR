@@ -49,19 +49,28 @@
 #include <iostream>
 #include <cstdlib>
 #include <map>
+#include <vector>
 
 #include <stdint.h>
 #include "mpi.h"
 
 #include <boost/interprocess/managed_shared_memory.hpp>
 
+// boost managed shared memory type
 typedef boost::interprocess::managed_shared_memory MSM;
+// boost managed shared memory handle type
 typedef boost::interprocess::managed_shared_memory::handle_t MSMHandle;
-// Handle/Size Map
-typedef std::map<MSMHandle, std::size_t> HSMap;
-// Handle/Size Pair
-typedef std::pair<MSMHandle, std::size_t> HSPair;
+// holds offset/size pairs
+struct OffSize {
+    std::size_t offset;
+    std::size_t size;
+};
+// Handle/Offset Map (my offset from my view of the base of the sm segment
+typedef std::map<MSMHandle, OffSize> HOSMap;
 
+/* ////////////////////////////////////////////////////////////////////////// */
+/* J7Exception Class */
+/* ////////////////////////////////////////////////////////////////////////// */
 class J7Exception : public std::exception {
 private:
     std::string whatString;
@@ -77,6 +86,9 @@ public:
     virtual const char *what(void) const throw();
 };
 
+/* ////////////////////////////////////////////////////////////////////////// */
+/* J7 Class */
+/* ////////////////////////////////////////////////////////////////////////// */
 class J7 {
 private:
     // cache of communicator size
@@ -91,12 +103,12 @@ private:
     std::size_t segSize;
     // shared segment name
     std::string segName;
-
+    // points to boost managed shared memory
     MSM *msm;
 
-    HSPair *smHSPair; // points to something in shared memory
+    MSMHandle *smHandle; // points to something in shared memory
     // XXX change to hash map when you start caring about performance XXX
-    HSMap hsMap;
+    HOSMap hosMap;
 
     J7(void);
 
@@ -106,16 +118,23 @@ private:
 
     void smSanity(void);
 
-    void setHSPair(void *j7Ptr, std::size_t size = 0, bool newEntry = false);
+    void storeMSMHandleinSM(void *j7Ptr);
 
-    HSPair retrieveHSPair(void);
+    MSMHandle retrieveHandle(void);
+
+    void * myBaseAddr(void *segStart, std::size_t offset);
 
     void setSMSegName(void);
 
     void barrier(void);
 
-    void bcast(void *buffer, int count, MPI_Datatype datatype,
-               int root, MPI_Comm comm);
+    void bcast(void *buffer, int count, MPI_Datatype datatype, int root);
+
+    void allreduce(void *sendbuf, void *recvbuf, int count,
+                   MPI_Datatype datatype, MPI_Op op);
+
+    void allgather(void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                   void *recvbuf, int recvcount, MPI_Datatype recvtype);
 
 public:
     J7(MPI_Comm &smComm, std::size_t segSize);

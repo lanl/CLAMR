@@ -45,6 +45,7 @@
  * TODO
  * replace MPI_Barrier with something faster if needed
  * over allocate for metadata (hide our stuff in the sm segment)
+ * add first touch
  */
 
 #include "j7.h"
@@ -61,6 +62,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #define J7_ERR_HERE __FILE__, __LINE__
 // named std::pair used to exchange handle/size mappings
@@ -111,6 +114,7 @@ J7::J7(MPI_Comm &smComm,
 {
     using std::string;
     int mpiInitialized = 0;
+
     if (MPI_SUCCESS != MPI_Initialized(&mpiInitialized)) {
         string estr = "MPI_Initialized failure";
         throw J7Exception(J7_ERR_HERE, estr);
@@ -132,9 +136,11 @@ J7::J7(MPI_Comm &smComm,
         string estr = "MPI_Comm_rank failure";
         throw J7Exception(J7_ERR_HERE, estr);
     }
+    // the size of the entire memory space
     this->segSize = segSize;
+    // figure out if i'm the custodian
     custodian = (0 == commRank) ? true : false;
-    // throws
+    // initialize the shared-memory segment -- throws
     smSegInit();
 }
 
@@ -148,34 +154,11 @@ J7::~J7(void)
         string estr = "WARNING: MPI_Comm_free failure";
         cerr << estr << endl;
     }
+    if (!hosMap.empty()) {
+        string estr = "WARNING: hosMap leaks";
+        cerr << estr << endl;
+    }
     delete msm;
-}
-
-/* ////////////////////////////////////////////////////////////////////////// */
-void
-J7::setSMSegName(void)
-{
-    using namespace std;
-    if (custodian) {
-        srand((unsigned int)time(NULL));
-        int randn = rand() % 1024;
-        char *me = NULL;
-        if (NULL == (me = getenv("USER"))) {
-            me = const_cast<char *>("unknown");
-        }
-        segName = "j7-" + n2s(randn) + "-" + string(me) + ".shm";
-        int cStrLen = segName.length() + 1;
-        bcast(&cStrLen, 1, MPI_INT, 0, comm);
-        bcast(const_cast<char *>(segName.c_str()), cStrLen, MPI_CHAR, 0, comm);
-    }
-    else {
-        int cStrLen = 0;
-        bcast(&cStrLen, 1, MPI_INT, 0, comm);
-        char *cStr = static_cast<char *>(calloc(cStrLen, sizeof(char)));
-        bcast(cStr, cStrLen, MPI_CHAR, 0, comm);
-        segName = string(cStr);
-        free(cStr);
-    }
 }
 
 /* ////////////////////////////////////////////////////////////////////////// */
@@ -190,12 +173,64 @@ J7::barrier(void)
 
 /* ////////////////////////////////////////////////////////////////////////// */
 void
-J7::bcast(void *buffer, int count, MPI_Datatype datatype,
-          int root, MPI_Comm comm)
+J7::bcast(void *buffer, int count, MPI_Datatype datatype, int root)
 {
-    if (MPI_SUCCESS != MPI_Bcast(buffer, count, datatype, root, comm)) {
+    if (MPI_SUCCESS != MPI_Bcast(buffer, count, datatype, root, this->comm)) {
         std::string estr = "MPI_Bcast failure";
         throw J7Exception(J7_ERR_HERE, estr);
+    }
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+void
+J7::allreduce(void *sendbuf, void *recvbuf, int count,
+              MPI_Datatype datatype, MPI_Op op)
+{
+    if (MPI_SUCCESS != MPI_Allreduce(sendbuf, recvbuf, count,
+                                     datatype, op, this->comm)) {
+        std::string estr = "MPI_Allreduce failure";
+        throw J7Exception(J7_ERR_HERE, estr);
+    }
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+void
+J7::allgather(void *sendbuf, int sendcount, MPI_Datatype sendtype,
+              void *recvbuf, int recvcount, MPI_Datatype recvtype)
+{
+    if (MPI_SUCCESS != MPI_Allgather(sendbuf, sendcount, sendtype,
+                                     recvbuf, recvcount, recvtype,
+                                     this->comm)) {
+        std::string estr = "MPI_Allgather failure";
+        throw J7Exception(J7_ERR_HERE, estr);
+    }
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+void
+J7::setSMSegName(void)
+{
+    using namespace std;
+    if (custodian) {
+        srand((unsigned int)time(NULL));
+        int randn = rand() % 1024;
+        char *me = NULL;
+        if (NULL == (me = getenv("USER"))) {
+            me = const_cast<char *>("unknown");
+        }
+        segName = "j7-" + n2s(randn) + "-" + string(me) + "-" +
+                  n2s(getpid()) + ".shm";
+        int cStrLen = segName.length() + 1;
+        bcast(&cStrLen, 1, MPI_INT, 0);
+        bcast(const_cast<char *>(segName.c_str()), cStrLen, MPI_CHAR, 0);
+    }
+    else {
+        int cStrLen = 0;
+        bcast(&cStrLen, 1, MPI_INT, 0);
+        char *cStr = static_cast<char *>(calloc(cStrLen, sizeof(char)));
+        bcast(cStr, cStrLen, MPI_CHAR, 0);
+        segName = string(cStr);
+        free(cStr);
     }
 }
 
@@ -212,7 +247,8 @@ J7::smSegInit(void)
         if (custodian) {
             msm = new managed_shared_memory(create_only, segName.c_str(),
                                             segSize);
-            smHSPair = msm->construct<HSPair>(MMSTR)[1]();
+            // create a space in shared-memory to exchange MSMHandles
+            smHandle = msm->construct<MSMHandle>(MMSTR)[1]();
             barrier();
         }
         else {
@@ -235,14 +271,12 @@ J7::smSegInit(void)
 void
 J7::smSegFini(void)
 {
-    using namespace boost::interprocess;
-    using std::cerr;
-    using std::endl;
     if (custodian) {
         // destroy named objects
-        msm->destroy<HSPair>(MMSTR);
+        msm->destroy<MSMHandle>(MMSTR);
         if (!msm->all_memory_deallocated()) {
-            cerr << "WARNING: *** j7 detected leaked objects ***" << endl;
+            std::cerr << "WARNING: *** j7 detected leaked objects ***"
+                      << std::endl;
         }
     }
 }
@@ -261,28 +295,62 @@ J7::smSanity(void)
 
 /* ////////////////////////////////////////////////////////////////////////// */
 void *
+J7::myBaseAddr(void *segStart, std::size_t offset)
+{
+    char *caddr = static_cast<char *>(segStart);
+    caddr += offset;
+    return static_cast<void *>(caddr);
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+void *
 J7::memAlloc(std::size_t size)
 {
+    using namespace std;
     void *addr = NULL;
-    char *caddr = NULL;
-    static std::size_t npes = static_cast<std::size_t>(commSize);
-    std::size_t realSize = size * npes;
+    // the global size of the allocation -- what we are actually alloc'ing
+    size_t realSize = 0;
+    int mySize = static_cast<int>(size), realSizei = 0;
+    MSMHandle handle;
+    // calculate the global allocation size
+    allreduce(&mySize, &realSizei, 1, MPI_INT, MPI_SUM);
+    realSize = static_cast<size_t>(realSizei);
+    // get the respective allocation sizes. we need this in order to figure out
+    // each process offset into the segment.
+    int *allocSizes = new int[commSize];
+    allgather(&mySize, 1, MPI_INT, allocSizes, 1, MPI_INT);
+    // reserve enough space for everyone's allocation size
+    vector<size_t> allocSizeVector(commSize);
+    // copy values into vector
+    for (int i = 0; i < commSize; ++i) {
+        allocSizeVector[i] = static_cast<size_t>(allocSizes[i]);
+    }
+    delete[] allocSizes;
 
     if (custodian) {
-        // 8 byte alighnment
-        addr = msm->allocate_aligned(realSize, 8, std::nothrow);
-        setHSPair(addr, realSize, true);
+        // allocate with 8 byte alignment
+        addr = msm->allocate_aligned(realSize, 8, nothrow);
+        storeMSMHandleinSM(addr);
+        handle = retrieveHandle();
         barrier();
     }
     else {
-        barrier();
-        addr = msm->get_address_from_handle(retrieveHSPair().first);
+        barrier(); // wait for custodian
+        handle = retrieveHandle();
+        addr = msm->get_address_from_handle(handle);
     }
-    // everyone stash the allocation size associated with the new handle
     barrier();
-    caddr = static_cast<char *>(addr);
-    caddr += (commRank * size);
-    return static_cast<void *>(caddr);
+    // now fix the offset that each process returns
+    size_t myOffset = 0;
+    for (int i = 0; i < commRank; ++i) {
+        myOffset += allocSizeVector[i];
+    }
+    // store my offset and my size for this particular handle
+    OffSize offSize = {myOffset, size};
+    // stash the allocation information
+    hosMap[handle] = offSize;
+    // fix offset and return to caller
+    return myBaseAddr(addr, myOffset);
 }
 
 /* ////////////////////////////////////////////////////////////////////////// */
@@ -295,31 +363,36 @@ J7::memCalloc(std::size_t nElems, std::size_t elemSize)
 
 /* ////////////////////////////////////////////////////////////////////////// */
          // XXX this is really expensive. please fix me, kind sir. XXX
-             // assuming that realloc will only GROW a segment. //
 void *
 J7::memRealloc(void *ptr, std::size_t size)
 {
     using namespace std;
     // first create a new shiny memory region
     void *newRegion = memAlloc(size);
-    void *myBase = NULL;
-    HSPair hsp;
+    // my view of the base of the old allocation
+    void *base = NULL;
+    // my old offset and size for the region that is being realloc'd
+    OffSize oldOffSize = {0, 0};
+    // allocation handle
+    MSMHandle handle;
+
     if (custodian) {
-        setHSPair(ptr);
-        hsp = retrieveHSPair();
-        myBase = ptr;
+        storeMSMHandleinSM(ptr);
+        handle = retrieveHandle();
+        oldOffSize = hosMap.find(handle)->second;
         barrier();
     }
     else {
         barrier();
-        hsp = retrieveHSPair();
-        myBase = msm->get_address_from_handle(hsp.first);
-        char *cb = static_cast<char *>(myBase);
-        cb += (commRank * hsp.second / commSize);
-        myBase = static_cast<void *>(cb);
+        handle = retrieveHandle();
+        oldOffSize = hosMap.find(handle)->second;
     }
-    // we can do this in parallel - so do that
-    (void)memmove(newRegion, myBase, hsp.second / commSize);
+    // get base of old allocation
+    base = myBaseAddr(msm->get_address_from_handle(handle), oldOffSize.offset);
+    // set copy size to the min(oldSize, newSize)
+    size_t copySize = min(oldOffSize.size, size);
+    // we can copy in parallel - so do that
+    (void)memmove(newRegion, base, copySize);
     barrier();
     // done with the old
     memFree(ptr);
@@ -330,10 +403,20 @@ J7::memRealloc(void *ptr, std::size_t size)
 void
 J7::memFree(void *ptr)
 {
+    MSMHandle handle;
     if (custodian) {
-        hsMap.erase(hsMap[this->msm->get_handle_from_address(ptr)]);
+        storeMSMHandleinSM(ptr);
+        handle = retrieveHandle();
+        // only the custodian frees the memory in the shared-memory segment
         msm->deallocate(ptr);
+        barrier();
     }
+    else {
+        barrier();
+        handle = retrieveHandle();
+    }
+    // everyone stores handle/offset info in the hosMap, so rm the cruft
+    hosMap.erase(handle);
     barrier();
 }
 
@@ -343,13 +426,13 @@ J7::getBaseMemPtr(void *j7ptr)
 {
     void *baseAddr = NULL;
     if (custodian) {
-        setHSPair(j7ptr);
+        storeMSMHandleinSM(j7ptr);
         baseAddr = j7ptr;
         barrier();
     }
     else {
         barrier();
-        baseAddr = msm->get_address_from_handle(retrieveHSPair().first);
+        baseAddr = msm->get_address_from_handle(retrieveHandle());
     }
     barrier();
     return baseAddr;
@@ -357,24 +440,19 @@ J7::getBaseMemPtr(void *j7ptr)
 
 /* ////////////////////////////////////////////////////////////////////////// */
 void
-J7::setHSPair(void *j7Ptr, std::size_t size, bool newEntry)
+J7::storeMSMHandleinSM(void *j7Ptr)
 {
     if (!custodian) {
-        std::string eStr = "setHSPair can only be called by the custodian";
+        std::string eStr = "storeMSMHandleinSM can only be called by the custodian";
         throw J7Exception(J7_ERR_HERE, eStr);
     }
-    smHSPair->first = msm->get_handle_from_address(j7Ptr);
-    if (newEntry) {
-        smHSPair->second = size;
-        hsMap[smHSPair->first] = size;
-    }
-    // must already be stashed in our map
-    else smHSPair->second = hsMap[smHSPair->first];
+    // remember that this is in shared-memory
+    *smHandle = msm->get_handle_from_address(j7Ptr);
 }
 
 /* ////////////////////////////////////////////////////////////////////////// */
-HSPair
-J7::retrieveHSPair(void)
+MSMHandle
+J7::retrieveHandle(void)
 {
-    return *(msm->find<HSPair>(MMSTR).first);
+    return *(msm->find<MSMHandle>(MMSTR).first);
 }
