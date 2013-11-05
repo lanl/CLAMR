@@ -71,12 +71,6 @@ typedef float real;
 #define INDEX_ARRAY_MEMORY    0x00004
 #define LOAD_BALANCE_MEMORY   0x00008
 
-#if 1 // SKG for now don't really include J7 things.
-#ifdef HAVE_J7
-#undef HAVE_J7
-#endif
-#endif
-
 #ifdef HAVE_J7
 #include "mpi.h"
 // forward class declaration here because i don't want to include j7.h here
@@ -116,8 +110,6 @@ public:
    void pinit(MPI_Comm smComm, std::size_t memPoolSize);
    // parallel (typically MPI) finalization routine
    void pfini(void);
-   // default constructor
-   //MallocPlus(void);
 #endif
 
    void *memory_malloc(size_t nelem, size_t elsize, const char *name);

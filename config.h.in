@@ -43,3 +43,9 @@
 
 /* Define for large files, on AIX-style hosts. */
 #undef _LARGE_FILES
+
+/* Define if you have j7 support */
+#cmakedefine HAVE_J7
+
+/* Define if you have QUO support */
+#cmakedefine HAVE_QUO

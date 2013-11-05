@@ -23,8 +23,6 @@ target_link_libraries(dMallocPlus ezcl)
 if (Boost_FOUND AND MPI_FOUND)
     message(STATUS "Adding j7 support ot MallocPlus")
     target_link_libraries(dMallocPlus j7)
-    # XXX want to set HAVE_J7 at the top-level not all over the place
-    add_definitions(-DHAVE_J7)
 endif()
 install(TARGETS dMallocPlus DESTINATION lib)
 

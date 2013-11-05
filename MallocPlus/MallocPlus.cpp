@@ -94,13 +94,6 @@ list<malloc_plus_memory_entry>::iterator it_save;
 
 #include "j7/j7.h"
 
-#if 0
-MallocPlus::MallocPlus(void)
-{
-    j7 = NULL;
-}
-#endif
-
 void
 MallocPlus::pinit(MPI_Comm smComm, std::size_t memPoolSize)
 {
