@@ -7,13 +7,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_MPI=1")
 #   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
 #endif (CMAKE_C_COMPILER MATCHES "icc$")
 
-if(DEFINED ENV{QUO_HOME})
-   if(EXISTS "$ENV{QUO_HOME}/include/")
-      set (QUO_FOUND on)
-      include_directories($ENV{QUO_HOME}/include)
-   endif (EXISTS "$ENV{QUO_HOME}/include/")
-endif (DEFINED ENV{QUO_HOME})
-
 set(H_SRCS l7.h l7_assert.h l7p.h)
 
 set(C_SRCS
@@ -37,10 +30,6 @@ set(l7_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
 add_library(l7 STATIC ${l7_LIB_SRCS})
 
-if (QUO_FOUND)
-set_target_properties(l7 PROPERTIES COMPILE_DEFINITIONS HAVE_QUO)
-endif(QUO_FOUND)
-
 set_target_properties(l7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
 target_link_libraries(l7 ${MPI_LIBRARIES})
 install(TARGETS l7 DESTINATION lib)
@@ -51,11 +40,7 @@ set(dl7_LIB_SRCS ${C_SRCS} ${H_SRCS})
 add_library(dl7 STATIC ${l7_LIB_SRCS})
 
 set_target_properties(dl7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
-if (QUO_FOUND)
-set_target_properties(dl7 PROPERTIES COMPILE_DEFINITIONS "HAVE_OPENCL;HAVE_QUO")
-else (QUO_FOUND)
 set_target_properties(dl7 PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
-endif (QUO_FOUND)
 target_link_libraries(dl7 ${MPI_LIBRARIES})
 target_link_libraries(dl7 ${OPENCL_LIBRARIES})
 add_dependencies(dl7 l7_kernel_source)
