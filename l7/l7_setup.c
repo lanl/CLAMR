@@ -403,9 +403,10 @@ int L7_Setup(
 #endif
 					/* Skip through all the rest on pe j. */
 					
-					while ( ( indices_needed[this_index] < 
-							     l7_id_db->starting_indices[j+1] ) &&
-							( this_index < num_indices_needed) )
+                    /* SKG - Update order to silence valgrind. Don't know if
+                     * this is okay... */
+					while ( ( this_index < num_indices_needed)  &&
+                            ( indices_needed[this_index] < l7_id_db->starting_indices[j+1] ) )
 						this_index++;
 					
 					/* Remember where we found the first one. */
@@ -505,8 +506,10 @@ int L7_Setup(
 		         
 		         this_index++;
 		         
-		         while ( ( indices_needed[this_index] < l7_id_db->starting_indices[j+1] ) &&
-		               ( num_indices_acctd_for < num_indices_needed ) ){
+                /* SKG - Update order to silence valgrind. Don't know if
+                 * this is okay... */
+		         while ( ( num_indices_acctd_for < num_indices_needed ) &&
+                        ( indices_needed[this_index] < l7_id_db->starting_indices[j+1] )) {
 		            /* Find the rest on pe j. */
 		            
 		            l7_id_db->recv_counts[i]++;

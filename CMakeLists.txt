@@ -124,9 +124,6 @@ find_package(Boost ${BOOST_MIN_VER})
 #message("X11_LIBRARIES ${X11_LIBRARIES}")
 #message("X11_LIBS ${X11_LIBS}")
 
-# configure a header file to pass some of the CMake settings
-# to the source code
-configure_file ( "${PROJECT_SOURCE_DIR}/config.h.in" "${PROJECT_BINARY_DIR}/config.h")
  
 add_definitions(-DHAVE_CONFIG_H)
 
@@ -303,8 +300,10 @@ if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND)
 
     add_executable(clamr_quo ${clamr_quo_SRCS})
 
-    set_target_properties(clamr_quo PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_QUO;HAVE_J7")
-    # XXX add HAVE_J7 only at top-level
+    # these sets HAVE_J7 and HAVE_QUO in config.h
+    set(HAVE_J7 ON)
+    set(HAVE_QUO ON)
+    set_target_properties(clamr_quo PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI")
 
     set(clamr_quo_link_flags "${OpenMP_CXX_FLAGS}")
     set_target_properties(clamr_quo PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
@@ -397,3 +396,8 @@ set (CMAKE_CHECK_COMMAND make -C ${CMAKE_SOURCE_DIR}/mesh/tests mesh_check &&
                          make -C ${CMAKE_SOURCE_DIR}/l7/tests   l7_check)
 
 add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND})
+
+# configure a header file to pass some of the CMake settings
+# to the source code
+# at bottom because we set things that change config above
+configure_file ( "${PROJECT_SOURCE_DIR}/config.h.in" "${PROJECT_BINARY_DIR}/config.h")
