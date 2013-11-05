@@ -6950,9 +6950,6 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       L7_Update(&level[0], L7_INT, load_balance_handle);
       L7_Update(&celltype[0], L7_INT, load_balance_handle);
 
-      L7_Free(&load_balance_handle);
-      load_balance_handle = 0;
- 
       MallocPlus mesh_memory_old = mesh_memory;
 
       for (real *mem_ptr=(real *)mesh_memory_old.memory_begin(); mem_ptr!=NULL; mem_ptr=(real *)mesh_memory_old.memory_next() ){
@@ -6981,6 +6978,9 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
          mesh_memory.memory_replace(mem_ptr, mesh_temp);
       }
 
+      L7_Free(&load_balance_handle);
+      load_balance_handle = 0;
+ 
       memory_reset_ptrs();
 
       //mesh_memory.memory_report();
