@@ -15,7 +15,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # uncomment to build debug
-#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Debug)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
@@ -320,6 +320,16 @@ if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND)
     target_link_libraries(clamr_quo ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
     install(TARGETS clamr_quo DESTINATION bin)
+
+    # XXX add load imbalance code here for now
+    set(load_imbl_CXX_SRCS QUO.cpp QUO.hpp load-imbl.cpp)
+    add_executable(load-imbl ${load_imbl_CXX_SRCS})
+
+    set_target_properties(load-imbl PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+    set_target_properties(load-imbl PROPERTIES LINK_FLAGS
+                          "${OpenMP_CXX_FLAGS} -L$ENV{QUO_HOME}/lib")
+    target_link_libraries(load-imbl ${MPI_LIBRARIES})
+    target_link_libraries(load-imbl j7 quo)
 endif()
 
 ########### clamr_gpucheck target ###############

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011-2013, Los Alamos National Security, LLC.
+ *  Copyright (c)      2013, Los Alamos National Security, LLC.
  *  All rights Reserved.
  *
  *  Copyright 2011-2012. Los Alamos National Security, LLC. This software was produced
@@ -36,22 +36,7 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- *  CLAMR -- LA-CC-11-094
- *  This research code is being developed as part of the
- *  2011 X Division Summer Workshop for the express purpose
- *  of a collaborative code for development of ideas in
- *  the implementation of AMR codes for Exascale platforms
- *
- *  AMR implementation of the Wave code previously developed
- *  as a demonstration code for regular grids on Exascale platforms
- *  as part of the Supercomputing Challenge and Los Alamos
- *  National Laboratory
- *
- *  Authors: Bob Robey       XCP-2   brobey@lanl.gov
- *           Neal Davis              davis68@lanl.gov, davis68@illinois.edu
- *           David Nicholaeff        dnic@lanl.gov, mtrxknight@aol.com
- *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
- *
+ *  Author: Samuel K. Gutierrez
  */
 
 #ifndef QUO_HPP_INCLUDED
@@ -112,6 +97,9 @@ public:
     std::string stringifyCBind(void);
 
     int nObjsByType(QUO_obj_type_t type);
+
+    int *qidsInType(QUO_obj_type_t inType,
+                    int typeIndex);
 
     int nObjsInType(QUO_obj_type_t inType,
                     int typeIndex,

@@ -357,8 +357,10 @@ J7::memAlloc(std::size_t size)
 void *
 J7::memCalloc(std::size_t nElems, std::size_t elemSize)
 {
+    std::size_t size = nElems * elemSize;
     // synchronization in memAlloc
-    return memAlloc(nElems * elemSize);
+    char *p = static_cast<char *>(memAlloc(size));
+    return memset(p, 0, size);
 }
 
 /* ////////////////////////////////////////////////////////////////////////// */
