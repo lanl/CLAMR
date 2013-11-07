@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011-2013, Los Alamos National Security, LLC.
+ *  Copyright (c)      2013, Los Alamos National Security, LLC.
  *  All rights Reserved.
  *
  *  Copyright 2011-2012. Los Alamos National Security, LLC. This software was produced
@@ -36,22 +36,7 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- *  CLAMR -- LA-CC-11-094
- *  This research code is being developed as part of the
- *  2011 X Division Summer Workshop for the express purpose
- *  of a collaborative code for development of ideas in
- *  the implementation of AMR codes for Exascale platforms
- *
- *  AMR implementation of the Wave code previously developed
- *  as a demonstration code for regular grids on Exascale platforms
- *  as part of the Supercomputing Challenge and Los Alamos
- *  National Laboratory
- *
- *  Authors: Bob Robey       XCP-2   brobey@lanl.gov
- *           Neal Davis              davis68@lanl.gov, davis68@illinois.edu
- *           David Nicholaeff        dnic@lanl.gov, mtrxknight@aol.com
- *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
- *
+ *  Author: Samuel K. Gutierrez
  */
 
 #include "QUO.hpp"
@@ -222,7 +207,7 @@ QUO::nqids(void) {
 string
 QUO::stringifyCBind(void) {
     char *cbind = NULL;
-    int rc = QUO_ERR, n = 0;
+    int rc = QUO_ERR;
     if (QUO_SUCCESS != QUO_stringify_cbind(this->context, &cbind)) {
         string estr = "QUO_stringify_cbind: rc = " + n2s(rc);
         throw QUOException(CLAMR_QUO_WHERE, estr);
@@ -249,6 +234,7 @@ QUO::nObjsInType(QUO_obj_type_t inType,
                  int typeIndex,
                  QUO_obj_type_t type) {
     int rc = QUO_ERR, n = 0;
+
     if (QUO_SUCCESS != (rc = QUO_nobjs_in_type_by_type(this->context,
                                                        inType, typeIndex,
                                                        type, &n))) {
@@ -256,6 +242,23 @@ QUO::nObjsInType(QUO_obj_type_t inType,
         throw QUOException(CLAMR_QUO_WHERE, estr);
     }
     return n;
+}
+
+/* ////////////////////////////////////////////////////////////////////////// */
+// returned resource must be free'd by caller
+int *
+QUO::qidsInType(QUO_obj_type_t inType,
+                int typeIndex) {
+    int rc = QUO_ERR;
+    int nQIDs = 0;
+    int *qids = NULL;
+    if (QUO_SUCCESS != (rc = QUO_qids_in_type(this->context,
+                                              inType, typeIndex,
+                                              &nQIDs, &qids))) {
+        string estr = "QUO_qids_in_type: rc = " + n2s(rc);
+        throw QUOException(CLAMR_QUO_WHERE, estr);
+    }
+    return qids;
 }
 
 /* ////////////////////////////////////////////////////////////////////////// */
@@ -310,7 +313,6 @@ bool
 QUO::autoDistrib(QUO_obj_type_t distrib_over_this,
                  int max_qids_per_res_type) {
     int isel = 0, rc = QUO_ERR;
-    bool selected = false;
     if (QUO_SUCCESS != (rc = QUO_auto_distrib(this->context, distrib_over_this,
                                               max_qids_per_res_type, &isel))) {
         string estr = "QUO_auto_distrib: rc = " + n2s(rc);
