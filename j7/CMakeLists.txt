@@ -1,5 +1,7 @@
 message(STATUS "j7: Begin Setup")
 
+find_package(Librt)
+
 if (MPI_FOUND)
     set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})
     message(STATUS "j7: MPI Found. Using wrapper compiler...")
@@ -20,9 +22,9 @@ if (Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     link_directories(${Boost_LIBRARY_DIRS})
     # FIXME - we should detect if we need librt
-    if (NOT APPLE)
+    if (Librt_FOUND)
        target_link_libraries(j7 rt)
-    endif ()
+    endif (Librt_FOUND)
     set_target_properties(j7 PROPERTIES INCLUDE_DIRECTORIES ${Boost_INCLUDE_DIRS})
 endif()
 
