@@ -183,6 +183,22 @@ add_dependencies(clamr state_kernel_source)
 
 install(TARGETS clamr DESTINATION bin)
 
+########### clamr_cpuonly target ###############
+
+set(clamr_cpuonly_CXX_SRCS clamr_cpuonly.cpp state.cpp input.cpp)
+set(clamr_cpuonly_C_SRCS display.c)
+set(clamr_cpuonly_H_SRCS display.h state.h input.h)
+
+set(clamr_cpuonly_SRCS ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr_cpuonly_H_SRCS})
+
+add_executable(clamr_cpuonly ${clamr_cpuonly_SRCS})
+
+target_link_libraries(clamr_cpuonly mesh hsfc hash kdtree zorder s7 timer memstats genmalloc MallocPlus m)
+target_link_libraries(clamr_cpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
+target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+
+install(TARGETS clamr_cpuonly DESTINATION bin)
+
 ########### clamr_gpuonly target ###############
 if (OPENCL_FOUND)
    set(clamr_gpuonly_CXX_SRCS clamr_gpuonly.cpp state.cpp input.cpp)
@@ -202,22 +218,6 @@ if (OPENCL_FOUND)
 
    install(TARGETS clamr_gpuonly DESTINATION bin)
 endif (OPENCL_FOUND)
-
-########### clamr_cpuonly target ###############
-
-set(clamr_cpuonly_CXX_SRCS clamr_cpuonly.cpp state.cpp input.cpp)
-set(clamr_cpuonly_C_SRCS display.c)
-set(clamr_cpuonly_H_SRCS display.h state.h input.h)
-
-set(clamr_cpuonly_SRCS ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr_cpuonly_H_SRCS})
-
-add_executable(clamr_cpuonly ${clamr_cpuonly_SRCS})
-
-target_link_libraries(clamr_cpuonly mesh hsfc hash kdtree zorder s7 timer memstats genmalloc MallocPlus m)
-target_link_libraries(clamr_cpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
-target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
-
-install(TARGETS clamr_cpuonly DESTINATION bin)
 
 ########### clamr_mpionly target ###############
 if (MPI_FOUND)
@@ -244,25 +244,25 @@ if (MPI_FOUND)
 endif (MPI_FOUND)
 
 ########### clamr_openmponly target ###############
-set(clamr_openmponly_CXX_SRCS clamr_openmponly.cpp state.cpp input.cpp)
-set(clamr_openmponly_C_SRCS display.c)
-set(clamr_openmponly_H_SRCS display.h state.h input.h)
-
-set(clamr_openmponly_SRCS ${clamr_openmponly_CXX_SRCS} ${clamr_openmponly_C_SRCS} ${clamr_openmponly_H_SRCS})
-
-add_executable(clamr_openmponly ${clamr_openmponly_SRCS})
-
 if(OPENMP_FOUND)
-set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
-set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
-set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
+   set(clamr_openmponly_CXX_SRCS clamr_openmponly.cpp state.cpp input.cpp)
+   set(clamr_openmponly_C_SRCS display.c)
+   set(clamr_openmponly_H_SRCS display.h state.h input.h)
+
+   set(clamr_openmponly_SRCS ${clamr_openmponly_CXX_SRCS} ${clamr_openmponly_C_SRCS} ${clamr_openmponly_H_SRCS})
+
+   add_executable(clamr_openmponly ${clamr_openmponly_SRCS})
+
+   set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+   set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+   set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
+
+   target_link_libraries(clamr_openmponly mesh hsfc hash kdtree zorder s7 timer memstats genmalloc MallocPlus m)
+   target_link_libraries(clamr_openmponly ${MPE_NOMPI_LIBS} ${X11_LIBS})
+   target_link_libraries(clamr_openmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+
+   install(TARGETS clamr_openmponly DESTINATION bin)
 endif(OPENMP_FOUND)
-
-target_link_libraries(clamr_openmponly mesh hsfc hash kdtree zorder s7 timer memstats genmalloc MallocPlus m)
-target_link_libraries(clamr_openmponly ${MPE_NOMPI_LIBS} ${X11_LIBS})
-target_link_libraries(clamr_openmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
-
-install(TARGETS clamr_openmponly DESTINATION bin)
 
 ########### clamr_mpiopenmponly target ###############
 if (MPI_FOUND AND OPENMP_FOUND)
