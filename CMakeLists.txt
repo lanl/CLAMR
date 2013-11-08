@@ -145,6 +145,13 @@ add_subdirectory(zorder)
 add_subdirectory(genmalloc)
 add_subdirectory(MallocPlus)
 add_subdirectory(hash)
+#if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND)
+#    add_subdirectory(j7)
+#endif (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND)
+if (MPI_FOUND AND OPENMP_FOUND)
+     add_subdirectory(j7)
+endif (MPI_FOUND AND OPENMP_FOUND)
+
 
 ########### embed source target ###############
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/state_kernel.inc
@@ -291,7 +298,7 @@ if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND)
     message(STATUS "clamr_quo Minimum Requires Met")
 
     # for now, only clamr_quo uses j7
-    add_subdirectory(j7)
+    #add_subdirectory(j7)
     set(clamr_quo_CXX_SRCS clamr_quo.cpp state.cpp input.cpp)
     set(clamr_quo_C_SRCS display.c)
     set(clamr_quo_H_SRCS display.h state.h input.h)

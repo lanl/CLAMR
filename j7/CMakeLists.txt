@@ -20,7 +20,9 @@ if (Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     link_directories(${Boost_LIBRARY_DIRS})
     # FIXME - we should detect if we need librt
-    target_link_libraries(j7 rt)
+    if (NOT APPLE)
+       target_link_libraries(j7 rt)
+    endif ()
     set_target_properties(j7 PROPERTIES INCLUDE_DIRECTORIES ${Boost_INCLUDE_DIRS})
 endif()
 
