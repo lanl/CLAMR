@@ -184,22 +184,24 @@ add_dependencies(clamr state_kernel_source)
 install(TARGETS clamr DESTINATION bin)
 
 ########### clamr_gpuonly target ###############
-set(clamr_gpuonly_CXX_SRCS clamr_gpuonly.cpp state.cpp input.cpp)
-set(clamr_gpuonly_C_SRCS display.c)
-set(clamr_gpuonly_H_SRCS display.h state.h input.h)
-set(clamr_gpuonly_SRCS ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS})
+if (OPENCL_FOUND)
+   set(clamr_gpuonly_CXX_SRCS clamr_gpuonly.cpp state.cpp input.cpp)
+   set(clamr_gpuonly_C_SRCS display.c)
+   set(clamr_gpuonly_H_SRCS display.h state.h input.h)
+   set(clamr_gpuonly_SRCS ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS})
 
-add_executable(clamr_gpuonly ${clamr_gpuonly_SRCS})
+   add_executable(clamr_gpuonly ${clamr_gpuonly_SRCS})
 
-set_target_properties(clamr_gpuonly PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
+   set_target_properties(clamr_gpuonly PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
-target_link_libraries(clamr_gpuonly dmesh hsfc dhash kdtree zorder s7 ezcl timer memstats genmalloc dMallocPlus m)
-target_link_libraries(clamr_gpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
-target_link_libraries(clamr_gpuonly ${OPENCL_LIBRARIES})
-target_link_libraries(clamr_gpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
-add_dependencies(clamr_gpuonly state_kernel_source)
+   target_link_libraries(clamr_gpuonly dmesh hsfc dhash kdtree zorder s7 ezcl timer memstats genmalloc dMallocPlus m)
+   target_link_libraries(clamr_gpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
+   target_link_libraries(clamr_gpuonly ${OPENCL_LIBRARIES})
+   target_link_libraries(clamr_gpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+   add_dependencies(clamr_gpuonly state_kernel_source)
 
-install(TARGETS clamr_gpuonly DESTINATION bin)
+   install(TARGETS clamr_gpuonly DESTINATION bin)
+endif (OPENCL_FOUND)
 
 ########### clamr_cpuonly target ###############
 
@@ -218,26 +220,28 @@ target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 install(TARGETS clamr_cpuonly DESTINATION bin)
 
 ########### clamr_mpionly target ###############
-set(clamr_mpionly_CXX_SRCS clamr_mpionly.cpp state.cpp input.cpp)
-set(clamr_mpionly_C_SRCS display.c)
-set(clamr_mpionly_H_SRCS display.h state.h input.h)
+if (MPI_FOUND)
+   set(clamr_mpionly_CXX_SRCS clamr_mpionly.cpp state.cpp input.cpp)
+   set(clamr_mpionly_C_SRCS display.c)
+   set(clamr_mpionly_H_SRCS display.h state.h input.h)
 
-set(clamr_mpionly_SRCS ${clamr_mpionly_CXX_SRCS} ${clamr_mpionly_C_SRCS} ${clamr_mpionly_H_SRCS})
+   set(clamr_mpionly_SRCS ${clamr_mpionly_CXX_SRCS} ${clamr_mpionly_C_SRCS} ${clamr_mpionly_H_SRCS})
 
-add_executable(clamr_mpionly ${clamr_mpionly_SRCS})
+   add_executable(clamr_mpionly ${clamr_mpionly_SRCS})
 
-set_target_properties(clamr_mpionly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-if (QUO_FOUND)
-set_target_properties(clamr_mpionly PROPERTIES LINK_FLAGS "-L$ENV{QUO_HOME}/lib")
-target_link_libraries(clamr_mpionly quo)
-endif (QUO_FOUND)
+   set_target_properties(clamr_mpionly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+   if (QUO_FOUND)
+   set_target_properties(clamr_mpionly PROPERTIES LINK_FLAGS "-L$ENV{QUO_HOME}/lib")
+   target_link_libraries(clamr_mpionly quo)
+   endif (QUO_FOUND)
 
-target_link_libraries(clamr_mpionly pmesh hsfc hash kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
-target_link_libraries(clamr_mpionly ${MPE_LIBS} ${X11_LIBS})
-target_link_libraries(clamr_mpionly ${MPI_LIBRARIES})
-target_link_libraries(clamr_mpionly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+   target_link_libraries(clamr_mpionly pmesh hsfc hash kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
+   target_link_libraries(clamr_mpionly ${MPE_LIBS} ${X11_LIBS})
+   target_link_libraries(clamr_mpionly ${MPI_LIBRARIES})
+   target_link_libraries(clamr_mpionly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
-install(TARGETS clamr_mpionly DESTINATION bin)
+   install(TARGETS clamr_mpionly DESTINATION bin)
+endif (MPI_FOUND)
 
 ########### clamr_openmponly target ###############
 set(clamr_openmponly_CXX_SRCS clamr_openmponly.cpp state.cpp input.cpp)
@@ -261,35 +265,35 @@ target_link_libraries(clamr_openmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 install(TARGETS clamr_openmponly DESTINATION bin)
 
 ########### clamr_mpiopenmponly target ###############
-set(clamr_mpiopenmponly_CXX_SRCS clamr_mpiopenmponly.cpp state.cpp input.cpp)
-set(clamr_mpiopenmponly_C_SRCS display.c)
-set(clamr_mpiopenmponly_H_SRCS display.h state.h input.h)
+if (MPI_FOUND AND OPENMP_FOUND)
+   set(clamr_mpiopenmponly_CXX_SRCS clamr_mpiopenmponly.cpp state.cpp input.cpp)
+   set(clamr_mpiopenmponly_C_SRCS display.c)
+   set(clamr_mpiopenmponly_H_SRCS display.h state.h input.h)
 
-set(clamr_mpiopenmponly_SRCS ${clamr_mpiopenmponly_CXX_SRCS} ${clamr_mpiopenmponly_C_SRCS} ${clamr_mpiopenmponly_H_SRCS})
+   set(clamr_mpiopenmponly_SRCS ${clamr_mpiopenmponly_CXX_SRCS} ${clamr_mpiopenmponly_C_SRCS} ${clamr_mpiopenmponly_H_SRCS})
 
-add_executable(clamr_mpiopenmponly ${clamr_mpiopenmponly_SRCS})
+   add_executable(clamr_mpiopenmponly ${clamr_mpiopenmponly_SRCS})
 
-set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+   set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 
-if(OPENMP_FOUND)
-set(clamr_mpiopenmponly_link_flags "${OpenMP_CXX_FLAGS}")
-set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
-set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
-endif(OPENMP_FOUND)
+   set(clamr_mpiopenmponly_link_flags "${OpenMP_CXX_FLAGS}")
+   set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+   set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
 
-if (QUO_FOUND)
-set(clamr_mpiopenmponly_link_flags "${clamr_mpiopenmponly_link_flags} -L$ENV{QUO_HOME}/lib")
-target_link_libraries(clamr_mpiopenmponly quo)
-endif (QUO_FOUND)
+   if (QUO_FOUND)
+   set(clamr_mpiopenmponly_link_flags "${clamr_mpiopenmponly_link_flags} -L$ENV{QUO_HOME}/lib")
+   target_link_libraries(clamr_mpiopenmponly quo)
+   endif (QUO_FOUND)
 
-set_target_properties(clamr_mpiopenmponly PROPERTIES LINK_FLAGS "${clamr_mpiopenmponly_link_flags}")
+   set_target_properties(clamr_mpiopenmponly PROPERTIES LINK_FLAGS "${clamr_mpiopenmponly_link_flags}")
 
-target_link_libraries(clamr_mpiopenmponly pmesh hsfc hash kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
-target_link_libraries(clamr_mpiopenmponly ${MPE_LIBS} ${X11_LIBS})
-target_link_libraries(clamr_mpiopenmponly ${MPI_LIBRARIES})
-target_link_libraries(clamr_mpiopenmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+   target_link_libraries(clamr_mpiopenmponly pmesh hsfc hash kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
+   target_link_libraries(clamr_mpiopenmponly ${MPE_LIBS} ${X11_LIBS})
+   target_link_libraries(clamr_mpiopenmponly ${MPI_LIBRARIES})
+   target_link_libraries(clamr_mpiopenmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
-install(TARGETS clamr_mpiopenmponly DESTINATION bin)
+   install(TARGETS clamr_mpiopenmponly DESTINATION bin)
+endif (MPI_FOUND AND OPENMP_FOUND)
 
 ########### clamr_quo target ###############
 # only build this thing if we have QUO, MPI, and OpenMP
@@ -340,69 +344,75 @@ if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND)
 endif()
 
 ########### clamr_gpucheck target ###############
-set(clamr_gpucheck_CXX_SRCS clamr_gpucheck.cpp state.cpp input.cpp)
-set(clamr_gpucheck_C_SRCS display.c)
-set(clamr_gpucheck_H_SRCS display.h state.h input.h)
+if (OPENCL_FOUND)
+   set(clamr_gpucheck_CXX_SRCS clamr_gpucheck.cpp state.cpp input.cpp)
+   set(clamr_gpucheck_C_SRCS display.c)
+   set(clamr_gpucheck_H_SRCS display.h state.h input.h)
 
-set(clamr_gpucheck_SRCS ${clamr_gpucheck_CXX_SRCS} ${clamr_gpucheck_C_SRCS} ${clamr_gpucheck_H_SRCS})
+   set(clamr_gpucheck_SRCS ${clamr_gpucheck_CXX_SRCS} ${clamr_gpucheck_C_SRCS} ${clamr_gpucheck_H_SRCS})
 
-add_executable(clamr_gpucheck ${clamr_gpucheck_SRCS})
+   add_executable(clamr_gpucheck ${clamr_gpucheck_SRCS})
 
-set_target_properties(clamr_gpucheck PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
+   set_target_properties(clamr_gpucheck PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
-target_link_libraries(clamr_gpucheck dmesh hsfc dhash kdtree zorder s7 ezcl timer memstats genmalloc dMallocPlus m)
-target_link_libraries(clamr_gpucheck ${MPE_NOMPI_LIBS} ${X11_LIBS})
-target_link_libraries(clamr_gpucheck ${OPENCL_LIBRARIES})
-target_link_libraries(clamr_gpucheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
-add_dependencies(clamr_gpucheck state_kernel_source)
+   target_link_libraries(clamr_gpucheck dmesh hsfc dhash kdtree zorder s7 ezcl timer memstats genmalloc dMallocPlus m)
+   target_link_libraries(clamr_gpucheck ${MPE_NOMPI_LIBS} ${X11_LIBS})
+   target_link_libraries(clamr_gpucheck ${OPENCL_LIBRARIES})
+   target_link_libraries(clamr_gpucheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+   add_dependencies(clamr_gpucheck state_kernel_source)
 
-install(TARGETS clamr_gpucheck DESTINATION bin)
+   install(TARGETS clamr_gpucheck DESTINATION bin)
+endif (OPENCL_FOUND)
 
 ########### clamr_mpicheck target ###############
-set(clamr_mpicheck_CXX_SRCS clamr_mpicheck.cpp state.cpp input.cpp)
-set(clamr_mpicheck_C_SRCS display.c)
-set(clamr_mpicheck_H_SRCS display.h state.h input.h)
+if (MPI_FOUND)
+   set(clamr_mpicheck_CXX_SRCS clamr_mpicheck.cpp state.cpp input.cpp)
+   set(clamr_mpicheck_C_SRCS display.c)
+   set(clamr_mpicheck_H_SRCS display.h state.h input.h)
 
-set(clamr_mpicheck_SRCS ${clamr_mpicheck_CXX_SRCS} ${clamr_mpicheck_C_SRCS} ${clamr_mpicheck_H_SRCS})
+   set(clamr_mpicheck_SRCS ${clamr_mpicheck_CXX_SRCS} ${clamr_mpicheck_C_SRCS} ${clamr_mpicheck_H_SRCS})
 
-add_executable(clamr_mpicheck ${clamr_mpicheck_SRCS})
+   add_executable(clamr_mpicheck ${clamr_mpicheck_SRCS})
 
-set_target_properties(clamr_mpicheck PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-if (QUO_FOUND)
-set_target_properties(clamr_mpicheck PROPERTIES LINK_FLAGS "-L$ENV{QUO_HOME}/lib")
-target_link_libraries(clamr_mpicheck quo)
-endif (QUO_FOUND)
+   set_target_properties(clamr_mpicheck PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+   if (QUO_FOUND)
+   set_target_properties(clamr_mpicheck PROPERTIES LINK_FLAGS "-L$ENV{QUO_HOME}/lib")
+   target_link_libraries(clamr_mpicheck quo)
+   endif (QUO_FOUND)
 
-target_link_libraries(clamr_mpicheck pmesh hsfc hash kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
-target_link_libraries(clamr_mpicheck ${MPE_LIBS} ${X11_LIBS})
-target_link_libraries(clamr_mpicheck ${MPI_LIBRARIES})
-target_link_libraries(clamr_mpicheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+   target_link_libraries(clamr_mpicheck pmesh hsfc hash kdtree zorder s7 timer memstats l7 genmalloc MallocPlus m)
+   target_link_libraries(clamr_mpicheck ${MPE_LIBS} ${X11_LIBS})
+   target_link_libraries(clamr_mpicheck ${MPI_LIBRARIES})
+   target_link_libraries(clamr_mpicheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
-install(TARGETS clamr_mpicheck DESTINATION bin)
+   install(TARGETS clamr_mpicheck DESTINATION bin)
+endif (MPI_FOUND)
 
 ########### clamr_checkall target ###############
-set(clamr_checkall_CXX_SRCS clamr_checkall.cpp state.cpp input.cpp)
-set(clamr_checkall_C_SRCS display.c)
-set(clamr_checkall_H_SRCS display.h state.h input.h)
+if (MPI_FOUND AND OPENCL_FOUND)
+   set(clamr_checkall_CXX_SRCS clamr_checkall.cpp state.cpp input.cpp)
+   set(clamr_checkall_C_SRCS display.c)
+   set(clamr_checkall_H_SRCS display.h state.h input.h)
 
-set(clamr_checkall_SRCS ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${clamr_checkall_H_SRCS})
+   set(clamr_checkall_SRCS ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${clamr_checkall_H_SRCS})
 
-add_executable(clamr_checkall ${clamr_checkall_SRCS})
+   add_executable(clamr_checkall ${clamr_checkall_SRCS})
 
-set_target_properties(clamr_checkall PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
-if (QUO_FOUND)
-set_target_properties(clamr_checkall PROPERTIES LINK_FLAGS "-L$ENV{QUO_HOME}/lib")
-target_link_libraries(clamr_checkall quo)
-endif (QUO_FOUND)
+   set_target_properties(clamr_checkall PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
+   if (QUO_FOUND)
+   set_target_properties(clamr_checkall PROPERTIES LINK_FLAGS "-L$ENV{QUO_HOME}/lib")
+   target_link_libraries(clamr_checkall quo)
+   endif (QUO_FOUND)
 
-target_link_libraries(clamr_checkall dpmesh hsfc dhash kdtree zorder s7 pezcl timer memstats dl7 genmalloc dMallocPlus m)
-target_link_libraries(clamr_checkall ${MPE_LIBS} ${X11_LIBS})
-target_link_libraries(clamr_checkall ${MPI_LIBRARIES})
-target_link_libraries(clamr_checkall ${OPENCL_LIBRARIES})
-target_link_libraries(clamr_checkall ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
-add_dependencies(clamr_checkall state_kernel_source)
+   target_link_libraries(clamr_checkall dpmesh hsfc dhash kdtree zorder s7 pezcl timer memstats dl7 genmalloc dMallocPlus m)
+   target_link_libraries(clamr_checkall ${MPE_LIBS} ${X11_LIBS})
+   target_link_libraries(clamr_checkall ${MPI_LIBRARIES})
+   target_link_libraries(clamr_checkall ${OPENCL_LIBRARIES})
+   target_link_libraries(clamr_checkall ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+   add_dependencies(clamr_checkall state_kernel_source)
 
-install(TARGETS clamr_checkall DESTINATION bin)
+   install(TARGETS clamr_checkall DESTINATION bin)
+endif (MPI_FOUND AND OPENCL_FOUND)
 
 ########### clean files ################
 SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.inc;clamr;clamr_cpuonly;clamr_gpuonly;clamr_mpionly;clamr_gpucheck;clamr_mpicheck;clamr_checkall;clamr_quo")
