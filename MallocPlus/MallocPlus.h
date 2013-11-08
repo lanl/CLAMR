@@ -71,7 +71,7 @@ typedef float real;
 #define INDEX_ARRAY_MEMORY    0x00004
 #define LOAD_BALANCE_MEMORY   0x00008
 
-#ifdef HAVE_J7
+#if defined(HAVE_MPI) && defined(HAVE_J7)
 #include "mpi.h"
 // forward class declaration here because i don't want to include j7.h here
 // because of namespace conflicts. the "typedef real" thing and boost hate each
@@ -99,13 +99,13 @@ class MallocPlus {
 protected:
    list<malloc_plus_memory_entry> memory_list;
 
-#ifdef HAVE_J7
+#if defined(HAVE_MPI) && defined(HAVE_J7)
 private:
    J7 *j7;
 #endif
    
 public:
-#ifdef HAVE_J7 // J7 support implies MPI support
+#if defined(HAVE_MPI) && defined(HAVE_J7) // J7 support implies MPI support
    // parallel (typically MPI) initialization routine
    void pinit(MPI_Comm smComm, std::size_t memPoolSize);
    // parallel (typically MPI) finalization routine

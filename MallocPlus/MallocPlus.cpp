@@ -90,7 +90,7 @@ typedef cl_float2   cl_real2;
 typedef unsigned int uint;
 list<malloc_plus_memory_entry>::iterator it_save;
 
-#ifdef HAVE_J7
+#if defined(HAVE_MPI) && defined(HAVE_J7)
 
 #include "j7/j7.h"
 

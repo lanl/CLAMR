@@ -31,5 +31,6 @@ endif()
 ## j7-test0
 add_executable(j7-test0 j7-test0.cpp)
 target_link_libraries(j7-test0 j7)
+target_link_libraries(j7-test0 ${MPI_LIBRARIES})
 
 message(STATUS "j7: End Setup")
