@@ -119,7 +119,7 @@ void (*idlefunction)(void);
 #endif
 
 #ifdef HAVE_OPENGL
-static real xstart, ystart, xend, yend;
+static real_t xstart, ystart, xend, yend;
 #endif
 enum mode_choice {EYE, MOVE, DRAW};
 static int mode = MOVE;
@@ -128,7 +128,7 @@ static int mode = MOVE;
 static int height;
 #endif
 static int width;
-static real display_xmin=0.0, display_xmax=0.0, display_ymin=0.0, display_ymax=0.0;
+static real_t display_xmin=0.0, display_xmax=0.0, display_ymin=0.0, display_ymax=0.0;
 
 #ifdef HAVE_OPENGL
 static GLfloat xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
@@ -143,8 +143,8 @@ static double xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
 static int display_outline;
 static int display_view_mode = 0;
 static int display_mysize    = 0;
-static real *x=NULL, *y=NULL, *dx=NULL, *dy=NULL;
-static real *data=NULL;
+static real_t *x=NULL, *y=NULL, *dx=NULL, *dy=NULL;
+static real_t *data=NULL;
 static int *display_proc=NULL;
 static int rank = 0;
 
@@ -278,19 +278,19 @@ void start_main_loop(void){
 #endif
 }
    
-void set_window(real display_xmin_in, real display_xmax_in, real display_ymin_in, real display_ymax_in){
+void set_window(real_t display_xmin_in, real_t display_xmax_in, real_t display_ymin_in, real_t display_ymax_in){
    display_xmin = display_xmin_in;
    display_xmax = display_xmax_in;
    display_ymin = display_ymin_in;
    display_ymax = display_ymax_in;
 }
-void set_cell_data(real *data_in){
+void set_cell_data(real_t *data_in){
    data = data_in;
 }
 void set_cell_proc(int *display_proc_in){
    display_proc = display_proc_in;
 }
-void set_cell_coordinates(real *x_in, real *dx_in, real *y_in, real *dy_in){
+void set_cell_coordinates(real_t *x_in, real_t *dx_in, real_t *y_in, real_t *dy_in){
    x = x_in;
    dx = dx_in;
    y = y_in;
@@ -307,7 +307,7 @@ void DisplayState(void) {
 #if defined(HAVE_OPENGL) || defined(HAVE_MPE)
    int color;
 #endif
-   //vector<real> &H = state->H;
+   //vector<real_t> &H = state->H;
 
    if (autoscale) {
       scaleMax=-1.0e30;

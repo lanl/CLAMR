@@ -60,9 +60,9 @@
 #endif
 
 #ifdef HAVE_CL_DOUBLE
-typedef double real;
+typedef double real_t;
 #else
-typedef float real;
+typedef float real_t;
 #endif
 
 #define HOST_REGULAR_MEMORY   0x00000
@@ -130,7 +130,7 @@ public:
    void *memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, const char *name);
    void *memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, int flags, const char *name);
 
-   real *memory_reorder(real *malloc_mem_ptr, int *iorder);
+   real_t *memory_reorder(real_t *malloc_mem_ptr, int *iorder);
 
    void memory_report(void);
 

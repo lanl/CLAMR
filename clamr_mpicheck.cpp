@@ -87,23 +87,23 @@ static int do_cpu_calc = 1;
 static int do_gpu_calc = 0;
 
 #ifdef HAVE_CL_DOUBLE
-typedef double      real;
+typedef double      real_t;
 typedef struct
 {
    double s0;
    double s1;
-}  real2;
+}  real2_t;
 #define CONSERVATION_EPS    .00001
 #define STATE_EPS        .025
 #define MPI_C_REAL MPI_DOUBLE
 #define L7_REAL L7_DOUBLE
 #else
-typedef float       real;
+typedef float       real_t;
 typedef struct
 {
    float s0;
    float s1;
-}  real2;
+}  real2_t;
 #define CONSERVATION_EPS    .1
 #define STATE_EPS      15.0
 #define MPI_C_REAL MPI_FLOAT
@@ -182,26 +182,26 @@ int main(int argc, char **argv) {
 
    state_global = new State(mesh_global);
    state_global->allocate(ncells_global);
-   real  *H_global = state_global->H;
-   real  *U_global = state_global->U;
-   real  *V_global = state_global->V;
+   real_t  *H_global = state_global->H;
+   real_t  *U_global = state_global->U;
+   real_t  *V_global = state_global->V;
 
    vector<int>   &nsizes     = mesh->nsizes;
    vector<int>   &ndispl     = mesh->ndispl;
 
-   vector<real>  &x_global  = mesh_global->x;
-   vector<real>  &dx_global = mesh_global->dx;
-   vector<real>  &y_global  = mesh_global->y;
-   vector<real>  &dy_global = mesh_global->dy;
+   vector<real_t>  &x_global  = mesh_global->x;
+   vector<real_t>  &dx_global = mesh_global->dx;
+   vector<real_t>  &y_global  = mesh_global->y;
+   vector<real_t>  &dy_global = mesh_global->dy;
 
    vector<int>   &proc     = mesh->proc;
 
    vector<int>   &proc_global     = mesh_global->proc;
 
-   vector<real> &x  = mesh->x;
-   vector<real> &dx = mesh->dx;
-   vector<real> &y  = mesh->y;
-   vector<real> &dy = mesh->dy;
+   vector<real_t> &x  = mesh->x;
+   vector<real_t> &dx = mesh->dx;
+   vector<real_t> &y  = mesh->y;
+   vector<real_t> &dy = mesh->dy;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);
@@ -511,15 +511,15 @@ extern "C" void do_calc(void)
 #ifdef HAVE_GRAPHICS
    cpu_timer_start(&tstart_cpu);
 
-   vector<real>  &x  = mesh->x;
-   vector<real>  &dx = mesh->dx;
-   vector<real>  &y  = mesh->y;
-   vector<real>  &dy = mesh->dy;
+   vector<real_t>  &x  = mesh->x;
+   vector<real_t>  &dx = mesh->dx;
+   vector<real_t>  &y  = mesh->y;
+   vector<real_t>  &dy = mesh->dy;
 
-   vector<real>  &x_global  = mesh_global->x;
-   vector<real>  &dx_global = mesh_global->dx;
-   vector<real>  &y_global  = mesh_global->y;
-   vector<real>  &dy_global = mesh_global->dy;
+   vector<real_t>  &x_global  = mesh_global->x;
+   vector<real_t>  &dx_global = mesh_global->dx;
+   vector<real_t>  &y_global  = mesh_global->y;
+   vector<real_t>  &dy_global = mesh_global->dy;
 
    mesh->calc_spatial_coordinates(0);
 

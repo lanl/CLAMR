@@ -105,9 +105,9 @@ extern "C"
 #endif
 
 #ifdef HAVE_CL_DOUBLE
-typedef double      real;
+typedef double      real_t;
 #else
-typedef float       real;
+typedef float       real_t;
 #endif
 
 void init_display(int *argc, char **argv, const char* string, int mype_in);
@@ -117,9 +117,9 @@ void free_display(void);
 void set_viewmode(int display_view_mode_in);
 void set_outline(int display_outline_in);
 void set_mysize(int mysize_in);
-void set_window(real display_xmin_in, real display_xmax_in, real display_ymin_in, real display_ymax_in);
-void set_cell_coordinates(real *x_in, real *dx_in, real *y_in, real *dy_in);
-void set_cell_data(real *data_in);
+void set_window(real_t display_xmin_in, real_t display_xmax_in, real_t display_ymin_in, real_t display_ymax_in);
+void set_cell_coordinates(real_t *x_in, real_t *dx_in, real_t *y_in, real_t *dy_in);
+void set_cell_data(real_t *data_in);
 void set_cell_proc(int *display_proc_in);
 void set_circle_radius(double display_circle_radius_in);
 void draw_scene(void);

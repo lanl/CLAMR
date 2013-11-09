@@ -80,23 +80,23 @@ static int do_cpu_calc = 1;
 static int do_gpu_calc = 0;
 
 #ifdef HAVE_CL_DOUBLE
-typedef double      real;
+typedef double      real_t;
 typedef struct
 {
    double s0;
    double s1;
-}  real2;
+}  real2_t;
 #define CONSERVATION_EPS    .00001
 #define STATE_EPS        .025
 #define MPI_C_REAL MPI_DOUBLE
 #define L7_REAL L7_DOUBLE
 #else
-typedef float       real;
+typedef float       real_t;
 typedef struct
 {
    float s0;
    float s1;
-}  real2;
+}  real2_t;
 #define CONSERVATION_EPS    .1
 #define STATE_EPS      15.0
 #define MPI_C_REAL MPI_FLOAT
@@ -133,11 +133,11 @@ static struct timeval tstart;
 static double H_sum_initial = 0.0;
 static double cpu_time_graphics = 0.0;
 double cpu_time_main_setup = 0.0;
-vector<real> H_global;
-vector<real> x_global;
-vector<real> dx_global;
-vector<real> y_global;
-vector<real> dy_global;
+vector<real_t> H_global;
+vector<real_t> x_global;
+vector<real_t> dx_global;
+vector<real_t> y_global;
+vector<real_t> dy_global;
 vector<int> proc_global;
 
 int main(int argc, char **argv) {
@@ -180,10 +180,10 @@ int main(int argc, char **argv) {
    vector<int>   &nsizes     = mesh->nsizes;
    vector<int>   &ndispl     = mesh->ndispl;
 
-   vector<real> &x  = mesh->x;
-   vector<real> &dx = mesh->dx;
-   vector<real> &y  = mesh->y;
-   vector<real> &dy = mesh->dy;
+   vector<real_t> &x  = mesh->x;
+   vector<real_t> &dx = mesh->dx;
+   vector<real_t> &y  = mesh->y;
+   vector<real_t> &dy = mesh->dy;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);
@@ -239,11 +239,11 @@ int main(int argc, char **argv) {
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL
    set_mysize(ncells_global);
-   //vector<real> H_global;
-   //vector<real> x_global;
-   //vector<real> dx_global;
-   //vector<real> y_global;
-   //vector<real> dy_global;
+   //vector<real_t> H_global;
+   //vector<real_t> x_global;
+   //vector<real_t> dx_global;
+   //vector<real_t> y_global;
+   //vector<real_t> dy_global;
    //vector<int> proc_global;
    if (mype == 0){
       H_global.resize(ncells_global);
@@ -426,11 +426,11 @@ extern "C" void do_calc(void)
    vector<int>   &ndispl   = mesh->ndispl;
 
    set_mysize(ncells_global);
-   //vector<real> x_global;
-   //vector<real> dx_global;
-   //vector<real> y_global;
-   //vector<real> dy_global;
-   //vector<real> H_global;
+   //vector<real_t> x_global;
+   //vector<real_t> dx_global;
+   //vector<real_t> y_global;
+   //vector<real_t> dy_global;
+   //vector<real_t> H_global;
    //vector<int> proc_global;
 
    if (mype == 0) {

@@ -3,9 +3,9 @@
 #include "mpi.h"
 
 #ifdef HAVE_CL_DOUBLE
-typedef double real;
+typedef double real_t;
 #else
-typedef float real;
+typedef float real_t;
 #endif
 
 enum partition_method initial_order = HILBERT_SORT;
@@ -37,7 +37,7 @@ int main (int argc, char **argv)
 
    MallocPlus state_memory;
 
-   real *density = (real *)state_memory.memory_malloc(mesh->ncells, sizeof(real), "density");
+   real_t *density = (real_t *)state_memory.memory_malloc(mesh->ncells, sizeof(real_t), "density");
    for (int ic=0; ic<mesh->ncells; ic++){
       density[ic]=1.0;
    }

@@ -77,9 +77,9 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
 #ifdef HAVE_CL_DOUBLE
-typedef double      real;
+typedef double      real_t;
 #else
-typedef float       real;
+typedef float       real_t;
 #endif
 
 typedef unsigned int uint;
@@ -199,7 +199,7 @@ public:
                   lev_kbegin,   //  Lowest z-index in use at specified level of refinement.
                   lev_kend,     //  Highest z-index in use at specified level of refinement.
                   levtable;     //  Powers of two to simplify i,j calculations
-   vector<real>   lev_deltax,   //  Grid spacing along x-axis at specified level of refinement.
+   vector<real_t> lev_deltax,   //  Grid spacing along x-axis at specified level of refinement.
                   lev_deltay,   //  Grid spacing along y-axis at specified level of refinement.
                   lev_deltaz;   //  Grid spacing along z-axis at specified level of refinement.
    int            levmx,        //  Maximum level of refinement allowed.
@@ -214,7 +214,7 @@ public:
    size_t         ncells,       //  Number of cells in mesh.
                   ncells_global, //  Global number of cells for parallel runs
                   ncells_ghost; //  Number of cells in mesh with ghost cells.
-   real           xmin,         //  Lowest x-coordinate in use.
+   real_t         xmin,         //  Lowest x-coordinate in use.
                   xmax,         //  Highest x-coordinate in use.
                   ymin,         //  Lowest y-coordinate in use.
                   ymax,         //  Highest y-coordinate in use.
@@ -244,7 +244,7 @@ public:
                   *nbak,         //  1D ordered index of mesh element back neighbors.
                   *celltype;     // 1D ordered index of mesh element cell types (ghost or real).
 
-   vector<real>   x,            //  1D ordered index of mesh element x-coordinates.
+   vector<real_t> x,            //  1D ordered index of mesh element x-coordinates.
                   dx,           //  1D ordered index of mesh element x-coordinate spacings.
                   y,            //  1D ordered index of mesh element y-coordinates.
                   dy,           //  1D ordered index of mesh element y-coordinate spacings.
@@ -494,9 +494,9 @@ public:
    void compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
    void compare_ioffset_gpu_global_to_cpu_global(uint old_ncells, int *mpot);
    void compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global, int *i_global, int *j_global);
-   void compare_coordinates_gpu_global_to_cpu_global(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real *H);
+   void compare_coordinates_gpu_global_to_cpu_global(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real_t *H);
 #endif
-   void compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, real *x, real *dx, real *y, real *dy, real *H, real *x_global, real *dx_global, real *y_global, real *dy_global, real *H_global, int cycle);
+   void compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, real_t *x, real_t *dx, real_t *y, real_t *dy, real_t *H, real_t *x_global, real_t *dx_global, real_t *y_global, real_t *dy_global, real_t *H_global, int cycle);
 #ifdef HAVE_OPENCL
    void compare_indices_gpu_global_to_cpu_global(void);
 #endif

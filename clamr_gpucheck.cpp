@@ -88,12 +88,12 @@ static int do_sync = 0;
 static int do_gpu_sync = 0;
 
 #ifdef HAVE_CL_DOUBLE
-typedef double      real;
+typedef double      real_t;
 typedef struct
 {
    double s0;
    double s1;
-}  real2;
+}  real2_t;
 typedef cl_double   cl_real;
 typedef cl_double2  cl_real2;
 typedef cl_double4  cl_real4;
@@ -101,12 +101,12 @@ typedef cl_double8  cl_real8;
 #define CONSERVATION_EPS    .02
 #define STATE_EPS        .02
 #else
-typedef float       real;
+typedef float       real_t;
 typedef struct
 {
    float s0;
    float s1;
-}  real2;
+}  real2_t;
 typedef cl_float    cl_real;
 typedef cl_float2   cl_real2;
 typedef cl_float4   cl_real4;
@@ -200,9 +200,9 @@ int main(int argc, char **argv) {
    cl_mem &dev_U    = state->dev_U;
    cl_mem &dev_V    = state->dev_V;
 
-   real  *H        = state->H;
-   real  *U        = state->U;
-   real  *V        = state->V;
+   real_t  *H        = state->H;
+   real_t  *U        = state->U;
+   real_t  *V        = state->V;
 
    state->allocate_device_memory(ncells);
 

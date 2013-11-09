@@ -77,12 +77,12 @@
 //#endif
 
 #ifdef HAVE_CL_DOUBLE
-typedef double      real;
+typedef double      real_t;
 typedef struct
 {
    double s0;
    double s1;
-}  real2;
+}  real2_t;
 #ifdef HAVE_OPENCL
 typedef cl_double2  cl_real2;
 #endif
@@ -90,11 +90,12 @@ typedef cl_double2  cl_real2;
 #define STATE_EPS        .02
 #define MPI_C_REAL MPI_DOUBLE
 #else
+typedef float      real_t;
 typedef struct
 {
    float s0;
    float s1;
-}  real2;
+}  real2_t;
 #ifdef HAVE_OPENCL
 typedef cl_float2   cl_real2;
 #endif
@@ -146,55 +147,55 @@ cl_kernel kernel_reduce_epsum_mass_stage1of2;
 cl_kernel kernel_reduce_epsum_mass_stage2of2;
 #endif
 
-inline real U_halfstep(// XXX Fix the subindices to be more intuitive XXX
-        real    deltaT,     // Timestep
-        real    U_i,        // Initial cell's (downwind's) state variable
-        real    U_n,        // Next cell's    (upwind's)   state variable
-        real    F_i,        // Initial cell's (downwind's) state variable flux
-        real    F_n,        // Next cell's    (upwind's)   state variable flux
-        real    r_i,        // Initial cell's (downwind's) center to face distance
-        real    r_n,        // Next cell's    (upwind's)   center to face distance
-        real    A_i,        // Cell's            face surface area
-        real    A_n,        // Cell's neighbor's face surface area
-        real    V_i,        // Cell's            volume
-        real    V_n) {      // Cell's neighbor's volume
+inline real_t U_halfstep(// XXX Fix the subindices to be more intuitive XXX
+        real_t    deltaT,     // Timestep
+        real_t    U_i,        // Initial cell's (downwind's) state variable
+        real_t    U_n,        // Next cell's    (upwind's)   state variable
+        real_t    F_i,        // Initial cell's (downwind's) state variable flux
+        real_t    F_n,        // Next cell's    (upwind's)   state variable flux
+        real_t    r_i,        // Initial cell's (downwind's) center to face distance
+        real_t    r_n,        // Next cell's    (upwind's)   center to face distance
+        real_t    A_i,        // Cell's            face surface area
+        real_t    A_n,        // Cell's neighbor's face surface area
+        real_t    V_i,        // Cell's            volume
+        real_t    V_n) {      // Cell's neighbor's volume
 
    return (( r_i*U_n + r_n*U_i ) / ( r_i + r_n )) 
-          - HALF*deltaT*(( F_n*A_n*min((real)ONE, A_i/A_n) - F_i*A_i*min((real)ONE, A_n/A_i) )
-                    / ( V_n*min((real)HALF, V_i/V_n) + V_i*min((real)HALF, V_n/V_i) ));
+          - HALF*deltaT*(( F_n*A_n*min((real_t)ONE, A_i/A_n) - F_i*A_i*min((real_t)ONE, A_n/A_i) )
+                    / ( V_n*min((real_t)HALF, V_i/V_n) + V_i*min((real_t)HALF, V_n/V_i) ));
 
 }
 
-inline real U_fullstep(
-        real    deltaT,
-        real    dr,
-        real    U,
-        real    F_plus,
-        real    F_minus,
-        real    G_plus,
-        real    G_minus) {
+inline real_t U_fullstep(
+        real_t    deltaT,
+        real_t    dr,
+        real_t    U,
+        real_t    F_plus,
+        real_t    F_minus,
+        real_t    G_plus,
+        real_t    G_minus) {
 
    return (U - (deltaT / dr)*(F_plus - F_minus + G_plus - G_minus));
 
 }
 
 
-inline real w_corrector(
-        real    deltaT,       // Timestep
-        real    dr,           // Cell's center to face distance
-        real    U_eigen,      // State variable's eigenvalue (speed)
-        real    grad_half,    // Centered gradient
-        real    grad_minus,   // Downwind gradient
-        real    grad_plus) {  // Upwind gradient
+inline real_t w_corrector(
+        real_t    deltaT,       // Timestep
+        real_t    dr,           // Cell's center to face distance
+        real_t    U_eigen,      // State variable's eigenvalue (speed)
+        real_t    grad_half,    // Centered gradient
+        real_t    grad_minus,   // Downwind gradient
+        real_t    grad_plus) {  // Upwind gradient
 
-   real nu     = HALF * U_eigen * deltaT / dr;
+   real_t nu     = HALF * U_eigen * deltaT / dr;
    nu          = nu * (ONE - nu);
 
-   real rdenom = ONE / max(SQR(grad_half), (real)EPSILON);
-   real rplus  = (grad_plus  * grad_half) * rdenom;
-   real rminus = (grad_minus * grad_half) * rdenom;
+   real_t rdenom = ONE / max(SQR(grad_half), (real_t)EPSILON);
+   real_t rplus  = (grad_plus  * grad_half) * rdenom;
+   real_t rminus = (grad_minus * grad_half) * rdenom;
 
-   return HALF*nu*(ONE- max(MIN3((real)ONE, rplus, rminus), (real)ZERO));
+   return HALF*nu*(ONE- max(MIN3((real_t)ONE, rplus, rminus), (real_t)ZERO));
 
 }
 
@@ -265,9 +266,9 @@ void State::init(int do_gpu_calc)
 }
 
 void State::allocate(size_t ncells){
-   H = (real *)state_memory.memory_malloc(ncells, sizeof(real), "H");
-   U = (real *)state_memory.memory_malloc(ncells, sizeof(real), "U");
-   V = (real *)state_memory.memory_malloc(ncells, sizeof(real), "V");
+   H = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), "H");
+   U = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), "U");
+   V = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), "V");
 }
 
 void State::resize(size_t new_ncells){
@@ -280,9 +281,9 @@ void State::resize(size_t new_ncells){
 }
 
 void State::memory_reset_ptrs(void){
-   H = (real *)state_memory.get_memory_ptr("H");
-   U = (real *)state_memory.get_memory_ptr("U");
-   V = (real *)state_memory.get_memory_ptr("V");
+   H = (real_t *)state_memory.get_memory_ptr("H");
+   U = (real_t *)state_memory.get_memory_ptr("U");
+   V = (real_t *)state_memory.get_memory_ptr("V");
 
    //printf("\nDEBUG -- Calling state memory reset_ptrs at line %d\n",__LINE__);
    //state_memory.memory_report();
@@ -333,10 +334,10 @@ void State::add_boundary_cells(void)
    // the mesh sizes increased
    size_t &ncells        = mesh->ncells;
    vector<int>  &index    = mesh->index;
-   vector<real> &x        = mesh->x;
-   vector<real> &dx       = mesh->dx;
-   vector<real> &y        = mesh->y;
-   vector<real> &dy       = mesh->dy;
+   vector<real_t> &x        = mesh->x;
+   vector<real_t> &dx       = mesh->dx;
+   vector<real_t> &y        = mesh->y;
+   vector<real_t> &dy       = mesh->dy;
 
    int *i        = mesh->i;
    int *j        = mesh->j;
@@ -363,9 +364,9 @@ void State::add_boundary_cells(void)
       
    int new_ncells = ncells + icount;
    // Increase the arrays for the new boundary cells
-   H=(real *)state_memory.memory_realloc(new_ncells, sizeof(real), H);
-   U=(real *)state_memory.memory_realloc(new_ncells, sizeof(real), U);
-   V=(real *)state_memory.memory_realloc(new_ncells, sizeof(real), V);
+   H=(real_t *)state_memory.memory_realloc(new_ncells, sizeof(real_t), H);
+   U=(real_t *)state_memory.memory_realloc(new_ncells, sizeof(real_t), U);
+   V=(real_t *)state_memory.memory_realloc(new_ncells, sizeof(real_t), V);
    //printf("\nDEBUG add_boundary cells\n"); 
    //state_memory.memory_report();
    //printf("DEBUG end add_boundary cells\n\n"); 
@@ -585,10 +586,10 @@ void State::remove_boundary_cells(void)
 {
    size_t &ncells = mesh->ncells;
    vector<int> &index    = mesh->index;
-   vector<real> &x       = mesh->x;
-   vector<real> &dx      = mesh->dx;
-   vector<real> &y       = mesh->y;
-   vector<real> &dy      = mesh->dy;
+   vector<real_t> &x       = mesh->x;
+   vector<real_t> &dx      = mesh->dx;
+   vector<real_t> &y       = mesh->y;
+   vector<real_t> &dy      = mesh->dy;
 
    int *i        = mesh->i;
    int *j        = mesh->j;
@@ -603,9 +604,9 @@ void State::remove_boundary_cells(void)
 
    // Resize to drop all the boundary cells
    ncells = save_ncells;
-   H=(real *)state_memory.memory_realloc(save_ncells, sizeof(real), H);
-   U=(real *)state_memory.memory_realloc(save_ncells, sizeof(real), U);
-   V=(real *)state_memory.memory_realloc(save_ncells, sizeof(real), V);
+   H=(real_t *)state_memory.memory_realloc(save_ncells, sizeof(real_t), H);
+   U=(real_t *)state_memory.memory_realloc(save_ncells, sizeof(real_t), U);
+   V=(real_t *)state_memory.memory_realloc(save_ncells, sizeof(real_t), V);
    //printf("\nDEBUG remove_boundary cells\n"); 
    //state_memory.memory_report();
    //printf("DEBUG end remove_boundary cells\n\n"); 
@@ -724,20 +725,20 @@ double State::gpu_set_timestep(double sigma)
       /*
       __kernel void set_timestep_cl(
                        const int    ncells,     // 0  Total number of cells.
-                       const real   sigma,      // 1
-              __global const real  *H,          // 2
-              __global const real  *U,          // 3
-              __global const real  *V,          // 4
-              __global const int   *level,      // 5  Array of level information.
-              __global const int   *celltype,   // 6
-              __global const real  *lev_dx,     // 7
-              __global const real  *lev_dy,     // 8
-              __global       real  *redscratch, // 9
-              __global       real  *deltaT,     // 10
-              __local        real  *tile)       // 11
+                       const real_t   sigma,      // 1
+              __global const real_t  *H,          // 2
+              __global const real_t  *U,          // 3
+              __global const real_t  *V,          // 4
+              __global const int     *level,      // 5  Array of level information.
+              __global const int     *celltype,   // 6
+              __global const real_t  *lev_dx,     // 7
+              __global const real_t  *lev_dy,     // 8
+              __global       real_t  *redscratch, // 9
+              __global       real_t  *deltaT,     // 10
+              __local        real_t  *tile)       // 11
       */
 
-   real sigma_local = sigma;
+   real_t sigma_local = sigma;
    ezcl_set_kernel_arg(kernel_set_timestep,  0, sizeof(cl_int),  (void *)&ncells);
    ezcl_set_kernel_arg(kernel_set_timestep,  1, sizeof(cl_real), (void *)&sigma_local);
    ezcl_set_kernel_arg(kernel_set_timestep,  2, sizeof(cl_mem),  (void *)&dev_H);
@@ -756,10 +757,10 @@ double State::gpu_set_timestep(double sigma)
    if (block_size > 1){
          /*
          __kernel void finish_reduction_min_cl(
-           const    int    isize,
-           __global real  *redscratch,
-           __global real  *deltaT,
-           __local  real  *tile)
+           const    int      isize,
+           __global real_t  *redscratch,
+           __global real_t  *deltaT,
+           __local  real_t  *tile)
          */
       ezcl_set_kernel_arg(kernel_reduction_min, 0, sizeof(cl_int),  (void *)&block_size);
       ezcl_set_kernel_arg(kernel_reduction_min, 1, sizeof(cl_mem),  (void *)&dev_redscratch);
@@ -769,7 +770,7 @@ double State::gpu_set_timestep(double sigma)
      ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduction_min, 1, NULL, &local_work_size, &local_work_size, NULL);
    }
 
-   real deltaT_local;
+   real_t deltaT_local;
    ezcl_enqueue_read_buffer(command_queue, dev_deltaT, CL_TRUE,  0, sizeof(cl_real), &deltaT_local, NULL);
    deltaT = deltaT_local;
 
@@ -791,10 +792,10 @@ void State::fill_circle(double  circ_radius,//  Radius of circle in grid units.
                         double  background) //  Background height for shallow water.
 {  
    size_t &ncells = mesh->ncells;
-   vector<real> &x  = mesh->x;
-   vector<real> &dx = mesh->dx;
-   vector<real> &y  = mesh->y;
-   vector<real> &dy = mesh->dy;
+   vector<real_t> &x  = mesh->x;
+   vector<real_t> &dx = mesh->dx;
+   vector<real_t> &y  = mesh->y;
+   vector<real_t> &dy = mesh->dy;
 
    for (uint ic = 0; ic < ncells; ic++)
    {  H[ic] = background;
@@ -955,9 +956,9 @@ void State::calc_finite_difference(double deltaT){
    //printf("\nDEBUG finite diff\n"); 
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
-      H=(real *)state_memory.memory_realloc(ncells_ghost, sizeof(real), H);
-      U=(real *)state_memory.memory_realloc(ncells_ghost, sizeof(real), U);
-      V=(real *)state_memory.memory_realloc(ncells_ghost, sizeof(real), V);
+      H=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), H);
+      U=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), U);
+      V=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), V);
       L7_Update(&H[0], L7_REAL, mesh->cell_handle);
       L7_Update(&U[0], L7_REAL, mesh->cell_handle);
       L7_Update(&V[0], L7_REAL, mesh->cell_handle);
@@ -972,12 +973,12 @@ void State::calc_finite_difference(double deltaT){
    int *ntop  = mesh->ntop;
    int *level = mesh->level;
 
-   vector<real> &lev_deltax = mesh->lev_deltax;
-   vector<real> &lev_deltay = mesh->lev_deltay;
+   vector<real_t> &lev_deltax = mesh->lev_deltax;
+   vector<real_t> &lev_deltay = mesh->lev_deltay;
 
-   real *H_new = (real *)state_memory.memory_malloc(ncells_ghost, sizeof(real), "H_new");
-   real *U_new = (real *)state_memory.memory_malloc(ncells_ghost, sizeof(real), "U_new");
-   real *V_new = (real *)state_memory.memory_malloc(ncells_ghost, sizeof(real), "V_new");
+   real_t *H_new = (real_t *)state_memory.memory_malloc(ncells_ghost, sizeof(real_t), "H_new");
+   real_t *U_new = (real_t *)state_memory.memory_malloc(ncells_ghost, sizeof(real_t), "U_new");
+   real_t *V_new = (real_t *)state_memory.memory_malloc(ncells_ghost, sizeof(real_t), "V_new");
 
    int gix;
 #ifdef __INTEL_COMPILER
@@ -1303,8 +1304,8 @@ void State::calc_finite_difference(double deltaT){
          Ull = (Ull + U[ ntop[nll] ]) * HALF;
       }
 
-      real Hr2 = Hr;
-      real Ur2 = Ur;
+      real_t Hr2 = Hr;
+      real_t Ur2 = Ur;
       if(lvl < level[nr]) {
          Hr2 = (Hr2 + Hrt) * HALF;
          Ur2 = (Ur2 + Urt) * HALF;
@@ -1333,8 +1334,8 @@ void State::calc_finite_difference(double deltaT){
          Urr = (Urr + U[ ntop[nrr] ]) * HALF;
       }
 
-      real Hl2 = Hl;
-      real Ul2 = Ul;
+      real_t Hl2 = Hl;
+      real_t Ul2 = Ul;
       if(lvl < level[nl]) {
          Hl2 = (Hl2 + Hlt) * HALF;
          Ul2 = (Ul2 + Ult) * HALF;
@@ -1391,8 +1392,8 @@ void State::calc_finite_difference(double deltaT){
          Vbb = (Vbb + V[ nrht[nbb] ]) * HALF;
       }
 
-      real Ht2 = Ht;
-      real Vt2 = Vt;
+      real_t Ht2 = Ht;
+      real_t Vt2 = Vt;
       if(lvl < level[nt]) {
          Ht2 = (Ht2 + Htr) * HALF;
          Vt2 = (Vt2 + Vtr) * HALF;
@@ -1421,8 +1422,8 @@ void State::calc_finite_difference(double deltaT){
          Vtt = (Vtt + V[ nrht[ntt] ]) * HALF;
       }
 
-      real Hb2 = Hb;
-      real Vb2 = Vb;
+      real_t Hb2 = Hb;
+      real_t Vb2 = Vb;
       if(lvl < level[nb]) {
          Hb2 = (Hb2 + Hbr) * HALF;
          Vb2 = (Vb2 + Vbr) * HALF;
@@ -1481,9 +1482,9 @@ void State::calc_finite_difference(double deltaT){
 
    // Replace H with H_new and deallocate H. New memory will have the characteristics
    // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
-   H = (real *)state_memory.memory_replace(H, H_new);
-   U = (real *)state_memory.memory_replace(U, U_new);
-   V = (real *)state_memory.memory_replace(V, V_new);
+   H = (real_t *)state_memory.memory_replace(H, H_new);
+   U = (real_t *)state_memory.memory_replace(U, U_new);
+   V = (real_t *)state_memory.memory_replace(V, V_new);
 
    //state_memory.memory_report();
    //printf("DEBUG end finite diff\n\n"); 
@@ -1535,13 +1536,13 @@ void State::gpu_calc_finite_difference(double deltaT)
    if (mesh->numpe > 1) {
         /*
         __kernel void copy_state_data_cl(
-                         const int  isize,         // 0
-                __global      real  *H,            // 1
-                __global      real  *U,            // 2
-                __global      real  *V,            // 3
-                __global      real  *H_new,        // 4
-                __global      real  *U_new,        // 5
-                __global      real  *V_new)        // 6
+                         const int    isize,         // 0
+                __global      real_t  *H,            // 1
+                __global      real_t  *U,            // 2
+                __global      real_t  *V,            // 3
+                __global      real_t  *H_new,        // 4
+                __global      real_t  *U_new,        // 5
+                __global      real_t  *V_new)        // 6
         */
 
       ezcl_set_kernel_arg(kernel_copy_state_data, 0, sizeof(cl_int), (void *)&ncells);
@@ -1573,25 +1574,25 @@ void State::gpu_calc_finite_difference(double deltaT)
      __kernel void calc_finite_difference_cl(
                       const int    ncells,   // 0  Total number of cells.
                       const int    lvmax,    // 1  Maximum level
-             __global       real  *H,        // 2
-             __global       real  *U,        // 3
-             __global       real  *V,        // 4
-             __global       real  *H_new,    // 5
-             __global       real  *U_new,    // 6
-             __global       real  *V_new,    // 7
+             __global       real_t  *H,        // 2
+             __global       real_t  *U,        // 3
+             __global       real_t  *V,        // 4
+             __global       real_t  *H_new,    // 5
+             __global       real_t  *U_new,    // 6
+             __global       real_t  *V_new,    // 7
              __global const int   *nlft,     // 8  Array of left neighbors.
              __global const int   *nrht,     // 9  Array of right neighbors.
              __global const int   *ntop,     // 10  Array of bottom neighbors.
              __global const int   *nbot,     // 11  Array of top neighbors.
              __global const int   *level,    // 12  Array of level information.
-                      const real   deltaT,   // 13  Size of time step.
-             __global const real  *lev_dx,   // 14
-             __global const real  *lev_dy,   // 15
-             __local        real4 *tile,     // 16  Tile size in real4.
+                      const real_t   deltaT,   // 13  Size of time step.
+             __global const real_t  *lev_dx,   // 14
+             __global const real_t  *lev_dy,   // 15
+             __local        real4_t *tile,     // 16  Tile size in real4.
              __local        int8  *itile)    // 17  Tile size in int8.
      */
 
-   real deltaT_local = deltaT;
+   real_t deltaT_local = deltaT;
    ezcl_set_kernel_arg(kernel_calc_finite_difference, 0, sizeof(cl_int),  (void *)&ncells);
    ezcl_set_kernel_arg(kernel_calc_finite_difference, 1, sizeof(cl_int),  (void *)&levmx);
    ezcl_set_kernel_arg(kernel_calc_finite_difference, 2, sizeof(cl_mem),  (void *)&dev_H);
@@ -1859,7 +1860,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
          vector<int> nbot_tmp(mesh->ncells_ghost);
          vector<int> ntop_tmp(mesh->ncells_ghost);
          vector<int> level_tmp(mesh->ncells_ghost);
-         vector<real> H_tmp(mesh->ncells_ghost);
+         vector<real_t> H_tmp(mesh->ncells_ghost);
          ezcl_enqueue_read_buffer(command_queue, dev_nlft,  CL_FALSE, 0, mesh->ncells_ghost*sizeof(cl_int), &nlft_tmp[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_nrht,  CL_FALSE, 0, mesh->ncells_ghost*sizeof(cl_int), &nrht_tmp[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_nbot,  CL_FALSE, 0, mesh->ncells_ghost*sizeof(cl_int), &nbot_tmp[0],  NULL);
@@ -1911,24 +1912,24 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
 
      /*
      __kernel void refine_potential
-              const int    ncells,     // 0  Total number of cells.
-              const int    levmx,      // 1  Maximum level
-     __global       real  *H,          // 2
-     __global       real  *U,          // 3
-     __global       real  *V,          // 4
-     __global const int   *nlft,       // 5  Array of left neighbors.
-     __global const int   *nrht,       // 6  Array of right neighbors.
-     __global const int   *ntop,       // 7  Array of bottom neighbors.
-     __global const int   *nbot,       // 8  Array of top neighbors.
-     __global const int   *level,      // 9  Array of level information.
-     __global const int   *celltype,   // 10  Array of celltype information.
-     __global       int   *mpot,       // 11  Array of mesh potential information.
-     __global       int2  *redscratch, // 12
-     __global const real  *lev_dx,     // 13
-     __global const real  *lev_dy,     // 14
-     __global       int2  *result,     // 15
-     __local        real4 *tile,       // 16  Tile size in real4.
-     __local        int8  *itile)      // 17  Tile size in int8.
+              const int      ncells,     // 0  Total number of cells.
+              const int      levmx,      // 1  Maximum level
+     __global       real_t  *H,          // 2
+     __global       real_t  *U,          // 3
+     __global       real_t  *V,          // 4
+     __global const int     *nlft,       // 5  Array of left neighbors.
+     __global const int     *nrht,       // 6  Array of right neighbors.
+     __global const int     *ntop,       // 7  Array of bottom neighbors.
+     __global const int     *nbot,       // 8  Array of top neighbors.
+     __global const int     *level,      // 9  Array of level information.
+     __global const int     *celltype,   // 10  Array of celltype information.
+     __global       int     *mpot,       // 11  Array of mesh potential information.
+     __global       int2    *redscratch, // 12
+     __global const real_t  *lev_dx,     // 13
+     __global const real_t  *lev_dy,     // 14
+     __global       int2    *result,     // 15
+     __local        real4_t *tile,       // 16  Tile size in real4.
+     __local        int8    *itile)      // 17  Tile size in int8.
      */
 
    ezcl_set_kernel_arg(kernel_refine_potential, 0, sizeof(cl_int),  (void *)&ncells);
@@ -2092,14 +2093,14 @@ double State::gpu_mass_sum(bool enhanced_precision_sum)
 
         /*
         __kernel void reduce_sum_cl(
-                         const int    isize,      // 0
-                __global       int   *array,      // 1   Array to be reduced.
-                __global       int   *level,      // 2
-                __global       int   *levdx,      // 3
-                __global       int   *levdy,      // 4
-                __global       int   *celltype,   // 5
-                __global       real  *redscratch, // 6   Final result of operation.
-                __local        real  *tile)       // 7
+                         const int      isize,      // 0
+                __global       int     *array,      // 1   Array to be reduced.
+                __global       int     *level,      // 2
+                __global       int     *levdx,      // 3
+                __global       int     *levdy,      // 4
+                __global       int     *celltype,   // 5
+                __global       real_t  *redscratch, // 6   Final result of operation.
+                __local        real_t  *tile)       // 7
         */
       ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 0, sizeof(cl_int), (void *)&ncells);
       ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 1, sizeof(cl_mem), (void *)&dev_H);
@@ -2116,9 +2117,9 @@ double State::gpu_mass_sum(bool enhanced_precision_sum)
       if (block_size > 1) {
            /*
            __kernel void reduce_sum_cl(
-                            const int    isize,      // 0
-                   __global       int   *redscratch, // 1   Array to be reduced.
-                   __local        real  *tile)       // 2
+                            const int      isize,      // 0
+                   __global       int     *redscratch, // 1   Array to be reduced.
+                   __local        real_t  *tile)       // 2
            */
 
          ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
@@ -2130,7 +2131,7 @@ double State::gpu_mass_sum(bool enhanced_precision_sum)
       }
 
       struct esum_type local, global;
-      real2 mass_sum;
+      real2_t mass_sum;
 
       ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real2), &mass_sum, NULL);
 
@@ -2148,14 +2149,14 @@ double State::gpu_mass_sum(bool enhanced_precision_sum)
 
         /*
         __kernel void reduce_sum_cl(
-                         const int    isize,      // 0
-                __global       int   *array,      // 1   Array to be reduced.
-                __global       int   *level,      // 2
-                __global       int   *levdx,      // 3
-                __global       int   *levdy,      // 4
-                __global       int   *celltype,   // 5
-                __global       real  *redscratch, // 6   Final result of operation.
-                __local        real  *tile)       // 7
+                         const int      isize,      // 0
+                __global       int     *array,      // 1   Array to be reduced.
+                __global       int     *level,      // 2
+                __global       int     *levdx,      // 3
+                __global       int     *levdy,      // 4
+                __global       int     *celltype,   // 5
+                __global       real_t  *redscratch, // 6   Final result of operation.
+                __local        real_t  *tile)       // 7
         */
       ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 0, sizeof(cl_int), (void *)&ncells);
       ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 1, sizeof(cl_mem), (void *)&dev_H);
@@ -2172,9 +2173,9 @@ double State::gpu_mass_sum(bool enhanced_precision_sum)
       if (block_size > 1) {
            /*
            __kernel void reduce_sum_cl(
-                            const int    isize,      // 0
-                   __global       int   *redscratch, // 1   Array to be reduced.
-                   __local        real  *tile)       // 2
+                            const int     isize,      // 0
+                   __global       int    *redscratch, // 1   Array to be reduced.
+                   __local        real_t  *tile)       // 2
            */
 
          ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
@@ -2186,7 +2187,7 @@ double State::gpu_mass_sum(bool enhanced_precision_sum)
       }
 
       double local_sum, global_sum;
-      real mass_sum;
+      real_t mass_sum;
 
       ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real), &mass_sum, NULL);
       
@@ -2553,9 +2554,9 @@ void State::compare_state_gpu_global_to_cpu_global(const char* string, int cycle
 {
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-   vector<real>H_check(ncells);
-   vector<real>U_check(ncells);
-   vector<real>V_check(ncells);
+   vector<real_t>H_check(ncells);
+   vector<real_t>U_check(ncells);
+   vector<real_t>V_check(ncells);
    ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_check[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_check[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_check[0], NULL);
@@ -2569,13 +2570,13 @@ void State::compare_state_gpu_global_to_cpu_global(const char* string, int cycle
 
 void State::compare_state_cpu_local_to_cpu_global(State *state_global, const char* string, int cycle, uint ncells, uint ncells_global, int *nsizes, int *ndispl)
 {
-   real *H_global = state_global->H;
-   real *U_global = state_global->U;
-   real *V_global = state_global->V;
+   real_t *H_global = state_global->H;
+   real_t *U_global = state_global->U;
+   real_t *V_global = state_global->V;
 
-   vector<real>H_check(ncells_global);
-   vector<real>U_check(ncells_global);
-   vector<real>V_check(ncells_global);
+   vector<real_t>H_check(ncells_global);
+   vector<real_t>U_check(ncells_global);
+   vector<real_t>V_check(ncells_global);
 #ifdef HAVE_MPI
    MPI_Allgatherv(&H[0], ncells, MPI_C_REAL, &H_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&U[0], ncells, MPI_C_REAL, &U_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
@@ -2595,17 +2596,17 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
 #ifdef HAVE_MPI
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-   real *H_global = state_global->H;
-   real *U_global = state_global->U;
-   real *V_global = state_global->V;
+   real_t *H_global = state_global->H;
+   real_t *U_global = state_global->U;
+   real_t *V_global = state_global->V;
    cl_mem &dev_H_global = state_global->dev_H;
    cl_mem &dev_U_global = state_global->dev_U;
    cl_mem &dev_V_global = state_global->dev_V;
 
    // Need to compare dev_H to H, etc
-   vector<real>H_save(ncells);
-   vector<real>U_save(ncells);
-   vector<real>V_save(ncells);
+   vector<real_t>H_save(ncells);
+   vector<real_t>U_save(ncells);
+   vector<real_t>V_save(ncells);
    ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_save[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_save[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_save[0], NULL);
@@ -2616,9 +2617,9 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
    }
 
    // And compare dev_H gathered to H_global, etc
-   vector<real>H_save_global(ncells_global);
-   vector<real>U_save_global(ncells_global);
-   vector<real>V_save_global(ncells_global);
+   vector<real_t>H_save_global(ncells_global);
+   vector<real_t>U_save_global(ncells_global);
+   vector<real_t>V_save_global(ncells_global);
    MPI_Allgatherv(&H_save[0], nsizes[mype], MPI_C_REAL, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&U_save[0], nsizes[mype], MPI_C_REAL, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&V_save[0], nsizes[mype], MPI_C_REAL, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);

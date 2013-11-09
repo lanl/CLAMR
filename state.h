@@ -80,12 +80,12 @@ public:
    MallocPlus state_memory;
    MallocPlus gpu_state_memory;
    Mesh *mesh;
-   real *H;
-   real *U;
-   real *V;
-   //vector<real> H;
-   //vector<real> U;
-   //vector<real> V;
+   real_t *H;
+   real_t *U;
+   real_t *V;
+   //vector<real_t> H;
+   //vector<real_t> U;
+   //vector<real_t> V;
 
 #ifdef HAVE_OPENCL
    cl_mem dev_H;

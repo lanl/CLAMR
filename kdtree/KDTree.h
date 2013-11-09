@@ -91,9 +91,9 @@ extern "C"
    
    
 #ifdef HAVE_CL_DOUBLE
-   typedef double real;
+   typedef double real_t;
 #else
-   typedef float real;
+   typedef float real_t;
 #endif
    
 #define LEFT_HALF   0
@@ -121,15 +121,15 @@ extern void KDTree_QueryBoxIntersect(TKDTree* t,
 void KDTree_QueryCircleIntersect(TKDTree* t,
                                  int* result_num, int* result_indicies,
                                  double radius, int ncells, 
-                                 real *x, real *dx, real *y, real *dy);
+                                 real_t *x, real_t *dx, real_t *y, real_t *dy);
 void KDTree_QueryCircleIntersectWeighted(TKDTree* t,
                                  int* result_num, int* result_indicies, double *weight,
                                  double circ_radius, int ncells, 
-                                 real *x, real *dx, real *y, real *dy);
+                                 real_t *x, real_t *dx, real_t *y, real_t *dy);
 void KDTree_QueryCircleInterior(TKDTree* t,
                                  int* result_num, int* result_indicies,
                                  double circ_radius, int ncells, 
-                                 real *x, real *dx, real *y, real *dy);
+                                 real_t *x, real_t *dx, real_t *y, real_t *dy);
    
 #ifdef __cplusplus
 }

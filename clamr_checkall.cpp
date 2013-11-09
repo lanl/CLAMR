@@ -110,12 +110,12 @@ static int do_sync = 0;
 static int do_gpu_sync = 0;
 
 #ifdef HAVE_CL_DOUBLE
-typedef double      real;
+typedef double      real_t;
 typedef struct
 {
    double s0;
    double s1;
-}  real2;
+}  real2_t;
 typedef cl_double   cl_real;
 typedef cl_double2  cl_real2;
 typedef cl_double4  cl_real4;
@@ -125,12 +125,12 @@ typedef cl_double8  cl_real8;
 #define MPI_C_REAL MPI_DOUBLE
 #define L7_REAL L7_DOUBLE
 #else
-typedef float       real;
+typedef float       real_t;
 typedef struct
 {
    float s0;
    float s1;
-}  real2;
+}  real2_t;
 typedef cl_float    cl_real;
 typedef cl_float2   cl_real2;
 typedef cl_float4   cl_real4;
@@ -245,10 +245,10 @@ int main(int argc, char **argv) {
    vector<int>   &nsizes     = mesh_local->nsizes;
    vector<int>   &ndispl     = mesh_local->ndispl;
 
-   vector<real>  &x_global  = mesh_global->x;
-   vector<real>  &dx_global = mesh_global->dx;
-   vector<real>  &y_global  = mesh_global->y;
-   vector<real>  &dy_global = mesh_global->dy;
+   vector<real_t>  &x_global  = mesh_global->x;
+   vector<real_t>  &dx_global = mesh_global->dx;
+   vector<real_t>  &y_global  = mesh_global->y;
+   vector<real_t>  &dy_global = mesh_global->dy;
 
    cl_mem &dev_H  = state_local->dev_H;
    cl_mem &dev_U  = state_local->dev_U;
@@ -270,10 +270,10 @@ int main(int argc, char **argv) {
 
    vector<int>   &proc_global    = mesh_global->proc;
 
-   vector<real> &x  = mesh_local->x;
-   vector<real> &dx = mesh_local->dx;
-   vector<real> &y  = mesh_local->y;
-   vector<real> &dy = mesh_local->dy;
+   vector<real_t> &x  = mesh_local->x;
+   vector<real_t> &dx = mesh_local->dx;
+   vector<real_t> &y  = mesh_local->y;
+   vector<real_t> &dy = mesh_local->dy;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);
@@ -478,15 +478,15 @@ extern "C" void do_calc(void)
    size_t &ncells_ghost     = mesh_local->ncells_ghost;
 
 #ifdef HAVE_GRAPHICS
-   vector<real>  &x  = mesh_local->x;
-   vector<real>  &dx = mesh_local->dx;
-   vector<real>  &y  = mesh_local->y;
-   vector<real>  &dy = mesh_local->dy;
+   vector<real_t>  &x  = mesh_local->x;
+   vector<real_t>  &dx = mesh_local->dx;
+   vector<real_t>  &y  = mesh_local->y;
+   vector<real_t>  &dy = mesh_local->dy;
 
-   vector<real>  &x_global  = mesh_global->x;
-   vector<real>  &dx_global = mesh_global->dx;
-   vector<real>  &y_global  = mesh_global->y;
-   vector<real>  &dy_global = mesh_global->dy;
+   vector<real_t>  &x_global  = mesh_global->x;
+   vector<real_t>  &dx_global = mesh_global->dx;
+   vector<real_t>  &y_global  = mesh_global->y;
+   vector<real_t>  &dy_global = mesh_global->dy;
 #endif
 
    cl_mem &dev_H_global = state_global->dev_H;
@@ -837,7 +837,7 @@ extern "C" void do_calc(void)
    dx.resize(ncells);
    y.resize(ncells);
    dy.resize(ncells);
-   vector<real> H_graphics(ncells);
+   vector<real_t> H_graphics(ncells);
 
    ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x[0],  &start_read_event);
    ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&dx[0], NULL);
@@ -859,7 +859,7 @@ extern "C" void do_calc(void)
    dx_global.resize(ncells_global);
    y_global.resize(ncells_global);
    dy_global.resize(ncells_global);
-   vector<real> H_graphics_global(ncells_global);
+   vector<real_t> H_graphics_global(ncells_global);
 
    MPI_Allgatherv(&x[0],  ncells, MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&dx[0], ncells, MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);

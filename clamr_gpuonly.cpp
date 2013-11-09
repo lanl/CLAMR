@@ -77,10 +77,10 @@ static int do_cpu_calc = 0;
 static int do_gpu_calc = 1;
 
 #ifdef HAVE_CL_DOUBLE
-typedef double      real;
+typedef double      real_t;
 typedef cl_double   cl_real;
 #else
-typedef float       real;
+typedef float       real_t;
 typedef cl_float    cl_real;
 #endif
 
@@ -180,9 +180,9 @@ int main(int argc, char **argv) {
    cl_mem &dev_U    = state->dev_U;
    cl_mem &dev_V    = state->dev_V;
 
-   real  *H        = state->H;
-   real  *U        = state->U;
-   real  *V        = state->V;
+   real_t  *H        = state->H;
+   real_t  *U        = state->U;
+   real_t  *V        = state->V;
 
    state->allocate_device_memory(ncells);
 
@@ -333,7 +333,7 @@ extern "C" void do_calc(void)
    mesh->dx.resize(ncells);
    mesh->y.resize(ncells);
    mesh->dy.resize(ncells);
-   vector<real> H_graphics(ncells);
+   vector<real_t> H_graphics(ncells);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
    ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&mesh->x[0],  &start_read_event);
