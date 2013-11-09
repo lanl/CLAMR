@@ -310,15 +310,17 @@ J7::memAlloc(std::size_t size)
     void *addr = NULL;
     // the global size of the allocation -- what we are actually alloc'ing
     size_t realSize = 0;
-    int mySize = static_cast<int>(size), realSizei = 0;
+    unsigned long long mySize = static_cast<unsigned long long>(size);
+    unsigned long long realSizei = 0;
     MSMHandle handle;
     // calculate the global allocation size
-    allreduce(&mySize, &realSizei, 1, MPI_INT, MPI_SUM);
+    allreduce(&mySize, &realSizei, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM);
     realSize = static_cast<size_t>(realSizei);
     // get the respective allocation sizes. we need this in order to figure out
     // each process offset into the segment.
-    int *allocSizes = new int[commSize];
-    allgather(&mySize, 1, MPI_INT, allocSizes, 1, MPI_INT);
+    unsigned long long *allocSizes = new unsigned long long[commSize];
+    allgather(&mySize, 1, MPI_UNSIGNED_LONG_LONG,
+              allocSizes, 1, MPI_UNSIGNED_LONG_LONG);
     // reserve enough space for everyone's allocation size
     vector<size_t> allocSizeVector(commSize);
     // copy values into vector
@@ -360,7 +362,8 @@ J7::memCalloc(std::size_t nElems, std::size_t elemSize)
     std::size_t size = nElems * elemSize;
     // synchronization in memAlloc
     char *p = static_cast<char *>(memAlloc(size));
-    return memset(p, 0, size);
+    if (p) return memset(p, 0, size);
+    else return NULL;
 }
 
 /* ////////////////////////////////////////////////////////////////////////// */
