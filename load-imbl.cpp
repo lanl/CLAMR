@@ -59,6 +59,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <getopt.h>
+#include <math.h>
 
 #include <omp.h>
 #include "QUO.hpp"
@@ -66,6 +67,7 @@
 
 using namespace std;
 
+// allocation types
 enum AllocType {
     ALLOC_SYS,
     ALLOC_J7
@@ -76,7 +78,7 @@ enum AllocType {
 // number of iterations
 static size_t nIters = 128;
 // base number of elements
-static const size_t ALLOC_BASE_NELEMS = 1024 * 1024;
+static const size_t ALLOC_BASE_NELEMS = 256 * 1024;
 // allocator type
 AllocType allocType = ALLOC_SYS;
 // FIXME could tune this
@@ -94,6 +96,8 @@ static int totPEs = 0;
 static int totSMPEs = 0;
 // sm comm
 static MPI_Comm smComm;
+// flag indicating whether or not i'm doing work.
+bool workerProc = false;
 
 static J7 *j7 = NULL;
 static QUO *quo = NULL;
@@ -150,7 +154,7 @@ getColor(unsigned long int *net_nums,
     int i      = 0;
     int node_i = 0;
     unsigned long int prev_num;
- 
+
     qsort(net_nums, (size_t)net_num_len, sizeof(unsigned long int), cmpULI);
 
     prev_num = net_nums[0];
@@ -280,12 +284,24 @@ out:
     }
 }
 
+static size_t
+getNAllocdOnNode(void)
+{
+    size_t nipd = 0;
+    for (size_t i = 0; i < N_WORK_ARRAYS; ++i) {
+        nipd += nNodeGlobalElems[i];
+    }
+    return nipd * 3UL;
+}
+
 static void
 initJ7(void)
 {
     try {
-        // FIXME get real memory info
-        j7 = new J7(smComm, 1024 * 1024 * 1024);
+        size_t segSize = getNAllocdOnNode() * sizeof(*a1);
+        // add fluff
+        segSize += 1024;
+        j7 = new J7(smComm, segSize);
     }
     catch (J7Exception &e) {
         throw e;
@@ -327,15 +343,19 @@ finiQUO(void)
     }
 }
 
+#if 0
+// this sets alloc sizes for everyone
 static size_t
-getAllocMultiplier(size_t arrayID)
+getNumElems(size_t arrayID)
 {
+    // cells
     if (0 == arrayID) {
-        if (0 != (smID % 2)) return 4;
+        if (0 == cwID) return 4;
         return 1;
     }
+    // particles
     else if (1 == arrayID) {
-        if (0 == (smID % 2)) return 3;
+        if (0 == cwID) return 3;
         return 1;
     }
     else {
@@ -343,20 +363,68 @@ getAllocMultiplier(size_t arrayID)
     }
     return 0;
 }
+#endif
+
+#if 0 // exp00
+static size_t
+getNumElems(size_t arrayID) // Partitioned by Rows Based on Cells
+{
+    // cells
+    if (0 == arrayID) {
+        return 4 * ALLOC_BASE_NELEMS;
+    }
+    // particles
+    else if (1 == arrayID) {
+        if      (0 == cwID) return 24 * ALLOC_BASE_NELEMS;
+        else if (1 == cwID) return 14 * ALLOC_BASE_NELEMS;
+        else if (2 == cwID) return 9  * ALLOC_BASE_NELEMS;
+        else if (3 == cwID) return 6  * ALLOC_BASE_NELEMS;
+        else throw J7Exception(__FILE__, __LINE__, "*** bad setup ***");
+    }
+    else {
+        throw J7Exception(__FILE__, __LINE__, "*** bad array ID ***");
+    }
+    return 0;
+}
+#endif
+
+#if 1 // exp01
+static size_t
+getNumElems(size_t arrayID) // Partitioned by Quadrants Based on Cells
+{
+    // cells
+    if (0 == arrayID) {
+        return 4 * ALLOC_BASE_NELEMS;
+    }
+    // particles
+    else if (1 == arrayID) {
+        if      (0 == cwID) return 29 * ALLOC_BASE_NELEMS;
+        else if (1 == cwID) return 9 * ALLOC_BASE_NELEMS;
+        else if (2 == cwID) return 9  * ALLOC_BASE_NELEMS;
+        else if (3 == cwID) return 6  * ALLOC_BASE_NELEMS;
+        else throw J7Exception(__FILE__, __LINE__, "*** bad setup ***");
+    }
+    else {
+        throw J7Exception(__FILE__, __LINE__, "*** bad array ID ***");
+    }
+    return 0;
+}
+#endif
 
 static void
 setNElems(void)
 {
     for (size_t arrayID = 0; arrayID < N_WORK_ARRAYS; ++arrayID) {
-        nElems[arrayID] = getAllocMultiplier(arrayID) * ALLOC_BASE_NELEMS;
+        nElems[arrayID] = getNumElems(arrayID);
     }
     // now set the (node) global values for j7 that way we know the "real"
     // extent of the arrays in shared memory
     for (size_t arrayID = 0; arrayID < N_WORK_ARRAYS; ++arrayID) {
-        int vali = static_cast<int>(nElems[arrayID]);
-        int nodeGlobalVali = 0;
-        if (MPI_SUCCESS != MPI_Allreduce(&vali, &nodeGlobalVali, 1,
-            MPI_INT, MPI_SUM, smComm)) {
+        unsigned long long v = static_cast<unsigned long long>(nElems[arrayID]);
+        unsigned long long nodeGlobalVali = 0;
+        if (MPI_SUCCESS != MPI_Allreduce(&v, &nodeGlobalVali, 1,
+                                         MPI_UNSIGNED_LONG_LONG, MPI_SUM,
+                                         smComm)) {
             throw J7Exception(__FILE__, __LINE__, "*** MPI_Allreduce ***");
         }
         nNodeGlobalElems[arrayID] = static_cast<size_t>(nodeGlobalVali);
@@ -451,19 +519,19 @@ doWorkHybrid(size_t nElems, double *cap1, double *cap2, double *cap3)
     {
         #pragma omp for schedule(dynamic, ompChunk) nowait
         for (i = 0; i < nElems; ++i) {
-            cap3[i] = cap1[i] * cap2[i] + cap1[i];
+            cap3[i] = fabs(cap1[i] / max(cap2[i], cap3[i]) * sin(cos(cap1[i])));
         }
     } // end parallel region
 }
 
-// all processes call this routine 
+// all processes call this routine
 static void
 doWorkMPIE(size_t nElems, double *cap1, double *cap2, double *cap3)
 {
     // do bogus work
     size_t i = 0;
     for (i = 0; i < nElems; ++i) {
-        cap3[i] = cap1[i] * cap2[i] + cap1[i];
+        cap3[i] = fabs(cap1[i] / max(cap2[i], cap3[i]) * sin(cos(cap1[i])));
     }
 }
 
@@ -544,8 +612,9 @@ emitSetup(void)
         if (0 == omp_get_thread_num()) {
             cout << "# omp nthreads: " << omp_get_num_threads() << endl;
         }
+        } // end parallel region
         cout << "# niters: " <<  nIters << endl;
-        }
+        cout << "# n doubles alloc'd per node: " << getNAllocdOnNode() << endl;
     }
 }
 
@@ -578,7 +647,6 @@ run(void)
                 t1 = b1; t3 = b3;
             }
             // take the global max b3[0] and replace all b1[0]s with that value
-            // XXX what if we remove the sync? can we measure the time without?
             if (MPI_SUCCESS != MPI_Allreduce(&(t3[0]), &(t1[0]), 1,
                 MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD)) {
                 throw J7Exception(__FILE__, __LINE__, "*** MPI_Allreduce ***");
@@ -587,17 +655,21 @@ run(void)
     }
 }
 
-static double
-getMaxVal(const vector<double> &v)
+#if 0 // update code if by proc work division needed
+static void
+workerProcSelection()
 {
-    return *max_element(v.begin(), v.end());
+    if (ALLOC_SYS == allocType) {
+        workerProc = true;
+    }
+    if (ALLOC_J7 == allocType) {
+        // nominate workers by evenly distributing them across all available
+        // sockets.
+        workerProc = quo->autoDistrib(QUO_OBJ_SOCKET, 1);
+        cout << cwID << " " << workerProc << endl;
+    }
 }
-
-static double
-getMinVal(const vector<double> &v)
-{
-    return *min_element(v.begin(), v.end());
-}
+#endif
 
 static void
 sanityValDump(void)
@@ -611,7 +683,18 @@ sanityValDump(void)
     emitSync();
 }
 
-// TODO add other stats
+#if 0
+static double
+getMaxVal(const vector<double> &v)
+{
+    return *max_element(v.begin(), v.end());
+}
+
+static double
+getMinVal(const vector<double> &v)
+{
+    return *min_element(v.begin(), v.end());
+}
 
 static void
 emitStats(void)
@@ -624,6 +707,7 @@ emitStats(void)
     cout << "max: " << maxTime << endl;
     emitSync();
 }
+#endif
 
 static void
 emitTotalElapsedTime(double timeInSec)
@@ -663,7 +747,7 @@ parseSetupFromArgv(int argc, char **argv)
                 if ("j7" == string(optarg)) allocType = ALLOC_J7;
                 else if ("sys" == string(optarg)) allocType = ALLOC_SYS;
                 else {
-                    cerr << "invalid alloc option... using defaul" << endl;
+                    cerr << "invalid alloc option... using default" << endl;
                 }
                 break;
             }
@@ -691,15 +775,18 @@ main(int argc, char **argv)
         initMPI(argc, argv);
         parseSetupFromArgv(argc, argv);
         initQUO();
-        initJ7();
+        //workerProcSelection();
+        // set number of elements first so we can allocate enough memory with
+        // j7 (if enabled)
         setNElems();
+        initJ7();
         emitSetup();
         allocWork();
         start = getTime();
         run();
         end = getTime();
         emitTotalElapsedTime(end - start);
-        emitStats();
+        //emitStats();
         sanityValDump();
         deallocWork();
         finiJ7();
