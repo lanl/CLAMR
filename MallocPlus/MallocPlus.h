@@ -73,18 +73,10 @@ typedef float real_t;
 
 #if defined(HAVE_MPI) && defined(HAVE_J7)
 #include "mpi.h"
-// forward class declaration here because i don't want to include j7.h here
-// because of namespace conflicts. the "typedef real" thing and boost hate each
-// other because std::complex is included in boost.
-class J7;
-
-// can't use std name space because of real name conflict in std::complex (boost
-// includes this and j7 includes boost...
-using std::list;
-using std::size_t;
-#else
-using namespace std;
+include "j7/j7.h"
 #endif
+
+using namespace std;
 
 struct malloc_plus_memory_entry {
    void  *mem_ptr;
