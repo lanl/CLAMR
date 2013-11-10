@@ -74,6 +74,10 @@ struct genmalloc_memory_entry {
 
 void *genvector_p(int inum, size_t elsize, const char *file, const int line)
 {
+   if (DEBUG) {
+      printf(" Error with gen_vector from file %s line %d\n",file,line);
+   }
+
    void *out;
    size_t mem_size;
 
@@ -90,11 +94,17 @@ void *genvector_p(int inum, size_t elsize, const char *file, const int line)
 
 void genvectorfree_p(void *var, const char *file, const int line)
 {
+   if (DEBUG) {
+      printf(" Error with gen_vector from file %s line %d\n",file,line);
+   }
    genmalloc_memory_remove(var);
 }
 
 void **genmatrix_p(int jnum, int inum, size_t elsize, const char *file, const int line)
 {
+   if (DEBUG) {
+      printf(" Error with gen_vector from file %s line %d\n",file,line);
+   }
    void **out;
    size_t mem_size;
   
@@ -119,12 +129,18 @@ void **genmatrix_p(int jnum, int inum, size_t elsize, const char *file, const in
 
 void genmatrixfree_p(void **var, const char *file, const int line)
 {
+   if (DEBUG) {
+      printf(" Error with gen_vector from file %s line %d\n",file,line);
+   }
    genmalloc_memory_remove(var[0]);
    genmalloc_memory_remove(var);
 }
 
 void ***gentrimatrix_p(int knum, int jnum, int inum, size_t elsize, const char *file, const int line)
 {
+   if (DEBUG) {
+      printf(" Error with gen_vector from file %s line %d\n",file,line);
+   }
    void ***out;
    size_t mem_size;
 
@@ -163,6 +179,9 @@ void ***gentrimatrix_p(int knum, int jnum, int inum, size_t elsize, const char *
 
 void gentrimatrixfree_p(void ***var, const char *file, const int line)
 {
+   if (DEBUG) {
+      printf(" Error with gen_vector from file %s line %d\n",file,line);
+   }
    genmalloc_memory_remove(var[0][0]);
    genmalloc_memory_remove(var[0]);
    genmalloc_memory_remove(var);
@@ -174,7 +193,7 @@ void *genmalloc_memory_add_p(void *malloc_mem_ptr, size_t size, const char *file
    genmalloc_memory_item = malloc(sizeof(struct genmalloc_memory_entry));
    genmalloc_memory_item->mem_ptr = malloc_mem_ptr;
    genmalloc_memory_item->mem_size = size;
-   if (DEBUG) printf("GENMALLOC_MEMORY_ADD: DEBUG -- malloc memory pointer is %p\n",malloc_mem_ptr);
+   if (DEBUG) printf("GENMALLOC_MEMORY_ADD: DEBUG -- malloc memory pointer is %p called from file %s line %d\n",malloc_mem_ptr,file,line);
 
    SLIST_INSERT_HEAD(&genmalloc_memory_head, genmalloc_memory_item, genmalloc_memory_entries);
 
@@ -184,7 +203,7 @@ void *genmalloc_memory_add_p(void *malloc_mem_ptr, size_t size, const char *file
 void genmalloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const int line){
    SLIST_FOREACH(genmalloc_memory_item, &genmalloc_memory_head, genmalloc_memory_entries){
       if (genmalloc_memory_item->mem_ptr == malloc_mem_ptr) {
-         if (DEBUG) printf("GENMALLOC_MEMORY_REMOVE: DEBUG -- freeing malloc memory pointer %p\n",malloc_mem_ptr);
+         if (DEBUG) printf("GENMALLOC_MEMORY_REMOVE: DEBUG -- freeing malloc memory pointer %p called from file %s line %d\n",malloc_mem_ptr,file,line);
          free(malloc_mem_ptr);
          SLIST_REMOVE(&genmalloc_memory_head, genmalloc_memory_item, genmalloc_memory_entry, genmalloc_memory_entries);
          free(genmalloc_memory_item);
@@ -196,7 +215,7 @@ void genmalloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const int
 void genmem_free_all_p(const char *file, const int line){
    while (!SLIST_EMPTY(&genmalloc_memory_head)) {
       genmalloc_memory_item = SLIST_FIRST(&genmalloc_memory_head);
-      if (DEBUG) printf("GENMEM_FREE_ALL: DEBUG -- freeing genmalloc memory %p\n",genmalloc_memory_item->mem_ptr);
+      if (DEBUG) printf("GENMEM_FREE_ALL: DEBUG -- freeing genmalloc memory %p called from file %s line %d\n",genmalloc_memory_item->mem_ptr,file,line);
       free(genmalloc_memory_item->mem_ptr);
       SLIST_REMOVE_HEAD(&genmalloc_memory_head, genmalloc_memory_entries);
       free(genmalloc_memory_item);

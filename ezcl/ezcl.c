@@ -509,10 +509,16 @@ cl_device_id ezcl_get_device_p(cl_context context, const char *file, const int l
 
 int ezcl_get_compute_device_p(const char *file, const int line)
 {
+   if (compute_device == NULL) {
+      printf(" Error with compute device in ezcl_get_compute_device called from file %s line %d\n",file,line);
+   }
    return(compute_device);
 }
 
 void ezcl_device_info_p(cl_device_id device, const char *file, const int line){
+   if (device == NULL) {
+      printf(" Error with device in ezcl_device_info called from file %s line %d\n",file,line);
+   }
    char info[1024];
    cl_bool iflag;
    cl_uint inum;
@@ -656,10 +662,16 @@ cl_command_queue ezcl_create_command_queue_p(cl_context context, const int mype,
 }
 
 cl_command_queue ezcl_get_command_queue_p(const char *file, const int line){
+   if (command_queue == NULL) {
+      printf(" Error with command_queue in ezcl_get_command_queue called from file %s line %d\n",file,line);
+   }
    return(command_queue);
 }
 
 cl_context ezcl_get_context_p(const char *file, const int line){
+   if (context == NULL) {
+      printf(" Error with context in ezcl_get_context called from file %s line %d\n",file,line);
+   }
    return(context);
 }
 
@@ -880,6 +892,9 @@ void *ezcl_malloc_memory_add_p(void *malloc_mem_ptr, const char *name, size_t si
 }
 
 void ezcl_device_memory_delete_p(void *dev_mem_ptr, const char *file, const int line){
+   if (dev_mem_ptr == NULL) {
+      printf(" Error with dev_mem_ptr in ezcl_device_memory_delete from file %s line %d\n",file,line);
+   }
    SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
       if (device_memory_item->cl_mem_ptr == dev_mem_ptr) {
          if (DEBUG) printf("EZCL_DEVICE_MEMORY_DELETE: DEBUG -- freeing device memory pointer %p\n",dev_mem_ptr);
@@ -892,6 +907,9 @@ void ezcl_device_memory_delete_p(void *dev_mem_ptr, const char *file, const int 
 }   
 
 void ezcl_mapped_memory_delete_p(void *map_mem_ptr, const char *file, const int line){
+   if (map_mem_ptr == NULL) {
+      printf(" Error with map_mem_ptr in ezcl_mapped_memory_delete from file %s line %d\n",file,line);
+   }
    SLIST_FOREACH(mapped_memory_item, &mapped_memory_head, mapped_memory_entries){
       if (mapped_memory_item->cl_mem_ptr == map_mem_ptr) {
          if (DEBUG) printf("EZCL_MAPPED_MEMORY_DELETE: DEBUG -- freeing mapped memory pointer %p\n",map_mem_ptr);
@@ -904,6 +922,9 @@ void ezcl_mapped_memory_delete_p(void *map_mem_ptr, const char *file, const int 
 }
 
 void ezcl_malloc_memory_delete_p(void *malloc_mem_ptr, const char *file, const int line){
+   if (malloc_mem_ptr == NULL) {
+      printf(" Error with malloc_mem_ptr in ezcl_malloc_memory_delete from file %s line %d\n",file,line);
+   }
    SLIST_FOREACH(malloc_memory_item, &malloc_memory_head, malloc_memory_entries){
       if (malloc_memory_item->mem_ptr == malloc_mem_ptr) {
          if (DEBUG) printf("EZCL_MALLOC_MEMORY_DELETE: DEBUG -- freeing malloc memory pointer %p\n",malloc_mem_ptr);
@@ -916,6 +937,9 @@ void ezcl_malloc_memory_delete_p(void *malloc_mem_ptr, const char *file, const i
 }   
 
 void ezcl_device_memory_remove_p(void *dev_mem_ptr, const char *file, const int line){
+   if (dev_mem_ptr == NULL) {
+      printf(" Error with dev_mem_ptr in ezcl_device_memory_remove from file %s line %d\n",file,line);
+   }
    SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
       if (device_memory_item->cl_mem_ptr == dev_mem_ptr) {
          if (DEBUG) printf("EZCL_DEVICE_MEMORY_REMOVE: DEBUG -- freeing device memory pointer %p\n",dev_mem_ptr);
@@ -927,6 +951,9 @@ void ezcl_device_memory_remove_p(void *dev_mem_ptr, const char *file, const int 
 }   
 
 void ezcl_mapped_memory_remove_p(void *map_mem_ptr, const char *file, const int line){
+   if (map_mem_ptr == NULL) {
+      printf(" Error with map_mem_ptr in ezcl_mapped_memory_remove from file %s line %d\n",file,line);
+   }
    SLIST_FOREACH(mapped_memory_item, &mapped_memory_head, mapped_memory_entries){
       if (mapped_memory_item->cl_mem_ptr == map_mem_ptr) {
          if (DEBUG) printf("EZCL_MAPPED_MEMORY_REMOVE: DEBUG -- freeing mapped memory pointer %p\n",map_mem_ptr);
@@ -938,6 +965,9 @@ void ezcl_mapped_memory_remove_p(void *map_mem_ptr, const char *file, const int 
 }
 
 void ezcl_malloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const int line){
+   if (malloc_mem_ptr == NULL) {
+      printf(" Error with malloc_mem_ptr in ezcl_malloc_memory_remove from file %s line %d\n",file,line);
+   }
    SLIST_FOREACH(malloc_memory_item, &malloc_memory_head, malloc_memory_entries){
       if (malloc_memory_item->mem_ptr == malloc_mem_ptr) {
          if (DEBUG) printf("EZCL_MALLOC_MEMORY_REMOVE: DEBUG -- freeing malloc memory pointer %p\n",malloc_mem_ptr);
@@ -949,6 +979,9 @@ void ezcl_malloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const i
 }   
 
 void ezcl_program_release_p(cl_program program, const char *file, const int line){
+   if (program == NULL) {
+      printf(" Error with program in ezcl_program_release from file %s line %d\n",file,line);
+   }
     SLIST_FOREACH(object_item, &object_head, object_entries){
         if (object_item->object_type == PROGRAM_OBJECT && object_item->program == program) {
             if (DEBUG) printf("EZCL_PROGRAM_RELEASE: DEBUG -- releasing program %p\n",program);
@@ -961,6 +994,9 @@ void ezcl_program_release_p(cl_program program, const char *file, const int line
 }
 
 void ezcl_kernel_release_p(cl_kernel kernel, const char *file, const int line){
+   if (kernel == NULL) {
+      printf(" Error with kernel in ezcl_kernel_release from file %s line %d\n",file,line);
+   }
     SLIST_FOREACH(object_item, &object_head, object_entries){
         if (object_item->object_type == KERNEL_OBJECT && object_item->kernel == kernel) {
             if (DEBUG) printf("EZCL_KERNEL_RELEASE: DEBUG -- releasing kernel %p\n",kernel);
@@ -973,6 +1009,9 @@ void ezcl_kernel_release_p(cl_kernel kernel, const char *file, const int line){
 }
 
 void ezcl_command_queue_release_p(cl_command_queue command_queue, const char *file, const int line){
+    if (command_queue == NULL) {
+       printf(" Error with command_queue in ezcl_command_queue_release from file %s line %d\n",file,line);
+    }
     SLIST_FOREACH(object_item, &object_head, object_entries){
         if (object_item->object_type == COMMAND_QUEUE_OBJECT && object_item->command_queue == command_queue) {
             if (DEBUG) printf("EZCL_COMMAND_QUEUE_RELEASE: DEBUG -- releasing command queue %p\n",command_queue);
@@ -986,6 +1025,9 @@ void ezcl_command_queue_release_p(cl_command_queue command_queue, const char *fi
 
 
 void ezcl_context_release_p(cl_context context, const char *file, const int line){
+    if (context == NULL) {
+       printf(" Error with context in ezcl_context_release from file %s line %d\n",file,line);
+    }
     SLIST_FOREACH(object_item, &object_head, object_entries){
         if (object_item->object_type == CONTEXT_OBJECT && object_item->context == context) {
             if (DEBUG) printf("EZCL_CONTEXT_RELEASE: DEBUG -- releasing context %p\n",context);
@@ -998,6 +1040,9 @@ void ezcl_context_release_p(cl_context context, const char *file, const int line
 }
 
 void ezcl_event_release_p(cl_event event, const char *file, const int line){
+    if (event == NULL) {
+       printf(" Error with event in ezcl_event_release from file %s line %d\n",file,line);
+    }
     SLIST_FOREACH(object_item, &object_head, object_entries){
         if (object_item->object_type == EVENT_OBJECT && object_item->event == event) {
             if (DEBUG) printf("EZCL_EVENT_RELEASE: DEBUG -- releasing event %p\n",event);
@@ -1010,6 +1055,9 @@ void ezcl_event_release_p(cl_event event, const char *file, const int line){
 }
 
 void ezcl_mem_free_all_p(const char *file, const int line){
+    if (DEBUG) {
+       printf(" Error with ezcl_mem_free_all from file %s line %d\n",file,line);
+    }
    while (!SLIST_EMPTY(&device_memory_head)) {
       device_memory_item = SLIST_FIRST(&device_memory_head);
       if (DEBUG) printf("EZCL_MEM_FREE_ALL: DEBUG -- freeing cl memory %p\n",device_memory_item->cl_mem_ptr);
@@ -1059,6 +1107,9 @@ void ezcl_mem_free_all_p(const char *file, const int line){
 
 int ezcl_get_device_mem_nelements_p(cl_mem mem_buffer, const char *file, const int line)
 {
+   if (mem_buffer == NULL) {
+      printf(" Error with mem_buffer in ezcl_get_device_mem_nelements from file %s line %d\n",file,line);
+   }
    int nelements = -1;
    if (! SLIST_EMPTY(&device_memory_head)){
       SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
@@ -1073,6 +1124,9 @@ int ezcl_get_device_mem_nelements_p(cl_mem mem_buffer, const char *file, const i
 
 int ezcl_get_device_mem_elsize_p(cl_mem mem_buffer, const char *file, const int line)
 {
+   if (mem_buffer == NULL) {
+      printf(" Error with mem_buffer in ezcl_get_device_mem_elsize from file %s line %d\n",file,line);
+   }
    int elsize = -1;
    if (! SLIST_EMPTY(&device_memory_head)){
       SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
@@ -1087,6 +1141,9 @@ int ezcl_get_device_mem_elsize_p(cl_mem mem_buffer, const char *file, const int 
 
 size_t ezcl_get_device_mem_capacity_p(cl_mem mem_buffer, const char *file, const int line)
 {
+   if (mem_buffer == NULL) {
+      printf(" Error with mem_buffer in ezcl_get_device_mem_capacity from file %s line %d\n",file,line);
+   }
    size_t capacity = 0;
    if (! SLIST_EMPTY(&device_memory_head)){
       SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
@@ -1100,6 +1157,9 @@ size_t ezcl_get_device_mem_capacity_p(cl_mem mem_buffer, const char *file, const
 }
 
 void ezcl_mem_walk_one_p(cl_mem mem_buffer, const char *file, const int line){
+   if (mem_buffer == NULL) {
+      printf(" Error with mem_buffer in ezcl_mem_walk_one from file %s line %d\n",file,line);
+   }
    if (! SLIST_EMPTY(&device_memory_head)){
       printf("\n ------ DEVICE MEMORY ALLOCATIONS -----\n");
       SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
@@ -1119,6 +1179,9 @@ void ezcl_mem_walk_one_p(cl_mem mem_buffer, const char *file, const int line){
 
 
 void ezcl_mem_walk_all_p(const char *file, const int line){
+    if (DEBUG) {
+       printf(" Error with ezcl_mem_walk_all from file %s line %d\n",file,line);
+    }
    if (! SLIST_EMPTY(&device_memory_head)){
       printf("\n ------ DEVICE MEMORY ALLOCATIONS -----\n");
       SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
@@ -1925,6 +1988,9 @@ long ezcl_timer_calc_p(cl_event *start_read_event, cl_event *end_read_event, con
 
 
 cl_int ezcl_finalize_p(const char *file, const int line){
+   if (DEBUG) {
+      printf(" Error with ezcl_finalize from file %s line %d\n",file,line);
+   }
 
    ezcl_mem_free_all();
    
@@ -1932,6 +1998,9 @@ cl_int ezcl_finalize_p(const char *file, const int line){
 }
 
 void ezcl_terminate_p(const char *file, const int line){
+   if (DEBUG) {
+      printf(" Error with ezcl_terminate from file %s line %d\n",file,line);
+   }
 
    ezcl_malloc_memory_delete(devices);
    ezcl_malloc_memory_delete(platforms);
