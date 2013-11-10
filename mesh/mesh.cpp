@@ -1357,7 +1357,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    }
 #endif
 
-   KDTree_Initialize(&tree);
+   //KDTree_Initialize(&tree);
 
    int istart = 1,
        jstart = 1,
@@ -2078,6 +2078,10 @@ void Mesh::terminate(void)
       mesh_memory.memory_delete(j);
       mesh_memory.memory_delete(level);
       mesh_memory.memory_delete(celltype);
+      mesh_memory.memory_delete(nlft);
+      mesh_memory.memory_delete(nrht);
+      mesh_memory.memory_delete(nbot);
+      mesh_memory.memory_delete(ntop);
 
 #ifdef HAVE_OPENCL
       hash_lib_terminate();

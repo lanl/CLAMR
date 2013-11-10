@@ -826,6 +826,8 @@ void State::fill_circle(double  circ_radius,//  Radius of circle in grid units.
    
    for (int ic = 0; ic < nez; ++ic)
    {  H[ind[ic]] = background + (fill_value - background) * weight[ic]; }
+
+   KDTree_Destroy(&mesh->tree);
 }
 
 void State::state_reorder(vector<int> iorder)
