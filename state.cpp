@@ -292,6 +292,10 @@ void State::memory_reset_ptrs(void){
 
 void State::terminate(void)
 {
+   state_memory.memory_delete(H);
+   state_memory.memory_delete(U);
+   state_memory.memory_delete(V);
+
 #ifdef HAVE_OPENCL
    ezcl_device_memory_delete(dev_deltaT);
 

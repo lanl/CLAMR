@@ -2074,6 +2074,11 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
 
 void Mesh::terminate(void)
 {
+      mesh_memory.memory_delete(i);
+      mesh_memory.memory_delete(j);
+      mesh_memory.memory_delete(level);
+      mesh_memory.memory_delete(celltype);
+
 #ifdef HAVE_OPENCL
       hash_lib_terminate();
 

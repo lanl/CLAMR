@@ -509,7 +509,7 @@ cl_device_id ezcl_get_device_p(cl_context context, const char *file, const int l
 
 int ezcl_get_compute_device_p(const char *file, const int line)
 {
-   if (compute_device == NULL) {
+   if (DEBUG) {
       printf(" Error with compute device in ezcl_get_compute_device called from file %s line %d\n",file,line);
    }
    return(compute_device);
