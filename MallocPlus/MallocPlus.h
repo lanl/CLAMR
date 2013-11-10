@@ -73,7 +73,7 @@ typedef float real_t;
 
 #if defined(HAVE_MPI) && defined(HAVE_J7)
 #include "mpi.h"
-include "j7/j7.h"
+#include "j7/j7.h"
 #endif
 
 using namespace std;
