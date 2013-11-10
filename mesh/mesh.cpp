@@ -4590,7 +4590,7 @@ void Mesh::calc_neighbors_local(void)
          nrht     = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), nrht);
          nbot     = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), nbot);
          ntop     = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), ntop);
-         //memory_reset_ptrs();
+         memory_reset_ptrs();
 
          for (int ic = ncells; ic < (int)ncells_ghost; ic++){
             nlft[ic] = -1;
@@ -6932,32 +6932,17 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
          state_memory.memory_replace(mem_ptr, state_temp);
       }
 
-      i        = (int *)mesh_memory.memory_realloc(ncells_old+indices_needed_count, sizeof(int), i);
-      j        = (int *)mesh_memory.memory_realloc(ncells_old+indices_needed_count, sizeof(int), j);
-      level    = (int *)mesh_memory.memory_realloc(ncells_old+indices_needed_count, sizeof(int), level);
-      celltype = (int *)mesh_memory.memory_realloc(ncells_old+indices_needed_count, sizeof(int), celltype);
+      mesh_memory.memory_realloc_all(ncells_old+indices_needed_count);
       memory_reset_ptrs();
-
-      for (int ic = ncells_old; ic < ncells_old+indices_needed_count; ic++){
-         i[ic]        = 0;
-         j[ic]        = 0;
-         level[ic]    = 0;
-         celltype[ic] = 0;
-      }
-
-      L7_Update(&i[0], L7_INT, load_balance_handle);
-      L7_Update(&j[0], L7_INT, load_balance_handle);
-      L7_Update(&level[0], L7_INT, load_balance_handle);
-      L7_Update(&celltype[0], L7_INT, load_balance_handle);
 
       MallocPlus mesh_memory_old = mesh_memory;
 
-      for (real_t *mem_ptr=(real_t *)mesh_memory_old.memory_begin(); mem_ptr!=NULL; mem_ptr=(real_t *)mesh_memory_old.memory_next() ){
+      for (int *mem_ptr=(int *)mesh_memory_old.memory_begin(); mem_ptr!=NULL; mem_ptr=(int *)mesh_memory_old.memory_next() ){
          int flags = mesh_memory.get_memory_flags(mem_ptr);
          if ((flags & LOAD_BALANCE_MEMORY) == 0) continue;
-         real_t *mesh_temp = (real_t *)mesh_memory.memory_malloc(ncells, sizeof(real_t), "mesh_temp");
+         int *mesh_temp = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "mesh_temp");
          //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
-         L7_Update(mem_ptr, L7_REAL, load_balance_handle);
+         L7_Update(mem_ptr, L7_INT, load_balance_handle);
          in = 0;
          if(lower_block_size > 0) {
             for(; in < MIN(lower_block_size, (int)ncells); in++) {

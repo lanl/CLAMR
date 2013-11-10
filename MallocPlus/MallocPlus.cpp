@@ -290,16 +290,18 @@ void MallocPlus::memory_realloc_all(size_t nelem){
          if (nelem > it->mem_capacity) {
             mem_ptr=realloc(it->mem_ptr, nelem*it->mem_elsize);
             if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC_ALL: DEBUG -- reallocated memory pointer %p new pointer %p\n",it->mem_ptr,mem_ptr);
-            it->mem_nelem = nelem;
-            it->mem_ptr   = mem_ptr;
+            it->mem_capacity = nelem;
+            it->mem_nelem    = nelem;
+            it->mem_ptr      = mem_ptr;
          } else {
             it->mem_nelem = nelem;
          }
       } else {
          mem_ptr=realloc(it->mem_ptr, nelem*it->mem_elsize);
          if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC_ALL: DEBUG -- reallocated memory pointer %p new pointer %p\n",it->mem_ptr,mem_ptr);
-         it->mem_nelem = nelem;
-         it->mem_ptr   = mem_ptr;
+         it->mem_capacity = nelem;
+         it->mem_nelem    = nelem;
+         it->mem_ptr      = mem_ptr;
       }
    }
 }
