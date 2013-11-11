@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011-2012, Los Alamos National Security, LLC.
+ *  Copyright (c) 2011-2013, Los Alamos National Security, LLC.
  *  All rights Reserved.
  *
  *  Copyright 2011-2012. Los Alamos National Security, LLC. This software was produced 
@@ -69,12 +69,6 @@
 #undef DEBUG
 //#define DEBUG 1
 #define TIMING_LEVEL 2
-
-// SKG -- maybe this isn't needed anymore? Works fine with GCC 4.7.3
-// SKG -- Fixes the build for me.
-//#ifndef __INTEL_COMPILER
-//#define __INTEL_COMPILER
-//#endif
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real_t;
@@ -246,11 +240,6 @@ void State::init(int do_gpu_calc)
    }
 #endif
 
-   //printf("\nDEBUG -- Calling state memory memory malloc at line %d\n",__LINE__);
-   allocate(mesh->ncells);
-   //state_memory.memory_report();
-   //printf("DEBUG -- Finished state memory memory malloc at line %d\n\n",__LINE__);
-
 #ifdef HAVE_MPI
    int mpi_init;
    MPI_Initialized(&mpi_init);
@@ -258,17 +247,27 @@ void State::init(int do_gpu_calc)
       MPI_Type_contiguous(2, MPI_DOUBLE, &MPI_TWO_DOUBLES);
       MPI_Type_commit(&MPI_TWO_DOUBLES);
       MPI_Op_create((MPI_User_function *)kahan_sum, commutative, &KAHAN_SUM);
+      // FIXME add fini and set size
+      state_memory.pinit(MPI_COMM_WORLD, 2L * 1024 * 1024 * 1024);
    }
-#ifdef HAVE_J7
-   //state_memory.pinit(MPI_COMM_WORLD, 64 * 1024 * 1024);
 #endif
-#endif
+   //printf("\nDEBUG -- Calling state memory memory malloc at line %d\n",__LINE__);
+   allocate(mesh->ncells);
+   //state_memory.memory_report();
+   //printf("DEBUG -- Finished state memory memory malloc at line %d\n\n",__LINE__);
+
 }
 
 void State::allocate(size_t ncells){
+#if defined (HAVE_J7)
+   H = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), LOAD_BALANCE_MEMORY, "H");
+   U = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), LOAD_BALANCE_MEMORY, "U");
+   V = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), LOAD_BALANCE_MEMORY, "V");
+#else
    H = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), "H");
    U = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), "U");
    V = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), "V");
+#endif
 }
 
 void State::resize(size_t new_ncells){
@@ -313,6 +312,9 @@ void State::terminate(void)
    ezcl_kernel_release(kernel_reduce_sum_mass_stage2of2);
    ezcl_kernel_release(kernel_reduce_epsum_mass_stage1of2);
    ezcl_kernel_release(kernel_reduce_epsum_mass_stage2of2);
+#endif
+#ifdef HAVE_MPI
+   state_memory.pfini();
 #endif
 }
 
@@ -963,8 +965,10 @@ void State::calc_finite_difference(double deltaT){
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
       H=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), H);
+      sleep(1);
       U=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), U);
       V=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), V);
+
       L7_Update(&H[0], L7_REAL, mesh->cell_handle);
       L7_Update(&U[0], L7_REAL, mesh->cell_handle);
       L7_Update(&V[0], L7_REAL, mesh->cell_handle);
@@ -982,9 +986,24 @@ void State::calc_finite_difference(double deltaT){
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
+#if defined (HAVE_J7)
+   real_t *H_new = (real_t *)state_memory.memory_malloc(ncells_ghost,
+                                                        sizeof(real_t),
+                                                        LOAD_BALANCE_MEMORY,
+                                                        "H_new");
+   real_t *U_new = (real_t *)state_memory.memory_malloc(ncells_ghost,
+                                                        sizeof(real_t),
+                                                        LOAD_BALANCE_MEMORY,
+                                                        "U_new");
+   real_t *V_new = (real_t *)state_memory.memory_malloc(ncells_ghost,
+                                                        sizeof(real_t),
+                                                        LOAD_BALANCE_MEMORY,
+                                                        "V_new");
+#else
    real_t *H_new = (real_t *)state_memory.memory_malloc(ncells_ghost, sizeof(real_t), "H_new");
    real_t *U_new = (real_t *)state_memory.memory_malloc(ncells_ghost, sizeof(real_t), "U_new");
    real_t *V_new = (real_t *)state_memory.memory_malloc(ncells_ghost, sizeof(real_t), "V_new");
+#endif
 
    int gix;
 #ifdef __INTEL_COMPILER

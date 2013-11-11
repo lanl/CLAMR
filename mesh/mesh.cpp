@@ -1199,6 +1199,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
       MPI_Comm_rank(MPI_COMM_WORLD,&mype);
       MPI_Comm_size(MPI_COMM_WORLD,&numpe);
    }
+   // TODO add fini
+   mesh_memory.pinit(MPI_COMM_WORLD, 2L * 1024 * 1024 * 1024);
 #endif
    cell_handle = 0;
 
@@ -2144,6 +2146,9 @@ void Mesh::terminate(void)
         ezcl_kernel_release(kernel_count_BCs);
       }
 #endif
+#ifdef HAVE_J7
+   mesh_memory.pfini();
+#endif
 }
 
 int Mesh::rezone_count(vector<int> mpot, int &icount, int &jcount)
@@ -2457,9 +2462,12 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    int new_ncells = ncells + add_ncells;
 
    //  Initialize new variables
-   int *i_new     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_new");
-   int *j_new     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_new");
-   int *level_new = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_new");
+   int *i_new     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int),
+                                                     LOAD_BALANCE_MEMORY, "i_new");
+   int *j_new     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int),
+                                                     LOAD_BALANCE_MEMORY, "j_new");
+   int *level_new = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int),
+                                                     LOAD_BALANCE_MEMORY, "level_new");
 
    index.resize(new_ncells);
 
@@ -2935,11 +2943,16 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    } //  Complete addition of new cells to the mesh.
 
    if (have_state){
+       // FIXME SKG DEAL WITH THIS
       MallocPlus state_memory_old = state_memory;
 
-      for (real_t *mem_ptr=(real_t *)state_memory_old.memory_begin(); mem_ptr != NULL; mem_ptr = (real_t *)state_memory_old.memory_next() ){
+      for (real_t *mem_ptr=(real_t *)state_memory_old.memory_begin();
+           mem_ptr != NULL; mem_ptr = (real_t *)state_memory_old.memory_next() ){
 
-         real_t *state_temp = (real_t *)state_memory.memory_malloc(new_ncells, sizeof(real_t), "state_temp");
+         real_t *state_temp = (real_t *)state_memory.memory_malloc(new_ncells,
+                                                                   sizeof(real_t),
+                                                                   LOAD_BALANCE_MEMORY,
+                                                                   "state_temp");
 
          for (int ic=0, nc=0; ic<(int)ncells; ic++) {
 
@@ -3245,11 +3258,15 @@ void Mesh::calc_neighbors(void)
    cpu_timer_start(&tstart_cpu);
 
    cpu_calc_neigh_counter++;
+   int flags = INDEX_ARRAY_MEMORY;
 
-   nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "nlft");
-   nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "nrht");
-   nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "nbot");
-   ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "ntop");
+#if defined (HAVE_J7)
+   flags |= LOAD_BALANCE_MEMORY;
+#endif
+   nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nlft");
+   nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nrht");
+   nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nbot");
+   ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "ntop");
 
    if (calc_neighbor_type == HASH_TABLE) {
 
@@ -3571,11 +3588,16 @@ void Mesh::calc_neighbors_local(void)
    cpu_timer_start(&tstart_cpu);
 
    cpu_calc_neigh_counter++;
+   int flags = INDEX_ARRAY_MEMORY;
 
-   nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "nlft");
-   nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "nrht");
-   nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "nbot");
-   ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), INDEX_ARRAY_MEMORY, "ntop");
+#if defined (HAVE_J7)
+   flags |= LOAD_BALANCE_MEMORY;
+#endif
+
+   nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nlft");
+   nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nrht");
+   nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nbot");
+   ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "ntop");
 
    for (int ic = 0; ic < (int)ncells; ic++){
       nlft[ic] = -98;
@@ -6917,8 +6939,16 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
 
       MallocPlus state_memory_old = state_memory;
 
-      for (real_t *mem_ptr=(real_t *)state_memory_old.memory_begin(); mem_ptr!=NULL; mem_ptr=(real_t *)state_memory_old.memory_next() ){
+      for (real_t *mem_ptr=(real_t *)state_memory_old.memory_begin();
+           mem_ptr!=NULL; mem_ptr=(real_t *)state_memory_old.memory_next()) {
+#if defined (HAVE_J7)
+         real_t *state_temp = (real_t *)
+                              state_memory.memory_malloc(ncells, sizeof(real_t),
+                                                         LOAD_BALANCE_MEMORY,
+                                                         "state_temp");
+#else
          real_t *state_temp = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), "state_temp");
+#endif
          //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
          L7_Update(mem_ptr, L7_REAL, load_balance_handle);
          in = 0;
@@ -6947,7 +6977,8 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
 
       for (int *mem_ptr=(int *)mesh_memory_old.memory_begin(); mem_ptr!=NULL; mem_ptr=(int *)mesh_memory_old.memory_next() ){
          int flags = mesh_memory.get_memory_flags(mem_ptr);
-         //if ((flags & LOAD_BALANCE_MEMORY) == 0) continue;
+         // SKG XXX ???
+         if ((flags & LOAD_BALANCE_MEMORY) == 0) continue;
          int *mesh_temp = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "mesh_temp");
          //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
          L7_Update(mem_ptr, L7_INT, load_balance_handle);

@@ -15,7 +15,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # uncomment to build debug
-#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Debug)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
@@ -320,8 +320,8 @@ if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND)
     add_executable(clamr_quo ${clamr_quo_SRCS})
 
     # these sets HAVE_J7 and HAVE_QUO in config.h
-    #set(HAVE_J7 ON)
-    #set(HAVE_QUO ON)
+    # set(HAVE_J7 ON)
+    # set(HAVE_QUO ON)
     set_target_properties(clamr_quo PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI")
 
     set(clamr_quo_link_flags "${OpenMP_CXX_FLAGS}")
