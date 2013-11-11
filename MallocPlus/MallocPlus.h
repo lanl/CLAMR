@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011-2012, Los Alamos National Security, LLC.
+ *  Copyright (c) 2011-2013, Los Alamos National Security, LLC.
  *  All rights Reserved.
  *
  *  Copyright 2011-2012. Los Alamos National Security, LLC. This software was produced 
@@ -97,11 +97,23 @@ private:
 #endif
    
 public:
-#if defined(HAVE_MPI) && defined(HAVE_J7) // J7 support implies MPI support
-   // parallel (typically MPI) initialization routine
+   // if we have MPI support enable these routines. they only really do anything
+   // if we also have j7 support, but that's okay; we don't want ifdefs all
+   // over.
+#if defined(HAVE_MPI)
+   // parallel initialization routine
    void pinit(MPI_Comm smComm, std::size_t memPoolSize);
-   // parallel (typically MPI) finalization routine
+   // parallel finalization routine
    void pfini(void);
+#endif
+
+#if defined(HAVE_MPI) && defined(HAVE_J7)
+#if 0
+   MallocPlus(void) { ; }
+   MallocPlus(MallocPlus &other) {
+       this->j7 = other.j7;
+   }
+#endif
 #endif
 
    void *memory_malloc(size_t nelem, size_t elsize, const char *name);

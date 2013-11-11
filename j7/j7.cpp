@@ -46,6 +46,7 @@
  * replace MPI_Barrier with something faster if needed
  * over allocate for metadata (hide our stuff in the sm segment)
  * add first touch
+ * calloc - fill with 0s
  */
 
 #include "j7.h"
@@ -313,6 +314,7 @@ J7::memAlloc(std::size_t size)
     unsigned long long mySize = static_cast<unsigned long long>(size);
     unsigned long long realSizei = 0;
     MSMHandle handle;
+
     // calculate the global allocation size
     allreduce(&mySize, &realSizei, 1, MPI_UNSIGNED_LONG_LONG, MPI_SUM);
     realSize = static_cast<size_t>(realSizei);

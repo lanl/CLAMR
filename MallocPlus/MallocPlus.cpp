@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2011-2012, Los Alamos National Security, LLC.
+ *  Copyright (c) 2011-2013, Los Alamos National Security, LLC.
  *  All rights Reserved.
  *
  *  Copyright 2011-2012. Los Alamos National Security, LLC. This software was produced 
@@ -53,6 +53,9 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
+
+// SKG TODO op realloc (similar to managed)
+
 #include <unistd.h>
 #include <stdio.h>
 #include <algorithm>
@@ -90,26 +93,26 @@ typedef cl_float2   cl_real2;
 typedef unsigned int uint;
 list<malloc_plus_memory_entry>::iterator it_save;
 
-#if defined(HAVE_MPI) && defined(HAVE_J7)
-
-#include "j7/j7.h"
-
+#if defined(HAVE_MPI)
 void
 MallocPlus::pinit(MPI_Comm smComm, std::size_t memPoolSize)
 {
+#if defined(HAVE_J7)
     try {
-        std::cerr << "*** pinit failure ***" << std::endl;
         j7 = new J7(smComm, memPoolSize);
     }
     catch(...) {
         std::cerr << "*** pinit failure ***" << std::endl;
         throw;
     }
+#endif
 }
 
 void
 MallocPlus::pfini(void)
 {
+#if defined(HAVE_J7)
+    std::cout << "DEL J7" << std::endl;
     try {
         delete j7;
         j7 = NULL;
@@ -118,8 +121,9 @@ MallocPlus::pfini(void)
         std::cerr << "*** pfini failure ***" << std::endl;
         throw;
     }
-}
 #endif
+}
+#endif // if defined(HAVE_MPI)
 
 void *MallocPlus::memory_malloc(size_t nelem, size_t elsize, const char *name){
    malloc_plus_memory_entry memory_item;
@@ -151,10 +155,18 @@ void *MallocPlus::memory_malloc(size_t nelem, size_t elsize, int flags, const ch
       memory_item.mem_capacity = nelem;
       memory_item.mem_ptr      = ezcl_device_memory_malloc(context, NULL, name, nelem, elsize, CL_MEM_READ_WRITE, 0);
 #endif
-   } else if ((flags & HOST_MANAGED_MEMORY) != 0){
+   }
+   else if ((flags & HOST_MANAGED_MEMORY) != 0){
       memory_item.mem_capacity = nelem;
       memory_item.mem_ptr      = malloc(nelem*elsize);
    }
+#ifdef HAVE_J7
+   else if (flags & LOAD_BALANCE_MEMORY) {
+      memory_item.mem_capacity = 2 * nelem;
+      memory_item.mem_ptr      = j7->memAlloc(2 * nelem * elsize);
+      assert(memory_item.mem_ptr);
+   }
+#endif
    else {
       memory_item.mem_capacity = 2*nelem;
       memory_item.mem_ptr      = malloc(2*nelem*elsize);
@@ -192,7 +204,18 @@ void *MallocPlus::memory_realloc(size_t nelem, size_t elsize, void *malloc_mem_p
             // Just move size to use more of memory buffer
             it->mem_nelem  = nelem;
          }
-      } else {
+      }
+#ifdef HAVE_J7
+      else if (it->mem_flags & LOAD_BALANCE_MEMORY) {
+         mem_ptr = j7->memRealloc(it->mem_ptr, nelem * elsize);
+         assert(mem_ptr);
+         it->mem_capacity = nelem;
+         it->mem_nelem    = nelem;
+         it->mem_elsize   = elsize;
+         it->mem_ptr      = mem_ptr;
+      }
+#endif
+      else {
          mem_ptr=realloc(it->mem_ptr, nelem*elsize);
          it->mem_capacity = nelem;
          it->mem_nelem    = nelem;
@@ -214,8 +237,9 @@ void *MallocPlus::memory_realloc(size_t nelem, size_t elsize, const char *name){
       if (! strcmp(name,it->mem_name)) break;
    }
    if (it != memory_list.end()){
-      if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC: DEBUG -- reallocated memory pointer %p\n",it->mem_ptr);
-      if (it->mem_flags & HOST_MANAGED_MEMORY){
+      if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC: DEBUG -- "
+                        "reallocated memory pointer %p\n",it->mem_ptr);
+      if (it->mem_flags & HOST_MANAGED_MEMORY) {
          // Check to see if memory needs to be expanded
          if (nelem > it->mem_capacity) {
             // Need to realloc memory. Allocate extra for growth of array.
@@ -228,7 +252,18 @@ void *MallocPlus::memory_realloc(size_t nelem, size_t elsize, const char *name){
             // Just move size to use more of memory buffer
             it->mem_nelem  = nelem;
          }
-      } else {
+      }
+#ifdef HAVE_J7
+      else if (it->mem_flags & LOAD_BALANCE_MEMORY) {
+         mem_ptr = j7->memRealloc(it->mem_ptr, nelem * elsize);
+         assert(mem_ptr);
+         it->mem_capacity = nelem;
+         it->mem_nelem    = nelem;
+         it->mem_elsize   = elsize;
+         it->mem_ptr      = mem_ptr;
+      }
+#endif
+      else {
          mem_ptr=realloc(it->mem_ptr, nelem*elsize);
          it->mem_capacity = nelem;
          it->mem_nelem    = nelem;
@@ -296,7 +331,17 @@ void MallocPlus::memory_realloc_all(size_t nelem){
          } else {
             it->mem_nelem = nelem;
          }
-      } else {
+      }
+#ifdef HAVE_J7
+      else if (it->mem_flags & LOAD_BALANCE_MEMORY) {
+         mem_ptr = j7->memRealloc(it->mem_ptr, nelem * it->mem_elsize);
+         assert(mem_ptr);
+         it->mem_capacity = nelem;
+         it->mem_nelem    = nelem;
+         it->mem_ptr      = mem_ptr;
+      }
+#endif
+      else {
          mem_ptr=realloc(it->mem_ptr, nelem*it->mem_elsize);
          if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC_ALL: DEBUG -- reallocated memory pointer %p new pointer %p\n",it->mem_ptr,mem_ptr);
          it->mem_capacity = nelem;
@@ -400,7 +445,13 @@ void *MallocPlus::memory_delete(void *malloc_mem_ptr){
          //printf("MALLOC_PLUS_MEMORY_REMOVE: DEBUG -- removed memory pointer %p\n",it->mem_ptr);
          ezcl_device_memory_delete(it->mem_ptr);
 #endif
-      } else {
+      }
+#ifdef HAVE_J7
+      else if (it->mem_flags & LOAD_BALANCE_MEMORY) {
+         j7->memFree(it->mem_ptr);
+      }
+#endif
+      else {
          free(it->mem_ptr);
       }
       memory_list.erase(it);
@@ -425,7 +476,13 @@ void *MallocPlus::memory_delete(const char *name){
 #ifdef HAVE_OPENCL
          ezcl_device_memory_delete(it->mem_ptr);
 #endif
-      } else {
+      }
+#ifdef HAVE_J7
+      else if (it->mem_flags & LOAD_BALANCE_MEMORY) {
+         j7->memFree(it->mem_ptr);
+      }
+#endif
+      else {
          free(it->mem_ptr);
       }
       memory_list.erase(it);
@@ -605,7 +662,13 @@ void *MallocPlus::memory_replace(void *malloc_mem_ptr_old, void * const malloc_m
          if (DEBUG) printf("Deleting device memory name %s pointer %p\n",it_old->mem_name,it_old->mem_ptr);
          ezcl_device_memory_delete(it_old->mem_ptr);
 #endif
-      } else {
+      }
+#ifdef HAVE_J7
+      else if (it->mem_flags & LOAD_BALANCE_MEMORY) {
+         j7->memFree(it_old->mem_ptr);
+      }
+#endif
+      else {
          free(it_old->mem_ptr);
       }
       it_old->mem_ptr      = it_new->mem_ptr;
