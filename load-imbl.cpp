@@ -388,7 +388,7 @@ getNumElems(size_t arrayID) // Partitioned by Rows Based on Cells
 }
 #endif
 
-#if 1 // exp01
+#if 0 // exp01
 static size_t
 getNumElems(size_t arrayID) // Partitioned by Quadrants Based on Cells
 {
@@ -402,6 +402,33 @@ getNumElems(size_t arrayID) // Partitioned by Quadrants Based on Cells
         else if (1 == cwID) return 9 * ALLOC_BASE_NELEMS;
         else if (2 == cwID) return 9  * ALLOC_BASE_NELEMS;
         else if (3 == cwID) return 6  * ALLOC_BASE_NELEMS;
+        else throw J7Exception(__FILE__, __LINE__, "*** bad setup ***");
+    }
+    else {
+        throw J7Exception(__FILE__, __LINE__, "*** bad array ID ***");
+    }
+    return 0;
+}
+#endif
+
+#if 1 // exp02
+static size_t
+getNumElems(size_t arrayID) // Partitioned by Rows Based
+{                           // Both on Weighted Cells and Particles
+    // cells
+    if (0 == arrayID) {
+        if      (0 == cwID) return 1 *ALLOC_BASE_NELEMS;
+        else if (1 == cwID) return 4 * ALLOC_BASE_NELEMS;
+        else if (2 == cwID) return 5 * ALLOC_BASE_NELEMS;
+        else if (3 == cwID) return 6 * ALLOC_BASE_NELEMS;
+        else throw J7Exception(__FILE__, __LINE__, "*** bad setup ***");
+    }
+    // particles
+    else if (1 == arrayID) {
+        if      (0 == cwID) return 14 * ALLOC_BASE_NELEMS;
+        else if (1 == cwID) return 16 * ALLOC_BASE_NELEMS;
+        else if (2 == cwID) return 13 * ALLOC_BASE_NELEMS;
+        else if (3 == cwID) return 10 * ALLOC_BASE_NELEMS;
         else throw J7Exception(__FILE__, __LINE__, "*** bad setup ***");
     }
     else {
