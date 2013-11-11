@@ -6942,13 +6942,12 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       }
 
       mesh_memory.memory_realloc_all(ncells_old+indices_needed_count);
-      memory_reset_ptrs();
 
       MallocPlus mesh_memory_old = mesh_memory;
 
       for (int *mem_ptr=(int *)mesh_memory_old.memory_begin(); mem_ptr!=NULL; mem_ptr=(int *)mesh_memory_old.memory_next() ){
          int flags = mesh_memory.get_memory_flags(mem_ptr);
-         if ((flags & LOAD_BALANCE_MEMORY) == 0) continue;
+         //if ((flags & LOAD_BALANCE_MEMORY) == 0) continue;
          int *mesh_temp = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "mesh_temp");
          //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
          L7_Update(mem_ptr, L7_INT, load_balance_handle);
