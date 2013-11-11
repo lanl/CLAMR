@@ -965,7 +965,6 @@ void State::calc_finite_difference(double deltaT){
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
       H=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), H);
-      sleep(1);
       U=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), U);
       V=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), V);
 

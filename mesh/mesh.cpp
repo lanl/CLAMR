@@ -2943,7 +2943,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    } //  Complete addition of new cells to the mesh.
 
    if (have_state){
-       // FIXME SKG DEAL WITH THIS
       MallocPlus state_memory_old = state_memory;
 
       for (real_t *mem_ptr=(real_t *)state_memory_old.memory_begin();
@@ -6978,8 +6977,8 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       for (int *mem_ptr=(int *)mesh_memory_old.memory_begin(); mem_ptr!=NULL; mem_ptr=(int *)mesh_memory_old.memory_next() ){
          int flags = mesh_memory.get_memory_flags(mem_ptr);
          // SKG XXX ???
-         if ((flags & LOAD_BALANCE_MEMORY) == 0) continue;
-         int *mesh_temp = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "mesh_temp");
+         //if ((flags & LOAD_BALANCE_MEMORY) == 0) continue;
+         int *mesh_temp = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "mesh_temp");
          //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
          L7_Update(mem_ptr, L7_INT, load_balance_handle);
          in = 0;
