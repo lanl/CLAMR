@@ -213,6 +213,18 @@ State::State(Mesh *mesh_in)
    gpu_time_write              = 0;
 
    mesh = mesh_in;
+
+#ifdef HAVE_MPI
+   int mpi_init;
+   MPI_Initialized(&mpi_init);
+   if (mpi_init){
+      MPI_Type_contiguous(2, MPI_DOUBLE, &MPI_TWO_DOUBLES);
+      MPI_Type_commit(&MPI_TWO_DOUBLES);
+      MPI_Op_create((MPI_User_function *)kahan_sum, commutative, &KAHAN_SUM);
+      // FIXME add fini and set size
+      state_memory.pinit(MPI_COMM_WORLD, 2L * 1024 * 1024 * 1024);
+   }
+#endif
 }
 
 void State::init(int do_gpu_calc)
@@ -240,17 +252,6 @@ void State::init(int do_gpu_calc)
    }
 #endif
 
-#ifdef HAVE_MPI
-   int mpi_init;
-   MPI_Initialized(&mpi_init);
-   if (mpi_init){
-      MPI_Type_contiguous(2, MPI_DOUBLE, &MPI_TWO_DOUBLES);
-      MPI_Type_commit(&MPI_TWO_DOUBLES);
-      MPI_Op_create((MPI_User_function *)kahan_sum, commutative, &KAHAN_SUM);
-      // FIXME add fini and set size
-      state_memory.pinit(MPI_COMM_WORLD, 2L * 1024 * 1024 * 1024);
-   }
-#endif
    //printf("\nDEBUG -- Calling state memory memory malloc at line %d\n",__LINE__);
    allocate(mesh->ncells);
    //state_memory.memory_report();
