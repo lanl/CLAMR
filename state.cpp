@@ -222,7 +222,7 @@ State::State(Mesh *mesh_in)
       MPI_Type_commit(&MPI_TWO_DOUBLES);
       MPI_Op_create((MPI_User_function *)kahan_sum, commutative, &KAHAN_SUM);
       // FIXME add fini and set size
-      state_memory.pinit(MPI_COMM_WORLD, 2L * 1024 * 1024 * 1024);
+      if (mesh->parallel) state_memory.pinit(MPI_COMM_WORLD, 2L * 1024 * 1024 * 1024);
    }
 #endif
 }
@@ -260,15 +260,14 @@ void State::init(int do_gpu_calc)
 }
 
 void State::allocate(size_t ncells){
-#if defined (HAVE_J7)
-   H = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), LOAD_BALANCE_MEMORY, "H");
-   U = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), LOAD_BALANCE_MEMORY, "U");
-   V = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), LOAD_BALANCE_MEMORY, "V");
-#else
-   H = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), "H");
-   U = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), "U");
-   V = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), "V");
+   int flags = 0;
+#ifdef HAVE_J7
+   if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
+
+   H = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), flags, "H");
+   U = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), flags, "U");
+   V = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), flags, "V");
 }
 
 void State::resize(size_t new_ncells){
@@ -315,7 +314,7 @@ void State::terminate(void)
    ezcl_kernel_release(kernel_reduce_epsum_mass_stage2of2);
 #endif
 #ifdef HAVE_MPI
-   state_memory.pfini();
+   if (mesh->parallel) state_memory.pfini();
 #endif
 }
 
@@ -986,24 +985,22 @@ void State::calc_finite_difference(double deltaT){
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
+   int flags = 0;
 #if defined (HAVE_J7)
+   if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
+#endif
    real_t *H_new = (real_t *)state_memory.memory_malloc(ncells_ghost,
                                                         sizeof(real_t),
-                                                        LOAD_BALANCE_MEMORY,
+                                                        flags,
                                                         "H_new");
    real_t *U_new = (real_t *)state_memory.memory_malloc(ncells_ghost,
                                                         sizeof(real_t),
-                                                        LOAD_BALANCE_MEMORY,
+                                                        flags,
                                                         "U_new");
    real_t *V_new = (real_t *)state_memory.memory_malloc(ncells_ghost,
                                                         sizeof(real_t),
-                                                        LOAD_BALANCE_MEMORY,
+                                                        flags,
                                                         "V_new");
-#else
-   real_t *H_new = (real_t *)state_memory.memory_malloc(ncells_ghost, sizeof(real_t), "H_new");
-   real_t *U_new = (real_t *)state_memory.memory_malloc(ncells_ghost, sizeof(real_t), "U_new");
-   real_t *V_new = (real_t *)state_memory.memory_malloc(ncells_ghost, sizeof(real_t), "V_new");
-#endif
 
    int gix;
 #ifdef __INTEL_COMPILER

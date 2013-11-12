@@ -157,19 +157,19 @@ void *MallocPlus::memory_malloc(size_t nelem, size_t elsize, int flags, const ch
 #endif
    }
    else if ((flags & HOST_MANAGED_MEMORY) != 0){
-      memory_item.mem_capacity = nelem;
-      memory_item.mem_ptr      = malloc(nelem*elsize);
+      memory_item.mem_capacity = 2 * nelem;
+      memory_item.mem_ptr      = malloc(2* nelem*elsize);
    }
 #ifdef HAVE_J7
    else if (flags & LOAD_BALANCE_MEMORY) {
-      memory_item.mem_capacity = 2 * nelem;
-      memory_item.mem_ptr      = j7->memAlloc(2 * nelem * elsize);
+      memory_item.mem_capacity = nelem;
+      memory_item.mem_ptr      = j7->memAlloc(nelem * elsize);
       assert(memory_item.mem_ptr);
    }
 #endif
    else {
-      memory_item.mem_capacity = 2*nelem;
-      memory_item.mem_ptr      = malloc(2*nelem*elsize);
+      memory_item.mem_capacity = nelem;
+      memory_item.mem_ptr      = malloc(nelem*elsize);
    }
    char *mem_name = (char *)malloc(MIN(strlen(name)+1,20));
    strncpy(mem_name,name,MIN(strlen(name),19));
