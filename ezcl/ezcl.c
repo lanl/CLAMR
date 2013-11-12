@@ -1730,7 +1730,7 @@ cl_program ezcl_create_program_wsource_p(cl_context context, const char *source,
    object_item = malloc(sizeof(struct object_entry));
    object_item->object_type = PROGRAM_OBJECT;
    object_item->program = program;
-   snprintf(object_item->name,(size_t)30,"%-30s",source);
+   strcpy(object_item->name, "\0");
    object_item->line = line;
    snprintf(object_item->file,(size_t)30,"%-30s",file);
    char *filename = "dummy";

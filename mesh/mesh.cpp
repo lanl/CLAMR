@@ -1306,9 +1306,10 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    if (do_gpu_calc) {
       hash_lib_init();
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in mesh\n");
-      char *bothsources = (char *)malloc(strlen(mesh_kern_source)+strlen(get_hash_kernel_source_string()));
+      char *bothsources = (char *)malloc(strlen(mesh_kern_source)+strlen(get_hash_kernel_source_string())+1);
       strcpy(bothsources, get_hash_kernel_source_string());
       strcat(bothsources, mesh_kern_source);
+      strcat(bothsources, "\0");
       cl_program program = ezcl_create_program_wsource(context, bothsources, 0);
       free(bothsources);
 
@@ -2146,7 +2147,7 @@ void Mesh::terminate(void)
         ezcl_kernel_release(kernel_count_BCs);
       }
 #endif
-#ifdef HAVE_J7
+#if defined(HAVE_J7) && defined(HAVE_MPI)
    mesh_memory.pfini();
 #endif
 }

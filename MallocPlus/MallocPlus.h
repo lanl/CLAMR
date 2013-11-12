@@ -65,6 +65,10 @@ typedef double real_t;
 typedef float real_t;
 #endif
 
+#ifndef HAVE_MPI
+#undef HAVE_J7
+#endif
+
 #define HOST_REGULAR_MEMORY   0x00000
 #define HOST_MANAGED_MEMORY   0x00001
 #define DEVICE_REGULAR_MEMORY 0x00002
