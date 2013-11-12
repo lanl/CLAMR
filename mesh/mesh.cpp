@@ -1314,7 +1314,7 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       strcpy(bothsources, get_hash_kernel_source_string());
       strcat(bothsources, mesh_kern_source);
       strcat(bothsources, "\0");
-      cl_program program = ezcl_create_program_wsource(context, bothsources, 0);
+      cl_program program = ezcl_create_program_wsource(context, bothsources);
       free(bothsources);
 
       kernel_reduction_scan2          = ezcl_create_kernel_wprogram(program, "finish_reduction_scan2_cl");
@@ -7045,6 +7045,9 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
+
+   // To get rid of compiler warning
+   if (DEBUG && weight != NULL) printf("DEBUG weight[0] = %f\n",weight[0]);
 
    int ncells_old = numcells;
    int noffset_old = ndispl[mype];

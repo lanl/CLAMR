@@ -364,7 +364,7 @@ void hash_lib_init(void){
 
    cl_context context = ezcl_get_context();
 
-   cl_program program = ezcl_create_program_wsource(context, hashlib_kern_source, 0);
+   cl_program program = ezcl_create_program_wsource(context, hashlib_kern_source);
 
    kernel_hash_init = ezcl_create_kernel_wprogram(program, "hash_init_cl");
 
@@ -407,7 +407,7 @@ cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int gpu_h
 
    hashtablesize = (*hashsize);
 
-   const int TILE_SIZE = 128;
+   const uint TILE_SIZE = 128;
 
    cl_command_queue command_queue = ezcl_get_command_queue();
 

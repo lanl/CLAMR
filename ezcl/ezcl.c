@@ -71,6 +71,8 @@
 #include "mpi.h"
 #endif
 
+typedef unsigned int uint;
+
 // Control flags
 static struct {
    unsigned int timing     : 1;
@@ -177,7 +179,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
 
    if (DEBUG){
       char info[1024];
-      for (int iplatform=0; iplatform<nPlatforms; iplatform++){
+      for (uint iplatform=0; iplatform<nPlatforms; iplatform++){
          printf("  Platform %d:\n",iplatform+1);
       
          //clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_PROFILE,   1024L,info,0);
@@ -232,7 +234,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
    }
    
    if (DEBUG){
-      for (int idevice=0; idevice<nDevices; idevice++){
+      for (uint idevice=0; idevice<nDevices; idevice++){
          printf(  "  Device %d:\n", idevice+1);
          ezcl_device_info(devices[idevice]);
       }
@@ -348,7 +350,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
 
    if (DEBUG){
       char info[1024];
-      for (int iplatform=0; iplatform<nPlatforms; iplatform++){
+      for (uint iplatform=0; iplatform<nPlatforms; iplatform++){
          printf("  Platform %d:\n",iplatform+1);
 
          //clGetPlatformInfo(platforms[iplatform],CL_PLATFORM_PROFILE,   1024L,info,0);
@@ -370,7 +372,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
    }
 
    // Get the number of devices, allocate, and get the devices
-   for (int iplatform=0; iplatform<nPlatforms; iplatform++){
+   for (uint iplatform=0; iplatform<nPlatforms; iplatform++){
       ierr = clGetDeviceIDs(platforms[iplatform],device_type,0,NULL,&nDevices);
       if (ierr == CL_DEVICE_NOT_FOUND) {
          if (DEBUG) {
@@ -417,7 +419,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
    }
 
    if (DEBUG){
-      for (int idevice=0; idevice<nDevices; idevice++){
+      for (uint idevice=0; idevice<nDevices; idevice++){
          printf(  "  Device %d:\n", idevice+1);
          ezcl_device_info(devices[idevice]);
       }
@@ -1313,7 +1315,7 @@ void ezcl_mem_walk_all_p(const char *file, const int line){
    }
 }
 
-cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const char *kernel_name, int flags, const char *file, const int line){
+cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const char *kernel_name, const char *file, const int line){
    cl_kernel kernel;
    struct stat statbuf;
    FILE *fh;
@@ -1322,7 +1324,7 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
    size_t nReportSize;
    char *BuildReport;
    char *filename_copy;
-   
+
    fh=fopen(filename, "r");
    if (fh == 0){
       printf("EZCL_CREATE_KERNEL: Error -- cannot open %s in file %s at line %d\n",filename, file, line);
@@ -1478,7 +1480,7 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
    return(kernel);
 }
 
-cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, const char *kernel_name, int flags, const char *file, const int line){
+cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, const char *kernel_name, const char *file, const int line){
    cl_kernel kernel;
    cl_int ierr;
    size_t nReportSize;
@@ -1623,7 +1625,7 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
    return(kernel);
 }
 
-cl_program ezcl_create_program_wsource_p(cl_context context, const char *source, int flags, const char *file, const int line){
+cl_program ezcl_create_program_wsource_p(cl_context context, const char *source, const char *file, const int line){
    //cl_kernel kernel;
    cl_int ierr;
    size_t nReportSize;
