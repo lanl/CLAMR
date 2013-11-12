@@ -60,9 +60,10 @@
 #include "reduce_kernel.inc"
 #endif
 
-void init_kernels_reduce(cl_context context)
+void init_kernels_reduce(void)
 {
 #ifdef HAVE_OPENCL
+    cl_context context = ezcl_get_context();
     kernel_reduce_sum     = ezcl_create_kernel_wsource(context, reduce_source, "reduce_sum_cl", 0);
     kernel_reduce_sum_stage1of2 = ezcl_create_kernel_wsource(context, reduce_source, "reduce_sum_stage1of2_cl", 0);
     kernel_reduce_sum_stage2of2 = ezcl_create_kernel_wsource(context, reduce_source, "reduce_sum_stage2of2_cl", 0);
@@ -78,16 +79,18 @@ void init_kernels_reduce(cl_context context)
 #endif
 }
 
-void init_kernel_sum(cl_context context)
+void init_kernel_sum(void)
 {
 #ifdef HAVE_OPENCL
+    cl_context context = ezcl_get_context();
     kernel_reduce_sum = ezcl_create_kernel_wsource(context, reduce_source, "reduce_sum_cl", 0);
 #endif
 }
 
-void init_kernel_2stage_sum(cl_context context)
+void init_kernel_2stage_sum(void)
 {
 #ifdef HAVE_OPENCL
+    cl_context context = ezcl_get_context();
     kernel_reduce_sum_stage1of2 = ezcl_create_kernel_wsource(context, reduce_source, "reduce_sum_stage1of2_cl", 0);
     kernel_reduce_sum_stage2of2 = ezcl_create_kernel_wsource(context, reduce_source, "reduce_sum_stage2of2_cl", 0);
 #endif
@@ -101,9 +104,10 @@ void terminate_kernel_2stage_sum(void)
 #endif
 }
 
-void init_kernel_2stage_sum_int(cl_context context)
+void init_kernel_2stage_sum_int(void)
 {   
 #ifdef HAVE_OPENCL
+    cl_context context = ezcl_get_context();
     kernel_reduce_sum_int_stage1of2 = ezcl_create_kernel_wsource(context, reduce_source, "reduce_sum_int_stage1of2_cl", 0);
     kernel_reduce_sum_int_stage2of2 = ezcl_create_kernel_wsource(context, reduce_source, "reduce_sum_int_stage2of2_cl", 0);
 #endif
@@ -117,38 +121,43 @@ void terminate_kernel_2stage_sum_int(void)
 #endif
 }
 
-void init_kernel_product(cl_context context)
+void init_kernel_product(void)
 {
 #ifdef HAVE_OPENCL
+    cl_context context = ezcl_get_context();
     kernel_reduce_product = ezcl_create_kernel_wsource(context, reduce_source, "reduce_product_cl", 0);
 #endif
 }
 
-void init_kernel_max(cl_context context)
+void init_kernel_max(void)
 {   
 #ifdef HAVE_OPENCL
+    cl_context context = ezcl_get_context();
     kernel_reduce_max = ezcl_create_kernel_wsource(context, reduce_source, "reduce_max_cl", 0);
 #endif
 }
 
-void init_kernel_2stage_max(cl_context context)
+void init_kernel_2stage_max(void)
 {
 #ifdef HAVE_OPENCL
+    cl_context context = ezcl_get_context();
     kernel_reduce_max_stage1of2 = ezcl_create_kernel_wsource(context, reduce_source, "reduce_max_stage1of2_cl", 0);
     kernel_reduce_max_stage2of2 = ezcl_create_kernel_wsource(context, reduce_source, "reduce_max_stage2of2_cl", 0);
 #endif
 }
 
-void init_kernel_min(cl_context context)
+void init_kernel_min(void)
 {   
 #ifdef HAVE_OPENCL
+    cl_context context = ezcl_get_context();
     kernel_reduce_min = ezcl_create_kernel_wsource(context, reduce_source, "reduce_min_cl", 0);
 #endif
 }
 
-void init_kernel_2stage_min(cl_context context)
+void init_kernel_2stage_min(void)
 {
 #ifdef HAVE_OPENCL
+    cl_context context = ezcl_get_context();
     kernel_reduce_min_stage1of2 = ezcl_create_kernel_wsource(context, reduce_source, "reduce_min_stage1of2_cl", 0);
     kernel_reduce_min_stage2of2 = ezcl_create_kernel_wsource(context, reduce_source, "reduce_min_stage2of2_cl", 0);
 #endif

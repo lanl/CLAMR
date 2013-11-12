@@ -287,7 +287,7 @@ static int getSubCommProcs(QUO_context c, int numpes, int *vLen, int **v)
     int *workerRanks = NULL;
 
     // figure out what we are going to distribute work over
-    for (int i = 0; i < sizeof(resPrio) / sizeof(resPrio[0]); ++i) {
+    for (uint i = 0; i < sizeof(resPrio) / sizeof(resPrio[0]); ++i) {
         if (QUO_SUCCESS != (rc = QUO_nobjs_by_type(c, resPrio[i], &nRes))){
            printf("QUO_nobjs_by_type: rc = %d\n",rc);
            exit(1);

@@ -112,7 +112,7 @@ struct esum_type{
 MPI_Datatype MPI_TWO_DOUBLES;
 MPI_Op KAHAN_SUM;
 int commutative = 1;
-void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES);
+void kahan_sum(struct esum_type *in, struct esum_type *inout);
 #endif
 
 int save_ncells;
@@ -229,8 +229,8 @@ State::State(Mesh *mesh_in)
 
 void State::init(int do_gpu_calc)
 {
-#ifdef HAVE_OPENCL
    if (do_gpu_calc) {
+#ifdef HAVE_OPENCL
       cl_context context = ezcl_get_context();
 
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in state\n");
@@ -249,8 +249,8 @@ void State::init(int do_gpu_calc)
 
       ezcl_program_release(program);
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in state\n");
-   }
 #endif
+   }
 
    //printf("\nDEBUG -- Calling state memory memory malloc at line %d\n",__LINE__);
    allocate(mesh->ncells);
@@ -319,7 +319,7 @@ void State::terminate(void)
 }
 
 #ifdef HAVE_MPI
-void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES)
+void kahan_sum(struct esum_type *in, struct esum_type *inout)
 {
    double corrected_next_term, new_sum;
 
@@ -852,6 +852,9 @@ void State::rezone_all(int icount, int jcount, vector<int> mpot)
 #ifdef HAVE_OPENCL
 void State::gpu_rezone_all(int icount, int jcount, bool localStencil)
 {
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- localStencil is %d\n",localStencil);
+
    mesh->gpu_rezone_all(icount, jcount, dev_mpot, gpu_state_memory);
    dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H");
    dev_U = (cl_mem)gpu_state_memory.get_memory_ptr("dev_U");
@@ -2248,6 +2251,9 @@ void State::resize_old_device_memory(size_t ncells)
    dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
    dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
    dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
+#else
+   // Just to block compiler warnings
+   if (1 == 2) printf("DEBUG -- ncells is %ld\n",ncells);
 #endif
 }
 
@@ -2522,6 +2528,9 @@ void State::parallel_timer_output(int numpe, int mype, const char *string, doubl
    vector<double> global_times(numpe);
 #ifdef HAVE_MPI
    MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+#else
+   // Just to block compiler warning
+   if (1 == 2) printf("DEBUG -- local time is %lf\n",local_time);
 #endif
    if (mype == 0) {
       printf("%s\t",string);
@@ -2549,6 +2558,9 @@ void State::parallel_memory_output(int numpe, int mype, const char *string, long
    vector<long long> global_memory_value(numpe);
 #ifdef HAVE_MPI
    MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_memory_value[0], 1, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
+#else
+   // Just to block compiler warning
+   if (1 == 2) printf("DEBUG -- local time is %llu\n",local_time);
 #endif
    if (mype == 0) {
       printf("%s\t",string);
@@ -2603,6 +2615,9 @@ void State::compare_state_cpu_local_to_cpu_global(State *state_global, const cha
    MPI_Allgatherv(&H[0], ncells, MPI_C_REAL, &H_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&U[0], ncells, MPI_C_REAL, &U_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&V[0], ncells, MPI_C_REAL, &V_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+#else
+   // Just to block compiler warnings
+   if (1 == 2) printf("DEBUG -- ncells %u nsizes %d ndispl %d\n",ncells, nsizes[0],ndispl[0]);
 #endif
 
    for (uint ic = 0; ic < ncells_global; ic++){

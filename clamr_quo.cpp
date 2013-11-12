@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
         fflush(stdout);
    }
 
-   mesh = new Mesh(nx, ny, levmx, ndim, numpe, boundary, parallel_in, do_gpu_calc);
+   mesh = new Mesh(nx, ny, levmx, ndim, boundary, parallel_in, do_gpu_calc);
    if (DEBUG) {
       //if (mype == 0) mesh->print();
 

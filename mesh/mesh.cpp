@@ -1122,7 +1122,7 @@ void Mesh::compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_glo
 }
 #endif
 
-Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary, int parallel_in, int do_gpu_calc)
+Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel_in, int do_gpu_calc)
 {
    cpu_time_calc_neighbors     = 0.0;
       cpu_time_hash_setup      = 0.0;
@@ -1272,9 +1272,9 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
       levtable[lev] = (int)pow(2,lev);
    }
 
+   if (do_gpu_calc) {
 #ifdef HAVE_OPENCL
    // The copy host ptr flag will have the data copied to the GPU as part of the allocation
-   if (do_gpu_calc) {
       dev_levtable = ezcl_malloc(&levtable[0],   const_cast<char *>("dev_levtable"), &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
       dev_levdx    = ezcl_malloc(&lev_deltax[0], const_cast<char *>("dev_levdx"),    &lvlMxSize, sizeof(cl_real), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
       dev_levdy    = ezcl_malloc(&lev_deltay[0], const_cast<char *>("dev_levdy"),    &lvlMxSize, sizeof(cl_real), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
@@ -1282,8 +1282,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
       dev_leviend  = ezcl_malloc(&lev_iend[0],   const_cast<char *>("dev_leviend"),  &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
       dev_levjbeg  = ezcl_malloc(&lev_jbegin[0], const_cast<char *>("dev_levjbeg"),  &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
       dev_levjend  = ezcl_malloc(&lev_jend[0],   const_cast<char *>("dev_levjend"),  &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-   }
 #endif
+   }
 
    ibase = 0;
 
@@ -1304,10 +1304,10 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int numpe_in, int boundary
 
 void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_order, int do_gpu_calc)
 {
-#ifdef HAVE_OPENCL
-   cl_context context = ezcl_get_context();
-
    if (do_gpu_calc) {
+#ifdef HAVE_OPENCL
+      cl_context context = ezcl_get_context();
+
       hash_lib_init();
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in mesh\n");
       char *bothsources = (char *)malloc(strlen(mesh_kern_source)+strlen(get_hash_kernel_source_string())+1);
@@ -1353,16 +1353,16 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       kernel_rezone_one               = ezcl_create_kernel_wprogram(program, "rezone_one_cl");
       kernel_copy_mpot_ghost_data     = ezcl_create_kernel_wprogram(program, "copy_mpot_ghost_data_cl");
       kernel_set_boundary_refinement  = ezcl_create_kernel_wprogram(program, "set_boundary_refinement");
-      init_kernel_2stage_sum(context);
-      init_kernel_2stage_sum_int(context);
+      init_kernel_2stage_sum();
+      init_kernel_2stage_sum_int();
       if (! have_boundary){
         kernel_count_BCs              = ezcl_create_kernel_wprogram(program, "count_BCs_cl");
       }
 
       ezcl_program_release(program);
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in mesh\n");
-   }
 #endif
+   }
 
    //KDTree_Initialize(&tree);
 
@@ -6900,6 +6900,9 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   // To get rid of compiler warning
+   if (DEBUG && weight != NULL) printf("DEBUG weight[0] = %f\n",weight[0]);
+
    int ncells_old = numcells;
    int noffset_old = ndispl[mype];
 
@@ -7426,6 +7429,9 @@ void Mesh::resize_old_device_memory(size_t ncells)
    dev_i        = ezcl_malloc(NULL, const_cast<char *>("dev_i"),        &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
    dev_j        = ezcl_malloc(NULL, const_cast<char *>("dev_j"),        &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
    dev_celltype = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY, 0);
+#else
+   // To get rid of compiler warning
+   if (1 == 2) printf("DEBUG -- ncells is %lu\n",ncells);
 #endif
 }
 void Mesh::print_object_info(void)

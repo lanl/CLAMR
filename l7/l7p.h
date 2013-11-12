@@ -19,6 +19,8 @@ extern "C"
 #ifdef HAVE_QUO
 #include <quo.h>
 
+typedef unsigned int uint;
+
 typedef struct QUO_SubComm {
    // context for holding state of QUO
    QUO_context context;
