@@ -99,7 +99,7 @@ static int autoscale = 0;
 static double display_circle_radius=-1.0;
 
 #ifndef HAVE_MPI
-#if defined(HAVE_OPENGL) || defined(HAVE_MPE)
+#if defined(HAVE_MPE)
 static int MPI_COMM_WORLD=0;
 #endif
 #endif
@@ -124,7 +124,7 @@ static real_t xstart, ystart, xend, yend;
 enum mode_choice {EYE, MOVE, DRAW};
 static int mode = MOVE;
 
-#if defined(HAVE_OPENGL) || defined(HAVE_MPE)
+#if defined(HAVE_MPE)
 static int height;
 #endif
 static int width;
@@ -163,6 +163,10 @@ int DrawString(float x, float y, float z, char* string) {
    int yloc = (int)((display_ymax-y)*yconv);
    //MPE_Draw_string(window, xloc, yloc, MPE_BLACK, string);
 #endif
+#if ! defined(HAVE_OPENGL) && ! defined(HAVE_MPE)
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- x %f y %f z %f string %s\n",x,y,z,string);
+#endif
    return 1;
 }
 
@@ -174,10 +178,18 @@ void InitGL(int width, int height) {
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
+
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- width %d height %d\n",width,height);
 }
 #endif
 void init_display(int *argc, char **argv, const char *title, int rank_in){
    if (rank_in) rank = rank_in;
+
+#if ! defined(HAVE_OPENGL) && ! defined(HAVE_MPE)
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- argc %d argv %s title %s\n",*argc,argv[0],title);
+#endif
 
    width = (WINSIZE / (display_ymax - display_ymin)) * (display_xmax - display_xmin);
 #ifdef HAVE_OPENGL
@@ -266,6 +278,11 @@ void set_idle_function(void (*function)(void)){
 #endif
 #ifdef HAVE_MPE
    idlefunction = function;
+#endif
+
+#if ! defined(HAVE_OPENGL) && ! defined(HAVE_MPE)
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- function %p\n",function);
 #endif
 }
 
@@ -662,6 +679,11 @@ void mouseClick(int button, int state, int x, int y) {
       xend = (display_xmax-display_ymin)*(x/width)+display_ymin;
       yend = (display_xmax-display_ymin)*((float)(WINSIZE-y)/WINSIZE)+display_ymin;
    }
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- button %d\n",button);
+#else
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- x %d y %d button %d state %d\n",x,y,button,state);
 #endif
 }
 void mouseDrag(int x, int y) {
@@ -670,6 +692,9 @@ void mouseDrag(int x, int y) {
    mode = DRAW;
    xend = (display_xmax-display_ymin)*(x/width)+display_ymin;
    yend = (display_xmax-display_ymin)*((float)(WINSIZE-y)/WINSIZE)+display_ymin;
+#else
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- x %d y %d\n",x,y);
 #endif
 }
 
@@ -695,6 +720,9 @@ void keyPressed(unsigned char key, int x, int y) {
       if(key == 'k') { xloc += 1.0; }
       if(key == ';') { xloc -= 1.0; }
     }
+
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- x %d y %d\n",x,y);
 }
 void Scale() {
 #ifdef HAVE_OPENGL
