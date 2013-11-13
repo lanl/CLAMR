@@ -112,7 +112,7 @@ struct esum_type{
 MPI_Datatype MPI_TWO_DOUBLES;
 MPI_Op KAHAN_SUM;
 int commutative = 1;
-void kahan_sum(struct esum_type *in, struct esum_type *inout);
+void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES);
 #endif
 
 int save_ncells;
@@ -319,7 +319,7 @@ void State::terminate(void)
 }
 
 #ifdef HAVE_MPI
-void kahan_sum(struct esum_type *in, struct esum_type *inout)
+void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES)
 {
    double corrected_next_term, new_sum;
 
