@@ -2691,6 +2691,10 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
          if (fabs(V_global[ic]-V_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 4 at cycle %d V_global & V_save_global %d %lf %lf \n",mype,ncycle,ic,V_global[ic],V_save_global[ic]);
       }
    }
+#else
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("%d: DEBUG -- ncells %d ncells_global %d ncycle %d nsizes[0] %d ndispl %d state_global %p\n",
+      mype,ncells,ncells_global,ncycle,nsizes[0],ndispl[0],state_global);
 #endif
 }
 #endif

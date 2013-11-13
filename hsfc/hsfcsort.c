@@ -124,7 +124,7 @@ void hsfc2sort(
 
   /* Fill SFC table */
 
-  for ( i = it = ix = iy = 0 ; i < npt ;
+  for ( i = it = ix = iy = 0 ; (unsigned long long)i < npt ;
         ++i , ix++ , iy++ , it += ldT ) {
     double xy[2] ;
     unsigned coord[2] ;
@@ -142,13 +142,13 @@ void hsfc2sort(
   /* SFC Key output */
   
   if ( 2 < ldinfo && 1 < nkey ) {
-    for ( ii = 1, it = 0, i = 0 ; i < npt ; ++i, ii += ldinfo, it += ldT ) {
+    for ( ii = 1, it = 0, i = 0 ; (unsigned long long)i < npt ; ++i, ii += ldinfo, it += ldT ) {
       Info[ii]   = T[it];
       Info[ii+1] = T[it+1];
     }
   }
   else if ( 1 < ldinfo ) {
-    for ( ii = 1, it = 0 ,i = 0 ; i < npt ; ++i, ii += ldinfo, it += ldT ) {
+    for ( ii = 1, it = 0 ,i = 0 ; (unsigned long long)i < npt ; ++i, ii += ldinfo, it += ldT ) {
       Info[ii] = T[it] ;
     }
   }
@@ -167,7 +167,7 @@ void hsfc2sort(
     break ;
   }
 
-  for (ii = 0, i = 0, it = nkey ; i < npt ; ++i, ii += ldinfo, it += ldT) {
+  for (ii = 0, i = 0, it = nkey ; (unsigned long long)i < npt ; ++i, ii += ldinfo, it += ldT) {
     Info[ii] = T[it] + ibase; /* 1 -- FORTRAN convention, 0 -- C */
   }
 
@@ -205,7 +205,7 @@ void hsfc3sort(
 
   /* Fill SFC table */
 
-  for ( i = it = ix = iy = iz = 0 ; i < npt ;
+  for ( i = it = ix = iy = iz = 0 ; (unsigned long long)i < npt ;
         ++i , ix++ , iy++ , iz++ , it += ldT ) {
     double xyz[3] ;
     unsigned coord[3] ;
@@ -225,20 +225,20 @@ void hsfc3sort(
   /* SFC Key output */
   
   if ( 3 < ldinfo && 2 < nkey ) {
-    for ( ii = 1, it = 0, i = 0 ; i < npt ; ++i, ii += ldinfo, it += ldT ) {
+    for ( ii = 1, it = 0, i = 0 ; (unsigned long long)i < npt ; ++i, ii += ldinfo, it += ldT ) {
       Info[ii]   = T[it];
       Info[ii+1] = T[it+1];
       Info[ii+2] = T[it+2];
     }
   }
   else if ( 2 < ldinfo && 1 < nkey ) {
-    for ( ii = 1, it = 0, i = 0 ; i < npt ; ++i, ii += ldinfo, it += ldT ) {
+    for ( ii = 1, it = 0, i = 0 ; (unsigned long long)i < npt ; ++i, ii += ldinfo, it += ldT ) {
       Info[ii]   = T[it];
       Info[ii+1] = T[it+1];
     }
   }
   else if ( 1 < ldinfo ) {
-    for ( ii = 1, it = 0 ,i = 0 ; i < npt ; ++i, ii += ldinfo, it += ldT ) {
+    for ( ii = 1, it = 0 ,i = 0 ; (unsigned long long)i < npt ; ++i, ii += ldinfo, it += ldT ) {
       Info[ii] = T[it] ;
     }
   }
@@ -257,7 +257,7 @@ void hsfc3sort(
     break ;
   }
 
-  for (ii = 0, i = 0, it = nkey ; i < npt ; ++i, ii += ldinfo, it += ldT) {
+  for (ii = 0, i = 0, it = nkey ; (unsigned long long)i < npt ; ++i, ii += ldinfo, it += ldT) {
     Info[ii] = T[it] + ibase ; /* FORTRAN convention */
   }
 

@@ -192,7 +192,7 @@ void KDTree_CreateTree(TKDTree* t)
       stack_ptr = 0;
       stack = MALLOC(3 * t->tree_size, int);
       idx = MALLOC(t->elements_num, int);
-      for (i = 0; i <  t->elements_num; i++) {
+      for (i = 0; (int)i <  t->elements_num; i++) {
          idx[i] = i;
       }
       /* Setup the root node of the tree and put it on the stack */
@@ -236,7 +236,7 @@ void KDTree_CreateTree(TKDTree* t)
          stack[stack_ptr++] = min;        /* Element Span Minimum */
          stack[stack_ptr++] = mid;        /* Element Span Maximum */
          Bounds_Infinite(&(t->tree_safety_boxes[next_node]));
-         for (i = min; i <= mid; i++) {
+         for (i = min; (int)i <= mid; i++) {
             Bounds_AddBounds(&(t->tree_safety_boxes[next_node]),
                              &(t->elements[idx[i]]));
          }
@@ -246,7 +246,7 @@ void KDTree_CreateTree(TKDTree* t)
          stack[stack_ptr++] = mid + 1;    /* Element Span Minimum */
          stack[stack_ptr++] = max;        /* Element Span Maximum */
          Bounds_Infinite(&(t->tree_safety_boxes[next_node]));
-         for (i = min + 1; i <= max; i++) {
+         for (i = min + 1; (int)i <= max; i++) {
             Bounds_AddBounds(&(t->tree_safety_boxes[next_node]),
                              &(t->elements[idx[i]]));
          }

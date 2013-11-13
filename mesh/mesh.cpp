@@ -569,6 +569,10 @@ void Mesh::compare_neighbors_cpu_local_to_cpu_global(uint ncells_ghost, uint nce
             mype,ic,ntop[ic],ntop[ntop[ic]],Test_check_global[ic]);
       }
    }
+#else
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- ncells_global %d ncells_ghost %d mesh_global %p nsizes[0] %d ndispl[0] %d\n",
+               ncells_global,ncells_ghost,mesh_global,nsizes[0],ndispl[0]);
 #endif
 }
 
@@ -755,6 +759,10 @@ void Mesh::compare_neighbors_all_to_gpu_local(Mesh *mesh_global, int *nsizes, in
       if (nbot[ic] != nbot_check[ic]) printf("%d: Error with gpu calculated nbot for cell %d nbot %d check %d\n",mype,ic,nbot[ic],nbot_check[ic]);
       if (ntop[ic] != ntop_check[ic]) printf("%d: Error with gpu calculated ntop for cell %d ntop %d check %d\n",mype,ic,ntop[ic],ntop_check[ic]);
    }
+#else
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- mesh_global %p nsizes[0] %d ndispl[0] %d\n",
+               mesh_global,nsizes[0],ndispl[0]);
 #endif
 }
 
@@ -797,6 +805,10 @@ void Mesh::compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mes
    MPI_Allgatherv(&i[0],        nsizes[mype], MPI_INT, &i_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
    MPI_Allgatherv(&j[0],        nsizes[mype], MPI_INT, &j_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
    MPI_Allgatherv(&level[0],    nsizes[mype], MPI_INT, &level_check_global[0],    &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+#else
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- nsizes[0] %d ndispl[0] %d\n",
+               nsizes[0],ndispl[0]);
 #endif
 
    for (uint ic = 0; ic < ncells_global; ic++){
@@ -879,6 +891,10 @@ void Mesh::compare_indices_all_to_gpu_local(Mesh *mesh_global, uint ncells_globa
       if (j_global[ic] != j_check_global[ic])                printf("DEBUG rezone 4 at cycle %d j_global & j_check_global %d %d  %d  \n",ncycle,ic,j_global[ic],j_check_global[ic]);
       if (level_global[ic] != level_check_global[ic])        printf("DEBUG rezone 4 at cycle %d level_global & level_check_global %d %d  %d  \n",ncycle,ic,level_global[ic],level_check_global[ic]);
    }
+#else
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- mesh_global %p ncells_global %d nsizes[0] %d ndispl[0] %d ncycle %d\n",
+               mesh_global,ncells_global,nsizes[0],ndispl[0],ncycle);
 #endif
 }
 
@@ -925,6 +941,10 @@ void Mesh::compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *
    MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_check_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&H[0],  nsizes[mype], MPI_C_REAL, &H_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+#else
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- nsizes[0] %d ndispl[0] %d x %p dx %p y %p dy %p H %p\n",
+               nsizes[0],ndispl[0],x,dx,y,dy,H);
 #endif
 
    for (uint ic = 0; ic < ncells_global; ic++){
@@ -956,6 +976,10 @@ void Mesh::compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes,
    vector<int>mpot_save_global(ncells_global);
 #ifdef HAVE_MPI
    MPI_Allgatherv(&mpot[0], ncells, MPI_INT, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+#else
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- nsizes[0] %d ndispl[0] %d mpot %p\n",
+               nsizes[0],ndispl[0],mpot);
 #endif
    for (uint ic = 0; ic < ncells_global; ic++){
       if (mpot_global[ic] != mpot_save_global[ic]) {
@@ -1004,6 +1028,10 @@ void Mesh::compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev
          if (mype == 0) printf("%d: DEBUG refine_potential 4 at cycle %d cell %u mpot_global & mpot_save_global %d %d \n",mype,ncycle,ic,mpot_global[ic],mpot_save_global[ic]);
       }    
    }    
+#else
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- mpot %p mpot_global %p dev_mpot %p dev_mpot_global %p ncells_global %d nsizes[0] %d ndispl[0] %d ncycle %d\n",
+               mpot,mpot_global,dev_mpot,dev_mpot_global,ncells_global,nsizes[0],ndispl[0],ncycle);
 #endif
 }
 

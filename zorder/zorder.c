@@ -133,7 +133,7 @@ void printbits(int n)
    i      =  1 << (sizeof(n) * 8 - 1);
    step   = -1;   //   Only print the relevant digits.
    step  >>=  8;   //   Print in groups of four.
-   while (step >= n)
+   while (step >= (unsigned int)n)
    {   i    >>= 8;
       step >>= 8; }
 

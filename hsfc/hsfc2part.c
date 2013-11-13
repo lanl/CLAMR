@@ -136,7 +136,7 @@ void hsfc2part(
     exit(-1);
   }
 
-  for ( i = 0 ; i < ncell ; ++i ) {
+  for ( i = 0 ; (unsigned int)i < ncell ; ++i ) {
     sfc_grid * g = GRID + i ;
     g->part      = -1 ;
     g->newcell   = i ;
@@ -149,7 +149,7 @@ void hsfc2part(
 
   total_weight = 0 ;
 
-  for ( i = ii = ix = iy = 0 ; i < npt ;
+  for ( i = ii = ix = iy = 0 ; (unsigned int)i < npt ;
         ++i , ix++ , iy++ , ii += ldinfo ) {
     double xy[2] ;
     unsigned coord[2] ;
@@ -178,24 +178,24 @@ void hsfc2part(
     igap_beg[0] = igap_end[0] = 0 ;
     igap_beg[1] = - limit_gap ;
 
-    for ( i = 0 ; i < ncell && ! GRID[i].weight ; ++i );
+    for ( i = 0 ; (unsigned int)i < ncell && ! GRID[i].weight ; ++i );
     igap_end[1] = i ;
     jgap = 0 ;
 
-    for ( ; i < ncell ; ) {
+    for ( ; (unsigned int)i < ncell ; ) {
       int gap ;
 
-      for ( ; i < ncell && GRID[i].weight ; ++i );
+      for ( ; (unsigned int)i < ncell && GRID[i].weight ; ++i );
 
-      for ( gap = 0 ; i < ncell && ! GRID[i].weight ; ++i ) ++gap ;
+      for ( gap = 0 ; (unsigned int)i < ncell && ! GRID[i].weight ; ++i ) ++gap ;
 
-      if ( limit_gap <= gap ) {
+      if ( limit_gap <= (unsigned int)gap ) {
         int j = jgap ^ 01 ;
         igap_beg[jgap] = i - gap ; /* Beginning of gap */
         igap_end[jgap] = i ;       /* End of gap       */
 
-        if ( limit_gap <= igap_end[j] - igap_beg[j] &&
-             igap_beg[jgap] - igap_end[j] <= limit_gap ) {
+        if ( limit_gap <= (unsigned int)(igap_end[j] - igap_beg[j]) &&
+             (unsigned int)(igap_beg[jgap] - igap_end[j]) <= limit_gap ) {
           int k ;
           for ( k = igap_end[j] ; k < igap_beg[jgap] ; ++k )
             if ( GRID[k].weight ) GRID[k].newcell = -1 ;
@@ -222,22 +222,22 @@ void hsfc2part(
       exit(-1);
     }
 
-    for ( iy = 0 ; iy < ngrid ; ++iy ) {
+    for ( iy = 0 ; (unsigned int)iy < ngrid ; ++iy ) {
       const unsigned one  = 1 ;
       const unsigned icol = iy * ngrid ;
       unsigned coord[2] ;
       unsigned cell ;
       coord[1] = iy << shiftC ;
-      for ( ix = 0 ; ix < ngrid ; ++ix ) {
+      for ( ix = 0 ; (unsigned int)ix < ngrid ; ++ix ) {
         coord[0] = ix << shiftC ;
         hsfc2d( coord , one , &cell );
         MAPG[ ix + icol ] = GRID + ( cell >> shiftK );
       }
     }
 
-    for ( iy = 0 ; iy < ngrid ; ++iy ) {
+    for ( iy = 0 ; (unsigned int)iy < ngrid ; ++iy ) {
       const unsigned icol = iy * ngrid ;
-      for ( ix = 0 ; ix < ngrid ; ++ix ) {
+      for ( ix = 0 ; (unsigned int)ix < ngrid ; ++ix ) {
         const unsigned ig = ix + icol ;
         sfc_grid * const g = MAPG[ ig ];
 
@@ -250,8 +250,8 @@ void hsfc2part(
 
           neigh[0] = (    0 < ix    ) ? ( MAPG[ig-1]     ) : NULL ;
           neigh[1] = (    0 < iy    ) ? ( MAPG[ig-ngrid] ) : NULL ;
-          neigh[2] = ( ix+1 < ngrid ) ? ( MAPG[ig+1]     ) : NULL ;
-          neigh[3] = ( iy+1 < ngrid ) ? ( MAPG[ig+ngrid] ) : NULL ;
+          neigh[2] = ( (unsigned int)(ix+1) < ngrid ) ? ( MAPG[ig+1]     ) : NULL ;
+          neigh[3] = ( (unsigned int)(iy+1) < ngrid ) ? ( MAPG[ig+ngrid] ) : NULL ;
 
           /* Find largest immediate neighbor for the cell shift */
 
@@ -288,7 +288,7 @@ void hsfc2part(
     if ( fail_shift_count ) {
       /* Restore any failed shifts */
 
-      for ( i = 0 ; i < ncell ; ++i ) {
+      for ( i = 0 ; (unsigned int)i < ncell ; ++i ) {
         if ( GRID[i].newcell == -1 ) GRID[i].newcell = i ;
       }
     }
@@ -320,7 +320,7 @@ void hsfc2part(
   /*------------------------------------------------------------------*/
   /* Reassign nodes to cells, assign nodes to partitions */
 
-  for ( ii = i = 0 ; i < npt ; ++i , ii += ldinfo ) {
+  for ( ii = i = 0 ; (unsigned int)i < npt ; ++i , ii += ldinfo ) {
     SFC[i].cell = GRID[ SFC[i].cell ].newcell ;
     Info[ii] = GRID[ SFC[i].cell ].part ;
     SFC[i].index = i ;
@@ -330,13 +330,13 @@ void hsfc2part(
   /* SFC Key output */
   
   if ( 3 < ldinfo && 1 < SFC_NKEY) {
-    for ( ii = 2 , i = 0 ; i < npt ; ++i , ii += ldinfo ) {
+    for ( ii = 2 , i = 0 ; (unsigned int)i < npt ; ++i , ii += ldinfo ) {
       Info[ii]   = SFC[i].key[0] ;
       Info[ii+1] = SFC[i].key[1] ;
     }
   }
   else if ( 2 < ldinfo ) {
-    for ( ii = 2 , i = 0 ; i < npt ; ++i , ii += ldinfo ) {
+    for ( ii = 2 , i = 0 ; (unsigned int)i < npt ; ++i , ii += ldinfo ) {
       Info[ii] = SFC[i].key[0] ;
     }
   }
@@ -349,7 +349,7 @@ void hsfc2part(
 
     /* Output */
 
-    for ( ii = 1 , i = 0 ; i < npt ; ++i , ii += ldinfo ) {
+    for ( ii = 1 , i = 0 ; (unsigned int)i < npt ; ++i , ii += ldinfo ) {
       Info[ii] = SFC[i].index + ibase ; /* FORTRAN convention */
     }
   }
