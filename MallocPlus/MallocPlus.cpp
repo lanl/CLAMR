@@ -164,7 +164,6 @@ void *MallocPlus::memory_malloc(size_t nelem, size_t elsize, int flags, const ch
    else if (flags & LOAD_BALANCE_MEMORY) {
       memory_item.mem_capacity = nelem;
       memory_item.mem_ptr      = j7->memAlloc(nelem * elsize);
-      assert(memory_item.mem_ptr);
    }
 #endif
    else {
@@ -208,7 +207,6 @@ void *MallocPlus::memory_realloc(size_t nelem, size_t elsize, void *malloc_mem_p
 #ifdef HAVE_J7
       else if (it->mem_flags & LOAD_BALANCE_MEMORY) {
          mem_ptr = j7->memRealloc(it->mem_ptr, nelem * elsize);
-         assert(mem_ptr);
          it->mem_capacity = nelem;
          it->mem_nelem    = nelem;
          it->mem_elsize   = elsize;
@@ -256,7 +254,6 @@ void *MallocPlus::memory_realloc(size_t nelem, size_t elsize, const char *name){
 #ifdef HAVE_J7
       else if (it->mem_flags & LOAD_BALANCE_MEMORY) {
          mem_ptr = j7->memRealloc(it->mem_ptr, nelem * elsize);
-         assert(mem_ptr);
          it->mem_capacity = nelem;
          it->mem_nelem    = nelem;
          it->mem_elsize   = elsize;
@@ -335,7 +332,6 @@ void MallocPlus::memory_realloc_all(size_t nelem){
 #ifdef HAVE_J7
       else if (it->mem_flags & LOAD_BALANCE_MEMORY) {
          mem_ptr = j7->memRealloc(it->mem_ptr, nelem * it->mem_elsize);
-         assert(mem_ptr);
          it->mem_capacity = nelem;
          it->mem_nelem    = nelem;
          it->mem_ptr      = mem_ptr;

@@ -332,8 +332,8 @@ J7::memAlloc(std::size_t size)
     delete[] allocSizes;
 
     if (custodian) {
-        // allocate with 8 byte alignment
-        addr = msm->allocate_aligned(realSize, 8, nothrow);
+        // allocate with 8 byte alignment (throws bad_alloc)
+        addr = msm->allocate_aligned(realSize, 8);
         storeMSMHandleinSM(addr);
         handle = retrieveHandle();
         barrier();
@@ -362,10 +362,9 @@ void *
 J7::memCalloc(std::size_t nElems, std::size_t elemSize)
 {
     std::size_t size = nElems * elemSize;
-    // synchronization in memAlloc
+    // synchronization in memAlloc. throws bad_alloc, so no return check
     char *p = static_cast<char *>(memAlloc(size));
-    if (p) return memset(p, 0, size);
-    else return NULL;
+    return memset(p, 0, size);
 }
 
 /* ////////////////////////////////////////////////////////////////////////// */
