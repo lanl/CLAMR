@@ -327,6 +327,9 @@ void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Data
    new_sum = inout->sum + corrected_next_term;
    inout->correction = corrected_next_term - (new_sum - inout->sum);
    inout->sum = new_sum;
+
+   // Just to block compiler warnings
+   if (1==2) printf("DEBUG len %d datatype %lld\n",*len,(long long)(*MPI_TWO_DOUBLES) );
 }
 #endif
 
