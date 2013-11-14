@@ -148,6 +148,7 @@ add_subdirectory(MallocPlus)
 add_subdirectory(hash)
 add_subdirectory(j7)
 if (MPI_FOUND AND OPENMP_FOUND AND Boost_FOUND)
+     message(STATUS "set HAVE_J7 on")
      set(HAVE_J7 ON)
 endif (MPI_FOUND AND OPENMP_FOUND AND Boost_FOUND)
 
