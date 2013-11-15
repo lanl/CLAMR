@@ -112,7 +112,6 @@ void
 MallocPlus::pfini(void)
 {
 #if defined(HAVE_J7)
-    std::cout << "DEL J7" << std::endl;
     try {
         delete j7;
         j7 = NULL;
