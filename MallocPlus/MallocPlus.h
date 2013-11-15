@@ -65,19 +65,17 @@ typedef double real_t;
 typedef float real_t;
 #endif
 
-#ifndef HAVE_MPI
-#undef HAVE_J7
-#endif
-
 #define HOST_REGULAR_MEMORY   0x00000
 #define HOST_MANAGED_MEMORY   0x00001
 #define DEVICE_REGULAR_MEMORY 0x00002
 #define INDEX_ARRAY_MEMORY    0x00004
 #define LOAD_BALANCE_MEMORY   0x00008
 
-#if defined(HAVE_MPI) && defined(HAVE_J7)
+#if defined(HAVE_MPI)
 #include "mpi.h"
+#if defined(HAVE_J7)
 #include "j7/j7.h"
+#endif
 #endif
 
 using namespace std;
@@ -109,15 +107,6 @@ public:
    void pinit(MPI_Comm smComm, std::size_t memPoolSize);
    // parallel finalization routine
    void pfini(void);
-#endif
-
-#if defined(HAVE_MPI) && defined(HAVE_J7)
-#if 0
-   MallocPlus(void) { ; }
-   MallocPlus(MallocPlus &other) {
-       this->j7 = other.j7;
-   }
-#endif
 #endif
 
    void *memory_malloc(size_t nelem, size_t elsize, const char *name);
