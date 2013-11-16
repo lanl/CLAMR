@@ -183,7 +183,7 @@ int L7_Dev_Update(
          ezcl_enqueue_read_buffer(command_queue, dev_packed_data, CL_TRUE, 0, num_indices_have*sizeof(cl_int), &packed_int_data[0], NULL);
    
          int_data_buffer = (int *)malloc((num_indices_owned+num_indices_needed)*sizeof(int));
-         for (uint ii = 0; ii < num_indices_have; ii++){
+         for (unsigned int ii = 0; ii < num_indices_have; ii++){
             int_data_buffer[l7_id_db->indices_have[ii]] = packed_int_data[ii];
          }
 
@@ -227,7 +227,7 @@ int L7_Dev_Update(
          ezcl_enqueue_read_buffer(command_queue, dev_packed_data, CL_TRUE, 0, num_indices_have*sizeof(cl_float), &packed_float_data[0], NULL);
    
          float_data_buffer = (float *)malloc((num_indices_owned+num_indices_needed)*sizeof(float));
-         for (uint ii = 0; ii < num_indices_have; ii++){
+         for (unsigned int ii = 0; ii < num_indices_have; ii++){
             float_data_buffer[l7_id_db->indices_have[ii]] = packed_float_data[ii];
          }
 
@@ -271,7 +271,7 @@ int L7_Dev_Update(
          ezcl_enqueue_read_buffer(command_queue, dev_packed_data, CL_TRUE, 0, num_indices_have*sizeof(cl_double), &packed_double_data[0], NULL);
    
          double_data_buffer = (double *)malloc((num_indices_owned+num_indices_needed)*sizeof(double));
-         for (uint ii = 0; ii < num_indices_have; ii++){
+         for (unsigned int ii = 0; ii < num_indices_have; ii++){
             double_data_buffer[l7_id_db->indices_have[ii]] = packed_double_data[ii];
          }
 
