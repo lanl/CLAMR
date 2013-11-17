@@ -413,13 +413,16 @@ J7::memFree(void *ptr)
     if (custodian) {
         storeMSMHandleinSM(ptr);
         handle = retrieveHandle();
-        // only the custodian frees the memory in the shared-memory segment
-        msm->deallocate(ptr);
         barrier();
     }
     else {
         barrier();
         handle = retrieveHandle();
+    }
+    barrier();
+    if (custodian) {
+        // only the custodian frees the memory in the shared-memory segment
+        msm->deallocate(ptr);
     }
     // everyone stores handle/offset info in the hosMap, so rm the cruft
     hosMap.erase(handle);
