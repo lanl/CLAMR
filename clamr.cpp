@@ -200,10 +200,10 @@ int main(int argc, char **argv) {
    cl_mem &dev_j        = mesh->dev_j;
    cl_mem &dev_level    = mesh->dev_level;
 
-   vector<real> &x  = mesh->x;
-   vector<real> &dx = mesh->dx;
-   vector<real> &y  = mesh->y;
-   vector<real> &dy = mesh->dy;
+   vector<real_t> &x  = mesh->x;
+   vector<real_t> &dx = mesh->dx;
+   vector<real_t> &y  = mesh->y;
+   vector<real_t> &dy = mesh->dy;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);
@@ -296,11 +296,11 @@ int main(int argc, char **argv) {
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL
    set_mysize(ncells_global);
-   vector<real> H_global;
-   vector<real> x_global;
-   vector<real> dx_global;
-   vector<real> y_global;
-   vector<real> dy_global;
+   vector<real_t> H_global;
+   vector<real_t> x_global;
+   vector<real_t> dx_global;
+   vector<real_t> y_global;
+   vector<real_t> dy_global;
    vector<int> proc_global;
    if (mype == 0){
       H_global.resize(ncells_global);
@@ -392,10 +392,10 @@ extern "C" void do_calc(void)
    vector<int>   &nsizes   = mesh->nsizes;
    vector<int>   &ndispl   = mesh->ndispl;
 
-   vector<real>  &x  = mesh->x;
-   vector<real>  &dx = mesh->dx;
-   vector<real>  &y  = mesh->y;
-   vector<real>  &dy = mesh->dy;
+   vector<real_t>  &x  = mesh->x;
+   vector<real_t>  &dx = mesh->dx;
+   vector<real_t>  &y  = mesh->y;
+   vector<real_t>  &dy = mesh->dy;
 
    cl_mem &dev_H  = state->dev_H;
 
@@ -487,7 +487,7 @@ extern "C" void do_calc(void)
    y.resize(ncells);
    dy.resize(ncells);
    //H.resize(max(ncells,ncells_ghost));
-   vector<real>H_graphics(ncells);
+   vector<real_t>H_graphics(ncells);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
    ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_real), (void *)&x[0],  &start_read_event);
@@ -507,11 +507,11 @@ extern "C" void do_calc(void)
 
 #ifdef HAVE_OPENGL
    set_mysize(ncells_global);
-   vector<real> x_global;
-   vector<real> dx_global;
-   vector<real> y_global;
-   vector<real> dy_global;
-   vector<real> H_graphics_global;
+   vector<real_t> x_global;
+   vector<real_t> dx_global;
+   vector<real_t> y_global;
+   vector<real_t> dy_global;
+   vector<real_t> H_graphics_global;
    vector<int> proc_global;
    if (mype == 0) {
       x_global.resize(ncells_global);

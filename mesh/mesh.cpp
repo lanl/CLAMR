@@ -1297,7 +1297,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
       lev_deltay[lev] = lev_deltay[lev-1]*0.5;
    }
    for (uint lev=0; lev<lvlMxSize; lev++){
-      levtable[lev] = (int)pow(2,lev);
+      //levtable[lev] = (int)pow(2,lev);
+      levtable[lev] = 2<<lev;
    }
 
    if (do_gpu_calc) {
@@ -3560,7 +3561,8 @@ void Mesh::calc_neighbors(void)
       if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
       TBounds box;
-      vector<int> index_list((int)pow(2,levmx*levmx) );
+      //vector<int> index_list((int)pow(2,levmx*levmx) );
+      vector<int> index_list( 2<<(levmx*levmx) );
 
       int num;
 
@@ -5139,7 +5141,8 @@ void Mesh::calc_neighbors_local(void)
       if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
       TBounds box;
-      vector<int> index_list((int)pow(2,levmx*levmx) );
+      //vector<int> index_list((int)pow(2,levmx*levmx) );
+      vector<int> index_list( 2<<(levmx*levmx) );
 
       int num;
 
@@ -6886,7 +6889,8 @@ void Mesh::calc_celltype(size_t ncells)
 void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym)
 {
    TBounds box;
-   vector<int> index_list((int)pow(2,levmx*levmx) );
+   //vector<int> index_list((int)pow(2,levmx*levmx) );
+   vector<int> index_list( 2<<(levmx*levmx) );
 
    int num;
    for (uint ic=0; ic<ncells; ic++) {
