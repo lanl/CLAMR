@@ -483,7 +483,7 @@ void Mesh::partition_cells(
                MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &ntop[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
             }
 
-            MPI_Scatterv(&z_order_global[0], &nsizes[0], &ndispl[0], MPI_REAL, &z_order[0], ncells, MPI_REAL, 0, MPI_COMM_WORLD);
+            MPI_Scatterv(&z_order_global[0], &nsizes[0], &ndispl[0], MPI_INT, &z_order[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
 #endif
          } else {
             info = (int *)malloc(sizeof(int) * 3 * ncells);
