@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
 
    state->resize(ncells);
 
-   state->fill_circle(circ_radius, 100.0, 5.0);
+   state->fill_circle(circ_radius, 100.0, 7.0);
 
    mesh->nlft = NULL;
    mesh->nrht = NULL;

@@ -2731,3 +2731,28 @@ void State::print_object_info(void)
    //printf("vector V    ptr : %p nelements %ld elsize %ld\n",&V[0],V.size(),sizeof(V[0]));
 }
 
+void State::print(void)
+{  //printf("size is %lu %lu %lu %lu %lu\n",index.size(), i.size(), level.size(), nlft.size(), x.size());
+
+   if (mesh->fp == NULL) {
+      char filename[10];
+      sprintf(filename,"out%1d",mesh->mype);
+      mesh->fp=fopen(filename,"w");
+   }
+
+   if (mesh->mesh_memory.get_memory_size(mesh->nlft) >= mesh->ncells_ghost){
+      fprintf(mesh->fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mesh->mype);
+      for (uint ic=0; ic<mesh->ncells; ic++) {
+         fprintf(mesh->fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mesh->mype,ic, ic+mesh->noffset,mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+      }
+      for (uint ic=mesh->ncells; ic<mesh->ncells_ghost; ic++) {
+         fprintf(mesh->fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mesh->mype,ic, ic+mesh->noffset,mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+      }
+   } else {
+      fprintf(mesh->fp,"%d:  index     H        U         V      i     j     lev\n",mesh->mype);
+      for (uint ic=0; ic<mesh->ncells_ghost; ic++) {
+         fprintf(mesh->fp,"%d: %6d %lf %lf %lf %4d  %4d   %4d  \n", mesh->mype,ic, H[ic], U[ic], V[ic], mesh->i[ic], mesh->j[ic], mesh->level[ic]);
+      }
+   }
+}
+

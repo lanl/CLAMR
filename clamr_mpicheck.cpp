@@ -244,7 +244,7 @@ int main(int argc, char **argv) {
    MPI_Allgatherv(&y[0],  ncells, MPI_C_REAL, &y_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&dy[0], ncells, MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
-   state->fill_circle(circ_radius, 100.0, 5.0);
+   state->fill_circle(circ_radius, 100.0, 7.0);
 
    MPI_Allgatherv(&state->H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
    MPI_Allgatherv(&state->U[0], nsizes[mype], MPI_C_REAL, &U_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);

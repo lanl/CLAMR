@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
    state->init(do_gpu_calc);
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe);
-   state->fill_circle(circ_radius, 100.0, 5.0);
+   state->fill_circle(circ_radius, 100.0, 7.0);
    mesh->nlft = NULL;
    mesh->nrht = NULL;
    mesh->nbot = NULL;
@@ -318,6 +318,7 @@ extern "C" void do_calc(void)
    //  Output final results and timing information.
    if (ncycle >= niter) {
       //free_display();
+      //state->print();
       
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);

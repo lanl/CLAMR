@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
    state->init(do_gpu_calc);
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe);
-   state->fill_circle(circ_radius, 100.0, 5.0);
+   state->fill_circle(circ_radius, 100.0, 7.0);
    
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_i        = mesh->dev_i;

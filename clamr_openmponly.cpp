@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
    state->init(do_gpu_calc);
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe);
-   state->fill_circle(circ_radius, 100.0, 5.0);
+   state->fill_circle(circ_radius, 100.0, 7.0);
    mesh->nlft = NULL;
    mesh->nrht = NULL;
    mesh->nbot = NULL;
