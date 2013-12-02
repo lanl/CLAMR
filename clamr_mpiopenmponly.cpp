@@ -61,7 +61,6 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
-#include <dlfcn.h>
 #include "input.h"
 #include "mesh/mesh.h"
 #include "mesh/partition.h"

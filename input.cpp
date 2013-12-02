@@ -71,9 +71,9 @@
 #include "hash/hash.h"
 #include "config.h"
 
-#define OUTPUT_INTERVAL 20
+#define OUTPUT_INTERVAL 100
 #define COARSE_GRID_RES 128
-#define MAX_TIME_STEP 5000
+#define MAX_TIME_STEP 3000
 
 using namespace std;
 

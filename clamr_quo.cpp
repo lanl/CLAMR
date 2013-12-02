@@ -62,7 +62,6 @@
 #include <unistd.h>
 #include <signal.h>
 #include <vector>
-#include <dlfcn.h>
 #include "input.h"
 #include "mesh/mesh.h"
 #include "mesh/partition.h"
