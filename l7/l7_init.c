@@ -45,6 +45,7 @@
 #include "l7.h"
 #include "l7p.h"
 #include <stdlib.h>
+#include <dlfcn.h>
 
 #define L7_LOCATION "L7_INIT"
 
@@ -56,13 +57,15 @@
 static int getSubCommProcs(QUO_context c, int numpes, int *vLen, int **v);
 static int subCommInit(QUO_SubComm *subcomm, int np1s, int *p1who);
 #endif
+#define WARNING_SUPPRESSION 0
 
 int L7_Init (
     int *mype,
     int *numpes,
     int *argc,
     char **argv,
-    int do_quo_setup
+    int do_quo_setup,
+    int lttrace_on
     )
 {
     /*
@@ -103,6 +106,26 @@ int L7_Init (
     /*
      * Executable Statements
      */
+
+#ifndef HAVE_QUO
+   // To get rid of compiler warning
+   if (WARNING_SUPPRESSION && do_quo_setup == 99) printf("DEBUG do_quo_setup = %d\n",do_quo_setup);
+#endif
+#ifndef HAVE_LTTRACE
+   // To get rid of compiler warning
+   if (WARNING_SUPPRESSION && lttrace_on == 99) printf("DEBUG lttrace_on = %d\n",lttrace_on);
+#endif
+
+#ifdef HAVE_LTTRACE
+   if (lttrace_on){
+      void *handle = dlopen("lttrace.so",RTLD_LAZY);
+      if (! handle) {
+         printf("DEBUG -- open failed\n");
+      }
+      int (*init_lttrace)(int *argc, char ***argv);
+      init_lttrace = (int (*)(int *, char ***))dlsym(handle, "initialize_lttrace");
+   }  
+#endif
       
     if ( l7.initialized != 0 ) {
        ierr = -1;

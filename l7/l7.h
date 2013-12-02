@@ -128,7 +128,8 @@ int L7_Init (
 	int *numpes,
 	int *argc,
 	char **argv,
-        int do_quo_setup
+        int do_quo_setup,
+        int lttrace_on
 	);
 
 void L7_Dev_Init(void);

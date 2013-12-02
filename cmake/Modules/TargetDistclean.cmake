@@ -14,11 +14,17 @@ IF (UNIX)
    *.a
    */*.a
    Makefile
+   */Makefile
+   */*/Makefile
    core core.*
    gmon.out
    *~
    CMakeFiles
    */CMakeFiles
+   */*/CMakeFiles
+   cmake_install.cmake
+   */cmake_install.cmake
+   */*/cmake_install.cmake
   )
   
   ADD_CUSTOM_COMMAND(

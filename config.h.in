@@ -49,3 +49,6 @@
 
 /* Define if you have QUO support */
 #cmakedefine HAVE_QUO
+
+/* Define if you have LTTRACE support */
+#cmakedefine HAVE_LTTRACE

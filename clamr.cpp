@@ -113,6 +113,8 @@ bool        verbose,        //  Flag for verbose command-line output; init in in
             outline,        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
             enhanced_precision_sum;//  Flag for enhanced precision sum (default true); init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
+            lttrace_on,     //  Flag to turn on logical time trace package;
+            do_quo_setup,   //  Flag to turn on quo dynamic scheduling policies package;
             levmx,          //  Maximum number of refinement levels; init in input.cpp::parseInput().
             nx,             //  x-resolution of coarse grid; init in input.cpp::parseInput().
             ny,             //  y-resolution of coarse grid; init in input.cpp::parseInput().
@@ -138,9 +140,8 @@ int main(int argc, char **argv) {
    //  Process command-line arguments, if any.
    int mype=0;
    int numpe=0;
-   int do_quo_setup = 0;
-   L7_Init(&mype, &numpe, &argc, argv, do_quo_setup);
    parseInput(argc, argv);
+   L7_Init(&mype, &numpe, &argc, argv, do_quo_setup, lttrace_on);
 
    ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, mype);
    if (ierr == EZCL_NODEVICE) {

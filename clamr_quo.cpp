@@ -62,6 +62,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <vector>
+#include <dlfcn.h>
 #include "input.h"
 #include "mesh/mesh.h"
 #include "mesh/partition.h"
@@ -118,6 +119,8 @@ bool        verbose,        //  Flag for verbose command-line output; init in in
             outline,        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
             enhanced_precision_sum;//  Flag for enhanced precision sum (default true); init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
+            lttrace_on,     //  Flag to turn on logical time trace package;
+            do_quo_setup,   //  Flag to turn on quo dynamic scheduling policies package;
             levmx,          //  Maximum number of refinement levels; init in input.cpp::parseInput().
             nx,             //  x-resolution of coarse grid; init in input.cpp::parseInput().
             ny,             //  y-resolution of coarse grid; init in input.cpp::parseInput().
@@ -148,14 +151,12 @@ int main(int argc, char **argv) {
    //  Process command-line arguments, if any.
    int mype=0;
    int numpe=0;
-   int do_quo_setup = 1;
-   L7_Init(&mype, &numpe, &argc, argv, do_quo_setup);
+   parseInput(argc, argv);
+   L7_Init(&mype, &numpe, &argc, argv);
 
 #if 1 // SKG make things sane for debugging
    signal(SIGSEGV, SIG_DFL);
 #endif
-
-   parseInput(argc, argv);
 
    struct timeval tstart_setup;
    cpu_timer_start(&tstart_setup);
@@ -397,10 +398,7 @@ extern "C" void do_calc(void)
       mesh->ncells = new_ncells;
 
       cpu_timer_start(&tstart_cpu);
-      if (mesh->nlft == NULL) {
-         state->do_load_balance_local(new_ncells);
-      }
-
+      state->do_load_balance_local(new_ncells);
 
 // XXX
 //      mesh->proc.resize(ncells);

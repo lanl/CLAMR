@@ -403,7 +403,9 @@ void State::add_boundary_cells(void)
    dx.resize(new_ncells);
    y.resize(new_ncells);
    dy.resize(new_ncells);
+#ifdef __INTEL_COMPILER
 #pragma ivdep
+#endif
    for (int nc=ncells; nc<new_ncells; nc++) {
       nlft[nc] = -1;
       nrht[nc] = -1;
@@ -671,10 +673,12 @@ double State::set_timestep(double g, double sigma)
    int *&level    = mesh->level;
 
    int ic;
+#ifdef HAVE_OPENMP
 #ifdef __INTEL_COMPILER
 //#if (_OPENMP > 200600)
 #ifdef _OPENMP
 #pragma omp parallel for private(ic) reduction(min:mindeltaT)
+#endif
 #endif
 #endif
    for (ic=0; ic<(int)ncells; ic++) {
@@ -1009,6 +1013,7 @@ void State::calc_finite_difference(double deltaT){
                                                         "V_new");
 
    int gix;
+#ifdef HAVE_OPENMP
 #ifdef __INTEL_COMPILER
 #ifdef _OPENMP
 #pragma omp parallel for \
@@ -1020,6 +1025,7 @@ void State::calc_finite_difference(double deltaT){
       private(gix) \
       shared(deltaT, g, ghalf, H_new, U_new, V_new) \
       default(none)
+#endif
 #endif
 #endif
    for(gix = 0; gix < (int)ncells; gix++) {
@@ -1713,12 +1719,14 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 #endif
 
    int ic;
+#ifdef HAVE_OPENMP
 #ifdef _OPENMP
 #ifdef __INTEL_COMPILER
 #pragma omp parallel for \
       private(ic) \
       shared(ncells, nlft, nrht, nbot, ntop, level, mpot) \
       default(none)
+#endif
 #endif
 #endif
    for (ic=0; ic<(int)ncells; ic++) {

@@ -69,6 +69,7 @@
 #include "mesh/partition.h"
 #include "mesh/mesh.h"
 #include "hash/hash.h"
+#include "config.h"
 
 #define OUTPUT_INTERVAL 20
 #define COARSE_GRID_RES 128
@@ -84,6 +85,7 @@ char progVers[8];       //  Program version.
 extern bool verbose,
             localStencil,
             outline,
+            dynamic_load_balance_on,
             enhanced_precision_sum;
 extern int  outputInterval,
             tmax,
@@ -92,6 +94,8 @@ extern int  outputInterval,
             ny,
             niter,
             measure_type,
+            lttrace_on,
+            do_quo_setup,
             calc_neighbor_type,
 	    choose_hash_method,
             initial_order,
@@ -107,6 +111,8 @@ void outputHelp()
          << "Version is " << PACKAGE_VERSION << endl << endl
          << "Usage:  " << progName << " [options]..." << endl
          << "  -c                turn on CPU profiling;" << endl
+         << "  -d                turn on LTTRACE;" << endl
+         << "  -D                turn on dynamic load balancing using LTTRACE;" << endl
          << "  -e <E>            force hash_method, ie linear, quadratic..." <<endl          
          << "      \"linear\"" << endl
          << "      \"quadratic\"" << endl
@@ -139,6 +145,7 @@ void outputHelp()
          << "      \"local_hilbert\"" << endl
          << "      \"local_fixed\"" << endl
          << "      \"z_order\"" << endl
+         << "  -q                turn on quo;" << endl
          << "  -r                regular sum instead of enhanced precision sum (Kahan sum);" << endl
          << "  -s <s>            specify space-filling curve method S;" << endl
          << "  -T                execute with TVD;" << endl
@@ -168,6 +175,13 @@ void parseInput(const int argc, char** argv)
     verbose            = false;
     localStencil       = true;
     outline            = true;
+#ifdef HAVE_LTTRACE
+    lttrace_on         = 0;
+#endif
+#ifdef HAVE_QUO
+    do_quo_setup       = 0;
+#endif
+    dynamic_load_balance_on = false;
     outputInterval     = OUTPUT_INTERVAL;
     nx                 = COARSE_GRID_RES;
     ny                 = COARSE_GRID_RES;
@@ -189,6 +203,22 @@ void parseInput(const int argc, char** argv)
         {   switch (val[0])
             {   case 'c':   //  Turn on CPU profiling.
                     //do_cpu_calc = 1;
+                    break;
+
+                case 'd':   //  Turn on lttrace.
+                            //  This is provided as a separate option to measure
+                            //  the overhead of having lttrace on.
+#ifdef HAVE_LTTRACE
+                    lttrace_on = 1;
+#endif
+                    break;
+
+                case 'D':   //  Turn on dynamic load balancing.
+                            //  This forces on lttrace.
+#ifdef HAVE_LTTRACE
+                    lttrace_on = true;
+                    dynamic_load_balance_on = true;
+#endif
                     break;
 
                 case 'e':   //  hash method specified.
@@ -293,6 +323,12 @@ void parseInput(const int argc, char** argv)
                        cycle_reorder = ZORDER;
                        localStencil = false;
                     }
+                    break;
+                    
+                case 'q':   //  turn on quo package.
+#ifdef HAVE_QUO
+                    do_quo_setup = 1;
+#endif
                     break;
                     
                 case 'r':   //  Regular sum instead of enhanced precision sum.

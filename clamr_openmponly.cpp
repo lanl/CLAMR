@@ -102,6 +102,8 @@ bool        verbose,        //  Flag for verbose command-line output; init in in
             outline,        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
             enhanced_precision_sum;//  Flag for enhanced precision sum (default true); init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
+            lttrace_on,     //  Flag to turn on logical time trace package;
+            do_quo_setup,   //  Flag to turn on quo dynamic scheduling policies package;
             levmx,          //  Maximum number of refinement levels; init in input.cpp::parseInput().
             nx,             //  x-resolution of coarse grid; init in input.cpp::parseInput().
             ny,             //  y-resolution of coarse grid; init in input.cpp::parseInput().
