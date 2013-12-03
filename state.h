@@ -66,6 +66,14 @@
 
 extern "C" void do_calc(void);
 
+enum SUM_TYPE {
+   SUM_REGULAR,
+   SUM_KAHAN,
+   SUM_REPROBLAS_DOUBLE_DOUBLE,
+   SUM_REPROBLAS_INDEXEDFP,
+};
+
+
 enum SIGN_RULE {
    DIAG_RULE,
    X_RULE,
@@ -237,9 +245,9 @@ public:
    *  Output
    *    total mass is returned
    *******************************************************************/
-   double mass_sum(bool enhanced_precision_sum);
+   double mass_sum(int enhanced_precision_sum);
 #ifdef HAVE_OPENCL
-   double gpu_mass_sum(bool enhanced_precision_sum);
+   double gpu_mass_sum(int enhanced_precision_sum);
 #endif
    
    void fill_circle(double circ_radius, double fill_value, double background);

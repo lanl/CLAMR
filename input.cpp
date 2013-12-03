@@ -66,6 +66,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "state.h"
 #include "mesh/partition.h"
 #include "mesh/mesh.h"
 #include "hash/hash.h"
@@ -85,9 +86,9 @@ char progVers[8];       //  Program version.
 extern bool verbose,
             localStencil,
             outline,
-            dynamic_load_balance_on,
-            enhanced_precision_sum;
+            dynamic_load_balance_on;
 extern int  outputInterval,
+            enhanced_precision_sum,
             tmax,
             levmx,
             nx,
@@ -193,7 +194,7 @@ void parseInput(const int argc, char** argv)
     cycle_reorder      = ORIGINAL_ORDER;
     levmx              = 1;
     mem_opt_factor     = 1.0;
-    enhanced_precision_sum = true;
+    enhanced_precision_sum = SUM_KAHAN;
     
     char   *val;
     if (argc > 1)
@@ -332,7 +333,19 @@ void parseInput(const int argc, char** argv)
                     break;
                     
                 case 'r':   //  Regular sum instead of enhanced precision sum.
-                    enhanced_precision_sum = false;
+                    val = strtok(argv[i++], " ,");
+                    if (! strcmp(val,"regular_sum") ) {
+                       enhanced_precision_sum = SUM_REGULAR;
+                    } else if (! strcmp(val,"kahan_sum") ) {
+                       enhanced_precision_sum = SUM_KAHAN;
+                    } else if (! strcmp(val,"reproblas_doubledouble_sum") ) {
+                       enhanced_precision_sum = SUM_REPROBLAS_DOUBLE_DOUBLE;
+                    } else if (! strcmp(val,"reproblas_indexedfp_sum") ) {
+                       enhanced_precision_sum = SUM_REPROBLAS_INDEXEDFP;
+                    } else {
+                       printf("Error with sum argument %s\n",val);
+                       exit(0);
+                    }
                     break;
                     
                 case 's':   //  Space-filling curve method specified (default HILBERT_SORT).

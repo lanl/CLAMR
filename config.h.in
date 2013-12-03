@@ -52,3 +52,6 @@
 
 /* Define if you have LTTRACE support */
 #cmakedefine HAVE_LTTRACE
+
+/* Define if you have reproBLAS support */
+#cmakedefine HAVE_REPROBLAS

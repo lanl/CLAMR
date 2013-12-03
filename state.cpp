@@ -66,6 +66,24 @@
 #include <mpi.h>
 #endif
 
+#ifdef HAVE_REPROBLAS
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#ifdef HAVE_MPI
+#ifdef OMPI_MPI_H
+#define OMPI_SKIP_MPICXX
+#endif
+#include <MPIndexedFP.h>
+#else
+#include <IndexedFP.h>
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif
+
 #undef DEBUG
 //#define DEBUG 1
 #define TIMING_LEVEL 2
@@ -224,6 +242,9 @@ State::State(Mesh *mesh_in)
       // FIXME add fini and set size
       if (mesh->parallel) state_memory.pinit(MPI_COMM_WORLD, 2L * 1024 * 1024 * 1024);
    }
+#ifdef HAVE_REPROBLAS
+   RMPI_Init(); // Initialize Reproducible MPI
+#endif
 #endif
 }
 
@@ -2024,7 +2045,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
 }
 #endif
 
-double State::mass_sum(bool enhanced_precision_sum)
+double State::mass_sum(int enhanced_precision_sum)
 {
    size_t &ncells = mesh->ncells;
    int *celltype = mesh->celltype;
@@ -2040,7 +2061,8 @@ double State::mass_sum(bool enhanced_precision_sum)
    double summer = 0.0;
    double total_sum = 0.0;
 
-   if (enhanced_precision_sum) {
+   if (enhanced_precision_sum == SUM_KAHAN) {
+      //printf("DEBUG -- kahan_sum\n");
       double corrected_next_term, new_sum;
       struct esum_type local;
 #ifdef HAVE_MPI
@@ -2073,7 +2095,52 @@ double State::mass_sum(bool enhanced_precision_sum)
 #else
       total_sum = local.sum + local.correction;
 #endif
-   } else {
+#ifdef HAVE_REPROBLAS
+   } else if (enhanced_precision_sum == SUM_REPROBLAS_DOUBLE_DOUBLE){
+      int fold = 2;
+      double ss[4] = {0.0, 0.0, 0.0, 0.0};
+      for (uint ic=0; ic < ncells; ic++){
+         if (celltype[ic] == REAL_CELL) {
+            dndpd(fold, ss, H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]]);
+         }
+      }
+      total_sum = ss[0] + ss[1];
+#ifdef HAVE_MPI
+      if (mesh->parallel) {
+         struct esum_type local, global;
+         local.sum = ss[0];
+         local.correction = ss[1];
+         MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
+         total_sum = global.sum + global.correction;
+      } else {
+         total_sum = ss[0] + ss[1];
+      }
+#else
+      total_sum = ss[0] + ss[1];
+#endif
+   } else if (enhanced_precision_sum == SUM_REPROBLAS_INDEXEDFP) {
+      //printf("DEBUG -- reproblas_indexedfp_sum\n");
+      Idouble IFPsummer, IFPtotal_sum;
+      dISetZero(IFPsummer);
+      for (uint ic=0; ic < ncells; ic++){
+         if (celltype[ic] == REAL_CELL) {
+            dIAddd(&IFPsummer, H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]]);
+         }
+      }
+#ifdef HAVE_MPI
+      if (mesh->parallel) {
+         MPI_Allreduce(&IFPsummer, &IFPtotal_sum, 1, MPI_IDOUBLE, MPI_RSUM, MPI_COMM_WORLD);
+      } else {
+         IFPtotal_sum = IFPsummer;
+      }
+#else
+      IFPtotal_sum = IFPsummer;
+#endif
+         
+      total_sum = Iconv2d(IFPtotal_sum);
+#endif
+   } else if (enhanced_precision_sum == SUM_REGULAR) {
+      //printf("DEBUG -- regular_sum\n");
       for (uint ic=0; ic < ncells; ic++){
          if (celltype[ic] == REAL_CELL) {
             summer += H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]];
@@ -2096,7 +2163,7 @@ double State::mass_sum(bool enhanced_precision_sum)
 }
 
 #ifdef HAVE_OPENCL
-double State::gpu_mass_sum(bool enhanced_precision_sum)
+double State::gpu_mass_sum(int enhanced_precision_sum)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
