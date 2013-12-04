@@ -277,10 +277,10 @@ __kernel void calc_neighbors_cl(
    if (iicur > imax*levtable[levmx]-1) nrhtval = giX;
    if (jjcur > jmax*levtable[levmx]-1) ntopval = giX;
    // Boundary cells next to corner boundary need special checks
-   if (iicur ==    1*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur > (jmax-1)*levtable[levmx] ) ) nlftval = giX;
-   if (jjcur ==    1*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur > (imax-1)*levtable[levmx] ) ) nbotval = giX;
-   if (iirht == imax*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur > (jmax-1)*levtable[levmx] ) ) nrhtval = giX;
-   if (jjtop == jmax*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur > (imax-1)*levtable[levmx] ) ) ntopval = giX;
+   if (iicur ==    1*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur >= jmax*levtable[levmx] ) ) nlftval = giX;
+   if (jjcur ==    1*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur >= imax*levtable[levmx] ) ) nbotval = giX;
+   if (iirht == imax*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur >= jmax*levtable[levmx] ) ) nrhtval = giX;
+   if (jjtop == jmax*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur >= imax*levtable[levmx] ) ) ntopval = giX;
 
    // need to check for finer neighbor first
    if (lev != levmx) {

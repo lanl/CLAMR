@@ -270,7 +270,7 @@ public:
    void parallel_timer_output(int numpe, int mype, const char *string, double local_time);
    void parallel_memory_output(int numpe, int mype, const char *string, long long local_time);
 
-   void print();
+   void print(void);
 
 private:
    State(const State&); // To block copy constructor so copies are not made inadvertently
