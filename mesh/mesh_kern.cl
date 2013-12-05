@@ -3126,24 +3126,26 @@ __kernel void set_boundary_refinement(
 
    int ctype = celltype[giX];
    int mpotval = mpot[giX];
+   int mpotval_save = mpotval;
 
    if (ctype < 0) {
       switch (ctype) {
 
       case LEFT_BOUNDARY:
-         if (mpot[nrht[giX]] > 0) {mpotval = 1; mpot[giX]++;}
+         mpotval = mpot[nrht[giX]];
          break;
       case RIGHT_BOUNDARY:
-         if (mpot[nlft[giX]] > 0) {mpotval = 1; mpot[giX]++;}
+         mpotval = mpot[nlft[giX]];
          break;
       case BOTTOM_BOUNDARY:
-         if (mpot[ntop[giX]] > 0) {mpotval = 1; mpot[giX]++;}
+         mpotval = mpot[ntop[giX]];
          break;
       case TOP_BOUNDARY:
-         if (mpot[nbot[giX]] > 0) {mpotval = 1; mpot[giX]++;}
+         mpotval = mpot[nbot[giX]];
          break;
       }
    }
+   if (mpotval != mpotval_save) mpot[giX] = mpotval;
 
    if (mpotval < 0){
       int ival = i[giX];
@@ -3151,7 +3153,7 @@ __kernel void set_boundary_refinement(
       if (ctype == REAL_CELL) {
          if (! is_lower_left(ival,jval) ) itile[tiX].s1 = 1;
       } else {
-         if (! is_upper_right(ival,jval) || is_lower_left(ival,jval) ) itile[tiX].s1 = 1;
+         if (! (is_upper_right(ival,jval) || is_lower_left(ival,jval) ) ) itile[tiX].s1 = 1;
       }
    } else if (mpotval > 0){
       if (ctype == REAL_CELL) {
