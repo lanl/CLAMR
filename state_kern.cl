@@ -238,16 +238,6 @@ void setup_tile(__local        real4  *tile,
                 __global const int    *level
                 );
 
-void apply_BCs(__local  real4        *tile,
-               __local  int8         *itile,
-               __global const real   *H,
-               __global const real   *U,
-               __global const real   *V,
-               __global const int    *nlft,
-               __global const int    *nrht,
-               __global const int    *ntop,
-               __global const int    *nbot);
-
 __kernel void copy_state_data_cl(
                           const int  isize,         // 0 
                  __global      real  *H,            // 1 
@@ -479,7 +469,51 @@ real w_corrector(//_ORIG(
 
 }
 
+__kernel void apply_boundary_conditions_cl(
+                 const int    ncells,   // 0  Total number of cells
+        __global const int   *celltype, // 1  Array of left neighbors
+        __global const int   *nlft,     // 2  Array of left neighbors
+        __global const int   *nrht,     // 3  Array of right neighbors
+        __global const int   *ntop,     // 4  Array of top neighbors
+        __global const int   *nbot,     // 5  Array of bottom neighbors
+        __global       real  *H,        // 6  H array
+        __global       real  *U,        // 7  U array
+        __global       real  *V)        // 8  V array
+{
+   const unsigned int giX  = get_global_id(0);
+   const unsigned int tiX  = get_local_id(0);
 
+   // Ensure the executing thread is not extraneous
+   if(giX >= ncells)
+      return;
+
+   int ctype = celltype[giX];
+
+   if (ctype == LEFT_BOUNDARY){
+      int nr = nrht[giX];
+      H[giX] =  H[nr];
+      U[giX] = -U[nr];
+      V[giX] =  V[nr];
+   }
+   if (ctype == RIGHT_BOUNDARY){
+      int nl = nlft[giX];
+      H[giX] =  H[nl];
+      U[giX] = -U[nl];
+      V[giX] =  V[nl];
+   }
+   if (ctype == TOP_BOUNDARY){
+      int nb = nbot[giX];
+      H[giX] =  H[nb];
+      U[giX] =  U[nb];
+      V[giX] = -V[nb];
+   }
+   if (ctype == BOTTOM_BOUNDARY){
+      int nt = ntop[giX];
+      H[giX] =  H[nt];
+      U[giX] =  U[nt];
+      V[giX] = -V[nt];
+   }
+}
 
 __kernel void calc_finite_difference_cl(
                  const int    ncells,   // 0  Total number of cells
@@ -522,8 +556,6 @@ __kernel void calc_finite_difference_cl(
    /////////////////////////////////////////////
 
    setup_tile(tile, itile, ncells, H, U, V, nlft, nrht, ntop, nbot, level);
-
-   apply_BCs(tile, itile, H, U, V, nlft, nrht, ntop, nbot);
 
    barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -1661,150 +1693,6 @@ void setup_tile(__local        real4  *tile,
    }
 
    levelval(tiX) = level[giX];
-}
-
-void apply_BCs(__local  real4        *tile, 
-               __local  int8         *itile, 
-               __global const real   *H,
-               __global const real   *U,
-               __global const real   *V,
-               __global const int    *nlft,
-               __global const int    *nrht,
-               __global const int    *ntop,
-               __global const int    *nbot)
-{
-
-   int nr, nl, nt, nb;
-
-   const unsigned int giX = get_global_id (0);
-   const unsigned int tiX = get_local_id (0);
-
-   const unsigned int ntX = get_local_size (0);
-
-   const unsigned int group_id = get_group_id (0);
-
-   int start_idx = group_id * ntX;
-
-   ////////////////////////////////////////////////////////////////////////////////////////////
-   ///                  Setting the local values for the neighbors                          ///
-   ///        If a global read is necessary, the value of neighbor is negated.              ///
-   /// If it's a local read, the value is mapped by the relative offset to the start index. ///
-   ////////////////////////////////////////////////////////////////////////////////////////////
-
-   //sets left boundary conditions
-
-   int lft_bound = 0;
-
-   // Test for global index -- it will be negative if so
-   if (nlftval(tiX) < 0) {
-      // set left boundary value if equal to self
-      if (abs(nlftval(tiX)+1) == giX) lft_bound = 1;
-   } else {
-      // Check local index, but add offset of start_idx
-      if (nlftval(tiX) + start_idx == giX) lft_bound = 1;
-   }
-
-   if (lft_bound) {
-      // if left boundary get right neigbor to update boundary value from
-      nr = nrhtval(tiX);
-
-      // Checking for global index or local -- negative is global
-      if (nr < 0) {
-        // Copy from global data
-        Hval(tiX) =  H[abs(nr+1)];
-        Uval(tiX) = -U[abs(nr+1)];
-        Vval(tiX) =  V[abs(nr+1)];
-      } else {
-        // Copy from local data
-        Hval(tiX) =  Hval(nr);
-        Uval(tiX) = -Uval(nr);
-        Vval(tiX) =  Vval(nr);
-      }
-   }
-
-   //sets right boundary conditions
-
-   int rht_bound = 0;
-
-   // Test for global index -- it will be negative if so
-   if (nrhtval(tiX) < 0) {
-      // set left boundary value if equal to self
-      if (abs(nrhtval(tiX)+1) == giX) rht_bound = 1;
-   } else {
-      // Check local index, but add offset of start_idx
-      if (nrhtval(tiX) + start_idx == giX) rht_bound = 1;
-   }
-
-   if (rht_bound) {
-      nl = nlftval(tiX);
-
-      if (nl < 0) {
-        // Copy from global data
-         Hval(tiX) =  H[abs(nl+1)];
-         Uval(tiX) = -U[abs(nl+1)];
-         Vval(tiX) =  V[abs(nl+1)];
-      } else {
-        // Copy from local data
-         Hval(tiX) =  Hval(nl);
-         Uval(tiX) = -Uval(nl);
-         Vval(tiX) =  Vval(nl);
-      }
-   }
-
-   //sets bottom boundary conditions
-
-   int bot_bound = 0;
-
-   // Test for global index -- it will be negative if so
-   if (nbotval(tiX) < 0) {
-      // set left boundary value if equal to self
-      if (abs(nbotval(tiX)+1) == giX) bot_bound = 1;
-   } else {
-      // Check local index, but add offset of start_idx
-      if (nbotval(tiX) + start_idx == giX) bot_bound = 1;
-   }
-
-   if (bot_bound) {
-      nt = ntopval(tiX);
-
-      if (nt < 0) {
-        // Copy from global data
-         Hval(tiX) =  H[abs(nt+1)];
-         Uval(tiX) =  U[abs(nt+1)];
-         Vval(tiX) = -V[abs(nt+1)];
-      } else {
-        // Copy from local data
-         Hval(tiX) =  Hval(nt);
-         Uval(tiX) =  Uval(nt);
-         Vval(tiX) = -Vval(nt);
-      }
-   }
-
-   //sets top boundary conditions
-
-   int top_bound = 0;
-
-   if (ntopval(tiX) < 0) {
-      if (abs(ntopval(tiX)+1) == giX) top_bound = 1;
-   } else {
-      if (ntopval(tiX) + start_idx == giX) top_bound = 1;
-   }
-
-   if (top_bound) {
-      nb = nbotval(tiX);
-
-      if (nb < 0) {
-         // Copy from global data
-         Hval(tiX) =  H[abs(nb+1)];
-         Uval(tiX) =  U[abs(nb+1)];
-         Vval(tiX) = -V[abs(nb+1)];
-      } else {
-         // Copy from local data
-         Hval(tiX) =  Hval(nb);
-         Uval(tiX) =  Uval(nb);
-         Vval(tiX) = -Vval(nb);
-      }
-   }
 }
 
 inline uint scan_warp_exclusive(__local volatile uint *input, const uint idx, const uint lane) {

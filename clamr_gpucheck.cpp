@@ -508,7 +508,6 @@ extern "C" void do_calc(void)
       exit(-1);
    }
    if (do_comparison_calc) {
-      H_sum = state->mass_sum(enhanced_precision_sum);
       double total_mass = state->gpu_mass_sum(enhanced_precision_sum);
       if (fabs(total_mass - H_sum) > CONSERVATION_EPS) printf("Error: mass sum gpu %f cpu %f\n", total_mass, H_sum);/***/
    }

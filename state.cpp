@@ -139,11 +139,19 @@ int save_ncells;
 #define REFINE_GRADIENT  0.10
 #define COARSEN_GRADIENT 0.05
 
+#ifdef HAVE_CL_DOUBLE
 #define ZERO 0.0
 #define ONE 1.0
 #define HALF 0.5
-#define SQR(x) ( x*x )
 #define EPSILON 1.0e-30
+#else
+#define ZERO 0.0f
+#define ONE 1.0f
+#define HALF 0.5f
+#define EPSILON 1.0f-30
+#endif
+
+#define SQR(x) ( x*x )
 #define MIN3(x,y,z) ( min( min(x,y), z) )
 
 #ifdef HAVE_OPENCL
@@ -151,6 +159,7 @@ cl_kernel kernel_set_timestep;
 cl_kernel kernel_reduction_min;
 cl_kernel kernel_copy_state_data;
 cl_kernel kernel_copy_state_ghost_data;
+cl_kernel kernel_apply_boundary_conditions;
 cl_kernel kernel_calc_finite_difference;
 cl_kernel kernel_refine_potential;
 cl_kernel kernel_reduce_sum_mass_stage1of2;
@@ -173,8 +182,8 @@ inline real_t U_halfstep(// XXX Fix the subindices to be more intuitive XXX
         real_t    V_n) {      // Cell's neighbor's volume
 
    return (( r_i*U_n + r_n*U_i ) / ( r_i + r_n )) 
-          - HALF*deltaT*(( F_n*A_n*min((real_t)ONE, A_i/A_n) - F_i*A_i*min((real_t)ONE, A_n/A_i) )
-                    / ( V_n*min((real_t)HALF, V_i/V_n) + V_i*min((real_t)HALF, V_n/V_i) ));
+          - HALF*deltaT*(( F_n*A_n*min(ONE, A_i/A_n) - F_i*A_i*min(ONE, A_n/A_i) )
+                    / ( V_n*min(HALF, V_i/V_n) + V_i*min(HALF, V_n/V_i) ));
 
 }
 
@@ -203,11 +212,11 @@ inline real_t w_corrector(
    real_t nu     = HALF * U_eigen * deltaT / dr;
    nu          = nu * (ONE - nu);
 
-   real_t rdenom = ONE / max(SQR(grad_half), (real_t)EPSILON);
+   real_t rdenom = ONE / max(SQR(grad_half), EPSILON);
    real_t rplus  = (grad_plus  * grad_half) * rdenom;
    real_t rminus = (grad_minus * grad_half) * rdenom;
 
-   return HALF*nu*(ONE- max(MIN3((real_t)ONE, rplus, rminus), (real_t)ZERO));
+   return HALF*nu*(ONE- max(MIN3(ONE, rplus, rminus), ZERO));
 
 }
 
@@ -261,6 +270,7 @@ void State::init(int do_gpu_calc)
       kernel_reduction_min               = ezcl_create_kernel_wprogram(program, "finish_reduction_min_cl");
       kernel_copy_state_data             = ezcl_create_kernel_wprogram(program, "copy_state_data_cl");
       kernel_copy_state_ghost_data       = ezcl_create_kernel_wprogram(program, "copy_state_ghost_data_cl");
+      kernel_apply_boundary_conditions   = ezcl_create_kernel_wprogram(program, "apply_boundary_conditions_cl");
       kernel_calc_finite_difference      = ezcl_create_kernel_wprogram(program, "calc_finite_difference_cl");
       kernel_refine_potential            = ezcl_create_kernel_wprogram(program, "refine_potential_cl");
       kernel_reduce_sum_mass_stage1of2   = ezcl_create_kernel_wprogram(program, "reduce_sum_mass_stage1of2_cl");
@@ -327,6 +337,7 @@ void State::terminate(void)
    ezcl_kernel_release(kernel_reduction_min);
    ezcl_kernel_release(kernel_copy_state_data);
    ezcl_kernel_release(kernel_copy_state_ghost_data);
+   ezcl_kernel_release(kernel_apply_boundary_conditions);
    ezcl_kernel_release(kernel_calc_finite_difference);
    ezcl_kernel_release(kernel_refine_potential);
    ezcl_kernel_release(kernel_reduce_sum_mass_stage1of2);
@@ -1560,14 +1571,15 @@ void State::gpu_calc_finite_difference(double deltaT)
    size_t &ncells    = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
    if (ncells_ghost < ncells) ncells_ghost = ncells;
-   int &levmx        = mesh->levmx;
-   cl_mem &dev_nlft  = mesh->dev_nlft;
-   cl_mem &dev_nrht  = mesh->dev_nrht;
-   cl_mem &dev_nbot  = mesh->dev_nbot;
-   cl_mem &dev_ntop  = mesh->dev_ntop;
-   cl_mem &dev_level = mesh->dev_level;
-   cl_mem &dev_levdx = mesh->dev_levdx;
-   cl_mem &dev_levdy = mesh->dev_levdy;
+   int &levmx           = mesh->levmx;
+   cl_mem &dev_celltype = mesh->dev_celltype;
+   cl_mem &dev_nlft     = mesh->dev_nlft;
+   cl_mem &dev_nrht     = mesh->dev_nrht;
+   cl_mem &dev_nbot     = mesh->dev_nbot;
+   cl_mem &dev_ntop     = mesh->dev_ntop;
+   cl_mem &dev_level    = mesh->dev_level;
+   cl_mem &dev_levdx    = mesh->dev_levdx;
+   cl_mem &dev_levdy    = mesh->dev_levdy;
 
    assert(dev_H);
    assert(dev_U);
@@ -1625,6 +1637,18 @@ void State::gpu_calc_finite_difference(double deltaT)
    }
 #endif
 
+
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), &dev_celltype);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), &dev_nlft);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), &dev_nrht);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), &dev_ntop);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), &dev_nbot);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), &dev_H);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), &dev_U);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), &dev_V);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
+    
      /*
      __kernel void calc_finite_difference_cl(
                       const int    ncells,   // 0  Total number of cells.
