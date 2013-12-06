@@ -75,7 +75,7 @@ long long memstats_memused(){
    char *p;
    int err;
    int memdebug = 0;
-   long long mem_current;
+   long long mem_current=0;
    //long long page_size = 1; //4096
 
    if (!stat_fp){
@@ -123,7 +123,7 @@ long long memstats_mempeak(){
    char *p;
    int err;
    int memdebug = 0;
-   long long mem_current;
+   long long mem_current=0;
    //long long page_size = 1; //4096
 
    if (!stat_fp){
