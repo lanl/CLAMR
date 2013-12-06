@@ -71,6 +71,7 @@
 #ifndef DEBUG
 #define DEBUG 0
 #endif
+#define WARNING_SUPPRESSION 0
 
 #ifdef HAVE_CL_DOUBLE
 #ifdef HAVE_OPENCL
@@ -105,6 +106,9 @@ MallocPlus::pinit(MPI_Comm smComm, std::size_t memPoolSize)
         std::cerr << "*** pinit failure ***" << std::endl;
         throw;
     }
+#else
+    // Just to suppress compiler warnings
+    if (WARNING_SUPPRESSION) printf("DEBUG memPoolSize = %lu smComm = %p\n",memPoolSize,smComm);
 #endif
 }
 

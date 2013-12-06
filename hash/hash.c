@@ -125,6 +125,9 @@ void write_hash(uint ic, ulong hashkey, int *hash){
             icount++;
          }
          write_hash_collisions += icount;
+      } else {
+         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
+         exit(1);
       }
    } else if (hash_method == QUADRATIC){
       if (hash_report_level == 0) {
@@ -154,6 +157,9 @@ void write_hash(uint ic, ulong hashkey, int *hash){
             printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          }
          write_hash_collisions += icount;
+      } else {
+         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
+         exit(1);
       }
    } else if (hash_method == PRIME_JUMP){
       uint jump = 1+hashkey%hash_jump_prime;
@@ -184,7 +190,13 @@ void write_hash(uint ic, ulong hashkey, int *hash){
             printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
          }
          write_hash_collisions += icount;
+      } else {
+         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
+         exit(1);
       }
+   } else {
+      printf("Error -- Illegal value of hash_method %d\n",hash_method);
+      exit(1);
    }
 
    hash[2*hashloc] = hashkey;
@@ -235,6 +247,9 @@ int read_hash(ulong hashkey, int *hash){
             }
          }
          read_hash_collisions += icount;
+      } else {
+         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
+         exit(1);
       }
    } else if (hash_method == QUADRATIC) {
       if (hash_report_level == 0) {
@@ -272,6 +287,9 @@ int read_hash(ulong hashkey, int *hash){
             }
          }
          read_hash_collisions += icount;
+      } else {
+         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
+         exit(1);
       }
    } else if (hash_method == PRIME_JUMP) {
       uint jump = 1+hashkey%hash_jump_prime;
@@ -310,7 +328,13 @@ int read_hash(ulong hashkey, int *hash){
             }
          }
          read_hash_collisions += icount;
+      } else {
+         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
+         exit(1);
       }
+   } else {
+      printf("Error -- Illegal value of hash_method %d\n",hash_method);
+      exit(1);
    }
 
    if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
@@ -489,6 +513,9 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
             }
          }
          read_hash_collisions += icount;
+      } else {
+         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
+         exit(1);
       }
    } else if (hash_method == QUADRATIC) {
       if (hash_report_level == 0) {
@@ -526,6 +553,9 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
             }
          }
          read_hash_collisions += icount;
+      } else {
+         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
+         exit(1);
       }
    } else if (hash_method == PRIME_JUMP) {
       uint jump = 1+hashkey%hash_jump_prime;
@@ -564,7 +594,13 @@ int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulon
             }
          }
          read_hash_collisions += icount;
+      } else {
+         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
+         exit(1);
       }
+   } else {
+      printf("Error -- Illegal value of hash_method %d\n",hash_method);
+      exit(1);
    }
 
    if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
