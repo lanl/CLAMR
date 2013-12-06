@@ -1,5 +1,5 @@
 #!/bin/tcsh
-setenv BUILD_DIR /scratch/brobey/CLAMR
+setenv BUILD_DIR `pwd`
 setenv RUNS_DIR /scratch/brobey/test
 setenv SCRIPTS_DIR `pwd`/moonlight_scripts
 
