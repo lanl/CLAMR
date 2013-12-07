@@ -3733,10 +3733,10 @@ void Mesh::calc_neighbors_local(void)
          if (iicur > imax*levtable[levmx]-1-iminsize) nrhtval = ic+noffset;
          if (jjcur > jmax*levtable[levmx]-1-jminsize) ntopval = ic+noffset;
          // Boundary cells next to corner boundary need special checks
-         if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nlftval = ic+noffset;
-         if (jjcur ==    1*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur > (imax-1)*levtable[levmx]-iminsize ) ) nbotval = ic+noffset;
-         if (iirht == imax*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nrhtval = ic+noffset;
-         if (jjtop == jmax*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur > (imax-1)*levtable[levmx]-iminsize ) ) ntopval = ic+noffset;
+         if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur >= jmax*levtable[levmx]-jminsize ) ) nlftval = ic+noffset;
+         if (jjcur ==    1*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur >= imax*levtable[levmx]-iminsize ) ) nbotval = ic+noffset;
+         if (iirht == imax*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur >= jmax*levtable[levmx]-jminsize ) ) nrhtval = ic+noffset;
+         if (jjtop == jmax*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur >= imax*levtable[levmx]-iminsize ) ) ntopval = ic+noffset;
 
          // need to check for finer neighbor first
          // Right and top neighbor don't change for finer, so drop through to same size
@@ -4727,7 +4727,7 @@ void Mesh::calc_neighbors_local(void)
                if (iicur <    1*levtable[levmx]  -iminsize) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
 
                // Boundary cells next to corner boundary need special checks
-               if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
+               if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur >= jmax*levtable[levmx]-jminsize ) ) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
 
                // need to check for finer neighbor first
                // Right and top neighbor don't change for finer, so drop through to same size
@@ -4768,7 +4768,7 @@ void Mesh::calc_neighbors_local(void)
                if (iicur > imax*levtable[levmx]-1-iminsize) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
 
                // Boundary cells next to corner boundary need special checks
-               if (iirht == imax*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur > (jmax-1)*levtable[levmx]-jminsize ) ) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
+               if (iirht == imax*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur >= jmax*levtable[levmx]-jminsize ) ) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
 
                // same size neighbor
                if (nrhtval == -1 && iirht < imaxsize-iminsize) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iirht, hash);
@@ -4797,7 +4797,7 @@ void Mesh::calc_neighbors_local(void)
                // Force each boundary cell to point to itself on its boundary direction
                if (jjcur <    1*levtable[levmx]  -jminsize) nbotval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
                // Boundary cells next to corner boundary need special checks
-               if (jjcur ==    1*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur > (imax-1)*levtable[levmx]-iminsize ) ) nbotval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
+               if (jjcur ==    1*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur >= imax*levtable[levmx]-iminsize ) ) nbotval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
 
                // need to check for finer neighbor first
                // Right and top neighbor don't change for finer, so drop through to same size
@@ -4836,7 +4836,7 @@ void Mesh::calc_neighbors_local(void)
                // Force each boundary cell to point to itself on its boundary direction
                if (jjcur > jmax*levtable[levmx]-1-jminsize) ntopval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
                // Boundary cells next to corner boundary need special checks
-               if (jjtop == jmax*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur > (imax-1)*levtable[levmx]-iminsize ) ) ntopval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
+               if (jjtop == jmax*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur >= imax*levtable[levmx]-iminsize ) ) ntopval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
 
                // same size neighbor
                if (ntopval == -1 && jjtop < jmaxsize-jminsize) ntopval = read_hash(jjtop*(imaxsize-iminsize)+iicur, hash);

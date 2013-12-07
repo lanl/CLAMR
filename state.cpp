@@ -1004,6 +1004,9 @@ void State::calc_finite_difference(double deltaT){
    if (ncells_ghost < ncells) ncells_ghost = ncells;
 
    //printf("\nDEBUG finite diff\n"); 
+
+   apply_boundary_conditions();
+
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
       H=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), H);
@@ -1015,8 +1018,6 @@ void State::calc_finite_difference(double deltaT){
       L7_Update(&V[0], L7_REAL, mesh->cell_handle);
    }
 #endif
-
-   apply_boundary_conditions();
 
    int *nlft  = mesh->nlft;
    int *nrht  = mesh->nrht;
