@@ -869,7 +869,7 @@ extern "C" void do_calc(void)
    MPI_Allgatherv(&H_graphics[0],  ncells, MPI_C_REAL, &H_graphics_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
    for (int ic=0; ic<(int)ncells; ic++){mesh_local->proc[ic]=mype;} 
-   MPI_Allgatherv(&mesh_local->proc[0],  ncells, MPI_INT, &mesh_global->proc[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   //MPI_Allgatherv(&mesh_local->proc[0],  ncells, MPI_INT, &mesh_global->proc[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
 
    set_mysize(ncells_global);
    set_viewmode(view_mode);

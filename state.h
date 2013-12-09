@@ -165,6 +165,8 @@ public:
    /* Boundary routines -- not currently used */
    void add_boundary_cells(void);
    void apply_boundary_conditions(void);
+   void apply_boundary_conditions_local(void);
+   void apply_boundary_conditions_ghost(void);
    void remove_boundary_cells(void);
 
    /*******************************************************************
@@ -271,6 +273,7 @@ public:
    void parallel_memory_output(int numpe, int mype, const char *string, long long local_time);
 
    void print(void);
+   void print_local(int ncycle);
 
 private:
    State(const State&); // To block copy constructor so copies are not made inadvertently

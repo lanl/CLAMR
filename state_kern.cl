@@ -469,6 +469,114 @@ real w_corrector(//_ORIG(
 
 }
 
+__kernel void apply_boundary_conditions_local_cl(
+                 const int    ncells,   // 0  Total number of cells
+        __global const int   *celltype, // 1  Array of left neighbors
+        __global const int   *nlft,     // 2  Array of left neighbors
+        __global const int   *nrht,     // 3  Array of right neighbors
+        __global const int   *ntop,     // 4  Array of top neighbors
+        __global const int   *nbot,     // 5  Array of bottom neighbors
+        __global       real  *H,        // 6  H array
+        __global       real  *U,        // 7  U array
+        __global       real  *V)        // 8  V array
+{
+   const unsigned int giX  = get_global_id(0);
+   const unsigned int tiX  = get_local_id(0);
+
+   // Ensure the executing thread is not extraneous
+   if(giX >= ncells)
+      return;
+
+   int ctype = celltype[giX];
+
+   if (ctype == LEFT_BOUNDARY){
+      int nr = nrht[giX];
+      if (nr < (int)ncells) {
+         H[giX] =  H[nr];
+         U[giX] = -U[nr];
+         V[giX] =  V[nr];
+      }
+   }
+   if (ctype == RIGHT_BOUNDARY){
+      int nl = nlft[giX];
+      if (nl < (int)ncells) {
+         H[giX] =  H[nl];
+         U[giX] = -U[nl];
+         V[giX] =  V[nl];
+      }
+   }
+   if (ctype == BOTTOM_BOUNDARY){
+      int nt = ntop[giX];
+      if (nt < (int)ncells) {
+         H[giX] =  H[nt];
+         U[giX] =  U[nt];
+         V[giX] = -V[nt];
+      }
+   }
+   if (ctype == TOP_BOUNDARY){
+      int nb = nbot[giX];
+      if (nb < (int)ncells) {
+         H[giX] =  H[nb];
+         U[giX] =  U[nb];
+         V[giX] = -V[nb];
+      }
+   }
+}
+
+__kernel void apply_boundary_conditions_ghost_cl(
+                 const int    ncells,   // 0  Total number of cells
+        __global const int   *celltype, // 1  Array of left neighbors
+        __global const int   *nlft,     // 2  Array of left neighbors
+        __global const int   *nrht,     // 3  Array of right neighbors
+        __global const int   *ntop,     // 4  Array of top neighbors
+        __global const int   *nbot,     // 5  Array of bottom neighbors
+        __global       real  *H,        // 6  H array
+        __global       real  *U,        // 7  U array
+        __global       real  *V)        // 8  V array
+{
+   const unsigned int giX  = get_global_id(0);
+   const unsigned int tiX  = get_local_id(0);
+
+   // Ensure the executing thread is not extraneous
+   if(giX >= ncells)
+      return;
+
+   int ctype = celltype[giX];
+
+   if (ctype == LEFT_BOUNDARY){
+      int nr = nrht[giX];
+      if (nr >= (int)ncells) {
+         H[giX] =  H[nr];
+         U[giX] = -U[nr];
+         V[giX] =  V[nr];
+      }
+   }
+   if (ctype == RIGHT_BOUNDARY){
+      int nl = nlft[giX];
+      if (nl >= (int)ncells) {
+         H[giX] =  H[nl];
+         U[giX] = -U[nl];
+         V[giX] =  V[nl];
+      }
+   }
+   if (ctype == BOTTOM_BOUNDARY){
+      int nt = ntop[giX];
+      if (nt >= (int)ncells) {
+         H[giX] =  H[nt];
+         U[giX] =  U[nt];
+         V[giX] = -V[nt];
+      }
+   }
+   if (ctype == TOP_BOUNDARY){
+      int nb = nbot[giX];
+      if (nb >= (int)ncells) {
+         H[giX] =  H[nb];
+         U[giX] =  U[nb];
+         V[giX] = -V[nb];
+      }
+   }
+}
+
 __kernel void apply_boundary_conditions_cl(
                  const int    ncells,   // 0  Total number of cells
         __global const int   *celltype, // 1  Array of left neighbors
@@ -501,17 +609,17 @@ __kernel void apply_boundary_conditions_cl(
       U[giX] = -U[nl];
       V[giX] =  V[nl];
    }
-   if (ctype == TOP_BOUNDARY){
-      int nb = nbot[giX];
-      H[giX] =  H[nb];
-      U[giX] =  U[nb];
-      V[giX] = -V[nb];
-   }
    if (ctype == BOTTOM_BOUNDARY){
       int nt = ntop[giX];
       H[giX] =  H[nt];
       U[giX] =  U[nt];
       V[giX] = -V[nt];
+   }
+   if (ctype == TOP_BOUNDARY){
+      int nb = nbot[giX];
+      H[giX] =  H[nb];
+      U[giX] =  U[nb];
+      V[giX] = -V[nb];
    }
 }
 

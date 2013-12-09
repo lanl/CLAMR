@@ -160,6 +160,8 @@ cl_kernel kernel_reduction_min;
 cl_kernel kernel_copy_state_data;
 cl_kernel kernel_copy_state_ghost_data;
 cl_kernel kernel_apply_boundary_conditions;
+cl_kernel kernel_apply_boundary_conditions_local;
+cl_kernel kernel_apply_boundary_conditions_ghost;
 cl_kernel kernel_calc_finite_difference;
 cl_kernel kernel_refine_potential;
 cl_kernel kernel_reduce_sum_mass_stage1of2;
@@ -266,17 +268,19 @@ void State::init(int do_gpu_calc)
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in state\n");
       cl_program program                 = ezcl_create_program_wsource(context, state_kern_source);
 
-      kernel_set_timestep                = ezcl_create_kernel_wprogram(program, "set_timestep_cl");
-      kernel_reduction_min               = ezcl_create_kernel_wprogram(program, "finish_reduction_min_cl");
-      kernel_copy_state_data             = ezcl_create_kernel_wprogram(program, "copy_state_data_cl");
-      kernel_copy_state_ghost_data       = ezcl_create_kernel_wprogram(program, "copy_state_ghost_data_cl");
-      kernel_apply_boundary_conditions   = ezcl_create_kernel_wprogram(program, "apply_boundary_conditions_cl");
-      kernel_calc_finite_difference      = ezcl_create_kernel_wprogram(program, "calc_finite_difference_cl");
-      kernel_refine_potential            = ezcl_create_kernel_wprogram(program, "refine_potential_cl");
-      kernel_reduce_sum_mass_stage1of2   = ezcl_create_kernel_wprogram(program, "reduce_sum_mass_stage1of2_cl");
-      kernel_reduce_sum_mass_stage2of2   = ezcl_create_kernel_wprogram(program, "reduce_sum_mass_stage2of2_cl");
-      kernel_reduce_epsum_mass_stage1of2 = ezcl_create_kernel_wprogram(program, "reduce_epsum_mass_stage1of2_cl");
-      kernel_reduce_epsum_mass_stage2of2 = ezcl_create_kernel_wprogram(program, "reduce_epsum_mass_stage2of2_cl");
+      kernel_set_timestep                    = ezcl_create_kernel_wprogram(program, "set_timestep_cl");
+      kernel_reduction_min                   = ezcl_create_kernel_wprogram(program, "finish_reduction_min_cl");
+      kernel_copy_state_data                 = ezcl_create_kernel_wprogram(program, "copy_state_data_cl");
+      kernel_copy_state_ghost_data           = ezcl_create_kernel_wprogram(program, "copy_state_ghost_data_cl");
+      kernel_apply_boundary_conditions       = ezcl_create_kernel_wprogram(program, "apply_boundary_conditions_cl");
+      kernel_apply_boundary_conditions_local = ezcl_create_kernel_wprogram(program, "apply_boundary_conditions_local_cl");
+      kernel_apply_boundary_conditions_ghost = ezcl_create_kernel_wprogram(program, "apply_boundary_conditions_ghost_cl");
+      kernel_calc_finite_difference          = ezcl_create_kernel_wprogram(program, "calc_finite_difference_cl");
+      kernel_refine_potential                = ezcl_create_kernel_wprogram(program, "refine_potential_cl");
+      kernel_reduce_sum_mass_stage1of2       = ezcl_create_kernel_wprogram(program, "reduce_sum_mass_stage1of2_cl");
+      kernel_reduce_sum_mass_stage2of2       = ezcl_create_kernel_wprogram(program, "reduce_sum_mass_stage2of2_cl");
+      kernel_reduce_epsum_mass_stage1of2     = ezcl_create_kernel_wprogram(program, "reduce_epsum_mass_stage1of2_cl");
+      kernel_reduce_epsum_mass_stage2of2     = ezcl_create_kernel_wprogram(program, "reduce_epsum_mass_stage2of2_cl");
 
       ezcl_program_release(program);
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Finishing compile of kernels in state\n");
@@ -338,6 +342,8 @@ void State::terminate(void)
    ezcl_kernel_release(kernel_copy_state_data);
    ezcl_kernel_release(kernel_copy_state_ghost_data);
    ezcl_kernel_release(kernel_apply_boundary_conditions);
+   ezcl_kernel_release(kernel_apply_boundary_conditions_local);
+   ezcl_kernel_release(kernel_apply_boundary_conditions_ghost);
    ezcl_kernel_release(kernel_calc_finite_difference);
    ezcl_kernel_release(kernel_refine_potential);
    ezcl_kernel_release(kernel_reduce_sum_mass_stage1of2);
@@ -584,6 +590,100 @@ void State::add_boundary_cells(void)
    ncells = new_ncells;
 
    cpu_time_apply_BCs += cpu_timer_stop(tstart_cpu);
+}
+
+void State::apply_boundary_conditions_local(void)
+{
+   int nl, nr, nb, nt;
+
+   size_t &ncells = mesh->ncells;
+   int *nlft = mesh->nlft;
+   int *nrht = mesh->nrht;
+   int *nbot = mesh->nbot;
+   int *ntop = mesh->ntop;
+
+   // This is for a mesh with boundary cells
+   for (uint ic=0; ic<ncells; ic++) {
+      if (mesh->is_left_boundary(ic)) {
+         nr = nrht[ic];
+         if (nr < (int)ncells) {
+            H[ic] =  H[nr];
+            U[ic] = -U[nr];
+            V[ic] =  V[nr];
+         }
+      }
+      if (mesh->is_right_boundary(ic))  {
+         nl = nlft[ic];
+         if (nl < (int)ncells) {
+            H[ic] =  H[nl];
+            U[ic] = -U[nl];
+            V[ic] =  V[nl];
+         }
+      }
+      if (mesh->is_bottom_boundary(ic)) {
+         nt = ntop[ic];
+         if (nt < (int)ncells) {
+            H[ic] =  H[nt];
+            U[ic] =  U[nt];
+            V[ic] = -V[nt];
+         }
+      }
+      if (mesh->is_top_boundary(ic)) {
+         nb = nbot[ic];
+         if (nb < (int)ncells) {
+            H[ic] =  H[nb];
+            U[ic] =  U[nb];
+            V[ic] = -V[nb];
+         }
+      }
+   }
+}
+
+void State::apply_boundary_conditions_ghost(void)
+{
+   int nl, nr, nb, nt;
+
+   size_t &ncells = mesh->ncells;
+   int *nlft = mesh->nlft;
+   int *nrht = mesh->nrht;
+   int *nbot = mesh->nbot;
+   int *ntop = mesh->ntop;
+
+   // This is for a mesh with boundary cells
+   for (uint ic=0; ic<ncells; ic++) {
+      if (mesh->is_left_boundary(ic)) {
+         nr = nrht[ic];
+         if (nr >= (int)ncells) {
+            H[ic] =  H[nr];
+            U[ic] = -U[nr];
+            V[ic] =  V[nr];
+         }
+      }
+      if (mesh->is_right_boundary(ic))  {
+         nl = nlft[ic];
+         if (nl >= (int)ncells) {
+            H[ic] =  H[nl];
+            U[ic] = -U[nl];
+            V[ic] =  V[nl];
+         }
+      }
+      if (mesh->is_bottom_boundary(ic)) {
+         nt = ntop[ic];
+         if (nt >= (int)ncells) {
+            H[ic] =  H[nt];
+            U[ic] =  U[nt];
+            V[ic] = -V[nt];
+         }
+      }
+      if (mesh->is_top_boundary(ic)) {
+         nb = nbot[ic];
+         if (nb >= (int)ncells) {
+            H[ic] =  H[nb];
+            U[ic] =  U[nb];
+            V[ic] = -V[nb];
+         }
+      }
+   }
 }
 
 void State::apply_boundary_conditions(void)
@@ -883,6 +983,22 @@ void State::state_reorder(vector<int> iorder)
 
 void State::rezone_all(int icount, int jcount, vector<int> mpot)
 {
+#ifdef HAVE_MPI
+   if (mesh->numpe > 1) {
+      apply_boundary_conditions_local();
+
+      L7_Update(&H[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&U[0], L7_REAL, mesh->cell_handle);
+      L7_Update(&V[0], L7_REAL, mesh->cell_handle);
+
+      apply_boundary_conditions_ghost();
+   } else {
+      apply_boundary_conditions();
+   }
+#else
+   apply_boundary_conditions();
+#endif
+
    mesh->rezone_all(icount, jcount, mpot, 1, state_memory);
    memory_reset_ptrs();
 }
@@ -893,6 +1009,72 @@ void State::gpu_rezone_all(int icount, int jcount, bool localStencil)
 {
    // Just to get rid of compiler warnings
    if (1 == 2) printf("DEBUG -- localStencil is %d\n",localStencil);
+
+   size_t &ncells    = mesh->ncells;
+   cl_mem &dev_celltype = mesh->dev_celltype;
+   cl_mem &dev_nlft     = mesh->dev_nlft;
+   cl_mem &dev_nrht     = mesh->dev_nrht;
+   cl_mem &dev_nbot     = mesh->dev_nbot;
+   cl_mem &dev_ntop     = mesh->dev_ntop;
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
+   size_t local_work_size = 128;
+   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+
+#ifdef HAVE_MPI
+   //size_t nghost_local = mesh->ncells_ghost - ncells;
+
+   if (mesh->numpe > 1) {
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_local,   1, NULL, &global_work_size, &local_work_size, NULL);
+
+      L7_Dev_Update(dev_H, L7_REAL, mesh->cell_handle);
+      L7_Dev_Update(dev_U, L7_REAL, mesh->cell_handle);
+      L7_Dev_Update(dev_V, L7_REAL, mesh->cell_handle);
+
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_ghost,   1, NULL, &global_work_size, &local_work_size, NULL);
+   } else {
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
+   }
+#else
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), &dev_celltype);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), &dev_nlft);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), &dev_nrht);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), &dev_ntop);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), &dev_nbot);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), &dev_H);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), &dev_U);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), &dev_V);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
+#endif
 
    mesh->gpu_rezone_all(icount, jcount, dev_mpot, gpu_state_memory);
    dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H");
@@ -1005,10 +1187,10 @@ void State::calc_finite_difference(double deltaT){
 
    //printf("\nDEBUG finite diff\n"); 
 
-   apply_boundary_conditions();
-
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
+      apply_boundary_conditions_local();
+
       H=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), H);
       U=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), U);
       V=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), V);
@@ -1016,7 +1198,13 @@ void State::calc_finite_difference(double deltaT){
       L7_Update(&H[0], L7_REAL, mesh->cell_handle);
       L7_Update(&U[0], L7_REAL, mesh->cell_handle);
       L7_Update(&V[0], L7_REAL, mesh->cell_handle);
+
+      apply_boundary_conditions_ghost();
+   } else {
+      apply_boundary_conditions();
    }
+#else
+   apply_boundary_conditions();
 #endif
 
    int *nlft  = mesh->nlft;
@@ -1600,19 +1788,19 @@ void State::gpu_calc_finite_difference(double deltaT)
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
 
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), &dev_celltype);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), &dev_nlft);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), &dev_nrht);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), &dev_ntop);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), &dev_nbot);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), &dev_H);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), &dev_U);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), &dev_V);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
-    
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_local,   1, NULL, &global_work_size, &local_work_size, NULL);
+    
         /*
         __kernel void copy_state_data_cl(
                          const int    isize,         // 0
@@ -1646,7 +1834,40 @@ void State::gpu_calc_finite_difference(double deltaT)
       dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
       dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
       dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
+
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_ghost,   1, NULL, &global_work_size, &local_work_size, NULL);
+   } else {
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
    }
+#else
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), &dev_celltype);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), &dev_nlft);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), &dev_nrht);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), &dev_ntop);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), &dev_nbot);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), &dev_H);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), &dev_U);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), &dev_V);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
 #endif
 
      /*
@@ -1757,10 +1978,18 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
+      apply_boundary_conditions_local();
+
       L7_Update(&H[0], L7_REAL, mesh->cell_handle);
       L7_Update(&U[0], L7_REAL, mesh->cell_handle);
       L7_Update(&V[0], L7_REAL, mesh->cell_handle);
+
+      apply_boundary_conditions_ghost();
+   } else {
+      apply_boundary_conditions();
    }
+#else
+   apply_boundary_conditions();
 #endif
 
    int ic;
@@ -1924,14 +2153,62 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
    icount = 0;
    jcount = 0;
 
+   size_t local_work_size = 128;
+   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+   size_t block_size = global_work_size/local_work_size;
+
 #ifdef HAVE_MPI
    //size_t nghost_local = mesh->ncells_ghost - ncells;
 
    if (mesh->numpe > 1) {
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_local,   1, NULL, &global_work_size, &local_work_size, NULL);
+
       L7_Dev_Update(dev_H, L7_REAL, mesh->cell_handle);
       L7_Dev_Update(dev_U, L7_REAL, mesh->cell_handle);
       L7_Dev_Update(dev_V, L7_REAL, mesh->cell_handle);
+
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_ghost,   1, NULL, &global_work_size, &local_work_size, NULL);
+   } else {
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
    }
+#else
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), &dev_celltype);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), &dev_nlft);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), &dev_nrht);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), &dev_ntop);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), &dev_nbot);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), &dev_H);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), &dev_U);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), &dev_V);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
 #endif
 
 #ifdef BOUNDS_CHECK
@@ -1979,11 +2256,6 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
          }
       }
 #endif
-
-   size_t local_work_size = 128;
-   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
-   size_t block_size = global_work_size/local_work_size;
-
 
    size_t result_size = 1;
    cl_mem dev_result     = ezcl_malloc(NULL, const_cast<char *>("dev_result"),     &result_size,        sizeof(cl_int2), CL_MEM_READ_WRITE, 0);
@@ -2851,6 +3123,34 @@ void State::print(void)
       fprintf(mesh->fp,"%d:  index     H        U         V      i     j     lev\n",mesh->mype);
       for (uint ic=0; ic<mesh->ncells_ghost; ic++) {
          fprintf(mesh->fp,"%d: %6d %lf %lf %lf %4d  %4d   %4d  \n", mesh->mype,ic, H[ic], U[ic], V[ic], mesh->i[ic], mesh->j[ic], mesh->level[ic]);
+      }
+   }
+}
+
+void State::print_local(int ncycle)
+{  //printf("size is %lu %lu %lu %lu %lu\n",index.size(), i.size(), level.size(), nlft.size(), x.size());
+
+   if (mesh->fp == NULL) {
+      char filename[10];
+      sprintf(filename,"out%1d",mesh->mype);
+      mesh->fp=fopen(filename,"w");
+   }
+
+   fprintf(mesh->fp,"DEBUG in print_local ncycle is %d\n",ncycle);
+   if (mesh->nlft != NULL){
+      fprintf(mesh->fp,"%d:  index     H        U         V      i     j     lev   nlft   nrht   nbot   ntop\n",mesh->mype);
+      uint state_size = state_memory.get_memory_size(H);
+      for (uint ic=0; ic<mesh->ncells_ghost; ic++) {
+         if (ic >= state_size){
+            fprintf(mesh->fp,"%d: %6d                              %4d  %4d   %4d  %4d  %4d  %4d  %4d\n", mesh->mype,ic, mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+         } else {
+            fprintf(mesh->fp,"%d: %6d %lf %lf %lf %4d  %4d   %4d  %4d  %4d  %4d  %4d\n", mesh->mype,ic, H[ic], U[ic], V[ic], mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+         }
+      }
+   } else {
+      fprintf(mesh->fp,"%d:  index     H        U         V      i     j     lev\n",mesh->mype);
+      for (uint ic=0; ic<mesh->ncells_ghost; ic++) {
+         fprintf(mesh->fp,"%d: %6d %lf %lf %lf %4d  %4d   %4d\n", mesh->mype,ic, H[ic], U[ic], V[ic], mesh->i[ic], mesh->j[ic], mesh->level[ic]);
       }
    }
 }
