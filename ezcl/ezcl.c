@@ -1343,16 +1343,16 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
 
    program = clCreateProgramWithSource(context, 1, (const char **)&source, NULL, &ierr);
    if (ierr != CL_SUCCESS){
-      printf("EZCL_CREATE_KERNEL: clBuildProgramWithSource returned an error %d in file %s at line %d\n",ierr, file, line);
+      printf("EZCL_CREATE_KERNEL: clCreateProgramWithSource returned an error %d in file %s at line %d\n",ierr, file, line);
       switch (ierr){
       case CL_INVALID_CONTEXT:
-       printf("Invalid context in clBuildProgramWithSource\n");
+       printf("Invalid context in clCreateProgramWithSource\n");
        break;
       case CL_INVALID_VALUE:
-        printf("Invalid value in clBuildProgramWithSource\n");
+        printf("Invalid value in clCreateProgramWithSource\n");
         break;
       case CL_OUT_OF_HOST_MEMORY:
-        printf("Out of host memory in clBuildProgramWithSource\n");
+        printf("Out of host memory in clCreateProgramWithSource\n");
         break;
      }
    }
@@ -1634,16 +1634,16 @@ cl_program ezcl_create_program_wsource_p(cl_context context, const char *source,
    
    program = clCreateProgramWithSource(context, 1, (const char **)&source, NULL, &ierr);
    if (ierr != CL_SUCCESS){
-      printf("EZCL_CREATE_KERNEL: clBuildProgramWithSource returned an error %d in file %s at line %d\n",ierr, file, line);
+      printf("EZCL_CREATE_KERNEL: clCreateProgramWithSource returned an error %d in file %s at line %d\n",ierr, file, line);
       switch (ierr){
       case CL_INVALID_CONTEXT:
-       printf("Invalid context in clBuildProgramWithSource\n");
+       printf("Invalid context in clCreatProgramWithSource\n");
        break;
       case CL_INVALID_VALUE:
-        printf("Invalid value in clBuildProgramWithSource\n");
+        printf("Invalid value in clCreateProgramWithSource\n");
         break;
       case CL_OUT_OF_HOST_MEMORY:
-        printf("Out of host memory in clBuildProgramWithSource\n");
+        printf("Out of host memory in clCreateProgramWithSource\n");
         break;
      }
    }

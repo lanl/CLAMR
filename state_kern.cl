@@ -238,6 +238,18 @@ void setup_tile(__local        real4  *tile,
                 __global const int    *level
                 );
 
+void setup_refine_tile(
+                __local        real   *tile,
+                __local        int8   *itile,
+                         const int    isize,
+                __global const real   *H,
+                __global const int    *nlft,
+                __global const int    *nrht,
+                __global const int    *ntop,
+                __global const int    *nbot,
+                __global const int    *level
+                );
+
 __kernel void copy_state_data_cl(
                           const int  isize,         // 0 
                  __global      real  *H,            // 1 
@@ -285,7 +297,7 @@ __kernel void copy_state_ghost_data_cl(
 #define Uval(i)     ( tile[i].s1 )
 #define Vval(i)     ( tile[i].s2 )
 
-
+#define Hrefval(i)     ( tile[i] )
 
 #define nlftval(i)  ( itile[i].s0 )
 #define nrhtval(i)  ( itile[i].s1 )
@@ -1416,7 +1428,7 @@ __kernel void refine_potential_cl(
         __global       int   *mpot,       // 15  Array of mesh potential information.
         __global       int2  *redscratch, // 16  Array of new giX offsets.
         __global       int2  *result,     // 17
-        __local        real4 *tile,       // 18  Tile size in real4.
+        __local        real  *tile,       // 18  Tile size in real4.
         __local        int8  *itile)      // 19  Tile size in int8.
 {
 
@@ -1446,7 +1458,7 @@ __kernel void refine_potential_cl(
    if(giX >= ncells)
       return;
 
-   setup_tile(tile, itile, ncells, H, U, V, nlft, nrht, ntop, nbot, level);
+   setup_refine_tile(tile, itile, ncells, H, nlft, nrht, ntop, nbot, level);
 
    int ctype = celltype[giX];
 
@@ -1469,7 +1481,7 @@ __kernel void refine_potential_cl(
    nb = nbotval(tiX);
    nt = ntopval(tiX);
 
-   Hic  = Hval(tiX);
+   Hic  = Hrefval(tiX);
 
    int lvl = levelval(tiX);
 
@@ -1505,7 +1517,7 @@ __kernel void refine_potential_cl(
       }
       // Using local access for the left neighbor
       else {
-         Hl = Hval(nl);
+         Hl = Hrefval(nl);
          //Ul = Uval(nl);
          //Vl = Vval(nl);
 
@@ -1513,7 +1525,7 @@ __kernel void refine_potential_cl(
          if (levelval(nl) > lvl) {
             nlt = ntopval(nl);
             if(nlt >= 0) {
-               Hl = HALF * (Hl + Hval(nlt));
+               Hl = HALF * (Hl + Hrefval(nlt));
                //Ul = HALF * (Ul + Uval(nlt));
                //Vl = HALF * (Vl + Vval(nlt));
             }
@@ -1546,14 +1558,14 @@ __kernel void refine_potential_cl(
       }
       // Using local access for the right neighbor
       else {
-         Hr = Hval(nr);
+         Hr = Hrefval(nr);
          //Ur = Uval(nr);
          //Vr = Vval(nr);
 
          if (levelval(nr) > lvl) {
             nrt = ntopval(nr);
             if(nrt >= 0) {
-               Hr = HALF * (Hr + Hval(nrt));
+               Hr = HALF * (Hr + Hrefval(nrt));
                //Ur = HALF * (Ur + Uval(nrt));
                //Vr = HALF * (Vr + Vval(nrt));
             }
@@ -1588,14 +1600,14 @@ __kernel void refine_potential_cl(
       }
       // Using local access for the bottom neighbor
       else {
-         Hb = Hval(nb);
+         Hb = Hrefval(nb);
          //Ub = Uval(nb);
          //Vb = Vval(nb);
 
          if (levelval(nb) > lvl) {
             nbr = nrhtval(nb);
             if(nbr >= 0) {
-               Hb = HALF * (Hb + Hval(nbr));
+               Hb = HALF * (Hb + Hrefval(nbr));
                //Ub = HALF * (Ub + Uval(nbr));
                //Vb = HALF * (Vb + Vval(nbr));
             }
@@ -1629,14 +1641,14 @@ __kernel void refine_potential_cl(
       }
       // Using local access for the top neighbor
       else {
-         Ht = Hval(nt);
+         Ht = Hrefval(nt);
          //Ut = Uval(nt);
          //Vt = Vval(nt);
 
          if (levelval(nt) > lvl) {
             ntr = nrhtval(nt);
             if(ntr >= 0) {
-               Ht = HALF * (Ht + Hval(ntr));
+               Ht = HALF * (Ht + Hrefval(ntr));
                //Ut = HALF * (Ut + Uval(ntr));
                //Vt = HALF * (Vt + Vval(ntr));
             }
@@ -1768,6 +1780,66 @@ void setup_tile(__local        real4  *tile,
    Hval(tiX) = H[giX];
    Uval(tiX) = U[giX];
    Vval(tiX) = V[giX];
+
+   if (nlft[giX] >= start_idx && nlft[giX] < end_idx) {
+      // If on block, offset to local index by subtracting start index
+      nlftval(tiX) =  nlft[giX] - start_idx;
+   } else {
+      // If off block, set to negative to indicate global data
+      nlftval(tiX) = -nlft[giX]-1;
+   }
+
+   if (nrht[giX] >= start_idx && nrht[giX] < end_idx) {
+      // If on block, offset to local index by subtracting start index
+      nrhtval(tiX) =  nrht[giX] - start_idx;
+   } else {
+      // If off block, set to negative to indicate global data
+      nrhtval(tiX) = -nrht[giX]-1;
+   }
+
+   if (ntop[giX] >= start_idx && ntop[giX] < end_idx) {
+      // If on block, offset to local index by subtracting start index
+      ntopval(tiX) =  ntop[giX] - start_idx;
+   } else {
+      // If off block, set to negative to indicate global data
+      ntopval(tiX) = -ntop[giX]-1;
+   }
+
+   if (nbot[giX] >= start_idx && nbot[giX] < end_idx) {
+      // If on block, offset to local index by subtracting start index
+      nbotval(tiX) =  nbot[giX] - start_idx;
+   } else {
+      // If off block, set to negative to indicate global data
+      nbotval(tiX) = -nbot[giX]-1;
+   }
+
+   levelval(tiX) = level[giX];
+}
+
+void setup_refine_tile(
+                __local        real   *tile, 
+                __local        int8   *itile, 
+                         const int    isize,
+                __global const real   *H,
+                __global const int    *nlft,
+                __global const int    *nrht,
+                __global const int    *ntop,
+                __global const int    *nbot,
+                __global const int    *level
+                )
+{
+   const unsigned int giX = get_global_id (0);
+   const unsigned int tiX = get_local_id (0);
+
+   const unsigned int ntX = get_local_size (0);
+
+   const unsigned int group_id = get_group_id (0);
+
+   int start_idx = group_id * ntX;
+   int end_idx = (group_id + 1) * ntX;
+   end_idx = min(end_idx, isize);
+
+   Hrefval(tiX) = H[giX];
 
    if (nlft[giX] >= start_idx && nlft[giX] < end_idx) {
       // If on block, offset to local index by subtracting start index

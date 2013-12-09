@@ -2303,7 +2303,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
    ezcl_set_kernel_arg(kernel_refine_potential,15, sizeof(cl_mem),  (void *)&dev_mpot);
    ezcl_set_kernel_arg(kernel_refine_potential,16, sizeof(cl_mem),  (void *)&dev_redscratch);
    ezcl_set_kernel_arg(kernel_refine_potential,17, sizeof(cl_mem),  (void *)&dev_result);
-   ezcl_set_kernel_arg(kernel_refine_potential,18, local_work_size*sizeof(cl_real4),    NULL);
+   ezcl_set_kernel_arg(kernel_refine_potential,18, local_work_size*sizeof(cl_real),    NULL);
    ezcl_set_kernel_arg(kernel_refine_potential,19, local_work_size*sizeof(cl_int8),    NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_potential, 1, NULL, &global_work_size, &local_work_size, NULL);
