@@ -390,8 +390,10 @@ extern "C" void do_calc(void)
 #ifdef HAVE_GRAPHICS
    struct timeval tstart_cpu;
 
+#ifdef HAVE_OPENGL
    vector<int>   &nsizes   = mesh->nsizes;
    vector<int>   &ndispl   = mesh->ndispl;
+#endif
 
    vector<real_t>  &x  = mesh->x;
    vector<real_t>  &dx = mesh->dx;

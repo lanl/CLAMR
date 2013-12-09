@@ -2008,12 +2008,12 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
       if (mesh->celltype[ic] != REAL_CELL) continue;
 
       double Hic = H[ic];
-      double Uic = U[ic];
-      double Vic = V[ic];
+      //double Uic = U[ic];
+      //double Vic = V[ic];
 
       int nl = nlft[ic];
       double Hl = H[nl];
-      double Ul = U[nl];
+      //double Ul = U[nl];
       //double Vl = V[nl];
 
       if (level[nl] > level[ic]){
@@ -2023,7 +2023,7 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 
       int nr = nrht[ic];
       double Hr = H[nr];
-      double Ur = U[nr];
+      //double Ur = U[nr];
       //double Vr = V[nr];
 
       if (level[nr] > level[ic]){
@@ -2034,7 +2034,7 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
       int nb = nbot[ic];
       double Hb = H[nb];
       //double Ub = U[nb];
-      double Vb = V[nb];
+      //double Vb = V[nb];
 
       if (level[nb] > level[ic]){
          int nbr = nrht[nb];
@@ -2044,21 +2044,21 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
       int nt = ntop[ic];
       double Ht = H[nt];
       //double Ut = U[nt];
-      double Vt = V[nt];
+      //double Vt = V[nt];
 
       if (level[nt] > level[ic]){
          int ntr = nrht[nt];
          Ht = 0.5 * (Ht + H[ntr]);
       }
 
-      double duplus1, duplus2;
-      double duhalf1, duhalf2;
-      double duminus1, duminus2;
+      double duplus1; //, duplus2;
+      double duhalf1; //, duhalf2;
+      double duminus1; //, duminus2;
 
       duplus1 = Hr-Hic;
-      duplus2 = Ur-Uic;
+      //duplus2 = Ur-Uic;
       duhalf1 = Hic-Hl;
-      duhalf2 = Uic-Ul;
+      //duhalf2 = Uic-Ul;
 
       double qmax = -1000.0;
 
@@ -2066,25 +2066,25 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
       if (qpot > qmax) qmax = qpot;
 
       duminus1 = Hic-Hl;
-      duminus2 = Uic-Ul;
+      //duminus2 = Uic-Ul;
       duhalf1 = Hr-Hic;
-      duhalf2 = Ur-Uic;
+      //duhalf2 = Ur-Uic;
 
       qpot = max(fabs(duminus1/Hic), fabs(duhalf1/Hic));
       if (qpot > qmax) qmax = qpot;
 
       duplus1 = Ht-Hic;
-      duplus2 = Vt-Vic;
+      //duplus2 = Vt-Vic;
       duhalf1 = Hic-Hb;
-      duhalf2 = Vic-Vb;
+      //duhalf2 = Vic-Vb;
 
       qpot = max(fabs(duplus1/Hic), fabs(duhalf1/Hic));
       if (qpot > qmax) qmax = qpot;
 
       duminus1 = Hic-Hb;
-      duminus2 = Vic-Vb;
+      //duminus2 = Vic-Vb;
       duhalf1 = Ht-Hic;
-      duhalf2 = Vt-Vic;
+      //duhalf2 = Vt-Vic;
 
       qpot = max(fabs(duminus1/Hic), fabs(duhalf1/Hic));
       if (qpot > qmax) qmax = qpot;

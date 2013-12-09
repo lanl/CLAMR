@@ -121,7 +121,7 @@ void L7_DEV_FREE(
         )
 {
    L7_Dev_Free();
-   ierr = 0;
+   *ierr = 0;
 }
 
 

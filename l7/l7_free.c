@@ -229,7 +229,7 @@ void L7_FREE(
         )
 {
    L7_Free(l7_id);
-   ierr = 0;
+   *ierr = 0;
 }
 
 

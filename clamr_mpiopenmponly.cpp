@@ -347,8 +347,8 @@ extern "C" void do_calc(void)
    vector<int>     mpot;
    vector<int>     mpot_global;
    
-   size_t old_ncells = ncells;
-   size_t old_ncells_global = ncells_global;
+   //size_t old_ncells = ncells;
+   //size_t old_ncells_global = ncells_global;
    size_t new_ncells = 0;
    double deltaT = 0.0;
 
@@ -356,8 +356,8 @@ extern "C" void do_calc(void)
    for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
       //  Define basic domain decomposition parameters for GPU.
-      old_ncells = ncells;
-      old_ncells_global = ncells_global;
+      //old_ncells = ncells;
+      //old_ncells_global = ncells_global;
 
       MPI_Barrier(MPI_COMM_WORLD);
       cpu_timer_start(&tstart_cpu);

@@ -350,8 +350,8 @@ extern "C" void do_calc(void)
    vector<int>     mpot;
    vector<int>     mpot_global;
    
-   size_t old_ncells = ncells;
-   size_t old_ncells_global = ncells_global;
+   //size_t old_ncells = ncells;
+   //size_t old_ncells_global = ncells_global;
    size_t new_ncells = 0;
    size_t new_ncells_global = 0;
    double H_sum = -1.0;
@@ -361,8 +361,8 @@ extern "C" void do_calc(void)
    for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
       //  Define basic domain decomposition parameters for GPU.
-      old_ncells = ncells;
-      old_ncells_global = ncells_global;
+      //old_ncells = ncells;
+      //old_ncells_global = ncells_global;
 
       //  Calculate the real time step for the current discrete time step.
       deltaT = state->set_timestep(g, sigma);

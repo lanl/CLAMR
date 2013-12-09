@@ -1244,21 +1244,21 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
 
    have_boundary = boundary;
 
-   int istart = 1,
-       jstart = 1,
-       iend   = nx,
-       jend   = ny,
-       nxx    = nx,
-       nyy    = ny;
+   //int istart = 1;
+   //int jstart = 1;
+   //int iend   = nx;
+   //int jend   = ny;
+   int nxx    = nx;
+   int nyy    = ny;
    imin = 0;
    jmin = 0;
    imax = nx+1;
    jmax = ny+1;
    if (have_boundary) {
-      istart = 0;
-      jstart = 0;
-      iend   = nx + 1;
-      jend   = ny + 1;
+      //istart = 0;
+      //jstart = 0;
+      //iend   = nx + 1;
+      //jend   = ny + 1;
       nxx    = nx + 2;
       nyy    = ny + 2;
       imin   = 0;
@@ -1848,6 +1848,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
    newcount = ncells + rezone_count(mpot, icount, jcount);
 
+/*
 #ifdef HAVE_MPI
    int icount_global = icount;
    int jcount_global = jcount;
@@ -1860,6 +1861,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
       jcount_global = global_count[1];
    }
 #endif
+*/
 
    if (TIMING_LEVEL >= 2) cpu_time_refine_smooth += cpu_timer_stop(tstart_lev2);
 
@@ -3096,7 +3098,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
    size_t new_ncells = ncells + add_ncells;
 
 #ifdef HAVE_MPI
-   int global_add_ncells = add_ncells;
+   //int global_add_ncells = add_ncells;
    if (parallel) {
       int count[2], global_count[2];
       count[0] = icount;
@@ -3104,7 +3106,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
       MPI_Allreduce(&count, &global_count, 2, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       global_icount = global_count[0];
       global_jcount = global_count[1];
-      global_add_ncells = global_icount + global_jcount;
+      //global_add_ncells = global_icount + global_jcount;
    }
 #endif
    if (global_icount == 0 && global_jcount == 0) {

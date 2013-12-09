@@ -81,11 +81,13 @@ int L7_Broadcast (
 		
 		mpi_type = l7p_mpi_type(l7_datatype);
 		
+/*
 		if (mpi_type < 0){
 			ierr = -2;
 			L7_ASSERT(mpi_type > 0, "l7p_mpi_type: Unknown l7_mpi_type.",
 					ierr);
 		}
+*/
 		
 		/*
 		 * Call MPI Broadcast

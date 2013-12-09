@@ -253,7 +253,7 @@ extern "C" void do_calc(void)
 
    vector<int>     mpot;
    
-   size_t old_ncells = ncells;
+   //size_t old_ncells = ncells;
    size_t new_ncells = 0;
    double H_sum = -1.0;
    double deltaT = 0.0;
@@ -261,7 +261,7 @@ extern "C" void do_calc(void)
    //  Main loop.
    for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
-      old_ncells = ncells;
+      //old_ncells = ncells;
 
       //  Calculate the real time step for the current discrete time step.
       deltaT = state->set_timestep(g, sigma);

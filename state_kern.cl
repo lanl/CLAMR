@@ -1455,10 +1455,10 @@ __kernel void refine_potential_cl(
    int nlt, nrt, nbr, ntr;
    int nl, nr, nb, nt;
    real Hic;
-   real Hl, Ul, Vl;
-   real Hr, Ur, Vr;
-   real Hb, Ub, Vb;
-   real Ht, Ut, Vt;
+   real Hl; //, Ul, Vl;
+   real Hr; //, Ur, Vr;
+   real Hb; //, Ub, Vb;
+   real Ht; //, Ut, Vt;
 
    real duminus1;
    real duplus1;
@@ -1477,7 +1477,7 @@ __kernel void refine_potential_cl(
    //////////////////////////
    //////////////////////////
 
-   barrier(CLK_LOCAL_MEM_FENCE);
+   //barrier(CLK_LOCAL_MEM_FENCE);
 
    //////////////////////////////
    //////////////////////////////
@@ -1493,35 +1493,35 @@ __kernel void refine_potential_cl(
       if(nl < 0) {
          nl = abs(nl+1);
          Hl = H[nl];
-         Ul = U[nl];
-         Vl = V[nl];
+         //Ul = U[nl];
+         //Vl = V[nl];
 
          if (level[nl] > lvl) {
             nlt = ntop[nl];
             Hl = HALF * (Hl + H[nlt]);
-            Ul = HALF * (Ul + U[nlt]);
-            Vl = HALF * (Vl + V[nlt]);
+            //Ul = HALF * (Ul + U[nlt]);
+            //Vl = HALF * (Vl + V[nlt]);
          }
       }
       // Using local access for the left neighbor
       else {
          Hl = Hval(nl);
-         Ul = Uval(nl);
-         Vl = Vval(nl);
+         //Ul = Uval(nl);
+         //Vl = Vval(nl);
 
          // The left neighbor is more refined than the current cell
          if (levelval(nl) > lvl) {
             nlt = ntopval(nl);
             if(nlt >= 0) {
                Hl = HALF * (Hl + Hval(nlt));
-               Ul = HALF * (Ul + Uval(nlt));
-               Vl = HALF * (Vl + Vval(nlt));
+               //Ul = HALF * (Ul + Uval(nlt));
+               //Vl = HALF * (Vl + Vval(nlt));
             }
             else {
                nlt = abs(nlt+1);
                Hl = HALF * (Hl + H[nlt]);
-               Ul = HALF * (Ul + U[nlt]);
-               Vl = HALF * (Vl + V[nlt]);
+               //Ul = HALF * (Ul + U[nlt]);
+               //Vl = HALF * (Vl + V[nlt]);
             }
          }
       }
@@ -1534,34 +1534,34 @@ __kernel void refine_potential_cl(
       if(nr < 0) {
          nr = abs(nr+1);
          Hr = H[nr];
-         Ur = U[nr];
-         Vr = V[nr];
+         //Ur = U[nr];
+         //Vr = V[nr];
    
          if (level[nr] > lvl) {
             nrt = ntop[nr];
             Hr = HALF * (Hr + H[nrt]);
-            Ur = HALF * (Ur + U[nrt]);
-            Vr = HALF * (Vr + V[nrt]);
+            //Ur = HALF * (Ur + U[nrt]);
+            //Vr = HALF * (Vr + V[nrt]);
          }
       }
       // Using local access for the right neighbor
       else {
          Hr = Hval(nr);
-         Ur = Uval(nr);
-         Vr = Vval(nr);
+         //Ur = Uval(nr);
+         //Vr = Vval(nr);
 
          if (levelval(nr) > lvl) {
             nrt = ntopval(nr);
             if(nrt >= 0) {
                Hr = HALF * (Hr + Hval(nrt));
-               Ur = HALF * (Ur + Uval(nrt));
-               Vr = HALF * (Vr + Vval(nrt));
+               //Ur = HALF * (Ur + Uval(nrt));
+               //Vr = HALF * (Vr + Vval(nrt));
             }
             else {
                nrt = abs(nrt+1);
                Hr = HALF * (Hr + H[nrt]);
-               Ur = HALF * (Ur + U[nrt]);
-               Vr = HALF * (Vr + V[nrt]);
+               //Ur = HALF * (Ur + U[nrt]);
+               //Vr = HALF * (Vr + V[nrt]);
             }
          }
       }
@@ -1576,34 +1576,34 @@ __kernel void refine_potential_cl(
       if (nb < 0) {
          nb = abs(nb+1);
          Hb = H[nb];
-         Ub = U[nb];
-         Vb = V[nb];
+         //Ub = U[nb];
+         //Vb = V[nb];
 
          if (level[nb] > lvl) {
             nbr = nrht[nb];
             Hb = HALF * (Hb + H[nbr]);
-            Ub = HALF * (Ub + U[nbr]);
-            Vb = HALF * (Vb + V[nbr]);
+            //Ub = HALF * (Ub + U[nbr]);
+            //Vb = HALF * (Vb + V[nbr]);
          }
       }
       // Using local access for the bottom neighbor
       else {
          Hb = Hval(nb);
-         Ub = Uval(nb);
-         Vb = Vval(nb);
+         //Ub = Uval(nb);
+         //Vb = Vval(nb);
 
          if (levelval(nb) > lvl) {
             nbr = nrhtval(nb);
             if(nbr >= 0) {
                Hb = HALF * (Hb + Hval(nbr));
-               Ub = HALF * (Ub + Uval(nbr));
-               Vb = HALF * (Vb + Vval(nbr));
+               //Ub = HALF * (Ub + Uval(nbr));
+               //Vb = HALF * (Vb + Vval(nbr));
             }
             else {
                nbr = abs(nbr+1);
                Hb = HALF * (Hb + H[nbr]);
-               Ub = HALF * (Ub + U[nbr]);
-               Vb = HALF * (Vb + V[nbr]);
+               //Ub = HALF * (Ub + U[nbr]);
+               //Vb = HALF * (Vb + V[nbr]);
             }
          }
       }
@@ -1617,34 +1617,34 @@ __kernel void refine_potential_cl(
       if (nt < 0) {
          nt = abs(nt+1);
          Ht = H[nt];
-         Ut = U[nt];
-         Vt = V[nt];
+         //Ut = U[nt];
+         //Vt = V[nt];
 
          if (level[nt] > lvl) {
             ntr = nrht[nt];
             Ht = HALF * (Ht + H[ntr]);
-            Ut = HALF * (Ut + U[ntr]);
-            Vt = HALF * (Vt + V[ntr]);
+            //Ut = HALF * (Ut + U[ntr]);
+            //Vt = HALF * (Vt + V[ntr]);
          }
       }
       // Using local access for the top neighbor
       else {
          Ht = Hval(nt);
-         Ut = Uval(nt);
-         Vt = Vval(nt);
+         //Ut = Uval(nt);
+         //Vt = Vval(nt);
 
          if (levelval(nt) > lvl) {
             ntr = nrhtval(nt);
             if(ntr >= 0) {
                Ht = HALF * (Ht + Hval(ntr));
-               Ut = HALF * (Ut + Uval(ntr));
-               Vt = HALF * (Vt + Vval(ntr));
+               //Ut = HALF * (Ut + Uval(ntr));
+               //Vt = HALF * (Vt + Vval(ntr));
             }
             else {
                ntr = abs(ntr+1);
                Ht = HALF * (Ht + H[ntr]);
-               Ut = HALF * (Ut + U[ntr]);
-               Vt = HALF * (Vt + V[ntr]);
+               //Ut = HALF * (Ut + U[ntr]);
+               //Vt = HALF * (Vt + V[ntr]);
             }
          }
       }
@@ -1690,6 +1690,7 @@ __kernel void refine_potential_cl(
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
+    // Reusing itile, so we have to reset it
     itile[tiX].s01 = 0;
 
     if (mpotval > 0){
