@@ -2331,6 +2331,9 @@ void Mesh::calc_spatial_coordinates(int ibase)
 #ifdef HAVE_OPENCL
 void Mesh::gpu_calc_spatial_coordinates(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy)
 {
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
    cl_event calc_spatial_coordinates_event;
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -2367,7 +2370,10 @@ void Mesh::gpu_calc_spatial_coordinates(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_
    ezcl_set_kernel_arg(kernel_calc_spatial_coordinates, 11, sizeof(cl_mem),    (void *)&dev_j);
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_spatial_coordinates, 1, NULL, &global_work_size, &local_work_size, &calc_spatial_coordinates_event);
 
-   gpu_time_calc_spatial_coordinates += ezcl_timer_calc(&calc_spatial_coordinates_event, &calc_spatial_coordinates_event);
+   ezcl_wait_for_events(1, &calc_spatial_coordinates_event);
+   ezcl_event_release(calc_spatial_coordinates_event);
+
+   gpu_time_calc_spatial_coordinates += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
 #endif
 
@@ -5303,6 +5309,8 @@ void Mesh::gpu_calc_neighbors(void)
            __global       int   *hash)        // 15
       */
 
+   cl_event calc_neighbors_event;
+
    ezcl_set_kernel_arg(kernel_calc_neighbors, 0,  sizeof(cl_int),   (void *)&ncells);
    ezcl_set_kernel_arg(kernel_calc_neighbors, 1,  sizeof(cl_int),   (void *)&levmx);
    ezcl_set_kernel_arg(kernel_calc_neighbors, 2,  sizeof(cl_int),   (void *)&imax);
@@ -5319,7 +5327,10 @@ void Mesh::gpu_calc_neighbors(void)
    ezcl_set_kernel_arg(kernel_calc_neighbors, 13, sizeof(cl_mem),   (void *)&dev_ntop);
    ezcl_set_kernel_arg(kernel_calc_neighbors, 14, sizeof(cl_mem),   (void *)&dev_hash_header);
    ezcl_set_kernel_arg(kernel_calc_neighbors, 15, sizeof(cl_mem),   (void *)&dev_hash);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors,   1, NULL, &global_work_size, &local_work_size, NULL);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_neighbors,   1, NULL, &global_work_size, &local_work_size, &calc_neighbors_event);
+
+   ezcl_wait_for_events(1, &calc_neighbors_event);
+   ezcl_event_release(calc_neighbors_event);
 
    gpu_compact_hash_delete(dev_hash, dev_hash_header);
 
