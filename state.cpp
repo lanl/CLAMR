@@ -1811,6 +1811,7 @@ void State::gpu_calc_finite_difference(double deltaT)
              __local        real4_t *tile,     // 16  Tile size in real4.
              __local        int8  *itile)    // 17  Tile size in int8.
      */
+   cl_event calc_finite_difference_event;
 
    real_t deltaT_local = deltaT;
    ezcl_set_kernel_arg(kernel_calc_finite_difference, 0, sizeof(cl_int),  (void *)&ncells);
@@ -1832,7 +1833,10 @@ void State::gpu_calc_finite_difference(double deltaT)
    ezcl_set_kernel_arg(kernel_calc_finite_difference,16, local_work_size*sizeof(cl_real4),    NULL);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,17, local_work_size*sizeof(cl_int8),    NULL);
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference,   1, NULL, &global_work_size, &local_work_size, NULL);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference,   1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_event);
+
+   ezcl_wait_for_events(1, &calc_finite_difference_event);
+   ezcl_event_release(calc_finite_difference_event);
 
    dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
    dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
