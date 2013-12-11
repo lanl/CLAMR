@@ -1919,7 +1919,7 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
          }
 #endif
 
-         if (icount) {
+         if (icount_global) {
             SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
 
             ezcl_set_kernel_arg(kernel_refine_smooth, 0, sizeof(cl_int),  (void *)&ncells);
