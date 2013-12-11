@@ -19,7 +19,9 @@ int main(int argc, char *argv[])
    long long location;
    double xarray[10];
 
-   ierr = L7_Init(&mype, &numpes, &argc, argv);
+   int do_quo_setup=0;
+   int lttrace_on=0;
+   ierr = L7_Init(&mype, &numpes, &argc, argv, do_quo_setup, lttrace_on);
 
    if (mype == 0)
       printf("\n\t\tStarting the L7 tests\n\n");
