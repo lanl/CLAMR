@@ -180,6 +180,9 @@ int read_hash(
       if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
       return(hashval);
       break;
+   default:
+      return(-1);
+      break;
    }
 }
 

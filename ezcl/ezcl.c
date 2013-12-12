@@ -399,6 +399,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
 
    if (platform_selected == -1){
       printf("Warning: Device of requested type not found in clGetDeviceID call\n");
+      ezcl_malloc_memory_delete(platforms);
       return(EZCL_NODEVICE);
    }
 
@@ -492,7 +493,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
    //printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,compute_device);
 
    command_queue = ezcl_create_command_queue(context, mype);
-   
+
    return(EZCL_SUCCESS);
 }
 
