@@ -2725,7 +2725,8 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
            parallel_timer_output(numpe,mype,"CPU:    mesh->hash_setup         time was",mesh->get_cpu_time_hash_setup() );
            parallel_timer_output(numpe,mype,"CPU:    mesh->hash_query         time was",mesh->get_cpu_time_hash_query() );
            parallel_timer_output(numpe,mype,"CPU:    mesh->find_boundary      time was",mesh->get_cpu_time_find_boundary() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->gather_boundary    time was",mesh->get_cpu_time_gather_boundary() );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->push_setup         time was",mesh->get_cpu_time_push_setup() );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->push_boundary      time was",mesh->get_cpu_time_push_boundary() );
            parallel_timer_output(numpe,mype,"CPU:    mesh->local_list         time was",mesh->get_cpu_time_local_list() );
            parallel_timer_output(numpe,mype,"CPU:    mesh->layer1             time was",mesh->get_cpu_time_layer1() );
            parallel_timer_output(numpe,mype,"CPU:    mesh->layer2             time was",mesh->get_cpu_time_layer2() );
@@ -2780,7 +2781,8 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
            parallel_timer_output(numpe,mype,"GPU:    kernel_hash_setup        time was",(double) mesh->get_gpu_time_hash_setup()     * 1.0e-9 );
            parallel_timer_output(numpe,mype,"GPU:    kernel_hash_query        time was",(double) mesh->get_gpu_time_hash_query()     * 1.0e-9 );
            parallel_timer_output(numpe,mype,"GPU:    kernel_find_boundary     time was",(double) mesh->get_gpu_time_find_boundary()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_gather_boundary   time was",(double) mesh->get_gpu_time_gather_boundary()     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_push_setup        time was",(double) mesh->get_gpu_time_push_setup()     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_push_boundary     time was",(double) mesh->get_gpu_time_push_boundary()     * 1.0e-9 );
            parallel_timer_output(numpe,mype,"GPU:    kernel_local_list        time was",(double) mesh->get_gpu_time_local_list()     * 1.0e-9 );
            parallel_timer_output(numpe,mype,"GPU:    kernel_layer1            time was",(double) mesh->get_gpu_time_layer1()     * 1.0e-9 );
            parallel_timer_output(numpe,mype,"GPU:    kernel_layer2            time was",(double) mesh->get_gpu_time_layer2()     * 1.0e-9 );

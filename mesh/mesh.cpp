@@ -1157,7 +1157,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
       cpu_time_hash_setup      = 0.0;
       cpu_time_hash_query      = 0.0;
       cpu_time_find_boundary   = 0.0;
-      cpu_time_gather_boundary = 0.0;
+      cpu_time_push_setup      = 0.0;
+      cpu_time_push_boundary   = 0.0;
       cpu_time_local_list      = 0.0;
       cpu_time_layer1          = 0.0;
       cpu_time_layer2          = 0.0;
@@ -1181,7 +1182,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
       gpu_time_hash_setup      = 0;
       gpu_time_hash_query      = 0;
       gpu_time_find_boundary   = 0;
-      gpu_time_gather_boundary = 0;
+      gpu_time_push_setup      = 0;
+      gpu_time_push_boundary   = 0;
       gpu_time_local_list      = 0;
       gpu_time_layer1          = 0;
       gpu_time_layer2          = 0;
@@ -4178,6 +4180,11 @@ void Mesh::calc_neighbors_local(void)
          }
          free(send_database);
 
+         if (TIMING_LEVEL >= 2) {
+            cpu_time_push_setup += cpu_timer_stop(tstart_lev2);
+            cpu_timer_start(&tstart_lev2);
+         }
+
          // Push the data needed to the adjacent processors
 
          int *border_cell_num_local = (int *)malloc(receive_count_total*sizeof(int));
@@ -4201,7 +4208,7 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (TIMING_LEVEL >= 2) {
-            cpu_time_gather_boundary += cpu_timer_stop(tstart_lev2);
+            cpu_time_push_boundary += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -6053,6 +6060,10 @@ void Mesh::gpu_calc_neighbors_local(void)
       }
       free(send_database);
 
+      if (TIMING_LEVEL >= 2) {
+         gpu_time_push_setup += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         cpu_timer_start(&tstart_lev2);
+      }
       // Push the data needed to the adjacent processors
 
       int *border_cell_num_local = (int *)malloc(receive_count_total*sizeof(int));
@@ -6081,7 +6092,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       }
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_gather_boundary += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_time_push_boundary += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 

@@ -191,11 +191,13 @@ void Mesh::print_partition_measure()
       
    if (parallel) {
       vector<double> global_times(numpe);
+#ifdef HAVE_MPI
       double local_time;
+#endif
 
       if (measure_type == WITH_DUPLICATES) {
-         local_time = meas_sum_average/(double)meas_count;
 #ifdef HAVE_MPI
+         local_time = meas_sum_average/(double)meas_count;
          MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
          if (mype == 0) {
@@ -206,8 +208,8 @@ void Mesh::print_partition_measure()
             printf("with duplicates\n");
          }
       } else if (measure_type == WITHOUT_DUPLICATES) {
-         local_time = meas_sum_average/(double)meas_count;
 #ifdef HAVE_MPI
+         local_time = meas_sum_average/(double)meas_count;
          MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
          if (mype == 0) {
@@ -218,8 +220,8 @@ void Mesh::print_partition_measure()
             printf("without duplicates\n");
          }
       } else if (measure_type == CVALUE && meas_count != 0) {
-         local_time = meas_sum_average/(double)meas_count;
 #ifdef HAVE_MPI
+         local_time = meas_sum_average/(double)meas_count;
          MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
          if (mype == 0) {
@@ -243,8 +245,8 @@ void Mesh::print_partition_measure()
          }
       }
 
-      local_time = offtile_ratio_local;
 #ifdef HAVE_MPI
+      local_time = offtile_ratio_local;
       MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
       if (mype == 0 && numpe > 1) {

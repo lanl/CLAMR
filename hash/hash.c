@@ -36,6 +36,9 @@ int   choose_hash_method = METHOD_UNSET;
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
+int (*read_hash)(ulong, int *);
+void (*write_hash)(uint, ulong, int *);
+
 int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
    hash_ncells = 0;
    write_hash_collisions = 0;
@@ -76,6 +79,50 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
       for (uint ii = 0; ii<2*hashtablesize; ii+=2){
          hash[ii] = -1;
       }
+
+      if (hash_method == LINEAR){
+         if (hash_report_level == 0){
+            read_hash  = read_hash_linear;
+            write_hash = write_hash_linear;
+         } else if (hash_report_level == 1){
+            read_hash  = read_hash_linear_report_level_1;
+            write_hash = write_hash_linear_report_level_1;
+         } else if (hash_report_level == 2){
+            read_hash  = read_hash_linear_report_level_2;
+            write_hash = write_hash_linear_report_level_2;
+         } else if (hash_report_level == 3){
+            read_hash  = read_hash_linear_report_level_3;
+            write_hash = write_hash_linear_report_level_3;
+         }
+      } else if (hash_method == QUADRATIC) {
+         if (hash_report_level == 0){
+            read_hash  = read_hash_quadratic;
+            write_hash = write_hash_quadratic;
+         } else if (hash_report_level == 1){
+            read_hash  = read_hash_quadratic_report_level_1;
+            write_hash = write_hash_quadratic_report_level_1;
+         } else if (hash_report_level == 2){
+            read_hash  = read_hash_quadratic_report_level_2;
+            write_hash = write_hash_quadratic_report_level_2;
+         } else if (hash_report_level == 3){
+            read_hash  = read_hash_quadratic_report_level_3;
+            write_hash = write_hash_quadratic_report_level_3;
+         }
+      } else if (hash_method == PRIME_JUMP) {
+         if (hash_report_level == 0){
+            read_hash  = read_hash_primejump;
+            write_hash = write_hash_primejump;
+         } else if (hash_report_level == 1){
+            read_hash  = read_hash_primejump_report_level_1;
+            write_hash = write_hash_primejump_report_level_1;
+         } else if (hash_report_level == 2){
+            read_hash  = read_hash_primejump_report_level_2;
+            write_hash = write_hash_primejump_report_level_2;
+         } else if (hash_report_level == 3){
+            read_hash  = read_hash_primejump_report_level_3;
+            write_hash = write_hash_primejump_report_level_3;
+         }
+      }
    } else {
       hashtablesize = perfect_hash_size;
 
@@ -83,6 +130,9 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
       for (uint ii = 0; ii<hashtablesize; ii++){
          hash[ii] = -1;
       }
+
+      read_hash  = read_hash_perfect;
+      write_hash = write_hash_perfect;
    }
 
    if (hash_report_level >= 2) {
@@ -91,257 +141,417 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
         (double)hashtablesize/(double)(isize*jsize));
    }
 
+
    return(hash);
 }
 
-void write_hash(uint ic, ulong hashkey, int *hash){
-   int icount = 0;
+void write_hash_perfect(uint ic, ulong hashkey, int *hash){
+   hash[hashkey] = ic;
+}
+
+void write_hash_linear(uint ic, ulong hashkey, int *hash){
    uint hashloc;
-   if (hash_method == PERFECT_HASH) {
-      hash[hashkey] = ic;
-      return;
-   }
-   if (hash_method == LINEAR){
-      if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize);
-      } else if (hash_report_level == 1) {
-         hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize){
-            write_hash_collisions++;
-         }
-      } else if (hash_report_level == 2) {
-         hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize){
-            write_hash_collisions++;
-         }
-      } else if (hash_report_level == 3) {
-         hash_ncells++;
-         hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize){
-            int hashloctmp = hashloc+1;
-            hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-            icount++;
-         }
-         write_hash_collisions += icount;
-      } else {
-         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
-         exit(1);
-      }
-   } else if (hash_method == QUADRATIC){
-      if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize) {
-            icount++;
-         }
-      } else if (hash_report_level == 1) {
-         hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-         write_hash_collisions += icount;
-      } else if (hash_report_level == 2) {
-         hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-         write_hash_collisions += icount;
-      } else if (hash_report_level == 3) {
-         hash_ncells++;
-         hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
-            icount++;
-            int hashloctmp = hashloc+icount*icount;
-            hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         }
-         write_hash_collisions += icount;
-      } else {
-         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
-         exit(1);
-      }
-   } else if (hash_method == PRIME_JUMP){
-      uint jump = 1+hashkey%hash_jump_prime;
-      if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize) {
-            icount++;
-         }
-      } else if (hash_report_level == 1) {
-         hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-         write_hash_collisions += icount;
-      } else if (hash_report_level == 2) {
-         hash_ncells++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-         write_hash_collisions += icount;
-      } else if (hash_report_level == 3) {
-         hash_ncells++;
-         hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
-            icount++;
-            int hashloctmp = hashloc+1;
-            hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         }
-         write_hash_collisions += icount;
-      } else {
-         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
-         exit(1);
-      }
-   } else {
-      printf("Error -- Illegal value of hash_method %d\n",hash_method);
-      exit(1);
+
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize);
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+}
+
+void write_hash_linear_report_level_1(uint ic, ulong hashkey, int *hash){
+   uint hashloc;
+
+   hash_ncells++;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize){
+      write_hash_collisions++;
    }
 
    hash[2*hashloc] = hashkey;
    hash[2*hashloc+1] = ic;
 }
 
-int read_hash(ulong hashkey, int *hash){
-   int max_collisions_allowed = 1000;
+void write_hash_linear_report_level_2(uint ic, ulong hashkey, int *hash){
+   uint hashloc;
+
+   hash_ncells++;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize){
+      write_hash_collisions++;
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+}
+
+void write_hash_linear_report_level_3(uint ic, ulong hashkey, int *hash){
+   int icount = 0;
+   uint hashloc;
+
+   hash_ncells++;
+   hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+   printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize){
+      int hashloctmp = hashloc+1;
+      hashloctmp = hashloctmp%hashtablesize;
+      printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+      icount++;
+   }
+   write_hash_collisions += icount;
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+}
+
+void write_hash_quadratic(uint ic, ulong hashkey, int *hash){
+   int icount = 0;
+   uint hashloc;
+
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize) {
+      icount++;
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+}
+
+void write_hash_quadratic_report_level_1(uint ic, ulong hashkey, int *hash){
+   int icount = 0;
+   uint hashloc;
+
+   hash_ncells++;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+      icount++;
+   }
+   write_hash_collisions += icount;
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+}
+
+void write_hash_quadratic_report_level_2(uint ic, ulong hashkey, int *hash){
+   int icount = 0;
+   uint hashloc;
+
+   hash_ncells++;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+      icount++;
+   }
+   write_hash_collisions += icount;
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+}
+
+void write_hash_quadratic_report_level_3(uint ic, ulong hashkey, int *hash){
+   int icount = 0;
+   uint hashloc;
+
+   hash_ncells++;
+   hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+   printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+      icount++;
+      int hashloctmp = hashloc+icount*icount;
+      hashloctmp = hashloctmp%hashtablesize;
+      printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+   }
+   write_hash_collisions += icount;
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+}
+
+void write_hash_primejump(uint ic, ulong hashkey, int *hash){
+   int icount = 0;
+   uint hashloc;
+
+   uint jump = 1+hashkey%hash_jump_prime;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize) {
+      icount++;
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+}
+
+void write_hash_primejump_report_level_1(uint ic, ulong hashkey, int *hash){
+   int icount = 0;
+   uint hashloc;
+
+   uint jump = 1+hashkey%hash_jump_prime;
+   hash_ncells++;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+      icount++;
+   }
+   write_hash_collisions += icount;
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+}
+
+void write_hash_primejump_report_level_2(uint ic, ulong hashkey, int *hash){
+   int icount = 0;
+   uint hashloc;
+
+   uint jump = 1+hashkey%hash_jump_prime;
+   hash_ncells++;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+      icount++;
+   }
+   write_hash_collisions += icount;
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+}
+
+void write_hash_primejump_report_level_3(uint ic, ulong hashkey, int *hash){
+   int icount = 0;
+   uint hashloc;
+
+   uint jump = 1+hashkey%hash_jump_prime;
+   hash_ncells++;
+   hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+   printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+      icount++;
+      int hashloctmp = hashloc+1;
+      hashloctmp = hashloctmp%hashtablesize;
+      printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+   }
+   write_hash_collisions += icount;
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+}
+
+int read_hash_perfect(ulong hashkey, int *hash){
+   return(hash[hashkey]);
+}
+
+int read_hash_linear(ulong hashkey, int *hash){
    int hashval = -1;
    uint hashloc;
    int icount=0;
-   if (hash_method == PERFECT_HASH) {
-      return(hash[hashkey]);
-   }
-   if (hash_method == LINEAR) {
-      if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-      } else if (hash_report_level == 1) {
-         hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-         read_hash_collisions += icount;
-      } else if (hash_report_level == 2) {
-         hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
-            icount++;
-            if (icount > max_collisions_allowed) {
-               printf("Error -- too many read hash collisions\n");
-               exit(0);
-            }
-         }
-         read_hash_collisions += icount;
-      } else if (hash_report_level == 3) {
-         hash_queries++;
-         hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
-            icount++;
-            uint hashloctmp = hashloc+1;
-            hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-            if (icount > max_collisions_allowed) {
-               printf("Error -- too many read hash collisions\n");
-               exit(0);
-            }
-         }
-         read_hash_collisions += icount;
-      } else {
-         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
-         exit(1);
-      }
-   } else if (hash_method == QUADRATIC) {
-      if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-      } else if (hash_report_level == 1) {
-         hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-         read_hash_collisions += icount;
-      } else if (hash_report_level == 2) {
-         hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
-            icount++;
-            if (icount > max_collisions_allowed) {
-               printf("Error -- too many read hash collisions\n");
-               exit(0);
-            }
-         }
-         read_hash_collisions += icount;
-      } else if (hash_report_level == 3) {
-         hash_queries++;
-         hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
-            icount++;
-            uint hashloctmp = hashloc+1;
-            hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-            if (icount > max_collisions_allowed) {
-               printf("Error -- too many read hash collisions\n");
-               exit(0);
-            }
-         }
-         read_hash_collisions += icount;
-      } else {
-         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
-         exit(1);
-      }
-   } else if (hash_method == PRIME_JUMP) {
-      uint jump = 1+hashkey%hash_jump_prime;
-      if (hash_report_level == 0) {
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-      } else if (hash_report_level == 1) {
-         hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
-            icount++;
-         }
-         read_hash_collisions += icount;
-      } else if (hash_report_level == 2) {
-         hash_queries++;
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
-            icount++;
-            if (icount > max_collisions_allowed) {
-               printf("Error -- too many read hash collisions\n");
-               exit(0);
-            }
-         }
-         read_hash_collisions += icount;
-      } else if (hash_report_level == 3) {
-         hash_queries++;
-         hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-         printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-         for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
-            icount++;
-            uint hashloctmp = hashloc+1;
-            hashloctmp = hashloctmp%hashtablesize;
-            printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
-            if (icount > max_collisions_allowed) {
-               printf("Error -- too many read hash collisions\n");
-               exit(0);
-            }
-         }
-         read_hash_collisions += icount;
-      } else {
-         printf("Error -- Illegal value of hash_report_level %d\n",hash_report_level);
-         exit(1);
-      }
-   } else {
-      printf("Error -- Illegal value of hash_method %d\n",hash_method);
-      exit(1);
+
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+      icount++;
    }
 
    if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
    return(hashval);
 }
 
+int read_hash_linear_report_level_1(ulong hashkey, int *hash){
+   int hashval = -1;
+   uint hashloc;
+   int icount=0;
+
+   hash_queries++;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+      icount++;
+   }
+   read_hash_collisions += icount;
+
+   if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+   return(hashval);
+}
+
+int read_hash_linear_report_level_2(ulong hashkey, int *hash){
+   int max_collisions_allowed = 1000;
+   int hashval = -1;
+   uint hashloc;
+   int icount=0;
+
+   hash_queries++;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+      icount++;
+      if (icount > max_collisions_allowed) {
+         printf("Error -- too many read hash collisions\n");
+         exit(0);
+      }
+   }
+   read_hash_collisions += icount;
+
+   if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+   return(hashval);
+}
+
+int read_hash_linear_report_level_3(ulong hashkey, int *hash){
+   int max_collisions_allowed = 1000;
+   int hashval = -1;
+   uint hashloc;
+   int icount=0;
+
+   hash_queries++;
+   hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+   printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc++,hashloc = hashloc%hashtablesize){
+      icount++;
+      uint hashloctmp = hashloc+1;
+      hashloctmp = hashloctmp%hashtablesize;
+      printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+      if (icount > max_collisions_allowed) {
+         printf("Error -- too many read hash collisions\n");
+         exit(0);
+      }
+   }
+   read_hash_collisions += icount;
+
+   if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+   return(hashval);
+}
+
+int read_hash_quadratic(ulong hashkey, int *hash){
+   int hashval = -1;
+   uint hashloc;
+   int icount=0;
+
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+      icount++;
+   }
+
+   if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+   return(hashval);
+}
+
+int read_hash_quadratic_report_level_1(ulong hashkey, int *hash){
+   int hashval = -1;
+   uint hashloc;
+   int icount=0;
+
+   hash_queries++;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+      icount++;
+   }
+   read_hash_collisions += icount;
+
+   if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+   return(hashval);
+}
+
+int read_hash_quadratic_report_level_2(ulong hashkey, int *hash){
+   int max_collisions_allowed = 1000;
+   int hashval = -1;
+   uint hashloc;
+   int icount=0;
+
+   hash_queries++;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+      icount++;
+      if (icount > max_collisions_allowed) {
+         printf("Error -- too many read hash collisions\n");
+         exit(0);
+      }
+   }
+   read_hash_collisions += icount;
+
+   if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+   return(hashval);
+}
+
+int read_hash_quadratic_report_level_3(ulong hashkey, int *hash){
+   int max_collisions_allowed = 1000;
+   int hashval = -1;
+   uint hashloc;
+   int icount=0;
+
+   hash_queries++;
+   hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+   printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*icount),hashloc = hashloc%hashtablesize){
+      icount++;
+      uint hashloctmp = hashloc+1;
+      hashloctmp = hashloctmp%hashtablesize;
+      printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+      if (icount > max_collisions_allowed) {
+         printf("Error -- too many read hash collisions\n");
+         exit(0);
+      }
+   }
+   read_hash_collisions += icount;
+
+   if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+   return(hashval);
+}
+
+int read_hash_primejump(ulong hashkey, int *hash){
+   int hashval = -1;
+   uint hashloc;
+   int icount=0;
+
+   uint jump = 1+hashkey%hash_jump_prime;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+      icount++;
+   }
+
+   if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+   return(hashval);
+}
+
+int read_hash_primejump_report_level_1(ulong hashkey, int *hash){
+   int hashval = -1;
+   uint hashloc;
+   int icount=0;
+
+   uint jump = 1+hashkey%hash_jump_prime;
+   hash_queries++;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+      icount++;
+   }
+   read_hash_collisions += icount;
+
+   if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+   return(hashval);
+}
+
+int read_hash_primejump_report_level_2(ulong hashkey, int *hash){
+   int max_collisions_allowed = 1000;
+   int hashval = -1;
+   uint hashloc;
+   int icount=0;
+
+   uint jump = 1+hashkey%hash_jump_prime;
+   hash_queries++;
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+      icount++;
+      if (icount > max_collisions_allowed) {
+         printf("Error -- too many read hash collisions\n");
+         exit(0);
+      }
+   }
+   read_hash_collisions += icount;
+
+   if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+   return(hashval);
+}
+
+int read_hash_primejump_report_level_3(ulong hashkey, int *hash){
+   int max_collisions_allowed = 1000;
+   int hashval = -1;
+   uint hashloc;
+   int icount=0;
+
+   uint jump = 1+hashkey%hash_jump_prime;
+   hash_queries++;
+   hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+   printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+   for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != (int)hashkey && hash[2*hashloc] != -1; hashloc+=(icount*jump),hashloc = hashloc%hashtablesize){
+      icount++;
+      uint hashloctmp = hashloc+1;
+      hashloctmp = hashloctmp%hashtablesize;
+      printf("%d: hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,hashloctmp,hash[2*hashloctmp],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+      if (icount > max_collisions_allowed) {
+         printf("Error -- too many read hash collisions\n");
+         exit(0);
+      }
+   }
+   read_hash_collisions += icount;
+
+   if (hash[2*hashloc] != -1) hashval = hash[2*hashloc+1];
+   return(hashval);
+}
+
 void compact_hash_delete(int *hash){
+      read_hash = NULL;
       genvectorfree((void *)hash);
 }
 

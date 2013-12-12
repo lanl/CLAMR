@@ -118,7 +118,8 @@ public:
                cpu_time_hash_setup,
                cpu_time_hash_query,
                cpu_time_find_boundary,
-               cpu_time_gather_boundary,
+               cpu_time_push_setup,
+               cpu_time_push_boundary,
                cpu_time_local_list,
                cpu_time_layer1,
                cpu_time_layer2,
@@ -142,7 +143,8 @@ public:
                gpu_time_hash_setup,
                gpu_time_hash_query,
                gpu_time_find_boundary,
-               gpu_time_gather_boundary,
+               gpu_time_push_setup,
+               gpu_time_push_boundary,
                gpu_time_local_list,
                gpu_time_layer1,
                gpu_time_layer2,
@@ -305,7 +307,8 @@ public:
    double get_cpu_time_hash_setup(void)               {return(cpu_time_hash_setup); };
    double get_cpu_time_hash_query(void)               {return(cpu_time_hash_query); };
    double get_cpu_time_find_boundary(void)            {return(cpu_time_find_boundary); };
-   double get_cpu_time_gather_boundary(void)          {return(cpu_time_gather_boundary); };
+   double get_cpu_time_push_setup(void)               {return(cpu_time_push_setup); };
+   double get_cpu_time_push_boundary(void)          {return(cpu_time_push_boundary); };
    double get_cpu_time_local_list(void)               {return(cpu_time_local_list); };
    double get_cpu_time_layer1(void)                   {return(cpu_time_layer1); };
    double get_cpu_time_layer2(void)                   {return(cpu_time_layer2); };
@@ -328,7 +331,8 @@ public:
    long get_gpu_time_hash_setup(void)               {return(gpu_time_hash_setup); };
    long get_gpu_time_hash_query(void)               {return(gpu_time_hash_query); };
    long get_gpu_time_find_boundary(void)            {return(gpu_time_find_boundary); };
-   long get_gpu_time_gather_boundary(void)          {return(gpu_time_gather_boundary); };
+   long get_gpu_time_push_setup(void)               {return(gpu_time_push_setup); };
+   long get_gpu_time_push_boundary(void)            {return(gpu_time_push_boundary); };
    long get_gpu_time_local_list(void)               {return(gpu_time_local_list); };
    long get_gpu_time_layer1(void)                   {return(gpu_time_layer1); };
    long get_gpu_time_layer2(void)                   {return(gpu_time_layer2); };

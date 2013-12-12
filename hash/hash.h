@@ -19,8 +19,37 @@ extern "C"
 #endif
 
 int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level);
-void write_hash(uint ic, ulong hashkey, int *hash);
-int read_hash(ulong hashkey, int *hash);
+
+void write_hash_perfect(uint ic, ulong hashkey, int *hash);
+void write_hash_linear(uint ic, ulong hashkey, int *hash);
+void write_hash_linear_report_level_1(uint ic, ulong hashkey, int *hash);
+void write_hash_linear_report_level_2(uint ic, ulong hashkey, int *hash);
+void write_hash_linear_report_level_3(uint ic, ulong hashkey, int *hash);
+void write_hash_quadratic(uint ic, ulong hashkey, int *hash);
+void write_hash_quadratic_report_level_1(uint ic, ulong hashkey, int *hash);
+void write_hash_quadratic_report_level_2(uint ic, ulong hashkey, int *hash);
+void write_hash_quadratic_report_level_3(uint ic, ulong hashkey, int *hash);
+void write_hash_primejump(uint ic, ulong hashkey, int *hash);
+void write_hash_primejump_report_level_1(uint ic, ulong hashkey, int *hash);
+void write_hash_primejump_report_level_2(uint ic, ulong hashkey, int *hash);
+void write_hash_primejump_report_level_3(uint ic, ulong hashkey, int *hash);
+extern void (*write_hash)(uint ic, ulong hashkey, int *hash); // declared in hash.c
+
+int read_hash_perfect(ulong hashkey, int *hash);
+int read_hash_linear(ulong hashkey, int *hash);
+int read_hash_linear_report_level_1(ulong hashkey, int *hash);
+int read_hash_linear_report_level_2(ulong hashkey, int *hash);
+int read_hash_linear_report_level_3(ulong hashkey, int *hash);
+int read_hash_quadratic(ulong hashkey, int *hash);
+int read_hash_quadratic_report_level_1(ulong hashkey, int *hash);
+int read_hash_quadratic_report_level_2(ulong hashkey, int *hash);
+int read_hash_quadratic_report_level_3(ulong hashkey, int *hash);
+int read_hash_primejump(ulong hashkey, int *hash);
+int read_hash_primejump_report_level_1(ulong hashkey, int *hash);
+int read_hash_primejump_report_level_2(ulong hashkey, int *hash);
+int read_hash_primejump_report_level_3(ulong hashkey, int *hash);
+extern int (*read_hash)(ulong hashkey, int *hash); // declared in hash.c
+
 void compact_hash_delete(int *hash);
 
 void write_hash_collision_report(void);
