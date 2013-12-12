@@ -488,6 +488,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
    clGetDeviceInfo(devices[0], CL_DEVICE_VENDOR, sizeof(info), &info, NULL);
    if (! strncmp(info,"NVIDIA",(size_t)6) ) compute_device = COMPUTE_DEVICE_NVIDIA;
    if (! strncmp(info,"Advanced Micro Devices",(size_t)6) ) compute_device = COMPUTE_DEVICE_ATI;
+   if (! strncmp(info,"Intel(R) Corporation",(size_t)6) ) compute_device = COMPUTE_DEVICE_INTEL;
    //printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,compute_device);
 
    command_queue = ezcl_create_command_queue(context, mype);
@@ -504,16 +505,13 @@ cl_device_id ezcl_get_device_p(cl_context context, const char *file, const int l
       *  CL_INVALID_CONTEXT:
       *  CL_INVALID_VALUE:
       */
-     ezcl_print_error(ierr, "EZCL_DEVTYPE_INIT", "clGetContextInfo", file, line);
+     ezcl_print_error(ierr, "EZCL_GET_DEVICE", "clGetContextInfo", file, line);
    }
    return(device);
 }
 
-int ezcl_get_compute_device_p(const char *file, const int line)
+int ezcl_get_compute_device(void)
 {
-   if (DEBUG) {
-      printf(" Error with compute device in ezcl_get_compute_device called from file %s line %d\n",file,line);
-   }
    return(compute_device);
 }
 
@@ -657,7 +655,7 @@ cl_command_queue ezcl_create_command_queue_p(cl_context context, const int mype,
    object_item->command_queue = command_queue;
    object_item->line = line;
    snprintf(object_item->file,(size_t)30,"%-30s",file);
-   if (DEBUG) printf("EZCL_DEVTYPE_INIT: DEBUG -- command_queue is %p\n",command_queue);
+   if (DEBUG) printf("EZCL_CREATE_COMMAND_QUEUE: DEBUG -- command_queue is %p\n",command_queue);
    SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
 
    return(command_queue);
@@ -793,7 +791,7 @@ cl_mem ezcl_device_memory_realloc_p(cl_mem dev_mem_ptr, size_t num_elements, con
                     *  CL_MEM_OBJECT_ALLOCATION_FAILURE:
                     *  CL_OUT_OF_HOST_MEMORY:
                     */
-                  ezcl_print_error(ierr, "EZCL_MALLOC", "clCreateBuffer", file, line);
+                  ezcl_print_error(ierr, "EZCL_DEVICE_MEMORY_REALLOC", "clCreateBuffer", file, line);
                }
 
                device_memory_item->cl_mem_ptr = dev_mem_ptr;
@@ -1437,7 +1435,7 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
         }
    } else {
       if (DEBUG)
-         printf("EZCL_CREATE_PROGRAM: Build is SUCCESSFUL with no errors\n");
+         printf("EZCL_CREATE_KERNEL: Build is SUCCESSFUL with no errors\n");
    }
 
    object_item = malloc(sizeof(struct object_entry));
@@ -1462,7 +1460,7 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
         case CL_INVALID_VALUE:
         case CL_OUT_OF_HOST_MEMORY:
       */
-      ezcl_print_error(ierr, "EZCL_CREATE_PROGRAM", "clCreateKernel", file, line);
+      ezcl_print_error(ierr, "EZCL_CREATE_KERNEL", "clCreateKernel", file, line);
       exit(-1);
    }
 
@@ -1489,7 +1487,7 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
    
    program = clCreateProgramWithSource(context, 1, (const char **)&source, NULL, &ierr);
    if (ierr != CL_SUCCESS){
-      printf("EZCL_CREATE_KERNEL: clBuildProgramWithSource returned an error %d in file %s at line %d\n",ierr, file, line);
+      printf("EZCL_CREATE_KERNEL_WSOURCE: clBuildProgramWithSource returned an error %d in file %s at line %d\n",ierr, file, line);
       switch (ierr){
       case CL_INVALID_CONTEXT:
        printf("Invalid context in clBuildProgramWithSource\n");
@@ -1517,7 +1515,7 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
    }
 #endif
    if (ierr != CL_SUCCESS){
-      printf("EZCL_CREATE_KERNEL: clBuildProgram returned an error %d in file %s at line %d\n",ierr, file, line);
+      printf("EZCL_CREATE_KERNEL_WSOURCE: clBuildProgram returned an error %d in file %s at line %d\n",ierr, file, line);
         switch (ierr){
         case CL_INVALID_PROGRAM:
           printf("Invalid program in clBuildProgram\n");
@@ -1571,7 +1569,7 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
                }
             }
               
-            printf("EZCL_CREATE_KERNEL: Build Log: %s\n",BuildReport);
+            printf("EZCL_CREATE_KERNEL_WSOURCE: Build Log: %s\n",BuildReport);
             free(BuildReport);
             exit(-1);
             break;
@@ -1581,7 +1579,7 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
         }
    } else {
       if (DEBUG)
-         printf("EZCL_CREATE_PROGRAM: Build is SUCCESSFUL with no errors\n");
+         printf("EZCL_CREATE_KERNEL_WSOURCE: Build is SUCCESSFUL with no errors\n");
    }
 
    object_item = malloc(sizeof(struct object_entry));
@@ -1594,7 +1592,7 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
    filename_copy = (char *)malloc(strlen(filename) + 1);
    strcpy(filename_copy, filename);
    object_item->filename = filename_copy;
-   if (DEBUG) printf("EZCL_CREATE_KERNEL: DEBUG -- program is %p\n",program);
+   if (DEBUG) printf("EZCL_CREATE_KERNEL_WSOURCE: DEBUG -- program is %p\n",program);
    SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
 
    kernel = clCreateKernel(program, kernel_name, &ierr);
@@ -1607,7 +1605,7 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
         case CL_INVALID_VALUE:
         case CL_OUT_OF_HOST_MEMORY:
       */
-      ezcl_print_error(ierr, "EZCL_CREATE_PROGRAM", "clCreateKernel", file, line);
+      ezcl_print_error(ierr, "EZCL_CREATE_KERNEL_WSOURCE", "clCreateKernel", file, line);
       exit(-1);
    }
 
@@ -1617,7 +1615,7 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
    snprintf(object_item->name,(size_t)30,"%-30s",kernel_name);
    object_item->line = line;
    snprintf(object_item->file,(size_t)30,"%-30s",file);
-   if (DEBUG) printf("EZCL_CREATE_KERNEL: DEBUG -- kernel is %p\n",kernel);
+   if (DEBUG) printf("EZCL_CREATE_KERNEL_WSOURCE: DEBUG -- kernel is %p\n",kernel);
    SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
 
    ezcl_program_release(program);
@@ -1634,7 +1632,7 @@ cl_program ezcl_create_program_wsource_p(cl_context context, const char *source,
    
    program = clCreateProgramWithSource(context, 1, (const char **)&source, NULL, &ierr);
    if (ierr != CL_SUCCESS){
-      printf("EZCL_CREATE_KERNEL: clCreateProgramWithSource returned an error %d in file %s at line %d\n",ierr, file, line);
+      printf("EZCL_CREATE_PROGRAM_WSOURCE: clCreateProgramWithSource returned an error %d in file %s at line %d\n",ierr, file, line);
       switch (ierr){
       case CL_INVALID_CONTEXT:
        printf("Invalid context in clCreatProgramWithSource\n");
@@ -1661,8 +1659,9 @@ cl_program ezcl_create_program_wsource_p(cl_context context, const char *source,
       ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE", NULL, NULL);
    }
 #endif
+
    if (ierr != CL_SUCCESS){
-      printf("EZCL_CREATE_KERNEL: clBuildProgram returned an error %d in file %s at line %d\n",ierr, file, line);
+      printf("EZCL_CREATE_PROGRAM_WSOURCE: clBuildProgram returned an error %d in file %s at line %d\n",ierr, file, line);
         switch (ierr){
         case CL_INVALID_PROGRAM:
           printf("Invalid program in clBuildProgram\n");
@@ -1723,10 +1722,18 @@ cl_program ezcl_create_program_wsource_p(cl_context context, const char *source,
         case CL_OUT_OF_HOST_MEMORY:
           printf("Out of host memory in clBuildProgram\n");
           break;
-        }
+      }
    } else {
       if (DEBUG)
-         printf("EZCL_CREATE_PROGRAM: Build is SUCCESSFUL with no errors\n");
+         printf("EZCL_CREATE_PROGRAM_WSOURCE: Build is SUCCESSFUL with no errors\n");
+
+      if (compute_device == COMPUTE_DEVICE_INTEL) {
+         ierr = clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, 0L, NULL, &nReportSize);
+         BuildReport = (char *)malloc(nReportSize);
+         ierr = clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, nReportSize, BuildReport, NULL);
+         printf("EZCL_CREATE_PROGRAM_WSOURCE: Build Log: %s\n",BuildReport);
+         free(BuildReport);
+      }
    }
 
    object_item = malloc(sizeof(struct object_entry));
@@ -1739,7 +1746,7 @@ cl_program ezcl_create_program_wsource_p(cl_context context, const char *source,
    filename_copy = (char *)malloc(strlen(filename) + 1);
    strcpy(filename_copy, filename);
    object_item->filename = filename_copy;
-   if (DEBUG) printf("EZCL_CREATE_KERNEL: DEBUG -- program is %p\n",program);
+   if (DEBUG) printf("EZCL_CREATE_PROGRAM_WSOURCE: DEBUG -- program is %p\n",program);
    SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
 
    return(program);
@@ -1769,10 +1776,8 @@ cl_kernel ezcl_create_kernel_wprogram_p(cl_program program, const char *kernel_n
    snprintf(object_item->name,(size_t)30,"%-30s",kernel_name);
    object_item->line = line;
    snprintf(object_item->file,(size_t)30,"%-30s",file);
-   if (DEBUG) printf("EZCL_CREATE_KERNEL: DEBUG -- kernel is %p\n",kernel);
+   if (DEBUG) printf("EZCL_CREATE_KERNEL_WPROGRAM: DEBUG -- kernel is %p\n",kernel);
    SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
-
-   ezcl_program_release(program);
 
    return(kernel);
 }
@@ -1808,7 +1813,7 @@ void ezcl_enqueue_write_buffer_p(cl_command_queue command_queue, cl_mem mem_buff
       sprintf(object_item->name,"Write Buffer");
       object_item->line = line;
       snprintf(object_item->file,(size_t)30,"%-30s",file);
-      if (DEBUG) printf("EZCL_DEVTYPE_INIT: DEBUG -- event is %p\n",*event);
+      if (DEBUG) printf("EZCL_ENQUEUE_WRITE_BUFFER: DEBUG -- event is %p\n",*event);
       SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
    }
 }
@@ -1843,7 +1848,7 @@ void ezcl_enqueue_read_buffer_p(cl_command_queue command_queue, cl_mem mem_buffe
       sprintf(object_item->name,"Read Buffer");
       object_item->line = line;
       snprintf(object_item->file,(size_t)30,"%-30s",file);
-      if (DEBUG) printf("EZCL_DEVTYPE_INIT: DEBUG -- event is %p\n",*event);
+      if (DEBUG) printf("EZCL_ENQUEUE_READ_BUFFER: DEBUG -- event is %p\n",*event);
       SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
    }
 }
@@ -1883,7 +1888,7 @@ void ezcl_enqueue_ndrange_kernel_p(cl_command_queue command_queue, cl_kernel ker
       sprintf(object_item->name,"NDRange Kernel");
       object_item->line = line;
       snprintf(object_item->file,(size_t)30,"%-30s",file);
-      if (DEBUG) printf("EZCL_DEVTYPE_INIT: DEBUG -- event is %p\n",*event);
+      if (DEBUG) printf("EZCL_ENQUEUE_NDRANGE_KERNEL: DEBUG -- event is %p\n",*event);
       SLIST_INSERT_HEAD(&object_head, object_item, object_entries);
    }
 }
