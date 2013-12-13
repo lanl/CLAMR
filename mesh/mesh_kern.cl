@@ -115,17 +115,6 @@ int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
 #define hashval(j,i) hash[(j)*imaxsize+(i)]
 #define hashval_local(j,i) hash[(j)*(imaxsize-iminsize)+(i)]
 
-__kernel void hash_init_cl(
-                          const int isize,              // 0
-                 __global       int *hash)              // 1
-{
-   const uint giX  = get_global_id(0);
-
-   if (giX >= isize) return;
-
-   hash[giX] = -1;
-}
-
 __kernel void hash_adjust_sizes_cl(
                           const int  isize,      // 0
                           const int  levmx,      // 1

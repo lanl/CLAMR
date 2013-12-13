@@ -90,6 +90,7 @@ typedef cl_float4 cl_real4;
 
 #define COMPUTE_DEVICE_NVIDIA   1
 #define COMPUTE_DEVICE_ATI      2
+#define COMPUTE_DEVICE_INTEL    3
 
 #ifdef __cplusplus
 extern "C"
@@ -111,8 +112,6 @@ extern "C"
 /* device based routines */
 #define ezcl_get_device(  context) \
       ( ezcl_get_device_p(context, __FILE__, __LINE__) ) 
-#define ezcl_get_compute_device() \
-      ( ezcl_get_compute_device_p(__FILE__, __LINE__) ) 
 #define ezcl_device_info(  device) \
       ( ezcl_device_info_p(device, __FILE__, __LINE__) )
 
@@ -218,7 +217,8 @@ void ezcl_print_error(const int ierr, const char *routine, const char *cl_routin
 
 /* device based routines */
 cl_device_id ezcl_get_device_p(cl_context context, const char *file, const int line);
-int ezcl_get_compute_device_p(const char *file, const int line);
+//int ezcl_get_compute_device_p(const char *file, const int line);
+int ezcl_get_compute_device(void);
 void ezcl_device_info_p(cl_device_id device, const char *file, const int line);
 
 /* context based routines*/
