@@ -1,5 +1,5 @@
 #!/bin/tcsh
-#MSUB -l walltime=0:45:00
+#MSUB -l walltime=1:00:00
 #MSUB -l nodes=32:ppn=8
 #MSUB -o myjob_mpi.out256
 #MSUB -j oe
