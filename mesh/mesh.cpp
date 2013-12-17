@@ -1346,7 +1346,8 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       strcpy(bothsources, get_hash_kernel_source_string());
       strcat(bothsources, mesh_kern_source);
       strcat(bothsources, "\0");
-      cl_program program = ezcl_create_program_wsource(context, bothsources);
+      const char *defines = NULL;
+      cl_program program = ezcl_create_program_wsource(context, defines, bothsources);
       free(bothsources);
 
       kernel_reduction_scan2          = ezcl_create_kernel_wprogram(program, "finish_reduction_scan2_cl");

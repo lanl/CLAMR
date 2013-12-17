@@ -598,7 +598,8 @@ void hash_lib_init(void){
 
    cl_context context = ezcl_get_context();
 
-   cl_program program = ezcl_create_program_wsource(context, hashlib_kern_source);
+   const char *defines = NULL;
+   cl_program program = ezcl_create_program_wsource(context, defines, hashlib_kern_source);
 
    kernel_hash_init = ezcl_create_kernel_wprogram(program, "hash_init_cl");
 

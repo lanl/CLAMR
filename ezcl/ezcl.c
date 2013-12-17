@@ -58,6 +58,7 @@
 #endif
 
 #define EZCL_MEM_FACTOR 1.6
+#define SUPPRESS_WARNING 1
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -511,8 +512,11 @@ cl_device_id ezcl_get_device_p(cl_context context, const char *file, const int l
    return(device);
 }
 
-int ezcl_get_compute_device(void)
+int ezcl_get_compute_device_p(const char *file, const int line)
 {
+   if (! SUPPRESS_WARNING) {
+      printf(" Error with ezcl_get_compute_device from file %s line %d\n",file,line);
+   }
    return(compute_device);
 }
 
@@ -1056,7 +1060,7 @@ void ezcl_event_release_p(cl_event event, const char *file, const int line){
 }
 
 void ezcl_mem_free_all_p(const char *file, const int line){
-    if (DEBUG) {
+    if (! SUPPRESS_WARNING) {
        printf(" Error with ezcl_mem_free_all from file %s line %d\n",file,line);
     }
    while (!SLIST_EMPTY(&device_memory_head)) {
@@ -1180,7 +1184,7 @@ void ezcl_mem_walk_one_p(cl_mem mem_buffer, const char *file, const int line){
 
 
 void ezcl_mem_walk_all_p(const char *file, const int line){
-    if (DEBUG) {
+    if (! SUPPRESS_WARNING) {
        printf(" Error with ezcl_mem_walk_all from file %s line %d\n",file,line);
     }
    if (! SLIST_EMPTY(&device_memory_head)){
@@ -1624,8 +1628,7 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
    return(kernel);
 }
 
-cl_program ezcl_create_program_wsource_p(cl_context context, const char *source, const char *file, const int line){
-   //cl_kernel kernel;
+cl_program ezcl_create_program_wsource_p(cl_context context, const char *defines, const char *source, const char *file, const int line){
    cl_int ierr;
    size_t nReportSize;
    char *BuildReport;
@@ -1647,19 +1650,25 @@ cl_program ezcl_create_program_wsource_p(cl_context context, const char *source,
      }
    }
 
+   int define_length = 63;
+   if (defines != NULL) define_length = strlen(defines)+63;
+   char *defines_argument = (char *)malloc( define_length*sizeof(char) );
+   defines_argument[0]='\0';
+   if (defines != NULL) strcat(defines_argument, defines);
+
 #ifdef HAVE_CL_DOUBLE
-   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
-      ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
-   } else {
-      ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE", NULL, NULL);
-   }
+   strcat(defines_argument, " -DHAVE_CL_DOUBLE");
 #else
-   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
-      ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
-   } else {
-      ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE", NULL, NULL);
-   }
+   strcat(defines_argument, " -DNO_CL_DOUBLE");
 #endif
+   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
+      strcat(defines_argument, " -DIS_NVIDIA");
+   }
+
+   //printf("DEBUG file %s line %d defines_argument %s\n",__FILE__,__LINE__,defines_argument);
+   ierr = clBuildProgram(program, 0, NULL, defines_argument, NULL, NULL);
+
+   free(defines_argument);
 
    if (ierr != CL_SUCCESS){
       printf("EZCL_CREATE_PROGRAM_WSOURCE: clBuildProgram returned an error %d in file %s at line %d\n",ierr, file, line);
@@ -1996,7 +2005,7 @@ long ezcl_timer_calc_p(cl_event *start_read_event, cl_event *end_read_event, con
 
 
 cl_int ezcl_finalize_p(const char *file, const int line){
-   if (DEBUG) {
+   if (! SUPPRESS_WARNING) {
       printf(" Error with ezcl_finalize from file %s line %d\n",file,line);
    }
 
@@ -2006,7 +2015,7 @@ cl_int ezcl_finalize_p(const char *file, const int line){
 }
 
 void ezcl_terminate_p(const char *file, const int line){
-   if (DEBUG) {
+   if (! SUPPRESS_WARNING) {
       printf(" Error with ezcl_terminate from file %s line %d\n",file,line);
    }
 

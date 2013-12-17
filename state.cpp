@@ -266,7 +266,8 @@ void State::init(int do_gpu_calc)
       cl_context context = ezcl_get_context();
 
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) printf("Starting compile of kernels in state\n");
-      cl_program program                 = ezcl_create_program_wsource(context, state_kern_source);
+      const char *defines = NULL;
+      cl_program program                 = ezcl_create_program_wsource(context, defines, state_kern_source);
 
       kernel_set_timestep                    = ezcl_create_kernel_wprogram(program, "set_timestep_cl");
       kernel_reduction_min                   = ezcl_create_kernel_wprogram(program, "finish_reduction_min_cl");

@@ -112,6 +112,8 @@ extern "C"
 /* device based routines */
 #define ezcl_get_device(  context) \
       ( ezcl_get_device_p(context, __FILE__, __LINE__) ) 
+#define ezcl_get_compute_device() \
+      ( ezcl_get_compute_device_p(__FILE__, __LINE__) ) 
 #define ezcl_device_info(  device) \
       ( ezcl_device_info_p(device, __FILE__, __LINE__) )
 
@@ -168,8 +170,8 @@ extern "C"
       ( ezcl_create_kernel_p(context, filename, kernel_name, __FILE__, __LINE__) )
 #define ezcl_create_kernel_wsource(  context, source, kernel_name) \
       ( ezcl_create_kernel_wsource_p(context, source, kernel_name, __FILE__, __LINE__) )
-#define ezcl_create_program_wsource(  context, source) \
-      ( ezcl_create_program_wsource_p(context, source, __FILE__, __LINE__) )
+#define ezcl_create_program_wsource(  context, defines, source) \
+      ( ezcl_create_program_wsource_p(context, defines, source, __FILE__, __LINE__) )
 #define ezcl_create_kernel_wprogram(  program, kernel_name) \
       ( ezcl_create_kernel_wprogram_p(program, kernel_name, __FILE__, __LINE__) )
 
@@ -217,8 +219,7 @@ void ezcl_print_error(const int ierr, const char *routine, const char *cl_routin
 
 /* device based routines */
 cl_device_id ezcl_get_device_p(cl_context context, const char *file, const int line);
-//int ezcl_get_compute_device_p(const char *file, const int line);
-int ezcl_get_compute_device(void);
+int ezcl_get_compute_device_p(const char *file, const int line);
 void ezcl_device_info_p(cl_device_id device, const char *file, const int line);
 
 /* context based routines*/
@@ -250,7 +251,7 @@ size_t ezcl_get_device_mem_capacity_p(cl_mem mem_buffer, const char *file, const
 /* kernel and program routines */
 cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const char *kernel_name, const char *file, const int line);
 cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, const char *kernel_name, const char *file, const int line);
-cl_program ezcl_create_program_wsource_p(cl_context context, const char *source, const char *file, const int line);
+cl_program ezcl_create_program_wsource_p(cl_context context, const char *defines, const char *source, const char *file, const int line);
 cl_kernel ezcl_create_kernel_wprogram_p(cl_program program, const char *kernel_name, const char *file, const int line);
 //cl_command_queue ezcl_create_command_queue(void);
 
