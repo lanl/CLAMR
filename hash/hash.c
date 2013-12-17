@@ -551,8 +551,9 @@ int read_hash_primejump_report_level_3(ulong hashkey, int *hash){
 }
 
 void compact_hash_delete(int *hash){
-      read_hash = NULL;
-      genvectorfree((void *)hash);
+   read_hash = NULL;
+   genvectorfree((void *)hash);
+   hash_method = METHOD_UNSET;
 }
 
 void write_hash_collision_report(void){
@@ -670,8 +671,9 @@ cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int gpu_h
 }
 
 void gpu_compact_hash_delete(cl_mem dev_hash, cl_mem dev_hash_header){
-      ezcl_device_memory_delete(dev_hash);
-      ezcl_device_memory_delete(dev_hash_header);
+   ezcl_device_memory_delete(dev_hash);
+   ezcl_device_memory_delete(dev_hash_header);
+   hash_method = METHOD_UNSET;
 }
 
 cl_mem gpu_get_hash_header(void){
