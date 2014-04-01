@@ -35,7 +35,7 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
 #set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pedantic")
 
 include_directories(${PROJECT_SOURCE_DIR})
-find_package(OpenCL REQUIRED)
+find_package(OpenCL)
 #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
 #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
 #  OPENCL_LIBRARIES    : The libraries to link against
@@ -160,7 +160,9 @@ add_subdirectory(hsfc)
 add_subdirectory(s7)
 add_subdirectory(timer)
 add_subdirectory(memstats)
-add_subdirectory(ezcl)
+if (OPENCL_FOUND)
+   add_subdirectory(ezcl)
+endif (OPENCL_FOUND)
 add_subdirectory(zorder)
 add_subdirectory(genmalloc)
 add_subdirectory(MallocPlus)
@@ -174,28 +176,30 @@ add_custom_target(state_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/st
 
 ########### clamr target ###############
 
-set(clamr_CXX_SRCS clamr.cpp state.cpp input.cpp)
-set(clamr_C_SRCS display.c)
-set(clamr_H_SRCS display.h state.h input.h)
-set(clamr_SRCS ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS})
+if (OPENCL_FOUND)
+   set(clamr_CXX_SRCS clamr.cpp state.cpp input.cpp)
+   set(clamr_C_SRCS display.c)
+   set(clamr_H_SRCS display.h state.h input.h)
+   set(clamr_SRCS ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS})
 
-add_executable(clamr ${clamr_SRCS})
+   add_executable(clamr ${clamr_SRCS})
 
-set_target_properties(clamr PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
-target_link_libraries(clamr dpmesh hsfc dhash kdtree zorder s7 pezcl timer memstats dl7 genmalloc dpMallocPlus m)
-target_link_libraries(clamr ${MPE_LIBS} ${X11_LIBS})
-target_link_libraries(clamr ${OPENCL_LIBRARIES})
-target_link_libraries(clamr ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
-if (REPROBLAS_FOUND)
-   target_link_libraries(clamr ${REPROBLAS_LIBRARIES})
-endif (REPROBLAS_FOUND)
-if (LTTRACE_FOUND)
-   target_link_libraries(clamr ${LTTRACE_LIBRARIES})
-endif (LTTRACE_FOUND)
-target_link_libraries(clamr ${MPI_LIBRARIES})
-add_dependencies(clamr state_kernel_source)
+   set_target_properties(clamr PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
+   target_link_libraries(clamr dpmesh hsfc dhash kdtree zorder s7 pezcl timer memstats dl7 genmalloc dpMallocPlus m)
+   target_link_libraries(clamr ${MPE_LIBS} ${X11_LIBS})
+   target_link_libraries(clamr ${OPENCL_LIBRARIES})
+   target_link_libraries(clamr ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+   if (REPROBLAS_FOUND)
+      target_link_libraries(clamr ${REPROBLAS_LIBRARIES})
+   endif (REPROBLAS_FOUND)
+   if (LTTRACE_FOUND)
+      target_link_libraries(clamr ${LTTRACE_LIBRARIES})
+   endif (LTTRACE_FOUND)
+   target_link_libraries(clamr ${MPI_LIBRARIES})
+   add_dependencies(clamr state_kernel_source)
 
-install(TARGETS clamr DESTINATION bin)
+   install(TARGETS clamr DESTINATION bin)
+endif (OPENCL_FOUND)
 
 ########### clamr_cpuonly target ###############
 

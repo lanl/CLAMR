@@ -1,3 +1,5 @@
+// Uses LANL Copyright Disclosure C14043/LA-CC-14-003
+
 #ifndef _HASH_H
 #define _HASH_H
 
