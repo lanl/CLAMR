@@ -35,16 +35,18 @@ target_link_libraries(l7 ${MPI_LIBRARIES})
 install(TARGETS l7 DESTINATION lib)
 
 ########### dl7 target ###############
-set(dl7_LIB_SRCS ${C_SRCS} ${H_SRCS})
+if (OPENCL_FOUND)
+   set(dl7_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
-add_library(dl7 STATIC ${l7_LIB_SRCS})
+   add_library(dl7 STATIC ${l7_LIB_SRCS})
 
-set_target_properties(dl7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
-set_target_properties(dl7 PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
-target_link_libraries(dl7 ${MPI_LIBRARIES})
-target_link_libraries(dl7 ${OPENCL_LIBRARIES})
-add_dependencies(dl7 l7_kernel_source)
-install(TARGETS dl7 DESTINATION lib)
+   set_target_properties(dl7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(dl7 PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
+   target_link_libraries(dl7 ${MPI_LIBRARIES})
+   target_link_libraries(dl7 ${OPENCL_LIBRARIES})
+   add_dependencies(dl7 l7_kernel_source)
+   install(TARGETS dl7 DESTINATION lib)
+endif(OPENCL_FOUND)
 
 ########### clean files ################
 SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "l7_kernel.inc")

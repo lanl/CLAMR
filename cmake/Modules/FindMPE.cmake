@@ -72,6 +72,7 @@ else (MPE_INCLUDE_DIR)
       /usr/local/mpe-1.9.1/include
       ${HOME}/mpe/include
       ${HOME}/mpe-1.9.1/include
+      ${CMAKE_CURRENT_BINARY_DIR}/mpe/include
    )
 endif(MPE_INCLUDE_DIR)
 
@@ -82,6 +83,8 @@ else (MPE_LIBRARIES)
       /usr/local/mpe-1.9.1/lib      
       ${HOME}/mpe/lib
       ${HOME}/mpe-1.9.1/lib      
+      ${CMAKE_CURRENT_BINARY_DIR}/mpe/lib
+      ${CMAKE_CURRENT_BINARY_DIR}/mpe-1.9.1/lib
    )
 endif (MPE_LIBRARIES)
 

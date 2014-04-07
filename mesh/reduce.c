@@ -54,7 +54,9 @@
  * 
  */
 #include "reduce.h"
+#ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
+#endif
 
 #ifdef HAVE_OPENCL
 #include "reduce_kernel.inc"

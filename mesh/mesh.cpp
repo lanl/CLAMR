@@ -128,6 +128,7 @@ extern bool localStencil;
 int calc_neighbor_type;
 bool dynamic_load_balance_on;
 
+#ifdef HAVE_OPENCL
 cl_kernel      kernel_hash_adjust_sizes;
 cl_kernel      kernel_hash_setup;
 cl_kernel      kernel_hash_setup_local;
@@ -165,6 +166,7 @@ cl_kernel      kernel_rezone_all;
 cl_kernel      kernel_rezone_one;
 cl_kernel      kernel_copy_mpot_ghost_data;
 cl_kernel      kernel_set_boundary_refinement;
+#endif
 
 extern size_t hash_header_size;
 extern int   choose_hash_method;

@@ -25,13 +25,15 @@ install(TARGETS hash DESTINATION lib)
 
 ########### dhash target ###############
 
-add_library(dhash STATIC ${hash_LIB_SRCS})
+if (OPENCL_FOUND)
+   add_library(dhash STATIC ${hash_LIB_SRCS})
 
-set_target_properties(dhash PROPERTIES VERSION 2.0.0 SOVERSION 2)
-set_target_properties(dhash PROPERTIES COMPILE_DEFINITIONS "HAVE_OPENCL")
-install(TARGETS dhash DESTINATION lib)
-add_dependencies(dhash hashlib_source_kernel_source)
-add_dependencies(dhash hashlib_kernel_source)
+   set_target_properties(dhash PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(dhash PROPERTIES COMPILE_DEFINITIONS "HAVE_OPENCL")
+   install(TARGETS dhash DESTINATION lib)
+   add_dependencies(dhash hashlib_source_kernel_source)
+   add_dependencies(dhash hashlib_kernel_source)
+endif(OPENCL_FOUND)
 
 ########### install files ###############
 

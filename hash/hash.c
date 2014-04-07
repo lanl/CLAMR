@@ -28,7 +28,9 @@ static double hash_mult = 3.0;
 
 size_t hash_header_size = 16;
 
+#ifdef HAVE_OPENCL
 cl_mem dev_hash_header = NULL;
+#endif
 
 float mem_opt_factor;
 

@@ -46,29 +46,33 @@ target_link_libraries(pmesh ${MPI_LIBRARIES})
 install(TARGETS pmesh DESTINATION lib)
 
 ########### dmesh target ###############
-set(dmesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
+if (OPENCL_FOUND)
+   set(dmesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
 
-add_library(dmesh STATIC ${dmesh_LIB_SRCS})
+   add_library(dmesh STATIC ${dmesh_LIB_SRCS})
 
-set_target_properties(dmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
-set_target_properties(dmesh PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
-target_link_libraries(dmesh ${OPENCL_LIBRARIES})
-add_dependencies(dmesh mesh_kernel_source)
-add_dependencies(dmesh reduce_kernel_source)
-install(TARGETS dmesh DESTINATION lib)
+   set_target_properties(dmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(dmesh PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
+   target_link_libraries(dmesh ${OPENCL_LIBRARIES})
+   add_dependencies(dmesh mesh_kernel_source)
+   add_dependencies(dmesh reduce_kernel_source)
+   install(TARGETS dmesh DESTINATION lib)
+endif(OPENCL_FOUND)
 
 ########### dpmesh target ###############
-set(dpmesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
+if (OPENCL_FOUND)
+   set(dpmesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
 
-add_library(dpmesh STATIC ${dpmesh_LIB_SRCS})
+   add_library(dpmesh STATIC ${dpmesh_LIB_SRCS})
 
-set_target_properties(dpmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
-set_target_properties(dpmesh PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
-target_link_libraries(dpmesh ${MPI_LIBRARIES})
-target_link_libraries(dpmesh ${OPENCL_LIBRARIES})
-add_dependencies(dpmesh mesh_kernel_source)
-add_dependencies(dpmesh reduce_kernel_source)
-install(TARGETS dpmesh DESTINATION lib)
+   set_target_properties(dpmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(dpmesh PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
+   target_link_libraries(dpmesh ${MPI_LIBRARIES})
+   target_link_libraries(dpmesh ${OPENCL_LIBRARIES})
+   add_dependencies(dpmesh mesh_kernel_source)
+   add_dependencies(dpmesh reduce_kernel_source)
+   install(TARGETS dpmesh DESTINATION lib)
+endif (OPENCL_FOUND)
 
 ########### clean files ################
 SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "mesh_kernel.inc;reduce_kernel.inc")

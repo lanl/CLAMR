@@ -62,7 +62,9 @@
 #include <unistd.h>
 #include <vector>
 #include "display.h"
+#ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
+#endif
 #include "input.h"
 #include "mesh/mesh.h"
 #include "mesh/partition.h"
@@ -79,11 +81,15 @@ static int do_cpu_calc = 1;
 
 #ifdef HAVE_CL_DOUBLE
 typedef double      real;
+#ifdef HAVE_OPENCL
 typedef cl_double   cl_real;
+#endif
 #define CONSERVATION_EPS    .02
 #else
 typedef float       real;
+#ifdef HAVE_OPENCL
 typedef cl_float    cl_real;
+#endif
 #define CONSERVATION_EPS    .1
 #endif
 

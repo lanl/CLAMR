@@ -3,7 +3,9 @@
 #ifndef _HASH_H
 #define _HASH_H
 
+#ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
+#endif
 
 enum choose_hash_method
 {  METHOD_UNSET = 0,            //  use 0 for no method set
@@ -62,10 +64,12 @@ const char *get_hash_kernel_source_string(void);
 void hash_lib_init(void);
 void hash_lib_terminate(void);
 
+#ifdef HAVE_OPENCL
 cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int gpu_hash_method, uint hash_report_level_in,
    ulong *gpu_hash_table_size, ulong *hashsize, cl_mem *dev_hash_header_in);
 cl_mem gpu_get_hash_header(void);
 void gpu_compact_hash_delete(cl_mem dev_hash, cl_mem dev_hash_header);
+#endif
 int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulong hashkey, int *hash);
 
 #ifdef __cplusplus

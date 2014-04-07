@@ -56,10 +56,12 @@
 #ifndef _REDUCE_H_
 #define _REDUCE_H_
 
+#ifdef HAVE_OPENCL
 #ifdef __APPLE_CC__
 #include <OpenCL/OpenCL.h>
 #else
 #include "CL/cl.h"
+#endif
 #endif
 
 #ifdef __cplusplus
@@ -67,6 +69,7 @@ extern "C"
 {
 #endif
 
+#ifdef HAVE_OPENCL
 cl_kernel   kernel_reduce_sum,
             kernel_reduce_sum_stage1of2,
             kernel_reduce_sum_stage2of2,
@@ -79,6 +82,7 @@ cl_kernel   kernel_reduce_sum,
             kernel_reduce_min,
             kernel_reduce_min_stage1of2,
             kernel_reduce_min_stage2of2;
+#endif
 
 void init_kernels_reduce(void);
 void init_kernel_sum(void);
