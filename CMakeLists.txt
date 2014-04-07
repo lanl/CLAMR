@@ -62,6 +62,8 @@ if (GRAPHICS_TYPE STREQUAL "OpenGL")
    find_package(OpenGL)
 endif (GRAPHICS_TYPE STREQUAL "OpenGL")
 
+# If autodetect does not work try setting MPEHOME or
+# MPE_INCLUDE_DIR and MPE_LIBRARIES
 if (GRAPHICS_TYPE STREQUAL "MPE")
    find_package(MPE)
    find_package(X11)

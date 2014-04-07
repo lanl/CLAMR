@@ -52,6 +52,19 @@ if (DEFINED ENV{HOME})
    set(HOME $ENV{HOME})
 endif()
 
+if (DEFINED ENV{MPEHOME})
+   if (MPE_INCLUDE_DIR)
+   else (MPE_INCLUDE_DIR)
+      set (MPE_INCLUDE_DIR $ENV{MPEHOME}/include)
+   endif(MPE_INCLUDE_DIR)
+   if (MPE_LIBRARIES)
+   else (MPE_LIBRARIES)
+      FIND_LIBRARY(MPE_LIBRARIES mpe DIRS
+        $ENV{MPEHOME}/lib
+      )
+   endif(MPE_LIBRARIES)
+endif()
+
 if (MPE_INCLUDE_DIR)
 else (MPE_INCLUDE_DIR)
    FIND_PATH(MPE_INCLUDE_DIR mpe.h DIRS 
