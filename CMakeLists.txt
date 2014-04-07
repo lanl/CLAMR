@@ -35,13 +35,13 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
 #set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pedantic")
 
 include_directories(${PROJECT_SOURCE_DIR})
-#find_package(OpenCL)
+find_package(OpenCL)
 #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
 #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
 #  OPENCL_LIBRARIES    : The libraries to link against
-#if (OPENCL_FOUND)
-#   include_directories(${OPENCL_INCLUDE_DIRS})
-#endif (OPENCL_FOUND)
+if (OPENCL_FOUND)
+   include_directories(${OPENCL_INCLUDE_DIRS})
+endif (OPENCL_FOUND)
 find_package(MPI REQUIRED)
 if (MPI_FOUND)
    include_directories(${MPI_INCLUDE_PATH})
