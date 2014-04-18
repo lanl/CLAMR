@@ -84,6 +84,8 @@
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
+#define IPOW2(a) (2 << (a))
+
 #ifdef HAVE_CL_DOUBLE
 typedef double      real_t;
 #define MPI_C_REAL MPI_DOUBLE
@@ -1302,8 +1304,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
       lev_deltay[lev] = lev_deltay[lev-1]*0.5;
    }
    for (uint lev=0; lev<lvlMxSize; lev++){
-      //levtable[lev] = (int)pow(2,lev);
-      levtable[lev] = 2<<lev;
+      levtable[lev] = IPOW2(lev);
    }
 
    if (do_gpu_calc) {
@@ -1326,8 +1327,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
    int j_corner[] = {   0,jmax,   0,jmax};
 
    for(int ic=0; ic<ncells_corners; ic++){
-      for (int    jj = j_corner[ic]*levtable[levmx]; jj < (j_corner[ic]+1)*levtable[levmx]; jj++) {
-         for (int ii = i_corner[ic]*levtable[levmx]; ii < (i_corner[ic]+1)*levtable[levmx]; ii++) {
+      for (int    jj = j_corner[ic]*IPOW2(levmx); jj < (j_corner[ic]+1)*IPOW2(levmx); jj++) {
+         for (int ii = i_corner[ic]*IPOW2(levmx); ii < (i_corner[ic]+1)*IPOW2(levmx); ii++) {
             corners_i.push_back(ii);
             corners_j.push_back(jj);
          }
@@ -1552,8 +1553,8 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
    int j_corner[] = {   0,jmax,   0,jmax};
 
    for(int ic=0; ic<ncells_corners; ic++){
-      for (int    jj = j_corner[ic]*levtable[levmx]; jj < (j_corner[ic]+1)*levtable[levmx]; jj++) {
-         for (int ii = i_corner[ic]*levtable[levmx]; ii < (i_corner[ic]+1)*levtable[levmx]; ii++) {
+      for (int    jj = j_corner[ic]*IPOW2(levmx); jj < (j_corner[ic]+1)*IPOW2(levmx); jj++) {
+         for (int ii = i_corner[ic]*IPOW2(levmx); ii < (i_corner[ic]+1)*IPOW2(levmx); ii++) {
             corners_i.push_back(ii);
             corners_j.push_back(jj);
          }
@@ -2662,25 +2663,25 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                    jr[3];   // First j index at finest level of the mesh
                // Cell's Radius at the Finest level of the mesh
 
-               int crf = levtable[levmx-level[ic]];
+               int crf = IPOW2(levmx-level[ic]);
 
                if (ic != 0) {
-                  ir[0] = i[ic - 1] * levtable[levmx-level[ic - 1]];
-                  jr[0] = j[ic - 1] * levtable[levmx-level[ic - 1]];
+                  ir[0] = i[ic - 1] * IPOW2(levmx-level[ic - 1]);
+                  jr[0] = j[ic - 1] * IPOW2(levmx-level[ic - 1]);
                } else {
                   //printf("%d cell %d is a first\n",mype,ic);
-                  ir[0] = ifirst * levtable[levmx-level_first];
-                  jr[0] = jfirst * levtable[levmx-level_first];
+                  ir[0] = ifirst * IPOW2(levmx-level_first);
+                  jr[0] = jfirst * IPOW2(levmx-level_first);
                }
-               ir[1] = i[ic    ] * levtable[levmx-level[ic    ]];
-               jr[1] = j[ic    ] * levtable[levmx-level[ic    ]];
+               ir[1] = i[ic    ] * IPOW2(levmx-level[ic    ]);
+               jr[1] = j[ic    ] * IPOW2(levmx-level[ic    ]);
                if (ic != (int)ncells-1) {
-                  ir[2] = i[ic + 1] * levtable[levmx-level[ic + 1]];
-                  jr[2] = j[ic + 1] * levtable[levmx-level[ic + 1]];
+                  ir[2] = i[ic + 1] * IPOW2(levmx-level[ic + 1]);
+                  jr[2] = j[ic + 1] * IPOW2(levmx-level[ic + 1]);
                } else {
                   //printf("%d cell %d is a last\n",mype,ic);
-                  ir[2] = ilast * levtable[levmx-level_last];
-                  jr[2] = jlast * levtable[levmx-level_last];
+                  ir[2] = ilast * IPOW2(levmx-level_last);
+                  jr[2] = jlast * IPOW2(levmx-level_last);
                }
                //if (parallel) fprintf(fp,"%d: DEBUG rezone top boundary -- ic %d global %d noffset %d nc %d i %d j %d level %d\n",mype,ic,ic+noffset,noffset,nc,i[nc],j[nc],level[nc]);
 
@@ -3328,14 +3329,14 @@ void Mesh::calc_neighbors(void)
       struct timeval tstart_lev2;
       if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
-      int jmaxsize = (jmax+1)*levtable[levmx];
-      int imaxsize = (imax+1)*levtable[levmx];
+      int jmaxsize = (jmax+1)*IPOW2(levmx);
+      int imaxsize = (imax+1)*IPOW2(levmx);
 
       int *hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
 
       for(uint ic=0; ic<ncells; ic++){
          int lev = level[ic];
-         int levmult = levtable[levmx-lev];
+         int levmult = IPOW2(levmx-lev);
          int ii = i[ic]*levmult;
          int jj = j[ic]*levmult;
 
@@ -3373,7 +3374,7 @@ void Mesh::calc_neighbors(void)
          ii = i[ic];
          jj = j[ic];
          lev = level[ic];
-         levmult = levtable[levmx-lev];
+         levmult = IPOW2(levmx-lev);
          int iicur = ii*levmult;
          int iilft = max( (ii-1)*levmult, 0         );
          int iirht = min( (ii+1)*levmult, imaxsize-1);
@@ -3388,15 +3389,15 @@ void Mesh::calc_neighbors(void)
 
          // Taking care of boundary cells
          // Force each boundary cell to point to itself on its boundary direction
-         if (iicur <    1*levtable[levmx]  ) nlftval = ic;
-         if (jjcur <    1*levtable[levmx]  ) nbotval = ic;
-         if (iicur > imax*levtable[levmx]-1) nrhtval = ic;
-         if (jjcur > jmax*levtable[levmx]-1) ntopval = ic;
+         if (iicur <    1*IPOW2(levmx)  ) nlftval = ic;
+         if (jjcur <    1*IPOW2(levmx)  ) nbotval = ic;
+         if (iicur > imax*IPOW2(levmx)-1) nrhtval = ic;
+         if (jjcur > jmax*IPOW2(levmx)-1) ntopval = ic;
          // Boundary cells next to corner boundary need special checks
-         if (iicur ==    1*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur >= jmax*levtable[levmx] ) ) nlftval = ic;
-         if (jjcur ==    1*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur >= imax*levtable[levmx] ) ) nbotval = ic;
-         if (iirht == imax*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur >= jmax*levtable[levmx] ) ) nrhtval = ic;
-         if (jjtop == jmax*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur >= imax*levtable[levmx] ) ) ntopval = ic;
+         if (iicur ==    1*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nlftval = ic;
+         if (jjcur ==    1*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) nbotval = ic;
+         if (iirht == imax*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nrhtval = ic;
+         if (jjtop == jmax*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) ntopval = ic;
 
          // need to check for finer neighbor first
          // Right and top neighbor don't change for finer, so drop through to same size
@@ -3419,7 +3420,7 @@ void Mesh::calc_neighbors(void)
          // Now we need to take care of special case where bottom and left boundary need adjustment since
          // expected cell doesn't exist on these boundaries if it is finer than current cell
          if (lev != levmx) {
-            if (jjcur < 1*levtable[levmx]) {
+            if (jjcur < 1*IPOW2(levmx)) {
                if (nrhtval < 0) {
                   int jjtopfiner = (jjcur+jjtop)/2;
                   nrhtval = read_hash(jjtopfiner*imaxsize+iirht, hash);
@@ -3431,7 +3432,7 @@ void Mesh::calc_neighbors(void)
                }
             }
          
-            if (iicur < 1*levtable[levmx]) {
+            if (iicur < 1*IPOW2(levmx)) {
                if (ntopval < 0) {
                   int iirhtfiner = (iicur+iirht)/2;
                   ntopval = read_hash(jjtop*imaxsize+iirhtfiner, hash);
@@ -3670,25 +3671,25 @@ void Mesh::calc_neighbors_local(void)
       ncells_ghost = ncells;
 
       // Find maximum i column and j row for this processor
-      int jmintile = (jmax+1)*levtable[levmx];
-      int imintile = (imax+1)*levtable[levmx];
+      int jmintile = (jmax+1)*IPOW2(levmx);
+      int imintile = (imax+1)*IPOW2(levmx);
       int jmaxtile = 0;
       int imaxtile = 0;
       for(uint ic=0; ic<ncells; ic++){
          int lev = level[ic];
          if (lev < 0 || lev > levmx) printf("DEBUG -- cell %d lev %d\n",ic,level[ic]);
-         if ( j[ic]   *levtable[levmx-lev]   < jmintile) jmintile =  j[ic]   *levtable[levmx-lev]  ;
-         if ((j[ic]+1)*levtable[levmx-lev]-1 > jmaxtile) jmaxtile = (j[ic]+1)*levtable[levmx-lev]-1;
-         if ( i[ic]   *levtable[levmx-lev]   < imintile) imintile =  i[ic]   *levtable[levmx-lev]  ;
-         if ((i[ic]+1)*levtable[levmx-lev]-1 > imaxtile) imaxtile = (i[ic]+1)*levtable[levmx-lev]-1;
+         if ( j[ic]   *IPOW2(levmx-lev)   < jmintile) jmintile =  j[ic]   *IPOW2(levmx-lev)  ;
+         if ((j[ic]+1)*IPOW2(levmx-lev)-1 > jmaxtile) jmaxtile = (j[ic]+1)*IPOW2(levmx-lev)-1;
+         if ( i[ic]   *IPOW2(levmx-lev)   < imintile) imintile =  i[ic]   *IPOW2(levmx-lev)  ;
+         if ((i[ic]+1)*IPOW2(levmx-lev)-1 > imaxtile) imaxtile = (i[ic]+1)*IPOW2(levmx-lev)-1;
       }
       //if (DEBUG) fprintf(fp,"%d: Tile Sizes are imin %d imax %d jmin %d jmax %d\n",mype,imintile,imaxtile,jmintile,jmaxtile);
 
       // Expand size by 2*coarse_cells for ghost cells
-      int jminsize = max(jmintile-2*levtable[levmx],0);
-      int jmaxsize = min(jmaxtile+2*levtable[levmx],(jmax+1)*levtable[levmx]);
-      int iminsize = max(imintile-2*levtable[levmx],0);
-      int imaxsize = min(imaxtile+2*levtable[levmx],(imax+1)*levtable[levmx]);
+      int jminsize = max(jmintile-2*IPOW2(levmx),0);
+      int jmaxsize = min(jmaxtile+2*IPOW2(levmx),(jmax+1)*IPOW2(levmx));
+      int iminsize = max(imintile-2*IPOW2(levmx),0);
+      int imaxsize = min(imaxtile+2*IPOW2(levmx),(imax+1)*IPOW2(levmx));
       //if (DEBUG) fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
 
       //fprintf(fp,"DEBUG -- ncells %lu\n",ncells);
@@ -3703,7 +3704,7 @@ void Mesh::calc_neighbors_local(void)
       for(uint ic=0; ic<ncells; ic++){
          int cellnumber = ic+noffset;
          int lev = level[ic];
-         int levmult = levtable[levmx-lev];
+         int levmult = IPOW2(levmx-lev);
          int ii = i[ic]*levmult-iminsize;
          int jj = j[ic]*levmult-jminsize;
 
@@ -3718,14 +3719,14 @@ void Mesh::calc_neighbors_local(void)
       int ii, jj, lev, levmult;
 
       // Set neighbors to global cell numbers from hash
-      int jmaxcalc = (jmax+1)*levtable[levmx];
-      int imaxcalc = (imax+1)*levtable[levmx];
+      int jmaxcalc = (jmax+1)*IPOW2(levmx);
+      int imaxcalc = (imax+1)*IPOW2(levmx);
 
       for (uint ic=0; ic<ncells; ic++){
          ii = i[ic];
          jj = j[ic];
          lev = level[ic];
-         levmult = levtable[levmx-lev];
+         levmult = IPOW2(levmx-lev);
 
          int iicur = ii*levmult-iminsize;
          int iilft = max( (ii-1)*levmult, 0         )-iminsize;
@@ -3741,15 +3742,15 @@ void Mesh::calc_neighbors_local(void)
 
          // Taking care of boundary cells
          // Force each boundary cell to point to itself on its boundary direction
-         if (iicur <    1*levtable[levmx]  -iminsize) nlftval = ic+noffset;
-         if (jjcur <    1*levtable[levmx]  -jminsize) nbotval = ic+noffset;
-         if (iicur > imax*levtable[levmx]-1-iminsize) nrhtval = ic+noffset;
-         if (jjcur > jmax*levtable[levmx]-1-jminsize) ntopval = ic+noffset;
+         if (iicur <    1*IPOW2(levmx)  -iminsize) nlftval = ic+noffset;
+         if (jjcur <    1*IPOW2(levmx)  -jminsize) nbotval = ic+noffset;
+         if (iicur > imax*IPOW2(levmx)-1-iminsize) nrhtval = ic+noffset;
+         if (jjcur > jmax*IPOW2(levmx)-1-jminsize) ntopval = ic+noffset;
          // Boundary cells next to corner boundary need special checks
-         if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur >= jmax*levtable[levmx]-jminsize ) ) nlftval = ic+noffset;
-         if (jjcur ==    1*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur >= imax*levtable[levmx]-iminsize ) ) nbotval = ic+noffset;
-         if (iirht == imax*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur >= jmax*levtable[levmx]-jminsize ) ) nrhtval = ic+noffset;
-         if (jjtop == jmax*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur >= imax*levtable[levmx]-iminsize ) ) ntopval = ic+noffset;
+         if (iicur ==    1*IPOW2(levmx)-iminsize &&  (jjcur < 1*IPOW2(levmx)-jminsize || jjcur >= jmax*IPOW2(levmx)-jminsize ) ) nlftval = ic+noffset;
+         if (jjcur ==    1*IPOW2(levmx)-jminsize &&  (iicur < 1*IPOW2(levmx)-iminsize || iicur >= imax*IPOW2(levmx)-iminsize ) ) nbotval = ic+noffset;
+         if (iirht == imax*IPOW2(levmx)-iminsize &&  (jjcur < 1*IPOW2(levmx)-jminsize || jjcur >= jmax*IPOW2(levmx)-jminsize ) ) nrhtval = ic+noffset;
+         if (jjtop == jmax*IPOW2(levmx)-jminsize &&  (iicur < 1*IPOW2(levmx)-iminsize || iicur >= imax*IPOW2(levmx)-iminsize ) ) ntopval = ic+noffset;
 
          // need to check for finer neighbor first
          // Right and top neighbor don't change for finer, so drop through to same size
@@ -3776,7 +3777,7 @@ void Mesh::calc_neighbors_local(void)
          // Now we need to take care of special case where bottom and left boundary need adjustment since
          // expected cell doesn't exist on these boundaries if it is finer than current cell
          if (lev != levmx) {
-            if (jjcur < 1*levtable[levmx]) {
+            if (jjcur < 1*IPOW2(levmx)) {
                if (nrhtval < 0) {
                   int jjtopfiner = (jjcur+jjtop)/2;
                   nrhtval = read_hash(jjtopfiner*(imaxsize-iminsize)+iirht, hash);
@@ -3788,7 +3789,7 @@ void Mesh::calc_neighbors_local(void)
                }
             }
 
-            if (iicur < 1*levtable[levmx]) {
+            if (iicur < 1*IPOW2(levmx)) {
                if (ntopval < 0) {
                   int iirhtfiner = (iicur+iirht)/2;
                   ntopval = read_hash(jjtop*(imaxsize-iminsize)+iirhtfiner, hash);
@@ -3838,8 +3839,8 @@ void Mesh::calc_neighbors_local(void)
       if (DEBUG) {
          print_local();
 
-         int jmaxglobal = (jmax+1)*levtable[levmx];
-         int imaxglobal = (imax+1)*levtable[levmx];
+         int jmaxglobal = (jmax+1)*IPOW2(levmx);
+         int imaxglobal = (imax+1)*IPOW2(levmx);
          fprintf(fp,"\n                                    HASH 0 numbering\n");
          for (int jj = jmaxglobal-1; jj>=0; jj--){
             fprintf(fp,"%2d: %4d:",mype,jj);
@@ -4141,7 +4142,7 @@ void Mesh::calc_neighbors_local(void)
             int icount = 0;
             for (int ib = 0; ib <nbsize_local; ib++){
                lev = border_cell_level[ib];
-               levmult = levtable[levmx-lev];
+               levmult = IPOW2(levmx-lev);
                if (border_cell_i[ib]*levmult >= iminsize_global[comm_partner[ip]] && 
                    border_cell_i[ib]*levmult <= imaxsize_global[comm_partner[ip]] && 
                    border_cell_j[ib]*levmult >= jminsize_global[comm_partner[ip]] && 
@@ -4221,8 +4222,8 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (DEBUG) {
-            int jmaxglobal = (jmax+1)*levtable[levmx];
-            int imaxglobal = (imax+1)*levtable[levmx];
+            int jmaxglobal = (jmax+1)*IPOW2(levmx);
+            int imaxglobal = (imax+1)*IPOW2(levmx);
             fprintf(fp,"\n                                    HASH numbering before layer 1\n");
             for (int jj = jmaxglobal-1; jj>=0; jj--){
                fprintf(fp,"%2d: %4d:",mype,jj);
@@ -4251,7 +4252,7 @@ void Mesh::calc_neighbors_local(void)
             int jj = border_cell_j_local[ic];
             int ii = border_cell_i_local[ic];
             int lev = border_cell_level_local[ic];
-            int levmult = levtable[levmx-lev];
+            int levmult = IPOW2(levmx-lev);
 
             int iicur = ii*levmult-iminsize;
             int iilft = max( (ii-1)*levmult, 0         )-iminsize;
@@ -4392,7 +4393,7 @@ void Mesh::calc_neighbors_local(void)
             if (border_cell_needed_local[ic] == 0) continue;
             //fprintf(fp,"%d: index %d cell %d i %d j %d\n",mype,ic,border_cell_num_local[ic],border_cell_i_local[ic],border_cell_j_local[ic]);
             int lev = border_cell_level_local[ic];
-            int levmult = levtable[levmx-lev];
+            int levmult = IPOW2(levmx-lev);
             ii = border_cell_i_local[ic]*levmult-iminsize;
             jj = border_cell_j_local[ic]*levmult-jminsize;
 
@@ -4407,8 +4408,8 @@ void Mesh::calc_neighbors_local(void)
          if (DEBUG) {
             print_local();
 
-            int jmaxglobal = (jmax+1)*levtable[levmx];
-            int imaxglobal = (imax+1)*levtable[levmx];
+            int jmaxglobal = (jmax+1)*IPOW2(levmx);
+            int imaxglobal = (imax+1)*IPOW2(levmx);
             fprintf(fp,"\n                                    HASH numbering for 1 layer\n");
             for (int jj = jmaxglobal-1; jj>=0; jj--){
                fprintf(fp,"%2d: %4d:",mype,jj);
@@ -4436,7 +4437,7 @@ void Mesh::calc_neighbors_local(void)
             int jj = border_cell_j_local[ic];
             int ii = border_cell_i_local[ic];
             int lev = border_cell_level_local[ic];
-            int levmult = levtable[levmx-lev];
+            int levmult = IPOW2(levmx-lev);
 
             int iicur = ii*levmult-iminsize;
             int iilft = max( (ii-1)*levmult, 0         )-iminsize;
@@ -4627,7 +4628,7 @@ void Mesh::calc_neighbors_local(void)
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
          for(int ic=0; ic<nbsize_local; ic++){
             int lev = border_cell_level_local[ic];
-            int levmult = levtable[levmx-lev];
+            int levmult = IPOW2(levmx-lev);
 
             int ii = border_cell_i_local[ic]*levmult-iminsize;
             int jj = border_cell_j_local[ic]*levmult-jminsize;
@@ -4643,8 +4644,8 @@ void Mesh::calc_neighbors_local(void)
          if (DEBUG) {
             print_local();
 
-            int jmaxglobal = (jmax+1)*levtable[levmx];
-            int imaxglobal = (imax+1)*levtable[levmx];
+            int jmaxglobal = (jmax+1)*IPOW2(levmx);
+            int imaxglobal = (imax+1)*IPOW2(levmx);
             fprintf(fp,"\n                                    HASH numbering for 2 layer\n");
             for (int jj = jmaxglobal-1; jj>=0; jj--){
                fprintf(fp,"%2d: %4d:",mype,jj);
@@ -4723,7 +4724,7 @@ void Mesh::calc_neighbors_local(void)
             ii = i[ic];
             jj = j[ic];
             lev = level[ic];
-            levmult = levtable[levmx-lev];
+            levmult = IPOW2(levmx-lev);
 
             int iicur = ii*levmult-iminsize;
             int iilft = max( (ii-1)*levmult, 0         )-iminsize;
@@ -4742,10 +4743,10 @@ void Mesh::calc_neighbors_local(void)
             if (nlftval == -1){
                // Taking care of boundary cells
                // Force each boundary cell to point to itself on its boundary direction
-               if (iicur <    1*levtable[levmx]  -iminsize) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
+               if (iicur <    1*IPOW2(levmx)  -iminsize) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
 
                // Boundary cells next to corner boundary need special checks
-               if (iicur ==    1*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur >= jmax*levtable[levmx]-jminsize ) ) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
+               if (iicur ==    1*IPOW2(levmx)-iminsize &&  (jjcur < 1*IPOW2(levmx)-jminsize || jjcur >= jmax*IPOW2(levmx)-jminsize ) ) nlftval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
 
                // need to check for finer neighbor first
                // Right and top neighbor don't change for finer, so drop through to same size
@@ -4760,7 +4761,7 @@ void Mesh::calc_neighbors_local(void)
 
                // Now we need to take care of special case where bottom and left boundary need adjustment since
                // expected cell doesn't exist on these boundaries if it is finer than current cell
-               if (jjcur < 1*levtable[levmx] && lev != levmx) {
+               if (jjcur < 1*IPOW2(levmx) && lev != levmx) {
                   if (nlftval == -1) {
                      int iilftfiner = iicur-(iicur-iilft)/2;
                      int jjtopfiner = (jjcur+jjtop)/2;
@@ -4783,17 +4784,17 @@ void Mesh::calc_neighbors_local(void)
             if (nrhtval == -1) {
                // Taking care of boundary cells
                // Force each boundary cell to point to itself on its boundary direction
-               if (iicur > imax*levtable[levmx]-1-iminsize) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
+               if (iicur > imax*IPOW2(levmx)-1-iminsize) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
 
                // Boundary cells next to corner boundary need special checks
-               if (iirht == imax*levtable[levmx]-iminsize &&  (jjcur < 1*levtable[levmx]-jminsize || jjcur >= jmax*levtable[levmx]-jminsize ) ) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
+               if (iirht == imax*IPOW2(levmx)-iminsize &&  (jjcur < 1*IPOW2(levmx)-jminsize || jjcur >= jmax*IPOW2(levmx)-jminsize ) ) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
 
                // same size neighbor
                if (nrhtval == -1 && iirht < imaxsize-iminsize) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iirht, hash);
 
                // Now we need to take care of special case where bottom and left boundary need adjustment since
                // expected cell doesn't exist on these boundaries if it is finer than current cell
-               if (jjcur < 1*levtable[levmx] && lev != levmx) {
+               if (jjcur < 1*IPOW2(levmx) && lev != levmx) {
                   if (nrhtval == -1) {
                      int jjtopfiner = (jjcur+jjtop)/2;
                      if (jjtopfiner < jmaxsize-jminsize && iirht < imaxsize-iminsize) nrhtval = read_hash(jjtopfiner*(imaxsize-iminsize)+iirht, hash);
@@ -4813,9 +4814,9 @@ void Mesh::calc_neighbors_local(void)
             if (nbotval == -1) {
                // Taking care of boundary cells
                // Force each boundary cell to point to itself on its boundary direction
-               if (jjcur <    1*levtable[levmx]  -jminsize) nbotval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
+               if (jjcur <    1*IPOW2(levmx)  -jminsize) nbotval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
                // Boundary cells next to corner boundary need special checks
-               if (jjcur ==    1*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur >= imax*levtable[levmx]-iminsize ) ) nbotval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
+               if (jjcur ==    1*IPOW2(levmx)-jminsize &&  (iicur < 1*IPOW2(levmx)-iminsize || iicur >= imax*IPOW2(levmx)-iminsize ) ) nbotval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
 
                // need to check for finer neighbor first
                // Right and top neighbor don't change for finer, so drop through to same size
@@ -4830,7 +4831,7 @@ void Mesh::calc_neighbors_local(void)
 
                // Now we need to take care of special case where bottom and left boundary need adjustment since
                // expected cell doesn't exist on these boundaries if it is finer than current cell
-               if (iicur < 1*levtable[levmx] && lev != levmx) {
+               if (iicur < 1*IPOW2(levmx) && lev != levmx) {
                   if (nbotval == -1) {
                      int iirhtfiner = (iicur+iirht)/2;
                      int jjbotfiner = jjcur-(jjcur-jjbot)/2;
@@ -4852,14 +4853,14 @@ void Mesh::calc_neighbors_local(void)
             if (ntopval == -1) {
                // Taking care of boundary cells
                // Force each boundary cell to point to itself on its boundary direction
-               if (jjcur > jmax*levtable[levmx]-1-jminsize) ntopval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
+               if (jjcur > jmax*IPOW2(levmx)-1-jminsize) ntopval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
                // Boundary cells next to corner boundary need special checks
-               if (jjtop == jmax*levtable[levmx]-jminsize &&  (iicur < 1*levtable[levmx]-iminsize || iicur >= imax*levtable[levmx]-iminsize ) ) ntopval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
+               if (jjtop == jmax*IPOW2(levmx)-jminsize &&  (iicur < 1*IPOW2(levmx)-iminsize || iicur >= imax*IPOW2(levmx)-iminsize ) ) ntopval = read_hash(jjcur*(imaxsize-iminsize)+iicur, hash);
 
                // same size neighbor
                if (ntopval == -1 && jjtop < jmaxsize-jminsize) ntopval = read_hash(jjtop*(imaxsize-iminsize)+iicur, hash);
    
-               if (iicur < 1*levtable[levmx]) {
+               if (iicur < 1*IPOW2(levmx)) {
                   if (ntopval == -1) {
                      int iirhtfiner = (iicur+iirht)/2;
                      if (jjtop < jmaxsize-jminsize && iirhtfiner < imaxsize-iminsize) ntopval = read_hash(jjtop*(imaxsize-iminsize)+iirhtfiner, hash);
@@ -4895,7 +4896,7 @@ void Mesh::calc_neighbors_local(void)
             ii = i[ic];
             jj = j[ic];
             lev = level[ic];
-            levmult = levtable[levmx-lev];
+            levmult = IPOW2(levmx-lev);
             //fprintf(fp,"%d:Neighbors input for ic %d ii %d jj %d levmult %d lev %d\n",mype,ic, ii, jj, levmult,lev);
             //fprintf(fp,"%d:Neighbors befor ic %d nlft %d nrht %d nbot %d ntop %d\n",mype,ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
             if (nlft[ic] == -1) nlft[ic] = hash[(      jj   *levmult               )-jminsize][(max(  ii   *levmult-1, 0         ))-iminsize];
@@ -4988,8 +4989,8 @@ void Mesh::calc_neighbors_local(void)
          if (DEBUG) {
             print_local();
 
-            int jmaxglobal = (jmax+1)*levtable[levmx];
-            int imaxglobal = (imax+1)*levtable[levmx];
+            int jmaxglobal = (jmax+1)*IPOW2(levmx);
+            int imaxglobal = (imax+1)*IPOW2(levmx);
             fprintf(fp,"\n                                    HASH numbering\n");
             for (int jj = jmaxglobal-1; jj>=0; jj--){
                fprintf(fp,"%2d: %4d:",mype,jj);
@@ -5252,8 +5253,8 @@ void Mesh::gpu_calc_neighbors(void)
    size_t local_work_size = MIN(ncells, TILE_SIZE);
    size_t global_work_size = ((ncells + local_work_size - 1) /local_work_size) * local_work_size;
 
-   int imaxsize = (imax+1)*levtable[levmx];
-   int jmaxsize = (jmax+1)*levtable[levmx];
+   int imaxsize = (imax+1)*IPOW2(levmx);
+   int jmaxsize = (jmax+1)*IPOW2(levmx);
 
    int gpu_hash_method       = METHOD_UNSET;
 // allow input.c to control hash types and methods
@@ -5450,10 +5451,10 @@ void Mesh::gpu_calc_neighbors_local(void)
 
    // Expand size by 2*coarse_cells for ghost cells
    // TODO: May want to get fancier here and calc based on cell level
-   int jminsize = max(jmintile-2*levtable[levmx],0);
-   int jmaxsize = min(jmaxtile+2*levtable[levmx],(jmax+1)*levtable[levmx]);
-   int iminsize = max(imintile-2*levtable[levmx],0);
-   int imaxsize = min(imaxtile+2*levtable[levmx],(imax+1)*levtable[levmx]);
+   int jminsize = max(jmintile-2*IPOW2(levmx),0);
+   int jmaxsize = min(jmaxtile+2*IPOW2(levmx),(jmax+1)*IPOW2(levmx));
+   int iminsize = max(imintile-2*IPOW2(levmx),0);
+   int imaxsize = min(imaxtile+2*IPOW2(levmx),(imax+1)*IPOW2(levmx));
    //fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
 
    //ezcl_enqueue_write_buffer(command_queue, dev_sizes, CL_TRUE,  0, 1*sizeof(cl_int4), &sizes, NULL);
@@ -5518,8 +5519,8 @@ void Mesh::gpu_calc_neighbors_local(void)
       ezcl_enqueue_read_buffer(command_queue, dev_level, CL_TRUE,  0, ncells*sizeof(cl_int), &level_tmp[0], NULL);
       for (int ic=0; ic<(int)ncells; ic++){
          int lev = level_tmp[ic];
-         for (   int jj = j_tmp[ic]*levtable[levmx-lev]-jminsize; jj < (j_tmp[ic]+1)*levtable[levmx-lev]-jminsize; jj++) {
-            for (int ii = i_tmp[ic]*levtable[levmx-lev]-iminsize; ii < (i_tmp[ic]+1)*levtable[levmx-lev]-iminsize; ii++) {
+         for (   int jj = j_tmp[ic]*IPOW2(levmx-lev)-jminsize; jj < (j_tmp[ic]+1)*IPOW2(levmx-lev)-jminsize; jj++) {
+            for (int ii = i_tmp[ic]*IPOW2(levmx-lev)-iminsize; ii < (i_tmp[ic]+1)*IPOW2(levmx-lev)-iminsize; ii++) {
                if (jj < 0 || jj >= (jmaxsize-jminsize) || ii < 0 || ii >= (imaxsize-iminsize) ) {
                   printf("%d: Warning ncell %d writes to hash out-of-bounds at line %d ii %d jj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,ic,__LINE__,ii,jj,iminsize,imaxsize,jminsize,jmaxsize);
                }
@@ -5608,8 +5609,8 @@ void Mesh::gpu_calc_neighbors_local(void)
 
 #ifdef BOUNDS_CHECK
    {
-      int jmaxcalc = (jmax+1)*levtable[levmx];
-      int imaxcalc = (imax+1)*levtable[levmx];
+      int jmaxcalc = (jmax+1)*IPOW2(levmx);
+      int imaxcalc = (imax+1)*IPOW2(levmx);
       vector<int> i_tmp(ncells);
       vector<int> j_tmp(ncells);
       vector<int> level_tmp(ncells);
@@ -5622,7 +5623,7 @@ void Mesh::gpu_calc_neighbors_local(void)
          int ii  = i_tmp[ic];
          int jj  = j_tmp[ic];
          int lev = level_tmp[ic];
-         int levmult = levtable[levmx-lev];
+         int levmult = IPOW2(levmx-lev);
          int jjj=jj   *levmult-jminsize;
          int iii=max(  ii   *levmult-1, 0         )-iminsize;
          if (jjj < 0 || jjj >= (jmaxsize-jminsize) || iii < 0 || iii >= (imaxsize-iminsize) ) printf("%d: Warning at line %d iii %d jjj %d iminsize %d imaxsize %d jminsize %d jmaxsize %d\n",mype,__LINE__,iii,jjj,iminsize,imaxsize,jminsize,jmaxsize);
@@ -5735,8 +5736,8 @@ void Mesh::gpu_calc_neighbors_local(void)
       ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nbot_tmp[0], NULL);
       ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells_ghost*sizeof(cl_int), &ntop_tmp[0], NULL);
 
-      int jmaxglobal = (jmax+1)*levtable[levmx];
-      int imaxglobal = (imax+1)*levtable[levmx];
+      int jmaxglobal = (jmax+1)*IPOW2(levmx);
+      int imaxglobal = (imax+1)*IPOW2(levmx);
       fprintf(fp,"\n                                    HASH 0 numbering\n");
       for (int jj = jmaxglobal-1; jj>=0; jj--){
          fprintf(fp,"%2d: %4d:",mype,jj);
@@ -6022,7 +6023,7 @@ void Mesh::gpu_calc_neighbors_local(void)
          int icount = 0;
          for (int ib = 0; ib <nbsize_local; ib++){
             int lev = border_cell_level[ib];
-            int levmult = levtable[levmx-lev];
+            int levmult = IPOW2(levmx-lev);
             if (border_cell_i[ib]*levmult >= iminsize_global[comm_partner[ip]] && 
                 border_cell_i[ib]*levmult <= imaxsize_global[comm_partner[ip]] && 
                 border_cell_j[ib]*levmult >= jminsize_global[comm_partner[ip]] && 
@@ -6133,8 +6134,8 @@ void Mesh::gpu_calc_neighbors_local(void)
          ulong gpu_AA              =      hash_header_check[2];
          ulong gpu_BB              =      hash_header_check[3];
 
-         int jmaxglobal = (jmax+1)*levtable[levmx];
-         int imaxglobal = (imax+1)*levtable[levmx];
+         int jmaxglobal = (jmax+1)*IPOW2(levmx);
+         int imaxglobal = (imax+1)*IPOW2(levmx);
          fprintf(fp,"\n                                    HASH numbering before layer 1\n");
          for (int jj = jmaxglobal-1; jj>=0; jj--){
             fprintf(fp,"%2d: %4d:",mype,jj);
@@ -6226,8 +6227,8 @@ void Mesh::gpu_calc_neighbors_local(void)
          ulong gpu_AA              =      hash_header_check[2];
          ulong gpu_BB              =      hash_header_check[3];
 
-         int jmaxglobal = (jmax+1)*levtable[levmx];
-         int imaxglobal = (imax+1)*levtable[levmx];
+         int jmaxglobal = (jmax+1)*IPOW2(levmx);
+         int imaxglobal = (imax+1)*IPOW2(levmx);
          fprintf(fp,"\n                                    HASH numbering for 1 layer\n");
          for (int jj = jmaxglobal-1; jj>=0; jj--){
             fprintf(fp,"%2d: %4d:",mype,jj);
@@ -6395,8 +6396,8 @@ void Mesh::gpu_calc_neighbors_local(void)
          ulong gpu_AA              =      hash_header_check[2];
          ulong gpu_BB              =      hash_header_check[3];
 
-         int jmaxglobal = (jmax+1)*levtable[levmx];
-         int imaxglobal = (imax+1)*levtable[levmx];
+         int jmaxglobal = (jmax+1)*IPOW2(levmx);
+         int imaxglobal = (imax+1)*IPOW2(levmx);
          fprintf(fp,"\n                                    HASH numbering for 2 layer\n");
          for (int jj = jmaxglobal-1; jj>=0; jj--){
             fprintf(fp,"%2d: %4d:",mype,jj);
@@ -6732,8 +6733,8 @@ void Mesh::gpu_calc_neighbors_local(void)
          ezcl_enqueue_read_buffer(command_queue, dev_nbot, CL_FALSE, 0, ncells_ghost*sizeof(cl_int), &nbot_tmp[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_ntop, CL_TRUE,  0, ncells_ghost*sizeof(cl_int), &ntop_tmp[0], NULL);
 
-         int jmaxglobal = (jmax+1)*levtable[levmx];
-         int imaxglobal = (imax+1)*levtable[levmx];
+         int jmaxglobal = (jmax+1)*IPOW2(levmx);
+         int imaxglobal = (imax+1)*IPOW2(levmx);
          fprintf(fp,"\n                                    HASH numbering\n");
          for (int jj = jmaxglobal-1; jj>=0; jj--){
             fprintf(fp,"%2d: %4d:",mype,jj);
