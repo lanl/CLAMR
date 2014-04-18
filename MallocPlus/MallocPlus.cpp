@@ -546,7 +546,8 @@ void *MallocPlus::memory_next(void){
 }
 
 list<malloc_plus_memory_entry>::iterator MallocPlus::memory_entry_begin(void){
-   return(memory_list.begin());
+   it_save = memory_list.begin();
+   return(it_save);
 }
 
 list<malloc_plus_memory_entry>::iterator MallocPlus::memory_entry_next(void){

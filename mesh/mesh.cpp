@@ -3001,57 +3001,112 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    if (have_state){
       MallocPlus state_memory_old = state_memory;
+      list<malloc_plus_memory_entry>::iterator it;
 
-      for (real_t *mem_ptr=(real_t *)state_memory_old.memory_begin();
-           mem_ptr != NULL; mem_ptr = (real_t *)state_memory_old.memory_next() ){
+      for (it = state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
+           it = state_memory_old.memory_entry_next() ) {
+         //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
+         if (it->mem_elsize == 8) {
+            double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
+                                                                             flags, "state_temp_double");
 
-         real_t *state_temp = (real_t *)state_memory.memory_malloc(new_ncells,
-                                                                   sizeof(real_t),
-                                                                   flags,
-                                                                   "state_temp");
+            double *mem_ptr_double = (double *)it->mem_ptr;
 
-         for (int ic=0, nc=0; ic<(int)ncells; ic++) {
+            for (int ic=0, nc=0; ic<(int)ncells; ic++) {
 
-            if (mpot[ic] == 0) {
-               state_temp[nc] = mem_ptr[ic];
-               nc++;
-            } else if (mpot[ic] < 0){
-               if (is_lower_left(i[ic],j[ic]) ) {
-                  int nr = nrht[ic];
-                  int nt = ntop[ic];
-                  int nrt = nrht[nt];
-                  state_temp[nc] = (mem_ptr[ic] + mem_ptr[nr] + mem_ptr[nt] + mem_ptr[nrt])*0.25;
+               if (mpot[ic] == 0) {
+                  state_temp_double[nc] = mem_ptr_double[ic];
                   nc++;
-               }
-               if (celltype[ic] != REAL_CELL && is_upper_right(i[ic],j[ic]) ) {
-                  int nl = nlft[ic];
-                  int nb = nbot[ic];
-                  int nlb = nlft[nb];
-                  state_temp[nc] = (mem_ptr[ic] + mem_ptr[nl] + mem_ptr[nb] + mem_ptr[nlb])*0.25;
-                  nc++;
-               }
-            } else if (mpot[ic] > 0){
-               // lower left
-               state_temp[nc] = mem_ptr[ic];
-               nc++;
-
-               // lower right
-               state_temp[nc] = mem_ptr[ic];
-               nc++;
-
-               if (celltype_save[ic] == REAL_CELL){
-                  // upper left
-                  state_temp[nc] = mem_ptr[ic];
+               } else if (mpot[ic] < 0){
+                  if (is_lower_left(i[ic],j[ic]) ) {
+                     int nr = nrht[ic];
+                     int nt = ntop[ic];
+                     int nrt = nrht[nt];
+                     state_temp_double[nc] = (mem_ptr_double[ic] + mem_ptr_double[nr] +
+                                              mem_ptr_double[nt] + mem_ptr_double[nrt])*0.25;
+                     nc++;
+                  }
+                  if (celltype[ic] != REAL_CELL && is_upper_right(i[ic],j[ic]) ) {
+                     int nl = nlft[ic];
+                     int nb = nbot[ic];
+                     int nlb = nlft[nb];
+                     state_temp_double[nc] = (mem_ptr_double[ic] + mem_ptr_double[nl] +
+                                              mem_ptr_double[nb] + mem_ptr_double[nlb])*0.25;
+                     nc++;
+                  }
+               } else if (mpot[ic] > 0){
+                  // lower left
+                  state_temp_double[nc] = mem_ptr_double[ic];
                   nc++;
 
-                  // upper right
-                  state_temp[nc] = mem_ptr[ic];
+                  // lower right
+                  state_temp_double[nc] = mem_ptr_double[ic];
                   nc++;
+
+                  if (celltype_save[ic] == REAL_CELL){
+                     // upper left
+                     state_temp_double[nc] = mem_ptr_double[ic];
+                     nc++;
+
+                     // upper right
+                     state_temp_double[nc] = mem_ptr_double[ic];
+                     nc++;
+                  }
                }
             }
-         }
 
-         state_memory.memory_replace(mem_ptr, state_temp);
+            state_memory.memory_replace(mem_ptr_double, state_temp_double);
+         } else if (it->mem_elsize == 4) {
+            float *state_temp_float = (float *)state_memory.memory_malloc(new_ncells, sizeof(float),
+                                                                           flags, "state_temp_float");
+
+            float *mem_ptr_float = (float *)it->mem_ptr;
+
+            for (int ic=0, nc=0; ic<(int)ncells; ic++) {
+
+               if (mpot[ic] == 0) {
+                  state_temp_float[nc] = mem_ptr_float[ic];
+                  nc++;
+               } else if (mpot[ic] < 0){
+                  if (is_lower_left(i[ic],j[ic]) ) {
+                     int nr = nrht[ic];
+                     int nt = ntop[ic];
+                     int nrt = nrht[nt];
+                     state_temp_float[nc] = (mem_ptr_float[ic] + mem_ptr_float[nr] +
+                                             mem_ptr_float[nt] + mem_ptr_float[nrt])*0.25;
+                     nc++;
+                  }
+                  if (celltype[ic] != REAL_CELL && is_upper_right(i[ic],j[ic]) ) {
+                     int nl = nlft[ic];
+                     int nb = nbot[ic];
+                     int nlb = nlft[nb];
+                     state_temp_float[nc] = (mem_ptr_float[ic] + mem_ptr_float[nl] +
+                                             mem_ptr_float[nb] + mem_ptr_float[nlb])*0.25;
+                     nc++;
+                  }
+               } else if (mpot[ic] > 0){
+                  // lower left
+                  state_temp_float[nc] = mem_ptr_float[ic];
+                  nc++;
+
+                  // lower right
+                  state_temp_float[nc] = mem_ptr_float[ic];
+                  nc++;
+
+                  if (celltype_save[ic] == REAL_CELL){
+                     // upper left
+                     state_temp_float[nc] = mem_ptr_float[ic];
+                     nc++;
+
+                     // upper right
+                     state_temp_float[nc] = mem_ptr_float[ic];
+                     nc++;
+                  }
+               }
+            }
+
+            state_memory.memory_replace(mem_ptr_float, state_temp_float);
+         }
       }
    }
 
