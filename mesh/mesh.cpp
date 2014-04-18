@@ -165,7 +165,8 @@ cl_kernel      kernel_refine_smooth;
 cl_kernel      kernel_coarsen_smooth;
 cl_kernel      kernel_coarsen_check_block;
 cl_kernel      kernel_rezone_all;
-cl_kernel      kernel_rezone_one;
+cl_kernel      kernel_rezone_one_double;
+cl_kernel      kernel_rezone_one_float;
 cl_kernel      kernel_copy_mpot_ghost_data;
 cl_kernel      kernel_set_boundary_refinement;
 #endif
@@ -1386,7 +1387,8 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       kernel_coarsen_smooth           = ezcl_create_kernel_wprogram(program, "coarsen_smooth_cl");
       kernel_coarsen_check_block      = ezcl_create_kernel_wprogram(program, "coarsen_check_block_cl");
       kernel_rezone_all               = ezcl_create_kernel_wprogram(program, "rezone_all_cl");
-      kernel_rezone_one               = ezcl_create_kernel_wprogram(program, "rezone_one_cl");
+      kernel_rezone_one_double        = ezcl_create_kernel_wprogram(program, "rezone_one_double_cl");
+      kernel_rezone_one_float         = ezcl_create_kernel_wprogram(program, "rezone_one_float_cl");
       kernel_copy_mpot_ghost_data     = ezcl_create_kernel_wprogram(program, "copy_mpot_ghost_data_cl");
       kernel_set_boundary_refinement  = ezcl_create_kernel_wprogram(program, "set_boundary_refinement");
       init_kernel_2stage_sum();
@@ -2184,7 +2186,8 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_coarsen_smooth);
       ezcl_kernel_release(kernel_coarsen_check_block);
       ezcl_kernel_release(kernel_rezone_all);
-      ezcl_kernel_release(kernel_rezone_one);
+      ezcl_kernel_release(kernel_rezone_one_double);
+      ezcl_kernel_release(kernel_rezone_one_float);
       ezcl_kernel_release(kernel_copy_mpot_ghost_data);
       ezcl_kernel_release(kernel_set_boundary_refinement);
       terminate_kernel_2stage_sum();
@@ -3293,26 +3296,54 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, NULL);
 
-   for (cl_mem dev_state_mem_ptr = (cl_mem)gpu_state_memory.memory_begin(); dev_state_mem_ptr != NULL; dev_state_mem_ptr = (cl_mem)gpu_state_memory.memory_next() ){
-      cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_state_var_new"));
+   MallocPlus gpu_state_memory_old = gpu_state_memory;
+   list<malloc_plus_memory_entry>::iterator it;
 
-      ezcl_set_kernel_arg(kernel_rezone_one, 0, sizeof(cl_int),  (void *)&old_ncells);
-      ezcl_set_kernel_arg(kernel_rezone_one, 1, sizeof(cl_mem),  (void *)&dev_i);
-      ezcl_set_kernel_arg(kernel_rezone_one, 2, sizeof(cl_mem),  (void *)&dev_j);
-      ezcl_set_kernel_arg(kernel_rezone_one, 3, sizeof(cl_mem),  (void *)&dev_nlft);
-      ezcl_set_kernel_arg(kernel_rezone_one, 4, sizeof(cl_mem),  (void *)&dev_nrht);
-      ezcl_set_kernel_arg(kernel_rezone_one, 5, sizeof(cl_mem),  (void *)&dev_nbot);
-      ezcl_set_kernel_arg(kernel_rezone_one, 6, sizeof(cl_mem),  (void *)&dev_ntop);
-      ezcl_set_kernel_arg(kernel_rezone_one, 7, sizeof(cl_mem),  (void *)&dev_celltype);
-      ezcl_set_kernel_arg(kernel_rezone_one, 8, sizeof(cl_mem),  (void *)&dev_mpot);
-      ezcl_set_kernel_arg(kernel_rezone_one, 9, sizeof(cl_mem),  (void *)&dev_indexoffset);
-      ezcl_set_kernel_arg(kernel_rezone_one,10, sizeof(cl_mem),  (void *)&dev_state_mem_ptr);
-      ezcl_set_kernel_arg(kernel_rezone_one,11, sizeof(cl_mem),  (void *)&dev_state_var_new);
+   for (it = gpu_state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
+        it = gpu_state_memory_old.memory_entry_next() ) {
+      //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
+      cl_mem dev_state_mem_ptr = (cl_mem)it->mem_ptr;
 
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_one,   1, NULL, &global_work_size, &local_work_size, NULL);
+      if (it->mem_elsize == 8){
+         cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_double), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_state_var_new"));
 
-      gpu_state_memory.memory_replace(dev_state_mem_ptr, dev_state_var_new);
-   }
+         ezcl_set_kernel_arg(kernel_rezone_one_double, 0, sizeof(cl_int),  (void *)&old_ncells);
+         ezcl_set_kernel_arg(kernel_rezone_one_double, 1, sizeof(cl_mem),  (void *)&dev_i);
+         ezcl_set_kernel_arg(kernel_rezone_one_double, 2, sizeof(cl_mem),  (void *)&dev_j);
+         ezcl_set_kernel_arg(kernel_rezone_one_double, 3, sizeof(cl_mem),  (void *)&dev_nlft);
+         ezcl_set_kernel_arg(kernel_rezone_one_double, 4, sizeof(cl_mem),  (void *)&dev_nrht);
+         ezcl_set_kernel_arg(kernel_rezone_one_double, 5, sizeof(cl_mem),  (void *)&dev_nbot);
+         ezcl_set_kernel_arg(kernel_rezone_one_double, 6, sizeof(cl_mem),  (void *)&dev_ntop);
+         ezcl_set_kernel_arg(kernel_rezone_one_double, 7, sizeof(cl_mem),  (void *)&dev_celltype);
+         ezcl_set_kernel_arg(kernel_rezone_one_double, 8, sizeof(cl_mem),  (void *)&dev_mpot);
+         ezcl_set_kernel_arg(kernel_rezone_one_double, 9, sizeof(cl_mem),  (void *)&dev_indexoffset);
+         ezcl_set_kernel_arg(kernel_rezone_one_double,10, sizeof(cl_mem),  (void *)&dev_state_mem_ptr);
+         ezcl_set_kernel_arg(kernel_rezone_one_double,11, sizeof(cl_mem),  (void *)&dev_state_var_new);
+
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_one_double,   1, NULL, &global_work_size, &local_work_size, NULL);
+
+         gpu_state_memory.memory_replace(dev_state_mem_ptr, dev_state_var_new);
+      } else if (it->mem_elsize == 4){
+         cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_float), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_state_var_new"));
+
+         ezcl_set_kernel_arg(kernel_rezone_one_float, 0, sizeof(cl_int),  (void *)&old_ncells);
+         ezcl_set_kernel_arg(kernel_rezone_one_float, 1, sizeof(cl_mem),  (void *)&dev_i);
+         ezcl_set_kernel_arg(kernel_rezone_one_float, 2, sizeof(cl_mem),  (void *)&dev_j);
+         ezcl_set_kernel_arg(kernel_rezone_one_float, 3, sizeof(cl_mem),  (void *)&dev_nlft);
+         ezcl_set_kernel_arg(kernel_rezone_one_float, 4, sizeof(cl_mem),  (void *)&dev_nrht);
+         ezcl_set_kernel_arg(kernel_rezone_one_float, 5, sizeof(cl_mem),  (void *)&dev_nbot);
+         ezcl_set_kernel_arg(kernel_rezone_one_float, 6, sizeof(cl_mem),  (void *)&dev_ntop);
+         ezcl_set_kernel_arg(kernel_rezone_one_float, 7, sizeof(cl_mem),  (void *)&dev_celltype);
+         ezcl_set_kernel_arg(kernel_rezone_one_float, 8, sizeof(cl_mem),  (void *)&dev_mpot);
+         ezcl_set_kernel_arg(kernel_rezone_one_float, 9, sizeof(cl_mem),  (void *)&dev_indexoffset);
+         ezcl_set_kernel_arg(kernel_rezone_one_float,10, sizeof(cl_mem),  (void *)&dev_state_mem_ptr);
+         ezcl_set_kernel_arg(kernel_rezone_one_float,11, sizeof(cl_mem),  (void *)&dev_state_var_new);
+
+         ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_one_float,   1, NULL, &global_work_size, &local_work_size, NULL);
+
+         gpu_state_memory.memory_replace(dev_state_mem_ptr, dev_state_var_new);
+      }
+   } 
 
    ezcl_device_memory_delete(dev_indexoffset);
 

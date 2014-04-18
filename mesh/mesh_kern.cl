@@ -3025,7 +3025,7 @@ __kernel void rezone_all_cl(
    indexoffset[giX] = indexval;
 }
 
-__kernel void rezone_one_cl(
+__kernel void rezone_one_float_cl(
                  const int    isize,        // 0
         __global const int   *i,            // 1
         __global const int   *j,            // 2
@@ -3036,14 +3036,63 @@ __kernel void rezone_one_cl(
         __global const int   *celltype,     // 7
         __global const int   *mpot,         // 8   Array of mesh potential information.
         __global const uint  *indexoffset,  // 9  
-        __global const real  *Var,          // 10
-        __global       real  *Var_new)      // 11
+        __global const float *Var,          // 10
+        __global       float *Var_new)      // 11
 {
    uint giX = get_global_id(0);
 
    if (giX >= isize) return;
 
-   real Varold = Var[giX];
+   float Varold = Var[giX];
+   int mpotval = mpot[giX];
+   int ctype = celltype[giX];
+   int indexval = indexoffset[giX];
+
+   if (mpotval == 0) {
+      Var_new[indexval] = Varold;
+   } else if (mpotval < 0) {
+      if (is_lower_left(i[giX],j[giX]) ) {
+         int nr = nrht[giX];
+         int nt = ntop[giX];
+         int nrt = nrht[nt];
+         Var_new[indexval] = (Varold+Var[nr]+Var[nt]+Var[nrt])*0.25;
+      }
+      if (ctype != REAL_CELL && is_upper_right(i[giX],j[giX]) ) {
+         int nl = nlft[giX];
+         int nb = nbot[giX];
+         int nlb = nlft[nb];
+         Var_new[indexval] = (Varold+Var[nl]+Var[nb]+Var[nlb])*0.25;
+      }
+   } else if (mpotval > 0) {
+      Var_new[indexval]   = Varold;
+      Var_new[indexval+1] = Varold;
+      if (ctype == REAL_CELL) {
+         Var_new[indexval+2] = Varold;
+         Var_new[indexval+3] = Varold;
+      }
+   }
+
+}
+
+__kernel void rezone_one_double_cl(
+                 const int     isize,        // 0
+        __global const int    *i,            // 1
+        __global const int    *j,            // 2
+        __global const int    *nlft,         // 3
+        __global const int    *nrht,         // 4
+        __global const int    *nbot,         // 5
+        __global const int    *ntop,         // 6
+        __global const int    *celltype,     // 7
+        __global const int    *mpot,         // 8   Array of mesh potential information.
+        __global const uint   *indexoffset,  // 9  
+        __global const double *Var,          // 10
+        __global       double *Var_new)      // 11
+{
+   uint giX = get_global_id(0);
+
+   if (giX >= isize) return;
+
+   double Varold = Var[giX];
    int mpotval = mpot[giX];
    int ctype = celltype[giX];
    int indexval = indexoffset[giX];
