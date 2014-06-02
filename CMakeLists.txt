@@ -54,6 +54,29 @@ find_package( OpenMP)
 #   message("OPENMP NOT FOUND")
 #endif(OPENMP_FOUND)
 
+
+if (NOT PRECISION_TYPE)
+   set (PRECISION_TYPE full)
+endif (NOT PRECISION_TYPE)
+
+if (PRECISION_TYPE STREQUAL "mixed_precision")
+   set (MIXED_PRECISION on)
+   set (PRECISION_TYPE mixed_precision)
+   add_definitions(-DMIXED_PRECISION)
+endif (PRECISION_TYPE STREQUAL "mixed_precision")
+
+if (PRECISION_TYPE STREQUAL "full_precision")
+   set (FULL_PRECISION on)
+   set (PRECISION_TYPE full_precision)
+   add_definitions(-DFULL_PRECISION)
+endif (PRECISION_TYPE STREQUAL "full_precision")
+
+if (PRECISION_TYPE STREQUAL "minimum_precision")
+   set (MINIMUM_PRECISION on)
+   set (PRECISION_TYPE minimum_precision)
+   add_definitions(-DMINIMUM_PRECISION)
+endif (PRECISION_TYPE STREQUAL "minimum_precision")
+
 if (NOT GRAPHICS_TYPE)
    set (GRAPHICS_TYPE none)
 endif (NOT GRAPHICS_TYPE)
