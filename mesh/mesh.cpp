@@ -60,7 +60,6 @@
 #include "hsfc/hsfc.h"
 #include "kdtree/KDTree.h"
 #include "mesh.h"
-#include "reorder.h"
 #ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
 #endif
@@ -200,77 +199,6 @@ void Mesh::write_grid(int ncycle)
    fclose(fp);
 }
 
-void Mesh::mesh_reorder(vector<int> iorder)
-{
-   assert(index.size() == ncells);
-   assert(x.size() == ncells);
-   assert(dx.size() == ncells);
-   assert(y.size() == ncells);
-   assert(dy.size() == ncells);
-   assert(iorder.size() == ncells);
-
-   assert(mesh_memory.get_memory_size(i) == ncells);
-   assert(mesh_memory.get_memory_size(j) == ncells);
-   assert(mesh_memory.get_memory_size(level) == ncells);
-   assert(mesh_memory.get_memory_size(celltype) == ncells);
-
-   MallocPlus mesh_memory_old = mesh_memory;
-
-   vector<int> inv_iorder;
-
-   if (nlft != NULL && mesh_memory.get_memory_size(nlft) >= ncells){
-      inv_iorder.resize(ncells);
-
-      for (uint i = 0; i < ncells; i++)
-      {  inv_iorder[iorder[i]] = i; }
-   }
-
-   int       *short_mem_ptr_old;
-   long long *long_mem_ptr_old;
-   int       *short_var_tmp;
-   long long *long_var_tmp;
-   for (void *mem_ptr = mesh_memory_old.memory_begin(); mem_ptr != NULL; mem_ptr = mesh_memory_old.memory_next() ){
-      int nelem = mesh_memory_old.get_memory_size(mem_ptr);
-      int elsize = mesh_memory_old.get_memory_elemsize(mem_ptr);
-      int flags = mesh_memory_old.get_memory_flags(mem_ptr);
-      if ((flags & INDEX_ARRAY_MEMORY) != 0){
-         printf("DEBUG -- index array memory %s being reordered\n",mesh_memory.get_memory_name(mem_ptr));
-         short_mem_ptr_old = (int *)mem_ptr;
-         short_var_tmp = (int *)mesh_memory.memory_malloc(nelem, elsize, "mesh_var_temp");
-         for (uint ic = 0; ic < (uint)nelem; ic++){
-            short_var_tmp[ic] = inv_iorder[short_mem_ptr_old[iorder[ic]]];
-         }
-         mesh_memory.memory_replace(mem_ptr, short_var_tmp);
-      } else {
-         printf("DEBUG -- mesh memory %s being reordered\n",mesh_memory.get_memory_name(mem_ptr));
-         if (elsize == 4){
-            short_mem_ptr_old = (int *)mem_ptr;
-            short_var_tmp = (int *)mesh_memory.memory_malloc(ncells, elsize, "mesh_var_temp");
-            for (uint ic = 0; ic < ncells; ic++){
-               short_var_tmp[ic] = short_mem_ptr_old[iorder[ic]];
-            }
-            mesh_memory.memory_replace(mem_ptr, short_var_tmp);
-         } else {
-            long_mem_ptr_old =  (long long *)mem_ptr;
-            long_var_tmp = (long long *)mesh_memory.memory_malloc(ncells, elsize, "mesh_var_temp");
-            for (uint ic = 0; ic < ncells; ic++){
-               long_var_tmp[ic] = long_mem_ptr_old[iorder[ic]];
-            }
-            mesh_memory.memory_replace(mem_ptr, long_var_tmp);
-         }
-      }
-   }
-
-   memory_reset_ptrs();
-
-   reorder(index,   iorder);
-   reorder(x,       iorder);
-   reorder(dx,      iorder);
-   reorder(y,       iorder);
-   reorder(dy,      iorder);
-
-}
-
 Mesh::Mesh(FILE *fin, int *numpe)
 {
    char string[80];
@@ -300,13 +228,7 @@ Mesh::Mesh(FILE *fin, int *numpe)
 
    index.resize(ncells);
 
-   int flags = 0;
-#ifdef HAVE_J7
-   if (parallel) flags = LOAD_BALANCE_MEMORY;
-#endif
-   i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "i");
-   j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "j");
-   level = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "level");
+   allocate(ncells);
 
    uint ic=0;
    while(fgets(string, 80, fin)!=NULL){
@@ -7667,6 +7589,25 @@ int Mesh::gpu_count_BCs(void)
    return(bcount);
 }
 #endif
+
+void Mesh::allocate(size_t ncells)
+{
+   int flags = 0;
+#ifdef HAVE_J7
+   if (parallel) flags = LOAD_BALANCE_MEMORY;
+#endif
+
+   i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "i");
+   j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "j");
+   level = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "level");
+}
+
+
+void Mesh::resize(size_t new_ncells)
+{
+   size_t current_size = mesh_memory.get_memory_size(i);
+   if (new_ncells > current_size) mesh_memory.memory_realloc_all(new_ncells);
+}
 
 void Mesh::memory_reset_ptrs(void){
    i        = (int *)mesh_memory.get_memory_ptr("i");

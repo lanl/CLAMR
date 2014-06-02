@@ -113,6 +113,7 @@ class Mesh
 public:
    int ndim;                    //  Dimensionality of mesh (2 or 3).
    MallocPlus mesh_memory; 
+   MallocPlus gpu_mesh_memory; 
 
    double   cpu_time_calc_neighbors,
                cpu_time_hash_setup,
@@ -286,8 +287,10 @@ public:
    void terminate(void);
 
 /* memory routines */
-   void resize_old_device_memory(size_t ncells);
+   void allocate(size_t ncells);
+   void resize(size_t new_ncells);
    void memory_reset_ptrs(void);
+   void resize_old_device_memory(size_t ncells);
 
 /* inline "macros" */
    int  is_left_boundary(int ic)    { return (i[ic] < lev_ibegin[level[ic]]); }
