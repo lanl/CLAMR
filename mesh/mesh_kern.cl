@@ -3035,7 +3035,7 @@ __kernel void rezone_one_float_cl(
         __global const int   *ntop,         // 6
         __global const int   *celltype,     // 7
         __global const int   *mpot,         // 8   Array of mesh potential information.
-        __global const uint  *indexoffset,  // 9  
+        __global const uint  *indexoffset,  // 9
         __global const float *Var,          // 10
         __global       float *Var_new)      // 11
 {
@@ -3084,7 +3084,7 @@ __kernel void rezone_one_double_cl(
         __global const int    *ntop,         // 6
         __global const int    *celltype,     // 7
         __global const int    *mpot,         // 8   Array of mesh potential information.
-        __global const uint   *indexoffset,  // 9  
+        __global const uint   *indexoffset,  // 9
         __global const double *Var,          // 10
         __global       double *Var_new)      // 11
 {

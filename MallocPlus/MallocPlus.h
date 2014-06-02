@@ -128,6 +128,7 @@ public:
    void *memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, int flags, const char *name);
 
    real_t *memory_reorder(real_t *malloc_mem_ptr, int *iorder);
+   float *memory_reorder(float *malloc_mem_ptr, int *iorder);
 
    void memory_report(void);
 

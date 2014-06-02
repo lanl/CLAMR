@@ -422,6 +422,30 @@ real_t *MallocPlus::memory_reorder(real_t *malloc_mem_ptr, int *iorder){
    return(malloc_mem_ptr);
 }
 
+float *MallocPlus::memory_reorder(float *malloc_mem_ptr, int *iorder){
+   list<malloc_plus_memory_entry>::iterator it;
+   float *ptr;
+
+   for ( it=memory_list.begin(); it != memory_list.end(); it++){
+      if (DEBUG) printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
+      if (malloc_mem_ptr == it->mem_ptr) break;
+   }
+   if (it != memory_list.end() ){
+      if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
+      float *tmp = (float *)malloc(it->mem_nelem*it->mem_elsize);
+      for (uint ic = 0; ic < it->mem_nelem; ic++){
+         tmp[ic] = malloc_mem_ptr[iorder[ic]];
+      }
+      SWAP_PTR(malloc_mem_ptr, tmp, ptr);
+      free(tmp);
+      it->mem_ptr = malloc_mem_ptr;
+   } else {
+      if (DEBUG) printf("Warning -- memory pointer %p not found\n",malloc_mem_ptr);
+   }
+
+   return(malloc_mem_ptr);
+}
+
 void MallocPlus::memory_report(void){
    list<malloc_plus_memory_entry>::iterator it;
    for ( it=memory_list.begin(); it != memory_list.end(); it++){

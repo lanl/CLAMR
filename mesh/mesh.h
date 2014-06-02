@@ -522,6 +522,9 @@ private:
    //   Member functions.
    void print_object_info();
 
+   void set_refinement_order(int order[4], int ic, int ifirst, int ilast, int jfirst, int jlast,
+                                int level_first, int level_last, int *i, int *j, int *level);
+
    void write_grid(int ncycle);
    void calc_centerminmax(void);
    void calc_minmax(void);

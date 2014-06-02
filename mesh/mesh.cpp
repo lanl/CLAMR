@@ -2526,312 +2526,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       {  //  Refinement is needed; insert four cells where once was one.
          if (celltype[ic] == REAL_CELL)
          {  
-            if (localStencil) {
-               //  Store the coordinates of the cells before and after this one on
-               //  the space-filling curve index.
+            set_refinement_order(&order[0], ic, ifirst, ilast, jfirst, jlast,
+                                 level_first, level_last, i, j, level);
 
-#ifdef __OLD_STENCIL__
-               real_t  nx[3],  //  x-coordinates of cells.
-                       ny[3];  //  y-coordinates of cells.
-               if (ic != 0) {
-                  nx[0] = lev_deltax[level[ic-1]] * (real_t)i[ic-1];
-                  ny[0] = lev_deltay[level[ic-1]] * (real_t)j[ic-1];
-               } else {
-                  nx[0] = lev_deltax[level_first] * (real_t)ifirst;
-                  ny[0] = lev_deltay[level_first] * (real_t)jfirst;
-               }
-               nx[1] = lev_deltax[level[ic  ]] * (real_t)i[ic  ];
-               ny[1] = lev_deltay[level[ic  ]] * (real_t)j[ic  ];
-               if (ic != ncells-1) {
-                  nx[2] = lev_deltax[level[ic+1]] * (real_t)i[ic+1];
-                  ny[2] = lev_deltay[level[ic+1]] * (real_t)j[ic+1];
-               } else {
-                  nx[2] = lev_deltax[level_last] * (real_t)ilast;
-                  ny[2] = lev_deltay[level_last] * (real_t)jlast;
-               }
-
-               //  Figure out relative orientation of the neighboring cells.  We are
-               //  are aided in this because the Hilbert curve only has six possible
-               //  ways across the cell:  four Ls and two straight lines.  Then
-               //  refine the cell according to the relative orientation and order
-               //  according to the four-point Hilbert stencil.
-               if      (nx[0] < nx[1] and ny[2] < ny[1])   //  southwest L, forward order
-               {  order[0] = SW; order[1] = NW; order[2] = NE; order[3] = SE; }
-               else if (nx[2] < nx[1] and ny[0] < ny[1])   //  southwest L, reverse order
-               {  order[0] = SE; order[1] = NE; order[2] = NW; order[3] = SW; }
-               else if (nx[0] > nx[1] and ny[2] < ny[1])   //  southeast L, forward order
-               {  order[0] = SE; order[1] = NE; order[2] = NW; order[3] = SW; }
-               else if (nx[2] > nx[1] and ny[0] < ny[1])   //  southeast L, reverse order
-               {  order[0] = SW; order[1] = NW; order[2] = NE; order[3] = SE; }
-               else if (nx[0] > nx[1] and ny[2] > ny[1])   //  northeast L, forward order
-               {  order[0] = SE; order[1] = SW; order[2] = NW; order[3] = NE; }
-               else if (nx[2] > nx[1] and ny[0] > ny[1])   //  northeast L, reverse order
-               {  order[0] = NE; order[1] = NW; order[2] = SW; order[3] = SE; }
-               else if (nx[0] < nx[1] and ny[2] > ny[1])   //  northwest L, forward order
-               {  order[0] = SW; order[1] = SE; order[2] = NE; order[3] = NW; }
-               else if (nx[2] < nx[1] and ny[0] > ny[1])   //  northwest L, reverse order
-               {  order[0] = NW; order[1] = NE; order[2] = SE; order[3] = SW; }
-               else if (nx[0] > nx[1] and nx[1] > nx[2])   //  straight horizontal, forward order
-               {  order[0] = NE; order[1] = SE; order[2] = SW; order[3] = NW; }
-               else if (nx[0] < nx[1] and nx[1] < nx[2])   //  straight horizontal, reverse order
-               {  order[0] = SW; order[1] = NW; order[2] = NE; order[3] = SE; }
-               else if (ny[0] > ny[1] and ny[1] > ny[2])   //  straight vertical, forward order
-               {  order[0] = NE; order[1] = NW; order[2] = SW; order[3] = SE; }
-               else if (ny[0] < ny[1] and ny[1] < ny[2])   //  straight vertical, reverse order
-               {  order[0] = SW; order[1] = SE; order[2] = NE; order[3] = NW; }
-               else                                        //  other, default to z-order
-               {  order[0] = SW; order[1] = SE; order[2] = NW; order[3] = NE; }
-#endif
-
-#ifdef __NEW_STENCIL__
-               int ir[3],   // First i index at finest level of the mesh
-                   jr[3];   // First j index at finest level of the mesh
-               // Cell's Radius at the Finest level of the mesh
-
-               int crf = IPOW2(levmx-level[ic]);
-
-               if (ic != 0) {
-                  ir[0] = i[ic - 1] * IPOW2(levmx-level[ic - 1]);
-                  jr[0] = j[ic - 1] * IPOW2(levmx-level[ic - 1]);
-               } else {
-                  //printf("%d cell %d is a first\n",mype,ic);
-                  ir[0] = ifirst * IPOW2(levmx-level_first);
-                  jr[0] = jfirst * IPOW2(levmx-level_first);
-               }
-               ir[1] = i[ic    ] * IPOW2(levmx-level[ic    ]);
-               jr[1] = j[ic    ] * IPOW2(levmx-level[ic    ]);
-               if (ic != (int)ncells-1) {
-                  ir[2] = i[ic + 1] * IPOW2(levmx-level[ic + 1]);
-                  jr[2] = j[ic + 1] * IPOW2(levmx-level[ic + 1]);
-               } else {
-                  //printf("%d cell %d is a last\n",mype,ic);
-                  ir[2] = ilast * IPOW2(levmx-level_last);
-                  jr[2] = jlast * IPOW2(levmx-level_last);
-               }
-               //if (parallel) fprintf(fp,"%d: DEBUG rezone top boundary -- ic %d global %d noffset %d nc %d i %d j %d level %d\n",mype,ic,ic+noffset,noffset,nc,i[nc],j[nc],level[nc]);
-
-               int dir_in  = ir[1] - ir[0];
-               int dir_out = ir[1] - ir[2];
-               int djr_in  = jr[1] - jr[0];
-               int djr_out = jr[1] - jr[2];
-
-               char  in_direction = 'X';
-               char out_direction = 'X';
-
-               // Left In
-               if( (djr_in == 0 && (dir_in == crf*HALF || dir_in == crf || dir_in == crf*TWO)) || (djr_in == -crf*HALF && dir_in == crf*HALF) || (djr_in == crf && dir_in == crf*TWO) ) {
-                  in_direction = 'L';
-               }
-               // Bottom In
-               else if( (dir_in == 0 && (djr_in == crf*HALF || djr_in == crf || djr_in == crf*TWO)) || (dir_in == -crf*HALF && djr_in == crf*HALF) || (dir_in == crf && djr_in == crf*TWO) ) {
-                  in_direction = 'B';
-               }
-               // Right In
-               else if( (dir_in == -crf && (djr_in == -crf*HALF || djr_in == 0 || (djr_in == crf && level[ic-1] < level[ic]))) ) {
-                  in_direction = 'R';
-               }
-               // Top In
-               else if( (djr_in == -crf && (dir_in == -crf*HALF || dir_in == 0 || (dir_in == crf && level[ic-1] < level[ic]))) ) {
-                  in_direction = 'T';
-               }
-               // Further from the left
-               else if( dir_in > 0 && djr_in == 0 ) {
-                  in_direction = 'L';
-               }
-               // Further from the right
-               else if( dir_in < 0 && djr_in == 0 ) {
-                  in_direction = 'R';
-               }
-               // Further from the bottom
-               else if( djr_in > 0 && dir_in == 0 ) {
-                  in_direction = 'B';
-               }
-               // Further from the top
-               else if( djr_in < 0 && dir_in == 0 ) {
-                  in_direction = 'T';
-               }
-               // SW in; 'M'
-               else if( dir_in > 0 && djr_in > 0) {
-                  in_direction = 'M';
-               }
-               // NW in; 'W'
-               else if( dir_in > 0 && djr_in < 0) {
-                  in_direction = 'W';
-               }
-               // SE in; 'F'
-               else if( dir_in < 0 && djr_in > 0) {
-                  in_direction = 'F';
-               }
-               // NE in; 'E'
-               else if( dir_in < 0 && djr_in < 0) {
-                  in_direction = 'E';
-               }
-
-   
-               // Left Out
-               if( (djr_out == 0 && (dir_out == crf*HALF || dir_out == crf || dir_out == crf*TWO)) || (djr_out == -crf*HALF && dir_out == crf*HALF) || (djr_out == crf && dir_out == crf*TWO) ) {
-                  out_direction = 'L';
-               }
-               // Bottom Out
-               else if( (dir_out == 0 && (djr_out == crf*HALF || djr_out == crf || djr_out == crf*TWO)) || (dir_out == -crf*HALF && djr_out == crf*HALF) || (dir_out == crf && djr_out == crf*TWO) ) {
-                  out_direction = 'B';
-               }
-               // Right Out
-               else if( (dir_out == -crf && (djr_out == -crf*HALF || djr_out == 0 || (djr_out == crf && level[ic+1] < level[ic]))) ) {
-                  out_direction = 'R';
-               }
-               // Top Out
-               else if( (djr_out == -crf && (dir_out == -crf*HALF || dir_out == 0 || (dir_out == crf && level[ic+1] < level[ic]))) ) {
-                  out_direction = 'T';
-               }
-               // Further from the left
-               else if( dir_out > 0 && djr_out == 0 ) {
-                  out_direction = 'L';
-               }
-               // Further from the right
-               else if( dir_out < 0 && djr_out == 0 ) {
-                  out_direction = 'R';
-               }
-               // Further from the bottom
-               else if( djr_out > 0 && dir_out == 0 ) {
-                  out_direction = 'B';
-               }
-               // Further from the top
-               else if( djr_out < 0 && dir_out == 0 ) {
-                  out_direction = 'T';
-               }
-               // SW out; 'M'
-               else if( dir_out > 0 && djr_out > 0) {
-                  out_direction = 'M';
-               }
-               // NW out; 'W'
-               else if( dir_out > 0 && djr_out < 0) {
-                  out_direction = 'W';
-               }
-               // SE out; 'F'
-               else if( dir_out < 0 && djr_out > 0) {
-                  out_direction = 'F';
-               }
-               // NE out; 'E'
-               else if( dir_out < 0 && djr_out < 0) {
-                  out_direction = 'E';
-               }
-
-               // Set the Stencil
-               if(in_direction == 'L' && (out_direction == 'B' || out_direction == 'R' || out_direction == 'F')) {
-                  order[0] = SW; order[1] = NW; order[2] = NE; order[3] = SE;
-               }
-               else if(in_direction == 'L' && (out_direction == 'T' || out_direction == 'W' )) {
-                  order[0] = SW; order[1] = SE; order[2] = NE; order[3] = NW;
-               }
-               else if(in_direction == 'L' && out_direction == 'M') {
-                  order[0] = NW; order[1] = NE; order[2] = SE; order[3] = SW;
-               }
-               else if(in_direction == 'L' && out_direction == 'E') {
-                  order[0] = SW; order[1] = SE; order[2] = NW; order[3] = NE;
-               }
-
-               else if(in_direction == 'B' && (out_direction == 'R' || out_direction == 'F' )) {
-                  order[0] = SW; order[1] = NW; order[2] = NE; order[3] = SE;
-               }
-               else if(in_direction == 'B' && (out_direction == 'L' || out_direction == 'T' || out_direction == 'W' )) {
-                  order[0] = SW; order[1] = SE; order[2] = NE; order[3] = NW;
-               }
-               else if(in_direction == 'B' && out_direction == 'M') {
-                  order[0] = SE; order[1] = NE; order[2] = NW; order[3] = SW;
-               }
-               else if(in_direction == 'B' && out_direction == 'E') {
-                  order[0] = SW; order[1] = NW; order[2] = SE; order[3] = NE;
-               }
-               
-               else if(in_direction == 'R' && (out_direction == 'T' || out_direction == 'L' || out_direction == 'W' )) {
-                  order[0] = NE; order[1] = SE; order[2] = SW; order[3] = NW;
-               }
-               else if(in_direction == 'R' && (out_direction == 'B' || out_direction == 'F' )) {
-                  order[0] = NE; order[1] = NW; order[2] = SW; order[3] = SE;
-               }
-               else if(in_direction == 'R' && out_direction == 'M') {
-                  order[0] = NE; order[1] = NW; order[2] = SE; order[3] = SW;
-               }
-               else if(in_direction == 'R' && out_direction == 'E') {
-                  order[0] = SE; order[1] = SW; order[2] = NW; order[3] = NE;
-               }
-
-               else if(in_direction == 'T' && (out_direction == 'L' || out_direction == 'W' )) {
-                  order[0] = NE; order[1] = SE; order[2] = SW; order[3] = NW;
-               }
-               else if(in_direction == 'T' && (out_direction == 'R' || out_direction == 'B' || out_direction == 'F' )) {
-                  order[0] = NE; order[1] = NW; order[2] = SW; order[3] = SE;
-               }
-               else if(in_direction == 'T' && out_direction == 'M') {
-                  order[0] = NE; order[1] = SE; order[2] = NW; order[3] = SW;
-               }
-               else if(in_direction == 'T' && out_direction == 'E') {
-                  order[0] = NW; order[1] = SW; order[2] = SE; order[3] = NE;
-               }
-
-               else if(in_direction == 'M' && (out_direction == 'L' || out_direction == 'W' || out_direction == 'T') ) {
-                  order[0] = SW; order[1] = SE; order[2] = NE; order[3] = NW;
-               }
-               else if(in_direction == 'M' && (out_direction == 'R' || out_direction == 'F' || out_direction == 'B') ) {
-                  order[0] = SW; order[1] = NW; order[2] = NE; order[3] = SE;
-               }
-               else if(in_direction == 'M' && out_direction == 'E') {
-                  order[0] = SW; order[1] = SE; order[2] = NW; order[3] = NE;
-               }
- 
-               else if(in_direction == 'W' && (out_direction == 'L' || out_direction == 'M' || out_direction == 'B') ) {
-                  order[0] = NW; order[1] = NE; order[2] = SE; order[3] = SW;
-               }
-               else if(in_direction == 'W' && (out_direction == 'R' || out_direction == 'E' || out_direction == 'T') ) {
-                  order[0] = NW; order[1] = SW; order[2] = SE; order[3] = NE;
-               }
-               else if(in_direction == 'W' && out_direction == 'F') {
-                  order[0] = NW; order[1] = NE; order[2] = SW; order[3] = SE;
-               }
-
-               else if(in_direction == 'F' && (out_direction == 'L' || out_direction == 'M' || out_direction == 'B') ) {
-                  order[0] = SE; order[1] = NE; order[2] = NW; order[3] = SW;
-               }
-               else if(in_direction == 'F' && (out_direction == 'R' || out_direction == 'E' || out_direction == 'T') ) {
-                  order[0] = SE; order[1] = SW; order[2] = NW; order[3] = NE;
-               }
-               else if(in_direction == 'F' && out_direction == 'W') {
-                  order[0] = SE; order[1] = NE; order[2] = SW; order[3] = NW;
-               }
-
-               else if(in_direction == 'E' && (out_direction == 'L' || out_direction == 'W' || out_direction == 'T') ) {
-                  order[0] = NE; order[1] = SE; order[2] = SW; order[3] = NW;
-               }
-               else if(in_direction == 'E' && (out_direction == 'R' || out_direction == 'F' || out_direction == 'B') ) {
-                  order[0] = NE; order[1] = NW; order[2] = SW; order[3] = SE;
-               }
-               else if(in_direction == 'E' && out_direction == 'M') {
-                  order[0] = NE; order[1] = SE; order[2] = NW; order[3] = SW;
-               }
-
-               else { // Default to a knot 
-                  order[0] = NW; order[1] = SE; order[2] = SW; order[3] = NE;
-                  if (do_stencil_warning) {
-                     printf("Nonlocal case for the stencil.\n");
-                  }
-               }
-               //  Determine the relative orientation of the neighboring cells.
-               //  There are 12 possible ways across the cell: 4 Ls and 2 straight
-               //  lines, each with 2 directions of traversal.
-               //  Then the cell is refined and ordered according to the relative
-               //  orientation and four-point Hilbert stencil.
-
-               // XXX NOTE that the four-point stencil varies depending upon
-               // the starting and ending point of the global Hilbert curve.
-               // The stencil applied here assumes the start at (0,0) and the end
-               // at (0,y_max). XXX WRONG
-#endif                 
-
-            }  //  End local stencil version
-            else //  Use Z-ordering for the curve.
-            {  order[0] = SW; order[1] = SE; order[2] = NW; order[3] = NE; }
-            
             //  Create the cells in the correct order and orientation.
             for (int ii = 0; ii < 4; ii++)
             {  level_new[nc] = level[ic] + 1;
@@ -7681,4 +7378,316 @@ void Mesh::print_object_info(void)
    printf("vector nrht      ptr : %p nelements %ld elsize %ld\n",&nrht[0],    mesh_memory.get_memory_size(nrht),    sizeof(nrht[0])); 
    printf("vector nbot      ptr : %p nelements %ld elsize %ld\n",&nbot[0],    mesh_memory.get_memory_size(nbot),    sizeof(nbot[0])); 
    printf("vector ntop      ptr : %p nelements %ld elsize %ld\n",&ntop[0],    mesh_memory.get_memory_size(ntop),    sizeof(ntop[0])); 
+}
+
+
+void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int jfirst, int jlast,
+                                int level_first, int level_last, int *i, int *j, int *level)
+{
+            if (localStencil) {
+               //  Store the coordinates of the cells before and after this one on
+               //  the space-filling curve index.
+
+#ifdef __OLD_STENCIL__
+               real_t  nx[3],  //  x-coordinates of cells.
+                       ny[3];  //  y-coordinates of cells.
+               if (ic != 0) {
+                  nx[0] = lev_deltax[level[ic-1]] * (real_t)i[ic-1];
+                  ny[0] = lev_deltay[level[ic-1]] * (real_t)j[ic-1];
+               } else {
+                  nx[0] = lev_deltax[level_first] * (real_t)ifirst;
+                  ny[0] = lev_deltay[level_first] * (real_t)jfirst;
+               }
+               nx[1] = lev_deltax[level[ic  ]] * (real_t)i[ic  ];
+               ny[1] = lev_deltay[level[ic  ]] * (real_t)j[ic  ];
+               if (ic != ncells-1) {
+                  nx[2] = lev_deltax[level[ic+1]] * (real_t)i[ic+1];
+                  ny[2] = lev_deltay[level[ic+1]] * (real_t)j[ic+1];
+               } else {
+                  nx[2] = lev_deltax[level_last] * (real_t)ilast;
+                  ny[2] = lev_deltay[level_last] * (real_t)jlast;
+               }
+
+               //  Figure out relative orientation of the neighboring cells.  We are
+               //  are aided in this because the Hilbert curve only has six possible
+               //  ways across the cell:  four Ls and two straight lines.  Then
+               //  refine the cell according to the relative orientation and order
+               //  according to the four-point Hilbert stencil.
+               if      (nx[0] < nx[1] and ny[2] < ny[1])   //  southwest L, forward order
+               {  order[0] = SW; order[1] = NW; order[2] = NE; order[3] = SE; }
+               else if (nx[2] < nx[1] and ny[0] < ny[1])   //  southwest L, reverse order
+               {  order[0] = SE; order[1] = NE; order[2] = NW; order[3] = SW; }
+               else if (nx[0] > nx[1] and ny[2] < ny[1])   //  southeast L, forward order
+               {  order[0] = SE; order[1] = NE; order[2] = NW; order[3] = SW; }
+               else if (nx[2] > nx[1] and ny[0] < ny[1])   //  southeast L, reverse order
+               {  order[0] = SW; order[1] = NW; order[2] = NE; order[3] = SE; }
+               else if (nx[0] > nx[1] and ny[2] > ny[1])   //  northeast L, forward order
+               {  order[0] = SE; order[1] = SW; order[2] = NW; order[3] = NE; }
+               else if (nx[2] > nx[1] and ny[0] > ny[1])   //  northeast L, reverse order
+               {  order[0] = NE; order[1] = NW; order[2] = SW; order[3] = SE; }
+               else if (nx[0] < nx[1] and ny[2] > ny[1])   //  northwest L, forward order
+               {  order[0] = SW; order[1] = SE; order[2] = NE; order[3] = NW; }
+               else if (nx[2] < nx[1] and ny[0] > ny[1])   //  northwest L, reverse order
+               {  order[0] = NW; order[1] = NE; order[2] = SE; order[3] = SW; }
+               else if (nx[0] > nx[1] and nx[1] > nx[2])   //  straight horizontal, forward order
+               {  order[0] = NE; order[1] = SE; order[2] = SW; order[3] = NW; }
+               else if (nx[0] < nx[1] and nx[1] < nx[2])   //  straight horizontal, reverse order
+               {  order[0] = SW; order[1] = NW; order[2] = NE; order[3] = SE; }
+               else if (ny[0] > ny[1] and ny[1] > ny[2])   //  straight vertical, forward order
+               {  order[0] = NE; order[1] = NW; order[2] = SW; order[3] = SE; }
+               else if (ny[0] < ny[1] and ny[1] < ny[2])   //  straight vertical, reverse order
+               {  order[0] = SW; order[1] = SE; order[2] = NE; order[3] = NW; }
+               else                                        //  other, default to z-order
+               {  order[0] = SW; order[1] = SE; order[2] = NW; order[3] = NE; }
+#endif
+
+#ifdef __NEW_STENCIL__
+               int ir[3],   // First i index at finest level of the mesh
+                   jr[3];   // First j index at finest level of the mesh
+               // Cell's Radius at the Finest level of the mesh
+
+               int crf = IPOW2(levmx-level[ic]);
+
+               if (ic != 0) {
+                  ir[0] = i[ic - 1] * IPOW2(levmx-level[ic - 1]);
+                  jr[0] = j[ic - 1] * IPOW2(levmx-level[ic - 1]);
+               } else {
+                  //printf("%d cell %d is a first\n",mype,ic);
+                  ir[0] = ifirst * IPOW2(levmx-level_first);
+                  jr[0] = jfirst * IPOW2(levmx-level_first);
+               }
+               ir[1] = i[ic    ] * IPOW2(levmx-level[ic    ]);
+               jr[1] = j[ic    ] * IPOW2(levmx-level[ic    ]);
+               if (ic != (int)ncells-1) {
+                  ir[2] = i[ic + 1] * IPOW2(levmx-level[ic + 1]);
+                  jr[2] = j[ic + 1] * IPOW2(levmx-level[ic + 1]);
+               } else {
+                  //printf("%d cell %d is a last\n",mype,ic);
+                  ir[2] = ilast * IPOW2(levmx-level_last);
+                  jr[2] = jlast * IPOW2(levmx-level_last);
+               }
+               //if (parallel) fprintf(fp,"%d: DEBUG rezone top boundary -- ic %d global %d noffset %d nc %d i %d j %d level %d\n",mype,ic,ic+noffset,noffset,nc,i[nc],j[nc],level[nc]);
+
+               int dir_in  = ir[1] - ir[0];
+               int dir_out = ir[1] - ir[2];
+               int djr_in  = jr[1] - jr[0];
+               int djr_out = jr[1] - jr[2];
+
+               char  in_direction = 'X';
+               char out_direction = 'X';
+
+               // Left In
+               if( (djr_in == 0 && (dir_in == crf*HALF || dir_in == crf || dir_in == crf*TWO)) || (djr_in == -crf*HALF && dir_in == crf*HALF) || (djr_in == crf && dir_in == crf*TWO) ) {
+                  in_direction = 'L';
+               }
+               // Bottom In
+               else if( (dir_in == 0 && (djr_in == crf*HALF || djr_in == crf || djr_in == crf*TWO)) || (dir_in == -crf*HALF && djr_in == crf*HALF) || (dir_in == crf && djr_in == crf*TWO) ) {
+                  in_direction = 'B';
+               }
+               // Right In
+               else if( (dir_in == -crf && (djr_in == -crf*HALF || djr_in == 0 || (djr_in == crf && level[ic-1] < level[ic]))) ) {
+                  in_direction = 'R';
+               }
+               // Top In
+               else if( (djr_in == -crf && (dir_in == -crf*HALF || dir_in == 0 || (dir_in == crf && level[ic-1] < level[ic]))) ) {
+                  in_direction = 'T';
+               }
+               // Further from the left
+               else if( dir_in > 0 && djr_in == 0 ) {
+                  in_direction = 'L';
+               }
+               // Further from the right
+               else if( dir_in < 0 && djr_in == 0 ) {
+                  in_direction = 'R';
+               }
+               // Further from the bottom
+               else if( djr_in > 0 && dir_in == 0 ) {
+                  in_direction = 'B';
+               }
+               // Further from the top
+               else if( djr_in < 0 && dir_in == 0 ) {
+                  in_direction = 'T';
+               }
+               // SW in; 'M'
+               else if( dir_in > 0 && djr_in > 0) {
+                  in_direction = 'M';
+               }
+               // NW in; 'W'
+               else if( dir_in > 0 && djr_in < 0) {
+                  in_direction = 'W';
+               }
+               // SE in; 'F'
+               else if( dir_in < 0 && djr_in > 0) {
+                  in_direction = 'F';
+               }
+               // NE in; 'E'
+               else if( dir_in < 0 && djr_in < 0) {
+                  in_direction = 'E';
+               }
+
+   
+               // Left Out
+               if( (djr_out == 0 && (dir_out == crf*HALF || dir_out == crf || dir_out == crf*TWO)) || (djr_out == -crf*HALF && dir_out == crf*HALF) || (djr_out == crf && dir_out == crf*TWO) ) {
+                  out_direction = 'L';
+               }
+               // Bottom Out
+               else if( (dir_out == 0 && (djr_out == crf*HALF || djr_out == crf || djr_out == crf*TWO)) || (dir_out == -crf*HALF && djr_out == crf*HALF) || (dir_out == crf && djr_out == crf*TWO) ) {
+                  out_direction = 'B';
+               }
+               // Right Out
+               else if( (dir_out == -crf && (djr_out == -crf*HALF || djr_out == 0 || (djr_out == crf && level[ic+1] < level[ic]))) ) {
+                  out_direction = 'R';
+               }
+               // Top Out
+               else if( (djr_out == -crf && (dir_out == -crf*HALF || dir_out == 0 || (dir_out == crf && level[ic+1] < level[ic]))) ) {
+                  out_direction = 'T';
+               }
+               // Further from the left
+               else if( dir_out > 0 && djr_out == 0 ) {
+                  out_direction = 'L';
+               }
+               // Further from the right
+               else if( dir_out < 0 && djr_out == 0 ) {
+                  out_direction = 'R';
+               }
+               // Further from the bottom
+               else if( djr_out > 0 && dir_out == 0 ) {
+                  out_direction = 'B';
+               }
+               // Further from the top
+               else if( djr_out < 0 && dir_out == 0 ) {
+                  out_direction = 'T';
+               }
+               // SW out; 'M'
+               else if( dir_out > 0 && djr_out > 0) {
+                  out_direction = 'M';
+               }
+               // NW out; 'W'
+               else if( dir_out > 0 && djr_out < 0) {
+                  out_direction = 'W';
+               }
+               // SE out; 'F'
+               else if( dir_out < 0 && djr_out > 0) {
+                  out_direction = 'F';
+               }
+               // NE out; 'E'
+               else if( dir_out < 0 && djr_out < 0) {
+                  out_direction = 'E';
+               }
+
+               // Set the Stencil
+               if(in_direction == 'L' && (out_direction == 'B' || out_direction == 'R' || out_direction == 'F')) {
+                  order[0] = SW; order[1] = NW; order[2] = NE; order[3] = SE;
+               }
+               else if(in_direction == 'L' && (out_direction == 'T' || out_direction == 'W' )) {
+                  order[0] = SW; order[1] = SE; order[2] = NE; order[3] = NW;
+               }
+               else if(in_direction == 'L' && out_direction == 'M') {
+                  order[0] = NW; order[1] = NE; order[2] = SE; order[3] = SW;
+               }
+               else if(in_direction == 'L' && out_direction == 'E') {
+                  order[0] = SW; order[1] = SE; order[2] = NW; order[3] = NE;
+               }
+
+               else if(in_direction == 'B' && (out_direction == 'R' || out_direction == 'F' )) {
+                  order[0] = SW; order[1] = NW; order[2] = NE; order[3] = SE;
+               }
+               else if(in_direction == 'B' && (out_direction == 'L' || out_direction == 'T' || out_direction == 'W' )) {
+                  order[0] = SW; order[1] = SE; order[2] = NE; order[3] = NW;
+               }
+               else if(in_direction == 'B' && out_direction == 'M') {
+                  order[0] = SE; order[1] = NE; order[2] = NW; order[3] = SW;
+               }
+               else if(in_direction == 'B' && out_direction == 'E') {
+                  order[0] = SW; order[1] = NW; order[2] = SE; order[3] = NE;
+               }
+               
+               else if(in_direction == 'R' && (out_direction == 'T' || out_direction == 'L' || out_direction == 'W' )) {
+                  order[0] = NE; order[1] = SE; order[2] = SW; order[3] = NW;
+               }
+               else if(in_direction == 'R' && (out_direction == 'B' || out_direction == 'F' )) {
+                  order[0] = NE; order[1] = NW; order[2] = SW; order[3] = SE;
+               }
+               else if(in_direction == 'R' && out_direction == 'M') {
+                  order[0] = NE; order[1] = NW; order[2] = SE; order[3] = SW;
+               }
+               else if(in_direction == 'R' && out_direction == 'E') {
+                  order[0] = SE; order[1] = SW; order[2] = NW; order[3] = NE;
+               }
+
+               else if(in_direction == 'T' && (out_direction == 'L' || out_direction == 'W' )) {
+                  order[0] = NE; order[1] = SE; order[2] = SW; order[3] = NW;
+               }
+               else if(in_direction == 'T' && (out_direction == 'R' || out_direction == 'B' || out_direction == 'F' )) {
+                  order[0] = NE; order[1] = NW; order[2] = SW; order[3] = SE;
+               }
+               else if(in_direction == 'T' && out_direction == 'M') {
+                  order[0] = NE; order[1] = SE; order[2] = NW; order[3] = SW;
+               }
+               else if(in_direction == 'T' && out_direction == 'E') {
+                  order[0] = NW; order[1] = SW; order[2] = SE; order[3] = NE;
+               }
+
+               else if(in_direction == 'M' && (out_direction == 'L' || out_direction == 'W' || out_direction == 'T') ) {
+                  order[0] = SW; order[1] = SE; order[2] = NE; order[3] = NW;
+               }
+               else if(in_direction == 'M' && (out_direction == 'R' || out_direction == 'F' || out_direction == 'B') ) {
+                  order[0] = SW; order[1] = NW; order[2] = NE; order[3] = SE;
+               }
+               else if(in_direction == 'M' && out_direction == 'E') {
+                  order[0] = SW; order[1] = SE; order[2] = NW; order[3] = NE;
+               }
+ 
+               else if(in_direction == 'W' && (out_direction == 'L' || out_direction == 'M' || out_direction == 'B') ) {
+                  order[0] = NW; order[1] = NE; order[2] = SE; order[3] = SW;
+               }
+               else if(in_direction == 'W' && (out_direction == 'R' || out_direction == 'E' || out_direction == 'T') ) {
+                  order[0] = NW; order[1] = SW; order[2] = SE; order[3] = NE;
+               }
+               else if(in_direction == 'W' && out_direction == 'F') {
+                  order[0] = NW; order[1] = NE; order[2] = SW; order[3] = SE;
+               }
+
+               else if(in_direction == 'F' && (out_direction == 'L' || out_direction == 'M' || out_direction == 'B') ) {
+                  order[0] = SE; order[1] = NE; order[2] = NW; order[3] = SW;
+               }
+               else if(in_direction == 'F' && (out_direction == 'R' || out_direction == 'E' || out_direction == 'T') ) {
+                  order[0] = SE; order[1] = SW; order[2] = NW; order[3] = NE;
+               }
+               else if(in_direction == 'F' && out_direction == 'W') {
+                  order[0] = SE; order[1] = NE; order[2] = SW; order[3] = NW;
+               }
+
+               else if(in_direction == 'E' && (out_direction == 'L' || out_direction == 'W' || out_direction == 'T') ) {
+                  order[0] = NE; order[1] = SE; order[2] = SW; order[3] = NW;
+               }
+               else if(in_direction == 'E' && (out_direction == 'R' || out_direction == 'F' || out_direction == 'B') ) {
+                  order[0] = NE; order[1] = NW; order[2] = SW; order[3] = SE;
+               }
+               else if(in_direction == 'E' && out_direction == 'M') {
+                  order[0] = NE; order[1] = SE; order[2] = NW; order[3] = SW;
+               }
+
+               else { // Default to a knot 
+                  order[0] = NW; order[1] = SE; order[2] = SW; order[3] = NE;
+                  if (do_stencil_warning) {
+                     printf("Nonlocal case for the stencil.\n");
+                  }
+               }
+               //  Determine the relative orientation of the neighboring cells.
+               //  There are 12 possible ways across the cell: 4 Ls and 2 straight
+               //  lines, each with 2 directions of traversal.
+               //  Then the cell is refined and ordered according to the relative
+               //  orientation and four-point Hilbert stencil.
+
+               // XXX NOTE that the four-point stencil varies depending upon
+               // the starting and ending point of the global Hilbert curve.
+               // The stencil applied here assumes the start at (0,0) and the end
+               // at (0,y_max). XXX WRONG
+#endif                 
+
+            }  //  End local stencil version
+            else //  Use Z-ordering for the curve.
+            {  order[0] = SW; order[1] = SE; order[2] = NW; order[3] = NE; }
+            
 }
