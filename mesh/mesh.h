@@ -202,7 +202,7 @@ public:
                   lev_kbegin,   //  Lowest z-index in use at specified level of refinement.
                   lev_kend,     //  Highest z-index in use at specified level of refinement.
                   levtable;     //  Powers of two to simplify i,j calculations
-   vector<real_t> lev_deltax,   //  Grid spacing along x-axis at specified level of refinement.
+   vector<double> lev_deltax,   //  Grid spacing along x-axis at specified level of refinement.
                   lev_deltay,   //  Grid spacing along y-axis at specified level of refinement.
                   lev_deltaz;   //  Grid spacing along z-axis at specified level of refinement.
    int            levmx,        //  Maximum level of refinement allowed.
@@ -217,7 +217,7 @@ public:
    size_t         ncells,       //  Number of cells in mesh.
                   ncells_global, //  Global number of cells for parallel runs
                   ncells_ghost; //  Number of cells in mesh with ghost cells.
-   real_t         xmin,         //  Lowest x-coordinate in use.
+   double         xmin,         //  Lowest x-coordinate in use.
                   xmax,         //  Highest x-coordinate in use.
                   ymin,         //  Lowest y-coordinate in use.
                   ymax,         //  Highest y-coordinate in use.

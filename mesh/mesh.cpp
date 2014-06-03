@@ -217,7 +217,7 @@ Mesh::Mesh(FILE *fin, int *numpe)
    if(fgets(string, 80, fin) == NULL) exit(-1);
    sscanf(string,"ndim %d",&ndim);
    if(fgets(string, 80, fin) == NULL) exit(-1);
-   sscanf(string,"xaxis %lf %lf",(double*)&xmin, (double*)&deltax);
+   sscanf(string,"xaxis %lf %lf",&xmin, &deltax);
    if(fgets(string, 80, fin) == NULL) exit(-1);
    sscanf(string,"yaxis %lf %lf",(double*)&ymin, (double*)&deltay);
    if (ndim == 3){
@@ -1196,10 +1196,10 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
       jmax   = ny + 1;
    }
    
-   xmin = -deltax * 0.5 * (real_t)nxx;
-   ymin = -deltay * 0.5 * (real_t)nyy;
-   xmax =  deltax * 0.5 * (real_t)nxx;
-   ymax =  deltay * 0.5 * (real_t)nyy;
+   xmin = -deltax * 0.5 * (double)nxx;
+   ymin = -deltay * 0.5 * (double)nyy;
+   xmax =  deltax * 0.5 * (double)nxx;
+   ymax =  deltay * 0.5 * (double)nyy;
    
    size_t lvlMxSize = levmx + 1;
 
@@ -1233,13 +1233,13 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
    if (do_gpu_calc) {
 #ifdef HAVE_OPENCL
    // The copy host ptr flag will have the data copied to the GPU as part of the allocation
-      dev_levtable = ezcl_malloc(&levtable[0],   const_cast<char *>("dev_levtable"), &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-      dev_levdx    = ezcl_malloc(&lev_deltax[0], const_cast<char *>("dev_levdx"),    &lvlMxSize, sizeof(cl_real), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-      dev_levdy    = ezcl_malloc(&lev_deltay[0], const_cast<char *>("dev_levdy"),    &lvlMxSize, sizeof(cl_real), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-      dev_levibeg  = ezcl_malloc(&lev_ibegin[0], const_cast<char *>("dev_levibeg"),  &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-      dev_leviend  = ezcl_malloc(&lev_iend[0],   const_cast<char *>("dev_leviend"),  &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-      dev_levjbeg  = ezcl_malloc(&lev_jbegin[0], const_cast<char *>("dev_levjbeg"),  &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-      dev_levjend  = ezcl_malloc(&lev_jend[0],   const_cast<char *>("dev_levjend"),  &lvlMxSize, sizeof(cl_int),  CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levtable = ezcl_malloc(&levtable[0],   const_cast<char *>("dev_levtable"), &lvlMxSize, sizeof(cl_int),    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levdx    = ezcl_malloc(&lev_deltax[0], const_cast<char *>("dev_levdx"),    &lvlMxSize, sizeof(cl_double), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levdy    = ezcl_malloc(&lev_deltay[0], const_cast<char *>("dev_levdy"),    &lvlMxSize, sizeof(cl_double), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levibeg  = ezcl_malloc(&lev_ibegin[0], const_cast<char *>("dev_levibeg"),  &lvlMxSize, sizeof(cl_int),    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_leviend  = ezcl_malloc(&lev_iend[0],   const_cast<char *>("dev_leviend"),  &lvlMxSize, sizeof(cl_int),    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levjbeg  = ezcl_malloc(&lev_jbegin[0], const_cast<char *>("dev_levjbeg"),  &lvlMxSize, sizeof(cl_int),    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levjend  = ezcl_malloc(&lev_jend[0],   const_cast<char *>("dev_levjend"),  &lvlMxSize, sizeof(cl_int),    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
 #endif
    }
 
@@ -2241,18 +2241,18 @@ void Mesh::calc_spatial_coordinates(int ibase)
    if (have_boundary) {
       for (uint ic = 0; ic < ncells; ic++) {
          int lev = level[ic];
-         x[ic]  = xmin + (real_t)(lev_deltax[lev] * (i[ic] - ibase));
-         dx[ic] =        (real_t)lev_deltax[lev];
-         y[ic]  = ymin + (real_t)(lev_deltay[lev] * (j[ic] - ibase));
-         dy[ic] =        (real_t)lev_deltay[lev];
+         x[ic]  = xmin + (lev_deltax[lev] * (i[ic] - ibase));
+         dx[ic] =        lev_deltax[lev];
+         y[ic]  = ymin + (lev_deltay[lev] * (j[ic] - ibase));
+         dy[ic] =        lev_deltay[lev];
       }
    } else {
       for (uint ic = 0; ic < ncells; ic++) {
          int lev = level[ic];
-         x[ic]  = xmin + (real_t)(lev_deltax[lev] * (i[ic] - lev_ibegin[lev]));
-         dx[ic] =        (real_t)lev_deltax[lev];
-         y[ic]  = ymin + (real_t)(lev_deltay[lev] * (j[ic] - lev_jbegin[lev]));
-         dy[ic] =        (real_t)lev_deltay[lev];
+         x[ic]  = xmin + (lev_deltax[lev] * (i[ic] - lev_ibegin[lev]));
+         dx[ic] =        lev_deltax[lev];
+         y[ic]  = ymin + (lev_deltay[lev] * (j[ic] - lev_jbegin[lev]));
+         dy[ic] =        lev_deltay[lev];
       }
    }
 
@@ -2288,8 +2288,8 @@ void Mesh::gpu_calc_spatial_coordinates(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_
 //     j
 
    ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  0, sizeof(cl_int),    (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  1, sizeof(cl_real),   (void *)&xmin);
-   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  2, sizeof(cl_real),   (void *)&ymin);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  1, sizeof(cl_double), (void *)&xmin);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  2, sizeof(cl_double), (void *)&ymin);
    ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  3, sizeof(cl_mem),    (void *)&dev_levdx);
    ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  4, sizeof(cl_mem),    (void *)&dev_levdy);
    ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  5, sizeof(cl_mem),    (void *)&dev_x);
@@ -2344,11 +2344,11 @@ void Mesh::calc_minmax(void)
 
 #ifdef HAVE_MPI
    if (parallel) {
-      real_t xmin_global,xmax_global,ymin_global,ymax_global;
-      MPI_Allreduce(&xmin, &xmin_global, 1, MPI_C_REAL, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(&xmax, &xmax_global, 1, MPI_C_REAL, MPI_MAX, MPI_COMM_WORLD);
-      MPI_Allreduce(&ymin, &ymin_global, 1, MPI_C_REAL, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(&ymax, &ymax_global, 1, MPI_C_REAL, MPI_MAX, MPI_COMM_WORLD);
+      double xmin_global,xmax_global,ymin_global,ymax_global;
+      MPI_Allreduce(&xmin, &xmin_global, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(&xmax, &xmax_global, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      MPI_Allreduce(&ymin, &ymin_global, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(&ymax, &ymax_global, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
       xmin = xmin_global;
       xmax = xmax_global;
       ymin = ymin_global;
@@ -2361,7 +2361,7 @@ void Mesh::calc_centerminmax(void)
 {
    xcentermin=+1.0e30, ycentermin=+1.0e30, zcentermin=+1.0e30;
    xcentermax=-1.0e30, ycentermax=-1.0e30, zcentermax=-1.0e30;
-   real_t xmid, ymid, zmid;
+   double xmid, ymid, zmid;
 
    for (uint ic=0; ic<ncells; ic++){
       xmid = x[ic]+0.5*dx[ic];
@@ -2383,11 +2383,11 @@ void Mesh::calc_centerminmax(void)
 
 #ifdef HAVE_MPI
    if (parallel) {
-      real_t xcentermin_global,xcentermax_global,ycentermin_global,ycentermax_global;
-      MPI_Allreduce(&xcentermin, &xcentermin_global, 1, MPI_C_REAL, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(&xcentermax, &xcentermax_global, 1, MPI_C_REAL, MPI_MAX, MPI_COMM_WORLD);
-      MPI_Allreduce(&ycentermin, &ycentermin_global, 1, MPI_C_REAL, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(&ycentermax, &ycentermax_global, 1, MPI_C_REAL, MPI_MAX, MPI_COMM_WORLD);
+      double xcentermin_global,xcentermax_global,ycentermin_global,ycentermax_global;
+      MPI_Allreduce(&xcentermin, &xcentermin_global, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(&xcentermax, &xcentermax_global, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      MPI_Allreduce(&ycentermin, &ycentermin_global, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(&ycentermax, &ycentermax_global, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
       xcentermin = xcentermin_global;
       xcentermax = xcentermax_global;
       ycentermin = ycentermin_global;

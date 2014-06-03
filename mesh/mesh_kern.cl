@@ -2062,10 +2062,10 @@ __kernel void finish_reduction_minmax4_cl(
 
 __kernel void calc_spatial_coordinates_cl(
           const    int   isize,
-          const    real   xmin,
-          const    real   ymin,
-          __global real   *lev_deltax,
-          __global real   *lev_deltay,
+          const    double xmin,
+          const    double ymin,
+          __global double *lev_deltax,
+          __global double *lev_deltay,
           __global real   *x,
           __global real   *dx,
           __global real   *y,
@@ -2082,9 +2082,9 @@ __kernel void calc_spatial_coordinates_cl(
    int lev = level[giX];
 
    x[giX] = isize;
-   x[giX]  = xmin + lev_deltax[lev] * (real)i[giX];
+   x[giX]  = xmin + lev_deltax[lev] * (double)i[giX];
    dx[giX] =        lev_deltax[lev];
-   y[giX]  = ymin + lev_deltay[lev] * (real)j[giX];
+   y[giX]  = ymin + lev_deltay[lev] * (double)j[giX];
    dy[giX] =        lev_deltay[lev];
 }
 
@@ -2675,21 +2675,21 @@ __kernel void rezone_all_cl(
             int level_first  = ijadd[4];
             int level_end    = ijadd[5];
 
-//             x[ic]  = xmin + lev_deltax[level[ic]] * (real)(i[ic] - ibase);
+//             x[ic]  = xmin + lev_deltax[level[ic]] * (double)(i[ic] - ibase);
 
             if (giX != 0) {
-               nx[0] = lev_dx[level[giX-1]] * (real)i[giX-1];
-               ny[0] = lev_dy[level[giX-1]] * (real)j[giX-1];
+               nx[0] = lev_dx[level[giX-1]] * (double)i[giX-1];
+               ny[0] = lev_dy[level[giX-1]] * (double)j[giX-1];
             } else {
                nx[0] = lev_dx[level_first] * ifirst;
                ny[0] = lev_dy[level_first] * jfirst;
             }
 
-            nx[1] = lev_dx[level[giX  ]] * (real)i[giX  ];
-            ny[1] = lev_dy[level[giX  ]] * (real)j[giX  ];
+            nx[1] = lev_dx[level[giX  ]] * (double)i[giX  ];
+            ny[1] = lev_dy[level[giX  ]] * (double)j[giX  ];
             if (giX != isize-1) {
-               nx[2] = lev_dx[level[giX+1]] * (real)i[giX+1];
-               ny[2] = lev_dy[level[giX+1]] * (real)j[giX+1];
+               nx[2] = lev_dx[level[giX+1]] * (double)i[giX+1];
+               ny[2] = lev_dy[level[giX+1]] * (double)j[giX+1];
             } else {
                nx[2] = lev_dx[level_end] * iend;
                ny[2] = lev_dy[level_end] * jend;
