@@ -55,7 +55,7 @@ find_package( OpenMP)
 #endif(OPENMP_FOUND)
 
 if (NOT PRECISION_TYPE)
-   set (PRECISION_TYPE full)
+   set (PRECISION_TYPE full_precision)
 endif (NOT PRECISION_TYPE)
 
 if (PRECISION_TYPE STREQUAL "mixed_precision")
