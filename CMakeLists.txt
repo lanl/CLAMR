@@ -54,7 +54,6 @@ find_package( OpenMP)
 #   message("OPENMP NOT FOUND")
 #endif(OPENMP_FOUND)
 
-
 if (NOT PRECISION_TYPE)
    set (PRECISION_TYPE full)
 endif (NOT PRECISION_TYPE)
