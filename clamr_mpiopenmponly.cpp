@@ -294,7 +294,7 @@ int main(int argc, char **argv) {
    set_cell_proc(&mesh->proc[0]);
 #endif
 
-   set_window(mesh->xmin, mesh->xmax, mesh->ymin, mesh->ymax);
+   set_window((float)mesh->xmin, (float)mesh->xmax, (float)mesh->ymin, (float)mesh->ymax);
    set_viewmode(view_mode);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);

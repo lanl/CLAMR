@@ -416,7 +416,7 @@ int main(int argc, char **argv) {
 #ifdef HAVE_GRAPHICS
    set_mysize(ncells_global);
    set_viewmode(view_mode);
-   set_window(mesh_global->xmin, mesh_global->xmax, mesh_global->ymin, mesh_global->ymax);
+   set_window((float)mesh_global->xmin, (float)mesh_global->xmax, (float)mesh_global->ymin, (float)mesh_global->ymax);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);

@@ -117,7 +117,7 @@ void free_display(void);
 void set_viewmode(int display_view_mode_in);
 void set_outline(int display_outline_in);
 void set_mysize(int mysize_in);
-void set_window(real_t display_xmin_in, real_t display_xmax_in, real_t display_ymin_in, real_t display_ymax_in);
+void set_window(float display_xmin_in, float display_xmax_in, float display_ymin_in, float display_ymax_in);
 void set_cell_coordinates(real_t *x_in, real_t *dx_in, real_t *y_in, real_t *dy_in);
 void set_cell_data(real_t *data_in);
 void set_cell_proc(int *display_proc_in);

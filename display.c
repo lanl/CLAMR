@@ -128,7 +128,7 @@ static int mode = MOVE;
 static int height;
 #endif
 static int width;
-static real_t display_xmin=0.0, display_xmax=0.0, display_ymin=0.0, display_ymax=0.0;
+static float display_xmin=0.0, display_xmax=0.0, display_ymin=0.0, display_ymax=0.0;
 
 #ifdef HAVE_OPENGL
 static GLfloat xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
@@ -295,7 +295,7 @@ void start_main_loop(void){
 #endif
 }
    
-void set_window(real_t display_xmin_in, real_t display_xmax_in, real_t display_ymin_in, real_t display_ymax_in){
+void set_window(float display_xmin_in, float display_xmax_in, float display_ymin_in, float display_ymax_in){
    display_xmin = display_xmin_in;
    display_xmax = display_xmax_in;
    display_ymin = display_ymin_in;

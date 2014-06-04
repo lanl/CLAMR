@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
 #ifdef HAVE_GRAPHICS
    set_mysize(ncells);
    set_viewmode(view_mode);
-   set_window(mesh->xmin, mesh->xmax, mesh->ymin, mesh->ymax);
+   set_window((float)mesh->xmin, (float)mesh->xmax, (float)mesh->ymin, (float)mesh->ymax);
    set_outline((int)outline);
    init_display(&argc, argv, "Shallow Water", mype);
    set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
