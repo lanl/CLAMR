@@ -961,16 +961,29 @@ void State::fill_circle(double  circ_radius,//  Radius of circle in grid units.
    vector<int>    ind(ncells);
    vector<double> weight(ncells);
    
-   KDTree_QueryCircleInterior(&mesh->tree, &nez, &(ind[0]), circ_radius, ncells,
-                              &x[0], &dx[0],
-                              &y[0], &dy[0]);
+#ifdef FULL_PRECISION
+   KDTree_QueryCircleInterior_Double(&mesh->tree, &nez, &(ind[0]), circ_radius, ncells,
+                                     &x[0], &dx[0],
+                                     &y[0], &dy[0]);
+#else
+   KDTree_QueryCircleInterior_Float(&mesh->tree, &nez, &(ind[0]), circ_radius, ncells,
+                                    &x[0], &dx[0],
+                                    &y[0], &dy[0]);
+#endif
    for (int ic = 0; ic < nez; ++ic)
    {  H[ind[ic]] = fill_value; }
    
-   KDTree_QueryCircleIntersectWeighted(&mesh->tree, &nez, &(ind[0]), &(weight[0]),
+#ifdef FULL_PRECISION
+   KDTree_QueryCircleIntersectWeighted_Double(&mesh->tree, &nez, &(ind[0]), &(weight[0]),
                               circ_radius, ncells,
                               &x[0], &dx[0],
                               &y[0], &dy[0]);
+#else
+   KDTree_QueryCircleIntersectWeighted_Float(&mesh->tree, &nez, &(ind[0]), &(weight[0]),
+                              circ_radius, ncells,
+                              &x[0], &dx[0],
+                              &y[0], &dy[0]);
+#endif
    
    for (int ic = 0; ic < nez; ++ic)
    {  H[ind[ic]] = background + (fill_value - background) * weight[ic]; }

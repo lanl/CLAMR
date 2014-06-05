@@ -85,7 +85,7 @@
    typedef cl_float cl_real_t; // for intermediate gpu physics state variables
    typedef cl_float cl_spatial_t;
 #endif
-   typedef float display_t; // for display variable
+// typedef float display_t; // for display variable
    typedef float spatial_t; // for spatial variables
    typedef float real_spatial_t; // for intermediate spatial variables
 #ifdef HAVE_MPI
@@ -99,7 +99,7 @@
    typedef cl_double cl_real_t; // for intermediate gpu physics state variables
    typedef cl_float cl_spatial_t;
 #endif
-   typedef float display_t; // for display variable
+// typedef float display_t; // for display variable
    typedef float spatial_t; // for spatial variables
    typedef double real_spatial_t; // for intermediate spatial variables
 #ifdef HAVE_MPI
@@ -113,7 +113,7 @@
    typedef cl_double cl_real_t; // for intermediate gpu physics state variables
    typedef cl_double cl_spatial_t;
 #endif
-   typedef double display_t; // for display variable
+// typedef double display_t; // for display variable
    typedef double spatial_t; // for spatial variables
    typedef double real_spatial_t; // for intermediate spatial variables
 #ifdef HAVE_MPI

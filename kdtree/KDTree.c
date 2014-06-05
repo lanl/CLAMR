@@ -311,10 +311,10 @@ void KDTree_QueryBoxIntersect(TKDTree* t,
    FREE(stack);
 }
 
-void KDTree_QueryCircleIntersect(TKDTree* t,
+void KDTree_QueryCircleIntersect_Double(TKDTree* t,
                                  int* result_num, int* result_indicies,
                                  double circ_radius, int ncells, 
-                                 spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy)
+                                 double *x, double *dx, double *y, double *dy)
 {
    assert(t && result_num && result_indicies && circ_radius);
    /* Build the k-D tree if necessary */
@@ -371,10 +371,70 @@ void KDTree_QueryCircleIntersect(TKDTree* t,
    free(ind);
 }
 
-void KDTree_QueryCircleIntersectWeighted(TKDTree* t,
+void KDTree_QueryCircleIntersect_Float(TKDTree* t,
+                                 int* result_num, int* result_indicies,
+                                 double circ_radius, int ncells, 
+                                 float *x, float *dx, float *y, float *dy)
+{
+   assert(t && result_num && result_indicies && circ_radius);
+   /* Build the k-D tree if necessary */
+   if(!t->tree_built){
+      //printf("BUILDING TREE... \n");
+      //fflush(stdout);
+      KDTree_CreateTree(t);
+   }
+   
+   int nez;
+   int *ind=(int *)malloc(ncells*sizeof(int));
+   
+   TBounds box;
+   box.min.x = -circ_radius;
+   box.max.x =  circ_radius;
+   box.min.y = -circ_radius;
+   box.max.y =  circ_radius;
+   KDTree_QueryBoxIntersect(t, &nez, ind, &box);
+   
+   //for (int ic=0; ic<nez; ic++) {
+   //   printf("box is ind[%d]=%d\n",ic,ind[ic]);
+   //}
+   
+   /* Allocate the results array */
+   *result_num = 0;
+
+   double rad1, rad2, rad3, rad4;
+   int ii;
+   for (int i=0; i<nez; ++i){
+      ii = ind[i];
+      rad1 = sqrt( pow(x[ii],       2.0) + pow(y[ii],       2.0) );
+      rad2 = sqrt( pow(x[ii]+dx[ii],2.0) + pow(y[ii],       2.0) );
+      rad3 = sqrt( pow(x[ii]+dx[ii],2.0) + pow(y[ii]+dy[ii],2.0) );
+      rad4 = sqrt( pow(x[ii]       ,2.0) + pow(y[ii]+dy[ii],2.0) );
+      
+      if ((circ_radius < rad1 && circ_radius > rad2 ) ||
+          (circ_radius > rad1 && circ_radius < rad2 ) ) {
+         result_indicies[*result_num] = ind[i];
+         (*result_num)++;
+      } else if ((circ_radius < rad2 && circ_radius > rad3 ) ||
+          (circ_radius > rad2 && circ_radius < rad3 ) ) {
+         result_indicies[*result_num] = ind[i];
+         (*result_num)++;
+      } else if ((circ_radius < rad3 && circ_radius > rad4 ) ||
+          (circ_radius > rad3 && circ_radius < rad4 ) ) {
+         result_indicies[*result_num] = ind[i];
+         (*result_num)++;
+      } else if ((circ_radius < rad4 && circ_radius > rad1 ) ||
+          (circ_radius > rad4 && circ_radius < rad1 ) ) {
+         result_indicies[*result_num] = ind[i];
+         (*result_num)++;
+      }
+   } // for  
+   free(ind);
+}
+
+void KDTree_QueryCircleIntersectWeighted_Double(TKDTree* t,
                                  int* result_num, int* result_indicies, double *weight,
                                  double circ_radius, int ncells, 
-                                 spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy)
+                                 double *x, double *dx, double *y, double *dy)
 {
    assert(t && result_num && result_indicies && circ_radius);
    /* Build the k-D tree if necessary */
@@ -459,10 +519,146 @@ void KDTree_QueryCircleIntersectWeighted(TKDTree* t,
    free(ind);
 }
 
-void KDTree_QueryCircleInterior(TKDTree* t,
+void KDTree_QueryCircleIntersectWeighted_Float(TKDTree* t,
+                                 int* result_num, int* result_indicies, double *weight,
+                                 double circ_radius, int ncells, 
+                                 float *x, float *dx, float *y, float *dy)
+{
+   assert(t && result_num && result_indicies && circ_radius);
+   /* Build the k-D tree if necessary */
+   if(!t->tree_built){
+      //printf("BUILDING TREE... \n");
+      //fflush(stdout);
+      KDTree_CreateTree(t);
+   }
+   
+   int nez;
+   int *ind=(int *)malloc(ncells*sizeof(int));
+   
+   TBounds box;
+   box.min.x = -circ_radius;
+   box.max.x =  circ_radius;
+   box.min.y = -circ_radius;
+   box.max.y =  circ_radius;
+   KDTree_QueryBoxIntersect(t, &nez, ind, &box);
+   
+   //for (int ic=0; ic<nez; ic++) {
+   //   printf("box is ind[%d]=%d\n",ic,ind[ic]);
+   //}
+   
+   /* Allocate the results array */
+   *result_num = 0;
+   
+   double rad1, rad2, rad3, rad4;
+   int cuts_bottom, cuts_top, cuts_left, cuts_right;
+   int vertical_half, horizontal_half;
+   int ii;
+   for (int i=0; i<nez; ++i){
+      ii = ind[i];
+      rad1 = sqrt( pow(x[ii],       2.0) + pow(y[ii],       2.0) );
+      rad2 = sqrt( pow(x[ii]+dx[ii],2.0) + pow(y[ii],       2.0) );
+      rad3 = sqrt( pow(x[ii]+dx[ii],2.0) + pow(y[ii]+dy[ii],2.0) );
+      rad4 = sqrt( pow(x[ii]       ,2.0) + pow(y[ii]+dy[ii],2.0) );
+      
+      cuts_bottom=0;
+      cuts_top=0;
+      cuts_left=0;
+      cuts_right=0;
+      if ((circ_radius < rad1 && circ_radius > rad2 ) ||
+          (circ_radius > rad1 && circ_radius < rad2 ) ) {
+         cuts_bottom=1;
+      }
+      if ((circ_radius < rad2 && circ_radius > rad3 ) ||
+          (circ_radius > rad2 && circ_radius < rad3 ) ) {
+         cuts_right=1;
+      }
+      if ((circ_radius < rad3 && circ_radius > rad4 ) ||
+          (circ_radius > rad3 && circ_radius < rad4 ) ) {
+         cuts_top=1;
+      }
+      if ((circ_radius < rad4 && circ_radius > rad1 ) ||
+          (circ_radius > rad4 && circ_radius < rad1 ) ) {
+         cuts_left=1;
+      }
+      
+      horizontal_half=0;
+      vertical_half=0;
+      if (x[ii]+0.5*dx[ii] > 0.0) horizontal_half = RIGHT_HALF;
+      if (y[ii]+0.5*dy[ii] > 0.0) vertical_half   = TOP_HALF;
+      
+      
+      if        (horizontal_half == RIGHT_HALF && vertical_half == TOP_HALF) { /* quadrant 1 */
+         weight[*result_num] = (circ_radius - rad1)/(rad3-rad1);
+      } else if (horizontal_half == LEFT_HALF  && vertical_half == TOP_HALF) { /* quadrant 2 */
+         weight[*result_num] = (circ_radius - rad2)/(rad4-rad2);
+      } else if (horizontal_half == LEFT_HALF  && vertical_half == BOTTOM_HALF) { /* quadrant 3 */
+         weight[*result_num] = (circ_radius - rad3)/(rad1-rad3);
+      } else if (horizontal_half == RIGHT_HALF && vertical_half == BOTTOM_HALF) { /* quadrant 4 */
+         weight[*result_num] = (circ_radius - rad4)/(rad2-rad4);
+      } else {
+         weight[*result_num] = 0.5;
+      }
+      if (cuts_bottom || cuts_top || cuts_left || cuts_right) {
+         result_indicies[*result_num] = ind[i];
+         (*result_num)++;
+      }
+
+   } // for  
+   free(ind);
+}
+
+void KDTree_QueryCircleInterior_Double(TKDTree* t,
                             int* result_num, int* result_indicies,
                             double circ_radius, int ncells, 
-                            spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy)
+                            double *x, double *dx, double *y, double *dy)
+{
+   assert(t && result_num && result_indicies && circ_radius);
+   /* Build the k-D tree if necessary */
+   if(!t->tree_built){
+      //printf("BUILDING TREE... \n");
+      //fflush(stdout);
+      KDTree_CreateTree(t);
+   }
+   
+   int nez;
+   int *ind=(int *)malloc(ncells*sizeof(int));
+   
+   TBounds box;
+   box.min.x = -circ_radius;
+   box.max.x =  circ_radius;
+   box.min.y = -circ_radius;
+   box.max.y =  circ_radius;
+   KDTree_QueryBoxIntersect(t, &nez, ind, &box);
+   
+   //for (int ic=0; ic<nez; ic++) {
+   //   printf("box is ind[%d]=%d\n",ic,ind[ic]);
+   //}
+   
+   /* Allocate the results array */
+   *result_num = 0;
+   
+   double rad1, rad2, rad3, rad4;
+   int ii;
+   for (int i=0; i<nez; ++i){
+      ii = ind[i];
+      rad1 = sqrt( pow(x[ii],       2.0) + pow(y[ii],       2.0) );
+      rad2 = sqrt( pow(x[ii]+dx[ii],2.0) + pow(y[ii],       2.0) );
+      rad3 = sqrt( pow(x[ii]+dx[ii],2.0) + pow(y[ii]+dy[ii],2.0) );
+      rad4 = sqrt( pow(x[ii]       ,2.0) + pow(y[ii]+dy[ii],2.0) );
+      
+      if ((circ_radius > rad1 || circ_radius > rad2 ) ||
+          (circ_radius > rad3 || circ_radius > rad4 ) ) {
+         result_indicies[*result_num] = ind[i];
+         (*result_num)++;
+      }
+   } // for  
+   free(ind);
+}
+
+void KDTree_QueryCircleInterior_Float(TKDTree* t,
+                            int* result_num, int* result_indicies,
+                            double circ_radius, int ncells, 
+                            float *x, float *dx, float *y, float *dy)
 {
    assert(t && result_num && result_indicies && circ_radius);
    /* Build the k-D tree if necessary */

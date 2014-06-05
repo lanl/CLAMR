@@ -1443,7 +1443,11 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       int nez;
       vector<int> ind(ncells);
 
-      KDTree_QueryCircleIntersect(&tree, &nez, &(ind[0]), circ_radius, ncells, &x[0], &dx[0], &y[0], &dy[0]);
+#ifdef FULL_PRECISION
+      KDTree_QueryCircleIntersect_Double(&tree, &nez, &(ind[0]), circ_radius, ncells, &x[0], &dx[0], &y[0], &dy[0]);
+#else
+      KDTree_QueryCircleIntersect_Float(&tree, &nez, &(ind[0]), circ_radius, ncells, &x[0], &dx[0], &y[0], &dy[0]);
+#endif
 
       vector<int> mpot(ncells_ghost,0);
 
@@ -6868,7 +6872,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
                double *mem_ptr = (double *)it->mem_ptr;
 
                //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
-               L7_Update(mem_ptr, L7_STATE_T, load_balance_handle);
+               L7_Update(mem_ptr, L7_DOUBLE, load_balance_handle);
                in = 0;
                if(lower_block_size > 0) {
                   for(; in < MIN(lower_block_size, (int)ncells); in++) {
@@ -6894,7 +6898,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
                float *mem_ptr = (float *)it->mem_ptr;
 
                //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
-               L7_Update(mem_ptr, L7_STATE_T, load_balance_handle);
+               L7_Update(mem_ptr, L7_FLOAT, load_balance_handle);
                in = 0;
                if(lower_block_size > 0) {
                   for(; in < MIN(lower_block_size, (int)ncells); in++) {
