@@ -36,6 +36,10 @@ cmake -DGRAPHICS_TYPE=None   <path-to-src>  // Turn off real-time graphics
 cmake -DGRAPHICS_TYPE=OpenGL <path-to-src>  // Default
 cmake -DGRAPHICS_TYPE=MPE    <path-to-src>  // Alternate real-time graphics
 
+cmake -DPRECISION_TYPE=full_precision     // full double precision
+cmake -DPRECISION_TYPE=mixed_precision    // intermediates double, arrays single
+cmake -DPRECISION_TYPE=minimum_precision  // all single precision
+
 // Set MPEHOME to location of MPE install or MPE_INCLUDE_DIR and MPE_LIBRARIES to 
 // the include path and the location of the MPE libraries
 

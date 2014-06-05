@@ -112,10 +112,10 @@ static double H_sum_initial = 0.0;
 static double cpu_time_graphics = 0.0;
 double cpu_time_main_setup = 0.0;
 vector<real_t> H_global;
-vector<real_t> x_global;
-vector<real_t> dx_global;
-vector<real_t> y_global;
-vector<real_t> dy_global;
+vector<spatial_t> x_global;
+vector<spatial_t> dx_global;
+vector<spatial_t> y_global;
+vector<spatial_t> dy_global;
 vector<int> proc_global;
 
 int main(int argc, char **argv) {
@@ -157,10 +157,10 @@ int main(int argc, char **argv) {
    vector<int>   &nsizes     = mesh->nsizes;
    vector<int>   &ndispl     = mesh->ndispl;
 
-   vector<real_t> &x  = mesh->x;
-   vector<real_t> &dx = mesh->dx;
-   vector<real_t> &y  = mesh->y;
-   vector<real_t> &dy = mesh->dy;
+   vector<spatial_t> &x  = mesh->x;
+   vector<spatial_t> &dx = mesh->dx;
+   vector<spatial_t> &y  = mesh->y;
+   vector<spatial_t> &dy = mesh->dy;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);
@@ -217,10 +217,10 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENGL
    set_mysize(ncells_global);
    //vector<real_t> H_global;
-   //vector<real_t> x_global;
-   //vector<real_t> dx_global;
-   //vector<real_t> y_global;
-   //vector<real_t> dy_global;
+   //vector<spatial_t> x_global;
+   //vector<spatial_t> dx_global;
+   //vector<spatial_t> y_global;
+   //vector<spatial_t> dy_global;
    //vector<int> proc_global;
    if (mype == 0){
       H_global.resize(ncells_global);
@@ -400,10 +400,10 @@ extern "C" void do_calc(void)
    vector<int>   &ndispl   = mesh->ndispl;
 
    set_mysize(ncells_global);
-   //vector<real_t> x_global;
-   //vector<real_t> dx_global;
-   //vector<real_t> y_global;
-   //vector<real_t> dy_global;
+   //vector<spatial_t> x_global;
+   //vector<spatial_t> dx_global;
+   //vector<spatial_t> y_global;
+   //vector<spatial_t> dy_global;
    //vector<real_t> H_global;
    //vector<int> proc_global;
 

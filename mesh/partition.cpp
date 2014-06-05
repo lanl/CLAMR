@@ -536,7 +536,7 @@ void Mesh::partition_cells(
             }
 
             if (x.size() >= ncells) {
-               vector<real_t> real_local(ncells);
+               vector<spatial_t> real_local(ncells);
 
                for (int ic = 0; ic<(int)ncells; ic++){
                   real_local[ic] = x[ic];
@@ -768,7 +768,7 @@ void Mesh::partition_cells(
             }
 
             if (x.size() >= ncells) {
-               vector<real_t> real_local(ncells);
+               vector<spatial_t> real_local(ncells);
 
                for (int ic = 0; ic<(int)ncells; ic++){
                   real_local[ic] = x[ic];

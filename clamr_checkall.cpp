@@ -214,10 +214,10 @@ int main(int argc, char **argv) {
    vector<int>   &nsizes     = mesh_local->nsizes;
    vector<int>   &ndispl     = mesh_local->ndispl;
 
-   vector<real_t>  &x_global  = mesh_global->x;
-   vector<real_t>  &dx_global = mesh_global->dx;
-   vector<real_t>  &y_global  = mesh_global->y;
-   vector<real_t>  &dy_global = mesh_global->dy;
+   vector<spatial_t>  &x_global  = mesh_global->x;
+   vector<spatial_t>  &dx_global = mesh_global->dx;
+   vector<spatial_t>  &y_global  = mesh_global->y;
+   vector<spatial_t>  &dy_global = mesh_global->dy;
 
    cl_mem &dev_H  = state_local->dev_H;
    cl_mem &dev_U  = state_local->dev_U;
@@ -239,10 +239,10 @@ int main(int argc, char **argv) {
 
    vector<int>   &proc_global    = mesh_global->proc;
 
-   vector<real_t> &x  = mesh_local->x;
-   vector<real_t> &dx = mesh_local->dx;
-   vector<real_t> &y  = mesh_local->y;
-   vector<real_t> &dy = mesh_local->dy;
+   vector<spatial_t> &x  = mesh_local->x;
+   vector<spatial_t> &dx = mesh_local->dx;
+   vector<spatial_t> &y  = mesh_local->y;
+   vector<spatial_t> &dy = mesh_local->dy;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);

@@ -114,7 +114,7 @@
 #ifdef HAVE_MPI
    #define MPI_STATE_T MPI_FLOAT
    #define MPI_REAL_T MPI_DOUBLE
-   #define L7_REAL L7_FLOAT
+   #define L7_REAL L7_DOUBLE
 #endif
 
 #elif defined(FULL_PRECISION)

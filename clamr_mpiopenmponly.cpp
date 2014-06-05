@@ -170,10 +170,10 @@ int main(int argc, char **argv) {
    vector<int>   &nsizes     = mesh->nsizes;
    vector<int>   &ndispl     = mesh->ndispl;
 
-   vector<real_t> &x  = mesh->x;
-   vector<real_t> &dx = mesh->dx;
-   vector<real_t> &y  = mesh->y;
-   vector<real_t> &dy = mesh->dy;
+   vector<spatial_t> &x  = mesh->x;
+   vector<spatial_t> &dx = mesh->dx;
+   vector<spatial_t> &y  = mesh->y;
+   vector<spatial_t> &dy = mesh->dy;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);

@@ -185,10 +185,10 @@ int main(int argc, char **argv) {
    cl_mem &dev_j        = mesh->dev_j;
    cl_mem &dev_level    = mesh->dev_level;
 
-   vector<real_t> &x  = mesh->x;
-   vector<real_t> &dx = mesh->dx;
-   vector<real_t> &y  = mesh->y;
-   vector<real_t> &dy = mesh->dy;
+   vector<spatial_t> &x  = mesh->x;
+   vector<spatial_t> &dx = mesh->dx;
+   vector<spatial_t> &y  = mesh->y;
+   vector<spatial_t> &dy = mesh->dy;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);

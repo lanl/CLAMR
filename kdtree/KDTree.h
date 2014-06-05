@@ -164,15 +164,15 @@ extern void KDTree_QueryBoxIntersect(TKDTree* t,
 void KDTree_QueryCircleIntersect(TKDTree* t,
                                  int* result_num, int* result_indicies,
                                  double radius, int ncells, 
-                                 real_t *x, real_t *dx, real_t *y, real_t *dy);
+                                 spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy);
 void KDTree_QueryCircleIntersectWeighted(TKDTree* t,
                                  int* result_num, int* result_indicies, double *weight,
                                  double circ_radius, int ncells, 
-                                 real_t *x, real_t *dx, real_t *y, real_t *dy);
+                                 spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy);
 void KDTree_QueryCircleInterior(TKDTree* t,
                                  int* result_num, int* result_indicies,
                                  double circ_radius, int ncells, 
-                                 real_t *x, real_t *dx, real_t *y, real_t *dy);
+                                 spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy);
    
 #ifdef __cplusplus
 }

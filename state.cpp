@@ -388,10 +388,10 @@ void State::add_boundary_cells(void)
    // the mesh sizes increased
    size_t &ncells        = mesh->ncells;
    vector<int>  &index    = mesh->index;
-   vector<real_t> &x        = mesh->x;
-   vector<real_t> &dx       = mesh->dx;
-   vector<real_t> &y        = mesh->y;
-   vector<real_t> &dy       = mesh->dy;
+   vector<spatial_t> &x        = mesh->x;
+   vector<spatial_t> &dx       = mesh->dx;
+   vector<spatial_t> &y        = mesh->y;
+   vector<spatial_t> &dy       = mesh->dy;
 
    int *i        = mesh->i;
    int *j        = mesh->j;
@@ -736,10 +736,10 @@ void State::remove_boundary_cells(void)
 {
    size_t &ncells = mesh->ncells;
    vector<int> &index    = mesh->index;
-   vector<real_t> &x       = mesh->x;
-   vector<real_t> &dx      = mesh->dx;
-   vector<real_t> &y       = mesh->y;
-   vector<real_t> &dy      = mesh->dy;
+   vector<spatial_t> &x       = mesh->x;
+   vector<spatial_t> &dx      = mesh->dx;
+   vector<spatial_t> &y       = mesh->y;
+   vector<spatial_t> &dy      = mesh->dy;
 
    int *i        = mesh->i;
    int *j        = mesh->j;
@@ -944,10 +944,10 @@ void State::fill_circle(double  circ_radius,//  Radius of circle in grid units.
                         double  background) //  Background height for shallow water.
 {  
    size_t &ncells = mesh->ncells;
-   vector<real_t> &x  = mesh->x;
-   vector<real_t> &dx = mesh->dx;
-   vector<real_t> &y  = mesh->y;
-   vector<real_t> &dy = mesh->dy;
+   vector<spatial_t> &x  = mesh->x;
+   vector<spatial_t> &dx = mesh->dx;
+   vector<spatial_t> &y  = mesh->y;
+   vector<spatial_t> &dy = mesh->dy;
 
    for (uint ic = 0; ic < ncells; ic++)
    {  H[ic] = background;
@@ -2922,9 +2922,9 @@ void State::compare_state_cpu_local_to_cpu_global(State *state_global, const cha
    vector<real_t>U_check(ncells_global);
    vector<real_t>V_check(ncells_global);
 #ifdef HAVE_MPI
-   MPI_Allgatherv(&H[0], ncells, MPI_STATE_T, &H_check[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&U[0], ncells, MPI_STATE_T, &U_check[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&V[0], ncells, MPI_STATE_T, &V_check[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0], ncells, MPI_REAL_T, &H_check[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U[0], ncells, MPI_REAL_T, &U_check[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V[0], ncells, MPI_REAL_T, &V_check[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
 #else
    // Just to block compiler warnings
    if (1 == 2) printf("DEBUG -- ncells %u nsizes %d ndispl %d\n",ncells, nsizes[0],ndispl[0]);
@@ -2967,9 +2967,9 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
    vector<real_t>H_save_global(ncells_global);
    vector<real_t>U_save_global(ncells_global);
    vector<real_t>V_save_global(ncells_global);
-   MPI_Allgatherv(&H_save[0], nsizes[mype], MPI_STATE_T, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&U_save[0], nsizes[mype], MPI_STATE_T, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&V_save[0], nsizes[mype], MPI_STATE_T, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H_save[0], nsizes[mype], MPI_REAL_T, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U_save[0], nsizes[mype], MPI_REAL_T, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V_save[0], nsizes[mype], MPI_REAL_T, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
    if (mype == 0) {
       for (uint ic = 0; ic < ncells_global; ic++){
          if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 2 at cycle %d H_global & H_save_global %d %lf %lf \n",mype,ncycle,ic,H_global[ic],H_save_global[ic]);
@@ -2979,9 +2979,9 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
    }
 
    // And compare H gathered to H_global, etc
-   MPI_Allgatherv(&H[0], nsizes[mype], MPI_STATE_T, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&U[0], nsizes[mype], MPI_STATE_T, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&V[0], nsizes[mype], MPI_STATE_T, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0], nsizes[mype], MPI_REAL_T, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U[0], nsizes[mype], MPI_REAL_T, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V[0], nsizes[mype], MPI_REAL_T, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
    if (mype == 0) {
       for (uint ic = 0; ic < ncells_global; ic++){
          if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("DEBUG finite_difference 3 at cycle %d H_global & H_save_global %d %lf %lf \n",ncycle,ic,H_global[ic],H_save_global[ic]);
