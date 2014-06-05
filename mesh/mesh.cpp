@@ -85,20 +85,18 @@
 
 #define IPOW2(a) (2 << (a))
 
-#ifdef HAVE_CL_DOUBLE
-#define MPI_C_REAL MPI_DOUBLE
-#define CONSERVATION_EPS    .02
-#define STATE_EPS        .025
-#ifdef HAVE_MPI
-#define L7_REAL L7_DOUBLE
-#endif
-#else
-#define MPI_C_REAL MPI_FLOAT
+#if defined(MINIMUM_PRECISION)
 #define CONSERVATION_EPS    .1
 #define STATE_EPS      15.0
-#ifdef HAVE_MPI
-#define L7_REAL L7_FLOAT
-#endif
+
+#elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
+#define CONSERVATION_EPS    .02
+#define STATE_EPS        .025
+
+#elif defined(FULL_PRECISION)
+#define CONSERVATION_EPS    .02
+#define STATE_EPS        .025
+
 #endif
 
 typedef unsigned int uint;
@@ -157,7 +155,10 @@ cl_kernel      kernel_count_BCs;
 cl_kernel      kernel_do_load_balance_lower;
 cl_kernel      kernel_do_load_balance_middle;
 cl_kernel      kernel_do_load_balance_upper;
-cl_kernel      kernel_do_load_balance;
+#ifndef MINIMUM_PRECISION
+cl_kernel      kernel_do_load_balance_double;
+#endif
+cl_kernel      kernel_do_load_balance_float;
 cl_kernel      kernel_refine_smooth;
 cl_kernel      kernel_coarsen_smooth;
 cl_kernel      kernel_coarsen_check_block;
@@ -1308,7 +1309,10 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       kernel_do_load_balance_lower    = ezcl_create_kernel_wprogram(program, "do_load_balance_lower_cl");
       kernel_do_load_balance_middle   = ezcl_create_kernel_wprogram(program, "do_load_balance_middle_cl");
       kernel_do_load_balance_upper    = ezcl_create_kernel_wprogram(program, "do_load_balance_upper_cl");
-      kernel_do_load_balance          = ezcl_create_kernel_wprogram(program, "do_load_balance_cl");
+#ifndef MINIMUM_PRECISION
+      kernel_do_load_balance_double   = ezcl_create_kernel_wprogram(program, "do_load_balance_double_cl");
+#endif
+      kernel_do_load_balance_float    = ezcl_create_kernel_wprogram(program, "do_load_balance_float_cl");
       kernel_refine_smooth            = ezcl_create_kernel_wprogram(program, "refine_smooth_cl");
       kernel_coarsen_smooth           = ezcl_create_kernel_wprogram(program, "coarsen_smooth_cl");
       kernel_coarsen_check_block      = ezcl_create_kernel_wprogram(program, "coarsen_check_block_cl");
@@ -2109,7 +2113,10 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_do_load_balance_lower);
       ezcl_kernel_release(kernel_do_load_balance_middle);
       ezcl_kernel_release(kernel_do_load_balance_upper);
-      ezcl_kernel_release(kernel_do_load_balance);
+#ifndef MINIMUM_PRECISION
+      ezcl_kernel_release(kernel_do_load_balance_double);
+#endif
+      ezcl_kernel_release(kernel_do_load_balance_float);
       ezcl_kernel_release(kernel_refine_smooth);
       ezcl_kernel_release(kernel_coarsen_smooth);
       ezcl_kernel_release(kernel_coarsen_check_block);
@@ -6849,32 +6856,64 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
          if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-         for (state_t *mem_ptr=(state_t *)state_memory_old.memory_begin();
-              mem_ptr!=NULL; mem_ptr=(state_t *)state_memory_old.memory_next()) {
-            state_t *state_temp = (state_t *)
-                                 state_memory.memory_malloc(ncells, sizeof(state_t),
-                                                            flags,
-                                                            "state_temp");
-            //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
-            L7_Update(mem_ptr, L7_STATE_T, load_balance_handle);
-            in = 0;
-            if(lower_block_size > 0) {
-               for(; in < MIN(lower_block_size, (int)ncells); in++) {
-                  state_temp[in] = mem_ptr[ncells_old + in];
-               }
-            }
+         list<malloc_plus_memory_entry>::iterator it;
 
-            for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
-               state_temp[in] = mem_ptr[ic];
-            }
+         for (it = state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
+              it = state_memory_old.memory_entry_next() ) {
+            //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
+            if (it->mem_elsize == 8) {
+               double *state_temp = (double *) state_memory.memory_malloc(ncells, sizeof(double),
+                                                                          flags,
+                                                                          "state_temp");
+               double *mem_ptr = (double *)it->mem_ptr;
 
-            if(upper_block_size > 0) {
-               int ic = ncells_old + lower_block_size;
-               for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
-                  state_temp[in] = mem_ptr[ic+k];
+               //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
+               L7_Update(mem_ptr, L7_STATE_T, load_balance_handle);
+               in = 0;
+               if(lower_block_size > 0) {
+                  for(; in < MIN(lower_block_size, (int)ncells); in++) {
+                     state_temp[in] = mem_ptr[ncells_old + in];
+                  }
                }
+
+               for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
+                  state_temp[in] = mem_ptr[ic];
+               }
+
+               if(upper_block_size > 0) {
+                  int ic = ncells_old + lower_block_size;
+                  for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
+                     state_temp[in] = mem_ptr[ic+k];
+                  }
+               }
+               state_memory.memory_replace(mem_ptr, state_temp);
+            } else if (it->mem_elsize == 4) {
+               float *state_temp = (float *) state_memory.memory_malloc(ncells, sizeof(float),
+                                                                        flags,
+                                                                        "state_temp");
+               float *mem_ptr = (float *)it->mem_ptr;
+
+               //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
+               L7_Update(mem_ptr, L7_STATE_T, load_balance_handle);
+               in = 0;
+               if(lower_block_size > 0) {
+                  for(; in < MIN(lower_block_size, (int)ncells); in++) {
+                     state_temp[in] = mem_ptr[ncells_old + in];
+                  }
+               }
+
+               for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
+                  state_temp[in] = mem_ptr[ic];
+               }
+
+               if(upper_block_size > 0) {
+                  int ic = ncells_old + lower_block_size;
+                  for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
+                     state_temp[in] = mem_ptr[ic+k];
+                  }
+               }
+               state_memory.memory_replace(mem_ptr, state_temp);
             }
-            state_memory.memory_replace(mem_ptr, state_temp);
          }
 
          mesh_memory.memory_realloc_all(ncells_old+indices_needed_count);
@@ -7016,54 +7055,114 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
       size_t up_block_size = MAX(1, upper_block_size);
       cl_mem dev_state_var_upper = ezcl_malloc(NULL, const_cast<char *>("dev_state_var_upper"), &up_block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
 
-      for (cl_mem dev_state_mem_ptr=(cl_mem)gpu_state_memory.memory_begin(); dev_state_mem_ptr!=NULL; dev_state_mem_ptr=(cl_mem)gpu_state_memory.memory_next() ){
+      MallocPlus gpu_state_memory_old = gpu_state_memory;
+      list<malloc_plus_memory_entry>::iterator it;
 
-         vector<state_t> state_var_tmp(ncells_old+indices_needed_count,0.0);
+      for (it = gpu_state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
+           it = gpu_state_memory_old.memory_entry_next() ) {
+         //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
+         cl_mem dev_state_mem_ptr = (cl_mem)it->mem_ptr;
 
-         // Read current state values from GPU and write to CPU arrays
-         if (do_whole_segment) {
-            ezcl_enqueue_read_buffer(command_queue, dev_state_mem_ptr, CL_TRUE, 0, ncells_old*sizeof(cl_real), &state_var_tmp[0], NULL);
-         } else {
-            // Read lower block from GPU
-            if (lower_segment_size > 0) {
-               ezcl_enqueue_read_buffer(command_queue, dev_state_mem_ptr, CL_TRUE, 0, lower_segment_size*sizeof(cl_real), &state_var_tmp[0], NULL);
+         if (it->mem_elsize == 8){
+#ifndef MINIMUM_PRECISION
+            vector<double> state_var_tmp(ncells_old+indices_needed_count,0.0);
+
+            // Read current state values from GPU and write to CPU arrays
+            if (do_whole_segment) {
+               ezcl_enqueue_read_buffer(command_queue, dev_state_mem_ptr, CL_TRUE, 0, ncells_old*sizeof(cl_double), &state_var_tmp[0], NULL);
+            } else {
+               // Read lower block from GPU
+               if (lower_segment_size > 0) {
+                  ezcl_enqueue_read_buffer(command_queue, dev_state_mem_ptr, CL_TRUE, 0, lower_segment_size*sizeof(cl_double), &state_var_tmp[0], NULL);
+               }
+               // Read upper block from GPU
+               if (upper_segment_size > 0) {
+                  ezcl_enqueue_read_buffer(command_queue, dev_state_mem_ptr, CL_TRUE, upper_segment_start*sizeof(cl_double), upper_segment_size*sizeof(cl_double), &state_var_tmp[upper_segment_start], NULL);
+               }
             }
-            // Read upper block from GPU
-            if (upper_segment_size > 0) {
-               ezcl_enqueue_read_buffer(command_queue, dev_state_mem_ptr, CL_TRUE, upper_segment_start*sizeof(cl_real), upper_segment_size*sizeof(cl_real), &state_var_tmp[upper_segment_start], NULL);
+
+            // Update arrays with L7
+            L7_Update(&state_var_tmp[0], L7_DOUBLE, load_balance_handle);
+
+            // Set lower block on GPU
+            if(lower_block_size > 0) {
+               ezcl_enqueue_write_buffer(command_queue, dev_state_var_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_double), &state_var_tmp[ncells_old], NULL);
             }
+            // Set upper block on GPU
+            if(upper_block_size > 0) {
+               ezcl_enqueue_write_buffer(command_queue, dev_state_var_upper, CL_FALSE, 0, upper_block_size*sizeof(cl_double), &state_var_tmp[ncells_old+lower_block_size], NULL); 
+            }
+
+            // Allocate space on GPU for temp arrays (used in double buffering)
+            cl_mem dev_state_var_new = ezcl_malloc(NULL, gpu_state_memory.get_memory_name(dev_state_mem_ptr), &ncells, sizeof(cl_double), CL_MEM_READ_WRITE, 0);
+            gpu_state_memory.memory_add(dev_state_var_new, ncells, sizeof(cl_double), DEVICE_REGULAR_MEMORY, "dev_state_var_new");
+
+            //printf("DEBUG memory for proc %d is %p dev_state_new is %p\n",mype,dev_state_mem_ptr,dev_state_var_new);
+
+            ezcl_set_kernel_arg(kernel_do_load_balance_double, 0, sizeof(cl_int), &ncells);
+            ezcl_set_kernel_arg(kernel_do_load_balance_double, 1, sizeof(cl_int), &lower_block_size);
+            ezcl_set_kernel_arg(kernel_do_load_balance_double, 2, sizeof(cl_int), &middle_block_size);
+            ezcl_set_kernel_arg(kernel_do_load_balance_double, 3, sizeof(cl_int), &middle_block_start);
+            ezcl_set_kernel_arg(kernel_do_load_balance_double, 4, sizeof(cl_mem), &dev_state_mem_ptr);
+            ezcl_set_kernel_arg(kernel_do_load_balance_double, 5, sizeof(cl_mem), &dev_state_var_lower);
+            ezcl_set_kernel_arg(kernel_do_load_balance_double, 6, sizeof(cl_mem), &dev_state_var_upper);
+            ezcl_set_kernel_arg(kernel_do_load_balance_double, 7, sizeof(cl_mem), &dev_state_var_new);
+
+            ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance_double,   1, NULL, &global_work_size, &local_work_size, NULL);
+
+            gpu_state_memory.memory_replace(dev_state_mem_ptr, dev_state_var_new);
+#else
+            printf("ERROR -- can't have double type for state variable\n");
+            exit(1);
+#endif
+         } else if (it->mem_elsize == 4){
+            vector<float> state_var_tmp(ncells_old+indices_needed_count,0.0);
+
+            // Read current state values from GPU and write to CPU arrays
+            if (do_whole_segment) {
+               ezcl_enqueue_read_buffer(command_queue, dev_state_mem_ptr, CL_TRUE, 0, ncells_old*sizeof(cl_float), &state_var_tmp[0], NULL);
+            } else {
+               // Read lower block from GPU
+               if (lower_segment_size > 0) {
+                  ezcl_enqueue_read_buffer(command_queue, dev_state_mem_ptr, CL_TRUE, 0, lower_segment_size*sizeof(cl_float), &state_var_tmp[0], NULL);
+               }
+               // Read upper block from GPU
+               if (upper_segment_size > 0) {
+                  ezcl_enqueue_read_buffer(command_queue, dev_state_mem_ptr, CL_TRUE, upper_segment_start*sizeof(cl_float), upper_segment_size*sizeof(cl_float), &state_var_tmp[upper_segment_start], NULL);
+               }
+            }
+
+            // Update arrays with L7
+            L7_Update(&state_var_tmp[0], L7_FLOAT, load_balance_handle);
+
+            // Set lower block on GPU
+            if(lower_block_size > 0) {
+               ezcl_enqueue_write_buffer(command_queue, dev_state_var_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_float), &state_var_tmp[ncells_old], NULL);
+            }
+            // Set upper block on GPU
+            if(upper_block_size > 0) {
+               ezcl_enqueue_write_buffer(command_queue, dev_state_var_upper, CL_FALSE, 0, upper_block_size*sizeof(cl_float), &state_var_tmp[ncells_old+lower_block_size], NULL); 
+            }
+
+            // Allocate space on GPU for temp arrays (used in double buffering)
+            cl_mem dev_state_var_new = ezcl_malloc(NULL, gpu_state_memory.get_memory_name(dev_state_mem_ptr), &ncells, sizeof(cl_float), CL_MEM_READ_WRITE, 0);
+            gpu_state_memory.memory_add(dev_state_var_new, ncells, sizeof(cl_float), DEVICE_REGULAR_MEMORY, "dev_state_var_new");
+
+            //printf("DEBUG memory for proc %d is %p dev_state_new is %p\n",mype,dev_state_mem_ptr,dev_state_var_new);
+
+            ezcl_set_kernel_arg(kernel_do_load_balance_float, 0, sizeof(cl_int), &ncells);
+            ezcl_set_kernel_arg(kernel_do_load_balance_float, 1, sizeof(cl_int), &lower_block_size);
+            ezcl_set_kernel_arg(kernel_do_load_balance_float, 2, sizeof(cl_int), &middle_block_size);
+            ezcl_set_kernel_arg(kernel_do_load_balance_float, 3, sizeof(cl_int), &middle_block_start);
+            ezcl_set_kernel_arg(kernel_do_load_balance_float, 4, sizeof(cl_mem), &dev_state_mem_ptr);
+            ezcl_set_kernel_arg(kernel_do_load_balance_float, 5, sizeof(cl_mem), &dev_state_var_lower);
+            ezcl_set_kernel_arg(kernel_do_load_balance_float, 6, sizeof(cl_mem), &dev_state_var_upper);
+            ezcl_set_kernel_arg(kernel_do_load_balance_float, 7, sizeof(cl_mem), &dev_state_var_new);
+
+            ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance_float,   1, NULL, &global_work_size, &local_work_size, NULL);
+
+            gpu_state_memory.memory_replace(dev_state_mem_ptr, dev_state_var_new);
          }
-
-         // Update arrays with L7
-         L7_Update(&state_var_tmp[0], L7_STATE_T, load_balance_handle);
-
-         // Set lower block on GPU
-         if(lower_block_size > 0) {
-            ezcl_enqueue_write_buffer(command_queue, dev_state_var_lower, CL_FALSE, 0, lower_block_size*sizeof(cl_real), &state_var_tmp[ncells_old], NULL);
-         }
-         // Set upper block on GPU
-         if(upper_block_size > 0) {
-            ezcl_enqueue_write_buffer(command_queue, dev_state_var_upper, CL_FALSE, 0, upper_block_size*sizeof(cl_real), &state_var_tmp[ncells_old+lower_block_size], NULL); 
-         }
-
-         // Allocate space on GPU for temp arrays (used in double buffering)
-         cl_mem dev_state_var_new = ezcl_malloc(NULL, gpu_state_memory.get_memory_name(dev_state_mem_ptr), &ncells, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-         gpu_state_memory.memory_add(dev_state_var_new, ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, "dev_state_var_new");
-
-         //printf("DEBUG memory for proc %d is %p dev_state_new is %p\n",mype,dev_state_mem_ptr,dev_state_var_new);
-
-         ezcl_set_kernel_arg(kernel_do_load_balance, 0, sizeof(cl_int), &ncells);
-         ezcl_set_kernel_arg(kernel_do_load_balance, 1, sizeof(cl_int), &lower_block_size);
-         ezcl_set_kernel_arg(kernel_do_load_balance, 2, sizeof(cl_int), &middle_block_size);
-         ezcl_set_kernel_arg(kernel_do_load_balance, 3, sizeof(cl_int), &middle_block_start);
-         ezcl_set_kernel_arg(kernel_do_load_balance, 4, sizeof(cl_mem), &dev_state_mem_ptr);
-         ezcl_set_kernel_arg(kernel_do_load_balance, 5, sizeof(cl_mem), &dev_state_var_lower);
-         ezcl_set_kernel_arg(kernel_do_load_balance, 6, sizeof(cl_mem), &dev_state_var_upper);
-         ezcl_set_kernel_arg(kernel_do_load_balance, 7, sizeof(cl_mem), &dev_state_var_new);
-
-         ezcl_enqueue_ndrange_kernel(command_queue, kernel_do_load_balance,   1, NULL, &global_work_size, &local_work_size, NULL);
-
-         gpu_state_memory.memory_replace(dev_state_mem_ptr, dev_state_var_new);
       }
 
       ezcl_device_memory_delete(dev_state_var_lower);

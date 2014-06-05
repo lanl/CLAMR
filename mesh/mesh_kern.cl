@@ -66,19 +66,16 @@
 #if defined(MINIMUM_PRECISION)
 typedef float  real_t;
 typedef float  spatial_t;
-typedef float  state_t;
 #define HALF 0.5f
 #elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 typedef double  real_t;
 typedef float  spatial_t;
-typedef float  state_t;
 #define HALF 0.5
 #elif defined(FULL_PRECISION)
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 typedef double real_t;
 typedef double spatial_t;
-typedef double state_t;
 #define HALF 0.5
 #endif
 
@@ -2094,15 +2091,16 @@ __kernel void calc_spatial_coordinates_cl(
    dy[giX] =        lev_deltay[lev];
 }
 
-__kernel void do_load_balance_cl(
-                  const int     ncells,
-                  const int     lower_block_size,
-                  const int     middle_block_size,
-                  const int     middle_block_start,
-         __global const state_t *state_var_old,
-         __global const state_t *state_var_lower,
-         __global const state_t *state_var_upper,
-         __global       state_t *state_var_new)
+#ifndef MINIMUM_PRECISION
+__kernel void do_load_balance_double_cl(
+                  const int    ncells,
+                  const int    lower_block_size,
+                  const int    middle_block_size,
+                  const int    middle_block_start,
+         __global const double *state_var_old,
+         __global const double *state_var_lower,
+         __global const double *state_var_upper,
+         __global       double *state_var_new)
 {
    const uint giX = get_global_id(0);
 
@@ -2123,7 +2121,38 @@ __kernel void do_load_balance_cl(
       state_var_new[giX] = state_var_upper[srcgiX];
    }
 }
+#endif
+ 
+__kernel void do_load_balance_float_cl(
+                  const int   ncells,
+                  const int   lower_block_size,
+                  const int   middle_block_size,
+                  const int   middle_block_start,
+         __global const float *state_var_old,
+         __global const float *state_var_lower,
+         __global const float *state_var_upper,
+         __global       float *state_var_new)
+{
+   const uint giX = get_global_id(0);
 
+   //if(giX >= ncells) return;
+
+   //state_var_new[giX] = 0.0;
+
+   if(giX < lower_block_size) {
+      state_var_new[giX] = state_var_lower[giX];
+   } else if(giX < lower_block_size + middle_block_size) {
+      //const uint destgiX = giX;
+      const uint srcgiX = middle_block_start + giX - lower_block_size;
+
+      state_var_new[giX] = state_var_old[srcgiX];
+   } else if(giX < ncells) {
+      const uint srcgiX = giX - (lower_block_size + middle_block_size);
+
+      state_var_new[giX] = state_var_upper[srcgiX];
+   }
+}
+ 
 __kernel void do_load_balance_lower_cl(
          __global       int  *dev_i_new,
          __global       int  *dev_j_new,

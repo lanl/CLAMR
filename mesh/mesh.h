@@ -80,10 +80,8 @@
 #endif
 
 #if defined(MINIMUM_PRECISION)
-   typedef float state_t; // this is for physics state variables ncell in size
    typedef float real_t; // this is used for intermediate calculations
 #ifdef HAVE_OPENCL
-   typedef cl_float cl_state_t; // for gpu physics state variables
    typedef cl_float cl_real_t; // for intermediate gpu physics state variables
    typedef cl_float cl_spatial_t;
 #endif
@@ -91,17 +89,13 @@
    typedef float spatial_t; // for spatial variables
    typedef float real_spatial_t; // for intermediate spatial variables
 #ifdef HAVE_MPI
-   #define MPI_STATE_T MPI_FLOAT // for MPI communication for physics state variables
    #define MPI_REAL_T MPI_FLOAT // for MPI communication for physics state variables
    #define MPI_SPATIAL_T MPI_FLOAT
-   #define L7_STATE_T L7_FLOAT
 #endif
 
 #elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
-   typedef float state_t;
    typedef double real_t;
 #ifdef HAVE_OPENCL
-   typedef cl_float cl_state_t;
    typedef cl_double cl_real_t; // for intermediate gpu physics state variables
    typedef cl_float cl_spatial_t;
 #endif
@@ -109,17 +103,13 @@
    typedef float spatial_t; // for spatial variables
    typedef double real_spatial_t; // for intermediate spatial variables
 #ifdef HAVE_MPI
-   #define MPI_STATE_T MPI_FLOAT
    #define MPI_REAL_T MPI_DOUBLE
    #define MPI_SPATIAL_T MPI_FLOAT
-   #define L7_STATE_T L7_FLOAT
 #endif
 
 #elif defined(FULL_PRECISION)
-   typedef double state_t;
    typedef double real_t;
 #ifdef HAVE_OPENCL
-   typedef cl_double cl_state_t;
    typedef cl_double cl_real_t; // for intermediate gpu physics state variables
    typedef cl_double cl_spatial_t;
 #endif
@@ -127,10 +117,8 @@
    typedef double spatial_t; // for spatial variables
    typedef double real_spatial_t; // for intermediate spatial variables
 #ifdef HAVE_MPI
-   #define MPI_STATE_T MPI_DOUBLE
    #define MPI_REAL_T MPI_DOUBLE
    #define MPI_SPATIAL_T MPI_DOUBLE
-   #define L7_STATE_T L7_DOUBLE
 #endif
 #endif
 
