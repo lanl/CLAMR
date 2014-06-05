@@ -104,10 +104,35 @@ extern "C"
 #include <math.h>
 #endif
 
-#ifdef HAVE_CL_DOUBLE
-typedef double      real_t;
-#else
-typedef float       real_t;
+#if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
+#define FULL_PRECISION
+#endif
+#ifdef NO_CL_DOUBLE
+#undef  FULL_PRECISION
+#undef  MIXED_PRECISION
+#define MINIMUM_PRECISION
+#endif
+
+#if defined(MINIMUM_PRECISION)
+   typedef float state_t; // this is for physics state variables ncell in size
+   typedef float real_t; // this is used for intermediate calculations
+   typedef float display_t; // for display variable
+   typedef float spatial_t; // for spatial variables
+   typedef float real_spatial_t; // for intermediate spatial variables
+
+#elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
+   typedef float state_t;
+   typedef double real_t;
+   typedef float display_t; // for display variable
+   typedef float spatial_t; // for spatial variables
+   typedef double real_spatial_t; // for intermediate spatial variables
+
+#elif defined(FULL_PRECISION)
+   typedef double state_t;
+   typedef double real_t;
+   typedef double display_t; // for display variable
+   typedef double spatial_t; // for spatial variables
+   typedef double real_spatial_t; // for intermediate spatial variables
 #endif
 
 void init_display(int *argc, char **argv, const char* string, int mype_in);

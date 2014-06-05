@@ -59,12 +59,6 @@
 #include <config.h>
 #endif
 
-#ifdef HAVE_CL_DOUBLE
-typedef double real_t;
-#else
-typedef float real_t;
-#endif
-
 #define HOST_REGULAR_MEMORY   0x00000
 #define HOST_MANAGED_MEMORY   0x00001
 #define DEVICE_REGULAR_MEMORY 0x00002
@@ -127,7 +121,7 @@ public:
    void *memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, const char *name);
    void *memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, int flags, const char *name);
 
-   real_t *memory_reorder(real_t *malloc_mem_ptr, int *iorder);
+   double *memory_reorder(double *malloc_mem_ptr, int *iorder);
    float *memory_reorder(float *malloc_mem_ptr, int *iorder);
 
    void memory_report(void);

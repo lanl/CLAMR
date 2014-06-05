@@ -86,7 +86,6 @@
 #define IPOW2(a) (2 << (a))
 
 #ifdef HAVE_CL_DOUBLE
-typedef double      real_t;
 #define MPI_C_REAL MPI_DOUBLE
 #define CONSERVATION_EPS    .02
 #define STATE_EPS        .025
@@ -94,7 +93,6 @@ typedef double      real_t;
 #define L7_REAL L7_DOUBLE
 #endif
 #else
-typedef float       real_t;
 #define MPI_C_REAL MPI_FLOAT
 #define CONSERVATION_EPS    .1
 #define STATE_EPS      15.0
@@ -164,7 +162,9 @@ cl_kernel      kernel_refine_smooth;
 cl_kernel      kernel_coarsen_smooth;
 cl_kernel      kernel_coarsen_check_block;
 cl_kernel      kernel_rezone_all;
+#ifndef MINIMUM_PRECISION
 cl_kernel      kernel_rezone_one_double;
+#endif
 cl_kernel      kernel_rezone_one_float;
 cl_kernel      kernel_copy_mpot_ghost_data;
 cl_kernel      kernel_set_boundary_refinement;
@@ -217,7 +217,11 @@ Mesh::Mesh(FILE *fin, int *numpe)
    if(fgets(string, 80, fin) == NULL) exit(-1);
    sscanf(string,"ndim %d",&ndim);
    if(fgets(string, 80, fin) == NULL) exit(-1);
+#ifdef MINIMUM_PRECISION
+   sscanf(string,"xaxis %f %f",&xmin, &deltax);
+#else
    sscanf(string,"xaxis %lf %lf",&xmin, &deltax);
+#endif
    if(fgets(string, 80, fin) == NULL) exit(-1);
    sscanf(string,"yaxis %lf %lf",(double*)&ymin, (double*)&deltay);
    if (ndim == 3){
@@ -830,16 +834,16 @@ void Mesh::compare_coordinates_gpu_global_to_cpu_global(cl_mem dev_x, cl_mem dev
 {
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-   vector<real_t>x_check(ncells);
-   vector<real_t>dx_check(ncells);
-   vector<real_t>y_check(ncells);
-   vector<real_t>dy_check(ncells);
-   vector<real_t>H_check(ncells);
-   ezcl_enqueue_read_buffer(command_queue, dev_x,   CL_FALSE, 0, ncells*sizeof(cl_real), &x_check[0],  NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_dx,  CL_FALSE, 0, ncells*sizeof(cl_real), &dx_check[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_y,   CL_FALSE, 0, ncells*sizeof(cl_real), &y_check[0],  NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_dy,  CL_FALSE, 0, ncells*sizeof(cl_real), &dy_check[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_TRUE,  0, ncells*sizeof(cl_real), &H_check[0],  NULL);
+   vector<spatial_t>x_check(ncells);
+   vector<spatial_t>dx_check(ncells);
+   vector<spatial_t>y_check(ncells);
+   vector<spatial_t>dy_check(ncells);
+   vector<spatial_t>H_check(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_x,   CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &x_check[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_dx,  CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &dx_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_y,   CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &y_check[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_dy,  CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &dy_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_TRUE,  0, ncells*sizeof(cl_spatial_t), &H_check[0],  NULL);
    for (uint ic = 0; ic < ncells; ic++){
       if (x[ic] != x_check[ic] || dx[ic] != dx_check[ic] || y[ic] != y_check[ic] || dy[ic] != dy_check[ic] ) {
          printf("Error -- mismatch in spatial coordinates for cell %d is gpu %lf %lf %lf %lf cpu %lf %lf %lf %lf\n",ic,x_check[ic],dx_check[ic],y_check[ic],dy_check[ic],x[ic],dx[ic],y[ic],dy[ic]);
@@ -855,20 +859,20 @@ void Mesh::compare_coordinates_gpu_global_to_cpu_global(cl_mem dev_x, cl_mem dev
 }
 #endif
 
-void Mesh::compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, real_t *x, real_t *dx, real_t *y, real_t *dy, real_t *H, real_t *x_global, real_t *dx_global, real_t *y_global, real_t *dy_global, real_t *H_global, int cycle)
+void Mesh::compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy, real_t *H, spatial_t *x_global, spatial_t *dx_global, spatial_t *y_global, spatial_t *dy_global, real_t *H_global, int cycle)
 {
-   vector<real_t> x_check_global(ncells_global);
-   vector<real_t> dx_check_global(ncells_global);
-   vector<real_t> y_check_global(ncells_global);
-   vector<real_t> dy_check_global(ncells_global);
-   vector<real_t> H_check_global(ncells_global);
+   vector<spatial_t> x_check_global(ncells_global);
+   vector<spatial_t> dx_check_global(ncells_global);
+   vector<spatial_t> y_check_global(ncells_global);
+   vector<spatial_t> dy_check_global(ncells_global);
+   vector<spatial_t> H_check_global(ncells_global);
 
 #ifdef HAVE_MPI
-   MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_check_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_check_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&H[0],  nsizes[mype], MPI_C_REAL, &H_check_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&x[0],  nsizes[mype], MPI_SPATIAL_T, &x_check_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_check_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&y[0],  nsizes[mype], MPI_SPATIAL_T, &y_check_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_check_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0],  nsizes[mype], MPI_SPATIAL_T, &H_check_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
 #else
    // Just to get rid of compiler warnings
    if (1 == 2) printf("DEBUG -- nsizes[0] %d ndispl[0] %d x %p dx %p y %p dy %p H %p\n",
@@ -1309,7 +1313,9 @@ void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_ord
       kernel_coarsen_smooth           = ezcl_create_kernel_wprogram(program, "coarsen_smooth_cl");
       kernel_coarsen_check_block      = ezcl_create_kernel_wprogram(program, "coarsen_check_block_cl");
       kernel_rezone_all               = ezcl_create_kernel_wprogram(program, "rezone_all_cl");
+#ifndef MINIMUM_PRECISION
       kernel_rezone_one_double        = ezcl_create_kernel_wprogram(program, "rezone_one_double_cl");
+#endif
       kernel_rezone_one_float         = ezcl_create_kernel_wprogram(program, "rezone_one_float_cl");
       kernel_copy_mpot_ghost_data     = ezcl_create_kernel_wprogram(program, "copy_mpot_ghost_data_cl");
       kernel_set_boundary_refinement  = ezcl_create_kernel_wprogram(program, "set_boundary_refinement");
@@ -2108,7 +2114,9 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_coarsen_smooth);
       ezcl_kernel_release(kernel_coarsen_check_block);
       ezcl_kernel_release(kernel_rezone_all);
+#ifndef MINIMUM_PRECISION
       ezcl_kernel_release(kernel_rezone_one_double);
+#endif
       ezcl_kernel_release(kernel_rezone_one_float);
       ezcl_kernel_release(kernel_copy_mpot_ghost_data);
       ezcl_kernel_release(kernel_set_boundary_refinement);
@@ -2288,8 +2296,8 @@ void Mesh::gpu_calc_spatial_coordinates(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_
 //     j
 
    ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  0, sizeof(cl_int),    (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  1, sizeof(cl_double), (void *)&xmin);
-   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  2, sizeof(cl_double), (void *)&ymin);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  1, sizeof(cl_real_t), (void *)&xmin);
+   ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  2, sizeof(cl_real_t), (void *)&ymin);
    ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  3, sizeof(cl_mem),    (void *)&dev_levdx);
    ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  4, sizeof(cl_mem),    (void *)&dev_levdy);
    ezcl_set_kernel_arg(kernel_calc_spatial_coordinates,  5, sizeof(cl_mem),    (void *)&dev_x);
@@ -2344,11 +2352,11 @@ void Mesh::calc_minmax(void)
 
 #ifdef HAVE_MPI
    if (parallel) {
-      double xmin_global,xmax_global,ymin_global,ymax_global;
-      MPI_Allreduce(&xmin, &xmin_global, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(&xmax, &xmax_global, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-      MPI_Allreduce(&ymin, &ymin_global, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(&ymax, &ymax_global, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      real_t xmin_global,xmax_global,ymin_global,ymax_global;
+      MPI_Allreduce(&xmin, &xmin_global, 1, MPI_REAL_T, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(&xmax, &xmax_global, 1, MPI_REAL_T, MPI_MAX, MPI_COMM_WORLD);
+      MPI_Allreduce(&ymin, &ymin_global, 1, MPI_REAL_T, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(&ymax, &ymax_global, 1, MPI_REAL_T, MPI_MAX, MPI_COMM_WORLD);
       xmin = xmin_global;
       xmax = xmax_global;
       ymin = ymin_global;
@@ -2361,7 +2369,7 @@ void Mesh::calc_centerminmax(void)
 {
    xcentermin=+1.0e30, ycentermin=+1.0e30, zcentermin=+1.0e30;
    xcentermax=-1.0e30, ycentermax=-1.0e30, zcentermax=-1.0e30;
-   double xmid, ymid, zmid;
+   real_t xmid, ymid, zmid;
 
    for (uint ic=0; ic<ncells; ic++){
       xmid = x[ic]+0.5*dx[ic];
@@ -2383,11 +2391,11 @@ void Mesh::calc_centerminmax(void)
 
 #ifdef HAVE_MPI
    if (parallel) {
-      double xcentermin_global,xcentermax_global,ycentermin_global,ycentermax_global;
-      MPI_Allreduce(&xcentermin, &xcentermin_global, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(&xcentermax, &xcentermax_global, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-      MPI_Allreduce(&ycentermin, &ycentermin_global, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(&ycentermax, &ycentermax_global, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      real_t xcentermin_global,xcentermax_global,ycentermin_global,ycentermax_global;
+      MPI_Allreduce(&xcentermin, &xcentermin_global, 1, MPI_REAL_T, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(&xcentermax, &xcentermax_global, 1, MPI_REAL_T, MPI_MAX, MPI_COMM_WORLD);
+      MPI_Allreduce(&ycentermin, &ycentermin_global, 1, MPI_REAL_T, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(&ycentermax, &ycentermax_global, 1, MPI_REAL_T, MPI_MAX, MPI_COMM_WORLD);
       xcentermin = xcentermin_global;
       xcentermax = xcentermax_global;
       ycentermin = ycentermin_global;
@@ -2911,7 +2919,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
    ezcl_set_kernel_arg(kernel_rezone_all, 16, sizeof(cl_mem),  (void *)&dev_levtable);
    ezcl_set_kernel_arg(kernel_rezone_all, 17, sizeof(cl_mem),  (void *)&dev_ijadd);
    ezcl_set_kernel_arg(kernel_rezone_all, 18, local_work_size * sizeof(cl_uint), NULL);
-   ezcl_set_kernel_arg(kernel_rezone_all, 19, local_work_size * sizeof(cl_real4),    NULL);
+   //ezcl_set_kernel_arg(kernel_rezone_all, 19, local_work_size * sizeof(cl_real4),    NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, NULL);
 
@@ -2924,6 +2932,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
       cl_mem dev_state_mem_ptr = (cl_mem)it->mem_ptr;
 
       if (it->mem_elsize == 8){
+#ifndef MINIMUM_PRECISION
          cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_double), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_state_var_new"));
 
          ezcl_set_kernel_arg(kernel_rezone_one_double, 0, sizeof(cl_int),  (void *)&old_ncells);
@@ -2942,6 +2951,10 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_one_double,   1, NULL, &global_work_size, &local_work_size, NULL);
 
          gpu_state_memory.memory_replace(dev_state_mem_ptr, dev_state_var_new);
+#else
+         printf("ERROR -- can't have double type for state variable\n");
+         exit(1);
+#endif
       } else if (it->mem_elsize == 4){
          cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_float), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_state_var_new"));
 
@@ -6836,14 +6849,14 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
          if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-         for (real_t *mem_ptr=(real_t *)state_memory_old.memory_begin();
-              mem_ptr!=NULL; mem_ptr=(real_t *)state_memory_old.memory_next()) {
-            real_t *state_temp = (real_t *)
-                                 state_memory.memory_malloc(ncells, sizeof(real_t),
+         for (state_t *mem_ptr=(state_t *)state_memory_old.memory_begin();
+              mem_ptr!=NULL; mem_ptr=(state_t *)state_memory_old.memory_next()) {
+            state_t *state_temp = (state_t *)
+                                 state_memory.memory_malloc(ncells, sizeof(state_t),
                                                             flags,
                                                             "state_temp");
             //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
-            L7_Update(mem_ptr, L7_REAL, load_balance_handle);
+            L7_Update(mem_ptr, L7_STATE_T, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {
                for(; in < MIN(lower_block_size, (int)ncells); in++) {
@@ -7005,7 +7018,7 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
 
       for (cl_mem dev_state_mem_ptr=(cl_mem)gpu_state_memory.memory_begin(); dev_state_mem_ptr!=NULL; dev_state_mem_ptr=(cl_mem)gpu_state_memory.memory_next() ){
 
-         vector<real_t> state_var_tmp(ncells_old+indices_needed_count,0.0);
+         vector<state_t> state_var_tmp(ncells_old+indices_needed_count,0.0);
 
          // Read current state values from GPU and write to CPU arrays
          if (do_whole_segment) {
@@ -7022,7 +7035,7 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
          }
 
          // Update arrays with L7
-         L7_Update(&state_var_tmp[0], L7_REAL, load_balance_handle);
+         L7_Update(&state_var_tmp[0], L7_STATE_T, load_balance_handle);
 
          // Set lower block on GPU
          if(lower_block_size > 0) {
@@ -7389,23 +7402,23 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
                //  the space-filling curve index.
 
 #ifdef __OLD_STENCIL__
-               real_t  nx[3],  //  x-coordinates of cells.
-                       ny[3];  //  y-coordinates of cells.
+               spatial_t  nx[3],  //  x-coordinates of cells.
+                          ny[3];  //  y-coordinates of cells.
                if (ic != 0) {
-                  nx[0] = lev_deltax[level[ic-1]] * (real_t)i[ic-1];
-                  ny[0] = lev_deltay[level[ic-1]] * (real_t)j[ic-1];
+                  nx[0] = lev_deltax[level[ic-1]] * (spatial_t)i[ic-1];
+                  ny[0] = lev_deltay[level[ic-1]] * (spatial_t)j[ic-1];
                } else {
-                  nx[0] = lev_deltax[level_first] * (real_t)ifirst;
-                  ny[0] = lev_deltay[level_first] * (real_t)jfirst;
+                  nx[0] = lev_deltax[level_first] * (spatial_t)ifirst;
+                  ny[0] = lev_deltay[level_first] * (spatial_t)jfirst;
                }
-               nx[1] = lev_deltax[level[ic  ]] * (real_t)i[ic  ];
-               ny[1] = lev_deltay[level[ic  ]] * (real_t)j[ic  ];
+               nx[1] = lev_deltax[level[ic  ]] * (spatial_t)i[ic  ];
+               ny[1] = lev_deltay[level[ic  ]] * (spatial_t)j[ic  ];
                if (ic != ncells-1) {
-                  nx[2] = lev_deltax[level[ic+1]] * (real_t)i[ic+1];
-                  ny[2] = lev_deltay[level[ic+1]] * (real_t)j[ic+1];
+                  nx[2] = lev_deltax[level[ic+1]] * (spatial_t)i[ic+1];
+                  ny[2] = lev_deltay[level[ic+1]] * (spatial_t)j[ic+1];
                } else {
-                  nx[2] = lev_deltax[level_last] * (real_t)ilast;
-                  ny[2] = lev_deltay[level_last] * (real_t)jlast;
+                  nx[2] = lev_deltax[level_last] * (spatial_t)ilast;
+                  ny[2] = lev_deltay[level_last] * (spatial_t)jlast;
                }
 
                //  Figure out relative orientation of the neighboring cells.  We are

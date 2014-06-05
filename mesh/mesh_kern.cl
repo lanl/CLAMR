@@ -54,26 +54,32 @@
  * 
  */
 
-#ifndef GPU_DOUBLE_SUPPORT
-#define GPU_DOUBLE_SUPPORT
-#ifdef HAVE_CL_DOUBLE
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-typedef double  real;
-typedef double2 real2;
-typedef double4 real4;
-#define ZERO 0.0
-#define HALF 0.5
-#define ONE  1.0
-#define GRAVITATIONAL_CONSTANT 9.80
-#else
-typedef float   real;
-typedef float2  real2;
-typedef float4  real4;
-#define ZERO 0.0f
-#define HALF 0.5f
-#define ONE  1.0f
-#define GRAVITATIONAL_CONSTANT 9.80f
+#if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
+#define FULL_PRECISION
 #endif
+#ifdef NO_CL_DOUBLE
+#undef  FULL_PRECISION
+#undef  MIXED_PRECISION
+#define MINIMUM_PRECISION
+#endif
+
+#if defined(MINIMUM_PRECISION)
+typedef float  real_t;
+typedef float  spatial_t;
+typedef float  state_t;
+#define HALF 0.5f
+#elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+typedef double  real_t;
+typedef float  spatial_t;
+typedef float  state_t;
+#define HALF 0.5
+#elif defined(FULL_PRECISION)
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+typedef double real_t;
+typedef double spatial_t;
+typedef double state_t;
+#define HALF 0.5
 #endif
 
 #ifndef max
@@ -2061,18 +2067,18 @@ __kernel void finish_reduction_minmax4_cl(
 }
 
 __kernel void calc_spatial_coordinates_cl(
-          const    int   isize,
-          const    double xmin,
-          const    double ymin,
-          __global double *lev_deltax,
-          __global double *lev_deltay,
-          __global real   *x,
-          __global real   *dx,
-          __global real   *y,
-          __global real   *dy,
-          __global int    *level,
-          __global int    *i,
-          __global int    *j)
+          const    int       isize,
+          const    real_t    xmin,
+          const    real_t    ymin,
+          __global real_t    *lev_deltax,
+          __global real_t    *lev_deltay,
+          __global spatial_t *x,
+          __global spatial_t *dx,
+          __global spatial_t *y,
+          __global spatial_t *dy,
+          __global int       *level,
+          __global int       *i,
+          __global int       *j)
 {
    const unsigned int tiX  = get_local_id(0);
    const unsigned int giX  = get_global_id(0);
@@ -2082,21 +2088,21 @@ __kernel void calc_spatial_coordinates_cl(
    int lev = level[giX];
 
    x[giX] = isize;
-   x[giX]  = xmin + lev_deltax[lev] * (double)i[giX];
+   x[giX]  = xmin + lev_deltax[lev] * (real_t)i[giX];
    dx[giX] =        lev_deltax[lev];
-   y[giX]  = ymin + lev_deltay[lev] * (double)j[giX];
+   y[giX]  = ymin + lev_deltay[lev] * (real_t)j[giX];
    dy[giX] =        lev_deltay[lev];
 }
 
 __kernel void do_load_balance_cl(
-                  const int   ncells,
-                  const int   lower_block_size,
-                  const int   middle_block_size,
-                  const int   middle_block_start,
-         __global const real *state_var_old,
-         __global const real *state_var_lower,
-         __global const real *state_var_upper,
-         __global       real *state_var_new)
+                  const int     ncells,
+                  const int     lower_block_size,
+                  const int     middle_block_size,
+                  const int     middle_block_start,
+         __global const state_t *state_var_old,
+         __global const state_t *state_var_lower,
+         __global const state_t *state_var_upper,
+         __global       state_t *state_var_new)
 {
    const uint giX = get_global_id(0);
 
@@ -2563,26 +2569,26 @@ __kernel void coarsen_check_block_cl(
 }
 
 __kernel void rezone_all_cl(
-                 const int    isize,        // 0 
-                 const int    stencil,      // 1 
-                 const int    levmx,        // 2
-        __global const int   *mpot,         // 3   Array of mesh potential information.
-        __global const int   *level,        // 4
-        __global const int   *i,            // 5
-        __global const int   *j,            // 6
-        __global const int   *celltype,     // 7
-        __global       int   *level_new,    // 8
-        __global       int   *i_new,        // 9
-        __global       int   *j_new,        // 10
-        __global       int   *celltype_new, // 11
-        __global const uint  *ioffset,      // 12   
-        __global       uint  *indexoffset,  // 13   
-        __global const real  *lev_dx,       // 14
-        __global const real  *lev_dy,       // 15
-        __global const int   *levtable,     // 16
-        __global const int   *ijadd,        // 17
-        __local        uint  *itile,        // 18
-        __local        real2 *tile)         // 19
+                 const int    isize,         // 0 
+                 const int    stencil,       // 1 
+                 const int    levmx,         // 2
+        __global const int    *mpot,         // 3   Array of mesh potential information.
+        __global const int    *level,        // 4
+        __global const int    *i,            // 5
+        __global const int    *j,            // 6
+        __global const int    *celltype,     // 7
+        __global       int    *level_new,    // 8
+        __global       int    *i_new,        // 9
+        __global       int    *j_new,        // 10
+        __global       int    *celltype_new, // 11
+        __global const uint   *ioffset,      // 12   
+        __global       uint   *indexoffset,  // 13   
+        __global const real_t *lev_dx,       // 14
+        __global const real_t *lev_dy,       // 15
+        __global const int    *levtable,     // 16
+        __global const int    *ijadd,        // 17
+        __local        uint   *itile)        // 18
+        //__local        real2  *tile)         // 19
 { 
    uint tiX = get_local_id(0);
    uint giX = get_global_id(0);
@@ -2667,7 +2673,7 @@ __kernel void rezone_all_cl(
          int order[4] = {SW, SE, NW, NE};
          if (stencil) {
 #ifdef __OLD_STENCIL__
-            real nx[3], ny[3];
+            spatial_t nx[3], ny[3];
             int ifirst = ijadd[0];
             int iend   = ijadd[1];
             int jfirst = ijadd[2];
@@ -2675,24 +2681,24 @@ __kernel void rezone_all_cl(
             int level_first  = ijadd[4];
             int level_end    = ijadd[5];
 
-//             x[ic]  = xmin + lev_deltax[level[ic]] * (double)(i[ic] - ibase);
+//             x[ic]  = xmin + lev_deltax[level[ic]] * (spatial_t)(i[ic] - ibase);
 
             if (giX != 0) {
-               nx[0] = lev_dx[level[giX-1]] * (double)i[giX-1];
-               ny[0] = lev_dy[level[giX-1]] * (double)j[giX-1];
+               nx[0] = lev_dx[level[giX-1]] * (spatial_t)i[giX-1];
+               ny[0] = lev_dy[level[giX-1]] * (spatial_t)j[giX-1];
             } else {
-               nx[0] = lev_dx[level_first] * ifirst;
-               ny[0] = lev_dy[level_first] * jfirst;
+               nx[0] = lev_dx[level_first] * (spatial_t)ifirst;
+               ny[0] = lev_dy[level_first] * (spatial_t)jfirst;
             }
 
-            nx[1] = lev_dx[level[giX  ]] * (double)i[giX  ];
-            ny[1] = lev_dy[level[giX  ]] * (double)j[giX  ];
+            nx[1] = lev_dx[level[giX  ]] * (spatial_t)i[giX  ];
+            ny[1] = lev_dy[level[giX  ]] * (spatial_t)j[giX  ];
             if (giX != isize-1) {
-               nx[2] = lev_dx[level[giX+1]] * (double)i[giX+1];
-               ny[2] = lev_dy[level[giX+1]] * (double)j[giX+1];
+               nx[2] = lev_dx[level[giX+1]] * (spatial_t)i[giX+1];
+               ny[2] = lev_dy[level[giX+1]] * (spatial_t)j[giX+1];
             } else {
-               nx[2] = lev_dx[level_end] * iend;
-               ny[2] = lev_dy[level_end] * jend;
+               nx[2] = lev_dx[level_end] * (spatial_t)iend;
+               ny[2] = lev_dy[level_end] * (spatial_t)jend;
             }
 
             //  Figure out relative orientation of the neighboring cells.  We are
@@ -3074,6 +3080,7 @@ __kernel void rezone_one_float_cl(
 
 }
 
+#ifndef MINIMUM_PRECISION
 __kernel void rezone_one_double_cl(
                  const int     isize,        // 0
         __global const int    *i,            // 1
@@ -3122,6 +3129,7 @@ __kernel void rezone_one_double_cl(
    }
 
 }
+#endif
 
 __kernel void copy_mpot_ghost_data_cl(
                           const int  ncells,        // 0

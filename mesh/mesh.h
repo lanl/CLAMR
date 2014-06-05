@@ -70,17 +70,75 @@
 #endif
 #include "MallocPlus/MallocPlus.h"
 
+#if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
+#define FULL_PRECISION
+#endif
+#ifdef NO_CL_DOUBLE
+#undef  FULL_PRECISION
+#undef  MIXED_PRECISION
+#define MINIMUM_PRECISION
+#endif
+
+#if defined(MINIMUM_PRECISION)
+   typedef float state_t; // this is for physics state variables ncell in size
+   typedef float real_t; // this is used for intermediate calculations
+#ifdef HAVE_OPENCL
+   typedef cl_float cl_state_t; // for gpu physics state variables
+   typedef cl_float cl_real_t; // for intermediate gpu physics state variables
+   typedef cl_float cl_spatial_t;
+#endif
+   typedef float display_t; // for display variable
+   typedef float spatial_t; // for spatial variables
+   typedef float real_spatial_t; // for intermediate spatial variables
+#ifdef HAVE_MPI
+   #define MPI_STATE_T MPI_FLOAT // for MPI communication for physics state variables
+   #define MPI_REAL_T MPI_FLOAT // for MPI communication for physics state variables
+   #define MPI_SPATIAL_T MPI_FLOAT
+   #define L7_STATE_T L7_FLOAT
+#endif
+
+#elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
+   typedef float state_t;
+   typedef double real_t;
+#ifdef HAVE_OPENCL
+   typedef cl_float cl_state_t;
+   typedef cl_double cl_real_t; // for intermediate gpu physics state variables
+   typedef cl_float cl_spatial_t;
+#endif
+   typedef float display_t; // for display variable
+   typedef float spatial_t; // for spatial variables
+   typedef double real_spatial_t; // for intermediate spatial variables
+#ifdef HAVE_MPI
+   #define MPI_STATE_T MPI_FLOAT
+   #define MPI_REAL_T MPI_DOUBLE
+   #define MPI_SPATIAL_T MPI_FLOAT
+   #define L7_STATE_T L7_FLOAT
+#endif
+
+#elif defined(FULL_PRECISION)
+   typedef double state_t;
+   typedef double real_t;
+#ifdef HAVE_OPENCL
+   typedef cl_double cl_state_t;
+   typedef cl_double cl_real_t; // for intermediate gpu physics state variables
+   typedef cl_double cl_spatial_t;
+#endif
+   typedef double display_t; // for display variable
+   typedef double spatial_t; // for spatial variables
+   typedef double real_spatial_t; // for intermediate spatial variables
+#ifdef HAVE_MPI
+   #define MPI_STATE_T MPI_DOUBLE
+   #define MPI_REAL_T MPI_DOUBLE
+   #define MPI_SPATIAL_T MPI_DOUBLE
+   #define L7_STATE_T L7_DOUBLE
+#endif
+#endif
+
 #define TILE_SIZE 128
 
 #define SWAP_PTR(xnew,xold,xtmp) (xtmp=xnew, xnew=xold, xold=xtmp)
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
-
-#ifdef HAVE_CL_DOUBLE
-typedef double      real_t;
-#else
-typedef float       real_t;
-#endif
 
 typedef unsigned int uint;
 
@@ -202,7 +260,7 @@ public:
                   lev_kbegin,   //  Lowest z-index in use at specified level of refinement.
                   lev_kend,     //  Highest z-index in use at specified level of refinement.
                   levtable;     //  Powers of two to simplify i,j calculations
-   vector<double> lev_deltax,   //  Grid spacing along x-axis at specified level of refinement.
+   vector<real_t> lev_deltax,   //  Grid spacing along x-axis at specified level of refinement.
                   lev_deltay,   //  Grid spacing along y-axis at specified level of refinement.
                   lev_deltaz;   //  Grid spacing along z-axis at specified level of refinement.
    int            levmx,        //  Maximum level of refinement allowed.
@@ -217,7 +275,7 @@ public:
    size_t         ncells,       //  Number of cells in mesh.
                   ncells_global, //  Global number of cells for parallel runs
                   ncells_ghost; //  Number of cells in mesh with ghost cells.
-   double         xmin,         //  Lowest x-coordinate in use.
+   real_t         xmin,         //  Lowest x-coordinate in use.
                   xmax,         //  Highest x-coordinate in use.
                   ymin,         //  Lowest y-coordinate in use.
                   ymax,         //  Highest y-coordinate in use.
@@ -247,12 +305,12 @@ public:
                   *nbak,         //  1D ordered index of mesh element back neighbors.
                   *celltype;     // 1D ordered index of mesh element cell types (ghost or real).
 
-   vector<real_t> x,            //  1D ordered index of mesh element x-coordinates.
-                  dx,           //  1D ordered index of mesh element x-coordinate spacings.
-                  y,            //  1D ordered index of mesh element y-coordinates.
-                  dy,           //  1D ordered index of mesh element y-coordinate spacings.
-                  z,            //  1D ordered index of mesh element z-coordinates.
-                  dz;           //  1D ordered index of mesh element z-coordinate spacings.
+   vector<spatial_t> x,            //  1D ordered index of mesh element x-coordinates.
+                     dx,           //  1D ordered index of mesh element x-coordinate spacings.
+                     y,            //  1D ordered index of mesh element y-coordinates.
+                     dy,           //  1D ordered index of mesh element y-coordinate spacings.
+                     z,            //  1D ordered index of mesh element z-coordinates.
+                     dz;           //  1D ordered index of mesh element z-coordinate spacings.
 
 #ifdef HAVE_OPENCL
    cl_mem         dev_ioffset;
@@ -503,7 +561,7 @@ public:
    void compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global, int *i_global, int *j_global);
    void compare_coordinates_gpu_global_to_cpu_global(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real_t *H);
 #endif
-   void compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, real_t *x, real_t *dx, real_t *y, real_t *dy, real_t *H, real_t *x_global, real_t *dx_global, real_t *y_global, real_t *dy_global, real_t *H_global, int cycle);
+   void compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy, real_t *H, spatial_t *x_global, spatial_t *dx_global, spatial_t *y_global, spatial_t *dy_global, real_t *H_global, int cycle);
 #ifdef HAVE_OPENCL
    void compare_indices_gpu_global_to_cpu_global(void);
 #endif

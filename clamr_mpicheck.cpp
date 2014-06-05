@@ -86,30 +86,6 @@ static int do_comparison_calc = 0;
 static int do_cpu_calc = 1;
 static int do_gpu_calc = 0;
 
-#ifdef HAVE_CL_DOUBLE
-typedef double      real_t;
-typedef struct
-{
-   double s0;
-   double s1;
-}  real2_t;
-#define CONSERVATION_EPS    .00001
-#define STATE_EPS        .025
-#define MPI_C_REAL MPI_DOUBLE
-#define L7_REAL L7_DOUBLE
-#else
-typedef float       real_t;
-typedef struct
-{
-   float s0;
-   float s1;
-}  real2_t;
-#define CONSERVATION_EPS    .1
-#define STATE_EPS      15.0
-#define MPI_C_REAL MPI_FLOAT
-#define L7_REAL L7_FLOAT
-#endif
-
 typedef unsigned int uint;
 
 #ifdef HAVE_GRAPHICS
@@ -240,16 +216,16 @@ int main(int argc, char **argv) {
    y_global.resize(ncells_global);
    dy_global.resize(ncells_global);
 
-   MPI_Allgatherv(&x[0],  ncells, MPI_C_REAL, &x_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&dx[0], ncells, MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&y[0],  ncells, MPI_C_REAL, &y_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&dy[0], ncells, MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&x[0],  ncells, MPI_SPATIAL_T, &x_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dx[0], ncells, MPI_SPATIAL_T, &dx_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&y[0],  ncells, MPI_SPATIAL_T, &y_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dy[0], ncells, MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
 
    state->fill_circle(circ_radius, 100.0, 7.0);
 
-   MPI_Allgatherv(&state->H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&state->U[0], nsizes[mype], MPI_C_REAL, &U_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&state->V[0], nsizes[mype], MPI_C_REAL, &V_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&state->H[0], nsizes[mype], MPI_REAL_T, &H_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&state->U[0], nsizes[mype], MPI_REAL_T, &U_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&state->V[0], nsizes[mype], MPI_REAL_T, &V_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
 
    mesh->nlft = NULL;
    mesh->nrht = NULL;
@@ -539,11 +515,11 @@ extern "C" void do_calc(void)
       dx_global.resize(ncells_global);
       y_global.resize(ncells_global);
       dy_global.resize(ncells_global);
-      MPI_Allgatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      MPI_Allgatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      MPI_Allgatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      MPI_Allgatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-      MPI_Allgatherv(&state->H[0],  nsizes[mype], MPI_C_REAL, &state_global->H[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+      MPI_Allgatherv(&x[0],  nsizes[mype], MPI_SPATIAL_T, &x_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+      MPI_Allgatherv(&dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+      MPI_Allgatherv(&y[0],  nsizes[mype], MPI_SPATIAL_T, &y_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+      MPI_Allgatherv(&dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+      MPI_Allgatherv(&state->H[0],  nsizes[mype], MPI_REAL_T, &state_global->H[0],  &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
 
       if (view_mode == 0) {
          mesh->proc.resize(ncells);
@@ -552,7 +528,7 @@ extern "C" void do_calc(void)
          }
       
          mesh_global->proc.resize(ncells_global);
-         MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &mesh_global->proc[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+         MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &mesh_global->proc[0],  &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
       }
    set_mysize(ncells_global);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);

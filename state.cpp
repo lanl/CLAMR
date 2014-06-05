@@ -88,33 +88,51 @@ extern "C"
 //#define DEBUG 1
 #define TIMING_LEVEL 2
 
-#ifdef HAVE_CL_DOUBLE
-typedef double      real_t;
-typedef struct
-{
-   double s0;
-   double s1;
-}  real2_t;
-#ifdef HAVE_OPENCL
-typedef cl_double2  cl_real2;
+#if defined(MINIMUM_PRECISION)
+#define ZERO 0.0f
+#define ONE 1.0f
+#define HALF 0.5f
+#define EPSILON 1.0f-30
+
+#elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
+#define ZERO 0.0
+#define ONE 1.0
+#define HALF 0.5
+#define EPSILON 1.0e-30
+
+#elif defined(FULL_PRECISION)
+#define ZERO 0.0
+#define ONE 1.0
+#define HALF 0.5
+#define EPSILON 1.0e-30
 #endif
-#define L7_REAL L7_DOUBLE
-#define STATE_EPS        .02
-#define MPI_C_REAL MPI_DOUBLE
-#else
-typedef float      real_t;
-typedef struct
-{
-   float s0;
-   float s1;
-}  real2_t;
-#ifdef HAVE_OPENCL
-typedef cl_float2   cl_real2;
-#endif
-#define L7_REAL L7_FLOAT
-#define STATE_EPS      15.0
-#define MPI_C_REAL MPI_FLOAT
-#endif
+
+
+//#ifdef HAVE_CL_DOUBLE
+//typedef struct
+//{
+   //double s0;
+   //double s1;
+//}  real2_t;
+//#ifdef HAVE_OPENCL
+//typedef cl_double2  cl_real2;
+//#endif
+//#define L7_REAL L7_DOUBLE
+//#define STATE_EPS        .02
+//#define MPI_C_REAL MPI_DOUBLE
+//#else
+//typedef struct
+//{
+   //float s0;
+   //float s1;
+//}  real2_t;
+//#ifdef HAVE_OPENCL
+//typedef cl_float2   cl_real2;
+//#endif
+//#define L7_REAL L7_FLOAT
+//#define STATE_EPS      15.0
+//#define MPI_C_REAL MPI_FLOAT
+//#endif
 
 typedef unsigned int uint;
 
@@ -138,18 +156,6 @@ int save_ncells;
 #define CONSERVED_EQNS
 #define REFINE_GRADIENT  0.10
 #define COARSEN_GRADIENT 0.05
-
-#ifdef HAVE_CL_DOUBLE
-#define ZERO 0.0
-#define ONE 1.0
-#define HALF 0.5
-#define EPSILON 1.0e-30
-#else
-#define ZERO 0.0f
-#define ONE 1.0f
-#define HALF 0.5f
-#define EPSILON 1.0f-30
-#endif
 
 #define SQR(x) ( x*x )
 #define MIN3(x,y,z) ( min( min(x,y), z) )
@@ -866,7 +872,7 @@ double State::gpu_set_timestep(double sigma)
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
    size_t block_size     = global_work_size/local_work_size;
 
-   cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+   cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
 
       /*
       __kernel void set_timestep_cl(
@@ -886,7 +892,7 @@ double State::gpu_set_timestep(double sigma)
 
    real_t sigma_local = sigma;
    ezcl_set_kernel_arg(kernel_set_timestep,  0, sizeof(cl_int),  (void *)&ncells);
-   ezcl_set_kernel_arg(kernel_set_timestep,  1, sizeof(cl_real), (void *)&sigma_local);
+   ezcl_set_kernel_arg(kernel_set_timestep,  1, sizeof(cl_real_t), (void *)&sigma_local);
    ezcl_set_kernel_arg(kernel_set_timestep,  2, sizeof(cl_mem),  (void *)&dev_H);
    ezcl_set_kernel_arg(kernel_set_timestep,  3, sizeof(cl_mem),  (void *)&dev_U);
    ezcl_set_kernel_arg(kernel_set_timestep,  4, sizeof(cl_mem),  (void *)&dev_V);
@@ -896,7 +902,7 @@ double State::gpu_set_timestep(double sigma)
    ezcl_set_kernel_arg(kernel_set_timestep,  8, sizeof(cl_mem),  (void *)&dev_levdy);
    ezcl_set_kernel_arg(kernel_set_timestep,  9, sizeof(cl_mem),  (void *)&dev_redscratch);
    ezcl_set_kernel_arg(kernel_set_timestep, 10, sizeof(cl_mem),  (void *)&dev_deltaT);
-   ezcl_set_kernel_arg(kernel_set_timestep, 11, local_work_size*sizeof(cl_real),  NULL);
+   ezcl_set_kernel_arg(kernel_set_timestep, 11, local_work_size*sizeof(cl_real_t),  NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_set_timestep, 1, NULL, &global_work_size, &local_work_size, NULL);
 
@@ -911,13 +917,13 @@ double State::gpu_set_timestep(double sigma)
       ezcl_set_kernel_arg(kernel_reduction_min, 0, sizeof(cl_int),  (void *)&block_size);
       ezcl_set_kernel_arg(kernel_reduction_min, 1, sizeof(cl_mem),  (void *)&dev_redscratch);
       ezcl_set_kernel_arg(kernel_reduction_min, 2, sizeof(cl_mem),  (void *)&dev_deltaT);
-      ezcl_set_kernel_arg(kernel_reduction_min, 3, local_work_size*sizeof(cl_real), NULL);
+      ezcl_set_kernel_arg(kernel_reduction_min, 3, local_work_size*sizeof(cl_real_t), NULL);
 
      ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduction_min, 1, NULL, &local_work_size, &local_work_size, NULL);
    }
 
    real_t deltaT_local;
-   ezcl_enqueue_read_buffer(command_queue, dev_deltaT, CL_TRUE,  0, sizeof(cl_real), &deltaT_local, NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_deltaT, CL_TRUE,  0, sizeof(cl_real_t), &deltaT_local, NULL);
    deltaT = deltaT_local;
 
    globalmindeltaT = deltaT;
@@ -1702,9 +1708,9 @@ void State::gpu_calc_finite_difference(double deltaT)
    assert(dev_levdx);
    assert(dev_levdy);
 
-   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
-   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
-   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
+   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
+   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
+   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
  
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -1752,9 +1758,9 @@ void State::gpu_calc_finite_difference(double deltaT)
       L7_Dev_Update(dev_U, L7_REAL, mesh->cell_handle);
       L7_Dev_Update(dev_V, L7_REAL, mesh->cell_handle);
 
-      dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
-      dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
-      dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
+      dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
+      dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
+      dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
 
       ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 0, sizeof(cl_int), &ncells);
       ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 1, sizeof(cl_mem), &dev_celltype);
@@ -1828,10 +1834,10 @@ void State::gpu_calc_finite_difference(double deltaT)
    ezcl_set_kernel_arg(kernel_calc_finite_difference,10, sizeof(cl_mem),  (void *)&dev_ntop);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,11, sizeof(cl_mem),  (void *)&dev_nbot);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,12, sizeof(cl_mem),  (void *)&dev_level);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,13, sizeof(cl_real), (void *)&deltaT_local);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,13, sizeof(cl_real_t), (void *)&deltaT_local);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,14, sizeof(cl_mem),  (void *)&dev_levdx);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,15, sizeof(cl_mem),  (void *)&dev_levdy);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,16, local_work_size*sizeof(cl_real4),    NULL);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,16, local_work_size*sizeof(cl_real4_t),    NULL);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,17, local_work_size*sizeof(cl_int8),    NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference,   1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_event);
@@ -2231,7 +2237,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
    ezcl_set_kernel_arg(kernel_refine_potential,15, sizeof(cl_mem),  (void *)&dev_mpot);
    ezcl_set_kernel_arg(kernel_refine_potential,16, sizeof(cl_mem),  (void *)&dev_redscratch);
    ezcl_set_kernel_arg(kernel_refine_potential,17, sizeof(cl_mem),  (void *)&dev_result);
-   ezcl_set_kernel_arg(kernel_refine_potential,18, local_work_size*sizeof(cl_real),    NULL);
+   ezcl_set_kernel_arg(kernel_refine_potential,18, local_work_size*sizeof(cl_real_t),    NULL);
    ezcl_set_kernel_arg(kernel_refine_potential,19, local_work_size*sizeof(cl_int8),    NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_potential, 1, NULL, &global_work_size, &local_work_size, NULL);
@@ -2415,8 +2421,8 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
    size_t block_size     = global_work_size/local_work_size;
 
    if (enhanced_precision_sum) {
-      dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_sum"), &one,    sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
-      dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real2), CL_MEM_READ_WRITE, 0);
+      dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_sum"), &one,    sizeof(cl_real2_t), CL_MEM_READ_WRITE, 0);
+      dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real2_t), CL_MEM_READ_WRITE, 0);
 
         /*
         __kernel void reduce_sum_cl(
@@ -2437,7 +2443,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
       ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 5, sizeof(cl_mem), (void *)&dev_celltype);
       ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 6, sizeof(cl_mem), (void *)&dev_mass_sum);
       ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 7, sizeof(cl_mem), (void *)&dev_redscratch);
-      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 8, local_work_size*sizeof(cl_real2), NULL);
+      ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage1of2, 8, local_work_size*sizeof(cl_real2_t), NULL);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, NULL);
 
@@ -2452,7 +2458,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
          ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
          ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
          ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
-         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 3, local_work_size*sizeof(cl_real2), NULL);
+         ezcl_set_kernel_arg(kernel_reduce_epsum_mass_stage2of2, 3, local_work_size*sizeof(cl_real2_t), NULL);
 
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_epsum_mass_stage2of2, 1, NULL, &local_work_size, &local_work_size, NULL);
       }
@@ -2460,7 +2466,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
       struct esum_type local, global;
       real2_t mass_sum;
 
-      ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real2), &mass_sum, NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real2_t), &mass_sum, NULL);
 
       local.sum = mass_sum.s0;
       local.correction = mass_sum.s1;
@@ -2471,8 +2477,8 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
 #endif
       gpu_mass_sum = global.sum + global.correction;
    } else {
-      dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_sum"), &one,    sizeof(cl_real), CL_MEM_READ_WRITE, 0);
-      dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_sum"), &one,    sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
+      dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
 
         /*
         __kernel void reduce_sum_cl(
@@ -2493,7 +2499,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
       ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 5, sizeof(cl_mem), (void *)&dev_celltype);
       ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 6, sizeof(cl_mem), (void *)&dev_mass_sum);
       ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 7, sizeof(cl_mem), (void *)&dev_redscratch);
-      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 8, local_work_size*sizeof(cl_real), NULL);
+      ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage1of2, 8, local_work_size*sizeof(cl_real_t), NULL);
 
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage1of2, 1, NULL, &global_work_size, &local_work_size, NULL);
 
@@ -2508,7 +2514,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
          ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 0, sizeof(cl_int), (void *)&block_size);
          ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 1, sizeof(cl_mem), (void *)&dev_mass_sum);
          ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 2, sizeof(cl_mem), (void *)&dev_redscratch);
-         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 3, local_work_size*sizeof(cl_real), NULL);
+         ezcl_set_kernel_arg(kernel_reduce_sum_mass_stage2of2, 3, local_work_size*sizeof(cl_real_t), NULL);
 
          ezcl_enqueue_ndrange_kernel(command_queue, kernel_reduce_sum_mass_stage2of2, 1, NULL, &local_work_size, &local_work_size, NULL);
       }
@@ -2516,7 +2522,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
       double local_sum, global_sum;
       real_t mass_sum;
 
-      ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real), &mass_sum, NULL);
+      ezcl_enqueue_read_buffer(command_queue, dev_mass_sum, CL_TRUE, 0, 1*sizeof(cl_real_t), &mass_sum, NULL);
       
       local_sum = mass_sum;
       global_sum = local_sum;
@@ -2538,9 +2544,9 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
 #ifdef HAVE_OPENCL
 void State::allocate_device_memory(size_t ncells)
 {
-   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
-   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
-   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
+   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
+   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
+   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
 }
 #endif
 
@@ -2550,9 +2556,9 @@ void State::resize_old_device_memory(size_t ncells)
    gpu_state_memory.memory_delete(dev_H);
    gpu_state_memory.memory_delete(dev_U);
    gpu_state_memory.memory_delete(dev_V);
-   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
-   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
-   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
+   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
+   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
+   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
 #else
    // Just to block compiler warnings
    if (1 == 2) printf("DEBUG -- ncells is %ld\n",ncells);
@@ -2895,9 +2901,9 @@ void State::compare_state_gpu_global_to_cpu_global(const char* string, int cycle
    vector<real_t>H_check(ncells);
    vector<real_t>U_check(ncells);
    vector<real_t>V_check(ncells);
-   ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_check[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_check[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real_t), &H_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real_t), &U_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real_t), &V_check[0], NULL);
    for (uint ic = 0; ic < ncells; ic++){
       if (fabs(H[ic]-H_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d H & H_check %d %lf %lf\n",string,cycle,ic,H[ic],H_check[ic]);
       if (fabs(U[ic]-U_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d U & U_check %d %lf %lf\n",string,cycle,ic,U[ic],U_check[ic]);
@@ -2916,9 +2922,9 @@ void State::compare_state_cpu_local_to_cpu_global(State *state_global, const cha
    vector<real_t>U_check(ncells_global);
    vector<real_t>V_check(ncells_global);
 #ifdef HAVE_MPI
-   MPI_Allgatherv(&H[0], ncells, MPI_C_REAL, &H_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&U[0], ncells, MPI_C_REAL, &U_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&V[0], ncells, MPI_C_REAL, &V_check[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0], ncells, MPI_STATE_T, &H_check[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U[0], ncells, MPI_STATE_T, &U_check[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V[0], ncells, MPI_STATE_T, &V_check[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
 #else
    // Just to block compiler warnings
    if (1 == 2) printf("DEBUG -- ncells %u nsizes %d ndispl %d\n",ncells, nsizes[0],ndispl[0]);
@@ -2948,9 +2954,9 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
    vector<real_t>H_save(ncells);
    vector<real_t>U_save(ncells);
    vector<real_t>V_save(ncells);
-   ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real), &H_save[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real), &U_save[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real), &V_save[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real_t), &H_save[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real_t), &U_save[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real_t), &V_save[0], NULL);
    for (uint ic = 0; ic < ncells; ic++){
       if (fabs(H[ic]-H_save[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 1 at cycle %d H & H_save %d %lf %lf \n",mype,ncycle,ic,H[ic],H_save[ic]);
       if (fabs(U[ic]-U_save[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 1 at cycle %d U & U_save %d %lf %lf \n",mype,ncycle,ic,U[ic],U_save[ic]);
@@ -2961,9 +2967,9 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
    vector<real_t>H_save_global(ncells_global);
    vector<real_t>U_save_global(ncells_global);
    vector<real_t>V_save_global(ncells_global);
-   MPI_Allgatherv(&H_save[0], nsizes[mype], MPI_C_REAL, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&U_save[0], nsizes[mype], MPI_C_REAL, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&V_save[0], nsizes[mype], MPI_C_REAL, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H_save[0], nsizes[mype], MPI_STATE_T, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U_save[0], nsizes[mype], MPI_STATE_T, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V_save[0], nsizes[mype], MPI_STATE_T, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
    if (mype == 0) {
       for (uint ic = 0; ic < ncells_global; ic++){
          if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 2 at cycle %d H_global & H_save_global %d %lf %lf \n",mype,ncycle,ic,H_global[ic],H_save_global[ic]);
@@ -2973,9 +2979,9 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
    }
 
    // And compare H gathered to H_global, etc
-   MPI_Allgatherv(&H[0], nsizes[mype], MPI_C_REAL, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&U[0], nsizes[mype], MPI_C_REAL, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
-   MPI_Allgatherv(&V[0], nsizes[mype], MPI_C_REAL, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0], nsizes[mype], MPI_STATE_T, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U[0], nsizes[mype], MPI_STATE_T, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V[0], nsizes[mype], MPI_STATE_T, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
    if (mype == 0) {
       for (uint ic = 0; ic < ncells_global; ic++){
          if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("DEBUG finite_difference 3 at cycle %d H_global & H_save_global %d %lf %lf \n",ncycle,ic,H_global[ic],H_save_global[ic]);
@@ -2985,9 +2991,9 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
    }
 
    // Now the global dev_H_global to H_global, etc
-   ezcl_enqueue_read_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real), &H_save_global[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real), &U_save_global[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_real), &V_save_global[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real_t), &H_save_global[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real_t), &U_save_global[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_real_t), &V_save_global[0], NULL);
    if (mype == 0) {
       for (uint ic = 0; ic < ncells_global; ic++){
          if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 4 at cycle %d H_global & H_save_global %d %lf %lf \n",mype,ncycle,ic,H_global[ic],H_save_global[ic]);

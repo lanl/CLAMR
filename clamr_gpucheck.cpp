@@ -87,34 +87,6 @@ static int do_sync = 0;
 #endif
 static int do_gpu_sync = 0;
 
-#ifdef HAVE_CL_DOUBLE
-typedef double      real_t;
-typedef struct
-{
-   double s0;
-   double s1;
-}  real2_t;
-typedef cl_double   cl_real;
-typedef cl_double2  cl_real2;
-typedef cl_double4  cl_real4;
-typedef cl_double8  cl_real8;
-#define CONSERVATION_EPS    .02
-#define STATE_EPS        .02
-#else
-typedef float       real_t;
-typedef struct
-{
-   float s0;
-   float s1;
-}  real2_t;
-typedef cl_float    cl_real;
-typedef cl_float2   cl_real2;
-typedef cl_float4   cl_real4;
-typedef cl_float8   cl_real8;
-#define CONSERVATION_EPS    .2
-#define STATE_EPS      15.0
-#endif
-
 typedef unsigned int uint;
 
 #ifdef HAVE_GRAPHICS
@@ -209,7 +181,7 @@ int main(int argc, char **argv) {
    state->allocate_device_memory(ncells);
 
    size_t one = 1;
-   state->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT"), &one,    sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+   state->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT"), &one,    sizeof(cl_real_t),  CL_MEM_READ_WRITE, 0);
 
    size_t mem_request = (int)((float)ncells*mesh->mem_factor);
    dev_celltype = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &mem_request, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
@@ -222,9 +194,9 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->i[0],        NULL            );
    ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->j[0],        NULL            );
    ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->level[0],    NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&H[0],       NULL              );
-   ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&U[0],       NULL              );
-   ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&V[0],       &end_write_event  );
+   ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&H[0],       NULL              );
+   ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&U[0],       NULL              );
+   ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_real_t),  (void *)&V[0],       &end_write_event  );
    state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
 
    mesh->nlft = NULL;
@@ -333,9 +305,9 @@ extern "C" void do_calc(void)
 
       // To reduce drift in solution
       if (do_sync) {
-         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->H[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->U[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&state->V[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&state->H[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&state->U[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real_t),  (void *)&state->V[0],  NULL);
       }
 
       //  Define basic domain decomposition parameters for GPU.
@@ -384,7 +356,6 @@ extern "C" void do_calc(void)
       }
 
       if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) {
-         printf("DEBUG file %s line %d\n",__FILE__,__LINE__);
          fflush(stdout);
          exit(0);
       }
@@ -496,9 +467,9 @@ extern "C" void do_calc(void)
       }
       
       if (do_gpu_sync) {
-         ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->H[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real),  (void *)&state->U[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real),  (void *)&state->V[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&state->H[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&state->U[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real_t),  (void *)&state->V[0],  NULL);
       }
    } // End burst loop
 
@@ -520,10 +491,10 @@ extern "C" void do_calc(void)
       mesh->calc_spatial_coordinates(0);
    }
    if (do_gpu_calc){
-      cl_mem dev_x  = ezcl_malloc(NULL, const_cast<char *>("dev_x"),  &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_dx = ezcl_malloc(NULL, const_cast<char *>("dev_dx"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_y  = ezcl_malloc(NULL, const_cast<char *>("dev_y"),  &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_dy = ezcl_malloc(NULL, const_cast<char *>("dev_dy"), &ncells, sizeof(cl_real),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_x  = ezcl_malloc(NULL, const_cast<char *>("dev_x"),  &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_dx = ezcl_malloc(NULL, const_cast<char *>("dev_dx"), &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_y  = ezcl_malloc(NULL, const_cast<char *>("dev_y"),  &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
+      cl_mem dev_dy = ezcl_malloc(NULL, const_cast<char *>("dev_dy"), &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
 
       mesh->gpu_calc_spatial_coordinates(dev_x, dev_dx, dev_y, dev_dy);
 

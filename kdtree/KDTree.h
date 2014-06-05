@@ -90,12 +90,55 @@ extern "C"
 #include "Bounds.h"
    
    
-#ifdef HAVE_CL_DOUBLE
-   typedef double real_t;
-#else
-   typedef float real_t;
+#if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
+#define FULL_PRECISION
 #endif
-   
+#ifdef NO_CL_DOUBLE
+#undef  FULL_PRECISION
+#undef  MIXED_PRECISION
+#define MINIMUM_PRECISION
+#endif
+
+#if defined(MINIMUM_PRECISION)
+   typedef float state_t; // this is for physics state variables ncell in size
+   typedef float real_t; // this is used for intermediate calculations
+   typedef float display_t; // for display variable
+   typedef float spatial_t; // for spatial variables
+   typedef float real_spatial_t; // for intermediate spatial variables
+#ifdef HAVE_MPI
+   #define MPI_STATE_T MPI_FLOAT // for MPI communication for physics state variables
+   #define MPI_REAL_T MPI_FLOAT // for MPI communication for physics state variables
+   #define MPI_SPATIAL_T MPI_FLOAT
+   #define L7_STATE_T L7_FLOAT
+#endif
+
+#elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
+   typedef float state_t;
+   typedef double real_t;
+   typedef float display_t; // for display variable
+   typedef float spatial_t; // for spatial variables
+   typedef double real_spatial_t; // for intermediate spatial variables
+#ifdef HAVE_MPI
+   #define MPI_STATE_T MPI_FLOAT
+   #define MPI_REAL_T MPI_DOUBLE
+   #define MPI_SPATIAL_T MPI_FLOAT
+   #define L7_STATE_T L7_FLOAT
+#endif
+
+#elif defined(FULL_PRECISION)
+   typedef double state_t;
+   typedef double real_t;
+   typedef double display_t; // for display variable
+   typedef double spatial_t; // for spatial variables
+   typedef double real_spatial_t; // for intermediate spatial variables
+#ifdef HAVE_MPI
+   #define MPI_STATE_T MPI_DOUBLE
+   #define MPI_REAL_T MPI_DOUBLE
+   #define MPI_SPATIAL_T MPI_DOUBLE
+   #define L7_STATE_T L7_DOUBLE
+#endif
+#endif
+
 #define LEFT_HALF   0
 #define RIGHT_HALF  1
 #define BOTTOM_HALF 0

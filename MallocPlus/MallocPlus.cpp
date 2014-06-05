@@ -398,9 +398,9 @@ void *MallocPlus::memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, 
    return(malloc_mem_ptr);
 }
 
-real_t *MallocPlus::memory_reorder(real_t *malloc_mem_ptr, int *iorder){
+double *MallocPlus::memory_reorder(double *malloc_mem_ptr, int *iorder){
    list<malloc_plus_memory_entry>::iterator it;
-   real_t *ptr;
+   double *ptr;
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
       if (DEBUG) printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
@@ -408,7 +408,7 @@ real_t *MallocPlus::memory_reorder(real_t *malloc_mem_ptr, int *iorder){
    }
    if (it != memory_list.end() ){
       if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
-      real_t *tmp = (real_t *)malloc(it->mem_nelem*it->mem_elsize);
+      double *tmp = (double *)malloc(it->mem_nelem*it->mem_elsize);
       for (uint ic = 0; ic < it->mem_nelem; ic++){
          tmp[ic] = malloc_mem_ptr[iorder[ic]];
       }

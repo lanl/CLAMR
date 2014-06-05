@@ -60,6 +60,15 @@
 #define EZCL_MEM_FACTOR 1.6
 #define SUPPRESS_WARNING 1
 
+#if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
+#define FULL_PRECISION
+#endif
+#ifdef NO_CL_DOUBLE
+#undef  FULL_PRECISION
+#undef  MIXED_PRECISION
+#define MINIMUM_PRECISION
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -1362,19 +1371,30 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
 
    ezcl_malloc_memory_delete(source);
 
+   char CompileString[80];
+   CompileString[0] ='\0';
+
 #ifdef HAVE_CL_DOUBLE
-   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
-      ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
-   } else {
-      ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE", NULL, NULL);
-   }
+   strcat(CompileString,"-DHAVE_CL_DOUBLE");
 #else
-   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
-      ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
-   } else {
-      ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE", NULL, NULL);
-   }
+   strcat(CompileString,"-DNO_CL_DOUBLE -cl-single-precision-constant");
 #endif
+#ifdef FULL_PRECISION
+   strcat(CompileString," -DFULL_PRECISION");
+#endif
+#ifdef MIXED_PRECISION
+   strcat(CompileString," -DMIXED_PRECISION");
+#endif
+#ifdef MINIMUM_PRECISION
+   strcat(CompileString," -DMINIMUM_PRECISION");
+#endif
+
+   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
+      strcat(CompileString," -DIS_NVIDIA");
+   }
+
+   ierr = clBuildProgram(program, 0, NULL, CompileString, NULL, NULL);
+
    if (ierr != CL_SUCCESS){
       printf("EZCL_CREATE_KERNEL: clBuildProgram returned an error %d in file %s at line %d\n",ierr, file, line);
         switch (ierr){
@@ -1506,19 +1526,30 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
      }
    }
 
+   char CompileString[80];
+   CompileString[0] ='\0';
+
 #ifdef HAVE_CL_DOUBLE
-   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
-      ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
-   } else {
-      ierr = clBuildProgram(program, 0, NULL, "-DHAVE_CL_DOUBLE", NULL, NULL);
-   }
+   strcat(CompileString,"-DHAVE_CL_DOUBLE");
 #else
-   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
-      ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE -DIS_NVIDIA", NULL, NULL);
-   } else {
-      ierr = clBuildProgram(program, 0, NULL, "-DNO_CL_DOUBLE", NULL, NULL);
-   }
+   strcat(CompileString,"-DNO_CL_DOUBLE -cl-single-precision-constant");
 #endif
+#ifdef FULL_PRECISION
+   strcat(CompileString," -DFULL_PRECISION");
+#endif
+#ifdef MIXED_PRECISION
+   strcat(CompileString," -DMIXED_PRECISION");
+#endif
+#ifdef MINIMUM_PRECISION
+   strcat(CompileString," -DMINIMUM_PRECISION");
+#endif
+
+   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
+      strcat(CompileString," -DIS_NVIDIA");
+   }
+
+   ierr = clBuildProgram(program, 0, NULL, CompileString, NULL, NULL);
+
    if (ierr != CL_SUCCESS){
       printf("EZCL_CREATE_KERNEL_WSOURCE: clBuildProgram returned an error %d in file %s at line %d\n",ierr, file, line);
         switch (ierr){
@@ -1652,23 +1683,33 @@ cl_program ezcl_create_program_wsource_p(cl_context context, const char *defines
 
    int define_length = 63;
    if (defines != NULL) define_length = strlen(defines)+63;
-   char *defines_argument = (char *)malloc( define_length*sizeof(char) );
-   defines_argument[0]='\0';
-   if (defines != NULL) strcat(defines_argument, defines);
+   char *CompileString = (char *)malloc( define_length*sizeof(char) );
+   CompileString[0]='\0';
+   if (defines != NULL) strcat(CompileString, defines);
 
 #ifdef HAVE_CL_DOUBLE
-   strcat(defines_argument, " -DHAVE_CL_DOUBLE");
+   strcat(CompileString, " -DHAVE_CL_DOUBLE");
 #else
-   strcat(defines_argument, " -DNO_CL_DOUBLE");
+   strcat(CompileString, "-DNO_CL_DOUBLE -cl-single-precision-constant");
 #endif
+#ifdef FULL_PRECISION
+   strcat(CompileString, " -DFULL_PRECISION");
+#endif
+#ifdef MIXED_PRECISION
+   strcat(CompileString, " -DMIXED_PRECISION");
+#endif
+#ifdef MINIMUM_PRECISION
+   strcat(CompileString, " -DMINIMUM_PRECISION");
+#endif
+
    if (compute_device == COMPUTE_DEVICE_NVIDIA) {
-      strcat(defines_argument, " -DIS_NVIDIA");
+      strcat(CompileString, " -DIS_NVIDIA");
    }
 
-   //printf("DEBUG file %s line %d defines_argument %s\n",__FILE__,__LINE__,defines_argument);
-   ierr = clBuildProgram(program, 0, NULL, defines_argument, NULL, NULL);
+   //printf("DEBUG file %s line %d CompileString %s\n",__FILE__,__LINE__,CompileString);
+   ierr = clBuildProgram(program, 0, NULL, CompileString, NULL, NULL);
 
-   free(defines_argument);
+   free(CompileString);
 
    if (ierr != CL_SUCCESS){
       printf("EZCL_CREATE_PROGRAM_WSOURCE: clBuildProgram returned an error %d in file %s at line %d\n",ierr, file, line);
@@ -2068,6 +2109,41 @@ void ezcl_print_error(const int ierr, const char *routine, const char *cl_routin
       case CL_MAP_FAILURE:                     //#define CL_MAP_FAILURE                     -12
          printf("\nERROR: %s -- Map failure in %s at line %d in file %s\n", routine, cl_routine, line, file);
          break;
+#ifdef CL_MISALIGNED_SUB_BUFFER_OFFSET
+      case CL_MISALIGNED_SUB_BUFFER_OFFSET:    //#define CL_MISALIGNED_SUB_BUFFER_OFFSET    -13
+         printf("\nERROR: %s -- Misaligned sub buffer offset in %s at line %d in file %s\n", routine, cl_routine, line, file);
+         break;
+#endif
+#ifdef CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST
+      case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST:  //#define CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST    -14
+         printf("\nERROR: %s -- Error for events in wait list in %s at line %d in file %s\n", routine, cl_routine, line, file);
+         break;
+#endif
+#ifdef CL_COMPILE_PROGRAM_FAILURE
+      case CL_COMPILE_PROGRAM_FAILURE:         //#define CL_COMPILE_PROGRAM_FAILURE         -15
+         printf("\nERROR: %s -- Compile program failure in %s at line %d in file %s\n", routine, cl_routine, line, file);
+         break;
+#endif
+#ifdef CL_LINKER_NOT_AVAILABLE
+      case CL_LINKER_NOT_AVAILABLE:            //#define CL_LINKER_NOT_AVAILABLE            -16
+         printf("\nERROR: %s -- Linker not available in %s at line %d in file %s\n", routine, cl_routine, line, file);
+         break;
+#endif
+#ifdef CL_LINK_PROGRAM_FAILURE
+      case CL_LINK_PROGRAM_FAILURE:            //#define CL_LINK_PROGRAM_FAILURE            -17
+         printf("\nERROR: %s -- Link program failure in %s at line %d in file %s\n", routine, cl_routine, line, file);
+         break;
+#endif
+#ifdef CL_DEVICE_PARTITION_FAILED
+      case CL_DEVICE_PARTITION_FAILED:         //#define CL_DEVICE_PARTITION_FAILED         -18
+         printf("\nERROR: %s -- Device partition failed in %s at line %d in file %s\n", routine, cl_routine, line, file);
+         break;
+#endif
+#ifdef CL_KERNEL_ARG_INFO_NOT_AVAILABLE
+      case CL_KERNEL_ARG_INFO_NOT_AVAILABLE:   //#define CL_KERNEL_ARG_INFO_NOT_AVAILABLE   -19
+         printf("\nERROR: %s -- Kernel arg info not available in %s at line %d in file %s\n", routine, cl_routine, line, file);
+         break;
+#endif
 
       case CL_INVALID_VALUE:                   //#define CL_INVALID_VALUE                   -30
          printf("\nERROR: %s -- Invalid value in %s at line %d in file %s\n", routine, cl_routine, line, file);

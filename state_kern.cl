@@ -53,11 +53,104 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
+#if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
+#define FULL_PRECISION
+#endif
+#ifdef NO_CL_DOUBLE
+#undef  FULL_PRECISION
+#undef  MIXED_PRECISION
+#define MINIMUM_PRECISION
+#endif
+
+#if defined(MINIMUM_PRECISION)
+   typedef float state_t; // this is for physics state variables ncell in size
+   typedef float real_t; // this is used for intermediate calculations
+typedef float  real;
+   typedef float2 real2;
+   typedef float4 real4;
+#define ZERO 0.0f
+#define HALF 0.5f
+#define QUARTER 0.25f
+#define ONE  1.0f
+#define GRAVITATIONAL_CONSTANT 9.80f
+#define THOUSAND 1000.0f
+#define EPSILON 1.0f-30
+#define STATE_EPS        15.0f
+#define CONSERVATION_EPS    15.0f
+#ifdef HAVE_OPENCL
+   typedef cl_float cl_state_t; // for gpu physics state variables
+   typedef cl_float cl_real_t; // for intermediate gpu physics state variables
+   typedef cl_float2 cl_real2_t; // for intermediate gpu physics state variables
+   typedef cl_float4 cl_real4_t; // for intermediate gpu physics state variables
+#endif
+#ifdef HAVE_MPI
+   #define MPI_STATE_T MPI_FLOAT // for MPI communication for physics state variables
+   #define MPI_REAL_T MPI_FLOAT // for MPI communication for physics state variables
+   #define L7_REAL L7_FLOAT
+#endif
+
+#elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+   typedef float state_t;
+   typedef double real_t;
+typedef double  real;
+   typedef double2 real2;
+   typedef double4 real4;
+#define ZERO 0.0
+#define HALF 0.5
+#define QUARTER 0.25
+#define ONE  1.0
+#define GRAVITATIONAL_CONSTANT 9.80
+#define THOUSAND 1000.0
+#define EPSILON 1.0e-30
+#define STATE_EPS        .02
+#define CONSERVATION_EPS    .02
+#ifdef HAVE_OPENCL
+   typedef cl_float cl_state_t;
+   typedef cl_double cl_real_t; // for intermediate gpu physics state variables
+   typedef cl_double2 cl_real2_t; // for intermediate gpu physics state variables
+   typedef cl_double4 cl_real4_t; // for intermediate gpu physics state variables
+#endif
+#ifdef HAVE_MPI
+   #define MPI_STATE_T MPI_FLOAT
+   #define MPI_REAL_T MPI_DOUBLE
+   #define L7_REAL L7_FLOAT
+#endif
+
+#elif defined(FULL_PRECISION)
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+   typedef double state_t;
+   typedef double real_t;
+
+   typedef double  real;
+   typedef double2 real2;
+   typedef double4 real4;
+#define ZERO 0.0
+#define HALF 0.5
+#define QUARTER 0.25
+#define ONE  1.0
+#define GRAVITATIONAL_CONSTANT 9.80
+#define THOUSAND 1000.0
+#define EPSILON 1.0e-30
+#define STATE_EPS        .02
+#define CONSERVATION_EPS    .02
+#ifdef HAVE_OPENCL
+   typedef cl_double cl_state_t;
+   typedef cl_double cl_real_t; // for intermediate gpu physics state variables
+   typedef cl_double2 cl_real2_t; // for intermediate gpu physics state variables
+   typedef cl_double4 cl_real4_t; // for intermediate gpu physics state variables
+#endif
+#ifdef HAVE_MPI
+   #define MPI_STATE_T MPI_DOUBLE
+   #define MPI_REAL_T MPI_DOUBLE
+   #define L7_REAL L7_DOUBLE
+#endif
+#endif
+
+/*
 #ifndef GPU_DOUBLE_SUPPORT
 #define GPU_DOUBLE_SUPPORT
 #ifdef HAVE_CL_DOUBLE
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
-typedef double  real;
 typedef double2 real2;
 typedef double4 real4;
 typedef double8 real8;
@@ -82,6 +175,7 @@ typedef float8  real8;
 #define EPSILON 1.0f-30
 #endif
 #endif
+*/
 
 #define TWO 2
 //#define __OLD_STENCIL__
@@ -140,7 +234,7 @@ void reduction_min_within_tile1(__local  real  *tile)
 
 __kernel void set_timestep_cl(
                  const int    ncells,    // 0  Total number of cells.
-                 const real   sigma,     // 1
+                 const real_t sigma,     // 1
         __global const real  *H_in,      // 2  
         __global const real  *U_in,      // 3  
         __global const real  *V_in,      // 4  

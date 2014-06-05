@@ -81,20 +81,6 @@
 static int do_gpu_calc = 0;
 static int do_cpu_calc = 1;
 
-#ifdef HAVE_CL_DOUBLE
-typedef double      real_t;
-#ifdef HAVE_OPENCL
-typedef cl_double   cl_real;
-#endif
-#define CONSERVATION_EPS    .02
-#else
-typedef float       real_t;
-#ifdef HAVE_OPENCL
-typedef cl_float    cl_real;
-#endif
-#define CONSERVATION_EPS    .1
-#endif
-
 typedef unsigned int uint;
 
 #ifdef HAVE_GRAPHICS
