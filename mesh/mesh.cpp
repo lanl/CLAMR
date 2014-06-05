@@ -1201,10 +1201,10 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
       jmax   = ny + 1;
    }
    
-   xmin = -deltax * 0.5 * (double)nxx;
-   ymin = -deltay * 0.5 * (double)nyy;
-   xmax =  deltax * 0.5 * (double)nxx;
-   ymax =  deltay * 0.5 * (double)nyy;
+   xmin = -deltax * 0.5 * (real_t)nxx;
+   ymin = -deltay * 0.5 * (real_t)nyy;
+   xmax =  deltax * 0.5 * (real_t)nxx;
+   ymax =  deltay * 0.5 * (real_t)nyy;
    
    size_t lvlMxSize = levmx + 1;
 
@@ -1239,8 +1239,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
 #ifdef HAVE_OPENCL
    // The copy host ptr flag will have the data copied to the GPU as part of the allocation
       dev_levtable = ezcl_malloc(&levtable[0],   const_cast<char *>("dev_levtable"), &lvlMxSize, sizeof(cl_int),    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-      dev_levdx    = ezcl_malloc(&lev_deltax[0], const_cast<char *>("dev_levdx"),    &lvlMxSize, sizeof(cl_double), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
-      dev_levdy    = ezcl_malloc(&lev_deltay[0], const_cast<char *>("dev_levdy"),    &lvlMxSize, sizeof(cl_double), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levdx    = ezcl_malloc(&lev_deltax[0], const_cast<char *>("dev_levdx"),    &lvlMxSize, sizeof(cl_real_t), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
+      dev_levdy    = ezcl_malloc(&lev_deltay[0], const_cast<char *>("dev_levdy"),    &lvlMxSize, sizeof(cl_real_t), CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
       dev_levibeg  = ezcl_malloc(&lev_ibegin[0], const_cast<char *>("dev_levibeg"),  &lvlMxSize, sizeof(cl_int),    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
       dev_leviend  = ezcl_malloc(&lev_iend[0],   const_cast<char *>("dev_leviend"),  &lvlMxSize, sizeof(cl_int),    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
       dev_levjbeg  = ezcl_malloc(&lev_jbegin[0], const_cast<char *>("dev_levjbeg"),  &lvlMxSize, sizeof(cl_int),    CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, 0);
@@ -1265,7 +1265,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
 
 }
 
-void Mesh::init(int nx, int ny, double circ_radius, partition_method initial_order, int do_gpu_calc)
+void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_order, int do_gpu_calc)
 {
    if (do_gpu_calc) {
 #ifdef HAVE_OPENCL

@@ -81,36 +81,24 @@
 static int do_cpu_calc = 1;
 static int do_gpu_calc = 0;
 
-#ifdef HAVE_CL_DOUBLE
-typedef double      real_t;
-typedef struct
-{
-   double s0;
-   double s1;
-}  real2_t;
-#define CONSERVATION_EPS    .00001
-#define STATE_EPS        .025
-#define MPI_C_REAL MPI_DOUBLE
-#define L7_REAL L7_DOUBLE
-#else
-typedef float       real_t;
-typedef struct
-{
-   float s0;
-   float s1;
-}  real2_t;
-#define CONSERVATION_EPS    .1
-#define STATE_EPS      15.0
-#define MPI_C_REAL MPI_FLOAT
-#define L7_REAL L7_FLOAT
-#endif
-
 typedef unsigned int uint;
 
 #ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
 
 static int view_mode = 0;
+
+#ifdef FULL_PRECISION
+   void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
+#else
+   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
+#endif
+#ifndef MINIMUM_PRECISION
+   void (*set_cell_data)(double *) = &set_cell_data_double;
+#else
+   void (*set_cell_data)(float *) = &set_cell_data_float;
+#endif
+
 #endif
 
 bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
@@ -139,10 +127,10 @@ static double H_sum_initial = 0.0;
 static double cpu_time_graphics = 0.0;
 double cpu_time_main_setup = 0.0;
 vector<real_t> H_global;
-vector<real_t> x_global;
-vector<real_t> dx_global;
-vector<real_t> y_global;
-vector<real_t> dy_global;
+vector<spatial_t> x_global;
+vector<spatial_t> dx_global;
+vector<spatial_t> y_global;
+vector<spatial_t> dy_global;
 vector<int> proc_global;
 
 int main(int argc, char **argv) {
@@ -160,9 +148,9 @@ int main(int argc, char **argv) {
    struct timeval tstart_setup;
    cpu_timer_start(&tstart_setup);
 
-   double circ_radius = 6.0;
+   real_t circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.
-   circ_radius = circ_radius * (double) nx / 128.0;
+   circ_radius = circ_radius * (real_t) nx / 128.0;
    int boundary = 1;
    int parallel_in = 1;
 
@@ -195,10 +183,10 @@ int main(int argc, char **argv) {
    vector<int>   &nsizes     = mesh->nsizes;
    vector<int>   &ndispl     = mesh->ndispl;
 
-   vector<real_t> &x  = mesh->x;
-   vector<real_t> &dx = mesh->dx;
-   vector<real_t> &y  = mesh->y;
-   vector<real_t> &dy = mesh->dy;
+   vector<spatial_t> &x  = mesh->x;
+   vector<spatial_t> &dx = mesh->dx;
+   vector<spatial_t> &y  = mesh->y;
+   vector<spatial_t> &dy = mesh->dy;
 
    nsizes.resize(numpe);
    ndispl.resize(numpe);
@@ -255,10 +243,10 @@ int main(int argc, char **argv) {
 #ifdef HAVE_OPENGL
    set_mysize(ncells_global);
    //vector<real_t> H_global;
-   //vector<real_t> x_global;
-   //vector<real_t> dx_global;
-   //vector<real_t> y_global;
-   //vector<real_t> dy_global;
+   //vector<spatial_t> x_global;
+   //vector<spatial_t> dx_global;
+   //vector<spatial_t> y_global;
+   //vector<spatial_t> dy_global;
    //vector<int> proc_global;
    if (mype == 0){
       H_global.resize(ncells_global);
@@ -268,11 +256,11 @@ int main(int argc, char **argv) {
       dy_global.resize(ncells_global);
       proc_global.resize(ncells_global);
    }
-   MPI_Gatherv(&x[0],  nsizes[mype], MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&state->H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&x[0],  nsizes[mype], MPI_SPATIAL_T, &x_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&y[0],  nsizes[mype], MPI_SPATIAL_T, &y_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&state->H[0], nsizes[mype], MPI_REAL_T, &H_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, 0, MPI_COMM_WORLD);
 
    set_cell_data(&H_global[0]);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
@@ -438,10 +426,10 @@ extern "C" void do_calc(void)
    vector<int>   &ndispl   = mesh->ndispl;
 
    set_mysize(ncells_global);
-   //vector<real_t> x_global;
-   //vector<real_t> dx_global;
-   //vector<real_t> y_global;
-   //vector<real_t> dy_global;
+   //vector<spatial_t> x_global;
+   //vector<spatial_t> dx_global;
+   //vector<spatial_t> y_global;
+   //vector<spatial_t> dy_global;
    //vector<real_t> H_global;
    //vector<int> proc_global;
 
@@ -453,11 +441,11 @@ extern "C" void do_calc(void)
       H_global.resize(ncells_global);
       proc_global.resize(ncells_global);
    }
-   MPI_Gatherv(&mesh->x[0],  nsizes[mype], MPI_C_REAL, &x_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&mesh->dx[0], nsizes[mype], MPI_C_REAL, &dx_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&mesh->y[0],  nsizes[mype], MPI_C_REAL, &y_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&mesh->dy[0], nsizes[mype], MPI_C_REAL, &dy_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&state->H[0], nsizes[mype], MPI_C_REAL, &H_global[0], &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&mesh->x[0],  nsizes[mype], MPI_SPATIAL_T, &x_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&mesh->dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&mesh->y[0],  nsizes[mype], MPI_SPATIAL_T, &y_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&mesh->dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&state->H[0], nsizes[mype], MPI_REAL_T, &H_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, 0, MPI_COMM_WORLD);
 
    if (view_mode == 0) {
       mesh->proc.resize(ncells);
@@ -465,7 +453,7 @@ extern "C" void do_calc(void)
          mesh->proc[ii] = mesh->mype;
       }
    
-      MPI_Gatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_C_REAL, 0, MPI_COMM_WORLD);
+      MPI_Gatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_INT, 0, MPI_COMM_WORLD);
    }
 
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);

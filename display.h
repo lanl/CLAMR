@@ -104,37 +104,6 @@ extern "C"
 #include <math.h>
 #endif
 
-#if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
-#define FULL_PRECISION
-#endif
-#ifdef NO_CL_DOUBLE
-#undef  FULL_PRECISION
-#undef  MIXED_PRECISION
-#define MINIMUM_PRECISION
-#endif
-
-#if defined(MINIMUM_PRECISION)
-   typedef float state_t; // this is for physics state variables ncell in size
-   typedef float real_t; // this is used for intermediate calculations
-   typedef float display_t; // for display variable
-   typedef float spatial_t; // for spatial variables
-   typedef float real_spatial_t; // for intermediate spatial variables
-
-#elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
-   typedef float state_t;
-   typedef double real_t;
-   typedef float display_t; // for display variable
-   typedef float spatial_t; // for spatial variables
-   typedef double real_spatial_t; // for intermediate spatial variables
-
-#elif defined(FULL_PRECISION)
-   typedef double state_t;
-   typedef double real_t;
-   typedef double display_t; // for display variable
-   typedef double spatial_t; // for spatial variables
-   typedef double real_spatial_t; // for intermediate spatial variables
-#endif
-
 void init_display(int *argc, char **argv, const char* string, int mype_in);
 void set_idle_function(void (*function)(void));
 void start_main_loop(void);
@@ -143,8 +112,10 @@ void set_viewmode(int display_view_mode_in);
 void set_outline(int display_outline_in);
 void set_mysize(int mysize_in);
 void set_window(float display_xmin_in, float display_xmax_in, float display_ymin_in, float display_ymax_in);
-void set_cell_coordinates(real_t *x_in, real_t *dx_in, real_t *y_in, real_t *dy_in);
-void set_cell_data(real_t *data_in);
+void set_cell_coordinates_double(double *x_in, double *dx_in, double *y_in, double *dy_in);
+void set_cell_coordinates_float(float *x_in, float *dx_in, float *y_in, float *dy_in);
+void set_cell_data_double(double *data_in);
+void set_cell_data_float(float *data_in);
 void set_cell_proc(int *display_proc_in);
 void set_circle_radius(double display_circle_radius_in);
 void draw_scene(void);

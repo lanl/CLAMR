@@ -143,8 +143,18 @@ static double xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
 static int display_outline;
 static int display_view_mode = 0;
 static int display_mysize    = 0;
-static real_t *x=NULL, *y=NULL, *dx=NULL, *dy=NULL;
-static real_t *data=NULL;
+
+enum spatial_data_type {SPATIAL_DOUBLE, SPATIAL_FLOAT};
+static int spatial_type = SPATIAL_FLOAT;
+
+static double *x_double=NULL, *y_double=NULL, *dx_double=NULL, *dy_double=NULL;
+static float *x_float=NULL, *y_float=NULL, *dx_float=NULL, *dy_float=NULL;
+
+enum plot_data_type {DATA_DOUBLE, DATA_FLOAT};
+static int data_type = DATA_FLOAT;
+static double *data_double=NULL;
+static float *data_float=NULL;
+
 static int *display_proc=NULL;
 static int rank = 0;
 
@@ -301,17 +311,30 @@ void set_window(float display_xmin_in, float display_xmax_in, float display_ymin
    display_ymin = display_ymin_in;
    display_ymax = display_ymax_in;
 }
-void set_cell_data(real_t *data_in){
-   data = data_in;
+void set_cell_data_double(double *data_in){
+   data_type = DATA_DOUBLE;
+   data_double = data_in;
+}
+void set_cell_data_float(float *data_in){
+   data_type = DATA_FLOAT;
+   data_float = data_in;
 }
 void set_cell_proc(int *display_proc_in){
    display_proc = display_proc_in;
 }
-void set_cell_coordinates(real_t *x_in, real_t *dx_in, real_t *y_in, real_t *dy_in){
-   x = x_in;
-   dx = dx_in;
-   y = y_in;
-   dy = dy_in;
+void set_cell_coordinates_double(double *x_in, double *dx_in, double *y_in, double *dy_in){
+   spatial_type = SPATIAL_DOUBLE;
+   x_double = x_in;
+   dx_double = dx_in;
+   y_double = y_in;
+   dy_double = dy_in;
+}
+void set_cell_coordinates_float(float *x_in, float *dx_in, float *y_in, float *dy_in){
+   spatial_type = SPATIAL_FLOAT;
+   x_float = x_in;
+   dx_float = dx_in;
+   y_float = y_in;
+   dy_float = dy_in;
 }
 void free_display(void){
 #ifdef HAVE_OPENGL
@@ -329,9 +352,16 @@ void DisplayState(void) {
    if (autoscale) {
       scaleMax=-1.0e30;
       scaleMin=1.0e30;
-      for(i = 0; i<display_mysize; i++) {
-         if (data[i] > scaleMax) scaleMax = data[i];
-         if (data[i] < scaleMin) scaleMin = data[i];
+      if (data_type == DATA_DOUBLE){
+         for(i = 0; i<display_mysize; i++) {
+            if (data_double[i] > scaleMax) scaleMax = data_double[i];
+            if (data_double[i] < scaleMin) scaleMin = data_double[i];
+         }
+      } else {
+         for(i = 0; i<display_mysize; i++) {
+            if (data_float[i] > scaleMax) scaleMax = data_float[i];
+            if (data_float[i] < scaleMin) scaleMin = data_float[i];
+         }
       }
    }
 
@@ -350,7 +380,11 @@ void DisplayState(void) {
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
       glBegin(GL_QUADS);
 
-      color = (int)(data[i]-scaleMin)*step;
+      if (data_type == DATA_DOUBLE){
+         color = (int)(data_double[i]-scaleMin)*step;
+      } else {
+         color = (int)(data_float[i]-scaleMin)*step;
+      }
       if (color < 0) {
          color=0;
       }
@@ -358,10 +392,17 @@ void DisplayState(void) {
    
       glColor3f(Rainbow[color].Red, Rainbow[color].Green, Rainbow[color].Blue);
    
-      glVertex2f(x[i],       y[i]);
-      glVertex2f(x[i]+dx[i], y[i]);
-      glVertex2f(x[i]+dx[i], y[i]+dy[i]);
-      glVertex2f(x[i],       y[i]+dy[i]);
+      if (spatial_type == SPATIAL_DOUBLE){
+         glVertex2f(x_double[i],              y_double[i]);
+         glVertex2f(x_double[i]+dx_double[i], y_double[i]);
+         glVertex2f(x_double[i]+dx_double[i], y_double[i]+dy_double[i]);
+         glVertex2f(x_double[i],              y_double[i]+dy_double[i]);
+      } else {
+         glVertex2f(x_float[i],             y_float[i]);
+         glVertex2f(x_float[i]+dx_float[i], y_float[i]);
+         glVertex2f(x_float[i]+dx_float[i], y_float[i]+dy_float[i]);
+         glVertex2f(x_float[i],             y_float[i]+dy_float[i]);
+      }
       glEnd();
    
       /*Draw cells again as outline*/
@@ -369,10 +410,17 @@ void DisplayState(void) {
          glColor3f(0.0f, 0.0f, 0.0f);
          glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
          glBegin(GL_QUADS);
-         glVertex2f(x[i],       y[i]);
-         glVertex2f(x[i]+dx[i], y[i]);
-         glVertex2f(x[i]+dx[i], y[i]+dy[i]);
-         glVertex2f(x[i],       y[i]+dy[i]);
+         if (spatial_type == SPATIAL_DOUBLE){
+            glVertex2f(x_double[i],              y_double[i]);
+            glVertex2f(x_double[i]+dx_double[i], y_double[i]);
+            glVertex2f(x_double[i]+dx_double[i], y_double[i]+dy_double[i]);
+            glVertex2f(x_double[i],              y_double[i]+dy_double[i]);
+         } else {
+            glVertex2f(x_float[i],             y_float[i]);
+            glVertex2f(x_float[i]+dx_float[i], y_float[i]);
+            glVertex2f(x_float[i]+dx_float[i], y_float[i]+dy_float[i]);
+            glVertex2f(x_float[i],             y_float[i]+dy_float[i]);
+         }
          glEnd();
       }
    }
@@ -380,34 +428,75 @@ void DisplayState(void) {
 #ifdef HAVE_MPE
    int xloc, xwid, yloc, ywid;
    int xloc1, xloc2, yloc1, yloc2;
-   for(i = 0; i < display_mysize; i++) {
-      color = (int)(data[i]-scaleMin)*step;
-      color = NCOLORS-color;
-      if (color < 0) {
-         color=0;
+   if (spatial_type == SPATIAL_DOUBLE){
+      for(i = 0; i < display_mysize; i++) {
+         if (data_type == DATA_DOUBLE){
+            color = (int)(data_double[i]-scaleMin)*step;
+         } else {
+            color = (int)(data_float[i]-scaleMin)*step;
+         }
+         color = NCOLORS-color;
+         if (color < 0) {
+            color=0;
+         }
+         if (color >= NCOLORS) color = NCOLORS-1;
+
+         //printf("DEBUG mesh -- xconv is %lf xmin %lf x[%d]=%lf\n",xconv,display_xmin,i,x[i]);
+         //printf("DEBUG mesh -- yconv is %lf ymin %lf ymax %lf y[%d]=%lf\n",yconv,display_ymin,display_ymax,i,y[i]);
+         xloc = (int)((x_double[i]-display_xmin)*xconv);
+         xwid = (int)((x_double[i]+dx_double[i]-display_xmin)*xconv-xloc);
+         yloc = (int)((display_ymax-(y_double[i]+dy_double[i]))*yconv);
+         ywid = (int)((display_ymax-y_double[i])*yconv);
+         ywid -= yloc;
+         //printf("xloc is %d xwid %d yloc is %d ywid %d color is  %d step is %d\n",xloc,xwid,yloc,ywid,color,step);
+         MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, color_array[color]);
+
+         if (display_outline) {
+            xloc1 = (int)((x_double[i]-display_xmin)*xconv);
+            xloc2 = (int)((x_double[i]+dx_double[i]-display_xmin)*xconv);
+            yloc1 = (int)((display_ymax-y_double[i])*yconv);
+            yloc2 = (int)((display_ymax-(y_double[i]+dy_double[i]))*yconv);
+            //printf("xloc1 is %d xloc2 %d yloc1 is %d yloc2 %d\n",xloc1,xloc2,yloc1,yloc2);
+            MPE_Draw_line(window, xloc1, yloc2, xloc2, yloc2, MPE_BLACK);
+            MPE_Draw_line(window, xloc1, yloc1, xloc2, yloc1, MPE_BLACK);
+            MPE_Draw_line(window, xloc1, yloc1, xloc1, yloc2, MPE_BLACK);
+            MPE_Draw_line(window, xloc2, yloc1, xloc2, yloc2, MPE_BLACK);
+         }
       }
-      if (color >= NCOLORS) color = NCOLORS-1;
+   } else {
+      for(i = 0; i < display_mysize; i++) {
+         if (data_type == DATA_DOUBLE){
+            color = (int)(data_double[i]-scaleMin)*step;
+         } else {
+            color = (int)(data_float[i]-scaleMin)*step;
+         }
+         color = NCOLORS-color;
+         if (color < 0) {
+            color=0;
+         }
+         if (color >= NCOLORS) color = NCOLORS-1;
 
-      //printf("DEBUG mesh -- xconv is %lf xmin %lf x[%d]=%lf\n",xconv,display_xmin,i,x[i]);
-      //printf("DEBUG mesh -- yconv is %lf ymin %lf ymax %lf y[%d]=%lf\n",yconv,display_ymin,display_ymax,i,y[i]);
-      xloc = (int)((x[i]-display_xmin)*xconv);
-      xwid = (int)((x[i]+dx[i]-display_xmin)*xconv-xloc);
-      yloc = (int)((display_ymax-(y[i]+dy[i]))*yconv);
-      ywid = (int)((display_ymax-y[i])*yconv);
-      ywid -= yloc;
-      //printf("xloc is %d xwid %d yloc is %d ywid %d color is  %d step is %d\n",xloc,xwid,yloc,ywid,color,step);
-      MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, color_array[color]);
+         //printf("DEBUG mesh -- xconv is %lf xmin %lf x[%d]=%lf\n",xconv,display_xmin,i,x[i]);
+         //printf("DEBUG mesh -- yconv is %lf ymin %lf ymax %lf y[%d]=%lf\n",yconv,display_ymin,display_ymax,i,y[i]);
+         xloc = (int)((x_float[i]-display_xmin)*xconv);
+         xwid = (int)((x_float[i]+dx_float[i]-display_xmin)*xconv-xloc);
+         yloc = (int)((display_ymax-(y_float[i]+dy_float[i]))*yconv);
+         ywid = (int)((display_ymax-y_float[i])*yconv);
+         ywid -= yloc;
+         //printf("xloc is %d xwid %d yloc is %d ywid %d color is  %d step is %d\n",xloc,xwid,yloc,ywid,color,step);
+         MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, color_array[color]);
 
-      if (display_outline) {
-         xloc1 = (int)((x[i]-display_xmin)*xconv);
-         xloc2 = (int)((x[i]+dx[i]-display_xmin)*xconv);
-         yloc1 = (int)((display_ymax-y[i])*yconv);
-         yloc2 = (int)((display_ymax-(y[i]+dy[i]))*yconv);
-         //printf("xloc1 is %d xloc2 %d yloc1 is %d yloc2 %d\n",xloc1,xloc2,yloc1,yloc2);
-         MPE_Draw_line(window, xloc1, yloc2, xloc2, yloc2, MPE_BLACK);
-         MPE_Draw_line(window, xloc1, yloc1, xloc2, yloc1, MPE_BLACK);
-         MPE_Draw_line(window, xloc1, yloc1, xloc1, yloc2, MPE_BLACK);
-         MPE_Draw_line(window, xloc2, yloc1, xloc2, yloc2, MPE_BLACK);
+         if (display_outline) {
+            xloc1 = (int)((x_float[i]-display_xmin)*xconv);
+            xloc2 = (int)((x_float[i]+dx_float[i]-display_xmin)*xconv);
+            yloc1 = (int)((display_ymax-y_float[i])*yconv);
+            yloc2 = (int)((display_ymax-(y_float[i]+dy_float[i]))*yconv);
+            //printf("xloc1 is %d xloc2 %d yloc1 is %d yloc2 %d\n",xloc1,xloc2,yloc1,yloc2);
+            MPE_Draw_line(window, xloc1, yloc2, xloc2, yloc2, MPE_BLACK);
+            MPE_Draw_line(window, xloc1, yloc1, xloc2, yloc1, MPE_BLACK);
+            MPE_Draw_line(window, xloc1, yloc1, xloc1, yloc2, MPE_BLACK);
+            MPE_Draw_line(window, xloc2, yloc1, xloc2, yloc2, MPE_BLACK);
+         }
       }
    }
    MPE_Update(window);
@@ -449,48 +538,88 @@ void DrawSquares(void) {
          color = display_proc[i]*step;
          glColor3f(Rainbow[color].Red, Rainbow[color].Green, Rainbow[color].Blue);
 
-         glVertex2f(x[i],       y[i]);
-         glVertex2f(x[i]+dx[i], y[i]);
-         glVertex2f(x[i]+dx[i], y[i]+dy[i]);
-         glVertex2f(x[i],       y[i]+dy[i]);
+         if (spatial_type == SPATIAL_DOUBLE){
+            glVertex2f(x_double[i],              y_double[i]);
+            glVertex2f(x_double[i]+dx_double[i], y_double[i]);
+            glVertex2f(x_double[i]+dx_double[i], y_double[i]+dy_double[i]);
+            glVertex2f(x_double[i],              y_double[i]+dy_double[i]);
+         } else {
+            glVertex2f(x_float[i],             y_float[i]);
+            glVertex2f(x_float[i]+dx_float[i], y_float[i]);
+            glVertex2f(x_float[i]+dx_float[i], y_float[i]+dy_float[i]);
+            glVertex2f(x_float[i],             y_float[i]+dy_float[i]);
+         }
       glEnd();
 
       /*Draw cells again as outline*/
       glColor3f(0.0f, 0.0f, 0.0f);
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       glBegin(GL_QUADS);
-         glVertex2f(x[i],       y[i]);
-         glVertex2f(x[i]+dx[i], y[i]);
-         glVertex2f(x[i]+dx[i], y[i]+dy[i]);
-         glVertex2f(x[i],       y[i]+dy[i]);
+         if (spatial_type == SPATIAL_DOUBLE) {
+            glVertex2f(x_double[i],              y_double[i]);
+            glVertex2f(x_double[i]+dx_double[i], y_double[i]);
+            glVertex2f(x_double[i]+dx_double[i], y_double[i]+dy_double[i]);
+            glVertex2f(x_double[i],              y_double[i]+dy_double[i]);
+         } else {
+            glVertex2f(x_float[i],             y_float[i]);
+            glVertex2f(x_float[i]+dx_float[i], y_float[i]);
+            glVertex2f(x_float[i]+dx_float[i], y_float[i]+dy_float[i]);
+            glVertex2f(x_float[i],             y_float[i]+dy_float[i]);
+         }
       glEnd();
    }
 #endif
 #ifdef HAVE_MPE
    int xloc, xwid, yloc, ywid;
    int xloc1, xloc2, yloc1, yloc2;
-   for(i = 0; i < display_mysize; i++) {
-      //printf("DEBUG mesh -- xconv is %lf xmin %lf x[%d]=%lf\n",xconv,display_xmin,i,x[i]);
-      xloc = (int)((x[i]-display_xmin)*xconv);
-      xwid = (int)((x[i]+dx[i]-display_xmin)*xconv-xloc);
-      yloc = (int)((display_ymax-(y[i]+dy[i]))*yconv);
-      ywid = (int)((display_ymax-y[i])*yconv);
-      ywid -= yloc;
-      color = display_proc[i]*step;
-      //printf("xloc is %d xwid %d yloc is %d ywid %d color is  %d step is %d\n",xloc,xwid,yloc,ywid,color,step);
-      MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, color_array[color]);
+   if (spatial_type == SPATIAL_DOUBLE){
+      for(i = 0; i < display_mysize; i++) {
+         //printf("DEBUG mesh -- xconv is %lf xmin %lf x[%d]=%lf\n",xconv,display_xmin,i,x[i]);
+         xloc = (int)((x_double[i]-display_xmin)*xconv);
+         xwid = (int)((x_double[i]+dx_double[i]-display_xmin)*xconv-xloc);
+         yloc = (int)((display_ymax-(y_double[i]+dy_double[i]))*yconv);
+         ywid = (int)((display_ymax-y_double[i])*yconv);
+         ywid -= yloc;
+         color = display_proc[i]*step;
+         //printf("xloc is %d xwid %d yloc is %d ywid %d color is  %d step is %d\n",xloc,xwid,yloc,ywid,color,step);
+         MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, color_array[color]);
 
-      xloc1 = (int)((x[i]-display_xmin)*xconv);
-      xloc2 = (int)((x[i]+dx[i]-display_xmin)*xconv);
-      yloc1 = (int)((display_ymax-y[i])*yconv);
-      yloc2 = (int)((display_ymax-(y[i]+dy[i]))*yconv);
-      //printf("xloc1 is %d xloc2 %d yloc1 is %d yloc2 %d\n",xloc1,xloc2,yloc1,yloc2);
-      MPE_Draw_line(window, xloc1, yloc2, xloc2, yloc2, MPE_BLACK);
-      MPE_Draw_line(window, xloc1, yloc1, xloc2, yloc1, MPE_BLACK);
-      MPE_Draw_line(window, xloc1, yloc1, xloc1, yloc2, MPE_BLACK);
-      MPE_Draw_line(window, xloc2, yloc1, xloc2, yloc2, MPE_BLACK);
+         xloc1 = (int)((x_double[i]-display_xmin)*xconv);
+         xloc2 = (int)((x_double[i]+dx_double[i]-display_xmin)*xconv);
+         yloc1 = (int)((display_ymax-y_double[i])*yconv);
+         yloc2 = (int)((display_ymax-(y_double[i]+dy_double[i]))*yconv);
+         //printf("xloc1 is %d xloc2 %d yloc1 is %d yloc2 %d\n",xloc1,xloc2,yloc1,yloc2);
+         MPE_Draw_line(window, xloc1, yloc2, xloc2, yloc2, MPE_BLACK);
+         MPE_Draw_line(window, xloc1, yloc1, xloc2, yloc1, MPE_BLACK);
+         MPE_Draw_line(window, xloc1, yloc1, xloc1, yloc2, MPE_BLACK);
+         MPE_Draw_line(window, xloc2, yloc1, xloc2, yloc2, MPE_BLACK);
 
-      //MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, MPE_RED);
+         //MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, MPE_RED);
+      }
+   } else {
+      for(i = 0; i < display_mysize; i++) {
+         //printf("DEBUG mesh -- xconv is %lf xmin %lf x[%d]=%lf\n",xconv,display_xmin,i,x[i]);
+         xloc = (int)((x_float[i]-display_xmin)*xconv);
+         xwid = (int)((x_float[i]+dx_float[i]-display_xmin)*xconv-xloc);
+         yloc = (int)((display_ymax-(y_float[i]+dy_float[i]))*yconv);
+         ywid = (int)((display_ymax-y_float[i])*yconv);
+         ywid -= yloc;
+         color = display_proc[i]*step;
+         //printf("xloc is %d xwid %d yloc is %d ywid %d color is  %d step is %d\n",xloc,xwid,yloc,ywid,color,step);
+         MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, color_array[color]);
+
+         xloc1 = (int)((x_float[i]-display_xmin)*xconv);
+         xloc2 = (int)((x_float[i]+dx_float[i]-display_xmin)*xconv);
+         yloc1 = (int)((display_ymax-y_float[i])*yconv);
+         yloc2 = (int)((display_ymax-(y_float[i]+dy_float[i]))*yconv);
+         //printf("xloc1 is %d xloc2 %d yloc1 is %d yloc2 %d\n",xloc1,xloc2,yloc1,yloc2);
+         MPE_Draw_line(window, xloc1, yloc2, xloc2, yloc2, MPE_BLACK);
+         MPE_Draw_line(window, xloc1, yloc1, xloc2, yloc1, MPE_BLACK);
+         MPE_Draw_line(window, xloc1, yloc1, xloc1, yloc2, MPE_BLACK);
+         MPE_Draw_line(window, xloc2, yloc1, xloc2, yloc2, MPE_BLACK);
+
+         //MPE_Fill_rectangle(window, xloc, yloc, xwid, ywid, MPE_RED);
+      }
    }
 #endif
 
@@ -510,21 +639,39 @@ void DrawSquares(void) {
 #ifdef HAVE_OPENGL
    /*Trace order of cells with line going from center to center*/
    glBegin(GL_LINE_STRIP);
-      for(i = 0; i < display_mysize; i++) {
-         glVertex2f(x[i]+dx[i]/2, y[i]+dy[i]/2);
+      if (spatial_type == SPATIAL_DOUBLE) {
+         for(i = 0; i < display_mysize; i++) {
+            glVertex2f(x_double[i]+dx_double[i]/2, y_double[i]+dy_double[i]/2);
+         }
+      } else {
+         for(i = 0; i < display_mysize; i++) {
+            glVertex2f(x_float[i]+dx_float[i]/2, y_float[i]+dy_float[i]/2);
+         }
       }
    glEnd();
 #endif
 #ifdef HAVE_MPE
    int xloc_old, yloc_old;
-   xloc_old = (int)((x[0]+0.5*dx[0]-display_xmin)*xconv);
-   yloc_old = (int)((y[0]+0.5*dy[0]-display_ymin)*yconv);
-   for(i = 1; i < display_mysize; i++) {
-      xloc = (int)((x[i]+0.5*dx[i]-display_xmin)*xconv);
-      yloc = (int)((y[i]+0.5*dy[i]-display_ymin)*yconv);
-      MPE_Draw_line(window,xloc_old,yloc_old,xloc,yloc,MPE_BLACK);
-      xloc_old = xloc;
-      yloc_old = yloc;
+   if (spatial_type == SPATIAL_DOUBLE){
+      xloc_old = (int)((x_double[0]+0.5*dx_double[0]-display_xmin)*xconv);
+      yloc_old = (int)((y_double[0]+0.5*dy_double[0]-display_ymin)*yconv);
+      for(i = 1; i < display_mysize; i++) {
+         xloc = (int)((x_double[i]+0.5*dx_double[i]-display_xmin)*xconv);
+         yloc = (int)((y_double[i]+0.5*dy_double[i]-display_ymin)*yconv);
+         MPE_Draw_line(window,xloc_old,yloc_old,xloc,yloc,MPE_BLACK);
+         xloc_old = xloc;
+         yloc_old = yloc;
+      }
+   } else {
+      xloc_old = (int)((x_float[0]+0.5*dx_float[0]-display_xmin)*xconv);
+      yloc_old = (int)((y_float[0]+0.5*dy_float[0]-display_ymin)*yconv);
+      for(i = 1; i < display_mysize; i++) {
+         xloc = (int)((x_float[i]+0.5*dx_float[i]-display_xmin)*xconv);
+         yloc = (int)((y_float[i]+0.5*dy_float[i]-display_ymin)*yconv);
+         MPE_Draw_line(window,xloc_old,yloc_old,xloc,yloc,MPE_BLACK);
+         xloc_old = xloc;
+         yloc_old = yloc;
+      }
    }
 #ifdef HAVE_MPI
    MPI_Barrier(MPI_COMM_WORLD);
@@ -542,44 +689,86 @@ void DrawBoxes(void) {
    glFrustum(display_xmin-1, display_xmax, display_ymin-1, display_ymax, 5.0, 10.0);
    glTranslatef(0.0f, 0.0f, -6.0f); //must move into screen to draw
 
-   for(i = 0; i < display_mysize; i++) {
-      /*Draw filled cells with color set by processor*/
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-      glBegin(GL_QUADS);
-         color = display_proc[i]*step;
-         glColor3f(Rainbow[color].Red, Rainbow[color].Green, Rainbow[color].Blue);
+   if (spatial_type == SPATIAL_DOUBLE){
+      for(i = 0; i < display_mysize; i++) {
+         /*Draw filled cells with color set by processor*/
+         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+         glBegin(GL_QUADS);
+            color = display_proc[i]*step;
+            glColor3f(Rainbow[color].Red, Rainbow[color].Green, Rainbow[color].Blue);
 
-         /*Front Face*/
-         glVertex3f(x[i],       y[i],       0.0f);
-         glVertex3f(x[i]+dx[i], y[i],       0.0f);
-         glVertex3f(x[i]+dx[i], y[i]+dy[i], 0.0f);
-         glVertex3f(x[i],       y[i]+dy[i], 0.0f);
-         /*Right Face*/
-         glVertex3f(x[i]+dx[i], y[i],       0.0f);
-         glVertex3f(x[i]+dx[i], y[i]+dy[i], 0.0f);
-         glVertex3f(x[i]+dx[i], y[i]+dy[i],-1.0f);
-         glVertex3f(x[i]+dx[i], y[i],      -1.0f);
-         /*Back Face*/
-         glVertex3f(x[i]+dx[i], y[i],      -1.0f);
-         glVertex3f(x[i]+dx[i], y[i]+dy[i],-1.0f);
-         glVertex3f(x[i],       y[i]+dy[i],-1.0f);
-         glVertex3f(x[i],       y[i],      -1.0f);
-         /*Left Face*/
-         glVertex3f(x[i],       y[i],       0.0f);
-         glVertex3f(x[i],       y[i],      -1.0f);
-         glVertex3f(x[i],       y[i]+dy[i],-1.0f);
-         glVertex3f(x[i],       y[i]+dy[i], 0.0f);
-         /*Bottom*/
-         glVertex3f(x[i],       y[i],       0.0f);
-         glVertex3f(x[i],       y[i],      -1.0f);
-         glVertex3f(x[i]+dx[i], y[i],      -1.0f);
-         glVertex3f(x[i]+dx[i], y[i],       0.0f);
-         /*Top*/
-         glVertex3f(x[i],       y[i]+dy[i], 0.0f);
-         glVertex3f(x[i],       y[i]+dy[i],-1.0f);
-         glVertex3f(x[i]+dx[i], y[i]+dy[i],-1.0f);
-         glVertex3f(x[i]+dx[i], y[i]+dy[i], 0.0f);
-      glEnd();
+            /*Front Face*/
+            glVertex3f(x_double[i],              y_double[i],              0.0f);
+            glVertex3f(x_double[i]+dx_double[i], y_double[i],              0.0f);
+            glVertex3f(x_double[i]+dx_double[i], y_double[i]+dy_double[i], 0.0f);
+            glVertex3f(x_double[i],              y_double[i]+dy_double[i], 0.0f);
+            /*Right Face*/
+            glVertex3f(x_double[i]+dx_double[i], y_double[i],              0.0f);
+            glVertex3f(x_double[i]+dx_double[i], y_double[i]+dy_double[i], 0.0f);
+            glVertex3f(x_double[i]+dx_double[i], y_double[i]+dy_double[i],-1.0f);
+            glVertex3f(x_double[i]+dx_double[i], y_double[i],             -1.0f);
+            /*Back Face*/
+            glVertex3f(x_double[i]+dx_double[i], y_double[i],             -1.0f);
+            glVertex3f(x_double[i]+dx_double[i], y_double[i]+dy_double[i],-1.0f);
+            glVertex3f(x_double[i],              y_double[i]+dy_double[i],-1.0f);
+            glVertex3f(x_double[i],              y_double[i],             -1.0f);
+            /*Left Face*/
+            glVertex3f(x_double[i],              y_double[i],              0.0f);
+            glVertex3f(x_double[i],              y_double[i],             -1.0f);
+            glVertex3f(x_double[i],              y_double[i]+dy_double[i],-1.0f);
+            glVertex3f(x_double[i],              y_double[i]+dy_double[i], 0.0f);
+            /*Bottom*/
+            glVertex3f(x_double[i],              y_double[i],              0.0f);
+            glVertex3f(x_double[i],              y_double[i],             -1.0f);
+            glVertex3f(x_double[i]+dx_double[i], y_double[i],             -1.0f);
+            glVertex3f(x_double[i]+dx_double[i], y_double[i],              0.0f);
+            /*Top*/
+            glVertex3f(x_double[i],              y_double[i]+dy_double[i], 0.0f);
+            glVertex3f(x_double[i],              y_double[i]+dy_double[i],-1.0f);
+            glVertex3f(x_double[i]+dx_double[i], y_double[i]+dy_double[i],-1.0f);
+            glVertex3f(x_double[i]+dx_double[i], y_double[i]+dy_double[i], 0.0f);
+         glEnd();
+      }
+   } else {
+      for(i = 0; i < display_mysize; i++) {
+         /*Draw filled cells with color set by processor*/
+         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+         glBegin(GL_QUADS);
+            color = display_proc[i]*step;
+            glColor3f(Rainbow[color].Red, Rainbow[color].Green, Rainbow[color].Blue);
+
+            /*Front Face*/
+            glVertex3f(x_float[i],             y_float[i],             0.0f);
+            glVertex3f(x_float[i]+dx_float[i], y_float[i],             0.0f);
+            glVertex3f(x_float[i]+dx_float[i], y_float[i]+dy_float[i], 0.0f);
+            glVertex3f(x_float[i],             y_float[i]+dy_float[i], 0.0f);
+            /*Right Face*/
+            glVertex3f(x_float[i]+dx_float[i], y_float[i],             0.0f);
+            glVertex3f(x_float[i]+dx_float[i], y_float[i]+dy_float[i], 0.0f);
+            glVertex3f(x_float[i]+dx_float[i], y_float[i]+dy_float[i],-1.0f);
+            glVertex3f(x_float[i]+dx_float[i], y_float[i],            -1.0f);
+            /*Back Face*/
+            glVertex3f(x_float[i]+dx_float[i], y_float[i],            -1.0f);
+            glVertex3f(x_float[i]+dx_float[i], y_float[i]+dy_float[i],-1.0f);
+            glVertex3f(x_float[i],             y_float[i]+dy_float[i],-1.0f);
+            glVertex3f(x_float[i],             y_float[i],            -1.0f);
+            /*Left Face*/
+            glVertex3f(x_float[i],             y_float[i],             0.0f);
+            glVertex3f(x_float[i],             y_float[i],            -1.0f);
+            glVertex3f(x_float[i],             y_float[i]+dy_float[i],-1.0f);
+            glVertex3f(x_float[i],             y_float[i]+dy_float[i], 0.0f);
+            /*Bottom*/
+            glVertex3f(x_float[i],             y_float[i],             0.0f);
+            glVertex3f(x_float[i],             y_float[i],            -1.0f);
+            glVertex3f(x_float[i]+dx_float[i], y_float[i],            -1.0f);
+            glVertex3f(x_float[i]+dx_float[i], y_float[i],             0.0f);
+            /*Top*/
+            glVertex3f(x_float[i],             y_float[i]+dy_float[i], 0.0f);
+            glVertex3f(x_float[i],             y_float[i]+dy_float[i],-1.0f);
+            glVertex3f(x_float[i]+dx_float[i], y_float[i]+dy_float[i],-1.0f);
+            glVertex3f(x_float[i]+dx_float[i], y_float[i]+dy_float[i], 0.0f);
+         glEnd();
+      }
    }
 #endif
 }
@@ -625,9 +814,16 @@ void draw_scene(void) {
 
    if (display_mysize <=500) {
       char c[10];
-      for(int i = 0; i < display_mysize; i++) {
-         sprintf(c, "%d", i);
-         DrawString(x[i]+0.5*dx[i], y[i]+0.5*dy[i], 0.0, c);
+      if (data_type == DATA_DOUBLE){
+         for(int i = 0; i < display_mysize; i++) {
+            sprintf(c, "%d", i);
+            DrawString(x_double[i]+0.5*dx_double[i], y_double[i]+0.5*dy_double[i], 0.0, c);
+         }
+      } else {
+         for(int i = 0; i < display_mysize; i++) {
+            sprintf(c, "%d", i);
+            DrawString(x_float[i]+0.5*dx_float[i], y_float[i]+0.5*dy_float[i], 0.0, c);
+         }
       }
    }
 
@@ -827,6 +1023,7 @@ void display_get_event(void)
 #endif
 
       //printf("Event type is %d\n",event.type);
+      int state;
       switch(event.type){
          case ButtonPress:
             //printf("Button Press is %d\n",event.xbutton.button);
@@ -836,7 +1033,7 @@ void display_get_event(void)
             xcor=display_xmin+(double)xloc/xconv;
             ycor=display_ymin+(double)(height-yloc -1)/yconv;
 
-            int state = 1; // Button Down
+            state = 1; // Button Down
             mouseClick((int)event.xbutton.button, state, xloc, yloc);
 
             //printf("DEBUG graphics -- button is %d loc is %d %d cor is %lf %lf\n",

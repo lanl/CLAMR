@@ -86,6 +86,18 @@ typedef unsigned int uint;
 static double circle_radius=-1.0;
 
 static int view_mode = 0;
+
+#ifdef FULL_PRECISION
+   void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
+#else
+   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
+#endif
+#ifndef MINIMUM_PRECISION
+   void (*set_cell_data)(double *) = &set_cell_data_double;
+#else
+   void (*set_cell_data)(float *) = &set_cell_data_float;
+#endif
+
 #endif
 
 bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
@@ -130,9 +142,9 @@ int main(int argc, char **argv) {
    struct timeval tstart_setup;
    cpu_timer_start(&tstart_setup);
 
-   double circ_radius = 6.0;
+   real_t circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.
-   circ_radius = circ_radius * (double) nx / 128.0;
+   circ_radius = circ_radius * (real_t) nx / 128.0;
    int boundary = 1;
    int parallel_in = 1;
 
