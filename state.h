@@ -81,7 +81,6 @@
       float s0;
       float s1;
    }  real2_t;
-#define STATE_EPS        15.0
 #define CONSERVATION_EPS    15.0
 #ifdef HAVE_OPENCL
    typedef cl_float cl_state_t; // for gpu physics state variables
@@ -92,7 +91,7 @@
 #ifdef HAVE_MPI
    #define MPI_STATE_T MPI_FLOAT // for MPI communication for physics state variables
    #define MPI_REAL_T MPI_FLOAT // for MPI communication for physics state variables
-   #define L7_REAL L7_FLOAT
+   #define L7_REAL_T L7_FLOAT
 #endif
 
 #elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
@@ -103,7 +102,6 @@
       double s0;
       double s1;
    }  real2_t;
-#define STATE_EPS        .02
 #define CONSERVATION_EPS    .02
 #ifdef HAVE_OPENCL
    typedef cl_float cl_state_t;
@@ -114,7 +112,7 @@
 #ifdef HAVE_MPI
    #define MPI_STATE_T MPI_FLOAT
    #define MPI_REAL_T MPI_DOUBLE
-   #define L7_REAL L7_DOUBLE
+   #define L7_REAL_T L7_DOUBLE
 #endif
 
 #elif defined(FULL_PRECISION)
@@ -125,7 +123,6 @@
       double s0;
       double s1;
    }  real2_t;
-#define STATE_EPS        .02
 #define CONSERVATION_EPS    .02
 #ifdef HAVE_OPENCL
    typedef cl_double cl_state_t;
@@ -136,7 +133,7 @@
 #ifdef HAVE_MPI
    #define MPI_STATE_T MPI_DOUBLE
    #define MPI_REAL_T MPI_DOUBLE
-   #define L7_REAL L7_DOUBLE
+   #define L7_REAL_T L7_DOUBLE
 #endif
 #endif
 

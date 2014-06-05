@@ -81,13 +81,11 @@
 
 #if defined(MINIMUM_PRECISION)
    typedef float real_t; // this is used for intermediate calculations
+   typedef float spatial_t; // for spatial variables
 #ifdef HAVE_OPENCL
    typedef cl_float cl_real_t; // for intermediate gpu physics state variables
    typedef cl_float cl_spatial_t;
 #endif
-// typedef float display_t; // for display variable
-   typedef float spatial_t; // for spatial variables
-   typedef float real_spatial_t; // for intermediate spatial variables
 #ifdef HAVE_MPI
    #define MPI_REAL_T MPI_FLOAT // for MPI communication for physics state variables
    #define MPI_SPATIAL_T MPI_FLOAT
@@ -95,13 +93,11 @@
 
 #elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
    typedef double real_t;
+   typedef float spatial_t; // for spatial variables
 #ifdef HAVE_OPENCL
    typedef cl_double cl_real_t; // for intermediate gpu physics state variables
    typedef cl_float cl_spatial_t;
 #endif
-// typedef float display_t; // for display variable
-   typedef float spatial_t; // for spatial variables
-   typedef double real_spatial_t; // for intermediate spatial variables
 #ifdef HAVE_MPI
    #define MPI_REAL_T MPI_DOUBLE
    #define MPI_SPATIAL_T MPI_FLOAT
@@ -109,13 +105,11 @@
 
 #elif defined(FULL_PRECISION)
    typedef double real_t;
+   typedef double spatial_t; // for spatial variables
 #ifdef HAVE_OPENCL
    typedef cl_double cl_real_t; // for intermediate gpu physics state variables
    typedef cl_double cl_spatial_t;
 #endif
-// typedef double display_t; // for display variable
-   typedef double spatial_t; // for spatial variables
-   typedef double real_spatial_t; // for intermediate spatial variables
 #ifdef HAVE_MPI
    #define MPI_REAL_T MPI_DOUBLE
    #define MPI_SPATIAL_T MPI_DOUBLE

@@ -65,9 +65,8 @@
 #if defined(MINIMUM_PRECISION)
    typedef float state_t; // this is for physics state variables ncell in size
    typedef float real_t; // this is used for intermediate calculations
-typedef float  real;
-   typedef float2 real2;
-   typedef float4 real4;
+   typedef float2 real2_t;
+   typedef float4 real4_t;
 #define ZERO 0.0f
 #define HALF 0.5f
 #define QUARTER 0.25f
@@ -77,25 +76,13 @@ typedef float  real;
 #define EPSILON 1.0f-30
 #define STATE_EPS        15.0f
 #define CONSERVATION_EPS    15.0f
-#ifdef HAVE_OPENCL
-   typedef cl_float cl_state_t; // for gpu physics state variables
-   typedef cl_float cl_real_t; // for intermediate gpu physics state variables
-   typedef cl_float2 cl_real2_t; // for intermediate gpu physics state variables
-   typedef cl_float4 cl_real4_t; // for intermediate gpu physics state variables
-#endif
-#ifdef HAVE_MPI
-   #define MPI_STATE_T MPI_FLOAT // for MPI communication for physics state variables
-   #define MPI_REAL_T MPI_FLOAT // for MPI communication for physics state variables
-   #define L7_REAL L7_FLOAT
-#endif
 
 #elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
    typedef float state_t;
    typedef double real_t;
-typedef double  real;
-   typedef double2 real2;
-   typedef double4 real4;
+   typedef double2 real2_t;
+   typedef double4 real4_t;
 #define ZERO 0.0
 #define HALF 0.5
 #define QUARTER 0.25
@@ -105,26 +92,14 @@ typedef double  real;
 #define EPSILON 1.0e-30
 #define STATE_EPS        .02
 #define CONSERVATION_EPS    .02
-#ifdef HAVE_OPENCL
-   typedef cl_float cl_state_t;
-   typedef cl_double cl_real_t; // for intermediate gpu physics state variables
-   typedef cl_double2 cl_real2_t; // for intermediate gpu physics state variables
-   typedef cl_double4 cl_real4_t; // for intermediate gpu physics state variables
-#endif
-#ifdef HAVE_MPI
-   #define MPI_STATE_T MPI_FLOAT
-   #define MPI_REAL_T MPI_DOUBLE
-   #define L7_REAL L7_FLOAT
-#endif
 
 #elif defined(FULL_PRECISION)
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
    typedef double state_t;
    typedef double real_t;
 
-   typedef double  real;
-   typedef double2 real2;
-   typedef double4 real4;
+   typedef double2 real2_t;
+   typedef double4 real4_t;
 #define ZERO 0.0
 #define HALF 0.5
 #define QUARTER 0.25
@@ -134,48 +109,8 @@ typedef double  real;
 #define EPSILON 1.0e-30
 #define STATE_EPS        .02
 #define CONSERVATION_EPS    .02
-#ifdef HAVE_OPENCL
-   typedef cl_double cl_state_t;
-   typedef cl_double cl_real_t; // for intermediate gpu physics state variables
-   typedef cl_double2 cl_real2_t; // for intermediate gpu physics state variables
-   typedef cl_double4 cl_real4_t; // for intermediate gpu physics state variables
-#endif
-#ifdef HAVE_MPI
-   #define MPI_STATE_T MPI_DOUBLE
-   #define MPI_REAL_T MPI_DOUBLE
-   #define L7_REAL L7_DOUBLE
-#endif
-#endif
 
-/*
-#ifndef GPU_DOUBLE_SUPPORT
-#define GPU_DOUBLE_SUPPORT
-#ifdef HAVE_CL_DOUBLE
-typedef double2 real2;
-typedef double4 real4;
-typedef double8 real8;
-#define ZERO 0.0
-#define HALF 0.5
-#define QUARTER 0.25
-#define ONE  1.0
-#define GRAVITATIONAL_CONSTANT 9.80
-#define THOUSAND 1000.0
-#define EPSILON 1.0e-30
-#else
-typedef float   real;
-typedef float2  real2;
-typedef float4  real4;
-typedef float8  real8;
-#define ZERO 0.0f
-#define HALF 0.5f
-#define QUARTER 0.25f
-#define ONE  1.0f
-#define GRAVITATIONAL_CONSTANT 9.80f
-#define THOUSAND 1000.0f
-#define EPSILON 1.0f-30
 #endif
-#endif
-*/
 
 #define TWO 2
 //#define __OLD_STENCIL__
@@ -204,7 +139,7 @@ int is_lower_right(int i, int j) { return(i % 2 == 1 && j % 2 == 0); }
 int is_upper_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 1); }
 int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
 
-void reduction_min_within_tile1(__local  real  *tile)
+void reduction_min_within_tile1(__local  real_t  *tile)
 {
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
@@ -235,16 +170,16 @@ void reduction_min_within_tile1(__local  real  *tile)
 __kernel void set_timestep_cl(
                  const int    ncells,    // 0  Total number of cells.
                  const real_t sigma,     // 1
-        __global const real  *H_in,      // 2  
-        __global const real  *U_in,      // 3  
-        __global const real  *V_in,      // 4  
-        __global const int   *level,     // 5  Array of level information.
-        __global const int   *celltype,  // 6 
-        __global const real  *lev_dx,    // 7  
-        __global const real  *lev_dy,    // 8  
-        __global       real  *redscratch,// 9 
-        __global       real  *deltaT,    // 10
-        __local        real  *tile)      // 11
+        __global const real_t *H_in,      // 2  
+        __global const real_t *U_in,      // 3  
+        __global const real_t *V_in,      // 4  
+        __global const int    *level,     // 5  Array of level information.
+        __global const int    *celltype,  // 6 
+        __global const real_t *lev_dx,    // 7  
+        __global const real_t *lev_dy,    // 8  
+        __global       real_t *redscratch,// 9 
+        __global       real_t *deltaT,    // 10
+        __local        real_t *tile)      // 11
 {
     const unsigned int giX  = get_global_id(0);
     const unsigned int tiX  = get_local_id(0);
@@ -257,21 +192,21 @@ __kernel void set_timestep_cl(
     const unsigned int ntX  = get_local_size(0);
 
     //  Set physical constants.
-    const real   g     = GRAVITATIONAL_CONSTANT;   // gravitational constant
+    const real_t g     = GRAVITATIONAL_CONSTANT;   // gravitational constant
     
     //--MEMORY MANAGEMENT-------------------------------------------------------
     //  Set values for the main cell.
-    real H       = H_in[giX];
-    real U       = U_in[giX];
-    real V       = V_in[giX];
+    real_t H       = H_in[giX];
+    real_t U       = U_in[giX];
+    real_t V       = V_in[giX];
     int lev      = level[giX];
     int type     = celltype[giX];
     
     //--CALCULATIONS------------------------------------------------------------
     if (type == REAL_CELL){
-      real wavespeed = sqrt(g * H);
-      real xspeed  = (fabs(U) + wavespeed)/lev_dx[lev];
-      real yspeed  = (fabs(V) + wavespeed)/lev_dy[lev];
+      real_t wavespeed = sqrt(g * H);
+      real_t xspeed  = (fabs(U) + wavespeed)/lev_dx[lev];
+      real_t yspeed  = (fabs(V) + wavespeed)/lev_dy[lev];
       tile[tiX] = sigma/(xspeed+yspeed);
     }
 
@@ -288,10 +223,10 @@ __kernel void set_timestep_cl(
 /* finish_reduction */
 
 __kernel void finish_reduction_min_cl(
-                 const int   isize,
-        __global       real  *redscratch,
-        __global       real  *deltaT,
-        __local        real  *tile)
+                 const int    isize,
+        __global       real_t *redscratch,
+        __global       real_t *deltaT,
+        __local        real_t *tile)
 {       
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
@@ -319,24 +254,24 @@ __kernel void finish_reduction_min_cl(
 //#define max(a,b) ((a) > (b) ? (a) : (b))
 //#define fabs(a) ( (a) < 0 ? -(a) : a)
 //#endif
-void setup_tile(__local        real4  *tile,
-                __local        int8   *itile,
-                         const int    isize,
-                __global const real   *H,
-                __global const real   *U,
-                __global const real   *V,
-                __global const int    *nlft,
-                __global const int    *nrht,
-                __global const int    *ntop,
-                __global const int    *nbot,
-                __global const int    *level
+void setup_tile(__local        real4_t *tile,
+                __local        int8    *itile,
+                         const int     isize,
+                __global const real_t  *H,
+                __global const real_t  *U,
+                __global const real_t  *V,
+                __global const int     *nlft,
+                __global const int     *nrht,
+                __global const int     *ntop,
+                __global const int     *nbot,
+                __global const int     *level
                 );
 
 void setup_refine_tile(
-                __local        real   *tile,
+                __local        real_t *tile,
                 __local        int8   *itile,
                          const int    isize,
-                __global const real   *H,
+                __global const real_t *H,
                 __global const int    *nlft,
                 __global const int    *nrht,
                 __global const int    *ntop,
@@ -345,13 +280,13 @@ void setup_refine_tile(
                 );
 
 __kernel void copy_state_data_cl(
-                          const int  isize,         // 0 
-                 __global      real  *H,            // 1 
-                 __global      real  *U,            // 2 
-                 __global      real  *V,            // 3 
-                 __global      real  *H_new,        // 4 
-                 __global      real  *U_new,        // 5 
-                 __global      real  *V_new)        // 6 
+                          const int   isize,         // 0 
+                 __global      real_t *H,            // 1 
+                 __global      real_t *U,            // 2 
+                 __global      real_t *V,            // 3 
+                 __global      real_t *H_new,        // 4 
+                 __global      real_t *U_new,        // 5 
+                 __global      real_t *V_new)        // 6 
 {
                 
    const unsigned int giX  = get_global_id(0);
@@ -364,14 +299,14 @@ __kernel void copy_state_data_cl(
 }
 
 __kernel void copy_state_ghost_data_cl(
-                          const int  ncells,        // 0 
-                          const int  nghost,        // 1 
-                 __global      real  *H,            // 2 
-                 __global      real  *H_add,        // 3 
-                 __global      real  *U,            // 4 
-                 __global      real  *U_add,        // 5 
-                 __global      real  *V,            // 6 
-                 __global      real  *V_add)        // 7 
+                          const int   ncells,        // 0 
+                          const int   nghost,        // 1 
+                 __global      real_t *H,            // 2 
+                 __global      real_t *H_add,        // 3 
+                 __global      real_t *U,            // 4 
+                 __global      real_t *U_add,        // 5 
+                 __global      real_t *V,            // 6 
+                 __global      real_t *V_add)        // 7 
 {
    const unsigned int giX  = get_global_id(0);
 
@@ -503,18 +438,18 @@ __kernel void copy_state_ghost_data_cl(
 
 #define U_halfstep(deltaT, U_i, U_n, F_i, F_n, r_i, r_n, A_i, A_n, V_i, V_n) (( (( r_i*U_n + r_n*U_i ) / ( r_i + r_n )) - HALF*deltaT*(( F_n*A_n*min(ONE, A_i/A_n) - F_i*A_i*min(ONE, A_n/A_i) ) / ( V_n*min(HALF, V_i/V_n) + V_i*min(HALF, V_n/V_i) )) ))
 
-real U_halfstep_ORIG(// XXX Fix the subindices to be more intuitive XXX
-        real    deltaT,     // Timestep
-        real    U_i,        // Initial cell's (downwind's) state variable
-        real    U_n,        // Next cell's    (upwind's)   state variable
-        real    F_i,        // Initial cell's (downwind's) state variable flux
-        real    F_n,        // Next cell's    (upwind's)   state variable flux
-        real    r_i,        // Initial cell's (downwind's) center to face dist
-        real    r_n,        // Next cell's    (upwind's)   center to face dist
-        real    A_i,        // Cell's            face surface area
-        real    A_n,        // Cell's neighbor's face surface area
-        real    V_i,        // Cell's            volume
-        real    V_n) {      // Cell's neighbor's volume
+real_t U_halfstep_ORIG(// XXX Fix the subindices to be more intuitive XXX
+        real_t  deltaT,     // Timestep
+        real_t  U_i,        // Initial cell's (downwind's) state variable
+        real_t  U_n,        // Next cell's    (upwind's)   state variable
+        real_t  F_i,        // Initial cell's (downwind's) state variable flux
+        real_t  F_n,        // Next cell's    (upwind's)   state variable flux
+        real_t  r_i,        // Initial cell's (downwind's) center to face dist
+        real_t  r_n,        // Next cell's    (upwind's)   center to face dist
+        real_t  A_i,        // Cell's            face surface area
+        real_t  A_n,        // Cell's neighbor's face surface area
+        real_t  V_i,        // Cell's            volume
+        real_t  V_n) {      // Cell's neighbor's volume
 
    return (( r_i*U_n + r_n*U_i ) / ( r_i + r_n ))
           - HALF*deltaT*(( F_n*A_n*min(ONE, A_i/A_n) - F_i*A_i*min(ONE, A_n/A_i) )
@@ -522,18 +457,18 @@ real U_halfstep_ORIG(// XXX Fix the subindices to be more intuitive XXX
 
 }
 
-real U_halfstep_BD(// XXX Fix the subindices to be more intuitive XXX
-        real    deltaT,     // Timestep
-        real    U_i,        // Initial cell's (downwind's) state variable
-        real    U_n,        // Next cell's    (upwind's)   state variable
-        real    F_i,        // Initial cell's (downwind's) state variable flux
-        real    F_n,        // Next cell's    (upwind's)   state variable flux
-        real    r_i,        // Initial cell's (downwind's) center to face distance
-        real    r_n,        // Next cell's    (upwind's)   center to face distance
-        real    A_i,        // Cell's            face surface area
-        real    A_n,        // Cell's neighbor's face surface area
-        real    V_i,        // Cell's            volume
-        real    V_n) {      // Cell's neighbor's volume
+real_t U_halfstep_BD(// XXX Fix the subindices to be more intuitive XXX
+        real_t  deltaT,     // Timestep
+        real_t  U_i,        // Initial cell's (downwind's) state variable
+        real_t  U_n,        // Next cell's    (upwind's)   state variable
+        real_t  F_i,        // Initial cell's (downwind's) state variable flux
+        real_t  F_n,        // Next cell's    (upwind's)   state variable flux
+        real_t  r_i,        // Initial cell's (downwind's) center to face distance
+        real_t  r_n,        // Next cell's    (upwind's)   center to face distance
+        real_t  A_i,        // Cell's            face surface area
+        real_t  A_n,        // Cell's neighbor's face surface area
+        real_t  V_i,        // Cell's            volume
+        real_t  V_n) {      // Cell's neighbor's volume
 
    return ((U_i*r_n+U_n*r_i)/(r_n+r_i) + (deltaT/(r_n+r_i))*(F_n-F_i));
 
@@ -541,14 +476,14 @@ real U_halfstep_BD(// XXX Fix the subindices to be more intuitive XXX
 
 #define U_fullstep(deltaT, dr, U, F_plus, F_minus, G_plus, G_minus) (( (U - (deltaT / dr)*(F_plus - F_minus + G_plus - G_minus)) ))
 
-real U_fullstep_ORIG(
-        real    deltaT,
-        real    dr,
-        real    U,
-        real    F_plus,
-        real    F_minus,
-        real    G_plus,
-        real    G_minus) {
+real_t U_fullstep_ORIG(
+        real_t  deltaT,
+        real_t  dr,
+        real_t  U,
+        real_t  F_plus,
+        real_t  F_minus,
+        real_t  G_plus,
+        real_t  G_minus) {
 
    return (U - (deltaT / dr)*(F_plus - F_minus + G_plus - G_minus));
 
@@ -556,35 +491,35 @@ real U_fullstep_ORIG(
 
 //#define w_corrector(deltaT, dr, U_eigen, grad_half, grad_minus, grad_plus) (( HALF*(HALF*U_eigen*deltaT/dr)*(ONE-(HALF*U_eigen*deltaT/dr))*(ONE- max(MIN3(ONE, (grad_plus*grad_half/max(SQR(grad_half),EPSILON)), (grad_minus*grad_half/max(SQR(grad_half),EPSILON))), ZERO)) ))
 
-real w_corrector(//_ORIG(
-        real    deltaT,       // Timestep
-        real    dr,           // Cell's center to face distance
-        real    U_eigen,      // State variable's eigenvalue (speed)
-        real    grad_half,    // Centered gradient
-        real    grad_minus,   // Downwind gradient
-        real    grad_plus) {  // Upwind gradient
+real_t w_corrector(//_ORIG(
+        real_t  deltaT,       // Timestep
+        real_t  dr,           // Cell's center to face distance
+        real_t  U_eigen,      // State variable's eigenvalue (speed)
+        real_t  grad_half,    // Centered gradient
+        real_t  grad_minus,   // Downwind gradient
+        real_t  grad_plus) {  // Upwind gradient
 
-   real nu     = HALF * U_eigen * deltaT / dr;
+   real_t nu     = HALF * U_eigen * deltaT / dr;
    nu          = nu * (ONE - nu);
 
-   real rdenom = ONE / max(SQR(grad_half), EPSILON);
-   real rplus  = (grad_plus  * grad_half) * rdenom;
-   real rminus = (grad_minus * grad_half) * rdenom;
+   real_t rdenom = ONE / max(SQR(grad_half), EPSILON);
+   real_t rplus  = (grad_plus  * grad_half) * rdenom;
+   real_t rminus = (grad_minus * grad_half) * rdenom;
 
    return HALF*nu*(ONE- max(MIN3(ONE, rplus, rminus), ZERO));
 
 }
 
 __kernel void apply_boundary_conditions_local_cl(
-                 const int    ncells,   // 0  Total number of cells
-        __global const int   *celltype, // 1  Array of left neighbors
-        __global const int   *nlft,     // 2  Array of left neighbors
-        __global const int   *nrht,     // 3  Array of right neighbors
-        __global const int   *ntop,     // 4  Array of top neighbors
-        __global const int   *nbot,     // 5  Array of bottom neighbors
-        __global       real  *H,        // 6  H array
-        __global       real  *U,        // 7  U array
-        __global       real  *V)        // 8  V array
+                 const int     ncells,   // 0  Total number of cells
+        __global const int    *celltype, // 1  Array of left neighbors
+        __global const int    *nlft,     // 2  Array of left neighbors
+        __global const int    *nrht,     // 3  Array of right neighbors
+        __global const int    *ntop,     // 4  Array of top neighbors
+        __global const int    *nbot,     // 5  Array of bottom neighbors
+        __global       real_t *H,        // 6  H array
+        __global       real_t *U,        // 7  U array
+        __global       real_t *V)        // 8  V array
 {
    const unsigned int giX  = get_global_id(0);
    const unsigned int tiX  = get_local_id(0);
@@ -630,15 +565,15 @@ __kernel void apply_boundary_conditions_local_cl(
 }
 
 __kernel void apply_boundary_conditions_ghost_cl(
-                 const int    ncells,   // 0  Total number of cells
-        __global const int   *celltype, // 1  Array of left neighbors
-        __global const int   *nlft,     // 2  Array of left neighbors
-        __global const int   *nrht,     // 3  Array of right neighbors
-        __global const int   *ntop,     // 4  Array of top neighbors
-        __global const int   *nbot,     // 5  Array of bottom neighbors
-        __global       real  *H,        // 6  H array
-        __global       real  *U,        // 7  U array
-        __global       real  *V)        // 8  V array
+                 const int     ncells,   // 0  Total number of cells
+        __global const int    *celltype, // 1  Array of left neighbors
+        __global const int    *nlft,     // 2  Array of left neighbors
+        __global const int    *nrht,     // 3  Array of right neighbors
+        __global const int    *ntop,     // 4  Array of top neighbors
+        __global const int    *nbot,     // 5  Array of bottom neighbors
+        __global       real_t *H,        // 6  H array
+        __global       real_t *U,        // 7  U array
+        __global       real_t *V)        // 8  V array
 {
    const unsigned int giX  = get_global_id(0);
    const unsigned int tiX  = get_local_id(0);
@@ -684,15 +619,15 @@ __kernel void apply_boundary_conditions_ghost_cl(
 }
 
 __kernel void apply_boundary_conditions_cl(
-                 const int    ncells,   // 0  Total number of cells
-        __global const int   *celltype, // 1  Array of left neighbors
-        __global const int   *nlft,     // 2  Array of left neighbors
-        __global const int   *nrht,     // 3  Array of right neighbors
-        __global const int   *ntop,     // 4  Array of top neighbors
-        __global const int   *nbot,     // 5  Array of bottom neighbors
-        __global       real  *H,        // 6  H array
-        __global       real  *U,        // 7  U array
-        __global       real  *V)        // 8  V array
+                 const int     ncells,   // 0  Total number of cells
+        __global const int    *celltype, // 1  Array of left neighbors
+        __global const int    *nlft,     // 2  Array of left neighbors
+        __global const int    *nrht,     // 3  Array of right neighbors
+        __global const int    *ntop,     // 4  Array of top neighbors
+        __global const int    *nbot,     // 5  Array of bottom neighbors
+        __global       real_t *H,        // 6  H array
+        __global       real_t *U,        // 7  U array
+        __global       real_t *V)        // 8  V array
 {
    const unsigned int giX  = get_global_id(0);
    const unsigned int tiX  = get_local_id(0);
@@ -730,24 +665,24 @@ __kernel void apply_boundary_conditions_cl(
 }
 
 __kernel void calc_finite_difference_cl(
-                 const int    ncells,   // 0  Total number of cells
-                 const int    levmx,    // 1  Maximum level
-        __global const real  *H,//_old,    // 2  
-        __global const real  *U,//_old,    // 3  
-        __global const real  *V,//_old,    // 4  
-        __global       real  *H_new,    // 5  
-        __global       real  *U_new,    // 6  
-        __global       real  *V_new,    // 7  
-        __global const int   *nlft,     // 8   Array of left neighbors
-        __global const int   *nrht,     // 9   Array of right neighbors
-        __global const int   *ntop,     // 10  Array of top neighbors
-        __global const int   *nbot,     // 11  Array of bottom neighbors
-        __global const int   *level,    // 12  Array of level information
-                 const real   deltaT,   // 13  Size of time step.
-        __global const real  *lev_dx,   // 14
-        __global const real  *lev_dy,   // 15
-        __local        real4 *tile,     // 16  Tile size in real4
-        __local        int8  *itile){   // 17  Tile size in int8
+                 const int      ncells,   // 0  Total number of cells
+                 const int      levmx,    // 1  Maximum level
+        __global const real_t  *H,        // 2  
+        __global const real_t  *U,        // 3  
+        __global const real_t  *V,        // 4  
+        __global       real_t  *H_new,    // 5  
+        __global       real_t  *U_new,    // 6  
+        __global       real_t  *V_new,    // 7  
+        __global const int     *nlft,     // 8   Array of left neighbors
+        __global const int     *nrht,     // 9   Array of right neighbors
+        __global const int     *ntop,     // 10  Array of top neighbors
+        __global const int     *nbot,     // 11  Array of bottom neighbors
+        __global const int     *level,    // 12  Array of level information
+                 const real_t   deltaT,   // 13  Size of time step.
+        __global const real_t  *lev_dx,   // 14
+        __global const real_t  *lev_dy,   // 15
+        __local        real4_t *tile,     // 16  Tile size in real4_t
+        __local        int8    *itile){   // 17  Tile size in int8
 
    /////////////////////////////////////////////
    /// Get thread identification information ///
@@ -777,8 +712,8 @@ __kernel void calc_finite_difference_cl(
    /// Declare all constants and local variables ///
    /////////////////////////////////////////////////
 
-   const real   g     = GRAVITATIONAL_CONSTANT;   // gravitational constant
-   const real   ghalf = HALF*g;
+   const real_t g     = GRAVITATIONAL_CONSTANT;   // gravitational constant
+   const real_t ghalf = HALF*g;
 
    // Left, right, ... left-left, right-right, ... left-top, right-top neighbor
    int nl, nr, nt, nb;
@@ -792,86 +727,86 @@ __kernel void calc_finite_difference_cl(
    int nlt, nrt, ntr, nbr;
 
    // State variables at x-axis control volume face
-   real Hxminus, Hxplus;
-   real Uxminus, Uxplus;
-   real Vxminus, Vxplus;
+   real_t Hxminus, Hxplus;
+   real_t Uxminus, Uxplus;
+   real_t Vxminus, Vxplus;
 
    // State variables at y-axis control volume face
-   real Hyminus, Hyplus;
-   real Uyminus, Uyplus;
-   real Vyminus, Vyplus;
+   real_t Hyminus, Hyplus;
+   real_t Uyminus, Uyplus;
+   real_t Vyminus, Vyplus;
 
    // Variables for artificial viscosity/flux limiting
-   real wminusx_H, wminusx_U;
-   real wplusx_H, wplusx_U;
-   real wminusy_H, wminusy_V;
-   real wplusy_H, wplusy_V;
+   real_t wminusx_H, wminusx_U;
+   real_t wplusx_H, wplusx_U;
+   real_t wminusy_H, wminusy_V;
+   real_t wplusy_H, wplusy_V;
 
    int nltl;
-   real Hll2;
+   real_t Hll2;
 
    int nrtr;
-   real Hrr2;
+   real_t Hrr2;
 
-   real Ull2;
-   real Urr2;
+   real_t Ull2;
+   real_t Urr2;
 
    int ntrt;
-   real Htt2;
+   real_t Htt2;
 
    int nbrb;
-   real Hbb2;
+   real_t Hbb2;
 
-   real Vtt2;
-   real Vbb2;
+   real_t Vtt2;
+   real_t Vbb2;
 
-   real Hxminus2, Hxplus2;
-   real Uxminus2, Uxplus2;
-   real Vxminus2, Vxplus2;
+   real_t Hxminus2, Hxplus2;
+   real_t Uxminus2, Uxplus2;
+   real_t Vxminus2, Vxplus2;
 
-   real Hyminus2, Hyplus2;
-   real Uyminus2, Uyplus2;
-   real Vyminus2, Vyplus2;
+   real_t Hyminus2, Hyplus2;
+   real_t Uyminus2, Uyplus2;
+   real_t Vyminus2, Vyplus2;
 
-   real Hxfluxminus;
-   real Uxfluxminus;
-   real Vxfluxminus;
+   real_t Hxfluxminus;
+   real_t Uxfluxminus;
+   real_t Vxfluxminus;
 
-   real Hxfluxplus;
-   real Uxfluxplus;
-   real Vxfluxplus;
+   real_t Hxfluxplus;
+   real_t Uxfluxplus;
+   real_t Vxfluxplus;
 
-   real Hyfluxminus;
-   real Uyfluxminus;
-   real Vyfluxminus;
+   real_t Hyfluxminus;
+   real_t Uyfluxminus;
+   real_t Vyfluxminus;
 
-   real Hyfluxplus;
-   real Uyfluxplus;
-   real Vyfluxplus;
+   real_t Hyfluxplus;
+   real_t Uyfluxplus;
+   real_t Vyfluxplus;
 
 
    // XXX Assuming square cells! XXX
    // State variables and cell widths and lengths
-   real dric, drl, drr, drt, drb;
-//   real drlt, drrt, drtr, drbr;
+   real_t dric, drl, drr, drt, drb;
+//   real_t drlt, drrt, drtr, drbr;
 
-   real Hic, Hl, Hr, Ht, Hb;
-   real Hll, Hrr, Htt, Hbb;
+   real_t Hic, Hl, Hr, Ht, Hb;
+   real_t Hll, Hrr, Htt, Hbb;
 
-   real Uic, Ul, Ur, Ut, Ub;
-   real Ull, Urr;
+   real_t Uic, Ul, Ur, Ut, Ub;
+   real_t Ull, Urr;
 
-   real Vic, Vl, Vr, Vt, Vb;
-   real Vtt, Vbb;
+   real_t Vic, Vl, Vr, Vt, Vb;
+   real_t Vtt, Vbb;
 
-   real Hlt, Hrt, Htr, Hbr;
-   real Ult, Urt, Utr, Ubr;
-   real Vlt, Vrt, Vtr, Vbr;
+   real_t Hlt, Hrt, Htr, Hbr;
+   real_t Ult, Urt, Utr, Ubr;
+   real_t Vlt, Vrt, Vtr, Vbr;
 
 
    // Local values for the state variables and cell widths and heights for the local cell as well
    // as its neighboring cells
-   real dxic, dxl, dxr, dyic, dyt, dyb;
+   real_t dxic, dxl, dxr, dyic, dyt, dyb;
 
    //////////////////////////
    /// Set the local tile ///
@@ -1183,7 +1118,7 @@ __kernel void calc_finite_difference_cl(
 
 //#define V_delta(V_i, V_n) (( HALF*deltaT / ((V_n)*min(HALF, (V_i)/(V_n))+(V_i)*min(HALF, (V_n)/(V_i))) ))
 
-//   real V_stag = V_delta( SQR(dxl), SQR(dxic) );
+//   real_t V_stag = V_delta( SQR(dxl), SQR(dxic) );
 
    Hxminus = U_halfstep(deltaT, Hl, Hic, HXFLUXNL, HXFLUXIC, 
                         dxl, dxic, dxl, dxic, SQR(dxl), SQR(dxic));
@@ -1316,14 +1251,14 @@ __kernel void calc_finite_difference_cl(
       Ull = (Ull + U[ ntop[nll] ]) * HALF;
    }
 
-   real Hr2 = Hr;
-   real Ur2 = Ur;
+   real_t Hr2 = Hr;
+   real_t Ur2 = Ur;
    if(lvl < lvl_nr) {
       Hr2 = (Hr2 + Hrt) * HALF;
       Ur2 = (Ur2 + Urt) * HALF;
    }
 
-   real numinusx = fabs(Uxminus/Hxminus) + sqrt(g*Hxminus);
+   real_t numinusx = fabs(Uxminus/Hxminus) + sqrt(g*Hxminus);
 
    wminusx_H = w_corrector(deltaT, (dric+drl)*HALF, numinusx, Hic-Hl, Hl-Hll, Hr2-Hic);
    wminusx_H *= Hic - Hl;
@@ -1342,14 +1277,14 @@ __kernel void calc_finite_difference_cl(
       Urr = (Urr + U[ ntop[nrr] ]) * HALF;
    }
 
-   real Hl2 = Hl;
-   real Ul2 = Ul;
+   real_t Hl2 = Hl;
+   real_t Ul2 = Ul;
    if(lvl < lvl_nl) {
       Hl2 = (Hl2 + Hlt) * HALF;
       Ul2 = (Ul2 + Ult) * HALF;
    }
 
-   real nuplusx = fabs(Uxplus/Hxplus) + sqrt(g*Hxplus);
+   real_t nuplusx = fabs(Uxplus/Hxplus) + sqrt(g*Hxplus);
 
    wplusx_H = w_corrector(deltaT, (dric+dxr)*HALF, nuplusx, Hr-Hic, Hic-Hl2, Hrr-Hr);
    wplusx_H *= Hr - Hic;
@@ -1391,14 +1326,14 @@ __kernel void calc_finite_difference_cl(
       Vbb = (Vbb + V[ nrht[nbb] ]) * HALF;
    }
 
-   real Ht2 = Ht;
-   real Vt2 = Vt;
+   real_t Ht2 = Ht;
+   real_t Vt2 = Vt;
    if(lvl < lvl_nt) {
       Ht2 = (Ht2 + Htr) * HALF;
       Vt2 = (Vt2 + Vtr) * HALF;
    }
 
-   real numinusy = fabs(Vyminus/Hyminus) + sqrt(g*Hyminus);
+   real_t numinusy = fabs(Vyminus/Hyminus) + sqrt(g*Hyminus);
 
    wminusy_H = w_corrector(deltaT, (dric+dyb)*HALF, numinusy, Hic-Hb, Hb-Hbb, Ht2-Hic);
    wminusy_H *= Hic - Hb;
@@ -1417,14 +1352,14 @@ __kernel void calc_finite_difference_cl(
       Vtt = (Vtt + V[ nrht[ntt] ]) * HALF;
    }
 
-   real Hb2 = Hb;
-   real Vb2 = Vb;
+   real_t Hb2 = Hb;
+   real_t Vb2 = Vb;
    if(lvl < lvl_nb) {
       Hb2 = (Hb2 + Hbr) * HALF;
       Vb2 = (Vb2 + Vbr) * HALF;
    }
 
-   real nuplusy = fabs(Vyplus/Hyplus) + sqrt(g*Hyplus);
+   real_t nuplusy = fabs(Vyplus/Hyplus) + sqrt(g*Hyplus);
 
    wplusy_H = w_corrector(deltaT, (dric+dyt)*HALF, nuplusy, Ht-Hic, Hic-Hb2, Htt-Ht);
    wplusy_H *= Ht - Hic;
@@ -1504,26 +1439,26 @@ __kernel void calc_finite_difference_cl(
 }
 
 __kernel void refine_potential_cl(
-                 const int    ncells,     // 0  Total number of cells.
-                 const int    levmx,      // 1  Maximum level
-        __global const real  *H,          // 2
-        __global const real  *U,          // 3
-        __global const real  *V,          // 4
-        __global const int   *nlft,       // 5  Array of left neighbors.
-        __global const int   *nrht,       // 6  Array of right neighbors.
-        __global const int   *ntop,       // 7  Array of bottom neighbors.
-        __global const int   *nbot,       // 8  Array of top neighbors.
-        __global const int   *i,          // 9  Array of i values.
-        __global const int   *j,          // 10 Array of j values.
-        __global const int   *level,      // 11 Array of level information.
-        __global const int   *celltype,   // 12  Array of celltype information.
-        __global const real  *lev_dx,     // 13
-        __global const real  *lev_dy,     // 14
-        __global       int   *mpot,       // 15  Array of mesh potential information.
-        __global       int2  *redscratch, // 16  Array of new giX offsets.
-        __global       int2  *result,     // 17
-        __local        real  *tile,       // 18  Tile size in real4.
-        __local        int8  *itile)      // 19  Tile size in int8.
+                 const int      ncells,     // 0  Total number of cells.
+                 const int      levmx,      // 1  Maximum level
+        __global const real_t  *H,          // 2
+        __global const real_t  *U,          // 3
+        __global const real_t  *V,          // 4
+        __global const int     *nlft,       // 5  Array of left neighbors.
+        __global const int     *nrht,       // 6  Array of right neighbors.
+        __global const int     *ntop,       // 7  Array of bottom neighbors.
+        __global const int     *nbot,       // 8  Array of top neighbors.
+        __global const int     *i,          // 9  Array of i values.
+        __global const int     *j,          // 10 Array of j values.
+        __global const int     *level,      // 11 Array of level information.
+        __global const int     *celltype,   // 12  Array of celltype information.
+        __global const real_t  *lev_dx,     // 13
+        __global const real_t  *lev_dy,     // 14
+        __global       int     *mpot,       // 15  Array of mesh potential information.
+        __global       int2    *redscratch, // 16  Array of new giX offsets.
+        __global       int2    *result,     // 17
+        __local        real_t  *tile,       // 18  Tile size in real_t.
+        __local        int8    *itile)      // 19  Tile size in int8.
 {
 
 //////////////////////////////////////////////////////////////////
@@ -1534,7 +1469,7 @@ __kernel void refine_potential_cl(
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 
-   real qpot = ZERO;
+   real_t qpot = ZERO;
     
    /////////////////////////////////////////////
    /// Get thread identification information ///
@@ -1560,15 +1495,15 @@ __kernel void refine_potential_cl(
 
    int nlt, nrt, nbr, ntr;
    int nl, nr, nb, nt;
-   real Hic;
-   real Hl; //, Ul, Vl;
-   real Hr; //, Ur, Vr;
-   real Hb; //, Ub, Vb;
-   real Ht; //, Ut, Vt;
+   real_t Hic;
+   real_t Hl; //, Ul, Vl;
+   real_t Hr; //, Ur, Vr;
+   real_t Hb; //, Ub, Vb;
+   real_t Ht; //, Ut, Vt;
 
-   real duminus1;
-   real duplus1;
-   real duhalf1;
+   real_t duminus1;
+   real_t duplus1;
+   real_t duhalf1;
 
    nl = nlftval(tiX);
    nr = nrhtval(tiX);
@@ -1759,8 +1694,8 @@ __kernel void refine_potential_cl(
        //--CALCULATIONS------------------------------------------------------------
        //  Calculate the gradient between the right and left neighbors and the
        //  main cell.
-       real invHic = ONE / Hic; //  For faster math.
-       real qmax = -THOUSAND;          //  Set the default maximum low to catch the real one.
+       real_t invHic = ONE / Hic; //  For faster math.
+       real_t qmax = -THOUSAND;          //  Set the default maximum low to catch the real one.
     
        duplus1 = Hr - Hic;
        duhalf1 = Hic - Hl;
@@ -1847,17 +1782,17 @@ __kernel void refine_potential_cl(
     mpot[giX] = mpotval; /**/
 }
 
-void setup_tile(__local        real4  *tile, 
-                __local        int8   *itile, 
-                         const int    isize,
-                __global const real   *H,
-                __global const real   *U,
-                __global const real   *V,
-                __global const int    *nlft,
-                __global const int    *nrht,
-                __global const int    *ntop,
-                __global const int    *nbot,
-                __global const int    *level
+void setup_tile(__local        real4_t  *tile, 
+                __local        int8     *itile, 
+                         const int      isize,
+                __global const real_t   *H,
+                __global const real_t   *U,
+                __global const real_t   *V,
+                __global const int      *nlft,
+                __global const int      *nrht,
+                __global const int      *ntop,
+                __global const int      *nbot,
+                __global const int      *level
                 )
 {
    const unsigned int giX = get_global_id (0);
@@ -1911,10 +1846,10 @@ void setup_tile(__local        real4  *tile,
 }
 
 void setup_refine_tile(
-                __local        real   *tile, 
+                __local        real_t *tile, 
                 __local        int8   *itile, 
                          const int    isize,
-                __global const real   *H,
+                __global const real_t *H,
                 __global const int    *nlft,
                 __global const int    *nrht,
                 __global const int    *ntop,
@@ -1990,7 +1925,7 @@ inline uint scan_warp_inclusive(__local volatile uint *input, const uint idx, co
     return input[idx];
 }
 
-void reduction_sum_within_tile(__local  real  *tile)
+void reduction_sum_within_tile(__local  real_t  *tile)
 {
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
@@ -2014,15 +1949,15 @@ void reduction_sum_within_tile(__local  real  *tile)
 
 
 __kernel void reduce_sum_mass_stage1of2_cl(
-                 const int    isize,     // 0  Total number of cells.
-        __global const real  *array,     // 1
-        __global const int   *level,     // 2
-        __global const real  *levdx,     // 3
-        __global const real  *levdy,     // 4
-        __global const int   *celltype,  // 5
-        __global       real  *mass_sum,  // 6
-        __global       real  *scratch,   // 7
-        __local        real  *tile)      // 8
+                 const int      isize,     // 0  Total number of cells.
+        __global const real_t  *array,     // 1
+        __global const int     *level,     // 2
+        __global const real_t  *levdx,     // 3
+        __global const real_t  *levdy,     // 4
+        __global const int     *celltype,  // 5
+        __global       real_t  *mass_sum,  // 6
+        __global       real_t  *scratch,   // 7
+        __local        real_t  *tile)      // 8
 {
     const unsigned int giX  = get_global_id(0);
     const unsigned int tiX  = get_local_id(0);
@@ -2045,11 +1980,11 @@ __kernel void reduce_sum_mass_stage1of2_cl(
     }
 }
 
-void reduction_epsum_within_tile(__local  real2  *tile)
+void reduction_epsum_within_tile(__local  real2_t  *tile)
 {
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
-   real corrected_next_term, new_sum;
+   real_t corrected_next_term, new_sum;
 
     for (int offset=ntX>>1; offset > 32; offset >>= 1){
       if (tiX < offset){
@@ -2103,15 +2038,15 @@ void reduction_epsum_within_tile(__local  real2  *tile)
 }
 
 __kernel void reduce_epsum_mass_stage1of2_cl(
-                 const int    isize,     // 0  Total number of cells.
-        __global const real  *array,     // 1
-        __global const int   *level,     // 2
-        __global const real  *levdx,     // 3
-        __global const real  *levdy,     // 4
-        __global const int   *celltype,  // 5
-        __global       real2  *mass_sum, // 6
-        __global       real2 *scratch,   // 7
-        __local        real2 *tile)      // 8
+                 const int      isize,     // 0  Total number of cells.
+        __global const real_t  *array,     // 1
+        __global const int     *level,     // 2
+        __global const real_t  *levdx,     // 3
+        __global const real_t  *levdy,     // 4
+        __global const int     *celltype,  // 5
+        __global       real2_t *mass_sum, // 6
+        __global       real2_t *scratch,   // 7
+        __local        real2_t *tile)      // 8
 {
     const unsigned int giX  = get_global_id(0);
     const unsigned int tiX  = get_local_id(0);
@@ -2140,9 +2075,9 @@ __kernel void reduce_epsum_mass_stage1of2_cl(
 
 __kernel void reduce_sum_mass_stage2of2_cl(
                  const int    isize,
-        __global       real   *mass_sum,
-        __global       real   *scratch,
-        __local        real   *tile)
+        __global       real_t *mass_sum,
+        __global       real_t *scratch,
+        __local        real_t *tile)
 {
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
@@ -2168,14 +2103,14 @@ __kernel void reduce_sum_mass_stage2of2_cl(
 }
 
 __kernel void reduce_epsum_mass_stage2of2_cl(
-                 const int    isize,
-        __global       real2  *mass_sum,
-        __global       real2  *scratch,
-        __local        real2  *tile)
+                 const int      isize,
+        __global       real2_t  *mass_sum,
+        __global       real2_t  *scratch,
+        __local        real2_t  *tile)
 {
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
-   real corrected_next_term, new_sum;
+   real_t corrected_next_term, new_sum;
 
    int giX = tiX;
 
