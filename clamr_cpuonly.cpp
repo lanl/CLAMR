@@ -88,12 +88,9 @@ static int view_mode = 0;
 
 #ifdef FULL_PRECISION
    void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
-#else
-   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
-#endif
-#ifndef MINIMUM_PRECISION
    void (*set_cell_data)(double *) = &set_cell_data_double;
 #else
+   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
    void (*set_cell_data)(float *) = &set_cell_data_float;
 #endif
 

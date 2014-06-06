@@ -96,12 +96,9 @@ static int view_mode = 0;
 
 #ifdef FULL_PRECISION
    void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
-#else
-   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
-#endif
-#ifndef MINIMUM_PRECISION
    void (*set_cell_data)(double *) = &set_cell_data_double;
 #else
+   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
    void (*set_cell_data)(float *) = &set_cell_data_float;
 #endif
 
@@ -186,9 +183,9 @@ int main(int argc, char **argv) {
    cl_mem &dev_U    = state->dev_U;
    cl_mem &dev_V    = state->dev_V;
 
-   real_t  *H        = state->H;
-   real_t  *U        = state->U;
-   real_t  *V        = state->V;
+   state_t  *H        = state->H;
+   state_t  *U        = state->U;
+   state_t  *V        = state->V;
 
    state->allocate_device_memory(ncells);
 
@@ -206,9 +203,9 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->i[0],        NULL            );
    ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->j[0],        NULL            );
    ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->level[0],    NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&H[0],       NULL              );
-   ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&U[0],       NULL              );
-   ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_real_t),  (void *)&V[0],       &end_write_event  );
+   ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&H[0],       NULL              );
+   ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&U[0],       NULL              );
+   ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_state_t),  (void *)&V[0],       &end_write_event  );
    state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
 
    mesh->nlft = NULL;
@@ -317,9 +314,9 @@ extern "C" void do_calc(void)
 
       // To reduce drift in solution
       if (do_sync) {
-         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&state->H[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&state->U[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real_t),  (void *)&state->V[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&state->H[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&state->U[0],  NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_state_t),  (void *)&state->V[0],  NULL);
       }
 
       //  Define basic domain decomposition parameters for GPU.
@@ -479,9 +476,9 @@ extern "C" void do_calc(void)
       }
       
       if (do_gpu_sync) {
-         ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&state->H[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&state->U[0],  NULL);
-         ezcl_enqueue_write_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real_t),  (void *)&state->V[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&state->H[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&state->U[0],  NULL);
+         ezcl_enqueue_write_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_state_t),  (void *)&state->V[0],  NULL);
       }
    } // End burst loop
 

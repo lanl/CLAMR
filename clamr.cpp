@@ -92,12 +92,9 @@ static double circle_radius=-1.0;
 static int view_mode = 0;
 #ifdef FULL_PRECISION
    void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
-#else
-   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
-#endif
-#ifndef MINIMUM_PRECISION
    void (*set_cell_data)(double *) = &set_cell_data_double;
 #else
+   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
    void (*set_cell_data)(float *) = &set_cell_data_float;
 #endif
 
@@ -242,9 +239,9 @@ int main(int argc, char **argv) {
 
    //  Set write buffers for data.
    cl_command_queue command_queue = ezcl_get_command_queue();
-   ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&state->H[0],  &start_write_event);
-   ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&state->U[0],  NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_V, CL_FALSE, 0, ncells*sizeof(cl_real_t),  (void *)&state->V[0],  NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&state->H[0],  &start_write_event);
+   ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&state->U[0],  NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_V, CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&state->V[0],  NULL);
 
    ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->celltype[0], NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->i[0],        NULL);
@@ -292,11 +289,11 @@ int main(int argc, char **argv) {
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL
    set_mysize(ncells_global);
-   vector<real_t> H_global;
-   vector<real_t> x_global;
-   vector<real_t> dx_global;
-   vector<real_t> y_global;
-   vector<real_t> dy_global;
+   vector<state_t> H_global;
+   vector<spatial_t> x_global;
+   vector<spatial_t> dx_global;
+   vector<spatial_t> y_global;
+   vector<spatial_t> dy_global;
    vector<int> proc_global;
    if (mype == 0){
       H_global.resize(ncells_global);
@@ -310,7 +307,7 @@ int main(int argc, char **argv) {
    MPI_Gatherv(&dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
    MPI_Gatherv(&y[0],  nsizes[mype], MPI_SPATIAL_T, &y_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
    MPI_Gatherv(&dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&state->H[0], nsizes[mype], MPI_REAL_T, &H_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&state->H[0], nsizes[mype], MPI_STATE_T, &H_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, 0, MPI_COMM_WORLD);
 
    set_cell_data(&H_global[0]);
    set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
@@ -390,10 +387,10 @@ extern "C" void do_calc(void)
    vector<int>   &ndispl   = mesh->ndispl;
 #endif
 
-   vector<real_t>  &x  = mesh->x;
-   vector<real_t>  &dx = mesh->dx;
-   vector<real_t>  &y  = mesh->y;
-   vector<real_t>  &dy = mesh->dy;
+   vector<spatial_t>  &x  = mesh->x;
+   vector<spatial_t>  &dx = mesh->dx;
+   vector<spatial_t>  &y  = mesh->y;
+   vector<spatial_t>  &dy = mesh->dy;
 
    cl_mem &dev_H  = state->dev_H;
 
@@ -485,14 +482,14 @@ extern "C" void do_calc(void)
    y.resize(ncells);
    dy.resize(ncells);
    //H.resize(max(ncells,ncells_ghost));
-   vector<real_t>H_graphics(ncells);
+   vector<state_t>H_graphics(ncells);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
    ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_spatial_t), (void *)&x[0],  &start_read_event);
    ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_spatial_t), (void *)&dx[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_spatial_t), (void *)&y[0],  NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_spatial_t), (void *)&dy[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_H,  CL_TRUE,  0, ncells*sizeof(cl_real_t), (void *)&H_graphics[0],  &end_read_event);
+   ezcl_enqueue_read_buffer(command_queue, dev_H,  CL_TRUE,  0, ncells*sizeof(cl_state_t), (void *)&H_graphics[0],  &end_read_event);
 
    gpu_time_graphics += ezcl_timer_calc(&start_read_event, &end_read_event);
 
@@ -505,11 +502,11 @@ extern "C" void do_calc(void)
 
 #ifdef HAVE_OPENGL
    set_mysize(ncells_global);
-   vector<real_t> x_global;
-   vector<real_t> dx_global;
-   vector<real_t> y_global;
-   vector<real_t> dy_global;
-   vector<real_t> H_graphics_global;
+   vector<spatial_t> x_global;
+   vector<spatial_t> dx_global;
+   vector<spatial_t> y_global;
+   vector<spatial_t> dy_global;
+   vector<state_t> H_graphics_global;
    vector<int> proc_global;
    if (mype == 0) {
       x_global.resize(ncells_global);
@@ -524,7 +521,7 @@ extern "C" void do_calc(void)
    MPI_Gatherv(&dx[0], ncells, MPI_SPATIAL_T, &dx_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
    MPI_Gatherv(&y[0],  ncells, MPI_SPATIAL_T, &y_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
    MPI_Gatherv(&dy[0], ncells, MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&H_graphics[0],  ncells, MPI_REAL_T, &H_graphics_global[0],  &nsizes[0], &ndispl[0], MPI_REAL_T, 0, MPI_COMM_WORLD);
+   MPI_Gatherv(&H_graphics[0],  ncells, MPI_STATE_T, &H_graphics_global[0],  &nsizes[0], &ndispl[0], MPI_STATE_T, 0, MPI_COMM_WORLD);
 
    if (view_mode == 0) {
       mesh->proc.resize(ncells);

@@ -95,12 +95,9 @@ static int view_mode = 0;
 
 #ifdef FULL_PRECISION
    void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
-#else
-   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
-#endif
-#ifndef MINIMUM_PRECISION
    void (*set_cell_data)(double *) = &set_cell_data_double;
 #else
+   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
    void (*set_cell_data)(float *) = &set_cell_data_float;
 #endif
 
@@ -171,9 +168,9 @@ int main(int argc, char **argv) {
 
    state_global = new State(mesh_global);
    state_global->allocate(ncells_global);
-   real_t  *H_global = state_global->H;
-   real_t  *U_global = state_global->U;
-   real_t  *V_global = state_global->V;
+   state_t  *H_global = state_global->H;
+   state_t  *U_global = state_global->U;
+   state_t  *V_global = state_global->V;
 
    vector<int>   &nsizes     = mesh->nsizes;
    vector<int>   &ndispl     = mesh->ndispl;
@@ -235,9 +232,9 @@ int main(int argc, char **argv) {
 
    state->fill_circle(circ_radius, 100.0, 7.0);
 
-   MPI_Allgatherv(&state->H[0], nsizes[mype], MPI_REAL_T, &H_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&state->U[0], nsizes[mype], MPI_REAL_T, &U_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&state->V[0], nsizes[mype], MPI_REAL_T, &V_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&state->H[0], nsizes[mype], MPI_STATE_T, &H_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&state->U[0], nsizes[mype], MPI_STATE_T, &U_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&state->V[0], nsizes[mype], MPI_STATE_T, &V_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
 
    mesh->nlft = NULL;
    mesh->nrht = NULL;
@@ -531,7 +528,7 @@ extern "C" void do_calc(void)
       MPI_Allgatherv(&dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
       MPI_Allgatherv(&y[0],  nsizes[mype], MPI_SPATIAL_T, &y_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
       MPI_Allgatherv(&dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
-      MPI_Allgatherv(&state->H[0],  nsizes[mype], MPI_REAL_T, &state_global->H[0],  &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+      MPI_Allgatherv(&state->H[0],  nsizes[mype], MPI_STATE_T, &state_global->H[0],  &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
 
       if (view_mode == 0) {
          mesh->proc.resize(ncells);

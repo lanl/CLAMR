@@ -85,12 +85,9 @@ static int view_mode = 0;
 
 #ifdef FULL_PRECISION
    void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
-#else
-   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
-#endif
-#ifndef MINIMUM_PRECISION
    void (*set_cell_data)(double *) = &set_cell_data_double;
 #else
+   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
    void (*set_cell_data)(float *) = &set_cell_data_float;
 #endif
 
@@ -186,9 +183,9 @@ int main(int argc, char **argv) {
    cl_mem &dev_U    = state->dev_U;
    cl_mem &dev_V    = state->dev_V;
 
-   real_t  *H        = state->H;
-   real_t  *U        = state->U;
-   real_t  *V        = state->V;
+   state_t  *H        = state->H;
+   state_t  *U        = state->U;
+   state_t  *V        = state->V;
 
    state->allocate_device_memory(ncells);
 
@@ -206,9 +203,9 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &mesh->i[0],        NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  &mesh->j[0],        NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  &mesh->level[0],    NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_real_t), &H[0],        NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_real_t), &U[0],        NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_real_t), &V[0],        NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_state_t), &H[0],        NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_state_t), &U[0],        NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_state_t), &V[0],        NULL);
    //state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
 
    mesh->dev_nlft = NULL;
@@ -339,14 +336,14 @@ extern "C" void do_calc(void)
    mesh->dx.resize(ncells);
    mesh->y.resize(ncells);
    mesh->dy.resize(ncells);
-   vector<real_t> H_graphics(ncells);
+   vector<state_t> H_graphics(ncells);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
    ezcl_enqueue_read_buffer(command_queue, dev_x,  CL_FALSE, 0, ncells*sizeof(cl_spatial_t), (void *)&mesh->x[0],  &start_read_event);
    ezcl_enqueue_read_buffer(command_queue, dev_dx, CL_FALSE, 0, ncells*sizeof(cl_spatial_t), (void *)&mesh->dx[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_y,  CL_FALSE, 0, ncells*sizeof(cl_spatial_t), (void *)&mesh->y[0],  NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_dy, CL_FALSE, 0, ncells*sizeof(cl_spatial_t), (void *)&mesh->dy[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_real_t), (void *)&H_graphics[0],  &end_read_event);
+   ezcl_enqueue_read_buffer(command_queue, state->dev_H, CL_TRUE,  0, ncells*sizeof(cl_state_t), (void *)&H_graphics[0],  &end_read_event);
 
    gpu_time_graphics += ezcl_timer_calc(&start_read_event, &end_read_event);
 

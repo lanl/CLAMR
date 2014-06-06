@@ -284,9 +284,9 @@ void State::allocate(size_t ncells){
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-   H = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), flags, "H");
-   U = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), flags, "U");
-   V = (real_t *)state_memory.memory_malloc(ncells, sizeof(real_t), flags, "V");
+   H = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "H");
+   U = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "U");
+   V = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "V");
 }
 
 void State::resize(size_t new_ncells){
@@ -299,9 +299,9 @@ void State::resize(size_t new_ncells){
 }
 
 void State::memory_reset_ptrs(void){
-   H = (real_t *)state_memory.get_memory_ptr("H");
-   U = (real_t *)state_memory.get_memory_ptr("U");
-   V = (real_t *)state_memory.get_memory_ptr("V");
+   H = (state_t *)state_memory.get_memory_ptr("H");
+   U = (state_t *)state_memory.get_memory_ptr("U");
+   V = (state_t *)state_memory.get_memory_ptr("V");
 
    //printf("\nDEBUG -- Calling state memory reset_ptrs at line %d\n",__LINE__);
    //state_memory.memory_report();
@@ -395,9 +395,9 @@ void State::add_boundary_cells(void)
       
    int new_ncells = ncells + icount;
    // Increase the arrays for the new boundary cells
-   H=(real_t *)state_memory.memory_realloc(new_ncells, sizeof(real_t), H);
-   U=(real_t *)state_memory.memory_realloc(new_ncells, sizeof(real_t), U);
-   V=(real_t *)state_memory.memory_realloc(new_ncells, sizeof(real_t), V);
+   H=(state_t *)state_memory.memory_realloc(new_ncells, sizeof(state_t), H);
+   U=(state_t *)state_memory.memory_realloc(new_ncells, sizeof(state_t), U);
+   V=(state_t *)state_memory.memory_realloc(new_ncells, sizeof(state_t), V);
    //printf("\nDEBUG add_boundary cells\n"); 
    //state_memory.memory_report();
    //printf("DEBUG end add_boundary cells\n\n"); 
@@ -731,9 +731,9 @@ void State::remove_boundary_cells(void)
 
    // Resize to drop all the boundary cells
    ncells = save_ncells;
-   H=(real_t *)state_memory.memory_realloc(save_ncells, sizeof(real_t), H);
-   U=(real_t *)state_memory.memory_realloc(save_ncells, sizeof(real_t), U);
-   V=(real_t *)state_memory.memory_realloc(save_ncells, sizeof(real_t), V);
+   H=(state_t *)state_memory.memory_realloc(save_ncells, sizeof(state_t), H);
+   U=(state_t *)state_memory.memory_realloc(save_ncells, sizeof(state_t), U);
+   V=(state_t *)state_memory.memory_realloc(save_ncells, sizeof(state_t), V);
    //printf("\nDEBUG remove_boundary cells\n"); 
    //state_memory.memory_report();
    //printf("DEBUG end remove_boundary cells\n\n"); 
@@ -853,18 +853,18 @@ double State::gpu_set_timestep(double sigma)
 
       /*
       __kernel void set_timestep_cl(
-                       const int    ncells,     // 0  Total number of cells.
-                       const real_t   sigma,      // 1
-              __global const real_t  *H,          // 2
-              __global const real_t  *U,          // 3
-              __global const real_t  *V,          // 4
-              __global const int     *level,      // 5  Array of level information.
-              __global const int     *celltype,   // 6
-              __global const real_t  *lev_dx,     // 7
-              __global const real_t  *lev_dy,     // 8
-              __global       real_t  *redscratch, // 9
-              __global       real_t  *deltaT,     // 10
-              __local        real_t  *tile)       // 11
+                       const int       ncells,     // 0  Total number of cells.
+                       const real_t    sigma,      // 1
+              __global const state_t  *H,          // 2
+              __global const state_t  *U,          // 3
+              __global const state_t  *V,          // 4
+              __global const int      *level,      // 5  Array of level information.
+              __global const int      *celltype,   // 6
+              __global const real_t   *lev_dx,     // 7
+              __global const real_t   *lev_dy,     // 8
+              __global       real_t   *redscratch, // 9
+              __global       real_t   *deltaT,     // 10
+              __local        real_t   *tile)       // 11
       */
 
    real_t sigma_local = sigma;
@@ -1108,13 +1108,13 @@ void State::calc_finite_difference(double deltaT){
    if (mesh->numpe > 1) {
       apply_boundary_conditions_local();
 
-      H=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), H);
-      U=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), U);
-      V=(real_t *)state_memory.memory_realloc(ncells_ghost, sizeof(real_t), V);
+      H=(state_t *)state_memory.memory_realloc(ncells_ghost, sizeof(state_t), H);
+      U=(state_t *)state_memory.memory_realloc(ncells_ghost, sizeof(state_t), U);
+      V=(state_t *)state_memory.memory_realloc(ncells_ghost, sizeof(state_t), V);
 
-      L7_Update(&H[0], L7_REAL_T, mesh->cell_handle);
-      L7_Update(&U[0], L7_REAL_T, mesh->cell_handle);
-      L7_Update(&V[0], L7_REAL_T, mesh->cell_handle);
+      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
+      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
+      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
 
       apply_boundary_conditions_ghost();
    } else {
@@ -1137,18 +1137,18 @@ void State::calc_finite_difference(double deltaT){
 #if defined (HAVE_J7)
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
-   real_t *H_new = (real_t *)state_memory.memory_malloc(ncells_ghost,
-                                                        sizeof(real_t),
-                                                        flags,
-                                                        "H_new");
-   real_t *U_new = (real_t *)state_memory.memory_malloc(ncells_ghost,
-                                                        sizeof(real_t),
-                                                        flags,
-                                                        "U_new");
-   real_t *V_new = (real_t *)state_memory.memory_malloc(ncells_ghost,
-                                                        sizeof(real_t),
-                                                        flags,
-                                                        "V_new");
+   state_t *H_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
+                                                          sizeof(state_t),
+                                                          flags,
+                                                          "H_new");
+   state_t *U_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
+                                                          sizeof(state_t),
+                                                          flags,
+                                                          "U_new");
+   state_t *V_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
+                                                          sizeof(state_t),
+                                                          flags,
+                                                          "V_new");
 
    int gix;
 #ifdef HAVE_OPENMP
@@ -1654,9 +1654,9 @@ void State::calc_finite_difference(double deltaT){
 
    // Replace H with H_new and deallocate H. New memory will have the characteristics
    // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
-   H = (real_t *)state_memory.memory_replace(H, H_new);
-   U = (real_t *)state_memory.memory_replace(U, U_new);
-   V = (real_t *)state_memory.memory_replace(V, V_new);
+   H = (state_t *)state_memory.memory_replace(H, H_new);
+   U = (state_t *)state_memory.memory_replace(U, U_new);
+   V = (state_t *)state_memory.memory_replace(V, V_new);
 
    //state_memory.memory_report();
    //printf("DEBUG end finite diff\n\n"); 
@@ -1698,9 +1698,9 @@ void State::gpu_calc_finite_difference(double deltaT)
    assert(dev_levdx);
    assert(dev_levdy);
 
-   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
-   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
-   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
+   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
+   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
+   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
  
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -1721,12 +1721,12 @@ void State::gpu_calc_finite_difference(double deltaT)
         /*
         __kernel void copy_state_data_cl(
                          const int    isize,         // 0
-                __global      real_t  *H,            // 1
-                __global      real_t  *U,            // 2
-                __global      real_t  *V,            // 3
-                __global      real_t  *H_new,        // 4
-                __global      real_t  *U_new,        // 5
-                __global      real_t  *V_new)        // 6
+                __global      state_t *H,            // 1
+                __global      state_t *U,            // 2
+                __global      state_t *V,            // 3
+                __global      state_t *H_new,        // 4
+                __global      state_t *U_new,        // 5
+                __global      state_t *V_new)        // 6
         */
 
       ezcl_set_kernel_arg(kernel_copy_state_data, 0, sizeof(cl_int), (void *)&ncells);
@@ -1744,13 +1744,13 @@ void State::gpu_calc_finite_difference(double deltaT)
       dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
       dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
 
-      L7_Dev_Update(dev_H, L7_REAL_T, mesh->cell_handle);
-      L7_Dev_Update(dev_U, L7_REAL_T, mesh->cell_handle);
-      L7_Dev_Update(dev_V, L7_REAL_T, mesh->cell_handle);
+      L7_Dev_Update(dev_H, L7_STATE_T, mesh->cell_handle);
+      L7_Dev_Update(dev_U, L7_STATE_T, mesh->cell_handle);
+      L7_Dev_Update(dev_V, L7_STATE_T, mesh->cell_handle);
 
-      dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
-      dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
-      dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
+      dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
+      dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
+      dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
 
       ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 0, sizeof(cl_int), &ncells);
       ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 1, sizeof(cl_mem), &dev_celltype);
@@ -1789,24 +1789,24 @@ void State::gpu_calc_finite_difference(double deltaT)
 
      /*
      __kernel void calc_finite_difference_cl(
-                      const int    ncells,   // 0  Total number of cells.
-                      const int    lvmax,    // 1  Maximum level
-             __global       real_t  *H,        // 2
-             __global       real_t  *U,        // 3
-             __global       real_t  *V,        // 4
-             __global       real_t  *H_new,    // 5
-             __global       real_t  *U_new,    // 6
-             __global       real_t  *V_new,    // 7
-             __global const int   *nlft,     // 8  Array of left neighbors.
-             __global const int   *nrht,     // 9  Array of right neighbors.
-             __global const int   *ntop,     // 10  Array of bottom neighbors.
-             __global const int   *nbot,     // 11  Array of top neighbors.
-             __global const int   *level,    // 12  Array of level information.
+                      const int     ncells,    // 0  Total number of cells.
+                      const int     lvmax,     // 1  Maximum level
+             __global       state_t *H,        // 2
+             __global       state_t *U,        // 3
+             __global       state_t *V,        // 4
+             __global       state_t *H_new,    // 5
+             __global       state_t *U_new,    // 6
+             __global       state_t *V_new,    // 7
+             __global const int     *nlft,     // 8  Array of left neighbors.
+             __global const int     *nrht,     // 9  Array of right neighbors.
+             __global const int     *ntop,     // 10  Array of bottom neighbors.
+             __global const int     *nbot,     // 11  Array of top neighbors.
+             __global const int     *level,    // 12  Array of level information.
                       const real_t   deltaT,   // 13  Size of time step.
              __global const real_t  *lev_dx,   // 14
              __global const real_t  *lev_dy,   // 15
-             __local        real4_t *tile,     // 16  Tile size in real4.
-             __local        int8  *itile)    // 17  Tile size in int8.
+             __local        state4_t *tile,    // 16  Tile size in state4.
+             __local        int8  *itile)      // 17  Tile size in int8.
      */
    cl_event calc_finite_difference_event;
 
@@ -1827,7 +1827,7 @@ void State::gpu_calc_finite_difference(double deltaT)
    ezcl_set_kernel_arg(kernel_calc_finite_difference,13, sizeof(cl_real_t), (void *)&deltaT_local);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,14, sizeof(cl_mem),  (void *)&dev_levdx);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,15, sizeof(cl_mem),  (void *)&dev_levdy);
-   ezcl_set_kernel_arg(kernel_calc_finite_difference,16, local_work_size*sizeof(cl_real4_t),    NULL);
+   ezcl_set_kernel_arg(kernel_calc_finite_difference,16, local_work_size*sizeof(cl_state4_t),    NULL);
    ezcl_set_kernel_arg(kernel_calc_finite_difference,17, local_work_size*sizeof(cl_int8),    NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference,   1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_event);
@@ -1904,9 +1904,9 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    if (mesh->numpe > 1) {
       apply_boundary_conditions_local();
 
-      L7_Update(&H[0], L7_REAL_T, mesh->cell_handle);
-      L7_Update(&U[0], L7_REAL_T, mesh->cell_handle);
-      L7_Update(&V[0], L7_REAL_T, mesh->cell_handle);
+      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
+      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
+      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
 
       apply_boundary_conditions_ghost();
    } else {
@@ -2096,9 +2096,9 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
       ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 8, sizeof(cl_mem), &dev_V);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_local,   1, NULL, &global_work_size, &local_work_size, NULL);
 
-      L7_Dev_Update(dev_H, L7_REAL_T, mesh->cell_handle);
-      L7_Dev_Update(dev_U, L7_REAL_T, mesh->cell_handle);
-      L7_Dev_Update(dev_V, L7_REAL_T, mesh->cell_handle);
+      L7_Dev_Update(dev_H, L7_STATE_T, mesh->cell_handle);
+      L7_Dev_Update(dev_U, L7_STATE_T, mesh->cell_handle);
+      L7_Dev_Update(dev_V, L7_STATE_T, mesh->cell_handle);
 
       ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 0, sizeof(cl_int), &ncells);
       ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 1, sizeof(cl_mem), &dev_celltype);
@@ -2142,7 +2142,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
          vector<int> nbot_tmp(mesh->ncells_ghost);
          vector<int> ntop_tmp(mesh->ncells_ghost);
          vector<int> level_tmp(mesh->ncells_ghost);
-         vector<real_t> H_tmp(mesh->ncells_ghost);
+         vector<state_t> H_tmp(mesh->ncells_ghost);
          ezcl_enqueue_read_buffer(command_queue, dev_nlft,  CL_FALSE, 0, mesh->ncells_ghost*sizeof(cl_int), &nlft_tmp[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_nrht,  CL_FALSE, 0, mesh->ncells_ghost*sizeof(cl_int), &nrht_tmp[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_nbot,  CL_FALSE, 0, mesh->ncells_ghost*sizeof(cl_int), &nbot_tmp[0],  NULL);
@@ -2191,9 +2191,9 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
      __kernel void refine_potential
               const int      ncells,     // 0  Total number of cells.
               const int      levmx,      // 1  Maximum level
-     __global       real_t  *H,          // 2
-     __global       real_t  *U,          // 3
-     __global       real_t  *V,          // 4
+     __global       state_t *H,          // 2
+     __global       state_t *U,          // 3
+     __global       state_t *V,          // 4
      __global const int     *nlft,       // 5  Array of left neighbors.
      __global const int     *nrht,       // 6  Array of right neighbors.
      __global const int     *ntop,       // 7  Array of bottom neighbors.
@@ -2205,7 +2205,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
      __global const real_t  *lev_dx,     // 13
      __global const real_t  *lev_dy,     // 14
      __global       int2    *result,     // 15
-     __local        real4_t *tile,       // 16  Tile size in real4.
+     __local        state_t *tile,       // 16  Tile size in real4.
      __local        int8    *itile)      // 17  Tile size in int8.
      */
 
@@ -2227,7 +2227,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
    ezcl_set_kernel_arg(kernel_refine_potential,15, sizeof(cl_mem),  (void *)&dev_mpot);
    ezcl_set_kernel_arg(kernel_refine_potential,16, sizeof(cl_mem),  (void *)&dev_redscratch);
    ezcl_set_kernel_arg(kernel_refine_potential,17, sizeof(cl_mem),  (void *)&dev_result);
-   ezcl_set_kernel_arg(kernel_refine_potential,18, local_work_size*sizeof(cl_real_t),    NULL);
+   ezcl_set_kernel_arg(kernel_refine_potential,18, local_work_size*sizeof(cl_state_t),    NULL);
    ezcl_set_kernel_arg(kernel_refine_potential,19, local_work_size*sizeof(cl_int8),    NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_refine_potential, 1, NULL, &global_work_size, &local_work_size, NULL);
@@ -2417,7 +2417,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
         /*
         __kernel void reduce_sum_cl(
                          const int      isize,      // 0
-                __global       int     *array,      // 1   Array to be reduced.
+                __global       state_t *array,      // 1   Array to be reduced.
                 __global       int     *level,      // 2
                 __global       int     *levdx,      // 3
                 __global       int     *levdy,      // 4
@@ -2473,7 +2473,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
         /*
         __kernel void reduce_sum_cl(
                          const int      isize,      // 0
-                __global       int     *array,      // 1   Array to be reduced.
+                __global       state_t *array,      // 1   Array to be reduced.
                 __global       int     *level,      // 2
                 __global       int     *levdx,      // 3
                 __global       int     *levdy,      // 4
@@ -2534,9 +2534,9 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
 #ifdef HAVE_OPENCL
 void State::allocate_device_memory(size_t ncells)
 {
-   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
-   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
-   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
+   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
+   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
+   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
 }
 #endif
 
@@ -2546,9 +2546,9 @@ void State::resize_old_device_memory(size_t ncells)
    gpu_state_memory.memory_delete(dev_H);
    gpu_state_memory.memory_delete(dev_U);
    gpu_state_memory.memory_delete(dev_V);
-   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
-   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
-   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_real_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
+   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
+   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
+   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
 #else
    // Just to block compiler warnings
    if (1 == 2) printf("DEBUG -- ncells is %ld\n",ncells);
@@ -2888,12 +2888,12 @@ void State::compare_state_gpu_global_to_cpu_global(const char* string, int cycle
 {
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-   vector<real_t>H_check(ncells);
-   vector<real_t>U_check(ncells);
-   vector<real_t>V_check(ncells);
-   ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real_t), &H_check[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real_t), &U_check[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real_t), &V_check[0], NULL);
+   vector<state_t>H_check(ncells);
+   vector<state_t>U_check(ncells);
+   vector<state_t>V_check(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_state_t), &H_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_state_t), &U_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_state_t), &V_check[0], NULL);
    for (uint ic = 0; ic < ncells; ic++){
       if (fabs(H[ic]-H_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d H & H_check %d %lf %lf\n",string,cycle,ic,H[ic],H_check[ic]);
       if (fabs(U[ic]-U_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d U & U_check %d %lf %lf\n",string,cycle,ic,U[ic],U_check[ic]);
@@ -2904,17 +2904,17 @@ void State::compare_state_gpu_global_to_cpu_global(const char* string, int cycle
 
 void State::compare_state_cpu_local_to_cpu_global(State *state_global, const char* string, int cycle, uint ncells, uint ncells_global, int *nsizes, int *ndispl)
 {
-   real_t *H_global = state_global->H;
-   real_t *U_global = state_global->U;
-   real_t *V_global = state_global->V;
+   state_t *H_global = state_global->H;
+   state_t *U_global = state_global->U;
+   state_t *V_global = state_global->V;
 
-   vector<real_t>H_check(ncells_global);
-   vector<real_t>U_check(ncells_global);
-   vector<real_t>V_check(ncells_global);
+   vector<state_t>H_check(ncells_global);
+   vector<state_t>U_check(ncells_global);
+   vector<state_t>V_check(ncells_global);
 #ifdef HAVE_MPI
-   MPI_Allgatherv(&H[0], ncells, MPI_REAL_T, &H_check[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&U[0], ncells, MPI_REAL_T, &U_check[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&V[0], ncells, MPI_REAL_T, &V_check[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0], ncells, MPI_STATE_T, &H_check[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U[0], ncells, MPI_STATE_T, &U_check[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V[0], ncells, MPI_STATE_T, &V_check[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
 #else
    // Just to block compiler warnings
    if (1 == 2) printf("DEBUG -- ncells %u nsizes %d ndispl %d\n",ncells, nsizes[0],ndispl[0]);
@@ -2933,20 +2933,20 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
 #ifdef HAVE_MPI
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-   real_t *H_global = state_global->H;
-   real_t *U_global = state_global->U;
-   real_t *V_global = state_global->V;
+   state_t *H_global = state_global->H;
+   state_t *U_global = state_global->U;
+   state_t *V_global = state_global->V;
    cl_mem &dev_H_global = state_global->dev_H;
    cl_mem &dev_U_global = state_global->dev_U;
    cl_mem &dev_V_global = state_global->dev_V;
 
    // Need to compare dev_H to H, etc
-   vector<real_t>H_save(ncells);
-   vector<real_t>U_save(ncells);
-   vector<real_t>V_save(ncells);
-   ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_real_t), &H_save[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_real_t), &U_save[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_real_t), &V_save[0], NULL);
+   vector<state_t>H_save(ncells);
+   vector<state_t>U_save(ncells);
+   vector<state_t>V_save(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_state_t), &H_save[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_state_t), &U_save[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_state_t), &V_save[0], NULL);
    for (uint ic = 0; ic < ncells; ic++){
       if (fabs(H[ic]-H_save[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 1 at cycle %d H & H_save %d %lf %lf \n",mype,ncycle,ic,H[ic],H_save[ic]);
       if (fabs(U[ic]-U_save[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 1 at cycle %d U & U_save %d %lf %lf \n",mype,ncycle,ic,U[ic],U_save[ic]);
@@ -2954,12 +2954,12 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
    }
 
    // And compare dev_H gathered to H_global, etc
-   vector<real_t>H_save_global(ncells_global);
-   vector<real_t>U_save_global(ncells_global);
-   vector<real_t>V_save_global(ncells_global);
-   MPI_Allgatherv(&H_save[0], nsizes[mype], MPI_REAL_T, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&U_save[0], nsizes[mype], MPI_REAL_T, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&V_save[0], nsizes[mype], MPI_REAL_T, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+   vector<state_t>H_save_global(ncells_global);
+   vector<state_t>U_save_global(ncells_global);
+   vector<state_t>V_save_global(ncells_global);
+   MPI_Allgatherv(&H_save[0], nsizes[mype], MPI_STATE_T, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U_save[0], nsizes[mype], MPI_STATE_T, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V_save[0], nsizes[mype], MPI_STATE_T, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
    if (mype == 0) {
       for (uint ic = 0; ic < ncells_global; ic++){
          if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 2 at cycle %d H_global & H_save_global %d %lf %lf \n",mype,ncycle,ic,H_global[ic],H_save_global[ic]);
@@ -2969,9 +2969,9 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
    }
 
    // And compare H gathered to H_global, etc
-   MPI_Allgatherv(&H[0], nsizes[mype], MPI_REAL_T, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&U[0], nsizes[mype], MPI_REAL_T, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&V[0], nsizes[mype], MPI_REAL_T, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_REAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0], nsizes[mype], MPI_STATE_T, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&U[0], nsizes[mype], MPI_STATE_T, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&V[0], nsizes[mype], MPI_STATE_T, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
    if (mype == 0) {
       for (uint ic = 0; ic < ncells_global; ic++){
          if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("DEBUG finite_difference 3 at cycle %d H_global & H_save_global %d %lf %lf \n",ncycle,ic,H_global[ic],H_save_global[ic]);
@@ -2981,9 +2981,9 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
    }
 
    // Now the global dev_H_global to H_global, etc
-   ezcl_enqueue_read_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_real_t), &H_save_global[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_real_t), &U_save_global[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_real_t), &V_save_global[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_state_t), &H_save_global[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_state_t), &U_save_global[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_state_t), &V_save_global[0], NULL);
    if (mype == 0) {
       for (uint ic = 0; ic < ncells_global; ic++){
          if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 4 at cycle %d H_global & H_save_global %d %lf %lf \n",mype,ncycle,ic,H_global[ic],H_save_global[ic]);

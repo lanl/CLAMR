@@ -83,14 +83,16 @@
    }  real2_t;
 #define CONSERVATION_EPS    15.0
 #ifdef HAVE_OPENCL
-   typedef cl_float cl_state_t; // for gpu physics state variables
-   typedef cl_float cl_real_t; // for intermediate gpu physics state variables
+   typedef cl_float  cl_state_t; // for gpu physics state variables
+   typedef cl_float4 cl_state4_t; // for gpu physics state variables
+   typedef cl_float  cl_real_t; // for intermediate gpu physics state variables
    typedef cl_float2 cl_real2_t; // for intermediate gpu physics state variables
    typedef cl_float4 cl_real4_t; // for intermediate gpu physics state variables
 #endif
 #ifdef HAVE_MPI
    #define MPI_STATE_T MPI_FLOAT // for MPI communication for physics state variables
    #define MPI_REAL_T MPI_FLOAT // for MPI communication for physics state variables
+   #define L7_STATE_T L7_FLOAT
    #define L7_REAL_T L7_FLOAT
 #endif
 
@@ -104,14 +106,16 @@
    }  real2_t;
 #define CONSERVATION_EPS    .02
 #ifdef HAVE_OPENCL
-   typedef cl_float cl_state_t;
-   typedef cl_double cl_real_t; // for intermediate gpu physics state variables
+   typedef cl_float   cl_state_t;
+   typedef cl_float4  cl_state4_t;
+   typedef cl_double  cl_real_t; // for intermediate gpu physics state variables
    typedef cl_double2 cl_real2_t; // for intermediate gpu physics state variables
    typedef cl_double4 cl_real4_t; // for intermediate gpu physics state variables
 #endif
 #ifdef HAVE_MPI
    #define MPI_STATE_T MPI_FLOAT
    #define MPI_REAL_T MPI_DOUBLE
+   #define L7_STATE_T L7_FLOAT
    #define L7_REAL_T L7_DOUBLE
 #endif
 
@@ -125,14 +129,16 @@
    }  real2_t;
 #define CONSERVATION_EPS    .02
 #ifdef HAVE_OPENCL
-   typedef cl_double cl_state_t;
-   typedef cl_double cl_real_t; // for intermediate gpu physics state variables
+   typedef cl_double  cl_state_t;
+   typedef cl_double4 cl_state4_t;
+   typedef cl_double  cl_real_t; // for intermediate gpu physics state variables
    typedef cl_double2 cl_real2_t; // for intermediate gpu physics state variables
    typedef cl_double4 cl_real4_t; // for intermediate gpu physics state variables
 #endif
 #ifdef HAVE_MPI
    #define MPI_STATE_T MPI_DOUBLE
    #define MPI_REAL_T MPI_DOUBLE
+   #define L7_STATE_T L7_DOUBLE
    #define L7_REAL_T L7_DOUBLE
 #endif
 #endif
@@ -161,12 +167,9 @@ public:
    MallocPlus state_memory;
    MallocPlus gpu_state_memory;
    Mesh *mesh;
-   real_t *H;
-   real_t *U;
-   real_t *V;
-   //vector<real_t> H;
-   //vector<real_t> U;
-   //vector<real_t> V;
+   state_t *H;
+   state_t *U;
+   state_t *V;
 
 #ifdef HAVE_OPENCL
    cl_mem dev_H;
