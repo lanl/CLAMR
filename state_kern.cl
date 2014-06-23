@@ -77,6 +77,8 @@
 #define EPSILON 1.0f-30
 #define STATE_EPS        15.0f
 #define CONSERVATION_EPS    15.0f
+#define REFINE_GRADIENT  0.10f
+#define COARSEN_GRADIENT 0.05f
 
 #elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
@@ -94,6 +96,8 @@
 #define EPSILON 1.0e-30
 #define STATE_EPS        .02
 #define CONSERVATION_EPS    .02
+#define REFINE_GRADIENT  0.10
+#define COARSEN_GRADIENT 0.05
 
 #elif defined(FULL_PRECISION)
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
@@ -111,6 +115,8 @@
 #define EPSILON 1.0e-30
 #define STATE_EPS        .02
 #define CONSERVATION_EPS    .02
+#define REFINE_GRADIENT  0.10
+#define COARSEN_GRADIENT 0.05
 
 #endif
 
@@ -132,9 +138,6 @@ enum orientation
    NW,                          //  NW quadrant.
    NE,                          //  NE quadrant.
    SE };                        //  SE quadrant.
-
-#define REFINE_GRADIENT  0.10
-#define COARSEN_GRADIENT 0.05
 
 int is_lower_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 0); }
 int is_lower_right(int i, int j) { return(i % 2 == 1 && j % 2 == 0); }
