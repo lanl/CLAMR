@@ -77,8 +77,12 @@
 #define EPSILON 1.0f-30
 #define STATE_EPS        15.0f
 #define CONSERVATION_EPS    15.0f
+// calc refine is done in single precision
 #define REFINE_GRADIENT  0.10f
 #define COARSEN_GRADIENT 0.05f
+#define REFINE_ONE 1.0f
+#define REFINE_HALF 0.5f
+#define REFINE_NEG_THOUSAND -1000.0f
 
 #elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
@@ -96,8 +100,12 @@
 #define EPSILON 1.0e-30
 #define STATE_EPS        .02
 #define CONSERVATION_EPS    .02
-#define REFINE_GRADIENT  0.10
-#define COARSEN_GRADIENT 0.05
+// calc refine is done in single precision
+#define REFINE_ONE 1.0f
+#define REFINE_GRADIENT  0.10f
+#define COARSEN_GRADIENT 0.05f
+#define REFINE_HALF 0.5f
+#define REFINE_NEG_THOUSAND -1000.0f
 
 #elif defined(FULL_PRECISION)
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
@@ -115,8 +123,12 @@
 #define EPSILON 1.0e-30
 #define STATE_EPS        .02
 #define CONSERVATION_EPS    .02
+// calc refine is done in single precision
+#define REFINE_ONE 1.0f
 #define REFINE_GRADIENT  0.10
 #define COARSEN_GRADIENT 0.05
+#define REFINE_HALF 0.5
+#define REFINE_NEG_THOUSAND -1000.0
 
 #endif
 
@@ -1474,7 +1486,7 @@ __kernel void refine_potential_cl(
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 
-   real_t qpot = ZERO;
+   state_t qpot = ZERO;
     
    /////////////////////////////////////////////
    /// Get thread identification information ///
@@ -1500,15 +1512,15 @@ __kernel void refine_potential_cl(
 
    int nlt, nrt, nbr, ntr;
    int nl, nr, nb, nt;
-   real_t Hic;
+   state_t Hic;
    real_t Hl; //, Ul, Vl;
-   real_t Hr; //, Ur, Vr;
-   real_t Hb; //, Ub, Vb;
-   real_t Ht; //, Ut, Vt;
+   state_t Hr; //, Ur, Vr;
+   state_t Hb; //, Ub, Vb;
+   state_t Ht; //, Ut, Vt;
 
-   real_t duminus1;
-   real_t duplus1;
-   real_t duhalf1;
+   state_t duminus1;
+   state_t duplus1;
+   state_t duhalf1;
 
    nl = nlftval(tiX);
    nr = nrhtval(tiX);
@@ -1544,9 +1556,9 @@ __kernel void refine_potential_cl(
 
          if (level[nl] > lvl) {
             nlt = ntop[nl];
-            Hl = HALF * (Hl + H[nlt]);
-            //Ul = HALF * (Ul + U[nlt]);
-            //Vl = HALF * (Vl + V[nlt]);
+            Hl = REFINE_HALF * (Hl + H[nlt]);
+            //Ul = REFINE_HALF * (Ul + U[nlt]);
+            //Vl = REFINE_HALF * (Vl + V[nlt]);
          }
       }
       // Using local access for the left neighbor
@@ -1559,15 +1571,15 @@ __kernel void refine_potential_cl(
          if (levelval(nl) > lvl) {
             nlt = ntopval(nl);
             if(nlt >= 0) {
-               Hl = HALF * (Hl + Hrefval(nlt));
-               //Ul = HALF * (Ul + Uval(nlt));
-               //Vl = HALF * (Vl + Vval(nlt));
+               Hl = REFINE_HALF * (Hl + Hrefval(nlt));
+               //Ul = REFINE_HALF * (Ul + Uval(nlt));
+               //Vl = REFINE_HALF * (Vl + Vval(nlt));
             }
             else {
                nlt = abs(nlt+1);
-               Hl = HALF * (Hl + H[nlt]);
-               //Ul = HALF * (Ul + U[nlt]);
-               //Vl = HALF * (Vl + V[nlt]);
+               Hl = REFINE_HALF * (Hl + H[nlt]);
+               //Ul = REFINE_HALF * (Ul + U[nlt]);
+               //Vl = REFINE_HALF * (Vl + V[nlt]);
             }
          }
       }
@@ -1585,9 +1597,9 @@ __kernel void refine_potential_cl(
    
          if (level[nr] > lvl) {
             nrt = ntop[nr];
-            Hr = HALF * (Hr + H[nrt]);
-            //Ur = HALF * (Ur + U[nrt]);
-            //Vr = HALF * (Vr + V[nrt]);
+            Hr = REFINE_HALF * (Hr + H[nrt]);
+            //Ur = REFINE_HALF * (Ur + U[nrt]);
+            //Vr = REFINE_HALF * (Vr + V[nrt]);
          }
       }
       // Using local access for the right neighbor
@@ -1599,15 +1611,15 @@ __kernel void refine_potential_cl(
          if (levelval(nr) > lvl) {
             nrt = ntopval(nr);
             if(nrt >= 0) {
-               Hr = HALF * (Hr + Hrefval(nrt));
-               //Ur = HALF * (Ur + Uval(nrt));
-               //Vr = HALF * (Vr + Vval(nrt));
+               Hr = REFINE_HALF * (Hr + Hrefval(nrt));
+               //Ur = REFINE_HALF * (Ur + Uval(nrt));
+               //Vr = REFINE_HALF * (Vr + Vval(nrt));
             }
             else {
                nrt = abs(nrt+1);
-               Hr = HALF * (Hr + H[nrt]);
-               //Ur = HALF * (Ur + U[nrt]);
-               //Vr = HALF * (Vr + V[nrt]);
+               Hr = REFINE_HALF * (Hr + H[nrt]);
+               //Ur = REFINE_HALF * (Ur + U[nrt]);
+               //Vr = REFINE_HALF * (Vr + V[nrt]);
             }
          }
       }
@@ -1627,9 +1639,9 @@ __kernel void refine_potential_cl(
 
          if (level[nb] > lvl) {
             nbr = nrht[nb];
-            Hb = HALF * (Hb + H[nbr]);
-            //Ub = HALF * (Ub + U[nbr]);
-            //Vb = HALF * (Vb + V[nbr]);
+            Hb = REFINE_HALF * (Hb + H[nbr]);
+            //Ub = REFINE_HALF * (Ub + U[nbr]);
+            //Vb = REFINE_HALF * (Vb + V[nbr]);
          }
       }
       // Using local access for the bottom neighbor
@@ -1641,15 +1653,15 @@ __kernel void refine_potential_cl(
          if (levelval(nb) > lvl) {
             nbr = nrhtval(nb);
             if(nbr >= 0) {
-               Hb = HALF * (Hb + Hrefval(nbr));
-               //Ub = HALF * (Ub + Uval(nbr));
-               //Vb = HALF * (Vb + Vval(nbr));
+               Hb = REFINE_HALF * (Hb + Hrefval(nbr));
+               //Ub = REFINE_HALF * (Ub + Uval(nbr));
+               //Vb = REFINE_HALF * (Vb + Vval(nbr));
             }
             else {
                nbr = abs(nbr+1);
-               Hb = HALF * (Hb + H[nbr]);
-               //Ub = HALF * (Ub + U[nbr]);
-               //Vb = HALF * (Vb + V[nbr]);
+               Hb = REFINE_HALF * (Hb + H[nbr]);
+               //Ub = REFINE_HALF * (Ub + U[nbr]);
+               //Vb = REFINE_HALF * (Vb + V[nbr]);
             }
          }
       }
@@ -1668,9 +1680,9 @@ __kernel void refine_potential_cl(
 
          if (level[nt] > lvl) {
             ntr = nrht[nt];
-            Ht = HALF * (Ht + H[ntr]);
-            //Ut = HALF * (Ut + U[ntr]);
-            //Vt = HALF * (Vt + V[ntr]);
+            Ht = REFINE_HALF * (Ht + H[ntr]);
+            //Ut = REFINE_HALF * (Ut + U[ntr]);
+            //Vt = REFINE_HALF * (Vt + V[ntr]);
          }
       }
       // Using local access for the top neighbor
@@ -1682,15 +1694,15 @@ __kernel void refine_potential_cl(
          if (levelval(nt) > lvl) {
             ntr = nrhtval(nt);
             if(ntr >= 0) {
-               Ht = HALF * (Ht + Hrefval(ntr));
-               //Ut = HALF * (Ut + Uval(ntr));
-               //Vt = HALF * (Vt + Vval(ntr));
+               Ht = REFINE_HALF * (Ht + Hrefval(ntr));
+               //Ut = REFINE_HALF * (Ut + Uval(ntr));
+               //Vt = REFINE_HALF * (Vt + Vval(ntr));
             }
             else {
                ntr = abs(ntr+1);
-               Ht = HALF * (Ht + H[ntr]);
-               //Ut = HALF * (Ut + U[ntr]);
-               //Vt = HALF * (Vt + V[ntr]);
+               Ht = REFINE_HALF * (Ht + H[ntr]);
+               //Ut = REFINE_HALF * (Ut + U[ntr]);
+               //Vt = REFINE_HALF * (Vt + V[ntr]);
             }
          }
       }
@@ -1699,8 +1711,8 @@ __kernel void refine_potential_cl(
        //--CALCULATIONS------------------------------------------------------------
        //  Calculate the gradient between the right and left neighbors and the
        //  main cell.
-       real_t invHic = ONE / Hic; //  For faster math.
-       real_t qmax = -THOUSAND;          //  Set the default maximum low to catch the real one.
+       state_t invHic = REFINE_ONE / Hic; //  For faster math.
+       state_t qmax = REFINE_NEG_THOUSAND;          //  Set the default maximum low to catch the real one.
     
        duplus1 = Hr - Hic;
        duhalf1 = Hic - Hl;

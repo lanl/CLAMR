@@ -94,6 +94,11 @@ extern "C"
 #define HALF 0.5f
 #define EPSILON 1.0f-30
 #define STATE_EPS        15.0
+// calc refine is done in single precision
+#define REFINE_GRADIENT  0.10f
+#define COARSEN_GRADIENT 0.05f
+#define REFINE_HALF 0.5f
+#define REFINE_NEG_THOUSAND -1000.0f
 
 #elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
 #define ZERO 0.0
@@ -101,6 +106,11 @@ extern "C"
 #define HALF 0.5
 #define EPSILON 1.0e-30
 #define STATE_EPS        .02
+// calc refine is done in single precision
+#define REFINE_GRADIENT  0.10f
+#define COARSEN_GRADIENT 0.05f
+#define REFINE_HALF 0.5f
+#define REFINE_NEG_THOUSAND -1000.0f
 
 #elif defined(FULL_PRECISION)
 #define ZERO 0.0
@@ -108,6 +118,11 @@ extern "C"
 #define HALF 0.5
 #define EPSILON 1.0e-30
 #define STATE_EPS        .02
+// calc refine is done in single precision
+#define REFINE_GRADIENT  0.10
+#define COARSEN_GRADIENT 0.05
+#define REFINE_HALF 0.5
+#define REFINE_NEG_THOUSAND -1000.0
 
 #endif
 
@@ -131,8 +146,6 @@ void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Data
 int save_ncells;
 
 #define CONSERVED_EQNS
-#define REFINE_GRADIENT  0.10
-#define COARSEN_GRADIENT 0.05
 
 #define SQR(x) ( x*x )
 #define MIN3(x,y,z) ( min( min(x,y), z) )
@@ -1931,62 +1944,62 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 
       if (mesh->celltype[ic] != REAL_CELL) continue;
 
-      real_t Hic = H[ic];
-      //real_t Uic = U[ic];
-      //real_t Vic = V[ic];
+      state_t Hic = H[ic];
+      //state_t Uic = U[ic];
+      //state_t Vic = V[ic];
 
       int nl = nlft[ic];
-      real_t Hl = H[nl];
-      //real_t Ul = U[nl];
-      //real_t Vl = V[nl];
+      state_t Hl = H[nl];
+      //state_t Ul = U[nl];
+      //state_t Vl = V[nl];
 
       if (level[nl] > level[ic]){
          int nlt = ntop[nl];
-         Hl = 0.5 * (Hl + H[nlt]);
+         Hl = REFINE_HALF * (Hl + H[nlt]);
       }
 
       int nr = nrht[ic];
-      real_t Hr = H[nr];
-      //real_t Ur = U[nr];
-      //real_t Vr = V[nr];
+      state_t Hr = H[nr];
+      //state_t Ur = U[nr];
+      //state_t Vr = V[nr];
 
       if (level[nr] > level[ic]){
          int nrt = ntop[nr];
-         Hr = 0.5 * (Hr + H[nrt]);
+         Hr = REFINE_HALF * (Hr + H[nrt]);
       }
 
       int nb = nbot[ic];
-      real_t Hb = H[nb];
-      //real_t Ub = U[nb];
-      //real_t Vb = V[nb];
+      state_t Hb = H[nb];
+      //state_t Ub = U[nb];
+      //state_t Vb = V[nb];
 
       if (level[nb] > level[ic]){
          int nbr = nrht[nb];
-         Hb = 0.5 * (Hb + H[nbr]);
+         Hb = REFINE_HALF * (Hb + H[nbr]);
       }
 
       int nt = ntop[ic];
-      real_t Ht = H[nt];
-      //real_t Ut = U[nt];
-      //real_t Vt = V[nt];
+      state_t Ht = H[nt];
+      //state_t Ut = U[nt];
+      //state_t Vt = V[nt];
 
       if (level[nt] > level[ic]){
          int ntr = nrht[nt];
-         Ht = 0.5 * (Ht + H[ntr]);
+         Ht = REFINE_HALF * (Ht + H[ntr]);
       }
 
-      real_t duplus1; //, duplus2;
-      real_t duhalf1; //, duhalf2;
-      real_t duminus1; //, duminus2;
+      state_t duplus1; //, duplus2;
+      state_t duhalf1; //, duhalf2;
+      state_t duminus1; //, duminus2;
 
       duplus1 = Hr-Hic;
       //duplus2 = Ur-Uic;
       duhalf1 = Hic-Hl;
       //duhalf2 = Uic-Ul;
 
-      real_t qmax = -1000.0;
+      state_t qmax = REFINE_NEG_THOUSAND;
 
-      real_t qpot = max(fabs(duplus1/Hic), fabs(duhalf1/Hic));
+      state_t qpot = max(fabs(duplus1/Hic), fabs(duhalf1/Hic));
       if (qpot > qmax) qmax = qpot;
 
       duminus1 = Hic-Hl;
