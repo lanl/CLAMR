@@ -123,7 +123,8 @@ unsigned long long twobit_to_index(unsigned long long ibit,
 
 //   Print n as a binary number.
 void printbits(int n)
-{   unsigned int i, step;
+{  
+   int i, step;
 
    if (0 == n)
    {   //   For simplicity's sake, treat 0 as a special case.
@@ -133,7 +134,7 @@ void printbits(int n)
    i      =  1 << (sizeof(n) * 8 - 1);
    step   = -1;   //   Only print the relevant digits.
    step  >>=  8;   //   Print in groups of four.
-   while (step >= (unsigned int)n)
+   while (step >= n)
    {   i    >>= 8;
       step >>= 8; }
 
