@@ -51,7 +51,7 @@ scp mic/libiomp5.so cn106-mic0:/tmp/[USERNAME]
 scp /projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic/libiomp5.so cn106-mic0:/tmp/brobey/libiomp5.so
 ssh cn106-mic0
 cd to executable directory
-export MIC_OMP_NUM_THREADS=120
+export OMP_NUM_THREADS=120
 ./clamr_openmponly
 
 // Set MPEHOME to location of MPE install or MPE_INCLUDE_DIR and MPE_LIBRARIES to 
