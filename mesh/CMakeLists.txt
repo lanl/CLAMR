@@ -36,14 +36,16 @@ add_dependencies(mesh reduce_kernel_source)
 install(TARGETS mesh DESTINATION lib)
 
 ########### pmesh target ###############
-set(pmesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
+if (MPI_FOUND)
+   set(pmesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
 
-add_library(pmesh STATIC ${pmesh_LIB_SRCS})
+   add_library(pmesh STATIC ${pmesh_LIB_SRCS})
 
-set_target_properties(pmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
-set_target_properties(pmesh PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-target_link_libraries(pmesh ${MPI_LIBRARIES})
-install(TARGETS pmesh DESTINATION lib)
+   set_target_properties(pmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(pmesh PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+   target_link_libraries(pmesh ${MPI_LIBRARIES})
+   install(TARGETS pmesh DESTINATION lib)
+endif (MPI_FOUND)
 
 ########### dmesh target ###############
 if (OPENCL_FOUND)

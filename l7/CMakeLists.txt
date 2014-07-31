@@ -26,13 +26,15 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/l7/l7_kernel.inc
 add_custom_target(l7_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/l7/l7_kernel.inc)
 
 ########### l7 target ###############
-set(l7_LIB_SRCS ${C_SRCS} ${H_SRCS})
+if(MPI_FOUND)
+   set(l7_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
-add_library(l7 STATIC ${l7_LIB_SRCS})
+   add_library(l7 STATIC ${l7_LIB_SRCS})
 
-set_target_properties(l7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
-target_link_libraries(l7 ${MPI_LIBRARIES})
-install(TARGETS l7 DESTINATION lib)
+   set_target_properties(l7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   target_link_libraries(l7 ${MPI_LIBRARIES})
+   install(TARGETS l7 DESTINATION lib)
+endif (MPI_FOUND)
 
 ########### dl7 target ###############
 if (OPENCL_FOUND)

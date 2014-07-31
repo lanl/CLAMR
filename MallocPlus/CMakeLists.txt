@@ -12,14 +12,16 @@ set_target_properties(MallocPlus PROPERTIES VERSION 2.0.0 SOVERSION 2)
 install(TARGETS MallocPlus DESTINATION lib)
 
 ########### pMallocPlus target ###############
-set(pMallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+if (MPI_FOUND)
+   set(pMallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
 
-add_library(pMallocPlus STATIC ${MallocPlus_LIB_SRCS})
+   add_library(pMallocPlus STATIC ${MallocPlus_LIB_SRCS})
 
-set_target_properties(pMallocPlus PROPERTIES VERSION 2.0.0 SOVERSION 2)
-set_target_properties(pMallocPlus PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-target_link_libraries(pMallocPlus ${MPI_LIBRARIES})
-install(TARGETS pMallocPlus DESTINATION lib)
+   set_target_properties(pMallocPlus PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(pMallocPlus PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+   target_link_libraries(pMallocPlus ${MPI_LIBRARIES})
+   install(TARGETS pMallocPlus DESTINATION lib)
+endif (MPI_FOUND)
 
 ########### dMallocPlus target ###############
 if (OPENCL_FOUND)

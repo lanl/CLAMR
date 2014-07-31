@@ -17,7 +17,13 @@ endif(NOT CMAKE_BUILD_TYPE)
 # uncomment to build debug
 set(CMAKE_BUILD_TYPE Debug)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+if (MIC_NATIVE)
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-intel -std=c99 -mmic")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-intel -mmic")
+else (MIC_NATIVE)
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+endif (MIC_NATIVE)
+
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mtune=native")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
@@ -35,17 +41,22 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
 #set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pedantic")
 
 include_directories(${PROJECT_SOURCE_DIR})
-find_package(OpenCL)
-#  OPENCL_FOUND        : TRUE if found, FALSE otherwise
-#  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
-#  OPENCL_LIBRARIES    : The libraries to link against
-if (OPENCL_FOUND)
-   include_directories(${OPENCL_INCLUDE_DIRS})
-endif (OPENCL_FOUND)
-find_package(MPI REQUIRED)
-if (MPI_FOUND)
-   include_directories(${MPI_INCLUDE_PATH})
-endif (MPI_FOUND)
+if (NOT MIC_NATIVE)
+   find_package(OpenCL)
+   #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
+   #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
+   #  OPENCL_LIBRARIES    : The libraries to link against
+   if (OPENCL_FOUND)
+      include_directories(${OPENCL_INCLUDE_DIRS})
+   endif (OPENCL_FOUND)
+endif (NOT MIC_NATIVE)
+
+if (NOT MIC_NATIVE)
+   find_package(MPI REQUIRED)
+   if (MPI_FOUND)
+      include_directories(${MPI_INCLUDE_PATH})
+   endif (MPI_FOUND)
+endif (NOT MIC_NATIVE)
 
 find_package( OpenMP)
 #if(OPENMP_FOUND)
@@ -200,7 +211,7 @@ add_custom_target(state_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/st
 
 ########### clamr target ###############
 
-if (OPENCL_FOUND)
+if (OPENCL_FOUND AND MPI_FOUND)
    set(clamr_CXX_SRCS clamr.cpp state.cpp input.cpp)
    set(clamr_C_SRCS display.c)
    set(clamr_H_SRCS display.h state.h input.h)
@@ -223,7 +234,7 @@ if (OPENCL_FOUND)
    add_dependencies(clamr state_kernel_source)
 
    install(TARGETS clamr DESTINATION bin)
-endif (OPENCL_FOUND)
+endif (OPENCL_FOUND AND MPI_FOUND)
 
 ########### clamr_cpuonly target ###############
 
