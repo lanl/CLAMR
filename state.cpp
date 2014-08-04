@@ -799,23 +799,33 @@ double State::set_timestep(double g, double sigma)
    int *&celltype = mesh->celltype;
    int *&level    = mesh->level;
 
+
    int ic;
-//#ifdef _OPENMP
-//#ifdef __INTEL_COMPILER
-////#if (_OPENMP > 200600)
-//#pragma omp parallel for private(ic) reduction(min:mindeltaT)
-//#endif
-//#endif
-   for (ic=0; ic<(int)ncells; ic++) {
-      if (celltype[ic] == REAL_CELL) {
-         int lev = level[ic];
-         double wavespeed = sqrt(g*H[ic]);
-         double xspeed = (fabs(U[ic])+wavespeed)/mesh->lev_deltax[lev];
-         double yspeed = (fabs(V[ic])+wavespeed)/mesh->lev_deltay[lev];
-         double deltaT=sigma/(xspeed+yspeed);
-         if (deltaT < mindeltaT) mindeltaT = deltaT;
+#ifdef _OPENMP
+#pragma omp parallel
+   {
+      double mymindeltaT = 1000.0;
+#pragma omp for
+#endif
+      for (ic=0; ic<(int)ncells; ic++) {
+         if (celltype[ic] == REAL_CELL) {
+            int lev = level[ic];
+            double wavespeed = sqrt(g*H[ic]);
+            double xspeed = (fabs(U[ic])+wavespeed)/mesh->lev_deltax[lev];
+            double yspeed = (fabs(V[ic])+wavespeed)/mesh->lev_deltay[lev];
+            double deltaT=sigma/(xspeed+yspeed);
+#ifdef _OPENMP
+            if (deltaT < mymindeltaT) mymindeltaT = deltaT;
+#else
+            if (deltaT < mindeltaT) mindeltaT = deltaT;
+#endif
+         }
       }
+#ifdef _OPENMP
+#pragma omp critical
+      if (mymindeltaT < mindeltaT) mindeltaT = mymindeltaT;
    }
+#endif
 
    globalmindeltaT = mindeltaT;
 #ifdef HAVE_MPI
