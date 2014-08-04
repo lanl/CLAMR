@@ -105,6 +105,7 @@ extern "C"
 #endif
 
 void init_display(int *argc, char **argv, const char* string, int mype_in);
+void init_graphics_output(void);
 void set_idle_function(void (*function)(void));
 void start_main_loop(void);
 void free_display(void);
@@ -118,6 +119,7 @@ void set_cell_data_double(double *data_in);
 void set_cell_data_float(float *data_in);
 void set_cell_proc(int *display_proc_in);
 void set_circle_radius(double display_circle_radius_in);
+void get_graphics_info(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num);
 void draw_scene(void);
 
 #ifdef __cplusplus

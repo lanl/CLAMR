@@ -78,6 +78,7 @@
 
 int DrawString(float x, float y, float z, char* string);
 void InitGL(int width, int height);
+void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num);
 void DrawSquares(void);
 void DrawBoxes(void);
 void SelectionRec(void);
@@ -94,9 +95,20 @@ struct ColorTable {
    float Blue;
 };
 
-static int autoscale = 0;
 
+
+/*
+ * Variables that I added to make everything work for getting graphics
+ * data output to files while running no graphics with CLAMR
+ * Brian Atkinson
+*/
+static int autoscale = 0;
+static double xconversion = 0.0;
+static double yconversion = 0.0;
 static double display_circle_radius=-1.0;
+static int Ncolors = 256;
+static int iteration = 0;
+
 
 #ifndef HAVE_MPI
 #if defined(HAVE_MPE)
@@ -154,7 +166,6 @@ enum plot_data_type {DATA_DOUBLE, DATA_FLOAT};
 static int data_type = DATA_FLOAT;
 static double *data_double=NULL;
 static float *data_float=NULL;
-
 static int *display_proc=NULL;
 static int rank = 0;
 
@@ -280,6 +291,12 @@ void init_display(int *argc, char **argv, const char *title, int rank_in){
    glutMotionFunc(&mouseDrag);
    InitGL(width, WINSIZE);
 #endif
+}
+
+void init_graphics_output(void){
+   width = (WINSIZE / (display_ymax - display_ymin)) * (display_xmax - display_xmin);
+   xconversion = (double)WINSIZE/ (display_xmax-display_xmin);
+   yconversion = (double)WINSIZE/(display_ymax-display_ymin);
 }
 
 void set_idle_function(void (*function)(void)){
@@ -788,6 +805,201 @@ void set_outline(int display_outline_in){
    display_outline = display_outline_in;
 }
 
+/*
+ * Created this function get graphics data while running
+ * the no graphic version of CLAMR. The output for the main
+ * cell data is written out to graph#.data files and the gridline
+ * data is writeen out to outline#.lin files.
+ * Brian Atkinson
+*/
+void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num){
+   int i, color;
+   int step = Ncolors/(display_proc[display_mysize-1]+1);
+   int xloc, xwid, yloc, ywid;
+   int xloc1, xloc2, yloc1, yloc2;
+   char filename[30], filename2[30];
+   
+   if(rollback_img){
+      sprintf(filename,"graph%dcp%d.data", graph_num, rollback_num);
+      sprintf(filename2,"outline%dcp%d.lin",graph_num, rollback_num);
+   }
+   else{
+      sprintf(filename,"graph%d.data", graph_num);
+      sprintf(filename2,"outline%d.lin",graph_num);
+   }
+   FILE *fp = fopen(filename,"w");
+   FILE *fp2 = fopen(filename2,"w");
+   if(fp && fp2){
+      fprintf(fp,"%d,%lf\n",ncycle,simTime);
+      if (data_type == DATA_DOUBLE){
+         for(i = 0; i < display_mysize; i++) {
+            xloc = (int)((x_double[i]-display_xmin)*xconversion);
+            xwid = (int)((x_double[i]+dx_double[i]-display_xmin)*xconversion-xloc);
+            yloc = (int)((display_ymax-(y_double[i]+dy_double[i]))*yconversion);
+            ywid = (int)((display_ymax-y_double[i])*yconversion);
+            ywid -= yloc;
+            color = display_proc[i]*step;
+            //fprintf(fp,"%d,%d,%d,%d,%f\n",xloc,yloc,xwid,ywid,data[i]);
+            fprintf(fp,"%d,%d,%d,%d,%d\n",xloc,yloc,xwid,ywid,color);
+         
+            xloc1 = (int)((x_double[i]-display_xmin)*xconversion);
+            xloc2 = (int)((x_double[i]+dx_double[i]-display_xmin)*xconversion);
+            yloc1 = (int)((display_ymax-y_double[i])*yconversion);
+            yloc2 = (int)((display_ymax-(y_double[i]+dy_double[i]))*yconversion);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc2,xloc2,yloc2);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc2,yloc1);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc1,yloc2);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc2,yloc1,xloc2,yloc2);
+         }
+      } else {
+         for(i = 0; i < display_mysize; i++) {
+            xloc = (int)((x_float[i]-display_xmin)*xconversion);
+            xwid = (int)((x_float[i]+dx_float[i]-display_xmin)*xconversion-xloc);
+            yloc = (int)((display_ymax-(y_float[i]+dy_float[i]))*yconversion);
+            ywid = (int)((display_ymax-y_float[i])*yconversion);
+            ywid -= yloc;
+            color = display_proc[i]*step;
+            //fprintf(fp,"%d,%d,%d,%d,%f\n",xloc,yloc,xwid,ywid,data[i]);
+            fprintf(fp,"%d,%d,%d,%d,%d\n",xloc,yloc,xwid,ywid,color);
+         
+            xloc1 = (int)((x_float[i]-display_xmin)*xconversion);
+            xloc2 = (int)((x_float[i]+dx_float[i]-display_xmin)*xconversion);
+            yloc1 = (int)((display_ymax-y_float[i])*yconversion);
+            yloc2 = (int)((display_ymax-(y_float[i]+dy_float[i]))*yconversion);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc2,xloc2,yloc2);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc2,yloc1);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc1,yloc2);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc2,yloc1,xloc2,yloc2);
+         }
+      }
+      fclose(fp);
+      fclose(fp2);
+      iteration++;
+   }   
+   else{
+         if(fp == NULL){
+            printf("Could not create %s in DrawSqaures\n", filename);
+         }
+         else{
+            printf("Could not create %s in DrawSqaures\n", filename2);
+         }
+   }
+}
+
+/*
+ * Created this function get graphics data while running
+ * the no graphic version of CLAMR. The output for the main
+ * cell data is written out to graph#.data files and the gridline
+ * data is writeen out to outline#.lin files.
+ * Brian Atkinson
+*/
+void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num){
+   double scaleMax = 25.0, scaleMin = 0.0;
+   int i;
+   int color;
+   char filename[30], filename2[30];
+   
+   if(rollback_img){
+      sprintf(filename,"graph%dcp%d.data", graph_num, rollback_num);
+      sprintf(filename2,"outline%dcp%d.lin",graph_num, rollback_num);
+   }
+   else{
+      sprintf(filename,"graph%d.data", graph_num);
+      sprintf(filename2,"outline%d.lin",graph_num);
+   }
+   FILE *fp = fopen(filename,"w");
+   FILE *fp2 = fopen(filename2,"w");
+   if(fp && fp2){
+      fprintf(fp,"%d,%lf\n",ncycle,simTime);
+      if (autoscale) {
+         scaleMax=-1.0e30;
+         scaleMin=1.0e30;
+         if (data_type == DATA_DOUBLE){
+            for(i = 0; i<display_mysize; i++) {
+               if (data_double[i] > scaleMax) scaleMax = data_double[i];
+               if (data_double[i] < scaleMin) scaleMin = data_double[i];
+            }
+         } else {
+            for(i = 0; i<display_mysize; i++) {
+               if (data_float[i] > scaleMax) scaleMax = data_float[i];
+               if (data_float[i] < scaleMin) scaleMin = data_float[i];
+            }
+         }
+      }
+
+      double step = Ncolors/(scaleMax - scaleMin);
+      int xloc, xwid, yloc, ywid;
+      int xloc1, xloc2, yloc1, yloc2;
+      for(i = 0; i < display_mysize; i++) {
+         if (data_type == DATA_DOUBLE){
+            color = (int)(data_double[i]-scaleMin)*step;
+         } else {
+            color = (int)(data_float[i]-scaleMin)*step;
+         }
+         color = Ncolors-color;
+         if (color < 0) {
+            color=0;
+         }
+         if (color >= Ncolors) color = Ncolors-1;
+
+         if (data_type == DATA_DOUBLE){
+            xloc = (int)((x_double[i]-display_xmin)*xconversion);
+            xwid = (int)((x_double[i]+dx_double[i]-display_xmin)*xconversion-xloc);
+            yloc = (int)((display_ymax-(y_double[i]+dy_double[i]))*yconversion);
+            ywid = (int)((display_ymax-y_double[i])*yconversion);
+            ywid -= yloc;
+            //fprintf(fp,"%d,%d,%d,%d,%f\n",xloc,yloc,xwid,ywid,data[i]);
+            fprintf(fp,"%d,%d,%d,%d,%d\n",xloc,yloc,xwid,ywid,color);
+         
+            xloc1 = (int)((x_double[i]-display_xmin)*xconversion);
+            xloc2 = (int)((x_double[i]+dx_double[i]-display_xmin)*xconversion);
+            yloc1 = (int)((display_ymax-y_double[i])*yconversion);
+            yloc2 = (int)((display_ymax-(y_double[i]+dy_double[i]))*yconversion);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc2,xloc2,yloc2);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc2,yloc1);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc1,yloc2);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc2,yloc1,xloc2,yloc2);
+         } else {
+            xloc = (int)((x_float[i]-display_xmin)*xconversion);
+            xwid = (int)((x_float[i]+dx_float[i]-display_xmin)*xconversion-xloc);
+            yloc = (int)((display_ymax-(y_float[i]+dy_float[i]))*yconversion);
+            ywid = (int)((display_ymax-y_float[i])*yconversion);
+            ywid -= yloc;
+            //fprintf(fp,"%d,%d,%d,%d,%f\n",xloc,yloc,xwid,ywid,data[i]);
+            fprintf(fp,"%d,%d,%d,%d,%d\n",xloc,yloc,xwid,ywid,color);
+         
+            xloc1 = (int)((x_float[i]-display_xmin)*xconversion);
+            xloc2 = (int)((x_float[i]+dx_float[i]-display_xmin)*xconversion);
+            yloc1 = (int)((display_ymax-y_float[i])*yconversion);
+            yloc2 = (int)((display_ymax-(y_float[i]+dy_float[i]))*yconversion);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc2,xloc2,yloc2);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc2,yloc1);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc1,yloc2);
+            fprintf(fp2,"%d,%d,%d,%d\n",xloc2,yloc1,xloc2,yloc2);
+         }
+      }
+      fclose(fp);
+      fclose(fp2);   
+      iteration++;
+  }
+  else{
+     if(fp == NULL){
+         printf("Could not open %s in DisplayStateToFile\n", filename);
+     }
+     else{
+         printf("Could not open %s in DisplayStateToFile\n", filename2);
+     }
+  }
+}
+
+void get_graphics_info(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num){
+   if (display_view_mode == 0) {
+      DrawSquaresToFile(graph_num, ncycle, simTime, rollback_img, rollback_num);
+   } else {
+      DisplayStateToFile(graph_num, ncycle, simTime, rollback_img, rollback_num);
+   }
+}
+
 void draw_scene(void) {
 #ifdef HAVE_OPENGL
    if (rank) return;
@@ -1102,5 +1314,3 @@ void display_get_event(void)
 
    return;
 }
-   
-
