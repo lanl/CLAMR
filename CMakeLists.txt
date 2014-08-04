@@ -313,7 +313,6 @@ if(OPENMP_FOUND)
 
    add_executable(clamr_openmponly ${clamr_openmponly_SRCS})
 
-   set_target_properties(clamr_openmponly PROPERTIES COMPILE_DEFINITIONS HAVE_OPENMP)
    set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
    set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
@@ -338,7 +337,7 @@ if (MPI_FOUND AND OPENMP_FOUND)
 
    add_executable(clamr_mpiopenmponly ${clamr_mpiopenmponly_SRCS})
 
-   set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENMP")
+   set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI")
 
    set(clamr_mpiopenmponly_link_flags "${OpenMP_CXX_FLAGS}")
    set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
@@ -380,7 +379,7 @@ if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND AND Boost_FOUND)
     # these sets HAVE_J7 and HAVE_QUO in config.h
     set(HAVE_J7 ON)
     set(HAVE_QUO ON)
-    set_target_properties(clamr_quo PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENMP")
+    set_target_properties(clamr_quo PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI")
 
     set(clamr_quo_link_flags "${OpenMP_CXX_FLAGS}")
     set_target_properties(clamr_quo PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
