@@ -1115,7 +1115,7 @@ void State::calc_finite_difference(double deltaT){
 
    cpu_timer_start(&tstart_cpu);
 
-   size_t &ncells     = mesh->ncells;
+   size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
    if (ncells_ghost < ncells) ncells_ghost = ncells;
 
@@ -1171,17 +1171,10 @@ void State::calc_finite_difference(double deltaT){
 
    int gix;
 #ifdef _OPENMP
-#ifdef __INTEL_COMPILER
 #pragma omp parallel for \
       private(gix) \
       shared(deltaT, g, ghalf, H_new, U_new, V_new, ncells, level, nlft, nrht, nbot, ntop, lev_deltax, lev_deltay) \
       default(none)
-#else
-#pragma omp parallel for \
-      private(gix) \
-      shared(deltaT, g, ghalf, H_new, U_new, V_new) \
-      default(none)
-#endif
 #endif
    for(gix = 0; gix < (int)ncells; gix++) {
 #ifdef DEBUG
