@@ -84,9 +84,13 @@ char progVers[8];       //  Program version.
 
 //  External global variables.
 extern bool verbose,
+            graphics_data,
+            from_disk_rollback,
+            in_memory_rollback,
             localStencil,
             outline,
-            dynamic_load_balance_on;
+            dynamic_load_balance_on,
+            restart;
 extern int  outputInterval,
             enhanced_precision_sum,
             tmax,
@@ -100,9 +104,14 @@ extern int  outputInterval,
             calc_neighbor_type,
 	    choose_hash_method,
             initial_order,
+            graphic_outputInterval,
+            num_of_rollback_states,
+            backup_file_num,
             cycle_reorder;
 extern float
             mem_opt_factor;
+extern double
+            upper_mass_diff_percentage;
 
 //extern int  do_cpu_calc,
 //            do_gpu_calc;
@@ -111,6 +120,10 @@ void outputHelp()
 {   cout << "CLAMR is an experimental adaptive mesh refinement code for the GPU." << endl
          << "Version is " << PACKAGE_VERSION << endl << endl
          << "Usage:  " << progName << " [options]..." << endl
+         << "  -b                mesh and state data is checkpointed at every output interval defined by" << endl
+         << "                    i or 100 by default and number of backup files to keep must be specified;" << endl
+         << "  -B                if an error occurs, the mesh is attempted to be restored to a clean state" << endl
+         << "                    from the rollback states so the simulation can continue;" << endl
          << "  -c                turn on CPU profiling;" << endl
          << "  -d                turn on LTTRACE;" << endl
          << "  -D                turn on dynamic load balancing using LTTRACE;" << endl
@@ -122,6 +135,7 @@ void outputHelp()
          << "      \"perfect\"" << endl
          << "      \"compact\"" << endl
          << "  -g                turn on GPU profiling;" << endl
+         << "  -G                specify I step between saving graphics information for post processing;" << endl
          << "  -h                display this help message;" << endl
          << "  -i <I>            specify I steps between output files;" << endl
          << "  -l <l>            max number of levels;" << endl
@@ -148,9 +162,12 @@ void outputHelp()
          << "      \"z_order\"" << endl
          << "  -q                turn on quo;" << endl
          << "  -r                regular sum instead of enhanced precision sum (Kahan sum);" << endl
+         << "  -R                restart simulation from the backup file number passed;" << endl
          << "  -s <s>            specify space-filling curve method S;" << endl
          << "  -T                execute with TVD;" << endl
          << "  -t <t>            specify T time steps to run;" << endl
+         << "  -u                allowed percentage of difference between total mass between iterations." << endl
+         << "                    the default value for this parameter is 2.6e-13;" << endl
          << "  -V                use verbose output;" << endl
          << "  -v                display version information." << endl; }
 
@@ -164,7 +181,7 @@ void outputVersion()
 void parseInput(const int argc, char** argv)
 {   strcpy(progName, "clamr");
     strcpy(progVers, PACKAGE_VERSION);
-    
+   
     //	Reconstruct command line argument as a string.
     char progCL[256];       //  Complete program command line.
     strcpy(progCL, argv[0]);
@@ -183,6 +200,10 @@ void parseInput(const int argc, char** argv)
     do_quo_setup       = 0;
 #endif
     dynamic_load_balance_on = false;
+    from_disk_rollback = false;
+    restart = false;
+    graphics_data = false;
+    in_memory_rollback = false;
     outputInterval     = OUTPUT_INTERVAL;
     nx                 = COARSE_GRID_RES;
     ny                 = COARSE_GRID_RES;
@@ -192,8 +213,12 @@ void parseInput(const int argc, char** argv)
     choose_hash_method = METHOD_UNSET;
     initial_order      = HILBERT_SORT;
     cycle_reorder      = ORIGINAL_ORDER;
+    graphic_outputInterval = 10;
+    num_of_rollback_states = 2;
+    backup_file_num = 0;
     levmx              = 1;
     mem_opt_factor     = 1.0;
+    upper_mass_diff_percentage = -1.0;
     enhanced_precision_sum = SUM_KAHAN;
     
     char   *val;
@@ -202,7 +227,27 @@ void parseInput(const int argc, char** argv)
         val = strtok(argv[i++], " ,.-");
         while (val != NULL)
         {   switch (val[0])
-            {   case 'c':   //  Turn on CPU profiling.
+            {  case 'b':    //  Checkpoint state and mesh data during simulation 
+                    val = strtok(argv[i++], " ,");
+                    if(atoi(val) < 1){
+                        cout << "backup number must be at least 1, setting to default value 2" << endl;
+                    }
+                    else{
+                        num_of_rollback_states = atoi(val);
+                    }
+                    from_disk_rollback = true;
+                    break;
+               case 'B':   //  Rollback to last safe state to continue simulation
+                    val = strtok(argv[i++], " ,");
+                    if(atoi(val) < 1){
+                        cout << "rollback number must be at least 1, setting to default value 2" << endl;
+                    }
+                    else{
+                        num_of_rollback_states = atoi(val);
+                    }
+                    in_memory_rollback = true;
+                    break;
+               case 'c':   //  Turn on CPU profiling.
                     //do_cpu_calc = 1;
                     break;
 
@@ -234,11 +279,17 @@ void parseInput(const int argc, char** argv)
                        choose_hash_method = PRIME_JUMP;
                     }
                     break;
+                
+                case 'G':   //  Save graphics data to files during simulation.
+                    val = strtok(argv[i++], " ,.-");
+                    graphic_outputInterval = atoi(val);
+                    graphics_data = true;
+                    break;
 
                 case 'g':   //  Turn on GPU profiling.
                     //do_gpu_calc = 1;
                     break;
-                    
+
                 case 'h':   //  Output help.
                     outputHelp();
                     cout.flush();
@@ -347,7 +398,18 @@ void parseInput(const int argc, char** argv)
                        exit(0);
                     }
                     break;
-                    
+
+                case 'R':  //  Restart application from last checkpoint
+                    val = strtok(argv[i++], " ,");
+                    if(atoi(val) < 0){
+                        cout << "the backup file number must be at least 0, setting to default value " << endl;
+                    }
+                    else{
+                        backup_file_num = atoi(val);
+                    }
+                    restart = true;
+                    break;
+
                 case 's':   //  Space-filling curve method specified (default HILBERT_SORT).
                 //  Add different problem setups such as sloped wave in x, y and diagonal directions to help check algorithm
                     //  HILBERT_SORT
@@ -359,6 +421,11 @@ void parseInput(const int argc, char** argv)
                 case 't':   //  Number of time steps specified.
                     val = strtok(argv[i++], " ,.-");
                     niter = atoi(val);
+                    break;
+
+                case 'u':   //  Allowed percentage of difference in mass per iteration
+                    val = strtok(argv[i++], " ,");
+                    upper_mass_diff_percentage = atof(val);
                     break;
                     
                 case 'V':   //  Verbose output desired.
@@ -378,4 +445,11 @@ void parseInput(const int argc, char** argv)
                     exit(EXIT_FAILURE);
                     break; }
             
-            val = strtok(argv[i++], " ,.-"); } } }
+            val = strtok(argv[i++], " ,.-");
+        }
+     }
+
+    if(upper_mass_diff_percentage < 0){
+             upper_mass_diff_percentage = 2.6e-13;
+    }
+}
