@@ -802,14 +802,14 @@ double State::set_timestep(double g, double sigma)
    int *&level    = mesh->level;
 
    int ic;
-#ifdef HAVE_OPENMP
-#ifdef __INTEL_COMPILER
-//#if (_OPENMP > 200600)
-#ifdef _OPENMP
-#pragma omp parallel for private(ic) reduction(min:mindeltaT)
-#endif
-#endif
-#endif
+//#ifdef HAVE_OPENMP
+//#ifdef __INTEL_COMPILER
+////#if (_OPENMP > 200600)
+//#ifdef _OPENMP
+//#pragma omp parallel for private(ic) reduction(min:mindeltaT)
+//#endif
+//#endif
+//#endif
    for (ic=0; ic<(int)ncells; ic++) {
       if (celltype[ic] == REAL_CELL) {
          lev = level[ic];
