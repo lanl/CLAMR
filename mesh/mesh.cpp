@@ -1542,6 +1542,9 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
          }
 #endif
 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
          for(uint ic = 0; ic < ncells; ic++) {
             lev = level[ic];
             mpot[ic] = mpot_old[ic];
@@ -1680,6 +1683,9 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
    mpot_old.swap(mpot);
 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
    for(uint ic=0; ic<ncells; ic++) {
       mpot[ic] = mpot_old[ic];
       if (mpot_old[ic] >= 0) continue;
@@ -1726,8 +1732,11 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
    mpot_old.swap(mpot);
 
-   int n1, n2, n3;
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
    for(uint ic=0; ic<ncells; ic++) {
+      int n1, n2, n3;
       mpot[ic] = mpot_old[ic];
       if (mpot_old[ic] >= 0) continue;
       if ( is_upper_right(i[ic],j[ic]) ) {
@@ -1771,6 +1780,9 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
   }
 #endif
 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
    for (uint ic=0; ic<ncells; ic++) {
       if (celltype[ic] < 0) {
          switch (celltype[ic]) {
