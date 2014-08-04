@@ -786,17 +786,15 @@ void State::remove_boundary_cells(void)
 
 double State::set_timestep(double g, double sigma)
 {
-   int lev;
-   double wavespeed, xspeed, yspeed;
-   double deltaT, globalmindeltaT;
+   double globalmindeltaT;
    double mindeltaT = 1000.0;
    struct timeval tstart_cpu;
 
    cpu_timer_start(&tstart_cpu);
 
-   size_t &ncells        = mesh->ncells;
+   size_t ncells        = mesh->ncells;
 #ifdef HAVE_MPI
-   int &parallel         = mesh->parallel;
+   int parallel         = mesh->parallel;
 #endif
    int *&celltype = mesh->celltype;
    int *&level    = mesh->level;
@@ -810,11 +808,11 @@ double State::set_timestep(double g, double sigma)
 //#endif
    for (ic=0; ic<(int)ncells; ic++) {
       if (celltype[ic] == REAL_CELL) {
-         lev = level[ic];
-         wavespeed = sqrt(g*H[ic]);
-         xspeed = (fabs(U[ic])+wavespeed)/mesh->lev_deltax[lev];
-         yspeed = (fabs(V[ic])+wavespeed)/mesh->lev_deltay[lev];
-         deltaT=sigma/(xspeed+yspeed);
+         int lev = level[ic];
+         double wavespeed = sqrt(g*H[ic]);
+         double xspeed = (fabs(U[ic])+wavespeed)/mesh->lev_deltax[lev];
+         double yspeed = (fabs(V[ic])+wavespeed)/mesh->lev_deltay[lev];
+         double deltaT=sigma/(xspeed+yspeed);
          if (deltaT < mindeltaT) mindeltaT = deltaT;
       }
    }

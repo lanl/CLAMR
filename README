@@ -48,7 +48,7 @@ On node cn106
 
 ssh cn106-mic0 "mkdir /tmp/[USERNAME]
 scp mic/libiomp5.so cn106-mic0:/tmp/[USERNAME]
-scp /projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic/libiomp5.so cn106-mic0:/tmp/brobey/libiomp5.so
+scp /projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic/libiomp5.so cn106-mic0:/tmp/[USERNAME]/libiomp5.so
 ssh cn106-mic0
 cd to executable directory
 export OMP_NUM_THREADS=120
