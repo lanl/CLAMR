@@ -31,9 +31,26 @@ set(mesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
 add_library(mesh STATIC ${mesh_LIB_SRCS})
 
 set_target_properties(mesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+
 target_link_libraries(mesh)
 add_dependencies(mesh reduce_kernel_source)
 install(TARGETS mesh DESTINATION lib)
+
+########### mpmesh target ###############
+if(OPENMP_FOUND)
+   set(mpmesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
+
+   add_library(mpmesh STATIC ${mesh_LIB_SRCS})
+
+   set_target_properties(mpmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(mpmesh PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+   set_target_properties(mpmesh PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+   set_target_properties(mpmesh PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
+
+   target_link_libraries(mpmesh)
+   add_dependencies(mpmesh reduce_kernel_source)
+   install(TARGETS mpmesh DESTINATION lib)
+endif(OPENMP_FOUND)
 
 ########### pmesh target ###############
 if (MPI_FOUND)

@@ -3063,6 +3063,9 @@ void Mesh::calc_neighbors(void)
 
       int *hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
       for(uint ic=0; ic<ncells; ic++){
          int lev = level[ic];
          int levmult = IPOW2(levmx-lev);
@@ -3096,14 +3099,15 @@ void Mesh::calc_neighbors(void)
          cpu_timer_start(&tstart_lev2);
       }
 
-      int ii, jj, lev, levmult;
-
       //fprintf(fp,"DEBUG ncells is %lu\n",ncells);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
       for (uint ic=0; ic<ncells; ic++){
-         ii = i[ic];
-         jj = j[ic];
-         lev = level[ic];
-         levmult = IPOW2(levmx-lev);
+         int ii = i[ic];
+         int jj = j[ic];
+         int lev = level[ic];
+         int levmult = IPOW2(levmx-lev);
          int iicur = ii*levmult;
          int iilft = max( (ii-1)*levmult, 0         );
          int iirht = min( (ii+1)*levmult, imaxsize-1);

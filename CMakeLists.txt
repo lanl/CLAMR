@@ -317,7 +317,7 @@ if(OPENMP_FOUND)
    set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
 
-   target_link_libraries(clamr_openmponly mesh hsfc hash kdtree zorder s7 timer memstats genmalloc MallocPlus m)
+   target_link_libraries(clamr_openmponly mpmesh hsfc hash kdtree zorder s7 timer memstats genmalloc MallocPlus m)
    target_link_libraries(clamr_openmponly ${MPE_NOMPI_LIBS} ${X11_LIBS})
    target_link_libraries(clamr_openmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
    if (REPROBLAS_FOUND)
