@@ -1171,10 +1171,7 @@ void State::calc_finite_difference(double deltaT){
 
    int gix;
 #ifdef _OPENMP
-#pragma omp parallel for \
-      private(gix) \
-      shared(deltaT, g, ghalf, H_new, U_new, V_new, ncells, level, nlft, nrht, nbot, ntop, lev_deltax, lev_deltay) \
-      default(none)
+#pragma omp parallel for
 #endif
    for(gix = 0; gix < (int)ncells; gix++) {
 #ifdef DEBUG
@@ -1897,7 +1894,7 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
-   size_t &ncells     = mesh->ncells;
+   size_t ncells     = mesh->ncells;
    int *nlft  = mesh->nlft;
    int *nrht  = mesh->nrht;
    int *nbot  = mesh->nbot;
@@ -1928,12 +1925,7 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 
    int ic;
 #ifdef _OPENMP
-#ifdef __INTEL_COMPILER
-#pragma omp parallel for \
-      private(ic) \
-      shared(ncells, nlft, nrht, nbot, ntop, level, mpot) \
-      default(none)
-#endif
+#pragma omp parallel for
 #endif
    for (ic=0; ic<(int)ncells; ic++) {
 
