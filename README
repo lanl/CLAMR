@@ -40,19 +40,30 @@ cmake -DPRECISION_TYPE=full_precision     // full double precision
 cmake -DPRECISION_TYPE=mixed_precision    // intermediates double, arrays single
 cmake -DPRECISION_TYPE=minimum_precision  // all single precision
 
-// To build on MIC
-cmake -DMIC_NATIVE=yes .
+// To run on a Darwin MIC-NODE:
+ssh darwin
+salloc -p knc-mic
+ssh [NODE]
+// where [NODE] is $SLURM_NODELIST
+// Load modules for build
+module load compilers/intel/14.0.2
+module load mpi/intelmpi-4.1.3.045-mic
+module load cmake/2.8.11.1
+// Build CLAMR on MIC:
+cd CLAMR
+cmake -DMIC_NATIVE=yes
 make
-
-On node cn106
-
-ssh cn106-mic0 "mkdir /tmp/[USERNAME]
-scp mic/libiomp5.so cn106-mic0:/tmp/[USERNAME]
-scp /projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic/libiomp5.so cn106-mic0:/tmp/[USERNAME]/libiomp5.so
-ssh cn106-mic0
-cd to executable directory
+// To execute:
+ssh [NODE]-mic0
+mkdir /tmp/[USERNAME]
+cd /tmp/[USERNAME]
+// Copy dynamically linked libraries mic/libiomp5.so and mic/libcilkrts.so to executable tmp directory
+cp /projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic/libiomp5.so ./
+cp /projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic/libcilkrts.so ./
+// Execute clamr_openmponly
 export OMP_NUM_THREADS=120
-./clamr_openmponly
+~/CLAMR/clamr_openmponly
+
 
 // Set MPEHOME to location of MPE install or MPE_INCLUDE_DIR and MPE_LIBRARIES to 
 // the include path and the location of the MPE libraries
