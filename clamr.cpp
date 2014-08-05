@@ -100,7 +100,11 @@ static int view_mode = 0;
 
 #endif
 
-bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
+bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
+            graphics_data,  //  Flag for saving the mesh graphic data out to files; init in input.cpp::parseInput().
+            from_disk_rollback, //Flag to return to a safe mesh state and restart simulation from backup files in the event of failure; init in input.cpp::parseInput().
+            in_memory_rollback, //  Flag to return to a safe mesh state and restart simulation from copies saved in memory in the event of failure; init in input.cpp::parseInput().
+            verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
             outline;        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
@@ -111,7 +115,13 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
             nx,             //  x-resolution of coarse grid; init in input.cpp::parseInput().
             ny,             //  y-resolution of coarse grid; init in input.cpp::parseInput().
             niter,          //  Maximum time step; init in input.cpp::parseInput().
+            graphic_outputInterval, // Periocity of graphic output that is saved; init in input.cpp::parseInput()
+            num_of_rollback_states,// Maximum number of rollback states to maintain; init in input.cpp::parseInput()
+            backup_file_num,//  Backup file number to restart simulation from; init in input.cpp::parseInput()
+            numpe,          //  
             ndim    = 2;    //  Dimensionality of problem (2 or 3).
+double      upper_mass_diff_percentage; //  Flag for the allowed pecentage difference to the total
+                                        //  mass per output intervals; init in input.cpp::parseInput().
 
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.

@@ -1736,7 +1736,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #pragma omp parallel for
 #endif
    for(uint ic=0; ic<ncells; ic++) {
-      int n1, n2, n3;
+      int n1=0, n2=0, n3=0;
       mpot[ic] = mpot_old[ic];
       if (mpot_old[ic] >= 0) continue;
       if ( is_upper_right(i[ic],j[ic]) ) {

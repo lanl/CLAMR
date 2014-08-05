@@ -215,9 +215,7 @@ inline real_t w_corrector(
    real_t rminus = (grad_minus * grad_half) * rdenom;
 
    return HALF*nu*(ONE- max(MIN3(ONE, rplus, rminus), ZERO));
-
 }
-
 
 State::State(Mesh *mesh_in)
 {
@@ -291,6 +289,19 @@ void State::init(int do_gpu_calc)
 
 }
 
+void State::init_from_backup_file(FILE *fp)
+{
+   //printf("\nDEBUG -- Calling state memory memory malloc at line %d\n",__LINE__);
+   allocate_from_backup_file(fp);
+   //state_memory.memory_report();
+   //printf("DEBUG -- Finished state memory memory malloc at line %d\n\n",__LINE__);
+}
+
+void State::init_for_rollback(State *state_to_copy)
+{
+   allocate_for_rollback(state_to_copy);
+}
+
 void State::allocate(size_t ncells){
    int flags = 0;
 #ifdef HAVE_J7
@@ -300,6 +311,37 @@ void State::allocate(size_t ncells){
    H = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "H");
    U = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "U");
    V = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "V");
+}
+
+void State::allocate_from_backup_file(FILE *fp)
+{
+   size_t H_size = 0, U_size = 0, V_size = 0;
+
+   fread(&H_size,sizeof(size_t),1,fp);
+   H = (state_t *)state_memory.memory_malloc(H_size, sizeof(state_t), "H");
+   fread(H,sizeof(state_t),H_size,fp);
+
+   fread(&U_size,sizeof(size_t),1,fp);
+   U = (state_t *)state_memory.memory_malloc(U_size, sizeof(state_t), "U");
+   fread(U,sizeof(state_t),U_size,fp);
+
+   fread(&V_size,sizeof(size_t),1,fp);
+   V = (state_t *)state_memory.memory_malloc(V_size, sizeof(state_t), "V");
+   fread(V,sizeof(state_t),V_size,fp);
+}
+
+void State::allocate_for_rollback(State *state_to_copy)
+{
+   size_t H_size = state_to_copy->state_memory.get_memory_size(state_to_copy->H);
+   size_t U_size = state_to_copy->state_memory.get_memory_size(state_to_copy->U);
+   size_t V_size = state_to_copy->state_memory.get_memory_size(state_to_copy->V);
+
+   H = (state_t *)state_memory.memory_malloc(H_size, sizeof(state_t), "H");
+   memcpy(H, state_to_copy->H, sizeof(state_t) * H_size);
+   U = (state_t *)state_memory.memory_malloc(U_size, sizeof(state_t), "U");
+   memcpy(U, state_to_copy->U, sizeof(state_t) * U_size);
+   V = (state_t *)state_memory.memory_malloc(V_size, sizeof(state_t), "V");
+   memcpy(V, state_to_copy->V, sizeof(state_t) * V_size);
 }
 
 void State::resize(size_t new_ncells){
@@ -799,7 +841,6 @@ double State::set_timestep(double g, double sigma)
    int *&celltype = mesh->celltype;
    int *&level    = mesh->level;
 
-
    int ic;
 #ifdef _OPENMP
 #pragma omp parallel
@@ -980,7 +1021,7 @@ void State::fill_circle(double  circ_radius,//  Radius of circle in grid units.
                               &x[0], &dx[0],
                               &y[0], &dy[0]);
 #endif
-   
+
    for (int ic = 0; ic < nez; ++ic)
    {  H[ind[ic]] = background + (fill_value - background) * weight[ic]; }
 
@@ -3053,6 +3094,79 @@ void State::print(void)
    }
 }
 
+void State::check_point_state_data(FILE *backup_file)
+{
+   size_t i_size = mesh->mesh_memory.get_memory_size(mesh->i);
+   size_t j_size = mesh->mesh_memory.get_memory_size(mesh->j);
+   size_t level_size = mesh->mesh_memory.get_memory_size(mesh->level);
+   size_t celltype_size = mesh->mesh_memory.get_memory_size(mesh->celltype);
+   size_t H_size = this->state_memory.get_memory_size(this->H);
+   size_t U_size = this->state_memory.get_memory_size(this->U);
+   size_t V_size = this->state_memory.get_memory_size(this->V);
+
+   fwrite(&mesh->ncells,sizeof(size_t),1,backup_file);
+   fwrite(&mesh->ncells_ghost,sizeof(size_t),1,backup_file);
+
+   fwrite(&i_size,sizeof(size_t),1,backup_file);
+   fwrite(mesh->i,sizeof(int),i_size,backup_file);
+
+   fwrite(&j_size,sizeof(size_t),1,backup_file);
+   fwrite(mesh->j,sizeof(int),j_size,backup_file);
+
+   fwrite(&level_size,sizeof(size_t),1,backup_file);
+   fwrite(mesh->level,sizeof(int),level_size,backup_file);
+
+   fwrite(&celltype_size,sizeof(size_t),1,backup_file);
+   fwrite(mesh->celltype,sizeof(int),celltype_size,backup_file);
+
+   fwrite(&H_size,sizeof(size_t),1,backup_file);
+   fwrite(H,sizeof(state_t),H_size,backup_file);
+
+   fwrite(&U_size,sizeof(size_t),1,backup_file);
+   fwrite(U,sizeof(state_t),U_size,backup_file);
+
+   fwrite(&V_size,sizeof(size_t),1,backup_file);
+   fwrite(V,sizeof(state_t),V_size,backup_file);
+}
+
+// Added overloaded print to get mesh information to print in each cycle
+// Brian Atkinson (5-29-14)
+void State::print(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage)
+{  //printf("size is %lu %lu %lu %lu %lu\n",index.size(), i.size(), level.size(), nlft.size(), x.size());
+
+      char filename[40];
+      sprintf(filename,"iteration%d",iteration);
+      mesh->fp=fopen(filename,"w");
+
+      if(iteration_mass == 0.0){
+         fprintf(mesh->fp,"Iteration = %d\t\tSimuation Time = %lf\n", iteration, simTime);
+         fprintf(mesh->fp,"mesh->ncells = %lu\t\tmesh->ncells_ghost = %lu\n", mesh->ncells, mesh->ncells_ghost);
+         fprintf(mesh->fp,"Initial Mass: %14.12lg\t\tSimulation Time: %lf\n", initial_mass, simTime);
+      }
+      else{
+         double mass_diff = iteration_mass - initial_mass;
+         fprintf(mesh->fp,"Iteration = %d\t\tSimuation Time = %lf\n", iteration, simTime);
+         fprintf(mesh->fp,"mesh->ncells = %lu\t\tmesh->ncells_ghost = %lu\n", mesh->ncells, mesh->ncells_ghost);
+         fprintf(mesh->fp,"Initial Mass: %14.12lg\t\tIteration Mass: %14.12lg\n", initial_mass, iteration_mass);
+         fprintf(mesh->fp,"Mass Difference: %12.6lg\t\tMass Difference Percentage: %12.6lg%%\n", mass_diff, mass_diff_percentage);
+      }
+
+   if (mesh->mesh_memory.get_memory_size(mesh->nlft) >= mesh->ncells_ghost){
+      fprintf(mesh->fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mesh->mype);
+      for (uint ic=0; ic<mesh->ncells; ic++) {
+         fprintf(mesh->fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mesh->mype,ic, ic+mesh->noffset,mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+      }
+      for (uint ic=mesh->ncells; ic<mesh->ncells_ghost; ic++) {
+         fprintf(mesh->fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mesh->mype,ic, ic+mesh->noffset,mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+      }
+   } else {
+      fprintf(mesh->fp,"%d:  index     H        U         V      i     j     lev\n",mesh->mype);
+      for (uint ic=0; ic<mesh->ncells_ghost; ic++) {
+         fprintf(mesh->fp,"%d: %6d %lf %lf %lf %4d  %4d   %4d  \n", mesh->mype,ic, H[ic], U[ic], V[ic], mesh->i[ic], mesh->j[ic], mesh->level[ic]);
+      }
+   }
+}
+
 void State::print_local(int ncycle)
 {  //printf("size is %lu %lu %lu %lu %lu\n",index.size(), i.size(), level.size(), nlft.size(), x.size());
 
@@ -3081,3 +3195,68 @@ void State::print_local(int ncycle)
    }
 }
 
+void State::print_failure_log(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage, bool got_nan){
+   char filename[] = {"failure.log"};
+   mesh->fp=fopen(filename,"w");
+
+   double mass_diff = iteration_mass - initial_mass;
+   if(got_nan){
+      fprintf(mesh->fp,"Failed because of nan for H_sum was equal to NAN\n");
+   }
+   else{
+      fprintf(mesh->fp,"Failed because mass difference is outside of accepted percentage\n");
+   }
+   fprintf(mesh->fp,"Iteration = %d\t\tSimuation Time = %lf\n", iteration, simTime);
+   fprintf(mesh->fp,"mesh->ncells = %lu\t\tmesh->ncells_ghost = %lu\n", mesh->ncells, mesh->ncells_ghost);
+   fprintf(mesh->fp,"Initial Mass: %14.12lg\t\tIteration Mass: %14.12lg\n", initial_mass, iteration_mass);
+   fprintf(mesh->fp,"Mass Difference: %12.6lg\t\tMass Difference Percentage: %12.6lg%%\n", mass_diff, mass_diff_percentage);
+
+   if (mesh->mesh_memory.get_memory_size(mesh->nlft) >= mesh->ncells_ghost){
+      fprintf(mesh->fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mesh->mype);
+      for (uint ic=0; ic<mesh->ncells; ic++) {
+         fprintf(mesh->fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mesh->mype,ic, ic+mesh->noffset,mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+      }
+      for (uint ic=mesh->ncells; ic<mesh->ncells_ghost; ic++) {
+         fprintf(mesh->fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mesh->mype,ic, ic+mesh->noffset,mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+      }
+   } else {
+      fprintf(mesh->fp,"%d:  index     H        U         V      i     j     lev\n",mesh->mype);
+      for (uint ic=0; ic<mesh->ncells_ghost; ic++) {
+         fprintf(mesh->fp,"%d: %6d %lf %lf %lf %4d  %4d   %4d  \n", mesh->mype,ic, H[ic], U[ic], V[ic], mesh->i[ic], mesh->j[ic], mesh->level[ic]);
+      }
+   }
+}
+
+void State::print_rollback_log(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage, int backup_attempt, int num_of_attempts, bool got_nan){
+   char filename[40];
+   sprintf(filename, "rollback%d.log",backup_attempt);
+   mesh->fp=fopen(filename,"w");
+
+   double mass_diff = iteration_mass - initial_mass;
+   if(got_nan){
+      fprintf(mesh->fp,"Rolling back because of nan for H_sum was equal to NAN\n");
+   }
+   else{
+      fprintf(mesh->fp,"Rolling back because mass difference is outside of accepted percentage\n");
+   }
+   fprintf(mesh->fp,"Rollback attempt %d of %d ---> Number of attempts left:%d\n", backup_attempt, num_of_attempts, num_of_attempts - backup_attempt);
+   fprintf(mesh->fp,"Iteration = %d\t\tSimuation Time = %lf\n", iteration, simTime);
+   fprintf(mesh->fp,"mesh->ncells = %lu\t\tmesh->ncells_ghost = %lu\n", mesh->ncells, mesh->ncells_ghost);
+   fprintf(mesh->fp,"Initial Mass: %14.12lg\t\tIteration Mass: %14.12lg\n", initial_mass, iteration_mass);
+   fprintf(mesh->fp,"Mass Difference: %12.6lg\t\tMass Difference Percentage: %12.6lg%%\n", mass_diff, mass_diff_percentage);
+
+   if (mesh->mesh_memory.get_memory_size(mesh->nlft) >= mesh->ncells_ghost){
+      fprintf(mesh->fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mesh->mype);
+      for (uint ic=0; ic<mesh->ncells; ic++) {
+         fprintf(mesh->fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mesh->mype,ic, ic+mesh->noffset,mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+      }
+      for (uint ic=mesh->ncells; ic<mesh->ncells_ghost; ic++) {
+         fprintf(mesh->fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mesh->mype,ic, ic+mesh->noffset,mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+      }
+   } else {
+      fprintf(mesh->fp,"%d:  index     H        U         V      i     j     lev\n",mesh->mype);
+      for (uint ic=0; ic<mesh->ncells_ghost; ic++) {
+         fprintf(mesh->fp,"%d: %6d %lf %lf %lf %4d  %4d   %4d  \n", mesh->mype,ic, H[ic], U[ic], V[ic], mesh->i[ic], mesh->j[ic], mesh->level[ic]);
+      }
+   }
+}

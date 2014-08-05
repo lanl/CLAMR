@@ -208,10 +208,14 @@ public:
    State(Mesh *mesh_in);
 
    void init(int do_gpu_calc);
+   void init_from_backup_file(FILE *fp);
+   void init_for_rollback(State *state_to_copy);
    void terminate(void);
 
    /* Memory routines for linked list of state arrays */
    void allocate(size_t ncells);
+   void allocate_from_backup_file(FILE *fp);
+   void allocate_for_rollback(State *state_to_copy);
    void resize(size_t ncells);
    void memory_reset_ptrs(void);
 #ifdef HAVE_OPENCL
@@ -349,7 +353,12 @@ public:
    void parallel_memory_output(int numpe, int mype, const char *string, long long local_time);
 
    void print(void);
+   void check_point_state_data(FILE *backup_file);
+   //Added to for second print for every interation: Brian Atkinson (5-29-14)
+   void print(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage);  
    void print_local(int ncycle);
+   void print_failure_log(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage, bool got_nan);
+   void print_rollback_log(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage, int backup_attempt, int num_of_attempts, bool got_nan);
 
 private:
    State(const State&); // To block copy constructor so copies are not made inadvertently
