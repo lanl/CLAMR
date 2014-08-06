@@ -831,7 +831,7 @@ void Mesh::compare_indices_all_to_gpu_local(Mesh *mesh_global, uint ncells_globa
 #endif
 }
 
-void Mesh::compare_coordinates_gpu_global_to_cpu_global(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, real_t *H)
+void Mesh::compare_coordinates_gpu_global_to_cpu_global_double(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, double *H)
 {
    cl_command_queue command_queue = ezcl_get_command_queue();
 
@@ -839,12 +839,40 @@ void Mesh::compare_coordinates_gpu_global_to_cpu_global(cl_mem dev_x, cl_mem dev
    vector<spatial_t>dx_check(ncells);
    vector<spatial_t>y_check(ncells);
    vector<spatial_t>dy_check(ncells);
-   vector<spatial_t>H_check(ncells);
+   vector<double>H_check(ncells);
    ezcl_enqueue_read_buffer(command_queue, dev_x,   CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &x_check[0],  NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_dx,  CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &dx_check[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_y,   CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &y_check[0],  NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_dy,  CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &dy_check[0], NULL);
-   ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_TRUE,  0, ncells*sizeof(cl_spatial_t), &H_check[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_TRUE,  0, ncells*sizeof(cl_double), &H_check[0],  NULL);
+   for (uint ic = 0; ic < ncells; ic++){
+      if (x[ic] != x_check[ic] || dx[ic] != dx_check[ic] || y[ic] != y_check[ic] || dy[ic] != dy_check[ic] ) {
+         printf("Error -- mismatch in spatial coordinates for cell %d is gpu %lf %lf %lf %lf cpu %lf %lf %lf %lf\n",ic,x_check[ic],dx_check[ic],y_check[ic],dy_check[ic],x[ic],dx[ic],y[ic],dy[ic]);
+         exit(0);
+      }
+   }  
+   for (uint ic = 0; ic < ncells; ic++){
+      if (fabs(H[ic] - H_check[ic]) > CONSERVATION_EPS) {
+         printf("Error -- mismatch in H for cell %d is gpu %lf cpu %lf\n",ic,H_check[ic],H[ic]);
+         exit(0);
+      }
+   }
+}
+
+void Mesh::compare_coordinates_gpu_global_to_cpu_global_float(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, float *H)
+{
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
+   vector<spatial_t>x_check(ncells);
+   vector<spatial_t>dx_check(ncells);
+   vector<spatial_t>y_check(ncells);
+   vector<spatial_t>dy_check(ncells);
+   vector<float>H_check(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_x,   CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &x_check[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_dx,  CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &dx_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_y,   CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &y_check[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_dy,  CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &dy_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_TRUE,  0, ncells*sizeof(cl_float), &H_check[0],  NULL);
    for (uint ic = 0; ic < ncells; ic++){
       if (x[ic] != x_check[ic] || dx[ic] != dx_check[ic] || y[ic] != y_check[ic] || dy[ic] != dy_check[ic] ) {
          printf("Error -- mismatch in spatial coordinates for cell %d is gpu %lf %lf %lf %lf cpu %lf %lf %lf %lf\n",ic,x_check[ic],dx_check[ic],y_check[ic],dy_check[ic],x[ic],dx[ic],y[ic],dy[ic]);
@@ -860,20 +888,50 @@ void Mesh::compare_coordinates_gpu_global_to_cpu_global(cl_mem dev_x, cl_mem dev
 }
 #endif
 
-void Mesh::compare_coordinates_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy, real_t *H, spatial_t *x_global, spatial_t *dx_global, spatial_t *y_global, spatial_t *dy_global, real_t *H_global, int cycle)
+void Mesh::compare_coordinates_cpu_local_to_cpu_global_double(uint ncells_global, int *nsizes, int *ndispl, spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy, double *H, spatial_t *x_global, spatial_t *dx_global, spatial_t *y_global, spatial_t *dy_global, double *H_global, int cycle)
 {
    vector<spatial_t> x_check_global(ncells_global);
    vector<spatial_t> dx_check_global(ncells_global);
    vector<spatial_t> y_check_global(ncells_global);
    vector<spatial_t> dy_check_global(ncells_global);
-   vector<spatial_t> H_check_global(ncells_global);
+   vector<double> H_check_global(ncells_global);
 
 #ifdef HAVE_MPI
    MPI_Allgatherv(&x[0],  nsizes[mype], MPI_SPATIAL_T, &x_check_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_check_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&y[0],  nsizes[mype], MPI_SPATIAL_T, &y_check_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_check_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&H[0],  nsizes[mype], MPI_SPATIAL_T, &H_check_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0],  nsizes[mype], MPI_DOUBLE, &H_check_global[0],  &nsizes[0], &ndispl[0], MPI_DOUBLE, MPI_COMM_WORLD);
+#else
+   // Just to get rid of compiler warnings
+   if (1 == 2) printf("DEBUG -- nsizes[0] %d ndispl[0] %d x %p dx %p y %p dy %p H %p\n",
+               nsizes[0],ndispl[0],x,dx,y,dy,H);
+#endif
+
+   for (uint ic = 0; ic < ncells_global; ic++){
+      if (fabs(x_global[ic] -x_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d x_global & x_check_global  %d %lf %lf \n",cycle,ic,x_global[ic], x_check_global[ic]);
+      if (fabs(dx_global[ic]-dx_check_global[ic]) > STATE_EPS) printf("DEBUG graphics at cycle %d dx_global & dx_check_global %d %lf %lf \n",cycle,ic,dx_global[ic],dx_check_global[ic]);
+      if (fabs(y_global[ic] -y_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d y_global & y_check_global  %d %lf %lf \n",cycle,ic,y_global[ic], y_check_global[ic]);
+      if (fabs(dy_global[ic]-dy_check_global[ic]) > STATE_EPS) printf("DEBUG graphics at cycle %d dy_global & dy_check_global %d %lf %lf \n",cycle,ic,dy_global[ic],dy_check_global[ic]);
+      if (fabs(H_global[ic] -H_check_global[ic] ) > STATE_EPS) printf("DEBUG graphics at cycle %d H_global & H_check_global  %d %lf %lf \n",cycle,ic,H_global[ic], H_check_global[ic]);
+   }
+
+}
+
+void Mesh::compare_coordinates_cpu_local_to_cpu_global_float(uint ncells_global, int *nsizes, int *ndispl, spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy, float *H, spatial_t *x_global, spatial_t *dx_global, spatial_t *y_global, spatial_t *dy_global, float *H_global, int cycle)
+{
+   vector<spatial_t> x_check_global(ncells_global);
+   vector<spatial_t> dx_check_global(ncells_global);
+   vector<spatial_t> y_check_global(ncells_global);
+   vector<spatial_t> dy_check_global(ncells_global);
+   vector<float> H_check_global(ncells_global);
+
+#ifdef HAVE_MPI
+   MPI_Allgatherv(&x[0],  nsizes[mype], MPI_SPATIAL_T, &x_check_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_check_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&y[0],  nsizes[mype], MPI_SPATIAL_T, &y_check_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_check_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0],  nsizes[mype], MPI_FLOAT, &H_check_global[0],  &nsizes[0], &ndispl[0], MPI_FLOAT, MPI_COMM_WORLD);
 #else
    // Just to get rid of compiler warnings
    if (1 == 2) printf("DEBUG -- nsizes[0] %d ndispl[0] %d x %p dx %p y %p dy %p H %p\n",
@@ -1499,6 +1557,91 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       }
    }
    ncells_ghost = ncells;
+}
+
+
+void Mesh::init_for_rollback(Mesh *mesh_to_copy)
+{
+   size_t i_size = mesh_to_copy->mesh_memory.get_memory_size(mesh_to_copy->i);
+   size_t j_size = mesh_to_copy->mesh_memory.get_memory_size(mesh_to_copy->j);
+   size_t level_size = mesh_to_copy->mesh_memory.get_memory_size(mesh_to_copy->level);
+   size_t celltype_size = mesh_to_copy->mesh_memory.get_memory_size(mesh_to_copy->celltype);
+
+   ncells = mesh_to_copy->ncells;
+   ncells_ghost = mesh_to_copy->ncells_ghost;
+
+   i     = (int *)mesh_memory.memory_malloc(i_size, sizeof(int), "i");
+   memcpy(i, mesh_to_copy->i, sizeof(int) * i_size);
+   j     = (int *)mesh_memory.memory_malloc(j_size, sizeof(int), "j");
+   memcpy(j, mesh_to_copy->j,  sizeof(int) * j_size);
+   level     = (int *)mesh_memory.memory_malloc(level_size, sizeof(int), "level");
+   memcpy(level, mesh_to_copy->level, sizeof(int) * level_size);
+   celltype     = (int *)mesh_memory.memory_malloc(celltype_size, sizeof(int), "celltype");
+   memcpy(celltype, mesh_to_copy->celltype, sizeof(int) * celltype_size);
+
+   nlft = NULL;
+   nrht = NULL;
+   nbot = NULL;
+   ntop = NULL;
+   
+   calc_spatial_coordinates(0);
+
+   int ncells_corners = 4;
+   int i_corner[] = {   0,   0,imax,imax};
+   int j_corner[] = {   0,jmax,   0,jmax};
+
+   for(int ic=0; ic<ncells_corners; ic++){
+      for (int    jj = j_corner[ic]*IPOW2(levmx); jj < (j_corner[ic]+1)*IPOW2(levmx); jj++) {
+         for (int ii = i_corner[ic]*IPOW2(levmx); ii < (i_corner[ic]+1)*IPOW2(levmx); ii++) {
+            corners_i.push_back(ii);
+            corners_j.push_back(jj);
+         }
+      }
+   }
+}
+
+
+void Mesh::init_from_backup_file(FILE *backup_file)
+{
+   size_t i_size = 0, j_size = 0, level_size = 0, celltype_size = 0;
+   fread(&ncells,sizeof(size_t),1,backup_file);
+   fread(&ncells_ghost,sizeof(size_t),1,backup_file);
+   
+
+   fread(&i_size,sizeof(size_t),1,backup_file);
+   i     = (int *)mesh_memory.memory_malloc(i_size, sizeof(int), "i");
+   fread(i,sizeof(int),i_size,backup_file);
+
+   fread(&j_size,sizeof(size_t),1,backup_file);
+   j     = (int *)mesh_memory.memory_malloc(j_size, sizeof(int), "j");
+   fread(j,sizeof(int),j_size,backup_file);
+
+   fread(&level_size,sizeof(size_t),1,backup_file);
+   level = (int *)mesh_memory.memory_malloc(level_size, sizeof(int), "level");
+   fread(level,sizeof(int),level_size,backup_file);
+   
+   nlft = NULL;
+   nrht = NULL;
+   nbot = NULL;
+   ntop = NULL;
+   
+   fread(&celltype_size,sizeof(size_t),1,backup_file);
+   celltype = (int *)mesh_memory.memory_malloc(celltype_size, sizeof(int), "celltype");
+   fread(celltype,sizeof(int),celltype_size,backup_file);
+   calc_spatial_coordinates(0);
+
+   int ncells_corners = 4;
+   int i_corner[] = {   0,   0,imax,imax};
+   int j_corner[] = {   0,jmax,   0,jmax};
+
+   for(int ic=0; ic<ncells_corners; ic++){
+      for (int    jj = j_corner[ic]*IPOW2(levmx); jj < (j_corner[ic]+1)*IPOW2(levmx); jj++) {
+         for (int ii = i_corner[ic]*IPOW2(levmx); ii < (i_corner[ic]+1)*IPOW2(levmx); ii++) {
+            corners_i.push_back(ii);
+            corners_j.push_back(jj);
+         }
+      }
+   }
 }
 
 size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
