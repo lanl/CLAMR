@@ -129,6 +129,9 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
       hashtablesize = perfect_hash_size;
 
       hash = (int *)genvector(hashtablesize,sizeof(int));
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
       for (uint ii = 0; ii<hashtablesize; ii++){
          hash[ii] = -1;
       }
