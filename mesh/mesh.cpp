@@ -53,6 +53,10 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
+#ifdef HAVE_MPI
+#include "mpi.h"
+#endif
+
 #include <algorithm>
 #include <unistd.h>
 #include <limits.h>
@@ -65,7 +69,6 @@
 #endif
 #include "timer/timer.h"
 #ifdef HAVE_MPI
-#include "mpi.h"
 #include "l7/l7.h"
 #endif
 #include "reduce.h"

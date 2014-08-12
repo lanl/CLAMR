@@ -60,6 +60,7 @@
 #include "config.h"
 #endif
 
+#include "MallocPlus/MallocPlus.h"
 #include <stdio.h>
 #include <vector>
 #include <math.h>
@@ -68,7 +69,6 @@
 #ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
 #endif
-#include "MallocPlus/MallocPlus.h"
 
 #if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
 #define FULL_PRECISION

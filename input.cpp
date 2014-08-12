@@ -59,18 +59,22 @@
  *  BSD License used above.
  *      http://code.google.com/p/capablanca/
  */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "state.h"
+#include "mesh/partition.h"
+#include "mesh/mesh.h"
+#include "hash/hash.h"
+
 #include <fstream>
 #include <iostream>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-
-#include "state.h"
-#include "mesh/partition.h"
-#include "mesh/mesh.h"
-#include "hash/hash.h"
-#include "config.h"
 
 #define OUTPUT_INTERVAL 100
 #define COARSE_GRID_RES 128

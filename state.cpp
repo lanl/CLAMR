@@ -53,11 +53,11 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
+#include "mesh/mesh.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <algorithm>
 #include <queue>
-#include "mesh/mesh.h"
 #include "state.h"
 #include "kdtree/KDTree.h"
 //#include "reorder.h"

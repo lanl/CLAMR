@@ -53,6 +53,10 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
+#ifdef HAVE_MPI
+#include "mpi.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -63,7 +67,6 @@
 #include "mesh.h"
 #ifdef HAVE_MPI
 #include "s7/s7.h"
-#include "mpi.h"
 #endif
 #include "zorder/zorder.h"
 #include "timer/timer.h"
