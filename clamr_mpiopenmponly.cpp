@@ -168,11 +168,11 @@ int main(int argc, char **argv) {
         fflush(stdout);
    }
 #pragma omp parallel for 
-   for(int i=0;i<5;i++){
+   for(int i=0;i<4;i++){
       nt = omp_get_num_threads();
       tid = omp_get_thread_num();
 
-      if (0 == tid && mype == 0) {
+      if (0 == tid && mype == 0 && i == 0) {
            printf("--- num openmp threads in parallel region: %d\n", nt);
            fflush(stdout);
       }
