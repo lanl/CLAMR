@@ -119,7 +119,7 @@ void set_cell_data_double(double *data_in);
 void set_cell_data_float(float *data_in);
 void set_cell_proc(int *display_proc_in);
 void set_circle_radius(double display_circle_radius_in);
-void get_graphics_info(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num);
+void write_graphics_info(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num);
 void draw_scene(void);
 
 #ifdef __cplusplus

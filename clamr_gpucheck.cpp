@@ -105,7 +105,6 @@ static int view_mode = 0;
 #endif
 
 bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
-            graphics_data,  //  Flag for saving the mesh graphic data out to files; init in input.cpp::parseInput().
             from_disk_rollback, //Flag to return to a safe mesh state and restart simulation from backup files in the event of failure; init in input.cpp::parseInput().
             in_memory_rollback, //  Flag to return to a safe mesh state and restart simulation from copies saved in memory in the event of failure; init in input.cpp::parseInput().
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
@@ -517,7 +516,11 @@ extern "C" void do_calc(void)
       mesh->gpu_calc_spatial_coordinates(dev_x, dev_dx, dev_y, dev_dy);
 
       if (do_comparison_calc){
-         mesh->compare_coordinates_gpu_global_to_cpu_global(dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
+#ifdef FULL_PRECISION
+         mesh->compare_coordinates_gpu_global_to_cpu_global_double(dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
+#else
+         mesh->compare_coordinates_gpu_global_to_cpu_global_float(dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
+#endif
       }
 
       ezcl_device_memory_remove(dev_x);

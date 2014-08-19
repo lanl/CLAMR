@@ -63,6 +63,14 @@
 #include "config.h"
 #endif
 
+#if defined(MINIMUM_PRECISION)
+   typedef float real_t;
+#elif defined(MIXED_PRECISION)
+   typedef double real_t;
+#elif defined(FULL_PRECISION)
+   typedef double real_t;
+#endif
+
 #define ESCAPE 27
 #ifdef HAVE_OPENGL
 #define NCOLORS 1000
@@ -992,7 +1000,7 @@ void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_
   }
 }
 
-void get_graphics_info(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num){
+void write_graphics_info(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num){
    if (display_view_mode == 0) {
       DrawSquaresToFile(graph_num, ncycle, simTime, rollback_img, rollback_num);
    } else {

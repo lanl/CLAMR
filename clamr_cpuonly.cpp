@@ -83,6 +83,7 @@ typedef unsigned int uint;
 
 #ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
+#endif
 
 static int view_mode = 0;
 
@@ -94,10 +95,8 @@ static int view_mode = 0;
    void (*set_cell_data)(float *) = &set_cell_data_float;
 #endif
 
-#endif
 
 bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
-            graphics_data,  //  Flag for saving the mesh graphic data out to files; init in input.cpp::parseInput().
             from_disk_rollback, //Flag to return to a safe mesh state and restart simulation from backup files in the event of failure; init in input.cpp::parseInput().
             in_memory_rollback, //  Flag to return to a safe mesh state and restart simulation from copies saved in memory in the event of failure; init in input.cpp::parseInput().
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
@@ -111,7 +110,7 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
             nx,             //  x-resolution of coarse grid; init in input.cpp::parseInput().
             ny,             //  y-resolution of coarse grid; init in input.cpp::parseInput().
             niter,          //  Maximum time step; init in input.cpp::parseInput().
-            graphic_outputInterval, // Periocity of graphic output that is saved; init in input.cpp::parseInput()
+            graphic_outputInterval, // Periodicity of graphic output that is saved; init in input.cpp::parseInput()
             num_of_rollback_states,// Maximum number of rollback states to maintain; init in input.cpp::parseInput()
             backup_file_num,//  Backup file number to restart simulation from; init in input.cpp::parseInput()
             numpe,          //  
@@ -201,16 +200,22 @@ int main(int argc, char **argv) {
    mesh->write_grid(n);
 #endif
 
-#ifdef HAVE_GRAPHICS
    set_mysize(ncells);
-   set_viewmode(view_mode);
    set_window((float)mesh->xmin, (float)mesh->xmax, (float)mesh->ymin, (float)mesh->ymax);
    set_outline((int)outline);
-   init_display(&argc, argv, "Shallow Water", mype);
    set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
    set_cell_data(&state->H[0]);
    set_cell_proc(&mesh->proc[0]);
+   set_viewmode(view_mode);
+
+   if (graphic_outputInterval){
+      init_graphics_output();
+      write_graphics_info(0,0,0.0,0,0);
+   }
+
+#ifdef HAVE_GRAPHICS
    set_circle_radius(circle_radius);
+   init_display(&argc, argv, "Shallow Water", mype);
    draw_scene();
    //if (verbose) sleep(5);
    sleep(2);
@@ -220,13 +225,13 @@ int main(int argc, char **argv) {
 
    //  Clear superposition of circle on grid output.
    circle_radius = -1.0;
+#endif
 
    cpu_timer_start(&tstart);
-
+#ifdef HAVE_GRAPHICS
    set_idle_function(&do_calc);
    start_main_loop();
 #else
-   cpu_timer_start(&tstart);
    for (int it = 0; it < 10000000; it++) {
       do_calc();
    }
@@ -300,6 +305,16 @@ extern "C" void do_calc(void)
       
       mesh->ncells = ncells;
       
+      if(graphic_outputInterval && (ncycle % graphic_outputInterval == 0) && (ncycle != 0)){
+         mesh->calc_spatial_coordinates(0);
+         set_mysize(ncells);
+         set_viewmode(view_mode);
+         set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+         set_cell_data(&state->H[0]);
+         set_cell_proc(&mesh->proc[0]);
+         write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
+      }
+
    }
 
    H_sum = state->mass_sum(enhanced_precision_sum);
@@ -332,6 +347,17 @@ extern "C" void do_calc(void)
       //free_display();
       //state->print();
       
+      if(graphic_outputInterval){
+
+         mesh->calc_spatial_coordinates(0);
+         set_mysize(ncells);
+         set_viewmode(view_mode);
+         set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+         set_cell_data(&state->H[0]);
+         set_cell_proc(&mesh->proc[0]);
+         write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
+      }
+
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       

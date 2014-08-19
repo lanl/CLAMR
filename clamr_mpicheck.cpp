@@ -104,7 +104,6 @@ static int view_mode = 0;
 #endif
 
 bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
-            graphics_data,  //  Flag for saving the mesh graphic data out to files; init in input.cpp::parseInput().
             from_disk_rollback, //Flag to return to a safe mesh state and restart simulation from backup files in the event of failure; init in input.cpp::parseInput().
             in_memory_rollback, //  Flag to return to a safe mesh state and restart simulation from copies saved in memory in the event of failure; init in input.cpp::parseInput().
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
@@ -519,8 +518,11 @@ extern "C" void do_calc(void)
 
    if (do_comparison_calc) {
       mesh_global->calc_spatial_coordinates(0);
-
-      mesh->compare_coordinates_cpu_local_to_cpu_global(ncells_global, &nsizes[0], &ndispl[0], &x[0], &dx[0], &y[0], &dy[0], &state->H[0], &x_global[0], &dx_global[0], &y_global[0], &dy_global[0], &state_global->H[0], ncycle);
+#ifdef FULL_PRECISION
+      mesh->compare_coordinates_cpu_local_to_cpu_global_double(ncells_global, &nsizes[0], &ndispl[0], &x[0], &dx[0], &y[0], &dy[0], &state->H[0], &x_global[0], &dx_global[0], &y_global[0], &dy_global[0], &state_global->H[0], ncycle);
+#else
+      mesh->compare_coordinates_cpu_local_to_cpu_global_float(ncells_global, &nsizes[0], &ndispl[0], &x[0], &dx[0], &y[0], &dy[0], &state->H[0], &x_global[0], &dx_global[0], &y_global[0], &dy_global[0], &state_global->H[0], ncycle);
+#endif 
    }
 
 #ifdef HAVE_MPE

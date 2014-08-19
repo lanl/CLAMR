@@ -5,7 +5,7 @@ def check_outline_flag(arg):
    if arg == 'y':
       return True
    else:
-      print(arg + " is an unrecongized command")
+      print(arg + " is an unrecognized command")
       print("If you want grid lines pass y to generate_image.py")
       sys.exit()
 

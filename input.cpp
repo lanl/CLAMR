@@ -84,7 +84,6 @@ char progVers[8];       //  Program version.
 
 //  External global variables.
 extern bool verbose,
-            graphics_data,
             from_disk_rollback,
             in_memory_rollback,
             localStencil,
@@ -202,7 +201,6 @@ void parseInput(const int argc, char** argv)
     dynamic_load_balance_on = false;
     from_disk_rollback = false;
     restart = false;
-    graphics_data = false;
     in_memory_rollback = false;
     outputInterval     = OUTPUT_INTERVAL;
     nx                 = COARSE_GRID_RES;
@@ -213,7 +211,7 @@ void parseInput(const int argc, char** argv)
     choose_hash_method = METHOD_UNSET;
     initial_order      = HILBERT_SORT;
     cycle_reorder      = ORIGINAL_ORDER;
-    graphic_outputInterval = 10;
+    graphic_outputInterval = 0;
     num_of_rollback_states = 2;
     backup_file_num = 0;
     levmx              = 1;
@@ -283,7 +281,6 @@ void parseInput(const int argc, char** argv)
                 case 'G':   //  Save graphics data to files during simulation.
                     val = strtok(argv[i++], " ,.-");
                     graphic_outputInterval = atoi(val);
-                    graphics_data = true;
                     break;
 
                 case 'g':   //  Turn on GPU profiling.

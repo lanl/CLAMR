@@ -98,7 +98,6 @@ static int view_mode = 0;
 #endif
 
 bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
-            graphics_data,  //  Flag for saving the mesh graphic data out to files; init in input.cpp::parseInput().
             from_disk_rollback, //Flag to return to a safe mesh state and restart simulation from backup files in the event of failure; init in input.cpp::parseInput().
             in_memory_rollback, //  Flag to return to a safe mesh state and restart simulation from copies saved in memory in the event of failure; init in input.cpp::parseInput().
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
