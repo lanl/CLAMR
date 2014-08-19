@@ -121,8 +121,8 @@ double      upper_mass_diff_percentage; //  Flag for the allowed pecentage diffe
 
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
-static Mesh       *mesh;           //  Object containing mesh information; init in grid.cpp::main().
-static State      *state;          //  Object containing state information corresponding to mesh; init in grid.cpp::main().
+static Mesh       *mesh;           //  Object containing mesh information
+static State      *state;          //  Object containing state information corresponding to mesh
 
 //  Set up timing information.
 static struct timeval tstart;

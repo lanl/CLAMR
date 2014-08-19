@@ -90,6 +90,7 @@ typedef unsigned int uint;
 static double circle_radius=-1.0;
 
 static int view_mode = 0;
+
 #ifdef FULL_PRECISION
    void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
    void (*set_cell_data)(double *) = &set_cell_data_double;
