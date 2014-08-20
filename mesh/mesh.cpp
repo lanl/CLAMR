@@ -53,6 +53,10 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
+#ifdef HAVE_MPI
+#include "mpi.h"
+#endif
+
 #include <algorithm>
 #include <unistd.h>
 #include <limits.h>
@@ -65,7 +69,6 @@
 #endif
 #include "timer/timer.h"
 #ifdef HAVE_MPI
-#include "mpi.h"
 #include "l7/l7.h"
 #endif
 #include "reduce.h"
@@ -3218,9 +3221,6 @@ void Mesh::calc_neighbors(void)
 
       int *hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
       for(uint ic=0; ic<ncells; ic++){
          int lev = level[ic];
          int levmult = IPOW2(levmx-lev);
@@ -3604,17 +3604,15 @@ void Mesh::calc_neighbors_local(void)
          cpu_timer_start(&tstart_lev2);
       }
 
-      int ii, jj, lev, levmult;
-
       // Set neighbors to global cell numbers from hash
       int jmaxcalc = (jmax+1)*IPOW2(levmx);
       int imaxcalc = (imax+1)*IPOW2(levmx);
 
       for (uint ic=0; ic<ncells; ic++){
-         ii = i[ic];
-         jj = j[ic];
-         lev = level[ic];
-         levmult = IPOW2(levmx-lev);
+         int ii = i[ic];
+         int jj = j[ic];
+         int lev = level[ic];
+         int levmult = IPOW2(levmx-lev);
 
          int iicur = ii*levmult-iminsize;
          int iilft = max( (ii-1)*levmult, 0         )-iminsize;
@@ -4029,8 +4027,8 @@ void Mesh::calc_neighbors_local(void)
          for (int ip = 0; ip < num_comm_partners; ip++){
             int icount = 0;
             for (int ib = 0; ib <nbsize_local; ib++){
-               lev = border_cell_level[ib];
-               levmult = IPOW2(levmx-lev);
+               int lev = border_cell_level[ib];
+               int levmult = IPOW2(levmx-lev);
                if (border_cell_i[ib]*levmult >= iminsize_global[comm_partner[ip]] && 
                    border_cell_i[ib]*levmult <= imaxsize_global[comm_partner[ip]] && 
                    border_cell_j[ib]*levmult >= jminsize_global[comm_partner[ip]] && 
@@ -4136,6 +4134,9 @@ void Mesh::calc_neighbors_local(void)
          vector<int> border_cell_needed_local(nbsize_local, 0);
 
          // Layer 1
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
          for (int ic =0; ic<nbsize_local; ic++){
             int jj = border_cell_j_local[ic];
             int ii = border_cell_i_local[ic];
@@ -4282,8 +4283,8 @@ void Mesh::calc_neighbors_local(void)
             //fprintf(fp,"%d: index %d cell %d i %d j %d\n",mype,ic,border_cell_num_local[ic],border_cell_i_local[ic],border_cell_j_local[ic]);
             int lev = border_cell_level_local[ic];
             int levmult = IPOW2(levmx-lev);
-            ii = border_cell_i_local[ic]*levmult-iminsize;
-            jj = border_cell_j_local[ic]*levmult-jminsize;
+            int ii = border_cell_i_local[ic]*levmult-iminsize;
+            int jj = border_cell_j_local[ic]*levmult-jminsize;
 
             write_hash(ncells+noffset+ic, jj*(imaxsize-iminsize)+ii, hash);
          }
@@ -4320,6 +4321,9 @@ void Mesh::calc_neighbors_local(void)
          }
 
          // Layer 2
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
          for (int ic =0; ic<nbsize_local; ic++){
             if (border_cell_needed_local[ic] > 0) continue;
             int jj = border_cell_j_local[ic];
@@ -4514,6 +4518,9 @@ void Mesh::calc_neighbors_local(void)
 
          // Walk through cell array and set hash to global cell values
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
          for(int ic=0; ic<nbsize_local; ic++){
             int lev = border_cell_level_local[ic];
             int levmult = IPOW2(levmx-lev);
@@ -4609,10 +4616,10 @@ void Mesh::calc_neighbors_local(void)
          }
 
          for (uint ic=0; ic<ncells_ghost; ic++){
-            ii = i[ic];
-            jj = j[ic];
-            lev = level[ic];
-            levmult = IPOW2(levmx-lev);
+            int ii = i[ic];
+            int jj = j[ic];
+            int lev = level[ic];
+            int levmult = IPOW2(levmx-lev);
 
             int iicur = ii*levmult-iminsize;
             int iilft = max( (ii-1)*levmult, 0         )-iminsize;

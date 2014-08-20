@@ -54,6 +54,9 @@
  * 
  */
 
+#include "mesh/mesh.h"
+#include "mesh/partition.h"
+
 #include <algorithm>
 #include <math.h>
 #include <stdio.h>
@@ -62,13 +65,10 @@
 #include <unistd.h>
 #include <vector>
 #include "input.h"
-#include "mesh/mesh.h"
-#include "mesh/partition.h"
 #include "state.h"
 #include "l7/l7.h"
 #include "timer/timer.h"
 
-#include <mpi.h>
 #include "display.h"
 
 #ifndef DEBUG 

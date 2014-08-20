@@ -54,6 +54,9 @@
  * 
  */
 
+#include "mesh/mesh.h"
+#include "mesh/partition.h"
+
 #include <algorithm>
 #include <math.h>
 #include <stdio.h>
@@ -62,14 +65,11 @@
 #include <unistd.h>
 #include <vector>
 #include "input.h"
-#include "mesh/mesh.h"
-#include "mesh/partition.h"
 #include "state.h"
 #include "l7/l7.h"
 #include "timer/timer.h"
 #include "memstats/memstats.h"
 
-#include <mpi.h>
 #include <omp.h>
 #include "display.h"
 
@@ -154,19 +154,30 @@ int main(int argc, char **argv) {
    int boundary = 1;
    int parallel_in = 1;
 
+   mesh = new Mesh(nx, ny, levmx, ndim, boundary, parallel_in, do_gpu_calc);
+
 #ifdef _OPENMP
    int nt = 0;
    int tid = 0;
 
-   nt = omp_get_num_threads();
+   nt = omp_get_max_threads();
    tid = omp_get_thread_num();
+   if (0 == tid && mype == 0) {
+        printf("--- max num openmp threads: %d\n", nt);
+        fflush(stdout);
+   }
+#pragma omp parallel for 
+   for(int i=0;i<4;i++){
+      nt = omp_get_num_threads();
+      tid = omp_get_thread_num();
 
-   if (0 == tid) {
-        printf("--- num openmp threads: %d\n", nt);        fflush(stdout);
-   }     
+      if (0 == tid && mype == 0 && i == 0) {
+           printf("--- num openmp threads in parallel region: %d\n", nt);
+           fflush(stdout);
+      }
+   }
 #endif
 
-   mesh = new Mesh(nx, ny, levmx, ndim, boundary, parallel_in, do_gpu_calc);
    if (DEBUG) {
       //if (mype == 0) mesh->print();
 
