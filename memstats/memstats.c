@@ -67,7 +67,7 @@
 #include "memstats.h"
 
 pid_t pid;
-FILE *stat_fp, *meminfo_fp;
+FILE *stat_fp = NULL, *meminfo_fp = NULL;
 
 long long memstats_memused(){
    char proc_stat_file[50];
@@ -114,6 +114,10 @@ long long memstats_memused(){
          break;
       }
    }
+
+   fclose(stat_fp);
+   stat_fp = NULL;
+
    return(mem_current);
 }
 
@@ -162,6 +166,10 @@ long long memstats_mempeak(){
          break;
       }
    }
+
+   fclose(stat_fp);
+   stat_fp = NULL;
+
    return(mem_current);
 }
 
@@ -211,6 +219,10 @@ long long memstats_memfree(){
    }
 
    //return(freemem+cachedmem);
+
+   fclose(meminfo_fp);
+   meminfo_fp = NULL;
+
    return(freemem);
 }
 
@@ -257,6 +269,9 @@ long long memstats_memtotal(){
          }
       }
    }
+
+   fclose(meminfo_fp);
+   meminfo_fp = NULL;
 
    return(totalmem);
 }
