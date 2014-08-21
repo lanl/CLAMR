@@ -86,6 +86,7 @@ extern "C"
 
 #undef DEBUG
 //#define DEBUG 1
+#undef DEBUG_RESTORE_VALS
 #define TIMING_LEVEL 2
 
 #if defined(MINIMUM_PRECISION)
@@ -219,21 +220,21 @@ inline real_t w_corrector(
 
 State::State(Mesh *mesh_in)
 {
-   cpu_time_apply_BCs          = 0;
-   cpu_time_set_timestep       = 0;
-   cpu_time_finite_difference  = 0;
-   cpu_time_refine_potential   = 0;
-     cpu_time_calc_mpot        = 0;
-   cpu_time_mass_sum           = 0;
+   cpu_time_apply_BCs          = 0.0;
+   cpu_time_set_timestep       = 0.0;
+   cpu_time_finite_difference  = 0.0;
+   cpu_time_refine_potential   = 0.0;
+     cpu_time_calc_mpot        = 0.0;
+   cpu_time_mass_sum           = 0.0;
 
-   gpu_time_apply_BCs          = 0;
-   gpu_time_set_timestep       = 0;
-   gpu_time_finite_difference  = 0;
-   gpu_time_refine_potential   = 0;
-      gpu_time_calc_mpot       = 0;
-   gpu_time_mass_sum           = 0;
-   gpu_time_read               = 0;
-   gpu_time_write              = 0;
+   gpu_time_apply_BCs          = 0L;
+   gpu_time_set_timestep       = 0L;
+   gpu_time_finite_difference  = 0L;
+   gpu_time_refine_potential   = 0L;
+      gpu_time_calc_mpot       = 0L;
+   gpu_time_mass_sum           = 0L;
+   gpu_time_read               = 0L;
+   gpu_time_write              = 0L;
 
    mesh = mesh_in;
 
@@ -289,20 +290,8 @@ void State::init(int do_gpu_calc)
 
 }
 
-void State::init_from_backup_file(FILE *fp)
+void State::allocate(size_t ncells)
 {
-   //printf("\nDEBUG -- Calling state memory memory malloc at line %d\n",__LINE__);
-   allocate_from_backup_file(fp);
-   //state_memory.memory_report();
-   //printf("DEBUG -- Finished state memory memory malloc at line %d\n\n",__LINE__);
-}
-
-void State::init_for_rollback(State *state_to_copy)
-{
-   allocate_for_rollback(state_to_copy);
-}
-
-void State::allocate(size_t ncells){
    int flags = 0;
 #ifdef HAVE_J7
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
@@ -311,37 +300,6 @@ void State::allocate(size_t ncells){
    H = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "H");
    U = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "U");
    V = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "V");
-}
-
-void State::allocate_from_backup_file(FILE *fp)
-{
-   size_t H_size = 0, U_size = 0, V_size = 0;
-
-   fread(&H_size,sizeof(size_t),1,fp);
-   H = (state_t *)state_memory.memory_malloc(H_size, sizeof(state_t), "H");
-   fread(H,sizeof(state_t),H_size,fp);
-
-   fread(&U_size,sizeof(size_t),1,fp);
-   U = (state_t *)state_memory.memory_malloc(U_size, sizeof(state_t), "U");
-   fread(U,sizeof(state_t),U_size,fp);
-
-   fread(&V_size,sizeof(size_t),1,fp);
-   V = (state_t *)state_memory.memory_malloc(V_size, sizeof(state_t), "V");
-   fread(V,sizeof(state_t),V_size,fp);
-}
-
-void State::allocate_for_rollback(State *state_to_copy)
-{
-   size_t H_size = state_to_copy->state_memory.get_memory_size(state_to_copy->H);
-   size_t U_size = state_to_copy->state_memory.get_memory_size(state_to_copy->U);
-   size_t V_size = state_to_copy->state_memory.get_memory_size(state_to_copy->V);
-
-   H = (state_t *)state_memory.memory_malloc(H_size, sizeof(state_t), "H");
-   memcpy(H, state_to_copy->H, sizeof(state_t) * H_size);
-   U = (state_t *)state_memory.memory_malloc(U_size, sizeof(state_t), "U");
-   memcpy(U, state_to_copy->U, sizeof(state_t) * U_size);
-   V = (state_t *)state_memory.memory_malloc(V_size, sizeof(state_t), "V");
-   memcpy(V, state_to_copy->V, sizeof(state_t) * V_size);
 }
 
 void State::resize(size_t new_ncells){
@@ -3094,39 +3052,156 @@ void State::print(void)
    }
 }
 
-void State::check_point_state_data(FILE *backup_file)
+const int CRUX_STATE_VERSION = 101;
+const int num_double_vals    = 7;
+const int num_long_vals      = 10;
+
+size_t State::get_checkpoint_size(void)
 {
-   size_t i_size = mesh->mesh_memory.get_memory_size(mesh->i);
-   size_t j_size = mesh->mesh_memory.get_memory_size(mesh->j);
-   size_t level_size = mesh->mesh_memory.get_memory_size(mesh->level);
-   size_t celltype_size = mesh->mesh_memory.get_memory_size(mesh->celltype);
-   size_t H_size = this->state_memory.get_memory_size(this->H);
-   size_t U_size = this->state_memory.get_memory_size(this->U);
-   size_t V_size = this->state_memory.get_memory_size(this->V);
+#ifdef FULL_PRECISION
+   size_t nsize = mesh->ncells*3*sizeof(double);
+#else
+   size_t nsize = mesh->ncells*3*sizeof(float);
+#endif
+   nsize += num_double_vals*sizeof(double)+num_long_vals*sizeof(long long);
+   nsize += mesh->get_checkpoint_size();
+   return(nsize);
+}
 
-   fwrite(&mesh->ncells,sizeof(size_t),1,backup_file);
-   fwrite(&mesh->ncells_ghost,sizeof(size_t),1,backup_file);
+void State::store_checkpoint(Crux *crux)
+{
+   mesh->store_checkpoint(crux);
 
-   fwrite(&i_size,sizeof(size_t),1,backup_file);
-   fwrite(mesh->i,sizeof(int),i_size,backup_file);
+   double double_vals[num_double_vals];
 
-   fwrite(&j_size,sizeof(size_t),1,backup_file);
-   fwrite(mesh->j,sizeof(int),j_size,backup_file);
+   double_vals[0] = cpu_time_apply_BCs,
+   double_vals[1] = cpu_time_set_timestep,
+   double_vals[2] = cpu_time_finite_difference,
+   double_vals[3] = cpu_time_refine_potential,
+   double_vals[4] = cpu_time_calc_mpot,
+   double_vals[5] = cpu_time_rezone_all,
+   double_vals[6] = cpu_time_mass_sum;
 
-   fwrite(&level_size,sizeof(size_t),1,backup_file);
-   fwrite(mesh->level,sizeof(int),level_size,backup_file);
+   crux->store_doubles(double_vals, num_double_vals);
 
-   fwrite(&celltype_size,sizeof(size_t),1,backup_file);
-   fwrite(mesh->celltype,sizeof(int),celltype_size,backup_file);
+   long long long_vals[num_long_vals];
 
-   fwrite(&H_size,sizeof(size_t),1,backup_file);
-   fwrite(H,sizeof(state_t),H_size,backup_file);
+   long_vals[0] = CRUX_STATE_VERSION;
+   long_vals[1] = gpu_time_apply_BCs,
+   long_vals[2] = gpu_time_set_timestep,
+   long_vals[3] = gpu_time_finite_difference,
+   long_vals[4] = gpu_time_refine_potential,
+   long_vals[5] = gpu_time_calc_mpot,
+   long_vals[6] = gpu_time_rezone_all,
+   long_vals[7] = gpu_time_mass_sum,
+   long_vals[8] = gpu_time_read,
+   long_vals[9] = gpu_time_write;
 
-   fwrite(&U_size,sizeof(size_t),1,backup_file);
-   fwrite(U,sizeof(state_t),U_size,backup_file);
+   crux->store_longs(long_vals, num_long_vals);
 
-   fwrite(&V_size,sizeof(size_t),1,backup_file);
-   fwrite(V,sizeof(state_t),V_size,backup_file);
+#ifdef FULL_PRECISION
+   crux->store_double_array(H, mesh->ncells);
+   crux->store_double_array(U, mesh->ncells);
+   crux->store_double_array(V, mesh->ncells);
+#else
+   crux->store_float_array(H, mesh->ncells);
+   crux->store_float_array(U, mesh->ncells);
+   crux->store_float_array(V, mesh->ncells);
+#endif
+}
+
+void State::restore_checkpoint(Crux *crux)
+{
+   mesh->restore_checkpoint(crux);
+
+   double double_vals[num_double_vals];
+
+   crux->restore_doubles(double_vals, num_double_vals);
+
+   cpu_time_apply_BCs         = double_vals[0];
+   cpu_time_set_timestep      = double_vals[1];
+   cpu_time_finite_difference = double_vals[2];
+   cpu_time_refine_potential  = double_vals[3];
+   cpu_time_calc_mpot         = double_vals[4];
+   cpu_time_rezone_all        = double_vals[5];
+   cpu_time_mass_sum          = double_vals[6];
+
+#ifdef DEBUG_RESTORE_VALS
+   if (DEBUG_RESTORE_VALS) {
+      const char *double_vals_descriptor[num_double_vals] = {
+         "cpu_time_apply_BCs",
+         "cpu_time_set_timestep",
+         "cpu_time_finite_difference",
+         "cpu_time_refine_potential",
+         "cpu_time_calc_mpot",
+         "cpu_time_rezone_all",
+         "cpu_time_mass_sum"
+      };
+      printf("\n");
+      printf("       === Restored state double_vals ===\n");
+      for (int i = 0; i < num_double_vals; i++){
+         printf("       %-30s %lg\n",double_vals_descriptor[i], double_vals[i]);
+      }
+      printf("       === Restored state double_vals ===\n");
+      printf("\n");
+   }
+#endif
+
+   long long long_vals[num_long_vals];
+
+   crux->restore_longs(long_vals, num_long_vals);
+
+   if (long_vals[ 0] != CRUX_STATE_VERSION) {
+      printf("CRUX version mismatch for state data, version on file is %lld, version in code is %d\n",
+         long_vals[0], CRUX_STATE_VERSION);
+      exit(0);
+   }
+
+   gpu_time_apply_BCs         = long_vals[1];
+   gpu_time_set_timestep      = long_vals[2];
+   gpu_time_finite_difference = long_vals[3];
+   gpu_time_refine_potential  = long_vals[4];
+   gpu_time_calc_mpot         = long_vals[5];
+   gpu_time_rezone_all        = long_vals[6];
+   gpu_time_mass_sum          = long_vals[7];
+   gpu_time_read              = long_vals[8];
+   gpu_time_write             = long_vals[9];
+
+#ifdef DEBUG_RESTORED_VALS
+   if (DEBUG_RESTORED_VALS) {
+      const char *long_vals_descriptor[num_long_vals] = {
+         "CRUX_STATE_VERSION",
+         "gpu_time_apply_BCs",
+         "gpu_time_set_timestep",
+         "gpu_time_finite_difference",
+         "gpu_time_refine_potential",
+         "gpu_time_calc_mpot",
+         "gpu_time_rezone_all",
+         "gpu_time_mass_sum",
+         "gpu_time_read",
+         "gpu_time_write"
+      };
+      printf("\n");
+      printf("       === Restored state long_vals ===\n");
+      for (int i = 0; i < num_long_vals; i++){
+         printf("       %-30s %lld\n",long_vals_descriptor[i], long_vals[i]);
+      }
+      printf("       === Restored state long_vals ===\n");
+      printf("\n");
+   }
+#endif
+
+   allocate(mesh->ncells);
+
+#ifdef FULL_PRECISION
+   H = crux->restore_double_array(H, mesh->ncells);
+   U = crux->restore_double_array(U, mesh->ncells);
+   V = crux->restore_double_array(V, mesh->ncells);
+#else
+   H = crux->restore_float_array(H, mesh->ncells);
+   U = crux->restore_float_array(U, mesh->ncells);
+   V = crux->restore_float_array(V, mesh->ncells);
+#endif
 }
 
 // Added overloaded print to get mesh information to print in each cycle

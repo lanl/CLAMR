@@ -71,10 +71,14 @@
 #include "state.h"
 #include "timer/timer.h"
 #include "memstats/memstats.h"
+#include "crux/crux.h"
 
 #ifndef DEBUG 
 #define DEBUG 0
 #endif
+#undef DEBUG_RESTORE_VALS
+
+#define MIN3(x,y,z) ( min( min(x,y), z) )
 
 static int do_gpu_calc = 0;
 static int do_cpu_calc = 1;
@@ -95,39 +99,54 @@ static int view_mode = 0;
    void (*set_cell_data)(float *) = &set_cell_data_float;
 #endif
 
+void store_crux_data(Crux *crux, int ncycle);
+void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_counter);
+void restore_crux_data(Crux *crux);
 
 bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
-            from_disk_rollback, //Flag to return to a safe mesh state and restart simulation from backup files in the event of failure; init in input.cpp::parseInput().
-            in_memory_rollback, //  Flag to return to a safe mesh state and restart simulation from copies saved in memory in the event of failure; init in input.cpp::parseInput().
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
             outline;        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
+            rollback_type,  //  Type of rollback -- ROLLBACK_NONE, ROLLBACK_IN_MEMORY, ROLLBACK_DISK; init in input.cpp::parseInput().
             enhanced_precision_sum,//  Flag for enhanced precision sum (default true); init in input.cpp::parseInput().
             lttrace_on,     //  Flag to turn on logical time trace package;
             do_quo_setup,   //  Flag to turn on quo dynamic scheduling policies package;
             levmx,          //  Maximum number of refinement levels; init in input.cpp::parseInput().
             nx,             //  x-resolution of coarse grid; init in input.cpp::parseInput().
             ny,             //  y-resolution of coarse grid; init in input.cpp::parseInput().
-            niter,          //  Maximum time step; init in input.cpp::parseInput().
+            niter,          //  Maximum iterations; init in input.cpp::parseInput().
             graphic_outputInterval, // Periodicity of graphic output that is saved; init in input.cpp::parseInput()
+            checkpoint_outputInterval, // Periodicity of checkpoint output that is saved; init in input.cpp::parseInput()
             num_of_rollback_states,// Maximum number of rollback states to maintain; init in input.cpp::parseInput()
             backup_file_num,//  Backup file number to restart simulation from; init in input.cpp::parseInput()
             numpe,          //  
             ndim    = 2;    //  Dimensionality of problem (2 or 3).
 double      upper_mass_diff_percentage; //  Flag for the allowed pecentage difference to the total
                                         //  mass per output intervals; init in input.cpp::parseInput().
+char *restart_file;
+
+static int it = 0;
 
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
 static Mesh       *mesh;           //  Object containing mesh information
 static State      *state;          //  Object containing state information corresponding to mesh
+static Crux       *crux;           //  Object containing checkpoint/restart information
+
+static real_t circ_radius = 0.0;
+static int next_cp_cycle = 0;
+static int next_graphics_cycle = 0;
 
 //  Set up timing information.
 static struct timeval tstart;
 
 static double  H_sum_initial = 0.0;
 static double  cpu_time_graphics = 0.0;
+
+static int     ncycle  = 0;
+static double  simTime = 0.0;
+static double  deltaT = 0.0;
 
 int main(int argc, char **argv) {
 
@@ -143,34 +162,48 @@ int main(int argc, char **argv) {
    
    numpe = 16;
 
-   real_t circ_radius = 6.0;
+   crux = new Crux(rollback_type, num_of_rollback_states);
+   
+   circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.
    circ_radius = circ_radius * (real_t) nx / 128.0;
    int boundary = 1;
    int parallel_in = 0;
    
-   mesh  = new Mesh(nx, ny, levmx, ndim, boundary, parallel_in, do_gpu_calc);
-   if (DEBUG) {
-      //if (mype == 0) mesh->print();
+   if (restart){
+      restore_crux_data_bootstrap(crux, restart_file, 0);
+      mesh  = new Mesh(nx, ny, levmx, ndim, boundary, parallel_in, do_gpu_calc);
+      mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
 
-      char filename[10];
-      sprintf(filename,"out%1d",mype);
-      mesh->fp=fopen(filename,"w");
+      state = new State(mesh);
+      restore_crux_data(crux);
+      mesh->proc.resize(mesh->ncells);
+      mesh->calc_distribution(numpe);
+   } else {
+      mesh  = new Mesh(nx, ny, levmx, ndim, boundary, parallel_in, do_gpu_calc);
+      if (DEBUG) {
+         //if (mype == 0) mesh->print();
 
-      //mesh->print_local();
-   } 
-   mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
+         char filename[10];
+         sprintf(filename,"out%1d",mype);
+         mesh->fp=fopen(filename,"w");
+
+         //mesh->print_local();
+      } 
+
+      mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
+      state = new State(mesh);
+      state->init(do_gpu_calc);
+      mesh->proc.resize(mesh->ncells);
+      mesh->calc_distribution(numpe);
+      state->fill_circle(circ_radius, 100.0, 7.0);
+   }
    size_t &ncells = mesh->ncells;
-   state = new State(mesh);
-   state->init(do_gpu_calc);
-   mesh->proc.resize(ncells);
-   mesh->calc_distribution(numpe);
-   state->fill_circle(circ_radius, 100.0, 7.0);
    mesh->nlft = NULL;
    mesh->nrht = NULL;
    mesh->nbot = NULL;
    mesh->ntop = NULL;
-   
+
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(enhanced_precision_sum);
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
@@ -187,7 +220,12 @@ int main(int argc, char **argv) {
       printf("Memory available at startup %lld kB\n",memstats_memtotal());
    }
 
-   printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
+   if (ncycle != 0){
+      printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg\n",
+         ncycle, deltaT, simTime, ncells, H_sum);
+   } else {
+      printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
+   }
 
    mesh->cpu_calc_neigh_counter=0;
    mesh->cpu_time_calc_neighbors=0.0;
@@ -211,6 +249,7 @@ int main(int argc, char **argv) {
    if (graphic_outputInterval){
       init_graphics_output();
       write_graphics_info(0,0,0.0,0,0);
+      next_graphics_cycle += graphic_outputInterval;
    }
 
 #ifdef HAVE_GRAPHICS
@@ -227,6 +266,8 @@ int main(int argc, char **argv) {
    circle_radius = -1.0;
 #endif
 
+   store_crux_data(crux, 0); 
+
    cpu_timer_start(&tstart);
 #ifdef HAVE_GRAPHICS
    set_idle_function(&do_calc);
@@ -239,9 +280,6 @@ int main(int argc, char **argv) {
    
    return 0;
 }
-
-static int     ncycle  = 0;
-static double  simTime = 0.0;
 
 extern "C" void do_calc(void)
 {  double g     = 9.80;
@@ -256,10 +294,11 @@ extern "C" void do_calc(void)
    //size_t old_ncells = ncells;
    size_t new_ncells = 0;
    double H_sum = -1.0;
-   double deltaT = 0.0;
 
    //  Main loop.
-   for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
+   int endcycle = MIN3(niter, next_cp_cycle, next_graphics_cycle);
+
+   for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
       //old_ncells = ncells;
 
@@ -304,18 +343,21 @@ extern "C" void do_calc(void)
       }
       
       mesh->ncells = ncells;
-      
-      if(graphic_outputInterval && (ncycle % graphic_outputInterval == 0) && (ncycle != 0)){
-         mesh->calc_spatial_coordinates(0);
-         set_mysize(ncells);
-         set_viewmode(view_mode);
-         set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-         set_cell_data(&state->H[0]);
-         set_cell_proc(&mesh->proc[0]);
-         write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
-      }
-
    }
+      
+   if(ncycle == next_graphics_cycle){
+      mesh->calc_spatial_coordinates(0);
+      set_mysize(ncells);
+      set_viewmode(view_mode);
+      set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+      set_cell_data(&state->H[0]);
+      set_cell_proc(&mesh->proc[0]);
+      write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
+      next_graphics_cycle += graphic_outputInterval;
+   }
+
+   if (ncycle == next_cp_cycle) store_crux_data(crux, ncycle); 
+
 
    H_sum = state->mass_sum(enhanced_precision_sum);
    if (isnan(H_sum)) {
@@ -356,6 +398,7 @@ extern "C" void do_calc(void)
          set_cell_data(&state->H[0]);
          set_cell_proc(&mesh->proc[0]);
          write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
+         next_graphics_cycle += graphic_outputInterval;
       }
 
       //  Get overall program timing.
@@ -384,8 +427,150 @@ extern "C" void do_calc(void)
 
       delete mesh;
       delete state;
+      delete crux;
 
       exit(0);
    }  //  Complete final output.
    
 }
+
+const int CRUX_CLAMR_VERSION = 101;
+const int num_int_vals       = 14;
+const int num_double_vals    =  5;
+
+void store_crux_data(Crux *crux, int ncycle)
+{
+   size_t nsize = num_int_vals*sizeof(int) +
+                  num_double_vals*sizeof(double);
+   nsize += state->get_checkpoint_size();
+
+   crux->store_begin(nsize, ncycle);
+
+   int int_vals[num_int_vals];
+
+   int_vals[ 0] = CRUX_CLAMR_VERSION; // Version number
+   int_vals[ 1] = nx;
+   int_vals[ 2] = ny;
+   int_vals[ 3] = levmx;
+   int_vals[ 4] = ndim;
+   int_vals[ 5] = outputInterval;
+   int_vals[ 6] = enhanced_precision_sum;
+   int_vals[ 7] = niter;
+   int_vals[ 8] = it;
+   int_vals[ 9] = ncycle;
+   int_vals[10] = graphic_outputInterval;
+   int_vals[11] = checkpoint_outputInterval;
+   int_vals[12] = next_cp_cycle;
+   int_vals[13] = next_graphics_cycle;
+
+   crux->store_ints(int_vals, num_int_vals);
+
+   double double_vals[num_double_vals];
+   double_vals[ 0] = circ_radius;
+   double_vals[ 1] = H_sum_initial;
+   double_vals[ 2] = simTime;
+   double_vals[ 3] = deltaT;
+   double_vals[ 4] = upper_mass_diff_percentage;
+
+   crux->store_doubles(double_vals, num_double_vals);
+
+   state->store_checkpoint(crux);
+
+   crux->store_end();
+
+   next_cp_cycle += checkpoint_outputInterval;
+}
+
+void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_counter)
+{
+   crux->restore_begin(restart_file, rollback_counter);
+
+   int int_vals[num_int_vals];
+
+   crux->restore_ints(int_vals, num_int_vals);
+
+   if (int_vals[ 0] != CRUX_CLAMR_VERSION) {
+      printf("CRUX version mismatch for clamr data, version on file is %d, version in code is %d\n",
+         int_vals[0], CRUX_CLAMR_VERSION);
+      exit(0);
+   }
+  
+   nx                        = int_vals[ 1];
+   ny                        = int_vals[ 2];
+   levmx                     = int_vals[ 3];
+   ndim                      = int_vals[ 4];
+   outputInterval            = int_vals[ 5];
+   enhanced_precision_sum    = int_vals[ 6];
+   niter                     = int_vals[ 7];
+   it                        = int_vals[ 8];
+   ncycle                    = int_vals[ 9];
+   graphic_outputInterval    = int_vals[10];
+   checkpoint_outputInterval = int_vals[11];
+   next_cp_cycle             = int_vals[12];
+   next_graphics_cycle       = int_vals[13];
+
+#ifdef DEBUG_RESTORE_VALS
+   if (DEBUG_RESTORE_VALS) {
+      const char *int_vals_descriptor[num_int_vals] = {
+         "CRUX_CLAMR_VERSION",
+         "nx",
+         "ny",
+         "levmx",
+         "ndim",
+         "outputInterval",
+         "enhanced_precision_sum",
+         "niter",
+         "it",
+         "ncycle",
+         "graphic_outputInterval",
+         "checkpoint_outputInterval",
+         "next_cp_cycle",
+         "next_graphics_cycle"
+      };
+      printf("\n");
+      printf("       === Restored bootstrap int_vals ===\n");
+      for (int i = 0; i < num_int_vals; i++){
+         printf("       %-30s %d\n",int_vals_descriptor[i], int_vals[i]);
+      }
+      printf("       === Restored bootstrap int_vals ===\n");
+      printf("\n");
+   }
+#endif
+
+   double double_vals[num_double_vals];
+
+   crux->restore_doubles(double_vals, num_double_vals);
+
+   circ_radius                = double_vals[ 0];
+   H_sum_initial              = double_vals[ 1];
+   simTime                    = double_vals[ 2];
+   deltaT                     = double_vals[ 3];
+   upper_mass_diff_percentage = double_vals[ 4];
+
+#ifdef DEBUG_RESTORE_VALS
+   if (DEBUG_RESTORE_VALS) {
+      const char *double_vals_descriptor[num_double_vals] = {
+         "circ_radius",
+         "H_sum_initial",
+         "simTime",
+         "deltaT",
+         "upper_mass_diff_percentage"
+      };
+      printf("\n");
+      printf("       === Restored bootstrap double_vals ===\n");
+      for (int i = 0; i < num_double_vals; i++){
+         printf("       %-30s %lg\n",double_vals_descriptor[i], double_vals[i]);
+      }
+      printf("       === Restored bootstrap double_vals ===\n");
+      printf("\n");
+   }
+#endif
+}
+
+void restore_crux_data(Crux *crux)
+{
+   state->restore_checkpoint(crux);
+
+   crux->restore_end();
+}
+

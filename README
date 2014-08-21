@@ -154,13 +154,13 @@ To checkout the code
 
 % git clone git@github.com:losalamos/CLAMR.git
 
-Just a little information on the code in this directory
+Just a little information on the movie graphics and the checkpoint/restart
 
 ************************************* clamr *************************************
 This is all the code I adjusted in CLAMR. Below are notes on the new flags I added.
 
--R: Restart CLAMR from a specified backup file number, so you will need to pass the
-    backup file number (EX: backup0.dat, then use -R 0)
+-R: Restart CLAMR from a specified backup file, so you will need to pass the
+    backup filename along with the path (EX: -R "checkpoint_output/backup00100.crx")
 -b: Backup CLAMR states to disk. The number of backup files to keep is specified by 
     the number passed in with this flag. This also enables rollbacks from disk. Backups
     are generated at the number of cycles specifed by the -i flag. This also creates
@@ -168,10 +168,13 @@ This is all the code I adjusted in CLAMR. Below are notes on the new flags I add
     the exectuable is running. 
 -B: Backup CLAMR states to memory. The number of backup states to keep in memory is
     specified by the number passed in with this flag. This also enables rollbacks from
-    disk. Backups are generated at the number of cycles specified by the -i flag. This
+    disk. Backups are generated at the number of cycles specified by the -c flag. This
     also creates the iteration results files. They will be dumped in the current directoy
     where the exectuable is running. 
--G: This generates the graphics files at the specified cycle intervals that are passed
+-c: This generates the graphics files at the specified cycle intervals that are passed
+    in by this flag. The graphics data files .data & .lin will be dumped in the directory
+    where the executable is running. 
+-g: This generates the graphics files at the specified cycle intervals that are passed
     in by this flag. The graphics data files .data & .lin will be dumped in the directory
     where the executable is running. 
 -U: Upper bound for what is the allowable mass percentage difference. This number can
@@ -180,7 +183,7 @@ This is all the code I adjusted in CLAMR. Below are notes on the new flags I add
 
 ************************************* scripts ************************************
 This is the code for generating the images and movies. The generate_image.py, 
-generate_movie.sh, and FreeSansBold.ttf should be placed just outside of the graphics_info 
+generate_movie.sh, and FreeSansBold.ttf should be placed just outside of the graphics_output
 directory. They will go into this directory to generate all image and movie data. The 
 movies that are generated are avi files, but they can be converted to any format using
 on-line video converters. I did this, because the best quality for the movies is 
@@ -194,10 +197,10 @@ FreeSansBold.tff: This is just the text file used by the python script to create
     all just need to be in the same directory as the grahpics_info file that contains
     the graphics information from the simulation. If you just want to create the images
     and not the movie, then only this file and generate_image.py are needed in the 
-    same directory as the graphics_info directory.
+    same directory as the graphics_output directory.
 
 generate_image.py: This is python script that is used to generate the images from the
-    CLAMR simulation. The image data needs to be a directory called graphics_info. The
+    CLAMR simulation. The image data needs to be a directory called graphics_output. The
     python script will go into this directory and generate the png files as well as an
     text file called image list, which is used to generate a movie. You can pass the y
     flag to this script if you want to have grid lines in the images as well. All image

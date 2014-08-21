@@ -20,7 +20,7 @@ else
    python generate_image2.py
 fi
 
-cd ./graphics_info
+cd ./graphics_output
 
 echo $SIZE
 

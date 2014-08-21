@@ -41,7 +41,7 @@ if len(sys.argv) == 2:
 else:
    GridLines = False
    
-os.chdir('./graphics_info')
+os.chdir('./graphics_output')
 for file in glob.glob('*.data'):
    im = Image.new("RGB",(800,800))
    draw = ImageDraw.Draw(im)

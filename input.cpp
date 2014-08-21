@@ -68,6 +68,7 @@
 #include "mesh/partition.h"
 #include "mesh/mesh.h"
 #include "hash/hash.h"
+#include "crux/crux.h"
 
 #include <fstream>
 #include <iostream>
@@ -75,6 +76,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <sys/stat.h>
 
 #define OUTPUT_INTERVAL 100
 #define COARSE_GRID_RES 128
@@ -88,13 +90,12 @@ char progVers[8];       //  Program version.
 
 //  External global variables.
 extern bool verbose,
-            from_disk_rollback,
-            in_memory_rollback,
             localStencil,
             outline,
             dynamic_load_balance_on,
             restart;
 extern int  outputInterval,
+            rollback_type,
             enhanced_precision_sum,
             tmax,
             levmx,
@@ -108,16 +109,15 @@ extern int  outputInterval,
 	    choose_hash_method,
             initial_order,
             graphic_outputInterval,
+            checkpoint_outputInterval,
             num_of_rollback_states,
-            backup_file_num,
             cycle_reorder;
 extern float
             mem_opt_factor;
 extern double
             upper_mass_diff_percentage;
 
-//extern int  do_cpu_calc,
-//            do_gpu_calc;
+extern char* restart_file;
 
 void outputHelp()
 {   cout << "CLAMR is an experimental adaptive mesh refinement code for the GPU." << endl
@@ -127,7 +127,7 @@ void outputHelp()
          << "                    i or 100 by default and number of backup files to keep must be specified;" << endl
          << "  -B                if an error occurs, the mesh is attempted to be restored to a clean state" << endl
          << "                    from the rollback states so the simulation can continue;" << endl
-         << "  -c                turn on CPU profiling;" << endl
+         << "  -c <C>            checkpoint interval;" << endl
          << "  -d                turn on LTTRACE;" << endl
          << "  -D                turn on dynamic load balancing using LTTRACE;" << endl
          << "  -e <E>            force hash_method, ie linear, quadratic..." <<endl          
@@ -137,8 +137,7 @@ void outputHelp()
          << "  -f <F>            force perfect or compact hash" <<endl          
          << "      \"perfect\"" << endl
          << "      \"compact\"" << endl
-         << "  -g                turn on GPU profiling;" << endl
-         << "  -G                specify I step between saving graphics information for post processing;" << endl
+         << "  -g <G>            specify I step between saving graphics information for post processing;" << endl
          << "  -h                display this help message;" << endl
          << "  -i <I>            specify I steps between output files;" << endl
          << "  -l <l>            max number of levels;" << endl
@@ -165,7 +164,7 @@ void outputHelp()
          << "      \"z_order\"" << endl
          << "  -q                turn on quo;" << endl
          << "  -r                regular sum instead of enhanced precision sum (Kahan sum);" << endl
-         << "  -R                restart simulation from the backup file number passed;" << endl
+         << "  -R                restart simulation from the backup file specified;" << endl
          << "  -s <s>            specify space-filling curve method S;" << endl
          << "  -T                execute with TVD;" << endl
          << "  -t <t>            specify T time steps to run;" << endl
@@ -193,64 +192,67 @@ void parseInput(const int argc, char** argv)
         strcat(progCL, argv[i]); }
     
     //  Set variables to defaults, which may be overridden by CLI.
-    verbose            = false;
-    localStencil       = true;
-    outline            = true;
+    verbose                 = false;
+    localStencil            = true;
+    outline                 = true;
 #ifdef HAVE_LTTRACE
-    lttrace_on         = 0;
+    lttrace_on              = 0;
 #endif
 #ifdef HAVE_QUO
-    do_quo_setup       = 0;
+    do_quo_setup            = 0;
 #endif
     dynamic_load_balance_on = false;
-    from_disk_rollback = false;
-    restart = false;
-    in_memory_rollback = false;
-    outputInterval     = OUTPUT_INTERVAL;
-    nx                 = COARSE_GRID_RES;
-    ny                 = COARSE_GRID_RES;
-    niter              = MAX_TIME_STEP;
-    measure_type       = CVALUE;
-    calc_neighbor_type = HASH_TABLE;
-    choose_hash_method = METHOD_UNSET;
-    initial_order      = HILBERT_SORT;
-    cycle_reorder      = ORIGINAL_ORDER;
-    graphic_outputInterval = 0;
-    num_of_rollback_states = 2;
-    backup_file_num = 0;
-    levmx              = 1;
-    mem_opt_factor     = 1.0;
+    rollback_type           = ROLLBACK_NONE;
+    restart                 = false;
+    restart_file            = NULL;
+    outputInterval          = OUTPUT_INTERVAL;
+    nx                      = COARSE_GRID_RES;
+    ny                      = COARSE_GRID_RES;
+    niter                   = MAX_TIME_STEP;
+    measure_type            = CVALUE;
+    calc_neighbor_type      = HASH_TABLE;
+    choose_hash_method      = METHOD_UNSET;
+    initial_order           = HILBERT_SORT;
+    cycle_reorder           = ORIGINAL_ORDER;
+    graphic_outputInterval  = 0;
+    checkpoint_outputInterval = 0;
+    num_of_rollback_states  = 2;
+    levmx                   = 1;
+    mem_opt_factor          = 1.0;
     upper_mass_diff_percentage = -1.0;
-    enhanced_precision_sum = SUM_KAHAN;
+    enhanced_precision_sum  = SUM_KAHAN;
     
     char   *val;
     if (argc > 1)
     {   int i = 1;
         val = strtok(argv[i++], " ,.-");
-        while (val != NULL)
-        {   switch (val[0])
-            {  case 'b':    //  Checkpoint state and mesh data during simulation 
-                    val = strtok(argv[i++], " ,");
+        while (val != NULL){
+            switch (val[0]){
+               case 'b':    //  Checkpoint state and mesh data during simulation 
+                    sprintf(val,"0");
+                    if (i < argc) val = strtok(argv[i++], " ,");
                     if(atoi(val) < 1){
-                        cout << "backup number must be at least 1, setting to default value 2" << endl;
+                        printf("backup number must be at least 1, setting to default value 2\n");
                     }
                     else{
                         num_of_rollback_states = atoi(val);
                     }
-                    from_disk_rollback = true;
+                    rollback_type = ROLLBACK_DISK;
                     break;
                case 'B':   //  Rollback to last safe state to continue simulation
-                    val = strtok(argv[i++], " ,");
+                    sprintf(val,"0");
+                    if (i < argc) val = strtok(argv[i++], " ,");
                     if(atoi(val) < 1){
-                        cout << "rollback number must be at least 1, setting to default value 2" << endl;
+                        printf("rollback number must be at least 1, setting to default value 2\n");
                     }
                     else{
                         num_of_rollback_states = atoi(val);
                     }
-                    in_memory_rollback = true;
+                    rollback_type = ROLLBACK_IN_MEMORY;
                     break;
-               case 'c':   //  Turn on CPU profiling.
-                    //do_cpu_calc = 1;
+                case 'c':   //  Save checkpoint data to files during simulation.
+                    val = strtok(argv[i++], " ,.-");
+                    checkpoint_outputInterval = atoi(val);
                     break;
 
                 case 'd':   //  Turn on lttrace.
@@ -282,13 +284,9 @@ void parseInput(const int argc, char** argv)
                     }
                     break;
                 
-                case 'G':   //  Save graphics data to files during simulation.
+                case 'g':   //  Save graphics data to files during simulation.
                     val = strtok(argv[i++], " ,.-");
                     graphic_outputInterval = atoi(val);
-                    break;
-
-                case 'g':   //  Turn on GPU profiling.
-                    //do_gpu_calc = 1;
                     break;
 
                 case 'h':   //  Output help.
@@ -401,14 +399,14 @@ void parseInput(const int argc, char** argv)
                     break;
 
                 case 'R':  //  Restart application from last checkpoint
-                    val = strtok(argv[i++], " ,");
-                    if(atoi(val) < 0){
-                        cout << "the backup file number must be at least 0, setting to default value " << endl;
-                    }
-                    else{
-                        backup_file_num = atoi(val);
-                    }
                     restart = true;
+                    restart_file = strtok(argv[i++], " ,");
+
+                    struct stat stat_descriptor;
+                    if (stat(restart_file,&stat_descriptor) == -1){
+                       printf("Error -- restart file %s does not exist\n",restart_file);
+                       exit(0);
+                    }
                     break;
 
                 case 's':   //  Space-filling curve method specified (default HILBERT_SORT).

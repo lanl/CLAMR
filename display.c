@@ -55,6 +55,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <math.h>
 #include "display.h"                                                                                                   
@@ -116,6 +117,8 @@ static double yconversion = 0.0;
 static double display_circle_radius=-1.0;
 static int Ncolors = 256;
 static int iteration = 0;
+
+char *graphics_directory = "graphics_output";
 
 
 #ifndef HAVE_MPI
@@ -305,6 +308,11 @@ void init_graphics_output(void){
    width = (WINSIZE / (display_ymax - display_ymin)) * (display_xmax - display_xmin);
    xconversion = (double)WINSIZE/ (display_xmax-display_xmin);
    yconversion = (double)WINSIZE/(display_ymax-display_ymin);
+
+   struct stat stat_descriptor;
+   if (stat(graphics_directory,&stat_descriptor) == -1){
+     mkdir(graphics_directory,0777);
+   }
 }
 
 void set_idle_function(void (*function)(void)){
@@ -825,15 +833,15 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
    int step = Ncolors/(display_proc[display_mysize-1]+1);
    int xloc, xwid, yloc, ywid;
    int xloc1, xloc2, yloc1, yloc2;
-   char filename[30], filename2[30];
+   char filename[50], filename2[50];
    
    if(rollback_img){
-      sprintf(filename,"graph%dcp%d.data", graph_num, rollback_num);
-      sprintf(filename2,"outline%dcp%d.lin",graph_num, rollback_num);
+      sprintf(filename,"%s/graph%dcp%d.data", graphics_directory, graph_num, rollback_num);
+      sprintf(filename2,"%s/outline%dcp%d.lin",graphics_directory, graph_num, rollback_num);
    }
    else{
-      sprintf(filename,"graph%d.data", graph_num);
-      sprintf(filename2,"outline%d.lin",graph_num);
+      sprintf(filename,"%s/graph%d.data", graphics_directory, graph_num);
+      sprintf(filename2,"%s/outline%d.lin",graphics_directory, graph_num);
    }
    FILE *fp = fopen(filename,"w");
    FILE *fp2 = fopen(filename2,"w");
@@ -905,15 +913,15 @@ void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_
    double scaleMax = 25.0, scaleMin = 0.0;
    int i;
    int color;
-   char filename[30], filename2[30];
+   char filename[50], filename2[50];
    
    if(rollback_img){
-      sprintf(filename,"graph%dcp%d.data", graph_num, rollback_num);
-      sprintf(filename2,"outline%dcp%d.lin",graph_num, rollback_num);
+      sprintf(filename,"%s/graph%dcp%d.data", graphics_directory, graph_num, rollback_num);
+      sprintf(filename2,"%s/outline%dcp%d.lin",graphics_directory, graph_num, rollback_num);
    }
    else{
-      sprintf(filename,"graph%d.data", graph_num);
-      sprintf(filename2,"outline%d.lin",graph_num);
+      sprintf(filename,"%s/graph%d.data", graphics_directory, graph_num);
+      sprintf(filename2,"%s/outline%d.lin",graphics_directory, graph_num);
    }
    FILE *fp = fopen(filename,"w");
    FILE *fp2 = fopen(filename2,"w");

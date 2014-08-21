@@ -113,12 +113,15 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
             ny,             //  y-resolution of coarse grid; init in input.cpp::parseInput().
             niter,          //  Maximum time step; init in input.cpp::parseInput().
             graphic_outputInterval, // Periocity of graphic output that is saved; init in input.cpp::parseInput()
+            checkpoint_outputInterval, // Periodicity of checkpoint output that is saved; init in input.cpp::parseInput()
             num_of_rollback_states,// Maximum number of rollback states to maintain; init in input.cpp::parseInput()
             backup_file_num,//  Backup file number to restart simulation from; init in input.cpp::parseInput()
             numpe,          //  
             ndim    = 2;    //  Dimensionality of problem (2 or 3).
 double      upper_mass_diff_percentage; //  Flag for the allowed pecentage difference to the total
                                         //  mass per output intervals; init in input.cpp::parseInput().
+
+char *restart_file;
 
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.

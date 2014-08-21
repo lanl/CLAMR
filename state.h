@@ -59,6 +59,7 @@
 #include <list>
 #include "MallocPlus/MallocPlus.h"
 #include "mesh/mesh.h"
+#include "crux/crux.h"
 #ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
 #endif
@@ -208,8 +209,6 @@ public:
    State(Mesh *mesh_in);
 
    void init(int do_gpu_calc);
-   void init_from_backup_file(FILE *fp);
-   void init_for_rollback(State *state_to_copy);
    void terminate(void);
 
    /* Memory routines for linked list of state arrays */
@@ -353,7 +352,10 @@ public:
    void parallel_memory_output(int numpe, int mype, const char *string, long long local_time);
 
    void print(void);
-   void check_point_state_data(FILE *backup_file);
+
+   size_t get_checkpoint_size(void);
+   void store_checkpoint(Crux *crux);
+   void restore_checkpoint(Crux *crux);
    //Added to for second print for every interation: Brian Atkinson (5-29-14)
    void print(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage);  
    void print_local(int ncycle);

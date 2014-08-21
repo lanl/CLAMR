@@ -65,6 +65,7 @@
 #include <vector>
 #include <math.h>
 #include "kdtree/KDTree.h"
+#include "crux/crux.h"
 #include "partition.h"
 #ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
@@ -556,6 +557,9 @@ public:
    void compare_indices_all_to_gpu_local(Mesh *mesh_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
 #endif
 
+   size_t get_checkpoint_size(void);
+   void store_checkpoint(Crux *crux);
+   void restore_checkpoint(Crux *crux);
 
    void calc_celltype(size_t ncells);
 
