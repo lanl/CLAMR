@@ -15,9 +15,9 @@ while getopts ys:f: opt
 done
 
 if [ $outlines -eq 1 ]; then
-   python generate_image2.py y
+   python generate_image.py y
 else
-   python generate_image2.py
+   python generate_image.py
 fi
 
 cd ./graphics_output

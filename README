@@ -156,6 +156,13 @@ To checkout the code
 
 Just a little information on the movie graphics and the checkpoint/restart
 
+The image and movie capabilities require the python imaging library (PIL or pillow
+on Mac OSx) and mplayer (mencode comes with mplayer), respectively.
+
+For MAC:
+brew install Homebrew/Python/pillow
+brew install mplayer
+
 ************************************* clamr *************************************
 This is all the code I adjusted in CLAMR. Below are notes on the new flags I added.
 

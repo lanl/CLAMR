@@ -4,6 +4,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # --- custom targets: ---
 INCLUDE( cmake/Modules/TargetDistclean.cmake OPTIONAL)
 
+# enable @rpath in the install name for any shared library being built
+set(CMAKE_MACOSX_RPATH 1)
+
 project (CLAMR)
 # The version number.
 set (CLAMR_VERSION_MAJOR 2)
