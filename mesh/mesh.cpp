@@ -7975,8 +7975,8 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
             
 }
 
-const int CRUX_MESH_VERSION = 101;
-const int num_int_vals      = 13;
+const int CRUX_MESH_VERSION = 102;
+const int num_int_vals      = 14;
 const int num_long_vals     = 23;
 const int num_double_vals   = 24;
 
@@ -7998,15 +7998,16 @@ void Mesh::store_checkpoint(Crux *crux)
    int_vals[ 1] = ndim;
    int_vals[ 2] = levmx;
    int_vals[ 3] = ncells;
-   int_vals[ 4] = cpu_rezone_counter;
-   int_vals[ 5] = cpu_refine_smooth_counter;
-   int_vals[ 6] = cpu_calc_neigh_counter;
-   int_vals[ 7] = cpu_load_balance_counter;
-   int_vals[ 8] = gpu_rezone_counter;
-   int_vals[ 9] = gpu_refine_smooth_counter;
-   int_vals[10] = gpu_calc_neigh_counter;
-   int_vals[11] = gpu_load_balance_counter;
-   int_vals[12] = offtile_local_count;
+   int_vals[ 4] = ncells_ghost;
+   int_vals[ 5] = cpu_rezone_counter;
+   int_vals[ 6] = cpu_refine_smooth_counter;
+   int_vals[ 7] = cpu_calc_neigh_counter;
+   int_vals[ 8] = cpu_load_balance_counter;
+   int_vals[ 9] = gpu_rezone_counter;
+   int_vals[10] = gpu_refine_smooth_counter;
+   int_vals[11] = gpu_calc_neigh_counter;
+   int_vals[12] = gpu_load_balance_counter;
+   int_vals[13] = offtile_local_count;
 
    crux->store_ints(int_vals, num_int_vals);
 
@@ -8087,15 +8088,16 @@ void Mesh::restore_checkpoint(Crux *crux)
    ndim                      = int_vals[ 1];
    levmx                     = int_vals[ 2];
    ncells                    = int_vals[ 3];
-   cpu_rezone_counter        = int_vals[ 4];
-   cpu_refine_smooth_counter = int_vals[ 5];
-   cpu_calc_neigh_counter    = int_vals[ 6];
-   cpu_load_balance_counter  = int_vals[ 7];
-   gpu_rezone_counter        = int_vals[ 8];
-   gpu_refine_smooth_counter = int_vals[ 9];
-   gpu_calc_neigh_counter    = int_vals[10];
-   gpu_load_balance_counter  = int_vals[11];
-   offtile_local_count       = int_vals[12];
+   ncells_ghost              = int_vals[ 4];
+   cpu_rezone_counter        = int_vals[ 5];
+   cpu_refine_smooth_counter = int_vals[ 6];
+   cpu_calc_neigh_counter    = int_vals[ 7];
+   cpu_load_balance_counter  = int_vals[ 8];
+   gpu_rezone_counter        = int_vals[ 9];
+   gpu_refine_smooth_counter = int_vals[10];
+   gpu_calc_neigh_counter    = int_vals[11];
+   gpu_load_balance_counter  = int_vals[12];
+   offtile_local_count       = int_vals[13];
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
@@ -8104,6 +8106,7 @@ void Mesh::restore_checkpoint(Crux *crux)
          "ndim",
          "levmx",
          "ncells",
+         "ncells_ghost",
          "cpu_rezone_counter",
          "cpu_refine_smooth_counter",
          "cpu_calc_neigh_counter",
