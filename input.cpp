@@ -96,7 +96,7 @@ extern bool verbose,
             dynamic_load_balance_on,
             restart;
 extern int  outputInterval,
-            rollback_type,
+            crux_type,
             enhanced_precision_sum,
             tmax,
             levmx,
@@ -124,9 +124,9 @@ void outputHelp()
 {   cout << "CLAMR is an experimental adaptive mesh refinement code for the GPU." << endl
          << "Version is " << PACKAGE_VERSION << endl << endl
          << "Usage:  " << progName << " [options]..." << endl
-         << "  -b <B>            checkpoint to disk with symlinked rollback number of files specified;" << endl
-         << "  -B <B>            checkpoint to memory with rollback number of backup images;" << endl
-         << "  -c <C>            checkpoint interval in number of cycles;" << endl
+         << "  -b <B>            Number of rollback images, disk or in memory (default 2);" << endl
+         << "  -c <C>            Checkpoint to disk at interval specified;" << endl
+         << "  -C <C>            Checkpoint to memory at interval specified;" << endl
          << "  -d                turn on LTTRACE;" << endl
          << "  -D                turn on dynamic load balancing using LTTRACE;" << endl
          << "  -e <E>            force hash_method, ie linear, quadratic..." <<endl          
@@ -201,7 +201,7 @@ void parseInput(const int argc, char** argv)
     do_quo_setup            = 0;
 #endif
     dynamic_load_balance_on = false;
-    rollback_type           = ROLLBACK_NONE;
+    crux_type               = CRUX_NONE;
     restart                 = false;
     restart_file            = NULL;
     outputInterval          = OUTPUT_INTERVAL;
@@ -227,7 +227,7 @@ void parseInput(const int argc, char** argv)
         val = strtok(argv[i++], " ,.-");
         while (val != NULL){
             switch (val[0]){
-               case 'b':    //  Checkpoint to disk with rollback number of files 
+               case 'b':     //  Number of rollback images, disk or in memory (default 2)
                     sprintf(val,"0");
                     if (i < argc) val = strtok(argv[i++], " ,");
                     if(atoi(val) < 1){
@@ -236,22 +236,17 @@ void parseInput(const int argc, char** argv)
                     else{
                         num_of_rollback_states = atoi(val);
                     }
-                    rollback_type = ROLLBACK_DISK;
                     break;
-               case 'B':   //  Checkpoint to memory with rollback number of backup images
-                    sprintf(val,"0");
-                    if (i < argc) val = strtok(argv[i++], " ,");
-                    if(atoi(val) < 1){
-                        printf("rollback number must be at least 1, setting to default value 2\n");
-                    }
-                    else{
-                        num_of_rollback_states = atoi(val);
-                    }
-                    rollback_type = ROLLBACK_IN_MEMORY;
-                    break;
-                case 'c':   //  Save checkpoint data at interval specified
+                case 'c':   //  Checkpoint to disk at interval specified
                     val = strtok(argv[i++], " ,.-");
                     checkpoint_outputInterval = atoi(val);
+                    crux_type = CRUX_DISK;
+                    break;
+
+                case 'C':   //  Checkpoint to memory at interval specified
+                    val = strtok(argv[i++], " ,.-");
+                    checkpoint_outputInterval = atoi(val);
+                    crux_type = CRUX_IN_MEMORY;
                     break;
 
                 case 'd':   //  Turn on lttrace.

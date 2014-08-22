@@ -131,7 +131,8 @@ bool        restart,        //  Flag to start from a back up file; init in input
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
             outline;        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
-            rollback_type,  //  Type of rollback -- ROLLBACK_NONE, ROLLBACK_IN_MEMORY, ROLLBACK_DISK; init in input.cpp::parseInput().
+            crux_type,      //  Type of checkpoint/restart -- CRUX_NONE, CRUX_IN_MEMORY, CRUX_DISK;
+                            //  init in input.cpp::parseInput().
             enhanced_precision_sum,//  Flag for enhanced precision sum (default true); init in input.cpp::parseInput().
             lttrace_on,     //  Flag to turn on logical time trace package;
             do_quo_setup,   //  Flag to turn on quo dynamic scheduling policies package;

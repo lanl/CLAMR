@@ -1,3 +1,47 @@
+/*
+ *  Copyright (c) 2014, Los Alamos National Security, LLC.
+ *  All rights Reserved.
+ *
+ *  Copyright 2011-2012. Los Alamos National Security, LLC. This software was produced 
+ *  under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
+ *  Laboratory (LANL), which is operated by Los Alamos National Security, LLC 
+ *  for the U.S. Department of Energy. The U.S. Government has rights to use, 
+ *  reproduce, and distribute this software.  NEITHER THE GOVERNMENT NOR LOS 
+ *  ALAMOS NATIONAL SECURITY, LLC MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR 
+ *  ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE.  If software is modified
+ *  to produce derivative works, such modified software should be clearly marked,
+ *  so as not to confuse it with the version available from LANL.
+ *
+ *  Additionally, redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the Los Alamos National Security, LLC, Los Alamos 
+ *       National Laboratory, LANL, the U.S. Government, nor the names of its 
+ *       contributors may be used to endorse or promote products derived from 
+ *       this software without specific prior written permission.
+ *  
+ *  THIS SOFTWARE IS PROVIDED BY THE LOS ALAMOS NATIONAL SECURITY, LLC AND 
+ *  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT 
+ *  NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL LOS ALAMOS NATIONAL
+ *  SECURITY, LLC OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ *  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ *  OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *  
+ *  CLAMR -- LA-CC-11-094
+ *  
+ *  Authors: Brian Atkinson          bwa@g.clemson.edu
+             Bob Robey        XCP-2  brobey@lanl.gov
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -29,13 +73,13 @@ int checkpoint_timing_count = 0;
 float checkpoint_timing_sum = 0.0f;
 float checkpoint_timing_size = 0.0f;
 
-Crux::Crux(int rollback_type_in, int num_of_rollback_states_in, bool restart)
+Crux::Crux(int crux_type_in, int num_of_rollback_states_in, bool restart)
 {
    num_of_rollback_states = num_of_rollback_states_in;
-   rollback_type = rollback_type_in;
+   crux_type = crux_type_in;
    checkpoint_counter = 0;
 
-   if (rollback_type != ROLLBACK_NONE || restart){
+   if (crux_type != CRUX_NONE || restart){
       do_crux_timing = CRUX_TIMING;
       struct stat stat_descriptor;
       if (stat(checkpoint_directory,&stat_descriptor) == -1){
@@ -86,13 +130,13 @@ void Crux::store_begin(size_t nsize, int ncycle)
 
    cpu_timer_start(&tcheckpoint_time);
 
-   if(rollback_type == ROLLBACK_IN_MEMORY){
+   if(crux_type == CRUX_IN_MEMORY){
       if (crux_data[cp_num] != NULL) free(crux_data[cp_num]);
       crux_data[cp_num] = (int *)malloc(nsize);
       crux_data_size[cp_num] = nsize;
       store_fp = fmemopen(crux_data[cp_num], nsize, "w");
    }
-   if(rollback_type == ROLLBACK_DISK){
+   if(crux_type == CRUX_DISK){
       char backup_file[60];
 
       sprintf(backup_file,"%s/backup%05d.crx",checkpoint_directory,ncycle);
@@ -184,10 +228,10 @@ void Crux::restore_begin(char *restart_file, int rollback_counter)
          //printf("Could not write %s at iteration %d\n",restart_file,crux_int_vals[8]);
          printf("Could not open restart file %s\n",restart_file);
       }
-   } else if(rollback_type == ROLLBACK_IN_MEMORY){
+   } else if(crux_type == CRUX_IN_MEMORY){
       printf("Restoring state from memory rollback number %d rollback_counter %d\n",rs_num,rollback_counter);
       restore_fp = fmemopen(crux_data[rs_num], crux_data_size[rs_num], "r");
-   } else if(rollback_type == ROLLBACK_DISK){
+   } else if(crux_type == CRUX_DISK){
       char backup_file[60];
 
       sprintf(backup_file,"%s/backup%d.crx",checkpoint_directory,rs_num);

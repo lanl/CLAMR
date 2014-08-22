@@ -168,19 +168,12 @@ This is all the code I adjusted in CLAMR. Below are notes on the new flags I add
 
 -R: Restart CLAMR from a specified backup file, so you will need to pass the
     backup filename along with the path (EX: -R "checkpoint_output/backup00100.crx")
--b: Backup CLAMR states to disk. The number of backup files to keep is specified by 
-    the number passed in with this flag. This also enables rollbacks from disk. Backups
-    are generated at the number of cycles specifed by the -i flag. This also creates
-    the iteration results files. They will be dumped in the current directory where
-    the exectuable is running. 
--B: Backup CLAMR states to memory. The number of backup states to keep in memory is
-    specified by the number passed in with this flag. This also enables rollbacks from
-    disk. Backups are generated at the number of cycles specified by the -c flag. This
-    also creates the iteration results files. They will be dumped in the current directoy
-    where the exectuable is running. 
--c: This generates the graphics files at the specified cycle intervals that are passed
-    in by this flag. The graphics data files .data & .lin will be dumped in the directory
-    where the executable is running. 
+-b: The number of rollback files to maintain. Disk files are maintained with the 
+    specified number of symlinks. In-memory images are limited to the specified
+    number of rollback images
+-c: Backup CLAMR states to disk at the specified cycle intervals. They will be
+    put in the checkpoint_output directory
+-C: Backup CLAMR states in-memory disk at the specified cycle intervals
 -g: This generates the graphics files at the specified cycle intervals that are passed
     in by this flag. The graphics data files .data & .lin will be dumped in the directory
     where the executable is running. 
