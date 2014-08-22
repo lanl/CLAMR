@@ -348,6 +348,12 @@ extern "C" void do_calc(void)
       mesh->ncells = ncells;
    }
       
+   H_sum = state->mass_sum(enhanced_precision_sum);
+   if (isnan(H_sum)) {
+      printf("Got a NAN on cycle %d\n",ncycle);
+      exit(-1);
+   }
+
    if(ncycle == next_graphics_cycle){
       mesh->calc_spatial_coordinates(0);
       set_mysize(ncells);
@@ -361,28 +367,28 @@ extern "C" void do_calc(void)
 
    if (ncycle == next_cp_cycle) store_crux_data(crux, ncycle); 
 
-
-   H_sum = state->mass_sum(enhanced_precision_sum);
-   if (isnan(H_sum)) {
-      printf("Got a NAN on cycle %d\n",ncycle);
-      exit(-1);
+   if (ncycle % outputInterval == 0) {
+      printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
+         ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
    }
-   printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
-      ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
 
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
 #ifdef HAVE_GRAPHICS
-   mesh->calc_spatial_coordinates(0);
+   if(ncycle % outputInterval == 0){
+      if(ncycle != next_graphics_cycle){
+         mesh->calc_spatial_coordinates(0);
 
-   set_mysize(ncells);
-   set_viewmode(view_mode);
-   set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-   set_cell_data(&state->H[0]);
-   set_cell_proc(&mesh->proc[0]);
-   set_circle_radius(circle_radius);
-   draw_scene();
+         set_mysize(ncells);
+         set_viewmode(view_mode);
+         set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+         set_cell_data(&state->H[0]);
+         set_cell_proc(&mesh->proc[0]);
+      }
+      set_circle_radius(circle_radius);
+      draw_scene();
+   }
 #endif
 
    cpu_time_graphics += cpu_timer_stop(tstart_cpu);
