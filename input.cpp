@@ -124,11 +124,9 @@ void outputHelp()
 {   cout << "CLAMR is an experimental adaptive mesh refinement code for the GPU." << endl
          << "Version is " << PACKAGE_VERSION << endl << endl
          << "Usage:  " << progName << " [options]..." << endl
-         << "  -b                mesh and state data is checkpointed at every output interval defined by" << endl
-         << "                    i or 100 by default and number of backup files to keep must be specified;" << endl
-         << "  -B                if an error occurs, the mesh is attempted to be restored to a clean state" << endl
-         << "                    from the rollback states so the simulation can continue;" << endl
-         << "  -c <C>            checkpoint interval;" << endl
+         << "  -b <B>            checkpoint to disk with symlinked rollback number of files specified;" << endl
+         << "  -B <B>            checkpoint to memory with rollback number of backup images;" << endl
+         << "  -c <C>            checkpoint interval in number of cycles;" << endl
          << "  -d                turn on LTTRACE;" << endl
          << "  -D                turn on dynamic load balancing using LTTRACE;" << endl
          << "  -e <E>            force hash_method, ie linear, quadratic..." <<endl          
@@ -229,7 +227,7 @@ void parseInput(const int argc, char** argv)
         val = strtok(argv[i++], " ,.-");
         while (val != NULL){
             switch (val[0]){
-               case 'b':    //  Checkpoint state and mesh data during simulation 
+               case 'b':    //  Checkpoint to disk with rollback number of files 
                     sprintf(val,"0");
                     if (i < argc) val = strtok(argv[i++], " ,");
                     if(atoi(val) < 1){
@@ -240,7 +238,7 @@ void parseInput(const int argc, char** argv)
                     }
                     rollback_type = ROLLBACK_DISK;
                     break;
-               case 'B':   //  Rollback to last safe state to continue simulation
+               case 'B':   //  Checkpoint to memory with rollback number of backup images
                     sprintf(val,"0");
                     if (i < argc) val = strtok(argv[i++], " ,");
                     if(atoi(val) < 1){
@@ -251,7 +249,7 @@ void parseInput(const int argc, char** argv)
                     }
                     rollback_type = ROLLBACK_IN_MEMORY;
                     break;
-                case 'c':   //  Save checkpoint data to files during simulation.
+                case 'c':   //  Save checkpoint data at interval specified
                     val = strtok(argv[i++], " ,.-");
                     checkpoint_outputInterval = atoi(val);
                     break;

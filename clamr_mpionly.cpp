@@ -374,7 +374,11 @@ extern "C" void do_calc(void)
       cpu_timer_start(&tstart_cpu);
       //int add_ncells = new_ncells - old_ncells;
       state->rezone_all(icount, jcount, mpot);
-      mpot.clear();
+      // Clear does not delete mpot, so have to swap with an empty vector to get
+      // it to delete the mpot memory. This is all to avoid valgrind from showing
+      // it as a reachable memory leak
+      //mpot.clear();
+      vector<int>().swap(mpot);
       ncells = new_ncells;
       mesh->ncells = new_ncells;
 

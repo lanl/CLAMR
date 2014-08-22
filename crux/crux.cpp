@@ -113,43 +113,43 @@ void Crux::store_begin(size_t nsize, int ncycle)
 
 void Crux::store_ints(int *int_vals, size_t nelem)
 {
-   assert(int_vals != NULL);
+   assert(int_vals != NULL && store_fp != NULL);
    fwrite(int_vals,sizeof(int),nelem,store_fp);
 }
 
 void Crux::store_longs(long long *long_vals, size_t nelem)
 {
-   assert(long_vals != NULL);
+   assert(long_vals != NULL && store_fp != NULL);
    fwrite(long_vals,sizeof(long long),nelem,store_fp);
 }
 
 void Crux::store_bools(bool *bool_vals, size_t nelem)
 {
-   assert(bool_vals != NULL);
+   assert(bool_vals != NULL && store_fp != NULL);
    fwrite(bool_vals,sizeof(bool),nelem,store_fp);
 }
 
 void Crux::store_doubles(double *double_vals, size_t nelem)
 {
-   assert(double_vals != NULL);
+   assert(double_vals != NULL && store_fp != NULL);
    fwrite(double_vals,sizeof(double),nelem,store_fp);
 }
 
 void Crux::store_int_array(int *int_array, size_t nelem)
 {
-   assert(int_array != NULL);
+   assert(int_array != NULL && store_fp != NULL);
    fwrite(int_array,sizeof(int),nelem,store_fp);
 }
 
 void Crux::store_float_array(float *float_array, size_t nelem)
 {
-   assert(float_array != NULL);
+   assert(float_array != NULL && store_fp != NULL);
    fwrite(float_array,sizeof(float),nelem,store_fp);
 }
 
 void Crux::store_double_array(double *double_array, size_t nelem)
 {
-   assert(double_array != NULL);
+   assert(double_array != NULL && store_fp != NULL);
    fwrite(double_array,sizeof(double),nelem,store_fp);
 }
 

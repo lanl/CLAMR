@@ -696,8 +696,13 @@ extern "C" void do_calc(void)
       if (do_cpu_calc) {
          state_global->rezone_all(icount_global, jcount_global, mpot_global);
          state_local->rezone_all(icount, jcount, mpot);
+         // Clear does not delete mpot, so have to swap with an empty vector to get
+         // it to delete the mpot memory. This is all to avoid valgrind from showing
+         // it as a reachable memory leak
          mpot_global.clear();
          mpot.clear();
+         //vector<int>().swap(mpot_global);
+         //vector<int>().swap(mpot);
       }
 
       //  Resize the mesh, inserting cells where refinement is necessary.

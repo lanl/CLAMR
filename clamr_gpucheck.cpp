@@ -450,7 +450,11 @@ extern "C" void do_calc(void)
 
       //int add_ncells = new_ncells - old_ncells;
       state->rezone_all(icount, jcount, mpot);
-      mpot.clear();
+      // Clear does not delete mpot, so have to swap with an empty vector to get
+      // it to delete the mpot memory. This is all to avoid valgrind from showing
+      // it as a reachable memory leak
+      //mpot.clear();
+      vector<int>().swap(mpot);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
       if (dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);

@@ -311,7 +311,11 @@ extern "C" void do_calc(void)
 
       state->rezone_all(icount, jcount, mpot);
 
-      mpot.clear();
+      // Clear does not delete mpot, so have to swap with an empty vector to get
+      // it to delete the mpot memory. This is all to avoid valgrind from showing
+      // it as a reachable memory leak
+      //mpot.clear();
+      vector<int>().swap(mpot);
       mesh->ncells = new_ncells;
       ncells = new_ncells;
 
