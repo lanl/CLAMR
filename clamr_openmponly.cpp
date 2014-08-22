@@ -99,12 +99,11 @@ static int view_mode = 0;
 #endif
 
 bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
-            from_disk_rollback, //Flag to return to a safe mesh state and restart simulation from backup files in the event of failure; init in input.cpp::parseInput().
-            in_memory_rollback, //  Flag to return to a safe mesh state and restart simulation from copies saved in memory in the event of failure; init in input.cpp::parseInput().
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
             outline;        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
+            rollback_type,  //  Type of rollback -- ROLLBACK_NONE, ROLLBACK_IN_MEMORY, ROLLBACK_DISK; init in inp    ut.cpp::parseInput().
             enhanced_precision_sum,//  Flag for enhanced precision sum (default true); init in input.cpp::parseInput().
             lttrace_on,     //  Flag to turn on logical time trace package;
             do_quo_setup,   //  Flag to turn on quo dynamic scheduling policies package;

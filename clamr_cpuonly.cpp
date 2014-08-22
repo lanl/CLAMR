@@ -398,7 +398,7 @@ extern "C" void do_calc(void)
       //free_display();
       //state->print();
       
-      if(graphic_outputInterval){
+      if(graphic_outputInterval < niter){
 
          mesh->calc_spatial_coordinates(0);
          set_mysize(ncells);
