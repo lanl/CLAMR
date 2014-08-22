@@ -77,6 +77,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <sys/stat.h>
+#include <limits.h>
 
 #define OUTPUT_INTERVAL 100
 #define COARSE_GRID_RES 128
@@ -214,8 +215,8 @@ void parseInput(const int argc, char** argv)
     choose_hash_method      = METHOD_UNSET;
     initial_order           = HILBERT_SORT;
     cycle_reorder           = ORIGINAL_ORDER;
-    graphic_outputInterval  = 0;
-    checkpoint_outputInterval = 0;
+    graphic_outputInterval  = INT_MAX;
+    checkpoint_outputInterval = INT_MAX;
     num_of_rollback_states  = 2;
     levmx                   = 1;
     mem_opt_factor          = 1.0;

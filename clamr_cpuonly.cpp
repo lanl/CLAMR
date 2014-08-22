@@ -198,6 +198,9 @@ int main(int argc, char **argv) {
       mesh->calc_distribution(numpe);
       state->fill_circle(circ_radius, 100.0, 7.0);
    }
+   if (graphic_outputInterval > niter) next_graphics_cycle = graphic_outputInterval;
+   if (checkpoint_outputInterval > niter) next_cp_cycle = checkpoint_outputInterval;
+
    size_t &ncells = mesh->ncells;
    mesh->nlft = NULL;
    mesh->nrht = NULL;
@@ -246,7 +249,7 @@ int main(int argc, char **argv) {
    set_cell_proc(&mesh->proc[0]);
    set_viewmode(view_mode);
 
-   if (graphic_outputInterval){
+   if (ncycle == next_graphics_cycle){
       init_graphics_output();
       write_graphics_info(0,0,0.0,0,0);
       next_graphics_cycle += graphic_outputInterval;
@@ -266,7 +269,7 @@ int main(int argc, char **argv) {
    circle_radius = -1.0;
 #endif
 
-   store_crux_data(crux, 0); 
+   if (ncycle == next_cp_cycle) store_crux_data(crux, ncycle); 
 
    cpu_timer_start(&tstart);
 #ifdef HAVE_GRAPHICS
