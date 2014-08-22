@@ -17,7 +17,7 @@ class Crux
 
 public:
 
-   Crux(int rollback_type_in, int num_of_rollback_states_in);
+   Crux(int rollback_type_in, int num_of_rollback_states_in, bool restart);
    ~Crux();
 
    void store_begin(size_t nsize, int ncycle);

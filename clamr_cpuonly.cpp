@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
    
    numpe = 16;
 
-   crux = new Crux(rollback_type, num_of_rollback_states);
+   crux = new Crux(rollback_type, num_of_rollback_states, restart);
    
    circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.

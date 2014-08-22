@@ -10,7 +10,8 @@
 #include "timer/timer.h"
 #include "fmemopen.h"
 
-#define CRUX_TIMING 1
+const bool CRUX_TIMING = true;
+bool do_crux_timing = false;
 
 using namespace std;
 
@@ -28,15 +29,18 @@ int checkpoint_timing_count = 0;
 float checkpoint_timing_sum = 0.0f;
 float checkpoint_timing_size = 0.0f;
 
-Crux::Crux(int rollback_type_in, int num_of_rollback_states_in)
+Crux::Crux(int rollback_type_in, int num_of_rollback_states_in, bool restart)
 {
    num_of_rollback_states = num_of_rollback_states_in;
    rollback_type = rollback_type_in;
    checkpoint_counter = 0;
 
-   struct stat stat_descriptor;
-   if (stat(checkpoint_directory,&stat_descriptor) == -1){
-     mkdir(checkpoint_directory,0777);
+   if (rollback_type != ROLLBACK_NONE || restart){
+      do_crux_timing = CRUX_TIMING;
+      struct stat stat_descriptor;
+      if (stat(checkpoint_directory,&stat_descriptor) == -1){
+        mkdir(checkpoint_directory,0777);
+      }
    }
 
    crux_data = (void **)malloc(num_of_rollback_states*sizeof(void *));
@@ -45,7 +49,8 @@ Crux::Crux(int rollback_type_in, int num_of_rollback_states_in)
    }
    crux_data_size = (size_t *)malloc(num_of_rollback_states*sizeof(size_t));
 
-   if (CRUX_TIMING){
+
+   if (do_crux_timing){
       char checkpointtimelog[60];
       sprintf(checkpointtimelog,"%s/crux_timing.log",checkpoint_directory);
       crux_time_fp = fopen(checkpointtimelog,"w");
@@ -60,16 +65,18 @@ Crux::~Crux()
    free(crux_data);
    free(crux_data_size);
 
-   if (CRUX_TIMING){
-      printf("CRUX checkpointing time averaged %f msec, bandwidth %f Mbytes/sec\n",
-             checkpoint_timing_sum/(float)checkpoint_timing_count*1.0e3,
-             checkpoint_timing_size/checkpoint_timing_sum*1.0e-6);
+   if (do_crux_timing){
+      if (checkpoint_timing_count > 0) {
+         printf("CRUX checkpointing time averaged %f msec, bandwidth %f Mbytes/sec\n",
+                checkpoint_timing_sum/(float)checkpoint_timing_count*1.0e3,
+                checkpoint_timing_size/checkpoint_timing_sum*1.0e-6);
 
-      fprintf(crux_time_fp,"CRUX checkpointing time averaged %f msec, bandwidth %f Mbytes/sec\n",
-             checkpoint_timing_sum/(float)checkpoint_timing_count*1.0e3,
-             checkpoint_timing_size/checkpoint_timing_sum*1.0e-6);
+         fprintf(crux_time_fp,"CRUX checkpointing time averaged %f msec, bandwidth %f Mbytes/sec\n",
+                checkpoint_timing_sum/(float)checkpoint_timing_count*1.0e3,
+                checkpoint_timing_size/checkpoint_timing_sum*1.0e-6);
 
       fclose(crux_time_fp);
+      }
    }
 }
 
@@ -99,7 +106,7 @@ void Crux::store_begin(size_t nsize, int ncycle)
       symlink(backup_file, symlink_file);
    }
 
-   if (CRUX_TIMING){
+   if (do_crux_timing){
       checkpoint_timing_size += nsize;
    }
 }
@@ -153,7 +160,7 @@ void Crux::store_end(void)
 
    double checkpoint_total_time = cpu_timer_stop(tcheckpoint_time);
 
-   if (CRUX_TIMING){
+   if (do_crux_timing){
       fprintf(crux_time_fp, "Total time for checkpointing was %g seconds\n", checkpoint_total_time);
       checkpoint_timing_count++;
       checkpoint_timing_sum += checkpoint_total_time;
@@ -235,7 +242,7 @@ void Crux::restore_end(void)
 {
    double restore_total_time = cpu_timer_stop(trestore_time);
 
-   if (CRUX_TIMING){
+   if (do_crux_timing){
       fprintf(crux_time_fp, "Total time for restore was %g seconds\n", restore_total_time);
    }
 
