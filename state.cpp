@@ -3302,13 +3302,13 @@ void State::print_failure_log(int iteration, double simTime, double initial_mass
    }
 }
 
-void State::print_rollback_log(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage, int backup_attempt, int num_of_attempts, bool got_nan){
+void State::print_rollback_log(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage, int backup_attempt, int num_of_attempts, int error_status){
    char filename[40];
    sprintf(filename, "rollback%d.log",backup_attempt);
    mesh->fp=fopen(filename,"w");
 
    double mass_diff = iteration_mass - initial_mass;
-   if(got_nan){
+   if(error_status == STATUS_NAN){
       fprintf(mesh->fp,"Rolling back because of nan for H_sum was equal to NAN\n");
    }
    else{

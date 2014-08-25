@@ -148,6 +148,8 @@ static double  cpu_time_graphics = 0.0;
 static int     ncycle  = 0;
 static double  simTime = 0.0;
 static double  deltaT = 0.0;
+char total_sim_time_log[] = {"total_execution_time.log"};
+struct timeval total_exec;
 
 int main(int argc, char **argv) {
 
@@ -277,7 +279,7 @@ int main(int argc, char **argv) {
    set_idle_function(&do_calc);
    start_main_loop();
 #else
-   for (int it = 0; it < 10000000; it++) {
+   for (int it = ncycle; it < 10000000; it++) {
       do_calc();
    }
 #endif
@@ -289,6 +291,8 @@ extern "C" void do_calc(void)
 {  double g     = 9.80;
    double sigma = 0.95;
    int icount, jcount;
+   static int rollback_attempt = 0;
+   static double total_program_time = 0;
 
    //  Initialize state variables for GPU calculation.
    size_t &ncells    = mesh->ncells;
@@ -355,10 +359,68 @@ extern "C" void do_calc(void)
    }
       
    H_sum = state->mass_sum(enhanced_precision_sum);
+
+   int error_status = STATUS_OK;
+
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
-      exit(-1);
+      error_status = STATUS_NAN;
    }
+
+   double percent_mass_diff = fabs(H_sum - H_sum_initial)/H_sum_initial * 100.0;
+   if (percent_mass_diff >= upper_mass_diff_percentage) {
+      printf("Mass difference outside of acceptable range on cycle %d\n",ncycle);
+      error_status = STATUS_MASS_LOSS;
+   }
+
+   if (error_status != STATUS_OK){
+      if (crux_type != CRUX_NONE) {
+
+         rollback_attempt++;
+         if (rollback_attempt > num_of_rollback_states) {
+            printf("Can not recover from error from back up files. Killing program...\n");
+            total_program_time = cpu_timer_stop(total_exec);
+            FILE *fp = fopen(total_sim_time_log,"w");
+            fprintf(fp,"The total execution time of the program before failure was %g seconds\n", total_program_time);
+            fclose(fp);
+            state->print_failure_log(ncycle, simTime, H_sum_initial, H_sum, percent_mass_diff, true);
+            exit(-1);
+         }
+
+         if (graphic_outputInterval <= niter){
+            mesh->calc_spatial_coordinates(0);
+            set_mysize(ncells);
+            set_viewmode(view_mode);
+            set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+            set_cell_data(&state->H[0]);
+            set_cell_proc(&mesh->proc[0]);
+            write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,1,rollback_attempt);
+         }
+
+         if((ncycle - (rollback_attempt)*checkpoint_outputInterval) < 0){
+            printf("Rolling simulation back to to ncycle 0\n");
+         }
+         else{
+            printf("Rolling simulation back to to ncycle %d\n", ncycle - (rollback_attempt*checkpoint_outputInterval));
+         }
+
+         state->print_rollback_log(ncycle, simTime, H_sum_initial, H_sum, percent_mass_diff, rollback_attempt, num_of_rollback_states, error_status);
+
+         int rollback_num = crux->get_rollback_number();
+
+         restore_crux_data_bootstrap(crux, NULL, rollback_num);
+         mesh->terminate();
+         state->terminate();
+         restore_crux_data(crux);
+
+
+      } else {
+         printf("failure.log has been created\n");
+         state->print_failure_log(ncycle, simTime, H_sum_initial, H_sum, percent_mass_diff, true);
+         exit(-1);
+      }
+   }
+
 
    if(ncycle == next_graphics_cycle){
       mesh->calc_spatial_coordinates(0);
@@ -444,10 +506,14 @@ extern "C" void do_calc(void)
       delete state;
       delete crux;
 
+      total_program_time = cpu_timer_stop(total_exec);
+      FILE *fp = fopen(total_sim_time_log,"w");
+      fprintf(fp,"The total execution time of the program was %g seconds\n", total_program_time);
+      fclose(fp);
       exit(0);
    }  //  Complete final output.
    
-}
+} // end do_calc
 
 const int CRUX_CLAMR_VERSION = 101;
 const int num_int_vals       = 14;

@@ -65,6 +65,10 @@
 #endif
 #include "l7/l7.h"
 
+#define STATUS_OK        0
+#define STATUS_NAN       1
+#define STATUS_MASS_LOSS 2
+
 #if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
 #define FULL_PRECISION
 #endif
@@ -360,7 +364,7 @@ public:
    void print(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage);  
    void print_local(int ncycle);
    void print_failure_log(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage, bool got_nan);
-   void print_rollback_log(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage, int backup_attempt, int num_of_attempts, bool got_nan);
+   void print_rollback_log(int iteration, double simTime, double initial_mass, double iteration_mass, double mass_diff_percentage, int backup_attempt, int num_of_attempts, int error_status);
 
 private:
    State(const State&); // To block copy constructor so copies are not made inadvertently

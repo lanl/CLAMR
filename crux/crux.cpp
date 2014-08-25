@@ -57,6 +57,10 @@
 const bool CRUX_TIMING = true;
 bool do_crux_timing = false;
 
+#define RESTORE_NONE     0
+#define RESTORE_RESTART  1
+#define RESTORE_ROLLBACK 2
+
 using namespace std;
 
 char checkpoint_directory[] = "checkpoint_output";
@@ -72,6 +76,7 @@ struct timeval trestore_time;
 int checkpoint_timing_count = 0;
 float checkpoint_timing_sum = 0.0f;
 float checkpoint_timing_size = 0.0f;
+int rollback_attempt = 0;
 
 Crux::Crux(int crux_type_in, int num_of_rollback_states_in, bool restart)
 {
@@ -213,6 +218,8 @@ void Crux::store_end(void)
    checkpoint_counter++;
 }
 
+int restore_type = RESTORE_NONE;
+
 void Crux::restore_begin(char *restart_file, int rollback_counter)
 {
    rs_num = rollback_counter % num_of_rollback_states;
@@ -228,9 +235,11 @@ void Crux::restore_begin(char *restart_file, int rollback_counter)
          //printf("Could not write %s at iteration %d\n",restart_file,crux_int_vals[8]);
          printf("Could not open restart file %s\n",restart_file);
       }
+      restore_type = RESTORE_RESTART;
    } else if(crux_type == CRUX_IN_MEMORY){
       printf("Restoring state from memory rollback number %d rollback_counter %d\n",rs_num,rollback_counter);
       restore_fp = fmemopen(crux_data[rs_num], crux_data_size[rs_num], "r");
+      restore_type = RESTORE_ROLLBACK;
    } else if(crux_type == CRUX_DISK){
       char backup_file[60];
 
@@ -241,6 +250,7 @@ void Crux::restore_begin(char *restart_file, int rollback_counter)
          //printf("Could not write %s at iteration %d\n",backup_file,crux_int_vals[8]);
          printf("Could not open restore file %s\n",backup_file);
       }
+      restore_type = RESTORE_ROLLBACK;
    }
 }
 
@@ -287,9 +297,19 @@ void Crux::restore_end(void)
    double restore_total_time = cpu_timer_stop(trestore_time);
 
    if (do_crux_timing){
-      fprintf(crux_time_fp, "Total time for restore was %g seconds\n", restore_total_time);
+      if (restore_type == RESTORE_RESTART) {
+         fprintf(crux_time_fp, "Total time for restore was %g seconds\n", restore_total_time);
+      } else if (restore_type == RESTORE_ROLLBACK){
+         fprintf(crux_time_fp, "Total time for rollback %d was %g seconds\n", rollback_attempt, restore_total_time);
+      }
    }
 
    fclose(restore_fp);
 
+}
+
+int Crux::get_rollback_number()
+{
+  rollback_attempt++;
+  return(checkpoint_counter % num_of_rollback_states);
 }

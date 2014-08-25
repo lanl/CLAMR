@@ -84,5 +84,7 @@ public:
    double *restore_double_array(double *double_array, size_t nsize);
    void    restore_end(void);
 
+   int get_rollback_number();
+
 };
 #endif // CRUX_H_
