@@ -438,9 +438,7 @@ void State::add_boundary_cells(void)
    dx.resize(new_ncells);
    y.resize(new_ncells);
    dy.resize(new_ncells);
-#ifdef __INTEL_COMPILER
-#pragma ivdep
-#endif
+
    for (int nc=ncells; nc<new_ncells; nc++) {
       nlft[nc] = -1;
       nrht[nc] = -1;

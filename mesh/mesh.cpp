@@ -1689,9 +1689,10 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
          }
 #endif
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+// This causes a segmentation fault
+//#ifdef _OPENMP
+//#pragma omp parallel for
+//#endif
          for(uint ic = 0; ic < ncells; ic++) {
             lev = level[ic];
             mpot[ic] = mpot_old[ic];
@@ -3257,9 +3258,9 @@ void Mesh::calc_neighbors(void)
 
       //fprintf(fp,"DEBUG ncells is %lu\n",ncells);
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic, 8)
 #endif
-      for (uint ic=0; ic<ncells; ic++){
+      for (int ic=0; ic<(int)ncells; ic++){
          int ii = i[ic];
          int jj = j[ic];
          int lev = level[ic];
@@ -4519,9 +4520,9 @@ void Mesh::calc_neighbors_local(void)
 
          // Walk through cell array and set hash to global cell values
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+//#ifdef _OPENMP
+//#pragma omp parallel for
+//#endif
          for(int ic=0; ic<nbsize_local; ic++){
             int lev = border_cell_level_local[ic];
             int levmult = IPOW2(levmx-lev);

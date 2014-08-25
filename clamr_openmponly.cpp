@@ -150,15 +150,14 @@ int main(int argc, char **argv) {
         printf("--- max num openmp threads: %d\n", nt);
         fflush(stdout);
    }
-#pragma omp parallel for 
-   for(int i=0;i<5;i++){
+#pragma omp parallel 
+   {
       nt = omp_get_num_threads();
       tid = omp_get_thread_num();
 
-      if (0 == tid) {
-           printf("--- num openmp threads in parallel region: %d\n", nt);
-           fflush(stdout);
-      }
+#pragma omp master
+      printf("--- num openmp threads in parallel region: %d\n", nt);
+      fflush(stdout);
    }
 #endif
 

@@ -24,6 +24,7 @@ if (MIC_NATIVE)
    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-intel -std=c99 -mmic")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-intel -mmic")
 else (MIC_NATIVE)
+#  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11")
    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 endif (MIC_NATIVE)
 
