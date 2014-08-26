@@ -61,6 +61,9 @@
 #include <unistd.h>
 #include <limits.h>
 #include <time.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include "hsfc/hsfc.h"
 #include "kdtree/KDTree.h"
 #include "mesh.h"
@@ -82,6 +85,15 @@
 #define DEBUG 0
 #endif
 #undef DEBUG_RESTORE_VALS
+
+typedef int scanInt;
+void scan ( scanInt *input , scanInt *output , scanInt length);
+
+#ifdef _OPENMP
+#undef REZONE_NO_OPTIMIZATION
+#else
+#define REZONE_NO_OPTIMIZATION 1
+#endif
 
 #define TIMING_LEVEL 2
 
@@ -2611,6 +2623,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    vector<int> celltype_save(ncells);
    if (have_state) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
       for (int ic = 0; ic < (int)ncells; ic++){
          celltype_save[ic] = celltype[ic];
       }
@@ -2676,6 +2691,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
    }
 
+#ifdef REZONE_NO_OPTIMIZATION
    for (int ic = 0, nc = 0; ic < (int)ncells; ic++)
    {
       if (mpot[ic] == 0)
@@ -2910,6 +2926,281 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          }
       }
    }
+#else
+   // Data parallel optimizations for thread parallel -- slows down serial
+   // code by about 25%
+   vector<int> add_count(ncells);
+   vector<int> new_ic(ncells+1);
+#ifdef _OPENMP
+#pragma omp parallel
+   {
+#pragma omp for
+#endif
+      for (int ic = 0; ic < (int)ncells; ic++){
+         if (mpot[ic] == 0) {
+            add_count[ic] = 1;
+         } else if (mpot[ic] < 0) {
+            int doit = 0;
+            if (is_lower_left(i[ic],j[ic]) ) doit = 1;
+            if (celltype[ic] != REAL_CELL && is_upper_right(i[ic],j[ic]) ) doit = 1;
+            if (doit) {
+               add_count[ic] = 1;
+            } else {
+               add_count[ic] = 0;
+            }
+         } else if (mpot[ic] > 0) {
+            if (celltype[ic] != REAL_CELL) {
+               add_count[ic] = 2;
+            } else {
+               add_count[ic] = 4;
+            }
+         }
+      }
+
+      scan (&add_count[0], &new_ic[0], ncells);
+
+#ifdef _OPENMP
+#pragma omp for
+#endif
+   for (int ic = 0; ic < (int)ncells; ic++) {
+      int nc = new_ic[ic];
+      if (mpot[ic] == 0)
+      {  //  No change is needed; copy the old cell straight to the new mesh at this location.
+         i_new[nc]     = i[ic];
+         j_new[nc]     = j[ic];
+         level_new[nc] = level[ic];
+      } //  Complete no change needed.
+      else if (mpot[ic] < 0)
+      {  //  Coarsening is needed; remove this cell and the other three and replace them with one.
+         int doit = 0;
+         if (is_lower_left(i[ic],j[ic]) ) doit = 1;
+         if (celltype[ic] != REAL_CELL && is_upper_right(i[ic],j[ic]) ) doit = 1;
+         if (doit){
+            //printf("                     %d: DEBUG -- coarsening cell %d nc %d\n",mype,ic,nc);
+            index[nc] = ic;
+            i_new[nc] = i[ic]/2;
+            j_new[nc] = j[ic]/2;
+            level_new[nc] = level[ic] - 1;
+         }
+      } //  Coarsening complete.
+      else if (mpot[ic] > 0)
+      {  //  Refinement is needed; insert four cells where once was one.
+         if (celltype[ic] == REAL_CELL)
+         {  
+            int order[4];
+            set_refinement_order(&order[0], ic, ifirst, ilast, jfirst, jlast,
+                                 level_first, level_last, i, j, level);
+
+            //  Create the cells in the correct order and orientation.
+            for (int ii = 0; ii < 4; ii++) {
+               level_new[nc] = level[ic] + 1;
+               switch (order[ii]) {
+                  case SW:
+                     // lower left
+                     invorder[SW] = ii;
+                     i_new[nc]     = i[ic]*2;
+                     j_new[nc]     = j[ic]*2;
+                     nc++;
+                     break;
+                     
+                  case SE:
+                     // lower right
+                     invorder[SE] = ii;
+                     i_new[nc]     = i[ic]*2 + 1;
+                     j_new[nc]     = j[ic]*2;
+                     nc++;
+                     break;
+                     
+                  case NW:
+                     // upper left
+                     invorder[NW] = ii;
+                     i_new[nc]     = i[ic]*2;
+                     j_new[nc]     = j[ic]*2 + 1;
+                     nc++;
+                     break;
+                     
+                  case NE:
+                     // upper right
+                     invorder[NE] = ii;
+                     i_new[nc]     = i[ic]*2 + 1;
+                     j_new[nc]     = j[ic]*2 + 1;
+                     nc++;
+                     break;
+                  }
+               } //  Complete cell refinement.
+         }  //  Complete real cell refinement.
+         
+         else if (celltype[ic] == LEFT_BOUNDARY) {
+            // lower
+            i_new[nc]  = i[ic]*2 + 1;
+            j_new[nc]  = j[ic]*2;
+            level_new[nc] = level[ic] + 1;
+            nc++;
+            
+            // upper
+            i_new[nc] = i[ic]*2 + 1;
+            j_new[nc] = j[ic]*2 + 1;
+            level_new[nc] = level[ic] + 1;
+            nc++;
+         }
+         else if (celltype[ic] == RIGHT_BOUNDARY) {
+            // lower
+            i_new[nc]  = i[ic]*2;
+            j_new[nc]  = j[ic]*2;
+            level_new[nc] = level[ic] + 1;
+            nc++;
+            
+            // upper
+            i_new[nc] = i[ic]*2;
+            j_new[nc] = j[ic]*2 + 1;
+            level_new[nc] = level[ic] + 1;
+            nc++;
+         }
+         else if (celltype[ic] == BOTTOM_BOUNDARY) {
+            // left
+            i_new[nc]  = i[ic]*2;
+            j_new[nc]  = j[ic]*2 + 1;
+            level_new[nc] = level[ic] + 1;
+            nc++;
+            
+            // right
+            i_new[nc] = i[ic]*2 + 1;
+            j_new[nc] = j[ic]*2 + 1;
+            level_new[nc] = level[ic] + 1;
+            nc++;
+         }
+         else if (celltype[ic] == TOP_BOUNDARY) {
+            // right
+            i_new[nc] = i[ic]*2 + 1;
+            j_new[nc] = j[ic]*2;
+            level_new[nc] = level[ic] + 1;
+            nc++;
+
+            // left
+            i_new[nc]  = i[ic]*2;
+            j_new[nc]  = j[ic]*2;
+            level_new[nc] = level[ic] + 1;
+            nc++;
+         }
+      } //  Complete refinement needed.
+   } //  Complete addition of new cells to the mesh.
+
+   }
+
+   if (have_state){
+      MallocPlus state_memory_old = state_memory;
+      list<malloc_plus_memory_entry>::iterator it;
+
+      for (it = state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
+           it = state_memory_old.memory_entry_next() ) {
+         //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
+         if (it->mem_elsize == 8) {
+            double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
+                                                                             flags, "state_temp_double");
+
+            double *mem_ptr_double = (double *)it->mem_ptr;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+            for (int ic=0; ic<(int)ncells; ic++) {
+
+               int nc = new_ic[ic];
+               if (mpot[ic] == 0) {
+                  state_temp_double[nc] = mem_ptr_double[ic];
+               } else if (mpot[ic] < 0){
+                  if (is_lower_left(i[ic],j[ic]) ) {
+                     int nr = nrht[ic];
+                     int nt = ntop[ic];
+                     int nrt = nrht[nt];
+                     state_temp_double[nc] = (mem_ptr_double[ic] + mem_ptr_double[nr] +
+                                              mem_ptr_double[nt] + mem_ptr_double[nrt])*0.25;
+                  }
+                  if (celltype[ic] != REAL_CELL && is_upper_right(i[ic],j[ic]) ) {
+                     int nl = nlft[ic];
+                     int nb = nbot[ic];
+                     int nlb = nlft[nb];
+                     state_temp_double[nc] = (mem_ptr_double[ic] + mem_ptr_double[nl] +
+                                              mem_ptr_double[nb] + mem_ptr_double[nlb])*0.25;
+                  }
+               } else if (mpot[ic] > 0){
+                  // lower left
+                  state_temp_double[nc] = mem_ptr_double[ic];
+                  nc++;
+
+                  // lower right
+                  state_temp_double[nc] = mem_ptr_double[ic];
+                  nc++;
+
+                  if (celltype_save[ic] == REAL_CELL){
+                     // upper left
+                     state_temp_double[nc] = mem_ptr_double[ic];
+                     nc++;
+
+                     // upper right
+                     state_temp_double[nc] = mem_ptr_double[ic];
+                     nc++;
+                  }
+               }
+            }
+
+            state_memory.memory_replace(mem_ptr_double, state_temp_double);
+         } else if (it->mem_elsize == 4) {
+            float *state_temp_float = (float *)state_memory.memory_malloc(new_ncells, sizeof(float),
+                                                                           flags, "state_temp_float");
+
+            float *mem_ptr_float = (float *)it->mem_ptr;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+            for (int ic=0; ic<(int)ncells; ic++) {
+
+               int nc = new_ic[ic];
+               if (mpot[ic] == 0) {
+                  state_temp_float[nc] = mem_ptr_float[ic];
+               } else if (mpot[ic] < 0){
+                  if (is_lower_left(i[ic],j[ic]) ) {
+                     int nr = nrht[ic];
+                     int nt = ntop[ic];
+                     int nrt = nrht[nt];
+                     state_temp_float[nc] = (mem_ptr_float[ic] + mem_ptr_float[nr] +
+                                             mem_ptr_float[nt] + mem_ptr_float[nrt])*0.25;
+                  }
+                  if (celltype[ic] != REAL_CELL && is_upper_right(i[ic],j[ic]) ) {
+                     int nl = nlft[ic];
+                     int nb = nbot[ic];
+                     int nlb = nlft[nb];
+                     state_temp_float[nc] = (mem_ptr_float[ic] + mem_ptr_float[nl] +
+                                             mem_ptr_float[nb] + mem_ptr_float[nlb])*0.25;
+                  }
+               } else if (mpot[ic] > 0){
+                  // lower left
+                  state_temp_float[nc] = mem_ptr_float[ic];
+                  nc++;
+
+                  // lower right
+                  state_temp_float[nc] = mem_ptr_float[ic];
+                  nc++;
+
+                  if (celltype_save[ic] == REAL_CELL){
+                     // upper left
+                     state_temp_float[nc] = mem_ptr_float[ic];
+                     nc++;
+
+                     // upper right
+                     state_temp_float[nc] = mem_ptr_float[ic];
+                     nc++;
+                  }
+               }
+            }
+
+            state_memory.memory_replace(mem_ptr_float, state_temp_float);
+         }
+      }
+   }
+   // End of data parallel optimizations
+#endif
 
    i     = (int *)mesh_memory.memory_replace(i,     i_new);
    j     = (int *)mesh_memory.memory_replace(j,     j_new);
@@ -6803,6 +7094,8 @@ void Mesh::calc_celltype(size_t ncells)
    if (celltype != NULL) celltype = (int *)mesh_memory.memory_delete(celltype);
    celltype = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "celltype");
 
+#ifdef _OPENMP
+#pragma omp parallel for
    for (uint ic=0; ic<ncells; ++ic) {
       celltype[ic] = REAL_CELL;
       if (is_left_boundary(ic) )   celltype[ic] = LEFT_BOUNDARY;
@@ -6810,6 +7103,7 @@ void Mesh::calc_celltype(size_t ncells)
       if (is_bottom_boundary(ic) ) celltype[ic] = BOTTOM_BOUNDARY;
       if (is_top_boundary(ic))     celltype[ic] = TOP_BOUNDARY;
    }
+#endif
 }
 
 void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym)
@@ -8267,4 +8561,75 @@ void Mesh::restore_checkpoint(Crux *crux)
    level = crux->restore_int_array(level, ncells);
 
    calc_celltype(ncells);
+}
+
+
+// This code due to Matt Calef
+void scan ( scanInt *input , scanInt *output , scanInt length) 
+{
+#ifdef _OPENMP
+   // This already assumes it is in a parallel region
+
+   // Get the total number of threads
+
+   scanInt numThreads = omp_get_num_threads ( );
+
+   // Compute the range for which this thread is responsible.
+
+   scanInt threadID   = omp_get_thread_num ( );
+   scanInt start = length * ( threadID     ) / numThreads;
+   scanInt end   = length * ( threadID + 1 ) / numThreads;
+
+   // In the case that there are fewer entries than threads, some
+   // threads will have no entries.  Only perform this operation if
+   // there is a postive number of entries.
+
+   if ( start < end ) {
+
+       // Do a scan over the region for this thread, with an initial
+       // value of zero.
+
+       output[start] = 0;
+       for ( scanInt i = start + 1 ; i < end ; i++ ) 
+          output[i] = output[i-1] + input[i-1];
+   }
+    
+   // Wait until all threads get here. 
+
+#pragma omp barrier
+    
+   // At this point each thread has done an independent scan of its
+   // region.  All scans, except the first, are off by an
+   // offset. Here we have a single thread compute that offset with a
+   // serial scan that strides over the regions assigned to each
+   // thread.
+
+   if ( 0 == threadID ) {
+      for ( scanInt i = 1 ; i < numThreads ; i ++ ) {
+         scanInt s0 = length * ( i - 1 ) / numThreads;
+         scanInt s1 = length * ( i     ) / numThreads;
+
+         if ( s0 < s1 ) 
+            output[s1] = output[s0] + input[s1-1];
+
+         if ( s0 < s1 - 1 )
+            output[s1] += output[s1-1];
+      }
+    }
+
+    // Wait until all threads get here. 
+
+#pragma omp barrier
+
+    // Apply the offset to the range for this thread.
+    
+    for ( scanInt i = start + 1 ; i < end ; i++ ) 
+       output[i] += output[start];
+
+#else
+   output[0] = 0;
+   for (int ic = 0; ic < length; ic++){
+      output[ic+1] = output[ic] + input[ic];
+   }
+#endif
 }
