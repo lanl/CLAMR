@@ -8605,27 +8605,24 @@ void scan ( scanInt *input , scanInt *output , scanInt length)
    // serial scan that strides over the regions assigned to each
    // thread.
 
-   if ( 0 == threadID ) {
-      for ( scanInt i = 1 ; i < numThreads ; i ++ ) {
-         scanInt s0 = length * ( i - 1 ) / numThreads;
-         scanInt s1 = length * ( i     ) / numThreads;
+#pragma omp single
+   for ( scanInt i = 1 ; i < numThreads ; i ++ ) {
+      scanInt s0 = length * ( i - 1 ) / numThreads;
+      scanInt s1 = length * ( i     ) / numThreads;
 
-         if ( s0 < s1 ) 
-            output[s1] = output[s0] + input[s1-1];
+      if ( s0 < s1 ) 
+         output[s1] = output[s0] + input[s1-1];
 
-         if ( s0 < s1 - 1 )
-            output[s1] += output[s1-1];
-      }
-    }
+      if ( s0 < s1 - 1 )
+         output[s1] += output[s1-1];
+   }
 
-    // Wait until all threads get here. 
+   // Barrier is implicit from omp single Wait until all threads get here. 
 
-#pragma omp barrier
-
-    // Apply the offset to the range for this thread.
+   // Apply the offset to the range for this thread.
     
-    for ( scanInt i = start + 1 ; i < end ; i++ ) 
-       output[i] += output[start];
+   for ( scanInt i = start + 1 ; i < end ; i++ ) 
+      output[i] += output[start];
 
 #else
    output[0] = 0;
