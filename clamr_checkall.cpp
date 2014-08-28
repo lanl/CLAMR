@@ -54,13 +54,6 @@
  * 
  */
 
-#include <algorithm>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <vector>
 #include "ezcl/ezcl.h"
 #include "input.h"
 #include "mesh/mesh.h"
@@ -70,6 +63,14 @@
 #include "timer/timer.h"
 #include "l7/l7.h"
 #include <mpi.h>
+
+#include <algorithm>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <vector>
 
 #ifndef DEBUG 
 #define DEBUG 0

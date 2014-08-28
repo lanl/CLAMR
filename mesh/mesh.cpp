@@ -2958,9 +2958,12 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       }
 
       scan (&add_count[0], &new_ic[0], ncells);
+#ifdef _OPENMP
+   }
+#endif
 
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp parallel for
 #endif
    for (int ic = 0; ic < (int)ncells; ic++) {
       int nc = new_ic[ic];
@@ -3084,8 +3087,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          }
       } //  Complete refinement needed.
    } //  Complete addition of new cells to the mesh.
-
-   }
 
    if (have_state){
       MallocPlus state_memory_old = state_memory;
@@ -3549,7 +3550,7 @@ void Mesh::calc_neighbors(void)
 
       //fprintf(fp,"DEBUG ncells is %lu\n",ncells);
 #ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic, 8)
+#pragma omp parallel for
 #endif
       for (int ic=0; ic<(int)ncells; ic++){
          int ii = i[ic];
