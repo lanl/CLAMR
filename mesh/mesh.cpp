@@ -1575,47 +1575,6 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
    ncells_ghost = ncells;
 }
 
-
-void Mesh::init_for_rollback(Mesh *mesh_to_copy)
-{
-   size_t i_size = mesh_to_copy->mesh_memory.get_memory_size(mesh_to_copy->i);
-   size_t j_size = mesh_to_copy->mesh_memory.get_memory_size(mesh_to_copy->j);
-   size_t level_size = mesh_to_copy->mesh_memory.get_memory_size(mesh_to_copy->level);
-   size_t celltype_size = mesh_to_copy->mesh_memory.get_memory_size(mesh_to_copy->celltype);
-
-   ncells = mesh_to_copy->ncells;
-   ncells_ghost = mesh_to_copy->ncells_ghost;
-
-   i     = (int *)mesh_memory.memory_malloc(i_size, sizeof(int), "i");
-   memcpy(i, mesh_to_copy->i, sizeof(int) * i_size);
-   j     = (int *)mesh_memory.memory_malloc(j_size, sizeof(int), "j");
-   memcpy(j, mesh_to_copy->j,  sizeof(int) * j_size);
-   level     = (int *)mesh_memory.memory_malloc(level_size, sizeof(int), "level");
-   memcpy(level, mesh_to_copy->level, sizeof(int) * level_size);
-   celltype     = (int *)mesh_memory.memory_malloc(celltype_size, sizeof(int), "celltype");
-   memcpy(celltype, mesh_to_copy->celltype, sizeof(int) * celltype_size);
-
-   nlft = NULL;
-   nrht = NULL;
-   nbot = NULL;
-   ntop = NULL;
-   
-   calc_spatial_coordinates(0);
-
-   int ncells_corners = 4;
-   int i_corner[] = {   0,   0,imax,imax};
-   int j_corner[] = {   0,jmax,   0,jmax};
-
-   for(int ic=0; ic<ncells_corners; ic++){
-      for (int    jj = j_corner[ic]*IPOW2(levmx); jj < (j_corner[ic]+1)*IPOW2(levmx); jj++) {
-         for (int ii = i_corner[ic]*IPOW2(levmx); ii < (i_corner[ic]+1)*IPOW2(levmx); ii++) {
-            corners_i.push_back(ii);
-            corners_j.push_back(jj);
-         }
-      }
-   }
-}
-
 size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 {
    int nl, nr, nt, nb;
