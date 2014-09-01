@@ -325,7 +325,6 @@ public:
 
    //   Member functions.
    void init(int nx, int ny, real_t circ_radius, partition_method initial_order, int do_gpu_calc);
-   void init_from_backup_file(FILE *backup_file);
    void init_for_rollback(Mesh *mesh_to_copy);
    void terminate(void);
 

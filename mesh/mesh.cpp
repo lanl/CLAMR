@@ -1616,50 +1616,6 @@ void Mesh::init_for_rollback(Mesh *mesh_to_copy)
    }
 }
 
-
-void Mesh::init_from_backup_file(FILE *backup_file)
-{
-   size_t i_size = 0, j_size = 0, level_size = 0, celltype_size = 0;
-   fread(&ncells,sizeof(size_t),1,backup_file);
-   fread(&ncells_ghost,sizeof(size_t),1,backup_file);
-   
-
-   fread(&i_size,sizeof(size_t),1,backup_file);
-   i     = (int *)mesh_memory.memory_malloc(i_size, sizeof(int), "i");
-   fread(i,sizeof(int),i_size,backup_file);
-
-   fread(&j_size,sizeof(size_t),1,backup_file);
-   j     = (int *)mesh_memory.memory_malloc(j_size, sizeof(int), "j");
-   fread(j,sizeof(int),j_size,backup_file);
-
-   fread(&level_size,sizeof(size_t),1,backup_file);
-   level = (int *)mesh_memory.memory_malloc(level_size, sizeof(int), "level");
-   fread(level,sizeof(int),level_size,backup_file);
-   
-   nlft = NULL;
-   nrht = NULL;
-   nbot = NULL;
-   ntop = NULL;
-   
-   fread(&celltype_size,sizeof(size_t),1,backup_file);
-   celltype = (int *)mesh_memory.memory_malloc(celltype_size, sizeof(int), "celltype");
-   fread(celltype,sizeof(int),celltype_size,backup_file);
-   calc_spatial_coordinates(0);
-
-   int ncells_corners = 4;
-   int i_corner[] = {   0,   0,imax,imax};
-   int j_corner[] = {   0,jmax,   0,jmax};
-
-   for(int ic=0; ic<ncells_corners; ic++){
-      for (int    jj = j_corner[ic]*IPOW2(levmx); jj < (j_corner[ic]+1)*IPOW2(levmx); jj++) {
-         for (int ii = i_corner[ic]*IPOW2(levmx); ii < (i_corner[ic]+1)*IPOW2(levmx); ii++) {
-            corners_i.push_back(ii);
-            corners_j.push_back(jj);
-         }
-      }
-   }
-}
-
 size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 {
    int nl, nr, nt, nb;
