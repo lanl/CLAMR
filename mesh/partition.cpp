@@ -99,9 +99,10 @@ void Mesh::partition_measure(void)
         int end_idx   = (group_id + 1) * ntX; 
 
         int offtile =0;
-#ifdef _OPENMP
-#pragma omp parallel for reduction(+:offtile)
-#endif
+// Fails to compile on some systems
+//#ifdef _OPENMP
+//#pragma omp parallel for reduction(+:offtile)
+//#endif
         for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
 
            if (i >= ncells) continue;
