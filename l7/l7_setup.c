@@ -330,6 +330,9 @@ int L7_Setup(
 		 l7_id_db->indices_needed_len = num_indices_needed;
 	}
 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
 	for (i=0; i<num_indices_needed; i++){
 		l7_id_db->indices_needed[i] = indices_needed[i];
 	}
@@ -457,6 +460,9 @@ int L7_Setup(
 		l7_id_db->recv_counts_len = l7_id_db->num_recvs;
 		
                 int num_recvs = l7_id_db->num_recvs; // for vectorization
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
 		for (i=0; i<num_recvs; i++)
 			l7_id_db->recv_counts[i] = 0; /* calloc does not guarantee = 0. */
 				
@@ -477,6 +483,9 @@ int L7_Setup(
 	l7_id_db->recv_from_len = l7_id_db->num_recvs;
 	
         int num_recvs = l7_id_db->num_recvs; // for vectorization
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
 	for (i=0; i<num_recvs; i++)
 		l7_id_db->recv_from[i] = -999;
 	}
@@ -800,11 +809,14 @@ int L7_Setup(
 	for (i=0; i<l7_id_db->num_sends; i++){
            int counts = l7_id_db->send_counts[i]; // for vectorization
            int adj = (int)(my_start_index) - base_adj; // for vectorization
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
 	   for (j=0; j<counts; j++){
-	      l7_id_db->indices_local_to_send[offset] =
-	         l7_id_db->indices_global_to_send[offset] - adj;
-	      offset ++;
+	      l7_id_db->indices_local_to_send[offset+j] =
+	         l7_id_db->indices_global_to_send[offset+j] - adj;
 	   }
+           offset += counts;
 	}
 	
 #if defined _L7_DEBUG

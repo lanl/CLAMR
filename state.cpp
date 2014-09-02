@@ -589,8 +589,6 @@ void State::add_boundary_cells(void)
 
 void State::apply_boundary_conditions_local(void)
 {
-   int nl, nr, nb, nt;
-
    size_t &ncells = mesh->ncells;
    int *nlft = mesh->nlft;
    int *nrht = mesh->nrht;
@@ -598,9 +596,12 @@ void State::apply_boundary_conditions_local(void)
    int *ntop = mesh->ntop;
 
    // This is for a mesh with boundary cells
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
    for (uint ic=0; ic<ncells; ic++) {
       if (mesh->is_left_boundary(ic)) {
-         nr = nrht[ic];
+         int nr = nrht[ic];
          if (nr < (int)ncells) {
             H[ic] =  H[nr];
             U[ic] = -U[nr];
@@ -608,7 +609,7 @@ void State::apply_boundary_conditions_local(void)
          }
       }
       if (mesh->is_right_boundary(ic))  {
-         nl = nlft[ic];
+         int nl = nlft[ic];
          if (nl < (int)ncells) {
             H[ic] =  H[nl];
             U[ic] = -U[nl];
@@ -616,7 +617,7 @@ void State::apply_boundary_conditions_local(void)
          }
       }
       if (mesh->is_bottom_boundary(ic)) {
-         nt = ntop[ic];
+         int nt = ntop[ic];
          if (nt < (int)ncells) {
             H[ic] =  H[nt];
             U[ic] =  U[nt];
@@ -624,7 +625,7 @@ void State::apply_boundary_conditions_local(void)
          }
       }
       if (mesh->is_top_boundary(ic)) {
-         nb = nbot[ic];
+         int nb = nbot[ic];
          if (nb < (int)ncells) {
             H[ic] =  H[nb];
             U[ic] =  U[nb];
@@ -636,7 +637,6 @@ void State::apply_boundary_conditions_local(void)
 
 void State::apply_boundary_conditions_ghost(void)
 {
-   int nl, nr, nb, nt;
 
    size_t &ncells = mesh->ncells;
    int *nlft = mesh->nlft;
@@ -645,9 +645,12 @@ void State::apply_boundary_conditions_ghost(void)
    int *ntop = mesh->ntop;
 
    // This is for a mesh with boundary cells
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
    for (uint ic=0; ic<ncells; ic++) {
       if (mesh->is_left_boundary(ic)) {
-         nr = nrht[ic];
+         int nr = nrht[ic];
          if (nr >= (int)ncells) {
             H[ic] =  H[nr];
             U[ic] = -U[nr];
@@ -655,7 +658,7 @@ void State::apply_boundary_conditions_ghost(void)
          }
       }
       if (mesh->is_right_boundary(ic))  {
-         nl = nlft[ic];
+         int nl = nlft[ic];
          if (nl >= (int)ncells) {
             H[ic] =  H[nl];
             U[ic] = -U[nl];
@@ -663,7 +666,7 @@ void State::apply_boundary_conditions_ghost(void)
          }
       }
       if (mesh->is_bottom_boundary(ic)) {
-         nt = ntop[ic];
+         int nt = ntop[ic];
          if (nt >= (int)ncells) {
             H[ic] =  H[nt];
             U[ic] =  U[nt];
@@ -671,7 +674,7 @@ void State::apply_boundary_conditions_ghost(void)
          }
       }
       if (mesh->is_top_boundary(ic)) {
-         nb = nbot[ic];
+         int nb = nbot[ic];
          if (nb >= (int)ncells) {
             H[ic] =  H[nb];
             U[ic] =  U[nb];
@@ -683,8 +686,6 @@ void State::apply_boundary_conditions_ghost(void)
 
 void State::apply_boundary_conditions(void)
 {
-   int nl, nr, nb, nt;
-
    size_t &ncells = mesh->ncells;
    int *nlft = mesh->nlft;
    int *nrht = mesh->nrht;
@@ -692,27 +693,30 @@ void State::apply_boundary_conditions(void)
    int *ntop = mesh->ntop;
 
    // This is for a mesh with boundary cells
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
    for (uint ic=0; ic<ncells; ic++) {
       if (mesh->is_left_boundary(ic)) {
-         nr = nrht[ic];
+         int nr = nrht[ic];
          H[ic] =  H[nr];
          U[ic] = -U[nr];
          V[ic] =  V[nr];
       }
       if (mesh->is_right_boundary(ic))  {
-         nl = nlft[ic];
+         int nl = nlft[ic];
          H[ic] =  H[nl];
          U[ic] = -U[nl];
          V[ic] =  V[nl];
       }
       if (mesh->is_bottom_boundary(ic)) {
-         nt = ntop[ic];
+         int nt = ntop[ic];
          H[ic] =  H[nt];
          U[ic] =  U[nt];
          V[ic] = -V[nt];
       }
       if (mesh->is_top_boundary(ic)) {
-         nb = nbot[ic];
+         int nb = nbot[ic];
          H[ic] =  H[nb];
          U[ic] =  U[nb];
          V[ic] = -V[nb];

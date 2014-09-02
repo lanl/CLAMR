@@ -1594,8 +1594,6 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #endif
 
    if(newcount_global > 0 && levmx > 1) {
-      int lev, ll, lr, lt, lb;
-      int llt, lrt, ltr, lbr;
       int levcount = 1;
       size_t my_ncells=ncells;
       if (parallel) my_ncells=ncells_ghost;
@@ -1616,35 +1614,36 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
          }
 #endif
 
-// This causes a segmentation fault
-//#ifdef _OPENMP
-//#pragma omp parallel for
-//#endif
+#ifdef _OPENMP
+#pragma omp parallel for reduction(+:newcount)
+#endif
          for(uint ic = 0; ic < ncells; ic++) {
-            lev = level[ic];
+            int lev = level[ic];
             mpot[ic] = mpot_old[ic];
             if(mpot_old[ic] > 0) continue;
    
-            nl = nlft[ic];
+            int nl = nlft[ic];
             if (nl >= 0 && nl < (int)ncells_ghost) {
-               ll = level[nl];
+               int ll = level[nl];
                if(mpot_old[nl] > 0) ll++;
    
                if(ll - lev > 1) {
                   mpot[ic]=1;
+//#pragma omp atomic
                   newcount++;
                   continue;
                }
 
                ll = level[nl];
                if (ll > lev) {
-                  nlt = ntop[nl];
+                  int nlt = ntop[nl];
                   if (nlt >= 0 && nlt < (int)ncells_ghost) {
-                     llt = level[nlt];
+                     int llt = level[nlt];
                      if(mpot_old[nlt] > 0) llt++;
 
                      if(llt - lev > 1) {
                         mpot[ic]=1;
+//#pragma omp atomic
                         newcount++;
                         continue;
                      }
@@ -1652,26 +1651,28 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                }
             }
 
-            nr = nrht[ic];
+            int nr = nrht[ic];
             if (nr >= 0 && nr < (int)ncells_ghost) {
-               lr = level[nr];
+               int lr = level[nr];
                if(mpot_old[nr] > 0) lr++;
    
                if(lr - lev > 1) {
                   mpot[ic]=1;
+//#pragma omp atomic
                   newcount++;
                   continue;
                }
 
                lr = level[nr];
                if (lr > lev) {
-                  nrt = ntop[nr];
+                  int nrt = ntop[nr];
                   if (nrt >= 0 && nrt < (int)ncells_ghost) {
-                     lrt = level[nrt];
+                     int lrt = level[nrt];
                      if(mpot_old[nrt] > 0) lrt++;
 
                      if(lrt - lev > 1) {
                         mpot[ic]=1;
+//#pragma omp atomic
                         newcount++;
                         continue;
                      }
@@ -1679,13 +1680,14 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                }
             }
 
-            nt = ntop[ic];
+            int nt = ntop[ic];
             if (nt >= 0 && nt < (int)ncells_ghost) {
-               lt = level[nt];
+               int lt = level[nt];
                if(mpot_old[nt] > 0) lt++;
    
                if(lt - lev > 1) {
                   mpot[ic]=1;
+//#pragma omp atomic
                   newcount++;
                   continue;
                }
@@ -1694,11 +1696,12 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                if (lt > lev) {
                   ntr = nrht[nt];
                   if (ntr >= 0 && ntr < (int)ncells_ghost) {
-                     ltr = level[ntr];
+                     int ltr = level[ntr];
                      if(mpot_old[ntr] > 0) ltr++;
 
                      if(ltr - lev > 1) {
                         mpot[ic]=1;
+//#pragma omp atomic
                         newcount++;
                         continue;
                      }
@@ -1706,26 +1709,28 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                }
             }
 
-            nb = nbot[ic];
+            int nb = nbot[ic];
             if (nb >= 0 && nb < (int)ncells_ghost) {
-               lb = level[nb];
+               int lb = level[nb];
                if(mpot_old[nb] > 0) lb++;
    
                if(lb - lev > 1) {
                   mpot[ic]=1;
+//#pragma omp atomic
                   newcount++;
                   continue;
                }
 
                lb = level[nb];
                if (lb > lev) {
-                  nbr = nrht[nb];
+                  int nbr = nrht[nb];
                   if (nbr >= 0 && nbr < (int)ncells_ghost) {
-                     lbr = level[nbr];
+                     int lbr = level[nbr];
                      if(mpot_old[nbr] > 0) lbr++;
 
                      if(lbr - lev > 1) {
                         mpot[ic]=1;
+//#pragma omp atomic
                         newcount++;
                         continue;
                      }
@@ -2231,31 +2236,36 @@ void Mesh::terminate(void)
 
 int Mesh::rezone_count(vector<int> mpot, int &icount, int &jcount)
 {
-   icount=0;
-   jcount=0;
+   int my_icount=0;
+   int my_jcount=0;
 
+#ifdef _OPENMP
+#pragma omp parallel for reduction (+:my_jcount,my_icount)
+#endif
    for (uint ic=0; ic<ncells; ++ic){
       if (mpot[ic] < 0) {
          if (celltype[ic] == REAL_CELL) {
             // remove all but cell that will remain to get count right when split
             // across processors
-            if (! is_lower_left(i[ic],j[ic]) ) jcount--;
+            if (! is_lower_left(i[ic],j[ic]) ) my_jcount--;
          } else {
             // either upper right or lower left will remain for boundary cells
-            if (! (is_upper_right(i[ic],j[ic]) || is_lower_left(i[ic],j[ic]) ) ) jcount--;
+            if (! (is_upper_right(i[ic],j[ic]) || is_lower_left(i[ic],j[ic]) ) ) my_jcount--;
          }
       }
 
       if (mpot[ic] > 0) {
          //printf("mpot[%d] = %d\n",ic,mpot[ic]);
          if (celltype[ic] == REAL_CELL){
-            icount += 3;
+            my_icount += 3;
          } else {
-            icount ++;
+            my_icount ++;
          }
       }
    }
-   //printf("icount is %d\n",icount);
+   //printf("icount is %d\n",my_icount);
+   icount = my_icount;
+   jcount = my_jcount;
 
    return(icount+jcount);
 }
@@ -2345,6 +2355,9 @@ void Mesh::calc_spatial_coordinates(int ibase)
    dy.resize(ncells);
 
    if (have_boundary) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
       for (uint ic = 0; ic < ncells; ic++) {
          int lev = level[ic];
          x[ic]  = xmin + (lev_deltax[lev] * (i[ic] - ibase));
@@ -2353,6 +2366,9 @@ void Mesh::calc_spatial_coordinates(int ibase)
          dy[ic] =        lev_deltay[lev];
       }
    } else {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
       for (uint ic = 0; ic < ncells; ic++) {
          int lev = level[ic];
          x[ic]  = xmin + (lev_deltax[lev] * (i[ic] - lev_ibegin[lev]));
@@ -2526,6 +2542,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
    if (global_icount == 0 && global_jcount == 0) {
       index.resize(ncells);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
       for (uint ic=0; ic<ncells; ic++){
          index[ic]=ic;
       }
@@ -4789,6 +4808,9 @@ void Mesh::calc_neighbors_local(void)
          ntop     = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), ntop);
          memory_reset_ptrs();
 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
          for (int ic = ncells; ic < (int)ncells_ghost; ic++){
             nlft[ic] = -1;
             nrht[ic] = -1;
@@ -4801,6 +4823,9 @@ void Mesh::calc_neighbors_local(void)
             cpu_timer_start(&tstart_lev2);
          }
 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
          for(int ic=0; ic<nbsize_local; ic++){
             int ii = border_cell_i_local[ic];
             int jj = border_cell_j_local[ic];
@@ -4824,6 +4849,9 @@ void Mesh::calc_neighbors_local(void)
             print_local();
          }
 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
          for (uint ic=0; ic<ncells_ghost; ic++){
             int ii = i[ic];
             int jj = j[ic];
@@ -5036,6 +5064,9 @@ void Mesh::calc_neighbors_local(void)
          }
 
          // Adjusting neighbors to local indices
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
          for (uint ic=0; ic<ncells_ghost; ic++){
             //fprintf(fp,"%d: ic %d nlft %d noffset %d ncells %ld\n",mype,ic,nlft[ic],noffset,ncells);
             if (nlft[ic] <= -(int)ncells && nlft[ic] > -(int)ncells_ghost){

@@ -409,6 +409,9 @@ double *MallocPlus::memory_reorder(double *malloc_mem_ptr, int *iorder){
    if (it != memory_list.end() ){
       if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
       double *tmp = (double *)malloc(it->mem_nelem*it->mem_elsize);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
       for (uint ic = 0; ic < it->mem_nelem; ic++){
          tmp[ic] = malloc_mem_ptr[iorder[ic]];
       }
@@ -433,6 +436,9 @@ float *MallocPlus::memory_reorder(float *malloc_mem_ptr, int *iorder){
    if (it != memory_list.end() ){
       if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
       float *tmp = (float *)malloc(it->mem_nelem*it->mem_elsize);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
       for (uint ic = 0; ic < it->mem_nelem; ic++){
          tmp[ic] = malloc_mem_ptr[iorder[ic]];
       }
