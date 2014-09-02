@@ -92,9 +92,11 @@ static double circle_radius=-1.0;
 static int view_mode = 0;
 
 #ifdef FULL_PRECISION
+#define  SUM_ERROR 1.0e-18
    void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
    void (*set_cell_data)(double *) = &set_cell_data_double;
 #else
+#define  SUM_ERROR 1.0e-8
    void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
    void (*set_cell_data)(float *) = &set_cell_data_float;
 #endif
@@ -214,6 +216,12 @@ int main(int argc, char **argv) {
    double H_sum = state->mass_sum(enhanced_precision_sum);
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
+
+
+   if(upper_mass_diff_percentage < 0){
+      upper_mass_diff_percentage = H_sum_initial * SUM_ERROR;
+      //printf("Setting sum mass error to %16.8lg\n",upper_mass_diff_percentage);
+   }
 
    double cpu_time_main_setup = cpu_timer_stop(tstart_setup);
    state->parallel_timer_output(numpe,mype,"CPU:  setup time               time was",cpu_time_main_setup);

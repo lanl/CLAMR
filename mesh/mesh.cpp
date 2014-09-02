@@ -3772,6 +3772,9 @@ void Mesh::calc_neighbors_local(void)
    nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nbot");
    ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "ntop");
 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
    for (int ic = 0; ic < (int)ncells; ic++){
       nlft[ic] = -98;
       nrht[ic] = -98;
@@ -3791,13 +3794,34 @@ void Mesh::calc_neighbors_local(void)
       int imintile = (imax+1)*IPOW2(levmx);
       int jmaxtile = 0;
       int imaxtile = 0;
-      for(uint ic=0; ic<ncells; ic++){
-         int lev = level[ic];
-         if (lev < 0 || lev > levmx) printf("DEBUG -- cell %d lev %d\n",ic,level[ic]);
-         if ( j[ic]   *IPOW2(levmx-lev)   < jmintile) jmintile =  j[ic]   *IPOW2(levmx-lev)  ;
-         if ((j[ic]+1)*IPOW2(levmx-lev)-1 > jmaxtile) jmaxtile = (j[ic]+1)*IPOW2(levmx-lev)-1;
-         if ( i[ic]   *IPOW2(levmx-lev)   < imintile) imintile =  i[ic]   *IPOW2(levmx-lev)  ;
-         if ((i[ic]+1)*IPOW2(levmx-lev)-1 > imaxtile) imaxtile = (i[ic]+1)*IPOW2(levmx-lev)-1;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      {
+         int my_jmintile = jmintile;
+         int my_imintile = imintile;
+         int my_jmaxtile = 0;
+         int my_imaxtile = 0;
+#ifdef _OPENMP
+#pragma omp for
+#endif
+         for(uint ic=0; ic<ncells; ic++){
+            int lev = level[ic];
+            if (lev < 0 || lev > levmx) printf("DEBUG -- cell %d lev %d\n",ic,level[ic]);
+            if ( j[ic]   *IPOW2(levmx-lev)   < my_jmintile) my_jmintile =  j[ic]   *IPOW2(levmx-lev)  ;
+            if ((j[ic]+1)*IPOW2(levmx-lev)-1 > my_jmaxtile) my_jmaxtile = (j[ic]+1)*IPOW2(levmx-lev)-1;
+            if ( i[ic]   *IPOW2(levmx-lev)   < my_imintile) my_imintile =  i[ic]   *IPOW2(levmx-lev)  ;
+            if ((i[ic]+1)*IPOW2(levmx-lev)-1 > my_imaxtile) my_imaxtile = (i[ic]+1)*IPOW2(levmx-lev)-1;
+         }
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+         {
+            if (my_jmintile < jmintile) jmintile = my_jmintile;
+            if (my_imintile < imintile) imintile = my_imintile;
+            if (my_jmaxtile > jmaxtile) jmaxtile = my_jmaxtile;
+            if (my_imaxtile > imaxtile) imaxtile = my_imaxtile;
+         }
       }
       //if (DEBUG) fprintf(fp,"%d: Tile Sizes are imin %d imax %d jmin %d jmax %d\n",mype,imintile,imaxtile,jmintile,jmaxtile);
 

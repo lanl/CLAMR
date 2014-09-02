@@ -442,7 +442,9 @@ void parseInput(const int argc, char** argv)
         }
      }
 
+/*
     if(upper_mass_diff_percentage < 0){
              upper_mass_diff_percentage = 1.0e-12;
     }
+*/
 }
