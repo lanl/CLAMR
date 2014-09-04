@@ -208,7 +208,7 @@ void parseInput(const int argc, char** argv)
     nx                      = COARSE_GRID_RES;
     ny                      = COARSE_GRID_RES;
     niter                   = MAX_TIME_STEP;
-    measure_type            = CVALUE;
+    measure_type            = CSTARVALUE;
     calc_neighbor_type      = HASH_TABLE;
     choose_hash_method      = METHOD_UNSET;
     initial_order           = HILBERT_SORT;
@@ -312,6 +312,8 @@ void parseInput(const int argc, char** argv)
                        measure_type = WITHOUT_DUPLICATES;
                     } else if (! strcmp(val,"cvalue") ) {
                        measure_type = CVALUE;
+                    } else if (! strcmp(val,"cstarvalue") ) {
+                       measure_type = CSTARVALUE;
                     }
                     break;
                     

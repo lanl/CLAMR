@@ -72,7 +72,8 @@ enum partition_method {
 enum partition_measure {
    WITH_DUPLICATES,
    WITHOUT_DUPLICATES,
-   CVALUE
+   CVALUE,
+   CSTARVALUE
 };
 
 
