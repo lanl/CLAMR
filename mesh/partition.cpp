@@ -242,8 +242,12 @@ void Mesh::partition_measure(void)
         double s_ngeom = (double)(offtile_list.size());
         double q_ngeom = (double)(offtile_cache_lines.size());
         double ngeom = (double)(TILE_SIZE);
+        double cover = (double)(cache_line_size);
 //        offtile_ratio += (s_ngeom * q_ngeom) / (4*sqrt(ngeom)*2*(1+(ngeom+cache_line_size-1)/cache_line_size));
-        offtile_ratio += (q_ngeom) / (2*(1+(ngeom+cache_line_size-1)/cache_line_size));
+//        offtile_ratio += (q_ngeom) / (2*sqrt(ngeom)+2*((sqrt(ngeom)+cover-1)/cover));
+//        offtile_ratio += (q_ngeom) / ( (8*sqrt(ngeom)+cover-1)/cover );
+               ngeom = sqrt(ngeom);
+        offtile_ratio += (s_ngeom*q_ngeom*cover) / ( 4 * ngeom * (8*ngeom+cover-1) );
         
         //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
      }
