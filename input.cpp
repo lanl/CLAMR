@@ -69,6 +69,7 @@
 #include "mesh/mesh.h"
 #include "hash/hash.h"
 #include "crux/crux.h"
+#include "display.h"
 
 #include <fstream>
 #include <iostream>
@@ -110,6 +111,7 @@ extern int  outputInterval,
 	    choose_hash_method,
             initial_order,
             graphic_outputInterval,
+            graphics_type,
             checkpoint_outputInterval,
             num_of_rollback_states,
             cycle_reorder;
@@ -136,7 +138,10 @@ void outputHelp()
          << "  -f <F>            force perfect or compact hash" <<endl          
          << "      \"perfect\"" << endl
          << "      \"compact\"" << endl
-         << "  -g <G>            specify I step between saving graphics information for post processing;" << endl
+         << "  -g <g>            specify I step between saving graphics information for post processing;" << endl
+         << "  -G <G>            specify graphics file type for post processing;" << endl
+         << "      \"svg\"" << endl
+         << "      \"txt\"" << endl
          << "  -h                display this help message;" << endl
          << "  -i <I>            specify I steps between output files;" << endl
          << "  -l <l>            max number of levels;" << endl
@@ -214,6 +219,7 @@ void parseInput(const int argc, char** argv)
     initial_order           = HILBERT_SORT;
     cycle_reorder           = ORIGINAL_ORDER;
     graphic_outputInterval  = INT_MAX;
+    graphics_type           = GRAPHICS_NONE;
     checkpoint_outputInterval = INT_MAX;
     num_of_rollback_states  = 2;
     levmx                   = 1;
@@ -281,6 +287,31 @@ void parseInput(const int argc, char** argv)
                 case 'g':   //  Save graphics data to files during simulation.
                     val = strtok(argv[i++], " ,.-");
                     graphic_outputInterval = atoi(val);
+                    if (graphics_type == GRAPHICS_NONE) graphics_type = GRAPHICS_DATA;
+                    break;
+
+                case 'G':   //  Graphics data file type.
+                    val = strtok(argv[i++], " ,.-");
+                    if (! strcmp(val,"none") ) {
+                       graphics_type = GRAPHICS_NONE;
+                       graphic_outputInterval  = INT_MAX;
+                    } else if (! strcmp(val,"data") ) {
+                       graphics_type = GRAPHICS_DATA;
+                    } else if (! strcmp(val,"bmp") ) {
+                       graphics_type = GRAPHICS_BMP;
+                    } else if (! strcmp(val,"gif") ) {
+                       graphics_type = GRAPHICS_GIF;
+                    } else if (! strcmp(val,"jpeg") ) {
+                       graphics_type = GRAPHICS_JPEG;
+                    } else if (! strcmp(val,"mpeg") ) {
+                       graphics_type = GRAPHICS_MPEG;
+                    } else if (! strcmp(val,"pdf") ) {
+                       graphics_type = GRAPHICS_PDF;
+                    } else if (! strcmp(val,"png") ) {
+                       graphics_type = GRAPHICS_PNG;
+                    } else if (! strcmp(val,"svg") ) {
+                       graphics_type = GRAPHICS_SVG;
+                    }
                     break;
 
                 case 'h':   //  Output help.

@@ -104,8 +104,21 @@ extern "C"
 #include <math.h>
 #endif
 
+enum graphics_file_type{
+   GRAPHICS_NONE,
+   GRAPHICS_DATA,
+   GRAPHICS_BMP,
+   GRAPHICS_GIF,
+   GRAPHICS_JPEG,
+   GRAPHICS_MPEG,
+   GRAPHICS_PDF,
+   GRAPHICS_PNG,
+   GRAPHICS_SVG
+};
+
 void init_display(int *argc, char **argv, const char* string, int mype_in);
 void init_graphics_output(void);
+void terminate_graphics_output(void);
 void set_idle_function(void (*function)(void));
 void start_main_loop(void);
 void free_display(void);
