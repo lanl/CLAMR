@@ -297,6 +297,7 @@ void parseInput(const int argc, char** argv)
                        graphic_outputInterval  = INT_MAX;
                     } else if (! strcmp(val,"data") ) {
                        graphics_type = GRAPHICS_DATA;
+#ifdef HAVE_MAGICKWAND
                     } else if (! strcmp(val,"bmp") ) {
                        graphics_type = GRAPHICS_BMP;
                     } else if (! strcmp(val,"gif") ) {
@@ -311,6 +312,10 @@ void parseInput(const int argc, char** argv)
                        graphics_type = GRAPHICS_PNG;
                     } else if (! strcmp(val,"svg") ) {
                        graphics_type = GRAPHICS_SVG;
+#endif
+                    } else {
+                       printf("Unrecognized option for graphics file type %s\n",val);
+                       exit(-1);
                     }
                     break;
 

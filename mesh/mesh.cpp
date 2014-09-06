@@ -1629,7 +1629,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    
                if(ll - lev > 1) {
                   mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                   newcount++;
                   continue;
                }
@@ -1643,7 +1643,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
                      if(llt - lev > 1) {
                         mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                         newcount++;
                         continue;
                      }
@@ -1658,7 +1658,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    
                if(lr - lev > 1) {
                   mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                   newcount++;
                   continue;
                }
@@ -1672,7 +1672,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
                      if(lrt - lev > 1) {
                         mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                         newcount++;
                         continue;
                      }
@@ -1687,7 +1687,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    
                if(lt - lev > 1) {
                   mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                   newcount++;
                   continue;
                }
@@ -1701,7 +1701,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
                      if(ltr - lev > 1) {
                         mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                         newcount++;
                         continue;
                      }
@@ -1716,7 +1716,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    
                if(lb - lev > 1) {
                   mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                   newcount++;
                   continue;
                }
@@ -1730,7 +1730,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
                      if(lbr - lev > 1) {
                         mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                         newcount++;
                         continue;
                      }

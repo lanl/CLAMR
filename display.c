@@ -87,7 +87,9 @@
 #endif
 #endif
 
+#ifdef HAVE_MAGICKWAND
 #define MAGICK_NCOLORS 1280
+#endif
 
 #define WINSIZE 800
 
@@ -101,7 +103,9 @@ void mouseClick(int button, int state, int x, int y);
 void mouseDrag(int x, int y);
 void keyPressed(unsigned char key, int x, int y);
 void Scale();
+#ifdef HAVE_MAGICKWAND
 void Magick_Scale();
+#endif
 void mpe_main_loop(void);
 void display_get_event(void);
 
@@ -170,8 +174,9 @@ static double xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
 #endif
 #endif
 
-#ifdef HAVE_MAGICKWAND
 static int magick_on = 0;
+
+#ifdef HAVE_MAGICKWAND
 static int graphics_movie = 0;
 static MagickWand *magick_wand = NULL;
 static DrawingWand *draw_wand  = NULL;
@@ -1423,6 +1428,7 @@ void Scale() {
 #endif
 }
 
+#ifdef HAVE_MAGICKWAND
 void Magick_Scale() {
    int i, r;
    for (i=0, r=0;   i<256; i++, r++) {
@@ -1451,6 +1457,7 @@ void Magick_Scale() {
          MagickRainbow[1024+i].Blue  = r;
    }
 }
+#endif
 
 
 void mpe_main_loop(void)
