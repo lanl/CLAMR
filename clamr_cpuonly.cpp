@@ -92,7 +92,7 @@ static double circle_radius=-1.0;
 static int view_mode = 0;
 
 #ifdef FULL_PRECISION
-#define  SUM_ERROR 1.0e-17
+#define  SUM_ERROR 2.0e-16
    void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
    void (*set_cell_data)(double *) = &set_cell_data_double;
 #else
@@ -273,12 +273,12 @@ int main(int argc, char **argv) {
    //if (verbose) sleep(5);
    sleep(2);
 
-   //  Set flag to show mesh results rather than domain decomposition.
-   view_mode = 1;
-
    //  Clear superposition of circle on grid output.
    circle_radius = -1.0;
 #endif
+
+   //  Set flag to show mesh results rather than domain decomposition.
+   view_mode = 1;
 
    if (ncycle == next_cp_cycle) store_crux_data(crux, ncycle); 
 
@@ -509,6 +509,8 @@ extern "C" void do_calc(void)
 
       mesh->terminate();
       state->terminate();
+
+      terminate_graphics_output();
 
       delete mesh;
       delete state;

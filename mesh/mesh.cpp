@@ -1629,7 +1629,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    
                if(ll - lev > 1) {
                   mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                   newcount++;
                   continue;
                }
@@ -1643,7 +1643,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
                      if(llt - lev > 1) {
                         mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                         newcount++;
                         continue;
                      }
@@ -1658,7 +1658,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    
                if(lr - lev > 1) {
                   mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                   newcount++;
                   continue;
                }
@@ -1672,7 +1672,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
                      if(lrt - lev > 1) {
                         mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                         newcount++;
                         continue;
                      }
@@ -1687,7 +1687,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    
                if(lt - lev > 1) {
                   mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                   newcount++;
                   continue;
                }
@@ -1701,7 +1701,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
                      if(ltr - lev > 1) {
                         mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                         newcount++;
                         continue;
                      }
@@ -1716,7 +1716,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    
                if(lb - lev > 1) {
                   mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                   newcount++;
                   continue;
                }
@@ -1730,7 +1730,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
                      if(lbr - lev > 1) {
                         mpot[ic]=1;
-//#pragma omp atomic
+//#pragma omp atomic update
                         newcount++;
                         continue;
                      }
@@ -3860,6 +3860,9 @@ void Mesh::calc_neighbors_local(void)
       int jmaxcalc = (jmax+1)*IPOW2(levmx);
       int imaxcalc = (imax+1)*IPOW2(levmx);
 
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
       for (uint ic=0; ic<ncells; ic++){
          int ii = i[ic];
          int jj = j[ic];
@@ -4157,81 +4160,92 @@ void Mesh::calc_neighbors_local(void)
          }
 #endif
 
-         for (uint ic=0; ic<ncells; ic++){
-            int iborder_cell = 0;
-
-            // left neighbor is undefined -- or -- if left is at finer level check left top for undefined
-            if (nlft[ic] == -1 || (level[nlft[ic]-noffset] > level[ic] && ntop[nlft[ic]-noffset] == -1) ){
-               iborder_cell |= 0x0001;
-            }
-            if (nrht[ic] == -1 || (level[nrht[ic]-noffset] > level[ic] && ntop[nrht[ic]-noffset] == -1) ){
-               iborder_cell |= 0x0002;
-            }
-            if (nbot[ic] == -1 || (level[nbot[ic]-noffset] > level[ic] && nrht[nbot[ic]-noffset] == -1) ) {
-               iborder_cell |= 0x0004;
-            }
-            if (ntop[ic] == -1 || (level[ntop[ic]-noffset] > level[ic] && nrht[ntop[ic]-noffset] == -1) ) {
-               iborder_cell |= 0x0008;
-            }
-   
-            border_cell[ic] = iborder_cell;
-         }
-
          vector<int> border_cell_out(ncells);
 
-         for (uint ic=0; ic<ncells; ic++){
-            int iborder_cell = border_cell[ic];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+         {
+#ifdef _OPENMP
+#pragma omp for
+#endif
+            for (uint ic=0; ic<ncells; ic++){
+               int iborder_cell = 0;
 
-            if (iborder_cell == 0) {
-
-               int nl = nlft[ic]-noffset;
-               if (nl >= 0 && nl < (int)ncells) {
-                  if ((border_cell[nl] & 0x0001) == 0x0001) {
-                     iborder_cell |= 0x0016;
-                  } else if (level[nl] > level[ic]){
-                     int ntl = ntop[nl]-noffset;
-                     if (ntl >= 0 && ntl < (int)ncells && (border_cell[ntl] & 0x0001) == 0x0001) {
-                        iborder_cell |= 0x0016;
-                     }
-                  }
+               // left neighbor is undefined -- or -- if left is at finer level check left top for undefined
+               if (nlft[ic] == -1 || (level[nlft[ic]-noffset] > level[ic] && ntop[nlft[ic]-noffset] == -1) ){
+                  iborder_cell |= 0x0001;
                }
-               int nr = nrht[ic]-noffset;
-               if (nr >= 0 && nr < (int)ncells) {
-                  if ((border_cell[nrht[ic]-noffset] & 0x0002) == 0x0002) {
-                     iborder_cell |= 0x0032;
-                  } else if (level[nr] > level[ic]){
-                     int ntr = ntop[nr]-noffset;
-                     if (ntr >= 0 && ntr < (int)ncells && (border_cell[ntr] & 0x0002) == 0x0002) {
-                        iborder_cell |= 0x0032;
-                     }
-                  }
+               if (nrht[ic] == -1 || (level[nrht[ic]-noffset] > level[ic] && ntop[nrht[ic]-noffset] == -1) ){
+                  iborder_cell |= 0x0002;
                }
-               int nb = nbot[ic]-noffset;
-               if (nb >= 0 && nb < (int)ncells) {
-                  if ((border_cell[nb] & 0x0004) == 0x0004) {
-                     iborder_cell |= 0x0064;
-                  } else if (level[nb] > level[ic]){
-                     int nrb = nrht[nb]-noffset;
-                     if (nrb >= 0 && nrb < (int)ncells && (border_cell[nrb] & 0x0004) == 0x0004) {
-                        iborder_cell |= 0x0064;
-                     }
-                  }
+               if (nbot[ic] == -1 || (level[nbot[ic]-noffset] > level[ic] && nrht[nbot[ic]-noffset] == -1) ) {
+                  iborder_cell |= 0x0004;
                }
-               int nt = ntop[ic]-noffset;
-               if (nt >= 0 && nt < (int)ncells) {
-                  if ((border_cell[nt] & 0x0008) == 0x0008) {
-                     iborder_cell |= 0x0128;
-                  } else if (level[nt] > level[ic]){
-                     int nrt = nrht[nt]-noffset;
-                     if (nrt >= 0 && nrt < (int)ncells && (border_cell[nrt] & 0x0008) == 0x0008) {
-                        iborder_cell |= 0x0128;
-                     }
-                  }
+               if (ntop[ic] == -1 || (level[ntop[ic]-noffset] > level[ic] && nrht[ntop[ic]-noffset] == -1) ) {
+                  iborder_cell |= 0x0008;
                }
+   
+               border_cell[ic] = iborder_cell;
             }
 
-            border_cell_out[ic] = iborder_cell;
-         }
+#ifdef _OPENMP
+#pragma omp for
+#endif
+            for (uint ic=0; ic<ncells; ic++){
+               int iborder_cell = border_cell[ic];
+
+               if (iborder_cell == 0) {
+
+                  int nl = nlft[ic]-noffset;
+                  if (nl >= 0 && nl < (int)ncells) {
+                     if ((border_cell[nl] & 0x0001) == 0x0001) {
+                        iborder_cell |= 0x0016;
+                     } else if (level[nl] > level[ic]){
+                        int ntl = ntop[nl]-noffset;
+                        if (ntl >= 0 && ntl < (int)ncells && (border_cell[ntl] & 0x0001) == 0x0001) {
+                           iborder_cell |= 0x0016;
+                        }
+                     }
+                  }
+                  int nr = nrht[ic]-noffset;
+                  if (nr >= 0 && nr < (int)ncells) {
+                     if ((border_cell[nrht[ic]-noffset] & 0x0002) == 0x0002) {
+                        iborder_cell |= 0x0032;
+                     } else if (level[nr] > level[ic]){
+                        int ntr = ntop[nr]-noffset;
+                        if (ntr >= 0 && ntr < (int)ncells && (border_cell[ntr] & 0x0002) == 0x0002) {
+                           iborder_cell |= 0x0032;
+                        }
+                     }
+                  }
+                  int nb = nbot[ic]-noffset;
+                  if (nb >= 0 && nb < (int)ncells) {
+                     if ((border_cell[nb] & 0x0004) == 0x0004) {
+                        iborder_cell |= 0x0064;
+                     } else if (level[nb] > level[ic]){
+                        int nrb = nrht[nb]-noffset;
+                        if (nrb >= 0 && nrb < (int)ncells && (border_cell[nrb] & 0x0004) == 0x0004) {
+                           iborder_cell |= 0x0064;
+                        }
+                     }
+                  }
+                  int nt = ntop[ic]-noffset;
+                  if (nt >= 0 && nt < (int)ncells) {
+                     if ((border_cell[nt] & 0x0008) == 0x0008) {
+                        iborder_cell |= 0x0128;
+                     } else if (level[nt] > level[ic]){
+                        int nrt = nrht[nt]-noffset;
+                        if (nrt >= 0 && nrt < (int)ncells && (border_cell[nrt] & 0x0008) == 0x0008) {
+                           iborder_cell |= 0x0128;
+                        }
+                     }
+                  }
+               }
+
+               border_cell_out[ic] = iborder_cell;
+            }
+         } // parallel region
 
          vector<int> border_cell_num;
 
@@ -4246,6 +4260,9 @@ void Mesh::calc_neighbors_local(void)
          vector<int> border_cell_j(nbsize_local);
          vector<int> border_cell_level(nbsize_local);
     
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
          for (int ic = 0; ic <nbsize_local; ic++){
             int cell_num = border_cell_num[ic]-noffset;
             border_cell_i[ic] = i[cell_num]; 
