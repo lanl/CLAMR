@@ -55,12 +55,18 @@ cmake -DMIC_NATIVE=yes
 make
 // To execute:
 ssh [NODE]-mic0
+
+///// No longer needed////
 mkdir /tmp/[USERNAME]
 cd /tmp/[USERNAME]
 // Copy dynamically linked libraries mic/libiomp5.so and mic/libcilkrts.so to executable tmp directory
 cp /projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic/libiomp5.so ./
 cp /projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic/libcilkrts.so ./
+//// No longer needed /////
+
+
 // Execute clamr_openmponly
+In the CLAMR directory
 export OMP_NUM_THREADS=120
 ~/CLAMR/clamr_openmponly
 
