@@ -68,7 +68,7 @@ cp /projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.
 // Execute clamr_openmponly
 In the CLAMR directory
 export OMP_NUM_THREADS=120
-~/CLAMR/clamr_openmponly
+./clamr_openmponly
 
 
 // Set MPEHOME to location of MPE install or MPE_INCLUDE_DIR and MPE_LIBRARIES to 
