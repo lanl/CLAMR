@@ -64,6 +64,8 @@
 #define DEBUG 0
 #endif
 
+double ***gentrimatrix_double_p(int knum, int jnum, int inum, const char *file, const int line);
+
 SLIST_HEAD(slist_genmalloc_memory_head, genmalloc_memory_entry) genmalloc_memory_head = SLIST_HEAD_INITIALIZER(genmalloc_memory_head);
 struct slist_genmalloc_memory_head *genmalloc_memory_headp;
 struct genmalloc_memory_entry {
@@ -74,19 +76,11 @@ struct genmalloc_memory_entry {
 
 void *genvector_p(int inum, size_t elsize, const char *file, const int line)
 {
-   if (DEBUG) {
-      printf(" Error with gen_vector from file %s line %d\n",file,line);
-   }
-
    void *out;
    size_t mem_size;
 
    mem_size = inum*elsize;
-#if DEBUG == 1
    out      = (void *)calloc((size_t)inum, elsize);
-#else
-   out      = (void *)malloc((size_t)inum * elsize);
-#endif
    genmalloc_memory_add(out, mem_size);
 
    return (out);
@@ -94,17 +88,11 @@ void *genvector_p(int inum, size_t elsize, const char *file, const int line)
 
 void genvectorfree_p(void *var, const char *file, const int line)
 {
-   if (DEBUG) {
-      printf(" Error with gen_vector from file %s line %d\n",file,line);
-   }
    genmalloc_memory_remove(var);
 }
 
 void **genmatrix_p(int jnum, int inum, size_t elsize, const char *file, const int line)
 {
-   if (DEBUG) {
-      printf(" Error with gen_vector from file %s line %d\n",file,line);
-   }
    void **out;
    size_t mem_size;
   
@@ -113,11 +101,7 @@ void **genmatrix_p(int jnum, int inum, size_t elsize, const char *file, const in
    genmalloc_memory_add(out, mem_size);
   
    mem_size = jnum*inum*elsize;
-#if DEBUG == 1
    out[0]    = (void *)calloc((size_t)jnum*(size_t)inum, elsize);
-#else
-   out[0]    = (void *)malloc((size_t)jnum*(size_t)inum * elsize);
-#endif
    genmalloc_memory_add(out[0], mem_size);
   
    for (int i = 1; i < jnum; i++) {
@@ -129,59 +113,60 @@ void **genmatrix_p(int jnum, int inum, size_t elsize, const char *file, const in
 
 void genmatrixfree_p(void **var, const char *file, const int line)
 {
-   if (DEBUG) {
-      printf(" Error with gen_vector from file %s line %d\n",file,line);
-   }
    genmalloc_memory_remove(var[0]);
    genmalloc_memory_remove(var);
 }
 
 void ***gentrimatrix_p(int knum, int jnum, int inum, size_t elsize, const char *file, const int line)
 {
-   if (DEBUG) {
-      printf(" Error with gen_vector from file %s line %d\n",file,line);
-   }
    void ***out;
+   if (elsize == 8) {
+      out = (void ***)gentrimatrix_double_p(knum, jnum, inum, file, line);
+   } else {
+      printf("Error -- element size not supported in genmalloc for call at %s line %d\n",file,line);
+   }
+
+   return(out);
+}
+
+double ***gentrimatrix_double_p(int knum, int jnum, int inum, const char *file, const int line)
+{
+   double ***out;
    size_t mem_size;
+   const size_t elsize = 8;
 
    mem_size  = knum*sizeof(void **);
-   out       = (void ***)malloc(mem_size);
+   out       = (double ***)malloc(mem_size);
    genmalloc_memory_add(out, mem_size);
 
    mem_size  = knum*jnum*sizeof(void *);
-   out[0]    = (void **) malloc(mem_size);
+   out[0]    = (double **) malloc(mem_size);
    genmalloc_memory_add(out[0], mem_size);
 
-   mem_size  = knum*jnum*inum*elsize;
-#if DEBUG == 1
-   out[0][0] = (void *)calloc((size_t)knum*(size_t)jnum*(size_t)inum, elsize);
-#else
-   out[0][0] = (void *)malloc((size_t)knum*(size_t)jnum*(size_t)inum * elsize);
-#endif
+   size_t nelems = knum*jnum*inum;
+   mem_size  = nelems*elsize;
+   out[0][0] = (void *)calloc(nelems, elsize);
    genmalloc_memory_add(out[0][0], mem_size);
 
    for (int k = 0; k < knum; k++)
    {
       if (k > 0)
       {
-         out[k] = out[k-1] + jnum*sizeof(void *);
+         out[k] = out[k-1] + jnum;
          out[k][0] = out[k-1][0] + (jnum*inum);
       }
 
       for (int j = 1; j < jnum; j++)
       {
-         out[k][j] = out[k][j-1] + inum*elsize;
+         out[k][j] = out[k][j-1] + inum;
       }
    }
-  
+
    return (out);
 }
 
 void gentrimatrixfree_p(void ***var, const char *file, const int line)
 {
-   if (DEBUG) {
-      printf(" Error with gen_vector from file %s line %d\n",file,line);
-   }
    genmalloc_memory_remove(var[0][0]);
    genmalloc_memory_remove(var[0]);
    genmalloc_memory_remove(var);
