@@ -1577,8 +1577,8 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
 
 size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 {
-   int nl, nr, nt, nb;
-   int nlt, nrt, ntr, nbr;
+   //int nl, nr, nt, nb;
+   //int nlt, nrt, ntr, nbr;
 
    rezone_count(mpot, icount, jcount);
    int newcount = icount;
@@ -1694,7 +1694,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
                lt = level[nt];
                if (lt > lev) {
-                  ntr = nrht[nt];
+                  int ntr = nrht[nt];
                   if (ntr >= 0 && ntr < (int)ncells_ghost) {
                      int ltr = level[ntr];
                      if(mpot_old[ntr] > 0) ltr++;
@@ -3193,6 +3193,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
 
 #ifdef HAVE_MPI
    //int global_add_ncells = add_ncells;
+
    if (parallel) {
       int count[2], global_count[2];
       count[0] = icount;

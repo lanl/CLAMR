@@ -153,8 +153,9 @@ class Mesh
 
 public:
    int ndim;                    //  Dimensionality of mesh (2 or 3).
-   MallocPlus mesh_memory; 
-   MallocPlus gpu_mesh_memory; 
+
+   MallocPlus mesh_memory;
+   MallocPlus gpu_mesh_memory;
 
    double   cpu_time_calc_neighbors,
                cpu_time_hash_setup,
@@ -276,17 +277,19 @@ public:
 
    vector<int>    index;        //  1D ordered index of mesh elements.
 
-   int            *i,            //  1D ordered index of mesh element x-indices for k-D tree.
-                  *j,            //  1D ordered index of mesh element y-indices for k-D tree.
-                  *k,            //  1D ordered index of mesh element z-indices for k-D tree.
-                  *level,        //  1D ordered index of mesh element refinement levels.
+                                 //  mesh state data
+   int            *i,            //  1D array of mesh element x-indices.
+                  *j,            //  1D array of mesh element y-indices.
+                  *k,            //  1D array of mesh element z-indices.
+                  *level,        //  1D array of mesh element refinement levels.
+                                 //  derived data from mesh state data
+                  *celltype,     //  1D ordered index of mesh element cell types (ghost or real).
                   *nlft,         //  1D ordered index of mesh element left neighbors.
                   *nrht,         //  1D ordered index of mesh element right neighbors.
                   *nbot,         //  1D ordered index of mesh element bottom neighbors.
                   *ntop,         //  1D ordered index of mesh element top neighbors.
                   *nfrt,         //  1D ordered index of mesh element front neighbors.
-                  *nbak,         //  1D ordered index of mesh element back neighbors.
-                  *celltype;     // 1D ordered index of mesh element cell types (ghost or real).
+                  *nbak;         //  1D ordered index of mesh element back neighbors.
 
    vector<spatial_t> x,            //  1D ordered index of mesh element x-coordinates.
                      dx,           //  1D ordered index of mesh element x-coordinate spacings.
@@ -334,6 +337,9 @@ public:
    void resize_old_device_memory(size_t ncells);
 
 /* inline "macros" */
+   int  is_lower_boundary(int *iv, int *lev_begin, int ic)    { return (iv[ic] < lev_begin[level[ic]]); }
+   int  is_upper_boundary(int *iv, int *lev_end,   int ic)    { return (iv[ic] > lev_end[level[ic]]); }
+
    int  is_left_boundary(int ic)    { return (i[ic] < lev_ibegin[level[ic]]); }
    int  is_right_boundary(int ic)   { return (i[ic] > lev_iend[  level[ic]]); }
    int  is_bottom_boundary(int ic)  { return (j[ic] < lev_jbegin[level[ic]]); }
@@ -341,10 +347,19 @@ public:
    int  is_front_boundary(int ic)   { return (k[ic] < lev_kbegin[level[ic]]); }
    int  is_back_boundary(int ic)    { return (k[ic] > lev_kend[  level[ic]]); }
 
+   int is_lower(int i)  { return(i % 2 == 0); }
+   int is_upper(int i)  { return(i % 2 == 1); }
+
    int is_lower_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 0); }
    int is_lower_right(int i, int j) { return(i % 2 == 1 && j % 2 == 0); }
    int is_upper_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 1); }
    int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
+
+   int is_same_level_or_coarser(int nn, int nz) { return(level[nn] <= level[nz]); }
+   int is_coarser(int nn, int nz)               { return(level[nn] <  level[nz]); }
+   int is_finer(int nn, int nz)                 { return(level[nn] >  level[nz]); }
+   int is_same_level(int nn, int nz)            { return(level[nn] == level[nz]); }
+
 
 /* accessor routines */
    double get_cpu_time_calc_neighbors(void)           {return(cpu_time_calc_neighbors); };
