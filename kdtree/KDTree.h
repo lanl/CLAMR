@@ -105,6 +105,7 @@ typedef struct {
 } TKDTree;
 
 extern void KDTree_Initialize(TKDTree *t);
+extern void KDTree_Finalize(TKDTree *t);
 extern void KDTree_Destroy(TKDTree* t);
 extern void KDTree_AddElement(TKDTree* t, TBounds* add);
 extern void KDTree_CreateTree(TKDTree* t);

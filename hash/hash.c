@@ -150,10 +150,6 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
 }
 
 void write_hash_perfect(uint ic, ulong hashkey, int *hash){
-   if (hashkey >= hashtablesize) {
-      printf("DEBUG -- file %s line %d hash_method perfect_hash ic %u hashkey %lu hashtablesize %u\n",
-        __FILE__,__LINE__,ic,hashkey,hashtablesize);
-   }
    hash[hashkey] = ic;
 }
 

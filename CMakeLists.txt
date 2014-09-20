@@ -67,8 +67,8 @@ else (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mtune=native")
 endif (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wall -Wextra")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 
@@ -78,6 +78,7 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 #set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pedantic")
 
 include_directories(${PROJECT_SOURCE_DIR})
+
 if (NOT MIC_NATIVE)
    find_package(OpenCL)
    #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
@@ -243,7 +244,6 @@ find_package(Boost ${BOOST_MIN_VER})
 #message("X11_LIBRARIES ${X11_LIBRARIES}")
 #message("X11_LIBS ${X11_LIBS}")
 
- 
 add_definitions(-DHAVE_CONFIG_H)
 
 # add the binary tree to the search path for include files

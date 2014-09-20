@@ -105,6 +105,7 @@ public:
 
    void *memory_malloc(size_t nelem, size_t elsize, const char *name);
    void *memory_malloc(size_t nelem, size_t elsize, int flags, const char *name);
+   void *memory_duplicate(void *malloc_mem_ptr, const char *addname);
 
    void *memory_realloc(size_t nelem, size_t elsize, void *malloc_mem_ptr);
    void *memory_realloc(size_t nelem, size_t elsize, const char *name);
@@ -117,17 +118,22 @@ public:
    void memory_request_all(size_t nelem);
 
    void *memory_replace(void *malloc_mem_ptr_old, void * const malloc_mem_ptr_new);
+   void memory_swap(int **malloc_mem_ptr_old, int **malloc_mem_ptr_new);
 
    void *memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, const char *name);
    void *memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, int flags, const char *name);
 
    double *memory_reorder(double *malloc_mem_ptr, int *iorder);
    float *memory_reorder(float *malloc_mem_ptr, int *iorder);
+   int *memory_reorder_indexarray(int *malloc_mem_ptr, int *iorder, int *inv_iorder);
+   void memory_reorder_all(int *iorder);
 
    void memory_report(void);
 
    void *memory_delete(void *malloc_mem_ptr);
    void *memory_delete(const char *name);
+
+   void memory_delete_all(void);
 
    void memory_remove(void *malloc_mem_ptr);
    void memory_remove(const char *name);
@@ -141,10 +147,14 @@ public:
    size_t get_memory_size(void *malloc_mem_ptr);
    size_t get_memory_capacity(void *malloc_mem_ptr);
    int get_memory_elemsize(void *malloc_mem_ptr);
-   int get_memory_flags(void *malloc_mem_ptr);
    const char *get_memory_name(void *malloc_mem_ptr);
 
    void *get_memory_ptr(const char *name);
+
+   void set_memory_attribute(void *malloc_mem_ptr, int attribute);
+   void clear_memory_attribute(void *malloc_mem_ptr, int attribute);
+   int  get_memory_flags(void *malloc_mem_ptr);
+   int  check_memory_attribute(void *malloc_mem_ptr, int attribute);
 };
 
 #endif // ifndef MALLOCPLUS_H_

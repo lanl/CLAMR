@@ -124,6 +124,11 @@ void KDTree_Initialize(TKDTree* t)
    t->tree_link = NULL;
 }
 
+void KDTree_Finalize(TKDTree* t)
+{
+   free(t->elements);
+}
+
 void KDTree_Destroy(TKDTree* t)
 {
    assert(t);
