@@ -1220,6 +1220,9 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
 
    ndim   = ndim_in;
    levmx  = levmx_in;
+#ifdef HAVE_OPENCL
+   if (ndim == TWO_DIMENSIONAL) defines = "-DTWO_DIMENSIONAL -DCARTESIAN";
+#endif
 
    offtile_ratio_local = 0;
    offtile_local_count = 1;

@@ -61,6 +61,7 @@
 #endif
 
 #include "MallocPlus/MallocPlus.h"
+#include <string>
 #include <stdio.h>
 #include <vector>
 #include <math.h>
@@ -136,6 +137,11 @@ enum boundary
    FRONT_BOUNDARY = -5,         //  Denotes front boundary ghost cell.
    BACK_BOUNDARY  = -6 };       //  Denotes back boundary ghost cell.
 
+enum dimensionality
+{  ONE_DIMENSIONAL   = 1,       // Dimensionality based at 1 for clarity.
+   TWO_DIMENSIONAL,
+   THREE_DIMENSIONAL};
+
 enum orientation
 {  SW,                          //  SW quadrant.
    NW,                          //  NW quadrant.
@@ -156,6 +162,10 @@ public:
 
    MallocPlus mesh_memory;
    MallocPlus gpu_mesh_memory;
+
+#ifdef HAVE_OPENCL
+   string defines;
+#endif
 
    double   cpu_time_calc_neighbors,
                cpu_time_hash_setup,
@@ -596,8 +606,6 @@ private:
    void print_dev_local();
 #endif
 
-/* Not currently called */
-   void mesh_reorder(vector<int> iorder);
 };
 
 #endif /* MESH_H */
