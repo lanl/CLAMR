@@ -378,7 +378,7 @@ extern "C" void do_calc(void)
       if (mesh->nlft == NULL) mesh->calc_neighbors_local();
 
       if (do_comparison_calc) {
-         if (mesh_global->nlft == NULL) mesh_global->calc_neighbors();
+         if (mesh_global->nlft == NULL) mesh_global->calc_neighbors(mesh_global->ncells);
 
          // Checking CPU parallel to CPU global
          mesh->compare_neighbors_cpu_local_to_cpu_global(ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);

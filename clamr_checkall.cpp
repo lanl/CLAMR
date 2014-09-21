@@ -569,7 +569,7 @@ extern "C" void do_calc(void)
 
       if (do_cpu_calc) {
          if (mesh_local->nlft == NULL) {
-            mesh_global->calc_neighbors();
+            mesh_global->calc_neighbors(mesh_global->ncells);
             mesh_local->calc_neighbors_local();
          }
       }

@@ -458,7 +458,7 @@ public:
    *  Output -- in the object
    *    nlft, nrht, nbot, ntop arrays
    **************************************************************************************/
-   void calc_neighbors(void);
+   void calc_neighbors(int ncells);
    void calc_neighbors_local(void);
 #ifdef HAVE_OPENCL
    void gpu_calc_neighbors(void);

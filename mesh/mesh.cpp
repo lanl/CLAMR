@@ -3376,7 +3376,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
 
          gpu_state_memory.memory_replace(dev_state_mem_ptr, dev_state_var_new);
       }
-   } 
+   }
 
    ezcl_device_memory_delete(dev_indexoffset);
 
@@ -3427,7 +3427,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
 }
 #endif
 
-void Mesh::calc_neighbors(void)
+void Mesh::calc_neighbors(int ncells)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -5442,22 +5442,22 @@ void Mesh::gpu_calc_neighbors(void)
 //=========
 
    size_t hashsize;
-   
+ 
    uint hash_report_level = 1;
    cl_mem dev_hash_header = NULL;
    cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize, jmaxsize, gpu_hash_method, hash_report_level,
       &gpu_hash_table_size, &hashsize, &dev_hash_header);
 
       /*
-                    const int   isize,           // 0
-                    const int   levmx,           // 1
-                    const int   imaxsize,        // 2
-           __global const int   *levtable,       // 3
-           __global const int   *level,          // 4
-           __global const int   *i,              // 5
-           __global const int   *j,              // 6
-           __global const ulong *hash_header,    // 7
-           __global       int   *hash)           // 8
+                    const int   isize,        // 0
+                    const int   levmx,        // 1
+                    const int   imaxsize,     // 2
+           __global const int   *levtable,    // 3
+           __global const int   *level,       // 4
+           __global const int   *i,           // 5
+           __global const int   *j,           // 6
+           __global const ulong *hash_header, // 7
+           __global       int   *hash)        // 8
       */
 
    cl_event hash_setup_event;
@@ -6397,7 +6397,7 @@ void Mesh::gpu_calc_neighbors_local(void)
 
          vector<int> hash_tmp(hashsize);
          ezcl_enqueue_read_buffer(command_queue, dev_hash, CL_TRUE,  0, hashsize*sizeof(cl_int), &hash_tmp[0], NULL);
- 
+
          cl_mem dev_hash_header_check = gpu_get_hash_header();
          vector<ulong> hash_header_check(hash_header_size);
          ezcl_enqueue_read_buffer(command_queue, dev_hash_header_check, CL_TRUE, 0, hash_header_size*sizeof(cl_ulong), &hash_header_check[0], NULL);
