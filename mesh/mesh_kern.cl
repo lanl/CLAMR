@@ -2122,7 +2122,7 @@ __kernel void do_load_balance_double_cl(
    }
 }
 #endif
- 
+
 __kernel void do_load_balance_float_cl(
                   const int   ncells,
                   const int   lower_block_size,
@@ -2152,7 +2152,7 @@ __kernel void do_load_balance_float_cl(
       state_var_new[giX] = state_var_upper[srcgiX];
    }
 }
- 
+
 __kernel void do_load_balance_lower_cl(
          __global       int  *dev_i_new,
          __global       int  *dev_j_new,

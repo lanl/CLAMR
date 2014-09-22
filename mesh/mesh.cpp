@@ -1340,6 +1340,12 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel
       }
    }
 
+   nlft = NULL;
+   nrht = NULL;
+   nbot = NULL;
+   ntop = NULL;
+
+   celltype = NULL;
 }
 
 void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_order, int do_gpu_calc)
@@ -1451,15 +1457,8 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       noffset=ndispl[mype];
    }
 
+   allocate(ncells);
    index.resize(ncells);
-
-   int flags = 0;
-#ifdef HAVE_J7
-   if (parallel) flags = LOAD_BALANCE_MEMORY;
-#endif
-   i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "i");
-   j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "j");
-   level = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "level");
 
    int ic = 0;
 
@@ -2258,7 +2257,7 @@ int Mesh::rezone_count(vector<int> mpot, int &icount, int &jcount)
       }
 
       if (mpot[ic] > 0) {
-         //printf("mpot[%d] = %d\n",ic,mpot[ic]);
+         //printf("mpot[%d] = %d level %d levmx %d\n",ic,mpot[ic],level[ic],levmx);
          if (celltype[ic] == REAL_CELL){
             my_icount += 3;
          } else {
@@ -2443,7 +2442,7 @@ void Mesh::calc_minmax(void)
    for (uint ic=0; ic<ncells; ic++){
       if (y[ic] < ymin) ymin = y[ic];
    }
-   if (ndim > 2) {
+   if (ndim > TWO_DIMENSIONAL) {
       for (uint ic=0; ic<ncells; ic++){
          if (z[ic] < zmin) zmin = z[ic];
       }
@@ -2460,7 +2459,7 @@ void Mesh::calc_minmax(void)
       yhigh = y[ic]+dy[ic];
       if (yhigh > ymax) ymax = yhigh;
    }
-   if (ndim > 2) {
+   if (ndim > TWO_DIMENSIONAL) {
       for (uint ic=0; ic<ncells; ic++){
         zhigh = z[ic]+dz[ic];
         if (zhigh > zmax) zmax = zhigh;
@@ -2498,7 +2497,7 @@ void Mesh::calc_centerminmax(void)
       if (ymid < ycentermin) ycentermin = ymid;
       if (ymid > ycentermax) ycentermax = ymid;
    }
-   if (ndim > 2) {
+   if (ndim > TWO_DIMENSIONAL) {
       for (uint ic=0; ic<ncells; ic++){
          zmid = z[ic]+0.5*dz[ic];
          if (zmid < zcentermin) zcentermin = zmid;
