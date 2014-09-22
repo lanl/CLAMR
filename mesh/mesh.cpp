@@ -241,7 +241,7 @@ Mesh::Mesh(FILE *fin, int *numpe)
 #endif
    if(fgets(string, 80, fin) == NULL) exit(-1);
    sscanf(string,"yaxis %lf %lf",(double*)&ymin, (double*)&deltay);
-   if (ndim == 3){
+   if (ndim == THREE_DIMENSIONAL){
      if(fgets(string, 80, fin) == NULL) exit(-1);
      sscanf(string,"zaxis %lf %lf",(double*)&zmin, (double*)&deltaz);
    }
@@ -1428,8 +1428,8 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       nyy    = ny + 2;
    }
 
-   if (ndim == 2) ncells = nxx * nyy - have_boundary * 4;
-   else           ncells = nxx * nyy;
+   if (ndim == TWO_DIMENSIONAL) ncells = nxx * nyy - have_boundary * 4;
+   else                         ncells = nxx * nyy;
 
    noffset = 0;
    if (parallel) {
