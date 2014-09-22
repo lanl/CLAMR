@@ -1157,7 +1157,7 @@ void Mesh::compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_glo
 }
 #endif
 
-Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel_in, int do_gpu_calc)
+Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double deltay_in, int boundary, int parallel_in, int do_gpu_calc)
 {
    cpu_time_calc_neighbors     = 0.0;
       cpu_time_hash_setup      = 0.0;

@@ -334,7 +334,7 @@ public:
 
    //   Public constructors.
    Mesh(FILE *fin, int *numpe);
-   Mesh(int nx, int ny, int levmx_in, int ndim_in, int boundary, int parallel_in, int do_gpu_calc);
+   Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double deltay_in, int boundary, int parallel_in, int do_gpu_calc);
 
    //   Member functions.
    void init(int nx, int ny, real_t circ_radius, partition_method initial_order, int do_gpu_calc);

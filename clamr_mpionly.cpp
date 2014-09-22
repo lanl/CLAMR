@@ -155,8 +155,10 @@ int main(int argc, char **argv) {
    circ_radius = circ_radius * (real_t) nx / 128.0;
    int boundary = 1;
    int parallel_in = 1;
+   double deltax_in = 1.0;
+   double deltay_in = 1.0;
 
-   mesh = new Mesh(nx, ny, levmx, ndim, boundary, parallel_in, do_gpu_calc);
+   mesh = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
    if (DEBUG) {
       //if (mype == 0) mesh->print();
 

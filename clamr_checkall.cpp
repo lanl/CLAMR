@@ -195,7 +195,9 @@ int main(int argc, char **argv) {
    circ_radius = circ_radius * (real_t) nx / 128.0;
    int boundary = 1;
    int parallel_in = 1;
-   mesh_local = new Mesh(nx, ny, levmx, ndim, boundary, parallel_in, do_gpu_calc);
+   double deltax_in = 1.0;
+   double deltay_in = 1.0;
+   mesh_local = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
    if (DEBUG) { 
       //if (mype == 0) mesh->print();
 
@@ -210,7 +212,7 @@ int main(int argc, char **argv) {
    int &noffset = mesh_local->noffset;
 
    int parallel_global_in = 0;
-   mesh_global  = new Mesh(nx, ny, levmx, ndim, boundary, parallel_global_in, do_gpu_calc);
+   mesh_global  = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_global_in, do_gpu_calc);
    size_t &ncells_global = mesh_global->ncells;
 
    MPI_Allreduce(&ncells, &ncells_global, 1, MPI_LONG_LONG, MPI_SUM, MPI_COMM_WORLD);
