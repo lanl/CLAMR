@@ -947,7 +947,7 @@ void Mesh::compare_coordinates_cpu_local_to_cpu_global_float(uint ncells_global,
    MPI_Allgatherv(&dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_check_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&y[0],  nsizes[mype], MPI_SPATIAL_T, &y_check_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_check_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
-   MPI_Allgatherv(&H[0],  nsizes[mype], MPI_FLOAT, &H_check_global[0],  &nsizes[0], &ndispl[0], MPI_FLOAT, MPI_COMM_WORLD);
+   MPI_Allgatherv(&H[0],  nsizes[mype], MPI_FLOAT,     &H_check_global[0],  &nsizes[0], &ndispl[0], MPI_FLOAT,     MPI_COMM_WORLD);
 #else
    // Just to get rid of compiler warnings
    if (1 == 2) printf("DEBUG -- nsizes[0] %d ndispl[0] %d x %p dx %p y %p dy %p H %p\n",
@@ -3594,7 +3594,7 @@ void Mesh::calc_neighbors(int ncells)
 
          //printf("neighbors[%d] = %d %d %d %d\n",ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
       }
- 
+
       if (DEBUG) {
          printf("\n                                    HASH numbering\n");
          for (int jj = jmaxsize-1; jj>=0; jj--){
