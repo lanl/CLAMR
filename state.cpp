@@ -2644,6 +2644,9 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
             printf("CPU:  mesh->calc_spatial_coor time was\t %8.4f\ts\n",     mesh->get_cpu_time_calc_spatial_coordinates() );
             printf("=============================================================\n");
             printf("Profiling: Total CPU          time was\t%8.4f\ts or\t%4.2f min\n",  cpu_elapsed_time, cpu_elapsed_time/60.0);      
+            printf("-------------------------------------------------------------\n");
+            double mesh_time = mesh->get_cpu_time_calc_neighbors() + mesh->get_cpu_time_rezone_all() + mesh->get_cpu_time_refine_smooth();
+            printf("Mesh Operations (Neigh+rezone+smooth) \t %8.4f\ts percentage %8.4f\n",mesh_time,mesh_time/cpu_elapsed_time*100.0);
             printf("=============================================================\n\n");
          }
       }
@@ -2684,6 +2687,9 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
             }
             printf("=============================================================\n");
             printf("Profiling: Total GPU          time was\t%8.4f\ts or\t%4.2f min\n", (double) gpu_elapsed_time * 1.0e-9, (double) gpu_elapsed_time * 1.0e-9/60.0);
+            printf("-------------------------------------------------------------\n");
+            double mesh_time = mesh->get_gpu_time_calc_neighbors() + mesh->get_gpu_time_rezone_all() + mesh->get_gpu_time_refine_smooth();
+            printf("Mesh Operations (Neigh+rezone+smooth) \t %8.4f\ts percentage %8.4f\n",mesh_time*1.0e-9,mesh_time/gpu_elapsed_time*100.0);
             printf("=============================================================\n\n");
          }
       }
@@ -2746,6 +2752,10 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
          if (mype == 0) printf("=============================================================\n");
 
          parallel_timer_output(numpe,mype,"Profiling: Total CPU          time was",cpu_elapsed_time);
+         if (mype == 0) printf("-------------------------------------------------------------\n");
+         double mesh_time = mesh->get_cpu_time_calc_neighbors() + mesh->get_cpu_time_rezone_all() + mesh->get_cpu_time_refine_smooth() + mesh->get_cpu_time_load_balance();
+         parallel_timer_output(numpe,mype,"Mesh Operations (Neigh+rezone+smooth) ",mesh_time);
+         parallel_timer_output(numpe,mype,"Mesh Operations Percentage            ",mesh_time/cpu_elapsed_time*100.0);
 
          if (mype == 0) printf("=============================================================\n\n");
       }
