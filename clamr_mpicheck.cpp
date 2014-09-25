@@ -269,10 +269,11 @@ int main(int argc, char **argv) {
    }
 
    mesh_global->cpu_calc_neigh_counter=0;
-   mesh_global->cpu_time_calc_neighbors=0.0;
    mesh_global->cpu_rezone_counter=0;
-   mesh_global->cpu_time_rezone_all=0.0;
    mesh_global->cpu_refine_smooth_counter=0;
+   for (int i = 0; i < MESH_TIMER_SIZE; i++){
+      mesh_global->cpu_timers[i]=0.0;
+   }   
 
    //  Set up grid.
 

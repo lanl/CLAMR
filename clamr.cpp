@@ -148,9 +148,9 @@ int main(int argc, char **argv) {
    parseInput(argc, argv);
    L7_Init(&mype, &numpe, &argc, argv, do_quo_setup, lttrace_on);
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, mype);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, mype);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -296,10 +296,11 @@ int main(int argc, char **argv) {
    }
 
    mesh->cpu_calc_neigh_counter=0;
-   mesh->cpu_time_calc_neighbors=0.0;
    mesh->cpu_rezone_counter=0;
-   mesh->cpu_time_rezone_all=0.0;
    mesh->cpu_refine_smooth_counter=0;
+   for (int i = 0; i < MESH_TIMER_SIZE; i++){
+      mesh->cpu_timers[i]=0.0;
+   }
 
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL

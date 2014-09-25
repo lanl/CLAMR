@@ -2615,11 +2615,11 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
          cpu_time_compute = get_cpu_time_set_timestep() +
                             get_cpu_time_finite_difference() +
                             get_cpu_time_refine_potential() +
-                            mesh->get_cpu_time_rezone_all() +
-                            mesh->get_cpu_time_calc_neighbors() +
+                            mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
+                            mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
                             get_cpu_time_mass_sum() +
-                            mesh->get_cpu_time_calc_spatial_coordinates() +
-                            mesh->cpu_time_partition;
+                            mesh->get_cpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) +
+                            mesh->get_cpu_timer(MESH_TIMER_PARTITION);
          cpu_elapsed_time =                  cpu_time_compute;
          total_time = cpu_elapsed_time;
 
@@ -2629,23 +2629,25 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
             printf("CPU:  state->finite_difference time was\t %8.4f\ts\n",     get_cpu_time_finite_difference() );
             printf("CPU:  mesh->refine_potential   time was\t %8.4f\ts\n",     get_cpu_time_refine_potential() );
             printf("CPU:    mesh->calc_mpot          time was\t %8.4f\ts\n",     get_cpu_time_calc_mpot() );
-            printf("CPU:    mesh->refine_smooth      time was\t %8.4f\ts\n",     mesh->get_cpu_time_refine_smooth() );
-            printf("CPU:  mesh->rezone_all         time was\t %8.4f\ts\n",     mesh->get_cpu_time_rezone_all() );
-            printf("CPU:  mesh->partition_cells    time was\t %8.4f\ts\n",     mesh->cpu_time_partition);
-            printf("CPU:  mesh->calc_neighbors     time was\t %8.4f\ts\n",     mesh->get_cpu_time_calc_neighbors() );
+            printf("CPU:    mesh->refine_smooth      time was\t %8.4f\ts\n",     mesh->get_cpu_timer(MESH_TIMER_REFINE_SMOOTH) );
+            printf("CPU:  mesh->rezone_all         time was\t %8.4f\ts\n",     mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) );
+            printf("CPU:  mesh->partition_cells    time was\t %8.4f\ts\n",     mesh->get_cpu_timer(MESH_TIMER_PARTITION) );
+            printf("CPU:  mesh->calc_neighbors     time was\t %8.4f\ts\n",     mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) );
             if (mesh->get_calc_neighbor_type() == HASH_TABLE) {
-              printf("CPU:    mesh->hash_setup         time was\t %8.4f\ts\n",     mesh->get_cpu_time_hash_setup() );
-              printf("CPU:    mesh->hash_query         time was\t %8.4f\ts\n",     mesh->get_cpu_time_hash_query() );
+              printf("CPU:    mesh->hash_setup         time was\t %8.4f\ts\n",     mesh->get_cpu_timer(MESH_TIMER_HASH_SETUP) );
+              printf("CPU:    mesh->hash_query         time was\t %8.4f\ts\n",     mesh->get_cpu_timer(MESH_TIMER_HASH_QUERY) );
             } else {
-              printf("CPU:    mesh->kdtree_setup         time was\t %8.4f\ts\n",     mesh->get_cpu_time_kdtree_setup() );
-              printf("CPU:    mesh->kdtree_query         time was\t %8.4f\ts\n",     mesh->get_cpu_time_kdtree_query() );
+              printf("CPU:    mesh->kdtree_setup         time was\t %8.4f\ts\n",     mesh->get_cpu_timer(MESH_TIMER_KDTREE_SETUP) );
+              printf("CPU:    mesh->kdtree_query         time was\t %8.4f\ts\n",     mesh->get_cpu_timer(MESH_TIMER_KDTREE_QUERY) );
             }
             printf("CPU:  mass_sum                time was\t %8.4f\ts\n",     get_cpu_time_mass_sum() );
-            printf("CPU:  mesh->calc_spatial_coor time was\t %8.4f\ts\n",     mesh->get_cpu_time_calc_spatial_coordinates() );
+            printf("CPU:  mesh->calc_spatial_coor time was\t %8.4f\ts\n",     mesh->get_cpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) );
             printf("=============================================================\n");
             printf("Profiling: Total CPU          time was\t%8.4f\ts or\t%4.2f min\n",  cpu_elapsed_time, cpu_elapsed_time/60.0);      
             printf("-------------------------------------------------------------\n");
-            double mesh_time = mesh->get_cpu_time_calc_neighbors() + mesh->get_cpu_time_rezone_all() + mesh->get_cpu_time_refine_smooth();
+            double mesh_time = mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
+                               mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
+                               mesh->get_cpu_timer(MESH_TIMER_REFINE_SMOOTH);
             printf("Mesh Operations (Neigh+rezone+smooth) \t %8.4f\ts percentage %8.4f\n",mesh_time,mesh_time/cpu_elapsed_time*100.0);
             printf("=============================================================\n\n");
          }
@@ -2655,11 +2657,11 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
                             get_gpu_time_set_timestep() +
                             get_gpu_time_finite_difference() +
                             get_gpu_time_refine_potential() +
-                            mesh->get_gpu_time_rezone_all() +
-                            mesh->get_gpu_time_calc_neighbors() +
+                            mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) +
+                            mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
                             get_gpu_time_mass_sum() +
-                            mesh->get_gpu_time_calc_spatial_coordinates() +
-                            mesh->gpu_time_count_BCs;
+                            mesh->get_gpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) +
+                            mesh->get_gpu_timer(MESH_TIMER_COUNT_BCS);
          gpu_elapsed_time   = get_gpu_time_write() + gpu_time_compute + get_gpu_time_read();
 
          if (rank == 0) {
@@ -2670,25 +2672,27 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
             printf("GPU:  kernel_calc_finite_diff  time was\t %8.4f\ts\n",    (double) get_gpu_time_finite_difference() * 1.0e-9);
             printf("GPU:  kernel_refine_potential  time was\t %8.4f\ts\n",    (double) get_gpu_time_refine_potential()  * 1.0e-9);
             printf("GPU:    kernel_calc_mpot         time was\t %8.4f\ts\n",    (double) get_gpu_time_calc_mpot()  * 1.0e-9);
-            printf("GPU:    kernel_refine_smooth     time was\t %8.4f\ts\n",    (double) mesh->get_gpu_time_refine_smooth()  * 1.0e-9);
-            printf("GPU:  kernel_rezone_all        time was\t %8.4f\ts\n",    (double) (mesh->get_gpu_time_rezone_all() ) * 1.0e-9);
-            printf("GPU:  kernel_calc_neighbors    time was\t %8.4f\ts\n",    (double) mesh->get_gpu_time_calc_neighbors()    * 1.0e-9);
+            printf("GPU:    kernel_refine_smooth     time was\t %8.4f\ts\n",    (double) mesh->get_gpu_timer(MESH_TIMER_REFINE_SMOOTH)  * 1.0e-9);
+            printf("GPU:  kernel_rezone_all        time was\t %8.4f\ts\n",    (double) (mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) ) * 1.0e-9);
+            printf("GPU:  kernel_calc_neighbors    time was\t %8.4f\ts\n",    (double) mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS)    * 1.0e-9);
             if (mesh->get_calc_neighbor_type() == HASH_TABLE) {
-              printf("GPU:    mesh->hash_setup         time was\t %8.4f\ts\n",     (double)mesh->get_gpu_time_hash_setup() * 1.0e-9 );
-              printf("GPU:    mesh->hash_query         time was\t %8.4f\ts\n",     (double)mesh->get_gpu_time_hash_query() * 1.0e-9 );
+              printf("GPU:    mesh->hash_setup         time was\t %8.4f\ts\n",     (double)mesh->get_gpu_timer(MESH_TIMER_HASH_SETUP) * 1.0e-9 );
+              printf("GPU:    mesh->hash_query         time was\t %8.4f\ts\n",     (double)mesh->get_gpu_timer(MESH_TIMER_HASH_QUERY) * 1.0e-9 );
             } else {
-              printf("GPU:    mesh->kdtree_setup         time was\t %8.4f\ts\n",     (double)mesh->get_gpu_time_kdtree_setup() * 1.0e-9 );
-              printf("GPU:    mesh->kdtree_query         time was\t %8.4f\ts\n",     (double)mesh->get_gpu_time_kdtree_query() * 1.0e-9 );
+              printf("GPU:    mesh->kdtree_setup         time was\t %8.4f\ts\n",     (double)mesh->get_gpu_timer(MESH_TIMER_KDTREE_SETUP) * 1.0e-9 );
+              printf("GPU:    mesh->kdtree_query         time was\t %8.4f\ts\n",     (double)mesh->get_gpu_timer(MESH_TIMER_KDTREE_QUERY) * 1.0e-9 );
             }
             printf("GPU:  kernel_mass_sum          time was\t %8.4f\ts\n",    (double) get_gpu_time_mass_sum()          * 1.0e-9);
-            printf("GPU:  kernel_calc_spatial_coor time was\t %8.4f\ts\n",    (double) mesh->get_gpu_time_calc_spatial_coordinates() * 1.0e-9);
+            printf("GPU:  kernel_calc_spatial_coor time was\t %8.4f\ts\n",    (double) mesh->get_gpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) * 1.0e-9);
             if (! mesh->have_boundary) {
-               printf("GPU:  kernel_count_BCs         time was\t %8.4f\ts\n",    (double) mesh->gpu_time_count_BCs        * 1.0e-9);
+               printf("GPU:  kernel_count_BCs         time was\t %8.4f\ts\n",    (double) mesh->get_gpu_timer(MESH_TIMER_COUNT_BCS)       * 1.0e-9);
             }
             printf("=============================================================\n");
             printf("Profiling: Total GPU          time was\t%8.4f\ts or\t%4.2f min\n", (double) gpu_elapsed_time * 1.0e-9, (double) gpu_elapsed_time * 1.0e-9/60.0);
             printf("-------------------------------------------------------------\n");
-            double mesh_time = mesh->get_gpu_time_calc_neighbors() + mesh->get_gpu_time_rezone_all() + mesh->get_gpu_time_refine_smooth();
+            double mesh_time = mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
+                               mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) +
+                               mesh->get_gpu_timer(MESH_TIMER_REFINE_SMOOTH);
             printf("Mesh Operations (Neigh+rezone+smooth) \t %8.4f\ts percentage %8.4f\n",mesh_time*1.0e-9,mesh_time/gpu_elapsed_time*100.0);
             printf("=============================================================\n\n");
          }
@@ -2706,12 +2710,12 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
          cpu_time_compute = get_cpu_time_set_timestep() +
                             get_cpu_time_finite_difference() +
                             get_cpu_time_refine_potential() +
-                            mesh->get_cpu_time_rezone_all() +
-                            mesh->get_cpu_time_calc_neighbors() +
-                            mesh->get_cpu_time_load_balance() +
+                            mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
+                            mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
+                            mesh->get_cpu_timer(MESH_TIMER_LOAD_BALANCE) +
                             get_cpu_time_mass_sum() +
-                            mesh->get_cpu_time_calc_spatial_coordinates() +
-                            mesh->cpu_time_partition;
+                            mesh->get_cpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) +
+                            mesh->get_cpu_timer(MESH_TIMER_PARTITION);
          cpu_elapsed_time =                  cpu_time_compute;
 
          if (mype == 0) printf("\nCPU: Parallel timings\n\n");
@@ -2721,39 +2725,42 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
          parallel_timer_output(numpe,mype,"CPU:  state->finite_difference time was",get_cpu_time_finite_difference() );
          parallel_timer_output(numpe,mype,"CPU:  state->refine_potential  time was",get_cpu_time_refine_potential() );
          parallel_timer_output(numpe,mype,"CPU:    state->calc_mpot         time was",get_cpu_time_calc_mpot() );
-         parallel_timer_output(numpe,mype,"CPU:    state->refine_smooth     time was",mesh->get_cpu_time_refine_smooth() );
-         parallel_timer_output(numpe,mype,"CPU:  mesh->rezone_all         time was",mesh->get_cpu_time_rezone_all() );
-         parallel_timer_output(numpe,mype,"CPU:  mesh->partition_cells    time was",mesh->cpu_time_partition);
-         parallel_timer_output(numpe,mype,"CPU:  mesh->calc_neighbors     time was",mesh->get_cpu_time_calc_neighbors() );
+         parallel_timer_output(numpe,mype,"CPU:    state->refine_smooth     time was",mesh->get_cpu_timer(MESH_TIMER_REFINE_SMOOTH) );
+         parallel_timer_output(numpe,mype,"CPU:  mesh->rezone_all         time was",mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) );
+         parallel_timer_output(numpe,mype,"CPU:  mesh->partition_cells    time was",mesh->get_cpu_timer(MESH_TIMER_PARTITION) );
+         parallel_timer_output(numpe,mype,"CPU:  mesh->calc_neighbors     time was",mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) );
          if (mesh->get_calc_neighbor_type() == HASH_TABLE) {
-           parallel_timer_output(numpe,mype,"CPU:    mesh->hash_setup         time was",mesh->get_cpu_time_hash_setup() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->hash_query         time was",mesh->get_cpu_time_hash_query() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->find_boundary      time was",mesh->get_cpu_time_find_boundary() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->push_setup         time was",mesh->get_cpu_time_push_setup() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->push_boundary      time was",mesh->get_cpu_time_push_boundary() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->local_list         time was",mesh->get_cpu_time_local_list() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->layer1             time was",mesh->get_cpu_time_layer1() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->layer2             time was",mesh->get_cpu_time_layer2() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->layer_list         time was",mesh->get_cpu_time_layer_list() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->copy_mesh_data     time was",mesh->get_cpu_time_copy_mesh_data() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->fill_mesh_ghost    time was",mesh->get_cpu_time_fill_mesh_ghost() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->fill_neigh_ghost   time was",mesh->get_cpu_time_fill_neigh_ghost() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->set_corner_neigh   time was",mesh->get_cpu_time_set_corner_neigh() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->neigh_adjust       time was",mesh->get_cpu_time_neigh_adjust() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->setup_comm         time was",mesh->get_cpu_time_setup_comm() );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->hash_setup         time was",mesh->get_cpu_timer(MESH_TIMER_HASH_SETUP) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->hash_query         time was",mesh->get_cpu_timer(MESH_TIMER_HASH_QUERY) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->find_boundary      time was",mesh->get_cpu_timer(MESH_TIMER_FIND_BOUNDARY) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->push_setup         time was",mesh->get_cpu_timer(MESH_TIMER_PUSH_SETUP) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->push_boundary      time was",mesh->get_cpu_timer(MESH_TIMER_PUSH_BOUNDARY) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->local_list         time was",mesh->get_cpu_timer(MESH_TIMER_LOCAL_LIST) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->layer1             time was",mesh->get_cpu_timer(MESH_TIMER_LAYER1) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->layer2             time was",mesh->get_cpu_timer(MESH_TIMER_LAYER2) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->layer_list         time was",mesh->get_cpu_timer(MESH_TIMER_LAYER_LIST) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->copy_mesh_data     time was",mesh->get_cpu_timer(MESH_TIMER_COPY_MESH_DATA) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->fill_mesh_ghost    time was",mesh->get_cpu_timer(MESH_TIMER_FILL_MESH_GHOST) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->fill_neigh_ghost   time was",mesh->get_cpu_timer(MESH_TIMER_FILL_NEIGH_GHOST) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->set_corner_neigh   time was",mesh->get_cpu_timer(MESH_TIMER_SET_CORNER_NEIGH) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->neigh_adjust       time was",mesh->get_cpu_timer(MESH_TIMER_NEIGH_ADJUST) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->setup_comm         time was",mesh->get_cpu_timer(MESH_TIMER_SETUP_COMM) );
          } else {
-           parallel_timer_output(numpe,mype,"CPU:    mesh->kdtree_setup         time was",mesh->get_cpu_time_kdtree_setup() );
-           parallel_timer_output(numpe,mype,"CPU:    mesh->kdtree_query         time was",mesh->get_cpu_time_kdtree_query() );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->kdtree_setup         time was",mesh->get_cpu_timer(MESH_TIMER_KDTREE_SETUP) );
+           parallel_timer_output(numpe,mype,"CPU:    mesh->kdtree_query         time was",mesh->get_cpu_timer(MESH_TIMER_KDTREE_QUERY) );
          }
-         parallel_timer_output(numpe,mype,"CPU:  mesh->calc_load_balance  time was",mesh->get_cpu_time_load_balance() );
-         parallel_timer_output(numpe,mype,"CPU:  mesh->calc_spatial_coor  time was",mesh->get_cpu_time_calc_spatial_coordinates() );
+         parallel_timer_output(numpe,mype,"CPU:  mesh->calc_load_balance  time was",mesh->get_cpu_timer(MESH_TIMER_LOAD_BALANCE) );
+         parallel_timer_output(numpe,mype,"CPU:  mesh->calc_spatial_coor  time was",mesh->get_cpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) );
          parallel_timer_output(numpe,mype,"CPU:  mass_sum                 time was",get_cpu_time_mass_sum() );
 
          if (mype == 0) printf("=============================================================\n");
 
          parallel_timer_output(numpe,mype,"Profiling: Total CPU          time was",cpu_elapsed_time);
          if (mype == 0) printf("-------------------------------------------------------------\n");
-         double mesh_time = mesh->get_cpu_time_calc_neighbors() + mesh->get_cpu_time_rezone_all() + mesh->get_cpu_time_refine_smooth() + mesh->get_cpu_time_load_balance();
+         double mesh_time = mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
+                            mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
+                            mesh->get_cpu_timer(MESH_TIMER_REFINE_SMOOTH) +
+                            mesh->get_cpu_timer(MESH_TIMER_LOAD_BALANCE);
          parallel_timer_output(numpe,mype,"Mesh Operations (Neigh+rezone+smooth) ",mesh_time);
          parallel_timer_output(numpe,mype,"Mesh Operations Percentage            ",mesh_time/cpu_elapsed_time*100.0);
 
@@ -2764,12 +2771,12 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
                             get_gpu_time_set_timestep() +
                             get_gpu_time_finite_difference() +
                             get_gpu_time_refine_potential() +
-                            mesh->get_gpu_time_rezone_all() +
-                            mesh->get_gpu_time_calc_neighbors() +
-                            mesh->get_gpu_time_load_balance() +
+                            mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) +
+                            mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
+                            mesh->get_gpu_timer(MESH_TIMER_LOAD_BALANCE) +
                             get_gpu_time_mass_sum() +
-                            mesh->get_gpu_time_calc_spatial_coordinates() +
-                            mesh->gpu_time_count_BCs;
+                            mesh->get_gpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) +
+                            mesh->get_gpu_timer(MESH_TIMER_COUNT_BCS);
          gpu_elapsed_time   = get_gpu_time_write() + gpu_time_compute + get_gpu_time_read();
 
          if (mype == 0) printf("\nGPU: Parallel timings\n\n");
@@ -2781,36 +2788,36 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
          parallel_timer_output(numpe,mype,"GPU:  kernel_calc_finite_diff  time was",(double) get_gpu_time_finite_difference() * 1.0e-9 );
          parallel_timer_output(numpe,mype,"GPU:  kernel_refine_potential  time was",(double) get_gpu_time_refine_potential()  * 1.0e-9 );
          parallel_timer_output(numpe,mype,"GPU:    kernel_calc_mpot         time was",(double) get_gpu_time_calc_mpot()  * 1.0e-9 );
-         parallel_timer_output(numpe,mype,"GPU:    kernel_refine_smooth     time was",(double) mesh->get_gpu_time_refine_smooth()  * 1.0e-9 );
-         parallel_timer_output(numpe,mype,"GPU:  kernel_rezone_all        time was",(double) (mesh->get_gpu_time_rezone_all() ) * 1.0e-9 );
+         parallel_timer_output(numpe,mype,"GPU:    kernel_refine_smooth     time was",(double) mesh->get_gpu_timer(MESH_TIMER_REFINE_SMOOTH)  * 1.0e-9 );
+         parallel_timer_output(numpe,mype,"GPU:  kernel_rezone_all        time was",(double) (mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) ) * 1.0e-9 );
          //parallel_timer_output(numpe,mype,"GPU:  kernel_hash_setup        time was",(double) mesh->get_gpu_time_hash_setup()         * 1.0e-9 );
-         parallel_timer_output(numpe,mype,"GPU:  kernel_calc_neighbors    time was",(double) mesh->get_gpu_time_calc_neighbors()     * 1.0e-9 );
+         parallel_timer_output(numpe,mype,"GPU:  kernel_calc_neighbors    time was",(double) mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS)     * 1.0e-9 );
          if (mesh->get_calc_neighbor_type() == HASH_TABLE) {
-           parallel_timer_output(numpe,mype,"GPU:    kernel_hash_setup        time was",(double) mesh->get_gpu_time_hash_setup()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_hash_query        time was",(double) mesh->get_gpu_time_hash_query()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_find_boundary     time was",(double) mesh->get_gpu_time_find_boundary()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_push_setup        time was",(double) mesh->get_gpu_time_push_setup()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_push_boundary     time was",(double) mesh->get_gpu_time_push_boundary()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_local_list        time was",(double) mesh->get_gpu_time_local_list()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_layer1            time was",(double) mesh->get_gpu_time_layer1()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_layer2            time was",(double) mesh->get_gpu_time_layer2()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_layer_list        time was",(double) mesh->get_gpu_time_layer_list()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_copy_mesh_data    time was",(double) mesh->get_gpu_time_copy_mesh_data()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_fill_mesh_ghost   time was",(double) mesh->get_gpu_time_fill_mesh_ghost()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_fill_neigh_ghost  time was",(double) mesh->get_gpu_time_fill_neigh_ghost()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_set_corner_neigh  time was",(double) mesh->get_gpu_time_set_corner_neigh()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_neigh_adjust      time was",(double) mesh->get_gpu_time_neigh_adjust()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_setup_comm        time was",(double) mesh->get_gpu_time_setup_comm()     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_hash_setup        time was",(double) mesh->get_gpu_timer(MESH_TIMER_HASH_SETUP)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_hash_query        time was",(double) mesh->get_gpu_timer(MESH_TIMER_HASH_QUERY)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_find_boundary     time was",(double) mesh->get_gpu_timer(MESH_TIMER_FIND_BOUNDARY)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_push_setup        time was",(double) mesh->get_gpu_timer(MESH_TIMER_PUSH_SETUP)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_push_boundary     time was",(double) mesh->get_gpu_timer(MESH_TIMER_PUSH_BOUNDARY)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_local_list        time was",(double) mesh->get_gpu_timer(MESH_TIMER_LOCAL_LIST)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_layer1            time was",(double) mesh->get_gpu_timer(MESH_TIMER_LAYER1)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_layer2            time was",(double) mesh->get_gpu_timer(MESH_TIMER_LAYER2)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_layer_list        time was",(double) mesh->get_gpu_timer(MESH_TIMER_LAYER_LIST)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_copy_mesh_data    time was",(double) mesh->get_gpu_timer(MESH_TIMER_COPY_MESH_DATA)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_fill_mesh_ghost   time was",(double) mesh->get_gpu_timer(MESH_TIMER_FILL_MESH_GHOST)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_fill_neigh_ghost  time was",(double) mesh->get_gpu_timer(MESH_TIMER_FILL_NEIGH_GHOST)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_set_corner_neigh  time was",(double) mesh->get_gpu_timer(MESH_TIMER_SET_CORNER_NEIGH)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_neigh_adjust      time was",(double) mesh->get_gpu_timer(MESH_TIMER_NEIGH_ADJUST)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_setup_comm        time was",(double) mesh->get_gpu_timer(MESH_TIMER_SETUP_COMM)     * 1.0e-9 );
          } else {
-           parallel_timer_output(numpe,mype,"GPU:    kernel_kdtree_setup        time was",(double) mesh->get_gpu_time_kdtree_setup()     * 1.0e-9 );
-           parallel_timer_output(numpe,mype,"GPU:    kernel_kdtree_query        time was",(double) mesh->get_gpu_time_kdtree_query()     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_kdtree_setup        time was",(double) mesh->get_gpu_timer(MESH_TIMER_KDTREE_SETUP)     * 1.0e-9 );
+           parallel_timer_output(numpe,mype,"GPU:    kernel_kdtree_query        time was",(double) mesh->get_gpu_timer(MESH_TIMER_KDTREE_QUERY)     * 1.0e-9 );
          }
-         parallel_timer_output(numpe,mype,"GPU:  kernel_calc_spatial_coor time was",(double) mesh->get_gpu_time_calc_spatial_coordinates()     * 1.0e-9 );
-         parallel_timer_output(numpe,mype,"GPU:  kernel_calc_load_balance time was",(double) mesh->get_gpu_time_load_balance()     * 1.0e-9 );
+         parallel_timer_output(numpe,mype,"GPU:  kernel_calc_spatial_coor time was",(double) mesh->get_gpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES)     * 1.0e-9 );
+         parallel_timer_output(numpe,mype,"GPU:  kernel_calc_load_balance time was",(double) mesh->get_gpu_timer(MESH_TIMER_LOAD_BALANCE)     * 1.0e-9 );
          parallel_timer_output(numpe,mype,"GPU:  kernel_mass_sum          time was",(double) get_gpu_time_mass_sum()          * 1.0e-9 );
 
          if (! mesh->have_boundary) {
-            parallel_timer_output(numpe,mype,"GPU:  kernel_count_BCs         time was",(double) mesh->gpu_time_count_BCs        * 1.0e-9 );
+            parallel_timer_output(numpe,mype,"GPU:  kernel_count_BCs         time was",(double) mesh->get_gpu_timer(MESH_TIMER_COUNT_BCS)       * 1.0e-9 );
          }
 
          if (mype == 0) printf("=============================================================\n");

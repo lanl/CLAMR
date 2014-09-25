@@ -152,6 +152,66 @@ enum neighbor_calc
 {  HASH_TABLE,                  //  Hash Table.
    KDTREE };                    //  kD-tree.
 
+enum cpu_timers
+{
+   MESH_TIMER_COUNT_BCS,
+   MESH_TIMER_CALC_NEIGHBORS,
+   MESH_TIMER_HASH_SETUP,
+   MESH_TIMER_HASH_QUERY,
+   MESH_TIMER_FIND_BOUNDARY,
+   MESH_TIMER_PUSH_SETUP,
+   MESH_TIMER_PUSH_BOUNDARY,
+   MESH_TIMER_LOCAL_LIST,
+   MESH_TIMER_LAYER1,
+   MESH_TIMER_LAYER2,
+   MESH_TIMER_LAYER_LIST,
+   MESH_TIMER_COPY_MESH_DATA,
+   MESH_TIMER_FILL_MESH_GHOST,
+   MESH_TIMER_FILL_NEIGH_GHOST,
+   MESH_TIMER_SET_CORNER_NEIGH,
+   MESH_TIMER_NEIGH_ADJUST,
+   MESH_TIMER_SETUP_COMM,
+   MESH_TIMER_KDTREE_SETUP,
+   MESH_TIMER_KDTREE_QUERY,
+   MESH_TIMER_REFINE_SMOOTH,
+   MESH_TIMER_REZONE_ALL,
+   MESH_TIMER_PARTITION,
+   MESH_TIMER_CALC_SPATIAL_COORDINATES,
+   MESH_TIMER_LOAD_BALANCE,
+   MESH_TIMER_SIZE
+};
+
+#ifdef DEBUG_RESTORE_VALS
+static const char *mesh_timer_descriptor[MESH_TIMER_SIZE] = {
+   "mesh_cpu_timer_count_BCs",
+   "mesh_cpu_timer_calc_neighbors",
+   "mesh_cpu_timer_hash_setup",
+   "mesh_cpu_timer_hash_query",
+   "mesh_cpu_timer_find_boundary",
+   "mesh_cpu_timer_push_setup",
+   "mesh_cpu_timer_push_boundary",
+   "mesh_cpu_timer_local_list",
+   "mesh_cpu_timer_layer1",
+   "mesh_cpu_timer_layer2",
+   "mesh_cpu_timer_layer_list",
+   "mesh_cpu_timer_copy_mesh_data",
+   "mesh_cpu_timer_fill_mesh_ghost",
+   "mesh_cpu_timer_fill_neigh_ghost",
+   "mesh_cpu_timer_set_corner_neigh",
+   "mesh_cpu_timer_neigh_adjust",
+   "mesh_cpu_timer_setup_comm",
+   "mesh_cpu_timer_kdtree_setup",
+   "mesh_cpu_timer_kdtree_query",
+   "mesh_cpu_timer_refine_smooth",
+   "mesh_cpu_timer_rezone_all",
+   "mesh_cpu_timer_partition",
+   "mesh_cpu_timer_calc_spatial_coordinates",
+   "mesh_cpu_timer_load_balance"
+};
+#endif
+
+typedef enum cpu_timers mesh_timer_category;
+
 using namespace std;
 
 class Mesh
@@ -167,55 +227,9 @@ public:
    string defines;
 #endif
 
-   double   cpu_time_calc_neighbors,
-               cpu_time_hash_setup,
-               cpu_time_hash_query,
-               cpu_time_find_boundary,
-               cpu_time_push_setup,
-               cpu_time_push_boundary,
-               cpu_time_local_list,
-               cpu_time_layer1,
-               cpu_time_layer2,
-               cpu_time_layer_list,
-               cpu_time_copy_mesh_data,
-               cpu_time_fill_mesh_ghost,
-               cpu_time_fill_neigh_ghost,
-               cpu_time_set_corner_neigh,
-               cpu_time_neigh_adjust,
-               cpu_time_setup_comm,
+   double cpu_timers[MESH_TIMER_SIZE];
 
-               cpu_time_kdtree_setup,
-               cpu_time_kdtree_query,
-            cpu_time_refine_smooth,
-            cpu_time_rezone_all,
-            cpu_time_partition,
-            cpu_time_calc_spatial_coordinates,
-            cpu_time_load_balance;
-
-   long     gpu_time_calc_neighbors,
-               gpu_time_hash_setup,
-               gpu_time_hash_query,
-               gpu_time_find_boundary,
-               gpu_time_push_setup,
-               gpu_time_push_boundary,
-               gpu_time_local_list,
-               gpu_time_layer1,
-               gpu_time_layer2,
-               gpu_time_layer_list,
-               gpu_time_copy_mesh_data,
-               gpu_time_fill_mesh_ghost,
-               gpu_time_fill_neigh_ghost,
-               gpu_time_set_corner_neigh,
-               gpu_time_neigh_adjust,
-               gpu_time_setup_comm,
-
-               gpu_time_kdtree_setup,
-               gpu_time_kdtree_query,
-            gpu_time_refine_smooth,
-            gpu_time_rezone_all,
-            gpu_time_count_BCs,
-            gpu_time_calc_spatial_coordinates,
-            gpu_time_load_balance;
+   long   gpu_timers[MESH_TIMER_SIZE];
 
    int      cpu_rezone_counter;
    int      cpu_refine_smooth_counter;
@@ -372,52 +386,8 @@ public:
 
 
 /* accessor routines */
-   double get_cpu_time_calc_neighbors(void)           {return(cpu_time_calc_neighbors); };
-   double get_cpu_time_hash_setup(void)               {return(cpu_time_hash_setup); };
-   double get_cpu_time_hash_query(void)               {return(cpu_time_hash_query); };
-   double get_cpu_time_find_boundary(void)            {return(cpu_time_find_boundary); };
-   double get_cpu_time_push_setup(void)               {return(cpu_time_push_setup); };
-   double get_cpu_time_push_boundary(void)          {return(cpu_time_push_boundary); };
-   double get_cpu_time_local_list(void)               {return(cpu_time_local_list); };
-   double get_cpu_time_layer1(void)                   {return(cpu_time_layer1); };
-   double get_cpu_time_layer2(void)                   {return(cpu_time_layer2); };
-   double get_cpu_time_layer_list(void)               {return(cpu_time_layer_list); };
-   double get_cpu_time_copy_mesh_data(void)           {return(cpu_time_copy_mesh_data); };
-   double get_cpu_time_fill_mesh_ghost(void)          {return(cpu_time_fill_mesh_ghost); };
-   double get_cpu_time_fill_neigh_ghost(void)         {return(cpu_time_fill_neigh_ghost); };
-   double get_cpu_time_set_corner_neigh(void)         {return(cpu_time_set_corner_neigh); };
-   double get_cpu_time_neigh_adjust(void)             {return(cpu_time_neigh_adjust); };
-   double get_cpu_time_setup_comm(void)               {return(cpu_time_setup_comm); };
-   double get_cpu_time_kdtree_setup(void)             {return(cpu_time_kdtree_setup); };
-   double get_cpu_time_kdtree_query(void)             {return(cpu_time_kdtree_query); };
-   double get_cpu_time_refine_smooth(void)            {return(cpu_time_refine_smooth); };
-   double get_cpu_time_rezone_all(void)               {return(cpu_time_rezone_all); };
-   double get_cpu_time_partition(void)                {return(cpu_time_partition); };
-   double get_cpu_time_calc_spatial_coordinates(void) {return(cpu_time_calc_spatial_coordinates); };
-   double get_cpu_time_load_balance(void)             {return(cpu_time_load_balance); };
-
-   long get_gpu_time_calc_neighbors(void)           {return(gpu_time_calc_neighbors); };
-   long get_gpu_time_hash_setup(void)               {return(gpu_time_hash_setup); };
-   long get_gpu_time_hash_query(void)               {return(gpu_time_hash_query); };
-   long get_gpu_time_find_boundary(void)            {return(gpu_time_find_boundary); };
-   long get_gpu_time_push_setup(void)               {return(gpu_time_push_setup); };
-   long get_gpu_time_push_boundary(void)            {return(gpu_time_push_boundary); };
-   long get_gpu_time_local_list(void)               {return(gpu_time_local_list); };
-   long get_gpu_time_layer1(void)                   {return(gpu_time_layer1); };
-   long get_gpu_time_layer2(void)                   {return(gpu_time_layer2); };
-   long get_gpu_time_layer_list(void)               {return(gpu_time_layer_list); };
-   long get_gpu_time_copy_mesh_data(void)           {return(gpu_time_copy_mesh_data); };
-   long get_gpu_time_fill_mesh_ghost(void)          {return(gpu_time_fill_mesh_ghost); };
-   long get_gpu_time_fill_neigh_ghost(void)         {return(gpu_time_fill_neigh_ghost); };
-   long get_gpu_time_set_corner_neigh(void)         {return(gpu_time_set_corner_neigh); };
-   long get_gpu_time_neigh_adjust(void)             {return(gpu_time_neigh_adjust); };
-   long get_gpu_time_setup_comm(void)               {return(gpu_time_setup_comm); };
-   long get_gpu_time_kdtree_setup(void)             {return(gpu_time_kdtree_setup); };
-   long get_gpu_time_kdtree_query(void)             {return(gpu_time_kdtree_query); };
-   long get_gpu_time_refine_smooth(void)            {return(gpu_time_refine_smooth); };
-   long get_gpu_time_rezone_all(void)               {return(gpu_time_rezone_all); };
-   long get_gpu_time_calc_spatial_coordinates(void) {return(gpu_time_calc_spatial_coordinates); };
-   long get_gpu_time_load_balance(void)             {return(gpu_time_load_balance); };
+   double get_cpu_timer(mesh_timer_category category)       {return(cpu_timers[category]); };
+   long   get_gpu_timer(mesh_timer_category category)       {return(gpu_timers[category]); };
 
    int get_cpu_load_balance_count(void)           {return(cpu_load_balance_counter); };
    int get_cpu_rezone_count(void)                 {return(cpu_rezone_counter); };

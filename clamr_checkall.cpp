@@ -179,9 +179,9 @@ int main(int argc, char **argv) {
    //MPI_Comm_size(MPI_COMM_WORLD, &numpe);
    //MPI_Comm_rank(MPI_COMM_WORLD, &mype);
 
-   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU, mype);
+   ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU);
    if (ierr == EZCL_NODEVICE) {
-      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU, mype);
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU);
    }
    if (ierr != EZCL_SUCCESS) {
       printf("No opencl device available -- aborting\n");
@@ -398,10 +398,11 @@ int main(int argc, char **argv) {
    }
 
    mesh_global->cpu_calc_neigh_counter=0;
-   mesh_global->cpu_time_calc_neighbors=0.0;
    mesh_global->cpu_rezone_counter=0;
-   mesh_global->cpu_time_rezone_all=0.0;
    mesh_global->cpu_refine_smooth_counter=0;
+   for (int i = 0; i < MESH_TIMER_SIZE; i++){
+      mesh_global->cpu_timers[i]=0.0;
+   }   
 
    //  Set up grid.
 

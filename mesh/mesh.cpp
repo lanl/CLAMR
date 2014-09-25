@@ -1159,55 +1159,10 @@ void Mesh::compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_glo
 
 Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double deltay_in, int boundary, int parallel_in, int do_gpu_calc)
 {
-   cpu_time_calc_neighbors     = 0.0;
-      cpu_time_hash_setup      = 0.0;
-      cpu_time_hash_query      = 0.0;
-      cpu_time_find_boundary   = 0.0;
-      cpu_time_push_setup      = 0.0;
-      cpu_time_push_boundary   = 0.0;
-      cpu_time_local_list      = 0.0;
-      cpu_time_layer1          = 0.0;
-      cpu_time_layer2          = 0.0;
-      cpu_time_layer_list      = 0.0;
-      cpu_time_copy_mesh_data  = 0.0;
-      cpu_time_fill_mesh_ghost = 0.0;
-      cpu_time_fill_neigh_ghost = 0.0;
-      cpu_time_set_corner_neigh = 0.0;
-      cpu_time_neigh_adjust    = 0.0;
-      cpu_time_setup_comm      = 0.0;
-
-      cpu_time_kdtree_setup    = 0.0;
-      cpu_time_kdtree_query    = 0.0;
-   cpu_time_refine_smooth      = 0.0;
-   cpu_time_rezone_all         = 0.0;
-   cpu_time_partition          = 0.0;
-   cpu_time_calc_spatial_coordinates = 0.0;
-   cpu_time_load_balance       = 0.0;
-
-   gpu_time_calc_neighbors     = 0;
-      gpu_time_hash_setup      = 0;
-      gpu_time_hash_query      = 0;
-      gpu_time_find_boundary   = 0;
-      gpu_time_push_setup      = 0;
-      gpu_time_push_boundary   = 0;
-      gpu_time_local_list      = 0;
-      gpu_time_layer1          = 0;
-      gpu_time_layer2          = 0;
-      gpu_time_layer_list      = 0;
-      gpu_time_copy_mesh_data  = 0;
-      gpu_time_fill_mesh_ghost = 0;
-      gpu_time_fill_neigh_ghost = 0;
-      gpu_time_set_corner_neigh = 0;
-      gpu_time_neigh_adjust    = 0;
-      gpu_time_setup_comm      = 0;
-
-      gpu_time_kdtree_setup    = 0;
-      gpu_time_kdtree_query    = 0;
-   gpu_time_refine_smooth      = 0;
-   gpu_time_rezone_all         = 0;
-   gpu_time_count_BCs          = 0;
-   gpu_time_calc_spatial_coordinates = 0;
-   gpu_time_load_balance       = 0;
+   for (int i = 0; i < MESH_TIMER_SIZE; i++){
+      cpu_timers[i] = 0.0;
+      gpu_timers[i] = 0;
+   }
 
    cpu_rezone_counter       = 0;
    cpu_refine_smooth_counter = 0;
@@ -1250,8 +1205,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double d
 
    if (numpe == 1) mem_factor = 1.0;
 
-   deltax = 1.0;
-   deltay = 1.0;
+   deltax = deltax_in;
+   deltay = deltay_in;
 
    have_boundary = boundary;
 
@@ -1901,7 +1856,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #endif
 */
 
-   if (TIMING_LEVEL >= 2) cpu_time_refine_smooth += cpu_timer_stop(tstart_lev2);
+   if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_REFINE_SMOOTH] += cpu_timer_stop(tstart_lev2);
 
    return(newcount);
 }
@@ -2147,7 +2102,7 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
       dev_mpot = NULL;
    }
 
-   if (TIMING_LEVEL >= 2) gpu_time_refine_smooth += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+   if (TIMING_LEVEL >= 2) gpu_timers[MESH_TIMER_REFINE_SMOOTH] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
 
    return ncells+icount-jcount;
 }
@@ -2380,7 +2335,7 @@ void Mesh::calc_spatial_coordinates(int ibase)
       }
    }
 
-   cpu_time_calc_spatial_coordinates += cpu_timer_stop(tstart_cpu);
+   cpu_timers[MESH_TIMER_CALC_SPATIAL_COORDINATES] += cpu_timer_stop(tstart_cpu);
 }
 
 #ifdef HAVE_OPENCL
@@ -2428,7 +2383,7 @@ void Mesh::gpu_calc_spatial_coordinates(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_
    ezcl_wait_for_events(1, &calc_spatial_coordinates_event);
    ezcl_event_release(calc_spatial_coordinates_event);
 
-   gpu_time_calc_spatial_coordinates += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
+   gpu_timers[MESH_TIMER_CALC_SPATIAL_COORDINATES] += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
 #endif
 
@@ -2551,7 +2506,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          index[ic]=ic;
       }
 
-      cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
+      cpu_timers[MESH_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
       return;
    }  
 
@@ -3165,7 +3120,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    }  
 #endif
 
-   cpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
+   cpu_timers[MESH_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
 }
 
 #ifdef HAVE_OPENCL
@@ -3207,7 +3162,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
    }
 #endif
    if (global_icount == 0 && global_jcount == 0) {
-      gpu_time_rezone_all += cpu_timer_stop(tstart_cpu);
+      gpu_timers[MESH_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
       return;
    }
 
@@ -3422,7 +3377,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
    }
 #endif
 
-   gpu_time_rezone_all += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
+   gpu_timers[MESH_TIMER_REZONE_ALL] += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
 #endif
 
@@ -3452,7 +3407,7 @@ void Mesh::calc_neighbors(int ncells)
 
       int *hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
 
-      for(uint ic=0; ic<ncells; ic++){
+      for(int ic=0; ic<ncells; ic++){
          int lev = level[ic];
          int levmult = IPOW2(levmx-lev);
          int ii = i[ic]*levmult;
@@ -3481,7 +3436,7 @@ void Mesh::calc_neighbors(int ncells)
       }
 
       if (TIMING_LEVEL >= 2) {
-         cpu_time_hash_setup += cpu_timer_stop(tstart_lev2);
+         cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -3687,7 +3642,7 @@ void Mesh::calc_neighbors(int ncells)
       read_hash_collision_report();
       compact_hash_delete(hash);
 
-      if (TIMING_LEVEL >= 2) cpu_time_hash_query += cpu_timer_stop(tstart_lev2);
+      if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_HASH_QUERY] += cpu_timer_stop(tstart_lev2);
 
    } else if (calc_neighbor_type == KDTREE) {
 
@@ -3706,11 +3661,11 @@ void Mesh::calc_neighbors(int ncells)
       kdtree_setup();
 
       if (TIMING_LEVEL >= 2) {
-         cpu_time_kdtree_setup += cpu_timer_stop(tstart_lev2);
+         cpu_timers[MESH_TIMER_KDTREE_SETUP] += cpu_timer_stop(tstart_lev2);
          cpu_timer_start(&tstart_lev2);
       }
 
-      for (uint ic=0; ic<ncells; ic++) {
+      for (int ic=0; ic<ncells; ic++) {
 
          //left
          nlft[ic]  = ic;
@@ -3751,11 +3706,11 @@ void Mesh::calc_neighbors(int ncells)
 
       KDTree_Destroy(&tree);
 
-      if (TIMING_LEVEL >= 2) cpu_time_kdtree_query += cpu_timer_stop(tstart_lev2);
+      if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_KDTREE_QUERY] += cpu_timer_stop(tstart_lev2);
 
    } // calc_neighbor_type
 
-   cpu_time_calc_neighbors += cpu_timer_stop(tstart_cpu);
+   cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
 }
 
 void Mesh::calc_neighbors_local(void)
@@ -3855,7 +3810,7 @@ void Mesh::calc_neighbors_local(void)
       }    
 
       if (TIMING_LEVEL >= 2) {
-         cpu_time_hash_setup += cpu_timer_stop(tstart_lev2);
+         cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -4107,7 +4062,7 @@ void Mesh::calc_neighbors_local(void)
       }
 
       if (TIMING_LEVEL >= 2) {
-         cpu_time_hash_query += cpu_timer_stop(tstart_lev2);
+         cpu_timers[MESH_TIMER_HASH_QUERY] += cpu_timer_stop(tstart_lev2);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -4282,7 +4237,7 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (TIMING_LEVEL >= 2) {
-            cpu_time_find_boundary += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_FIND_BOUNDARY] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -4343,7 +4298,7 @@ void Mesh::calc_neighbors_local(void)
          free(send_database);
 
          if (TIMING_LEVEL >= 2) {
-            cpu_time_push_setup += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_PUSH_SETUP] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -4370,12 +4325,12 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (TIMING_LEVEL >= 2) {
-            cpu_time_push_boundary += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_PUSH_BOUNDARY] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
          if (TIMING_LEVEL >= 2) {
-            cpu_time_local_list += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_LOCAL_LIST] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -4562,7 +4517,7 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (TIMING_LEVEL >= 2) {
-            cpu_time_layer1 += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_LAYER1] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -4804,7 +4759,7 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (TIMING_LEVEL >= 2) {
-            cpu_time_layer2 += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_LAYER2] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -4835,7 +4790,7 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (TIMING_LEVEL >= 2) {
-            cpu_time_layer_list += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_LAYER_LIST] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -4863,7 +4818,7 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (TIMING_LEVEL >= 2) {
-            cpu_time_copy_mesh_data += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_COPY_MESH_DATA] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -4884,7 +4839,7 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (TIMING_LEVEL >= 2) {
-            cpu_time_fill_mesh_ghost += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_FILL_MESH_GHOST] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -5057,7 +5012,7 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (TIMING_LEVEL >= 2) {
-            cpu_time_fill_neigh_ghost += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_FILL_NEIGH_GHOST] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -5098,7 +5053,7 @@ void Mesh::calc_neighbors_local(void)
 */
 
          if (TIMING_LEVEL >= 2) {
-            cpu_time_set_corner_neigh += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_SET_CORNER_NEIGH] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -5141,7 +5096,7 @@ void Mesh::calc_neighbors_local(void)
          }
          
          if (TIMING_LEVEL >= 2) {
-            cpu_time_neigh_adjust += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_NEIGH_ADJUST] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
@@ -5163,7 +5118,7 @@ void Mesh::calc_neighbors_local(void)
          }
          L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
 
-         if (TIMING_LEVEL >= 2) cpu_time_setup_comm += cpu_timer_stop(tstart_lev2);
+         if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_SETUP_COMM] += cpu_timer_stop(tstart_lev2);
 
          if (DEBUG) {
             print_local();
@@ -5351,7 +5306,7 @@ void Mesh::calc_neighbors_local(void)
       kdtree_setup();
 
       if (TIMING_LEVEL >= 2) {
-         cpu_time_kdtree_setup += cpu_timer_stop(tstart_lev2);
+         cpu_timers[MESH_TIMER_KDTREE_SETUP] += cpu_timer_stop(tstart_lev2);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -5396,11 +5351,11 @@ void Mesh::calc_neighbors_local(void)
 
       KDTree_Destroy(&tree);
 
-      if (TIMING_LEVEL >= 2) cpu_time_kdtree_query += cpu_timer_stop(tstart_lev2);
+      if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_KDTREE_QUERY] += cpu_timer_stop(tstart_lev2);
 
    } // calc_neighbor_type
 
-   cpu_time_calc_neighbors += cpu_timer_stop(tstart_cpu);
+   cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
 }
 
 #ifdef HAVE_OPENCL
@@ -5476,7 +5431,7 @@ void Mesh::gpu_calc_neighbors(void)
    ezcl_event_release(hash_setup_event);
 
    if (TIMING_LEVEL >= 2) {
-      gpu_time_hash_setup += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+      gpu_timers[MESH_TIMER_HASH_SETUP] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
       cpu_timer_start(&tstart_lev2);
    }
 
@@ -5524,9 +5479,9 @@ void Mesh::gpu_calc_neighbors(void)
 
    gpu_compact_hash_delete(dev_hash, dev_hash_header);
 
-   if (TIMING_LEVEL >= 2) gpu_time_hash_query += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+   if (TIMING_LEVEL >= 2) gpu_timers[MESH_TIMER_HASH_QUERY] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
 
-   gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
+   gpu_timers[MESH_TIMER_CALC_NEIGHBORS] += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
 
 
@@ -5755,7 +5710,7 @@ void Mesh::gpu_calc_neighbors_local(void)
    }
 
    if (TIMING_LEVEL >= 2) {
-      gpu_time_hash_setup += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+      gpu_timers[MESH_TIMER_HASH_SETUP] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
       cpu_timer_start(&tstart_lev2);
    }
 
@@ -5887,7 +5842,7 @@ void Mesh::gpu_calc_neighbors_local(void)
    ezcl_event_release(calc_neighbors_local_event);
 
    if (TIMING_LEVEL >= 2) {
-      gpu_time_hash_query += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+      gpu_timers[MESH_TIMER_HASH_QUERY] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
       cpu_timer_start(&tstart_lev2);
    }
 
@@ -6184,7 +6139,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       ezcl_enqueue_read_buffer(command_queue, dev_border_cell_num,   CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_num[0],   NULL);
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_find_boundary += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_FIND_BOUNDARY] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -6244,7 +6199,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       free(send_database);
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_push_setup += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_PUSH_SETUP] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
       // Push the data needed to the adjacent processors
@@ -6275,7 +6230,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       }
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_push_boundary += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_PUSH_BOUNDARY] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -6296,7 +6251,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       //ezcl_enqueue_write_buffer(command_queue, dev_border_cell_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_local[0],   NULL);
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_local_list += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_LOCAL_LIST] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -6387,7 +6342,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       ezcl_event_release(calc_layer1_sethash_event);
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_layer1 += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_LAYER1] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -6480,7 +6435,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       ezcl_device_memory_delete(dev_nbpacked);
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_layer2 += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_LAYER2] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -6547,7 +6502,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       ezcl_event_release(get_border_data2_event);
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_layer_list += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_LAYER_LIST] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -6671,7 +6626,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       }
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_copy_mesh_data += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_COPY_MESH_DATA] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -6720,7 +6675,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       ezcl_event_release(fill_mesh_ghost_event);
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_fill_mesh_ghost += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_FILL_MESH_GHOST] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -6759,7 +6714,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       ezcl_event_release(fill_neighbor_ghost_event);
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_fill_neigh_ghost += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_FILL_NEIGH_GHOST] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -6778,7 +6733,7 @@ void Mesh::gpu_calc_neighbors_local(void)
 #endif
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_set_corner_neigh += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_SET_CORNER_NEIGH] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -6822,7 +6777,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       ezcl_event_release(adjust_neighbors_local_event);
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_neigh_adjust += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_NEIGH_ADJUST] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
       }
 
@@ -6885,7 +6840,7 @@ void Mesh::gpu_calc_neighbors_local(void)
 #endif
 
       if (TIMING_LEVEL >= 2) {
-         gpu_time_setup_comm += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
+         gpu_timers[MESH_TIMER_SETUP_COMM] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
       }
 
       if (DEBUG) {
@@ -7055,7 +7010,7 @@ void Mesh::gpu_calc_neighbors_local(void)
 
    gpu_compact_hash_delete(dev_hash, dev_hash_header);
 
-   gpu_time_calc_neighbors += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
+   gpu_timers[MESH_TIMER_CALC_NEIGHBORS] += (long)(cpu_timer_stop(tstart_cpu) * 1.0e9);
 }
 #endif
 
@@ -7422,7 +7377,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
    if (dynamic_load_balance_on) old_lttrace_total_comp_time = lttrace_total_comp_time;
 #endif
 
-   cpu_time_load_balance += cpu_timer_stop(tstart_cpu);
+   cpu_timers[MESH_TIMER_LOAD_BALANCE] += cpu_timer_stop(tstart_cpu);
 }
 #endif
 
@@ -7778,7 +7733,7 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
       ezcl_device_memory_delete(dev_level_new);
       ezcl_device_memory_delete(dev_celltype_new);
 
-      gpu_time_load_balance += (long int)(cpu_timer_stop(tstart_cpu)*1.0e9);
+      gpu_timers[MESH_TIMER_LOAD_BALANCE] += (long int)(cpu_timer_stop(tstart_cpu)*1.0e9);
    }
 
    return(do_load_balance_global);
@@ -7845,9 +7800,9 @@ int Mesh::gpu_count_BCs(void)
 
       ezcl_device_memory_delete(dev_ioffset);
 
-      gpu_time_count_BCs        += ezcl_timer_calc(&count_BCs_stage1_event, &count_BCs_stage1_event);
+      gpu_timers[MESH_TIMER_COUNT_BCS] += ezcl_timer_calc(&count_BCs_stage1_event, &count_BCs_stage1_event);
       if (block_size > 1) {
-         gpu_time_count_BCs     += ezcl_timer_calc(&count_BCs_stage2_event, &count_BCs_stage2_event);
+         gpu_timers[MESH_TIMER_COUNT_BCS] += ezcl_timer_calc(&count_BCs_stage2_event, &count_BCs_stage2_event);
       }
 
    }
@@ -8263,14 +8218,12 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
 
 const int CRUX_MESH_VERSION = 102;
 const int num_int_vals      = 14;
-const int num_long_vals     = 23;
-const int num_double_vals   = 24;
+const int num_double_vals   = 1;
 
 size_t Mesh::get_checkpoint_size(void)
 {
    size_t nsize;
    nsize  = num_int_vals*sizeof(int);
-   nsize += num_long_vals*sizeof(long long);
    nsize += num_double_vals*sizeof(double);
    nsize += ncells*3*sizeof(int);
    return(nsize);
@@ -8297,62 +8250,15 @@ void Mesh::store_checkpoint(Crux *crux)
 
    crux->store_ints(int_vals, num_int_vals);
 
-   long long long_vals[num_long_vals];
-
-   long_vals[ 0] = gpu_time_calc_neighbors;
-   long_vals[ 1] = gpu_time_hash_setup;
-   long_vals[ 2] = gpu_time_hash_query;
-   long_vals[ 3] = gpu_time_find_boundary;
-   long_vals[ 4] = gpu_time_push_setup;
-   long_vals[ 5] = gpu_time_push_boundary;
-   long_vals[ 6] = gpu_time_local_list;
-   long_vals[ 7] = gpu_time_layer1;
-   long_vals[ 8] = gpu_time_layer2;
-   long_vals[ 9] = gpu_time_layer_list;
-   long_vals[10] = gpu_time_copy_mesh_data;
-   long_vals[11] = gpu_time_fill_mesh_ghost;
-   long_vals[12] = gpu_time_fill_neigh_ghost;
-   long_vals[13] = gpu_time_set_corner_neigh;
-   long_vals[14] = gpu_time_neigh_adjust;
-   long_vals[15] = gpu_time_setup_comm;
-   long_vals[16] = gpu_time_kdtree_setup;
-   long_vals[17] = gpu_time_kdtree_query;
-   long_vals[18] = gpu_time_refine_smooth;
-   long_vals[19] = gpu_time_rezone_all;
-   long_vals[20] = gpu_time_count_BCs;
-   long_vals[21] = gpu_time_calc_spatial_coordinates;
-   long_vals[22] = gpu_time_load_balance;
-
-   crux->store_longs(long_vals, num_long_vals);
+   crux->store_long_array(gpu_timers, MESH_TIMER_SIZE);
 
    double double_vals[num_double_vals];
 
-   double_vals[ 0] = cpu_time_calc_neighbors;
-   double_vals[ 1] = cpu_time_hash_setup;
-   double_vals[ 2] = cpu_time_hash_query;
-   double_vals[ 3] = cpu_time_find_boundary;
-   double_vals[ 4] = cpu_time_push_setup;
-   double_vals[ 5] = cpu_time_push_boundary;
-   double_vals[ 6] = cpu_time_local_list;
-   double_vals[ 7] = cpu_time_layer1;
-   double_vals[ 8] = cpu_time_layer2;
-   double_vals[ 9] = cpu_time_layer_list;
-   double_vals[10] = cpu_time_copy_mesh_data;
-   double_vals[11] = cpu_time_fill_mesh_ghost;
-   double_vals[12] = cpu_time_fill_neigh_ghost;
-   double_vals[13] = cpu_time_set_corner_neigh;
-   double_vals[14] = cpu_time_neigh_adjust;
-   double_vals[15] = cpu_time_setup_comm;
-   double_vals[16] = cpu_time_kdtree_setup;
-   double_vals[17] = cpu_time_kdtree_query;
-   double_vals[18] = cpu_time_refine_smooth;
-   double_vals[19] = cpu_time_rezone_all;
-   double_vals[10] = cpu_time_partition;
-   double_vals[21] = cpu_time_calc_spatial_coordinates;
-   double_vals[22] = cpu_time_load_balance;
-   double_vals[23] = offtile_ratio_local;
+   double_vals[0] = offtile_ratio_local;
 
    crux->store_doubles(double_vals, num_double_vals);
+
+   crux->store_double_array(cpu_timers, MESH_TIMER_SIZE);
 
    crux->store_int_array(i, ncells);
    crux->store_int_array(j, ncells);
@@ -8413,67 +8319,16 @@ void Mesh::restore_checkpoint(Crux *crux)
    }
 #endif
 
-   long long long_vals[num_long_vals];
-
-   crux->restore_longs(long_vals, num_long_vals);
-
-   gpu_time_calc_neighbors           = long_vals[ 0];
-   gpu_time_hash_setup               = long_vals[ 1];
-   gpu_time_hash_query               = long_vals[ 2];
-   gpu_time_find_boundary            = long_vals[ 3];
-   gpu_time_push_setup               = long_vals[ 4];
-   gpu_time_push_boundary            = long_vals[ 5];
-   gpu_time_local_list               = long_vals[ 6];
-   gpu_time_layer1                   = long_vals[ 7];
-   gpu_time_layer2                   = long_vals[ 8];
-   gpu_time_layer_list               = long_vals[ 9];
-   gpu_time_copy_mesh_data           = long_vals[10];
-   gpu_time_fill_mesh_ghost          = long_vals[11];
-   gpu_time_fill_neigh_ghost         = long_vals[12];
-   gpu_time_set_corner_neigh         = long_vals[13];
-   gpu_time_neigh_adjust             = long_vals[14];
-   gpu_time_setup_comm               = long_vals[15];
-   gpu_time_kdtree_setup             = long_vals[16];
-   gpu_time_kdtree_query             = long_vals[17];
-   gpu_time_refine_smooth            = long_vals[18];
-   gpu_time_rezone_all               = long_vals[19];
-   gpu_time_count_BCs                = long_vals[20];
-   gpu_time_calc_spatial_coordinates = long_vals[21];
-   gpu_time_load_balance             = long_vals[22];
+   crux->restore_long_array(gpu_timers, MESH_TIMER_SIZE);
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
-      const char *long_vals_descriptor[num_long_vals] = {
-         "gpu_time_calc_neighbors",
-         "gpu_time_hash_setup",
-         "gpu_time_hash_query",
-         "gpu_time_find_boundary",
-         "gpu_time_push_setup",
-         "gpu_time_push_boundary",
-         "gpu_time_local_list",
-         "gpu_time_layer1",
-         "gpu_time_layer2",
-         "gpu_time_layer_list",
-         "gpu_time_copy_mesh_data",
-         "gpu_time_fill_mesh_ghost",
-         "gpu_time_fill_neigh_ghost",
-         "gpu_time_set_corner_neigh",
-         "gpu_time_neigh_adjust",
-         "gpu_time_setup_comm",
-         "gpu_time_kdtree_setup",
-         "gpu_time_kdtree_query",
-         "gpu_time_refine_smooth",
-         "gpu_time_rezone_all",
-         "gpu_time_count_BCs",
-         "gpu_time_calc_spatial_coordinates",
-         "gpu_time_load_balance",
-      };
       printf("\n");
-      printf("       === Restored mesh long_vals ===\n");
+      printf("       === Restored mesh gpu timers ===\n");
       for (int i = 0; i < num_long_vals; i++){
-         printf("       %-30s %lld\n",long_vals_descriptor[i], long_vals[i]);
+         printf("       %-30s %lld\n",mesh_timer_descriptor[i], gpu_timers[i]);
       }
-      printf("       === Restored mesh long_vals ===\n");
+      printf("       === Restored mesh gpu timers ===\n");
       printf("\n");
    }
 #endif
@@ -8482,57 +8337,13 @@ void Mesh::restore_checkpoint(Crux *crux)
 
    crux->restore_doubles(double_vals, num_double_vals);
 
-   cpu_time_calc_neighbors           = double_vals[ 0];
-   cpu_time_hash_setup               = double_vals[ 1];
-   cpu_time_hash_query               = double_vals[ 2];
-   cpu_time_find_boundary            = double_vals[ 3];
-   cpu_time_push_setup               = double_vals[ 4];
-   cpu_time_push_boundary            = double_vals[ 5];
-   cpu_time_local_list               = double_vals[ 6];
-   cpu_time_layer1                   = double_vals[ 7];
-   cpu_time_layer2                   = double_vals[ 8];
-   cpu_time_layer_list               = double_vals[ 9];
-   cpu_time_copy_mesh_data           = double_vals[10];
-   cpu_time_fill_mesh_ghost          = double_vals[11];
-   cpu_time_fill_neigh_ghost         = double_vals[12];
-   cpu_time_set_corner_neigh         = double_vals[13];
-   cpu_time_neigh_adjust             = double_vals[14];
-   cpu_time_setup_comm               = double_vals[15];
-   cpu_time_kdtree_setup             = double_vals[16];
-   cpu_time_kdtree_query             = double_vals[17];
-   cpu_time_refine_smooth            = double_vals[18];
-   cpu_time_rezone_all               = double_vals[19];
-   cpu_time_partition                = double_vals[20];
-   cpu_time_calc_spatial_coordinates = double_vals[21];
-   cpu_time_load_balance             = double_vals[22];
-   offtile_ratio_local               = double_vals[23];
+   offtile_ratio_local = double_vals[0];
+
+   crux->restore_double_array(cpu_timers, MESH_TIMER_SIZE);
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
       const char *double_vals_descriptor[num_double_vals] = {
-         "cpu_time_calc_neighbors",
-         "cpu_time_hash_setup",
-         "cpu_time_hash_query",
-         "cpu_time_find_boundary",
-         "cpu_time_push_setup",
-         "cpu_time_push_boundary",
-         "cpu_time_local_list",
-         "cpu_time_layer1",
-         "cpu_time_layer2",
-         "cpu_time_layer_list",
-         "cpu_time_copy_mesh_data",
-         "cpu_time_fill_mesh_ghost",
-         "cpu_time_fill_neigh_ghost",
-         "cpu_time_set_corner_neigh",
-         "cpu_time_neigh_adjust",
-         "cpu_time_setup_comm",
-         "cpu_time_kdtree_setup",
-         "cpu_time_kdtree_query",
-         "cpu_time_refine_smooth",
-         "cpu_time_rezone_all",
-         "cpu_time_partition",
-         "cpu_time_calc_spatial_coordinates",
-         "cpu_time_load_balance",
          "offtile_ratio_local"
       };
       printf("\n");
@@ -8541,6 +8352,11 @@ void Mesh::restore_checkpoint(Crux *crux)
          printf("       %-30s %lf\n",double_vals_descriptor[i], double_vals[i]);
       }
       printf("       === Restored mesh double_vals ===\n");
+      printf("       === Restored mesh cpu timers ===\n");
+      for (int i = 0; i < CPU_TIME_SIZE; i++){
+         printf("       %-30s %lf\n",mesh_timer_descriptor[i], cpu_timers[i]);
+      }
+      printf("       === Restored mesh cpu timers ===\n");
       printf("\n");
    }
 #endif

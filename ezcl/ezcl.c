@@ -57,6 +57,10 @@
 #define DEBUG 0
 #endif
 
+#ifndef DEVICE_DETECT_DEBUG
+#define DEVICE_DETECT_DEBUG 0
+#endif
+
 #define EZCL_MEM_FACTOR 1.6
 #define SUPPRESS_WARNING 1
 
@@ -171,7 +175,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
       printf("EZCL_INIT: Error -- No opencl platforms detected in file %s at line %d\n", file, line);
       exit(-1);
    }
-   if (DEBUG){
+   if (DEVICE_DETECT_DEBUG){
       printf("\n\nEZCL_INIT: %d opencl platform(s) detected\n",nPlatforms);
    }
    
@@ -187,7 +191,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
         }
    }
 
-   if (DEBUG){
+   if (DEVICE_DETECT_DEBUG){
       char info[1024];
       for (uint iplatform=0; iplatform<nPlatforms; iplatform++){
          printf("  Platform %d:\n",iplatform+1);
@@ -224,7 +228,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
       */
      ezcl_print_error(ierr, "EZCL_INIT", "clGetDeviceIDs", file, line);
    }
-   if (DEBUG){
+   if (DEVICE_DETECT_DEBUG){
       printf("EZCL_INIT: %d opencl devices(s) detected at line\n",nDevices);
    }
    
@@ -243,7 +247,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
      ezcl_print_error(ierr, "EZCL_INIT", "clGetDeviceIDs", file, line);
    }
    
-   if (DEBUG){
+   if (DEVICE_DETECT_DEBUG){
       for (uint idevice=0; idevice<nDevices; idevice++){
          printf(  "  Device %d:\n", idevice+1);
          ezcl_device_info(devices[idevice]);
@@ -270,7 +274,7 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
    if (*ezcl_gpu_context != NULL){
       printf("EZCL_INIT: GPU device context created\n");
    } else {
-      if (DEBUG) printf("EZCL_INIT: No gpu device found in file %s at line %d\n", file, line);
+      if (DEVICE_DETECT_DEBUG) printf("EZCL_INIT: No gpu device found in file %s at line %d\n", file, line);
    }
    
    *ezcl_cpu_context = clCreateContextFromType(0, (size_t)CL_DEVICE_TYPE_CPU, NULL, NULL, &ierr);
@@ -314,14 +318,14 @@ cl_int ezcl_init_p(cl_context *ezcl_gpu_context, cl_context *ezcl_cpu_context, c
    if (*ezcl_accelerator_context != NULL){
       printf("EZCL_INIT: Accelerator device context created\n");
    } else {
-      if (DEBUG) printf("EZCL_INIT: No accelerator device found in file %s at line %d\n", file, line);
+      if (DEVICE_DETECT_DEBUG) printf("EZCL_INIT: No accelerator device found in file %s at line %d\n", file, line);
    }
     printf("\n");
    
    return(0);
 }
 
-cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const char *file, int line){
+cl_int ezcl_devtype_init_p(cl_device_type device_type, const char *file, int line){
    cl_device_id device;
    int ierr;
    cl_uint nDevices_selected=0;
@@ -343,7 +347,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
       printf("EZCL_DEVTYPE_INIT: Error -- No opencl platforms detected in file %s at line %d\n", file, line);
       exit(-1);
    }
-   if (DEBUG){
+   if (DEVICE_DETECT_DEBUG){
       printf("\n\nEZCL_DEVTYPE_INIT: %d opencl platform(s) detected\n",nPlatforms);
    }
 
@@ -358,7 +362,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
       }
    }
 
-   if (DEBUG){
+   if (DEVICE_DETECT_DEBUG){
       char info[1024];
       for (uint iplatform=0; iplatform<nPlatforms; iplatform++){
          printf("  Platform %d:\n",iplatform+1);
@@ -385,7 +389,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
    for (uint iplatform=0; iplatform<nPlatforms; iplatform++){
       ierr = clGetDeviceIDs(platforms[iplatform],device_type,0,NULL,&nDevices);
       if (ierr == CL_DEVICE_NOT_FOUND) {
-         if (DEBUG) {
+         if (DEVICE_DETECT_DEBUG) {
            printf("Warning: Device of requested type not found for platform %d in clGetDeviceID call\n",iplatform);
          }
          continue;
@@ -399,7 +403,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
          */
         ezcl_print_error(ierr, "EZCL_DEVTYPE_INIT", "clGetDeviceIDs", file, line);
       }
-      if (DEBUG){
+      if (DEVICE_DETECT_DEBUG){
          printf("EZCL_DEVTYPE_INIT: %d opencl devices(s) detected\n",nDevices);
       }
       platform_selected = iplatform;
@@ -429,7 +433,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
      ezcl_print_error(ierr, "EZCL_DEVTYPE_INIT", "clGetDeviceIDs", file, line);
    }
 
-   if (DEBUG){
+   if (DEVICE_DETECT_DEBUG){
       for (uint idevice=0; idevice<nDevices; idevice++){
          printf(  "  Device %d:\n", idevice+1);
          ezcl_device_info(devices[idevice]);
@@ -459,7 +463,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
       */
      ezcl_print_error(ierr, "EZCL_DEVTYPE_INIT", "clCreateContext", file, line);
    }
-   if (DEBUG){
+   if (DEVICE_DETECT_DEBUG){
       if (context != NULL){
          if(device_type & CL_DEVICE_TYPE_CPU )
             printf("EZCL_DEVTYPE_INIT: CPU device context created\n");
@@ -490,7 +494,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
       printf("EZCL_DEVTYPE_INIT: Failed to find device and setup context in file %s at line %d\n", file, line);
       exit(-1); /* No device is available, something is wrong */
    }
-   if (DEBUG == 2){
+   if (DEVICE_DETECT_DEBUG == 2){
       ezcl_device_info(device);
    }
 
@@ -501,6 +505,32 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const int mype, const cha
    if (! strncmp(info,"Advanced Micro Devices",(size_t)6) ) compute_device = COMPUTE_DEVICE_ATI;
    if (! strncmp(info,"Intel(R) Corporation",(size_t)6) ) compute_device = COMPUTE_DEVICE_INTEL;
    //printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,compute_device);
+
+   int mype = 0;
+   int numpe = 1;
+   int numpe_node = 1;
+#ifdef HAVE_MPI
+   int mpi_initialized = 0;
+   MPI_Initialized(&mpi_initialized);
+   if (mpi_initialized) {
+      MPI_Comm_rank(MPI_COMM_WORLD, &mype);
+      MPI_Comm_size(MPI_COMM_WORLD, &numpe);
+      numpe_node = numpe;
+
+#if MPI_VERSION >= 3
+      MPI_Comm   mpi_comm_node;
+      MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &mpi_comm_node);
+      MPI_Comm_size(mpi_comm_node, &numpe_node);
+#endif
+   }
+#endif
+
+   if (numpe_node > (int)nDevices) {
+      if (mype == 0) {
+         printf("EZCL_DEVTYPE_INIT: Error -- not enough GPUs for mpi ranks. nDevices %d numpe_node %d\n",nDevices,numpe_node);
+      }
+      exit(-1); /* Not enough devices for mpi ranks */
+   }
 
    command_queue = ezcl_create_command_queue(context, mype);
 
@@ -648,7 +678,7 @@ cl_command_queue ezcl_create_command_queue_p(cl_context context, const int mype,
      ezcl_print_error(ierr, "EZCL_CREATE_COMMAND_QUEUE", "clGetContextInfo", file, line);
    }
 
-   if (DEBUG) printf("%d: DEBUG -- running on device %d\n",mype,mype%nDevices);
+   if (DEVICE_DETECT_DEBUG) printf("%d: DEBUG -- running on device %d\n",mype,mype%nDevices);
 
    queueProps = ezcl_flags.timing ? CL_QUEUE_PROFILING_ENABLE : 0;
    command_queue = clCreateCommandQueue(context, device[mype%nDevices], queueProps, &ierr);

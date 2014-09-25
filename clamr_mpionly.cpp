@@ -232,9 +232,11 @@ int main(int argc, char **argv) {
    }
 
    mesh->cpu_calc_neigh_counter=0;
-   mesh->cpu_time_calc_neighbors=0.0;
    mesh->cpu_rezone_counter=0;
    mesh->cpu_refine_smooth_counter=0;
+   for (int i = 0; i < MESH_TIMER_SIZE; i++){
+      mesh->cpu_timers[i]=0.0;
+   }
 
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL

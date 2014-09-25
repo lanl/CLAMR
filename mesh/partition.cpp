@@ -445,7 +445,7 @@ void Mesh::partition_cells(
          for (uint ic = 0; ic < ncells; ++ic)
          {   z_order[ic] = ic; }
 
-         cpu_time_partition += cpu_timer_stop(tstart_cpu);
+         cpu_timers[MESH_TIMER_PARTITION] += cpu_timer_stop(tstart_cpu);
 
          return;
          break;
@@ -926,7 +926,7 @@ void Mesh::partition_cells(
          printf(" %8.2lf %8.2lf %8.2lf %8.2lf", x[ic], x[ic]+dx[ic], y[ic], y[ic]+dy[ic]);
          printf(" %6d    %5d\n", z_index[ic], z_order[ic]); } }
 
-   cpu_time_partition += cpu_timer_stop(tstart_cpu);
+   cpu_timers[MESH_TIMER_PARTITION] += cpu_timer_stop(tstart_cpu);
 }
 
 //   The distribution needs to be modified in order to spread out extra cells equitably among the work items.
