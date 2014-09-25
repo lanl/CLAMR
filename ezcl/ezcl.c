@@ -517,18 +517,22 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const char *file, int lin
       MPI_Comm_size(MPI_COMM_WORLD, &numpe);
       numpe_node = numpe;
 
-#if MPI_VERSION >= 3
+#if OMPI_MAJOR_VERSION >= 1 && OMPI_MINOR_VERSION >= 7
       MPI_Comm   mpi_comm_node;
       MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &mpi_comm_node);
       MPI_Comm_size(mpi_comm_node, &numpe_node);
+      //printf("EZCL_DEVTYPE_INIT: Info -- major_version %d minor_version %d\n",
+      //       OMPI_MAJOR_VERSION,OMPI_MINOR_VERSION);
 #endif
    }
 #endif
 
    if (numpe_node > (int)nDevices) {
-      if (mype == 0) {
-         printf("EZCL_DEVTYPE_INIT: Error -- not enough GPUs for mpi ranks. nDevices %d numpe_node %d\n",nDevices,numpe_node);
-      }
+      printf("%d:EZCL_DEVTYPE_INIT: Error -- not enough GPUs for mpi ranks. nDevices %d numpe_node %d\n",
+             mype,nDevices,numpe_node);
+#ifdef HAVE_MPI
+      MPI_Abort(MPI_COMM_WORLD, -1);
+#endif
       exit(-1); /* Not enough devices for mpi ranks */
    }
 

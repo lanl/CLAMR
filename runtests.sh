@@ -60,7 +60,7 @@ echo ""
 echo ""
 
 echo "mpirun -n 3 ./clamr_checkall -n 4 -i 1 -t 1"
-mpirun -n 3 ./clamr_checkall -n 4 -i 1 -t 1
+mpirun -n 3 -npernode 2 ./clamr_checkall -n 4 -i 1 -t 1
 echo ""
 echo ""
 
