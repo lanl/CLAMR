@@ -399,7 +399,8 @@ public:
 
 /* accessor routines */
    double get_cpu_timer(mesh_timer_category category)       {return(cpu_timers[category]); };
-   long   get_gpu_timer(mesh_timer_category category)       {return(gpu_timers[category]); };
+   /* Convert nanoseconds to msecs */
+   double get_gpu_timer(mesh_timer_category category)       {return((double)(gpu_timers[category])*1.0e-9); };
 
    int get_cpu_counter(mesh_counter_category category)      {return(cpu_counters[category]); };
    int get_gpu_counter(mesh_counter_category category)      {return(gpu_counters[category]); };

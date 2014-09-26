@@ -243,7 +243,8 @@ public:
 
    /* Accessor routines */
    double get_cpu_timer(state_timer_category category)  {return(cpu_timers[category]); };
-   long   get_gpu_timer(state_timer_category category)  {return(gpu_timers[category]); };
+   /* Convert nanoseconds to msecs */
+   long   get_gpu_timer(state_timer_category category)  {return((double)(gpu_timers[category])*1.0e-9); };
 
    /* Boundary routines -- not currently used */
    void add_boundary_cells(void);
