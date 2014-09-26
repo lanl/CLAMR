@@ -23,6 +23,37 @@ if (MPI_FOUND)
    install(TARGETS pMallocPlus DESTINATION lib)
 endif (MPI_FOUND)
 
+########### mpMallocPlus target ###############
+if (OPENMP_FOUND)
+   set(mpMallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+
+   add_library(mpMallocPlus STATIC ${MallocPlus_LIB_SRCS})
+
+   set_target_properties(mpMallocPlus PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(mpMallocPlus PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+   set_target_properties(mpMallocPlus PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+   set_target_properties(mpMallocPlus PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
+
+   target_link_libraries(mpMallocPlus ${MPI_LIBRARIES})
+   install(TARGETS mpMallocPlus DESTINATION lib)
+endif (OPENMP_FOUND)
+
+########### pmpMallocPlus target ###############
+if (OPENMP_FOUND AND MPI_FOUND)
+   set(pmpMallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+
+   add_library(pmpMallocPlus STATIC ${MallocPlus_LIB_SRCS})
+
+   set_target_properties(pmpMallocPlus PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(pmpMallocPlus PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+   set_target_properties(pmpMallocPlus PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+   set_target_properties(pmpMallocPlus PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+   set_target_properties(pmpMallocPlus PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
+
+   target_link_libraries(pmpMallocPlus ${MPI_LIBRARIES})
+   install(TARGETS pmpMallocPlus DESTINATION lib)
+endif (OPENMP_FOUND AND MPI_FOUND)
+
 ########### dMallocPlus target ###############
 if (OPENCL_FOUND)
    set(dMallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})

@@ -36,6 +36,21 @@ if(MPI_FOUND)
    install(TARGETS l7 DESTINATION lib)
 endif (MPI_FOUND)
 
+########### mpl7 target ###############
+if(MPI_FOUND)
+   set(mpl7_LIB_SRCS ${C_SRCS} ${H_SRCS})
+
+   add_library(mpl7 STATIC ${l7_LIB_SRCS})
+
+   set_target_properties(mpl7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(mpl7 PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+   set_target_properties(mpl7 PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+   set_target_properties(mpl7 PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
+
+   target_link_libraries(mpl7 ${MPI_LIBRARIES})
+   install(TARGETS mpl7 DESTINATION lib)
+endif (MPI_FOUND)
+
 ########### dl7 target ###############
 if (OPENCL_FOUND)
    set(dl7_LIB_SRCS ${C_SRCS} ${H_SRCS})
