@@ -23,6 +23,17 @@ add_library(hash STATIC ${hash_LIB_SRCS})
 set_target_properties(hash PROPERTIES VERSION 2.0.0 SOVERSION 2)
 install(TARGETS hash DESTINATION lib)
 
+########### mphash target ###############
+if (OPENMP_FOUND)
+   add_library(mphash STATIC ${hash_LIB_SRCS})
+
+   set_target_properties(mphash PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(mphash PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+   set_target_properties(mphash PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+   set_target_properties(mphash PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
+   install(TARGETS mphash DESTINATION lib)
+endif (OPENMP_FOUND)
+
 ########### dhash target ###############
 
 if (OPENCL_FOUND)

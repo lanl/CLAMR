@@ -64,6 +64,24 @@ if (MPI_FOUND)
    install(TARGETS pmesh DESTINATION lib)
 endif (MPI_FOUND)
 
+########### pmpmesh target ###############
+if(OPENMP_FOUND AND MPI_FOUND)
+   set(pmpmesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
+
+   add_library(pmpmesh STATIC ${mesh_LIB_SRCS})
+
+   set_target_properties(pmpmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(pmpmesh PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+   set_target_properties(pmpmesh PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+   set_target_properties(pmpmesh PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+   set_target_properties(pmpmesh PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
+
+   target_link_libraries(pmpmesh)
+   target_link_libraries(pmpmesh ${MPI_LIBRARIES})
+   add_dependencies(pmpmesh reduce_kernel_source)
+   install(TARGETS pmpmesh DESTINATION lib)
+endif(OPENMP_FOUND AND MPI_FOUND)
+
 ########### dmesh target ###############
 if (OPENCL_FOUND)
    set(dmesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
