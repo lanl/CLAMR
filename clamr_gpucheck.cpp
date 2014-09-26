@@ -240,9 +240,9 @@ int main(int argc, char **argv) {
 
    printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
 
-   mesh->cpu_calc_neigh_counter=0;
-   mesh->cpu_rezone_counter=0;
-   mesh->cpu_refine_smooth_counter=0;
+   for (int i = 0; i < MESH_COUNTER_SIZE; i++){
+      mesh->cpu_counters[i]=0;
+   }
    for (int i = 0; i < MESH_TIMER_SIZE; i++){
       mesh->cpu_timers[i]=0.0;
    }   
@@ -561,15 +561,15 @@ extern "C" void do_calc(void)
       mesh->print_calc_neighbor_type();
       mesh->print_partition_type();
 
-      printf("CPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_cpu_rezone_count()/(double)ncycle*100.0 );
-      printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_cpu_calc_neigh_count()/(double)ncycle*100.0 );
-      if (mesh->get_cpu_rezone_count() > 0) {
-         printf("CPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_cpu_refine_smooth_count()/(double)mesh->get_cpu_rezone_count() );
+      printf("CPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_cpu_counter(MESH_COUNTER_REZONE)/(double)ncycle*100.0 );
+      printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_cpu_counter(MESH_COUNTER_CALC_NEIGH)/(double)ncycle*100.0 );
+      if (mesh->get_cpu_counter(MESH_COUNTER_REZONE) > 0) {
+         printf("CPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_cpu_counter(MESH_COUNTER_REFINE_SMOOTH)/(double)mesh->get_cpu_counter(MESH_COUNTER_REZONE) );
       }
-      printf("GPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_gpu_rezone_count()/(double)ncycle*100.0 );
-      printf("GPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_gpu_calc_neigh_count()/(double)ncycle*100.0 );
-      if (mesh->get_gpu_rezone_count() > 0) {
-         printf("GPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_gpu_refine_smooth_count()/(double)mesh->get_gpu_rezone_count() );
+      printf("GPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_gpu_counter(MESH_COUNTER_REZONE)/(double)ncycle*100.0 );
+      printf("GPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_gpu_counter(MESH_COUNTER_CALC_NEIGH)/(double)ncycle*100.0 );
+      if (mesh->get_gpu_counter(MESH_COUNTER_REZONE) > 0) {
+         printf("GPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_gpu_counter(MESH_COUNTER_REFINE_SMOOTH)/(double)mesh->get_gpu_counter(MESH_COUNTER_REZONE) );
       }
 
       if (mesh->dev_nlft != NULL){

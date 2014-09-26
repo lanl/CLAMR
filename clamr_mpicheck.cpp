@@ -268,9 +268,9 @@ int main(int argc, char **argv) {
       printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells_global, H_sum);
    }
 
-   mesh_global->cpu_calc_neigh_counter=0;
-   mesh_global->cpu_rezone_counter=0;
-   mesh_global->cpu_refine_smooth_counter=0;
+   for (int i = 0; i < MESH_COUNTER_SIZE; i++){
+      mesh_global->cpu_counters[i]=0;
+   }
    for (int i = 0; i < MESH_TIMER_SIZE; i++){
       mesh_global->cpu_timers[i]=0.0;
    }   
@@ -595,14 +595,14 @@ extern "C" void do_calc(void)
       mesh->print_partition_type();
 
       if (mype == 0) {
-         printf("CPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_cpu_rezone_count()/(double)ncycle*100.0 );
-         printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_cpu_calc_neigh_count()/(double)ncycle*100.0 );
-         printf("CPU:  calc load balance               \t %8.4f\tpercent\n",     (double)mesh->get_cpu_load_balance_count()/(double)ncycle*100.0 );
-         printf("CPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_cpu_refine_smooth_count()/(double)mesh->get_cpu_rezone_count() );
-         printf("CPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh_global->get_cpu_rezone_count()/(double)ncycle*100.0 );
-         printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh_global->get_cpu_calc_neigh_count()/(double)ncycle*100.0 );
-         printf("CPU:  calc load balance               \t %8.4f\tpercent\n",     (double)mesh_global->get_cpu_load_balance_count()/(double)ncycle*100.0 );
-         printf("CPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh_global->get_cpu_refine_smooth_count()/(double)mesh->get_cpu_rezone_count() );
+         printf("CPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_cpu_counter(MESH_COUNTER_REZONE)/(double)ncycle*100.0 );
+         printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_cpu_counter(MESH_COUNTER_CALC_NEIGH)/(double)ncycle*100.0 );
+         printf("CPU:  calc load balance               \t %8.4f\tpercent\n",     (double)mesh->get_cpu_counter(MESH_COUNTER_LOAD_BALANCE)/(double)ncycle*100.0 );
+         printf("CPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_cpu_counter(MESH_COUNTER_REFINE_SMOOTH)/(double)mesh->get_cpu_counter(MESH_COUNTER_REZONE) );
+         printf("CPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh_global->get_cpu_counter(MESH_COUNTER_REZONE)/(double)ncycle*100.0 );
+         printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh_global->get_cpu_counter(MESH_COUNTER_CALC_NEIGH)/(double)ncycle*100.0 );
+         printf("CPU:  calc load balance               \t %8.4f\tpercent\n",     (double)mesh_global->get_cpu_counter(MESH_COUNTER_LOAD_BALANCE)/(double)ncycle*100.0 );
+         printf("CPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh_global->get_cpu_counter(MESH_COUNTER_REFINE_SMOOTH)/(double)mesh->get_cpu_counter(MESH_COUNTER_REZONE) );
       }
 
       mesh->terminate();

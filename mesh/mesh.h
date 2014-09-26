@@ -152,7 +152,7 @@ enum neighbor_calc
 {  HASH_TABLE,                  //  Hash Table.
    KDTREE };                    //  kD-tree.
 
-enum cpu_timers
+enum mesh_timers
 {
    MESH_TIMER_COUNT_BCS,
    MESH_TIMER_CALC_NEIGHBORS,
@@ -183,34 +183,53 @@ enum cpu_timers
 
 #ifdef DEBUG_RESTORE_VALS
 static const char *mesh_timer_descriptor[MESH_TIMER_SIZE] = {
-   "mesh_cpu_timer_count_BCs",
-   "mesh_cpu_timer_calc_neighbors",
-   "mesh_cpu_timer_hash_setup",
-   "mesh_cpu_timer_hash_query",
-   "mesh_cpu_timer_find_boundary",
-   "mesh_cpu_timer_push_setup",
-   "mesh_cpu_timer_push_boundary",
-   "mesh_cpu_timer_local_list",
-   "mesh_cpu_timer_layer1",
-   "mesh_cpu_timer_layer2",
-   "mesh_cpu_timer_layer_list",
-   "mesh_cpu_timer_copy_mesh_data",
-   "mesh_cpu_timer_fill_mesh_ghost",
-   "mesh_cpu_timer_fill_neigh_ghost",
-   "mesh_cpu_timer_set_corner_neigh",
-   "mesh_cpu_timer_neigh_adjust",
-   "mesh_cpu_timer_setup_comm",
-   "mesh_cpu_timer_kdtree_setup",
-   "mesh_cpu_timer_kdtree_query",
-   "mesh_cpu_timer_refine_smooth",
-   "mesh_cpu_timer_rezone_all",
-   "mesh_cpu_timer_partition",
-   "mesh_cpu_timer_calc_spatial_coordinates",
-   "mesh_cpu_timer_load_balance"
+   "mesh_timer_count_BCs",
+   "mesh_timer_calc_neighbors",
+   "mesh_timer_hash_setup",
+   "mesh_timer_hash_query",
+   "mesh_timer_find_boundary",
+   "mesh_timer_push_setup",
+   "mesh_timer_push_boundary",
+   "mesh_timer_local_list",
+   "mesh_timer_layer1",
+   "mesh_timer_layer2",
+   "mesh_timer_layer_list",
+   "mesh_timer_copy_mesh_data",
+   "mesh_timer_fill_mesh_ghost",
+   "mesh_timer_fill_neigh_ghost",
+   "mesh_timer_set_corner_neigh",
+   "mesh_timer_neigh_adjust",
+   "mesh_timer_setup_comm",
+   "mesh_timer_kdtree_setup",
+   "mesh_timer_kdtree_query",
+   "mesh_timer_refine_smooth",
+   "mesh_timer_rezone_all",
+   "mesh_timer_partition",
+   "mesh_timer_calc_spatial_coordinates",
+   "mesh_timer_load_balance"
 };
 #endif
 
-typedef enum cpu_timers mesh_timer_category;
+enum mesh_counters
+{
+   MESH_COUNTER_REZONE,
+   MESH_COUNTER_REFINE_SMOOTH,
+   MESH_COUNTER_CALC_NEIGH,
+   MESH_COUNTER_LOAD_BALANCE,
+   MESH_COUNTER_SIZE
+};
+
+#ifdef DEBUG_RESTORE_VALS
+static const char *mesh_timer_descriptor[MESH_TIMER_SIZE] = {
+   "mesh_counter_rezone",
+   "mesh_counter_refine_smooth",
+   "mesh_counter_calc_neigh",
+   "mesh_counter_load_balance"
+};
+#endif
+
+typedef enum mesh_timers   mesh_timer_category;
+typedef enum mesh_counters mesh_counter_category;
 
 using namespace std;
 
@@ -228,17 +247,10 @@ public:
 #endif
 
    double cpu_timers[MESH_TIMER_SIZE];
-
    long   gpu_timers[MESH_TIMER_SIZE];
 
-   int      cpu_rezone_counter;
-   int      cpu_refine_smooth_counter;
-   int      cpu_calc_neigh_counter;
-   int      cpu_load_balance_counter;
-   int      gpu_rezone_counter;
-   int      gpu_refine_smooth_counter;
-   int      gpu_calc_neigh_counter;
-   int      gpu_load_balance_counter;
+   int    cpu_counters[MESH_COUNTER_SIZE];
+   int    gpu_counters[MESH_COUNTER_SIZE];
 
    int            mype,
                   numpe,
@@ -389,14 +401,8 @@ public:
    double get_cpu_timer(mesh_timer_category category)       {return(cpu_timers[category]); };
    long   get_gpu_timer(mesh_timer_category category)       {return(gpu_timers[category]); };
 
-   int get_cpu_load_balance_count(void)           {return(cpu_load_balance_counter); };
-   int get_cpu_rezone_count(void)                 {return(cpu_rezone_counter); };
-   int get_cpu_refine_smooth_count(void)          {return(cpu_refine_smooth_counter); };
-   int get_cpu_calc_neigh_count(void)             {return(cpu_calc_neigh_counter); };
-   int get_gpu_load_balance_count(void)           {return(gpu_load_balance_counter); };
-   int get_gpu_rezone_count(void)                 {return(gpu_rezone_counter); };
-   int get_gpu_refine_smooth_count(void)          {return(gpu_refine_smooth_counter); };
-   int get_gpu_calc_neigh_count(void)             {return(gpu_calc_neigh_counter); };
+   int get_cpu_counter(mesh_counter_category category)      {return(cpu_counters[category]); };
+   int get_gpu_counter(mesh_counter_category category)      {return(gpu_counters[category]); };
 
    int get_calc_neighbor_type(void);
 

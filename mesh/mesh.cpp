@@ -1164,14 +1164,10 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double d
       gpu_timers[i] = 0;
    }
 
-   cpu_rezone_counter       = 0;
-   cpu_refine_smooth_counter = 0;
-   cpu_calc_neigh_counter   = 0;
-   cpu_load_balance_counter = 0;
-   gpu_rezone_counter       = 0;
-   gpu_refine_smooth_counter = 0;
-   gpu_calc_neigh_counter   = 0;
-   gpu_load_balance_counter = 0;
+   for (int i = 0; i < MESH_COUNTER_SIZE; i++){
+      cpu_counters[i] = 0;
+      gpu_counters[i] = 0;
+   }
 
    ndim   = ndim_in;
    levmx  = levmx_in;
@@ -1555,7 +1551,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
       size_t my_ncells=ncells;
       if (parallel) my_ncells=ncells_ghost;
 
-      cpu_refine_smooth_counter++;
+      cpu_counters[MESH_COUNTER_REFINE_SMOOTH]++;
 
       vector<int> mpot_old(my_ncells);
 
@@ -1904,7 +1900,7 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
       while (newcount_global > 0 && levcount < levmx) {
          levcount++;
 
-         gpu_refine_smooth_counter++;
+         gpu_counters[MESH_COUNTER_REFINE_SMOOTH]++;
 
 #ifdef HAVE_MPI
          if (numpe > 1) {
@@ -2510,7 +2506,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       return;
    }  
 
-   cpu_rezone_counter++;
+   cpu_counters[MESH_COUNTER_REZONE]++;
 
    vector<int> celltype_save(ncells);
    if (have_state) {
@@ -3166,7 +3162,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
       return;
    }
 
-   gpu_rezone_counter++;
+   gpu_counters[MESH_COUNTER_REZONE]++;
 
    int ifirst      = 0;
    int ilast       = 0;
@@ -3386,7 +3382,7 @@ void Mesh::calc_neighbors(int ncells)
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   cpu_calc_neigh_counter++;
+   cpu_counters[MESH_COUNTER_CALC_NEIGH]++;
    int flags = INDEX_ARRAY_MEMORY;
 
 #if defined (HAVE_J7)
@@ -3718,7 +3714,7 @@ void Mesh::calc_neighbors_local(void)
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   cpu_calc_neigh_counter++;
+   cpu_counters[MESH_COUNTER_CALC_NEIGH]++;
    int flags = INDEX_ARRAY_MEMORY;
 
 #if defined (HAVE_J7)
@@ -5371,7 +5367,7 @@ void Mesh::gpu_calc_neighbors(void)
 
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-   gpu_calc_neigh_counter++;
+   gpu_counters[MESH_COUNTER_CALC_NEIGH]++;
 
    assert(dev_levtable);
    assert(dev_level);
@@ -5497,7 +5493,7 @@ void Mesh::gpu_calc_neighbors_local(void)
 
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-   gpu_calc_neigh_counter++;
+   gpu_counters[MESH_COUNTER_CALC_NEIGH]++;
 
    ncells_ghost = ncells;
 
@@ -7224,7 +7220,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
 
       if (do_load_balance_global) {
 
-         cpu_load_balance_counter++;
+         cpu_counters[MESH_COUNTER_LOAD_BALANCE]++;
 
          ndispl[0]=0;
          for (int ip=1; ip<numpe; ip++){
@@ -7410,7 +7406,7 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
 
       cl_command_queue command_queue = ezcl_get_command_queue();
 
-      gpu_load_balance_counter++;
+      gpu_counters[MESH_COUNTER_LOAD_BALANCE]++;
 
       ndispl[0]=0;
       for (int ip=1; ip<numpe; ip++){
@@ -8216,8 +8212,8 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
             
 }
 
-const int CRUX_MESH_VERSION = 102;
-const int num_int_vals      = 14;
+const int CRUX_MESH_VERSION = 103;
+const int num_int_vals      = 6;
 const int num_double_vals   = 1;
 
 size_t Mesh::get_checkpoint_size(void)
@@ -8238,19 +8234,9 @@ void Mesh::store_checkpoint(Crux *crux)
    int_vals[ 2] = levmx;
    int_vals[ 3] = ncells;
    int_vals[ 4] = ncells_ghost;
-   int_vals[ 5] = cpu_rezone_counter;
-   int_vals[ 6] = cpu_refine_smooth_counter;
-   int_vals[ 7] = cpu_calc_neigh_counter;
-   int_vals[ 8] = cpu_load_balance_counter;
-   int_vals[ 9] = gpu_rezone_counter;
-   int_vals[10] = gpu_refine_smooth_counter;
-   int_vals[11] = gpu_calc_neigh_counter;
-   int_vals[12] = gpu_load_balance_counter;
-   int_vals[13] = offtile_local_count;
+   int_vals[ 5] = offtile_local_count;
 
    crux->store_ints(int_vals, num_int_vals);
-
-   crux->store_long_array(gpu_timers, MESH_TIMER_SIZE);
 
    double double_vals[num_double_vals];
 
@@ -8258,6 +8244,12 @@ void Mesh::store_checkpoint(Crux *crux)
 
    crux->store_doubles(double_vals, num_double_vals);
 
+   // Now store arrays
+
+   crux->store_int_array(cpu_counters, MESH_COUNTER_SIZE);
+   crux->store_int_array(gpu_counters, MESH_COUNTER_SIZE);
+
+   crux->store_long_array(gpu_timers, MESH_TIMER_SIZE);
    crux->store_double_array(cpu_timers, MESH_TIMER_SIZE);
 
    crux->store_int_array(i, ncells);
@@ -8281,15 +8273,7 @@ void Mesh::restore_checkpoint(Crux *crux)
    levmx                     = int_vals[ 2];
    ncells                    = int_vals[ 3];
    ncells_ghost              = int_vals[ 4];
-   cpu_rezone_counter        = int_vals[ 5];
-   cpu_refine_smooth_counter = int_vals[ 6];
-   cpu_calc_neigh_counter    = int_vals[ 7];
-   cpu_load_balance_counter  = int_vals[ 8];
-   gpu_rezone_counter        = int_vals[ 9];
-   gpu_refine_smooth_counter = int_vals[10];
-   gpu_calc_neigh_counter    = int_vals[11];
-   gpu_load_balance_counter  = int_vals[12];
-   offtile_local_count       = int_vals[13];
+   offtile_local_count       = int_vals[ 5];
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
@@ -8299,14 +8283,6 @@ void Mesh::restore_checkpoint(Crux *crux)
          "levmx",
          "ncells",
          "ncells_ghost",
-         "cpu_rezone_counter",
-         "cpu_refine_smooth_counter",
-         "cpu_calc_neigh_counter",
-         "cpu_load_balance_counter",
-         "gpu_rezone_counter",
-         "gpu_refine_smooth_counter",
-         "gpu_calc_neigh_counter",
-         "gpu_load_balance_counter",
          "offtile_local_count"
       };
       printf("\n");
@@ -8315,6 +8291,46 @@ void Mesh::restore_checkpoint(Crux *crux)
          printf("       %-30s %d\n",int_vals_descriptor[i], int_vals[i]);
       }
       printf("       === Restored mesh int_vals ===\n");
+      printf("\n");
+   }
+#endif
+
+   double double_vals[num_double_vals];
+
+   crux->restore_doubles(double_vals, num_double_vals);
+
+   offtile_ratio_local = double_vals[0];
+
+#ifdef DEBUG_RESTORE_VALS
+   if (DEBUG_RESTORE_VALS) {
+      const char *double_vals_descriptor[num_double_vals] = {
+         "offtile_ratio_local"
+      };
+      printf("\n");
+      printf("       === Restored mesh double_vals ===\n");
+      for (int i = 0; i < num_double_vals; i++){
+         printf("       %-30s %lf\n",double_vals_descriptor[i], double_vals[i]);
+      }
+      printf("       === Restored mesh double_vals ===\n");
+      printf("\n");
+   }
+#endif
+
+   crux->restore_int_array(cpu_counters, MESH_COUNTER_SIZE);
+   crux->restore_int_array(gpu_counters, MESH_COUNTER_SIZE);
+
+#ifdef DEBUG_RESTORE_VALS
+   if (DEBUG_RESTORE_VALS) {
+      printf("       === Restored mesh cpu counters ===\n");
+      for (int i = 0; i < MESH_COUNTER_SIZE; i++){
+         printf("       %-30s %d\n",mesh_counter_descriptor[i], cpu_counters[i]);
+      }
+      printf("       === Restored mesh cpu counters ===\n");
+      printf("       === Restored mesh gpu counters ===\n");
+      for (int i = 0; i < MESH_COUNTER_SIZE; i++){
+         printf("       %-30s %d\n",mesh_counter_descriptor[i], gpu_counters[i]);
+      }
+      printf("       === Restored mesh gpu counters ===\n");
       printf("\n");
    }
 #endif
@@ -8333,25 +8349,10 @@ void Mesh::restore_checkpoint(Crux *crux)
    }
 #endif
 
-   double double_vals[num_double_vals];
-
-   crux->restore_doubles(double_vals, num_double_vals);
-
-   offtile_ratio_local = double_vals[0];
-
    crux->restore_double_array(cpu_timers, MESH_TIMER_SIZE);
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
-      const char *double_vals_descriptor[num_double_vals] = {
-         "offtile_ratio_local"
-      };
-      printf("\n");
-      printf("       === Restored mesh double_vals ===\n");
-      for (int i = 0; i < num_double_vals; i++){
-         printf("       %-30s %lf\n",double_vals_descriptor[i], double_vals[i]);
-      }
-      printf("       === Restored mesh double_vals ===\n");
       printf("       === Restored mesh cpu timers ===\n");
       for (int i = 0; i < CPU_TIME_SIZE; i++){
          printf("       %-30s %lf\n",mesh_timer_descriptor[i], cpu_timers[i]);
