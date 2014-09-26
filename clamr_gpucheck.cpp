@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&H[0],       NULL              );
    ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&U[0],       NULL              );
    ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_state_t),  (void *)&V[0],       &end_write_event  );
-   state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
+   state->gpu_timers[STATE_TIMER_WRITE] += ezcl_timer_calc(&start_write_event, &end_write_event);
 
    mesh->nlft = NULL;
    mesh->nrht = NULL;

@@ -164,6 +164,36 @@ enum SIGN_RULE {
    Y_RULE,
 };
 
+enum state_timers
+{
+   STATE_TIMER_APPLY_BCS,
+   STATE_TIMER_SET_TIMESTEP,
+   STATE_TIMER_FINITE_DIFFERENCE,
+   STATE_TIMER_REFINE_POTENTIAL,
+   STATE_TIMER_CALC_MPOT,
+   STATE_TIMER_REZONE_ALL,
+   STATE_TIMER_MASS_SUM,
+   STATE_TIMER_READ,
+   STATE_TIMER_WRITE,
+   STATE_TIMER_SIZE
+};
+
+#ifdef DEBUG_RESTORE_VALS
+static const char *state_timer_descriptor[STATE_TIMER_SIZE] = {
+   "state_timer_apply_BCs",
+   "state_timer_set_timestep",
+   "state_timer_finite_difference",
+   "state_timer_refine_potential",
+   "state_timer_calc_mpot",
+   "state_timer_rezone_all",
+   "state_timer_mass_sum",
+   "state_timer_read",
+   "state_timer_write"
+};
+#endif
+
+typedef enum state_timers   state_timer_category;
+
 using namespace std;
 
 class State {
@@ -191,23 +221,8 @@ public:
    cl_mem dev_result;
 #endif
 
-   double   cpu_time_apply_BCs,
-            cpu_time_set_timestep,
-            cpu_time_finite_difference,
-            cpu_time_refine_potential,
-              cpu_time_calc_mpot,
-            cpu_time_rezone_all,
-            cpu_time_mass_sum;
-
-   long     gpu_time_apply_BCs,
-            gpu_time_set_timestep,
-            gpu_time_finite_difference,
-            gpu_time_refine_potential,
-              gpu_time_calc_mpot,
-            gpu_time_rezone_all,
-            gpu_time_mass_sum,
-            gpu_time_read,
-            gpu_time_write;
+   double   cpu_timers[STATE_TIMER_SIZE];
+   long     gpu_timers[STATE_TIMER_SIZE];
 
    // constructor -- allocates state arrays to size ncells
    State(Mesh *mesh_in);
@@ -227,23 +242,8 @@ public:
    void resize_old_device_memory(size_t ncells);
 
    /* Accessor routines */
-   double get_cpu_time_apply_BCs(void)         {return(cpu_time_apply_BCs);};
-   double get_cpu_time_set_timestep(void)      {return(cpu_time_set_timestep);};
-   double get_cpu_time_finite_difference(void) {return(cpu_time_finite_difference);};
-   double get_cpu_time_refine_potential(void)  {return(cpu_time_refine_potential);};
-   double get_cpu_time_calc_mpot(void)         {return(cpu_time_calc_mpot);};
-   double get_cpu_time_rezone_all(void)        {return(cpu_time_rezone_all);};
-   double get_cpu_time_mass_sum(void)          {return(cpu_time_mass_sum);};
-
-   long get_gpu_time_apply_BCs(void)         {return(gpu_time_apply_BCs);};
-   long get_gpu_time_set_timestep(void)      {return(gpu_time_set_timestep);};
-   long get_gpu_time_finite_difference(void) {return(gpu_time_finite_difference);};
-   long get_gpu_time_refine_potential(void)  {return(gpu_time_refine_potential);};
-   long get_gpu_time_calc_mpot(void)         {return(gpu_time_calc_mpot);};
-   long get_gpu_time_rezone_all(void)        {return(gpu_time_rezone_all);};
-   long get_gpu_time_mass_sum(void)          {return(gpu_time_mass_sum);};
-   long get_gpu_time_read(void)              {return(gpu_time_read);};
-   long get_gpu_time_write(void)             {return(gpu_time_write);};
+   double get_cpu_timer(state_timer_category category)  {return(cpu_timers[category]); };
+   long   get_gpu_timer(state_timer_category category)  {return(gpu_timers[category]); };
 
    /* Boundary routines -- not currently used */
    void add_boundary_cells(void);

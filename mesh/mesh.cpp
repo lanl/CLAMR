@@ -1161,7 +1161,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double d
 {
    for (int i = 0; i < MESH_TIMER_SIZE; i++){
       cpu_timers[i] = 0.0;
-      gpu_timers[i] = 0;
+      gpu_timers[i] = 0L;
    }
 
    for (int i = 0; i < MESH_COUNTER_SIZE; i++){
@@ -8221,6 +8221,9 @@ size_t Mesh::get_checkpoint_size(void)
    size_t nsize;
    nsize  = num_int_vals*sizeof(int);
    nsize += num_double_vals*sizeof(double);
+   nsize += 2*MESH_COUNTER_SIZE*sizeof(int);
+   nsize += MESH_TIMER_SIZE*sizeof(double);
+   nsize += MESH_TIMER_SIZE*sizeof(long);
    nsize += ncells*3*sizeof(int);
    return(nsize);
 }
@@ -8249,8 +8252,8 @@ void Mesh::store_checkpoint(Crux *crux)
    crux->store_int_array(cpu_counters, MESH_COUNTER_SIZE);
    crux->store_int_array(gpu_counters, MESH_COUNTER_SIZE);
 
-   crux->store_long_array(gpu_timers, MESH_TIMER_SIZE);
    crux->store_double_array(cpu_timers, MESH_TIMER_SIZE);
+   crux->store_long_array(gpu_timers, MESH_TIMER_SIZE);
 
    crux->store_int_array(i, ncells);
    crux->store_int_array(j, ncells);
@@ -8335,6 +8338,19 @@ void Mesh::restore_checkpoint(Crux *crux)
    }
 #endif
 
+   crux->restore_double_array(cpu_timers, MESH_TIMER_SIZE);
+
+#ifdef DEBUG_RESTORE_VALS
+   if (DEBUG_RESTORE_VALS) {
+      printf("       === Restored mesh cpu timers ===\n");
+      for (int i = 0; i < CPU_TIME_SIZE; i++){
+         printf("       %-30s %lf\n",mesh_timer_descriptor[i], cpu_timers[i]);
+      }
+      printf("       === Restored mesh cpu timers ===\n");
+      printf("\n");
+   }
+#endif
+
    crux->restore_long_array(gpu_timers, MESH_TIMER_SIZE);
 
 #ifdef DEBUG_RESTORE_VALS
@@ -8345,19 +8361,6 @@ void Mesh::restore_checkpoint(Crux *crux)
          printf("       %-30s %lld\n",mesh_timer_descriptor[i], gpu_timers[i]);
       }
       printf("       === Restored mesh gpu timers ===\n");
-      printf("\n");
-   }
-#endif
-
-   crux->restore_double_array(cpu_timers, MESH_TIMER_SIZE);
-
-#ifdef DEBUG_RESTORE_VALS
-   if (DEBUG_RESTORE_VALS) {
-      printf("       === Restored mesh cpu timers ===\n");
-      for (int i = 0; i < CPU_TIME_SIZE; i++){
-         printf("       %-30s %lf\n",mesh_timer_descriptor[i], cpu_timers[i]);
-      }
-      printf("       === Restored mesh cpu timers ===\n");
       printf("\n");
    }
 #endif

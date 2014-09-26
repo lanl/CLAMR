@@ -527,6 +527,8 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const char *file, int lin
    }
 #endif
 
+#ifdef XXX
+//#ifndef __APPLE_CC__
    if (numpe_node > (int)nDevices) {
       printf("%d:EZCL_DEVTYPE_INIT: Error -- not enough GPUs for mpi ranks. nDevices %d numpe_node %d\n",
              mype,nDevices,numpe_node);
@@ -535,6 +537,8 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const char *file, int lin
 #endif
       exit(-1); /* Not enough devices for mpi ranks */
    }
+//#endif
+#endif
 
    command_queue = ezcl_create_command_queue(context, mype);
 
