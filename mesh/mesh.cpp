@@ -141,6 +141,33 @@ extern bool localStencil;
 int calc_neighbor_type;
 bool dynamic_load_balance_on;
 
+static const char *mesh_timer_descriptor[MESH_TIMER_SIZE] = {
+   "mesh_timer_count_BCs",
+   "mesh_timer_calc_neighbors",
+   "mesh_timer_hash_setup",
+   "mesh_timer_hash_query",
+   "mesh_timer_find_boundary",
+   "mesh_timer_push_setup",
+   "mesh_timer_push_boundary",
+   "mesh_timer_local_list",
+   "mesh_timer_layer1",
+   "mesh_timer_layer2",
+   "mesh_timer_layer_list",
+   "mesh_timer_copy_mesh_data",
+   "mesh_timer_fill_mesh_ghost",
+   "mesh_timer_fill_neigh_ghost",
+   "mesh_timer_set_corner_neigh",
+   "mesh_timer_neigh_adjust",
+   "mesh_timer_setup_comm",
+   "mesh_timer_kdtree_setup",
+   "mesh_timer_kdtree_query",
+   "mesh_timer_refine_smooth",
+   "mesh_timer_rezone_all",
+   "mesh_timer_partition",
+   "mesh_timer_calc_spatial_coordinates",
+   "mesh_timer_load_balance"
+};
+
 #ifdef HAVE_OPENCL
 cl_kernel      kernel_hash_adjust_sizes;
 cl_kernel      kernel_hash_setup;
@@ -8210,6 +8237,60 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
             else //  Use Z-ordering for the curve.
             {  order[0] = SW; order[1] = SE; order[2] = NW; order[3] = NE; }
             
+}
+
+void Mesh::timer_output(mesh_timer_category category, mesh_device_types device_type, int timer_level)
+{
+   int rank = mype;
+   if (! parallel) {
+      // We need to get rank info for check routines
+#ifdef HAVE_MPI
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+   }
+
+   const char *blank="          ";
+
+   double local_time = 0.0;
+   if (device_type == MESH_DEVICE_CPU){
+      local_time = get_cpu_timer(category);
+   } else {
+      local_time = get_gpu_timer(category);
+   }
+   vector<double> global_times(numpe);
+   global_times[0] = local_time;
+#ifdef HAVE_MPI
+   if (numpe > 1) {
+      MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+   }
+#endif
+   if (mype == 0) {
+      if (device_type == MESH_DEVICE_CPU){
+         printf("CPU: %.*s",2*timer_level,blank);
+      } else {
+         printf("GPU: %.*s",2*timer_level,blank);
+      }
+      printf("%-30.30s\t",mesh_timer_descriptor[category]);
+      if (numpe <= 4) {
+         for(int ip = 0; ip < numpe; ip++){
+            printf("%.*s%8.4f\t", 2*timer_level,blank,global_times[ip]);
+         }
+         printf("s\n");
+      } else {
+         sort(global_times.begin(),global_times.end());
+         double median_value;
+         int half_value = numpe/2;
+         if (numpe%2 == 0) {
+            median_value = (global_times[half_value-1]+global_times[half_value])/2.0;
+         } else {
+            median_value = global_times[half_value+1];
+         }
+         printf("%.*s%8.4f\t%.*s%8.4f\t%.*s%8.4f secs min/median/max\n",
+            2*timer_level, blank, global_times[0],
+            2*timer_level, blank, median_value,
+            2*timer_level, blank, global_times[numpe-1]);
+      }
+   }
 }
 
 const int CRUX_MESH_VERSION = 103;

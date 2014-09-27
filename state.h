@@ -178,20 +178,6 @@ enum state_timers
    STATE_TIMER_SIZE
 };
 
-#ifdef DEBUG_RESTORE_VALS
-static const char *state_timer_descriptor[STATE_TIMER_SIZE] = {
-   "state_timer_apply_BCs",
-   "state_timer_set_timestep",
-   "state_timer_finite_difference",
-   "state_timer_refine_potential",
-   "state_timer_calc_mpot",
-   "state_timer_rezone_all",
-   "state_timer_mass_sum",
-   "state_timer_read",
-   "state_timer_write"
-};
-#endif
-
 typedef enum state_timers   state_timer_category;
 
 using namespace std;
@@ -352,6 +338,10 @@ public:
 #ifdef HAVE_OPENCL
    void compare_state_all_to_gpu_local(State *state_global, uint ncells, uint ncells_global, int mype, int ncycle, int *nsizes, int *ndispl);
 #endif
+
+   void output_timer_block(mesh_device_types device_type, double elapsed_time, double mesh_time);
+
+   void timer_output(state_timer_category category, mesh_device_types device_type, int timer_level);
 
    void parallel_timer_output(int numpe, int mype, const char *string, double local_time);
    void parallel_memory_output(int numpe, int mype, const char *string, long long local_time);

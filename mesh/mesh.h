@@ -181,35 +181,6 @@ enum mesh_timers
    MESH_TIMER_SIZE
 };
 
-#ifdef DEBUG_RESTORE_VALS
-static const char *mesh_timer_descriptor[MESH_TIMER_SIZE] = {
-   "mesh_timer_count_BCs",
-   "mesh_timer_calc_neighbors",
-   "mesh_timer_hash_setup",
-   "mesh_timer_hash_query",
-   "mesh_timer_find_boundary",
-   "mesh_timer_push_setup",
-   "mesh_timer_push_boundary",
-   "mesh_timer_local_list",
-   "mesh_timer_layer1",
-   "mesh_timer_layer2",
-   "mesh_timer_layer_list",
-   "mesh_timer_copy_mesh_data",
-   "mesh_timer_fill_mesh_ghost",
-   "mesh_timer_fill_neigh_ghost",
-   "mesh_timer_set_corner_neigh",
-   "mesh_timer_neigh_adjust",
-   "mesh_timer_setup_comm",
-   "mesh_timer_kdtree_setup",
-   "mesh_timer_kdtree_query",
-   "mesh_timer_refine_smooth",
-   "mesh_timer_rezone_all",
-   "mesh_timer_partition",
-   "mesh_timer_calc_spatial_coordinates",
-   "mesh_timer_load_balance"
-};
-#endif
-
 enum mesh_counters
 {
    MESH_COUNTER_REZONE,
@@ -230,6 +201,14 @@ static const char *mesh_timer_descriptor[MESH_TIMER_SIZE] = {
 
 typedef enum mesh_timers   mesh_timer_category;
 typedef enum mesh_counters mesh_counter_category;
+
+enum mesh_device_types
+{
+   MESH_DEVICE_CPU,
+   MESH_DEVICE_GPU
+};
+
+typedef mesh_device_types mesh_device_type;
 
 using namespace std;
 
@@ -401,6 +380,8 @@ public:
    double get_cpu_timer(mesh_timer_category category)       {return(cpu_timers[category]); };
    /* Convert nanoseconds to msecs */
    double get_gpu_timer(mesh_timer_category category)       {return((double)(gpu_timers[category])*1.0e-9); };
+
+   void timer_output(mesh_timer_category category, mesh_device_types device_type, int timer_level);
 
    int get_cpu_counter(mesh_counter_category category)      {return(cpu_counters[category]); };
    int get_gpu_counter(mesh_counter_category category)      {return(gpu_counters[category]); };
