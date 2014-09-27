@@ -2590,15 +2590,13 @@ static double reference_time = 0.0;
 
 void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_elapsed_time)
 {
-   int mype  = mesh->mype;
-   int numpe = mesh->numpe;
    int parallel = mesh->parallel;
 
-   double cpu_time_compute;
-   double gpu_time_compute;
+   double cpu_time_compute = 0.0;
+   double gpu_time_compute = 0.0;
 
-   double cpu_elapsed_time=0.0;
-   double gpu_elapsed_time=0.0;
+   double cpu_elapsed_time = 0.0;
+   double gpu_elapsed_time = 0.0;
 
    double cpu_mesh_time = 0.0;
    double gpu_mesh_time = 0.0;
@@ -2613,7 +2611,7 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_el
                          get_cpu_timer(STATE_TIMER_MASS_SUM) +
                          mesh->get_cpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) +
                          mesh->get_cpu_timer(MESH_TIMER_PARTITION);
-      cpu_elapsed_time =                  cpu_time_compute;
+      cpu_elapsed_time = cpu_time_compute;
       cpu_mesh_time = mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
                       mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
                       mesh->get_cpu_timer(MESH_TIMER_REFINE_SMOOTH) +
@@ -2630,7 +2628,7 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_el
                          get_gpu_timer(STATE_TIMER_MASS_SUM) +
                          mesh->get_gpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) +
                          mesh->get_gpu_timer(MESH_TIMER_COUNT_BCS);
-      gpu_elapsed_time   = get_gpu_timer(STATE_TIMER_WRITE) + gpu_time_compute + get_gpu_timer(STATE_TIMER_READ);
+      gpu_elapsed_time = get_gpu_timer(STATE_TIMER_WRITE) + gpu_time_compute + get_gpu_timer(STATE_TIMER_READ);
       gpu_mesh_time = mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
                       mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) +
                       mesh->get_gpu_timer(MESH_TIMER_REFINE_SMOOTH) +
@@ -2657,7 +2655,6 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
    double mesh_time, double compute_time, double total_elapsed_time, double speedup_ratio)
 {
    int mype  = mesh->mype;
-   int numpe = mesh->numpe;
    int parallel = mesh->parallel;
 
    int rank = mype;
