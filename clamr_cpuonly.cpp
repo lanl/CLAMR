@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
    }
 
    double cpu_time_main_setup = cpu_timer_stop(tstart_setup);
-   state->parallel_timer_output("CPU:  setup time               time was",cpu_time_main_setup);
+   mesh->parallel_timer_output("CPU:  setup time               time was",cpu_time_main_setup);
 
    long long mem_used = memstats_memused();
    if (mem_used > 0) {

@@ -2586,132 +2586,6 @@ void State::gpu_do_load_balance_local(size_t &numcells){
 #endif
 #endif
 
-void State::output_timer_block(mesh_device_types device_type, double elapsed_time,
-   double mesh_time, double compute_time, double total_elapsed_time, double speedup_ratio)
-{
-   int mype  = mesh->mype;
-   int numpe = mesh->numpe;
-   int parallel = mesh->parallel;
-
-   int rank = mype;
-   if (! parallel) {
-      // We need to get rank info for check routines
-#ifdef HAVE_MPI
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
-   }
-
-   if (! parallel && rank) return;
-
-   char device_string[10];
-   if (device_type == MESH_DEVICE_CPU) {
-      sprintf(device_string,"CPU");
-   } else {
-      sprintf(device_string,"GPU");
-   }
-
-   if (rank == 0) {
-      printf("\n");
-      printf("~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~\n");
-   }
-
-   if (rank == 0 && parallel) {
-      printf("\n%3s: Parallel timings\n\n",device_string);
-   }
-
-   if (device_type == MESH_DEVICE_GPU) {
-      if (parallel) {
-         parallel_timer_output("GPU: Write to device          time was",  get_gpu_timer(STATE_TIMER_WRITE) );
-         parallel_timer_output("GPU: Read from device         time was",  get_gpu_timer(STATE_TIMER_READ) );
-      } else {
-         printf("GPU: Write to device          time was\t%8.4f\ts\n",    get_gpu_timer(STATE_TIMER_WRITE) );
-         printf("GPU: Read from device         time was\t%8.4f\ts\n",    get_gpu_timer(STATE_TIMER_READ) );
-      }
-   }
-   if (parallel) {
-      if (device_type == MESH_DEVICE_CPU) {
-         parallel_timer_output("CPU: Device compute           time was" ,compute_time);
-      } else {
-         parallel_timer_output("GPU: Device compute           time was" ,compute_time);
-      }
-   } else {
-      printf("%3s: Device compute           time was\t%8.4f \ts\n", device_string, compute_time);
-   }
-
-   timer_output(STATE_TIMER_SET_TIMESTEP,                  device_type, 1);
-   timer_output(STATE_TIMER_FINITE_DIFFERENCE,             device_type, 1);
-   timer_output(STATE_TIMER_REFINE_POTENTIAL,              device_type, 1);
-   timer_output(STATE_TIMER_CALC_MPOT,                     device_type, 2);
-   mesh->timer_output(MESH_TIMER_REFINE_SMOOTH,            device_type, 2);
-   mesh->timer_output(MESH_TIMER_REZONE_ALL,               device_type, 1);
-   mesh->timer_output(MESH_TIMER_PARTITION,                device_type, 1);
-   mesh->timer_output(MESH_TIMER_CALC_NEIGHBORS,           device_type, 1);
-   if (mesh->get_calc_neighbor_type() == HASH_TABLE) {
-      mesh->timer_output(MESH_TIMER_HASH_SETUP,            device_type, 2);
-      mesh->timer_output(MESH_TIMER_HASH_QUERY,            device_type, 2);
-      if (parallel) {
-         mesh->timer_output(MESH_TIMER_FIND_BOUNDARY,      device_type, 2);
-         mesh->timer_output(MESH_TIMER_PUSH_SETUP,         device_type, 2);
-         mesh->timer_output(MESH_TIMER_PUSH_BOUNDARY,      device_type, 2);
-         mesh->timer_output(MESH_TIMER_LOCAL_LIST,         device_type, 2);
-         mesh->timer_output(MESH_TIMER_LAYER1,             device_type, 2);
-         mesh->timer_output(MESH_TIMER_LAYER2,             device_type, 2);
-         mesh->timer_output(MESH_TIMER_LAYER_LIST,         device_type, 2);
-         mesh->timer_output(MESH_TIMER_COPY_MESH_DATA,     device_type, 2);
-         mesh->timer_output(MESH_TIMER_FILL_MESH_GHOST,    device_type, 2);
-         mesh->timer_output(MESH_TIMER_FILL_NEIGH_GHOST,   device_type, 2);
-         mesh->timer_output(MESH_TIMER_SET_CORNER_NEIGH,   device_type, 2);
-         mesh->timer_output(MESH_TIMER_NEIGH_ADJUST,       device_type, 2);
-         mesh->timer_output(MESH_TIMER_SETUP_COMM,         device_type, 2);
-      }
-   } else {
-      mesh->timer_output(MESH_TIMER_KDTREE_SETUP,          device_type, 2);
-      mesh->timer_output(MESH_TIMER_KDTREE_QUERY,          device_type, 2);
-   }
-   timer_output(STATE_TIMER_MASS_SUM,                      device_type, 1);
-   if (parallel) {
-      mesh->timer_output(MESH_TIMER_LOAD_BALANCE,          device_type, 1);
-   }
-   mesh->timer_output(MESH_TIMER_CALC_SPATIAL_COORDINATES, device_type, 1);
-   if (! mesh->have_boundary) {
-      mesh->timer_output(MESH_TIMER_COUNT_BCS,             device_type, 1);
-   }
-   if (rank == 0) printf("=============================================================\n");
-   if (parallel) {
-      if (device_type == MESH_DEVICE_CPU) {
-         parallel_timer_output("Profiling: Total CPU          time was", elapsed_time);
-      } else {
-         parallel_timer_output("Profiling: Total GPU          time was", elapsed_time);
-      }
-   } else {
-      printf("Profiling: Total %3s          time was\t%8.4f\ts or\t%4.2f min\n", device_string, elapsed_time, elapsed_time/60.0);      
-   }
-   if (rank == 0) printf("-------------------------------------------------------------\n");
-   if (parallel) {
-      parallel_timer_output("Mesh Ops (Neigh+rezone+smooth+balance) ",mesh_time);
-      parallel_timer_output("Mesh Ops Percentage                    ",mesh_time/elapsed_time*100.0);
-   } else {
-      printf("Mesh Operations (Neigh+rezone+smooth) \t%8.4f\ts percentage %8.4f\n",mesh_time,mesh_time/elapsed_time*100.0);
-   }
-   if (rank == 0) printf("=============================================================\n");
-
-   if (parallel) {
-      parallel_timer_output("Profiling: Total              time was",total_elapsed_time );
-   } else {
-      printf("Profiling: Total              time was\t%8.4f\ts or\t%4.2f min\n",    total_elapsed_time,     total_elapsed_time/60.0);
-   }
-
-   if (speedup_ratio > 0.0) {
-      if (parallel) {
-         parallel_timer_output("Parallel Speed-up:                    ",speedup_ratio);
-      } else {
-         printf("Speed-up:                             \t%8.4f\n",   speedup_ratio);
-      }
-   }
-
-   if (rank == 0) printf("=============================================================\n");
-}
-
 static double reference_time = 0.0;
 
 void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_elapsed_time)
@@ -2779,6 +2653,132 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_el
    }
 }
 
+void State::output_timer_block(mesh_device_types device_type, double elapsed_time,
+   double mesh_time, double compute_time, double total_elapsed_time, double speedup_ratio)
+{
+   int mype  = mesh->mype;
+   int numpe = mesh->numpe;
+   int parallel = mesh->parallel;
+
+   int rank = mype;
+   if (! parallel) {
+      // We need to get rank info for check routines
+#ifdef HAVE_MPI
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+   }
+
+   if (! parallel && rank) return;
+
+   char device_string[10];
+   if (device_type == MESH_DEVICE_CPU) {
+      sprintf(device_string,"CPU");
+   } else {
+      sprintf(device_string,"GPU");
+   }
+
+   if (rank == 0) {
+      printf("\n");
+      printf("~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~\n");
+   }
+
+   if (rank == 0 && parallel) {
+      printf("\n%3s: Parallel timings\n\n",device_string);
+   }
+
+   if (device_type == MESH_DEVICE_GPU) {
+      if (parallel) {
+         mesh->parallel_timer_output("GPU: Write to device          time was",  get_gpu_timer(STATE_TIMER_WRITE) );
+         mesh->parallel_timer_output("GPU: Read from device         time was",  get_gpu_timer(STATE_TIMER_READ) );
+      } else {
+         printf("GPU: Write to device          time was\t%8.4f\ts\n",    get_gpu_timer(STATE_TIMER_WRITE) );
+         printf("GPU: Read from device         time was\t%8.4f\ts\n",    get_gpu_timer(STATE_TIMER_READ) );
+      }
+   }
+   if (parallel) {
+      if (device_type == MESH_DEVICE_CPU) {
+         mesh->parallel_timer_output("CPU: Device compute           time was" ,compute_time);
+      } else {
+         mesh->parallel_timer_output("GPU: Device compute           time was" ,compute_time);
+      }
+   } else {
+      printf("%3s: Device compute           time was\t%8.4f \ts\n", device_string, compute_time);
+   }
+
+   timer_output(STATE_TIMER_SET_TIMESTEP,                  device_type, 1);
+   timer_output(STATE_TIMER_FINITE_DIFFERENCE,             device_type, 1);
+   timer_output(STATE_TIMER_REFINE_POTENTIAL,              device_type, 1);
+   timer_output(STATE_TIMER_CALC_MPOT,                     device_type, 2);
+   mesh->timer_output(MESH_TIMER_REFINE_SMOOTH,            device_type, 2);
+   mesh->timer_output(MESH_TIMER_REZONE_ALL,               device_type, 1);
+   mesh->timer_output(MESH_TIMER_PARTITION,                device_type, 1);
+   mesh->timer_output(MESH_TIMER_CALC_NEIGHBORS,           device_type, 1);
+   if (mesh->get_calc_neighbor_type() == HASH_TABLE) {
+      mesh->timer_output(MESH_TIMER_HASH_SETUP,            device_type, 2);
+      mesh->timer_output(MESH_TIMER_HASH_QUERY,            device_type, 2);
+      if (parallel) {
+         mesh->timer_output(MESH_TIMER_FIND_BOUNDARY,      device_type, 2);
+         mesh->timer_output(MESH_TIMER_PUSH_SETUP,         device_type, 2);
+         mesh->timer_output(MESH_TIMER_PUSH_BOUNDARY,      device_type, 2);
+         mesh->timer_output(MESH_TIMER_LOCAL_LIST,         device_type, 2);
+         mesh->timer_output(MESH_TIMER_LAYER1,             device_type, 2);
+         mesh->timer_output(MESH_TIMER_LAYER2,             device_type, 2);
+         mesh->timer_output(MESH_TIMER_LAYER_LIST,         device_type, 2);
+         mesh->timer_output(MESH_TIMER_COPY_MESH_DATA,     device_type, 2);
+         mesh->timer_output(MESH_TIMER_FILL_MESH_GHOST,    device_type, 2);
+         mesh->timer_output(MESH_TIMER_FILL_NEIGH_GHOST,   device_type, 2);
+         mesh->timer_output(MESH_TIMER_SET_CORNER_NEIGH,   device_type, 2);
+         mesh->timer_output(MESH_TIMER_NEIGH_ADJUST,       device_type, 2);
+         mesh->timer_output(MESH_TIMER_SETUP_COMM,         device_type, 2);
+      }
+   } else {
+      mesh->timer_output(MESH_TIMER_KDTREE_SETUP,          device_type, 2);
+      mesh->timer_output(MESH_TIMER_KDTREE_QUERY,          device_type, 2);
+   }
+   timer_output(STATE_TIMER_MASS_SUM,                      device_type, 1);
+   if (parallel) {
+      mesh->timer_output(MESH_TIMER_LOAD_BALANCE,          device_type, 1);
+   }
+   mesh->timer_output(MESH_TIMER_CALC_SPATIAL_COORDINATES, device_type, 1);
+   if (! mesh->have_boundary) {
+      mesh->timer_output(MESH_TIMER_COUNT_BCS,             device_type, 1);
+   }
+   if (rank == 0) printf("=============================================================\n");
+   if (parallel) {
+      if (device_type == MESH_DEVICE_CPU) {
+         mesh->parallel_timer_output("Profiling: Total CPU          time was", elapsed_time);
+      } else {
+         mesh->parallel_timer_output("Profiling: Total GPU          time was", elapsed_time);
+      }
+   } else {
+      printf("Profiling: Total %3s          time was\t%8.4f\ts or\t%4.2f min\n", device_string, elapsed_time, elapsed_time/60.0);      
+   }
+   if (rank == 0) printf("-------------------------------------------------------------\n");
+   if (parallel) {
+      mesh->parallel_timer_output("Mesh Ops (Neigh+rezone+smooth+balance) ",mesh_time);
+      mesh->parallel_timer_output("Mesh Ops Percentage                    ",mesh_time/elapsed_time*100.0);
+   } else {
+      printf("Mesh Operations (Neigh+rezone+smooth) \t%8.4f\ts percentage %8.4f\n",mesh_time,mesh_time/elapsed_time*100.0);
+   }
+   if (rank == 0) printf("=============================================================\n");
+
+   if (parallel) {
+      mesh->parallel_timer_output("Profiling: Total              time was",total_elapsed_time );
+   } else {
+      printf("Profiling: Total              time was\t%8.4f\ts or\t%4.2f min\n",    total_elapsed_time,     total_elapsed_time/60.0);
+   }
+
+   if (speedup_ratio > 0.0) {
+      if (parallel) {
+         mesh->parallel_timer_output("Parallel Speed-up:                    ",speedup_ratio);
+      } else {
+         printf("Speed-up:                             \t%8.4f\n",   speedup_ratio);
+      }
+   }
+
+   if (rank == 0) printf("=============================================================\n");
+}
+
 void State::timer_output(state_timer_category category, mesh_device_types device_type, int timer_level)
 {
    int mype = mesh->mype;
@@ -2833,73 +2833,6 @@ void State::timer_output(state_timer_category category, mesh_device_types device
             2*timer_level, blank, global_times[0],
             2*timer_level, blank, median_value,
             2*timer_level, blank, global_times[numpe-1]);
-      }
-   }
-}
-
-
-void State::parallel_timer_output(const char *string, double local_time)
-{
-   int numpe = mesh->numpe;
-   int mype = mesh->mype;
-
-   vector<double> global_times(numpe);
-   global_times[0] = local_time;
-#ifdef HAVE_MPI
-   if (numpe > 1) { 
-      MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-   }
-#endif
-   if (mype == 0) {
-      printf("%s\t",string);
-      if (numpe <= 4) {
-         for(int ip = 0; ip < numpe; ip++){
-            printf("%8.4f\t", global_times[ip]);
-         }
-         printf("s\n");
-      } else {
-         sort(global_times.begin(),global_times.end());
-         double median_value;
-         int half_value = numpe/2;
-         if (numpe%2 == 0) {
-            median_value = (global_times[half_value-1]+global_times[half_value])/2.0;
-         } else {
-            median_value = global_times[half_value+1];
-         }
-         printf(" %8.4f\t %8.4f\t %8.4f secs min/median/max\n",global_times[0],median_value,global_times[numpe-1]);
-      }
-   }
-}
-
-void State::parallel_memory_output(const char *string, long long local_memory_value)
-{
-   int numpe = mesh->numpe;
-   int mype  = mesh->mype;
-
-   vector<long long> global_memory_value(numpe);
-   global_memory_value[0] = local_memory_value;
-#ifdef HAVE_MPI
-   if (numpe > 1) {
-      MPI_Gather(&local_memory_value, 1, MPI_DOUBLE, &global_memory_value[0], 1, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
-   }
-#endif
-   if (mype == 0) {
-      printf("%s\t",string);
-      if (numpe <= 4) {
-         for(int ip = 0; ip < numpe; ip++){
-            printf("%10lld\t", global_memory_value[ip]);
-         }
-         printf("kB\n");
-      } else {
-         sort(global_memory_value.begin(),global_memory_value.end());
-         long long median_value;
-         int half_value = numpe/2;
-         if (numpe%2 == 0) {
-            median_value = (global_memory_value[half_value-1]+global_memory_value[half_value])/2;
-         } else {
-            median_value = global_memory_value[half_value+1];
-         }
-         printf(" %10lld\t %10lld\t %10lld kb min/median/max\n",global_memory_value[0],median_value,global_memory_value[numpe-1]);
       }
    }
 }
