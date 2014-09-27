@@ -381,8 +381,8 @@ public:
    /* Convert nanoseconds to msecs */
    double get_gpu_timer(mesh_timer_category category)       {return((double)(gpu_timers[category])*1.0e-9); };
 
-   void parallel_timer_output(const char *string, double local_time);
-   void parallel_memory_output(const char *string, long long local_time);
+   void parallel_timer_output(const char *string, double local_time, int timer_level);
+   void parallel_memory_output(const char *string, long long local_time, int timer_level);
    void timer_output(mesh_timer_category category, mesh_device_types device_type, int timer_level);
 
    int get_cpu_counter(mesh_counter_category category)      {return(cpu_counters[category]); };

@@ -2688,8 +2688,8 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
 
    if (device_type == MESH_DEVICE_GPU) {
       if (parallel) {
-         mesh->parallel_timer_output("GPU: Write to device          time was",  get_gpu_timer(STATE_TIMER_WRITE) );
-         mesh->parallel_timer_output("GPU: Read from device         time was",  get_gpu_timer(STATE_TIMER_READ) );
+         mesh->parallel_timer_output("GPU: Write to device          time was",  get_gpu_timer(STATE_TIMER_WRITE), 0);
+         mesh->parallel_timer_output("GPU: Read from device         time was",  get_gpu_timer(STATE_TIMER_READ), 0);
       } else {
          printf("GPU: Write to device          time was\t%8.4f\ts\n",    get_gpu_timer(STATE_TIMER_WRITE) );
          printf("GPU: Read from device         time was\t%8.4f\ts\n",    get_gpu_timer(STATE_TIMER_READ) );
@@ -2697,9 +2697,9 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
    }
    if (parallel) {
       if (device_type == MESH_DEVICE_CPU) {
-         mesh->parallel_timer_output("CPU: Device compute           time was" ,compute_time);
+         mesh->parallel_timer_output("CPU: Device compute           time was" ,compute_time, 0);
       } else {
-         mesh->parallel_timer_output("GPU: Device compute           time was" ,compute_time);
+         mesh->parallel_timer_output("GPU: Device compute           time was" ,compute_time, 0);
       }
    } else {
       printf("%3s: Device compute           time was\t%8.4f \ts\n", device_string, compute_time);
@@ -2746,31 +2746,31 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
    if (rank == 0) printf("=============================================================\n");
    if (parallel) {
       if (device_type == MESH_DEVICE_CPU) {
-         mesh->parallel_timer_output("Profiling: Total CPU          time was", elapsed_time);
+         mesh->parallel_timer_output("Profiling: Total CPU          time was", elapsed_time, 0);
       } else {
-         mesh->parallel_timer_output("Profiling: Total GPU          time was", elapsed_time);
+         mesh->parallel_timer_output("Profiling: Total GPU          time was", elapsed_time, 0);
       }
    } else {
       printf("Profiling: Total %3s          time was\t%8.4f\ts or\t%4.2f min\n", device_string, elapsed_time, elapsed_time/60.0);      
    }
    if (rank == 0) printf("-------------------------------------------------------------\n");
    if (parallel) {
-      mesh->parallel_timer_output("Mesh Ops (Neigh+rezone+smooth+balance) ",mesh_time);
-      mesh->parallel_timer_output("Mesh Ops Percentage                    ",mesh_time/elapsed_time*100.0);
+      mesh->parallel_timer_output("Mesh Ops (Neigh+rezone+smooth+balance) ",mesh_time, 0);
+      mesh->parallel_timer_output("Mesh Ops Percentage                    ",mesh_time/elapsed_time*100.0, 0);
    } else {
       printf("Mesh Operations (Neigh+rezone+smooth) \t%8.4f\ts percentage %8.4f\n",mesh_time,mesh_time/elapsed_time*100.0);
    }
    if (rank == 0) printf("=============================================================\n");
 
    if (parallel) {
-      mesh->parallel_timer_output("Profiling: Total              time was",total_elapsed_time );
+      mesh->parallel_timer_output("Profiling: Total              time was",total_elapsed_time, 0);
    } else {
       printf("Profiling: Total              time was\t%8.4f\ts or\t%4.2f min\n",    total_elapsed_time,     total_elapsed_time/60.0);
    }
 
    if (speedup_ratio > 0.0) {
       if (parallel) {
-         mesh->parallel_timer_output("Parallel Speed-up:                    ",speedup_ratio);
+         mesh->parallel_timer_output("Parallel Speed-up:                    ",speedup_ratio, 0);
       } else {
          printf("Speed-up:                             \t%8.4f\n",   speedup_ratio);
       }
