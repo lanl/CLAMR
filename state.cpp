@@ -2712,7 +2712,7 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
    if (rank == 0) printf("=============================================================\n");
 }
 
-static double total_time = 0.0;
+static double reference_time = 0.0;
 
 void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_elapsed_time)
 {
@@ -2763,13 +2763,13 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_el
                       mesh->get_gpu_timer(MESH_TIMER_LOAD_BALANCE);
    }
 
-   double speedup_ratio = 0.0;
-   if (total_time > 0.0){
-      if (do_cpu_calc && parallel) speedup_ratio = total_time/cpu_elapsed_time;
-      if (do_gpu_calc) speedup_ratio = total_time/gpu_elapsed_time;
-   }
+   if (! parallel && do_cpu_calc) reference_time = cpu_elapsed_time;
 
-   if (! parallel && do_cpu_calc) total_time = cpu_elapsed_time;
+   double speedup_ratio = 0.0;
+   if (reference_time > 0.0){
+      if (do_cpu_calc && parallel) speedup_ratio = reference_time/cpu_elapsed_time;
+      if (do_gpu_calc) speedup_ratio = reference_time/gpu_elapsed_time;
+   }
 
    if (do_cpu_calc) {
       output_timer_block(MESH_DEVICE_CPU, cpu_elapsed_time, cpu_mesh_time, cpu_time_compute, total_elapsed_time, speedup_ratio);
