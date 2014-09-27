@@ -2782,18 +2782,6 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
 void State::timer_output(state_timer_category category, mesh_device_types device_type, int timer_level)
 {
    int mype = mesh->mype;
-   int numpe = mesh->numpe;
-   int parallel = mesh->parallel;
-
-   int rank = mype;
-   if (! parallel) {
-      // We need to get rank info for check routines
-#ifdef HAVE_MPI
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
-   }
-
-   const char *blank="          ";
 
    double local_time = 0.0;
    if (device_type == MESH_DEVICE_CPU){
@@ -2801,40 +2789,20 @@ void State::timer_output(state_timer_category category, mesh_device_types device
    } else {
       local_time = get_gpu_timer(category);
    }
-   vector<double> global_times(numpe);
-   global_times[0] = local_time;
-#ifdef HAVE_MPI
-   if (numpe > 1) {
-      MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-   }
-#endif
+
+   char string[80] = "/0";
+
    if (mype == 0) {
+      const char *blank="          ";
+
       if (device_type == MESH_DEVICE_CPU){
-         printf("CPU: %.*s",2*timer_level,blank);
+         sprintf(string,"CPU: %.*s%-30.30s\t", 2*timer_level, blank, state_timer_descriptor[category]);
       } else {
-         printf("GPU: %.*s",2*timer_level,blank);
-      }
-      printf("%-30.30s\t",state_timer_descriptor[category]);
-      if (numpe <= 4) {
-         for(int ip = 0; ip < numpe; ip++){
-            printf("%.*s%8.4f\t", 2*timer_level,blank,global_times[ip]);
-         }
-         printf("s\n");
-      } else {
-         sort(global_times.begin(),global_times.end());
-         double median_value;
-         int half_value = numpe/2;
-         if (numpe%2 == 0) {
-            median_value = (global_times[half_value-1]+global_times[half_value])/2.0;
-         } else {
-            median_value = global_times[half_value+1];
-         }
-         printf("%.*s%8.4f\t%.*s%8.4f\t%.*s%8.4f secs min/median/max\n",
-            2*timer_level, blank, global_times[0],
-            2*timer_level, blank, median_value,
-            2*timer_level, blank, global_times[numpe-1]);
+         sprintf(string,"GPU: %.*s%-30.30s\t", 2*timer_level, blank, state_timer_descriptor[category]);
       }
    }
+
+   mesh->parallel_timer_output(string, local_time, timer_level);
 }
 
 #ifdef HAVE_OPENCL

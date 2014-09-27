@@ -8254,9 +8254,9 @@ void Mesh::timer_output(mesh_timer_category category, mesh_device_types device_t
       const char *blank="          ";
 
       if (device_type == MESH_DEVICE_CPU){
-         sprintf(string,"CPU: %.*s%-30.30s\t",2*timer_level,blank,mesh_timer_descriptor[category]);
+         sprintf(string,"CPU: %.*s%-30.30s\t", 2*timer_level, blank, mesh_timer_descriptor[category]);
       } else {
-         sprintf(string,"GPU: %.*s%-30.30s\t",2*timer_level,blank,mesh_timer_descriptor[category]);
+         sprintf(string,"GPU: %.*s%-30.30s\t", 2*timer_level, blank, mesh_timer_descriptor[category]);
       }
    }
 
