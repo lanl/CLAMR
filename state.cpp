@@ -2586,13 +2586,38 @@ void State::gpu_do_load_balance_local(size_t &numcells){
 #endif
 #endif
 
-void State::output_timer_block(mesh_device_types device_type, double elapsed_time, double mesh_time, double compute_time)
+void State::output_timer_block(mesh_device_types device_type, double elapsed_time,
+   double mesh_time, double compute_time, double total_elapsed_time, double speedup_ratio)
 {
    int mype  = mesh->mype;
    int numpe = mesh->numpe;
    int parallel = mesh->parallel;
 
-   if (mype == 0 && parallel) printf("\nGPU: Parallel timings\n\n");
+   int rank = mype;
+   if (! parallel) {
+      // We need to get rank info for check routines
+#ifdef HAVE_MPI
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+   }
+
+   if (! parallel && rank) return;
+
+   char device_string[10];
+   if (device_type == MESH_DEVICE_CPU) {
+      sprintf(device_string,"CPU");
+   } else {
+      sprintf(device_string,"GPU");
+   }
+
+   if (rank == 0) {
+      printf("\n");
+      printf("~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~\n");
+   }
+
+   if (rank == 0 && parallel) {
+      printf("\n%3s: Parallel timings\n\n",device_string);
+   }
 
    if (device_type == MESH_DEVICE_GPU) {
       if (parallel) {
@@ -2610,11 +2635,7 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
          parallel_timer_output(numpe,mype,"GPU: Device compute           time was" ,compute_time);
       }
    } else {
-      if (device_type == MESH_DEVICE_CPU) {
-         printf("CPU: Device compute           time was\t%8.4f \ts\n",     compute_time);
-      } else {
-         printf("GPU: Device compute           time was\t%8.4f \ts\n",     compute_time);
-      }
+      printf("%3s: Device compute           time was\t%8.4f \ts\n", device_string, compute_time);
    }
 
    timer_output(STATE_TIMER_SET_TIMESTEP,                  device_type, 1);
@@ -2655,7 +2676,7 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
    if (! mesh->have_boundary) {
       mesh->timer_output(MESH_TIMER_COUNT_BCS,             device_type, 1);
    }
-   if (mype == 0) printf("=============================================================\n");
+   if (rank == 0) printf("=============================================================\n");
    if (parallel) {
       if (device_type == MESH_DEVICE_CPU) {
          parallel_timer_output(numpe,mype,"Profiling: Total CPU          time was", elapsed_time);
@@ -2663,36 +2684,41 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
          parallel_timer_output(numpe,mype,"Profiling: Total GPU          time was", elapsed_time);
       }
    } else {
-      if (device_type == MESH_DEVICE_CPU) {
-         printf("Profiling: Total CPU          time was\t%8.4f\ts or\t%4.2f min\n", elapsed_time, elapsed_time/60.0);      
+      printf("Profiling: Total %3s          time was\t%8.4f\ts or\t%4.2f min\n", device_string, elapsed_time, elapsed_time/60.0);      
+   }
+   if (rank == 0) printf("-------------------------------------------------------------\n");
+   if (parallel) {
+      parallel_timer_output(numpe,mype,"Mesh Ops (Neigh+rezone+smooth+balance) ",mesh_time);
+      parallel_timer_output(numpe,mype,"Mesh Ops Percentage                    ",mesh_time/elapsed_time*100.0);
+   } else {
+      printf("Mesh Operations (Neigh+rezone+smooth) \t%8.4f\ts percentage %8.4f\n",mesh_time,mesh_time/elapsed_time*100.0);
+   }
+   if (rank == 0) printf("=============================================================\n");
+
+   if (parallel) {
+      parallel_timer_output(numpe,mype,"Profiling: Total              time was",total_elapsed_time );
+   } else {
+      printf("Profiling: Total              time was\t%8.4f\ts or\t%4.2f min\n",    total_elapsed_time,     total_elapsed_time/60.0);
+   }
+
+   if (speedup_ratio > 0.0) {
+      if (parallel) {
+         parallel_timer_output(numpe,mype,"Parallel Speed-up:                    ",speedup_ratio);
       } else {
-         printf("Profiling: Total GPU          time was\t%8.4f\ts or\t%4.2f min\n", elapsed_time, elapsed_time/60.0);      
+         printf("Speed-up:                             \t%8.4f\n",   speedup_ratio);
       }
    }
-   if (mype == 0) printf("-------------------------------------------------------------\n");
-   if (parallel) {
-      parallel_timer_output(numpe,mype,"Mesh Operations (Neigh+rezone+smooth) ",mesh_time);
-      parallel_timer_output(numpe,mype,"Mesh Operations Percentage            ",mesh_time/elapsed_time*100.0);
-   } else {
-      printf("Mesh Operations (Neigh+rezone+smooth) \t %8.4f\ts percentage %8.4f\n",mesh_time,mesh_time/elapsed_time*100.0);
-   }
-   if (mype == 0) printf("=============================================================\n");
+
+   if (rank == 0) printf("=============================================================\n");
 }
 
 static double total_time = 0.0;
 
-void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_time)
+void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_elapsed_time)
 {
-   int &mype  = mesh->mype;
-   int &numpe = mesh->numpe;
-
-   int rank = mype;
-   if (! mesh->parallel) {
-      // We need to get rank info for check routines
-#ifdef HAVE_MPI
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif
-   }
+   int mype  = mesh->mype;
+   int numpe = mesh->numpe;
+   int parallel = mesh->parallel;
 
    double cpu_time_compute;
    double gpu_time_compute;
@@ -2700,112 +2726,56 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_
    double cpu_elapsed_time=0.0;
    double gpu_elapsed_time=0.0;
 
-   if (rank == 0) {
-      printf("\n");
-      printf("~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~\n");
+   double cpu_mesh_time = 0.0;
+   double gpu_mesh_time = 0.0;
+
+   if (do_cpu_calc) {
+      cpu_time_compute = get_cpu_timer(STATE_TIMER_SET_TIMESTEP) +
+                         get_cpu_timer(STATE_TIMER_FINITE_DIFFERENCE) +
+                         get_cpu_timer(STATE_TIMER_REFINE_POTENTIAL) +
+                         mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
+                         mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
+                         mesh->get_cpu_timer(MESH_TIMER_LOAD_BALANCE) +
+                         get_cpu_timer(STATE_TIMER_MASS_SUM) +
+                         mesh->get_cpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) +
+                         mesh->get_cpu_timer(MESH_TIMER_PARTITION);
+      cpu_elapsed_time =                  cpu_time_compute;
+      cpu_mesh_time = mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
+                      mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
+                      mesh->get_cpu_timer(MESH_TIMER_REFINE_SMOOTH) +
+                      mesh->get_cpu_timer(MESH_TIMER_LOAD_BALANCE);
    }
-   if (! mesh->parallel) {
-      
-      //  Output timing information.
-      if (do_cpu_calc) {
-         cpu_time_compute = get_cpu_timer(STATE_TIMER_SET_TIMESTEP) +
-                            get_cpu_timer(STATE_TIMER_FINITE_DIFFERENCE) +
-                            get_cpu_timer(STATE_TIMER_REFINE_POTENTIAL) +
-                            mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
-                            mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
-                            get_cpu_timer(STATE_TIMER_MASS_SUM) +
-                            mesh->get_cpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) +
-                            mesh->get_cpu_timer(MESH_TIMER_PARTITION);
-         cpu_elapsed_time =                  cpu_time_compute;
-         total_time = cpu_elapsed_time;
+   if (do_gpu_calc) {
+      gpu_time_compute = get_gpu_timer(STATE_TIMER_APPLY_BCS) +
+                         get_gpu_timer(STATE_TIMER_SET_TIMESTEP) +
+                         get_gpu_timer(STATE_TIMER_FINITE_DIFFERENCE) +
+                         get_gpu_timer(STATE_TIMER_REFINE_POTENTIAL) +
+                         mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) +
+                         mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
+                         mesh->get_gpu_timer(MESH_TIMER_LOAD_BALANCE) +
+                         get_gpu_timer(STATE_TIMER_MASS_SUM) +
+                         mesh->get_gpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) +
+                         mesh->get_gpu_timer(MESH_TIMER_COUNT_BCS);
+      gpu_elapsed_time   = get_gpu_timer(STATE_TIMER_WRITE) + gpu_time_compute + get_gpu_timer(STATE_TIMER_READ);
+      gpu_mesh_time = mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
+                      mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) +
+                      mesh->get_gpu_timer(MESH_TIMER_REFINE_SMOOTH) +
+                      mesh->get_gpu_timer(MESH_TIMER_LOAD_BALANCE);
+   }
 
-         if (rank == 0) {
-            double mesh_time = mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
-                               mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
-                               mesh->get_cpu_timer(MESH_TIMER_REFINE_SMOOTH);
+   double speedup_ratio = 0.0;
+   if (total_time > 0.0){
+      if (do_cpu_calc && parallel) speedup_ratio = total_time/cpu_elapsed_time;
+      if (do_gpu_calc) speedup_ratio = total_time/gpu_elapsed_time;
+   }
 
-            output_timer_block(MESH_DEVICE_CPU, cpu_elapsed_time, mesh_time, cpu_time_compute);
-         }
-      }
-      if (do_gpu_calc) {
-         gpu_time_compute = get_gpu_timer(STATE_TIMER_APPLY_BCS) +
-                            get_gpu_timer(STATE_TIMER_SET_TIMESTEP) +
-                            get_gpu_timer(STATE_TIMER_FINITE_DIFFERENCE) +
-                            get_gpu_timer(STATE_TIMER_REFINE_POTENTIAL) +
-                            mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) +
-                            mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
-                            get_gpu_timer(STATE_TIMER_MASS_SUM) +
-                            mesh->get_gpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) +
-                            mesh->get_gpu_timer(MESH_TIMER_COUNT_BCS);
-         gpu_elapsed_time   = get_gpu_timer(STATE_TIMER_WRITE) + gpu_time_compute + get_gpu_timer(STATE_TIMER_READ);
+   if (! parallel && do_cpu_calc) total_time = cpu_elapsed_time;
 
-         if (rank == 0) {
-            double mesh_time = mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
-                               mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) +
-                               mesh->get_gpu_timer(MESH_TIMER_REFINE_SMOOTH);
-            output_timer_block(MESH_DEVICE_GPU, gpu_elapsed_time, mesh_time, gpu_time_compute);
-         }
-      }
-      if (rank == 0) {
-         printf("=============================================================\n");
-         printf("Profiling: Total              time was\t%8.4f\ts or\t%4.2f min\n",    elapsed_time,     elapsed_time/60.0);
-         if (do_cpu_calc && do_gpu_calc) {
-            printf("Speed-up:                             \t%8.4f\n",   cpu_elapsed_time*1.0e9/gpu_elapsed_time);
-         }
-         printf("=============================================================\n");
-      }
-   } else {
-      if (do_cpu_calc) {
-         cpu_time_compute = get_cpu_timer(STATE_TIMER_SET_TIMESTEP) +
-                            get_cpu_timer(STATE_TIMER_FINITE_DIFFERENCE) +
-                            get_cpu_timer(STATE_TIMER_REFINE_POTENTIAL) +
-                            mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
-                            mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
-                            mesh->get_cpu_timer(MESH_TIMER_LOAD_BALANCE) +
-                            get_cpu_timer(STATE_TIMER_MASS_SUM) +
-                            mesh->get_cpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) +
-                            mesh->get_cpu_timer(MESH_TIMER_PARTITION);
-         cpu_elapsed_time =                  cpu_time_compute;
-
-         double mesh_time = mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
-                            mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
-                            mesh->get_cpu_timer(MESH_TIMER_REFINE_SMOOTH) +
-                            mesh->get_cpu_timer(MESH_TIMER_LOAD_BALANCE);
-
-         output_timer_block(MESH_DEVICE_CPU, cpu_elapsed_time, mesh_time, cpu_time_compute);
-      }
-      if (do_gpu_calc) {
-         gpu_time_compute = get_gpu_timer(STATE_TIMER_APPLY_BCS) +
-                            get_gpu_timer(STATE_TIMER_SET_TIMESTEP) +
-                            get_gpu_timer(STATE_TIMER_FINITE_DIFFERENCE) +
-                            get_gpu_timer(STATE_TIMER_REFINE_POTENTIAL) +
-                            mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) +
-                            mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
-                            mesh->get_gpu_timer(MESH_TIMER_LOAD_BALANCE) +
-                            get_gpu_timer(STATE_TIMER_MASS_SUM) +
-                            mesh->get_gpu_timer(MESH_TIMER_CALC_SPATIAL_COORDINATES) +
-                            mesh->get_gpu_timer(MESH_TIMER_COUNT_BCS);
-         gpu_elapsed_time   = get_gpu_timer(STATE_TIMER_WRITE) + gpu_time_compute + get_gpu_timer(STATE_TIMER_READ);
-
-         double mesh_time = mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
-                            mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) +
-                            mesh->get_gpu_timer(MESH_TIMER_REFINE_SMOOTH) +
-                            mesh->get_gpu_timer(MESH_TIMER_LOAD_BALANCE);
-
-         output_timer_block(MESH_DEVICE_GPU, gpu_elapsed_time, mesh_time, gpu_time_compute);
-      }
-
-      if (mype == 0) printf("=============================================================\n");
-
-      parallel_timer_output(numpe,mype,"Profiling: Total              time was",elapsed_time );
-      if (do_gpu_calc){
-         parallel_timer_output(numpe,mype,"Parallel Speed-up:                    ",cpu_elapsed_time/gpu_elapsed_time);
-      } else {
-         if (total_time > 0.0) parallel_timer_output(numpe,mype,"Parallel Speed-up:                    ",total_time/cpu_elapsed_time);
-      }
-
-
-      if (mype == 0) printf("=============================================================\n");
+   if (do_cpu_calc) {
+      output_timer_block(MESH_DEVICE_CPU, cpu_elapsed_time, cpu_mesh_time, cpu_time_compute, total_elapsed_time, speedup_ratio);
+   }
+   if (do_gpu_calc) {
+      output_timer_block(MESH_DEVICE_GPU, gpu_elapsed_time, gpu_mesh_time, gpu_time_compute, total_elapsed_time, speedup_ratio);
    }
 }
 

@@ -328,7 +328,7 @@ public:
    void symmetry_check(const char *string, vector<int> sym_index, double eps, 
                        SIGN_RULE sign_rule, int &flag);
 
-   void output_timing_info(int do_cpu_calc, int do_gpu_calc, double elapsed_time);
+   void output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_elapsed_time);
 
    /* state comparison routines */
 #ifdef HAVE_OPENCL
@@ -339,7 +339,8 @@ public:
    void compare_state_all_to_gpu_local(State *state_global, uint ncells, uint ncells_global, int mype, int ncycle, int *nsizes, int *ndispl);
 #endif
 
-   void output_timer_block(mesh_device_types device_type, double elapsed_time, double mesh_time);
+   void output_timer_block(mesh_device_types device_type, double elapsed_time,
+      double mesh_time, double compute_time, double total_elapsed_time, double speedup_ratio);
 
    void timer_output(state_timer_category category, mesh_device_types device_type, int timer_level);
 

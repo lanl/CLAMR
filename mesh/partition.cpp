@@ -299,8 +299,8 @@ void Mesh::print_partition_measure()
          MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 #endif
          if (mype == 0) {
-            if(measure_type == CVALUE) printf("Partition Quality Avg C value \t");  
-            if(measure_type == CSTARVALUE) printf("Partition Quality Avg C* value \t");  
+            if(measure_type == CVALUE) printf("Partition Quality Avg C value     \t");  
+            if(measure_type == CSTARVALUE) printf("Partition Quality Avg C* value     \t");  
             if (numpe <=4){
                for(int ip = 0; ip < numpe; ip++){
                   printf("%8.4f\t", global_times[ip]);
