@@ -281,14 +281,14 @@ int main(int argc, char **argv) {
    H_sum_initial = H_sum;
 
    double cpu_time_main_setup = cpu_timer_stop(tstart_setup);
-   state->parallel_timer_output(numpe,mype,"CPU:  setup time               time was",cpu_time_main_setup);
+   state->parallel_timer_output("CPU:  setup time               time was",cpu_time_main_setup);
 
    long long mem_used = memstats_memused();
    if (mem_used > 0) {
-      state->parallel_memory_output(numpe,mype,"Memory used      in startup ",mem_used);
-      state->parallel_memory_output(numpe,mype,"Memory peak      in startup ",memstats_mempeak());
-      state->parallel_memory_output(numpe,mype,"Memory free      at startup ",memstats_memfree());
-      state->parallel_memory_output(numpe,mype,"Memory available at startup ",memstats_memtotal());
+      state->parallel_memory_output("Memory used      in startup ",mem_used);
+      state->parallel_memory_output("Memory peak      in startup ",memstats_mempeak());
+      state->parallel_memory_output("Memory free      at startup ",memstats_memfree());
+      state->parallel_memory_output("Memory available at startup ",memstats_memtotal());
    }
 
    if (mype == 0) {
@@ -580,15 +580,15 @@ extern "C" void do_calc(void)
       
       long long mem_used = memstats_memused();
       if (mem_used > 0) {
-         state->parallel_memory_output(numpe,mype,"Memory used      ",mem_used);
-         state->parallel_memory_output(numpe,mype,"Memory peak      ",memstats_mempeak());
-         state->parallel_memory_output(numpe,mype,"Memory free      ",memstats_memfree());
-         state->parallel_memory_output(numpe,mype,"Memory available ",memstats_memtotal());
+         state->parallel_memory_output("Memory used      ",mem_used);
+         state->parallel_memory_output("Memory peak      ",memstats_mempeak());
+         state->parallel_memory_output("Memory free      ",memstats_memfree());
+         state->parallel_memory_output("Memory available ",memstats_memtotal());
       }
 
       state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
-      state->parallel_timer_output(numpe,mype,"CPU:  setup time               time was",cpu_time_main_setup);
-      state->parallel_timer_output(numpe,mype,"GPU:  graphics                 time was",(double) gpu_time_graphics * 1.0e-9 );
+      state->parallel_timer_output("CPU:  setup time               time was",cpu_time_main_setup);
+      state->parallel_timer_output("GPU:  graphics                 time was",(double) gpu_time_graphics * 1.0e-9 );
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();

@@ -2621,8 +2621,8 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
 
    if (device_type == MESH_DEVICE_GPU) {
       if (parallel) {
-         parallel_timer_output(numpe,mype,"GPU: Write to device          time was",  get_gpu_timer(STATE_TIMER_WRITE) );
-         parallel_timer_output(numpe,mype,"GPU: Read from device         time was",  get_gpu_timer(STATE_TIMER_READ) );
+         parallel_timer_output("GPU: Write to device          time was",  get_gpu_timer(STATE_TIMER_WRITE) );
+         parallel_timer_output("GPU: Read from device         time was",  get_gpu_timer(STATE_TIMER_READ) );
       } else {
          printf("GPU: Write to device          time was\t%8.4f\ts\n",    get_gpu_timer(STATE_TIMER_WRITE) );
          printf("GPU: Read from device         time was\t%8.4f\ts\n",    get_gpu_timer(STATE_TIMER_READ) );
@@ -2630,9 +2630,9 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
    }
    if (parallel) {
       if (device_type == MESH_DEVICE_CPU) {
-         parallel_timer_output(numpe,mype,"CPU: Device compute           time was" ,compute_time);
+         parallel_timer_output("CPU: Device compute           time was" ,compute_time);
       } else {
-         parallel_timer_output(numpe,mype,"GPU: Device compute           time was" ,compute_time);
+         parallel_timer_output("GPU: Device compute           time was" ,compute_time);
       }
    } else {
       printf("%3s: Device compute           time was\t%8.4f \ts\n", device_string, compute_time);
@@ -2679,31 +2679,31 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
    if (rank == 0) printf("=============================================================\n");
    if (parallel) {
       if (device_type == MESH_DEVICE_CPU) {
-         parallel_timer_output(numpe,mype,"Profiling: Total CPU          time was", elapsed_time);
+         parallel_timer_output("Profiling: Total CPU          time was", elapsed_time);
       } else {
-         parallel_timer_output(numpe,mype,"Profiling: Total GPU          time was", elapsed_time);
+         parallel_timer_output("Profiling: Total GPU          time was", elapsed_time);
       }
    } else {
       printf("Profiling: Total %3s          time was\t%8.4f\ts or\t%4.2f min\n", device_string, elapsed_time, elapsed_time/60.0);      
    }
    if (rank == 0) printf("-------------------------------------------------------------\n");
    if (parallel) {
-      parallel_timer_output(numpe,mype,"Mesh Ops (Neigh+rezone+smooth+balance) ",mesh_time);
-      parallel_timer_output(numpe,mype,"Mesh Ops Percentage                    ",mesh_time/elapsed_time*100.0);
+      parallel_timer_output("Mesh Ops (Neigh+rezone+smooth+balance) ",mesh_time);
+      parallel_timer_output("Mesh Ops Percentage                    ",mesh_time/elapsed_time*100.0);
    } else {
       printf("Mesh Operations (Neigh+rezone+smooth) \t%8.4f\ts percentage %8.4f\n",mesh_time,mesh_time/elapsed_time*100.0);
    }
    if (rank == 0) printf("=============================================================\n");
 
    if (parallel) {
-      parallel_timer_output(numpe,mype,"Profiling: Total              time was",total_elapsed_time );
+      parallel_timer_output("Profiling: Total              time was",total_elapsed_time );
    } else {
       printf("Profiling: Total              time was\t%8.4f\ts or\t%4.2f min\n",    total_elapsed_time,     total_elapsed_time/60.0);
    }
 
    if (speedup_ratio > 0.0) {
       if (parallel) {
-         parallel_timer_output(numpe,mype,"Parallel Speed-up:                    ",speedup_ratio);
+         parallel_timer_output("Parallel Speed-up:                    ",speedup_ratio);
       } else {
          printf("Speed-up:                             \t%8.4f\n",   speedup_ratio);
       }
@@ -2838,14 +2838,17 @@ void State::timer_output(state_timer_category category, mesh_device_types device
 }
 
 
-void State::parallel_timer_output(int numpe, int mype, const char *string, double local_time)
+void State::parallel_timer_output(const char *string, double local_time)
 {
+   int numpe = mesh->numpe;
+   int mype = mesh->mype;
+
    vector<double> global_times(numpe);
+   global_times[0] = local_time;
 #ifdef HAVE_MPI
-   MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-#else
-   // Just to block compiler warning
-   if (1 == 2) printf("DEBUG -- local time is %lf\n",local_time);
+   if (numpe > 1) { 
+      MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+   }
 #endif
    if (mype == 0) {
       printf("%s\t",string);
@@ -2868,14 +2871,17 @@ void State::parallel_timer_output(int numpe, int mype, const char *string, doubl
    }
 }
 
-void State::parallel_memory_output(int numpe, int mype, const char *string, long long local_time)
+void State::parallel_memory_output(const char *string, long long local_memory_value)
 {
+   int numpe = mesh->numpe;
+   int mype  = mesh->mype;
+
    vector<long long> global_memory_value(numpe);
+   global_memory_value[0] = local_memory_value;
 #ifdef HAVE_MPI
-   MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_memory_value[0], 1, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
-#else
-   // Just to block compiler warning
-   if (1 == 2) printf("DEBUG -- local time is %llu\n",local_time);
+   if (numpe > 1) {
+      MPI_Gather(&local_memory_value, 1, MPI_DOUBLE, &global_memory_value[0], 1, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
+   }
 #endif
    if (mype == 0) {
       printf("%s\t",string);

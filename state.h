@@ -344,8 +344,8 @@ public:
 
    void timer_output(state_timer_category category, mesh_device_types device_type, int timer_level);
 
-   void parallel_timer_output(int numpe, int mype, const char *string, double local_time);
-   void parallel_memory_output(int numpe, int mype, const char *string, long long local_time);
+   void parallel_timer_output(const char *string, double local_time);
+   void parallel_memory_output(const char *string, long long local_time);
 
    void print(void);
 

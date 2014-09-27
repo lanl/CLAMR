@@ -588,7 +588,7 @@ extern "C" void do_calc(void)
       }
       state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
 
-      state->parallel_timer_output(numpe,mype,"CPU:  graphics                 time was",cpu_time_graphics);
+      state->parallel_timer_output("CPU:  graphics                 time was",cpu_time_graphics);
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
