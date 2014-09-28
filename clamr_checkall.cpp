@@ -891,7 +891,7 @@ extern "C" void do_calc(void)
       state_global->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
       state_local->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
 
-      mesh_local->parallel_timer_output("GPU:  graphics                 time was",(double) gpu_time_graphics * 1.0e-9, 0);
+      mesh_local->parallel_output("GPU:  graphics                 time was",(double) gpu_time_graphics * 1.0e-9, 0, "s");
 
       mesh_local->print_partition_measure();
       mesh_local->print_calc_neighbor_type();

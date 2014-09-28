@@ -241,14 +241,14 @@ int main(int argc, char **argv) {
    H_sum_initial = H_sum;
 
    double cpu_time_main_setup = cpu_timer_stop(tstart_setup);
-   mesh->parallel_timer_output("CPU:  setup time               time was",cpu_time_main_setup, 0);
+   mesh->parallel_output("CPU:  setup time               time was",cpu_time_main_setup, 0, "s");
 
    long long mem_used = memstats_memused();
    if (mem_used > 0) {
-      mesh->parallel_memory_output("Memory used      in startup ",mem_used, 0);
-      mesh->parallel_memory_output("Memory peak      in startup ",memstats_mempeak(), 0);
-      mesh->parallel_memory_output("Memory free      at startup ",memstats_memfree(), 0);
-      mesh->parallel_memory_output("Memory available at startup ",memstats_memtotal(), 0);
+      mesh->parallel_output("Memory used      in startup ",mem_used, 0, "kB");
+      mesh->parallel_output("Memory peak      in startup ",memstats_mempeak(), 0, "kB");
+      mesh->parallel_output("Memory free      at startup ",memstats_memfree(), 0, "kB");
+      mesh->parallel_output("Memory available at startup ",memstats_memtotal(), 0, "kB");
    }
 
    if (mype == 0) {
@@ -505,14 +505,14 @@ extern "C" void do_calc(void)
       
       long long mem_used = memstats_memused();
       if (mem_used > 0) {
-         mesh->parallel_memory_output("Memory used      ",mem_used, 0);
-         mesh->parallel_memory_output("Memory peak      ",memstats_mempeak(), 0);
-         mesh->parallel_memory_output("Memory free      ",memstats_memfree(), 0);
-         mesh->parallel_memory_output("Memory available ",memstats_memtotal(), 0);
+         mesh->parallel_output("Memory used      ",mem_used, 0, "kB");
+         mesh->parallel_output("Memory peak      ",memstats_mempeak(), 0, "kB");
+         mesh->parallel_output("Memory free      ",memstats_memfree(), 0, "kB");
+         mesh->parallel_output("Memory available ",memstats_memtotal(), 0, "kB");
       }
       state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
 
-      mesh->parallel_timer_output("CPU:  graphics                 time was",cpu_time_graphics, 0);
+      mesh->parallel_output("CPU:  graphics                 time was",cpu_time_graphics, 0, "s");
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();

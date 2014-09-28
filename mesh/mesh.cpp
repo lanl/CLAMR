@@ -8260,10 +8260,10 @@ void Mesh::timer_output(mesh_timer_category category, mesh_device_types device_t
       }
    }
 
-   parallel_timer_output(string, local_time, timer_level);
+   parallel_output(string, local_time, timer_level, "s");
 }
 
-void Mesh::parallel_timer_output(const char *string, double local_time, int timer_level)
+void Mesh::parallel_output(const char *string, double local_time, int timer_level, const char *units)
 {
    vector<double> global_times(numpe);
    global_times[0] = local_time;
@@ -8280,7 +8280,7 @@ void Mesh::parallel_timer_output(const char *string, double local_time, int time
          for(int ip = 0; ip < numpe; ip++){
             printf("%.*s%8.4f\t", 2*timer_level, blank, global_times[ip]);
          }
-         printf("s\n");
+         printf("%s\n",units);
       } else {
          sort(global_times.begin(),global_times.end());
          double median_value;
@@ -8290,45 +8290,11 @@ void Mesh::parallel_timer_output(const char *string, double local_time, int time
          } else {
             median_value = global_times[half_value+1];
          }
-         printf("%.*s%8.4f\t%.*s%8.4f\t%.*s%8.4f secs min/median/max\n",
+         printf("%.*s%8.4f\t%.*s%8.4f\t%.*s%8.4f   %s min/median/max\n",
             2*timer_level, blank, global_times[0],
             2*timer_level, blank, median_value,
-            2*timer_level, blank, global_times[numpe-1]);
-      }
-   }
-}
-
-void Mesh::parallel_memory_output(const char *string, long long local_memory_value, int timer_level)
-{
-   vector<long long> global_memory_value(numpe);
-   global_memory_value[0] = local_memory_value;
-#ifdef HAVE_MPI
-   if (numpe > 1) {
-      MPI_Gather(&local_memory_value, 1, MPI_DOUBLE, &global_memory_value[0], 1, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
-   }
-#endif
-   if (mype == 0) {
-      const char *blank="          ";
-
-      printf("%s\t",string);
-      if (numpe <= 4) {
-         for(int ip = 0; ip < numpe; ip++){
-            printf("%.*s%10lld\t", 2*timer_level, blank, global_memory_value[ip]);
-         }
-         printf("kB\n");
-      } else {
-         sort(global_memory_value.begin(),global_memory_value.end());
-         long long median_value;
-         int half_value = numpe/2;
-         if (numpe%2 == 0) {
-            median_value = (global_memory_value[half_value-1]+global_memory_value[half_value])/2;
-         } else {
-            median_value = global_memory_value[half_value+1];
-         }
-         printf("%.*s%10lld\t%.*s%10lld\t%.*s%10lld kb min/median/max\n",
-            2*timer_level, blank, global_memory_value[0],
-            2*timer_level, blank, median_value,
-            2*timer_level, blank, global_memory_value[numpe-1]);
+            2*timer_level, blank, global_times[numpe-1],
+            units);
       }
    }
 }

@@ -2684,23 +2684,15 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
    }
 
    if (device_type == MESH_DEVICE_GPU) {
-      if (parallel) {
-         mesh->parallel_timer_output("GPU: Write to device          time was",  get_gpu_timer(STATE_TIMER_WRITE), 0);
-         mesh->parallel_timer_output("GPU: Read from device         time was",  get_gpu_timer(STATE_TIMER_READ), 0);
-      } else {
-         printf("GPU: Write to device          time was\t%8.4f\ts\n",    get_gpu_timer(STATE_TIMER_WRITE) );
-         printf("GPU: Read from device         time was\t%8.4f\ts\n",    get_gpu_timer(STATE_TIMER_READ) );
-      }
+      mesh->parallel_output("GPU: Write to device          time was",  get_gpu_timer(STATE_TIMER_WRITE), 0, "s");
+      mesh->parallel_output("GPU: Read from device         time was",  get_gpu_timer(STATE_TIMER_READ),  0, "s");
    }
-   if (parallel) {
-      if (device_type == MESH_DEVICE_CPU) {
-         mesh->parallel_timer_output("CPU: Device compute           time was" ,compute_time, 0);
-      } else {
-         mesh->parallel_timer_output("GPU: Device compute           time was" ,compute_time, 0);
-      }
-   } else {
-      printf("%3s: Device compute           time was\t%8.4f \ts\n", device_string, compute_time);
-   }
+
+   const char *device_compute_string[2] = {
+      "CPU: Device compute           time was",
+      "GPU: Device compute           time was"
+   };
+   mesh->parallel_output(device_compute_string[device_type], compute_time, 0, "s");
 
    timer_output(STATE_TIMER_SET_TIMESTEP,                  device_type, 1);
    timer_output(STATE_TIMER_FINITE_DIFFERENCE,             device_type, 1);
@@ -2741,36 +2733,24 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
       mesh->timer_output(MESH_TIMER_COUNT_BCS,             device_type, 1);
    }
    if (rank == 0) printf("=============================================================\n");
-   if (parallel) {
-      if (device_type == MESH_DEVICE_CPU) {
-         mesh->parallel_timer_output("Profiling: Total CPU          time was", elapsed_time, 0);
-      } else {
-         mesh->parallel_timer_output("Profiling: Total GPU          time was", elapsed_time, 0);
-      }
-   } else {
-      printf("Profiling: Total %3s          time was\t%8.4f\ts or\t%4.2f min\n", device_string, elapsed_time, elapsed_time/60.0);      
-   }
+
+   const char *profile_string[2] = {
+      "Profiling: Total CPU          time was",
+      "Profiling: Total GPU          time was"
+   };
+   mesh->parallel_output(profile_string[device_type], elapsed_time, 0, "s");
+   mesh->parallel_output("    or                   ", elapsed_time/60.0, 0, "min");
+
    if (rank == 0) printf("-------------------------------------------------------------\n");
-   if (parallel) {
-      mesh->parallel_timer_output("Mesh Ops (Neigh+rezone+smooth+balance) ",mesh_time, 0);
-      mesh->parallel_timer_output("Mesh Ops Percentage                    ",mesh_time/elapsed_time*100.0, 0);
-   } else {
-      printf("Mesh Operations (Neigh+rezone+smooth) \t%8.4f\ts percentage %8.4f\n",mesh_time,mesh_time/elapsed_time*100.0);
-   }
+   mesh->parallel_output("Mesh Ops (Neigh+rezone+smooth+balance) ",mesh_time, 0, "s");
+   mesh->parallel_output("Mesh Ops Percentage                    ",mesh_time/elapsed_time*100.0, 0, "s");
    if (rank == 0) printf("=============================================================\n");
 
-   if (parallel) {
-      mesh->parallel_timer_output("Profiling: Total              time was",total_elapsed_time, 0);
-   } else {
-      printf("Profiling: Total              time was\t%8.4f\ts or\t%4.2f min\n",    total_elapsed_time,     total_elapsed_time/60.0);
-   }
+   mesh->parallel_output("Profiling: Total              time was",total_elapsed_time, 0, "s");
+   mesh->parallel_output("    or                                ",total_elapsed_time/60.0, 0, "min");
 
    if (speedup_ratio > 0.0) {
-      if (parallel) {
-         mesh->parallel_timer_output("Parallel Speed-up:                    ",speedup_ratio, 0);
-      } else {
-         printf("Speed-up:                             \t%8.4f\n",   speedup_ratio);
-      }
+      mesh->parallel_output("Parallel Speed-up:                    ",speedup_ratio, 0, "s");
    }
 
    if (rank == 0) printf("=============================================================\n");
@@ -2792,14 +2772,16 @@ void State::timer_output(state_timer_category category, mesh_device_types device
    if (mype == 0) {
       const char *blank="          ";
 
-      if (device_type == MESH_DEVICE_CPU){
-         sprintf(string,"CPU: %.*s%-30.30s\t", 2*timer_level, blank, state_timer_descriptor[category]);
-      } else {
-         sprintf(string,"GPU: %.*s%-30.30s\t", 2*timer_level, blank, state_timer_descriptor[category]);
-      }
+      const char *device_string[2] = {
+         "CPU",
+         "GPU"
+      };
+
+      sprintf(string,"%3s: %.*s%-30.30s\t", device_string[device_type],
+         2*timer_level, blank, state_timer_descriptor[category]);
    }
 
-   mesh->parallel_timer_output(string, local_time, timer_level);
+   mesh->parallel_output(string, local_time, timer_level, "s");
 }
 
 #ifdef HAVE_OPENCL
