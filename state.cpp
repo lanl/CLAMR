@@ -2739,7 +2739,9 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
       "Profiling: Total GPU          time was"
    };
    mesh->parallel_output(profile_string[device_type], elapsed_time, 0, "s");
-   mesh->parallel_output("                                  or  ", elapsed_time/60.0, 0, "min");
+   if (elapsed_time > 600.0){
+      mesh->parallel_output("                                  or  ", elapsed_time/60.0, 0, "min");
+   }
 
    if (rank == 0) printf("-------------------------------------------------------------\n");
    mesh->parallel_output("Mesh Ops (Neigh+rezone+smooth+balance) ",mesh_time, 0, "s");
@@ -2747,7 +2749,9 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
    if (rank == 0) printf("=============================================================\n");
 
    mesh->parallel_output("Profiling: Total              time was",total_elapsed_time, 0, "s");
-   mesh->parallel_output("                                  or  ",total_elapsed_time/60.0, 0, "min");
+   if (elapsed_time > 600.0){
+      mesh->parallel_output("                                  or  ",total_elapsed_time/60.0, 0, "min");
+   }
 
    if (speedup_ratio > 0.0) {
       mesh->parallel_output("Parallel Speed-up:                    ",speedup_ratio, 0, "s");
