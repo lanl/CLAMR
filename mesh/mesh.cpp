@@ -2573,6 +2573,8 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    int level_first = 0;
    int level_last  = 0;
 
+   int ref_entry = 0;
+
    if (parallel) {
 #ifdef HAVE_MPI
       MPI_Request req[12];
@@ -2744,6 +2746,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
             double *mem_ptr_double = (double *)it->mem_ptr;
 
+            ref_entry = 0;
             for (int ic=0, nc=0; ic<(int)ncells; ic++) {
 
                if (mpot[ic] == 0) {
@@ -2790,7 +2793,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             state_memory.memory_replace(mem_ptr_double, state_temp_double);
          } else if (it->mem_elsize == 4) {
             float *state_temp_float = (float *)state_memory.memory_malloc(new_ncells, sizeof(float),
-                                                                           flags, "state_temp_float");
+                                                                          flags, "state_temp_float");
 
             float *mem_ptr_float = (float *)it->mem_ptr;
 
@@ -2888,6 +2891,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          j_new[nc]     = j[ic];
          level_new[nc] = level[ic];
       } //  Complete no change needed.
+
       else if (mpot[ic] < 0)
       {  //  Coarsening is needed; remove this cell and the other three and replace them with one.
          int doit = 0;
@@ -2901,6 +2905,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             level_new[nc] = level[ic] - 1;
          }
       } //  Coarsening complete.
+
       else if (mpot[ic] > 0)
       {  //  Refinement is needed; insert four cells where once was one.
          if (celltype[ic] == REAL_CELL)
@@ -3009,6 +3014,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
       for (it = state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
            it = state_memory_old.memory_entry_next() ) {
+         ref_entry = 0;
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
          if (it->mem_elsize == 8) {
             double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
@@ -3016,6 +3022,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
             double *mem_ptr_double = (double *)it->mem_ptr;
 
+            ref_entry = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -3063,7 +3070,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             state_memory.memory_replace(mem_ptr_double, state_temp_double);
          } else if (it->mem_elsize == 4) {
             float *state_temp_float = (float *)state_memory.memory_malloc(new_ncells, sizeof(float),
-                                                                           flags, "state_temp_float");
+                                                                          flags, "state_temp_float");
 
             float *mem_ptr_float = (float *)it->mem_ptr;
 
@@ -3298,7 +3305,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
    ezcl_set_kernel_arg(kernel_rezone_all, 16, sizeof(cl_mem),  (void *)&dev_levtable);
    ezcl_set_kernel_arg(kernel_rezone_all, 17, sizeof(cl_mem),  (void *)&dev_ijadd);
    ezcl_set_kernel_arg(kernel_rezone_all, 18, local_work_size * sizeof(cl_uint), NULL);
-   //ezcl_set_kernel_arg(kernel_rezone_all, 19, local_work_size * sizeof(cl_real4),    NULL);
+   //ezcl_set_kernel_arg(kernel_rezone_all, 19, local_work_size * sizeof(cl_real4_t),    NULL);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, NULL);
 
