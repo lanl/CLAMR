@@ -6,7 +6,7 @@
 #   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -vec-report3")
 #endif (CMAKE_C_COMPILER MATCHES "icc$")
 
-set(H_SRCS mesh.h partition.h reorder.h reduce.h)
+set(H_SRCS mesh.h partition.h reduce.h)
 
 set(CXX_SRCS mesh.cpp partition.cpp)
 
@@ -33,7 +33,6 @@ add_library(mesh STATIC ${mesh_LIB_SRCS})
 set_target_properties(mesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
 
 target_link_libraries(mesh)
-add_dependencies(mesh reduce_kernel_source)
 install(TARGETS mesh DESTINATION lib)
 
 ########### mpmesh target ###############
@@ -48,7 +47,6 @@ if(OPENMP_FOUND)
    set_target_properties(mpmesh PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
 
    target_link_libraries(mpmesh)
-   add_dependencies(mpmesh reduce_kernel_source)
    install(TARGETS mpmesh DESTINATION lib)
 endif(OPENMP_FOUND)
 
