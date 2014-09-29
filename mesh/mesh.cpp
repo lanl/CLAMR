@@ -7061,8 +7061,10 @@ void Mesh::calc_celltype(size_t ncells)
    if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-   if (celltype != NULL) celltype = (int *)mesh_memory.memory_delete(celltype);
-   celltype = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "celltype");
+   if (celltype == NULL || mesh_memory.get_memory_size(celltype) < ncells) {
+      if (celltype != NULL) celltype = (int *)mesh_memory.memory_delete(celltype);
+      celltype = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "celltype");
+   }
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -7079,8 +7081,7 @@ void Mesh::calc_celltype(size_t ncells)
 void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym)
 {
    TBounds box;
-   //vector<int> index_list((int)pow(2,levmx*levmx) );
-   vector<int> index_list( 2<<(levmx*levmx) );
+   vector<int> index_list( IPOW2(levmx*levmx) );
 
    int num;
    for (uint ic=0; ic<ncells; ic++) {
