@@ -262,101 +262,20 @@ void Mesh::partition_measure(void)
 }
 void Mesh::print_partition_measure()
 {
-      
-   if (parallel) {
-      vector<double> global_times(numpe);
-#ifdef HAVE_MPI
-      double local_time;
-#endif
-
-      if (measure_type == WITH_DUPLICATES) {
-#ifdef HAVE_MPI
-         local_time = meas_sum_average/(double)meas_count;
-         MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-#endif
-         if (mype == 0) {
-            printf("Average surface area to volume ratio  \t");  
-            for(int ip = 0; ip < numpe; ip++){
-               printf("%8.4f\t", global_times[ip]);
-            }
-            printf("with duplicates\n");
-         }
+   if (meas_count != 0) {
+      if        (measure_type == WITH_DUPLICATES) {
+         parallel_output("Average surface area to volume ratio  ", meas_sum_average/(double)meas_count, 0, "with duplicates");
       } else if (measure_type == WITHOUT_DUPLICATES) {
-#ifdef HAVE_MPI
-         local_time = meas_sum_average/(double)meas_count;
-         MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-#endif
-         if (mype == 0) {
-            printf("Average surface area to volume ratio  \t");  
-            for(int ip = 0; ip < numpe; ip++){
-               printf("%8.4f\t", global_times[ip]);
-            }
-            printf("without duplicates\n");
-         }
-      } else if ((measure_type == CVALUE || measure_type == CSTARVALUE) && meas_count != 0) {
-#ifdef HAVE_MPI
-         local_time = meas_sum_average/(double)meas_count;
-         MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-#endif
-         if (mype == 0) {
-            if(measure_type == CVALUE) printf("Partition Quality Avg C value     \t");  
-            if(measure_type == CSTARVALUE) printf("Partition Quality Avg C* value     \t");  
-            if (numpe <=4){
-               for(int ip = 0; ip < numpe; ip++){
-                  printf("%8.4f\t", global_times[ip]);
-               }
-            } else {
-               sort(global_times.begin(),global_times.end());
-               double median_value;
-               int half_value = numpe/2;
-               if (numpe%2 == 0) {
-                  median_value = (global_times[half_value-1]+global_times[half_value])/2.0;
-               } else {
-                  median_value = global_times[half_value+1];
-               }
-               printf("%8.4f\t %8.4f\t %8.4f\t min/median/max \t",global_times[0],median_value,global_times[numpe-1]);
-            }
-            printf("\n");
-         }
+         parallel_output("Average surface area to volume ratio  ", meas_sum_average/(double)meas_count, 0, "without duplicates");
+      } else if (measure_type == CVALUE) {
+         parallel_output("Partition Quality Avg C value     ", meas_sum_average/(double)meas_count, 0, "");
+      } else if (measure_type == CSTARVALUE){
+         parallel_output("Partition Quality Avg C* value     ", meas_sum_average/(double)meas_count, 0, "");
       }
+   }
 
-#ifdef HAVE_MPI
-      local_time = offtile_ratio_local;
-      MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-#endif
-      if (mype == 0 && numpe > 1) {
-         printf("The MPI surface area to volume ratio \t");
-         if (numpe <= 4){
-            for(int ip = 0; ip < numpe; ip++){
-               printf("%8.4f\t", global_times[ip]);
-            }
-         } else {
-            sort(global_times.begin(),global_times.end());
-            double median_value;
-            int half_value = numpe/2;
-            if (numpe%2 == 0) {
-               median_value = (global_times[half_value-1]+global_times[half_value])/2.0;
-            } else {
-               median_value = global_times[half_value+1];
-            }
-            printf("%8.4f\t %8.4f\t %8.4f\t min/median/max \t",global_times[0],median_value,global_times[numpe-1]);
-         }
-         printf("without duplicates\n");
-      }
-
-   } else {
-
-      if (measure_type == WITH_DUPLICATES) {
-         printf("Average surface area to volume ratio  \t%8.4lf\t with duplicates\n" , meas_sum_average/(double)meas_count);
-      } else if (measure_type == WITHOUT_DUPLICATES) {
-         printf("Average surface area to volume ratio  \t%8.4lf\t without duplicates\n" , meas_sum_average/(double)meas_count);
-      } else if (measure_type == CVALUE || measure_type == CSTARVALUE) {
-         printf("The GPU Partition Quality Avg C value  \t%8.4lf\n" , meas_sum_average/(double)meas_count);
-      }
-
-      if (numpe > 1) {
-         printf("The MPI surface area to volume ratio \t%8.4lf\t without duplicates\n", offtile_ratio_local); 
-      }
+   if (numpe > 1){
+      parallel_output("The MPI surface area to volume ratio ", offtile_ratio_local, 0, "without duplicates");
    }
 }
 

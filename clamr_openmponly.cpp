@@ -209,10 +209,10 @@ int main(int argc, char **argv) {
 
    long long mem_used = memstats_memused();
    if (mem_used > 0) {
-      printf("Memory used      in startup %lld kB\n",mem_used);
-      printf("Memory peak      in startup %lld kB\n",memstats_mempeak());
-      printf("Memory free      at startup %lld kB\n",memstats_memfree());
-      printf("Memory available at startup %lld kB\n",memstats_memtotal());
+      mesh->parallel_output("Memory used      in startup ",mem_used, 0, "kB");
+      mesh->parallel_output("Memory peak      in startup ",memstats_mempeak(), 0, "kB");
+      mesh->parallel_output("Memory free      at startup ",memstats_memfree(), 0, "kB");
+      mesh->parallel_output("Memory available at startup ",memstats_memtotal(), 0, "kB");
    }
 
    printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
@@ -367,14 +367,14 @@ extern "C" void do_calc(void)
       double elapsed_time = cpu_timer_stop(tstart);
       
       long long mem_used = memstats_memused();
-      //if (mem_used > 0) {
+      if (mem_used > 0) {
          printf("Memory used      %lld kB\n",mem_used);
          printf("Memory peak      %lld kB\n",memstats_mempeak());
          printf("Memory free      %lld kB\n",memstats_memfree());
          printf("Memory available %lld kB\n",memstats_memtotal());
-      //}
+      }
       state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
-      printf("CPU:  graphics                 time was\t %8.4f\ts\n",     cpu_time_graphics );
+      mesh->parallel_output("CPU:  graphics                 time was",cpu_time_graphics, 0, "s");
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();

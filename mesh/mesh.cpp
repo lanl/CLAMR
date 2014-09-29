@@ -8263,13 +8263,13 @@ void Mesh::timer_output(mesh_timer_category category, mesh_device_types device_t
    parallel_output(string, local_time, timer_level, "s");
 }
 
-void Mesh::parallel_output(const char *string, double local_time, int timer_level, const char *units)
+void Mesh::parallel_output(const char *string, double local_value, int output_level, const char *units)
 {
-   vector<double> global_times(numpe);
-   global_times[0] = local_time;
+   vector<double> global_values(numpe);
+   global_values[0] = local_value;
 #ifdef HAVE_MPI
    if (numpe > 1) { 
-      MPI_Gather(&local_time, 1, MPI_DOUBLE, &global_times[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+      MPI_Gather(&local_value, 1, MPI_DOUBLE, &global_values[0], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
    }
 #endif
    if (mype == 0) {
@@ -8278,22 +8278,94 @@ void Mesh::parallel_output(const char *string, double local_time, int timer_leve
       printf("%s\t",string);
       if (numpe <= 4) {
          for(int ip = 0; ip < numpe; ip++){
-            printf("%.*s%8.4f\t", 2*timer_level, blank, global_times[ip]);
+            printf("%.*s%8.4f\t", 2*output_level, blank, global_values[ip]);
          }
          printf("%s\n",units);
       } else {
-         sort(global_times.begin(),global_times.end());
+         sort(global_values.begin(),global_values.end());
          double median_value;
          int half_value = numpe/2;
          if (numpe%2 == 0) {
-            median_value = (global_times[half_value-1]+global_times[half_value])/2.0;
+            median_value = (global_values[half_value-1]+global_values[half_value])/2.0;
          } else {
-            median_value = global_times[half_value+1];
+            median_value = global_values[half_value+1];
          }
          printf("%.*s%8.4f\t%.*s%8.4f\t%.*s%8.4f   %s min/median/max\n",
-            2*timer_level, blank, global_times[0],
-            2*timer_level, blank, median_value,
-            2*timer_level, blank, global_times[numpe-1],
+            2*output_level, blank, global_values[0],
+            2*output_level, blank, median_value,
+            2*output_level, blank, global_values[numpe-1],
+            units);
+      }
+   }
+}
+
+void Mesh::parallel_output(const char *string, long long local_value, int output_level, const char *units)
+{
+   vector<long long> global_values(numpe);
+   global_values[0] = local_value;
+#ifdef HAVE_MPI
+   if (numpe > 1) { 
+      MPI_Gather(&local_value, 1, MPI_LONG_LONG, &global_values[0], 1, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
+   }
+#endif
+   if (mype == 0) {
+      const char *blank="          ";
+
+      printf("%s\t",string);
+      if (numpe <= 4) {
+         for(int ip = 0; ip < numpe; ip++){
+            printf("%.*s%10lld\t", 2*output_level, blank, global_values[ip]);
+         }
+         printf("%s\n",units);
+      } else {
+         sort(global_values.begin(),global_values.end());
+         long long median_value;
+         int half_value = numpe/2;
+         if (numpe%2 == 0) {
+            median_value = (global_values[half_value-1]+global_values[half_value])/2;
+         } else {
+            median_value = global_values[half_value+1];
+         }
+         printf("%.*s%10lld\t%.*s%10lld\t%.*s%10lld   %s min/median/max\n",
+            2*output_level, blank, global_values[0],
+            2*output_level, blank, median_value,
+            2*output_level, blank, global_values[numpe-1],
+            units);
+      }
+   }
+}
+
+void Mesh::parallel_output(const char *string, int local_value, int output_level, const char *units)
+{
+   vector<int> global_values(numpe);
+   global_values[0] = local_value;
+#ifdef HAVE_MPI
+   if (numpe > 1) { 
+      MPI_Gather(&local_value, 1, MPI_INT, &global_values[0], 1, MPI_INT, 0, MPI_COMM_WORLD);
+   }
+#endif
+   if (mype == 0) {
+      const char *blank="          ";
+
+      printf("%s\t",string);
+      if (numpe <= 4) {
+         for(int ip = 0; ip < numpe; ip++){
+            printf("%.*s%10d\t", 2*output_level, blank, global_values[ip]);
+         }
+         printf("%s\n",units);
+      } else {
+         sort(global_values.begin(),global_values.end());
+         int median_value;
+         int half_value = numpe/2;
+         if (numpe%2 == 0) {
+            median_value = (global_values[half_value-1]+global_values[half_value])/2;
+         } else {
+            median_value = global_values[half_value+1];
+         }
+         printf("%.*s%10d\t%.*s%10d\t%.*s%10d   %s min/median/max\n",
+            2*output_level, blank, global_values[0],
+            2*output_level, blank, median_value,
+            2*output_level, blank, global_values[numpe-1],
             units);
       }
    }

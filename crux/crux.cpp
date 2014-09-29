@@ -190,10 +190,10 @@ void Crux::store_int_array(int *int_array, size_t nelem)
    fwrite(int_array,sizeof(int),nelem,store_fp);
 }
 
-void Crux::store_long_array(long *long_array, size_t nelem)
+void Crux::store_long_array(long long *long_array, size_t nelem)
 {
    assert(long_array != NULL && store_fp != NULL);
-   fwrite(long_array,sizeof(long),nelem,store_fp);
+   fwrite(long_array,sizeof(long long),nelem,store_fp);
 }
 
 void Crux::store_float_array(float *float_array, size_t nelem)
@@ -286,9 +286,9 @@ int *Crux::restore_int_array(int *int_array, size_t nelem)
    return(int_array);
 }
 
-long *Crux::restore_long_array(long *long_array, size_t nelem)
+long long *Crux::restore_long_array(long long *long_array, size_t nelem)
 {
-   fread(long_array,sizeof(long),nelem,restore_fp);
+   fread(long_array,sizeof(long long),nelem,restore_fp);
    return(long_array);
 }
 

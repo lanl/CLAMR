@@ -70,21 +70,21 @@ public:
    void store_bools(bool *bool_vals, size_t nelem);
    void store_doubles(double *double_vals, size_t nelem);
    void store_int_array(int *int_array, size_t nelem);
-   void store_long_array(long *long_array, size_t nelem);
+   void store_long_array(long long *long_array, size_t nelem);
    void store_float_array(float *float_array, size_t nelem);
    void store_double_array(double *double_array, size_t nelem);
    void store_end(void);
 
-   void    restore_begin(char *restart_file, int rollback_counter);
-   void    restore_ints(int *int_vals, size_t nelem);
-   void    restore_bools(bool *bool_vals, size_t nelem);
-   void    restore_longs(long long *long_vals, size_t nelem);
-   void    restore_doubles(double *double_vals, size_t nelem);
-   int    *restore_int_array(int *int_array, size_t nsize);
-   long   *restore_long_array(long *long_array, size_t nsize);
-   float  *restore_float_array(float *float_array, size_t nsize);
-   double *restore_double_array(double *double_array, size_t nsize);
-   void    restore_end(void);
+   void       restore_begin(char *restart_file, int rollback_counter);
+   void       restore_ints(int *int_vals, size_t nelem);
+   void       restore_bools(bool *bool_vals, size_t nelem);
+   void       restore_longs(long long *long_vals, size_t nelem);
+   void       restore_doubles(double *double_vals, size_t nelem);
+   int       *restore_int_array(int *int_array, size_t nsize);
+   long long *restore_long_array(long long *long_array, size_t nsize);
+   float     *restore_float_array(float *float_array, size_t nsize);
+   double    *restore_double_array(double *double_array, size_t nsize);
+   void       restore_end(void);
 
    int get_rollback_number();
 

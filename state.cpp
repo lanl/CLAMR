@@ -2745,7 +2745,7 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
 
    if (rank == 0) printf("-------------------------------------------------------------\n");
    mesh->parallel_output("Mesh Ops (Neigh+rezone+smooth+balance) ",mesh_time, 0, "s");
-   mesh->parallel_output("Mesh Ops Percentage                    ",mesh_time/elapsed_time*100.0, 0, "s");
+   mesh->parallel_output("Mesh Ops Percentage                    ",mesh_time/elapsed_time*100.0, 0, "percent");
    if (rank == 0) printf("=============================================================\n");
 
    mesh->parallel_output("Profiling: Total              time was",total_elapsed_time, 0, "s");
@@ -2754,7 +2754,7 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
    }
 
    if (speedup_ratio > 0.0) {
-      mesh->parallel_output("Parallel Speed-up:                    ",speedup_ratio, 0, "s");
+      mesh->parallel_output("Parallel Speed-up:                    ",speedup_ratio, 0, "Reference Serial CPU");
    }
 
    if (rank == 0) printf("=============================================================\n");

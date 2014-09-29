@@ -207,8 +207,8 @@ public:
    cl_mem dev_result;
 #endif
 
-   double   cpu_timers[STATE_TIMER_SIZE];
-   long     gpu_timers[STATE_TIMER_SIZE];
+   double    cpu_timers[STATE_TIMER_SIZE];
+   long long gpu_timers[STATE_TIMER_SIZE];
 
    // constructor -- allocates state arrays to size ncells
    State(Mesh *mesh_in);
@@ -230,7 +230,7 @@ public:
    /* Accessor routines */
    double get_cpu_timer(state_timer_category category)  {return(cpu_timers[category]); };
    /* Convert nanoseconds to msecs */
-   long   get_gpu_timer(state_timer_category category)  {return((double)(gpu_timers[category])*1.0e-9); };
+   double get_gpu_timer(state_timer_category category)  {return((double)(gpu_timers[category])*1.0e-9); };
 
    /* Boundary routines -- not currently used */
    void add_boundary_cells(void);

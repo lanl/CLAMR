@@ -225,8 +225,8 @@ public:
    string defines;
 #endif
 
-   double cpu_timers[MESH_TIMER_SIZE];
-   long   gpu_timers[MESH_TIMER_SIZE];
+   double    cpu_timers[MESH_TIMER_SIZE];
+   long long gpu_timers[MESH_TIMER_SIZE];
 
    int    cpu_counters[MESH_COUNTER_SIZE];
    int    gpu_counters[MESH_COUNTER_SIZE];
@@ -381,7 +381,9 @@ public:
    /* Convert nanoseconds to msecs */
    double get_gpu_timer(mesh_timer_category category)       {return((double)(gpu_timers[category])*1.0e-9); };
 
-   void parallel_output(const char *string, double local_time, int timer_level, const char *units);
+   void parallel_output(const char *string, double    local_value, int output_level, const char *units);
+   void parallel_output(const char *string, long long local_value, int output_level, const char *units);
+   void parallel_output(const char *string, int       local_value, int output_level, const char *units);
    void timer_output(mesh_timer_category category, mesh_device_types device_type, int timer_level);
 
    int get_cpu_counter(mesh_counter_category category)      {return(cpu_counters[category]); };

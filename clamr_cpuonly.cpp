@@ -230,10 +230,10 @@ int main(int argc, char **argv) {
 
    long long mem_used = memstats_memused();
    if (mem_used > 0) {
-      printf("Memory used      in startup %lld kB\n",mem_used);
-      printf("Memory peak      in startup %lld kB\n",memstats_mempeak());
-      printf("Memory free      at startup %lld kB\n",memstats_memfree());
-      printf("Memory available at startup %lld kB\n",memstats_memtotal());
+      mesh->parallel_output("Memory used      in startup ",mem_used, 0, "kB");
+      mesh->parallel_output("Memory peak      in startup ",memstats_mempeak(), 0, "kB");
+      mesh->parallel_output("Memory free      at startup ",memstats_memfree(), 0, "kB");
+      mesh->parallel_output("Memory available at startup ",memstats_memtotal(), 0, "kB");
    }
 
    if (ncycle != 0){
