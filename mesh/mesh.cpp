@@ -766,10 +766,10 @@ void Mesh::compare_indices_gpu_global_to_cpu_global(void)
 
 void Mesh::compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mesh_global, int *nsizes, int *ndispl, int cycle)
 {
-   int *&celltype_global = mesh_global->celltype;
-   int *&i_global        = mesh_global->i;
-   int *&j_global        = mesh_global->j;
-   int *&level_global    = mesh_global->level;
+   int *celltype_global = mesh_global->celltype;
+   int *i_global        = mesh_global->i;
+   int *j_global        = mesh_global->j;
+   int *level_global    = mesh_global->level;
 
    vector<int> i_check_global(ncells_global);
    vector<int> j_check_global(ncells_global);
@@ -1749,6 +1749,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    for(uint ic=0; ic<ncells; ic++) {
       mpot[ic] = mpot_old[ic];
       if (mpot_old[ic] >= 0) continue;
+      if (mpot_old[ic] <= -1000000) continue;
       if (        is_upper_right(i[ic],j[ic]) ) {
          int nr = nrht[ic];
          int lr = level[nr];
@@ -1799,6 +1800,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
       int n1=0, n2=0, n3=0;
       mpot[ic] = mpot_old[ic];
       if (mpot_old[ic] >= 0) continue;
+      if (mpot_old[ic] <= -1000000) continue;
       if ( is_upper_right(i[ic],j[ic]) ) {
          n1 = nbot[ic];
          n2 = nlft[ic];
@@ -1895,8 +1897,6 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
    size_t block_size = global_work_size/local_work_size;
-
-   //size_t nghost_local = ncells_ghost - ncells;
 
    int icount_global = icount;
    int jcount_global = jcount;
@@ -3416,10 +3416,16 @@ void Mesh::calc_neighbors(int ncells)
 #if defined (HAVE_J7)
    if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
-   nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nlft");
-   nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nrht");
-   nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nbot");
-   ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "ntop");
+   if (mesh_memory.get_memory_size(nlft) < ncells){
+      if (nlft != NULL) nlft = (int *)mesh_memory.memory_delete(nlft);
+      if (nrht != NULL) nrht = (int *)mesh_memory.memory_delete(nrht);
+      if (nbot != NULL) nbot = (int *)mesh_memory.memory_delete(nbot);
+      if (ntop != NULL) ntop = (int *)mesh_memory.memory_delete(ntop);
+      nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nlft");
+      nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nrht");
+      nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nbot");
+      ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "ntop");
+   }
 
    if (calc_neighbor_type == HASH_TABLE) {
 
@@ -3674,8 +3680,7 @@ void Mesh::calc_neighbors(int ncells)
       if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
       TBounds box;
-      //vector<int> index_list((int)pow(2,levmx*levmx) );
-      vector<int> index_list( 2<<(levmx*levmx) );
+      vector<int> index_list(IPOW2(levmx*levmx) );
 
       int num;
 
@@ -3734,6 +3739,8 @@ void Mesh::calc_neighbors(int ncells)
 
    } // calc_neighbor_type
 
+   ncells_ghost = ncells;
+
    cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
 }
 
@@ -3749,10 +3756,16 @@ void Mesh::calc_neighbors_local(void)
    if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
 
-   nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nlft");
-   nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nrht");
-   nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nbot");
-   ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "ntop");
+   if (mesh_memory.get_memory_size(nlft) < ncells){
+      if (nlft != NULL) nlft = (int *)mesh_memory.memory_delete(nlft);
+      if (nrht != NULL) nrht = (int *)mesh_memory.memory_delete(nrht);
+      if (nbot != NULL) nbot = (int *)mesh_memory.memory_delete(nbot);
+      if (ntop != NULL) ntop = (int *)mesh_memory.memory_delete(ntop);
+      nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nlft");
+      nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nrht");
+      nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nbot");
+      ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "ntop");
+   }
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -5319,8 +5332,7 @@ void Mesh::calc_neighbors_local(void)
       if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
       TBounds box;
-      //vector<int> index_list((int)pow(2,levmx*levmx) );
-      vector<int> index_list( 2<<(levmx*levmx) );
+      vector<int> index_list(IPOW2(levmx*levmx) );
 
       int num;
 
@@ -5420,7 +5432,7 @@ void Mesh::gpu_calc_neighbors(void)
 //=========
 
    size_t hashsize;
- 
+
    uint hash_report_level = 1;
    cl_mem dev_hash_header = NULL;
    cl_mem dev_hash = gpu_compact_hash_init(ncells, imaxsize, jmaxsize, gpu_hash_method, hash_report_level,
