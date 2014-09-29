@@ -7135,13 +7135,11 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
    int ncells_old = numcells;
    int noffset_old = ndispl[mype];
 
-   if (nlft == NULL){
+// Need to add weight array to load balance if it is not NULL
+// Need to add tolerance to when load balance is done
 
-//    Need to add weight array to load balance if it is not NULL
-//    Need to add tolerance to when load balance is done
-      int do_load_balance_global = 0;
-      int nsizes_old = 0;
-
+   int do_load_balance_global = 0;
+   int nsizes_old = 0;
 
 #ifdef HAVE_LTTRACE
 //    this is very exploratory right now -- probably need to incorporate wait time into balance
@@ -7246,156 +7244,162 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
 //    }
 #endif
 
-      if (do_load_balance_global) {
+   for (int ip=0; ip<numpe; ip++){
+      nsizes_old = nsizes[ip];
+      nsizes[ip] = ncells_global/numpe;
+      if (ip < (int)(ncells_global%numpe)) nsizes[ip]++;
+      if (nsizes_old != nsizes[ip]) do_load_balance_global = 1;
+   }
 
-         cpu_counters[MESH_COUNTER_LOAD_BALANCE]++;
+   if (do_load_balance_global) {
 
-         ndispl[0]=0;
-         for (int ip=1; ip<numpe; ip++){
-            ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-         }
-         ncells = nsizes[mype];
-         noffset=ndispl[mype];
+      cpu_counters[MESH_COUNTER_LOAD_BALANCE]++;
 
-         // Indices of blocks to be added to load balance
-         int lower_block_start = noffset;
-         int lower_block_end   = min(noffset_old-1, (int)(noffset+ncells-1));
-         int upper_block_start = max((int)(noffset_old+ncells_old), noffset);
-         int upper_block_end   = noffset+ncells-1;
+      ndispl[0]=0;
+      for (int ip=1; ip<numpe; ip++){
+         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+      }
+      ncells = nsizes[mype];
+      noffset=ndispl[mype];
 
-         int lower_block_size = max(lower_block_end-lower_block_start+1,0);
-         if(lower_block_end < 0) lower_block_size = 0; // Handles segfault at start of array
-         int upper_block_size = max(upper_block_end-upper_block_start+1,0);
-         int indices_needed_count = lower_block_size + upper_block_size;
+      // Indices of blocks to be added to load balance
+      int lower_block_start = noffset;
+      int lower_block_end   = min(noffset_old-1, (int)(noffset+ncells-1));
+      int upper_block_start = max((int)(noffset_old+ncells_old), noffset);
+      int upper_block_end   = noffset+ncells-1;
 
-         int in = 0;
+      int lower_block_size = max(lower_block_end-lower_block_start+1,0);
+      if(lower_block_end < 0) lower_block_size = 0; // Handles segfault at start of array
+      int upper_block_size = max(upper_block_end-upper_block_start+1,0);
+      int indices_needed_count = lower_block_size + upper_block_size;
+
+      int in = 0;
  
-         vector<int> indices_needed(indices_needed_count);
-         for (int iz = lower_block_start; iz <= lower_block_end; iz++, in++){
-            indices_needed[in]=iz;
-         }
-         for (int iz = upper_block_start; iz <= upper_block_end; iz++, in++){
-            indices_needed[in]=iz;
-         }
+      vector<int> indices_needed(indices_needed_count);
+      for (int iz = lower_block_start; iz <= lower_block_end; iz++, in++){
+         indices_needed[in]=iz;
+      }
+      for (int iz = upper_block_start; iz <= upper_block_end; iz++, in++){
+         indices_needed[in]=iz;
+      }
 
-         int load_balance_handle = 0;
-         L7_Setup(0, noffset_old, ncells_old, &indices_needed[0], indices_needed_count, &load_balance_handle);
+      int load_balance_handle = 0;
+      L7_Setup(0, noffset_old, ncells_old, &indices_needed[0], indices_needed_count, &load_balance_handle);
 
-         //printf("\n%d: DEBUG load balance report\n",mype);
+      //printf("\n%d: DEBUG load balance report\n",mype);
 
-         state_memory.memory_realloc_all(ncells_old+indices_needed_count);
+      state_memory.memory_realloc_all(ncells_old+indices_needed_count);
 
-         MallocPlus state_memory_old = state_memory;
+      MallocPlus state_memory_old = state_memory;
 
-         int flags = 0;
+      int flags = 0;
 #ifdef HAVE_J7
-         if (parallel) flags = LOAD_BALANCE_MEMORY;
+      if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-         list<malloc_plus_memory_entry>::iterator it;
+      list<malloc_plus_memory_entry>::iterator it;
 
-         for (it = state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
-              it = state_memory_old.memory_entry_next() ) {
-            //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
-            if (it->mem_elsize == 8) {
-               double *state_temp = (double *) state_memory.memory_malloc(ncells, sizeof(double),
-                                                                          flags,
-                                                                          "state_temp");
-               double *mem_ptr = (double *)it->mem_ptr;
+      for (it = state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
+           it = state_memory_old.memory_entry_next() ) {
 
-               //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
-               L7_Update(mem_ptr, L7_DOUBLE, load_balance_handle);
-               in = 0;
-               if(lower_block_size > 0) {
-                  for(; in < MIN(lower_block_size, (int)ncells); in++) {
-                     state_temp[in] = mem_ptr[ncells_old + in];
-                  }
-               }
+         //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
+         if (it->mem_elsize == 8) {
+            double *state_temp = (double *) state_memory.memory_malloc(ncells, sizeof(double),
+                                                                       flags,
+                                                                       "state_temp");
+            double *mem_ptr = (double *)it->mem_ptr;
 
-               for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
-                  state_temp[in] = mem_ptr[ic];
-               }
-
-               if(upper_block_size > 0) {
-                  int ic = ncells_old + lower_block_size;
-                  for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
-                     state_temp[in] = mem_ptr[ic+k];
-                  }
-               }
-               state_memory.memory_replace(mem_ptr, state_temp);
-            } else if (it->mem_elsize == 4) {
-               float *state_temp = (float *) state_memory.memory_malloc(ncells, sizeof(float),
-                                                                        flags,
-                                                                        "state_temp");
-               float *mem_ptr = (float *)it->mem_ptr;
-
-               //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
-               L7_Update(mem_ptr, L7_FLOAT, load_balance_handle);
-               in = 0;
-               if(lower_block_size > 0) {
-                  for(; in < MIN(lower_block_size, (int)ncells); in++) {
-                     state_temp[in] = mem_ptr[ncells_old + in];
-                  }
-               }
-
-               for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
-                  state_temp[in] = mem_ptr[ic];
-               }
-
-               if(upper_block_size > 0) {
-                  int ic = ncells_old + lower_block_size;
-                  for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
-                     state_temp[in] = mem_ptr[ic+k];
-                  }
-               }
-               state_memory.memory_replace(mem_ptr, state_temp);
-            }
-         }
-
-         mesh_memory.memory_realloc_all(ncells_old+indices_needed_count);
-
-         MallocPlus mesh_memory_old = mesh_memory;
-
-         for (int *mem_ptr=(int *)mesh_memory_old.memory_begin(); mem_ptr!=NULL; mem_ptr=(int *)mesh_memory_old.memory_next() ){
-            // Originally LOAD_BALANCE_MEMORY was used for whether to do the load balance routine
-            //   and now it is used to trigger the shared memory allocation
-            //int flags = mesh_memory.get_memory_flags(mem_ptr);
-            // SKG XXX ???
-            //if ((flags & LOAD_BALANCE_MEMORY) == 0) continue;
-            int *mesh_temp = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "mesh_temp");
             //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
-            L7_Update(mem_ptr, L7_INT, load_balance_handle);
+            L7_Update(mem_ptr, L7_DOUBLE, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {
                for(; in < MIN(lower_block_size, (int)ncells); in++) {
-                  mesh_temp[in] = mem_ptr[ncells_old + in];
+                  state_temp[in] = mem_ptr[ncells_old + in];
                }
             }
 
             for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
-               mesh_temp[in] = mem_ptr[ic];
+               state_temp[in] = mem_ptr[ic];
             }
 
             if(upper_block_size > 0) {
                int ic = ncells_old + lower_block_size;
                for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
-                  mesh_temp[in] = mem_ptr[ic+k];
+                  state_temp[in] = mem_ptr[ic+k];
                }
             }
-            mesh_memory.memory_replace(mem_ptr, mesh_temp);
+            state_memory.memory_replace(mem_ptr, state_temp);
+         } else if (it->mem_elsize == 4) {
+            float *state_temp = (float *) state_memory.memory_malloc(ncells, sizeof(float),
+                                                                     flags,
+                                                                     "state_temp");
+            float *mem_ptr = (float *)it->mem_ptr;
+
+            //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
+            L7_Update(mem_ptr, L7_FLOAT, load_balance_handle);
+            in = 0;
+            if(lower_block_size > 0) {
+               for(; in < MIN(lower_block_size, (int)ncells); in++) {
+                  state_temp[in] = mem_ptr[ncells_old + in];
+               }
+            }
+
+            for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
+               state_temp[in] = mem_ptr[ic];
+            }
+
+            if(upper_block_size > 0) {
+               int ic = ncells_old + lower_block_size;
+               for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
+                  state_temp[in] = mem_ptr[ic+k];
+               }
+            }
+            state_memory.memory_replace(mem_ptr, state_temp);
          }
-
-         L7_Free(&load_balance_handle);
-         load_balance_handle = 0;
- 
-         memory_reset_ptrs();
-
-         //mesh_memory.memory_report();
-         //state_memory.memory_report();
-         //printf("%d: DEBUG end load balance report\n\n",mype);
       }
 
-   } // if nlft == NULL
+      mesh_memory.memory_realloc_all(ncells_old+indices_needed_count);
+
+      MallocPlus mesh_memory_old = mesh_memory;
+
+      for (int *mem_ptr=(int *)mesh_memory_old.memory_begin(); mem_ptr!=NULL; mem_ptr=(int *)mesh_memory_old.memory_next() ){
+         // Originally LOAD_BALANCE_MEMORY was used for whether to do the load balance routine
+         //   and now it is used to trigger the shared memory allocation
+         //int flags = mesh_memory.get_memory_flags(mem_ptr);
+         // SKG XXX ???
+         //if ((flags & LOAD_BALANCE_MEMORY) == 0) continue;
+         int *mesh_temp = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "mesh_temp");
+         //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
+         L7_Update(mem_ptr, L7_INT, load_balance_handle);
+         in = 0;
+         if(lower_block_size > 0) {
+            for(; in < MIN(lower_block_size, (int)ncells); in++) {
+               mesh_temp[in] = mem_ptr[ncells_old + in];
+            }
+         }
+
+         for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
+            mesh_temp[in] = mem_ptr[ic];
+         }
+
+         if(upper_block_size > 0) {
+            int ic = ncells_old + lower_block_size;
+            for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
+               mesh_temp[in] = mem_ptr[ic+k];
+            }
+         }
+         mesh_memory.memory_replace(mem_ptr, mesh_temp);
+      }
+
+      L7_Free(&load_balance_handle);
+      load_balance_handle = 0;
+
+      memory_reset_ptrs();
+
+      //mesh_memory.memory_report();
+      //state_memory.memory_report();
+      //printf("%d: DEBUG end load balance report\n\n",mype);
+   }
 
 #ifdef HAVE_LTTRACE
    if (dynamic_load_balance_on) old_lttrace_total_comp_time = lttrace_total_comp_time;
@@ -7485,11 +7489,11 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
 
       // Allocate lower block on GPU
       size_t low_block_size = MAX(1, lower_block_size);
-      cl_mem dev_state_var_lower = ezcl_malloc(NULL, const_cast<char *>("dev_state_var_lower"), &low_block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_state_var_lower = ezcl_malloc(NULL, const_cast<char *>("dev_state_var_lower"), &low_block_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
 
       // Allocate upper block on GPU
       size_t up_block_size = MAX(1, upper_block_size);
-      cl_mem dev_state_var_upper = ezcl_malloc(NULL, const_cast<char *>("dev_state_var_upper"), &up_block_size, sizeof(cl_real), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_state_var_upper = ezcl_malloc(NULL, const_cast<char *>("dev_state_var_upper"), &up_block_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
 
       MallocPlus gpu_state_memory_old = gpu_state_memory;
       list<malloc_plus_memory_entry>::iterator it;
