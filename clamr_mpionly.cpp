@@ -325,7 +325,6 @@ extern "C" void do_calc(void)
 
    //  Initialize state variables for GPU calculation.
    int &mype  = mesh->mype;
-   int &numpe = mesh->numpe;
 
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh->ncells_global;

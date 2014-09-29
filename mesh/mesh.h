@@ -191,7 +191,7 @@ enum mesh_counters
 };
 
 #ifdef DEBUG_RESTORE_VALS
-static const char *mesh_timer_descriptor[MESH_TIMER_SIZE] = {
+static const char *mesh_counter_descriptor[MESH_COUNTER_SIZE] = {
    "mesh_counter_rezone",
    "mesh_counter_refine_smooth",
    "mesh_counter_calc_neigh",

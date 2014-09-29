@@ -2559,6 +2559,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    int *level_new = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int),
                                                      flags, "level_new");
 
+   index.clear();
    index.resize(new_ncells);
 
    //  Insert new cells into the mesh at the point of refinement.

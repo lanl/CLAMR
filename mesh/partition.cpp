@@ -260,6 +260,7 @@ void Mesh::partition_measure(void)
   // printf("DEBUG %d icount %d sum_average %lf\n",__LINE__,icount, sum_average);
 
 }
+
 void Mesh::print_partition_measure()
 {
    if (meas_count != 0) {
@@ -495,39 +496,13 @@ void Mesh::partition_cells(
             //   Order the mesh according to the calculated order (note that z_order is for both curves).
             vector<int> int_local(ncells);
 
-            // reorder i
-            for (int ic = 0; ic<(int)ncells; ic++){
-               int_local[ic] = i[ic];
-            }
-            for (int ic = 0; ic<(int)ncells; ic++){
-               i[ic] = int_local[z_order[ic]];
-            }
+            mesh_memory.set_memory_attribute(nlft, 0x100);
+            mesh_memory.set_memory_attribute(nrht, 0x100);
+            mesh_memory.set_memory_attribute(nbot, 0x100);
+            mesh_memory.set_memory_attribute(ntop, 0x100);
 
-            // reorder j
-            for (int ic = 0; ic<(int)ncells; ic++){
-               int_local[ic] = j[ic];
-            }
-            for (int ic = 0; ic<(int)ncells; ic++){
-               j[ic] = int_local[z_order[ic]];
-            }
-
-            // reorder level
-            for (int ic = 0; ic<(int)ncells; ic++){
-               int_local[ic] = level[ic];
-            }
-            for (int ic = 0; ic<(int)ncells; ic++){
-               level[ic] = int_local[z_order[ic]];
-            }
-
-            // reorder celltype
-            if (mesh_memory.get_memory_size(celltype) >= ncells){
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  int_local[ic] = celltype[ic];
-               }
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  celltype[ic] = int_local[z_order[ic]];
-               }
-            }
+            mesh_memory.memory_reorder_all(&z_order[0]);
+            memory_reset_ptrs();
 
             if (x.size() >= ncells) {
                vector<spatial_t> real_local(ncells);
@@ -558,41 +533,6 @@ void Mesh::partition_cells(
                }
                for (int ic = 0; ic<(int)ncells; ic++){
                   dy[ic] = real_local[z_order[ic]];
-               }
-            }
-
-            if (mesh_memory.get_memory_size(nlft) >= ncells) {
-               vector<int> inv_z_order(ncells);
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  inv_z_order[z_order[ic]] = ic;
-               }
-
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  int_local[ic] = nlft[ic];
-               }
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  nlft[ic] = inv_z_order[int_local[z_order[ic]]];
-               }
-
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  int_local[ic] = nrht[ic];
-               }
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  nrht[ic] = inv_z_order[int_local[z_order[ic]]];
-               }
-
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  int_local[ic] = nbot[ic];
-               }
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  nbot[ic] = inv_z_order[int_local[z_order[ic]]];
-               }
-
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  int_local[ic] = ntop[ic];
-               }
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  ntop[ic] = inv_z_order[int_local[z_order[ic]]];
                }
             }
 
@@ -727,39 +667,14 @@ void Mesh::partition_cells(
             //   Order the mesh according to the calculated order (note that z_order is for both curves).
             vector<int> int_local(ncells);
 
-            // reorder i
-            for (int ic = 0; ic<(int)ncells; ic++){
-               int_local[ic] = i[ic];
-            }
-            for (int ic = 0; ic<(int)ncells; ic++){
-               i[ic] = int_local[z_order[ic]];
-            }
+            mesh_memory.set_memory_attribute(nlft, 0x100);
+            mesh_memory.set_memory_attribute(nrht, 0x100);
+            mesh_memory.set_memory_attribute(nbot, 0x100);
+            mesh_memory.set_memory_attribute(ntop, 0x100);
 
-            // reorder j
-            for (int ic = 0; ic<(int)ncells; ic++){
-               int_local[ic] = j[ic];
-            }
-            for (int ic = 0; ic<(int)ncells; ic++){
-               j[ic] = int_local[z_order[ic]];
-            }
+            mesh_memory.memory_reorder_all(&z_order[0]);
+            memory_reset_ptrs();
 
-            // reorder level
-            for (int ic = 0; ic<(int)ncells; ic++){
-               int_local[ic] = level[ic];
-            }
-            for (int ic = 0; ic<(int)ncells; ic++){
-               level[ic] = int_local[z_order[ic]];
-            }
-
-            // reorder celltype
-            if (mesh_memory.get_memory_size(celltype) >= ncells){
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  int_local[ic] = celltype[ic];
-               }
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  celltype[ic] = int_local[z_order[ic]];
-               }
-            }
 
             if (x.size() >= ncells) {
                vector<spatial_t> real_local(ncells);
@@ -793,40 +708,6 @@ void Mesh::partition_cells(
                }
             }
 
-            if (mesh_memory.get_memory_size(nlft) >= ncells) {
-               vector<int> inv_z_order(ncells);
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  inv_z_order[z_order[ic]] = ic;
-               }
-
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  int_local[ic] = nlft[ic];
-               }
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  nlft[ic] = inv_z_order[int_local[z_order[ic]]];
-               }
-
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  int_local[ic] = nrht[ic];
-               }
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  nrht[ic] = inv_z_order[int_local[z_order[ic]]];
-               }
-
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  int_local[ic] = nbot[ic];
-               }
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  nbot[ic] = inv_z_order[int_local[z_order[ic]]];
-               }
-
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  int_local[ic] = ntop[ic];
-               }
-               for (int ic = 0; ic<(int)ncells; ic++){
-                  ntop[ic] = inv_z_order[int_local[z_order[ic]]];
-               }
-            }
          }
 
          break;
