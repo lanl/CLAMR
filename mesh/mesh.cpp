@@ -7957,7 +7957,7 @@ void Mesh::print_object_info(void)
 
 
 void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int jfirst, int jlast,
-                                int level_first, int level_last, int *i, int *j, int *level)
+                                int level_first, int level_last, int *i_old, int *j_old, int *level_old)
 {
             if (localStencil) {
                //  Store the coordinates of the cells before and after this one on
@@ -7967,17 +7967,17 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
                spatial_t  nx[3],  //  x-coordinates of cells.
                           ny[3];  //  y-coordinates of cells.
                if (ic != 0) {
-                  nx[0] = lev_deltax[level[ic-1]] * (spatial_t)i[ic-1];
-                  ny[0] = lev_deltay[level[ic-1]] * (spatial_t)j[ic-1];
+                  nx[0] = lev_deltax[level_old[ic-1]] * (spatial_t)i[ic-1];
+                  ny[0] = lev_deltay[level_old[ic-1]] * (spatial_t)j[ic-1];
                } else {
                   nx[0] = lev_deltax[level_first] * (spatial_t)ifirst;
                   ny[0] = lev_deltay[level_first] * (spatial_t)jfirst;
                }
-               nx[1] = lev_deltax[level[ic  ]] * (spatial_t)i[ic  ];
-               ny[1] = lev_deltay[level[ic  ]] * (spatial_t)j[ic  ];
+               nx[1] = lev_deltax[level_old[ic  ]] * (spatial_t)i[ic  ];
+               ny[1] = lev_deltay[level_old[ic  ]] * (spatial_t)j[ic  ];
                if (ic != ncells-1) {
-                  nx[2] = lev_deltax[level[ic+1]] * (spatial_t)i[ic+1];
-                  ny[2] = lev_deltay[level[ic+1]] * (spatial_t)j[ic+1];
+                  nx[2] = lev_deltax[level_old[ic+1]] * (spatial_t)i[ic+1];
+                  ny[2] = lev_deltay[level_old[ic+1]] * (spatial_t)j[ic+1];
                } else {
                   nx[2] = lev_deltax[level_last] * (spatial_t)ilast;
                   ny[2] = lev_deltay[level_last] * (spatial_t)jlast;
@@ -8021,21 +8021,21 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
                    jr[3];   // First j index at finest level of the mesh
                // Cell's Radius at the Finest level of the mesh
 
-               int crf = IPOW2(levmx-level[ic]);
+               int crf = IPOW2(levmx-level_old[ic]);
 
                if (ic != 0) {
-                  ir[0] = i[ic - 1] * IPOW2(levmx-level[ic - 1]);
-                  jr[0] = j[ic - 1] * IPOW2(levmx-level[ic - 1]);
+                  ir[0] = i_old[ic - 1] * IPOW2(levmx-level_old[ic - 1]);
+                  jr[0] = j_old[ic - 1] * IPOW2(levmx-level_old[ic - 1]);
                } else {
                   //printf("%d cell %d is a first\n",mype,ic);
                   ir[0] = ifirst * IPOW2(levmx-level_first);
                   jr[0] = jfirst * IPOW2(levmx-level_first);
                }
-               ir[1] = i[ic    ] * IPOW2(levmx-level[ic    ]);
-               jr[1] = j[ic    ] * IPOW2(levmx-level[ic    ]);
+               ir[1] = i_old[ic    ] * IPOW2(levmx-level_old[ic    ]);
+               jr[1] = j_old[ic    ] * IPOW2(levmx-level_old[ic    ]);
                if (ic != (int)ncells-1) {
-                  ir[2] = i[ic + 1] * IPOW2(levmx-level[ic + 1]);
-                  jr[2] = j[ic + 1] * IPOW2(levmx-level[ic + 1]);
+                  ir[2] = i_old[ic + 1] * IPOW2(levmx-level_old[ic + 1]);
+                  jr[2] = j_old[ic + 1] * IPOW2(levmx-level_old[ic + 1]);
                } else {
                   //printf("%d cell %d is a last\n",mype,ic);
                   ir[2] = ilast * IPOW2(levmx-level_last);
@@ -8060,11 +8060,11 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
                   in_direction = 'B';
                }
                // Right In
-               else if( (dir_in == -crf && (djr_in == -crf*HALF || djr_in == 0 || (djr_in == crf && level[ic-1] < level[ic]))) ) {
+               else if( (dir_in == -crf && (djr_in == -crf*HALF || djr_in == 0 || (djr_in == crf && level_old[ic-1] < level_old[ic]))) ) {
                   in_direction = 'R';
                }
                // Top In
-               else if( (djr_in == -crf && (dir_in == -crf*HALF || dir_in == 0 || (dir_in == crf && level[ic-1] < level[ic]))) ) {
+               else if( (djr_in == -crf && (dir_in == -crf*HALF || dir_in == 0 || (dir_in == crf && level_old[ic-1] < level_old[ic]))) ) {
                   in_direction = 'T';
                }
                // Further from the left
@@ -8110,11 +8110,11 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
                   out_direction = 'B';
                }
                // Right Out
-               else if( (dir_out == -crf && (djr_out == -crf*HALF || djr_out == 0 || (djr_out == crf && level[ic+1] < level[ic]))) ) {
+               else if( (dir_out == -crf && (djr_out == -crf*HALF || djr_out == 0 || (djr_out == crf && level_old[ic+1] < level_old[ic]))) ) {
                   out_direction = 'R';
                }
                // Top Out
-               else if( (djr_out == -crf && (dir_out == -crf*HALF || dir_out == 0 || (dir_out == crf && level[ic+1] < level[ic]))) ) {
+               else if( (djr_out == -crf && (dir_out == -crf*HALF || dir_out == 0 || (dir_out == crf && level_old[ic+1] < level_old[ic]))) ) {
                   out_direction = 'T';
                }
                // Further from the left
