@@ -2547,6 +2547,19 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    int new_ncells = ncells + add_ncells;
 
+   int ref_entry_count = 0;
+   if (have_state){
+      for (uint ic=0; ic<ncells; ic++) {
+         if (mpot[ic] > 0) ref_entry_count++;
+         if (mpot[ic] < 0) {
+            // Normal cell coarsening
+            if (is_lower_left(i[ic],j[ic]) ) mpot[ic] = -2;
+            // Boundary cell case
+            if (celltype[ic] != REAL_CELL && is_upper_right(i[ic],j[ic]) ) mpot[ic] = -3;
+         }
+      }
+   }
+
    //  Initialize new variables
    int flags = 0;
 #ifdef HAVE_J7
@@ -2613,7 +2626,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #ifdef REZONE_NO_OPTIMIZATION
    for (int ic = 0, nc = 0; ic < (int)ncells; ic++)
    {
-      if (mpot[ic] == 0)
+      if (mpot[ic] == 0 || mpot[ic] == -1000000)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
          i[nc]     = i_old[ic];
          j[nc]     = j_old[ic];
@@ -2623,10 +2636,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       
       else if (mpot[ic] < 0)
       {  //  Coarsening is needed; remove this cell and the other three and replace them with one.
-         int doit = 0;
-         if (is_lower_left(i_old[ic],j_old[ic]) ) doit = 1;
-         if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) doit = 1;
-         if (doit){
+         if (mpot[ic] <= -2) {
             //printf("                     %d: DEBUG -- coarsening cell %d nc %d\n",mype,ic,nc);
             index[nc] = ic;
             i[nc] = i_old[ic]/2;
@@ -2755,7 +2765,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                   state_temp_double[nc] = mem_ptr_double[ic];
                   nc++;
                } else if (mpot[ic] < 0){
-                  if (is_lower_left(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -2) {
                      int nr = nrht[ic];
                      int nt = ntop[ic];
                      int nrt = nrht[nt];
@@ -2763,7 +2773,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                                               mem_ptr_double[nt] + mem_ptr_double[nrt])*0.25;
                      nc++;
                   }
-                  if (celltype[ic] != REAL_CELL && is_upper_right(i[ic],j[ic]) ) {
+                  if (mpot[ic] == -3) {
                      int nl = nlft[ic];
                      int nb = nbot[ic];
                      int nlb = nlft[nb];
@@ -2805,7 +2815,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                   state_temp_float[nc] = mem_ptr_float[ic];
                   nc++;
                } else if (mpot[ic] < 0){
-                  if (is_lower_left(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -2) {
                      int nr = nrht[ic];
                      int nt = ntop[ic];
                      int nrt = nrht[nt];
@@ -2813,7 +2823,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                                              mem_ptr_float[nt] + mem_ptr_float[nrt])*0.25;
                      nc++;
                   }
-                  if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -3) {
                      int nl = nlft[ic];
                      int nb = nbot[ic];
                      int nlb = nlft[nb];
@@ -2896,10 +2906,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
       else if (mpot[ic] < 0)
       {  //  Coarsening is needed; remove this cell and the other three and replace them with one.
-         int doit = 0;
-         if (is_lower_left(i_old[ic],j_old[ic]) ) doit = 1;
-         if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) doit = 1;
-         if (doit){
+         if (mpot[ic] <= -2) {
             //printf("                     %d: DEBUG -- coarsening cell %d nc %d\n",mype,ic,nc);
             index[nc] = ic;
             i[nc] = i_old[ic]/2;
@@ -3034,14 +3041,14 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                if (mpot[ic] == 0) {
                   state_temp_double[nc] = mem_ptr_double[ic];
                } else if (mpot[ic] < 0){
-                  if (is_lower_left(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -2) {
                      int nr = nrht[ic];
                      int nt = ntop[ic];
                      int nrt = nrht[nt];
                      state_temp_double[nc] = (mem_ptr_double[ic] + mem_ptr_double[nr] +
                                               mem_ptr_double[nt] + mem_ptr_double[nrt])*0.25;
                   }
-                  if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -3) {
                      int nl = nlft[ic];
                      int nb = nbot[ic];
                      int nlb = nlft[nb];
@@ -3085,14 +3092,14 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                if (mpot[ic] == 0) {
                   state_temp_float[nc] = mem_ptr_float[ic];
                } else if (mpot[ic] < 0){
-                  if (is_lower_left(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -2) {
                      int nr = nrht[ic];
                      int nt = ntop[ic];
                      int nrt = nrht[nt];
                      state_temp_float[nc] = (mem_ptr_float[ic] + mem_ptr_float[nr] +
                                              mem_ptr_float[nt] + mem_ptr_float[nrt])*0.25;
                   }
-                  if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -3) {
                      int nl = nlft[ic];
                      int nb = nbot[ic];
                      int nlb = nlft[nb];
