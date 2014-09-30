@@ -61,7 +61,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
-#include "display.h"
+#include "graphics/display.h"
 #ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
 #endif

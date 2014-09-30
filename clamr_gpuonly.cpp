@@ -61,7 +61,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
-#include "display.h"
+#include "graphics/display.h"
 #include "ezcl/ezcl.h"
 #include "input.h"
 #include "mesh/mesh.h"

@@ -69,7 +69,7 @@
 #include "l7/l7.h"
 #include "timer/timer.h"
 
-#include "display.h"
+#include "graphics/display.h"
 
 #ifndef DEBUG 
 #define DEBUG 0

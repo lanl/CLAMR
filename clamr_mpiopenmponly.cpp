@@ -71,7 +71,7 @@
 #include "memstats/memstats.h"
 
 #include <omp.h>
-#include "display.h"
+#include "graphics/display.h"
 
 #ifndef DEBUG
 #define DEBUG 0

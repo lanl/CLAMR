@@ -257,6 +257,7 @@ add_subdirectory(l7/tests)
 add_subdirectory(kdtree)
 add_subdirectory(hsfc)
 add_subdirectory(s7)
+add_subdirectory(graphics)
 add_subdirectory(timer)
 add_subdirectory(memstats)
 if (OPENCL_FOUND)
@@ -278,14 +279,13 @@ add_custom_target(state_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/st
 
 if (OPENCL_FOUND AND MPI_FOUND)
    set(clamr_CXX_SRCS clamr.cpp state.cpp input.cpp)
-   set(clamr_C_SRCS display.c)
-   set(clamr_H_SRCS display.h state.h input.h)
+   set(clamr_H_SRCS state.h input.h)
    set(clamr_SRCS ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS})
 
    add_executable(clamr ${clamr_SRCS})
 
    set_target_properties(clamr PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
-   target_link_libraries(clamr dpmesh crux hsfc dhash kdtree zorder s7 pezcl timer memstats dl7 genmalloc dpMallocPlus m)
+   target_link_libraries(clamr dpmesh crux hsfc dhash kdtree zorder s7 pezcl graphics timer memstats dl7 genmalloc dpMallocPlus m)
    target_link_libraries(clamr ${MPE_LIBS} ${X11_LIBS})
    target_link_libraries(clamr ${OPENCL_LIBRARIES})
    target_link_libraries(clamr ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
@@ -310,14 +310,13 @@ endif (OPENCL_FOUND AND MPI_FOUND)
 ########### clamr_cpuonly target ###############
 
 set(clamr_cpuonly_CXX_SRCS clamr_cpuonly.cpp state.cpp input.cpp)
-set(clamr_cpuonly_C_SRCS display.c)
-set(clamr_cpuonly_H_SRCS display.h state.h input.h)
+set(clamr_cpuonly_H_SRCS state.h input.h)
 
 set(clamr_cpuonly_SRCS ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr_cpuonly_H_SRCS})
 
 add_executable(clamr_cpuonly ${clamr_cpuonly_SRCS})
 
-target_link_libraries(clamr_cpuonly mesh crux hsfc hash kdtree zorder s7 timer memstats genmalloc MallocPlus m)
+target_link_libraries(clamr_cpuonly mesh crux hsfc hash kdtree zorder s7 graphics timer memstats genmalloc MallocPlus m)
 target_link_libraries(clamr_cpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
 if (ImageMagick_MagickWand_FOUND)
    target_link_libraries(clamr_cpuonly ${ImageMagick_LIBRARIES})
@@ -332,15 +331,14 @@ install(TARGETS clamr_cpuonly DESTINATION bin)
 ########### clamr_gpuonly target ###############
 if (OPENCL_FOUND)
    set(clamr_gpuonly_CXX_SRCS clamr_gpuonly.cpp state.cpp input.cpp)
-   set(clamr_gpuonly_C_SRCS display.c)
-   set(clamr_gpuonly_H_SRCS display.h state.h input.h)
+   set(clamr_gpuonly_H_SRCS state.h input.h)
    set(clamr_gpuonly_SRCS ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS})
 
    add_executable(clamr_gpuonly ${clamr_gpuonly_SRCS})
 
    set_target_properties(clamr_gpuonly PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
-   target_link_libraries(clamr_gpuonly dmesh crux hsfc dhash kdtree zorder s7 ezcl timer memstats genmalloc dMallocPlus m)
+   target_link_libraries(clamr_gpuonly dmesh crux hsfc dhash kdtree zorder s7 ezcl graphics timer memstats genmalloc dMallocPlus m)
    target_link_libraries(clamr_gpuonly ${MPE_NOMPI_LIBS} ${X11_LIBS})
    target_link_libraries(clamr_gpuonly ${OPENCL_LIBRARIES})
    target_link_libraries(clamr_gpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
@@ -361,15 +359,14 @@ endif (OPENCL_FOUND)
 ########### clamr_mpionly target ###############
 if (MPI_FOUND)
    set(clamr_mpionly_CXX_SRCS clamr_mpionly.cpp state.cpp input.cpp)
-   set(clamr_mpionly_C_SRCS display.c)
-   set(clamr_mpionly_H_SRCS display.h state.h input.h)
+   set(clamr_mpionly_H_SRCS state.h input.h)
 
    set(clamr_mpionly_SRCS ${clamr_mpionly_CXX_SRCS} ${clamr_mpionly_C_SRCS} ${clamr_mpionly_H_SRCS})
 
    add_executable(clamr_mpionly ${clamr_mpionly_SRCS})
 
    set_target_properties(clamr_mpionly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-   target_link_libraries(clamr_mpionly pmesh crux hsfc hash kdtree zorder s7 timer memstats l7 genmalloc pMallocPlus m)
+   target_link_libraries(clamr_mpionly pmesh crux hsfc hash kdtree zorder s7 graphics timer memstats l7 genmalloc pMallocPlus m)
    target_link_libraries(clamr_mpionly ${MPE_LIBS} ${X11_LIBS})
    target_link_libraries(clamr_mpionly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
    if (ImageMagick_MagickWand_FOUND)
@@ -392,8 +389,7 @@ endif (MPI_FOUND)
 ########### clamr_openmponly target ###############
 if(OPENMP_FOUND)
    set(clamr_openmponly_CXX_SRCS clamr_openmponly.cpp state.cpp input.cpp)
-   set(clamr_openmponly_C_SRCS display.c)
-   set(clamr_openmponly_H_SRCS display.h state.h input.h)
+   set(clamr_openmponly_H_SRCS state.h input.h)
 
    set(clamr_openmponly_SRCS ${clamr_openmponly_CXX_SRCS} ${clamr_openmponly_C_SRCS} ${clamr_openmponly_H_SRCS})
 
@@ -403,7 +399,7 @@ if(OPENMP_FOUND)
    set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
 
-   target_link_libraries(clamr_openmponly mpmesh crux hsfc mphash kdtree zorder s7 timer memstats genmalloc mpMallocPlus m)
+   target_link_libraries(clamr_openmponly mpmesh crux hsfc mphash kdtree zorder s7 graphics timer memstats genmalloc mpMallocPlus m)
    target_link_libraries(clamr_openmponly ${MPE_NOMPI_LIBS} ${X11_LIBS})
    target_link_libraries(clamr_openmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
    if (ImageMagick_MagickWand_FOUND)
@@ -422,8 +418,7 @@ endif(OPENMP_FOUND)
 ########### clamr_mpiopenmponly target ###############
 if (MPI_FOUND AND OPENMP_FOUND)
    set(clamr_mpiopenmponly_CXX_SRCS clamr_mpiopenmponly.cpp state.cpp input.cpp)
-   set(clamr_mpiopenmponly_C_SRCS display.c)
-   set(clamr_mpiopenmponly_H_SRCS display.h state.h input.h)
+   set(clamr_mpiopenmponly_H_SRCS state.h input.h)
 
    set(clamr_mpiopenmponly_SRCS ${clamr_mpiopenmponly_CXX_SRCS} ${clamr_mpiopenmponly_C_SRCS} ${clamr_mpiopenmponly_H_SRCS})
 
@@ -436,7 +431,7 @@ if (MPI_FOUND AND OPENMP_FOUND)
    set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(clamr_mpiopenmponly PROPERTIES LINK_FLAGS "${clamr_mpiopenmponly_link_flags}")
 
-   target_link_libraries(clamr_mpiopenmponly pmpmesh crux hsfc mphash kdtree zorder s7 timer memstats mpl7 genmalloc pmpMallocPlus m)
+   target_link_libraries(clamr_mpiopenmponly pmpmesh crux hsfc mphash kdtree zorder s7 graphics timer memstats mpl7 genmalloc pmpMallocPlus m)
    target_link_libraries(clamr_mpiopenmponly ${MPE_LIBS} ${X11_LIBS})
    target_link_libraries(clamr_mpiopenmponly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
    if (ImageMagick_MagickWand_FOUND)
@@ -467,8 +462,7 @@ if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND AND Boost_FOUND)
     message(STATUS "clamr_quo Minimum Requires Met")
 
     set(clamr_quo_CXX_SRCS clamr_quo.cpp state.cpp input.cpp)
-    set(clamr_quo_C_SRCS display.c)
-    set(clamr_quo_H_SRCS display.h state.h input.h)
+    set(clamr_quo_H_SRCS state.h input.h)
 
     set(clamr_quo_SRCS ${clamr_quo_CXX_SRCS} ${clamr_quo_C_SRCS} ${clamr_quo_H_SRCS})
 
@@ -487,7 +481,7 @@ if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND AND Boost_FOUND)
 
     set_target_properties(clamr_quo PROPERTIES LINK_FLAGS "${clamr_quo_link_flags}")
 
-    target_link_libraries(clamr_quo pmesh crux hsfc hash kdtree zorder s7 timer memstats l7 genmalloc pMallocPlus m)
+    target_link_libraries(clamr_quo pmesh crux hsfc hash kdtree zorder s7 graphics timer memstats l7 genmalloc pMallocPlus m)
     target_link_libraries(clamr_quo quo)
     target_link_libraries(clamr_quo j7)
     target_link_libraries(clamr_quo ${MPE_LIBS} ${X11_LIBS})
@@ -522,8 +516,7 @@ endif()
 ########### clamr_gpucheck target ###############
 if (OPENCL_FOUND)
    set(clamr_gpucheck_CXX_SRCS clamr_gpucheck.cpp state.cpp input.cpp)
-   set(clamr_gpucheck_C_SRCS display.c)
-   set(clamr_gpucheck_H_SRCS display.h state.h input.h)
+   set(clamr_gpucheck_H_SRCS state.h input.h)
 
    set(clamr_gpucheck_SRCS ${clamr_gpucheck_CXX_SRCS} ${clamr_gpucheck_C_SRCS} ${clamr_gpucheck_H_SRCS})
 
@@ -531,7 +524,7 @@ if (OPENCL_FOUND)
 
    set_target_properties(clamr_gpucheck PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
-   target_link_libraries(clamr_gpucheck dmesh crux hsfc dhash kdtree zorder s7 ezcl timer memstats genmalloc dMallocPlus m)
+   target_link_libraries(clamr_gpucheck dmesh crux hsfc dhash kdtree zorder s7 ezcl graphics timer memstats genmalloc dMallocPlus m)
    target_link_libraries(clamr_gpucheck ${MPE_NOMPI_LIBS} ${X11_LIBS})
    target_link_libraries(clamr_gpucheck ${OPENCL_LIBRARIES})
    target_link_libraries(clamr_gpucheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
@@ -552,15 +545,14 @@ endif (OPENCL_FOUND)
 ########### clamr_mpicheck target ###############
 if (MPI_FOUND)
    set(clamr_mpicheck_CXX_SRCS clamr_mpicheck.cpp state.cpp input.cpp)
-   set(clamr_mpicheck_C_SRCS display.c)
-   set(clamr_mpicheck_H_SRCS display.h state.h input.h)
+   set(clamr_mpicheck_H_SRCS state.h input.h)
 
    set(clamr_mpicheck_SRCS ${clamr_mpicheck_CXX_SRCS} ${clamr_mpicheck_C_SRCS} ${clamr_mpicheck_H_SRCS})
 
    add_executable(clamr_mpicheck ${clamr_mpicheck_SRCS})
 
    set_target_properties(clamr_mpicheck PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-   target_link_libraries(clamr_mpicheck pmesh crux hsfc hash kdtree zorder s7 timer memstats l7 genmalloc pMallocPlus m)
+   target_link_libraries(clamr_mpicheck pmesh crux hsfc hash kdtree zorder s7 graphics timer memstats l7 genmalloc pMallocPlus m)
    target_link_libraries(clamr_mpicheck ${MPE_LIBS} ${X11_LIBS})
    target_link_libraries(clamr_mpicheck ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
    if (ImageMagick_MagickWand_FOUND)
@@ -583,15 +575,14 @@ endif (MPI_FOUND)
 ########### clamr_checkall target ###############
 if (MPI_FOUND AND OPENCL_FOUND)
    set(clamr_checkall_CXX_SRCS clamr_checkall.cpp state.cpp input.cpp)
-   set(clamr_checkall_C_SRCS display.c)
-   set(clamr_checkall_H_SRCS display.h state.h input.h)
+   set(clamr_checkall_H_SRCS state.h input.h)
 
    set(clamr_checkall_SRCS ${clamr_checkall_CXX_SRCS} ${clamr_checkall_C_SRCS} ${clamr_checkall_H_SRCS})
 
    add_executable(clamr_checkall ${clamr_checkall_SRCS})
 
    set_target_properties(clamr_checkall PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
-   target_link_libraries(clamr_checkall dpmesh crux hsfc dhash kdtree zorder s7 pezcl timer memstats dl7 genmalloc dpMallocPlus m)
+   target_link_libraries(clamr_checkall dpmesh crux hsfc dhash kdtree zorder s7 pezcl graphics timer memstats dl7 genmalloc dpMallocPlus m)
    target_link_libraries(clamr_checkall ${MPE_LIBS} ${X11_LIBS})
    target_link_libraries(clamr_checkall ${OPENCL_LIBRARIES})
    target_link_libraries(clamr_checkall ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})

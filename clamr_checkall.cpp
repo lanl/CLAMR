@@ -59,7 +59,7 @@
 #include "mesh/mesh.h"
 #include "mesh/partition.h"
 #include "state.h"
-#include "display.h"
+#include "graphics/display.h"
 #include "timer/timer.h"
 #include "l7/l7.h"
 #include <mpi.h>
