@@ -2749,6 +2749,8 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    mesh_memory.memory_delete(j_old);
    mesh_memory.memory_delete(level_old);
 
+   calc_celltype(new_ncells);
+
    if (have_state){
       MallocPlus state_memory_old = state_memory;
       list<malloc_plus_memory_entry>::iterator it;
@@ -3022,6 +3024,8 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    mesh_memory.memory_delete(j_old);
    mesh_memory.memory_delete(level_old);
 
+   calc_celltype(new_ncells);
+
    if (have_state){
       MallocPlus state_memory_old = state_memory;
       list<malloc_plus_memory_entry>::iterator it;
@@ -3139,8 +3143,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    // End of data parallel optimizations
 #endif
 
-
-   calc_celltype(new_ncells);
 
    nlft = (int *)mesh_memory.memory_delete(nlft);
    nrht = (int *)mesh_memory.memory_delete(nrht);
