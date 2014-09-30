@@ -53,23 +53,11 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
-#ifndef _DISPLAY_H_
-#define _DISPLAY_H_
+#ifndef _GRAPHICS_H_
+#define _GRAPHICS_H_
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
-
-#ifdef HAVE_OPENGL
-#ifdef __APPLE_CC__
-#include <GLUT/glut.h>
-#include <OpenGL/gl.h>
-#include <OpenGL/glu.h>
-#else
-#include <GL/glut.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
-#endif
 #endif
 
 #ifdef __cplusplus
@@ -77,51 +65,34 @@ extern "C"
 {
 #endif
 
-#define OMPI_SKIP_MPICXX 1
+enum graphics_file_type{
+   GRAPHICS_NONE,
+   GRAPHICS_DATA,
+   GRAPHICS_BMP,
+   GRAPHICS_GIF,
+   GRAPHICS_JPEG,
+   GRAPHICS_MPEG,
+   GRAPHICS_PDF,
+   GRAPHICS_PNG,
+   GRAPHICS_SVG
+};
 
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
-
-#ifdef HAVE_MPE
-#ifndef HAVE_MPI
-#define MPE_NOMPI
-#define CLOG_NOMPI
-#endif
-#define MPE_INTERNAL
-#define MPE_GRAPHICS
-#include "mpe.h"
-#define MPE_DRAG_FIXED_RECT 8
-#include <X11/Xlib.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-//keyboard input files
-#include <termios.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <string.h>
-#include <math.h>
-#endif
-
-void init_display(int *argc, char **argv, const char* string);
-void set_idle_function(void (*function)(void));
-void start_main_loop(void);
-void free_display(void);
-void set_display_viewmode(int display_view_mode_in);
-void set_display_outline(int display_outline_in);
-void set_display_mysize(int mysize_in);
-void set_display_window(float display_xmin_in, float display_xmax_in,
-                        float display_ymin_in, float display_ymax_in);
-void set_display_cell_coordinates_double(double *x_in, double *dx_in,
-                                         double *y_in, double *dy_in);
-void set_display_cell_coordinates_float(float *x_in, float *dx_in,
-                                        float *y_in, float *dy_in);
-void set_display_cell_data_double(double *data_in);
-void set_display_cell_data_float(float *data_in);
-void set_display_cell_proc(int *display_proc_in);
-void set_display_circle_radius(double display_circle_radius_in);
-void draw_scene(void);
+void set_graphics_window(float graphics_xmin_in, float graphics_xmax_in,
+                         float graphics_ymin_in, float graphics_ymax_in);
+void init_graphics_output(void);
+void terminate_graphics_output(void);
+void set_graphics_viewmode(int graphics_view_mode_in);
+void set_graphics_mysize(int graphics_mysize_in);
+void set_graphics_outline(int graphics_outline_in);
+void set_graphics_cell_data_double(double *data_in);
+void set_graphics_cell_data_float(float *data_in);
+void set_graphics_cell_proc(int *graphics_proc_in);
+void set_graphics_cell_coordinates_double(double *x_in, double *dx_in,
+                                          double *y_in, double *dy_in);
+void set_graphics_cell_coordinates_float(float *x_in, float *dx_in,
+                                         float *y_in, float *dy_in);
+void write_graphics_info(int graph_num, int ncycle, double simTime,
+                         int rollback_img, int rollback_num);
 
 #ifdef __cplusplus
 }

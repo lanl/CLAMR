@@ -70,6 +70,7 @@
 #include "hash/hash.h"
 #include "crux/crux.h"
 #include "graphics/display.h"
+#include "graphics/graphics.h"
 
 #include <fstream>
 #include <iostream>

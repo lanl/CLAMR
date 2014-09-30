@@ -92,11 +92,11 @@ static double circle_radius=-1.0;
 static int view_mode = 0;
 
 #ifdef FULL_PRECISION
-   void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
-   void (*set_cell_data)(double *) = &set_cell_data_double;
+   void (*set_display_cell_coordinates)(double *, double *, double *, double *) = &set_display_cell_coordinates_double;
+   void (*set_display_cell_data)(double *) = &set_display_cell_data_double;
 #else
-   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
-   void (*set_cell_data)(float *) = &set_cell_data_float;
+   void (*set_display_cell_coordinates)(float *, float *, float *, float *) = &set_display_cell_coordinates_float;
+   void (*set_display_cell_data)(float *) = &set_display_cell_data_float;
 #endif
 
 #endif
@@ -304,7 +304,7 @@ int main(int argc, char **argv) {
 
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL
-   set_mysize(ncells_global);
+   set_display_mysize(ncells_global);
    vector<state_t> H_global;
    vector<spatial_t> x_global;
    vector<spatial_t> dx_global;
@@ -325,8 +325,8 @@ int main(int argc, char **argv) {
    MPI_Gatherv(&dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
    MPI_Gatherv(&state->H[0], nsizes[mype], MPI_STATE_T, &H_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, 0, MPI_COMM_WORLD);
 
-   set_cell_data(&H_global[0]);
-   set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+   set_display_cell_data(&H_global[0]);
+   set_display_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
 
    if (view_mode == 0) {
       mesh->proc.resize(ncells);
@@ -337,21 +337,21 @@ int main(int argc, char **argv) {
       MPI_Gatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_INT, 0, MPI_COMM_WORLD);
    }
 
-   set_cell_proc(&proc_global[0]);
+   set_display_cell_proc(&proc_global[0]);
 #endif
 #ifdef HAVE_MPE
-   set_mysize(ncells);
-   set_cell_data(&state->H[0]);
-   set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-   set_cell_proc(&mesh->proc[0]);
+   set_display_mysize(ncells);
+   set_display_cell_data(&state->H[0]);
+   set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+   set_display_cell_proc(&mesh->proc[0]);
 #endif
 
-   set_window((float)mesh->xmin, (float)mesh->xmax, (float)mesh->ymin, (float)mesh->ymax);
-   set_viewmode(view_mode);
-   set_outline((int)outline);
-   init_display(&argc, argv, "Shallow Water", mype);
+   set_display_window((float)mesh->xmin, (float)mesh->xmax, (float)mesh->ymin, (float)mesh->ymax);
+   set_display_viewmode(view_mode);
+   set_display_outline((int)outline);
+   init_display(&argc, argv, "Shallow Water");
 
-   set_circle_radius(circle_radius);
+   set_display_circle_radius(circle_radius);
    draw_scene();
    if (verbose) sleep(5);
    sleep(2);
@@ -517,7 +517,7 @@ extern "C" void do_calc(void)
    ezcl_device_memory_remove(dev_dy);
 
 #ifdef HAVE_OPENGL
-   set_mysize(ncells_global);
+   set_display_mysize(ncells_global);
    vector<spatial_t> x_global;
    vector<spatial_t> dx_global;
    vector<spatial_t> y_global;
@@ -548,21 +548,21 @@ extern "C" void do_calc(void)
       MPI_Gatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_INT, 0, MPI_COMM_WORLD);
    }
 
-   set_viewmode(view_mode);
-   set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-   set_cell_data(&H_graphics_global[0]);
-   set_cell_proc(&proc_global[0]);
-   set_circle_radius(circle_radius);
+   set_display_viewmode(view_mode);
+   set_display_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+   set_display_cell_data(&H_graphics_global[0]);
+   set_display_cell_proc(&proc_global[0]);
+   set_display_circle_radius(circle_radius);
    draw_scene();
    MPI_Barrier(MPI_COMM_WORLD);
 #endif
 #ifdef HAVE_MPE
-   set_mysize(ncells);
-   set_viewmode(view_mode);
-   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
-   set_cell_data(&H_graphics[0]);
-   set_cell_proc(&mesh->proc[0]);
-   set_circle_radius(circle_radius);
+   set_display_mysize(ncells);
+   set_display_viewmode(view_mode);
+   set_display_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_display_cell_data(&H_graphics[0]);
+   set_display_cell_proc(&mesh->proc[0]);
+   set_display_circle_radius(circle_radius);
    draw_scene();
    MPI_Barrier(MPI_COMM_WORLD);
    if (ncycle == 6) sleep(300);
