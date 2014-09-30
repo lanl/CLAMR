@@ -69,7 +69,7 @@
 #include "mesh/mesh.h"
 #include "hash/hash.h"
 #include "crux/crux.h"
-#include "display.h"
+#include "graphics/display.h"
 
 #include <fstream>
 #include <iostream>

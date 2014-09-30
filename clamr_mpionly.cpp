@@ -70,7 +70,7 @@
 #include "timer/timer.h"
 #include "memstats/memstats.h"
 
-#include "display.h"
+#include "graphics/display.h"
 
 #ifndef DEBUG
 #define DEBUG 0
