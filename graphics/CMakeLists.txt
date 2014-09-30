@@ -1,3 +1,37 @@
+cmake_minimum_required(VERSION 2.6)
+
+# enable @rpath in the install name for any shared library being built
+set(CMAKE_MACOSX_RPATH 1)
+
+#find_package(ImageMagick COMPONENTS MagickCore MagickWand)
+find_package(ImageMagick COMPONENTS MagickWand)
+#   ImageMagick_FOUND                    - TRUE if all components are found.
+#   ImageMagick_INCLUDE_DIRS             - Full paths to all include dirs.
+#   ImageMagick_LIBRARIES                - Full paths to all libraries.
+#   ImageMagick_<component>_FOUND        - TRUE if <component> is found.
+#   ImageMagick_<component>_INCLUDE_DIRS - Full path to <component> include dirs.
+#   ImageMagick_<component>_LIBRARIES    - Full path to <component> libraries.
+if (ImageMagick_FOUND)
+   if (ImageMagick_MagickWand_FOUND)
+      add_definitions(-DHAVE_MAGICKWAND)
+      add_definitions(-DMAGICKCORE_HDRI_ENABLE=0)
+      add_definitions(-DMAGICKCORE_QUANTUM_DEPTH=16)
+#     add_definitions(-DMAGICKCORE_HDRI_ENABLE=0)
+#     add_definitions(-DMAGICKCORE_QUANTUM_DEPTH=16)
+      include_directories(${ImageMagick_INCLUDE_DIRS})
+   endif (ImageMagick_MagickWand_FOUND)
+
+#   message("ImageMagick_FOUND                   ${ImageMagick_FOUND}")
+#   message("ImageMagick_INCLUDE_DIRS            ${ImageMagick_INCLUDE_DIRS}")
+#   message("ImageMagick_LIBRARIES               ${ImageMagick_LIBRARIES}")
+##  message("ImageMagick_MagickCore_FOUND        ${ImageMagick_MagickCore_FOUND}")
+##  message("ImageMagick_MagickCore_INCLUDE_DIRS ${ImageMagick_MagickCore_INCLUDE_DIRS}")
+##  message("ImageMagick_MagickCore_LIBRARIES    ${ImageMagick_MagickCore_LIBRARIES}")
+#   message("ImageMagick_MagickWand_FOUND        ${ImageMagick_MagickWand_FOUND}")
+#   message("ImageMagick_MagickWand_INCLUDE_DIRS ${ImageMagick_MagickWand_INCLUDE_DIRS}")
+#   message("ImageMagick_MagickWand_LIBRARIES    ${ImageMagick_MagickWand_LIBRARIES}")
+endif (ImageMagick_FOUND)
+
 ########### global settings ###############
 set(H_SRCS graphics.h display.h)
 set(C_SRCS graphics.c display.c)
