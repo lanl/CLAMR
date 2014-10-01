@@ -56,7 +56,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "../s7/s7.h"
+#include "s7/s7.h"
 #include "zorder.h"
 
 #define DEBUG 0
