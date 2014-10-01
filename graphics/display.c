@@ -55,17 +55,12 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <math.h>
 #include <string.h>
 #include "display.h"                                                                                                   
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
-
-#ifdef HAVE_MAGICKWAND
-#include <wand/MagickWand.h>
 #endif
 
 #if defined(MINIMUM_PRECISION)
@@ -87,15 +82,10 @@
 #endif
 #endif
 
-#ifdef HAVE_MAGICKWAND
-#define MAGICK_NCOLORS 1280
-#endif
-
 #define WINSIZE 800
 
 int DrawString(float x, float y, float z, char* string);
 void InitGL(int width, int height);
-void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num);
 void DrawSquares(void);
 void DrawBoxes(void);
 void SelectionRec(void);
@@ -103,9 +93,6 @@ void mouseClick(int button, int state, int x, int y);
 void mouseDrag(int x, int y);
 void keyPressed(unsigned char key, int x, int y);
 void Scale();
-#ifdef HAVE_MAGICKWAND
-void Magick_Scale();
-#endif
 void mpe_main_loop(void);
 void display_get_event(void);
 
@@ -115,22 +102,8 @@ struct ColorTable {
    float Blue;
 };
 
-
-
-/*
- * Variables that I added to make everything work for getting graphics
- * data output to files while running no graphics with CLAMR
- * Brian Atkinson
-*/
 static int autoscale = 0;
-static double xconversion = 0.0;
-static double yconversion = 0.0;
 static double display_circle_radius=-1.0;
-static int Ncolors = 256;
-static int iteration = 0;
-
-char *graphics_directory = "graphics_output";
-enum graphics_file_type graphics_type; // type of graphics output
 
 #ifndef HAVE_MPI
 #if defined(HAVE_MPE)
@@ -172,24 +145,6 @@ static double xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
 #else
 static double xrot = 0.0, yrot = 0.0, xloc = 0.0, zloc = 0.0;
 #endif
-#endif
-
-static int magick_on = 0;
-
-#ifdef HAVE_MAGICKWAND
-static int graphics_movie = 0;
-static MagickWand *magick_wand = NULL;
-static DrawingWand *draw_wand  = NULL;
-static PixelWand *pixel_wand   = NULL;
-
-struct MagickColorTable {
-   int Red;
-   int Blue;
-   int Green;
-};
-
-static struct MagickColorTable MagickRainbow[MAGICK_NCOLORS];
-
 #endif
 
 static int display_outline;
@@ -244,12 +199,21 @@ void InitGL(int width, int height) {
    if (1 == 2) printf("DEBUG -- width %d height %d\n",width,height);
 }
 #endif
-void init_display(int *argc, char **argv, const char *title, int rank_in){
-   if (rank_in) rank = rank_in;
+void init_display(int *argc, char **argv, const char *title){
 
 #if ! defined(HAVE_OPENGL) && ! defined(HAVE_MPE)
    // Just to get rid of compiler warnings
    if (1 == 2) printf("DEBUG -- argc %d argv %s title %s\n",*argc,argv[0],title);
+#endif
+
+#ifdef HAVE_MPI
+   int mpi_init_flag=0;
+   MPI_Initialized(&mpi_init_flag);
+   if (mpi_init_flag){
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   } else {
+      MPI_Init(argc, &argv);
+   }
 #endif
 
    width = (WINSIZE / (display_ymax - display_ymin)) * (display_xmax - display_xmin);
@@ -286,15 +250,6 @@ void init_display(int *argc, char **argv, const char *title, int rank_in){
       }
    }
 
-   int mpi_init_flag=0;
-#ifdef HAVE_MPI
-   MPI_Initialized(&mpi_init_flag);
-   if (mpi_init_flag){
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   } else {
-      MPI_Init(argc, &argv);
-   }
-#endif
    if (MPE_Open_graphics( &window, MPI_COMM_WORLD, displayname,
                          -1, -1, WINSIZE, WINSIZE, 0) != MPE_SUCCESS){
       printf("Problem opening graphics window\n");
@@ -333,38 +288,6 @@ void init_display(int *argc, char **argv, const char *title, int rank_in){
 #endif
 }
 
-void init_graphics_output(void){
-   width = (WINSIZE / (display_ymax - display_ymin)) * (display_xmax - display_xmin);
-   xconversion = (double)WINSIZE/ (display_xmax-display_xmin);
-   yconversion = (double)WINSIZE/(display_ymax-display_ymin);
-
-   struct stat stat_descriptor;
-   if (stat(graphics_directory,&stat_descriptor) == -1){
-     mkdir(graphics_directory,0777);
-   }
-
-   if (graphics_type != GRAPHICS_DATA && graphics_type != GRAPHICS_NONE) magick_on = 1;
-
-#ifdef HAVE_MAGICKWAND
-   if (magick_on){
-      //MagickWandGenesis(); 
-      // Create wand
-      magick_wand = NewMagickWand();
-
-      Magick_Scale();
-   }
-#endif
-}
-
-void terminate_graphics_output(void){
-#ifdef HAVE_MAGICKWAND
-   if (magick_on){
-      magick_wand = DestroyMagickWand(magick_wand);
-      MagickWandTerminus();
-   }
-#endif
-}
-
 void set_idle_function(void (*function)(void)){
 #ifdef HAVE_OPENGL
    glutIdleFunc(function);
@@ -388,31 +311,32 @@ void start_main_loop(void){
 #endif
 }
    
-void set_window(float display_xmin_in, float display_xmax_in, float display_ymin_in, float display_ymax_in){
+void set_display_window(float display_xmin_in, float display_xmax_in,
+                        float display_ymin_in, float display_ymax_in){
    display_xmin = display_xmin_in;
    display_xmax = display_xmax_in;
    display_ymin = display_ymin_in;
    display_ymax = display_ymax_in;
 }
-void set_cell_data_double(double *data_in){
+void set_display_cell_data_double(double *data_in){
    data_type = DATA_DOUBLE;
    data_double = data_in;
 }
-void set_cell_data_float(float *data_in){
+void set_display_cell_data_float(float *data_in){
    data_type = DATA_FLOAT;
    data_float = data_in;
 }
-void set_cell_proc(int *display_proc_in){
+void set_display_cell_proc(int *display_proc_in){
    display_proc = display_proc_in;
 }
-void set_cell_coordinates_double(double *x_in, double *dx_in, double *y_in, double *dy_in){
+void set_display_cell_coordinates_double(double *x_in, double *dx_in, double *y_in, double *dy_in){
    spatial_type = SPATIAL_DOUBLE;
    x_double = x_in;
    dx_double = dx_in;
    y_double = y_in;
    dy_double = dy_in;
 }
-void set_cell_coordinates_float(float *x_in, float *dx_in, float *y_in, float *dy_in){
+void set_display_cell_coordinates_float(float *x_in, float *dx_in, float *y_in, float *dy_in){
    spatial_type = SPATIAL_FLOAT;
    x_float = x_in;
    dx_float = dx_in;
@@ -858,402 +782,17 @@ void DrawBoxes(void) {
 
 
 
-void set_viewmode(int display_view_mode_in){
+void set_display_viewmode(int display_view_mode_in){
    display_view_mode = display_view_mode_in;
 }
-void set_mysize(int display_mysize_in){
+void set_display_mysize(int display_mysize_in){
    display_mysize = display_mysize_in;
 }
-void set_circle_radius(double display_circle_radius_in){
+void set_display_circle_radius(double display_circle_radius_in){
    display_circle_radius = display_circle_radius_in;
 }
-void set_outline(int display_outline_in){
+void set_display_outline(int display_outline_in){
    display_outline = display_outline_in;
-}
-
-/*
- * Created this function get graphics data while running
- * the no graphic version of CLAMR. The output for the main
- * cell data is written out to graph#.data files and the gridline
- * data is writeen out to outline#.lin files.
- * Brian Atkinson
-*/
-void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num){
-#ifdef HAVE_MAGICKWAND
-   if (magick_on) {
-      draw_wand   = NewDrawingWand();
-      pixel_wand  = NewPixelWand();
-
-      MagickSetSize(magick_wand,WINSIZE,WINSIZE);
-      MagickSetColorspace(magick_wand,sRGBColorspace);
-      MagickReadImage(magick_wand,"xc:white");
-
-      DrawSetViewbox(draw_wand, 0, 0, WINSIZE, WINSIZE);
-      DrawScale(draw_wand, xconversion, -yconversion);
-      DrawTranslate(draw_wand, -display_xmin, display_ymin);
-
-      int npart = display_mysize/16;
-      for (int i=0; i<display_mysize; i++){
-         display_proc[i] = i/npart;
-      }
-
-      int magick_step = MAGICK_NCOLORS/(display_proc[display_mysize-1]+1);
-
-      if (data_type == DATA_DOUBLE){
-         for(int i = 0; i < display_mysize; i++) {
-            int magick_color = display_proc[i]*magick_step;
-            char cstring[40];
-            sprintf(cstring,"rgba(%d,%d,%d,%d)",MagickRainbow[magick_color].Red,
-                                                MagickRainbow[magick_color].Green,
-                                                MagickRainbow[magick_color].Blue,120);
-            PixelSetColor(pixel_wand, cstring);
-
-            DrawSetFillColor(draw_wand, pixel_wand);
-
-            DrawRectangle(draw_wand, x_double[i],              y_double[i],
-                                     x_double[i]+dx_double[i], y_double[i]+dy_double[i]);
-/*
-           printf("DEBUG -- i %d magick_color %d magick_step %d display_proc %d cstring %s corners %lg %lg %lg %lg\n",
-               i,magick_color,magick_step,display_proc[i],cstring,
-               x_double[i],              y_double[i],
-               x_double[i]+dx_double[i], y_double[i]+dy_double[i]);
-*/
-         }
-      } else {
-         for(int i = 0; i < display_mysize; i++) {
-            int magick_color = display_proc[i]*magick_step;
-            char cstring[40];
-            sprintf(cstring,"rgba(%d,%d,%d,%d)",MagickRainbow[magick_color].Red,
-                                                MagickRainbow[magick_color].Green,
-                                                MagickRainbow[magick_color].Blue,120);
-            PixelSetColor(pixel_wand, cstring);
-
-            DrawSetFillColor(draw_wand, pixel_wand);
-
-            DrawRectangle(draw_wand, x_float[i],             y_float[i],
-                                     x_float[i]+dx_float[i], y_float[i]+dy_float[i]);
-         }
-      }
-
-      MagickDrawImage(magick_wand, draw_wand);
-
-      char filename[50];
-      char graphics_file_extension[10];
-      if (graphics_type == GRAPHICS_BMP)  strcpy(graphics_file_extension,".bmp");
-      if (graphics_type == GRAPHICS_GIF)  strcpy(graphics_file_extension,".gif");
-      if (graphics_type == GRAPHICS_JPEG) strcpy(graphics_file_extension,".jpeg");
-      if (graphics_type == GRAPHICS_MPEG) strcpy(graphics_file_extension,".mpeg");
-      if (graphics_type == GRAPHICS_PDF)  strcpy(graphics_file_extension,".pdf");
-      if (graphics_type == GRAPHICS_PNG)  strcpy(graphics_file_extension,".png");
-      if (graphics_type == GRAPHICS_SVG)  strcpy(graphics_file_extension,".svg");
-      sprintf(filename,"%s/graph%d%s", graphics_directory, graph_num, graphics_file_extension);
-      MagickWriteImage(magick_wand, filename);
-      //MagickDisplayImage(magick_wand, "x:");
-
-      draw_wand = DestroyDrawingWand(draw_wand);
-      pixel_wand = DestroyPixelWand(pixel_wand);
-   }
-#endif
-
-   if (graphics_type == GRAPHICS_DATA){
-      int i, color;
-      int step = Ncolors/(display_proc[display_mysize-1]+1);
-      int xloc, xwid, yloc, ywid;
-      int xloc1, xloc2, yloc1, yloc2;
-      char filename[50], filename2[50];
-   
-      if(rollback_img){
-         sprintf(filename,"%s/graph%dcp%d.data", graphics_directory, graph_num, rollback_num);
-         sprintf(filename2,"%s/outline%dcp%d.lin",graphics_directory, graph_num, rollback_num);
-      }
-      else{
-         sprintf(filename,"%s/graph%d.data", graphics_directory, graph_num);
-         sprintf(filename2,"%s/outline%d.lin",graphics_directory, graph_num);
-      }
-      FILE *fp = fopen(filename,"w");
-      FILE *fp2 = fopen(filename2,"w");
-      if(fp && fp2){
-         fprintf(fp,"%d,%lf\n",ncycle,simTime);
-         if (data_type == DATA_DOUBLE){
-            for(i = 0; i < display_mysize; i++) {
-               xloc = (int)((x_double[i]-display_xmin)*xconversion);
-               xwid = (int)((x_double[i]+dx_double[i]-display_xmin)*xconversion-xloc);
-               yloc = (int)((display_ymax-(y_double[i]+dy_double[i]))*yconversion);
-               ywid = (int)((display_ymax-y_double[i])*yconversion);
-               ywid -= yloc;
-               color = display_proc[i]*step;
-               //fprintf(fp,"%d,%d,%d,%d,%f\n",xloc,yloc,xwid,ywid,data[i]);
-               fprintf(fp,"%d,%d,%d,%d,%d\n",xloc,yloc,xwid,ywid,color);
-            
-               xloc1 = (int)((x_double[i]-display_xmin)*xconversion);
-               xloc2 = (int)((x_double[i]+dx_double[i]-display_xmin)*xconversion);
-               yloc1 = (int)((display_ymax-y_double[i])*yconversion);
-               yloc2 = (int)((display_ymax-(y_double[i]+dy_double[i]))*yconversion);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc2,xloc2,yloc2);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc2,yloc1);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc1,yloc2);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc2,yloc1,xloc2,yloc2);
-            }
-         } else {
-            for(i = 0; i < display_mysize; i++) {
-               xloc = (int)((x_float[i]-display_xmin)*xconversion);
-               xwid = (int)((x_float[i]+dx_float[i]-display_xmin)*xconversion-xloc);
-               yloc = (int)((display_ymax-(y_float[i]+dy_float[i]))*yconversion);
-               ywid = (int)((display_ymax-y_float[i])*yconversion);
-               ywid -= yloc;
-               color = display_proc[i]*step;
-               //fprintf(fp,"%d,%d,%d,%d,%f\n",xloc,yloc,xwid,ywid,data[i]);
-               fprintf(fp,"%d,%d,%d,%d,%d\n",xloc,yloc,xwid,ywid,color);
-         
-               xloc1 = (int)((x_float[i]-display_xmin)*xconversion);
-               xloc2 = (int)((x_float[i]+dx_float[i]-display_xmin)*xconversion);
-               yloc1 = (int)((display_ymax-y_float[i])*yconversion);
-               yloc2 = (int)((display_ymax-(y_float[i]+dy_float[i]))*yconversion);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc2,xloc2,yloc2);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc2,yloc1);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc1,yloc2);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc2,yloc1,xloc2,yloc2);
-            }
-         }
-         fclose(fp);
-         fclose(fp2);
-         iteration++;
-      }   
-      else{
-            if(fp == NULL){
-               printf("Could not create %s in DrawSqaures\n", filename);
-            }
-            else{
-               printf("Could not create %s in DrawSqaures\n", filename2);
-            }
-      }
-   }
-}
-
-/*
- * Created this function get graphics data while running
- * the no graphic version of CLAMR. The output for the main
- * cell data is written out to graph#.data files and the gridline
- * data is writeen out to outline#.lin files.
- * Brian Atkinson
-*/
-void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num){
-#ifdef HAVE_MAGICKWAND
-   if (magick_on) {
-      double scaleMax = 25.0, scaleMin = 0.0;
-
-      draw_wand   = NewDrawingWand();
-      pixel_wand  = NewPixelWand();
-
-      MagickSetSize(magick_wand,WINSIZE,WINSIZE);
-      MagickSetColorspace(magick_wand,sRGBColorspace);
-      MagickReadImage(magick_wand,"xc:white");
-
-      DrawSetViewbox(draw_wand, 0, 0, WINSIZE, WINSIZE);
-      DrawScale(draw_wand, xconversion, -yconversion);
-      DrawTranslate(draw_wand, -display_xmin, display_ymin);
-
-      if (autoscale) {
-         scaleMax=-1.0e30;
-         scaleMin=1.0e30;
-         if (data_type == DATA_DOUBLE){
-            for(int i = 0; i<display_mysize; i++) {
-               if (data_double[i] > scaleMax) scaleMax = data_double[i];
-               if (data_double[i] < scaleMin) scaleMin = data_double[i];
-            }
-         } else {
-            for(int i = 0; i<display_mysize; i++) {
-               if (data_float[i] > scaleMax) scaleMax = data_float[i];
-               if (data_float[i] < scaleMin) scaleMin = data_float[i];
-            }
-         }
-      }
-
-      int magick_step = MAGICK_NCOLORS/(scaleMax - scaleMin);
-
-      if (data_type == DATA_DOUBLE){
-         for(int i = 0; i < display_mysize; i++) {
-            int magick_color;
-            if (data_type == DATA_DOUBLE){
-               magick_color = (int)(data_double[i]-scaleMin)*magick_step;
-            } else {
-               magick_color = (int)(data_float[i]-scaleMin)*magick_step;
-            }
-            magick_color = MAGICK_NCOLORS-magick_color;
-            if (magick_color < 0) {
-               magick_color=0;
-            }
-            if (magick_color >= MAGICK_NCOLORS) magick_color = MAGICK_NCOLORS-1;
-
-            char cstring[40];
-            sprintf(cstring,"rgba(%d,%d,%d,%d)",MagickRainbow[magick_color].Red,
-                                                MagickRainbow[magick_color].Green,
-                                                MagickRainbow[magick_color].Blue,120);
-            PixelSetColor(pixel_wand, cstring);
-
-            DrawSetFillColor(draw_wand, pixel_wand);
-
-            DrawRectangle(draw_wand, x_double[i],              y_double[i],
-                                     x_double[i]+dx_double[i], y_double[i]+dy_double[i]);
-/*
-           printf("DEBUG -- i %d magick_color %d magick_step %d display_proc %d cstring %s corners %lg %lg %lg %lg\n",
-               i,magick_color,magick_step,display_proc[i],cstring,
-               x_double[i],              y_double[i],
-               x_double[i]+dx_double[i], y_double[i]+dy_double[i]);
-*/
-         }
-      } else {
-         for(int i = 0; i < display_mysize; i++) {
-            int magick_color;
-            if (data_type == DATA_DOUBLE){
-               magick_color = (int)(data_double[i]-scaleMin)*magick_step;
-            } else {
-               magick_color = (int)(data_float[i]-scaleMin)*magick_step;
-            }
-            magick_color = MAGICK_NCOLORS-magick_color;
-            if (magick_color < 0) {
-               magick_color=0;
-            }
-            if (magick_color >= MAGICK_NCOLORS) magick_color = MAGICK_NCOLORS-1;
-
-            char cstring[40];
-            sprintf(cstring,"rgba(%d,%d,%d,%d)",MagickRainbow[magick_color].Red,
-                                                MagickRainbow[magick_color].Green,
-                                                MagickRainbow[magick_color].Blue,120);
-            PixelSetColor(pixel_wand, cstring);
-
-            DrawSetFillColor(draw_wand, pixel_wand);
-
-            DrawRectangle(draw_wand, x_float[i],             y_float[i],
-                                     x_float[i]+dx_float[i], y_float[i]+dy_float[i]);
-         }
-      }
-
-      MagickDrawImage(magick_wand, draw_wand);
-
-      char filename[50];
-      char graphics_file_extension[10];
-      if (graphics_type == GRAPHICS_BMP)  strcpy(graphics_file_extension,".bmp");
-      if (graphics_type == GRAPHICS_GIF)  strcpy(graphics_file_extension,".gif");
-      if (graphics_type == GRAPHICS_JPEG) strcpy(graphics_file_extension,".jpeg");
-      if (graphics_type == GRAPHICS_MPEG) strcpy(graphics_file_extension,".mpeg");
-      if (graphics_type == GRAPHICS_PDF)  strcpy(graphics_file_extension,".pdf");
-      if (graphics_type == GRAPHICS_PNG)  strcpy(graphics_file_extension,".png");
-      if (graphics_type == GRAPHICS_SVG)  strcpy(graphics_file_extension,".svg");
-      sprintf(filename,"%s/graph%d%s", graphics_directory, graph_num, graphics_file_extension);
-      MagickWriteImage(magick_wand, filename);
-      //MagickDisplayImage(magick_wand, "x:");
-
-      draw_wand = DestroyDrawingWand(draw_wand);
-      pixel_wand = DestroyPixelWand(pixel_wand);
-   }
-#endif
-   if (graphics_type == GRAPHICS_DATA){
-      double scaleMax = 25.0, scaleMin = 0.0;
-      int i;
-      int color;
-      char filename[50], filename2[50];
-   
-      if(rollback_img){
-         sprintf(filename,"%s/graph%dcp%d.data", graphics_directory, graph_num, rollback_num);
-         sprintf(filename2,"%s/outline%dcp%d.lin",graphics_directory, graph_num, rollback_num);
-      }
-      else{
-         sprintf(filename,"%s/graph%d.data", graphics_directory, graph_num);
-         sprintf(filename2,"%s/outline%d.lin",graphics_directory, graph_num);
-      }
-      FILE *fp = fopen(filename,"w");
-      FILE *fp2 = fopen(filename2,"w");
-      if(fp && fp2){
-         fprintf(fp,"%d,%lf\n",ncycle,simTime);
-         if (autoscale) {
-            scaleMax=-1.0e30;
-            scaleMin=1.0e30;
-            if (data_type == DATA_DOUBLE){
-               for(i = 0; i<display_mysize; i++) {
-                  if (data_double[i] > scaleMax) scaleMax = data_double[i];
-                  if (data_double[i] < scaleMin) scaleMin = data_double[i];
-               }
-            } else {
-               for(i = 0; i<display_mysize; i++) {
-                  if (data_float[i] > scaleMax) scaleMax = data_float[i];
-                  if (data_float[i] < scaleMin) scaleMin = data_float[i];
-               }
-            }
-         }
-
-         double step = Ncolors/(scaleMax - scaleMin);
-         int xloc, xwid, yloc, ywid;
-         int xloc1, xloc2, yloc1, yloc2;
-         for(i = 0; i < display_mysize; i++) {
-            if (data_type == DATA_DOUBLE){
-               color = (int)(data_double[i]-scaleMin)*step;
-            } else {
-               color = (int)(data_float[i]-scaleMin)*step;
-            }
-            color = Ncolors-color;
-            if (color < 0) {
-               color=0;
-            }
-            if (color >= Ncolors) color = Ncolors-1;
-
-            if (data_type == DATA_DOUBLE){
-               xloc = (int)((x_double[i]-display_xmin)*xconversion);
-               xwid = (int)((x_double[i]+dx_double[i]-display_xmin)*xconversion-xloc);
-               yloc = (int)((display_ymax-(y_double[i]+dy_double[i]))*yconversion);
-               ywid = (int)((display_ymax-y_double[i])*yconversion);
-               ywid -= yloc;
-               //fprintf(fp,"%d,%d,%d,%d,%f\n",xloc,yloc,xwid,ywid,data[i]);
-               fprintf(fp,"%d,%d,%d,%d,%d\n",xloc,yloc,xwid,ywid,color);
-         
-               xloc1 = (int)((x_double[i]-display_xmin)*xconversion);
-               xloc2 = (int)((x_double[i]+dx_double[i]-display_xmin)*xconversion);
-               yloc1 = (int)((display_ymax-y_double[i])*yconversion);
-               yloc2 = (int)((display_ymax-(y_double[i]+dy_double[i]))*yconversion);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc2,xloc2,yloc2);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc2,yloc1);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc1,yloc2);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc2,yloc1,xloc2,yloc2);
-            } else {
-               xloc = (int)((x_float[i]-display_xmin)*xconversion);
-               xwid = (int)((x_float[i]+dx_float[i]-display_xmin)*xconversion-xloc);
-               yloc = (int)((display_ymax-(y_float[i]+dy_float[i]))*yconversion);
-               ywid = (int)((display_ymax-y_float[i])*yconversion);
-               ywid -= yloc;
-               //fprintf(fp,"%d,%d,%d,%d,%f\n",xloc,yloc,xwid,ywid,data[i]);
-               fprintf(fp,"%d,%d,%d,%d,%d\n",xloc,yloc,xwid,ywid,color);
-         
-               xloc1 = (int)((x_float[i]-display_xmin)*xconversion);
-               xloc2 = (int)((x_float[i]+dx_float[i]-display_xmin)*xconversion);
-               yloc1 = (int)((display_ymax-y_float[i])*yconversion);
-               yloc2 = (int)((display_ymax-(y_float[i]+dy_float[i]))*yconversion);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc2,xloc2,yloc2);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc2,yloc1);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc1,yloc2);
-               fprintf(fp2,"%d,%d,%d,%d\n",xloc2,yloc1,xloc2,yloc2);
-            }
-         }
-         fclose(fp);
-         fclose(fp2);   
-         iteration++;
-     }
-     else{
-        if(fp == NULL){
-            printf("Could not open %s in DisplayStateToFile\n", filename);
-        }
-        else{
-            printf("Could not open %s in DisplayStateToFile\n", filename2);
-        }
-     }
-  }
-}
-
-void write_graphics_info(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num){
-   if (display_view_mode == 0) {
-      DrawSquaresToFile(graph_num, ncycle, simTime, rollback_img, rollback_num);
-   } else {
-      DisplayStateToFile(graph_num, ncycle, simTime, rollback_img, rollback_num);
-   }
 }
 
 void draw_scene(void) {
@@ -1427,38 +966,6 @@ void Scale() {
 
 #endif
 }
-
-#ifdef HAVE_MAGICKWAND
-void Magick_Scale() {
-   int i, r;
-   for (i=0, r=0;   i<256; i++, r++) {
-         MagickRainbow[     i].Red   = 0;
-         MagickRainbow[     i].Green = r;
-         MagickRainbow[     i].Blue  = 255;
-   }
-   for (i=0, r=255; i<256; i++, r--) {
-         MagickRainbow[ 256+i].Red   = 0;
-         MagickRainbow[ 256+i].Green = 255;
-         MagickRainbow[ 256+i].Blue  = r;
-   }
-   for (i=0, r=0;   i<256; i++, r++) {
-         MagickRainbow[ 512+i].Red   = r;
-         MagickRainbow[ 512+i].Green = 255;
-         MagickRainbow[ 512+i].Blue  = 0;
-   }
-   for (i=0, r=255; i<256; i++, r--) {
-         MagickRainbow[ 768+i].Red   = 255;
-         MagickRainbow[ 768+i].Green = r;
-         MagickRainbow[ 768+i].Blue  = 0;
-   }
-   for (i=0, r=0;   i<256; i++, r++) {
-         MagickRainbow[1024+i].Red   = 255;
-         MagickRainbow[1024+i].Green = 0;
-         MagickRainbow[1024+i].Blue  = r;
-   }
-}
-#endif
-
 
 void mpe_main_loop(void)
 {

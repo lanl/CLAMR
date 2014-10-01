@@ -59,8 +59,6 @@
 #include <algorithm>
 #include <queue>
 #include "state.h"
-#include "kdtree/KDTree.h"
-//#include "reorder.h"
 #include "timer/timer.h"
 #ifdef HAVE_MPI
 #include <mpi.h>

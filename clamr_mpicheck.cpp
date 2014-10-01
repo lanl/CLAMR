@@ -94,11 +94,11 @@ static double circle_radius=-1.0;
 static int view_mode = 0;
 
 #ifdef FULL_PRECISION
-   void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
-   void (*set_cell_data)(double *) = &set_cell_data_double;
+   void (*set_display_cell_coordinates)(double *, double *, double *, double *) = &set_display_cell_coordinates_double;
+   void (*set_display_cell_data)(double *) = &set_display_cell_data_double;
 #else
-   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
-   void (*set_cell_data)(float *) = &set_cell_data_float;
+   void (*set_display_cell_coordinates)(float *, float *, float *, float *) = &set_display_cell_coordinates_float;
+   void (*set_display_cell_data)(float *) = &set_display_cell_data_float;
 #endif
 
 #endif
@@ -279,24 +279,24 @@ int main(int argc, char **argv) {
 
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL
-   set_mysize(ncells_global);
-   set_cell_data(&H_global[0]);
-   set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-   set_cell_proc(&mesh_global->proc[0]);
+   set_display_mysize(ncells_global);
+   set_display_cell_data(&H_global[0]);
+   set_display_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+   set_display_cell_proc(&mesh_global->proc[0]);
 #endif
 #ifdef HAVE_MPE
-   set_mysize(ncells);
-   set_cell_data(&state->H[0]);
-   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
-   set_cell_proc(&mesh->proc[0]);
+   set_display_mysize(ncells);
+   set_display_cell_data(&state->H[0]);
+   set_display_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_display_cell_proc(&mesh->proc[0]);
 #endif
 
-   set_window((float)mesh_global->xmin, (float)mesh_global->xmax, (float)mesh_global->ymin, (float)mesh_global->ymax);
-   set_viewmode(view_mode);
-   set_outline((int)outline);
-   init_display(&argc, argv, "Shallow Water", mype);
+   set_display_window((float)mesh_global->xmin, (float)mesh_global->xmax, (float)mesh_global->ymin, (float)mesh_global->ymax);
+   set_display_viewmode(view_mode);
+   set_display_outline((int)outline);
+   init_display(&argc, argv, "Shallow Water");
       
-   set_circle_radius(circle_radius);
+   set_display_circle_radius(circle_radius);
    draw_scene();
    if (verbose) sleep(5);
    sleep(2);
@@ -535,10 +535,10 @@ extern "C" void do_calc(void)
    }
 
 #ifdef HAVE_MPE
-   set_mysize(ncells);
-   set_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
-   set_cell_data(&state->H[0]);
-   set_cell_proc(&mesh->proc[0]);
+   set_display_mysize(ncells);
+   set_display_cell_coordinates(&x[0], &dx[0], &y[0], &dy[0]);
+   set_display_cell_data(&state->H[0]);
+   set_display_cell_proc(&mesh->proc[0]);
 #endif
 #ifdef HAVE_OPENGL
       x_global.resize(ncells_global);
@@ -560,14 +560,14 @@ extern "C" void do_calc(void)
          mesh_global->proc.resize(ncells_global);
          MPI_Allgatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &mesh_global->proc[0],  &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
       }
-   set_mysize(ncells_global);
-   set_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-   set_cell_data(&state_global->H[0]);
-   set_cell_proc(&mesh_global->proc[0]);
+   set_display_mysize(ncells_global);
+   set_display_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+   set_display_cell_data(&state_global->H[0]);
+   set_display_cell_proc(&mesh_global->proc[0]);
 #endif
 
-   set_viewmode(view_mode);
-   set_circle_radius(circle_radius);
+   set_display_viewmode(view_mode);
+   set_display_circle_radius(circle_radius);
    draw_scene();
 
    MPI_Barrier(MPI_COMM_WORLD);

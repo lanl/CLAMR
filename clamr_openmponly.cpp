@@ -89,11 +89,11 @@ static double circle_radius=-1.0;
 static int view_mode = 0;
 
 #ifdef FULL_PRECISION
-   void (*set_cell_coordinates)(double *, double *, double *, double *) = &set_cell_coordinates_double;
-   void (*set_cell_data)(double *) = &set_cell_data_double;
+   void (*set_display_cell_coordinates)(double *, double *, double *, double *) = &set_display_cell_coordinates_double;
+   void (*set_display_cell_data)(double *) = &set_display_cell_data_double;
 #else
-   void (*set_cell_coordinates)(float *, float *, float *, float *) = &set_cell_coordinates_float;
-   void (*set_cell_data)(float *) = &set_cell_data_float;
+   void (*set_display_cell_coordinates)(float *, float *, float *, float *) = &set_display_cell_coordinates_float;
+   void (*set_display_cell_data)(float *) = &set_display_cell_data_float;
 #endif
 
 #endif
@@ -230,15 +230,15 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef HAVE_GRAPHICS
-   set_mysize(ncells);
-   set_viewmode(view_mode);
-   set_window((float)mesh->xmin, (float)mesh->xmax, (float)mesh->ymin, (float)mesh->ymax);
-   set_outline((int)outline);
-   init_display(&argc, argv, "Shallow Water", mype);
-   set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-   set_cell_data(&state->H[0]);
-   set_cell_proc(&mesh->proc[0]);
-   set_circle_radius(circle_radius);
+   set_display_mysize(ncells);
+   set_display_viewmode(view_mode);
+   set_display_window((float)mesh->xmin, (float)mesh->xmax, (float)mesh->ymin, (float)mesh->ymax);
+   set_display_outline((int)outline);
+   init_display(&argc, argv, "Shallow Water");
+   set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+   set_display_cell_data(&state->H[0]);
+   set_display_cell_proc(&mesh->proc[0]);
+   set_display_circle_radius(circle_radius);
    draw_scene();
    //if (verbose) sleep(5);
    sleep(2);
@@ -348,12 +348,12 @@ extern "C" void do_calc(void)
 #ifdef HAVE_GRAPHICS
    mesh->calc_spatial_coordinates(0);
 
-   set_mysize(ncells);
-   set_viewmode(view_mode);
-   set_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-   set_cell_data(&state->H[0]);
-   set_cell_proc(&mesh->proc[0]);
-   set_circle_radius(circle_radius);
+   set_display_mysize(ncells);
+   set_display_viewmode(view_mode);
+   set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+   set_display_cell_data(&state->H[0]);
+   set_display_cell_proc(&mesh->proc[0]);
+   set_display_circle_radius(circle_radius);
    draw_scene();
 #endif
 
