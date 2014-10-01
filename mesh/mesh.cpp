@@ -2575,7 +2575,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    int level_first = 0;
    int level_last  = 0;
 
-   int ref_entry = 0;
+   //int ref_entry = 0;
 
    if (parallel) {
 #ifdef HAVE_MPI
@@ -2748,7 +2748,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
             double *mem_ptr_double = (double *)it->mem_ptr;
 
-            ref_entry = 0;
+            //ref_entry = 0;
             for (int ic=0, nc=0; ic<(int)ncells; ic++) {
 
                if (mpot[ic] == 0) {
@@ -3016,7 +3016,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
       for (it = state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
            it = state_memory_old.memory_entry_next() ) {
-         ref_entry = 0;
+         //ref_entry = 0;
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
          if (it->mem_elsize == 8) {
             double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
@@ -3024,7 +3024,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
             double *mem_ptr_double = (double *)it->mem_ptr;
 
-            ref_entry = 0;
+            //ref_entry = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -3426,7 +3426,7 @@ void Mesh::calc_neighbors(int ncells)
 #if defined (HAVE_J7)
    if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
-   if (mesh_memory.get_memory_size(nlft) < ncells){
+   if ((int)mesh_memory.get_memory_size(nlft) < ncells){
       if (nlft != NULL) nlft = (int *)mesh_memory.memory_delete(nlft);
       if (nrht != NULL) nrht = (int *)mesh_memory.memory_delete(nrht);
       if (nbot != NULL) nbot = (int *)mesh_memory.memory_delete(nbot);

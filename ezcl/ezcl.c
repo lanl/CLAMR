@@ -507,9 +507,9 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const char *file, int lin
    //printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,compute_device);
 
    int mype = 0;
+#ifdef HAVE_MPI
    int numpe = 1;
    int numpe_node = 1;
-#ifdef HAVE_MPI
    int mpi_initialized = 0;
    MPI_Initialized(&mpi_initialized);
    if (mpi_initialized) {

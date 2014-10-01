@@ -71,7 +71,7 @@ static int magick_on = 0;
 
 void Magick_Scale();
 
-static int graphics_movie = 0;
+//static int graphics_movie = 0;
 static MagickWand *magick_wand = NULL;
 static DrawingWand *draw_wand  = NULL;
 static PixelWand *pixel_wand   = NULL;
@@ -124,7 +124,6 @@ static int data_type = DATA_FLOAT;
 static double *data_double=NULL;
 static float *data_float=NULL;
 static int *graphics_proc=NULL;
-static int rank = 0;
 
 void init_graphics_output(void){
    width = (WINSIZE / (graphics_ymax - graphics_ymin)) * (graphics_xmax - graphics_xmin);

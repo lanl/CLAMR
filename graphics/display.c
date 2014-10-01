@@ -206,8 +206,8 @@ void init_display(int *argc, char **argv, const char *title){
    if (1 == 2) printf("DEBUG -- argc %d argv %s title %s\n",*argc,argv[0],title);
 #endif
 
-   int mpi_init_flag=0;
 #ifdef HAVE_MPI
+   int mpi_init_flag=0;
    MPI_Initialized(&mpi_init_flag);
    if (mpi_init_flag){
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
