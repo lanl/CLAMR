@@ -12,3 +12,8 @@ forced to always be two digits so sorting works.
 cd graphics_output
 
 mencoder mf://*.png -mf w=800:h=800:fps=6:type=png -vf scale=800:800 -oac copy -ovc lavc -lavcopts vcodec=mpeg4:vpass=1:vbitrate=8000000 -o test.avi
+
+mplayer test.avi
+
+
+The formats png, jpeg, and bmp all work with the mencoder program
