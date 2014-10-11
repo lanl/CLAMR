@@ -273,7 +273,7 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
       if (graphics_type == GRAPHICS_PDF)  strcpy(graphics_file_extension,".pdf");
       if (graphics_type == GRAPHICS_PNG)  strcpy(graphics_file_extension,".png");
       if (graphics_type == GRAPHICS_SVG)  strcpy(graphics_file_extension,".svg");
-      sprintf(filename,"%s/graph%d%s", graphics_directory, graph_num, graphics_file_extension);
+      sprintf(filename,"%s/graph%05d%s", graphics_directory, graph_num, graphics_file_extension);
       MagickWriteImage(magick_wand, filename);
       //MagickDisplayImage(magick_wand, "x:");
 
@@ -290,12 +290,12 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
       char filename[50], filename2[50];
    
       if(rollback_img){
-         sprintf(filename,"%s/graph%dcp%d.data", graphics_directory, graph_num, rollback_num);
-         sprintf(filename2,"%s/outline%dcp%d.lin",graphics_directory, graph_num, rollback_num);
+         sprintf(filename,"%s/graph%dcp%05d.data", graphics_directory, graph_num, rollback_num);
+         sprintf(filename2,"%s/outline%dcp%05d.lin",graphics_directory, graph_num, rollback_num);
       }
       else{
-         sprintf(filename,"%s/graph%d.data", graphics_directory, graph_num);
-         sprintf(filename2,"%s/outline%d.lin",graphics_directory, graph_num);
+         sprintf(filename,"%s/graph%05d.data", graphics_directory, graph_num);
+         sprintf(filename2,"%s/outline%05d.lin",graphics_directory, graph_num);
       }
       FILE *fp = fopen(filename,"w");
       FILE *fp2 = fopen(filename2,"w");
@@ -467,7 +467,7 @@ void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_
       if (graphics_type == GRAPHICS_PDF)  strcpy(graphics_file_extension,".pdf");
       if (graphics_type == GRAPHICS_PNG)  strcpy(graphics_file_extension,".png");
       if (graphics_type == GRAPHICS_SVG)  strcpy(graphics_file_extension,".svg");
-      sprintf(filename,"%s/graph%d%s", graphics_directory, graph_num, graphics_file_extension);
+      sprintf(filename,"%s/graph%05d%s", graphics_directory, graph_num, graphics_file_extension);
       MagickWriteImage(magick_wand, filename);
       //MagickDisplayImage(magick_wand, "x:");
 
@@ -482,12 +482,12 @@ void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_
       char filename[50], filename2[50];
    
       if(rollback_img){
-         sprintf(filename,"%s/graph%dcp%d.data", graphics_directory, graph_num, rollback_num);
-         sprintf(filename2,"%s/outline%dcp%d.lin",graphics_directory, graph_num, rollback_num);
+         sprintf(filename,"%s/graph%dcp%05d.data", graphics_directory, graph_num, rollback_num);
+         sprintf(filename2,"%s/outline%dcp%05d.lin",graphics_directory, graph_num, rollback_num);
       }
       else{
-         sprintf(filename,"%s/graph%d.data", graphics_directory, graph_num);
-         sprintf(filename2,"%s/outline%d.lin",graphics_directory, graph_num);
+         sprintf(filename,"%s/graph%05d.data", graphics_directory, graph_num);
+         sprintf(filename2,"%s/outline%05d.lin",graphics_directory, graph_num);
       }
       FILE *fp = fopen(filename,"w");
       FILE *fp2 = fopen(filename2,"w");
