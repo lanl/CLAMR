@@ -289,6 +289,7 @@ int main(int argc, char **argv) {
    mesh->write_grid(n);
 #endif
 
+#ifdef HAVE_GRAPHICS
    set_display_mysize(ncells);
    set_display_window((float)mesh->xmin, (float)mesh->xmax,
                       (float)mesh->ymin, (float)mesh->ymax);
@@ -297,6 +298,7 @@ int main(int argc, char **argv) {
    set_display_cell_data(&state->H[0]);
    set_display_cell_proc(&mesh->proc[0]);
    set_display_viewmode(view_mode);
+#endif
 
    if (ncycle == next_graphics_cycle){
       set_graphics_mysize(ncells);
@@ -526,11 +528,13 @@ extern "C" void do_calc(void)
       if(graphic_outputInterval < niter){
 
          mesh->calc_spatial_coordinates(0);
+#ifdef HAVE_GRAPHICS
          set_display_mysize(ncells);
          set_display_viewmode(view_mode);
          set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
          set_display_cell_data(&state->H[0]);
          set_display_cell_proc(&mesh->proc[0]);
+#endif
 
          write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
          next_graphics_cycle += graphic_outputInterval;

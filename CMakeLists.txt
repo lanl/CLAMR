@@ -269,6 +269,7 @@ add_subdirectory(genmalloc)
 add_subdirectory(MallocPlus)
 add_subdirectory(hash)
 add_subdirectory(crux)
+add_subdirectory(Parser)
 
 ########### embed source target ###############
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/state_kernel.inc
@@ -394,8 +395,9 @@ if(OPENMP_FOUND)
 endif(OPENMP_FOUND)
 
 ########### clamr_mpiopenmponly target ###############
+# This uses the clamr_mpionly driver with the OpenMP compile flag set
 if (MPI_FOUND AND OPENMP_FOUND)
-   set(clamr_mpiopenmponly_CXX_SRCS clamr_mpiopenmponly.cpp state.cpp input.cpp)
+   set(clamr_mpiopenmponly_CXX_SRCS clamr_mpionly.cpp state.cpp input.cpp)
    set(clamr_mpiopenmponly_H_SRCS state.h input.h)
 
    set(clamr_mpiopenmponly_SRCS ${clamr_mpiopenmponly_CXX_SRCS} ${clamr_mpiopenmponly_C_SRCS} ${clamr_mpiopenmponly_H_SRCS})
