@@ -1,3 +1,93 @@
+cmake_minimum_required(VERSION 2.6)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+# --- custom targets: ---
+if (NOT TARGET distclean)
+   INCLUDE( cmake/Modules/TargetDistclean.cmake OPTIONAL)
+endif (NOT TARGET distclean)
+
+# enable @rpath in the install name for any shared library being built
+set(CMAKE_MACOSX_RPATH 1)
+
+project (EZCL)
+# The version number.
+set (EZCL_VERSION_MAJOR 2)
+set (EZCL_VERSION_MINOR 0.7)
+set (EZCL_VERSION "${EZCL_VERSION_MAJOR}.${EZCL_VERSION_MINOR}")
+ 
+if (NOT CMAKE_BUILD_TYPE)
+   set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif(NOT CMAKE_BUILD_TYPE)
+
+# uncomment to build debug
+#set(CMAKE_BUILD_TYPE Debug)
+
+if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+   # using Clang
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+   # using GCC
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
+   # using Intel C++
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
+endif()
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+
+if (MIC_NATIVE)
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-intel -mmic")
+   link_directories("/projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic")
+endif (MIC_NATIVE)
+
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
+
+include_directories(${PROJECT_SOURCE_DIR})
+
+if (NOT OPENCL_FOUND AND NOT MIC_NATIVE)
+   find_package(OpenCL)
+   #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
+   #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
+   #  OPENCL_LIBRARIES    : The libraries to link against
+   if (OPENCL_FOUND)
+      include_directories(${OPENCL_INCLUDE_DIRS})
+   endif (OPENCL_FOUND)
+endif (NOT OPENCL_FOUND AND NOT MIC_NATIVE)
+
+find_package(MPI REQUIRED)
+if (MPI_FOUND)
+   include_directories(${MPI_INCLUDE_PATH})
+endif (MPI_FOUND)
+
+if (NOT OPENMP_FOUND)
+   find_package( OpenMP)
+endif (NOT OPENMP_FOUND)
+
+if (NOT PRECISION_TYPE)
+   set (PRECISION_TYPE full_precision)
+endif (NOT PRECISION_TYPE)
+
+if (PRECISION_TYPE STREQUAL "mixed_precision")
+   set (MIXED_PRECISION on)
+   set (PRECISION_TYPE mixed_precision)
+   add_definitions(-DMIXED_PRECISION)
+endif (PRECISION_TYPE STREQUAL "mixed_precision")
+
+if (PRECISION_TYPE STREQUAL "full_precision")
+   set (FULL_PRECISION on)
+   set (PRECISION_TYPE full_precision)
+   add_definitions(-DFULL_PRECISION)
+endif (PRECISION_TYPE STREQUAL "full_precision")
+
+if (PRECISION_TYPE STREQUAL "minimum_precision")
+   set (MINIMUM_PRECISION on)
+   set (PRECISION_TYPE minimum_precision)
+   add_definitions(-DMINIMUM_PRECISION)
+endif (PRECISION_TYPE STREQUAL "minimum_precision")
+
 ########### global settings ###############
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${OPENCL_INCLUDE_DIRS}")
 
@@ -9,7 +99,7 @@ set(ezcl_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
 add_library(ezcl SHARED ${ezcl_LIB_SRCS})
 
-set_target_properties(ezcl PROPERTIES VERSION 2.0.0 SOVERSION 2)
+set_target_properties(ezcl PROPERTIES VERSION ${EZCL_VERSION} SOVERSION ${EZCL_VERSION_MAJOR})
 target_link_libraries(ezcl ${OPENCL_LIBRARIES})
 install(TARGETS ezcl DESTINATION lib)
 
@@ -19,7 +109,7 @@ set(pezcl_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
 add_library(pezcl SHARED ${pezcl_LIB_SRCS})
 
-set_target_properties(pezcl PROPERTIES VERSION 2.0.0 SOVERSION 2)
+set_target_properties(pezcl PROPERTIES VERSION ${EZCL_VERSION} SOVERSION ${EZCL_VERSION_MAJOR})
 set_target_properties(pezcl PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 target_link_libraries(pezcl ${OPENCL_LIBRARIES})
 target_link_libraries(pezcl ${MPI_LIBRARIES})
@@ -27,27 +117,4 @@ install(TARGETS pezcl DESTINATION lib)
 
 ########### install files ###############
 
-#install(FILES  ezcl.h DESTINATION include)
-
-#========== original Makefile.am contents follow ===========
-
-#default: libezcl.la libpezcl.la
-#all: libezcl.la libpezcl.la
-#
-#AM_MAKEFLAGS = -j 4
-#
-#DEFAULT_INCLUDES=-I. -I..
-#
-#lib_LTLIBRARIES = libezcl.la libpezcl.la
-#include_HEADERS = ezcl.h
-#
-#H_SRCS = ezcl.h
-#
-#C_SRCS = ezcl.c
-#
-#libezcl_la_CPPFLAGS = -UHAVE_MPI
-#libezcl_la_SOURCES = ${C_SRCS} ${H_SRCS}
-#
-#libpezcl_la_CPPFLAGS = -DHAVE_MPI=1
-#libpezcl_la_SOURCES = ${C_SRCS} ${H_SRCS}
-#
+install(FILES  ezcl.h DESTINATION include/ezcl)

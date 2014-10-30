@@ -50,7 +50,7 @@
 #include <algorithm>
 #include <assert.h>
 
-#include "crux/crux.h"
+#include "crux.h"
 #include "timer/timer.h"
 #include "fmemopen.h"
 

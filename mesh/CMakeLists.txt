@@ -1,10 +1,133 @@
+cmake_minimum_required(VERSION 2.6)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+# --- custom targets: ---
+if (NOT TARGET distclean)
+   INCLUDE( cmake/Modules/TargetDistclean.cmake OPTIONAL)
+endif (NOT TARGET distclean)
+
+# enable @rpath in the install name for any shared library being built
+set(CMAKE_MACOSX_RPATH 1)
+
+project (MESH)
+# The version number.
+set (MESH_VERSION_MAJOR 2)
+set (MESH_VERSION_MINOR 0.7)
+set (MESH_VERSION "${MESH_VERSION_MAJOR}.${MESH_VERSION_MINOR}")
+
+if (NOT CMAKE_BUILD_TYPE)
+   set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif(NOT CMAKE_BUILD_TYPE)
+
+# uncomment to build debug
+#set(CMAKE_BUILD_TYPE Debug)
+
+if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+   # using Clang
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+   # using GCC
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
+   # using Intel C++
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
+elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
+   # using Visual Studio C++
+endif()
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+   # using Clang
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize")
+   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+   # using GCC
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize")
+   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+   # using Intel C++
+   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -vec-report3")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+   # using Visual Studio C++
+endif()
+
+if (MIC_NATIVE)
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-intel -std=c99 -mmic")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-intel -mmic")
+   link_directories("/projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic")
+else (MIC_NATIVE)
+#  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+endif (MIC_NATIVE)
+
+if (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native -Wa,-q")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mtune=native -Wa,-q")
+else (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mtune=native")
+endif (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
+
+#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fno-alias -restrict -opt_report")
+
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -std=c++11 -pedantic -Wc++11-long-long -Wno-overlength-strings")
+#set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pedantic")
+
+include_directories(${PROJECT_SOURCE_DIR})
+
+if (NOT OPENCL_FOUND AND NOT MIC_NATIVE)
+   find_package(OpenCL)
+   #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
+   #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
+   #  OPENCL_LIBRARIES    : The libraries to link against
+   if (OPENCL_FOUND)
+      include_directories(${OPENCL_INCLUDE_DIRS})
+   endif (OPENCL_FOUND)
+endif (NOT OPENCL_FOUND AND NOT MIC_NATIVE)
+
+find_package(MPI REQUIRED)
+if (MPI_FOUND)
+   include_directories(${MPI_INCLUDE_PATH})
+endif (MPI_FOUND)
+
+if (NOT OPENMP_FOUND)
+   find_package( OpenMP)
+endif (NOT OPENMP_FOUND)
+
+if (NOT PRECISION_TYPE)
+   set (PRECISION_TYPE full_precision)
+endif (NOT PRECISION_TYPE)
+
+if (PRECISION_TYPE STREQUAL "mixed_precision")
+   set (MIXED_PRECISION on)
+   set (PRECISION_TYPE mixed_precision)
+   add_definitions(-DMIXED_PRECISION)
+endif (PRECISION_TYPE STREQUAL "mixed_precision")
+
+if (PRECISION_TYPE STREQUAL "full_precision")
+   set (FULL_PRECISION on)
+   set (PRECISION_TYPE full_precision)
+   add_definitions(-DFULL_PRECISION)
+endif (PRECISION_TYPE STREQUAL "full_precision")
+
+if (PRECISION_TYPE STREQUAL "minimum_precision")
+   set (MINIMUM_PRECISION on)
+   set (PRECISION_TYPE minimum_precision)
+   add_definitions(-DMINIMUM_PRECISION)
+endif (PRECISION_TYPE STREQUAL "minimum_precision")
+
+add_subdirectory(kdtree)
+add_subdirectory(hsfc)
+add_subdirectory(zorder)
+add_subdirectory(tests)
+
 ########### global settings ###############
-#if (CMAKE_C_COMPILER MATCHES "gcc$")
-#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorizer-verbose=2")
-#endif (CMAKE_C_COMPILER MATCHES "gcc$")
-#if (CMAKE_C_COMPILER MATCHES "icc$")
-#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -vec-report3")
-#endif (CMAKE_C_COMPILER MATCHES "icc$")
 
 set(H_SRCS mesh.h partition.h reduce.h)
 
@@ -15,22 +138,22 @@ set(C_SRCS reduce.c)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 ########### embed source target ###############
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mesh/mesh_kernel.inc
-                  COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl ${CMAKE_SOURCE_DIR}/mesh/mesh_kern.cl > mesh_kernel.inc
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mesh_kernel.inc
+                  COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl mesh_kern.cl > mesh_kernel.inc
                   DEPENDS mesh_kern.cl ${CMAKE_SOURCE_DIR}/embed_source.pl)
-add_custom_target(mesh_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mesh/mesh_kernel.inc)
+add_custom_target(mesh_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mesh_kernel.inc)
 
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mesh/reduce_kernel.inc
-                  COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl ${CMAKE_SOURCE_DIR}/mesh/reduce.cl > reduce_kernel.inc
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/reduce_kernel.inc
+                  COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl reduce.cl > reduce_kernel.inc
                   DEPENDS reduce.cl ${CMAKE_SOURCE_DIR}/embed_source.pl)
-add_custom_target(reduce_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mesh/reduce_kernel.inc)
+add_custom_target(reduce_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/reduce_kernel.inc)
 
 ########### mesh target ###############
 set(mesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
 
 add_library(mesh STATIC ${mesh_LIB_SRCS})
 
-set_target_properties(mesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+set_target_properties(mesh PROPERTIES VERSION ${MESH_VERSION} SOVERSION ${MESH_VERSION_MAJOR})
 
 target_link_libraries(mesh hsfc kdtree zorder)
 
@@ -42,7 +165,7 @@ if(OPENMP_FOUND)
 
    add_library(mpmesh STATIC ${mesh_LIB_SRCS})
 
-   set_target_properties(mpmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(mpmesh PROPERTIES VERSION ${MESH_VERSION} SOVERSION ${MESH_VERSION_MAJOR})
    set_target_properties(mpmesh PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
    set_target_properties(mpmesh PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(mpmesh PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
@@ -58,7 +181,7 @@ if (MPI_FOUND)
 
    add_library(pmesh STATIC ${pmesh_LIB_SRCS})
 
-   set_target_properties(pmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(pmesh PROPERTIES VERSION ${MESH_VERSION} SOVERSION ${MESH_VERSION_MAJOR})
    set_target_properties(pmesh PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 
    target_link_libraries(pmesh hsfc kdtree zorder)
@@ -73,7 +196,7 @@ if(OPENMP_FOUND AND MPI_FOUND)
 
    add_library(pmpmesh STATIC ${mesh_LIB_SRCS})
 
-   set_target_properties(pmpmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(pmpmesh PROPERTIES VERSION ${MESH_VERSION} SOVERSION ${MESH_VERSION_MAJOR})
    set_target_properties(pmpmesh PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
    set_target_properties(pmpmesh PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
    set_target_properties(pmpmesh PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
@@ -92,7 +215,7 @@ if (OPENCL_FOUND)
 
    add_library(dmesh STATIC ${dmesh_LIB_SRCS})
 
-   set_target_properties(dmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(dmesh PROPERTIES VERSION ${MESH_VERSION} SOVERSION ${MESH_VERSION_MAJOR})
    set_target_properties(dmesh PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
    target_link_libraries(dmesh hsfc kdtree zorder)
@@ -109,7 +232,7 @@ if (OPENCL_FOUND)
 
    add_library(dpmesh STATIC ${dpmesh_LIB_SRCS})
 
-   set_target_properties(dpmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(dpmesh PROPERTIES VERSION ${MESH_VERSION} SOVERSION ${MESH_VERSION_MAJOR})
    set_target_properties(dpmesh PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
 
    target_link_libraries(dpmesh hsfc kdtree zorder)
@@ -126,21 +249,9 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "mesh_kernel.inc
 
 ########### install files ###############
 
-#install(FILES  l7.h DESTINATION include)
+install(FILES  mesh.h DESTINATION include/mesh)
+install(FILES  kdtree/KDTree.h DESTINATION include/kdtree)
+install(FILES  kdtree/Globals.h DESTINATION include)
+install(FILES  kdtree/Bounds.h DESTINATION include)
+install(FILES  partition.h DESTINATION include/mesh)
 
-#========== original Makefile.am contents follow ===========
-
-#default: libl7.la
-#all: libl7.la
-#
-#AM_MAKEFLAGS = -j 4
-#
-#DEFAULT_INCLUDES=-I. -I..
-#
-#lib_LTLIBRARIES = libl7.la
-#include_HEADERS = l7.h
-#
-#
-#libl7_la_SOURCES = ${C_SRCS} ${H_SRCS}
-#libl7_la_CPPFLAGS = -DHAVE_MPI=1
-#

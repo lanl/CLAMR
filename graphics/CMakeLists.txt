@@ -1,7 +1,142 @@
 cmake_minimum_required(VERSION 2.6)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+# --- custom targets: ---
+if (NOT TARGET distclean)
+   INCLUDE( cmake/Modules/TargetDistclean.cmake OPTIONAL)
+endif (NOT TARGET distclean)
+
 # enable @rpath in the install name for any shared library being built
 set(CMAKE_MACOSX_RPATH 1)
+
+project (GRAPHICS)
+# The version number.
+set (GRAPHICS_VERSION_MAJOR 2)
+set (GRAPHICS_VERSION_MINOR 0.7)
+set (GRAPHICS_VERSION "${GRAPHICS_VERSION_MAJOR}.${GRAPHICS_VERSION_MINOR}")
+
+if (NOT CMAKE_BUILD_TYPE)
+   set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif(NOT CMAKE_BUILD_TYPE)
+
+# uncomment to build debug
+#set(CMAKE_BUILD_TYPE Debug)
+
+if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+   # using Clang
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+   # using GCC
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
+   # using Intel C++
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
+elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
+   # using Visual Studio C++
+endif()
+
+if (MIC_NATIVE)
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-intel -std=c99 -mmic")
+   link_directories("/projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic")
+else (MIC_NATIVE)
+#  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+endif (MIC_NATIVE)
+
+if (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native -Wa,-q")
+else (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
+endif (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
+
+#set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pedantic")
+
+if (NOT OPENCL_FOUND AND NOT MIC_NATIVE)
+   find_package(OpenCL)
+   #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
+   #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
+   #  OPENCL_LIBRARIES    : The libraries to link against
+   if (OPENCL_FOUND)
+      include_directories(${OPENCL_INCLUDE_DIRS})
+   endif (OPENCL_FOUND)
+endif (NOT OPENCL_FOUND AND NOT MIC_NATIVE)
+
+find_package(MPI REQUIRED)
+if (MPI_FOUND)
+   include_directories(${MPI_INCLUDE_PATH})
+endif (MPI_FOUND)
+
+if (NOT OPENMP_FOUND)
+   find_package( OpenMP)
+endif (NOT OPENMP_FOUND)
+
+if (NOT PRECISION_TYPE)
+   set (PRECISION_TYPE full_precision)
+endif (NOT PRECISION_TYPE)
+
+if (PRECISION_TYPE STREQUAL "mixed_precision")
+   set (MIXED_PRECISION on)
+   set (PRECISION_TYPE mixed_precision)
+   add_definitions(-DMIXED_PRECISION)
+endif (PRECISION_TYPE STREQUAL "mixed_precision")
+
+if (PRECISION_TYPE STREQUAL "full_precision")
+   set (FULL_PRECISION on)
+   set (PRECISION_TYPE full_precision)
+   add_definitions(-DFULL_PRECISION)
+endif (PRECISION_TYPE STREQUAL "full_precision")
+
+if (PRECISION_TYPE STREQUAL "minimum_precision")
+   set (MINIMUM_PRECISION on)
+   set (PRECISION_TYPE minimum_precision)
+   add_definitions(-DMINIMUM_PRECISION)
+endif (PRECISION_TYPE STREQUAL "minimum_precision")
+
+if (NOT GRAPHICS_TYPE)
+   set (GRAPHICS_TYPE none)
+endif (NOT GRAPHICS_TYPE)
+
+if (GRAPHICS_TYPE STREQUAL "OpenGL")
+   find_package(OpenGL)
+endif (GRAPHICS_TYPE STREQUAL "OpenGL")
+
+# If autodetect does not work try setting MPEHOME or
+# MPE_INCLUDE_DIR and MPE_LIBRARIES
+if (GRAPHICS_TYPE STREQUAL "MPE")
+   find_package(MPE)
+   find_package(X11)
+endif (GRAPHICS_TYPE STREQUAL "MPE")
+
+#message("MPI_LIBRARIES ${MPI_LIBRARIES}")
+#message("MPI_INCLUDE_PATH ${MPI_INCLUDE_PATH}")
+#message("GRAPHICS_TYPE is ${GRAPHICS_TYPE}")
+#message("MPE_INCLUDE is ${MPE_INCLUDE_DIR}")
+
+if (OPENGL_FOUND)
+   set (HAVE_GRAPHICS on)
+   set (HAVE_OPENGL on)
+   include_directories(${OPENGL_INCLUDE_DIR})
+   find_package(GLUT)
+endif (OPENGL_FOUND)
+
+if (NOT OPENGL_FOUND)
+   if (MPE_FOUND)
+      set (HAVE_GRAPHICS on)
+      set (HAVE_MPE on)
+      include_directories(${MPE_INCLUDE_DIR})
+      if (X11_FOUND)
+         include_directories(${X11_INCLUDE_DIR})
+      endif (X11_FOUND)
+      set (MPE_LIBS ${MPE_LIBRARIES})
+      set (MPE_NOMPI_LIBS ${MPE_NOMPI_LIBRARIES})
+      set (X11_LIBS ${X11_LIBRARIES})
+   endif (MPE_FOUND)
+endif (NOT OPENGL_FOUND)
 
 ########### global settings ###############
 set(H_SRCS graphics.h display.h)
@@ -13,7 +148,7 @@ set(graphics_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
 add_library(graphics SHARED ${graphics_LIB_SRCS})
 
-set_target_properties(graphics PROPERTIES VERSION 2.0.0 SOVERSION 2)
+set_target_properties(graphics PROPERTIES VERSION ${GRAPHICS_VERSION} SOVERSION ${GRAPHICS_VERSION_MAJOR})
 
 target_link_libraries(graphics ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 target_link_libraries(graphics ${MPE_NOMPI_LIBS} ${X11_LIBS})
@@ -27,7 +162,7 @@ install(TARGETS graphics DESTINATION lib)
 if (MPI_FOUND)
    add_library(pgraphics SHARED ${graphics_LIB_SRCS})
 
-   set_target_properties(pgraphics PROPERTIES VERSION 2.0.0 SOVERSION 2)
+   set_target_properties(pgraphics PROPERTIES VERSION ${GRAPHICS_VERSION} SOVERSION ${GRAPHICS_VERSION_MAJOR})
    set_target_properties(pgraphics PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 
    target_link_libraries(pgraphics ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
@@ -42,4 +177,5 @@ endif (MPI_FOUND)
 
 ########### install files ###############
 
-#install(FILES  display.h DESTINATION include)
+install(FILES  display.h DESTINATION include/graphics)
+install(FILES  graphics.h DESTINATION include/graphics)

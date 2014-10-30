@@ -1,3 +1,68 @@
+cmake_minimum_required(VERSION 2.6)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+# --- custom targets: ---
+if (NOT TARGET distclean)
+   INCLUDE( cmake/Modules/TargetDistclean.cmake OPTIONAL)
+endif (NOT TARGET distclean)
+
+# enable @rpath in the install name for any shared library being built
+set(CMAKE_MACOSX_RPATH 1)
+
+project (CRUX)
+# The version number.
+set (CRUX_VERSION_MAJOR 2)
+set (CRUX_VERSION_MINOR 0.7)
+set (CRUX_VERSION "${CRUX_VERSION_MAJOR}.${CRUX_VERSION_MINOR}")
+
+if (NOT CMAKE_BUILD_TYPE)
+   set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif(NOT CMAKE_BUILD_TYPE)
+
+# uncomment to build debug
+#set(CMAKE_BUILD_TYPE Debug)
+
+if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+   # using Clang
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+   # using GCC
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
+   # using Intel C++
+   #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
+elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
+   # using Visual Studio C++
+endif()
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+   # using Clang
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize")
+   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+   # using GCC
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize")
+   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+   # using Intel C++
+   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -vec-report3")
+endif()
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+
+if (MIC_NATIVE)
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-intel -mmic")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-intel -mmic")
+   link_directories("/projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic")
+endif (MIC_NATIVE)
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
+
 ########### global settings ###############
 set(H_SRCS crux.h)
 
@@ -14,7 +79,7 @@ set(crux_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
 
 add_library(crux STATIC ${crux_LIB_SRCS})
 
-set_target_properties(crux PROPERTIES VERSION 2.0.0 SOVERSION 2)
+set_target_properties(crux PROPERTIES VERSION ${CRUX_VERSION} SOVERSION ${CRUX_VERSION_MAJOR})
 install(TARGETS crux DESTINATION lib)
 
 ########### dcrux target ###############
@@ -22,7 +87,7 @@ install(TARGETS crux DESTINATION lib)
 #if (OPENCL_FOUND)
 #   add_library(dcrux STATIC ${crux_LIB_SRCS})
 
-#   set_target_properties(dcrux PROPERTIES VERSION 2.0.0 SOVERSION 2)
+#   set_target_properties(dcrux PROPERTIES VERSION ${CRUX_VERSION} SOVERSION ${CRUX_VERSION_MAJOR})
 #   set_target_properties(dcrux PROPERTIES COMPILE_DEFINITIONS "HAVE_OPENCL")
 #   install(TARGETS dcrux DESTINATION lib)
 #   add_dependencies(dcrux cruxlib_source_kernel_source)
@@ -31,5 +96,5 @@ install(TARGETS crux DESTINATION lib)
 
 ########### install files ###############
 
-install(FILES  crux.h DESTINATION include)
+install(FILES  crux.h DESTINATION include/crux)
 
