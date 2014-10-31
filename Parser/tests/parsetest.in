@@ -1,0 +1,3 @@
+string_input = parsetest
+int_input    = 10
+double_input = 5.5
