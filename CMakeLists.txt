@@ -296,9 +296,9 @@ if (EXISTS "crux" AND IS_DIRECTORY "crux")
    add_subdirectory(crux)
 endif (EXISTS "crux" AND IS_DIRECTORY "crux")
 
-if (EXISTS "Parser" AND IS_DIRECTORY "Parser")
-   add_subdirectory(Parser)
-endif (EXISTS "Parser" AND IS_DIRECTORY "Parser")
+if (EXISTS "PowerParser" AND IS_DIRECTORY "PowerParser")
+   add_subdirectory(PowerParser)
+endif (EXISTS "PowerParser" AND IS_DIRECTORY "PowerParser")
 
 ########### embed source target ###############
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/state_kernel.inc
