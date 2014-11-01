@@ -9,11 +9,11 @@ endif (NOT TARGET distclean)
 # enable @rpath in the install name for any shared library being built
 set(CMAKE_MACOSX_RPATH 1)
 
-project (PARSER)
+project (POWERPARSER)
 # The version number.
-set (PARSER_VERSION_MAJOR 2)
-set (PARSER_VERSION_MINOR 0.7)
-set (PARSER_VERSION "${PARSER_VERSION_MAJOR}.${PARSER_VERSION_MINOR}")
+set (POWERPARSER_VERSION_MAJOR 2)
+set (POWERPARSER_VERSION_MINOR 0.7)
+set (POWERPARSER_VERSION "${POWERPARSER_VERSION_MAJOR}.${POWERPARSER_VERSION_MINOR}")
 
 if (NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE RelWithDebInfo)
@@ -59,15 +59,15 @@ set(H_SRCS   Cmd.hh   Function.hh  Parser_utils.hh  Variable.hh      Word.hh
 set(CXX_SRCS Cmd.cc   Function.cc  Parser_utils.cc  Variable.cc      Word.cc
              Comm.cc  Parse.cc     Parser_math.cc   Restartblock.cc  Whenthen.cc)
 
-########### Parser target ###############
-set(Parser_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+########### PowerParser target ###############
+set(PowerParser_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
 
-add_library(Parser STATIC ${Parser_LIB_SRCS})
+add_library(PowerParser STATIC ${PowerParser_LIB_SRCS})
 
-set_target_properties(Parser PROPERTIES VERSION ${PARSER_VERSION} SOVERSION ${PARSER_VERSION_MAJOR})
-target_link_libraries(Parser ${MPI_LIBRARIES})
+set_target_properties(PowerParser PROPERTIES VERSION ${POWERPARSER_VERSION} SOVERSION ${POWERPARSER_VERSION_MAJOR})
+target_link_libraries(PowerParser ${MPI_LIBRARIES})
 
-install(TARGETS Parser DESTINATION lib)
+install(TARGETS PowerParser DESTINATION lib)
 
 ########### clean files ################
 

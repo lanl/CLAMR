@@ -595,7 +595,7 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.in
 
 set (CMAKE_CHECK_COMMAND make -C ${CMAKE_SOURCE_DIR}/mesh/tests   mesh_check &&
                          make -C ${CMAKE_SOURCE_DIR}/l7/tests     l7_check   &&
-                         make -C ${CMAKE_SOURCE_DIR}/Parser/tests Parser_check)
+                         make -C ${CMAKE_SOURCE_DIR}/PowerParser/tests Parser_check)
 
 add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND})
 
