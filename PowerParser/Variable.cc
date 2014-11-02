@@ -78,6 +78,8 @@ using std::setprecision;
 using std::vector;
 using std::deque;
 
+static int index_base = 1;
+
 
 // ===========================================================================
 // Default constructor.
@@ -94,6 +96,13 @@ Variable::Variable()
     temporary = false;
 }
 
+// ===========================================================================
+// Constructor to reset index base
+// ===========================================================================
+Variable::Variable(int base)
+{
+    index_base = base;
+}
 
 // ===========================================================================
 // Constructor given a string as input. This constructs a scalar variable.
@@ -223,7 +232,7 @@ void Variable::set_var_value(vector<int> &istart, vector<string> &valvec,
     }
 
     // Find the 1d starting position given multiple array indices.
-    Parser_utils putils;
+    Parser_utils putils(index_base);
     int i1 = putils.start_dex(istart, maxdim);
 
     // nvals    Number of values after the = sign.
@@ -251,7 +260,7 @@ void Variable::bump_var(vector<int> &istart, int increment,
                         deque<string> *lines, stringstream &serr, int &ierr)
 {
     // Find the 1d starting position given multiple array indices.
-    Parser_utils putils;
+    Parser_utils putils(index_base);
     int i1 = putils.start_dex(istart, maxdim);
 
     // We are incrementing an existing variable, so i1 should be valid.
@@ -428,7 +437,7 @@ string Variable::get_var_value(vector<int> &adex, string vname, int lnum,
 
     // Using the indices in adex and the bounds for multi-d arrays, maxdim,
     // get the 1d index into the value array.
-    Parser_utils putils;
+    Parser_utils putils(index_base);
     int i1 = putils.start_dex(adex, maxdim);
 
     // Check that the value array size has not been exceeded.
@@ -488,7 +497,7 @@ void Variable::get_indices(int icdex, vector<int> &adex)
 
     // Given icdex, get the indices.
     int nvalues = (int)value.size();
-    Parser_utils putils;
+    Parser_utils putils(index_base);
     putils.reverse_dex(icdex, nvalues, adex, maxdim);
 }
 

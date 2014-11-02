@@ -1,19 +1,19 @@
 cmake_minimum_required(VERSION 2.6)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-# --- custom targets: ---
-if (NOT TARGET distclean)
-   INCLUDE( cmake/Modules/TargetDistclean.cmake OPTIONAL)
-endif (NOT TARGET distclean)
-
-# enable @rpath in the install name for any shared library being built
-set(CMAKE_MACOSX_RPATH 1)
-
 project (GENMALLOC)
 # The version number.
 set (GENMALLOC_VERSION_MAJOR 2)
 set (GENMALLOC_VERSION_MINOR 0.7)
 set (GENMALLOC_VERSION "${GENMALLOC_VERSION_MAJOR}.${GENMALLOC_VERSION_MINOR}")
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+# --- custom targets: ---
+if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+   INCLUDE( cmake/Modules/TargetDistclean.cmake OPTIONAL)
+endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+
+# enable @rpath in the install name for any shared library being built
+set(CMAKE_MACOSX_RPATH 1)
 
 if (NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE RelWithDebInfo)
@@ -58,3 +58,7 @@ install(TARGETS genmalloc DESTINATION lib)
 ########### install files ###############
 
 install(FILES  genmalloc.h DESTINATION include/genmalloc)
+
+########### clean files ###############
+
+SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "install_manifest.txt")

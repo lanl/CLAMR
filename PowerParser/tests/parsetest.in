@@ -1,3 +1,41 @@
 string_input = parsetest
 int_input    = 10
 double_input = 5.5
+
+dx      = 1.0
+xreal   = 1.0
+ivalue  = 100
+string  = "malarky"
+doThing = true
+
+doThing1 = .true.
+doThing2 = True
+doThing3 = FaLse
+doThing4 = false
+
+set_index_base_zero // C style indexing
+
+array1d(0) = 1.0, 2.3, -5.6, 7.1e19, 3, -3.4e-23
+
+array1d_1 = 1.0, 2.3, -5.6, 7.1e19, 3, -3.4e-23
+
+array1d_2(0) = 1.0
+array1d_2(1) = 2.3, -5.6
+array1d_2(3) = 7.1e19, 3, -3.4e-23
+
+array1d_3(0) = 1.0  2.3  -5.6  7.1e19  3  -3.4e-23
+
+array2d(0,0) = 1.0
+array2d(1,0) = 2.3
+array2d(2,0) = -5.6
+array2d(0,1) = 7.1e19
+array2d(1,1) = 3
+array2d(2,1) = -3.4e-23
+
+array2d_1(0,0) = 1.0
+array2d_1(1,0) = 2.3
+array2d_1(0,1) = -5.6
+array2d_1(1,1) = 7.1e19
+array2d_1(0,2) = 3
+array2d_1(1,2) = -3.4e-23
+

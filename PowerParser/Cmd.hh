@@ -78,12 +78,13 @@ class Function;
 
 class Cmd
 {
-
 public:
     Cmd();
     Cmd(string s, map<string, Variable> *v, map<string, Function> *f,
         deque<string> *lstr, int lnum, int file_lnum, string fname,
         stringstream &serr, int &ierr);
+
+    void set_index_base(int base);
 
     void add_word(string str, int lnum, int file_lnum, string fname);
     void erase_word(int iw);
@@ -109,6 +110,11 @@ public:
                       vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
                       int dup_fatal, vector<int> &dup_vals,
                       bool skip, stringstream &serr, int &ierr);
+
+    void get_bool(string &cname, bool *array_vals,  vector<int> &size,
+                  vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
+                  int dup_fatal, vector<int> &dup_vals,
+                  bool skip, stringstream &serr, int &ierr);
 
     void get_int(string &cname, int *array_vals,  vector<int> &size,
                  vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
@@ -278,6 +284,9 @@ private:
     string filename;
     deque<string> *lines;
     
+    // index base, generally 1 for Fortran style and 0 for C/C++, default 1
+    // int index_base; -- using static variable instead
+
     // The original string before processing.
     string original_str;
 

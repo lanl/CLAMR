@@ -6,6 +6,13 @@ set(C_SRCS
       ParserTest.cc
 )
 
+if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+   include_directories(${CMAKE_SOURCE_DIR})
+   include_directories(${CMAKE_SOURCE_DIR}/..)
+else ()
+   include_directories(${CMAKE_SOURCE_DIR}/PowerParser)
+endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+
 ########### ParserTest target ###############
 set(ParserTest_SRCS ${C_SRCS} ${H_SRCS})
 
@@ -14,8 +21,7 @@ add_executable(ParserTest ${ParserTest_SRCS})
 set_target_properties(ParserTest PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 set_target_properties(ParserTest PROPERTIES EXCLUDE_FROM_ALL TRUE)
 set_target_properties(ParserTest PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD TRUE)
-include_directories(${CMAKE_SOURCE_DIR}/Parser)
-target_link_libraries(ParserTest Parser ${MPI_LIBRARIES})
+target_link_libraries(ParserTest PowerParser genmalloc ${MPI_LIBRARIES})
 
 ########### install files ###############
 

@@ -113,6 +113,8 @@ public:
 
     void get_bool_int(string &cname, int *cvalue, vector<int> &size,
                       bool skip);
+    void get_bool(string &cname, bool *cvalue, vector<int> &size,
+                  bool skip);
     template< typename T >
     void get_int(string &cname, T *cvalue, vector<int> &size, bool skip);
     void get_real(string &cname, double *cvalue, vector<int> &size,

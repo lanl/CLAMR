@@ -76,12 +76,15 @@ using std::vector;
 using std::deque;
 using std::setw;
 
+static int index_base = 1; // For Fortran, 0 for C/C++style
+
 
 // ===========================================================================
 // Default constructor.
 // ===========================================================================
-Parser_utils::Parser_utils()
+Parser_utils::Parser_utils(int base)
 {
+   index_base = base;
 }
 
 
@@ -121,9 +124,10 @@ int Parser_utils::start_dex(vector<int> &istart, vector<int> &size)
     if (dim == 0) return 0;
 
     // Find the index.
-    int ix = istart[0]-1;
+    // Adjustment for base 1
+    int ix = istart[0]-index_base;
     for (int i=1; i<dim; i++) {
-        int t = istart[i]-1;
+        int t = istart[i]-index_base;
         for (int j=0; j<i; j++) {
             t *= size[j];
         }
@@ -168,7 +172,7 @@ void Parser_utils::reverse_dex(int icdex, int nvals,
 
     // Start at 1,1,1,1,1,1,...
     for (int i=0; i<dim; i++) {
-        istart[i] = 1;
+        istart[i] = index_base;
     }
 
     // Get the first 1d index (referenced from 0)
@@ -183,7 +187,7 @@ void Parser_utils::reverse_dex(int icdex, int nvals,
         for (int i=0; i<dim; i++) {
             if (i < dim-1) {
                 if (istart[i] == size[i]) {
-                    istart[i] = 1;
+                    istart[i] = index_base;
                 }
                 else {
                     istart[i] += 1;

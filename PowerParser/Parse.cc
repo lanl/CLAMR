@@ -96,6 +96,7 @@ using std::setprecision;
 using std::numeric_limits;
 using Comm_ns::Comm;
 
+static int index_base = 1;
 
 // ===========================================================================
 // Various constructors.
@@ -195,6 +196,18 @@ void Parse::parse_string(string filename, string buffer)
                 Cmd cmd(sline, &vmap, &fmap, &cmd_strings,
                         line_number, file_line_number, filename, serr, ierr);
                 process_error(serr, ierr);
+                if (cmd.get_string(0) == "set_index_base_zero") {
+                   // C/C++ index convention
+                   cmd.set_index_base(0);
+                   Variable v(0);
+                   index_base = 0;
+                }
+                if (cmd.get_string(0) == "set_index_base_one") {
+                   // Fortran index convention
+                   cmd.set_index_base(1);
+                   Variable v(1);
+                   index_base = 1;
+                }
                 if (cmd.get_string(0) == "put_exe_args_here") {
                     if (exe_args_str != "") {
                         parse_string("execution line arguments", exe_args_str);
@@ -306,7 +319,6 @@ void Parse::clear_and_init()
     // Do the initialization again.
     init();
 }
-
 
 // ===========================================================================
 // Echo user input to a stringstream.
@@ -1245,7 +1257,7 @@ void Parse::check_dup_scalar(int wtn, bool &found_any)
             cout << "  The last instance of the command will be used." << endl;
             cout << "  Is this what you want??" << endl << endl;
             stringstream ssout;
-            Parser_utils putils;
+            Parser_utils putils(index_base);
             putils.print_strings(rows, n_header_rows, 4, 3, 80, ssout);
             cout << ssout.str() << endl;
         }
@@ -1541,6 +1553,36 @@ void Parse::get_bool_int(string &cname, int *cvalue, vector<int> &size,
         if ((*cmdsfp)[i].get_cmd_name() == cname) {
             (*cmdsfp)[i].get_bool_int(cname, cvalue, size, dup_cmd1, dup_wdex1,
                                       dup_fatal, dup_vals, skip, serr, ierr);
+            processed_cmd_names.push_back(cname);
+        }
+    }
+
+    // Process errors, global abort if ierr==2
+    process_error(serr, ierr);
+}
+
+void Parse::get_bool(string &cname, bool *cvalue, vector<int> &size,
+                     bool skip)
+{
+    // Note that we do not default cvalue. Its value only changes if the
+    // command is found.
+
+    // Used in checking for duplicate array values
+    int dim = (int)size.size();
+    int tot_size = 1;
+    for (int i=0; i<dim; i++) {
+        tot_size *= size[i];
+    }
+    vector<int> dup_vals(tot_size, 0);
+    vector<Cmd *> dup_cmd1(tot_size);
+    vector<int> dup_wdex1(tot_size, -1);
+
+    int ierr = 0;
+    stringstream serr;
+    for (int i=0; i<(int)cmdsfp->size(); i++) {
+        if ((*cmdsfp)[i].get_cmd_name() == cname) {
+            (*cmdsfp)[i].get_bool(cname, cvalue, size, dup_cmd1, dup_wdex1,
+                                  dup_fatal, dup_vals, skip, serr, ierr);
             processed_cmd_names.push_back(cname);
         }
     }
@@ -2330,7 +2372,7 @@ void Parse::list_vars_ss(string lv1, string lv2, string var_to_list,
     }
 
     // List the data with the columns lined up.
-    Parser_utils putils;
+    Parser_utils putils(index_base);
     putils.print_strings(rows, n_header_rows, 3, 3, 85, ssvars);
 
     ssvars << lv2 << endl;
@@ -2407,7 +2449,7 @@ void Parse::list_funcs_ss(string lf1, string lf2, stringstream &ssfunc)
     }
 
     // List the data with the columns lined up.
-    Parser_utils putils;
+    Parser_utils putils(index_base);
     putils.print_strings(rows, n_header_rows, 3, 4, 85, ssfunc);
 
     ssfunc << lf2 << endl;

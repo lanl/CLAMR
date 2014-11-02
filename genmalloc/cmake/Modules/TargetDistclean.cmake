@@ -15,8 +15,7 @@ IF (UNIX)
    *.a
    */*.a
    Makefile
-   */Makefile
-   */*/Makefile
+   tests/Makefile
    core core.*
    gmon.out
    *~
@@ -26,6 +25,7 @@ IF (UNIX)
    cmake_install.cmake
    */cmake_install.cmake
    */*/cmake_install.cmake
+   install_manifest.txt
   )
   
   ADD_CUSTOM_COMMAND(

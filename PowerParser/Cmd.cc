@@ -87,13 +87,15 @@ using std::ifstream;
 using std::ios;
 using std::setw;
 
+// index base, generally 1 for Fortran style and 0 for C/C++, default 1
+static int index_base = 1;
 
 // ===========================================================================
 // Default constructor.
 // ===========================================================================
 Cmd::Cmd() 
 {
-   init();
+    init();
 }
 
 
@@ -169,6 +171,16 @@ void Cmd::init()
     filename = "";
 }
 
+
+// ===========================================================================
+// Set index base for input file indexing. 1 -- Fortran like, 0 -- Other
+//   languages
+// ===========================================================================
+void Cmd::set_index_base(int base)
+{
+    //cout << "Info:: Setting index base to " << base << endl;
+    index_base = base;
+}
 
 // ===========================================================================
 // Process a string.
@@ -560,7 +572,8 @@ void Cmd::get_bool_int(string &cname, int *array_vals,  vector<int> &size,
 
     // Check syntax, for example an equals sign must be present, and set istart.
     // istart   Position in array_vals where we start filling it.
-    //          Note that istart starts from 1 (i.e. fortran index)
+    //          Note that istart starts from index base (default 1, Fortran style)
+    //          Use set_index_base_zero for C/C++ index convention
     vector<int> istart(dim,0);
     if (!check_syntax(istart, serr, ierr)) return;
 
@@ -587,7 +600,7 @@ void Cmd::get_bool_int(string &cname, int *array_vals,  vector<int> &size,
     // Get the values and return.
     //int ieqp1 = 5 + dim - 1;
     int ieqp1 = find_equals() + 1;
-    Parser_utils putils;
+    Parser_utils putils(index_base);
     int k = putils.start_dex(istart, size);
     for (int i=ieqp1; i<(int)words.size(); i++) {
         bool b = words[i].get_bool(serr, ierr);
@@ -598,6 +611,74 @@ void Cmd::get_bool_int(string &cname, int *array_vals,  vector<int> &size,
             error_dup_line(cname, i, k, dup_wdex1, dup_cmd1, dup_vals, 
                            size, dup_fatal, serr, ierr);
             array_vals[k++] = cvalue;
+        }
+    }
+}
+
+// ===========================================================================
+// Get boolean values. This gets all the words past the = sign,
+// converts them to bool and puts them in the output arrays.
+//
+// The expected commands are:
+//    cmdname = .true.                    0d
+//    cmdname(5) = false true false       1d
+//    cmdname(5,9) = true false true      2d
+//    etc.
+//
+// We also allow
+//    cmdname = false true false
+// and we will supply the starting indices of (1) or (1,1), etc.
+//
+// But note that the , is gone at this point, so the 2d command is
+//    cmdname ( 5 9 ) = true false true      2d
+//
+// This function works for any dimension, 0,1,2,3,...
+// ===========================================================================
+void Cmd::get_bool(string &cname, bool *array_vals,  vector<int> &size,
+                   vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
+                   int dup_fatal, vector<int> &dup_vals,
+                   bool skip, stringstream &serr, int &ierr)
+{
+    // Get the dimension of the array, 0,1,2,3,...
+    int dim = (int)size.size();
+
+    // Check syntax, for example an equals sign must be present, and set istart.
+    // istart   Position in array_vals where we start filling it.
+    //          Note that istart starts from index base (default 1, Fortran style)
+    //          Use set_index_base_zero for C/C++ index convention
+    vector<int> istart(dim,0);
+    if (!check_syntax(istart, serr, ierr)) return;
+
+    // If skipping, we don't need to get array values.
+    if (skip) {
+        set_processed(true);
+        return;
+    }
+
+    // Get the number of values past the = sign.
+    // Also mark the words up to and including the = sign as processed.
+    int nvals = 0;
+    if (!get_nvals(istart, size, nvals, serr, ierr)) return;
+
+    // 0d is a special case.
+    if (dim == 0) {
+        bool b = words[2].get_bool(serr, ierr);
+        *array_vals = b;
+        return;
+    }
+
+    // Get the values and return.
+    //int ieqp1 = 5 + dim - 1;
+    int ieqp1 = find_equals() + 1;
+    Parser_utils putils(index_base);
+    int k = putils.start_dex(istart, size);
+    for (int i=ieqp1; i<(int)words.size(); i++) {
+        bool b = words[i].get_bool(serr, ierr);
+        int imult = words[i].get_multiplicity();
+        for (int j=1; j<=imult; j++) {
+            error_dup_line(cname, i, k, dup_wdex1, dup_cmd1, dup_vals, 
+                           size, dup_fatal, serr, ierr);
+            array_vals[k++] = b;
         }
     }
 }
@@ -632,7 +713,8 @@ void Cmd::get_int(string &cname, int *array_vals,  vector<int> &size,
 
     // Check syntax, for example an equals sign must be present, and set istart.
     // istart   Position in array_vals where we start filling it.
-    //          Note that istart starts from 1 (i.e. fortran index)
+    //          Note that istart starts from index base (default 1, Fortran style)
+    //          Use set_index_base_zero for C/C++ index convention
     vector<int> istart(dim,0);
     if (!check_syntax(istart, serr, ierr)) return;
 
@@ -656,7 +738,7 @@ void Cmd::get_int(string &cname, int *array_vals,  vector<int> &size,
     // Get the values and return.
     //int ieqp1 = 5 + dim - 1;
     int ieqp1 = find_equals() + 1;
-    Parser_utils putils;
+    Parser_utils putils(index_base);
     int k = putils.start_dex(istart, size);
     for (int i=ieqp1; i<(int)words.size(); i++) {
         int iw = words[i].get_int(serr, ierr);
@@ -699,7 +781,8 @@ void Cmd::get_int(string &cname, int64_t *array_vals,  vector<int> &size,
 
     // Check syntax, for example an equals sign must be present, and set istart.
     // istart   Position in array_vals where we start filling it.
-    //          Note that istart starts from 1 (i.e. fortran index)
+    //          Note that istart starts from index base (default 1, Fortran style)
+    //          Use set_index_base_zero for C/C++ index convention
     vector<int> istart(dim,0);
     if (!check_syntax(istart, serr, ierr)) return;
 
@@ -723,7 +806,7 @@ void Cmd::get_int(string &cname, int64_t *array_vals,  vector<int> &size,
     // Get the values and return.
     //int ieqp1 = 5 + dim - 1;
     int ieqp1 = find_equals() + 1;
-    Parser_utils putils;
+    Parser_utils putils(index_base);
     int k = putils.start_dex(istart, size);
     for (int i=ieqp1; i<(int)words.size(); i++) {
         int64_t iw = words[i].get_int64_t(serr, ierr);
@@ -765,7 +848,8 @@ void Cmd::get_real(string &cname, double *array_vals,  vector<int> &size,
 
     // Check syntax, for example an equals sign must be present, and set istart.
     // istart   Position in array_vals where we start filling it.
-    //          Note that istart starts from 1 (i.e. fortran index)
+    //          Note that istart starts from index base (default 1, Fortran style)
+    //          Use set_index_base_zero for C/C++ index convention
     vector<int> istart(dim,0);
     if (!check_syntax(istart, serr, ierr)) return;
 
@@ -791,7 +875,7 @@ void Cmd::get_real(string &cname, double *array_vals,  vector<int> &size,
     // All other dimensions.
     //int ieqp1 = 5 + dim - 1;
     int ieqp1 = find_equals() + 1;
-    Parser_utils putils;
+    Parser_utils putils(index_base);
     int k = putils.start_dex(istart, size);
     for (int i=ieqp1; i<(int)words.size(); i++) {
         double d = words[i].get_double(serr, ierr);
@@ -838,7 +922,8 @@ void Cmd::get_char(string &cname, vector<string> &vstr, vector<int> &size,
 
     // Check syntax, for example an equals sign must be present, and set istart.
     // istart   Position in array_vals where we start filling it.
-    //          Note that istart starts from 1 (i.e. fortran index)
+    //          Note that istart starts from index base (default 1, Fortran style)
+    //          Use set_index_base_zero for C/C++ index convention
     vector<int> istart(dim,0);
     if (!check_syntax(istart, serr, ierr)) return;
 
@@ -870,7 +955,7 @@ void Cmd::get_char(string &cname, vector<string> &vstr, vector<int> &size,
     // the word as being processed.
     //int ieqp1 = 5 + dim - 1;
     int ieqp1 = find_equals() + 1;
-    Parser_utils putils;
+    Parser_utils putils(index_base);
     int k = putils.start_dex(istart, size);
     for (int i=ieqp1; i<(int)words.size(); i++) {
         string s = words[i].get_stringp();
@@ -912,7 +997,8 @@ void Cmd::get_size(vector<int> &size, stringstream &serr, int &ierr)
     // istart   Position in array where we start filling it.
     //          Example command might be a3d(3,2,2) = ...  In this case istart
     //          would be a vector of length 3 contining 3,2,2
-    //          Note that istart starts from 1 (i.e. fortran index)
+    //          Note that istart starts from index base (default 1, Fortran style)
+    //          Use set_index_base_zero for C/C++ index convention
     vector<int> istart(dim,0);
     if (!check_syntax(istart, serr, ierr)) return;
 
@@ -976,7 +1062,8 @@ void Cmd::get_sizeb(vector<int> &size, stringstream &serr, int &ierr)
     // istart   Position in array where we start filling it.
     //          Example command might be a3d(3,2,2) = ...  In this case istart
     //          would be a vector of length 3 contining 3,2,2
-    //          Note that istart starts from 1 (i.e. fortran index)
+    //          Note that istart starts from index base (default 1, Fortran style)
+    //          Use set_index_base_zero for C/C++ index convention
     vector<int> istart(dim,0);
     if (!check_syntax(istart, serr, ierr)) return;
 
@@ -1095,10 +1182,11 @@ bool Cmd::check_syntax(vector<int> &istart, stringstream &serr, int &ierr)
 
 
     // istart   Position in array_vals where we start filling it.
-    //          Note that istart starts from 1 (i.e. fortran index)
+    //          Note that istart starts from index base (default 1, Fortran style)
+    //          Use set_index_base_zero for C/C++ index convention
     if (skip_check) {
         for (int i=0; i<dim; i++) {
-            istart[i] = 1;
+            istart[i] = index_base;
         }
     }
     else {
@@ -1106,9 +1194,9 @@ bool Cmd::check_syntax(vector<int> &istart, stringstream &serr, int &ierr)
         for (int i=0; i<dim; i++) {
             int iloc = 2 + i;
             istart[i] = words[iloc].get_int(serr, ierr);
-            if (ierr < 2  &&  istart[i] <= 0) {
+            if (ierr < 2  &&  istart[i] < index_base) {
                 words[iloc].fatal_error(serr, ierr);
-                serr << "The index for the array must be an integer that is > 0" << endl;
+                serr << "The index for the array must be an integer that is >= " << index_base << endl;
                 serr << "Integer includes numbers like 3, 3., 3.0, but not 3.5" << endl;
                 serr << "The index input is: " << istart[i] << endl << endl;
                 ierr2 = 2;
@@ -1118,7 +1206,7 @@ bool Cmd::check_syntax(vector<int> &istart, stringstream &serr, int &ierr)
     }
 
     for (int i=0; i<dim; i++) {
-        if (istart[i] <= 0) return false;
+        if (istart[i] < index_base) return false;
     }
     return true;
 }
@@ -1189,7 +1277,7 @@ bool Cmd::get_nvals(vector<int> &istart, vector<int> &size,
 
     // Find the excess, i.e. the max array position the user is trying to
     // fill compared with the max size allowed. 
-    Parser_utils putils;
+    Parser_utils putils(index_base);
     int ix = putils.start_dex(istart, size);
     int excess = ix + nvals - maxvals;
 
@@ -1543,7 +1631,7 @@ void Cmd::set_variables(stringstream &serr, int &ierr)
         istart[d] = words[d+2].get_int(serr, ierr);
         if (istart[d] <= 0) {
             words[d+2].fatal_error(serr, ierr);
-            serr << "The index for the array must be an integer that is > 0" << endl;
+            serr << "The index for the array must be an integer that is >= " << index_base << endl;
             serr << "Integer includes numbers like 3, 3., 3.0, but not 3.5" << endl;
             serr << "The index input is: " << istart[d] << endl << endl;
             ierr2 = 2;
@@ -3266,7 +3354,7 @@ void Cmd::error_dup_line(string &cname, int wdex, int cdex,
             tot_size *= size[ts];
         }
         vector<int> irdices(dim, 0);
-        Parser_utils putils;
+        Parser_utils putils(index_base);
         putils.reverse_dex(cdex, tot_size, irdices, size);
         serr << "A duplicate value has been specified for: " << cname << "(";
         for (int irdex=0; irdex<dim; irdex++) {

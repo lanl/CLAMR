@@ -72,11 +72,13 @@ using std::vector;
 using std::deque;
 
 
+
 class Variable
 {
 
 public:
     Variable();
+    Variable(int base);
     Variable(string nme, string v, bool pred, string tdes);
     Variable(string nme);
     Variable(string nme, vector<int> &istart, vector<string> &vvec,
