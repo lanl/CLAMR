@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 #ifndef CMDHHINCLUDE
@@ -65,7 +66,7 @@
 #include <map>
 #include <sstream>
 
-namespace Support_ns
+namespace PowerParser
 {
 using std::string;
 using std::deque;
@@ -106,32 +107,32 @@ public:
     void fatal_error(int iw, stringstream &serr, int &ierr);
     void warning(int iw, stringstream &serr, int &ierr);
 
-    void get_bool_int(string &cname, int *array_vals,  vector<int> &size,
+    void get_bool_int(string &cname, int *array_vals, const vector<int> &size,
                       vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
                       int dup_fatal, vector<int> &dup_vals,
                       bool skip, stringstream &serr, int &ierr);
 
-    void get_bool(string &cname, bool *array_vals,  vector<int> &size,
+    void get_bool(string &cname, bool *array_vals, const vector<int> &size,
                   vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
                   int dup_fatal, vector<int> &dup_vals,
                   bool skip, stringstream &serr, int &ierr);
 
-    void get_int(string &cname, int *array_vals,  vector<int> &size,
+    void get_int(string &cname, int *array_vals, const vector<int> &size,
                  vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
                  int dup_fatal, vector<int> &dup_vals,
                  bool skip, stringstream &serr, int &ierr);
 
-    void get_int(string &cname, int64_t *array_vals,  vector<int> &size,
+    void get_int(string &cname, int64_t *array_vals, const vector<int> &size,
                  vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
                  int dup_fatal, vector<int> &dup_vals,
                  bool skip, stringstream &serr, int &ierr);
 
-    void get_real(string &cname, double *array_vals,  vector<int> &size,
+    void get_real(string &cname, double *array_vals, const vector<int> &size,
                   vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
                   int dup_fatal, vector<int> &dup_vals,
                   bool skip, stringstream &serr, int &ierr);
 
-    void get_char(string &cname, vector<string> &vstr, vector<int> &size,
+    void get_char(string &cname, vector<string> &vstr, const vector<int> &size,
                   bool single_char, vector<Cmd *> &dup_cmd1,
                   vector<int> &dup_wdex1, int dup_fatal,
                   vector<int> &dup_vals, bool skip,
@@ -257,14 +258,14 @@ private:
     int find_equals();
 
     bool check_syntax(vector<int> &istart, stringstream &serr, int &ierr);
-    bool get_nvals(vector<int> &istart, vector<int> &size,
+    bool get_nvals(vector<int> &istart, const vector<int> &size,
                    int &nvals, stringstream &serr, int &ierr);
     void debug_print_words(string s);
 
     void fatal_error2(stringstream &serr, int &ierr);
     void error_dup_line(string &cname, int wdex, int cdex,
                         vector<int> &dup_wdex1, vector<Cmd *> &dup_cmd1,
-                        vector<int> &dup_vals, vector<int> &size,
+                        vector<int> &dup_vals, const vector<int> &size,
                         int dup_fatal, stringstream &serr, int &ierr);
 
 
@@ -313,7 +314,7 @@ private:
 };
 
 
-} // end namespace Support_ns
+} // end namespace PowerParser
 
 #endif
 

@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 // ***************************************************************************
@@ -65,7 +66,7 @@
 
 #include "Parser_utils.hh"
 
-namespace Support_ns
+namespace PowerParser
 {
 using std:: string;
 using std::cout;
@@ -115,7 +116,7 @@ Parser_utils::Parser_utils(int base)
 // 3. The size vector contains the max size of each dimension, for example 2
 // this would be 7 and whatever for the second dimension.
 // ===========================================================================
-int Parser_utils::start_dex(vector<int> &istart, vector<int> &size)
+int Parser_utils::start_dex(vector<int> &istart, const vector<int> &size)
 {
     // Get the array dimension, 0,1,2,3,...
     int dim = (int)istart.size();
@@ -161,8 +162,10 @@ int Parser_utils::start_dex(vector<int> &istart, vector<int> &size)
 // elements in size is normally dim-1, but it does not hurt if it has dim
 // elements (in which case the last element is not referenced or used).
 // ===========================================================================
-void Parser_utils::reverse_dex(int icdex, int nvals,
-                               vector<int> &istart, vector<int> &size)
+void Parser_utils::reverse_dex(int icdex,
+                               int nvals,
+                               vector<int> &istart,
+                               const vector<int> &size)
 {
     // Get the dimension.
     int dim = (int)istart.size();
@@ -340,4 +343,4 @@ void Parser_utils::print_strings(vector< vector<string> > rows, int n_header_row
 
 
 
-} // End of the namespace for this component.
+} // End of the PowerParser namespace

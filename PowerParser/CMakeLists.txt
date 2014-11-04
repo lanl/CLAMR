@@ -55,11 +55,11 @@ include_directories(${CMAKE_SOURCE_DIRECTORY})
 add_subdirectory(tests)
 
 ########### global settings ###############
-set(H_SRCS   Cmd.hh   Function.hh  Parser_utils.hh  Variable.hh      Word.hh
-             Comm.hh  Parse.hh     Parser_math.hh   Restartblock.hh  Whenthen.hh)
+set(H_SRCS   Cmd.hh   Function.hh    Parser_utils.hh  Variable.hh      Word.hh
+             Comm.hh  PowerParser.hh Parser_math.hh   Restartblock.hh  Whenthen.hh)
 
-set(CXX_SRCS Cmd.cc   Function.cc  Parser_utils.cc  Variable.cc      Word.cc
-             Comm.cc  Parse.cc     Parser_math.cc   Restartblock.cc  Whenthen.cc)
+set(CXX_SRCS Cmd.cc   Function.cc    Parser_utils.cc  Variable.cc      Word.cc
+             Comm.cc  PowerParser.cc Parser_math.cc   Restartblock.cc  Whenthen.cc)
 
 set(DOC_SRCS docs/index.rst docs/About.rst docs/GettingStarted.rst
              docs/DevelopersGuide.rst docs/UsersGuide.rst)
@@ -111,17 +111,4 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "install_manifes
 
 ########### install files ###############
 
-# Should only include PowerParser.hh
 install(FILES PowerParser.hh DESTINATION include)
-
-install(FILES Parse.hh DESTINATION include/PowerParser)
-install(FILES Comm.hh DESTINATION include/PowerParser)
-install(FILES Word.hh DESTINATION include/PowerParser)
-install(FILES Cmd.hh DESTINATION include/PowerParser)
-install(FILES Restartblock.hh DESTINATION include/PowerParser)
-install(FILES Whenthen.hh DESTINATION include/PowerParser)
-install(FILES Variable.hh DESTINATION include/PowerParser)
-install(FILES Parser_utils.hh DESTINATION include/PowerParser)
-install(FILES Parser_math.hh DESTINATION include/PowerParser)
-install(FILES Function.hh DESTINATION include/PowerParser)
-

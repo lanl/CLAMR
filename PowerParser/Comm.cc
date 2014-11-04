@@ -48,30 +48,41 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 #include <cstdlib>
 #include "Comm.hh"
 
-namespace Comm_ns {
+namespace PowerParser {
 
+Comm Comm::instance;
 
 // ===========================================================================
 // Initialize
 // ===========================================================================
-void Comm::initialize()
+Comm::Comm()
 {
-#ifdef __MPI__
+    npes = 1;
+    mype = 0;
+    iope = 0;
+
+#ifdef HAVE_MPI
+    int argc = 1;
+    char **argv = NULL;
     // MPI_Init is assumed to have been called already.
-    //MPI_Init(&argc, &argv);
+
+    int init_flag;
+    MPI_Initialized ( &init_flag);
+
+    if (! init_flag){
+       MPI_Init(&argc, &argv);
+    }
+
     MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
     MPI_Comm_size(MPI_COMM_WORLD, &npes );
     MPI_Comm_rank(MPI_COMM_WORLD, &mype );
-#else
-    npes = 1;
-    mype = 0;
 #endif
-    iope = 0;
 }
 
 
@@ -81,7 +92,7 @@ void Comm::initialize()
 void Comm::broadcast(char *buffer, int count)
 {
    if (npes == 1) return;
-#ifdef __MPI__
+#ifdef HAVE_MPI
    MPI_Bcast(buffer, count, MPI_CHAR, 0, MPI_COMM_WORLD);
 #endif
 }
@@ -92,13 +103,13 @@ void Comm::broadcast(char *buffer, int count)
 // ===========================================================================
 void Comm::global_abort()
 {
-#ifdef __MPI__
+#ifdef HAVE_MPI
    MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
    exit(1);
 }
 
 
-} // End of Comm_ns namespace
+} // End of PowerParser namespace
 
 

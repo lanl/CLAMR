@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 // ***************************************************************************
@@ -70,7 +71,7 @@
 
 #include "Function.hh"
 
-namespace Support_ns
+namespace PowerParser
 {
 using std:: string;
 using std::cout;
@@ -337,4 +338,4 @@ void Function::args_mismatch_err(int nargs_found, int nargs_expected,
     ierr = 2;
 }
 
-} // End of the namespace for this component.
+} // End of the PowerParser for this component.

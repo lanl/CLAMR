@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 // ***************************************************************************
@@ -71,7 +72,7 @@
 #include "Word.hh"
 #include "Parser_math.hh"
 
-namespace Support_ns
+namespace PowerParser
 {
 using std:: string;
 using std::cout;
@@ -339,4 +340,4 @@ void Parser_math::do_op_logical(int i1, int i2, int i3, deque <Word> &wq,
 
 
 
-} // End of the namespace for this component.
+} // End of the PowerParser namespace

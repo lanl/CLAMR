@@ -1,33 +1,22 @@
 #include <cstring>
-#include "PowerParser.hh"
-//#include "PowerParser/Comm.hh"
-//#include "PowerParser/Parse.hh"
 #include "genmalloc/genmalloc.h"
+#include "PowerParser.hh"
 
-using Comm_ns::Comm;
-using Support_ns::Parse;
+using namespace PowerParser;
 
 using namespace std;
-
-static Comm  *comm;
-static Parse *parse;
 
 int main(int argc, char **argv)
 {
    printf("\n\t\tRunning the Parser read tests\n\n");
 
-   // Setup parser's comm routines
-   comm = new Comm;
-   comm->initialize();
-   int mype = comm->getProcRank();
-   int npes = comm->getNumProcs();
-
    // Create the parser
-   parse = new Parse(*comm);
+   Parse *parse = new Parse();
+   int mype = parse->comm->getProcRank();
+   int npes = parse->comm->getNumProcs();
 
    // Process input file
-   string filename("parsetest.in",15);
-   parse->parse_file(filename);
+   parse->parse_file("parsetest.in");
 
    parse->compile_buffer();
    parse->echo_input_start();
@@ -41,24 +30,17 @@ int main(int argc, char **argv)
    }
 */
 
-   bool skip = false;
-   vector<int> size;
-
    vector<string> sinput(1);
-   string test_name("",40);
-   string cname_stringinput("string_input");
-   parse->get_char(cname_stringinput, sinput, size, false, skip);
-   test_name = sinput[0];
+   parse->get_char("string_input", sinput);
 
-   if(test_name.compare("parsetest") == 0 ){
-      printf("  PASSED: Read string %s\n",test_name.c_str() );
+   if(sinput[0].compare("parsetest") == 0 ){
+      printf("  PASSED: Read string %s\n",sinput[0].c_str() );
    } else {
-      printf("  FAILED: Read string %s should be %s\n",test_name.c_str(), "parsetest");
+      printf("  FAILED: Read string %s should be %s\n",sinput[0].c_str(), "parsetest");
    }
 
    int intvalue = -1;
-   string cname_intinput("int_input");
-   parse->get_int(cname_intinput, &intvalue, size, skip);
+   parse->get_int("int_input", &intvalue);
 
    if (intvalue == 10){
       printf("  PASSED: Read int %d\n",intvalue);
@@ -67,8 +49,7 @@ int main(int argc, char **argv)
    }
    
    double doublevalue = -1;
-   string cname_doubleinput("double_input");
-   parse->get_real(cname_doubleinput, &doublevalue, size, skip);
+   parse->get_real("double_input", &doublevalue);
 
    if (doublevalue == 5.5){
       printf("  PASSED: Read real %lf\n",doublevalue);
@@ -77,8 +58,7 @@ int main(int argc, char **argv)
    }
 
    doublevalue = -1;
-   cname_doubleinput = "dx";
-   parse->get_real(cname_doubleinput, &doublevalue, size, skip);
+   parse->get_real("dx", &doublevalue);
 
    if (doublevalue == 1.0){
       printf("  PASSED: Read real %lf\n",doublevalue);
@@ -87,8 +67,7 @@ int main(int argc, char **argv)
    }
 
    doublevalue = -1;
-   cname_doubleinput = "xreal";
-   parse->get_real(cname_doubleinput, &doublevalue, size, skip);
+   parse->get_real("xreal", &doublevalue);
 
    if (doublevalue == 1.0){
       printf("  PASSED: Read real %lf\n",doublevalue);
@@ -97,8 +76,7 @@ int main(int argc, char **argv)
    }
 
    intvalue = -1;
-   cname_intinput = "ivalue";
-   parse->get_int(cname_intinput, &intvalue, size, skip);
+   parse->get_int("ivalue", &intvalue);
 
    if (intvalue == 100){
       printf("  PASSED: Read int %d\n",intvalue);
@@ -106,19 +84,16 @@ int main(int argc, char **argv)
       printf("  FAILED: Read int %d should be %d\n",intvalue, 100);
    }
    
-   cname_stringinput = "string";
-   parse->get_char(cname_stringinput, sinput, size, false, skip);
-   test_name = sinput[0];
+   parse->get_char("string", sinput);
 
-   if(test_name.compare("malarky") == 0 ){
-      printf("  PASSED: Read string %s\n",test_name.c_str() );
+   if(sinput[0].compare("malarky") == 0 ){
+      printf("  PASSED: Read string %s\n",sinput[0].c_str() );
    } else {
-      printf("  FAILED: Read string %s should be %s\n",test_name.c_str(), "malarky");
+      printf("  FAILED: Read string %s should be %s\n",sinput[0].c_str(), "malarky");
    }
 
    bool boolvalue = false;
-   string cname_boolinput("doThing");
-   parse->get_bool(cname_boolinput, &boolvalue, size, skip);
+   parse->get_bool("doThing", &boolvalue);
 
    if (boolvalue == true){
       printf("  PASSED: Read boolean %s\n",boolvalue ? "true" : "false");
@@ -127,8 +102,7 @@ int main(int argc, char **argv)
    }
 
    boolvalue = false;
-   cname_boolinput = "doThing1";
-   parse->get_bool(cname_boolinput, &boolvalue, size, skip);
+   parse->get_bool("doThing1", &boolvalue);
 
    if (boolvalue == true){
       printf("  PASSED: Read boolean %s\n",boolvalue ? "true" : "false");
@@ -137,8 +111,7 @@ int main(int argc, char **argv)
    }
    
    boolvalue = false;
-   cname_boolinput = "doThing2";
-   parse->get_bool(cname_boolinput, &boolvalue, size, skip);
+   parse->get_bool("doThing2", &boolvalue);
 
    if (boolvalue == true){
       printf("  PASSED: Read boolean %s\n",boolvalue ? "true" : "false");
@@ -147,8 +120,7 @@ int main(int argc, char **argv)
    }
    
    boolvalue = true;
-   cname_boolinput = "doThing3";
-   parse->get_bool(cname_boolinput, &boolvalue, size, skip);
+   parse->get_bool("doThing3", &boolvalue);
 
    if (boolvalue == false){
       printf("  PASSED: Read boolean %s\n",boolvalue ? "true" : "false");
@@ -157,19 +129,24 @@ int main(int argc, char **argv)
    }
    
    boolvalue = true;
-   cname_boolinput = "doThing4";
-   parse->get_bool(cname_boolinput, &boolvalue, size, skip);
+   parse->get_bool("doThing4", &boolvalue);
 
    if (boolvalue == false){
       printf("  PASSED: Read boolean %s\n",boolvalue ? "true" : "false");
    } else {
       printf("  FAILED: Read bool %s should be %s\n",boolvalue ? "true" : "false", "false");
    }
-   
+
+   //**************************************
+   // Start of array tests
+   //**************************************
+ 
+   bool skip = false;
+   vector<int> size;
+
    double doublearray[6] = {-1.0, -1.0, -1.0, -1.0, -1.0, -1.0};
-   cname_doubleinput = "array1d";
    size.push_back(6);
-   parse->get_real(cname_doubleinput, doublearray, size, skip);
+   parse->get_real("array1d", doublearray, size, skip);
 
    double dcheckarray[6] = {1.0, 2.3, -5.6, 7.1e19, 3.0, -3.4e-23};
 
@@ -191,8 +168,7 @@ int main(int argc, char **argv)
    for (int i = 0; i < 6; i++){
       doublearray[i] = -1.0;
    }
-   cname_doubleinput = "array1d_1";
-   parse->get_real(cname_doubleinput, doublearray, size, skip);
+   parse->get_real("array1d_1", doublearray, size, skip);
 
    for (int i = 0; i < 6; i++){
       if (doublearray[i] != dcheckarray[i]) iflag = true;
@@ -211,8 +187,7 @@ int main(int argc, char **argv)
    for (int i = 0; i < 6; i++){
       doublearray[i] = -1.0;
    }
-   cname_doubleinput = "array1d_2";
-   parse->get_real(cname_doubleinput, doublearray, size, skip);
+   parse->get_real("array1d_2", doublearray, size, skip);
 
    for (int i = 0; i < 6; i++){
       if (doublearray[i] != dcheckarray[i]) iflag = true;
@@ -231,8 +206,7 @@ int main(int argc, char **argv)
    for (int i = 0; i < 6; i++){
       doublearray[i] = -1.0;
    }
-   cname_doubleinput = "array1d_3";
-   parse->get_real(cname_doubleinput, doublearray, size, skip);
+   parse->get_real("array1d_3", doublearray, size, skip);
 
    for (int i = 0; i < 6; i++){
       if (doublearray[i] != dcheckarray[i]) iflag = true;
@@ -249,12 +223,11 @@ int main(int argc, char **argv)
    }
 
    double **doublearray2d = (double **)genmatrix(2, 3, sizeof(double));
-   cname_doubleinput = "array2d";
 
    size.clear();
    size.push_back(3);
    size.push_back(2);
-   parse->get_real(cname_doubleinput, &doublearray2d[0][0], size, skip);
+   parse->get_real("array2d", &doublearray2d[0][0], size, skip);
 
    double **dcheckarray2d = (double **)genmatrix(2, 3, sizeof(double));
 
@@ -288,12 +261,11 @@ int main(int argc, char **argv)
    genmatrixfree((void **)dcheckarray2d);
 
    doublearray2d = (double **)genmatrix(3, 2, sizeof(double));
-   cname_doubleinput = "array2d_1";
 
    size.clear();
    size.push_back(2);
    size.push_back(3);
-   parse->get_real(cname_doubleinput, &doublearray2d[0][0], size, skip);
+   parse->get_real("array2d_1", &doublearray2d[0][0], size, skip);
 
    dcheckarray2d = (double **)genmatrix(3, 2, sizeof(double));
 

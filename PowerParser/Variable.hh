@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 #ifndef VARIABLEHHINCLUDE
@@ -64,7 +65,7 @@
 #include <vector>
 #include <deque>
 
-namespace Support_ns
+namespace PowerParser
 {
 using std::string;
 using std::stringstream;
@@ -141,6 +142,6 @@ private:
 };
 
 
-} // End of the namespace for this component.
+} // End of the PowerParser namespace
 
 #endif

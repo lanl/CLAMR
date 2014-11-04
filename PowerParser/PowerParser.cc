@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 // ***************************************************************************
@@ -77,9 +78,9 @@
 #include "Cmd.hh"
 #include "Whenthen.hh"
 #include "Restartblock.hh"
-#include "Parse.hh"
+#include "PowerParser.hh"
 
-namespace Support_ns
+namespace PowerParser
 {
 using std::cout;
 using std::endl;
@@ -94,7 +95,6 @@ using std::stringstream;
 using std::setw;
 using std::setprecision;
 using std::numeric_limits;
-using Comm_ns::Comm;
 
 static int index_base = 1;
 
@@ -107,21 +107,21 @@ Parse::Parse()
     nrb_on_dump = 0;
 }
 
-Parse::Parse(Comm &commr )
+Parse::Parse(string filename)
 {
-    comm = &commr;              // Set the comm class pointer.
-    init();                     // Init vars, setup functions, ...
-    nrb_on_dump = 0;
-}
-
-Parse::Parse(string filename, Comm &commr )
-{
-    comm = &commr;              // Set the comm class pointer.
     init();                     // Init vars, setup functions, ...
     nrb_on_dump = 0;
     parse_file(filename);       // Parse the file.
 }
 
+Parse::Parse(const char *filename)
+{
+    string fstring(filename);
+
+    init();                     // Init vars, setup functions, ...
+    nrb_on_dump = 0;
+    parse_file(fstring);        // Parse the file.
+}
 
 // ===========================================================================
 // Parse a file. The basic strategy is to read the file into a string on the
@@ -145,6 +145,11 @@ void Parse::parse_file(string filename)
     parse_string(filename, s_in);
 }
 
+void Parse::parse_file(const char *filename)
+{
+    string fstring(filename);
+    parse_file(fstring);
+}
 
 // ===========================================================================
 // Given a multi-line string on every processor, parse it into cmds and words.
@@ -1319,6 +1324,8 @@ void Parse::remove_dup_scalar(int wtn)
 // ===========================================================================
 void Parse::init()
 {
+    comm = Comm::GetInstance();
+
     line_number = 0;
     cmdsfp = &cmdsf;
     dup_fatal = 1;
@@ -1531,7 +1538,9 @@ void Parse::read_into_string(string filename, string &s_in)
 // Driver for getting boolean values as integers.
 // This works for arrays of any dimension, 0,1,2,3,...
 // ===========================================================================
-void Parse::get_bool_int(string &cname, int *cvalue, vector<int> &size,
+void Parse::get_bool_int(string &cname,
+                         int *cvalue,
+                         const vector<int> &size,
                          bool skip)
 {
     // Note that we do not default cvalue. Its value only changes if the
@@ -1561,7 +1570,18 @@ void Parse::get_bool_int(string &cname, int *cvalue, vector<int> &size,
     process_error(serr, ierr);
 }
 
-void Parse::get_bool(string &cname, bool *cvalue, vector<int> &size,
+void Parse::get_bool_int(const char *cname,
+                         int *cvalue,
+                         const vector<int> &size,
+                         bool skip)
+{
+   string cstring(cname);
+   get_bool_int( cstring, cvalue, size, skip);
+}
+
+void Parse::get_bool(string &cname,
+                     bool *cvalue,
+                     const vector<int> &size,
                      bool skip)
 {
     // Note that we do not default cvalue. Its value only changes if the
@@ -1591,13 +1611,25 @@ void Parse::get_bool(string &cname, bool *cvalue, vector<int> &size,
     process_error(serr, ierr);
 }
 
+void Parse::get_bool(const char *cname,
+                     bool *cvalue,
+                     const vector<int> &size,
+                     bool skip)
+{
+   string cstring(cname);
+   get_bool( cstring, cvalue, size, skip);
+}
+
 
 // ===========================================================================
 // Driver for getting integer values.
 // This works for arrays of any dimension, 0,1,2,3,...
 // ===========================================================================
 template< typename T >
-void Parse::get_int(string &cname, T *cvalue, vector<int> &size, bool skip)
+void Parse::get_int(string &cname,
+                    T *cvalue,
+                    const vector<int> &size,
+                    bool skip)
 {
     // Note that we do not default cvalue. Its value only changes if the
     // command is found.
@@ -1632,15 +1664,32 @@ void Parse::get_int(string &cname, T *cvalue, vector<int> &size, bool skip)
 //! the header file for that).  The listed versions below are the only ones
 //! that will be included in the library.
 template void Parse::get_int(
-    string &cname, int     *cvalue, vector<int> &size, bool skip);
+    string &cname, int     *cvalue, const vector<int> &size, bool skip);
 template void Parse::get_int(
-    string &cname, int64_t *cvalue, vector<int> &size, bool skip);
+    string &cname, int64_t *cvalue, const vector<int> &size, bool skip);
+
+template< typename T >
+void Parse::get_int(const char *cname,
+                    T *cvalue,
+                    const vector<int> &size,
+                    bool skip)
+{
+   string cstring(cname);
+   get_int( cstring, cvalue, size, skip);
+}
+
+template void Parse::get_int(
+    const char *cname, int     *cvalue, const vector<int> &size, bool skip);
+template void Parse::get_int(
+    const char *cname, int64_t *cvalue, const vector<int> &size, bool skip);
 
 // ===========================================================================
 // Driver for getting real values.
 // This works for arrays of any dimension, 0,1,2,3,...
 // ===========================================================================
-void Parse::get_real(string &cname, double *cvalue, vector<int> &size,
+void Parse::get_real(string &cname,
+                     double *cvalue,
+                     const vector<int> &size,
                      bool skip)
 {
     // Note that we do not default cvalue. Its values only change if the
@@ -1670,13 +1719,24 @@ void Parse::get_real(string &cname, double *cvalue, vector<int> &size,
     process_error(serr, ierr);
 }
 
+void Parse::get_real(const char *cname,
+                     double *cvalue,
+                     const vector<int> &size,
+                     bool skip)
+{
+   string cstring(cname);
+   get_real( cstring, cvalue, size, skip);
+}
 
 // ===========================================================================
 // Driver for getting character strings.
 // This works for arrays of any dimension, 0,1,2,3,...
 // ===========================================================================
-void Parse::get_char(string &cname, vector<string> &vstr, vector<int> &size,
-                     bool single_char, bool skip)
+void Parse::get_char(string &cname,
+                     vector<string> &vstr,
+                     const vector<int> &size,
+                     bool single_char,
+                     bool skip)
 {
     // Note that we do not default cvalue. Its value only changes if the
     // command is found.
@@ -1706,6 +1766,15 @@ void Parse::get_char(string &cname, vector<string> &vstr, vector<int> &size,
     process_error(serr, ierr);
 }
 
+void Parse::get_char(const char *cname,
+                     vector<string> &vstr,
+                     const vector<int> &size,
+                     bool single_char,
+                     bool skip)
+{
+   string cstring(cname);
+   get_char( cstring, vstr, size, single_char, skip);
+}
 
 // ===========================================================================
 // Driver for getting array sizes.
@@ -2818,5 +2887,5 @@ void Parse::vstr_to_chars(char *chars_1d, vector<string> &vstr,
 
 
 
-} // end namespace Support_ns
+} // end of the PowerParser namespace
 

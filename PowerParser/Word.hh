@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 #ifndef WORDHHINCLUDE
@@ -66,7 +67,7 @@
 #include <deque>
 #include <stdint.h>
 
-namespace Support_ns
+namespace PowerParser
 {
 using std::string;
 using std::stringstream;
@@ -255,6 +256,6 @@ private:
 };
 
 
-} // end namespace Support_ns
+} // end of PowerParser namespace
 
 #endif

@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 // ***************************************************************************
@@ -74,7 +75,7 @@
 
 #include "Word.hh"
 
-namespace Support_ns
+namespace PowerParser
 {
 using std::string;
 using std::cout;
@@ -1176,5 +1177,5 @@ void Word::string_to_lower( string &s ) const
 
 
 
-} // End of the namespace for this component
+} // End of the PowerParser namespace
 

@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 #ifndef RESTARTBLOCKHHINCLUDE
@@ -69,7 +70,7 @@
 
 #include "Word.hh"
 
-namespace Support_ns
+namespace PowerParser
 {
 using std::string;
 using std::deque;
@@ -146,7 +147,7 @@ private:
 };
 
 
-} // end namespace Support_ns
+} // end of PowerParser namespace
 
 #endif
 

@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 // ***************************************************************************
@@ -74,7 +75,7 @@
 #include "Parser_math.hh"
 #include "Cmd.hh"
 
-namespace Support_ns
+namespace PowerParser
 {
 using std::cout;
 using std::endl;
@@ -562,7 +563,7 @@ void Cmd::handle_cmd_multiplicity(stringstream &serr, int &ierr)
 // We pass the result back as an int because of the incompatibility between
 // fortran logical and c++ bool.
 // ===========================================================================
-void Cmd::get_bool_int(string &cname, int *array_vals,  vector<int> &size,
+void Cmd::get_bool_int(string &cname, int *array_vals, const vector<int> &size,
                        vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
                        int dup_fatal, vector<int> &dup_vals,
                        bool skip, stringstream &serr, int &ierr)
@@ -634,7 +635,7 @@ void Cmd::get_bool_int(string &cname, int *array_vals,  vector<int> &size,
 //
 // This function works for any dimension, 0,1,2,3,...
 // ===========================================================================
-void Cmd::get_bool(string &cname, bool *array_vals,  vector<int> &size,
+void Cmd::get_bool(string &cname, bool *array_vals, const vector<int> &size,
                    vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
                    int dup_fatal, vector<int> &dup_vals,
                    bool skip, stringstream &serr, int &ierr)
@@ -703,7 +704,7 @@ void Cmd::get_bool(string &cname, bool *array_vals,  vector<int> &size,
 //
 // This function works for any dimension, 0,1,2,3,...
 // ===========================================================================
-void Cmd::get_int(string &cname, int *array_vals,  vector<int> &size,
+void Cmd::get_int(string &cname, int *array_vals, const vector<int> &size,
                   vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
                   int dup_fatal, vector<int> &dup_vals,
                   bool skip, stringstream &serr, int &ierr)
@@ -771,7 +772,7 @@ void Cmd::get_int(string &cname, int *array_vals,  vector<int> &size,
 //
 // This function works for any dimension, 0,1,2,3,...
 // ===========================================================================
-void Cmd::get_int(string &cname, int64_t *array_vals,  vector<int> &size,
+void Cmd::get_int(string &cname, int64_t *array_vals, const vector<int> &size,
                   vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
                   int dup_fatal, vector<int> &dup_vals,
                   bool skip, stringstream &serr, int &ierr)
@@ -838,7 +839,7 @@ void Cmd::get_int(string &cname, int64_t *array_vals,  vector<int> &size,
 //
 // This function works for any dimension, 0,1,2,3,...
 // ===========================================================================
-void Cmd::get_real(string &cname, double *array_vals,  vector<int> &size,
+void Cmd::get_real(string &cname, double *array_vals, const vector<int> &size,
                    vector<Cmd *> &dup_cmd1, vector<int> &dup_wdex1,
                    int dup_fatal, vector<int> &dup_vals,
                    bool skip, stringstream &serr, int &ierr)
@@ -911,7 +912,7 @@ void Cmd::get_real(string &cname, double *array_vals,  vector<int> &size,
 // For 0d, it has an extra flag to distinguish between single characters
 // and a character string.
 // ===========================================================================
-void Cmd::get_char(string &cname, vector<string> &vstr, vector<int> &size,
+void Cmd::get_char(string &cname, vector<string> &vstr, const vector<int> &size,
                    bool single_char, vector<Cmd *> &dup_cmd1,
                    vector<int> &dup_wdex1, int dup_fatal,
                    vector<int> &dup_vals, bool skip,
@@ -1219,7 +1220,7 @@ bool Cmd::check_syntax(vector<int> &istart, stringstream &serr, int &ierr)
 //
 // Works for any array dimension = 0,1,2,3,...
 // ===========================================================================
-bool Cmd::get_nvals(vector<int> &istart, vector<int> &size,
+bool Cmd::get_nvals(vector<int> &istart, const vector<int> &size,
                     int &nvals, stringstream &serr, int &ierr)
 {
     int nvals_cur;
@@ -3331,7 +3332,7 @@ void Cmd::get_duplicate_sizes(int iw, int &fn_width, int &lnum_width)
 // ===========================================================================
 void Cmd::error_dup_line(string &cname, int wdex, int cdex,
                          vector<int> &dup_wdex1, vector<Cmd *> &dup_cmd1,
-                         vector<int> &dup_vals, vector<int> &size,
+                         vector<int> &dup_vals, const vector<int> &size,
                          int dup_fatal, stringstream &serr, int &ierr)
 {
     if (dup_vals[cdex] == 0) {
@@ -3949,5 +3950,5 @@ void Cmd::debug_print_words(string s)
 
 
 
-} // End of the namespace for this component
+} // End of the PowerParser namespace
 

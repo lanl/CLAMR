@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 #ifndef PARSERUTILSHHINCLUDE
@@ -64,7 +65,7 @@
 #include <vector>
 #include <deque>
 
-namespace Support_ns
+namespace PowerParser
 {
 using std::string;
 using std::stringstream;
@@ -78,8 +79,9 @@ class Parser_utils
 public:
     Parser_utils(int base);
 
-    int start_dex(vector<int> &istart, vector<int> &size);
-    void reverse_dex(int icdex, int nvals, vector<int> &istart, vector<int> &size);
+    int start_dex(vector<int> &istart, const vector<int> &size);
+    void reverse_dex(int icdex, int nvals, vector<int> &istart,
+                     const vector<int> &size);
 
     void print_strings(vector< vector<string> > rows, int n_header_rows,
                        int offset, int col_spacing, int line_len_max,
@@ -90,6 +92,6 @@ private:
 };
 
 
-} // End of the namespace for this component.
+} // End of the PowerParser namespace
 
 #endif

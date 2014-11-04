@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 #ifndef COMMHHINCLUDE
@@ -58,10 +59,16 @@
 #include "mpi.h"
 #endif
 
-namespace Comm_ns {
+namespace PowerParser {
+
 class Comm
 {
  public:
+    virtual ~Comm() {}
+
+    static Comm* GetInstance(){
+       return &instance;
+    }
 
     void initialize();
     void broadcast(char *buffer, int count);
@@ -88,10 +95,17 @@ class Comm
  private:
     int npes, mype, iope;
 
+    Comm();
+    Comm(const Comm&);
+    Comm& operator=(const Comm&);
+
+    static Comm instance;
+
 };
 
-    
-} // End of Comm_ns namespace
+//Comm Comm::instance;
+
+} // End of PowerParser namespace
 
 #endif
 

@@ -48,6 +48,7 @@
  *  National Laboratory
  *  
  *  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
+ *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
 // ***************************************************************************
@@ -71,7 +72,7 @@
 #include "Cmd.hh"
 #include "Whenthen.hh"
 
-namespace Support_ns
+namespace PowerParser
 {
 using std::cout;
 using std::endl;
@@ -645,5 +646,5 @@ void Whenthen::replace_words(int i1, int i2, deque <Word> &words, Word &w)
 
 
 
-} // End of the namespace for this component
+} // End of the PowerParser namespace
 
