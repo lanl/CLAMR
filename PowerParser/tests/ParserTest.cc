@@ -21,10 +21,10 @@ int main(int argc, char **argv)
    parse->compile_buffer();
    parse->echo_input_start();
 
+/*
    string sline = "";
    int icount = 0;
 
-/*
    while (parse->get_ssfout_line(sline) ) {
       printf("%s:%d: %s\n",&filename[0],icount++,&sline[0]);
    }
