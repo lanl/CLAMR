@@ -76,7 +76,7 @@ install(TARGETS PowerParser DESTINATION lib)
 
 ########### doc targets ################
 
-add_custom_target(doc ALL DEPENDS pdfdoc htmldoc singlehtmldoc)
+#add_custom_target(doc ALL DEPENDS pdfdoc htmldoc singlehtmldoc)
 
 add_custom_command(OUTPUT _build/latex/PowerParser.pdf
                    COMMAND make -C docs latexpdf >& pdfdoc.out
