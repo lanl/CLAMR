@@ -52,6 +52,8 @@ endif (MPI_FOUND)
 
 include_directories(${CMAKE_SOURCE_DIRECTORY})
 
+enable_testing()
+
 add_subdirectory(tests)
 
 ########### global settings ###############
@@ -76,7 +78,7 @@ install(TARGETS PowerParser DESTINATION lib)
 
 ########### doc targets ################
 
-add_custom_target(doc ALL DEPENDS pdfdoc htmldoc singlehtmldoc)
+#add_custom_target(doc ALL DEPENDS pdfdoc htmldoc singlehtmldoc)
 
 add_custom_command(OUTPUT _build/latex/PowerParser.pdf
                    COMMAND make -C docs latexpdf >& pdfdoc.out
@@ -92,19 +94,6 @@ add_custom_command(OUTPUT _build/singlehtml/index.html
                    COMMAND make -C docs singlehtml >& singlehtmldoc.out
                    DEPENDS ${DOC_SRCS})
 add_custom_target(singlehtmldoc ALL DEPENDS _build/singlehtml/index.html)
-
-########### check target  ###############
-
-if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
-   set (CMAKE_CHECK_COMMAND make -C ${CMAKE_SOURCE_DIR}/tests Parser_check)
-
-   add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND})
-else (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
-   set (CMAKE_CHECK_COMMAND make -C ${CMAKE_SOURCE_DIR}/PowerParser/tests Parser_check)
-
-   add_custom_target(PowerParser_check COMMAND ${CMAKE_CHECK_COMMAND})
-endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
-
 
 ########### clean files ################
 SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "install_manifest.txt;docs/_build;htmldoc.out;pdfdoc.out;singlehtmldoc.out")

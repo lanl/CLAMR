@@ -124,6 +124,8 @@ if (PRECISION_TYPE STREQUAL "minimum_precision")
    add_definitions(-DMINIMUM_PRECISION)
 endif (PRECISION_TYPE STREQUAL "minimum_precision")
 
+enable_testing()
+
 add_subdirectory(kdtree)
 add_subdirectory(hsfc)
 add_subdirectory(zorder)

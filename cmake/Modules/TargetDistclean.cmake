@@ -23,6 +23,10 @@ IF (UNIX)
    CMakeFiles
    */CMakeFiles
    */*/CMakeFiles
+   */CTestTestfile.cmake
+   */*/CTestTestfile.cmake
+   */Testing
+   */*/Testing
    cmake_install.cmake
    */cmake_install.cmake
    */*/cmake_install.cmake

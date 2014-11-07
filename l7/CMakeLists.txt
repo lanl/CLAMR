@@ -68,6 +68,8 @@ if (NOT OPENMP_FOUND)
    find_package( OpenMP)
 endif (NOT OPENMP_FOUND)
 
+enable_testing()
+
 add_subdirectory(tests)
 
 ########### global settings ###############
