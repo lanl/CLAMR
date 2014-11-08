@@ -73,6 +73,9 @@
 #include "timer/timer.h"
 #include "memstats/memstats.h"
 #include "crux/crux.h"
+#include "PowerParser/PowerParser.hh"
+
+using namespace PP;
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -146,9 +149,10 @@ static int it = 0;
 
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
-static Mesh       *mesh;           //  Object containing mesh information
-static State      *state;          //  Object containing state information corresponding to mesh
-static Crux       *crux;           //  Object containing checkpoint/restart information
+static Mesh        *mesh;           //  Object containing mesh information
+static State       *state;          //  Object containing state information corresponding to mesh
+static Crux        *crux;           //  Object containing checkpoint/restart information
+static PowerParser *parse;          //  Object containing input file parsing
 
 static real_t circ_radius = 0.0;
 static int next_cp_cycle = 0;
@@ -192,6 +196,8 @@ int main(int argc, char **argv) {
       fflush(stdout);
    }
 #endif
+
+   parse = new PowerParser();
 
    //  Process command-line arguments, if any.
    parseInput(argc, argv);

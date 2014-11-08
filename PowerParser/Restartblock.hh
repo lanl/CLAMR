@@ -70,7 +70,7 @@
 
 #include "Word.hh"
 
-namespace PowerParser
+namespace PP
 {
 using std::string;
 using std::deque;
@@ -147,7 +147,7 @@ private:
 };
 
 
-} // end of PowerParser namespace
+} // end of PP namespace
 
 #endif
 

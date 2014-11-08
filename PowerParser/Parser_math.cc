@@ -72,7 +72,7 @@
 #include "Word.hh"
 #include "Parser_math.hh"
 
-namespace PowerParser
+namespace PP
 {
 using std:: string;
 using std::cout;
@@ -340,4 +340,4 @@ void Parser_math::do_op_logical(int i1, int i2, int i3, deque <Word> &wq,
 
 
 
-} // End of the PowerParser namespace
+} // End of the PP namespace

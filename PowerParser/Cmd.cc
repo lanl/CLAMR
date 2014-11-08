@@ -75,7 +75,7 @@
 #include "Parser_math.hh"
 #include "Cmd.hh"
 
-namespace PowerParser
+namespace PP
 {
 using std::cout;
 using std::endl;
@@ -3950,5 +3950,5 @@ void Cmd::debug_print_words(string s)
 
 
 
-} // End of the PowerParser namespace
+} // End of the PP namespace
 

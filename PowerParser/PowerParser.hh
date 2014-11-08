@@ -74,7 +74,7 @@
 #include "Whenthen.hh"
 #include "Comm.hh"
 
-namespace PowerParser
+namespace PP
 {
 using std::string;
 using std::vector;
@@ -85,14 +85,14 @@ using std::stringstream;
     //class Variable;
     //class Function;
 
-class Parse
+class PowerParser
 {
 public:
     
     // Constructors, destructors and drivers.
-    Parse();
-    Parse(string filename);
-    Parse(const char *filename);
+    PowerParser();
+    PowerParser(string filename);
+    PowerParser(const char *filename);
     void parse_file(string filename);
     void parse_file(const char *filename);
     void parse_string(string filename, string s_in);
@@ -333,6 +333,6 @@ private:
     int dup_fatal;
 };
 
-} // end namespace PowerParser
+} // end PP namespace
 
 #endif

@@ -66,7 +66,7 @@
 #include <vector>
 #include <deque>
 
-namespace PowerParser
+namespace PP
 {
 using std::string;
 using std::deque;
@@ -132,6 +132,6 @@ private:
 };
 
 
-} // End of the PowerParser namespace
+} // End of the PP namespace
 
 #endif

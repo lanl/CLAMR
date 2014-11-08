@@ -342,7 +342,7 @@ set(clamr_cpuonly_SRCS ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr
 
 add_executable(clamr_cpuonly ${clamr_cpuonly_SRCS})
 
-target_link_libraries(clamr_cpuonly mesh hsfc kdtree zorder crux hash graphics timer memstats genmalloc MallocPlus m)
+target_link_libraries(clamr_cpuonly PowerParser mesh hsfc kdtree zorder crux hash graphics timer memstats genmalloc MallocPlus m)
 if (REPROBLAS_FOUND)
    target_link_libraries(clamr_cpuonly ${REPROBLAS_LIBRARIES})
 endif (REPROBLAS_FOUND)
@@ -412,7 +412,7 @@ if(OPENMP_FOUND)
    set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
 
-   target_link_libraries(clamr_openmponly mpmesh hsfc kdtree zorder crux mphash graphics timer memstats genmalloc mpMallocPlus m)
+   target_link_libraries(clamr_openmponly PowerParser mpmesh hsfc kdtree zorder crux mphash graphics timer memstats genmalloc mpMallocPlus m)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_openmponly ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)

@@ -59,7 +59,7 @@
 #include "mpi.h"
 #endif
 
-namespace PowerParser {
+namespace PP {
 
 class Comm
 {
@@ -105,7 +105,7 @@ class Comm
 
 //Comm Comm::instance;
 
-} // End of PowerParser namespace
+} // End of PP namespace
 
 #endif
 

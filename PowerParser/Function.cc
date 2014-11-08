@@ -71,7 +71,7 @@
 
 #include "Function.hh"
 
-namespace PowerParser
+namespace PP
 {
 using std:: string;
 using std::cout;
@@ -338,4 +338,4 @@ void Function::args_mismatch_err(int nargs_found, int nargs_expected,
     ierr = 2;
 }
 
-} // End of the PowerParser for this component.
+} // End of the PP namespace.

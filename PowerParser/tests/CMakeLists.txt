@@ -18,20 +18,23 @@ set(ParserTest_SRCS ${C_SRCS} ${H_SRCS})
 
 add_executable(ParserTest EXCLUDE_FROM_ALL ${ParserTest_SRCS})
 
+find_library(GENMALLOC_LIBRARY genmalloc DIRS
+   ${CMAKE_BINARY_DIR}/genmalloc
+   ${CMAKE_BINARY_DIR}
+   ${CMAKE_BINARY_DIR}/../genmalloc
+   ../../genmalloc)
+#message("GENMALLOC directory is ${GENMALLOC_LIBRARY}")
+if (GENMALLOC-FOUND)
+   set_target_properties(ParserTest PROPERTIES COMPILE_DEFINITIONS HAVE_GENMALLOC)
+endif (GENMALLOC-FOUND)
+
 set_target_properties(ParserTest PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
 set_target_properties(ParserTest PROPERTIES EXCLUDE_FROM_ALL TRUE)
 set_target_properties(ParserTest PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD TRUE)
-target_link_libraries(ParserTest PowerParser genmalloc ${MPI_LIBRARIES})
-#find_library(GENMALLOC_LIBRARY genmalloc DIRS
-#   ${CMAKE_SOURCE_DIR}/genmalloc
-#   ${CMAKE_BINARY_DIR}/genmalloc
-#   ${CMAKE_BINARY_DIR}
-#   ../../
-#   ../../tests
-#   ../../genmalloc)
-#message("GENMALLOC directory is ${GENMALLOC_LIBRARY}")
-#target_link_libraries(ParserTest PowerParser ${GENMALLOC_LIBRARY})
-#target_link_libraries(ParserTest PowerParser ${MPI_LIBRARIES})
+target_link_libraries(ParserTest PowerParser ${MPI_LIBRARIES})
+if (GENMALLOC-FOUND)
+   target_link_libraries(ParserTest PowerParser ${GENMALLOC_LIBRARY})
+endif (GENMALLOC-FOUND)
 
 ########### install files ###############
 

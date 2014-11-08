@@ -72,7 +72,7 @@
 #include "Cmd.hh"
 #include "Whenthen.hh"
 
-namespace PowerParser
+namespace PP
 {
 using std::cout;
 using std::endl;
@@ -646,5 +646,5 @@ void Whenthen::replace_words(int i1, int i2, deque <Word> &words, Word &w)
 
 
 
-} // End of the PowerParser namespace
+} // End of the PP namespace
 

@@ -66,7 +66,7 @@
 
 #include "Parser_utils.hh"
 
-namespace PowerParser
+namespace PP
 {
 using std:: string;
 using std::cout;
@@ -343,4 +343,4 @@ void Parser_utils::print_strings(vector< vector<string> > rows, int n_header_row
 
 
 
-} // End of the PowerParser namespace
+} // End of the PP namespace

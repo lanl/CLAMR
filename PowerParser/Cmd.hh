@@ -66,7 +66,7 @@
 #include <map>
 #include <sstream>
 
-namespace PowerParser
+namespace PP
 {
 using std::string;
 using std::deque;
@@ -314,7 +314,7 @@ private:
 };
 
 
-} // end namespace PowerParser
+} // end namespace PP namespace
 
 #endif
 

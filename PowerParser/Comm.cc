@@ -54,7 +54,7 @@
 #include <cstdlib>
 #include "Comm.hh"
 
-namespace PowerParser {
+namespace PP {
 
 Comm Comm::instance;
 
@@ -110,6 +110,6 @@ void Comm::global_abort()
 }
 
 
-} // End of PowerParser namespace
+} // End of PP namespace
 
 

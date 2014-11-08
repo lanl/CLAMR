@@ -69,7 +69,7 @@
 #include "Word.hh"
 #include "Variable.hh"
 
-namespace PowerParser
+namespace PP
 {
 using std:: string;
 using std::cout;
@@ -505,4 +505,4 @@ void Variable::get_indices(int icdex, vector<int> &adex)
 
 
 
-} // End of the PowerParser namespace
+} // End of the PP namespace

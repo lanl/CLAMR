@@ -1,8 +1,10 @@
 #include <cstring>
+#ifdef HAVE_GENMALLOC
 #include "genmalloc/genmalloc.h"
+#endif
 #include "PowerParser.hh"
 
-using namespace PowerParser;
+using namespace PP;
 
 using namespace std;
 
@@ -11,7 +13,7 @@ int main(int argc, char **argv)
    printf("\n\t\tRunning the Parser read tests\n\n");
 
    // Create the parser
-   Parse *parse = new Parse();
+   PowerParser *parse = new PowerParser();
    int mype = parse->comm->getProcRank();
    int npes = parse->comm->getNumProcs();
 
@@ -222,6 +224,7 @@ int main(int argc, char **argv)
              dcheckarray[0], dcheckarray[1], dcheckarray[2], dcheckarray[3], dcheckarray[4], dcheckarray[5]);
    }
 
+#ifdef HAVE_GENMALLOC
    double **doublearray2d = (double **)genmatrix(2, 3, sizeof(double));
 
    size.clear();
@@ -300,6 +303,7 @@ int main(int argc, char **argv)
 
    genmatrixfree((void **)doublearray2d);
    genmatrixfree((void **)dcheckarray2d);
+#endif
 
    printf("\n\t\tFinished the Parser read tests\n\n");
    

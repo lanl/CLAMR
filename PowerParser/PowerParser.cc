@@ -70,17 +70,12 @@
 #include <limits>
 #include <stdint.h>
 #include <stdlib.h>
-#include "Comm.hh"
 #include "Parser_utils.hh"
 #include "Variable.hh"
 #include "Function.hh"
-#include "Word.hh"
-#include "Cmd.hh"
-#include "Whenthen.hh"
-#include "Restartblock.hh"
 #include "PowerParser.hh"
 
-namespace PowerParser
+namespace PP
 {
 using std::cout;
 using std::endl;
@@ -101,20 +96,20 @@ static int index_base = 1;
 // ===========================================================================
 // Various constructors.
 // ===========================================================================
-Parse::Parse()
+PowerParser::PowerParser()
 {
     init();                     // Init vars, setup functions, ...
     nrb_on_dump = 0;
 }
 
-Parse::Parse(string filename)
+PowerParser::PowerParser(string filename)
 {
     init();                     // Init vars, setup functions, ...
     nrb_on_dump = 0;
     parse_file(filename);       // Parse the file.
 }
 
-Parse::Parse(const char *filename)
+PowerParser::PowerParser(const char *filename)
 {
     string fstring(filename);
 
@@ -128,7 +123,7 @@ Parse::Parse(const char *filename)
 // io processor, broadcast the string to all the other processors, then parse
 // the string.
 // ===========================================================================
-void Parse::parse_file(string filename)
+void PowerParser::parse_file(string filename)
 {
     // Read the file into a string. This simply copies every character in
     // the file to the string including end of line characters.
@@ -145,7 +140,7 @@ void Parse::parse_file(string filename)
     parse_string(filename, s_in);
 }
 
-void Parse::parse_file(const char *filename)
+void PowerParser::parse_file(const char *filename)
 {
     string fstring(filename);
     parse_file(fstring);
@@ -155,7 +150,7 @@ void Parse::parse_file(const char *filename)
 // Given a multi-line string on every processor, parse it into cmds and words.
 // After calling this function, the parser is ready for use.
 // ===========================================================================
-void Parse::parse_string(string filename, string buffer)
+void PowerParser::parse_string(string filename, string buffer)
 {
     // Get command lines from the buffer and store them as strings.
     int current_pos = 0;
@@ -275,7 +270,7 @@ void Parse::parse_string(string filename, string buffer)
 // ===========================================================================
 // Handle the execution line arguments.
 // ===========================================================================
-void Parse::handle_exe_args(string other_args)
+void PowerParser::handle_exe_args(string other_args)
 {
     if ((int)other_args.size() == 0) return;
 
@@ -298,7 +293,7 @@ void Parse::handle_exe_args(string other_args)
 // ===========================================================================
 // Clear out the parser and re-init.
 // ===========================================================================
-void Parse::clear_and_init()
+void PowerParser::clear_and_init()
 {
     // comm does not need to be reset
     cmd_strings.clear();
@@ -328,13 +323,13 @@ void Parse::clear_and_init()
 // ===========================================================================
 // Echo user input to a stringstream.
 // ===========================================================================
-void Parse::echo_input_start()
+void PowerParser::echo_input_start()
 {
     ssfout.str("");
     echo_input_ss(ssfout);
     ssfout_current_pos = 0;
 }
-void Parse::echo_input_ss(stringstream &ssinp)
+void PowerParser::echo_input_ss(stringstream &ssinp)
 {
     if (!comm->isIOProc()) return;
     for (int i=0; i<(int)cmd_strings.size(); i++) {
@@ -347,7 +342,7 @@ void Parse::echo_input_ss(stringstream &ssinp)
 // The input file(s) has been read and put into commands. Now do the
 // compilation phase.
 // ===========================================================================
-void Parse::compile_buffer()
+void PowerParser::compile_buffer()
 {
     // At this point, the list of variables only contains the pre-defined
     // parser variables, thus if we list the variables at this point we will
@@ -733,7 +728,7 @@ void Parse::compile_buffer()
 // statement. This sets the loop index i so that we end up on the line after
 // the call.
 // ===========================================================================
-void Parse::jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
+void PowerParser::jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
                          stringstream &serr, int &ierr)
 {
     int icsize = (int)icall.size();
@@ -844,7 +839,7 @@ void Parse::jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
 // and set the loop index, i, to the subroutine line so we will end up on the
 // line after the subroutine.
 // ===========================================================================
-void Parse::jump_to_sub(int &i, string &sub_name,
+void PowerParser::jump_to_sub(int &i, string &sub_name,
                         stringstream &serr, int &ierr)
 {
     // At this point, i is the index for the call line.
@@ -989,7 +984,7 @@ void Parse::jump_to_sub(int &i, string &sub_name,
 // iterations or when an exit statment is encountered.
 // Basically, find the matching enddo  and continue after that statement.
 // ===========================================================================
-bool Parse::end_do_loop(int &i, deque<int> &do_start,
+bool PowerParser::end_do_loop(int &i, deque<int> &do_start,
                         stringstream &serr, int &ierr)
 {
     // Find the matching enddo.
@@ -1040,7 +1035,7 @@ bool Parse::end_do_loop(int &i, deque<int> &do_start,
 // statement, finds any free enddo's and erases the corresponding references
 // to the do statements.
 // ===========================================================================
-void Parse::end_do_ret(int &i, deque<int> &do_start,
+void PowerParser::end_do_ret(int &i, deque<int> &do_start,
                        stringstream &serr, int &ierr)
 {
     int istart = i;
@@ -1081,7 +1076,7 @@ void Parse::end_do_ret(int &i, deque<int> &do_start,
 // ===========================================================================
 // Check that an enddo was found for every do.
 // ===========================================================================
-void Parse::check_enddo(deque<int> &do_start, stringstream &serr, int &ierr)
+void PowerParser::check_enddo(deque<int> &do_start, stringstream &serr, int &ierr)
 {
     for (int i=0; i<(int)do_start.size(); i++) {
         int ido = do_start[i];
@@ -1096,7 +1091,7 @@ void Parse::check_enddo(deque<int> &do_start, stringstream &serr, int &ierr)
 // Check all processed flags on every command. If any word on any command
 // has not been processed, then that is a fatal error.
 // ===========================================================================
-void Parse::check_processed(bool &good)
+void PowerParser::check_processed(bool &good)
 {
     int ierr = 0;
     stringstream serr;
@@ -1112,7 +1107,7 @@ void Parse::check_processed(bool &good)
 // ===========================================================================
 // Process the duplicate array values command.
 // ===========================================================================
-void Parse::process_dav_cmd()
+void PowerParser::process_dav_cmd()
 {
     // Process the duplicate_array_values command.
     // Note that duplicate array values are processed when the calls are made
@@ -1143,7 +1138,7 @@ void Parse::process_dav_cmd()
 // If commands appear more than once in the input file(s), print a warning
 // to the user.
 // ===========================================================================
-void Parse::check_duplicates()
+void PowerParser::check_duplicates()
 {
     // Check for and print and duplicate scalar commands in the input file.
     //if (comm->isIOProc()) {
@@ -1184,7 +1179,7 @@ void Parse::check_duplicates()
 // Check for duplicate scalar commands in the user input file.
 // Print a table of any duplicate scalar commands to stdout.
 // ===========================================================================
-void Parse::check_dup_scalar(int wtn, bool &found_any)
+void PowerParser::check_dup_scalar(int wtn, bool &found_any)
 {
     vector< vector<string> > rows;
 
@@ -1278,7 +1273,7 @@ void Parse::check_dup_scalar(int wtn, bool &found_any)
 // Given the duplicate command, this function generates that row of
 // information and adds it to the row vector.
 // ===========================================================================
-void Parse::set_dup_row(vector<string> &row, Cmd &cmdi, int iw)
+void PowerParser::set_dup_row(vector<string> &row, Cmd &cmdi, int iw)
 {
     int lnum = cmdi.get_line_number(iw);
     int file_lnum = cmdi.get_file_line_number(iw);
@@ -1297,7 +1292,7 @@ void Parse::set_dup_row(vector<string> &row, Cmd &cmdi, int iw)
 // Remove duplicate scalar commands in the user input file.
 // Keep only the last instance of the command.
 // ===========================================================================
-void Parse::remove_dup_scalar(int wtn)
+void PowerParser::remove_dup_scalar(int wtn)
 {
     if (wtn < 0) cmdsfp = &cmdsf;
     else         cmdsfp = whenthens[wtn].get_cmdsf_ptr();
@@ -1322,7 +1317,7 @@ void Parse::remove_dup_scalar(int wtn)
 // Initialize the parser. This will typically be called by the
 // constructors.
 // ===========================================================================
-void Parse::init()
+void PowerParser::init()
 {
     comm = Comm::GetInstance();
 
@@ -1469,7 +1464,7 @@ void Parse::init()
 // Read a file into a string.
 // This is only done on the io processor.
 // ===========================================================================
-void Parse::read_into_string(string filename, string &s_in)
+void PowerParser::read_into_string(string filename, string &s_in)
 {
     if(comm != NULL) {
         if(!comm->isIOProc()) return;
@@ -1538,7 +1533,7 @@ void Parse::read_into_string(string filename, string &s_in)
 // Driver for getting boolean values as integers.
 // This works for arrays of any dimension, 0,1,2,3,...
 // ===========================================================================
-void Parse::get_bool_int(string &cname,
+void PowerParser::get_bool_int(string &cname,
                          int *cvalue,
                          const vector<int> &size,
                          bool skip)
@@ -1570,7 +1565,7 @@ void Parse::get_bool_int(string &cname,
     process_error(serr, ierr);
 }
 
-void Parse::get_bool_int(const char *cname,
+void PowerParser::get_bool_int(const char *cname,
                          int *cvalue,
                          const vector<int> &size,
                          bool skip)
@@ -1579,7 +1574,7 @@ void Parse::get_bool_int(const char *cname,
    get_bool_int( cstring, cvalue, size, skip);
 }
 
-void Parse::get_bool(string &cname,
+void PowerParser::get_bool(string &cname,
                      bool *cvalue,
                      const vector<int> &size,
                      bool skip)
@@ -1611,7 +1606,7 @@ void Parse::get_bool(string &cname,
     process_error(serr, ierr);
 }
 
-void Parse::get_bool(const char *cname,
+void PowerParser::get_bool(const char *cname,
                      bool *cvalue,
                      const vector<int> &size,
                      bool skip)
@@ -1626,7 +1621,7 @@ void Parse::get_bool(const char *cname,
 // This works for arrays of any dimension, 0,1,2,3,...
 // ===========================================================================
 template< typename T >
-void Parse::get_int(string &cname,
+void PowerParser::get_int(string &cname,
                     T *cvalue,
                     const vector<int> &size,
                     bool skip)
@@ -1663,13 +1658,13 @@ void Parse::get_int(string &cname,
 //! automatic inclusion (we would need to move the function definition into
 //! the header file for that).  The listed versions below are the only ones
 //! that will be included in the library.
-template void Parse::get_int(
+template void PowerParser::get_int(
     string &cname, int     *cvalue, const vector<int> &size, bool skip);
-template void Parse::get_int(
+template void PowerParser::get_int(
     string &cname, int64_t *cvalue, const vector<int> &size, bool skip);
 
 template< typename T >
-void Parse::get_int(const char *cname,
+void PowerParser::get_int(const char *cname,
                     T *cvalue,
                     const vector<int> &size,
                     bool skip)
@@ -1678,16 +1673,16 @@ void Parse::get_int(const char *cname,
    get_int( cstring, cvalue, size, skip);
 }
 
-template void Parse::get_int(
+template void PowerParser::get_int(
     const char *cname, int     *cvalue, const vector<int> &size, bool skip);
-template void Parse::get_int(
+template void PowerParser::get_int(
     const char *cname, int64_t *cvalue, const vector<int> &size, bool skip);
 
 // ===========================================================================
 // Driver for getting real values.
 // This works for arrays of any dimension, 0,1,2,3,...
 // ===========================================================================
-void Parse::get_real(string &cname,
+void PowerParser::get_real(string &cname,
                      double *cvalue,
                      const vector<int> &size,
                      bool skip)
@@ -1719,7 +1714,7 @@ void Parse::get_real(string &cname,
     process_error(serr, ierr);
 }
 
-void Parse::get_real(const char *cname,
+void PowerParser::get_real(const char *cname,
                      double *cvalue,
                      const vector<int> &size,
                      bool skip)
@@ -1732,7 +1727,7 @@ void Parse::get_real(const char *cname,
 // Driver for getting character strings.
 // This works for arrays of any dimension, 0,1,2,3,...
 // ===========================================================================
-void Parse::get_char(string &cname,
+void PowerParser::get_char(string &cname,
                      vector<string> &vstr,
                      const vector<int> &size,
                      bool single_char,
@@ -1766,7 +1761,7 @@ void Parse::get_char(string &cname,
     process_error(serr, ierr);
 }
 
-void Parse::get_char(const char *cname,
+void PowerParser::get_char(const char *cname,
                      vector<string> &vstr,
                      const vector<int> &size,
                      bool single_char,
@@ -1779,7 +1774,7 @@ void Parse::get_char(const char *cname,
 // ===========================================================================
 // Driver for getting array sizes.
 // ===========================================================================
-void Parse::get_size(string &cname, vector<int> &size)
+void PowerParser::get_size(string &cname, vector<int> &size)
 {
     int ierr = 0;
     stringstream serr;
@@ -1797,7 +1792,7 @@ void Parse::get_size(string &cname, vector<int> &size)
 // ===========================================================================
 // Driver for getting array sizes. Version to get all sizes
 // ===========================================================================
-void Parse::get_sizeb(string &cname, vector<int> &size)
+void PowerParser::get_sizeb(string &cname, vector<int> &size)
 {
     int ierr = 0;
     stringstream serr;
@@ -1820,7 +1815,7 @@ void Parse::get_sizeb(string &cname, vector<int> &size)
 //                 everything except the when...then statements.
 //    in_whenthen  command is in (or not) at least one when...then statement.
 // ===========================================================================
-void Parse::cmd_in_input(string &cname, bool &in_input, bool &in_whenthen)
+void PowerParser::cmd_in_input(string &cname, bool &in_input, bool &in_whenthen)
 {
     in_input = false;
     in_whenthen = false;
@@ -1854,7 +1849,7 @@ void Parse::cmd_in_input(string &cname, bool &in_input, bool &in_whenthen)
 // when...then final buffers.
 // This is meant to be called from an mgname call.
 // ===========================================================================
-void Parse::cmd_set_processed(string &cname, bool bval)
+void PowerParser::cmd_set_processed(string &cname, bool bval)
 {
     for (int i=0; i<(int)cmdsfp->size(); i++) {
         if ((*cmdsfp)[i].get_cmd_name() == cname) {
@@ -1875,7 +1870,7 @@ void Parse::cmd_set_processed(string &cname, bool bval)
 
 // ===========================================================================
 // ===========================================================================
-void Parse::cmd_set_reprocessed(bool bval)
+void PowerParser::cmd_set_reprocessed(bool bval)
 {
     for (int c=0; c<(int)processed_cmd_names.size(); c++) {
         string cname = processed_cmd_names[c];
@@ -1887,7 +1882,7 @@ void Parse::cmd_set_reprocessed(bool bval)
 // ===========================================================================
 // Process errors.
 // ===========================================================================
-void Parse::process_error_global()
+void PowerParser::process_error_global()
 {
     int ierr = ierr_global;
     if (ierr == 0) return;
@@ -1896,7 +1891,7 @@ void Parse::process_error_global()
 }
 
 
-void Parse::process_error(stringstream &serr, int &ierr)
+void PowerParser::process_error(stringstream &serr, int &ierr)
 {
     if (ierr == 0) return;
 
@@ -1968,7 +1963,7 @@ void Parse::process_error(stringstream &serr, int &ierr)
 // ===========================================================================
 // Check if a when...then condition is satisfied.
 // ===========================================================================
-void Parse::wt_check(int wtn, vector<string> &code_varnames,
+void PowerParser::wt_check(int wtn, vector<string> &code_varnames,
                      vector<string> &code_values, 
                      vector<int> &vv_active, int *wtci)
 {
@@ -1987,7 +1982,7 @@ void Parse::wt_check(int wtn, vector<string> &code_varnames,
 // Set the commands final buffer pointer.
 // This is also done in the check routine.
 // ===========================================================================
-void Parse::wt_set_cmdsfp(int wtn)
+void PowerParser::wt_set_cmdsfp(int wtn)
 {
     cmdsfp = whenthens[wtn-1].get_cmdsf_ptr();
 }
@@ -1996,7 +1991,7 @@ void Parse::wt_set_cmdsfp(int wtn)
 // ===========================================================================
 // Reset the commands final buffer pointer.
 // ===========================================================================
-void Parse::wt_reset()
+void PowerParser::wt_reset()
 {
     cmdsfp = &cmdsf;
 }
@@ -2004,7 +1999,7 @@ void Parse::wt_reset()
 
 // ===========================================================================
 // ===========================================================================
-void Parse::wt_casize(int wtn, int *wt_casize)
+void PowerParser::wt_casize(int wtn, int *wt_casize)
 {
     whenthens[wtn-1].get_char_array_size(wt_casize);
 }
@@ -2012,7 +2007,7 @@ void Parse::wt_casize(int wtn, int *wt_casize)
 
 // ===========================================================================
 // ===========================================================================
-void Parse::wt_carray(int wtn, char *wt_ca, int wt_casize)
+void PowerParser::wt_carray(int wtn, char *wt_ca, int wt_casize)
 {
     string sc;
     whenthens[wtn-1].get_char_array(sc);
@@ -2024,7 +2019,7 @@ void Parse::wt_carray(int wtn, char *wt_ca, int wt_casize)
 
 // ===========================================================================
 // ===========================================================================
-void Parse::wt_satsize(int wtn, int *wt_satsize)
+void PowerParser::wt_satsize(int wtn, int *wt_satsize)
 {
     whenthens[wtn-1].get_satsize(wt_satsize);
 }
@@ -2032,7 +2027,7 @@ void Parse::wt_satsize(int wtn, int *wt_satsize)
 
 // ===========================================================================
 // ===========================================================================
-void Parse::wt_getsat(int wtn, int *wt_sat, int wt_satsize)
+void PowerParser::wt_getsat(int wtn, int *wt_sat, int wt_satsize)
 {
     whenthens[wtn-1].getsat(wt_sat);
 }
@@ -2040,7 +2035,7 @@ void Parse::wt_getsat(int wtn, int *wt_sat, int wt_satsize)
 
 // ===========================================================================
 // ===========================================================================
-void Parse::wt_setsat(int wtn, int *wt_sat, int wt_satsize)
+void PowerParser::wt_setsat(int wtn, int *wt_sat, int wt_satsize)
 {
     whenthens[wtn-1].setsat(wt_sat);
 }
@@ -2049,12 +2044,12 @@ void Parse::wt_setsat(int wtn, int *wt_sat, int wt_satsize)
 // ===========================================================================
 // Get and Set the processed flag for a whenthen.
 // ===========================================================================
-void Parse::wt_getprocessed(int wtn, int *wtp)
+void PowerParser::wt_getprocessed(int wtn, int *wtp)
 {
     whenthens[wtn-1].getprocessed(wtp);
 }
 
-void Parse::wt_setprocessed(int wtn, int wtp)
+void PowerParser::wt_setprocessed(int wtn, int wtp)
 {
     whenthens[wtn-1].setprocessed(wtp);
 }
@@ -2063,12 +2058,12 @@ void Parse::wt_setprocessed(int wtn, int wtp)
 // ===========================================================================
 // Get and Set the sequence index for a whenthen.
 // ===========================================================================
-void Parse::wt_getseq(int wtn, int *wtseq)
+void PowerParser::wt_getseq(int wtn, int *wtseq)
 {
     whenthens[wtn-1].getseq(wtseq);
 }
 
-void Parse::wt_setseq(int wtn, int wtseq)
+void PowerParser::wt_setseq(int wtn, int wtseq)
 {
     whenthens[wtn-1].setseq(wtseq);
 }
@@ -2085,7 +2080,7 @@ void Parse::wt_setseq(int wtn, int wtseq)
 // ===========================================================================
 // Check if a restart block condition is satisfied.
 // ===========================================================================
-void Parse::rb_check(vector<string> &code_varnames,
+void PowerParser::rb_check(vector<string> &code_varnames,
                      vector<string> &code_values,
                      vector<int> &vv_active, int *rbci,
                      int *rb_ntriggered, int *rb_triggered_indices)
@@ -2111,14 +2106,14 @@ void Parse::rb_check(vector<string> &code_varnames,
 // ===========================================================================
 // Get/set the restart block names
 // ===========================================================================
-void Parse::get_rb_names(vector<string> &rb_names_vstr)
+void PowerParser::get_rb_names(vector<string> &rb_names_vstr)
 {
     rb_names_vstr.clear();
     for (int i=0; i<(int)restartblocks.size(); i++) {
         rb_names_vstr.push_back(restartblocks[i].get_name());
     }
 }
-void Parse::set_rb_names(vector<string> &rb_names_vstr)
+void PowerParser::set_rb_names(vector<string> &rb_names_vstr)
 {
     bnames_on_dump.clear();
     for (int i=0; i<(int)rb_names_vstr.size(); i++) {
@@ -2130,13 +2125,13 @@ void Parse::set_rb_names(vector<string> &rb_names_vstr)
 // ===========================================================================
 // Get/set the restart block activity flags.
 // ===========================================================================
-void Parse::get_rb_aflags(int *rb_aflags)
+void PowerParser::get_rb_aflags(int *rb_aflags)
 {
     for (int i=0; i<(int)restartblocks.size(); i++) {
         rb_aflags[i] = restartblocks[i].get_aflag();
     }
 }
-void Parse::set_rb_aflags(int *rb_aflags, int rb_num)
+void PowerParser::set_rb_aflags(int *rb_aflags, int rb_num)
 {
     baflags_on_dump.clear();
     for (int j=0; j<rb_num; j++) {
@@ -2150,7 +2145,7 @@ void Parse::set_rb_aflags(int *rb_aflags, int rb_num)
 // satsize is defined as the total number of sub-conditions over all restart
 // blocks.
 // ===========================================================================
-void Parse::get_rb_satsize(int *rb_satsize)
+void PowerParser::get_rb_satsize(int *rb_satsize)
 {
     int rb_sum = 0;
     for (int i=0; i<(int)restartblocks.size(); i++) {
@@ -2159,7 +2154,7 @@ void Parse::get_rb_satsize(int *rb_satsize)
     *rb_satsize = rb_sum;
 }
 
-void Parse::set_rb_satsize(int rb_satsize)
+void PowerParser::set_rb_satsize(int rb_satsize)
 {
     satsize_on_dump = rb_satsize;
 }
@@ -2168,14 +2163,14 @@ void Parse::set_rb_satsize(int rb_satsize)
 // ===========================================================================
 // Get/set the number of sub-conditions per restart block
 // ===========================================================================
-void Parse::get_rb_satprb(int *rb_satprb)
+void PowerParser::get_rb_satprb(int *rb_satprb)
 {
     for (int i=0; i<(int)restartblocks.size(); i++) {
         rb_satprb[i] = restartblocks[i].get_satsize();
     }
 }
 
-void Parse::set_rb_satprb(int *rb_satprb, int rb_num)
+void PowerParser::set_rb_satprb(int *rb_satprb, int rb_num)
 {
     rbsatprb_on_dump.clear();
     for (int i=0; i<rb_num; i++) {
@@ -2187,7 +2182,7 @@ void Parse::set_rb_satprb(int *rb_satprb, int rb_num)
 // ===========================================================================
 // Get/set the satisfied flag for each sub-condition for each restart block
 // ===========================================================================
-void Parse::get_rb_sat(int *rb_sat)
+void PowerParser::get_rb_sat(int *rb_sat)
 {
     int k = 0;
     for (int i=0; i<(int)restartblocks.size(); i++) {
@@ -2199,7 +2194,7 @@ void Parse::get_rb_sat(int *rb_sat)
 }
 
 
-void Parse::set_rb_sat(int *rb_sat, int rb_satsize)
+void PowerParser::set_rb_sat(int *rb_sat, int rb_satsize)
 {
     rbsat_on_dump.clear();
     for (int i=0; i<rb_satsize; i++) {
@@ -2215,7 +2210,7 @@ void Parse::set_rb_sat(int *rb_sat, int rb_satsize)
 // might be more than one variable name per restart block depending on how
 // complicated the condition is.
 // ===========================================================================
-int Parse::get_rb_num_varnames()
+int PowerParser::get_rb_num_varnames()
 {
     int numv = 0;
     for (int i=0; i<(int)restartblocks.size(); i++) {
@@ -2226,7 +2221,7 @@ int Parse::get_rb_num_varnames()
     }
     return numv;
 }
-void Parse::get_rb_varnames(vector<string> &rb_varnames_vstr)
+void PowerParser::get_rb_varnames(vector<string> &rb_varnames_vstr)
 {
     rb_varnames_vstr.clear();
     for (int i=0; i<(int)restartblocks.size(); i++) {
@@ -2247,7 +2242,7 @@ void Parse::get_rb_varnames(vector<string> &rb_varnames_vstr)
 // ===========================================================================
 // Print info about restart blocks.
 // ===========================================================================
-void Parse::list_rb()
+void PowerParser::list_rb()
 {
     stringstream ssc;
     list_rb_ss(ssc);
@@ -2256,14 +2251,14 @@ void Parse::list_rb()
     }
 }
 
-void Parse::list_rb_start()
+void PowerParser::list_rb_start()
 {
     ssfout.str("");
     list_rb_ss(ssfout);
     ssfout_current_pos = 0;
 }
 
-void Parse::list_rb_ss(stringstream &ssc)
+void PowerParser::list_rb_ss(stringstream &ssc)
 {
     int rblen = (int)restartblocks.size();
     if (rblen <= 0) {
@@ -2277,14 +2272,14 @@ void Parse::list_rb_ss(stringstream &ssc)
     }
 }
 
-void Parse::list_rb1_start(int *rb)
+void PowerParser::list_rb1_start(int *rb)
 {
     ssfout.str("");
     list_rb1_ss(ssfout, rb);
     ssfout_current_pos = 0;
 }
 
-void Parse::list_rb1_ss(stringstream &ssc, int *rbp)
+void PowerParser::list_rb1_ss(stringstream &ssc, int *rbp)
 {
     int rb = *rbp;
     int rblen = (int)restartblocks.size();
@@ -2306,7 +2301,7 @@ void Parse::list_rb1_ss(stringstream &ssc, int *rbp)
 // ===========================================================================
 // List info for one restart block, index=rb
 // ===========================================================================
-void Parse::list_one_rb_ss(stringstream &ssc, int rb)
+void PowerParser::list_one_rb_ss(stringstream &ssc, int rb)
 {
     ssc << endl;
     ssc << "** Echo restart block info, restart block name = "
@@ -2337,7 +2332,7 @@ void Parse::list_one_rb_ss(stringstream &ssc, int rb)
 // ===========================================================================
 // Print a cmds line.
 // ===========================================================================
-void Parse::print_line(int i)
+void PowerParser::print_line(int i)
 {
     if (!comm->isIOProc()) return;
     stringstream ss3;
@@ -2345,7 +2340,7 @@ void Parse::print_line(int i)
     cout << ss3.str() << endl;
 }
 
-void Parse::print_line(Cmd &cmd)
+void PowerParser::print_line(Cmd &cmd)
 {
     if (!comm->isIOProc()) return;
     //cout << cmd.get_cmd_name() << endl;
@@ -2365,7 +2360,7 @@ void Parse::print_line(Cmd &cmd)
 // var_to_list is a specific variable to list. If it is blank then all vars
 // will be listed, otherwise only the specific var will be listed.
 // ===========================================================================
-void Parse::list_vars(string lv1, string lv2, string var_to_list)
+void PowerParser::list_vars(string lv1, string lv2, string var_to_list)
 {
     stringstream ssv;
     list_vars_ss(lv1, lv2, var_to_list, ssv);
@@ -2374,7 +2369,7 @@ void Parse::list_vars(string lv1, string lv2, string var_to_list)
     }
 }
     
-void Parse::list_vars_start()
+void PowerParser::list_vars_start()
 {
     ssfout.str("");
     ssfout << pre_defined_varss.str() << endl;
@@ -2382,7 +2377,7 @@ void Parse::list_vars_start()
     ssfout_current_pos = 0;
 }
 
-void Parse::list_vars_ss(string lv1, string lv2, string var_to_list,
+void PowerParser::list_vars_ss(string lv1, string lv2, string var_to_list,
                          stringstream &ssvars)
 {
     if (!comm->isIOProc()) return;
@@ -2451,7 +2446,7 @@ void Parse::list_vars_ss(string lv1, string lv2, string var_to_list,
 // ===========================================================================
 // List functions.
 // ===========================================================================
-void Parse::list_funcs(string lf1, string lf2)
+void PowerParser::list_funcs(string lf1, string lf2)
 {
     stringstream ssf;
     list_funcs_ss(lf1, lf2, ssf);
@@ -2470,14 +2465,14 @@ void Parse::list_funcs(string lf1, string lf2)
     //}
 }
 
-void Parse::list_funcs_start()
+void PowerParser::list_funcs_start()
 {
     ssfout.str("");
     list_funcs_ss("", "", ssfout);
     ssfout_current_pos = 0;
 }
 
-void Parse::list_funcs_ss(string lf1, string lf2, stringstream &ssfunc)
+void PowerParser::list_funcs_ss(string lf1, string lf2, stringstream &ssfunc)
 {
     if (!comm->isIOProc()) return;
     ssfunc << lf1 << endl;
@@ -2529,7 +2524,7 @@ void Parse::list_funcs_ss(string lf1, string lf2, stringstream &ssfunc)
 // ===========================================================================
 // List final set of commands.
 // ===========================================================================
-void Parse::list_cmdsf(string lc1, string lc2)
+void PowerParser::list_cmdsf(string lc1, string lc2)
 {
     stringstream ssc;
     list_cmdsf_ss(lc1, lc2, ssc);
@@ -2538,14 +2533,14 @@ void Parse::list_cmdsf(string lc1, string lc2)
     }
 }
     
-void Parse::list_cmdsf_start()
+void PowerParser::list_cmdsf_start()
 {
     ssfout.str("");
     list_cmdsf_ss("", "", ssfout);
     ssfout_current_pos = 0;
 }
 
-void Parse::list_cmdsf_ss(string lc1, string lc2,
+void PowerParser::list_cmdsf_ss(string lc1, string lc2,
                           stringstream &ssc)
 {
     if (!comm->isIOProc()) return;
@@ -2570,7 +2565,7 @@ void Parse::list_cmdsf_ss(string lc1, string lc2,
 }
 
 
-void Parse::list_wt_cmdsf()
+void PowerParser::list_wt_cmdsf()
 {
     stringstream ssc;
     list_wt_cmdsf_ss(ssc);
@@ -2579,14 +2574,14 @@ void Parse::list_wt_cmdsf()
     }
 }
 
-void Parse::list_wt_cmdsf_start()
+void PowerParser::list_wt_cmdsf_start()
 {
     ssfout.str("");
     list_wt_cmdsf_ss(ssfout);
     ssfout_current_pos = 0;
 }
 
-void Parse::list_wt_cmdsf_ss(stringstream &ssc)
+void PowerParser::list_wt_cmdsf_ss(stringstream &ssc)
 {
     int wtlen = (int)whenthens.size();
     if (wtlen <= 0) {
@@ -2619,7 +2614,7 @@ void Parse::list_wt_cmdsf_ss(stringstream &ssc)
 // ===========================================================================
 // Get a line from the ssfout stringstream.
 // ===========================================================================
-bool Parse::get_ssfout_line(string &sline)
+bool PowerParser::get_ssfout_line(string &sline)
 {
     string s = ssfout.str();
     if (!get_line_from_string(s, sline,
@@ -2631,7 +2626,7 @@ bool Parse::get_ssfout_line(string &sline)
 // ===========================================================================
 // Broadcast the buffer the all the other processors.
 // ===========================================================================
-void Parse::broadcast_buffer(string &s_in)
+void PowerParser::broadcast_buffer(string &s_in)
 {
     // If there is no comm or if there is only one processor, then we don't
     // have to do anything.
@@ -2672,7 +2667,7 @@ void Parse::broadcast_buffer(string &s_in)
 // the next \n. The output string is from the current position to the \n (but
 // does not include the \n). Also remove any \r in the string.
 // ===========================================================================
-bool Parse::get_line_from_string(string &strn, string &sout, int &current_pos)
+bool PowerParser::get_line_from_string(string &strn, string &sout, int &current_pos)
 {
     // Default the output.
     sout = "";
@@ -2713,7 +2708,7 @@ bool Parse::get_line_from_string(string &strn, string &sout, int &current_pos)
 // the next ;. The output string is from the current position to the ; (but
 // does not include the ;).
 // ===========================================================================
-bool Parse::get_sc_line_from_string(string &strn, string &sout, int &current_pos)
+bool PowerParser::get_sc_line_from_string(string &strn, string &sout, int &current_pos)
 {
     // Default the output.
     sout = "";
@@ -2756,7 +2751,7 @@ bool Parse::get_sc_line_from_string(string &strn, string &sout, int &current_pos
 // ===========================================================================
 // Get rid of leading and trailing blanks and tabs.
 // ===========================================================================
-void Parse::eliminate_white_space(string &sline)
+void PowerParser::eliminate_white_space(string &sline)
 {
     int NPOS = (int)string::npos;
 
@@ -2795,7 +2790,7 @@ void Parse::eliminate_white_space(string &sline)
 // pass a packed array of single characters. This routine takes that packed
 // array and converts it to something familiar to C++ developers.
 // ===========================================================================
-void Parse::chars_to_vstr(char *chars_1d, vector<string> &vstr,
+void PowerParser::chars_to_vstr(char *chars_1d, vector<string> &vstr,
                           int nv, int nchar)
 {
     // Temporary storage for each string in the array of characters.
@@ -2857,7 +2852,7 @@ void Parse::chars_to_vstr(char *chars_1d, vector<string> &vstr,
 // pass a packed array of single characters. This routine takes the vector
 // of strings and converts that to a packed character array.
 // ===========================================================================
-void Parse::vstr_to_chars(char *chars_1d, vector<string> &vstr,
+void PowerParser::vstr_to_chars(char *chars_1d, vector<string> &vstr,
                           int nv, int nchar)
 {
     // Loop through each string in the vector of strings.
@@ -2887,5 +2882,5 @@ void Parse::vstr_to_chars(char *chars_1d, vector<string> &vstr,
 
 
 
-} // end of the PowerParser namespace
+} // end of the PP namespace
 

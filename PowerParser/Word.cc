@@ -75,7 +75,7 @@
 
 #include "Word.hh"
 
-namespace PowerParser
+namespace PP
 {
 using std::string;
 using std::cout;
@@ -1177,5 +1177,5 @@ void Word::string_to_lower( string &s ) const
 
 
 
-} // End of the PowerParser namespace
+} // End of the PP namespace
 
