@@ -21,15 +21,15 @@ Parser Initialization
 The parser can be initialized with one of the two following commands::
 
    #include "PowerParser.hh"
-   using namespace PowerParser;
+   using namespace PP;
 
    int main(int argc, char *argv[])
    {
       .....
 
-      Parse *parse = new Parse();
+      PowerParser *parse = new PowerParser();
          or
-      Parse *parse = new Parse("file.in");
+      PowerParser *parse = new PowerParser("file.in");
 
 This operation will initialize the parsing object and either initialize MPI or use an already
 initialized MPI context. The processor communication layer is automatically handled, but a
