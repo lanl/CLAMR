@@ -599,6 +599,10 @@ set (CMAKE_CHECK_COMMAND make mesh_check &&
 
 add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND})
 
+set (CMAKE_DOC_COMMAND make PowerParser_doc)
+
+add_custom_target(doc COMMAND ${CMAKE_DOC_COMMAND})
+
 # configure a header file to pass some of the CMake settings
 # to the source code
 # at bottom because we set things that change config above

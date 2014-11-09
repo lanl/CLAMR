@@ -51,19 +51,8 @@
  *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
-// ***************************************************************************
-// ***************************************************************************
-// Provide a class that parses text files into lines and words.
-// ***************************************************************************
-// ***************************************************************************
 #ifndef PARSEHHINCLUDE
 #define PARSEHHINCLUDE
-
-#include <string>
-#include <vector>
-#include <deque>
-#include <map>
-#include <sstream>
 
 // Need to include Cmd.hh because on the PGI compiler, the deque<Cmd>
 // declaration did not work with just doing "class Cmd;", we need to fully
@@ -74,59 +63,256 @@
 #include "Whenthen.hh"
 #include "Comm.hh"
 
+/****************************************************************//**
+ * PP is the namespace for PowerParser. Example:
+ *
+ *     using namespace PP;
+ *******************************************************************/
 namespace PP
 {
-using std::string;
-using std::vector;
-using std::deque;
-using std::map;
-using std::stringstream;
 
-    //class Variable;
-    //class Function;
-
+/****************************************************************//**
+ * PowerParser class 
+ *    Provide a class that parses text files into lines and words.
+ *******************************************************************/
 class PowerParser
 {
+
 public:
     
-    // Constructors, destructors and drivers.
-    PowerParser();
+/****************************************************************//**
+ * \brief
+ * Constructor with no arguments
+ *
+ * Typical Usage   
+ *
+ *     PowerParser parse;
+ *           or
+ *     PowerParser *parse = new PowerParser();
+ *******************************************************************/
+    PowerParser(void);
+
+/****************************************************************//**
+ * \brief
+ * Constructor -- with input filename in string format
+ *
+ * **Parameters**
+ * * string filename[in] -- the input file. The file will be
+ *    read in, broadcast, and then parsed
+ *
+ * Typical Usage
+ *
+ *     string fin("simfile.in");
+ *     PowerParser parse(fin);
+ *           or
+ *     string fin("simfile.in");
+ *     PowerParser *parse = new PowerParser(fin);
+ *******************************************************************/
     PowerParser(string filename);
+
+/****************************************************************//**
+ * \brief
+ *  Constructor -- with input filename in char array format
+ *
+ *  **Parameters**
+ *  * const char *filename[in] -- the input file. The file will be
+ *    read in, broadcast, and then parsed
+ *
+ * Typical Usage
+ *
+ *     PowerParser parse("simfile.in");
+ *           or
+ *     PowerParser *parse = new PowerParser("simfile.in");
+ *******************************************************************/
     PowerParser(const char *filename);
+
+/****************************************************************//**
+ * \brief
+ * Reads the file in on the IO processor, broadcast the string
+ * to all the other processors, then parse the string.
+ *
+ * **Parameters**
+ * * string filename
+ *
+ * Typical Usage
+ *
+ *     string fin("simfile.in");
+ *     PowerParser parse();
+ *     parse.parse_file(fin);
+ *******************************************************************/
     void parse_file(string filename);
+
+/****************************************************************//**
+ * \brief
+ * Reads the file in on the IO processor, broadcast the string
+ * to all the other processors, then parse the string.
+ *
+ * **Parameters**
+ * * const char *filename
+ *
+ * Typical Usage
+ *
+ *     PowerParser parse();
+ *     parse.parse_file("simfile.in");
+ *******************************************************************/
     void parse_file(const char *filename);
+
+/****************************************************************//**
+ * \brief
+ * Given a multi-line string on every processor, parse it into cmds
+ * and words. After calling this function, the parser is ready for use.
+ *******************************************************************/
     void parse_string(string filename, string s_in);
+
+/****************************************************************//**
+ * \brief
+ * The input file(s) has been read and put into commands. Now do the
+ * compilation phase.
+ *******************************************************************/
     void compile_buffer();
+
+/****************************************************************//**
+ * \brief
+ * Handle the execution line arguments
+ *******************************************************************/
     void handle_exe_args(string other_argggs);
+
+/****************************************************************//**
+ * \brief
+ * Clear out the parser and re-init
+ *******************************************************************/
     void clear_and_init();
 
+/****************************************************************//**
+ *******************************************************************/
     void store_exe_args(string &oargs, string &fname) {
         other_args = oargs;
         file_name = fname;
     }
+
+/****************************************************************//**
+ *******************************************************************/
     void get_exe_args(string &oargs, string &fname) {
         oargs = other_args;
         fname = file_name;
     }
 
-    // String versions
+/****************************************************************//**
+ * \brief
+ * String version of the driver for getting boolean values as integers.
+ * This works for arrays of any dimension, 0,1,2,3,...
+ *
+ * **Parameters**
+ * * string &cname -- key word in input file
+ * * int *cvalue -- variable to set in simulation code
+ * * const vector<int> &size = vector<int>() -- sizes of array,
+ *      (default is null for a scalar).
+ * * bool skip = false -- skip setting variable, (default is false)
+ *
+ * Typical Usage
+ *
+ *     for scalars
+ *        string InputName("OutputGraphics");
+ *        int iflag = 0;
+ *        parse.get_bool_int(InputName, &iflag);
+ *     or for arrays
+ *        string InputName("OutputGraphicsTypes");
+ *        vector<int> iflags[2] = {0, 0};
+ *        vector<int> size = {2};
+ *        parse.get_bool_int(InputName, &iflags[0], size);
+ *******************************************************************/
     void get_bool_int(string &cname,
                       int *cvalue,
                       const vector<int> &size = vector<int>(), // optional argument
                       bool skip = false);                      // optional argument
+
+/****************************************************************//**
+ * \brief
+ * String version of the driver for getting boolean values.
+ * This works for arrays of any dimension, 0,1,2,3,...
+ *
+ * **Parameters**
+ * * string &cname -- key word in input file
+ * * bool *cvalue -- variable to set in simulation code
+ * * const vector<int> &size = vector<int>() -- sizes of array,
+ *      (default is null for a scalar).
+ * * bool skip = false -- skip setting variable, (default is false)
+ *
+ * Typical Usage
+ *
+ *     for scalars
+ *        string InputName("OutputGraphics");
+ *        bool iflag = 0;
+ *        parse.get_bool(InputName, &iflag);
+ *     or for arrays
+ *        string InputName("OutputGraphicsTypes");
+ *        vector<bool> iflags[2] = {0, 0};
+ *        vector<int> size = {2};
+ *        parse.get_bool(InputName, &iflags[0], size);
+ *******************************************************************/
     void get_bool(string &cname,
                   bool *cvalue,
                   const vector<int> &size = vector<int>(),     // optional argument
                   bool skip = false);                          // optional argument
+
+/****************************************************************//**
+ * \brief
+ * String version of the driver for getting integer values.
+ * This works for arrays of any dimension, 0,1,2,3,...
+ *
+ * **Parameters**
+ * * const char *cname -- key word in input file
+ * * int *cvalue -- variable to set in simulation code. Int can be
+ *      either standard int or long long int
+ * * const vector<int> &size = vector<int>() -- sizes of array,
+ *      (default is null for a scalar).
+ * * bool skip = false -- skip setting variable, (default is false)
+ *
+ * Typical Usage
+ *
+ *     for scalars
+ *        int ivalue = 0;
+ *        parse.get_int("Num_Cycles", &ivalue);
+ *     or for arrays
+ *        vector<int> ivalue[2] = {0, 0};
+ *        vector<int> size = {2};
+ *        parse.get_int("Dimensions", &ivalue[0], size);
+ *******************************************************************/
     template< typename T >
     void get_int(string &cname,
                  T *cvalue,
                  const vector<int> &size = vector<int>(),      // optional argument
                  bool skip = false);                           // optional argument
+
+/****************************************************************//**
+ * \brief
+ * String version of the driver for getting real values.
+ * This works for arrays of any dimension, 0,1,2,3,...
+ *
+ * **Parameters**
+ * * const char *cname -- key word in input file
+ * * double *cvalue -- variable to set in simulation code.
+ * * const vector<int> &size = vector<int>() -- sizes of array,
+ *      (default is null for a scalar).
+ * * bool skip = false -- skip setting variable, (default is false)
+ *
+ * Typical Usage
+ *
+ *     for scalars
+ *        double rvalue = 0;
+ *        parse.get_real("TimeStop", &rvalue);
+ *     or for arrays
+ *        vector<double> rvalues[2] = {0.0, 0.0};
+ *        vector<int> size = {2};
+ *        parse.get_real("DumpTimes", &rvalues[0], size);
+ *******************************************************************/
     void get_real(string &cname,
                   double *cvalue,
                   const vector<int> &size = vector<int>(),     // optional argument
                   bool skip = false);                          // optional argument
+
+/****************************************************************//**
+ *******************************************************************/
     void get_char(string &cname,
                   vector<string> &vstr,
                   const vector<int> &size = vector<int>(),     // optional argument
@@ -136,44 +322,220 @@ public:
     // These are just convenience function to allow char arrays for get variable so
     // the calls are simpler. They convert the cname to a string and call the 
     // string versions above
+
+/****************************************************************//**
+ * \brief
+ * Char array version of the driver for getting boolean values as integers.
+ * This works for arrays of any dimension, 0,1,2,3,...
+ *
+ * **Parameters**
+ * * const char *cname -- key word in input file
+ * * int *cvalue -- variable to set in simulation code
+ * * const vector<int> &size = vector<int>() -- sizes of array,
+ *      (default is null for a scalar).
+ * * bool skip = false -- skip setting variable, (default is false)
+ *
+ * Typical Usage
+ *
+ *     for scalars
+ *        int iflag = 0;
+ *        parse.get_bool_int("OutputGraphics", &iflag);
+ *     or for arrays
+ *        vector<int> iflags[2] = {0, 0};
+ *        vector<int> size = {2};
+ *        parse.get_bool_int("OutputGraphicsTypes", &iflags[0], size);
+ *******************************************************************/
     void get_bool_int(const char *cname,
                       int *cvalue,
                       const vector<int> &size = vector<int>(), // optional argument
                       bool skip = false);                      // optional argument
+
+/****************************************************************//**
+ * \brief
+ * Char array version of the driver for getting boolean values.
+ * This works for arrays of any dimension, 0,1,2,3,...
+ *
+ * **Parameters**
+ * * const char *cname -- key word in input file
+ * * bool *cvalue -- variable to set in simulation code
+ * * const vector<int> &size = vector<int>() -- sizes of array,
+ *      (default is null for a scalar).
+ * * bool skip = false -- skip setting variable, (default is false)
+ *
+ * Typical Usage
+ *
+ *     for scalars
+ *        bool iflag = 0;
+ *        parse.get_bool("OutputGraphics", &iflag);
+ *     or for arrays
+ *        vector<bool> iflags[2] = {0, 0};
+ *        vector<int> size = {2};
+ *        parse.get_bool("OutputGraphicsTypes", &iflags[0], size);
+ *******************************************************************/
     void get_bool(const char *cname,
                   bool *cvalue,
                   const vector<int> &size = vector<int>(),     // optional argument
                   bool skip = false);                          // optional argument
+
+/****************************************************************//**
+ * \brief
+ * Char array version of the driver for getting integer values.
+ * This works for arrays of any dimension, 0,1,2,3,...
+ *
+ * **Parameters**
+ * * const char *cname -- key word in input file
+ * * int *cvalue -- variable to set in simulation code. Int can be
+ *      either standard int or long long int
+ * * const vector<int> &size = vector<int>() -- sizes of array,
+ *      (default is null for a scalar).
+ * * bool skip = false -- skip setting variable, (default is false)
+ *
+ * Typical Usage
+ *
+ *     for scalars
+ *        int ivalue = 0;
+ *        parse.get_int("Num_Cycles", &ivalue);
+ *     or for arrays
+ *        vector<int> ivalue[2] = {0, 0};
+ *        vector<int> size = {2};
+ *        parse.get_int("Dimensions", &ivalue[0], size);
+ *******************************************************************/
     template< typename T >
     void get_int(const char *cname,
                  T *cvalue,
                  const vector<int> &size = vector<int>(),      // optional argument
                  bool skip = false);                           // optional argument
+
+/****************************************************************//**
+ * \brief
+ * Char array version of the driver for getting real values.
+ * This works for arrays of any dimension, 0,1,2,3,...
+ *
+ * **Parameters**
+ * * const char *cname -- key word in input file
+ * * double *cvalue -- variable to set in simulation code.
+ * * const vector<int> &size = vector<int>() -- sizes of array,
+ *      (default is null for a scalar).
+ * * bool skip = false -- skip setting variable, (default is false)
+ *
+ * Typical Usage
+ *
+ *     for scalars
+ *        double rvalue = 0;
+ *        parse.get_real("TimeStop", &rvalue);
+ *     or for arrays
+ *        vector<real> rvalue[2] = {0.0, 0.0};
+ *        vector<int> size = {2};
+ *        parse.get_real("DumpTimes", &rvalue[0], size);
+ *******************************************************************/
     void get_real(const char *cname,
                   double *cvalue,
                   const vector<int> &size = vector<int>(),     // optional argument
                   bool skip = false);                          // optional argument
+
+/****************************************************************//**
+ *******************************************************************/
     void get_char(const char *cname,
                   vector<string> &vstr,
                   const vector<int> &size = vector<int>(),     // optional argument
                   bool single_char = false,                    // optional argument
                   bool skip = false);                          // optional argument
 
+
+/****************************************************************//**
+ * \brief
+ * Driver for getting array sizes.
+ *******************************************************************/
     void get_size(string &cname, vector<int> &size);
+
+/****************************************************************//**
+ * \brief
+ * Driver for getting array sizes. Version to get all sizes
+ *******************************************************************/
     void get_sizeb(string &cname, vector<int> &size);
+
+
+/****************************************************************//**
+ * \brief
+ * Check if the input command, cname, appears in the final, parsed user input.
+ *
+ * The two outputs are in_input and in_whenthen,
+ *    in_input     command is in (or not) the main part of the input, i.e.
+ *                 everything except the when...then statements.
+ *    in_whenthen  command is in (or not) at least one when...then statement.
+ *******************************************************************/
     void cmd_in_input(string &cname, bool &in_input, bool &in_whenthen);
+
+/****************************************************************//**
+ * \brief
+ * Set the processed flag for all words for all commands that match cname.
+ * The value to set the processed flag to is bval.
+ * This sets the processed flag for commands in the final buffer and in the
+ * when...then final buffers.
+ *******************************************************************/
     void cmd_set_processed(string &cname, bool bval);
+
+/****************************************************************//**
+ * \brief
+ * Check all processed flags on every command. If any word on any command
+ * has not been processed, then that is a fatal error.
+ *******************************************************************/
     void check_processed(bool &good);
+
+/****************************************************************//**
+ * \brief
+ * If commands appear more than once in the input file(s), print a warning
+ * to the user.
+ *******************************************************************/
     void check_duplicates();
 
-    void list_funcs_start();
-    void list_vars_start();
-    void list_cmdsf_start();
-    void list_wt_cmdsf_start();
-    bool get_ssfout_line(string &sline);
 
+/****************************************************************//**
+ * \brief
+ * Echo user input to a stringstream.
+ *******************************************************************/
     void echo_input_start();
+
+/****************************************************************//**
+ * \brief
+ * Echo user input to a stringstream.
+ *******************************************************************/
     void echo_input_ss(stringstream &ssinp);
+
+/****************************************************************//**
+ * \brief
+ *  Holds internal comm class for PowerParser. Comm is initialized
+ *  as a singleton and will use an already initialized MPI or 
+ *  initialize it itself.  This is meant to be for use internal to
+ *  the package, but developers can get the number of processors
+ *  and rank with
+ *
+ *      int mype = parse->comm->getProcRank();
+ *      int npes = parse->comm->getNumProcs();
+ *******************************************************************/
+    Comm *comm;
+
+private:
+/****************************************************************//**
+ *******************************************************************/
+    void list_funcs_start();
+
+/****************************************************************//**
+ *******************************************************************/
+    void list_vars_start();
+
+/****************************************************************//**
+ *******************************************************************/
+    void list_cmdsf_start();
+
+/****************************************************************//**
+ *******************************************************************/
+    void list_wt_cmdsf_start();
+
+/****************************************************************//**
+ * Get a line from the ssfout stringstream. (low-level function)
+ *******************************************************************/
+    bool get_ssfout_line(string &sline);
 
     void process_error_global();
 
@@ -225,9 +587,6 @@ public:
                        int nv, int nchar);
     void vstr_to_chars(char *chars_1d, vector<string> &vstr,
                        int nv, int nchar);
-
-    // Communications object from the infrastructure. 
-    Comm *comm;
 
 private:
 

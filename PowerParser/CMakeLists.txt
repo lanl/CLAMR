@@ -66,6 +66,9 @@ set(CXX_SRCS Cmd.cc   Function.cc    Parser_utils.cc  Variable.cc      Word.cc
 set(DOC_SRCS docs/index.rst docs/About.rst docs/GettingStarted.rst
              docs/DevelopersGuide.rst docs/UsersGuide.rst)
 
+set(PDFDOC_SRCS docs/indexpdf.rst docs/About.rst docs/GettingStarted.rst
+             docs/DevelopersGuide.rst docs/UsersGuide.rst)
+
 ########### PowerParser target ###############
 set(PowerParser_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
 
@@ -78,22 +81,51 @@ install(TARGETS PowerParser DESTINATION lib)
 
 ########### doc targets ################
 
-#add_custom_target(doc ALL DEPENDS pdfdoc htmldoc singlehtmldoc)
+if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+   add_custom_target(doc DEPENDS pdfdoc htmldoc singlehtmldoc)
+   set_target_properties(doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
-add_custom_command(OUTPUT _build/latex/PowerParser.pdf
-                   COMMAND make -C docs latexpdf >& pdfdoc.out
-                   DEPENDS ${DOC_SRCS})
-add_custom_target(pdfdoc ALL DEPENDS _build/latex/PowerParser.pdf)
+   add_custom_command(OUTPUT _build/latex/PowerParser.pdf
+                      COMMAND make -C docs latexpdf >& pdfdoc.out
+                      DEPENDS ${PDFDOC_SRCS})
+   add_custom_target(pdfdoc DEPENDS _build/latex/PowerParser.pdf)
+   set_target_properties(pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
-add_custom_command(OUTPUT _build/html/UsersGuide.html
-                   COMMAND make -C docs html >& htmldoc.out
-                   DEPENDS ${DOC_SRCS})
-add_custom_target(htmldoc ALL DEPENDS _build/html/UsersGuide.html)
+   add_custom_command(OUTPUT _build/html/UsersGuide.html
+                      COMMAND make -C docs html >& htmldoc.out
+                      DEPENDS ${DOC_SRCS})
+   add_custom_target(htmldoc DEPENDS _build/html/UsersGuide.html)
+   set_target_properties(htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
-add_custom_command(OUTPUT _build/singlehtml/index.html
-                   COMMAND make -C docs singlehtml >& singlehtmldoc.out
-                   DEPENDS ${DOC_SRCS})
-add_custom_target(singlehtmldoc ALL DEPENDS _build/singlehtml/index.html)
+   add_custom_command(OUTPUT _build/singlehtml/index.html
+                      COMMAND make -C docs singlehtml >& singlehtmldoc.out
+                      DEPENDS ${DOC_SRCS})
+   add_custom_target(singlehtmldoc DEPENDS _build/singlehtml/index.html)
+   set_target_properties(singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+else (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+   add_custom_target(PowerParser_doc
+                     DEPENDS PowerParser_pdfdoc PowerParser_htmldoc
+                             PowerParser_singlehtmldoc)
+   set_target_properties(PowerParser_doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/latex/PowerParser.pdf
+                      COMMAND make -C docs latexpdf >& pdfdoc.out
+                      DEPENDS ${PDFDOC_SRCS})
+   add_custom_target(PowerParser_pdfdoc DEPENDS _build/latex/PowerParser.pdf)
+   set_target_properties(PowerParser_pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/html/UsersGuide.html
+                      COMMAND make -C docs html >& htmldoc.out
+                      DEPENDS ${DOC_SRCS})
+   add_custom_target(PowerParser_htmldoc DEPENDS _build/html/UsersGuide.html)
+   set_target_properties(PowerParser_htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/singlehtml/index.html
+                      COMMAND make -C docs singlehtml >& singlehtmldoc.out
+                      DEPENDS ${DOC_SRCS})
+   add_custom_target(PowerParser_singlehtmldoc DEPENDS _build/singlehtml/index.html)
+   set_target_properties(PowerParser_singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
 
 ########### clean files ################
 SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "install_manifest.txt;docs/_build;htmldoc.out;pdfdoc.out;singlehtmldoc.out")

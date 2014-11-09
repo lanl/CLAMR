@@ -1847,7 +1847,6 @@ void PowerParser::cmd_in_input(string &cname, bool &in_input, bool &in_whenthen)
 // The value to set the processed flag to is bval.
 // This sets the processed flag for commands in the final buffer and in the
 // when...then final buffers.
-// This is meant to be called from an mgname call.
 // ===========================================================================
 void PowerParser::cmd_set_processed(string &cname, bool bval)
 {

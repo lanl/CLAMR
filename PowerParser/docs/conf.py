@@ -12,6 +12,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+#sys.path.append( "/home/me/docproj/ext/breathe/" )
+import breathe
 import sys
 import os
 
@@ -37,6 +39,14 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
 ]
+
+extensions = ['sphinx.ext.pngmath', 'sphinx.ext.todo', 'breathe' ]
+breathe_projects = { "PowerParser": "_build/breathe/doxygen/PowerParser/xml/" }
+breathe_default_project = "PowerParser"
+
+breathe_projects_source = {
+     "PowerParser" : ( "..", ["PowerParser.hh"] )
+     }
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -204,7 +214,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'PowerParser.tex', u'PowerParser Documentation',
+  ('indexpdf', 'PowerParser.tex', u'PowerParser Documentation',
    u'Chuck Wingate and Bob Robey', 'manual'),
 ]
 

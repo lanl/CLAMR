@@ -17,7 +17,6 @@ Contents:
    UsersGuide
    Examples
    DevelopersGuide
-   API_Docs
 
 Indices and tables
 ==================
