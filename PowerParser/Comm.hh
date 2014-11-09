@@ -54,7 +54,7 @@
 #ifndef COMMHHINCLUDE
 #define COMMHHINCLUDE
 
-#ifdef __MPI__
+#ifdef HAVE_MPI
 #define MPI_NO_CPPBIND
 #include "mpi.h"
 #endif

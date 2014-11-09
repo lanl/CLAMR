@@ -75,9 +75,18 @@ set(PowerParser_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
 add_library(PowerParser STATIC ${PowerParser_LIB_SRCS})
 
 set_target_properties(PowerParser PROPERTIES VERSION ${POWERPARSER_VERSION} SOVERSION ${POWERPARSER_VERSION_MAJOR})
-target_link_libraries(PowerParser ${MPI_LIBRARIES})
-
 install(TARGETS PowerParser DESTINATION lib)
+
+########### pPowerParser target ###############
+set(pPowerParser_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+
+add_library(pPowerParser STATIC ${PowerParser_LIB_SRCS})
+
+set_target_properties(pPowerParser PROPERTIES VERSION ${POWERPARSER_VERSION} SOVERSION ${POWERPARSER_VERSION_MAJOR})
+set_target_properties(pPowerParser PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+target_link_libraries(pPowerParser ${MPI_LIBRARIES})
+
+install(TARGETS pPowerParser DESTINATION lib)
 
 ########### doc targets ################
 

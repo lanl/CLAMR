@@ -32,6 +32,9 @@ IF (UNIX)
    */*/cmake_install.cmake
    install_manifest.txt
    */install_manifest.txt
+   *.dSYM
+   */*.dSYM
+   */*/*.dSYM
   )
   
   ADD_CUSTOM_COMMAND(

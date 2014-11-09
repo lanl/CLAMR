@@ -65,6 +65,7 @@
 #endif
 
 double ***gentrimatrix_double_p(int knum, int jnum, int inum, const char *file, const int line);
+int ***gentrimatrix_int_p(int knum, int jnum, int inum, const char *file, const int line);
 
 SLIST_HEAD(slist_genmalloc_memory_head, genmalloc_memory_entry) genmalloc_memory_head = SLIST_HEAD_INITIALIZER(genmalloc_memory_head);
 struct slist_genmalloc_memory_head *genmalloc_memory_headp;
@@ -137,6 +138,8 @@ void ***gentrimatrix_p(int knum, int jnum, int inum, size_t elsize, const char *
    void ***out;
    if (elsize == 8) {
       out = (void ***)gentrimatrix_double_p(knum, jnum, inum, file, line);
+   } else if (elsize == 4) {
+      out = (void ***)gentrimatrix_int_p(knum, jnum, inum, file, line);
    } else {
       printf("Error -- element size not supported in genmalloc for call at %s line %d\n",file,line);
    }
@@ -159,6 +162,45 @@ double ***gentrimatrix_double_p(int knum, int jnum, int inum, const char *file, 
 
    mem_size  = knum*jnum*sizeof(void *);
    out[0]    = (double **) malloc(mem_size);
+   genmalloc_memory_add(out[0], mem_size);
+
+   size_t nelems = knum*jnum*inum;
+   mem_size  = nelems*elsize;
+   out[0][0] = (void *)calloc(nelems, elsize);
+   genmalloc_memory_add(out[0][0], mem_size);
+
+   for (int k = 0; k < knum; k++)
+   {
+      if (k > 0)
+      {
+         out[k] = out[k-1] + jnum;
+         out[k][0] = out[k-1][0] + (jnum*inum);
+      }
+
+      for (int j = 1; j < jnum; j++)
+      {
+         out[k][j] = out[k][j-1] + inum;
+      }
+   }
+
+   return (out);
+}
+
+int ***gentrimatrix_int_p(int knum, int jnum, int inum, const char *file, const int line)
+{
+   // Just to get rid of warning
+   if (1 == 2) printf("Warning file %s line %d\n", file, line);
+
+   int ***out;
+   size_t mem_size;
+   const size_t elsize = 4;
+
+   mem_size  = knum*sizeof(void **);
+   out       = (int ***)malloc(mem_size);
+   genmalloc_memory_add(out, mem_size);
+
+   mem_size  = knum*jnum*sizeof(void *);
+   out[0]    = (int **) malloc(mem_size);
    genmalloc_memory_add(out[0], mem_size);
 
    size_t nelems = knum*jnum*inum;

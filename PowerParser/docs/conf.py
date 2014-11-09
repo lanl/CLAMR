@@ -62,7 +62,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'PowerParser'
-copyright = u'2014, Chuck Wingate and Bob Robey'
+copyright = u'2014, Chuck Wingate and Bob Robey, Los Alamos National Laboratory, LA-CC-11-094'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -135,7 +135,7 @@ html_theme = 'default'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#html_logo = None
+html_logo = "PowerParser_logo.pdf"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -220,7 +220,7 @@ latex_documents = [
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-#latex_logo = None
+latex_logo = "PowerParser_logo.pdf"
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
