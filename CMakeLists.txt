@@ -588,9 +588,6 @@ if (MPI_FOUND AND OPENCL_FOUND)
    install(TARGETS clamr_checkall DESTINATION bin)
 endif (MPI_FOUND AND OPENCL_FOUND)
 
-########### clean files ################
-SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.inc;clamr;clamr_cpuonly;clamr_gpuonly;clamr_mpionly;clamr_gpucheck;clamr_mpicheck;clamr_checkall;clamr_quo")
-
 ########### install files ###############
 
 set (CMAKE_CHECK_COMMAND make mesh_check &&
@@ -618,3 +615,7 @@ add_custom_target(doc COMMAND ${CMAKE_DOC_COMMAND})
 # to the source code
 # at bottom because we set things that change config above
 configure_file ( "${PROJECT_SOURCE_DIR}/config.h.in" "${PROJECT_BINARY_DIR}/config.h")
+
+########### clean files ################
+SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.inc;clamr;clamr_cpuonly;clamr_gpuonly;clamr_mpionly;clamr_gpucheck;clamr_mpicheck;clamr_checkall;clamr_quo;total_execution_time.log")
+
