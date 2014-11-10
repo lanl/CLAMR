@@ -16,3 +16,9 @@ CMakeCache.txt
 *.so
 lib*.so.*
 *.inc
+htmldoc.out
+pdfdoc.out
+singlehtmldoc.out
+_build
+CTestTestfile.cmake
+Testing
