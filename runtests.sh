@@ -59,8 +59,8 @@ mpirun -n 2 ./clamr_checkall -n 256 -i 100 -t 1000
 echo ""
 echo ""
 
-echo "mpirun -n 3 --map-by socket ./clamr_checkall -n 4 -i 1 -t 1"
-mpirun -n 3 --map-by socket ./clamr_checkall -n 4 -i 1 -t 1
+echo "mpirun -n 3 ./clamr_checkall -n 4 -i 1 -t 1"
+mpirun -n 3 ./clamr_checkall -n 4 -i 1 -t 1
 echo ""
 echo ""
 
