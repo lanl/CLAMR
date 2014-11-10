@@ -2,9 +2,7 @@
 
 set(H_SRCS)
 
-set(C_SRCS
-      ParserTest.cc
-)
+set(CXX_SRCS ParserTest.cc)
 
 if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
    include_directories(${CMAKE_SOURCE_DIR})
@@ -14,7 +12,7 @@ else ()
 endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
 
 ########### ParserTest target ###############
-set(ParserTest_SRCS ${C_SRCS} ${H_SRCS})
+set(ParserTest_SRCS ${CXX_SRCS} ${H_SRCS})
 
 add_executable(ParserTest EXCLUDE_FROM_ALL ${ParserTest_SRCS})
 

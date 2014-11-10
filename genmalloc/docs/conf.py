@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# PowerParser documentation build configuration file, created by
-# sphinx-quickstart on Fri Oct 31 13:12:56 2014.
+# genmalloc documentation build configuration file, created by
+# sphinx-quickstart on Sun Nov  9 19:42:58 2014.
 #
 # This file is execfile()d with the current directory set to its
 # containing dir.
@@ -12,8 +12,6 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-#sys.path.append( "/home/me/docproj/ext/breathe/" )
-import breathe
 import sys
 import os
 
@@ -37,16 +35,7 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
-#   'sphinx.ext.viewcode',
 ]
-
-extensions = ['sphinx.ext.pngmath', 'sphinx.ext.todo', 'breathe' ]
-breathe_projects = { "PowerParser": "_build/breathe/doxygen/PowerParser/xml/" }
-breathe_default_project = "PowerParser"
-
-breathe_projects_source = {
-     "PowerParser" : ( "..", ["PowerParser.hh"] )
-     }
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -61,8 +50,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'PowerParser'
-copyright = u'2014, Chuck Wingate and Bob Robey, Los Alamos National Laboratory, LA-CC-11-094'
+project = u'genmalloc'
+copyright = u'2014, Bob Robey'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -135,7 +124,7 @@ html_theme = 'default'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = "PowerParser_logo.pdf"
+#html_logo = None
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -194,7 +183,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'PowerParserdoc'
+htmlhelp_basename = 'genmallocdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -214,13 +203,13 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('indexpdf', 'PowerParser.tex', u'PowerParser Documentation',
-   u'Chuck Wingate and Bob Robey', 'manual'),
+  ('index', 'genmalloc.tex', u'genmalloc Documentation',
+   u'Bob Robey', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-latex_logo = "PowerParser_logo.pdf"
+#latex_logo = None
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
@@ -244,8 +233,8 @@ latex_logo = "PowerParser_logo.pdf"
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'parser', u'PowerParser Documentation',
-     [u'Chuck Wingate and Bob Robey'], 1)
+    ('index', 'genmalloc', u'genmalloc Documentation',
+     [u'Bob Robey'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -258,8 +247,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'PowerParser', u'PowerParser Documentation',
-   u'Chuck Wingate and Bob Robey', 'PowerParser', 'One line description of project.',
+  ('index', 'genmalloc', u'genmalloc Documentation',
+   u'Bob Robey', 'genmalloc', 'One line description of project.',
    'Miscellaneous'),
 ]
 
@@ -279,13 +268,13 @@ texinfo_documents = [
 # -- Options for Epub output ----------------------------------------------
 
 # Bibliographic Dublin Core info.
-epub_title = u'PowerParser'
-epub_author = u'Chuck Wingate and Bob Robey'
-epub_publisher = u'Los Alamos National Laboratory'
-epub_copyright = u'2014, Chuck Wingate and Bob Robey'
+epub_title = u'genmalloc'
+epub_author = u'Bob Robey'
+epub_publisher = u'Bob Robey'
+epub_copyright = u'2014, Bob Robey'
 
 # The basename for the epub file. It defaults to the project name.
-#epub_basename = u'PowerParser'
+#epub_basename = u'genmalloc'
 
 # The HTML theme for the epub output. Since the default themes are not optimized
 # for small screen space, using the same theme for HTML and epub output is

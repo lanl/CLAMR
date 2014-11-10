@@ -595,11 +595,22 @@ SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.in
 
 set (CMAKE_CHECK_COMMAND make mesh_check &&
                          make l7_check &&
+                         make ezcl_check &&
+                         make MallocPlus_check &&
                          make PowerParser_check)
 
 add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND})
 
-set (CMAKE_DOC_COMMAND make PowerParser_doc)
+set (CMAKE_DOC_COMMAND make PowerParser_doc &&
+                       make MallocPlus_doc &&
+                       make L7_doc &&
+                       make ezcl_doc &&
+                       make genmalloc_doc &&
+                       make Graphics_doc &&
+                       make Hash_doc &&
+                       make memstats_doc &&
+                       make Mesh_doc &&
+                       make Crux_doc)
 
 add_custom_target(doc COMMAND ${CMAKE_DOC_COMMAND})
 

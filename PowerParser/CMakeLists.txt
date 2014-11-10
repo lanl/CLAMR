@@ -88,6 +88,10 @@ target_link_libraries(pPowerParser ${MPI_LIBRARIES})
 
 install(TARGETS pPowerParser DESTINATION lib)
 
+########### install files ###############
+
+install(FILES PowerParser.hh DESTINATION include)
+
 ########### doc targets ################
 
 if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
@@ -139,6 +143,3 @@ endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
 ########### clean files ################
 SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "install_manifest.txt;docs/_build;htmldoc.out;pdfdoc.out;singlehtmldoc.out")
 
-########### install files ###############
-
-install(FILES PowerParser.hh DESTINATION include)

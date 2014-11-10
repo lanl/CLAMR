@@ -118,3 +118,54 @@ endif(OPENCL_FOUND)
 
 install(FILES  hash.h DESTINATION include/hash)
 
+########### doc targets ################
+
+if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+   add_custom_target(doc DEPENDS pdfdoc htmldoc singlehtmldoc)
+   set_target_properties(doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/latex/Hash.pdf
+                      COMMAND make -C docs latexpdf >& pdfdoc.out
+                      DEPENDS ${PDFDOC_SRCS})
+   add_custom_target(pdfdoc DEPENDS _build/latex/Hash.pdf)
+   set_target_properties(pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/html/UsersGuide.html
+                      COMMAND make -C docs html >& htmldoc.out
+                      DEPENDS ${DOC_SRCS})
+   add_custom_target(htmldoc DEPENDS _build/html/UsersGuide.html)
+   set_target_properties(htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/singlehtml/index.html
+                      COMMAND make -C docs singlehtml >& singlehtmldoc.out
+                      DEPENDS ${DOC_SRCS})
+   add_custom_target(singlehtmldoc DEPENDS _build/singlehtml/index.html)
+   set_target_properties(singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+else (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+   add_custom_target(Hash_doc
+                     DEPENDS Hash_pdfdoc Hash_htmldoc
+                             Hash_singlehtmldoc)
+   set_target_properties(Hash_doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/latex/Hash.pdf
+                      COMMAND make -C docs latexpdf >& pdfdoc.out
+                      DEPENDS ${PDFDOC_SRCS})
+   add_custom_target(Hash_pdfdoc DEPENDS _build/latex/Hash.pdf)
+   set_target_properties(Hash_pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/html/UsersGuide.html
+                      COMMAND make -C docs html >& htmldoc.out
+                      DEPENDS ${DOC_SRCS})
+   add_custom_target(Hash_htmldoc DEPENDS _build/html/UsersGuide.html)
+   set_target_properties(Hash_htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/singlehtml/index.html
+                      COMMAND make -C docs singlehtml >& singlehtmldoc.out
+                      DEPENDS ${DOC_SRCS})
+   add_custom_target(Hash_singlehtmldoc DEPENDS _build/singlehtml/index.html)
+   set_target_properties(Hash_singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+
+########### clean files ################
+SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "install_manifest.txt;docs/_build;htmldoc.out;pdfdoc.out;singlehtmldoc.out")
+
