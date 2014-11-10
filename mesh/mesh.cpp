@@ -2566,9 +2566,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-   int *i_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), flags, "i_old");
-   int *j_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), flags, "j_old");
-   int *level_old    = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), flags, "level_old");
+   int *i_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
+   int *j_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
+   int *level_old    = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
    mesh_memory.memory_swap(&i, &i_old);
    mesh_memory.memory_swap(&j, &j_old);
    mesh_memory.memory_swap(&level, &level_old);
@@ -2760,7 +2760,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
          if (it->mem_elsize == 8) {
             double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
-                                                                             flags, "state_temp_double");
+                                                                             "state_temp_double", flags);
 
             double *mem_ptr_double = (double *)it->mem_ptr;
 
@@ -2811,7 +2811,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             state_memory.memory_replace(mem_ptr_double, state_temp_double);
          } else if (it->mem_elsize == 4) {
             float *state_temp_float = (float *)state_memory.memory_malloc(new_ncells, sizeof(float),
-                                                                          flags, "state_temp_float");
+                                                                          "state_temp_float", flags);
 
             float *mem_ptr_float = (float *)it->mem_ptr;
 
@@ -3036,7 +3036,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
          if (it->mem_elsize == 8) {
             double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
-                                                                             flags, "state_temp_double");
+                                                                             "state_temp_double", flags);
 
             double *mem_ptr_double = (double *)it->mem_ptr;
 
@@ -3088,7 +3088,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             state_memory.memory_replace(mem_ptr_double, state_temp_double);
          } else if (it->mem_elsize == 4) {
             float *state_temp_float = (float *)state_memory.memory_malloc(new_ncells, sizeof(float),
-                                                                          flags, "state_temp_float");
+                                                                          "state_temp_float", flags);
 
             float *mem_ptr_float = (float *)it->mem_ptr;
 
@@ -3332,7 +3332,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
 
       if (it->mem_elsize == 8){
 #ifndef MINIMUM_PRECISION
-         cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_double), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_state_var_new"));
+         cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_double), const_cast<char *>("dev_state_var_new"), DEVICE_REGULAR_MEMORY);
 
          ezcl_set_kernel_arg(kernel_rezone_one_double, 0, sizeof(cl_int),  (void *)&old_ncells);
          ezcl_set_kernel_arg(kernel_rezone_one_double, 1, sizeof(cl_mem),  (void *)&dev_i);
@@ -3355,7 +3355,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
          exit(1);
 #endif
       } else if (it->mem_elsize == 4){
-         cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_float), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_state_var_new"));
+         cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_float), const_cast<char *>("dev_state_var_new"), DEVICE_REGULAR_MEMORY);
 
          ezcl_set_kernel_arg(kernel_rezone_one_float, 0, sizeof(cl_int),  (void *)&old_ncells);
          ezcl_set_kernel_arg(kernel_rezone_one_float, 1, sizeof(cl_mem),  (void *)&dev_i);
@@ -3441,10 +3441,10 @@ void Mesh::calc_neighbors(int ncells)
       if (nrht != NULL) nrht = (int *)mesh_memory.memory_delete(nrht);
       if (nbot != NULL) nbot = (int *)mesh_memory.memory_delete(nbot);
       if (ntop != NULL) ntop = (int *)mesh_memory.memory_delete(ntop);
-      nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nlft");
-      nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nrht");
-      nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nbot");
-      ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "ntop");
+      nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
+      nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
+      nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
+      ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
    }
 
    if (calc_neighbor_type == HASH_TABLE) {
@@ -3781,10 +3781,10 @@ void Mesh::calc_neighbors_local(void)
       if (nrht != NULL) nrht = (int *)mesh_memory.memory_delete(nrht);
       if (nbot != NULL) nbot = (int *)mesh_memory.memory_delete(nbot);
       if (ntop != NULL) ntop = (int *)mesh_memory.memory_delete(ntop);
-      nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nlft");
-      nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nrht");
-      nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "nbot");
-      ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "ntop");
+      nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
+      nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
+      nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
+      ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
    }
 
 #ifdef _OPENMP
@@ -7095,7 +7095,7 @@ void Mesh::calc_celltype(size_t ncells)
 
    if (celltype == NULL || mesh_memory.get_memory_size(celltype) < ncells) {
       if (celltype != NULL) celltype = (int *)mesh_memory.memory_delete(celltype);
-      celltype = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "celltype");
+      celltype = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "celltype", flags);
    }
 
 #ifdef _OPENMP
@@ -7338,8 +7338,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
          if (it->mem_elsize == 8) {
             double *state_temp = (double *) state_memory.memory_malloc(ncells, sizeof(double),
-                                                                       flags,
-                                                                       "state_temp");
+                                                                       "state_temp", flags);
             double *mem_ptr = (double *)it->mem_ptr;
 
             //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
@@ -7364,8 +7363,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
             state_memory.memory_replace(mem_ptr, state_temp);
          } else if (it->mem_elsize == 4) {
             float *state_temp = (float *) state_memory.memory_malloc(ncells, sizeof(float),
-                                                                     flags,
-                                                                     "state_temp");
+                                                                     "state_temp", flags);
             float *mem_ptr = (float *)it->mem_ptr;
 
             //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
@@ -7401,7 +7399,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
          //int flags = mesh_memory.get_memory_flags(mem_ptr);
          // SKG XXX ???
          //if ((flags & LOAD_BALANCE_MEMORY) == 0) continue;
-         int *mesh_temp = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "mesh_temp");
+         int *mesh_temp = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "mesh_temp", flags);
          //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
          L7_Update(mem_ptr, L7_INT, load_balance_handle);
          in = 0;
@@ -7879,9 +7877,9 @@ void Mesh::allocate(size_t ncells)
    if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-   i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "i");
-   j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "j");
-   level = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), flags, "level");
+   i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "i",     flags);
+   j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "j",     flags);
+   level = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "level", flags);
 }
 
 

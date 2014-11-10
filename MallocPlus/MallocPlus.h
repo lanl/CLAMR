@@ -75,12 +75,13 @@
 using namespace std;
 
 struct malloc_plus_memory_entry {
-   void  *mem_ptr;
-   size_t mem_capacity;
-   size_t mem_nelem;
-   size_t mem_elsize;
-   int    mem_flags;
-   char  *mem_name;
+   void   *mem_ptr;
+   size_t  mem_capacity;
+   size_t *mem_nelem;
+   size_t  mem_ndims;
+   size_t  mem_elsize;
+   int     mem_flags;
+   char   *mem_name;
 };
 
 class MallocPlus {
@@ -103,8 +104,7 @@ public:
    void pfini(void);
 #endif
 
-   void *memory_malloc(size_t nelem, size_t elsize, const char *name);
-   void *memory_malloc(size_t nelem, size_t elsize, int flags, const char *name);
+   void *memory_malloc(size_t nelem, size_t elsize, const char *name, int iflags=0);
    void *memory_duplicate(void *malloc_mem_ptr, const char *addname);
 
    void *memory_realloc(size_t nelem, size_t elsize, void *malloc_mem_ptr);

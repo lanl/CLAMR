@@ -298,9 +298,9 @@ void State::allocate(size_t ncells)
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-   H = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "H");
-   U = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "U");
-   V = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "V");
+   H = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), "H", flags);
+   U = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), "U", flags);
+   V = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), "V", flags);
 }
 
 void State::resize(size_t new_ncells){
@@ -1160,16 +1160,13 @@ void State::calc_finite_difference(double deltaT){
 #endif
    state_t *H_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
                                                           sizeof(state_t),
-                                                          flags,
-                                                          "H_new");
+                                                          "H_new", flags);
    state_t *U_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
                                                           sizeof(state_t),
-                                                          flags,
-                                                          "U_new");
+                                                          "U_new", flags);
    state_t *V_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
                                                           sizeof(state_t),
-                                                          flags,
-                                                          "V_new");
+                                                          "V_new", flags);
 
    int gix;
 #ifdef _OPENMP
@@ -1707,9 +1704,9 @@ void State::gpu_calc_finite_difference(double deltaT)
    assert(dev_levdx);
    assert(dev_levdy);
 
-   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
-   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
-   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
+   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
  
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -1757,9 +1754,9 @@ void State::gpu_calc_finite_difference(double deltaT)
       L7_Dev_Update(dev_U, L7_STATE_T, mesh->cell_handle);
       L7_Dev_Update(dev_V, L7_STATE_T, mesh->cell_handle);
 
-      dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
-      dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
-      dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
+      dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
+      dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
+      dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
 
       ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 0, sizeof(cl_int), &ncells);
       ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 1, sizeof(cl_mem), &dev_celltype);
@@ -2536,9 +2533,9 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
 #ifdef HAVE_OPENCL
 void State::allocate_device_memory(size_t ncells)
 {
-   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
-   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
-   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
+   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H"), DEVICE_REGULAR_MEMORY);
+   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U"), DEVICE_REGULAR_MEMORY);
+   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V"), DEVICE_REGULAR_MEMORY);
 }
 #endif
 
@@ -2548,9 +2545,9 @@ void State::resize_old_device_memory(size_t ncells)
    gpu_state_memory.memory_delete(dev_H);
    gpu_state_memory.memory_delete(dev_U);
    gpu_state_memory.memory_delete(dev_V);
-   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
-   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
-   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
+   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H"), DEVICE_REGULAR_MEMORY);
+   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U"), DEVICE_REGULAR_MEMORY);
+   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V"), DEVICE_REGULAR_MEMORY);
 #else
    // Just to block compiler warnings
    if (1 == 2) printf("DEBUG -- ncells is %ld\n",ncells);
