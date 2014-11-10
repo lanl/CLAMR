@@ -65,6 +65,8 @@
 #include <vector>
 #include <map>
 #include <sstream>
+#include "Variable.hh"
+#include "Function.hh"
 
 namespace PP
 {
@@ -74,8 +76,8 @@ using std::vector;
 using std::map;
 using std::stringstream;
 
-class Variable;
-class Function;
+//class Variable;
+//class Function;
 
 class Cmd
 {

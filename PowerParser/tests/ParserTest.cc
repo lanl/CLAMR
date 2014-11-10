@@ -305,6 +305,8 @@ int main(int argc, char **argv)
    genmatrixfree((void **)dcheckarray2d);
 #endif
 
+   delete parse;
+
    printf("\n\t\tFinished the Parser read tests\n\n");
    
 }
