@@ -45,7 +45,7 @@ breathe_projects = { "MallocPlus": "_build/breathe/doxygen/MallocPlus/xml/" }
 breathe_default_project = "MallocPlus"
 
 breathe_projects_source = {
-     "MallocPlus" : ( "..", ["MallocPlus.hh"] )
+     "MallocPlus" : ( "..", ["MallocPlus.h"] )
      }
 
 # Add any paths that contain templates here, relative to this directory.

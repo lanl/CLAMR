@@ -2,10 +2,9 @@
 Getting Started
 ===============
 
-Download the *MallocPlus* package, currently MallocPlus_v2.0.7.tgz. Untar
-the MallocPlus files::
+Download the *L7* package, currently l7_v2.0.7.tgz. Untar the L7 files::
 
-   tar -xzvf MallocPlus_v2.0.7.tgz
+   tar -xzvf l7_v2.0.7.tgz
 
 The build processs uses cmake. Run the cmake command as follows::
 

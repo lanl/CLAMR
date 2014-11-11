@@ -12,6 +12,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+
+import breathe
 import sys
 import os
 
@@ -36,6 +38,14 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
 ]
+
+extensions = ['sphinx.ext.pngmath', 'sphinx.ext.todo', 'breathe' ]
+breathe_projects = { "l7": "_build/breathe/doxygen/L7/xml/" }
+breathe_default_project = "l7"
+
+breathe_projects_source = {
+     "l7" : ( "..", ["l7.h"] )
+     }
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -124,7 +134,7 @@ html_theme = 'default'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#html_logo = None
+html_logo = "L7_logo.pdf"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -209,7 +219,7 @@ latex_documents = [
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-#latex_logo = None
+latex_logo = "L7_logo.pdf"
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.

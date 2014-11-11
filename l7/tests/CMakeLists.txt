@@ -25,7 +25,7 @@ target_link_libraries(L7Test l7 ${MPI_LIBRARIES})
 
 add_test(NAME L7Test COMMAND mpirun -n 2 L7Test)
 
-set (CMAKE_CHECK_COMMAND ctest)
+set (CMAKE_CHECK_COMMAND ctest && cat Testing/Temporary/LastTest.log)
 
 if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
    add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND}

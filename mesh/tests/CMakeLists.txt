@@ -26,7 +26,7 @@ target_link_libraries(mesh_mpi_test ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
 add_test(NAME mesh_mpi_test COMMAND mpirun -n 3 mesh_mpi_test)
 
-set (CMAKE_CHECK_COMMAND ctest)
+set (CMAKE_CHECK_COMMAND ctest && cat Testing/Temporary/LastTest.log)
 
 if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
    add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND}

@@ -2,7 +2,7 @@
 Public APIs
 ===========
 
-.. doxygenclass:: PP::MallocPlus
+.. doxygenclass:: MallocPlus
    :project: MallocPlus
    :members:
    :no-link:

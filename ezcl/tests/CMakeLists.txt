@@ -26,7 +26,7 @@ target_link_libraries(ezclTest ezcl)
 
 add_test(NAME ezclTest COMMAND ezclTest)
 
-set(CMAKE_CHECK_COMMAND ctest)
+set(CMAKE_CHECK_COMMAND ctest && cat Testing/Temporary/LastTest.log)
 
 if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
    add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND}

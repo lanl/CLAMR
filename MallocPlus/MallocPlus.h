@@ -112,7 +112,7 @@ public:
 
 /****************************************************************//**
  * \brief
- * Allocates memory for a 1D array and puts into a database
+ * Allocates memory for a 1D array and put entry in database
  *
  * **Parameters**
  * * size_t nelem -- number of elements in array
@@ -122,12 +122,55 @@ public:
  *
  * Typical Usage
  *
- *     my_mem->memory_malloc(ncells, sizeof(double), "Density");
+ *     double *density = my_mem->memory_malloc(ncells, sizeof(double),
+ *                       "Density");
  *******************************************************************/
    void *memory_malloc(size_t nelem, size_t elsize, const char *name, int flags=0);
+
+/****************************************************************//**
+ * \brief
+ * Duplicate memory and add new entry into database
+ *
+ * **Parameters**
+ * * void *malloc_mem_ptr -- memory pointer to duplicate
+ * * const char *addname -- new name for variable
+ *
+ * Typical Usage
+ *
+ *     double *new_density = my_mem->memory_duplicate(density, "Density_new");
+ *******************************************************************/
    void *memory_duplicate(void *malloc_mem_ptr, const char *addname);
 
+/****************************************************************//**
+ * \brief
+ * Reallocates memory for memory pointer in database
+ *
+ * **Parameters**
+ * * size_t nelem -- number of elements for new allocation
+ * * size_t elsize -- element size in bytes for new allocation
+ * * void *malloc_mem_ptr -- memory pointer to duplicate
+ *
+ * Typical Usage
+ *
+ *     double *density = my_mem->memory_realloc(new_ncells, sizeof(double),
+ *                       density);
+ *******************************************************************/
    void *memory_realloc(size_t nelem, size_t elsize, void *malloc_mem_ptr);
+
+/****************************************************************//**
+ * \brief
+ * Reallocates memory for named entry in database
+ *
+ * **Parameters**
+ * * size_t nelem -- number of elements for new allocation
+ * * size_t elsize -- element size in bytes for new allocation
+ * * const char *name -- named entry to duplicate
+ *
+ * Typical Usage
+ *
+ *     double *density = my_mem->memory_realloc(new_ncells, sizeof(double),
+ *                       "Density");
+ *******************************************************************/
    void *memory_realloc(size_t nelem, size_t elsize, const char *name);
 
    void *memory_request(size_t nelem, size_t elsize, void *malloc_mem_ptr);
