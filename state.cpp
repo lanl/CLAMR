@@ -409,21 +409,21 @@ void State::add_boundary_cells(void)
       
    int new_ncells = ncells + icount;
    // Increase the arrays for the new boundary cells
-   H=(state_t *)state_memory.memory_realloc(new_ncells, sizeof(state_t), H);
-   U=(state_t *)state_memory.memory_realloc(new_ncells, sizeof(state_t), U);
-   V=(state_t *)state_memory.memory_realloc(new_ncells, sizeof(state_t), V);
+   H=(state_t *)state_memory.memory_realloc(new_ncells, H);
+   U=(state_t *)state_memory.memory_realloc(new_ncells, U);
+   V=(state_t *)state_memory.memory_realloc(new_ncells, V);
    //printf("\nDEBUG add_boundary cells\n"); 
    //state_memory.memory_report();
    //printf("DEBUG end add_boundary cells\n\n"); 
 
-   mesh->i        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), i);
-   mesh->j        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), j);
-   mesh->level    =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), level);
-   mesh->celltype =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), celltype);
-   mesh->nlft     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), nlft);
-   mesh->nrht     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), nrht);
-   mesh->nbot     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), nbot);
-   mesh->ntop     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), ntop);
+   mesh->i        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, i);
+   mesh->j        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, j);
+   mesh->level    =(int *)mesh->mesh_memory.memory_realloc(new_ncells, level);
+   mesh->celltype =(int *)mesh->mesh_memory.memory_realloc(new_ncells, celltype);
+   mesh->nlft     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nlft);
+   mesh->nrht     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nrht);
+   mesh->nbot     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nbot);
+   mesh->ntop     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, ntop);
    //memory_reset_ptrs();
    i        = mesh->i;
    j        = mesh->j;
@@ -747,21 +747,21 @@ void State::remove_boundary_cells(void)
 
    // Resize to drop all the boundary cells
    ncells = save_ncells;
-   H=(state_t *)state_memory.memory_realloc(save_ncells, sizeof(state_t), H);
-   U=(state_t *)state_memory.memory_realloc(save_ncells, sizeof(state_t), U);
-   V=(state_t *)state_memory.memory_realloc(save_ncells, sizeof(state_t), V);
+   H=(state_t *)state_memory.memory_realloc(save_ncells, H);
+   U=(state_t *)state_memory.memory_realloc(save_ncells, U);
+   V=(state_t *)state_memory.memory_realloc(save_ncells, V);
    //printf("\nDEBUG remove_boundary cells\n"); 
    //state_memory.memory_report();
    //printf("DEBUG end remove_boundary cells\n\n"); 
 
-   mesh->i        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), i);
-   mesh->j        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), j);
-   mesh->level    = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), level);
-   mesh->celltype = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), celltype);
-   mesh->nlft     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), nlft);
-   mesh->nrht     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), nrht);
-   mesh->nbot     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), nbot);
-   mesh->ntop     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), ntop);
+   mesh->i        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, i);
+   mesh->j        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, j);
+   mesh->level    = (int *)mesh->mesh_memory.memory_realloc(save_ncells, level);
+   mesh->celltype = (int *)mesh->mesh_memory.memory_realloc(save_ncells, celltype);
+   mesh->nlft     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, nlft);
+   mesh->nrht     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, nrht);
+   mesh->nbot     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, nbot);
+   mesh->ntop     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, ntop);
    i        = mesh->i;
    j        = mesh->j;
    level    = mesh->level;
@@ -1129,9 +1129,9 @@ void State::calc_finite_difference(double deltaT){
    if (mesh->numpe > 1) {
       apply_boundary_conditions_local();
 
-      H=(state_t *)state_memory.memory_realloc(ncells_ghost, sizeof(state_t), H);
-      U=(state_t *)state_memory.memory_realloc(ncells_ghost, sizeof(state_t), U);
-      V=(state_t *)state_memory.memory_realloc(ncells_ghost, sizeof(state_t), V);
+      H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
+      U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
+      V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
 
       L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
       L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);

@@ -2569,8 +2569,8 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    int *i_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
    int *j_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
    int *level_old    = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
-   mesh_memory.memory_swap(&i, &i_old);
-   mesh_memory.memory_swap(&j, &j_old);
+   mesh_memory.memory_swap(&i,     &i_old);
+   mesh_memory.memory_swap(&j,     &j_old);
    mesh_memory.memory_swap(&level, &level_old);
 
 
@@ -4854,14 +4854,14 @@ void Mesh::calc_neighbors_local(void)
          int nghost = nbsize_local;
          ncells_ghost = ncells + nghost;
 
-         celltype = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), celltype);
-         i        = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), i);
-         j        = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), j);
-         level    = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), level);
-         nlft     = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), nlft);
-         nrht     = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), nrht);
-         nbot     = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), nbot);
-         ntop     = (int *)mesh_memory.memory_realloc(ncells_ghost, sizeof(int), ntop);
+         celltype = (int *)mesh_memory.memory_realloc(ncells_ghost, celltype);
+         i        = (int *)mesh_memory.memory_realloc(ncells_ghost, i);
+         j        = (int *)mesh_memory.memory_realloc(ncells_ghost, j);
+         level    = (int *)mesh_memory.memory_realloc(ncells_ghost, level);
+         nlft     = (int *)mesh_memory.memory_realloc(ncells_ghost, nlft);
+         nrht     = (int *)mesh_memory.memory_realloc(ncells_ghost, nrht);
+         nbot     = (int *)mesh_memory.memory_realloc(ncells_ghost, nbot);
+         ntop     = (int *)mesh_memory.memory_realloc(ncells_ghost, ntop);
          memory_reset_ptrs();
 
 #ifdef _OPENMP
@@ -7566,7 +7566,7 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
 
             // Allocate space on GPU for temp arrays (used in double buffering)
             cl_mem dev_state_var_new = ezcl_malloc(NULL, gpu_state_memory.get_memory_name(dev_state_mem_ptr), &ncells, sizeof(cl_double), CL_MEM_READ_WRITE, 0);
-            gpu_state_memory.memory_add(dev_state_var_new, ncells, sizeof(cl_double), DEVICE_REGULAR_MEMORY, "dev_state_var_new");
+            gpu_state_memory.memory_add(dev_state_var_new, ncells, sizeof(cl_double), "dev_state_var_new", DEVICE_REGULAR_MEMORY);
 
             //printf("DEBUG memory for proc %d is %p dev_state_new is %p\n",mype,dev_state_mem_ptr,dev_state_var_new);
 
@@ -7617,7 +7617,7 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
 
             // Allocate space on GPU for temp arrays (used in double buffering)
             cl_mem dev_state_var_new = ezcl_malloc(NULL, gpu_state_memory.get_memory_name(dev_state_mem_ptr), &ncells, sizeof(cl_float), CL_MEM_READ_WRITE, 0);
-            gpu_state_memory.memory_add(dev_state_var_new, ncells, sizeof(cl_float), DEVICE_REGULAR_MEMORY, "dev_state_var_new");
+            gpu_state_memory.memory_add(dev_state_var_new, ncells, sizeof(cl_float), "dev_state_var_new", DEVICE_REGULAR_MEMORY);
 
             //printf("DEBUG memory for proc %d is %p dev_state_new is %p\n",mype,dev_state_mem_ptr,dev_state_var_new);
 
