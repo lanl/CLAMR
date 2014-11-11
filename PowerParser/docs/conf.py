@@ -244,7 +244,7 @@ latex_logo = "PowerParser_logo.pdf"
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'parser', u'PowerParser Documentation',
+    ('index', 'powerparser', u'PowerParser Documentation',
      [u'Chuck Wingate and Bob Robey'], 1)
 ]
 

@@ -514,31 +514,20 @@ void MallocPlus::memory_reorder_all(int *iorder){
 
 void MallocPlus::memory_report(void){
    list<malloc_plus_memory_entry>::iterator it;
+
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
-      printf("MallocPlus %10s ptr %p dimension %d ",
+      printf("MallocPlus %10s ptr %p dims %d nelem (",
             it->mem_name,it->mem_ptr,it->mem_ndims);
-      switch (it->mem_ndims){
-      case 1:
-         printf("nelements                      %6lu\n",
-            it->mem_nelem[0]);
-         break;
-      case 2:
-         printf("nelements               %6lu %6lu\n",
-            it->mem_nelem[1],it->mem_nelem[0]);
-         break;
-      case 3:
-         printf("nelements        %6lu %6lu %6lu\n",
-            it->mem_nelem[2],it->mem_nelem[1],it->mem_nelem[0]);
-         break;
-      case 4:
-         printf("nelements %6lu %6lu %6lu %6lu\n",
-            it->mem_nelem[3],it->mem_nelem[2],it->mem_nelem[1],it->mem_nelem[0]);
-         break;
-      default:
-         printf("Error with number of dimensions %d\n",it->mem_ndims);
-         exit(1);
+
+      char nelemstring[80];
+      char *str_ptr = nelemstring;
+      str_ptr += sprintf(str_ptr,"%lu", it->mem_nelem[0]);
+      for (int i = 1; i < it->mem_ndims; i++){
+         str_ptr += sprintf(str_ptr,", %lu", it->mem_nelem[i]);
       }
-      printf("elsize %lu flags %d capacity %lu\n",
+      printf("%12s",nelemstring);
+
+      printf(") elsize %lu flags %d capacity %lu\n",
             it->mem_elsize,it->mem_flags,it->mem_capacity);
    }
 }

@@ -12,6 +12,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+
+import breathe
 import sys
 import os
 
@@ -35,8 +37,16 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
+#   'sphinx.ext.viewcode',
 ]
+
+extensions = ['sphinx.ext.pngmath', 'sphinx.ext.todo', 'breathe' ]
+breathe_projects = { "MallocPlus": "_build/breathe/doxygen/MallocPlus/xml/" }
+breathe_default_project = "MallocPlus"
+
+breathe_projects_source = {
+     "MallocPlus" : ( "..", ["MallocPlus.hh"] )
+     }
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -125,7 +135,7 @@ html_theme = 'default'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#html_logo = None
+html_logo = "MallocPlus_logo.pdf"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -204,13 +214,13 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'MallocPlus.tex', u'MallocPlus Documentation',
+  ('indexpdf', 'MallocPlus.tex', u'MallocPlus Documentation',
    u'Bob Robey', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-#latex_logo = None
+latex_logo = "MallocPlus_logo.pdf"
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.

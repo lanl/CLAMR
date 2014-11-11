@@ -84,6 +84,12 @@ struct malloc_plus_memory_entry {
    char   *mem_name;
 };
 
+/****************************************************************//**
+ * MallocPlus class
+ *    Provide a enhanced memory allocation package with database
+ *    of allocations, sizes and contiguous memory allocations for
+ *    multi-dimensional arrays
+ *******************************************************************/
 class MallocPlus {
 protected:
    list<malloc_plus_memory_entry> memory_list;
@@ -104,7 +110,21 @@ public:
    void pfini(void);
 #endif
 
-   void *memory_malloc(size_t nelem, size_t elsize, const char *name, int iflags=0);
+/****************************************************************//**
+ * \brief
+ * Allocates memory for a 1D array and puts into a database
+ *
+ * **Parameters**
+ * * size_t nelem -- number of elements in array
+ * * size_t elsize -- element size in bytes
+ * * const char *name -- name of array
+ * * int flags -- flags for special handling, default is 0
+ *
+ * Typical Usage
+ *
+ *     my_mem->memory_malloc(ncells, sizeof(double), "Density");
+ *******************************************************************/
+   void *memory_malloc(size_t nelem, size_t elsize, const char *name, int flags=0);
    void *memory_duplicate(void *malloc_mem_ptr, const char *addname);
 
    void *memory_realloc(size_t nelem, size_t elsize, void *malloc_mem_ptr);
