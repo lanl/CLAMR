@@ -102,8 +102,27 @@ extern "C"
 /* init and end routines */
 #define ezcl_init(  ezcl_gpu_context, ezcl_cpu_context, ezcl_accelerator_context) \
       ( ezcl_init_p(ezcl_gpu_context, ezcl_cpu_context, ezcl_accelerator_context, __FILE__, __LINE__) )
+
+/****************************************************************//**
+ * \brief
+ * Detects and sets up an OpenCL device of the specified type
+ *
+ * **Parameters**
+ * * cl_device_type device type -- device type specified can be
+ *     CL_DEVICE_TYPE_GPU
+ *     CL_DEVICE_TYPE_ACCELERATOR
+ *     CL_DEVICE_TYPE_CPU
+ * Returns an int with the possible values:
+ *   EZCL_NODEVICE
+ *   EZCL_SUCCESS
+ *
+ * Typical Usage
+ *
+ *     int ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU);
+ *******************************************************************/
 #define ezcl_devtype_init(  device_type) \
       ( ezcl_devtype_init_p(device_type, __FILE__, __LINE__) )
+
 #define ezcl_finalize() \
       ( ezcl_finalize_p(__FILE__,__LINE__) )
 #define ezcl_terminate() \

@@ -15,7 +15,6 @@ Contents:
    About
    GettingStarted
    DevelopersGuide
-   API_Docs
 
 Indices and tables
 ==================

@@ -598,24 +598,50 @@ set (CMAKE_CHECK_COMMAND make mesh_check &&
 
 add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND})
 
-set (CMAKE_DOC_COMMAND make PowerParser_doc &&
-                       make MallocPlus_doc &&
-                       make L7_doc &&
-                       make ezcl_doc &&
-                       make genmalloc_doc &&
-                       make Graphics_doc &&
-                       make Hash_doc &&
-                       make memstats_doc &&
-                       make Mesh_doc &&
+set (CMAKE_DOC_COMMAND make CLAMR_doc       &&
+                       make PowerParser_doc &&
+                       make MallocPlus_doc  &&
+                       make L7_doc          &&
+                       make ezcl_doc        &&
+                       make genmalloc_doc   &&
+                       make Graphics_doc    &&
+                       make Hash_doc        &&
+                       make memstats_doc    &&
+                       make Mesh_doc        &&
                        make Crux_doc)
 
 add_custom_target(doc COMMAND ${CMAKE_DOC_COMMAND})
 
+########### doc targets ################
+
+add_custom_target(CLAMR_doc
+                  DEPENDS CLAMR_pdfdoc CLAMR_htmldoc CLAMR_singlehtmldoc)
+set_target_properties(CLAMR_doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+add_custom_command(OUTPUT _build/latex/CLAMR.pdf
+                   COMMAND make -C docs latexpdf >& pdfdoc.out
+                   DEPENDS ${PDFDOC_SRCS})
+add_custom_target(CLAMR_pdfdoc DEPENDS _build/latex/CLAMR.pdf)
+set_target_properties(CLAMR_pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+add_custom_command(OUTPUT _build/html/UsersGuide.html
+                   COMMAND make -C docs html >& htmldoc.out
+                   DEPENDS ${DOC_SRCS})
+add_custom_target(CLAMR_htmldoc DEPENDS _build/html/UsersGuide.html)
+set_target_properties(CLAMR_htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+add_custom_command(OUTPUT _build/singlehtml/index.html
+                   COMMAND make -C docs singlehtml >& singlehtmldoc.out
+                   DEPENDS ${DOC_SRCS})
+add_custom_target(CLAMR_singlehtmldoc DEPENDS _build/singlehtml/index.html)
+set_target_properties(CLAMR_singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+########### configure config.h ################
 # configure a header file to pass some of the CMake settings
 # to the source code
 # at bottom because we set things that change config above
 configure_file ( "${PROJECT_SOURCE_DIR}/config.h.in" "${PROJECT_BINARY_DIR}/config.h")
 
 ########### clean files ################
-SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.inc;clamr;clamr_cpuonly;clamr_gpuonly;clamr_mpionly;clamr_gpucheck;clamr_mpicheck;clamr_checkall;clamr_quo;total_execution_time.log")
+SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.inc;clamr;clamr_cpuonly;clamr_gpuonly;clamr_mpionly;clamr_gpucheck;clamr_mpicheck;clamr_checkall;clamr_quo;total_execution_time.log;docs/_build;htmldoc.out;pdfdoc.out;singlehtmldoc.out")
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Mesh documentation build configuration file, created by
-# sphinx-quickstart on Sun Nov  9 19:48:34 2014.
+# CLAMR documentation build configuration file, created by
+# sphinx-quickstart on Wed Nov 12 12:27:52 2014.
 #
 # This file is execfile()d with the current directory set to its
 # containing dir.
@@ -12,8 +12,6 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-
-import breathe
 import sys
 import os
 
@@ -31,21 +29,8 @@ import os
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
 ]
-
-extensions = ['sphinx.ext.pngmath', 'sphinx.ext.todo', 'breathe' ]
-breathe_projects = { "Mesh": "_build/breathe/doxygen/Mesh/xml/" }
-breathe_default_project = "Mesh"
-
-breathe_projects_source = {
-     "Mesh" : ( "..", ["mesh.h"] )
-     }
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -60,8 +45,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Mesh'
-copyright = u'2014, Bob Robey and David Nicholaeff'
+project = u'CLAMR'
+copyright = u'2014, Bob Robey, David Nicholaeff, Neal Davis, Dennis Trujillo'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -193,7 +178,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Meshdoc'
+htmlhelp_basename = 'CLAMRdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -213,8 +198,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'Mesh.tex', u'Mesh Documentation',
-   u'Bob Robey and David Nicholaeff', 'manual'),
+  ('index', 'CLAMR.tex', u'CLAMR Documentation',
+   u'Bob Robey, David Nicholaeff, Neal Davis, Dennis Trujillo', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -243,8 +228,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'mesh', u'Mesh Documentation',
-     [u'Bob Robey and David Nicholaeff'], 1)
+    ('index', 'clamr', u'CLAMR Documentation',
+     [u'Bob Robey, David Nicholaeff, Neal Davis, Dennis Trujillo'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -257,8 +242,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'Mesh', u'Mesh Documentation',
-   u'Bob Robey and David Nicholaeff', 'Mesh', 'One line description of project.',
+  ('index', 'CLAMR', u'CLAMR Documentation',
+   u'Bob Robey, David Nicholaeff, Neal Davis, Dennis Trujillo', 'CLAMR', 'One line description of project.',
    'Miscellaneous'),
 ]
 
@@ -278,13 +263,13 @@ texinfo_documents = [
 # -- Options for Epub output ----------------------------------------------
 
 # Bibliographic Dublin Core info.
-epub_title = u'Mesh'
-epub_author = u'Bob Robey and David Nicholaeff'
-epub_publisher = u'Bob Robey and David Nicholaeff'
-epub_copyright = u'2014, Bob Robey and David Nicholaeff'
+epub_title = u'CLAMR'
+epub_author = u'Bob Robey, David Nicholaeff, Neal Davis, Dennis Trujillo'
+epub_publisher = u'Bob Robey, David Nicholaeff, Neal Davis, Dennis Trujillo'
+epub_copyright = u'2014, Bob Robey, David Nicholaeff, Neal Davis, Dennis Trujillo'
 
 # The basename for the epub file. It defaults to the project name.
-#epub_basename = u'Mesh'
+#epub_basename = u'CLAMR'
 
 # The HTML theme for the epub output. Since the default themes are not optimized
 # for small screen space, using the same theme for HTML and epub output is

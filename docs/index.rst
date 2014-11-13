@@ -1,10 +1,10 @@
-.. ezcl documentation master file, created by
-   sphinx-quickstart on Sun Nov  9 18:32:15 2014.
+.. CLAMR documentation master file, created by
+   sphinx-quickstart on Wed Nov 12 12:27:52 2014.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to ezcl's documentation!
-================================
+Welcome to CLAMR's documentation!
+=================================
 
 Contents:
 
@@ -14,8 +14,10 @@ Contents:
 
    About
    GettingStarted
+   UsersGuide
+   Examples
+   PhysicsManual
    DevelopersGuide
-   API_Docs
 
 Indices and tables
 ==================
