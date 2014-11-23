@@ -1,4 +1,0 @@
-.h.in-Files
-config.h.in
-
-.in.in-Files
