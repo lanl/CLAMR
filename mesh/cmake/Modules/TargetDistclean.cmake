@@ -26,6 +26,9 @@ IF (UNIX)
    cmake_install.cmake
    */cmake_install.cmake
    */*/cmake_install.cmake
+   hsfc/Makefile
+   kdtree/Makefile
+   zorder/Makefile
   )
   
   ADD_CUSTOM_COMMAND(

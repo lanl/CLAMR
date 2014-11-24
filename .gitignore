@@ -2,7 +2,6 @@
 *.lo
 *.a
 *.la
-Makefile
 .deps
 .libs
 config.log

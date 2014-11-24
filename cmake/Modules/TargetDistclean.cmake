@@ -17,6 +17,9 @@ IF (UNIX)
    Makefile
    */Makefile
    */tests/Makefile
+   mesh/hsfc/Makefile
+   mesh/kdtree/Makefile
+   mesh/zorder/Makefile
    core core.*
    gmon.out
    *~
