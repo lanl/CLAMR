@@ -125,6 +125,8 @@ extern "C"
 
 #endif
 
+static bool iversion_flag = false;
+
 typedef unsigned int uint;
 
 static const char *state_timer_descriptor[STATE_TIMER_SIZE] = {
@@ -803,7 +805,18 @@ double State::set_timestep(double g, double sigma)
    int *&level    = mesh->level;
 
    int ic;
+
+/// Version 3.1 July 2011
+/// min reduction was only available in C in version 3.1
+/// so this fallback version
+#if _OPENMP < 201107
+
 #ifdef _OPENMP
+   if (! iversion_flag) {
+      printf("Warning -- pre 3.1 version of OpenMP. Version is %d\n",_OPENMP);
+      iversion_flag = true;
+   }
+
 #pragma omp parallel
    {
       double mymindeltaT = 1000.0;
@@ -828,6 +841,24 @@ double State::set_timestep(double g, double sigma)
       if (mymindeltaT < mindeltaT) mindeltaT = mymindeltaT;
    }
 #endif
+
+#else // _OPENMP version >= 201107 or non-OpenMP
+
+#ifdef _OPENMP
+#pragma omp parallel for reduction (min:mindeltaT)
+#endif
+   for (ic=0; ic<(int)ncells; ic++) {
+      if (celltype[ic] == REAL_CELL) {
+         int lev = level[ic];
+         double wavespeed = sqrt(g*H[ic]);
+         double xspeed = (fabs(U[ic])+wavespeed)/mesh->lev_deltax[lev];
+         double yspeed = (fabs(V[ic])+wavespeed)/mesh->lev_deltay[lev];
+         double deltaT=sigma/(xspeed+yspeed);
+         if (deltaT < mindeltaT) mindeltaT = deltaT;
+      }
+   }
+
+#endif // _OPENMP version
 
    globalmindeltaT = mindeltaT;
 #ifdef HAVE_MPI
