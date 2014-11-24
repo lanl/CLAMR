@@ -503,6 +503,11 @@ public:
     void echo_input_ss(stringstream &ssinp);
 
 /****************************************************************//**
+ * Get a line from the ssfout stringstream. (low-level function)
+ *******************************************************************/
+    bool get_ssfout_line(string &sline);
+
+/****************************************************************//**
  * \brief
  *  Holds internal comm class for PowerParser. Comm is initialized
  *  as a singleton and will use an already initialized MPI or 
@@ -531,11 +536,6 @@ private:
 /****************************************************************//**
  *******************************************************************/
     void list_wt_cmdsf_start();
-
-/****************************************************************//**
- * Get a line from the ssfout stringstream. (low-level function)
- *******************************************************************/
-    bool get_ssfout_line(string &sline);
 
     void process_error_global();
 
