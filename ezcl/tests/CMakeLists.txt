@@ -24,7 +24,7 @@ target_link_libraries(ezclTest ezcl)
 
 ################# check/test ##################
 
-add_test(NAME ezclTest COMMAND ezclTest)
+add_test(ezclTest ezclTest)
 
 set(CMAKE_CHECK_COMMAND ctest && cat Testing/Temporary/LastTest.log)
 

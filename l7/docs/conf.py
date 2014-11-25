@@ -12,15 +12,15 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-
-import breathe
 import sys
 import os
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
+#sys.path.append( "/home/me/docproj/ext/breathe/" )
+sys.path.insert(0, os.path.abspath('./breathe-3.2.0'))
+import breathe
 
 # -- General configuration ------------------------------------------------
 
@@ -40,7 +40,7 @@ extensions = [
 ]
 
 extensions = ['sphinx.ext.pngmath', 'sphinx.ext.todo', 'breathe' ]
-breathe_projects = { "l7": "_build/breathe/doxygen/L7/xml/" }
+breathe_projects = { "l7": "_build/breathe/doxygen/l7/xml/" }
 breathe_default_project = "l7"
 
 breathe_projects_source = {
@@ -213,7 +213,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'L7.tex', u'L7 Documentation',
+  ('indexpdf', 'L7.tex', u'L7 Documentation',
    u'Bob Robey and Richard Barrett', 'manual'),
 ]
 
