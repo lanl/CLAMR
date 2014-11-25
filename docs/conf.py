@@ -198,7 +198,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'CLAMR.tex', u'CLAMR Documentation',
+  ('indexpdf', 'CLAMR.tex', u'CLAMR Documentation',
    u'Bob Robey, David Nicholaeff, Neal Davis, Dennis Trujillo', 'manual'),
 ]
 
