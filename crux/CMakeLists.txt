@@ -101,50 +101,62 @@ install(FILES  crux.h DESTINATION include/crux)
 ########### doc targets ################
 
 if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
-   add_custom_target(doc DEPENDS pdfdoc htmldoc singlehtmldoc)
+   add_custom_target(doc
+                     COMMAND make pdfdoc
+                     COMMAND make htmldoc
+                     COMMAND make singlehtmldoc)
    set_target_properties(doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
    add_custom_command(OUTPUT _build/latex/Crux.pdf
-                      COMMAND make -C docs latexpdf >& pdfdoc.out
+                      WORKING_DIRECTORY docs
+                      COMMAND make latexpdf >& pdfdoc.out
                       DEPENDS ${PDFDOC_SRCS})
    add_custom_target(pdfdoc DEPENDS _build/latex/Crux.pdf)
    set_target_properties(pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
    add_custom_command(OUTPUT _build/html/UsersGuide.html
-                      COMMAND make -C docs html >& htmldoc.out
+                      WORKING_DIRECTORY docs
+                      COMMAND make html >& htmldoc.out
                       DEPENDS ${DOC_SRCS})
    add_custom_target(htmldoc DEPENDS _build/html/UsersGuide.html)
    set_target_properties(htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
    add_custom_command(OUTPUT _build/singlehtml/index.html
-                      COMMAND make -C docs singlehtml >& singlehtmldoc.out
+                      WORKING_DIRECTORY docs
+                      COMMAND make singlehtml >& singlehtmldoc.out
                       DEPENDS ${DOC_SRCS})
    add_custom_target(singlehtmldoc DEPENDS _build/singlehtml/index.html)
    set_target_properties(singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 else (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
    add_custom_target(Crux_doc
-                     DEPENDS Crux_pdfdoc Crux_htmldoc Crux_singlehtmldoc)
+                     COMMAND make Crux_pdfdoc
+                     COMMAND make Crux_htmldoc
+                     COMMAND make Crux_singlehtmldoc)
    set_target_properties(Crux_doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
    add_custom_command(OUTPUT _build/latex/Crux.pdf
-                      COMMAND make -C docs latexpdf >& pdfdoc.out
+                      WORKING_DIRECTORY crux/docs
+                      COMMAND make latexpdf >& pdfdoc.out
                       DEPENDS ${PDFDOC_SRCS})
    add_custom_target(Crux_pdfdoc DEPENDS _build/latex/Crux.pdf)
    set_target_properties(Crux_pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
    add_custom_command(OUTPUT _build/html/UsersGuide.html
-                      COMMAND make -C docs html >& htmldoc.out
+                      WORKING_DIRECTORY crux/docs
+                      COMMAND make html >& htmldoc.out
                       DEPENDS ${DOC_SRCS})
    add_custom_target(Crux_htmldoc DEPENDS _build/html/UsersGuide.html)
    set_target_properties(Crux_htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
    add_custom_command(OUTPUT _build/singlehtml/index.html
-                      COMMAND make -C docs singlehtml >& singlehtmldoc.out
+                      WORKING_DIRECTORY crux/docs
+                      COMMAND make singlehtml >& singlehtmldoc.out
                       DEPENDS ${DOC_SRCS})
    add_custom_target(Crux_singlehtmldoc DEPENDS _build/singlehtml/index.html)
    set_target_properties(Crux_singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
 
 ########### clean files ################
-SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "install_manifest.txt;docs/_build;htmldoc.out;pdfdoc.out;singlehtmldoc.out")
+SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES
+   "install_manifest.txt;docs/_build;docs/htmldoc.out;docs/pdfdoc.out;docs/singlehtmldoc.out")
 
