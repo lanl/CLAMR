@@ -228,7 +228,7 @@ if (OPENCL_FOUND)
    add_dependencies(dmesh mesh_kernel_source)
    add_dependencies(dmesh reduce_kernel_source)
    install(TARGETS dmesh DESTINATION lib)
-endif(OPENCL_FOUND)
+endif (OPENCL_FOUND)
 
 ########### dpmesh target ###############
 if (OPENCL_FOUND)
