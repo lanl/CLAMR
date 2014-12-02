@@ -299,6 +299,10 @@ Mesh::Mesh(FILE *fin, int *numpe)
 
 void Mesh::print(void)
 {
+   assert(&nlft[0] != NULL);
+   assert(&x[0] != NULL);
+   assert(&index[0] != NULL);
+
    //printf("size is %lu %lu %lu %lu %lu\n",index.size(), i.size(), level.size(), nlft.size(), x.size());
    printf("index orig index   i     j     lev   nlft  nrht  nbot  ntop   xlow    xhigh     ylow    yhigh\n");
    for (uint ic=0; ic<ncells; ic++)
@@ -8273,6 +8277,854 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
             else //  Use Z-ordering for the curve.
             {  order[0] = SW; order[1] = SE; order[2] = NW; order[3] = NE; }
             
+}
+
+void Mesh::calc_face_list(void)
+{
+   xface_i.clear();
+   xface_j.clear();
+   xface_level.clear();
+
+   ixmin_level.clear();
+   ixmax_level.clear();
+   jxmin_level.clear();
+   jxmax_level.clear();
+   ixmin_level.resize(levmx+1,  9999999);
+   ixmax_level.resize(levmx+1, -9999999);
+   jxmin_level.resize(levmx+1,  9999999);
+   jxmax_level.resize(levmx+1, -9999999);
+
+   ixadjust.clear();
+   ixadjust.resize(levmx+1);
+   jxadjust.clear();
+   jxadjust.resize(levmx+1);
+
+   int iface=0;
+   for (uint nz=0; nz<ncells; nz++){
+      if (celltype[nz] != REAL_CELL) continue;
+      int nr = nrht[nz];
+      if (celltype[nr] != REAL_CELL) continue;
+
+      int ifactor = 1;
+      if (level[nr] < level[nz]) ifactor = 2;
+
+      // Have right face
+      xface_level.push_back(MAX(level[nz],level[nr]));
+      xface_i.push_back(i[nr]*ifactor);
+      if (level[nr] < level[nz] && is_upper(j[nz]) ) {
+         xface_j.push_back(j[nr]*ifactor+1);
+      } else {
+         xface_j.push_back(j[nr]*ifactor);
+      }
+
+      iface++;
+
+      if (level[nr] > level[nz]){
+         int ntr = ntop[nr];
+         xface_level.push_back(MAX(level[nz],level[ntr]));
+         xface_i.push_back(i[ntr]*ifactor);
+         xface_j.push_back(j[ntr]*ifactor);
+
+         iface++;
+      }
+   }
+   nxface=iface;
+
+   yface_i.clear();
+   yface_j.clear();
+   yface_level.clear();
+
+   iymin_level.clear();
+   iymax_level.clear();
+   jymin_level.clear();
+   jymax_level.clear();
+   iymin_level.resize(levmx+1,  9999999);
+   iymax_level.resize(levmx+1, -9999999);
+   jymin_level.resize(levmx+1,  9999999);
+   jymax_level.resize(levmx+1, -9999999);
+
+   iyadjust.clear();
+   iyadjust.resize(levmx+1);
+   jyadjust.clear();
+   jyadjust.resize(levmx+1);
+
+   iface=0;
+   for (uint nz=0; nz<ncells; nz++){
+      if (celltype[nz] != REAL_CELL) continue;
+      int nt = ntop[nz];
+      if (celltype[nt] != REAL_CELL) continue;
+
+      int ifactor = 1;
+      if (level[nt] < level[nz]) ifactor = 2;
+
+      // Have top face
+      // printf("DEBUG -- iface %d lower nz %d upper nr %d\n",iface,nz,nt);
+      yface_level.push_back(MAX(level[nz],level[nt]));
+      yface_j.push_back(j[nt]*ifactor);
+      if (level[nt] < level[nz] && is_upper(i[nz]) ) {
+         yface_i.push_back(i[nt]*ifactor+1);
+      } else{
+         yface_i.push_back(i[nt]*ifactor);
+      }
+
+      iface++;
+      if (level[nt] > level[nz]){
+         int nrt = nrht[nt];
+         // printf("DEBUG -- iface %d lower nz %d upper nrht[nt] %d\n",iface,nz,nrht[nt]);
+         yface_level.push_back(MAX(level[nz],level[nrt]));
+         yface_j.push_back(j[nrt]*ifactor);
+         yface_i.push_back(i[nrt]*ifactor);
+
+         iface++;
+      }
+   }
+   nyface=iface;
+
+   for (int iface=0; iface < nxface; iface++){
+      int fl = xface_level[iface];
+
+      int fi = xface_i[iface];
+      if (fi < ixmin_level[fl]) ixmin_level[fl] = fi;
+      if (fi > ixmax_level[fl]) ixmax_level[fl] = fi;
+
+      int fj = xface_j[iface];
+      if (fj < jxmin_level[fl]) jxmin_level[fl] = fj;
+      if (fj > jxmax_level[fl]) jxmax_level[fl] = fj;
+   }
+
+   for (int iface=0; iface < nxface; iface++){
+      int fl = xface_level[iface];
+      if (ixmax_level[fl] < ixmin_level[fl]) continue;
+
+      xface_i[iface] -= ixmin_level[fl];
+      xface_j[iface] -= jxmin_level[fl];
+   }
+
+   for (int fl = 0; fl <= levmx; fl++){
+      ixadjust[fl] = ixmin_level[fl];
+      jxadjust[fl] = jxmin_level[fl];
+      ixmax_level[fl] -= ixmin_level[fl];;
+      jxmax_level[fl] -= jxmin_level[fl];
+      ixmin_level[fl] = 0;
+      jxmin_level[fl] = 0;
+   }
+
+   for (int iface=0; iface < nyface; iface++){
+      int fl = yface_level[iface];
+
+      int fi = yface_i[iface];
+      if (fi < iymin_level[fl]) iymin_level[fl] = fi;
+      if (fi > iymax_level[fl]) iymax_level[fl] = fi;
+
+      int fj = yface_j[iface];
+      if (fj < jymin_level[fl]) jymin_level[fl] = fj;
+      if (fj > jymax_level[fl]) jymax_level[fl] = fj;
+   }
+
+   for (int iface=0; iface < nyface; iface++){
+      int fl = yface_level[iface];
+      if (iymax_level[fl] < iymin_level[fl]) continue;
+
+      yface_i[iface] -= iymin_level[fl];
+      yface_j[iface] -= jymin_level[fl];
+   }
+
+   for (int fl = 0; fl <= levmx; fl++){
+      iyadjust[fl] = iymin_level[fl];
+      jyadjust[fl] = jymin_level[fl];
+      iymax_level[fl] -= iymin_level[fl];;
+      jymax_level[fl] -= jymin_level[fl];
+      iymin_level[fl] = 0;
+      jymin_level[fl] = 0;
+   }
+
+}
+
+void Mesh::calc_face_list_wmap(void)
+{
+   map_xface2cell_lower.clear();
+   map_xface2cell_upper.clear();
+
+   xface_i.clear();
+   xface_j.clear();
+   xface_level.clear();
+
+   ixmin_level.clear();
+   ixmax_level.clear();
+   jxmin_level.clear();
+   jxmax_level.clear();
+   ixmin_level.resize(levmx+1,  9999999);
+   ixmax_level.resize(levmx+1, -9999999);
+   jxmin_level.resize(levmx+1,  9999999);
+   jxmax_level.resize(levmx+1, -9999999);
+
+   ixadjust.clear();
+   ixadjust.resize(levmx+1);
+   jxadjust.clear();
+   jxadjust.resize(levmx+1);
+
+   int iface=0;
+   for (uint nz=0; nz<ncells; nz++){
+      if (celltype[nz] != REAL_CELL) continue;
+      int nr = nrht[nz];
+      if (celltype[nr] != REAL_CELL) continue;
+
+      int ifactor = 1;
+      if (level[nr] < level[nz]) ifactor = 2;
+
+      // Have right face
+      map_xface2cell_lower.push_back(nz);
+      map_xface2cell_upper.push_back(nr);
+      xface_level.push_back(MAX(level[nz],level[nr]));
+      xface_i.push_back(i[nr]*ifactor);
+      if (level[nr] < level[nz] && is_upper(j[nz]) ) {
+         xface_j.push_back(j[nr]*ifactor+1);
+      } else {
+         xface_j.push_back(j[nr]*ifactor);
+      }
+
+      iface++;
+
+      if (level[nr] > level[nz]){
+         int ntr = ntop[nr];
+         map_xface2cell_lower.push_back(nz);
+         map_xface2cell_upper.push_back(ntr);
+         xface_level.push_back(MAX(level[nz],level[ntr]));
+         xface_i.push_back(i[ntr]*ifactor);
+         xface_j.push_back(j[ntr]*ifactor);
+
+         iface++;
+      }
+   }
+   nxface=iface;
+
+   map_yface2cell_lower.clear();
+   map_yface2cell_upper.clear();
+
+   yface_i.clear();
+   yface_j.clear();
+   yface_level.clear();
+
+   iymin_level.clear();
+   iymax_level.clear();
+   jymin_level.clear();
+   jymax_level.clear();
+   iymin_level.resize(levmx+1,  9999999);
+   iymax_level.resize(levmx+1, -9999999);
+   jymin_level.resize(levmx+1,  9999999);
+   jymax_level.resize(levmx+1, -9999999);
+
+   iyadjust.clear();
+   iyadjust.resize(levmx+1);
+   jyadjust.clear();
+   jyadjust.resize(levmx+1);
+
+   iface=0;
+   for (uint nz=0; nz<ncells; nz++){
+      if (celltype[nz] != REAL_CELL) continue;
+      int nt = ntop[nz];
+      if (celltype[nt] != REAL_CELL) continue;
+
+      int ifactor = 1;
+      if (level[nt] < level[nz]) ifactor = 2;
+
+      // Have top face
+      // printf("DEBUG -- iface %d lower nz %d upper nr %d\n",iface,nz,nt);
+      map_yface2cell_lower.push_back(nz);
+      map_yface2cell_upper.push_back(nt);
+      yface_level.push_back(MAX(level[nz],level[nt]));
+      yface_j.push_back(j[nt]*ifactor);
+      if (level[nt] < level[nz] && is_upper(i[nz]) ) {
+         yface_i.push_back(i[nt]*ifactor+1);
+      } else{
+         yface_i.push_back(i[nt]*ifactor);
+      }
+
+      iface++;
+      if (level[nt] > level[nz]){
+         int nrt = nrht[nt];
+         // printf("DEBUG -- iface %d lower nz %d upper nrht[nt] %d\n",iface,nz,nrht[nt]);
+         map_yface2cell_lower.push_back(nz);
+         map_yface2cell_upper.push_back(nrt);
+         yface_level.push_back(MAX(level[nz],level[nrt]));
+         yface_j.push_back(j[nrt]*ifactor);
+         yface_i.push_back(i[nrt]*ifactor);
+
+         iface++;
+      }
+   }
+   nyface=iface;
+
+   for (int iface=0; iface < nxface; iface++){
+      int fl = xface_level[iface];
+
+      int fi = xface_i[iface];
+      if (fi < ixmin_level[fl]) ixmin_level[fl] = fi;
+      if (fi > ixmax_level[fl]) ixmax_level[fl] = fi;
+
+      int fj = xface_j[iface];
+      if (fj < jxmin_level[fl]) jxmin_level[fl] = fj;
+      if (fj > jxmax_level[fl]) jxmax_level[fl] = fj;
+   }
+
+   for (int iface=0; iface < nxface; iface++){
+      int fl = xface_level[iface];
+      if (ixmax_level[fl] < ixmin_level[fl]) continue;
+
+      xface_i[iface] -= ixmin_level[fl];
+      xface_j[iface] -= jxmin_level[fl];
+   }
+
+   for (int fl = 0; fl <= levmx; fl++){
+      ixadjust[fl] = ixmin_level[fl];
+      jxadjust[fl] = jxmin_level[fl];
+      ixmax_level[fl] -= ixmin_level[fl];;
+      jxmax_level[fl] -= jxmin_level[fl];
+      ixmin_level[fl] = 0;
+      jxmin_level[fl] = 0;
+   }
+
+   for (int iface=0; iface < nyface; iface++){
+      int fl = yface_level[iface];
+
+      int fi = yface_i[iface];
+      if (fi < iymin_level[fl]) iymin_level[fl] = fi;
+      if (fi > iymax_level[fl]) iymax_level[fl] = fi;
+
+      int fj = yface_j[iface];
+      if (fj < jymin_level[fl]) jymin_level[fl] = fj;
+      if (fj > jymax_level[fl]) jymax_level[fl] = fj;
+   }
+
+   for (int iface=0; iface < nyface; iface++){
+      int fl = yface_level[iface];
+      if (iymax_level[fl] < iymin_level[fl]) continue;
+
+      yface_i[iface] -= iymin_level[fl];
+      yface_j[iface] -= jymin_level[fl];
+   }
+
+   for (int fl = 0; fl <= levmx; fl++){
+      iyadjust[fl] = iymin_level[fl];
+      jyadjust[fl] = jymin_level[fl];
+      iymax_level[fl] -= iymin_level[fl];;
+      jymax_level[fl] -= jymin_level[fl];
+      iymin_level[fl] = 0;
+      jymin_level[fl] = 0;
+   }
+
+}
+
+void Mesh::calc_face_list_wbidirmap(void)
+{
+   map_xface2cell_lower.clear();
+   map_xface2cell_upper.clear();
+
+   map_xcell2face_left1.clear();
+   map_xcell2face_left2.clear();
+   map_xcell2face_right1.clear();
+   map_xcell2face_right2.clear();
+   map_xcell2face_left1.resize(ncells, -1);
+   map_xcell2face_left2.resize(ncells, -1);
+   map_xcell2face_right1.resize(ncells, -1);
+   map_xcell2face_right2.resize(ncells, -1);
+
+   xface_i.clear();
+   xface_j.clear();
+   xface_level.clear();
+
+   ixmin_level.clear();
+   ixmax_level.clear();
+   jxmin_level.clear();
+   jxmax_level.clear();
+   ixmin_level.resize(levmx+1,  9999999);
+   ixmax_level.resize(levmx+1, -9999999);
+   jxmin_level.resize(levmx+1,  9999999);
+   jxmax_level.resize(levmx+1, -9999999);
+
+   ixadjust.clear();
+   ixadjust.resize(levmx+1);
+   jxadjust.clear();
+   jxadjust.resize(levmx+1);
+
+   int iface=0;
+   for (uint nz=0; nz<ncells; nz++){
+      if (celltype[nz] != REAL_CELL) continue;
+      int nr = nrht[nz];
+      if (celltype[nr] != REAL_CELL) continue;
+
+      int ifactor = 1;
+      if (level[nr] < level[nz]) ifactor = 2;
+
+      // Have right face
+      map_xface2cell_lower.push_back(nz);
+      map_xface2cell_upper.push_back(nr);
+      xface_level.push_back(MAX(level[nz],level[nr]));
+      xface_i.push_back(i[nr]*ifactor);
+      if (level[nr] < level[nz] && is_upper(j[nz]) ) {
+         xface_j.push_back(j[nr]*ifactor+1);
+      } else {
+         xface_j.push_back(j[nr]*ifactor);
+      }
+      map_xcell2face_right1[nz] = iface;
+
+      iface++;
+
+      if (level[nr] > level[nz]){
+         int ntr = ntop[nr];
+         map_xface2cell_lower.push_back(nz);
+         map_xface2cell_upper.push_back(ntr);
+         xface_level.push_back(MAX(level[nz],level[ntr]));
+         xface_i.push_back(i[ntr]*ifactor);
+         xface_j.push_back(j[ntr]*ifactor);
+         map_xcell2face_right2[nz] = iface;
+
+         iface++;
+      }
+   }
+   nxface=iface;
+
+   for (uint nz=0; nz<ncells; nz++){
+      if (celltype[nz] != REAL_CELL) continue;
+      int nl = nlft[nz];
+      if (celltype[nl] != REAL_CELL) continue;
+
+      if (level[nl] < level[nz] && is_upper(j[nz])){
+         map_xcell2face_left1[nz] = map_xcell2face_right2[nl];
+      } else {
+         map_xcell2face_left1[nz] = map_xcell2face_right1[nl];
+         if (level[nl] > level[nz]){
+            map_xcell2face_left2[nz] = map_xcell2face_right1[ntop[nl]];
+         }
+      }
+
+   }
+
+   map_yface2cell_lower.clear();
+   map_yface2cell_upper.clear();
+
+   map_ycell2face_bot1.clear();
+   map_ycell2face_bot2.clear();
+   map_ycell2face_top1.clear();
+   map_ycell2face_top2.clear();
+   map_ycell2face_bot1.resize(ncells, -1);
+   map_ycell2face_bot2.resize(ncells, -1);
+   map_ycell2face_top1.resize(ncells, -1);
+   map_ycell2face_top2.resize(ncells, -1);
+
+   yface_i.clear();
+   yface_j.clear();
+   yface_level.clear();
+
+   iymin_level.clear();
+   iymax_level.clear();
+   jymin_level.clear();
+   jymax_level.clear();
+   iymin_level.resize(levmx+1,  9999999);
+   iymax_level.resize(levmx+1, -9999999);
+   jymin_level.resize(levmx+1,  9999999);
+   jymax_level.resize(levmx+1, -9999999);
+
+   iyadjust.clear();
+   iyadjust.resize(levmx+1);
+   jyadjust.clear();
+   jyadjust.resize(levmx+1);
+
+   iface=0;
+   for (uint nz=0; nz<ncells; nz++){
+      if (celltype[nz] != REAL_CELL) continue;
+      int nt = ntop[nz];
+      if (celltype[nt] != REAL_CELL) continue;
+
+      int ifactor = 1;
+      if (level[nt] < level[nz]) ifactor = 2;
+
+      // Have top face
+      // printf("DEBUG -- iface %d lower nz %d upper nr %d\n",iface,nz,nt);
+      map_yface2cell_lower.push_back(nz);
+      map_yface2cell_upper.push_back(nt);
+      yface_level.push_back(MAX(level[nz],level[nt]));
+      yface_j.push_back(j[nt]*ifactor);
+      if (level[nt] < level[nz] && is_upper(i[nz]) ) {
+         yface_i.push_back(i[nt]*ifactor+1);
+      } else{
+         yface_i.push_back(i[nt]*ifactor);
+      }
+      map_ycell2face_top1[nz] = iface;
+
+      iface++;
+
+      if (level[nt] > level[nz]){
+         int nrt = nrht[nt];
+         // printf("DEBUG -- iface %d lower nz %d upper nrht[nt] %d\n",iface,nz,nrht[nt]);
+         map_yface2cell_lower.push_back(nz);
+         map_yface2cell_upper.push_back(nrt);
+         yface_level.push_back(MAX(level[nz],level[nrt]));
+         yface_j.push_back(j[nrt]*ifactor);
+         yface_i.push_back(i[nrt]*ifactor);
+         map_ycell2face_top2[nz] = iface;
+
+         iface++;
+      }
+   }
+   nyface=iface;
+
+   for (uint nz=0; nz<ncells; nz++){
+      if (celltype[nz] != REAL_CELL) continue;
+      int nb = nbot[nz];
+      if (celltype[nb] != REAL_CELL) continue;
+
+      if (level[nb] < level[nz] && is_upper(i[nz])){
+         map_ycell2face_bot1[nz] = map_ycell2face_top2[nb];
+      } else {
+         map_ycell2face_bot1[nz] = map_ycell2face_top1[nb];
+         if (level[nb] > level[nz]){
+            map_ycell2face_bot2[nz] = map_ycell2face_top1[nrht[nb]];
+         }
+      }
+
+   }
+
+   for (int iface=0; iface < nxface; iface++){
+      int fl = xface_level[iface];
+
+      int fi = xface_i[iface];
+      if (fi < ixmin_level[fl]) ixmin_level[fl] = fi;
+      if (fi > ixmax_level[fl]) ixmax_level[fl] = fi;
+
+      int fj = xface_j[iface];
+      if (fj < jxmin_level[fl]) jxmin_level[fl] = fj;
+      if (fj > jxmax_level[fl]) jxmax_level[fl] = fj;
+   }
+
+   for (int iface=0; iface < nxface; iface++){
+      int fl = xface_level[iface];
+      if (ixmax_level[fl] < ixmin_level[fl]) continue;
+
+      xface_i[iface] -= ixmin_level[fl];
+      xface_j[iface] -= jxmin_level[fl];
+   }
+
+   for (int fl = 0; fl <= levmx; fl++){
+      ixadjust[fl] = ixmin_level[fl];
+      jxadjust[fl] = jxmin_level[fl];
+      ixmax_level[fl] -= ixmin_level[fl];;
+      jxmax_level[fl] -= jxmin_level[fl];
+      ixmin_level[fl] = 0;
+      jxmin_level[fl] = 0;
+   }
+
+   for (int iface=0; iface < nyface; iface++){
+      int fl = yface_level[iface];
+
+      int fi = yface_i[iface];
+      if (fi < iymin_level[fl]) iymin_level[fl] = fi;
+      if (fi > iymax_level[fl]) iymax_level[fl] = fi;
+
+      int fj = yface_j[iface];
+      if (fj < jymin_level[fl]) jymin_level[fl] = fj;
+      if (fj > jymax_level[fl]) jymax_level[fl] = fj;
+   }
+
+   for (int iface=0; iface < nyface; iface++){
+      int fl = yface_level[iface];
+      if (iymax_level[fl] < iymin_level[fl]) continue;
+
+      yface_i[iface] -= iymin_level[fl];
+      yface_j[iface] -= jymin_level[fl];
+   }
+
+   for (int fl = 0; fl <= levmx; fl++){
+      iyadjust[fl] = iymin_level[fl];
+      jyadjust[fl] = jymin_level[fl];
+      iymax_level[fl] -= iymin_level[fl];;
+      jymax_level[fl] -= jymin_level[fl];
+      iymin_level[fl] = 0;
+      jymin_level[fl] = 0;
+   }
+
+}
+
+int **Mesh::get_xface_flag(int lev, bool print_output)
+{
+   int **xface_flag = (int **)genmatrix(jxmax_level[lev]+1,
+                                        ixmax_level[lev]+1, sizeof(int));
+   for (int jj=0; jj<jxmax_level[lev]+1; jj++){
+      for (int ii=0; ii<ixmax_level[lev]+1; ii++){
+         xface_flag[jj][ii] = -1;
+      }
+   }
+
+   for (int iface=0; iface < nxface; iface++){
+      if (xface_level[iface] == lev){
+         int ii = xface_i[iface];
+         int jj = xface_j[iface];
+
+         xface_flag[jj][ii] = 1;
+      }
+   }
+
+   if (DEBUG || print_output) {
+      printf("DEBUG -- x face_flag for level %d\n",lev);
+      printf("DEBUG -- sizes isize+1 %d jsize+1 %d\n",ixmax_level[lev]+1,jxmax_level[lev]+1);
+
+      printf("                           ");
+      for (int ii=0; ii<ixmax_level[lev]+1; ii++){
+         printf(" %4d ",ii);
+      }
+      printf("\n");
+
+      for (int jj=jxmax_level[lev]; jj>=0; jj--){
+
+         printf("DEBUG -- j  %4d:          ",jj);
+         for (int ii=0; ii<ixmax_level[lev]+1; ii++){
+            if (xface_flag[jj][ii] >= 0){
+               //printf("      xface_flag_check[%d][%d] = 1;\n",jj,ii);
+               printf(" %4d ", xface_flag[jj][ii]);
+            } else {
+               printf("      ");
+            }
+         }
+         printf("\n");
+      }
+   }
+
+   return(xface_flag);
+}
+
+int **Mesh::get_yface_flag(int lev, bool print_output)
+{
+   int **yface_flag = (int **)genmatrix(jymax_level[lev]+1,
+                                        iymax_level[lev]+1, sizeof(int));
+   for (int jj=0; jj<jymax_level[lev]+1; jj++){
+      for (int ii=0; ii<iymax_level[lev]+1; ii++){
+         yface_flag[jj][ii] = -1;
+      }
+   }
+
+   for (int iface=0; iface < nyface; iface++){
+      if (yface_level[iface] == lev){
+         int ii = yface_i[iface];
+         int jj = yface_j[iface];
+
+         yface_flag[jj][ii] = 1;
+      }
+   }
+
+   if (DEBUG || print_output) {
+      printf("DEBUG -- y face_flag for level %d\n",lev);
+      printf("DEBUG -- sizes isize+1 %d jsize+1 %d\n",iymax_level[lev]+1,jymax_level[lev]+1);
+
+      printf("                           ");
+      for (int ii=0; ii<iymax_level[lev]+1; ii++){
+         printf(" %4d ",ii);
+      }
+      printf("\n");
+
+      for (int jj=jymax_level[lev]; jj>=0; jj--){
+
+         printf("DEBUG -- j  %4d:          ",jj);
+         for (int ii=0; ii<iymax_level[lev]+1; ii++){
+            if (yface_flag[jj][ii] >= 0){
+               //printf("      yface_flag_check[%d][%d] = 1;\n",jj,ii);
+               printf(" %4d ", yface_flag[jj][ii]);
+            } else {
+               printf("      ");
+            }
+         }
+         printf("\n");
+      }
+   }
+
+   return(yface_flag);
+}
+
+void Mesh::get_flat_grid(int lev, int ***zone_flag_base, int ***zone_cell_base)
+{
+   int isize = ixmax_level[lev]+4;
+   int jsize = jymax_level[lev]+4;
+   int iadjust = ixadjust[lev]-2;
+   int jadjust = jyadjust[lev]-2;
+
+   //printf("DEBUG -- sizes isize %d jsize %d\n",isize,jsize);
+   //printf("DEBUG -- adjust ixadjust %d jxadjust %d\n",ixadjust[lev],jxadjust[lev]);
+   //printf("DEBUG -- adjust iyadjust %d jyadjust %d\n",iyadjust[lev],jyadjust[lev]);
+
+   (*zone_flag_base) = (int **)genmatrix(jsize, isize, sizeof(int));
+
+   int **zone_flag = *zone_flag_base;
+   for (int jj=0; jj<jsize; jj++){
+      for (int ii=0; ii<isize; ii++){
+          zone_flag[jj][ii] = -1;
+      }
+   }
+
+   (*zone_cell_base) = (int **)genmatrix(jsize, isize, sizeof(int));
+
+   int **zone_cell = *zone_cell_base;
+   for (int jj=0; jj<jsize; jj++){
+      for (int ii=0; ii<isize; ii++){
+         zone_cell[jj][ii] = -1;
+      }
+   }
+
+   for (int iface=0; iface < nxface; iface++){
+      if (xface_level[iface] == lev){
+         int nz1 = map_xface2cell_lower[iface];
+         int nz2 = map_xface2cell_upper[iface];
+
+         if (lev == level[nz1]) {
+            int iii = i[nz1]-iadjust;
+            int jjj = j[nz1]-jadjust;
+            zone_flag[jjj][iii] = 1;
+            zone_cell[jjj][iii] = nz1;
+            if (nlft[nz1] != REAL_CELL) {
+               zone_cell[jjj][iii-1] = nlft[nz1];
+            }
+         } else {
+            int iii = i[nz1]*2-iadjust+1;
+            int jjj = j[nz1]*2-jadjust;
+            if (is_upper(j[nz2])) jjj += 1;
+            zone_flag[jjj][iii] = 1;
+            zone_cell[jjj][iii] = nz1;
+            zone_cell[jjj][iii-1] = nz1;
+         }
+         if (lev == level[nz2]) {
+            int iii = i[nz2]-iadjust;
+            int jjj = j[nz2]-jadjust;
+            zone_flag[jjj][iii] = 1;
+            zone_cell[jjj][iii] = nz2;
+            if (nrht[nz2] != REAL_CELL) {
+               zone_cell[jjj][iii+1] = nrht[nz2];
+            }
+         } else {
+            int iii = i[nz2]*2-iadjust;
+            int jjj = j[nz2]*2-jadjust;
+            if (is_upper(j[nz1])) jjj += 1;
+            zone_flag[jjj][iii] = 1;
+            zone_cell[jjj][iii] = nz2;
+            zone_cell[jjj][iii+1] = nz2;
+         }
+      }
+   }
+
+   for (int iface=0; iface < nyface; iface++){
+      if (yface_level[iface] == lev){
+         int nz1 = map_yface2cell_lower[iface];
+         int nz2 = map_yface2cell_upper[iface];
+
+         if (lev == level[nz1]) {
+            int iii = i[nz1]-iadjust;
+            int jjj = j[nz1]-jadjust;
+            zone_flag[jjj][iii] = 1;
+            zone_cell[jjj][iii] = nz1;
+            if (nbot[nz1] != REAL_CELL) {
+               zone_cell[jjj-1][iii] = nbot[nz1];
+            }
+         } else {
+            int iii = i[nz1]*2-iadjust;
+            int jjj = j[nz1]*2-jadjust+1;
+            if (is_upper(i[nz2])) iii += 1;
+            zone_flag[jjj][iii] = 1;
+            zone_cell[jjj][iii] = nz1;
+            zone_cell[jjj-1][iii] = nz1;
+         }
+         if (lev == level[nz2]) {
+            int iii = i[nz2]-iadjust;
+            int jjj = j[nz2]-jadjust;
+            zone_flag[jjj][iii] = 1;
+            zone_cell[jjj][iii] = nz2;
+            if (ntop[nz2] != REAL_CELL) {
+               zone_cell[jjj+1][iii] = ntop[nz2];
+            }
+         } else {
+            int iii = i[nz2]*2-iadjust;
+            int jjj = j[nz2]*2-jadjust;
+            if (is_upper(i[nz1])) iii += 1;
+            zone_flag[jjj][iii] = 1;
+            zone_cell[jjj][iii] = nz2;
+            zone_cell[jjj+1][iii] = nz2;
+         }
+      }
+   }
+
+   if (DEBUG) {
+      printf("DEBUG -- zone_flag for level %d\n",lev);
+      printf("DEBUG -- sizes isize+1 %d jsize+1 %d\n",iymax_level[lev]+1,jymax_level[lev]+1);
+      for (int j=jsize-1; j>=0; j--){
+         for (int i=0; i<isize; i++){
+            if (zone_flag[j][i] >= 0){
+               printf("      zone_flag_check[%d][%d] = 1;\n",j,i);
+            }
+         }
+      }
+      for (int j=jsize-1; j>=0; j--){
+         for (int i=0; i<isize; i++){
+            if (zone_cell[j][i] >= 0){
+               printf("      zone_cell_check[%d][%d] = %d;\n",j,i,zone_cell[j][i]);
+            }
+         }
+      }
+
+      printf("                  ");
+      for (int i=0; i<isize; i++){
+         printf(" %4d ",i);
+      }
+      printf("\n");
+
+      for (int j=jsize-1; j>=0; j--){
+
+         printf("DEBUG -- j  %4d: ",j);
+         for (int i=0; i<isize; i++){
+            if (zone_flag[j][i] >= 0){
+               printf(" %4d ", zone_flag[j][i]);
+            } else {
+               printf("      ");
+            }
+         }
+         printf("\n");
+      }
+
+      printf("DEBUG -- zone_cell for level %d\n",lev);
+
+      printf("                  ");
+      for (int i=0; i<isize; i++){
+         printf(" %4d ",i);
+      }
+      printf("\n");
+
+      for (int j=jsize-1; j>=0; j--){
+
+         printf("DEBUG -- j  %4d: ",j);
+         for (int i=0; i<isize; i++){
+            if (zone_cell[j][i] >= 0){
+               printf(" %4d ", zone_cell[j][i]);
+            } else {
+               printf("      ");
+            }
+         }
+         printf("\n");
+      }
+   }
+}
+
+void Mesh::calc_face_list_clearmaps()
+{
+   map_xface2cell_lower.clear();
+   map_xface2cell_upper.clear();
+
+   map_xcell2face_left1.clear();
+   map_xcell2face_left2.clear();
+   map_xcell2face_right1.clear();
+   map_xcell2face_right2.clear();
+
+   map_yface2cell_lower.clear();
+   map_yface2cell_upper.clear();
+
+   map_ycell2face_bot1.clear();
+   map_ycell2face_bot2.clear();
+   map_ycell2face_top1.clear();
+   map_ycell2face_top2.clear();
 }
 
 void Mesh::timer_output(mesh_timer_category category, mesh_device_types device_type, int timer_level)

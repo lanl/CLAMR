@@ -285,12 +285,12 @@ public:
                   ymax,         //!<  Highest y-coordinate in use.
                   zmin,         //!<  Lowest z-coordinate in use.
                   zmax,         //!<  Highest z-coordinate in use.
-                  xcentermin,   //
-                  xcentermax,   //
-                  ycentermin,   //
-                  ycentermax,   //
-                  zcentermin,   //
-                  zcentermax,   //
+                  xcentermin,   //!<  Center of minimum x cell
+                  xcentermax,   //!<  Center of maximum x cell
+                  ycentermin,   //!<  Center of minimum y cell
+                  ycentermax,   //!<  Center of maximum y cell
+                  zcentermin,   //!<  Center of minimum z cell
+                  zcentermax,   //!<  Center of maximum z cell
                   deltax,       //!<  Grid spacing along x-axis.
                   deltay,       //!<  Grid spacing along y-axis.
                   deltaz;       //!<  Grid spacing along z-axis.
@@ -342,6 +342,45 @@ public:
                   dev_corners_j;
 #endif
 
+   int nxface;
+   int nyface;
+
+   vector<int> xface_i;
+   vector<int> xface_j;
+   vector<int> xface_level;
+   vector<int> map_xface2cell_lower;
+   vector<int> map_xface2cell_upper;
+
+   vector<int> map_xcell2face_left1;
+   vector<int> map_xcell2face_left2;
+   vector<int> map_xcell2face_right1;
+   vector<int> map_xcell2face_right2;
+
+   vector<int> ixmin_level;
+   vector<int> ixmax_level;
+   vector<int> jxmin_level;
+   vector<int> jxmax_level;
+   vector<int> ixadjust;
+   vector<int> jxadjust;
+
+   vector<int> yface_i;
+   vector<int> yface_j;
+   vector<int> yface_level;
+   vector<int> map_yface2cell_lower;
+   vector<int> map_yface2cell_upper;
+
+   vector<int> map_ycell2face_bot1;
+   vector<int> map_ycell2face_bot2;
+   vector<int> map_ycell2face_top1;
+   vector<int> map_ycell2face_top2;
+
+   vector<int> iymin_level;
+   vector<int> iymax_level;
+   vector<int> jymin_level;
+   vector<int> jymax_level;
+   vector<int> iyadjust;
+   vector<int> jyadjust;
+
    //   Public constructors.
    Mesh(FILE *fin, int *numpe);
    Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double deltay_in, int boundary, int parallel_in, int do_gpu_calc);
@@ -350,7 +389,9 @@ public:
    void init(int nx, int ny, real_t circ_radius, partition_method initial_order, int do_gpu_calc);
    void terminate(void);
 
-/* memory routines */
+/****************************************************************//**
+ * @name Memory routines
+ *******************************************************************/
 ///@{
 
 /****************************************************************//**
@@ -373,6 +414,12 @@ public:
 ///@}
 
 /* inline "macros" */
+
+///@{
+/****************************************************************//**
+ * \brief
+ * Boundary cell tests
+ *******************************************************************/
    int  is_lower_boundary(int *iv, int *lev_begin, int ic)    { return (iv[ic] < lev_begin[level[ic]]); }
    int  is_upper_boundary(int *iv, int *lev_end,   int ic)    { return (iv[ic] > lev_end[level[ic]]); }
 
@@ -382,7 +429,13 @@ public:
    int  is_top_boundary(int ic)     { return (j[ic] > lev_jend[  level[ic]]); }
    int  is_front_boundary(int ic)   { return (k[ic] < lev_kbegin[level[ic]]); }
    int  is_back_boundary(int ic)    { return (k[ic] > lev_kend[  level[ic]]); }
+///@}
 
+///@{
+/****************************************************************//**
+ * \brief
+ * Tests for positioning in set of 4 cells
+ *******************************************************************/
    int is_lower(int i)  { return(i % 2 == 0); }
    int is_upper(int i)  { return(i % 2 == 1); }
 
@@ -390,12 +443,18 @@ public:
    int is_lower_right(int i, int j) { return(i % 2 == 1 && j % 2 == 0); }
    int is_upper_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 1); }
    int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
+///@}
 
+///@{
+/****************************************************************//**
+ * \brief
+ * Level tests
+ *******************************************************************/
    int is_same_level_or_coarser(int nn, int nz) { return(level[nn] <= level[nz]); }
    int is_coarser(int nn, int nz)               { return(level[nn] <  level[nz]); }
    int is_finer(int nn, int nz)                 { return(level[nn] >  level[nz]); }
    int is_same_level(int nn, int nz)            { return(level[nn] == level[nz]); }
-
+///@}
 
 /* accessor routines */
    double get_cpu_timer(mesh_timer_category category)       {return(cpu_timers[category]); };
@@ -433,13 +492,28 @@ public:
 
 /* End of debugging, internal, or not used yet */
 
-   /**************************************************************************************
-   * Calculate neighbors
-   *  Input -- from within the object
-   *    i, j, level
-   *  Output -- in the object
-   *    nlft, nrht, nbot, ntop arrays
-   **************************************************************************************/
+   //void calc_face_list_test(double *H);
+   void calc_face_list(void);
+   void calc_face_list_wmap(void);
+   void calc_face_list_wbidirmap(void);
+   void calc_face_list_clearmaps(void);
+
+   int **get_xface_flag(int lev, bool print_output=0);
+   int **get_yface_flag(int lev, bool print_output=0);
+   void get_flat_grid(int lev, int ***zone_flag, int ***zone_cell);
+
+///@{
+/****************************************************************//**
+ * \brief
+ * Calculate neighbors
+ *
+ * **Parameters**
+ *
+ *  Input -- from within the object
+ *    i, j, level
+ *  Output -- in the object
+ *    nlft, nrht, nbot, ntop arrays
+ *******************************************************************/
    void calc_neighbors(int ncells);
    void calc_neighbors_local(void);
 #ifdef HAVE_OPENCL
@@ -454,87 +528,120 @@ public:
                   vector<int> &nfrt,
                   vector<int> &nbak,
                   vector<int> index);
+///@}
 
-   /**************************************************************************************
-   * Calculate rezone count
-   *  Input
-   *    mpot -- potential mesh refinement
-   *    ioffset -- write offset for each cell
-   *  Output
-   *    result -- cell count
-   **************************************************************************************/
+///@{
+/****************************************************************//**
+ * \brief
+ * Calculate rezone count
+ *
+ * **Parameters**
+ *
+ *  Input
+ *    mpot -- potential mesh refinement
+ *    ioffset -- write offset for each cell
+ *  Output
+ *    result -- cell count
+ *******************************************************************/
    int  rezone_count(vector<int> mpot, int &icount, int &jcount);
 #ifdef HAVE_OPENCL
    void gpu_rezone_count2(size_t block_size, size_t local_work_size, cl_mem dev_redscratch, cl_mem &dev_result);
    void gpu_rezone_count(size_t block_size, size_t local_work_size, cl_mem dev_redscratch, cl_mem &dev_result);
    void gpu_rezone_scan(size_t block_size, size_t local_work_size, cl_mem dev_ioffset, cl_mem &dev_result);
 #endif
+///@}
 
-   /**************************************************************************************
-   * Refine Smooth -- smooths jump in refinement level so that only a 1 to 2 jump occurs
-   *  Input/Output
-   *    mpot -- potential mesh refinement array, 1 is refine and -1 coarsen
-   *    ioffset -- write offset for each cell to account for new cells
-   *    result -- refinement count
-   **************************************************************************************/
+///@{
+/****************************************************************//**
+ * \brief
+ * Refine Smooth -- smooths jump in refinement level so that only a 1 to 2 jump occurs
+ *
+ *  **Parameters**
+ *
+ *  Input/Output
+ *    mpot -- potential mesh refinement array, 1 is refine and -1 coarsen
+ *    ioffset -- write offset for each cell to account for new cells
+ *    result -- refinement count
+ *******************************************************************/
    size_t refine_smooth(vector<int> &mpot, int &icount, int &jcount);
 #ifdef HAVE_OPENCL
    int gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount);
 #endif
+///@}
 
-   /**************************************************************************************
-   * Rezone mesh
-   *  Input
-   *     add_ncells -- for each processor. A global sum will be done and the main part of
-   *        the rezone will be skipped if no cells are added.
-   *     mpot -- mesh rezone potential
-   *     have_state flag -- 0 (false) for setup when physics state has not been allocated
-   *     ioffset -- partial prefix scan results for starting address to write new cells
-   *     state_memory -- linked list of arrays for state
-   *  Output
-   *     new mesh and state arrays with refinement/coarsening performed
-   **************************************************************************************/
+///@{
+/****************************************************************//**
+ * \brief
+ * Rezone mesh
+ *
+ *  **Parameters**
+ *
+ *  Input
+ *     add_ncells -- for each processor. A global sum will be done and the main part of
+ *        the rezone will be skipped if no cells are added.
+ *     mpot -- mesh rezone potential
+ *     have_state flag -- 0 (false) for setup when physics state has not been allocated
+ *     ioffset -- partial prefix scan results for starting address to write new cells
+ *     state_memory -- linked list of arrays for state
+ *  Output
+ *     new mesh and state arrays with refinement/coarsening performed
+ *******************************************************************/
    void rezone_all(int icount, int jcount, vector<int> mpot, int have_state, MallocPlus &state_memory);
 #ifdef HAVE_OPENCL
    void gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &gpu_state_memory);
 #endif
+///@}
 
-   /**************************************************************************************
-   * Load balance -- only needed for parallel (MPI) runs
-   *  Input
-   *    numcells -- ncells from rezone all routine. This is a copy in so that a local
-   *       value can be used for load_balance and gpu_load_balance without it getting
-   *       reset for clamr_checkall routine
-   *    weight -- weighting array per cell for balancing. Currently not used. Null value
-   *       indicates even weighting of cells for load balance. 
-   *    state_memory or gpu_state_memory -- linked-list of arrays from physics routine
-   *       to be load balanced. 
-   * Output -- arrays will be returned load balanced with new sizes. Pointers to arrays
-   *       will need to be reset
-   **************************************************************************************/
+///@{
+/****************************************************************//**
+ * \brief
+ * Load balance -- only needed for parallel (MPI) runs
+ *
+ *  **Parameters**
+ *
+ *  Input
+ *    numcells -- ncells from rezone all routine. This is a copy in so that a local
+ *       value can be used for load_balance and gpu_load_balance without it getting
+ *       reset for clamr_checkall routine
+ *    weight -- weighting array per cell for balancing. Currently not used. Null value
+ *       indicates even weighting of cells for load balance. 
+ *    state_memory or gpu_state_memory -- linked-list of arrays from physics routine
+ *       to be load balanced. 
+ * Output -- arrays will be returned load balanced with new sizes. Pointers to arrays
+ *       will need to be reset
+ *******************************************************************/
 #ifdef HAVE_MPI
    void do_load_balance_local(size_t numcells, float *weight, MallocPlus &state_memory);
 #ifdef HAVE_OPENCL
    int gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &gpu_state_memory);
 #endif
 #endif
+///@}
 
-   /**************************************************************************************
-   * Calculate spatial coordinates
-   *  Input -- from within the object
-   *    i, j, level
-   *  Output
-   *    x, y -- coordinates for each cell
-   *    dx, dy -- size of each cell
-   **************************************************************************************/
+///@{
+/****************************************************************//**
+ * \brief
+ * Calculate spatial coordinates
+ *
+ *  **Parameters**
+ *
+ *  Input -- from within the object
+ *    i, j, level
+ *  Output
+ *    x, y -- coordinates for each cell
+ *    dx, dy -- size of each cell
+ *******************************************************************/
    void calc_spatial_coordinates(int ibase);
 #ifdef HAVE_OPENCL
    void gpu_calc_spatial_coordinates(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy);
 #endif
+///@}
 
-   /**************************************************************************************
-   * Testing routines
-   **************************************************************************************/
+///@{
+/****************************************************************//**
+ * \brief
+ * Testing routines
+ *******************************************************************/
 #ifdef HAVE_OPENCL
    void compare_dev_local_to_local(void); // Not currently called
    void compare_neighbors_gpu_global_to_cpu_global(void);
@@ -561,6 +668,7 @@ public:
 #ifdef HAVE_OPENCL
    void compare_indices_all_to_gpu_local(Mesh *mesh_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
 #endif
+///@}
 
    size_t get_checkpoint_size(void);
    void store_checkpoint(Crux *crux);
