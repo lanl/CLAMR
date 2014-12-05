@@ -125,7 +125,7 @@ extern "C"
 
 #endif
 
-//static bool iversion_flag = false;
+static bool iversion_flag = false;
 
 typedef unsigned int uint;
 
