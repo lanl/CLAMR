@@ -1690,6 +1690,7 @@ void State::calc_finite_difference(double deltaT){
                        Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                   - wminusy_V + wplusy_V;
 
+#if DEBUG >= 1
       if (DEBUG >= 1) {
          real_t U_tmp = U_new[gix];
          real_t V_tmp = V_new[gix];
@@ -1697,6 +1698,7 @@ void State::calc_finite_difference(double deltaT){
          if (V_tmp == 0.0) V_tmp = 0.0;
          printf("DEBUG ic %d H_new %lf U_new %lf V_new %lf\n",gix,H_new[gix],U_tmp,V_tmp);
       }
+#endif
 
 /*
       printf("DEBUG ic %d deltaT, %lf dxic, %lf Hic, %lf Hxfluxplus, %lf Hxfluxminus, %lf Hyfluxplus, %lf Hyfluxminus %lf\n",
@@ -1822,6 +1824,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
                    HALF*deltaT*( (FA_uplim*UVFLUX(cell_upper))-(FA_lolim*UVFLUX(cell_lower)) )/
                    (CV_uplim+CV_lolim);
       }
+#if DEBUG >= 2
       if (DEBUG >= 2) {
          printf("1st pass x direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
             iface, mesh->xface_i[iface], mesh->xface_j[iface], mesh->xface_level[iface],
@@ -1829,10 +1832,13 @@ void State::calc_finite_difference_via_faces(double deltaT){
             Hx[iface],Ux[iface],Vx[iface],
             H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
       }
+#endif
    }
+#if DEBUG >= 2
    if (DEBUG >= 2) {
       printf("\n");
    }
+#endif
 
    vector<state_t> Hy(mesh->nyface);
    vector<state_t> Uy(mesh->nyface);
@@ -1886,6 +1892,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
       }
 
+#if DEBUG >= 2
       if (DEBUG >= 2) {
          printf("1st pass y direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
             iface, mesh->yface_i[iface], mesh->yface_j[iface], mesh->yface_level[iface],
@@ -1893,10 +1900,13 @@ void State::calc_finite_difference_via_faces(double deltaT){
             Hy[iface],Uy[iface],Vy[iface],
             H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
       }
+#endif
    }
+#if DEBUG >= 2
    if (DEBUG >= 2) {
       printf("\n");
    }
+#endif
 
    state_t *H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
    state_t *U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
@@ -2313,6 +2323,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
                       Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                  - wminusy_V + wplusy_V;
 
+#if DEBUG >= 1
       if (DEBUG >= 1) {
          real_t U_tmp = U_new[ic];
          real_t V_tmp = V_new[ic];
@@ -2320,6 +2331,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
          if (V_tmp == 0.0) V_tmp = 0.0;
          printf("DEBUG ic %d H_new %lf U_new %lf V_new %lf\n",ic,H_new[ic],U_tmp,V_tmp);
       }
+#endif
 
 /*
       printf("DEBUG ic %d deltaT, %lf dxic, %lf Hic, %lf Hxfluxplus, %lf Hxfluxminus, %lf Hyfluxplus, %lf Hyfluxminus %lf\n",
