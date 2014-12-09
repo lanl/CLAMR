@@ -130,6 +130,7 @@ static int view_mode = 0;
 bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
+            face_based,     //  Flag for face-based finite difference;
             outline;        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
             crux_type,      //  Type of checkpoint/restart -- CRUX_NONE, CRUX_IN_MEMORY, CRUX_DISK;

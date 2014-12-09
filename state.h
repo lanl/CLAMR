@@ -262,6 +262,7 @@ public:
    *      H, U, V
    *******************************************************************/
    void calc_finite_difference(double deltaT);
+   void calc_finite_difference_via_faces(double deltaT);
 #ifdef HAVE_OPENCL
    void gpu_calc_finite_difference(double deltaT);
 #endif
