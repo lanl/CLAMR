@@ -399,7 +399,7 @@ if (MPI_FOUND)
 endif (MPI_FOUND)
 
 ########### clamr_openmponly target ###############
-# This share the clamr_cpuonly.cpp source file
+# This shares the clamr_cpuonly.cpp source file
 if(OPENMP_FOUND)
    set(clamr_openmponly_CXX_SRCS clamr_cpuonly.cpp state.cpp input.cpp)
    set(clamr_openmponly_H_SRCS state.h input.h)

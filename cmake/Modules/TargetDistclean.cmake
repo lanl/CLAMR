@@ -16,10 +16,8 @@ IF (UNIX)
    */*.a
    Makefile
    [A-Z,a-c,e-z]*/Makefile
+   */[A-Z,a-c,e-z]*/Makefile
    */tests/Makefile
-   mesh/hsfc/Makefile
-   mesh/kdtree/Makefile
-   mesh/zorder/Makefile
    core core.*
    gmon.out
    *~
