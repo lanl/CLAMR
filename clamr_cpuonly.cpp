@@ -308,6 +308,7 @@ int main(int argc, char **argv) {
 #endif
 
    if (ncycle == next_graphics_cycle){
+      set_graphics_outline(outline);
       set_graphics_mysize(ncells);
       set_graphics_window((float)mesh->xmin, (float)mesh->xmax,
                           (float)mesh->ymin, (float)mesh->ymax);
