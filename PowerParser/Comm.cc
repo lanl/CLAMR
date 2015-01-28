@@ -79,7 +79,7 @@ Comm::Comm()
        MPI_Init(&argc, &argv);
     }
 
-    MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
     MPI_Comm_size(MPI_COMM_WORLD, &npes );
     MPI_Comm_rank(MPI_COMM_WORLD, &mype );
 #endif

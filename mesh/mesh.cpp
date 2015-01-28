@@ -3461,13 +3461,27 @@ void Mesh::calc_neighbors(int ncells)
 
       int *hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
 
-      for(int ic=0; ic<ncells; ic++){
-         int lev = level[ic];
-         int levmult = IPOW2(levmx-lev);
-         int ii = i[ic]*levmult;
-         int jj = j[ic]*levmult;
+      if (get_hash_method() == PERFECT_HASH) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+         for(int ic=0; ic<ncells; ic++){
+            int lev = level[ic];
+            int levmult = IPOW2(levmx-lev);
+            int ii = i[ic]*levmult;
+            int jj = j[ic]*levmult;
 
-         write_hash(ic,jj*imaxsize+ii,hash);
+            write_hash(ic,jj*imaxsize+ii,hash);
+         }
+      } else {
+         for(int ic=0; ic<ncells; ic++){
+            int lev = level[ic];
+            int levmult = IPOW2(levmx-lev);
+            int ii = i[ic]*levmult;
+            int jj = j[ic]*levmult;
+
+            write_hash(ic,jj*imaxsize+ii,hash);
+         }
       }
 
       write_hash_collision_report();
@@ -3860,15 +3874,30 @@ void Mesh::calc_neighbors_local(void)
          fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
       }
 
-      for(uint ic=0; ic<ncells; ic++){
-         int cellnumber = ic+noffset;
-         int lev = level[ic];
-         int levmult = IPOW2(levmx-lev);
-         int ii = i[ic]*levmult-iminsize;
-         int jj = j[ic]*levmult-jminsize;
+      if (get_hash_method() == PERFECT_HASH) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+         for(uint ic=0; ic<ncells; ic++){
+            int cellnumber = ic+noffset;
+            int lev = level[ic];
+            int levmult = IPOW2(levmx-lev);
+            int ii = i[ic]*levmult-iminsize;
+            int jj = j[ic]*levmult-jminsize;
 
-         write_hash(cellnumber, jj*(imaxsize-iminsize)+ii, hash);
-      }    
+            write_hash(cellnumber, jj*(imaxsize-iminsize)+ii, hash);
+         }    
+      } else {
+         for(uint ic=0; ic<ncells; ic++){
+            int cellnumber = ic+noffset;
+            int lev = level[ic];
+            int levmult = IPOW2(levmx-lev);
+            int ii = i[ic]*levmult-iminsize;
+            int jj = j[ic]*levmult-jminsize;
+
+            write_hash(cellnumber, jj*(imaxsize-iminsize)+ii, hash);
+         }    
+      }
 
       if (TIMING_LEVEL >= 2) {
          cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);

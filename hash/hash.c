@@ -41,6 +41,10 @@ int   choose_hash_method = METHOD_UNSET;
 int (*read_hash)(ulong, int *);
 void (*write_hash)(uint, ulong, int *);
 
+int get_hash_method(void) {
+  return(hash_method);
+}
+
 int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
    hash_ncells = 0;
    write_hash_collisions = 0;
