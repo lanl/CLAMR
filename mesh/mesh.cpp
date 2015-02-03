@@ -3827,17 +3827,27 @@ void Mesh::calc_neighbors_local(void)
       int imintile = (imax+1)*IPOW2(levmx);
       int jmaxtile = 0;
       int imaxtile = 0;
+
+/// Version 3.1 July 2011
+/// min reduction was only available in C in version 3.1
+/// so this fallback version
+#if defined _OPENMP && _OPENMP < 201107
+
+#ifdef _OPENMP
+      if (! iversion_flag) {
+         printf("Warning -- pre 3.1 version of OpenMP. Version is %d\n",_OPENMP);
+         iversion_flag = true;
+      }
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel
-#endif
       {
          int my_jmintile = jmintile;
          int my_imintile = imintile;
          int my_jmaxtile = 0;
          int my_imaxtile = 0;
-#ifdef _OPENMP
 #pragma omp for
-#endif
          for(uint ic=0; ic<ncells; ic++){
             int lev = level[ic];
             if (lev < 0 || lev > levmx) printf("DEBUG -- cell %d lev %d\n",ic,level[ic]);
@@ -3846,9 +3856,7 @@ void Mesh::calc_neighbors_local(void)
             if ( i[ic]   *IPOW2(levmx-lev)   < my_imintile) my_imintile =  i[ic]   *IPOW2(levmx-lev)  ;
             if ((i[ic]+1)*IPOW2(levmx-lev)-1 > my_imaxtile) my_imaxtile = (i[ic]+1)*IPOW2(levmx-lev)-1;
          }
-#ifdef _OPENMP
 #pragma omp critical
-#endif
          {
             if (my_jmintile < jmintile) jmintile = my_jmintile;
             if (my_imintile < imintile) imintile = my_imintile;
@@ -3856,6 +3864,23 @@ void Mesh::calc_neighbors_local(void)
             if (my_imaxtile > imaxtile) imaxtile = my_imaxtile;
          }
       }
+#endif
+
+#else // _OPENMP version >= 201107 or non-OpenMP
+
+#ifdef _OPENMP
+#pragma omp parallel for reduction(min:jmintile,imintile) reduction(max:jmaxtile,imaxtile)
+#endif
+      for(uint ic=0; ic<ncells; ic++){
+         int lev = level[ic];
+         if (lev < 0 || lev > levmx) printf("DEBUG -- cell %d lev %d\n",ic,level[ic]);
+         if ( j[ic]   *IPOW2(levmx-lev)   < jmintile) jmintile =  j[ic]   *IPOW2(levmx-lev)  ;
+         if ((j[ic]+1)*IPOW2(levmx-lev)-1 > jmaxtile) jmaxtile = (j[ic]+1)*IPOW2(levmx-lev)-1;
+         if ( i[ic]   *IPOW2(levmx-lev)   < imintile) imintile =  i[ic]   *IPOW2(levmx-lev)  ;
+         if ((i[ic]+1)*IPOW2(levmx-lev)-1 > imaxtile) imaxtile = (i[ic]+1)*IPOW2(levmx-lev)-1;
+      }
+#endif
+
       //if (DEBUG) fprintf(fp,"%d: Tile Sizes are imin %d imax %d jmin %d jmax %d\n",mype,imintile,imaxtile,jmintile,jmaxtile);
 
       // Expand size by 2*coarse_cells for ghost cells

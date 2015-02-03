@@ -809,7 +809,7 @@ double State::set_timestep(double g, double sigma)
 /// Version 3.1 July 2011
 /// min reduction was only available in C in version 3.1
 /// so this fallback version
-#if _OPENMP < 201107
+#if defined _OPENMP && _OPENMP < 201107
 
 #ifdef _OPENMP
    if (! iversion_flag) {
@@ -829,18 +829,12 @@ double State::set_timestep(double g, double sigma)
             double xspeed = (fabs(U[ic])+wavespeed)/mesh->lev_deltax[lev];
             double yspeed = (fabs(V[ic])+wavespeed)/mesh->lev_deltay[lev];
             double deltaT=sigma/(xspeed+yspeed);
-#ifdef _OPENMP
             if (deltaT < mymindeltaT) mymindeltaT = deltaT;
-#else
-            if (deltaT < mindeltaT) mindeltaT = deltaT;
-#endif
          }
       }
-#ifdef _OPENMP
 #pragma omp critical
       if (mymindeltaT < mindeltaT) mindeltaT = mymindeltaT;
    }
-#endif
 
 #else // _OPENMP version >= 201107 or non-OpenMP
 

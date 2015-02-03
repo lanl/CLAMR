@@ -44,6 +44,11 @@ echo "./clamr_openmponly -n 128 -i 100 -t 600"
 echo ""
 echo ""
 
+echo "mpirun -n 2 ./clamr_mpiopenmponly -n 128 -i 100 -t 600"
+mpirun -n 2 ./clamr_mpiopenmponly -n 128 -i 100 -t 600
+echo ""
+echo ""
+
 echo "mpirun -n 2 ./clamr -n 128 -i 100 -t 600"
 mpirun -n 2 ./clamr -n 128 -i 100 -t 600
 echo ""
