@@ -71,7 +71,7 @@ FILE *stat_fp = NULL, *meminfo_fp = NULL;
 
 long long memstats_memused(){
    char proc_stat_file[50];
-   char str[140];
+   char *str = (char *)malloc(140*sizeof(char));
    char *p;
    int err;
    int memdebug = 0;
@@ -100,7 +100,10 @@ long long memstats_memused(){
    }
 
    while (!feof(stat_fp)){
-      fgets(str, 132, stat_fp);
+      str = fgets(str, 132, stat_fp);
+      if (str == NULL){
+         printf("Warning: Error in reading %s for memory stats\n",proc_stat_file);
+      }
       p = strtok(str,":");
       //printf("p is |%s|\n",p);
       if (!strcmp(p, "VmRSS")) {
@@ -117,13 +120,14 @@ long long memstats_memused(){
 
    fclose(stat_fp);
    stat_fp = NULL;
+   free(str);
 
    return(mem_current);
 }
 
 long long memstats_mempeak(){
    char proc_stat_file[50];
-   char str[140];
+   char *str = (char *)malloc(140*sizeof(char));
    char *p;
    int err;
    int memdebug = 0;
@@ -152,7 +156,10 @@ long long memstats_mempeak(){
    }
 
    while (!feof(stat_fp)){
-      fgets(str, 132, stat_fp);
+      str = fgets(str, 132, stat_fp);
+      if (str == NULL){
+         printf("Warning: Error in reading %s for memory stats\n",proc_stat_file);
+      }
       p = strtok(str,":");
       //printf("p is |%s|\n",p);
       if (!strcmp(p, "VmHWM")) {
@@ -169,6 +176,7 @@ long long memstats_mempeak(){
 
    fclose(stat_fp);
    stat_fp = NULL;
+   free(str);
 
    return(mem_current);
 }

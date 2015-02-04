@@ -141,6 +141,8 @@ extern bool localStencil;
 int calc_neighbor_type;
 bool dynamic_load_balance_on;
 
+static bool iversion_flag = false;
+
 static const char *mesh_timer_descriptor[MESH_TIMER_SIZE] = {
    "mesh_timer_count_BCs",
    "mesh_timer_calc_neighbors",
