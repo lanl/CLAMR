@@ -88,12 +88,9 @@ For Cielito (Cray XE6) architecture
    module load cray-mpich2/6.3.1
    module load cmake/2.8.9
 
-ccmake -DCMAKE_BUILD_TYPE=release .
-    Change CMAKE_CXX_COMPILER to CC and CMAKE_C_COMPILER to cc to get Cray wrapper scripts
-       t -- to toggle to advanced mode
-       enter to change each setting
-       c -- to configure
-       q to exit
+cmake -DCMAKE_BUILD_TYPE=release -DCMAKE_CXX_COMPILER=`which CC` -DCMAKE_C_COMPILER=`which cc` .
+    or the equivalent (graphics and precision types below are currently the defaults)
+cmake -DCMAKE_BUILD_TYPE=release -DGRAPHICS_TYPE=None -DPRECISION_TYPE=full_precision -DCMAKE_CXX_COMPILER=`which CC` -DCMAKE_C_COMPILER=`which cc` .
 
 // To build
    make
