@@ -80,6 +80,36 @@ In the CLAMR directory
 cd CLAMR
 ./clamr_openmponly
 
+For Cielito (Cray XE6) architecture
+
+// Note that CLAMR has some problems with OpenMPI, but works at least with this version
+// of mpich
+   module swap PrgEnv-pgi PrgEnv-gnu
+   module load cray-mpich2/6.3.1
+   module load cmake/2.8.9
+
+ccmake -DCMAKE_BUILD_TYPE=release .
+    Change CMAKE_CXX_COMPILER to CC and CMAKE_C_COMPILER to cc to get Cray wrapper scripts
+       t -- to toggle to advanced mode
+       enter to change each setting
+       c -- to configure
+       q to exit
+
+// To build
+   make
+// There will be complaints about shared libraries. Go to each directory where it complains and
+// edit the CMakeLists.txt and change "SHARED" to "STATIC"
+   vi genmalloc/CMakeLists.txt
+   vi graphics/CMakeLists.txt
+   vi memstats/CMakeLists.txt
+   vi mesh/hsfc/CMakeLists.txt
+   vi mesh/kdtree/CMakeLists.txt
+   vi mesh/zorder/CMakeLists.txt
+   vi s7/CMakeLists.txt
+   vi timer/CMakeLists.txt
+
+// To run
+   aprun -n 128 -N 16 ../clamr_mpionly -n 128 -t 1000
 
 // Set MPEHOME to location of MPE install or MPE_INCLUDE_DIR and MPE_LIBRARIES to 
 // the include path and the location of the MPE libraries
