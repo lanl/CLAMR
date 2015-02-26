@@ -152,7 +152,11 @@ void Crux::store_begin(size_t nsize, int ncycle)
 
       char symlink_file[60];
       sprintf(symlink_file,"%s/backup%1d.crx",checkpoint_directory,cp_num);
-      symlink(backup_file, symlink_file);
+      int ireturn = symlink(backup_file, symlink_file);
+      if (ireturn == -1) {
+         printf("Warning: error returned with symlink call for file %s and symlink %s\n",
+                backup_file,symlink_file);
+      }
    }
 
    if (do_crux_timing){
@@ -262,45 +266,69 @@ void Crux::restore_begin(char *restart_file, int rollback_counter)
 
 void Crux::restore_ints(int *int_vals, size_t nelem)
 {
-   fread(int_vals,sizeof(int),nelem,restore_fp);
+   size_t nelem_read = fread(int_vals,sizeof(int),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %d is not equal to request %d\n",nelem_read,nelem);
+   }
 }
 
 void Crux::restore_bools(bool *bool_vals, size_t nelem)
 {
-   fread(bool_vals,sizeof(bool),nelem,restore_fp);
+   size_t nelem_read = fread(bool_vals,sizeof(bool),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %d is not equal to request %d\n",nelem_read,nelem);
+   }
 }
 
 void Crux::restore_longs(long long *long_vals, size_t nelem)
 {
-   fread(long_vals,sizeof(long),nelem,restore_fp);
+   size_t nelem_read = fread(long_vals,sizeof(long),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %d is not equal to request %d\n",nelem_read,nelem);
+   }
 }
 
 void Crux::restore_doubles(double *double_vals, size_t nelem)
 {
-   fread(double_vals,sizeof(double),nelem,restore_fp);
+   size_t nelem_read = fread(double_vals,sizeof(double),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %d is not equal to request %d\n",nelem_read,nelem);
+   }
 }
 
 int *Crux::restore_int_array(int *int_array, size_t nelem)
 {
-   fread(int_array,sizeof(int),nelem,restore_fp);
+   size_t nelem_read = fread(int_array,sizeof(int),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %d is not equal to request %d\n",nelem_read,nelem);
+   }
    return(int_array);
 }
 
 long long *Crux::restore_long_array(long long *long_array, size_t nelem)
 {
-   fread(long_array,sizeof(long long),nelem,restore_fp);
+   size_t nelem_read = fread(long_array,sizeof(long long),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %d is not equal to request %d\n",nelem_read,nelem);
+   }
    return(long_array);
 }
 
 float *Crux::restore_float_array(float *float_array, size_t nelem)
 {
-   fread(float_array,sizeof(float),nelem,restore_fp);
+   size_t nelem_read = fread(float_array,sizeof(float),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %d is not equal to request %d\n",nelem_read,nelem);
+   }
    return(float_array);
 }
 
 double *Crux::restore_double_array(double *double_array, size_t nelem)
 {
-   fread(double_array,sizeof(double),nelem,restore_fp);
+   size_t nelem_read = fread(double_array,sizeof(double),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %d is not equal to request %d\n",nelem_read,nelem);
+   }
    return(double_array);
 }
 

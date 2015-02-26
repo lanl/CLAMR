@@ -57,6 +57,10 @@
 // ***************************************************************************
 // ***************************************************************************
 
+#include "PowerParser.hh"
+#include "Parser_utils.hh"
+#include "Variable.hh"
+#include "Function.hh"
 #include <stdio.h>
 #include <unistd.h>
 #include <fstream>
@@ -70,10 +74,6 @@
 #include <limits>
 #include <stdint.h>
 #include <stdlib.h>
-#include "Parser_utils.hh"
-#include "Variable.hh"
-#include "Function.hh"
-#include "PowerParser.hh"
 
 namespace PP
 {

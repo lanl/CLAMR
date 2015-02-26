@@ -109,7 +109,7 @@ enum graphics_file_type graphics_type; // type of graphics output
 static int width;
 static float graphics_xmin=0.0, graphics_xmax=0.0, graphics_ymin=0.0, graphics_ymax=0.0;
 
-static int graphics_outline;
+static int graphics_outline   = 0;
 static int graphics_view_mode = 0;
 static int graphics_mysize    = 0;
 
@@ -226,7 +226,17 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
 
       int magick_step = MAGICK_NCOLORS/(graphics_proc[graphics_mysize-1]+1);
 
+      if (graphics_outline) {
+         PixelGetBlack(pixel_wand);
+
+         DrawSetStrokeColor(draw_wand,pixel_wand);
+         DrawSetStrokeWidth(draw_wand,0.01);
+         DrawSetStrokeAntialias(draw_wand,1);
+         DrawSetStrokeOpacity(draw_wand,1);
+      }
+
       if (data_type == DATA_DOUBLE){
+
          for(int i = 0; i < graphics_mysize; i++) {
             int magick_color = graphics_proc[i]*magick_step;
             char cstring[40];
@@ -234,8 +244,9 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
                                                 MagickRainbow[magick_color].Green,
                                                 MagickRainbow[magick_color].Blue,120);
             PixelSetColor(pixel_wand, cstring);
+            
 
-            DrawSetFillColor(draw_wand, pixel_wand);
+            DrawSetFillColor(draw_wand, pixel_wand); 
 
             DrawRectangle(draw_wand, x_double[i],              y_double[i],
                                      x_double[i]+dx_double[i], y_double[i]+dy_double[i]);
@@ -246,7 +257,52 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
                x_double[i]+dx_double[i], y_double[i]+dy_double[i]);
 */
          }
+
+         if (graphics_outline) {
+	    PixelSetColor(pixel_wand,"black");
+	    DrawSetStrokeColor(draw_wand,pixel_wand);
+	    DrawSetStrokeWidth(draw_wand,0.01);
+
+            double xold = x_double[0]+0.5*dx_double[0];
+            double yold = y_double[0]+0.5*dy_double[0];
+
+            for(int i = 0; i < graphics_mysize; i++) {
+               char cstring[40];
+               sprintf(cstring,"%d",i);
+
+               double xnew = x_double[i]+0.5*dx_double[i];
+               double ynew = y_double[i]+0.5*dy_double[i];
+
+               DrawLine(draw_wand, xold, yold, xnew, ynew);
+
+               xold = xnew;
+               yold = ynew;
+            }
+         }
+
+/*
+         // Set up a 12 point black font 
+	 PixelSetColor(pixel_wand,"black");
+	 DrawSetFillColor(draw_wand,pixel_wand);
+	 DrawSetFont (draw_wand, "Courier" ) ;
+	 DrawSetFontSize(draw_wand,0.01);
+	 DrawSetStrokeColor(draw_wand,pixel_wand);
+	 DrawSetStrokeWidth(draw_wand,0.01);
+         DrawSetTextDirection(draw_wand, RightToLeftDirection);
+         DrawSetTextAlignment(draw_wand, CenterAlign);
+         DrawSetTextAntialias(draw_wand,MagickTrue);
+
+         for(int i = 1; i < graphics_mysize; i++) {
+            char cstring[40];
+            sprintf(cstring,"%d",i);
+
+
+            DrawAnnotation(draw_wand, x_double[i]+0.5*dx_double[i], y_double[i]+0.5*dy_double[i], cstring);
+         }
+*/
+
       } else {
+
          for(int i = 0; i < graphics_mysize; i++) {
             int magick_color = graphics_proc[i]*magick_step;
             char cstring[40];
@@ -260,6 +316,29 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
             DrawRectangle(draw_wand, x_float[i],             y_float[i],
                                      x_float[i]+dx_float[i], y_float[i]+dy_float[i]);
          }
+
+         if (graphics_outline) {
+	    PixelSetColor(pixel_wand,"black");
+	    DrawSetStrokeColor(draw_wand,pixel_wand);
+	    DrawSetStrokeWidth(draw_wand,0.01);
+
+            float xold = x_float[0]+0.5*dx_float[0];
+            float yold = y_float[0]+0.5*dy_float[0];
+
+            for(int i = 0; i < graphics_mysize; i++) {
+               char cstring[40];
+               sprintf(cstring,"%d",i);
+
+               float xnew = x_float[i]+0.5*dx_float[i];
+               float ynew = y_float[i]+0.5*dy_float[i];
+
+               DrawLine(draw_wand, xold, yold, xnew, ynew);
+
+               xold = xnew;
+               yold = ynew;
+            }
+         }
+
       }
 
       MagickDrawImage(magick_wand, draw_wand);
@@ -398,7 +477,17 @@ void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_
 
       int magick_step = MAGICK_NCOLORS/(scaleMax - scaleMin);
 
+      if (graphics_outline) {
+         PixelGetBlack(pixel_wand);
+
+         DrawSetStrokeColor(draw_wand,pixel_wand);
+         DrawSetStrokeWidth(draw_wand,0.01);
+         DrawSetStrokeAntialias(draw_wand,1);
+         DrawSetStrokeOpacity(draw_wand,1);
+      }
+
       if (data_type == DATA_DOUBLE){
+
          for(int i = 0; i < graphics_mysize; i++) {
             int magick_color;
             if (data_type == DATA_DOUBLE){
@@ -430,6 +519,7 @@ void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_
 */
          }
       } else {
+
          for(int i = 0; i < graphics_mysize; i++) {
             int magick_color;
             if (data_type == DATA_DOUBLE){
