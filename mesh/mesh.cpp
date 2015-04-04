@@ -2761,7 +2761,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       MallocPlus state_memory_old = state_memory;
       list<malloc_plus_memory_entry>::iterator it;
 
-      for (it = state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
+      for (it = state_memory_old.memory_entry_begin(); it != state_memory_old.memory_entry_end();
            it = state_memory_old.memory_entry_next() ) {
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
          if (it->mem_elsize == 8) {
@@ -7392,7 +7392,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
 
       list<malloc_plus_memory_entry>::iterator it;
 
-      for (it = state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
+      for (it = state_memory_old.memory_entry_begin(); it != state_memory_old.memory_entry_end();
            it = state_memory_old.memory_entry_next() ) {
 
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);

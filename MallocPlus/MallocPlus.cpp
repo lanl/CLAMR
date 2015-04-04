@@ -57,6 +57,7 @@
 // SKG TODO op realloc (similar to managed)
 
 #include "MallocPlus.h"
+#include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <algorithm>
@@ -92,7 +93,7 @@ typedef cl_float2   cl_real2;
 #endif
 
 typedef unsigned int uint;
-list<malloc_plus_memory_entry>::iterator it_save;
+list<malloc_plus_memory_entry>::iterator it_save, it_end;
 
 #if defined(HAVE_MPI)
 void
@@ -671,19 +672,14 @@ list<malloc_plus_memory_entry>::iterator MallocPlus::memory_entry_begin(void){
 }
 
 list<malloc_plus_memory_entry>::iterator MallocPlus::memory_entry_next(void){
-   list<malloc_plus_memory_entry>::iterator it;
+   it_save++;
+   if (DEBUG) printf("Found it ptr %p name %s\n",it_save->mem_ptr,it_save->mem_name);
+   return(it_save);
+}
 
-   it = it_save;
-   it++;
-
-   if (it != memory_list.end()){
-      if (DEBUG) printf("Found it ptr %p name %s\n",it->mem_ptr,it->mem_name);
-      it_save = it;
-      return(it);
-   } else {
-      if (DEBUG) printf("Warning -- memory not found\n");
-      return((list<malloc_plus_memory_entry>::iterator) NULL);
-   }
+list<malloc_plus_memory_entry>::iterator MallocPlus::memory_entry_end(void){
+   it_end = memory_list.end();
+   return(it_end);
 }
 
 size_t MallocPlus::get_memory_size(void *malloc_mem_ptr){

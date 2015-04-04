@@ -536,8 +536,8 @@ public:
  *
  *     list<malloc_plus_memory_entry>::iterator it;
  *     for (it = my_mem.memory_entry_begin(); 
- *          it != (list<malloc_plus_memory_entry>::iterator)NULL;
-            it = my_mem.memory_entry_next() ){
+ *          it != my_mem.memory_entry_end();
+ *          it = my_mem.memory_entry_next() ){
  *        ... process entries ...
  *     }
  *******************************************************************/
@@ -552,12 +552,28 @@ public:
  *
  *     list<malloc_plus_memory_entry>::iterator it;
  *     for (it = my_mem.memory_entry_begin(); 
- *          it != (list<malloc_plus_memory_entry>::iterator)NULL;
-            it = my_mem.memory_entry_next() ){
+ *          it != my_mem.memory_entry_end();
+ *          it = my_mem.memory_entry_next() ){
  *        ... process entries ...
  *     }
  *******************************************************************/
    list<malloc_plus_memory_entry>::iterator memory_entry_next(void);
+
+/****************************************************************//**
+ * \brief
+ * Gets initial memory iterator from database for iterating over the
+ * entries and processing each.
+ *
+ * Typical Usage
+ *
+ *     list<malloc_plus_memory_entry>::iterator it;
+ *     for (it = my_mem.memory_entry_begin(); 
+ *          it != my_mem.memory_entry_end();
+ *          it = my_mem.memory_entry_next() ){
+ *        ... process entries ...
+ *     }
+ *******************************************************************/
+   list<malloc_plus_memory_entry>::iterator memory_entry_end(void);
 
 /****************************************************************//**
  * \brief
