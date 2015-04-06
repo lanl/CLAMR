@@ -125,7 +125,9 @@ extern "C"
 
 #endif
 
+#ifdef _OPENMP
 static bool iversion_flag = false;
+#endif
 
 typedef unsigned int uint;
 
@@ -1906,7 +1908,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
    state_t *U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
    state_t *V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
 
-   for (int ic = 0; ic < mesh->ncells; ic++){
+   for (int ic = 0; ic < (int)mesh->ncells; ic++){
 
       int lvl     = level[ic];
       int nl      = nlft[ic];
@@ -1921,21 +1923,21 @@ void State::calc_finite_difference_via_faces(double deltaT){
       int nll     = nlft[nl];
       real_t Hl      = H[nl];
       real_t Ul      = U[nl];
-      real_t Vl      = V[nl];
+      //real_t Vl      = V[nl];
 
       int nrr     = nrht[nr];
       real_t Hr      = H[nr];
       real_t Ur      = U[nr];
-      real_t Vr      = V[nr];
+      //real_t Vr      = V[nr];
 
       int ntt     = ntop[nt];
       real_t Ht      = H[nt];
-      real_t Ut      = U[nt];
+      //real_t Ut      = U[nt];
       real_t Vt      = V[nt];
 
       int nbb     = nbot[nb];
       real_t Hb      = H[nb];
-      real_t Ub      = U[nb];
+      //real_t Ub      = U[nb];
       real_t Vb      = V[nb];
 
       int nlt     = ntop[nl];
@@ -1960,7 +1962,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
       real_t Vbb     = V[nbb];
 
       real_t dxic    = lev_deltax[lvl];
-      real_t dyic    = lev_deltay[lvl];
+      //real_t dyic    = lev_deltay[lvl];
 
       real_t dxl     = lev_deltax[level[nl]];
       real_t dxr     = lev_deltax[level[nr]];
@@ -1968,10 +1970,10 @@ void State::calc_finite_difference_via_faces(double deltaT){
       real_t dyt     = lev_deltay[level[nt]];
       real_t dyb     = lev_deltay[level[nb]];
 
-      real_t drl     = dxl;
-      real_t drr     = dxr;
-      real_t drt     = dyt;
-      real_t drb     = dyb;
+      //real_t drl     = dxl;
+      //real_t drr     = dxr;
+      //real_t drt     = dyt;
+      //real_t drb     = dyb;
 
       real_t dric    = dxic;
 
