@@ -162,7 +162,7 @@ static int data_type = DATA_FLOAT;
 static double *data_double=NULL;
 static float *data_float=NULL;
 static int *display_proc=NULL;
-#ifdef HAVE_MPI
+#if defined(HAVE_MPI) || defined(HAVE_OPENGL)
 static int rank = 0;
 #endif
 
