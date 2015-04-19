@@ -2761,16 +2761,17 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    if (have_state){
       MallocPlus state_memory_old = state_memory;
-      list<malloc_plus_memory_entry>::iterator it;
+      malloc_plus_memory_entry *memory_item;
 
-      for (it = state_memory_old.memory_entry_begin(); it != state_memory_old.memory_entry_end();
-           it = state_memory_old.memory_entry_next() ) {
-         //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
-         if (it->mem_elsize == 8) {
+      for (memory_item = state_memory_old.memory_entry_begin();
+           memory_item != state_memory_old.memory_entry_end();
+           memory_item = state_memory_old.memory_entry_next() ) {
+         //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+         if (memory_item->mem_elsize == 8) {
             double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
                                                                              "state_temp_double", flags);
 
-            double *mem_ptr_double = (double *)it->mem_ptr;
+            double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
             //ref_entry = 0;
             for (int ic=0, nc=0; ic<(int)ncells; ic++) {
@@ -2817,11 +2818,11 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             }
 
             state_memory.memory_replace(mem_ptr_double, state_temp_double);
-         } else if (it->mem_elsize == 4) {
+         } else if (memory_item->mem_elsize == 4) {
             float *state_temp_float = (float *)state_memory.memory_malloc(new_ncells, sizeof(float),
                                                                           "state_temp_float", flags);
 
-            float *mem_ptr_float = (float *)it->mem_ptr;
+            float *mem_ptr_float = (float *)memory_item->mem_ptr;
 
             for (int ic=0, nc=0; ic<(int)ncells; ic++) {
 
@@ -3036,17 +3037,18 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    if (have_state){
       MallocPlus state_memory_old = state_memory;
-      list<malloc_plus_memory_entry>::iterator it;
+      malloc_plus_memory_entry *memory_item;
 
-      for (it = state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
-           it = state_memory_old.memory_entry_next() ) {
+      for (memory_item = state_memory_old.memory_entry_begin();
+           memory_item != state_memory_old.memory_entry_end();
+           memory_item = state_memory_old.memory_entry_next() ) {
          //ref_entry = 0;
-         //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
-         if (it->mem_elsize == 8) {
+         //printf("DEBUG -- memory_item->mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+         if (memory_item->mem_elsize == 8) {
             double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
                                                                              "state_temp_double", flags);
 
-            double *mem_ptr_double = (double *)it->mem_ptr;
+            double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
             //ref_entry = 0;
 #ifdef _OPENMP
@@ -3094,11 +3096,11 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             }
 
             state_memory.memory_replace(mem_ptr_double, state_temp_double);
-         } else if (it->mem_elsize == 4) {
+         } else if (memory_item->mem_elsize == 4) {
             float *state_temp_float = (float *)state_memory.memory_malloc(new_ncells, sizeof(float),
                                                                           "state_temp_float", flags);
 
-            float *mem_ptr_float = (float *)it->mem_ptr;
+            float *mem_ptr_float = (float *)memory_item->mem_ptr;
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -3331,14 +3333,15 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    MallocPlus gpu_state_memory_old = gpu_state_memory;
-   list<malloc_plus_memory_entry>::iterator it;
+   malloc_plus_memory_entry *memory_item;
 
-   for (it = gpu_state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
-        it = gpu_state_memory_old.memory_entry_next() ) {
-      //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
-      cl_mem dev_state_mem_ptr = (cl_mem)it->mem_ptr;
+   for (memory_item = gpu_state_memory_old.memory_entry_begin();
+        memory_item != gpu_state_memory_old.memory_entry_end();
+        memory_item = gpu_state_memory_old.memory_entry_next() ) {
+      //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+      cl_mem dev_state_mem_ptr = (cl_mem)memory_item->mem_ptr;
 
-      if (it->mem_elsize == 8){
+      if (memory_item->mem_elsize == 8){
 #ifndef MINIMUM_PRECISION
          cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_double), const_cast<char *>("dev_state_var_new"), DEVICE_REGULAR_MEMORY);
 
@@ -3362,7 +3365,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
          printf("ERROR -- can't have double type for state variable\n");
          exit(1);
 #endif
-      } else if (it->mem_elsize == 4){
+      } else if (memory_item->mem_elsize == 4){
          cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_float), const_cast<char *>("dev_state_var_new"), DEVICE_REGULAR_MEMORY);
 
          ezcl_set_kernel_arg(kernel_rezone_one_float, 0, sizeof(cl_int),  (void *)&old_ncells);
@@ -7392,16 +7395,17 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-      list<malloc_plus_memory_entry>::iterator it;
+      malloc_plus_memory_entry *memory_item;
 
-      for (it = state_memory_old.memory_entry_begin(); it != state_memory_old.memory_entry_end();
-           it = state_memory_old.memory_entry_next() ) {
+      for (memory_item = state_memory_old.memory_entry_begin();
+           memory_item != state_memory_old.memory_entry_end();
+           memory_item = state_memory_old.memory_entry_next() ) {
 
-         //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
-         if (it->mem_elsize == 8) {
+         //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+         if (memory_item->mem_elsize == 8) {
             double *state_temp = (double *) state_memory.memory_malloc(ncells, sizeof(double),
                                                                        "state_temp", flags);
-            double *mem_ptr = (double *)it->mem_ptr;
+            double *mem_ptr = (double *)memory_item->mem_ptr;
 
             //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
             L7_Update(mem_ptr, L7_DOUBLE, load_balance_handle);
@@ -7423,10 +7427,10 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
                }
             }
             state_memory.memory_replace(mem_ptr, state_temp);
-         } else if (it->mem_elsize == 4) {
+         } else if (memory_item->mem_elsize == 4) {
             float *state_temp = (float *) state_memory.memory_malloc(ncells, sizeof(float),
                                                                      "state_temp", flags);
-            float *mem_ptr = (float *)it->mem_ptr;
+            float *mem_ptr = (float *)memory_item->mem_ptr;
 
             //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
             L7_Update(mem_ptr, L7_FLOAT, load_balance_handle);
@@ -7589,14 +7593,15 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
       cl_mem dev_state_var_upper = ezcl_malloc(NULL, const_cast<char *>("dev_state_var_upper"), &up_block_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
 
       MallocPlus gpu_state_memory_old = gpu_state_memory;
-      list<malloc_plus_memory_entry>::iterator it;
+      malloc_plus_memory_entry *memory_item;
 
-      for (it = gpu_state_memory_old.memory_entry_begin(); it != (list<malloc_plus_memory_entry>::iterator) NULL;
-           it = gpu_state_memory_old.memory_entry_next() ) {
-         //printf("DEBUG -- it.mem_name %s elsize %lu\n",it->mem_name,it->mem_elsize);
-         cl_mem dev_state_mem_ptr = (cl_mem)it->mem_ptr;
+      for (memory_item = gpu_state_memory_old.memory_entry_begin();
+           memory_item != gpu_state_memory_old.memory_entry_end();
+           memory_item = gpu_state_memory_old.memory_entry_next() ) {
+         //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+         cl_mem dev_state_mem_ptr = (cl_mem)memory_item->mem_ptr;
 
-         if (it->mem_elsize == 8){
+         if (memory_item->mem_elsize == 8){
 #ifndef MINIMUM_PRECISION
             vector<double> state_var_tmp(ncells_old+indices_needed_count,0.0);
 
@@ -7648,7 +7653,7 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
             printf("ERROR -- can't have double type for state variable\n");
             exit(1);
 #endif
-         } else if (it->mem_elsize == 4){
+         } else if (memory_item->mem_elsize == 4){
             vector<float> state_var_tmp(ncells_old+indices_needed_count,0.0);
 
             // Read current state values from GPU and write to CPU arrays
