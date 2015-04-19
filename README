@@ -24,15 +24,6 @@ ddd		// debugger
 totalview (there is a module on yellowrail and turing)
 
 // code compiling
-//
-// Use configure which takes various commands for install directory,
-// location of libraries, etc.
-// 
-//configure --help		// shows help menu
-//configure --enable-debug	// enter debug mode
-//configure --prefix		// install directory
-//configure --enable-prof		// profiling, turns on flags for gprof
-
 // We have switched to cmake so the configure step is 
 cmake .                         // in-tree build
 cmake <path-to-src>             // out-of-tree build
@@ -46,6 +37,21 @@ cmake -DGRAPHICS_TYPE=MPE    <path-to-src>  // Alternate real-time graphics
 cmake -DPRECISION_TYPE=full_precision     // full double precision
 cmake -DPRECISION_TYPE=mixed_precision    // intermediates double, arrays single
 cmake -DPRECISION_TYPE=minimum_precision  // all single precision
+
+// To build:
+make
+// or for a specific executable
+make clamr_cpuonly
+
+// To run the unit tests
+make check
+// or for a specific package unit tests
+make MallocPlus_check
+
+// To build the documentation
+make doc
+// or for a specific package documentation
+make MallocPlus_doc
 
 // To run on a Darwin MIC-NODE:
 ssh darwin
