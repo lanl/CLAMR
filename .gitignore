@@ -2,6 +2,7 @@
 *.lo
 *.a
 *.la
+*.pyc
 .deps
 .libs
 config.log

@@ -96,21 +96,21 @@ else (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
    set_target_properties(genmalloc_doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
    add_custom_command(OUTPUT _build/latex/genmalloc.pdf
-                      WORKING_DIRECTORY genmalloc/docs
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
                       COMMAND make latexpdf >& pdfdoc.out
                       DEPENDS ${PDFDOC_SRCS})
    add_custom_target(genmalloc_pdfdoc DEPENDS _build/latex/genmalloc.pdf)
    set_target_properties(genmalloc_pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
    add_custom_command(OUTPUT _build/html/UsersGuide.html
-                      WORKING_DIRECTORY genmalloc/docs
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
                       COMMAND make html >& htmldoc.out
                       DEPENDS ${DOC_SRCS})
    add_custom_target(genmalloc_htmldoc DEPENDS _build/html/UsersGuide.html)
    set_target_properties(genmalloc_htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
    add_custom_command(OUTPUT _build/singlehtml/index.html
-                      WORKING_DIRECTORY genmalloc/docs
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
                       COMMAND make singlehtml >& singlehtmldoc.out
                       DEPENDS ${DOC_SRCS})
    add_custom_target(genmalloc_singlehtmldoc DEPENDS _build/singlehtml/index.html)
