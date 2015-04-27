@@ -618,6 +618,9 @@ extern "C" void do_calc(void)
       if (numpe > 1) L7_Free(&mesh->cell_handle);
       L7_Dev_Free();
 
+      delete mesh;
+      delete state;
+
       //  Release kernels and finalize the OpenCL elements.
       //ezcl_finalize();
       

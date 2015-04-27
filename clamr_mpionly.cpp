@@ -530,6 +530,9 @@ extern "C" void do_calc(void)
       mesh->terminate();
       state->terminate();
 
+      delete mesh;
+      delete state;
+
       L7_Terminate();
       exit(0);
    }  //  Complete final output.

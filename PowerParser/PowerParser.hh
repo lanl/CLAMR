@@ -128,6 +128,12 @@ public:
 
 /****************************************************************//**
  * \brief
+ *  Destructor
+ *******************************************************************/
+    ~PowerParser();
+
+/****************************************************************//**
+ * \brief
  * Reads the file in on the IO processor, broadcast the string
  * to all the other processors, then parse the string.
  *

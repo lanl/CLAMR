@@ -118,6 +118,18 @@ PowerParser::PowerParser(const char *filename)
     parse_file(fstring);        // Parse the file.
 }
 
+PowerParser::~PowerParser()
+{
+    cmd_strings.clear();
+    vmap.clear();
+    fmap.clear();
+    cmds.clear();
+    cmdsf.clear();
+    whenthens.clear();
+    restartblocks.clear();
+    pre_defined_varss.str("");
+}
+
 // ===========================================================================
 // Parse a file. The basic strategy is to read the file into a string on the
 // io processor, broadcast the string to all the other processors, then parse
