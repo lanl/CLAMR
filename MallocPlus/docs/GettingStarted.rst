@@ -3,7 +3,7 @@ Getting Started
 ===============
 
 Download the *MallocPlus* package, currently MallocPlus_v2.0.7.tgz. Untar
-the MallocPlus files::
+the *MallocPlus* files::
 
    tar -xzvf MallocPlus_v2.0.7.tgz
 
@@ -22,4 +22,22 @@ Then build the package::
 And install::
 
    make install
+
+To run the unit tests as a subpackage of an applications
+
+   cd tests
+   make MallocPlus_check
+
+Running unit tests as a standalone package.
+
+   make check
+
+To build the documentation, in the main *MallocPlus* directory:
+
+   make MallocPlus_doc
+
+or for the standalone package:
+
+   make doc
+
 
