@@ -98,8 +98,8 @@ long long memstats_memused(){
       return(-1);
    }
 
+   char *str = (char *)malloc(140*sizeof(char));
    while (!feof(stat_fp)){
-      char *str = (char *)malloc(140*sizeof(char));
       str = fgets(str, 132, stat_fp);
       if (str == NULL){
          printf("Warning: Error in reading %s for memory stats\n",proc_stat_file);
@@ -116,8 +116,8 @@ long long memstats_memused(){
          }
          break;
       }
-      free(str);
    }
+   free(str);
 
    fclose(stat_fp);
    stat_fp = NULL;

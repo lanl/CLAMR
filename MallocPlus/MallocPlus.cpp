@@ -807,15 +807,14 @@ malloc_plus_memory_entry* MallocPlus::memory_entry_begin(void){
 
 malloc_plus_memory_entry* MallocPlus::memory_entry_next(void){
    it_save++;
+   if (it_save == memory_ptr_dict.end()) return(NULL);
    malloc_plus_memory_entry *memory_item = it_save->second;
    if (DEBUG) printf("Found memory item ptr %p name %s\n",memory_item->mem_ptr,memory_item->mem_name);
    return(memory_item);
 }
 
 malloc_plus_memory_entry* MallocPlus::memory_entry_end(void){
-   it_end = memory_ptr_dict.end();
-   malloc_plus_memory_entry *memory_item = it_end->second;
-   return(memory_item);
+   return(NULL);
 }
 
 size_t MallocPlus::get_memory_size(void *malloc_mem_ptr){
