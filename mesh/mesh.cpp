@@ -1330,6 +1330,8 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double d
    nrht = NULL;
    nbot = NULL;
    ntop = NULL;
+   do_rezone = true;
+   gpu_do_rezone = true;
 
    celltype = NULL;
 }
@@ -1874,7 +1876,6 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
    newcount = ncells + rezone_count(mpot, icount, jcount);
 
-/*
 #ifdef HAVE_MPI
    int icount_global = icount;
    int jcount_global = jcount;
@@ -1886,8 +1887,11 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
       icount_global = global_count[0];
       jcount_global = global_count[1];
    }
+   do_rezone = (icount_global != 0 || jcount_global != 0) ? true : false;
+#else
+   do_rezone = (icount != 0 || jcount != 0) ? true : false;
 #endif
-*/
+
 
    if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_REFINE_SMOOTH] += cpu_timer_stop(tstart_lev2);
 
@@ -2132,6 +2136,8 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
       ezcl_device_memory_delete(dev_mpot);
       dev_mpot = NULL;
    }
+
+   gpu_do_rezone = (icount_global != 0 || jcount_global != 0) ? true : false;
 
    if (TIMING_LEVEL >= 2) gpu_timers[MESH_TIMER_REFINE_SMOOTH] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
 
@@ -2509,27 +2515,10 @@ void Mesh::calc_centerminmax(void)
 
 void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, MallocPlus &state_memory)
 {
-   struct timeval tstart_cpu;
-
-   cpu_timer_start(&tstart_cpu);
-
-// sign for jcount is different in GPU and CPU code -- abs is a quick fix
-   int add_ncells = icount - abs(jcount);
-
-   int global_icount = icount;
-   int global_jcount = jcount;
-#ifdef HAVE_MPI
-   if (parallel) {
-      int count[2], global_count[2];
-      count[0] = icount;
-      count[1] = jcount;
-      MPI_Allreduce(&count, &global_count, 2, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      global_icount = global_count[0];
-      global_jcount = global_count[1];
-   }  
-#endif
-   if (global_icount == 0 && global_jcount == 0) {
+   if (! do_rezone) {
+      index.clear();
       index.resize(ncells);
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -2537,9 +2526,15 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          index[ic]=ic;
       }
 
-      cpu_timers[MESH_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
       return;
-   }  
+   }
+
+   struct timeval tstart_cpu;
+
+   cpu_timer_start(&tstart_cpu);
+
+// sign for jcount is different in GPU and CPU code -- abs is a quick fix
+   int add_ncells = icount - abs(jcount);
 
    cpu_counters[MESH_COUNTER_REZONE]++;
 
@@ -3180,8 +3175,12 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #ifdef HAVE_OPENCL
 void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &gpu_state_memory)
 {
+   if (! gpu_do_rezone) return;
+
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
+
+   gpu_counters[MESH_COUNTER_REZONE]++;
 
    cl_command_queue command_queue = ezcl_get_command_queue();
 
@@ -3196,8 +3195,8 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
 
    int add_ncells = icount - jcount;
 
-   int global_icount = icount;
-   int global_jcount = jcount;
+// int global_icount = icount;
+// int global_jcount = jcount;
 
    size_t old_ncells = ncells;
    size_t new_ncells = ncells + add_ncells;
@@ -3205,22 +3204,16 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
 #ifdef HAVE_MPI
    //int global_add_ncells = add_ncells;
 
-   if (parallel) {
-      int count[2], global_count[2];
-      count[0] = icount;
-      count[1] = jcount;
-      MPI_Allreduce(&count, &global_count, 2, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      global_icount = global_count[0];
-      global_jcount = global_count[1];
-      //global_add_ncells = global_icount + global_jcount;
-   }
+// if (parallel) {
+//    int count[2], global_count[2];
+//    count[0] = icount;
+//    count[1] = jcount;
+//    MPI_Allreduce(&count, &global_count, 2, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+//    global_icount = global_count[0];
+//    global_jcount = global_count[1];
+//    //global_add_ncells = global_icount + global_jcount;
+// }
 #endif
-   if (global_icount == 0 && global_jcount == 0) {
-      gpu_timers[MESH_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
-      return;
-   }
-
-   gpu_counters[MESH_COUNTER_REZONE]++;
 
    int ifirst      = 0;
    int ilast       = 0;
@@ -3438,6 +3431,8 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
 
 void Mesh::calc_neighbors(int ncells)
 {
+   if (! do_rezone) return;
+
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
@@ -3791,6 +3786,8 @@ void Mesh::calc_neighbors(int ncells)
 
 void Mesh::calc_neighbors_local(void)
 {
+   if (! do_rezone) return;
+
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
@@ -5482,6 +5479,8 @@ void Mesh::calc_neighbors_local(void)
 #ifdef HAVE_OPENCL
 void Mesh::gpu_calc_neighbors(void)
 {
+   if (! gpu_do_rezone) return;
+
    ulong gpu_hash_table_size =  0;
 
    struct timeval tstart_cpu;
@@ -5608,6 +5607,8 @@ void Mesh::gpu_calc_neighbors(void)
 
 void Mesh::gpu_calc_neighbors_local(void)
 {
+   if (! gpu_do_rezone) return;
+
    ulong gpu_hash_table_size =  0;
 
    struct timeval tstart_cpu;
@@ -7510,6 +7511,10 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
 #ifdef HAVE_MPI
 int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &gpu_state_memory)
 {
+   int do_load_balance_global = 0;
+
+   if (! gpu_do_rezone) return(do_load_balance_global);
+
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
@@ -7522,7 +7527,6 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
 // Need to add weight array to load balance if it is not NULL
 // Need to add tolerance to when load balance is done
 
-   int do_load_balance_global = 0;
    int nsizes_old = 0;
    for (int ip=0; ip<numpe; ip++){
       nsizes_old = nsizes[ip];

@@ -435,7 +435,7 @@ extern "C" void do_calc(void)
       deltaT = state->gpu_set_timestep(sigma);
       simTime += deltaT;
 
-      if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors_local();
+      mesh->gpu_calc_neighbors_local();
 
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
@@ -456,7 +456,7 @@ extern "C" void do_calc(void)
 
       ncells       = new_ncells;
 
-      if (mesh->dev_nlft == NULL) state->gpu_do_load_balance_local(new_ncells);
+      state->gpu_do_load_balance_local(new_ncells);
 
       ioffset.clear();
 

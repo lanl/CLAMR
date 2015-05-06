@@ -572,17 +572,13 @@ extern "C" void do_calc(void)
       simTime += deltaT;
 
       if (do_cpu_calc) {
-         if (mesh_local->nlft == NULL) {
-            mesh_global->calc_neighbors(mesh_global->ncells);
-            mesh_local->calc_neighbors_local();
-         }
+         mesh_global->calc_neighbors(mesh_global->ncells);
+         mesh_local->calc_neighbors_local();
       }
 
       if (do_gpu_calc) {
-         if (mesh_local->dev_nlft == NULL) {
-            mesh_global->gpu_calc_neighbors();
-            mesh_local->gpu_calc_neighbors_local();
-         }
+         mesh_global->gpu_calc_neighbors();
+         mesh_local->gpu_calc_neighbors_local();
       }
 
       if (do_comparison_calc) {

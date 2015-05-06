@@ -380,7 +380,7 @@ extern "C" void do_calc(void)
       simTime += deltaT;
 
       cpu_timer_start(&tstart_cpu);
-      if (mesh->nlft == NULL) mesh->calc_neighbors_local();
+      mesh->calc_neighbors_local();
 
       mesh->partition_measure();
 
