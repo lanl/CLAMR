@@ -380,7 +380,7 @@ extern "C" void do_calc(void)
       deltaT = state->set_timestep(g, sigma);
       simTime += deltaT;
       
-      if (mesh->nlft == NULL) mesh->calc_neighbors(ncells);
+      if (mesh->do_rezone) mesh->calc_neighbors(ncells);
 
       mesh->partition_measure();
 

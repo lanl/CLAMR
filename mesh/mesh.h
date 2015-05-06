@@ -236,6 +236,8 @@ public:
    int    cpu_counters[MESH_COUNTER_SIZE];
    int    gpu_counters[MESH_COUNTER_SIZE];
 
+   bool           do_rezone;
+
    int            mype,
                   numpe,
                   parallel,

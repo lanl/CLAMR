@@ -352,7 +352,7 @@ extern "C" void do_calc(void)
       deltaT = (do_gpu_calc) ? deltaT_gpu : deltaT_cpu;
       simTime += deltaT;
 
-      if (mesh->nlft == NULL) mesh->calc_neighbors(ncells);
+      if (mesh->do_rezone) mesh->calc_neighbors(ncells);
 
       if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors();
 
