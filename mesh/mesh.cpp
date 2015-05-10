@@ -140,6 +140,7 @@ int do_stencil_warning=0;
 extern bool localStencil;
 int calc_neighbor_type;
 bool dynamic_load_balance_on;
+bool neighbor_remap;
 
 #ifdef _OPENMP
 static bool iversion_flag = false;
@@ -2572,10 +2573,10 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    int *i_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
    int *j_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
    int *level_old    = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
+
    mesh_memory.memory_swap(&i,     &i_old);
    mesh_memory.memory_swap(&j,     &j_old);
    mesh_memory.memory_swap(&level, &level_old);
-
 
    index.clear();
    index.resize(new_ncells);
