@@ -944,11 +944,11 @@ void *MallocPlus::memory_replace(void *malloc_mem_ptr_old, void * const malloc_m
 void MallocPlus::memory_swap(int **malloc_mem_ptr_old, int **malloc_mem_ptr_new){
    map <void *, malloc_plus_memory_entry*>::iterator it_old = memory_ptr_dict.find(*malloc_mem_ptr_old);
    map <void *, malloc_plus_memory_entry*>::iterator it_new = memory_ptr_dict.find(*malloc_mem_ptr_new);
-   malloc_plus_memory_entry *memory_item_tmp;
 
    if (it_old != memory_ptr_dict.end() && it_new != memory_ptr_dict.end() ){
-      malloc_plus_memory_entry *memory_item_old = it_old->second;
-      malloc_plus_memory_entry *memory_item_new = it_new->second;
+      // Swap the memory entries during the retrieval
+      malloc_plus_memory_entry *memory_item_new = it_old->second;
+      malloc_plus_memory_entry *memory_item_old = it_new->second;
 
       if (DEBUG) printf("Found memory item ptr_old %p name %s ptr_new %p name %s\n",memory_item_old->mem_ptr,memory_item_old->mem_name,memory_item_new->mem_ptr,memory_item_new->mem_name);
 
@@ -957,15 +957,18 @@ void MallocPlus::memory_swap(int **malloc_mem_ptr_old, int **malloc_mem_ptr_new)
       memory_item_old->mem_name = memory_item_new->mem_name;
       memory_item_new->mem_name = (char *)mem_name_tmp;
 
-      memory_item_tmp = memory_item_old;
-      memory_item_old = memory_item_new;
-      memory_item_new = memory_item_tmp;
+      // Delete the ptr entries
+      memory_ptr_dict.erase(it_old);
+      memory_ptr_dict.erase(it_new);
+
+      memory_ptr_dict.insert(std::pair<void *, malloc_plus_memory_entry*>(memory_item_old->mem_ptr, memory_item_old) );
+      memory_ptr_dict.insert(std::pair<void *, malloc_plus_memory_entry*>(memory_item_new->mem_ptr, memory_item_new) );
 
       // Delete the named entries
-      map <const char *, malloc_plus_memory_entry*>::iterator it_old = memory_name_dict.find(memory_item_old->mem_name);
-      map <const char *, malloc_plus_memory_entry*>::iterator it_new = memory_name_dict.find(memory_item_new->mem_name);
-      memory_name_dict.erase(it_old);
-      memory_name_dict.erase(it_new);
+      map <const char *, malloc_plus_memory_entry*>::iterator it_name_old = memory_name_dict.find(memory_item_old->mem_name);
+      map <const char *, malloc_plus_memory_entry*>::iterator it_name_new = memory_name_dict.find(memory_item_new->mem_name);
+      memory_name_dict.erase(it_name_old);
+      memory_name_dict.erase(it_name_new);
 
       memory_name_dict.insert(std::pair<char const *, malloc_plus_memory_entry*>(memory_item_old->mem_name, memory_item_old) );
       memory_name_dict.insert(std::pair<char const *, malloc_plus_memory_entry*>(memory_item_new->mem_name, memory_item_new) );
@@ -981,11 +984,11 @@ void MallocPlus::memory_swap(int **malloc_mem_ptr_old, int **malloc_mem_ptr_new)
 void MallocPlus::memory_swap(float **malloc_mem_ptr_old, float **malloc_mem_ptr_new){
    map <void *, malloc_plus_memory_entry*>::iterator it_old = memory_ptr_dict.find(*malloc_mem_ptr_old);
    map <void *, malloc_plus_memory_entry*>::iterator it_new = memory_ptr_dict.find(*malloc_mem_ptr_new);
-   malloc_plus_memory_entry *memory_item_tmp;
 
    if (it_old != memory_ptr_dict.end() && it_new != memory_ptr_dict.end() ){
-      malloc_plus_memory_entry *memory_item_old = it_old->second;
-      malloc_plus_memory_entry *memory_item_new = it_new->second;
+      // Swap the memory entries during the retrieval
+      malloc_plus_memory_entry *memory_item_new = it_old->second;
+      malloc_plus_memory_entry *memory_item_old = it_new->second;
 
       if (DEBUG) printf("Found memory item ptr_old %p name %s ptr_new %p name %s\n",memory_item_old->mem_ptr,memory_item_old->mem_name,memory_item_new->mem_ptr,memory_item_new->mem_name);
 
@@ -994,10 +997,14 @@ void MallocPlus::memory_swap(float **malloc_mem_ptr_old, float **malloc_mem_ptr_
       memory_item_old->mem_name = memory_item_new->mem_name;
       memory_item_new->mem_name = (char *)mem_name_tmp;
 
-      memory_item_tmp = memory_item_old;
-      memory_item_old = memory_item_new;
-      memory_item_new = memory_item_tmp;
+      // Delete the ptr entries
+      memory_ptr_dict.erase(it_old);
+      memory_ptr_dict.erase(it_new);
 
+      memory_ptr_dict.insert(std::pair<void *, malloc_plus_memory_entry*>(memory_item_old->mem_ptr, memory_item_old) );
+      memory_ptr_dict.insert(std::pair<void *, malloc_plus_memory_entry*>(memory_item_new->mem_ptr, memory_item_new) );
+
+      // Delete the named entries
       map <const char *, malloc_plus_memory_entry*>::iterator it_old = memory_name_dict.find(memory_item_old->mem_name);
       map <const char *, malloc_plus_memory_entry*>::iterator it_new = memory_name_dict.find(memory_item_new->mem_name);
       memory_name_dict.erase(it_old);
@@ -1017,11 +1024,11 @@ void MallocPlus::memory_swap(float **malloc_mem_ptr_old, float **malloc_mem_ptr_
 void MallocPlus::memory_swap(double **malloc_mem_ptr_old, double **malloc_mem_ptr_new){
    map <void *, malloc_plus_memory_entry*>::iterator it_old = memory_ptr_dict.find(*malloc_mem_ptr_old);
    map <void *, malloc_plus_memory_entry*>::iterator it_new = memory_ptr_dict.find(*malloc_mem_ptr_new);
-   malloc_plus_memory_entry *memory_item_tmp;
 
    if (it_old != memory_ptr_dict.end() && it_new != memory_ptr_dict.end() ){
-      malloc_plus_memory_entry *memory_item_old = it_old->second;
-      malloc_plus_memory_entry *memory_item_new = it_new->second;
+      // Swap the memory entries during the retrieval
+      malloc_plus_memory_entry *memory_item_new = it_old->second;
+      malloc_plus_memory_entry *memory_item_old = it_new->second;
 
       if (DEBUG) printf("Found memory item ptr_old %p name %s ptr_new %p name %s\n",memory_item_old->mem_ptr,memory_item_old->mem_name,memory_item_new->mem_ptr,memory_item_new->mem_name);
 
@@ -1030,10 +1037,14 @@ void MallocPlus::memory_swap(double **malloc_mem_ptr_old, double **malloc_mem_pt
       memory_item_old->mem_name = memory_item_new->mem_name;
       memory_item_new->mem_name = (char *)mem_name_tmp;
 
-      memory_item_tmp = memory_item_old;
-      memory_item_old = memory_item_new;
-      memory_item_new = memory_item_tmp;
+      // Delete the ptr entries
+      memory_ptr_dict.erase(it_old);
+      memory_ptr_dict.erase(it_new);
 
+      memory_ptr_dict.insert(std::pair<void *, malloc_plus_memory_entry*>(memory_item_old->mem_ptr, memory_item_old) );
+      memory_ptr_dict.insert(std::pair<void *, malloc_plus_memory_entry*>(memory_item_new->mem_ptr, memory_item_new) );
+
+      // Delete the named entries
       map <const char *, malloc_plus_memory_entry*>::iterator it_old = memory_name_dict.find(memory_item_old->mem_name);
       map <const char *, malloc_plus_memory_entry*>::iterator it_new = memory_name_dict.find(memory_item_new->mem_name);
       memory_name_dict.erase(it_old);

@@ -250,10 +250,6 @@ int main(int argc, char **argv) {
    if (checkpoint_outputInterval > niter) next_cp_cycle = checkpoint_outputInterval;
 
    size_t &ncells = mesh->ncells;
-   mesh->nlft = NULL;
-   mesh->nrht = NULL;
-   mesh->nbot = NULL;
-   mesh->ntop = NULL;
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(enhanced_precision_sum);

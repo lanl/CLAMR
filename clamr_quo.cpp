@@ -202,11 +202,6 @@ int main(int argc, char **argv) {
 
    state->fill_circle(circ_radius, 100.0, 7.0);
 
-   mesh->nlft = NULL;
-   mesh->nrht = NULL;
-   mesh->nbot = NULL;
-   mesh->ntop = NULL;
-
    x.clear();
    dx.clear();
    y.clear();

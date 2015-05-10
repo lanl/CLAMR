@@ -3443,10 +3443,11 @@ void Mesh::calc_neighbors(int ncells)
    if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
    if ((int)mesh_memory.get_memory_size(nlft) < ncells){
-      if (nlft != NULL) nlft = (int *)mesh_memory.memory_delete(nlft);
-      if (nrht != NULL) nrht = (int *)mesh_memory.memory_delete(nrht);
-      if (nbot != NULL) nbot = (int *)mesh_memory.memory_delete(nbot);
-      if (ntop != NULL) ntop = (int *)mesh_memory.memory_delete(ntop);
+      nlft = (int *)mesh_memory.memory_delete(nlft);
+      nrht = (int *)mesh_memory.memory_delete(nrht);
+      nbot = (int *)mesh_memory.memory_delete(nbot);
+      ntop = (int *)mesh_memory.memory_delete(ntop);
+
       nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
       nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
       nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
@@ -4852,6 +4853,7 @@ void Mesh::calc_neighbors_local(void)
             }
             indices_needed.push_back(border_cell_num_local[ic]);
 
+            // border_cell_num_local is not used after -- could be commented out?
             border_cell_num_local[inew]    = border_cell_num_local[ic];
             border_cell_i_local[inew]      = border_cell_i_local[ic];
             border_cell_j_local[inew]      = border_cell_j_local[ic];
@@ -4861,6 +4863,8 @@ void Mesh::calc_neighbors_local(void)
             inew++;
          }
          nbsize_local = inew;
+
+         free(border_cell_num_local);
 
          // Walk through cell array and set hash to global cell values
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
@@ -4956,6 +4960,10 @@ void Mesh::calc_neighbors_local(void)
             j[ncells+ic]     = jj;
             level[ncells+ic] = lev;
          }
+
+         free(border_cell_i_local);
+         free(border_cell_j_local);
+         free(border_cell_level_local);
 
          if (TIMING_LEVEL >= 2) {
             cpu_timers[MESH_TIMER_FILL_MESH_GHOST] += cpu_timer_stop(tstart_lev2);
@@ -6372,6 +6380,10 @@ void Mesh::gpu_calc_neighbors_local(void)
 
       //ezcl_enqueue_write_buffer(command_queue, dev_border_cell_needed, CL_TRUE,  0, nbsize_local*sizeof(cl_int), &border_cell_needed_local[0],   NULL);
 
+      free(border_cell_i_local);
+      free(border_cell_j_local);
+      free(border_cell_level_local);
+
       if (TIMING_LEVEL >= 2) {
          gpu_timers[MESH_TIMER_LOCAL_LIST] += (long)(cpu_timer_stop(tstart_lev2)*1.0e9);
          cpu_timer_start(&tstart_lev2);
@@ -6543,6 +6555,8 @@ void Mesh::gpu_calc_neighbors_local(void)
             if (border_cell_needed_local[ic] >= 0x0016) fprintf(fp,"%d: Second set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_local[ic],border_cell_needed_local[ic]);
          }
       }
+
+      free(border_cell_num_local);
 
       ezcl_device_memory_delete(dev_border_cell_needed);
 
