@@ -2632,6 +2632,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    {
       if (mpot[ic] == 0 || mpot[ic] == -1000000)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
+         index[ic] = nc;
          i[nc]     = i_old[ic];
          j[nc]     = j_old[ic];
          level[nc] = level_old[ic];
@@ -2640,9 +2641,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       
       else if (mpot[ic] < 0)
       {  //  Coarsening is needed; remove this cell and the other three and replace them with one.
+         index[ic] = nc;
          if (mpot[ic] <= -2) {
             //printf("                     %d: DEBUG -- coarsening cell %d nc %d\n",mype,ic,nc);
-            index[nc] = ic;
             i[nc] = i_old[ic]/2;
             j[nc] = j_old[ic]/2;
             level[nc] = level_old[ic] - 1;
@@ -2652,6 +2653,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       
       else if (mpot[ic] > 0)
       {  //  Refinement is needed; insert four cells where once was one.
+         index[ic] = nc;
          if (celltype[ic] == REAL_CELL)
          {  
             set_refinement_order(&order[0], ic, ifirst, ilast, jfirst, jlast,
@@ -2907,6 +2909,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       int nc = new_ic[ic];
       if (mpot[ic] == 0)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
+         index[ic] = nc;
          i[nc]     = i_old[ic];
          j[nc]     = j_old[ic];
          level[nc] = level_old[ic];
@@ -2914,9 +2917,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
       else if (mpot[ic] < 0)
       {  //  Coarsening is needed; remove this cell and the other three and replace them with one.
+         index[ic] = nc;
          if (mpot[ic] <= -2) {
             //printf("                     %d: DEBUG -- coarsening cell %d nc %d\n",mype,ic,nc);
-            index[nc] = ic;
             i[nc] = i_old[ic]/2;
             j[nc] = j_old[ic]/2;
             level[nc] = level_old[ic] - 1;
@@ -2925,6 +2928,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
       else if (mpot[ic] > 0)
       {  //  Refinement is needed; insert four cells where once was one.
+         index[ic] = nc;
          if (celltype[ic] == REAL_CELL)
          {  
             int order[4];
@@ -3149,11 +3153,95 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    // End of data parallel optimizations
 #endif
 
+   int *nlft_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nlft_old",  flags);
+   int *nrht_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nrht_old",  flags);
+   int *nbot_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nbot_old",  flags);
+   int *ntop_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "ntop_old",  flags);
 
-   nlft = (int *)mesh_memory.memory_delete(nlft);
-   nrht = (int *)mesh_memory.memory_delete(nrht);
-   nbot = (int *)mesh_memory.memory_delete(nbot);
-   ntop = (int *)mesh_memory.memory_delete(ntop);
+   for (int ic = 0; ic < new_ncells; ic++){
+      nlft_old[ic] = -1;
+      nrht_old[ic] = -1;
+      nbot_old[ic] = -1;
+      ntop_old[ic] = -1;
+   }
+
+   mesh_memory.memory_swap(&nlft,  &nlft_old);
+   mesh_memory.memory_swap(&nrht,  &nrht_old);
+   mesh_memory.memory_swap(&nbot,  &nbot_old);
+   mesh_memory.memory_swap(&ntop,  &ntop_old);
+
+   if (neighbor_remap & ! parallel) {
+      for (int ic = 0; ic < (int)ncells; ic++){
+         int nc = index[ic];
+
+         if (mpot[ic] == 0){
+            nlft[nc] = (mpot[nlft_old[ic]] == 0) ? index[nlft_old[ic]] : -1;
+            nrht[nc] = (mpot[nrht_old[ic]] == 0) ? index[nrht_old[ic]] : -1;
+            nbot[nc] = (mpot[nbot_old[ic]] == 0) ? index[nbot_old[ic]] : -1;
+            ntop[nc] = (mpot[ntop_old[ic]] == 0) ? index[ntop_old[ic]] : -1;
+         } else if (mpot[ic] <= -2) {
+            nlft[nc]  = -1;
+            nrht[nc]  = -1;
+            nbot[nc]  = -1;
+            ntop[nc]  = -1;
+         } else if (mpot[ic] > 0){
+            nlft[nc]    = -1;
+            nlft[nc+1]  = -1;
+            nrht[nc]    = -1;
+            nrht[nc+1]  = -1;
+            nbot[nc]    = -1;
+            nbot[nc+1]  = -1;
+            ntop[nc]    = -1;
+            ntop[nc+1]  = -1;
+            if (celltype[nc] == REAL_CELL){
+               nlft[nc+2]  = -1;
+               nlft[nc+3]  = -1;
+               nrht[nc+2]  = -1;
+               nrht[nc+3]  = -1;
+               nbot[nc+2]  = -1;
+               nbot[nc+3]  = -1;
+               ntop[nc+2]  = -1;
+               ntop[nc+3]  = -1;
+            }
+         }
+         switch(celltype[nc]){
+         case LEFT_BOUNDARY:
+            nlft[nc] = nc;
+            break;
+         case RIGHT_BOUNDARY:
+            nrht[nc] = nc;
+            break;
+         case BOTTOM_BOUNDARY:
+            nbot[nc] = nc;
+            break;
+         case TOP_BOUNDARY:
+            ntop[nc] = nc;
+            break;
+         }
+         if (mpot[ic] > 0){
+            nc++;
+            switch(celltype[nc]){
+            case LEFT_BOUNDARY:
+               nlft[nc] = nc;
+               break;
+            case RIGHT_BOUNDARY:
+               nrht[nc] = nc;
+               break;
+            case BOTTOM_BOUNDARY:
+               nbot[nc] = nc;
+               break;
+            case TOP_BOUNDARY:
+               ntop[nc] = nc;
+               break;
+            }
+         }
+      }
+   }
+
+   nlft_old = (int *)mesh_memory.memory_delete(nlft_old);
+   nrht_old = (int *)mesh_memory.memory_delete(nrht_old);
+   nbot_old = (int *)mesh_memory.memory_delete(nbot_old);
+   ntop_old = (int *)mesh_memory.memory_delete(ntop_old);
 
    //ncells = nc;
 
@@ -3453,6 +3541,12 @@ void Mesh::calc_neighbors(int ncells)
       nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
       nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
       ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
+      for(int ic=0; ic<ncells; ic++){
+         nlft[ic] = -1;
+         nrht[ic] = -1;
+         nbot[ic] = -1;
+         ntop[ic] = -1;
+      }
    }
 
    if (calc_neighbor_type == HASH_TABLE) {
@@ -3475,7 +3569,13 @@ void Mesh::calc_neighbors(int ncells)
             int ii = i[ic]*levmult;
             int jj = j[ic]*levmult;
 
-            write_hash(ic,jj*imaxsize+ii,hash);
+            if (nlft[ic] == -1 || nrht[ic] == -1 || nbot[ic] == -1 || ntop[ic] == -1 ||
+                (level[nlft[ic]] > lev && ntop[nlft[ic]] == -1) || 
+                (level[nrht[ic]] > lev && ntop[nrht[ic]] == -1) ||
+                (level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) || 
+                (level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ){
+               write_hash(ic,jj*imaxsize+ii,hash);
+            }
          }
       } else {
          for(int ic=0; ic<ncells; ic++){
@@ -3484,7 +3584,13 @@ void Mesh::calc_neighbors(int ncells)
             int ii = i[ic]*levmult;
             int jj = j[ic]*levmult;
 
-            write_hash(ic,jj*imaxsize+ii,hash);
+            if (nlft[ic] == -1 || nrht[ic] == -1 || nbot[ic] == -1 || ntop[ic] == -1 ||
+                (level[nlft[ic]] > lev && ntop[nlft[ic]] == -1) || 
+                (level[nrht[ic]] > lev && ntop[nrht[ic]] == -1) ||
+                (level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) || 
+                (level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ){
+               write_hash(ic,jj*imaxsize+ii,hash);
+            }
          }
       }
 
@@ -3528,22 +3634,22 @@ void Mesh::calc_neighbors(int ncells)
          int jjbot = max( (jj-1)*levmult, 0         );
          int jjtop = min( (jj+1)*levmult, jmaxsize-1);
 
-         int nlftval = -1;
-         int nrhtval = -1;
-         int nbotval = -1;
-         int ntopval = -1;
+         int nlftval = nlft[ic];
+         int nrhtval = nrht[ic];
+         int nbotval = nbot[ic];
+         int ntopval = ntop[ic];
 
          // Taking care of boundary cells
          // Force each boundary cell to point to itself on its boundary direction
-         if (iicur <    1*IPOW2(levmx)  ) nlftval = ic;
-         if (jjcur <    1*IPOW2(levmx)  ) nbotval = ic;
-         if (iicur > imax*IPOW2(levmx)-1) nrhtval = ic;
-         if (jjcur > jmax*IPOW2(levmx)-1) ntopval = ic;
+         if (nlftval < 0 && iicur <    1*IPOW2(levmx)  ) nlftval = ic;
+         if (nbotval < 0 && jjcur <    1*IPOW2(levmx)  ) nbotval = ic;
+         if (nrhtval < 0 && iicur > imax*IPOW2(levmx)-1) nrhtval = ic;
+         if (ntopval < 0 && jjcur > jmax*IPOW2(levmx)-1) ntopval = ic;
          // Boundary cells next to corner boundary need special checks
-         if (iicur ==    1*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nlftval = ic;
-         if (jjcur ==    1*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) nbotval = ic;
-         if (iirht == imax*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nrhtval = ic;
-         if (jjtop == jmax*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) ntopval = ic;
+         if (nlftval < 0 && iicur ==    1*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nlftval = ic;
+         if (nbotval < 0 && jjcur ==    1*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) nbotval = ic;
+         if (nrhtval < 0 && iirht == imax*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nrhtval = ic;
+         if (ntopval < 0 && jjtop == jmax*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) ntopval = ic;
 
          // need to check for finer neighbor first
          // Right and top neighbor don't change for finer, so drop through to same size
