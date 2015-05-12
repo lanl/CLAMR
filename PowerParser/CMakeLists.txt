@@ -82,14 +82,16 @@ add_subdirectory(tests)
 
 ########### global settings ###############
 set(H_SRCS   Cmd.hh   Function.hh    Parser_utils.hh  Variable.hh      Word.hh
-             Comm.hh  PowerParser.hh Parser_math.hh   Restartblock.hh  Whenthen.hh
-             parser_iface.hh)
+             Comm.hh  PowerParser.hh Parser_math.hh   Restartblock.hh  Whenthen.hh)
 
 set(CXX_SRCS Cmd.cc   Function.cc    Parser_utils.cc  Variable.cc      Word.cc
-             Comm.cc  PowerParser.cc Parser_math.cc   Restartblock.cc  Whenthen.cc
-             parser_iface.cc)
+             Comm.cc  PowerParser.cc Parser_math.cc   Restartblock.cc  Whenthen.cc)
 
-set(F90_SRCS PPinput.f90)
+if (NOT CMAKE_Fortran_COMPILER-NOTFOUND)
+   set(H_SRCS ${H_SRCS} parser_iface.hh)
+   set(CXX_SRCS ${CXX_SRCS} parser_iface.cc)
+   set(F90_SRCS PPinput.f90)
+endif(NOT CMAKE_Fortran_COMPILER-NOTFOUND)
 
 set(DOC_SRCS docs/index.rst docs/About.rst docs/GettingStarted.rst
              docs/DevelopersGuide.rst docs/UsersGuide.rst)

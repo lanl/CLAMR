@@ -87,7 +87,6 @@
     public PPinput_cmd_set_processed  ! Set the command as being processed.
     public PPinput_echo_user_input    ! Echo user input to a file.
     public PPinput_echo_fvf           ! Echo functions, variables, final buffer
-    public PPinput_log_final_buffer   ! Log PPinput (but not corresponding value) with print_run_info
  
     private PPinput_list_funcs        ! List functions to file.
     private PPinput_list_vars         ! List variables to file.
@@ -1656,14 +1655,6 @@
  
     end subroutine PPinput_echo_fvf
 
-    ! ==========================================================================
-    ! Log PPinput (but not corresponding value) with print_run_info
-    ! ==========================================================================
-    subroutine PPinput_log_final_buffer()  ! Log PPinput (but not corresponding value) with print_run_info
-      call log_final_buffer
-    end subroutine PPinput_log_final_buffer
- 
- 
     ! ==========================================================================
     ! List available functions to a file.
     ! ==========================================================================
