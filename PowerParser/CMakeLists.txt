@@ -184,5 +184,5 @@ endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
 
 ########### clean files ################
 SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES
-   "install_manifest.txt;docs/_build;docs/htmldoc.out;docs/pdfdoc.out;docs/singlehtmldoc.out")
+   "ppinput_module.mod;install_manifest.txt;docs/_build;docs/htmldoc.out;docs/pdfdoc.out;docs/singlehtmldoc.out")
 
