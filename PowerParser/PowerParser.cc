@@ -74,6 +74,7 @@
 #include <limits>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 namespace PP
 {
@@ -1323,6 +1324,15 @@ void PowerParser::remove_dup_scalar(int wtn)
     }
 }
 
+// ===========================================================================
+// Helper function to convert doubles to strings.
+// ===========================================================================
+std::string const to_string( double const x )
+{
+    std::ostringstream tmp;
+    tmp << std::setprecision(16) << x;
+    return tmp.str();
+}
 
 // ===========================================================================
 // Initialize the parser. This will typically be called by the
@@ -1468,6 +1478,36 @@ void PowerParser::init()
 
     Function fdefined("defined", true, 1, "logical", "is a variable defined or not");
     fmap.insert(pair<string, Function>(fdefined.get_name(), fdefined));
+}
+
+void PowerParser::dictionary_add(char *name, double value, bool pred, char *vdesc)
+{
+   Variable *Var_entry = new Variable(name, to_string(value), pred, vdesc);
+   vmap.insert(pair<string, Variable>(Var_entry->get_varname(), *Var_entry));
+}
+
+void PowerParser::dictionary_env_add(char *name, bool pred)
+{
+   char *getenv_p;
+   char *getenv_p_not_defined = "";
+
+   getenv_p = getenv(name);
+   if( getenv_p == NULL ){
+      getenv_p = getenv_p_not_defined;
+   }
+
+   int len_name = strlen(name);
+
+   // One extra character for $ and another for null termination
+   char *varname = (char *)malloc(sizeof(char)*(len_name+2));
+
+   varname[0] = '$';
+   strncpy(varname+1, name, len_name+1);
+
+   Variable *Var_entry = new Variable(varname, getenv_p, pred, name);
+   vmap.insert(pair<string, Variable>(Var_entry->get_varname(), *Var_entry));
+
+   free(varname);
 }
 
 
