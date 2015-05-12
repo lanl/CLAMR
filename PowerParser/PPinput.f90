@@ -1402,7 +1402,6 @@
       character(len=*), intent(in) :: deckname,oargs
       logical         , intent(in) :: first
  
-      call parser_init_comm()
       call parser_create(oargs, len(oargs), trim(deckname), len_trim(deckname))
 
       PPinput_initialized = .true.
