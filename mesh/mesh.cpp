@@ -1327,10 +1327,6 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double d
       }
    }
 
-   nlft = NULL;
-   nrht = NULL;
-   nbot = NULL;
-   ntop = NULL;
    do_rezone = true;
    gpu_do_rezone = true;
 
