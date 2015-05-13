@@ -46,6 +46,7 @@
  *           Robert Robey    XCP-2   brobey@lanl.gov
  */
 
+#include "PowerParser.hh"
 #include <stdio.h>
 #include <iostream>
 #include <string>
@@ -55,8 +56,6 @@
 #include <vector>
 #include <deque>
 #include <new>
-
-#include "PowerParser.hh"
 
 using std::string;
 using std::cout;

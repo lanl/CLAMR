@@ -57,9 +57,9 @@
 // Need to include Cmd.hh because on the PGI compiler, the deque<Cmd>
 // declaration did not work with just doing "class Cmd;", we need to fully
 // include Cmd.hh. 
+#include "Comm.hh"
 #include <sstream>
 #include <fstream>
-#include "Comm.hh"
 #include "Word.hh"
 #include "Cmd.hh"
 #include "Restartblock.hh"
