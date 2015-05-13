@@ -56,10 +56,9 @@
 
 namespace PP {
 
-Comm Comm::instance;
 
 // ===========================================================================
-// Initialize
+// Constructor
 // ===========================================================================
 Comm::Comm()
 {
@@ -70,14 +69,18 @@ Comm::Comm()
 #ifdef HAVE_MPI
     int argc = 1;
     char **argv = NULL;
-    // MPI_Init is assumed to have been called already.
 
-    int init_flag;
-    MPI_Initialized ( &init_flag);
+    int init_check;
+    MPI_Initialized(&init_check);
+    //printf("DEBUG -- mpi initialized %d\n",init_check);
 
-    if (! init_flag){
+    init_flag = 0;
+    if (! init_check) {
+       // Only way for init_flag to be true is here; must be false otherwise
+       init_flag = 1;
        MPI_Init(&argc, &argv);
     }
+    //printf("DEBUG -- comm constructor -- init_flag %d\n",init_flag);
 
     MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
     MPI_Comm_size(MPI_COMM_WORLD, &npes );
@@ -85,6 +88,19 @@ Comm::Comm()
 #endif
 }
 
+// ===========================================================================
+// Destructor
+// ===========================================================================
+Comm::~Comm()
+{
+   //printf("DEBUG -- comm destructor -- init_flag %d\n",init_flag);
+#ifdef __HAVE_MPI__
+   if (init_flag) {
+      init_flag = 0;
+      MPI_Finalize();
+   }
+#endif
+}
 
 // ===========================================================================
 // Broadcast

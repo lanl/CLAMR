@@ -99,12 +99,16 @@ static int index_base = 1;
 // ===========================================================================
 PowerParser::PowerParser()
 {
+    comm = new Comm();
+
     init();                     // Init vars, setup functions, ...
     nrb_on_dump = 0;
 }
 
 PowerParser::PowerParser(string filename)
 {
+    comm = new Comm();
+
     init();                     // Init vars, setup functions, ...
     nrb_on_dump = 0;
     parse_file(filename);       // Parse the file.
@@ -112,6 +116,8 @@ PowerParser::PowerParser(string filename)
 
 PowerParser::PowerParser(const char *filename)
 {
+    comm = new Comm();
+
     string fstring(filename);
 
     init();                     // Init vars, setup functions, ...
@@ -119,8 +125,13 @@ PowerParser::PowerParser(const char *filename)
     parse_file(fstring);        // Parse the file.
 }
 
+// ===========================================================================
+// Destructor
+// ===========================================================================
 PowerParser::~PowerParser()
 {
+    delete comm;
+
     cmd_strings.clear();
     vmap.clear();
     fmap.clear();
@@ -1340,8 +1351,6 @@ std::string const to_string( double const x )
 // ===========================================================================
 void PowerParser::init()
 {
-    comm = Comm::GetInstance();
-
     line_number = 0;
     cmdsfp = &cmdsf;
     dup_fatal = 1;
@@ -1367,7 +1376,6 @@ void PowerParser::init()
     Word whuge_int(huge_int, 1, 1, "", NULL);
     Variable vhuge_int("$huge_int", whuge_int.get_string(), true, "largest integer");
     vmap.insert(pair<string, Variable>(vhuge_int.get_varname(), vhuge_int));
-
 
     double tiny_double = numeric_limits<double>::min( );
     Word wtiny_double(tiny_double, 1, 1, "", NULL);
