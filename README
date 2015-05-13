@@ -63,8 +63,6 @@ module load compilers/intel/15.0.0
 module load mpi/intelmpi-4.1.3.045-mic
 module load cmake/2.8.11.1
 
-// Watch-out for memory leaks with open-mpi 1.8.5 on GPU/MPI versions
-
 /// These can be setup in the .login for the Intel MICs on darwin with
 module load cmake/2.8.11.1    compilers/intel/15.0.0    mpi/intelmpi-4.1.3.045-mic
 //The following source command can also be put in the .login with the first version for
@@ -115,6 +113,8 @@ cmake -DCMAKE_BUILD_TYPE=release -DGRAPHICS_TYPE=None -DPRECISION_TYPE=full_prec
 
 // To run
    aprun -n 128 -N 16 ../clamr_mpionly -n 128 -t 1000
+
+// Watch-out for memory leaks with open-mpi 1.8.5 on GPU/MPI versions
 
 // Set MPEHOME to location of MPE install or MPE_INCLUDE_DIR and MPE_LIBRARIES to 
 // the include path and the location of the MPE libraries
