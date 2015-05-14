@@ -61,8 +61,10 @@
 #include <unistd.h>
 #include <string.h>
 
+#ifdef __APPLE_CC__
 #include <mach/mach_host.h>
 #include <mach/task.h>
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
