@@ -3149,24 +3149,24 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    // End of data parallel optimizations
 #endif
 
-   int *nlft_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nlft_old",  flags);
-   int *nrht_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nrht_old",  flags);
-   int *nbot_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nbot_old",  flags);
-   int *ntop_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "ntop_old",  flags);
-
-   for (int ic = 0; ic < new_ncells; ic++){
-      nlft_old[ic] = -1;
-      nrht_old[ic] = -1;
-      nbot_old[ic] = -1;
-      ntop_old[ic] = -1;
-   }
-
-   mesh_memory.memory_swap(&nlft,  &nlft_old);
-   mesh_memory.memory_swap(&nrht,  &nrht_old);
-   mesh_memory.memory_swap(&nbot,  &nbot_old);
-   mesh_memory.memory_swap(&ntop,  &ntop_old);
-
    if (neighbor_remap & ! parallel) {
+      int *nlft_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nlft_old",  flags);
+      int *nrht_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nrht_old",  flags);
+      int *nbot_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nbot_old",  flags);
+      int *ntop_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "ntop_old",  flags);
+
+      for (int ic = 0; ic < new_ncells; ic++){
+         nlft_old[ic] = -1;
+         nrht_old[ic] = -1;
+         nbot_old[ic] = -1;
+         ntop_old[ic] = -1;
+      }
+
+      mesh_memory.memory_swap(&nlft,  &nlft_old);
+      mesh_memory.memory_swap(&nrht,  &nrht_old);
+      mesh_memory.memory_swap(&nbot,  &nbot_old);
+      mesh_memory.memory_swap(&ntop,  &ntop_old);
+
       for (int ic = 0; ic < (int)ncells; ic++){
          int nc = index[ic];
 
@@ -3232,12 +3232,17 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             }
          }
       }
-   }
 
-   nlft_old = (int *)mesh_memory.memory_delete(nlft_old);
-   nrht_old = (int *)mesh_memory.memory_delete(nrht_old);
-   nbot_old = (int *)mesh_memory.memory_delete(nbot_old);
-   ntop_old = (int *)mesh_memory.memory_delete(ntop_old);
+      nlft_old = (int *)mesh_memory.memory_delete(nlft_old);
+      nrht_old = (int *)mesh_memory.memory_delete(nrht_old);
+      nbot_old = (int *)mesh_memory.memory_delete(nbot_old);
+      ntop_old = (int *)mesh_memory.memory_delete(ntop_old);
+   } else {
+      nlft = (int *)mesh_memory.memory_delete(nlft);
+      nrht = (int *)mesh_memory.memory_delete(nrht);
+      nbot = (int *)mesh_memory.memory_delete(nbot);
+      ntop = (int *)mesh_memory.memory_delete(ntop);
+   }
 
    //ncells = nc;
 
