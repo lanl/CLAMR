@@ -76,6 +76,7 @@ FILE *stat_fp = NULL, *meminfo_fp = NULL;
 long long memstats_memused(){
    long long mem_current=0;
 #ifdef __APPLE_CC__
+/* This is all memory used and we want the memory for only our process -- do alternate
    vm_size_t page_size;
    mach_port_t mach_port;
    mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
@@ -85,6 +86,13 @@ long long memstats_memused(){
    host_statistics (mach_host_self (), HOST_VM_INFO, (host_info_t) &vmstat, &count);
 
    mem_current = (vmstat.wire_count + vmstat.active_count + vmstat.inactive_count)*page_size/1024;
+*/
+
+   struct task_basic_info t_info;
+   mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;
+   task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)&t_info, &t_info_count);
+
+   mem_current = t_info.resident_size;
 #else
    char proc_stat_file[50];
    char *p;
