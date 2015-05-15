@@ -910,6 +910,7 @@ void *MallocPlus::memory_replace(void *malloc_mem_ptr_old, void * const malloc_m
 #ifdef HAVE_OPENCL
          if (DEBUG) printf("Deleting device memory name %s pointer %p\n",memory_item_old->mem_name,memory_item_old->mem_ptr);
          ezcl_device_memory_delete(memory_item_old->mem_ptr);
+         //ezcl_device_memory_replace(&memory_item_old->mem_ptr, &memory_item_new->mem_ptr);
 #endif
       }
 #ifdef HAVE_J7

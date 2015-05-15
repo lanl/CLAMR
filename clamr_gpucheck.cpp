@@ -349,7 +349,7 @@ extern "C" void do_calc(void)
 
       mesh->calc_neighbors(ncells);
 
-      mesh->gpu_calc_neighbors();
+      mesh->gpu_calc_neighbors(ncycle);
 
       if (do_comparison_calc) {
          mesh->compare_neighbors_gpu_global_to_cpu_global();

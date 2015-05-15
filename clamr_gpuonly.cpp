@@ -222,10 +222,6 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_state_t), &V[0],        NULL);
    //state->gpu_time_write += ezcl_timer_calc(&start_write_event, &end_write_event);
 
-   mesh->dev_nlft = NULL;
-   mesh->dev_nrht = NULL;
-   mesh->dev_nbot = NULL;
-   mesh->dev_ntop = NULL;
    state->dev_mpot = NULL;
 
    if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
@@ -309,7 +305,8 @@ extern "C" void do_calc(void)
       deltaT = state->gpu_set_timestep(sigma);
       simTime += deltaT;
 
-      mesh->gpu_calc_neighbors();
+      ezcl_mem_walk_all();
+      mesh->gpu_calc_neighbors(ncycle);
 
       // Currently not working -- may need to be earlier?
       //if (do_cpu_calc && ! mesh->have_boundary) {
@@ -329,6 +326,7 @@ extern "C" void do_calc(void)
 
       //int bcount = mesh->gpu_count_BCs();
 
+      ezcl_mem_walk_all();
    } // End burst loop
 
    double H_sum = state->gpu_mass_sum(enhanced_precision_sum);
@@ -397,13 +395,6 @@ extern "C" void do_calc(void)
       printf("GPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_gpu_counter(MESH_COUNTER_REZONE)/(double)ncycle*100.0 );
       printf("GPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_gpu_counter(MESH_COUNTER_CALC_NEIGH)/(double)ncycle*100.0 );
       printf("GPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_gpu_counter(MESH_COUNTER_REFINE_SMOOTH)/(double)mesh->get_gpu_counter(MESH_COUNTER_REZONE) );
-
-      if (mesh->dev_nlft != NULL){
-         ezcl_device_memory_remove(mesh->dev_nlft);
-         ezcl_device_memory_remove(mesh->dev_nrht);
-         ezcl_device_memory_remove(mesh->dev_nbot);
-         ezcl_device_memory_remove(mesh->dev_ntop);
-      }
 
       mesh->terminate();
       state->terminate();

@@ -567,7 +567,7 @@ extern "C" void do_calc(void)
       }
 
       if (do_gpu_calc) {
-         mesh_global->gpu_calc_neighbors();
+         mesh_global->gpu_calc_neighbors(ncycle);
          mesh_local->gpu_calc_neighbors_local();
       }
 

@@ -520,7 +520,7 @@ public:
    void calc_neighbors(int ncells);
    void calc_neighbors_local(void);
 #ifdef HAVE_OPENCL
-   void gpu_calc_neighbors(void);
+   void gpu_calc_neighbors(int ncycle);
    void gpu_calc_neighbors_local(void);
 #endif
    //   TODO:  Not created yet; overloading for 3D mesh support. (davis68)
