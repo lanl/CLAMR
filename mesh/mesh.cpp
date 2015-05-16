@@ -2172,7 +2172,7 @@ void Mesh::terminate(void)
       ezcl_device_memory_delete(dev_i);
       ezcl_device_memory_delete(dev_j);
       ezcl_device_memory_delete(dev_celltype);
-      if (neighbor_remap){
+      if (neighbor_remap && dev_nlft != NULL){
          ezcl_device_memory_delete(dev_nlft);
          ezcl_device_memory_delete(dev_nrht);
          ezcl_device_memory_delete(dev_nbot);
