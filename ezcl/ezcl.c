@@ -967,6 +967,34 @@ void ezcl_device_memory_swap_p(cl_mem *dev_mem_ptr_old, cl_mem *dev_mem_ptr_new,
           *dev_mem_ptr_new = dev_mem_ptr_tmp;
 }
 
+void ezcl_device_memory_replace_p(void **dev_mem_ptr_old, void **dev_mem_ptr_new, const char *file, const int line){
+   if (*dev_mem_ptr_old == NULL || *dev_mem_ptr_new == NULL) {
+      printf(" Error with dev_mem_ptr in ezcl_device_memory_swap from file %s line %d\n",file,line);
+   }
+   SLIST_FOREACH(device_memory_item_old, &device_memory_head, device_memory_entries){
+      if (device_memory_item_old->cl_mem_ptr == *dev_mem_ptr_old) {
+         break;
+      }
+   }
+   SLIST_FOREACH(device_memory_item_new, &device_memory_head, device_memory_entries){
+      if (device_memory_item_new->cl_mem_ptr == *dev_mem_ptr_new) {
+         break;
+      }
+   }
+
+   //printf("DEBUG -- oldname %s newname %s\n",device_memory_item_old->name,device_memory_item_new->name);
+   // Move the old name to the new entry
+   strncpy(device_memory_item_new->name,device_memory_item_old->name,31);
+
+   // Delete the old entry
+   ezcl_device_memory_delete(*dev_mem_ptr_old);
+   *dev_mem_ptr_old = NULL;
+
+   // Return the new pointer in the old location. Now only the new entry exists with the old name and as
+   // the old pointer
+   *dev_mem_ptr_old = *dev_mem_ptr_new;
+}
+
 void ezcl_device_memory_delete_p(void *dev_mem_ptr, const char *file, const int line){
    if (dev_mem_ptr == NULL) {
       printf(" Error with dev_mem_ptr in ezcl_device_memory_delete from file %s line %d\n",file,line);
