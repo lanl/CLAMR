@@ -285,6 +285,8 @@ int main(int argc, char **argv) {
 static int     ncycle  = 0;
 static double  simTime = 0.0;
 
+extern bool neighbor_remap;
+
 extern "C" void do_calc(void)
 {  double g     = 9.80;
    double sigma = 0.95;
@@ -387,6 +389,7 @@ extern "C" void do_calc(void)
       //printf("DEBUG cpu icount %d jcount %d new_ncells %d\n",icount,jcount,new_ncells);
 
       new_ncells_gpu = state->gpu_calc_refine_potential(icount, jcount);
+      //printf("DEBUG gpu icount %d jcount %d new_ncells %d\n",icount,jcount,new_ncells);
 
       if (do_comparison_calc) {
          if (new_ncells != new_ncells_gpu) {
@@ -460,6 +463,10 @@ extern "C" void do_calc(void)
       if (dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);
       ncells = new_ncells;
       mesh->ncells = new_ncells;
+
+      if (neighbor_remap && do_comparison_calc) {
+         mesh->compare_neighbors_gpu_global_to_cpu_global();
+      }
 
       //ezcl_device_memory_remove(dev_ioffset);
 

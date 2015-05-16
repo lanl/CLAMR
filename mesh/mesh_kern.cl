@@ -137,6 +137,23 @@ __kernel void hash_adjust_sizes_cl(
    sizes[0].s3 = min(sizes[0].s3+2*levtable[levmx],(jmax+1)*levtable[levmx]);
 }
 
+__kernel void neighbor_init_cl(
+                          const int   isize,            // 0
+                 __global       int   *nlft,            // 1
+                 __global       int   *nrht,            // 2
+                 __global       int   *nbot,            // 3
+                 __global       int   *ntop)            // 4
+{
+   const uint ic  = get_global_id(0);
+
+   if (ic >= isize) return;
+
+   nlft[ic] = -1;
+   nrht[ic] = -1;
+   nbot[ic] = -1;
+   ntop[ic] = -1;
+}
+                          
 __kernel void hash_setup_cl(
                           const int   isize,            // 0
                           const int   levmx,            // 1
@@ -145,28 +162,41 @@ __kernel void hash_setup_cl(
                  __global const int   *level,           // 4
                  __global const int   *i,               // 5
                  __global const int   *j,               // 6
-                 __global const ulong *hash_header,     // 7
-                 __global       int   *hash)            // 8
+                 __global const int   *nlft,            // 7
+                 __global const int   *nrht,            // 8
+                 __global const int   *nbot,            // 9
+                 __global const int   *ntop,            // 10
+                 __global const ulong *hash_header,     // 11
+                 __global       int   *hash)            // 12
 {
 
-   const uint giX  = get_global_id(0);
+   const uint ic  = get_global_id(0);
 
-   if (giX >= isize) return;
+   if (ic >= isize) return;
 
-   const int hash_method       = (int)hash_header[0];
-   const ulong hash_table_size =      hash_header[1];
-   const ulong AA              =      hash_header[2];
-   const ulong BB              =      hash_header[3];
+   int lev = level[ic];
 
-   int lev = level[giX];
-   int ii = i[giX];
-   int jj = j[giX];
-   int levmult = levtable[levmx-lev];
+   bool need_hash = (nlft[ic] == -1 || nrht[ic] == -1 || nbot[ic] == -1 || ntop[ic] == -1) ? true : false;
 
-   jj *= levmult;
-   ii *= levmult;
+   if (! need_hash) { 
+      if ( (level[nlft[ic]] > lev && ntop[nlft[ic]] == -1) ||
+           (level[nrht[ic]] > lev && ntop[nrht[ic]] == -1) ||
+           (level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) ||
+           (level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ) need_hash = true;
+   }
 
-   write_hash(hash_method, hash_table_size, AA, BB, giX, jj*imaxsize+ii, hash);
+   if (need_hash) {
+      const int hash_method       = (int)hash_header[0];
+      const ulong hash_table_size =      hash_header[1];
+      const ulong AA              =      hash_header[2];
+      const ulong BB              =      hash_header[3];
+
+      int levmult = levtable[levmx-lev];
+      int ii = i[ic]*levmult;
+      int jj = j[ic]*levmult;
+
+      write_hash(hash_method, hash_table_size, AA, BB, ic, jj*imaxsize+ii, hash);
+   }
 }
 
 __kernel void hash_setup_local_cl(
@@ -257,22 +287,22 @@ __kernel void calc_neighbors_cl(
    int jjbot = max( (jj-1)*levmult, 0         );   
    int jjtop = min( (jj+1)*levmult, jmaxsize-1);
 
-   int nlftval = -1;
-   int nrhtval = -1;
-   int nbotval = -1;
-   int ntopval = -1;
+   int nlftval = nlft[giX];
+   int nrhtval = nrht[giX];
+   int nbotval = nbot[giX];
+   int ntopval = ntop[giX];
 
    // Taking care of boundary cells
    // Force each boundary cell to point to itself on its boundary direction
-   if (iicur <    1*levtable[levmx]  ) nlftval = giX;
-   if (jjcur <    1*levtable[levmx]  ) nbotval = giX;
-   if (iicur > imax*levtable[levmx]-1) nrhtval = giX;
-   if (jjcur > jmax*levtable[levmx]-1) ntopval = giX;
+   if (nlftval < 0 && iicur <    1*levtable[levmx]  ) nlftval = giX;
+   if (nbotval < 0 && jjcur <    1*levtable[levmx]  ) nbotval = giX;
+   if (nrhtval < 0 && iicur > imax*levtable[levmx]-1) nrhtval = giX;
+   if (ntopval < 0 && jjcur > jmax*levtable[levmx]-1) ntopval = giX;
    // Boundary cells next to corner boundary need special checks
-   if (iicur ==    1*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur >= jmax*levtable[levmx] ) ) nlftval = giX;
-   if (jjcur ==    1*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur >= imax*levtable[levmx] ) ) nbotval = giX;
-   if (iirht == imax*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur >= jmax*levtable[levmx] ) ) nrhtval = giX;
-   if (jjtop == jmax*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur >= imax*levtable[levmx] ) ) ntopval = giX;
+   if (nlftval < 0 && iicur ==    1*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur >= jmax*levtable[levmx] ) ) nlftval = giX;
+   if (nbotval < 0 && jjcur ==    1*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur >= imax*levtable[levmx] ) ) nbotval = giX;
+   if (nrhtval < 0 && iirht == imax*levtable[levmx] &&  (jjcur < 1*levtable[levmx] || jjcur >= jmax*levtable[levmx] ) ) nrhtval = giX;
+   if (ntopval < 0 && jjtop == jmax*levtable[levmx] &&  (iicur < 1*levtable[levmx] || iicur >= imax*levtable[levmx] ) ) ntopval = giX;
 
    // need to check for finer neighbor first
    if (lev != levmx) {
@@ -3058,6 +3088,90 @@ __kernel void rezone_all_cl(
    }
 
    indexoffset[giX] = indexval;
+}
+
+
+__kernel void rezone_neighbors_cl(
+                 const int    isize,        // 0 
+        __global const int   *mpot,         // 1
+        __global const int   *index_offset, // 2
+        __global const int   *nlft,         // 3
+        __global const int   *nrht,         // 4
+        __global const int   *nbot,         // 5
+        __global const int   *ntop,         // 6
+        __global const int   *celltype_new, // 7
+        __global       int   *nlft_new,     // 8
+        __global       int   *nrht_new,     // 9
+        __global       int   *nbot_new,     // 10
+        __global       int   *ntop_new)     // 11
+{
+   uint ic = get_global_id(0);
+
+   if (ic >= isize) return;
+
+   int nc = index_offset[ic];
+
+   if (mpot[ic] == 0){
+      nlft_new[nc] = (mpot[nlft[ic]] == 0) ? index_offset[nlft[ic]] : -1;
+      nrht_new[nc] = (mpot[nrht[ic]] == 0) ? index_offset[nrht[ic]] : -1;
+      nbot_new[nc] = (mpot[nbot[ic]] == 0) ? index_offset[nbot[ic]] : -1;
+      ntop_new[nc] = (mpot[ntop[ic]] == 0) ? index_offset[ntop[ic]] : -1;
+   } else if (mpot[ic] <= -2) {
+      nlft_new[nc]  = -1;
+      nrht_new[nc]  = -1;
+      nbot_new[nc]  = -1;
+      ntop_new[nc]  = -1;
+   } else if (mpot[ic] > 0){
+      nlft_new[nc]    = -1;
+      nlft_new[nc+1]  = -1;
+      nrht_new[nc]    = -1;
+      nrht_new[nc+1]  = -1;
+      nbot_new[nc]    = -1;
+      nbot_new[nc+1]  = -1;
+      ntop_new[nc]    = -1;
+      ntop_new[nc+1]  = -1;
+      if (celltype_new[nc] == REAL_CELL){
+         nlft_new[nc+2]  = -1;
+         nlft_new[nc+3]  = -1;
+         nrht_new[nc+2]  = -1;
+         nrht_new[nc+3]  = -1;
+         nbot_new[nc+2]  = -1;
+         nbot_new[nc+3]  = -1;
+         ntop_new[nc+2]  = -1;
+         ntop_new[nc+3]  = -1;
+      }
+   }
+   switch(celltype_new[nc]){
+   case LEFT_BOUNDARY:
+      nlft_new[nc] = nc;
+      break;
+   case RIGHT_BOUNDARY:
+      nrht_new[nc] = nc;
+      break;
+   case BOTTOM_BOUNDARY:
+      nbot_new[nc] = nc;
+      break;
+   case TOP_BOUNDARY:
+      ntop_new[nc] = nc;
+      break;
+   }
+   if (mpot[ic] > 0){
+      nc++;
+      switch(celltype_new[nc]){
+      case LEFT_BOUNDARY:
+         nlft_new[nc] = nc;
+         break;
+      case RIGHT_BOUNDARY:
+         nrht_new[nc] = nc;
+         break;
+      case BOTTOM_BOUNDARY:
+         nbot_new[nc] = nc;
+         break;
+      case TOP_BOUNDARY:
+         ntop_new[nc] = nc;
+         break;
+      }
+   }
 }
 
 __kernel void rezone_one_float_cl(

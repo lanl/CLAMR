@@ -1496,8 +1496,8 @@ void PowerParser::dictionary_add(char *name, double value, bool pred, char *vdes
 
 void PowerParser::dictionary_env_add(char *name, bool pred)
 {
-   char *getenv_p;
-   char *getenv_p_not_defined = "";
+   const char *getenv_p;
+   const char *getenv_p_not_defined = "";
 
    getenv_p = getenv(name);
    if( getenv_p == NULL ){
