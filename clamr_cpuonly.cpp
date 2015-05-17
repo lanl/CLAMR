@@ -63,9 +63,6 @@
 #include <vector>
 #include "graphics/display.h"
 #include "graphics/graphics.h"
-#ifdef HAVE_OPENCL
-#include "ezcl/ezcl.h"
-#endif
 #include "input.h"
 #include "mesh/mesh.h"
 #include "mesh/partition.h"
@@ -88,8 +85,8 @@ using namespace PP;
 
 #define MIN3(x,y,z) ( min( min(x,y), z) )
 
-static int do_gpu_calc = 0;
 static int do_cpu_calc = 1;
+static int do_gpu_calc = 0;
 
 typedef unsigned int uint;
 
@@ -162,8 +159,8 @@ static int next_graphics_cycle = 0;
 //  Set up timing information.
 static struct timeval tstart;
 
-static double  H_sum_initial = 0.0;
-static double  cpu_time_graphics = 0.0;
+static double H_sum_initial = 0.0;
+static double cpu_time_graphics = 0.0;
 
 static int     ncycle  = 0;
 static double  simTime = 0.0;
@@ -422,7 +419,7 @@ extern "C" void do_calc(void)
       }
       
       mesh->ncells = ncells;
-   }
+   } // End burst loop
 
    H_sum = state->mass_sum(enhanced_precision_sum);
 
