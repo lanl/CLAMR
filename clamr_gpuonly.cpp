@@ -83,7 +83,6 @@ typedef unsigned int uint;
 static bool do_display_graphics = false;
 
 #ifdef HAVE_GRAPHICS
-do_display_graphics = true;
 static double circle_radius=-1.0;
 #ifdef FULL_PRECISION
    void (*set_display_cell_coordinates)(double *, double *, double *, double *) = &set_display_cell_coordinates_double;
@@ -274,6 +273,7 @@ int main(int argc, char **argv) {
 
    //  Set up grid.
 #ifdef GRAPHICS_OUTPUT
+   do_display_graphics = true;
    mesh->write_grid(n);
 #endif
 
@@ -351,10 +351,7 @@ extern "C" void do_calc(void)
 
    for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
-      //size_t old_ncells = ncells;
-
       //  Calculate the real time step for the current discrete time step.
-      
       deltaT = state->gpu_set_timestep(sigma);
       simTime += deltaT;
 
@@ -371,7 +368,6 @@ extern "C" void do_calc(void)
       size_t new_ncells = state->gpu_calc_refine_potential(icount, jcount);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      //size_t add_ncells = new_ncells - old_ncells;
       if (state->dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);
       ncells = new_ncells;
       mesh->ncells = new_ncells;

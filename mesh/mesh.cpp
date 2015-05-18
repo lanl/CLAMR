@@ -2349,7 +2349,6 @@ void Mesh::kdtree_setup()
 void Mesh::calc_spatial_coordinates(int ibase)
 {
    struct timeval tstart_cpu;
-
    cpu_timer_start(&tstart_cpu);
 
    x.resize(ncells);
@@ -2524,6 +2523,9 @@ void Mesh::calc_centerminmax(void)
 
 void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, MallocPlus &state_memory)
 {
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
    if (! do_rezone) {
       index.clear();
       index.resize(ncells);
@@ -2535,12 +2537,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          index[ic]=ic;
       }
 
+      cpu_timers[MESH_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
       return;
    }
-
-   struct timeval tstart_cpu;
-
-   cpu_timer_start(&tstart_cpu);
 
 // sign for jcount is different in GPU and CPU code -- abs is a quick fix
    int add_ncells = icount - abs(jcount);
