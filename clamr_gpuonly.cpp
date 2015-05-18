@@ -418,9 +418,9 @@ extern "C" void do_calc(void)
       ezcl_device_memory_remove(dev_dx);
       ezcl_device_memory_remove(dev_y);
       ezcl_device_memory_remove(dev_dy);
-   }
 
-   gpu_time_graphics += ezcl_timer_calc(&start_read_event, &end_read_event);
+      gpu_time_graphics += ezcl_timer_calc(&start_read_event, &end_read_event);
+   }
 
    if(ncycle == next_graphics_cycle){
       set_graphics_mysize(ncells);
