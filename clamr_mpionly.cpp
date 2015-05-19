@@ -144,6 +144,9 @@ static Mesh        *mesh;           //  Object containing mesh information
 static State       *state;          //  Object containing state information corresponding to mesh
 static PowerParser *parse;          //  Object containing input file parsing
 
+static real_t circ_radius = 0.0;
+static int next_graphics_cycle = 0;
+
 //  Set up timing information.
 static struct timeval tstart;
 
@@ -168,7 +171,7 @@ int main(int argc, char **argv) {
    struct timeval tstart_setup;
    cpu_timer_start(&tstart_setup);
 
-   real_t circ_radius = 6.0;
+   circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.
    circ_radius = circ_radius * (real_t) nx / 128.0;
    int boundary = 1;
@@ -450,18 +453,19 @@ extern "C" void do_calc(void)
          ncycle, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
    }
 
-#ifdef HAVE_GRAPHICS
+   cpu_timer_start(&tstart_cpu);
+
    mesh->x.resize(ncells);
    mesh->dx.resize(ncells);
    mesh->y.resize(ncells);
    mesh->dy.resize(ncells);
    mesh->calc_spatial_coordinates(0);
 
-   cpu_timer_start(&tstart_cpu);
-
    if(do_display_graphics || ncycle == next_graphics_cycle){
       mesh->calc_spatial_coordinates(0);
    }
+
+#ifdef HAVE_GRAPHICS
 #ifdef HAVE_MPE
    set_display_mysize(ncells);
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);

@@ -56,6 +56,7 @@
 #include "mesh/mesh.h"
 #include <unistd.h>
 #include <stdio.h>
+#include <assert.h>
 #include <algorithm>
 #include <queue>
 #include "state.h"
@@ -125,9 +126,9 @@ extern "C"
 
 #endif
 
-#ifdef _OPENMP
-static bool iversion_flag = false;
-#endif
+//#ifdef _OPENMP
+//static bool iversion_flag = false;
+//#endif
 
 typedef unsigned int uint;
 
