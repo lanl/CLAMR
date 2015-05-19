@@ -200,6 +200,11 @@ int main(int argc, char **argv) {
    }
 #endif
 
+   parse = new PowerParser();
+
+   //  Process command-line arguments, if any.
+   parseInput(argc, argv);
+
    if (DEBUG) {
       //if (mype == 0) mesh->print();
 
@@ -312,6 +317,7 @@ int main(int argc, char **argv) {
    set_display_cell_proc(&proc_global[0]);
 #endif
 #ifdef HAVE_MPE
+   do_display_graphics = true;
    set_display_mysize(ncells);
    set_display_cell_data(&state->H[0]);
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
@@ -453,6 +459,9 @@ extern "C" void do_calc(void)
 
    cpu_timer_start(&tstart_cpu);
 
+   if(do_display_graphics || ncycle == next_graphics_cycle){
+      mesh->calc_spatial_coordinates(0);
+   }
 #ifdef HAVE_MPE
    set_display_mysize(ncells);
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);

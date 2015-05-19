@@ -1987,13 +1987,13 @@ void State::calc_finite_difference_via_faces(double deltaT){
       real_t dric    = dxic;
 
       int nltl = 0;
-      real_t Hlt = 0.0, Ult = 0.0, Vlt = 0.0;
+      real_t Hlt = 0.0, Ult = 0.0; // Vlt = 0.0;
       real_t Hll2 = 0.0;
       real_t Ull2 = 0.0;
       if(lvl < level[nl]) {
          Hlt  = H[ ntop[nl] ];
          Ult  = U[ ntop[nl] ];
-         Vlt  = V[ ntop[nl] ];
+         //Vlt  = V[ ntop[nl] ];
 
          nltl = nlft[nlt];
          Hll2 = H[nltl];
@@ -2001,13 +2001,13 @@ void State::calc_finite_difference_via_faces(double deltaT){
       }
 
       int nrtr = 0;
-      real_t Hrt = 0.0, Urt = 0.0, Vrt = 0.0;
+      real_t Hrt = 0.0, Urt = 0.0; // Vrt = 0.0;
       real_t Hrr2 = 0.0;
       real_t Urr2 = 0.0;
       if(lvl < level[nr]) {
          Hrt  = H[ ntop[nr] ];
          Urt  = U[ ntop[nr] ];
-         Vrt  = V[ ntop[nr] ];
+         //Vrt  = V[ ntop[nr] ];
 
          nrtr = nrht[nrt];
          Hrr2 = H[nrtr];
@@ -2015,12 +2015,12 @@ void State::calc_finite_difference_via_faces(double deltaT){
       }
 
       int nbrb = 0;
-      real_t Hbr = 0.0, Ubr = 0.0, Vbr = 0.0;
+      real_t Hbr = 0.0, Vbr = 0.0; // Ubr = 0.0
       real_t Hbb2 = 0.0;
       real_t Vbb2 = 0.0;
       if(lvl < level[nb]) {
          Hbr  = H[ nrht[nb] ];
-         Ubr  = U[ nrht[nb] ];
+         //Ubr  = U[ nrht[nb] ];
          Vbr  = V[ nrht[nb] ];
 
          nbrb = nbot[nbr];
@@ -2029,12 +2029,12 @@ void State::calc_finite_difference_via_faces(double deltaT){
       }
 
       int ntrt = 0;
-      real_t Htr = 0.0, Utr = 0.0, Vtr = 0.0;
+      real_t Htr = 0.0, Vtr = 0.0; // Utr = 0.0
       real_t Htt2 = 0.0;
       real_t Vtt2 = 0.0;
       if(lvl < level[nt]) {
          Htr  = H[ nrht[nt] ];
-         Utr  = U[ nrht[nt] ];
+         //Utr  = U[ nrht[nt] ];
          Vtr  = V[ nrht[nt] ];
 
          ntrt = ntop[ntr];

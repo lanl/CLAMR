@@ -380,7 +380,7 @@ extern "C" void do_calc(void)
       //  Calculate the real time step for the current discrete time step.
       deltaT = state->set_timestep(g, sigma);
       simTime += deltaT;
-      
+
       mesh->calc_neighbors(ncells);
 
       cpu_timer_start(&tstart_partmeas);
@@ -400,7 +400,7 @@ extern "C" void do_calc(void)
       } else {
          state->calc_finite_difference(deltaT);
       }
-      
+
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       state->remove_boundary_cells();
       

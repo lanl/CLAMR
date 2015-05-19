@@ -165,6 +165,8 @@ int main(int argc, char **argv) {
    int mype=0;
    int numpe=-1;
 
+   parse = new PowerParser();
+
    //  Process command-line arguments, if any.
    parseInput(argc, argv);
 

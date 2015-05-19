@@ -144,6 +144,8 @@ double      upper_mass_diff_percentage; //  Flag for the allowed pecentage diffe
 
 char *restart_file;
 
+static int it = 0;
+
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
 static Mesh        *mesh;           //  Object containing mesh information
@@ -154,10 +156,15 @@ static real_t circ_radius = 0.0;
 static int next_graphics_cycle = 0;
 
 //  Set up timing information.
-static struct timeval tstart;
+static struct timeval tstart, tstart_cpu, tstart_partmeas;
+//static struct tstart_check;
 static cl_event start_write_event, end_write_event;
 
-static double  H_sum_initial = 0.0;
+static double H_sum_initial = 0.0;
+static double cpu_time_graphics = 0.0;
+static double cpu_time_calcs    = 0.0;
+static double cpu_time_partmeas = 0.0;
+//static double cpu_time_check    = 0.0;
 
 static int     ncycle  = 0;
 static double  simTime = 0.0;
@@ -170,12 +177,20 @@ int main(int argc, char **argv) {
    int mype=0;
    int numpe=-1;
 
+   parse = new PowerParser();
+
    //  Process command-line arguments, if any.
    parseInput(argc, argv);
+
+   struct timeval tstart_setup;
+   cpu_timer_start(&tstart_setup);
    
    numpe = 16;
 
    ierr = ezcl_devtype_init(CL_DEVICE_TYPE_GPU);
+   if (ierr == EZCL_NODEVICE) {
+      ierr = ezcl_devtype_init(CL_DEVICE_TYPE_ACCELERATOR);
+   }
    if (ierr == EZCL_NODEVICE) {
       ierr = ezcl_devtype_init(CL_DEVICE_TYPE_CPU);
    }
@@ -210,6 +225,7 @@ int main(int argc, char **argv) {
    mesh->calc_distribution(numpe);
    state->fill_circle(circ_radius, 100.0, 7.0);
    
+   if (graphic_outputInterval > niter) next_graphics_cycle = graphic_outputInterval;
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_i        = mesh->dev_i;
    cl_mem &dev_j        = mesh->dev_j;
@@ -252,6 +268,9 @@ int main(int argc, char **argv) {
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
+   double cpu_time_main_setup = cpu_timer_stop(tstart_setup);
+   mesh->parallel_output("CPU:  setup time               time was",cpu_time_main_setup, 0, "s");
+
    long long mem_used = memstats_memused();
    if (mem_used > 0) {
       mesh->parallel_output("Memory used      in startup ",mem_used, 0, "kB");
@@ -269,15 +288,17 @@ int main(int argc, char **argv) {
       mesh->cpu_timers[i]=0.0;
    }   
 
+   cpu_timer_start(&tstart_cpu);
    //  Set up grid.
 #ifdef GRAPHICS_OUTPUT
    mesh->write_grid(n);
 #endif
 
 #ifdef HAVE_GRAPHICS
+   do_display_graphics = true;
    set_display_mysize(ncells);
-   set_display_viewmode(view_mode);
-   set_display_window((float)mesh->xmin, (float)mesh->xmax, (float)mesh->ymin, (float)mesh->ymax);
+   set_display_window((float)mesh->xmin, (float)mesh->xmax,
+                      (float)mesh->ymin, (float)mesh->ymax);
    set_display_outline((int)outline);
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
    set_display_cell_data(&state->H[0]);
@@ -312,17 +333,17 @@ int main(int argc, char **argv) {
    //  Clear superposition of circle on grid output.
    circle_radius = -1.0;
 #endif
-   cpu_timer_start(&tstart);
+   cpu_time_graphics += cpu_timer_stop(tstart_cpu);
 
    //  Set flag to show mesh results rather than domain decomposition.
    view_mode = 1;
 
+   cpu_timer_start(&tstart);
 #ifdef HAVE_GRAPHICS
    set_idle_function(&do_calc);
    start_main_loop();
 #else
-   cpu_timer_start(&tstart);
-   for (int it = 0; it < 10000000; it++) {
+   for (it = 0; it < 10000000; it++) {
       do_calc();
    }
 #endif
@@ -367,6 +388,8 @@ extern "C" void do_calc(void)
    cl_command_queue command_queue = ezcl_get_command_queue();
 
    //  Main loop.
+   cpu_timer_start(&tstart_cpu);
+
    for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
       // To reduce drift in solution
@@ -384,12 +407,10 @@ extern "C" void do_calc(void)
       
       double deltaT_gpu = state->gpu_set_timestep(sigma);
 
-#ifdef XXX
       //  Compare time step values and pass deltaT in to the kernel.
       if (do_comparison_calc)
       {  if (fabs(deltaT_gpu - deltaT_cpu) > .000001)
          {  printf("Error with deltaT calc --- cpu %lf gpu %lf\n",deltaT_cpu,deltaT_gpu); } }
-#endif
       
       deltaT = (do_gpu_calc) ? deltaT_gpu : deltaT_cpu;
       simTime += deltaT;
@@ -402,7 +423,9 @@ extern "C" void do_calc(void)
          mesh->compare_neighbors_gpu_global_to_cpu_global();
       }
 
+      cpu_timer_start(&tstart_partmeas);
       mesh->partition_measure();
+      cpu_time_partmeas += cpu_timer_stop(tstart_partmeas);
 
       // Currently not working -- may need to be earlier?
       //if (do_cpu_calc && ! mesh->have_boundary) {
@@ -419,11 +442,6 @@ extern "C" void do_calc(void)
       if (do_comparison_calc) {
          // Need to compare dev_H to H, etc
          state->compare_state_gpu_global_to_cpu_global("finite difference",ncycle,ncells);
-      }
-
-      if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) {
-         fflush(stdout);
-         exit(0);
       }
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
@@ -498,6 +516,7 @@ extern "C" void do_calc(void)
 
       //int add_ncells = new_ncells - old_ncells;
       state->rezone_all(icount, jcount, mpot);
+
       // Clear does not delete mpot, so have to swap with an empty vector to get
       // it to delete the mpot memory. This is all to avoid valgrind from showing
       // it as a reachable memory leak
@@ -505,7 +524,7 @@ extern "C" void do_calc(void)
       vector<int>().swap(mpot);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-      if (dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);
+      if (state->dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);
       ncells = new_ncells;
       mesh->ncells = new_ncells;
 
@@ -548,6 +567,8 @@ extern "C" void do_calc(void)
       }
    } // End burst loop
 
+   cpu_time_calcs += cpu_timer_stop(tstart_cpu);
+
    H_sum = state->mass_sum(enhanced_precision_sum);
    if (isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
@@ -561,31 +582,46 @@ extern "C" void do_calc(void)
    printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
       ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
 
-#ifdef HAVE_GRAPHICS
-   if (do_cpu_calc){
-      mesh->calc_spatial_coordinates(0);
-   }
-   if (do_gpu_calc){
-      cl_mem dev_x  = ezcl_malloc(NULL, const_cast<char *>("dev_x"),  &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_dx = ezcl_malloc(NULL, const_cast<char *>("dev_dx"), &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_y  = ezcl_malloc(NULL, const_cast<char *>("dev_y"),  &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
-      cl_mem dev_dy = ezcl_malloc(NULL, const_cast<char *>("dev_dy"), &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
-      mesh->gpu_calc_spatial_coordinates(dev_x, dev_dx, dev_y, dev_dy);
+   cpu_timer_start(&tstart_cpu);
 
-      if (do_comparison_calc){
-#ifdef FULL_PRECISION
-         mesh->compare_coordinates_gpu_global_to_cpu_global_double(dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
-#else
-         mesh->compare_coordinates_gpu_global_to_cpu_global_float(dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
-#endif
+   if(do_display_graphics || ncycle == next_graphics_cycle){
+      if (do_cpu_calc){
+         mesh->calc_spatial_coordinates(0);
       }
+      if (do_gpu_calc){
+         cl_mem dev_x  = ezcl_malloc(NULL, const_cast<char *>("dev_x"),  &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
+         cl_mem dev_dx = ezcl_malloc(NULL, const_cast<char *>("dev_dx"), &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
+         cl_mem dev_y  = ezcl_malloc(NULL, const_cast<char *>("dev_y"),  &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
+         cl_mem dev_dy = ezcl_malloc(NULL, const_cast<char *>("dev_dy"), &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
+         mesh->gpu_calc_spatial_coordinates(dev_x, dev_dx, dev_y, dev_dy);
+   
+         if (do_comparison_calc){
+#ifdef FULL_PRECISION
+            mesh->compare_coordinates_gpu_global_to_cpu_global_double(dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
+#else
+            mesh->compare_coordinates_gpu_global_to_cpu_global_float(dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
+#endif
+         }
 
-      ezcl_device_memory_remove(dev_x);
-      ezcl_device_memory_remove(dev_dx);
-      ezcl_device_memory_remove(dev_y);
-      ezcl_device_memory_remove(dev_dy);
+         ezcl_device_memory_remove(dev_x);
+         ezcl_device_memory_remove(dev_dx);
+         ezcl_device_memory_remove(dev_y);
+         ezcl_device_memory_remove(dev_dy);
+      }
    }
 
+   if(ncycle == next_graphics_cycle){
+      set_graphics_mysize(ncells);
+      set_graphics_viewmode(view_mode);
+      set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+      set_graphics_cell_data(&state->H[0]);
+      set_graphics_cell_proc(&mesh->proc[0]);
+
+      write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
+      next_graphics_cycle += graphic_outputInterval;
+   }
+
+#ifdef HAVE_GRAPHICS
    set_display_mysize(ncells);
    set_display_viewmode(view_mode);
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
@@ -596,14 +632,46 @@ extern "C" void do_calc(void)
 
 #endif
 
+   cpu_time_graphics += cpu_timer_stop(tstart_cpu);
+
    //  Output final results and timing information.
    if (ncycle >= niter) {
       //free_display();
       
+      if(graphic_outputInterval < niter){
+         cpu_timer_start(&tstart_cpu);
+
+         mesh->calc_spatial_coordinates(0);
+#ifdef HAVE_GRAPHICS
+         set_display_mysize(ncells);
+         set_display_viewmode(view_mode);
+         set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+         set_display_cell_data(&state->H[0]);
+         set_display_cell_proc(&mesh->proc[0]);
+#endif
+
+         write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
+         next_graphics_cycle += graphic_outputInterval;
+
+         cpu_time_graphics += cpu_timer_stop(tstart_cpu);
+      }
+
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       
+      long long mem_used = memstats_memused();
+      if (mem_used > 0) {
+         printf("Memory used      %lld kB\n",mem_used);
+         printf("Memory peak      %lld kB\n",memstats_mempeak());
+         printf("Memory free      %lld kB\n",memstats_memfree());
+         printf("Memory available %lld kB\n",memstats_memtotal());
+      }
       state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
+      mesh->parallel_output("CPU:  calc incl part meas     time was",cpu_time_calcs,    0, "s");
+      mesh->parallel_output("CPU:  calculation only        time was",cpu_time_calcs-cpu_time_partmeas,    0, "s");
+      mesh->parallel_output("CPU:  partition measure       time was",cpu_time_partmeas, 0, "s");
+      mesh->parallel_output("CPU:  graphics                time was",cpu_time_graphics, 0, "s");
+      //mesh->parallel_output("CPU:  check                   time was",cpu_time_check,    0, "s");
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
