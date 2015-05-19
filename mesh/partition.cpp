@@ -87,6 +87,8 @@ extern enum partition_method cycle_reorder;
 
 void Mesh::partition_measure(void) 
 {
+  if (measure_type == NO_PARTITION_MEASURE) return;
+
   int ntX     = TILE_SIZE; 
   double offtile_ratio = 0.0;
 
@@ -264,7 +266,9 @@ void Mesh::partition_measure(void)
 void Mesh::print_partition_measure()
 {
    if (meas_count != 0) {
-      if        (measure_type == WITH_DUPLICATES) {
+      if        (measure_type == NO_PARTITION_MEASURE) {
+         if (mype == 0) printf("No Partition Measure\n");
+      } else if (measure_type == WITH_DUPLICATES) {
          parallel_output("Average surface area to volume ratio  ", meas_sum_average/(double)meas_count, 0, "with duplicates");
       } else if (measure_type == WITHOUT_DUPLICATES) {
          parallel_output("Average surface area to volume ratio  ", meas_sum_average/(double)meas_count, 0, "without duplicates");

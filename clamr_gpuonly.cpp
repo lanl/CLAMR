@@ -70,7 +70,9 @@
 #include "state.h"
 #include "timer/timer.h"
 #include "memstats/memstats.h"
+#include "PowerParser/PowerParser.hh"
 
+using namespace PP;
 #ifndef DEBUG 
 #define DEBUG 0
 #endif
@@ -131,19 +133,26 @@ double      upper_mass_diff_percentage; //  Flag for the allowed pecentage diffe
 
 char *restart_file;
 
+static int it = 0;
+
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
 static Mesh        *mesh;           //  Object containing mesh information
 static State       *state;          //  Object containing state information corresponding to mesh
+static PowerParser *parse;          //  Object containing input file parsing
+
 static real_t circ_radius = 0.0;
 static int next_graphics_cycle = 0;
 
 //  Set up timing information.
-static struct timeval tstart;
+static struct timeval tstart, tstart_cpu;
+//static struct tstart_check;
 static cl_event start_read_event,  end_read_event;
 
 static double H_sum_initial = 0.0;
-static long gpu_time_graphics = 0;
+static double cpu_time_graphics = 0.0;
+static double cpu_time_calcs    = 0.0;
+//static double cpu_time_check    = 0.0;
 
 static int     ncycle  = 0;
 static double  simTime = 0.0;
@@ -271,13 +280,14 @@ int main(int argc, char **argv) {
       mesh->cpu_timers[i]=0.0;
    }   
 
+   cpu_timer_start(&tstart_cpu);
    //  Set up grid.
 #ifdef GRAPHICS_OUTPUT
-   do_display_graphics = true;
    mesh->write_grid(n);
 #endif
 
 #ifdef HAVE_GRAPHICS
+   do_display_graphics = true;
    set_display_mysize(ncells);
    set_display_window((float)mesh->xmin, (float)mesh->xmax,
                       (float)mesh->ymin, (float)mesh->ymax);
@@ -315,6 +325,7 @@ int main(int argc, char **argv) {
    //  Clear superposition of circle on grid output.
    circle_radius = -1.0;
 #endif
+   cpu_time_graphics += cpu_timer_stop(tstart_cpu);
 
    //  Set flag to show mesh results rather than domain decomposition.
    view_mode = 1;
@@ -328,7 +339,7 @@ int main(int argc, char **argv) {
    set_idle_function(&do_calc);
    start_main_loop();
 #else
-   for (int it = 0; it < 10000000; it++) {
+   for (it = 0; it < 10000000; it++) {
       do_calc();
    }
 #endif
@@ -348,6 +359,8 @@ extern "C" void do_calc(void)
 
    //  Main loop.
    int endcycle = MIN(niter, next_graphics_cycle);
+
+   cpu_timer_start(&tstart_cpu);
 
    for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
@@ -376,6 +389,8 @@ extern "C" void do_calc(void)
 
    } // End burst loop
 
+   cpu_time_calcs += cpu_timer_stop(tstart_cpu);
+
    double H_sum = state->gpu_mass_sum(enhanced_precision_sum);
 
    if (isnan(H_sum)) {
@@ -387,6 +402,8 @@ extern "C" void do_calc(void)
       printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
          ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
    }
+
+   cpu_timer_start(&tstart_cpu);
 
    vector<state_t> H_graphics;
 
@@ -415,7 +432,7 @@ extern "C" void do_calc(void)
       ezcl_device_memory_remove(dev_y);
       ezcl_device_memory_remove(dev_dy);
 
-      gpu_time_graphics += ezcl_timer_calc(&start_read_event, &end_read_event);
+      cpu_time_graphics += ezcl_timer_calc(&start_read_event, &end_read_event)*1.0e-9;
    }
 
    if(ncycle == next_graphics_cycle){
@@ -441,14 +458,16 @@ extern "C" void do_calc(void)
    set_display_circle_radius(circle_radius);
    draw_scene();
 
-   gpu_time_graphics += (long)(cpu_timer_stop(tstart_cpu)*1.0e-9);
 #endif
+
+   cpu_time_graphics += cpu_timer_stop(tstart_cpu);
 
    //  Output final results and timing information.
    if (ncycle >= niter) {
       //free_display();
       
       if(graphic_outputInterval < niter){
+         cpu_timer_start(&tstart_cpu);
 
          mesh->calc_spatial_coordinates(0);
 #ifdef HAVE_GRAPHICS
@@ -461,6 +480,8 @@ extern "C" void do_calc(void)
 
          write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
          next_graphics_cycle += graphic_outputInterval;
+
+         cpu_time_graphics += cpu_timer_stop(tstart_cpu);
       }
 
       //  Get overall program timing.
@@ -474,7 +495,8 @@ extern "C" void do_calc(void)
          printf("Memory available %lld kB\n",memstats_memtotal());
       }
       state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
-      printf("GPU:  graphics                 time was\t%8.4f\ts\n", (double)gpu_time_graphics * 1.0e-9);
+      printf("CPU:  calculation only         time was\t%8.4f\ts\n", cpu_time_calcs);
+      printf("GPU:  graphics                 time was\t%8.4f\ts\n", cpu_time_graphics);
 
       mesh->print_calc_neighbor_type();
       mesh->print_partition_type();

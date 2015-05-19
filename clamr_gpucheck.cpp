@@ -62,13 +62,17 @@
 #include <unistd.h>
 #include <vector>
 #include "graphics/display.h"
+#include "graphics/graphics.h"
 #include "ezcl/ezcl.h"
 #include "input.h"
 #include "mesh/mesh.h"
 #include "mesh/partition.h"
 #include "state.h"
 #include "timer/timer.h"
+#include "memstats/memstats.h"
+#include "PowerParser/PowerParser.hh"
 
+using namespace PP;
 #ifndef DEBUG 
 #define DEBUG 0
 #endif
@@ -89,11 +93,10 @@ static int do_gpu_sync = 0;
 
 typedef unsigned int uint;
 
+static bool do_display_graphics = false;
+
 #ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
-
-static int view_mode = 0;
-
 #ifdef FULL_PRECISION
    void (*set_display_cell_coordinates)(double *, double *, double *, double *) = &set_display_cell_coordinates_double;
    void (*set_display_cell_data)(double *) = &set_display_cell_data_double;
@@ -101,7 +104,18 @@ static int view_mode = 0;
    void (*set_display_cell_coordinates)(float *, float *, float *, float *) = &set_display_cell_coordinates_float;
    void (*set_display_cell_data)(float *) = &set_display_cell_data_float;
 #endif
+#endif
 
+static int view_mode = 0;
+
+#ifdef FULL_PRECISION
+#define  SUM_ERROR 2.0e-16
+   void (*set_graphics_cell_coordinates)(double *, double *, double *, double *) = &set_graphics_cell_coordinates_double;
+   void (*set_graphics_cell_data)(double *) = &set_graphics_cell_data_double;
+#else
+#define  SUM_ERROR 1.0e-8
+   void (*set_graphics_cell_coordinates)(float *, float *, float *, float *) = &set_graphics_cell_coordinates_float;
+   void (*set_graphics_cell_data)(float *) = &set_graphics_cell_data_float;
 #endif
 
 bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
@@ -118,8 +132,8 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
             levmx,          //  Maximum number of refinement levels; init in input.cpp::parseInput().
             nx,             //  x-resolution of coarse grid; init in input.cpp::parseInput().
             ny,             //  y-resolution of coarse grid; init in input.cpp::parseInput().
-            niter,          //  Maximum time step; init in input.cpp::parseInput().
-            graphic_outputInterval, // Periocity of graphic output that is saved; init in input.cpp::parseInput()
+            niter,          //  Maximum iterations; init in input.cpp::parseInput().
+            graphic_outputInterval, // Periodicity of graphic output that is saved; init in input.cpp::parseInput()
             checkpoint_outputInterval, // Periodicity of checkpoint output that is saved; init in input.cpp::parseInput()
             num_of_rollback_states,// Maximum number of rollback states to maintain; init in input.cpp::parseInput()
             backup_file_num,//  Backup file number to restart simulation from; init in input.cpp::parseInput()
@@ -132,14 +146,22 @@ char *restart_file;
 
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
-static Mesh       *mesh;           //  Object containing mesh information; init in grid.cpp::main().
-static State      *state;          //  Object containing state information corresponding to mesh; init in grid.cpp::main().
+static Mesh        *mesh;           //  Object containing mesh information
+static State       *state;          //  Object containing state information corresponding to mesh
+static PowerParser *parse;          //  Object containing input file parsing
+
+static real_t circ_radius = 0.0;
+static int next_graphics_cycle = 0;
 
 //  Set up timing information.
 static struct timeval tstart;
 static cl_event start_write_event, end_write_event;
 
 static double  H_sum_initial = 0.0;
+
+static int     ncycle  = 0;
+static double  simTime = 0.0;
+static double  deltaT = 0.0;
 
 int main(int argc, char **argv) {
    int ierr;
@@ -162,14 +184,14 @@ int main(int argc, char **argv) {
       exit(-1);
    }
 
-   real_t circ_radius = 6.0;
+   circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.
    circ_radius = circ_radius * (real_t) nx / 128.0;
    int boundary = 1;
    int parallel_in = 0;
    double deltax_in = 1.0;
    double deltay_in = 1.0;
-   
+
    mesh  = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
    if (DEBUG) {
       //if (mype == 0) mesh->print();
@@ -213,19 +235,15 @@ int main(int argc, char **argv) {
    dev_level    = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &mem_request, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
-   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->celltype[0], &start_write_event);
-   ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->i[0],        NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->j[0],        NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh->level[0],    NULL            );
-   ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&H[0],       NULL              );
-   ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&U[0],       NULL              );
-   ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_state_t),  (void *)&V[0],       &end_write_event  );
+   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  &mesh->celltype[0], &start_write_event);
+   ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  &mesh->i[0],        NULL            );
+   ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  &mesh->j[0],        NULL            );
+   ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_FALSE, 0, ncells*sizeof(cl_int),  &mesh->level[0],    NULL            );
+   ezcl_enqueue_write_buffer(command_queue, dev_H,        CL_FALSE, 0, ncells*sizeof(cl_state_t), &H[0],        NULL              );
+   ezcl_enqueue_write_buffer(command_queue, dev_U,        CL_FALSE, 0, ncells*sizeof(cl_state_t), &U[0],        NULL              );
+   ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_state_t), &V[0],        &end_write_event  );
    state->gpu_timers[STATE_TIMER_WRITE] += ezcl_timer_calc(&start_write_event, &end_write_event);
 
-   mesh->dev_nlft = NULL;
-   mesh->dev_nrht = NULL;
-   mesh->dev_nbot = NULL;
-   mesh->dev_ntop = NULL;
 
    if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
 
@@ -233,6 +251,14 @@ int main(int argc, char **argv) {
    double H_sum = state->mass_sum(enhanced_precision_sum);
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
+
+   long long mem_used = memstats_memused();
+   if (mem_used > 0) {
+      mesh->parallel_output("Memory used      in startup ",mem_used, 0, "kB");
+      mesh->parallel_output("Memory peak      in startup ",memstats_mempeak(), 0, "kB");
+      mesh->parallel_output("Memory free      at startup ",memstats_memfree(), 0, "kB");
+      mesh->parallel_output("Memory available at startup ",memstats_memtotal(), 0, "kB");
+   }
 
    printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
 
@@ -253,23 +279,45 @@ int main(int argc, char **argv) {
    set_display_viewmode(view_mode);
    set_display_window((float)mesh->xmin, (float)mesh->xmax, (float)mesh->ymin, (float)mesh->ymax);
    set_display_outline((int)outline);
-   init_display(&argc, argv, "Shallow Water");
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-   set_display_cell_data(&H[0]);
+   set_display_cell_data(&state->H[0]);
    set_display_cell_proc(&mesh->proc[0]);
+   set_display_viewmode(view_mode);
+#endif
+
+   if (ncycle == next_graphics_cycle){
+      set_graphics_outline(outline);
+      set_graphics_mysize(ncells);
+      set_graphics_window((float)mesh->xmin, (float)mesh->xmax,
+                          (float)mesh->ymin, (float)mesh->ymax);
+      set_graphics_outline((int)outline);
+      set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+      set_graphics_cell_data(&state->H[0]);
+      set_graphics_cell_proc(&mesh->proc[0]);
+      set_graphics_viewmode(view_mode);
+
+      init_graphics_output();
+      set_graphics_cell_proc(&mesh->proc[0]);
+      write_graphics_info(0,0,0.0,0,0);
+      next_graphics_cycle += graphic_outputInterval;
+   }
+
+#ifdef HAVE_GRAPHICS
    set_display_circle_radius(circle_radius);
+   init_display(&argc, argv, "Shallow Water");
    draw_scene();
    //if (verbose) sleep(5);
    sleep(2);
 
-   //  Set flag to show mesh results rather than domain decomposition.
-   view_mode = 1;
-   
    //  Clear superposition of circle on grid output.
    circle_radius = -1.0;
-   
+#endif
    cpu_timer_start(&tstart);
 
+   //  Set flag to show mesh results rather than domain decomposition.
+   view_mode = 1;
+
+#ifdef HAVE_GRAPHICS
    set_idle_function(&do_calc);
    start_main_loop();
 #else
@@ -282,8 +330,6 @@ int main(int argc, char **argv) {
    return 0;
 }
 
-static int     ncycle  = 0;
-static double  simTime = 0.0;
 
 extern bool neighbor_remap;
 
@@ -317,7 +363,6 @@ extern "C" void do_calc(void)
    size_t new_ncells = 0;
    size_t new_ncells_gpu = 0;
    double H_sum = -1.0;
-   double deltaT = 0.0;
 
    cl_command_queue command_queue = ezcl_get_command_queue();
 
@@ -525,7 +570,6 @@ extern "C" void do_calc(void)
       cl_mem dev_dx = ezcl_malloc(NULL, const_cast<char *>("dev_dx"), &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
       cl_mem dev_y  = ezcl_malloc(NULL, const_cast<char *>("dev_y"),  &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
       cl_mem dev_dy = ezcl_malloc(NULL, const_cast<char *>("dev_dy"), &ncells, sizeof(cl_spatial_t),  CL_MEM_READ_WRITE, 0);
-
       mesh->gpu_calc_spatial_coordinates(dev_x, dev_dx, dev_y, dev_dy);
 
       if (do_comparison_calc){
@@ -549,6 +593,7 @@ extern "C" void do_calc(void)
    set_display_cell_proc(&mesh->proc[0]);
    set_display_circle_radius(circle_radius);
    draw_scene();
+
 #endif
 
    //  Output final results and timing information.
@@ -575,16 +620,11 @@ extern "C" void do_calc(void)
          printf("GPU:  refine_smooth_iter per rezone   \t %8.4f\t\n",            (double)mesh->get_gpu_counter(MESH_COUNTER_REFINE_SMOOTH)/(double)mesh->get_gpu_counter(MESH_COUNTER_REZONE) );
       }
 
-      if (mesh->dev_nlft != NULL){
-         ezcl_device_memory_remove(mesh->dev_nlft);
-         ezcl_device_memory_remove(mesh->dev_nrht);
-         ezcl_device_memory_remove(mesh->dev_nbot);
-         ezcl_device_memory_remove(mesh->dev_ntop);
-      }
 
       mesh->terminate();
       state->terminate();
       ezcl_terminate();
+      terminate_graphics_output();
 
       delete mesh;
       delete state;
@@ -593,6 +633,5 @@ extern "C" void do_calc(void)
 
       exit(0);
    }  //  Complete final output.
-   
 }
 

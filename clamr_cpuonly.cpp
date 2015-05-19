@@ -78,7 +78,7 @@ using namespace PP;
 #include <omp.h>
 #endif
 
-#ifndef DEBUG 
+#ifndef DEBUG
 #define DEBUG 0
 #endif
 #undef DEBUG_RESTORE_VALS
