@@ -67,6 +67,7 @@
 #include <sstream>
 #include <map>
 #include <math.h>
+#include <assert.h>
 
 #include "Parser_utils.hh"
 #include "Variable.hh"
@@ -226,6 +227,9 @@ void Cmd::process_string(string in_str, stringstream &serr, int &ierr)
 bool Cmd::extract_next_word(int &istart, string &str, string &word,
                             stringstream &serr, int &ierr)
 {
+    assert(serr == serr);
+    assert(ierr == ierr);
+
     // If istart is out of bounds then there is nothing to do.
     if (istart < 0) return false;
     if (istart >= (int)str.size()) return false;
@@ -2843,6 +2847,10 @@ bool Cmd::find_matching_enddo(int &dlev, bool &stop_checking)
 void Cmd::handle_subroutines(bool &skip, bool &go_to_sub, string &sub_name,
                              bool &go_to_call, stringstream &serr, int &ierr)
 {
+    assert(skip == skip);
+    assert(serr == serr);
+    assert(ierr == ierr);
+
     // 
     if (words[0].get_string() == "call") {
         sub_name = words[1].get_string();
@@ -3253,6 +3261,8 @@ void Cmd::deprecated_input01(string action, stringstream &serr, int &ierr)
 // ===========================================================================
 void Cmd::fatal_error(int iw, stringstream &serr, int &ierr)
 {
+    assert(ierr == ierr);
+
     int lnum = words[iw].get_line_number();
     int file_lnum = words[iw].get_file_line_number();
     string fname = words[iw].get_filename();
@@ -3267,6 +3277,8 @@ void Cmd::fatal_error(int iw, stringstream &serr, int &ierr)
 // ===========================================================================
 void Cmd::fatal_error2(stringstream &serr, int &ierr)
 {
+    assert(ierr == ierr);
+
     serr << endl;
     serr << "*** FATAL ERROR in line " << file_line_number << ":" << endl;
     serr << "    " << (*lines)[line_number-1] << endl;
@@ -3279,6 +3291,8 @@ void Cmd::fatal_error2(stringstream &serr, int &ierr)
 // ===========================================================================
 void Cmd::warning(int iw, stringstream &serr, int &ierr)
 {
+    assert(ierr == ierr);
+
     int lnum = words[iw].get_line_number();
     int file_lnum = words[iw].get_file_line_number();
     string fname = words[iw].get_filename();
@@ -3492,6 +3506,8 @@ void Cmd::handle_two_words()
 // ===========================================================================
 bool Cmd::check_input_end(bool kill_run, stringstream &serr, int &ierr)
 {
+    assert(kill_run == kill_run);
+
     if (words[0].get_string() == "fatal_error") {
         int lnum = words[0].get_line_number();
         int file_lnum = words[0].get_file_line_number();

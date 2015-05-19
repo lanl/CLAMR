@@ -67,6 +67,7 @@
 
 #include "stdio.h"
 #include "stdlib.h"
+#include <assert.h>
 
 #ifdef SGI
 #else
@@ -875,6 +876,9 @@ double Word::get_double(stringstream &serr, int &ierr)
 // ===========================================================================
 char Word::get_single_char(stringstream &serr, int &ierr)
 {
+    assert(serr == serr);
+    assert(ierr == ierr);
+
     // Mark this word as having been processed.
     processed = true;
 
@@ -923,6 +927,8 @@ double Word::get_double()
 template< class T >
 T Word::get_val( T &dummyValue )
 {
+   assert(dummyValue == dummyValue);
+
    T retValue;
 
    // Mark this word as having been processed.
@@ -956,6 +962,8 @@ template string  Word::get_val( string&  );
 // Convert string to integer.
 int    Word::convertFromString( const int &rtti, const string &s ) const 
 { 
+   assert(rtti == rtti);
+
    int iret = atoi( s.c_str() ); 
    if (negate) iret *= -1;
    return iret;
@@ -964,6 +972,8 @@ int    Word::convertFromString( const int &rtti, const string &s ) const
 // Convert string to int64_t.
 int64_t Word::convertFromString( const int64_t &rtti, const string &s ) const 
 {
+   assert(rtti == rtti);
+
    int64_t iret;
    std::stringstream( s ) >> iret;
    if (negate) iret *= -1;
@@ -973,12 +983,16 @@ int64_t Word::convertFromString( const int64_t &rtti, const string &s ) const
 // Convert string to string (do nothing).
 string Word::convertFromString( const string &rtti, const string &s ) const 
 { 
+   assert(rtti == rtti);
+
     return s; 
 }
 
 // Convert string to float.
 float Word::convertFromString( const float &rtti, const string &s ) const 
 { 
+   assert(rtti == rtti);
+
     // Use a temporary string that might be modified.
     string sm = s;
 
@@ -999,6 +1013,8 @@ float Word::convertFromString( const float &rtti, const string &s ) const
 // Convert string to double.
 double Word::convertFromString( const double &rtti, const string &s ) const 
 { 
+   assert(rtti == rtti);
+
     // Use a temporary string that might be modified.
     string sm = s;
 
@@ -1114,6 +1130,8 @@ void Word::erase_char(int ic)
 // ===========================================================================
 void Word::fatal_error(stringstream &serr, int &ierr)
 {
+    assert(ierr == ierr);
+
     serr << endl;
     serr << "*** FATAL ERROR in line " << file_line_number << ":" << endl;
     serr << "    " << (*lines)[line_number-1] << endl;
@@ -1122,6 +1140,8 @@ void Word::fatal_error(stringstream &serr, int &ierr)
 
 void Word::warning(stringstream &serr, int &ierr)
 {
+    assert(ierr == ierr);
+
     serr << endl;
     serr << "*** WARNING in line " << file_line_number << ":" << endl;
     serr << "    " << (*lines)[line_number-1] << endl;
