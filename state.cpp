@@ -126,9 +126,9 @@ extern "C"
 
 #endif
 
-//#ifdef _OPENMP
-//static bool iversion_flag = false;
-//#endif
+#ifdef _OPENMP
+static bool iversion_flag = false;
+#endif
 
 typedef unsigned int uint;
 
