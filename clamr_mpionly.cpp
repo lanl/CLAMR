@@ -88,6 +88,7 @@ static int do_gpu_calc = 0;
 typedef unsigned int uint;
 
 static bool do_display_graphics = false;
+static bool do_display_opengl_graphics = false;
 
 #ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
@@ -295,39 +296,40 @@ int main(int argc, char **argv) {
 #ifdef HAVE_GRAPHICS
    do_display_graphics = true;
 #ifdef HAVE_OPENGL
-   set_display_mysize(ncells_global);
-   //vector<state_t> H_global;
-   //vector<spatial_t> x_global;
-   //vector<spatial_t> dx_global;
-   //vector<spatial_t> y_global;
-   //vector<spatial_t> dy_global;
-   //vector<int> proc_global;
-   if (mype == 0){
-      H_global.resize(ncells_global);
-      x_global.resize(ncells_global);
-      dx_global.resize(ncells_global);
-      y_global.resize(ncells_global);
-      dy_global.resize(ncells_global);
-      proc_global.resize(ncells_global);
-   }
-   MPI_Gatherv(&x[0],  nsizes[mype], MPI_SPATIAL_T, &x_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&y[0],  nsizes[mype], MPI_SPATIAL_T, &y_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&state->H[0], nsizes[mype], MPI_STATE_T, &H_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, 0, MPI_COMM_WORLD);
+   do_display_opengl_graphics = true;
+#endif
+#endif
 
+   if (do_display_opengl_graphics || ncycle == next_graphics_cycle){
+      if (mype == 0){
+         H_global.resize(ncells_global);
+         x_global.resize(ncells_global);
+         dx_global.resize(ncells_global);
+         y_global.resize(ncells_global);
+         dy_global.resize(ncells_global);
+         proc_global.resize(ncells_global);
+      }
+      MPI_Gatherv(&x[0],  nsizes[mype], MPI_SPATIAL_T, &x_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+      MPI_Gatherv(&dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+      MPI_Gatherv(&y[0],  nsizes[mype], MPI_SPATIAL_T, &y_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+      MPI_Gatherv(&dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+      MPI_Gatherv(&state->H[0], nsizes[mype], MPI_STATE_T, &H_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, 0, MPI_COMM_WORLD);
+
+      if (view_mode == 0) {
+         mesh->proc.resize(ncells);
+         for (size_t ii = 0; ii<ncells; ii++){
+            mesh->proc[ii] = mesh->mype;
+         }
+   
+         MPI_Gatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_INT, 0, MPI_COMM_WORLD);
+      }
+   }
+
+#ifdef HAVE_GRAPHICS
+#ifdef HAVE_OPENGL
+   set_display_mysize(ncells_global);
    set_display_cell_data(&H_global[0]);
    set_display_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-
-   if (view_mode == 0) {
-      mesh->proc.resize(ncells);
-      for (size_t ii = 0; ii<ncells; ii++){
-         mesh->proc[ii] = mesh->mype;
-      }
-   
-      MPI_Gatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_INT, 0, MPI_COMM_WORLD);
-   }
-
    set_display_cell_proc(&proc_global[0]);
 #endif
 #ifdef HAVE_MPE
@@ -345,17 +347,17 @@ int main(int argc, char **argv) {
 
    if (ncycle == next_graphics_cycle){
       set_graphics_outline(outline);
-      set_graphics_mysize(ncells);
+      set_graphics_mysize(ncells_global);
       set_graphics_window((float)mesh->xmin, (float)mesh->xmax,
                           (float)mesh->ymin, (float)mesh->ymax);
       set_graphics_outline((int)outline);
-      set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-      set_graphics_cell_data(&state->H[0]);
-      set_graphics_cell_proc(&mesh->proc[0]);
+      set_graphics_cell_coordinates(&x_global[0], &dx_global[0],
+                                    &y_global[0], &dy_global[0]);
+      set_graphics_cell_data(&H_global[0]);
+      set_graphics_cell_proc(&proc_global[0]);
       set_graphics_viewmode(view_mode);
 
       init_graphics_output();
-      set_graphics_cell_proc(&mesh->proc[0]);
       write_graphics_info(0,0,0.0,0,0);
       next_graphics_cycle += graphic_outputInterval;
    }
@@ -476,10 +478,10 @@ extern "C" void do_calc(void)
 
    cpu_timer_start(&tstart_cpu);
 
-   mesh->x.resize(ncells);
-   mesh->dx.resize(ncells);
-   mesh->y.resize(ncells);
-   mesh->dy.resize(ncells);
+   //mesh->x.resize(ncells);
+   //mesh->dx.resize(ncells);
+   //mesh->y.resize(ncells);
+   //mesh->dy.resize(ncells);
    mesh->calc_spatial_coordinates(0);
 
    if(do_display_graphics || ncycle == next_graphics_cycle){
