@@ -174,6 +174,10 @@ int main(int argc, char **argv) {
    int mype=0;
    int numpe=0;
 
+   //  Process command-line arguments, if any.
+   parseInput(argc, argv);
+   L7_Init(&mype, &numpe, &argc, argv, do_quo_setup, lttrace_on);
+
 #ifdef _OPENMP
    int nt = 0;
    int tid = 0;
@@ -183,19 +187,19 @@ int main(int argc, char **argv) {
    if (0 == tid && mype == 0) {
         printf("--- max num openmp threads: %d\n", nt);
    }
-#pragma omp parallel for 
-   for(int i=0;i<4;i++){
+#pragma omp parallel
+   {
       nt = omp_get_num_threads();
       tid = omp_get_thread_num();
 
-      if (0 == tid && mype == 0 && i == 0) {
-           printf("--- num openmp threads in parallel region: %d\n", nt);
+#pragma omp master
+      if (mype == 0) {
+         printf("--- num openmp threads in parallel region: %d\n", nt);
       }
    }
 #endif
 
-   parseInput(argc, argv);
-   L7_Init(&mype, &numpe, &argc, argv, do_quo_setup, lttrace_on);
+   parse = new PowerParser();
 
    struct timeval tstart_setup;
    cpu_timer_start(&tstart_setup);
@@ -209,11 +213,6 @@ int main(int argc, char **argv) {
    double deltay_in = 1.0;
 
    mesh = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
-
-   parse = new PowerParser();
-
-   //  Process command-line arguments, if any.
-   parseInput(argc, argv);
 
    if (DEBUG) {
       //if (mype == 0) mesh->print();
