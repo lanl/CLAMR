@@ -337,12 +337,32 @@ int main(int argc, char **argv) {
    set_display_cell_proc(&mesh->proc[0]);
 #endif
 
-   set_display_window((float)mesh->xmin, (float)mesh->xmax, (float)mesh->ymin, (float)mesh->ymax);
-   set_display_viewmode(view_mode);
+   set_display_window((float)mesh->xmin, (float)mesh->xmax,
+                      (float)mesh->ymin, (float)mesh->ymax);
    set_display_outline((int)outline);
-   init_display(&argc, argv, "Shallow Water");
+   set_display_viewmode(view_mode);
+#endif
 
+   if (ncycle == next_graphics_cycle){
+      set_graphics_outline(outline);
+      set_graphics_mysize(ncells);
+      set_graphics_window((float)mesh->xmin, (float)mesh->xmax,
+                          (float)mesh->ymin, (float)mesh->ymax);
+      set_graphics_outline((int)outline);
+      set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+      set_graphics_cell_data(&state->H[0]);
+      set_graphics_cell_proc(&mesh->proc[0]);
+      set_graphics_viewmode(view_mode);
+
+      init_graphics_output();
+      set_graphics_cell_proc(&mesh->proc[0]);
+      write_graphics_info(0,0,0.0,0,0);
+      next_graphics_cycle += graphic_outputInterval;
+   }
+
+#ifdef HAVE_GRAPHICS
    set_display_circle_radius(circle_radius);
+   init_display(&argc, argv, "Shallow Water");
    draw_scene();
    //if (verbose) sleep(5);
    sleep(2);
@@ -354,7 +374,7 @@ int main(int argc, char **argv) {
 
    //  Set flag to show mesh results rather than domain decomposition.
    view_mode = 1;
-   
+
    cpu_timer_start(&tstart);
 #ifdef HAVE_GRAPHICS
    set_idle_function(&do_calc);
@@ -380,32 +400,27 @@ extern "C" void do_calc(void)
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh->ncells_global;
    size_t &ncells           = mesh->ncells;
-   size_t &ncells_ghost     = mesh->ncells_ghost;
 
    vector<int>     mpot;
    vector<int>     mpot_global;
    
-   //size_t old_ncells = ncells;
-   //size_t old_ncells_global = ncells_global;
    size_t new_ncells = 0;
 
    //  Main loop.
+
+   cpu_timer_start(&tstart_cpu);
+
    for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
-      //  Define basic domain decomposition parameters for GPU.
-      //old_ncells = ncells;
-      //old_ncells_global = ncells_global;
-
-      MPI_Barrier(MPI_COMM_WORLD);
-      cpu_timer_start(&tstart_cpu);
       //  Calculate the real time step for the current discrete time step.
       deltaT = state->set_timestep(g, sigma);
       simTime += deltaT;
 
-      cpu_timer_start(&tstart_cpu);
       mesh->calc_neighbors_local();
 
+      cpu_timer_start(&tstart_partmeas);
       mesh->partition_measure();
+      cpu_time_partmeas += cpu_timer_stop(tstart_partmeas);
 
       // Currently not working -- may need to be earlier?
       //if (mesh->have_boundary) {
@@ -415,28 +430,27 @@ extern "C" void do_calc(void)
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
-      cpu_timer_start(&tstart_cpu);
       state->calc_finite_difference(deltaT);
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       state->remove_boundary_cells();
 
-      cpu_timer_start(&tstart_cpu);
-      mpot.resize(ncells_ghost);
+      mpot.resize(mesh->ncells_ghost);
       new_ncells = state->calc_refine_potential(mpot, icount, jcount);
-  
-      cpu_timer_start(&tstart_cpu);
-      //int add_ncells = new_ncells - old_ncells;
+
+      //  Resize the mesh, inserting cells where refinement is necessary.
+
       state->rezone_all(icount, jcount, mpot);
+
       // Clear does not delete mpot, so have to swap with an empty vector to get
       // it to delete the mpot memory. This is all to avoid valgrind from showing
       // it as a reachable memory leak
       //mpot.clear();
       vector<int>().swap(mpot);
-      ncells = new_ncells;
-      mesh->ncells = new_ncells;
 
-      cpu_timer_start(&tstart_cpu);
+      mesh->ncells = new_ncells;
+      ncells = new_ncells;
+
       state->do_load_balance_local(new_ncells);
 
 // XXX
@@ -447,6 +461,8 @@ extern "C" void do_calc(void)
 //      }
 
    } // End burst loop
+
+   cpu_time_calcs += cpu_timer_stop(tstart_cpu);
 
    double H_sum = state->mass_sum(enhanced_precision_sum);
    if (isnan(H_sum)) {
