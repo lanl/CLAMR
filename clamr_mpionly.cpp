@@ -556,8 +556,10 @@ extern "C" void do_calc(void)
          mesh->parallel_output("Memory available ",memstats_memtotal(), 0, "kB");
       }
       state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
-
-      mesh->parallel_output("CPU:  graphics                 time was",cpu_time_graphics, 0, "s");
+      mesh->parallel_output("CPU:  calc incl part meas     time was",cpu_time_calcs,    0, "s");
+      mesh->parallel_output("CPU:  calculation only        time was",cpu_time_calcs-cpu_time_partmeas,    0, "s");
+      mesh->parallel_output("CPU:  partition measure       time was",cpu_time_partmeas, 0, "s");
+      mesh->parallel_output("CPU:  graphics                time was",cpu_time_graphics, 0, "s");
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
@@ -573,12 +575,15 @@ extern "C" void do_calc(void)
       mesh->terminate();
       state->terminate();
 
+      terminate_graphics_output();
+
       delete mesh;
       delete state;
+      delete parse;
 
       L7_Terminate();
       exit(0);
    }  //  Complete final output.
    
-}
+} // end do_calc
 
