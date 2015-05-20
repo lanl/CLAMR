@@ -138,6 +138,8 @@ double      upper_mass_diff_percentage; //  Flag for the allowed pecentage diffe
 
 char *restart_file;
 
+static int it = 0;
+
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
 static Mesh        *mesh;           //  Object containing mesh information
@@ -148,11 +150,17 @@ static real_t circ_radius = 0.0;
 static int next_graphics_cycle = 0;
 
 //  Set up timing information.
-static struct timeval tstart;
+static struct timeval tstart, tstart_cpu, tstart_partmeas;
 
 static double H_sum_initial = 0.0;
 static double cpu_time_graphics = 0.0;
-double cpu_time_main_setup = 0.0;
+static double cpu_time_calcs    = 0.0;
+static double cpu_time_partmeas = 0.0;
+
+static int     ncycle  = 0;
+static double  simTime = 0.0;
+static double  deltaT = 0.0;
+
 vector<state_t> H_global;
 vector<spatial_t> x_global;
 vector<spatial_t> dx_global;
@@ -162,9 +170,30 @@ vector<int> proc_global;
 
 int main(int argc, char **argv) {
 
-   //  Process command-line arguments, if any.
+   // Needed for code to compile correctly on the Mac
    int mype=0;
    int numpe=0;
+
+#ifdef _OPENMP
+   int nt = 0;
+   int tid = 0;
+
+   nt = omp_get_max_threads();
+   tid = omp_get_thread_num();
+   if (0 == tid && mype == 0) {
+        printf("--- max num openmp threads: %d\n", nt);
+   }
+#pragma omp parallel for 
+   for(int i=0;i<4;i++){
+      nt = omp_get_num_threads();
+      tid = omp_get_thread_num();
+
+      if (0 == tid && mype == 0 && i == 0) {
+           printf("--- num openmp threads in parallel region: %d\n", nt);
+      }
+   }
+#endif
+
    parseInput(argc, argv);
    L7_Init(&mype, &numpe, &argc, argv, do_quo_setup, lttrace_on);
 
@@ -180,28 +209,6 @@ int main(int argc, char **argv) {
    double deltay_in = 1.0;
 
    mesh = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
-
-#ifdef _OPENMP
-   int nt = 0;
-   int tid = 0;
-
-   nt = omp_get_max_threads();
-   tid = omp_get_thread_num();
-   if (0 == tid && mype == 0) {
-        printf("--- max num openmp threads: %d\n", nt);
-        fflush(stdout);
-   }
-#pragma omp parallel for 
-   for(int i=0;i<4;i++){
-      nt = omp_get_num_threads();
-      tid = omp_get_thread_num();
-
-      if (0 == tid && mype == 0 && i == 0) {
-           printf("--- num openmp threads in parallel region: %d\n", nt);
-           fflush(stdout);
-      }
-   }
-#endif
 
    parse = new PowerParser();
 
@@ -351,7 +358,7 @@ int main(int argc, char **argv) {
 #else
    MPI_Barrier(MPI_COMM_WORLD);
    cpu_timer_start(&tstart);
-   for (int it = 0; it < 10000000; it++) {
+   for (it = 0; it < 10000000; it++) {
       do_calc();
    }
 #endif
@@ -359,12 +366,9 @@ int main(int argc, char **argv) {
    return 0;
 }
 
-static int     ncycle  = 0;
-static double  simTime = 0.0;
-
 extern "C" void do_calc(void)
 {  double g     = 9.80;
-   double sigma = 0.95; 
+   double sigma = 0.95;
    int icount, jcount;
    struct timeval tstart_cpu;
 
@@ -382,7 +386,6 @@ extern "C" void do_calc(void)
    //size_t old_ncells = ncells;
    //size_t old_ncells_global = ncells_global;
    size_t new_ncells = 0;
-   double deltaT = 0.0;
 
    //  Main loop.
    for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
