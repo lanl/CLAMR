@@ -261,6 +261,8 @@ int main(int argc, char **argv) {
    y.clear();
    dy.clear();
 
+   if (graphic_outputInterval > niter) next_graphics_cycle = graphic_outputInterval;
+
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
@@ -288,7 +290,10 @@ int main(int argc, char **argv) {
       mesh->cpu_timers[i]=0.0;
    }
 
+   cpu_timer_start(&tstart_cpu);
+
 #ifdef HAVE_GRAPHICS
+   do_display_graphics = true;
 #ifdef HAVE_OPENGL
    set_display_mysize(ncells_global);
    //vector<state_t> H_global;
@@ -326,7 +331,6 @@ int main(int argc, char **argv) {
    set_display_cell_proc(&proc_global[0]);
 #endif
 #ifdef HAVE_MPE
-   do_display_graphics = true;
    set_display_mysize(ncells);
    set_display_cell_data(&state->H[0]);
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
@@ -340,23 +344,22 @@ int main(int argc, char **argv) {
 
    set_display_circle_radius(circle_radius);
    draw_scene();
-   if (verbose) sleep(5);
+   //if (verbose) sleep(5);
    sleep(2);
+
+   //  Clear superposition of circle on grid output.
+   circle_radius = -1.0;
+#endif
+   cpu_time_graphics += cpu_timer_stop(tstart_cpu);
 
    //  Set flag to show mesh results rather than domain decomposition.
    view_mode = 1;
    
-   //  Clear superposition of circle on grid output.
-   circle_radius = -1.0;
-   
-   MPI_Barrier(MPI_COMM_WORLD);
    cpu_timer_start(&tstart);
-
+#ifdef HAVE_GRAPHICS
    set_idle_function(&do_calc);
    start_main_loop();
 #else
-   MPI_Barrier(MPI_COMM_WORLD);
-   cpu_timer_start(&tstart);
    for (it = 0; it < 10000000; it++) {
       do_calc();
    }
