@@ -308,7 +308,6 @@ int main(int argc, char **argv) {
       set_graphics_outline(outline);
       set_graphics_window((float)mesh->xmin, (float)mesh->xmax,
                           (float)mesh->ymin, (float)mesh->ymax);
-      set_graphics_outline((int)outline);
       set_graphics_mysize(ncells);
       set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0],
                                     &mesh->y[0], &mesh->dy[0]);

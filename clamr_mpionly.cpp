@@ -300,6 +300,10 @@ int main(int argc, char **argv) {
 #endif
 #endif
 
+   if (do_display_graphics || ncycle == next_graphics_cycle){
+      mesh->calc_spatial_coordinates(0);
+   }
+
    if (do_display_opengl_graphics || ncycle == next_graphics_cycle){
       if (mype == 0){
          H_global.resize(ncells_global);
@@ -328,14 +332,14 @@ int main(int argc, char **argv) {
 #ifdef HAVE_GRAPHICS
 #ifdef HAVE_OPENGL
    set_display_mysize(ncells_global);
-   set_display_cell_data(&H_global[0]);
    set_display_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+   set_display_cell_data(&H_global[0]);
    set_display_cell_proc(&proc_global[0]);
 #endif
 #ifdef HAVE_MPE
    set_display_mysize(ncells);
-   set_display_cell_data(&state->H[0]);
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+   set_display_cell_data(&state->H[0]);
    set_display_cell_proc(&mesh->proc[0]);
 #endif
 
@@ -349,7 +353,6 @@ int main(int argc, char **argv) {
       set_graphics_outline(outline);
       set_graphics_window((float)mesh->xmin, (float)mesh->xmax,
                           (float)mesh->ymin, (float)mesh->ymax);
-      set_graphics_outline((int)outline);
       set_graphics_mysize(ncells_global);
       set_graphics_cell_coordinates(&x_global[0], &dx_global[0],
                                     &y_global[0], &dy_global[0]);
@@ -474,6 +477,7 @@ extern "C" void do_calc(void)
       printf("Got a NAN on cycle %d\n",ncycle);
       exit(-1);
    }
+
    if (mype == 0){
       printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
          ncycle, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
@@ -481,73 +485,106 @@ extern "C" void do_calc(void)
 
    cpu_timer_start(&tstart_cpu);
 
-   //mesh->x.resize(ncells);
-   //mesh->dx.resize(ncells);
-   //mesh->y.resize(ncells);
-   //mesh->dy.resize(ncells);
-   mesh->calc_spatial_coordinates(0);
+   if(do_display_graphics || ncycle == next_graphics_cycle ||
+      (ncycle >= niter && graphic_outputInterval < niter) ){
 
-   if(do_display_graphics || ncycle == next_graphics_cycle){
       mesh->calc_spatial_coordinates(0);
    }
 
+   if (do_display_opengl_graphics || ncycle == next_graphics_cycle){
+      vector<int>   &nsizes   = mesh->nsizes;
+      vector<int>   &ndispl   = mesh->ndispl;
+
+      if (mype == 0) {
+         x_global.resize(ncells_global);
+         dx_global.resize(ncells_global);
+         y_global.resize(ncells_global);
+         dy_global.resize(ncells_global);
+         H_global.resize(ncells_global);
+         proc_global.resize(ncells_global);
+      }
+      MPI_Gatherv(&mesh->x[0],  nsizes[mype], MPI_SPATIAL_T, &x_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+      MPI_Gatherv(&mesh->dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+      MPI_Gatherv(&mesh->y[0],  nsizes[mype], MPI_SPATIAL_T, &y_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+      MPI_Gatherv(&mesh->dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
+      MPI_Gatherv(&state->H[0], nsizes[mype], MPI_STATE_T, &H_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, 0, MPI_COMM_WORLD);
+
+      if (view_mode == 0) {
+         mesh->proc.resize(ncells);
+         for (size_t ii = 0; ii<ncells; ii++){
+            mesh->proc[ii] = mesh->mype;
+         }
+   
+         MPI_Gatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_INT, 0, MPI_COMM_WORLD);
+      }
+   }
+
+   if (ncycle == next_graphics_cycle){
+      set_graphics_mysize(ncells_global);
+      set_graphics_viewmode(view_mode);
+      set_graphics_cell_coordinates(&x_global[0], &dx_global[0],
+                                    &y_global[0], &dy_global[0]);
+      set_graphics_cell_data(&H_global[0]);
+      set_graphics_cell_proc(&proc_global[0]);
+
+      if (mype == 0) {
+         write_graphics_info(0,0,0.0,0,0);
+      }
+      next_graphics_cycle += graphic_outputInterval;
+   }
+
 #ifdef HAVE_GRAPHICS
+#ifdef HAVE_OPENGL
+   set_display_mysize(ncells_global);
+   set_display_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+   set_display_cell_data(&H_global[0]);
+   set_display_cell_proc(&proc_global[0]);
+#endif
 #ifdef HAVE_MPE
    set_display_mysize(ncells);
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
    set_display_cell_data(&state->H[0]);
    set_display_cell_proc(&mesh->proc[0]);
 #endif
-#ifdef HAVE_OPENGL
-   vector<int>   &nsizes   = mesh->nsizes;
-   vector<int>   &ndispl   = mesh->ndispl;
 
-   if (mype == 0) {
-      x_global.resize(ncells_global);
-      dx_global.resize(ncells_global);
-      y_global.resize(ncells_global);
-      dy_global.resize(ncells_global);
-      H_global.resize(ncells_global);
-      proc_global.resize(ncells_global);
-   }
-   MPI_Gatherv(&mesh->x[0],  nsizes[mype], MPI_SPATIAL_T, &x_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&mesh->dx[0], nsizes[mype], MPI_SPATIAL_T, &dx_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&mesh->y[0],  nsizes[mype], MPI_SPATIAL_T, &y_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&mesh->dy[0], nsizes[mype], MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, 0, MPI_COMM_WORLD);
-   MPI_Gatherv(&state->H[0], nsizes[mype], MPI_STATE_T, &H_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, 0, MPI_COMM_WORLD);
-
-   if (view_mode == 0) {
-      mesh->proc.resize(ncells);
-      for (size_t ii = 0; ii<ncells; ii++){
-         mesh->proc[ii] = mesh->mype;
-      }
-   
-      MPI_Gatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_INT, 0, MPI_COMM_WORLD);
-   }
-
-   set_display_mysize(ncells_global);
-   set_display_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
-   set_display_cell_data(&H_global[0]);
-   set_display_cell_proc(&proc_global[0]);
-#endif
-
-   if(ncycle == next_graphics_cycle){
-      next_graphics_cycle += graphic_outputInterval;
-   }
-
-   set_display_viewmode(view_mode);
    set_display_circle_radius(circle_radius);
+   set_display_viewmode(view_mode);
    draw_scene();
-
-   MPI_Barrier(MPI_COMM_WORLD);
+#endif
 
    cpu_time_graphics += cpu_timer_stop(tstart_cpu);
-#endif
 
    //  Output final results and timing information.
    if (ncycle >= niter) {
       //free_display();
       
+      if(graphic_outputInterval < niter){
+         cpu_timer_start(&tstart_cpu);
+
+#ifdef HAVE_GRAPHICS
+         set_display_viewmode(view_mode);
+#ifdef HAVE_OPENGL
+         set_display_mysize(ncells_global);
+         set_display_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
+         set_display_cell_data(&H_global[0]);
+         set_display_cell_proc(&proc_global[0]);
+#endif
+#ifdef HAVE_MPE
+         set_display_mysize(ncells);
+         set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+         set_display_cell_data(&state->H[0]);
+         set_display_cell_proc(&mesh->proc[0]);
+#endif
+#endif
+
+         if (mype == 0) {
+            write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
+         }
+         next_graphics_cycle += graphic_outputInterval;
+
+         cpu_time_graphics += cpu_timer_stop(tstart_cpu);
+      }
+
       //  Get overall program timing.
       double elapsed_time = cpu_timer_stop(tstart);
       
