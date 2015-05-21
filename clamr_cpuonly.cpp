@@ -180,6 +180,9 @@ int main(int argc, char **argv) {
    int mype=0;
    int numpe=-1;
 
+   //  Process command-line arguments, if any.
+   parseInput(argc, argv);
+
 #ifdef _OPENMP
    int nt = 0;
    int tid = 0;
@@ -200,9 +203,6 @@ int main(int argc, char **argv) {
 #endif
 
    parse = new PowerParser();
-
-   //  Process command-line arguments, if any.
-   parseInput(argc, argv);
 
    struct timeval tstart_setup;
    cpu_timer_start(&tstart_setup);
@@ -259,7 +259,6 @@ int main(int argc, char **argv) {
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
-
    if(upper_mass_diff_percentage < 0){
       upper_mass_diff_percentage = H_sum_initial * SUM_ERROR;
       //printf("Setting sum mass error to %16.8lg\n",upper_mass_diff_percentage);
@@ -307,17 +306,17 @@ int main(int argc, char **argv) {
 
    if (ncycle == next_graphics_cycle){
       set_graphics_outline(outline);
-      set_graphics_mysize(ncells);
       set_graphics_window((float)mesh->xmin, (float)mesh->xmax,
                           (float)mesh->ymin, (float)mesh->ymax);
       set_graphics_outline((int)outline);
-      set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+      set_graphics_mysize(ncells);
+      set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0],
+                                    &mesh->y[0], &mesh->dy[0]);
       set_graphics_cell_data(&state->H[0]);
       set_graphics_cell_proc(&mesh->proc[0]);
       set_graphics_viewmode(view_mode);
 
       init_graphics_output();
-      set_graphics_cell_proc(&mesh->proc[0]);
       write_graphics_info(0,0,0.0,0,0);
       next_graphics_cycle += graphic_outputInterval;
    }

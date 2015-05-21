@@ -347,18 +347,20 @@ int main(int argc, char **argv) {
 
    if (ncycle == next_graphics_cycle){
       set_graphics_outline(outline);
-      set_graphics_mysize(ncells_global);
       set_graphics_window((float)mesh->xmin, (float)mesh->xmax,
                           (float)mesh->ymin, (float)mesh->ymax);
       set_graphics_outline((int)outline);
+      set_graphics_mysize(ncells_global);
       set_graphics_cell_coordinates(&x_global[0], &dx_global[0],
                                     &y_global[0], &dy_global[0]);
       set_graphics_cell_data(&H_global[0]);
       set_graphics_cell_proc(&proc_global[0]);
       set_graphics_viewmode(view_mode);
 
-      init_graphics_output();
-      write_graphics_info(0,0,0.0,0,0);
+      if (mype == 0) {
+         init_graphics_output();
+         write_graphics_info(0,0,0.0,0,0);
+      }
       next_graphics_cycle += graphic_outputInterval;
    }
 
@@ -409,10 +411,11 @@ extern "C" void do_calc(void)
    size_t new_ncells = 0;
 
    //  Main loop.
+   int endcycle = MIN(niter, next_graphics_cycle);
 
    cpu_timer_start(&tstart_cpu);
 
-   for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
+   for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
       //  Calculate the real time step for the current discrete time step.
       deltaT = state->set_timestep(g, sigma);
@@ -499,14 +502,6 @@ extern "C" void do_calc(void)
    vector<int>   &nsizes   = mesh->nsizes;
    vector<int>   &ndispl   = mesh->ndispl;
 
-   set_display_mysize(ncells_global);
-   //vector<spatial_t> x_global;
-   //vector<spatial_t> dx_global;
-   //vector<spatial_t> y_global;
-   //vector<spatial_t> dy_global;
-   //vector<state_t> H_global;
-   //vector<int> proc_global;
-
    if (mype == 0) {
       x_global.resize(ncells_global);
       dx_global.resize(ncells_global);
@@ -530,10 +525,16 @@ extern "C" void do_calc(void)
       MPI_Gatherv(&mesh->proc[0],  nsizes[mype], MPI_INT, &proc_global[0],  &nsizes[0], &ndispl[0], MPI_INT, 0, MPI_COMM_WORLD);
    }
 
+   set_display_mysize(ncells_global);
    set_display_cell_coordinates(&x_global[0], &dx_global[0], &y_global[0], &dy_global[0]);
    set_display_cell_data(&H_global[0]);
    set_display_cell_proc(&proc_global[0]);
 #endif
+
+   if(ncycle == next_graphics_cycle){
+      next_graphics_cycle += graphic_outputInterval;
+   }
+
    set_display_viewmode(view_mode);
    set_display_circle_radius(circle_radius);
    draw_scene();
