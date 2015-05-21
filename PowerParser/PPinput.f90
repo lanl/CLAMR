@@ -1403,6 +1403,7 @@
  
       call parser_create(oargs, len(oargs), trim(deckname), len_trim(deckname))
 
+      call parser_comm_info(mype,numpe,iope)
       PPinput_initialized = .true.
  
     end subroutine PPinput_initialize

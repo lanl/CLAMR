@@ -108,6 +108,7 @@ Comm::~Comm()
 // ===========================================================================
 void Comm::broadcast(char *buffer, int count)
 {
+   // To suppress compiler warnings of unused parameters
    assert(buffer == buffer);
    assert(count == count);
 

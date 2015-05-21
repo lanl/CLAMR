@@ -56,6 +56,7 @@
 #include <vector>
 #include <deque>
 #include <new>
+#include <assert.h>
 
 using std::string;
 using std::cout;
@@ -987,9 +988,12 @@ void FC_FUNC(parser_set_rb_names,PARSER_SET_RB_NAMES)(char *rb_names_1d,
 void FC_FUNC(parser_get_rb_names,PARSER_GET_RB_NAMES)(char *rb_names_1d,
     int *rb_num, int *ncstr_rb)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(rb_num == rb_num);
+
     vector<string> rb_names_vstr;
     parse->get_rb_names(rb_names_vstr);
-    parse->vstr_to_chars(rb_names_1d, rb_names_vstr, *ncstr_rb);
+    parse->vstr_to_chars(rb_names_1d, rb_names_vstr, *rb_num, *ncstr_rb);
 }
 
 void FC_FUNC(parser_set_rb_aflags,PARSER_SET_RB_AFLAGS)(int *rb_aflags,
@@ -1011,9 +1015,12 @@ void FC_FUNC(parser_get_rb_num_varnames,PARSER_GET_RB_NUM_VARNAMES)(int *vnum)
 void FC_FUNC(parser_get_rb_varnames,PARSER_GET_RB_VARNAMES)(char *rb_varnames_1d,
     int *rb_vnum, int *ncstr_rb)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(rb_vnum == rb_vnum);
+
     vector<string> rb_varnames_vstr;
     parse->get_rb_varnames(rb_varnames_vstr);
-    parse->vstr_to_chars(rb_varnames_1d, rb_varnames_vstr, *ncstr_rb);
+    parse->vstr_to_chars(rb_varnames_1d, rb_varnames_vstr, *rb_vnum, *ncstr_rb);
 }
 
 
@@ -1243,10 +1250,11 @@ void FC_FUNC(parser_wt_casize,PARSER_WT_CASIZE)(int *wti, int *wt_casize)
     parse->wt_casize(wtn, wt_casize);
 }
 
-void FC_FUNC(parser_wt_ca,PARSER_WT_CA)(int *wti, char *wt_ca)
+void FC_FUNC(parser_wt_ca,PARSER_WT_CA)(int *wti, char *wt_ca, int *wt_casize)
 {
     int wtn = (*wti);
-    parse->wt_carray(wtn, wt_ca);
+    int casize = (*wt_casize);
+    parse->wt_carray(wtn, wt_ca, casize);
 }
 
 
@@ -1256,16 +1264,18 @@ void FC_FUNC(parser_wt_satsize,PARSER_WT_SATSIZE)(int *wti, int *wt_satsize)
     parse->wt_satsize(wtn, wt_satsize);
 }
 
-void FC_FUNC(parser_wt_getsat,PARSER_WT_GETSAT)(int *wti, int *wt_sat)
+void FC_FUNC(parser_wt_getsat,PARSER_WT_GETSAT)(int *wti, int *wt_sat, int *wt_satsize)
 {
     int wtn = (*wti);
-    parse->wt_getsat(wtn, wt_sat);
+    int satsize = (*wt_satsize);
+    parse->wt_getsat(wtn, wt_sat, satsize);
 }
 
-void FC_FUNC(parser_wt_setsat,PARSER_WT_SETSAT)(int *wti, int *wt_sat)
+void FC_FUNC(parser_wt_setsat,PARSER_WT_SETSAT)(int *wti, int *wt_sat, int *wt_satsize)
 {
     int wtn = (*wti);
-    parse->wt_setsat(wtn, wt_sat);
+    int satsize = (*wt_satsize);
+    parse->wt_setsat(wtn, wt_sat, satsize);
 }
 
 
