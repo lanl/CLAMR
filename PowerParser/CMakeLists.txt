@@ -6,12 +6,10 @@ set (POWERPARSER_VERSION_MAJOR 2)
 set (POWERPARSER_VERSION_MINOR 0.7)
 set (POWERPARSER_VERSION "${POWERPARSER_VERSION_MAJOR}.${POWERPARSER_VERSION_MINOR}")
 
-if(DEFINED ENV{FC})
-   enable_language (Fortran)
+enable_language (Fortran)
 
 #  FFLAGS depend on the compiler
-   get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
-endif(DEFINED ENV{FC})
+get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # --- custom targets: ---
