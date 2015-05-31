@@ -784,14 +784,13 @@ void *MallocPlus::memory_begin(void){
 void *MallocPlus::memory_next(void){
    map <void *, malloc_plus_memory_entry*>::iterator it;
 
+   it_save++;
    it = it_save;
-   it++;
 
    if (it != memory_ptr_dict.end()){
       malloc_plus_memory_entry *memory_item = it_save->second;
 
       if (DEBUG) printf("Found memory item ptr %p name %s\n",memory_item->mem_ptr,memory_item->mem_name);
-      it_save = it;
       return(memory_item->mem_ptr);
    } else {
       if (DEBUG) printf("Warning -- memory not found\n");
