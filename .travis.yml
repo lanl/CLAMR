@@ -1,4 +1,4 @@
-language: cpp
+language: cpp fortran
 
 before_install:
  - sudo apt-get update
