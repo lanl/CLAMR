@@ -788,7 +788,7 @@ void *MallocPlus::memory_next(void){
    it = it_save;
 
    if (it != memory_ptr_dict.end()){
-      malloc_plus_memory_entry *memory_item = it_save->second;
+      malloc_plus_memory_entry *memory_item = it->second;
 
       if (DEBUG) printf("Found memory item ptr %p name %s\n",memory_item->mem_ptr,memory_item->mem_name);
       return(memory_item->mem_ptr);

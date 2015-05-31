@@ -787,11 +787,25 @@ void Mesh::compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mes
    vector<int> level_check_global(ncells_global);
    vector<int> celltype_check_global(ncells_global);
 
+/*
+   vector<int> i_check_local(ncells);
+   vector<int> j_check_local(ncells);
+   vector<int> level_check_local(ncells);
+   vector<int> celltype_check_local(ncells);
+*/
+
 #ifdef HAVE_MPI
    MPI_Allgatherv(&celltype[0], nsizes[mype], MPI_INT, &celltype_check_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
    MPI_Allgatherv(&i[0],        nsizes[mype], MPI_INT, &i_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
    MPI_Allgatherv(&j[0],        nsizes[mype], MPI_INT, &j_check_global[0],        &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
    MPI_Allgatherv(&level[0],    nsizes[mype], MPI_INT, &level_check_global[0],    &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+
+/*
+   MPI_Scatterv(&celltype_global[0], &nsizes[0], &ndispl[0], MPI_INT, &celltype_check_local[0], nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
+   MPI_Scatterv(&i_global[0],        &nsizes[0], &ndispl[0], MPI_INT, &i_check_local[0],        nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
+   MPI_Scatterv(&j_global[0],        &nsizes[0], &ndispl[0], MPI_INT, &j_check_local[0],        nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
+   MPI_Scatterv(&level_global[0],    &nsizes[0], &ndispl[0], MPI_INT, &level_check_local[0],    nsizes[mype], MPI_INT, 0, MPI_COMM_WORLD);
+*/
 #else
    // Just to get rid of compiler warnings
    if (1 == 2) printf("DEBUG -- nsizes[0] %d ndispl[0] %d\n",
@@ -804,6 +818,15 @@ void Mesh::compare_indices_cpu_local_to_cpu_global(uint ncells_global, Mesh *mes
       if (j_global[ic] != j_check_global[ic])                printf("DEBUG rezone 3 at cycle %d j_global & j_check_global %d %d  %d  \n",cycle,ic,j_global[ic],j_check_global[ic]);
       if (level_global[ic] != level_check_global[ic])        printf("DEBUG rezone 3 at cycle %d level_global & level_check_global %d %d  %d  \n",cycle,ic,level_global[ic],level_check_global[ic]);
    }
+
+/*
+   for (uint ic = 0; ic < ncells; ic++){
+      if (celltype[ic] != celltype_check_local[ic])  fprintf(fp,"DEBUG rezone 3 at cycle %d celltype & celltype_check_local %d %d  %d  \n",cycle,ic,celltype[ic],celltype_check_local[ic]);
+      if (i[ic] != i_check_local[ic])                fprintf(fp,"DEBUG rezone 3 at cycle %d i & i_check_local %d %d  %d  \n",cycle,ic,i[ic],i_check_local[ic]);
+      if (j[ic] != j_check_local[ic])                fprintf(fp,"DEBUG rezone 3 at cycle %d j & j_check_local %d %d  %d  \n",cycle,ic,j[ic],j_check_local[ic]);
+      if (level[ic] != level_check_local[ic])        fprintf(fp,"DEBUG rezone 3 at cycle %d level & level_check_local %d %d  %d  \n",cycle,ic,level[ic],level_check_local[ic]);
+   }
+*/
 }
 
 #ifdef HAVE_OPENCL
@@ -3160,7 +3183,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    // End of data parallel optimizations
 #endif
 
-   if (neighbor_remap & ! parallel) {
+   if (neighbor_remap) {
       int *nlft_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nlft_old",  flags);
       int *nrht_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nrht_old",  flags);
       int *nbot_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nbot_old",  flags);
@@ -3182,10 +3205,18 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          int nc = index[ic];
 
          if (mpot[ic] == 0){
-            nlft[nc] = (mpot[nlft_old[ic]] == 0) ? index[nlft_old[ic]] : -1;
-            nrht[nc] = (mpot[nrht_old[ic]] == 0) ? index[nrht_old[ic]] : -1;
-            nbot[nc] = (mpot[nbot_old[ic]] == 0) ? index[nbot_old[ic]] : -1;
-            ntop[nc] = (mpot[ntop_old[ic]] == 0) ? index[ntop_old[ic]] : -1;
+            if (nlft_old[ic] < (int)ncells && nlft_old[ic] >= 0){
+               nlft[nc] = (mpot[nlft_old[ic]] == 0) ? index[nlft_old[ic]] : -1;
+            }
+            if (nrht_old[ic] < (int)ncells && nrht_old[ic] >= 0){
+               nrht[nc] = (mpot[nrht_old[ic]] == 0) ? index[nrht_old[ic]] : -1;
+            }
+            if (nbot_old[ic] < (int)ncells && nbot_old[ic] >= 0){
+               nbot[nc] = (mpot[nbot_old[ic]] == 0) ? index[nbot_old[ic]] : -1;
+            }
+            if (ntop_old[ic] < (int)ncells && ntop_old[ic] >= 0){
+               ntop[nc] = (mpot[ntop_old[ic]] == 0) ? index[ntop_old[ic]] : -1;
+            }
          } else if (mpot[ic] <= -2) {
             nlft[nc]  = -1;
             nrht[nc]  = -1;
@@ -3210,20 +3241,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                ntop[nc+2]  = -1;
                ntop[nc+3]  = -1;
             }
-         }
-         switch(celltype[nc]){
-         case LEFT_BOUNDARY:
-            nlft[nc] = nc;
-            break;
-         case RIGHT_BOUNDARY:
-            nrht[nc] = nc;
-            break;
-         case BOTTOM_BOUNDARY:
-            nbot[nc] = nc;
-            break;
-         case TOP_BOUNDARY:
-            ntop[nc] = nc;
-            break;
          }
          if (mpot[ic] > 0){
             nc++;
