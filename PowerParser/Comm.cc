@@ -95,7 +95,7 @@ Comm::Comm()
 Comm::~Comm()
 {
    //printf("DEBUG -- comm destructor -- init_flag %d\n",init_flag);
-#ifdef __HAVE_MPI__
+#ifdef HAVE_MPI
    if (init_flag) {
       init_flag = 0;
       MPI_Finalize();
