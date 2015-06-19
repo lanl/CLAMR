@@ -130,60 +130,37 @@ install(FILES PowerParser.hh DESTINATION include)
 ########### doc targets ################
 
 if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
-   add_custom_target(doc
-                     COMMAND make pdfdoc
-                     COMMAND make htmldoc
-                     COMMAND make singlehtmldoc)
-   set_target_properties(doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-   add_custom_command(OUTPUT _build/latex/PowerParser.pdf
-                      WORKING_DIRECTORY docs
-                      COMMAND make latexpdf >& pdfdoc.out
-                      DEPENDS ${PDFDOC_SRCS})
-   add_custom_target(pdfdoc DEPENDS _build/latex/PowerParser.pdf)
-   set_target_properties(pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-   add_custom_command(OUTPUT _build/html/UsersGuide.html
-                      WORKING_DIRECTORY docs
-                      COMMAND make html >& htmldoc.out
-                      DEPENDS ${DOC_SRCS})
-   add_custom_target(htmldoc DEPENDS _build/html/UsersGuide.html)
-   set_target_properties(htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-   add_custom_command(OUTPUT _build/singlehtml/index.html
-                      WORKING_DIRECTORY docs
-                      COMMAND make singlehtml >& singlehtmldoc.out
-                      DEPENDS ${DOC_SRCS})
-   add_custom_target(singlehtmldoc DEPENDS _build/singlehtml/index.html)
-   set_target_properties(singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+  set(doc_prefix "")
 else (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
-   add_custom_target(PowerParser_doc
-                     COMMAND make PowerParser_pdfdoc
-                     COMMAND make PowerParser_htmldoc
-                     COMMAND make PowerParser_singlehtmldoc)
-   set_target_properties(PowerParser_doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-   add_custom_command(OUTPUT _build/latex/PowerParser.pdf
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
-                      COMMAND make latexpdf >& pdfdoc.out
-                      DEPENDS ${PDFDOC_SRCS})
-   add_custom_target(PowerParser_pdfdoc DEPENDS _build/latex/PowerParser.pdf)
-   set_target_properties(PowerParser_pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-   add_custom_command(OUTPUT _build/html/UsersGuide.html
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
-                      COMMAND make html >& htmldoc.out
-                      DEPENDS ${DOC_SRCS})
-   add_custom_target(PowerParser_htmldoc DEPENDS _build/html/UsersGuide.html)
-   set_target_properties(PowerParser_htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-   add_custom_command(OUTPUT _build/singlehtml/index.html
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
-                      COMMAND make singlehtml >& singlehtmldoc.out
-                      DEPENDS ${DOC_SRCS})
-   add_custom_target(PowerParser_singlehtmldoc DEPENDS _build/singlehtml/index.html)
-   set_target_properties(PowerParser_singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+  set(doc_prefix PowerParser_)
 endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+
+add_custom_target(${doc_prefix}doc
+                  COMMAND make ${doc_prefix}pdfdoc
+                  COMMAND make ${doc_prefix}htmldoc
+                  COMMAND make ${doc_prefix}singlehtmldoc)
+set_target_properties(${doc_prefix}doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+add_custom_command(OUTPUT _build/latex/PowerParser.pdf
+                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
+                   COMMAND make latexpdf >& pdfdoc.out
+                   DEPENDS ${PDFDOC_SRCS})
+add_custom_target(${doc_prefix}pdfdoc DEPENDS _build/latex/PowerParser.pdf)
+set_target_properties(${doc_prefix}pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+add_custom_command(OUTPUT _build/html/UsersGuide.html
+                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
+                   COMMAND make html >& htmldoc.out
+                   DEPENDS ${DOC_SRCS})
+add_custom_target(${doc_prefix}htmldoc DEPENDS _build/html/UsersGuide.html)
+set_target_properties(${doc_prefix}htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+add_custom_command(OUTPUT _build/singlehtml/index.html
+                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
+                   COMMAND make singlehtml >& singlehtmldoc.out
+                   DEPENDS ${DOC_SRCS})
+add_custom_target(${doc_prefix}singlehtmldoc DEPENDS _build/singlehtml/index.html)
+set_target_properties(${doc_prefix}singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 ########### clean files ################
 SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES

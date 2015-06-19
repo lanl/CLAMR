@@ -442,7 +442,7 @@ extern "C" void do_calc(void)
       set_graphics_viewmode(view_mode);
       set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
       set_graphics_cell_data(&H_graphics[0]);
-      set_graphics_cell_proc(&mesh->proc[0]);
+      set_graphics_cell_proc(NULL);
 
       write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
       next_graphics_cycle += graphic_outputInterval;
