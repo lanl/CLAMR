@@ -3094,7 +3094,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
 
    size_t one = 1;
    cl_mem dev_mass_sum, dev_redscratch;
-   double gpu_mass_sum;
+   double gpu_mass_sum_total;
 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -3155,7 +3155,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
 #ifdef HAVE_MPI
       MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
 #endif
-      gpu_mass_sum = global.sum + global.correction;
+      gpu_mass_sum_total = global.sum + global.correction;
    } else {
       dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_sum"), &one,    sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
       dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
@@ -3209,7 +3209,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
 #ifdef HAVE_MPI
       MPI_Allreduce(&local_sum, &global_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #endif
-      gpu_mass_sum = global_sum;
+      gpu_mass_sum_total = global_sum;
    }
 
    ezcl_device_memory_delete(dev_redscratch);
@@ -3217,7 +3217,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
 
    gpu_timers[STATE_TIMER_MASS_SUM] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
-   return(gpu_mass_sum);
+   return(gpu_mass_sum_total);
 }
 #endif
 
