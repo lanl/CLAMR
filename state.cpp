@@ -136,9 +136,9 @@ struct esum_type{
 };
 #ifdef HAVE_MPI
 MPI_Datatype MPI_TWO_DOUBLES;
-MPI_Op KAHAN_SUM;
+MPI_Op KNUTH_SUM;
 int commutative = 1;
-void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES);
+void knuth_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES);
 #endif
 
 int save_ncells;
@@ -232,7 +232,7 @@ State::State(Mesh *mesh_in)
    if (mpi_init){
       MPI_Type_contiguous(2, MPI_DOUBLE, &MPI_TWO_DOUBLES);
       MPI_Type_commit(&MPI_TWO_DOUBLES);
-      MPI_Op_create((MPI_User_function *)kahan_sum, commutative, &KAHAN_SUM);
+      MPI_Op_create((MPI_User_function *)knuth_sum, commutative, &KNUTH_SUM);
       // FIXME add fini and set size
       if (mesh->parallel) state_memory.pinit(MPI_COMM_WORLD, 2L * 1024 * 1024 * 1024);
    }
@@ -339,14 +339,16 @@ void State::terminate(void)
 }
 
 #ifdef HAVE_MPI
-void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES)
+void knuth_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES)
 {
-   double corrected_next_term, new_sum;
-
-   corrected_next_term = in->sum +(in->correction+inout->correction);
-   new_sum = inout->sum + corrected_next_term;
-   inout->correction = corrected_next_term - (new_sum - inout->sum);
-   inout->sum = new_sum;
+   double u, v, upt, up, vpp;
+   u = inout->sum;
+   v = in->sum + (in->correction+inout->correction);
+   upt = u + v;
+   up = upt - v;
+   vpp = upt - up;
+   inout->sum = upt;
+   inout->correction = (u - up) + (v - vpp);
 
    // Just to block compiler warnings
    if (1==2) printf("DEBUG len %d datatype %lld\n",*len,(long long)(*MPI_TWO_DOUBLES) );
@@ -2973,7 +2975,7 @@ double State::mass_sum(int enhanced_precision_sum)
 
 #ifdef HAVE_MPI
       if (mesh->parallel) {
-         MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
+         MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KNUTH_SUM, MPI_COMM_WORLD);
          total_sum = global.sum + global.correction;
       } else {
          total_sum = local.sum + local.correction;
@@ -3089,7 +3091,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
       global.sum = local.sum;
       global.correction = local.correction;
 #ifdef HAVE_MPI
-      MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
+      MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KNUTH_SUM, MPI_COMM_WORLD);
 #endif
       gpu_mass_sum_total = global.sum + global.correction;
    } else {
