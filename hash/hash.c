@@ -193,7 +193,6 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
       if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",AA,BB);
 
       hash = (int *)genvector(2*hashtablesize,sizeof(int));
-      printf("DEBUG -- in compact hash -- allocating locks\n");
       (*lock) = (omp_lock_t *)malloc(hashtablesize*sizeof(omp_lock_t));
 #ifdef _OPENMP
 #pragma omp parallel for

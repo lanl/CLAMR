@@ -4078,7 +4078,12 @@ void Mesh::calc_neighbors_local(void)
       //if (DEBUG) fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
 
       //fprintf(fp,"DEBUG -- ncells %lu\n",ncells);
+#ifdef _OPENMP
+      omp_lock_t *lock = NULL;
+      int *hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1, &lock);
+#else
       int *hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1);
+#endif
 
       //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);
 
@@ -4086,30 +4091,22 @@ void Mesh::calc_neighbors_local(void)
          fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
       }
 
-      if (get_hash_method() == PERFECT_HASH) {
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for default(none) firstprivate(imaxsize, iminsize, jminsize) shared(write_hash_openmp, hash, lock)
 #endif
-         for(uint ic=0; ic<ncells; ic++){
-            int cellnumber = ic+noffset;
-            int lev = level[ic];
-            int levmult = IPOW2(levmx-lev);
-            int ii = i[ic]*levmult-iminsize;
-            int jj = j[ic]*levmult-jminsize;
+      for(uint ic=0; ic<ncells; ic++){
+         int cellnumber = ic+noffset;
+         int lev = level[ic];
+         int levmult = IPOW2(levmx-lev);
+         int ii = i[ic]*levmult-iminsize;
+         int jj = j[ic]*levmult-jminsize;
 
-            write_hash(cellnumber, jj*(imaxsize-iminsize)+ii, hash);
-         }    
-      } else {
-         for(uint ic=0; ic<ncells; ic++){
-            int cellnumber = ic+noffset;
-            int lev = level[ic];
-            int levmult = IPOW2(levmx-lev);
-            int ii = i[ic]*levmult-iminsize;
-            int jj = j[ic]*levmult-jminsize;
-
-            write_hash(cellnumber, jj*(imaxsize-iminsize)+ii, hash);
-         }    
-      }
+#ifdef _OPENMP
+         write_hash_openmp(cellnumber, jj*(imaxsize-iminsize)+ii, hash, lock);
+#else
+         write_hash(cellnumber, jj*(imaxsize-iminsize)+ii, hash);
+#endif
+      }    
 
       if (TIMING_LEVEL >= 2) {
          cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
@@ -4121,7 +4118,7 @@ void Mesh::calc_neighbors_local(void)
       int imaxcalc = (imax+1)*IPOW2(levmx);
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for default(none) firstprivate(imaxsize, imaxcalc, iminsize, jmaxcalc, jminsize) shared(read_hash, hash)
 #endif
       for (uint ic=0; ic<ncells; ic++){
          int ii = i[ic];
@@ -4815,7 +4812,11 @@ void Mesh::calc_neighbors_local(void)
             int ii = border_cell_i_local[ic]*levmult-iminsize;
             int jj = border_cell_j_local[ic]*levmult-jminsize;
 
+#ifdef _OPENMP
+            write_hash_openmp(ncells+noffset+ic, jj*(imaxsize-iminsize)+ii, hash, lock);
+#else
             write_hash(ncells+noffset+ic, jj*(imaxsize-iminsize)+ii, hash);
+#endif
          }
 
          if (TIMING_LEVEL >= 2) {
@@ -5060,7 +5061,11 @@ void Mesh::calc_neighbors_local(void)
             int ii = border_cell_i_local[ic]*levmult-iminsize;
             int jj = border_cell_j_local[ic]*levmult-jminsize;
 
+#ifdef _OPENMP
+            write_hash_openmp(-(ncells+ic), jj*(imaxsize-iminsize)+ii, hash, lock);
+#else
             write_hash(-(ncells+ic), jj*(imaxsize-iminsize)+ii, hash);
+#endif
          }
 
          if (TIMING_LEVEL >= 2) {
@@ -5566,7 +5571,11 @@ void Mesh::calc_neighbors_local(void)
 
       write_hash_collision_report();
       read_hash_collision_report();
+#ifdef _OPENMP
+      compact_hash_delete_openmp(hash, lock);
+#else
       compact_hash_delete(hash);
+#endif
 
 #ifdef BOUNDS_CHECK
       {
