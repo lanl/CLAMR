@@ -193,6 +193,7 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
       if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",AA,BB);
 
       hash = (int *)genvector(2*hashtablesize,sizeof(int));
+      printf("DEBUG -- in compact hash -- allocating locks\n");
       (*lock) = (omp_lock_t *)malloc(hashtablesize*sizeof(omp_lock_t));
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -952,10 +953,12 @@ void compact_hash_delete(int *hash){
 void compact_hash_delete_openmp(int *hash, omp_lock_t *lock){
    read_hash = NULL;
    genvectorfree((void *)hash);
-   for (uint i = 0; i<hashtablesize; i++){
-      omp_destroy_lock(&(lock[i]));
+   if (hash_method != PERFECT_HASH){
+      for (uint i = 0; i<hashtablesize; i++){
+         omp_destroy_lock(&(lock[i]));
+      }
+      free(lock);
    }
-   //free(lock);
    hash_method = METHOD_UNSET;
 }
 #endif
