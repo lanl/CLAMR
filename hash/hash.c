@@ -40,6 +40,9 @@ int   choose_hash_method = METHOD_UNSET;
 
 int (*read_hash)(ulong, int *);
 void (*write_hash)(uint, ulong, int *);
+#ifdef _OPENMP
+void (*write_hash_openmp)(uint, ulong, int *, omp_lock_t * lock);
+#endif
 
 int get_hash_method(void) {
   return(hash_method);
@@ -133,6 +136,119 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
       hashtablesize = perfect_hash_size;
 
       hash = (int *)genvector(hashtablesize,sizeof(int));
+      for (uint ii = 0; ii<hashtablesize; ii++){
+         hash[ii] = -1;
+      }
+
+      read_hash  = read_hash_perfect;
+      write_hash = write_hash_perfect;
+   }
+
+   if (hash_report_level >= 2) {
+      printf("Hash table size %u perfect hash table size %u memory savings %d by percentage %lf\n",
+        hashtablesize,isize*jsize,(int)isize*(int)jsize-(int)hashtablesize,
+        (double)hashtablesize/(double)(isize*jsize) * 100.0);
+   }
+
+   return(hash);
+}
+
+#ifdef _OPENMP
+int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_level, omp_lock_t **lock){
+   hash_ncells = 0;
+   write_hash_collisions = 0;
+   read_hash_collisions = 0;
+   hash_queries = 0;
+   hash_report_level = report_level;
+   hash_stride = isize;
+   int *hash = NULL;
+
+   if (choose_hash_method != METHOD_UNSET) hash_method = choose_hash_method;
+
+   uint compact_hash_size = (uint)((double)ncells*hash_mult);
+   uint perfect_hash_size = (uint)(isize*jsize);
+
+   if (hash_method == METHOD_UNSET){
+      float hash_mem_factor = 20.0;
+      float hash_mem_ratio = (double)perfect_hash_size/(double)compact_hash_size;
+      if (mem_opt_factor != 1.0) hash_mem_factor /= (mem_opt_factor*0.2); 
+      hash_method = (hash_mem_ratio < hash_mem_factor) ? PERFECT_HASH : QUADRATIC;
+      //hash_method = QUADRATIC;
+
+      if (hash_report_level >= 2) printf("DEBUG hash_method %d hash_mem_ratio %f hash_mem_factor %f mem_opt_factor %f perfect_hash_size %u compact_hash_size %u\n",
+         hash_method,hash_mem_ratio,hash_mem_factor,mem_opt_factor,perfect_hash_size,compact_hash_size);
+   }
+
+   int do_compact_hash = (hash_method == PERFECT_HASH) ? 0 : 1;
+
+   if (hash_report_level >= 2) printf("DEBUG do_compact_hash %d hash_method %d perfect_hash_size %u compact_hash_size %u\n",
+      do_compact_hash,hash_method,perfect_hash_size,compact_hash_size);
+
+   if (do_compact_hash) {
+      hashtablesize = compact_hash_size;
+      //srand48(0);
+      AA = (ulong)(1.0+(double)(prime-1)*drand48());
+      BB = (ulong)(0.0+(double)(prime-1)*drand48());
+      if (AA > prime-1 || BB > prime-1) exit(0);
+      if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",AA,BB);
+
+      hash = (int *)genvector(2*hashtablesize,sizeof(int));
+      (*lock) = (omp_lock_t *)malloc(hashtablesize*sizeof(omp_lock_t));
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (uint ii = 0; ii<hashtablesize; ii++){
+         hash[2*ii] = -1;
+         omp_init_lock(&((*lock)[ii]));
+      }
+
+      if (hash_method == LINEAR){
+         if (hash_report_level == 0){
+            read_hash  = read_hash_linear;
+            write_hash_openmp = write_hash_linear_openmp;
+         } else if (hash_report_level == 1){
+            read_hash  = read_hash_linear_report_level_1;
+            write_hash_openmp = write_hash_linear_openmp_report_level_1;
+         } else if (hash_report_level == 2){
+            read_hash  = read_hash_linear_report_level_2;
+            write_hash_openmp = write_hash_linear_openmp_report_level_2;
+         } else if (hash_report_level == 3){
+            read_hash  = read_hash_linear_report_level_3;
+            write_hash_openmp = write_hash_linear_openmp_report_level_3;
+         }
+      } else if (hash_method == QUADRATIC) {
+         if (hash_report_level == 0){
+            read_hash  = read_hash_quadratic;
+            write_hash_openmp = write_hash_quadratic_openmp;
+         } else if (hash_report_level == 1){
+            read_hash  = read_hash_quadratic_report_level_1;
+            write_hash_openmp = write_hash_quadratic_openmp_report_level_1;
+         } else if (hash_report_level == 2){
+            read_hash  = read_hash_quadratic_report_level_2;
+            write_hash_openmp = write_hash_quadratic_openmp_report_level_2;
+         } else if (hash_report_level == 3){
+            read_hash  = read_hash_quadratic_report_level_3;
+            write_hash_openmp = write_hash_quadratic_openmp_report_level_3;
+         }
+      } else if (hash_method == PRIME_JUMP) {
+         if (hash_report_level == 0){
+            read_hash  = read_hash_primejump;
+            write_hash_openmp = write_hash_primejump_openmp;
+         } else if (hash_report_level == 1){
+            read_hash  = read_hash_primejump_report_level_1;
+            write_hash_openmp = write_hash_primejump_openmp_report_level_1;
+         } else if (hash_report_level == 2){
+            read_hash  = read_hash_primejump_report_level_2;
+            write_hash_openmp = write_hash_primejump_openmp_report_level_2;
+         } else if (hash_report_level == 3){
+            read_hash  = read_hash_primejump_report_level_3;
+            write_hash_openmp = write_hash_primejump_openmp_report_level_3;
+         }
+      }
+   } else {
+      hashtablesize = perfect_hash_size;
+
+      hash = (int *)genvector(hashtablesize,sizeof(int));
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -141,7 +257,7 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
       }
 
       read_hash  = read_hash_perfect;
-      write_hash = write_hash_perfect;
+      write_hash_openmp = write_hash_perfect_openmp;
    }
 
    if (hash_report_level >= 2) {
@@ -152,6 +268,7 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
 
    return(hash);
 }
+#endif
 
 void write_hash_perfect(uint ic, ulong hashkey, int *hash){
    hash[hashkey] = ic;
@@ -330,6 +447,273 @@ void write_hash_primejump_report_level_3(uint ic, ulong hashkey, int *hash){
    hash[2*hashloc] = hashkey;
    hash[2*hashloc+1] = ic;
 }
+
+#ifdef _OPENMP
+void write_hash_perfect_openmp(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   hash[hashkey] = ic;
+}
+
+void write_hash_linear_openmp(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;;
+
+   omp_set_lock(&(lock[hashloc]));
+   while (hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey){
+      omp_unset_lock(&(lock[hashloc]));
+      hashloc++;
+      hashloc = hashloc%hashtablesize;
+      omp_set_lock(&(lock[hashloc]));
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+   omp_unset_lock(&(lock[hashloc]));
+}
+
+void write_hash_linear_openmp_report_level_1(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   int icount = 0;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;;
+
+   omp_set_lock(&(lock[hashloc]));
+   while (hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey){
+      omp_unset_lock(&(lock[hashloc]));
+      hashloc++;
+      hashloc = hashloc%hashtablesize;
+      omp_set_lock(&(lock[hashloc]));
+      icount++;
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+   omp_unset_lock(&(lock[hashloc]));
+
+#pragma omp reduction(+:write_hash_collisions, hash_ncells)
+   write_hash_collisions += icount;;
+   hash_ncells++;
+}
+
+void write_hash_linear_openmp_report_level_2(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   int icount = 0;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;;
+
+   omp_set_lock(&(lock[hashloc]));
+   while (hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey){
+      omp_unset_lock(&(lock[hashloc]));
+      hashloc++;
+      hashloc = hashloc%hashtablesize;
+      omp_set_lock(&(lock[hashloc]));
+      icount++;
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+   omp_unset_lock(&(lock[hashloc]));
+
+#pragma omp reduction(+:write_hash_collisions, hash_ncells)
+   write_hash_collisions += icount;;
+   hash_ncells++;
+}
+
+void write_hash_linear_openmp_report_level_3(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   int icount = 0;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;;
+   printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+
+   omp_set_lock(&(lock[hashloc]));
+   while (hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey){
+      omp_unset_lock(&(lock[hashloc]));
+      hashloc++;
+      hashloc = hashloc%hashtablesize;
+      printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+      omp_set_lock(&(lock[hashloc]));
+      icount++;
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+   omp_unset_lock(&(lock[hashloc]));
+
+#pragma omp reduction(+:write_hash_collisions, hash_ncells)
+   write_hash_collisions += icount;;
+   hash_ncells++;
+}
+
+void write_hash_quadratic_openmp(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   int icount = 0;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+
+   omp_set_lock(&(lock[hashloc]));
+   while (hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey){
+      omp_unset_lock(&(lock[hashloc]));
+      icount++;
+      hashloc+=(icount*icount);
+      hashloc = hashloc%hashtablesize;
+      omp_set_lock(&(lock[hashloc]));
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+   omp_unset_lock(&(lock[hashloc]));
+}
+
+
+void write_hash_quadratic_openmp_report_level_1(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   int icount = 0;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+
+   omp_set_lock(&(lock[hashloc]));
+   while (hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey){
+      omp_unset_lock(&(lock[hashloc]));
+      icount++;
+      hashloc+=(icount*icount);
+      hashloc = hashloc%hashtablesize;
+      omp_set_lock(&(lock[hashloc]));
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+   omp_unset_lock(&(lock[hashloc]));
+
+#pragma omp reduction(+:write_hash_collisions, hash_ncells)
+   write_hash_collisions += icount;;
+   hash_ncells++;
+}
+
+void write_hash_quadratic_openmp_report_level_2(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   int icount = 0;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+
+   omp_set_lock(&(lock[hashloc]));
+   while (hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey){
+      omp_unset_lock(&(lock[hashloc]));
+      icount++;
+      hashloc+=(icount*icount);
+      hashloc = hashloc%hashtablesize;
+      omp_set_lock(&(lock[hashloc]));
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+   omp_unset_lock(&(lock[hashloc]));
+
+#pragma omp reduction(+:write_hash_collisions, hash_ncells)
+   write_hash_collisions += icount;;
+   hash_ncells++;
+}
+
+void write_hash_quadratic_openmp_report_level_3(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   int icount = 0;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+   printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+
+   omp_set_lock(&(lock[hashloc]));
+   while (hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey){
+      omp_unset_lock(&(lock[hashloc]));
+      icount++;
+      hashloc+=(icount*icount);
+      hashloc = hashloc%hashtablesize;
+      printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+      omp_set_lock(&(lock[hashloc]));
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+   omp_unset_lock(&(lock[hashloc]));
+
+#pragma omp reduction(+:write_hash_collisions, hash_ncells)
+   write_hash_collisions += icount;;
+   hash_ncells++;
+}
+
+void write_hash_primejump_openmp(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   int icount = 0;
+   uint jump = 1+hashkey%hash_jump_prime;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+
+   omp_set_lock(&(lock[hashloc]));
+   while (hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey){
+      omp_unset_lock(&(lock[hashloc]));
+      icount++;
+      hashloc+=(icount*jump);
+      hashloc = hashloc%hashtablesize;
+      omp_set_lock(&(lock[hashloc]));
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+   omp_unset_lock(&(lock[hashloc]));
+}
+
+void write_hash_primejump_openmp_report_level_1(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   int icount = 0;
+   uint jump = 1+hashkey%hash_jump_prime;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+
+   omp_set_lock(&(lock[hashloc]));
+   while (hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey){
+      omp_unset_lock(&(lock[hashloc]));
+      icount++;
+      hashloc+=(icount*jump);
+      hashloc = hashloc%hashtablesize;
+      omp_set_lock(&(lock[hashloc]));
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+   omp_unset_lock(&(lock[hashloc]));
+
+#pragma omp reduction(+:write_hash_collisions, hash_ncells)
+   write_hash_collisions += icount;;
+   hash_ncells++;
+}
+
+void write_hash_primejump_openmp_report_level_2(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   int icount = 0;
+   uint jump = 1+hashkey%hash_jump_prime;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+
+   omp_set_lock(&(lock[hashloc]));
+   while (hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey){
+      omp_unset_lock(&(lock[hashloc]));
+      icount++;
+      hashloc+=(icount*jump);
+      hashloc = hashloc%hashtablesize;
+      omp_set_lock(&(lock[hashloc]));
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+   omp_unset_lock(&(lock[hashloc]));
+
+#pragma omp reduction(+:write_hash_collisions, hash_ncells)
+   write_hash_collisions += icount;;
+   hash_ncells++;
+}
+
+void write_hash_primejump_openmp_report_level_3(uint ic, ulong hashkey, int *hash, omp_lock_t *lock){
+   int icount = 0;
+   uint jump = 1+hashkey%hash_jump_prime;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+   printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+
+   omp_set_lock(&(lock[hashloc]));
+   while (hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey){
+      omp_unset_lock(&(lock[hashloc]));
+      icount++;
+      hashloc+=(icount*jump);
+      hashloc = hashloc%hashtablesize;
+      printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
+      omp_set_lock(&(lock[hashloc]));
+   }
+
+   hash[2*hashloc] = hashkey;
+   hash[2*hashloc+1] = ic;
+   omp_unset_lock(&(lock[hashloc]));
+
+#pragma omp reduction(+:write_hash_collisions, hash_ncells)
+   write_hash_collisions += icount;;
+   hash_ncells++;
+}
+#endif
 
 int read_hash_perfect(ulong hashkey, int *hash){
    return(hash[hashkey]);
@@ -564,6 +948,18 @@ void compact_hash_delete(int *hash){
    hash_method = METHOD_UNSET;
 }
 
+#ifdef _OPENMP
+void compact_hash_delete_openmp(int *hash, omp_lock_t *lock){
+   read_hash = NULL;
+   genvectorfree((void *)hash);
+   for (uint i = 0; i<hashtablesize; i++){
+      omp_destroy_lock(&(lock[i]));
+   }
+   //free(lock);
+   hash_method = METHOD_UNSET;
+}
+#endif
+
 void write_hash_collision_report(void){
    if (hash_method == PERFECT_HASH) return;
    if (hash_report_level == 1) {
@@ -604,7 +1000,6 @@ const char *get_hash_kernel_source_string(void)
 #ifdef HAVE_OPENCL
 static cl_kernel kernel_hash_init;
 void hash_lib_init(void){
-
    cl_context context = ezcl_get_context();
 
    const char *defines = NULL;

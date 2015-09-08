@@ -3623,11 +3623,19 @@ void Mesh::calc_neighbors(int ncells)
       int jmaxsize = (jmax+1)*IPOW2(levmx);
       int imaxsize = (imax+1)*IPOW2(levmx);
 
-      int *hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
-
-      if (get_hash_method() == PERFECT_HASH) {
 #ifdef _OPENMP
-#pragma omp parallel for
+      omp_lock_t *lock;
+      int *hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 1, &lock);
+#else
+      int *hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
+#endif
+
+#ifdef _OPENMP
+#pragma omp parallel default (none) firstprivate(ncells, imaxsize, jmaxsize) shared(read_hash, write_hash_openmp, hash, lock) shared(tstart_lev2)
+      {
+#endif
+#ifdef _OPENMP
+#pragma omp for
 #endif
          for(int ic=0; ic<ncells; ic++){
             int lev = level[ic];
@@ -3640,170 +3648,155 @@ void Mesh::calc_neighbors(int ncells)
                      (level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) || 
                      (level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ) need_hash = true;
             }
-            
+         
             if (need_hash) {
                int levmult = IPOW2(levmx-lev);
                int ii = i[ic]*levmult;
                int jj = j[ic]*levmult;
 
+#ifdef _OPENMP
+               write_hash_openmp(ic,jj*imaxsize+ii,hash,lock);
+#else
                write_hash(ic,jj*imaxsize+ii,hash);
+#endif
             }
          }
-      } else {
-         for(int ic=0; ic<ncells; ic++){
-            int lev = level[ic];
 
-            bool need_hash = (nlft[ic] == -1 || nrht[ic] == -1 || nbot[ic] == -1 || ntop[ic] == -1) ? true : false;
-
-            if (! need_hash){
-                if ( (level[nlft[ic]] > lev && ntop[nlft[ic]] == -1) || 
-                     (level[nrht[ic]] > lev && ntop[nrht[ic]] == -1) ||
-                     (level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) || 
-                     (level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ) need_hash = true;
+         write_hash_collision_report();
+         if (DEBUG) {
+            printf("\n                                    HASH numbering\n");
+            for (int jj = jmaxsize-1; jj>=0; jj--){
+               printf("%4d:",jj);
+               for (int ii = 0; ii<imaxsize; ii++){
+                  printf("%5d",read_hash(jj*imaxsize+ii,hash));
+               }
+               printf("\n");
             }
-            
-            if (need_hash) {
-               int levmult = IPOW2(levmx-lev);
-               int ii = i[ic]*levmult;
-               int jj = j[ic]*levmult;
-
-               write_hash(ic,jj*imaxsize+ii,hash);
-            }
-         }
-      }
-
-      write_hash_collision_report();
-      if (DEBUG) {
-         printf("\n                                    HASH numbering\n");
-         for (int jj = jmaxsize-1; jj>=0; jj--){
-            printf("%4d:",jj);
+            printf("     ");
             for (int ii = 0; ii<imaxsize; ii++){
-               printf("%5d",read_hash(jj*imaxsize+ii,hash));
+               printf("%4d:",ii);
             }
             printf("\n");
+
+            read_hash_collision_report();
          }
-         printf("     ");
-         for (int ii = 0; ii<imaxsize; ii++){
-            printf("%4d:",ii);
+
+         if (TIMING_LEVEL >= 2) {
+            cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
+            cpu_timer_start(&tstart_lev2);
          }
-         printf("\n");
 
-         read_hash_collision_report();
-      }
-
-      if (TIMING_LEVEL >= 2) {
-         cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
-         cpu_timer_start(&tstart_lev2);
-      }
-
-      //fprintf(fp,"DEBUG ncells is %lu\n",ncells);
+         //fprintf(fp,"DEBUG ncells is %lu\n",ncells);
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
-      for (int ic=0; ic<(int)ncells; ic++){
-         int ii = i[ic];
-         int jj = j[ic];
-         int lev = level[ic];
-         int levmult = IPOW2(levmx-lev);
-         int iicur = ii*levmult;
-         int iilft = max( (ii-1)*levmult, 0         );
-         int iirht = min( (ii+1)*levmult, imaxsize-1);
-         int jjcur = jj*levmult;
-         int jjbot = max( (jj-1)*levmult, 0         );
-         int jjtop = min( (jj+1)*levmult, jmaxsize-1);
+         for (int ic=0; ic<(int)ncells; ic++){
+            int ii = i[ic];
+            int jj = j[ic];
+            int lev = level[ic];
+            int levmult = IPOW2(levmx-lev);
+            int iicur = ii*levmult;
+            int iilft = max( (ii-1)*levmult, 0         );
+            int iirht = min( (ii+1)*levmult, imaxsize-1);
+            int jjcur = jj*levmult;
+            int jjbot = max( (jj-1)*levmult, 0         );
+            int jjtop = min( (jj+1)*levmult, jmaxsize-1);
 
-         int nlftval = nlft[ic];
-         int nrhtval = nrht[ic];
-         int nbotval = nbot[ic];
-         int ntopval = ntop[ic];
+            int nlftval = nlft[ic];
+            int nrhtval = nrht[ic];
+            int nbotval = nbot[ic];
+            int ntopval = ntop[ic];
 
-         // Taking care of boundary cells
-         // Force each boundary cell to point to itself on its boundary direction
-         if (nlftval < 0 && iicur <    1*IPOW2(levmx)  ) nlftval = ic;
-         if (nbotval < 0 && jjcur <    1*IPOW2(levmx)  ) nbotval = ic;
-         if (nrhtval < 0 && iicur > imax*IPOW2(levmx)-1) nrhtval = ic;
-         if (ntopval < 0 && jjcur > jmax*IPOW2(levmx)-1) ntopval = ic;
-         // Boundary cells next to corner boundary need special checks
-         if (nlftval < 0 && iicur ==    1*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nlftval = ic;
-         if (nbotval < 0 && jjcur ==    1*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) nbotval = ic;
-         if (nrhtval < 0 && iirht == imax*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nrhtval = ic;
-         if (ntopval < 0 && jjtop == jmax*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) ntopval = ic;
+            // Taking care of boundary cells
+            // Force each boundary cell to point to itself on its boundary direction
+            if (nlftval < 0 && iicur <    1*IPOW2(levmx)  ) nlftval = ic;
+            if (nbotval < 0 && jjcur <    1*IPOW2(levmx)  ) nbotval = ic;
+            if (nrhtval < 0 && iicur > imax*IPOW2(levmx)-1) nrhtval = ic;
+            if (ntopval < 0 && jjcur > jmax*IPOW2(levmx)-1) ntopval = ic;
+            // Boundary cells next to corner boundary need special checks
+            if (nlftval < 0 && iicur ==    1*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nlftval = ic;
+            if (nbotval < 0 && jjcur ==    1*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) nbotval = ic;
+            if (nrhtval < 0 && iirht == imax*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nrhtval = ic;
+            if (ntopval < 0 && jjtop == jmax*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) ntopval = ic;
 
-         // need to check for finer neighbor first
-         // Right and top neighbor don't change for finer, so drop through to same size
-         // Left and bottom need to be half of same size index for finer test
-         if (lev != levmx) {
-            int iilftfiner = iicur-(iicur-iilft)/2;
-            //int iirhtfiner = (iicur+iirht)/2;
-            int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-            //int jjtopfiner = (jjcur+jjtop)/2;
-            if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilftfiner, hash);
-            if (nbotval < 0) nbotval = read_hash(jjbotfiner*imaxsize+iicur, hash);
-         }
+            // need to check for finer neighbor first
+            // Right and top neighbor don't change for finer, so drop through to same size
+            // Left and bottom need to be half of same size index for finer test
+            if (lev != levmx) {
+               int iilftfiner = iicur-(iicur-iilft)/2;
+               //int iirhtfiner = (iicur+iirht)/2;
+               int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+               //int jjtopfiner = (jjcur+jjtop)/2;
+               if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilftfiner, hash);
+               if (nbotval < 0) nbotval = read_hash(jjbotfiner*imaxsize+iicur, hash);
+            }
 
-         // same size neighbor
-         if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilft, hash);
-         if (nrhtval < 0) nrhtval = read_hash(jjcur*imaxsize+iirht, hash);
-         if (nbotval < 0) nbotval = read_hash(jjbot*imaxsize+iicur, hash);
-         if (ntopval < 0) ntopval = read_hash(jjtop*imaxsize+iicur, hash);
+            // same size neighbor
+            if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilft, hash);
+            if (nrhtval < 0) nrhtval = read_hash(jjcur*imaxsize+iirht, hash);
+            if (nbotval < 0) nbotval = read_hash(jjbot*imaxsize+iicur, hash);
+            if (ntopval < 0) ntopval = read_hash(jjtop*imaxsize+iicur, hash);
 
-         // Now we need to take care of special case where bottom and left boundary need adjustment since
-         // expected cell doesn't exist on these boundaries if it is finer than current cell
-         if (lev != levmx) {
-            if (jjcur < 1*IPOW2(levmx)) {
-               if (nrhtval < 0) {
-                  int jjtopfiner = (jjcur+jjtop)/2;
-                  nrhtval = read_hash(jjtopfiner*imaxsize+iirht, hash);
+            // Now we need to take care of special case where bottom and left boundary need adjustment since
+            // expected cell doesn't exist on these boundaries if it is finer than current cell
+            if (lev != levmx) {
+               if (jjcur < 1*IPOW2(levmx)) {
+                  if (nrhtval < 0) {
+                     int jjtopfiner = (jjcur+jjtop)/2;
+                     nrhtval = read_hash(jjtopfiner*imaxsize+iirht, hash);
+                  }
+                  if (nlftval < 0) {
+                     int iilftfiner = iicur-(iicur-iilft)/2;
+                     int jjtopfiner = (jjcur+jjtop)/2;
+                     nlftval = read_hash(jjtopfiner*imaxsize+iilftfiner, hash);
+                  }
                }
-               if (nlftval < 0) {
-                  int iilftfiner = iicur-(iicur-iilft)/2;
-                  int jjtopfiner = (jjcur+jjtop)/2;
-                  nlftval = read_hash(jjtopfiner*imaxsize+iilftfiner, hash);
+         
+               if (iicur < 1*IPOW2(levmx)) {
+                  if (ntopval < 0) {
+                     int iirhtfiner = (iicur+iirht)/2;
+                     ntopval = read_hash(jjtop*imaxsize+iirhtfiner, hash);
+                  }
+                  if (nbotval < 0) {
+                     int iirhtfiner = (iicur+iirht)/2;
+                     int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+                     nbotval = read_hash(jjbotfiner*imaxsize+iirhtfiner, hash);
+                  }
                }
             }
          
-            if (iicur < 1*IPOW2(levmx)) {
-               if (ntopval < 0) {
-                  int iirhtfiner = (iicur+iirht)/2;
-                  ntopval = read_hash(jjtop*imaxsize+iirhtfiner, hash);
+            // coarser neighbor
+            if (lev != 0){
+               if (nlftval < 0) {
+                  iilft -= iicur-iilft;
+                  int jjlft = (jj/2)*2*levmult;
+                  nlftval = read_hash(jjlft*imaxsize+iilft, hash);
+               }
+               if (nrhtval < 0) {
+                  int jjrht = (jj/2)*2*levmult;
+                  nrhtval = read_hash(jjrht*imaxsize+iirht, hash);
                }
                if (nbotval < 0) {
-                  int iirhtfiner = (iicur+iirht)/2;
-                  int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-                  nbotval = read_hash(jjbotfiner*imaxsize+iirhtfiner, hash);
+                  jjbot -= jjcur-jjbot;
+                  int iibot = (ii/2)*2*levmult;
+                  nbotval = read_hash(jjbot*imaxsize+iibot, hash);
+               }
+               if (ntopval < 0) {
+                  int iitop = (ii/2)*2*levmult;
+                  ntopval = read_hash(jjtop*imaxsize+iitop, hash);
                }
             }
-         }
-         
-         // coarser neighbor
-         if (lev != 0){
-            if (nlftval < 0) {
-               iilft -= iicur-iilft;
-               int jjlft = (jj/2)*2*levmult;
-               nlftval = read_hash(jjlft*imaxsize+iilft, hash);
-            }
-            if (nrhtval < 0) {
-               int jjrht = (jj/2)*2*levmult;
-               nrhtval = read_hash(jjrht*imaxsize+iirht, hash);
-            }
-            if (nbotval < 0) {
-               jjbot -= jjcur-jjbot;
-               int iibot = (ii/2)*2*levmult;
-               nbotval = read_hash(jjbot*imaxsize+iibot, hash);
-            }
-            if (ntopval < 0) {
-               int iitop = (ii/2)*2*levmult;
-               ntopval = read_hash(jjtop*imaxsize+iitop, hash);
-            }
-         }
 
-         nlft[ic] = nlftval;
-         nrht[ic] = nrhtval;
-         nbot[ic] = nbotval;
-         ntop[ic] = ntopval;
+            nlft[ic] = nlftval;
+            nrht[ic] = nrhtval;
+            nbot[ic] = nbotval;
+            ntop[ic] = ntopval;
 
-         //printf("neighbors[%d] = %d %d %d %d\n",ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
+            //printf("neighbors[%d] = %d %d %d %d\n",ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
+         }
+#ifdef _OPENMP
       }
+#endif
 
       if (DEBUG) {
          printf("\n                                    HASH numbering\n");
@@ -3896,7 +3889,11 @@ void Mesh::calc_neighbors(int ncells)
       }
 
       read_hash_collision_report();
+#ifdef _OPENMP
+      compact_hash_delete_openmp(hash, lock);
+#else
       compact_hash_delete(hash);
+#endif
 
       if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_HASH_QUERY] += cpu_timer_stop(tstart_lev2);
 
