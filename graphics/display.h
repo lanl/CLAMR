@@ -60,6 +60,10 @@
 #include "config.h"
 #endif
 
+#ifdef HAVE_MPI
+#include <mpi.h>
+#endif
+
 #ifdef HAVE_OPENGL
 #ifdef __APPLE_CC__
 #include <GLUT/glut.h>
@@ -78,10 +82,6 @@ extern "C"
 #endif
 
 #define OMPI_SKIP_MPICXX 1
-
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
 
 #ifdef HAVE_MPE
 #ifndef HAVE_MPI
