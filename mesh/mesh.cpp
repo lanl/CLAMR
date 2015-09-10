@@ -57,8 +57,6 @@
 #include "mpi.h"
 #endif
 
-#include <libkern/OSAtomic.h>
-
 #include <algorithm>
 #include <unistd.h>
 #include <limits.h>
