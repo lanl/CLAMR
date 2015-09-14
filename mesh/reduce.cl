@@ -89,15 +89,6 @@ void reduction_min_within_tile(__local  real  *tile);
 		   MPI_SUM                 MPI_Op
 */
 
-#if defined(IS_NVIDIA)
-#define MIN_REDUCE_SYNC_SIZE 32
-#elif defined(IS_AMD)
-#define MIN_REDUCE_SYNC_SIZE 64
-//#elif defined(IS_INTEL) ? Not sure what the minimum would be on this
-#else
-#define MIN_REDUCE_SYNC_SIZE 1
-#endif
-
 int SUM_INT(int a, int b)
 {
     return a + b;

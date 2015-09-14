@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
    state->gpu_timers[STATE_TIMER_WRITE] += ezcl_timer_calc(&start_write_event, &end_write_event);
 
 
-   if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
+   if (ezcl_get_compute_device() == COMPUTE_DEVICE_AMD) enhanced_precision_sum = false;
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(enhanced_precision_sum);

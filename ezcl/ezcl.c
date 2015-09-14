@@ -502,7 +502,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const char *file, int lin
 
    clGetDeviceInfo(devices[0], CL_DEVICE_VENDOR, sizeof(info), &info, NULL);
    if (! strncmp(info,"NVIDIA",(size_t)6) ) compute_device = COMPUTE_DEVICE_NVIDIA;
-   if (! strncmp(info,"Advanced Micro Devices",(size_t)6) ) compute_device = COMPUTE_DEVICE_ATI;
+   if (! strncmp(info,"Advanced Micro Devices",(size_t)6) ) compute_device = COMPUTE_DEVICE_AMD;
    if (! strncmp(info,"Intel(R) Corporation",(size_t)6) ) compute_device = COMPUTE_DEVICE_INTEL;
    //printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,compute_device);
 
@@ -1482,6 +1482,14 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
    if (compute_device == COMPUTE_DEVICE_NVIDIA) {
       strcat(CompileString," -DIS_NVIDIA");
    }
+   else if (compute_device == COMPUTE_DEVICE_AMD) {
+      strcat(CompileString, " -DIS_AMD -DMIN_REDUCE_SYNC_SIZE=64");
+   }
+   else
+   {
+        printf("EZCL_CREATE_KERNEL: Not supporting anything other than AMD or NVIDIA at the moment\n");
+        exit(EXIT_FAILURE);
+   }
 
    ierr = clBuildProgram(program, 0, NULL, CompileString, NULL, NULL);
 
@@ -1636,6 +1644,14 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
 
    if (compute_device == COMPUTE_DEVICE_NVIDIA) {
       strcat(CompileString," -DIS_NVIDIA");
+   }
+   else if (compute_device == COMPUTE_DEVICE_AMD) {
+      strcat(CompileString, " -DIS_AMD -DMIN_REDUCE_SYNC_SIZE=64");
+   }
+   else
+   {
+        printf("EZCL_CREATE_KERNEL: Not supporting anything other than AMD or NVIDIA at the moment\n");
+        exit(EXIT_FAILURE);
    }
 
    ierr = clBuildProgram(program, 0, NULL, CompileString, NULL, NULL);
@@ -1793,7 +1809,15 @@ cl_program ezcl_create_program_wsource_p(cl_context context, const char *defines
 #endif
 
    if (compute_device == COMPUTE_DEVICE_NVIDIA) {
-      strcat(CompileString, " -DIS_NVIDIA");
+      strcat(CompileString, " -DIS_NVIDIA -DMIN_REDUCE_SYNC_SIZE=32");
+   }
+   else if (compute_device == COMPUTE_DEVICE_AMD) {
+      strcat(CompileString, " -DIS_AMD -DMIN_REDUCE_SYNC_SIZE=64");
+   }
+   else
+   {
+        printf("EZCL_CREATE_KERNEL: Not supporting anything other than AMD or NVIDIA at the moment\n");
+        exit(EXIT_FAILURE);
    }
 
    //printf("DEBUG file %s line %d CompileString %s\n",__FILE__,__LINE__,CompileString);
