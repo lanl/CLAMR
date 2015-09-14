@@ -2008,55 +2008,32 @@ void reduction_epsum_within_tile(__local  real2_t  *tile)
    const unsigned int ntX  = get_local_size(0);
    real_t corrected_next_term, new_sum;
 
-    for (int offset=ntX>>1; offset > 32; offset >>= 1){
-      if (tiX < offset){
-        // Kahan sum
-        corrected_next_term = tile[tiX+offset].s0 + (tile[tiX+offset].s1 +tile[tiX].s1);
+    for (int offset = ntX >> 1; offset > MIN_REDUCE_SYNC_SIZE; offset >>= 1)
+    {
+        if (tiX < offset)
+        {
+            corrected_next_term = tile[tiX+offset].s0 + (tile[tiX+offset].s1 +tile[tiX].s1);
+            new_sum = tile[tiX].s0 + corrected_next_term;
+            tile[tiX].s1 = corrected_next_term - (new_sum - tile[tiX].s0);
+            tile[tiX].s0 = new_sum;
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    if (tiX < MIN_REDUCE_SYNC_SIZE)
+    {
+        for (int offset = MIN_REDUCE_SYNC_SIZE; offset > 1; offset >>= 1)
+        {
+            corrected_next_term = tile[tiX+offset].s0 + (tile[tiX+offset].s1 +tile[tiX].s1);
+            new_sum = tile[tiX].s0 + corrected_next_term;
+            tile[tiX].s1 = corrected_next_term - (new_sum - tile[tiX].s0);
+            tile[tiX].s0 = new_sum;
+            barrier(CLK_LOCAL_MEM_FENCE);
+        }
+        corrected_next_term = tile[tiX+1].s0 + (tile[tiX+1].s1 +tile[tiX].s1);
         new_sum = tile[tiX].s0 + corrected_next_term;
         tile[tiX].s1 = corrected_next_term - (new_sum - tile[tiX].s0);
         tile[tiX].s0 = new_sum;
-      }
-      barrier(CLK_LOCAL_MEM_FENCE);
     }
-
-    if (tiX < 32){
-      // Kahan sum -- unrolled
-      corrected_next_term = tile[tiX+32].s0 + (tile[tiX+32].s1 +tile[tiX].s1);
-      new_sum = tile[tiX].s0 + corrected_next_term;
-      tile[tiX].s1 = corrected_next_term - (new_sum - tile[tiX].s0);
-      tile[tiX].s0 = new_sum;
-      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-
-      corrected_next_term = tile[tiX+16].s0 + (tile[tiX+16].s1 +tile[tiX].s1);
-      new_sum = tile[tiX].s0 + corrected_next_term;
-      tile[tiX].s1 = corrected_next_term - (new_sum - tile[tiX].s0);
-      tile[tiX].s0 = new_sum;
-      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-
-      corrected_next_term = tile[tiX+8].s0 + (tile[tiX+8].s1 +tile[tiX].s1);
-      new_sum = tile[tiX].s0 + corrected_next_term;
-      tile[tiX].s1 = corrected_next_term - (new_sum - tile[tiX].s0);
-      tile[tiX].s0 = new_sum;
-      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-
-      corrected_next_term = tile[tiX+4].s0 + (tile[tiX+4].s1 +tile[tiX].s1);
-      new_sum = tile[tiX].s0 + corrected_next_term;
-      tile[tiX].s1 = corrected_next_term - (new_sum - tile[tiX].s0);
-      tile[tiX].s0 = new_sum;
-      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-
-      corrected_next_term = tile[tiX+2].s0 + (tile[tiX+2].s1 +tile[tiX].s1);
-      new_sum = tile[tiX].s0 + corrected_next_term;
-      tile[tiX].s1 = corrected_next_term - (new_sum - tile[tiX].s0);
-      tile[tiX].s0 = new_sum;
-      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-
-      corrected_next_term = tile[tiX+1].s0 + (tile[tiX+1].s1 +tile[tiX].s1);
-      new_sum = tile[tiX].s0 + corrected_next_term;
-      tile[tiX].s1 = corrected_next_term - (new_sum - tile[tiX].s0);
-      tile[tiX].s0 = new_sum;
-    }
-
 }
 
 __kernel void reduce_epsum_mass_stage1of2_cl(
