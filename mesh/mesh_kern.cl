@@ -1917,7 +1917,7 @@ void reduction_minmax_within_tile4(__local  int4  *tile)
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
 
-    for (int offset=ntX>>1; offset > 32; offset >>= 1){
+    for (int offset=ntX>>1; offset > MIN_REDUCE_SYNC_SIZE; offset >>= 1){
       if (tiX < offset){
         if (tile[tiX+offset].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+offset].s0;
         if (tile[tiX+offset].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+offset].s1;
@@ -1927,41 +1927,21 @@ void reduction_minmax_within_tile4(__local  int4  *tile)
       barrier(CLK_LOCAL_MEM_FENCE);
     }
 
-    if (tiX < 32){
-      if (tile[tiX+32].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+32].s0;
-      if (tile[tiX+32].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+32].s1;
-      if (tile[tiX+32].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+32].s2;
-      if (tile[tiX+32].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+32].s3;
-      barrier(CLK_LOCAL_MEM_FENCE);
+    if (tiX < MIN_REDUCE_SYNC_SIZE)
+    {
+        for (int offset = MIN_REDUCE_SYNC_SIZE; offset > 1; offset >>= 1)
+        {
+            if (tile[tiX + offset].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX + offset].s0;
+            if (tile[tiX + offset].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX + offset].s1;
+            if (tile[tiX + offset].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX + offset].s2;
+            if (tile[tiX + offset].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX + offset].s3;
+            barrier(CLK_LOCAL_MEM_FENCE);
+        }
 
-      if (tile[tiX+16].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+16].s0;
-      if (tile[tiX+16].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+16].s1;
-      if (tile[tiX+16].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+16].s2;
-      if (tile[tiX+16].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+16].s3;
-      barrier(CLK_LOCAL_MEM_FENCE);
-
-      if (tile[tiX+8].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+8].s0;
-      if (tile[tiX+8].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+8].s1;
-      if (tile[tiX+8].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+8].s2;
-      if (tile[tiX+8].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+8].s3;
-      barrier(CLK_LOCAL_MEM_FENCE);
-
-      if (tile[tiX+4].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+4].s0;
-      if (tile[tiX+4].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+4].s1;
-      if (tile[tiX+4].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+4].s2;
-      if (tile[tiX+4].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+4].s3;
-      barrier(CLK_LOCAL_MEM_FENCE);
-
-      if (tile[tiX+2].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+2].s0;
-      if (tile[tiX+2].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+2].s1;
-      if (tile[tiX+2].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+2].s2;
-      if (tile[tiX+2].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+2].s3;
-      barrier(CLK_LOCAL_MEM_FENCE);
-
-      if (tile[tiX+1].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+1].s0;
-      if (tile[tiX+1].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+1].s1;
-      if (tile[tiX+1].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+1].s2;
-      if (tile[tiX+1].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+1].s3;
+        if (tile[tiX + 1].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX + 1].s0;
+        if (tile[tiX + 1].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX + 1].s1;
+        if (tile[tiX + 1].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX + 1].s2;
+        if (tile[tiX + 1].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX + 1].s3;
     }
 }
 
