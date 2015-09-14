@@ -123,11 +123,12 @@ real MIN(real a, real b)
         }                                                                       \
         barrier(CLK_LOCAL_MEM_FENCE);                                           \
     }                                                                           \
-    if (tiX == 0)                                                               \
+    if (tiX < 32)                                                               \
     {                                                                           \
         for (int offset = MIN_REDUCE_SYNC_SIZE; offset > 1; offset >>= 1)       \
         {                                                                       \
             _tile_arr[tiX] = operation(_tile_arr[tiX], _tile_arr[tiX+offset]);  \
+            barrier(CLK_LOCAL_MEM_FENCE);                                       \
         }                                                                       \
         _tile_arr[tiX] = operation(_tile_arr[tiX], _tile_arr[tiX+1]);           \
     }

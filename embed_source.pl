@@ -16,6 +16,7 @@ while(<>) {
    chop $_;
 
    s/"/""/g;
+   s/\\/\\\\/g;
 
 #   if (/^\/\*/){
 #      #print "Setting comment to 1\n";
