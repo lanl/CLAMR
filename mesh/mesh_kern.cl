@@ -557,6 +557,29 @@ __kernel void calc_border_cells_cl(
    border_cell_out[giX] = border_cell;
 }
 
+int SUM_INT(int a, int b)
+{
+    return a + b;
+}
+
+#define REDUCE_IN_TILE(operation, _tile_arr)                                    \
+    for (int offset = ntX >> 1; offset > MIN_REDUCE_SYNC_SIZE; offset >>= 1)    \
+    {                                                                           \
+        if (tiX < offset)                                                       \
+        {                                                                       \
+            _tile_arr[tiX] = operation(_tile_arr[tiX], _tile_arr[tiX+offset]);  \
+        }                                                                       \
+        barrier(CLK_LOCAL_MEM_FENCE);                                           \
+    }                                                                           \
+    if (tiX == 0)                                                               \
+    {                                                                           \
+        for (int offset = 0; offset > 1; offset >>= 1)                          \
+        {                                                                       \
+            _tile_arr[tiX] = operation(_tile_arr[tiX], _tile_arr[tiX+offset]);  \
+        }                                                                       \
+        _tile_arr[tiX] = operation(_tile_arr[tiX], _tile_arr[tiX+1]);           \
+    }
+
 __kernel void calc_border_cells2_cl(
                           const int   isize,            // 0
                           const int   noffset,          // 1
@@ -635,26 +658,7 @@ __kernel void calc_border_cells2_cl(
 
    barrier(CLK_LOCAL_MEM_FENCE);
 
-   for (int offset = ntX >> 1; offset > 32; offset >>= 1) { 
-      if (tiX < offset) {
-         itile[tiX] += itile[tiX+offset]; 
-      }    
-      barrier(CLK_LOCAL_MEM_FENCE);
-   }    
-
-   //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
-   if (tiX < 32)
-   {  itile[tiX] += itile[tiX+32];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+16];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+8];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+4];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+2];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+1]; }
+   REDUCE_IN_TILE(SUM_INT, itile);
 
    if (tiX == 0) { 
      ioffset[group_id] = itile[0];
@@ -665,42 +669,39 @@ __kernel void calc_border_cells2_cl(
 }
 
 inline uint scan_warp_exclusive(__local volatile uint *input, const uint idx, const uint lane) {
-    if (lane > 0 ) input[idx] += input[idx - 1];
-    if (lane > 1 ) input[idx] += input[idx - 2];
-    if (lane > 3 ) input[idx] += input[idx - 4];
-    if (lane > 7 ) input[idx] += input[idx - 8];
-    if (lane > 15) input[idx] += input[idx - 16];
+    for (int offset = 1; offset < 32; offset *= 2)
+    {
+        if (lane > (offset - 1)) input[idx] += input[idx - offset];
+    }
 
     return (lane > 0) ? input[idx-1] : 0;
 }
 
 inline uint scan_warp_inclusive(__local volatile uint *input, const uint idx, const uint lane) {
-    if (lane > 0 ) input[idx] += input[idx - 1];
-    if (lane > 1 ) input[idx] += input[idx - 2];
-    if (lane > 3 ) input[idx] += input[idx - 4];
-    if (lane > 7 ) input[idx] += input[idx - 8];
-    if (lane > 15) input[idx] += input[idx - 16];
+    for (int offset = 1; offset < 32; offset *= 2)
+    {
+        if (lane > (offset - 1)) input[idx] += input[idx - offset];
+    }
 
     return input[idx];
 }
 
 inline int2 scan_warp_exclusive2(__local volatile int2 *input, const uint idx, const uint lane) {
     int2 zero = 0;
-    if (lane > 0 ) input[idx].s01 += input[idx - 1].s01;
-    if (lane > 1 ) input[idx].s01 += input[idx - 2].s01;
-    if (lane > 3 ) input[idx].s01 += input[idx - 4].s01;
-    if (lane > 7 ) input[idx].s01 += input[idx - 8].s01;
-    if (lane > 15) input[idx].s01 += input[idx - 16].s01;
+
+    for (int offset = 1; offset < 32; offset *= 2)
+    {
+        if (lane > (offset - 1)) input[idx].s01 += input[idx - offset].s01;
+    }
 
     return (lane > 0) ? input[idx-1].s01 : zero;
 }
 
 inline int2 scan_warp_inclusive2(__local volatile int2 *input, const uint idx, const uint lane) {
-    if (lane > 0 ) input[idx].s01 += input[idx - 1].s01;
-    if (lane > 1 ) input[idx].s01 += input[idx - 2].s01;
-    if (lane > 3 ) input[idx].s01 += input[idx - 4].s01;
-    if (lane > 7 ) input[idx].s01 += input[idx - 8].s01;
-    if (lane > 15) input[idx].s01 += input[idx - 16].s01;
+    for (int offset = 1; offset < 32; offset *= 2)
+    {
+        if (lane > (offset - 1)) input[idx].s01 += input[idx - offset].s01;
+    }
 
     return input[idx].s01;
 }

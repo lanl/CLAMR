@@ -114,22 +114,22 @@ real MIN(real a, real b)
     return min(a, b);
 }
 
-#define REDUCE_IN_TILE(operation)                                               \
-    for (int offset = ntX >> 1; offset > MIN_REDUCE_SYNC_SIZE; offset >>= 1)     \
-    {                                                                               \
-        if (tiX < offset)                                                         \
+#define REDUCE_IN_TILE(operation, _tile_arr)                                    \
+    for (int offset = ntX >> 1; offset > MIN_REDUCE_SYNC_SIZE; offset >>= 1)    \
+    {                                                                           \
+        if (tiX < offset)                                                       \
         {                                                                       \
-            tile[tiX] = operation(tile[tiX], tile[tiX+offset]);                     \
+            _tile_arr[tiX] = operation(_tile_arr[tiX], _tile_arr[tiX+offset]);  \
         }                                                                       \
-        barrier(CLK_LOCAL_MEM_FENCE);                                               \
+        barrier(CLK_LOCAL_MEM_FENCE);                                           \
     }                                                                           \
-    if (tiX == 0)                                                                \
-    {                                                                            \
-        for (int offset = 0; offset > 1; offset >>= 1)                           \
-        {                                                                        \
-            tile[tiX] = operation(tile[tiX], tile[tiX+offset]);                     \
-        }                                                                        \
-        tile[tiX] = operation(tile[tiX], tile[tiX+1]);                           \
+    if (tiX == 0)                                                               \
+    {                                                                           \
+        for (int offset = 0; offset > 1; offset >>= 1)                          \
+        {                                                                       \
+            _tile_arr[tiX] = operation(_tile_arr[tiX], _tile_arr[tiX+offset]);  \
+        }                                                                       \
+        _tile_arr[tiX] = operation(_tile_arr[tiX], _tile_arr[tiX+1]);           \
     }
 
 __kernel void reduce_sum_cl(
@@ -170,7 +170,7 @@ __kernel void reduce_product_cl(
    {  tile[tiX] *= array[giX]; }
    barrier(CLK_LOCAL_MEM_FENCE);
 
-   REDUCE_IN_TILE(PROD);
+   REDUCE_IN_TILE(PROD, tile);
 
    if (tiX == 0)
    {  result[0] = tile[0]; }
@@ -505,7 +505,7 @@ void reduction_sum_within_tile(__local  real  *tile)
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
 
-   REDUCE_IN_TILE(SUM);
+   REDUCE_IN_TILE(SUM, tile);
 
 }
 
@@ -514,7 +514,7 @@ void reduction_sum_int_within_tile(__local  int  *tile)
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
 
-   REDUCE_IN_TILE(SUM_INT);
+   REDUCE_IN_TILE(SUM_INT, tile);
 
 }
 
@@ -523,7 +523,7 @@ void reduction_max_within_tile(__local  real  *tile)
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
 
-   REDUCE_IN_TILE(MAX);
+   REDUCE_IN_TILE(MAX, tile);
 
 }
 
@@ -532,6 +532,6 @@ void reduction_min_within_tile(__local  real  *tile)
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
 
-   REDUCE_IN_TILE(MIN);
+   REDUCE_IN_TILE(MIN, tile);
 
 }
