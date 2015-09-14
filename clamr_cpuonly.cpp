@@ -294,8 +294,8 @@ int main(int argc, char **argv) {
 #ifdef HAVE_GRAPHICS
    do_display_graphics = true;
    set_display_mysize(ncells);
-   set_display_cell_data(&state->H[0]);
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+   set_display_cell_data(&state->H[0]);
    set_display_cell_proc(&mesh->proc[0]);
 
    set_display_window((float)mesh->xmin, (float)mesh->xmax,
@@ -316,6 +316,7 @@ int main(int argc, char **argv) {
       set_graphics_viewmode(view_mode);
 
       init_graphics_output();
+      set_graphics_cell_proc(&mesh->proc[0]);
       write_graphics_info(0,0,0.0,0,0);
       next_graphics_cycle += graphic_outputInterval;
    }
@@ -525,7 +526,7 @@ extern "C" void do_calc(void)
          set_display_viewmode(view_mode);
          set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
          set_display_cell_data(&state->H[0]);
-         set_display_cell_proc(&mesh->proc[0]);
+         set_display_cell_proc(NULL);
       }
       set_display_circle_radius(circle_radius);
       draw_scene();
@@ -547,7 +548,7 @@ extern "C" void do_calc(void)
          set_display_mysize(ncells);
          set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
          set_display_cell_data(&state->H[0]);
-         set_display_cell_proc(&mesh->proc[0]);
+         set_display_cell_proc(NULL);
 #endif
 
          write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);

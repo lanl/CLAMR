@@ -89,8 +89,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 ########### embed source target ###############
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/l7_kernel.inc
-                  COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl l7_kern.cl > l7_kernel.inc
-                  DEPENDS l7_kern.cl ${CMAKE_SOURCE_DIR}/embed_source.pl)
+                  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/embed_source.pl ${CMAKE_CURRENT_SOURCE_DIR}/l7_kern.cl > ${CMAKE_CURRENT_BINARY_DIR}/l7_kernel.inc
+                  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/l7_kern.cl ${CMAKE_CURRENT_SOURCE_DIR}/embed_source.pl)
 add_custom_target(l7_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/l7_kernel.inc)
 
 ########### l7 target ###############

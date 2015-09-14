@@ -238,8 +238,8 @@ endif (NOT OPENGL_FOUND)
 
 # search for Boost
 # this min version isn't correct -- FIXME
-set (BOOST_MIN_VER "1.45.0")
-find_package(Boost ${BOOST_MIN_VER})
+#set (BOOST_MIN_VER "1.45.0")
+#find_package(Boost ${BOOST_MIN_VER})
 
 #message("MPE_LIBRARIES ${MPE_LIBRARIES}")
 #message("MPE_LIBS ${MPE_LIBS}")
@@ -255,55 +255,55 @@ add_definitions(-DHAVE_CONFIG_H)
 # so that we will find config.h
 include_directories("${PROJECT_BINARY_DIR}")
 
-if (EXISTS "mesh" AND IS_DIRECTORY "mesh")
+if (EXISTS "${CMAKE_SOURCE_DIR}/mesh" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/mesh")
    add_subdirectory(mesh)
-endif (EXISTS "mesh" AND IS_DIRECTORY "mesh")
+endif (EXISTS "${CMAKE_SOURCE_DIR}/mesh" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/mesh")
 
-if (EXISTS "s7" AND IS_DIRECTORY "s7")
+if (EXISTS "${CMAKE_SOURCE_DIR}/s7" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/s7")
    add_subdirectory(s7)
-endif (EXISTS "s7" AND IS_DIRECTORY "s7")
+endif (EXISTS "${CMAKE_SOURCE_DIR}/s7" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/s7")
 
-if (EXISTS "l7" AND IS_DIRECTORY "l7")
+if (EXISTS "${CMAKE_SOURCE_DIR}/l7" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/l7")
    add_subdirectory(l7)
-endif (EXISTS "l7" AND IS_DIRECTORY "l7")
+endif (EXISTS "${CMAKE_SOURCE_DIR}/l7" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/l7")
 
-if (EXISTS "graphics" AND IS_DIRECTORY "graphics")
+if (EXISTS "${CMAKE_SOURCE_DIR}/graphics" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/graphics")
    add_subdirectory(graphics)
-endif (EXISTS "graphics" AND IS_DIRECTORY "graphics")
+endif (EXISTS "${CMAKE_SOURCE_DIR}/graphics" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/graphics")
 
-if (EXISTS "timer" AND IS_DIRECTORY "timer")
+if (EXISTS "${CMAKE_SOURCE_DIR}/timer" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/timer")
    add_subdirectory(timer)
-endif (EXISTS "timer" AND IS_DIRECTORY "timer")
+endif (EXISTS "${CMAKE_SOURCE_DIR}/timer" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/timer")
 
-if (EXISTS "memstats" AND IS_DIRECTORY "memstats")
+if (EXISTS "${CMAKE_SOURCE_DIR}/memstats" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/memstats")
    add_subdirectory(memstats)
-endif (EXISTS "memstats" AND IS_DIRECTORY "memstats")
+endif (EXISTS "${CMAKE_SOURCE_DIR}/memstats" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/memstats")
 
 if (OPENCL_FOUND)
-   if (EXISTS "ezcl" AND IS_DIRECTORY "ezcl")
+   if (EXISTS "${CMAKE_SOURCE_DIR}/ezcl" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/ezcl")
       add_subdirectory(ezcl)
-   endif (EXISTS "ezcl" AND IS_DIRECTORY "ezcl")
+   endif (EXISTS "${CMAKE_SOURCE_DIR}/ezcl" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/ezcl")
 endif (OPENCL_FOUND)
 
-if (EXISTS "genmalloc" AND IS_DIRECTORY "genmalloc")
+if (EXISTS "${CMAKE_SOURCE_DIR}/genmalloc" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/genmalloc")
    add_subdirectory(genmalloc)
-endif (EXISTS "genmalloc" AND IS_DIRECTORY "genmalloc")
+endif (EXISTS "${CMAKE_SOURCE_DIR}/genmalloc" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/genmalloc")
 
-if (EXISTS "MallocPlus" AND IS_DIRECTORY "MallocPlus")
+if (EXISTS "${CMAKE_SOURCE_DIR}/MallocPlus" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/MallocPlus")
    add_subdirectory(MallocPlus)
-endif (EXISTS "MallocPlus" AND IS_DIRECTORY "MallocPlus")
+endif (EXISTS "${CMAKE_SOURCE_DIR}/MallocPlus" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/MallocPlus")
 
-if (EXISTS "hash" AND IS_DIRECTORY "hash")
+if (EXISTS "${CMAKE_SOURCE_DIR}/hash" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/hash")
    add_subdirectory(hash)
-endif (EXISTS "hash" AND IS_DIRECTORY "hash")
+endif (EXISTS "${CMAKE_SOURCE_DIR}/hash" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/hash")
 
-if (EXISTS "crux" AND IS_DIRECTORY "crux")
+if (EXISTS "${CMAKE_SOURCE_DIR}/crux" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/crux")
    add_subdirectory(crux)
-endif (EXISTS "crux" AND IS_DIRECTORY "crux")
+endif (EXISTS "${CMAKE_SOURCE_DIR}/crux" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/crux")
 
-if (EXISTS "PowerParser" AND IS_DIRECTORY "PowerParser")
+if (EXISTS "${CMAKE_SOURCE_DIR}/PowerParser" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/PowerParser")
    add_subdirectory(PowerParser)
-endif (EXISTS "PowerParser" AND IS_DIRECTORY "PowerParser")
+endif (EXISTS "${CMAKE_SOURCE_DIR}/PowerParser" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/PowerParser")
 
 ########### embed source target ###############
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/state_kernel.inc

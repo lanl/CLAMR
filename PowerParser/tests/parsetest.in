@@ -1,3 +1,4 @@
+set_case_sensitive
 $m = 0
 $m = ($m +1)
 

@@ -152,9 +152,7 @@ extern "C" void do_calc(void);
 
 enum SUM_TYPE {
    SUM_REGULAR,
-   SUM_KAHAN,
-   SUM_REPROBLAS_DOUBLE_DOUBLE,
-   SUM_REPROBLAS_INDEXEDFP,
+   SUM_KAHAN
 };
 
 

@@ -143,13 +143,13 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 ########### embed source target ###############
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mesh_kernel.inc
-                  COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl mesh_kern.cl > mesh_kernel.inc
-                  DEPENDS mesh_kern.cl ${CMAKE_SOURCE_DIR}/embed_source.pl)
+                  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/embed_source.pl ${CMAKE_CURRENT_SOURCE_DIR}/mesh_kern.cl > ${CMAKE_CURRENT_BINARY_DIR}/mesh_kernel.inc
+                  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mesh_kern.cl ${CMAKE_CURRENT_SOURCE_DIR}/embed_source.pl)
 add_custom_target(mesh_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/mesh_kernel.inc)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/reduce_kernel.inc
-                  COMMAND ${CMAKE_SOURCE_DIR}/embed_source.pl reduce.cl > reduce_kernel.inc
-                  DEPENDS reduce.cl ${CMAKE_SOURCE_DIR}/embed_source.pl)
+                  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/embed_source.pl ${CMAKE_CURRENT_SOURCE_DIR}/reduce.cl > ${CMAKE_CURRENT_BINARY_DIR}/reduce_kernel.inc
+                  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/reduce.cl ${CMAKE_CURRENT_SOURCE_DIR}/embed_source.pl)
 add_custom_target(reduce_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/reduce_kernel.inc)
 
 ########### mesh target ###############
