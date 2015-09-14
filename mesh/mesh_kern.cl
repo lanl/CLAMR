@@ -674,7 +674,7 @@ __kernel void calc_border_cells2_cl(
 }
 
 inline uint scan_warp_exclusive(__local volatile uint *input, const uint idx, const uint lane) {
-    for (int offset = 1; offset < MIN_REDUCE_SYNC_SIZE; offset *= 2)
+    for (int offset = 1; offset < MIN_REDUCE_SYNC_SIZE; offset <<= 1)
     {
         if (lane > (offset - 1)) input[idx] += input[idx - offset];
     }
@@ -683,7 +683,7 @@ inline uint scan_warp_exclusive(__local volatile uint *input, const uint idx, co
 }
 
 inline uint scan_warp_inclusive(__local volatile uint *input, const uint idx, const uint lane) {
-    for (int offset = 1; offset < MIN_REDUCE_SYNC_SIZE; offset *= 2)
+    for (int offset = 1; offset < MIN_REDUCE_SYNC_SIZE; offset <<= 1)
     {
         if (lane > (offset - 1)) input[idx] += input[idx - offset];
     }
@@ -694,7 +694,7 @@ inline uint scan_warp_inclusive(__local volatile uint *input, const uint idx, co
 inline int2 scan_warp_exclusive2(__local volatile int2 *input, const uint idx, const uint lane) {
     int2 zero = 0;
 
-    for (int offset = 1; offset < MIN_REDUCE_SYNC_SIZE; offset *= 2)
+    for (int offset = 1; offset < MIN_REDUCE_SYNC_SIZE; offset <<= 1)
     {
         if (lane > (offset - 1)) input[idx].s01 += input[idx - offset].s01;
     }
@@ -703,7 +703,7 @@ inline int2 scan_warp_exclusive2(__local volatile int2 *input, const uint idx, c
 }
 
 inline int2 scan_warp_inclusive2(__local volatile int2 *input, const uint idx, const uint lane) {
-    for (int offset = 1; offset < MIN_REDUCE_SYNC_SIZE; offset *= 2)
+    for (int offset = 1; offset < MIN_REDUCE_SYNC_SIZE; offset <<= 1)
     {
         if (lane > (offset - 1)) input[idx].s01 += input[idx - offset].s01;
     }
@@ -2930,7 +2930,7 @@ __kernel void rezone_all_cl(
          } // End local stencil version
 
          for (int ii = 0; ii < 4; ii++){
-#ifdef IS_NVIDIA
+#if 1
             switch (order[ii]) {
             case SW:
                 // lower left
