@@ -125,7 +125,7 @@ real MIN(real a, real b)
     }                                                                           \
     if (tiX == 0)                                                               \
     {                                                                           \
-        for (int offset = 0; offset > 1; offset >>= 1)                          \
+        for (int offset = MIN_REDUCE_SYNC_SIZE; offset > 1; offset >>= 1)       \
         {                                                                       \
             _tile_arr[tiX] = operation(_tile_arr[tiX], _tile_arr[tiX+offset]);  \
         }                                                                       \
