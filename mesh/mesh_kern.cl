@@ -1914,8 +1914,8 @@ __kernel void finish_reduction_scan2_cl(
 
 void reduction_minmax_within_tile4(__local  int4  *tile)
 {
-   const unsigned int tiX  = get_local_id(0);
-   const unsigned int ntX  = get_local_size(0);
+    const unsigned int tiX  = get_local_id(0);
+    const unsigned int ntX  = get_local_size(0);
 
     for (int offset=ntX>>1; offset > MIN_REDUCE_SYNC_SIZE; offset >>= 1){
       if (tiX < offset){
@@ -3260,8 +3260,8 @@ __kernel void set_boundary_refinement(
 
 void reduction_sum_int2_within_tile(__local  int2  *itile)
 {
-   const unsigned int tiX  = get_local_id(0);
-   const unsigned int ntX  = get_local_size(0);
+    const unsigned int tiX  = get_local_id(0);
+    const unsigned int ntX  = get_local_size(0);
 
     for (int offset = ntX >> 1; offset > MIN_REDUCE_SYNC_SIZE; offset >>= 1)
     {

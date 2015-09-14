@@ -123,7 +123,7 @@ real MIN(real a, real b)
         }                                                                       \
         barrier(CLK_LOCAL_MEM_FENCE);                                           \
     }                                                                           \
-    if (tiX < 32)                                                               \
+    if (tiX < MIN_REDUCE_SYNC_SIZE)                                             \
     {                                                                           \
         for (int offset = MIN_REDUCE_SYNC_SIZE; offset > 1; offset >>= 1)       \
         {                                                                       \
