@@ -717,7 +717,7 @@ inline uint scan_workgroup_exclusive(
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // Step 2: Collect per-warp sums
-    if (lane == 31) itile[warpID] = itile[tiX];
+    if (lane == (MIN_REDUCE_SYNC_SIZE - 1)) itile[warpID] = itile[tiX];
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // Step 3: Use 1st warp to scan per-warp sums
@@ -746,7 +746,7 @@ inline int2 scan_workgroup_exclusive2(
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // Step 2: Collect per-warp sums
-    if (lane == 31) itile[warpID].s01 = itile[tiX].s01;
+    if (lane == (MIN_REDUCE_SYNC_SIZE - 1)) itile[warpID].s01 = itile[tiX].s01;
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // Step 3: Use 1st warp to scan per-warp sums
@@ -774,8 +774,8 @@ __kernel void finish_scan_cl(
    const uint group_id = get_group_id(0);
    const uint ntX = get_local_size(0);
 
-   const uint lane = tiX & 31; 
-   const uint warpID = tiX >> 5;
+   const uint lane = tiX & (MIN_REDUCE_SYNC_SIZE - 1); 
+   const uint warpID = tiX >> N_BITS_WARP_LENGTH;
    const uint EPT = (size+ntX-1)/ntX; //elements_per_thread;
 
    uint reduceValue = 0;
@@ -832,8 +832,8 @@ __kernel void get_border_data_cl(
    const uint tiX = get_local_id(0);
    const uint group_id = get_group_id(0);
 
-   const uint lane   = tiX & 31; 
-   const uint warpid = tiX >> 5;
+   const uint lane   = tiX & (MIN_REDUCE_SYNC_SIZE - 1); 
+   const uint warpid = tiX >> N_BITS_WARP_LENGTH;
 
    int cell_num = giX-noffset;
 
@@ -849,7 +849,7 @@ __kernel void get_border_data_cl(
    barrier(CLK_LOCAL_MEM_FENCE);
 
    // Step 3: Collect per-warp sums
-   if (lane == 31) itile[warpid] = itile[tiX];
+   if (lane == (MIN_REDUCE_SYNC_SIZE - 1)) itile[warpid] = itile[tiX];
    barrier(CLK_LOCAL_MEM_FENCE);
 
    // Step 4: Use 1st warp to scan per-warp sums
@@ -1344,8 +1344,8 @@ __kernel void get_border_data2_cl(
    const uint tiX = get_local_id(0);
    const uint group_id = get_group_id(0);
 
-   const uint lane   = tiX & 31; 
-   const uint warpid = tiX >> 5;
+   const uint lane   = tiX & (MIN_REDUCE_SYNC_SIZE - 1); 
+   const uint warpid = tiX >> N_BITS_WARP_LENGTH;
 
    // Step 1: load global data into tile
    int temp_val = 0;
@@ -1359,7 +1359,7 @@ __kernel void get_border_data2_cl(
    barrier(CLK_LOCAL_MEM_FENCE);
 
    // Step 3: Collect per-warp sums
-   if (lane == 31) itile[warpid] = itile[tiX];
+   if (lane == (MIN_REDUCE_SYNC_SIZE - 1)) itile[warpid] = itile[tiX];
    barrier(CLK_LOCAL_MEM_FENCE);
 
    // Step 4: Use 1st warp to scan per-warp sums
@@ -1920,8 +1920,8 @@ __kernel void finish_reduction_scan2_cl(
    const uint gID = get_group_id(0);
    const uint ntX = get_local_size(0);
 
-   const uint lane = tiX & 31;
-   const uint warpID = tiX >> 5;
+   const uint lane = tiX & (MIN_REDUCE_SYNC_SIZE - 1);
+   const uint warpID = tiX >> N_BITS_WARP_LENGTH;
    const uint EPT = (isize+ntX-1)/ntX; //elements_per_thread;
    const uint BLOCK_SIZE = EPT * ntX;
 
@@ -2656,8 +2656,8 @@ __kernel void rezone_all_cl(
    uint ntX = get_local_size(0);
    uint group_id = get_group_id(0);
 
-   const uint lane   = tiX & 31;
-   const uint warpid = tiX >> 5;
+   const uint lane   = tiX & (MIN_REDUCE_SYNC_SIZE - 1);
+   const uint warpid = tiX >> N_BITS_WARP_LENGTH;
 
    // Step 1: load global data into tile
    uint indexval=0;
@@ -2691,7 +2691,7 @@ __kernel void rezone_all_cl(
    barrier(CLK_LOCAL_MEM_FENCE);
 
    // Step 3: Collect per-warp sums
-   if (lane == 31) itile[warpid] = itile[tiX];
+   if (lane == (MIN_REDUCE_SYNC_SIZE - 1)) itile[warpid] = itile[tiX];
    barrier(CLK_LOCAL_MEM_FENCE);
 
    // Step 4: Use 1st warp to scan per-warp sums
