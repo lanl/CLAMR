@@ -72,16 +72,16 @@
 #endif
 #endif
 
+#ifdef HAVE_MPI
+#include <mpi.h>
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
 #define OMPI_SKIP_MPICXX 1
-
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
 
 #ifdef HAVE_MPE
 #ifndef HAVE_MPI

@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
 
    state->dev_mpot = NULL;
 
-   if (ezcl_get_compute_device() == COMPUTE_DEVICE_ATI) enhanced_precision_sum = false;
+   if (ezcl_get_compute_device() == COMPUTE_DEVICE_AMD) enhanced_precision_sum = false;
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->gpu_mass_sum(enhanced_precision_sum);
