@@ -99,7 +99,7 @@ void scan ( scanInt *input , scanInt *output , scanInt length);
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
-#define IPOW2(a) (2 << (a))
+#define IPOW2(a) (1 << (a))
 
 #if defined(MINIMUM_PRECISION)
 #define CONSERVATION_EPS    .1
