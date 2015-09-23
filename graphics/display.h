@@ -76,6 +76,10 @@
 #endif
 #endif
 
+#ifdef HAVE_MPI
+#include <mpi.h>
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {

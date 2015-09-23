@@ -502,7 +502,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const char *file, int lin
 
    clGetDeviceInfo(devices[0], CL_DEVICE_VENDOR, sizeof(info), &info, NULL);
    if (! strncmp(info,"NVIDIA",(size_t)6) ) compute_device = COMPUTE_DEVICE_NVIDIA;
-   if (! strncmp(info,"Advanced Micro Devices",(size_t)6) ) compute_device = COMPUTE_DEVICE_ATI;
+   if (! strncmp(info,"Advanced Micro Devices",(size_t)6) ) compute_device = COMPUTE_DEVICE_AMD;
    if (! strncmp(info,"Intel(R) Corporation",(size_t)6) ) compute_device = COMPUTE_DEVICE_INTEL;
    //printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,compute_device);
 
@@ -1417,6 +1417,38 @@ void ezcl_mem_walk_all_p(const char *file, const int line){
    }
 }
 
+char * create_compile_string(void)
+{
+   char * CompileString = calloc(200, sizeof(char));
+
+#ifdef HAVE_CL_DOUBLE
+   strcat(CompileString,"-DHAVE_CL_DOUBLE");
+#else
+   strcat(CompileString,"-DNO_CL_DOUBLE -cl-single-precision-constant");
+#endif
+#ifdef FULL_PRECISION
+   strcat(CompileString," -DFULL_PRECISION");
+#endif
+#ifdef MIXED_PRECISION
+   strcat(CompileString," -DMIXED_PRECISION");
+#endif
+#ifdef MINIMUM_PRECISION
+   strcat(CompileString," -DMINIMUM_PRECISION");
+#endif
+
+   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
+      strcat(CompileString," -DIS_NVIDIA -DMIN_REDUCE_SYNC_SIZE=32 -DN_BITS_WARP_LENGTH=5");
+   }
+   else if (compute_device == COMPUTE_DEVICE_AMD) {
+      strcat(CompileString, " -DIS_AMD -DMIN_REDUCE_SYNC_SIZE=64 -DN_BITS_WARP_LENGTH=6");
+   }
+   else
+   {
+        printf("EZCL_CREATE_KERNEL: Not supporting anything other than AMD or NVIDIA at the moment\n");
+        exit(EXIT_FAILURE);
+   }
+}
+
 cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const char *kernel_name, const char *file, const int line){
    cl_kernel kernel;
    struct stat statbuf;
@@ -1461,29 +1493,11 @@ cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const c
 
    ezcl_malloc_memory_delete(source);
 
-   char CompileString[80];
-   CompileString[0] ='\0';
-
-#ifdef HAVE_CL_DOUBLE
-   strcat(CompileString,"-DHAVE_CL_DOUBLE");
-#else
-   strcat(CompileString,"-DNO_CL_DOUBLE -cl-single-precision-constant");
-#endif
-#ifdef FULL_PRECISION
-   strcat(CompileString," -DFULL_PRECISION");
-#endif
-#ifdef MIXED_PRECISION
-   strcat(CompileString," -DMIXED_PRECISION");
-#endif
-#ifdef MINIMUM_PRECISION
-   strcat(CompileString," -DMINIMUM_PRECISION");
-#endif
-
-   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
-      strcat(CompileString," -DIS_NVIDIA");
-   }
+   char * CompileString = create_compile_string();
 
    ierr = clBuildProgram(program, 0, NULL, CompileString, NULL, NULL);
+
+   free(CompileString);
 
    if (ierr != CL_SUCCESS){
       printf("EZCL_CREATE_KERNEL: clBuildProgram returned an error %d in file %s at line %d\n",ierr, file, line);
@@ -1616,29 +1630,11 @@ cl_kernel ezcl_create_kernel_wsource_p(cl_context context, const char *source, c
      }
    }
 
-   char CompileString[80];
-   CompileString[0] ='\0';
-
-#ifdef HAVE_CL_DOUBLE
-   strcat(CompileString,"-DHAVE_CL_DOUBLE");
-#else
-   strcat(CompileString,"-DNO_CL_DOUBLE -cl-single-precision-constant");
-#endif
-#ifdef FULL_PRECISION
-   strcat(CompileString," -DFULL_PRECISION");
-#endif
-#ifdef MIXED_PRECISION
-   strcat(CompileString," -DMIXED_PRECISION");
-#endif
-#ifdef MINIMUM_PRECISION
-   strcat(CompileString," -DMINIMUM_PRECISION");
-#endif
-
-   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
-      strcat(CompileString," -DIS_NVIDIA");
-   }
+   char * CompileString = create_compile_string();
 
    ierr = clBuildProgram(program, 0, NULL, CompileString, NULL, NULL);
+
+   free(CompileString);
 
    if (ierr != CL_SUCCESS){
       printf("EZCL_CREATE_KERNEL_WSOURCE: clBuildProgram returned an error %d in file %s at line %d\n",ierr, file, line);
@@ -1771,30 +1767,7 @@ cl_program ezcl_create_program_wsource_p(cl_context context, const char *defines
      }
    }
 
-   int define_length = 63;
-   if (defines != NULL) define_length = strlen(defines)+63;
-   char *CompileString = (char *)malloc( define_length*sizeof(char) );
-   CompileString[0]='\0';
-   if (defines != NULL) strcat(CompileString, defines);
-
-#ifdef HAVE_CL_DOUBLE
-   strcat(CompileString, " -DHAVE_CL_DOUBLE");
-#else
-   strcat(CompileString, "-DNO_CL_DOUBLE -cl-single-precision-constant");
-#endif
-#ifdef FULL_PRECISION
-   strcat(CompileString, " -DFULL_PRECISION");
-#endif
-#ifdef MIXED_PRECISION
-   strcat(CompileString, " -DMIXED_PRECISION");
-#endif
-#ifdef MINIMUM_PRECISION
-   strcat(CompileString, " -DMINIMUM_PRECISION");
-#endif
-
-   if (compute_device == COMPUTE_DEVICE_NVIDIA) {
-      strcat(CompileString, " -DIS_NVIDIA");
-   }
+   char * CompileString = create_compile_string();
 
    //printf("DEBUG file %s line %d CompileString %s\n",__FILE__,__LINE__,CompileString);
    ierr = clBuildProgram(program, 0, NULL, CompileString, NULL, NULL);

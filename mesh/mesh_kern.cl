@@ -115,6 +115,9 @@ int is_lower_right(int i, int j) { return(i % 2 == 1 && j % 2 == 0); }
 int is_upper_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 1); }
 int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
 
+void reduction_sum_int_within_tile(__local  int  *itile);
+void reduction_sum_int2_within_tile(__local  int2  *itile);
+
 #define hashval(j,i) hash[(j)*imaxsize+(i)]
 #define hashval_local(j,i) hash[(j)*(imaxsize-iminsize)+(i)]
 
@@ -557,6 +560,31 @@ __kernel void calc_border_cells_cl(
    border_cell_out[giX] = border_cell;
 }
 
+int SUM_INT(int a, int b)
+{
+    return a + b;
+}
+
+// XXX local barrier is required here in the inner loop...I'm not sure why. It's not required in some other bits of code which do the same thing
+#define REDUCE_IN_TILE(operation, _tile_arr)                                    \
+    for (int offset = ntX >> 1; offset > MIN_REDUCE_SYNC_SIZE; offset >>= 1)    \
+    {                                                                           \
+        if (tiX < offset)                                                       \
+        {                                                                       \
+            _tile_arr[tiX] = operation(_tile_arr[tiX], _tile_arr[tiX+offset]);  \
+        }                                                                       \
+        barrier(CLK_LOCAL_MEM_FENCE);                                           \
+    }                                                                           \
+    if (tiX < MIN_REDUCE_SYNC_SIZE)                                             \
+    {                                                                           \
+        for (int offset = MIN_REDUCE_SYNC_SIZE; offset > 1; offset >>= 1)       \
+        {                                                                       \
+            _tile_arr[tiX] = operation(_tile_arr[tiX], _tile_arr[tiX+offset]);  \
+            barrier(CLK_LOCAL_MEM_FENCE);                                       \
+        }                                                                       \
+        _tile_arr[tiX] = operation(_tile_arr[tiX], _tile_arr[tiX+1]);           \
+    }
+
 __kernel void calc_border_cells2_cl(
                           const int   isize,            // 0
                           const int   noffset,          // 1
@@ -635,26 +663,7 @@ __kernel void calc_border_cells2_cl(
 
    barrier(CLK_LOCAL_MEM_FENCE);
 
-   for (int offset = ntX >> 1; offset > 32; offset >>= 1) { 
-      if (tiX < offset) {
-         itile[tiX] += itile[tiX+offset]; 
-      }    
-      barrier(CLK_LOCAL_MEM_FENCE);
-   }    
-
-   //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
-   if (tiX < 32)
-   {  itile[tiX] += itile[tiX+32];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+16];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+8];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+4];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+2];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+1]; }
+   reduction_sum_int_within_tile(itile);
 
    if (tiX == 0) { 
      ioffset[group_id] = itile[0];
@@ -665,42 +674,39 @@ __kernel void calc_border_cells2_cl(
 }
 
 inline uint scan_warp_exclusive(__local volatile uint *input, const uint idx, const uint lane) {
-    if (lane > 0 ) input[idx] += input[idx - 1];
-    if (lane > 1 ) input[idx] += input[idx - 2];
-    if (lane > 3 ) input[idx] += input[idx - 4];
-    if (lane > 7 ) input[idx] += input[idx - 8];
-    if (lane > 15) input[idx] += input[idx - 16];
+    for (int offset = 1; offset < MIN_REDUCE_SYNC_SIZE; offset <<= 1)
+    {
+        if (lane > (offset - 1)) input[idx] += input[idx - offset];
+    }
 
     return (lane > 0) ? input[idx-1] : 0;
 }
 
 inline uint scan_warp_inclusive(__local volatile uint *input, const uint idx, const uint lane) {
-    if (lane > 0 ) input[idx] += input[idx - 1];
-    if (lane > 1 ) input[idx] += input[idx - 2];
-    if (lane > 3 ) input[idx] += input[idx - 4];
-    if (lane > 7 ) input[idx] += input[idx - 8];
-    if (lane > 15) input[idx] += input[idx - 16];
+    for (int offset = 1; offset < MIN_REDUCE_SYNC_SIZE; offset <<= 1)
+    {
+        if (lane > (offset - 1)) input[idx] += input[idx - offset];
+    }
 
     return input[idx];
 }
 
 inline int2 scan_warp_exclusive2(__local volatile int2 *input, const uint idx, const uint lane) {
     int2 zero = 0;
-    if (lane > 0 ) input[idx].s01 += input[idx - 1].s01;
-    if (lane > 1 ) input[idx].s01 += input[idx - 2].s01;
-    if (lane > 3 ) input[idx].s01 += input[idx - 4].s01;
-    if (lane > 7 ) input[idx].s01 += input[idx - 8].s01;
-    if (lane > 15) input[idx].s01 += input[idx - 16].s01;
+
+    for (int offset = 1; offset < MIN_REDUCE_SYNC_SIZE; offset <<= 1)
+    {
+        if (lane > (offset - 1)) input[idx].s01 += input[idx - offset].s01;
+    }
 
     return (lane > 0) ? input[idx-1].s01 : zero;
 }
 
 inline int2 scan_warp_inclusive2(__local volatile int2 *input, const uint idx, const uint lane) {
-    if (lane > 0 ) input[idx].s01 += input[idx - 1].s01;
-    if (lane > 1 ) input[idx].s01 += input[idx - 2].s01;
-    if (lane > 3 ) input[idx].s01 += input[idx - 4].s01;
-    if (lane > 7 ) input[idx].s01 += input[idx - 8].s01;
-    if (lane > 15) input[idx].s01 += input[idx - 16].s01;
+    for (int offset = 1; offset < MIN_REDUCE_SYNC_SIZE; offset <<= 1)
+    {
+        if (lane > (offset - 1)) input[idx].s01 += input[idx - offset].s01;
+    }
 
     return input[idx].s01;
 }
@@ -716,7 +722,7 @@ inline uint scan_workgroup_exclusive(
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // Step 2: Collect per-warp sums
-    if (lane == 31) itile[warpID] = itile[tiX];
+    if (lane == (MIN_REDUCE_SYNC_SIZE - 1)) itile[warpID] = itile[tiX];
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // Step 3: Use 1st warp to scan per-warp sums
@@ -745,7 +751,7 @@ inline int2 scan_workgroup_exclusive2(
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // Step 2: Collect per-warp sums
-    if (lane == 31) itile[warpID].s01 = itile[tiX].s01;
+    if (lane == (MIN_REDUCE_SYNC_SIZE - 1)) itile[warpID].s01 = itile[tiX].s01;
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // Step 3: Use 1st warp to scan per-warp sums
@@ -773,8 +779,8 @@ __kernel void finish_scan_cl(
    const uint group_id = get_group_id(0);
    const uint ntX = get_local_size(0);
 
-   const uint lane = tiX & 31; 
-   const uint warpID = tiX >> 5;
+   const uint lane = tiX & (MIN_REDUCE_SYNC_SIZE - 1); 
+   const uint warpID = tiX >> N_BITS_WARP_LENGTH;
    const uint EPT = (size+ntX-1)/ntX; //elements_per_thread;
 
    uint reduceValue = 0;
@@ -831,8 +837,8 @@ __kernel void get_border_data_cl(
    const uint tiX = get_local_id(0);
    const uint group_id = get_group_id(0);
 
-   const uint lane   = tiX & 31; 
-   const uint warpid = tiX >> 5;
+   const uint lane   = tiX & (MIN_REDUCE_SYNC_SIZE - 1); 
+   const uint warpid = tiX >> N_BITS_WARP_LENGTH;
 
    int cell_num = giX-noffset;
 
@@ -848,7 +854,7 @@ __kernel void get_border_data_cl(
    barrier(CLK_LOCAL_MEM_FENCE);
 
    // Step 3: Collect per-warp sums
-   if (lane == 31) itile[warpid] = itile[tiX];
+   if (lane == (MIN_REDUCE_SYNC_SIZE - 1)) itile[warpid] = itile[tiX];
    barrier(CLK_LOCAL_MEM_FENCE);
 
    // Step 4: Use 1st warp to scan per-warp sums
@@ -1296,26 +1302,7 @@ __kernel void calc_layer2_cl (
 
    barrier(CLK_LOCAL_MEM_FENCE);
 
-   for (int offset = ntX >> 1; offset > 32; offset >>= 1) { 
-      if (tiX < offset) {
-         itile[tiX] += itile[tiX+offset]; 
-      }    
-      barrier(CLK_LOCAL_MEM_FENCE);
-   }    
-
-   //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
-   if (tiX < 32)
-   {  itile[tiX] += itile[tiX+32];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+16];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+8];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+4];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+2];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+1]; }
+   reduction_sum_int_within_tile(itile);
 
    if (tiX == 0) { 
      ioffset[group_id] = itile[0];
@@ -1343,8 +1330,8 @@ __kernel void get_border_data2_cl(
    const uint tiX = get_local_id(0);
    const uint group_id = get_group_id(0);
 
-   const uint lane   = tiX & 31; 
-   const uint warpid = tiX >> 5;
+   const uint lane   = tiX & (MIN_REDUCE_SYNC_SIZE - 1); 
+   const uint warpid = tiX >> N_BITS_WARP_LENGTH;
 
    // Step 1: load global data into tile
    int temp_val = 0;
@@ -1358,7 +1345,7 @@ __kernel void get_border_data2_cl(
    barrier(CLK_LOCAL_MEM_FENCE);
 
    // Step 3: Collect per-warp sums
-   if (lane == 31) itile[warpid] = itile[tiX];
+   if (lane == (MIN_REDUCE_SYNC_SIZE - 1)) itile[warpid] = itile[tiX];
    barrier(CLK_LOCAL_MEM_FENCE);
 
    // Step 4: Use 1st warp to scan per-warp sums
@@ -1834,26 +1821,7 @@ __kernel void finish_reduction_count2_cl(
 
    barrier(CLK_LOCAL_MEM_FENCE);
 
-   for (int offset=ntX>>1; offset > 32; offset >>= 1){
-      if (tiX < offset){
-        itile[tiX].s01 += itile[tiX+offset].s01;
-      }
-      barrier(CLK_LOCAL_MEM_FENCE);
-   }
-
-   if (tiX < 32){
-      itile[tiX].s01 += itile[tiX+32].s01;
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX].s01 += itile[tiX+16].s01;
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX].s01 += itile[tiX+8].s01;
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX].s01 += itile[tiX+4].s01;
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX].s01 += itile[tiX+2].s01;
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX].s01 += itile[tiX+1].s01;
-   }
+   reduction_sum_int2_within_tile(itile);
 
    if (tiX == 0) {
      redscratch[0].s01 = itile[0].s01;
@@ -1882,26 +1850,7 @@ __kernel void finish_reduction_count_cl(
 
    barrier(CLK_LOCAL_MEM_FENCE);
 
-   for (int offset=ntX>>1; offset > 32; offset >>= 1){
-      if (tiX < offset){
-        itile[tiX] += itile[tiX+offset];
-      }
-      barrier(CLK_LOCAL_MEM_FENCE);
-   }
-
-   if (tiX < 32){
-      itile[tiX] += itile[tiX+32];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+16];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+8];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+4];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+2];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+1];
-   }
+   reduction_sum_int_within_tile(itile);
 
    if (tiX == 0) {
      redscratch[0] = itile[0];
@@ -1919,8 +1868,8 @@ __kernel void finish_reduction_scan2_cl(
    const uint gID = get_group_id(0);
    const uint ntX = get_local_size(0);
 
-   const uint lane = tiX & 31;
-   const uint warpID = tiX >> 5;
+   const uint lane = tiX & (MIN_REDUCE_SYNC_SIZE - 1);
+   const uint warpID = tiX >> N_BITS_WARP_LENGTH;
    const uint EPT = (isize+ntX-1)/ntX; //elements_per_thread;
    const uint BLOCK_SIZE = EPT * ntX;
 
@@ -1965,10 +1914,10 @@ __kernel void finish_reduction_scan2_cl(
 
 void reduction_minmax_within_tile4(__local  int4  *tile)
 {
-   const unsigned int tiX  = get_local_id(0);
-   const unsigned int ntX  = get_local_size(0);
+    const unsigned int tiX  = get_local_id(0);
+    const unsigned int ntX  = get_local_size(0);
 
-    for (int offset=ntX>>1; offset > 32; offset >>= 1){
+    for (int offset=ntX>>1; offset > MIN_REDUCE_SYNC_SIZE; offset >>= 1){
       if (tiX < offset){
         if (tile[tiX+offset].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+offset].s0;
         if (tile[tiX+offset].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+offset].s1;
@@ -1978,41 +1927,21 @@ void reduction_minmax_within_tile4(__local  int4  *tile)
       barrier(CLK_LOCAL_MEM_FENCE);
     }
 
-    if (tiX < 32){
-      if (tile[tiX+32].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+32].s0;
-      if (tile[tiX+32].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+32].s1;
-      if (tile[tiX+32].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+32].s2;
-      if (tile[tiX+32].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+32].s3;
-      barrier(CLK_LOCAL_MEM_FENCE);
+    if (tiX < MIN_REDUCE_SYNC_SIZE)
+    {
+        for (int offset = MIN_REDUCE_SYNC_SIZE; offset > 1; offset >>= 1)
+        {
+            if (tile[tiX + offset].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX + offset].s0;
+            if (tile[tiX + offset].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX + offset].s1;
+            if (tile[tiX + offset].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX + offset].s2;
+            if (tile[tiX + offset].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX + offset].s3;
+            barrier(CLK_LOCAL_MEM_FENCE);
+        }
 
-      if (tile[tiX+16].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+16].s0;
-      if (tile[tiX+16].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+16].s1;
-      if (tile[tiX+16].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+16].s2;
-      if (tile[tiX+16].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+16].s3;
-      barrier(CLK_LOCAL_MEM_FENCE);
-
-      if (tile[tiX+8].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+8].s0;
-      if (tile[tiX+8].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+8].s1;
-      if (tile[tiX+8].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+8].s2;
-      if (tile[tiX+8].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+8].s3;
-      barrier(CLK_LOCAL_MEM_FENCE);
-
-      if (tile[tiX+4].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+4].s0;
-      if (tile[tiX+4].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+4].s1;
-      if (tile[tiX+4].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+4].s2;
-      if (tile[tiX+4].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+4].s3;
-      barrier(CLK_LOCAL_MEM_FENCE);
-
-      if (tile[tiX+2].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+2].s0;
-      if (tile[tiX+2].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+2].s1;
-      if (tile[tiX+2].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+2].s2;
-      if (tile[tiX+2].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+2].s3;
-      barrier(CLK_LOCAL_MEM_FENCE);
-
-      if (tile[tiX+1].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX+1].s0;
-      if (tile[tiX+1].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX+1].s1;
-      if (tile[tiX+1].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX+1].s2;
-      if (tile[tiX+1].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX+1].s3;
+        if (tile[tiX + 1].s0 < tile[tiX].s0) tile[tiX].s0 = tile[tiX + 1].s0;
+        if (tile[tiX + 1].s1 > tile[tiX].s1) tile[tiX].s1 = tile[tiX + 1].s1;
+        if (tile[tiX + 1].s2 < tile[tiX].s2) tile[tiX].s2 = tile[tiX + 1].s2;
+        if (tile[tiX + 1].s3 > tile[tiX].s3) tile[tiX].s3 = tile[tiX + 1].s3;
     }
 }
 
@@ -2048,6 +1977,7 @@ __kernel void calc_hash_size_cl(
    tile[tiX].s3 =(j[giX]+1)*levtable[levmx-lev]-1; // jmaxcalc
 
    barrier(CLK_LOCAL_MEM_FENCE);
+
    reduction_minmax_within_tile4(tile);
 
    //  Write the local value back to an array size of the number of groups
@@ -2429,26 +2359,7 @@ __kernel void refine_smooth_cl(
 
    barrier(CLK_LOCAL_MEM_FENCE);
 
-   for (int offset = ntX >> 1; offset > 32; offset >>= 1) {
-      if (tiX < offset) {
-         itile[tiX] += itile[tiX+offset]; 
-      }
-      barrier(CLK_LOCAL_MEM_FENCE);
-   }
-
-   //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
-   if (tiX < 32)
-   {  itile[tiX] += itile[tiX+32];
-      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-      itile[tiX] += itile[tiX+16];
-      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-      itile[tiX] += itile[tiX+8];
-      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-      itile[tiX] += itile[tiX+4];
-      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-      itile[tiX] += itile[tiX+2];
-      barrier(CLK_LOCAL_MEM_FENCE);         /* Fix for Cuda 4.1 */
-      itile[tiX] += itile[tiX+1]; }
+   reduction_sum_int_within_tile(itile);
 
    if (tiX == 0) {
      redscratch[group_id] = itile[0];
@@ -2599,27 +2510,7 @@ __kernel void coarsen_check_block_cl(
 
    barrier(CLK_LOCAL_MEM_FENCE);
 
-   for (int offset = ntX >> 1; offset > 32; offset >>= 1) {
-      if (tiX < offset) {
-         itile[tiX] += itile[tiX+offset];
-      }
-      barrier(CLK_LOCAL_MEM_FENCE);
-   }
-
-   //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
-   if (tiX < 32) {
-      itile[tiX] += itile[tiX+32];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+16];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+8];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+4];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+2];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX] += itile[tiX+1];
-   }
+   reduction_sum_int_within_tile(itile);
 
    if (tiX == 0) {
      redscratch[group_id] = itile[0];
@@ -2655,8 +2546,8 @@ __kernel void rezone_all_cl(
    uint ntX = get_local_size(0);
    uint group_id = get_group_id(0);
 
-   const uint lane   = tiX & 31;
-   const uint warpid = tiX >> 5;
+   const uint lane   = tiX & (MIN_REDUCE_SYNC_SIZE - 1);
+   const uint warpid = tiX >> N_BITS_WARP_LENGTH;
 
    // Step 1: load global data into tile
    uint indexval=0;
@@ -2690,7 +2581,7 @@ __kernel void rezone_all_cl(
    barrier(CLK_LOCAL_MEM_FENCE);
 
    // Step 3: Collect per-warp sums
-   if (lane == 31) itile[warpid] = itile[tiX];
+   if (lane == (MIN_REDUCE_SYNC_SIZE - 1)) itile[warpid] = itile[tiX];
    barrier(CLK_LOCAL_MEM_FENCE);
 
    // Step 4: Use 1st warp to scan per-warp sums
@@ -3039,7 +2930,7 @@ __kernel void rezone_all_cl(
          } // End local stencil version
 
          for (int ii = 0; ii < 4; ii++){
-#ifdef IS_NVIDIA
+#if 1
             switch (order[ii]) {
             case SW:
                 // lower left
@@ -3354,27 +3245,7 @@ __kernel void set_boundary_refinement(
 
    barrier(CLK_LOCAL_MEM_FENCE);
 
-   for (int offset = ntX >> 1; offset > 32; offset >>= 1) {
-      if (tiX < offset) {
-         itile[tiX].s01 += itile[tiX+offset].s01;
-      }
-      barrier(CLK_LOCAL_MEM_FENCE);
-   }
-
-   //  Unroll the remainder of the loop as 32 threads must proceed in lockstep.
-   if (tiX < 32) {
-      itile[tiX].s01 += itile[tiX+32].s01;
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX].s01 += itile[tiX+16].s01;
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX].s01 += itile[tiX+8].s01;
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX].s01 += itile[tiX+4].s01;
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX].s01 += itile[tiX+2].s01;
-      barrier(CLK_LOCAL_MEM_FENCE);
-      itile[tiX].s01 += itile[tiX+1].s01;
-   }
+   reduction_sum_int2_within_tile(itile);
 
    if (tiX == 0) {
      redscratch[gID].s01 = itile[0].s01;
@@ -3387,27 +3258,36 @@ __kernel void set_boundary_refinement(
    }
 }
 
-void reduction_sum_int_within_tile(__local  int  *tile)
+void reduction_sum_int2_within_tile(__local  int2  *itile)
+{
+    const unsigned int tiX  = get_local_id(0);
+    const unsigned int ntX  = get_local_size(0);
+
+    for (int offset = ntX >> 1; offset > MIN_REDUCE_SYNC_SIZE; offset >>= 1)
+    {
+        if (tiX < offset)
+        {
+            itile[tiX].s01 += itile[tiX+offset].s01;
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    if (tiX < MIN_REDUCE_SYNC_SIZE)
+    {
+        for (int offset = MIN_REDUCE_SYNC_SIZE; offset > 1; offset >>= 1)
+        {
+            itile[tiX].s01 += itile[tiX+offset].s01;
+            barrier(CLK_LOCAL_MEM_FENCE);
+        }
+        itile[tiX].s01 += itile[tiX+1].s01;
+    }
+}
+
+void reduction_sum_int_within_tile(__local  int  *itile)
 {
    const unsigned int tiX  = get_local_id(0);
    const unsigned int ntX  = get_local_size(0);
 
-    for (int offset=ntX>>1; offset > 32; offset >>= 1){
-      if (tiX < offset){
-        tile[tiX] += tile[tiX+offset];
-      }
-      barrier(CLK_LOCAL_MEM_FENCE);
-    }
-
-    if (tiX < 32){
-      tile[tiX] += tile[tiX+32];
-      tile[tiX] += tile[tiX+16];
-      tile[tiX] += tile[tiX+8];
-      tile[tiX] += tile[tiX+4];
-      tile[tiX] += tile[tiX+2];
-      tile[tiX] += tile[tiX+1];
-    }
-
+   REDUCE_IN_TILE(SUM_INT, itile);
 }
 
 __kernel void count_BCs_cl(

@@ -89,7 +89,7 @@ typedef cl_float4 cl_real4;
 #define EZCL_MANAGED_MEMORY  0x0002
 
 #define COMPUTE_DEVICE_NVIDIA   1
-#define COMPUTE_DEVICE_ATI      2
+#define COMPUTE_DEVICE_AMD      2
 #define COMPUTE_DEVICE_INTEL    3
 
 #ifdef __cplusplus
