@@ -1066,7 +1066,7 @@ bool PowerParser::end_do_loop(int &i, deque<int> &do_start,
         if (stop_checking) break;
     }
 
-    // If the matching enddo was not found then that is a fata error.
+    // If the matching enddo was not found then that is a fatal error.
     int nlevels = (int)do_start.size();
     if (cdex == -1) {
         if (nlevels > 0) {
@@ -2667,7 +2667,7 @@ void PowerParser::list_cmdsf(string lc1, string lc2)
         cout << ssc.str();
     }
 }
-    
+
 void PowerParser::list_cmdsf_start()
 {
     ssfout.str("");
