@@ -1369,7 +1369,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       cl_context context = ezcl_get_context();
 
       hash_lib_init();
-      printf("Starting compile of kernels in mesh\n");
+      if (mype == 0) printf("Starting compile of kernels in mesh\n");
       char *bothsources = (char *)malloc(strlen(mesh_kern_source)+strlen(get_hash_kernel_source_string())+1);
       strcpy(bothsources, get_hash_kernel_source_string());
       strcat(bothsources, mesh_kern_source);
@@ -1429,7 +1429,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       }
 
       ezcl_program_release(program);
-      printf("Finishing compile of kernels in mesh\n");
+      if (mype == 0) printf("Finishing compile of kernels in mesh\n");
 #endif
    }
 

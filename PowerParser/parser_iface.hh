@@ -155,7 +155,6 @@ void FC_FUNC(cmd_set_processed,CMD_SET_PROCESSED)(char *cmdname, int *cmdlen,
 
 void FC_FUNC(list_functions_start,LIST_FUNCTIONS_START)();
 void FC_FUNC(list_variables_start,LIST_VARIABLES_START)();
-void FC_FUNC(log_final_buffer,LOG_FINAL_BUFFER)();
 void FC_FUNC(echo_ui_start,ECHO_UI_START)();
 void FC_FUNC(echo_final_buffer,ECHO_FINAL_BUFFER)();
 void FC_FUNC(echo_wt_final_buffer,ECHO_WT_FINAL_BUFFER)();
