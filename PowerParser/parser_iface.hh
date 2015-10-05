@@ -54,7 +54,7 @@ void FC_FUNC(parser_comm_info,PARSER_COMM_INFO)(int *mype,
 
 void FC_FUNC(parser_create,PARSER_CREATE)(char *oargs, int *len,
                                           char *fname, int *fname_len);
-void FC_FUNC(parser_compile_buffer,PARSER_COMPILE_BUFFER)();
+void FC_FUNC(parser_compile_buffer,PARSER_COMPILE_BUFFER)(int &return_value);
 void FC_FUNC(parser_recreate,PARSER_RECREATE)();
 void FC_FUNC(parser_destroy,PARSER_DESTROY)();
 
@@ -145,7 +145,7 @@ void FC_FUNC(get_size6,GET_SIZE6)(char *cmdname, int *size1,
                                   int *size5, int *size6, int *len);
 
 
-void FC_FUNC(process_error_final,PROCESS_ERROR_FINAL)();
+void FC_FUNC(process_error_final,PROCESS_ERROR_FINAL)(int &return_value);
 void FC_FUNC(check_processed,CHECK_PROCESSED)(int *good_int);
 void FC_FUNC(cmd_in_input,CMD_IN_INPUT)(char *cmdname, int *cmdlen,
                                         int *in_input_i, int *in_whenthen_i);

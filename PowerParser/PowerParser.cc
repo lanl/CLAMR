@@ -353,9 +353,9 @@ void PowerParser::clear_and_init()
     // the restart block info from the dump.
 
     //for (int i=0; i<(int)bnames_on_dump.size(); i++) {
-    //    cout << "&&&&&cw Parse.cc, clear_and_init, bnames_on_dump = " <<
+    //    cout << "&&&&&cw PowerParser.cc, clear_and_init, bnames_on_dump = " <<
     //        bnames_on_dump[i] << endl;
-    //    cout << "&&&&&cw Parse.cc, clear_and_init, baflags_on_dump = " <<
+    //    cout << "&&&&&cw PowerParser.cc, clear_and_init, baflags_on_dump = " <<
     //        baflags_on_dump[i] << endl;
     //}
 
@@ -385,7 +385,7 @@ void PowerParser::echo_input_ss(stringstream &ssinp)
 // The input file(s) has been read and put into commands. Now do the
 // compilation phase.
 // ===========================================================================
-void PowerParser::compile_buffer()
+void PowerParser::compile_buffer(int &return_value)
 {
     // At this point, the list of variables only contains the pre-defined
     // parser variables, thus if we list the variables at this point we will
@@ -394,6 +394,11 @@ void PowerParser::compile_buffer()
     string lv1 = "********** List of pre-defined parser variables";
     string lv2 = "********** End list of pre-defined parser variables";
     list_vars_ss(lv1, lv2, "", pre_defined_varss);
+
+    int return_local;
+
+    return_local =-1;
+    return_value = 0;
 
     // Handle single line (! and //) comments and multi line
     // comments (/* ... */)
@@ -410,7 +415,13 @@ void PowerParser::compile_buffer()
     for (int i=0; i<(int)cmds.size(); i++) {
         cmds[i].handle_quotes(serr, ierr);
     }
-    process_error(serr, ierr);
+    return_local = process_error_return_int(serr, ierr);
+    return_value = return_local;
+
+    if (return_local > 0) {
+       cout << "handle quotes gave error " << ierr << endl;
+       if (return_local > 1) return;
+    }
 
     // Remove empty lines.
     for (int i=0; i<(int)cmds.size(); i++) {
@@ -476,7 +487,12 @@ void PowerParser::compile_buffer()
             continue;
         }            
     }
-    process_error(serr, ierr);
+    return_local = process_error_return_int(serr, ierr);
+
+    if (return_local > 0) {
+       cout << "handle variable dimension statement has error " << ierr << endl;
+       if (return_local > 1) return;
+    }
 
     // Combine things like "end if" into one word, i.e. "endif".
     for (int i=0; i<(int)cmds.size(); i++) {
@@ -505,8 +521,13 @@ void PowerParser::compile_buffer()
         }
         cmds[i].deprecated_input01(action, serr, ierr);
     }
-    process_error(serr, ierr);
 
+    return_local = process_error_return_int(serr, ierr);
+    return_value = return_local;
+    if (return_local > 0) {
+       cout << "handle space between digits has error " << ierr << endl;
+       if (return_local > 1) return;
+    }
 
 
     // This is the main loop where most everything is done.
@@ -565,7 +586,6 @@ void PowerParser::compile_buffer()
                         serr << "Restart block names must be unique." << endl;
                         serr << "Non unique name = " << rbi_name << endl;
                         ierr = 2;
-                        //process_error();
                     }
                 }
             }
@@ -592,6 +612,13 @@ void PowerParser::compile_buffer()
             }
             continue;
         }
+
+        return_local = ierr;
+        return_value = return_local;
+        if (return_local > 0) {
+           if (return_local > 1) return;
+        }
+     
 
 
         // List variables, functions, etc.
@@ -641,7 +668,15 @@ void PowerParser::compile_buffer()
                      << endl << "matching endwhen command." << endl;
                 ierr = 2;
             }
-            continue;
+            return_local = ierr;
+            if (return_local > return_value) {
+               return_value = return_local;
+            }
+            if (return_local > 0) {
+                 cout << "handle endwhen " << ierr << endl;
+                 return;
+             }
+             continue;
         }
 
 
@@ -658,6 +693,13 @@ void PowerParser::compile_buffer()
         cmdi.handle_do(skip, do_start, cdex, end_do, serr, ierr2);
         if (ierr2 == 2) {
             ierr = 2;
+            return_local = ierr;
+            if (return_local > return_value) {
+               return_value = return_local;
+            }
+            if (return_local > 0) {
+                 cout << "handle endwhen " << ierr << endl;
+             }
             break;
         }
         if (end_do) {
@@ -674,14 +716,26 @@ void PowerParser::compile_buffer()
                                 serr, ierr);
         if (go_to_call) {
             end_do_ret(i, do_start, serr, ierr);
-            jump_to_call(i, icall, isub, serr, ierr);
+            return_local = jump_to_call(i, icall, isub, serr, ierr);
+            if (return_local > return_value) {
+               return_value = return_local;
+            }
+            if (return_local > 0) {
+                 cout << "jump_to_call error " << ierr << endl;
+             }
             continue;
         }
 
         if (go_to_sub) {
             icall.push_back(i);
-            jump_to_sub(i, sub_name, serr, ierr);
+            return_local = jump_to_sub(i, sub_name, serr, ierr);
             isub.push_back(i);
+            if (return_local > return_value) {
+               return_value = return_local;
+            }
+            if (return_local > 0) {
+                 cout << "jump_to_sub error " << ierr << endl;
+             }
             continue;
         }
 
@@ -700,7 +754,16 @@ void PowerParser::compile_buffer()
         if (cmdi.check_input_end(kill_run, serr, ierr)) {
             // Killing the calculation will be done, for example, if the user
             // issues a fatal_error command.
-            if (kill_run) process_error(serr, ierr);
+            if (kill_run) {
+                return_local = process_error_return_int(serr, ierr);
+               if (return_local > return_value) {
+                   return_value = return_local;
+               }
+               if (return_local > 0) {
+                    cout << "handle endwhen " << ierr << endl;
+                    if (return_local > 1) return;
+                }
+            }
             
             // Clear out all do's so we don't get an error about unmatched
             // do/enddo.
@@ -737,9 +800,16 @@ void PowerParser::compile_buffer()
     check_enddo(do_start, serr, ierr);
 
     // Print error messages and terminate if fatal.
-    process_error(serr, ierr);
+    return_local = process_error_return_int(serr, ierr);
+    if (return_local > return_value) {
+        return_value = return_local;
+    }
+    if (return_local > 0) {
+        return_value = return_local;
+        cout << "handle enddo is wrong with err " << ierr << endl;
+        if (return_local > 1) return;
+    }
 
-        
     // Set the processed flag in every word in every command to be false.
     // At the end of parsing, if any word has not been processed in some way,
     // then that is a fatal error.
@@ -754,7 +824,15 @@ void PowerParser::compile_buffer()
     // Check and print duplicate scalar commands.
     // Remove duplicate scalar commands.
     // Process the duplicate_array_values command.
-    process_dav_cmd();
+    return_local = process_dav_cmd();
+    if (return_local > return_value) {
+        return_value = return_local;
+    }
+    if (return_local > 0) {
+        if (comm->isIOProc()) {
+           cout << "Checked for  duplicate arrays and error is " << return_local << endl;
+        }
+    }
     //check_duplicates();
 
     // Debug: print each of the final commands to the screen.
@@ -784,6 +862,10 @@ void PowerParser::compile_buffer()
                  << endl;
         }
     }
+
+    // Return the to the calling program
+
+    return;
 }
 
 
@@ -792,15 +874,27 @@ void PowerParser::compile_buffer()
 // statement. This sets the loop index i so that we end up on the line after
 // the call.
 // ===========================================================================
-void PowerParser::jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
+int PowerParser::jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
                          stringstream &serr, int &ierr)
 {
+    int return_value;
+    int return_local;
+    return_value = 0;
+    return_local = 0;
+
     int icsize = (int)icall.size();
     if (icsize == 0) {
         cmds[i].fatal_error(0, serr, ierr);
         serr << "icall size = 0, this should never happen." << endl;
         ierr = 2;
-        process_error(serr, ierr);
+        return_value = process_error_return_int(serr, ierr);
+        if (return_local > return_value) {
+           return_value = return_local;
+        }
+        if (return_local > 0) {
+             cout << "jump_to_call icall  error " << ierr << endl;
+             if (return_local > 1) return return_value;
+        }
     }
     i = icall[icsize-1];
     icall.erase(icall.begin()+icsize-1);
@@ -836,7 +930,14 @@ void PowerParser::jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
             serr << "Subroutine argument not found." << endl;
             serr << "This should not happen." << endl;
             ierr = 2;
-            process_error(serr, ierr);
+            return_value = process_error_return_int(serr, ierr);
+            if (return_local > return_value) {
+               return_value = return_local;
+            }
+            if (return_local > 0) {
+                 cout << "jump_to_call Subroutine argument not found " << endl;
+                 if (return_local > 1) return return_value;
+            }
         }
 
         if (!call_args_isvar[j]) {
@@ -855,7 +956,14 @@ void PowerParser::jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
                 serr << "thus you are trying to change a fixed quantity which" 
                      " is not allowed." << endl;
                 ierr = 2;
-                process_error(serr, ierr);
+                return_value = process_error_return_int(serr, ierr);
+                if (return_local > return_value) {
+                   return_value = return_local;
+                }
+                if (return_local > 0) {
+                     cout << "jump_to_call subroutine arguments errors " << endl;
+                     if (return_local > 1) return return_value;
+            }
             }
         }
         else {
@@ -871,7 +979,14 @@ void PowerParser::jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
                 serr << "Calling argument not found." << endl;
                 serr << "This should not happen." << endl;
                 ierr = 2;
-                process_error(serr, ierr);
+                return_value = process_error_return_int(serr, ierr);
+                if (return_local > return_value) {
+                   return_value = return_local;
+                }
+                if (return_local > 0) {
+                     cout << "jump_to_call calling argument not found " << endl;
+                     if (return_local > 1) return return_value;
+                }
             }
         }
 
@@ -895,6 +1010,8 @@ void PowerParser::jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
     // Remove the index to the subroutine line.
     isub.erase(isub.begin()+(int)isub.size()-1);
 
+    return return_value;
+
 }  // End of jump_to_call
 
 
@@ -903,11 +1020,16 @@ void PowerParser::jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
 // and set the loop index, i, to the subroutine line so we will end up on the
 // line after the subroutine.
 // ===========================================================================
-void PowerParser::jump_to_sub(int &i, string &sub_name,
+int PowerParser::jump_to_sub(int &i, string &sub_name,
                         stringstream &serr, int &ierr)
 {
+    int return_value;
+    int return_local;
+    return_value = 0;
+    return_local = 0;
+
     // At this point, i is the index for the call line.
-    //cout << "&&&&&cw Parse loop, jump_to_sub, i=" << i << endl;
+    //cout << "&&&&&cw PowerParser loop, jump_to_sub, i=" << i << endl;
 
     // Find the line index, cdex, for the subroutine.
     int cdex = -1;
@@ -922,7 +1044,14 @@ void PowerParser::jump_to_sub(int &i, string &sub_name,
         cmds[i].fatal_error(0, serr, ierr);
         serr << "Subroutine " << sub_name << " not found." << endl;
         ierr = 2;
-        process_error(serr, ierr);
+        return_value = process_error_return_int(serr, ierr);
+        if (return_local > return_value) {
+           return_value = return_local;
+        }
+        if (return_local > 0) {
+             cout << "Subroutine name not found " << ierr << endl;
+             if (return_local > 1) return return_value;
+        }
     }
 
     // Get the calling arguments. This will potentially be a mix
@@ -956,7 +1085,14 @@ void PowerParser::jump_to_sub(int &i, string &sub_name,
         serr << "Number of subroutine arguments = " << nsub_args << endl;
         serr << "These must be the same." << endl;
         ierr = 2;
-        process_error(serr, ierr);
+        return_local = process_error_return_int(serr, ierr);
+        if (return_local > return_value) {
+           return_value = return_local;
+        }
+        if (return_local > 0) {
+             cout << "Arguments in subroutine and in calling are different " << ierr << endl;
+             if (return_local > 1) return return_value;
+        }
     }
 
     for (int j=0; j<(int)sub_args.size(); j++) {
@@ -970,7 +1106,14 @@ void PowerParser::jump_to_sub(int &i, string &sub_name,
             serr << "Note that putting quotes around a variable name makes it" << endl;
             serr << "a string, not a variable." << endl;
             ierr = 2;
-            process_error(serr, ierr);
+            return_local = process_error_return_int(serr, ierr);
+            if (return_local > return_value) {
+               return_value = return_local;
+            }
+            if (return_local > 0) {
+                 cout << "Dummy arguments must be variables " << ierr << endl;
+                 if (return_local > 1) return return_value;
+            }
         }
     }
 
@@ -993,7 +1136,14 @@ void PowerParser::jump_to_sub(int &i, string &sub_name,
                 "cannot also be" << endl;
             serr << "global variables." << endl;
             ierr = 2;
-            process_error(serr, ierr);
+            return_local = process_error_return_int(serr, ierr);
+            if (return_local > return_value) {
+               return_value = return_local;
+            }
+            if (return_local > 0) {
+                 cout << "Dummy argument cannot be global variable " << ierr << endl;
+                 if (return_local > 1) return return_value;
+            }
         }
         else {
             // If the calling argument is a variable, then we set the
@@ -1037,7 +1187,7 @@ void PowerParser::jump_to_sub(int &i, string &sub_name,
     // Set the loop index to the index of the subroutine so we
     // will end up at the line after the subroutine line.
     i = cdex;
-    return;
+    return return_value;
 }  // End of jump_to_sub
 
 
@@ -1051,6 +1201,7 @@ void PowerParser::jump_to_sub(int &i, string &sub_name,
 bool PowerParser::end_do_loop(int &i, deque<int> &do_start,
                         stringstream &serr, int &ierr)
 {
+    int rtvl = 0;
     // Find the matching enddo.
     // Stop checking will be true if we are in main and hit a subroutine
     // statement or if we are in a subroutine and hit an endsubroutine
@@ -1075,7 +1226,9 @@ bool PowerParser::end_do_loop(int &i, deque<int> &do_start,
         }
         serr << "No enddo found for do statement." << endl;
         ierr = 2;
-        process_error(serr, ierr);
+        rtvl = process_error_return_int(serr, ierr);
+        if (rtvl > 0) cout << "Enddo not found " << endl;
+        return false;
     }
 
     // We are done with this do loop, so we can get rid of the reference
@@ -1161,6 +1314,7 @@ void PowerParser::check_enddo(deque<int> &do_start, stringstream &serr, int &ier
 // ===========================================================================
 void PowerParser::check_processed(bool &good)
 {
+    int rtvl = 0;
     int ierr = 0;
     stringstream serr;
 
@@ -1175,8 +1329,11 @@ void PowerParser::check_processed(bool &good)
 // ===========================================================================
 // Process the duplicate array values command.
 // ===========================================================================
-void PowerParser::process_dav_cmd()
+int PowerParser::process_dav_cmd()
 {
+    int rtvl         = 0;
+    int return_value = 0;
+
     // Process the duplicate_array_values command.
     // Note that duplicate array values are processed when the calls are made
     // from the host code to actually extract information from the final
@@ -1196,9 +1353,21 @@ void PowerParser::process_dav_cmd()
             serr << "The value for the duplicate_array_values command must" << endl <<
                 "be either none, warning, or fatal" << endl;
             ierr = 2;
-            process_error(serr, ierr);
+            cout << "The value for the duplicate_array_values command must" << endl;
+            cout << "be either none, warning, or fatal" << endl;
+            rtvl = process_error_return_int(serr, ierr);
+            if (rtvl > return_value) {
+                return_value = rtvl;
+            }
+
+            if (rtvl > 0) {
+                 cout << "Duplicate array values not recognized " << ierr << endl;
+            }
+            return return_value;
         }
+        if (dup_fatal > 0 ) return dup_fatal;
     }
+    return 0;
 }
 
 
@@ -2002,14 +2171,23 @@ void PowerParser::cmd_set_reprocessed(bool bval)
 // ===========================================================================
 // Process errors.
 // ===========================================================================
-void PowerParser::process_error_global()
+void PowerParser::process_error_global(int &return_value)
 {
+    int return_val_local;
     int ierr = ierr_global;
-    if (ierr == 0) return;
-    if (ierr == 3) ierr = 2;
-    process_error(serr_global, ierr);
+
+    return_val_local = 0;
+    if (ierr == 0) {
+      return_value = 0;
+      return;
+    }
+
+    return_val_local = process_error_return_int(serr_global, ierr);
+    return_value     = return_val_local;
 }
 
+// ===========================================================================
+//
 
 void PowerParser::process_error(stringstream &serr, int &ierr)
 {
@@ -2071,6 +2249,60 @@ void PowerParser::process_error(stringstream &serr, int &ierr)
     //}
 
     // We might want to put this in Comm, i.e. modify global_abort.
+}
+
+
+// ===========================================================================
+int PowerParser::process_error_return_int(stringstream &serr, int &ierr)
+{
+    int return_value;
+
+    return_value = ierr;
+
+    if (ierr == 0) return(return_value);
+
+    return_value = ierr;
+
+    if (ierr == 3) {
+      serr_global << serr.str();
+      ierr_global = ierr;
+      cout << "Error encountered in process_error_return_int " << ierr << endl; 
+    }
+
+    if (comm->isIOProc()) {
+        cout << endl;
+        cout << "Error encountered while parsing the user input file "
+             << ierr << endl;
+        cout << "Note that often fixing the first error will also fix the"
+            " other errors." << endl;
+        cout << serr.str() << endl;
+        cout << "ierr " << ierr << endl;
+        fflush(NULL);
+    }
+
+    return(return_value);
+
+
+    // A possible sleep function if the library sleep function is not portable.
+    // #include <time.h>
+    // void sleep(unsigned int mseconds)
+    // {
+    //    clock_t goal = mseconds + clock();
+    //    while (goal > clock());
+    // }
+
+
+    // A better function is the following since it uses CLOCKS_PER_SEC and
+    // thus does not assume its value.
+    //
+    //#include <time.h>
+    //void wait ( int seconds )
+    //{
+    //  clock_t endwait;
+    //  endwait = clock () + seconds * CLOCKS_PER_SEC ;
+    //  while (clock() < endwait) {}
+    //}
+
 }
 
 

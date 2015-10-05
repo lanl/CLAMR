@@ -178,7 +178,7 @@ public:
  * The input file(s) has been read and put into commands. Now do the
  * compilation phase.
  *******************************************************************/
-    void compile_buffer();
+    void compile_buffer(int &return_value);
 
 /****************************************************************//**
  * \brief
@@ -546,7 +546,7 @@ public:
  *******************************************************************/
     void list_wt_cmdsf_start();
 
-    void process_error_global();
+    void process_error_global(int &return_value);
 
 
     void rb_check(vector<string> &code_varnames,
@@ -606,7 +606,7 @@ public:
 private:
 
     void init();
-    void process_dav_cmd();
+    int  process_dav_cmd();
     void check_dup_scalar(int wtn, bool &found_any);
     void set_dup_row(vector<string> &row, Cmd &cmdi, int iw);
     void remove_dup_scalar(int wtn);
@@ -617,6 +617,7 @@ private:
     void store_line_strings(string &s_in);
     void eliminate_white_space(string &sline);
     void cmd_set_reprocessed(bool bval);
+    int  process_error_return_int(stringstream &serr, int &ierr);
     void process_error(stringstream &serr, int &ierr);
 
     void list_vars(string lv1, string lv2, string var_to_list);
@@ -640,9 +641,9 @@ private:
     void end_do_ret(int &i, deque<int> &do_start,
                     stringstream &serr, int &ierr);
     void check_enddo(deque<int> &do_start, stringstream &serr, int &ierr);
-    void jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
+    int  jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
                       stringstream &serr, int &ierr);
-    void jump_to_sub(int &i, string &sub_name,
+    int  jump_to_sub(int &i, string &sub_name,
                      stringstream &serr, int &ierr);
     void print_line(int i);
     void print_line(Cmd &cmd);

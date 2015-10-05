@@ -109,10 +109,12 @@ void FC_FUNC(parser_create,PARSER_CREATE)(char *oargs, int *oargs_len,
     parse->store_exe_args(other_args, filename);
 }
 
-void FC_FUNC(parser_compile_buffer,PARSER_COMPILE_BUFFER)()
+void FC_FUNC(parser_compile_buffer,PARSER_COMPILE_BUFFER)(int &return_value)
 {
-    // Compile the buffer.
-    parse->compile_buffer();
+    int return_val;
+    return_val = 0;
+    parse->compile_buffer(return_val);
+    return_value = return_val;
 }
 
 void FC_FUNC(parser_recreate,PARSER_RECREATE)()
@@ -811,9 +813,12 @@ void FC_FUNC(get_size6,GET_SIZE6)(char *cmdname, int *size1,
 // ***************************************************************************
 
 // Final error process to print collection of errors.
-void FC_FUNC(process_error_final,PROCESS_ERROR_FINAL)()
+void FC_FUNC(process_error_final,PROCESS_ERROR_FINAL)(int &return_value)
 {
-    parse->process_error_global();
+    int return_val;
+    return_val = 0;
+    parse->process_error_global(return_val);
+    return_value = return_val;
 }
 
 
