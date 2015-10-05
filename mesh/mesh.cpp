@@ -1356,6 +1356,10 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double d
    gpu_do_rezone = true;
 
    celltype = NULL;
+   nlft     = NULL;
+   nrht     = NULL;
+   nbot     = NULL;
+   ntop     = NULL;
 }
 
 void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_order, int do_gpu_calc)
@@ -3597,11 +3601,17 @@ void Mesh::calc_neighbors(int ncells)
 #if defined (HAVE_J7)
    if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
-   if ((int)mesh_memory.get_memory_size(nlft) < ncells){
-      nlft = (int *)mesh_memory.memory_delete(nlft);
-      nrht = (int *)mesh_memory.memory_delete(nrht);
-      nbot = (int *)mesh_memory.memory_delete(nbot);
-      ntop = (int *)mesh_memory.memory_delete(ntop);
+   int nlft_size = 0;
+   if (nlft != NULL){
+      nlft_size = mesh_memory.get_memory_size(nlft);
+   }
+   if (nlft_size < ncells){
+      if (nlft != NULL){
+         nlft = (int *)mesh_memory.memory_delete(nlft);
+         nrht = (int *)mesh_memory.memory_delete(nrht);
+         nbot = (int *)mesh_memory.memory_delete(nbot);
+         ntop = (int *)mesh_memory.memory_delete(ntop);
+      }
 
       nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
       nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
