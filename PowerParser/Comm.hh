@@ -56,7 +56,7 @@ class Comm
     ~Comm();
 
     void broadcast(char *buffer, int count);
-    void global_abort();
+    void global_abort_parser();
 
     int getProcRank(void) const {
         return(mype);

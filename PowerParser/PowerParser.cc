@@ -2041,11 +2041,11 @@ void PowerParser::process_error(stringstream &serr, int &ierr)
         // possibility that the IO proc may not have aborted, some other
         // proc might have.
         if (comm->isIOProc()) {
-            comm->global_abort();
+            comm->global_abort_parser();
         }
         else {
             sleep(2);
-            comm->global_abort();
+            comm->global_abort_parser();
         }
     }
 

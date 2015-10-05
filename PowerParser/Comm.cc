@@ -104,14 +104,14 @@ void Comm::broadcast(char *buffer, int count)
 // ===========================================================================
 // Error handling
 // ===========================================================================
-void Comm::global_abort()
+void Comm::global_abort_parser()
 {
 #ifdef HAVE_MPI
    MPI_Abort(MPI_COMM_WORLD, 1);
 #endif
    exit(1);
 }
-
+// ===========================================================================
 } // End of PP namespace
 
 
