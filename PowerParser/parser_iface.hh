@@ -1,5 +1,5 @@
 /* Copyright 2015.  Los Alamos National Security, LLC. This material was produced
- * under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
+ * under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National
  * Laboratory (LANL), which is operated by Los Alamos National Security, LLC
  * for the U.S. Department of Energy. The U.S. Government has rights to use,
  * reproduce, and distribute this software.  NEITHER THE GOVERNMENT NOR LOS
@@ -40,8 +40,8 @@
 #if !defined FC_FUNC
   #if defined aix || defined hpux || defined IBM
     #define    FC_FUNC(a,A)    a
-  #elif defined sparc 
-    #define    FC_FUNC(a,A)    a ## _
+  #elif defined _SQ && defined GNU
+    #define    FC_FUNC(a,A)    a
   #else
     #define    FC_FUNC(a,A)    a ## _
   #endif
@@ -209,4 +209,3 @@ void FC_FUNC(parser_dictionary_add,PARSER_DICTIONARY_ADD)(char *name, double val
 void FC_FUNC(parser_dictionary_env_add,PARSER_DICTIONARY_ENV_ADD)(char *name, bool pred, char *vdesc);
 
 #endif /* PARSERIFACEHH */
-
