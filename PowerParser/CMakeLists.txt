@@ -42,7 +42,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
 endif()
 
-if(DEFINED ENV{FC})
+#if(DEFINED ENV{FC})
    if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
 #    set (CMAKE_Fortran_FLAGS "-cpp")
      set (CMAKE_Fortran_FLAGS_RELEASE "-O3")
@@ -62,7 +62,7 @@ if(DEFINED ENV{FC})
      set (CMAKE_Fortran_FLAGS_RELEASE "-O2")
      set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
    endif (Fortran_COMPILER_NAME MATCHES "gfortran.*")
-endif(DEFINED ENV{FC})
+#endif(DEFINED ENV{FC})
 
 
 if (MIC_NATIVE)
@@ -93,11 +93,11 @@ set(H_SRCS   Cmd.hh   Function.hh    Parser_utils.hh  Variable.hh      Word.hh
 set(CXX_SRCS Cmd.cc   Function.cc    Parser_utils.cc  Variable.cc      Word.cc
              Comm.cc  PowerParser.cc Parser_math.cc   Restartblock.cc  Whenthen.cc)
 
-if(DEFINED ENV{FC})
+#if(DEFINED ENV{FC})
    set(H_SRCS ${H_SRCS} parser_iface.hh)
    set(CXX_SRCS ${CXX_SRCS} parser_iface.cc)
    set(F90_SRCS FParser.F90)
-endif(DEFINED ENV{FC})
+#endif(DEFINED ENV{FC})
 
 set(DOC_SRCS docs/index.rst docs/About.rst docs/GettingStarted.rst
              docs/DevelopersGuide.rst docs/UsersGuide.rst)
