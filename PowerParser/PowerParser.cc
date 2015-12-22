@@ -44,7 +44,6 @@
 #include "Parser_utils.hh"
 #include "Variable.hh"
 #include "Function.hh"
-#include <cctype>
 #include <cstdio>
 #include <unistd.h>
 #include <fstream>
@@ -796,15 +795,6 @@ void PowerParser::compile_buffer(int &return_value)
             }
         }
     }
-    // Print error messages and terminate if fatal.
-    return_local = process_error_return_int(serr, ierr);
-    if (return_local > return_value) {
-        return_value = return_local;
-    }
-    if (return_local > 0) {
-        return_value = return_local;
-        if (return_local > 1) return;
-    }
 
     // Check that an enddo was found for every do.
     check_enddo(do_start, serr, ierr);
@@ -816,9 +806,7 @@ void PowerParser::compile_buffer(int &return_value)
     }
     if (return_local > 0) {
         return_value = return_local;
-        if (comm->isIOProc()) {
-           cout << "handle enddo is wrong with err " << ierr << endl;
-        }
+        cout << "handle enddo is wrong with err " << ierr << endl;
         if (return_local > 1) return;
     }
 
@@ -2278,18 +2266,17 @@ int PowerParser::process_error_return_int(stringstream &serr, int &ierr)
     if (ierr == 3) {
       serr_global << serr.str();
       ierr_global = ierr;
-      cout << "Error encountered in process_error_return_int -- err code is " << ierr << endl; 
-      fflush(NULL);
+      cout << "Error encountered in process_error_return_int " << ierr << endl; 
     }
 
     if (comm->isIOProc()) {
         cout << endl;
-        cout << "Error encountered while parsing the user input file -- err code is "
+        cout << "Error encountered while parsing the user input file "
              << ierr << endl;
         cout << "Note that often fixing the first error will also fix the"
             " other errors." << endl;
         cout << serr.str() << endl;
-        cout.flush();
+        cout << "ierr " << ierr << endl;
         fflush(NULL);
     }
 

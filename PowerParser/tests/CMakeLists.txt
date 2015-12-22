@@ -4,10 +4,14 @@ set(H_SRCS)
 
 set(CXX_SRCS ParserTest.cc)
 
-set(F90_SRCS FParserTest.F90)
+set(F90_SRCS FParserTest.f90)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
+if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+   include_directories(${CMAKE_SOURCE_DIR})
+   include_directories(${CMAKE_SOURCE_DIR}/..)
+else ()
+   include_directories(${CMAKE_SOURCE_DIR}/PowerParser)
+endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
 
 ########### ParserTest target ###############
 set(ParserTest_SRCS ${CXX_SRCS} ${H_SRCS})
@@ -66,10 +70,10 @@ set(CMAKE_CHECK_COMMAND ctest && cat Testing/Temporary/LastTest.log)
 
 if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
    add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND}
-                     DEPENDS ParserTest FParserTest)
+                     DEPENDS ParserTest)
 else (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
    add_custom_target(PowerParser_check COMMAND ${CMAKE_CHECK_COMMAND}
-                     DEPENDS ParserTest FParserTest)
+                     DEPENDS ParserTest)
 endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
 
 ########### clean files ################

@@ -1,5 +1,5 @@
 /* Copyright 2015.  Los Alamos National Security, LLC. This material was produced
- * under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National
+ * under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
  * Laboratory (LANL), which is operated by Los Alamos National Security, LLC
  * for the U.S. Department of Energy. The U.S. Government has rights to use,
  * reproduce, and distribute this software.  NEITHER THE GOVERNMENT NOR LOS
@@ -57,8 +57,8 @@ using PP::PowerParser;
 #if !defined FC_FUNC
   #if defined aix || defined hpux || defined IBM
     #define    FC_FUNC(a,A)    a
-  #elif defined _SQ && defined GNU
-    #define    FC_FUNC(a,A)    a
+  #elif defined sparc 
+    #define    FC_FUNC(a,A)    a ## _
   #else
     #define    FC_FUNC(a,A)    a ## _
   #endif
@@ -71,10 +71,10 @@ PowerParser *parse;
 // various c++ classes, but we can't have name mangling since the
 // routines in this file are called from fortran, therefore we need
 // the extern "C" statement.
-#ifdef __cplusplus
+#ifdef __cplusplus 
 extern "C" {
 #endif
-
+    
 // Get processor info from the comm object.
 void FC_FUNC(parser_comm_info,PARSER_COMM_INFO)(int *mype,
                                                 int *npes, int *iope)
@@ -319,7 +319,7 @@ void FC_FUNC(get_int8_0,GET_INT8_0)(char *cmdname, int64_t *cmdvalue,
     if ((*iskip) == 1) skip = true;
     parse->get_int(cname, cmdvalue, size, skip);
 }
-
+    
 // Get a one dimensional int64 array.
 void FC_FUNC(get_int8_1,GET_INT8_1)(char *cmdname, int64_t *array_values,
                                     int *array_size, int *len,
@@ -1343,3 +1343,7 @@ void parser_get_include_file_name(char *file_name, int *file_name_len, int *i)
 #ifdef __cplusplus
 }
 #endif
+
+
+
+
