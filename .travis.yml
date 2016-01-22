@@ -2,11 +2,11 @@ language: cpp fortran
 
 before_install:
  - sudo apt-get update
- - sudo apt-get install cmake libboost-all-dev openmpi-bin libopenmpi-dev
- - sudo apt-get install gfortran
+ - sudo apt-get install -y cmake libboost-all-dev openmpi-bin libopenmpi-dev
+ - sudo apt-get install -y gfortran
 
 script:
-        - cmake . && make -j2 && sudo make install 
+ - cmake . && make -j2 && sudo make install 
 
 compiler:
   - gcc
