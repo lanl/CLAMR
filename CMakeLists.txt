@@ -595,9 +595,16 @@ endif (MPI_FOUND AND OPENCL_FOUND)
 
 ########### install files ###############
 
-set (CMAKE_CHECK_COMMAND make mesh_check &&
+
+if (OPENCL_FOUND)
+   set (CMAKE_CHECK_COMMAND "make ezcl_check &&")
+else (OPENCL_FOUND)
+   set (CMAKE_CHECK_COMMAND "")
+endif (OPENCL_FOUND)
+
+set (CMAKE_CHECK_COMMAND ${CMAKE_CHECK_COMMAND}
+                         make mesh_check &&
                          make l7_check &&
-                         make ezcl_check &&
                          make MallocPlus_check &&
                          make PowerParser_check)
 
