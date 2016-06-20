@@ -92,6 +92,7 @@ typedef cl_float2   cl_real2;
 
 typedef unsigned int uint;
 map<void *,malloc_plus_memory_entry*>::iterator it_save, it_end;
+map<const char*, malloc_plus_memory_entry*, cmp_str>::iterator it_save_by_name, it_end_by_name;
 
 #if defined(HAVE_MPI)
 void
@@ -163,6 +164,8 @@ void *MallocPlus::memory_malloc(size_t nelem, size_t elsize, const char *name, i
    }
 
    memory_item->mem_name = strdup(name); // Mallocs memory for copy
+
+   //printf("MALLOC_PLUS_MEMORY_MALLOC: DEBUG -- malloc plus memory pointer for :%s: is %p nelements %ld elsize is %ld flags %d\n",memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_nelem[0],memory_item->mem_elsize,memory_item->mem_flags);
 
    // Insert entry into dictionary -- two versions, one by name and another by pointer address
    memory_name_dict.insert(std::pair<const char*, malloc_plus_memory_entry*>(name, memory_item) );
@@ -798,6 +801,29 @@ void *MallocPlus::memory_next(void){
    }
 }
 
+void *MallocPlus::memory_by_name_begin(void){
+   it_save_by_name = memory_name_dict.begin();
+   malloc_plus_memory_entry *memory_item = it_save->second;
+   return(memory_item->mem_ptr);
+}
+
+void *MallocPlus::memory_by_name_next(void){
+   map<const char*, malloc_plus_memory_entry*, cmp_str>::iterator it_by_name;
+
+   it_save_by_name++;
+   it_by_name = it_save_by_name;
+
+   if (it_by_name != memory_name_dict.end()){
+      malloc_plus_memory_entry *memory_item = it_by_name->second;
+
+      if (DEBUG) printf("Found memory item ptr %p name %s\n",memory_item->mem_ptr,memory_item->mem_name);
+      return(memory_item->mem_ptr);
+   } else {
+      if (DEBUG) printf("Warning -- memory not found\n");
+      return(NULL);
+   }
+}
+
 malloc_plus_memory_entry* MallocPlus::memory_entry_begin(void){
    it_save = memory_ptr_dict.begin();
    malloc_plus_memory_entry *memory_item = it_save->second;
@@ -813,6 +839,24 @@ malloc_plus_memory_entry* MallocPlus::memory_entry_next(void){
 }
 
 malloc_plus_memory_entry* MallocPlus::memory_entry_end(void){
+   return(NULL);
+}
+
+malloc_plus_memory_entry* MallocPlus::memory_entry_by_name_begin(void){
+   it_save_by_name = memory_name_dict.begin();
+   malloc_plus_memory_entry *memory_item = it_save_by_name->second;
+   return(memory_item);
+}
+
+malloc_plus_memory_entry* MallocPlus::memory_entry_by_name_next(void){
+   it_save_by_name++;
+   if (it_save_by_name == memory_name_dict.end()) return(NULL);
+   malloc_plus_memory_entry *memory_item = it_save_by_name->second;
+   if (DEBUG) printf("Found memory item ptr %p name %s\n",memory_item->mem_ptr,memory_item->mem_name);
+   return(memory_item);
+}
+
+malloc_plus_memory_entry* MallocPlus::memory_entry_by_name_end(void){
    return(NULL);
 }
 

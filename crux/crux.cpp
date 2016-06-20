@@ -61,6 +61,10 @@ bool do_crux_timing = false;
 #define RESTORE_RESTART  1
 #define RESTORE_ROLLBACK 2
 
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
 using namespace std;
 
 char checkpoint_directory[] = "checkpoint_output";
@@ -129,6 +133,46 @@ Crux::~Crux()
    }
 }
 
+void Crux::store_MallocPlus(MallocPlus memory){
+   malloc_plus_memory_entry *memory_item;
+   for (memory_item = memory.memory_entry_by_name_begin(); 
+      memory_item != memory.memory_entry_by_name_end();
+      memory_item = memory.memory_entry_by_name_next() ){
+
+      void *mem_ptr = memory_item->mem_ptr;
+      if ((memory_item->mem_flags & RESTART_DATA) == 0) continue;
+
+      int num_elements = 1;
+      for (uint i = 1; i < memory_item->mem_ndims; i++){
+	 num_elements *= memory_item->mem_nelem[i];
+      }
+
+      if (DEBUG) {
+        printf("MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
+           mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
+
+        char nelemstring[80];
+        char *str_ptr = nelemstring;
+        str_ptr += sprintf(str_ptr,"%lu", memory_item->mem_nelem[0]);
+        for (uint i = 1; i < memory_item->mem_ndims; i++){
+           str_ptr += sprintf(str_ptr,", %lu", memory_item->mem_nelem[i]);
+        }
+        printf("%12s",nelemstring);
+
+        printf(") elsize %lu flags %d capacity %lu\n",
+           memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
+      }
+
+      store_field_header(memory_item->mem_name,20);
+      if (memory_item->mem_elsize == 4){
+         store_int_array((int *)mem_ptr, num_elements);
+      } else {
+         store_double_array((double *)mem_ptr, num_elements);
+      }
+   }
+
+}
+
 void Crux::store_begin(size_t nsize, int ncycle)
 {
    cp_num = checkpoint_counter % num_of_rollback_states;
@@ -153,15 +197,26 @@ void Crux::store_begin(size_t nsize, int ncycle)
       char symlink_file[60];
       sprintf(symlink_file,"%s/backup%1d.crx",checkpoint_directory,cp_num);
       int ireturn = symlink(backup_file, symlink_file);
-      if (ireturn == -1) {
-         printf("Warning: error returned with symlink call for file %s and symlink %s\n",
-                backup_file,symlink_file);
-      }
+//    if (ireturn == -1) {
+//       printf("Warning: error returned with symlink call for file %s and symlink %s\n",
+//              backup_file,symlink_file);
+//    }
    }
 
    if (do_crux_timing){
       checkpoint_timing_size += nsize;
    }
+}
+
+void Crux::store_field_header(const char *name, int name_size){
+   assert(name != NULL && store_fp != NULL);
+   fwrite(name,sizeof(char),name_size,store_fp);
+}
+
+void Crux::store_bools(bool *bool_vals, size_t nelem)
+{
+   assert(bool_vals != NULL && store_fp != NULL);
+   fwrite(bool_vals,sizeof(bool),nelem,store_fp);
 }
 
 void Crux::store_ints(int *int_vals, size_t nelem)
@@ -176,10 +231,10 @@ void Crux::store_longs(long long *long_vals, size_t nelem)
    fwrite(long_vals,sizeof(long long),nelem,store_fp);
 }
 
-void Crux::store_bools(bool *bool_vals, size_t nelem)
+void Crux::store_sizets(size_t *size_t_vals, size_t nelem)
 {
-   assert(bool_vals != NULL && store_fp != NULL);
-   fwrite(bool_vals,sizeof(bool),nelem,store_fp);
+   assert(size_t_vals != NULL && store_fp != NULL);
+   fwrite(size_t_vals,sizeof(size_t),nelem,store_fp);
 }
 
 void Crux::store_doubles(double *double_vals, size_t nelem)
@@ -230,6 +285,50 @@ void Crux::store_end(void)
 
 int restore_type = RESTORE_NONE;
 
+void Crux::restore_MallocPlus(MallocPlus memory){
+   char test_name[24];
+   malloc_plus_memory_entry *memory_item;
+   for (memory_item = memory.memory_entry_by_name_begin(); 
+      memory_item != memory.memory_entry_by_name_end();
+      memory_item = memory.memory_entry_by_name_next() ){
+
+      void *mem_ptr = memory_item->mem_ptr;
+      if ((memory_item->mem_flags & RESTART_DATA) == 0) continue;
+
+      int num_elements = 1;
+      for (uint i = 1; i < memory_item->mem_ndims; i++){
+	 num_elements *= memory_item->mem_nelem[i];
+      }
+
+      if (DEBUG) {
+        printf("MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
+           mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
+
+        char nelemstring[80];
+        char *str_ptr = nelemstring;
+        str_ptr += sprintf(str_ptr,"%lu", memory_item->mem_nelem[0]);
+        for (uint i = 1; i < memory_item->mem_ndims; i++){
+           str_ptr += sprintf(str_ptr,", %lu", memory_item->mem_nelem[i]);
+        }
+        printf("%12s",nelemstring);
+
+        printf(") elsize %lu flags %d capacity %lu\n",
+           memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
+      }
+
+      restore_field_header(test_name,20);
+      if (strcmp(test_name,memory_item->mem_name) != 0) {
+         printf("ERROR in restore checkpoint for %s %s\n",test_name,memory_item->mem_name);
+      }
+
+      if (memory_item->mem_elsize == 4){
+         restore_int_array((int *)mem_ptr, num_elements);
+      } else {
+         restore_double_array((double *)mem_ptr, num_elements);
+      }
+   }
+}
+
 void Crux::restore_begin(char *restart_file, int rollback_counter)
 {
    rs_num = rollback_counter % num_of_rollback_states;
@@ -264,11 +363,11 @@ void Crux::restore_begin(char *restart_file, int rollback_counter)
    }
 }
 
-void Crux::restore_ints(int *int_vals, size_t nelem)
+void Crux::restore_field_header(char *name, int name_size)
 {
-   size_t nelem_read = fread(int_vals,sizeof(int),nelem,restore_fp);
-   if (nelem_read != nelem){
-      printf("Warning: number of elements read %lu is not equal to request %lu\n",nelem_read,nelem);
+   int name_read = fread(name,sizeof(char),name_size,restore_fp);
+   if (name_read != name_size){
+      printf("Warning: number of elements read %d is not equal to request %d\n",name_read,name_size);
    }
 }
 
@@ -280,9 +379,25 @@ void Crux::restore_bools(bool *bool_vals, size_t nelem)
    }
 }
 
+void Crux::restore_ints(int *int_vals, size_t nelem)
+{
+   size_t nelem_read = fread(int_vals,sizeof(int),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %lu is not equal to request %lu\n",nelem_read,nelem);
+   }
+}
+
 void Crux::restore_longs(long long *long_vals, size_t nelem)
 {
    size_t nelem_read = fread(long_vals,sizeof(long),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %lu is not equal to request %lu\n",nelem_read,nelem);
+   }
+}
+
+void Crux::restore_sizets(size_t *size_t_vals, size_t nelem)
+{
+   size_t nelem_read = fread(size_t_vals,sizeof(size_t),nelem,restore_fp);
    if (nelem_read != nelem){
       printf("Warning: number of elements read %lu is not equal to request %lu\n",nelem_read,nelem);
    }
