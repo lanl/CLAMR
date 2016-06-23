@@ -71,6 +71,7 @@
 #include "memstats/memstats.h"
 #include "crux/crux.h"
 #include "PowerParser/PowerParser.hh"
+#include "MallocPlus/MallocPlus.h"
 
 using namespace PP;
 
@@ -605,13 +606,13 @@ const int CRUX_CLAMR_VERSION = 101;
 const int num_int_vals       = 14;
 const int num_double_vals    =  5;
 
+MallocPlus clamr_bootstrap_memory;
+
 void store_crux_data(Crux *crux, int ncycle)
 {
    size_t nsize = num_int_vals*sizeof(int) +
                   num_double_vals*sizeof(double);
    nsize += state->get_checkpoint_size();
-
-   crux->store_begin(nsize, ncycle);
 
    int int_vals[num_int_vals];
 
@@ -630,8 +631,6 @@ void store_crux_data(Crux *crux, int ncycle)
    int_vals[12] = next_cp_cycle;
    int_vals[13] = next_graphics_cycle;
 
-   crux->store_ints(int_vals, num_int_vals);
-
    double double_vals[num_double_vals];
    double_vals[ 0] = circ_radius;
    double_vals[ 1] = H_sum_initial;
@@ -639,11 +638,19 @@ void store_crux_data(Crux *crux, int ncycle)
    double_vals[ 3] = deltaT;
    double_vals[ 4] = upper_mass_diff_percentage;
 
-   crux->store_doubles(double_vals, num_double_vals);
+   clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", RESTART_DATA);
+   clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", RESTART_DATA);
+
+   crux->store_begin(nsize, ncycle);
+
+   crux->store_MallocPlus(clamr_bootstrap_memory);
 
    state->store_checkpoint(crux);
 
    crux->store_end();
+
+   clamr_bootstrap_memory.memory_remove(int_vals);
+   clamr_bootstrap_memory.memory_remove(double_vals);
 
    next_cp_cycle += checkpoint_outputInterval;
 }
@@ -654,7 +661,12 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
 
    int int_vals[num_int_vals];
 
-   crux->restore_ints(int_vals, num_int_vals);
+   double double_vals[num_double_vals];
+
+   clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", RESTART_DATA);
+   clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", RESTART_DATA);
+
+   crux->restore_MallocPlus(clamr_bootstrap_memory);
 
    if (int_vals[ 0] != CRUX_CLAMR_VERSION) {
       printf("CRUX version mismatch for clamr data, version on file is %d, version in code is %d\n",
@@ -675,6 +687,15 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
    checkpoint_outputInterval = int_vals[11];
    next_cp_cycle             = int_vals[12];
    next_graphics_cycle       = int_vals[13];
+
+   circ_radius                = double_vals[ 0];
+   H_sum_initial              = double_vals[ 1];
+   simTime                    = double_vals[ 2];
+   deltaT                     = double_vals[ 3];
+   upper_mass_diff_percentage = double_vals[ 4];
+
+   clamr_bootstrap_memory.memory_remove(int_vals);
+   clamr_bootstrap_memory.memory_remove(double_vals);
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
@@ -703,16 +724,6 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
       printf("\n");
    }
 #endif
-
-   double double_vals[num_double_vals];
-
-   crux->restore_doubles(double_vals, num_double_vals);
-
-   circ_radius                = double_vals[ 0];
-   H_sum_initial              = double_vals[ 1];
-   simTime                    = double_vals[ 2];
-   deltaT                     = double_vals[ 3];
-   upper_mass_diff_percentage = double_vals[ 4];
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
