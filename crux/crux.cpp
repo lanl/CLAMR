@@ -61,8 +61,6 @@
 const bool CRUX_TIMING = true;
 bool do_crux_timing = false;
 
-bool USE_HDF5 = true; //MSB
-
 #define RESTORE_NONE     0
 #define RESTORE_RESTART  1
 #define RESTORE_ROLLBACK 2
@@ -79,9 +77,12 @@ int cp_num, rs_num;
 int *backup;
 void **crux_data;
 size_t *crux_data_size;
+#ifdef HAVE_HDF5
+bool USE_HDF5 = true; //MSB
 hid_t h5_fid;
 hid_t h5_gid_c, h5_gid_m, h5_gid_s;
 herr_t h5err;
+#endif
 
 FILE *crux_time_fp;
 struct timeval tcheckpoint_time;
@@ -347,10 +348,6 @@ void Crux::store_doubles(double *double_vals, size_t nelem)
 
 void Crux::store_int_array(int *int_array, size_t nelem)
 {
-//   printf("nelem %ld\n",nelem);
-//    for (size_t i = 1; i < nelem; i++){
-//      printf(", %d \n", int_array[i]);
-//    }
    assert(int_array != NULL && store_fp != NULL);
    fwrite(int_array,sizeof(int),nelem,store_fp);
 }
@@ -369,16 +366,8 @@ void Crux::store_float_array(float *float_array, size_t nelem)
 
 void Crux::store_double_array(double *double_array, size_t nelem)
 {
-
-   for (size_t i = 1; i < nelem; i++){
-     printf(", %f \n", double_array[i]);
-   }
-
    assert(double_array != NULL && store_fp != NULL);
    fwrite(double_array,sizeof(double),nelem,store_fp);
-
-
-
 }
 
 void Crux::store_end(void)
