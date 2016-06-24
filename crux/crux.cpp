@@ -54,6 +54,10 @@
 #include "timer/timer.h"
 #include "fmemopen.h"
 
+#ifdef HAVE_HDF5
+#include "hdf5.h"
+#endif
+
 const bool CRUX_TIMING = true;
 bool do_crux_timing = false;
 
@@ -73,6 +77,12 @@ int cp_num, rs_num;
 int *backup;
 void **crux_data;
 size_t *crux_data_size;
+#ifdef HAVE_HDF5
+bool USE_HDF5 = true; //MSB
+hid_t h5_fid;
+hid_t h5_gid_c, h5_gid_m, h5_gid_s;
+herr_t h5err;
+#endif
 
 FILE *crux_time_fp;
 struct timeval tcheckpoint_time;
@@ -163,6 +173,86 @@ void Crux::store_MallocPlus(MallocPlus memory){
            memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
       }
 
+#ifdef HAVE_HDF5
+      if(USE_HDF5) {
+        //
+        // Create dataspace.  Setting maximum size to NULL sets the maximum
+        // size to be the current size.
+        //
+        
+        hid_t sid;
+        sid = H5Screate_simple (memory_item->mem_ndims, (hsize_t*)memory_item->mem_nelem, NULL);
+        
+        hid_t memtype;
+        if (memory_item->mem_elsize == 4){
+          memtype = H5T_NATIVE_INT;
+        } else {
+          memtype = H5T_NATIVE_DOUBLE;
+        }
+        
+        hid_t gid;
+        if( (strstr(memory_item->mem_name,"mesh") !=NULL) ||
+            (strncmp(memory_item->mem_name,"i",1) == 0) || 
+            (strncmp(memory_item->mem_name,"j",1) == 0) || 
+            (strncmp(memory_item->mem_name,"level",5) == 0) ) {
+          gid = h5_gid_m;
+        }
+        else if( (strstr(memory_item->mem_name,"state") != NULL) || 
+                 (strncmp(memory_item->mem_name,"H",1) == 0) ||
+                 (strncmp(memory_item->mem_name,"U",1) == 0) ||
+                 (strncmp(memory_item->mem_name,"V",1) == 0) ) {
+          gid = h5_gid_s; 
+        }
+        else {
+          gid = h5_gid_c;
+        }
+
+        if( (strncmp(memory_item->mem_name,"state_long_vals",15) == 0) ||
+            (strncmp(memory_item->mem_name,"mesh_double_vals",16) == 0) ) {
+          hid_t aid;
+          aid = H5Acreate2(gid, memory_item->mem_name, memtype, sid, H5P_DEFAULT, H5P_DEFAULT);
+          // Write the attribute data.
+          h5err = H5Awrite(aid, memtype, mem_ptr);
+          h5err = H5Aclose(aid);
+
+        } else if( (strstr(memory_item->mem_name,"_timer") !=NULL) ||
+                   (strstr(memory_item->mem_name,"_counters") !=NULL) ) {
+          
+          hid_t did;
+          hsize_t dims[2], start[2], count[2];
+          hid_t sid1;
+
+          dims[0] = 1; //MSB should be nprocs
+          dims[1] =(hsize_t)memory_item->mem_nelem[0];
+
+          count[0] = 1;
+          count[1] = 1;
+
+          start[0] = 0; //MSB should be rank id
+          start[1] = 0;
+          sid1 = H5Screate_simple (2, dims, NULL);
+
+          did = H5Dcreate (gid, memory_item->mem_name, memtype, sid1, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+          H5Sselect_hyperslab(sid1, H5S_SELECT_SET, start, NULL, count, NULL ); 
+          h5err = H5Dwrite (did, memtype, H5S_ALL, sid1, H5P_DEFAULT, mem_ptr);
+          
+         if(H5Sclose(sid1) < 0)
+            printf("HDF5: Could not close dataspace \n");
+          if(H5Dclose(did) < 0)
+            printf("HDF5: Could not close dataset %s \n",memory_item->mem_name);
+
+        } else {
+
+          hid_t did;
+          did = H5Dcreate (gid, memory_item->mem_name, memtype, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+          h5err = H5Dwrite (did, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, mem_ptr);
+          if(H5Dclose(did) < 0)
+            printf("HDF5: Could not close dataset %s \n",memory_item->mem_name);
+        }
+        if(H5Sclose(sid) < 0)
+          printf("HDF5: Could not close dataspace \n");
+      }
+#endif
       store_field_header(memory_item->mem_name,20);
       if (memory_item->mem_elsize == 4){
          store_int_array((int *)mem_ptr, num_elements);
@@ -187,6 +277,19 @@ void Crux::store_begin(size_t nsize, int ncycle)
    }
    if(crux_type == CRUX_DISK){
       char backup_file[60];
+
+#ifdef HAVE_HDF5
+      if(USE_HDF5) {
+        sprintf(backup_file,"%s/backup%05d.h5",checkpoint_directory,ncycle);
+        h5_fid = H5Fcreate(backup_file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+        if(!h5_fid){
+          printf("HDF5: Could not write HDF5 %s at iteration %d\n",backup_file,ncycle);
+        }
+        h5_gid_c = H5Gcreate(h5_fid, "clamr", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        h5_gid_m = H5Gcreate(h5_fid, "mesh", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        h5_gid_s = H5Gcreate(h5_fid, "state", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      }
+#endif
 
       sprintf(backup_file,"%s/backup%05d.crx",checkpoint_directory,ncycle);
       store_fp = fopen(backup_file,"w");
@@ -271,6 +374,20 @@ void Crux::store_end(void)
 {
    assert(store_fp != NULL);
    fclose(store_fp);
+
+#ifdef HAVE_HDF5
+   if(USE_HDF5) {
+     if(H5Gclose(h5_gid_c) < 0)
+       printf("HDF5: Could not close clamr group \n");
+     if(H5Gclose(h5_gid_m) < 0)
+       printf("HDF5: Could not close mesh group \n");
+     if(H5Gclose(h5_gid_s) < 0)
+       printf("HDF5: Could not close state group \n");
+     if(H5Fclose(h5_fid) != 0) {
+       printf("HDF5: Could not close HDF5 file \n");
+     }
+   }
+#endif
 
    double checkpoint_total_time = cpu_timer_stop(tcheckpoint_time);
 
