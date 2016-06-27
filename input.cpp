@@ -97,6 +97,7 @@ extern bool verbose,
             outline,
             face_based,
             dynamic_load_balance_on,
+            h5_spoutput,
             restart;
 extern int  outputInterval,
             crux_type,
@@ -178,6 +179,7 @@ void outputHelp()
          << "  -r                regular sum instead of enhanced precision sum (Kahan sum);" << endl
          << "  -R                restart simulation from the backup file specified;" << endl
          << "  -s <s>            specify space-filling curve method S;" << endl
+         << "  -S               write out double precision data as single precision;" << endl
          << "  -T                execute with TVD;" << endl
          << "  -t <t>            specify T time steps to run;" << endl
          << "  -u                allowed percentage of difference between total mass between iterations." << endl
@@ -238,6 +240,7 @@ void parseInput(const int argc, char** argv)
     mem_opt_factor          = 1.0;
     upper_mass_diff_percentage = -1.0;
     enhanced_precision_sum  = SUM_KAHAN;
+    h5_spoutput             = false;
     
     char   *val;
     if (argc > 1)
@@ -425,7 +428,10 @@ void parseInput(const int argc, char** argv)
                        localStencil = false;
                     }
                     break;
-                    
+   
+                case 'S':   //  write out double precision data as single precision.
+                    h5_spoutput = true;
+                    break;
                 case 'q':   //  turn on quo package.
 #ifdef HAVE_QUO
                     do_quo_setup = 1;

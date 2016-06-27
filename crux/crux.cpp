@@ -61,6 +61,8 @@
 const bool CRUX_TIMING = true;
 bool do_crux_timing = false;
 
+bool h5_spoutput;
+
 #define RESTORE_NONE     0
 #define RESTORE_RESTART  1
 #define RESTORE_ROLLBACK 2
@@ -184,10 +186,17 @@ void Crux::store_MallocPlus(MallocPlus memory){
         sid = H5Screate_simple (memory_item->mem_ndims, (hsize_t*)memory_item->mem_nelem, NULL);
         
         hid_t memtype;
+        hid_t filetype;
         if (memory_item->mem_elsize == 4){
           memtype = H5T_NATIVE_INT;
+          filetype = H5T_NATIVE_INT;
         } else {
           memtype = H5T_NATIVE_DOUBLE;
+          if(h5_spoutput) {
+            filetype = H5T_NATIVE_FLOAT;
+          } else {
+            filetype = H5T_NATIVE_DOUBLE;
+          }
         }
         
         hid_t gid;
@@ -210,9 +219,9 @@ void Crux::store_MallocPlus(MallocPlus memory){
         if( (strncmp(memory_item->mem_name,"state_long_vals",15) == 0) ||
             (strncmp(memory_item->mem_name,"mesh_double_vals",16) == 0) ) {
           hid_t aid;
-          aid = H5Acreate2(gid, memory_item->mem_name, memtype, sid, H5P_DEFAULT, H5P_DEFAULT);
+          aid = H5Acreate2(gid, memory_item->mem_name, filetype, sid, H5P_DEFAULT, H5P_DEFAULT);
           // Write the attribute data.
-          h5err = H5Awrite(aid, memtype, mem_ptr);
+          h5err = H5Awrite(aid, filetype, mem_ptr);
           h5err = H5Aclose(aid);
 
         } else if( (strstr(memory_item->mem_name,"_timer") !=NULL) ||
@@ -232,7 +241,7 @@ void Crux::store_MallocPlus(MallocPlus memory){
           start[1] = 0;
           sid1 = H5Screate_simple (2, dims, NULL);
 
-          did = H5Dcreate (gid, memory_item->mem_name, memtype, sid1, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+          did = H5Dcreate2 (gid, memory_item->mem_name, filetype, sid1, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
           H5Sselect_hyperslab(sid1, H5S_SELECT_SET, start, NULL, count, NULL ); 
           h5err = H5Dwrite (did, memtype, H5S_ALL, sid1, H5P_DEFAULT, mem_ptr);
           
@@ -244,7 +253,7 @@ void Crux::store_MallocPlus(MallocPlus memory){
         } else {
 
           hid_t did;
-          did = H5Dcreate (gid, memory_item->mem_name, memtype, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+          did = H5Dcreate2 (gid, memory_item->mem_name, filetype, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
           h5err = H5Dwrite (did, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, mem_ptr);
           if(H5Dclose(did) < 0)
             printf("HDF5: Could not close dataset %s \n",memory_item->mem_name);
