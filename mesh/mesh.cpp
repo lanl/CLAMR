@@ -9505,13 +9505,15 @@ void Mesh::parallel_output(const char *string, int local_value, int output_level
 }
 
 const int CRUX_MESH_VERSION = 103;
-const int num_int_vals      = 6;
+const int num_int_dist_vals = 4;
+const int num_int_vals      = 3;
 const int num_double_vals   = 1;
 
 size_t Mesh::get_checkpoint_size(void)
 {
    size_t nsize;
-   nsize  = num_int_vals*sizeof(int);
+   nsize  = num_int_dist_vals*sizeof(int);
+   nsize += num_int_vals*sizeof(int);
    nsize += num_double_vals*sizeof(double);
    nsize += 2*MESH_COUNTER_SIZE*sizeof(int);
    nsize += MESH_TIMER_SIZE*sizeof(double);
@@ -9522,6 +9524,13 @@ size_t Mesh::get_checkpoint_size(void)
 
 void Mesh::store_checkpoint(Crux *crux)
 {
+   int ncells_int,noffset;
+   noffset = 0;
+#ifdef HAVE_MPI
+   MPI_Scan(&ncells_int, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+#endif
+   //printf("noffset is %d\n",noffset);
+
    // Need ncells for memory allocation
    crux->store_sizets(&ncells, 1);
 
@@ -9531,15 +9540,20 @@ void Mesh::store_checkpoint(Crux *crux)
    int_vals[ 0] = CRUX_MESH_VERSION;
    int_vals[ 1] = ndim;
    int_vals[ 2] = levmx;
-   int_vals[ 3] = ncells;
-   int_vals[ 4] = ncells_ghost;
-   int_vals[ 5] = offtile_local_count;
+
+   // These are for values that will be different on every processor
+   int int_dist_vals[num_int_dist_vals];
+   int_dist_vals[ 0] = ncells;
+   int_dist_vals[ 1] = noffset;
+   int_dist_vals[ 2] = ncells_ghost;
+   int_dist_vals[ 3] = offtile_local_count;
 
    double double_vals[num_double_vals];
 
    double_vals[0] = offtile_ratio_local;
 
    // Now add memory entries to database for storing checkpoint
+   mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", RESTART_DATA);
    mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", RESTART_DATA);
    mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", RESTART_DATA);
 
@@ -9568,6 +9582,7 @@ void Mesh::restore_checkpoint(Crux *crux)
    crux->restore_sizets(&ncells, 1);
 
    // Create memory for reading data into
+   int int_dist_vals[num_int_dist_vals];
    int int_vals[num_int_vals];
    double double_vals[num_double_vals];
 
@@ -9583,23 +9598,33 @@ void Mesh::restore_checkpoint(Crux *crux)
    }
 
    // Copy out scalar values from array
+   ncells                    = int_vals[ 0];
+   noffset                   = int_vals[ 1];
+   ncells_ghost              = int_vals[ 2];
+   offtile_local_count       = int_vals[ 3];
+
+   // Copy out scalar values from array
    ndim                      = int_vals[ 1];
    levmx                     = int_vals[ 2];
-   ncells                    = int_vals[ 3];
-   ncells_ghost              = int_vals[ 4];
-   offtile_local_count       = int_vals[ 5];
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
+      const char *int_dist_vals_descriptor[num_int_dist_vals] = {
+         "ncells",
+         "noffset",
+         "ncells_ghost",
+         "offtile_local_count"
+      };
       const char *int_vals_descriptor[num_int_vals] = {
          "CRUX_MESH_VERSION",
          "ndim",
          "levmx",
-         "ncells",
-         "ncells_ghost",
-         "offtile_local_count"
       };
       printf("\n");
+      printf("       === Restored mesh int_dist_vals ===\n");
+      for (int i = 0; i < num_int_dist_vals; i++){
+         printf("       %-30s %d\n",int_dist_vals_descriptor[i], int_dist_vals[i]);
+      }
       printf("       === Restored mesh int_vals ===\n");
       for (int i = 0; i < num_int_vals; i++){
          printf("       %-30s %d\n",int_vals_descriptor[i], int_vals[i]);

@@ -6,8 +6,7 @@ set(CXX_SRCS ParserTest.cc)
 
 set(F90_SRCS FParserTest.F90)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
+include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/.. ${CMAKE_SOURCE_DIR}/PowerParser )
 
 ########### ParserTest target ###############
 set(ParserTest_SRCS ${CXX_SRCS} ${H_SRCS})
@@ -56,6 +55,8 @@ if (GENMALLOC-FOUND)
 endif (GENMALLOC-FOUND)
 
 ########### install files ###############
+
+file(COPY ${CMAKE_SOURCE_DIR}/PowerParser/tests/parsetest.in DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 ################# check/test ##################
 
