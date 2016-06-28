@@ -208,7 +208,8 @@ int main(int argc, char **argv) {
    struct timeval tstart_setup;
    cpu_timer_start(&tstart_setup);
 
-   numpe = 16;
+   // Just for graphics effect
+   //numpe = 16;
 
    crux = new Crux(crux_type, num_of_rollback_states, restart);
 
