@@ -3688,10 +3688,16 @@ void Mesh::calc_neighbors(int ncells)
             }
          }
 
+#ifdef _OPENMP
+#pragma omp master
+#endif
          if (TIMING_LEVEL >= 2) {
             cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
 
          //fprintf(fp,"DEBUG ncells is %lu\n",ncells);
 #ifdef _OPENMP

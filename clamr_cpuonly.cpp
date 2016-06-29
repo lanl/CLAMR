@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
    if (0 == tid) {
         printf("--- max num openmp threads: %d\n", nt);
    }
-#pragma omp parallel
+#pragma omp parallel firstprivate(nt, tid)
    {
       nt = omp_get_num_threads();
       tid = omp_get_thread_num();
