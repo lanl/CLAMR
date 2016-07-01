@@ -49,6 +49,7 @@
 #include <unistd.h>
 #include <algorithm>
 #include <assert.h>
+#include "PowerParser/PowerParser.hh"
 
 #include "crux.h"
 #include "timer/timer.h"
@@ -72,6 +73,9 @@ bool h5_spoutput;
 #endif
 
 using namespace std;
+using PP::PowerParser;
+// Pointers to the various objects.
+PowerParser *parse;
 
 char checkpoint_directory[] = "checkpoint_output";
 FILE *store_fp, *restore_fp;
@@ -147,6 +151,15 @@ Crux::~Crux()
 
 void Crux::store_MallocPlus(MallocPlus memory){
    malloc_plus_memory_entry *memory_item;
+
+   int mype = 0;
+   int npes = 1;
+
+#ifdef HAVE_MPI
+   mype = parse->comm->getProcRank();
+   npes = parse->comm->getNumProcs();
+#endif
+
    for (memory_item = memory.memory_entry_by_name_begin(); 
       memory_item != memory.memory_entry_by_name_end();
       memory_item = memory.memory_entry_by_name_next() ){
@@ -216,6 +229,16 @@ void Crux::store_MallocPlus(MallocPlus memory){
           gid = h5_gid_c;
         }
 
+        hid_t plist_id;
+        plist_id = H5P_DEFAULT; 
+#ifdef HAVE_MPI
+        //
+        // Create property list for collective dataset write.
+        //
+        plist_id = H5Pcreate(H5P_DATASET_XFER);
+        H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+
+#endif
         if( (strncmp(memory_item->mem_name,"state_long_vals",15) == 0) ||
             (strncmp(memory_item->mem_name,"mesh_double_vals",16) == 0) ) {
           hid_t aid;
@@ -231,21 +254,21 @@ void Crux::store_MallocPlus(MallocPlus memory){
           hsize_t dims[2], start[2], count[2];
           hid_t sid1;
 
-          dims[0] = 1; //MSB should be nprocs
+          dims[0] = npes;
           dims[1] =(hsize_t)memory_item->mem_nelem[0];
 
           count[0] = 1;
           count[1] = 1;
 
-          start[0] = 0; //MSB should be rank id
+          start[0] = mype;
           start[1] = 0;
           sid1 = H5Screate_simple (2, dims, NULL);
 
           did = H5Dcreate2 (gid, memory_item->mem_name, filetype, sid1, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
           H5Sselect_hyperslab(sid1, H5S_SELECT_SET, start, NULL, count, NULL ); 
-          h5err = H5Dwrite (did, memtype, H5S_ALL, sid1, H5P_DEFAULT, mem_ptr);
+          h5err = H5Dwrite (did, memtype, H5S_ALL, sid1, plist_id, mem_ptr);
           
-         if(H5Sclose(sid1) < 0)
+          if(H5Sclose(sid1) < 0)
             printf("HDF5: Could not close dataspace \n");
           if(H5Dclose(did) < 0)
             printf("HDF5: Could not close dataset %s \n",memory_item->mem_name);
@@ -254,12 +277,16 @@ void Crux::store_MallocPlus(MallocPlus memory){
 
           hid_t did;
           did = H5Dcreate2 (gid, memory_item->mem_name, filetype, sid, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-          h5err = H5Dwrite (did, memtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, mem_ptr);
+          h5err = H5Dwrite (did, memtype, H5S_ALL, H5S_ALL, plist_id, mem_ptr);
           if(H5Dclose(did) < 0)
             printf("HDF5: Could not close dataset %s \n",memory_item->mem_name);
         }
         if(H5Sclose(sid) < 0)
           printf("HDF5: Could not close dataspace \n");
+#ifdef HAVE_MPI
+        if(H5Pclose(plist_id) < 0)
+          printf("HDF5: Could not close property list \n");
+#endif
       }
 #endif
       store_field_header(memory_item->mem_name,20);
@@ -290,14 +317,42 @@ void Crux::store_begin(size_t nsize, int ncycle)
 #ifdef HAVE_HDF5
       if(USE_HDF5) {
         sprintf(backup_file,"%s/backup%05d.h5",checkpoint_directory,ncycle);
-        h5_fid = H5Fcreate(backup_file, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+        hid_t plist_id;
+        
+        plist_id =H5P_DEFAULT; 
+#ifdef HAVE_MPI
+        int mpiInitialized = 0;
+        bool phdf5 = false;
+        if (MPI_SUCCESS = MPI_Initialized(&mpiInitialized)) {
+          phdf5 = true;
+        }
+
+        // 
+        // Set up file access property list with parallel I/O access
+        //
+        if( (plist_id = H5Pcreate(H5P_FILE_ACCESS)) < 0)
+          printf("HDF5: Could not create property list \n");
+
+        H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
+#endif
+        h5_fid = H5Fcreate(backup_file, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
         if(!h5_fid){
           printf("HDF5: Could not write HDF5 %s at iteration %d\n",backup_file,ncycle);
         }
-        h5_gid_c = H5Gcreate(h5_fid, "clamr", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        h5_gid_m = H5Gcreate(h5_fid, "mesh", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        h5_gid_s = H5Gcreate(h5_fid, "state", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        if( (h5_gid_c = H5Gcreate(h5_fid, "clamr", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT) ) < 0) 
+          printf("HDF5: Could not create \"clamr\" group \n");
+        if( (h5_gid_m = H5Gcreate(h5_fid, "mesh", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT) ) < 0)
+          printf("HDF5: Could not create \"mesh\" group \n");
+        if( (h5_gid_s = H5Gcreate(h5_fid, "state", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT) ) < 0)
+          printf("HDF5: Could not create \"state\" group \n");
       }
+
+#ifdef HAVE_MPI
+      if(H5Pclose(plist_id) < 0)
+        printf("HDF5: Could not close property list \n");
+#endif
+
 #endif
 
       sprintf(backup_file,"%s/backup%05d.crx",checkpoint_directory,ncycle);

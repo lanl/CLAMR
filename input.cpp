@@ -179,7 +179,7 @@ void outputHelp()
          << "  -r                regular sum instead of enhanced precision sum (Kahan sum);" << endl
          << "  -R                restart simulation from the backup file specified;" << endl
          << "  -s <s>            specify space-filling curve method S;" << endl
-         << "  -S               write out double precision data as single precision;" << endl
+         << "  -S                write out double precision data as single precision;" << endl
          << "  -T                execute with TVD;" << endl
          << "  -t <t>            specify T time steps to run;" << endl
          << "  -u                allowed percentage of difference between total mass between iterations." << endl
