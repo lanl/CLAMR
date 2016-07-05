@@ -1356,6 +1356,10 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double d
    gpu_do_rezone = true;
 
    celltype = NULL;
+   nlft     = NULL;
+   nrht     = NULL;
+   nbot     = NULL;
+   ntop     = NULL;
 }
 
 void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_order, int do_gpu_calc)
@@ -1365,7 +1369,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       cl_context context = ezcl_get_context();
 
       hash_lib_init();
-      printf("Starting compile of kernels in mesh\n");
+      if (mype == 0) printf("Starting compile of kernels in mesh\n");
       char *bothsources = (char *)malloc(strlen(mesh_kern_source)+strlen(get_hash_kernel_source_string())+1);
       strcpy(bothsources, get_hash_kernel_source_string());
       strcat(bothsources, mesh_kern_source);
@@ -1425,7 +1429,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       }
 
       ezcl_program_release(program);
-      printf("Finishing compile of kernels in mesh\n");
+      if (mype == 0) printf("Finishing compile of kernels in mesh\n");
 #endif
    }
 
@@ -2596,6 +2600,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    //  Initialize new variables
    int flags = 0;
+   flags = RESTART_DATA;
 #ifdef HAVE_J7
    if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
@@ -2788,6 +2793,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    calc_celltype(new_ncells);
 
    if (have_state){
+      flags = RESTART_DATA;
       MallocPlus state_memory_old = state_memory;
       malloc_plus_memory_entry *memory_item;
 
@@ -3184,10 +3190,12 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
 
    if (neighbor_remap) {
+      flags = 0;
       int *nlft_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nlft_old",  flags);
       int *nrht_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nrht_old",  flags);
       int *nbot_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nbot_old",  flags);
       int *ntop_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "ntop_old",  flags);
+      flags = RESTART_DATA;
 
       for (int ic = 0; ic < new_ncells; ic++){
          nlft_old[ic] = -1;
@@ -3597,11 +3605,17 @@ void Mesh::calc_neighbors(int ncells)
 #if defined (HAVE_J7)
    if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
-   if ((int)mesh_memory.get_memory_size(nlft) < ncells){
-      nlft = (int *)mesh_memory.memory_delete(nlft);
-      nrht = (int *)mesh_memory.memory_delete(nrht);
-      nbot = (int *)mesh_memory.memory_delete(nbot);
-      ntop = (int *)mesh_memory.memory_delete(ntop);
+   int nlft_size = 0;
+   if (nlft != NULL){
+      nlft_size = mesh_memory.get_memory_size(nlft);
+   }
+   if (nlft_size < ncells){
+      if (nlft != NULL){
+         nlft = (int *)mesh_memory.memory_delete(nlft);
+         nrht = (int *)mesh_memory.memory_delete(nrht);
+         nbot = (int *)mesh_memory.memory_delete(nbot);
+         ntop = (int *)mesh_memory.memory_delete(ntop);
+      }
 
       nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
       nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
@@ -3674,10 +3688,16 @@ void Mesh::calc_neighbors(int ncells)
             }
          }
 
+#ifdef _OPENMP
+#pragma omp master
+#endif
          if (TIMING_LEVEL >= 2) {
             cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
 
          //fprintf(fp,"DEBUG ncells is %lu\n",ncells);
 #ifdef _OPENMP
@@ -7545,6 +7565,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       MallocPlus state_memory_old = state_memory;
 
       int flags = 0;
+      flags = RESTART_DATA;
 #ifdef HAVE_J7
       if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
@@ -7616,7 +7637,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       for (int *mem_ptr=(int *)mesh_memory_old.memory_begin(); mem_ptr!=NULL; mem_ptr=(int *)mesh_memory_old.memory_next() ){
          // Originally LOAD_BALANCE_MEMORY was used for whether to do the load balance routine
          //   and now it is used to trigger the shared memory allocation
-         //int flags = mesh_memory.get_memory_flags(mem_ptr);
+         int flags = mesh_memory.get_memory_flags(mem_ptr);
          // SKG XXX ???
          //if ((flags & LOAD_BALANCE_MEMORY) == 0) continue;
          int *mesh_temp = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "mesh_temp", flags);
@@ -8095,6 +8116,7 @@ int Mesh::gpu_count_BCs(void)
 void Mesh::allocate(size_t ncells)
 {
    int flags = 0;
+   flags = RESTART_DATA;
 #ifdef HAVE_J7
    if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
@@ -9483,13 +9505,15 @@ void Mesh::parallel_output(const char *string, int local_value, int output_level
 }
 
 const int CRUX_MESH_VERSION = 103;
-const int num_int_vals      = 6;
+const int num_int_dist_vals = 4;
+const int num_int_vals      = 3;
 const int num_double_vals   = 1;
 
 size_t Mesh::get_checkpoint_size(void)
 {
    size_t nsize;
-   nsize  = num_int_vals*sizeof(int);
+   nsize  = num_int_dist_vals*sizeof(int);
+   nsize += num_int_vals*sizeof(int);
    nsize += num_double_vals*sizeof(double);
    nsize += 2*MESH_COUNTER_SIZE*sizeof(int);
    nsize += MESH_TIMER_SIZE*sizeof(double);
@@ -9500,65 +9524,107 @@ size_t Mesh::get_checkpoint_size(void)
 
 void Mesh::store_checkpoint(Crux *crux)
 {
+   int ncells_int,noffset;
+   noffset = 0;
+#ifdef HAVE_MPI
+   MPI_Scan(&ncells_int, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+#endif
+   //printf("noffset is %d\n",noffset);
+
+   // Need ncells for memory allocation
+   crux->store_sizets(&ncells, 1);
+
+   // Write scalars to arrays for storing in checkpoint
    int int_vals[num_int_vals];
 
    int_vals[ 0] = CRUX_MESH_VERSION;
    int_vals[ 1] = ndim;
    int_vals[ 2] = levmx;
-   int_vals[ 3] = ncells;
-   int_vals[ 4] = ncells_ghost;
-   int_vals[ 5] = offtile_local_count;
 
-   crux->store_ints(int_vals, num_int_vals);
+   // These are for values that will be different on every processor
+   int int_dist_vals[num_int_dist_vals];
+   int_dist_vals[ 0] = ncells;
+   int_dist_vals[ 1] = noffset;
+   int_dist_vals[ 2] = ncells_ghost;
+   int_dist_vals[ 3] = offtile_local_count;
 
    double double_vals[num_double_vals];
 
    double_vals[0] = offtile_ratio_local;
 
-   crux->store_doubles(double_vals, num_double_vals);
+   // Now add memory entries to database for storing checkpoint
+   mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", RESTART_DATA);
+   mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", RESTART_DATA);
+   mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", RESTART_DATA);
 
-   // Now store arrays
+   mesh_memory.memory_add(cpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_cpu_counters", RESTART_DATA);
+   mesh_memory.memory_add(gpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_gpu_counters", RESTART_DATA);
 
-   crux->store_int_array(cpu_counters, MESH_COUNTER_SIZE);
-   crux->store_int_array(gpu_counters, MESH_COUNTER_SIZE);
+   mesh_memory.memory_add(cpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_cpu_timers", RESTART_DATA);
+   mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", RESTART_DATA);
 
-   crux->store_double_array(cpu_timers, MESH_TIMER_SIZE);
-   crux->store_long_array(gpu_timers, MESH_TIMER_SIZE);
+   // Store MallocPlus memory database
+   crux->store_MallocPlus(mesh_memory);
 
-   crux->store_int_array(i, ncells);
-   crux->store_int_array(j, ncells);
-   crux->store_int_array(level, ncells);
+   // Remove memory entries from database now that data is stored
+   mesh_memory.memory_remove(int_vals);
+   mesh_memory.memory_remove(double_vals);
+   mesh_memory.memory_remove(cpu_counters);
+   mesh_memory.memory_remove(gpu_counters);
+   mesh_memory.memory_remove(cpu_timers);
+   mesh_memory.memory_remove(gpu_timers);
+
 }
 
 void Mesh::restore_checkpoint(Crux *crux)
 {
+   // Need ncells for memory allocation
+   crux->restore_sizets(&ncells, 1);
+
+   // Create memory for reading data into
+   int int_dist_vals[num_int_dist_vals];
    int int_vals[num_int_vals];
+   double double_vals[num_double_vals];
 
-   crux->restore_ints(int_vals, num_int_vals);
+   allocate(ncells);
 
+   crux->restore_MallocPlus(mesh_memory);
+
+   // Check version number
    if (int_vals[ 0] != CRUX_MESH_VERSION) {
       printf("CRUX version mismatch for mesh data, version on file is %d, version in code is %d\n",
          int_vals[0], CRUX_MESH_VERSION);
       exit(0);
    }
 
+   // Copy out scalar values from array
+   ncells                    = int_vals[ 0];
+   noffset                   = int_vals[ 1];
+   ncells_ghost              = int_vals[ 2];
+   offtile_local_count       = int_vals[ 3];
+
+   // Copy out scalar values from array
    ndim                      = int_vals[ 1];
    levmx                     = int_vals[ 2];
-   ncells                    = int_vals[ 3];
-   ncells_ghost              = int_vals[ 4];
-   offtile_local_count       = int_vals[ 5];
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
+      const char *int_dist_vals_descriptor[num_int_dist_vals] = {
+         "ncells",
+         "noffset",
+         "ncells_ghost",
+         "offtile_local_count"
+      };
       const char *int_vals_descriptor[num_int_vals] = {
          "CRUX_MESH_VERSION",
          "ndim",
          "levmx",
-         "ncells",
-         "ncells_ghost",
-         "offtile_local_count"
       };
       printf("\n");
+      printf("       === Restored mesh int_dist_vals ===\n");
+      for (int i = 0; i < num_int_dist_vals; i++){
+         printf("       %-30s %d\n",int_dist_vals_descriptor[i], int_dist_vals[i]);
+      }
       printf("       === Restored mesh int_vals ===\n");
       for (int i = 0; i < num_int_vals; i++){
          printf("       %-30s %d\n",int_vals_descriptor[i], int_vals[i]);
@@ -9567,10 +9633,6 @@ void Mesh::restore_checkpoint(Crux *crux)
       printf("\n");
    }
 #endif
-
-   double double_vals[num_double_vals];
-
-   crux->restore_doubles(double_vals, num_double_vals);
 
    offtile_ratio_local = double_vals[0];
 
@@ -9589,9 +9651,6 @@ void Mesh::restore_checkpoint(Crux *crux)
    }
 #endif
 
-   crux->restore_int_array(cpu_counters, MESH_COUNTER_SIZE);
-   crux->restore_int_array(gpu_counters, MESH_COUNTER_SIZE);
-
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
       printf("       === Restored mesh cpu counters ===\n");
@@ -9608,8 +9667,6 @@ void Mesh::restore_checkpoint(Crux *crux)
    }
 #endif
 
-   crux->restore_double_array(cpu_timers, MESH_TIMER_SIZE);
-
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
       printf("       === Restored mesh cpu timers ===\n");
@@ -9620,8 +9677,6 @@ void Mesh::restore_checkpoint(Crux *crux)
       printf("\n");
    }
 #endif
-
-   crux->restore_long_array(gpu_timers, MESH_TIMER_SIZE);
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
@@ -9634,12 +9689,6 @@ void Mesh::restore_checkpoint(Crux *crux)
       printf("\n");
    }
 #endif
-
-   allocate(ncells);
-
-   i     = crux->restore_int_array(i, ncells);
-   j     = crux->restore_int_array(j, ncells);
-   level = crux->restore_int_array(level, ncells);
 
    calc_celltype(ncells);
 }

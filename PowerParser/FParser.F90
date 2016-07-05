@@ -1,174 +1,184 @@
+!* Copyright 2015.  Los Alamos National Security, LLC. This material was produced
+!* under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
+!* Laboratory (LANL), which is operated by Los Alamos National Security, LLC
+!* for the U.S. Department of Energy. The U.S. Government has rights to use,
+!* reproduce, and distribute this software.  NEITHER THE GOVERNMENT NOR LOS
+!* ALAMOS NATIONAL SECURITY, LLC MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR
+!* ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE.  If software is modified
+!* to produce derivative works, such modified software should be clearly marked,
+!* so as not to confuse it with the version available from LANL.
 !*
-!*  Copyright (c) 2010-2014, Los Alamos National Security, LLC.
-!*  All rights Reserved.
+!* Licensed under the Apache License, Version 2.0 (the "License"); you may not
+!* use this file except in compliance with the License. You may obtain a copy
+!* of the License at
 !*
-!*  Copyright 2010-2014. Los Alamos National Security, LLC. This software was produced 
-!*  under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
-!*  Laboratory (LANL), which is operated by Los Alamos National Security, LLC 
-!*  for the U.S. Department of Energy. The U.S. Government has rights to use, 
-!*  reproduce, and distribute this software.  NEITHER THE GOVERNMENT NOR LOS 
-!*  ALAMOS NATIONAL SECURITY, LLC MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR 
-!*  ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE.  If software is modified
-!*  to produce derivative works, such modified software should be clearly marked,
-!*  so as not to confuse it with the version available from LANL.
+!* http://www.apache.org/licenses/LICENSE-2.0
 !*
-!*  Additionally, redistribution and use in source and binary forms, with or without
-!*  modification, are permitted provided that the following conditions are met:
-!*     * Redistributions of source code must retain the above copyright
-!*       notice, this list of conditions and the following disclaimer.
-!*     * Redistributions in binary form must reproduce the above copyright
-!*       notice, this list of conditions and the following disclaimer in the
-!*       documentation and/or other materials provided with the distribution.
-!*     * Neither the name of the Los Alamos National Security, LLC, Los Alamos 
-!*       National Laboratory, LANL, the U.S. Government, nor the names of its 
-!*       contributors may be used to endorse or promote products derived from 
-!*       this software without specific prior written permission.
-!*  
-!*  THIS SOFTWARE IS PROVIDED BY THE LOS ALAMOS NATIONAL SECURITY, LLC AND 
-!*  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT 
-!*  NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-!*  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL LOS ALAMOS NATIONAL
-!*  SECURITY, LLC OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-!*  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-!*  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-!*  OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-!*  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-!*  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-!*  POSSIBILITY OF SUCH DAMAGE.
-!*  
-!*  CLAMR -- LA-CC-11-094
-!*  This research code is being developed as part of the 
-!*  2011 X Division Summer Workshop for the express purpose
-!*  of a collaborative code for development of ideas in
-!*  the implementation of AMR codes for Exascale platforms
-!*  
+!* Unless required by applicable law or agreed to in writing, software distributed
+!* under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+!* CONDITIONS OF ANY KIND, either express or implied. See the License for the
+!* specific language governing permissions and limitations under the License.
+!*
+!* Under this license, it is required to include a reference to this work. We
+!* request that each derivative work contain a reference to LANL Copyright
+!* Disclosure C15076/LA-CC-15-054 so that this work's impact can be roughly
+!* measured.
+!*
+!* This is LANL Copyright Disclosure C15076/LA-CC-15-054
+!*/
+
+!*
+!*  PowerParser is a general purpose input file parser for software applications.
+!*
 !*  Authors: Chuck Wingate   XCP-2   caw@lanl.gov
 !*           Robert Robey    XCP-2   brobey@lanl.gov
-!*
+!*/
 
 ! ------------------------------------------------------------------------------
 ! This module contains a collection of subroutines and related data that
 ! is used to read input data from an input file.
 ! ------------------------------------------------------------------------------
-  module PPinput_module
+  module FParser_module
  
     implicit none
     save
     private
 
-    integer, parameter :: INT4   = SELECTED_INT_KIND(6)
-    integer, parameter :: INT32  = SELECTED_INT_KIND(6)
-    integer, parameter :: INT8   = SELECTED_INT_KIND(16)
-    integer, parameter :: INT64  = SELECTED_INT_KIND(16)
+#ifndef INT4_KIND_DIGITS
+#define INT4_KIND_DIGITS 6
+#endif
 
-    integer, parameter :: REAL4  = SELECTED_REAL_KIND(6)
-    integer, parameter :: REAL8  = SELECTED_REAL_KIND(12)
+#ifndef INT8_KIND_DIGITS
+#define INT8_KIND_DIGITS 16
+#endif
 
-    integer, parameter :: REAL32 = SELECTED_REAL_KIND(6)
-    integer, parameter :: REAL64 = SELECTED_REAL_KIND(12)
+#ifndef REAL4_KIND_DIGITS
+#define REAL4_KIND_DIGITS 6
+#endif
+
+#ifndef REAL8_KIND_DIGITS
+#define REAL8_KIND_DIGITS 12
+#endif
+
+    integer, parameter :: INT4   = SELECTED_INT_KIND(INT4_KIND_DIGITS)
+    integer, parameter :: INT32  = SELECTED_INT_KIND(INT4_KIND_DIGITS)
+
+    integer, parameter :: INT8   = SELECTED_INT_KIND(INT8_KIND_DIGITS)
+    integer, parameter :: INT64  = SELECTED_INT_KIND(INT8_KIND_DIGITS)
+
+    integer, parameter :: REAL4  = SELECTED_REAL_KIND(REAL4_KIND_DIGITS)
+    integer, parameter :: REAL32 = SELECTED_REAL_KIND(REAL4_KIND_DIGITS)
+
+    integer, parameter :: REAL8  = SELECTED_REAL_KIND(REAL8_KIND_DIGITS)
+    integer, parameter :: REAL64 = SELECTED_REAL_KIND(REAL8_KIND_DIGITS)
 
     integer :: mype
     integer :: numpe
     integer :: iope
 
-    public PPinput                    ! Interface to get command values.
-    public PPinput_size               ! Interface to get sizes before getting values.
-    public PPinput_sizeb              ! Interface to get all sizes before getting values.
+    integer :: FParser_allostat
+
+    public QueryFParser               ! Interface to get command values.
+    public FParser_size               ! Interface to get sizes before getting values.
+    public FParser_sizeb              ! Interface to get all sizes before getting values.
  
-    public PPinput_initialize         ! Initialize the parser and read in the input deck.
-    public PPinput_dictionary_add     ! Add a constant to the Parser dictionary
-    public PPinput_dictionary_env_add ! Add an environment variable constant to the Parser dictionary
-    public PPinput_compile_buffer     ! Compile the input buffer
-    public PPinput_initialized_check  ! Interface to check if PPinput has been initialized
-    public PPinput_check_processed    ! Check processed flags.
-    public PPinput_disable_check      ! Disable check processed.
-    public PPinput_terminate          ! Last PPinput call, check processed flags, clean.
-    public PPinput_cmd_in_input       ! Check for command in the user input.
-    public PPinput_cmd_set_processed  ! Set the command as being processed.
-    public PPinput_echo_user_input    ! Echo user input to a file.
-    public PPinput_echo_fvf           ! Echo functions, variables, final buffer
+    public FParser_initialize         ! Initialize the parser and read in the input deck.
+    public FParser_dictionary_add     ! Add a constant to the Parser dictionary
+    public FParser_dictionary_env_add ! Add an environment variable constant to the Parser dictionary
+    public FParser_compile_buffer     ! Compile the input buffer
+    public FParser_initialized_check  ! Interface to check if FParser has been initialized
+    public FParser_check_processed    ! Check processed flags.
+    public FParser_disable_check      ! Disable check processed.
+    public FParser_terminate          ! Last FParser call, check processed flags, clean.
+    public FParser_cmd_in_input       ! Check for command in the user input.
+    public FParser_cmd_set_processed  ! Set the command as being processed.
+    public FParser_echo_user_input    ! Echo user input to a file.
+    public FParser_count_var          ! Count numer of internal input variables
+    public FParser_echo_fvf           ! Echo functions, variables, final buffer
+    public FParser_get_num_include_files ! The number of include files that have been processed
+    public FParser_get_include_file    ! Retrieve the names of any input files included in the main input file
  
-    private PPinput_list_funcs        ! List functions to file.
-    private PPinput_list_vars         ! List variables to file.
-    private PPinput_echo_fbuffer      ! Echo final buffer to a file.
+    private FParser_list_funcs        ! List functions to file.
+    private FParser_list_vars         ! List variables to file.
+    private FParser_echo_fbuffer      ! Echo final buffer to a file.
  
     ! Define an interface block that allows several subroutines to be called
-    ! using a common name, i.e. PPinput. This is for getting values.
-    interface PPinput
-       module procedure PPinput_c_00   ! Single character
-       module procedure PPinput_c_0    ! Character string
-       module procedure PPinput_c_1    ! 1d array of character strings
-       module procedure PPinput_c_2    ! 2d array of character strings
-       module procedure PPinput_c_3    ! 3d array of character strings
-       module procedure PPinput_c_4    ! 4d array of character strings
+    ! using a common name, i.e. QueryFParser. This is for getting values.
+    interface QueryFParser
+       module procedure QueryFParser_c_00   ! Single character
+       module procedure QueryFParser_c_0    ! Character string
+       module procedure QueryFParser_c_1    ! 1d array of character strings
+       module procedure QueryFParser_c_2    ! 2d array of character strings
+       module procedure QueryFParser_c_3    ! 3d array of character strings
+       module procedure QueryFParser_c_4    ! 4d array of character strings
  
-       module procedure PPinput_i_0    ! Single integer
-       module procedure PPinput_i_1    ! 1d integer array
-       module procedure PPinput_i_2    ! 2d integer array
-       module procedure PPinput_i_3    ! 3d integer array
-       module procedure PPinput_i_4    ! 4d integer array
+       module procedure QueryFParser_i_0    ! Single integer
+       module procedure QueryFParser_i_1    ! 1d integer array
+       module procedure QueryFParser_i_2    ! 2d integer array
+       module procedure QueryFParser_i_3    ! 3d integer array
+       module procedure QueryFParser_i_4    ! 4d integer array
  
-       module procedure PPinput_i8_0   ! Single long int (int64_t)
-       module procedure PPinput_i8_1   ! Single long int (int64_t)
+       module procedure QueryFParser_i8_0   ! Single long int (int64_t)
+       module procedure QueryFParser_i8_1   ! Single long int (int64_t)
  
-       module procedure PPinput_l_0    ! Single logical
-       module procedure PPinput_l_1    ! 1d logical array
-       module procedure PPinput_l_2    ! 2d logical array
-       module procedure PPinput_l_3    ! 3d logical array
-       module procedure PPinput_l_4    ! 4d logical array
+       module procedure QueryFParser_l_0    ! Single logical
+       module procedure QueryFParser_l_1    ! 1d logical array
+       module procedure QueryFParser_l_2    ! 2d logical array
+       module procedure QueryFParser_l_3    ! 3d logical array
+       module procedure QueryFParser_l_4    ! 4d logical array
  
-       module procedure PPinput_r8_0   ! Single real
-       module procedure PPinput_r8_1   ! 1d real array
-       module procedure PPinput_r8_2   ! 2d real array
-       module procedure PPinput_r8_3   ! 3d real array
-       module procedure PPinput_r8_4   ! 4d real array
+       module procedure QueryFParser_r8_0   ! Single real
+       module procedure QueryFParser_r8_1   ! 1d real array
+       module procedure QueryFParser_r8_2   ! 2d real array
+       module procedure QueryFParser_r8_3   ! 3d real array
+       module procedure QueryFParser_r8_4   ! 4d real array
     end interface
  
     ! Define an interface block that allows several subroutines to be called
-    ! using a common name, i.e. PPinput_size. This is for getting sizes.
+    ! using a common name, i.e. FParser_size. This is for getting sizes.
     ! For variables that do not exist, a size of 0 must be returned.
     ! This size is used as a check and passed into other routines.
     ! So returning a negative number for the size of non-existant vars
     ! does cause problems.
-    interface PPinput_size
-       module procedure PPinput_size_1    ! Single dimensional array
-       module procedure PPinput_size_2    ! 2d array
-       module procedure PPinput_size_3    ! 3d array
-       module procedure PPinput_size_4    ! 4d array
-       module procedure PPinput_size_5    ! 5d array
-       module procedure PPinput_size_6    ! 6d array
+    interface FParser_size
+       module procedure FParser_size_1    ! Single dimensional array
+       module procedure FParser_size_2    ! 2d array
+       module procedure FParser_size_3    ! 3d array
+       module procedure FParser_size_4    ! 4d array
+       module procedure FParser_size_5    ! 5d array
+       module procedure FParser_size_6    ! 6d array
     end interface
     ! Define an interface block that allows several subroutines to be called
-    ! using a common name, i.e. PPinput_sizeb. This is for getting all sizes.
-    interface PPinput_sizeb
-       module procedure PPinput_sizeb_2   ! 2d array
+    ! using a common name, i.e. FParser_sizeb. This is for getting all sizes.
+    interface FParser_sizeb
+       module procedure FParser_sizeb_2   ! 2d array
     end interface
  
     ! restart_block subroutines.
-    public PPinput_rb_check           ! Do the restart blocks check
-    public PPinput_echo_rb_info       ! Echo restart block info for one block
+    public FParser_rb_check           ! Do the restart blocks check
+    public FParser_echo_rb_info       ! Echo restart block info for one block
  
  
     ! When...then subroutines.
-    public PPinput_whenthen_num       ! Get number of when...thens
-    public PPinput_whenthen_check     ! Do the whenthen check
-    public PPinput_whenthen_setcfp
-    public PPinput_whenthen_reset     ! Reset cmds final buffer pointer.
-    public PPinput_whenthen_casize
-    public PPinput_whenthen_ca
-    public PPinput_whenthen_satsize
-    public PPinput_whenthen_getsat
-    public PPinput_whenthen_setsat
-    public PPinput_whenthen_getprocessed
-    public PPinput_whenthen_setprocessed
-    public PPinput_whenthen_getseq
-    public PPinput_whenthen_setseq
+    public FParser_whenthen_num       ! Get number of when...thens
+    public FParser_whenthen_check     ! Do the whenthen check
+    public FParser_whenthen_setcfp
+    public FParser_whenthen_reset     ! Reset cmds final buffer pointer.
+    public FParser_whenthen_casize
+    public FParser_whenthen_ca
+    public FParser_whenthen_satsize
+    public FParser_whenthen_getsat
+    public FParser_whenthen_setsat
+    public FParser_whenthen_getprocessed
+    public FParser_whenthen_setprocessed
+    public FParser_whenthen_getseq
+    public FParser_whenthen_setseq
  
     ! Private module data.
  
  
-    logical :: PPinput_initialized = .false.
-    logical :: PPinput_do_check    = .true.
+    logical :: FParser_initialized = .false.
+    logical :: FParser_do_check    = .true.
  
 ! ==============================================================================
   contains
@@ -182,7 +192,7 @@
     ! ==========================================================================
     ! Get a single logical value.
     ! ==========================================================================
-    subroutine PPinput_l_0(cmdname, cmdvalue, noskip)
+    subroutine QueryFParser_l_0(cmdname, cmdvalue, noskip)
  
       character(*), intent(in)    :: cmdname
       logical,      intent(inout) :: cmdvalue
@@ -191,7 +201,7 @@
       character :: cmd_array(len(cmdname))
       integer :: ival, iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -216,13 +226,13 @@
          if (ival .eq. 1) cmdvalue = .true.
       endif
  
-    end subroutine PPinput_l_0
+    end subroutine QueryFParser_l_0
  
  
     ! ==========================================================================
     ! Get a one dimensional logical array.
     ! ==========================================================================
-    subroutine PPinput_l_1(cmdname, array, noskip, array_size)
+    subroutine QueryFParser_l_1(cmdname, array, noskip, array_size)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: array_size
@@ -232,7 +242,7 @@
       character :: cmd_array(len(cmdname))
       integer :: ival_array(array_size), i, iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -265,13 +275,13 @@
          enddo
       endif
  
-    end subroutine PPinput_l_1
+    end subroutine QueryFParser_l_1
  
  
     ! ==========================================================================
     ! Get two dimensional logical array values.
     ! ==========================================================================
-    subroutine PPinput_l_2(cmdname, array, noskip, size1, size2)
+    subroutine QueryFParser_l_2(cmdname, array, noskip, size1, size2)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2
@@ -282,7 +292,7 @@
       integer :: val_array(size1*size2)
       integer :: i, j, i1d, iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -327,13 +337,13 @@
          enddo
       endif
  
-    end subroutine PPinput_l_2
+    end subroutine QueryFParser_l_2
  
  
     ! ==========================================================================
     ! Get three dimensional logical array values.
     ! ==========================================================================
-    subroutine PPinput_l_3(cmdname, array, noskip, size1, size2, size3)
+    subroutine QueryFParser_l_3(cmdname, array, noskip, size1, size2, size3)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2, size3
@@ -344,7 +354,7 @@
       integer :: val_array(size1*size2*size3)
       integer :: i, j, k, i1d, iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -394,13 +404,13 @@
          enddo
       endif
  
-    end subroutine PPinput_l_3
+    end subroutine QueryFParser_l_3
  
  
     ! ==========================================================================
     ! Get four dimensional logical array values.
     ! ==========================================================================
-    subroutine PPinput_l_4(cmdname, array, noskip, size1, size2, size3, size4)
+    subroutine QueryFParser_l_4(cmdname, array, noskip, size1, size2, size3, size4)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2, size3, size4
@@ -411,7 +421,7 @@
       integer :: val_array(size1*size2*size3*size4)
       integer :: i, j, k, l, i1d, iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -467,7 +477,7 @@
          enddo
       endif
  
-    end subroutine PPinput_l_4
+    end subroutine QueryFParser_l_4
  
  
  
@@ -481,7 +491,7 @@
     ! ==========================================================================
     ! Get a single integer value.
     ! ==========================================================================
-    subroutine PPinput_i_0(cmdname, cmdvalue, noskip)
+    subroutine QueryFParser_i_0(cmdname, cmdvalue, noskip)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(inout) :: cmdvalue
@@ -490,7 +500,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -505,13 +515,13 @@
       ! if the command is found in the input file.
       call get_integer0(cmd_array, cmdvalue, len(cmdname), iskip)
  
-    end subroutine PPinput_i_0
+    end subroutine QueryFParser_i_0
  
  
     ! ==========================================================================
     ! Get a one dimensional integer array.
     ! ==========================================================================
-    subroutine PPinput_i_1(cmdname, array, noskip, array_size)
+    subroutine QueryFParser_i_1(cmdname, array, noskip, array_size)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: array_size
@@ -521,7 +531,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -535,13 +545,13 @@
       ! This is a C++ funtion.
       call get_integer1(cmd_array, array, array_size, len(cmdname), iskip)
  
-    end subroutine PPinput_i_1
+    end subroutine QueryFParser_i_1
  
  
     ! ==========================================================================
     ! Get two dimensional integer array values.
     ! ==========================================================================
-    subroutine PPinput_i_2(cmdname, array, noskip, size1, size2)
+    subroutine QueryFParser_i_2(cmdname, array, noskip, size1, size2)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2
@@ -551,7 +561,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -565,13 +575,13 @@
       ! This is a C++ funtion.
       call get_integer2(cmd_array, array, size1, size2, len(cmdname), iskip)
  
-    end subroutine PPinput_i_2
+    end subroutine QueryFParser_i_2
  
  
     ! ==========================================================================
     ! Get three dimensional integer array values.
     ! ==========================================================================
-    subroutine PPinput_i_3(cmdname, array, noskip, size1, size2, size3)
+    subroutine QueryFParser_i_3(cmdname, array, noskip, size1, size2, size3)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2, size3
@@ -581,7 +591,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -596,13 +606,13 @@
       call get_integer3(cmd_array, array, size1, size2, size3, len(cmdname), &
                         iskip)
  
-    end subroutine PPinput_i_3
+    end subroutine QueryFParser_i_3
  
  
     ! ==========================================================================
     ! Get four dimensional integer array values.
     ! ==========================================================================
-    subroutine PPinput_i_4(cmdname, array, noskip, size1, size2, size3, size4)
+    subroutine QueryFParser_i_4(cmdname, array, noskip, size1, size2, size3, size4)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2, size3, size4
@@ -612,7 +622,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -627,12 +637,12 @@
       call get_integer4(cmd_array, array, size1, size2, size3, size4, &
                         len(cmdname), iskip)
  
-    end subroutine PPinput_i_4
+    end subroutine QueryFParser_i_4
  
     ! ==========================================================================
     ! Get a single long integer (int64_t) value.
     ! ==========================================================================
-    subroutine PPinput_i8_0(cmdname, cmdvalue, noskip)
+    subroutine QueryFParser_i8_0(cmdname, cmdvalue, noskip)
  
       character(*),  intent(in)    :: cmdname
       integer(INT8), intent(inout) :: cmdvalue
@@ -641,7 +651,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -656,12 +666,12 @@
       ! if the command is found in the input file.
       call get_int8_0(cmd_array, cmdvalue, len(cmdname), iskip)
  
-    end subroutine PPinput_i8_0
+    end subroutine QueryFParser_i8_0
 
     ! ==========================================================================
     ! Get a one dimensional integer (int64_t) array.
     ! ==========================================================================
-    subroutine PPinput_i8_1(cmdname, array, noskip, array_size)
+    subroutine QueryFParser_i8_1(cmdname, array, noskip, array_size)
  
       character(*),  intent(in)    :: cmdname
       integer,       intent(in)    :: array_size
@@ -671,7 +681,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -685,7 +695,7 @@
       ! This is a C++ funtion.
       call get_int8_1(cmd_array, array, array_size, len(cmdname), iskip)
  
-    end subroutine PPinput_i8_1
+    end subroutine QueryFParser_i8_1
  
  
  
@@ -699,7 +709,7 @@
     ! ==========================================================================
     ! Get a single real value.
     ! ==========================================================================
-    subroutine PPinput_r8_0(cmdname, cmdvalue, noskip)
+    subroutine QueryFParser_r8_0(cmdname, cmdvalue, noskip)
  
       character(*), intent(in)    :: cmdname
       real(REAL8),  intent(inout) :: cmdvalue
@@ -708,7 +718,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -723,13 +733,13 @@
       ! if the command is found in the input file.
       call get_real0(cmd_array, cmdvalue, len(cmdname), iskip)
  
-    end subroutine PPinput_r8_0
+    end subroutine QueryFParser_r8_0
  
  
     ! ==========================================================================
     ! Get one dimensional real array values.
     ! ==========================================================================
-    subroutine PPinput_r8_1(cmdname, array, noskip, array_size)
+    subroutine QueryFParser_r8_1(cmdname, array, noskip, array_size)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: array_size
@@ -739,7 +749,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -753,13 +763,13 @@
       ! This is a C++ funtion.
       call get_real1(cmd_array, array, array_size, len(cmdname), iskip)
  
-    end subroutine PPinput_r8_1
+    end subroutine QueryFParser_r8_1
  
  
     ! ==========================================================================
     ! Get two dimensional real array values.
     ! ==========================================================================
-    subroutine PPinput_r8_2(cmdname, array, noskip, size1, size2)
+    subroutine QueryFParser_r8_2(cmdname, array, noskip, size1, size2)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2
@@ -769,7 +779,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -784,13 +794,13 @@
       call get_real2(cmd_array, array, size1, size2, len(cmdname), &
                      iskip)
  
-    end subroutine PPinput_r8_2
+    end subroutine QueryFParser_r8_2
  
  
     ! ==========================================================================
     ! Get three dimensional real array values.
     ! ==========================================================================
-    subroutine PPinput_r8_3(cmdname, array, noskip, size1, size2, size3)
+    subroutine QueryFParser_r8_3(cmdname, array, noskip, size1, size2, size3)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2, size3
@@ -800,7 +810,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -815,13 +825,13 @@
       call get_real3(cmd_array, array, size1, size2, size3, len(cmdname), &
                      iskip)
  
-    end subroutine PPinput_r8_3
+    end subroutine QueryFParser_r8_3
  
  
     ! ==========================================================================
     ! Get four dimensional real array values.
     ! ==========================================================================
-    subroutine PPinput_r8_4(cmdname, array, noskip, size1, size2, size3, size4)
+    subroutine QueryFParser_r8_4(cmdname, array, noskip, size1, size2, size3, size4)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2, size3, size4
@@ -831,7 +841,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -846,7 +856,7 @@
       call get_real4(cmd_array, array, size1, size2, size3, size4, &
                      len(cmdname), iskip)
  
-    end subroutine PPinput_r8_4
+    end subroutine QueryFParser_r8_4
  
  
 ! ******************************************************************************
@@ -858,7 +868,7 @@
     ! ==========================================================================
     ! Get a single character value.
     ! ==========================================================================
-    subroutine PPinput_c_00(cmdname, cmdvalue, noskip)
+    subroutine QueryFParser_c_00(cmdname, cmdvalue, noskip)
  
       character(*), intent(in)    :: cmdname
       character(*), intent(inout) :: cmdvalue
@@ -867,7 +877,7 @@
       character :: cmd_array(len(cmdname))
       integer :: iskip, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -882,13 +892,13 @@
       ! if the command is found in the input file.
       call get_char00(cmd_array, cmdvalue(1:1), len(cmdname), iskip)
  
-    end subroutine PPinput_c_00
+    end subroutine QueryFParser_c_00
  
  
     ! ==========================================================================
     ! Get a character string.
     ! ==========================================================================
-    subroutine PPinput_c_0(cmdname, cmdvalue, noskip, nchar, nchar_actual)
+    subroutine QueryFParser_c_0(cmdname, cmdvalue, noskip, nchar, nchar_actual)
  
       character(*),     intent(in)            :: cmdname
       integer,          intent(in)            :: nchar
@@ -900,7 +910,7 @@
       integer :: iskip, c
       integer :: nchar_actual_val
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -928,13 +938,13 @@
          enddo
       endif
  
-    end subroutine PPinput_c_0
+    end subroutine QueryFParser_c_0
  
  
     ! ==========================================================================
     ! Get one dimensional array of character strings.
     ! ==========================================================================
-    subroutine PPinput_c_1(cmdname, array, noskip, nchar, size1)
+    subroutine QueryFParser_c_1(cmdname, array, noskip, nchar, size1)
  
       character(*),     intent(in)    :: cmdname
       integer,          intent(in)    :: size1
@@ -945,7 +955,7 @@
       character :: cmd_array(len(cmdname)), val_array(nchar*size1)
       integer :: i, c, i1d, iskip
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -983,13 +993,13 @@
          enddo
       endif
  
-    end subroutine PPinput_c_1
+    end subroutine QueryFParser_c_1
  
  
     ! ==========================================================================
     ! Get two dimensional array of character strings.
     ! ==========================================================================
-    subroutine PPinput_c_2(cmdname, array, noskip, nchar, size1, size2)
+    subroutine QueryFParser_c_2(cmdname, array, noskip, nchar, size1, size2)
  
       character(*),     intent(in)    :: cmdname
       integer,          intent(in)    :: size1, size2
@@ -1000,7 +1010,7 @@
       character :: cmd_array(len(cmdname)), val_array(nchar*size1*size2)
       integer :: i, j, c, i1d, iskip
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -1043,13 +1053,13 @@
          enddo
       endif
  
-    end subroutine PPinput_c_2
+    end subroutine QueryFParser_c_2
  
  
     ! ==========================================================================
     ! Get three dimensional array of character strings.
     ! ==========================================================================
-    subroutine PPinput_c_3(cmdname, array, noskip, nchar, size1, size2, size3)
+    subroutine QueryFParser_c_3(cmdname, array, noskip, nchar, size1, size2, size3)
  
       character(*),     intent(in)    :: cmdname
       integer,          intent(in)    :: size1, size2, size3
@@ -1060,7 +1070,7 @@
       character :: cmd_array(len(cmdname)), val_array(nchar*size1*size2*size3)
       integer :: i, j, k, c, i1d, iskip
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -1107,13 +1117,13 @@
          enddo
       endif
  
-    end subroutine PPinput_c_3
+    end subroutine QueryFParser_c_3
  
  
     ! ==========================================================================
     ! Get four dimensional array of character strings.
     ! ==========================================================================
-    subroutine PPinput_c_4(cmdname, array, noskip, nchar, size1, size2, size3, &
+    subroutine QueryFParser_c_4(cmdname, array, noskip, nchar, size1, size2, size3, &
                           size4)
  
       character(*),     intent(in)    :: cmdname
@@ -1126,7 +1136,7 @@
       character :: val_array(nchar*size1*size2*size3*size4)
       integer :: i,j,k,l,c,i1d, iskip
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -1177,7 +1187,7 @@
          enddo
       endif
  
-    end subroutine PPinput_c_4
+    end subroutine QueryFParser_c_4
  
  
  
@@ -1192,7 +1202,7 @@
     ! ==========================================================================
     ! Get input sizes before actually reading values - 1d array.
     ! ==========================================================================
-    subroutine PPinput_size_1(cmdname, array_size)
+    subroutine FParser_size_1(cmdname, array_size)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(inout) :: array_size
@@ -1203,7 +1213,7 @@
       ! Important to initalize since array_size is accumulated.
       array_size = 0
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -1213,13 +1223,13 @@
       ! One dimensional arrays.
       call get_size1(cmd_array, array_size, len(cmdname))
  
-    end subroutine PPinput_size_1
+    end subroutine FParser_size_1
  
  
     ! ==========================================================================
     ! Get input sizes before actually reading values - 2d array.
     ! ==========================================================================
-    subroutine PPinput_size_2(cmdname, size1, size2)
+    subroutine FParser_size_2(cmdname, size1, size2)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1
@@ -1231,7 +1241,7 @@
       ! Important to initalize since array_size is accumulated.
       size2 = 0
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -1241,13 +1251,13 @@
       ! 2d arrays.
       call get_size2(cmd_array, size1, size2, len(cmdname))
  
-    end subroutine PPinput_size_2
+    end subroutine FParser_size_2
  
  
     ! ==========================================================================
     ! Get all input sizes before actually reading values - 2d array.
     ! ==========================================================================
-    subroutine PPinput_sizeb_2(cmdname, size1, size2)
+    subroutine FParser_sizeb_2(cmdname, size1, size2)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(inout) :: size1, size2
@@ -1259,7 +1269,7 @@
       size1 = 0
       size2 = 0
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -1269,13 +1279,13 @@
       ! 2d arrays.
       call get_sizeb2(cmd_array, size1, size2, len(cmdname))
  
-    end subroutine PPinput_sizeb_2
+    end subroutine FParser_sizeb_2
  
  
     ! ==========================================================================
     ! Get input sizes before actually reading values - 3d array.
     ! ==========================================================================
-    subroutine PPinput_size_3(cmdname, size1, size2, size3)
+    subroutine FParser_size_3(cmdname, size1, size2, size3)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2
@@ -1287,7 +1297,7 @@
       ! Important to initalize since sizes are accumulated.
       size3 = 0
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -1298,13 +1308,13 @@
       ! 3d arrays.
       call get_size3(cmd_array, size1, size2, size3, len(cmdname))
  
-    end subroutine PPinput_size_3
+    end subroutine FParser_size_3
  
  
     ! ==========================================================================
     ! Get input sizes before actually reading values - 4d array.
     ! ==========================================================================
-    subroutine PPinput_size_4(cmdname, size1, size2, size3, size4)
+    subroutine FParser_size_4(cmdname, size1, size2, size3, size4)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2, size3
@@ -1316,7 +1326,7 @@
       ! Important to initalize since sizes are accumulated.
       size4 = 0
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -1326,13 +1336,13 @@
       ! 4d arrays.
       call get_size4(cmd_array, size1, size2, size3, size4, len(cmdname))
  
-    end subroutine PPinput_size_4
+    end subroutine FParser_size_4
  
  
     ! ==========================================================================
     ! Get input sizes before actually reading values - 5d array.
     ! ==========================================================================
-    subroutine PPinput_size_5(cmdname, size1, size2, size3, size4, size5)
+    subroutine FParser_size_5(cmdname, size1, size2, size3, size4, size5)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2, size3, size4
@@ -1344,7 +1354,7 @@
       ! Important to initalize since sizes are accumulated.
       size5 = 0
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -1355,13 +1365,13 @@
       ! 5d arrays.
       call get_size4(cmd_array, size1, size2, size3, size4, size5, len(cmdname))
  
-    end subroutine PPinput_size_5
+    end subroutine FParser_size_5
  
  
     ! ==========================================================================
     ! Get input sizes before actually reading values - 6d array.
     ! ==========================================================================
-    subroutine PPinput_size_6(cmdname, size1, size2, size3, size4, size5, size6)
+    subroutine FParser_size_6(cmdname, size1, size2, size3, size4, size5, size6)
  
       character(*), intent(in)    :: cmdname
       integer,      intent(in)    :: size1, size2, size3, size4, size5
@@ -1373,7 +1383,7 @@
       ! Important to initalize since sizes are accumulated.
       size6 = 0
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -1384,7 +1394,7 @@
       call get_size6(cmd_array, size1, size2, size3, size4, size5, size6, &
                      len(cmdname))
  
-    end subroutine PPinput_size_6
+    end subroutine FParser_size_6
  
  
 ! ******************************************************************************
@@ -1396,7 +1406,7 @@
     ! ==========================================================================
     ! Initialize the parser
     ! ==========================================================================
-    subroutine PPinput_initialize(first,deckname,oargs)
+    subroutine FParser_initialize(first,deckname,oargs)
  
       character(len=*), intent(in) :: deckname,oargs
       logical         , intent(in) :: first
@@ -1404,17 +1414,17 @@
       call parser_create(oargs, len(oargs), trim(deckname), len_trim(deckname))
 
       call parser_comm_info(mype,numpe,iope)
-      PPinput_initialized = .true.
+      FParser_initialized = .true.
  
-    end subroutine PPinput_initialize
+    end subroutine FParser_initialize
 
     ! ==========================================================================
-    ! Check for other packages to make sure PPinput has been initialized
+    ! Check for other packages to make sure FParser has been initialized
     ! ==========================================================================
-    logical function PPinput_initialized_check()
-       PPinput_initialized_check = .false.
-       if (PPinput_initialized) PPinput_initialized_check = .true.
-    end function PPinput_initialized_check
+    logical function FParser_initialized_check()
+       FParser_initialized_check = .false.
+       if (FParser_initialized) FParser_initialized_check = .true.
+    end function FParser_initialized_check
 
 ! ******************************************************************************
 ! ******************************************************************************
@@ -1422,7 +1432,7 @@
 ! ******************************************************************************
 ! ******************************************************************************
 
-   subroutine PPinput_dictionary_add(name, value, pred, vdesc)
+   subroutine FParser_dictionary_add(name, value, pred, vdesc)
       use ISO_C_BINDING, only : C_NULL_CHAR
 
       character(len=*), intent(in) :: name
@@ -1436,9 +1446,9 @@
       call parser_dictionary_add(trim(name)//C_NULL_CHAR, value, c_pred,   &
                                  trim(vdesc)//C_NULL_CHAR)
 
-   end subroutine PPinput_dictionary_add
+   end subroutine FParser_dictionary_add
 
-   subroutine PPinput_dictionary_env_add(name, pred)
+   subroutine FParser_dictionary_env_add(name, pred)
       use ISO_C_BINDING, only : C_NULL_CHAR
 
       character(len=*), intent(in) :: name
@@ -1449,16 +1459,25 @@
       if (pred) c_pred = 1
       call parser_dictionary_env_add(trim(name)//C_NULL_CHAR, c_pred)
 
-   end subroutine PPinput_dictionary_env_add
+   end subroutine FParser_dictionary_env_add
 
 ! ******************************************************************************
 ! ******************************************************************************
 ! Compile buffer
 ! ******************************************************************************
 ! ******************************************************************************
-   subroutine PPinput_compile_buffer()
-      call parser_compile_buffer()
-   end subroutine PPinput_compile_buffer
+   subroutine FParser_compile_buffer(value_returned)
+      integer, intent(out), optional   :: value_returned
+
+      integer  :: valreturn
+
+      if (present(value_returned)) value_returned = 0
+      valreturn      = 0
+ 
+      call parser_compile_buffer(valreturn)
+      if (present(value_returned)) value_returned = valreturn
+
+   end subroutine FParser_compile_buffer
  
 ! ******************************************************************************
 ! ******************************************************************************
@@ -1469,17 +1488,17 @@
     ! ==========================================================================
     ! Check that every command/word has been processed.
     ! ==========================================================================
-    subroutine PPinput_check_processed(good)
+    subroutine FParser_check_processed(good)
       logical, intent(inout) :: good
  
       integer :: good_int = 1
- 
-      if(.not.PPinput_initialized)then
+
+      if(.not.FParser_initialized)then
          good=.false.
          return
       endif
 
-      if (.not.  PPinput_do_check) then
+      if (.not.  FParser_do_check) then
          good=.true.
          return
       endif
@@ -1489,36 +1508,47 @@
       good = .false.
       if (good_int .eq. 1) good = .true.
  
-    end subroutine PPinput_check_processed
+    end subroutine FParser_check_processed
  
  
     ! ==========================================================================
     ! Check that every command/word has been processed.
     ! We are done with the parser and could clean up here.
     ! ==========================================================================
-    subroutine PPinput_terminate(good)
-      logical, intent(inout) :: good
- 
- 
-      if(.not.PPinput_initialized)then
+    subroutine FParser_terminate(good, value_returned)
+
+      ! The argument value_returned will be necessary to print the errors in the
+      ! data base after parser has failed:
+
+      logical, intent(inout)           :: good
+      integer, intent(out), optional   :: value_returned
+
+      integer  :: valreturn
+
+      value_returned = 0
+      valreturn      = 0
+
+      if(.not.FParser_initialized)then
          good = .false.
          return
       endif
 
-      call process_error_final
-      call PPinput_check_processed(good)
+      call process_error_final(valreturn)
+      if (present(value_returned)) value_returned = valreturn
+      call FParser_check_processed(good)
       call parser_destroy
-    end subroutine PPinput_terminate
+
+    end subroutine FParser_terminate
 
     
     ! ==========================================================================
-    ! Disable the PPinput check operation
+    ! Disable the FParser check operation
     ! ==========================================================================
-    subroutine PPinput_disable_check()
+    subroutine FParser_disable_check()
 
-       PPinput_do_check = .false.
+       FParser_do_check = .false.
        
-    end subroutine PPinput_disable_check
+    end subroutine FParser_disable_check
  
  
     ! ==========================================================================
@@ -1527,14 +1557,14 @@
     ! This sets the processed flag for commands in the final buffer and in the
     ! when...then final buffers.
     ! ==========================================================================
-    subroutine PPinput_cmd_set_processed(cmdname, bval)
+    subroutine FParser_cmd_set_processed(cmdname, bval)
       character(*), intent(in) :: cmdname
       logical     , intent(in) :: bval
  
       character :: cmd_array(len(cmdname))
       integer :: bval_i, c
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -1546,7 +1576,7 @@
  
       call cmd_set_processed(cmd_array, len(cmdname), bval_i)
  
-    end subroutine PPinput_cmd_set_processed
+    end subroutine FParser_cmd_set_processed
  
  
  
@@ -1564,7 +1594,7 @@
     !                 everything except the when...then statements.
     !    in_whenthen  command is in (or not) at least one when...then statement.
     ! ==========================================================================
-    subroutine PPinput_cmd_in_input(cmdname, in_input, in_whenthen)
+    subroutine FParser_cmd_in_input(cmdname, in_input, in_whenthen)
       character(*), intent(in)    :: cmdname
       logical     , intent(inout) :: in_input, in_whenthen
  
@@ -1575,7 +1605,7 @@
       in_input    = .false.
       in_whenthen = .false.
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! Pass an array of single chars rather than a character string.
       do c = 1,len(cmdname)
@@ -1587,7 +1617,7 @@
       if (in_input_i    .eq. 1) in_input    = .true.
       if (in_whenthen_i .eq. 1) in_whenthen = .true.
  
-    end subroutine PPinput_cmd_in_input
+    end subroutine FParser_cmd_in_input
  
  
  
@@ -1600,7 +1630,7 @@
     ! ==========================================================================
     ! Echo user input to a file.
     ! ==========================================================================
-    subroutine PPinput_echo_user_input(kw)
+    subroutine FParser_echo_user_input(kw)
  
       integer, intent(in) :: kw
       integer, PARAMETER :: MAX_LENGTH=65536 ! overkill I hope
@@ -1612,7 +1642,7 @@
  
       if (mype .ne. iope) return
  
-      if(.not.PPinput_initialized)then
+      if(.not.FParser_initialized)then
  
          write(kw, '(/,a)') "THE INPUT DECK HAS NOT BEEN OPENED, SO"
          write(kw, '(/,a)') "IT CANNOT BE PRINTED OUT"
@@ -1631,35 +1661,91 @@
  
       write(kw, '(a,/)') "END INPUT FILE -------------------------"
  
-    end subroutine PPinput_echo_user_input
+    end subroutine FParser_echo_user_input
  
+    ! ==========================================================================
+    ! Find the number of input variable names
+    ! ==========================================================================
+    subroutine FParser_count_var(kw,vnszmx)
  
+      integer, intent(in)  :: kw
+      integer, intent(out) :: vnszmx
+
+      character(len=256)  :: fline
+      character(len=128)  :: lineshortened
+      integer             :: nchar, bint
+      integer             :: i
+      logical             :: ido
+ 
+      if (mype .ne. iope) return
+
+      ido   = .false.
+ 
+      if(.not.FParser_initialized)then
+         write(kw, '(/,a)') "THE INPUT DECK HAS NOT BEEN OPENED, SO"
+         write(kw, '(/,a)') "WE CANNOT COUNT THE NUMBER OF VARIABLES"
+         return
+      endif
+ 
+      write(kw, '(/,a)') "*****************************************************************"
+      write(kw, '(  a)') "********** This is what the code uses to count internal variables"
+ 
+      call FParser_list_vars (kw)
+
+      call echo_final_buffer
+      nchar = 256
+      i     = 0
+      do
+         call get_output_line(fline, nchar, bint)
+         if (bint .eq. 0) exit;
+         !write(kw,'(a)') trim(fline)
+         
+         call  shorten_string (fline, lineshortened, ido)
+
+         if (ido) then
+           i        = i+1
+         endif
+      enddo
+
+      if (i.gt.0)  then
+        vnszmx = i
+      else 
+        vnszmx = 1
+        write(kw, '(a)') "******* Could not find any variables.        ******"
+        write(kw, '(a)') "******* End of counting internal variables.  ******"
+      endif
+ 
+    end subroutine FParser_count_var
+
     ! ==========================================================================
     ! Echo the parser functions, variables, and final buffer to file unit
     ! number kw.
     ! ==========================================================================
-    subroutine PPinput_echo_fvf(kw)
+    subroutine FParser_echo_fvf(kw, vname, vnsize)
  
-      integer, intent(in) :: kw
+      integer, intent(in)  :: kw
+      integer, intent(out) :: vnsize
+
+      character(len=*), intent(out) :: vname(*)
  
       if (mype .ne. iope) return
  
-      if(.not.PPinput_initialized)then
+      if(.not.FParser_initialized)then
          write(kw, '(/,a)') "THE INPUT DECK HAS NOT BEEN OPENED, SO ECHOING"
          write(kw, '(/,a)') "IT TO THE SCREEN CANNOT BE PERFORMED"
          return
       endif
  
-      call PPinput_list_funcs  (kw)
-      call PPinput_list_vars   (kw)
-      call PPinput_echo_fbuffer(kw)
+      call FParser_list_funcs  (kw)
+      call FParser_list_vars   (kw)
+      call FParser_echo_fbuffer(kw, vname, vnsize)
  
-    end subroutine PPinput_echo_fvf
+    end subroutine FParser_echo_fvf
 
     ! ==========================================================================
     ! List available functions to a file.
     ! ==========================================================================
-    subroutine PPinput_list_funcs(kw)
+    subroutine FParser_list_funcs(kw)
  
       integer, intent(in) :: kw
       character(256) :: fline
@@ -1667,7 +1753,7 @@
  
       if (mype .ne. iope) return
  
-      if(.not.PPinput_initialized)then
+      if(.not.FParser_initialized)then
          write(kw, '(/,a)') "THE INPUT DECK HAS NOT BEEN OPENED, SO"
          write(kw, '(/,a)') "A LIST OF ITS FUNCTIONS CANNOT BE PRINTED OUT"
          return
@@ -1687,13 +1773,13 @@
       write(kw, '(a)') "********** End of list of functions."
       write(kw, '(a,/,/)') "********************************************************************************"
  
-    end subroutine PPinput_list_funcs
+    end subroutine FParser_list_funcs
  
  
     ! ==========================================================================
     ! List available variables to a file.
     ! ==========================================================================
-    subroutine PPinput_list_vars(kw)
+    subroutine FParser_list_vars(kw)
  
       integer, intent(in) :: kw
       character(256) :: fline
@@ -1701,7 +1787,7 @@
  
       if (mype .ne. iope) return
  
-      if(.not.PPinput_initialized)then
+      if(.not.FParser_initialized)then
          write(kw, '(/,a)') "THE INPUT DECK HAS NOT BEEN OPENED, SO"
          write(kw, '(/,a)') "A LIST OF ITS VARIABLES CANNOT BE PRINTED OUT"
          return
@@ -1725,21 +1811,30 @@
       write(kw, '(a)') "********** End of variable list."
       write(kw, '(a,/,/)') "********************************************************************************"
  
-    end subroutine PPinput_list_vars
+    end subroutine FParser_list_vars
  
  
     ! ==========================================================================
     ! Echo the final buffer to a file.
     ! ==========================================================================
-    subroutine PPinput_echo_fbuffer(kw)
+    subroutine FParser_echo_fbuffer(kw, vname, vnsize)
  
-      integer, intent(in) :: kw
-      character(256) :: fline
-      integer :: nchar, bint
+      integer, intent(in)  :: kw
+      integer, intent(out) :: vnsize
+
+      character(len=*), intent(out) :: vname(*)
+
+      character(len=256)  :: fline
+      character(len=128)  :: lineshortened
+      integer             :: nchar, bint
+      integer             :: i
+      logical             :: ido
  
       if (mype .ne. iope) return
+
+      ido   = .false.
  
-      if(.not.PPinput_initialized)then
+      if(.not.FParser_initialized)then
          write(kw, '(/,a)') "THE INPUT DECK HAS NOT BEEN OPENED, SO"
          write(kw, '(/,a)') "A PARSED LIST OF ITS CONTENTS CANNOT BE PRINTED OUT"
          return
@@ -1751,11 +1846,28 @@
  
       call echo_final_buffer
       nchar = 256
+      i     = 0
       do
          call get_output_line(fline, nchar, bint)
          if (bint .eq. 0) exit;
          write(kw,'(a)') trim(fline)
+         
+         call  shorten_string (fline, lineshortened, ido)
+
+         if (ido) then
+           i        = i+1
+           vname(i) = lineshortened
+         endif
       enddo
+      if (i.gt.0)  vnsize = i
+
+      ! eliminate double pname
+      if (vname(1) .eq. vname(2)) then
+        do i = 1, vnsize-1
+           vname(i) = vname(i+1)
+        enddo
+        vnsize = vnsize - 1
+      endif
  
       write(kw, '(a)') "********** End of echo final parser buffer."
       write(kw, '(a,/,/)') "********************************************************************************"
@@ -1791,8 +1903,74 @@
       write(kw, '(a)')     "********** End of echo restart block information."
       write(kw, '(a,/,/)') "********************************************************************************"
  
-    end subroutine PPinput_echo_fbuffer
+    end subroutine FParser_echo_fbuffer
  
+! ******************************************************************************
+! ******************************************************************************
+! Shorten input lines for listing just input variable names
+! ******************************************************************************
+! ******************************************************************************
+
+      subroutine shorten_string (fline, lineshortened, ido)
+
+      character(*),       intent(in)    :: fline
+      character(len=128), intent(out)   :: lineshortened
+      logical,            intent(out)   :: ido
+
+      character(len=128) :: lineintermed
+      character(len=128) :: lineempty = " "
+      integer            :: inde1, inde2
+      character(len= 1)  :: deleq = "="
+      character(len= 1)  :: delco = "!"
+      character(len= 1)  :: deldi = "("
+      character(len= 1)  :: delde = "$"
+
+      ido   = .false.
+      inde1 = 0
+      inde2 = 0
+      lineintermed  = trim(fline)
+      lineshortened = " "
+
+      ! check first for ( to see if it is not a dimensioned variable
+      ! since I do not want to print the (dim ... on the list
+      inde1 = scan(lineintermed,deldi)
+      if (inde1.le.1) then
+         ! Then look for the = sign
+         inde2          = scan(lineintermed,deleq)
+         if(inde2 .gt. 2) then
+          lineshortened = lineintermed(1:inde2-1)
+          ido           = .true.
+         endif
+      else if (inde1.gt.1) then 
+        ! In this case, the equal sign comes after the (:
+        ido = .true.
+        lineshortened = lineintermed(1:inde1-1)
+        lineshortened = trim(lineshortened)
+      endif
+
+      ! Now, check to see if the line is a comment line (comment before the =):
+      inde1 = 0
+      inde1 = scan(lineshortened,delco)
+      if (inde1.gt.0) then
+        !it is a comment
+        write(*,*) "found a comment before the = or the ("
+        ido = .false.
+        lineshortened = lineempty
+        return
+      endif
+
+      ! Now, check to see if the line is a definition line ("$" before the =):
+      inde1 = 0
+      inde1 = scan(lineshortened,delde)
+      if (inde1.gt.0) then
+        !it is a comment
+        write(*,*) "found a comment before the = or the ("
+        ido = .false.
+        lineshortened = lineempty
+        return
+      endif
+       
+      end subroutine shorten_string
  
 ! ******************************************************************************
 ! ******************************************************************************
@@ -1803,7 +1981,7 @@
     ! ==========================================================================
     ! Do the restart_block checks
     ! ==========================================================================
-    subroutine PPinput_rb_check(code_varnames, code_values, code_vv_active, &
+    subroutine FParser_rb_check(code_varnames, code_values, code_vv_active, &
                                nchar, nvv, rb_check, rb_ntriggered, &
                                rb_num, rb_triggered_indices)
  
@@ -1820,7 +1998,7 @@
       rb_check = .false.
       rb_ntriggered = 0
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! We pack all the fortran strings into one long character array, this
       ! makes it easier to send to C++.
@@ -1839,7 +2017,7 @@
  
       if (rbci .eq. 1) rb_check = .true.
  
-    end subroutine PPinput_rb_check
+    end subroutine FParser_rb_check
  
  
     ! ==========================================================================
@@ -1848,7 +2026,7 @@
     !     rb = index of the restart block to write. Note that this is an index
     !          which starts from 0
     ! ==========================================================================
-    subroutine PPinput_echo_rb_info(kw, rb)
+    subroutine FParser_echo_rb_info(kw, rb)
  
       integer, intent(in) :: kw, rb
       character(256) :: fline
@@ -1856,7 +2034,7 @@
  
       if (mype .ne. iope) return
  
-      if(.not.PPinput_initialized)then
+      if(.not.FParser_initialized)then
          write(kw, '(/,a)') "THE INPUT DECK HAS NOT BEEN OPENED, SO"
          write(kw, '(/,a)') "A PARSED LIST OF ITS CONTENTS CANNOT BE PRINTED OUT"
          return
@@ -1879,7 +2057,7 @@
          endif
       enddo
  
-    end subroutine PPinput_echo_rb_info
+    end subroutine FParser_echo_rb_info
  
  
 ! ******************************************************************************
@@ -1891,18 +2069,18 @@
     ! ==========================================================================
     ! Get the number of when...then commands.
     ! ==========================================================================
-    subroutine PPinput_whenthen_num(wtnum)
+    subroutine FParser_whenthen_num(wtnum)
       integer, intent(out) :: wtnum
       wtnum = 0
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
       call parser_get_wtnum(wtnum)
-    end subroutine PPinput_whenthen_num
+    end subroutine FParser_whenthen_num
  
  
     ! ==========================================================================
     ! Do the when...then checks
     ! ==========================================================================
-    subroutine PPinput_whenthen_check(wti, code_varnames, code_values,  &
+    subroutine FParser_whenthen_check(wti, code_varnames, code_values,  &
                                      code_vv_active, nchar, nvv, wt_check)
  
       integer,                          intent(in)    :: wti, nchar, nvv
@@ -1915,7 +2093,7 @@
  
       wt_check = .false.
  
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
  
       ! We pack all the fortran strings into one long character array, this
       ! makes it easier to send to C++.
@@ -1933,121 +2111,192 @@
  
       if (wtci .eq. 1) wt_check = .true.
  
-    end subroutine PPinput_whenthen_check
+    end subroutine FParser_whenthen_check
  
  
     ! ==========================================================================
     ! Set the final commands pointer to the whenthen command buffer.
     ! This is also done in the whenthen check routine if the check is true.
     ! ==========================================================================
-    subroutine PPinput_whenthen_setcfp(wti)
+    subroutine FParser_whenthen_setcfp(wti)
       integer, intent(in)    :: wti
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
       call parser_wt_set_cmdsfp(wti)
-    end subroutine PPinput_whenthen_setcfp
+    end subroutine FParser_whenthen_setcfp
  
  
     ! ==========================================================================
     ! Reset the commands final buffer pointer.
     ! ==========================================================================
-    subroutine PPinput_whenthen_reset
-      if(.not.PPinput_initialized)return
+    subroutine FParser_whenthen_reset
+      if(.not.FParser_initialized)return
       call parser_wt_reset
-    end subroutine PPinput_whenthen_reset
+    end subroutine FParser_whenthen_reset
  
  
     ! ==========================================================================
     ! Get the character array and its size describing a whenthen.
     ! ==========================================================================
-    subroutine PPinput_whenthen_ca(wti, wt_ca, wt_casize)
+    subroutine FParser_whenthen_ca(wti, wt_ca, wt_casize)
       integer, intent(in)    :: wti, wt_casize
       character(1), dimension(wt_casize), intent(inout) :: wt_ca
       wt_ca = ' '
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
       call parser_wt_ca(wti, wt_ca, wt_casize)
-    end subroutine PPinput_whenthen_ca
+    end subroutine FParser_whenthen_ca
  
-    subroutine PPinput_whenthen_casize(wti, wt_casize)
+    subroutine FParser_whenthen_casize(wti, wt_casize)
       integer, intent(in)    :: wti
       integer, intent(inout) :: wt_casize
       wt_casize=0
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
       call parser_wt_casize(wti, wt_casize)
-    end subroutine PPinput_whenthen_casize
+    end subroutine FParser_whenthen_casize
  
  
     ! ==========================================================================
     ! Get the number of satisfied flags for a whenthen. This is equal to the
     ! number of sub-conditions in the whenthen condition.
     ! ==========================================================================
-    subroutine PPinput_whenthen_satsize(wti, wt_satsize)
+    subroutine FParser_whenthen_satsize(wti, wt_satsize)
       integer, intent(in)    :: wti
       integer, intent(inout) :: wt_satsize
       wt_satsize=0
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
       call parser_wt_satsize(wti, wt_satsize)
-    end subroutine PPinput_whenthen_satsize
+    end subroutine FParser_whenthen_satsize
  
  
     ! ==========================================================================
     ! Get and Set the whenthen satisfied flags for a whenthen.
     ! ==========================================================================
-    subroutine PPinput_whenthen_getsat(wti, wt_sat, wt_satsize)
+    subroutine FParser_whenthen_getsat(wti, wt_sat, wt_satsize)
       integer, intent(in)    :: wti, wt_satsize
       integer, dimension(wt_satsize), intent(inout) :: wt_sat
       wt_sat=0
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
       call parser_wt_getsat(wti, wt_sat, wt_satsize)
-    end subroutine PPinput_whenthen_getsat
+    end subroutine FParser_whenthen_getsat
  
-    subroutine PPinput_whenthen_setsat(wti, wt_sat, wt_satsize)
+    subroutine FParser_whenthen_setsat(wti, wt_sat, wt_satsize)
       integer, intent(in)    :: wti, wt_satsize
       integer, dimension(wt_satsize), intent(inout) :: wt_sat
       wt_sat=0
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
       call parser_wt_setsat(wti, wt_sat, wt_satsize)
-    end subroutine PPinput_whenthen_setsat
+    end subroutine FParser_whenthen_setsat
  
  
     ! ==========================================================================
     ! Get and Set the processed flag for a whenthen.
     ! ==========================================================================
-    subroutine PPinput_whenthen_getprocessed(wti, wtp)
+    subroutine FParser_whenthen_getprocessed(wti, wtp)
       integer, intent(in)    :: wti
       integer, intent(inout) :: wtp
       wtp=0
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
       call parser_wt_getprocessed(wti, wtp)
-    end subroutine PPinput_whenthen_getprocessed
+    end subroutine FParser_whenthen_getprocessed
  
-    subroutine PPinput_whenthen_setprocessed(wti, wtp)
+    subroutine FParser_whenthen_setprocessed(wti, wtp)
       integer, intent(in) :: wti
       integer, intent(in) :: wtp
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
       call parser_wt_setprocessed(wti, wtp)
-    end subroutine PPinput_whenthen_setprocessed
+    end subroutine FParser_whenthen_setprocessed
  
  
     ! ==========================================================================
     ! Get and Set the sequence number for a whenthen.
     ! ==========================================================================
-    subroutine PPinput_whenthen_getseq(wti, wtseq)
+    subroutine FParser_whenthen_getseq(wti, wtseq)
       integer, intent(in)    :: wti
       integer, intent(inout) :: wtseq
       wtseq=0
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
       call parser_wt_getseq(wti, wtseq)
-    end subroutine PPinput_whenthen_getseq
+    end subroutine FParser_whenthen_getseq
  
-    subroutine PPinput_whenthen_setseq(wti, wtseq)
+    subroutine FParser_whenthen_setseq(wti, wtseq)
       integer, intent(in) :: wti
       integer, intent(in) :: wtseq
-      if(.not.PPinput_initialized)return
+      if(.not.FParser_initialized)return
       call parser_wt_setseq(wti, wtseq)
-    end subroutine PPinput_whenthen_setseq
+    end subroutine FParser_whenthen_setseq
  
- 
+    integer function FParser_get_num_include_files()
+      interface
+        subroutine parser_get_num_include_files(num_include) bind(C,NAME="parser_get_num_include_files")
+          use iso_c_binding, only : C_INT
+          integer(C_INT), intent(out) :: num_include
+        end subroutine parser_get_num_include_files
+      end interface
+      call parser_get_num_include_files(FParser_get_num_include_files)
+    end function FParser_get_num_include_files
+
+    subroutine FParser_list_include_files() !Mainly for debugging
+      use iso_c_binding
+      interface
+        subroutine parser_list_include_files() bind(C,NAME="parser_list_include_files")
+        end subroutine parser_list_include_files
+      end interface
+      call parser_list_include_files()
+    end subroutine FParser_list_include_files
+
+    subroutine FParser_get_include_file(kw,fname,i)
+      use iso_c_binding
+      interface
+        integer(C_INT) function parser_get_include_file_name_length(n) bind(C,NAME="parser_get_include_file_name_length")
+          use iso_c_binding, only : C_INT
+          integer(C_INT), intent(in) :: n
+        end function parser_get_include_file_name_length
+      end interface
+      interface
+        subroutine parser_get_include_file_name(cfile_name,cfile_name_len,n) bind(C,NAME="parser_get_include_file_name")
+          use iso_c_binding, only : C_INT, C_CHAR
+          integer(C_INT), intent(in) :: cfile_name_len, n
+          character(kind=C_CHAR,len=1), dimension(cfile_name_len), intent(in) :: cfile_name
+        end subroutine parser_get_include_file_name
+      end interface
+      character(len=:), allocatable, intent(out) :: fname
+      integer, intent(in) :: i, kw
+
+      integer(C_INT) :: n, file_name_length, cfile_name_length, ii
+      character(kind=c_char,len=1), dimension(:), allocatable  :: cfile_name
+
+      n = i-1
+      file_name_length = parser_get_include_file_name_length(n)
+      cfile_name_length = file_name_length + 1
+      allocate(cfile_name(cfile_name_length),stat=FParser_allostat)
+      call FParser_test_allostat(kw, "cfile_name allocate")
+      call parser_get_include_file_name(cfile_name,cfile_name_length,n)
+      allocate(character(len=file_name_length)::fname)
+      do ii = 1,file_name_length
+        fname(ii:ii) = cfile_name(ii)
+      enddo
+      deallocate(cfile_name,stat=FParser_allostat)
+      call FParser_test_allostat(kw, "cfile_name deallocate")
+    end subroutine FParser_get_include_file
+
+    subroutine FParser_test_allostat(kw, comment)
+    !*******************************************************************************
+    !                                                                              *
+    ! Test allostat and abort in not zero                                          *
+    !                                                                              *
+    !*******************************************************************************
+    character(*), intent(in) :: comment
+    integer, intent(in) :: kw
+
+      if(FParser_allostat.ne.0)then
+         write(kw,"(a,i6,2a)")'TEST_ALLOSTAT: FParser_allostat = ',FParser_allostat,' - ',trim(comment)
+
+!        call MPI_Abort(MPI_COMM_WORLD,1,mpierror)
+
+         stop
+      endif
+
+    end subroutine FParser_test_allostat
  
 ! ------------------------------------------------------------------------------
-  end module PPinput_module
+  end module FParser_module
 ! ==============================================================================

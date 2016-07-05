@@ -20,7 +20,8 @@ int main(int argc, char **argv)
    // Process input file
    parse->parse_file("parsetest.in");
 
-   parse->compile_buffer();
+   int iret;
+   parse->compile_buffer(iret);
    parse->echo_input_start();
 
    vector<string> sinput(1);

@@ -46,6 +46,7 @@
 #define CRUX_H_
 
 #include <stdio.h>
+#include "MallocPlus/MallocPlus.h"
 
 enum crux_types{
    CRUX_NONE,
@@ -64,10 +65,13 @@ public:
    Crux(int crux_type_in, int num_of_rollback_states_in, bool restart);
    ~Crux();
 
+   void store_MallocPlus(MallocPlus memory);
    void store_begin(size_t nsize, int ncycle);
+   void store_field_header(const char *name, int name_size);
+   void store_bools(bool *bool_vals, size_t nelem);
    void store_ints(int *int_vals, size_t nelem);
    void store_longs(long long *long_vals, size_t nelem);
-   void store_bools(bool *bool_vals, size_t nelem);
+   void store_sizets(size_t *size_t_vals, size_t nelem);
    void store_doubles(double *double_vals, size_t nelem);
    void store_int_array(int *int_array, size_t nelem);
    void store_long_array(long long *long_array, size_t nelem);
@@ -75,10 +79,13 @@ public:
    void store_double_array(double *double_array, size_t nelem);
    void store_end(void);
 
+   void       restore_MallocPlus(MallocPlus memory);
    void       restore_begin(char *restart_file, int rollback_counter);
-   void       restore_ints(int *int_vals, size_t nelem);
+   void       restore_field_header(char *name, int name_size);
    void       restore_bools(bool *bool_vals, size_t nelem);
+   void       restore_ints(int *int_vals, size_t nelem);
    void       restore_longs(long long *long_vals, size_t nelem);
+   void       restore_sizets(size_t *size_t_vals, size_t nelem);
    void       restore_doubles(double *double_vals, size_t nelem);
    int       *restore_int_array(int *int_array, size_t nsize);
    long long *restore_long_array(long long *long_array, size_t nsize);

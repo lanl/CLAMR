@@ -245,7 +245,7 @@ void State::init(int do_gpu_calc)
 #ifdef HAVE_OPENCL
       cl_context context = ezcl_get_context();
 
-      printf("Starting compile of kernels in state\n");
+      if (mesh->mype == 0) printf("Starting compile of kernels in state\n");
       const char *defines = NULL;
       cl_program program                 = ezcl_create_program_wsource(context, defines, state_kern_source);
 
@@ -264,7 +264,7 @@ void State::init(int do_gpu_calc)
       kernel_reduce_epsum_mass_stage2of2     = ezcl_create_kernel_wprogram(program, "reduce_epsum_mass_stage2of2_cl");
 
       ezcl_program_release(program);
-      printf("Finishing compile of kernels in state\n");
+      if (mesh->mype == 0) printf("Finishing compile of kernels in state\n");
 #endif
    }
 
@@ -278,6 +278,7 @@ void State::init(int do_gpu_calc)
 void State::allocate(size_t ncells)
 {
    int flags = 0;
+   flags = RESTART_DATA;
 #ifdef HAVE_J7
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
@@ -1173,6 +1174,7 @@ void State::calc_finite_difference(double deltaT){
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
    int flags = 0;
+   flags = RESTART_DATA;
 #if defined (HAVE_J7)
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
@@ -1755,6 +1757,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
    int flags = 0;
+   flags = RESTART_DATA;
 #if defined (HAVE_J7)
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
@@ -3599,43 +3602,50 @@ size_t State::get_checkpoint_size(void)
 
 void State::store_checkpoint(Crux *crux)
 {
+   // Store mesh data first
    mesh->store_checkpoint(crux);
 
+   // Load up scalar values
    long long long_vals[num_long_vals];
-
    long_vals[0] = CRUX_STATE_VERSION;
 
-   crux->store_longs(long_vals, num_long_vals);
+   // Add to memory database for storing checkpoint
+   state_memory.memory_add(long_vals, (size_t)num_long_vals, 8, "state_long_vals", RESTART_DATA);
+   state_memory.memory_add(cpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_cpu_timers", RESTART_DATA);
+   state_memory.memory_add(gpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_gpu_timers", RESTART_DATA);
 
-   crux->store_double_array(cpu_timers, STATE_TIMER_SIZE);
-   crux->store_long_array(gpu_timers, STATE_TIMER_SIZE);
+   crux->store_MallocPlus(state_memory);
 
-#ifdef FULL_PRECISION
-   crux->store_double_array(H, mesh->ncells);
-   crux->store_double_array(U, mesh->ncells);
-   crux->store_double_array(V, mesh->ncells);
-#else
-   crux->store_float_array(H, mesh->ncells);
-   crux->store_float_array(U, mesh->ncells);
-   crux->store_float_array(V, mesh->ncells);
-#endif
+   // Remove from database after checkpoint is stored
+   state_memory.memory_remove(long_vals);
+   state_memory.memory_remove(cpu_timers);
+   state_memory.memory_remove(gpu_timers);
 }
 
 void State::restore_checkpoint(Crux *crux)
 {
+   // Restore mesh data first
    mesh->restore_checkpoint(crux);
 
+   // Create memory for restoring data into
    long long long_vals[num_long_vals];
 
-   crux->restore_longs(long_vals, num_long_vals);
+   allocate(mesh->ncells);
 
+   // Add to memory database for restoring checkpoint
+   state_memory.memory_add(long_vals, (size_t)num_long_vals, 8, "state_long_vals", RESTART_DATA);
+   state_memory.memory_add(cpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_cpu_timers", RESTART_DATA);
+   state_memory.memory_add(gpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_gpu_timers", RESTART_DATA);
+
+   // Restore memory database
+   crux->restore_MallocPlus(state_memory);
+
+   // Check version number
    if (long_vals[ 0] != CRUX_STATE_VERSION) {
       printf("CRUX version mismatch for state data, version on file is %lld, version in code is %d\n",
          long_vals[0], CRUX_STATE_VERSION);
       exit(0);
    }
-
-   crux->restore_double_array(cpu_timers, STATE_TIMER_SIZE);
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
@@ -3649,8 +3659,6 @@ void State::restore_checkpoint(Crux *crux)
    }
 #endif
 
-   crux->restore_long_array(gpu_timers, STATE_TIMER_SIZE);
-
 #ifdef DEBUG_RESTORED_VALS
    if (DEBUG_RESTORED_VALS) {
       printf("\n");
@@ -3663,17 +3671,11 @@ void State::restore_checkpoint(Crux *crux)
    }
 #endif
 
-   allocate(mesh->ncells);
-
-#ifdef FULL_PRECISION
-   H = crux->restore_double_array(H, mesh->ncells);
-   U = crux->restore_double_array(U, mesh->ncells);
-   V = crux->restore_double_array(V, mesh->ncells);
-#else
-   H = crux->restore_float_array(H, mesh->ncells);
-   U = crux->restore_float_array(U, mesh->ncells);
-   V = crux->restore_float_array(V, mesh->ncells);
-#endif
+   state_memory.memory_remove(long_vals);
+   state_memory.memory_remove(cpu_timers);
+   state_memory.memory_remove(gpu_timers);
+   
+   memory_reset_ptrs();
 }
 
 // Added overloaded print to get mesh information to print in each cycle

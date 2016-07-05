@@ -452,7 +452,7 @@ extern "C" void do_calc(void)
 
       if (do_comparison_calc) {
          // And compare H gathered to H_global, etc
-         state->compare_state_cpu_local_to_cpu_global(state_global, "rezone all", ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
+         state->compare_state_cpu_local_to_cpu_global(state_global, "load balance", ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
          mesh->compare_indices_cpu_local_to_cpu_global(ncells_global, mesh_global, &nsizes[0], &ndispl[0], ncycle);
       }
 

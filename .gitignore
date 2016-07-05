@@ -26,3 +26,4 @@ Testing
 Makefile
 [A-Z,a-c,e-z]*/Makefile
 [A-Z,a-c,e-z]*/[A-Z,a-c,e-z]*/Makefile
+*~
