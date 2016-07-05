@@ -392,6 +392,13 @@ extern "C" void do_calc(void)
 
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      {
+         mesh->set_bounds(ncells);
+      }
+
       //  Execute main kernel
       if (face_based) {
          state->calc_finite_difference_via_faces(deltaT);
