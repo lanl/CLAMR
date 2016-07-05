@@ -161,13 +161,11 @@ static int next_graphics_cycle = 0;
 
 //  Set up timing information.
 static struct timeval tstart, tstart_cpu, tstart_partmeas;
-//static struct tstart_check;
 
 static double H_sum_initial = 0.0;
 static double cpu_time_graphics = 0.0;
 static double cpu_time_calcs    = 0.0;
 static double cpu_time_partmeas = 0.0;
-//static double cpu_time_check    = 0.0;
 
 static int     ncycle  = 0;
 static double  simTime = 0.0;
@@ -175,10 +173,10 @@ static double  deltaT = 0.0;
 char total_sim_time_log[] = {"total_execution_time.log"};
 struct timeval total_exec;
 
+int mype=0;
 int main(int argc, char **argv) {
 
    // Needed for code to compile correctly on the Mac
-   int mype=0;
    int numpe=-1;
 
    //  Process command-line arguments, if any.
@@ -190,7 +188,7 @@ int main(int argc, char **argv) {
 
    nt = omp_get_max_threads();
    tid = omp_get_thread_num();
-   if (0 == tid) {
+   if (0 == tid && mype == 0) {
         printf("--- max num openmp threads: %d\n", nt);
    }
 #pragma omp parallel firstprivate(nt, tid)
@@ -199,7 +197,9 @@ int main(int argc, char **argv) {
       tid = omp_get_thread_num();
 
 #pragma omp master
-      printf("--- num openmp threads in parallel region: %d\n", nt);
+      if (mype == 0) {
+         printf("--- num openmp threads in parallel region: %d\n", nt);
+      }
    }
 #endif
 
@@ -207,9 +207,6 @@ int main(int argc, char **argv) {
 
    struct timeval tstart_setup;
    cpu_timer_start(&tstart_setup);
-
-   // Just for graphics effect
-   //numpe = 16;
 
    crux = new Crux(crux_type, num_of_rollback_states, restart);
 
@@ -231,7 +228,7 @@ int main(int argc, char **argv) {
       mesh->proc.resize(mesh->ncells);
       mesh->calc_distribution(numpe);
    } else {
-      mesh  = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
+      mesh = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
       if (DEBUG) {
          //if (mype == 0) mesh->print();
 
@@ -258,7 +255,7 @@ int main(int argc, char **argv) {
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(enhanced_precision_sum);
-   printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
+   if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
 
    if(upper_mass_diff_percentage < 0){
@@ -277,11 +274,13 @@ int main(int argc, char **argv) {
       mesh->parallel_output("Memory available at startup ",memstats_memtotal(), 0, "kB");
    }
 
-   if (ncycle != 0){
-      printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg\n",
-         ncycle, deltaT, simTime, ncells, H_sum);
-   } else {
-      printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
+   if (mype == 0) {
+      if (ncycle != 0){
+         printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg\n",
+            ncycle, deltaT, simTime, ncells, H_sum);
+      } else {
+         printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
+      }
    }
 
    for (int i = 0; i < MESH_COUNTER_SIZE; i++){
@@ -317,9 +316,11 @@ int main(int argc, char **argv) {
       set_graphics_cell_proc(&mesh->proc[0]);
       set_graphics_viewmode(view_mode);
 
-      init_graphics_output();
-      set_graphics_cell_proc(&mesh->proc[0]);
-      write_graphics_info(0,0,0.0,0,0);
+      if (mype == 0) {
+         init_graphics_output();
+         set_graphics_cell_proc(&mesh->proc[0]);
+         write_graphics_info(0,0,0.0,0,0);
+      }
       next_graphics_cycle += graphic_outputInterval;
    }
 
@@ -495,7 +496,7 @@ extern "C" void do_calc(void)
       }
    }
 
-   if (ncycle % outputInterval == 0) {
+   if (mype == 0 && ncycle % outputInterval == 0) {
       printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
          ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
    }
@@ -553,7 +554,9 @@ extern "C" void do_calc(void)
          set_display_cell_proc(NULL);
 #endif
 
-         write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
+         if (mype == 0) {
+            write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
+         }
          next_graphics_cycle += graphic_outputInterval;
 
          cpu_time_graphics += cpu_timer_stop(tstart_cpu);
