@@ -172,6 +172,8 @@ static double cpu_time_partmeas = 0.0;
 static int     ncycle  = 0;
 static double  simTime = 0.0;
 static double  deltaT = 0.0;
+char total_sim_time_log[] = {"total_execution_time.log"};
+struct timeval total_exec;
 
 vector<state_t> H_global;
 vector<spatial_t> x_global;
