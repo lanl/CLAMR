@@ -476,6 +476,13 @@ extern "C" void do_calc(void)
 
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      {
+         mesh->set_bounds(ncells);
+      }
+
       //  Execute main kernel
       state->calc_finite_difference(deltaT);
 
@@ -703,7 +710,7 @@ extern "C" void do_calc(void)
       mesh->print_calc_neighbor_type();
       mesh->print_partition_type();
 
-      if (mype ==0) {
+      if (mype == 0) {
          printf("CPU:  rezone frequency                \t %8.4f\tpercent\n",     (double)mesh->get_cpu_counter(MESH_COUNTER_REZONE)/(double)ncycle*100.0 );
          printf("CPU:  calc neigh frequency            \t %8.4f\tpercent\n",     (double)mesh->get_cpu_counter(MESH_COUNTER_CALC_NEIGH)/(double)ncycle*100.0 );
          printf("CPU:  load balance frequency          \t %8.4f\tpercent\n",     (double)mesh->get_cpu_counter(MESH_COUNTER_LOAD_BALANCE)/(double)ncycle*100.0 );
