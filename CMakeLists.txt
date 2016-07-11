@@ -639,7 +639,7 @@ if (MPI_FOUND)
    add_executable(clamr_mpicheck ${clamr_mpicheck_SRCS})
 
    set_target_properties(clamr_mpicheck PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-   target_link_libraries(clamr_mpicheck pmesh hsfc kdtree zorder crux hash pgraphics timer memstats l7 genmalloc pMallocPlus m)
+   target_link_libraries(clamr_mpicheck pPowerParser pmesh hsfc kdtree zorder crux hash pgraphics timer memstats l7 genmalloc pMallocPlus m)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_mpicheck ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
