@@ -177,6 +177,8 @@ int main(int argc, char **argv) {
    L7_Init(&mype, &numpe, &argc, argv, do_quo_setup, lttrace_on);
 
    real_t circ_radius = 6.0;
+
+   parse = new PowerParser();
    //  Scale the circle appropriately for the mesh size.
    circ_radius = circ_radius * (real_t) nx / 128.0;
    int boundary = 1;
