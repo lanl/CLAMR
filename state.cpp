@@ -1174,11 +1174,18 @@ void State::calc_finite_difference(double deltaT){
    apply_boundary_conditions();
 #endif
 
-   int *nlft  = mesh->nlft;
-   int *nrht  = mesh->nrht;
-   int *nbot  = mesh->nbot;
-   int *ntop  = mesh->ntop;
-   int *level = mesh->level;
+   state_t *H_new, *U_new, *V_new;
+   int *nlft, *nrht, *nbot, *ntop, *level;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+
+   nlft  = mesh->nlft;
+   nrht  = mesh->nrht;
+   nbot  = mesh->nbot;
+   ntop  = mesh->ntop;
+   level = mesh->level;
 
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
@@ -1187,12 +1194,6 @@ void State::calc_finite_difference(double deltaT){
    flags = RESTART_DATA;
 #if defined (HAVE_J7)
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
-#endif
-
-   state_t *H_new, *U_new, *V_new;
-
-#ifdef _OPENMP
-#pragma omp parallel
 #endif
 
 #ifdef _OPENMP
