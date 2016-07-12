@@ -1188,21 +1188,36 @@ void State::calc_finite_difference(double deltaT){
 #if defined (HAVE_J7)
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
-   state_t *H_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                          sizeof(state_t),
-                                                          "H_new", flags);
-   state_t *U_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                          sizeof(state_t),
-                                                          "U_new", flags);
-   state_t *V_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                          sizeof(state_t),
-                                                          "V_new", flags);
 
-   int gix;
+   state_t *H_new, *U_new, *V_new;
+
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-   for(gix = 0; gix < (int)ncells; gix++) {
+
+#ifdef _OPENMP
+#pragma omp master
+#endif
+   {
+      H_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
+                                                    sizeof(state_t),
+                                                    "H_new", flags);
+      U_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
+                                                    sizeof(state_t),
+                                                    "U_new", flags);
+      V_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
+                                                    sizeof(state_t),
+                                                    "V_new", flags);
+   }
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+
+
+#ifdef _OPENMP
+#pragma omp for
+#endif
+   for(int gix = 0; gix < (int)ncells; gix++) {
 #if DEBUG >= 3
       printf("%d: DEBUG gix is %d at line %d in file %s\n",mesh->mype,gix,__LINE__,__FILE__);
 #endif
