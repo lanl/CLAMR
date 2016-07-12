@@ -245,6 +245,9 @@ public:
                   cell_handle,
                   noffset;
 
+   int            *lowerBound_Global,
+                  *upperBound_Global;
+
    float          mem_factor;
 
    double         offtile_ratio_local;
@@ -391,6 +394,10 @@ public:
    //   Member functions.
    void init(int nx, int ny, real_t circ_radius, partition_method initial_order, int do_gpu_calc);
    void terminate(void);
+
+   void set_bounds(int n);
+   void get_bounds(int& lowerBound, int& upperBound);
+
 
 /****************************************************************//**
  * @name Memory routines
