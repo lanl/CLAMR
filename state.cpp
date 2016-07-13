@@ -576,20 +576,27 @@ void State::add_boundary_cells(void)
 
 void State::apply_boundary_conditions_local(void)
 {
+   int *nlft, *nrht, *nbot, *ntop;
+#ifdef _OPENMP
+#pragma omp parallel shared(nlft, nrht, nbot, ntop)
+#endif
    size_t &ncells = mesh->ncells;
-   int *nlft = mesh->nlft;
-   int *nrht = mesh->nrht;
-   int *nbot = mesh->nbot;
-   int *ntop = mesh->ntop;
-
+   nlft = mesh->nlft;
+   nrht = mesh->nrht;
+   nbot = mesh->nbot;
+   ntop = mesh->ntop;
+   int lowerBound, upperBound;
+   // add get_bounds
+   mesh->get_bounds(lowerBound, upperBound);
    // This is for a mesh with boundary cells
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
-   for (uint ic=0; ic<ncells; ic++) {
+//   for (uint ic=0; ic<ncells; ic++) {
+     for (int ic = lowerBound; ic<upperBound; ic++){
       if (mesh->is_left_boundary(ic)) {
          int nr = nrht[ic];
-         if (nr < (int)ncells) {
+         if (nr < mesh->ncells) {
             H[ic] =  H[nr];
             U[ic] = -U[nr];
             V[ic] =  V[nr];
@@ -597,7 +604,8 @@ void State::apply_boundary_conditions_local(void)
       }
       if (mesh->is_right_boundary(ic))  {
          int nl = nlft[ic];
-         if (nl < (int)ncells) {
+         //if (nl < (int)ncells) {
+           if (nl < mesh->ncells){
             H[ic] =  H[nl];
             U[ic] = -U[nl];
             V[ic] =  V[nl];
@@ -605,7 +613,8 @@ void State::apply_boundary_conditions_local(void)
       }
       if (mesh->is_bottom_boundary(ic)) {
          int nt = ntop[ic];
-         if (nt < (int)ncells) {
+       //  if (nt < (int)ncells) {
+           if (nt < mesh->ncells){
             H[ic] =  H[nt];
             U[ic] =  U[nt];
             V[ic] = -V[nt];
@@ -613,7 +622,8 @@ void State::apply_boundary_conditions_local(void)
       }
       if (mesh->is_top_boundary(ic)) {
          int nb = nbot[ic];
-         if (nb < (int)ncells) {
+       //  if (nb < (int)ncells) {
+           if (nb < mesh->ncells){
             H[ic] =  H[nb];
             U[ic] =  U[nb];
             V[ic] = -V[nb];
@@ -624,21 +634,28 @@ void State::apply_boundary_conditions_local(void)
 
 void State::apply_boundary_conditions_ghost(void)
 {
-
+   int *nlft, *nrht, *nbot, *ntop;
+#ifdef _OPENMP
+#pragma omp parallel shared(nlft, nrht, nbot, ntop)
+#endif
    size_t &ncells = mesh->ncells;
-   int *nlft = mesh->nlft;
-   int *nrht = mesh->nrht;
-   int *nbot = mesh->nbot;
-   int *ntop = mesh->ntop;
+         nlft = mesh->nlft;
+         nrht = mesh->nrht;
+         nbot = mesh->nbot;
+         ntop = mesh->ntop;
 
+    int lowerBound, upperBound;
+    mesh->get_bounds(lowerBound, upperBound);
    // This is for a mesh with boundary cells
 #ifdef _OPENMP
-#pragma omp parallel for
+//#pragma omp parallel for
+#pragma omp for
 #endif
-   for (uint ic=0; ic<ncells; ic++) {
+   for (uint ic=lowerBound; ic<upperBound; ic++) {
       if (mesh->is_left_boundary(ic)) {
          int nr = nrht[ic];
-         if (nr >= (int)ncells) {
+         //if (nr >= (int)ncells) {
+         if (nr >= mesh->ncells){
             H[ic] =  H[nr];
             U[ic] = -U[nr];
             V[ic] =  V[nr];
@@ -646,7 +663,8 @@ void State::apply_boundary_conditions_ghost(void)
       }
       if (mesh->is_right_boundary(ic))  {
          int nl = nlft[ic];
-         if (nl >= (int)ncells) {
+       //  if (nl >= (int)ncells) {
+           if (nl >= mesh->ncells){
             H[ic] =  H[nl];
             U[ic] = -U[nl];
             V[ic] =  V[nl];
@@ -654,7 +672,8 @@ void State::apply_boundary_conditions_ghost(void)
       }
       if (mesh->is_bottom_boundary(ic)) {
          int nt = ntop[ic];
-         if (nt >= (int)ncells) {
+       //  if (nt >= (int)ncells) {
+         if (nt >= mesh->ncells){
             H[ic] =  H[nt];
             U[ic] =  U[nt];
             V[ic] = -V[nt];
@@ -662,7 +681,8 @@ void State::apply_boundary_conditions_ghost(void)
       }
       if (mesh->is_top_boundary(ic)) {
          int nb = nbot[ic];
-         if (nb >= (int)ncells) {
+        // if (nb >= (int)ncells) {
+          if (nb >= mesh->ncells){
             H[ic] =  H[nb];
             U[ic] =  U[nb];
             V[ic] = -V[nb];
@@ -673,15 +693,20 @@ void State::apply_boundary_conditions_ghost(void)
 
 void State::apply_boundary_conditions(void)
 {
+ //  int *nlft, *nrht, *nbot, *ntop;
+//#ifdef _OPENMP
+//#pragma omp parallel shared(nlft, nrht, nbot, ntop)
+//#endif
    size_t &ncells = mesh->ncells;
-   int *nlft = mesh->nlft;
-   int *nrht = mesh->nrht;
-   int *nbot = mesh->nbot;
-   int *ntop = mesh->ntop;
-
+     int *nlft = mesh->nlft;
+     int *nrht = mesh->nrht;
+     int *nbot = mesh->nbot;
+     int *ntop = mesh->ntop;
+  // int lowerBound, upperBound;
    // This is for a mesh with boundary cells
 #ifdef _OPENMP
 #pragma omp parallel for
+//#pragma omp for
 #endif
    for (uint ic=0; ic<ncells; ic++) {
       if (mesh->is_left_boundary(ic)) {
@@ -1174,11 +1199,18 @@ void State::calc_finite_difference(double deltaT){
    apply_boundary_conditions();
 #endif
 
-   int *nlft  = mesh->nlft;
-   int *nrht  = mesh->nrht;
-   int *nbot  = mesh->nbot;
-   int *ntop  = mesh->ntop;
-   int *level = mesh->level;
+   state_t *H_new, *U_new, *V_new;
+   int *nlft, *nrht, *nbot, *ntop, *level;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+
+   nlft  = mesh->nlft;
+   nrht  = mesh->nrht;
+   nbot  = mesh->nbot;
+   ntop  = mesh->ntop;
+   level = mesh->level;
 
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
@@ -1188,21 +1220,30 @@ void State::calc_finite_difference(double deltaT){
 #if defined (HAVE_J7)
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
-   state_t *H_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                          sizeof(state_t),
-                                                          "H_new", flags);
-   state_t *U_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                          sizeof(state_t),
-                                                          "U_new", flags);
-   state_t *V_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                          sizeof(state_t),
-                                                          "V_new", flags);
 
-   int gix;
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp master
 #endif
-   for(gix = 0; gix < (int)ncells; gix++) {
+   {
+      H_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
+                                                    sizeof(state_t),
+                                                    "H_new", flags);
+      U_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
+                                                    sizeof(state_t),
+                                                    "U_new", flags);
+      V_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
+                                                    sizeof(state_t),
+                                                    "V_new", flags);
+   }
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+
+
+#ifdef _OPENMP
+#pragma omp for
+#endif
+   for(int gix = 0; gix < (int)ncells; gix++) {
 #if DEBUG >= 3
       printf("%d: DEBUG gix is %d at line %d in file %s\n",mesh->mype,gix,__LINE__,__FILE__);
 #endif
