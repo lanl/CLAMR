@@ -1601,7 +1601,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    //int nlt, nrt, ntr, nbr;
 
    rezone_count(mpot, icount, jcount);
-   int newcount = icount;
+   static int newcount = icount; ///MADE SHARED VARIABLE////
    int newcount_global = newcount;
 
    struct timeval tstart_lev2;
@@ -1635,9 +1635,17 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #endif
 
 #ifdef _OPENMP
+#pragma omp parallel
+{
+#endif
+         int upperBound, lowerBound;
+         get_bounds(upperBound, lowerBound);
+         int mynewcount = newcount;
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+:newcount)
 #endif
-         for(uint ic = 0; ic < ncells; ic++) {
+        // for(uint ic = 0; ic < ncells; ic++) {
+        for(uint ic = lowerBound; ic < upperBound; ic++) {
             int lev = level[ic];
             mpot[ic] = mpot_old[ic];
             if(mpot_old[ic] > 0) continue;
@@ -1758,6 +1766,10 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                }
             }
          }
+#ifdef _OPENMP
+#pragma omp barrier
+}
+#endif
 
          newcount_global = newcount;
          icount += newcount;
