@@ -624,17 +624,23 @@ void State::apply_boundary_conditions_local(void)
 
 void State::apply_boundary_conditions_local_Parallel(void)
 {
+
+#ifdef _OPENMP
+#pragma omp parallel
+{
+#endif
+   static int *nlft, *nrht, *nbot, *ntop;
+
    size_t &ncells = mesh->ncells;
-   int *nlft = mesh->nlft;
-   int *nrht = mesh->nrht;
-   int *nbot = mesh->nbot;
-   int *ntop = mesh->ntop;
+   nlft = mesh->nlft;
+   nrht = mesh->nrht;
+   nbot = mesh->nbot;
+   ntop = mesh->ntop;
 
    // This is for a mesh with boundary cells
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-   for (uint ic=0; ic<ncells; ic++) {
+   int lowerBound, upperBound;
+   mesh->get_bounds(lowerBound, upperBound);
+   for (uint ic=lowerBound; ic<upperBound; ic++) {
       if (mesh->is_left_boundary(ic)) {
          int nr = nrht[ic];
          if (nr < (int)ncells) {
@@ -668,6 +674,10 @@ void State::apply_boundary_conditions_local_Parallel(void)
          }
       }
    }
+#ifdef _OPENMP
+#pragma omp barrier
+}
+#endif
 }
 
 void State::apply_boundary_conditions_ghost(void)
@@ -721,18 +731,23 @@ void State::apply_boundary_conditions_ghost(void)
 
 void State::apply_boundary_conditions_ghost_Parallel(void)
 {
+#ifdef _OPENMP
+#pragma omp parallel
+{
+#endif
+
+   static int *nlft, *nrht, *nbot, *ntop;
 
    size_t &ncells = mesh->ncells;
-   int *nlft = mesh->nlft;
-   int *nrht = mesh->nrht;
-   int *nbot = mesh->nbot;
-   int *ntop = mesh->ntop;
+   nlft = mesh->nlft;
+   nrht = mesh->nrht;
+   nbot = mesh->nbot;
+   ntop = mesh->ntop;
 
    // This is for a mesh with boundary cells
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-   for (uint ic=0; ic<ncells; ic++) {
+   int lowerBound, upperBound; 
+   mesh->get_bounds(lowerBound, upperBound);
+   for (uint ic=lowerBound; ic<upperBound; ic++) {
       if (mesh->is_left_boundary(ic)) {
          int nr = nrht[ic];
          if (nr >= (int)ncells) {
@@ -766,6 +781,9 @@ void State::apply_boundary_conditions_ghost_Parallel(void)
          }
       }
    }
+#ifdef _OPENMP
+}
+#endif
 }
 
 void State::apply_boundary_conditions(void)
@@ -810,17 +828,22 @@ void State::apply_boundary_conditions(void)
 
 void State::apply_boundary_conditions_Parallel(void)
 {
+#ifdef _OPENMP
+#pragma omp parallel
+{
+#endif
+   static int *nlft, *nrht, *nbot, *ntop;
+
    size_t &ncells = mesh->ncells;
-   int *nlft = mesh->nlft;
-   int *nrht = mesh->nrht;
-   int *nbot = mesh->nbot;
-   int *ntop = mesh->ntop;
+   nlft = mesh->nlft;
+   nrht = mesh->nrht;
+   nbot = mesh->nbot;
+   ntop = mesh->ntop;
 
    // This is for a mesh with boundary cells
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-   for (uint ic=0; ic<ncells; ic++) {
+   int lowerBound, upperBound;
+   mesh->get_bounds(lowerBound, upperBound);
+   for (uint ic=lowerBound; ic<upperBound; ic++) {
       if (mesh->is_left_boundary(ic)) {
          int nr = nrht[ic];
          H[ic] =  H[nr];
@@ -846,6 +869,9 @@ void State::apply_boundary_conditions_Parallel(void)
          V[ic] = -V[nb];
       }
    }
+#ifdef _OPENMP
+}
+#endif
 }
 
 void State::remove_boundary_cells(void)
