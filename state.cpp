@@ -1958,10 +1958,29 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
    mesh->calc_face_list_wbidirmap();
 
-   vector<state_t> Hx(mesh->nxface);
-   vector<state_t> Ux(mesh->nxface);
-   vector<state_t> Vx(mesh->nxface);
+#ifdef _OPENMP
+#pragma omp parallel 
+{
+#endif
 
+   static vector<state_t> Hx, Ux, Vx;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   Hx.resize(mesh->nxface);
+   Ux.resize(mesh->nxface);
+   Vx.resize(mesh->nxface);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp for 
+#endif
    for (int iface = 0; iface < mesh->nxface; iface++){
       int cell_lower = mesh->map_xface2cell_lower[iface];
       int cell_upper = mesh->map_xface2cell_upper[iface];
@@ -2024,13 +2043,19 @@ void State::calc_finite_difference_via_faces(double deltaT){
    }
 #endif
 
-   vector<state_t> Hy(mesh->nyface);
-   vector<state_t> Uy(mesh->nyface);
-   vector<state_t> Vy(mesh->nyface);
+   static vector<state_t> Hy, Uy, Vy;
 
 #ifdef _OPENMP
-#pragma omp parallel 
-{
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   Hy.resize(mesh->nyface);
+   Uy.resize(mesh->nyface);
+   Vy.resize(mesh->nyface);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
 #endif
 
 #ifdef _OPENMP
