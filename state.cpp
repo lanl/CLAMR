@@ -1278,10 +1278,10 @@ void State::gpu_rezone_all(int icount, int jcount, bool localStencil)
 #define VUNEWFLUXPLUS2   ( Vyplus2 *Uyplus2 /Hyplus2 )
 
 void State::calc_finite_difference(double deltaT){
-#ifdef _OPENMP
-#pragma omp parallel
-{
-#endif
+//#ifdef _OPENMP
+//#pragma omp parallel
+//{
+//#endif
 
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = 0.5*g;
@@ -1899,17 +1899,17 @@ void State::calc_finite_difference(double deltaT){
 #pragma omp barrier
 #endif
 
-#ifdef _OPENMP
-}
-#endif
+//#ifdef _OPENMP
+//}
+//#endif
 
 }
 
 void State::calc_finite_difference_via_faces(double deltaT){
-#ifdef _OPENMP
-#pragma omp parallel 
-{
-#endif
+//#ifdef _OPENMP
+//#pragma omp parallel 
+//{
+//#endif
 
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = HALF*g;
@@ -2620,9 +2620,9 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #pragma omp barrier
 #endif
 
-#ifdef _OPENMP
-}//end High order OMP
-#endif
+//#ifdef _OPENMP
+//}//end High order OMP
+//#endif
 
 }
 

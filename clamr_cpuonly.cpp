@@ -398,13 +398,13 @@ extern "C" void do_calc(void)
 #endif
       {
          mesh->set_bounds(ncells);
-      }
 
-      //  Execute main kernel
-      if (face_based) {
-         state->calc_finite_difference_via_faces(deltaT);
-      } else {
-         state->calc_finite_difference(deltaT);
+         //  Execute main kernel
+         if (face_based) {
+            state->calc_finite_difference_via_faces(deltaT);
+         } else {
+            state->calc_finite_difference(deltaT);
+         }
       }
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
