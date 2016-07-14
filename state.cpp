@@ -624,11 +624,6 @@ void State::apply_boundary_conditions_local(void)
 
 void State::apply_boundary_conditions_local_Parallel(void)
 {
-
-#ifdef _OPENMP
-#pragma omp parallel
-{
-#endif
    static int *nlft, *nrht, *nbot, *ntop;
 
    size_t &ncells = mesh->ncells;
@@ -674,10 +669,6 @@ void State::apply_boundary_conditions_local_Parallel(void)
          }
       }
    }
-#ifdef _OPENMP
-#pragma omp barrier
-}
-#endif
 }
 
 void State::apply_boundary_conditions_ghost(void)
@@ -731,11 +722,6 @@ void State::apply_boundary_conditions_ghost(void)
 
 void State::apply_boundary_conditions_ghost_Parallel(void)
 {
-#ifdef _OPENMP
-#pragma omp parallel
-{
-#endif
-
    static int *nlft, *nrht, *nbot, *ntop;
 
    size_t &ncells = mesh->ncells;
@@ -781,9 +767,6 @@ void State::apply_boundary_conditions_ghost_Parallel(void)
          }
       }
    }
-#ifdef _OPENMP
-}
-#endif
 }
 
 void State::apply_boundary_conditions(void)
@@ -828,10 +811,6 @@ void State::apply_boundary_conditions(void)
 
 void State::apply_boundary_conditions_Parallel(void)
 {
-#ifdef _OPENMP
-#pragma omp parallel
-{
-#endif
    static int *nlft, *nrht, *nbot, *ntop;
 
    size_t &ncells = mesh->ncells;
@@ -869,9 +848,6 @@ void State::apply_boundary_conditions_Parallel(void)
          V[ic] = -V[nb];
       }
    }
-#ifdef _OPENMP
-}
-#endif
 }
 
 void State::remove_boundary_cells(void)
@@ -1309,6 +1285,11 @@ void State::calc_finite_difference(double deltaT){
 
    cpu_timer_start(&tstart_cpu);
 
+#ifdef _OPENMP
+#pragma omp parallel
+{
+#endif
+
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
    if (ncells_ghost < ncells) ncells_ghost = ncells;
@@ -1321,6 +1302,10 @@ void State::calc_finite_difference(double deltaT){
    if (mesh->numpe > 1) {
       apply_boundary_conditions_local_Parallel();
 
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
       H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
       U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
       V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
@@ -1328,6 +1313,10 @@ void State::calc_finite_difference(double deltaT){
       L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
       L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
       L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
 
       apply_boundary_conditions_ghost_Parallel();
    } else {
@@ -1335,11 +1324,6 @@ void State::calc_finite_difference(double deltaT){
    }
 #else
    apply_boundary_conditions_Parallel();
-#endif
-
-#ifdef _OPENMP
-#pragma omp parallel
-{
 #endif
 
    static state_t *H_new, *U_new, *V_new;
