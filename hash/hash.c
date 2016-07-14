@@ -217,7 +217,12 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
 #endif
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
+      {
+#endif
+
+#ifdef _OPENMP
+#pragma omp for
 #endif
       for (uint ii = 0; ii<hashtablesize; ii++){
          hash[2*ii] = -1;
@@ -225,6 +230,10 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
          omp_init_lock(&((*lock)[ii]));
 #endif
       }
+
+#ifdef _OPENMP
+      } // omp parallel
+#endif
 
       if (hash_method == LINEAR){
          if (hash_report_level == 0){
@@ -270,18 +279,44 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
          }
       }
    } else {
+#ifdef _OPENMP
+#pragma omp parallel
+      {
+#endif
+
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
       hashtablesize = perfect_hash_size;
 
       hash = (int *)genvector(hashtablesize,sizeof(int));
 #ifdef _OPENMP
-#pragma omp parallel for
+      }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp for
 #endif
       for (uint ii = 0; ii<hashtablesize; ii++){
          hash[ii] = -1;
-      }
+      } // end of else for if compact hash (is perfect hash)
 
-      read_hash  = read_hash_perfect;
-      write_hash_openmp = write_hash_perfect_openmp;
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
+         read_hash  = read_hash_perfect;
+         write_hash_openmp = write_hash_perfect_openmp;
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+      } // end openmp parallel
+#endif
    }
 
    if (hash_report_level >= 2) {
