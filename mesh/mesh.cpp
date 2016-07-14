@@ -1633,7 +1633,13 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
             L7_Update(&mpot_old[0], L7_INT, cell_handle);
          }
 #endif
-
+#ifdef _OPENMP
+#pragma omp parallel
+{
+#endif
+         int upperBound, lowerBound;
+         get_bounds(upperBound, lowerBound);
+         int mynewcount = newcount;
 #ifdef _OPENMP
 #pragma omp parallel for reduction(+:newcount)
 #endif
@@ -1758,6 +1764,10 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                }
             }
          }
+#ifdef _OPENMP
+#pragma omp barrier
+}
+#endif
 
          newcount_global = newcount;
          icount += newcount;
