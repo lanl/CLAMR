@@ -3663,13 +3663,10 @@ void Mesh::calc_neighbors(int ncells)
 #endif
 
 #ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      #pragma omp parallel default (none) firstprivate(ncells, imaxsize, jmaxsize) shared(read_hash, write_hash_openmp, hash) shared(tstart_lev2)
-   #else
-      #pragma omp parallel default (none) firstprivate(ncells, imaxsize, jmaxsize) shared(read_hash, write_hash_openmp, hash, lock) shared(tstart_lev2)
-   #endif
+   #pragma omp parallel
       {
 #endif
+
 #ifdef _OPENMP
 #pragma omp for
 #endif
@@ -3702,16 +3699,10 @@ void Mesh::calc_neighbors(int ncells)
             }
          }
 
-#ifdef _OPENMP
-#pragma omp master
-#endif
          if (TIMING_LEVEL >= 2) {
             cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
-#ifdef _OPENMP
-#pragma omp barrier
-#endif
 
          //fprintf(fp,"DEBUG ncells is %lu\n",ncells);
 #ifdef _OPENMP
@@ -3821,6 +3812,7 @@ void Mesh::calc_neighbors(int ncells)
 
             //printf("neighbors[%d] = %d %d %d %d\n",ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
          }
+
 #ifdef _OPENMP
       }
 #endif
