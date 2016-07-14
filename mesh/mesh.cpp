@@ -2385,11 +2385,17 @@ void Mesh::calc_spatial_coordinates(int ibase)
    y.resize(ncells);
    dy.resize(ncells);
 
-   if (have_boundary) {
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
+   {
 #endif
-      for (uint ic = 0; ic < ncells; ic++) {
+
+   int lowerBounds, upperBounds;
+   set_bounds(ncells);
+   get_bounds(lowerBounds, upperBounds);
+
+   if (have_boundary) {
+      for (uint ic = lowerBounds; ic < upperBounds; ic++) {
          int lev = level[ic];
          x[ic]  = xmin + (lev_deltax[lev] * (i[ic] - ibase));
          dx[ic] =        lev_deltax[lev];
@@ -2397,10 +2403,7 @@ void Mesh::calc_spatial_coordinates(int ibase)
          dy[ic] =        lev_deltay[lev];
       }
    } else {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-      for (uint ic = 0; ic < ncells; ic++) {
+      for (uint ic = lowerBounds; ic < upperBounds; ic++) {
          int lev = level[ic];
          x[ic]  = xmin + (lev_deltax[lev] * (i[ic] - lev_ibegin[lev]));
          dx[ic] =        lev_deltax[lev];
@@ -2408,6 +2411,11 @@ void Mesh::calc_spatial_coordinates(int ibase)
          dy[ic] =        lev_deltay[lev];
       }
    }
+
+#ifdef _OPENMP
+#pragma omp barrier
+   } // end parallel region
+#endif
 
    cpu_timers[MESH_TIMER_CALC_SPATIAL_COORDINATES] += cpu_timer_stop(tstart_cpu);
 }
@@ -3613,30 +3621,42 @@ void Mesh::calc_neighbors(int ncells)
    if (nlft != NULL){
       nlft_size = mesh_memory.get_memory_size(nlft);
    }
-   if (nlft_size < ncells){
-      if (nlft != NULL){
-         nlft = (int *)mesh_memory.memory_delete(nlft);
-         nrht = (int *)mesh_memory.memory_delete(nrht);
-         nbot = (int *)mesh_memory.memory_delete(nbot);
-         ntop = (int *)mesh_memory.memory_delete(ntop);
-      }
+#ifdef _OPENMP
+#pragma omp parallel
+   {
+#endif
 
-      nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
-      nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
-      nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
-      ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
-      for(int ic=0; ic<ncells; ic++){
+   if (nlft_size < ncells){
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
+         if (nlft != NULL){
+            nlft = (int *)mesh_memory.memory_delete(nlft);
+            nrht = (int *)mesh_memory.memory_delete(nrht);
+            nbot = (int *)mesh_memory.memory_delete(nbot);
+            ntop = (int *)mesh_memory.memory_delete(ntop);
+         }
+
+         nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
+         nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
+         nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
+         ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
+
+      int lowerBounds, upperBounds;
+      get_bounds(lowerBounds, upperBounds);
+
+      for(int ic=lowerBounds; ic<upperBounds; ic++){
          nlft[ic] = -1;
          nrht[ic] = -1;
          nbot[ic] = -1;
          ntop[ic] = -1;
       }
    }
-
-#ifdef _OPENMP
-#pragma omp parallel
-   {
-#endif
 
    if (calc_neighbor_type == HASH_TABLE) {
 
@@ -3691,16 +3711,10 @@ void Mesh::calc_neighbors(int ncells)
             }
          }
 
-#ifdef _OPENMP
-#pragma omp master
-#endif
          if (TIMING_LEVEL >= 2) {
             cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
-#ifdef _OPENMP
-#pragma omp barrier
-#endif
 
          //fprintf(fp,"DEBUG ncells is %lu\n",ncells);
 #ifdef _OPENMP
@@ -3836,14 +3850,14 @@ void Mesh::calc_neighbors(int ncells)
 
    } else if (calc_neighbor_type == KDTREE) {
 
+      struct timeval tstart_lev2;
+      if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
       {
 #endif
-      struct timeval tstart_lev2;
-      if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
-
       TBounds box;
       vector<int> index_list(IPOW2(levmx*levmx) );
 
@@ -3910,14 +3924,7 @@ void Mesh::calc_neighbors(int ncells)
 
    ncells_ghost = ncells;
 
-#ifdef _OPENMP
-#pragma omp master
-   {
-#endif
-      cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
-#ifdef _OPENMP
-   } // end master
-#endif
+   cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
 
 #ifdef _OPENMP
    } // end parallel region

@@ -44,6 +44,18 @@ add_library(timer SHARED ${timer_LIB_SRCS})
 set_target_properties(timer PROPERTIES VERSION ${TIMER_VERSION} SOVERSION ${TIMER_VERSION_MAJOR})
 install(TARGETS timer DESTINATION lib)
 
+########### mptimer target ###############
+if(OPENMP_FOUND)
+   add_library(mptimer SHARED ${timer_LIB_SRCS})
+
+   set_target_properties(mptimer PROPERTIES VERSION ${TIMER_VERSION} SOVERSION ${TIMER_VERSION_MAJOR})
+   set_target_properties(mptimer PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
+   set_target_properties(mptimer PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
+   set_target_properties(mptimer PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
+
+   install(TARGETS mptimer DESTINATION lib)
+endif(OPENMP_FOUND)
+
 ########### install files ###############
 
 install(FILES  timer.h DESTINATION include/timer)

@@ -59,6 +59,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -69,12 +72,12 @@
 void cpu_timer_start(struct timeval *tstart_cpu){
 #ifdef _OPENMP
    if ( omp_in_parallel() ) {
-      gettimeofday(tstart_cpu, NULL);
-   } else {
 #pragma omp master
       {
          gettimeofday(tstart_cpu, NULL);
       }
+   } else {
+      gettimeofday(tstart_cpu, NULL);
    }
 #else
    gettimeofday(tstart_cpu, NULL);
@@ -85,10 +88,27 @@ double cpu_timer_stop(struct timeval tstart_cpu){
    double result;
    struct timeval tstop_cpu, tresult;
 
+#ifdef _OPENMP
+   if ( omp_in_parallel() ) {
+#pragma omp master
+      {
+         gettimeofday(&tstop_cpu, NULL);
+         tresult.tv_sec = tstop_cpu.tv_sec - tstart_cpu.tv_sec;
+         tresult.tv_usec = tstop_cpu.tv_usec - tstart_cpu.tv_usec;
+         result = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
+      }
+   } else {
+      gettimeofday(&tstop_cpu, NULL);
+      tresult.tv_sec = tstop_cpu.tv_sec - tstart_cpu.tv_sec;
+      tresult.tv_usec = tstop_cpu.tv_usec - tstart_cpu.tv_usec;
+      result = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
+   }
+#else
    gettimeofday(&tstop_cpu, NULL);
    tresult.tv_sec = tstop_cpu.tv_sec - tstart_cpu.tv_sec;
    tresult.tv_usec = tstop_cpu.tv_usec - tstart_cpu.tv_usec;
    result = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
+#endif
    return(result);
 }
 
