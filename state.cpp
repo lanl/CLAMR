@@ -2028,6 +2028,14 @@ void State::calc_finite_difference_via_faces(double deltaT){
    vector<state_t> Uy(mesh->nyface);
    vector<state_t> Vy(mesh->nyface);
 
+#ifdef _OPENMP
+#pragma omp parallel 
+{
+#endif
+
+#ifdef _OPENMP
+#pragma omp for 
+#endif
    for (int iface = 0; iface < mesh->nyface; iface++){
       int cell_lower = mesh->map_yface2cell_lower[iface];
       int cell_upper = mesh->map_yface2cell_upper[iface];
@@ -2092,17 +2100,24 @@ void State::calc_finite_difference_via_faces(double deltaT){
    }
 #endif
 
-   state_t *H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
-   state_t *U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
-   state_t *V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
+   static state_t *H_new, *U_new, *V_new;
+
 #ifdef _OPENMP
-#pragma omp parallel 
-{
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+      H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
+      U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
+      V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
+#ifdef _OPENMP
+   }
 #pragma omp barrier
 #endif
-      int lowerBound, upperBound;
 
-      mesh->get_bounds(lowerBound, upperBound);
+   int lowerBound, upperBound;
+
+   mesh->get_bounds(lowerBound, upperBound);
    for (int ic = lowerBound; ic < upperBound; ic++){
 
       int lvl     = level[ic];
@@ -2532,22 +2547,32 @@ void State::calc_finite_difference_via_faces(double deltaT){
          ic, deltaT, dxic, Vic, Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus);
       printf("DEBUG ic %d wminusy_V %lf wplusy_V %lf\n",ic, wminusy_V, wplusy_V);
 */
-    #ifdef _OPENMP
-    }//end High order OMP
-    #pragma omp barrier
-    #endif
    }//end forloop
 
-   // Replace H with H_new and deallocate H. New memory will have the characteristics
-   // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
-   H = (state_t *)state_memory.memory_replace(H, H_new);
-   U = (state_t *)state_memory.memory_replace(U, U_new);
-   V = (state_t *)state_memory.memory_replace(V, V_new);
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+      // Replace H with H_new and deallocate H. New memory will have the characteristics
+      // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
+      H = (state_t *)state_memory.memory_replace(H, H_new);
+      U = (state_t *)state_memory.memory_replace(U, U_new);
+      V = (state_t *)state_memory.memory_replace(V, V_new);
 
-   //state_memory.memory_report();
-   //printf("DEBUG end finite diff\n\n"); 
+      //state_memory.memory_report();
+      //printf("DEBUG end finite diff\n\n"); 
 
-   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+}//end High order OMP
+#endif
+
 }
 
 #ifdef HAVE_OPENCL
