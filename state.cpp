@@ -1278,16 +1278,23 @@ void State::gpu_rezone_all(int icount, int jcount, bool localStencil)
 #define VUNEWFLUXPLUS2   ( Vyplus2 *Uyplus2 /Hyplus2 )
 
 void State::calc_finite_difference(double deltaT){
+#ifdef _OPENMP
+#pragma omp parallel
+{
+#endif
+
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = 0.5*g;
 
    struct timeval tstart_cpu;
 
-   cpu_timer_start(&tstart_cpu);
-
 #ifdef _OPENMP
-#pragma omp parallel
-{
+#pragma omp master
+   {
+#endif
+      cpu_timer_start(&tstart_cpu);
+#ifdef _OPENMP
+   }
 #endif
 
    size_t ncells     = mesh->ncells;
