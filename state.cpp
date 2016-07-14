@@ -2839,30 +2839,37 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    icount=0;
    jcount=0;
 
-#ifdef HAVE_MPI
-   // We need to update the ghost regions and boundary regions for the state
-   // variables since they were changed in the finite difference routine. We
-   // want to use the updated values for refinement decisions
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
-
-      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
-
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-#else
-   apply_boundary_conditions();
-#endif
-/*****HIGH LEVEL OMP******/
 #ifdef _OPENMP
 #pragma omp parallel 
 {
 #pragma omp barrier 
 #endif
+#ifdef HAVE_MPI
+   // We need to update the ghost regions and boundary regions for the state
+   // variables since they were changed in the finite difference routine. We
+   // want to use the updated values for refinement decisions
+   if (mesh->numpe > 1) {
+      apply_boundary_conditions_local_Parallel();
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+{
+#endif
+      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
+      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
+      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
+#ifdef _OPENMP
+}
+#pragma omp barrier
+#endif
+      apply_boundary_conditions_ghost_Parallel();
+   } else {
+      apply_boundary_conditions_Parallel();
+   }
+#else
+   apply_boundary_conditions_Parallel();
+#endif
+/*****HIGH LEVEL OMP******/
 
    int lowerBound, upperBound;
    //mesh->set_bounds(ncells);
