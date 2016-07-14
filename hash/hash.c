@@ -201,11 +201,12 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
    if (hash_report_level >= 2) printf("DEBUG do_compact_hash %d hash_method %d perfect_hash_size %u compact_hash_size %u\n",
       do_compact_hash,hash_method,perfect_hash_size,compact_hash_size);
 
-   if (do_compact_hash) {
 #ifdef _OPENMP
 #pragma omp parallel
       {
 #endif
+
+   if (do_compact_hash) {
 
 #ifdef _OPENMP
 #pragma omp master
@@ -242,9 +243,9 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
       }
 
 #ifdef _OPENMP
-      } // omp parallel
+#pragma omp master
+      {
 #endif
-
       if (hash_method == LINEAR){
          if (hash_report_level == 0){
             read_hash  = read_hash_linear;
@@ -288,11 +289,12 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
             write_hash_openmp = write_hash_primejump_openmp_report_level_3;
          }
       }
-   } else {
 #ifdef _OPENMP
-#pragma omp parallel
-      {
+      }
+#pragma omp barrier
 #endif
+
+   } else {
 
 #ifdef _OPENMP
 #pragma omp master
@@ -324,10 +326,11 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
 #pragma omp barrier
 #endif
 
+   }
+
 #ifdef _OPENMP
       } // end openmp parallel
 #endif
-   }
 
    if (hash_report_level >= 2) {
       printf("Hash table size %u perfect hash table size %u memory savings %u by percentage %lf\n",
