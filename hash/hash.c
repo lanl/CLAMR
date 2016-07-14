@@ -174,11 +174,6 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
 
    static int *hash;
 
-//#ifdef _OPENMP
-//#pragma omp parallel
-//{
-//#endif
-
    int do_compact_hash;
    uint compact_hash_size, perfect_hash_size;
 
@@ -355,10 +350,6 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
 #ifdef _OPENMP
       }
 #endif
-
-//#ifdef _OPENMP
-//} // end openmp parallel
-//#endif
 
    return(hash);
 }

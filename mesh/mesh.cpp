@@ -3641,14 +3641,7 @@ void Mesh::calc_neighbors(int ncells)
    if (calc_neighbor_type == HASH_TABLE) {
 
       struct timeval tstart_lev2;
-#ifdef _OPENMP
-#pragma omp master
-      {
-#endif
-         if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
-#ifdef _OPENMP
-      }
-#endif
+      if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
       int jmaxsize = (jmax+1)*IPOW2(levmx);
       int imaxsize = (imax+1)*IPOW2(levmx);
@@ -3915,12 +3908,20 @@ void Mesh::calc_neighbors(int ncells)
 #endif
    } // calc_neighbor_type
 
-#ifdef _OPENMP
-      }
-#endif
    ncells_ghost = ncells;
 
-   cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+      cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
+#ifdef _OPENMP
+   } // end master
+#endif
+
+#ifdef _OPENMP
+   } // end parallel region
+#endif
 }
 
 void Mesh::calc_neighbors_local(void)

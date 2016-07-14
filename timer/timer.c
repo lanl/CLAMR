@@ -67,7 +67,18 @@
 #include "timer.h"
 
 void cpu_timer_start(struct timeval *tstart_cpu){
+#ifdef _OPENMP
+   if ( omp_in_parallel() ) {
+      gettimeofday(tstart_cpu, NULL);
+   } else {
+#pragma omp master
+      {
+         gettimeofday(tstart_cpu, NULL);
+      }
+   }
+#else
    gettimeofday(tstart_cpu, NULL);
+#endif
 }
 
 double cpu_timer_stop(struct timeval tstart_cpu){
