@@ -1906,12 +1906,24 @@ void State::calc_finite_difference(double deltaT){
 }
 
 void State::calc_finite_difference_via_faces(double deltaT){
+#ifdef _OPENMP
+#pragma omp parallel 
+{
+#endif
+
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = HALF*g;
 
    struct timeval tstart_cpu;
 
-   cpu_timer_start(&tstart_cpu);
+#ifdef _OPENMP
+#pragma omp master 
+   {
+#endif
+      cpu_timer_start(&tstart_cpu);
+#ifdef _OPENMP
+   }
+#endif
 
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
@@ -1923,29 +1935,40 @@ void State::calc_finite_difference_via_faces(double deltaT){
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
    if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
+      apply_boundary_conditions_local_Parallel();
 
-      H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
-      U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
-      V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master 
+      {
+#endif
+         H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
+         U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
+         V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
 
-      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
-
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-#else
-   apply_boundary_conditions();
+         L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
+         L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
+         L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
+#ifdef _OPENMP
+      }
+#pragma omp barrier
 #endif
 
-   int *nlft  = mesh->nlft;
-   int *nrht  = mesh->nrht;
-   int *nbot  = mesh->nbot;
-   int *ntop  = mesh->ntop;
-   int *level = mesh->level;
+      apply_boundary_conditions_ghost_Parallel();
+   } else {
+      apply_boundary_conditions_Parallel();
+   }
+#else
+   apply_boundary_conditions_Parallel();
+#endif
+
+   static int *nlft, *nrht, *nbot, *ntop, *level;
+
+   nlft  = mesh->nlft;
+   nrht  = mesh->nrht;
+   nbot  = mesh->nbot;
+   ntop  = mesh->ntop;
+   level = mesh->level;
 
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
@@ -1956,11 +1979,14 @@ void State::calc_finite_difference_via_faces(double deltaT){
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-   mesh->calc_face_list_wbidirmap();
-
 #ifdef _OPENMP
-#pragma omp parallel 
-{
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   mesh->calc_face_list_wbidirmap();
+#ifdef _OPENMP
+   }
 #endif
 
    static vector<state_t> Hx, Ux, Vx;
