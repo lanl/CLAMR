@@ -1352,11 +1352,10 @@ void State::calc_finite_difference(double deltaT){
 #pragma omp barrier
 #endif
 
+   int lowerBound, upperBound;
+   mesh->get_bounds(lowerBound, upperBound);
 
-#ifdef _OPENMP
-#pragma omp for
-#endif
-   for(int gix = 0; gix < (int)ncells; gix++) {
+   for(int gix = lowerBound; gix < upperBound; gix++) {
 #if DEBUG >= 3
       printf("%d: DEBUG gix is %d at line %d in file %s\n",mesh->mype,gix,__LINE__,__FILE__);
 #endif
@@ -1864,6 +1863,7 @@ void State::calc_finite_difference(double deltaT){
    } // cell loop
 
 #ifdef _OPENMP
+#pragma omp barrier
 #pragma omp master
    {
 #endif
