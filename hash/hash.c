@@ -202,23 +202,33 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
       do_compact_hash,hash_method,perfect_hash_size,compact_hash_size);
 
    if (do_compact_hash) {
-      hashtablesize = compact_hash_size;
-      //srand48(0);
-      AA = (ulong)(1.0+(double)(prime-1)*drand48());
-      BB = (ulong)(0.0+(double)(prime-1)*drand48());
-      if (AA > prime-1 || BB > prime-1) exit(0);
-      if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",AA,BB);
-
-      hash = (int *)genvector(2*hashtablesize,sizeof(int));
-
-//#ifdef __GNUC__
-#ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      (*lock) = (omp_lock_t *)malloc(hashtablesize*sizeof(omp_lock_t));
-#endif
-
 #ifdef _OPENMP
 #pragma omp parallel
       {
+#endif
+
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
+
+         hashtablesize = compact_hash_size;
+         //srand48(0);
+         AA = (ulong)(1.0+(double)(prime-1)*drand48());
+         BB = (ulong)(0.0+(double)(prime-1)*drand48());
+         if (AA > prime-1 || BB > prime-1) exit(0);
+         if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",AA,BB);
+
+         hash = (int *)genvector(2*hashtablesize,sizeof(int));
+
+//#ifdef __GNUC__
+#ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
+         (*lock) = (omp_lock_t *)malloc(hashtablesize*sizeof(omp_lock_t));
+#endif
+
+#ifdef _OPENMP
+      }
+#pragma omp barrier
 #endif
 
 #ifdef _OPENMP
