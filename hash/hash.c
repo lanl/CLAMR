@@ -172,18 +172,33 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
 int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_level, omp_lock_t **lock){
 #endif
 
+   int *hash;
+
+#ifdef _OPENMP
+#pragma omp parallel
+{
+#endif
+
+   int do_compact_hash;
+   uint compact_hash_size, perfect_hash_size;
+
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+
    hash_ncells = 0;
    write_hash_collisions = 0;
    read_hash_collisions = 0;
    hash_queries = 0;
    hash_report_level = report_level;
    hash_stride = isize;
-   int *hash = NULL;
+   hash = NULL;
 
    if (choose_hash_method != METHOD_UNSET) hash_method = choose_hash_method;
 
-   uint compact_hash_size = (uint)((double)ncells*hash_mult);
-   uint perfect_hash_size = (uint)(isize*jsize);
+   compact_hash_size = (uint)((double)ncells*hash_mult);
+   perfect_hash_size = (uint)(isize*jsize);
 
    if (hash_method == METHOD_UNSET){
       float hash_mem_factor = 20.0;
@@ -196,14 +211,13 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
          hash_method,hash_mem_ratio,hash_mem_factor,mem_opt_factor,perfect_hash_size,compact_hash_size);
    }
 
-   int do_compact_hash = (hash_method == PERFECT_HASH) ? 0 : 1;
+   do_compact_hash = (hash_method == PERFECT_HASH) ? 0 : 1;
 
    if (hash_report_level >= 2) printf("DEBUG do_compact_hash %d hash_method %d perfect_hash_size %u compact_hash_size %u\n",
       do_compact_hash,hash_method,perfect_hash_size,compact_hash_size);
-
 #ifdef _OPENMP
-#pragma omp parallel
-      {
+   }
+#pragma omp barrier
 #endif
 
    if (do_compact_hash) {
@@ -326,17 +340,25 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
 #pragma omp barrier
 #endif
 
-   }
+   } // else for if compact hash (perfect hash)
 
 #ifdef _OPENMP
-      } // end openmp parallel
+#pragma omp barrier
+#pragma omp master
+      {
 #endif
-
    if (hash_report_level >= 2) {
       printf("Hash table size %u perfect hash table size %u memory savings %u by percentage %lf\n",
         hashtablesize,isize*jsize,isize*jsize-hashtablesize,
         (double)hashtablesize/(double)(isize*jsize));
    }
+#ifdef _OPENMP
+      }
+#endif
+
+#ifdef _OPENMP
+} // end openmp parallel
+#endif
 
    return(hash);
 }
