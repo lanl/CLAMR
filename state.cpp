@@ -2829,21 +2829,23 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
-   size_t ncells     = mesh->ncells;
-   int *nlft  = mesh->nlft;
-   int *nrht  = mesh->nrht;
-   int *nbot  = mesh->nbot;
-   int *ntop  = mesh->ntop;
-   int *level = mesh->level;
-
-   icount=0;
-   jcount=0;
-
 #ifdef _OPENMP
 #pragma omp parallel 
 {
 #pragma omp barrier 
 #endif
+   static int *nlft, *nrht, *nbot, *ntop, *level;
+   
+    size_t ncells = mesh->ncells;
+     nlft  = mesh->nlft;
+     nrht  = mesh->nrht;
+     nbot  = mesh->nbot;
+     ntop  = mesh->ntop;
+     level = mesh->level;
+
+   icount=0;
+   jcount=0;
+
 #ifdef HAVE_MPI
    // We need to update the ghost regions and boundary regions for the state
    // variables since they were changed in the finite difference routine. We
