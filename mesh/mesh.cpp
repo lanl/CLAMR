@@ -3641,15 +3641,19 @@ void Mesh::calc_neighbors(int ncells)
       int jmaxsize = (jmax+1)*IPOW2(levmx);
       int imaxsize = (imax+1)*IPOW2(levmx);
 
+      int *hash;
 #ifdef _OPENMP
+#pragma omp parallel
+      {
    #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      int *hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0);
+         hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0);
    #else
-      omp_lock_t *lock;
-      int *hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0, &lock);
+         omp_lock_t *lock;
+         hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0, &lock);
    #endif
+      }
 #else
-      int *hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
+      hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
 #endif
 
 #ifdef _OPENMP
@@ -4011,15 +4015,20 @@ void Mesh::calc_neighbors_local(void)
       //if (DEBUG) fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
 
       //fprintf(fp,"DEBUG -- ncells %lu\n",ncells);
+
+      int *hash;
 #ifdef _OPENMP
+#pragma omp parallel
+      {
    #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      int *hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
+         hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
    #else
-      omp_lock_t *lock = NULL;
-      int *hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0, &lock);
+         omp_lock_t *lock = NULL;
+         hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0, &lock);
    #endif
+      }
 #else
-      int *hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1);
+      hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1);
 #endif
 
       //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);
