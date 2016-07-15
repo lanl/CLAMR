@@ -1282,15 +1282,7 @@ void State::calc_finite_difference(double deltaT){
    real_t   ghalf = 0.5*g;
 
    struct timeval tstart_cpu;
-
-#ifdef _OPENMP
-#pragma omp master
-   {
-#endif
-      cpu_timer_start(&tstart_cpu);
-#ifdef _OPENMP
-   }
-#endif
+   cpu_timer_start(&tstart_cpu);
 
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
@@ -1887,12 +1879,12 @@ void State::calc_finite_difference(double deltaT){
 
       //state_memory.memory_report();
       //printf("DEBUG end finite diff\n\n"); 
-
-      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 #ifdef _OPENMP
    }
 #pragma omp barrier
 #endif
+
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
 void State::calc_finite_difference_via_faces(double deltaT){
@@ -1900,15 +1892,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
    real_t   ghalf = HALF*g;
 
    struct timeval tstart_cpu;
-
-#ifdef _OPENMP
-#pragma omp master 
-   {
-#endif
-      cpu_timer_start(&tstart_cpu);
-#ifdef _OPENMP
-   }
-#endif
+   cpu_timer_start(&tstart_cpu);
 
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
@@ -2598,12 +2582,12 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
       //state_memory.memory_report();
       //printf("DEBUG end finite diff\n\n"); 
-
-      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 #ifdef _OPENMP
    }
 #pragma omp barrier
 #endif
+
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
 #ifdef HAVE_OPENCL
