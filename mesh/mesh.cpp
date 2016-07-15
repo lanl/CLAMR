@@ -1620,8 +1620,17 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
       cpu_counters[MESH_COUNTER_REFINE_SMOOTH]++;
 
-      vector<int> mpot_old(my_ncells);
-
+      //vector<int> mpot_old(my_ncells);
+      vector<int> mpot_old;
+//MASTER THREAD
+#ifdef _OPENMP
+#pragma omp master
+{//START 
+#endif
+      mpot_old.resize(my_ncells);
+#ifdef _OPENMP
+}//END MASTER THREAD
+#endif
       //while (newcount_global > 0 && levcount < levmx){
          //levcount++; 
          //newcount=0;
@@ -1639,6 +1648,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #pragma omp master
 {//START 
 #endif
+         
          levcount++; 
          newcount=0;
          mpot.swap(mpot_old);
