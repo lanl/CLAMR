@@ -4101,6 +4101,8 @@ void Mesh::calc_neighbors_local(void)
          fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
       }
 
+      int imaxcalc, jmaxcalc;
+
 #ifdef _OPENMP
 #pragma omp parallel
    {
@@ -4132,17 +4134,22 @@ void Mesh::calc_neighbors_local(void)
          cpu_timer_start(&tstart_lev2);
       }
 
-#ifdef _OPENMP
-   } // end parallel region
-#pragma omp barrier
-#endif
+//#ifdef _OPENMP
+   //} // end parallel region
+//#pragma omp barrier
+//#endif
 
       // Set neighbors to global cell numbers from hash
-      int jmaxcalc = (jmax+1)*IPOW2(levmx);
-      int imaxcalc = (imax+1)*IPOW2(levmx);
+      jmaxcalc = (jmax+1)*IPOW2(levmx);
+      imaxcalc = (imax+1)*IPOW2(levmx);
+
+//#ifdef _OPENMP
+//#pragma omp parallel
+      //{
+//#endif
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) firstprivate(imaxsize, imaxcalc, iminsize, jmaxcalc, jminsize) shared(read_hash, hash)
+#pragma omp for
 #endif
       for (uint ic=0; ic<ncells; ic++){
          int ii = i[ic];
@@ -4257,6 +4264,10 @@ void Mesh::calc_neighbors_local(void)
 
          //fprintf(fp,"%d: neighbors[%d] = %d %d %d %d\n",mype,ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
       }
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
 
       if (DEBUG) {
          print_local();
