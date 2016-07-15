@@ -3975,7 +3975,13 @@ void Mesh::calc_neighbors_local(void)
    }
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
+   {
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp for
 #endif
    for (int ic = 0; ic < (int)ncells; ic++){
       nlft[ic] = -98;
@@ -3983,6 +3989,10 @@ void Mesh::calc_neighbors_local(void)
       nbot[ic] = -98;
       ntop[ic] = -98;
    }
+#ifdef _OPENMP
+   } // end parallel section
+#pragma omp barrier
+#endif
 
    if (calc_neighbor_type == HASH_TABLE) {
 
