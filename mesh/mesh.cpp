@@ -3617,31 +3617,35 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
 
 void Mesh::calc_neighbors(int ncells)
 {
-   if (! do_rezone) return;
+
+#ifdef _OPENMP
+   #pragma omp parallel
+      {
+#endif
+   if (do_rezone) {
 
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   cpu_counters[MESH_COUNTER_CALC_NEIGH]++;
    int flags = INDEX_ARRAY_MEMORY;
 
 #if defined (HAVE_J7)
    if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
-   int nlft_size = 0;
+
+   static int nlft_size = 0;
+
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+   cpu_counters[MESH_COUNTER_CALC_NEIGH]++;
+
    if (nlft != NULL){
       nlft_size = mesh_memory.get_memory_size(nlft);
    }
-#ifdef _OPENMP
-   #pragma omp parallel
-      {
-#endif
 
    if (nlft_size < ncells){
-#ifdef _OPENMP
-#pragma omp master
-      {
-#endif
          if (nlft != NULL){
             nlft = (int *)mesh_memory.memory_delete(nlft);
             nrht = (int *)mesh_memory.memory_delete(nrht);
@@ -3653,11 +3657,13 @@ void Mesh::calc_neighbors(int ncells)
          nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
          nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
          ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
+   }
 #ifdef _OPENMP
-      }
+   }
 #pragma omp barrier
 #endif
 
+   if (nlft_size < ncells){
       int lowerBounds, upperBounds;
       get_bounds(lowerBounds, upperBounds);
 
@@ -3937,6 +3943,7 @@ void Mesh::calc_neighbors(int ncells)
 
    cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
 
+   }
 #ifdef _OPENMP
    } // end parallel region
 #endif
