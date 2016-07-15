@@ -1622,7 +1622,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
       vector<int> mpot_old(my_ncells);
 
-      while (newcount_global > 0 && levcount < levmx){
+      //while (newcount_global > 0 && levcount < levmx){
          //levcount++; 
          //newcount=0;
 
@@ -1633,6 +1633,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 {//START PARALLEL REGION 
 #endif
 
+      while (newcount_global > 0 && levcount < levmx){
 //MASTER THREAD
 #ifdef _OPENMP
 #pragma omp master
