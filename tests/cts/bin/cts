@@ -1,0 +1,607 @@
+eval 'exec perl -w $0 ${1+"$@"}'    #  -*-Perl-*-
+  if 0;
+
+
+require 5.006;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+use lib "$FindBin::Bin/lib";
+use System;
+use TestHarness::Harness;
+use TestHarness::TestSuite;
+use TestHarness::TestProblem;
+use Reporter;
+use Parallel::ForkManager;
+use Pod::Usage;
+use Cwd qw(getcwd chdir);
+use Getopt::Long;
+use vars qw($harness %results $prob_name $run_dir $db_file $lock_file $testing_dir);
+use Tie::Persistent;      # store information needed for restarts
+use warnings;
+use strict;
+use Data::Dumper;
+use Fcntl qw(:DEFAULT :flock);
+
+$| = 1;
+
+
+END{
+  # Write changes in $harness to disk.
+  untie $harness;
+}
+
+# Initialize the command line options hash with default values.
+my %opt = (
+	   comment    => "",
+	   cts	      => "",
+	   dir        => "testing",
+	   maxdaemons => 1,
+	   maxthreads => 10,
+	   exec	      => {},
+	   sexec      => {},
+	   pexec      => {},
+	   version    => sub{print "CTS Version: 1.2\n"; exit 0},
+           noop => undef,
+	  );
+
+# Get the command line options. Getoptions will print diagnostic information if
+# it cannot parse the command. In that case we call pod2usage to print usage
+# information and exit.
+GetOptions(\%opt,
+	   "batch=s",
+	   "cpus|default_num_cpus|num_cpus=i",
+	   "comment=s",
+	   "cross_platform_reports|cross_platform_report:s@",
+	   "cts|project=s",
+	   "daemonize",
+	   "debug",
+	   "dir=s",
+	   "exec=s",
+	   "fast",
+	   "footer=s",
+	   "header=s",
+	   "queue=s",
+	   "pexec=s",
+	   "link|links=s@",
+	   "help",
+	   "man",
+	   "nobatch",
+           "noop",
+	   "version",
+	   "maxdaemons=i",
+	   "maxthreads|maxproc=i",
+	   "reports|report:s@",
+	   "report_name|name=s",
+	   "results_path|path=s",
+	   "rerun",
+	   "sexec=s",
+	  )
+  || pod2usage(-verbose => 0);	# prints usage and exits
+  
+# exit with appropriate information if either the help or man  option is invoked
+pod2usage(-verbose => 1) if $opt{help};
+pod2usage(-verbose => 2) if $opt{man};
+
+my $debug = 1;
+$Tie::Persistent::Readable = ($debug)? 1: 0;      # This line allows us to read the MODULE.db
+                                                  # file for debugging purposes.
+my $test_dir = $opt{dir};
+$test_dir .= "/" unless ($test_dir =~ m!/$!);
+$testing_dir = ($test_dir =~ m!^/!)? $test_dir: getcwd . "/$test_dir";
+
+
+$db_file = shift || "CTS.db";
+unshift @ARGV, $db_file unless ($db_file eq "CTS.db");
+$db_file =~ s/\.suite//;
+$db_file =~ s/\.test//;
+$db_file .= ".db" unless ($db_file =~ /\.db/);
+
+$db_file = $testing_dir . $db_file;
+
+$lock_file = $testing_dir . "locked";
+
+# Preserve $harness between runs.
+tie $harness, 'Tie::Persistent', $db_file, 'rw' unless $opt{cross_platform_reports};
+
+
+########################################################################################
+# turn off batch if --nobatch option
+my $nobatch = ($opt{nobatch})? "NO_BATCH" : "";
+
+my $system;
+if ($opt{nobatch}) {
+  $system = System->new(
+			 {
+			  NOBATCH => "NO_BATCH",
+			 }
+			);
+}
+elsif ($opt{batch}) {
+  $system = System->new(
+			 {
+			  BATCH => $opt{batch},
+			 }
+			);
+}
+else {
+  $system = System->new({});
+}
+
+########################################################################################
+# Initialize a new harness. The only argument is the "cts" command line
+# option. This should be the name of a .cts file. If this option is undefined
+# then the environmental variable CTS_FILE is checked. 
+#
+# The harness is automatically stored in a local file called CTS.db. If such a
+# file is present then we assume that we are rerunning cts and do not want to
+# rerun test problems which have already executed successfully.
+if (ref $harness) {
+  $harness->initialize;
+}
+else {
+  $harness = TestHarness::Harness->new($opt{cts});  
+}
+
+$harness->db_file($db_file);
+if ($opt{debug} ) {$harness->verbose(1)};
+if ($opt{fast} ) {$harness->fast(1)};
+if ($opt{rerun} ) {
+  $harness->rerun(1);
+}
+else {
+  $harness->rerun(0);
+}
+if ($opt{noop}) {$harness->noop(1)}
+
+$harness->testing_dir($testing_dir);
+
+########################################################################################
+if ($opt{results_path}) {$harness->results_path($opt{results_path})};
+
+
+########################################################################################
+
+########################################################################################
+if ($opt{cpus} ) {$harness->default_num_cpus($opt{cpus})};
+
+if ($opt{maxthreads} ) {$harness->default_num_threads($opt{maxthreads})};
+
+########################################################################################
+# Do cross platform reports if requested and then exit
+
+if ($opt{cross_platform_reports}){
+  if ($opt{cross_platform_reports}->[0] eq ''){
+    $opt{cross_platform_reports}->[0]="text";
+  }
+  # Create reporter object.
+  #my $reporter = Reporter->new($harness, $opt{comment});
+  my $reporter = $harness->reporter;
+  $reporter->comment($opt{comment}) if $opt{comment};
+  $reporter->footer($opt{footer}) if $opt{footer};
+  $reporter->header($opt{header}) if $opt{header};
+  $harness->db_file($db_file);
+
+  my $cross_platform_reports = $opt{cross_platform_reports} ||
+     $reporter->cross_platform_reports || ["text"];
+  foreach my $report_func(@$cross_platform_reports) {
+    $report_func = lc $report_func;
+   # This is an example of using a string as an object method (i.e. a function).
+    my $cross_func = "cross_platform_" . $report_func;
+    $reporter->$cross_func();
+  }
+  print "\nCompleted cross platform report and exiting\n";
+  exit 0;
+}
+
+
+
+########################################################################################
+# Determine the executable(s) to be tested. The following lines initialize
+# hashes using the key-value pairs found in the .cts file followed by those
+# given on the command line. The command line values will overwrite those from
+# the .cts file. 
+#
+# This allows the user to enter on the command line only those executables that
+# are different from the defaults in the .cts file.
+my %execs          = (%{$harness->executables}, %{$opt{exec}});
+my %serial_execs   = (%{$harness->serial_executables}, %{$opt{sexec}});
+my %parallel_execs = (%{$harness->parallel_executables}, %{$opt{pexec}});
+
+# Get the full paths foreach executable.
+foreach my $exec(values %execs, values %serial_execs, values %parallel_execs) {
+  warn "CTS:Warning: $exec is not executable or does not exist.\n" unless (-x $exec);
+  $exec = ($exec =~ m!^/!)? $exec: getcwd()."/".$exec;  
+}
+
+# Update the executables in the test harness.
+$harness->executables(\%execs);
+$harness->serial_executables(\%serial_execs);
+$harness->parallel_executables(\%parallel_execs);
+
+########################################################################################
+# Initialize the data_links if there are any.
+if ($opt{link} ) {$harness->data_links($opt{link})};
+
+########################################################################################
+# Initialize queue
+if ($opt{queue} ) {$harness->set_queue($opt{queue})};
+
+########################################################################################
+# Initialize tests and testsuites. The command line may have a list of tests
+# and/or testsuites. If it doesn't then fall back to the default_testsuites from
+# the .cts file.
+
+my @tests = @ARGV;
+push @tests, $harness->all_tests unless @tests;
+push @tests, @{$harness->default_testsuites} unless @tests;
+die "CTS: You have not provided any tests or testsuites to run." unless @tests;
+
+# Have the test harness add and initialize each test/testsuite.
+foreach my $test (@tests) {
+  $harness->add($test);
+}
+
+# $harness->dump;
+# exit 0;
+########################################################################################
+# Create the directory structure where the tests will actually be run and
+# copy in all necessary files.
+#mkdir $testing_dir or warn "CTS: Couldn't create directory $test_dir. $!";
+mkdir $testing_dir unless (-d $testing_dir);
+
+#$harness->dump;
+chdir $testing_dir or die "CTS: Couldn't change to directory $test_dir. $!";
+
+# print environment
+`env|sort>test_environment`;
+
+########################################################################################
+#### Daemonize if requested. "" 
+if ($opt{daemonize}) {
+  
+
+  my @daemon_processes = ();
+  my $first_line = "";
+  my $ps_out = `ps  -u $ENV{LOGNAME} -o ppid -o pid -o args`;
+  foreach (split /\n/, $ps_out) {
+    if (!$first_line) {
+      $first_line = $_;
+      next;
+    }
+    if (/^\s*1\s+\d+/) {
+      push @daemon_processes, $_ if /\bcts\b/;
+    }
+  }
+
+  if ($#daemon_processes >= 0) {
+    local $, = "\n";
+    local $\ = "\n";
+    print "WARNING: You already have daemon processes running on this system.";
+    print $first_line;
+    print @daemon_processes;
+    
+    if (1 + $#daemon_processes >= $opt{maxdaemons}) {
+      print "\nCTS only allows $opt{maxdaemons} daemons at a time. You can override this value";
+      print "with the --maxdaemons command line option.\n";
+      die "Exceeded maxdaemons: CTS is exiting\n";
+    }
+  }
+
+  require POSIX;
+  POSIX->import qw(setsid);
+
+  open STDIN, '/dev/null'    or die "Can't read /dev/null: $!";
+  open STDOUT, '>>/dev/null' or die "Can't write to /dev/null: $!";
+  open STDERR, '>>/dev/null' or die "Can't write to /dev/null: $!";
+  defined(my $pid = fork)    or die "Can't fork: $!";
+  exit if $pid;
+  setsid()                   or die "Can't start a new session: $!";
+  umask 0;
+}
+
+########################################################################################
+#### Set up the fork manager     ######
+my $pm = Parallel::ForkManager->new($opt{maxthreads});
+
+$pm->run_on_start(
+  sub {
+    my ($pid, $test) = @_;
+    my $status = $test->status || "unknown";
+
+    if ($status ne "PASSED") {
+      $test->status("STARTED");
+      sysopen(FH, "$lock_file", O_WRONLY | O_CREAT); #  or warn "CTS: Could not open $lock_file: $!";
+      flock(FH, LOCK_EX); # or warn "CTS: Could not lock $db_file: $!";
+      (tied $harness)->sync;
+      close FH;
+    }
+  }
+);
+
+# set up the callback which will be run when the test finishes
+$pm->run_on_finish(
+  sub {
+    my ($pid, $exit_code, $test) = @_;
+
+    # get the test results
+    $harness->extract_results($test);
+    sysopen(FH, "$lock_file", O_WRONLY | O_CREAT); #  or warn "CTS: Could not open $lock_file: $!";
+    flock(FH, LOCK_EX); # or warn "CTS: Could not lock $db_file: $!";
+    (tied $harness)->sync;
+    close FH;
+  }
+);
+
+#$harness->dump; exit 0;
+########################################################################################
+#### Run the tests####
+# eventually we may optimize the order in which the tests run
+foreach my $test($harness->all_tests) {
+  no warnings;  # We don't want it to print "Exiting subroutine via next"
+  my $pid = $pm->start($test) and next;  # parent does the next, child continues below
+
+  # This is the child process.
+  use warnings;  # turn warnings back on.
+  my $status = $test->status || "unknown";
+
+  $test->prepare_test_directory($testing_dir) unless (($status =~ /PASSED|FAILED/) || ($harness->rerun));
+  exit if ($test->status =~ /NO_TEST_FOUND/);
+  # Execute the test.
+  if (($status !~ /FINISHED|PASSED/) || ($harness->rerun)) {
+    $test->recreate_runscript if ($harness->rerun);
+    $test->execute;
+  }
+
+  # Let the harness know that we are done and run the finish callback routine. 
+  $pm->finish();
+}
+
+# This is the test harness.
+# wait for all the children to finish
+$pm->wait_all_children;
+
+########################################################################################
+########################################################################################
+# Generate report outputs. We create the reports requested on the command line,
+# else the ones listed in the .cts file, else just a "text" report.
+my $reports = $opt{reports} || $harness->reports || ["text"];
+my $name = $opt{report_name} || "cts_results";
+foreach my $report_func(@$reports) {
+  $report_func = lc $report_func;
+  $harness->reporter->$report_func($name);   # This is an example of using a string as an object
+#  $harness->reporter->$report_func();   # This is an example of using a string as an object
+                                        # method (i.e. a function). 
+}
+
+__END__
+
+
+=head1 NAME
+
+cts (Collaborative Testing System)
+
+
+=head1 VERSION
+
+CTS: version 1.2
+
+
+=head1 ABSTRACT
+
+  The Collaborative Testing System "CTS" is a collaboratively designed and
+  developed testing system. It is meant to be used by multiple projects on
+  multiple platforms with a minimum of effort.
+
+
+=head1 SYNOPSIS
+
+   cts [options=value] [testfiles] [testsuites]
+      Note: Most options can be repeated as many times as desired on the command line.
+
+
+=head1 OPTIONS
+
+      --cts|project : cts file : The default is to use the environmental variable CTS_FILE.
+
+      --cpus|default_num_cpus|num_cpus :  The default number of cpus to run test problems
+
+      --debug       : print debugging information
+
+      --dir         : directory in which tests are run: defaults to ./testing
+
+      --exec        : set serial executables, usually scripts
+                        (--exec mycode=/wherever/some_code 
+                         --exec my_other_code=/somewhere/whatever)
+
+      --sexec       : set high performance serial executables 
+                        which may need special treatment on some systems
+                        (--sexec mycode=/wherever/some_code 
+                         --sexec my_other_code=/somewhere/whatever)
+
+      --pexec       : set parallel executables 
+                        (--pexec myfastcode=/wherever/fast_code  
+                         --pexec another_code=/somewhere/another_code)
+      --help        : print this message
+
+      --version     : print version information
+
+      --maxthreads  : set maximum number of tests to submit at a time
+
+      --nobatch     : do not submit jobs to the batch system
+
+      --queue       : set the queue
+
+      --reports     : specify the reports that you wish to generate. 
+                       (--reports html --reports text)
+
+      --cross_platform_reports: generate the reports from previous runs of cts
+                       into a cross platform summary report
+                       (--cross_platform_reports html --cross_platform_reports text)
+        
+      --cross_platform_base     : Sets the value of CROSS_PLATFORM_BASE
+
+      --cross_platform_group    : Sets the value of CROSS_PLATFORM_GROUP
+
+      --cross_platform_mail     : Sets the value of CROSS_PLATFORM_MAIL
+
+      --cross_platform_pattern  : Sets the value of CROSS_PLATFORM_PATTERN
+
+      --cross_platform_reporter : Sets the value of CROSS_PLATFORM_REPORTER
+
+      --link        : specify files to be linked into the run_dir foreach test
+                       (--link /data_dir/my_data_file --link ~/another_file)
+
+      --footer      : specify an html string to place at the bottom of html report pages
+
+      --header      : specify an html string to place at the top of html report pages
+
+      --man         : print the cts manual pages and exit
+
+      --fast        : use "ln -s" instead of "cp -r" to create the testing directory. 
+                      This is meant to reduce startup time.
+
+      --noop        : run command is a noop, so just set up directories
+
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+  The CTS uses three types of files; .cts files, .suite files and .test files.
+
+=head1 .cts FILES
+
+  .cts files contain projects specific information such as where to look for
+  testsuites and tests. 
+
+  Most items that can be configured in a .cts file are arrays. Multiple entries
+  for the same item generally appends new entries to the existing array. Exceptions
+  are listed below.  
+
+  There are three categories of configuration items in .cts files. These are Reporter items, 
+  System items and TestHarness items.
+
+
+=head2  REPORTER
+
+=over 8
+
+=item REPORTS
+
+  These are the types of report that the user wishes cts to produce. The possible values
+  are email, text and html.
+
+
+=item CROSS_PLATFORM_BASE 
+
+  This is the name of an nfs mounted directory. It is the top directory where cts should 
+  try to store results for cross platform reporting
+   CROSS_PLATFORM_BASE     : /usr/projects/packages/xtools/nightly
+   
+=item CROSS_PLATFORM_GROUP 
+
+  This is a unix group. Cts will change the group of the cross_platform results file to this group.
+   CROSS_PLATFORM_GROUP    : cts-dev
+
+=item CROSS_PLATFORM_MAIL
+
+  This is the person or email group that will receive cross_platform reports when cts is run 
+  with the --cross_platform_reports option.
+   CROSS_PLATFORM_MAIL     : cts-team@lanl.gov
+
+=item CROSS_PLATFORM_MODE 
+
+  Cts uses this value to set the unix permissions on cross_platform results files. 
+   CROSS_PLATFORM_MODE     : 0660   
+
+=item CROSS_PLATFORM_PATTERN 
+
+  This item takes a little bit of explaining. The basic idea is to create a matrix of compilers, 
+  compiler optimization levels, mpi implementations and systems on which a code team wishes to 
+  run their nightly regression tests. This item tells cts how to store and retrieve results under 
+  the CROSS_PLATFORM_BASE directory. A simpler implementation is coming soon. Currently, any 
+  combination of ${system}, ${Fcompiler}, ${mpi} and ${type} may be used. Currently you must
+  end the line with cts_results.txt. This also means that you must include text reports on the 
+  REPORTS line.
+   CROSS_PLATFORM_PATTERN  : ${system}/${Fcompiler}_${mpi}_${type}/cts_results.txt
+
+=item CROSS_PLATFORM_REPORTER
+
+  This item is no longer relevant. It will soon be removed from the code.
+
+=back
+
+=head2  SYSTEM
+
+=head2  TESTHARNESS
+
+
+
+=head1 .suite FILES
+
+    .suite or testsuite files contain lists of tests and included testsuites to
+    be run together.
+
+
+=head1 .test FILES
+
+    .test files contain test specific information. To add a new test, create a
+    directory named for the test. Include in the test directory any files
+    required to run the test. Then include a test_name.test file. 
+
+
+
+=head1 DESCRIPTION
+
+  The cts script is the heart of the CTS system.  It creates the
+  test harness object and uses it to manages operations
+  from executing tests, subsequent analysis, and reporting.
+
+
+
+=head1 DIAGNOSTICS
+
+
+
+=head1 KNOWN BUGS AND LIMITATIONS
+
+=cut
+
+=head1 SEE ALSO
+
+L<TestHarness::Harness>
+
+L<TestHarness::TestProblem>
+
+L<TestHarness::TestSuite>
+
+ To report problems or view project documentation go to
+ http:sourceforge-web.lanl.gov/projects/cts.
+
+ You can also contact the cts support team via email at 
+ cts-team@lanl.gov.  
+
+=head1 AUTHOR
+
+David L. Aubrey, E<lt>dla@lanl.govE<gt>
+
+=head1 COPYRIGHT AND LICENSE
+
+ Copyright (2006). The Regents of the University of California. This material was
+ produced under U.S. Government contract W-7405-ENG-36 for Los Alamos National
+ Laboratory, which is operated by the University of California for the U.S. Department
+ of Energy. The U.S. Government has rights to use, reproduce, and distribute this
+ software.  NEITHER THE GOVERNMENT NOR THE UNIVERSITY MAKES ANY WARRANTY, EXPRESS OR
+ IMPLIED, OR ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE. If software is
+ modified to produce derivative works, such modified software should be clearly marked,
+ so as not to confuse it with the version available from LANL.
+
+ Additionally, this program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by the Free Software
+ Foundation; either version 2 of the License, or (at your option) any later version.
+ Accordingly, this program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+
+
+=cut
+

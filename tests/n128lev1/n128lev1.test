@@ -1,0 +1,52 @@
+# This sets the internal test name to the directory name that
+# contains this file
+set TEST_NAME=`basename $PWD`
+
+# First test is to see if the serial run is getting the same result
+# as the gold standard
+./clamr_cpuonly -n 128 -i 100 -t 3000 >& ${TEST_NAME}_serial.out
+grep "Profiling: Total   " ${TEST_NAME}_serial.out > clamr.timers_serial.out
+./compare_stdout.pl 0.0 ${TEST_NAME}.gold ${TEST_NAME}_serial.out
+
+# Next test is to see if 4 processor run gets the same
+# result as the serial run
+mpirun -n 4 ./clamr_mpionly -n 128 -i 100 -t 3000 >& ${TEST_NAME}_parallel.out
+grep "Profiling: Total   " ${TEST_NAME}_parallel.out > clamr.timers_parallel.out
+./compare_stdout.pl 0.0 ${TEST_NAME}_serial.out ${TEST_NAME}_parallel.out
+
+# Compute the speedup for mpi
+./compute_speedup.pl 4 clamr.timers_serial.out clamr.timers_parallel.out
+
+setenv OMP_NUM_THREADS 4
+./clamr_openmponly -n 128 -i 100 -t 3000 >& ${TEST_NAME}_openmp.out
+grep "Profiling: Total   " ${TEST_NAME}_openmp.out > clamr.timers_openmp.out
+./compare_stdout.pl 0.0 ${TEST_NAME}_serial.out ${TEST_NAME}_openmp.out
+
+# Compute the speedup for openmp
+./compute_speedup.pl 4 clamr.timers_serial.out clamr.timers_openmp.out
+
+setenv OMP_NUM_THREADS 2
+mpirun -n 2 ./clamr_mpiopenmponly -n 128 -i 100 -t 3000 >& ${TEST_NAME}_mpiopenmp.out
+grep "Profiling: Total   " ${TEST_NAME}_mpiopenmp.out > clamr.timers_mpiopenmp.out
+./compare_stdout.pl 0.0 ${TEST_NAME}_serial.out ${TEST_NAME}_mpiopenmp.out
+
+# Compute the speedup for hybrid mpi and openmp
+./compute_speedup.pl 4 clamr.timers_serial.out clamr.timers_mpiopenmp.out
+
+# This test is to see if the gpu run is getting the same result
+# as the serial run
+./clamr_gpuonly -n 128 -i 100 -t 3000 >& ${TEST_NAME}_gpu.out
+grep "Profiling: Total   " ${TEST_NAME}_gpu.out > clamr.timers_gpu.out
+./compare_stdout.pl 0.0 ${TEST_NAME}.gold ${TEST_NAME}_gpu.out
+
+# Compute the speedup for hybrid mpi and openmp
+./compute_speedup.pl 4 clamr.timers_serial.out clamr.timers_gpu.out
+
+# clamr hybrid
+mpirun -n 2 ./clamr -n 128 -i 100 -t 3000 >& ${TEST_NAME}_hybrid.out
+grep "Profiling: Total   " ${TEST_NAME}_hybrid.out > clamr.timers_hybrid.out
+./compare_stdout.pl 0.0 ${TEST_NAME}.gold ${TEST_NAME}_hybrid.out
+
+# Compute the speedup for hybrid mpi and openmp
+./compute_speedup.pl 4 clamr.timers_serial.out clamr.timers_hybrid.out
+

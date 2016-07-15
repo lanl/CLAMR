@@ -1,0 +1,287 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>./bin/cts</title>
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body style="background-color: white">
+
+<p><a name="__index__"></a></p>
+<!-- INDEX BEGIN -->
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#version">VERSION</a></li>
+	<li><a href="#abstract">ABSTRACT</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#options">OPTIONS</a></li>
+	<li><a href="#configuration_and_environment">CONFIGURATION AND ENVIRONMENT</a></li>
+	<li><a href="#_cts_files">.cts FILES</a></li>
+	<ul>
+
+		<li><a href="#reporter">REPORTER</a></li>
+		<li><a href="#system">SYSTEM</a></li>
+		<li><a href="#testharness">TESTHARNESS</a></li>
+	</ul>
+
+	<li><a href="#_suite_files">.suite FILES</a></li>
+	<li><a href="#_test_files">.test FILES</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#diagnostics">DIAGNOSTICS</a></li>
+	<li><a href="#known_bugs_and_limitations">KNOWN BUGS AND LIMITATIONS</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+	<li><a href="#author">AUTHOR</a></li>
+	<li><a href="#copyright_and_license">COPYRIGHT AND LICENSE</a></li>
+</ul>
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>cts (Collaborative Testing System)</p>
+<p>
+</p>
+<hr />
+<h1><a name="version">VERSION</a></h1>
+<p>CTS: version 1.2</p>
+<p>
+</p>
+<hr />
+<h1><a name="abstract">ABSTRACT</a></h1>
+<pre>
+  The Collaborative Testing System &quot;CTS&quot; is a collaboratively designed and
+  developed testing system. It is meant to be used by multiple projects on
+  multiple platforms with a minimum of effort.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<pre>
+   cts [options=value] [testfiles] [testsuites]
+      Note: Most options can be repeated as many times as desired on the command line.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="options">OPTIONS</a></h1>
+<pre>
+      --cts|project : cts file : The default is to use the environmental variable CTS_FILE.</pre>
+<pre>
+      --cpus|default_num_cpus|num_cpus :  The default number of cpus to run test problems</pre>
+<pre>
+      --debug       : print debugging information</pre>
+<pre>
+      --dir         : directory in which tests are run: defaults to ./testing</pre>
+<pre>
+      --exec        : set serial executables, usually scripts
+                        (--exec mycode=/wherever/some_code 
+                         --exec my_other_code=/somewhere/whatever)</pre>
+<pre>
+      --sexec       : set high performance serial executables 
+                        which may need special treatment on some systems
+                        (--sexec mycode=/wherever/some_code 
+                         --sexec my_other_code=/somewhere/whatever)</pre>
+<pre>
+      --pexec       : set parallel executables 
+                        (--pexec myfastcode=/wherever/fast_code  
+                         --pexec another_code=/somewhere/another_code)
+      --help        : print this message</pre>
+<pre>
+      --version     : print version information</pre>
+<pre>
+      --maxthreads  : set maximum number of tests to submit at a time</pre>
+<pre>
+      --nobatch     : do not submit jobs to the batch system</pre>
+<pre>
+      --queue       : set the queue</pre>
+<pre>
+      --reports     : specify the reports that you wish to generate. 
+                       (--reports html --reports text)</pre>
+<pre>
+      --cross_platform_reports: generate the reports from previous runs of cts
+                       into a cross platform summary report
+                       (--cross_platform_reports html --cross_platform_reports text)
+        
+      --cross_platform_base     : Sets the value of CROSS_PLATFORM_BASE</pre>
+<pre>
+      --cross_platform_group    : Sets the value of CROSS_PLATFORM_GROUP</pre>
+<pre>
+      --cross_platform_mail     : Sets the value of CROSS_PLATFORM_MAIL</pre>
+<pre>
+      --cross_platform_pattern  : Sets the value of CROSS_PLATFORM_PATTERN</pre>
+<pre>
+      --cross_platform_reporter : Sets the value of CROSS_PLATFORM_REPORTER</pre>
+<pre>
+      --link        : specify files to be linked into the run_dir foreach test
+                       (--link /data_dir/my_data_file --link ~/another_file)</pre>
+<pre>
+      --footer      : specify an html string to place at the bottom of html report pages</pre>
+<pre>
+      --header      : specify an html string to place at the top of html report pages</pre>
+<pre>
+      --man         : print the cts manual pages and exit</pre>
+<pre>
+      --fast        : use &quot;ln -s&quot; instead of &quot;cp -r&quot; to create the testing directory. 
+                      This is meant to reduce startup time.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="configuration_and_environment">CONFIGURATION AND ENVIRONMENT</a></h1>
+<pre>
+  The CTS uses three types of files; .cts files, .suite files and .test files.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="_cts_files">.cts FILES</a></h1>
+<pre>
+  .cts files contain projects specific information such as where to look for
+  testsuites and tests.</pre>
+<pre>
+  Most items that can be configured in a .cts file are arrays. Multiple entries
+  for the same item generally appends new entries to the existing array. Exceptions
+  are listed below.</pre>
+<pre>
+  There are three categories of configuration items in .cts files. These are Reporter items, 
+  System items and TestHarness items.</pre>
+<p>
+</p>
+<h2><a name="reporter">REPORTER</a></h2>
+<dl>
+<dt><strong><a name="item_reports">REPORTS</a></strong><br />
+</dt>
+<dd>
+<pre>
+  These are the types of report that the user wishes cts to produce. The possible values
+  are email, text and html.</pre>
+</dd>
+<dt><strong><a name="item_cross_platform_base">CROSS_PLATFORM_BASE</a></strong><br />
+</dt>
+<dd>
+<pre>
+  This is the name of an nfs mounted directory. It is the top directory where cts should 
+  try to store results for cross platform reporting
+   CROSS_PLATFORM_BASE     : /usr/projects/packages/xtools/nightly
+   
+=item CROSS_PLATFORM_GROUP</pre>
+</dd>
+<dd>
+<pre>
+  This is a unix group. Cts will change the group of the cross_platform results file to this group.
+   CROSS_PLATFORM_GROUP    : cts-dev</pre>
+</dd>
+<dt><strong><a name="item_cross_platform_mail">CROSS_PLATFORM_MAIL</a></strong><br />
+</dt>
+<dd>
+<pre>
+  This is the person or email group that will receive cross_platform reports when cts is run 
+  with the --cross_platform_reports option.
+   CROSS_PLATFORM_MAIL     : cts-team@lanl.gov</pre>
+</dd>
+<dt><strong><a name="item_cross_platform_mode">CROSS_PLATFORM_MODE</a></strong><br />
+</dt>
+<dd>
+<pre>
+  Cts uses this value to set the unix permissions on cross_platform results files. 
+   CROSS_PLATFORM_MODE     : 0660</pre>
+</dd>
+<dt><strong><a name="item_cross_platform_pattern">CROSS_PLATFORM_PATTERN</a></strong><br />
+</dt>
+<dd>
+<pre>
+  This item takes a little bit of explaining. The basic idea is to create a matrix of compilers, 
+  compiler optimization levels, mpi implementations and systems on which a code team wishes to 
+  run their nightly regression tests. This item tells cts how to store and retrieve results under 
+  the CROSS_PLATFORM_BASE directory. A simpler implementation is coming soon. Currently, any 
+  combination of ${system}, ${Fcompiler}, ${mpi} and ${type} may be used. Currently you must
+  end the line with cts_results.txt. This also means that you must include text reports on the 
+  REPORTS line.
+   CROSS_PLATFORM_PATTERN  : ${system}/${Fcompiler}_${mpi}_${type}/cts_results.txt</pre>
+</dd>
+<dt><strong><a name="item_cross_platform_reporter">CROSS_PLATFORM_REPORTER</a></strong><br />
+</dt>
+<dd>
+<pre>
+  This item is no longer relevant. It will soon be removed from the code.</pre>
+</dd>
+</dl>
+<p>
+</p>
+<h2><a name="system">SYSTEM</a></h2>
+<p>
+</p>
+<h2><a name="testharness">TESTHARNESS</a></h2>
+<p>
+</p>
+<hr />
+<h1><a name="_suite_files">.suite FILES</a></h1>
+<pre>
+    .suite or testsuite files contain lists of tests and included testsuites to
+    be run together.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="_test_files">.test FILES</a></h1>
+<pre>
+    .test files contain test specific information. To add a new test, create a
+    directory named for the test. Include in the test directory any files
+    required to run the test. Then include a test_name.test file.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<pre>
+  The cts script is the heart of the CTS system.  It creates the
+  test harness object and uses it to manages operations
+  from executing tests, subsequent analysis, and reporting.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="diagnostics">DIAGNOSTICS</a></h1>
+<p>
+</p>
+<hr />
+<h1><a name="known_bugs_and_limitations">KNOWN BUGS AND LIMITATIONS</a></h1>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p><a href="/TestHarness/Harness.html">the TestHarness::Harness manpage</a></p>
+<p><a href="/TestHarness/TestProblem.html">the TestHarness::TestProblem manpage</a></p>
+<p><a href="/TestHarness/TestSuite.html">the TestHarness::TestSuite manpage</a></p>
+<pre>
+ To report problems or view project documentation go to
+ <a href="http:sourceforge-web.lanl.gov/projects/cts">http:sourceforge-web.lanl.gov/projects/cts</a>.</pre>
+<pre>
+ You can also contact the cts support team via email at 
+ cts-team@lanl.gov.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="author">AUTHOR</a></h1>
+<p>David L. Aubrey, &lt;<a href="mailto:dla@lanl.gov">dla@lanl.gov</a>&gt;</p>
+<p>
+</p>
+<hr />
+<h1><a name="copyright_and_license">COPYRIGHT AND LICENSE</a></h1>
+<pre>
+ Copyright (2006). The Regents of the University of California. This material was
+ produced under U.S. Government contract W-7405-ENG-36 for Los Alamos National
+ Laboratory, which is operated by the University of California for the U.S. Department
+ of Energy. The U.S. Government has rights to use, reproduce, and distribute this
+ software.  NEITHER THE GOVERNMENT NOR THE UNIVERSITY MAKES ANY WARRANTY, EXPRESS OR
+ IMPLIED, OR ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE. If software is
+ modified to produce derivative works, such modified software should be clearly marked,
+ so as not to confuse it with the version available from LANL.</pre>
+<pre>
+ Additionally, this program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by the Free Software
+ Foundation; either version 2 of the License, or (at your option) any later version.
+ Accordingly, this program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ PARTICULAR PURPOSE. See the GNU General Public License for more details.</pre>
+
+</body>
+
+</html>

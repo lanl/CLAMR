@@ -1,0 +1,262 @@
+###########################################################################################
+# Copyright (2006). The Regents of the University of California. This material was
+# produced under U.S. Government contract W-7405-ENG-36 for Los Alamos National
+# Laboratory, which is operated by the University of California for the U.S. Department
+# of Energy. The U.S. Government has rights to use, reproduce, and distribute this
+# software.  NEITHER THE GOVERNMENT NOR THE UNIVERSITY MAKES ANY WARRANTY, EXPRESS OR
+# IMPLIED, OR ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE. If software is
+# modified to produce derivative works, such modified software should be clearly marked,
+# so as not to confuse it with the version available from LANL.
+#
+# Additionally, this program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2 of the License, or (at your option) any later version.
+# Accordingly, this program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE. See the GNU General Public License for more details.
+###########################################################################################
+
+  {
+    use Carp;
+    use Data::Dumper;
+    use vars qw($suite $debug);
+
+    local $| = 1;
+    $debug = 0;   # Set to 1 for debugging.
+  }
+
+
+# Order is usually important in Grammars. Note: if_else must come before line.
+suitefile:  {$suite = $arg[0]} <reject>
+     | <skip: ""> (if_else | line)(s) /\Z/
+  {
+    $return = $suite;
+  }
+
+
+if_else:  <skip: ""> if_block <commit> elsif_block(s?) else_block(?)
+  {
+    print "\nIF_ELSE: ", Dumper (%item), "\n\n" if $debug;
+    # Foreach testproblem/suite from the elsif_blocks, assign the anti-judge
+    # created in the if_block. 
+    # 
+    # Foreach testproblem/suite from the else_block, assign the anti-judge from
+    # the if_block and from each else_block.
+    #
+    # Get a list of judges and files.
+    #
+    # If_block returns a judge.
+    my @judges = ($item{if_block});
+
+    # Elsif_block returns an array (judge, (lists of tests/testsuites)). We
+    # must process each elsif_block. Each block has to worry about the judges
+    # created in all previous elsif_blocks as well as the one created in the
+    # if_block.
+    foreach (@{$item{'elsif_block(s?)'}}) {
+      my @tests = @{$_[1]};
+      
+      # apply the current set of anti-judges
+      foreach my $test(@tests) {
+	foreach my $judge(@judges) {
+	  $test->add_anti_judge($judge);
+	}
+      }
+      
+      # Add the locally produced judge
+      push @judges, $_[0];
+    }
+
+    # Else_block returns a list of tests/testsuites. There can only be one such
+    # block but the parser will return it in an array if it exists.
+    foreach (@{$item{'else_block(?)'}}) {
+      # apply the current set of anti-judges
+      foreach my $test(@$_) {
+	foreach my $judge(@judges) {
+	  $test->add_anti_judge($judge);
+	}
+      }
+    }
+    #
+    $return = 1;
+  }
+
+if_block: /if/i <commit> paren_enclosed bracket_enclosed
+  {
+    print "\nIF_BLOCK: ", Dumper (%item), "\n\n" if $debug;
+    # Foreach bracket_enclosed assign the Judge created in the paren_enclosed.
+    my $judge = $item{paren_enclosed};
+    foreach my $test (@{$item{bracket_enclosed}}) {
+      $test->add_judge($judge);
+    }
+
+    # These tests are all taken care of so I don't need to return them, but
+    # I need to return the judge.
+    $return = $judge;
+  }
+
+elsif_block: /else?\s*if/i paren_enclosed bracket_enclosed
+  {
+    print "\nELSIF_BLOCK: ", Dumper (%item), "\\nn" if $debug;
+    # Foreach bracket_enclosed assign the Judge created in the
+    # paren_enclosed.
+    my $judge = $item{paren_enclosed};
+    foreach my $test (@{$item{bracket_enclosed}}) {
+      $test->add_judge($judge);
+    }
+
+    # I need to return the judge and the included tests.
+    my $return = [$judge, $item{bracket_enclosed}];
+ }
+
+else_block: /else/i bracket_enclosed
+  {
+    print "\nELSE_BLOCK: ", Dumper (%item), "\n\n" if $debug;
+    # return the tests enclosed in brackets
+    $return = $item{bracket_enclosed};
+  }
+
+
+paren_enclosed: <skip: ""> {extract_bracketed($text,'()')}
+  {
+    # create a new Judge based on the condition/testproblem set contained in the
+    # parens
+    my $judge = TestHarness::Judge->new();
+    my $string = $item[1];
+    # $string should look lik this
+    # (!noh, regression.suite, simple)
+
+    # Remove surrounding parens.
+    $string =~ s/\s*[()]\s*//g;
+ 
+    # Split comma delimited list.
+    my @tests = split /\s*,\s*/;
+
+    # process each test/testsuite
+    foreach my $test(@tests) {
+      my $not = "true";
+      my $name = "";
+
+      # parse the test to look for condition/testname
+      ($not, $name) = ($test =~ /^\s* (\-|!|not|fail|pass)? \s* ([\w.]+) \s*$/ix);
+      $judge->add_criterion($name, $not);
+    }
+
+    $return = $judge;
+  }
+
+
+#bracket_enclosed: <skip: "\s*"> /{/ COMMENT(?) /[ \t]*\n/  line(s) /}/ COMMENT(?) /\n/
+bracket_enclosed: <skip: ""> /{/ COMMENT(?) /[ \t]*\n/  line(s?) /}/ COMMENT(?) /\n/
+  {
+    # Just return the list of problems/suites. These are objects.
+    $return = $item{'line(s?)'};
+  }
+#
+
+line: <skip: "[ \t]*"> (print_ | include | exclude | BLANK_LINE | 
+                        comment_line | set_param_line)
+  {1}
+#
+
+
+SUITENAME: /[-\/\w0-9_]+\.suite/i
+  {
+    $return = $item[1];
+  }
+#
+
+TESTNAME: /[-\/\w0-9_]+(\.test)?/i
+  {
+    $return = $item[1];
+  }
+#
+# exclude    - or ! or not or exclude  : CASE INsensitive
+exclude:  / \- |  ! |  not |  exclude/ix SUITENAME  /\n/
+  {
+    $return = $suite->exclude_suite($item{SUITENAME});
+  }
+  | /\- | ! | not | exclude/ix TESTNAME  /\n/
+  {
+    $return = $suite->exclude_test($item{TESTNAME});
+  }
+#
+# include    + or include or nothing  : CASE INsensitive
+include:  (/\+ | include/ix)(?) SUITENAME /\n/
+  {
+    # We are going to parse another suite file. $suite is a package variable
+    # which will be changed to the new suite. We must use local to protect the
+    # value of $suite.
+    my $new_suite;
+    {
+      my $old_suite = $suite;
+      local $suite;
+      local $_;
+      $new_suite = $old_suite->add_testsuite($item{SUITENAME});
+    }
+    $return = [@item];
+  }
+ | (/\+ | include/ix)(?) TESTNAME CPUS_RUNTIME(?)  /\n/
+  {
+    my $test = $suite->add_test($item{TESTNAME});
+    #print "CPUS_RUNTIME: ", Dumper ($item{"CPUS_RUNTIME(?)"});
+    my $cpus_runtime = $item{"CPUS_RUNTIME(?)"}->[0];
+    while (my ($func, $value) = each %$cpus_runtime) {
+      #print "func:$func:  value:$value\n";
+      $func = lc $func; # functions are always lower case
+      $test->$func($value);
+    }
+
+    $return = [@item];
+  }
+#
+
+CPUS_RUNTIME: NUM_CPUS TIME_LIMIT(?)
+     {
+       my $time_limit = $item{"TIME_LIMIT(?)"}->[0] || {};
+       $return = {%{$item{NUM_CPUS}}, %$time_limit};
+     }
+  | TIME_LIMIT NUM_CPUS(?)
+     {
+       my $cpus =  $item{"NUM_CPUS(?)"}->[0] || {};
+       $return = {%$cpus, %{$item{TIME_LIMIT}}};
+     }
+
+
+NUM_CPUS: /[0-9]+/ ...!/:/
+  {
+   #print "NUM_CPUS: ", Dumper(@item);
+   $return = {$item[0] => $item[1]};
+  }
+
+# hours:minutes or minutes
+TIME_LIMIT: /(?:(\d+) :)? (\d+)/x
+ {
+   #print "TIME_LIMIT: ", Dumper(@item);
+   $return = {$item[0] => $item[1]};
+ }
+
+# Print is a special type of test problem, which simply prints and exits.
+print_: /print|error|warn(ing)?/i STRING  /\n/
+  {
+    $return = $suite->add_test('PRINT', $item{STRING});
+  }
+#
+
+STRING: /["''"]? ([^"''"\n]*) ["''"]?/x
+  {
+    $return = $1;
+  }
+#
+comment_line: <skip: ""> COMMENT /\n/
+
+# COMMENT   optional spaces/tabs followed by  # or ; or $ or //
+COMMENT: /[ \t]* ([\#;\$] | \/\/) [^\n]*/x
+
+BLANK_LINE: /[ \t]*\n/
+
+set_param_line:  /[ \t]* ([\w_]+) [ \t]* [=:]* [ \t*]* ([-._\w\d]+) [ \t]* \n/x
+   {
+      my $func = lc $1;
+      my $value = $2;
+      $suite->$func($value);
+   }
