@@ -1633,6 +1633,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
             L7_Update(&mpot_old[0], L7_INT, cell_handle);
          }
 #endif
+
 #ifdef _OPENMP
 #pragma omp parallel
 {
@@ -2395,11 +2396,17 @@ void Mesh::calc_spatial_coordinates(int ibase)
    y.resize(ncells);
    dy.resize(ncells);
 
-   if (have_boundary) {
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
+   {
 #endif
-      for (uint ic = 0; ic < ncells; ic++) {
+
+   int lowerBounds, upperBounds;
+   set_bounds(ncells);
+   get_bounds(lowerBounds, upperBounds);
+
+   if (have_boundary) {
+      for (uint ic = lowerBounds; ic < upperBounds; ic++) {
          int lev = level[ic];
          x[ic]  = xmin + (lev_deltax[lev] * (i[ic] - ibase));
          dx[ic] =        lev_deltax[lev];
@@ -2407,10 +2414,7 @@ void Mesh::calc_spatial_coordinates(int ibase)
          dy[ic] =        lev_deltay[lev];
       }
    } else {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-      for (uint ic = 0; ic < ncells; ic++) {
+      for (uint ic = lowerBounds; ic < upperBounds; ic++) {
          int lev = level[ic];
          x[ic]  = xmin + (lev_deltax[lev] * (i[ic] - lev_ibegin[lev]));
          dx[ic] =        lev_deltax[lev];
@@ -2420,6 +2424,11 @@ void Mesh::calc_spatial_coordinates(int ibase)
    }
 
    cpu_timers[MESH_TIMER_CALC_SPATIAL_COORDINATES] += cpu_timer_stop(tstart_cpu);
+
+#ifdef _OPENMP
+#pragma omp barrier
+   } // end parallel region
+#endif
 }
 
 #ifdef HAVE_OPENCL
