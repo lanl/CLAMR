@@ -3643,6 +3643,11 @@ void Mesh::calc_neighbors(int ncells)
       }
    }
 
+#ifdef _OPENMP
+   #pragma omp parallel
+      {
+#endif
+
    if (calc_neighbor_type == HASH_TABLE) {
 
       struct timeval tstart_lev2;
@@ -3651,12 +3656,7 @@ void Mesh::calc_neighbors(int ncells)
       int jmaxsize = (jmax+1)*IPOW2(levmx);
       int imaxsize = (imax+1)*IPOW2(levmx);
 
-      int *hash;
-
-#ifdef _OPENMP
-   #pragma omp parallel
-      {
-#endif
+      static int *hash;
 
 #ifdef _OPENMP
    #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
@@ -3820,7 +3820,6 @@ void Mesh::calc_neighbors(int ncells)
 #pragma omp master
       {
 #endif
-
       write_hash_collision_report();
       read_hash_collision_report();
 
@@ -3839,15 +3838,16 @@ void Mesh::calc_neighbors(int ncells)
       } // master block
 #endif
 
-#ifdef _OPENMP
-      }
-#endif
-
    } else if (calc_neighbor_type == KDTREE) {
 
       struct timeval tstart_lev2;
       if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
       TBounds box;
       vector<int> index_list(IPOW2(levmx*levmx) );
 
@@ -3906,11 +3906,19 @@ void Mesh::calc_neighbors(int ncells)
 
       if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_KDTREE_QUERY] += cpu_timer_stop(tstart_lev2);
 
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
    } // calc_neighbor_type
 
    ncells_ghost = ncells;
 
    cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
+
+#ifdef _OPENMP
+   } // end parallel region
+#endif
 }
 
 void Mesh::calc_neighbors_local(void)
