@@ -1620,8 +1620,12 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
       cpu_counters[MESH_COUNTER_REFINE_SMOOTH]++;
 
+#ifdef _OPENMP
+#pragma omp parallel
+{//START PARALLEL REGION 
+#endif
       //vector<int> mpot_old(my_ncells);
-      vector<int> mpot_old;
+      static vector<int> mpot_old;
 //MASTER THREAD
 #ifdef _OPENMP
 #pragma omp master
@@ -1637,12 +1641,8 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
         // mpot.swap(mpot_old);
 
-#ifdef _OPENMP
-#pragma omp parallel
-{//START PARALLEL REGION 
-#endif
 
-      while (newcount_global > 0 && levcount < levmx){
+      while (newcount_global > 0 && levcount < levmx){ //WITHIN PARALLEL REGION
 //MASTER THREAD
 #ifdef _OPENMP
 #pragma omp master
