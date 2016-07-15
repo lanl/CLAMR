@@ -3951,17 +3951,28 @@ void Mesh::calc_neighbors(int ncells)
 
 void Mesh::calc_neighbors_local(void)
 {
-   if (! do_rezone) return;
+   if (do_rezone) {
 
    struct timeval tstart_cpu;
+
+#ifdef _OPENMP
+#pragma omp parallel
+   {
+#endif
+
    cpu_timer_start(&tstart_cpu);
 
-   cpu_counters[MESH_COUNTER_CALC_NEIGH]++;
    int flags = INDEX_ARRAY_MEMORY;
 
 #if defined (HAVE_J7)
    if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
+
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+   cpu_counters[MESH_COUNTER_CALC_NEIGH]++;
 
    if (mesh_memory.get_memory_size(nlft) < ncells){
       if (nlft != NULL) nlft = (int *)mesh_memory.memory_delete(nlft);
@@ -3973,17 +3984,15 @@ void Mesh::calc_neighbors_local(void)
       nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
       ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
    }
-
 #ifdef _OPENMP
-#pragma omp parallel
-   {
-#endif
-
-#ifdef _OPENMP
+   }
 #pragma omp barrier
-#pragma omp for
 #endif
-   for (int ic = 0; ic < (int)ncells; ic++){
+
+   int lowerBound, upperBound;
+   set_bounds(ncells);
+   get_bounds(lowerBound, upperBound);
+   for (int ic = lowerBound; ic < upperBound; ic++){
       nlft[ic] = -98;
       nrht[ic] = -98;
       nbot[ic] = -98;
@@ -5694,6 +5703,7 @@ void Mesh::calc_neighbors_local(void)
    } // calc_neighbor_type
 
    cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
+   }
 }
 
 #ifdef HAVE_OPENCL
