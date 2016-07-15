@@ -29,6 +29,8 @@ if (open (GOLDFH, $reffile) ){
       if (/^App launch reported/) {next LINE;}
       if (/^--- max num openmp threads/) {next LINE;}
       if (/^--- num openmp threads in parallel region/) {next LINE;}
+      if (/^Starting compile/) {next LINE;}
+      if (/^Finishing compile/) {next LINE;}
       if (/^CPU: /) {next LINE;}
       if (/^GPU: /) {next LINE;}
       if (/^Memory used/) {next LINE;}
@@ -39,6 +41,8 @@ if (open (GOLDFH, $reffile) ){
       if (/^Mesh Ops/) {next LINE;}
       if (/^The MPI surface area/) {next LINE;}
       if (/^hash table size/) {next LINE;}
+      if (/^Final hash collision report/) {next LINE;}
+      if (/^Parallel Speed-up/) {next LINE;}
       if (/Device timing information/) {next LINE;}
       if (/^---------------/) {next LINE;}
       if (/^===============/) {next LINE;}
@@ -65,6 +69,8 @@ if (open (NEWFH, $newfile) ){
       if (/^App launch reported/) {next LINE;}
       if (/^--- max num openmp threads/) {next LINE;}
       if (/^--- num openmp threads in parallel region/) {next LINE;}
+      if (/^Starting compile/) {next LINE;}
+      if (/^Finishing compile/) {next LINE;}
       if (/^CPU: /) {next LINE;}
       if (/^GPU: /) {next LINE;}
       if (/^Memory used/) {next LINE;}
@@ -75,6 +81,8 @@ if (open (NEWFH, $newfile) ){
       if (/^Mesh Ops/) {next LINE;}
       if (/^The MPI surface area/) {next LINE;}
       if (/^hash table size/) {next LINE;}
+      if (/^Final hash collision report/) {next LINE;}
+      if (/^Parallel Speed-up/) {next LINE;}
       if (/Device timing information/) {next LINE;}
       if (/^---------------/) {next LINE;}
       if (/^===============/) {next LINE;}
