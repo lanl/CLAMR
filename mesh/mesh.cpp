@@ -1623,7 +1623,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
       vector<int> mpot_old(my_ncells);
 
       while (newcount_global > 0 && levcount < levmx){
-         levcount++; 
+         //levcount++; 
          //newcount=0;
 
         // mpot.swap(mpot_old);
@@ -1638,6 +1638,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #pragma omp master
 {//START 
 #endif
+         levcount++; 
          newcount=0;
          mpot.swap(mpot_old);
 #ifdef HAVE_MPI
