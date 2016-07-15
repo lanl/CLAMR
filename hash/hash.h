@@ -31,8 +31,10 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level);
 #ifdef _OPENMP
    #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
       int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_level);
+      int *compact_hash_init_openmp_old(int ncells, uint isize, uint jsize, uint report_level);
    #else
       int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_level, omp_lock_t **lock);
+      int *compact_hash_init_openmp_old(int ncells, uint isize, uint jsize, uint report_level, omp_lock_t **lock);
    #endif
 #endif
 
