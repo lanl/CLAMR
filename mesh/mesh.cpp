@@ -3651,20 +3651,22 @@ void Mesh::calc_neighbors(int ncells)
       int jmaxsize = (jmax+1)*IPOW2(levmx);
       int imaxsize = (imax+1)*IPOW2(levmx);
 
-#ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      int *hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0);
-   #else
-      omp_lock_t *lock;
-      int *hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0, &lock);
-   #endif
-#else
-      int *hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
-#endif
+      int *hash;
 
 #ifdef _OPENMP
    #pragma omp parallel
       {
+#endif
+
+#ifdef _OPENMP
+   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
+      hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0);
+   #else
+      omp_lock_t *lock;
+      hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0, &lock);
+   #endif
+#else
+      hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
 #endif
 
 #ifdef _OPENMP
@@ -3814,7 +3816,9 @@ void Mesh::calc_neighbors(int ncells)
          }
 
 #ifdef _OPENMP
-      }
+#pragma omp barrier
+#pragma omp master
+      {
 #endif
 
       write_hash_collision_report();
@@ -3831,6 +3835,13 @@ void Mesh::calc_neighbors(int ncells)
 #endif
 
       if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_HASH_QUERY] += cpu_timer_stop(tstart_lev2);
+#ifdef _OPENMP
+      } // master block
+#endif
+
+#ifdef _OPENMP
+      }
+#endif
 
    } else if (calc_neighbor_type == KDTREE) {
 
