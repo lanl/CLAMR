@@ -4102,11 +4102,12 @@ void Mesh::calc_neighbors_local(void)
       }
 
 #ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      #pragma omp parallel for default(none) firstprivate(imaxsize, iminsize, jminsize) shared(write_hash_openmp, hash)
-   #else
-      #pragma omp parallel for default(none) firstprivate(imaxsize, iminsize, jminsize) shared(write_hash_openmp, hash, lock)
-   #endif
+#pragma omp parallel
+   {
+#endif
+
+#ifdef _OPENMP
+   #pragma omp for
 #endif
       for(uint ic=0; ic<ncells; ic++){
          int cellnumber = ic+noffset;
@@ -4124,12 +4125,17 @@ void Mesh::calc_neighbors_local(void)
 #else
          write_hash(cellnumber, jj*(imaxsize-iminsize)+ii, hash);
 #endif
-      }    
+      } // end for loop
 
       if (TIMING_LEVEL >= 2) {
          cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
          cpu_timer_start(&tstart_lev2);
       }
+
+#ifdef _OPENMP
+   } // end parallel region
+#pragma omp barrier
+#endif
 
       // Set neighbors to global cell numbers from hash
       int jmaxcalc = (jmax+1)*IPOW2(levmx);
