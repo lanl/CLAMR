@@ -3632,30 +3632,42 @@ void Mesh::calc_neighbors(int ncells)
    if (nlft != NULL){
       nlft_size = mesh_memory.get_memory_size(nlft);
    }
-   if (nlft_size < ncells){
-      if (nlft != NULL){
-         nlft = (int *)mesh_memory.memory_delete(nlft);
-         nrht = (int *)mesh_memory.memory_delete(nrht);
-         nbot = (int *)mesh_memory.memory_delete(nbot);
-         ntop = (int *)mesh_memory.memory_delete(ntop);
-      }
+#ifdef _OPENMP
+   #pragma omp parallel
+      {
+#endif
 
-      nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
-      nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
-      nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
-      ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
-      for(int ic=0; ic<ncells; ic++){
+   if (nlft_size < ncells){
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
+         if (nlft != NULL){
+            nlft = (int *)mesh_memory.memory_delete(nlft);
+            nrht = (int *)mesh_memory.memory_delete(nrht);
+            nbot = (int *)mesh_memory.memory_delete(nbot);
+            ntop = (int *)mesh_memory.memory_delete(ntop);
+         }
+
+         nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
+         nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
+         nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
+         ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
+
+      int lowerBounds, upperBounds;
+      get_bounds(lowerBounds, upperBounds);
+
+      for(int ic=lowerBounds; ic<upperBounds; ic++){
          nlft[ic] = -1;
          nrht[ic] = -1;
          nbot[ic] = -1;
          ntop[ic] = -1;
       }
    }
-
-#ifdef _OPENMP
-   #pragma omp parallel
-      {
-#endif
 
    if (calc_neighbor_type == HASH_TABLE) {
 
@@ -4041,15 +4053,20 @@ void Mesh::calc_neighbors_local(void)
       //if (DEBUG) fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
 
       //fprintf(fp,"DEBUG -- ncells %lu\n",ncells);
+
+      int *hash;
 #ifdef _OPENMP
+#pragma omp parallel
+      {
    #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      int *hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
+         hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
    #else
-      omp_lock_t *lock = NULL;
-      int *hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0, &lock);
+         omp_lock_t *lock = NULL;
+         hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0, &lock);
    #endif
+      }
 #else
-      int *hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1);
+      hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1);
 #endif
 
       //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);
