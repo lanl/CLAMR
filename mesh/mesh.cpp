@@ -1627,6 +1627,13 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
          newcount=0;
 
          mpot.swap(mpot_old);
+
+#ifdef _OPENMP
+#pragma omp parallel
+{
+#endif
+
+
 #ifdef _OPENMP
 #pragma omp master
 {//START MASTER THREAD
@@ -1642,10 +1649,6 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 }//END MASTER THREAD
 #endif
 
-#ifdef _OPENMP
-#pragma omp parallel
-{
-#endif
   //       int upperBound, lowerBound;
          //set_bounds(ncells);
 //         get_bounds(upperBound, lowerBound);
