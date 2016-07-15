@@ -4134,19 +4134,9 @@ void Mesh::calc_neighbors_local(void)
          cpu_timer_start(&tstart_lev2);
       }
 
-//#ifdef _OPENMP
-   //} // end parallel region
-//#pragma omp barrier
-//#endif
-
       // Set neighbors to global cell numbers from hash
       jmaxcalc = (jmax+1)*IPOW2(levmx);
       imaxcalc = (imax+1)*IPOW2(levmx);
-
-//#ifdef _OPENMP
-//#pragma omp parallel
-      //{
-//#endif
 
 #ifdef _OPENMP
 #pragma omp for
