@@ -1,0 +1,2470 @@
+<HTML>
+<HEAD>
+<TITLE>Parse::RecDescent - Generate Recursive-Descent Parsers</TITLE>
+<LINK REV="made" HREF="mailto:root@dome.acl.lanl.gov">
+</HEAD>
+
+<BODY>
+
+<A NAME="__index__"></A>
+<!-- INDEX BEGIN -->
+
+<UL>
+
+	<LI><A HREF="#name">NAME</A></LI>
+	<LI><A HREF="#version">VERSION</A></LI>
+	<LI><A HREF="#synopsis">SYNOPSIS</A></LI>
+	<LI><A HREF="#description">DESCRIPTION</A></LI>
+	<UL>
+
+		<LI><A HREF="#overview">Overview</A></LI>
+		<LI><A HREF="#using parse::recdescent">Using <CODE>Parse::RecDescent</CODE></A></LI>
+		<LI><A HREF="#rules">Rules</A></LI>
+		<LI><A HREF="#subrules">Subrules</A></LI>
+		<LI><A HREF="#tokens">Tokens</A></LI>
+		<LI><A HREF="#terminal separators">Terminal Separators</A></LI>
+		<LI><A HREF="#actions">Actions</A></LI>
+		<LI><A HREF="#startup actions">Start-up Actions</A></LI>
+		<LI><A HREF="#autoactions">Autoactions</A></LI>
+		<LI><A HREF="#autotrees">Autotrees</A></LI>
+		<LI><A HREF="#autostubbing">Autostubbing</A></LI>
+		<LI><A HREF="#lookahead">Look-ahead</A></LI>
+		<LI><A HREF="#directives">Directives</A></LI>
+		<LI><A HREF="#subrule argument lists">Subrule argument lists</A></LI>
+		<LI><A HREF="#alternations">Alternations</A></LI>
+		<LI><A HREF="#incremental parsing">Incremental Parsing</A></LI>
+		<LI><A HREF="#precompiling parsers">Precompiling parsers</A></LI>
+		<LI><A HREF="#a metagrammar for parse::recdescent">A Metagrammar for <CODE>Parse::RecDescent</CODE></A></LI>
+	</UL>
+
+	<LI><A HREF="#gotchas">GOTCHAS</A></LI>
+	<UL>
+
+		<LI><A HREF="#1. expecting an error to always invalidate a parse">1. Expecting an error to always invalidate a parse</A></LI>
+	</UL>
+
+	<LI><A HREF="#diagnostics">DIAGNOSTICS</A></LI>
+	<LI><A HREF="#author">AUTHOR</A></LI>
+	<LI><A HREF="#bugs and irritations">BUGS AND IRRITATIONS</A></LI>
+	<LI><A HREF="#ongoing issues and future directions">ON-GOING ISSUES AND FUTURE DIRECTIONS</A></LI>
+	<LI><A HREF="#copyright">COPYRIGHT</A></LI>
+</UL>
+<!-- INDEX END -->
+
+<HR>
+<P>
+<H1><A NAME="name">NAME</A></H1>
+<P>Parse::RecDescent - Generate Recursive-Descent Parsers</P>
+<P>
+<HR>
+<H1><A NAME="version">VERSION</A></H1>
+<P>This document describes version 1.94 of Parse::RecDescent,
+released April  9, 2003.</P>
+<P>
+<HR>
+<H1><A NAME="synopsis">SYNOPSIS</A></H1>
+<PRE>
+ use Parse::RecDescent;</PRE>
+<PRE>
+ # Generate a parser from the specification in $grammar:</PRE>
+<PRE>
+         $parser = new Parse::RecDescent ($grammar);</PRE>
+<PRE>
+ # Generate a parser from the specification in $othergrammar</PRE>
+<PRE>
+         $anotherparser = new Parse::RecDescent ($othergrammar);</PRE>
+<PRE>
+ # Parse $text using rule 'startrule' (which must be
+ # defined in $grammar):</PRE>
+<PRE>
+        $parser-&gt;startrule($text);</PRE>
+<PRE>
+ # Parse $text using rule 'otherrule' (which must also
+ # be defined in $grammar):</PRE>
+<PRE>
+         $parser-&gt;otherrule($text);</PRE>
+<PRE>
+ # Change the universal token prefix pattern
+ # (the default is: '\s*'):</PRE>
+<PRE>
+        $Parse::RecDescent::skip = '[ \t]+';</PRE>
+<PRE>
+ # Replace productions of existing rules (or create new ones)
+ # with the productions defined in $newgrammar:</PRE>
+<PRE>
+        $parser-&gt;Replace($newgrammar);</PRE>
+<PRE>
+ # Extend existing rules (or create new ones)
+ # by adding extra productions defined in $moregrammar:</PRE>
+<PRE>
+        $parser-&gt;Extend($moregrammar);</PRE>
+<PRE>
+ # Global flags (useful as command line arguments under -s):</PRE>
+<PRE>
+        $::RD_ERRORS       # unless undefined, report fatal errors
+        $::RD_WARN         # unless undefined, also report non-fatal problems
+        $::RD_HINT         # if defined, also suggestion remedies
+        $::RD_TRACE        # if defined, also trace parsers' behaviour
+        $::RD_AUTOSTUB     # if defined, generates &quot;stubs&quot; for undefined rules
+        $::RD_AUTOACTION   # if defined, appends specified action to productions</PRE>
+<P>
+<HR>
+<H1><A NAME="description">DESCRIPTION</A></H1>
+<P>
+<H2><A NAME="overview">Overview</A></H2>
+<P>Parse::RecDescent incrementally generates top-down recursive-descent text
+parsers from simple <EM>yacc</EM>-like grammar specifications. It provides:</P>
+<UL>
+<LI>
+Regular expressions or literal strings as terminals (tokens),
+<P></P>
+<LI>
+Multiple (non-contiguous) productions for any rule,
+<P></P>
+<LI>
+Repeated and optional subrules within productions,
+<P></P>
+<LI>
+Full access to Perl within actions specified as part of the grammar,
+<P></P>
+<LI>
+Simple automated error reporting during parser generation and parsing,
+<P></P>
+<LI>
+The ability to commit to, uncommit to, or reject particular
+productions during a parse,
+<P></P>
+<LI>
+The ability to pass data up and down the parse tree (``down'' via subrule
+argument lists, ``up'' via subrule return values)
+<P></P>
+<LI>
+Incremental extension of the parsing grammar (even during a parse),
+<P></P>
+<LI>
+Precompilation of parser objects,
+<P></P>
+<LI>
+User-definable reduce-reduce conflict resolution via
+``scoring'' of matching productions.
+<P></P></UL>
+<P>
+<H2><A NAME="using parse::recdescent">Using <CODE>Parse::RecDescent</CODE></A></H2>
+<P>Parser objects are created by calling <CODE>Parse::RecDescent::new</CODE>, passing in a
+grammar specification (see the following subsections). If the grammar is
+correct, <CODE>new</CODE> returns a blessed reference which can then be used to initiate
+parsing through any rule specified in the original grammar. A typical sequence
+looks like this:</P>
+<PRE>
+        $grammar = q {
+                        # GRAMMAR SPECIFICATION HERE
+                     };</PRE>
+<PRE>
+        $parser = new Parse::RecDescent ($grammar) or die &quot;Bad grammar!\n&quot;;</PRE>
+<PRE>
+        # acquire $text</PRE>
+<PRE>
+        defined $parser-&gt;startrule($text) or print &quot;Bad text!\n&quot;;</PRE>
+<P>The rule through which parsing is initiated must be explicitly defined
+in the grammar (i.e. for the above example, the grammar must include a
+rule of the form: ``startrule: &lt;subrules&gt;''.</P>
+<P>If the starting rule succeeds, its value (see below)
+is returned. Failure to generate the original parser or failure to match a text
+is indicated by returning <CODE>undef</CODE>. Note that it's easy to set up grammars
+that can succeed, but which return a value of 0, ``0'', or ``''.  So don't be
+tempted to write:</P>
+<PRE>
+        $parser-&gt;startrule($text) or print &quot;Bad text!\n&quot;;</PRE>
+<P>Normally, the parser has no effect on the original text. So in the
+previous example the value of $text would be unchanged after having
+been parsed.</P>
+<P>If, however, the text to be matched is passed by reference:</P>
+<PRE>
+        $parser-&gt;startrule(\$text)</PRE>
+<P>then any text which was consumed during the match will be removed from the
+start of $text.</P>
+<P>
+<H2><A NAME="rules">Rules</A></H2>
+<P>In the grammar from which the parser is built, rules are specified by
+giving an identifier (which must satisfy /[A-Za-z]\w*/), followed by a
+colon <EM>on the same line</EM>, followed by one or more productions,
+separated by single vertical bars. The layout of the productions
+is entirely free-format:</P>
+<PRE>
+        rule1:  production1
+             |  production2 |
+                production3 | production4</PRE>
+<P>At any point in the grammar previously defined rules may be extended with
+additional productions. This is achieved by redeclaring the rule with the new
+productions. Thus:</P>
+<PRE>
+        rule1: a | b | c
+        rule2: d | e | f
+        rule1: g | h</PRE>
+<P>is exactly equivalent to:</P>
+<PRE>
+        rule1: a | b | c | g | h
+        rule2: d | e | f</PRE>
+<P>Each production in a rule consists of zero or more items, each of which 
+may be either: the name of another rule to be matched (a ``subrule''),
+a pattern or string literal to be matched directly (a ``token''), a
+block of Perl code to be executed (an ``action''), a special instruction
+to the parser (a ``directive''), or a standard Perl comment (which is
+ignored).</P>
+<P>A rule matches a text if one of its productions matches. A production
+matches if each of its items match consecutive substrings of the
+text. The productions of a rule being matched are tried in the same
+order that they appear in the original grammar, and the first matching
+production terminates the match attempt (successfully). If all
+productions are tried and none matches, the match attempt fails.</P>
+<P>Note that this behaviour is quite different from the ``prefer the longer match''
+behaviour of <EM>yacc</EM>. For example, if <EM>yacc</EM> were parsing the rule:</P>
+<PRE>
+        seq : 'A' 'B'
+            | 'A' 'B' 'C'</PRE>
+<P>upon matching ``AB'' it would look ahead to see if a 'C' is next and, if
+so, will match the second production in preference to the first. In
+other words, <EM>yacc</EM> effectively tries all the productions of a rule
+breadth-first in parallel, and selects the ``best'' match, where ``best''
+means longest (note that this is a gross simplification of the true
+behaviour of <EM>yacc</EM> but it will do for our purposes).</P>
+<P>In contrast, <CODE>Parse::RecDescent</CODE> tries each production depth-first in
+sequence, and selects the ``best'' match, where ``best'' means first. This is
+the fundamental difference between ``bottom-up'' and ``recursive descent''
+parsing.</P>
+<P>Each successfully matched item in a production is assigned a value,
+which can be accessed in subsequent actions within the same
+production (or, in some cases, as the return value of a successful
+subrule call). Unsuccessful items don't have an associated value,
+since the failure of an item causes the entire surrounding production
+to immediately fail. The following sections describe the various types
+of items and their success values.</P>
+<P>
+<H2><A NAME="subrules">Subrules</A></H2>
+<P>A subrule which appears in a production is an instruction to the parser to
+attempt to match the named rule at that point in the text being
+parsed. If the named subrule is not defined when requested the
+production containing it immediately fails (unless it was ``autostubbed'' - see
+<EM>Autostubbing</EM>).</P>
+<P>A rule may (recursively) call itself as a subrule, but <EM>not</EM> as the
+left-most item in any of its productions (since such recursions are usually
+non-terminating).</P>
+<P>The value associated with a subrule is the value associated with its
+<A HREF="#item_%24return"><CODE>$return</CODE></A> variable (see <A HREF="#actions">Actions</A> below), or with the last successfully
+matched item in the subrule match.</P>
+<P>Subrules may also be specified with a trailing repetition specifier,
+indicating that they are to be (greedily) matched the specified number
+of times. The available specifiers are:</P>
+<PRE>
+                subrule(?)      # Match one-or-zero times
+                subrule(s)      # Match one-or-more times
+                subrule(s?)     # Match zero-or-more times
+                subrule(N)      # Match exactly N times for integer N &gt; 0
+                subrule(N..M)   # Match between N and M times
+                subrule(..M)    # Match between 1 and M times
+                subrule(N..)    # Match at least N times</PRE>
+<P>Repeated subrules keep matching until either the subrule fails to
+match, or it has matched the minimal number of times but fails to
+consume any of the parsed text (this second condition prevents the
+subrule matching forever in some cases).</P>
+<P>Since a repeated subrule may match many instances of the subrule itself, the
+value associated with it is not a simple scalar, but rather a reference to a
+list of scalars, each of which is the value associated with one of the
+individual subrule matches. In other words in the rule:</P>
+<PRE>
+                program: statement(s)</PRE>
+<P>the value associated with the repeated subrule ``statement(s)'' is a reference
+to an array containing the values matched by each call to the individual
+subrule ``statement''.</P>
+<P>Repetition modifieres may include a separator pattern:</P>
+<PRE>
+                program: statement(s /;/)</PRE>
+<P>specifying some sequence of characters to be skipped between each repetition.
+This is really just a shorthand for the &lt;leftop:...&gt; directive
+(see below).</P>
+<P>
+<H2><A NAME="tokens">Tokens</A></H2>
+<P>If a quote-delimited string or a Perl regex appears in a production,
+the parser attempts to match that string or pattern at that point in
+the text. For example:</P>
+<PRE>
+                typedef: &quot;typedef&quot; typename identifier ';'</PRE>
+<PRE>
+                identifier: /[A-Za-z_][A-Za-z0-9_]*/</PRE>
+<P>As in regular Perl, a single quoted string is uninterpolated, whilst
+a double-quoted string or a pattern is interpolated (at the time
+of matching, <EM>not</EM> when the parser is constructed). Hence, it is
+possible to define rules in which tokens can be set at run-time:</P>
+<PRE>
+                typedef: &quot;$::typedefkeyword&quot; typename identifier ';'</PRE>
+<PRE>
+                identifier: /$::identpat/</PRE>
+<P>Note that, since each rule is implemented inside a special namespace
+belonging to its parser, it is necessary to explicitly quantify
+variables from the main package.</P>
+<P>Regex tokens can be specified using just slashes as delimiters
+or with the explicit <CODE>m&lt;delimiter&gt;......&lt;delimiter&gt;</CODE> syntax:</P>
+<PRE>
+                typedef: &quot;typedef&quot; typename identifier ';'</PRE>
+<PRE>
+                typename: /[A-Za-z_][A-Za-z0-9_]*/</PRE>
+<PRE>
+                identifier: m{[A-Za-z_][A-Za-z0-9_]*}</PRE>
+<P>A regex of either type can also have any valid trailing <CODE>parameter(s)</CODE>
+(that is, any of [cgimsox]):</P>
+<PRE>
+                typedef: &quot;typedef&quot; typename identifier ';'</PRE>
+<PRE>
+                identifier: / [a-z_]            # LEADING ALPHA OR UNDERSCORE
+                              [a-z0-9_]*        # THEN DIGITS ALSO ALLOWED
+                            /ix                 # CASE/SPACE/COMMENT INSENSITIVE</PRE>
+<P>The value associated with any successfully matched token is a string
+containing the actual text which was matched by the token.</P>
+<P>It is important to remember that, since each grammar is specified in a
+Perl string, all instances of the universal escape character '\' within
+a grammar must be ``doubled'', so that they interpolate to single '\'s when
+the string is compiled. For example, to use the grammar:</P>
+<PRE>
+                word:       /\S+/ | backslash
+                line:       prefix word(s) &quot;\n&quot;
+                backslash:  '\\'</PRE>
+<P>the following code is required:</P>
+<PRE>
+                $parser = new Parse::RecDescent (q{</PRE>
+<PRE>
+                        word:       /\\S+/ | backslash
+                        line:       prefix word(s) &quot;\\n&quot;
+                        backslash:  '\\\\'</PRE>
+<PRE>
+                });</PRE>
+<P>
+<H2><A NAME="terminal separators">Terminal Separators</A></H2>
+<P>For the purpose of matching, each terminal in a production is considered
+to be preceded by a ``prefix'' - a pattern which must be
+matched before a token match is attempted. By default, the 
+prefix is optional whitespace (which always matches, at
+least trivially), but this default may be reset in any production.</P>
+<P>The variable <CODE>$Parse::RecDescent::skip</CODE> stores the universal
+prefix, which is the default for all terminal matches in all parsers
+built with <CODE>Parse::RecDescent</CODE>.</P>
+<P>The prefix for an individual production can be altered
+by using the <CODE>&lt;skip:...&gt;</CODE> directive (see below).</P>
+<P>
+<H2><A NAME="actions">Actions</A></H2>
+<P>An action is a block of Perl code which is to be executed (as the
+block of a <CODE>do</CODE> statement) when the parser reaches that point in a
+production. The action executes within a special namespace belonging to
+the active parser, so care must be taken in correctly qualifying variable
+names (see also <A HREF="#startup actions">Start-up Actions</A> below).</P>
+<P>The action is considered to succeed if the final value of the block
+is defined (that is, if the implied <CODE>do</CODE> statement evaluates to a
+defined value - <EM>even one which would be treated as ``false''</EM>). Note
+that the value associated with a successful action is also the final
+value in the block.</P>
+<P>An action will <EM>fail</EM> if its last evaluated value is <CODE>undef</CODE>. This is
+surprisingly easy to accomplish by accident. For instance, here's an
+infuriating case of an action that makes its production fail, but only
+when debugging <EM>isn't</EM> activated:</P>
+<PRE>
+        description: name rank serial_number
+                        { print &quot;Got $item[2] $item[1] ($item[3])\n&quot;
+                                if $::debugging
+                        }</PRE>
+<P>If <CODE>$debugging</CODE> is false, no statement in the block is executed, so
+the final value is <CODE>undef</CODE>, and the entire production fails. The solution is:</P>
+<PRE>
+        description: name rank serial_number
+                        { print &quot;Got $item[2] $item[1] ($item[3])\n&quot;
+                                if $::debugging;
+                          1;
+                        }</PRE>
+<P>Within an action, a number of useful parse-time variables are
+available in the special parser namespace (there are other variables
+also accessible, but meddling with them will probably just break your
+parser. As a general rule, if you avoid referring to unqualified
+variables - especially those starting with an underscore - inside an action,
+things should be okay):</P>
+<DL>
+<DT><STRONG><A NAME="item_%40item_and_%25item"><CODE>@item</CODE> and <CODE>%item</CODE></A></STRONG><BR>
+<DD>
+The array slice <CODE>@item[1..$#item]</CODE> stores the value associated with each item
+(that is, each subrule, token, or action) in the current production. The
+analogy is to <CODE>$1</CODE>, <CODE>$2</CODE>, etc. in a <EM>yacc</EM> grammar.
+Note that, for obvious reasons, <CODE>@item</CODE> only contains the
+values of items <EM>before</EM> the current point in the production.
+<P>The first element (<CODE>$item[0]</CODE>) stores the name of the current rule
+being matched.</P>
+<P><CODE>@item</CODE> is a standard Perl array, so it can also be indexed with negative
+numbers, representing the number of items <EM>back</EM> from the current position in
+the parse:</P>
+<PRE>
+        stuff: /various/ bits 'and' pieces &quot;then&quot; data 'end'
+                        { print $item[-2] }  # PRINTS data
+                                             # (EASIER THAN: $item[6])</PRE>
+<P>The <CODE>%item</CODE> hash complements the &lt;@item&gt; array, providing named
+access to the same item values:</P>
+<PRE>
+        stuff: /various/ bits 'and' pieces &quot;then&quot; data 'end'
+                        { print $item{data}  # PRINTS data
+                                             # (EVEN EASIER THAN USING @item)</PRE>
+<P>The results of named subrules are stored in the hash under each
+subrule's name (including the repetition specifier, if any),
+whilst all other items are stored under a ``named
+positional'' key that indictates their ordinal position within their item
+type: __STRING<EM>n</EM>__, __PATTERN<EM>n</EM>__, __DIRECTIVE<EM>n</EM>__, __ACTION<EM>n</EM>__:</P>
+<PRE>
+        stuff: /various/ bits 'and' pieces &quot;then&quot; data 'end' { save }
+                        { print $item{__PATTERN1__}, # PRINTS 'various'
+                                $item{__STRING2__},  # PRINTS 'then'
+                                $item{__ACTION1__},  # PRINTS RETURN
+                                                     # VALUE OF save
+                        }</PRE>
+<P>If you want proper <EM>named</EM> access to patterns or literals, you need to turn 
+them into separate rules:</P>
+<PRE>
+        stuff: various bits 'and' pieces &quot;then&quot; data 'end'
+                        { print $item{various}  # PRINTS various
+                        }</PRE>
+<PRE>
+        various: /various/</PRE>
+<P>The special entry <CODE>$item{__RULE__}</CODE> stores the name of the current
+rule (i.e. the same value as <CODE>$item[0]</CODE>.</P>
+<P>The advantage of using <CODE>%item</CODE>, instead of <CODE>@items</CODE> is that it
+removes the need to track items positions that may change as a grammar
+evolves. For example, adding an interim <CODE>&lt;skip&gt;</CODE> directive
+of action can silently ruin a trailing action, by moving an <CODE>@item</CODE>
+element ``down'' the array one place. In contrast, the named entry 
+of <CODE>%item</CODE> is unaffected by such an insertion.</P>
+<P>A limitation of the <CODE>%item</CODE> hash is that it only records the <EM>last</EM>
+value of a particular subrule. For example:</P>
+<PRE>
+        range: '(' number '..' number )'
+                        { $return = $item{number} }</PRE>
+<P>will return only the value corresponding to the <EM>second</EM> match of the
+<CODE>number</CODE> subrule. In other words, successive calls to a subrule
+overwrite the corresponding entry in <CODE>%item</CODE>. Once again, the
+solution is to rename each subrule in its own rule:</P>
+<PRE>
+        range: '(' from_num '..' to_num )'
+                        { $return = $item{from_num} }</PRE>
+<PRE>
+        from_num: number
+        to_num:   number</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_%40arg_and_%25arg"><CODE>@arg</CODE> and <CODE>%arg</CODE></A></STRONG><BR>
+<DD>
+The array <CODE>@arg</CODE> and the hash <CODE>%arg</CODE> store any arguments passed to
+the rule from some other rule (see <A HREF="#subrule argument lists">Subrule argument lists</A>). Changes
+to the elements of either variable do not propagate back to the calling
+rule (data can be passed back from a subrule via the <A HREF="#item_%24return"><CODE>$return</CODE></A>
+variable - see next item).
+<P></P>
+<DT><STRONG><A NAME="item_%24return"><CODE>$return</CODE></A></STRONG><BR>
+<DD>
+If a value is assigned to <A HREF="#item_%24return"><CODE>$return</CODE></A> within an action, that value is
+returned if the production containing the action eventually matches
+successfully. Note that setting <A HREF="#item_%24return"><CODE>$return</CODE></A> <EM>doesn't</EM> cause the current
+production to succeed. It merely tells it what to return if it <EM>does</EM> succeed.
+Hence <A HREF="#item_%24return"><CODE>$return</CODE></A> is analogous to <CODE>$$</CODE> in a <EM>yacc</EM> grammar.
+<P>If <A HREF="#item_%24return"><CODE>$return</CODE></A> is not assigned within a production, the value of the
+last component of the production (namely: <CODE>$item[$#item]</CODE>) is
+returned if the production succeeds.</P>
+<P></P>
+<DT><STRONG><A NAME="item_%24commit"><CODE>$commit</CODE></A></STRONG><BR>
+<DD>
+The current state of commitment to the current production (see <A HREF="#directives">Directives</A>
+below).
+<P></P>
+<DT><STRONG><A NAME="item_%24skip"><CODE>$skip</CODE></A></STRONG><BR>
+<DD>
+The current terminal prefix (see <A HREF="#directives">Directives</A> below).
+<P></P>
+<DT><STRONG><A NAME="item_%24text"><CODE>$text</CODE></A></STRONG><BR>
+<DD>
+The remaining (unparsed) text. Changes to <A HREF="#item_%24text"><CODE>$text</CODE></A> <EM>do not
+propagate</EM> out of unsuccessful productions, but <EM>do</EM> survive
+successful productions. Hence it is possible to dynamically alter the
+text being parsed - for example, to provide a <CODE>#include</CODE>-like facility:
+<PRE>
+        hash_include: '#include' filename
+                                { $text = ::loadfile($item[2]) . $text }</PRE>
+<PRE>
+        filename: '&lt;' /[a-z0-9._-]+/i '&gt;'  { $return = $item[2] }
+                | '&quot;' /[a-z0-9._-]+/i '&quot;'  { $return = $item[2] }</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_%24thisline_and_%24prevline"><CODE>$thisline</CODE> and <CODE>$prevline</CODE></A></STRONG><BR>
+<DD>
+<CODE>$thisline</CODE> stores the current line number within the current parse
+(starting from 1). <CODE>$prevline</CODE> stores the line number for the last 
+character which was already successfully parsed (this will be different from
+<CODE>$thisline</CODE> at the end of each line).
+<P>For efficiency, <CODE>$thisline</CODE> and <CODE>$prevline</CODE> are actually tied
+hashes, and only recompute the required line number when the variable's
+value is used.</P>
+<P>Assignment to <CODE>$thisline</CODE> adjusts the line number calculator, so that
+it believes that the current line number is the value being assigned. Note
+that this adjustment will be reflected in all subsequent line numbers
+calculations.</P>
+<P>Modifying the value of the variable <A HREF="#item_%24text"><CODE>$text</CODE></A> (as in the previous
+<CODE>hash_include</CODE> example, for instance) will confuse the line
+counting mechanism. To prevent this, you should call
+<CODE>Parse::RecDescent::LineCounter::resync($thisline)</CODE> <EM>immediately</EM>
+after any assignment to the variable <A HREF="#item_%24text"><CODE>$text</CODE></A> (or, at least, before the
+next attempt to use <CODE>$thisline</CODE>).</P>
+<P>Note that if a production fails after assigning to or
+resync'ing <CODE>$thisline</CODE>, the parser's line counter mechanism will
+usually be corrupted.</P>
+<P>Also see the entry for <A HREF="#item_%40itempos"><CODE>@itempos</CODE></A>.</P>
+<P>The line number can be set to values other than 1, by calling the start
+rule with a second argument. For example:</P>
+<PRE>
+        $parser = new Parse::RecDescent ($grammar);</PRE>
+<PRE>
+        $parser-&gt;input($text, 10);      # START LINE NUMBERS AT 10</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_%24thiscolumn_and_%24prevcolumn"><CODE>$thiscolumn</CODE> and <CODE>$prevcolumn</CODE></A></STRONG><BR>
+<DD>
+<CODE>$thiscolumn</CODE> stores the current column number within the current line
+being parsed (starting from 1). <CODE>$prevcolumn</CODE> stores the column number
+of the last character which was actually successfully parsed. Usually 
+<CODE>$prevcolumn == $thiscolumn-1</CODE>, but not at the end of lines.
+<P>For efficiency, <CODE>$thiscolumn</CODE> and <CODE>$prevcolumn</CODE> are
+actually tied hashes, and only recompute the required column number
+when the variable's value is used.</P>
+<P>Assignment to <CODE>$thiscolumn</CODE> or <CODE>$prevcolumn</CODE> is a fatal error.</P>
+<P>Modifying the value of the variable <A HREF="#item_%24text"><CODE>$text</CODE></A> (as in the previous
+<CODE>hash_include</CODE> example, for instance) may confuse the column
+counting mechanism.</P>
+<P>Note that <CODE>$thiscolumn</CODE> reports the column number <EM>before</EM> any
+whitespace that might be skipped before reading a token. Hence
+if you wish to know where a token started (and ended) use something like this:</P>
+<PRE>
+        rule: token1 token2 startcol token3 endcol token4
+                        { print &quot;token3: columns $item[3] to $item[5]&quot;; }</PRE>
+<PRE>
+        startcol: '' { $thiscolumn }    # NEED THE '' TO STEP PAST TOKEN SEP
+        endcol:      { $prevcolumn }</PRE>
+<P>Also see the entry for <A HREF="#item_%40itempos"><CODE>@itempos</CODE></A>.</P>
+<P></P>
+<DT><STRONG><A NAME="item_%24thisoffset_and_%24prevoffset"><CODE>$thisoffset</CODE> and <CODE>$prevoffset</CODE></A></STRONG><BR>
+<DD>
+<CODE>$thisoffset</CODE> stores the offset of the current parsing position
+within the complete text
+being parsed (starting from 0). <CODE>$prevoffset</CODE> stores the offset
+of the last character which was actually successfully parsed. In all
+cases <CODE>$prevoffset == $thisoffset-1</CODE>.
+<P>For efficiency, <CODE>$thisoffset</CODE> and <CODE>$prevoffset</CODE> are
+actually tied hashes, and only recompute the required offset
+when the variable's value is used.</P>
+<P>Assignment to <CODE>$thisoffset</CODE> or &lt;$prevoffset&gt; is a fatal error.</P>
+<P>Modifying the value of the variable <A HREF="#item_%24text"><CODE>$text</CODE></A> will <EM>not</EM> affect the
+offset counting mechanism.</P>
+<P>Also see the entry for <A HREF="#item_%40itempos"><CODE>@itempos</CODE></A>.</P>
+<P></P>
+<DT><STRONG><A NAME="item_%40itempos"><CODE>@itempos</CODE></A></STRONG><BR>
+<DD>
+The array <A HREF="#item_%40itempos"><CODE>@itempos</CODE></A> stores a hash reference corresponding to
+each element of <CODE>@item</CODE>. The elements of the hash provide the
+following:
+<PRE>
+        $itempos[$n]{offset}{from}      # VALUE OF $thisoffset BEFORE $item[$n]
+        $itempos[$n]{offset}{to}        # VALUE OF $prevoffset AFTER $item[$n]
+        $itempos[$n]{line}{from}        # VALUE OF $thisline BEFORE $item[$n]
+        $itempos[$n]{line}{to}          # VALUE OF $prevline AFTER $item[$n]
+        $itempos[$n]{column}{from}      # VALUE OF $thiscolumn BEFORE $item[$n]
+        $itempos[$n]{column}{to}        # VALUE OF $prevcolumn AFTER $item[$n]</PRE>
+<P>Note that the various <CODE>$itempos[$n]...{from}</CODE> values record the
+appropriate value <EM>after</EM> any token prefix has been skipped.</P>
+<P>Hence, instead of the somewhat tedious and error-prone:</P>
+<PRE>
+        rule: startcol token1 endcol
+              startcol token2 endcol
+              startcol token3 endcol
+                        { print &quot;token1: columns $item[1]
+                                              to $item[3]
+                                 token2: columns $item[4]
+                                              to $item[6]
+                                 token3: columns $item[7]
+                                              to $item[9]&quot; }</PRE>
+<PRE>
+        startcol: '' { $thiscolumn }    # NEED THE '' TO STEP PAST TOKEN SEP
+        endcol:      { $prevcolumn }</PRE>
+<P>it is possible to write:</P>
+<PRE>
+        rule: token1 token2 token3
+                        { print &quot;token1: columns $itempos[1]{column}{from}
+                                              to $itempos[1]{column}{to}
+                                 token2: columns $itempos[2]{column}{from}
+                                              to $itempos[2]{column}{to}
+                                 token3: columns $itempos[3]{column}{from}
+                                              to $itempos[3]{column}{to}&quot; }</PRE>
+<P>Note however that (in the current implementation) the use of <A HREF="#item_%40itempos"><CODE>@itempos</CODE></A>
+anywhere in a grammar implies that item positioning information is 
+collected <EM>everywhere</EM> during the parse. Depending on the grammar
+and the size of the text to be parsed, this may be prohibitively
+expensive and the explicit use of <CODE>$thisline</CODE>, <CODE>$thiscolumn</CODE>, etc. may
+be a better choice.</P>
+<P></P>
+<DT><STRONG><A NAME="item_%24thisparser"><CODE>$thisparser</CODE></A></STRONG><BR>
+<DD>
+A reference to the <CODE>Parse::RecDescent</CODE> object through which
+parsing was initiated.
+<P>The value of <A HREF="#item_%24thisparser"><CODE>$thisparser</CODE></A> propagates down the subrules of a parse
+but not back up. Hence, you can invoke subrules from another parser
+for the scope of the current rule as follows:</P>
+<PRE>
+        rule: subrule1 subrule2
+            | { $thisparser = $::otherparser } &lt;reject&gt;
+            | subrule3 subrule4
+            | subrule5</PRE>
+<P>The result is that the production calls ``subrule1'' and ``subrule2'' of
+the current parser, and the remaining productions call the named subrules
+from <CODE>$::otherparser</CODE>. Note, however that ``Bad Things'' will happen if
+<CODE>::otherparser</CODE> isn't a blessed reference and/or doesn't have methods
+with the same names as the required subrules!</P>
+<P></P>
+<DT><STRONG><A NAME="item_%24thisrule"><CODE>$thisrule</CODE></A></STRONG><BR>
+<DD>
+A reference to the <CODE>Parse::RecDescent::Rule</CODE> object corresponding to the 
+rule currently being matched.
+<P></P>
+<DT><STRONG><A NAME="item_%24thisprod"><CODE>$thisprod</CODE></A></STRONG><BR>
+<DD>
+A reference to the <CODE>Parse::RecDescent::Production</CODE> object
+corresponding to the production currently being matched.
+<P></P>
+<DT><STRONG><A NAME="item_%24score_and_%24score_return"><CODE>$score</CODE> and <CODE>$score_return</CODE></A></STRONG><BR>
+<DD>
+$score stores the best production score to date, as specified by
+an earlier <CODE>&lt;score:...&gt;</CODE> directive. $score_return stores
+the corresponding return value for the successful production.
+<P>See <A HREF="#scored productions">Scored productions</A>.</P>
+<P></P></DL>
+<P><STRONG>Warning:</STRONG> the parser relies on the information in the various <CODE>this...</CODE>
+objects in some non-obvious ways. Tinkering with the other members of
+these objects will probably cause Bad Things to happen, unless you
+<EM>really</EM> know what you're doing. The only exception to this advice is
+that the use of <CODE>$this...-&gt;{local}</CODE> is always safe.</P>
+<P>
+<H2><A NAME="startup actions">Start-up Actions</A></H2>
+<P>Any actions which appear <EM>before</EM> the first rule definition in a
+grammar are treated as ``start-up'' actions. Each such action is
+stripped of its outermost brackets and then evaluated (in the parser's
+special namespace) just before the rules of the grammar are first
+compiled.</P>
+<P>The main use of start-up actions is to declare local variables within the
+parser's special namespace:</P>
+<PRE>
+        { my $lastitem = '???'; }</PRE>
+<PRE>
+        list: item(s)   { $return = $lastitem }</PRE>
+<PRE>
+        item: book      { $lastitem = 'book'; }
+              bell      { $lastitem = 'bell'; }
+              candle    { $lastitem = 'candle'; }</PRE>
+<P>but start-up actions can be used to execute <EM>any</EM> valid Perl code
+within a parser's special namespace.</P>
+<P>Start-up actions can appear within a grammar extension or replacement
+(that is, a partial grammar installed via <CODE>Parse::RecDescent::Extend()</CODE> or 
+<CODE>Parse::RecDescent::Replace()</CODE> - see <A HREF="#incremental parsing">Incremental Parsing</A>), and will be
+executed before the new grammar is installed. Note, however, that a 
+particular start-up action is only ever executed once.</P>
+<P>
+<H2><A NAME="autoactions">Autoactions</A></H2>
+<P>It is sometimes desirable to be able to specify a default action to be
+taken at the end of every production (for example, in order to easily
+build a parse tree). If the variable <CODE>$::RD_AUTOACTION</CODE> is defined
+when <CODE>Parse::RecDescent::new()</CODE> is called, the contents of that
+variable are treated as a specification of an action which is to appended
+to each production in the corresponding grammar. So, for example, to construct
+a simple parse tree:</P>
+<PRE>
+    $::RD_AUTOACTION = q { [@item] };</PRE>
+<PRE>
+    parser = new Parse::RecDescent (q{
+        expression: and_expr '||' expression | and_expr
+        and_expr:   not_expr '&amp;&amp;' and_expr   | not_expr
+        not_expr:   '!' brack_expr           | brack_expr
+        brack_expr: '(' expression ')'       | identifier
+        identifier: /[a-z]+/i
+        });</PRE>
+<P>which is equivalent to:</P>
+<PRE>
+    parser = new Parse::RecDescent (q{
+        expression: and_expr '||' expression
+                        { [@item] }
+                  | and_expr
+                        { [@item] }</PRE>
+<PRE>
+        and_expr:   not_expr '&amp;&amp;' and_expr  
+                        { [@item] }
+                |   not_expr
+                        { [@item] }</PRE>
+<PRE>
+        not_expr:   '!' brack_expr          
+                        { [@item] }
+                |   brack_expr
+                        { [@item] }</PRE>
+<PRE>
+        brack_expr: '(' expression ')'      
+                        { [@item] }
+                  | identifier
+                        { [@item] }</PRE>
+<PRE>
+        identifier: /[a-z]+/i
+                        { [@item] }
+        });</PRE>
+<P>Alternatively, we could take an object-oriented approach, use different
+classes for each node (and also eliminating redundant intermediate nodes):</P>
+<PRE>
+    $::RD_AUTOACTION = q
+      { $#item==1 ? $item[1] : new ${&quot;$item[0]_node&quot;} (@item[1..$#item]) };</PRE>
+<PRE>
+    parser = new Parse::RecDescent (q{
+        expression: and_expr '||' expression | and_expr
+        and_expr:   not_expr '&amp;&amp;' and_expr   | not_expr
+        not_expr:   '!' brack_expr           | brack_expr
+        brack_expr: '(' expression ')'       | identifier
+        identifier: /[a-z]+/i
+        });</PRE>
+<P>which is equivalent to:</P>
+<PRE>
+    parser = new Parse::RecDescent (q{
+        expression: and_expr '||' expression
+                        { new expression_node (@item[1..3]) }
+                  | and_expr</PRE>
+<PRE>
+        and_expr:   not_expr '&amp;&amp;' and_expr  
+                        { new and_expr_node (@item[1..3]) }
+                |   not_expr</PRE>
+<PRE>
+        not_expr:   '!' brack_expr          
+                        { new not_expr_node (@item[1..2]) }
+                |   brack_expr</PRE>
+<PRE>
+        brack_expr: '(' expression ')'      
+                        { new brack_expr_node (@item[1..3]) }
+                  | identifier</PRE>
+<PRE>
+        identifier: /[a-z]+/i
+                        { new identifer_node (@item[1]) }
+        });</PRE>
+<P>Note that, if a production already ends in an action, no autoaction is appended
+to it. For example, in this version:</P>
+<PRE>
+    $::RD_AUTOACTION = q
+      { $#item==1 ? $item[1] : new ${&quot;$item[0]_node&quot;} (@item[1..$#item]) };</PRE>
+<PRE>
+    parser = new Parse::RecDescent (q{
+        expression: and_expr '&amp;&amp;' expression | and_expr
+        and_expr:   not_expr '&amp;&amp;' and_expr   | not_expr
+        not_expr:   '!' brack_expr           | brack_expr
+        brack_expr: '(' expression ')'       | identifier
+        identifier: /[a-z]+/i
+                        { new terminal_node($item[1]) }
+        });</PRE>
+<P>each <CODE>identifier</CODE> match produces a <CODE>terminal_node</CODE> object, <EM>not</EM> an
+<CODE>identifier_node</CODE> object.</P>
+<P>A level 1 warning is issued each time an ``autoaction'' is added to
+some production.</P>
+<P>
+<H2><A NAME="autotrees">Autotrees</A></H2>
+<P>A commonly needed autoaction is one that builds a parse-tree. It is moderately
+tricky to set up such an action (which must treat terminals differently from
+non-terminals), so Parse::RecDescent simplifies the process by providing the
+<CODE>&lt;autotree&gt;</CODE> directive.</P>
+<P>If this directive appears at the start of grammar, it causes
+Parse::RecDescent to insert autoactions at the end of any rule except
+those which already end in an action. The action inserted depends on whether
+the production is an intermediate rule (two or more items), or a terminal
+of the grammar (i.e. a single pattern or string item).</P>
+<P>So, for example, the following grammar:</P>
+<PRE>
+        &lt;autotree&gt;</PRE>
+<PRE>
+        file    : command(s)
+        command : get | set | vet
+        get     : 'get' ident ';'
+        set     : 'set' ident 'to' value ';'
+        vet     : 'check' ident 'is' value ';'
+        ident   : /\w+/
+        value   : /\d+/</PRE>
+<P>is equivalent to:</P>
+<PRE>
+        file    : command(s)                    { bless \%item, $item[0] }
+        command : get                           { bless \%item, $item[0] }
+                | set                           { bless \%item, $item[0] }
+                | vet                           { bless \%item, $item[0] }
+        get     : 'get' ident ';'               { bless \%item, $item[0] }
+        set     : 'set' ident 'to' value ';'    { bless \%item, $item[0] }
+        vet     : 'check' ident 'is' value ';'  { bless \%item, $item[0] }</PRE>
+<PRE>
+        ident   : /\w+/          { bless {__VALUE__=&gt;$item[1]}, $item[0] }
+        value   : /\d+/          { bless {__VALUE__=&gt;$item[1]}, $item[0] }</PRE>
+<P>Note that each node in the tree is blessed into a class of the same name
+as the rule itself. This makes it easy to build object-oriented
+processors for the parse-trees that the grammar produces. Note too that
+the last two rules produce special objects with the single attribute
+'__VALUE__'. This is because they consist solely of a single terminal.</P>
+<P>This autoaction-ed grammar would then produce a parse tree in a data
+structure like this:</P>
+<PRE>
+        {
+          file =&gt; {
+                    command =&gt; {
+                                 [ get =&gt; {
+                                            identifier =&gt; { __VALUE__ =&gt; 'a' },
+                                          },
+                                   set =&gt; {
+                                            identifier =&gt; { __VALUE__ =&gt; 'b' },
+                                            value      =&gt; { __VALUE__ =&gt; '7' },
+                                          },
+                                   vet =&gt; {
+                                            identifier =&gt; { __VALUE__ =&gt; 'b' },
+                                            value      =&gt; { __VALUE__ =&gt; '7' },
+                                          },
+                                  ],
+                               },
+                  }
+        }</PRE>
+<P>(except, of course, that each nested hash would also be blessed into
+the appropriate class).</P>
+<P>
+<H2><A NAME="autostubbing">Autostubbing</A></H2>
+<P>Normally, if a subrule appears in some production, but no rule of that
+name is ever defined in the grammar, the production which refers to the
+non-existent subrule fails immediately. This typically occurs as a
+result of misspellings, and is a sufficiently common occurance that a
+warning is generated for such situations.</P>
+<P>However, when prototyping a grammar it is sometimes useful to be
+able to use subrules before a proper specification of them is 
+really possible.  For example, a grammar might include a section like:</P>
+<PRE>
+        function_call: identifier '(' arg(s?) ')'</PRE>
+<PRE>
+        identifier: /[a-z]\w*/i</PRE>
+<P>where the possible format of an argument is sufficiently complex that
+it is not worth specifying in full until the general function call
+syntax has been debugged. In this situation it is convenient to leave
+the real rule <CODE>arg</CODE> undefined and just slip in a placeholder (or
+``stub''):</P>
+<PRE>
+        arg: 'arg'</PRE>
+<P>so that the function call syntax can be tested with dummy input such as:</P>
+<PRE>
+        f0()
+        f1(arg)
+        f2(arg arg)
+        f3(arg arg arg)</PRE>
+<P>et cetera.</P>
+<P>Early in prototyping, many such ``stubs'' may be required, so 
+<CODE>Parse::RecDescent</CODE> provides a means of automating their definition.
+If the variable <CODE>$::RD_AUTOSTUB</CODE> is defined when a parser is built,
+a subrule reference to any non-existent rule (say, <CODE>sr</CODE>),
+causes a ``stub'' rule of the form:</P>
+<PRE>
+        sr: 'sr'</PRE>
+<P>to be automatically defined in the generated parser.
+A level 1 warning is issued for each such ``autostubbed'' rule.</P>
+<P>Hence, with <CODE>$::AUTOSTUB</CODE> defined, it is possible to only partially
+specify a grammar, and then ``fake'' matches of the unspecified
+(sub)rules by just typing in their name.</P>
+<P>
+<H2><A NAME="lookahead">Look-ahead</A></H2>
+<P>If a subrule, token, or action is prefixed by ``...'', then it is
+treated as a ``look-ahead'' request. That means that the current production can
+(as usual) only succeed if the specified item is matched, but that the matching
+<EM>does not consume any of the text being parsed</EM>. This is very similar to the
+<CODE>/(?=...)/</CODE> look-ahead construct in Perl patterns. Thus, the rule:</P>
+<PRE>
+        inner_word: word ...word</PRE>
+<P>will match whatever the subrule ``word'' matches, provided that match is followed
+by some more text which subrule ``word'' would also match (although this
+second substring is not actually consumed by ``inner_word'')</P>
+<P>Likewise, a ``...!'' prefix, causes the following item to succeed (without
+consuming any text) if and only if it would normally fail. Hence, a
+rule such as:</P>
+<PRE>
+        identifier: ...!keyword ...!'_' /[A-Za-z_]\w*/</PRE>
+<P>matches a string of characters which satisfies the pattern
+<CODE>/[A-Za-z_]\w*/</CODE>, but only if the same sequence of characters would
+not match either subrule ``keyword'' or the literal token '_'.</P>
+<P>Sequences of look-ahead prefixes accumulate, multiplying their positive and/or
+negative senses. Hence:</P>
+<PRE>
+        inner_word: word ...!......!word</PRE>
+<P>is exactly equivalent the the original example above (a warning is issued in
+cases like these, since they often indicate something left out, or
+misunderstood).</P>
+<P>Note that actions can also be treated as look-aheads. In such cases,
+the state of the parser text (in the local variable <A HREF="#item_%24text"><CODE>$text</CODE></A>)
+<EM>after</EM> the look-ahead action is guaranteed to be identical to its
+state <EM>before</EM> the action, regardless of how it's changed <EM>within</EM>
+the action (unless you actually undefine <A HREF="#item_%24text"><CODE>$text</CODE></A>, in which case you
+get the disaster you deserve :-).</P>
+<P>
+<H2><A NAME="directives">Directives</A></H2>
+<P>Directives are special pre-defined actions which may be used to alter
+the behaviour of the parser. There are currently eighteen directives:
+<CODE>&lt;commit&gt;</CODE>,
+<CODE>&lt;uncommit&gt;</CODE>,
+<CODE>&lt;reject&gt;</CODE>,
+<CODE>&lt;score&gt;</CODE>,
+<CODE>&lt;autoscore&gt;</CODE>,
+<CODE>&lt;skip&gt;</CODE>,
+<CODE>&lt;resync&gt;</CODE>,
+<CODE>&lt;error&gt;</CODE>,
+<CODE>&lt;rulevar&gt;</CODE>,
+<CODE>&lt;matchrule&gt;</CODE>,
+<CODE>&lt;leftop&gt;</CODE>,
+<CODE>&lt;rightop&gt;</CODE>,
+<CODE>&lt;defer&gt;</CODE>,
+<CODE>&lt;nocheck&gt;</CODE>,
+<CODE>&lt;perl_quotelike&gt;</CODE>,
+<CODE>&lt;perl_codeblock&gt;</CODE>,
+<CODE>&lt;perl_variable&gt;</CODE>,
+and <CODE>&lt;token&gt;</CODE>.</P>
+<DL>
+<DT><STRONG><A NAME="item_Committing_and_uncommitting">Committing and uncommitting</A></STRONG><BR>
+<DD>
+The <CODE>&lt;commit&gt;</CODE> and <CODE>&lt;uncommit&gt;</CODE> directives permit the recursive
+descent of the parse tree to be pruned (or ``cut'') for efficiency.
+Within a rule, a <CODE>&lt;commit&gt;</CODE> directive instructs the rule to ignore subsequent
+productions if the current production fails. For example:
+<PRE>
+        command: 'find' &lt;commit&gt; filename
+               | 'open' &lt;commit&gt; filename
+               | 'move' filename filename</PRE>
+<P>Clearly, if the leading token 'find' is matched in the first production but that
+production fails for some other reason, then the remaining
+productions cannot possibly match. The presence of the
+<CODE>&lt;commit&gt;</CODE> causes the ``command'' rule to fail immediately if
+an invalid ``find'' command is found, and likewise if an invalid ``open''
+command is encountered.</P>
+<P>It is also possible to revoke a previous commitment. For example:</P>
+<PRE>
+        if_statement: 'if' &lt;commit&gt; condition
+                                'then' block &lt;uncommit&gt;
+                                'else' block
+                    | 'if' &lt;commit&gt; condition
+                                'then' block</PRE>
+<P>In this case, a failure to find an ``else'' block in the first
+production shouldn't preclude trying the second production, but a
+failure to find a ``condition'' certainly should.</P>
+<P>As a special case, any production in which the <EM>first</EM> item is an
+<CODE>&lt;uncommit&gt;</CODE> immediately revokes a preceding <CODE>&lt;commit&gt;</CODE>
+(even though the production would not otherwise have been tried). For
+example, in the rule:</P>
+<PRE>
+        request: 'explain' expression
+               | 'explain' &lt;commit&gt; keyword
+               | 'save'
+               | 'quit'
+               | &lt;uncommit&gt; term '?'</PRE>
+<P>if the text being matched was ``explain?'', and the first two
+productions failed, then the <CODE>&lt;commit&gt;</CODE> in production two would cause
+productions three and four to be skipped, but the leading
+<CODE>&lt;uncommit&gt;</CODE> in the production five would allow that production to
+attempt a match.</P>
+<P>Note in the preceding example, that the <CODE>&lt;commit&gt;</CODE> was only placed
+in production two. If production one had been:</P>
+<PRE>
+        request: 'explain' &lt;commit&gt; expression</PRE>
+<P>then production two would be (inappropriately) skipped if a leading
+``explain...'' was encountered.</P>
+<P>Both <CODE>&lt;commit&gt;</CODE> and <CODE>&lt;uncommit&gt;</CODE> directives always succeed, and their value
+is always 1.</P>
+<P></P>
+<DT><STRONG><A NAME="item_Rejecting_a_production">Rejecting a production</A></STRONG><BR>
+<DD>
+The <CODE>&lt;reject&gt;</CODE> directive immediately causes the current production
+to fail (it is exactly equivalent to, but more obvious than, the
+action <CODE>{undef}</CODE>). A <CODE>&lt;reject&gt;</CODE> is useful when it is desirable to get
+the side effects of the actions in one production, without prejudicing a match
+by some other production later in the rule. For example, to insert
+tracing code into the parse:
+<PRE>
+        complex_rule: { print &quot;In complex rule...\n&quot;; } &lt;reject&gt;
+</PRE>
+<PRE>
+
+        complex_rule: simple_rule '+' 'i' '*' simple_rule
+                    | 'i' '*' simple_rule
+                    | simple_rule</PRE>
+<P>It is also possible to specify a conditional rejection, using the
+form <CODE>&lt;reject:condition&gt;</CODE>, which only rejects if the
+specified condition is true. This form of rejection is exactly
+equivalent to the action <CODE>{(condition)?undef:1}&gt;</CODE>.
+For example:</P>
+<PRE>
+        command: save_command
+               | restore_command
+               | &lt;reject: defined $::tolerant&gt; { exit }
+               | &lt;error: Unknown command. Ignored.&gt;</PRE>
+<P>A <CODE>&lt;reject&gt;</CODE> directive never succeeds (and hence has no
+associated value). A conditional rejection may succeed (if its
+condition is not satisfied), in which case its value is 1.</P>
+<P>As an extra optimization, <CODE>Parse::RecDescent</CODE> ignores any production
+which <EM>begins</EM> with an unconditional <CODE>&lt;reject&gt;</CODE> directive,
+since any such production can never successfully match or have any
+useful side-effects. A level 1 warning is issued in all such cases.</P>
+<P>Note that productions beginning with conditional
+<CODE>&lt;reject:...&gt;</CODE> directives are <EM>never</EM> ``optimized away'' in
+this manner, even if they are always guaranteed to fail (for example:
+<CODE>&lt;reject:1&gt;</CODE>)</P>
+<P>Due to the way grammars are parsed, there is a minor restriction on the
+condition of a conditional <CODE>&lt;reject:...&gt;</CODE>: it cannot
+contain any raw '&lt;' or '&gt;' characters. For example:</P>
+<PRE>
+        line: cmd &lt;reject: $thiscolumn &gt; max&gt; data</PRE>
+<P>results in an error when a parser is built from this grammar (since the
+grammar parser has no way of knowing whether the first &gt; is a ``less than''
+or the end of the <CODE>&lt;reject:...&gt;</CODE>.</P>
+<P>To overcome this problem, put the condition inside a do{} block:</P>
+<PRE>
+        line: cmd &lt;reject: do{$thiscolumn &gt; max}&gt; data</PRE>
+<P>Note that the same problem may occur in other directives that take
+arguments. The same solution will work in all cases.</P>
+<P></P>
+<DT><STRONG><A NAME="item_Skipping_between_terminals">Skipping between terminals</A></STRONG><BR>
+<DD>
+The <CODE>&lt;skip&gt;</CODE> directive enables the terminal prefix used in
+a production to be changed. For example:
+<PRE>
+        OneLiner: Command &lt;skip:'[ \t]*'&gt; Arg(s) /;/</PRE>
+<P>causes only blanks and tabs to be skipped before terminals in the <CODE>Arg</CODE>
+subrule (and any of <EM>its</EM> subrules&gt;, and also before the final <CODE>/;/</CODE> terminal.
+Once the production is complete, the previous terminal prefix is
+reinstated. Note that this implies that distinct productions of a rule
+must reset their terminal prefixes individually.</P>
+<P>The <CODE>&lt;skip&gt;</CODE> directive evaluates to the <EM>previous</EM> terminal prefix,
+so it's easy to reinstate a prefix later in a production:</P>
+<PRE>
+        Command: &lt;skip:&quot;,&quot;&gt; CSV(s) &lt;skip:$item[1]&gt; Modifier</PRE>
+<P>The value specified after the colon is interpolated into a pattern, so all of
+the following are equivalent (though their efficiency increases down the list):</P>
+<PRE>
+        &lt;skip: &quot;$colon|$comma&quot;&gt;   # ASSUMING THE VARS HOLD THE OBVIOUS VALUES</PRE>
+<PRE>
+        &lt;skip: ':|,'&gt;</PRE>
+<PRE>
+        &lt;skip: q{[:,]}&gt;</PRE>
+<PRE>
+        &lt;skip: qr/[:,]/&gt;</PRE>
+<P>There is no way of directly setting the prefix for
+an entire rule, except as follows:</P>
+<PRE>
+        Rule: &lt;skip: '[ \t]*'&gt; Prod1
+            | &lt;skip: '[ \t]*'&gt; Prod2a Prod2b
+            | &lt;skip: '[ \t]*'&gt; Prod3</PRE>
+<P>or, better:</P>
+<PRE>
+        Rule: &lt;skip: '[ \t]*'&gt;
+            (
+                Prod1
+              | Prod2a Prod2b
+              | Prod3
+            )</PRE>
+<P><STRONG>Note: Up to release 1.51 of Parse::RecDescent, an entirely different
+mechanism was used for specifying terminal prefixes. The current method
+is not backwards-compatible with that early approach. The current approach
+is stable and will not to change again.</STRONG></P>
+<P></P>
+<DT><STRONG><A NAME="item_Resynchronization">Resynchronization</A></STRONG><BR>
+<DD>
+The <CODE>&lt;resync&gt;</CODE> directive provides a visually distinctive
+means of consuming some of the text being parsed, usually to skip an
+erroneous input. In its simplest form <CODE>&lt;resync&gt;</CODE> simply
+consumes text up to and including the next newline (<CODE>&quot;\n&quot;</CODE>)
+character, succeeding only if the newline is found, in which case it
+causes its surrounding rule to return zero on success.
+<P>In other words, a <CODE>&lt;resync&gt;</CODE> is exactly equivalent to the token
+<CODE>/[^\n]*\n/</CODE> followed by the action <CODE>{&nbsp;$return&nbsp;=&nbsp;0&nbsp;}</CODE> (except that
+productions beginning with a <CODE>&lt;resync&gt;</CODE> are ignored when generating
+error messages). A typical use might be:</P>
+<PRE>
+        script : command(s)</PRE>
+<PRE>
+        command: save_command
+               | restore_command
+               | &lt;resync&gt; # TRY NEXT LINE, IF POSSIBLE</PRE>
+<P>It is also possible to explicitly specify a resynchronization
+pattern, using the <CODE>&lt;resync:pattern&gt;</CODE> variant. This version
+succeeds only if the specified pattern matches (and consumes) the
+parsed text. In other words, <CODE>&lt;resync:pattern&gt;</CODE> is exactly
+equivalent to the token <CODE>/pattern/</CODE> (followed by a <CODE>{&nbsp;$return&nbsp;=&nbsp;0&nbsp;}</CODE>
+action). For example, if commands were terminated by newlines or semi-colons:</P>
+<PRE>
+        command: save_command
+               | restore_command
+               | &lt;resync:[^;\n]*[;\n]&gt;</PRE>
+<P>The value of a successfully matched <CODE>&lt;resync&gt;</CODE> directive (of either
+type) is the text that it consumed. Note, however, that since the
+directive also sets <A HREF="#item_%24return"><CODE>$return</CODE></A>, a production consisting of a lone
+<CODE>&lt;resync&gt;</CODE> succeeds but returns the value zero (which a calling rule
+may find useful to distinguish between ``true'' matches and ``tolerant'' matches).
+Remember that returning a zero value indicates that the rule <EM>succeeded</EM> (since
+only an <CODE>undef</CODE> denotes failure within <CODE>Parse::RecDescent</CODE> parsers.</P>
+<P></P>
+<DT><STRONG><A NAME="item_Error_handling">Error handling</A></STRONG><BR>
+<DD>
+The <CODE>&lt;error&gt;</CODE> directive provides automatic or user-defined
+generation of error messages during a parse. In its simplest form
+<CODE>&lt;error&gt;</CODE> prepares an error message based on
+the mismatch between the last item expected and the text which cause
+it to fail. For example, given the rule:
+<PRE>
+        McCoy: curse ',' name ', I'm a doctor, not a' a_profession '!'
+             | pronoun 'dead,' name '!'
+             | &lt;error&gt;</PRE>
+<P>the following strings would produce the following messages:</P>
+<DL>
+<DT><STRONG><A NAME="item_%22Amen%2C_Jim%21%22">``Amen, Jim!''</A></STRONG><BR>
+<DD>
+<PRE>
+       ERROR (line 1): Invalid McCoy: Expected curse or pronoun
+                       not found</PRE>
+<DT><STRONG><A NAME="item_%22Dammit%2C_Jim%2C_I%27m_a_doctor%21%22">``Dammit, Jim, I'm a doctor!''</A></STRONG><BR>
+<DD>
+<PRE>
+       ERROR (line 1): Invalid McCoy: Expected &quot;, I'm a doctor, not a&quot;
+                       but found &quot;, I'm a doctor!&quot; instead</PRE>
+<DT><STRONG><A NAME="item_%22He%27s_dead%2C%5Cn%22">``He's dead,\n''</A></STRONG><BR>
+<DD>
+<PRE>
+       ERROR (line 2): Invalid McCoy: Expected name not found</PRE>
+<DT><STRONG><A NAME="item_%22He%27s_alive%21%22">``He's alive!''</A></STRONG><BR>
+<DD>
+<PRE>
+       ERROR (line 1): Invalid McCoy: Expected 'dead,' but found
+                       &quot;alive!&quot; instead</PRE>
+<DT><STRONG><A NAME="item_%22Dammit%2C_Jim%2C_I%27m_a_doctor%2C_not_a_pointy">``Dammit, Jim, I'm a doctor, not a pointy-eared Vulcan!''</A></STRONG><BR>
+<DD>
+<PRE>
+       ERROR (line 1): Invalid McCoy: Expected a profession but found
+                       &quot;pointy-eared Vulcan!&quot; instead</PRE>
+</DL>
+<P>Note that, when autogenerating error messages, all underscores in any
+rule name used in a message are replaced by single spaces (for example
+``a_production'' becomes ``a production''). Judicious choice of rule
+names can therefore considerably improve the readability of automatic
+error messages (as well as the maintainability of the original
+grammar).</P>
+<P>If the automatically generated error is not sufficient, it is possible to
+provide an explicit message as part of the error directive. For example:</P>
+<PRE>
+        Spock: &quot;Fascinating ',' (name | 'Captain') '.'
+             | &quot;Highly illogical, doctor.&quot;
+             | &lt;error: He never said that!&gt;</PRE>
+<P>which would result in <EM>all</EM> failures to parse a ``Spock'' subrule printing the
+following message:</P>
+<PRE>
+       ERROR (line &lt;N&gt;): Invalid Spock:  He never said that!</PRE>
+<P>The error message is treated as a ``qq{...}'' string and interpolated
+when the error is generated (<EM>not</EM> when the directive is specified!).
+Hence:</P>
+<PRE>
+        &lt;error: Mystical error near &quot;$text&quot;&gt;</PRE>
+<P>would correctly insert the ambient text string which caused the error.</P>
+<P>There are two other forms of error directive: <CODE>&lt;error?&gt;</CODE> and
+<CODE>&lt;error?:&nbsp;msg&gt;</CODE>. These behave just like <CODE>&lt;error&gt;</CODE>
+and <CODE>&lt;error:&nbsp;msg&gt;</CODE> respectively, except that they are
+only triggered if the rule is ``committed'' at the time they are
+encountered. For example:</P>
+<PRE>
+        Scotty: &quot;Ya kenna change the Laws of Phusics,&quot; &lt;commit&gt; name
+              | name &lt;commit&gt; ',' 'she's goanta blaw!'
+              | &lt;error?&gt;</PRE>
+<P>will only generate an error for a string beginning with ``Ya kenna
+change the Laws o' Phusics,'' or a valid name, but which still fails to match the
+corresponding production. That is, <CODE>$parser-&gt;Scotty(&quot;Aye, Cap'ain&quot;)</CODE> will
+fail silently (since neither production will ``commit'' the rule on that
+input), whereas <CODE>$parser-&gt;Scotty(&quot;Mr&nbsp;Spock,&nbsp;ah&nbsp;jest&nbsp;kenna&nbsp;do'ut!&quot;)</CODE>
+will fail with the error message:</P>
+<PRE>
+       ERROR (line 1): Invalid Scotty: expected 'she's goanta blaw!'
+                       but found 'I jest kenna do'ut!' instead.</PRE>
+<P>since in that case the second production would commit after matching
+the leading name.</P>
+<P>Note that to allow this behaviour, all <CODE>&lt;error&gt;</CODE> directives which are
+the first item in a production automatically uncommit the rule just
+long enough to allow their production to be attempted (that is, when
+their production fails, the commitment is reinstated so that
+subsequent productions are skipped).</P>
+<P>In order to <EM>permanently</EM> uncommit the rule before an error message,
+it is necessary to put an explicit <CODE>&lt;uncommit&gt;</CODE> before the
+<CODE>&lt;error&gt;</CODE>. For example:</P>
+<PRE>
+        line: 'Kirk:'  &lt;commit&gt; Kirk
+            | 'Spock:' &lt;commit&gt; Spock
+            | 'McCoy:' &lt;commit&gt; McCoy
+            | &lt;uncommit&gt; &lt;error?&gt; &lt;reject&gt;
+            | &lt;resync&gt;</PRE>
+<P>Error messages generated by the various <CODE>&lt;error...&gt;</CODE> directives
+are not displayed immediately. Instead, they are ``queued'' in a buffer and
+are only displayed once parsing ultimately fails. Moreover,
+<CODE>&lt;error...&gt;</CODE> directives that cause one production of a rule
+to fail are automatically removed from the message queue
+if another production subsequently causes the entire rule to succeed.
+This means that you can put 
+<CODE>&lt;error...&gt;</CODE> directives wherever useful diagnosis can be done,
+and only those associated with actual parser failure will ever be
+displayed. Also see <A HREF="#gotchas">Gotchas</A>.</P>
+<P>As a general rule, the most useful diagnostics are usually generated
+either at the very lowest level within the grammar, or at the very
+highest. A good rule of thumb is to identify those subrules which
+consist mainly (or entirely) of terminals, and then put an
+<CODE>&lt;error...&gt;</CODE> directive at the end of any other rule which calls
+one or more of those subrules.</P>
+<P>There is one other situation in which the output of the various types of
+error directive is suppressed; namely, when the rule containing them
+is being parsed as part of a ``look-ahead'' (see <A HREF="#lookahead">Look-ahead</A>). In this
+case, the error directive will still cause the rule to fail, but will do
+so silently.</P>
+<P>An unconditional <CODE>&lt;error&gt;</CODE> directive always fails (and hence has no
+associated value). This means that encountering such a directive
+always causes the production containing it to fail. Hence an
+<CODE>&lt;error&gt;</CODE> directive will inevitably be the last (useful) item of a
+rule (a level 3 warning is issued if a production contains items after an unconditional
+<CODE>&lt;error&gt;</CODE> directive).</P>
+<P>An <CODE>&lt;error?&gt;</CODE> directive will <EM>succeed</EM> (that is: fail to fail :-), if
+the current rule is uncommitted when the directive is encountered. In
+that case the directive's associated value is zero. Hence, this type
+of error directive <EM>can</EM> be used before the end of a
+production. For example:</P>
+<PRE>
+        command: 'do' &lt;commit&gt; something
+               | 'report' &lt;commit&gt; something
+               | &lt;error?: Syntax error&gt; &lt;error: Unknown command&gt;</PRE>
+<P><STRONG>Warning:</STRONG> The <CODE>&lt;error?&gt;</CODE> directive does <EM>not</EM> mean ``always fail (but
+do so silently unless committed)''. It actually means ``only fail (and report) if
+committed, otherwise <EM>succeed</EM>''. To achieve the ``fail silently if uncommitted''
+semantics, it is necessary to use:</P>
+<PRE>
+        rule: item &lt;commit&gt; item(s)
+            | &lt;error?&gt; &lt;reject&gt;      # FAIL SILENTLY UNLESS COMMITTED</PRE>
+<P>However, because people seem to expect a lone <CODE>&lt;error?&gt;</CODE> directive
+to work like this:</P>
+<PRE>
+        rule: item &lt;commit&gt; item(s)
+            | &lt;error?: Error message if committed&gt;
+            | &lt;error:  Error message if uncommitted&gt;</PRE>
+<P>Parse::RecDescent automatically appends a 
+<CODE>&lt;reject&gt;</CODE> directive if the <CODE>&lt;error?&gt;</CODE> directive
+is the only item in a production. A level 2 warning (see below)
+is issued when this happens.</P>
+<P>The level of error reporting during both parser construction and
+parsing is controlled by the presence or absence of four global
+variables: <CODE>$::RD_ERRORS</CODE>, <CODE>$::RD_WARN</CODE>, <CODE>$::RD_HINT</CODE>, and
+&lt;$::RD_TRACE&gt;. If <CODE>$::RD_ERRORS</CODE> is defined (and, by default, it is)
+then fatal errors are reported.</P>
+<P>Whenever <CODE>$::RD_WARN</CODE> is defined, certain non-fatal problems are also reported. 
+Warnings have an associated ``level'': 1, 2, or 3. The higher the level,
+the more serious the warning. The value of the corresponding global
+variable (<CODE>$::RD_WARN</CODE>) determines the <EM>lowest</EM> level of warning to
+be displayed. Hence, to see <EM>all</EM> warnings, set <CODE>$::RD_WARN</CODE> to 1.
+To see only the most serious warnings set <CODE>$::RD_WARN</CODE> to 3.
+By default <CODE>$::RD_WARN</CODE> is initialized to 3, ensuring that serious but
+non-fatal errors are automatically reported.</P>
+<P>See <EM>``DIAGNOSTICS''</EM> for a list of the varous error and warning messages
+that Parse::RecDescent generates when these two variables are defined.</P>
+<P>Defining any of the remaining variables (which are not defined by
+default) further increases the amount of information reported.
+Defining <CODE>$::RD_HINT</CODE> causes the parser generator to offer
+more detailed analyses and hints on both errors and warnings.
+Note that setting <CODE>$::RD_HINT</CODE> at any point automagically
+sets <CODE>$::RD_WARN</CODE> to 1.</P>
+<P>Defining <CODE>$::RD_TRACE</CODE> causes the parser generator and the parser to
+report their progress to STDERR in excruciating detail (although, without hints
+unless $::RD_HINT is separately defined). This detail
+can be moderated in only one respect: if <CODE>$::RD_TRACE</CODE> has an
+integer value (<EM>N</EM>) greater than 1, only the <EM>N</EM> characters of
+the ``current parsing context'' (that is, where in the input string we
+are at any point in the parse) is reported at any time.
+   &gt; 
+<CODE>$::RD_TRACE</CODE> is mainly useful for debugging a grammar that isn't
+behaving as you expected it to. To this end, if <CODE>$::RD_TRACE</CODE> is
+defined when a parser is built, any actual parser code which is
+generated is also written to a file named ``RD_TRACE'' in the local
+directory.</P>
+<P>Note that the four variables belong to the ``main'' package, which
+makes them easier to refer to in the code controlling the parser, and
+also makes it easy to turn them into command line flags (``-RD_ERRORS'',
+``-RD_WARN'', ``-RD_HINT'', ``-RD_TRACE'') under <STRONG>perl -s</STRONG>.</P>
+<DT><STRONG><A NAME="item_Specifying_local_variables">Specifying local variables</A></STRONG><BR>
+<DD>
+It is occasionally convenient to specify variables which are local
+to a single rule. This may be achieved by including a
+<CODE>&lt;rulevar:...&gt;</CODE> directive anywhere in the rule. For example:
+<PRE>
+        markup: &lt;rulevar: $tag&gt;</PRE>
+<PRE>
+        markup: tag {($tag=$item[1]) =~ s/^&lt;|&gt;$//g} body[$tag]</PRE>
+<P>The example <CODE>&lt;rulevar: $tag&gt;</CODE> directive causes a ``my'' variable named
+<CODE>$tag</CODE> to be declared at the start of the subroutine implementing the
+<CODE>markup</CODE> rule (that is, <EM>before</EM> the first production, regardless of
+where in the rule it is specified).</P>
+<P>Specifically, any directive of the form:
+<CODE>&lt;rulevar:text&gt;</CODE> causes a line of the form <CODE>my text;</CODE>
+to be added at the beginning of the rule subroutine, immediately after
+the definitions of the following local variables:</P>
+<PRE>
+        $thisparser     $commit
+        $thisrule       @item
+        $thisline       @arg
+        $text           %arg</PRE>
+<P>This means that the following <CODE>&lt;rulevar&gt;</CODE> directives work
+as expected:</P>
+<PRE>
+        &lt;rulevar: $count = 0 &gt;</PRE>
+<PRE>
+        &lt;rulevar: $firstarg = $arg[0] || '' &gt;</PRE>
+<PRE>
+        &lt;rulevar: $myItems = \@item &gt;</PRE>
+<PRE>
+        &lt;rulevar: @context = ( $thisline, $text, @arg ) &gt;</PRE>
+<PRE>
+        &lt;rulevar: ($name,$age) = $arg{&quot;name&quot;,&quot;age&quot;} &gt;</PRE>
+<P>If a variable that is also visible to subrules is required, it needs
+to be <CODE>local</CODE>'d, not <CODE>my</CODE>'d. <CODE>rulevar</CODE> defaults to <CODE>my</CODE>, but if <CODE>local</CODE>
+is explicitly specified:</P>
+<PRE>
+        &lt;rulevar: local $count = 0 &gt;</PRE>
+<P>then a <CODE>local</CODE>-ized variable is declared instead, and will be available
+within subrules.</P>
+<P>Note however that, because all such variables are ``my'' variables, their
+values <EM>do not persist</EM> between match attempts on a given rule. To
+preserve values between match attempts, values can be stored within the
+``local'' member of the <A HREF="#item_%24thisrule"><CODE>$thisrule</CODE></A> object:</P>
+<PRE>
+        countedrule: { $thisrule-&gt;{&quot;local&quot;}{&quot;count&quot;}++ }
+                     &lt;reject&gt;
+                   | subrule1
+                   | subrule2
+                   | &lt;reject: $thisrule-&gt;{&quot;local&quot;}{&quot;count&quot;} == 1&gt;
+                     subrule3</PRE>
+<P>When matching a rule, each <CODE>&lt;rulevar&gt;</CODE> directive is matched as
+if it were an unconditional <CODE>&lt;reject&gt;</CODE> directive (that is, it
+causes any production in which it appears to immediately fail to match).
+For this reason (and to improve readability) it is usual to specify any
+<CODE>&lt;rulevar&gt;</CODE> directive in a separate production at the start of
+the rule (this has the added advantage that it enables
+<CODE>Parse::RecDescent</CODE> to optimize away such productions, just as it does
+for the <CODE>&lt;reject&gt;</CODE> directive).</P>
+<P></P>
+<DT><STRONG><A NAME="item_Dynamically_matched_rules">Dynamically matched rules</A></STRONG><BR>
+<DD>
+Because regexes and double-quoted strings are interpolated, it is relatively
+easy to specify productions with ``context sensitive'' tokens. For example:
+<PRE>
+        command:  keyword  body  &quot;end $item[1]&quot;</PRE>
+<P>which ensures that a command block is bounded by a
+``<EM>&lt;keyword&gt;</EM>...end <EM>&lt;same keyword&gt;</EM>'' pair.</P>
+<P>Building productions in which subrules are context sensitive is also possible,
+via the <CODE>&lt;matchrule:...&gt;</CODE> directive. This directive behaves
+identically to a subrule item, except that the rule which is invoked to match
+it is determined by the string specified after the colon. For example, we could
+rewrite the <CODE>command</CODE> rule like this:</P>
+<PRE>
+        command:  keyword  &lt;matchrule:body&gt;  &quot;end $item[1]&quot;</PRE>
+<P>Whatever appears after the colon in the directive is treated as an interpolated
+string (that is, as if it appeared in <CODE>qq{...}</CODE> operator) and the value of
+that interpolated string is the name of the subrule to be matched.</P>
+<P>Of course, just putting a constant string like <CODE>body</CODE> in a
+<CODE>&lt;matchrule:...&gt;</CODE> directive is of little interest or benefit.
+The power of directive is seen when we use a string that interpolates
+to something interesting. For example:</P>
+<PRE>
+        command:        keyword &lt;matchrule:$item[1]_body&gt; &quot;end $item[1]&quot;</PRE>
+<PRE>
+        keyword:        'while' | 'if' | 'function'</PRE>
+<PRE>
+        while_body:     condition block</PRE>
+<PRE>
+        if_body:        condition block ('else' block)(?)</PRE>
+<PRE>
+        function_body:  arglist block</PRE>
+<P>Now the <CODE>command</CODE> rule selects how to proceed on the basis of the keyword
+that is found. It is as if <CODE>command</CODE> were declared:</P>
+<PRE>
+        command:        'while'    while_body    &quot;end while&quot; 
+               |        'if'       if_body       &quot;end if&quot; 
+               |        'function' function_body &quot;end function&quot;</PRE>
+<P>When a <CODE>&lt;matchrule:...&gt;</CODE> directive is used as a repeated
+subrule, the rule name expression is ``late-bound''. That is, the name of
+the rule to be called is re-evaluated <EM>each time</EM> a match attempt is
+made. Hence, the following grammar:</P>
+<PRE>
+        { $::species = 'dogs' }</PRE>
+<PRE>
+        pair:   'two' &lt;matchrule:$::species&gt;(s)</PRE>
+<PRE>
+        dogs:   /dogs/ { $::species = 'cats' }</PRE>
+<PRE>
+        cats:   /cats/</PRE>
+<P>will match the string ``two dogs cats cats'' completely, whereas it will
+only match the string ``two dogs dogs dogs'' up to the eighth letter. If
+the rule name were ``early bound'' (that is, evaluated only the first
+time the directive is encountered in a production), the reverse
+behaviour would be expected.</P>
+<P>Note that the <CODE>matchrule</CODE> directive takes a string that is to be treated
+as a rule name, <EM>not</EM> as a rule invocation. That is,
+it's like a Perl symbolic reference, not an <CODE>eval</CODE>. Just as you can say:</P>
+<PRE>
+        $subname = 'foo';</PRE>
+<PRE>
+        # and later...</PRE>
+<PRE>
+        &amp;{$foo}(@args);</PRE>
+<P>but not:</P>
+<PRE>
+        $subname = 'foo(@args)';</PRE>
+<PRE>
+        # and later...</PRE>
+<PRE>
+        &amp;{$foo};</PRE>
+<P>likewise you can say:</P>
+<PRE>
+        $rulename = 'foo';</PRE>
+<PRE>
+        # and in the grammar...</PRE>
+<PRE>
+        &lt;matchrule:$rulename&gt;[@args]</PRE>
+<P>but not:</P>
+<PRE>
+        $rulename = 'foo[@args]';</PRE>
+<PRE>
+        # and in the grammar...</PRE>
+<PRE>
+        &lt;matchrule:$rulename&gt;</PRE>
+<P></P>
+<DT><STRONG><A NAME="item_Deferred_actions">Deferred actions</A></STRONG><BR>
+<DD>
+The <CODE>&lt;defer:...&gt;</CODE> directive is used to specify an action to be 
+performed when (and only if!) the current production ultimately succeeds.
+<P>Whenever a <CODE>&lt;defer:...&gt;</CODE> directive appears, the code it specifies
+is converted to a closure (an anonymous subroutine reference) which is
+queued within the active parser object. Note that,
+because the deferred code is converted to a closure, the values of any
+``local'' variable (such as <A HREF="#item_%24text"><CODE>$text</CODE></A>, &lt;@item&gt;, etc.) are preserved
+until the deferred code is actually executed.</P>
+<P>If the parse ultimately succeeds
+<EM>and</EM> the production in which the <CODE>&lt;defer:...&gt;</CODE> directive was
+evaluated formed part of the successful parse, then the deferred code is
+executed immediately before the parse returns. If however the production
+which queued a deferred action fails, or one of the higher-level 
+rules which called that production fails, then the deferred action is
+removed from the queue, and hence is never executed.</P>
+<P>For example, given the grammar:</P>
+<PRE>
+        sentence: noun trans noun
+                | noun intrans</PRE>
+<PRE>
+        noun:     'the dog'
+                        { print &quot;$item[1]\t(noun)\n&quot; }
+            |     'the meat'
+                        { print &quot;$item[1]\t(noun)\n&quot; }</PRE>
+<PRE>
+        trans:    'ate'
+                        { print &quot;$item[1]\t(transitive)\n&quot; }</PRE>
+<PRE>
+        intrans:  'ate'
+                        { print &quot;$item[1]\t(intransitive)\n&quot; }
+               |  'barked'
+                        { print &quot;$item[1]\t(intransitive)\n&quot; }</PRE>
+<P>then parsing the sentence <CODE>&quot;the dog ate&quot;</CODE> would produce the output:</P>
+<PRE>
+        the dog  (noun)
+        ate      (transitive)
+        the dog  (noun)
+        ate      (intransitive)</PRE>
+<P>This is because, even though the first production of <CODE>sentence</CODE>
+ultimately fails, its initial subrules <CODE>noun</CODE> and <CODE>trans</CODE> do match,
+and hence they execute their associated actions.
+Then the second production of <CODE>sentence</CODE> succeeds, causing the
+actions of the subrules <CODE>noun</CODE> and <CODE>intrans</CODE> to be executed as well.</P>
+<P>On the other hand, if the actions were replaced by <CODE>&lt;defer:...&gt;</CODE>
+directives:</P>
+<PRE>
+        sentence: noun trans noun
+                | noun intrans</PRE>
+<PRE>
+        noun:     'the dog'
+                        &lt;defer: print &quot;$item[1]\t(noun)\n&quot; &gt;
+            |     'the meat'
+                        &lt;defer: print &quot;$item[1]\t(noun)\n&quot; &gt;</PRE>
+<PRE>
+        trans:    'ate'
+                        &lt;defer: print &quot;$item[1]\t(transitive)\n&quot; &gt;</PRE>
+<PRE>
+        intrans:  'ate'
+                        &lt;defer: print &quot;$item[1]\t(intransitive)\n&quot; &gt;
+               |  'barked'
+                        &lt;defer: print &quot;$item[1]\t(intransitive)\n&quot; &gt;</PRE>
+<P>the output would be:</P>
+<PRE>
+        the dog  (noun)
+        ate      (intransitive)</PRE>
+<P>since deferred actions are only executed if they were evaluated in
+a production which ultimately contributes to the successful parse.</P>
+<P>In this case, even though the first production of <CODE>sentence</CODE> caused
+the subrules <CODE>noun</CODE> and <CODE>trans</CODE> to match, that production ultimately
+failed and so the deferred actions queued by those subrules were subsequently
+disgarded. The second production then succeeded, causing the entire
+parse to succeed, and so the deferred actions queued by the (second) match of
+the <CODE>noun</CODE> subrule and the subsequent match of <CODE>intrans</CODE> <EM>are</EM> preserved and 
+eventually executed.</P>
+<P>Deferred actions provide a means of improving the performance of a parser,
+by only executing those actions which are part of the final parse-tree
+for the input data.</P>
+<P>Alternatively, deferred actions can be viewed as a mechanism for building 
+(and executing) a
+customized subroutine corresponding to the given input data, much in the
+same way that autoactions (see <A HREF="#autoactions">Autoactions</A>) can be used to build a
+customized data structure for specific input.</P>
+<P>Whether or not the action it specifies is ever executed,
+a <CODE>&lt;defer:...&gt;</CODE> directive always succeeds, returning the 
+number of deferred actions currently queued at that point.</P>
+<P></P>
+<DT><STRONG><A NAME="item_Parsing_Perl">Parsing Perl</A></STRONG><BR>
+<DD>
+Parse::RecDescent provides limited support for parsing subsets of Perl,
+namely: quote-like operators, Perl variables, and complete code blocks.
+<P>The <CODE>&lt;perl_quotelike&gt;</CODE> directive can be used to parse any Perl
+quote-like operator: <CODE>'a string'</CODE>, <CODE>m/a pattern/</CODE>, <CODE>tr{ans}{lation}</CODE>,
+etc.  It does this by calling Text::Balanced::quotelike().</P>
+<P>If a quote-like operator is found, a reference to an array of eight elements
+is returned. Those elements are identical to the last eight elements returned
+by Text::Balanced::extract_quotelike() in an array context, namely:</P>
+<DL>
+<DT><STRONG><A NAME="item_%5B0%5D">[0]</A></STRONG><BR>
+<DD>
+the name of the quotelike operator -- 'q', 'qq', 'm', 's', 'tr' -- if the
+operator was named; otherwise <CODE>undef</CODE>,
+<P></P>
+<DT><STRONG><A NAME="item_%5B1%5D">[1]</A></STRONG><BR>
+<DD>
+the left delimiter of the first block of the operation,
+<P></P>
+<DT><STRONG><A NAME="item_%5B2%5D">[2]</A></STRONG><BR>
+<DD>
+the text of the first block of the operation
+(that is, the contents of
+a quote, the regex of a match, or substitution or the target list of a
+translation),
+<P></P>
+<DT><STRONG><A NAME="item_%5B3%5D">[3]</A></STRONG><BR>
+<DD>
+the right delimiter of the first block of the operation,
+<P></P>
+<DT><STRONG><A NAME="item_%5B4%5D">[4]</A></STRONG><BR>
+<DD>
+the left delimiter of the second block of the operation if there is one
+(that is, if it is a <CODE>s</CODE>, <CODE>tr</CODE>, or <CODE>y</CODE>); otherwise <CODE>undef</CODE>,
+<P></P>
+<DT><STRONG><A NAME="item_%5B5%5D">[5]</A></STRONG><BR>
+<DD>
+the text of the second block of the operation if there is one
+(that is, the replacement of a substitution or the translation list
+of a translation); otherwise <CODE>undef</CODE>,
+<P></P>
+<DT><STRONG><A NAME="item_%5B6%5D">[6]</A></STRONG><BR>
+<DD>
+the right delimiter of the second block of the operation (if any);
+otherwise <CODE>undef</CODE>,
+<P></P>
+<DT><STRONG><A NAME="item_%5B7%5D">[7]</A></STRONG><BR>
+<DD>
+the trailing modifiers on the operation (if any); otherwise <CODE>undef</CODE>.
+<P></P></DL>
+<P>If a quote-like expression is not found, the directive fails with the usual
+<CODE>undef</CODE> value.</P>
+<P>The <CODE>&lt;perl_variable&gt;</CODE> directive can be used to parse any Perl
+variable: $scalar, @array, %hash, $ref-&gt;{field}[$index], etc.
+It does this by calling Text::Balanced::extract_variable().</P>
+<P>If the directive matches text representing a valid Perl variable
+specification, it returns that text. Otherwise it fails with the usual
+<CODE>undef</CODE> value.</P>
+<P>The <CODE>&lt;perl_codeblock&gt;</CODE> directive can be used to parse curly-brace-delimited block of Perl code, such as: { $a = 1; <CODE>f()</CODE> =~ m/pat/; }.
+It does this by calling Text::Balanced::extract_codeblock().</P>
+<P>If the directive matches text representing a valid Perl code block,
+it returns that text. Otherwise it fails with the usual <CODE>undef</CODE> value.</P>
+<P>You can also tell it what kind of brackets to use as the outermost
+delimiters. For example:</P>
+<PRE>
+        arglist: &lt;perl_codeblock ()&gt;</PRE>
+<P>causes an arglist to match a perl code block whose outermost delimiters
+are <CODE>(...)</CODE> (rather than the default <CODE>{...}</CODE>).</P>
+<DT><STRONG><A NAME="item_Constructing_tokens">Constructing tokens</A></STRONG><BR>
+<DD>
+Eventually, Parse::RecDescent will be able to parse tokenized input, as
+well as ordinary strings. In preparation for this joyous day, the
+<CODE>&lt;token:...&gt;</CODE> directive has been provided.
+This directive creates a token which will be suitable for
+input to a Parse::RecDescent parser (when it eventually supports
+tokenized input).
+<P>The text of the token is the value of the
+immediately preceding item in the production. A 
+<CODE>&lt;token:...&gt;</CODE> directive always succeeds with a return
+value which is the hash reference that is the new token. It also
+sets the return value for the production to that hash ref.</P>
+<P>The <CODE>&lt;token:...&gt;</CODE> directive makes it easy to build
+a Parse::RecDescent-compatible lexer in Parse::RecDescent:</P>
+<PRE>
+        my $lexer = new Parse::RecDescent q
+        {
+                lex:    token(s)</PRE>
+<PRE>
+                token:  /a\b/                      &lt;token:INDEF&gt;
+                     |  /the\b/                    &lt;token:DEF&gt;
+                     |  /fly\b/                    &lt;token:NOUN,VERB&gt;
+                     |  /[a-z]+/i { lc $item[1] }  &lt;token:ALPHA&gt;
+                     |  &lt;error: Unknown token&gt;</PRE>
+<PRE>
+        };</PRE>
+<P>which will eventually be able to be used with a regular Parse::RecDescent
+grammar:</P>
+<PRE>
+        my $parser = new Parse::RecDescent q
+        {
+                startrule: subrule1 subrule 2
+</PRE>
+<PRE>
+
+                # ETC...
+        };</PRE>
+<P>either with a pre-lexing phase:</P>
+<PRE>
+        $parser-&gt;startrule( $lexer-&gt;lex($data) );</PRE>
+<P>or with a lex-on-demand approach:</P>
+<PRE>
+        $parser-&gt;startrule( sub{$lexer-&gt;token(\$data)} );</PRE>
+<P>But at present, only the <CODE>&lt;token:...&gt;</CODE> directive is
+actually implemented. The rest is vapourware.</P>
+<P></P>
+<DT><STRONG><A NAME="item_Specifying_operations">Specifying operations</A></STRONG><BR>
+<DD>
+One of the commonest requirements when building a parser is to specify
+binary operators. Unfortunately, in a normal grammar, the rules for
+such things are awkward:
+<PRE>
+        disjunction:    conjunction ('or' conjunction)(s?)
+                                { $return = [ $item[1], @{$item[2]} ] }</PRE>
+<PRE>
+        conjunction:    atom ('and' atom)(s?)
+                                { $return = [ $item[1], @{$item[2]} ] }</PRE>
+<P>or inefficient:</P>
+<PRE>
+        disjunction:    conjunction 'or' disjunction
+                                { $return = [ $item[1], @{$item[2]} ] }
+                   |    conjunction
+                                { $return = [ $item[1] ] }</PRE>
+<PRE>
+        conjunction:    atom 'and' conjunction
+                                { $return = [ $item[1], @{$item[2]} ] }
+                   |    atom
+                                { $return = [ $item[1] ] }</PRE>
+<P>and either way is ugly and hard to get right.</P>
+<P>The <CODE>&lt;leftop:...&gt;</CODE> and <CODE>&lt;rightop:...&gt;</CODE> directives provide an
+easier way of specifying such operations. Using <CODE>&lt;leftop:...&gt;</CODE> the
+above examples become:</P>
+<PRE>
+        disjunction:    &lt;leftop: conjunction 'or' conjunction&gt;
+        conjunction:    &lt;leftop: atom 'and' atom&gt;</PRE>
+<P>The <CODE>&lt;leftop:...&gt;</CODE> directive specifies a left-associative binary operator.
+It is specified around three other grammar elements
+(typically subrules or terminals), which match the left operand,
+the operator itself, and the right operand respectively.</P>
+<P>A <CODE>&lt;leftop:...&gt;</CODE> directive such as:</P>
+<PRE>
+        disjunction:    &lt;leftop: conjunction 'or' conjunction&gt;</PRE>
+<P>is converted to the following:</P>
+<PRE>
+        disjunction:    ( conjunction ('or' conjunction)(s?)
+                                { $return = [ $item[1], @{$item[2]} ] } )</PRE>
+<P>In other words, a <CODE>&lt;leftop:...&gt;</CODE> directive matches the left operand followed by zero
+or more repetitions of both the operator and the right operand. It then
+flattens the matched items into an anonymous array which becomes the
+(single) value of the entire <CODE>&lt;leftop:...&gt;</CODE> directive.</P>
+<P>For example, an <CODE>&lt;leftop:...&gt;</CODE> directive such as:</P>
+<PRE>
+        output:  &lt;leftop: ident '&lt;&lt;' expr &gt;</PRE>
+<P>when given a string such as:</P>
+<PRE>
+        cout &lt;&lt; var &lt;&lt; &quot;str&quot; &lt;&lt; 3</PRE>
+<P>would match, and <CODE>$item[1]</CODE> would be set to:</P>
+<PRE>
+        [ 'cout', 'var', '&quot;str&quot;', '3' ]</PRE>
+<P>In other words:</P>
+<PRE>
+        output:  &lt;leftop: ident '&lt;&lt;' expr &gt;</PRE>
+<P>is equivalent to a left-associative operator:</P>
+<PRE>
+        output:  ident                                  { $return = [$item[1]]       }
+              |  ident '&lt;&lt;' expr                        { $return = [@item[1,3]]     }
+              |  ident '&lt;&lt;' expr '&lt;&lt;' expr              { $return = [@item[1,3,5]]   }
+              |  ident '&lt;&lt;' expr '&lt;&lt;' expr '&lt;&lt;' expr    { $return = [@item[1,3,5,7]] }
+              #  ...etc...</PRE>
+<P>Similarly, the <CODE>&lt;rightop:...&gt;</CODE> directive takes a left operand, an operator, and a right operand:</P>
+<PRE>
+        assign:  &lt;rightop: var '=' expr &gt;</PRE>
+<P>and converts them to:</P>
+<PRE>
+        assign:  ( (var '=' {$return=$item[1]})(s?) expr
+                                { $return = [ @{$item[1]}, $item[2] ] } )</PRE>
+<P>which is equivalent to a right-associative operator:</P>
+<PRE>
+        assign:  var                            { $return = [$item[1]]       }
+              |  var '=' expr                   { $return = [@item[1,3]]     }
+              |  var '=' var '=' expr           { $return = [@item[1,3,5]]   }
+              |  var '=' var '=' var '=' expr   { $return = [@item[1,3,5,7]] }
+              #  ...etc...</PRE>
+<P>Note that for both the <CODE>&lt;leftop:...&gt;</CODE> and <CODE>&lt;rightop:...&gt;</CODE> directives, the directive does not normally
+return the operator itself, just a list of the operands involved. This is
+particularly handy for specifying lists:</P>
+<PRE>
+        list: '(' &lt;leftop: list_item ',' list_item&gt; ')' 
+                        { $return = $item[2] }</PRE>
+<P>There is, however, a problem: sometimes the operator is itself significant.
+For example, in a Perl list a comma and a <CODE>=&gt;</CODE> are both
+valid separators, but the <CODE>=&gt;</CODE> has additional stringification semantics.
+Hence it's important to know which was used in each case.</P>
+<P>To solve this problem the
+<CODE>&lt;leftop:...&gt;</CODE> and <CODE>&lt;rightop:...&gt;</CODE> directives
+<EM>do</EM> return the <CODE>operator(s)</CODE> as well, under two circumstances.
+The first case is where the operator is specified as a subrule. In that instance,
+whatever the operator matches is returned (on the assumption that if the operator
+is important enough to have its own subrule, then it's important enough to return).</P>
+<P>The second case is where the operator is specified as a regular
+expression. In that case, if the first bracketed subpattern of the
+regular expression matches, that matching value is returned (this is analogous to
+the behaviour of the Perl <CODE>split</CODE> function, except that only the first subpattern
+is returned).</P>
+<P>In other words, given the input:</P>
+<PRE>
+        ( a=&gt;1, b=&gt;2 )</PRE>
+<P>the specifications:</P>
+<PRE>
+        list:      '('  &lt;leftop: list_item separator list_item&gt;  ')'</PRE>
+<PRE>
+        separator: ',' | '=&gt;'</PRE>
+<P>or:</P>
+<PRE>
+        list:      '('  &lt;leftop: list_item /(,|=&gt;)/ list_item&gt;  ')'</PRE>
+<P>cause the list separators to be interleaved with the operands in the
+anonymous array in <CODE>$item[2]</CODE>:</P>
+<PRE>
+        [ 'a', '=&gt;', '1', ',', 'b', '=&gt;', '2' ]</PRE>
+<P>But the following version:</P>
+<PRE>
+        list:      '('  &lt;leftop: list_item /,|=&gt;/ list_item&gt;  ')'</PRE>
+<P>returns only the operators:</P>
+<PRE>
+        [ 'a', '1', 'b', '2' ]
+</PRE>
+<PRE>
+
+Of course, none of the above specifications handle the case of an empty
+list, since the C&lt;E&lt;lt&gt;leftop:...E&lt;gt&gt;&gt; and C&lt;E&lt;lt&gt;rightop:...E&lt;gt&gt;&gt; directives
+require at least a single right or left operand to match. To specify
+that the operator can match &quot;trivially&quot;, 
+it's necessary to add a C&lt;(?)&gt; qualifier to the directive:</PRE>
+<PRE>
+        list:      '('  &lt;leftop: list_item /(,|=&gt;)/ list_item&gt;(?)  ')'</PRE>
+<P>Note that in almost all the above examples, the first and third arguments
+of the <CODE>&lt;leftop:...&gt;</CODE> directive were the same subrule. That is because
+<CODE>&lt;leftop:...&gt;</CODE>'s are frequently used to specify ``separated'' lists of the
+same type of item. To make such lists easier to specify, the following 
+syntax:</P>
+<PRE>
+        list:   element(s /,/)</PRE>
+<P>is exactly equivalent to:</P>
+<PRE>
+        list:   &lt;leftop: element /,/ element&gt;</PRE>
+<P>Note that the separator must be specified as a raw pattern (i.e.
+not a string or subrule).</P>
+<P></P>
+<DT><STRONG><A NAME="item_Scored_productions">Scored productions</A></STRONG><BR>
+<DD>
+By default, Parse::RecDescent grammar rules always accept the first
+production that matches the input. But if two or more productions may 
+potentially match the same input, choosing the first that does so may
+not be optimal.
+<P>For example, if you were parsing the sentence ``time flies like an arrow'',
+you might use a rule like this:</P>
+<PRE>
+        sentence: verb noun preposition article noun { [@item] }
+                | adjective noun verb article noun   { [@item] }
+                | noun verb preposition article noun { [@item] }</PRE>
+<P>Each of these productions matches the sentence, but the third one
+is the most likely interpretation. However, if the sentence had been
+``fruit flies like a banana'', then the second production is probably
+the right match.</P>
+<P>To cater for such situtations, the <CODE>&lt;score:...&gt;</CODE> can be used.
+The directive is equivalent to an unconditional <CODE>&lt;reject&gt;</CODE>,
+except that it allows you to specify a ``score'' for the current
+production. If that score is numerically greater than the best
+score of any preceding production, the current production is cached for later
+consideration. If no later production matches, then the cached
+production is treated as having matched, and the value of the
+item immediately before its <CODE>&lt;score:...&gt;</CODE> directive is returned as the
+result.</P>
+<P>In other words, by putting a <CODE>&lt;score:...&gt;</CODE> directive at the end of
+each production, you can select which production matches using
+criteria other than specification order. For example:</P>
+<PRE>
+        sentence: verb noun preposition article noun { [@item] } &lt;score: sensible(@item)&gt;
+                | adjective noun verb article noun   { [@item] } &lt;score: sensible(@item)&gt;
+                | noun verb preposition article noun { [@item] } &lt;score: sensible(@item)&gt;</PRE>
+<P>Now, when each production reaches its respective <CODE>&lt;score:...&gt;</CODE> 
+directive, the subroutine <CODE>sensible</CODE> will be called to evaluate the
+matched items (somehow). Once all productions have been tried, the
+one which <CODE>sensible</CODE> scored most highly will be the one that is 
+accepted as a match for the rule.</P>
+<P>The variable $score always holds the current best score of any production,
+and the variable $score_return holds the corresponding return value.</P>
+<P>As another example, the following grammar matches lines that may be
+separated by commas, colons, or semi-colons. This can be tricky if
+a colon-separated line also contains commas, or vice versa. The grammar
+resolves the ambiguity by selecting the rule that results in the
+fewest fields:</P>
+<PRE>
+        line: seplist[sep=&gt;',']  &lt;score: -@{$item[1]}&gt;
+            | seplist[sep=&gt;':']  &lt;score: -@{$item[1]}&gt;
+            | seplist[sep=&gt;&quot; &quot;]  &lt;score: -@{$item[1]}&gt;</PRE>
+<PRE>
+        seplist: &lt;skip:&quot;&quot;&gt; &lt;leftop: /[^$arg{sep}]*/ &quot;$arg{sep}&quot; /[^$arg{sep}]*/&gt;</PRE>
+<P>Note the use of negation within the <CODE>&lt;score:...&gt;</CODE> directive
+to ensure that the seplist with the most items gets the lowest score.</P>
+<P>As the above examples indicate, it is often the case that all productions
+in a rule use exactly the same <CODE>&lt;score:...&gt;</CODE> directive. It is
+tedious to have to repeat this identical directive in every production, so
+Parse::RecDescent also provides the <CODE>&lt;autoscore:...&gt;</CODE> directive.</P>
+<P>If an <CODE>&lt;autoscore:...&gt;</CODE> directive appears in any
+production of a rule, the code it specifies is used as the scoring
+code for every production of that rule, except productions that already
+end with an explicit <CODE>&lt;score:...&gt;</CODE> directive. Thus the rules above could
+be rewritten:</P>
+<PRE>
+        line: &lt;autoscore: -@{$item[1]}&gt;
+        line: seplist[sep=&gt;','] 
+            | seplist[sep=&gt;':']
+            | seplist[sep=&gt;&quot; &quot;]</PRE>
+<PRE>
+        sentence: &lt;autoscore: sensible(@item)&gt;
+                | verb noun preposition article noun { [@item] }
+                | adjective noun verb article noun   { [@item] }
+                | noun verb preposition article noun { [@item] }</PRE>
+<P>Note that the <CODE>&lt;autoscore:...&gt;</CODE> directive itself acts as an
+unconditional <CODE>&lt;reject&gt;</CODE>, and (like the <CODE>&lt;rulevar:...&gt;</CODE>
+directive) is pruned at compile-time wherever possible.</P>
+<P></P>
+<DT><STRONG><A NAME="item_Dispensing_with_grammar_checks">Dispensing with grammar checks</A></STRONG><BR>
+<DD>
+During the compilation phase of parser construction, Parse::RecDescent performs
+a small number of checks on the grammar it's given. Specifically it checks that
+the grammar is not left-recursive, that there are no ``insatiable'' constructs of
+the form:
+<PRE>
+        rule: subrule(s) subrule</PRE>
+<P>and that there are no rules missing (i.e. referred to, but never defined).</P>
+<P>These checks are important during development, but can slow down parser
+construction in stable code. So Parse::RecDescent provides the
+&lt;nocheck&gt; directive to turn them off. The directive can only appear
+before the first rule definition, and switches off checking throughout the rest
+of the current grammar.</P>
+<P>Typically, this directive would be added when a parser has been thoroughly
+tested and is ready for release.</P>
+<P></P></DL>
+<P>
+<H2><A NAME="subrule argument lists">Subrule argument lists</A></H2>
+<P>It is occasionally useful to pass data to a subrule which is being invoked. For
+example, consider the following grammar fragment:</P>
+<PRE>
+        classdecl: keyword decl</PRE>
+<PRE>
+        keyword:   'struct' | 'class';</PRE>
+<PRE>
+        decl:      # WHATEVER</PRE>
+<P>The <CODE>decl</CODE> rule might wish to know which of the two keywords was used
+(since it may affect some aspect of the way the subsequent declaration
+is interpreted). <CODE>Parse::RecDescent</CODE> allows the grammar designer to
+pass data into a rule, by placing that data in an <EM>argument list</EM>
+(that is, in square brackets) immediately after any subrule item in a
+production. Hence, we could pass the keyword to <CODE>decl</CODE> as follows:</P>
+<PRE>
+        classdecl: keyword decl[ $item[1] ]</PRE>
+<PRE>
+        keyword:   'struct' | 'class';</PRE>
+<PRE>
+        decl:      # WHATEVER</PRE>
+<P>The argument list can consist of any number (including zero!) of comma-separated
+Perl expressions. In other words, it looks exactly like a Perl anonymous
+array reference. For example, we could pass the keyword, the name of the
+surrounding rule, and the literal 'keyword' to <CODE>decl</CODE> like so:</P>
+<PRE>
+        classdecl: keyword decl[$item[1],$item[0],'keyword']</PRE>
+<PRE>
+        keyword:   'struct' | 'class';</PRE>
+<PRE>
+        decl:      # WHATEVER</PRE>
+<P>Within the rule to which the data is passed (<CODE>decl</CODE> in the above examples)
+that data is available as the elements of a local variable <CODE>@arg</CODE>. Hence
+<CODE>decl</CODE> might report its intentions as follows:</P>
+<PRE>
+        classdecl: keyword decl[$item[1],$item[0],'keyword']</PRE>
+<PRE>
+        keyword:   'struct' | 'class';</PRE>
+<PRE>
+        decl:      { print &quot;Declaring $arg[0] (a $arg[2])\n&quot;;
+                     print &quot;(this rule called by $arg[1])&quot; }</PRE>
+<P>Subrule argument lists can also be interpreted as hashes, simply by using
+the local variable <CODE>%arg</CODE> instead of <CODE>@arg</CODE>. Hence we could rewrite the
+previous example:</P>
+<PRE>
+        classdecl: keyword decl[keyword =&gt; $item[1],
+                                caller  =&gt; $item[0],
+                                type    =&gt; 'keyword']</PRE>
+<PRE>
+        keyword:   'struct' | 'class';</PRE>
+<PRE>
+        decl:      { print &quot;Declaring $arg{keyword} (a $arg{type})\n&quot;;
+                     print &quot;(this rule called by $arg{caller})&quot; }</PRE>
+<P>Both <CODE>@arg</CODE> and <CODE>%arg</CODE> are always available, so the grammar designer may
+choose whichever convention (or combination of conventions) suits best.</P>
+<P>Subrule argument lists are also useful for creating ``rule templates''
+(especially when used in conjunction with the <CODE>&lt;matchrule:...&gt;</CODE>
+directive). For example, the subrule:</P>
+<PRE>
+        list:     &lt;matchrule:$arg{rule}&gt; /$arg{sep}/ list[%arg]
+                        { $return = [ $item[1], @{$item[3]} ] }
+            |     &lt;matchrule:$arg{rule}&gt;
+                        { $return = [ $item[1]] }</PRE>
+<P>is a handy template for the common problem of matching a separated list.
+For example:</P>
+<PRE>
+        function: 'func' name '(' list[rule=&gt;'param',sep=&gt;';'] ')'</PRE>
+<PRE>
+        param:    list[rule=&gt;'name',sep=&gt;','] ':' typename</PRE>
+<PRE>
+        name:     /\w+/</PRE>
+<PRE>
+        typename: name</PRE>
+<P>When a subrule argument list is used with a repeated subrule, the argument list
+goes <EM>before</EM> the repetition specifier:</P>
+<PRE>
+        list:   /some|many/ thing[ $item[1] ](s)</PRE>
+<P>The argument list is ``late bound''. That is, it is re-evaluated for every
+repetition of the repeated subrule.
+This means that each repeated attempt to match the subrule may be
+passed a completely different set of arguments if the value of the
+expression in the argument list changes between attempts. So, for
+example, the grammar:</P>
+<PRE>
+        { $::species = 'dogs' }</PRE>
+<PRE>
+        pair:   'two' animal[$::species](s)</PRE>
+<PRE>
+        animal: /$arg[0]/ { $::species = 'cats' }</PRE>
+<P>will match the string ``two dogs cats cats'' completely, whereas
+it will only match the string ``two dogs dogs dogs'' up to the
+eighth letter. If the value of the argument list were ``early bound''
+(that is, evaluated only the first time a repeated subrule match is
+attempted), one would expect the matching behaviours to be reversed.</P>
+<P>Of course, it is possible to effectively ``early bind'' such argument lists
+by passing them a value which does not change on each repetition. For example:</P>
+<PRE>
+        { $::species = 'dogs' }</PRE>
+<PRE>
+        pair:   'two' { $::species } animal[$item[2]](s)</PRE>
+<PRE>
+        animal: /$arg[0]/ { $::species = 'cats' }</PRE>
+<P>Arguments can also be passed to the start rule, simply by appending them
+to the argument list with which the start rule is called (<EM>after</EM> the
+``line number'' parameter). For example, given:</P>
+<PRE>
+        $parser = new Parse::RecDescent ( $grammar );</PRE>
+<PRE>
+        $parser-&gt;data($text, 1, &quot;str&quot;, 2, \@arr);</PRE>
+<PRE>
+        #             ^^^^^  ^  ^^^^^^^^^^^^^^^
+        #               |    |         |
+        # TEXT TO BE PARSED  |         |
+        # STARTING LINE NUMBER         |
+        # ELEMENTS OF @arg WHICH IS PASSED TO RULE data</PRE>
+<P>then within the productions of the rule <CODE>data</CODE>, the array <CODE>@arg</CODE> will contain
+<CODE>(&quot;str&quot;, 2, \@arr)</CODE>.</P>
+<P>
+<H2><A NAME="alternations">Alternations</A></H2>
+<P>Alternations are implicit (unnamed) rules defined as part of a production. An
+alternation is defined as a series of '|'-separated productions inside a
+pair of round brackets. For example:</P>
+<PRE>
+        character: 'the' ( good | bad | ugly ) /dude/</PRE>
+<P>Every alternation implicitly defines a new subrule, whose
+automatically-generated name indicates its origin:
+``_alternation_&lt;I&gt;_of_production_&lt;P&gt;_of_rule&lt;R&gt;'' for the appropriate
+values of &lt;I&gt;, &lt;P&gt;, and &lt;R&gt;. A call to this implicit subrule is then
+inserted in place of the brackets. Hence the above example is merely a
+convenient short-hand for:</P>
+<PRE>
+        character: 'the'
+                   _alternation_1_of_production_1_of_rule_character
+                   /dude/</PRE>
+<PRE>
+        _alternation_1_of_production_1_of_rule_character:
+                   good | bad | ugly</PRE>
+<P>Since alternations are parsed by recursively calling the parser generator, 
+any <CODE>type(s)</CODE> of item can appear in an alternation. For example:</P>
+<PRE>
+        character: 'the' ( 'high' &quot;plains&quot;      # Silent, with poncho
+                         | /no[- ]name/         # Silent, no poncho
+                         | vengeance_seeking    # Poncho-optional
+                         | &lt;error&gt;              
+                         ) drifter</PRE>
+<P>In this case, if an error occurred, the automatically generated
+message would be:</P>
+<PRE>
+        ERROR (line &lt;N&gt;): Invalid implicit subrule: Expected
+                          'high' or /no[- ]name/ or generic,
+                          but found &quot;pacifist&quot; instead</PRE>
+<P>Since every alternation actually has a name, it's even possible
+to extend or replace them:</P>
+<PRE>
+        parser-&gt;Replace(
+                &quot;_alternation_1_of_production_1_of_rule_character:
+                        'generic Eastwood'&quot;
+                        );</PRE>
+<P>More importantly, since alternations are a form of subrule, they can be given
+repetition specifiers:</P>
+<PRE>
+        character: 'the' ( good | bad | ugly )(?) /dude/</PRE>
+<P>
+<H2><A NAME="incremental parsing">Incremental Parsing</A></H2>
+<P><CODE>Parse::RecDescent</CODE> provides two methods - <CODE>Extend</CODE> and <CODE>Replace</CODE> - which
+can be used to alter the grammar matched by a parser. Both methods
+take the same argument as <CODE>Parse::RecDescent::new</CODE>, namely a
+grammar specification string</P>
+<P><CODE>Parse::RecDescent::Extend</CODE> interprets the grammar specification and adds any
+productions it finds to the end of the rules for which they are specified. For
+example:</P>
+<PRE>
+        $add = &quot;name: 'Jimmy-Bob' | 'Bobby-Jim'\ndesc: colour /necks?/&quot;;
+        parser-&gt;Extend($add);</PRE>
+<P>adds two productions to the rule ``name'' (creating it if necessary) and one
+production to the rule ``desc''.</P>
+<P><CODE>Parse::RecDescent::Replace</CODE> is identical, except that it first resets are
+rule specified in the additional grammar, removing any existing productions.
+Hence after:</P>
+<PRE>
+        $add = &quot;name: 'Jimmy-Bob' | 'Bobby-Jim'\ndesc: colour /necks?/&quot;;
+        parser-&gt;Replace($add);</PRE>
+<P>are are <EM>only</EM> valid ``name''s and the one possible description.</P>
+<P>A more interesting use of the <CODE>Extend</CODE> and <CODE>Replace</CODE> methods is to call them
+inside the action of an executing parser. For example:</P>
+<PRE>
+        typedef: 'typedef' type_name identifier ';'
+                       { $thisparser-&gt;Extend(&quot;type_name: '$item[3]'&quot;) }
+               | &lt;error&gt;</PRE>
+<PRE>
+        identifier: ...!type_name /[A-Za-z_]w*/</PRE>
+<P>which automatically prevents type names from being typedef'd, or:</P>
+<PRE>
+        command: 'map' key_name 'to' abort_key
+                       { $thisparser-&gt;Replace(&quot;abort_key: '$item[2]'&quot;) }
+               | 'map' key_name 'to' key_name
+                       { map_key($item[2],$item[4]) }
+               | abort_key
+                       { exit if confirm(&quot;abort?&quot;) }</PRE>
+<PRE>
+        abort_key: 'q'</PRE>
+<PRE>
+        key_name: ...!abort_key /[A-Za-z]/</PRE>
+<P>which allows the user to change the abort key binding, but not to unbind it.</P>
+<P>The careful use of such constructs makes it possible to reconfigure a
+a running parser, eliminating the need for semantic feedback by
+providing syntactic feedback instead. However, as currently implemented,
+<CODE>Replace()</CODE> and <CODE>Extend()</CODE> have to regenerate and re-<CODE>eval</CODE> the
+entire parser whenever they are called. This makes them quite slow for
+large grammars.</P>
+<P>In such cases, the judicious use of an interpolated regex is likely to
+be far more efficient:</P>
+<PRE>
+        typedef: 'typedef' type_name/ identifier ';'
+                       { $thisparser-&gt;{local}{type_name} .= &quot;|$item[3]&quot; }
+               | &lt;error&gt;</PRE>
+<PRE>
+        identifier: ...!type_name /[A-Za-z_]w*/</PRE>
+<PRE>
+        type_name: /$thisparser-&gt;{local}{type_name}/</PRE>
+<P>
+<H2><A NAME="precompiling parsers">Precompiling parsers</A></H2>
+<P>Normally Parse::RecDescent builds a parser from a grammar at run-time.
+That approach simplifies the design and implementation of parsing code,
+but has the disadvantage that it slows the parsing process down - you
+have to wait for Parse::RecDescent to build the parser every time the
+program runs. Long or complex grammars can be particularly slow to
+build, leading to unacceptable delays at start-up.</P>
+<P>To overcome this, the module provides a way of ``pre-building'' a parser
+object and saving it in a separate module. That module can then be used
+to create clones of the original parser.</P>
+<P>A grammar may be precompiled using the <CODE>Precompile</CODE> class method.
+For example, to precompile a grammar stored in the scalar $grammar,
+and produce a class named PreGrammar in a module file named PreGrammar.pm,
+you could use:</P>
+<PRE>
+        use Parse::RecDescent;</PRE>
+<PRE>
+        Parse::RecDescent-&gt;Precompile($grammar, &quot;PreGrammar&quot;);</PRE>
+<P>The first argument is the grammar string, the second is the name of the class
+to be built. The name of the module file is generated automatically by
+appending ``.pm'' to the last element of the class name. Thus</P>
+<PRE>
+        Parse::RecDescent-&gt;Precompile($grammar, &quot;My::New::Parser&quot;);</PRE>
+<P>would produce a module file named Parser.pm.</P>
+<P>It is somewhat tedious to have to write a small Perl program just to 
+generate a precompiled grammar class, so Parse::RecDescent has some special
+magic that allows you to do the job directly from the command-line.</P>
+<P>If your grammar is specified in a file named <EM>grammar</EM>, you can generate
+a class named Yet::Another::Grammar like so:</P>
+<PRE>
+        &gt; perl -MParse::RecDescent - grammar Yet::Another::Grammar</PRE>
+<P>This would produce a file named <EM>Grammar.pm</EM> containing the full
+definition of a class called Yet::Another::Grammar. Of course, to use
+that class, you would need to put the <EM>Grammar.pm</EM> file in a
+directory named <EM>Yet/Another</EM>, somewhere in your Perl include path.</P>
+<P>Having created the new class, it's very easy to use it to build
+a parser. You simply <CODE>use</CODE> the new module, and then call its
+<CODE>new</CODE> method to create a parser object. For example:</P>
+<PRE>
+        use Yet::Another::Grammar;
+        my $parser = Yet::Another::Grammar-&gt;new();</PRE>
+<P>The effect of these two lines is exactly the same as:</P>
+<PRE>
+        use Parse::RecDescent;</PRE>
+<PRE>
+        open GRAMMAR_FILE, &quot;grammar&quot; or die;
+        local $/;
+        my $grammar = &lt;GRAMMAR_FILE&gt;;</PRE>
+<PRE>
+        my $parser = Parse::RecDescent-&gt;new($grammar);</PRE>
+<P>only considerably faster.</P>
+<P>Note however that the parsers produced by either approach are exactly
+the same, so whilst precompilation has an effect on <EM>set-up</EM> speed,
+it has no effect on <EM>parsing</EM> speed. RecDescent 2.0 will address that
+problem.</P>
+<P>
+<H2><A NAME="a metagrammar for parse::recdescent">A Metagrammar for <CODE>Parse::RecDescent</CODE></A></H2>
+<P>The following is a specification of grammar format accepted by
+<CODE>Parse::RecDescent::new</CODE> (specified in the <CODE>Parse::RecDescent</CODE> grammar format!):</P>
+<PRE>
+ grammar    : components(s)</PRE>
+<PRE>
+ component  : rule | comment</PRE>
+<PRE>
+ rule       : &quot;\n&quot; identifier &quot;:&quot; production(s?)</PRE>
+<PRE>
+ production : items(s)</PRE>
+<PRE>
+ item       : lookahead(?) simpleitem
+            | directive
+            | comment</PRE>
+<PRE>
+ lookahead  : '...' | '...!'                   # +'ve or -'ve lookahead
+</PRE>
+<PRE>
+
+ simpleitem : subrule args(?)                  # match another rule
+            | repetition                       # match repeated subrules
+            | terminal                         # match the next input
+            | bracket args(?)                  # match alternative items
+            | action                           # do something</PRE>
+<PRE>
+ subrule    : identifier                       # the name of the rule</PRE>
+<PRE>
+ args       : {extract_codeblock($text,'[]')}  # just like a [...] array ref</PRE>
+<PRE>
+ repetition : subrule args(?) howoften</PRE>
+<PRE>
+ howoften   : '(?)'                            # 0 or 1 times
+            | '(s?)'                           # 0 or more times
+            | '(s)'                            # 1 or more times
+            | /(\d+)[.][.](/\d+)/              # $1 to $2 times
+            | /[.][.](/\d*)/                   # at most $1 times
+            | /(\d*)[.][.])/                   # at least $1 times</PRE>
+<PRE>
+ terminal   : /[/]([\][/]|[^/])*[/]/           # interpolated pattern
+            | /&quot;([\]&quot;|[^&quot;])*&quot;/                 # interpolated literal
+            | /'([\]'|[^'])*'/                 # uninterpolated literal</PRE>
+<PRE>
+ action     : { extract_codeblock($text) }     # embedded Perl code</PRE>
+<PRE>
+ bracket    : '(' Item(s) production(s?) ')'   # alternative subrules</PRE>
+<PRE>
+ directive  : '&lt;commit&gt;'                       # commit to production
+            | '&lt;uncommit&gt;'                     # cancel commitment
+            | '&lt;resync&gt;'                       # skip to newline
+            | '&lt;resync:' pattern '&gt;'           # skip &lt;pattern&gt;
+            | '&lt;reject&gt;'                       # fail this production
+            | '&lt;reject:' condition '&gt;'         # fail if &lt;condition&gt;
+            | '&lt;error&gt;'                        # report an error
+            | '&lt;error:' string '&gt;'             # report error as &quot;&lt;string&gt;&quot;
+            | '&lt;error?&gt;'                       # error only if committed
+            | '&lt;error?:' string '&gt;'            #   &quot;    &quot;    &quot;    &quot;
+            | '&lt;rulevar:' /[^&gt;]+/ '&gt;'          # define rule-local variable
+            | '&lt;matchrule:' string '&gt;'         # invoke rule named in string</PRE>
+<PRE>
+ identifier : /[a-z]\w*/i                      # must start with alpha</PRE>
+<PRE>
+ comment    : /#[^\n]*/                        # same as Perl</PRE>
+<PRE>
+ pattern    : {extract_bracketed($text,'&lt;')}   # allow embedded &quot;&lt;..&gt;&quot;</PRE>
+<PRE>
+ condition  : {extract_codeblock($text,'{&lt;')}  # full Perl expression</PRE>
+<PRE>
+ string     : {extract_variable($text)}        # any Perl variable
+            | {extract_quotelike($text)}       #   or quotelike string
+            | {extract_bracketed($text,'&lt;')}   #   or balanced brackets</PRE>
+<P>
+<HR>
+<H1><A NAME="gotchas">GOTCHAS</A></H1>
+<P>This section describes common mistakes that grammar writers seem to
+make on a regular basis.</P>
+<P>
+<H2><A NAME="1. expecting an error to always invalidate a parse">1. Expecting an error to always invalidate a parse</A></H2>
+<P>A common mistake when using error messages is to write the grammar like this:</P>
+<PRE>
+        file: line(s)</PRE>
+<PRE>
+        line: line_type_1
+            | line_type_2
+            | line_type_3
+            | &lt;error&gt;</PRE>
+<P>The expectation seems to be that any line that is not of type 1, 2 or 3 will
+invoke the <CODE>&lt;error&gt;</CODE> directive and thereby cause the parse to fail.</P>
+<P>Unfortunately, that only happens if the error occurs in the very first line.
+The first rule states that a <CODE>file</CODE> is matched by one or more lines, so if
+even a single line succeeds, the first rule is completely satisfied and the
+parse as a whole succeeds. That means that any error messages generated by
+subsequent failures in the <CODE>line</CODE> rule are quietly ignored.</P>
+<P>Typically what's really needed is this:</P>
+<PRE>
+        file: line(s) eofile    { $return = $item[1] }</PRE>
+<PRE>
+        line: line_type_1
+            | line_type_2
+            | line_type_3
+            | &lt;error&gt;</PRE>
+<PRE>
+        eofile: /^\Z/</PRE>
+<P>The addition of the <CODE>eofile</CODE> subrule  to the first production means that
+a file only matches a series of successful <CODE>line</CODE> matches <EM>that consume the
+complete input text</EM>. If any input text remains after the lines are matched,
+there must have been an error in the last <CODE>line</CODE>. In that case the <CODE>eofile</CODE>
+rule will fail, causing the entire <CODE>file</CODE> rule to fail too.</P>
+<P>Note too that <CODE>eofile</CODE> must match <CODE>/^\Z/</CODE> (end-of-text), <EM>not</EM> 
+<CODE>/^\cZ/</CODE> or <CODE>/^\cD/</CODE> (end-of-file).</P>
+<P>And don't forget the action at the end of the production. If you just 
+write:</P>
+<PRE>
+        file: line(s) eofile</PRE>
+<P>then the value returned by the <CODE>file</CODE> rule will be the value of its
+last item: <CODE>eofile</CODE>. Since <CODE>eofile</CODE> always returns an empty string
+on success, that will cause the <CODE>file</CODE> rule to return that empty
+string. Apart from returning the wrong value, returning an empty string
+will trip up code such as:</P>
+<PRE>
+        $parser-&gt;file($filetext) || die;</PRE>
+<P>(since ``'' is false).</P>
+<P>Remember that Parse::RecDescent returns undef on failure,
+so the only safe test for failure is:</P>
+<PRE>
+        defined($parser-&gt;file($filetext)) || die;</PRE>
+<P>
+<HR>
+<H1><A NAME="diagnostics">DIAGNOSTICS</A></H1>
+<P>Diagnostics are intended to be self-explanatory (particularly if you
+use <STRONG>-RD_HINT</STRONG> (under <STRONG>perl -s</STRONG>) or define <CODE>$::RD_HINT</CODE> inside the program).</P>
+<P><CODE>Parse::RecDescent</CODE> currently diagnoses the following:</P>
+<UL>
+<LI>
+Invalid regular expressions used as pattern terminals (fatal error).
+<P></P>
+<LI>
+Invalid Perl code in code blocks (fatal error).
+<P></P>
+<LI>
+Lookahead used in the wrong place or in a nonsensical way (fatal error).
+<P></P>
+<LI>
+``Obvious'' cases of left-recursion (fatal error).
+<P></P>
+<LI>
+Missing or extra components in a <CODE>&lt;leftop&gt;</CODE> or <CODE>&lt;rightop&gt;</CODE>
+directive.
+<P></P>
+<LI>
+Unrecognisable components in the grammar specification (fatal error).
+<P></P>
+<LI>
+``Orphaned'' rule components specified before the first rule (fatal error)
+or after an <CODE>&lt;error&gt;</CODE> directive (level 3 warning).
+<P></P>
+<LI>
+Missing rule definitions (this only generates a level 3 warning, since you
+may be providing them later via <CODE>Parse::RecDescent::Extend()</CODE>).
+<P></P>
+<LI>
+Instances where greedy repetition behaviour will almost certainly
+cause the failure of a production (a level 3 warning - see
+<A HREF="#ongoing issues and future directions">ON-GOING ISSUES AND FUTURE DIRECTIONS</A> below).
+<P></P>
+<LI>
+Attempts to define rules named 'Replace' or 'Extend', which cannot be
+called directly through the parser object because of the predefined
+meaning of <CODE>Parse::RecDescent::Replace</CODE> and
+<CODE>Parse::RecDescent::Extend</CODE>. (Only a level 2 warning is generated, since
+such rules <EM>can</EM> still be used as subrules).
+<P></P>
+<LI>
+Productions which consist of a single <CODE>&lt;error?&gt;</CODE>
+directive, and which therefore may succeed unexpectedly
+(a level 2 warning, since this might conceivably be the desired effect).
+<P></P>
+<LI>
+Multiple consecutive lookahead specifiers (a level 1 warning only, since their
+effects simply accumulate).
+<P></P>
+<LI>
+Productions which start with a <CODE>&lt;reject&gt;</CODE> or <CODE>&lt;rulevar:...&gt;</CODE>
+directive. Such productions are optimized away (a level 1 warning).
+<P></P>
+<LI>
+Rules which are autogenerated under <CODE>$::AUTOSTUB</CODE> (a level 1 warning).
+<P></P></UL>
+<P>
+<HR>
+<H1><A NAME="author">AUTHOR</A></H1>
+<P>Damian Conway (<A HREF="mailto:damian@conway.org">damian@conway.org</A>)</P>
+<P>
+<HR>
+<H1><A NAME="bugs and irritations">BUGS AND IRRITATIONS</A></H1>
+<P>There are undoubtedly serious bugs lurking somewhere in this much code :-)
+Bug reports and other feedback are most welcome.</P>
+<P>Ongoing annoyances include:</P>
+<UL>
+<LI>
+There's no support for parsing directly from an input stream.
+If and when the Perl Gods give us regular expressions on streams,
+this should be trivial (ahem!) to implement.
+<P></P>
+<LI>
+The parser generator can get confused if actions aren't properly
+closed or if they contain particularly nasty Perl syntax errors
+(especially unmatched curly brackets).
+<P></P>
+<LI>
+The generator only detects the most obvious form of left recursion
+(potential recursion on the first subrule in a rule). More subtle
+forms of left recursion (for example, through the second item in a 
+rule after a ``zero'' match of a preceding ``zero-or-more'' repetition,
+or after a match of a subrule with an empty production) are not found.
+<P></P>
+<LI>
+Instead of complaining about left-recursion, the generator should
+silently transform the grammar to remove it. Don't expect this
+feature any time soon as it would require a more sophisticated
+approach to parser generation than is currently used.
+<P></P>
+<LI>
+The generated parsers don't always run as fast as might be wished.
+<P></P>
+<LI>
+The meta-parser should be bootstrapped using <CODE>Parse::RecDescent</CODE> :-)
+<P></P></UL>
+<P>
+<HR>
+<H1><A NAME="ongoing issues and future directions">ON-GOING ISSUES AND FUTURE DIRECTIONS</A></H1>
+<OL>
+<LI>
+Repetitions are ``incorrigibly greedy'' in that they will eat everything they can
+and won't backtrack if that behaviour causes a production to fail needlessly.
+So, for example:
+<PRE>
+        rule: subrule(s) subrule</PRE>
+<P>will <EM>never</EM> succeed, because the repetition will eat all the
+subrules it finds, leaving none to match the second item. Such
+constructions are relatively rare (and <CODE>Parse::RecDescent::new</CODE> generates a
+warning whenever they occur) so this may not be a problem, especially
+since the insatiable behaviour can be overcome ``manually'' by writing:</P>
+<PRE>
+        rule: penultimate_subrule(s) subrule</PRE>
+<PRE>
+        penultimate_subrule: subrule ...subrule</PRE>
+<P>The issue is that this construction is exactly twice as expensive as the
+original, whereas backtracking would add only 1/<EM>N</EM> to the cost (for
+matching <EM>N</EM> repetitions of <CODE>subrule</CODE>). I would welcome feedback on
+the need for backtracking; particularly on cases where the lack of it
+makes parsing performance problematical.</P>
+<P></P>
+<LI>
+Having opened that can of worms, it's also necessary to consider whether there
+is a need for non-greedy repetition specifiers. Again, it's possible (at some
+cost) to manually provide the required functionality:
+<PRE>
+        rule: nongreedy_subrule(s) othersubrule</PRE>
+<PRE>
+        nongreedy_subrule: subrule ...!othersubrule</PRE>
+<P>Overall, the issue is whether the benefit of this extra functionality
+outweighs the drawbacks of further complicating the (currently
+minimalist) grammar specification syntax, and (worse) introducing more overhead
+into the generated parsers.</P>
+<P></P>
+<LI>
+An <CODE>&lt;autocommit&gt;</CODE> directive would be nice. That is, it would be useful to be
+able to say:
+<PRE>
+        command: &lt;autocommit&gt;
+        command: 'find' name
+               | 'find' address
+               | 'do' command 'at' time 'if' condition
+               | 'do' command 'at' time
+               | 'do' command
+               | unusual_command</PRE>
+<P>and have the generator work out that this should be ``pruned'' thus:</P>
+<PRE>
+        command: 'find' name
+               | 'find' &lt;commit&gt; address
+               | 'do' &lt;commit&gt; command &lt;uncommit&gt;
+                        'at' time
+                        'if' &lt;commit&gt; condition
+               | 'do' &lt;commit&gt; command &lt;uncommit&gt;
+                        'at' &lt;commit&gt; time
+               | 'do' &lt;commit&gt; command
+               | unusual_command</PRE>
+<P>There are several issues here. Firstly, should the
+<CODE>&lt;autocommit&gt;</CODE> automatically install an <CODE>&lt;uncommit&gt;</CODE>
+at the start of the last production (on the grounds that the ``command''
+rule doesn't know whether an ``unusual_command'' might start with ``find''
+or ``do'') or should the ``unusual_command'' subgraph be analysed (to see
+if it <EM>might</EM> be viable after a ``find'' or ``do'')?</P>
+<P>The second issue is how regular expressions should be treated. The simplest
+approach would be simply to uncommit before them (on the grounds that they
+<EM>might</EM> match). Better efficiency would be obtained by analyzing all preceding
+literal tokens to determine whether the pattern would match them.</P>
+<P>Overall, the issues are: can such automated ``pruning'' approach a hand-tuned
+version sufficiently closely to warrant the extra set-up expense, and (more
+importantly) is the problem important enough to even warrant the non-trivial
+effort of building an automated solution?</P>
+<P></P></OL>
+<P>
+<HR>
+<H1><A NAME="copyright">COPYRIGHT</A></H1>
+<P>Copyright (c) 1997-2000, Damian Conway. All Rights Reserved.
+This module is free software. It may be used, redistributed
+and/or modified under the terms of the Perl Artistic License
+  (see <A HREF="http://www.perl.com/perl/misc/Artistic.html)">http://www.perl.com/perl/misc/Artistic.html)</A></P>
+
+</BODY>
+
+</HTML>
