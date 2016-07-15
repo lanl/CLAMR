@@ -1627,24 +1627,35 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
          newcount=0;
 
          mpot.swap(mpot_old);
+#ifdef _OPENMP
+#pragma omp master
+{//START MASTER THREAD
+#endif
 
 #ifdef HAVE_MPI
          if (numpe > 1) {
             L7_Update(&mpot_old[0], L7_INT, cell_handle);
          }
+#endif//MPI END
+
+#ifdef _OPENMP
+}//END MASTER THREAD
 #endif
 
 #ifdef _OPENMP
 #pragma omp parallel
 {
 #endif
-         int upperBound, lowerBound;
-         get_bounds(upperBound, lowerBound);
+  //       int upperBound, lowerBound;
+         //set_bounds(ncells);
+//         get_bounds(upperBound, lowerBound);
          int mynewcount = newcount;
+         //int mynewcount = 0; //mynewcount will be UPDATED with newcount at the end
 #ifdef _OPENMP
 #pragma omp parallel for reduction(+:newcount)
 #endif
          for(uint ic = 0; ic < ncells; ic++) {
+         //  for(uint ic = lowerBound; ic < upperBound; ic++){
             int lev = level[ic];
             mpot[ic] = mpot_old[ic];
             if(mpot_old[ic] > 0) continue;
@@ -1658,6 +1669,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                   mpot[ic]=1;
 //#pragma omp atomic update
                   newcount++;
+                  // mynewcount++;
                   continue;
                }
 
@@ -1671,7 +1683,8 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                      if(llt - lev > 1) {
                         mpot[ic]=1;
 //#pragma omp atomic update
-                        newcount++;
+                       newcount++;
+                       //mynewcount++;
                         continue;
                      }
                   }
@@ -1687,6 +1700,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                   mpot[ic]=1;
 //#pragma omp atomic update
                   newcount++;
+                  //mynewcount++;
                   continue;
                }
 
@@ -1701,6 +1715,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                         mpot[ic]=1;
 //#pragma omp atomic update
                         newcount++;
+                        //mynewcount++;
                         continue;
                      }
                   }
@@ -1716,6 +1731,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                   mpot[ic]=1;
 //#pragma omp atomic update
                   newcount++;
+                  //mynewcount++;
                   continue;
                }
 
@@ -1730,6 +1746,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                         mpot[ic]=1;
 //#pragma omp atomic update
                         newcount++;
+                        //mynewcount++;
                         continue;
                      }
                   }
@@ -1745,6 +1762,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                   mpot[ic]=1;
 //#pragma omp atomic update
                   newcount++;
+                  //mynewcount++;
                   continue;
                }
 
@@ -1759,12 +1777,15 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                         mpot[ic]=1;
 //#pragma omp atomic update
                         newcount++;
+                        //mynewcount++;
                         continue;
                      }
                   }
                }
             }
          }
+//#pragma omp atomic
+  //  newcount += mynewcount;
 #ifdef _OPENMP
 #pragma omp barrier
 }
@@ -1781,7 +1802,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
       //printf("%d: newcount is %d newcount_global %d levmx %d\n",levcount,newcount,newcount_global,levmx);
       //} while (newcount > 0 && levcount < 10);
-      } while (newcount_global > 0 && levcount < levmx);
+      }// while (newcount_global > 0 && levcount < levmx); --<ORIGINALLY NOT COMMENTED OUT
    }
 
 #ifdef HAVE_MPI
