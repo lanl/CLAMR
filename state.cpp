@@ -852,91 +852,67 @@ void State::apply_boundary_conditions_Parallel(void)
 
 void State::remove_boundary_cells(void)
 {
-   size_t &ncells = mesh->ncells;
-   vector<int> &index    = mesh->index;
-   vector<spatial_t> &x       = mesh->x;
-   vector<spatial_t> &dx      = mesh->dx;
-   vector<spatial_t> &y       = mesh->y;
-   vector<spatial_t> &dy      = mesh->dy;
-
-   int *i, *j, *level, *celltype, *nlft, *nrht, *nbot, *ntop;
-
-   i        = mesh->i;
-   j        = mesh->j;
-   level    = mesh->level;
-   celltype = mesh->celltype;
-   nlft     = mesh->nlft;
-   nrht     = mesh->nrht;
-   nbot     = mesh->nbot;
-   ntop     = mesh->ntop;
-
-/******ADDING HIGHER LEVEL OMP*****/
 #ifdef _OPENMP
 #pragma omp parallel 
 {//start
-#pragma omp barrier
 #endif
 
    if(! mesh->have_boundary) {
 
 #ifdef _OPENMP
+#pragma omp barrier
 #pragma omp master
-   {
+      {
 #endif
-   // Resize to drop all the boundary cells
-   ncells = save_ncells;
-   H=(state_t *)state_memory.memory_realloc(save_ncells, H);
-   U=(state_t *)state_memory.memory_realloc(save_ncells, U);
-   V=(state_t *)state_memory.memory_realloc(save_ncells, V);
-   //printf("\nDEBUG remove_boundary cells\n"); 
-   //state_memory.memory_report();
-   //printf("DEBUG end remove_boundary cells\n\n"); 
+         size_t &ncells = mesh->ncells;
 
-   mesh->i        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, i);
-   mesh->j        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, j);
-   mesh->level    = (int *)mesh->mesh_memory.memory_realloc(save_ncells, level);
-   mesh->celltype = (int *)mesh->mesh_memory.memory_realloc(save_ncells, celltype);
-   mesh->nlft     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, nlft);
-   mesh->nrht     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, nrht);
-   mesh->nbot     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, nbot);
-   mesh->ntop     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, ntop);
-   i        = mesh->i;
-   j        = mesh->j;
-   level    = mesh->level;
-   celltype = mesh->celltype;
-   nlft     = mesh->nlft;
-   nrht     = mesh->nrht;
-   nbot     = mesh->nbot;
-   ntop     = mesh->ntop;
+         // Resize to drop all the boundary cells
+         ncells = save_ncells;
+         H=(state_t *)state_memory.memory_realloc(save_ncells, H);
+         U=(state_t *)state_memory.memory_realloc(save_ncells, U);
+         V=(state_t *)state_memory.memory_realloc(save_ncells, V);
+         //printf("\nDEBUG remove_boundary cells\n"); 
+         //state_memory.memory_report();
+         //printf("DEBUG end remove_boundary cells\n\n"); 
 
-   // Reset the neighbors due to the dropped boundary cells
-   index.resize(save_ncells);
-   x.resize(save_ncells);
-   dx.resize(save_ncells);
-   y.resize(save_ncells);
-   dy.resize(save_ncells);
+         mesh->i        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->i);
+         mesh->j        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->j);
+         mesh->level    = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->level);
+         mesh->celltype = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->celltype);
+         mesh->nlft     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->nlft);
+         mesh->nrht     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->nrht);
+         mesh->nbot     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->nbot);
+         mesh->ntop     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->ntop);
+
+         // Reset the neighbors due to the dropped boundary cells
+         mesh->index.resize(save_ncells);
+         mesh->x.resize(save_ncells);
+         mesh->dx.resize(save_ncells);
+         mesh->y.resize(save_ncells);
+         mesh->dy.resize(save_ncells);
 #ifdef _OPENMP
-   }
+      }
 #pragma omp barrier
 #endif
-   mesh->set_bounds(ncells);
 
-   int lowerBound, upperBound;
-   mesh->get_bounds(lowerBound, upperBound);
-   for (uint ic=lowerBound; ic<upperBound; ic++) {
-      if (i[ic] == mesh->lev_ibegin[level[ic]]) nlft[ic] = ic;
-      if (i[ic] == mesh->lev_iend[level[ic]])   nrht[ic] = ic;
-      if (j[ic] == mesh->lev_jbegin[level[ic]]) nbot[ic] = ic;
-      if (j[ic] == mesh->lev_jend[level[ic]])   ntop[ic] = ic;
-   }
+      mesh->set_bounds(mesh->ncells);
+
+      int lowerBound, upperBound;
+      mesh->get_bounds(lowerBound, upperBound);
+      for (uint ic=lowerBound; ic<upperBound; ic++) {
+         if (mesh->i[ic] == mesh->lev_ibegin[mesh->level[ic]]) mesh->nlft[ic] = ic;
+         if (mesh->i[ic] == mesh->lev_iend[mesh->level[ic]])   mesh->nrht[ic] = ic;
+         if (mesh->j[ic] == mesh->lev_jbegin[mesh->level[ic]]) mesh->nbot[ic] = ic;
+         if (mesh->j[ic] == mesh->lev_jend[mesh->level[ic]])   mesh->ntop[ic] = ic;
+      }
 
    } // if have_boundary
 
 #ifdef _OPENMP
-}//end
-#pragma omp barrier
+}//end parallel region
 #endif
 }
+
 double State::set_timestep(double g, double sigma)
 {
    double globalmindeltaT;
