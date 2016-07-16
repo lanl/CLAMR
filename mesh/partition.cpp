@@ -87,17 +87,17 @@ extern enum partition_method cycle_reorder;
 
 void Mesh::partition_measure(void) 
 {
-  if (measure_type == NO_PARTITION_MEASURE) return;
-
-  int ntX     = TILE_SIZE; 
-  double offtile_ratio = 0.0;
-
-  uint num_groups = (ncells + TILE_SIZE - 1)/TILE_SIZE;
-
 #ifdef _OPENMP
 #pragma omp parallel
   {
 #endif
+  if (measure_type != NO_PARTITION_MEASURE){
+
+  int ntX     = TILE_SIZE; 
+  static double offtile_ratio = 0.0;
+
+  uint num_groups = (ncells + TILE_SIZE - 1)/TILE_SIZE;
+
   if (measure_type == WITH_DUPLICATES) {
      int i = 0;
 #ifdef _OPENMP
@@ -266,16 +266,24 @@ void Mesh::partition_measure(void)
         //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
      }
   } 
+
+  // printf("DEBUG Ratio of surface area to volume is equal to %d / %d \n", offtile, ontile);
+   
+#ifdef _OPENMP
+#pragma omp master
+  {
+#endif
+      meas_count ++;
+      meas_sum_average  += offtile_ratio/(double)num_groups;
+     // printf("DEBUG %d icount %d sum_average %lf\n",__LINE__,icount, sum_average);
 #ifdef _OPENMP
   }
 #endif
 
-  // printf("DEBUG Ratio of surface area to volume is equal to %d / %d \n", offtile, ontile);
-   
-   meas_count ++;
-   meas_sum_average  += offtile_ratio/(double)num_groups;
-  // printf("DEBUG %d icount %d sum_average %lf\n",__LINE__,icount, sum_average);
-
+  } // if PARTITION TYPE
+#ifdef _OPENMP
+  }
+#endif
 }
 
 void Mesh::print_partition_measure()
