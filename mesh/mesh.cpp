@@ -3617,346 +3617,344 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
 
 void Mesh::calc_neighbors(int ncells)
 {
-
-#ifdef _OPENMP
-   #pragma omp parallel
-      {
-#endif
-   if (do_rezone) {
-
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   int flags = INDEX_ARRAY_MEMORY;
+   if (do_rezone) {
+
+      int flags = INDEX_ARRAY_MEMORY;
 
 #if defined (HAVE_J7)
-   if (parallel) flags |= LOAD_BALANCE_MEMORY;
+      if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
 
-   static int nlft_size = 0;
+      static int nlft_size = 0;
 
 #ifdef _OPENMP
 #pragma omp master
-   {
+      {
 #endif
-   cpu_counters[MESH_COUNTER_CALC_NEIGH]++;
+      cpu_counters[MESH_COUNTER_CALC_NEIGH]++;
 
-   if (nlft != NULL){
-      nlft_size = mesh_memory.get_memory_size(nlft);
-   }
-
-   if (nlft_size < ncells){
-         if (nlft != NULL){
-            nlft = (int *)mesh_memory.memory_delete(nlft);
-            nrht = (int *)mesh_memory.memory_delete(nrht);
-            nbot = (int *)mesh_memory.memory_delete(nbot);
-            ntop = (int *)mesh_memory.memory_delete(ntop);
-         }
-
-         nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
-         nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
-         nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
-         ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
-   }
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-   if (nlft_size < ncells){
-      int lowerBounds, upperBounds;
-      get_bounds(lowerBounds, upperBounds);
-
-      for(int ic=lowerBounds; ic<upperBounds; ic++){
-         nlft[ic] = -1;
-         nrht[ic] = -1;
-         nbot[ic] = -1;
-         ntop[ic] = -1;
+      if (nlft != NULL){
+         nlft_size = mesh_memory.get_memory_size(nlft);
       }
-   }
 
-   if (calc_neighbor_type == HASH_TABLE) {
+      if (nlft_size < ncells){
+            if (nlft != NULL){
+               nlft = (int *)mesh_memory.memory_delete(nlft);
+               nrht = (int *)mesh_memory.memory_delete(nrht);
+               nbot = (int *)mesh_memory.memory_delete(nbot);
+               ntop = (int *)mesh_memory.memory_delete(ntop);
+            }
 
-      struct timeval tstart_lev2;
-      if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+            nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
+            nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
+            nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
+            ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
+      }
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
 
-      int jmaxsize = (jmax+1)*IPOW2(levmx);
-      int imaxsize = (imax+1)*IPOW2(levmx);
+      if (nlft_size < ncells){
+         int lowerBounds, upperBounds;
+         get_bounds(lowerBounds, upperBounds);
 
-      static int *hash;
+         for(int ic=lowerBounds; ic<upperBounds; ic++){
+            nlft[ic] = -1;
+            nrht[ic] = -1;
+            nbot[ic] = -1;
+            ntop[ic] = -1;
+         }
+      }
+
+      if (calc_neighbor_type == HASH_TABLE) {
+
+         struct timeval tstart_lev2;
+         if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+
+         int jmaxsize = (jmax+1)*IPOW2(levmx);
+         int imaxsize = (imax+1)*IPOW2(levmx);
+
+         static int *hash;
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
-   {
+      {
 #endif
 
 #ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      hash = compact_hash_init_openmp_old(ncells, imaxsize, jmaxsize, 0);
-   #else
-      omp_lock_t *lock;
-      hash = compact_hash_init_openmp_old(ncells, imaxsize, jmaxsize, 0, &lock);
-   #endif
+      #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
+         hash = compact_hash_init_openmp_old(ncells, imaxsize, jmaxsize, 0);
+      #else
+         omp_lock_t *lock;
+         hash = compact_hash_init_openmp_old(ncells, imaxsize, jmaxsize, 0, &lock);
+      #endif
 #else
-      hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
+         hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
 #endif
 
 #ifdef _OPENMP
-   }
+      }
 #pragma omp barrier
 #endif
 
 #ifdef _OPENMP
 #pragma omp for
 #endif
-         for(int ic=0; ic<ncells; ic++){
-            int lev = level[ic];
+            for(int ic=0; ic<ncells; ic++){
+               int lev = level[ic];
 
-            bool need_hash = (nlft[ic] == -1 || nrht[ic] == -1 || nbot[ic] == -1 || ntop[ic] == -1) ? true : false;
+               bool need_hash = (nlft[ic] == -1 || nrht[ic] == -1 || nbot[ic] == -1 || ntop[ic] == -1) ? true : false;
 
-            if (! need_hash){
-                if ( (level[nlft[ic]] > lev && ntop[nlft[ic]] == -1) || 
-                     (level[nrht[ic]] > lev && ntop[nrht[ic]] == -1) ||
-                     (level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) || 
-                     (level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ) need_hash = true;
-            }
-         
-            if (need_hash) {
-               int levmult = IPOW2(levmx-lev);
-               int ii = i[ic]*levmult;
-               int jj = j[ic]*levmult;
+               if (! need_hash){
+                   if ( (level[nlft[ic]] > lev && ntop[nlft[ic]] == -1) || 
+                        (level[nrht[ic]] > lev && ntop[nrht[ic]] == -1) ||
+                        (level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) || 
+                        (level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ) need_hash = true;
+               }
+            
+               if (need_hash) {
+                  int levmult = IPOW2(levmx-lev);
+                  int ii = i[ic]*levmult;
+                  int jj = j[ic]*levmult;
 
 #ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-               write_hash_openmp(ic,jj*imaxsize+ii,hash);
-   #else
-               write_hash_openmp(ic,jj*imaxsize+ii,hash,lock);
-   #endif
+      #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
+                  write_hash_openmp(ic,jj*imaxsize+ii,hash);
+      #else
+                  write_hash_openmp(ic,jj*imaxsize+ii,hash,lock);
+      #endif
 #else
-               write_hash(ic,jj*imaxsize+ii,hash);
+                  write_hash(ic,jj*imaxsize+ii,hash);
 #endif
+               }
             }
-         }
+
+            if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
+               cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
+               cpu_timer_start(&tstart_lev2);
+            }
+
+            //fprintf(fp,"DEBUG ncells is %lu\n",ncells);
+#ifdef _OPENMP
+#pragma omp for
+#endif
+            for (int ic=0; ic<(int)ncells; ic++){
+               int ii = i[ic];
+               int jj = j[ic];
+               int lev = level[ic];
+               int levmult = IPOW2(levmx-lev);
+               int iicur = ii*levmult;
+               int iilft = max( (ii-1)*levmult, 0         );
+               int iirht = min( (ii+1)*levmult, imaxsize-1);
+               int jjcur = jj*levmult;
+               int jjbot = max( (jj-1)*levmult, 0         );
+               int jjtop = min( (jj+1)*levmult, jmaxsize-1);
+
+               int nlftval = nlft[ic];
+               int nrhtval = nrht[ic];
+               int nbotval = nbot[ic];
+               int ntopval = ntop[ic];
+
+               // Taking care of boundary cells
+               // Force each boundary cell to point to itself on its boundary direction
+               if (nlftval < 0 && iicur <    1*IPOW2(levmx)  ) nlftval = ic;
+               if (nbotval < 0 && jjcur <    1*IPOW2(levmx)  ) nbotval = ic;
+               if (nrhtval < 0 && iicur > imax*IPOW2(levmx)-1) nrhtval = ic;
+               if (ntopval < 0 && jjcur > jmax*IPOW2(levmx)-1) ntopval = ic;
+               // Boundary cells next to corner boundary need special checks
+               if (nlftval < 0 && iicur ==    1*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nlftval = ic;
+               if (nbotval < 0 && jjcur ==    1*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) nbotval = ic;
+               if (nrhtval < 0 && iirht == imax*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nrhtval = ic;
+               if (ntopval < 0 && jjtop == jmax*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) ntopval = ic;
+
+               // need to check for finer neighbor first
+               // Right and top neighbor don't change for finer, so drop through to same size
+               // Left and bottom need to be half of same size index for finer test
+               if (lev != levmx) {
+                  int iilftfiner = iicur-(iicur-iilft)/2;
+                  //int iirhtfiner = (iicur+iirht)/2;
+                  int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+                  //int jjtopfiner = (jjcur+jjtop)/2;
+                  if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilftfiner, hash);
+                  if (nbotval < 0) nbotval = read_hash(jjbotfiner*imaxsize+iicur, hash);
+               }
+
+               // same size neighbor
+               if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilft, hash);
+               if (nrhtval < 0) nrhtval = read_hash(jjcur*imaxsize+iirht, hash);
+               if (nbotval < 0) nbotval = read_hash(jjbot*imaxsize+iicur, hash);
+               if (ntopval < 0) ntopval = read_hash(jjtop*imaxsize+iicur, hash);
+
+               // Now we need to take care of special case where bottom and left boundary need adjustment since
+               // expected cell doesn't exist on these boundaries if it is finer than current cell
+               if (lev != levmx) {
+                  if (jjcur < 1*IPOW2(levmx)) {
+                     if (nrhtval < 0) {
+                        int jjtopfiner = (jjcur+jjtop)/2;
+                        nrhtval = read_hash(jjtopfiner*imaxsize+iirht, hash);
+                     }
+                     if (nlftval < 0) {
+                        int iilftfiner = iicur-(iicur-iilft)/2;
+                        int jjtopfiner = (jjcur+jjtop)/2;
+                        nlftval = read_hash(jjtopfiner*imaxsize+iilftfiner, hash);
+                     }
+                  }
+            
+                  if (iicur < 1*IPOW2(levmx)) {
+                     if (ntopval < 0) {
+                        int iirhtfiner = (iicur+iirht)/2;
+                        ntopval = read_hash(jjtop*imaxsize+iirhtfiner, hash);
+                     }
+                     if (nbotval < 0) {
+                        int iirhtfiner = (iicur+iirht)/2;
+                        int jjbotfiner = jjcur-(jjcur-jjbot)/2;
+                        nbotval = read_hash(jjbotfiner*imaxsize+iirhtfiner, hash);
+                     }
+                  }
+               }
+            
+               // coarser neighbor
+               if (lev != 0){
+                  if (nlftval < 0) {
+                     iilft -= iicur-iilft;
+                     int jjlft = (jj/2)*2*levmult;
+                     nlftval = read_hash(jjlft*imaxsize+iilft, hash);
+                  }
+                  if (nrhtval < 0) {
+                     int jjrht = (jj/2)*2*levmult;
+                     nrhtval = read_hash(jjrht*imaxsize+iirht, hash);
+                  }
+                  if (nbotval < 0) {
+                     jjbot -= jjcur-jjbot;
+                     int iibot = (ii/2)*2*levmult;
+                     nbotval = read_hash(jjbot*imaxsize+iibot, hash);
+                  }
+                  if (ntopval < 0) {
+                     int iitop = (ii/2)*2*levmult;
+                     ntopval = read_hash(jjtop*imaxsize+iitop, hash);
+                  }
+               }
+
+               nlft[ic] = nlftval;
+               nrht[ic] = nrhtval;
+               nbot[ic] = nbotval;
+               ntop[ic] = ntopval;
+
+               //printf("neighbors[%d] = %d %d %d %d\n",ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
+            }
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+         write_hash_collision_report();
+         read_hash_collision_report();
+
+#ifdef _OPENMP
+      #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
+         compact_hash_delete_openmp(hash);
+      #else
+         compact_hash_delete_openmp(hash, lock);
+      #endif
+#else
+         compact_hash_delete(hash);
+#endif
+
+         if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_HASH_QUERY] += cpu_timer_stop(tstart_lev2);
+#ifdef _OPENMP
+         } // master block
+#endif
+
+      } else if (calc_neighbor_type == KDTREE) {
+
+         struct timeval tstart_lev2;
+         if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+         TBounds box;
+         vector<int> index_list(IPOW2(levmx*levmx) );
+
+         int num;
+
+         ibase = 0;
+         calc_spatial_coordinates(ibase);
+
+         kdtree_setup();
 
          if (TIMING_LEVEL >= 2) {
-            cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
+            cpu_timers[MESH_TIMER_KDTREE_SETUP] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
-         //fprintf(fp,"DEBUG ncells is %lu\n",ncells);
+         for (int ic=0; ic<ncells; ic++) {
+
+            //left
+            nlft[ic]  = ic;
+            box.min.x = x[ic]-0.25*dx[ic];
+            box.max.x = x[ic]-0.25*dx[ic];
+            box.min.y = y[ic]+0.25*dy[ic];
+            box.max.y = y[ic]+0.25*dy[ic];
+            KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
+            if (num == 1) nlft[ic]=index_list[0];
+
+            //right
+            nrht[ic]  = ic;
+            box.min.x = x[ic]+1.25*dx[ic];
+            box.max.x = x[ic]+1.25*dx[ic];
+            box.min.y = y[ic]+0.25*dy[ic];
+            box.max.y = y[ic]+0.25*dy[ic];
+            KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
+            if (num == 1) nrht[ic]=index_list[0];
+
+            //bot
+            nbot[ic]  = ic;
+            box.min.x = x[ic]+0.25*dx[ic];
+            box.max.x = x[ic]+0.25*dx[ic];
+            box.min.y = y[ic]-0.25*dy[ic];
+            box.max.y = y[ic]-0.25*dy[ic];
+            KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
+            if (num == 1) nbot[ic]=index_list[0];
+
+            //top
+            ntop[ic]  = ic;
+            box.min.x = x[ic]+0.25*dx[ic];
+            box.max.x = x[ic]+0.25*dx[ic];
+            box.min.y = y[ic]+1.25*dy[ic];
+            box.max.y = y[ic]+1.25*dy[ic];
+            KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
+            if (num == 1) ntop[ic]=index_list[0];
+         }  //  End main loop over cells.
+
+         KDTree_Destroy(&tree);
+
+         if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_KDTREE_QUERY] += cpu_timer_stop(tstart_lev2);
+
 #ifdef _OPENMP
-#pragma omp for
-#endif
-         for (int ic=0; ic<(int)ncells; ic++){
-            int ii = i[ic];
-            int jj = j[ic];
-            int lev = level[ic];
-            int levmult = IPOW2(levmx-lev);
-            int iicur = ii*levmult;
-            int iilft = max( (ii-1)*levmult, 0         );
-            int iirht = min( (ii+1)*levmult, imaxsize-1);
-            int jjcur = jj*levmult;
-            int jjbot = max( (jj-1)*levmult, 0         );
-            int jjtop = min( (jj+1)*levmult, jmaxsize-1);
-
-            int nlftval = nlft[ic];
-            int nrhtval = nrht[ic];
-            int nbotval = nbot[ic];
-            int ntopval = ntop[ic];
-
-            // Taking care of boundary cells
-            // Force each boundary cell to point to itself on its boundary direction
-            if (nlftval < 0 && iicur <    1*IPOW2(levmx)  ) nlftval = ic;
-            if (nbotval < 0 && jjcur <    1*IPOW2(levmx)  ) nbotval = ic;
-            if (nrhtval < 0 && iicur > imax*IPOW2(levmx)-1) nrhtval = ic;
-            if (ntopval < 0 && jjcur > jmax*IPOW2(levmx)-1) ntopval = ic;
-            // Boundary cells next to corner boundary need special checks
-            if (nlftval < 0 && iicur ==    1*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nlftval = ic;
-            if (nbotval < 0 && jjcur ==    1*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) nbotval = ic;
-            if (nrhtval < 0 && iirht == imax*IPOW2(levmx) &&  (jjcur < 1*IPOW2(levmx) || jjcur >= jmax*IPOW2(levmx) ) ) nrhtval = ic;
-            if (ntopval < 0 && jjtop == jmax*IPOW2(levmx) &&  (iicur < 1*IPOW2(levmx) || iicur >= imax*IPOW2(levmx) ) ) ntopval = ic;
-
-            // need to check for finer neighbor first
-            // Right and top neighbor don't change for finer, so drop through to same size
-            // Left and bottom need to be half of same size index for finer test
-            if (lev != levmx) {
-               int iilftfiner = iicur-(iicur-iilft)/2;
-               //int iirhtfiner = (iicur+iirht)/2;
-               int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-               //int jjtopfiner = (jjcur+jjtop)/2;
-               if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilftfiner, hash);
-               if (nbotval < 0) nbotval = read_hash(jjbotfiner*imaxsize+iicur, hash);
-            }
-
-            // same size neighbor
-            if (nlftval < 0) nlftval = read_hash(jjcur*imaxsize+iilft, hash);
-            if (nrhtval < 0) nrhtval = read_hash(jjcur*imaxsize+iirht, hash);
-            if (nbotval < 0) nbotval = read_hash(jjbot*imaxsize+iicur, hash);
-            if (ntopval < 0) ntopval = read_hash(jjtop*imaxsize+iicur, hash);
-
-            // Now we need to take care of special case where bottom and left boundary need adjustment since
-            // expected cell doesn't exist on these boundaries if it is finer than current cell
-            if (lev != levmx) {
-               if (jjcur < 1*IPOW2(levmx)) {
-                  if (nrhtval < 0) {
-                     int jjtopfiner = (jjcur+jjtop)/2;
-                     nrhtval = read_hash(jjtopfiner*imaxsize+iirht, hash);
-                  }
-                  if (nlftval < 0) {
-                     int iilftfiner = iicur-(iicur-iilft)/2;
-                     int jjtopfiner = (jjcur+jjtop)/2;
-                     nlftval = read_hash(jjtopfiner*imaxsize+iilftfiner, hash);
-                  }
-               }
-         
-               if (iicur < 1*IPOW2(levmx)) {
-                  if (ntopval < 0) {
-                     int iirhtfiner = (iicur+iirht)/2;
-                     ntopval = read_hash(jjtop*imaxsize+iirhtfiner, hash);
-                  }
-                  if (nbotval < 0) {
-                     int iirhtfiner = (iicur+iirht)/2;
-                     int jjbotfiner = jjcur-(jjcur-jjbot)/2;
-                     nbotval = read_hash(jjbotfiner*imaxsize+iirhtfiner, hash);
-                  }
-               }
-            }
-         
-            // coarser neighbor
-            if (lev != 0){
-               if (nlftval < 0) {
-                  iilft -= iicur-iilft;
-                  int jjlft = (jj/2)*2*levmult;
-                  nlftval = read_hash(jjlft*imaxsize+iilft, hash);
-               }
-               if (nrhtval < 0) {
-                  int jjrht = (jj/2)*2*levmult;
-                  nrhtval = read_hash(jjrht*imaxsize+iirht, hash);
-               }
-               if (nbotval < 0) {
-                  jjbot -= jjcur-jjbot;
-                  int iibot = (ii/2)*2*levmult;
-                  nbotval = read_hash(jjbot*imaxsize+iibot, hash);
-               }
-               if (ntopval < 0) {
-                  int iitop = (ii/2)*2*levmult;
-                  ntopval = read_hash(jjtop*imaxsize+iitop, hash);
-               }
-            }
-
-            nlft[ic] = nlftval;
-            nrht[ic] = nrhtval;
-            nbot[ic] = nbotval;
-            ntop[ic] = ntopval;
-
-            //printf("neighbors[%d] = %d %d %d %d\n",ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
          }
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-      {
-#endif
-      write_hash_collision_report();
-      read_hash_collision_report();
-
-#ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      compact_hash_delete_openmp(hash);
-   #else
-      compact_hash_delete_openmp(hash, lock);
-   #endif
-#else
-      compact_hash_delete(hash);
-#endif
-
-      if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_HASH_QUERY] += cpu_timer_stop(tstart_lev2);
-#ifdef _OPENMP
-      } // master block
-#endif
-
-   } else if (calc_neighbor_type == KDTREE) {
-
-      struct timeval tstart_lev2;
-      if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-      {
-#endif
-      TBounds box;
-      vector<int> index_list(IPOW2(levmx*levmx) );
-
-      int num;
-
-      ibase = 0;
-      calc_spatial_coordinates(ibase);
-
-      kdtree_setup();
-
-      if (TIMING_LEVEL >= 2) {
-         cpu_timers[MESH_TIMER_KDTREE_SETUP] += cpu_timer_stop(tstart_lev2);
-         cpu_timer_start(&tstart_lev2);
-      }
-
-      for (int ic=0; ic<ncells; ic++) {
-
-         //left
-         nlft[ic]  = ic;
-         box.min.x = x[ic]-0.25*dx[ic];
-         box.max.x = x[ic]-0.25*dx[ic];
-         box.min.y = y[ic]+0.25*dy[ic];
-         box.max.y = y[ic]+0.25*dy[ic];
-         KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
-         if (num == 1) nlft[ic]=index_list[0];
-
-         //right
-         nrht[ic]  = ic;
-         box.min.x = x[ic]+1.25*dx[ic];
-         box.max.x = x[ic]+1.25*dx[ic];
-         box.min.y = y[ic]+0.25*dy[ic];
-         box.max.y = y[ic]+0.25*dy[ic];
-         KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
-         if (num == 1) nrht[ic]=index_list[0];
-
-         //bot
-         nbot[ic]  = ic;
-         box.min.x = x[ic]+0.25*dx[ic];
-         box.max.x = x[ic]+0.25*dx[ic];
-         box.min.y = y[ic]-0.25*dy[ic];
-         box.max.y = y[ic]-0.25*dy[ic];
-         KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
-         if (num == 1) nbot[ic]=index_list[0];
-
-         //top
-         ntop[ic]  = ic;
-         box.min.x = x[ic]+0.25*dx[ic];
-         box.max.x = x[ic]+0.25*dx[ic];
-         box.min.y = y[ic]+1.25*dy[ic];
-         box.max.y = y[ic]+1.25*dy[ic];
-         KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
-         if (num == 1) ntop[ic]=index_list[0];
-      }  //  End main loop over cells.
-
-      KDTree_Destroy(&tree);
-
-      if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_KDTREE_QUERY] += cpu_timer_stop(tstart_lev2);
-
-#ifdef _OPENMP
-      }
 #pragma omp barrier
 #endif
-   } // calc_neighbor_type
+      } // calc_neighbor_type
 
-   ncells_ghost = ncells;
-
-   cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
+      ncells_ghost = ncells;
 
    }
+
 #ifdef _OPENMP
-   } // end parallel region
+#pragma omp master
 #endif
+   cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
 }
 
 void Mesh::calc_neighbors_local(void)
