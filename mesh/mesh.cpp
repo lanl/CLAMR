@@ -5137,7 +5137,12 @@ void Mesh::calc_neighbors_local(void)
          memory_reset_ptrs();
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
+         {
+#endif
+
+#ifdef _OPENMP
+#pragma omp for
 #endif
          for (int ic = ncells; ic < (int)ncells_ghost; ic++){
             nlft[ic] = -1;
@@ -5147,12 +5152,15 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
             cpu_timers[MESH_TIMER_COPY_MESH_DATA] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
          for(int ic=0; ic<nbsize_local; ic++){
             int ii = border_cell_i_local[ic];
@@ -5167,22 +5175,41 @@ void Mesh::calc_neighbors_local(void)
             level[ncells+ic] = lev;
          }
 
-         free(border_cell_i_local);
-         free(border_cell_j_local);
-         free(border_cell_level_local);
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+            free(border_cell_i_local);
+            free(border_cell_j_local);
+            free(border_cell_level_local);
+#ifdef _OPENMP
+         } // end master region
+#endif
 
          if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
             cpu_timers[MESH_TIMER_FILL_MESH_GHOST] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
          if (DEBUG) {
-            fprintf(fp,"After copying i,j, level to ghost cells\n");
-            print_local();
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
+               fprintf(fp,"After copying i,j, level to ghost cells\n");
+               print_local();
+#ifdef _OPENMP
+            } // end master region
+#endif
          }
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
          for (uint ic=0; ic<ncells_ghost; ic++){
             int ii = i[ic];
@@ -5345,13 +5372,24 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
             cpu_timers[MESH_TIMER_FILL_NEIGH_GHOST] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
          if (DEBUG) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
             fprintf(fp,"After setting neighbors through ghost cells\n");
             print_local();
+#ifdef _OPENMP
+            } // end master region
+#endif
          }
 
 /*
@@ -5384,11 +5422,6 @@ void Mesh::calc_neighbors_local(void)
             //fprintf(fp,"%d:Neighbors after ic %d nlft %d nrht %d nbot %d ntop %d\n",mype,ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
          }
 */
-
-#ifdef _OPENMP
-#pragma omp parallel
-         {
-#endif
 
          if (TIMING_LEVEL >= 2) {
 #ifdef _OPENMP
@@ -5613,13 +5646,14 @@ void Mesh::calc_neighbors_local(void)
 #ifdef _OPENMP
             } // end master region
 #endif
-         }
-
-#ifdef _OPENMP
-         } // end parallel region
-#endif
+         } // end DEBUG
 
          if (DEBUG) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
             print_local();
 
             for (uint ic=0; ic<ncells; ic++){
@@ -5631,8 +5665,15 @@ void Mesh::calc_neighbors_local(void)
                fprintf(fp,"%d: after  update ic %d off %d i %d j %d lev %d nlft %d nrht %d nbot %d ntop %d\n",
                    mype,ic,indices_needed[ig],i[ic],j[ic],level[ic],nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
             }
-         }
-      }
+#ifdef _OPENMP
+            } // end master region
+#endif
+         } // end DEBUG
+
+#ifdef _OPENMP
+         } // end parallel region
+#endif
+      } // if numpe > 1
 #endif
 
       write_hash_collision_report();
