@@ -15,7 +15,7 @@ grep "Profiling: Total   " ${TEST_NAME}_parallel.out > clamr.timers_parallel.out
 ./compare_stdout.pl 0.0 ${TEST_NAME}_serial.out ${TEST_NAME}_parallel.out
 
 # Compute the speedup for mpi
-./compute_speedup.pl 4 clamr.timers_serial.out clamr.timers_parallel.out
+./compute_speedup.pl 4 mpi clamr.timers_serial.out clamr.timers_parallel.out
 
 setenv OMP_NUM_THREADS 4
 ./clamr_openmponly -n 128 -i 100 -t 3000 >& ${TEST_NAME}_openmp.out
@@ -23,7 +23,7 @@ grep "Profiling: Total   " ${TEST_NAME}_openmp.out > clamr.timers_openmp.out
 ./compare_stdout.pl 0.0 ${TEST_NAME}_serial.out ${TEST_NAME}_openmp.out
 
 # Compute the speedup for openmp
-./compute_speedup.pl 4 clamr.timers_serial.out clamr.timers_openmp.out
+./compute_speedup.pl 4 openmp clamr.timers_serial.out clamr.timers_openmp.out
 
 setenv OMP_NUM_THREADS 2
 mpirun -n 2 ./clamr_mpiopenmponly -n 128 -i 100 -t 3000 >& ${TEST_NAME}_mpiopenmp.out
@@ -31,7 +31,7 @@ grep "Profiling: Total   " ${TEST_NAME}_mpiopenmp.out > clamr.timers_mpiopenmp.o
 ./compare_stdout.pl 0.0 ${TEST_NAME}_serial.out ${TEST_NAME}_mpiopenmp.out
 
 # Compute the speedup for hybrid mpi and openmp
-./compute_speedup.pl 4 clamr.timers_serial.out clamr.timers_mpiopenmp.out
+./compute_speedup.pl 4 mpiopenmp clamr.timers_serial.out clamr.timers_mpiopenmp.out
 
 # This test is to see if the gpu run is getting the same result
 # as the serial run
@@ -39,14 +39,14 @@ grep "Profiling: Total   " ${TEST_NAME}_mpiopenmp.out > clamr.timers_mpiopenmp.o
 grep "Profiling: Total   " ${TEST_NAME}_gpu.out > clamr.timers_gpu.out
 ./compare_stdout.pl 0.0 ${TEST_NAME}.gold ${TEST_NAME}_gpu.out
 
-# Compute the speedup for hybrid mpi and openmp
-./compute_speedup.pl 4 clamr.timers_serial.out clamr.timers_gpu.out
+# Compute the speedup for gpu
+./compute_speedup.pl 4 gpu clamr.timers_serial.out clamr.timers_gpu.out
 
 # clamr hybrid
 mpirun -n 2 ./clamr -n 128 -i 100 -t 3000 >& ${TEST_NAME}_hybrid.out
 grep "Profiling: Total   " ${TEST_NAME}_hybrid.out > clamr.timers_hybrid.out
 ./compare_stdout.pl 0.0 ${TEST_NAME}.gold ${TEST_NAME}_hybrid.out
 
-# Compute the speedup for hybrid mpi and openmp
-./compute_speedup.pl 4 clamr.timers_serial.out clamr.timers_hybrid.out
+# Compute the speedup for hybrid mpi and gpu
+./compute_speedup.pl 4 mpigpu clamr.timers_serial.out clamr.timers_hybrid.out
 

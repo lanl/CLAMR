@@ -2,8 +2,10 @@ eval 'exec perl -w $0 ${1+"$@"}'
   if 0;
 
 $parallelproc= $ARGV[0];
-$serialfile  = $ARGV[1];
-$parallelfile= $ARGV[2];
+$comment     = $ARGV[1];
+$serialfile  = $ARGV[2];
+$parallelfile= $ARGV[3];
+shift;
 shift;
 shift;
 
@@ -29,7 +31,7 @@ else {
 }
 
 if ($time2 != 0.0) {
-   printf "SPEEDUP is %6.3lf on %d processors\n", $time1/$time2, $parallelproc
+   printf "SPEEDUP is %6.3lf on %d processors for %s\n", $time1/$time2, $parallelproc, $comment
 } else {
-   printf "SPEEDUP can't be calculated for zero run time\n"
+   printf "SPEEDUP can't be calculated for zero run time for %s\n", $comment
 }

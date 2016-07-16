@@ -859,17 +859,30 @@ void State::remove_boundary_cells(void)
    vector<spatial_t> &y       = mesh->y;
    vector<spatial_t> &dy      = mesh->dy;
 
-   int *i        = mesh->i;
-   int *j        = mesh->j;
-   int *level    = mesh->level;
-   int *celltype = mesh->celltype;
-   int *nlft     = mesh->nlft;
-   int *nrht     = mesh->nrht;
-   int *nbot     = mesh->nbot;
-   int *ntop     = mesh->ntop;
+   int *i, *j, *level, *celltype, *nlft, *nrht, *nbot, *ntop;
 
-   if(mesh->have_boundary) return;
+   i        = mesh->i;
+   j        = mesh->j;
+   level    = mesh->level;
+   celltype = mesh->celltype;
+   nlft     = mesh->nlft;
+   nrht     = mesh->nrht;
+   nbot     = mesh->nbot;
+   ntop     = mesh->ntop;
 
+/******ADDING HIGHER LEVEL OMP*****/
+#ifdef _OPENMP
+#pragma omp parallel 
+{//start
+#pragma omp barrier
+#endif
+
+   if(! mesh->have_boundary) {
+
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
    // Resize to drop all the boundary cells
    ncells = save_ncells;
    H=(state_t *)state_memory.memory_realloc(save_ncells, H);
@@ -896,27 +909,29 @@ void State::remove_boundary_cells(void)
    nbot     = mesh->nbot;
    ntop     = mesh->ntop;
 
+   // Reset the neighbors due to the dropped boundary cells
    index.resize(save_ncells);
    x.resize(save_ncells);
    dx.resize(save_ncells);
    y.resize(save_ncells);
    dy.resize(save_ncells);
-/******ADDING HIGHER LEVEL OMP*****/
-   // Reset the neighbors due to the dropped boundary cells
 #ifdef _OPENMP
-#pragma omp parallel 
-{//start
+   }
 #pragma omp barrier
 #endif
-int lowerBound, upperBound;
-//mesh->set_bounds(ncells);
-mesh->get_bounds(lowerBound, upperBound);
+   mesh->set_bounds(ncells);
+
+   int lowerBound, upperBound;
+   mesh->get_bounds(lowerBound, upperBound);
    for (uint ic=lowerBound; ic<upperBound; ic++) {
       if (i[ic] == mesh->lev_ibegin[level[ic]]) nlft[ic] = ic;
       if (i[ic] == mesh->lev_iend[level[ic]])   nrht[ic] = ic;
       if (j[ic] == mesh->lev_jbegin[level[ic]]) nbot[ic] = ic;
       if (j[ic] == mesh->lev_jend[level[ic]])   ntop[ic] = ic;
    }
+
+   } // if have_boundary
+
 #ifdef _OPENMP
 }//end
 #pragma omp barrier

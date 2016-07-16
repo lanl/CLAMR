@@ -51,6 +51,10 @@ make check
 // or for a specific package unit tests
 make MallocPlus_check
 
+// To run the regression tests -- in the CLAMR directory
+make clamr_clean_tests or rm -rf tests/testing
+make clamr_tests
+
 // To build the documentation
 make doc
 // or for a specific package documentation
