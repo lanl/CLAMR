@@ -382,14 +382,14 @@ extern "C" void do_calc(void)
 
       mesh->calc_neighbors(ncells);
 
-      cpu_timer_start(&tstart_partmeas);
-      mesh->partition_measure();
-      cpu_time_partmeas += cpu_timer_stop(tstart_partmeas);
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
       {
+         cpu_timer_start(&tstart_partmeas);
+         mesh->partition_measure();
+         cpu_time_partmeas += cpu_timer_stop(tstart_partmeas);
+
          // Currently not working -- may need to be earlier?
          //if (do_cpu_calc && ! mesh->have_boundary) {
          //  state->add_boundary_cells(mesh);

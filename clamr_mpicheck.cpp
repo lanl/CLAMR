@@ -401,12 +401,12 @@ extern "C" void do_calc(void)
          mesh->compare_neighbors_cpu_local_to_cpu_global(ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);
       }
 
-      mesh->partition_measure();
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
       {
+         mesh->partition_measure();
+
          // Currently not working -- may need to be earlier?
          //if (mesh->have_boundary) {
          //  state->add_boundary_cells(mesh);
