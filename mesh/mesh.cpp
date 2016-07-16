@@ -5385,20 +5385,32 @@ void Mesh::calc_neighbors_local(void)
          }
 */
 
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
+
          if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
             cpu_timers[MESH_TIMER_SET_CORNER_NEIGH] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
          if (DEBUG) {
-            fprintf(fp,"After setting corner neighbors\n");
-            print_local();
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
+               fprintf(fp,"After setting corner neighbors\n");
+               print_local();
+#ifdef _OPENMP
+            } // end master region
+#endif
          }
 
-#ifdef _OPENMP
-#pragma omp parallel
-         {
-#endif
          // Adjusting neighbors to local indices
 #ifdef _OPENMP
 #pragma omp for
@@ -5476,11 +5488,12 @@ void Mesh::calc_neighbors_local(void)
          } // end master region
 #endif
 
-#ifdef _OPENMP
-         } // end parallel region
-#endif
-
          if (DEBUG) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
             print_local();
 
             int jmaxglobal = (jmax+1)*IPOW2(levmx);
@@ -5597,7 +5610,14 @@ void Mesh::calc_neighbors_local(void)
             }
             fprintf(fp,"\n");
       
+#ifdef _OPENMP
+            } // end master region
+#endif
          }
+
+#ifdef _OPENMP
+         } // end parallel region
+#endif
 
          if (DEBUG) {
             print_local();
