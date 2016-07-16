@@ -94,11 +94,11 @@ void Mesh::partition_measure(void)
 
   uint num_groups = (ncells + TILE_SIZE - 1)/TILE_SIZE;
 
-  if (measure_type == WITH_DUPLICATES) {
 #ifdef _OPENMP
 #pragma omp parallel
-     {
+  {
 #endif
+  if (measure_type == WITH_DUPLICATES) {
      int i = 0;
 #ifdef _OPENMP
 #pragma omp for reduction(+:offtile_ratio)
@@ -109,11 +109,6 @@ void Mesh::partition_measure(void)
         int end_idx   = (group_id + 1) * ntX; 
 
         int offtile =0;
-// Fails to compile for some systems
-//
-//#ifdef _OPENMP
-//#pragma omp parallel for reduction(+:offtile)
-//#endif
         for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
 
            if (i >= ncells) continue;
@@ -134,12 +129,12 @@ void Mesh::partition_measure(void)
         offtile_ratio += (double)offtile/(double)(TILE_SIZE);
         //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
      }
-#ifdef _OPENMP
-     }
-#endif
   } else if (measure_type == WITHOUT_DUPLICATES) {
-
-     for (uint group_id=0, i = 0; group_id < num_groups; group_id ++){ 
+     int i = 0;
+#ifdef _OPENMP
+#pragma omp for reduction(+:offtile_ratio)
+#endif
+     for (uint group_id=0; group_id < num_groups; group_id ++){ 
         list<int> offtile_list;
  
         int start_idx = group_id * ntX;
@@ -169,8 +164,11 @@ void Mesh::partition_measure(void)
         //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
      }
   } else if (measure_type == CVALUE) {
-
-     for (uint group_id=0, i = 0; group_id < num_groups; group_id ++){ 
+     int i = 0;
+#ifdef _OPENMP
+#pragma omp for reduction(+:offtile_ratio)
+#endif
+     for (uint group_id=0; group_id < num_groups; group_id ++){ 
         list<int> offtile_list;
  
         int start_idx = group_id * ntX;
@@ -200,8 +198,11 @@ void Mesh::partition_measure(void)
         //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
      }
   } else if (measure_type == CSTARVALUE) {
-
-     for (uint group_id=0, i = 0; group_id < num_groups; group_id ++){ 
+     int i = 0;
+#ifdef _OPENMP
+#pragma omp for reduction(+:offtile_ratio)
+#endif
+     for (uint group_id=0; group_id < num_groups; group_id ++){ 
         list<int> offtile_list;
         list<int> offtile_cache_lines; // Assumes memory is aligned
         int cache_line_size = 4; // Some could be 8, or more?
@@ -265,6 +266,9 @@ void Mesh::partition_measure(void)
         //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
      }
   } 
+#ifdef _OPENMP
+  }
+#endif
 
   // printf("DEBUG Ratio of surface area to volume is equal to %d / %d \n", offtile, ontile);
    
