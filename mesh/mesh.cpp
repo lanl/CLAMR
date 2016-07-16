@@ -5087,12 +5087,25 @@ void Mesh::calc_neighbors_local(void)
 #endif
          }
 
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
+
          if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
             cpu_timers[MESH_TIMER_LAYER2] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
          if (DEBUG) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
             print_local();
 
             int jmaxglobal = (jmax+1)*IPOW2(levmx);
@@ -5116,9 +5129,15 @@ void Mesh::calc_neighbors_local(void)
                fprintf(fp,"%4d:",ii);
             }
             fprintf(fp,"\n");
+#ifdef _OPENMP
+         } // end master region
+#endif
          }
 
          if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
             cpu_timers[MESH_TIMER_LAYER_LIST] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
@@ -5126,6 +5145,12 @@ void Mesh::calc_neighbors_local(void)
          int nghost = nbsize_local;
          ncells_ghost = ncells + nghost;
 
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
          celltype = (int *)mesh_memory.memory_realloc(ncells_ghost, celltype);
          i        = (int *)mesh_memory.memory_realloc(ncells_ghost, i);
          j        = (int *)mesh_memory.memory_realloc(ncells_ghost, j);
@@ -5135,10 +5160,9 @@ void Mesh::calc_neighbors_local(void)
          nbot     = (int *)mesh_memory.memory_realloc(ncells_ghost, nbot);
          ntop     = (int *)mesh_memory.memory_realloc(ncells_ghost, ntop);
          memory_reset_ptrs();
-
 #ifdef _OPENMP
-#pragma omp parallel
-         {
+         } // end master region
+#pragma omp barrier
 #endif
 
 #ifdef _OPENMP
