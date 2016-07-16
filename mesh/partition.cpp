@@ -95,7 +95,15 @@ void Mesh::partition_measure(void)
   uint num_groups = (ncells + TILE_SIZE - 1)/TILE_SIZE;
 
   if (measure_type == WITH_DUPLICATES) {
-     for (uint group_id=0, i = 0; group_id < num_groups; group_id ++){ 
+#ifdef _OPENMP
+#pragma omp parallel
+     {
+#endif
+     int i = 0;
+#ifdef _OPENMP
+#pragma omp for reduction(+:offtile_ratio)
+#endif
+     for (uint group_id=0; group_id < num_groups; group_id ++){ 
  
         int start_idx = group_id * ntX;
         int end_idx   = (group_id + 1) * ntX; 
@@ -126,6 +134,9 @@ void Mesh::partition_measure(void)
         offtile_ratio += (double)offtile/(double)(TILE_SIZE);
         //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
      }
+#ifdef _OPENMP
+     }
+#endif
   } else if (measure_type == WITHOUT_DUPLICATES) {
 
      for (uint group_id=0, i = 0; group_id < num_groups; group_id ++){ 
