@@ -5395,9 +5395,13 @@ void Mesh::calc_neighbors_local(void)
             print_local();
          }
 
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
          // Adjusting neighbors to local indices
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
          for (uint ic=0; ic<ncells_ghost; ic++){
             //fprintf(fp,"%d: ic %d nlft %d noffset %d ncells %ld\n",mype,ic,nlft[ic],noffset,ncells);
@@ -5424,34 +5428,57 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (DEBUG) {
-            fprintf(fp,"After adjusting neighbors to local indices\n");
-            print_local();
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
+               fprintf(fp,"After adjusting neighbors to local indices\n");
+               print_local();
+#ifdef _OPENMP
+            } // end master region
+#endif
          }
          
          if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
             cpu_timers[MESH_TIMER_NEIGH_ADJUST] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
-         offtile_ratio_local = (offtile_ratio_local*(double)offtile_local_count) + ((double)nghost / (double)ncells);
-         offtile_local_count++;
-         offtile_ratio_local /= offtile_local_count;
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+            offtile_ratio_local = (offtile_ratio_local*(double)offtile_local_count) + ((double)nghost / (double)ncells);
+            offtile_local_count++;
+            offtile_ratio_local /= offtile_local_count;
+            //printf("%d ncells size is %ld ncells_ghost size is %ld nghost %d\n",mype,ncells,ncells_ghost,nghost);
+            //fprintf(fp,"%d ncells_ghost size is %ld nghost %d\n",mype,ncells_ghost,nghost);
 
-         //printf("%d ncells size is %ld ncells_ghost size is %ld nghost %d\n",mype,ncells,ncells_ghost,nghost);
-         //fprintf(fp,"%d ncells_ghost size is %ld nghost %d\n",mype,ncells_ghost,nghost);
+            if (cell_handle) L7_Free(&cell_handle);
+            cell_handle=0;
 
-         if (cell_handle) L7_Free(&cell_handle);
-         cell_handle=0;
-
-         if (DEBUG) {
-            fprintf(fp,"%d: SETUP ncells %ld noffset %d nghost %d\n",mype,ncells,noffset,nghost);
-            for (int ig = 0; ig<nghost; ig++){
-               fprintf(fp,"%d: indices needed ic %d index %d\n",mype,ig,indices_needed[ig]);
+            if (DEBUG) {
+               fprintf(fp,"%d: SETUP ncells %ld noffset %d nghost %d\n",mype,ncells,noffset,nghost);
+               for (int ig = 0; ig<nghost; ig++){
+                  fprintf(fp,"%d: indices needed ic %d index %d\n",mype,ig,indices_needed[ig]);
+               }
             }
-         }
-         L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
+            L7_Setup(0, noffset, ncells, &indices_needed[0], nghost, &cell_handle);
 
-         if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_SETUP_COMM] += cpu_timer_stop(tstart_lev2);
+            if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_SETUP_COMM] += cpu_timer_stop(tstart_lev2);
+
+#ifdef _OPENMP
+         } // end master region
+#endif
+
+#ifdef _OPENMP
+         } // end parallel region
+#endif
 
          if (DEBUG) {
             print_local();
