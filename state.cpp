@@ -852,10 +852,10 @@ void State::apply_boundary_conditions_Parallel(void)
 
 void State::remove_boundary_cells(void)
 {
-#ifdef _OPENMP
-#pragma omp parallel 
-{//start
-#endif
+//#ifdef _OPENMP
+//#pragma omp parallel 
+//{//start
+//#endif
 
    if(! mesh->have_boundary) {
 
@@ -908,9 +908,9 @@ void State::remove_boundary_cells(void)
 
    } // if have_boundary
 
-#ifdef _OPENMP
-}//end parallel region
-#endif
+//#ifdef _OPENMP
+//}//end parallel region
+//#endif
 }
 
 double State::set_timestep(double g, double sigma)
