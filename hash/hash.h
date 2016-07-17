@@ -29,13 +29,8 @@ extern "C"
 int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level);
 
 #ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_level);
-      int *compact_hash_init_openmp_old(int ncells, uint isize, uint jsize, uint report_level);
-   #else
-      int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_level, omp_lock_t **lock);
-      int *compact_hash_init_openmp_old(int ncells, uint isize, uint jsize, uint report_level, omp_lock_t **lock);
-   #endif
+   int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_level);
+   int *compact_hash_init_openmp_old(int ncells, uint isize, uint jsize, uint report_level);
 #endif
 
 int get_hash_method(void);
@@ -57,37 +52,20 @@ void write_hash_primejump_report_level_3(uint ic, ulong hashkey, int *hash);
 extern void (*write_hash)(uint ic, ulong hashkey, int *hash); // declared in hash.c
 
 #ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      void write_hash_perfect_openmp(uint ic, ulong hashkey, int *hash);
-      void write_hash_linear_openmp(uint ic, ulong hashkey, int *hash);
-      void write_hash_linear_openmp_report_level_1(uint ic, ulong hashkey, int *hash);
-      void write_hash_linear_openmp_report_level_2(uint ic, ulong hashkey, int *hash);
-      void write_hash_linear_openmp_report_level_3(uint ic, ulong hashkey, int *hash);
-      void write_hash_quadratic_openmp(uint ic, ulong hashkey, int *hash);
-      void write_hash_quadratic_openmp_report_level_1(uint ic, ulong hashkey, int *hash);
-      void write_hash_quadratic_openmp_report_level_2(uint ic, ulong hashkey, int *hash);
-      void write_hash_quadratic_openmp_report_level_3(uint ic, ulong hashkey, int *hash);
-      void write_hash_primejump_openmp(uint ic, ulong hashkey, int *hash);
-      void write_hash_primejump_openmp_report_level_1(uint ic, ulong hashkey, int *hash);
-      void write_hash_primejump_openmp_report_level_2(uint ic, ulong hashkey, int *hash);
-      void write_hash_primejump_openmp_report_level_3(uint ic, ulong hashkey, int *hash);
-      extern void (*write_hash_openmp)(uint ic, ulong hashkey, int *hash); // declared in hash.c
-   #else
-      void write_hash_perfect_openmp(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      void write_hash_linear_openmp(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      void write_hash_linear_openmp_report_level_1(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      void write_hash_linear_openmp_report_level_2(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      void write_hash_linear_openmp_report_level_3(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      void write_hash_quadratic_openmp(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      void write_hash_quadratic_openmp_report_level_1(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      void write_hash_quadratic_openmp_report_level_2(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      void write_hash_quadratic_openmp_report_level_3(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      void write_hash_primejump_openmp(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      void write_hash_primejump_openmp_report_level_1(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      void write_hash_primejump_openmp_report_level_2(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      void write_hash_primejump_openmp_report_level_3(uint ic, ulong hashkey, int *hash, omp_lock_t *lock);
-      extern void (*write_hash_openmp)(uint ic, ulong hashkey, int *hash, omp_lock_t *lock); // declared in hash.c
-   #endif
+   void write_hash_perfect_openmp(uint ic, ulong hashkey, int *hash);
+   void write_hash_linear_openmp(uint ic, ulong hashkey, int *hash);
+   void write_hash_linear_openmp_report_level_1(uint ic, ulong hashkey, int *hash);
+   void write_hash_linear_openmp_report_level_2(uint ic, ulong hashkey, int *hash);
+   void write_hash_linear_openmp_report_level_3(uint ic, ulong hashkey, int *hash);
+   void write_hash_quadratic_openmp(uint ic, ulong hashkey, int *hash);
+   void write_hash_quadratic_openmp_report_level_1(uint ic, ulong hashkey, int *hash);
+   void write_hash_quadratic_openmp_report_level_2(uint ic, ulong hashkey, int *hash);
+   void write_hash_quadratic_openmp_report_level_3(uint ic, ulong hashkey, int *hash);
+   void write_hash_primejump_openmp(uint ic, ulong hashkey, int *hash);
+   void write_hash_primejump_openmp_report_level_1(uint ic, ulong hashkey, int *hash);
+   void write_hash_primejump_openmp_report_level_2(uint ic, ulong hashkey, int *hash);
+   void write_hash_primejump_openmp_report_level_3(uint ic, ulong hashkey, int *hash);
+   extern void (*write_hash_openmp)(uint ic, ulong hashkey, int *hash); // declared in hash.c
 #endif
 
 int read_hash_perfect(ulong hashkey, int *hash);
@@ -107,11 +85,7 @@ extern int (*read_hash)(ulong hashkey, int *hash); // declared in hash.c
 
 void compact_hash_delete(int *hash);
 #ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      void compact_hash_delete_openmp(int *hash);
-   #else
-      void compact_hash_delete_openmp(int *hash, omp_lock_t *lock);
-   #endif
+   void compact_hash_delete_openmp(int *hash);
 #endif
 
 void write_hash_collision_report(void);

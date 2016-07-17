@@ -3686,12 +3686,7 @@ void Mesh::calc_neighbors(int ncells)
 #endif
 
 #ifdef _OPENMP
-      #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
          hash = compact_hash_init_openmp_old(ncells, imaxsize, jmaxsize, 0);
-      #else
-         omp_lock_t *lock;
-         hash = compact_hash_init_openmp_old(ncells, imaxsize, jmaxsize, 0, &lock);
-      #endif
 #else
          hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
 #endif
@@ -3722,11 +3717,7 @@ void Mesh::calc_neighbors(int ncells)
                   int jj = j[ic]*levmult;
 
 #ifdef _OPENMP
-      #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
                   write_hash_openmp(ic,jj*imaxsize+ii,hash);
-      #else
-                  write_hash_openmp(ic,jj*imaxsize+ii,hash,lock);
-      #endif
 #else
                   write_hash(ic,jj*imaxsize+ii,hash);
 #endif
@@ -3859,11 +3850,7 @@ void Mesh::calc_neighbors(int ncells)
          read_hash_collision_report();
 
 #ifdef _OPENMP
-      #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
          compact_hash_delete_openmp(hash);
-      #else
-         compact_hash_delete_openmp(hash, lock);
-      #endif
 #else
          compact_hash_delete(hash);
 #endif
@@ -4071,12 +4058,7 @@ void Mesh::calc_neighbors_local(void)
 
       int *hash;
 #ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-         hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
-   #else
-         omp_lock_t *lock = NULL;
-         hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0, &lock);
-   #endif
+      hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
 #else
       hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1);
 #endif
@@ -4105,11 +4087,7 @@ void Mesh::calc_neighbors_local(void)
          int jj = j[ic]*levmult-jminsize;
 
 #ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
          write_hash_openmp(cellnumber, jj*(imaxsize-iminsize)+ii, hash);
-   #else
-         write_hash_openmp(cellnumber, jj*(imaxsize-iminsize)+ii, hash, lock);
-   #endif
 #else
          write_hash(cellnumber, jj*(imaxsize-iminsize)+ii, hash);
 #endif
@@ -4824,11 +4802,7 @@ void Mesh::calc_neighbors_local(void)
             int jj = border_cell_j_local[ic]*levmult-jminsize;
 
 #ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
             write_hash_openmp(ncells+noffset+ic, jj*(imaxsize-iminsize)+ii, hash);
-   #else
-            write_hash_openmp(ncells+noffset+ic, jj*(imaxsize-iminsize)+ii, hash, lock);
-   #endif
 #else
             write_hash(ncells+noffset+ic, jj*(imaxsize-iminsize)+ii, hash);
 #endif
@@ -5077,11 +5051,7 @@ void Mesh::calc_neighbors_local(void)
             int jj = border_cell_j_local[ic]*levmult-jminsize;
 
 #ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
             write_hash_openmp(-(ncells+ic), jj*(imaxsize-iminsize)+ii, hash);
-   #else
-            write_hash_openmp(-(ncells+ic), jj*(imaxsize-iminsize)+ii, hash, lock);
-   #endif
 #else
             write_hash(-(ncells+ic), jj*(imaxsize-iminsize)+ii, hash);
 #endif
@@ -5703,11 +5673,7 @@ void Mesh::calc_neighbors_local(void)
       write_hash_collision_report();
       read_hash_collision_report();
 #ifdef _OPENMP
-   #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
       compact_hash_delete_openmp(hash);
-   #else
-      compact_hash_delete_openmp(hash, lock);
-   #endif
 #else
       compact_hash_delete(hash);
 #endif
