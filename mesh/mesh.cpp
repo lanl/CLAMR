@@ -4344,14 +4344,15 @@ void Mesh::calc_neighbors_local(void)
 
 #ifdef HAVE_MPI
       if (numpe > 1) {
-         vector<int> iminsize_global, imaxsize_global, jminsize_global, jmaxsize_global, comm_partner;
-
-         int num_comm_partners = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel
          {
 #endif
+
+         static int num_comm_partners;
+
+         static vector<int> iminsize_global, imaxsize_global, jminsize_global, jmaxsize_global, comm_partner;
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -4369,6 +4370,7 @@ void Mesh::calc_neighbors_local(void)
          MPI_Allgather(&jminsize, 1, MPI_INT, &jminsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
          MPI_Allgather(&jmaxsize, 1, MPI_INT, &jmaxsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
 
+         num_comm_partners = 0;
          for (int ip = 0; ip < numpe; ip++){
             if (ip == mype) continue;
             if (iminsize_global[ip] > imaxtile) continue;
