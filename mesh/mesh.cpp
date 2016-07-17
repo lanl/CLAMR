@@ -4344,11 +4344,13 @@ void Mesh::calc_neighbors_local(void)
 
 #ifdef HAVE_MPI
       if (numpe > 1) {
-         vector<int> iminsize_global(numpe);
-         vector<int> imaxsize_global(numpe);
-         vector<int> jminsize_global(numpe);
-         vector<int> jmaxsize_global(numpe);
-         vector<int> comm_partner(numpe,-1);
+         vector<int> iminsize_global, imaxsize_global, jminsize_global, jmaxsize_global, comm_partner;
+
+         iminsize_global.resize(numpe);
+         imaxsize_global.resize(numpe);
+         jminsize_global.resize(numpe);
+         jmaxsize_global.resize(numpe);
+         comm_partner.resize(numpe,-1);
 
          MPI_Allgather(&iminsize, 1, MPI_INT, &iminsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
          MPI_Allgather(&imaxsize, 1, MPI_INT, &imaxsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
@@ -4356,6 +4358,17 @@ void Mesh::calc_neighbors_local(void)
          MPI_Allgather(&jmaxsize, 1, MPI_INT, &jmaxsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
 
          int num_comm_partners = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
          for (int ip = 0; ip < numpe; ip++){
             if (ip == mype) continue;
             if (iminsize_global[ip] > imaxtile) continue;
@@ -4366,11 +4379,9 @@ void Mesh::calc_neighbors_local(void)
             num_comm_partners++;
             //if (DEBUG) fprintf(fp,"%d: overlap with processor %d bounding box is %d %d %d %d\n",mype,ip,iminsize_global[ip],imaxsize_global[ip],jminsize_global[ip],jmaxsize_global[ip]);
          }
-
-
 #ifdef _OPENMP
-#pragma omp parallel
-         {
+         }
+#pragma omp barrier
 #endif
 
          static vector<int> border_cell;
@@ -4504,7 +4515,6 @@ void Mesh::calc_neighbors_local(void)
 
                border_cell_out[ic] = iborder_cell;
             }
-         //} // parallel region
     
          vector<int> border_cell_num;
 
