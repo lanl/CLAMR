@@ -4367,7 +4367,20 @@ void Mesh::calc_neighbors_local(void)
             //if (DEBUG) fprintf(fp,"%d: overlap with processor %d bounding box is %d %d %d %d\n",mype,ip,iminsize_global[ip],imaxsize_global[ip],jminsize_global[ip],jmaxsize_global[ip]);
          }
 
-         vector<int> border_cell(ncells);
+
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
+
+         static vector<int> border_cell;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+         border_cell.resize(ncells);
 
 #ifdef BOUNDS_CHECK
          for (uint ic=0; ic<ncells; ic++){
@@ -4394,16 +4407,22 @@ void Mesh::calc_neighbors_local(void)
          }
 #endif
 
-         vector<int> border_cell_out(ncells);
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
 
-//#ifdef _OPENMP
-//#pragma omp parallel
-//#endif
-         //{
+         static vector<int> border_cell_out;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp barrier
+#pragma omp master
          {
+#endif
+         border_cell_out.resize(ncells);
+#ifdef _OPENMP
+         }
+#pragma omp barrier
 #endif
 
 #ifdef _OPENMP
