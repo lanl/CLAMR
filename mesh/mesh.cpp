@@ -4827,9 +4827,13 @@ void Mesh::calc_neighbors_local(void)
             fprintf(fp,"\n");
          }
 
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
          // Layer 2
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
          for (int ic =0; ic<nbsize_local; ic++){
             if (border_cell_needed_local[ic] > 0) continue;
@@ -5004,10 +5008,6 @@ void Mesh::calc_neighbors_local(void)
          }
 
          vector<int> indices_needed;
-#ifdef _OPENMP
-#pragma omp parallel
-         {
-#endif
 
 #ifdef _OPENMP
 #pragma omp barrier
