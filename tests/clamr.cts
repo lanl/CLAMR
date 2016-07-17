@@ -23,7 +23,7 @@ DEFAULT_TESTSUITES    : clamr.suite
 TESTSUITE_DIRECTORIES : .
 TEST_DIRECTORIES      : .
 REPORTS               : text html
-#if (`uname -n` == /^ml/) then
-#   SYSTEM_NAME moonlight
-#   QUEUE : access
-#endif
+if (`uname -n` == /^ml/) then
+   SYSTEM_NAME moonlight
+   QUEUE : access
+endif

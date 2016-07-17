@@ -4490,15 +4490,28 @@ void Mesh::calc_neighbors_local(void)
 
          int nbsize_local = border_cell_num.size();
 
-         vector<int> border_cell_i(nbsize_local);
-         vector<int> border_cell_j(nbsize_local);
-         vector<int> border_cell_level(nbsize_local);
+         vector<int> border_cell_i;
+         vector<int> border_cell_j;
+         vector<int> border_cell_level;
     
 #ifdef _OPENMP
 #pragma omp parallel
          {
 #endif
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+         border_cell_i.resize(nbsize_local);
+         border_cell_j.resize(nbsize_local);
+         border_cell_level.resize(nbsize_local);
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
+    
 #ifdef _OPENMP
 #pragma omp for
 #endif
