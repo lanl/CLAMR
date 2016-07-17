@@ -5038,11 +5038,18 @@ void Mesh::calc_neighbors_local(void)
 
          free(border_cell_num_local);
 
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
+
          // Walk through cell array and set hash to global cell values
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
-//#ifdef _OPENMP
-//#pragma omp parallel for
-//#endif
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
          for(int ic=0; ic<nbsize_local; ic++){
             int lev = border_cell_level_local[ic];
             int levmult = IPOW2(levmx-lev);
@@ -5056,10 +5063,9 @@ void Mesh::calc_neighbors_local(void)
             write_hash(-(ncells+ic), jj*(imaxsize-iminsize)+ii, hash);
 #endif
          }
-
 #ifdef _OPENMP
-#pragma omp parallel
-         {
+         } // end master region
+#pragma omp barrier
 #endif
 
          if (TIMING_LEVEL >= 2) {
