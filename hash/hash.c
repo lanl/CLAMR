@@ -43,10 +43,6 @@ int   choose_hash_method = METHOD_UNSET;
 int (*read_hash)(ulong, int *);
 void (*write_hash)(uint, ulong, int *);
 
-#ifdef _OPENMP
-void (*write_hash_openmp)(uint, ulong, int *);
-#endif
-
 int get_hash_method(void) {
   return(hash_method);
 }
@@ -245,44 +241,44 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
       if (hash_method == LINEAR){
          if (hash_report_level == 0){
             read_hash  = read_hash_linear;
-            write_hash_openmp = write_hash_linear_openmp;
+            write_hash = write_hash_linear_openmp;
          } else if (hash_report_level == 1){
             read_hash  = read_hash_linear_report_level_1;
-            write_hash_openmp = write_hash_linear_openmp_report_level_1;
+            write_hash = write_hash_linear_openmp_report_level_1;
          } else if (hash_report_level == 2){
             read_hash  = read_hash_linear_report_level_2;
-            write_hash_openmp = write_hash_linear_openmp_report_level_2;
+            write_hash = write_hash_linear_openmp_report_level_2;
          } else if (hash_report_level == 3){
             read_hash  = read_hash_linear_report_level_3;
-            write_hash_openmp = write_hash_linear_openmp_report_level_3;
+            write_hash = write_hash_linear_openmp_report_level_3;
          }
       } else if (hash_method == QUADRATIC) {
          if (hash_report_level == 0){
             read_hash  = read_hash_quadratic;
-            write_hash_openmp = write_hash_quadratic_openmp;
+            write_hash = write_hash_quadratic_openmp;
          } else if (hash_report_level == 1){
             read_hash  = read_hash_quadratic_report_level_1;
-            write_hash_openmp = write_hash_quadratic_openmp_report_level_1;
+            write_hash = write_hash_quadratic_openmp_report_level_1;
          } else if (hash_report_level == 2){
             read_hash  = read_hash_quadratic_report_level_2;
-            write_hash_openmp = write_hash_quadratic_openmp_report_level_2;
+            write_hash = write_hash_quadratic_openmp_report_level_2;
          } else if (hash_report_level == 3){
             read_hash  = read_hash_quadratic_report_level_3;
-            write_hash_openmp = write_hash_quadratic_openmp_report_level_3;
+            write_hash = write_hash_quadratic_openmp_report_level_3;
          }
       } else if (hash_method == PRIME_JUMP) {
          if (hash_report_level == 0){
             read_hash  = read_hash_primejump;
-            write_hash_openmp = write_hash_primejump_openmp;
+            write_hash = write_hash_primejump_openmp;
          } else if (hash_report_level == 1){
             read_hash  = read_hash_primejump_report_level_1;
-            write_hash_openmp = write_hash_primejump_openmp_report_level_1;
+            write_hash = write_hash_primejump_openmp_report_level_1;
          } else if (hash_report_level == 2){
             read_hash  = read_hash_primejump_report_level_2;
-            write_hash_openmp = write_hash_primejump_openmp_report_level_2;
+            write_hash = write_hash_primejump_openmp_report_level_2;
          } else if (hash_report_level == 3){
             read_hash  = read_hash_primejump_report_level_3;
-            write_hash_openmp = write_hash_primejump_openmp_report_level_3;
+            write_hash = write_hash_primejump_openmp_report_level_3;
          }
       }
 #ifdef _OPENMP
@@ -316,7 +312,7 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
       {
 #endif
          read_hash  = read_hash_perfect;
-         write_hash_openmp = write_hash_perfect_openmp;
+         write_hash = write_hash_perfect_openmp;
 #ifdef _OPENMP
       }
 #pragma omp barrier
@@ -392,44 +388,44 @@ int *compact_hash_init_openmp_old(int ncells, uint isize, uint jsize, uint repor
       if (hash_method == LINEAR){
          if (hash_report_level == 0){
             read_hash  = read_hash_linear;
-            write_hash_openmp = write_hash_linear_openmp;
+            write_hash = write_hash_linear_openmp;
          } else if (hash_report_level == 1){
             read_hash  = read_hash_linear_report_level_1;
-            write_hash_openmp = write_hash_linear_openmp_report_level_1;
+            write_hash = write_hash_linear_openmp_report_level_1;
          } else if (hash_report_level == 2){
             read_hash  = read_hash_linear_report_level_2;
-            write_hash_openmp = write_hash_linear_openmp_report_level_2;
+            write_hash = write_hash_linear_openmp_report_level_2;
          } else if (hash_report_level == 3){
             read_hash  = read_hash_linear_report_level_3;
-            write_hash_openmp = write_hash_linear_openmp_report_level_3;
+            write_hash = write_hash_linear_openmp_report_level_3;
          }
       } else if (hash_method == QUADRATIC) {
          if (hash_report_level == 0){
             read_hash  = read_hash_quadratic;
-            write_hash_openmp = write_hash_quadratic_openmp;
+            write_hash = write_hash_quadratic_openmp;
          } else if (hash_report_level == 1){
             read_hash  = read_hash_quadratic_report_level_1;
-            write_hash_openmp = write_hash_quadratic_openmp_report_level_1;
+            write_hash = write_hash_quadratic_openmp_report_level_1;
          } else if (hash_report_level == 2){
             read_hash  = read_hash_quadratic_report_level_2;
-            write_hash_openmp = write_hash_quadratic_openmp_report_level_2;
+            write_hash = write_hash_quadratic_openmp_report_level_2;
          } else if (hash_report_level == 3){
             read_hash  = read_hash_quadratic_report_level_3;
-            write_hash_openmp = write_hash_quadratic_openmp_report_level_3;
+            write_hash = write_hash_quadratic_openmp_report_level_3;
          }
       } else if (hash_method == PRIME_JUMP) {
          if (hash_report_level == 0){
             read_hash  = read_hash_primejump;
-            write_hash_openmp = write_hash_primejump_openmp;
+            write_hash = write_hash_primejump_openmp;
          } else if (hash_report_level == 1){
             read_hash  = read_hash_primejump_report_level_1;
-            write_hash_openmp = write_hash_primejump_openmp_report_level_1;
+            write_hash = write_hash_primejump_openmp_report_level_1;
          } else if (hash_report_level == 2){
             read_hash  = read_hash_primejump_report_level_2;
-            write_hash_openmp = write_hash_primejump_openmp_report_level_2;
+            write_hash = write_hash_primejump_openmp_report_level_2;
          } else if (hash_report_level == 3){
             read_hash  = read_hash_primejump_report_level_3;
-            write_hash_openmp = write_hash_primejump_openmp_report_level_3;
+            write_hash = write_hash_primejump_openmp_report_level_3;
          }
       }
    } else {
@@ -444,7 +440,7 @@ int *compact_hash_init_openmp_old(int ncells, uint isize, uint jsize, uint repor
       }
 
       read_hash  = read_hash_perfect;
-      write_hash_openmp = write_hash_perfect_openmp;
+      write_hash = write_hash_perfect_openmp;
    }
 
    if (hash_report_level >= 2) {

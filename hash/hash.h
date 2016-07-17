@@ -65,7 +65,7 @@ extern void (*write_hash)(uint ic, ulong hashkey, int *hash); // declared in has
    void write_hash_primejump_openmp_report_level_1(uint ic, ulong hashkey, int *hash);
    void write_hash_primejump_openmp_report_level_2(uint ic, ulong hashkey, int *hash);
    void write_hash_primejump_openmp_report_level_3(uint ic, ulong hashkey, int *hash);
-   extern void (*write_hash_openmp)(uint ic, ulong hashkey, int *hash); // declared in hash.c
+   extern void (*write_hash)(uint ic, ulong hashkey, int *hash); // declared in hash.c
 #endif
 
 int read_hash_perfect(ulong hashkey, int *hash);

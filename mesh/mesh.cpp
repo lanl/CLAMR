@@ -3716,11 +3716,7 @@ void Mesh::calc_neighbors(int ncells)
                   int ii = i[ic]*levmult;
                   int jj = j[ic]*levmult;
 
-#ifdef _OPENMP
-                  write_hash_openmp(ic,jj*imaxsize+ii,hash);
-#else
                   write_hash(ic,jj*imaxsize+ii,hash);
-#endif
                }
             }
 
@@ -4086,11 +4082,7 @@ void Mesh::calc_neighbors_local(void)
          int ii = i[ic]*levmult-iminsize;
          int jj = j[ic]*levmult-jminsize;
 
-#ifdef _OPENMP
-         write_hash_openmp(cellnumber, jj*(imaxsize-iminsize)+ii, hash);
-#else
          write_hash(cellnumber, jj*(imaxsize-iminsize)+ii, hash);
-#endif
       } // end for loop
 
       if (TIMING_LEVEL >= 2) {
@@ -4801,11 +4793,7 @@ void Mesh::calc_neighbors_local(void)
             int ii = border_cell_i_local[ic]*levmult-iminsize;
             int jj = border_cell_j_local[ic]*levmult-jminsize;
 
-#ifdef _OPENMP
-            write_hash_openmp(ncells+noffset+ic, jj*(imaxsize-iminsize)+ii, hash);
-#else
             write_hash(ncells+noffset+ic, jj*(imaxsize-iminsize)+ii, hash);
-#endif
          }
 
          if (TIMING_LEVEL >= 2) {
@@ -5057,11 +5045,7 @@ void Mesh::calc_neighbors_local(void)
             int ii = border_cell_i_local[ic]*levmult-iminsize;
             int jj = border_cell_j_local[ic]*levmult-jminsize;
 
-#ifdef _OPENMP
-            write_hash_openmp(-(ncells+ic), jj*(imaxsize-iminsize)+ii, hash);
-#else
             write_hash(-(ncells+ic), jj*(imaxsize-iminsize)+ii, hash);
-#endif
          }
 #ifdef _OPENMP
          } // end master region
