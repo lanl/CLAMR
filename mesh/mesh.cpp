@@ -4090,9 +4090,14 @@ void Mesh::calc_neighbors_local(void)
       jmaxcalc = (jmax+1)*IPOW2(levmx);
       imaxcalc = (imax+1)*IPOW2(levmx);
 
-//#ifdef _OPENMP
-//#pragma omp for
-//#endif
+#ifdef _OPENMP
+#pragma omp parallel
+      {
+#endif
+
+#ifdef _OPENMP
+#pragma omp for
+#endif
       for (uint ic=0; ic<ncells; ic++){
          int ii = i[ic];
          int jj = j[ic];
@@ -4206,15 +4211,6 @@ void Mesh::calc_neighbors_local(void)
 
          //fprintf(fp,"%d: neighbors[%d] = %d %d %d %d\n",mype,ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
       }
-//#ifdef _OPENMP
-//      }
-//#pragma omp barrier
-//#endif
-
-#ifdef _OPENMP
-#pragma omp parallel
-      {
-#endif
 
       if (DEBUG) {
 #ifdef _OPENMP
