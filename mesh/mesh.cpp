@@ -4796,12 +4796,25 @@ void Mesh::calc_neighbors_local(void)
             write_hash(ncells+noffset+ic, jj*(imaxsize-iminsize)+ii, hash);
          }
 
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
+
          if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
             cpu_timers[MESH_TIMER_LAYER1] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
          if (DEBUG) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
             print_local();
 
             int jmaxglobal = (jmax+1)*IPOW2(levmx);
@@ -4825,12 +4838,12 @@ void Mesh::calc_neighbors_local(void)
                fprintf(fp,"%4d:",ii);
             }
             fprintf(fp,"\n");
+#ifdef _OPENMP
+         } // end master region
+#pragma omp barrier
+#endif
          }
 
-#ifdef _OPENMP
-#pragma omp parallel
-         {
-#endif
          // Layer 2
 #ifdef _OPENMP
 #pragma omp for
