@@ -52,7 +52,6 @@ void write_hash_primejump_report_level_3(uint ic, ulong hashkey, int *hash);
 extern void (*write_hash)(uint ic, ulong hashkey, int *hash); // declared in hash.c
 
 #ifdef _OPENMP
-   void write_hash_perfect_openmp(uint ic, ulong hashkey, int *hash);
    void write_hash_linear_openmp(uint ic, ulong hashkey, int *hash);
    void write_hash_linear_openmp_report_level_1(uint ic, ulong hashkey, int *hash);
    void write_hash_linear_openmp_report_level_2(uint ic, ulong hashkey, int *hash);
@@ -84,9 +83,6 @@ int read_hash_primejump_report_level_3(ulong hashkey, int *hash);
 extern int (*read_hash)(ulong hashkey, int *hash); // declared in hash.c
 
 void compact_hash_delete(int *hash);
-#ifdef _OPENMP
-   void compact_hash_delete_openmp(int *hash);
-#endif
 
 void write_hash_collision_report(void);
 void read_hash_collision_report(void);

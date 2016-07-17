@@ -312,7 +312,7 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
       {
 #endif
          read_hash  = read_hash_perfect;
-         write_hash = write_hash_perfect_openmp;
+         write_hash = write_hash_perfect;
 #ifdef _OPENMP
       }
 #pragma omp barrier
@@ -440,7 +440,7 @@ int *compact_hash_init_openmp_old(int ncells, uint isize, uint jsize, uint repor
       }
 
       read_hash  = read_hash_perfect;
-      write_hash = write_hash_perfect_openmp;
+      write_hash = write_hash_perfect;
    }
 
    if (hash_report_level >= 2) {
@@ -632,10 +632,6 @@ void write_hash_primejump_report_level_3(uint ic, ulong hashkey, int *hash){
 }
 
 #ifdef _OPENMP
-void write_hash_perfect_openmp(uint ic, ulong hashkey, int *hash){
-   hash[hashkey] = ic;
-}
-
 void write_hash_linear_openmp(uint ic, ulong hashkey, int *hash){
    int icount;
    uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;;
@@ -1155,15 +1151,6 @@ void compact_hash_delete(int *hash){
    genvectorfree((void *)hash);
    hash_method = METHOD_UNSET;
 }
-
-#ifdef _OPENMP
-      void compact_hash_delete_openmp(int *hash){
-
-   read_hash = NULL;
-   genvectorfree((void *)hash);
-   hash_method = METHOD_UNSET;
-}
-#endif
 
 void write_hash_collision_report(void){
    if (hash_method == PERFECT_HASH) return;

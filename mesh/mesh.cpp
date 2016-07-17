@@ -3845,11 +3845,7 @@ void Mesh::calc_neighbors(int ncells)
          write_hash_collision_report();
          read_hash_collision_report();
 
-#ifdef _OPENMP
-         compact_hash_delete_openmp(hash);
-#else
          compact_hash_delete(hash);
-#endif
 
          if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_HASH_QUERY] += cpu_timer_stop(tstart_lev2);
 #ifdef _OPENMP
@@ -4640,9 +4636,13 @@ void Mesh::calc_neighbors_local(void)
 
          vector<int> border_cell_needed_local(nbsize_local, 0);
 
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
          // Layer 1
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
          for (int ic =0; ic<nbsize_local; ic++){
             int jj = border_cell_j_local[ic];
@@ -4777,12 +4777,26 @@ void Mesh::calc_neighbors_local(void)
          }
 
          if (DEBUG) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
             for(int ic=0; ic<nbsize_local; ic++){
                if (border_cell_needed_local[ic] == 0) continue;
                fprintf(fp,"%d: First set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_local[ic],border_cell_needed_local[ic]);
             }
+#ifdef _OPENMP
+         } // end master region
+#pragma omp barrier
+#endif
          }
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
          // Walk through cell array and set hash to border local index plus ncells+noffset for next pass
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
          for(int ic=0; ic<nbsize_local; ic++){
@@ -4795,10 +4809,9 @@ void Mesh::calc_neighbors_local(void)
 
             write_hash(ncells+noffset+ic, jj*(imaxsize-iminsize)+ii, hash);
          }
-
 #ifdef _OPENMP
-#pragma omp parallel
-         {
+         } // end master region
+#pragma omp barrier
 #endif
 
          if (TIMING_LEVEL >= 2) {
@@ -5675,11 +5688,7 @@ void Mesh::calc_neighbors_local(void)
 
       write_hash_collision_report();
       read_hash_collision_report();
-#ifdef _OPENMP
-      compact_hash_delete_openmp(hash);
-#else
       compact_hash_delete(hash);
-#endif
 
 #ifdef BOUNDS_CHECK
       {
