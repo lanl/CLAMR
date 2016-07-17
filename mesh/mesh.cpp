@@ -3942,10 +3942,10 @@ void Mesh::calc_neighbors_local(void)
 
    struct timeval tstart_cpu;
 
-#ifdef _OPENMP
-#pragma omp parallel
-   {
-#endif
+//#ifdef _OPENMP
+//#pragma omp parallel
+//   {
+//#endif
 
    cpu_timer_start(&tstart_cpu);
 
@@ -3955,10 +3955,10 @@ void Mesh::calc_neighbors_local(void)
    if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
 
-#ifdef _OPENMP
-#pragma omp master
-   {
-#endif
+//#ifdef _OPENMP
+//#pragma omp master
+//   {
+//#endif
    cpu_counters[MESH_COUNTER_CALC_NEIGH]++;
 
    if (mesh_memory.get_memory_size(nlft) < ncells){
@@ -3971,10 +3971,10 @@ void Mesh::calc_neighbors_local(void)
       nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
       ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
    }
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
+//#ifdef _OPENMP
+//   }
+//#pragma omp barrier
+//#endif
 
    int lowerBound, upperBound;
    set_bounds(ncells);
@@ -3985,10 +3985,10 @@ void Mesh::calc_neighbors_local(void)
       nbot[ic] = -98;
       ntop[ic] = -98;
    }
-#ifdef _OPENMP
-   } // end parallel section
-#pragma omp barrier
-#endif
+//#ifdef _OPENMP
+//   } // end parallel section
+//#pragma omp barrier
+//#endif
 
    if (calc_neighbor_type == HASH_TABLE) {
 
@@ -4003,17 +4003,17 @@ void Mesh::calc_neighbors_local(void)
       int jmaxtile = 0;
       int imaxtile = 0;
 
-#ifdef _OPENMP
-#pragma omp parallel
-      {
-#endif
+//#ifdef _OPENMP
+//#pragma omp parallel
+//      {
+//#endif
          int my_jmintile = jmintile;
          int my_imintile = imintile;
          int my_jmaxtile = 0;
          int my_imaxtile = 0;
-#ifdef _OPENMP
-#pragma omp for
-#endif
+//#ifdef _OPENMP
+//#pragma omp for
+//#endif
          for(uint ic=0; ic<ncells; ic++){
             int lev = level[ic];
 //          if (lev < 0 || lev > levmx) printf("DEBUG -- cell %d lev %d\n",ic,level[ic]);
@@ -4022,20 +4022,20 @@ void Mesh::calc_neighbors_local(void)
             if ( i[ic]   *IPOW2(levmx-lev)   < my_imintile) my_imintile =  i[ic]   *IPOW2(levmx-lev)  ;
             if ((i[ic]+1)*IPOW2(levmx-lev)-1 > my_imaxtile) my_imaxtile = (i[ic]+1)*IPOW2(levmx-lev)-1;
          }
-#ifdef _OPENMP
-#pragma omp critical
-         {
-#endif
+//#ifdef _OPENMP
+//#pragma omp critical
+//         {
+//#endif
             if (my_jmintile < jmintile) jmintile = my_jmintile;
             if (my_imintile < imintile) imintile = my_imintile;
             if (my_jmaxtile > jmaxtile) jmaxtile = my_jmaxtile;
             if (my_imaxtile > imaxtile) imaxtile = my_imaxtile;
-#ifdef _OPENMP
-         } // end critical region
-#endif
-#ifdef _OPENMP
-      } // end parallel region
-#endif
+//#ifdef _OPENMP
+//         } // end critical region
+//#endif
+//#ifdef _OPENMP
+//      } // end parallel region
+//#endif
 
       //if (DEBUG) fprintf(fp,"%d: Tile Sizes are imin %d imax %d jmin %d jmax %d\n",mype,imintile,imaxtile,jmintile,jmaxtile);
 
@@ -4063,14 +4063,14 @@ void Mesh::calc_neighbors_local(void)
 
       int imaxcalc, jmaxcalc;
 
-#ifdef _OPENMP
-#pragma omp parallel
-   {
-#endif
+//#ifdef _OPENMP
+//#pragma omp parallel
+//   {
+//#endif
 
-#ifdef _OPENMP
-   #pragma omp for
-#endif
+//#ifdef _OPENMP
+//   #pragma omp for
+//#endif
       for(uint ic=0; ic<ncells; ic++){
          int cellnumber = ic+noffset;
          int lev = level[ic];
@@ -4090,9 +4090,9 @@ void Mesh::calc_neighbors_local(void)
       jmaxcalc = (jmax+1)*IPOW2(levmx);
       imaxcalc = (imax+1)*IPOW2(levmx);
 
-#ifdef _OPENMP
-#pragma omp for
-#endif
+//#ifdef _OPENMP
+//#pragma omp for
+//#endif
       for (uint ic=0; ic<ncells; ic++){
          int ii = i[ic];
          int jj = j[ic];
@@ -4206,10 +4206,10 @@ void Mesh::calc_neighbors_local(void)
 
          //fprintf(fp,"%d: neighbors[%d] = %d %d %d %d\n",mype,ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
       }
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
+//#ifdef _OPENMP
+//      }
+//#pragma omp barrier
+//#endif
 
       if (DEBUG) {
          print_local();
@@ -4396,10 +4396,16 @@ void Mesh::calc_neighbors_local(void)
 
          vector<int> border_cell_out(ncells);
 
+//#ifdef _OPENMP
+//#pragma omp parallel
+//#endif
+         //{
+
 #ifdef _OPENMP
 #pragma omp parallel
-#endif
          {
+#endif
+
 #ifdef _OPENMP
 #pragma omp for
 #endif
@@ -4479,16 +4485,15 @@ void Mesh::calc_neighbors_local(void)
 
                border_cell_out[ic] = iborder_cell;
             }
-         } // parallel region
-
+         //} // parallel region
+    
          vector<int> border_cell_num;
 
-#ifdef _OPENMP
-#pragma omp parallel
-         {
-#endif
-
          static int nbsize_local;
+
+         static vector<int> border_cell_i;
+         static vector<int> border_cell_j;
+         static vector<int> border_cell_level;
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -4501,37 +4506,23 @@ void Mesh::calc_neighbors_local(void)
          //printf("%d: border cell size is %d\n",mype,border_cell_num.size());
 
          nbsize_local = border_cell_num.size();
-#ifdef _OPENMP
-         }
-#pragma omp barrier
-#endif
 
-         static vector<int> border_cell_i;
-         static vector<int> border_cell_j;
-         static vector<int> border_cell_level;
-    
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-         {
-#endif
          border_cell_i.resize(nbsize_local);
          border_cell_j.resize(nbsize_local);
          border_cell_level.resize(nbsize_local);
-#ifdef _OPENMP
-         }
-#pragma omp barrier
-#endif
     
-#ifdef _OPENMP
-#pragma omp for
-#endif
          for (int ic = 0; ic <nbsize_local; ic++){
             int cell_num = border_cell_num[ic]-noffset;
+//          if (cell_num < 0 || cell_num >= ncells) continue;
+            //printf("DEBUG -- ic %d cell_num %d size %d border_cell_num %d noffset %d ncells %d ncells_ghost %d\n",ic,cell_num,border_cell_i.size(),border_cell_num[ic],noffset,ncells,ncells_ghost );
             border_cell_i[ic] = i[cell_num]; 
             border_cell_j[ic] = j[cell_num]; 
             border_cell_level[ic] = level[cell_num]; 
          }
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
 
          if (DEBUG) {
 #ifdef _OPENMP
@@ -4578,7 +4569,7 @@ void Mesh::calc_neighbors_local(void)
 
          // Compute the overlap between processor bounding boxes and set up push database
 
-         vector<int> send_buffer_count;
+         static vector<int> send_buffer_count;
 
 #ifdef _OPENMP
 #pragma omp barrier
