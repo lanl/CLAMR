@@ -4544,16 +4544,37 @@ void Mesh::calc_neighbors_local(void)
             send_buffer_count[ip]=icount;
          }
 
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
+
          // Initialize L7_Push_Setup with num_comm_partners, comm_partner, send_database and 
          // send_buffer_count. L7_Push_Setup will copy data and determine recv_buffer_counts.
          // It will return receive_count_total for use in allocations
 
-         int receive_count_total;
-         int i_push_handle = 0;
+         static int receive_count_total;
+         static int i_push_handle;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+         i_push_handle = 0;
          L7_Push_Setup(num_comm_partners, &comm_partner[0], &send_buffer_count[0],
                        send_database, &receive_count_total, &i_push_handle);
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
 
          if (DEBUG) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
             fprintf(fp,"DEBUG num_comm_partners %d\n",num_comm_partners);
             for (int ip = 0; ip < num_comm_partners; ip++){
                fprintf(fp,"DEBUG comm partner is %d data count is %d\n",comm_partner[ip],send_buffer_count[ip]);
@@ -4563,28 +4584,37 @@ void Mesh::calc_neighbors_local(void)
                      border_cell_i[ib],border_cell_j[ib],border_cell_level[ib]);
                }
             }
+#ifdef _OPENMP
+         }
+#endif
          }
 
          // Can now free the send database. Other arrays are vectors and will automatically 
          // deallocate
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
          for (int ip = 0; ip < num_comm_partners; ip++){
             free(send_database[ip]);
          }
          free(send_database);
+#ifdef _OPENMP
+         }
+#endif
 
          if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
             cpu_timers[MESH_TIMER_PUSH_SETUP] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
          // Push the data needed to the adjacent processors
-         int *border_cell_num_local, *border_cell_i_local, *border_cell_j_local, *border_cell_level_local;
-
-#ifdef _OPENMP
-#pragma omp parallel
-         {
-#endif
+         static int *border_cell_num_local, *border_cell_i_local, *border_cell_j_local, *border_cell_level_local;
 
 #ifdef _OPENMP
 #pragma omp barrier
