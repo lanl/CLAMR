@@ -4346,17 +4346,6 @@ void Mesh::calc_neighbors_local(void)
       if (numpe > 1) {
          vector<int> iminsize_global, imaxsize_global, jminsize_global, jmaxsize_global, comm_partner;
 
-         iminsize_global.resize(numpe);
-         imaxsize_global.resize(numpe);
-         jminsize_global.resize(numpe);
-         jmaxsize_global.resize(numpe);
-         comm_partner.resize(numpe,-1);
-
-         MPI_Allgather(&iminsize, 1, MPI_INT, &iminsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
-         MPI_Allgather(&imaxsize, 1, MPI_INT, &imaxsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
-         MPI_Allgather(&jminsize, 1, MPI_INT, &jminsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
-         MPI_Allgather(&jmaxsize, 1, MPI_INT, &jmaxsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
-
          int num_comm_partners = 0;
 
 #ifdef _OPENMP
@@ -4369,6 +4358,17 @@ void Mesh::calc_neighbors_local(void)
 #pragma omp master
          {
 #endif
+         iminsize_global.resize(numpe);
+         imaxsize_global.resize(numpe);
+         jminsize_global.resize(numpe);
+         jmaxsize_global.resize(numpe);
+         comm_partner.resize(numpe,-1);
+
+         MPI_Allgather(&iminsize, 1, MPI_INT, &iminsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
+         MPI_Allgather(&imaxsize, 1, MPI_INT, &imaxsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
+         MPI_Allgather(&jminsize, 1, MPI_INT, &jminsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
+         MPI_Allgather(&jmaxsize, 1, MPI_INT, &jmaxsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
+
          for (int ip = 0; ip < numpe; ip++){
             if (ip == mype) continue;
             if (iminsize_global[ip] > imaxtile) continue;

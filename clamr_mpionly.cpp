@@ -471,6 +471,9 @@ extern "C" void do_calc(void)
       {
          cpu_timer_start(&tstart_partmeas);
          mesh->partition_measure();
+#ifdef _OPENMP
+#pragma omp master
+#endif
          cpu_time_partmeas += cpu_timer_stop(tstart_partmeas);
 
          // Currently not working -- may need to be earlier?
