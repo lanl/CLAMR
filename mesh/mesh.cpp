@@ -4579,24 +4579,35 @@ void Mesh::calc_neighbors_local(void)
          }
 
          // Push the data needed to the adjacent processors
+         int *border_cell_num_local, *border_cell_i_local, *border_cell_j_local, *border_cell_level_local;
 
-         int *border_cell_num_local = (int *)malloc(receive_count_total*sizeof(int));
-         int *border_cell_i_local = (int *)malloc(receive_count_total*sizeof(int));
-         int *border_cell_j_local = (int *)malloc(receive_count_total*sizeof(int));
-         int *border_cell_level_local = (int *)malloc(receive_count_total*sizeof(int));
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+         border_cell_num_local = (int *)malloc(receive_count_total*sizeof(int));
+         border_cell_i_local = (int *)malloc(receive_count_total*sizeof(int));
+         border_cell_j_local = (int *)malloc(receive_count_total*sizeof(int));
+         border_cell_level_local = (int *)malloc(receive_count_total*sizeof(int));
+
          L7_Push_Update(&border_cell_num[0],   border_cell_num_local,   i_push_handle);
          L7_Push_Update(&border_cell_i[0],     border_cell_i_local,     i_push_handle);
          L7_Push_Update(&border_cell_j[0],     border_cell_j_local,     i_push_handle);
          L7_Push_Update(&border_cell_level[0], border_cell_level_local, i_push_handle);
 
          L7_Push_Free(&i_push_handle);
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
 
          nbsize_local = receive_count_total; 
-
-#ifdef _OPENMP
-#pragma omp parallel
-         {
-#endif
 
          if (DEBUG) {
 #ifdef _OPENMP
