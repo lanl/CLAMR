@@ -1628,6 +1628,16 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
          mpot.swap(mpot_old);
 
+#ifdef _OPENMP
+#pragma omp parallel
+{//START Parallel Region
+#endif
+
+#ifdef _OPENMP
+#pragma omp master
+{//MASTER START
+#endif
+
 #ifdef HAVE_MPI
          if (numpe > 1) {
             L7_Update(&mpot_old[0], L7_INT, cell_handle);
@@ -1635,9 +1645,9 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #endif
 
 #ifdef _OPENMP
-#pragma omp parallel
-{//START Parallel Region
+}
 #endif
+
          int upperBound, lowerBound;
          get_bounds(upperBound, lowerBound);
          int mynewcount = newcount; //All threads get a mynewcount
@@ -1646,6 +1656,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #endif
 
          for(uint ic = 0; ic < ncells; ic++) {
+        // for(uint ic = lowerBound; ic < upperBound; ic++){
             int lev = level[ic];
             mpot[ic] = mpot_old[ic];
             if(mpot_old[ic] > 0) continue;
