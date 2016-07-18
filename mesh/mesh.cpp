@@ -3681,12 +3681,7 @@ void Mesh::calc_neighbors(int ncells)
          static int *hash;
 
 #ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-      {
          hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0);
-      }
-#pragma omp barrier
 #else
          hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
 #endif
@@ -4047,12 +4042,7 @@ void Mesh::calc_neighbors_local(void)
       static int *hash;
 
 #ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-      {
-         hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
-      }
-#pragma omp barrier
+      hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
 #else
       hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1);
 #endif

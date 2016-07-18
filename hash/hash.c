@@ -158,6 +158,11 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level){
 
 #ifdef _OPENMP
 int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_level){
+   static int *hash = NULL;
+
+#pragma omp barrier
+#pragma omp master
+   {
 
    hash_ncells = 0;
    write_hash_collisions = 0;
@@ -165,7 +170,6 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
    hash_queries = 0;
    hash_report_level = report_level;
    hash_stride = isize;
-   int *hash = NULL;
 
    if (choose_hash_method != METHOD_UNSET) hash_method = choose_hash_method;
 
@@ -268,6 +272,9 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
         hashtablesize,isize*jsize,isize*jsize-hashtablesize,
         (double)hashtablesize/(double)(isize*jsize));
    }
+
+   }
+#pragma omp barrier
 
    return(hash);
 }
