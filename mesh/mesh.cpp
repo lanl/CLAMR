@@ -3997,20 +3997,32 @@ void Mesh::calc_neighbors_local(void)
 
       ncells_ghost = ncells;
 
-      // Find maximum i column and j row for this processor
-      int jmintile = (jmax+1)*IPOW2(levmx);
-      int imintile = (imax+1)*IPOW2(levmx);
-      int jmaxtile = 0;
-      int imaxtile = 0;
-
 #ifdef _OPENMP
 #pragma omp parallel
       {
 #endif
+      // Find maximum i column and j row for this processor
+      static int jmintile, imintile, jmaxtile, imaxtile;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+      jmintile = (jmax+1)*IPOW2(levmx);
+      imintile = (imax+1)*IPOW2(levmx);
+      jmaxtile = 0;
+      imaxtile = 0;
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
+
          int my_jmintile = jmintile;
          int my_imintile = imintile;
          int my_jmaxtile = 0;
          int my_imaxtile = 0;
+
 #ifdef _OPENMP
 #pragma omp for
 #endif
