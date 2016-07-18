@@ -1636,14 +1636,15 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
 #ifdef _OPENMP
 #pragma omp parallel
-{
+{//START Parallel Region
 #endif
          int upperBound, lowerBound;
          get_bounds(upperBound, lowerBound);
-         int mynewcount = newcount;
+         int mynewcount = newcount; //All threads get a mynewcount
 #ifdef _OPENMP
-#pragma omp parallel for reduction(+:newcount)
+#pragma omp for reduction(+:newcount)
 #endif
+
          for(uint ic = 0; ic < ncells; ic++) {
             int lev = level[ic];
             mpot[ic] = mpot_old[ic];
@@ -1657,7 +1658,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                if(ll - lev > 1) {
                   mpot[ic]=1;
 //#pragma omp atomic update
-                  newcount++;
+                  mynewcount++;
                   continue;
                }
 
@@ -1671,7 +1672,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                      if(llt - lev > 1) {
                         mpot[ic]=1;
 //#pragma omp atomic update
-                        newcount++;
+                        mynewcount++;
                         continue;
                      }
                   }
@@ -1686,7 +1687,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                if(lr - lev > 1) {
                   mpot[ic]=1;
 //#pragma omp atomic update
-                  newcount++;
+                  mynewcount++;
                   continue;
                }
 
@@ -1700,7 +1701,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                      if(lrt - lev > 1) {
                         mpot[ic]=1;
 //#pragma omp atomic update
-                        newcount++;
+                        mynewcount++;
                         continue;
                      }
                   }
@@ -1715,7 +1716,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                if(lt - lev > 1) {
                   mpot[ic]=1;
 //#pragma omp atomic update
-                  newcount++;
+                  mynewcount++;
                   continue;
                }
 
@@ -1729,7 +1730,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                      if(ltr - lev > 1) {
                         mpot[ic]=1;
 //#pragma omp atomic update
-                        newcount++;
+                        mynewcount++;
                         continue;
                      }
                   }
@@ -1744,7 +1745,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                if(lb - lev > 1) {
                   mpot[ic]=1;
 //#pragma omp atomic update
-                  newcount++;
+                  mynewcount++;
                   continue;
                }
 
@@ -1758,16 +1759,19 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                      if(lbr - lev > 1) {
                         mpot[ic]=1;
 //#pragma omp atomic update
-                        newcount++;
+                        mynewcount++;
                         continue;
                      }
                   }
                }
             }
          }
+#pragma omp atomic 
+      newcount += mynewcount;
+
 #ifdef _OPENMP
 #pragma omp barrier
-}
+}//END Parallel Region
 #endif
 
          newcount_global = newcount;
