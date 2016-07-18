@@ -222,22 +222,22 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
 
 //#ifdef __GNUC__
 
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
+//#ifdef _OPENMP
+//      }
+//#pragma omp barrier
+//#endif
 
-#ifdef _OPENMP
-#pragma omp for
-#endif
+//#ifdef _OPENMP
+//#pragma omp for
+//#endif
       for (uint ii = 0; ii<hashtablesize; ii++){
          hash[2*ii] = -1;
       }
 
-#ifdef _OPENMP
-#pragma omp master
-      {
-#endif
+//#ifdef _OPENMP
+//#pragma omp master
+//      {
+//#endif
       if (hash_method == LINEAR){
          if (hash_report_level == 0){
             read_hash  = read_hash_linear;
@@ -378,9 +378,9 @@ int *compact_hash_init_openmp_old(int ncells, uint isize, uint jsize, uint repor
 
       hash = (int *)genvector(2*hashtablesize,sizeof(int));
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+//#ifdef _OPENMP
+//#pragma omp parallel for
+//#endif
       for (uint ii = 0; ii<hashtablesize; ii++){
          hash[2*ii] = -1;
       }

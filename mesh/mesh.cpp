@@ -4037,6 +4037,12 @@ void Mesh::calc_neighbors_local(void)
 //      } // end parallel region
 //#endif
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp parallel
+      {
+#endif
+
       //if (DEBUG) fprintf(fp,"%d: Tile Sizes are imin %d imax %d jmin %d jmax %d\n",mype,imintile,imaxtile,jmintile,jmaxtile);
 
       // Expand size by 2*coarse_cells for ghost cells
@@ -4048,17 +4054,14 @@ void Mesh::calc_neighbors_local(void)
 
       //fprintf(fp,"DEBUG -- ncells %lu\n",ncells);
 
-      int *hash;
+      static int *hash;
 
 #ifdef _OPENMP
-      hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
+#pragma omp master
+      hash = compact_hash_init_openmp_old(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
+#pragma omp barrier
 #else
       hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1);
-#endif
-
-#ifdef _OPENMP
-#pragma omp parallel
-      {
 #endif
 
       //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);
