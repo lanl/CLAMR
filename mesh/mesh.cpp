@@ -4003,17 +4003,17 @@ void Mesh::calc_neighbors_local(void)
       int jmaxtile = 0;
       int imaxtile = 0;
 
-//#ifdef _OPENMP
-//#pragma omp parallel
-//      {
-//#endif
+#ifdef _OPENMP
+#pragma omp parallel
+      {
+#endif
          int my_jmintile = jmintile;
          int my_imintile = imintile;
          int my_jmaxtile = 0;
          int my_imaxtile = 0;
-//#ifdef _OPENMP
-//#pragma omp for
-//#endif
+#ifdef _OPENMP
+#pragma omp for
+#endif
          for(uint ic=0; ic<ncells; ic++){
             int lev = level[ic];
 //          if (lev < 0 || lev > levmx) printf("DEBUG -- cell %d lev %d\n",ic,level[ic]);
@@ -4022,25 +4022,17 @@ void Mesh::calc_neighbors_local(void)
             if ( i[ic]   *IPOW2(levmx-lev)   < my_imintile) my_imintile =  i[ic]   *IPOW2(levmx-lev)  ;
             if ((i[ic]+1)*IPOW2(levmx-lev)-1 > my_imaxtile) my_imaxtile = (i[ic]+1)*IPOW2(levmx-lev)-1;
          }
-//#ifdef _OPENMP
-//#pragma omp critical
-//         {
-//#endif
+#ifdef _OPENMP
+#pragma omp critical
+         {
+#endif
             if (my_jmintile < jmintile) jmintile = my_jmintile;
             if (my_imintile < imintile) imintile = my_imintile;
             if (my_jmaxtile > jmaxtile) jmaxtile = my_jmaxtile;
             if (my_imaxtile > imaxtile) imaxtile = my_imaxtile;
-//#ifdef _OPENMP
-//         } // end critical region
-//#endif
-//#ifdef _OPENMP
-//      } // end parallel region
-//#endif
-
 #ifdef _OPENMP
+         } // end critical region
 #pragma omp barrier
-#pragma omp parallel
-      {
 #endif
 
       //if (DEBUG) fprintf(fp,"%d: Tile Sizes are imin %d imax %d jmin %d jmax %d\n",mype,imintile,imaxtile,jmintile,jmaxtile);
