@@ -27,6 +27,7 @@ if (open (GOLDFH, $reffile) ){
    LINE:
    while ($_ = <GOLDFH>){
       if (/^App launch reported/) {next LINE;}
+      if (/^Reported/) {next LINE;}
       if (/^--- max num openmp threads/) {next LINE;}
       if (/^--- num openmp threads in parallel region/) {next LINE;}
       if (/^Starting compile/) {next LINE;}
@@ -67,6 +68,7 @@ if (open (NEWFH, $newfile) ){
    LINE:
    while ($_ = <NEWFH>){
       if (/^App launch reported/) {next LINE;}
+      if (/^Reported/) {next LINE;}
       if (/^--- max num openmp threads/) {next LINE;}
       if (/^--- num openmp threads in parallel region/) {next LINE;}
       if (/^Starting compile/) {next LINE;}
