@@ -3938,15 +3938,14 @@ void Mesh::calc_neighbors(int ncells)
 
 void Mesh::calc_neighbors_local(void)
 {
+#ifdef _OPENMP
+#pragma omp parallel
+   {
+#endif
+
    if (do_rezone) {
 
    struct timeval tstart_cpu;
-
-//#ifdef _OPENMP
-//#pragma omp parallel
-//   {
-//#endif
-
    cpu_timer_start(&tstart_cpu);
 
    int flags = INDEX_ARRAY_MEMORY;
@@ -3955,10 +3954,10 @@ void Mesh::calc_neighbors_local(void)
    if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
 
-//#ifdef _OPENMP
-//#pragma omp master
-//   {
-//#endif
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
    cpu_counters[MESH_COUNTER_CALC_NEIGH]++;
 
    if (mesh_memory.get_memory_size(nlft) < ncells){
@@ -3971,10 +3970,10 @@ void Mesh::calc_neighbors_local(void)
       nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
       ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
    }
-//#ifdef _OPENMP
-//   }
-//#pragma omp barrier
-//#endif
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
 
    int lowerBound, upperBound;
    set_bounds(ncells);
@@ -3985,10 +3984,6 @@ void Mesh::calc_neighbors_local(void)
       nbot[ic] = -98;
       ntop[ic] = -98;
    }
-//#ifdef _OPENMP
-//   } // end parallel section
-//#pragma omp barrier
-//#endif
 
    if (calc_neighbor_type == HASH_TABLE) {
 
@@ -3997,10 +3992,6 @@ void Mesh::calc_neighbors_local(void)
 
       ncells_ghost = ncells;
 
-#ifdef _OPENMP
-#pragma omp parallel
-      {
-#endif
       // Find maximum i column and j row for this processor
       static int jmintile, imintile, jmaxtile, imaxtile;
 
@@ -5900,11 +5891,12 @@ void Mesh::calc_neighbors_local(void)
 #pragma omp barrier
 #endif
 
-#ifdef _OPENMP
-      } // end parallel region
-#endif
-
    } else if (calc_neighbor_type == KDTREE) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
       struct timeval tstart_lev2;
       if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
@@ -5966,10 +5958,22 @@ void Mesh::calc_neighbors_local(void)
 
       if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_KDTREE_QUERY] += cpu_timer_stop(tstart_lev2);
 
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
    } // calc_neighbor_type
 
+#ifdef _OPENMP
+#pragma omp master
+#endif
    cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
+
    }
+
+#ifdef _OPENMP
+   } // end parallel region
+#endif
 }
 
 #ifdef HAVE_OPENCL
