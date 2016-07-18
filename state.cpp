@@ -811,7 +811,7 @@ void State::apply_boundary_conditions(void)
 
 void State::apply_boundary_conditions_Parallel(void)
 {
-   static int *nlft, *nrht, *nbot, *ntop;
+   int *nlft, *nrht, *nbot, *ntop;
 
    size_t &ncells = mesh->ncells;
    nlft = mesh->nlft;
@@ -1268,7 +1268,16 @@ void State::calc_finite_difference(double deltaT){
 
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
 
    //printf("\nDEBUG finite diff\n"); 
 
@@ -1305,11 +1314,20 @@ void State::calc_finite_difference(double deltaT){
    static state_t *H_new, *U_new, *V_new;
    static int *nlft, *nrht, *nbot, *ntop, *level;
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
    nlft  = mesh->nlft;
    nrht  = mesh->nrht;
    nbot  = mesh->nbot;
    ntop  = mesh->ntop;
    level = mesh->level;
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
 
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
@@ -1916,7 +1934,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
    apply_boundary_conditions_Parallel();
 #endif
 
-   static int *nlft, *nrht, *nbot, *ntop, *level;
+   int *nlft, *nrht, *nbot, *ntop, *level;
 
    nlft  = mesh->nlft;
    nrht  = mesh->nrht;
@@ -2802,29 +2820,31 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 {
 #endif
 
-  struct timeval tstart_lev2;
+   struct timeval tstart_lev2;
 
-#ifdef _OPENMP
-#pragma omp master
-{
-#endif
    cpu_timer_start(&tstart_cpu);
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
-#ifdef _OPENMP
-}
-#endif
 
    static int *nlft, *nrht, *nbot, *ntop, *level;
    
-    size_t ncells = mesh->ncells;
-     nlft  = mesh->nlft;
-     nrht  = mesh->nrht;
-     nbot  = mesh->nbot;
-     ntop  = mesh->ntop;
-     level = mesh->level;
+   size_t ncells = mesh->ncells;
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+{
+#endif
+   nlft  = mesh->nlft;
+   nrht  = mesh->nrht;
+   nbot  = mesh->nbot;
+   ntop  = mesh->ntop;
+   level = mesh->level;
 
    icount=0;
    jcount=0;
+#ifdef _OPENMP
+}
+#pragma omp barrier
+#endif
 
 #ifdef HAVE_MPI
    // We need to update the ghost regions and boundary regions for the state

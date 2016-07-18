@@ -3678,7 +3678,7 @@ void Mesh::calc_neighbors(int ncells)
          int jmaxsize = (jmax+1)*IPOW2(levmx);
          int imaxsize = (imax+1)*IPOW2(levmx);
 
-         static int *hash;
+         int *hash;
 
 #ifdef _OPENMP
          hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0);
@@ -3916,7 +3916,14 @@ void Mesh::calc_neighbors(int ncells)
 #endif
       } // calc_neighbor_type
 
-      ncells_ghost = ncells;
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
+         ncells_ghost = ncells;
+#ifdef _OPENMP
+         }
+#endif
 
    }
 
