@@ -463,12 +463,12 @@ extern "C" void do_calc(void)
       deltaT = state->set_timestep(g, sigma);
       simTime += deltaT;
 
-      mesh->calc_neighbors_local();
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
       {
+         mesh->calc_neighbors_local();
+
          cpu_timer_start(&tstart_partmeas);
          mesh->partition_measure();
 #ifdef _OPENMP

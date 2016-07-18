@@ -3929,8 +3929,7 @@ void Mesh::calc_neighbors(int ncells)
 void Mesh::calc_neighbors_local(void)
 {
 #ifdef _OPENMP
-#pragma omp parallel
-   {
+#pragma omp barrier
 #endif
 
    if (do_rezone) {
@@ -5960,7 +5959,7 @@ void Mesh::calc_neighbors_local(void)
    }
 
 #ifdef _OPENMP
-   } // end parallel region
+#pragma omp barrier
 #endif
 }
 
