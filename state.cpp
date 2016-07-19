@@ -908,14 +908,14 @@ double State::set_timestep(double g, double sigma)
 {
    static double globalmindeltaT;
 
-//#ifdef _OPENMP
-//#pragma omp parallel
-//   {
-//#endif
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    static double mindeltaT;
+
+   int lowerBounds, upperBounds;
+   mesh->set_bounds(mesh->ncells);
+   mesh->get_bounds(lowerBounds, upperBounds);
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -929,10 +929,8 @@ double State::set_timestep(double g, double sigma)
 #endif
 
    double mymindeltaT = 1000.0; // private for each thread
-#ifdef _OPENMP
-#pragma omp for
-#endif
-   for (int ic=0; ic<(int)mesh->ncells; ic++) {
+
+   for (int ic=lowerBounds; ic<upperBounds; ic++) {
       if (mesh->celltype[ic] == REAL_CELL) {
          int lev = mesh->level[ic];
          double wavespeed = sqrt(g*H[ic]);
@@ -942,6 +940,7 @@ double State::set_timestep(double g, double sigma)
          if (deltaT < mymindeltaT) mymindeltaT = deltaT;
       }
    }
+
 #ifdef _OPENMP
 #pragma omp critical
    {
@@ -967,10 +966,6 @@ double State::set_timestep(double g, double sigma)
    } // End master region
 #pragma omp barrier
 #endif
-
-//#ifdef _OPENMP
-   //} // End parallel region
-//#endif
 
    return(globalmindeltaT);
 }
