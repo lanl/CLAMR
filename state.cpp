@@ -907,7 +907,6 @@ void State::remove_boundary_cells(void)
 double State::set_timestep(double g, double sigma)
 {
    double globalmindeltaT;
-   double mindeltaT = 1000.0;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -915,6 +914,19 @@ double State::set_timestep(double g, double sigma)
 #endif
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
+
+   static double mindeltaT;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+      mindeltaT = 1000;
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
 
    double mymindeltaT = 1000.0; // private for each thread
 #ifdef _OPENMP
@@ -951,7 +963,6 @@ double State::set_timestep(double g, double sigma)
 #endif
 
       cpu_timers[STATE_TIMER_SET_TIMESTEP] += cpu_timer_stop(tstart_cpu);
-
 #ifdef _OPENMP
    } // End master region
 #pragma omp barrier
