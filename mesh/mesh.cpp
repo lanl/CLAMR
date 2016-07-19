@@ -1781,7 +1781,9 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
                }
             }
          }
+#ifdef _OPENMP
 #pragma omp atomic 
+#endif
       newcount += mynewcount;
 
 #ifdef _OPENMP
