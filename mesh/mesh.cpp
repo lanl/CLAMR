@@ -2956,6 +2956,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #ifdef _OPENMP
 #pragma omp parallel
    {
+#endif
+
+#ifdef _OPENMP
 #pragma omp for
 #endif
       for (int ic = 0; ic < (int)ncells; ic++){
@@ -2976,13 +2979,16 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          }
       }
 
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
       scan (&add_count[0], &new_ic[0], ncells);
 #ifdef _OPENMP
-   }
+#pragma omp barrier
 #endif
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
    for (int ic = 0; ic < (int)ncells; ic++) {
    vector<int>  invorder(4, -1); //  Vector mapping location from base index.
@@ -3104,10 +3110,14 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             i[nc]  = i_old[ic]*2;
             j[nc]  = j_old[ic]*2;
             level[nc] = level_old[ic] + 1;
+#pragma omp atomic
             nc++;
          }
       } //  Complete refinement needed.
    } //  Complete addition of new cells to the mesh.
+#ifdef _OPENMP
+   }
+#endif
 
    mesh_memory.memory_delete(i_old);
    mesh_memory.memory_delete(j_old);
