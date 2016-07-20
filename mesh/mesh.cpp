@@ -2951,11 +2951,23 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #else
    // Data parallel optimizations for thread parallel -- slows down serial
    // code by about 25%
-   vector<int> add_count(ncells);
-   vector<int> new_ic(ncells+1);
+   vector<int> new_ic;
 #ifdef _OPENMP
 #pragma omp parallel
    {
+#endif
+   static vector<int> add_count;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+      add_count.resize(ncells);
+      new_ic.resize(ncells+1);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
 #endif
 
 #ifdef _OPENMP
@@ -3110,18 +3122,26 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             i[nc]  = i_old[ic]*2;
             j[nc]  = j_old[ic]*2;
             level[nc] = level_old[ic] + 1;
-#pragma omp atomic
             nc++;
          }
       } //  Complete refinement needed.
    } //  Complete addition of new cells to the mesh.
-#ifdef _OPENMP
-   }
-#endif
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
    mesh_memory.memory_delete(i_old);
    mesh_memory.memory_delete(j_old);
    mesh_memory.memory_delete(level_old);
+#ifdef _OPENMP
+            }
+#endif
+
+#ifdef _OPENMP
+   } // end parallel region
+#endif
 
    calc_celltype(new_ncells);
 
