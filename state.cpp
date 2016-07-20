@@ -576,54 +576,6 @@ void State::add_boundary_cells(void)
 
 void State::apply_boundary_conditions_local(void)
 {
-   size_t &ncells = mesh->ncells;
-   int *nlft = mesh->nlft;
-   int *nrht = mesh->nrht;
-   int *nbot = mesh->nbot;
-   int *ntop = mesh->ntop;
-
-   // This is for a mesh with boundary cells
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-   for (uint ic=0; ic<ncells; ic++) {
-      if (mesh->is_left_boundary(ic)) {
-         int nr = nrht[ic];
-         if (nr < (int)ncells) {
-            H[ic] =  H[nr];
-            U[ic] = -U[nr];
-            V[ic] =  V[nr];
-         }
-      }
-      if (mesh->is_right_boundary(ic))  {
-         int nl = nlft[ic];
-         if (nl < (int)ncells) {
-            H[ic] =  H[nl];
-            U[ic] = -U[nl];
-            V[ic] =  V[nl];
-         }
-      }
-      if (mesh->is_bottom_boundary(ic)) {
-         int nt = ntop[ic];
-         if (nt < (int)ncells) {
-            H[ic] =  H[nt];
-            U[ic] =  U[nt];
-            V[ic] = -V[nt];
-         }
-      }
-      if (mesh->is_top_boundary(ic)) {
-         int nb = nbot[ic];
-         if (nb < (int)ncells) {
-            H[ic] =  H[nb];
-            U[ic] =  U[nb];
-            V[ic] = -V[nb];
-         }
-      }
-   }
-}
-
-void State::apply_boundary_conditions_local_Parallel(void)
-{
    static int *nlft, *nrht, *nbot, *ntop;
 
    size_t &ncells = mesh->ncells;
@@ -673,55 +625,6 @@ void State::apply_boundary_conditions_local_Parallel(void)
 
 void State::apply_boundary_conditions_ghost(void)
 {
-
-   size_t &ncells = mesh->ncells;
-   int *nlft = mesh->nlft;
-   int *nrht = mesh->nrht;
-   int *nbot = mesh->nbot;
-   int *ntop = mesh->ntop;
-
-   // This is for a mesh with boundary cells
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-   for (uint ic=0; ic<ncells; ic++) {
-      if (mesh->is_left_boundary(ic)) {
-         int nr = nrht[ic];
-         if (nr >= (int)ncells) {
-            H[ic] =  H[nr];
-            U[ic] = -U[nr];
-            V[ic] =  V[nr];
-         }
-      }
-      if (mesh->is_right_boundary(ic))  {
-         int nl = nlft[ic];
-         if (nl >= (int)ncells) {
-            H[ic] =  H[nl];
-            U[ic] = -U[nl];
-            V[ic] =  V[nl];
-         }
-      }
-      if (mesh->is_bottom_boundary(ic)) {
-         int nt = ntop[ic];
-         if (nt >= (int)ncells) {
-            H[ic] =  H[nt];
-            U[ic] =  U[nt];
-            V[ic] = -V[nt];
-         }
-      }
-      if (mesh->is_top_boundary(ic)) {
-         int nb = nbot[ic];
-         if (nb >= (int)ncells) {
-            H[ic] =  H[nb];
-            U[ic] =  U[nb];
-            V[ic] = -V[nb];
-         }
-      }
-   }
-}
-
-void State::apply_boundary_conditions_ghost_Parallel(void)
-{
    static int *nlft, *nrht, *nbot, *ntop;
 
    size_t &ncells = mesh->ncells;
@@ -770,46 +673,6 @@ void State::apply_boundary_conditions_ghost_Parallel(void)
 }
 
 void State::apply_boundary_conditions(void)
-{
-   size_t &ncells = mesh->ncells;
-   int *nlft = mesh->nlft;
-   int *nrht = mesh->nrht;
-   int *nbot = mesh->nbot;
-   int *ntop = mesh->ntop;
-
-   // This is for a mesh with boundary cells
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-   for (uint ic=0; ic<ncells; ic++) {
-      if (mesh->is_left_boundary(ic)) {
-         int nr = nrht[ic];
-         H[ic] =  H[nr];
-         U[ic] = -U[nr];
-         V[ic] =  V[nr];
-      }
-      if (mesh->is_right_boundary(ic))  {
-         int nl = nlft[ic];
-         H[ic] =  H[nl];
-         U[ic] = -U[nl];
-         V[ic] =  V[nl];
-      }
-      if (mesh->is_bottom_boundary(ic)) {
-         int nt = ntop[ic];
-         H[ic] =  H[nt];
-         U[ic] =  U[nt];
-         V[ic] = -V[nt];
-      }
-      if (mesh->is_top_boundary(ic)) {
-         int nb = nbot[ic];
-         H[ic] =  H[nb];
-         U[ic] =  U[nb];
-         V[ic] = -V[nb];
-      }
-   }
-}
-
-void State::apply_boundary_conditions_Parallel(void)
 {
    int *nlft, *nrht, *nbot, *ntop;
 
@@ -1277,7 +1140,7 @@ void State::calc_finite_difference(double deltaT){
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
    if (mesh->numpe > 1) {
-      apply_boundary_conditions_local_Parallel();
+      apply_boundary_conditions_local();
 
 #ifdef _OPENMP
 #pragma omp master
@@ -1295,12 +1158,12 @@ void State::calc_finite_difference(double deltaT){
 #pragma omp barrier
 #endif
 
-      apply_boundary_conditions_ghost_Parallel();
+      apply_boundary_conditions_ghost();
    } else {
-      apply_boundary_conditions_Parallel();
+      apply_boundary_conditions();
    }
 #else
-   apply_boundary_conditions_Parallel();
+   apply_boundary_conditions();
 #endif
 
    static state_t *H_new, *U_new, *V_new;
@@ -1907,7 +1770,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
    if (mesh->numpe > 1) {
-      apply_boundary_conditions_local_Parallel();
+      apply_boundary_conditions_local();
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -1926,12 +1789,12 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #pragma omp barrier
 #endif
 
-      apply_boundary_conditions_ghost_Parallel();
+      apply_boundary_conditions_ghost();
    } else {
-      apply_boundary_conditions_Parallel();
+      apply_boundary_conditions();
    }
 #else
-   apply_boundary_conditions_Parallel();
+   apply_boundary_conditions();
 #endif
 
    int *nlft, *nrht, *nbot, *ntop, *level;
@@ -2851,7 +2714,7 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    // variables since they were changed in the finite difference routine. We
    // want to use the updated values for refinement decisions
    if (mesh->numpe > 1) {
-      apply_boundary_conditions_local_Parallel();
+      apply_boundary_conditions_local();
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
@@ -2864,12 +2727,12 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 }
 #pragma omp barrier
 #endif
-      apply_boundary_conditions_ghost_Parallel();
+      apply_boundary_conditions_ghost();
    } else {
-      apply_boundary_conditions_Parallel();
+      apply_boundary_conditions();
    }
 #else
-   apply_boundary_conditions_Parallel();
+   apply_boundary_conditions();
 #endif
 /*****HIGH LEVEL OMP******/
 

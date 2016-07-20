@@ -3283,14 +3283,32 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    // End of data parallel optimizations
 #endif
 
+#ifdef _OPENMP
+#pragma omp parallel
+   {
+#endif
+
    if (neighbor_remap) {
-      flags = 0;
-      int *nlft_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nlft_old",  flags);
-      int *nrht_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nrht_old",  flags);
-      int *nbot_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nbot_old",  flags);
-      int *ntop_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "ntop_old",  flags);
+      int flags = 0;
+      static int *nlft_old, *nrht_old, *nbot_old, *ntop_old;
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
+      nlft_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nlft_old",  flags);
+      nrht_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nrht_old",  flags);
+      nbot_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nbot_old",  flags);
+      ntop_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "ntop_old",  flags);
+#ifdef _OPENMP
+      } // end master region
+#pragma omp barrier
+#endif
       flags = RESTART_DATA;
 
+#ifdef _OPENMP
+#pragma omp for
+#endif
       for (int ic = 0; ic < new_ncells; ic++){
          nlft_old[ic] = -1;
          nrht_old[ic] = -1;
@@ -3298,14 +3316,18 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          ntop_old[ic] = -1;
       }
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
       mesh_memory.memory_swap(&nlft,  &nlft_old);
       mesh_memory.memory_swap(&nrht,  &nrht_old);
       mesh_memory.memory_swap(&nbot,  &nbot_old);
       mesh_memory.memory_swap(&ntop,  &ntop_old);
-
 #ifdef _OPENMP
-#pragma omp parallel
-      {
+      } // end master region
+#pragma omp barrier
 #endif
 
 #ifdef _OPENMP
@@ -3372,21 +3394,39 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       }
 
 #ifdef _OPENMP
-      } // end parallel region
 #pragma omp barrier
+#pragma omp master
+      {
 #endif
-
       nlft_old = (int *)mesh_memory.memory_delete(nlft_old);
       nrht_old = (int *)mesh_memory.memory_delete(nrht_old);
       nbot_old = (int *)mesh_memory.memory_delete(nbot_old);
       ntop_old = (int *)mesh_memory.memory_delete(ntop_old);
+#ifdef _OPENMP
+      } // end master region
+#pragma omp barrier
+#endif
    } else {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
       nlft = (int *)mesh_memory.memory_delete(nlft);
       nrht = (int *)mesh_memory.memory_delete(nrht);
       nbot = (int *)mesh_memory.memory_delete(nbot);
       ntop = (int *)mesh_memory.memory_delete(ntop);
+#ifdef _OPENMP
+      } // end master region
+#pragma omp barrier
+#endif
    }
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
    //ncells = nc;
 
 #ifdef HAVE_MPI
@@ -3403,6 +3443,15 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
 
    cpu_timers[MESH_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
+#ifdef _OPENMP
+      } // end master region
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+   } // end parallel region
+#pragma omp barrier
+#endif
 }
 
 #ifdef HAVE_OPENCL
