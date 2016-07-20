@@ -906,66 +906,75 @@ void State::remove_boundary_cells(void)
 
 double State::set_timestep(double g, double sigma)
 {
-   static double globalmindeltaT;
-
+   double globalmindeltaT;
+   double mindeltaT = 1000.0;
    struct timeval tstart_cpu;
+
    cpu_timer_start(&tstart_cpu);
 
-   static double mindeltaT;
-
-   int lowerBounds, upperBounds;
-   mesh->set_bounds(mesh->ncells);
-   mesh->get_bounds(lowerBounds, upperBounds);
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
+   size_t ncells        = mesh->ncells;
+#ifdef HAVE_MPI
+   int parallel         = mesh->parallel;
 #endif
-      mindeltaT = 1000;
+   int *&celltype = mesh->celltype;
+   int *&level    = mesh->level;
+
+   int ic;
+
+/// Version 3.1 July 2011
+/// min reduction was only available in C in version 3.1
+/// so this fallback version
+#if defined _OPENMP && _OPENMP < 201107
+
 #ifdef _OPENMP
+   if (! iversion_flag) {
+      printf("Warning -- pre 3.1 version of OpenMP. Version is %d\n",_OPENMP);
+      iversion_flag = true;
    }
-#pragma omp barrier
+
+#pragma omp parallel
+   {
+      double mymindeltaT = 1000.0;
+#pragma omp for
 #endif
+      for (ic=0; ic<(int)ncells; ic++) {
+         if (celltype[ic] == REAL_CELL) {
+            int lev = level[ic];
+            double wavespeed = sqrt(g*H[ic]);
+            double xspeed = (fabs(U[ic])+wavespeed)/mesh->lev_deltax[lev];
+            double yspeed = (fabs(V[ic])+wavespeed)/mesh->lev_deltay[lev];
+            double deltaT=sigma/(xspeed+yspeed);
+            if (deltaT < mymindeltaT) mymindeltaT = deltaT;
+         }
+      }
+#pragma omp critical
+      if (mymindeltaT < mindeltaT) mindeltaT = mymindeltaT;
+   }
 
-   double mymindeltaT = 1000.0; // private for each thread
+#else // _OPENMP version >= 201107 or non-OpenMP
 
-   for (int ic=lowerBounds; ic<upperBounds; ic++) {
-      if (mesh->celltype[ic] == REAL_CELL) {
-         int lev = mesh->level[ic];
+#ifdef _OPENMP
+#pragma omp parallel for reduction (min:mindeltaT)
+#endif
+   for (ic=0; ic<(int)ncells; ic++) {
+      if (celltype[ic] == REAL_CELL) {
+         int lev = level[ic];
          double wavespeed = sqrt(g*H[ic]);
          double xspeed = (fabs(U[ic])+wavespeed)/mesh->lev_deltax[lev];
          double yspeed = (fabs(V[ic])+wavespeed)/mesh->lev_deltay[lev];
          double deltaT=sigma/(xspeed+yspeed);
-         if (deltaT < mymindeltaT) mymindeltaT = deltaT;
+         if (deltaT < mindeltaT) mindeltaT = deltaT;
       }
    }
 
-#ifdef _OPENMP
-#pragma omp critical
-   {
-#endif
-      if (mymindeltaT < mindeltaT) mindeltaT = mymindeltaT;
-#ifdef _OPENMP
-   } // End critical region
-#endif
+#endif // _OPENMP version
 
-#ifdef _OPENMP
-#pragma omp master
-   {
-#endif
-
+   globalmindeltaT = mindeltaT;
 #ifdef HAVE_MPI
-      if (mesh->parallel) MPI_Allreduce(&mindeltaT, &globalmindeltaT, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-#else
-      globalmindeltaT = mindeltaT;
+   if (parallel) MPI_Allreduce(&mindeltaT, &globalmindeltaT, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 #endif
 
-      cpu_timers[STATE_TIMER_SET_TIMESTEP] += cpu_timer_stop(tstart_cpu);
-#ifdef _OPENMP
-   } // End master region
-#pragma omp barrier
-#endif
+   cpu_timers[STATE_TIMER_SET_TIMESTEP] += cpu_timer_stop(tstart_cpu);
 
    return(globalmindeltaT);
 }
