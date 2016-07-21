@@ -1123,16 +1123,7 @@ void State::calc_finite_difference(double deltaT){
 
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-      {
-#endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
 
    //printf("\nDEBUG finite diff\n"); 
 
@@ -1146,13 +1137,13 @@ void State::calc_finite_difference(double deltaT){
 #pragma omp master
       {
 #endif
-      H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
-      U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
-      V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
+         H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
+         U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
+         V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
 
-      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
+         L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
+         L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
+         L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
 #ifdef _OPENMP
       }
 #pragma omp barrier
@@ -1167,22 +1158,13 @@ void State::calc_finite_difference(double deltaT){
 #endif
 
    static state_t *H_new, *U_new, *V_new;
-   static int *nlft, *nrht, *nbot, *ntop, *level;
+   int *nlft, *nrht, *nbot, *ntop, *level;
 
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-      {
-#endif
    nlft  = mesh->nlft;
    nrht  = mesh->nrht;
    nbot  = mesh->nbot;
    ntop  = mesh->ntop;
    level = mesh->level;
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
 
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
