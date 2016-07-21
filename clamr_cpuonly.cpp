@@ -381,8 +381,7 @@ extern "C" void do_calc(void)
 #endif
       {
          //  Calculate the real time step for the current discrete time step.
-         double mydeltaT;
-         mydeltaT = state->set_timestep(g, sigma);
+         double mydeltaT = state->set_timestep(g, sigma); // Private variable to avoid write conflict
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
