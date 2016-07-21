@@ -1716,15 +1716,10 @@ void State::calc_finite_difference(double deltaT){
 
       //state_memory.memory_report();
       //printf("DEBUG end finite diff\n\n"); 
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 #ifdef _OPENMP
    }
-#pragma omp barrier
 #endif
-
-#ifdef _OPENMP
-#pragma omp master
-#endif
-      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
 void State::calc_finite_difference_via_faces(double deltaT){
