@@ -73,6 +73,9 @@
 #include "crux/crux.h"
 #include "PowerParser/PowerParser.hh"
 #include "MallocPlus/MallocPlus.h"
+#ifdef HAVE_ITTNOTIFY
+#include <ittnotify>
+#endif
 
 using namespace PP;
 
@@ -457,6 +460,10 @@ extern "C" void do_calc(void)
 
    cpu_timer_start(&tstart_cpu);
 
+#ifdef HAVE_ITTNOTIFY
+__itt_resume();
+_SSC_MARK(Ox111);
+#endif
    for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
 #ifdef _OPENMP
@@ -522,6 +529,10 @@ extern "C" void do_calc(void)
 //      }
 
    } // End burst loop
+#ifdef HAVE_ITTNOTIFY
+__itt_pause();
+_SSC_MARK(Ox222);
+#endif
 
    cpu_time_calcs += cpu_timer_stop(tstart_cpu);
 
