@@ -74,7 +74,7 @@
 #include "PowerParser/PowerParser.hh"
 #include "MallocPlus/MallocPlus.h"
 #ifdef HAVE_ITTNOTIFY
-#include <ittnotify>
+#include <ittnotify.h>
 #endif
 
 using namespace PP;
