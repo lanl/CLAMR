@@ -453,6 +453,10 @@ endif (REPROBLAS_FOUND)
 
 #target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
+if (ITTNOTIFY_FOUND)
+   target_link_libraries(clamr_cpuonly ${ITTNOTIFY_LIBS})
+endif (ITTNOTIFY_FOUND)
+
 install(TARGETS clamr_cpuonly DESTINATION bin)
 
 ########### clamr_gpuonly target ###############
@@ -531,7 +535,7 @@ if(OPENMP_FOUND)
    endif (MIC_NATIVE)
 
    if (ITTNOTIFY_FOUND)
-      target_link_libraries(clamr_mpionly ${ITTNOTIFY_LIBS})
+      target_link_libraries(clamr_openmponly ${ITTNOTIFY_LIBS})
    endif (ITTNOTIFY_FOUND)
 
    install(TARGETS clamr_openmponly DESTINATION bin)
@@ -569,7 +573,7 @@ if (MPI_FOUND AND OPENMP_FOUND)
    install(TARGETS clamr_mpiopenmponly DESTINATION bin)
 
    if (ITTNOTIFY_FOUND)
-      target_link_libraries(clamr_mpionly ${ITTNOTIFY_LIBS})
+      target_link_libraries(clamr_mpiopenmponly ${ITTNOTIFY_LIBS})
    endif (ITTNOTIFY_FOUND)
 
 endif (MPI_FOUND AND OPENMP_FOUND)
