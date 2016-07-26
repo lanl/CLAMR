@@ -351,14 +351,14 @@ int main(int argc, char **argv) {
 #else
 #ifdef HAVE_ITTNOTIFY
 __itt_resume();
-_SSC_MARK(Ox111);
+__SSC_MARK(0x111);
 #endif
    for (it = ncycle; it < 10000000; it++) {
       do_calc();
    }
 #ifdef HAVE_ITTNOTIFY
 __itt_pause();
-_SSC_MARK(Ox222);
+__SSC_MARK(0x222);
 #endif
 #endif
    
