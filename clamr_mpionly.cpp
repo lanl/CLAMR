@@ -428,9 +428,17 @@ int main(int argc, char **argv) {
    set_idle_function(&do_calc);
    start_main_loop();
 #else
+#ifdef HAVE_ITTNOTIFY
+__itt_resume();
+_SSC_MARK(Ox111);
+#endif
    for (it = ncycle; it < 10000000; it++) {
       do_calc();
    }
+#ifdef HAVE_ITTNOTIFY
+__itt_pause();
+_SSC_MARK(Ox222);
+#endif
 #endif
    
    return 0;
@@ -460,10 +468,6 @@ extern "C" void do_calc(void)
 
    cpu_timer_start(&tstart_cpu);
 
-#ifdef HAVE_ITTNOTIFY
-__itt_resume();
-_SSC_MARK(Ox111);
-#endif
    for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
 #ifdef _OPENMP
@@ -529,10 +533,6 @@ _SSC_MARK(Ox111);
 //      }
 
    } // End burst loop
-#ifdef HAVE_ITTNOTIFY
-__itt_pause();
-_SSC_MARK(Ox222);
-#endif
 
    cpu_time_calcs += cpu_timer_stop(tstart_cpu);
 
