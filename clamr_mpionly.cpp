@@ -462,7 +462,7 @@ extern "C" void do_calc(void)
 
 #ifdef HAVE_ITTNOTIFY
 __itt_resume();
-_SSC_MARK(Ox111);
+__SSC_MARK(0x111);
 #endif
    for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
@@ -531,7 +531,7 @@ _SSC_MARK(Ox111);
    } // End burst loop
 #ifdef HAVE_ITTNOTIFY
 __itt_pause();
-_SSC_MARK(Ox222);
+__SSC_MARK(0x222);
 #endif
 
    cpu_time_calcs += cpu_timer_stop(tstart_cpu);
