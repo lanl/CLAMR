@@ -341,6 +341,11 @@ add_definitions(-DHAVE_CONFIG_H)
 # so that we will find config.h
 include_directories("${PROJECT_BINARY_DIR}")
 
+#ADDING TESTS CODE####
+if (EXISTS "${CMAKE_SOURCE_DIR}/tests" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/tests")
+   add_subdirectory(tests)
+endif (EXISTS "${CMAKE_SOURCE_DIR}/tests" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/tests")
+
 if (EXISTS "${CMAKE_SOURCE_DIR}/mesh" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/mesh")
    add_subdirectory(mesh)
 endif (EXISTS "${CMAKE_SOURCE_DIR}/mesh" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/mesh")
