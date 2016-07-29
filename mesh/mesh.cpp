@@ -3947,6 +3947,9 @@ void Mesh::calc_neighbors(int ncells)
 #endif
       } // calc_neighbor_type
 
+#ifdef _OPENMP
+#pragma omp master
+#endif
       ncells_ghost = ncells;
 
    }
@@ -4103,13 +4106,24 @@ void Mesh::calc_neighbors_local(void)
       } // end for loop
 
       if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
          cpu_timers[MESH_TIMER_HASH_SETUP] += cpu_timer_stop(tstart_lev2);
          cpu_timer_start(&tstart_lev2);
       }
 
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
       // Set neighbors to global cell numbers from hash
       jmaxcalc = (jmax+1)*IPOW2(levmx);
       imaxcalc = (imax+1)*IPOW2(levmx);
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
 
 #ifdef _OPENMP
 #pragma omp for

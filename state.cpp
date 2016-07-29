@@ -1131,6 +1131,9 @@ void State::calc_finite_difference(double deltaT){
 
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
+#ifdef _OPENMP
+#pragma omp master
+#endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
 
    //printf("\nDEBUG finite diff\n"); 
@@ -1166,7 +1169,7 @@ void State::calc_finite_difference(double deltaT){
 #endif
 
    static state_t *H_new, *U_new, *V_new;
-   static int *nlft, *nrht, *nbot, *ntop, *level;
+   int *nlft, *nrht, *nbot, *ntop, *level;
 
    nlft  = mesh->nlft;
    nrht  = mesh->nrht;
@@ -1744,6 +1747,9 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
+#ifdef _OPENMP
+#pragma omp master
+#endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
 
    //printf("\nDEBUG finite diff\n");
@@ -2677,17 +2683,25 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 }
 #endif
 
-   static int *nlft, *nrht, *nbot, *ntop, *level;
+   int *nlft, *nrht, *nbot, *ntop, *level;
    
-    size_t ncells = mesh->ncells;
-     nlft  = mesh->nlft;
-     nrht  = mesh->nrht;
-     nbot  = mesh->nbot;
-     ntop  = mesh->ntop;
-     level = mesh->level;
+   size_t ncells = mesh->ncells;
+   nlft  = mesh->nlft;
+   nrht  = mesh->nrht;
+   nbot  = mesh->nbot;
+   ntop  = mesh->ntop;
+   level = mesh->level;
 
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
    icount=0;
    jcount=0;
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
 
 #ifdef HAVE_MPI
    // We need to update the ghost regions and boundary regions for the state
@@ -2713,6 +2727,10 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    }
 #else
    apply_boundary_conditions();
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
 #endif
 /*****HIGH LEVEL OMP******/
 

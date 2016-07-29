@@ -1,7 +1,14 @@
-inspxe-cl -collect=ti2 ./clamr_openmponly -n 128      -i 10 -t 100 >& n128lev1_openmp.out
-inspxe-cl -collect=ti2 ./clamr_openmponly -n 128 -l 4 -i 10 -t 100 >& n128lev4_openmp.out
-inspxe-cl -collect=ti2 ./clamr_openmponly -n 256      -i 10 -t 50  >& n256lev1_openmp.out
-inspxe-cl -collect=ti2 ./clamr_openmponly -n 256 -l 4 -i 10 -t 50  >& n256lev4_openmp.out
-inspxe-cl -collect=ti2 ./clamr_openmponly -f -n 128 -l 4 -i 10 -t 50  >& facen128lev4_openmp.out
+inspxe-cl -collect=ti2 -result-dir ./n128lev1 -- ./clamr_openmponly -n 128      -i 10 -t 100 >& n128lev1_openmp.out || true
+inspxe-cl -report problems -result-dir n128lev1
+inspxe-cl -collect=ti2 -result-dir ./n128lev4 -- ./clamr_openmponly -n 128 -l 4 -i 10 -t 100 >& n128lev4_openmp.out || true
+inspxe-cl -report problems -result-dir n128lev4
+
+inspxe-cl -collect=ti2 -result-dir ./n256lev1 -- ./clamr_openmponly -n 256      -i 10 -t 50 >& n256lev1_openmp.out || true
+inspxe-cl -report problems -result-dir n256lev1
+inspxe-cl -collect=ti2 -result-dir ./n256lev4 -- ./clamr_openmponly -n 256 -l 4 -i 10 -t 50 >& n256lev4_openmp.out || true
+inspxe-cl -report problems -result-dir n256lev4
+
+inspxe-cl -collect=ti2 -result-dir ./facen128lev4 -- ./clamr_openmponly -f -n 128 -l 4 -i 10 -t 100 >& facen128lev4_openmp.out || true
+inspxe-cl -report problems -result-dir facen128lev4
 
 echo "PASSED"
