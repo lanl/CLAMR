@@ -674,7 +674,7 @@ void State::apply_boundary_conditions_ghost(void)
 
 void State::apply_boundary_conditions(void)
 {
-   static int *nlft, *nrht, *nbot, *ntop;
+   int *nlft, *nrht, *nbot, *ntop;
 
    size_t &ncells = mesh->ncells;
    nlft = mesh->nlft;
