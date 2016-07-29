@@ -35,3 +35,14 @@ add_custom_target(scaling_tests
                           ${BIN_DIR}/clamr_gpuonly ${BIN_DIR}/clamr_gpucheck
                           ${BIN_DIR}/clamr)
 
+add_custom_target(inspxe_tests 
+                  COMMAND echo "Running Intel thread inspector tests" &&
+                          make clamr_clean_tests &&
+                          env BIN_DIR=${BIN_DIR} 
+                              CTS_BIN=${CTS_BIN}
+                          ${CTS_BIN}/cts -cts clamr.cts inspxe.suite
+                  DEPENDS ${BIN_DIR}/clamr_cpuonly ${BIN_DIR}/clamr_mpionly
+                          ${BIN_DIR}/clamr_mpicheck ${BIN_DIR}/clamr_checkall
+                          ${BIN_DIR}/clamr_openmponly ${BIN_DIR}/clamr_mpiopenmponly
+                          ${BIN_DIR}/clamr_gpuonly ${BIN_DIR}/clamr_gpucheck
+                          ${BIN_DIR}/clamr)
