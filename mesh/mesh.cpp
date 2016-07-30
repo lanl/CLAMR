@@ -5069,13 +5069,16 @@ void Mesh::calc_neighbors_local(void)
 #pragma omp master
          {
 #endif
-         int inew = 0;
-         for(int ic=0; ic<nbsize_local; ic++){
-            if (border_cell_needed_local[ic] <= 0) continue;
-            if (DEBUG) {
+         if (DEBUG) {
+            for(int ic=0; ic<nbsize_local; ic++){
                if (border_cell_needed_local[ic] <  0x0016) fprintf(fp,"%d: First  set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_local[ic],border_cell_needed_local[ic]);
                if (border_cell_needed_local[ic] >= 0x0016) fprintf(fp,"%d: Second set of needed cells ic %3d cell %3d type %3d\n",mype,ic,border_cell_num_local[ic],border_cell_needed_local[ic]);
             }
+         }
+
+         int inew = 0;
+         for(int ic=0; ic<nbsize_local; ic++){
+            if (border_cell_needed_local[ic] <= 0) continue;
             indices_needed.push_back(border_cell_num_local[ic]);
 
             // border_cell_num_local is not used after -- could be commented out?
@@ -5090,9 +5093,16 @@ void Mesh::calc_neighbors_local(void)
          nbsize_local = inew;
 
          free(border_cell_num_local);
+#ifdef _OPENMP
+         } // end master region
+#pragma omp barrier
+#endif
 
          // Walk through cell array and set hash to global cell values
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
+#ifdef _OPENMP
+#pragma omp for
+#endif
          for(int ic=0; ic<nbsize_local; ic++){
             int lev = border_cell_level_local[ic];
             int levmult = IPOW2(levmx-lev);
@@ -5102,10 +5112,6 @@ void Mesh::calc_neighbors_local(void)
 
             write_hash(-(ncells+ic), jj*(imaxsize-iminsize)+ii, hash);
          }
-#ifdef _OPENMP
-         } // end master region
-#pragma omp barrier
-#endif
 
          if (TIMING_LEVEL >= 2) {
 #ifdef _OPENMP
