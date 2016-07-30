@@ -4669,12 +4669,24 @@ void Mesh::calc_neighbors_local(void)
             fprintf(fp,"\n");
          }
 
-         vector<int> border_cell_needed_local(nbsize_local, 0);
+         vector<int> border_cell_needed_local;
 
 #ifdef _OPENMP
 #pragma omp parallel
          {
 #endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+         border_cell_needed_local.resize(nbsize_local, 0);
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
+
          // Layer 1
 #ifdef _OPENMP
 #pragma omp for
