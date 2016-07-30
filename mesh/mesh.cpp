@@ -4669,12 +4669,12 @@ void Mesh::calc_neighbors_local(void)
             fprintf(fp,"\n");
          }
 
-         vector<int> border_cell_needed_local;
-
 #ifdef _OPENMP
 #pragma omp parallel
          {
 #endif
+
+         vector<int> border_cell_needed_local;
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -4689,7 +4689,9 @@ void Mesh::calc_neighbors_local(void)
 
          // Layer 1
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp barrier
+#pragma omp master
+         {
 #endif
          for (int ic =0; ic<nbsize_local; ic++){
             int jj = border_cell_j_local[ic];
@@ -4822,6 +4824,10 @@ void Mesh::calc_neighbors_local(void)
 
             if (iborder) border_cell_needed_local[ic] = iborder;
          }
+#ifdef _OPENMP
+         } // end master region
+#pragma omp barrier
+#endif
 
          if (DEBUG) {
 #ifdef _OPENMP
@@ -4842,7 +4848,9 @@ void Mesh::calc_neighbors_local(void)
          // Walk through cell array and set hash to border local index plus ncells+noffset for next pass
          //fprintf(fp,"%d: DEBUG new hash jminsize %d jmaxsize %d iminsize %d imaxsize %d\n",mype,jminsize,jmaxsize,iminsize,imaxsize);
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp barrier
+#pragma omp master
+         {
 #endif
          for(int ic=0; ic<nbsize_local; ic++){
             if (border_cell_needed_local[ic] == 0) continue;
@@ -4854,6 +4862,10 @@ void Mesh::calc_neighbors_local(void)
 
             write_hash(ncells+noffset+ic, jj*(imaxsize-iminsize)+ii, hash);
          }
+#ifdef _OPENMP
+         } // end master region
+#pragma omp barrier
+#endif
 
          if (TIMING_LEVEL >= 2) {
 #ifdef _OPENMP
@@ -4900,7 +4912,8 @@ void Mesh::calc_neighbors_local(void)
 
          // Layer 2
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp master
+         {
 #endif
          for (int ic =0; ic<nbsize_local; ic++){
             if (border_cell_needed_local[ic] > 0) continue;
@@ -5073,6 +5086,10 @@ void Mesh::calc_neighbors_local(void)
 
             if (iborder) border_cell_needed_local[ic] = iborder |= 0x0016;
          }
+#ifdef _OPENMP
+         } // end master region
+#pragma omp barrier
+#endif
 
          vector<int> indices_needed;
 
