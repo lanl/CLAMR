@@ -1785,7 +1785,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
    apply_boundary_conditions();
 #endif
 
-   static int *nlft, *nrht, *nbot, *ntop, *level;
+   int *nlft, *nrht, *nbot, *ntop, *level;
 
    nlft  = mesh->nlft;
    nrht  = mesh->nrht;
