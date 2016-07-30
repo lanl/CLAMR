@@ -4588,7 +4588,17 @@ void Mesh::calc_neighbors_local(void)
          L7_Push_Setup(num_comm_partners, &comm_partner[0], &send_buffer_count[0],
                        send_database, &receive_count_total, &i_push_handle);
 
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
+
          if (DEBUG) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
             fprintf(fp,"DEBUG num_comm_partners %d\n",num_comm_partners);
             for (int ip = 0; ip < num_comm_partners; ip++){
                fprintf(fp,"DEBUG comm partner is %d data count is %d\n",comm_partner[ip],send_buffer_count[ip]);
@@ -4598,37 +4608,52 @@ void Mesh::calc_neighbors_local(void)
                      border_cell_i[ib],border_cell_j[ib],border_cell_level[ib]);
                }
             }
+#ifdef _OPENMP
+         }
+#endif
          }
 
          // Can now free the send database. Other arrays are vectors and will automatically 
          // deallocate
-
-         for (int ip = 0; ip < num_comm_partners; ip++){
-            free(send_database[ip]);
-         }
-         free(send_database);
-
-         if (TIMING_LEVEL >= 2) {
-            cpu_timers[MESH_TIMER_PUSH_SETUP] += cpu_timer_stop(tstart_lev2);
-            cpu_timer_start(&tstart_lev2);
-         }
-
-         // Push the data needed to the adjacent processors
-
-         int *border_cell_num_local = (int *)malloc(receive_count_total*sizeof(int));
-         int *border_cell_i_local = (int *)malloc(receive_count_total*sizeof(int));
-         int *border_cell_j_local = (int *)malloc(receive_count_total*sizeof(int));
-         int *border_cell_level_local = (int *)malloc(receive_count_total*sizeof(int));
-#ifdef _OPENMP
-#pragma omp parallel
-         {
-#endif
 
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
          {
 #endif
+         for (int ip = 0; ip < num_comm_partners; ip++){
+            free(send_database[ip]);
+         }
+         free(send_database);
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
+
+         if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
+            cpu_timers[MESH_TIMER_PUSH_SETUP] += cpu_timer_stop(tstart_lev2);
+            cpu_timer_start(&tstart_lev2);
+         }
+
+         // Push the data needed to the adjacent processors
+         static int *border_cell_num_local;
+         static int *border_cell_i_local;
+         static int *border_cell_j_local;
+         static int *border_cell_level_local;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+         border_cell_num_local = (int *)malloc(receive_count_total*sizeof(int));
+         border_cell_i_local = (int *)malloc(receive_count_total*sizeof(int));
+         border_cell_j_local = (int *)malloc(receive_count_total*sizeof(int));
+         border_cell_level_local = (int *)malloc(receive_count_total*sizeof(int));
+
          L7_Push_Update(&border_cell_num[0],   border_cell_num_local,   i_push_handle);
          L7_Push_Update(&border_cell_i[0],     border_cell_i_local,     i_push_handle);
          L7_Push_Update(&border_cell_j[0],     border_cell_j_local,     i_push_handle);
