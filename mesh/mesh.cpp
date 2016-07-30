@@ -4628,24 +4628,48 @@ void Mesh::calc_neighbors_local(void)
 
          nbsize_local = receive_count_total; 
 
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
+
          if (DEBUG) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
             for (int ic = 0; ic < nbsize_local; ic++) {
                fprintf(fp,"%d: Local Border cell %d is %d i %d j %d level %d\n",mype,ic,border_cell_num_local[ic],
                   border_cell_i_local[ic],border_cell_j_local[ic],border_cell_level_local[ic]);
             }
+#ifdef _OPENMP
+         }
+#endif
          }
 
          if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
             cpu_timers[MESH_TIMER_PUSH_BOUNDARY] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
          if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
             cpu_timers[MESH_TIMER_LOCAL_LIST] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
          if (DEBUG) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
             int jmaxglobal = (jmax+1)*IPOW2(levmx);
             int imaxglobal = (imax+1)*IPOW2(levmx);
             fprintf(fp,"\n                                    HASH numbering before layer 1\n");
@@ -4667,12 +4691,10 @@ void Mesh::calc_neighbors_local(void)
                fprintf(fp,"%4d:",ii);
             }
             fprintf(fp,"\n");
-         }
-
 #ifdef _OPENMP
-#pragma omp parallel
-         {
+         }
 #endif
+         }
 
          vector<int> border_cell_needed_local;
 
