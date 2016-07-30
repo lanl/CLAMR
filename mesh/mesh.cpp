@@ -4433,8 +4433,9 @@ void Mesh::calc_neighbors_local(void)
 
 #ifdef _OPENMP
 #pragma omp parallel
-#endif
          {
+#endif
+
 #ifdef _OPENMP
 #pragma omp for
 #endif
@@ -4514,12 +4515,7 @@ void Mesh::calc_neighbors_local(void)
 
                border_cell_out[ic] = iborder_cell;
             }
-         } // parallel region
-
-#ifdef _OPENMP
-#pragma omp parallel
-         {
-#endif
+// indent offset
 
          vector<int> border_cell_num;
 
