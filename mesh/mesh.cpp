@@ -5081,12 +5081,12 @@ void Mesh::calc_neighbors_local(void)
             if (border_cell_needed_local[ic] <= 0) continue;
             indices_needed.push_back(border_cell_num_local[ic]);
 
-            // border_cell_num_local is not used after -- could be commented out?
             border_cell_num_local[inew]    = border_cell_num_local[ic];
             border_cell_i_local[inew]      = border_cell_i_local[ic];
             border_cell_j_local[inew]      = border_cell_j_local[ic];
             border_cell_level_local[inew]  = border_cell_level_local[ic];
-            border_cell_needed_local[inew] = 1;
+            // border_cell_num_local is not used after -- could be commented out?
+            // border_cell_needed_local[inew] = 1;
 
             inew++;
          }
