@@ -4539,29 +4539,64 @@ void Mesh::calc_neighbors_local(void)
             border_cell_level[ic] = level[cell_num]; 
          }
 
+#ifdef _OPENMP
+#pragma omp parallel
+         {
+#endif
+
          if (DEBUG) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
             fprintf(fp,"%d: Border cell size is %d\n",mype,nbsize_local);
             for (int ib = 0; ib <nbsize_local; ib++){
                fprintf(fp,"%d: Border cell %d is %d i %d j %d level %d\n",mype,ib,border_cell_num[ib],
                   border_cell_i[ib],border_cell_j[ib],border_cell_level[ib]);
             }
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
          }
 
          if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
             cpu_timers[MESH_TIMER_FIND_BOUNDARY] += cpu_timer_stop(tstart_lev2);
             cpu_timer_start(&tstart_lev2);
          }
 
          // Allocate push database
 
-         int **send_database = (int**)malloc(num_comm_partners*sizeof(int *));
+         static int **send_database;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+         send_database = (int**)malloc(num_comm_partners*sizeof(int *));
          for (int ip = 0; ip < num_comm_partners; ip++){
             send_database[ip] = (int *)malloc(nbsize_local*sizeof(int));
          }
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
 
          // Compute the overlap between processor bounding boxes and set up push database
 
-         vector<int> send_buffer_count(num_comm_partners);
+         static vector<int> send_buffer_count;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+         send_buffer_count.resize(num_comm_partners);
          for (int ip = 0; ip < num_comm_partners; ip++){
             int icount = 0;
             for (int ib = 0; ib <nbsize_local; ib++){
@@ -4578,19 +4613,29 @@ void Mesh::calc_neighbors_local(void)
             }
             send_buffer_count[ip]=icount;
          }
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
 
          // Initialize L7_Push_Setup with num_comm_partners, comm_partner, send_database and 
          // send_buffer_count. L7_Push_Setup will copy data and determine recv_buffer_counts.
          // It will return receive_count_total for use in allocations
 
-         int receive_count_total;
+         static int receive_count_total;
          int i_push_handle = 0;
-         L7_Push_Setup(num_comm_partners, &comm_partner[0], &send_buffer_count[0],
-                       send_database, &receive_count_total, &i_push_handle);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp barrier
+#pragma omp master
          {
+#endif
+         i_push_handle = 0;
+         L7_Push_Setup(num_comm_partners, &comm_partner[0], &send_buffer_count[0],
+                       send_database, &receive_count_total, &i_push_handle);
+#ifdef _OPENMP
+         }
+#pragma omp barrier
 #endif
 
          if (DEBUG) {
@@ -4627,7 +4672,6 @@ void Mesh::calc_neighbors_local(void)
          free(send_database);
 #ifdef _OPENMP
          }
-#pragma omp barrier
 #endif
 
          if (TIMING_LEVEL >= 2) {
