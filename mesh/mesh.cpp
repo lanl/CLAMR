@@ -4241,16 +4241,6 @@ void Mesh::calc_neighbors_local(void)
 
          //fprintf(fp,"%d: neighbors[%d] = %d %d %d %d\n",mype,ic,nlft[ic],nrht[ic],nbot[ic],ntop[ic]);
       }
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-#pragma omp parallel
-      {
-#endif
-
 
       if (DEBUG) {
 #ifdef _OPENMP
