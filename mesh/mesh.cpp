@@ -4377,12 +4377,13 @@ void Mesh::calc_neighbors_local(void)
          cpu_timer_start(&tstart_lev2);
       }
 
-#ifdef HAVE_MPI
-      if (numpe > 1) {
 #ifdef _OPENMP
 #pragma omp parallel
-         {
+      {
 #endif
+
+#ifdef HAVE_MPI
+      if (numpe > 1) {
          static int num_comm_partners;
 
          static vector<int> iminsize_global;
@@ -5891,10 +5892,11 @@ void Mesh::calc_neighbors_local(void)
 #endif
          } // end DEBUG
 
-#ifdef _OPENMP
-         } // end parallel region
-#endif
       } // if numpe > 1
+#endif
+
+#ifdef _OPENMP
+      } // end parallel region
 #endif
 
       write_hash_collision_report();
