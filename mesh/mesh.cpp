@@ -3952,11 +3952,6 @@ void Mesh::calc_neighbors(int ncells)
 
 void Mesh::calc_neighbors_local(void)
 {
-#ifdef _OPENMP
-#pragma omp parallel
-   {
-#endif
-
    if (do_rezone) {
 
    struct timeval tstart_cpu;
@@ -6014,7 +6009,7 @@ void Mesh::calc_neighbors_local(void)
    }
 
 #ifdef _OPENMP
-   } // End parallel region
+#pragma omp barrier
 #endif
 }
 

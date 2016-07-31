@@ -392,12 +392,12 @@ extern "C" void do_calc(void)
          }
       }
 
-      mesh->calc_neighbors_local();
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
       {
+         mesh->calc_neighbors_local();
+
          if (do_comparison_calc) {
             mesh_global->calc_neighbors(mesh_global->ncells);
 
