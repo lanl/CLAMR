@@ -4011,15 +4011,26 @@ void Mesh::calc_neighbors_local(void)
 
       ncells_ghost = ncells;
 
-      // Find maximum i column and j row for this processor
-      int jmintile = (jmax+1)*IPOW2(levmx);
-      int imintile = (imax+1)*IPOW2(levmx);
-      int jmaxtile = 0;
-      int imaxtile = 0;
-
 #ifdef _OPENMP
 #pragma omp parallel
       {
+#endif
+
+      // Find maximum i column and j row for this processor
+      static int jmintile, imintile, jmaxtile, imaxtile;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+      jmintile = (jmax+1)*IPOW2(levmx);
+      imintile = (imax+1)*IPOW2(levmx);
+      jmaxtile = 0;
+      imaxtile = 0;
+#ifdef _OPENMP
+         }
+#pragma omp barrier
 #endif
 
          int my_jmintile = jmintile;
@@ -4048,9 +4059,7 @@ void Mesh::calc_neighbors_local(void)
             if (my_imaxtile > imaxtile) imaxtile = my_imaxtile;
 #ifdef _OPENMP
          } // end critical region
-#endif
-#ifdef _OPENMP
-      } // end parallel region
+#pragma omp barrier
 #endif
 
       //if (DEBUG) fprintf(fp,"%d: Tile Sizes are imin %d imax %d jmin %d jmax %d\n",mype,imintile,imaxtile,jmintile,jmaxtile);
@@ -4063,11 +4072,6 @@ void Mesh::calc_neighbors_local(void)
       //if (DEBUG) fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
 
       //fprintf(fp,"DEBUG -- ncells %lu\n",ncells);
-
-#ifdef _OPENMP
-#pragma omp parallel
-   {
-#endif
 
       static int *hash;
 
