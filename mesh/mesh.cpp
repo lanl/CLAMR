@@ -4031,10 +4031,12 @@ void Mesh::calc_neighbors_local(void)
 #pragma omp parallel
       {
 #endif
+
          int my_jmintile = jmintile;
          int my_imintile = imintile;
          int my_jmaxtile = 0;
          int my_imaxtile = 0;
+
 #ifdef _OPENMP
 #pragma omp for
 #endif
@@ -4079,21 +4081,24 @@ void Mesh::calc_neighbors_local(void)
       hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1);
 #endif
 
-      //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);
-
-      if (DEBUG) {
-         fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
-      }
-
-      int imaxcalc, jmaxcalc;
-
 #ifdef _OPENMP
 #pragma omp parallel
    {
 #endif
 
+      //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);
+
+      if (DEBUG) {
 #ifdef _OPENMP
-   #pragma omp for
+#pragma omp master
+#endif
+         fprintf(fp,"%d: Sizes are imin %d imax %d jmin %d jmax %d\n",mype,iminsize,imaxsize,jminsize,jmaxsize);
+      }
+
+      static int imaxcalc, jmaxcalc;
+
+#ifdef _OPENMP
+#pragma omp for
 #endif
       for(uint ic=0; ic<ncells; ic++){
          int cellnumber = ic+noffset;
