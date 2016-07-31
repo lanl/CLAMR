@@ -4379,24 +4379,29 @@ void Mesh::calc_neighbors_local(void)
 
 #ifdef HAVE_MPI
       if (numpe > 1) {
-         vector<int> iminsize_global(numpe);
-         vector<int> imaxsize_global(numpe);
-         vector<int> jminsize_global(numpe);
-         vector<int> jmaxsize_global(numpe);
-         vector<int> comm_partner(numpe,-1);
-
 #ifdef _OPENMP
 #pragma omp parallel
          {
 #endif
-
          static int num_comm_partners;
+
+         static vector<int> iminsize_global;
+         static vector<int> imaxsize_global;
+         static vector<int> jminsize_global;
+         static vector<int> jmaxsize_global;
+         static vector<int> comm_partner;
 
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
          {
 #endif
+         iminsize_global.resize(numpe);
+         imaxsize_global.resize(numpe);
+         jminsize_global.resize(numpe);
+         jmaxsize_global.resize(numpe);
+         comm_partner.resize(numpe,-1);
+
          MPI_Allgather(&iminsize, 1, MPI_INT, &iminsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
          MPI_Allgather(&imaxsize, 1, MPI_INT, &imaxsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
          MPI_Allgather(&jminsize, 1, MPI_INT, &jminsize_global[0], 1, MPI_INT, MPI_COMM_WORLD);
@@ -4426,17 +4431,8 @@ void Mesh::calc_neighbors_local(void)
          {
 #endif
          border_cell.resize(ncells);
-#ifdef _OPENMP
-         }
-#pragma omp barrier
-#endif
 
 #ifdef BOUNDS_CHECK
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-         {
-#endif
          for (uint ic=0; ic<ncells; ic++){
             int nl = nlft[ic];
             if (nl != -1){
@@ -4459,10 +4455,11 @@ void Mesh::calc_neighbors_local(void)
                if (nt<0 || nt>= (int)ncells) printf("%d: Warning at line %d cell %d ntop %d\n",mype,__LINE__,ic,nt);
             }
          }
+#endif
+
 #ifdef _OPENMP
          }
 #pragma omp barrier
-#endif
 #endif
 
          static vector<int> border_cell_out;
