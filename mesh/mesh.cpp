@@ -3952,15 +3952,14 @@ void Mesh::calc_neighbors(int ncells)
 
 void Mesh::calc_neighbors_local(void)
 {
-   if (do_rezone) {
-
-   struct timeval tstart_cpu;
-
 #ifdef _OPENMP
 #pragma omp parallel
    {
 #endif
 
+   if (do_rezone) {
+
+   struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    int flags = INDEX_ARRAY_MEMORY;
@@ -4004,17 +4003,17 @@ void Mesh::calc_neighbors_local(void)
 #pragma omp barrier
 #endif
 
+#ifdef _OPENMP
+#pragma omp parallel
+      {
+#endif
+
    if (calc_neighbor_type == HASH_TABLE) {
 
       struct timeval tstart_lev2;
       if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
       ncells_ghost = ncells;
-
-#ifdef _OPENMP
-#pragma omp parallel
-      {
-#endif
 
       // Find maximum i column and j row for this processor
       static int jmintile, imintile, jmaxtile, imaxtile;
@@ -5943,11 +5942,12 @@ void Mesh::calc_neighbors_local(void)
 #pragma omp barrier
 #endif
 
-#ifdef _OPENMP
-      } // end parallel region
-#endif
-
    } else if (calc_neighbor_type == KDTREE) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
       struct timeval tstart_lev2;
       if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
@@ -6009,10 +6009,22 @@ void Mesh::calc_neighbors_local(void)
 
       if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_KDTREE_QUERY] += cpu_timer_stop(tstart_lev2);
 
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
    } // calc_neighbor_type
 
+#ifdef _OPENMP
+#pragma omp master
+#endif
    cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
+
    }
+
+#ifdef _OPENMP
+   } // End parallel region
+#endif
 }
 
 #ifdef HAVE_OPENCL
