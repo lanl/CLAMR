@@ -3699,22 +3699,12 @@ void Mesh::calc_neighbors(int ncells)
          int jmaxsize = (jmax+1)*IPOW2(levmx);
          int imaxsize = (imax+1)*IPOW2(levmx);
 
-         static int *hash;
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-      {
-#endif
+         int *hash;
 
 #ifdef _OPENMP
-         hash = compact_hash_init_openmp_old(ncells, imaxsize, jmaxsize, 0);
+         hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0);
 #else
          hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
-#endif
-
-#ifdef _OPENMP
-      }
-#pragma omp barrier
 #endif
 
 #ifdef _OPENMP
@@ -4074,16 +4064,17 @@ void Mesh::calc_neighbors_local(void)
 
       //fprintf(fp,"DEBUG -- ncells %lu\n",ncells);
 
-      int *hash;
+#ifdef _OPENMP
+#pragma omp parallel
+   {
+#endif
+
+      static int *hash;
+
 #ifdef _OPENMP
       hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
 #else
       hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1);
-#endif
-
-#ifdef _OPENMP
-#pragma omp parallel
-   {
 #endif
 
       //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);

@@ -30,7 +30,6 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level);
 
 #ifdef _OPENMP
    int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_level);
-   int *compact_hash_init_openmp_old(int ncells, uint isize, uint jsize, uint report_level);
 #endif
 
 int get_hash_method(void);
