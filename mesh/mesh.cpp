@@ -4246,7 +4246,18 @@ void Mesh::calc_neighbors_local(void)
 #pragma omp barrier
 #endif
 
+#ifdef _OPENMP
+#pragma omp parallel
+      {
+#endif
+
+
       if (DEBUG) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
          print_local();
 
          int jmaxglobal = (jmax+1)*IPOW2(levmx);
@@ -4370,17 +4381,19 @@ void Mesh::calc_neighbors_local(void)
             fprintf(fp,"%4d:",ii);
          }
          fprintf(fp,"\n");
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
       }
 
       if (TIMING_LEVEL >= 2) {
+#ifdef _OPENMP
+#pragma omp master
+#endif
          cpu_timers[MESH_TIMER_HASH_QUERY] += cpu_timer_stop(tstart_lev2);
          cpu_timer_start(&tstart_lev2);
       }
-
-#ifdef _OPENMP
-#pragma omp parallel
-      {
-#endif
 
 #ifdef HAVE_MPI
       if (numpe > 1) {
@@ -5896,9 +5909,10 @@ void Mesh::calc_neighbors_local(void)
 #endif
 
 #ifdef _OPENMP
-      } // end parallel region
+#pragma omp barrier
+#pragma omp master
+            {
 #endif
-
       write_hash_collision_report();
       read_hash_collision_report();
       compact_hash_delete(hash);
@@ -5932,6 +5946,15 @@ void Mesh::calc_neighbors_local(void)
             }
          }
       }
+#endif
+
+#ifdef _OPENMP
+            } // end master region
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+      } // end parallel region
 #endif
 
    } else if (calc_neighbor_type == KDTREE) {
