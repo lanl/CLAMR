@@ -2643,6 +2643,15 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    int *i_old, *j_old, *level_old;
 
+   int ifirst;
+   int ilast;
+   int jfirst;
+   int jlast;
+   int level_first;
+   int level_last;
+
+   vector<int> new_ic;
+
 #ifdef _OPENMP
 #pragma omp parallel
    {
@@ -2721,6 +2730,10 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
 
    static vector<int> order; //  Vector of refined mesh traversal order; set to -1 to indicate errors.
+   //
+   //vector<int>  invorder(4, -1); //  Vector mapping location from base index.
+
+   //int ref_entry = 0;
 
 #ifdef _OPENMP
 #pragma omp master
@@ -2728,25 +2741,13 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
    //  Insert new cells into the mesh at the point of refinement.
    order.resize(4,    -1); //  Vector of refined mesh traversal order; set to -1 to indicate errors.
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
 
-#ifdef _OPENMP
-   } // End parallel region
-#endif
-
-   //vector<int>  invorder(4, -1); //  Vector mapping location from base index.
-
-   int ifirst      = 0;
-   int ilast       = 0;
-   int jfirst      = 0;
-   int jlast       = 0;
-   int level_first = 0;
-   int level_last  = 0;
-
-   //int ref_entry = 0;
+   ifirst      = 0;
+   ilast       = 0;
+   jfirst      = 0;
+   jlast       = 0;
+   level_first = 0;
+   level_last  = 0;
 
    if (parallel) {
 #ifdef HAVE_MPI
@@ -2780,6 +2781,15 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       MPI_Waitall(12, req, status);
 #endif
    }
+
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+   } // End parallel region
+#endif
 
 #ifdef REZONE_NO_OPTIMIZATION
    vector<int>  invorder(4, -1); //  Vector mapping location from base index.
@@ -3028,7 +3038,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #else
    // Data parallel optimizations for thread parallel -- slows down serial
    // code by about 25%
-   vector<int> new_ic;
 #ifdef _OPENMP
 #pragma omp parallel
    {
