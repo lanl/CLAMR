@@ -2636,15 +2636,33 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    cpu_counters[MESH_COUNTER_REZONE]++;
 
-   vector<int> celltype_save(ncells);
+   vector<int> celltype_save;
+#ifdef _OPENMP
+#pragma omp parallel
+   {
+#endif
+
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+      celltype_save.resize(ncells);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
    if (have_state) {
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
       for (int ic = 0; ic < (int)ncells; ic++){
          celltype_save[ic] = celltype[ic];
       }
    }
+#ifdef _OPENMP
+   } // End parallel region
+#endif
 
    int new_ncells = ncells + add_ncells;
 
