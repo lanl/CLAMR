@@ -2708,6 +2708,26 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    i_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
    j_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
    level_old = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
+
+   mesh_memory.memory_swap(&i,     &i_old);
+   mesh_memory.memory_swap(&j,     &j_old);
+   mesh_memory.memory_swap(&level, &level_old);
+
+   index.clear();
+   index.resize(new_ncells);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+   static vector<int> order; //  Vector of refined mesh traversal order; set to -1 to indicate errors.
+
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+   //  Insert new cells into the mesh at the point of refinement.
+   order.resize(4,    -1); //  Vector of refined mesh traversal order; set to -1 to indicate errors.
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2717,15 +2737,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    } // End parallel region
 #endif
 
-   mesh_memory.memory_swap(&i,     &i_old);
-   mesh_memory.memory_swap(&j,     &j_old);
-   mesh_memory.memory_swap(&level, &level_old);
-
-   index.clear();
-   index.resize(new_ncells);
-
-   //  Insert new cells into the mesh at the point of refinement.
-   vector<int> order(4,    -1); //  Vector of refined mesh traversal order; set to -1 to indicate errors.
    //vector<int>  invorder(4, -1); //  Vector mapping location from base index.
 
    int ifirst      = 0;
