@@ -378,24 +378,39 @@ extern "C" void do_calc(void)
       //old_ncells = ncells;
       //old_ncells_global = ncells_global;
 
-      //  Calculate the real time step for the current discrete time step.
-      deltaT = state->set_timestep(g, sigma);
-      simTime += deltaT;
-
-      //  Compare time step values and pass deltaT in to the kernel.
-      if (do_comparison_calc) {
-         double deltaT_cpu_global = state_global->set_timestep(g, sigma);
-
-         if (fabs(deltaT - deltaT_cpu_global) > .000001) {
-            printf("Error with deltaT calc --- cpu_local %lf cpu_global %lf\n",
-               deltaT, deltaT_cpu_global);
-         }
-      }
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
       {
+         //  Calculate the real time step for the current discrete time step.
+         double mydeltaT = state->set_timestep(g, sigma); // Private variable to avoid write conflict
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+            deltaT = mydeltaT;
+            simTime += deltaT;
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
+
+         //  Compare time step values and pass deltaT in to the kernel.
+         if (do_comparison_calc) {
+            double mydeltaT_cpu_global = state_global->set_timestep(g, sigma);
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+#endif
+            double deltaT_cpu_global = mydeltaT_cpu_global;
+            if (fabs(deltaT - deltaT_cpu_global) > .000001) {
+               printf("Error with deltaT calc --- cpu_local %lf cpu_global %lf\n",
+                  deltaT, deltaT_cpu_global);
+            }
+         }
+
          mesh->calc_neighbors_local();
 
          if (do_comparison_calc) {
