@@ -2639,6 +2639,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    vector<int> celltype_save;
 
    int new_ncells;
+   int flags;
+
+   int *i_old, *j_old, *level_old;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -2690,20 +2693,29 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       }
    }
 
-#ifdef _OPENMP
-   } // End parallel region
-#endif
-
    //  Initialize new variables
-   int flags = 0;
+// int *i_old, *j_old, *level_old;
+
    flags = RESTART_DATA;
 #ifdef HAVE_J7
    if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-   int *i_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
-   int *j_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
-   int *level_old    = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+   i_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
+   j_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
+   level_old = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+   } // End parallel region
+#endif
 
    mesh_memory.memory_swap(&i,     &i_old);
    mesh_memory.memory_swap(&j,     &j_old);
