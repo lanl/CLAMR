@@ -2648,7 +2648,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       cpu_timers[MESH_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
 
 #ifdef _OPENMP
-      }
+      } // end parallel region
 #pragma omp barrier
 #endif
    } else {
@@ -2807,10 +2807,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #ifdef _OPENMP
    }
 #pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-   } // End parallel region
 #endif
 
 #ifdef REZONE_NO_OPTIMIZATION
@@ -3060,10 +3056,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #else
    // Data parallel optimizations for thread parallel -- slows down serial
    // code by about 25%
-#ifdef _OPENMP
-#pragma omp parallel
-   {
-#endif
    static vector<int> add_count;
 
 #ifdef _OPENMP
@@ -3074,7 +3066,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       add_count.resize(ncells);
       new_ic.resize(ncells+1);
 #ifdef _OPENMP
-   }
+   } // end master region
 #pragma omp barrier
 #endif
 
@@ -3238,42 +3230,35 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
-            {
+   {
 #endif
    mesh_memory.memory_delete(i_old);
    mesh_memory.memory_delete(j_old);
    mesh_memory.memory_delete(level_old);
 #ifdef _OPENMP
-            }
+   } // end master region
 #endif
 
    calc_celltype_threaded(new_ncells);
 
-#ifdef _OPENMP
-   } // end parallel region
-#endif
-
    if (have_state){
-      MallocPlus state_memory_old = state_memory;
 
-      malloc_plus_memory_entry *memory_begin;
-      malloc_plus_memory_entry *memory_end;
-      malloc_plus_memory_entry *memory_next;
-
-#ifdef _OPENMP
-#pragma omp parallel
-         {
-#endif
+      static MallocPlus state_memory_old;
+      static malloc_plus_memory_entry *memory_begin;
+      static malloc_plus_memory_entry *memory_end;
+      static malloc_plus_memory_entry *memory_next;
 
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
-         {
+      {
 #endif
+      state_memory_old = state_memory;
+
       memory_begin = state_memory_old.memory_entry_begin();
       memory_end   = state_memory_old.memory_entry_end();
 #ifdef _OPENMP
-         }
+      } // end master region
 #pragma omp barrier
 #endif
 
@@ -3284,7 +3269,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          //printf("DEBUG -- memory_item->mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
          if (memory_item->mem_elsize == 8) {
 
-             static double *state_temp_double, *mem_ptr_double;
+            static double *state_temp_double, *mem_ptr_double;
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -3295,7 +3280,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                                                                                 "state_temp_double", flags);
                mem_ptr_double = (double *)memory_item->mem_ptr;
 #ifdef _OPENMP
-            }
+            } // end master region
 #pragma omp barrier
 #endif
 
@@ -3351,7 +3336,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
             state_memory.memory_replace(mem_ptr_double, state_temp_double);
 #ifdef _OPENMP
-            }
+            } // end master region
 #pragma omp barrier
 #endif
 
@@ -3368,7 +3353,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                                                                              "state_temp_float", flags);
                mem_ptr_float = (float *)memory_item->mem_ptr;
 #ifdef _OPENMP
-            }
+            } // end master region
 #pragma omp barrier
 #endif
 
@@ -3423,7 +3408,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
                state_memory.memory_replace(mem_ptr_float, state_temp_float);
 #ifdef _OPENMP
-            }
+            } // end master region
 #pragma omp barrier
 #endif
          } // mem elem size 4 bytes
@@ -3431,27 +3416,18 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
-            {
+         {
 #endif
-        memory_next = state_memory_old.memory_entry_next();
+         memory_next = state_memory_old.memory_entry_next();
 #ifdef _OPENMP
-            }
+         } // end master region
 #pragma omp barrier
 #endif
 
       } // memory item iteration
 
-#ifdef _OPENMP
-      } // end parallel region
-#endif
-
    } // if have state
    // End of data parallel optimizations
-#endif
-
-#ifdef _OPENMP
-#pragma omp parallel
-   {
 #endif
 
    if (neighbor_remap) {
