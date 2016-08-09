@@ -2663,21 +2663,21 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    int new_ncells;
    int flags;
 
-   int *i_old, *j_old, *level_old;
-
-   int ifirst;
-   int ilast;
-   int jfirst;
-   int jlast;
-   int level_first;
-   int level_last;
-
-   vector<int> new_ic;
-
 #ifdef _OPENMP
 #pragma omp parallel
    {
 #endif
+
+   static int *i_old, *j_old, *level_old;
+
+   static int ifirst;
+   static int ilast;
+   static int jfirst;
+   static int jlast;
+   static int level_first;
+   static int level_last;
+
+   static vector<int> new_ic;
 
 #ifdef _OPENMP
 #pragma omp master
