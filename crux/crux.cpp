@@ -58,6 +58,9 @@
 #ifdef HAVE_HDF5
 #include "hdf5.h"
 #endif
+#ifdef HAVE_MPI
+#include "mpi.h"
+#endif
 
 const bool CRUX_TIMING = true;
 bool do_crux_timing = false;
@@ -156,8 +159,8 @@ void Crux::store_MallocPlus(MallocPlus memory){
    int npes = 1;
 
 #ifdef HAVE_MPI
-   mype = parse->comm->getProcRank();
-   npes = parse->comm->getNumProcs();
+   MPI_Comm_rank(MPI_COMM_WORLD,&mype);
+   MPI_Comm_size(MPI_COMM_WORLD,&npes);
 #endif
 
    for (memory_item = memory.memory_entry_by_name_begin(); 
@@ -248,7 +251,8 @@ void Crux::store_MallocPlus(MallocPlus memory){
           h5err = H5Aclose(aid);
 
         } else if( (strstr(memory_item->mem_name,"_timer") !=NULL) ||
-                   (strstr(memory_item->mem_name,"_counters") !=NULL) ) {
+                   (strstr(memory_item->mem_name,"_counters") !=NULL) ||
+                   (strstr(memory_item->mem_name,"int_dist_vals") !=NULL)   ) {
           
           hid_t did;
           hsize_t dims[2], start[2], count[2];
@@ -315,16 +319,17 @@ void Crux::store_begin(size_t nsize, int ncycle)
       char backup_file[60];
 
 #ifdef HAVE_HDF5
+      hid_t plist_id;
+
       if(USE_HDF5) {
         sprintf(backup_file,"%s/backup%05d.h5",checkpoint_directory,ncycle);
 
-        hid_t plist_id;
         
-        plist_id =H5P_DEFAULT; 
-#ifdef HAVE_MPI
+        plist_id = H5P_DEFAULT; 
+#  ifdef HAVE_MPI
         int mpiInitialized = 0;
         bool phdf5 = false;
-        if (MPI_SUCCESS = MPI_Initialized(&mpiInitialized)) {
+        if (MPI_SUCCESS == MPI_Initialized(&mpiInitialized)) {
           phdf5 = true;
         }
 
@@ -335,7 +340,7 @@ void Crux::store_begin(size_t nsize, int ncycle)
           printf("HDF5: Could not create property list \n");
 
         H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
-#endif
+#  endif
         h5_fid = H5Fcreate(backup_file, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
         if(!h5_fid){
           printf("HDF5: Could not write HDF5 %s at iteration %d\n",backup_file,ncycle);
@@ -348,13 +353,12 @@ void Crux::store_begin(size_t nsize, int ncycle)
           printf("HDF5: Could not create \"state\" group \n");
       }
 
-#ifdef HAVE_MPI
+#  ifdef HAVE_MPI
       if(H5Pclose(plist_id) < 0)
         printf("HDF5: Could not close property list \n");
-#endif
+#  endif
 
 #endif
-
       sprintf(backup_file,"%s/backup%05d.crx",checkpoint_directory,ncycle);
       store_fp = fopen(backup_file,"w");
       if(!store_fp){
