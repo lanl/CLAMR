@@ -525,10 +525,11 @@ extern "C" void do_calc(void)
       {
 #endif
          state->rezone_all(icount, jcount, mpot);
-#ifdef _OPENMP
-      } // end parallel region
-#endif
 
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
       // Clear does not delete mpot, so have to swap with an empty vector to get
       // it to delete the mpot memory. This is all to avoid valgrind from showing
       // it as a reachable memory leak
@@ -537,7 +538,16 @@ extern "C" void do_calc(void)
 
       mesh->ncells = new_ncells;
       ncells = new_ncells;
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
 
+      mesh->set_bounds(ncells);
+
+#ifdef _OPENMP
+      } // end parallel region
+#endif
       state->do_load_balance_local(new_ncells);
 
 // XXX
