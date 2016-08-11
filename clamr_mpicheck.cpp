@@ -378,24 +378,39 @@ extern "C" void do_calc(void)
       //old_ncells = ncells;
       //old_ncells_global = ncells_global;
 
-      //  Calculate the real time step for the current discrete time step.
-      deltaT = state->set_timestep(g, sigma);
-      simTime += deltaT;
-
-      //  Compare time step values and pass deltaT in to the kernel.
-      if (do_comparison_calc) {
-         double deltaT_cpu_global = state_global->set_timestep(g, sigma);
-
-         if (fabs(deltaT - deltaT_cpu_global) > .000001) {
-            printf("Error with deltaT calc --- cpu_local %lf cpu_global %lf\n",
-               deltaT, deltaT_cpu_global);
-         }
-      }
-
 #ifdef _OPENMP
 #pragma omp parallel
-#endif
       {
+#endif
+         //  Calculate the real time step for the current discrete time step.
+         double mydeltaT = state->set_timestep(g, sigma); // Private variable to avoid write conflict
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+            deltaT = mydeltaT;
+            simTime += deltaT;
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
+
+         //  Compare time step values and pass deltaT in to the kernel.
+         if (do_comparison_calc) {
+            double mydeltaT_cpu_global = state_global->set_timestep(g, sigma);
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+#endif
+            double deltaT_cpu_global = mydeltaT_cpu_global;
+            if (fabs(deltaT - deltaT_cpu_global) > .000001) {
+               printf("Error with deltaT calc --- cpu_local %lf cpu_global %lf\n",
+                  deltaT, deltaT_cpu_global);
+            }
+         }
+
          mesh->calc_neighbors_local();
 
          if (do_comparison_calc) {
@@ -443,7 +458,9 @@ extern "C" void do_calc(void)
 
          //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
          state->remove_boundary_cells();
-      }
+#ifdef _OPENMP
+      } // end parallel region
+#endif
 
       if (do_comparison_calc) {
          state_global->remove_boundary_cells();
@@ -467,7 +484,14 @@ extern "C" void do_calc(void)
       }
 
       //int add_ncells = new_ncells - old_ncells;
-      state->rezone_all(icount, jcount, mpot);
+#ifdef _OPENMP
+#pragma omp parallel
+      {
+#endif
+         state->rezone_all(icount, jcount, mpot);
+#ifdef _OPENMP
+      } // end parallel region
+#endif
       // Clear does not delete mpot, so have to swap with an empty vector to get
       // it to delete the mpot memory. This is all to avoid valgrind from showing
       // it as a reachable memory leak

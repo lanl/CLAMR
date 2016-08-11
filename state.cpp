@@ -771,11 +771,6 @@ double State::set_timestep(double g, double sigma)
 {
    double globalmindeltaT;
 
-#ifdef _OPENMP
-#pragma omp parallel
-   {
-#endif
-
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
@@ -834,10 +829,6 @@ double State::set_timestep(double g, double sigma)
 #ifdef _OPENMP
    } // End master region
 #pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-   } // End parallel region
 #endif
 
    return(globalmindeltaT);
@@ -1009,9 +1000,17 @@ void State::rezone_all(int icount, int jcount, vector<int> mpot)
    cpu_timer_start(&tstart_cpu);
 
    mesh->rezone_all(icount, jcount, mpot, 1, state_memory);
+
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
    memory_reset_ptrs();
 
    cpu_timers[STATE_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
+#ifdef _OPENMP
+   } // end master region
+#endif
 }
 
 

@@ -387,18 +387,28 @@ extern "C" void do_calc(void)
 
    for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
-      //  Calculate the real time step for the current discrete time step.
-      deltaT = state->set_timestep(g, sigma);
-      simTime += deltaT;
-
 #ifdef _OPENMP
 #pragma omp parallel
-#endif
       {
+#endif
+         //  Calculate the real time step for the current discrete time step.
+         double mydeltaT = state->set_timestep(g, sigma); // Private variable to avoid write conflict
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+           deltaT = mydeltaT;
+           simTime += deltaT;
+#ifdef _OPENMP
+         }
+#endif
+
          mesh->calc_neighbors(ncells);
 
          cpu_timer_start(&tstart_partmeas);
          mesh->partition_measure();
+
 #ifdef _OPENMP
 #pragma omp master
 #endif
@@ -422,24 +432,43 @@ extern "C" void do_calc(void)
 
          //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
          state->remove_boundary_cells();
-      }
+#ifdef _OPENMP
+      } // end parallel region
+#endif
 
       mpot.resize(ncells);
       new_ncells = state->calc_refine_potential(mpot, icount, jcount);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
 
+#ifdef _OPENMP
+#pragma omp parallel
+      {
+#endif
       state->rezone_all(icount, jcount, mpot);
 
       // Clear does not delete mpot, so have to swap with an empty vector to get
       // it to delete the mpot memory. This is all to avoid valgrind from showing
       // it as a reachable memory leak
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
       //mpot.clear();
       vector<int>().swap(mpot);
 
       mesh->ncells = new_ncells;
       ncells = new_ncells;
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
+      mesh->set_bounds(ncells);
 
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
    //cpu_timer_start(&tstart_check);
       mesh->proc.resize(ncells);
       if (icount)
@@ -449,6 +478,14 @@ extern "C" void do_calc(void)
          state->memory_reset_ptrs();
       }
    //cpu_time_check += cpu_timer_stop(tstart_check);
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+      } // end parallel region
+#endif
       
    } // End burst loop
 

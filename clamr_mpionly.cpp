@@ -469,14 +469,23 @@ extern "C" void do_calc(void)
 
    for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
-      //  Calculate the real time step for the current discrete time step.
-      deltaT = state->set_timestep(g, sigma);
-      simTime += deltaT;
-
 #ifdef _OPENMP
 #pragma omp parallel
-#endif
       {
+#endif
+         //  Calculate the real time step for the current discrete time step.
+         double mydeltaT = state->set_timestep(g, sigma); // Private variable to avoid write conflict
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+            deltaT = mydeltaT;
+            simTime += deltaT;
+#ifdef _OPENMP
+         }
+#endif
+
          mesh->calc_neighbors_local();
 
          cpu_timer_start(&tstart_partmeas);
@@ -501,15 +510,25 @@ extern "C" void do_calc(void)
 
          //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
          state->remove_boundary_cells();
-      }
+#ifdef _OPENMP
+      } // end parallel region
+#endif
 
       mpot.resize(mesh->ncells_ghost);
       new_ncells = state->calc_refine_potential(mpot, icount, jcount);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
 
-      state->rezone_all(icount, jcount, mpot);
+#ifdef _OPENMP
+#pragma omp parallel
+      {
+#endif
+         state->rezone_all(icount, jcount, mpot);
 
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
       // Clear does not delete mpot, so have to swap with an empty vector to get
       // it to delete the mpot memory. This is all to avoid valgrind from showing
       // it as a reachable memory leak
@@ -518,7 +537,16 @@ extern "C" void do_calc(void)
 
       mesh->ncells = new_ncells;
       ncells = new_ncells;
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
 
+      mesh->set_bounds(ncells);
+
+#ifdef _OPENMP
+      } // end parallel region
+#endif
       state->do_load_balance_local(new_ncells);
 
 // XXX

@@ -1786,23 +1786,45 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #endif
       newcount += mynewcount;
 
+
+
+
+         icount += newcount;
+         newcount_global = newcount;
+
 #ifdef _OPENMP
-#pragma omp barrier
-}//END Parallel Region
+#pragma omp master
+{
 #endif
 
-         newcount_global = newcount;
-         icount += newcount;
-         
 #ifdef HAVE_MPI
          if (parallel) {
             MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          }
 #endif
 
+#ifdef _OPENMP
+}//END MASTER
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+}//END Parallel Region
+#endif
+
+         //newcount_global = newcount;
+         //icount += newcount;
+         
+//#ifdef HAVE_MPI
+ //        if (parallel) {
+  //          MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+//         }
+//#endif
+
       //printf("%d: newcount is %d newcount_global %d levmx %d\n",levcount,newcount,newcount_global,levmx);
       //} while (newcount > 0 && levcount < 10);
-      } while (newcount_global > 0 && levcount < levmx);
+      }// while (newcount_global > 0 && levcount < levmx);
    }
 
 #ifdef HAVE_MPI
@@ -2596,41 +2618,92 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    cpu_timer_start(&tstart_cpu);
 
    if (! do_rezone) {
-      index.clear();
-      index.resize(ncells);
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+      index.clear();
+      index.resize(ncells);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp for
 #endif
       for (uint ic=0; ic<ncells; ic++){
          index[ic]=ic;
       }
 
+#ifdef _OPENMP
+#pragma omp master
+#endif
       cpu_timers[MESH_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
-      return;
-   }
+
+   } else {
 
 // sign for jcount is different in GPU and CPU code -- abs is a quick fix
    int add_ncells = icount - abs(jcount);
 
+#ifdef _OPENMP
+#pragma omp master
+#endif
    cpu_counters[MESH_COUNTER_REZONE]++;
 
-   vector<int> celltype_save(ncells);
+   static vector<int> celltype_save;
+
+   static int new_ncells;
+
+   static int *i_old, *j_old, *level_old;
+
+   static int ifirst;
+   static int ilast;
+   static int jfirst;
+   static int jlast;
+   static int level_first;
+   static int level_last;
+
+   static vector<int> new_ic;
+
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+      celltype_save.resize(ncells);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
    if (have_state) {
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
       for (int ic = 0; ic < (int)ncells; ic++){
          celltype_save[ic] = celltype[ic];
       }
    }
 
-   int new_ncells = ncells + add_ncells;
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+   new_ncells = ncells + add_ncells;
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
 
-   int ref_entry_count = 0;
+// int ref_entry_count = 0;
    if (have_state){
+#ifdef _OPENMP
+#pragma omp for
+#endif
       for (uint ic=0; ic<ncells; ic++) {
-         if (mpot[ic] > 0) ref_entry_count++;
+//       if (mpot[ic] > 0) ref_entry_count++;
          if (mpot[ic] < 0) {
             // Normal cell coarsening
             if (is_lower_left(i[ic],j[ic]) ) mpot[ic] = -2;
@@ -2641,15 +2714,20 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    }
 
    //  Initialize new variables
-   int flags = 0;
-   flags = RESTART_DATA;
+// int *i_old, *j_old, *level_old;
+
+   int flags = RESTART_DATA;
 #ifdef HAVE_J7
    if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-   int *i_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
-   int *j_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
-   int *level_old    = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+   i_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
+   j_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
+   level_old = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
 
    mesh_memory.memory_swap(&i,     &i_old);
    mesh_memory.memory_swap(&j,     &j_old);
@@ -2657,19 +2735,30 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    index.clear();
    index.resize(new_ncells);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
 
-   //  Insert new cells into the mesh at the point of refinement.
-   vector<int> order(4,    -1); //  Vector of refined mesh traversal order; set to -1 to indicate errors.
+   static vector<int> order; //  Vector of refined mesh traversal order; set to -1 to indicate errors.
+   //
    //vector<int>  invorder(4, -1); //  Vector mapping location from base index.
 
-   int ifirst      = 0;
-   int ilast       = 0;
-   int jfirst      = 0;
-   int jlast       = 0;
-   int level_first = 0;
-   int level_last  = 0;
-
    //int ref_entry = 0;
+
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+   //  Insert new cells into the mesh at the point of refinement.
+   order.resize(4,    -1); //  Vector of refined mesh traversal order; set to -1 to indicate errors.
+
+   ifirst      = 0;
+   ilast       = 0;
+   jfirst      = 0;
+   jlast       = 0;
+   level_first = 0;
+   level_last  = 0;
 
    if (parallel) {
 #ifdef HAVE_MPI
@@ -2703,6 +2792,11 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       MPI_Waitall(12, req, status);
 #endif
    }
+
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
 
 #ifdef REZONE_NO_OPTIMIZATION
    vector<int>  invorder(4, -1); //  Vector mapping location from base index.
@@ -2951,11 +3045,21 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #else
    // Data parallel optimizations for thread parallel -- slows down serial
    // code by about 25%
-   vector<int> add_count(ncells);
-   vector<int> new_ic(ncells+1);
+   static vector<int> add_count;
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp barrier
+#pragma omp master
    {
+#endif
+      add_count.resize(ncells);
+      new_ic.resize(ncells+1);
+#ifdef _OPENMP
+   } // end master region
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
 #pragma omp for
 #endif
       for (int ic = 0; ic < (int)ncells; ic++){
@@ -2976,13 +3080,16 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          }
       }
 
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
       scan (&add_count[0], &new_ic[0], ncells);
 #ifdef _OPENMP
-   }
+#pragma omp barrier
 #endif
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
    for (int ic = 0; ic < (int)ncells; ic++) {
    vector<int>  invorder(4, -1); //  Vector mapping location from base index.
@@ -3109,30 +3216,66 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       } //  Complete refinement needed.
    } //  Complete addition of new cells to the mesh.
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
    mesh_memory.memory_delete(i_old);
    mesh_memory.memory_delete(j_old);
    mesh_memory.memory_delete(level_old);
+#ifdef _OPENMP
+   } // end master region
+#endif
 
-   calc_celltype(new_ncells);
+   calc_celltype_threaded(new_ncells);
 
    if (have_state){
-      MallocPlus state_memory_old = state_memory;
-      malloc_plus_memory_entry *memory_item;
 
-      for (memory_item = state_memory_old.memory_entry_begin();
-           memory_item != state_memory_old.memory_entry_end();
-           memory_item = state_memory_old.memory_entry_next() ) {
+      static MallocPlus state_memory_old;
+      static malloc_plus_memory_entry *memory_begin;
+      static malloc_plus_memory_entry *memory_end;
+      static malloc_plus_memory_entry *memory_next;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
+      state_memory_old = state_memory;
+
+      memory_begin = state_memory_old.memory_entry_begin();
+      memory_end   = state_memory_old.memory_entry_end();
+#ifdef _OPENMP
+      } // end master region
+#pragma omp barrier
+#endif
+
+      for (malloc_plus_memory_entry *memory_item = memory_begin;
+           memory_item != memory_end;
+           memory_item = memory_next ) {
          //ref_entry = 0;
          //printf("DEBUG -- memory_item->mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
          if (memory_item->mem_elsize == 8) {
-            double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
-                                                                             "state_temp_double", flags);
 
-            double *mem_ptr_double = (double *)memory_item->mem_ptr;
+            static double *state_temp_double, *mem_ptr_double;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
+               state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
+                                                                                "state_temp_double", flags);
+               mem_ptr_double = (double *)memory_item->mem_ptr;
+#ifdef _OPENMP
+            } // end master region
+#pragma omp barrier
+#endif
 
             //ref_entry = 0;
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
             for (int ic=0; ic<(int)ncells; ic++) {
 
@@ -3173,17 +3316,38 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                      nc++;
                   }
                }
-            }
-
-            state_memory.memory_replace(mem_ptr_double, state_temp_double);
-         } else if (memory_item->mem_elsize == 4) {
-            float *state_temp_float = (float *)state_memory.memory_malloc(new_ncells, sizeof(float),
-                                                                          "state_temp_float", flags);
-
-            float *mem_ptr_float = (float *)memory_item->mem_ptr;
+            } // end cell loop
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
+            state_memory.memory_replace(mem_ptr_double, state_temp_double);
+#ifdef _OPENMP
+            } // end master region
+#pragma omp barrier
+#endif
+
+         } else if (memory_item->mem_elsize == 4) {
+
+            static float *state_temp_float, *mem_ptr_float;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
+               state_temp_float = (float *)state_memory.memory_malloc(new_ncells, sizeof(float),
+                                                                             "state_temp_float", flags);
+               mem_ptr_float = (float *)memory_item->mem_ptr;
+#ifdef _OPENMP
+            } // end master region
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp for
 #endif
             for (int ic=0; ic<(int)ncells; ic++) {
 
@@ -3224,23 +3388,58 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                      nc++;
                   }
                }
-            }
+            } // end cell loop
 
-            state_memory.memory_replace(mem_ptr_float, state_temp_float);
-         }
-      }
-   }
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
+               state_memory.memory_replace(mem_ptr_float, state_temp_float);
+#ifdef _OPENMP
+            } // end master region
+#pragma omp barrier
+#endif
+         } // mem elem size 4 bytes
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+         memory_next = state_memory_old.memory_entry_next();
+#ifdef _OPENMP
+         } // end master region
+#pragma omp barrier
+#endif
+
+      } // memory item iteration
+
+   } // if have state
    // End of data parallel optimizations
 #endif
 
    if (neighbor_remap) {
-      flags = 0;
-      int *nlft_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nlft_old",  flags);
-      int *nrht_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nrht_old",  flags);
-      int *nbot_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nbot_old",  flags);
-      int *ntop_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "ntop_old",  flags);
+      int flags = 0;
+      static int *nlft_old, *nrht_old, *nbot_old, *ntop_old;
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
+      nlft_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nlft_old",  flags);
+      nrht_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nrht_old",  flags);
+      nbot_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nbot_old",  flags);
+      ntop_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "ntop_old",  flags);
+#ifdef _OPENMP
+      } // end master region
+#pragma omp barrier
+#endif
       flags = RESTART_DATA;
 
+#ifdef _OPENMP
+#pragma omp for
+#endif
       for (int ic = 0; ic < new_ncells; ic++){
          nlft_old[ic] = -1;
          nrht_old[ic] = -1;
@@ -3248,11 +3447,23 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          ntop_old[ic] = -1;
       }
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
       mesh_memory.memory_swap(&nlft,  &nlft_old);
       mesh_memory.memory_swap(&nrht,  &nrht_old);
       mesh_memory.memory_swap(&nbot,  &nbot_old);
       mesh_memory.memory_swap(&ntop,  &ntop_old);
+#ifdef _OPENMP
+      } // end master region
+#pragma omp barrier
+#endif
 
+#ifdef _OPENMP
+#pragma omp for
+#endif
       for (int ic = 0; ic < (int)ncells; ic++){
          int nc = index[ic];
 
@@ -3313,17 +3524,40 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          }
       }
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
       nlft_old = (int *)mesh_memory.memory_delete(nlft_old);
       nrht_old = (int *)mesh_memory.memory_delete(nrht_old);
       nbot_old = (int *)mesh_memory.memory_delete(nbot_old);
       ntop_old = (int *)mesh_memory.memory_delete(ntop_old);
+#ifdef _OPENMP
+      } // end master region
+#pragma omp barrier
+#endif
    } else {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
       nlft = (int *)mesh_memory.memory_delete(nlft);
       nrht = (int *)mesh_memory.memory_delete(nrht);
       nbot = (int *)mesh_memory.memory_delete(nbot);
       ntop = (int *)mesh_memory.memory_delete(ntop);
+#ifdef _OPENMP
+      } // end master region
+#pragma omp barrier
+#endif
    }
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
    //ncells = nc;
 
 #ifdef HAVE_MPI
@@ -3340,6 +3574,13 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
 
    cpu_timers[MESH_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
+#ifdef _OPENMP
+   } // end master region
+#pragma omp barrier
+#endif
+
+   } // if do_rezone
+
 }
 
 #ifdef HAVE_OPENCL
@@ -7708,6 +7949,39 @@ void Mesh::print_calc_neighbor_type(void)
 int Mesh::get_calc_neighbor_type(void)
 {
    return(calc_neighbor_type );
+}
+
+void Mesh::calc_celltype_threaded(size_t ncells)
+{
+   int flags=0;
+#ifdef HAVE_J7
+   if (parallel) flags = LOAD_BALANCE_MEMORY;
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   if (celltype == NULL || mesh_memory.get_memory_size(celltype) < ncells) {
+      if (celltype != NULL) celltype = (int *)mesh_memory.memory_delete(celltype);
+      celltype = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "celltype", flags);
+   }
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp for
+#endif
+   for (uint ic=0; ic<ncells; ++ic) {
+      celltype[ic] = REAL_CELL;
+      if (is_left_boundary(ic) )   celltype[ic] = LEFT_BOUNDARY;
+      if (is_right_boundary(ic) )  celltype[ic] = RIGHT_BOUNDARY;
+      if (is_bottom_boundary(ic) ) celltype[ic] = BOTTOM_BOUNDARY;
+      if (is_top_boundary(ic))     celltype[ic] = TOP_BOUNDARY;
+   }
 }
 
 void Mesh::calc_celltype(size_t ncells)

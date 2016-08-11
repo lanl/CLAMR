@@ -684,6 +684,7 @@ public:
    void store_checkpoint(Crux *crux);
    void restore_checkpoint(Crux *crux);
 
+   void calc_celltype_threaded(size_t ncells);
    void calc_celltype(size_t ncells);
 
 private:
