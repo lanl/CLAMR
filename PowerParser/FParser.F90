@@ -2258,7 +2258,7 @@
           character(kind=C_CHAR,len=1), dimension(cfile_name_len), intent(in) :: cfile_name
         end subroutine parser_get_include_file_name
       end interface
-      character(len=:), allocatable, intent(out) :: fname
+      character(len=120), intent(out) :: fname
       integer, intent(in) :: i, kw
 
       integer(C_INT) :: n, file_name_length, cfile_name_length, ii
@@ -2270,7 +2270,7 @@
       allocate(cfile_name(cfile_name_length),stat=FParser_allostat)
       call FParser_test_allostat(kw, "cfile_name allocate")
       call parser_get_include_file_name(cfile_name,cfile_name_length,n)
-      allocate(character(len=file_name_length)::fname)
+!     allocate(character(len=file_name_length)::fname)
       do ii = 1,file_name_length
         fname(ii:ii) = cfile_name(ii)
       enddo
