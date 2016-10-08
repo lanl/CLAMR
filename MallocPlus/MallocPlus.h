@@ -54,6 +54,7 @@
 #define MALLOCPLUS_H_
 
 #include <map>
+#include <string>
 #include <string.h>
 
 #ifdef HAVE_CONFIG_H
@@ -109,7 +110,7 @@ struct cmp_str
  *******************************************************************/
 class MallocPlus {
 protected:
-   map<const char*, malloc_plus_memory_entry*, cmp_str> memory_name_dict; //!< Dictionary entries by name
+   map<string, malloc_plus_memory_entry*> memory_name_dict; //!< Dictionary entries by name
    map<void*, malloc_plus_memory_entry*> memory_ptr_dict; //!< Dictionary entries by pointer
 
 #if defined(HAVE_MPI) && defined(HAVE_J7)
@@ -347,6 +348,9 @@ public:
  *                       "Density");
  *******************************************************************/
    void *memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize,
+      const char *name, int flags=0);
+
+   void *memory_add(void *malloc_mem_ptr, int ndim, size_t *nelem, size_t elsize,
       const char *name, int flags=0);
 
 /****************************************************************//**
@@ -788,6 +792,17 @@ public:
  *******************************************************************/
    bool  check_memory_attribute(void *malloc_mem_ptr, int attribute);
 };
+
+extern "C" {
+  MallocPlus *MallocPlus_new();
+           
+  void MallocPlus_memory_report(MallocPlus *mem_object);
+
+  void MallocPlus_memory_add(MallocPlus *mem_object, void *dbleptr,
+    size_t nelem, size_t elsize, char *name, unsigned long long flags);
+  void MallocPlus_memory_add_nD(MallocPlus *mem_object, void *dbleptr,
+    int ndim, size_t *nelem, size_t elsize, char *name, unsigned long long flags);
+}
 
 #endif // ifndef MALLOCPLUS_H_
 

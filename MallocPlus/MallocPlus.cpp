@@ -92,7 +92,7 @@ typedef cl_float2   cl_real2;
 
 typedef unsigned int uint;
 map<void *,malloc_plus_memory_entry*>::iterator it_save, it_end;
-map<const char*, malloc_plus_memory_entry*, cmp_str>::iterator it_save_by_name, it_end_by_name;
+map<string, malloc_plus_memory_entry*, cmp_str>::iterator it_save_by_name, it_end_by_name;
 
 #if defined(HAVE_MPI)
 void
@@ -168,7 +168,7 @@ void *MallocPlus::memory_malloc(size_t nelem, size_t elsize, const char *name, i
    //printf("MALLOC_PLUS_MEMORY_MALLOC: DEBUG -- malloc plus memory pointer for :%s: is %p nelements %ld elsize is %ld flags %d\n",memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_nelem[0],memory_item->mem_elsize,memory_item->mem_flags);
 
    // Insert entry into dictionary -- two versions, one by name and another by pointer address
-   memory_name_dict.insert(std::pair<const char*, malloc_plus_memory_entry*>(name, memory_item) );
+   memory_name_dict.insert(std::pair<string, malloc_plus_memory_entry*>(name, memory_item) );
    memory_ptr_dict.insert(std::pair<void*, malloc_plus_memory_entry*>(memory_item->mem_ptr, memory_item) );
 
    if (DEBUG) printf("MALLOC_PLUS_MEMORY_MALLOC: DEBUG -- malloc plus memory pointer for :%s: is %p nelements %ld elsize is %ld\n",memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_nelem[0],memory_item->mem_elsize);
@@ -232,7 +232,7 @@ void *MallocPlus::memory_realloc(size_t nelem, void *malloc_mem_ptr){
 }
 
 void *MallocPlus::memory_realloc(size_t nelem, const char *name){
-   map <const char *, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(name);
+   map <string, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(name);
    void *mem_ptr=NULL;
 
    if (it != memory_name_dict.end() ){
@@ -272,7 +272,7 @@ void *MallocPlus::memory_realloc(size_t nelem, const char *name){
          memory_item->mem_capacity = nelem;
          memory_item->mem_nelem[0] = nelem;
          memory_item->mem_ptr      = mem_ptr;
-         //memory_name_dict.insert(std::pair<const char *, malloc_plus_memory_entry*>(name, memory_item) );
+         //memory_name_dict.insert(std::pair<string, malloc_plus_memory_entry*>(name, memory_item) );
       }
 
       memory_ptr_dict.insert(std::pair<void*, malloc_plus_memory_entry*>(memory_item->mem_ptr, memory_item) );
@@ -305,7 +305,7 @@ void *MallocPlus::memory_request(size_t new_capacity, void *malloc_mem_ptr){
 
 // Increases the capacity of the allocated memory, primarily for the managed memory functionality
 void *MallocPlus::memory_request(size_t new_capacity, const char *name){
-   map <const char *, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(name);
+   map <string, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(name);
    void *mem_ptr=NULL;
 
    if (it != memory_name_dict.end() ){
@@ -410,7 +410,28 @@ void *MallocPlus::memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, 
    memory_item->mem_ptr      = malloc_mem_ptr;
    memory_item->mem_name = strdup(name); // mallocs memory
    memory_ptr_dict.insert(std::pair<void *, malloc_plus_memory_entry*>(malloc_mem_ptr, memory_item) );
-   memory_name_dict.insert(std::pair<const char *, malloc_plus_memory_entry*>(name, memory_item) );
+   memory_name_dict.insert(std::pair<string, malloc_plus_memory_entry*>(name, memory_item) );
+   if (DEBUG) printf("MALLOC_PLUS_MEMORY_ADD: DEBUG -- added memory pointer for %s is %p\n",name,malloc_mem_ptr);
+
+   return(malloc_mem_ptr);
+}
+
+// This routine is for memory allocated by the host program and added to the database
+void *MallocPlus::memory_add(void *malloc_mem_ptr, int ndim, size_t *nelem, size_t elsize, const char *name, int flags){
+   malloc_plus_memory_entry *memory_item = (malloc_plus_memory_entry *)malloc(sizeof(malloc_plus_memory_entry));
+
+   memory_item->mem_nelem    = (size_t *)malloc(ndim*sizeof(size_t));
+   for (int i=0; i<ndim; i++){
+     memory_item->mem_nelem[i] = nelem[i];
+   }
+   memory_item->mem_ndims    = ndim;
+   memory_item->mem_capacity = 0;
+   memory_item->mem_elsize   = elsize;
+   memory_item->mem_flags    = flags;
+   memory_item->mem_ptr      = malloc_mem_ptr;
+   memory_item->mem_name = strdup(name); // mallocs memory
+   memory_ptr_dict.insert(std::pair<void *, malloc_plus_memory_entry*>(malloc_mem_ptr, memory_item) );
+   memory_name_dict.insert(std::pair<string, malloc_plus_memory_entry*>(name, memory_item) );
    if (DEBUG) printf("MALLOC_PLUS_MEMORY_ADD: DEBUG -- added memory pointer for %s is %p\n",name,malloc_mem_ptr);
 
    return(malloc_mem_ptr);
@@ -610,13 +631,13 @@ void MallocPlus::memory_report(void){
             memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
    }
 
-   map<const char *, malloc_plus_memory_entry*>::iterator it_name;
+   map<string, malloc_plus_memory_entry*>::iterator it_name;
 
    for ( it_name=memory_name_dict.begin(); it_name != memory_name_dict.end(); it_name++){
       malloc_plus_memory_entry *memory_item = it_name->second;
 
       printf("MallocPlus name %14s: name %10s ptr %p dims %lu nelem (",
-            it_name->first,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
+            it_name->first.c_str(),memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
 
       char nelemstring[80];
       char *str_ptr = nelemstring;
@@ -658,7 +679,7 @@ void *MallocPlus::memory_delete(void *malloc_mem_ptr){
       // Need to delete the entry in the name dictionary. This is done in a separate scope
       // so the iterator "it" is isolated for this use
       {
-         map <const char *, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(memory_item->mem_name);
+         map <string, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(memory_item->mem_name);
          memory_name_dict.erase(it);
       }
 
@@ -673,7 +694,7 @@ void *MallocPlus::memory_delete(void *malloc_mem_ptr){
 }
 
 void *MallocPlus::memory_delete(const char *name){
-   map <const char *, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(name);
+   map <string, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(name);
 
    if (it != memory_name_dict.end()){
       malloc_plus_memory_entry *memory_item = it->second;
@@ -747,7 +768,7 @@ void MallocPlus::memory_remove(void *malloc_mem_ptr){
       if (DEBUG) printf("MALLOC_PLUS_MEMORY_REMOVE: DEBUG -- removed memory pointer %p\n",memory_item->mem_ptr);
       memory_ptr_dict.erase(it);
       {
-         map <const char *, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(memory_item->mem_name);
+         map <string, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(memory_item->mem_name);
          memory_name_dict.erase(it);
       }
       free(memory_item->mem_nelem);
@@ -759,7 +780,7 @@ void MallocPlus::memory_remove(void *malloc_mem_ptr){
 }
 
 void MallocPlus::memory_remove(const char *name){
-   map <const char *, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(name);
+   map <string, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(name);
 
    if (it != memory_name_dict.end()){
       malloc_plus_memory_entry *memory_item = it->second;
@@ -808,7 +829,7 @@ void *MallocPlus::memory_by_name_begin(void){
 }
 
 void *MallocPlus::memory_by_name_next(void){
-   map<const char*, malloc_plus_memory_entry*, cmp_str>::iterator it_by_name;
+   map<string, malloc_plus_memory_entry*, cmp_str>::iterator it_by_name;
 
    it_save_by_name++;
    it_by_name = it_save_by_name;
@@ -942,8 +963,8 @@ void *MallocPlus::memory_replace(void *malloc_mem_ptr_old, void * const malloc_m
       memory_ptr_dict.erase(it_new);
       memory_ptr_dict.erase(it_old);
       // get the iterators for the named dictionary
-      map <const char *, malloc_plus_memory_entry*>::iterator it_old = memory_name_dict.find(memory_item_old->mem_name);
-      map <const char *, malloc_plus_memory_entry*>::iterator it_new = memory_name_dict.find(memory_item_new->mem_name);
+      map <string, malloc_plus_memory_entry*>::iterator it_old = memory_name_dict.find(memory_item_old->mem_name);
+      map <string, malloc_plus_memory_entry*>::iterator it_new = memory_name_dict.find(memory_item_new->mem_name);
       memory_name_dict.erase(it_new);
       memory_name_dict.erase(it_old);
 
@@ -1009,13 +1030,13 @@ void MallocPlus::memory_swap(int **malloc_mem_ptr_old, int **malloc_mem_ptr_new)
       memory_ptr_dict.insert(std::pair<void *, malloc_plus_memory_entry*>(memory_item_new->mem_ptr, memory_item_new) );
 
       // Delete the named entries
-      map <const char *, malloc_plus_memory_entry*>::iterator it_name_old = memory_name_dict.find(memory_item_old->mem_name);
-      map <const char *, malloc_plus_memory_entry*>::iterator it_name_new = memory_name_dict.find(memory_item_new->mem_name);
+      map <string, malloc_plus_memory_entry*>::iterator it_name_old = memory_name_dict.find(memory_item_old->mem_name);
+      map <string, malloc_plus_memory_entry*>::iterator it_name_new = memory_name_dict.find(memory_item_new->mem_name);
       memory_name_dict.erase(it_name_old);
       memory_name_dict.erase(it_name_new);
 
-      memory_name_dict.insert(std::pair<char const *, malloc_plus_memory_entry*>(memory_item_old->mem_name, memory_item_old) );
-      memory_name_dict.insert(std::pair<char const *, malloc_plus_memory_entry*>(memory_item_new->mem_name, memory_item_new) );
+      memory_name_dict.insert(std::pair<string, malloc_plus_memory_entry*>(memory_item_old->mem_name, memory_item_old) );
+      memory_name_dict.insert(std::pair<string, malloc_plus_memory_entry*>(memory_item_new->mem_name, memory_item_new) );
 
       // memory items have been swapped, so return the new pointers
       *malloc_mem_ptr_old = (int *)memory_item_old->mem_ptr;
@@ -1049,13 +1070,13 @@ void MallocPlus::memory_swap(float **malloc_mem_ptr_old, float **malloc_mem_ptr_
       memory_ptr_dict.insert(std::pair<void *, malloc_plus_memory_entry*>(memory_item_new->mem_ptr, memory_item_new) );
 
       // Delete the named entries
-      map <const char *, malloc_plus_memory_entry*>::iterator it_old = memory_name_dict.find(memory_item_old->mem_name);
-      map <const char *, malloc_plus_memory_entry*>::iterator it_new = memory_name_dict.find(memory_item_new->mem_name);
+      map <string, malloc_plus_memory_entry*>::iterator it_old = memory_name_dict.find(memory_item_old->mem_name);
+      map <string, malloc_plus_memory_entry*>::iterator it_new = memory_name_dict.find(memory_item_new->mem_name);
       memory_name_dict.erase(it_old);
       memory_name_dict.erase(it_new);
 
-      memory_name_dict.insert(std::pair<char const *, malloc_plus_memory_entry*>(memory_item_old->mem_name, memory_item_old) );
-      memory_name_dict.insert(std::pair<char const *, malloc_plus_memory_entry*>(memory_item_new->mem_name, memory_item_new) );
+      memory_name_dict.insert(std::pair<string, malloc_plus_memory_entry*>(memory_item_old->mem_name, memory_item_old) );
+      memory_name_dict.insert(std::pair<string, malloc_plus_memory_entry*>(memory_item_new->mem_name, memory_item_new) );
 
       // memory items have been swapped, so return the new pointers
       *malloc_mem_ptr_old = (float *)memory_item_old->mem_ptr;
@@ -1089,8 +1110,8 @@ void MallocPlus::memory_swap(double **malloc_mem_ptr_old, double **malloc_mem_pt
       memory_ptr_dict.insert(std::pair<void *, malloc_plus_memory_entry*>(memory_item_new->mem_ptr, memory_item_new) );
 
       // Delete the named entries
-      map <const char *, malloc_plus_memory_entry*>::iterator it_old = memory_name_dict.find(memory_item_old->mem_name);
-      map <const char *, malloc_plus_memory_entry*>::iterator it_new = memory_name_dict.find(memory_item_new->mem_name);
+      map <string, malloc_plus_memory_entry*>::iterator it_old = memory_name_dict.find(memory_item_old->mem_name);
+      map <string, malloc_plus_memory_entry*>::iterator it_new = memory_name_dict.find(memory_item_new->mem_name);
       memory_name_dict.erase(it_old);
       memory_name_dict.erase(it_new);
 
@@ -1123,7 +1144,7 @@ void *MallocPlus::memory_duplicate(void *malloc_mem_ptr, const char *addname){
 }
 
 void *MallocPlus::get_memory_ptr(const char *name){
-   map <const char *, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(name);
+   map <string, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(name);
 
    if (it != memory_name_dict.end()){
       malloc_plus_memory_entry *memory_item = it->second;
