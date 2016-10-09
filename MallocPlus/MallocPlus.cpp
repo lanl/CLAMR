@@ -56,6 +56,8 @@
 
 // SKG TODO op realloc (similar to managed)
 
+#undef HAVE_OPENCL
+
 #include "MallocPlus.h"
 #include <stdlib.h>
 #include <unistd.h>
@@ -1201,3 +1203,25 @@ void MallocPlus::clear_memory_attribute(void *malloc_mem_ptr, int attribute){
    }
 }
 
+extern "C" {
+   MallocPlus *MallocPlus_new(){
+     return new MallocPlus;
+   }
+
+   void MallocPlus_memory_report(MallocPlus *mem_object) {
+      mem_object->memory_report();
+   }
+
+   void MallocPlus_memory_add(MallocPlus *mem_object, void *dbleptr, size_t nelem,
+       size_t elsize, char *name, unsigned long long flags){
+//   printf("DEBUG -- nelem %lu elsize %lu\n", nelem, elsize);
+     mem_object->memory_add(dbleptr, nelem, elsize, name,
+       (unsigned long long)flags);
+   }
+   void MallocPlus_memory_add_nD(MallocPlus *mem_object, void *dbleptr, int ndim, size_t *nelem,
+       size_t elsize, char *name, unsigned long long flags){
+//   printf("DEBUG -- ndim %d nelem[0] %lu elsize %lu\n",ndim, nelem[0], elsize);
+     mem_object->memory_add(dbleptr, ndim, nelem, elsize, name,
+       (unsigned long long)flags);
+   }
+}

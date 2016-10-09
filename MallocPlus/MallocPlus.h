@@ -109,7 +109,8 @@ struct cmp_str
  *    multi-dimensional arrays
  *******************************************************************/
 class MallocPlus {
-protected:
+//protected:
+public:
    map<string, malloc_plus_memory_entry*> memory_name_dict; //!< Dictionary entries by name
    map<void*, malloc_plus_memory_entry*> memory_ptr_dict; //!< Dictionary entries by pointer
 
