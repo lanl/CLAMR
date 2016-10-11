@@ -1,5 +1,21 @@
 cmake_minimum_required(VERSION 2.6)
 
+project (MALLOC_PLUS)
+# The version number.
+set (MALLOC_PLUS_VERSION_MAJOR 2)
+set (MALLOC_PLUS_VERSION_MINOR 0.7)
+set (MALLOC_PLUS_VERSION "${MALLOC_PLUS_VERSION_MAJOR}.${MALLOC_PLUS_VERSION_MINOR}")
+
+enable_language (Fortran)
+
+if( DEFINED ENV{PE_ENV})
+  cmake_minimum_required (VERSION 3.5)
+  set( CMAKE_SYSTEM_NAME CrayLinuxEnvironment CACHE STRING "description")
+  set( MPIEXEC "aprun" CACHE STRING "description")
+else ()
+  cmake_minimum_required (VERSION 2.8)
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # --- custom targets: ---
 if (NOT TARGET distclean)
@@ -8,12 +24,6 @@ endif (NOT TARGET distclean)
 
 # enable @rpath in the install name for any shared library being built
 set(CMAKE_MACOSX_RPATH 1)
-
-project (MALLOC_PLUS)
-# The version number.
-set (MALLOC_PLUS_VERSION_MAJOR 2)
-set (MALLOC_PLUS_VERSION_MINOR 0.7)
-set (MALLOC_PLUS_VERSION "${MALLOC_PLUS_VERSION_MAJOR}.${MALLOC_PLUS_VERSION_MINOR}")
 
 if (NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE RelWithDebInfo)
@@ -71,50 +81,56 @@ enable_testing()
 add_subdirectory(tests)
 
 ########### global settings ###############
+#set(H_SRCS CMallocPlus.h MallocPlus.h)
 set(H_SRCS MallocPlus.h)
+#set(C_SRCS CMallocPlus.c)
 set(CXX_SRCS MallocPlus.cpp)
-
+set(F90_SRCS FMallocPlus.F90)
 
 ########### MallocPlus target ###############
-set(MallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+set(MallocPlus_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${F90_SRCS} ${H_SRCS})
 
 add_library(MallocPlus STATIC ${MallocPlus_LIB_SRCS})
 
+set_target_properties(MallocPlus PROPERTIES Fortran_MODULE_DIRECTORY ./CMakeFiles/MallocPlus.dir)
 set_target_properties(MallocPlus PROPERTIES VERSION ${MALLOC_PLUS_VERSION} SOVERSION ${MALLOC_PLUS_VERSION_MAJOR})
-install(TARGETS MallocPlus DESTINATION lib)
+#install(TARGETS MallocPlus DESTINATION lib)
 
 ########### pMallocPlus target ###############
 if (MPI_FOUND)
-   set(pMallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+   set(pMallocPlus_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${F90_SRCS} ${H_SRCS})
 
    add_library(pMallocPlus STATIC ${MallocPlus_LIB_SRCS})
 
+   set_target_properties(pMallocPlus PROPERTIES Fortran_MODULE_DIRECTORY ./CMakeFiles/pMallocPlus.dir)
    set_target_properties(pMallocPlus PROPERTIES VERSION ${MALLOC_PLUS_VERSION} SOVERSION ${MALLOC_PLUS_VERSION_MAJOR})
    set_target_properties(pMallocPlus PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
    target_link_libraries(pMallocPlus ${MPI_LIBRARIES})
-   install(TARGETS pMallocPlus DESTINATION lib)
+#   install(TARGETS pMallocPlus DESTINATION lib)
 endif (MPI_FOUND)
 
 ########### mpMallocPlus target ###############
 if (OPENMP_FOUND)
-   set(mpMallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+   set(mpMallocPlus_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${F90_SRCS} ${H_SRCS})
 
    add_library(mpMallocPlus STATIC ${MallocPlus_LIB_SRCS})
 
+   set_target_properties(mpMallocPlus PROPERTIES Fortran_MODULE_DIRECTORY ./CMakeFiles/mpMallocPlus.dir)
    set_target_properties(mpMallocPlus PROPERTIES VERSION ${MALLOC_PLUS_VERSION} SOVERSION ${MALLOC_PLUS_VERSION_MAJOR})
    set_target_properties(mpMallocPlus PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
    set_target_properties(mpMallocPlus PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(mpMallocPlus PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
 
-   install(TARGETS mpMallocPlus DESTINATION lib)
+#   install(TARGETS mpMallocPlus DESTINATION lib)
 endif (OPENMP_FOUND)
 
 ########### pmpMallocPlus target ###############
 if (OPENMP_FOUND AND MPI_FOUND)
-   set(pmpMallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+   set(pmpMallocPlus_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${F90_SRCS} ${H_SRCS})
 
    add_library(pmpMallocPlus STATIC ${MallocPlus_LIB_SRCS})
 
+   set_target_properties(pmpMallocPlus PROPERTIES Fortran_MODULE_DIRECTORY ./CMakeFiles/pmpMallocPlus.dir)
    set_target_properties(pmpMallocPlus PROPERTIES VERSION ${MALLOC_PLUS_VERSION} SOVERSION ${MALLOC_PLUS_VERSION_MAJOR})
    set_target_properties(pmpMallocPlus PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
    set_target_properties(pmpMallocPlus PROPERTIES COMPILE_FLAGS ${OpenMP_C_FLAGS})
@@ -122,15 +138,16 @@ if (OPENMP_FOUND AND MPI_FOUND)
    set_target_properties(pmpMallocPlus PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
 
    target_link_libraries(pmpMallocPlus ${MPI_LIBRARIES})
-   install(TARGETS pmpMallocPlus DESTINATION lib)
+#   install(TARGETS pmpMallocPlus DESTINATION lib)
 endif (OPENMP_FOUND AND MPI_FOUND)
 
 ########### dMallocPlus target ###############
 if (OPENCL_FOUND)
-   set(dMallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+   set(dMallocPlus_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${F90_SRCS} ${H_SRCS})
 
    add_library(dMallocPlus STATIC ${dMallocPlus_LIB_SRCS})
 
+   set_target_properties(dMallocPlus PROPERTIES Fortran_MODULE_DIRECTORY ./CMakeFiles/dMallocPlus.dir)
    set_target_properties(dMallocPlus PROPERTIES VERSION ${MALLOC_PLUS_VERSION} SOVERSION ${MALLOC_PLUS_VERSION_MAJOR})
    set_target_properties(dMallocPlus PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
    target_link_libraries(dMallocPlus ${OPENCL_LIBRARIES})
@@ -139,15 +156,16 @@ if (OPENCL_FOUND)
    #   message(STATUS "Adding j7 support ot MallocPlus")
    #   target_link_libraries(dMallocPlus j7)
    #endif()
-   install(TARGETS dMallocPlus DESTINATION lib)
+#   install(TARGETS dMallocPlus DESTINATION lib)
 endif(OPENCL_FOUND)
 
 ########### dpMallocPlus target ###############
 if (OPENCL_FOUND AND MPI_FOUND)
-   set(dpMallocPlus_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+   set(dpMallocPlus_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${F90_SRCS} ${H_SRCS})
 
    add_library(dpMallocPlus STATIC ${dpMallocPlus_LIB_SRCS})
 
+   set_target_properties(dpMallocPlus PROPERTIES Fortran_MODULE_DIRECTORY ./CMakeFiles/dpMallocPlus.dir)
    set_target_properties(dpMallocPlus PROPERTIES VERSION ${MALLOC_PLUS_VERSION} SOVERSION ${MALLOC_PLUS_VERSION_MAJOR})
    set_target_properties(dpMallocPlus PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
    target_link_libraries(dpMallocPlus ${MPI_LIBRARIES})
@@ -157,12 +175,12 @@ if (OPENCL_FOUND AND MPI_FOUND)
    #   message(STATUS "Adding j7 support ot MallocPlus")
    #   target_link_libraries(dMallocPlus j7)
    #endif()
-   install(TARGETS dpMallocPlus DESTINATION lib)
+#   install(TARGETS dpMallocPlus DESTINATION lib)
 endif(OPENCL_FOUND AND MPI_FOUND)
 
 ########### install files ###############
 
-install(FILES  MallocPlus.h DESTINATION include/MallocPlus)
+#install(FILES  MallocPlus.h DESTINATION include/MallocPlus)
 
 ########### doc targets ################
 
