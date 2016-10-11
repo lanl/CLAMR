@@ -339,6 +339,9 @@ void Crux::store_begin(size_t nsize, int ncycle)
         if( (plist_id = H5Pcreate(H5P_FILE_ACCESS)) < 0)
           printf("HDF5: Could not create property list \n");
 
+	if( H5Pset_libver_bounds(plist_id, H5F_LIBVER_LATEST, H5F_LIBVER_LATEST) < 0)
+          printf("HDF5: Could set libver bounds \n");
+
         H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
 #  endif
         h5_fid = H5Fcreate(backup_file, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
