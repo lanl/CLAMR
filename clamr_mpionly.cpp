@@ -420,6 +420,7 @@ int main(int argc, char **argv) {
 
    //  Set flag to show mesh results rather than domain decomposition.
    view_mode = 1;
+
    if (ncycle == next_cp_cycle) store_crux_data(crux, ncycle); 
 
    cpu_timer_start(&tstart);
