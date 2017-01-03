@@ -87,180 +87,195 @@ extern enum partition_method cycle_reorder;
 
 void Mesh::partition_measure(void) 
 {
-  if (measure_type == NO_PARTITION_MEASURE) return;
+  if (measure_type != NO_PARTITION_MEASURE){
 
-  int ntX     = TILE_SIZE; 
-  double offtile_ratio = 0.0;
+     int ntX     = TILE_SIZE; 
+     static double offtile_ratio = 0.0;
 
-  uint num_groups = (ncells + TILE_SIZE - 1)/TILE_SIZE;
+     uint num_groups = (ncells + TILE_SIZE - 1)/TILE_SIZE;
 
-  if (measure_type == WITH_DUPLICATES) {
-     for (uint group_id=0, i = 0; group_id < num_groups; group_id ++){ 
+     if (measure_type == WITH_DUPLICATES) {
+        int i = 0;
+#ifdef _OPENMP
+#pragma omp for reduction(+:offtile_ratio)
+#endif
+        for (uint group_id=0; group_id < num_groups; group_id ++){ 
  
-        int start_idx = group_id * ntX;
-        int end_idx   = (group_id + 1) * ntX; 
+           int start_idx = group_id * ntX;
+           int end_idx   = (group_id + 1) * ntX; 
 
-        int offtile =0;
-// Fails to compile for some systems
-//
-//#ifdef _OPENMP
-//#pragma omp parallel for reduction(+:offtile)
-//#endif
-        for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
+           int offtile =0;
+           for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
 
-           if (i >= ncells) continue;
-           //taken from wave_kern_calc.cl 'setup tile' kernel
-           if (nlft[i] < start_idx || nlft[i] >= end_idx) offtile++; 
-           if (level[nlft[i]] > level[i] &&
-              (ntop[nlft[i]] < start_idx || ntop[nlft[i]] >= end_idx) ) offtile++;
-           if (nrht[i] < start_idx || nrht[i] >= end_idx) offtile++; 
-           if (level[nrht[i]] > level[i] &&
-              (ntop[nrht[i]] < start_idx || ntop[nrht[i]] >= end_idx) ) offtile++;
-           if (nbot[i] < start_idx || nbot[i] >= end_idx) offtile++; 
-           if (level[nbot[i]] > level[i] &&
-              (nrht[nbot[i]] < start_idx || nrht[nbot[i]] >= end_idx) ) offtile++;
-           if (ntop[i] < start_idx || ntop[i] >= end_idx) offtile++; 
-           if (level[ntop[i]] > level[i] &&
-              (nrht[ntop[i]] < start_idx || nrht[ntop[i]] >= end_idx) ) offtile++;
-        }
-        offtile_ratio += (double)offtile/(double)(TILE_SIZE);
-        //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
-     }
-  } else if (measure_type == WITHOUT_DUPLICATES) {
-
-     for (uint group_id=0, i = 0; group_id < num_groups; group_id ++){ 
-        list<int> offtile_list;
- 
-        int start_idx = group_id * ntX;
-        int end_idx   = (group_id + 1) * ntX; 
-
-        for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
-
-           if (i >= ncells) continue;
-
-           if (nlft[i] < start_idx || nlft[i] >= end_idx) offtile_list.push_back(nlft[i]);
-           if (level[nlft[i]] > level[i] &&
-              (ntop[nlft[i]] < start_idx || ntop[nlft[i]] >= end_idx) ) offtile_list.push_back(ntop[nlft[i]]);
-           if (nrht[i] < start_idx || nrht[i] >= end_idx) offtile_list.push_back(nrht[i]);
-           if (level[nrht[i]] > level[i] &&
-              (ntop[nrht[i]] < start_idx || ntop[nrht[i]] >= end_idx) ) offtile_list.push_back(ntop[nrht[i]]);
-           if (nbot[i] < start_idx || nbot[i] >= end_idx) offtile_list.push_back(nbot[i]);
-           if (level[nbot[i]] > level[i] &&
-              (nrht[nbot[i]] < start_idx || nrht[nbot[i]] >= end_idx) ) offtile_list.push_back(nrht[nbot[i]]);
-           if (ntop[i] < start_idx || ntop[i] >= end_idx) offtile_list.push_back(ntop[i]);
-           if (level[ntop[i]] > level[i] &&
-              (nrht[ntop[i]] < start_idx || nrht[ntop[i]] >= end_idx) ) offtile_list.push_back(nrht[ntop[i]]);
-        }
-        offtile_list.sort();
-        offtile_list.unique();
-        
-        offtile_ratio += (double)offtile_list.size()/(double)(TILE_SIZE);
-        //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
-     }
-  } else if (measure_type == CVALUE) {
-
-     for (uint group_id=0, i = 0; group_id < num_groups; group_id ++){ 
-        list<int> offtile_list;
- 
-        int start_idx = group_id * ntX;
-        int end_idx   = (group_id + 1) * ntX; 
-
-        for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
-
-           if (i >= ncells) continue;
-
-           if (nlft[i] < start_idx || nlft[i] >= end_idx) offtile_list.push_back(nlft[i]);
-           if (level[nlft[i]] > level[i] &&
-              (ntop[nlft[i]] < start_idx || ntop[nlft[i]] >= end_idx) ) offtile_list.push_back(ntop[nlft[i]]);
-           if (nrht[i] < start_idx || nrht[i] >= end_idx) offtile_list.push_back(nrht[i]);
-           if (level[nrht[i]] > level[i] &&
-              (ntop[nrht[i]] < start_idx || ntop[nrht[i]] >= end_idx) ) offtile_list.push_back(ntop[nrht[i]]);
-           if (nbot[i] < start_idx || nbot[i] >= end_idx) offtile_list.push_back(nbot[i]);
-           if (level[nbot[i]] > level[i] &&
-              (nrht[nbot[i]] < start_idx || nrht[nbot[i]] >= end_idx) ) offtile_list.push_back(nrht[nbot[i]]);
-           if (ntop[i] < start_idx || ntop[i] >= end_idx) offtile_list.push_back(ntop[i]);
-           if (level[ntop[i]] > level[i] &&
-              (nrht[ntop[i]] < start_idx || nrht[ntop[i]] >= end_idx) ) offtile_list.push_back(nrht[ntop[i]]);
-        }
-        offtile_list.sort();
-        offtile_list.unique();
-        
-        offtile_ratio += (double)offtile_list.size()/(4*sqrt((double)(TILE_SIZE)));
-        //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
-     }
-  } else if (measure_type == CSTARVALUE) {
-
-     for (uint group_id=0, i = 0; group_id < num_groups; group_id ++){ 
-        list<int> offtile_list;
-        list<int> offtile_cache_lines; // Assumes memory is aligned
-        int cache_line_size = 4; // Some could be 8, or more?
- 
-        int start_idx = group_id * ntX;
-        int end_idx   = (group_id + 1) * ntX; 
-
-        for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
-
-           if (i >= ncells) continue;
-
-           if (nlft[i] < start_idx || nlft[i] >= end_idx) {
-               offtile_list.push_back(nlft[i]);
-               offtile_cache_lines.push_back(nlft[i]/cache_line_size);
+              if (i >= ncells) continue;
+              //taken from wave_kern_calc.cl 'setup tile' kernel
+              if (nlft[i] < start_idx || nlft[i] >= end_idx) offtile++; 
+              if (level[nlft[i]] > level[i] &&
+                 (ntop[nlft[i]] < start_idx || ntop[nlft[i]] >= end_idx) ) offtile++;
+              if (nrht[i] < start_idx || nrht[i] >= end_idx) offtile++; 
+              if (level[nrht[i]] > level[i] &&
+                 (ntop[nrht[i]] < start_idx || ntop[nrht[i]] >= end_idx) ) offtile++;
+              if (nbot[i] < start_idx || nbot[i] >= end_idx) offtile++; 
+              if (level[nbot[i]] > level[i] &&
+                 (nrht[nbot[i]] < start_idx || nrht[nbot[i]] >= end_idx) ) offtile++;
+              if (ntop[i] < start_idx || ntop[i] >= end_idx) offtile++; 
+              if (level[ntop[i]] > level[i] &&
+                 (nrht[ntop[i]] < start_idx || nrht[ntop[i]] >= end_idx) ) offtile++;
            }
+           offtile_ratio += (double)offtile/(double)(TILE_SIZE);
+           //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
+        }
+     } else if (measure_type == WITHOUT_DUPLICATES) {
+        int i = 0;
+#ifdef _OPENMP
+#pragma omp for reduction(+:offtile_ratio)
+#endif
+        for (uint group_id=0; group_id < num_groups; group_id ++){ 
+           list<int> offtile_list;
+ 
+           int start_idx = group_id * ntX;
+           int end_idx   = (group_id + 1) * ntX; 
+
+           for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
+
+              if (i >= ncells) continue;
+
+              if (nlft[i] < start_idx || nlft[i] >= end_idx) offtile_list.push_back(nlft[i]);
+              if (level[nlft[i]] > level[i] &&
+                 (ntop[nlft[i]] < start_idx || ntop[nlft[i]] >= end_idx) ) offtile_list.push_back(ntop[nlft[i]]);
+              if (nrht[i] < start_idx || nrht[i] >= end_idx) offtile_list.push_back(nrht[i]);
+              if (level[nrht[i]] > level[i] &&
+                 (ntop[nrht[i]] < start_idx || ntop[nrht[i]] >= end_idx) ) offtile_list.push_back(ntop[nrht[i]]);
+              if (nbot[i] < start_idx || nbot[i] >= end_idx) offtile_list.push_back(nbot[i]);
+              if (level[nbot[i]] > level[i] &&
+                 (nrht[nbot[i]] < start_idx || nrht[nbot[i]] >= end_idx) ) offtile_list.push_back(nrht[nbot[i]]);
+              if (ntop[i] < start_idx || ntop[i] >= end_idx) offtile_list.push_back(ntop[i]);
+              if (level[ntop[i]] > level[i] &&
+                 (nrht[ntop[i]] < start_idx || nrht[ntop[i]] >= end_idx) ) offtile_list.push_back(nrht[ntop[i]]);
+           }
+           offtile_list.sort();
+           offtile_list.unique();
+        
+           offtile_ratio += (double)offtile_list.size()/(double)(TILE_SIZE);
+           //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
+        }
+     } else if (measure_type == CVALUE) {
+        int i = 0;
+#ifdef _OPENMP
+#pragma omp for reduction(+:offtile_ratio)
+#endif
+        for (uint group_id=0; group_id < num_groups; group_id ++){ 
+           list<int> offtile_list;
+ 
+           int start_idx = group_id * ntX;
+           int end_idx   = (group_id + 1) * ntX; 
+
+           for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
+
+              if (i >= ncells) continue;
+
+              if (nlft[i] < start_idx || nlft[i] >= end_idx) offtile_list.push_back(nlft[i]);
+              if (level[nlft[i]] > level[i] &&
+                 (ntop[nlft[i]] < start_idx || ntop[nlft[i]] >= end_idx) ) offtile_list.push_back(ntop[nlft[i]]);
+              if (nrht[i] < start_idx || nrht[i] >= end_idx) offtile_list.push_back(nrht[i]);
+              if (level[nrht[i]] > level[i] &&
+                 (ntop[nrht[i]] < start_idx || ntop[nrht[i]] >= end_idx) ) offtile_list.push_back(ntop[nrht[i]]);
+              if (nbot[i] < start_idx || nbot[i] >= end_idx) offtile_list.push_back(nbot[i]);
+              if (level[nbot[i]] > level[i] &&
+                 (nrht[nbot[i]] < start_idx || nrht[nbot[i]] >= end_idx) ) offtile_list.push_back(nrht[nbot[i]]);
+              if (ntop[i] < start_idx || ntop[i] >= end_idx) offtile_list.push_back(ntop[i]);
+              if (level[ntop[i]] > level[i] &&
+                 (nrht[ntop[i]] < start_idx || nrht[ntop[i]] >= end_idx) ) offtile_list.push_back(nrht[ntop[i]]);
+           }
+           offtile_list.sort();
+           offtile_list.unique();
+        
+           offtile_ratio += (double)offtile_list.size()/(4*sqrt((double)(TILE_SIZE)));
+           //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
+        }
+     } else if (measure_type == CSTARVALUE) {
+        int i = 0;
+#ifdef _OPENMP
+#pragma omp for reduction(+:offtile_ratio)
+#endif
+        for (uint group_id=0; group_id < num_groups; group_id ++){ 
+           list<int> offtile_list;
+           list<int> offtile_cache_lines; // Assumes memory is aligned
+           int cache_line_size = 4; // Some could be 8, or more?
+ 
+           int start_idx = group_id * ntX;
+           int end_idx   = (group_id + 1) * ntX; 
+
+           for (uint ic = 0; ic < TILE_SIZE; ic++, i++){ 
+
+              if (i >= ncells) continue;
+
+              if (nlft[i] < start_idx || nlft[i] >= end_idx) {
+                  offtile_list.push_back(nlft[i]);
+                  offtile_cache_lines.push_back(nlft[i]/cache_line_size);
+              }
                
-           if (level[nlft[i]] > level[i] && (ntop[nlft[i]] < start_idx || ntop[nlft[i]] >= end_idx) ) {
-               offtile_list.push_back(ntop[nlft[i]]);
-               offtile_cache_lines.push_back(ntop[nlft[i]]/cache_line_size);
+              if (level[nlft[i]] > level[i] && (ntop[nlft[i]] < start_idx || ntop[nlft[i]] >= end_idx) ) {
+                  offtile_list.push_back(ntop[nlft[i]]);
+                  offtile_cache_lines.push_back(ntop[nlft[i]]/cache_line_size);
+              }
+              if (nrht[i] < start_idx || nrht[i] >= end_idx) {
+                  offtile_list.push_back(nrht[i]);
+                  offtile_cache_lines.push_back(nrht[i]/cache_line_size);
+              }
+              if (level[nrht[i]] > level[i] && (ntop[nrht[i]] < start_idx || ntop[nrht[i]] >= end_idx) ) {
+                  offtile_list.push_back(ntop[nrht[i]]);
+                  offtile_cache_lines.push_back(ntop[nrht[i]]/cache_line_size);
+              }
+              if (nbot[i] < start_idx || nbot[i] >= end_idx) {
+                  offtile_list.push_back(nbot[i]);
+                  offtile_cache_lines.push_back(nbot[i]/cache_line_size);
+              }
+              if (level[nbot[i]] > level[i] && (nrht[nbot[i]] < start_idx || nrht[nbot[i]] >= end_idx) ) {
+                  offtile_list.push_back(nrht[nbot[i]]);
+                  offtile_cache_lines.push_back(nrht[nbot[i]]/cache_line_size);
+              }
+              if (ntop[i] < start_idx || ntop[i] >= end_idx) {
+                  offtile_list.push_back(ntop[i]);
+                  offtile_cache_lines.push_back(ntop[i]/cache_line_size);
+              }
+              if (level[ntop[i]] > level[i] && (nrht[ntop[i]] < start_idx || nrht[ntop[i]] >= end_idx) ) {
+                  offtile_list.push_back(nrht[ntop[i]]);
+                  offtile_cache_lines.push_back(nrht[ntop[i]]/cache_line_size);
+              }
            }
-           if (nrht[i] < start_idx || nrht[i] >= end_idx) {
-               offtile_list.push_back(nrht[i]);
-               offtile_cache_lines.push_back(nrht[i]/cache_line_size);
-           }
-           if (level[nrht[i]] > level[i] && (ntop[nrht[i]] < start_idx || ntop[nrht[i]] >= end_idx) ) {
-               offtile_list.push_back(ntop[nrht[i]]);
-               offtile_cache_lines.push_back(ntop[nrht[i]]/cache_line_size);
-           }
-           if (nbot[i] < start_idx || nbot[i] >= end_idx) {
-               offtile_list.push_back(nbot[i]);
-               offtile_cache_lines.push_back(nbot[i]/cache_line_size);
-           }
-           if (level[nbot[i]] > level[i] && (nrht[nbot[i]] < start_idx || nrht[nbot[i]] >= end_idx) ) {
-               offtile_list.push_back(nrht[nbot[i]]);
-               offtile_cache_lines.push_back(nrht[nbot[i]]/cache_line_size);
-           }
-           if (ntop[i] < start_idx || ntop[i] >= end_idx) {
-               offtile_list.push_back(ntop[i]);
-               offtile_cache_lines.push_back(ntop[i]/cache_line_size);
-           }
-           if (level[ntop[i]] > level[i] && (nrht[ntop[i]] < start_idx || nrht[ntop[i]] >= end_idx) ) {
-               offtile_list.push_back(nrht[ntop[i]]);
-               offtile_cache_lines.push_back(nrht[ntop[i]]/cache_line_size);
-           }
-        }
-        offtile_list.sort();
-        offtile_list.unique();
-        offtile_cache_lines.sort();
-        offtile_cache_lines.unique();
+           offtile_list.sort();
+           offtile_list.unique();
+           offtile_cache_lines.sort();
+           offtile_cache_lines.unique();
 
-        double s_ngeom = (double)(offtile_list.size());
-        double q_ngeom = (double)(offtile_cache_lines.size());
-        double ngeom = (double)(TILE_SIZE);
-        double cover = (double)(cache_line_size);
-//        offtile_ratio += (s_ngeom * q_ngeom) / (4*sqrt(ngeom)*2*(1+(ngeom+cache_line_size-1)/cache_line_size));
-//        offtile_ratio += (q_ngeom) / (2*sqrt(ngeom)+2*((sqrt(ngeom)+cover-1)/cover));
-//        offtile_ratio += (q_ngeom) / ( (8*sqrt(ngeom)+cover-1)/cover );
-               ngeom = sqrt(ngeom);
-        offtile_ratio += (s_ngeom*q_ngeom*cover) / ( 4 * ngeom * (8*ngeom+cover-1) );
+           double s_ngeom = (double)(offtile_list.size());
+           double q_ngeom = (double)(offtile_cache_lines.size());
+           double ngeom = (double)(TILE_SIZE);
+           double cover = (double)(cache_line_size);
+//            offtile_ratio += (s_ngeom * q_ngeom) / (4*sqrt(ngeom)*2*(1+(ngeom+cache_line_size-1)/cache_line_size));
+//            offtile_ratio += (q_ngeom) / (2*sqrt(ngeom)+2*((sqrt(ngeom)+cover-1)/cover));
+//            offtile_ratio += (q_ngeom) / ( (8*sqrt(ngeom)+cover-1)/cover );
+           ngeom = sqrt(ngeom);
+           offtile_ratio += (s_ngeom*q_ngeom*cover) / ( 4 * ngeom * (8*ngeom+cover-1) );
         
-        //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
-     }
-  } 
+           //printf("DEBUG Ratio of surface area to volume is equal to %d / %d ratio is %lf\n", offtile, TILE_SIZE, (double)offtile/(double)TILE_SIZE);
+        }
+     } 
 
-  // printf("DEBUG Ratio of surface area to volume is equal to %d / %d \n", offtile, ontile);
+     // printf("DEBUG Ratio of surface area to volume is equal to %d / %d \n", offtile, ontile);
    
-   meas_count ++;
-   meas_sum_average  += offtile_ratio/(double)num_groups;
-  // printf("DEBUG %d icount %d sum_average %lf\n",__LINE__,icount, sum_average);
-
+#ifdef _OPENMP
+#pragma omp master
+     {
+#endif
+         meas_count ++;
+         meas_sum_average  += offtile_ratio/(double)num_groups;
+     // printf("DEBUG %d icount %d sum_average %lf\n",__LINE__,icount, sum_average);
+#ifdef _OPENMP
+     }
+#endif
+  } // if PARTITION TYPE
 }
 
 void Mesh::print_partition_measure()

@@ -1,0 +1,603 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+	<META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=utf-8">
+	<TITLE></TITLE>
+	<META NAME="GENERATOR" CONTENT="OpenOffice.org 1.1.5  (Linux)">
+	<META NAME="AUTHOR" CONTENT="Reader">
+	<META NAME="CREATED" CONTENT="19971116;22370000">
+	<META NAME="CHANGED" CONTENT="20060830;15063600">
+	<META NAME="CLASSIFICATION" CONTENT="Software Development Plan">
+	<STYLE>
+	<!--
+		@page { size: 8.5in 11in; margin-left: 1.25in; margin-right: 1.25in; margin-top: 0.5in; margin-bottom: 0.5in }
+		@page:first { }
+		P { margin-bottom: 0.08in; direction: ltr; color: #000000; text-align: justify; widows: 2; orphans: 2 }
+		P.western { font-family: "Times New Roman", serif; font-size: 11pt; so-language: en-US }
+		P.cjk { font-family: "Times New Roman", serif; font-size: 11pt }
+		P.ctl { font-family: "Times New Roman", serif; font-size: 10pt }
+		H1 { margin-top: 0in; margin-bottom: 0.17in; border-top: none; border-bottom: 4.00pt solid #808080; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.04in; padding-left: 0in; padding-right: 0in; color: #000000; widows: 2; orphans: 2; page-break-before: always; page-break-after: auto }
+		H1.western { font-family: "Arial", sans-serif; font-size: 16pt }
+		H1.cjk { font-family: "Times New Roman", serif; font-size: 16pt }
+		H1.ctl { font-family: "Times New Roman", serif; font-size: 10pt; font-weight: medium }
+		H2 { margin-bottom: 0.08in; color: #000000; widows: 2; orphans: 2; page-break-before: auto }
+		H2.western { font-family: "Arial", sans-serif; font-size: 12pt }
+		H2.cjk { font-family: "Times New Roman", serif; font-size: 14pt }
+		H2.ctl { font-family: "Times New Roman", serif; font-size: 10pt; font-weight: medium }
+		P.list-western { font-family: "Times New Roman", serif; font-size: 11pt; so-language: en-US }
+		P.list-cjk { font-family: "Times New Roman", serif; font-size: 11pt }
+		P.list-ctl { font-family: "Lucidasans"; font-size: 10pt }
+		P.numbering-2-start-western { margin-left: 0.09in; text-indent: -0.2in; margin-top: 0.17in; font-family: "Times New Roman", serif; font-size: 11pt; so-language: en-US }
+		P.numbering-2-start-cjk { margin-left: 0.09in; text-indent: -0.2in; margin-top: 0.17in; font-family: "Times New Roman", serif; font-size: 11pt }
+		P.numbering-2-start-ctl { margin-left: 0.09in; text-indent: -0.2in; margin-top: 0.17in; font-family: "Lucidasans"; font-size: 10pt }
+		P.numbering-2-western { margin-left: 0.09in; text-indent: -0.2in; font-family: "Times New Roman", serif; font-size: 11pt; so-language: en-US }
+		P.numbering-2-cjk { margin-left: 0.09in; text-indent: -0.2in; font-family: "Times New Roman", serif; font-size: 11pt }
+		P.numbering-2-ctl { margin-left: 0.09in; text-indent: -0.2in; font-family: "Lucidasans"; font-size: 10pt }
+		H1.heading-1---format-only-western { font-family: "Arial", sans-serif; font-size: 16pt }
+		H1.heading-1---format-only-cjk { font-family: "Times New Roman", serif; font-size: 16pt }
+		H1.heading-1---format-only-ctl { font-family: "Times New Roman", serif; font-size: 10pt; font-weight: medium }
+		A.sdfootnotesym-western { font-size: 7pt }
+		A.sdfootnotesym-cjk { font-size: 7pt }
+	-->
+	</STYLE>
+</HEAD>
+<BODY LANG="en-US" TEXT="#000000" DIR="LTR">
+<DIV TYPE=HEADER>
+	<P CLASS="western" STYLE="margin-bottom: 0.55in"><BR><BR>
+	</P>
+</DIV>
+<P ALIGN=CENTER STYLE="margin-bottom: 0.17in; border: 1.10pt double #000000; padding: 0.08in">
+<FONT FACE="Arial, sans-serif"><FONT SIZE=6><B>Collaborative Testing
+System</B></FONT></FONT></P>
+<P ALIGN=CENTER STYLE="margin-bottom: 0.17in; border: 1.10pt double #000000; padding: 0.08in">
+<FONT FACE="Arial, sans-serif"><FONT SIZE=6><B>Users Guide</B></FONT></FONT></P>
+<P><BR><BR>
+</P>
+<P ALIGN=CENTER STYLE="margin-top: 0.5in; margin-bottom: 0.17in; border: none; padding: 0in">
+<FONT FACE="Arial, sans-serif"><FONT SIZE=5><B>Version: 1.0.9</B></FONT></FONT></P>
+<P ALIGN=CENTER STYLE="margin-top: 0.17in; margin-bottom: 0.5in; border: none; padding: 0in">
+<SDFIELD TYPE=DOCINFO SUBTYPE=CHANGE FORMAT=DATE SDNUM="1033;1033;D MMMM, YYYY">30 August, 2006</SDFIELD></P>
+<P ALIGN=CENTER STYLE="margin-top: 0.5in; margin-bottom: 0.17in; border: none; padding: 0in">
+<BR><BR>
+</P>
+<P ALIGN=CENTER STYLE="margin-top: 0.33in; margin-bottom: 0.5in; border: none; padding: 0in; font-weight: medium">
+<FONT FACE="Arial, sans-serif"><FONT SIZE=4>[Authors:    Eugene
+Dougherty,   David Aubrey,   Robert Robey   Alfred Torrez]</FONT></FONT></P>
+<OL START=0>
+	<H1 CLASS="heading-1---format-only-western">Contents</H1>
+</OL>
+<P><BR><BR>
+</P>
+<DIV ID="Table of Contents1" DIR="LTR">
+	<P ALIGN=LEFT STYLE="margin-top: 0.17in"><FONT SIZE=3><B>1
+	Introduction	4</B></FONT></P>
+	<P ALIGN=LEFT STYLE="margin-top: 0.17in"><FONT SIZE=3><B>2 Currently
+	Supported Systems	5</B></FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>2.1 Batch
+	Systems	5</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>2.2 MPI	5</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-top: 0.17in"><FONT SIZE=3><B>3 Setting
+	Up CTS	6</B></FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>3.1 Obtaining
+	CTS	6</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>3.2
+	Configure	6</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>3.3 Build	6</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>3.4 Install	6</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>3.5 Examples	6</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>3.6 Combined	6</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-top: 0.17in"><FONT SIZE=3><B>4 Input
+	Files	7</B></FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>4.1 *.cts
+	File	7</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>4.2 *.suite
+	Files	9</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>4.3 *.test
+	Files	9</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>4.4 TestSuite
+	Directory	9</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>4.5 Executable
+		10</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>4.6 Link
+	Files	10</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-top: 0.17in"><FONT SIZE=3><B>5 Running
+	CTS	11</B></FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>5.1
+	Interactive Usage	11</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>5.2 Automated
+	Usage	11</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-top: 0.17in"><FONT SIZE=3><B>6 Output
+	File Descriptions	12</B></FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>6.1
+	Runscript	12</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>6.2 Tmpfile	12</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>6.3 Copy of
+	Test Directory	12</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>6.4 *.db
+	File	12</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>6.5 Outfile	12</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>6.6
+	bsub_&lt;problem name&gt;	12</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-bottom: 0in"><FONT SIZE=3>6.7 Report
+	Files	12</FONT></P>
+	<P ALIGN=LEFT STYLE="margin-top: 0.17in"><FONT SIZE=3><B>7 Adding
+	Test Cases	13</B></FONT></P>
+	<P ALIGN=LEFT STYLE="margin-top: 0.17in"><FONT SIZE=3><B>8 Drilling
+	Down on Failing Tests	14</B></FONT></P>
+</DIV>
+<P><BR><BR>
+</P>
+<P><BR><BR>
+</P>
+<H1 CLASS="western">1 Introduction</H1>
+<P CLASS="western">The <B>C</B>ollaborative <B>T</B>esting <B>S</B>ystem
+<SPAN LANG="en-GB"><FONT COLOR="#000000">is a testing system for
+parallel MPI based software. It is a collaboratively designed and
+developed system that will improve project software testing
+effectiveness, maintainability, extensibility, portability, and
+performance.</FONT></SPAN></P>
+<P LANG="en-GB" CLASS="western">CTS is a modular system written
+mostly in object-oriented Perl consisting of a principal script
+called “cts” which contains the user command line interface and
+the following modules:</P>
+<OL>
+	<LI><P CLASS="numbering-2-start-western">System: Provides platform
+	independence.</P>
+	<LI><P CLASS="numbering-2-western">TestHarness: This module creates
+	run directories, runscripts, and runs the test problems.</P>
+	<LI><P CLASS="numbering-2-western">Comparator: A stand alone diff
+	tool to determine pass/fail result status.</P>
+	<LI><P CLASS="numbering-2-western">Reporter: Creates reports: text,
+	email and html.</P>
+	<LI><P CLASS="numbering-2-western">Database: Data manager.</P>
+</OL>
+<H1 CLASS="western">2 Currently Supported Systems</H1>
+<UL>
+	<LI><P CLASS="western">Various Linux clusters with full kernels and
+	bproc based kernels. -- Lightning, Flash, Cadillac at LANL</P>
+	<LI><P CLASS="western">HP/Compaq/DEC OSF1based systems – Q systems
+	at LANL</P>
+	<LI><P CLASS="western">SGI – Bluemountain at LANL</P>
+	<LI><P CLASS="western">Linux Workstations</P>
+</UL>
+<H2 CLASS="western">2.1 Batch Systems</H2>
+<P CLASS="western">Currently LSF and the ???? batch system on White.
+There is also support for no-batch systems such as workstations.</P>
+<H2 CLASS="western">2.2 MPI</H2>
+<P CLASS="western">Currently, the following MPIs are supported.</P>
+<UL>
+	<LI><P CLASS="western">MPICH</P>
+	<LI><P CLASS="western">LAMPI</P>
+	<LI><P CLASS="western">OpenMPI</P>
+	<LI><P CLASS="western">MvPICH</P>
+	<LI><P CLASS="western">HP/Compaq/DEC OSF1 Vendor MPI</P>
+	<LI><P CLASS="western">SGI Vendor MPI</P>
+</UL>
+<H1 CLASS="western">3 Setting Up CTS</H1>
+<P CLASS="western"><BR><BR>
+</P>
+<H2 CLASS="western">3.1 Obtaining CTS</H2>
+<P CLASS="western">CTS is available from SourceForge as a gzipped tar
+file. Developers can also checkout the source directly from CVS.</P>
+<P CLASS="western">[At Los Alamos National Laboratory (LANL), CTS can
+be downloaded or checked out of the local SourceForge repository or
+retrieved from ICN NFS disk space at
+<I>/usr/projects/packages/xtools/cts</I>.<SPAN STYLE="font-style: normal">]</SPAN></P>
+<H2 CLASS="western">3.2 Configure</H2>
+<P CLASS="western"><FONT FACE="Times New Roman, serif">Type:</FONT><FONT FACE="Courier, monospace">
+make config INSTALL_DIR=&lt;/installdir&gt;</FONT></P>
+<H2 CLASS="western">3.3 Build</H2>
+<P CLASS="western">Type: “make build”</P>
+<H2 CLASS="western">3.4 Install</H2>
+<P CLASS="western">Type: “make install</P>
+<P CLASS="western">The successful installation will result in the
+creation of directories bin, man, lib, and html in the install
+directory.  CTS is ready to run.</P>
+<H2 CLASS="western">3.5 Examples</H2>
+<P CLASS="western">Type “make examples</P>
+<P CLASS="western">The examples are a prototypical project setup with
+a build using autoconf and automake and then running a small test
+suite. 
+</P>
+<H2 CLASS="western">3.6 Combined</H2>
+<P CLASS="western">Type “make INSTALL_DIR=&lt;/installdir&gt;</P>
+<P CLASS="western">The makefile will configure, build, install and
+then run the examples.</P>
+<P CLASS="western"><BR><BR>
+</P>
+<H1 CLASS="western">4 Input Files</H1>
+<P CLASS="western">CTS executions rely on defaults and automatic
+configurations as much as possible, but three critical input files
+must be present:</P>
+<H2 CLASS="western">4.1 *.cts File</H2>
+<P CLASS="western">The *.cts file contains key project information
+that the CTS needs in order to run the code.  It contains executable
+names, locations, test suites to be run, desired reports, etc.  See
+example *.cts files in the examples directory in the source code. 
+This file can be specified in the command line execution of the CTS,
+or can be specified via the environment variable CTS_FILE.  Example
+names include &quot;nightly.cts&quot; and “interactive.cts”.</P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-top: 0.2in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 85%; text-decoration: none">
+<FONT COLOR="#ff0000"><FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 9pt">#
+This is an example .cts file</FONT></FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace">#<FONT SIZE=2 STYLE="font-size: 9pt">
+VERBOSE</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">PARALLEL_EXECUTABLES
+   : cpi=../src/cpi</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">PARALLEL_EXECUTABLES
+   : fpi=../src/fpi</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">DEFAULT_NUM_CPUS
+       : 4</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">DEFAULT_TIME_LIMIT
+     : 0:30</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">#DEFAULT_TESTSUITES
+     : example.suite</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">TESTSUITE_DIRECTORIES
+  : cts_tests</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">TEST_DIRECTORIES
+       : cts_tests</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">REPORTS
+                : text html</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">PROJECT
+                : CTS</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`uname -n` == /^ffe?\d|^flash/) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">SYSTEM_NAME
+: flash</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">#BATCH
+: nobatch</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">#QUEUES
+: largeq longq</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`uname -n` == /^l\d/) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">SYSTEM_NAME
+lambda</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">BLOCKED_QUEUES
+         : intq</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">QUEUES
+: largeq longq</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">MPIRUN
+: /usr/local/bin/mpijob mpirun</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`uname -n` == /^qsc\d/) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">SYSTEM_NAME
+qsc</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">BLOCKED_QUEUES
+         : devq</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`uname -n` == /t\d|theta/) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">SYSTEM_NAME
+theta</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`uname -n` == /^cadillac|^tit??/) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">SYSTEM_NAME
+workstation</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`uname -n` == /^pink/) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">SYSTEM_NAME
+pink</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`uname -n` == /^q\d/) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">SYSTEM_NAME
+Q</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`uname -n` == /^cx\d/) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">SYSTEM_NAME
+CX</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">BLOCKED_QUEUES
+         : devq</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`uname -n` == /^c[ab]/) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">SYSTEM_NAME
+C</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`uname -n` == /^b\d/) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">SYSTEM_NAME
+Blue</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`uname -n` == /^white/) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">SYSTEM_NAME
+White</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`uname -n` == /^l[lc]/) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">   <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">SYSTEM_NAME
+Lightning</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">if
+(`printenv CRONJOB` == 1) then</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">  <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">CROSS_PLATFORM_BASE
+    : /usr/projects/packages/xtools/nightly</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"> 
+<FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">CROSS_PLATFORM_PATTERN
+ : ${system}/${Fcompiler}_${mpi}_${type}/cts_results.txt</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"> 
+<FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">CROSS_PLATFORM_REPORTER
+: Flash</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">  <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">CROSS_PLATFORM_GROUP
+   : cts-dev</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">  <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">CROSS_PLATFORM_MODE
+    : 0660</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in">  <FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">CROSS_PLATFORM_MAIL
+    : cts-team@lanl.gov</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><FONT FACE="Courier, monospace"><FONT SIZE=2 STYLE="font-size: 9pt">endif</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">The following is a list
+of keywords that are recognized in the .cts file with a brief
+explanation of the function and possible settings.</P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">BATCH</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">BLOCKED_QUEUES</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">CROSS_PLATFORM_BASE</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">CROSS_PLATFORM_GROUP</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">CROSS_PLATFORM_MAIL</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">CROSS_PLATFORM_MODE</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">CROSS_PLATFORM_PATTERN</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">CROSS_PLATFORM_REPORTER</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">DEFAULT_NUM_CPUS</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">DEFAULT_TESTSUITE</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">DEFAULT_TIME_LIMIT</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">MPIRUN</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">PARALLEL_EXECUTABLES</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">PROJECT</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">QUEUES</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">REPORTS</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">SERIAL_EXECUTABLES</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">SYSTEM_NAME</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">TESTSUITE_DIRECTORIES</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">TEST_DIRECTORIES</P>
+<P CLASS="western" STYLE="margin-bottom: 0in">VERBOSE</P>
+<H2 CLASS="western">4.2 *.suite Files</H2>
+<P CLASS="western">This is a list of test cases and/or additional
+suites that will be run as part of a given test suite.  An example
+suite file name could be regression.suite.  See the examples
+directory in the source checkout for example files.  Edit the file
+template.suite and save a copy for each suite.  The suite file(s)
+must be specified in the *.cts file.</P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT COLOR="#ff0000"><FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 9pt">#
+This is an example testsuite file</FONT></FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 9pt">include
+simple.suite                            <FONT COLOR="#ff0000"># This
+line included another testsuite.</FONT></FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 9pt">not_so_simple.suite
+                           <FONT COLOR="#ff0000"># So does this line.</FONT></FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 9pt">+case1        
+                8      2:00        <FONT COLOR="#ff0000"># This line
+includes a test called case1 to be run on 8 processors with a
+time-limit of 2 hours.</FONT></FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT COLOR="#ff0000"><FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 9pt"><FONT COLOR="#000000">case2
+ ................................................</FONT><FONT COLOR="#ff3333">#
+</FONT>adds a test call case2</FONT></FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 9pt">- case4       
+                                        <FONT COLOR="#ff0000"># This
+line excludes case4.</FONT></FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 9pt">EXCLUDE case5 
+                              <FONT COLOR="#ff0000"># We are not case
+sensitive.</FONT></FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 9pt">If (case4 &amp;&amp;
+(-x real_fast_code)) {     <FONT COLOR="#ff0000"># Why run the
+testsuite if the executable failed to build?</FONT></FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+    <FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 9pt">not_so_simple.suite</FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 9pt">}</FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 9pt">Else {
+simple.suite }                            <FONT COLOR="#ff0000"># We
+may eventually allow embedded if blocks, but not in version1.</FONT></FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<H2 CLASS="western">4.3 *.test Files</H2>
+<P CLASS="western">Each test case must have an associated *.test
+file.  This file can contain the number of processors, time limits
+for failure criteria, comparator commands, additional post-processing
+commands, etc.  You may choose to use the test case name as the
+prefix – e.g. Sedov.test.  The prefix may be anything (e.g. case
+name), or the file may be simply named &quot;.test&quot;.  See the
+examples directory in the source checkout for example files.  This
+file is automatically referenced at runtime.</P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT COLOR="#ff0000"><FONT FACE="Arial"><FONT SIZE=2># This is an
+example .test file</FONT></FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2>DATA    mydate.file</FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2>SERIAL_CODE  inf/slow_input_file     
+                    <FONT COLOR="#ff0000"># This must be a legacy
+code.</FONT></FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2>READ_FAST_CODE   --run_fast   
+fast_input_file</FONT></FONT></P>
+<P CLASS="western" ALIGN=LEFT STYLE="margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2>COMPARE_OUTPUT</FONT></FONT></P>
+<P CLASS="western" STYLE="margin-bottom: 0in"><BR>
+</P>
+<H2 CLASS="western">4.4 TestSuite Directory</H2>
+<P CLASS="western">This directory is the source of the test cases. 
+It contains input files for the application code that CTS will be
+running, and additional application code input files such as meshes
+and standards files.  The TestSuite directory may contain
+subdirectories that contain individual test cases, but those
+directories must be named identically to the test case input files
+they contain, minus the suffix.  For example, if sedov.input is an
+input file for an application code, it should reside in the directory
+TestSuite/sedov.</P>
+<P CLASS="western">This directory gets copied into what becomes the
+working directory for a CTS execution.  The  “testing” directory
+is created by CTS during each initial execution.  It contains a
+replication of the test case directories where the individual test
+problems get run.  Thus, it is also the location where output from
+the executable may go as well as some CTS-specific output such as
+results.</P>
+<H2 CLASS="western">4.5 Executable 
+</H2>
+<P CLASS="western">This is the executable that is used to run the
+test problems.  It may be specified in the *.cts file or via the
+command interface to CTS, which may be command-line or, in later
+releases, a GUI.</P>
+<H2 CLASS="western">4.6 Link Files</H2>
+<P CLASS="western">Some application codes require additional files in
+order to run.  CTS calls those “link files” and must include them
+as input in order to run.  These may be specified or indirectly
+referenced in *.cts file or via the command interface.</P>
+<P CLASS="western" STYLE="text-decoration: none"><BR><BR>
+</P>
+<H1 CLASS="western">5 Running CTS</H1>
+<H2 CLASS="western">5.1 Interactive Usage</H2>
+<P CLASS="western">To run interactive via the command line, change
+directory to the cts install dir.  This will be the directory that
+contains bin, lib, man, and html.  Enter the command:</P>
+<P CLASS="western">    ./bin/cts --cts myctsfile.cts</P>
+<P CLASS="western">STDOUT will display current job status.  Jobs will
+run in batches of size as configured in the *.cts file.  Reports and
+their output location will be written as specified in the *.cts file.</P>
+<H2 CLASS="western">5.2 Automated Usage</H2>
+<P CLASS="western">Create cron job to launch CTS.  Example cron_cts:</P>
+<P CLASS="western"><FONT FACE="Courier, monospace"><FONT SIZE=2>15 06
+* * * perl /usr/projects/project1/cts/bin/cts --cts nightly.cts</FONT></FONT></P>
+<P CLASS="western">In this example, the cts script will be executed
+in the cron environment every morning at 6:15 am.  It may be
+necessary to modify your cron environment to run correctly.  Next,
+load the cron job onto machine with the command: 
+</P>
+<P CLASS="western">  <FONT FACE="Courier, monospace">crontab cron_cts</FONT></P>
+<P CLASS="western">When the cron job has run, check for output in the
+directories you've specified in the *.cts file, or exercise cron by
+changing execution time to (e.g. current time + 2 minutes) near
+future and loading cron job.  The cron job may require some
+environment tuning to achieve desired results such as sourcing a
+&quot;project_cts&quot; .cshrc file, loading specific modules or
+setting PATH environment variables etc.</P>
+<H1 CLASS="western">6 Output File Descriptions</H1>
+<H2 CLASS="western">6.1 Runscript</H2>
+<P CLASS="western">This is generated at run time for each test case
+and may be used directly as a diagnostic or run script resource.</P>
+<H2 CLASS="western">6.2 Tmpfile</H2>
+<P CLASS="western">Shell script that runs the problem - generated at
+run time for each test case and may be used directly as a diagnostic
+or run script resource.</P>
+<H2 CLASS="western">6.3 Copy of Test Directory</H2>
+<P CLASS="western">The test case problem subdirectory is copied into
+“testing” where is may be operated on by CTS without changing the
+original problem directory's contents.  
+</P>
+<H2 CLASS="western">6.4 *.db File</H2>
+<P CLASS="western">This file contains all results data for a given
+problem execution.  It is subsequently used by the reporter module. 
+If the “storable” perl module is available, the file format is
+binary.  Otherwise, it is written in ASCII text by the dumper module.</P>
+<H2 CLASS="western">6.5 Outfile</H2>
+<P CLASS="western">This is STDOUT from the test execution.  It is
+linked to in the html report.</P>
+<H2 CLASS="western">6.6 bsub_&lt;problem name&gt;</H2>
+<P CLASS="western">This is the bsub output, also linked to in the
+html report.</P>
+<H2 CLASS="western">6.7 Report Files</H2>
+<P CLASS="western">Results.txt is the default text report file. 
+cts_results.html is a single html document that contains all test
+results for a given execution of CTS.  That is, if multiple suites
+are run, the results from all suites will be included in
+cts_results.html.  Results from the individual suites are written to
+&lt;suite name&gt;_results.html.</P>
+<P><BR><BR>
+</P>
+<H1 CLASS="western">7 Adding Test Cases</H1>
+<P ALIGN=LEFT STYLE="margin-left: 0.37in; text-indent: -0.37in; margin-top: 0.1in; margin-bottom: 0in; font-style: normal; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt"><B>Make test
+directory</B></FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.81in; text-indent: -0.31in; margin-top: 0.03in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt">mkdir
+my_new_test</FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.37in; text-indent: -0.37in; margin-top: 0.1in; margin-bottom: 0in; font-style: normal; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt"><B>Create
+test input file</B></FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.81in; text-indent: -0.31in; margin-top: 0.03in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt">cp 
+my_new_test.in  my_new_test/.</FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.37in; text-indent: -0.37in; margin-top: 0.1in; margin-bottom: 0in; font-style: normal; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt"><B>Create
+my_new_test.test file to run problem</B></FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.81in; text-indent: -0.31in; margin-top: 0.03in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt">my_prog
+my_new_test.in</FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.81in; text-indent: -0.31in; margin-top: 0.03in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt">ctsdiff -r
+.001 -or -a .001 – gold_my_new_test.out my_new_test.out</FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.37in; text-indent: -0.37in; margin-top: 0.1in; margin-bottom: 0in; font-style: normal; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt"><B>Run
+problem and generate gold standard file</B></FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.37in; text-indent: -0.37in; margin-top: 0.1in; margin-bottom: 0in; font-style: normal; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt"><B>Add test
+case to my.suite file</B></FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.81in; text-indent: -0.31in; margin-top: 0.03in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt">noh</FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.81in; text-indent: -0.31in; margin-top: 0.03in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt">my_new_test</FONT></FONT></P>
+<P CLASS="western"><BR><BR>
+</P>
+<H1 CLASS="western">8 Drilling Down on Failing Tests</H1>
+<P ALIGN=LEFT STYLE="margin-left: 0.37in; text-indent: -0.37in; margin-top: 0.1in; margin-bottom: 0in; font-style: normal; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt"><B>Make test
+directory</B></FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.81in; text-indent: -0.31in; margin-top: 0.03in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt">mkdir
+my_new_test</FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.37in; text-indent: -0.37in; margin-top: 0.1in; margin-bottom: 0in; font-style: normal; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt"><B>Create
+test input file</B></FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.81in; text-indent: -0.31in; margin-top: 0.03in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt">cp 
+my_new_test.in  my_new_test/.</FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.37in; text-indent: -0.37in; margin-top: 0.1in; margin-bottom: 0in; font-style: normal; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt"><B>Create
+my_new_test.test file to run problem</B></FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.81in; text-indent: -0.31in; margin-top: 0.03in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt">my_prog
+my_new_test.in</FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.81in; text-indent: -0.31in; margin-top: 0.03in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt">ctsdiff -r
+.001 -or -a .001 – gold_my_new_test.out my_new_test.out</FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.37in; text-indent: -0.37in; margin-top: 0.1in; margin-bottom: 0in; font-style: normal; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt"><B>Run
+problem and generate gold standard file</B></FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.37in; text-indent: -0.37in; margin-top: 0.1in; margin-bottom: 0in; font-style: normal; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt"><B>Add test
+case to my.suite file</B></FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.81in; text-indent: -0.31in; margin-top: 0.03in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt">noh</FONT></FONT></P>
+<P ALIGN=LEFT STYLE="margin-left: 0.81in; text-indent: -0.31in; margin-top: 0.03in; margin-bottom: 0in; font-style: normal; font-weight: medium; line-height: 0.14in; text-decoration: none">
+<FONT FACE="Arial"><FONT SIZE=2 STYLE="font-size: 11pt">my_new_test</FONT></FONT></P>
+<P CLASS="western"><BR><BR>
+</P>
+<P><BR><BR>
+</P>
+<DIV TYPE=FOOTER>
+	<P STYLE="margin-left: 0.94in; margin-top: 0.55in; margin-bottom: 0in; border-top: 1px solid #000000; border-bottom: none; border-left: none; border-right: none; padding-top: 0.04in; padding-bottom: 0in; padding-left: 0in; padding-right: 0in">
+	                                                                    
+	                                                                    
+		</P>
+</DIV>
+</BODY>
+</HTML>

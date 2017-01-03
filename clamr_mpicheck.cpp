@@ -54,9 +54,6 @@
  * 
  */
 
-#include "mesh/mesh.h"
-#include "mesh/partition.h"
-
 #include <algorithm>
 #include <math.h>
 #include <stdio.h>
@@ -64,16 +61,26 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
+#include "graphics/display.h"
+#include "graphics/graphics.h"
 #include "input.h"
+#include "mesh/mesh.h"
+#include "mesh/partition.h"
 #include "state.h"
 #include "l7/l7.h"
 #include "timer/timer.h"
+#include "memstats/memstats.h"
+#include "crux/crux.h"
+#include "PowerParser/PowerParser.hh"
+#include "MallocPlus/MallocPlus.h"
 
-#include "graphics/display.h"
+using namespace PP;
 
-#ifndef DEBUG 
+
+#ifndef DEBUG
 #define DEBUG 0
 #endif
+#undef DEBUG_RESTORE_VALS
 
 #define DO_COMPARISON
 
@@ -103,6 +110,10 @@ static int view_mode = 0;
 
 #endif
 
+void store_crux_data(Crux *crux, int ncycle);
+void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_counter);
+void restore_crux_data(Crux *crux);
+
 bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
@@ -117,8 +128,8 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
             levmx,          //  Maximum number of refinement levels; init in input.cpp::parseInput().
             nx,             //  x-resolution of coarse grid; init in input.cpp::parseInput().
             ny,             //  y-resolution of coarse grid; init in input.cpp::parseInput().
-            niter,          //  Maximum time step; init in input.cpp::parseInput().
-            graphic_outputInterval, // Periocity of graphic output that is saved; init in input.cpp::parseInput()
+            niter,          //  Maximum iterations; init in input.cpp::parseInput().
+            graphic_outputInterval, // Periodicity of graphic output that is saved; init in input.cpp::parseInput()
             checkpoint_outputInterval, // Periodicity of checkpoint output that is saved; init in input.cpp::parseInput()
             num_of_rollback_states,// Maximum number of rollback states to maintain; init in input.cpp::parseInput()
             backup_file_num,//  Backup file number to restart simulation from; init in input.cpp::parseInput()
@@ -129,18 +140,33 @@ double      upper_mass_diff_percentage; //  Flag for the allowed pecentage diffe
 
 char *restart_file;
 
+static int it = 0;
+
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
-static Mesh       *mesh_global;    //  Object containing mesh information; init in grid.cpp::main().
-static State      *state_global;   //  Object containing state information corresponding to mesh; init in grid.cpp::main().
-static Mesh       *mesh;           //  Object containing mesh information; init in grid.cpp::main().
-static State      *state;    //  Object containing state information corresponding to mesh; init in grid.cpp::main().
+static Mesh       *mesh_global;     //  Object containing mesh information; init in grid.cpp::main().
+static State      *state_global;    //  Object containing state information corresponding to mesh; init in grid.cpp::main().
+static Mesh       *mesh;            //  Object containing mesh information; init in grid.cpp::main().
+static State      *state;           //  Object containing state information corresponding to mesh; init in grid.cpp::main().
+static Crux        *crux;           //  Object containing checkpoint/restart information
+static PowerParser *parse;          //  Object containing input file parsing
+
+static real_t circ_radius = 0.0;
+static int next_cp_cycle = 0;
+static int next_graphics_cycle = 0;
 
 //  Set up timing information.
 static struct timeval tstart;
 
-static double  H_sum_initial = 0.0;
+static double H_sum_initial = 0.0;
 static double cpu_time_graphics = 0.0;
+
+static int     ncycle  = 0;
+static double  simTime = 0.0;
+static double  deltaT = 0.0;
+char total_sim_time_log[] = {"total_execution_time.log"};
+struct timeval total_exec;
+
 
 int main(int argc, char **argv) {
 
@@ -151,6 +177,8 @@ int main(int argc, char **argv) {
    L7_Init(&mype, &numpe, &argc, argv, do_quo_setup, lttrace_on);
 
    real_t circ_radius = 6.0;
+
+   parse = new PowerParser();
    //  Scale the circle appropriately for the mesh size.
    circ_radius = circ_radius * (real_t) nx / 128.0;
    int boundary = 1;
@@ -299,24 +327,19 @@ int main(int argc, char **argv) {
    //  Clear superposition of circle on grid output.
    circle_radius = -1.0;
    
-   MPI_Barrier(MPI_COMM_WORLD);
    cpu_timer_start(&tstart);
 
    set_idle_function(&do_calc);
    start_main_loop();
 #else
-   MPI_Barrier(MPI_COMM_WORLD);
    cpu_timer_start(&tstart);
-   for (int it = 0; it < 10000000; it++) {
+   for (it = 0; it < 10000000; it++) {
       do_calc();
    }
 #endif
    
    return 0;
 }
-
-static int     ncycle  = 0;
-static double  simTime = 0.0;
 
 extern "C" void do_calc(void)
 {  double g     = 9.80;
@@ -355,50 +378,89 @@ extern "C" void do_calc(void)
       //old_ncells = ncells;
       //old_ncells_global = ncells_global;
 
-      //  Calculate the real time step for the current discrete time step.
-      deltaT = state->set_timestep(g, sigma);
-      simTime += deltaT;
-
-      //  Compare time step values and pass deltaT in to the kernel.
-      if (do_comparison_calc) {
-         double deltaT_cpu_global = state_global->set_timestep(g, sigma);
-
-         if (fabs(deltaT - deltaT_cpu_global) > .000001) {
-            printf("Error with deltaT calc --- cpu_local %lf cpu_global %lf\n",
-               deltaT, deltaT_cpu_global);
+#ifdef _OPENMP
+#pragma omp parallel
+      {
+#endif
+         //  Calculate the real time step for the current discrete time step.
+         double mydeltaT = state->set_timestep(g, sigma); // Private variable to avoid write conflict
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+            deltaT = mydeltaT;
+            simTime += deltaT;
+#ifdef _OPENMP
          }
-      }
+#pragma omp barrier
+#endif
 
-      mesh->calc_neighbors_local();
+         //  Compare time step values and pass deltaT in to the kernel.
+         if (do_comparison_calc) {
+            double mydeltaT_cpu_global = state_global->set_timestep(g, sigma);
 
-      if (do_comparison_calc) {
-         mesh_global->calc_neighbors(mesh_global->ncells);
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+#endif
+            double deltaT_cpu_global = mydeltaT_cpu_global;
+            if (fabs(deltaT - deltaT_cpu_global) > .000001) {
+               printf("Error with deltaT calc --- cpu_local %lf cpu_global %lf\n",
+                  deltaT, deltaT_cpu_global);
+            }
+         }
 
-         // Checking CPU parallel to CPU global
-         mesh->compare_neighbors_cpu_local_to_cpu_global(ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);
-      }
+         mesh->calc_neighbors_local();
 
-      mesh->partition_measure();
+         if (do_comparison_calc) {
+            mesh_global->calc_neighbors(mesh_global->ncells);
 
-      // Currently not working -- may need to be earlier?
-      //if (mesh->have_boundary) {
-      //  state->add_boundary_cells(mesh);
-      //}
+            // Checking CPU parallel to CPU global
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+#endif
+            {
+               mesh->compare_neighbors_cpu_local_to_cpu_global(ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);
+            }
+         }
 
-      // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
+         mesh->partition_measure();
 
-      //  Execute main kernel
-      state->calc_finite_difference(deltaT);
+         // Currently not working -- may need to be earlier?
+         //if (mesh->have_boundary) {
+         //  state->add_boundary_cells(mesh);
+         //}
 
-      if (do_comparison_calc) {
-         state_global->calc_finite_difference(deltaT);
+         // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
-         // Compare H gathered to H_global, etc
-         state->compare_state_cpu_local_to_cpu_global(state_global, "finite difference", ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
-      }
+         mesh->set_bounds(ncells);
 
-      //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
-      state->remove_boundary_cells();
+         //  Execute main kernel
+         state->calc_finite_difference(deltaT);
+
+         if (do_comparison_calc) {
+            state_global->calc_finite_difference(deltaT);
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
+               // Compare H gathered to H_global, etc
+               state->compare_state_cpu_local_to_cpu_global(state_global, "finite difference",
+                      ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
+#ifdef _OPENMP
+            } // end master region
+#endif
+         }
+
+         //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
+         state->remove_boundary_cells();
+#ifdef _OPENMP
+      } // end parallel region
+#endif
 
       if (do_comparison_calc) {
          state_global->remove_boundary_cells();
@@ -422,7 +484,14 @@ extern "C" void do_calc(void)
       }
 
       //int add_ncells = new_ncells - old_ncells;
-      state->rezone_all(icount, jcount, mpot);
+#ifdef _OPENMP
+#pragma omp parallel
+      {
+#endif
+         state->rezone_all(icount, jcount, mpot);
+#ifdef _OPENMP
+      } // end parallel region
+#endif
       // Clear does not delete mpot, so have to swap with an empty vector to get
       // it to delete the mpot memory. This is all to avoid valgrind from showing
       // it as a reachable memory leak
@@ -601,10 +670,162 @@ extern "C" void do_calc(void)
 
       delete mesh;
       delete state;
+      delete crux;
+      delete parse;
 
       L7_Terminate();
       exit(0);
    }  //  Complete final output.
    
+} // end do_calc
+
+const int CRUX_CLAMR_VERSION = 101;
+const int num_int_vals       = 14;
+const int num_double_vals    =  5;
+
+MallocPlus clamr_bootstrap_memory;
+
+void store_crux_data(Crux *crux, int ncycle)
+{
+   size_t nsize = num_int_vals*sizeof(int) +
+                  num_double_vals*sizeof(double);
+   nsize += state->get_checkpoint_size();
+
+   int int_vals[num_int_vals];
+
+   int_vals[ 0] = CRUX_CLAMR_VERSION; // Version number
+   int_vals[ 1] = nx;
+   int_vals[ 2] = ny;
+   int_vals[ 3] = levmx;
+   int_vals[ 4] = ndim;
+   int_vals[ 5] = outputInterval;
+   int_vals[ 6] = enhanced_precision_sum;
+   int_vals[ 7] = niter;
+   int_vals[ 8] = it;
+   int_vals[ 9] = ncycle;
+   int_vals[10] = graphic_outputInterval;
+   int_vals[11] = checkpoint_outputInterval;
+   int_vals[12] = next_cp_cycle;
+   int_vals[13] = next_graphics_cycle;
+
+   double double_vals[num_double_vals];
+   double_vals[ 0] = circ_radius;
+   double_vals[ 1] = H_sum_initial;
+   double_vals[ 2] = simTime;
+   double_vals[ 3] = deltaT;
+   double_vals[ 4] = upper_mass_diff_percentage;
+
+   clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", RESTART_DATA);
+   clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", RESTART_DATA);
+
+   crux->store_begin(nsize, ncycle);
+
+   crux->store_MallocPlus(clamr_bootstrap_memory);
+
+   state->store_checkpoint(crux);
+
+   crux->store_end();
+
+   clamr_bootstrap_memory.memory_remove(int_vals);
+   clamr_bootstrap_memory.memory_remove(double_vals);
+
+   next_cp_cycle += checkpoint_outputInterval;
+}
+
+void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_counter)
+{
+   crux->restore_begin(restart_file, rollback_counter);
+
+   int int_vals[num_int_vals];
+
+   double double_vals[num_double_vals];
+
+   clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", RESTART_DATA);
+   clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", RESTART_DATA);
+
+   crux->restore_MallocPlus(clamr_bootstrap_memory);
+
+   if (int_vals[ 0] != CRUX_CLAMR_VERSION) {
+      printf("CRUX version mismatch for clamr data, version on file is %d, version in code is %d\n",
+         int_vals[0], CRUX_CLAMR_VERSION);
+      exit(0);
+   }
+  
+   nx                        = int_vals[ 1];
+   ny                        = int_vals[ 2];
+   levmx                     = int_vals[ 3];
+   ndim                      = int_vals[ 4];
+   outputInterval            = int_vals[ 5];
+   enhanced_precision_sum    = int_vals[ 6];
+   niter                     = int_vals[ 7];
+   it                        = int_vals[ 8];
+   ncycle                    = int_vals[ 9];
+   graphic_outputInterval    = int_vals[10];
+   checkpoint_outputInterval = int_vals[11];
+   next_cp_cycle             = int_vals[12];
+   next_graphics_cycle       = int_vals[13];
+
+   circ_radius                = double_vals[ 0];
+   H_sum_initial              = double_vals[ 1];
+   simTime                    = double_vals[ 2];
+   deltaT                     = double_vals[ 3];
+   upper_mass_diff_percentage = double_vals[ 4];
+
+   clamr_bootstrap_memory.memory_remove(int_vals);
+   clamr_bootstrap_memory.memory_remove(double_vals);
+
+#ifdef DEBUG_RESTORE_VALS
+   if (DEBUG_RESTORE_VALS) {
+      const char *int_vals_descriptor[num_int_vals] = {
+         "CRUX_CLAMR_VERSION",
+         "nx",
+         "ny",
+         "levmx",
+         "ndim",
+         "outputInterval",
+         "enhanced_precision_sum",
+         "niter",
+         "it",
+         "ncycle",
+         "graphic_outputInterval",
+         "checkpoint_outputInterval",
+         "next_cp_cycle",
+         "next_graphics_cycle"
+      };
+      printf("\n");
+      printf("       === Restored bootstrap int_vals ===\n");
+      for (int i = 0; i < num_int_vals; i++){
+         printf("       %-30s %d\n",int_vals_descriptor[i], int_vals[i]);
+      }
+      printf("       === Restored bootstrap int_vals ===\n");
+      printf("\n");
+   }
+#endif
+
+#ifdef DEBUG_RESTORE_VALS
+   if (DEBUG_RESTORE_VALS) {
+      const char *double_vals_descriptor[num_double_vals] = {
+         "circ_radius",
+         "H_sum_initial",
+         "simTime",
+         "deltaT",
+         "upper_mass_diff_percentage"
+      };
+      printf("\n");
+      printf("       === Restored bootstrap double_vals ===\n");
+      for (int i = 0; i < num_double_vals; i++){
+         printf("       %-30s %lg\n",double_vals_descriptor[i], double_vals[i]);
+      }
+      printf("       === Restored bootstrap double_vals ===\n");
+      printf("\n");
+   }
+#endif
+}
+
+void restore_crux_data(Crux *crux)
+{
+   state->restore_checkpoint(crux);
+
+   crux->restore_end();
 }
 

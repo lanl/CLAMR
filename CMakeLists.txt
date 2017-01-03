@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # --- custom targets: ---
@@ -139,78 +139,97 @@ endif (ImageMagick_FOUND)
 #-----------------------------------------------------------------------------
 # HDF5 support
 #-----------------------------------------------------------------------------
-if (NOT HDF5_HDF5_HEADER)
-  if (BUILD_SHARED_LIBS)
-    set (FIND_HDF_COMPONENTS C shared)
-  else (BUILD_SHARED_LIBS)
-    set (FIND_HDF_COMPONENTS C static)
-  endif (BUILD_SHARED_LIBS)
-  message (STATUS "HDF5 find comps: ${FIND_HDF_COMPONENTS}")
-  set (SEARCH_PACKAGE_NAME ${HDF5_PACKAGE_NAME})
 
-  find_package (HDF5 NAMES ${SEARCH_PACKAGE_NAME} COMPONENTS ${FIND_HDF_COMPONENTS})
-  message (STATUS "HDF5 C libs:${HDF5_FOUND} static:${HDF5_static_C_FOUND} and shared:${HDF5_shared_C_FOUND}")
-  if (HDF5_FOUND)
-    if (NOT HDF5_static_C_FOUND AND NOT HDF5_shared_C_FOUND)
-      # check for single binary package
+option (HDF5_ENABLE "Enable HDF5 support" OFF)
+mark_as_advanced (HDF5_ENABLE)
+
+if(HDF5_ENABLE)
+  if (NOT HDF5_HDF5_HEADER)
+    if (BUILD_SHARED_LIBS)
+      set (FIND_HDF_COMPONENTS C shared)
+    else (BUILD_SHARED_LIBS)
+      set (FIND_HDF_COMPONENTS C static)
+    endif (BUILD_SHARED_LIBS)
+    message (STATUS "HDF5 find comps: ${FIND_HDF_COMPONENTS}")
+    set (SEARCH_PACKAGE_NAME ${HDF5_PACKAGE_NAME})
+
+    find_package (HDF5 NAMES ${SEARCH_PACKAGE_NAME} QUIET COMPONENTS ${FIND_HDF_COMPONENTS})
+    message (STATUS "HDF5 C libs:${HDF5_FOUND} static:${HDF5_static_C_FOUND} and shared:${HDF5_shared_C_FOUND}")
+    if (HDF5_FOUND)
+      if (NOT HDF5_static_C_FOUND AND NOT HDF5_shared_C_FOUND)
+        # check for single binary package
+        set (FIND_HDF_COMPONENTS C)
+        message (STATUS "HDF5 find comps: ${FIND_HDF_COMPONENTS}")
+
+        find_package (HDF5 NAMES ${SEARCH_PACKAGE_NAME} COMPONENTS ${FIND_HDF_COMPONENTS})
+        message (STATUS "HDF5 libs:${HDF5_FOUND} C:${HDF5_C_FOUND}")
+        set (HDF5_LIBS ${HDF5_LIBS} ${HDF5_LIBRARIES})
+          if (HDF5_BUILD_SHARED_LIBS AND USE_SHARED_LIBS)
+          add_definitions (-DH5_BUILT_AS_DYNAMIC_LIB)
+        else (HDF5_BUILD_SHARED_LIBS AND USE_SHARED_LIBS)
+          add_definitions (-DH5_BUILT_AS_STATIC_LIB)
+        endif (HDF5_BUILD_SHARED_LIBS AND USE_SHARED_LIBS)
+      else (NOT HDF5_static_C_FOUND AND NOT HDF5_shared_C_FOUND)
+        if (HDF5_BUILD_SHARED_LIBS AND USE_SHARED_LIBS AND HDF5_shared_C_FOUND)
+          set (HDF5_LIBS ${HDF5_LIBS} ${HDF5_C_SHARED_LIBRARY} ${HDF5_HL_SHARED_LIBRARY})
+        else (HDF5_static_C_FOUND)
+          set (HDF5_LIBS ${HDF5_LIBS} ${HDF5_C_STATIC_LIBRARY} ${HDF5_HL_STATIC_LIBRARY})
+        endif (HDF5_BUILD_SHARED_LIBS AND USE_SHARED_LIBS AND HDF5_shared_C_FOUND)
+      endif (NOT HDF5_static_C_FOUND AND NOT HDF5_shared_C_FOUND)
+    else (HDF5_FOUND)
       set (FIND_HDF_COMPONENTS C)
-      message (STATUS "HDF5 find comps: ${FIND_HDF_COMPONENTS}")
+      find_package (HDF5 COMPONENTS ${FIND_HDF_COMPONENTS}) # Legacy find
 
-      find_package (HDF5 NAMES ${SEARCH_PACKAGE_NAME} COMPONENTS ${FIND_HDF_COMPONENTS})
-      message (STATUS "HDF5 libs:${HDF5_FOUND} C:${HDF5_C_FOUND}")
-      set (HDF5_LIBS ${HDF5_LIBS} ${HDF5_LIBRARIES})
-      if (HDF5_BUILD_SHARED_LIBS AND USE_SHARED_LIBS)
-        add_definitions (-DH5_BUILT_AS_DYNAMIC_LIB)
-      else (HDF5_BUILD_SHARED_LIBS AND USE_SHARED_LIBS)
-        add_definitions (-DH5_BUILT_AS_STATIC_LIB)
-      endif (HDF5_BUILD_SHARED_LIBS AND USE_SHARED_LIBS)
-    else (NOT HDF5_static_C_FOUND AND NOT HDF5_shared_C_FOUND)
-      if (HDF5_BUILD_SHARED_LIBS AND USE_SHARED_LIBS AND HDF5_shared_C_FOUND)
-        set (HDF5_LIBS ${HDF5_LIBS} ${HDF5_C_SHARED_LIBRARY} ${HDF5_HL_SHARED_LIBRARY})
-      else (HDF5_static_C_FOUND)
-        set (HDF5_LIBS ${HDF5_LIBS} ${HDF5_C_STATIC_LIBRARY} ${HDF5_HL_STATIC_LIBRARY})
-      endif (HDF5_BUILD_SHARED_LIBS AND USE_SHARED_LIBS AND HDF5_shared_C_FOUND)
-    endif (NOT HDF5_static_C_FOUND AND NOT HDF5_shared_C_FOUND)
-  else (HDF5_FOUND)
-    set (FIND_HDF_COMPONENTS C)
-    find_package (HDF5 COMPONENTS ${FIND_HDF_COMPONENTS}) # Legacy find
-
-    if (USE_SHARED_LIBS AND EXISTS "${HDF5_LIBRARY_DIRS}/libhdf5.so")
-      set (HDF5_BUILD_SHARED_LIBS 1)
+      if (USE_SHARED_LIBS AND EXISTS "${HDF5_LIBRARY_DIRS}/libhdf5.so")
+        set (HDF5_BUILD_SHARED_LIBS 1)
       add_definitions (-DH5_BUILT_AS_DYNAMIC_LIB)
-    else ()
-      set (HDF5_BUILD_SHARED_LIBS 0)
-      add_definitions (-DH5_BUILT_AS_STATIC_LIB)
-    endif ()
-    set (HDF5_LIBS ${HDF5_LIBS} ${HDF5_LIBRARIES})
+      else ()
+        set (HDF5_BUILD_SHARED_LIBS 0)
+        add_definitions (-DH5_BUILT_AS_STATIC_LIB)
+      endif ()
+      set (HDF5_LIBS ${HDF5_LIBS} ${HDF5_LIBRARIES})
 
-  endif (HDF5_FOUND)
-  set (HDF5_PACKAGE_NAME ${SEARCH_PACKAGE_NAME})
+    endif (HDF5_FOUND)
+    set (HDF5_PACKAGE_NAME ${SEARCH_PACKAGE_NAME})
 
-  if (HDF5_FOUND)
+    if (HDF5_FOUND)
+      set (HDF5_HAVE_H5PUBCONF_H 1)
+      set (HDF5_HAVE_HDF5 1)
+      set (HDF5_HDF5_HEADER "h5pubconf.h")
+      set (HDF5_INCLUDE_DIR_GEN ${HDF5_INCLUDE_DIR})
+      if (NOT HDF5_VERSION_MAJOR)
+        # HDF5 was build with autotools
+        if(EXISTS "${HDF5_LIBRARY_DIRS}/../include/H5pubconf.h")
+          file(STRINGS ${HDF5_LIBRARY_DIRS}/../include/H5pubconf.h "HDF5_VERSION_MAJOR REGEX")
+        endif()
+        string(REGEX MATCH "[0-9]+.[0-9]+" HDF5_VERSION_STRING "${HDF5_VERSION_MAJOR}")
+      endif ()
+      message (STATUS "HDF5-${HDF5_VERSION_STRING} found: INC=${HDF5_INCLUDE_DIR} TOOLS=${HDF5_TOOLS_DIR} HDF5_BUILD_SHARED_LIBS=${HDF5_BUILD_SHARED_LIBS}")
+      set(HDF5_FOUND TRUE)
+      add_definitions(-DHAVE_HDF5)
+    endif (HDF5_FOUND)    
+  else (NOT HDF5_HDF5_HEADER)
+    # This project is being called from within another and HDF5 is already configured
     set (HDF5_HAVE_H5PUBCONF_H 1)
     set (HDF5_HAVE_HDF5 1)
-    set (HDF5_HDF5_HEADER "h5pubconf.h")
-    set (HDF5_INCLUDE_DIR_GEN ${HDF5_INCLUDE_DIR})
-    if (NOT HDF5_VERSION_MAJOR)
-      # HDF5 was build with autotools
-      if(EXISTS "${HDF5_LIBRARY_DIRS}/../include/H5pubconf.h")
-        file(STRINGS ${HDF5_LIBRARY_DIRS}/../include/H5pubconf.h "HDF5_VERSION_MAJOR REGEX")
-      endif()
-      string(REGEX MATCH "[0-9]+.[0-9]+" HDF5_VERSION_STRING "${HDF5_VERSION_MAJOR}")
-    endif ()
-    message (STATUS "HDF5-${HDF5_VERSION_STRING} found: INC=${HDF5_INCLUDE_DIR} TOOLS=${HDF5_TOOLS_DIR} HDF5_BUILD_SHARED_LIBS=${HDF5_BUILD_SHARED_LIBS}")
-    set(HDF5_FOUND TRUE)
-    add_definitions(-DHAVE_HDF5)
-  endif (HDF5_FOUND)    
-else (NOT HDF5_HDF5_HEADER)
-  # This project is being called from within another and HDF5 is already configured
-  set (HDF5_HAVE_H5PUBCONF_H 1)
-  set (HDF5_HAVE_HDF5 1)
-endif (NOT HDF5_HDF5_HEADER)
-message (STATUS "HDF5 link libs: ${HDF5_LIBS}")
+  endif (NOT HDF5_HDF5_HEADER)
+  message (STATUS "HDF5 link libs: ${HDF5_LIBS}")
 
-INCLUDE_DIRECTORIES (${HDF5_INCLUDE_DIR})
+  option (HDF5_ENABLE_FF_SUPPORT "Enable FF version of HDF5" OFF)
+  mark_as_advanced (HDF5_ENABLE_FF_SUPPORT)
+
+  if (HDF5_ENABLE_FF_SUPPORT)
+    add_definitions (-DHDF5_FF)
+    message (STATUS "Enabling HDF5 FF Support")
+  endif (HDF5_ENABLE_FF_SUPPORT)
+
+  if (HDF5_FOUND)
+    INCLUDE_DIRECTORIES (${HDF5_INCLUDE_DIR})
+  endif (HDF5_FOUND)
+
+else (HDF5_ENABLE)
+  message (STATUS "Disabling HDF5 Support")
+endif(HDF5_ENABLE)
 
 #-----------------------------------------------------------------------------
 # Option to use Shared/Static libs, default is static
@@ -337,11 +356,21 @@ endif (NOT OPENGL_FOUND)
 
 add_definitions(-DHAVE_CONFIG_H)
 
+if (CMAKE_ITTNOTIFY)
+   message("ITTNOTIFY FOUND")
+   set (ITTNOTIFY_FOUND on)
+   add_definitions(-DHAVE_ITTNOTIFY)
+   include_directories("$ENV{VTUNE_AMPLIFIER_XE_2016_DIR}/include")
+   set(ITTNOTIFY_LIBS "-pthread -rdynamic -L$ENV{VTUNE_AMPLIFIER_XE_2016_DIR}/lib64 -littnotify")
+endif (CMAKE_ITTNOTIFY)
+#message("ITTNOTIFY FOUND: " ${CMAKE_ITTNOTIFY} " " ${ITTNOTIFY_FOUND})
+
 # add the binary tree to the search path for include files
 # so that we will find config.h
 include_directories("${PROJECT_BINARY_DIR}")
 
 #ADDING TESTS CODE####
+
 if (EXISTS "${CMAKE_SOURCE_DIR}/tests" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/tests")
    add_subdirectory(tests)
 endif (EXISTS "${CMAKE_SOURCE_DIR}/tests" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/tests")
@@ -445,6 +474,10 @@ endif (REPROBLAS_FOUND)
 
 #target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
+if (ITTNOTIFY_FOUND)
+   target_link_libraries(clamr_cpuonly ${ITTNOTIFY_LIBS})
+endif (ITTNOTIFY_FOUND)
+
 install(TARGETS clamr_cpuonly DESTINATION bin)
 
 ########### clamr_gpuonly target ###############
@@ -493,6 +526,10 @@ if (MPI_FOUND)
 
    target_link_libraries(clamr_mpionly ${MPI_LIBRARIES})
 
+   if (ITTNOTIFY_FOUND)
+      target_link_libraries(clamr_mpionly ${ITTNOTIFY_LIBS})
+   endif (ITTNOTIFY_FOUND)
+
    install(TARGETS clamr_mpionly DESTINATION bin)
 endif (MPI_FOUND)
 
@@ -510,13 +547,17 @@ if(OPENMP_FOUND)
    set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
 
-   target_link_libraries(clamr_openmponly PowerParser mpmesh hsfc kdtree zorder crux mphash graphics timer memstats genmalloc mpMallocPlus m)
+   target_link_libraries(clamr_openmponly PowerParser mpmesh hsfc kdtree zorder crux mphash graphics mptimer memstats genmalloc mpMallocPlus m)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_openmponly ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
    if (MIC_NATIVE)
       target_link_libraries(clamr_openmponly iomp5 cilkrts)
    endif (MIC_NATIVE)
+
+   if (ITTNOTIFY_FOUND)
+      target_link_libraries(clamr_openmponly ${ITTNOTIFY_LIBS})
+   endif (ITTNOTIFY_FOUND)
 
    install(TARGETS clamr_openmponly DESTINATION bin)
 endif(OPENMP_FOUND)
@@ -538,7 +579,7 @@ if (MPI_FOUND AND OPENMP_FOUND)
    set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(clamr_mpiopenmponly PROPERTIES LINK_FLAGS "${clamr_mpiopenmponly_link_flags}")
 
-   target_link_libraries(clamr_mpiopenmponly pPowerParser pmpmesh hsfc kdtree zorder crux mphash pgraphics timer memstats mpl7 genmalloc pmpMallocPlus m)
+   target_link_libraries(clamr_mpiopenmponly pPowerParser pmpmesh hsfc kdtree zorder crux mphash pgraphics mptimer memstats mpl7 genmalloc pmpMallocPlus m)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_mpiopenmponly ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
@@ -551,6 +592,11 @@ if (MPI_FOUND AND OPENMP_FOUND)
    target_link_libraries(clamr_mpiopenmponly ${MPI_LIBRARIES})
 
    install(TARGETS clamr_mpiopenmponly DESTINATION bin)
+
+   if (ITTNOTIFY_FOUND)
+      target_link_libraries(clamr_mpiopenmponly ${ITTNOTIFY_LIBS})
+   endif (ITTNOTIFY_FOUND)
+
 endif (MPI_FOUND AND OPENMP_FOUND)
 
 ########### clamr_quo target ###############
@@ -644,7 +690,7 @@ if (MPI_FOUND)
    add_executable(clamr_mpicheck ${clamr_mpicheck_SRCS})
 
    set_target_properties(clamr_mpicheck PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-   target_link_libraries(clamr_mpicheck pmesh hsfc kdtree zorder crux hash pgraphics timer memstats l7 genmalloc pMallocPlus m)
+   target_link_libraries(clamr_mpicheck pPowerParser pmesh hsfc kdtree zorder crux hash pgraphics timer memstats l7 genmalloc pMallocPlus m)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_mpicheck ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)

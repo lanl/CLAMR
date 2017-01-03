@@ -111,6 +111,8 @@ set(PowerParser_LIB_SRCS ${CXX_SRCS} ${H_SRCS} ${F90_SRCS})
 add_library(PowerParser STATIC ${PowerParser_LIB_SRCS})
 
 set_target_properties(PowerParser PROPERTIES VERSION ${POWERPARSER_VERSION} SOVERSION ${POWERPARSER_VERSION_MAJOR})
+set_target_properties(PowerParser PROPERTIES Fortran_MODULE_DIRECTORY ./CMakeFiles/PowerParser.dir)
+
 install(TARGETS PowerParser DESTINATION lib)
 
 ########### pPowerParser target ###############
@@ -121,6 +123,7 @@ if (MPI_FOUND)
 
    set_target_properties(pPowerParser PROPERTIES VERSION ${POWERPARSER_VERSION} SOVERSION ${POWERPARSER_VERSION_MAJOR})
    set_target_properties(pPowerParser PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+   set_target_properties(pPowerParser PROPERTIES Fortran_MODULE_DIRECTORY ./CMakeFiles/pPowerParser.dir)
    target_link_libraries(pPowerParser ${MPI_LIBRARIES})
 
    install(TARGETS pPowerParser DESTINATION lib)
