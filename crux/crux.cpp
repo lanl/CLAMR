@@ -293,7 +293,7 @@ void Crux::store_MallocPlus(MallocPlus memory){
 #endif
       }
 #endif
-      store_field_header(memory_item->mem_name,20);
+      store_field_header(memory_item->mem_name,30);
       if (memory_item->mem_elsize == 4){
          store_int_array((int *)mem_ptr, num_elements);
       } else {
@@ -504,7 +504,7 @@ void Crux::restore_MallocPlus(MallocPlus memory){
            memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
       }
 
-      restore_field_header(test_name,20);
+      restore_field_header(test_name,30);
       if (strcmp(test_name,memory_item->mem_name) != 0) {
          printf("ERROR in restore checkpoint for %s %s\n",test_name,memory_item->mem_name);
       }
