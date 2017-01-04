@@ -1268,7 +1268,7 @@ void PowerParser::end_do_ret(int &i, deque<int> &do_start,
                        stringstream &serr, int &ierr)
 {
     // To suppress compiler warnings of unused parameters
-    assert(serr == serr);
+    //assert(serr == serr);
     assert(ierr == ierr);
 
     int istart = i;

@@ -860,7 +860,7 @@ double Word::get_double(stringstream &serr, int &ierr)
 char Word::get_single_char(stringstream &serr, int &ierr)
 {
     // To suppress compiler warnings of unused parameters
-    assert(serr == serr);
+    //assert(serr == serr);
     assert(ierr == ierr);
 
     // Mark this word as having been processed.

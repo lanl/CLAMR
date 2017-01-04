@@ -221,7 +221,7 @@ bool Cmd::extract_next_word(int &istart, string &str, string &word,
                             stringstream &serr, int &ierr)
 {
     // To suppress compiler warnings of unused parameters
-    assert(serr == serr);
+    //assert(serr == serr);
     assert(ierr == ierr);
 
     // If istart is out of bounds then there is nothing to do.
@@ -2846,7 +2846,7 @@ void Cmd::handle_subroutines(bool &skip, bool &go_to_sub, string &sub_name,
 {
     // To suppress compiler warnings of unused parameters
     assert(skip == skip);
-    assert(serr == serr);
+    //assert(serr == serr);
     assert(ierr == ierr);
 
     // 
