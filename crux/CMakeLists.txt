@@ -86,6 +86,17 @@ if (HDF5_FOUND)
 endif (HDF5_FOUND)
 install(TARGETS crux DESTINATION lib)
 
+########### pcrux target ###############
+
+add_library(pcrux STATIC ${crux_LIB_SRCS})
+
+set_target_properties(pcrux PROPERTIES VERSION ${CRUX_VERSION} SOVERSION ${CRUX_VERSION_MAJOR} COMPILE_DEFINITIONS "HAVE_MPI")
+set_target_properties(pcrux PROPERTIES VERSION ${CRUX_VERSION} SOVERSION ${CRUX_VERSION_MAJOR})
+if (HDF5_FOUND)
+   target_link_libraries(pcrux ${HDF5_LIBS})
+endif (HDF5_FOUND)
+install(TARGETS pcrux DESTINATION lib)
+
 ########### dcrux target ###############
 
 #if (OPENCL_FOUND)

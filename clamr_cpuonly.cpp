@@ -176,7 +176,7 @@ static double  deltaT = 0.0;
 char total_sim_time_log[] = {"total_execution_time.log"};
 struct timeval total_exec;
 
-int mype=0;
+static int mype=0;
 int main(int argc, char **argv) {
 
    // Needed for code to compile correctly on the Mac

@@ -100,9 +100,16 @@ int checkpoint_timing_count = 0;
 float checkpoint_timing_sum = 0.0f;
 float checkpoint_timing_size = 0.0f;
 int rollback_attempt = 0;
+static int mype = 0;
+static int npes = 1;
 
 Crux::Crux(int crux_type_in, int num_of_rollback_states_in, bool restart)
 {
+#ifdef HAVE_MPI
+   MPI_Comm_rank(MPI_COMM_WORLD,&mype);
+   MPI_Comm_size(MPI_COMM_WORLD,&npes);
+#endif
+
    num_of_rollback_states = num_of_rollback_states_in;
    crux_type = crux_type_in;
    checkpoint_counter = 0;
@@ -154,14 +161,6 @@ Crux::~Crux()
 
 void Crux::store_MallocPlus(MallocPlus memory){
    malloc_plus_memory_entry *memory_item;
-
-   int mype = 0;
-   int npes = 1;
-
-#ifdef HAVE_MPI
-   MPI_Comm_rank(MPI_COMM_WORLD,&mype);
-   MPI_Comm_size(MPI_COMM_WORLD,&npes);
-#endif
 
    for (memory_item = memory.memory_entry_by_name_begin(); 
       memory_item != memory.memory_entry_by_name_end();
@@ -474,7 +473,7 @@ void Crux::store_end(void)
 int restore_type = RESTORE_NONE;
 
 void Crux::restore_MallocPlus(MallocPlus memory){
-   char test_name[24];
+   char test_name[34];
    malloc_plus_memory_entry *memory_item;
    for (memory_item = memory.memory_entry_by_name_begin(); 
       memory_item != memory.memory_entry_by_name_end();
@@ -524,9 +523,11 @@ void Crux::restore_begin(char *restart_file, int rollback_counter)
    cpu_timer_start(&trestore_time);
 
    if (restart_file != NULL){
-      printf("\n  ================================================================\n");
-      printf(  "  Restoring state from disk file %s\n",restart_file);
-      printf(  "  ================================================================\n\n");
+      if (mype == 0) {
+         printf("\n  ================================================================\n");
+         printf(  "  Restoring state from disk file %s\n",restart_file);
+         printf(  "  ================================================================\n\n");
+      }
       restore_fp = fopen(restart_file,"r");
       if(!restore_fp){
          //printf("Could not write %s at iteration %d\n",restart_file,crux_int_vals[8]);
