@@ -484,7 +484,7 @@ void Crux::restore_MallocPlus(MallocPlus memory){
       if ((memory_item->mem_flags & RESTART_DATA) == 0) continue;
 
       int num_elements = 1;
-      for (uint i = 1; i < memory_item->mem_ndims; i++){
+      for (uint i = 0; i < memory_item->mem_ndims; i++){
 	 num_elements *= memory_item->mem_nelem[i];
       }
 
