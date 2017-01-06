@@ -405,7 +405,7 @@ void Crux::store_field_header(const char *name, int name_size){
 #ifdef HAVE_MPI
    assert(name != NULL);
    MPI_Status status;
-   MPI_File_write_shared(mpi_store_fp, name, name_size, MPI_CHAR, &status);
+   MPI_File_write_shared(mpi_store_fp, (void *)name, name_size, MPI_CHAR, &status);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_CHAR, &count);
