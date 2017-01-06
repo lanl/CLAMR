@@ -84,7 +84,7 @@
 #ifndef DEBUG
 #define DEBUG 0
 #endif
-#define DEBUG_RESTORE_VALS 1
+#undef DEBUG_RESTORE_VALS
 
 typedef int scanInt;
 void scan ( scanInt *input , scanInt *output , scanInt length);
@@ -10204,9 +10204,9 @@ void Mesh::store_checkpoint(Crux *crux)
 
    // These are for values that will be different on every processor
    int int_dist_vals[num_int_dist_vals];
-   int_dist_vals[ 0] = ncells;
+   int_dist_vals[ 0] = (int)ncells;
    int_dist_vals[ 1] = noffset;
-   int_dist_vals[ 2] = ncells_ghost;
+   int_dist_vals[ 2] = (int)ncells_ghost;
    int_dist_vals[ 3] = offtile_local_count;
 
    double double_vals[num_double_vals];
@@ -10231,6 +10231,7 @@ void Mesh::store_checkpoint(Crux *crux)
    crux->store_MallocPlus(mesh_memory);
 
    // Remove memory entries from database now that data is stored
+   mesh_memory.memory_remove(int_dist_vals);
    mesh_memory.memory_remove(int_vals);
    mesh_memory.memory_remove(double_vals);
    mesh_memory.memory_remove(cpu_counters);
@@ -10252,8 +10253,10 @@ void Mesh::restore_checkpoint(Crux *crux)
    int int_vals[num_int_vals];
    double double_vals[num_double_vals];
 
-   allocate(ncells);
-
+   // Resize is a mesh method
+   resize(ncells);
+   memory_reset_ptrs();
+   
    int flags = RESTART_DATA;
    // Now add memory entries to database for restoring checkpoint
    mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", flags);
@@ -10272,6 +10275,7 @@ void Mesh::restore_checkpoint(Crux *crux)
    crux->restore_MallocPlus(mesh_memory);
 
    // Remove memory entries from database now that data is restored
+   mesh_memory.memory_remove(int_dist_vals);
    mesh_memory.memory_remove(int_vals);
    mesh_memory.memory_remove(double_vals);
    mesh_memory.memory_remove(cpu_counters);
@@ -10287,10 +10291,10 @@ void Mesh::restore_checkpoint(Crux *crux)
    }
 
    // Copy out scalar values from array
-   ncells                    = int_vals[ 0];
-   noffset                   = int_vals[ 1];
-   ncells_ghost              = int_vals[ 2];
-   offtile_local_count       = int_vals[ 3];
+   ncells                    = int_dist_vals[ 0];
+   noffset                   = int_dist_vals[ 1];
+   ncells_ghost              = int_dist_vals[ 2];
+   offtile_local_count       = int_dist_vals[ 3];
 
    // Copy out scalar values from array
    ndim                      = int_vals[ 1];
