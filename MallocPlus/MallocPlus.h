@@ -67,6 +67,7 @@
 #define INDEX_ARRAY_MEMORY    0x00004
 #define LOAD_BALANCE_MEMORY   0x00008
 #define RESTART_DATA          0x00010
+#define REPLICATED_DATA       0x00020
 
 #if defined(HAVE_MPI)
 #include "mpi.h"

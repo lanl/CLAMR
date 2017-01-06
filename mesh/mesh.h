@@ -190,14 +190,14 @@ enum mesh_counters
    MESH_COUNTER_SIZE
 };
 
-#ifdef DEBUG_RESTORE_VALS
+//#ifdef DEBUG_RESTORE_VALS
 static const char *mesh_counter_descriptor[MESH_COUNTER_SIZE] = {
    "mesh_counter_rezone",
    "mesh_counter_refine_smooth",
    "mesh_counter_calc_neigh",
    "mesh_counter_load_balance"
 };
-#endif
+//#endif
 
 typedef enum mesh_timers   mesh_timer_category;
 typedef enum mesh_counters mesh_counter_category;
