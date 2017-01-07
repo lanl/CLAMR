@@ -3882,7 +3882,6 @@ void Mesh::calc_neighbors(int ncells)
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   nlft = NULL;
    if (do_rezone) {
 
       int flags = INDEX_ARRAY_MEMORY;
@@ -10254,6 +10253,18 @@ void Mesh::restore_checkpoint(Crux *crux)
    int int_vals[num_int_vals];
    double double_vals[num_double_vals];
 
+   mesh_memory.memory_delete(nlft);
+   mesh_memory.memory_delete(nrht);
+   mesh_memory.memory_delete(nbot);
+   mesh_memory.memory_delete(ntop);
+   mesh_memory.memory_delete(celltype);
+
+   nlft = NULL;
+   nrht = NULL;
+   ntop = NULL;
+   nbot = NULL;
+   celltype = NULL;
+
    // Resize is a mesh method
    resize(ncells);
    memory_reset_ptrs();
@@ -10383,12 +10394,6 @@ void Mesh::restore_checkpoint(Crux *crux)
       printf("\n");
    }
 #endif
-
-   nlft = NULL;
-   nrht = NULL;
-   ntop = NULL;
-   nbot = NULL;
-   celltype = NULL;
 
    calc_celltype(ncells);
 #endif
