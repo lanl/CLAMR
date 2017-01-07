@@ -230,7 +230,7 @@ int main(int argc, char **argv) {
       restore_crux_data(crux);
       mesh->proc.resize(mesh->ncells);
       mesh->calc_distribution(numpe);
-      next_cp_cycle = -1;
+      next_cp_cycle = 1000000000;
    } else {
       mesh = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
       if (DEBUG) {
