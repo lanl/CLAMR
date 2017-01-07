@@ -3882,6 +3882,7 @@ void Mesh::calc_neighbors(int ncells)
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   nlft = NULL;
    if (do_rezone) {
 
       int flags = INDEX_ARRAY_MEMORY;
@@ -10382,6 +10383,12 @@ void Mesh::restore_checkpoint(Crux *crux)
       printf("\n");
    }
 #endif
+
+   nlft = NULL;
+   nrht = NULL;
+   ntop = NULL;
+   nbot = NULL;
+   celltype = NULL;
 
    calc_celltype(ncells);
 #endif
