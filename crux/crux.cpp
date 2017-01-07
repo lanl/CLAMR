@@ -847,3 +847,8 @@ int Crux::get_rollback_number()
   rollback_attempt++;
   return(checkpoint_counter % num_of_rollback_states);
 }
+
+void Crux::set_crux_type(int crux_type_in)
+{
+  crux_type = crux_type_in;
+}

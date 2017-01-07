@@ -98,6 +98,7 @@ public:
    void       restore_end(void);
 
    int get_rollback_number();
+   void set_crux_type(int crux_type_in);
 
 };
 #endif // CRUX_H_

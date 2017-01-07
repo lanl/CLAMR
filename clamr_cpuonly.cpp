@@ -230,7 +230,6 @@ int main(int argc, char **argv) {
       restore_crux_data(crux);
       mesh->proc.resize(mesh->ncells);
       mesh->calc_distribution(numpe);
-      next_cp_cycle += checkpoint_outputInterval;
    } else {
       mesh = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
       if (DEBUG) {
@@ -666,7 +665,7 @@ extern "C" void do_calc(void)
 } // end do_calc
 
 const int CRUX_CLAMR_VERSION = 101;
-const int num_int_vals       = 14;
+const int num_int_vals       = 15;
 const int num_double_vals    =  5;
 
 MallocPlus clamr_bootstrap_memory;
@@ -676,6 +675,8 @@ void store_crux_data(Crux *crux, int ncycle)
    size_t nsize = num_int_vals*sizeof(int) +
                   num_double_vals*sizeof(double);
    nsize += state->get_checkpoint_size();
+
+   next_cp_cycle += checkpoint_outputInterval;
 
    int int_vals[num_int_vals];
 
@@ -690,9 +691,10 @@ void store_crux_data(Crux *crux, int ncycle)
    int_vals[ 8] = it;
    int_vals[ 9] = ncycle;
    int_vals[10] = graphic_outputInterval;
-   int_vals[11] = checkpoint_outputInterval;
-   int_vals[12] = next_cp_cycle;
-   int_vals[13] = next_graphics_cycle;
+   int_vals[11] = crux_type;
+   int_vals[12] = checkpoint_outputInterval;
+   int_vals[13] = next_cp_cycle;
+   int_vals[14] = next_graphics_cycle;
 
    double double_vals[num_double_vals];
    double_vals[ 0] = circ_radius;
@@ -714,8 +716,6 @@ void store_crux_data(Crux *crux, int ncycle)
 
    clamr_bootstrap_memory.memory_remove(int_vals);
    clamr_bootstrap_memory.memory_remove(double_vals);
-
-   next_cp_cycle += checkpoint_outputInterval;
 }
 
 void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_counter)
@@ -747,15 +747,20 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
    it                        = int_vals[ 8];
    ncycle                    = int_vals[ 9];
    graphic_outputInterval    = int_vals[10];
-   checkpoint_outputInterval = int_vals[11];
-   next_cp_cycle             = int_vals[12];
-   next_graphics_cycle       = int_vals[13];
+   crux_type                 = int_vals[11];
+   checkpoint_outputInterval = int_vals[12];
+   next_cp_cycle             = int_vals[13];
+   next_graphics_cycle       = int_vals[14];
 
    circ_radius                = double_vals[ 0];
    H_sum_initial              = double_vals[ 1];
    simTime                    = double_vals[ 2];
    deltaT                     = double_vals[ 3];
    upper_mass_diff_percentage = double_vals[ 4];
+
+   // need to reset crux type, because initialize to none
+   // before checkpoint is read
+   crux->set_crux_type(crux_type);
 
    clamr_bootstrap_memory.memory_remove(int_vals);
    clamr_bootstrap_memory.memory_remove(double_vals);
