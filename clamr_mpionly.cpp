@@ -777,7 +777,7 @@ extern "C" void do_calc(void)
 } // end do_calc
 
 const int CRUX_CLAMR_VERSION = 101;
-const int num_int_vals       = 14;
+const int num_int_vals       = 15;
 const int num_double_vals    =  5;
 
 MallocPlus clamr_bootstrap_memory;
@@ -800,10 +800,11 @@ void store_crux_data(Crux *crux, int ncycle)
    int_vals[ 7] = niter;
    int_vals[ 8] = it;
    int_vals[ 9] = ncycle;
-   int_vals[10] = graphic_outputInterval;
-   int_vals[11] = checkpoint_outputInterval;
-   int_vals[12] = next_cp_cycle;
-   int_vals[13] = next_graphics_cycle;
+   int_vals[10] = crux_type;
+   int_vals[11] = graphic_outputInterval;
+   int_vals[12] = checkpoint_outputInterval;
+   int_vals[13] = next_cp_cycle;
+   int_vals[14] = next_graphics_cycle;
 
    double double_vals[num_double_vals];
 
@@ -860,10 +861,11 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
    niter                     = int_vals[ 7];
    it                        = int_vals[ 8];
    ncycle                    = int_vals[ 9];
-   graphic_outputInterval    = int_vals[10];
-   checkpoint_outputInterval = int_vals[11];
-   next_cp_cycle             = int_vals[12];
-   next_graphics_cycle       = int_vals[13];
+   crux_type                 = int_vals[10];
+   graphic_outputInterval    = int_vals[11];
+   checkpoint_outputInterval = int_vals[12];
+   next_cp_cycle             = int_vals[13];
+   next_graphics_cycle       = int_vals[14];
 
    circ_radius                = double_vals[ 0];
    H_sum_initial              = double_vals[ 1];
@@ -892,6 +894,7 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
          "niter",
          "it",
          "ncycle",
+         "crux_type",
          "graphic_outputInterval",
          "checkpoint_outputInterval",
          "next_cp_cycle",

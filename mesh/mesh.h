@@ -398,7 +398,6 @@ public:
    void set_bounds(int n);
    void get_bounds(int& lowerBound, int& upperBound);
 
-
 /****************************************************************//**
  * @name Memory routines
  *******************************************************************/
