@@ -10245,6 +10245,8 @@ void Mesh::store_checkpoint(Crux *crux)
 void Mesh::restore_checkpoint(Crux *crux)
 {
 #ifndef HAVE_MPI
+   int ncells_int;
+
    // Need ncells for memory allocation
    crux->restore_int_array(&ncells_int, 1);
    ncells = ncells_int;
