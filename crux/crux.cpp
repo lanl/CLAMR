@@ -532,6 +532,35 @@ void Crux::store_replicated_double_array(double *double_array, size_t nelem)
 #endif
 }
 
+#ifdef HAVE_MPI
+void Crux::store_distributed_int_array(int *int_array, size_t nelem, int flags)
+{
+   assert(int_array != NULL);
+   //MPI_Datatype datatype = get_crux_datatype(DISTRIBUTED_INT_DATA);
+   MPI_Status status;
+   //MPI_File_write_shared(mpi_store_fp, int_array, nelem, MPI_INT, &status);
+   printf("writing crux data type 8\n");
+   //MPI_File_write_shared(mpi_store_fp, int_array, 1, crux_datatype[8], &status);
+#ifdef DEBUG_RESTORE_VALS
+   int count;
+   MPI_Get_count(&status, MPI_INT, &count);
+   printf("Wrote %d integers at line %d in file %s\n",count,__LINE__,__FILE__);
+#endif
+}
+void Crux::store_distributed_double_array(double *double_array, size_t nelem, int flags)
+{
+   assert(double_array != NULL);
+   //MPI_Datatype datatype = get_crux_datatype(DISTRIBUTED_DOUBLE_DATA);
+   MPI_Status status;
+   //MPI_File_write_shared(mpi_store_fp, double_array, nelem, datatype, &status);
+#ifdef DEBUG_RESTORE_VALS
+   int count;
+   MPI_Get_count(&status, MPI_DOUBLE_PRECISION, &count);
+   printf("Wrote %d doubles at line %d in file %s\n",count,__LINE__,__FILE__);
+#endif
+}
+#endif
+
 void Crux::store_end(void)
 {
 #ifdef HAVE_MPI
@@ -602,6 +631,10 @@ void Crux::restore_MallocPlus(MallocPlus memory){
       restore_field_header(test_name,30);
       if (strcmp(test_name,memory_item->mem_name) != 0) {
          printf("ERROR in restore checkpoint for %s %s\n",test_name,memory_item->mem_name);
+#ifdef HAVE_MPI
+         MPI_Finalize();
+#endif
+         exit(-1);
       }
 
       if (memory_item->mem_flags & REPLICATED_DATA) { 
@@ -672,6 +705,7 @@ void Crux::restore_field_header(char *name, int name_size)
    assert(name != NULL);
    MPI_Status status;
    MPI_File_read_shared(mpi_restore_fp, name, name_size, MPI_CHAR, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_CHAR, &count);
@@ -791,6 +825,7 @@ int *Crux::restore_replicated_int_array(int *int_array, size_t nelem)
    assert(int_array != NULL);
    MPI_Status status;
    MPI_File_read_shared(mpi_restore_fp, int_array, (int)nelem, MPI_INT, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_INT, &count);
@@ -811,6 +846,7 @@ double *Crux::restore_replicated_double_array(double *double_array, size_t nelem
 #ifdef HAVE_MPI
    MPI_Status status;
    MPI_File_read_shared(mpi_restore_fp, double_array, (int)nelem, MPI_DOUBLE, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE, &count);
@@ -825,6 +861,39 @@ double *Crux::restore_replicated_double_array(double *double_array, size_t nelem
 #endif
    return(double_array);
 }
+
+#ifdef HAVE_MPI
+int *Crux::restore_distributed_int_array(int *int_array, size_t nelem, int flags)
+{
+   assert(int_array != NULL);
+   //MPI_Datatype datatype = get_crux_datatype(DISTRIBUTED_INT_DATA);
+   MPI_Status status;
+   //MPI_File_read_shared(mpi_restore_fp, int_array, (int)nelem, datatype, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
+#ifdef DEBUG_RESTORE_VALS
+   int count;
+   MPI_Get_count(&status, MPI_INT, &count);
+   printf("Read %d integers at line %d in file %s\n",count,__LINE__,__FILE__);
+#endif
+
+   return(int_array);
+}
+
+double *Crux::restore_distributed_double_array(double *double_array, size_t nelem, int flags)
+{
+   //MPI_Datatype datatype = get_crux_datatype(DISTRIBUTED_DOUBLE_DATA);
+   MPI_Status status;
+   //MPI_File_read_shared(mpi_restore_fp, double_array, (int)nelem, datatype, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
+#ifdef DEBUG_RESTORE_VALS
+   int count;
+   MPI_Get_count(&status, MPI_DOUBLE, &count);
+   printf("Read %d doubles at line %d in file %s\n",count,__LINE__,__FILE__);
+#endif
+  
+   return(double_array);
+}
+#endif
 
 void Crux::restore_end(void)
 {

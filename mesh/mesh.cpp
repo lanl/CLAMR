@@ -10164,7 +10164,7 @@ void Mesh::parallel_output(const char *string, int local_value, int output_level
 }
 
 const int CRUX_MESH_VERSION = 103;
-const int num_int_dist_vals = 4;
+const int num_int_dist_vals = 3;
 const int num_int_vals      = 3;
 const int num_double_vals   = 1;
 
@@ -10193,7 +10193,8 @@ void Mesh::store_checkpoint(Crux *crux)
 #ifndef HAVE_MPI
 
    // Need ncells for memory allocation
-   crux->store_sizets(&ncells, 1);
+   ncells_int = ncells;
+   crux->store_int_array(&ncells_int, 1);
 
    // Write scalars to arrays for storing in checkpoint
    int int_vals[num_int_vals];
@@ -10205,9 +10206,8 @@ void Mesh::store_checkpoint(Crux *crux)
    // These are for values that will be different on every processor
    int int_dist_vals[num_int_dist_vals];
    int_dist_vals[ 0] = (int)ncells;
-   int_dist_vals[ 1] = noffset;
-   int_dist_vals[ 2] = (int)ncells_ghost;
-   int_dist_vals[ 3] = offtile_local_count;
+   int_dist_vals[ 1] = (int)ncells_ghost;
+   int_dist_vals[ 2] = offtile_local_count;
 
    double double_vals[num_double_vals];
 
@@ -10246,7 +10246,8 @@ void Mesh::restore_checkpoint(Crux *crux)
 {
 #ifndef HAVE_MPI
    // Need ncells for memory allocation
-   crux->restore_sizets(&ncells, 1);
+   crux->restore_int_array(&ncells_int, 1);
+   ncells = ncells_int;
 
    // Create memory for reading data into
    int int_dist_vals[num_int_dist_vals];
@@ -10304,9 +10305,8 @@ void Mesh::restore_checkpoint(Crux *crux)
 
    // Copy out scalar values from array
    ncells                    = int_dist_vals[ 0];
-   noffset                   = int_dist_vals[ 1];
-   ncells_ghost              = int_dist_vals[ 2];
-   offtile_local_count       = int_dist_vals[ 3];
+   ncells_ghost              = int_dist_vals[ 1];
+   offtile_local_count       = int_dist_vals[ 2];
 
    // Copy out scalar values from array
    ndim                      = int_vals[ 1];
@@ -10316,7 +10316,6 @@ void Mesh::restore_checkpoint(Crux *crux)
    if (DEBUG_RESTORE_VALS && mype == 0) {
       const char *int_dist_vals_descriptor[num_int_dist_vals] = {
          "ncells",
-         "noffset",
          "ncells_ghost",
          "offtile_local_count"
       };
