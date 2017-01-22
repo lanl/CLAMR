@@ -3749,10 +3749,10 @@ size_t State::get_checkpoint_size(void)
 
 void State::store_checkpoint(Crux *crux)
 {
-#ifndef HAVE_MPI
    // Store mesh data first
    mesh->store_checkpoint(crux);
 
+#ifndef HAVE_MPI
    // Load up scalar values
    int int_vals[num_int_vals];
    int_vals[0] = CRUX_STATE_VERSION;
@@ -3773,10 +3773,10 @@ void State::store_checkpoint(Crux *crux)
 
 void State::restore_checkpoint(Crux *crux)
 {
-#ifndef HAVE_MPI
    // Restore mesh data first
    mesh->restore_checkpoint(crux);
 
+#ifndef HAVE_MPI
    // Create memory for restoring data into
    int int_vals[num_int_vals];
 

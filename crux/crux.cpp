@@ -406,10 +406,11 @@ void Crux::store_field_header(const char *name, int name_size){
    assert(name != NULL);
    MPI_Status status;
    MPI_File_write_shared(mpi_store_fp, (void *)name, name_size, MPI_CHAR, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_CHAR, &count);
-   printf("Wrote %d characters at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Wrote %d characters at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 
 #else
@@ -454,10 +455,11 @@ void Crux::store_int_array(int *int_array, size_t nelem)
    assert(int_array != NULL);
    MPI_Status status;
    MPI_File_write_shared(mpi_store_fp, int_array, (int)nelem, MPI_INT, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_INT, &count);
-   printf("Wrote %d integers at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Wrote %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 
 #else
@@ -484,10 +486,11 @@ void Crux::store_double_array(double *double_array, size_t nelem)
    assert(double_array != NULL);
    MPI_Status status;
    MPI_File_write_shared(mpi_store_fp, double_array, (int)nelem, MPI_DOUBLE, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE, &count);
-   printf("Wrote %d doubles at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Wrote %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 
 #else
@@ -502,10 +505,11 @@ void Crux::store_replicated_int_array(int *int_array, size_t nelem)
    assert(int_array != NULL);
    MPI_Status status;
    MPI_File_write_shared(mpi_store_fp, int_array, (int)nelem, MPI_INT, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_INT, &count);
-   printf("Wrote %d integers at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Wrote %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 
 #else
@@ -520,10 +524,11 @@ void Crux::store_replicated_double_array(double *double_array, size_t nelem)
    assert(double_array != NULL);
    MPI_Status status;
    MPI_File_write_shared(mpi_store_fp, double_array, (int)nelem, MPI_DOUBLE, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE, &count);
-   printf("Wrote %d doubles at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Wrote %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 
 #else
@@ -544,7 +549,7 @@ void Crux::store_distributed_int_array(int *int_array, size_t nelem, int flags)
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_INT, &count);
-   printf("Wrote %d integers at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Wrote %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 }
 void Crux::store_distributed_double_array(double *double_array, size_t nelem, int flags)
@@ -556,7 +561,7 @@ void Crux::store_distributed_double_array(double *double_array, size_t nelem, in
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE_PRECISION, &count);
-   printf("Wrote %d doubles at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Wrote %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 }
 #endif
@@ -709,7 +714,7 @@ void Crux::restore_field_header(char *name, int name_size)
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_CHAR, &count);
-   printf("Read %d characters at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Read %d characters at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 
 #else
@@ -766,10 +771,11 @@ int *Crux::restore_int_array(int *int_array, size_t nelem)
    assert(int_array != NULL);
    MPI_Status status;
    MPI_File_read_shared(mpi_restore_fp, int_array, (int)nelem, MPI_INT, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_INT, &count);
-   printf("Read %d integers at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Read %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 
 #else
@@ -804,10 +810,11 @@ double *Crux::restore_double_array(double *double_array, size_t nelem)
 #ifdef HAVE_MPI
    MPI_Status status;
    MPI_File_read_shared(mpi_restore_fp, double_array, (int)nelem, MPI_DOUBLE, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE, &count);
-   printf("Read %d doubles at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Read %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
   
 #else
@@ -829,7 +836,7 @@ int *Crux::restore_replicated_int_array(int *int_array, size_t nelem)
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_INT, &count);
-   printf("Read %d integers at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Read %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 
 #else
@@ -850,7 +857,7 @@ double *Crux::restore_replicated_double_array(double *double_array, size_t nelem
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE, &count);
-   printf("Read %d doubles at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Read %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
   
 #else
@@ -873,7 +880,7 @@ int *Crux::restore_distributed_int_array(int *int_array, size_t nelem, int flags
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_INT, &count);
-   printf("Read %d integers at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Read %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 
    return(int_array);
@@ -888,7 +895,7 @@ double *Crux::restore_distributed_double_array(double *double_array, size_t nele
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE, &count);
-   printf("Read %d doubles at line %d in file %s\n",count,__LINE__,__FILE__);
+   printf("%d:Read %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
   
    return(double_array);
