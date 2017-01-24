@@ -84,7 +84,7 @@
 #ifndef DEBUG
 #define DEBUG 0
 #endif
-#undef DEBUG_RESTORE_VALS
+#define DEBUG_RESTORE_VALS 1
 
 typedef int scanInt;
 void scan ( scanInt *input , scanInt *output , scanInt length);
@@ -10183,18 +10183,9 @@ size_t Mesh::get_checkpoint_size(void)
 
 void Mesh::store_checkpoint(Crux *crux)
 {
-   int ncells_int,noffset;
-   noffset = 0;
-#ifdef HAVE_MPI
-   MPI_Scan(&ncells_int, &noffset, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-#endif
-   //printf("noffset is %d\n",noffset);
-
-#ifndef HAVE_MPI
-
    // Need ncells for memory allocation
-   ncells_int = ncells;
-   crux->store_int_array(&ncells_int, 1);
+   int ncells_int = ncells;
+   crux->store_named_ints("ncells", 6, &ncells_int, 1);
 
    // Write scalars to arrays for storing in checkpoint
    int int_vals[num_int_vals];
@@ -10238,17 +10229,14 @@ void Mesh::store_checkpoint(Crux *crux)
    mesh_memory.memory_remove(gpu_counters);
    mesh_memory.memory_remove(cpu_timers);
    mesh_memory.memory_remove(gpu_timers);
-#endif
-
 }
 
 void Mesh::restore_checkpoint(Crux *crux)
 {
-#ifndef HAVE_MPI
    int ncells_int;
 
    // Need ncells for memory allocation
-   crux->restore_int_array(&ncells_int, 1);
+   crux->restore_named_ints("ncells", 6, &ncells_int, 1);
    ncells = ncells_int;
 
    // Create memory for reading data into
@@ -10395,9 +10383,7 @@ void Mesh::restore_checkpoint(Crux *crux)
       printf("\n");
    }
 #endif
-
    calc_celltype(ncells);
-#endif
 }
 
 

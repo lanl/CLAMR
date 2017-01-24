@@ -86,7 +86,8 @@ using namespace PP;
 #ifndef DEBUG
 #define DEBUG 0
 #endif
-#undef DEBUG_RESTORE_VALS
+//#undef DEBUG_RESTORE_VALS
+#define DEBUG_RESTORE_VALS 1
 
 #define MIN3(x,y,z) ( min( min(x,y), z) )
 
@@ -256,7 +257,6 @@ int main(int argc, char **argv) {
       state = new State(mesh);
       state->init(do_gpu_calc);
    }
-
    size_t &ncells = mesh->ncells;
    size_t &ncells_global = mesh->ncells_global;
    int &noffset = mesh->noffset;
@@ -787,6 +787,8 @@ void store_crux_data(Crux *crux, int ncycle)
    size_t nsize = num_int_vals*sizeof(int) +
                   num_double_vals*sizeof(double);
    nsize += state->get_checkpoint_size();
+   
+   next_cp_cycle += checkpoint_outputInterval;
 
    int int_vals[num_int_vals];
 
@@ -828,14 +830,12 @@ void store_crux_data(Crux *crux, int ncycle)
 
    clamr_bootstrap_memory.memory_remove(int_vals);
    clamr_bootstrap_memory.memory_remove(double_vals);
-
-   next_cp_cycle += checkpoint_outputInterval;
 }
 
 void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_counter)
 {
    crux->restore_begin(restart_file, rollback_counter);
-
+    
    int int_vals[num_int_vals];
 
    double double_vals[num_double_vals];
@@ -933,12 +933,15 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
 void restore_crux_data(Crux *crux)
 {
    state->restore_checkpoint(crux);
-
-#ifndef HAVE_MPI
+#ifdef HAVE_HDF5
    crux->restore_end();
 #else
+#ifndef HAVE_MPI
+    crux->restore_end();
+#else   
    MPI_Finalize();
    exit(0);
+#endif
 #endif
 }
 

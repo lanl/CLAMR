@@ -79,6 +79,7 @@ public:
    void store_double_array(double *double_array, size_t nelem);
    void store_replicated_int_array(int *int_array, size_t nelem);
    void store_replicated_double_array(double *double_array, size_t nelem);
+   void store_named_ints(const char *name, int name_size, int *int_vals, size_t nelem);
 #ifdef HAVE_MPI
    void store_distributed_int_array(int *int_array, size_t nelem, int flags);
    void store_distributed_double_array(double *double_array, size_t nelem, int flags);
@@ -99,6 +100,7 @@ public:
    double    *restore_double_array(double *double_array, size_t nsize);
    int       *restore_replicated_int_array(int *int_array, size_t nsize);
    double    *restore_replicated_double_array(double *double_array, size_t nsize);
+   void      restore_named_ints(const char *name, int name_size, int *int_vals, size_t nelem);
 #ifdef HAVE_MPI
    int       *restore_distributed_int_array(int *int_array, size_t nsize, int flags);
    double    *restore_distributed_double_array(double *double_array, size_t nsize, int flags);
