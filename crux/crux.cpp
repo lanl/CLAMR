@@ -102,6 +102,7 @@ float checkpoint_timing_size = 0.0f;
 int rollback_attempt = 0;
 FILE *store_fp, *restore_fp;
 #ifdef HAVE_MPI
+MPI_Offset store_offset, restore_offset;
 static MPI_File mpi_store_fp, mpi_restore_fp;
 #endif
 static int mype = 0;
@@ -110,6 +111,10 @@ Crux::Crux(int crux_type_in, int num_of_rollback_states_in, bool restart)
 {
 #ifdef HAVE_MPI
    MPI_Comm_rank(MPI_COMM_WORLD,&mype);
+
+   for (int i=0; i<15; i++){
+     crux_datatype[i] = 0;
+   }
 #endif
 
    num_of_rollback_states = num_of_rollback_states_in;
@@ -176,7 +181,8 @@ void Crux::store_MallocPlus(MallocPlus memory){
 	 num_elements *= memory_item->mem_nelem[i];
       }
 
-      if (DEBUG) {
+      //if (DEBUG) {
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
         printf("MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
            mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
 
@@ -190,7 +196,8 @@ void Crux::store_MallocPlus(MallocPlus memory){
 
         printf(") elsize %lu flags %d capacity %lu\n",
            memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
-      }
+#endif
+      //}
 
 #ifdef HAVE_HDF5
       if(USE_HDF5) {
@@ -294,6 +301,12 @@ void Crux::store_MallocPlus(MallocPlus memory){
 #endif
       }
 #endif
+#ifdef HAVE_MPI
+      MPI_Offset save_offset;
+            if (num_elements > 9000){
+               save_offset = store_offset;
+            }
+#endif
       store_field_header(memory_item->mem_name,30);
       if (memory_item->mem_flags & REPLICATED_DATA) { 
          if (memory_item->mem_elsize == 4){
@@ -302,11 +315,41 @@ void Crux::store_MallocPlus(MallocPlus memory){
             store_replicated_double_array((double *)mem_ptr, num_elements);
          }
       } else {
+#ifdef HAVE_MPI
+         int num_elements_global;
+         MPI_Allreduce(&num_elements, &num_elements_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         if (memory_item->mem_elsize == 4){
+#ifdef DEBUG_RESTORE_VALS
+            if (num_elements > 9000){
+               printf("GOT HERE\n");
+               char test_name[30];
+               MPI_Status status;
+               save_offset = 208;
+               MPI_File_read_at(mpi_store_fp, save_offset, (void *)test_name, 30, MPI_CHAR, &status);
+               printf("DEBUG -- name %s\n",test_name);
+            }
+            store_distributed_int_array((int *)mem_ptr, num_elements, num_elements_global,
+               DISTRIBUTED_INT_LOCAL_DATA, DISTRIBUTED_INT_GLOBAL_DATA);
+            if (num_elements > 9000){
+               printf("GOT HERE\n");
+               char test_name[30];
+               MPI_Status status;
+               save_offset = 208;
+               MPI_File_read_at(mpi_store_fp, save_offset, (void *)test_name, 30, MPI_CHAR, &status);
+               printf("DEBUG -- name %s\n",test_name);
+            }
+#endif
+         } else {
+            //store_distributed_double_array((double *)mem_ptr, num_elements, num_elements_global,
+            //   DISTRIBUTED_DOUBLE_LOCAL_DATA, DISTRIBUTED_DOUBLE_GLOBAL_DATA);
+         }
+#else
          if (memory_item->mem_elsize == 4){
             store_int_array((int *)mem_ptr, num_elements);
          } else {
             store_double_array((double *)mem_ptr, num_elements);
          }
+#endif
       }
    }
 
@@ -373,10 +416,11 @@ void Crux::store_begin(size_t nsize, int ncycle)
 #endif
       sprintf(backup_file,"%s/backup%05d.crx",checkpoint_directory,ncycle);
 #ifdef HAVE_MPI
-      int iret = MPI_File_open(MPI_COMM_WORLD, backup_file, MPI_MODE_CREATE|MPI_MODE_WRONLY, MPI_INFO_NULL, &mpi_store_fp);
+      int iret = MPI_File_open(MPI_COMM_WORLD, backup_file, MPI_MODE_CREATE|MPI_MODE_RDWR, MPI_INFO_NULL, &mpi_store_fp);
       if(iret != MPI_SUCCESS) {
          printf("Could not write %s at iteration %d\n",backup_file,ncycle);
       }
+      store_offset = 0;
 #else
       store_fp = fopen(backup_file,"w");
       if(!store_fp){
@@ -402,20 +446,45 @@ void Crux::store_begin(size_t nsize, int ncycle)
 }
 
 void Crux::store_field_header(const char *name, int name_size){
-#ifdef HAVE_MPI
    assert(name != NULL);
+   char out_name[name_size];
+   for (int i = 0; i< name_size; i++){
+     out_name[i] = ' ';
+   }
+   snprintf(out_name,name_size,"%-s",name);
+
+#ifdef HAVE_MPI
    MPI_Status status;
-   MPI_File_write_shared(mpi_store_fp, (void *)name, name_size, MPI_CHAR, &status);
+   MPI_Offset etype_offset;
+   MPI_Offset test_offset;
+   if (mype == 0) {
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
+      printf("\n%d:STORING HEADER %s etype_offset %ld TEST_offset %ld store_offset %ld\n",mype,out_name,etype_offset,test_offset,store_offset);
+#endif
+      MPI_File_write_at(mpi_store_fp, store_offset, (void *)out_name, name_size, MPI_CHAR, &status);
+      MPI_File_get_position(mpi_store_fp, &etype_offset);
+      MPI_File_get_byte_offset(mpi_store_fp, etype_offset, &test_offset);
+
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
+      char test_name[30];
+      MPI_File_read_at(mpi_store_fp, store_offset, (void *)test_name, name_size, MPI_CHAR, &status);
+      printf("DEBUG -- name %s\n",test_name);
+#endif
+   }
    MPI_Barrier(MPI_COMM_WORLD);
+   store_offset += name_size*sizeof(char);
 #ifdef DEBUG_RESTORE_VALS
-   int count;
-   MPI_Get_count(&status, MPI_CHAR, &count);
-   printf("%d:Wrote %d characters at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   if (mype == 0){
+      int count;
+      MPI_Get_count(&status, MPI_CHAR, &count);
+      printf("%d:Wrote %d characters at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+      printf("%d:etype_offset %ld TEST_offset %ld store_offset %ld\n",mype,etype_offset,test_offset,store_offset);
+   }
 #endif
 
 #else
-   assert(name != NULL && store_fp != NULL);
-   fwrite(name,sizeof(char),name_size,store_fp);
+   assert(store_fp != NULL);
+   fwrite(out_name,sizeof(char),name_size,store_fp);
 #endif
 }
 
@@ -455,6 +524,7 @@ void Crux::store_int_array(int *int_array, size_t nelem)
    assert(int_array != NULL);
    MPI_Status status;
    MPI_File_write_shared(mpi_store_fp, int_array, (int)nelem, MPI_INT, &status);
+   store_offset += nelem*sizeof(int);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
@@ -486,6 +556,7 @@ void Crux::store_double_array(double *double_array, size_t nelem)
    assert(double_array != NULL);
    MPI_Status status;
    MPI_File_write_shared(mpi_store_fp, double_array, (int)nelem, MPI_DOUBLE, &status);
+   store_offset += nelem*sizeof(double);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
@@ -504,12 +575,22 @@ void Crux::store_replicated_int_array(int *int_array, size_t nelem)
 #ifdef HAVE_MPI
    assert(int_array != NULL);
    MPI_Status status;
-   MPI_File_write_shared(mpi_store_fp, int_array, (int)nelem, MPI_INT, &status);
+   MPI_Offset etype_offset;
+   MPI_Offset test_offset;
+   if (mype == 0) {
+      MPI_File_write_at(mpi_store_fp, store_offset, int_array, (int)nelem, MPI_INT, &status);
+      MPI_File_get_position(mpi_store_fp, &etype_offset);
+      MPI_File_get_byte_offset(mpi_store_fp, etype_offset, &test_offset);
+   }
+   store_offset += nelem*sizeof(int);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
-   int count;
-   MPI_Get_count(&status, MPI_INT, &count);
-   printf("%d:Wrote %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   if (mype == 0) {
+      int count;
+      MPI_Get_count(&status, MPI_INT, &count);
+      printf("%d:Wrote %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+      printf("%d:etype_offset %ld TEST_offset %ld store_offset %ld\n",mype,etype_offset,test_offset,store_offset);
+   }
 #endif
 
 #else
@@ -523,12 +604,22 @@ void Crux::store_replicated_double_array(double *double_array, size_t nelem)
 #ifdef HAVE_MPI
    assert(double_array != NULL);
    MPI_Status status;
-   MPI_File_write_shared(mpi_store_fp, double_array, (int)nelem, MPI_DOUBLE, &status);
+   MPI_Offset etype_offset;
+   MPI_Offset test_offset;
+   if (mype == 0) {
+      MPI_File_write_at(mpi_store_fp, store_offset, double_array, (int)nelem, MPI_DOUBLE, &status);
+      MPI_File_get_position(mpi_store_fp, &etype_offset);
+      MPI_File_get_byte_offset(mpi_store_fp, etype_offset, &test_offset);
+   }
+   store_offset += nelem*sizeof(double);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
-   int count;
-   MPI_Get_count(&status, MPI_DOUBLE, &count);
-   printf("%d:Wrote %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   if (mype == 0) {
+      int count;
+      MPI_Get_count(&status, MPI_DOUBLE, &count);
+      printf("%d:Wrote %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+      printf("%d:etype_offset %ld TEST_offset %ld store_offset %ld\n",mype,etype_offset,test_offset,store_offset);
+   }
 #endif
 
 #else
@@ -537,34 +628,73 @@ void Crux::store_replicated_double_array(double *double_array, size_t nelem)
 #endif
 }
 
-#ifdef HAVE_MPI
-void Crux::store_distributed_int_array(int *int_array, size_t nelem, int flags)
+void Crux::store_distributed_int_array(int *int_array, size_t nelem, size_t nelem_global,
+      int local_flags, int global_flags)
 {
+#ifdef HAVE_MPI
    assert(int_array != NULL);
-   //MPI_Datatype datatype = get_crux_datatype(DISTRIBUTED_INT_DATA);
+   MPI_Datatype *local_datatype;
+   if (local_flags != 0){
+     local_datatype = get_crux_datatype(local_flags);
+   }
+   MPI_Datatype *global_datatype = get_crux_datatype(global_flags);
    MPI_Status status;
-   //MPI_File_write_shared(mpi_store_fp, int_array, nelem, MPI_INT, &status);
-   printf("writing crux data type 8\n");
-   //MPI_File_write_shared(mpi_store_fp, int_array, 1, crux_datatype[8], &status);
+   //printf("writing crux data ncells %d at %ld datatype size %ld\n",
+   //  int_array[0],store_offset,sizeof(global_datatype));
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
+   printf("\n%d:DISTRIBUTED INT ARRAY  store_offset %ld\n\n",mype,store_offset);
+#endif
+   MPI_File_set_view(mpi_store_fp, store_offset, MPI_INT, *global_datatype, "native", MPI_INFO_NULL);
+   if (local_flags != 0){
+     MPI_File_write_all(mpi_store_fp, int_array, 1, *local_datatype, &status); 
+   } else {
+     MPI_File_write_all(mpi_store_fp, int_array, nelem, MPI_INT, &status); 
+   }
+   MPI_File_set_view(mpi_store_fp, store_offset, MPI_BYTE, MPI_BYTE, "native", MPI_INFO_NULL);
+   store_offset += nelem_global*sizeof(int);
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
+   printf("\n%d:After store_offset -- DISTRIBUTED INT ARRAY  store_offset %ld sizeof %ld\n\n",
+       mype,store_offset,nelem_global*sizeof(int));
+#endif
+   MPI_Barrier(MPI_COMM_WORLD);
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
+   printf("%d:store_offset %ld\n",mype,store_offset);
+#endif
 #ifdef DEBUG_RESTORE_VALS
    int count;
-   MPI_Get_count(&status, MPI_INT, &count);
+   if (local_flags != 0){
+      MPI_Get_count(&status, *local_datatype, &count);
+   } else {
+      MPI_Get_count(&status, MPI_INT, &count);
+   }
    printf("%d:Wrote %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
+
+#else
+   assert(int_array != NULL && store_fp != NULL);
+   fwrite(int_array,sizeof(int),nelem,store_fp);
+#endif
 }
-void Crux::store_distributed_double_array(double *double_array, size_t nelem, int flags)
+void Crux::store_distributed_double_array(double *double_array, size_t nelem, size_t nelem_global,
+       int local_flags, int global_flags)
 {
+#ifdef HAVE_MPI
    assert(double_array != NULL);
-   //MPI_Datatype datatype = get_crux_datatype(DISTRIBUTED_DOUBLE_DATA);
+   MPI_Datatype *local_datatype = get_crux_datatype(DISTRIBUTED_DOUBLE_LOCAL_DATA);
+   MPI_Datatype *global_datatype = get_crux_datatype(DISTRIBUTED_DOUBLE_GLOBAL_DATA);
    MPI_Status status;
-   //MPI_File_write_shared(mpi_store_fp, double_array, nelem, datatype, &status);
+   //MPI_File_write_shared(mpi_store_fp, double_array, nelem, local_datatype, &status);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE_PRECISION, &count);
    printf("%d:Wrote %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
-}
+
+#else
+   assert(double_array != NULL && store_fp != NULL);
+   fwrite(double_array,sizeof(double),nelem,store_fp);
 #endif
+}
 
 void Crux::store_end(void)
 {
@@ -617,7 +747,8 @@ void Crux::restore_MallocPlus(MallocPlus memory){
 	 num_elements *= memory_item->mem_nelem[i];
       }
 
-      if (DEBUG) {
+      //if (DEBUG) {
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
         printf("MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
            mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
 
@@ -631,9 +762,13 @@ void Crux::restore_MallocPlus(MallocPlus memory){
 
         printf(") elsize %lu flags %d capacity %lu\n",
            memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
-      }
+#endif
+      //}
 
       restore_field_header(test_name,30);
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
+      printf("%d: field name %s %s\n",mype,test_name,memory_item->mem_name);
+#endif
       if (strcmp(test_name,memory_item->mem_name) != 0) {
          printf("ERROR in restore checkpoint for %s %s\n",test_name,memory_item->mem_name);
 #ifdef HAVE_MPI
@@ -649,11 +784,25 @@ void Crux::restore_MallocPlus(MallocPlus memory){
             restore_replicated_double_array((double *)mem_ptr, num_elements);
          }
       } else {
+#ifdef HAVE_MPI
+         int num_elements_global;
+         MPI_Allreduce(&num_elements, &num_elements_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         if (memory_item->mem_elsize == 4){
+#ifdef DEBUG_RESTORE_VALS
+            restore_distributed_int_array((int *)mem_ptr, num_elements, num_elements_global,
+               DISTRIBUTED_INT_LOCAL_DATA, DISTRIBUTED_INT_GLOBAL_DATA);
+#endif
+         } else {
+            //restore_distributed_double_array((double *)mem_ptr, num_elements, num_elements_global,
+            //   DISTRIBUTED_DOUBLE_LOCAL_DATA, DISTRIBUTED_DOUBLE_GLOBAL_DATA);
+         }
+#else
          if (memory_item->mem_elsize == 4){
             restore_int_array((int *)mem_ptr, num_elements);
          } else {
             restore_double_array((double *)mem_ptr, num_elements);
          }
+#endif
       }
    }
 
@@ -677,7 +826,7 @@ void Crux::restore_begin(char *restart_file, int rollback_counter)
          //printf("Could not write %s at iteration %d\n",restart_file,crux_int_vals[8]);
          printf("Could not open restart file %s\n",restart_file);
       }
-
+      restore_offset = 0;
 #else
       restore_fp = fopen(restart_file,"r");
       if(!restore_fp){
@@ -708,13 +857,32 @@ void Crux::restore_field_header(char *name, int name_size)
 {
 #ifdef HAVE_MPI
    assert(name != NULL);
+   for (int i = 0; i < name_size; i++){
+     name[i] = ' ';
+   }
    MPI_Status status;
-   MPI_File_read_shared(mpi_restore_fp, name, name_size, MPI_CHAR, &status);
-   MPI_Barrier(MPI_COMM_WORLD);
+   MPI_Offset etype_offset;
+   MPI_Offset test_offset;
+   if (mype == 0) {
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
+      printf("\n%d:RESTORING HEADER etype_offset %ld TEST_offset %ld restore_offset %ld\n",mype,etype_offset,test_offset,restore_offset);
+#endif
+      MPI_File_read_at(mpi_restore_fp, restore_offset, name, name_size, MPI_CHAR, &status);
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
+      printf("%d: DEBUG -- name %s\n",mype,name);
+#endif
+      MPI_File_get_position(mpi_restore_fp, &etype_offset);
+      MPI_File_get_byte_offset(mpi_restore_fp, etype_offset, &test_offset);
+   }
+   MPI_Bcast(name, 30, MPI_CHAR, 0, MPI_COMM_WORLD);
+   restore_offset += name_size*sizeof(char);
 #ifdef DEBUG_RESTORE_VALS
-   int count;
-   MPI_Get_count(&status, MPI_CHAR, &count);
-   printf("%d:Read %d characters at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   if (mype == 0) {
+      int count;
+      MPI_Get_count(&status, MPI_CHAR, &count);
+      printf("%d:Read %d characters at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+      printf("%d:etype_offset %ld TEST_offset %ld restore_offset %ld\n",mype,etype_offset,test_offset,restore_offset);
+   }
 #endif
 
 #else
@@ -771,6 +939,7 @@ int *Crux::restore_int_array(int *int_array, size_t nelem)
    assert(int_array != NULL);
    MPI_Status status;
    MPI_File_read_shared(mpi_restore_fp, int_array, (int)nelem, MPI_INT, &status);
+   restore_offset += nelem*sizeof(int);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
@@ -810,6 +979,7 @@ double *Crux::restore_double_array(double *double_array, size_t nelem)
 #ifdef HAVE_MPI
    MPI_Status status;
    MPI_File_read_shared(mpi_restore_fp, double_array, (int)nelem, MPI_DOUBLE, &status);
+   restore_offset += nelem*sizeof(double);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
@@ -831,12 +1001,23 @@ int *Crux::restore_replicated_int_array(int *int_array, size_t nelem)
 #ifdef HAVE_MPI
    assert(int_array != NULL);
    MPI_Status status;
-   MPI_File_read_shared(mpi_restore_fp, int_array, (int)nelem, MPI_INT, &status);
+   MPI_Offset etype_offset;
+   MPI_Offset test_offset;
+   if (mype == 0) {
+      MPI_File_read_at(mpi_restore_fp, restore_offset, int_array, (int)nelem, MPI_INT, &status);
+      MPI_File_get_position(mpi_restore_fp, &etype_offset);
+      MPI_File_get_byte_offset(mpi_restore_fp, etype_offset, &test_offset);
+   }
+   MPI_Bcast(int_array, nelem, MPI_INT, 0, MPI_COMM_WORLD);
+   restore_offset += nelem*sizeof(int);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
-   int count;
-   MPI_Get_count(&status, MPI_INT, &count);
-   printf("%d:Read %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   if (mype == 0) {
+      int count;
+      MPI_Get_count(&status, MPI_INT, &count);
+      printf("%d:Read %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+      printf("%d:etype_offset %ld TEST_offset %ld restore_offset %ld\n",mype,etype_offset,test_offset,restore_offset);
+   }
 #endif
 
 #else
@@ -852,12 +1033,23 @@ double *Crux::restore_replicated_double_array(double *double_array, size_t nelem
 {
 #ifdef HAVE_MPI
    MPI_Status status;
-   MPI_File_read_shared(mpi_restore_fp, double_array, (int)nelem, MPI_DOUBLE, &status);
+   MPI_Offset etype_offset;
+   MPI_Offset test_offset;
+   if (mype == 0) {
+      MPI_File_read_at(mpi_restore_fp, restore_offset, double_array, (int)nelem, MPI_DOUBLE, &status);
+      MPI_File_get_position(mpi_restore_fp, &etype_offset);
+      MPI_File_get_byte_offset(mpi_restore_fp, etype_offset, &test_offset);
+   }
+   MPI_Bcast(double_array, nelem, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+   restore_offset += nelem*sizeof(double);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
-   int count;
-   MPI_Get_count(&status, MPI_DOUBLE, &count);
-   printf("%d:Read %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   if (mype == 0) {
+      int count;
+      MPI_Get_count(&status, MPI_DOUBLE, &count);
+      printf("%d:Read %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+      printf("%d:etype_offset %ld TEST_offset %ld restore_offset %ld\n",mype,etype_offset,test_offset,restore_offset);
+   }
 #endif
   
 #else
@@ -869,38 +1061,83 @@ double *Crux::restore_replicated_double_array(double *double_array, size_t nelem
    return(double_array);
 }
 
-#ifdef HAVE_MPI
-int *Crux::restore_distributed_int_array(int *int_array, size_t nelem, int flags)
+int *Crux::restore_distributed_int_array(int *int_array, size_t nelem, size_t nelem_global,
+    int local_flags, int global_flags)
 {
+#ifdef HAVE_MPI
    assert(int_array != NULL);
-   //MPI_Datatype datatype = get_crux_datatype(DISTRIBUTED_INT_DATA);
+   MPI_Datatype *local_datatype;
+   if (local_flags != 0) {
+     local_datatype = get_crux_datatype(local_flags);
+   }
+   MPI_Datatype *global_datatype = get_crux_datatype(global_flags);
    MPI_Status status;
-   //MPI_File_read_shared(mpi_restore_fp, int_array, (int)nelem, datatype, &status);
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
+   //printf("reading crux data ncells %d at %ld datatype size %ld\n",int_array[0],restore_offset,sizeof(*local_datatype));
+   printf("\n%d:DISTRIBUTED INT ARRAY  restore_offset %ld\n\n",mype,restore_offset);
+#endif
+   MPI_File_set_view(mpi_restore_fp, restore_offset, MPI_INT, *global_datatype, "native", MPI_INFO_NULL);
+   int ierr;
+   if (local_flags != 0) {
+     ierr = MPI_File_read_all(mpi_restore_fp, int_array, 1, *local_datatype, &status); 
+   } else {
+     ierr = MPI_File_read_all(mpi_restore_fp, int_array, 1, *local_datatype, &status); 
+   }
+   MPI_File_set_view(mpi_restore_fp, restore_offset, MPI_BYTE, MPI_BYTE, "native", MPI_INFO_NULL);
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
+   printf("DEBUG -- ierr %d\n",ierr);
+#endif
+   restore_offset += nelem_global*sizeof(int);
+#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
+   printf("\n%d:after restore_offset DISTRIBUTED INT ARRAY  restore_offset %ld sizeof %ld\n\n",
+         mype,restore_offset,nelem_global*sizeof(int));
+#endif
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
-   MPI_Get_count(&status, MPI_INT, &count);
-   printf("%d:Read %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   if (local_flags != 0) {
+     MPI_Get_count(&status, *local_datatype, &count);
+   } else {
+     MPI_Get_count(&status, MPI_INT, &count);
+   }
+   printf("%d:Read %d datatype at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+#endif
+
+#else
+   size_t nelem_read = fread(int_array,sizeof(int),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %lu is not equal to request %lu\n",nelem_read,nelem);
+   }
 #endif
 
    return(int_array);
 }
 
-double *Crux::restore_distributed_double_array(double *double_array, size_t nelem, int flags)
+double *Crux::restore_distributed_double_array(double *double_array, size_t nelem, size_t nelem_global,
+        int local_flags, int global_flags)
 {
-   //MPI_Datatype datatype = get_crux_datatype(DISTRIBUTED_DOUBLE_DATA);
+#ifdef HAVE_MPI
+   MPI_Datatype *local_datatype = get_crux_datatype(DISTRIBUTED_DOUBLE_LOCAL_DATA);
+   MPI_Datatype *global_datatype = get_crux_datatype(DISTRIBUTED_DOUBLE_GLOBAL_DATA);
    MPI_Status status;
-   //MPI_File_read_shared(mpi_restore_fp, double_array, (int)nelem, datatype, &status);
+   MPI_File_read_shared(mpi_restore_fp, double_array, (int)nelem, *local_datatype, &status);
+   restore_offset += sizeof(*global_datatype);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE, &count);
    printf("%d:Read %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
+
+#else
+   size_t nelem_read = fread(double_array,sizeof(double),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %lu is not equal to request %lu\n",nelem_read,nelem);
+   }
+#endif
   
    return(double_array);
 }
-#endif
 
 void Crux::restore_end(void)
 {
@@ -928,3 +1165,143 @@ void Crux::set_crux_type(int crux_type_in)
 {
   crux_type = crux_type_in;
 }
+#ifdef HAVE_MPI
+void Crux::set_crux_datatype(MPI_Datatype *datatype, int flags)
+{
+   int index = 0;
+
+   if        (flags & 0x00001){
+      index = 0;
+   } else if (flags & 0x00002){
+      index = 1;
+   } else if (flags & 0x00004){
+      index = 2;
+   } else if (flags & 0x00008){
+      index = 3;
+   } else if (flags & 0x00010){
+      index = 4;
+   } else if (flags & 0x00020){
+      index = 5;
+   } else if (flags & 0x00040){
+      index = 6;
+   } else if (flags & 0x00080){
+      index = 7;
+   } else if (flags & 0x00100){
+      index = 8;
+   } else if (flags & 0x00200){
+      index = 9;
+   } else if (flags & 0x00400){
+      index = 10;
+   } else if (flags & 0x00800){
+      index = 11;
+   } else if (flags & 0x01000){
+      index = 12;
+   } else if (flags & 0x02000){
+      index = 13;
+   } else if (flags & 0x04000){
+      index = 14;
+   } else if (flags & 0x08000){
+      index = 15;
+   }
+
+   //printf("%d: setting crux data type %d\n",__LINE__,index);
+   if (index != 0) {
+     //printf("%d: setting crux data type %d\n",__LINE__,index);
+     MPI_Type_commit(datatype);
+     crux_datatype[index] = datatype;
+   }
+}
+MPI_Datatype *Crux::get_crux_datatype(int flags)
+{
+   int index = 0;
+
+   if        (flags & 0x00001){
+      index = 0;
+   } else if (flags & 0x00002){
+      index = 1;
+   } else if (flags & 0x00004){
+      index = 2;
+   } else if (flags & 0x00008){
+      index = 3;
+   } else if (flags & 0x00010){
+      index = 4;
+   } else if (flags & 0x00020){
+      index = 5;
+   } else if (flags & 0x00040){
+      index = 6;
+   } else if (flags & 0x00080){
+      index = 7;
+   } else if (flags & 0x00100){
+      index = 8;
+   } else if (flags & 0x00200){
+      index = 9;
+   } else if (flags & 0x00400){
+      index = 10;
+   } else if (flags & 0x00800){
+      index = 11;
+   } else if (flags & 0x01000){
+      index = 12;
+   } else if (flags & 0x02000){
+      index = 13;
+   } else if (flags & 0x04000){
+      index = 14;
+   } else if (flags & 0x08000){
+      index = 15;
+   }
+
+   if (index != 0) {
+     return(crux_datatype[index]);
+   }
+   return(0);
+}
+void Crux::free_crux_datatype(int flags)
+{
+   int index = 0;
+
+   if        (flags & 0x00001){
+      index = 0;
+   } else if (flags & 0x00002){
+      index = 1;
+   } else if (flags & 0x00004){
+      index = 2;
+   } else if (flags & 0x00008){
+      index = 3;
+   } else if (flags & 0x00010){
+      index = 4;
+   } else if (flags & 0x00020){
+      index = 5;
+   } else if (flags & 0x00040){
+      index = 6;
+   } else if (flags & 0x00080){
+      index = 7;
+   } else if (flags & 0x00100){
+      index = 8;
+   } else if (flags & 0x00200){
+      index = 9;
+   } else if (flags & 0x00400){
+      index = 10;
+   } else if (flags & 0x00800){
+      index = 11;
+   } else if (flags & 0x01000){
+      index = 12;
+   } else if (flags & 0x02000){
+      index = 13;
+   } else if (flags & 0x04000){
+      index = 14;
+   } else if (flags & 0x08000){
+      index = 15;
+   }
+
+   if (index != 0) {
+     MPI_Type_free(crux_datatype[index]);
+   }
+}
+void Crux::free_all_crux_datatype()
+{
+   for (int index = 0; index < 16; index++){
+     if (crux_datatype[index] != 0) {
+       MPI_Type_free(crux_datatype[index]);
+     }
+   }
+}
+#endif
