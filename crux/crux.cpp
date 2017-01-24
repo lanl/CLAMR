@@ -198,7 +198,6 @@ void Crux::store_MallocPlus(MallocPlus memory){
 
 #ifdef HAVE_HDF5
         if(USE_HDF5) {
-            /*
             access_named_hdf5_values (memory_item->mem_name, 
                               strlen (memory_item->mem_name),
                               (hsize_t) memory_item->mem_ndims, 
@@ -207,7 +206,6 @@ void Crux::store_MallocPlus(MallocPlus memory){
                               memory_item->mem_elsize == 4 ? 
                               H5T_NATIVE_INT : H5T_NATIVE_DOUBLE,
                               memory_item->mem_flags & REPLICATED_DATA, true);
-                              */
         } else {
 #endif
             int num_elements = 1;
@@ -348,26 +346,33 @@ void access_named_hdf5_values (const char *name, int name_size,
                               void *values, hid_t datatype,
                               bool shared, bool store)
 {
-    size_t ndims[5], ncounts[5], noffsets[5] = {0, 0, 0, 0, 0};
+    size_t length = 0, count = 1, offset = 0;
     char groupname[512], fieldname[512];
     hid_t hid_group, hid_space, hid_mem, hid_dataset, hid_plist = H5P_DEFAULT;
     map_name_to_hdf5(name, name_size, groupname, 512, fieldname, 512);
-
+    for (int i=0; i<rank; i++)
+        count *= sizes[i];
 #ifdef HAVE_MPI
     hid_plist = H5Pcreate(H5P_DATASET_XFER);
     H5Pset_dxpl_mpio(hid_plist, H5FD_MPIO_COLLECTIVE);
+    if (npes > 1) {
+        size_t *counts = new size_t[npes];
+        MPI_Allgather (&count, sizeof(count), MPI_BYTE,
+                       counts, sizeof *counts, MPI_BYTE,
+                       MPI_COMM_WORLD);
+        for (int i=0; i<npes; i++) {
+            if (i == mype)
+                offset = length;
+            length += counts[i];
+        }
+        delete[] counts;
+    } else {
 #endif
-    ndims[0] = /** shared ? 1 : **/ npes;
-    noffsets[0] = /** shared ? 0 : **/ mype;
-    ncounts[0] = 1;
-    for (int i=0; i<rank; i++) {
-        ndims[i+1] = sizes[i];
-        ncounts[i+1] = sizes[i];
+        length = count;
+#ifdef HAVE_MPI    
     }
-    for (int i=0; i<(rank+1); i++) {
-        printf(" { %ld, %ld } ", ncounts[i], ndims[i]);
-    }
-    printf ("\n\n");
+#endif    
+    printf(" { %ld, %ld } \n\n", count, length);
     if (!store || H5Lexists(h5_fid, groupname, H5P_DEFAULT))
         hid_group = H5Gopen (h5_fid, groupname, H5P_DEFAULT);
     else
@@ -376,8 +381,8 @@ void access_named_hdf5_values (const char *name, int name_size,
         fprintf(stderr, "Unable to create group: %30s\n", groupname);
         exit(1);
     }
-    hid_mem = H5Screate_simple ((rank + 1), (hsize_t *) ncounts, NULL);
-    hid_space = H5Screate_simple ((rank + 1), (hsize_t*) ndims, NULL);
+    hid_mem = H5Screate_simple (1, (hsize_t *) &count, NULL);
+    hid_space = H5Screate_simple (1, (hsize_t *) &length, NULL);
     if(!hid_space) {
         fprintf(stderr, "Unable to create space\n");
         exit(1);
@@ -392,7 +397,8 @@ void access_named_hdf5_values (const char *name, int name_size,
     }
     herr_t status;
     status = H5Sselect_hyperslab (hid_space, H5S_SELECT_SET,
-                                 (hsize_t *) noffsets, NULL, (hsize_t *)ncounts, NULL);
+                                 (hsize_t *) &offset, NULL,
+                                 (hsize_t *) &count, NULL);
     if(status < 0) {
         fprintf(stderr, "Unable to select correct hyperslab\n");
         exit(1);
