@@ -372,7 +372,6 @@ void access_named_hdf5_values (const char *name, int name_size,
 #ifdef HAVE_MPI    
     }
 #endif    
-    printf(" { %ld, %ld } \n\n", count, length);
     if (!store || H5Lexists(h5_fid, groupname, H5P_DEFAULT))
         hid_group = H5Gopen (h5_fid, groupname, H5P_DEFAULT);
     else

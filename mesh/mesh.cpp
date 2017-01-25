@@ -1436,150 +1436,149 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
    }
 
    //KDTree_Initialize(&tree);
-
-   int istart = 1,
-       jstart = 1,
-       iend   = nx,
-       jend   = ny,
-       nxx    = nx,
-       nyy    = ny;
-   if (have_boundary) {
-      istart = 0;
-      jstart = 0;
-      iend   = nx + 1;
-      jend   = ny + 1;
-      nxx    = nx + 2;
-      nyy    = ny + 2;
-   }
-
-   if (ndim == TWO_DIMENSIONAL) ncells = nxx * nyy - have_boundary * 4;
-   else                         ncells = nxx * nyy;
-
-   noffset = 0;
-   if (parallel) {
-      ncells_global = ncells;
-      
-      nsizes.resize(numpe);
-      ndispl.resize(numpe);
-
-      for (int ip=0; ip<numpe; ip++){
-         nsizes[ip] = ncells_global/numpe;
-         if (ip < (int)(ncells_global%numpe)) nsizes[ip]++;
-      }
-
-      ndispl[0]=0;
-      for (int ip=1; ip<numpe; ip++){
-         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-      }
-      ncells= nsizes[mype];
-      noffset=ndispl[mype];
-   }
-
-   allocate(ncells);
-   index.resize(ncells);
-
-   int ic = 0;
-
-   for (int jj = jstart; jj <= jend; jj++) {
-      for (int ii = istart; ii <= iend; ii++) {
-         if (have_boundary && ii == 0    && jj == 0   ) continue;
-         if (have_boundary && ii == 0    && jj == jend) continue;
-         if (have_boundary && ii == iend && jj == 0   ) continue;
-         if (have_boundary && ii == iend && jj == jend) continue;
-
-         if (ic >= (int)noffset && ic < (int)(ncells+noffset)){
-            int iclocal = ic-noffset;
-            index[iclocal] = ic;
-            i[iclocal]     = ii;
-            j[iclocal]     = jj;
-            level[iclocal] = 0;
-         }
-         ic++;
-      }
-   }
-
+   if (ncells > 0) { // this is a restart.
+       if (parallel && numpe > 1) {
 #ifdef HAVE_MPI
-   if (parallel && numpe > 1) {
-      int ncells_int = ncells;
-      MPI_Allreduce(&ncells_int, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+          int ncells_int = ncells;
+          nsizes.resize (numpe);
+          ndispl.resize (numpe);
+          MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+          ndispl[0]=0;
+          for (int ip=1; ip<numpe; ip++){
+             ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+          }
+          noffset=ndispl[mype];
+          ncells_global = ndispl[numpe-1] + nsizes[numpe-1];
+#endif
+       } else {
+          noffset = 0;
+          ncells_global = ncells;
+          proc.resize (ncells);
+          calc_distribution(numpe);
+       }
+       calc_celltype(ncells);
 
-      MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-      ndispl[0]=0;
-      for (int ip=1; ip<numpe; ip++){
-         ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-      }
-      noffset=ndispl[mype];
+   } else {
+       int istart = 1,
+           jstart = 1,
+           iend   = nx,
+           jend   = ny,
+           nxx    = nx,
+           nyy    = ny;
+       if (have_boundary) {
+          istart = 0;
+          jstart = 0;
+          iend   = nx + 1;
+          jend   = ny + 1;
+          nxx    = nx + 2;
+          nyy    = ny + 2;
+       }
+
+       if (ndim == TWO_DIMENSIONAL) ncells = nxx * nyy - have_boundary * 4;
+       else                         ncells = nxx * nyy;
+
+       noffset = 0;
+       if (parallel) {
+          ncells_global = ncells;
+          nsizes.resize(numpe);
+          ndispl.resize(numpe);
+
+          for (int ip=0; ip<numpe; ip++){
+             nsizes[ip] = ncells_global/numpe;
+             if (ip < (int)(ncells_global%numpe)) nsizes[ip]++;
+          }
+
+          ndispl[0]=0;
+          for (int ip=1; ip<numpe; ip++){
+             ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+          }
+          ncells= nsizes[mype];
+          noffset=ndispl[mype];
+       }
+
+       allocate(ncells);
+       index.resize(ncells);
+
+       int ic = 0;
+
+       for (int jj = jstart; jj <= jend; jj++) {
+          for (int ii = istart; ii <= iend; ii++) {
+             if (have_boundary && ii == 0    && jj == 0   ) continue;
+             if (have_boundary && ii == 0    && jj == jend) continue;
+             if (have_boundary && ii == iend && jj == 0   ) continue;
+             if (have_boundary && ii == iend && jj == jend) continue;
+
+             if (ic >= (int)noffset && ic < (int)(ncells+noffset)){
+                int iclocal = ic-noffset;
+                index[iclocal] = ic;
+                i[iclocal]     = ii;
+                j[iclocal]     = jj;
+                level[iclocal] = 0;
+             }
+             ic++;
+          }
+       }
+
+       //if (numpe > 1 && (initial_order != HILBERT_SORT && initial_order != HILBERT_PARTITION) ) mem_factor = 2.0;
+       partition_cells(numpe, index, initial_order);
+
+       calc_celltype(ncells);
+       calc_spatial_coordinates(0);
+
+       //  Start lev loop here
+       for (int ilevel=1; ilevel<=levmx; ilevel++) {
+
+          //int old_ncells = ncells;
+
+          ncells_ghost = ncells;
+          calc_neighbors_local();
+
+          kdtree_setup();
+
+          int nez;
+          vector<int> ind(ncells);
+
+    #ifdef FULL_PRECISION
+          KDTree_QueryCircleIntersect_Double(&tree, &nez, &(ind[0]), circ_radius, ncells, &x[0], &dx[0], &y[0], &dy[0]);
+    #else
+          KDTree_QueryCircleIntersect_Float(&tree, &nez, &(ind[0]), circ_radius, ncells, &x[0], &dx[0], &y[0], &dy[0]);
+    #endif
+
+          vector<int> mpot(ncells_ghost,0);
+
+          for (int ic=0; ic<nez; ++ic){
+             if (level[ind[ic]] < levmx) mpot[ind[ic]] = 1;
+          }
+
+          KDTree_Destroy(&tree);
+          //  Refine the cells.
+          int icount = 0;
+          int jcount = 0;
+          int new_ncells = refine_smooth(mpot, icount, jcount);
+
+          MallocPlus dummy;
+          rezone_all(icount, jcount, mpot, 0, dummy);
+
+          ncells = new_ncells;
+
+          calc_spatial_coordinates(0);
+
+    #ifdef HAVE_MPI
+          if (parallel && numpe > 1) {
+             int ncells_int = ncells;
+             MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
+             ndispl[0]=0;
+             for (int ip=1; ip<numpe; ip++){
+                ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
+             }
+             noffset=ndispl[mype];
+             ncells_global = ndispl[numpe-1] + nsizes[numpe-1];
+          }
+    #endif
+       }  // End lev loop here
+       index.clear();
+       ncells_ghost = ncells;
    }
-#endif
-      
-   nlft = NULL;
-   nrht = NULL;
-   nbot = NULL;
-   ntop = NULL;
-   celltype = NULL;
-
-   //if (numpe > 1 && (initial_order != HILBERT_SORT && initial_order != HILBERT_PARTITION) ) mem_factor = 2.0;
-   partition_cells(numpe, index, initial_order);
-
-   calc_celltype(ncells);
-   calc_spatial_coordinates(0);
-
-   //  Start lev loop here
-   for (int ilevel=1; ilevel<=levmx; ilevel++) {
-
-      //int old_ncells = ncells;
-
-      ncells_ghost = ncells;
-      calc_neighbors_local();
-
-      kdtree_setup();
-
-      int nez;
-      vector<int> ind(ncells);
-
-#ifdef FULL_PRECISION
-      KDTree_QueryCircleIntersect_Double(&tree, &nez, &(ind[0]), circ_radius, ncells, &x[0], &dx[0], &y[0], &dy[0]);
-#else
-      KDTree_QueryCircleIntersect_Float(&tree, &nez, &(ind[0]), circ_radius, ncells, &x[0], &dx[0], &y[0], &dy[0]);
-#endif
-
-      vector<int> mpot(ncells_ghost,0);
-
-      for (int ic=0; ic<nez; ++ic){
-         if (level[ind[ic]] < levmx) mpot[ind[ic]] = 1;
-      }
-
-      KDTree_Destroy(&tree);
-      //  Refine the cells.
-      int icount = 0;
-      int jcount = 0;
-      int new_ncells = refine_smooth(mpot, icount, jcount);
-
-      MallocPlus dummy;
-      rezone_all(icount, jcount, mpot, 0, dummy);
-
-      ncells = new_ncells;
-   
-      calc_spatial_coordinates(0);
-
-#ifdef HAVE_MPI
-      if (parallel && numpe > 1) {
-         int ncells_int = ncells;
-         MPI_Allreduce(&ncells_int, &ncells_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   
-         MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-         ndispl[0]=0;
-         for (int ip=1; ip<numpe; ip++){
-            ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-         }
-         noffset=ndispl[mype];
-      }
-#endif
-
-   }  // End lev loop here
-
-   index.clear();
-
    int ncells_corners = 4;
    int i_corner[] = {   0,   0,imax,imax};
    int j_corner[] = {   0,jmax,   0,jmax};
@@ -1592,7 +1591,6 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
          }
       }
    }
-   ncells_ghost = ncells;
 }
 
 size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
@@ -1601,6 +1599,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    //int nlt, nrt, ntr, nbr;
 
    rezone_count(mpot, icount, jcount);
+
    int newcount = icount;
    int newcount_global = newcount;
 
@@ -10184,9 +10183,8 @@ size_t Mesh::get_checkpoint_size(void)
 void Mesh::store_checkpoint(Crux *crux)
 {
    // Need ncells for memory allocation
-   int ncells_int = ncells;
-   crux->store_named_ints("ncells", 6, &ncells_int, 1);
-
+   int storage = mesh_memory.get_memory_capacity(level);
+   crux->store_named_ints("storage", 7, &storage, 1);
    // Write scalars to arrays for storing in checkpoint
    int int_vals[num_int_vals];
 
@@ -10233,11 +10231,8 @@ void Mesh::store_checkpoint(Crux *crux)
 
 void Mesh::restore_checkpoint(Crux *crux)
 {
-   int ncells_int;
-
-   // Need ncells for memory allocation
-   crux->restore_named_ints("ncells", 6, &ncells_int, 1);
-   ncells = ncells_int;
+   int storage;
+   crux->restore_named_ints("storage", 7, &storage, 1);
 
    // Create memory for reading data into
    int int_dist_vals[num_int_dist_vals];
@@ -10257,8 +10252,9 @@ void Mesh::restore_checkpoint(Crux *crux)
    celltype = NULL;
 
    // Resize is a mesh method
-   resize(ncells);
-   memory_reset_ptrs();
+   // resize(storage);
+   // memory_reset_ptrs();
+   allocate (storage);
    
    int flags = RESTART_DATA;
    // Now add memory entries to database for restoring checkpoint
@@ -10383,7 +10379,7 @@ void Mesh::restore_checkpoint(Crux *crux)
       printf("\n");
    }
 #endif
-   calc_celltype(ncells);
+   //calc_celltype(ncells);
 }
 
 

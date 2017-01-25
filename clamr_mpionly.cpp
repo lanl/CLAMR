@@ -235,12 +235,12 @@ int main(int argc, char **argv) {
    if (restart){
       restore_crux_data_bootstrap(crux, restart_file, 0);
       mesh  = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
-      mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
-
+      //mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
       state = new State(mesh);
       restore_crux_data(crux);
-      mesh->proc.resize(mesh->ncells);
-      mesh->calc_distribution(numpe);
+      // mesh->proc.resize(mesh->ncells);
+      // mesh->calc_distribution(numpe);
+      mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
    } else {
       mesh = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
 
@@ -256,6 +256,8 @@ int main(int argc, char **argv) {
       mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
       state = new State(mesh);
       state->init(do_gpu_calc);
+      state->fill_circle(circ_radius, 100.0, 7.0);
+
    }
    size_t &ncells = mesh->ncells;
    size_t &ncells_global = mesh->ncells_global;
@@ -269,6 +271,9 @@ int main(int argc, char **argv) {
    vector<spatial_t> &y  = mesh->y;
    vector<spatial_t> &dy = mesh->dy;
 
+   /*
+    * Commenting because this is redundant. These calculations are performed in Mesh.cpp
+    *
    nsizes.resize(numpe);
    ndispl.resize(numpe);
 
@@ -289,7 +294,7 @@ int main(int argc, char **argv) {
    dx.clear();
    y.clear();
    dy.clear();
-
+   */ 
    if (graphic_outputInterval > niter) next_graphics_cycle = graphic_outputInterval;
    if (checkpoint_outputInterval > niter) next_cp_cycle = checkpoint_outputInterval;
 

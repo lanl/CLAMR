@@ -3773,15 +3773,16 @@ void State::store_checkpoint(Crux *crux)
 
 void State::restore_checkpoint(Crux *crux)
 {
+   int storage;
    // Restore mesh data first
    mesh->restore_checkpoint(crux);
+   crux->restore_named_ints("storage", 7, &storage, 1);
 
-//#ifndef HAVE_MPI
    // Create memory for restoring data into
    int int_vals[num_int_vals];
 
    // allocate is a state method
-   allocate(mesh->ncells);
+   allocate(storage);
 
    // Add to memory database for restoring checkpoint
    state_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "state_int_vals", RESTART_DATA | REPLICATED_DATA);
