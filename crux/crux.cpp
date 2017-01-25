@@ -461,22 +461,39 @@ void Crux::store_field_header(const char *name, int name_size){
 #if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
       printf("\n%d:STORING HEADER %s etype_offset %ld TEST_offset %ld store_offset %ld\n",mype,out_name,etype_offset,test_offset,store_offset);
 #endif
-      MPI_File_write_at(mpi_store_fp, store_offset, (void *)out_name, name_size, MPI_CHAR, &status);
-      MPI_File_get_position(mpi_store_fp, &etype_offset);
-      MPI_File_get_byte_offset(mpi_store_fp, etype_offset, &test_offset);
+      int iret;
+      iret = MPI_File_write_at(mpi_store_fp, store_offset, (void *)out_name, name_size, MPI_CHAR, &status);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_write_at -- line %d %s\n",__LINE__,__FILE__);
+      }
+      iret = MPI_File_get_position(mpi_store_fp, &etype_offset);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_get_position -- line %d %s\n",__LINE__,__FILE__);
+      }
+      iret = MPI_File_get_byte_offset(mpi_store_fp, etype_offset, &test_offset);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_get_byte_offset -- line %d %s\n",__LINE__,__FILE__);
+      }
 
 #if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
       char test_name[30];
-      MPI_File_read_at(mpi_store_fp, store_offset, (void *)test_name, name_size, MPI_CHAR, &status);
+      iret = MPI_File_read_at(mpi_store_fp, store_offset, (void *)test_name, name_size, MPI_CHAR, &status);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_read_at -- line %d %s\n",__LINE__,__FILE__);
+      }
       printf("DEBUG -- name %s\n",test_name);
 #endif
    }
    MPI_Barrier(MPI_COMM_WORLD);
    store_offset += name_size*sizeof(char);
 #ifdef DEBUG_RESTORE_VALS
+   int iret;
    if (mype == 0){
       int count;
-      MPI_Get_count(&status, MPI_CHAR, &count);
+      iret = MPI_Get_count(&status, MPI_CHAR, &count);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_Get_count -- line %d %s\n",__LINE__,__FILE__);
+      }
       printf("%d:Wrote %d characters at line %d in file %s\n",mype,count,__LINE__,__FILE__);
       printf("%d:etype_offset %ld TEST_offset %ld store_offset %ld\n",mype,etype_offset,test_offset,store_offset);
    }
@@ -523,12 +540,19 @@ void Crux::store_int_array(int *int_array, size_t nelem)
 #ifdef HAVE_MPI
    assert(int_array != NULL);
    MPI_Status status;
-   MPI_File_write_shared(mpi_store_fp, int_array, (int)nelem, MPI_INT, &status);
+   int iret;
+   iret = MPI_File_write_shared(mpi_store_fp, int_array, (int)nelem, MPI_INT, &status);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_write_shared -- line %d %s\n",__LINE__,__FILE__);
+   }
    store_offset += nelem*sizeof(int);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
-   MPI_Get_count(&status, MPI_INT, &count);
+   iret = MPI_Get_count(&status, MPI_INT, &count);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_Get_count -- line %d %s\n",__LINE__,__FILE__);
+   }
    printf("%d:Wrote %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 
@@ -555,7 +579,11 @@ void Crux::store_double_array(double *double_array, size_t nelem)
 #ifdef HAVE_MPI
    assert(double_array != NULL);
    MPI_Status status;
-   MPI_File_write_shared(mpi_store_fp, double_array, (int)nelem, MPI_DOUBLE, &status);
+   int iret;
+   iret = MPI_File_write_shared(mpi_store_fp, double_array, (int)nelem, MPI_DOUBLE, &status);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_write_shared -- line %d %s\n",__LINE__,__FILE__);
+   }
    store_offset += nelem*sizeof(double);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
@@ -577,17 +605,33 @@ void Crux::store_replicated_int_array(int *int_array, size_t nelem)
    MPI_Status status;
    MPI_Offset etype_offset;
    MPI_Offset test_offset;
+   int iret;
    if (mype == 0) {
-      MPI_File_write_at(mpi_store_fp, store_offset, int_array, (int)nelem, MPI_INT, &status);
-      MPI_File_get_position(mpi_store_fp, &etype_offset);
-      MPI_File_get_byte_offset(mpi_store_fp, etype_offset, &test_offset);
+      iret = MPI_File_write_at(mpi_store_fp, store_offset, int_array, (int)nelem, MPI_INT, &status);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_write_at -- line %d %s\n",__LINE__,__FILE__);
+      }
+      iret = MPI_File_get_position(mpi_store_fp, &etype_offset);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_get_position -- line %d %s\n",__LINE__,__FILE__);
+      }
+      iret = MPI_File_get_byte_offset(mpi_store_fp, etype_offset, &test_offset);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_get_byte_offset -- line %d %s\n",__LINE__,__FILE__);
+      }
    }
    store_offset += nelem*sizeof(int);
-   MPI_Barrier(MPI_COMM_WORLD);
+   iret = MPI_Barrier(MPI_COMM_WORLD);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_Barrier -- line %d %s\n",__LINE__,__FILE__);
+   }
 #ifdef DEBUG_RESTORE_VALS
    if (mype == 0) {
       int count;
-      MPI_Get_count(&status, MPI_INT, &count);
+      iret = MPI_Get_count(&status, MPI_INT, &count);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_write_at -- line %d %s\n",__LINE__,__FILE__);
+      }
       printf("%d:Wrote %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
       printf("%d:etype_offset %ld TEST_offset %ld store_offset %ld\n",mype,etype_offset,test_offset,store_offset);
    }
@@ -606,17 +650,33 @@ void Crux::store_replicated_double_array(double *double_array, size_t nelem)
    MPI_Status status;
    MPI_Offset etype_offset;
    MPI_Offset test_offset;
+   int iret;
    if (mype == 0) {
-      MPI_File_write_at(mpi_store_fp, store_offset, double_array, (int)nelem, MPI_DOUBLE, &status);
-      MPI_File_get_position(mpi_store_fp, &etype_offset);
-      MPI_File_get_byte_offset(mpi_store_fp, etype_offset, &test_offset);
+      iret = MPI_File_write_at(mpi_store_fp, store_offset, double_array, (int)nelem, MPI_DOUBLE, &status);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_write_at -- line %d %s\n",__LINE__,__FILE__);
+      }
+      iret = MPI_File_get_position(mpi_store_fp, &etype_offset);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_get_position -- line %d %s\n",__LINE__,__FILE__);
+      }
+      iret = MPI_File_get_byte_offset(mpi_store_fp, etype_offset, &test_offset);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_get_byte_offset -- line %d %s\n",__LINE__,__FILE__);
+      }
    }
    store_offset += nelem*sizeof(double);
-   MPI_Barrier(MPI_COMM_WORLD);
+   iret = MPI_Barrier(MPI_COMM_WORLD);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_Barrier -- line %d %s\n",__LINE__,__FILE__);
+   }
 #ifdef DEBUG_RESTORE_VALS
    if (mype == 0) {
       int count;
-      MPI_Get_count(&status, MPI_DOUBLE, &count);
+      iret = MPI_Get_count(&status, MPI_DOUBLE, &count);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_Get_count -- line %d %s\n",__LINE__,__FILE__);
+      }
       printf("%d:Wrote %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
       printf("%d:etype_offset %ld TEST_offset %ld store_offset %ld\n",mype,etype_offset,test_offset,store_offset);
    }
@@ -644,28 +704,44 @@ void Crux::store_distributed_int_array(int *int_array, size_t nelem, size_t nele
 #if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
    printf("\n%d:DISTRIBUTED INT ARRAY  store_offset %ld\n\n",mype,store_offset);
 #endif
-   MPI_File_set_view(mpi_store_fp, store_offset, MPI_INT, *global_datatype, "native", MPI_INFO_NULL);
-   if (local_flags != 0){
-     MPI_File_write_all(mpi_store_fp, int_array, 1, *local_datatype, &status); 
-   } else {
-     MPI_File_write_all(mpi_store_fp, int_array, nelem, MPI_INT, &status); 
+   int iret;
+   iret = MPI_File_set_view(mpi_store_fp, store_offset, MPI_INT, *global_datatype, "native", MPI_INFO_NULL);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_set_view -- line %d %s\n",__LINE__,__FILE__);
    }
-   MPI_File_set_view(mpi_store_fp, store_offset, MPI_BYTE, MPI_BYTE, "native", MPI_INFO_NULL);
+   if (local_flags != 0){
+     iret = MPI_File_write_all(mpi_store_fp, int_array, 1, *local_datatype, &status); 
+   } else {
+     iret = MPI_File_write_all(mpi_store_fp, int_array, nelem, MPI_INT, &status); 
+   }
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_write_all -- line %d %s\n",__LINE__,__FILE__);
+   }
+   iret = MPI_File_set_view(mpi_store_fp, store_offset, MPI_BYTE, MPI_BYTE, "native", MPI_INFO_NULL);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_set_view -- line %d %s\n",__LINE__,__FILE__);
+   }
    store_offset += nelem_global*sizeof(int);
 #if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
    printf("\n%d:After store_offset -- DISTRIBUTED INT ARRAY  store_offset %ld sizeof %ld\n\n",
        mype,store_offset,nelem_global*sizeof(int));
 #endif
-   MPI_Barrier(MPI_COMM_WORLD);
+   iret = MPI_Barrier(MPI_COMM_WORLD);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_Barrier -- line %d %s\n",__LINE__,__FILE__);
+   }
 #if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
    printf("%d:store_offset %ld\n",mype,store_offset);
 #endif
 #ifdef DEBUG_RESTORE_VALS
    int count;
    if (local_flags != 0){
-      MPI_Get_count(&status, *local_datatype, &count);
+      iret = MPI_Get_count(&status, *local_datatype, &count);
    } else {
-      MPI_Get_count(&status, MPI_INT, &count);
+      iret = MPI_Get_count(&status, MPI_INT, &count);
+   }
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_Get_count -- line %d %s\n",__LINE__,__FILE__);
    }
    printf("%d:Wrote %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
@@ -699,7 +775,11 @@ void Crux::store_distributed_double_array(double *double_array, size_t nelem, si
 void Crux::store_end(void)
 {
 #ifdef HAVE_MPI
-   MPI_File_close(&mpi_store_fp);
+   int iret;
+   iret = MPI_File_close(&mpi_store_fp);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_close -- line %d %s\n",__LINE__,__FILE__);
+   }
 #else
    assert(store_fp != NULL);
    fclose(store_fp);
@@ -863,23 +943,39 @@ void Crux::restore_field_header(char *name, int name_size)
    MPI_Status status;
    MPI_Offset etype_offset;
    MPI_Offset test_offset;
+   int iret;
    if (mype == 0) {
 #if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
       printf("\n%d:RESTORING HEADER etype_offset %ld TEST_offset %ld restore_offset %ld\n",mype,etype_offset,test_offset,restore_offset);
 #endif
-      MPI_File_read_at(mpi_restore_fp, restore_offset, name, name_size, MPI_CHAR, &status);
+      iret = MPI_File_read_at(mpi_restore_fp, restore_offset, name, name_size, MPI_CHAR, &status);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_read_at -- line %d %s\n",__LINE__,__FILE__);
+      }
 #if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
       printf("%d: DEBUG -- name %s\n",mype,name);
 #endif
-      MPI_File_get_position(mpi_restore_fp, &etype_offset);
-      MPI_File_get_byte_offset(mpi_restore_fp, etype_offset, &test_offset);
+      iret = MPI_File_get_position(mpi_restore_fp, &etype_offset);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_get_position -- line %d %s\n",__LINE__,__FILE__);
+      }
+      iret = MPI_File_get_byte_offset(mpi_restore_fp, etype_offset, &test_offset);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_get_byte_offset -- line %d %s\n",__LINE__,__FILE__);
+      }
    }
-   MPI_Bcast(name, 30, MPI_CHAR, 0, MPI_COMM_WORLD);
+   iret = MPI_Bcast(name, 30, MPI_CHAR, 0, MPI_COMM_WORLD);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_Bcast -- line %d %s\n",__LINE__,__FILE__);
+   }
    restore_offset += name_size*sizeof(char);
 #ifdef DEBUG_RESTORE_VALS
    if (mype == 0) {
       int count;
-      MPI_Get_count(&status, MPI_CHAR, &count);
+      iret = MPI_Get_count(&status, MPI_CHAR, &count);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_Get_count -- line %d %s\n",__LINE__,__FILE__);
+      }
       printf("%d:Read %d characters at line %d in file %s\n",mype,count,__LINE__,__FILE__);
       printf("%d:etype_offset %ld TEST_offset %ld restore_offset %ld\n",mype,etype_offset,test_offset,restore_offset);
    }
@@ -938,12 +1034,19 @@ int *Crux::restore_int_array(int *int_array, size_t nelem)
 #ifdef HAVE_MPI
    assert(int_array != NULL);
    MPI_Status status;
-   MPI_File_read_shared(mpi_restore_fp, int_array, (int)nelem, MPI_INT, &status);
+   int iret;
+   iret = MPI_File_read_shared(mpi_restore_fp, int_array, (int)nelem, MPI_INT, &status);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_read_shared -- line %d %s\n",__LINE__,__FILE__);
+   }
    restore_offset += nelem*sizeof(int);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
-   MPI_Get_count(&status, MPI_INT, &count);
+   iret = MPI_Get_count(&status, MPI_INT, &count);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_Get_count -- line %d %s\n",__LINE__,__FILE__);
+   }
    printf("%d:Read %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
 
@@ -978,12 +1081,22 @@ double *Crux::restore_double_array(double *double_array, size_t nelem)
 {
 #ifdef HAVE_MPI
    MPI_Status status;
-   MPI_File_read_shared(mpi_restore_fp, double_array, (int)nelem, MPI_DOUBLE, &status);
+   int iret;
+   iret = MPI_File_read_shared(mpi_restore_fp, double_array, (int)nelem, MPI_DOUBLE, &status);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_read_shared -- line %d %s\n",__LINE__,__FILE__);
+   }
    restore_offset += nelem*sizeof(double);
-   MPI_Barrier(MPI_COMM_WORLD);
+   iret = MPI_Barrier(MPI_COMM_WORLD);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_Barrier -- line %d %s\n",__LINE__,__FILE__);
+   }
 #ifdef DEBUG_RESTORE_VALS
    int count;
-   MPI_Get_count(&status, MPI_DOUBLE, &count);
+   iret = MPI_Get_count(&status, MPI_DOUBLE, &count);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_Get_count -- line %d %s\n",__LINE__,__FILE__);
+   }
    printf("%d:Read %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
   
@@ -1003,18 +1116,37 @@ int *Crux::restore_replicated_int_array(int *int_array, size_t nelem)
    MPI_Status status;
    MPI_Offset etype_offset;
    MPI_Offset test_offset;
+   int iret;
    if (mype == 0) {
       MPI_File_read_at(mpi_restore_fp, restore_offset, int_array, (int)nelem, MPI_INT, &status);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_read_at -- line %d %s\n",__LINE__,__FILE__);
+      }
       MPI_File_get_position(mpi_restore_fp, &etype_offset);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_get_position -- line %d %s\n",__LINE__,__FILE__);
+      }
       MPI_File_get_byte_offset(mpi_restore_fp, etype_offset, &test_offset);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_get_byte_offset -- line %d %s\n",__LINE__,__FILE__);
+      }
    }
-   MPI_Bcast(int_array, nelem, MPI_INT, 0, MPI_COMM_WORLD);
+   iret = MPI_Bcast(int_array, nelem, MPI_INT, 0, MPI_COMM_WORLD);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_Bcast -- line %d %s\n",__LINE__,__FILE__);
+   }
    restore_offset += nelem*sizeof(int);
-   MPI_Barrier(MPI_COMM_WORLD);
+   iret = MPI_Barrier(MPI_COMM_WORLD);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_Barrier -- line %d %s\n",__LINE__,__FILE__);
+   }
 #ifdef DEBUG_RESTORE_VALS
    if (mype == 0) {
       int count;
-      MPI_Get_count(&status, MPI_INT, &count);
+      iret = MPI_Get_count(&status, MPI_INT, &count);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_Get_count -- line %d %s\n",__LINE__,__FILE__);
+      }
       printf("%d:Read %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
       printf("%d:etype_offset %ld TEST_offset %ld restore_offset %ld\n",mype,etype_offset,test_offset,restore_offset);
    }
@@ -1035,10 +1167,20 @@ double *Crux::restore_replicated_double_array(double *double_array, size_t nelem
    MPI_Status status;
    MPI_Offset etype_offset;
    MPI_Offset test_offset;
+   int iret;
    if (mype == 0) {
-      MPI_File_read_at(mpi_restore_fp, restore_offset, double_array, (int)nelem, MPI_DOUBLE, &status);
-      MPI_File_get_position(mpi_restore_fp, &etype_offset);
-      MPI_File_get_byte_offset(mpi_restore_fp, etype_offset, &test_offset);
+      iret = MPI_File_read_at(mpi_restore_fp, restore_offset, double_array, (int)nelem, MPI_DOUBLE, &status);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_read_at -- line %d %s\n",__LINE__,__FILE__);
+      }
+      iret = MPI_File_get_position(mpi_restore_fp, &etype_offset);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_get_position -- line %d %s\n",__LINE__,__FILE__);
+      }
+      iret = MPI_File_get_byte_offset(mpi_restore_fp, etype_offset, &test_offset);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_File_get_byte_offset -- line %d %s\n",__LINE__,__FILE__);
+      }
    }
    MPI_Bcast(double_array, nelem, MPI_DOUBLE, 0, MPI_COMM_WORLD);
    restore_offset += nelem*sizeof(double);
@@ -1046,7 +1188,10 @@ double *Crux::restore_replicated_double_array(double *double_array, size_t nelem
 #ifdef DEBUG_RESTORE_VALS
    if (mype == 0) {
       int count;
-      MPI_Get_count(&status, MPI_DOUBLE, &count);
+      iret = MPI_Get_count(&status, MPI_DOUBLE, &count);
+      if (iret != MPI_SUCCESS) {
+         printf("ERROR MPI_Get_count -- line %d %s\n",__LINE__,__FILE__);
+      }
       printf("%d:Read %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
       printf("%d:etype_offset %ld TEST_offset %ld restore_offset %ld\n",mype,etype_offset,test_offset,restore_offset);
    }
@@ -1072,18 +1217,27 @@ int *Crux::restore_distributed_int_array(int *int_array, size_t nelem, size_t ne
    }
    MPI_Datatype *global_datatype = get_crux_datatype(global_flags);
    MPI_Status status;
+   int iret;
 #if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
    //printf("reading crux data ncells %d at %ld datatype size %ld\n",int_array[0],restore_offset,sizeof(*local_datatype));
    printf("\n%d:DISTRIBUTED INT ARRAY  restore_offset %ld\n\n",mype,restore_offset);
 #endif
-   MPI_File_set_view(mpi_restore_fp, restore_offset, MPI_INT, *global_datatype, "native", MPI_INFO_NULL);
-   int ierr;
-   if (local_flags != 0) {
-     ierr = MPI_File_read_all(mpi_restore_fp, int_array, 1, *local_datatype, &status); 
-   } else {
-     ierr = MPI_File_read_all(mpi_restore_fp, int_array, 1, *local_datatype, &status); 
+   iret = MPI_File_set_view(mpi_restore_fp, restore_offset, MPI_INT, *global_datatype, "native", MPI_INFO_NULL);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_set_view -- line %d %s\n",__LINE__,__FILE__);
    }
-   MPI_File_set_view(mpi_restore_fp, restore_offset, MPI_BYTE, MPI_BYTE, "native", MPI_INFO_NULL);
+   if (local_flags != 0) {
+     iret = MPI_File_read_all(mpi_restore_fp, int_array, 1, *local_datatype, &status); 
+   } else {
+     iret = MPI_File_read_all(mpi_restore_fp, int_array, 1, *local_datatype, &status); 
+   }
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_read_all -- line %d %s\n",__LINE__,__FILE__);
+   }
+   iret = MPI_File_set_view(mpi_restore_fp, restore_offset, MPI_BYTE, MPI_BYTE, "native", MPI_INFO_NULL);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_set_view -- line %d %s\n",__LINE__,__FILE__);
+   }
 #if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
    printf("DEBUG -- ierr %d\n",ierr);
 #endif
@@ -1096,9 +1250,12 @@ int *Crux::restore_distributed_int_array(int *int_array, size_t nelem, size_t ne
 #ifdef DEBUG_RESTORE_VALS
    int count;
    if (local_flags != 0) {
-     MPI_Get_count(&status, *local_datatype, &count);
+     iret = MPI_Get_count(&status, *local_datatype, &count);
    } else {
-     MPI_Get_count(&status, MPI_INT, &count);
+     iret = MPI_Get_count(&status, MPI_INT, &count);
+   }
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_Get_count -- line %d %s\n",__LINE__,__FILE__);
    }
    printf("%d:Read %d datatype at line %d in file %s\n",mype,count,__LINE__,__FILE__);
 #endif
@@ -1120,9 +1277,16 @@ double *Crux::restore_distributed_double_array(double *double_array, size_t nele
    MPI_Datatype *local_datatype = get_crux_datatype(DISTRIBUTED_DOUBLE_LOCAL_DATA);
    MPI_Datatype *global_datatype = get_crux_datatype(DISTRIBUTED_DOUBLE_GLOBAL_DATA);
    MPI_Status status;
-   MPI_File_read_shared(mpi_restore_fp, double_array, (int)nelem, *local_datatype, &status);
+   int iret;
+   iret = MPI_File_read_shared(mpi_restore_fp, double_array, (int)nelem, *local_datatype, &status);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_File_read_shared -- line %d %s\n",__LINE__,__FILE__);
+   }
    restore_offset += sizeof(*global_datatype);
-   MPI_Barrier(MPI_COMM_WORLD);
+   iret = MPI_Barrier(MPI_COMM_WORLD);
+   if (iret != MPI_SUCCESS) {
+      printf("ERROR MPI_Barrier -- line %d %s\n",__LINE__,__FILE__);
+   }
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE, &count);
