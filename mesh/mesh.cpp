@@ -10184,7 +10184,7 @@ size_t Mesh::get_checkpoint_size(void)
 void Mesh::store_checkpoint(Crux *crux)
 {
    // Write scalars to arrays for storing in checkpoint
-   int int_vals[num_int_vals];
+   int int_vals[num_int_vals] = {0};
 
    int_vals[ 0] = CRUX_MESH_VERSION;
    int_vals[ 1] = ncells_global;
@@ -10193,14 +10193,15 @@ void Mesh::store_checkpoint(Crux *crux)
 
    crux->store_replicated_int_array(int_vals, num_int_vals);
 
-   double double_vals[num_double_vals];
+   double double_vals[num_double_vals] = {0.0};
 
    double_vals[0] = offtile_ratio_local;
 
    crux->store_replicated_double_array(double_vals, num_double_vals);
 
    // These are for values that will be different on every processor
-   int int_dist_vals[num_int_dist_vals];
+   int int_dist_vals[num_int_dist_vals] = {0};
+
    int_dist_vals[ 0] = (int)ncells;
    int_dist_vals[ 1] = (int)ncells_ghost;
    int_dist_vals[ 2] = offtile_local_count;
@@ -10320,9 +10321,9 @@ void Mesh::restore_checkpoint(Crux *crux)
 #endif
 
    // Create memory for reading data into
-   int int_dist_vals[num_int_dist_vals];
-   int int_vals[num_int_vals];
-   double double_vals[num_double_vals];
+   int int_dist_vals[num_int_dist_vals] = {0};
+   int int_vals[num_int_vals] = {0};
+   double double_vals[num_double_vals] = {0.0};
 
    crux->restore_replicated_int_array(int_vals, num_int_vals);
 

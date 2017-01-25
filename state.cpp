@@ -3754,7 +3754,7 @@ void State::store_checkpoint(Crux *crux)
 
 #ifndef HAVE_MPI
    // Load up scalar values
-   int int_vals[num_int_vals];
+   int int_vals[num_int_vals] = {0};
    int_vals[0] = CRUX_STATE_VERSION;
 
    // Add to memory database for storing checkpoint
