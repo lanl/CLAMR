@@ -184,10 +184,10 @@ void Crux::store_MallocPlus(MallocPlus memory){
         if ((memory_item->mem_flags & RESTART_DATA) == 0) continue;
 
 
-      //if (DEBUG) {
-#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
-        printf("MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
-           mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
+        if (DEBUG) {
+//#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
+          printf("MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
+            mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
 
             char nelemstring[80];
             char *str_ptr = nelemstring;
@@ -197,13 +197,8 @@ void Crux::store_MallocPlus(MallocPlus memory){
             }
             printf("%12s",nelemstring);
 
-      printf(") elsize %lu flags %d capacity %lu\n",
-           memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
-#endif
-      //}
-
             printf(") elsize %lu flags %d capacity %lu\n",
-                    memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
+              memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
         }
 
 #ifdef HAVE_HDF5
@@ -250,12 +245,12 @@ void Crux::store_MallocPlus(MallocPlus memory){
                     store_double_array((double *)mem_ptr, num_elements);
                 }
 #endif
-            }
-        }
+            } checking memory flags
 #ifdef HAVE_HDF5   
-    }
+       } if HDF5
 #endif
-}
+    }  // for memory_item
+} // store Malloc_Plus
 
 void Crux::store_begin(size_t nsize, int ncycle)
 {
