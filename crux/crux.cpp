@@ -1266,7 +1266,7 @@ int *Crux::restore_distributed_int_array(int *int_array, size_t nelem, size_t ne
       printf("ERROR MPI_File_set_view -- line %d %s\n",__LINE__,__FILE__);
    }
 #if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
-   printf("DEBUG -- ierr %d\n",ierr);
+   printf("DEBUG -- iret %d\n",iret);
 #endif
    restore_offset += nelem_global*sizeof(int);
 #if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
