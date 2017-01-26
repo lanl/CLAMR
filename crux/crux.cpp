@@ -825,23 +825,21 @@ void Crux::restore_MallocPlus(MallocPlus memory){
         void *mem_ptr = memory_item->mem_ptr;
         if ((memory_item->mem_flags & RESTART_DATA) == 0) continue;
 
-      //if (DEBUG) {
-#if defined(HAVE_MPI) && defined(DEBUG_RESTORE_VALS)
-        printf("MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
-           mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
+        if (DEBUG) {
+           printf("MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
+              mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
 
-        char nelemstring[80];
-        char *str_ptr = nelemstring;
-        str_ptr += sprintf(str_ptr,"%lu", memory_item->mem_nelem[0]);
-        for (uint i = 1; i < memory_item->mem_ndims; i++){
-           str_ptr += sprintf(str_ptr,", %lu", memory_item->mem_nelem[i]);
+           char nelemstring[80];
+           char *str_ptr = nelemstring;
+           str_ptr += sprintf(str_ptr,"%lu", memory_item->mem_nelem[0]);
+           for (uint i = 1; i < memory_item->mem_ndims; i++){
+              str_ptr += sprintf(str_ptr,", %lu", memory_item->mem_nelem[i]);
+           }
+           printf("%12s",nelemstring);
+
+           printf(") elsize %lu flags %d capacity %lu\n",
+              memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
         }
-        printf("%12s",nelemstring);
-
-        printf(") elsize %lu flags %d capacity %lu\n",
-           memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
-#endif
-      //}
 
 #ifdef HAVE_HDF5
         if(USE_HDF5) {
@@ -896,11 +894,12 @@ void Crux::restore_MallocPlus(MallocPlus memory){
                    restore_double_array((double *)mem_ptr, num_elements);
                }
 #endif
-           }
-        }
+           } // mem_flags datatypes
 #ifdef HAVE_HDF5
-    }
-#endif    
+       } // if (HDF5)
+#endif
+   } // for memory_item
+} // restore_MallocPlus
 
 void Crux::restore_begin(char *restart_file, int rollback_counter)
 {
