@@ -245,9 +245,9 @@ void Crux::store_MallocPlus(MallocPlus memory){
                     store_double_array((double *)mem_ptr, num_elements);
                 }
 #endif
-            } checking memory flags
+            } //checking memory flags
 #ifdef HAVE_HDF5   
-       } if HDF5
+       } //if HDF5
 #endif
     }  // for memory_item
 } // store Malloc_Plus
