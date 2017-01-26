@@ -240,7 +240,6 @@ void parseInput(const int argc, char** argv)
     mem_opt_factor          = 1.0;
     upper_mass_diff_percentage = -1.0;
     enhanced_precision_sum  = SUM_KAHAN;
-    h5_spoutput             = false;
     
     char   *val;
     if (argc > 1)
@@ -429,9 +428,6 @@ void parseInput(const int argc, char** argv)
                     }
                     break;
    
-                case 'S':   //  write out double precision data as single precision.
-                    h5_spoutput = true;
-                    break;
                 case 'q':   //  turn on quo package.
 #ifdef HAVE_QUO
                     do_quo_setup = 1;

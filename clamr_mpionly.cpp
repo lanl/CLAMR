@@ -86,7 +86,8 @@ using namespace PP;
 #ifndef DEBUG
 #define DEBUG 0
 #endif
-#undef DEBUG_RESTORE_VALS
+//#undef DEBUG_RESTORE_VALS
+#define DEBUG_RESTORE_VALS 1
 
 #define MIN3(x,y,z) ( min( min(x,y), z) )
 
@@ -234,12 +235,12 @@ int main(int argc, char **argv) {
    if (restart){
       restore_crux_data_bootstrap(crux, restart_file, 0);
       mesh  = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
-      mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
-
+      //mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
       state = new State(mesh);
       restore_crux_data(crux);
-      mesh->proc.resize(mesh->ncells);
-      mesh->calc_distribution(numpe);
+      // mesh->proc.resize(mesh->ncells);
+      // mesh->calc_distribution(numpe);
+      mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
    } else {
       mesh = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
 
@@ -255,8 +256,9 @@ int main(int argc, char **argv) {
       mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
       state = new State(mesh);
       state->init(do_gpu_calc);
-   }
+      state->fill_circle(circ_radius, 100.0, 7.0);
 
+   }
    size_t &ncells = mesh->ncells;
    size_t &ncells_global = mesh->ncells_global;
    int &noffset = mesh->noffset;
@@ -269,6 +271,9 @@ int main(int argc, char **argv) {
    vector<spatial_t> &y  = mesh->y;
    vector<spatial_t> &dy = mesh->dy;
 
+   /*
+    * Commenting because this is redundant. These calculations are performed in Mesh.cpp
+    *
    nsizes.resize(numpe);
    ndispl.resize(numpe);
 
@@ -289,7 +294,7 @@ int main(int argc, char **argv) {
    dx.clear();
    y.clear();
    dy.clear();
-
+   */ 
    if (graphic_outputInterval > niter) next_graphics_cycle = graphic_outputInterval;
    if (checkpoint_outputInterval > niter) next_cp_cycle = checkpoint_outputInterval;
 
@@ -787,6 +792,8 @@ void store_crux_data(Crux *crux, int ncycle)
    size_t nsize = num_int_vals*sizeof(int) +
                   num_double_vals*sizeof(double);
    nsize += state->get_checkpoint_size();
+   
+   next_cp_cycle += checkpoint_outputInterval;
 
    int int_vals[num_int_vals]= {0};
 
@@ -828,14 +835,12 @@ void store_crux_data(Crux *crux, int ncycle)
 
    clamr_bootstrap_memory.memory_remove(int_vals);
    clamr_bootstrap_memory.memory_remove(double_vals);
-
-   next_cp_cycle += checkpoint_outputInterval;
 }
 
 void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_counter)
 {
    crux->restore_begin(restart_file, rollback_counter);
-
+    
    int int_vals[num_int_vals];
 
    double double_vals[num_double_vals];
@@ -933,12 +938,15 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
 void restore_crux_data(Crux *crux)
 {
    state->restore_checkpoint(crux);
-
-#ifndef HAVE_MPI
+#ifdef HAVE_HDF5
    crux->restore_end();
 #else
+#ifndef HAVE_MPI
+    crux->restore_end();
+#else   
    MPI_Finalize();
    exit(0);
+#endif
 #endif
 }
 
