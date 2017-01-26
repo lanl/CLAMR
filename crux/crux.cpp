@@ -72,7 +72,7 @@ bool do_crux_timing = false;
 #ifndef DEBUG
 #define DEBUG 0
 #endif
-#define DEBUG_RESTORE_VALS 1
+#undef DEBUG_RESTORE_VALS
 
 using namespace std;
 using PP::PowerParser;
