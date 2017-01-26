@@ -59,6 +59,9 @@ class Crux
    int num_of_rollback_states;
    int crux_type;
    int checkpoint_counter;
+#ifdef HAVE_MPI
+   MPI_Datatype *crux_datatype[16];
+#endif
 
 public:
 
@@ -79,11 +82,16 @@ public:
    void store_double_array(double *double_array, size_t nelem);
    void store_replicated_int_array(int *int_array, size_t nelem);
    void store_replicated_double_array(double *double_array, size_t nelem);
+
    void store_named_ints(const char *name, int name_size, int *int_vals, size_t nelem);
 #ifdef HAVE_MPI
    void store_distributed_int_array(int *int_array, size_t nelem, int flags);
    void store_distributed_double_array(double *double_array, size_t nelem, int flags);
 #endif
+//   void store_distributed_int_array(int *int_array, size_t nelem, size_t nelem_global,
+//           int local_flags, int global_flags);
+//   void store_distributed_double_array(double *double_array, size_t nelem, size_t nelem_global,
+//           int local_flags, int global_flags);
    void store_end(void);
 
    void       restore_MallocPlus(MallocPlus memory);
@@ -100,15 +108,27 @@ public:
    double    *restore_double_array(double *double_array, size_t nsize);
    int       *restore_replicated_int_array(int *int_array, size_t nsize);
    double    *restore_replicated_double_array(double *double_array, size_t nsize);
+
    void      restore_named_ints(const char *name, int name_size, int *int_vals, size_t nelem);
 #ifdef HAVE_MPI
    int       *restore_distributed_int_array(int *int_array, size_t nsize, int flags);
    double    *restore_distributed_double_array(double *double_array, size_t nsize, int flags);
 #endif
+
+//   int       *restore_distributed_int_array(int *int_array, size_t nelem, size_t nelem_global,
+//                int local_flags, int global_flags);
+//   double    *restore_distributed_double_array(double *double_array, size_t nelem, size_t nelem_global,
+//                int local_flags, int global_flags);
    void       restore_end(void);
 
    int get_rollback_number();
    void set_crux_type(int crux_type_in);
+#ifdef HAVE_MPI
+   void set_crux_datatype(MPI_Datatype *datatype, int flag);
+   MPI_Datatype *get_crux_datatype(int flag);
+   void free_crux_datatype(int flag);
+   void free_all_crux_datatype(void);
+#endif
 
 };
 #endif // CRUX_H_
