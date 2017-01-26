@@ -254,7 +254,7 @@ void Crux::store_MallocPlus(MallocPlus memory){
         }
 #ifdef HAVE_HDF5   
     }
-#endf
+#endif
 }
 
 void Crux::store_begin(size_t nsize, int ncycle)
