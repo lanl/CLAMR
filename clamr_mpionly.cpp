@@ -795,7 +795,7 @@ void store_crux_data(Crux *crux, int ncycle)
    
    next_cp_cycle += checkpoint_outputInterval;
 
-   int int_vals[num_int_vals]= {0};
+   int int_vals[num_int_vals];
 
    int_vals[ 0] = CRUX_CLAMR_VERSION; // Version number
    int_vals[ 1] = nx;
@@ -813,7 +813,7 @@ void store_crux_data(Crux *crux, int ncycle)
    int_vals[13] = next_cp_cycle;
    int_vals[14] = next_graphics_cycle;
 
-   double double_vals[num_double_vals]= {0.0};
+   double double_vals[num_double_vals];
 
    double_vals[ 0] = circ_radius;
    double_vals[ 1] = H_sum_initial;

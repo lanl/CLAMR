@@ -10164,7 +10164,7 @@ void Mesh::parallel_output(const char *string, int local_value, int output_level
 
 const int CRUX_MESH_VERSION = 103;
 const int num_int_dist_vals = 3;
-const int num_int_vals      = 4;
+const int num_int_vals      = 3;
 const int num_double_vals   = 1;
 
 size_t Mesh::get_checkpoint_size(void)
@@ -10182,212 +10182,62 @@ size_t Mesh::get_checkpoint_size(void)
 
 void Mesh::store_checkpoint(Crux *crux)
 {
-
    // Need ncells for memory allocation
    int storage = mesh_memory.get_memory_capacity(level);
    crux->store_named_ints("storage", 7, &storage, 1);
    // Write scalars to arrays for storing in checkpoint
-   int int_vals[num_int_vals] = {0};
+   int int_vals[num_int_vals];
 
    int_vals[ 0] = CRUX_MESH_VERSION;
-   int_vals[ 1] = ncells_global;
-   int_vals[ 2] = ndim;
-   int_vals[ 3] = levmx;
-
-   crux->store_replicated_int_array(int_vals, num_int_vals);
-
-   double double_vals[num_double_vals] = {0.0};
-
-   double_vals[0] = offtile_ratio_local;
-
-   crux->store_replicated_double_array(double_vals, num_double_vals);
+   int_vals[ 1] = ndim;
+   int_vals[ 2] = levmx;
 
    // These are for values that will be different on every processor
-   int int_dist_vals[num_int_dist_vals] = {0};
-
+   int int_dist_vals[num_int_dist_vals];
    int_dist_vals[ 0] = (int)ncells;
    int_dist_vals[ 1] = (int)ncells_ghost;
    int_dist_vals[ 2] = offtile_local_count;
 
-#ifdef HAVE_MPI
-   MPI_Datatype mpi_array_dist_scalar_int_local_type;
-   MPI_Datatype mpi_array_dist_scalar_int_global_type;
+   double double_vals[num_double_vals];
 
-   MPI_Type_contiguous(num_int_dist_vals,MPI_INT,&mpi_array_dist_scalar_int_local_type);
-   crux->set_crux_datatype(&mpi_array_dist_scalar_int_local_type, 0x01000);
-
-   int sizes[1], subsizes[1], starts[1];
-
-   sizes[0] = num_int_dist_vals*numpe;
-   subsizes[0] = num_int_dist_vals;
-   starts[0] = 0;
-   //printf("DEBUG -- line %d file %s sizes %d %d %d\n",__LINE__,__FILE__,sizes[0],subsizes[0],starts[0]);
-   MPI_Type_create_subarray(1,sizes,subsizes,starts,MPI_ORDER_C,
-      MPI_INT, &mpi_array_dist_scalar_int_global_type);
-   crux->set_crux_datatype(&mpi_array_dist_scalar_int_global_type, 0x02000);
-#endif
-
-   // Need ncells for memory allocation
-#ifdef HAVE_MPI
-   //printf("%d: file %s line %d storing ncells %ld\n",mype,__FILE__,__LINE__,ncells);
-   //printf("%d: file %s line %d storing ncells_global %ld\n",mype,__FILE__,__LINE__,ncells_global);
-#endif
-
-   crux->store_distributed_int_array(int_dist_vals, num_int_dist_vals, num_int_dist_vals*numpe, 0x01000, 0x02000);
-
-#ifdef HAVE_MPI
-   MPI_Type_free(&mpi_array_dist_scalar_int_local_type);
-   MPI_Type_free(&mpi_array_dist_scalar_int_global_type);
-   crux->free_crux_datatype(0x01000);
-   crux->free_crux_datatype(0x02000);
-#endif
-
-#ifdef HAVE_MPI
-   MPI_Datatype mpi_array_dist_int_local_type;
-   MPI_Datatype mpi_array_dist_int_global_type;
-   MPI_Datatype mpi_array_dist_double_local_type;
-   MPI_Datatype mpi_array_dist_double_global_type;
-
-   MPI_Type_contiguous((int)ncells,MPI_INT,&mpi_array_dist_int_local_type);
-   crux->set_crux_datatype(&mpi_array_dist_int_local_type, DISTRIBUTED_INT_LOCAL_DATA);
-
-   MPI_Type_contiguous((int)ncells,MPI_DOUBLE,&mpi_array_dist_double_local_type);
-   crux->set_crux_datatype(&mpi_array_dist_double_local_type, DISTRIBUTED_DOUBLE_LOCAL_DATA);
-
-   //printf("%d: file %s line %d storing ncells %ld\n",mype,__FILE__,__LINE__,ncells);
-   //printf("%d: file %s line %d storing ncells_global %ld\n",mype,__FILE__,__LINE__,ncells_global);
-
-   sizes[0] = (int)ncells_global;
-   subsizes[0] = (int)ncells;
-   starts[0] = 0;
-   //printf("DEBUG -- line %d file %s sizes %d %d %d\n",__LINE__,__FILE__,sizes[0],subsizes[0],starts[0]);
-
-   MPI_Type_create_subarray(1,sizes,subsizes,starts,MPI_ORDER_C,
-      MPI_INT, &mpi_array_dist_int_global_type);
-   //printf("DEBUG -- line %d file %s datatype %d\n",__LINE__,__FILE__,mpi_array_dist_int_global_type);
-   crux->set_crux_datatype(&mpi_array_dist_int_global_type, DISTRIBUTED_INT_GLOBAL_DATA);
-
-   MPI_Type_create_subarray(1,sizes,subsizes,starts,MPI_ORDER_C,
-      MPI_DOUBLE, &mpi_array_dist_double_global_type);
-   crux->set_crux_datatype(&mpi_array_dist_double_global_type, DISTRIBUTED_DOUBLE_GLOBAL_DATA);
-#endif
+   double_vals[0] = offtile_ratio_local;
 
    int flags = RESTART_DATA;
-#ifndef HAVE_MPI
    // Now add memory entries to database for storing checkpoint
+   mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", flags);
+   flags = RESTART_DATA | REPLICATED_DATA;
+   mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", flags);
+   mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", flags);
+
+   flags = RESTART_DATA;
    mesh_memory.memory_add(cpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_cpu_counters", flags);
    mesh_memory.memory_add(gpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_gpu_counters", flags);
 
    mesh_memory.memory_add(cpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_cpu_timers", flags);
    mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", flags);
-#endif
 
    // Store MallocPlus memory database
    crux->store_MallocPlus(mesh_memory);
 
-#ifndef HAVE_MPI
    // Remove memory entries from database now that data is stored
+   mesh_memory.memory_remove(int_dist_vals);
+   mesh_memory.memory_remove(int_vals);
+   mesh_memory.memory_remove(double_vals);
    mesh_memory.memory_remove(cpu_counters);
    mesh_memory.memory_remove(gpu_counters);
    mesh_memory.memory_remove(cpu_timers);
    mesh_memory.memory_remove(gpu_timers);
-#endif
-
-#ifdef HAVE_MPI
-   MPI_Type_free(&mpi_array_dist_int_local_type);
-   MPI_Type_free(&mpi_array_dist_int_global_type);
-   MPI_Type_free(&mpi_array_dist_double_local_type);
-   MPI_Type_free(&mpi_array_dist_double_global_type);
-#endif
 }
 
 void Mesh::restore_checkpoint(Crux *crux)
 {
-
    int storage;
    crux->restore_named_ints("storage", 7, &storage, 1);
 
-#ifdef HAVE_MPI
-   MPI_Datatype mpi_array_dist_scalar_int_local_type;
-   MPI_Datatype mpi_array_dist_scalar_int_global_type;
-
-   MPI_Type_contiguous(num_int_dist_vals,MPI_INT,&mpi_array_dist_scalar_int_local_type);
-   crux->set_crux_datatype(&mpi_array_dist_scalar_int_local_type, 0x01000);
-
-   int sizes[1], subsizes[1], starts[1];
-
-   sizes[0] = num_int_dist_vals*numpe;
-   subsizes[0] = num_int_dist_vals;
-   starts[0] = 0;
-
-   //printf("DEBUG -- line %d file %s sizes %d %d %d\n",__LINE__,__FILE__,sizes[0],subsizes[0],starts[0]);
-
-   MPI_Type_create_subarray(1,sizes,subsizes,starts,MPI_ORDER_C,
-      MPI_INT, &mpi_array_dist_scalar_int_global_type);
-   crux->set_crux_datatype(&mpi_array_dist_scalar_int_global_type, 0x02000);
-#endif
-
    // Create memory for reading data into
-   int int_dist_vals[num_int_dist_vals] = {0};
-   int int_vals[num_int_vals] = {0};
-   double double_vals[num_double_vals] = {0.0};
-
-   crux->restore_replicated_int_array(int_vals, num_int_vals);
-
-   // Copy out scalar values from array
-   ncells_global             = int_vals[ 1];
-   ndim                      = int_vals[ 2];
-   levmx                     = int_vals[ 3];
-
-   crux->restore_replicated_double_array(double_vals, num_double_vals);
-
-   offtile_ratio_local = double_vals[0];
-
-   // Need ncells for memory allocation
-   crux->restore_distributed_int_array(int_dist_vals, num_int_dist_vals, num_int_dist_vals*numpe, 0x01000, 0x02000);
-
-   // Copy out scalar values from array
-   ncells                    = int_dist_vals[ 0];
-   ncells_ghost              = int_dist_vals[ 1];
-   offtile_local_count       = int_dist_vals[ 2];
-
-#ifdef HAVE_MPI
-   //printf("%d: restoring ncells %ld\n",mype,ncells);
-#endif
-
-#ifdef HAVE_MPI
-   MPI_Type_free(&mpi_array_dist_scalar_int_local_type);
-   MPI_Type_free(&mpi_array_dist_scalar_int_global_type);
-   crux->free_crux_datatype(0x01000);
-   crux->free_crux_datatype(0x02000);
-#endif
-
-#ifdef HAVE_MPI
-   MPI_Datatype mpi_array_dist_int_local_type;
-   MPI_Datatype mpi_array_dist_int_global_type;
-   MPI_Datatype mpi_array_dist_double_local_type;
-   MPI_Datatype mpi_array_dist_double_global_type;
-
-   MPI_Type_contiguous((int)ncells,MPI_INT,&mpi_array_dist_int_local_type);
-   crux->set_crux_datatype(&mpi_array_dist_int_local_type, DISTRIBUTED_INT_LOCAL_DATA);
-
-   MPI_Type_contiguous((int)ncells,MPI_DOUBLE,&mpi_array_dist_double_local_type);
-   crux->set_crux_datatype(&mpi_array_dist_double_local_type, DISTRIBUTED_DOUBLE_LOCAL_DATA);
-
-   sizes[0] = (int)ncells_global;
-   subsizes[0] = (int)ncells;
-   starts[0] = 0;
-   //printf("DEBUG -- line %d file %s sizes %d %d %d\n",__LINE__,__FILE__,sizes[0],subsizes[0],starts[0]);
-
-   MPI_Type_create_subarray(1,sizes,subsizes,starts,MPI_ORDER_C,
-      MPI_INT, &mpi_array_dist_int_global_type);
-   //printf("DEBUG -- line %d file %s datatype %d\n",__LINE__,__FILE__,mpi_array_dist_int_global_type);
-   crux->set_crux_datatype(&mpi_array_dist_int_global_type, DISTRIBUTED_INT_GLOBAL_DATA);
-
-   MPI_Type_create_subarray(1,sizes,subsizes,starts,MPI_ORDER_C,
-      MPI_DOUBLE, &mpi_array_dist_double_global_type);
-   crux->set_crux_datatype(&mpi_array_dist_double_global_type, DISTRIBUTED_DOUBLE_GLOBAL_DATA);
-#endif
+   int int_dist_vals[num_int_dist_vals];
+   int int_vals[num_int_vals];
+   double double_vals[num_double_vals];
 
    mesh_memory.memory_delete(nlft);
    mesh_memory.memory_delete(nrht);
@@ -10407,25 +10257,30 @@ void Mesh::restore_checkpoint(Crux *crux)
    allocate (storage);
    
    int flags = RESTART_DATA;
-#ifndef HAVE_MPI
    // Now add memory entries to database for restoring checkpoint
+   mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", flags);
+   flags = RESTART_DATA | REPLICATED_DATA;
+   mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", flags);
+   mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", flags);
+
+   flags = RESTART_DATA;
    mesh_memory.memory_add(cpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_cpu_counters", flags);
    mesh_memory.memory_add(gpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_gpu_counters", flags);
 
    mesh_memory.memory_add(cpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_cpu_timers", flags);
    mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", flags);
-#endif
 
    // Restore MallocPlus memory database
    crux->restore_MallocPlus(mesh_memory);
 
-#ifndef HAVE_MPI
    // Remove memory entries from database now that data is restored
+   mesh_memory.memory_remove(int_dist_vals);
+   mesh_memory.memory_remove(int_vals);
+   mesh_memory.memory_remove(double_vals);
    mesh_memory.memory_remove(cpu_counters);
    mesh_memory.memory_remove(gpu_counters);
    mesh_memory.memory_remove(cpu_timers);
    mesh_memory.memory_remove(gpu_timers);
-#endif
 
    // Check version number
    if (int_vals[ 0] != CRUX_MESH_VERSION) {
@@ -10434,7 +10289,15 @@ void Mesh::restore_checkpoint(Crux *crux)
       exit(0);
    }
 
-#ifndef HAVE_MPI
+   // Copy out scalar values from array
+   ncells                    = int_dist_vals[ 0];
+   ncells_ghost              = int_dist_vals[ 1];
+   offtile_local_count       = int_dist_vals[ 2];
+
+   // Copy out scalar values from array
+   ndim                      = int_vals[ 1];
+   levmx                     = int_vals[ 2];
+
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS && mype == 0) {
       const char *int_dist_vals_descriptor[num_int_dist_vals] = {
@@ -10460,6 +10323,8 @@ void Mesh::restore_checkpoint(Crux *crux)
       printf("\n");
    }
 #endif
+
+   offtile_ratio_local = double_vals[0];
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS && mype == 0) {
@@ -10514,18 +10379,7 @@ void Mesh::restore_checkpoint(Crux *crux)
       printf("\n");
    }
 #endif
-
    //calc_celltype(ncells);
-#endif
-
-#ifdef HAVE_MPI
-   MPI_Type_free(&mpi_array_dist_int_local_type);
-   MPI_Type_free(&mpi_array_dist_int_global_type);
-   MPI_Type_free(&mpi_array_dist_double_local_type);
-   MPI_Type_free(&mpi_array_dist_double_global_type);
-   MPI_Type_free(&mpi_array_dist_scalar_int_local_type);
-   MPI_Type_free(&mpi_array_dist_scalar_int_global_type);
-#endif
 }
 
 
