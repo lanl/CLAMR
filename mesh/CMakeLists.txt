@@ -32,7 +32,8 @@ add_library(mesh STATIC ${mesh_LIB_SRCS})
 
 set_target_properties(mesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
 
-target_link_libraries(mesh)
+target_link_libraries(mesh hsfc kdtree)
+
 install(TARGETS mesh DESTINATION lib)
 
 ########### mpmesh target ###############
@@ -46,7 +47,8 @@ if(OPENMP_FOUND)
    set_target_properties(mpmesh PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(mpmesh PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
 
-   target_link_libraries(mpmesh)
+   target_link_libraries(mpmesh hsfc kdtree)
+
    install(TARGETS mpmesh DESTINATION lib)
 endif(OPENMP_FOUND)
 
@@ -58,7 +60,10 @@ if (MPI_FOUND)
 
    set_target_properties(pmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
    set_target_properties(pmesh PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+
+   target_link_libraries(pmesh hsfc kdtree)
    target_link_libraries(pmesh ${MPI_LIBRARIES})
+
    install(TARGETS pmesh DESTINATION lib)
 endif (MPI_FOUND)
 
@@ -74,8 +79,9 @@ if(OPENMP_FOUND AND MPI_FOUND)
    set_target_properties(pmpmesh PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(pmpmesh PROPERTIES LINK_FLAGS ${OpenMP_C_FLAGS})
 
-   target_link_libraries(pmpmesh)
+   target_link_libraries(pmpmesh hsfc kdtree)
    target_link_libraries(pmpmesh ${MPI_LIBRARIES})
+
    add_dependencies(pmpmesh reduce_kernel_source)
    install(TARGETS pmpmesh DESTINATION lib)
 endif(OPENMP_FOUND AND MPI_FOUND)
@@ -88,7 +94,10 @@ if (OPENCL_FOUND)
 
    set_target_properties(dmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
    set_target_properties(dmesh PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
+
+   target_link_libraries(dmesh hsfc kdtree)
    target_link_libraries(dmesh ${OPENCL_LIBRARIES})
+
    add_dependencies(dmesh mesh_kernel_source)
    add_dependencies(dmesh reduce_kernel_source)
    install(TARGETS dmesh DESTINATION lib)
@@ -102,8 +111,11 @@ if (OPENCL_FOUND)
 
    set_target_properties(dpmesh PROPERTIES VERSION 2.0.0 SOVERSION 2)
    set_target_properties(dpmesh PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
+
+   target_link_libraries(dpmesh hsfc kdtree)
    target_link_libraries(dpmesh ${MPI_LIBRARIES})
    target_link_libraries(dpmesh ${OPENCL_LIBRARIES})
+
    add_dependencies(dpmesh mesh_kernel_source)
    add_dependencies(dpmesh reduce_kernel_source)
    install(TARGETS dpmesh DESTINATION lib)
