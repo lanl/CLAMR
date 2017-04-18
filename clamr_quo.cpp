@@ -285,7 +285,7 @@ int main(int argc, char **argv) {
    set_window((float)mesh->xmin, (float)mesh->xmax, (float)mesh->ymin, (float)mesh->ymax);
    set_viewmode(view_mode);
    set_outline((int)outline);
-   init_display(&argc, argv, "Shallow Water", mype);
+   init_display(&argc, argv, "Shallow Water");
 
    set_circle_radius(circle_radius);
    draw_scene();
