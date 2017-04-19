@@ -1,6 +1,6 @@
 #!/bin/sh -x
-export TEST_NAME="n1920lev4"
-export TEST_OPTIONS="-n 1920 -l 4 -i 10 -t 100"
+export TEST_NAME="n1920lev1"
+export TEST_OPTIONS="-n 1920 -l 1 -i 10 -t 100"
 
 for i in {1,2,4}
 do
@@ -34,3 +34,5 @@ do
   echo -n $i >> clamr_plot.dat
   echo  >> clamr_plot.dat
 done
+
+python clamr_plot.py clamr_plot.dat
