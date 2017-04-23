@@ -58,6 +58,8 @@
 // declaration did not work with just doing "class Cmd;", we need to fully
 // include Cmd.hh. 
 #include "Comm.hh"
+#include <sstream>
+#include <fstream>
 #include "Word.hh"
 #include "Cmd.hh"
 #include "Restartblock.hh"
@@ -70,6 +72,8 @@
  *******************************************************************/
 namespace PP
 {
+using std::ofstream;
+using std::streambuf;
 
 /****************************************************************//**
  * PowerParser class 
@@ -79,7 +83,10 @@ class PowerParser
 {
 
 public:
-    
+
+    ofstream fileout;
+    streambuf *coutbuf;
+
 /****************************************************************//**
  * \brief
  * Constructor with no arguments
@@ -131,6 +138,9 @@ public:
  *  Destructor
  *******************************************************************/
     ~PowerParser();
+
+    void dictionary_add(char *name, double value, bool pred, char *vdesc);
+    void dictionary_env_add(char *name, bool pred);
 
 /****************************************************************//**
  * \brief
@@ -526,7 +536,6 @@ public:
  *******************************************************************/
     Comm *comm;
 
-private:
 /****************************************************************//**
  *******************************************************************/
     void list_funcs_start();

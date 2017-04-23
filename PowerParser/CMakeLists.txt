@@ -6,6 +6,13 @@ set (POWERPARSER_VERSION_MAJOR 2)
 set (POWERPARSER_VERSION_MINOR 0.7)
 set (POWERPARSER_VERSION "${POWERPARSER_VERSION_MAJOR}.${POWERPARSER_VERSION_MINOR}")
 
+if(DEFINED ENV{FC})
+   enable_language (Fortran)
+
+#  FFLAGS depend on the compiler
+   get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
+endif(DEFINED ENV{FC})
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # --- custom targets: ---
 if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
@@ -37,6 +44,26 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
 endif()
 
+if(DEFINED ENV{FC})
+   if (Fortran_COMPILER_NAME MATCHES "gfortran.*")
+      set (CMAKE_Fortran_FLAGS_RELEASE "-O3")
+      set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
+   elseif (Fortran_COMPILER_NAME MATCHES "ifort.*")
+     set (CMAKE_Fortran_FLAGS_RELEASE "-f77rtl -O3")
+     set (CMAKE_Fortran_FLAGS_DEBUG   "-f77rtl -O0 -g")
+   elseif (Fortran_COMPILER_NAME MATCHES "g77")
+     set (CMAKE_Fortran_FLAGS_RELEASE "-O3")
+     set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
+   else (Fortran_COMPILER_NAME MATCHES "gfortran.*")
+     message ("CMAKE_Fortran_COMPILER full path: " ${CMAKE_Fortran_COMPILER})
+     message ("Fortran compiler: " ${Fortran_COMPILER_NAME})
+     message ("No optimized Fortran compiler flags are known, we just try -O2...")
+     set (CMAKE_Fortran_FLAGS_RELEASE "-O2")
+     set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
+   endif (Fortran_COMPILER_NAME MATCHES "gfortran.*")
+endif(DEFINED ENV{FC})
+
+
 if (MIC_NATIVE)
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-intel -mmic")
    link_directories("/projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic")
@@ -65,6 +92,12 @@ set(H_SRCS   Cmd.hh   Function.hh    Parser_utils.hh  Variable.hh      Word.hh
 set(CXX_SRCS Cmd.cc   Function.cc    Parser_utils.cc  Variable.cc      Word.cc
              Comm.cc  PowerParser.cc Parser_math.cc   Restartblock.cc  Whenthen.cc)
 
+if(DEFINED ENV{FC})
+   set(H_SRCS ${H_SRCS} parser_iface.hh)
+   set(CXX_SRCS ${CXX_SRCS} parser_iface.cc)
+   set(F90_SRCS PPinput.f90)
+endif(DEFINED ENV{FC})
+
 set(DOC_SRCS docs/index.rst docs/About.rst docs/GettingStarted.rst
              docs/DevelopersGuide.rst docs/UsersGuide.rst)
 
@@ -72,7 +105,7 @@ set(PDFDOC_SRCS docs/indexpdf.rst docs/About.rst docs/GettingStarted.rst
              docs/DevelopersGuide.rst docs/UsersGuide.rst)
 
 ########### PowerParser target ###############
-set(PowerParser_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+set(PowerParser_LIB_SRCS ${CXX_SRCS} ${H_SRCS} ${F90_SRCS})
 
 add_library(PowerParser STATIC ${PowerParser_LIB_SRCS})
 
@@ -81,7 +114,7 @@ install(TARGETS PowerParser DESTINATION lib)
 
 ########### pPowerParser target ###############
 if (MPI_FOUND)
-   set(pPowerParser_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+   set(pPowerParser_LIB_SRCS ${CXX_SRCS} ${H_SRCS} ${F90_SRCS})
 
    add_library(pPowerParser STATIC ${PowerParser_LIB_SRCS})
 
@@ -156,5 +189,5 @@ endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
 
 ########### clean files ################
 SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES
-   "install_manifest.txt;docs/_build;docs/htmldoc.out;docs/pdfdoc.out;docs/singlehtmldoc.out")
+   "ppinput_module.mod;install_manifest.txt;docs/_build;docs/htmldoc.out;docs/pdfdoc.out;docs/singlehtmldoc.out")
 

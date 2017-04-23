@@ -74,6 +74,7 @@
 #include <limits>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 namespace PP
 {
@@ -98,12 +99,16 @@ static int index_base = 1;
 // ===========================================================================
 PowerParser::PowerParser()
 {
+    comm = new Comm();
+
     init();                     // Init vars, setup functions, ...
     nrb_on_dump = 0;
 }
 
 PowerParser::PowerParser(string filename)
 {
+    comm = new Comm();
+
     init();                     // Init vars, setup functions, ...
     nrb_on_dump = 0;
     parse_file(filename);       // Parse the file.
@@ -111,6 +116,8 @@ PowerParser::PowerParser(string filename)
 
 PowerParser::PowerParser(const char *filename)
 {
+    comm = new Comm();
+
     string fstring(filename);
 
     init();                     // Init vars, setup functions, ...
@@ -118,8 +125,13 @@ PowerParser::PowerParser(const char *filename)
     parse_file(fstring);        // Parse the file.
 }
 
+// ===========================================================================
+// Destructor
+// ===========================================================================
 PowerParser::~PowerParser()
 {
+    delete comm;
+
     cmd_strings.clear();
     vmap.clear();
     fmap.clear();
@@ -1323,6 +1335,15 @@ void PowerParser::remove_dup_scalar(int wtn)
     }
 }
 
+// ===========================================================================
+// Helper function to convert doubles to strings.
+// ===========================================================================
+std::string const to_string( double const x )
+{
+    std::ostringstream tmp;
+    tmp << std::setprecision(16) << x;
+    return tmp.str();
+}
 
 // ===========================================================================
 // Initialize the parser. This will typically be called by the
@@ -1330,8 +1351,6 @@ void PowerParser::remove_dup_scalar(int wtn)
 // ===========================================================================
 void PowerParser::init()
 {
-    comm = Comm::GetInstance();
-
     line_number = 0;
     cmdsfp = &cmdsf;
     dup_fatal = 1;
@@ -1357,7 +1376,6 @@ void PowerParser::init()
     Word whuge_int(huge_int, 1, 1, "", NULL);
     Variable vhuge_int("$huge_int", whuge_int.get_string(), true, "largest integer");
     vmap.insert(pair<string, Variable>(vhuge_int.get_varname(), vhuge_int));
-
 
     double tiny_double = numeric_limits<double>::min( );
     Word wtiny_double(tiny_double, 1, 1, "", NULL);
@@ -1468,6 +1486,36 @@ void PowerParser::init()
 
     Function fdefined("defined", true, 1, "logical", "is a variable defined or not");
     fmap.insert(pair<string, Function>(fdefined.get_name(), fdefined));
+}
+
+void PowerParser::dictionary_add(char *name, double value, bool pred, char *vdesc)
+{
+   Variable *Var_entry = new Variable(name, to_string(value), pred, vdesc);
+   vmap.insert(pair<string, Variable>(Var_entry->get_varname(), *Var_entry));
+}
+
+void PowerParser::dictionary_env_add(char *name, bool pred)
+{
+   char *getenv_p;
+   char *getenv_p_not_defined = "";
+
+   getenv_p = getenv(name);
+   if( getenv_p == NULL ){
+      getenv_p = getenv_p_not_defined;
+   }
+
+   int len_name = strlen(name);
+
+   // One extra character for $ and another for null termination
+   char *varname = (char *)malloc(sizeof(char)*(len_name+2));
+
+   varname[0] = '$';
+   strncpy(varname+1, name, len_name+1);
+
+   Variable *Var_entry = new Variable(varname, getenv_p, pred, name);
+   vmap.insert(pair<string, Variable>(Var_entry->get_varname(), *Var_entry));
+
+   free(varname);
 }
 
 

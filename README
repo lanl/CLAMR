@@ -114,6 +114,8 @@ cmake -DCMAKE_BUILD_TYPE=release -DGRAPHICS_TYPE=None -DPRECISION_TYPE=full_prec
 // To run
    aprun -n 128 -N 16 ../clamr_mpionly -n 128 -t 1000
 
+// Watch-out for memory leaks with open-mpi 1.8.5 on GPU/MPI versions
+
 // Set MPEHOME to location of MPE install or MPE_INCLUDE_DIR and MPE_LIBRARIES to 
 // the include path and the location of the MPE libraries
 

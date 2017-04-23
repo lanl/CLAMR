@@ -64,13 +64,10 @@ namespace PP {
 class Comm
 {
  public:
-    virtual ~Comm() {}
 
-    static Comm* GetInstance(){
-       return &instance;
-    }
+    Comm();
+    ~Comm();
 
-    void initialize();
     void broadcast(char *buffer, int count);
     void global_abort();
 
@@ -93,17 +90,14 @@ class Comm
 
 
  private:
+    int init_flag;
+
     int npes, mype, iope;
 
-    Comm();
-    Comm(const Comm&);
-    Comm& operator=(const Comm&);
-
-    static Comm instance;
-
+    //Comm(const Comm&);
+    //Comm& operator=(const Comm&);
 };
 
-//Comm Comm::instance;
 
 } // End of PP namespace
 

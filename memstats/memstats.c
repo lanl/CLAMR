@@ -57,8 +57,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/sysctl.h>
 #include <unistd.h>
 #include <string.h>
+
+#ifdef __APPLE_CC__
+#include <mach/mach_host.h>
+#include <mach/task.h>
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -70,11 +76,30 @@ pid_t pid;
 FILE *stat_fp = NULL, *meminfo_fp = NULL;
 
 long long memstats_memused(){
+   long long mem_current=0;
+#ifdef __APPLE_CC__
+/* This is all memory used and we want the memory for only our process -- do alternate
+   vm_size_t page_size;
+   mach_port_t mach_port;
+   mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+
+   host_page_size(mach_port, &page_size);
+   vm_statistics_data_t vmstat;
+   host_statistics (mach_host_self (), HOST_VM_INFO, (host_info_t) &vmstat, &count);
+
+   mem_current = (vmstat.wire_count + vmstat.active_count + vmstat.inactive_count)*page_size/1024;
+*/
+
+   struct task_basic_info t_info;
+   mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;
+   task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)&t_info, &t_info_count);
+
+   mem_current = t_info.resident_size;
+#else
    char proc_stat_file[50];
    char *p;
    int err;
    int memdebug = 0;
-   long long mem_current=0;
    //long long page_size = 1; //4096
 
    if (!stat_fp){
@@ -121,6 +146,7 @@ long long memstats_memused(){
 
    fclose(stat_fp);
    stat_fp = NULL;
+#endif
 
    return(mem_current);
 }
@@ -183,8 +209,19 @@ long long memstats_mempeak(){
 
 #define TIMER_ONEK 1024
 long long memstats_memfree(){
-   int err;
    long long freemem;
+#ifdef __APPLE_CC__
+   vm_size_t page_size;
+   mach_port_t mach_port;
+   mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+
+   host_page_size(mach_port, &page_size);
+   vm_statistics_data_t vmstat;
+   host_statistics (mach_host_self (), HOST_VM_INFO, (host_info_t) &vmstat, &count);
+
+   freemem = vmstat.free_count*page_size/1024;
+#else
+   int err;
    int memdebug = 0;
    char buf[260];
    char *p;
@@ -230,13 +267,35 @@ long long memstats_memfree(){
 
    fclose(meminfo_fp);
    meminfo_fp = NULL;
+#endif
 
    return(freemem);
 }
 
 long long memstats_memtotal(){
-   int err;
    long long totalmem;
+#ifdef __APPLE_CC__
+/*
+   vm_size_t page_size;
+   mach_port_t mach_port;
+   mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+
+   host_page_size(mach_port, &page_size);
+   vm_statistics_data_t vmstat;
+   host_statistics (mach_host_self (), HOST_VM_INFO, (host_info_t) &vmstat, &count);
+
+   totalmem = (vmstat.wire_count + vmstat.active_count + vmstat.inactive_count + vmstat.free_count)
+              *page_size/1024;
+*/
+// alternate
+   int mib[2];
+   mib[0] = CTL_HW;
+   mib[1] = HW_MEMSIZE;
+   size_t length = sizeof(long long);
+   sysctl(mib, 2, &totalmem, &length, NULL, 0);
+   totalmem /= 1024;
+#else
+   int err;
    int memdebug = 0;
    char buf[260];
    char *p;
@@ -280,6 +339,7 @@ long long memstats_memtotal(){
 
    fclose(meminfo_fp);
    meminfo_fp = NULL;
+#endif
 
    return(totalmem);
 }
