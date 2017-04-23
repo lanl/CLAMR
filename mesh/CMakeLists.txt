@@ -124,6 +124,8 @@ if (PRECISION_TYPE STREQUAL "minimum_precision")
    add_definitions(-DMINIMUM_PRECISION)
 endif (PRECISION_TYPE STREQUAL "minimum_precision")
 
+enable_testing()
+
 add_subdirectory(kdtree)
 add_subdirectory(hsfc)
 add_subdirectory(zorder)
@@ -246,9 +248,6 @@ if (OPENCL_FOUND)
    install(TARGETS dpmesh DESTINATION lib)
 endif (OPENCL_FOUND)
 
-########### clean files ################
-SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "mesh_kernel.inc;reduce_kernel.inc")
-
 ########### install files ###############
 
 install(FILES  mesh.h DESTINATION include/mesh)
@@ -256,4 +255,55 @@ install(FILES  kdtree/KDTree.h DESTINATION include/kdtree)
 install(FILES  kdtree/Globals.h DESTINATION include)
 install(FILES  kdtree/Bounds.h DESTINATION include)
 install(FILES  partition.h DESTINATION include/mesh)
+
+########### doc targets ################
+
+if (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+   add_custom_target(doc DEPENDS pdfdoc htmldoc singlehtmldoc)
+   set_target_properties(doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/latex/Mesh.pdf
+                      COMMAND make -C docs latexpdf >& pdfdoc.out
+                      DEPENDS ${PDFDOC_SRCS})
+   add_custom_target(pdfdoc DEPENDS _build/latex/Mesh.pdf)
+   set_target_properties(pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/html/UsersGuide.html
+                      COMMAND make -C docs html >& htmldoc.out
+                      DEPENDS ${DOC_SRCS})
+   add_custom_target(htmldoc DEPENDS _build/html/UsersGuide.html)
+   set_target_properties(htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/singlehtml/index.html
+                      COMMAND make -C docs singlehtml >& singlehtmldoc.out
+                      DEPENDS ${DOC_SRCS})
+   add_custom_target(singlehtmldoc DEPENDS _build/singlehtml/index.html)
+   set_target_properties(singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+else (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+   add_custom_target(Mesh_doc
+                     DEPENDS Mesh_pdfdoc Mesh_htmldoc Mesh_singlehtmldoc)
+   set_target_properties(Mesh_doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/latex/Mesh.pdf
+                      COMMAND make -C docs latexpdf >& pdfdoc.out
+                      DEPENDS ${PDFDOC_SRCS})
+   add_custom_target(Mesh_pdfdoc DEPENDS _build/latex/Mesh.pdf)
+   set_target_properties(Mesh_pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/html/UsersGuide.html
+                      COMMAND make -C docs html >& htmldoc.out
+                      DEPENDS ${DOC_SRCS})
+   add_custom_target(Mesh_htmldoc DEPENDS _build/html/UsersGuide.html)
+   set_target_properties(Mesh_htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+   add_custom_command(OUTPUT _build/singlehtml/index.html
+                      COMMAND make -C docs singlehtml >& singlehtmldoc.out
+                      DEPENDS ${DOC_SRCS})
+   add_custom_target(Mesh_singlehtmldoc DEPENDS _build/singlehtml/index.html)
+   set_target_properties(Mesh_singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+endif (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
+
+########### clean files ################
+SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "mesh_kernel.inc;reduce_kernel.inc;install_manifest.txt;docs/_build;htmldoc.out;pdfdoc.out;singlehtmldoc.out")
+
 

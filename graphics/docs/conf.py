@@ -18,9 +18,7 @@ import os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.append( "/home/me/docproj/ext/breathe/" )
-sys.path.insert(0, os.path.abspath('./breathe-3.2.0'))
-import breathe
+#sys.path.insert(0, os.path.abspath('.'))
 
 # -- General configuration ------------------------------------------------
 

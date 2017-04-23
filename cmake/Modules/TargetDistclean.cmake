@@ -16,16 +16,25 @@ IF (UNIX)
    */*.a
    Makefile
    */Makefile
-   */*/Makefile
+   */tests/Makefile
    core core.*
    gmon.out
    *~
    CMakeFiles
    */CMakeFiles
    */*/CMakeFiles
+   */CTestTestfile.cmake
+   */*/CTestTestfile.cmake
+   */Testing
+   */*/Testing
    cmake_install.cmake
    */cmake_install.cmake
    */*/cmake_install.cmake
+   install_manifest.txt
+   */install_manifest.txt
+   *.dSYM
+   */*.dSYM
+   */*/*.dSYM
   )
   
   ADD_CUSTOM_COMMAND(

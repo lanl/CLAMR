@@ -342,7 +342,7 @@ set(clamr_cpuonly_SRCS ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr
 
 add_executable(clamr_cpuonly ${clamr_cpuonly_SRCS})
 
-target_link_libraries(clamr_cpuonly mesh hsfc kdtree zorder crux hash graphics timer memstats genmalloc MallocPlus m)
+target_link_libraries(clamr_cpuonly PowerParser mesh hsfc kdtree zorder crux hash graphics timer memstats genmalloc MallocPlus m)
 if (REPROBLAS_FOUND)
    target_link_libraries(clamr_cpuonly ${REPROBLAS_LIBRARIES})
 endif (REPROBLAS_FOUND)
@@ -412,7 +412,7 @@ if(OPENMP_FOUND)
    set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
 
-   target_link_libraries(clamr_openmponly mpmesh hsfc kdtree zorder crux mphash graphics timer memstats genmalloc mpMallocPlus m)
+   target_link_libraries(clamr_openmponly PowerParser mpmesh hsfc kdtree zorder crux mphash graphics timer memstats genmalloc mpMallocPlus m)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_openmponly ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
@@ -588,18 +588,60 @@ if (MPI_FOUND AND OPENCL_FOUND)
    install(TARGETS clamr_checkall DESTINATION bin)
 endif (MPI_FOUND AND OPENCL_FOUND)
 
-########### clean files ################
-SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.inc;clamr;clamr_cpuonly;clamr_gpuonly;clamr_mpionly;clamr_gpucheck;clamr_mpicheck;clamr_checkall;clamr_quo")
-
 ########### install files ###############
 
-set (CMAKE_CHECK_COMMAND make -C ${CMAKE_SOURCE_DIR}/mesh/tests   mesh_check &&
-                         make -C ${CMAKE_SOURCE_DIR}/l7/tests     l7_check   &&
-                         make -C ${CMAKE_SOURCE_DIR}/Parser/tests Parser_check)
+set (CMAKE_CHECK_COMMAND make mesh_check &&
+                         make l7_check &&
+                         make ezcl_check &&
+                         make MallocPlus_check &&
+                         make PowerParser_check)
 
 add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND})
 
+set (CMAKE_DOC_COMMAND make CLAMR_doc       &&
+                       make PowerParser_doc &&
+                       make MallocPlus_doc  &&
+                       make L7_doc          &&
+                       make ezcl_doc        &&
+                       make genmalloc_doc   &&
+                       make Graphics_doc    &&
+                       make Hash_doc        &&
+                       make memstats_doc    &&
+                       make Mesh_doc        &&
+                       make Crux_doc)
+
+add_custom_target(doc COMMAND ${CMAKE_DOC_COMMAND})
+
+########### doc targets ################
+
+add_custom_target(CLAMR_doc
+                  DEPENDS CLAMR_pdfdoc CLAMR_htmldoc CLAMR_singlehtmldoc)
+set_target_properties(CLAMR_doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+add_custom_command(OUTPUT _build/latex/CLAMR.pdf
+                   COMMAND make -C docs latexpdf >& pdfdoc.out
+                   DEPENDS ${PDFDOC_SRCS})
+add_custom_target(CLAMR_pdfdoc DEPENDS _build/latex/CLAMR.pdf)
+set_target_properties(CLAMR_pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+add_custom_command(OUTPUT _build/html/UsersGuide.html
+                   COMMAND make -C docs html >& htmldoc.out
+                   DEPENDS ${DOC_SRCS})
+add_custom_target(CLAMR_htmldoc DEPENDS _build/html/UsersGuide.html)
+set_target_properties(CLAMR_htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+add_custom_command(OUTPUT _build/singlehtml/index.html
+                   COMMAND make -C docs singlehtml >& singlehtmldoc.out
+                   DEPENDS ${DOC_SRCS})
+add_custom_target(CLAMR_singlehtmldoc DEPENDS _build/singlehtml/index.html)
+set_target_properties(CLAMR_singlehtmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+########### configure config.h ################
 # configure a header file to pass some of the CMake settings
 # to the source code
 # at bottom because we set things that change config above
 configure_file ( "${PROJECT_SOURCE_DIR}/config.h.in" "${PROJECT_BINARY_DIR}/config.h")
+
+########### clean files ################
+SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "state_kernel.inc;clamr;clamr_cpuonly;clamr_gpuonly;clamr_mpionly;clamr_gpucheck;clamr_mpicheck;clamr_checkall;clamr_quo;total_execution_time.log;docs/_build;htmldoc.out;pdfdoc.out;singlehtmldoc.out")
+

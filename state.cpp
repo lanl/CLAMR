@@ -298,9 +298,9 @@ void State::allocate(size_t ncells)
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-   H = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "H");
-   U = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "U");
-   V = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), flags, "V");
+   H = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), "H", flags);
+   U = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), "U", flags);
+   V = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), "V", flags);
 }
 
 void State::resize(size_t new_ncells){
@@ -409,21 +409,21 @@ void State::add_boundary_cells(void)
       
    int new_ncells = ncells + icount;
    // Increase the arrays for the new boundary cells
-   H=(state_t *)state_memory.memory_realloc(new_ncells, sizeof(state_t), H);
-   U=(state_t *)state_memory.memory_realloc(new_ncells, sizeof(state_t), U);
-   V=(state_t *)state_memory.memory_realloc(new_ncells, sizeof(state_t), V);
+   H=(state_t *)state_memory.memory_realloc(new_ncells, H);
+   U=(state_t *)state_memory.memory_realloc(new_ncells, U);
+   V=(state_t *)state_memory.memory_realloc(new_ncells, V);
    //printf("\nDEBUG add_boundary cells\n"); 
    //state_memory.memory_report();
    //printf("DEBUG end add_boundary cells\n\n"); 
 
-   mesh->i        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), i);
-   mesh->j        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), j);
-   mesh->level    =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), level);
-   mesh->celltype =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), celltype);
-   mesh->nlft     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), nlft);
-   mesh->nrht     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), nrht);
-   mesh->nbot     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), nbot);
-   mesh->ntop     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, sizeof(int), ntop);
+   mesh->i        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, i);
+   mesh->j        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, j);
+   mesh->level    =(int *)mesh->mesh_memory.memory_realloc(new_ncells, level);
+   mesh->celltype =(int *)mesh->mesh_memory.memory_realloc(new_ncells, celltype);
+   mesh->nlft     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nlft);
+   mesh->nrht     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nrht);
+   mesh->nbot     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nbot);
+   mesh->ntop     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, ntop);
    //memory_reset_ptrs();
    i        = mesh->i;
    j        = mesh->j;
@@ -747,21 +747,21 @@ void State::remove_boundary_cells(void)
 
    // Resize to drop all the boundary cells
    ncells = save_ncells;
-   H=(state_t *)state_memory.memory_realloc(save_ncells, sizeof(state_t), H);
-   U=(state_t *)state_memory.memory_realloc(save_ncells, sizeof(state_t), U);
-   V=(state_t *)state_memory.memory_realloc(save_ncells, sizeof(state_t), V);
+   H=(state_t *)state_memory.memory_realloc(save_ncells, H);
+   U=(state_t *)state_memory.memory_realloc(save_ncells, U);
+   V=(state_t *)state_memory.memory_realloc(save_ncells, V);
    //printf("\nDEBUG remove_boundary cells\n"); 
    //state_memory.memory_report();
    //printf("DEBUG end remove_boundary cells\n\n"); 
 
-   mesh->i        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), i);
-   mesh->j        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), j);
-   mesh->level    = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), level);
-   mesh->celltype = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), celltype);
-   mesh->nlft     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), nlft);
-   mesh->nrht     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), nrht);
-   mesh->nbot     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), nbot);
-   mesh->ntop     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, sizeof(int), ntop);
+   mesh->i        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, i);
+   mesh->j        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, j);
+   mesh->level    = (int *)mesh->mesh_memory.memory_realloc(save_ncells, level);
+   mesh->celltype = (int *)mesh->mesh_memory.memory_realloc(save_ncells, celltype);
+   mesh->nlft     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, nlft);
+   mesh->nrht     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, nrht);
+   mesh->nbot     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, nbot);
+   mesh->ntop     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, ntop);
    i        = mesh->i;
    j        = mesh->j;
    level    = mesh->level;
@@ -1129,9 +1129,9 @@ void State::calc_finite_difference(double deltaT){
    if (mesh->numpe > 1) {
       apply_boundary_conditions_local();
 
-      H=(state_t *)state_memory.memory_realloc(ncells_ghost, sizeof(state_t), H);
-      U=(state_t *)state_memory.memory_realloc(ncells_ghost, sizeof(state_t), U);
-      V=(state_t *)state_memory.memory_realloc(ncells_ghost, sizeof(state_t), V);
+      H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
+      U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
+      V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
 
       L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
       L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
@@ -1160,16 +1160,13 @@ void State::calc_finite_difference(double deltaT){
 #endif
    state_t *H_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
                                                           sizeof(state_t),
-                                                          flags,
-                                                          "H_new");
+                                                          "H_new", flags);
    state_t *U_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
                                                           sizeof(state_t),
-                                                          flags,
-                                                          "U_new");
+                                                          "U_new", flags);
    state_t *V_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
                                                           sizeof(state_t),
-                                                          flags,
-                                                          "V_new");
+                                                          "V_new", flags);
 
    int gix;
 #ifdef _OPENMP
@@ -1707,9 +1704,9 @@ void State::gpu_calc_finite_difference(double deltaT)
    assert(dev_levdx);
    assert(dev_levdy);
 
-   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
-   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
-   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
+   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
  
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -1757,9 +1754,9 @@ void State::gpu_calc_finite_difference(double deltaT)
       L7_Dev_Update(dev_U, L7_STATE_T, mesh->cell_handle);
       L7_Dev_Update(dev_V, L7_STATE_T, mesh->cell_handle);
 
-      dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H_new"));
-      dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U_new"));
-      dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V_new"));
+      dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
+      dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
+      dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
 
       ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 0, sizeof(cl_int), &ncells);
       ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 1, sizeof(cl_mem), &dev_celltype);
@@ -2536,9 +2533,9 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
 #ifdef HAVE_OPENCL
 void State::allocate_device_memory(size_t ncells)
 {
-   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
-   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
-   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
+   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H"), DEVICE_REGULAR_MEMORY);
+   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U"), DEVICE_REGULAR_MEMORY);
+   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V"), DEVICE_REGULAR_MEMORY);
 }
 #endif
 
@@ -2548,9 +2545,9 @@ void State::resize_old_device_memory(size_t ncells)
    gpu_state_memory.memory_delete(dev_H);
    gpu_state_memory.memory_delete(dev_U);
    gpu_state_memory.memory_delete(dev_V);
-   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_H"));
-   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_U"));
-   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), DEVICE_REGULAR_MEMORY, const_cast<char *>("dev_V"));
+   dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H"), DEVICE_REGULAR_MEMORY);
+   dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U"), DEVICE_REGULAR_MEMORY);
+   dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V"), DEVICE_REGULAR_MEMORY);
 #else
    // Just to block compiler warnings
    if (1 == 2) printf("DEBUG -- ncells is %ld\n",ncells);
