@@ -1447,6 +1447,8 @@ char * create_compile_string(void)
         printf("EZCL_CREATE_KERNEL: Not supporting anything other than AMD or NVIDIA at the moment\n");
         exit(EXIT_FAILURE);
    }
+
+   return(CompileString);
 }
 
 cl_kernel ezcl_create_kernel_p(cl_context context, const char *filename, const char *kernel_name, const char *file, const int line){

@@ -1472,7 +1472,8 @@ __kernel void calc_finite_difference_cl(
                        Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                   - wminusy_V + wplusy_V;
 
-#ifdef ATI
+#if 0
+   // XXX AMD seems to be fine on this bit
    // ATI fails on correction terms
    Hic += -(deltaT / dxic)*(Hxfluxplus - Hxfluxminus + Hyfluxplus - Hyfluxminus);
    //Hic += -wminusx_H + wplusx_H - wminusy_H + wplusy_H;
@@ -1489,11 +1490,9 @@ __kernel void calc_finite_difference_cl(
    
 
     //  Write values for the main cell back to global memory.
-#ifdef IS_NVIDIA
     H_new[giX] = Hic;
     U_new[giX] = Uic;
     V_new[giX] = Vic;
-#endif
 
 //////////////////////////////////////////////////////////////////
 ////////////////////          END           //////////////////////

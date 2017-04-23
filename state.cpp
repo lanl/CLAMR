@@ -245,7 +245,7 @@ void State::init(int do_gpu_calc)
 #ifdef HAVE_OPENCL
       cl_context context = ezcl_get_context();
 
-      printf("Starting compile of kernels in state\n");
+      if (mesh->mype == 0) printf("Starting compile of kernels in state\n");
       const char *defines = NULL;
       cl_program program                 = ezcl_create_program_wsource(context, defines, state_kern_source);
 
@@ -264,7 +264,7 @@ void State::init(int do_gpu_calc)
       kernel_reduce_epsum_mass_stage2of2     = ezcl_create_kernel_wprogram(program, "reduce_epsum_mass_stage2of2_cl");
 
       ezcl_program_release(program);
-      printf("Finishing compile of kernels in state\n");
+      if (mesh->mype == 0) printf("Finishing compile of kernels in state\n");
 #endif
    }
 

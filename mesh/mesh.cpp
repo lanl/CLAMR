@@ -1356,6 +1356,10 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double d
    gpu_do_rezone = true;
 
    celltype = NULL;
+   nlft     = NULL;
+   nrht     = NULL;
+   nbot     = NULL;
+   ntop     = NULL;
 }
 
 void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_order, int do_gpu_calc)
@@ -1365,7 +1369,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       cl_context context = ezcl_get_context();
 
       hash_lib_init();
-      printf("Starting compile of kernels in mesh\n");
+      if (mype == 0) printf("Starting compile of kernels in mesh\n");
       char *bothsources = (char *)malloc(strlen(mesh_kern_source)+strlen(get_hash_kernel_source_string())+1);
       strcpy(bothsources, get_hash_kernel_source_string());
       strcat(bothsources, mesh_kern_source);
@@ -1425,7 +1429,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       }
 
       ezcl_program_release(program);
-      printf("Finishing compile of kernels in mesh\n");
+      if (mype == 0) printf("Finishing compile of kernels in mesh\n");
 #endif
    }
 
@@ -3593,11 +3597,17 @@ void Mesh::calc_neighbors(int ncells)
 #if defined (HAVE_J7)
    if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
-   if ((int)mesh_memory.get_memory_size(nlft) < ncells){
-      nlft = (int *)mesh_memory.memory_delete(nlft);
-      nrht = (int *)mesh_memory.memory_delete(nrht);
-      nbot = (int *)mesh_memory.memory_delete(nbot);
-      ntop = (int *)mesh_memory.memory_delete(ntop);
+   int nlft_size = 0;
+   if (nlft != NULL){
+      nlft_size = mesh_memory.get_memory_size(nlft);
+   }
+   if (nlft_size < ncells){
+      if (nlft != NULL){
+         nlft = (int *)mesh_memory.memory_delete(nlft);
+         nrht = (int *)mesh_memory.memory_delete(nrht);
+         nbot = (int *)mesh_memory.memory_delete(nbot);
+         ntop = (int *)mesh_memory.memory_delete(ntop);
+      }
 
       nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
       nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
