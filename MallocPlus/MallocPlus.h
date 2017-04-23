@@ -54,6 +54,7 @@
 #define MALLOCPLUS_H_
 
 #include <list>
+#include <string.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -90,6 +91,14 @@ struct malloc_plus_memory_entry {
    size_t  mem_elsize;    //!< element size for type of data
    int     mem_flags;     //!< flags for special handling
    char   *mem_name;      //!< name of memory entry
+};
+
+struct cmp_str
+{
+   bool operator()(char const *a, char const *b)
+   {
+      return strcmp(a, b) < 0;
+   }
 };
 
 /****************************************************************//**
@@ -230,7 +239,7 @@ public:
  * capacity is increased.
  *
  * **Parameters**
- * * size_t capacit -- number of elements for new allocation
+ * * size_t capacity -- number of elements for new allocation
  *
  * Typical Usage
  *

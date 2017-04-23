@@ -278,6 +278,7 @@ void State::init(int do_gpu_calc)
 void State::allocate(size_t ncells)
 {
    int flags = 0;
+   flags = RESTART_DATA;
 #ifdef HAVE_J7
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
@@ -1173,6 +1174,7 @@ void State::calc_finite_difference(double deltaT){
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
    int flags = 0;
+   flags = RESTART_DATA;
 #if defined (HAVE_J7)
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
@@ -1755,6 +1757,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
    int flags = 0;
+   flags = RESTART_DATA;
 #if defined (HAVE_J7)
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
@@ -3599,10 +3602,11 @@ size_t State::get_checkpoint_size(void)
 
 void State::store_checkpoint(Crux *crux)
 {
+   // Store mesh data first
    mesh->store_checkpoint(crux);
 
+   // Load up scalar values
    long long long_vals[num_long_vals];
-
    long_vals[0] = CRUX_STATE_VERSION;
 
    crux->store_longs(long_vals, num_long_vals);
@@ -3623,8 +3627,10 @@ void State::store_checkpoint(Crux *crux)
 
 void State::restore_checkpoint(Crux *crux)
 {
+   // Restore mesh data first
    mesh->restore_checkpoint(crux);
 
+   // Create memory for restoring data into
    long long long_vals[num_long_vals];
 
    crux->restore_longs(long_vals, num_long_vals);
