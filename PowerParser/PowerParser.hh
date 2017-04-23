@@ -573,11 +573,11 @@ private:
     void wt_set_cmdsfp(int wtn);
     void wt_reset();
     void wt_casize(int wtn, int *wt_casize);
-    void wt_carray(int wtn, char *wt_ca, int wt_casize);
+    void wt_carray(int wtn, char *wt_ca);
 
     void wt_satsize(int wtn, int *wt_satsize);
-    void wt_getsat(int wtn, int *wt_sat, int wt_satsize);
-    void wt_setsat(int wtn, int *wt_sat, int wt_satsize);
+    void wt_getsat(int wtn, int *wt_sat);
+    void wt_setsat(int wtn, int *wt_sat);
     void wt_getprocessed(int wtn, int *wtp);
     void wt_setprocessed(int wtn, int wtp);
     void wt_getseq(int wtn, int *wtseq);
@@ -586,7 +586,7 @@ private:
     void chars_to_vstr(char *chars_1d, vector<string> &vstr,
                        int nv, int nchar);
     void vstr_to_chars(char *chars_1d, vector<string> &vstr,
-                       int nv, int nchar);
+                       int nchar);
 
 private:
 
@@ -622,8 +622,7 @@ private:
                        stringstream &ss);
     bool end_do_loop(int &i, deque<int> &do_start,
                      stringstream &serr, int &ierr);
-    void end_do_ret(int &i, deque<int> &do_start,
-                    stringstream &serr, int &ierr);
+    void end_do_ret(int &i, deque<int> &do_start);
     void check_enddo(deque<int> &do_start, stringstream &serr, int &ierr);
     void jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
                       stringstream &serr, int &ierr);

@@ -2,7 +2,6 @@
 *.lo
 *.a
 *.la
-Makefile
 .deps
 .libs
 config.log
@@ -16,3 +15,12 @@ CMakeCache.txt
 *.so
 lib*.so.*
 *.inc
+htmldoc.out
+pdfdoc.out
+singlehtmldoc.out
+_build
+CTestTestfile.cmake
+Testing
+Makefile
+[A-Z,a-c,e-z]*/Makefile
+[A-Z,a-c,e-z]*/[A-Z,a-c,e-z]*/Makefile

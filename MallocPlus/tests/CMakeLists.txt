@@ -24,7 +24,7 @@ target_link_libraries(MallocPlusTest MallocPlus)
 
 ################# check/test ##################
 
-add_test(NAME MallocPlusTest COMMAND MallocPlusTest)
+add_test(MallocPlusTest MallocPlusTest)
 
 set(CMAKE_CHECK_COMMAND ctest && cat Testing/Temporary/LastTest.log)
 

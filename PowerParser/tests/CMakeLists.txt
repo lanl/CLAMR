@@ -38,7 +38,7 @@ endif (GENMALLOC-FOUND)
 
 ################# check/test ##################
 
-add_test(NAME ParserTest COMMAND ParserTest)
+add_test(ParserTest ParserTest)
 
 set(CMAKE_CHECK_COMMAND ctest && cat Testing/Temporary/LastTest.log)
 

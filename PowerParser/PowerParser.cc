@@ -609,7 +609,7 @@ void PowerParser::compile_buffer()
         cmdi.handle_subroutines(skip, go_to_sub, sub_name, go_to_call,
                                 serr, ierr);
         if (go_to_call) {
-            end_do_ret(i, do_start, serr, ierr);
+            end_do_ret(i, do_start);
             jump_to_call(i, icall, isub, serr, ierr);
             continue;
         }
@@ -1035,8 +1035,7 @@ bool PowerParser::end_do_loop(int &i, deque<int> &do_start,
 // statement, finds any free enddo's and erases the corresponding references
 // to the do statements.
 // ===========================================================================
-void PowerParser::end_do_ret(int &i, deque<int> &do_start,
-                       stringstream &serr, int &ierr)
+void PowerParser::end_do_ret(int &i, deque<int> &do_start)
 {
     int istart = i;
     for (;;) {
@@ -2006,7 +2005,7 @@ void PowerParser::wt_casize(int wtn, int *wt_casize)
 
 // ===========================================================================
 // ===========================================================================
-void PowerParser::wt_carray(int wtn, char *wt_ca, int wt_casize)
+void PowerParser::wt_carray(int wtn, char *wt_ca)
 {
     string sc;
     whenthens[wtn-1].get_char_array(sc);
@@ -2026,7 +2025,7 @@ void PowerParser::wt_satsize(int wtn, int *wt_satsize)
 
 // ===========================================================================
 // ===========================================================================
-void PowerParser::wt_getsat(int wtn, int *wt_sat, int wt_satsize)
+void PowerParser::wt_getsat(int wtn, int *wt_sat)
 {
     whenthens[wtn-1].getsat(wt_sat);
 }
@@ -2034,7 +2033,7 @@ void PowerParser::wt_getsat(int wtn, int *wt_sat, int wt_satsize)
 
 // ===========================================================================
 // ===========================================================================
-void PowerParser::wt_setsat(int wtn, int *wt_sat, int wt_satsize)
+void PowerParser::wt_setsat(int wtn, int *wt_sat)
 {
     whenthens[wtn-1].setsat(wt_sat);
 }
@@ -2843,7 +2842,7 @@ void PowerParser::chars_to_vstr(char *chars_1d, vector<string> &vstr,
 //            C++ strings in this vector. The length of each C++ string will
 //            vary, whitespace is added to each C++ string to make its length
 //            nchar.
-// nv         Number of strings in chars_1d (input).
+//////// nv         Number of strings in chars_1d (input).
 // nchar      Number of characters in each string in chars_1d (input).
 //
 // Why would anyone want to do this?
@@ -2852,7 +2851,7 @@ void PowerParser::chars_to_vstr(char *chars_1d, vector<string> &vstr,
 // of strings and converts that to a packed character array.
 // ===========================================================================
 void PowerParser::vstr_to_chars(char *chars_1d, vector<string> &vstr,
-                          int nv, int nchar)
+                          int nchar)
 {
     // Loop through each string in the vector of strings.
     for (int strdex=0; strdex<(int)vstr.size(); strdex++) {

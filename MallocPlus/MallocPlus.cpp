@@ -515,13 +515,13 @@ void MallocPlus::memory_report(void){
    list<malloc_plus_memory_entry>::iterator it;
 
    for ( it=memory_list.begin(); it != memory_list.end(); it++){
-      printf("MallocPlus %10s ptr %p dims %d nelem (",
+      printf("MallocPlus %10s ptr %p dims %lu nelem (",
             it->mem_name,it->mem_ptr,it->mem_ndims);
 
       char nelemstring[80];
       char *str_ptr = nelemstring;
       str_ptr += sprintf(str_ptr,"%lu", it->mem_nelem[0]);
-      for (int i = 1; i < it->mem_ndims; i++){
+      for (uint i = 1; i < it->mem_ndims; i++){
          str_ptr += sprintf(str_ptr,", %lu", it->mem_nelem[i]);
       }
       printf("%12s",nelemstring);
@@ -924,18 +924,16 @@ bool MallocPlus::check_memory_attribute(void *malloc_mem_ptr, int attribute){
       if (DEBUG) printf("Testing it ptr %p ptr in %p name %s\n",it->mem_ptr,malloc_mem_ptr,it->mem_name);
       if (malloc_mem_ptr == it->mem_ptr) break;
    }
-   if (it != memory_list.end()){
-      if (DEBUG) printf("Found it ptr %p name %s attribute %d\n",it->mem_ptr,it->mem_name,it->mem_flags);
-      int iflag = it->mem_flags & attribute;
-      if (iflag){
-         return true;
-      } else {
-         return false;
-      }
-   } else {
+   if (it == memory_list.end()){
       printf("Error -- memory not found\n");
-      exit;
+      exit(1);
    }
+
+   if (DEBUG) printf("Found it ptr %p name %s attribute %d\n",it->mem_ptr,it->mem_name,it->mem_flags);
+   bool bvalue = false;
+   if (it->mem_flags & attribute) bvalue = true;
+
+   return bvalue;
 }
 
 void MallocPlus::set_memory_attribute(void *malloc_mem_ptr, int attribute){

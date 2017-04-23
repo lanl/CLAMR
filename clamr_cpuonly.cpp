@@ -123,6 +123,7 @@ void restore_crux_data(Crux *crux);
 bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
+            face_based,     //  Flag for face-based finite difference;
             outline;        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
             crux_type,      //  Type of checkpoint/restart -- CRUX_NONE, CRUX_IN_MEMORY, CRUX_DISK;
@@ -307,6 +308,7 @@ int main(int argc, char **argv) {
 #endif
 
    if (ncycle == next_graphics_cycle){
+      set_graphics_outline(outline);
       set_graphics_mysize(ncells);
       set_graphics_window((float)mesh->xmin, (float)mesh->xmax,
                           (float)mesh->ymin, (float)mesh->ymax);
@@ -390,7 +392,11 @@ extern "C" void do_calc(void)
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
       //  Execute main kernel
-      state->calc_finite_difference(deltaT);
+      if (face_based) {
+         state->calc_finite_difference_via_faces(deltaT);
+      } else {
+         state->calc_finite_difference(deltaT);
+      }
       
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       state->remove_boundary_cells();

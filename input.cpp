@@ -95,6 +95,7 @@ char progVers[8];       //  Program version.
 extern bool verbose,
             localStencil,
             outline,
+            face_based,
             dynamic_load_balance_on,
             restart;
 extern int  outputInterval,
@@ -133,12 +134,11 @@ void outputHelp()
          << "  -d                turn on LTTRACE;" << endl
          << "  -D                turn on dynamic load balancing using LTTRACE;" << endl
          << "  -e <E>            force hash_method, ie linear, quadratic..." <<endl          
+         << "      \"perfect\"" << endl
          << "      \"linear\"" << endl
          << "      \"quadratic\"" << endl
          << "      \"prime_jump\"" << endl
-         << "  -f <F>            force perfect or compact hash" <<endl          
-         << "      \"perfect\"" << endl
-         << "      \"compact\"" << endl
+         << "  -f                face-based finite difference;" << endl
          << "  -g <g>            specify I step between saving graphics information for post processing;" << endl
          << "  -G <G>            specify graphics file type for post processing;" << endl
          << "      \"bmp\"" << endl
@@ -214,6 +214,7 @@ void parseInput(const int argc, char** argv)
 #endif
     dynamic_load_balance_on = false;
     crux_type               = CRUX_NONE;
+    face_based              = false;
     restart                 = false;
     restart_file            = NULL;
     outputInterval          = OUTPUT_INTERVAL;
@@ -289,6 +290,10 @@ void parseInput(const int argc, char** argv)
                     } else if (! strcmp(val,"prime_jump") ) {
                        choose_hash_method = PRIME_JUMP;
                     }
+                    break;
+
+                case 'f':   // Use face-based finite difference
+                    face_based = true;
                     break;
                 
                 case 'g':   //  Save graphics data to files during simulation.
