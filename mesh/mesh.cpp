@@ -2744,6 +2744,12 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       } //  Complete refinement needed.
    } //  Complete addition of new cells to the mesh.
 
+   i     = (int *)mesh_memory.memory_replace(i_old,     i);
+   j     = (int *)mesh_memory.memory_replace(j_old,     j);
+   level = (int *)mesh_memory.memory_replace(level_old, level);
+
+   calc_celltype(new_ncells);
+
    if (have_state){
       MallocPlus state_memory_old = state_memory;
       list<malloc_plus_memory_entry>::iterator it;
@@ -3012,6 +3018,12 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       } //  Complete refinement needed.
    } //  Complete addition of new cells to the mesh.
 
+   i     = (int *)mesh_memory.memory_replace(i_old,     i);
+   j     = (int *)mesh_memory.memory_replace(j_old,     j);
+   level = (int *)mesh_memory.memory_replace(level_old, level);
+
+   calc_celltype(new_ncells);
+
    if (have_state){
       MallocPlus state_memory_old = state_memory;
       list<malloc_plus_memory_entry>::iterator it;
@@ -3127,12 +3139,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    // End of data parallel optimizations
 #endif
 
-   i     = (int *)mesh_memory.memory_replace(i_old,     i);
-   j     = (int *)mesh_memory.memory_replace(j_old,     j);
-   level = (int *)mesh_memory.memory_replace(level_old, level);
-
-
-   calc_celltype(new_ncells);
 
    nlft = (int *)mesh_memory.memory_delete(nlft);
    nrht = (int *)mesh_memory.memory_delete(nrht);
