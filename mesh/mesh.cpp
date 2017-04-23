@@ -2547,6 +2547,19 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    int new_ncells = ncells + add_ncells;
 
+   int ref_entry_count = 0;
+   if (have_state){
+      for (uint ic=0; ic<ncells; ic++) {
+         if (mpot[ic] > 0) ref_entry_count++;
+         if (mpot[ic] < 0) {
+            // Normal cell coarsening
+            if (is_lower_left(i[ic],j[ic]) ) mpot[ic] = -2;
+            // Boundary cell case
+            if (celltype[ic] != REAL_CELL && is_upper_right(i[ic],j[ic]) ) mpot[ic] = -3;
+         }
+      }
+   }
+
    //  Initialize new variables
    int flags = 0;
 #ifdef HAVE_J7
@@ -2612,7 +2625,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #ifdef REZONE_NO_OPTIMIZATION
    for (int ic = 0, nc = 0; ic < (int)ncells; ic++)
    {
-      if (mpot[ic] == 0)
+      if (mpot[ic] == 0 || mpot[ic] == -1000000)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
          i[nc]     = i_old[ic];
          j[nc]     = j_old[ic];
