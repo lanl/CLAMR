@@ -135,7 +135,7 @@ void ***gentrimatrix_p(int knum, int jnum, int inum, size_t elsize, const char *
    // Just to get rid of warning
    if (1 == 2) printf("Warning file %s line %d\n", file, line);
 
-   void ***out;
+   void ***out = NULL;
    if (elsize == 8) {
       out = (void ***)gentrimatrix_double_p(knum, jnum, inum, file, line);
    } else if (elsize == 4) {

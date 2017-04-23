@@ -141,7 +141,9 @@ extern bool localStencil;
 int calc_neighbor_type;
 bool dynamic_load_balance_on;
 
+#ifdef _OPENMP
 static bool iversion_flag = false;
+#endif
 
 static const char *mesh_timer_descriptor[MESH_TIMER_SIZE] = {
    "mesh_timer_count_BCs",
@@ -8352,7 +8354,7 @@ void Mesh::calc_face_list(void)
    jxadjust.resize(levmx+1);
 
    int iface=0;
-   for (uint nz=0; nz<ncells; nz++){
+   for (int nz=0; nz<(int)ncells; nz++){
       int nr = nrht[nz];
       if (nr == nz) continue;
 
@@ -8404,7 +8406,7 @@ void Mesh::calc_face_list(void)
    jyadjust.resize(levmx+1);
 
    iface=0;
-   for (uint nz=0; nz<ncells; nz++){
+   for (int nz=0; nz<(int)ncells; nz++){
       int nt = ntop[nz];
       if (nt == nz) continue;
 
@@ -8521,7 +8523,7 @@ void Mesh::calc_face_list_wmap(void)
    jxadjust.resize(levmx+1);
 
    int iface=0;
-   for (uint nz=0; nz<ncells; nz++){
+   for (int nz=0; nz<(int)ncells; nz++){
       int nr = nrht[nz];
       if (nr == nz) continue;
 
@@ -8578,7 +8580,7 @@ void Mesh::calc_face_list_wmap(void)
    jyadjust.resize(levmx+1);
 
    iface=0;
-   for (uint nz=0; nz<ncells; nz++){
+   for (int nz=0; nz<(int)ncells; nz++){
       int nt = ntop[nz];
       if (nt == nz) continue;
 
@@ -8706,7 +8708,7 @@ void Mesh::calc_face_list_wbidirmap(void)
    jxadjust.resize(levmx+1);
 
    int iface=0;
-   for (uint nz=0; nz<ncells; nz++){
+   for (int nz=0; nz<(int)ncells; nz++){
       int nr = nrht[nz];
       if (nr == nz) continue;
 
@@ -8743,7 +8745,7 @@ void Mesh::calc_face_list_wbidirmap(void)
    }
    nxface=iface;
 
-   for (uint nz=0; nz<ncells; nz++){
+   for (int nz=0; nz<(int)ncells; nz++){
       int nl = nlft[nz];
       if (nl == nz) continue;
 
@@ -8789,7 +8791,7 @@ void Mesh::calc_face_list_wbidirmap(void)
    jyadjust.resize(levmx+1);
 
    iface=0;
-   for (uint nz=0; nz<ncells; nz++){
+   for (int nz=0; nz<(int)ncells; nz++){
       int nt = ntop[nz];
       if (nt == nz) continue;
 
@@ -8827,7 +8829,7 @@ void Mesh::calc_face_list_wbidirmap(void)
    }
    nyface=iface;
 
-   for (uint nz=0; nz<ncells; nz++){
+   for (int nz=0; nz<(int)ncells; nz++){
       int nb = nbot[nz];
       if (nb == nz) continue;
 
