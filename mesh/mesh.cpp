@@ -2635,10 +2635,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       
       else if (mpot[ic] < 0)
       {  //  Coarsening is needed; remove this cell and the other three and replace them with one.
-         int doit = 0;
-         if (is_lower_left(i_old[ic],j_old[ic]) ) doit = 1;
-         if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) doit = 1;
-         if (doit){
+         if (mpot[ic] <= -2) {
             //printf("                     %d: DEBUG -- coarsening cell %d nc %d\n",mype,ic,nc);
             index[nc] = ic;
             i[nc] = i_old[ic]/2;
@@ -2766,7 +2763,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                   state_temp_double[nc] = mem_ptr_double[ic];
                   nc++;
                } else if (mpot[ic] < 0){
-                  if (is_lower_left(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -2) {
                      int nr = nrht[ic];
                      int nt = ntop[ic];
                      int nrt = nrht[nt];
@@ -2774,7 +2771,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                                               mem_ptr_double[nt] + mem_ptr_double[nrt])*0.25;
                      nc++;
                   }
-                  if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -3) {
                      int nl = nlft[ic];
                      int nb = nbot[ic];
                      int nlb = nlft[nb];
@@ -2816,7 +2813,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                   state_temp_float[nc] = mem_ptr_float[ic];
                   nc++;
                } else if (mpot[ic] < 0){
-                  if (is_lower_left(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -2) {
                      int nr = nrht[ic];
                      int nt = ntop[ic];
                      int nrt = nrht[nt];
@@ -2824,7 +2821,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                                              mem_ptr_float[nt] + mem_ptr_float[nrt])*0.25;
                      nc++;
                   }
-                  if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -3) {
                      int nl = nlft[ic];
                      int nb = nbot[ic];
                      int nlb = nlft[nb];
@@ -2871,10 +2868,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          if (mpot[ic] == 0) {
             add_count[ic] = 1;
          } else if (mpot[ic] < 0) {
-            int doit = 0;
-            if (is_lower_left(i_old[ic],j_old[ic]) ) doit = 1;
-            if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) doit = 1;
-            if (doit) {
+            if (mpot[ic] == -2){
                add_count[ic] = 1;
             } else {
                add_count[ic] = 0;
@@ -2907,10 +2901,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
       else if (mpot[ic] < 0)
       {  //  Coarsening is needed; remove this cell and the other three and replace them with one.
-         int doit = 0;
-         if (is_lower_left(i_old[ic],j_old[ic]) ) doit = 1;
-         if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) doit = 1;
-         if (doit){
+         if (mpot[ic] <= -2) {
             //printf("                     %d: DEBUG -- coarsening cell %d nc %d\n",mype,ic,nc);
             index[nc] = ic;
             i[nc] = i_old[ic]/2;
@@ -3043,14 +3034,14 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                if (mpot[ic] == 0) {
                   state_temp_double[nc] = mem_ptr_double[ic];
                } else if (mpot[ic] < 0){
-                  if (is_lower_left(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -2) {
                      int nr = nrht[ic];
                      int nt = ntop[ic];
                      int nrt = nrht[nt];
                      state_temp_double[nc] = (mem_ptr_double[ic] + mem_ptr_double[nr] +
                                               mem_ptr_double[nt] + mem_ptr_double[nrt])*0.25;
                   }
-                  if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -3) {
                      int nl = nlft[ic];
                      int nb = nbot[ic];
                      int nlb = nlft[nb];
@@ -3094,14 +3085,14 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
                if (mpot[ic] == 0) {
                   state_temp_float[nc] = mem_ptr_float[ic];
                } else if (mpot[ic] < 0){
-                  if (is_lower_left(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -2) {
                      int nr = nrht[ic];
                      int nt = ntop[ic];
                      int nrt = nrht[nt];
                      state_temp_float[nc] = (mem_ptr_float[ic] + mem_ptr_float[nr] +
                                              mem_ptr_float[nt] + mem_ptr_float[nrt])*0.25;
                   }
-                  if (celltype[ic] != REAL_CELL && is_upper_right(i_old[ic],j_old[ic]) ) {
+                  if (mpot[ic] == -3) {
                      int nl = nlft[ic];
                      int nb = nbot[ic];
                      int nlb = nlft[nb];
@@ -3435,7 +3426,7 @@ void Mesh::calc_neighbors(int ncells)
 #if defined (HAVE_J7)
    if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
-   if (mesh_memory.get_memory_size(nlft) < ncells){
+   if ((int)mesh_memory.get_memory_size(nlft) < ncells){
       if (nlft != NULL) nlft = (int *)mesh_memory.memory_delete(nlft);
       if (nrht != NULL) nrht = (int *)mesh_memory.memory_delete(nrht);
       if (nbot != NULL) nbot = (int *)mesh_memory.memory_delete(nbot);
@@ -7966,7 +7957,7 @@ void Mesh::print_object_info(void)
 
 
 void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int jfirst, int jlast,
-                                int level_first, int level_last, int *i, int *j, int *level)
+                                int level_first, int level_last, int *i_old, int *j_old, int *level_old)
 {
             if (localStencil) {
                //  Store the coordinates of the cells before and after this one on
@@ -7976,17 +7967,17 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
                spatial_t  nx[3],  //  x-coordinates of cells.
                           ny[3];  //  y-coordinates of cells.
                if (ic != 0) {
-                  nx[0] = lev_deltax[level[ic-1]] * (spatial_t)i[ic-1];
-                  ny[0] = lev_deltay[level[ic-1]] * (spatial_t)j[ic-1];
+                  nx[0] = lev_deltax[level_old[ic-1]] * (spatial_t)i[ic-1];
+                  ny[0] = lev_deltay[level_old[ic-1]] * (spatial_t)j[ic-1];
                } else {
                   nx[0] = lev_deltax[level_first] * (spatial_t)ifirst;
                   ny[0] = lev_deltay[level_first] * (spatial_t)jfirst;
                }
-               nx[1] = lev_deltax[level[ic  ]] * (spatial_t)i[ic  ];
-               ny[1] = lev_deltay[level[ic  ]] * (spatial_t)j[ic  ];
+               nx[1] = lev_deltax[level_old[ic  ]] * (spatial_t)i[ic  ];
+               ny[1] = lev_deltay[level_old[ic  ]] * (spatial_t)j[ic  ];
                if (ic != ncells-1) {
-                  nx[2] = lev_deltax[level[ic+1]] * (spatial_t)i[ic+1];
-                  ny[2] = lev_deltay[level[ic+1]] * (spatial_t)j[ic+1];
+                  nx[2] = lev_deltax[level_old[ic+1]] * (spatial_t)i[ic+1];
+                  ny[2] = lev_deltay[level_old[ic+1]] * (spatial_t)j[ic+1];
                } else {
                   nx[2] = lev_deltax[level_last] * (spatial_t)ilast;
                   ny[2] = lev_deltay[level_last] * (spatial_t)jlast;
@@ -8030,21 +8021,21 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
                    jr[3];   // First j index at finest level of the mesh
                // Cell's Radius at the Finest level of the mesh
 
-               int crf = IPOW2(levmx-level[ic]);
+               int crf = IPOW2(levmx-level_old[ic]);
 
                if (ic != 0) {
-                  ir[0] = i[ic - 1] * IPOW2(levmx-level[ic - 1]);
-                  jr[0] = j[ic - 1] * IPOW2(levmx-level[ic - 1]);
+                  ir[0] = i_old[ic - 1] * IPOW2(levmx-level_old[ic - 1]);
+                  jr[0] = j_old[ic - 1] * IPOW2(levmx-level_old[ic - 1]);
                } else {
                   //printf("%d cell %d is a first\n",mype,ic);
                   ir[0] = ifirst * IPOW2(levmx-level_first);
                   jr[0] = jfirst * IPOW2(levmx-level_first);
                }
-               ir[1] = i[ic    ] * IPOW2(levmx-level[ic    ]);
-               jr[1] = j[ic    ] * IPOW2(levmx-level[ic    ]);
+               ir[1] = i_old[ic    ] * IPOW2(levmx-level_old[ic    ]);
+               jr[1] = j_old[ic    ] * IPOW2(levmx-level_old[ic    ]);
                if (ic != (int)ncells-1) {
-                  ir[2] = i[ic + 1] * IPOW2(levmx-level[ic + 1]);
-                  jr[2] = j[ic + 1] * IPOW2(levmx-level[ic + 1]);
+                  ir[2] = i_old[ic + 1] * IPOW2(levmx-level_old[ic + 1]);
+                  jr[2] = j_old[ic + 1] * IPOW2(levmx-level_old[ic + 1]);
                } else {
                   //printf("%d cell %d is a last\n",mype,ic);
                   ir[2] = ilast * IPOW2(levmx-level_last);
@@ -8069,11 +8060,11 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
                   in_direction = 'B';
                }
                // Right In
-               else if( (dir_in == -crf && (djr_in == -crf*HALF || djr_in == 0 || (djr_in == crf && level[ic-1] < level[ic]))) ) {
+               else if( (dir_in == -crf && (djr_in == -crf*HALF || djr_in == 0 || (djr_in == crf && level_old[ic-1] < level_old[ic]))) ) {
                   in_direction = 'R';
                }
                // Top In
-               else if( (djr_in == -crf && (dir_in == -crf*HALF || dir_in == 0 || (dir_in == crf && level[ic-1] < level[ic]))) ) {
+               else if( (djr_in == -crf && (dir_in == -crf*HALF || dir_in == 0 || (dir_in == crf && level_old[ic-1] < level_old[ic]))) ) {
                   in_direction = 'T';
                }
                // Further from the left
@@ -8119,11 +8110,11 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
                   out_direction = 'B';
                }
                // Right Out
-               else if( (dir_out == -crf && (djr_out == -crf*HALF || djr_out == 0 || (djr_out == crf && level[ic+1] < level[ic]))) ) {
+               else if( (dir_out == -crf && (djr_out == -crf*HALF || djr_out == 0 || (djr_out == crf && level_old[ic+1] < level_old[ic]))) ) {
                   out_direction = 'R';
                }
                // Top Out
-               else if( (djr_out == -crf && (dir_out == -crf*HALF || dir_out == 0 || (dir_out == crf && level[ic+1] < level[ic]))) ) {
+               else if( (djr_out == -crf && (dir_out == -crf*HALF || dir_out == 0 || (dir_out == crf && level_old[ic+1] < level_old[ic]))) ) {
                   out_direction = 'T';
                }
                // Further from the left
