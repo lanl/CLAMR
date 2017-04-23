@@ -376,7 +376,6 @@ void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Data
 void State::add_boundary_cells(void)
 {
    struct timeval tstart_cpu;
-
    cpu_timer_start(&tstart_cpu);
 
    // This is for a mesh with no boundary cells -- they are added and
@@ -1028,14 +1027,22 @@ void State::state_reorder(vector<int> iorder)
 
 void State::rezone_all(int icount, int jcount, vector<int> mpot)
 {
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
    mesh->rezone_all(icount, jcount, mpot, 1, state_memory);
    memory_reset_ptrs();
+
+   cpu_timers[STATE_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
 }
 
 
 #ifdef HAVE_OPENCL
 void State::gpu_rezone_all(int icount, int jcount, bool localStencil)
 {
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
    // Just to get rid of compiler warnings
    if (1 == 2) printf("DEBUG -- localStencil is %d\n",localStencil);
 
@@ -1043,6 +1050,8 @@ void State::gpu_rezone_all(int icount, int jcount, bool localStencil)
    dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H");
    dev_U = (cl_mem)gpu_state_memory.get_memory_ptr("dev_U");
    dev_V = (cl_mem)gpu_state_memory.get_memory_ptr("dev_V");
+
+   gpu_timers[STATE_TIMER_REZONE_ALL] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 }
 #endif
 
@@ -1978,13 +1987,13 @@ void State::calc_finite_difference_via_faces(double deltaT){
       real_t dric    = dxic;
 
       int nltl = 0;
-      real_t Hlt = 0.0, Ult = 0.0, Vlt = 0.0;
+      real_t Hlt = 0.0, Ult = 0.0; // Vlt = 0.0;
       real_t Hll2 = 0.0;
       real_t Ull2 = 0.0;
       if(lvl < level[nl]) {
          Hlt  = H[ ntop[nl] ];
          Ult  = U[ ntop[nl] ];
-         Vlt  = V[ ntop[nl] ];
+         //Vlt  = V[ ntop[nl] ];
 
          nltl = nlft[nlt];
          Hll2 = H[nltl];
@@ -1992,13 +2001,13 @@ void State::calc_finite_difference_via_faces(double deltaT){
       }
 
       int nrtr = 0;
-      real_t Hrt = 0.0, Urt = 0.0, Vrt = 0.0;
+      real_t Hrt = 0.0, Urt = 0.0; // Vrt = 0.0;
       real_t Hrr2 = 0.0;
       real_t Urr2 = 0.0;
       if(lvl < level[nr]) {
          Hrt  = H[ ntop[nr] ];
          Urt  = U[ ntop[nr] ];
-         Vrt  = V[ ntop[nr] ];
+         //Vrt  = V[ ntop[nr] ];
 
          nrtr = nrht[nrt];
          Hrr2 = H[nrtr];
@@ -2006,12 +2015,12 @@ void State::calc_finite_difference_via_faces(double deltaT){
       }
 
       int nbrb = 0;
-      real_t Hbr = 0.0, Ubr = 0.0, Vbr = 0.0;
+      real_t Hbr = 0.0, Vbr = 0.0; // Ubr = 0.0
       real_t Hbb2 = 0.0;
       real_t Vbb2 = 0.0;
       if(lvl < level[nb]) {
          Hbr  = H[ nrht[nb] ];
-         Ubr  = U[ nrht[nb] ];
+         //Ubr  = U[ nrht[nb] ];
          Vbr  = V[ nrht[nb] ];
 
          nbrb = nbot[nbr];
@@ -2020,12 +2029,12 @@ void State::calc_finite_difference_via_faces(double deltaT){
       }
 
       int ntrt = 0;
-      real_t Htr = 0.0, Utr = 0.0, Vtr = 0.0;
+      real_t Htr = 0.0, Vtr = 0.0; // Utr = 0.0
       real_t Htt2 = 0.0;
       real_t Vtt2 = 0.0;
       if(lvl < level[nt]) {
          Htr  = H[ nrht[nt] ];
-         Utr  = U[ nrht[nt] ];
+         //Utr  = U[ nrht[nt] ];
          Vtr  = V[ nrht[nt] ];
 
          ntrt = ntop[ntr];
@@ -3281,7 +3290,7 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_el
       cpu_time_compute = get_cpu_timer(STATE_TIMER_SET_TIMESTEP) +
                          get_cpu_timer(STATE_TIMER_FINITE_DIFFERENCE) +
                          get_cpu_timer(STATE_TIMER_REFINE_POTENTIAL) +
-                         mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
+                         get_cpu_timer(STATE_TIMER_REZONE_ALL) +
                          mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
                          mesh->get_cpu_timer(MESH_TIMER_LOAD_BALANCE) +
                          get_cpu_timer(STATE_TIMER_MASS_SUM) +
@@ -3289,7 +3298,7 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_el
                          mesh->get_cpu_timer(MESH_TIMER_PARTITION);
       cpu_elapsed_time = cpu_time_compute;
       cpu_mesh_time = mesh->get_cpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
-                      mesh->get_cpu_timer(MESH_TIMER_REZONE_ALL) +
+                      get_cpu_timer(STATE_TIMER_REZONE_ALL) +
                       mesh->get_cpu_timer(MESH_TIMER_REFINE_SMOOTH) +
                       mesh->get_cpu_timer(MESH_TIMER_LOAD_BALANCE);
    }
@@ -3298,7 +3307,7 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_el
                          get_gpu_timer(STATE_TIMER_SET_TIMESTEP) +
                          get_gpu_timer(STATE_TIMER_FINITE_DIFFERENCE) +
                          get_gpu_timer(STATE_TIMER_REFINE_POTENTIAL) +
-                         mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) +
+                         get_gpu_timer(STATE_TIMER_REZONE_ALL) +
                          mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
                          mesh->get_gpu_timer(MESH_TIMER_LOAD_BALANCE) +
                          get_gpu_timer(STATE_TIMER_MASS_SUM) +
@@ -3306,7 +3315,7 @@ void State::output_timing_info(int do_cpu_calc, int do_gpu_calc, double total_el
                          mesh->get_gpu_timer(MESH_TIMER_COUNT_BCS);
       gpu_elapsed_time = get_gpu_timer(STATE_TIMER_WRITE) + gpu_time_compute + get_gpu_timer(STATE_TIMER_READ);
       gpu_mesh_time = mesh->get_gpu_timer(MESH_TIMER_CALC_NEIGHBORS) +
-                      mesh->get_gpu_timer(MESH_TIMER_REZONE_ALL) +
+                      get_gpu_timer(STATE_TIMER_REZONE_ALL) +
                       mesh->get_gpu_timer(MESH_TIMER_REFINE_SMOOTH) +
                       mesh->get_gpu_timer(MESH_TIMER_LOAD_BALANCE);
    }
@@ -3375,7 +3384,7 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
    timer_output(STATE_TIMER_REFINE_POTENTIAL,              device_type, 1);
    timer_output(STATE_TIMER_CALC_MPOT,                     device_type, 2);
    mesh->timer_output(MESH_TIMER_REFINE_SMOOTH,            device_type, 2);
-   mesh->timer_output(MESH_TIMER_REZONE_ALL,               device_type, 1);
+   timer_output(STATE_TIMER_REZONE_ALL,                    device_type, 1);
    mesh->timer_output(MESH_TIMER_PARTITION,                device_type, 1);
    mesh->timer_output(MESH_TIMER_CALC_NEIGHBORS,           device_type, 1);
    if (mesh->get_calc_neighbor_type() == HASH_TABLE) {

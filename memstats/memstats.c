@@ -215,9 +215,10 @@ long long memstats_memfree(){
    mach_port_t mach_port;
    mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
 
+   mach_port = mach_host_self();
    host_page_size(mach_port, &page_size);
-   vm_statistics_data_t vmstat;
-   host_statistics (mach_host_self (), HOST_VM_INFO, (host_info_t) &vmstat, &count);
+   vm_statistics64_data_t vmstat;
+   host_statistics64 (mach_host_self (), HOST_VM_INFO, (host_info_t) &vmstat, &count);
 
    freemem = vmstat.free_count*page_size/1024;
 #else

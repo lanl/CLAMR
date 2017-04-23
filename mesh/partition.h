@@ -70,6 +70,7 @@ enum partition_method {
 };
 
 enum partition_measure {
+   NO_PARTITION_MEASURE,
    WITH_DUPLICATES,
    WITHOUT_DUPLICATES,
    CVALUE,

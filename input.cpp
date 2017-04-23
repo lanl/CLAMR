@@ -224,7 +224,8 @@ void parseInput(const int argc, char** argv)
     ny                      = COARSE_GRID_RES;
     niter                   = MAX_TIME_STEP;
     neighbor_remap          = true;
-    measure_type            = CSTARVALUE;
+    //measure_type            = CSTARVALUE;
+    measure_type            = NO_PARTITION_MEASURE;
     calc_neighbor_type      = HASH_TABLE;
     choose_hash_method      = METHOD_UNSET;
     initial_order           = HILBERT_SORT;
@@ -357,7 +358,9 @@ void parseInput(const int argc, char** argv)
                     
                 case 'm':   //  partition measure specified.
                     val = strtok(argv[i++], " ,");
-                    if (! strcmp(val,"with_duplicates") ) {
+                    if (! strcmp(val,"no_partition_measure") ) {
+                       measure_type = NO_PARTITION_MEASURE;
+                    } else if (! strcmp(val,"with_duplicates") ) {
                        measure_type = WITH_DUPLICATES;
                     } else if (! strcmp(val,"without_duplicates") ) {
                        measure_type = WITHOUT_DUPLICATES;

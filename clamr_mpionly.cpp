@@ -54,9 +54,6 @@
  * 
  */
 
-#include "mesh/mesh.h"
-#include "mesh/partition.h"
-
 #include <algorithm>
 #include <math.h>
 #include <stdio.h>
@@ -64,16 +61,22 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <vector>
+#include "graphics/display.h"
+#include "graphics/graphics.h"
 #include "input.h"
+#include "mesh/mesh.h"
+#include "mesh/partition.h"
 #include "state.h"
 #include "l7/l7.h"
 #include "timer/timer.h"
 #include "memstats/memstats.h"
+#include "PowerParser/PowerParser.hh"
+
+using namespace PP;
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#include "graphics/display.h"
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -84,11 +87,10 @@ static int do_gpu_calc = 0;
 
 typedef unsigned int uint;
 
+static bool do_display_graphics = false;
+
 #ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
-
-static int view_mode = 0;
-
 #ifdef FULL_PRECISION
    void (*set_display_cell_coordinates)(double *, double *, double *, double *) = &set_display_cell_coordinates_double;
    void (*set_display_cell_data)(double *) = &set_display_cell_data_double;
@@ -96,7 +98,18 @@ static int view_mode = 0;
    void (*set_display_cell_coordinates)(float *, float *, float *, float *) = &set_display_cell_coordinates_float;
    void (*set_display_cell_data)(float *) = &set_display_cell_data_float;
 #endif
+#endif
 
+static int view_mode = 0;
+
+#ifdef FULL_PRECISION
+#define  SUM_ERROR 2.0e-16
+   void (*set_graphics_cell_coordinates)(double *, double *, double *, double *) = &set_graphics_cell_coordinates_double;
+   void (*set_graphics_cell_data)(double *) = &set_graphics_cell_data_double;
+#else
+#define  SUM_ERROR 1.0e-8
+   void (*set_graphics_cell_coordinates)(float *, float *, float *, float *) = &set_graphics_cell_coordinates_float;
+   void (*set_graphics_cell_data)(float *) = &set_graphics_cell_data_float;
 #endif
 
 bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
@@ -113,8 +126,8 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
             levmx,          //  Maximum number of refinement levels; init in input.cpp::parseInput().
             nx,             //  x-resolution of coarse grid; init in input.cpp::parseInput().
             ny,             //  y-resolution of coarse grid; init in input.cpp::parseInput().
-            niter,          //  Maximum time step; init in input.cpp::parseInput().
-            graphic_outputInterval, // Periocity of graphic output that is saved; init in input.cpp::parseInput()
+            niter,          //  Maximum iterations; init in input.cpp::parseInput().
+            graphic_outputInterval, // Periodicity of graphic output that is saved; init in input.cpp::parseInput()
             checkpoint_outputInterval, // Periodicity of checkpoint output that is saved; init in input.cpp::parseInput()
             num_of_rollback_states,// Maximum number of rollback states to maintain; init in input.cpp::parseInput()
             backup_file_num,//  Backup file number to restart simulation from; init in input.cpp::parseInput()
@@ -127,8 +140,9 @@ char *restart_file;
 
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.
-static Mesh       *mesh;     //  Object containing mesh information; init in grid.cpp::main().
-static State      *state;    //  Object containing state information corresponding to mesh; init in grid.cpp::main().
+static Mesh        *mesh;           //  Object containing mesh information
+static State       *state;          //  Object containing state information corresponding to mesh
+static PowerParser *parse;          //  Object containing input file parsing
 
 //  Set up timing information.
 static struct timeval tstart;
@@ -185,6 +199,11 @@ int main(int argc, char **argv) {
       }
    }
 #endif
+
+   parse = new PowerParser();
+
+   //  Process command-line arguments, if any.
+   parseInput(argc, argv);
 
    if (DEBUG) {
       //if (mype == 0) mesh->print();
@@ -298,6 +317,7 @@ int main(int argc, char **argv) {
    set_display_cell_proc(&proc_global[0]);
 #endif
 #ifdef HAVE_MPE
+   do_display_graphics = true;
    set_display_mysize(ncells);
    set_display_cell_data(&state->H[0]);
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
@@ -439,6 +459,9 @@ extern "C" void do_calc(void)
 
    cpu_timer_start(&tstart_cpu);
 
+   if(do_display_graphics || ncycle == next_graphics_cycle){
+      mesh->calc_spatial_coordinates(0);
+   }
 #ifdef HAVE_MPE
    set_display_mysize(ncells);
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);

@@ -63,9 +63,6 @@
 #include <vector>
 #include "graphics/display.h"
 #include "graphics/graphics.h"
-#ifdef HAVE_OPENCL
-#include "ezcl/ezcl.h"
-#endif
 #include "input.h"
 #include "mesh/mesh.h"
 #include "mesh/partition.h"
@@ -81,17 +78,19 @@ using namespace PP;
 #include <omp.h>
 #endif
 
-#ifndef DEBUG 
+#ifndef DEBUG
 #define DEBUG 0
 #endif
 #undef DEBUG_RESTORE_VALS
 
 #define MIN3(x,y,z) ( min( min(x,y), z) )
 
-static int do_gpu_calc = 0;
 static int do_cpu_calc = 1;
+static int do_gpu_calc = 0;
 
 typedef unsigned int uint;
+
+static bool do_display_graphics = false;
 
 #ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
@@ -160,10 +159,14 @@ static int next_cp_cycle = 0;
 static int next_graphics_cycle = 0;
 
 //  Set up timing information.
-static struct timeval tstart;
+static struct timeval tstart, tstart_cpu, tstart_partmeas;
+//static struct tstart_check;
 
-static double  H_sum_initial = 0.0;
-static double  cpu_time_graphics = 0.0;
+static double H_sum_initial = 0.0;
+static double cpu_time_graphics = 0.0;
+static double cpu_time_calcs    = 0.0;
+static double cpu_time_partmeas = 0.0;
+//static double cpu_time_check    = 0.0;
 
 static int     ncycle  = 0;
 static double  simTime = 0.0;
@@ -287,12 +290,14 @@ int main(int argc, char **argv) {
       mesh->cpu_timers[i]=0.0;
    }   
 
+   cpu_timer_start(&tstart_cpu);
    //  Set up grid.
 #ifdef GRAPHICS_OUTPUT
    mesh->write_grid(n);
 #endif
 
 #ifdef HAVE_GRAPHICS
+   do_display_graphics = true;
    set_display_mysize(ncells);
    set_display_window((float)mesh->xmin, (float)mesh->xmax,
                       (float)mesh->ymin, (float)mesh->ymax);
@@ -330,6 +335,7 @@ int main(int argc, char **argv) {
    //  Clear superposition of circle on grid output.
    circle_radius = -1.0;
 #endif
+   cpu_time_graphics += cpu_timer_stop(tstart_cpu);
 
    //  Set flag to show mesh results rather than domain decomposition.
    view_mode = 1;
@@ -341,7 +347,7 @@ int main(int argc, char **argv) {
    set_idle_function(&do_calc);
    start_main_loop();
 #else
-   for (int it = ncycle; it < 10000000; it++) {
+   for (it = ncycle; it < 10000000; it++) {
       do_calc();
    }
 #endif
@@ -361,24 +367,25 @@ extern "C" void do_calc(void)
 
    vector<int>     mpot;
    
-   //size_t old_ncells = ncells;
    size_t new_ncells = 0;
    double H_sum = -1.0;
 
    //  Main loop.
    int endcycle = MIN3(niter, next_cp_cycle, next_graphics_cycle);
 
-   for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
+   cpu_timer_start(&tstart_cpu);
 
-      //old_ncells = ncells;
+   for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
       //  Calculate the real time step for the current discrete time step.
       deltaT = state->set_timestep(g, sigma);
       simTime += deltaT;
-      
+
       mesh->calc_neighbors(ncells);
 
+      cpu_timer_start(&tstart_partmeas);
       mesh->partition_measure();
+      cpu_time_partmeas += cpu_timer_stop(tstart_partmeas);
 
       // Currently not working -- may need to be earlier?
       //if (do_cpu_calc && ! mesh->have_boundary) {
@@ -393,7 +400,7 @@ extern "C" void do_calc(void)
       } else {
          state->calc_finite_difference(deltaT);
       }
-      
+
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       state->remove_boundary_cells();
       
@@ -413,6 +420,7 @@ extern "C" void do_calc(void)
       mesh->ncells = new_ncells;
       ncells = new_ncells;
 
+   //cpu_timer_start(&tstart_check);
       mesh->proc.resize(ncells);
       if (icount)
       {  vector<int> index(ncells);
@@ -420,9 +428,12 @@ extern "C" void do_calc(void)
          state->state_reorder(index);
          state->memory_reset_ptrs();
       }
+   //cpu_time_check += cpu_timer_stop(tstart_check);
       
       mesh->ncells = ncells;
-   }
+   } // End burst loop
+
+   cpu_time_calcs += cpu_timer_stop(tstart_cpu);
 
    H_sum = state->mass_sum(enhanced_precision_sum);
 
@@ -487,9 +498,20 @@ extern "C" void do_calc(void)
       }
    }
 
+   if (ncycle % outputInterval == 0) {
+      printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
+         ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
+   }
+
+   if (ncycle == next_cp_cycle) store_crux_data(crux, ncycle); 
+
+   cpu_timer_start(&tstart_cpu);
+
+   if(do_display_graphics || ncycle == next_graphics_cycle){
+      mesh->calc_spatial_coordinates(0);
+   }
 
    if(ncycle == next_graphics_cycle){
-      mesh->calc_spatial_coordinates(0);
       set_graphics_mysize(ncells);
       set_graphics_viewmode(view_mode);
       set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
@@ -500,21 +522,9 @@ extern "C" void do_calc(void)
       next_graphics_cycle += graphic_outputInterval;
    }
 
-   if (ncycle == next_cp_cycle) store_crux_data(crux, ncycle); 
-
-   if (ncycle % outputInterval == 0) {
-      printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
-         ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
-   }
-
-   struct timeval tstart_cpu;
-   cpu_timer_start(&tstart_cpu);
-
 #ifdef HAVE_GRAPHICS
    if(ncycle % outputInterval == 0){
       if(ncycle != next_graphics_cycle){
-         mesh->calc_spatial_coordinates(0);
-
          set_display_mysize(ncells);
          set_display_viewmode(view_mode);
          set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
@@ -524,6 +534,7 @@ extern "C" void do_calc(void)
       set_display_circle_radius(circle_radius);
       draw_scene();
    }
+
 #endif
 
    cpu_time_graphics += cpu_timer_stop(tstart_cpu);
@@ -531,9 +542,9 @@ extern "C" void do_calc(void)
    //  Output final results and timing information.
    if (ncycle >= niter) {
       //free_display();
-      //state->print();
       
       if(graphic_outputInterval < niter){
+         cpu_timer_start(&tstart_cpu);
 
          mesh->calc_spatial_coordinates(0);
 #ifdef HAVE_GRAPHICS
@@ -546,6 +557,8 @@ extern "C" void do_calc(void)
 
          write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
          next_graphics_cycle += graphic_outputInterval;
+
+         cpu_time_graphics += cpu_timer_stop(tstart_cpu);
       }
 
       //  Get overall program timing.
@@ -559,7 +572,11 @@ extern "C" void do_calc(void)
          printf("Memory available %lld kB\n",memstats_memtotal());
       }
       state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
-      mesh->parallel_output("CPU:  graphics                 time was",cpu_time_graphics, 0, "s");
+      mesh->parallel_output("CPU:  calc incl part meas     time was",cpu_time_calcs,    0, "s");
+      mesh->parallel_output("CPU:  calculation only        time was",cpu_time_calcs-cpu_time_partmeas,    0, "s");
+      mesh->parallel_output("CPU:  partition measure       time was",cpu_time_partmeas, 0, "s");
+      mesh->parallel_output("CPU:  graphics                time was",cpu_time_graphics, 0, "s");
+      //mesh->parallel_output("CPU:  check                   time was",cpu_time_check,    0, "s");
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
