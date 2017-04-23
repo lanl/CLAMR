@@ -1929,7 +1929,6 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
       cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"),  &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_ptr;
 
       int newcount = icount;
       int newcount_global = icount_global;
@@ -1945,7 +1944,7 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
 #endif
 
          if (icount_global) {
-            SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
+            ezcl_device_memory_swap(&dev_mpot_old, &dev_mpot);
 
             ezcl_set_kernel_arg(kernel_refine_smooth, 0, sizeof(cl_int),  (void *)&ncells);
             ezcl_set_kernel_arg(kernel_refine_smooth, 1, sizeof(cl_int),  (void *)&ncells_ghost);
@@ -1999,10 +1998,9 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
 #endif
 
       cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_ptr;
 
       if (jcount) {
-         SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
+         ezcl_device_memory_swap(&dev_mpot_old, &dev_mpot);
 
          ezcl_set_kernel_arg(kernel_coarsen_smooth, 0, sizeof(cl_int),  (void *)&ncells);
          ezcl_set_kernel_arg(kernel_coarsen_smooth, 1, sizeof(cl_mem),  (void *)&dev_nlft);
@@ -2029,7 +2027,7 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
          cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"),  &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-         SWAP_PTR(dev_mpot, dev_mpot_old, dev_ptr);
+         ezcl_device_memory_swap(&dev_mpot_old, &dev_mpot);
 
          ezcl_set_kernel_arg(kernel_coarsen_check_block, 0, sizeof(cl_int),  (void *)&ncells);
          ezcl_set_kernel_arg(kernel_coarsen_check_block, 1, sizeof(cl_mem),  (void *)&dev_nlft);
@@ -3476,12 +3474,10 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
       resize_old_device_memory(new_ncells);
    }
 
-   cl_mem dev_ptr;
-
-   SWAP_PTR(dev_celltype_new, dev_celltype, dev_ptr);
-   SWAP_PTR(dev_level_new,    dev_level,    dev_ptr);
-   SWAP_PTR(dev_i_new,        dev_i,        dev_ptr);
-   SWAP_PTR(dev_j_new,        dev_j,        dev_ptr);
+   ezcl_device_memory_swap(&dev_celltype, &dev_celltype_new);
+   ezcl_device_memory_swap(&dev_level, &dev_level_new);
+   ezcl_device_memory_swap(&dev_i, &dev_i_new);
+   ezcl_device_memory_swap(&dev_j, &dev_j_new);
 
    ezcl_device_memory_delete(dev_mpot);
    ezcl_device_memory_delete(dev_ijadd);
@@ -6314,8 +6310,7 @@ void Mesh::gpu_calc_neighbors_local(void)
       ezcl_set_kernel_arg(kernel_calc_border_cells2, 11,  local_work_size*sizeof(cl_int), NULL);
       ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_border_cells2, 1, NULL, &global_work_size, &local_work_size, NULL); 
 
-      cl_mem dev_tmp;
-      SWAP_PTR(dev_border_cell, dev_border_cell_new, dev_tmp);
+      ezcl_device_memory_swap(&dev_border_cell, &dev_border_cell_new);
       ezcl_device_memory_delete(dev_border_cell_new);
 
       int group_size = (int)(global_work_size/local_work_size);
@@ -6698,9 +6693,9 @@ void Mesh::gpu_calc_neighbors_local(void)
 
       ezcl_device_memory_delete(dev_border_cell_num);
 
-      SWAP_PTR(dev_border_cell_i_new, dev_border_cell_i, dev_tmp);
-      SWAP_PTR(dev_border_cell_j_new, dev_border_cell_j, dev_tmp);
-      SWAP_PTR(dev_border_cell_level_new, dev_border_cell_level, dev_tmp);
+      ezcl_device_memory_swap(&dev_border_cell_i,     &dev_border_cell_i_new);
+      ezcl_device_memory_swap(&dev_border_cell_j,     &dev_border_cell_j_new);
+      ezcl_device_memory_swap(&dev_border_cell_level, &dev_border_cell_level_new);
 
       size_t nbp_local_work_size = 128;
       size_t nbp_global_work_size = ((nbpacked + nbp_local_work_size - 1) /nbp_local_work_size) * nbp_local_work_size;
@@ -6816,14 +6811,14 @@ void Mesh::gpu_calc_neighbors_local(void)
          cl_mem dev_nbot_old     = ezcl_malloc(NULL, const_cast<char *>("dev_nbot_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
          cl_mem dev_ntop_old     = ezcl_malloc(NULL, const_cast<char *>("dev_ntop_old"),     &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-         SWAP_PTR(dev_celltype_old, dev_celltype, dev_tmp);
-         SWAP_PTR(dev_i_old,        dev_i,        dev_tmp);
-         SWAP_PTR(dev_j_old,        dev_j,        dev_tmp);
-         SWAP_PTR(dev_level_old,    dev_level,    dev_tmp);
-         SWAP_PTR(dev_nlft_old,     dev_nlft,     dev_tmp);
-         SWAP_PTR(dev_nrht_old,     dev_nrht,     dev_tmp);
-         SWAP_PTR(dev_nbot_old,     dev_nbot,     dev_tmp);
-         SWAP_PTR(dev_ntop_old,     dev_ntop,     dev_tmp);
+         ezcl_device_memory_swap(&dev_celltype_old, &dev_celltype);
+         ezcl_device_memory_swap(&dev_i_old,        &dev_i       );
+         ezcl_device_memory_swap(&dev_j_old,        &dev_j       );
+         ezcl_device_memory_swap(&dev_level_old,    &dev_level   );
+         ezcl_device_memory_swap(&dev_nlft_old,     &dev_nlft    );
+         ezcl_device_memory_swap(&dev_nrht_old,     &dev_nrht    );
+         ezcl_device_memory_swap(&dev_nbot_old,     &dev_nbot    );
+         ezcl_device_memory_swap(&dev_ntop_old,     &dev_ntop    );
 
          cl_event copy_mesh_data_event;
 
@@ -7964,12 +7959,10 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
          ezcl_device_memory_delete(dev_celltype_upper);
       }
 
-      cl_mem dev_ptr = NULL;
-
-      SWAP_PTR(dev_i_new, dev_i, dev_ptr);
-      SWAP_PTR(dev_j_new, dev_j, dev_ptr);
-      SWAP_PTR(dev_level_new, dev_level, dev_ptr);
-      SWAP_PTR(dev_celltype_new, dev_celltype, dev_ptr);
+      ezcl_device_memory_swap(&dev_i_new,        &dev_i);
+      ezcl_device_memory_swap(&dev_j_new,        &dev_j);
+      ezcl_device_memory_swap(&dev_level_new,    &dev_level);
+      ezcl_device_memory_swap(&dev_celltype_new, &dev_celltype);
 
       ezcl_device_memory_delete(dev_i_new);
       ezcl_device_memory_delete(dev_j_new);

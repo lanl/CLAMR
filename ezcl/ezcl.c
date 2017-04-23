@@ -115,7 +115,7 @@ struct device_memory_entry {
    int    line;
    char   file[41];
    SLIST_ENTRY(device_memory_entry) device_memory_entries;
-} *device_memory_item;
+} *device_memory_item, *device_memory_item_old, *device_memory_item_new;
 
 SLIST_HEAD(slist_mapped_memory_head, mapped_memory_entry) mapped_memory_head = SLIST_HEAD_INITIALIZER(mapped_memory_head);
 struct slist_mapped_memory_head *mapped_memory_headp;
@@ -941,6 +941,30 @@ void *ezcl_malloc_memory_add_p(void *malloc_mem_ptr, const char *name, size_t si
    SLIST_INSERT_HEAD(&malloc_memory_head, malloc_memory_item, malloc_memory_entries);
 
    return(malloc_mem_ptr);
+}
+
+void ezcl_device_memory_swap_p(cl_mem *dev_mem_ptr_old, cl_mem *dev_mem_ptr_new, const char *file, const int line){
+   if (*dev_mem_ptr_old == NULL || *dev_mem_ptr_new == NULL) {
+      printf(" Error with dev_mem_ptr in ezcl_device_memory_swap from file %s line %d\n",file,line);
+   }
+   SLIST_FOREACH(device_memory_item_old, &device_memory_head, device_memory_entries){
+      if (device_memory_item_old->cl_mem_ptr == *dev_mem_ptr_old) {
+         break;
+      }
+   }
+   SLIST_FOREACH(device_memory_item_new, &device_memory_head, device_memory_entries){
+      if (device_memory_item_new->cl_mem_ptr == *dev_mem_ptr_new) {
+         break;
+      }
+   }
+   char   name_tmp[31];
+   strncpy(name_tmp,device_memory_item_old->name,31);
+   strncpy(device_memory_item_old->name,device_memory_item_new->name,31);
+   strncpy(device_memory_item_new->name,name_tmp,31);
+
+   cl_mem dev_mem_ptr_tmp = *dev_mem_ptr_old;
+          *dev_mem_ptr_old = *dev_mem_ptr_new;
+          *dev_mem_ptr_new = dev_mem_ptr_tmp;
 }
 
 void ezcl_device_memory_delete_p(void *dev_mem_ptr, const char *file, const int line){
