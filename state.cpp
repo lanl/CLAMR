@@ -65,24 +65,6 @@
 #include <mpi.h>
 #endif
 
-#ifdef HAVE_REPROBLAS
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-#ifdef HAVE_MPI
-#ifdef OMPI_MPI_H
-#define OMPI_SKIP_MPICXX
-#endif
-#include <MPIndexedFP.h>
-#else
-#include <IndexedFP.h>
-#endif
-#ifdef __cplusplus
-}
-#endif
-#endif
-
 #undef DEBUG
 //#define DEBUG 0
 #undef DEBUG_RESTORE_VALS
@@ -154,9 +136,9 @@ struct esum_type{
 };
 #ifdef HAVE_MPI
 MPI_Datatype MPI_TWO_DOUBLES;
-MPI_Op KAHAN_SUM;
+MPI_Op KNUTH_SUM;
 int commutative = 1;
-void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES);
+void knuth_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES);
 #endif
 
 int save_ncells;
@@ -250,13 +232,10 @@ State::State(Mesh *mesh_in)
    if (mpi_init){
       MPI_Type_contiguous(2, MPI_DOUBLE, &MPI_TWO_DOUBLES);
       MPI_Type_commit(&MPI_TWO_DOUBLES);
-      MPI_Op_create((MPI_User_function *)kahan_sum, commutative, &KAHAN_SUM);
+      MPI_Op_create((MPI_User_function *)knuth_sum, commutative, &KNUTH_SUM);
       // FIXME add fini and set size
       if (mesh->parallel) state_memory.pinit(MPI_COMM_WORLD, 2L * 1024 * 1024 * 1024);
    }
-#ifdef HAVE_REPROBLAS
-   RMPI_Init(); // Initialize Reproducible MPI
-#endif
 #endif
 }
 
@@ -360,14 +339,16 @@ void State::terminate(void)
 }
 
 #ifdef HAVE_MPI
-void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES)
+void knuth_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Datatype *MPI_TWO_DOUBLES)
 {
-   double corrected_next_term, new_sum;
-
-   corrected_next_term = in->sum +(in->correction+inout->correction);
-   new_sum = inout->sum + corrected_next_term;
-   inout->correction = corrected_next_term - (new_sum - inout->sum);
-   inout->sum = new_sum;
+   double u, v, upt, up, vpp;
+   u = inout->sum;
+   v = in->sum + (in->correction+inout->correction);
+   upt = u + v;
+   up = upt - v;
+   vpp = upt - up;
+   inout->sum = upt;
+   inout->correction = (u - up) + (v - vpp);
 
    // Just to block compiler warnings
    if (1==2) printf("DEBUG len %d datatype %lld\n",*len,(long long)(*MPI_TWO_DOUBLES) );
@@ -2994,7 +2975,7 @@ double State::mass_sum(int enhanced_precision_sum)
 
 #ifdef HAVE_MPI
       if (mesh->parallel) {
-         MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
+         MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KNUTH_SUM, MPI_COMM_WORLD);
          total_sum = global.sum + global.correction;
       } else {
          total_sum = local.sum + local.correction;
@@ -3005,50 +2986,7 @@ double State::mass_sum(int enhanced_precision_sum)
 #else
       total_sum = local.sum + local.correction;
 #endif
-#ifdef HAVE_REPROBLAS
-   } else if (enhanced_precision_sum == SUM_REPROBLAS_DOUBLE_DOUBLE){
-      int fold = 2;
-      double ss[4] = {0.0, 0.0, 0.0, 0.0};
-      for (uint ic=0; ic < ncells; ic++){
-         if (celltype[ic] == REAL_CELL) {
-            dndpd(fold, ss, H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]]);
-         }
-      }
-      total_sum = ss[0] + ss[1];
-#ifdef HAVE_MPI
-      if (mesh->parallel) {
-         struct esum_type local, global;
-         local.sum = ss[0];
-         local.correction = ss[1];
-         MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
-         total_sum = global.sum + global.correction;
-      } else {
-         total_sum = ss[0] + ss[1];
-      }
-#else
-      total_sum = ss[0] + ss[1];
-#endif
-   } else if (enhanced_precision_sum == SUM_REPROBLAS_INDEXEDFP) {
-      //printf("DEBUG -- reproblas_indexedfp_sum\n");
-      Idouble IFPsummer, IFPtotal_sum;
-      dISetZero(IFPsummer);
-      for (uint ic=0; ic < ncells; ic++){
-         if (celltype[ic] == REAL_CELL) {
-            dIAddd(&IFPsummer, H[ic]*mesh->lev_deltax[level[ic]]*mesh->lev_deltay[level[ic]]);
-         }
-      }
-#ifdef HAVE_MPI
-      if (mesh->parallel) {
-         MPI_Allreduce(&IFPsummer, &IFPtotal_sum, 1, MPI_IDOUBLE, MPI_RSUM, MPI_COMM_WORLD);
-      } else {
-         IFPtotal_sum = IFPsummer;
-      }
-#else
-      IFPtotal_sum = IFPsummer;
-#endif
-         
-      total_sum = Iconv2d(IFPtotal_sum);
-#endif
+
    } else if (enhanced_precision_sum == SUM_REGULAR) {
       //printf("DEBUG -- regular_sum\n");
       for (uint ic=0; ic < ncells; ic++){
@@ -3094,7 +3032,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
 
    size_t one = 1;
    cl_mem dev_mass_sum, dev_redscratch;
-   double gpu_mass_sum;
+   double gpu_mass_sum_total;
 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -3153,9 +3091,9 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
       global.sum = local.sum;
       global.correction = local.correction;
 #ifdef HAVE_MPI
-      MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KAHAN_SUM, MPI_COMM_WORLD);
+      MPI_Allreduce(&local, &global, 1, MPI_TWO_DOUBLES, KNUTH_SUM, MPI_COMM_WORLD);
 #endif
-      gpu_mass_sum = global.sum + global.correction;
+      gpu_mass_sum_total = global.sum + global.correction;
    } else {
       dev_mass_sum = ezcl_malloc(NULL, const_cast<char *>("dev_mass_sum"), &one,    sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
       dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
@@ -3209,7 +3147,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
 #ifdef HAVE_MPI
       MPI_Allreduce(&local_sum, &global_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 #endif
-      gpu_mass_sum = global_sum;
+      gpu_mass_sum_total = global_sum;
    }
 
    ezcl_device_memory_delete(dev_redscratch);
@@ -3217,7 +3155,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
 
    gpu_timers[STATE_TIMER_MASS_SUM] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 
-   return(gpu_mass_sum);
+   return(gpu_mass_sum_total);
 }
 #endif
 

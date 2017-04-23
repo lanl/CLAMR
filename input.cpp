@@ -438,10 +438,6 @@ void parseInput(const int argc, char** argv)
                        enhanced_precision_sum = SUM_REGULAR;
                     } else if (! strcmp(val,"kahan_sum") ) {
                        enhanced_precision_sum = SUM_KAHAN;
-                    } else if (! strcmp(val,"reproblas_doubledouble_sum") ) {
-                       enhanced_precision_sum = SUM_REPROBLAS_DOUBLE_DOUBLE;
-                    } else if (! strcmp(val,"reproblas_indexedfp_sum") ) {
-                       enhanced_precision_sum = SUM_REPROBLAS_INDEXEDFP;
                     } else {
                        printf("Error with sum argument %s\n",val);
                        exit(0);
