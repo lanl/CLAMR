@@ -141,8 +141,14 @@ void outputHelp()
          << "      \"compact\"" << endl
          << "  -g <g>            specify I step between saving graphics information for post processing;" << endl
          << "  -G <G>            specify graphics file type for post processing;" << endl
+         << "      \"bmp\"" << endl
+         << "      \"gif\"" << endl
+         << "      \"jpeg\"" << endl
+         << "      \"mpeg\"" << endl
+         << "      \"pdf\"" << endl
+         << "      \"png\"" << endl
          << "      \"svg\"" << endl
-         << "      \"txt\"" << endl
+         << "      \"data\"" << endl
          << "  -h                display this help message;" << endl
          << "  -i <I>            specify I steps between output files;" << endl
          << "  -l <l>            max number of levels;" << endl

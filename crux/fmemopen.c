@@ -31,7 +31,7 @@ static int readfn(void *handler, char *buf, int size) {
   fmem_t *mem = handler;
   size_t available = mem->size - mem->pos;
   
-  if (size > available) {
+  if (size > (int)available) {
     size = available;
   }
   memcpy(buf, mem->buffer + mem->pos, sizeof(char) * size);
@@ -44,7 +44,7 @@ static int writefn(void *handler, const char *buf, int size) {
   fmem_t *mem = handler;
   size_t available = mem->size - mem->pos;
 
-  if (size > available) {
+  if (size > (int)available) {
     size = available;
   }
   memcpy(mem->buffer + mem->pos, buf, sizeof(char) * size);
@@ -92,6 +92,9 @@ static int closefn(void *handler) {
 }
 
 FILE *fmemopen(void *buf, size_t size, const char *mode) {
+  // Just to get rid of compiler warnings
+  if (1 == 2) printf("DEBUG -- mode %s\n", mode);
+
   // This data is released on fclose.
   fmem_t* mem = (fmem_t *) malloc(sizeof(fmem_t));
 
