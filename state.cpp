@@ -56,6 +56,7 @@
 #include "mesh/mesh.h"
 #include <unistd.h>
 #include <stdio.h>
+#include <assert.h>
 #include <algorithm>
 #include <queue>
 #include "state.h"

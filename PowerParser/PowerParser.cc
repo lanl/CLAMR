@@ -72,9 +72,11 @@
 #include <vector>
 #include <map>
 #include <limits>
+#include <algorithm>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 namespace PP
 {
@@ -93,6 +95,7 @@ using std::setprecision;
 using std::numeric_limits;
 
 static int index_base = 1;
+static bool case_sensitive = false;
 
 // ===========================================================================
 // Various constructors.
@@ -130,6 +133,8 @@ PowerParser::PowerParser(const char *filename)
 // ===========================================================================
 PowerParser::~PowerParser()
 {
+    fileout.close();
+    cout.rdbuf(coutbuf); // restore cout's original streambuf
     delete comm;
 
     cmd_strings.clear();
@@ -231,6 +236,14 @@ void PowerParser::parse_string(string filename, string buffer)
                    cmd.set_index_base(1);
                    Variable v(1);
                    index_base = 1;
+                }
+                if (cmd.get_string(0) == "set_case_sensitive") {
+                   cmd.set_case_sensitive(true);
+                   case_sensitive = true;
+                }
+                if (cmd.get_string(0) == "set_case_insensitive") {
+                   cmd.set_case_sensitive(false);
+                   case_sensitive = false;
                 }
                 if (cmd.get_string(0) == "put_exe_args_here") {
                     if (exe_args_str != "") {
@@ -509,6 +522,27 @@ void PowerParser::compile_buffer()
         Cmd cmdi = cmds[i];
         //print_line(cmdi);
 
+        if (cmdi.get_cmd_name() == "parser_redirect_to_file") {
+            string fname;
+            int nw = cmdi.get_nwords();
+            if (nw > 1) {
+               fname = cmdi.get_string(1);
+            } else {
+               fname = "parser.out";
+            }
+            if (comm->isIOProc()) {
+               //cout << "DEBUG fname is " << fname << endl;
+               //cout << "Redirecting output to file" << endl;
+               cout.flush();
+               coutbuf = cout.rdbuf();
+               fileout.open(fname.c_str());
+               cout.rdbuf(fileout.rdbuf());
+               //cout << "Start of output to file" << endl;
+            }
+
+            continue;
+        }
+
         // Handle restart_block commands.
         if (cmdi.get_string(0) == "restart_block") {
             Restartblock rb(nrb, cmdi, skiprb, single_line_rb, 
@@ -633,7 +667,7 @@ void PowerParser::compile_buffer()
         cmdi.handle_subroutines(skip, go_to_sub, sub_name, go_to_call,
                                 serr, ierr);
         if (go_to_call) {
-            end_do_ret(i, do_start);
+            end_do_ret(i, do_start, serr, ierr);
             jump_to_call(i, icall, isub, serr, ierr);
             continue;
         }
@@ -720,28 +754,28 @@ void PowerParser::compile_buffer()
     // Debug: print each of the final commands to the screen.
     if (print_final_buffer) {
         if (comm->isIOProc()) {
-            cout << "********************************************************************************" << endl;
-            cout << "********** Echo final parser buffer, this is what the code uses to set internal" << endl;
-            cout << "********** code variables." << endl;
+            cout << "********************************************************************************\n"
+                 << "********** Echo final parser buffer, this is what the code uses to set internal \n" 
+                 << "********** code variables." << endl;
             list_cmdsf("", "");
-            cout << "********** End of echo final parser buffer." << endl;
-            cout << "********************************************************************************" << endl;
-            cout << endl << endl;
+            cout << "********** End of echo final parser buffer.\n" 
+                 << "********************************************************************************\n\n" 
+                 << endl;
 
-            cout << "********************************************************************************" << endl;
-            cout << "********** Echo final when...then parser buffers, this is what the code uses to " << endl;
-            cout << "********** set internal code variables when processing when...then commands." << endl;
+            cout << "********************************************************************************\n"
+                 << "********** Echo final when...then parser buffers, this is what the code uses to \n"
+                 << "********** set internal code variables when processing when...then commands." << endl;
             list_wt_cmdsf();
-            cout << "********** End of echo final when...then parser buffers." << endl;
-            cout << "********************************************************************************" << endl;
-            cout << endl << endl;
+            cout << "********** End of echo final when...then parser buffers.\n"
+                 << "********************************************************************************\n\n" 
+                 << endl;
 
-            cout << "********************************************************************************" << endl;
-            cout << "********** Echo restart block information." << endl;
+            cout << "********************************************************************************\n"
+                 << "********** Echo restart block information." << endl;
             list_rb();
-            cout << "********** End of echo restart block information." << endl;
-            cout << "********************************************************************************" << endl;
-            cout << endl << endl;
+            cout << "********** End of echo restart block information.\n"
+                 << "********************************************************************************\n\n"
+                 << endl;
         }
     }
 }
@@ -1059,8 +1093,13 @@ bool PowerParser::end_do_loop(int &i, deque<int> &do_start,
 // statement, finds any free enddo's and erases the corresponding references
 // to the do statements.
 // ===========================================================================
-void PowerParser::end_do_ret(int &i, deque<int> &do_start)
+void PowerParser::end_do_ret(int &i, deque<int> &do_start,
+                       stringstream &serr, int &ierr)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(serr == serr);
+    assert(ierr == ierr);
+
     int istart = i;
     for (;;) {
 
@@ -1356,10 +1395,6 @@ void PowerParser::init()
     dup_fatal = 1;
     ierr_global = 0;
 
-    // ***********************************************************************
-    // Pre-defined variables.
-    // some constants
-
     // make a little smaller (2.0) to avoid floating point excepting on some
     // compilers
     double huge_double = numeric_limits<double>::max( )/2.0;
@@ -1612,6 +1647,9 @@ void PowerParser::get_bool_int(string &cname,
 
     int ierr = 0;
     stringstream serr;
+    if (! case_sensitive) {
+       transform(cname.begin(), cname.end(), cname.begin(), tolower);
+    }
     for (int i=0; i<(int)cmdsfp->size(); i++) {
         if ((*cmdsfp)[i].get_cmd_name() == cname) {
             (*cmdsfp)[i].get_bool_int(cname, cvalue, size, dup_cmd1, dup_wdex1,
@@ -1680,10 +1718,7 @@ void PowerParser::get_bool(const char *cname,
 // This works for arrays of any dimension, 0,1,2,3,...
 // ===========================================================================
 template< typename T >
-void PowerParser::get_int(string &cname,
-                    T *cvalue,
-                    const vector<int> &size,
-                    bool skip)
+void PowerParser::get_int(string &cname, T *cvalue, const vector<int> &size, bool skip)
 {
     // Note that we do not default cvalue. Its value only changes if the
     // command is found.
@@ -1700,6 +1735,9 @@ void PowerParser::get_int(string &cname,
 
     int ierr = 0;
     stringstream serr;
+    if (! case_sensitive) {
+       transform(cname.begin(), cname.end(), cname.begin(), tolower);
+    }
     for (int i=0; i<(int)cmdsfp->size(); i++) {
         if ((*cmdsfp)[i].get_cmd_name() == cname) {
             (*cmdsfp)[i].get_int(cname, cvalue, size, dup_cmd1, dup_wdex1,
@@ -1761,6 +1799,9 @@ void PowerParser::get_real(string &cname,
 
     int ierr = 0;
     stringstream serr;
+    if (! case_sensitive) {
+       transform(cname.begin(), cname.end(), cname.begin(), tolower);
+    }
     for (int i=0; i<(int)cmdsfp->size(); i++) {
         if ((*cmdsfp)[i].get_cmd_name() == cname) {
             (*cmdsfp)[i].get_real(cname, cvalue, size, dup_cmd1, dup_wdex1,
@@ -1807,6 +1848,9 @@ void PowerParser::get_char(string &cname,
 
     int ierr = 0;
     stringstream serr;
+    if (! case_sensitive) {
+       transform(cname.begin(), cname.end(), cname.begin(), tolower);
+    }
     for (int i=0; i<(int)cmdsfp->size(); i++) {
         if ((*cmdsfp)[i].get_cmd_name() == cname) {
             (*cmdsfp)[i].get_char(cname, vstr, size, single_char, dup_cmd1,
@@ -1837,6 +1881,9 @@ void PowerParser::get_size(string &cname, vector<int> &size)
 {
     int ierr = 0;
     stringstream serr;
+    if (! case_sensitive) {
+       transform(cname.begin(), cname.end(), cname.begin(), tolower);
+    }
     for (int i=0; i<(int)cmdsfp->size(); i++) {
         if ((*cmdsfp)[i].get_cmd_name() == cname) {
             (*cmdsfp)[i].get_size(size, serr, ierr);
@@ -1855,6 +1902,9 @@ void PowerParser::get_sizeb(string &cname, vector<int> &size)
 {
     int ierr = 0;
     stringstream serr;
+    if (! case_sensitive) {
+       transform(cname.begin(), cname.end(), cname.begin(), tolower);
+    }
     for (int i=0; i<(int)cmdsfp->size(); i++) {
         if ((*cmdsfp)[i].get_cmd_name() == cname) {
             (*cmdsfp)[i].get_sizeb(size, serr, ierr);
@@ -1879,6 +1929,9 @@ void PowerParser::cmd_in_input(string &cname, bool &in_input, bool &in_whenthen)
     in_input = false;
     in_whenthen = false;
 
+    if (! case_sensitive) {
+       transform(cname.begin(), cname.end(), cname.begin(), tolower);
+    }
     for (int i=0; i<(int)cmdsfp->size(); i++) {
         if ((*cmdsfp)[i].get_cmd_name() == cname) {
             in_input = true;
@@ -1909,6 +1962,9 @@ void PowerParser::cmd_in_input(string &cname, bool &in_input, bool &in_whenthen)
 // ===========================================================================
 void PowerParser::cmd_set_processed(string &cname, bool bval)
 {
+    if (! case_sensitive) {
+       transform(cname.begin(), cname.end(), cname.begin(), tolower);
+    }
     for (int i=0; i<(int)cmdsfp->size(); i++) {
         if ((*cmdsfp)[i].get_cmd_name() == cname) {
             (*cmdsfp)[i].set_processed(bval);
@@ -2059,14 +2115,20 @@ void PowerParser::wt_reset()
 // ===========================================================================
 void PowerParser::wt_casize(int wtn, int *wt_casize)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(wt_casize == wt_casize);
+
     whenthens[wtn-1].get_char_array_size(wt_casize);
 }
 
 
 // ===========================================================================
 // ===========================================================================
-void PowerParser::wt_carray(int wtn, char *wt_ca)
+void PowerParser::wt_carray(int wtn, char *wt_ca, int wt_casize)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(wt_casize == wt_casize);
+
     string sc;
     whenthens[wtn-1].get_char_array(sc);
     for (int i=0; i<(int)sc.size(); i++) {
@@ -2079,22 +2141,31 @@ void PowerParser::wt_carray(int wtn, char *wt_ca)
 // ===========================================================================
 void PowerParser::wt_satsize(int wtn, int *wt_satsize)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(wt_satsize == wt_satsize);
+
     whenthens[wtn-1].get_satsize(wt_satsize);
 }
 
 
 // ===========================================================================
 // ===========================================================================
-void PowerParser::wt_getsat(int wtn, int *wt_sat)
+void PowerParser::wt_getsat(int wtn, int *wt_sat, int wt_satsize)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(wt_satsize == wt_satsize);
+
     whenthens[wtn-1].getsat(wt_sat);
 }
 
 
 // ===========================================================================
 // ===========================================================================
-void PowerParser::wt_setsat(int wtn, int *wt_sat)
+void PowerParser::wt_setsat(int wtn, int *wt_sat, int wt_satsize)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(wt_satsize == wt_satsize);
+
     whenthens[wtn-1].setsat(wt_sat);
 }
 
@@ -2902,7 +2973,7 @@ void PowerParser::chars_to_vstr(char *chars_1d, vector<string> &vstr,
 //            C++ strings in this vector. The length of each C++ string will
 //            vary, whitespace is added to each C++ string to make its length
 //            nchar.
-//////// nv         Number of strings in chars_1d (input).
+// nv         Number of strings in chars_1d (input).
 // nchar      Number of characters in each string in chars_1d (input).
 //
 // Why would anyone want to do this?
@@ -2911,8 +2982,11 @@ void PowerParser::chars_to_vstr(char *chars_1d, vector<string> &vstr,
 // of strings and converts that to a packed character array.
 // ===========================================================================
 void PowerParser::vstr_to_chars(char *chars_1d, vector<string> &vstr,
-                          int nchar)
+                          int nv, int nchar)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(nv == nv);
+
     // Loop through each string in the vector of strings.
     for (int strdex=0; strdex<(int)vstr.size(); strdex++) {
 
@@ -2940,5 +3014,5 @@ void PowerParser::vstr_to_chars(char *chars_1d, vector<string> &vstr,
 
 
 
-} // end of the PP namespace
+} // end of PP namespace
 

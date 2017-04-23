@@ -52,6 +52,7 @@
  */
 
 #include <cstdlib>
+#include <assert.h>
 #include "Comm.hh"
 
 namespace PP {
@@ -107,6 +108,10 @@ Comm::~Comm()
 // ===========================================================================
 void Comm::broadcast(char *buffer, int count)
 {
+   // To suppress compiler warnings of unused parameters
+   assert(buffer == buffer);
+   assert(count == count);
+
    if (npes == 1) return;
 #ifdef HAVE_MPI
    MPI_Bcast(buffer, count, MPI_CHAR, 0, MPI_COMM_WORLD);

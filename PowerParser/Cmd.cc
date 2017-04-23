@@ -66,7 +66,9 @@
 #include <deque>
 #include <sstream>
 #include <map>
+#include <algorithm>
 #include <math.h>
+#include <assert.h>
 
 #include "Parser_utils.hh"
 #include "Variable.hh"
@@ -90,6 +92,7 @@ using std::setw;
 
 // index base, generally 1 for Fortran style and 0 for C/C++, default 1
 static int index_base = 1;
+static bool case_sensitive = false;
 
 // ===========================================================================
 // Default constructor.
@@ -184,6 +187,14 @@ void Cmd::set_index_base(int base)
 }
 
 // ===========================================================================
+// Set case sensitivity for input file commands.
+// ===========================================================================
+void Cmd::set_case_sensitive(bool case_sensitive_in)
+{
+    case_sensitive = case_sensitive_in;
+}
+
+// ===========================================================================
 // Process a string.
 // Break the string into words and copy each word to a double ended queue.
 // ===========================================================================
@@ -226,6 +237,10 @@ void Cmd::process_string(string in_str, stringstream &serr, int &ierr)
 bool Cmd::extract_next_word(int &istart, string &str, string &word,
                             stringstream &serr, int &ierr)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(serr == serr);
+    assert(ierr == ierr);
+
     // If istart is out of bounds then there is nothing to do.
     if (istart < 0) return false;
     if (istart >= (int)str.size()) return false;
@@ -363,20 +378,23 @@ void Cmd::reset_name_type()
         return;
     }
     cmd_name = words[0].get_string();
+    if (! case_sensitive) {
+       transform(cmd_name.begin(), cmd_name.end(), cmd_name.begin(), tolower);
+    }
     cmd_type = "command";
     if (words[0].is_variable()) cmd_type = "assignment";
     if (cmd_name == "parser_list_variables") cmd_type = "debug";
     if (cmd_name == "parser_list_functions") cmd_type = "debug";
     if (cmd_name == "parser_print_fbuffer")  cmd_type = "debug";
-    if (cmd_name == "if")  cmd_type = "internal_cmd";
+    if (cmd_name == "if")      cmd_type = "internal_cmd";
     if (cmd_name == "elseif")  cmd_type = "internal_cmd";
-    if (cmd_name == "endif")  cmd_type = "internal_cmd";
-    if (cmd_name == "do")  cmd_type = "internal_cmd";
+    if (cmd_name == "endif")   cmd_type = "internal_cmd";
+    if (cmd_name == "do")      cmd_type = "internal_cmd";
     if (cmd_name == "return")  cmd_type = "internal_cmd";
-    if (cmd_name == "enddo")  cmd_type = "internal_cmd";
-    if (cmd_name == "stop")  cmd_type = "internal_cmd";
-    if (cmd_name == "when")  cmd_type = "internal_cmd";
-    if (cmd_name == "endwhen")  cmd_type = "internal_cmd";
+    if (cmd_name == "enddo")   cmd_type = "internal_cmd";
+    if (cmd_name == "stop")    cmd_type = "internal_cmd";
+    if (cmd_name == "when")    cmd_type = "internal_cmd";
+    if (cmd_name == "endwhen") cmd_type = "internal_cmd";
 }
 
 
@@ -2843,6 +2861,11 @@ bool Cmd::find_matching_enddo(int &dlev, bool &stop_checking)
 void Cmd::handle_subroutines(bool &skip, bool &go_to_sub, string &sub_name,
                              bool &go_to_call, stringstream &serr, int &ierr)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(skip == skip);
+    assert(serr == serr);
+    assert(ierr == ierr);
+
     // 
     if (words[0].get_string() == "call") {
         sub_name = words[1].get_string();
@@ -3253,6 +3276,9 @@ void Cmd::deprecated_input01(string action, stringstream &serr, int &ierr)
 // ===========================================================================
 void Cmd::fatal_error(int iw, stringstream &serr, int &ierr)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(ierr == ierr);
+
     int lnum = words[iw].get_line_number();
     int file_lnum = words[iw].get_file_line_number();
     string fname = words[iw].get_filename();
@@ -3267,6 +3293,9 @@ void Cmd::fatal_error(int iw, stringstream &serr, int &ierr)
 // ===========================================================================
 void Cmd::fatal_error2(stringstream &serr, int &ierr)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(ierr == ierr);
+
     serr << endl;
     serr << "*** FATAL ERROR in line " << file_line_number << ":" << endl;
     serr << "    " << (*lines)[line_number-1] << endl;
@@ -3279,6 +3308,9 @@ void Cmd::fatal_error2(stringstream &serr, int &ierr)
 // ===========================================================================
 void Cmd::warning(int iw, stringstream &serr, int &ierr)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(ierr == ierr);
+
     int lnum = words[iw].get_line_number();
     int file_lnum = words[iw].get_file_line_number();
     string fname = words[iw].get_filename();
@@ -3492,6 +3524,9 @@ void Cmd::handle_two_words()
 // ===========================================================================
 bool Cmd::check_input_end(bool kill_run, stringstream &serr, int &ierr)
 {
+    // To suppress compiler warnings of unused parameters
+    assert(kill_run == kill_run);
+
     if (words[0].get_string() == "fatal_error") {
         int lnum = words[0].get_line_number();
         int file_lnum = words[0].get_file_line_number();

@@ -176,9 +176,12 @@ struct timeval total_exec;
 
 int main(int argc, char **argv) {
 
-    // Needed for code to compile correctly on the Mac
+   // Needed for code to compile correctly on the Mac
    int mype=0;
    int numpe=-1;
+
+   //  Process command-line arguments, if any.
+   parseInput(argc, argv);
 
 #ifdef _OPENMP
    int nt = 0;
@@ -188,27 +191,22 @@ int main(int argc, char **argv) {
    tid = omp_get_thread_num();
    if (0 == tid) {
         printf("--- max num openmp threads: %d\n", nt);
-        fflush(stdout);
    }
-#pragma omp parallel 
+#pragma omp parallel
    {
       nt = omp_get_num_threads();
       tid = omp_get_thread_num();
 
 #pragma omp master
       printf("--- num openmp threads in parallel region: %d\n", nt);
-      fflush(stdout);
    }
 #endif
 
    parse = new PowerParser();
 
-   //  Process command-line arguments, if any.
-   parseInput(argc, argv);
-
    struct timeval tstart_setup;
    cpu_timer_start(&tstart_setup);
-   
+
    numpe = 16;
 
    crux = new Crux(crux_type, num_of_rollback_states, restart);
@@ -249,16 +247,17 @@ int main(int argc, char **argv) {
       mesh->calc_distribution(numpe);
       state->fill_circle(circ_radius, 100.0, 7.0);
    }
+
+   size_t &ncells = mesh->ncells;
+
    if (graphic_outputInterval > niter) next_graphics_cycle = graphic_outputInterval;
    if (checkpoint_outputInterval > niter) next_cp_cycle = checkpoint_outputInterval;
 
-   size_t &ncells = mesh->ncells;
 
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(enhanced_precision_sum);
    printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
-
 
    if(upper_mass_diff_percentage < 0){
       upper_mass_diff_percentage = H_sum_initial * SUM_ERROR;
@@ -288,39 +287,35 @@ int main(int argc, char **argv) {
    }
    for (int i = 0; i < MESH_TIMER_SIZE; i++){
       mesh->cpu_timers[i]=0.0;
-   }   
+   }
 
    cpu_timer_start(&tstart_cpu);
-   //  Set up grid.
-#ifdef GRAPHICS_OUTPUT
-   mesh->write_grid(n);
-#endif
 
 #ifdef HAVE_GRAPHICS
    do_display_graphics = true;
    set_display_mysize(ncells);
+   set_display_cell_data(&state->H[0]);
+   set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+   set_display_cell_proc(&mesh->proc[0]);
+
    set_display_window((float)mesh->xmin, (float)mesh->xmax,
                       (float)mesh->ymin, (float)mesh->ymax);
    set_display_outline((int)outline);
-   set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
-   set_display_cell_data(&state->H[0]);
-   set_display_cell_proc(&mesh->proc[0]);
    set_display_viewmode(view_mode);
 #endif
 
    if (ncycle == next_graphics_cycle){
       set_graphics_outline(outline);
-      set_graphics_mysize(ncells);
       set_graphics_window((float)mesh->xmin, (float)mesh->xmax,
                           (float)mesh->ymin, (float)mesh->ymax);
-      set_graphics_outline((int)outline);
-      set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+      set_graphics_mysize(ncells);
+      set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0],
+                                    &mesh->y[0], &mesh->dy[0]);
       set_graphics_cell_data(&state->H[0]);
       set_graphics_cell_proc(&mesh->proc[0]);
       set_graphics_viewmode(view_mode);
 
       init_graphics_output();
-      set_graphics_cell_proc(&mesh->proc[0]);
       write_graphics_info(0,0,0.0,0,0);
       next_graphics_cycle += graphic_outputInterval;
    }
@@ -403,7 +398,7 @@ extern "C" void do_calc(void)
 
       //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
       state->remove_boundary_cells();
-      
+
       mpot.resize(ncells);
       new_ncells = state->calc_refine_potential(mpot, icount, jcount);
 
@@ -430,7 +425,6 @@ extern "C" void do_calc(void)
       }
    //cpu_time_check += cpu_timer_stop(tstart_check);
       
-      mesh->ncells = ncells;
    } // End burst loop
 
    cpu_time_calcs += cpu_timer_stop(tstart_cpu);
@@ -507,7 +501,9 @@ extern "C" void do_calc(void)
 
    cpu_timer_start(&tstart_cpu);
 
-   if(do_display_graphics || ncycle == next_graphics_cycle){
+   if(do_display_graphics || ncycle == next_graphics_cycle ||
+      (ncycle >= niter && graphic_outputInterval < niter) ){
+
       mesh->calc_spatial_coordinates(0);
    }
 
@@ -546,10 +542,9 @@ extern "C" void do_calc(void)
       if(graphic_outputInterval < niter){
          cpu_timer_start(&tstart_cpu);
 
-         mesh->calc_spatial_coordinates(0);
 #ifdef HAVE_GRAPHICS
-         set_display_mysize(ncells);
          set_display_viewmode(view_mode);
+         set_display_mysize(ncells);
          set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
          set_display_cell_data(&state->H[0]);
          set_display_cell_proc(&mesh->proc[0]);

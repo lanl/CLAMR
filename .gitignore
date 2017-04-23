@@ -1,7 +1,9 @@
 *.o
 *.lo
+*.mod
 *.a
 *.la
+*.pyc
 .deps
 .libs
 config.log

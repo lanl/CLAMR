@@ -87,6 +87,7 @@ public:
     ofstream fileout;
     streambuf *coutbuf;
 
+    // Constructors, destructors and drivers.
 /****************************************************************//**
  * \brief
  * Constructor with no arguments
@@ -135,9 +136,13 @@ public:
 
 /****************************************************************//**
  * \brief
- *  Destructor
+ *  Destructor with no arguments
+ *
+ * Typical Usage   
+ *
+ *     delete parse;
  *******************************************************************/
-    ~PowerParser();
+    ~PowerParser(void);
 
     void dictionary_add(char *name, double value, bool pred, char *vdesc);
     void dictionary_env_add(char *name, bool pred);
@@ -523,10 +528,11 @@ public:
  *******************************************************************/
     bool get_ssfout_line(string &sline);
 
+    // Communications object from the infrastructure.
 /****************************************************************//**
  * \brief
  *  Holds internal comm class for PowerParser. Comm is initialized
- *  as a singleton and will use an already initialized MPI or 
+ *  automatically and will use an already initialized MPI or 
  *  initialize it itself.  This is meant to be for use internal to
  *  the package, but developers can get the number of processors
  *  and rank with
@@ -588,11 +594,11 @@ public:
     void wt_set_cmdsfp(int wtn);
     void wt_reset();
     void wt_casize(int wtn, int *wt_casize);
-    void wt_carray(int wtn, char *wt_ca);
+    void wt_carray(int wtn, char *wt_ca, int wt_casize);
 
     void wt_satsize(int wtn, int *wt_satsize);
-    void wt_getsat(int wtn, int *wt_sat);
-    void wt_setsat(int wtn, int *wt_sat);
+    void wt_getsat(int wtn, int *wt_sat, int wt_satsize);
+    void wt_setsat(int wtn, int *wt_sat, int wt_satsize);
     void wt_getprocessed(int wtn, int *wtp);
     void wt_setprocessed(int wtn, int wtp);
     void wt_getseq(int wtn, int *wtseq);
@@ -601,7 +607,7 @@ public:
     void chars_to_vstr(char *chars_1d, vector<string> &vstr,
                        int nv, int nchar);
     void vstr_to_chars(char *chars_1d, vector<string> &vstr,
-                       int nchar);
+                       int nv, int nchar);
 
 private:
 
@@ -637,7 +643,8 @@ private:
                        stringstream &ss);
     bool end_do_loop(int &i, deque<int> &do_start,
                      stringstream &serr, int &ierr);
-    void end_do_ret(int &i, deque<int> &do_start);
+    void end_do_ret(int &i, deque<int> &do_start,
+                    stringstream &serr, int &ierr);
     void check_enddo(deque<int> &do_start, stringstream &serr, int &ierr);
     void jump_to_call(int &i, deque<int> &icall, deque<int> &isub,
                       stringstream &serr, int &ierr);
@@ -706,6 +713,6 @@ private:
     int dup_fatal;
 };
 
-} // end PP namespace
+} // end of PP namespace
 
 #endif

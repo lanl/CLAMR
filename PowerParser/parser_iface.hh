@@ -49,7 +49,15 @@
 #ifndef PARSERIFACEHH
 #define PARSERIFACEHH
 
-#include "amhc2c.h"
+#if !defined FC_FUNC
+  #if defined aix || defined hpux || defined IBM
+    #define    FC_FUNC(a,A)    a
+  #elif defined sparc 
+    #define    FC_FUNC(a,A)    a ## _
+  #else
+    #define    FC_FUNC(a,A)    a ## _
+  #endif
+#endif
 
 /* Function prototypes. */
 void FC_FUNC(parser_init_comm,PARSER_INIT_COMM)();

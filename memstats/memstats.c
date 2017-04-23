@@ -153,7 +153,6 @@ long long memstats_memused(){
 
 long long memstats_mempeak(){
    char proc_stat_file[50];
-   char *str = (char *)malloc(140*sizeof(char));
    char *p;
    int err;
    int memdebug = 0;
@@ -181,6 +180,7 @@ long long memstats_mempeak(){
       return(-1);
    }
 
+   char *str = (char *)malloc(140*sizeof(char));
    while (!feof(stat_fp)){
       str = fgets(str, 132, stat_fp);
       if (str == NULL){
@@ -218,7 +218,7 @@ long long memstats_memfree(){
    mach_port = mach_host_self();
    host_page_size(mach_port, &page_size);
    vm_statistics64_data_t vmstat;
-   host_statistics64 (mach_host_self (), HOST_VM_INFO, (host_info_t) &vmstat, &count);
+   host_statistics64 (mach_port, HOST_VM_INFO, (host_info_t) &vmstat, &count);
 
    freemem = vmstat.free_count*page_size/1024;
 #else

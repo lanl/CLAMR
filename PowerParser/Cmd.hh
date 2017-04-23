@@ -88,6 +88,7 @@ public:
         stringstream &serr, int &ierr);
 
     void set_index_base(int base);
+    void set_case_sensitive(bool case_sensitive_in);
 
     void add_word(string str, int lnum, int file_lnum, string fname);
     void erase_word(int iw);
@@ -316,7 +317,7 @@ private:
 };
 
 
-} // end namespace PP namespace
+} // end of PP namespace
 
 #endif
 
