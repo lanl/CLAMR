@@ -70,6 +70,9 @@
 #include "timer/timer.h"
 #include "memstats/memstats.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include "graphics/display.h"
 
 #ifndef DEBUG
@@ -159,6 +162,29 @@ int main(int argc, char **argv) {
    double deltay_in = 1.0;
 
    mesh = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
+
+#ifdef _OPENMP
+   int nt = 0;
+   int tid = 0;
+
+   nt = omp_get_max_threads();
+   tid = omp_get_thread_num();
+   if (0 == tid && mype == 0) {
+        printf("--- max num openmp threads: %d\n", nt);
+        fflush(stdout);
+   }
+#pragma omp parallel for 
+   for(int i=0;i<4;i++){
+      nt = omp_get_num_threads();
+      tid = omp_get_thread_num();
+
+      if (0 == tid && mype == 0 && i == 0) {
+           printf("--- num openmp threads in parallel region: %d\n", nt);
+           fflush(stdout);
+      }
+   }
+#endif
+
    if (DEBUG) {
       //if (mype == 0) mesh->print();
 
@@ -487,7 +513,7 @@ extern "C" void do_calc(void)
       }
       state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
 
-      mesh->parallel_output("CPU:  graphics                 time was",cpu_time_graphics ,0, "s");
+      mesh->parallel_output("CPU:  graphics                 time was",cpu_time_graphics, 0, "s");
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();

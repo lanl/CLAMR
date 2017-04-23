@@ -74,6 +74,10 @@
 #include "memstats/memstats.h"
 #include "crux/crux.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #ifndef DEBUG 
 #define DEBUG 0
 #endif
@@ -88,20 +92,23 @@ typedef unsigned int uint;
 
 #ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
+#ifdef FULL_PRECISION
+   void (*set_display_cell_coordinates)(double *, double *, double *, double *) = &set_display_cell_coordinates_double;
+   void (*set_display_cell_data)(double *) = &set_display_cell_data_double;
+#else
+   void (*set_display_cell_coordinates)(float *, float *, float *, float *) = &set_display_cell_coordinates_float;
+   void (*set_display_cell_data)(float *) = &set_display_cell_data_float;
+#endif
 #endif
 
 static int view_mode = 0;
 
 #ifdef FULL_PRECISION
 #define  SUM_ERROR 2.0e-16
-   void (*set_display_cell_coordinates)(double *, double *, double *, double *) = &set_display_cell_coordinates_double;
-   void (*set_display_cell_data)(double *) = &set_display_cell_data_double;
    void (*set_graphics_cell_coordinates)(double *, double *, double *, double *) = &set_graphics_cell_coordinates_double;
    void (*set_graphics_cell_data)(double *) = &set_graphics_cell_data_double;
 #else
 #define  SUM_ERROR 1.0e-8
-   void (*set_display_cell_coordinates)(float *, float *, float *, float *) = &set_display_cell_coordinates_float;
-   void (*set_display_cell_data)(float *) = &set_display_cell_data_float;
    void (*set_graphics_cell_coordinates)(float *, float *, float *, float *) = &set_graphics_cell_coordinates_float;
    void (*set_graphics_cell_data)(float *) = &set_graphics_cell_data_float;
 #endif
@@ -132,6 +139,7 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
             ndim    = 2;    //  Dimensionality of problem (2 or 3).
 double      upper_mass_diff_percentage; //  Flag for the allowed pecentage difference to the total
                                         //  mass per output intervals; init in input.cpp::parseInput().
+
 char *restart_file;
 
 static int it = 0;
@@ -164,6 +172,27 @@ int main(int argc, char **argv) {
    int mype=0;
    int numpe=-1;
 
+#ifdef _OPENMP
+   int nt = 0;
+   int tid = 0;
+
+   nt = omp_get_max_threads();
+   tid = omp_get_thread_num();
+   if (0 == tid) {
+        printf("--- max num openmp threads: %d\n", nt);
+        fflush(stdout);
+   }
+#pragma omp parallel 
+   {
+      nt = omp_get_num_threads();
+      tid = omp_get_thread_num();
+
+#pragma omp master
+      printf("--- num openmp threads in parallel region: %d\n", nt);
+      fflush(stdout);
+   }
+#endif
+
    //  Process command-line arguments, if any.
    parseInput(argc, argv);
 
@@ -173,7 +202,7 @@ int main(int argc, char **argv) {
    numpe = 16;
 
    crux = new Crux(crux_type, num_of_rollback_states, restart);
-   
+
    circ_radius = 6.0;
    //  Scale the circle appropriately for the mesh size.
    circ_radius = circ_radius * (real_t) nx / 128.0;
@@ -201,7 +230,7 @@ int main(int argc, char **argv) {
          mesh->fp=fopen(filename,"w");
 
          //mesh->print_local();
-      } 
+      }
 
       mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
       state = new State(mesh);
@@ -260,6 +289,7 @@ int main(int argc, char **argv) {
    mesh->write_grid(n);
 #endif
 
+#ifdef HAVE_GRAPHICS
    set_display_mysize(ncells);
    set_display_window((float)mesh->xmin, (float)mesh->xmax,
                       (float)mesh->ymin, (float)mesh->ymax);
@@ -268,6 +298,7 @@ int main(int argc, char **argv) {
    set_display_cell_data(&state->H[0]);
    set_display_cell_proc(&mesh->proc[0]);
    set_display_viewmode(view_mode);
+#endif
 
    if (ncycle == next_graphics_cycle){
       set_graphics_mysize(ncells);
@@ -368,7 +399,7 @@ extern "C" void do_calc(void)
       // Clear does not delete mpot, so have to swap with an empty vector to get
       // it to delete the mpot memory. This is all to avoid valgrind from showing
       // it as a reachable memory leak
-      //mpot.clear(); 
+      //mpot.clear();
       vector<int>().swap(mpot);
 
       mesh->ncells = new_ncells;
@@ -384,7 +415,7 @@ extern "C" void do_calc(void)
       
       mesh->ncells = ncells;
    }
-      
+
    H_sum = state->mass_sum(enhanced_precision_sum);
 
    int error_status = STATUS_OK;
@@ -497,11 +528,13 @@ extern "C" void do_calc(void)
       if(graphic_outputInterval < niter){
 
          mesh->calc_spatial_coordinates(0);
+#ifdef HAVE_GRAPHICS
          set_display_mysize(ncells);
          set_display_viewmode(view_mode);
          set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
          set_display_cell_data(&state->H[0]);
          set_display_cell_proc(&mesh->proc[0]);
+#endif
 
          write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
          next_graphics_cycle += graphic_outputInterval;
@@ -511,14 +544,14 @@ extern "C" void do_calc(void)
       double elapsed_time = cpu_timer_stop(tstart);
       
       long long mem_used = memstats_memused();
-      //if (mem_used > 0) {
+      if (mem_used > 0) {
          printf("Memory used      %lld kB\n",mem_used);
          printf("Memory peak      %lld kB\n",memstats_mempeak());
          printf("Memory free      %lld kB\n",memstats_memfree());
          printf("Memory available %lld kB\n",memstats_memtotal());
-      //}
+      }
       state->output_timing_info(do_cpu_calc, do_gpu_calc, elapsed_time);
-      printf("CPU:  graphics                 time was\t %8.4f\ts\n",     cpu_time_graphics );
+      mesh->parallel_output("CPU:  graphics                 time was",cpu_time_graphics, 0, "s");
 
       mesh->print_partition_measure();
       mesh->print_calc_neighbor_type();
