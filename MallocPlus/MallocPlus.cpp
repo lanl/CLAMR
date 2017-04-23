@@ -57,17 +57,16 @@
 // SKG TODO op realloc (similar to managed)
 
 #include "MallocPlus.h"
+#include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <algorithm>
 #include <queue>
-#include "string.h"
+#include <string.h>
 #ifdef HAVE_OPENCL
 #include "ezcl/ezcl.h"
 #endif
 
-//#undef DEBUG
-//#define DEBUG 1
 #ifndef DEBUG
 #define DEBUG 0
 #endif

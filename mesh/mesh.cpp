@@ -1220,6 +1220,8 @@ void Mesh::compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_glo
 
 Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double deltay_in, int boundary, int parallel_in, int do_gpu_calc)
 {
+   lowerBound_Global = NULL;
+   upperBound_Global = NULL;
    for (int i = 0; i < MESH_TIMER_SIZE; i++){
       cpu_timers[i] = 0.0;
       gpu_timers[i] = 0L;
@@ -2618,8 +2620,8 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    index.resize(new_ncells);
 
    //  Insert new cells into the mesh at the point of refinement.
-   vector<int> order(4,    -1), //  Vector of refined mesh traversal order; set to -1 to indicate errors.
-               invorder(4, -1); //  Vector mapping location from base index.
+   vector<int> order(4,    -1); //  Vector of refined mesh traversal order; set to -1 to indicate errors.
+   //vector<int>  invorder(4, -1); //  Vector mapping location from base index.
 
    int ifirst      = 0;
    int ilast       = 0;
@@ -2664,6 +2666,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    }
 
 #ifdef REZONE_NO_OPTIMIZATION
+   vector<int>  invorder(4, -1); //  Vector mapping location from base index.
    for (int ic = 0, nc = 0; ic < (int)ncells; ic++)
    {
       if (mpot[ic] == 0 || mpot[ic] == -1000000)
@@ -2943,6 +2946,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp parallel for
 #endif
    for (int ic = 0; ic < (int)ncells; ic++) {
+   vector<int>  invorder(4, -1); //  Vector mapping location from base index.
       int nc = new_ic[ic];
       if (mpot[ic] == 0)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
@@ -9769,4 +9773,58 @@ void scan ( scanInt *input , scanInt *output , scanInt length)
       output[ic+1] = output[ic] + input[ic];
    }
 #endif
+}
+/****************************************************//**
+*GET  BOUNDS!!!!!!****
+**********************************/
+void Mesh::get_bounds(int& lowerBound, int& upperBound){
+#ifdef _OPENMP
+//#pragma omp parallel 
+{
+        int threadID = omp_get_thread_num();
+	lowerBound = lowerBound_Global[threadID];
+	upperBound = upperBound_Global[threadID];
+//	printf("GETBOUNDs ThreadID: %d, upperBound: %d, lowerBound: %d \n",threadID, upperBound, lowerBound);
+}
+#else
+	lowerBound = 0;
+	upperBound = ncells;
+#endif
+}
+
+/****************************************************//**
+*SETTING BOUNDS!!!!!!****
+**********************************/
+void Mesh::set_bounds(int n){
+
+#ifdef _OPENMP
+      //  #pragma omp parallel
+        {
+        int nthreads = omp_get_num_threads();//Private for each thread
+        int threadID = omp_get_thread_num(); //Private for each thread
+        #pragma omp master 
+	{
+        	if(lowerBound_Global == NULL) lowerBound_Global = (int *)malloc(nthreads*sizeof(int)); 
+        	if(upperBound_Global == NULL) upperBound_Global = (int *)malloc(nthreads*sizeof(int)); 
+        }
+	//#pragma omp flush (lowerBound_Global, upperBound_Global)
+	#pragma omp barrier
+ 	
+	int work = n/nthreads;
+        if(threadID<(n%nthreads))work++;
+        int lowerBound = ((n / nthreads)*threadID) + min(n%nthreads, threadID);
+        int upperBound = lowerBound + work;
+//      printf("ThreadID: %d, upperBound: %d, lowerBound: %d \n",threadID, upperBound, lowerBound);
+        lowerBound_Global[threadID] = lowerBound;
+        upperBound_Global[threadID] = upperBound;
+        }
+#else 
+     	if(lowerBound_Global == NULL) lowerBound_Global = (int *)malloc(1*sizeof(int)); 
+       	if(upperBound_Global == NULL) upperBound_Global = (int *)malloc(1*sizeof(int)); 
+        int lowerBound = 0;
+        int upperBound = ncells;
+        lowerBound_Global[0] = lowerBound;
+        upperBound_Global[0] = upperBound;
+#endif
+
 }

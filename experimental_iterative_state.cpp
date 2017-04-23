@@ -1059,7 +1059,7 @@ void State::calc_finite_difference(double deltaT){
         int n_half_cellComputable = 0;
         int n_faceComputable =      0;
         int n_half_faceComputable = 0;
-        // IPOW2 a := (2 << a)
+        // IPOW2 a := (1 << a)
         int istride, jstride = IPOW2(levmx-lev) * RES;
 
         // Set the Regular Grid for the Current Level of Refinement

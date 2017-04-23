@@ -762,17 +762,27 @@ void State::remove_boundary_cells(void)
    dx.resize(save_ncells);
    y.resize(save_ncells);
    dy.resize(save_ncells);
-
+/******ADDING HIGHER LEVEL OMP*****/
    // Reset the neighbors due to the dropped boundary cells
-   for (uint ic=0; ic<ncells; ic++) {
+#ifdef _OPENMP
+#pragma omp parallel 
+{//start
+#pragma omp barrier
+#endif
+int lowerBound, upperBound;
+//mesh->set_bounds(ncells);
+mesh->get_bounds(lowerBound, upperBound);
+   for (uint ic=lowerBound; ic<upperBound; ic++) {
       if (i[ic] == mesh->lev_ibegin[level[ic]]) nlft[ic] = ic;
       if (i[ic] == mesh->lev_iend[level[ic]])   nrht[ic] = ic;
       if (j[ic] == mesh->lev_jbegin[level[ic]]) nbot[ic] = ic;
       if (j[ic] == mesh->lev_jend[level[ic]])   ntop[ic] = ic;
    }
-
+#ifdef _OPENMP
+}//end
+#pragma omp barrier
+#endif
 }
-
 double State::set_timestep(double g, double sigma)
 {
    double globalmindeltaT;
@@ -1901,8 +1911,15 @@ void State::calc_finite_difference_via_faces(double deltaT){
    state_t *H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
    state_t *U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
    state_t *V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
+#ifdef _OPENMP
+#pragma omp parallel 
+{
+#pragma omp barrier
+#endif
+      int lowerBound, upperBound;
 
-   for (int ic = 0; ic < (int)mesh->ncells; ic++){
+      mesh->get_bounds(lowerBound, upperBound);
+   for (int ic = lowerBound; ic < upperBound; ic++){
 
       int lvl     = level[ic];
       int nl      = nlft[ic];
@@ -2331,7 +2348,11 @@ void State::calc_finite_difference_via_faces(double deltaT){
          ic, deltaT, dxic, Vic, Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus);
       printf("DEBUG ic %d wminusy_V %lf wplusy_V %lf\n",ic, wminusy_V, wplusy_V);
 */
-   }
+    #ifdef _OPENMP
+    }//end High order OMP
+    #pragma omp barrier
+    #endif
+   }//end forloop
 
    // Replace H with H_new and deallocate H. New memory will have the characteristics
    // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
@@ -2596,12 +2617,17 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 #else
    apply_boundary_conditions();
 #endif
-
-   int ic;
+/*****HIGH LEVEL OMP******/
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel 
+{
+#pragma omp barrier 
 #endif
-   for (ic=0; ic<(int)ncells; ic++) {
+
+   int lowerBound, upperBound;
+   //mesh->set_bounds(ncells);
+   mesh->get_bounds(lowerBound,upperBound);
+   for (int ic=lowerBound; ic<upperBound; ic++) {
 
       if (mesh->celltype[ic] != REAL_CELL) continue;
 
@@ -2695,6 +2721,11 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
       }
       //if (mpot[ic]) printf("DEBUG cpu cell is %d mpot %d\n",ic,mpot[ic]);
    }
+
+#ifdef _OPENMP
+}
+#pragma omp barrier
+#endif
 
    if (TIMING_LEVEL >= 2) {
       cpu_timers[STATE_TIMER_CALC_MPOT] += cpu_timer_stop(tstart_lev2);
