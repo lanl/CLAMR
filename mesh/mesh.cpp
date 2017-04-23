@@ -9546,8 +9546,6 @@ void Mesh::store_checkpoint(Crux *crux)
    int_vals[ 1] = ndim;
    int_vals[ 2] = levmx;
 
-   crux->store_ints(int_vals, num_int_vals);
-
    // These are for values that will be different on every processor
    int int_dist_vals[num_int_dist_vals];
    int_dist_vals[ 0] = ncells;
@@ -9559,19 +9557,28 @@ void Mesh::store_checkpoint(Crux *crux)
 
    double_vals[0] = offtile_ratio_local;
 
-   crux->store_doubles(double_vals, num_double_vals);
+   // Now add memory entries to database for storing checkpoint
+   mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", RESTART_DATA);
+   mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", RESTART_DATA);
+   mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", RESTART_DATA);
 
-   // Now store arrays
+   mesh_memory.memory_add(cpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_cpu_counters", RESTART_DATA);
+   mesh_memory.memory_add(gpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_gpu_counters", RESTART_DATA);
 
-   crux->store_int_array(cpu_counters, MESH_COUNTER_SIZE);
-   crux->store_int_array(gpu_counters, MESH_COUNTER_SIZE);
+   mesh_memory.memory_add(cpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_cpu_timers", RESTART_DATA);
+   mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", RESTART_DATA);
 
-   crux->store_double_array(cpu_timers, MESH_TIMER_SIZE);
-   crux->store_long_array(gpu_timers, MESH_TIMER_SIZE);
+   // Store MallocPlus memory database
+   crux->store_MallocPlus(mesh_memory);
 
-   crux->store_int_array(i, ncells);
-   crux->store_int_array(j, ncells);
-   crux->store_int_array(level, ncells);
+   // Remove memory entries from database now that data is stored
+   mesh_memory.memory_remove(int_vals);
+   mesh_memory.memory_remove(double_vals);
+   mesh_memory.memory_remove(cpu_counters);
+   mesh_memory.memory_remove(gpu_counters);
+   mesh_memory.memory_remove(cpu_timers);
+   mesh_memory.memory_remove(gpu_timers);
+
 }
 
 void Mesh::restore_checkpoint(Crux *crux)
@@ -9582,10 +9589,11 @@ void Mesh::restore_checkpoint(Crux *crux)
    // Create memory for reading data into
    int int_dist_vals[num_int_dist_vals];
    int int_vals[num_int_vals];
+   double double_vals[num_double_vals];
 
    allocate(ncells);
 
-   crux->restore_ints(int_vals, num_int_vals);
+   crux->restore_MallocPlus(mesh_memory);
 
    // Check version number
    if (int_vals[ 0] != CRUX_MESH_VERSION) {
@@ -9631,10 +9639,6 @@ void Mesh::restore_checkpoint(Crux *crux)
    }
 #endif
 
-   double double_vals[num_double_vals];
-
-   crux->restore_doubles(double_vals, num_double_vals);
-
    offtile_ratio_local = double_vals[0];
 
 #ifdef DEBUG_RESTORE_VALS
@@ -9652,9 +9656,6 @@ void Mesh::restore_checkpoint(Crux *crux)
    }
 #endif
 
-   crux->restore_int_array(cpu_counters, MESH_COUNTER_SIZE);
-   crux->restore_int_array(gpu_counters, MESH_COUNTER_SIZE);
-
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
       printf("       === Restored mesh cpu counters ===\n");
@@ -9671,8 +9672,6 @@ void Mesh::restore_checkpoint(Crux *crux)
    }
 #endif
 
-   crux->restore_double_array(cpu_timers, MESH_TIMER_SIZE);
-
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
       printf("       === Restored mesh cpu timers ===\n");
@@ -9683,8 +9682,6 @@ void Mesh::restore_checkpoint(Crux *crux)
       printf("\n");
    }
 #endif
-
-   crux->restore_long_array(gpu_timers, MESH_TIMER_SIZE);
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {
@@ -9697,12 +9694,6 @@ void Mesh::restore_checkpoint(Crux *crux)
       printf("\n");
    }
 #endif
-
-   allocate(ncells);
-
-   i     = crux->restore_int_array(i, ncells);
-   j     = crux->restore_int_array(j, ncells);
-   level = crux->restore_int_array(level, ncells);
 
    calc_celltype(ncells);
 }

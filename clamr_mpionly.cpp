@@ -774,7 +774,7 @@ void store_crux_data(Crux *crux, int ncycle)
 
    crux->store_begin(nsize, ncycle);
 
-// crux->store_MallocPlus(clamr_bootstrap_memory);
+   crux->store_MallocPlus(clamr_bootstrap_memory);
 
    state->store_checkpoint(crux);
 
@@ -797,7 +797,7 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
    clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", RESTART_DATA);
    clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", RESTART_DATA);
 
-// crux->restore_MallocPlus(clamr_bootstrap_memory);
+   crux->restore_MallocPlus(clamr_bootstrap_memory);
 
    if (int_vals[ 0] != CRUX_CLAMR_VERSION) {
       printf("CRUX version mismatch for clamr data, version on file is %d, version in code is %d\n",

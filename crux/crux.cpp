@@ -149,6 +149,9 @@ Crux::~Crux()
    }
 }
 
+void Crux::store_MallocPlus(MallocPlus memory){
+}
+
 void Crux::store_begin(size_t nsize, int ncycle)
 {
    cp_num = checkpoint_counter % num_of_rollback_states;
@@ -163,6 +166,47 @@ void Crux::store_begin(size_t nsize, int ncycle)
    }
    if(crux_type == CRUX_DISK){
       char backup_file[60];
+
+#ifdef HAVE_HDF5
+      if(USE_HDF5) {
+        sprintf(backup_file,"%s/backup%05d.h5",checkpoint_directory,ncycle);
+
+        hid_t plist_id;
+        
+        plist_id =H5P_DEFAULT; 
+#ifdef HAVE_MPI
+        int mpiInitialized = 0;
+        bool phdf5 = false;
+        if (MPI_SUCCESS = MPI_Initialized(&mpiInitialized)) {
+          phdf5 = true;
+        }
+
+        // 
+        // Set up file access property list with parallel I/O access
+        //
+        if( (plist_id = H5Pcreate(H5P_FILE_ACCESS)) < 0)
+          printf("HDF5: Could not create property list \n");
+
+        H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
+#endif
+        h5_fid = H5Fcreate(backup_file, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+        if(!h5_fid){
+          printf("HDF5: Could not write HDF5 %s at iteration %d\n",backup_file,ncycle);
+        }
+        if( (h5_gid_c = H5Gcreate(h5_fid, "clamr", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT) ) < 0) 
+          printf("HDF5: Could not create \"clamr\" group \n");
+        if( (h5_gid_m = H5Gcreate(h5_fid, "mesh", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT) ) < 0)
+          printf("HDF5: Could not create \"mesh\" group \n");
+        if( (h5_gid_s = H5Gcreate(h5_fid, "state", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT) ) < 0)
+          printf("HDF5: Could not create \"state\" group \n");
+      }
+
+#ifdef HAVE_MPI
+      if(H5Pclose(plist_id) < 0)
+        printf("HDF5: Could not close property list \n");
+#endif
+
+#endif
 
       sprintf(backup_file,"%s/backup%05d.crx",checkpoint_directory,ncycle);
       store_fp = fopen(backup_file,"w");
@@ -274,6 +318,9 @@ void Crux::store_end(void)
 }
 
 int restore_type = RESTORE_NONE;
+
+void Crux::restore_MallocPlus(MallocPlus memory){
+}
 
 void Crux::restore_begin(char *restart_file, int rollback_counter)
 {
