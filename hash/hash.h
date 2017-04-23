@@ -23,6 +23,7 @@ extern "C"
 #endif
 
 int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level);
+int get_hash_method(void);
 
 void write_hash_perfect(uint ic, ulong hashkey, int *hash);
 void write_hash_linear(uint ic, ulong hashkey, int *hash);
