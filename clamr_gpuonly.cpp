@@ -409,6 +409,9 @@ extern "C" void do_calc(void)
       state->terminate();
       ezcl_terminate();
 
+      delete mesh;
+      delete state;
+
       ezcl_mem_walk_all();
 
       exit(0);

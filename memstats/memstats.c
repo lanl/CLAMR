@@ -71,7 +71,6 @@ FILE *stat_fp = NULL, *meminfo_fp = NULL;
 
 long long memstats_memused(){
    char proc_stat_file[50];
-   char *str = (char *)malloc(140*sizeof(char));
    char *p;
    int err;
    int memdebug = 0;
@@ -99,6 +98,7 @@ long long memstats_memused(){
       return(-1);
    }
 
+   char *str = (char *)malloc(140*sizeof(char));
    while (!feof(stat_fp)){
       str = fgets(str, 132, stat_fp);
       if (str == NULL){
@@ -117,10 +117,10 @@ long long memstats_memused(){
          break;
       }
    }
+   free(str);
 
    fclose(stat_fp);
    stat_fp = NULL;
-   free(str);
 
    return(mem_current);
 }

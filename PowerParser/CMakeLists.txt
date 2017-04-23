@@ -133,21 +133,21 @@ else (${CMAKE_PROJECT_NAME} MATCHES ${PROJECT_NAME})
    set_target_properties(PowerParser_doc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
    add_custom_command(OUTPUT _build/latex/PowerParser.pdf
-                      WORKING_DIRECTORY PowerParser/docs
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
                       COMMAND make latexpdf >& pdfdoc.out
                       DEPENDS ${PDFDOC_SRCS})
    add_custom_target(PowerParser_pdfdoc DEPENDS _build/latex/PowerParser.pdf)
    set_target_properties(PowerParser_pdfdoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
    add_custom_command(OUTPUT _build/html/UsersGuide.html
-                      WORKING_DIRECTORY PowerParser/docs
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
                       COMMAND make html >& htmldoc.out
                       DEPENDS ${DOC_SRCS})
    add_custom_target(PowerParser_htmldoc DEPENDS _build/html/UsersGuide.html)
    set_target_properties(PowerParser_htmldoc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
    add_custom_command(OUTPUT _build/singlehtml/index.html
-                      WORKING_DIRECTORY PowerParser/docs
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
                       COMMAND make singlehtml >& singlehtmldoc.out
                       DEPENDS ${DOC_SRCS})
    add_custom_target(PowerParser_singlehtmldoc DEPENDS _build/singlehtml/index.html)

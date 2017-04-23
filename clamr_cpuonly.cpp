@@ -581,6 +581,7 @@ extern "C" void do_calc(void)
       delete mesh;
       delete state;
       delete crux;
+      delete parse;
 
       total_program_time = cpu_timer_stop(total_exec);
       FILE *fp = fopen(total_sim_time_log,"w");
