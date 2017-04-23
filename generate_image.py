@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import sys, glob, os
 from PIL import Image, ImageDraw, ImageColor, ImageFont
 
@@ -109,4 +110,4 @@ with open('imagelist.txt','w') as fo:
    for i in range(0,NumImages):
       if i == cp_info[1]:
          write_cp_img_to_list(cp_info[0],fo,num_cp_images,cp_info[1])
-      fo.write('image'+str(i)+'.png\n')
+      fo.write('image%05d.png\n' % (i))

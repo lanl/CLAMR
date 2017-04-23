@@ -222,11 +222,6 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_V,        CL_TRUE,  0, ncells*sizeof(cl_state_t),  (void *)&V[0],       &end_write_event  );
    state->gpu_timers[STATE_TIMER_WRITE] += ezcl_timer_calc(&start_write_event, &end_write_event);
 
-   mesh->nlft = NULL;
-   mesh->nrht = NULL;
-   mesh->nbot = NULL;
-   mesh->ntop = NULL;
-
    mesh->dev_nlft = NULL;
    mesh->dev_nrht = NULL;
    mesh->dev_nbot = NULL;
@@ -352,9 +347,9 @@ extern "C" void do_calc(void)
       deltaT = (do_gpu_calc) ? deltaT_gpu : deltaT_cpu;
       simTime += deltaT;
 
-      if (mesh->nlft == NULL) mesh->calc_neighbors(ncells);
+      mesh->calc_neighbors(ncells);
 
-      if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors();
+      mesh->gpu_calc_neighbors();
 
       if (do_comparison_calc) {
          mesh->compare_neighbors_gpu_global_to_cpu_global();

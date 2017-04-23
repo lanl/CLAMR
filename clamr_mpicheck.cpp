@@ -251,15 +251,6 @@ int main(int argc, char **argv) {
    MPI_Allgatherv(&state->U[0], nsizes[mype], MPI_STATE_T, &U_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&state->V[0], nsizes[mype], MPI_STATE_T, &V_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
 
-   mesh->nlft = NULL;
-   mesh->nrht = NULL;
-   mesh->nbot = NULL;
-   mesh->ntop = NULL;
-   mesh_global->nlft = NULL;
-   mesh_global->nrht = NULL;
-   mesh_global->nbot = NULL;
-   mesh_global->ntop = NULL;
-
    //  Kahan-type enhanced precision sum implementation.
    double H_sum = state->mass_sum(enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
@@ -378,10 +369,10 @@ extern "C" void do_calc(void)
          }
       }
 
-      if (mesh->nlft == NULL) mesh->calc_neighbors_local();
+      mesh->calc_neighbors_local();
 
       if (do_comparison_calc) {
-         if (mesh_global->nlft == NULL) mesh_global->calc_neighbors(mesh_global->ncells);
+         mesh_global->calc_neighbors(mesh_global->ncells);
 
          // Checking CPU parallel to CPU global
          mesh->compare_neighbors_cpu_local_to_cpu_global(ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);

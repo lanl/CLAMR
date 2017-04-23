@@ -369,20 +369,10 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&mesh_local->level[0],    &end_write_event);
    state_local->gpu_timers[STATE_TIMER_WRITE] += ezcl_timer_calc(&start_write_event, &end_write_event);
 
-   mesh_global->nlft = NULL;
-   mesh_global->nrht = NULL;
-   mesh_global->nbot = NULL;
-   mesh_global->ntop = NULL;
-
    mesh_global->dev_nlft = NULL;
    mesh_global->dev_nrht = NULL;
    mesh_global->dev_nbot = NULL;
    mesh_global->dev_ntop = NULL;
-
-   mesh_local->nlft = NULL;
-   mesh_local->nrht = NULL;
-   mesh_local->nbot = NULL;
-   mesh_local->ntop = NULL;
 
    mesh_local->dev_nlft = NULL;
    mesh_local->dev_nrht = NULL;
@@ -572,17 +562,13 @@ extern "C" void do_calc(void)
       simTime += deltaT;
 
       if (do_cpu_calc) {
-         if (mesh_local->nlft == NULL) {
-            mesh_global->calc_neighbors(mesh_global->ncells);
-            mesh_local->calc_neighbors_local();
-         }
+         mesh_global->calc_neighbors(mesh_global->ncells);
+         mesh_local->calc_neighbors_local();
       }
 
       if (do_gpu_calc) {
-         if (mesh_local->dev_nlft == NULL) {
-            mesh_global->gpu_calc_neighbors();
-            mesh_local->gpu_calc_neighbors_local();
-         }
+         mesh_global->gpu_calc_neighbors();
+         mesh_local->gpu_calc_neighbors_local();
       }
 
       if (do_comparison_calc) {

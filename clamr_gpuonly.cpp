@@ -309,7 +309,7 @@ extern "C" void do_calc(void)
       deltaT = state->gpu_set_timestep(sigma);
       simTime += deltaT;
 
-      if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors();
+      mesh->gpu_calc_neighbors();
 
       // Currently not working -- may need to be earlier?
       //if (do_cpu_calc && ! mesh->have_boundary) {

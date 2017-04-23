@@ -265,11 +265,6 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&mesh->level[0],    &end_write_event);
    state->gpu_timers[STATE_TIMER_WRITE] += ezcl_timer_calc(&start_write_event, &end_write_event);
 
-   mesh->nlft = NULL;
-   mesh->nrht = NULL;
-   mesh->nbot = NULL;
-   mesh->ntop = NULL;
-
    mesh->dev_nlft = NULL;
    mesh->dev_nrht = NULL;
    mesh->dev_nbot = NULL;
@@ -435,7 +430,7 @@ extern "C" void do_calc(void)
       deltaT = state->gpu_set_timestep(sigma);
       simTime += deltaT;
 
-      if (mesh->dev_nlft == NULL) mesh->gpu_calc_neighbors_local();
+      mesh->gpu_calc_neighbors_local();
 
       // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
 
@@ -456,7 +451,7 @@ extern "C" void do_calc(void)
 
       ncells       = new_ncells;
 
-      if (mesh->dev_nlft == NULL) state->gpu_do_load_balance_local(new_ncells);
+      state->gpu_do_load_balance_local(new_ncells);
 
       ioffset.clear();
 

@@ -228,11 +228,6 @@ int main(int argc, char **argv) {
 
    state->fill_circle(circ_radius, 100.0, 7.0);
 
-   mesh->nlft = NULL;
-   mesh->nrht = NULL;
-   mesh->nbot = NULL;
-   mesh->ntop = NULL;
-
    x.clear();
    dx.clear();
    y.clear();
@@ -380,7 +375,7 @@ extern "C" void do_calc(void)
       simTime += deltaT;
 
       cpu_timer_start(&tstart_cpu);
-      if (mesh->nlft == NULL) mesh->calc_neighbors_local();
+      mesh->calc_neighbors_local();
 
       mesh->partition_measure();
 
