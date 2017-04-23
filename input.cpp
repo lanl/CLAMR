@@ -115,6 +115,7 @@ extern int  outputInterval,
             graphic_outputInterval,
             graphics_type,
             checkpoint_outputInterval,
+            neighbor_remap,
             num_of_rollback_states,
             cycle_reorder;
 extern float
@@ -182,7 +183,8 @@ void outputHelp()
          << "  -u                allowed percentage of difference between total mass between iterations." << endl
          << "                    the default value for this parameter is 2.6e-13;" << endl
          << "  -V                use verbose output;" << endl
-         << "  -v                display version information." << endl; }
+         << "  -v                display version information." << endl
+         << "  -z                force recalculation of neighbors." << endl; }
 
 void outputVersion()
 {   cout << progName << " " << progVers << endl; }
@@ -221,6 +223,7 @@ void parseInput(const int argc, char** argv)
     nx                      = COARSE_GRID_RES;
     ny                      = COARSE_GRID_RES;
     niter                   = MAX_TIME_STEP;
+    neighbor_remap          = true;
     measure_type            = CSTARVALUE;
     calc_neighbor_type      = HASH_TABLE;
     choose_hash_method      = METHOD_UNSET;
@@ -479,6 +482,10 @@ void parseInput(const int argc, char** argv)
                     outputVersion();
                     cout.flush();
                     exit(EXIT_SUCCESS);
+                    break;
+
+                case 'z':  // Neighbor remap -- default is true, -z sets to false
+                    neighbor_remap = false;
                     break;
                     
                 default:    //  Unknown parameter encountered.

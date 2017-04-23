@@ -15,8 +15,6 @@ IF (UNIX)
    *.a
    */*.a
    Makefile
-   [A-Z,a-c,e-z]*/Makefile
-   */[A-Z,a-c,e-z]*/Makefile
    */tests/Makefile
    core core.*
    gmon.out
