@@ -212,11 +212,16 @@ typedef mesh_device_types mesh_device_type;
 
 using namespace std;
 
+/****************************************************************//**
+ * Mesh class
+ *    Contains the cell-based adaptive mesh refinement
+ *    (AMR) object with its data and methods.
+ *******************************************************************/
 class Mesh
 {
 
 public:
-   int ndim;                    //  Dimensionality of mesh (2 or 3).
+   int ndim;                    //!<  Dimensionality of mesh (2 or 3).
 
    MallocPlus mesh_memory;
    MallocPlus gpu_mesh_memory;
@@ -250,68 +255,68 @@ public:
 
    FILE          *fp;
 
-   TKDTree        tree;         //  k-D tree for neighbor search.
+   TKDTree        tree;         //!<  k-D tree for neighbor search.
    vector<int>    proc;
-   vector<int>    lev_ibegin,   //  Lowest x-index in use at specified level of refinement.
-                  lev_iend,     //  Highest x-index in use at specified level of refinement.
-                  lev_jbegin,   //  Lowest y-index in use at specified level of refinement.
-                  lev_jend,     //  Highest y-index in use at specified level of refinement.
-                  lev_kbegin,   //  Lowest z-index in use at specified level of refinement.
-                  lev_kend,     //  Highest z-index in use at specified level of refinement.
-                  levtable;     //  Powers of two to simplify i,j calculations
-   vector<real_t> lev_deltax,   //  Grid spacing along x-axis at specified level of refinement.
-                  lev_deltay,   //  Grid spacing along y-axis at specified level of refinement.
-                  lev_deltaz;   //  Grid spacing along z-axis at specified level of refinement.
-   int            levmx,        //  Maximum level of refinement allowed.
-                  have_boundary,//  Mesh includes boundary cells, else creates on the fly
-                  ibase,        //  Index basis for arrays (0 for C, 1 for Fortan).
-                  imin,         //  Lowest x-index in use.
-                  imax,         //  Highest x-index in use.
-                  jmin,         //  Lowest y-index in use.
-                  jmax,         //  Highest y-index in use.
-                  kmin,         //  Lowest z-index in use.
-                  kmax;         //  Highest z-index in use.
-   size_t         ncells,       //  Number of cells in mesh.
-                  ncells_global, //  Global number of cells for parallel runs
-                  ncells_ghost; //  Number of cells in mesh with ghost cells.
-   real_t         xmin,         //  Lowest x-coordinate in use.
-                  xmax,         //  Highest x-coordinate in use.
-                  ymin,         //  Lowest y-coordinate in use.
-                  ymax,         //  Highest y-coordinate in use.
-                  zmin,         //  Lowest z-coordinate in use.
-                  zmax,         //  Highest z-coordinate in use.
+   vector<int>    lev_ibegin,   //!<  Lowest x-index in use at specified level of refinement.
+                  lev_iend,     //!<  Highest x-index in use at specified level of refinement.
+                  lev_jbegin,   //!<  Lowest y-index in use at specified level of refinement.
+                  lev_jend,     //!<  Highest y-index in use at specified level of refinement.
+                  lev_kbegin,   //!<  Lowest z-index in use at specified level of refinement.
+                  lev_kend,     //!<  Highest z-index in use at specified level of refinement.
+                  levtable;     //!<  Powers of two to simplify i,j calculations
+   vector<real_t> lev_deltax,   //!<  Grid spacing along x-axis at specified level of refinement.
+                  lev_deltay,   //!<  Grid spacing along y-axis at specified level of refinement.
+                  lev_deltaz;   //!<  Grid spacing along z-axis at specified level of refinement.
+   int            levmx,        //!<  Maximum level of refinement allowed.
+                  have_boundary,//!<  Mesh includes boundary cells, else creates on the fly
+                  ibase,        //!<  Index basis for arrays (0 for C, 1 for Fortan).
+                  imin,         //!<  Lowest x-index in use.
+                  imax,         //!<  Highest x-index in use.
+                  jmin,         //!<  Lowest y-index in use.
+                  jmax,         //!<  Highest y-index in use.
+                  kmin,         //!<  Lowest z-index in use.
+                  kmax;         //!<  Highest z-index in use.
+   size_t         ncells,       //!<  Number of cells in mesh.
+                  ncells_global, //!<  Global number of cells for parallel runs
+                  ncells_ghost; //!<  Number of cells in mesh with ghost cells.
+   real_t         xmin,         //!<  Lowest x-coordinate in use.
+                  xmax,         //!<  Highest x-coordinate in use.
+                  ymin,         //!<  Lowest y-coordinate in use.
+                  ymax,         //!<  Highest y-coordinate in use.
+                  zmin,         //!<  Lowest z-coordinate in use.
+                  zmax,         //!<  Highest z-coordinate in use.
                   xcentermin,   //
                   xcentermax,   //
                   ycentermin,   //
                   ycentermax,   //
                   zcentermin,   //
                   zcentermax,   //
-                  deltax,       //  Grid spacing along x-axis.
-                  deltay,       //  Grid spacing along y-axis.
-                  deltaz;       //  Grid spacing along z-axis.
+                  deltax,       //!<  Grid spacing along x-axis.
+                  deltay,       //!<  Grid spacing along y-axis.
+                  deltaz;       //!<  Grid spacing along z-axis.
 
-   vector<int>    index;        //  1D ordered index of mesh elements.
+   vector<int>    index;        //!<  1D ordered index of mesh elements.
 
                                  //  mesh state data
-   int            *i,            //  1D array of mesh element x-indices.
-                  *j,            //  1D array of mesh element y-indices.
-                  *k,            //  1D array of mesh element z-indices.
-                  *level,        //  1D array of mesh element refinement levels.
-                                 //  derived data from mesh state data
-                  *celltype,     //  1D ordered index of mesh element cell types (ghost or real).
-                  *nlft,         //  1D ordered index of mesh element left neighbors.
-                  *nrht,         //  1D ordered index of mesh element right neighbors.
-                  *nbot,         //  1D ordered index of mesh element bottom neighbors.
-                  *ntop,         //  1D ordered index of mesh element top neighbors.
-                  *nfrt,         //  1D ordered index of mesh element front neighbors.
-                  *nbak;         //  1D ordered index of mesh element back neighbors.
+   int            *i,            //!<  1D array of mesh element x-indices.
+                  *j,            //!<  1D array of mesh element y-indices.
+                  *k,            //!<  1D array of mesh element z-indices.
+                  *level,        //!<  1D array of mesh element refinement levels.
+                                 //!<  derived data from mesh state data
+                  *celltype,     //!<  1D ordered index of mesh element cell types (ghost or real).
+                  *nlft,         //!<  1D ordered index of mesh element left neighbors.
+                  *nrht,         //!<  1D ordered index of mesh element right neighbors.
+                  *nbot,         //!<  1D ordered index of mesh element bottom neighbors.
+                  *ntop,         //!<  1D ordered index of mesh element top neighbors.
+                  *nfrt,         //!<  1D ordered index of mesh element front neighbors.
+                  *nbak;         //!<  1D ordered index of mesh element back neighbors.
 
-   vector<spatial_t> x,            //  1D ordered index of mesh element x-coordinates.
-                     dx,           //  1D ordered index of mesh element x-coordinate spacings.
-                     y,            //  1D ordered index of mesh element y-coordinates.
-                     dy,           //  1D ordered index of mesh element y-coordinate spacings.
-                     z,            //  1D ordered index of mesh element z-coordinates.
-                     dz;           //  1D ordered index of mesh element z-coordinate spacings.
+   vector<spatial_t> x,          //!<  1D ordered index of mesh element x-coordinates.
+                     dx,         //!<  1D ordered index of mesh element x-coordinate spacings.
+                     y,          //!<  1D ordered index of mesh element y-coordinates.
+                     dy,         //!<  1D ordered index of mesh element y-coordinate spacings.
+                     z,          //!<  1D ordered index of mesh element z-coordinates.
+                     dz;         //!<  1D ordered index of mesh element z-coordinate spacings.
 
 #ifdef HAVE_OPENCL
    cl_mem         dev_ioffset;
@@ -346,10 +351,26 @@ public:
    void terminate(void);
 
 /* memory routines */
+///@{
+
+/****************************************************************//**
+ * \brief
+ * Allocates the basic mesh memory, i, j, and level, using the MallocPlus
+ * memory database.
+ *
+ * **Parameters**
+ * * size_t ncells -- number of cells in the mesh
+ *
+ * Typical Usage
+ *
+ *     mesh.allocate(ncells);
+ *******************************************************************/
    void allocate(size_t ncells);
+
    void resize(size_t new_ncells);
    void memory_reset_ptrs(void);
    void resize_old_device_memory(size_t ncells);
+///@}
 
 /* inline "macros" */
    int  is_lower_boundary(int *iv, int *lev_begin, int ic)    { return (iv[ic] < lev_begin[level[ic]]); }
