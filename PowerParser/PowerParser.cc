@@ -61,21 +61,16 @@
 #include "Parser_utils.hh"
 #include "Variable.hh"
 #include "Function.hh"
-#include <stdio.h>
+#include <cstdio>
 #include <unistd.h>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <string>
-#include <deque>
-#include <sstream>
-#include <vector>
-#include <map>
 #include <limits>
 #include <algorithm>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
+#include <cstdlib>
 #include <assert.h>
 
 namespace PP
@@ -178,6 +173,28 @@ void PowerParser::parse_file(const char *filename)
     parse_file(fstring);
 }
 
+int PowerParser::NumIncludeFiles()
+{
+    return IncludeFiles.size();
+}
+
+string PowerParser::GetIncludeFile(int i)
+{
+    if (0 <= i && i < IncludeFiles.size()) return IncludeFiles[i];
+    return string("");
+}
+
+void PowerParser::ListIncludeFiles()
+{
+    int i, num_include;
+    num_include = NumIncludeFiles();
+    std::cerr << "Number of include files = " << num_include << "\n";
+    for (i = 0; i < num_include; ++i)
+    {
+        std::cerr << "Include file << "<< i << " = " << GetIncludeFile(i) << "\n";
+    }
+}
+
 // ===========================================================================
 // Given a multi-line string on every processor, parse it into cmds and words.
 // After calling this function, the parser is ready for use.
@@ -261,6 +278,9 @@ void PowerParser::parse_string(string filename, string buffer)
                         fname = cmd.get_cmd_filename(ssfiles);
                     }
                     broadcast_buffer(fname);
+		    map<int,string>::iterator ifp;
+		    int isize = IncludeFiles.size();
+		    IncludeFiles[isize] = fname;
                     if (fname == "") {
                         stringstream serr;
                         serr << endl;

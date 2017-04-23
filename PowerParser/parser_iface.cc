@@ -57,6 +57,7 @@
 #include <deque>
 #include <new>
 #include <assert.h>
+#include <string.h>
 
 using std::string;
 using std::cout;
@@ -64,7 +65,6 @@ using std::endl;
 using std::vector;
 using std::stringstream;
 using PP::PowerParser;
-
 
 #if !defined FC_FUNC
   #if defined aix || defined hpux || defined IBM
@@ -1318,6 +1318,32 @@ void FC_FUNC(parser_dictionary_env_add,PARSER_DICTIONARY_ENV_ADD)(char *name, in
 {
     bool c_pre_def = (*pred) ? true : false;
     parse->dictionary_env_add(name, c_pre_def);
+}
+
+void parser_get_num_include_files(int *num_include)
+{
+    *num_include = parse->NumIncludeFiles();
+}
+
+void parser_list_include_files()
+{
+    parse->ListIncludeFiles();
+}
+
+int parser_get_include_file_name_length(int *i)
+{
+    string fname;
+    fname = parse->GetIncludeFile(*i);
+    return fname.length();
+}
+
+void parser_get_include_file_name(char *file_name, int *file_name_len, int *i)
+{
+    string fname;
+    fname = parse->GetIncludeFile(*i);
+    *file_name_len = fname.length();
+    strncpy(file_name,fname.c_str(),*file_name_len);
+    file_name[*file_name_len] = '\0';
 }
 
 

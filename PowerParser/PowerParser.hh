@@ -609,6 +609,12 @@ public:
     void vstr_to_chars(char *chars_1d, vector<string> &vstr,
                        int nv, int nchar);
 
+    void ListIncludeFiles();
+    int NumIncludeFiles();
+    string GetIncludeFile(int);
+
+
+
 private:
 
     void init();
@@ -665,6 +671,10 @@ private:
 
     // Define a map for a set of variables.
     map<string, Variable> vmap;
+    
+    // Maintain a list of included files
+
+    std::map<int,string> IncludeFiles;
 
     // Define a map for the functions.
     map<string, Function> fmap;

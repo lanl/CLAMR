@@ -399,7 +399,6 @@ extern "C" void do_calc(void)
 {  double g     = 9.80;
    double sigma = 0.95;
    int icount, jcount;
-   struct timeval tstart_cpu;
 
    //  Initialize state variables for GPU calculation.
    int &mype  = mesh->mype;
