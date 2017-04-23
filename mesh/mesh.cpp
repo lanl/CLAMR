@@ -3334,7 +3334,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
    for (memory_item = gpu_state_memory_old.memory_entry_begin();
         memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
         memory_item = gpu_state_memory_old.memory_entry_next() ) {
-      //printf("DEBUG -- memory_item->mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+      //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
       cl_mem dev_state_mem_ptr = (cl_mem)memory_item->mem_ptr;
 
       if (memory_item->mem_elsize == 8){
