@@ -106,6 +106,7 @@ PowerParser::PowerParser()
 
     init();                     // Init vars, setup functions, ...
     nrb_on_dump = 0;
+    coutbuf = NULL;
 }
 
 PowerParser::PowerParser(string filename)
@@ -115,6 +116,7 @@ PowerParser::PowerParser(string filename)
     init();                     // Init vars, setup functions, ...
     nrb_on_dump = 0;
     parse_file(filename);       // Parse the file.
+    coutbuf = NULL;
 }
 
 PowerParser::PowerParser(const char *filename)
@@ -126,6 +128,7 @@ PowerParser::PowerParser(const char *filename)
     init();                     // Init vars, setup functions, ...
     nrb_on_dump = 0;
     parse_file(fstring);        // Parse the file.
+    coutbuf = NULL;
 }
 
 // ===========================================================================
@@ -134,7 +137,7 @@ PowerParser::PowerParser(const char *filename)
 PowerParser::~PowerParser()
 {
     fileout.close();
-    cout.rdbuf(coutbuf); // restore cout's original streambuf
+    if (coutbuf != NULL) cout.rdbuf(coutbuf); // restore cout's original streambuf
     delete comm;
 
     cmd_strings.clear();
