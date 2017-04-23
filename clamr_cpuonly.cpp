@@ -71,6 +71,7 @@
 #include "memstats/memstats.h"
 #include "crux/crux.h"
 #include "PowerParser/PowerParser.hh"
+#include "MallocPlus/MallocPlus.h"
 
 using namespace PP;
 
@@ -192,7 +193,7 @@ int main(int argc, char **argv) {
    if (0 == tid) {
         printf("--- max num openmp threads: %d\n", nt);
    }
-#pragma omp parallel
+#pragma omp parallel firstprivate(nt, tid)
    {
       nt = omp_get_num_threads();
       tid = omp_get_thread_num();
@@ -207,7 +208,8 @@ int main(int argc, char **argv) {
    struct timeval tstart_setup;
    cpu_timer_start(&tstart_setup);
 
-   numpe = 16;
+   // Just for graphics effect
+   //numpe = 16;
 
    crux = new Crux(crux_type, num_of_rollback_states, restart);
 
@@ -604,6 +606,8 @@ extern "C" void do_calc(void)
 const int CRUX_CLAMR_VERSION = 101;
 const int num_int_vals       = 14;
 const int num_double_vals    =  5;
+
+MallocPlus clamr_bootstrap_memory;
 
 void store_crux_data(Crux *crux, int ncycle)
 {

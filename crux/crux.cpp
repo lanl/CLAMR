@@ -49,13 +49,20 @@
 #include <unistd.h>
 #include <algorithm>
 #include <assert.h>
+#include "PowerParser/PowerParser.hh"
 
 #include "crux.h"
 #include "timer/timer.h"
 #include "fmemopen.h"
 
+#ifdef HAVE_HDF5
+#include "hdf5.h"
+#endif
+
 const bool CRUX_TIMING = true;
 bool do_crux_timing = false;
+
+bool h5_spoutput;
 
 #define RESTORE_NONE     0
 #define RESTORE_RESTART  1
@@ -66,6 +73,9 @@ bool do_crux_timing = false;
 #endif
 
 using namespace std;
+using PP::PowerParser;
+// Pointers to the various objects.
+PowerParser *parse;
 
 char checkpoint_directory[] = "checkpoint_output";
 FILE *store_fp, *restore_fp;
@@ -73,6 +83,12 @@ int cp_num, rs_num;
 int *backup;
 void **crux_data;
 size_t *crux_data_size;
+#ifdef HAVE_HDF5
+bool USE_HDF5 = true; //MSB
+hid_t h5_fid;
+hid_t h5_gid_c, h5_gid_m, h5_gid_s;
+herr_t h5err;
+#endif
 
 FILE *crux_time_fp;
 struct timeval tcheckpoint_time;
@@ -231,6 +247,20 @@ void Crux::store_end(void)
 {
    assert(store_fp != NULL);
    fclose(store_fp);
+
+#ifdef HAVE_HDF5
+   if(USE_HDF5) {
+     if(H5Gclose(h5_gid_c) < 0)
+       printf("HDF5: Could not close clamr group \n");
+     if(H5Gclose(h5_gid_m) < 0)
+       printf("HDF5: Could not close mesh group \n");
+     if(H5Gclose(h5_gid_s) < 0)
+       printf("HDF5: Could not close state group \n");
+     if(H5Fclose(h5_fid) != 0) {
+       printf("HDF5: Could not close HDF5 file \n");
+     }
+   }
+#endif
 
    double checkpoint_total_time = cpu_timer_stop(tcheckpoint_time);
 

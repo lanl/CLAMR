@@ -80,6 +80,9 @@ set(crux_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
 add_library(crux STATIC ${crux_LIB_SRCS})
 
 set_target_properties(crux PROPERTIES VERSION ${CRUX_VERSION} SOVERSION ${CRUX_VERSION_MAJOR})
+if (HDF5_FOUND)
+   target_link_libraries(crux ${HDF5_LIBS})
+endif (HDF5_FOUND)
 install(TARGETS crux DESTINATION lib)
 
 ########### dcrux target ###############

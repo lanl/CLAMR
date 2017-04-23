@@ -3633,8 +3633,11 @@ void State::restore_checkpoint(Crux *crux)
    // Create memory for restoring data into
    long long long_vals[num_long_vals];
 
+   allocate(mesh->ncells);
+
    crux->restore_longs(long_vals, num_long_vals);
 
+   // Check version number
    if (long_vals[ 0] != CRUX_STATE_VERSION) {
       printf("CRUX version mismatch for state data, version on file is %lld, version in code is %d\n",
          long_vals[0], CRUX_STATE_VERSION);
