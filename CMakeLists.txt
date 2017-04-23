@@ -89,7 +89,7 @@ if (NOT MIC_NATIVE)
    endif (OPENCL_FOUND)
 endif (NOT MIC_NATIVE)
 
-find_package(MPI REQUIRED)
+find_package(MPI)
 if (MPI_FOUND)
    include_directories(${MPI_INCLUDE_PATH})
 endif (MPI_FOUND)

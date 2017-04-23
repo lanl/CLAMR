@@ -45,7 +45,9 @@ endif (MIC_NATIVE)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
 
-find_package(MPI REQUIRED)
+if (NOT DEFINED MPI_FOUND)
+   find_package(MPI)
+endif (NOT DEFINED MPI_FOUND)
 if (MPI_FOUND)
    include_directories(${MPI_INCLUDE_PATH})
 endif (MPI_FOUND)
@@ -78,15 +80,17 @@ set_target_properties(PowerParser PROPERTIES VERSION ${POWERPARSER_VERSION} SOVE
 install(TARGETS PowerParser DESTINATION lib)
 
 ########### pPowerParser target ###############
-set(pPowerParser_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
+if (MPI_FOUND)
+   set(pPowerParser_LIB_SRCS ${CXX_SRCS} ${H_SRCS})
 
-add_library(pPowerParser STATIC ${PowerParser_LIB_SRCS})
+   add_library(pPowerParser STATIC ${PowerParser_LIB_SRCS})
 
-set_target_properties(pPowerParser PROPERTIES VERSION ${POWERPARSER_VERSION} SOVERSION ${POWERPARSER_VERSION_MAJOR})
-set_target_properties(pPowerParser PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-target_link_libraries(pPowerParser ${MPI_LIBRARIES})
+   set_target_properties(pPowerParser PROPERTIES VERSION ${POWERPARSER_VERSION} SOVERSION ${POWERPARSER_VERSION_MAJOR})
+   set_target_properties(pPowerParser PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+   target_link_libraries(pPowerParser ${MPI_LIBRARIES})
 
-install(TARGETS pPowerParser DESTINATION lib)
+   install(TARGETS pPowerParser DESTINATION lib)
+endif (MPI_FOUND)
 
 ########### install files ###############
 
