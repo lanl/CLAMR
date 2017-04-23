@@ -177,6 +177,7 @@ static const char *mesh_timer_descriptor[MESH_TIMER_SIZE] = {
 cl_kernel      kernel_hash_adjust_sizes;
 cl_kernel      kernel_hash_setup;
 cl_kernel      kernel_hash_setup_local;
+cl_kernel      kernel_neighbor_init;
 cl_kernel      kernel_calc_neighbors;
 cl_kernel      kernel_calc_neighbors_local;
 cl_kernel      kernel_calc_border_cells;
@@ -211,6 +212,7 @@ cl_kernel      kernel_refine_smooth;
 cl_kernel      kernel_coarsen_smooth;
 cl_kernel      kernel_coarsen_check_block;
 cl_kernel      kernel_rezone_all;
+cl_kernel      kernel_rezone_neighbors;
 #ifndef MINIMUM_PRECISION
 cl_kernel      kernel_rezone_one_double;
 #endif
@@ -1355,6 +1357,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       kernel_hash_adjust_sizes        = ezcl_create_kernel_wprogram(program, "hash_adjust_sizes_cl");
       kernel_hash_setup               = ezcl_create_kernel_wprogram(program, "hash_setup_cl");
       kernel_hash_setup_local         = ezcl_create_kernel_wprogram(program, "hash_setup_local_cl");
+      kernel_neighbor_init            = ezcl_create_kernel_wprogram(program, "neighbor_init_cl");
       kernel_calc_neighbors           = ezcl_create_kernel_wprogram(program, "calc_neighbors_cl");
       kernel_calc_neighbors_local     = ezcl_create_kernel_wprogram(program, "calc_neighbors_local_cl");
       kernel_calc_border_cells        = ezcl_create_kernel_wprogram(program, "calc_border_cells_cl");
@@ -1385,6 +1388,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       kernel_coarsen_smooth           = ezcl_create_kernel_wprogram(program, "coarsen_smooth_cl");
       kernel_coarsen_check_block      = ezcl_create_kernel_wprogram(program, "coarsen_check_block_cl");
       kernel_rezone_all               = ezcl_create_kernel_wprogram(program, "rezone_all_cl");
+      kernel_rezone_neighbors         = ezcl_create_kernel_wprogram(program, "rezone_neighbors_cl");
 #ifndef MINIMUM_PRECISION
       kernel_rezone_one_double        = ezcl_create_kernel_wprogram(program, "rezone_one_double_cl");
 #endif
@@ -2146,10 +2150,12 @@ void Mesh::terminate(void)
       mesh_memory.memory_delete(j);
       mesh_memory.memory_delete(level);
       mesh_memory.memory_delete(celltype);
-      mesh_memory.memory_delete(nlft);
-      mesh_memory.memory_delete(nrht);
-      mesh_memory.memory_delete(nbot);
-      mesh_memory.memory_delete(ntop);
+      if (neighbor_remap) {
+         mesh_memory.memory_delete(nlft);
+         mesh_memory.memory_delete(nrht);
+         mesh_memory.memory_delete(nbot);
+         mesh_memory.memory_delete(ntop);
+      }
 
 #ifdef HAVE_OPENCL
       hash_lib_terminate();
@@ -2166,6 +2172,12 @@ void Mesh::terminate(void)
       ezcl_device_memory_delete(dev_i);
       ezcl_device_memory_delete(dev_j);
       ezcl_device_memory_delete(dev_celltype);
+      if (neighbor_remap){
+         ezcl_device_memory_delete(dev_nlft);
+         ezcl_device_memory_delete(dev_nrht);
+         ezcl_device_memory_delete(dev_nbot);
+         ezcl_device_memory_delete(dev_ntop);
+      }
 
       ezcl_kernel_release(kernel_reduction_scan2);
       ezcl_kernel_release(kernel_reduction_count);
@@ -2173,6 +2185,7 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_hash_adjust_sizes);
       ezcl_kernel_release(kernel_hash_setup);
       ezcl_kernel_release(kernel_hash_setup_local);
+      ezcl_kernel_release(kernel_neighbor_init);
       ezcl_kernel_release(kernel_calc_neighbors);
       ezcl_kernel_release(kernel_calc_neighbors_local);
       ezcl_kernel_release(kernel_calc_border_cells);
@@ -2206,6 +2219,7 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_coarsen_smooth);
       ezcl_kernel_release(kernel_coarsen_check_block);
       ezcl_kernel_release(kernel_rezone_all);
+      ezcl_kernel_release(kernel_rezone_neighbors);
 #ifndef MINIMUM_PRECISION
       ezcl_kernel_release(kernel_rezone_one_double);
 #endif
@@ -3143,24 +3157,24 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    // End of data parallel optimizations
 #endif
 
-   int *nlft_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nlft_old",  flags);
-   int *nrht_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nrht_old",  flags);
-   int *nbot_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nbot_old",  flags);
-   int *ntop_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "ntop_old",  flags);
-
-   for (int ic = 0; ic < new_ncells; ic++){
-      nlft_old[ic] = -1;
-      nrht_old[ic] = -1;
-      nbot_old[ic] = -1;
-      ntop_old[ic] = -1;
-   }
-
-   mesh_memory.memory_swap(&nlft,  &nlft_old);
-   mesh_memory.memory_swap(&nrht,  &nrht_old);
-   mesh_memory.memory_swap(&nbot,  &nbot_old);
-   mesh_memory.memory_swap(&ntop,  &ntop_old);
-
    if (neighbor_remap & ! parallel) {
+      int *nlft_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nlft_old",  flags);
+      int *nrht_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nrht_old",  flags);
+      int *nbot_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "nbot_old",  flags);
+      int *ntop_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "ntop_old",  flags);
+
+      for (int ic = 0; ic < new_ncells; ic++){
+         nlft_old[ic] = -1;
+         nrht_old[ic] = -1;
+         nbot_old[ic] = -1;
+         ntop_old[ic] = -1;
+      }
+
+      mesh_memory.memory_swap(&nlft,  &nlft_old);
+      mesh_memory.memory_swap(&nrht,  &nrht_old);
+      mesh_memory.memory_swap(&nbot,  &nbot_old);
+      mesh_memory.memory_swap(&ntop,  &ntop_old);
+
       for (int ic = 0; ic < (int)ncells; ic++){
          int nc = index[ic];
 
@@ -3226,12 +3240,17 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             }
          }
       }
-   }
 
-   nlft_old = (int *)mesh_memory.memory_delete(nlft_old);
-   nrht_old = (int *)mesh_memory.memory_delete(nrht_old);
-   nbot_old = (int *)mesh_memory.memory_delete(nbot_old);
-   ntop_old = (int *)mesh_memory.memory_delete(ntop_old);
+      nlft_old = (int *)mesh_memory.memory_delete(nlft_old);
+      nrht_old = (int *)mesh_memory.memory_delete(nrht_old);
+      nbot_old = (int *)mesh_memory.memory_delete(nbot_old);
+      ntop_old = (int *)mesh_memory.memory_delete(ntop_old);
+   } else {
+      nlft = (int *)mesh_memory.memory_delete(nlft);
+      nrht = (int *)mesh_memory.memory_delete(nrht);
+      nbot = (int *)mesh_memory.memory_delete(nbot);
+      ntop = (int *)mesh_memory.memory_delete(ntop);
+   }
 
    //ncells = nc;
 
@@ -3459,16 +3478,55 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
       }
    }
 
-   ezcl_device_memory_delete(dev_indexoffset);
+   if (neighbor_remap & ! parallel) {
+      size_t mem_request = (int)((float)new_ncells*mem_factor);
+      cl_mem dev_nlft_new = ezcl_malloc(NULL, const_cast<char *>("dev_nlft_new"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_nrht_new = ezcl_malloc(NULL, const_cast<char *>("dev_nrht_new"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_nbot_new = ezcl_malloc(NULL, const_cast<char *>("dev_nbot_new"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_ntop_new = ezcl_malloc(NULL, const_cast<char *>("dev_ntop_new"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 
-   ezcl_device_memory_delete(dev_nlft);
-   ezcl_device_memory_delete(dev_nrht);
-   ezcl_device_memory_delete(dev_nbot);
-   ezcl_device_memory_delete(dev_ntop);
-   dev_nlft = NULL;
-   dev_nrht = NULL;
-   dev_nbot = NULL;
-   dev_ntop = NULL;
+      ezcl_set_kernel_arg(kernel_neighbor_init,  0, sizeof(cl_int),   (void *)&new_ncells);
+      ezcl_set_kernel_arg(kernel_neighbor_init,  1, sizeof(cl_mem),   (void *)&dev_nlft_new);
+      ezcl_set_kernel_arg(kernel_neighbor_init,  2, sizeof(cl_mem),   (void *)&dev_nrht_new);
+      ezcl_set_kernel_arg(kernel_neighbor_init,  3, sizeof(cl_mem),   (void *)&dev_nbot_new);
+      ezcl_set_kernel_arg(kernel_neighbor_init,  4, sizeof(cl_mem),   (void *)&dev_ntop_new);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_neighbor_init,   1, NULL, &global_work_size, &local_work_size, NULL);
+
+      ezcl_set_kernel_arg(kernel_rezone_neighbors,  0, sizeof(cl_int),  (void *)&old_ncells);
+      ezcl_set_kernel_arg(kernel_rezone_neighbors,  1, sizeof(cl_mem),  (void *)&dev_mpot);
+      ezcl_set_kernel_arg(kernel_rezone_neighbors,  2, sizeof(cl_mem),  (void *)&dev_indexoffset);
+      ezcl_set_kernel_arg(kernel_rezone_neighbors,  3, sizeof(cl_mem),  (void *)&dev_nlft);
+      ezcl_set_kernel_arg(kernel_rezone_neighbors,  4, sizeof(cl_mem),  (void *)&dev_nrht);
+      ezcl_set_kernel_arg(kernel_rezone_neighbors,  5, sizeof(cl_mem),  (void *)&dev_nbot);
+      ezcl_set_kernel_arg(kernel_rezone_neighbors,  6, sizeof(cl_mem),  (void *)&dev_ntop);
+      ezcl_set_kernel_arg(kernel_rezone_neighbors,  7, sizeof(cl_mem),  (void *)&dev_celltype_new);
+      ezcl_set_kernel_arg(kernel_rezone_neighbors,  8, sizeof(cl_mem),  (void *)&dev_nlft_new);
+      ezcl_set_kernel_arg(kernel_rezone_neighbors,  9, sizeof(cl_mem),  (void *)&dev_nrht_new);
+      ezcl_set_kernel_arg(kernel_rezone_neighbors, 10, sizeof(cl_mem),  (void *)&dev_nbot_new);
+      ezcl_set_kernel_arg(kernel_rezone_neighbors, 11, sizeof(cl_mem),  (void *)&dev_ntop_new);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_neighbors,   1, NULL, &global_work_size, &local_work_size, NULL);
+   
+      ezcl_device_memory_swap(&dev_nlft, &dev_nlft_new);
+      ezcl_device_memory_swap(&dev_nrht, &dev_nrht_new);
+      ezcl_device_memory_swap(&dev_nbot, &dev_nbot_new);
+      ezcl_device_memory_swap(&dev_ntop, &dev_ntop_new);
+
+      ezcl_device_memory_delete(dev_nlft_new);
+      ezcl_device_memory_delete(dev_nrht_new);
+      ezcl_device_memory_delete(dev_nbot_new);
+      ezcl_device_memory_delete(dev_ntop_new);
+   } else {
+      ezcl_device_memory_delete(dev_nlft);
+      ezcl_device_memory_delete(dev_nrht);
+      ezcl_device_memory_delete(dev_nbot);
+      ezcl_device_memory_delete(dev_ntop);
+      dev_nlft = NULL;
+      dev_nrht = NULL;
+      dev_nbot = NULL;
+      dev_ntop = NULL;
+   }
+
+   ezcl_device_memory_delete(dev_indexoffset);
 
    if (new_ncells != old_ncells){
       resize_old_device_memory(new_ncells);
@@ -3553,30 +3611,42 @@ void Mesh::calc_neighbors(int ncells)
 #endif
          for(int ic=0; ic<ncells; ic++){
             int lev = level[ic];
-            int levmult = IPOW2(levmx-lev);
-            int ii = i[ic]*levmult;
-            int jj = j[ic]*levmult;
 
-            if (nlft[ic] == -1 || nrht[ic] == -1 || nbot[ic] == -1 || ntop[ic] == -1 ||
-                (level[nlft[ic]] > lev && ntop[nlft[ic]] == -1) || 
-                (level[nrht[ic]] > lev && ntop[nrht[ic]] == -1) ||
-                (level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) || 
-                (level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ){
+            bool need_hash = (nlft[ic] == -1 || nrht[ic] == -1 || nbot[ic] == -1 || ntop[ic] == -1) ? true : false;
+
+            if (! need_hash){
+                if ( (level[nlft[ic]] > lev && ntop[nlft[ic]] == -1) || 
+                     (level[nrht[ic]] > lev && ntop[nrht[ic]] == -1) ||
+                     (level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) || 
+                     (level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ) need_hash = true;
+            }
+            
+            if (need_hash) {
+               int levmult = IPOW2(levmx-lev);
+               int ii = i[ic]*levmult;
+               int jj = j[ic]*levmult;
+
                write_hash(ic,jj*imaxsize+ii,hash);
             }
          }
       } else {
          for(int ic=0; ic<ncells; ic++){
             int lev = level[ic];
-            int levmult = IPOW2(levmx-lev);
-            int ii = i[ic]*levmult;
-            int jj = j[ic]*levmult;
 
-            if (nlft[ic] == -1 || nrht[ic] == -1 || nbot[ic] == -1 || ntop[ic] == -1 ||
-                (level[nlft[ic]] > lev && ntop[nlft[ic]] == -1) || 
-                (level[nrht[ic]] > lev && ntop[nrht[ic]] == -1) ||
-                (level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) || 
-                (level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ){
+            bool need_hash = (nlft[ic] == -1 || nrht[ic] == -1 || nbot[ic] == -1 || ntop[ic] == -1) ? true : false;
+
+            if (! need_hash){
+                if ( (level[nlft[ic]] > lev && ntop[nlft[ic]] == -1) || 
+                     (level[nrht[ic]] > lev && ntop[nrht[ic]] == -1) ||
+                     (level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) || 
+                     (level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ) need_hash = true;
+            }
+            
+            if (need_hash) {
+               int levmult = IPOW2(levmx-lev);
+               int ii = i[ic]*levmult;
+               int jj = j[ic]*levmult;
+
                write_hash(ic,jj*imaxsize+ii,hash);
             }
          }
@@ -5602,13 +5672,25 @@ void Mesh::gpu_calc_neighbors(void)
    assert(dev_j);
 
    size_t mem_request = (int)((float)ncells*mem_factor);
-   dev_nlft     = ezcl_malloc(NULL, const_cast<char *>("dev_nlft"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   dev_nrht     = ezcl_malloc(NULL, const_cast<char *>("dev_nrht"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   dev_nbot     = ezcl_malloc(NULL, const_cast<char *>("dev_nbot"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
-   dev_ntop     = ezcl_malloc(NULL, const_cast<char *>("dev_ntop"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
 
    size_t local_work_size = MIN(ncells, TILE_SIZE);
    size_t global_work_size = ((ncells + local_work_size - 1) /local_work_size) * local_work_size;
+
+   //printf("DEBUG file %s line %d dev_nlft %p size %d\n",__FILE__,__LINE__,dev_nlft,ezcl_get_device_mem_nelements(dev_nlft));
+
+   if (dev_nlft == NULL || ezcl_get_device_mem_nelements(dev_nlft) < (int)ncells) {
+      dev_nlft     = ezcl_malloc(NULL, const_cast<char *>("dev_nlft"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      dev_nrht     = ezcl_malloc(NULL, const_cast<char *>("dev_nrht"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      dev_nbot     = ezcl_malloc(NULL, const_cast<char *>("dev_nbot"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+      dev_ntop     = ezcl_malloc(NULL, const_cast<char *>("dev_ntop"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+
+      ezcl_set_kernel_arg(kernel_neighbor_init,  0, sizeof(cl_int),   (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_neighbor_init,  1, sizeof(cl_mem),   (void *)&dev_nlft);
+      ezcl_set_kernel_arg(kernel_neighbor_init,  2, sizeof(cl_mem),   (void *)&dev_nrht);
+      ezcl_set_kernel_arg(kernel_neighbor_init,  3, sizeof(cl_mem),   (void *)&dev_nbot);
+      ezcl_set_kernel_arg(kernel_neighbor_init,  4, sizeof(cl_mem),   (void *)&dev_ntop);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_neighbor_init,   1, NULL, &global_work_size, &local_work_size, NULL);
+   }
 
    int imaxsize = (imax+1)*IPOW2(levmx);
    int jmaxsize = (jmax+1)*IPOW2(levmx);
@@ -5646,8 +5728,12 @@ void Mesh::gpu_calc_neighbors(void)
    ezcl_set_kernel_arg(kernel_hash_setup,  4, sizeof(cl_mem),   (void *)&dev_level);
    ezcl_set_kernel_arg(kernel_hash_setup,  5, sizeof(cl_mem),   (void *)&dev_i);
    ezcl_set_kernel_arg(kernel_hash_setup,  6, sizeof(cl_mem),   (void *)&dev_j);
-   ezcl_set_kernel_arg(kernel_hash_setup,  7, sizeof(cl_mem),   (void *)&dev_hash_header);
-   ezcl_set_kernel_arg(kernel_hash_setup,  8, sizeof(cl_mem),   (void *)&dev_hash);
+   ezcl_set_kernel_arg(kernel_hash_setup,  7, sizeof(cl_mem),   (void *)&dev_nlft);
+   ezcl_set_kernel_arg(kernel_hash_setup,  8, sizeof(cl_mem),   (void *)&dev_nrht);
+   ezcl_set_kernel_arg(kernel_hash_setup,  9, sizeof(cl_mem),   (void *)&dev_nbot);
+   ezcl_set_kernel_arg(kernel_hash_setup, 10, sizeof(cl_mem),   (void *)&dev_ntop);
+   ezcl_set_kernel_arg(kernel_hash_setup, 11, sizeof(cl_mem),   (void *)&dev_hash_header);
+   ezcl_set_kernel_arg(kernel_hash_setup, 12, sizeof(cl_mem),   (void *)&dev_hash);
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_hash_setup,   1, NULL, &global_work_size, &local_work_size, &hash_setup_event);
 
    ezcl_wait_for_events(1, &hash_setup_event);

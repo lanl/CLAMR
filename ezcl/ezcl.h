@@ -161,6 +161,8 @@ extern "C"
       ( ezcl_device_memory_request_p(dev_mem_ptr, capacity, __FILE__, __LINE__) )
 #define ezcl_device_memory_swap(  dev_mem_ptr_old, dev_mem_ptr_new) \
       ( ezcl_device_memory_swap_p(dev_mem_ptr_old, dev_mem_ptr_new, __FILE__, __LINE__) )
+#define ezcl_device_memory_replace(  dev_mem_ptr_old, dev_mem_ptr_new) \
+      ( ezcl_device_memory_replace_p(dev_mem_ptr_old, dev_mem_ptr_new, __FILE__, __LINE__) )
 #define ezcl_device_memory_remove(  dev_mem_ptr) \
       ( ezcl_device_memory_remove_p(dev_mem_ptr, __FILE__, __LINE__) )
 #define ezcl_mapped_memory_remove(  map_mem_ptr) \
@@ -257,6 +259,7 @@ cl_mem ezcl_device_memory_malloc_p(cl_context context, void *host_mem_ptr, const
 cl_mem ezcl_device_memory_realloc_p(cl_mem dev_mem_ptr, size_t num_elements, const char *file, const int line);   
 cl_mem ezcl_device_memory_request_p(cl_mem dev_mem_ptr, size_t capacity, const char *file, const int line);   
 void ezcl_device_memory_swap_p(cl_mem *dev_mem_ptr_old, cl_mem *dev_mem_ptr_new, const char *file, const int line);   
+void ezcl_device_memory_replace_p(void **dev_mem_ptr_old, void **dev_mem_ptr_new, const char *file, const int line);   
 void ezcl_device_memory_remove_p(void *dev_mem_ptr, const char *file, const int line);   
 void ezcl_mapped_memory_remove_p(void *map_mem_ptr, const char *file, const int line);   
 void ezcl_malloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const int line);   
