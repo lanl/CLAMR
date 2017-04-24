@@ -2823,17 +2823,25 @@ void State::symmetry_check(const char *string, vector<int> sym_index, double eps
 
 size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 {
-   struct timeval tstart_cpu;
-   cpu_timer_start(&tstart_cpu);
-
-   struct timeval tstart_lev2;
-   if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
-
+   
+  struct timeval tstart_cpu;
 #ifdef _OPENMP
 #pragma omp parallel 
 {
-#pragma omp barrier 
 #endif
+
+  struct timeval tstart_lev2;
+
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
+   cpu_timer_start(&tstart_cpu);
+   if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+#ifdef _OPENMP
+}
+#endif
+
    static int *nlft, *nrht, *nbot, *ntop, *level;
    
     size_t ncells = mesh->ncells;
@@ -2972,14 +2980,20 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    }
 
 #ifdef _OPENMP
-}
-#pragma omp barrier
+#pragma omp master
+{
 #endif
-
    if (TIMING_LEVEL >= 2) {
       cpu_timers[STATE_TIMER_CALC_MPOT] += cpu_timer_stop(tstart_lev2);
    }
+#ifdef _OPENMP
+}
+#endif
 
+#ifdef _OPENMP
+}
+#pragma omp barrier
+#endif
    int newcount = mesh->refine_smooth(mpot, icount, jcount);
    //printf("DEBUG -- after refine smooth in file %s line %d icount %d jcount %d newcount %d\n",__FILE__,__LINE__,icount,jcount,newcount);
 

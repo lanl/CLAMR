@@ -172,18 +172,28 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
 int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_level, omp_lock_t **lock){
 #endif
 
+   static int *hash;
+
+   int do_compact_hash;
+   uint compact_hash_size, perfect_hash_size;
+
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+
    hash_ncells = 0;
    write_hash_collisions = 0;
    read_hash_collisions = 0;
    hash_queries = 0;
    hash_report_level = report_level;
    hash_stride = isize;
-   int *hash = NULL;
+   hash = NULL;
 
    if (choose_hash_method != METHOD_UNSET) hash_method = choose_hash_method;
 
-   uint compact_hash_size = (uint)((double)ncells*hash_mult);
-   uint perfect_hash_size = (uint)(isize*jsize);
+   compact_hash_size = (uint)((double)ncells*hash_mult);
+   perfect_hash_size = (uint)(isize*jsize);
 
    if (hash_method == METHOD_UNSET){
       float hash_mem_factor = 20.0;
@@ -196,28 +206,43 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
          hash_method,hash_mem_ratio,hash_mem_factor,mem_opt_factor,perfect_hash_size,compact_hash_size);
    }
 
-   int do_compact_hash = (hash_method == PERFECT_HASH) ? 0 : 1;
+   do_compact_hash = (hash_method == PERFECT_HASH) ? 0 : 1;
 
    if (hash_report_level >= 2) printf("DEBUG do_compact_hash %d hash_method %d perfect_hash_size %u compact_hash_size %u\n",
       do_compact_hash,hash_method,perfect_hash_size,compact_hash_size);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
 
    if (do_compact_hash) {
-      hashtablesize = compact_hash_size;
-      //srand48(0);
-      AA = (ulong)(1.0+(double)(prime-1)*drand48());
-      BB = (ulong)(0.0+(double)(prime-1)*drand48());
-      if (AA > prime-1 || BB > prime-1) exit(0);
-      if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",AA,BB);
 
-      hash = (int *)genvector(2*hashtablesize,sizeof(int));
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
+
+         hashtablesize = compact_hash_size;
+         //srand48(0);
+         AA = (ulong)(1.0+(double)(prime-1)*drand48());
+         BB = (ulong)(0.0+(double)(prime-1)*drand48());
+         if (AA > prime-1 || BB > prime-1) exit(0);
+         if (hash_report_level > 1) printf("Factors AA %lu BB %lu\n",AA,BB);
+
+         hash = (int *)genvector(2*hashtablesize,sizeof(int));
 
 //#ifdef __GNUC__
 #ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-      (*lock) = (omp_lock_t *)malloc(hashtablesize*sizeof(omp_lock_t));
+         (*lock) = (omp_lock_t *)malloc(hashtablesize*sizeof(omp_lock_t));
 #endif
 
 #ifdef _OPENMP
-#pragma omp parallel for
+      }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp for
 #endif
       for (uint ii = 0; ii<hashtablesize; ii++){
          hash[2*ii] = -1;
@@ -226,6 +251,10 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
 #endif
       }
 
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
       if (hash_method == LINEAR){
          if (hash_report_level == 0){
             read_hash  = read_hash_linear;
@@ -269,26 +298,58 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
             write_hash_openmp = write_hash_primejump_openmp_report_level_3;
          }
       }
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
+
    } else {
+
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
       hashtablesize = perfect_hash_size;
 
       hash = (int *)genvector(hashtablesize,sizeof(int));
 #ifdef _OPENMP
-#pragma omp parallel for
+      }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp for
 #endif
       for (uint ii = 0; ii<hashtablesize; ii++){
          hash[ii] = -1;
+      } // end of else for if compact hash (is perfect hash)
+
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
+         read_hash  = read_hash_perfect;
+         write_hash_openmp = write_hash_perfect_openmp;
+#ifdef _OPENMP
       }
+#pragma omp barrier
+#endif
 
-      read_hash  = read_hash_perfect;
-      write_hash_openmp = write_hash_perfect_openmp;
-   }
+   } // else for if compact hash (perfect hash)
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {
+#endif
    if (hash_report_level >= 2) {
       printf("Hash table size %u perfect hash table size %u memory savings %u by percentage %lf\n",
         hashtablesize,isize*jsize,isize*jsize-hashtablesize,
         (double)hashtablesize/(double)(isize*jsize));
    }
+#ifdef _OPENMP
+      }
+#endif
 
    return(hash);
 }
