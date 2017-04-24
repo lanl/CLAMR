@@ -9770,13 +9770,10 @@ void scan ( scanInt *input , scanInt *output , scanInt length)
 **********************************/
 void Mesh::get_bounds(int& lowerBound, int& upperBound){
 #ifdef _OPENMP
-//#pragma omp parallel 
-{
         int threadID = omp_get_thread_num();
 	lowerBound = lowerBound_Global[threadID];
 	upperBound = upperBound_Global[threadID];
 //	printf("GETBOUNDs ThreadID: %d, upperBound: %d, lowerBound: %d \n",threadID, upperBound, lowerBound);
-}
 #else
 	lowerBound = 0;
 	upperBound = ncells;

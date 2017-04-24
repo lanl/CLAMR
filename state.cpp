@@ -1278,11 +1278,6 @@ void State::gpu_rezone_all(int icount, int jcount, bool localStencil)
 #define VUNEWFLUXPLUS2   ( Vyplus2 *Uyplus2 /Hyplus2 )
 
 void State::calc_finite_difference(double deltaT){
-#ifdef _OPENMP
-#pragma omp parallel
-{
-#endif
-
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = 0.5*g;
 
@@ -1898,19 +1893,9 @@ void State::calc_finite_difference(double deltaT){
    }
 #pragma omp barrier
 #endif
-
-#ifdef _OPENMP
-}
-#endif
-
 }
 
 void State::calc_finite_difference_via_faces(double deltaT){
-#ifdef _OPENMP
-#pragma omp parallel 
-{
-#endif
-
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = HALF*g;
 
@@ -2619,11 +2604,6 @@ void State::calc_finite_difference_via_faces(double deltaT){
    }
 #pragma omp barrier
 #endif
-
-#ifdef _OPENMP
-}//end High order OMP
-#endif
-
 }
 
 #ifdef HAVE_OPENCL
@@ -2849,12 +2829,19 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    struct timeval tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
-   size_t ncells     = mesh->ncells;
-   int *nlft  = mesh->nlft;
-   int *nrht  = mesh->nrht;
-   int *nbot  = mesh->nbot;
-   int *ntop  = mesh->ntop;
-   int *level = mesh->level;
+#ifdef _OPENMP
+#pragma omp parallel 
+{
+#pragma omp barrier 
+#endif
+   static int *nlft, *nrht, *nbot, *ntop, *level;
+   
+    size_t ncells = mesh->ncells;
+     nlft  = mesh->nlft;
+     nrht  = mesh->nrht;
+     nbot  = mesh->nbot;
+     ntop  = mesh->ntop;
+     level = mesh->level;
 
    icount=0;
    jcount=0;
@@ -2864,25 +2851,27 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    // variables since they were changed in the finite difference routine. We
    // want to use the updated values for refinement decisions
    if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
-
+      apply_boundary_conditions_local_Parallel();
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+{
+#endif
       L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
       L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
       L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
-
-      apply_boundary_conditions_ghost();
+#ifdef _OPENMP
+}
+#pragma omp barrier
+#endif
+      apply_boundary_conditions_ghost_Parallel();
    } else {
-      apply_boundary_conditions();
+      apply_boundary_conditions_Parallel();
    }
 #else
-   apply_boundary_conditions();
+   apply_boundary_conditions_Parallel();
 #endif
 /*****HIGH LEVEL OMP******/
-#ifdef _OPENMP
-#pragma omp parallel 
-{
-#pragma omp barrier 
-#endif
 
    int lowerBound, upperBound;
    //mesh->set_bounds(ncells);
