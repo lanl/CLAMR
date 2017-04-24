@@ -622,6 +622,54 @@ void State::apply_boundary_conditions_local(void)
    }
 }
 
+void State::apply_boundary_conditions_local_Parallel(void)
+{
+   size_t &ncells = mesh->ncells;
+   int *nlft = mesh->nlft;
+   int *nrht = mesh->nrht;
+   int *nbot = mesh->nbot;
+   int *ntop = mesh->ntop;
+
+   // This is for a mesh with boundary cells
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+   for (uint ic=0; ic<ncells; ic++) {
+      if (mesh->is_left_boundary(ic)) {
+         int nr = nrht[ic];
+         if (nr < (int)ncells) {
+            H[ic] =  H[nr];
+            U[ic] = -U[nr];
+            V[ic] =  V[nr];
+         }
+      }
+      if (mesh->is_right_boundary(ic))  {
+         int nl = nlft[ic];
+         if (nl < (int)ncells) {
+            H[ic] =  H[nl];
+            U[ic] = -U[nl];
+            V[ic] =  V[nl];
+         }
+      }
+      if (mesh->is_bottom_boundary(ic)) {
+         int nt = ntop[ic];
+         if (nt < (int)ncells) {
+            H[ic] =  H[nt];
+            U[ic] =  U[nt];
+            V[ic] = -V[nt];
+         }
+      }
+      if (mesh->is_top_boundary(ic)) {
+         int nb = nbot[ic];
+         if (nb < (int)ncells) {
+            H[ic] =  H[nb];
+            U[ic] =  U[nb];
+            V[ic] = -V[nb];
+         }
+      }
+   }
+}
+
 void State::apply_boundary_conditions_ghost(void)
 {
 
@@ -671,7 +719,96 @@ void State::apply_boundary_conditions_ghost(void)
    }
 }
 
+void State::apply_boundary_conditions_ghost_Parallel(void)
+{
+
+   size_t &ncells = mesh->ncells;
+   int *nlft = mesh->nlft;
+   int *nrht = mesh->nrht;
+   int *nbot = mesh->nbot;
+   int *ntop = mesh->ntop;
+
+   // This is for a mesh with boundary cells
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+   for (uint ic=0; ic<ncells; ic++) {
+      if (mesh->is_left_boundary(ic)) {
+         int nr = nrht[ic];
+         if (nr >= (int)ncells) {
+            H[ic] =  H[nr];
+            U[ic] = -U[nr];
+            V[ic] =  V[nr];
+         }
+      }
+      if (mesh->is_right_boundary(ic))  {
+         int nl = nlft[ic];
+         if (nl >= (int)ncells) {
+            H[ic] =  H[nl];
+            U[ic] = -U[nl];
+            V[ic] =  V[nl];
+         }
+      }
+      if (mesh->is_bottom_boundary(ic)) {
+         int nt = ntop[ic];
+         if (nt >= (int)ncells) {
+            H[ic] =  H[nt];
+            U[ic] =  U[nt];
+            V[ic] = -V[nt];
+         }
+      }
+      if (mesh->is_top_boundary(ic)) {
+         int nb = nbot[ic];
+         if (nb >= (int)ncells) {
+            H[ic] =  H[nb];
+            U[ic] =  U[nb];
+            V[ic] = -V[nb];
+         }
+      }
+   }
+}
+
 void State::apply_boundary_conditions(void)
+{
+   size_t &ncells = mesh->ncells;
+   int *nlft = mesh->nlft;
+   int *nrht = mesh->nrht;
+   int *nbot = mesh->nbot;
+   int *ntop = mesh->ntop;
+
+   // This is for a mesh with boundary cells
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+   for (uint ic=0; ic<ncells; ic++) {
+      if (mesh->is_left_boundary(ic)) {
+         int nr = nrht[ic];
+         H[ic] =  H[nr];
+         U[ic] = -U[nr];
+         V[ic] =  V[nr];
+      }
+      if (mesh->is_right_boundary(ic))  {
+         int nl = nlft[ic];
+         H[ic] =  H[nl];
+         U[ic] = -U[nl];
+         V[ic] =  V[nl];
+      }
+      if (mesh->is_bottom_boundary(ic)) {
+         int nt = ntop[ic];
+         H[ic] =  H[nt];
+         U[ic] =  U[nt];
+         V[ic] = -V[nt];
+      }
+      if (mesh->is_top_boundary(ic)) {
+         int nb = nbot[ic];
+         H[ic] =  H[nb];
+         U[ic] =  U[nb];
+         V[ic] = -V[nb];
+      }
+   }
+}
+
+void State::apply_boundary_conditions_Parallel(void)
 {
    size_t &ncells = mesh->ncells;
    int *nlft = mesh->nlft;
@@ -1156,7 +1293,7 @@ void State::calc_finite_difference(double deltaT){
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
    if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
+      apply_boundary_conditions_local_Parallel();
 
       H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
       U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
@@ -1166,19 +1303,27 @@ void State::calc_finite_difference(double deltaT){
       L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
       L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
 
-      apply_boundary_conditions_ghost();
+      apply_boundary_conditions_ghost_Parallel();
    } else {
-      apply_boundary_conditions();
+      apply_boundary_conditions_Parallel();
    }
 #else
-   apply_boundary_conditions();
+   apply_boundary_conditions_Parallel();
 #endif
 
-   int *nlft  = mesh->nlft;
-   int *nrht  = mesh->nrht;
-   int *nbot  = mesh->nbot;
-   int *ntop  = mesh->ntop;
-   int *level = mesh->level;
+#ifdef _OPENMP
+#pragma omp parallel
+{
+#endif
+
+   static state_t *H_new, *U_new, *V_new;
+   static int *nlft, *nrht, *nbot, *ntop, *level;
+
+   nlft  = mesh->nlft;
+   nrht  = mesh->nrht;
+   nbot  = mesh->nbot;
+   ntop  = mesh->ntop;
+   level = mesh->level;
 
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
@@ -1188,21 +1333,29 @@ void State::calc_finite_difference(double deltaT){
 #if defined (HAVE_J7)
    if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
-   state_t *H_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                          sizeof(state_t),
-                                                          "H_new", flags);
-   state_t *U_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                          sizeof(state_t),
-                                                          "U_new", flags);
-   state_t *V_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                          sizeof(state_t),
-                                                          "V_new", flags);
 
-   int gix;
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp master
 #endif
-   for(gix = 0; gix < (int)ncells; gix++) {
+   {
+      H_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
+                                                    sizeof(state_t),
+                                                    "H_new", flags);
+      U_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
+                                                    sizeof(state_t),
+                                                    "U_new", flags);
+      V_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
+                                                    sizeof(state_t),
+                                                    "V_new", flags);
+   }
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+
+   int lowerBound, upperBound;
+   mesh->get_bounds(lowerBound, upperBound);
+
+   for(int gix = lowerBound; gix < upperBound; gix++) {
 #if DEBUG >= 3
       printf("%d: DEBUG gix is %d at line %d in file %s\n",mesh->mype,gix,__LINE__,__FILE__);
 #endif
@@ -1709,16 +1862,30 @@ void State::calc_finite_difference(double deltaT){
 */
    } // cell loop
 
-   // Replace H with H_new and deallocate H. New memory will have the characteristics
-   // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
-   H = (state_t *)state_memory.memory_replace(H, H_new);
-   U = (state_t *)state_memory.memory_replace(U, U_new);
-   V = (state_t *)state_memory.memory_replace(V, V_new);
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+      // Replace H with H_new and deallocate H. New memory will have the characteristics
+      // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
+      H = (state_t *)state_memory.memory_replace(H, H_new);
+      U = (state_t *)state_memory.memory_replace(U, U_new);
+      V = (state_t *)state_memory.memory_replace(V, V_new);
 
-   //state_memory.memory_report();
-   //printf("DEBUG end finite diff\n\n"); 
+      //state_memory.memory_report();
+      //printf("DEBUG end finite diff\n\n"); 
 
-   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+}
+#endif
+
 }
 
 void State::calc_finite_difference_via_faces(double deltaT){

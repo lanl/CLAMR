@@ -233,8 +233,11 @@ public:
    /* Boundary routines -- not currently used */
    void add_boundary_cells(void);
    void apply_boundary_conditions(void);
+   void apply_boundary_conditions_Parallel(void);
    void apply_boundary_conditions_local(void);
+   void apply_boundary_conditions_local_Parallel(void);
    void apply_boundary_conditions_ghost(void);
+   void apply_boundary_conditions_ghost_Parallel(void);
    void remove_boundary_cells(void);
 
    /*******************************************************************
