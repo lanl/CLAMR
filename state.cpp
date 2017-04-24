@@ -771,11 +771,6 @@ double State::set_timestep(double g, double sigma)
 {
    double globalmindeltaT;
 
-#ifdef _OPENMP
-#pragma omp parallel
-   {
-#endif
-
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
@@ -834,10 +829,6 @@ double State::set_timestep(double g, double sigma)
 #ifdef _OPENMP
    } // End master region
 #pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-   } // End parallel region
 #endif
 
    return(globalmindeltaT);

@@ -387,18 +387,28 @@ extern "C" void do_calc(void)
 
    for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
-      //  Calculate the real time step for the current discrete time step.
-      deltaT = state->set_timestep(g, sigma);
-      simTime += deltaT;
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
       {
+         //  Calculate the real time step for the current discrete time step.
+         double mydeltaT = state->set_timestep(g, sigma); // Private variable to avoid write conflict
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+           deltaT = mydeltaT;
+           simTime += deltaT;
+#ifdef _OPENMP
+         }
+#endif
+
          mesh->calc_neighbors(ncells);
 
          cpu_timer_start(&tstart_partmeas);
          mesh->partition_measure();
+
 #ifdef _OPENMP
 #pragma omp master
 #endif
