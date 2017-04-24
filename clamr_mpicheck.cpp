@@ -394,41 +394,56 @@ extern "C" void do_calc(void)
 
       mesh->calc_neighbors_local();
 
-      if (do_comparison_calc) {
-         mesh_global->calc_neighbors(mesh_global->ncells);
-
-         // Checking CPU parallel to CPU global
-         mesh->compare_neighbors_cpu_local_to_cpu_global(ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);
-      }
-
-      mesh->partition_measure();
-
-      // Currently not working -- may need to be earlier?
-      //if (mesh->have_boundary) {
-      //  state->add_boundary_cells(mesh);
-      //}
-
-      // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
       {
+         if (do_comparison_calc) {
+            mesh_global->calc_neighbors(mesh_global->ncells);
+
+            // Checking CPU parallel to CPU global
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+#endif
+            {
+               mesh->compare_neighbors_cpu_local_to_cpu_global(ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);
+            }
+         }
+
+         mesh->partition_measure();
+
+         // Currently not working -- may need to be earlier?
+         //if (mesh->have_boundary) {
+         //  state->add_boundary_cells(mesh);
+         //}
+
+         // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
+
          mesh->set_bounds(ncells);
 
          //  Execute main kernel
          state->calc_finite_difference(deltaT);
+
+         if (do_comparison_calc) {
+            state_global->calc_finite_difference(deltaT);
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
+               // Compare H gathered to H_global, etc
+               state->compare_state_cpu_local_to_cpu_global(state_global, "finite difference",
+                      ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
+#ifdef _OPENMP
+            } // end master region
+#endif
+         }
+
+         //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
+         state->remove_boundary_cells();
       }
-
-      if (do_comparison_calc) {
-         state_global->calc_finite_difference(deltaT);
-
-         // Compare H gathered to H_global, etc
-         state->compare_state_cpu_local_to_cpu_global(state_global, "finite difference", ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
-      }
-
-      //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
-      state->remove_boundary_cells();
 
       if (do_comparison_calc) {
          state_global->remove_boundary_cells();

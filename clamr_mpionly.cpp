@@ -465,29 +465,29 @@ extern "C" void do_calc(void)
 
       mesh->calc_neighbors_local();
 
-      cpu_timer_start(&tstart_partmeas);
-      mesh->partition_measure();
-      cpu_time_partmeas += cpu_timer_stop(tstart_partmeas);
-
-      // Currently not working -- may need to be earlier?
-      //if (mesh->have_boundary) {
-      //  state->add_boundary_cells();
-      //}
-
-      // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
       {
+         cpu_timer_start(&tstart_partmeas);
+         mesh->partition_measure();
+         cpu_time_partmeas += cpu_timer_stop(tstart_partmeas);
+
+         // Currently not working -- may need to be earlier?
+         //if (mesh->have_boundary) {
+         //  state->add_boundary_cells();
+         //}
+
+         // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
+
          mesh->set_bounds(ncells);
 
          //  Execute main kernel
          state->calc_finite_difference(deltaT);
-      }
 
-      //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
-      state->remove_boundary_cells();
+         //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
+         state->remove_boundary_cells();
+      }
 
       mpot.resize(mesh->ncells_ghost);
       new_ncells = state->calc_refine_potential(mpot, icount, jcount);
