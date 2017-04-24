@@ -2637,6 +2637,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    cpu_counters[MESH_COUNTER_REZONE]++;
 
    vector<int> celltype_save;
+
+   int new_ncells;
+
 #ifdef _OPENMP
 #pragma omp parallel
    {
@@ -2660,16 +2663,25 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          celltype_save[ic] = celltype[ic];
       }
    }
+
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+   new_ncells = ncells + add_ncells;
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
 #ifdef _OPENMP
    } // End parallel region
 #endif
 
-   int new_ncells = ncells + add_ncells;
-
-   int ref_entry_count = 0;
+// int ref_entry_count = 0;
    if (have_state){
       for (uint ic=0; ic<ncells; ic++) {
-         if (mpot[ic] > 0) ref_entry_count++;
+//       if (mpot[ic] > 0) ref_entry_count++;
          if (mpot[ic] < 0) {
             // Normal cell coarsening
             if (is_lower_left(i[ic],j[ic]) ) mpot[ic] = -2;
