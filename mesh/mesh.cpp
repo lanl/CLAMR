@@ -2674,12 +2674,11 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp barrier
 #endif
 
-#ifdef _OPENMP
-   } // End parallel region
-#endif
-
 // int ref_entry_count = 0;
    if (have_state){
+#ifdef _OPENMP
+#pragma omp for
+#endif
       for (uint ic=0; ic<ncells; ic++) {
 //       if (mpot[ic] > 0) ref_entry_count++;
          if (mpot[ic] < 0) {
@@ -2690,6 +2689,10 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          }
       }
    }
+
+#ifdef _OPENMP
+   } // End parallel region
+#endif
 
    //  Initialize new variables
    int flags = 0;
