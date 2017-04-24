@@ -314,9 +314,9 @@ int main(int argc, char **argv) {
    if (mype == 0) {
       if (ncycle != 0){
          printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg\n",
-            ncycle, deltaT, simTime, ncells, H_sum);
+            ncycle, deltaT, simTime, ncells_global, H_sum);
       } else {
-         printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells, H_sum);
+         printf("Iteration   0 timestep      n/a Sim Time      0.0 cells %ld Mass Sum %14.12lg\n", ncells_global, H_sum);
       }
    }
 
