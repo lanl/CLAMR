@@ -72,6 +72,9 @@
 #include "crux/crux.h"
 #include "PowerParser/PowerParser.hh"
 #include "MallocPlus/MallocPlus.h"
+#ifdef HAVE_ITTNOTIFY
+#include <ittnotify>
+#endif
 
 using namespace PP;
 
@@ -346,9 +349,17 @@ int main(int argc, char **argv) {
    set_idle_function(&do_calc);
    start_main_loop();
 #else
+#ifdef HAVE_ITTNOTIFY
+__itt_resume();
+_SSC_MARK(Ox111);
+#endif
    for (it = ncycle; it < 10000000; it++) {
       do_calc();
    }
+#ifdef HAVE_ITTNOTIFY
+__itt_pause();
+_SSC_MARK(Ox222);
+#endif
 #endif
    
    return 0;
@@ -374,16 +385,26 @@ extern "C" void do_calc(void)
 
    cpu_timer_start(&tstart_cpu);
 
-   for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
-      //  Calculate the real time step for the current discrete time step.
-      deltaT = state->set_timestep(g, sigma);
-      simTime += deltaT;
+   for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
       {
+         //  Calculate the real time step for the current discrete time step.
+         double mydeltaT = state->set_timestep(g, sigma); // Private variable to avoid write conflict
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+           deltaT = mydeltaT;
+           simTime += deltaT;
+#ifdef _OPENMP
+         }
+#endif
+
          mesh->calc_neighbors(ncells);
 
          cpu_timer_start(&tstart_partmeas);

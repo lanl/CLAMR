@@ -337,6 +337,15 @@ endif (NOT OPENGL_FOUND)
 
 add_definitions(-DHAVE_CONFIG_H)
 
+if (CMAKE_ITTNOTIFY)
+   message("ITTNOTIFY FOUND")
+   set (ITTNOTIFY_FOUND on)
+   add_definitions(-DHAVE_ITTNOTIFY)
+   include_directories(-I$ENV{VTUNE_AMPLIFIER_XE_2016_DIR}/include)
+   set(ITTNOTIFY_LIBS "-rdynamic -L$ENV{VTUNE_AMPLIFIER_XE_2016_DIR}/lib64 -littnotify")
+endif (CMAKE_ITTNOTIFY)
+#message("ITTNOTIFY FOUND: " ${CMAKE_ITTNOTIFY} " " ${ITTNOTIFY_FOUND})
+
 # add the binary tree to the search path for include files
 # so that we will find config.h
 include_directories("${PROJECT_BINARY_DIR}")
@@ -444,6 +453,10 @@ endif (REPROBLAS_FOUND)
 
 #target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
+if (ITTNOTIFY_FOUND)
+   target_link_libraries(clamr_cpuonly ${ITTNOTIFY_LIBS})
+endif (ITTNOTIFY_FOUND)
+
 install(TARGETS clamr_cpuonly DESTINATION bin)
 
 ########### clamr_gpuonly target ###############
@@ -492,6 +505,10 @@ if (MPI_FOUND)
 
    target_link_libraries(clamr_mpionly ${MPI_LIBRARIES})
 
+   if (ITTNOTIFY_FOUND)
+      target_link_libraries(clamr_mpionly ${ITTNOTIFY_LIBS})
+   endif (ITTNOTIFY_FOUND)
+
    install(TARGETS clamr_mpionly DESTINATION bin)
 endif (MPI_FOUND)
 
@@ -516,6 +533,10 @@ if(OPENMP_FOUND)
    if (MIC_NATIVE)
       target_link_libraries(clamr_openmponly iomp5 cilkrts)
    endif (MIC_NATIVE)
+
+   if (ITTNOTIFY_FOUND)
+      target_link_libraries(clamr_openmponly ${ITTNOTIFY_LIBS})
+   endif (ITTNOTIFY_FOUND)
 
    install(TARGETS clamr_openmponly DESTINATION bin)
 endif(OPENMP_FOUND)
@@ -550,6 +571,11 @@ if (MPI_FOUND AND OPENMP_FOUND)
    target_link_libraries(clamr_mpiopenmponly ${MPI_LIBRARIES})
 
    install(TARGETS clamr_mpiopenmponly DESTINATION bin)
+
+   if (ITTNOTIFY_FOUND)
+      target_link_libraries(clamr_mpiopenmponly ${ITTNOTIFY_LIBS})
+   endif (ITTNOTIFY_FOUND)
+
 endif (MPI_FOUND AND OPENMP_FOUND)
 
 ########### clamr_quo target ###############
