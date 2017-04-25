@@ -3227,11 +3227,11 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             }
 #endif
 
+   calc_celltype_threaded(new_ncells);
+
 #ifdef _OPENMP
    } // end parallel region
 #endif
-
-   calc_celltype_threaded(new_ncells);
 
    if (have_state){
       MallocPlus state_memory_old = state_memory;
@@ -7943,14 +7943,9 @@ int Mesh::get_calc_neighbor_type(void)
 
 void Mesh::calc_celltype_threaded(size_t ncells)
 {
-   int flags = 0;
+   int flags=0;
 #ifdef HAVE_J7
    if (parallel) flags = LOAD_BALANCE_MEMORY;
-#endif
-
-#ifdef _OPENMP
-#pragma omp parallel
-   {
 #endif
 
 #ifdef _OPENMP
@@ -7977,10 +7972,6 @@ void Mesh::calc_celltype_threaded(size_t ncells)
       if (is_bottom_boundary(ic) ) celltype[ic] = BOTTOM_BOUNDARY;
       if (is_top_boundary(ic))     celltype[ic] = TOP_BOUNDARY;
    }
-
-#ifdef _OPENMP
-   } // End parallel region
-#endif
 }
 
 void Mesh::calc_celltype(size_t ncells)
