@@ -3231,21 +3231,21 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    } // end parallel region
 #endif
 
-   calc_celltype(new_ncells);
+   calc_celltype_threaded(new_ncells);
 
    if (have_state){
       MallocPlus state_memory_old = state_memory;
-      list<malloc_plus_memory_entry>::iterator memory_item;
 
+      list<malloc_plus_memory_entry>::iterator memory_item;
       for (memory_item = state_memory_old.memory_entry_begin();
            memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
            memory_item = state_memory_old.memory_entry_next() ) {
-         //ref_entry = 0;
-         //printf("DEBUG -- memory_item->mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
 #ifdef _OPENMP
 #pragma omp parallel
          {
 #endif
+         //ref_entry = 0;
+         //printf("DEBUG -- memory_item->mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
          if (memory_item->mem_elsize == 8) {
 
              static double *state_temp_double, *mem_ptr_double;
@@ -3395,8 +3395,8 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #ifdef _OPENMP
       } // end parallel region
 #endif
-
       } // memory item iteration
+
    } // if have state
    // End of data parallel optimizations
 #endif
@@ -7939,6 +7939,48 @@ void Mesh::print_calc_neighbor_type(void)
 int Mesh::get_calc_neighbor_type(void)
 {
    return(calc_neighbor_type );
+}
+
+void Mesh::calc_celltype_threaded(size_t ncells)
+{
+   int flags = 0;
+#ifdef HAVE_J7
+   if (parallel) flags = LOAD_BALANCE_MEMORY;
+#endif
+
+#ifdef _OPENMP
+#pragma omp parallel
+   {
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   if (celltype == NULL || mesh_memory.get_memory_size(celltype) < ncells) {
+      if (celltype != NULL) celltype = (int *)mesh_memory.memory_delete(celltype);
+      celltype = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "celltype", flags);
+   }
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp for
+#endif
+   for (uint ic=0; ic<ncells; ++ic) {
+      celltype[ic] = REAL_CELL;
+      if (is_left_boundary(ic) )   celltype[ic] = LEFT_BOUNDARY;
+      if (is_right_boundary(ic) )  celltype[ic] = RIGHT_BOUNDARY;
+      if (is_bottom_boundary(ic) ) celltype[ic] = BOTTOM_BOUNDARY;
+      if (is_top_boundary(ic))     celltype[ic] = TOP_BOUNDARY;
+   }
+
+#ifdef _OPENMP
+   } // End parallel region
+#endif
 }
 
 void Mesh::calc_celltype(size_t ncells)
