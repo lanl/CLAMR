@@ -2715,6 +2715,21 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    j = j_new;
    level = level_new;
 
+   index.clear();
+   index.resize(new_ncells);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+   static vector<int> order; //  Vector of refined mesh traversal order; set to -1 to indicate errors.
+
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
+   //  Insert new cells into the mesh at the point of refinement.
+   order.resize(4,    -1); //  Vector of refined mesh traversal order; set to -1 to indicate errors.
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2724,11 +2739,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    } // End parallel region
 #endif
 
-   index.clear();
-   index.resize(new_ncells);
-
-   //  Insert new cells into the mesh at the point of refinement.
-   vector<int> order(4,    -1); //  Vector of refined mesh traversal order; set to -1 to indicate errors.
    //vector<int>  invorder(4, -1); //  Vector mapping location from base index.
 
    int ifirst      = 0;
