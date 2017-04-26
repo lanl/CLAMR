@@ -3243,17 +3243,8 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    calc_celltype_threaded(new_ncells);
 
-#ifdef _OPENMP
-   } // end parallel region
-#endif
-
    if (have_state){
 
-
-#ifdef _OPENMP
-#pragma omp parallel
-         {
-#endif
       static MallocPlus state_memory_old;
 
       static list<malloc_plus_memory_entry>::iterator memory_next;
