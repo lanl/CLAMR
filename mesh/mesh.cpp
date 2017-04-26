@@ -3236,14 +3236,18 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    if (have_state){
       MallocPlus state_memory_old = state_memory;
 
-      list<malloc_plus_memory_entry>::iterator memory_item;
-      for (memory_item = state_memory_old.memory_entry_begin();
-           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-           memory_item = state_memory_old.memory_entry_next() ) {
+      list<malloc_plus_memory_entry>::iterator memory_next;
+      list<malloc_plus_memory_entry>::iterator memory_begin =
+         state_memory_old.memory_entry_begin();
+
 #ifdef _OPENMP
 #pragma omp parallel
          {
 #endif
+
+      for (list<malloc_plus_memory_entry>::iterator memory_item = memory_begin;
+           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
+           memory_item = memory_next ) {
          //ref_entry = 0;
          //printf("DEBUG -- memory_item->mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
          if (memory_item->mem_elsize == 8) {
@@ -3393,9 +3397,21 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
          } // mem elem size 4 bytes
 
 #ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
+        memory_next = state_memory_old.memory_entry_next();
+#ifdef _OPENMP
+            }
+#pragma omp barrier
+#endif
+
+      } // memory item iteration
+
+#ifdef _OPENMP
       } // end parallel region
 #endif
-      } // memory item iteration
 
    } // if have state
    // End of data parallel optimizations
