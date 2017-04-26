@@ -2811,10 +2811,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp barrier
 #endif
 
-#ifdef _OPENMP
-   } // End parallel region
-#endif
-
 #ifdef REZONE_NO_OPTIMIZATION
    vector<int>  invorder(4, -1); //  Vector mapping location from base index.
    for (int ic = 0, nc = 0; ic < (int)ncells; ic++)
@@ -3062,10 +3058,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #else
    // Data parallel optimizations for thread parallel -- slows down serial
    // code by about 25%
-#ifdef _OPENMP
-#pragma omp parallel
-   {
-#endif
    static vector<int> add_count;
 
 #ifdef _OPENMP
@@ -3441,17 +3433,8 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
       } // memory item iteration
 
-#ifdef _OPENMP
-      } // end parallel region
-#endif
-
    } // if have state
    // End of data parallel optimizations
-#endif
-
-#ifdef _OPENMP
-#pragma omp parallel
-   {
 #endif
 
    if (neighbor_remap) {
