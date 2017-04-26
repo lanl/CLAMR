@@ -2617,11 +2617,12 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   if (! do_rezone) {
 #ifdef _OPENMP
 #pragma omp parallel
       {
 #endif
+
+   if (! do_rezone) {
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -2647,26 +2648,19 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
       cpu_timers[MESH_TIMER_REZONE_ALL] += cpu_timer_stop(tstart_cpu);
 
-#ifdef _OPENMP
-      } // end parallel region
-#pragma omp barrier
-#endif
    } else {
 
 // sign for jcount is different in GPU and CPU code -- abs is a quick fix
    int add_ncells = icount - abs(jcount);
 
+#ifdef _OPENMP
+#pragma omp master
+#endif
    cpu_counters[MESH_COUNTER_REZONE]++;
 
-   vector<int> celltype_save;
+   static vector<int> celltype_save;
 
-   int new_ncells;
-   int flags;
-
-#ifdef _OPENMP
-#pragma omp parallel
-   {
-#endif
+   static int new_ncells;
 
    static int *i_old, *j_old, *level_old;
 
@@ -2727,7 +2721,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    //  Initialize new variables
 // int *i_old, *j_old, *level_old;
 
-   flags = RESTART_DATA;
+   int flags = RESTART_DATA;
 #ifdef HAVE_J7
    if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
