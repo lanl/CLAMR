@@ -3250,19 +3250,21 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    if (have_state){
       MallocPlus state_memory_old = state_memory;
 
-      list<malloc_plus_memory_entry>::iterator memory_next;
-      list<malloc_plus_memory_entry>::iterator memory_begin;
 
 #ifdef _OPENMP
 #pragma omp parallel
          {
 #endif
 
+      static list<malloc_plus_memory_entry>::iterator memory_next;
+      static list<malloc_plus_memory_entry>::iterator memory_begin;
+
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
       {
 #endif
+
       memory_begin = state_memory_old.memory_entry_begin();
 #ifdef _OPENMP
       } // end master region
