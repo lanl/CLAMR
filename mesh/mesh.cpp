@@ -3259,12 +3259,22 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       MallocPlus state_memory_old = state_memory;
 
       list<malloc_plus_memory_entry>::iterator memory_next;
-      list<malloc_plus_memory_entry>::iterator memory_begin =
-         state_memory_old.memory_entry_begin();
+      list<malloc_plus_memory_entry>::iterator memory_begin;
 
 #ifdef _OPENMP
 #pragma omp parallel
          {
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+      memory_begin = state_memory_old.memory_entry_begin();
+#ifdef _OPENMP
+         }
+#pragma omp barrier
 #endif
 
       for (list<malloc_plus_memory_entry>::iterator memory_item = memory_begin;
