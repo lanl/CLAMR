@@ -1786,23 +1786,45 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #endif
       newcount += mynewcount;
 
+
+
+
+         icount += newcount;
+         newcount_global = newcount;
+
 #ifdef _OPENMP
-#pragma omp barrier
-}//END Parallel Region
+#pragma omp master
+{
 #endif
 
-         newcount_global = newcount;
-         icount += newcount;
-         
 #ifdef HAVE_MPI
          if (parallel) {
             MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          }
 #endif
 
+#ifdef _OPENMP
+}//END MASTER
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+}//END Parallel Region
+#endif
+
+         //newcount_global = newcount;
+         //icount += newcount;
+         
+//#ifdef HAVE_MPI
+ //        if (parallel) {
+  //          MPI_Allreduce(&newcount, &newcount_global, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+//         }
+//#endif
+
       //printf("%d: newcount is %d newcount_global %d levmx %d\n",levcount,newcount,newcount_global,levmx);
       //} while (newcount > 0 && levcount < 10);
-      } while (newcount_global > 0 && levcount < levmx);
+      }// while (newcount_global > 0 && levcount < levmx);
    }
 
 #ifdef HAVE_MPI
