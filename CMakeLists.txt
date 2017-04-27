@@ -369,6 +369,8 @@ endif (CMAKE_ITTNOTIFY)
 # so that we will find config.h
 include_directories("${PROJECT_BINARY_DIR}")
 
+#ADDING TESTS CODE####
+
 if (EXISTS "${CMAKE_SOURCE_DIR}/tests" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/tests")
    add_subdirectory(tests)
 endif (EXISTS "${CMAKE_SOURCE_DIR}/tests" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/tests")

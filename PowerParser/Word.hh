@@ -109,15 +109,15 @@ public:
 
     bool is_integer()  { if (type == INTEGER) return true; return false; }
 
-    bool is_number()   { if (type == INTEGER || type == DOUBLE)
-                         return true; return false; }
+    bool is_number()   { if (type == INTEGER || type == DOUBLE) return true;
+                         return false; }
 
     bool is_numvar()   { if (type == INTEGER || type == DOUBLE ||
                              type == VARIABLE) return true;
                          return false; }
 
-    bool has_value()   { if (type == INTEGER || type == DOUBLE)
-                         return true; return false; }
+    bool has_value()   { if (type == INTEGER || type == DOUBLE) return true;
+                         return false; }
 
     bool is_variable() { if (type == VARIABLE) return true; return false; }
 
