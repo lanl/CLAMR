@@ -806,14 +806,16 @@ void store_crux_data(Crux *crux, int ncycle)
    int_vals[13] = next_graphics_cycle;
 
    double double_vals[num_double_vals];
+
    double_vals[ 0] = circ_radius;
    double_vals[ 1] = H_sum_initial;
    double_vals[ 2] = simTime;
    double_vals[ 3] = deltaT;
    double_vals[ 4] = upper_mass_diff_percentage;
 
-   clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", RESTART_DATA);
-   clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", RESTART_DATA);
+   int flags = RESTART_DATA | REPLICATED_DATA;
+   clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", flags);
+   clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", flags);
 
    crux->store_begin(nsize, ncycle);
 
@@ -837,8 +839,9 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
 
    double double_vals[num_double_vals];
 
-   clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", RESTART_DATA);
-   clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", RESTART_DATA);
+   int flags = RESTART_DATA | REPLICATED_DATA;
+   clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", flags);
+   clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", flags);
 
    crux->restore_MallocPlus(clamr_bootstrap_memory);
 
@@ -847,7 +850,7 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
          int_vals[0], CRUX_CLAMR_VERSION);
       exit(0);
    }
-  
+
    nx                        = int_vals[ 1];
    ny                        = int_vals[ 2];
    levmx                     = int_vals[ 3];
@@ -872,7 +875,12 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
    clamr_bootstrap_memory.memory_remove(double_vals);
 
 #ifdef DEBUG_RESTORE_VALS
-   if (DEBUG_RESTORE_VALS) {
+   int mype=0;
+#ifdef HAVE_MPI
+   MPI_Comm_rank(MPI_COMM_WORLD,&mype);
+#endif
+
+   if (DEBUG_RESTORE_VALS && mype == 0) {
       const char *int_vals_descriptor[num_int_vals] = {
          "CRUX_CLAMR_VERSION",
          "nx",
@@ -900,7 +908,7 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
 #endif
 
 #ifdef DEBUG_RESTORE_VALS
-   if (DEBUG_RESTORE_VALS) {
+   if (DEBUG_RESTORE_VALS && mype == 0) {
       const char *double_vals_descriptor[num_double_vals] = {
          "circ_radius",
          "H_sum_initial",
@@ -923,7 +931,12 @@ void restore_crux_data(Crux *crux)
 {
    state->restore_checkpoint(crux);
 
+#ifndef HAVE_MPI
    crux->restore_end();
+#else
+   MPI_Finalize();
+   exit(0);
+#endif
 }
 
 

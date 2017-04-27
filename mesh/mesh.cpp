@@ -10191,6 +10191,8 @@ void Mesh::store_checkpoint(Crux *crux)
 #endif
    //printf("noffset is %d\n",noffset);
 
+#ifndef HAVE_MPI
+
    // Need ncells for memory allocation
    crux->store_sizets(&ncells, 1);
 
@@ -10203,41 +10205,47 @@ void Mesh::store_checkpoint(Crux *crux)
 
    // These are for values that will be different on every processor
    int int_dist_vals[num_int_dist_vals];
-   int_dist_vals[ 0] = ncells;
+   int_dist_vals[ 0] = (int)ncells;
    int_dist_vals[ 1] = noffset;
-   int_dist_vals[ 2] = ncells_ghost;
+   int_dist_vals[ 2] = (int)ncells_ghost;
    int_dist_vals[ 3] = offtile_local_count;
 
    double double_vals[num_double_vals];
 
    double_vals[0] = offtile_ratio_local;
 
+   int flags = RESTART_DATA;
    // Now add memory entries to database for storing checkpoint
-   mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", RESTART_DATA);
-   mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", RESTART_DATA);
-   mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", RESTART_DATA);
+   mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", flags);
+   flags = RESTART_DATA | REPLICATED_DATA;
+   mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", flags);
+   mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", flags);
 
-   mesh_memory.memory_add(cpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_cpu_counters", RESTART_DATA);
-   mesh_memory.memory_add(gpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_gpu_counters", RESTART_DATA);
+   flags = RESTART_DATA;
+   mesh_memory.memory_add(cpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_cpu_counters", flags);
+   mesh_memory.memory_add(gpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_gpu_counters", flags);
 
-   mesh_memory.memory_add(cpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_cpu_timers", RESTART_DATA);
-   mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", RESTART_DATA);
+   mesh_memory.memory_add(cpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_cpu_timers", flags);
+   mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", flags);
 
    // Store MallocPlus memory database
    crux->store_MallocPlus(mesh_memory);
 
    // Remove memory entries from database now that data is stored
+   mesh_memory.memory_remove(int_dist_vals);
    mesh_memory.memory_remove(int_vals);
    mesh_memory.memory_remove(double_vals);
    mesh_memory.memory_remove(cpu_counters);
    mesh_memory.memory_remove(gpu_counters);
    mesh_memory.memory_remove(cpu_timers);
    mesh_memory.memory_remove(gpu_timers);
+#endif
 
 }
 
 void Mesh::restore_checkpoint(Crux *crux)
 {
+#ifndef HAVE_MPI
    // Need ncells for memory allocation
    crux->restore_sizets(&ncells, 1);
 
@@ -10246,9 +10254,35 @@ void Mesh::restore_checkpoint(Crux *crux)
    int int_vals[num_int_vals];
    double double_vals[num_double_vals];
 
-   allocate(ncells);
+   // Resize is a mesh method
+   resize(ncells);
+   memory_reset_ptrs();
+   
+   int flags = RESTART_DATA;
+   // Now add memory entries to database for restoring checkpoint
+   mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", flags);
+   flags = RESTART_DATA | REPLICATED_DATA;
+   mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", flags);
+   mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", flags);
 
+   flags = RESTART_DATA;
+   mesh_memory.memory_add(cpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_cpu_counters", flags);
+   mesh_memory.memory_add(gpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_gpu_counters", flags);
+
+   mesh_memory.memory_add(cpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_cpu_timers", flags);
+   mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", flags);
+
+   // Restore MallocPlus memory database
    crux->restore_MallocPlus(mesh_memory);
+
+   // Remove memory entries from database now that data is restored
+   mesh_memory.memory_remove(int_dist_vals);
+   mesh_memory.memory_remove(int_vals);
+   mesh_memory.memory_remove(double_vals);
+   mesh_memory.memory_remove(cpu_counters);
+   mesh_memory.memory_remove(gpu_counters);
+   mesh_memory.memory_remove(cpu_timers);
+   mesh_memory.memory_remove(gpu_timers);
 
    // Check version number
    if (int_vals[ 0] != CRUX_MESH_VERSION) {
@@ -10258,17 +10292,17 @@ void Mesh::restore_checkpoint(Crux *crux)
    }
 
    // Copy out scalar values from array
-   ncells                    = int_vals[ 0];
-   noffset                   = int_vals[ 1];
-   ncells_ghost              = int_vals[ 2];
-   offtile_local_count       = int_vals[ 3];
+   ncells                    = int_dist_vals[ 0];
+   noffset                   = int_dist_vals[ 1];
+   ncells_ghost              = int_dist_vals[ 2];
+   offtile_local_count       = int_dist_vals[ 3];
 
    // Copy out scalar values from array
    ndim                      = int_vals[ 1];
    levmx                     = int_vals[ 2];
 
 #ifdef DEBUG_RESTORE_VALS
-   if (DEBUG_RESTORE_VALS) {
+   if (DEBUG_RESTORE_VALS && mype == 0) {
       const char *int_dist_vals_descriptor[num_int_dist_vals] = {
          "ncells",
          "noffset",
@@ -10297,7 +10331,7 @@ void Mesh::restore_checkpoint(Crux *crux)
    offtile_ratio_local = double_vals[0];
 
 #ifdef DEBUG_RESTORE_VALS
-   if (DEBUG_RESTORE_VALS) {
+   if (DEBUG_RESTORE_VALS && mype == 0) {
       const char *double_vals_descriptor[num_double_vals] = {
          "offtile_ratio_local"
       };
@@ -10312,7 +10346,7 @@ void Mesh::restore_checkpoint(Crux *crux)
 #endif
 
 #ifdef DEBUG_RESTORE_VALS
-   if (DEBUG_RESTORE_VALS) {
+   if (DEBUG_RESTORE_VALS && mype == 0) {
       printf("       === Restored mesh cpu counters ===\n");
       for (int i = 0; i < MESH_COUNTER_SIZE; i++){
          printf("       %-30s %d\n",mesh_counter_descriptor[i], cpu_counters[i]);
@@ -10328,9 +10362,9 @@ void Mesh::restore_checkpoint(Crux *crux)
 #endif
 
 #ifdef DEBUG_RESTORE_VALS
-   if (DEBUG_RESTORE_VALS) {
+   if (DEBUG_RESTORE_VALS && mype == 0) {
       printf("       === Restored mesh cpu timers ===\n");
-      for (int i = 0; i < CPU_TIME_SIZE; i++){
+      for (int i = 0; i < MESH_TIMER_SIZE; i++){
          printf("       %-30s %lf\n",mesh_timer_descriptor[i], cpu_timers[i]);
       }
       printf("       === Restored mesh cpu timers ===\n");
@@ -10339,10 +10373,10 @@ void Mesh::restore_checkpoint(Crux *crux)
 #endif
 
 #ifdef DEBUG_RESTORE_VALS
-   if (DEBUG_RESTORE_VALS) {
+   if (DEBUG_RESTORE_VALS && mype == 0) {
       printf("\n");
       printf("       === Restored mesh gpu timers ===\n");
-      for (int i = 0; i < num_long_vals; i++){
+      for (int i = 0; i < MESH_TIMER_SIZE; i++){
          printf("       %-30s %lld\n",mesh_timer_descriptor[i], gpu_timers[i]);
       }
       printf("       === Restored mesh gpu timers ===\n");
@@ -10351,6 +10385,7 @@ void Mesh::restore_checkpoint(Crux *crux)
 #endif
 
    calc_celltype(ncells);
+#endif
 }
 
 

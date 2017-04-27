@@ -176,7 +176,7 @@ static double  deltaT = 0.0;
 char total_sim_time_log[] = {"total_execution_time.log"};
 struct timeval total_exec;
 
-int mype=0;
+static int mype=0;
 int main(int argc, char **argv) {
 
    // Needed for code to compile correctly on the Mac
@@ -230,6 +230,7 @@ int main(int argc, char **argv) {
       restore_crux_data(crux);
       mesh->proc.resize(mesh->ncells);
       mesh->calc_distribution(numpe);
+      next_cp_cycle = -1;
    } else {
       mesh = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
       if (DEBUG) {

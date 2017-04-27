@@ -77,6 +77,8 @@ public:
    void store_long_array(long long *long_array, size_t nelem);
    void store_float_array(float *float_array, size_t nelem);
    void store_double_array(double *double_array, size_t nelem);
+   void store_replicated_int_array(int *int_array, size_t nelem);
+   void store_replicated_double_array(double *double_array, size_t nelem);
    void store_end(void);
 
    void       restore_MallocPlus(MallocPlus memory);
@@ -91,6 +93,8 @@ public:
    long long *restore_long_array(long long *long_array, size_t nsize);
    float     *restore_float_array(float *float_array, size_t nsize);
    double    *restore_double_array(double *double_array, size_t nsize);
+   int       *restore_replicated_int_array(int *int_array, size_t nsize);
+   double    *restore_replicated_double_array(double *double_array, size_t nsize);
    void       restore_end(void);
 
    int get_rollback_number();
