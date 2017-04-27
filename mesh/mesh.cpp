@@ -3585,11 +3585,11 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp barrier
 #endif
 
+   } // if do_rezone
+
 #ifdef _OPENMP
    } // end parallel region
-#pragma omp barrier
 #endif
-   } // if do_rezone
 }
 
 #ifdef HAVE_OPENCL
