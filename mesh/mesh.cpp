@@ -2724,13 +2724,15 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp master
    {
 #endif
-   i_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
-   j_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
-   level_old = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
-
-   mesh_memory.memory_swap(&i,     &i_old);
-   mesh_memory.memory_swap(&j,     &j_old);
-   mesh_memory.memory_swap(&level, &level_old);
+   int *i_new     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_new",     flags);
+   int *j_new     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_new",     flags);
+   int *level_new = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_new", flags);
+   i_old = i;
+   j_old = j;
+   level_old = level;
+   i = i_new;
+   j = j_new;
+   level = level_new;
 
    index.clear();
    index.resize(new_ncells);
@@ -2922,19 +2924,19 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       } //  Complete refinement needed.
    } //  Complete addition of new cells to the mesh.
 
-   mesh_memory.memory_delete(i_old);
-   mesh_memory.memory_delete(j_old);
-   mesh_memory.memory_delete(level_old);
+   i     = (int *)mesh_memory.memory_replace(i_old,     i);
+   j     = (int *)mesh_memory.memory_replace(j_old,     j);
+   level = (int *)mesh_memory.memory_replace(level_old, level);
 
    calc_celltype(new_ncells);
 
    if (have_state){
       flags = RESTART_DATA;
       MallocPlus state_memory_old = state_memory;
-      malloc_plus_memory_entry *memory_item;
+      list<malloc_plus_memory_entry>::iterator memory_item;
 
       for (memory_item = state_memory_old.memory_entry_begin();
-           memory_item != state_memory_old.memory_entry_end();
+           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
            memory_item = state_memory_old.memory_entry_next() ) {
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
          if (memory_item->mem_elsize == 8) {
@@ -3232,9 +3234,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    if (have_state){
 
       static MallocPlus state_memory_old;
-      static malloc_plus_memory_entry *memory_begin;
-      static malloc_plus_memory_entry *memory_end;
-      static malloc_plus_memory_entry *memory_next;
+
+      static list<malloc_plus_memory_entry>::iterator memory_next;
+      static list<malloc_plus_memory_entry>::iterator memory_begin;
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -3244,14 +3246,13 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       state_memory_old = state_memory;
 
       memory_begin = state_memory_old.memory_entry_begin();
-      memory_end   = state_memory_old.memory_entry_end();
 #ifdef _OPENMP
       } // end master region
 #pragma omp barrier
 #endif
 
-      for (malloc_plus_memory_entry *memory_item = memory_begin;
-           memory_item != memory_end;
+      for (list<malloc_plus_memory_entry>::iterator memory_item = memory_begin;
+           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
            memory_item = memory_next ) {
          //ref_entry = 0;
          //printf("DEBUG -- memory_item->mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
@@ -3736,10 +3737,10 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    MallocPlus gpu_state_memory_old = gpu_state_memory;
-   malloc_plus_memory_entry *memory_item;
+   list<malloc_plus_memory_entry>::iterator memory_item;
 
    for (memory_item = gpu_state_memory_old.memory_entry_begin();
-        memory_item != gpu_state_memory_old.memory_entry_end();
+        memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
         memory_item = gpu_state_memory_old.memory_entry_next() ) {
       //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
       cl_mem dev_state_mem_ptr = (cl_mem)memory_item->mem_ptr;
@@ -8228,10 +8229,10 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-      malloc_plus_memory_entry *memory_item;
+      list<malloc_plus_memory_entry>::iterator memory_item;
 
       for (memory_item = state_memory_old.memory_entry_begin();
-           memory_item != state_memory_old.memory_entry_end();
+           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
            memory_item = state_memory_old.memory_entry_next() ) {
 
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
@@ -8429,10 +8430,10 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
       cl_mem dev_state_var_upper = ezcl_malloc(NULL, const_cast<char *>("dev_state_var_upper"), &up_block_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
 
       MallocPlus gpu_state_memory_old = gpu_state_memory;
-      malloc_plus_memory_entry *memory_item;
+      list<malloc_plus_memory_entry>::iterator memory_item;
 
       for (memory_item = gpu_state_memory_old.memory_entry_begin();
-           memory_item != gpu_state_memory_old.memory_entry_end();
+           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
            memory_item = gpu_state_memory_old.memory_entry_next() ) {
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
          cl_mem dev_state_mem_ptr = (cl_mem)memory_item->mem_ptr;
