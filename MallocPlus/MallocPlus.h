@@ -348,6 +348,9 @@ public:
    void *memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize,
       const char *name, int flags=0);
 
+   void *memory_add(void *malloc_mem_ptr, int ndim, size_t *nelem, size_t elsize,
+      const char *name, int flags=0);
+
 /****************************************************************//**
  * \brief
  * Reorders all of the arrays in the database by the indices in the
@@ -710,6 +713,17 @@ public:
  *******************************************************************/
    bool  check_memory_attribute(void *malloc_mem_ptr, int attribute);
 };
+
+extern "C" {
+  MallocPlus *MallocPlus_new();
+           
+  void MallocPlus_memory_report(MallocPlus *mem_object);
+
+  void MallocPlus_memory_add(MallocPlus *mem_object, void *dbleptr,
+    size_t nelem, size_t elsize, char *name, unsigned long long flags);
+  void MallocPlus_memory_add_nD(MallocPlus *mem_object, void *dbleptr,
+    int ndim, size_t *nelem, size_t elsize, char *name, unsigned long long flags);
+}
 
 #endif // ifndef MALLOCPLUS_H_
 

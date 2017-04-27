@@ -55,6 +55,7 @@
 #include "timer/timer.h"
 #include "fmemopen.h"
 
+#undef HAVE_HDF5
 #ifdef HAVE_HDF5
 #include "hdf5.h"
 #endif
@@ -181,7 +182,7 @@ void Crux::store_begin(size_t nsize, int ncycle)
 #  ifdef HAVE_MPI
         int mpiInitialized = 0;
         bool phdf5 = false;
-        if (MPI_SUCCESS = MPI_Initialized(&mpiInitialized)) {
+        if (MPI_SUCCESS == MPI_Initialized(&mpiInitialized)) {
           phdf5 = true;
         }
 

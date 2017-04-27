@@ -337,6 +337,7 @@ void MallocPlus::memory_request_all(size_t new_capacity){
    }
 }
 
+// This routine is for memory allocated by the host program and added to the database
 void *MallocPlus::memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, const char *name, int flags){
    malloc_plus_memory_entry memory_item;
 
@@ -353,6 +354,29 @@ void *MallocPlus::memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, 
    memory_item.mem_name = mem_name;
    memory_list.push_front(memory_item);
    if (DEBUG) printf("MALLOC_PLUS_MEMORY_ADD: DEBUG -- added memory pointer for %s is %p\n",mem_name,malloc_mem_ptr);
+
+   return(malloc_mem_ptr);
+}
+
+// This routine is for memory allocated by the host program and added to the database
+void *MallocPlus::memory_add(void *malloc_mem_ptr, int ndim, size_t *nelem, size_t elsize, const char *name, int flags){
+   malloc_plus_memory_entry memory_item;
+
+   memory_item.mem_nelem    = (size_t *)malloc(ndim*sizeof(size_t));
+   for (int i=0; i<ndim; i++){
+     memory_item.mem_nelem[i] = nelem[i];
+   }
+   memory_item.mem_ndims    = ndim;
+   memory_item.mem_capacity = 0;
+   memory_item.mem_elsize   = elsize;
+   memory_item.mem_flags    = flags;
+   memory_item.mem_ptr      = malloc_mem_ptr;
+   memory_item.mem_name = strdup(name); // mallocs memory
+   char *mem_name = (char *)malloc(MIN(strlen(name)+1,20));
+   strncpy(mem_name,name,MIN(strlen(name),19));
+   mem_name[MIN(strlen(name),20)]='\0';
+   memory_item.mem_name = mem_name;
+   if (DEBUG) printf("MALLOC_PLUS_MEMORY_ADD: DEBUG -- added memory pointer for %s is %p\n",name,malloc_mem_ptr);
 
    return(malloc_mem_ptr);
 }
@@ -965,3 +989,25 @@ void MallocPlus::clear_memory_attribute(void *malloc_mem_ptr, int attribute){
    }
 }
 
+extern "C" {
+   MallocPlus *MallocPlus_new(){
+     return new MallocPlus;
+   }
+
+   void MallocPlus_memory_report(MallocPlus *mem_object) {
+      mem_object->memory_report();
+   }
+
+   void MallocPlus_memory_add(MallocPlus *mem_object, void *dbleptr, size_t nelem,
+       size_t elsize, char *name, unsigned long long flags){
+//   printf("DEBUG -- nelem %lu elsize %lu\n", nelem, elsize);
+     mem_object->memory_add(dbleptr, nelem, elsize, name,
+       (unsigned long long)flags);
+   }
+   void MallocPlus_memory_add_nD(MallocPlus *mem_object, void *dbleptr, int ndim, size_t *nelem,
+       size_t elsize, char *name, unsigned long long flags){
+//   printf("DEBUG -- ndim %d nelem[0] %lu elsize %lu\n",ndim, nelem[0], elsize);
+     mem_object->memory_add(dbleptr, ndim, nelem, elsize, name,
+       (unsigned long long)flags);
+   }
+}
