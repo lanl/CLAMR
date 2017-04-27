@@ -2617,11 +2617,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-#ifdef _OPENMP
-#pragma omp parallel
-      {
-#endif
-
    if (! do_rezone) {
 
 #ifdef _OPENMP
@@ -3587,9 +3582,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    } // if do_rezone
 
-#ifdef _OPENMP
-   } // end parallel region
-#endif
 }
 
 #ifdef HAVE_OPENCL
