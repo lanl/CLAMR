@@ -67,7 +67,7 @@
 
 #undef DEBUG
 //#define DEBUG 0
-#undef DEBUG_RESTORE_VALS
+#define DEBUG_RESTORE_VALS 1
 #define TIMING_LEVEL 2
 
 #if defined(MINIMUM_PRECISION)
@@ -3749,10 +3749,10 @@ size_t State::get_checkpoint_size(void)
 
 void State::store_checkpoint(Crux *crux)
 {
-#ifndef HAVE_MPI
    // Store mesh data first
    mesh->store_checkpoint(crux);
 
+//#ifndef HAVE_MPI
    // Load up scalar values
    int int_vals[num_int_vals];
    int_vals[0] = CRUX_STATE_VERSION;
@@ -3768,20 +3768,21 @@ void State::store_checkpoint(Crux *crux)
    state_memory.memory_remove(int_vals);
    state_memory.memory_remove(cpu_timers);
    state_memory.memory_remove(gpu_timers);
-#endif
+//#endif
 }
 
 void State::restore_checkpoint(Crux *crux)
 {
-#ifndef HAVE_MPI
+   int storage;
    // Restore mesh data first
    mesh->restore_checkpoint(crux);
+   crux->restore_named_ints("storage", 7, &storage, 1);
 
    // Create memory for restoring data into
    int int_vals[num_int_vals];
 
    // allocate is a state method
-   allocate(mesh->ncells);
+   allocate(storage);
 
    // Add to memory database for restoring checkpoint
    state_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "state_int_vals", RESTART_DATA | REPLICATED_DATA);
@@ -3827,7 +3828,7 @@ void State::restore_checkpoint(Crux *crux)
    state_memory.memory_remove(gpu_timers);
    
    memory_reset_ptrs();
-#endif
+//#endif
 }
 
 // Added overloaded print to get mesh information to print in each cycle
