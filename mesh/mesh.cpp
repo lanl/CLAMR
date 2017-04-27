@@ -10254,6 +10254,18 @@ void Mesh::restore_checkpoint(Crux *crux)
    int int_vals[num_int_vals];
    double double_vals[num_double_vals];
 
+   mesh_memory.memory_delete(nlft);
+   mesh_memory.memory_delete(nrht);
+   mesh_memory.memory_delete(nbot);
+   mesh_memory.memory_delete(ntop);
+   mesh_memory.memory_delete(celltype);
+
+   nlft = NULL;
+   nrht = NULL;
+   ntop = NULL;
+   nbot = NULL;
+   celltype = NULL;
+
    // Resize is a mesh method
    resize(ncells);
    memory_reset_ptrs();
