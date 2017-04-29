@@ -1602,12 +1602,12 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
    struct timeval tstart_lev2;
 
-   rezone_count(mpot, icount, jcount);
-
 #ifdef _OPENMP
 #pragma omp parallel
 { //START Parallel Region
 #endif
+
+   rezone_count_threaded(mpot, icount, jcount);
 
 #ifdef _OPENMP
 #pragma omp master
@@ -2353,6 +2353,42 @@ int Mesh::rezone_count(vector<int> mpot, int &icount, int &jcount)
 
 #ifdef _OPENMP
 #pragma omp parallel for reduction (+:my_jcount,my_icount)
+#endif
+   for (uint ic=0; ic<ncells; ++ic){
+      if (mpot[ic] < 0) {
+         if (celltype[ic] == REAL_CELL) {
+            // remove all but cell that will remain to get count right when split
+            // across processors
+            if (! is_lower_left(i[ic],j[ic]) ) my_jcount--;
+         } else {
+            // either upper right or lower left will remain for boundary cells
+            if (! (is_upper_right(i[ic],j[ic]) || is_lower_left(i[ic],j[ic]) ) ) my_jcount--;
+         }
+      }
+
+      if (mpot[ic] > 0) {
+         //printf("mpot[%d] = %d level %d levmx %d\n",ic,mpot[ic],level[ic],levmx);
+         if (celltype[ic] == REAL_CELL){
+            my_icount += 3;
+         } else {
+            my_icount ++;
+         }
+      }
+   }
+   //printf("icount is %d\n",my_icount);
+   icount = my_icount;
+   jcount = my_jcount;
+
+   return(icount+jcount);
+}
+
+int Mesh::rezone_count_threaded(vector<int> mpot, int &icount, int &jcount)
+{
+   static int my_icount=0;
+   static int my_jcount=0;
+
+#ifdef _OPENMP
+#pragma omp for reduction (+:my_jcount,my_icount)
 #endif
    for (uint ic=0; ic<ncells; ++ic){
       if (mpot[ic] < 0) {

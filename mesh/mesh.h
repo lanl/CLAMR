@@ -553,6 +553,7 @@ public:
  *    result -- cell count
  *******************************************************************/
    int  rezone_count(vector<int> mpot, int &icount, int &jcount);
+   int  rezone_count_threaded(vector<int> mpot, int &icount, int &jcount);
 #ifdef HAVE_OPENCL
    void gpu_rezone_count2(size_t block_size, size_t local_work_size, cl_mem dev_redscratch, cl_mem &dev_result);
    void gpu_rezone_count(size_t block_size, size_t local_work_size, cl_mem dev_redscratch, cl_mem &dev_result);
