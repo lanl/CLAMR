@@ -1595,15 +1595,27 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
 
 size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 {
-   //int nl, nr, nt, nb;
-   //int nlt, nrt, ntr, nbr;
+   vector<int> mpot_old;
+
+   int newcount;
+   int newcount_global;
+
+   struct timeval tstart_lev2;
 
    rezone_count(mpot, icount, jcount);
 
-   int newcount = icount;
-   int newcount_global = newcount;
+#ifdef _OPENMP
+#pragma omp parallel
+{ //START Parallel Region
+#endif
 
-   struct timeval tstart_lev2;
+#ifdef _OPENMP
+#pragma omp master
+{//MASTER START
+#endif
+   newcount = icount;
+   newcount_global = newcount;
+
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
 #ifdef HAVE_MPI
@@ -1612,12 +1624,11 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    }
 #endif
 
-   vector<int> mpot_old;
-
 #ifdef _OPENMP
-#pragma omp parallel
-{//START Parallel Region
+}//END MASTER
+#pragma omp barrier
 #endif
+
    if(newcount_global > 0 && levmx > 1) {
 
       size_t my_ncells=ncells;
@@ -1807,11 +1818,11 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
    }
 
-#ifdef _OPENMP
-#pragma omp barrier
-}//END Parallel Region
-#endif
 
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
 
 #ifdef HAVE_MPI
    if (numpe > 1) {
@@ -1823,9 +1834,13 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    mpot_old.resize(ncells_ghost);
 
    mpot_old.swap(mpot);
+#ifdef _OPENMP
+}//END MASTER
+#pragma omp barrier
+#endif
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
    for(uint ic=0; ic<ncells; ic++) {
       mpot[ic] = mpot_old[ic];
@@ -1866,6 +1881,11 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
       }
    }
 
+#ifdef _OPENMP
+#pragma omp master
+{
+#endif
+
 #ifdef HAVE_MPI
    if (numpe > 1) {
       L7_Update(&mpot[0], L7_INT, cell_handle);
@@ -1873,9 +1893,13 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #endif
 
    mpot_old.swap(mpot);
+#ifdef _OPENMP
+}//END MASTER
+#pragma omp barrier
+#endif
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp for
 #endif
    for(uint ic=0; ic<ncells; ic++) {
       int n1=0, n2=0, n3=0;
@@ -1916,6 +1940,11 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
          }
       }
    }
+
+#ifdef _OPENMP
+#pragma omp barrier
+}//END Parallel Region
+#endif
 
 #ifdef HAVE_MPI
    if (numpe > 1) {
