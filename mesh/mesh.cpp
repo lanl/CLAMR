@@ -4256,67 +4256,67 @@ void Mesh::calc_neighbors(int ncells)
 
 void Mesh::calc_neighbors_local(void)
 {
-   if (do_rezone) {
-
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   int flags = INDEX_ARRAY_MEMORY;
+   if (do_rezone) {
+
+      int flags = INDEX_ARRAY_MEMORY;
 
 #if defined (HAVE_J7)
-   if (parallel) flags |= LOAD_BALANCE_MEMORY;
+      if (parallel) flags |= LOAD_BALANCE_MEMORY;
 #endif
 
 #ifdef _OPENMP
 #pragma omp master
-   {
+      {
 #endif
-   cpu_counters[MESH_COUNTER_CALC_NEIGH]++;
+      cpu_counters[MESH_COUNTER_CALC_NEIGH]++;
 
-   if (mesh_memory.get_memory_size(nlft) < ncells){
-      if (nlft != NULL) nlft = (int *)mesh_memory.memory_delete(nlft);
-      if (nrht != NULL) nrht = (int *)mesh_memory.memory_delete(nrht);
-      if (nbot != NULL) nbot = (int *)mesh_memory.memory_delete(nbot);
-      if (ntop != NULL) ntop = (int *)mesh_memory.memory_delete(ntop);
-      nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
-      nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
-      nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
-      ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
-   }
+      if (mesh_memory.get_memory_size(nlft) < ncells){
+         if (nlft != NULL) nlft = (int *)mesh_memory.memory_delete(nlft);
+         if (nrht != NULL) nrht = (int *)mesh_memory.memory_delete(nrht);
+         if (nbot != NULL) nbot = (int *)mesh_memory.memory_delete(nbot);
+         if (ntop != NULL) ntop = (int *)mesh_memory.memory_delete(ntop);
+         nlft = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nlft", flags);
+         nrht = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nrht", flags);
+         nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
+         ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
+      }
 #ifdef _OPENMP
-   }
+      }
 #pragma omp barrier
 #endif
 
-   int lowerBound, upperBound;
-   set_bounds(ncells);
-   get_bounds(lowerBound, upperBound);
-   for (int ic = lowerBound; ic < upperBound; ic++){
-      nlft[ic] = -98;
-      nrht[ic] = -98;
-      nbot[ic] = -98;
-      ntop[ic] = -98;
-   }
+      int lowerBound, upperBound;
+      set_bounds(ncells);
+      get_bounds(lowerBound, upperBound);
+      for (int ic = lowerBound; ic < upperBound; ic++){
+         nlft[ic] = -98;
+         nrht[ic] = -98;
+         nbot[ic] = -98;
+         ntop[ic] = -98;
+      }
 
-   if (calc_neighbor_type == HASH_TABLE) {
+      if (calc_neighbor_type == HASH_TABLE) {
 
-      struct timeval tstart_lev2;
-      if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+         struct timeval tstart_lev2;
+         if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
-      ncells_ghost = ncells;
+         ncells_ghost = ncells;
 
-      // Find maximum i column and j row for this processor
-      static int jmintile, imintile, jmaxtile, imaxtile;
+         // Find maximum i column and j row for this processor
+         static int jmintile, imintile, jmaxtile, imaxtile;
 
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
          {
 #endif
-      jmintile = (jmax+1)*IPOW2(levmx);
-      imintile = (imax+1)*IPOW2(levmx);
-      jmaxtile = 0;
-      imaxtile = 0;
+         jmintile = (jmax+1)*IPOW2(levmx);
+         imintile = (imax+1)*IPOW2(levmx);
+         jmaxtile = 0;
+         imaxtile = 0;
 #ifdef _OPENMP
          }
 #pragma omp barrier
@@ -6232,89 +6232,85 @@ void Mesh::calc_neighbors_local(void)
 #pragma omp barrier
 #endif
 
-   } else if (calc_neighbor_type == KDTREE) {
+      } else if (calc_neighbor_type == KDTREE) {
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
-      {
+         {
 #endif
-      struct timeval tstart_lev2;
-      if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
+         struct timeval tstart_lev2;
+         if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
-      TBounds box;
-      vector<int> index_list(IPOW2(levmx*levmx) );
+         TBounds box;
+         vector<int> index_list(IPOW2(levmx*levmx) );
 
-      int num;
+         int num;
 
-      ibase = 0;
-      calc_spatial_coordinates(ibase);
+         ibase = 0;
+         calc_spatial_coordinates(ibase);
 
-      kdtree_setup();
+         kdtree_setup();
 
-      if (TIMING_LEVEL >= 2) {
-         cpu_timers[MESH_TIMER_KDTREE_SETUP] += cpu_timer_stop(tstart_lev2);
-         cpu_timer_start(&tstart_lev2);
-      }
+         if (TIMING_LEVEL >= 2) {
+            cpu_timers[MESH_TIMER_KDTREE_SETUP] += cpu_timer_stop(tstart_lev2);
+            cpu_timer_start(&tstart_lev2);
+         }
 
-      for (uint ic=0; ic<ncells; ic++) {
+         for (uint ic=0; ic<ncells; ic++) {
 
-         //left
-         nlft[ic]  = ic;
-         box.min.x = x[ic]-0.25*dx[ic];
-         box.max.x = x[ic]-0.25*dx[ic];
-         box.min.y = y[ic]+0.25*dy[ic];
-         box.max.y = y[ic]+0.25*dy[ic];
-         KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
-         if (num == 1) nlft[ic]=index_list[0];
+            //left
+            nlft[ic]  = ic;
+            box.min.x = x[ic]-0.25*dx[ic];
+            box.max.x = x[ic]-0.25*dx[ic];
+            box.min.y = y[ic]+0.25*dy[ic];
+            box.max.y = y[ic]+0.25*dy[ic];
+            KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
+            if (num == 1) nlft[ic]=index_list[0];
 
-         //right
-         nrht[ic]  = ic;
-         box.min.x = x[ic]+1.25*dx[ic];
-         box.max.x = x[ic]+1.25*dx[ic];
-         box.min.y = y[ic]+0.25*dy[ic];
-         box.max.y = y[ic]+0.25*dy[ic];
-         KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
-         if (num == 1) nrht[ic]=index_list[0];
+            //right
+            nrht[ic]  = ic;
+            box.min.x = x[ic]+1.25*dx[ic];
+            box.max.x = x[ic]+1.25*dx[ic];
+            box.min.y = y[ic]+0.25*dy[ic];
+            box.max.y = y[ic]+0.25*dy[ic];
+            KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
+            if (num == 1) nrht[ic]=index_list[0];
 
-         //bot
-         nbot[ic]  = ic;
-         box.min.x = x[ic]+0.25*dx[ic];
-         box.max.x = x[ic]+0.25*dx[ic];
-         box.min.y = y[ic]-0.25*dy[ic];
-         box.max.y = y[ic]-0.25*dy[ic];
-         KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
-         if (num == 1) nbot[ic]=index_list[0];
+            //bot
+            nbot[ic]  = ic;
+            box.min.x = x[ic]+0.25*dx[ic];
+            box.max.x = x[ic]+0.25*dx[ic];
+            box.min.y = y[ic]-0.25*dy[ic];
+            box.max.y = y[ic]-0.25*dy[ic];
+            KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
+            if (num == 1) nbot[ic]=index_list[0];
 
-         //top
-         ntop[ic]  = ic;
-         box.min.x = x[ic]+0.25*dx[ic];
-         box.max.x = x[ic]+0.25*dx[ic];
-         box.min.y = y[ic]+1.25*dy[ic];
-         box.max.y = y[ic]+1.25*dy[ic];
-         KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
-         if (num == 1) ntop[ic]=index_list[0];
-      }  //  End main loop over cells.
+            //top
+            ntop[ic]  = ic;
+            box.min.x = x[ic]+0.25*dx[ic];
+            box.max.x = x[ic]+0.25*dx[ic];
+            box.min.y = y[ic]+1.25*dy[ic];
+            box.max.y = y[ic]+1.25*dy[ic];
+            KDTree_QueryBoxIntersect(&tree, &num, &(index_list[0]), &box);
+            if (num == 1) ntop[ic]=index_list[0];
+         }  //  End main loop over cells.
 
-      KDTree_Destroy(&tree);
+         KDTree_Destroy(&tree);
 
-      if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_KDTREE_QUERY] += cpu_timer_stop(tstart_lev2);
+         if (TIMING_LEVEL >= 2) cpu_timers[MESH_TIMER_KDTREE_QUERY] += cpu_timer_stop(tstart_lev2);
 
 #ifdef _OPENMP
-      }
+         }
 #pragma omp barrier
 #endif
-   } // calc_neighbor_type
+      } // calc_neighbor_type
+
+   }
 
 #ifdef _OPENMP
 #pragma omp master
 #endif
    cpu_timers[MESH_TIMER_CALC_NEIGHBORS] += cpu_timer_stop(tstart_cpu);
-
-   }
-
-#ifdef _OPENMP
-#pragma omp barrier
-#endif
 }
 
 #ifdef HAVE_OPENCL
