@@ -89,10 +89,6 @@ bool USE_HDF5 = true; //MSB
 hid_t h5_fid;
 herr_t h5err;
 bool is_restart = false;
-#define DEMO 1 // MSB
-#if DEMO
-int ncycle_demo;
-#endif
 
 hid_t create_hdf5_parallel_file_plist();
 
@@ -250,10 +246,6 @@ void Crux::store_begin(size_t nsize, int ncycle)
 
 #ifdef HAVE_MPI
    MPI_Comm_rank(MPI_COMM_WORLD,&mype);
-#endif
-
-#if DEMO
-   ncycle_demo = ncycle;
 #endif
 
    cp_num = checkpoint_counter % num_of_rollback_states;
@@ -445,26 +437,7 @@ void access_named_hdf5_values (const char *name, int name_size,
         exit(1);
     }
     if (store)
-      {
         status = H5Dwrite (hid_dataset, datatype, hid_mem, hid_space, hid_plist, values);
-#if DEMO
-        if( mype == 3  && ncycle_demo == 200 &&  ( 
-						  (strstr(fieldname,"V") !=NULL) ||
-						  (strstr(fieldname,"U") !=NULL) ||
-						  (strstr(fieldname,"H") !=NULL)
-						  ) ) {
-	  FILE *crux_fp;
-	  if(is_restart) 
-	    crux_fp = fopen("Restart_Data","w");
-	  else
-	    crux_fp = fopen("NonRestart_Data","w");
-          for (int k=0; k<(int)count; k++){
-	    fprintf(crux_fp,"%f \n", *((double *)values + k));
-          }
-	  fclose(crux_fp);
-        }
-      }
-#endif
     else
       status = H5Dread (hid_dataset, datatype, hid_mem, hid_space, hid_plist, values);
 
