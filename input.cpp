@@ -450,11 +450,13 @@ void parseInput(const int argc, char** argv)
                     restart = true;
                     restart_file = strtok(argv[i++], " ,");
 
+#ifndef HDF5_FF
                     struct stat stat_descriptor;
                     if (stat(restart_file,&stat_descriptor) == -1){
                        printf("Error -- restart file %s does not exist\n",restart_file);
                        exit(0);
                     }
+#endif
                     break;
 
                 case 's':   //  Space-filling curve method specified (default HILBERT_SORT).

@@ -1437,11 +1437,11 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
 
    //KDTree_Initialize(&tree);
    if (ncells > 0) { // this is a restart.
+        nsizes.resize (numpe);
+        ndispl.resize (numpe);
        if (parallel && numpe > 1) {
 #ifdef HAVE_MPI
           int ncells_int = ncells;
-          nsizes.resize (numpe);
-          ndispl.resize (numpe);
           MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
           ndispl[0]=0;
           for (int ip=1; ip<numpe; ip++){
@@ -10267,9 +10267,9 @@ void Mesh::store_checkpoint(Crux *crux)
    mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", flags);
    flags = RESTART_DATA | REPLICATED_DATA;
    mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", flags);
-   mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", flags);
 
    flags = RESTART_DATA;
+   mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", flags);
    mesh_memory.memory_add(cpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_cpu_counters", flags);
    mesh_memory.memory_add(gpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_gpu_counters", flags);
 
