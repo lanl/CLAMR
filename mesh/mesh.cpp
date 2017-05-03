@@ -84,7 +84,7 @@
 #ifndef DEBUG
 #define DEBUG 0
 #endif
-#define DEBUG_RESTORE_VALS 1
+#undef DEBUG_RESTORE_VALS
 
 typedef int scanInt;
 void scan ( scanInt *input , scanInt *output , scanInt length);
@@ -10277,7 +10277,19 @@ void Mesh::store_checkpoint(Crux *crux)
    mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", flags);
 
    // Store MallocPlus memory database
-   crux->store_MallocPlus(mesh_memory);
+   //crux->store_MallocPlus(mesh_memory);
+   crux->store_ints(int_dist_vals, num_int_dist_vals);
+   crux->store_replicated_int_array(int_vals, num_int_vals);
+   crux->store_replicated_double_array(double_vals, num_double_vals);
+   crux->store_int_array(cpu_counters, MESH_COUNTER_SIZE);
+   crux->store_int_array(gpu_counters, MESH_COUNTER_SIZE);
+
+   crux->store_double_array(cpu_timers, MESH_TIMER_SIZE);
+   crux->store_long_array(gpu_timers, MESH_TIMER_SIZE);
+
+   crux->store_int_array(i, ncells);
+   crux->store_int_array(j, ncells);
+   crux->store_int_array(level, ncells);
 
    // Remove memory entries from database now that data is stored
    mesh_memory.memory_remove(int_dist_vals);
@@ -10331,7 +10343,20 @@ void Mesh::restore_checkpoint(Crux *crux)
    mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", flags);
 
    // Restore MallocPlus memory database
-   crux->restore_MallocPlus(mesh_memory);
+   //crux->restore_MallocPlus(mesh_memory);
+   crux->restore_ints(int_dist_vals, num_int_dist_vals);
+   ncells                    = int_dist_vals[ 0];
+   crux->restore_ints(int_vals, num_int_vals);
+   crux->restore_doubles(double_vals, num_double_vals);
+   crux->restore_int_array(cpu_counters, MESH_COUNTER_SIZE);
+   crux->restore_int_array(gpu_counters, MESH_COUNTER_SIZE);
+
+   crux->restore_double_array(cpu_timers, MESH_TIMER_SIZE);
+   crux->restore_long_array(gpu_timers, MESH_TIMER_SIZE);
+
+   crux->restore_int_array(i, ncells);
+   crux->restore_int_array(j, ncells);
+   crux->restore_int_array(level, ncells);
 
    // Remove memory entries from database now that data is restored
    mesh_memory.memory_remove(int_dist_vals);

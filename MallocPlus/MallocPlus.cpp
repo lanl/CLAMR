@@ -156,9 +156,9 @@ void *MallocPlus::memory_malloc(size_t nelem, size_t elsize, const char *name, i
       memory_item.mem_capacity = nelem;
       memory_item.mem_ptr      = malloc(nelem*elsize);
    }
-   char *mem_name = (char *)malloc(MIN(strlen(name)+1,20));
-   strncpy(mem_name,name,MIN(strlen(name),19));
-   mem_name[strlen(name)]='\0';
+   char *mem_name = (char *)malloc(MIN(strlen(name)+1,30));
+   strncpy(mem_name,name,MIN(strlen(name),29));
+   mem_name[MIN(strlen(name),29)]='\0';
    memory_item.mem_name = mem_name;
    memory_list.push_back(memory_item);
    if (DEBUG) printf("MALLOC_PLUS_MEMORY_MALLOC: DEBUG -- malloc plus memory pointer for %s is %p nelements %ld elsize is %ld\n",mem_name,memory_item.mem_ptr,memory_item.mem_nelem[0],memory_item.mem_elsize);
@@ -348,9 +348,9 @@ void *MallocPlus::memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, 
    memory_item.mem_elsize   = elsize;
    memory_item.mem_flags    = flags;
    memory_item.mem_ptr      = malloc_mem_ptr;
-   char *mem_name = (char *)malloc(MIN(strlen(name)+1,20));
-   strncpy(mem_name,name,MIN(strlen(name),19));
-   mem_name[MIN(strlen(name),20)]='\0';
+   char *mem_name = (char *)malloc(MIN(strlen(name)+1,30));
+   strncpy(mem_name,name,MIN(strlen(name),29));
+   mem_name[MIN(strlen(name),29)]='\0';
    memory_item.mem_name = mem_name;
    memory_list.push_front(memory_item);
    if (DEBUG) printf("MALLOC_PLUS_MEMORY_ADD: DEBUG -- added memory pointer for %s is %p\n",mem_name,malloc_mem_ptr);
@@ -372,9 +372,9 @@ void *MallocPlus::memory_add(void *malloc_mem_ptr, int ndim, size_t *nelem, size
    memory_item.mem_flags    = flags;
    memory_item.mem_ptr      = malloc_mem_ptr;
    memory_item.mem_name = strdup(name); // mallocs memory
-   char *mem_name = (char *)malloc(MIN(strlen(name)+1,20));
-   strncpy(mem_name,name,MIN(strlen(name),19));
-   mem_name[MIN(strlen(name),20)]='\0';
+   char *mem_name = (char *)malloc(MIN(strlen(name)+1,30));
+   strncpy(mem_name,name,MIN(strlen(name),29));
+   mem_name[MIN(strlen(name),29)]='\0';
    memory_item.mem_name = mem_name;
    if (DEBUG) printf("MALLOC_PLUS_MEMORY_ADD: DEBUG -- added memory pointer for %s is %p\n",name,malloc_mem_ptr);
 
