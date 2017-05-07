@@ -1942,8 +1942,8 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    }
 
 #ifdef _OPENMP
-#pragma omp barrier
-}//END Parallel Region
+#pragma omp master
+{
 #endif
 
 #ifdef HAVE_MPI
@@ -1953,7 +1953,12 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #endif
 
 #ifdef _OPENMP
-#pragma omp parallel for
+}//END MASTER
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp for
 #endif
    for (uint ic=0; ic<ncells; ic++) {
       if (celltype[ic] < 0) {
@@ -1973,6 +1978,11 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
          }
       }
    }
+
+#ifdef _OPENMP
+#pragma omp barrier
+}//END Parallel Region
+#endif
 
    newcount = ncells + rezone_count(mpot, icount, jcount);
 
