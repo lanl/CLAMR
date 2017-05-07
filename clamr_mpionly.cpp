@@ -543,6 +543,7 @@ extern "C" void do_calc(void)
 
       mesh->ncells = new_ncells;
       ncells = new_ncells;
+
 #ifdef _OPENMP
       }
 #pragma omp barrier
@@ -554,6 +555,7 @@ extern "C" void do_calc(void)
       } // end parallel region
 #endif
       state->do_load_balance_local(new_ncells);
+      mesh->calc_celltype(ncells);
 
 // XXX
 //      mesh->proc.resize(ncells);
