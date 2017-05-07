@@ -84,7 +84,7 @@
 #ifndef DEBUG
 #define DEBUG 0
 #endif
-#undef DEBUG_RESTORE_VALS
+#define DEBUG_RESTORE_VALS 1
 
 typedef int scanInt;
 void scan ( scanInt *input , scanInt *output , scanInt length);
@@ -1595,27 +1595,13 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
 
 size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 {
-   vector<int> mpot_old;
 
-   int newcount;
-   int newcount_global;
+   rezone_count(mpot, icount, jcount);
+
+   int newcount = icount;
+   int newcount_global = newcount;
 
    struct timeval tstart_lev2;
-
-#ifdef _OPENMP
-#pragma omp parallel
-{ //START Parallel Region
-#endif
-
-   rezone_count_threaded(mpot, icount, jcount);
-
-#ifdef _OPENMP
-#pragma omp master
-{//MASTER START
-#endif
-   newcount = icount;
-   newcount_global = newcount;
-
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
 #ifdef HAVE_MPI
@@ -1624,38 +1610,28 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
    }
 #endif
 
-#ifdef _OPENMP
-}//END MASTER
-#pragma omp barrier
-#endif
-
    if(newcount_global > 0 && levmx > 1) {
-
+      int levcount = 1;
       size_t my_ncells=ncells;
       if (parallel) my_ncells=ncells_ghost;
 
-#ifdef _OPENMP
-#pragma omp master
-{//MASTER START
-#endif
       cpu_counters[MESH_COUNTER_REFINE_SMOOTH]++;
 
-      mpot_old.resize(my_ncells);
-#ifdef _OPENMP
-}//END MASTER
-#pragma omp barrier
-#endif
+      vector<int> mpot_old(my_ncells);
 
-      int levcount = 1;
-       
       while (newcount_global > 0 && levcount < levmx){
 
-         levcount++; 
+#ifdef _OPENMP
+#pragma omp parallel
+{//START Parallel Region
+#endif
+       
 #ifdef _OPENMP
 #pragma omp master
 {//MASTER START
 #endif
 
+         levcount++; 
          mpot.swap(mpot_old);
          newcount=0;
 #ifdef HAVE_MPI
@@ -1793,15 +1769,18 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #ifdef _OPENMP
 #pragma omp atomic 
 #endif
-         newcount += mynewcount;
+      newcount += mynewcount;
+
+
+
+
+         icount += newcount;
+         newcount_global = newcount;
 
 #ifdef _OPENMP
-#pragma omp barrier
 #pragma omp master
 {
 #endif
-         icount += newcount;
-         newcount_global = newcount;
 
 #ifdef HAVE_MPI
          if (parallel) {
@@ -1814,15 +1793,13 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #pragma omp barrier
 #endif
 
-      } // while (newcount_global > 0 && levcount < levmx);
-
-   }
-
-
 #ifdef _OPENMP
-#pragma omp master
-{
+#pragma omp barrier
+}//END Parallel Region
 #endif
+
+      }// while (newcount_global > 0 && levcount < levmx);
+   }
 
 #ifdef HAVE_MPI
    if (numpe > 1) {
@@ -1830,17 +1807,12 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
   }
 #endif
 
-   mpot_old.clear();
-   mpot_old.resize(ncells_ghost);
+   vector<int> mpot_old(ncells_ghost);
 
    mpot_old.swap(mpot);
-#ifdef _OPENMP
-}//END MASTER
-#pragma omp barrier
-#endif
 
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp parallel for
 #endif
    for(uint ic=0; ic<ncells; ic++) {
       mpot[ic] = mpot_old[ic];
@@ -1881,11 +1853,6 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
       }
    }
 
-#ifdef _OPENMP
-#pragma omp master
-{
-#endif
-
 #ifdef HAVE_MPI
    if (numpe > 1) {
       L7_Update(&mpot[0], L7_INT, cell_handle);
@@ -1893,13 +1860,9 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #endif
 
    mpot_old.swap(mpot);
-#ifdef _OPENMP
-}//END MASTER
-#pragma omp barrier
-#endif
 
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp parallel for
 #endif
    for(uint ic=0; ic<ncells; ic++) {
       int n1=0, n2=0, n3=0;
@@ -1941,11 +1904,6 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
       }
    }
 
-#ifdef _OPENMP
-#pragma omp master
-{
-#endif
-
 #ifdef HAVE_MPI
    if (numpe > 1) {
       L7_Update(&mpot[0], L7_INT, cell_handle);
@@ -1953,12 +1911,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #endif
 
 #ifdef _OPENMP
-}//END MASTER
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-#pragma omp for
+#pragma omp parallel for
 #endif
    for (uint ic=0; ic<ncells; ic++) {
       if (celltype[ic] < 0) {
@@ -1978,11 +1931,6 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
          }
       }
    }
-
-#ifdef _OPENMP
-#pragma omp barrier
-}//END Parallel Region
-#endif
 
    newcount = ncells + rezone_count(mpot, icount, jcount);
 
@@ -2382,42 +2330,6 @@ int Mesh::rezone_count(vector<int> mpot, int &icount, int &jcount)
    return(icount+jcount);
 }
 
-int Mesh::rezone_count_threaded(vector<int> mpot, int &icount, int &jcount)
-{
-   static int my_icount=0;
-   static int my_jcount=0;
-
-#ifdef _OPENMP
-#pragma omp for reduction (+:my_jcount,my_icount)
-#endif
-   for (uint ic=0; ic<ncells; ++ic){
-      if (mpot[ic] < 0) {
-         if (celltype[ic] == REAL_CELL) {
-            // remove all but cell that will remain to get count right when split
-            // across processors
-            if (! is_lower_left(i[ic],j[ic]) ) my_jcount--;
-         } else {
-            // either upper right or lower left will remain for boundary cells
-            if (! (is_upper_right(i[ic],j[ic]) || is_lower_left(i[ic],j[ic]) ) ) my_jcount--;
-         }
-      }
-
-      if (mpot[ic] > 0) {
-         //printf("mpot[%d] = %d level %d levmx %d\n",ic,mpot[ic],level[ic],levmx);
-         if (celltype[ic] == REAL_CELL){
-            my_icount += 3;
-         } else {
-            my_icount ++;
-         }
-      }
-   }
-   //printf("icount is %d\n",my_icount);
-   icount = my_icount;
-   jcount = my_jcount;
-
-   return(icount+jcount);
-}
-
 #ifdef HAVE_OPENCL
 void Mesh::gpu_rezone_count2(size_t block_size, size_t local_work_size, cl_mem dev_redscratch, cl_mem &dev_result)
 {
@@ -2787,13 +2699,13 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp master
    {
 #endif
-   i_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
-   j_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
-   level_old    = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
+   i_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
+   j_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
+   level_old = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
+
    mesh_memory.memory_swap(&i,     &i_old);
    mesh_memory.memory_swap(&j,     &j_old);
    mesh_memory.memory_swap(&level, &level_old);
-
 
    index.clear();
    index.resize(new_ncells);
@@ -2994,11 +2906,11 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    if (have_state){
       flags = RESTART_DATA;
       MallocPlus state_memory_old = state_memory;
-      list<malloc_plus_memory_entry>::iterator memory_item;
+      malloc_plus_memory_entry *memory_item;
 
-      for (memory_item = state_memory_old.memory_entry_begin();
-           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-           memory_item = state_memory_old.memory_entry_next() ) {
+      for (memory_item = state_memory_old.memory_entry_by_name_begin();
+           memory_item != state_memory_old.memory_entry_by_name_end();
+           memory_item = state_memory_old.memory_entry_by_name_next() ) {
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
          if (memory_item->mem_elsize == 8) {
             double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
@@ -3295,9 +3207,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    if (have_state){
 
       static MallocPlus state_memory_old;
-
-      static list<malloc_plus_memory_entry>::iterator memory_next;
-      static list<malloc_plus_memory_entry>::iterator memory_begin;
+      static malloc_plus_memory_entry *memory_begin;
+      static malloc_plus_memory_entry *memory_end;
+      static malloc_plus_memory_entry *memory_next;
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -3306,14 +3218,15 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
       state_memory_old = state_memory;
 
-      memory_begin = state_memory_old.memory_entry_begin();
+      memory_begin = state_memory_old.memory_entry_by_name_begin();
+      memory_end   = state_memory_old.memory_entry_by_name_end();
 #ifdef _OPENMP
       } // end master region
 #pragma omp barrier
 #endif
 
-      for (list<malloc_plus_memory_entry>::iterator memory_item = memory_begin;
-           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
+      for (malloc_plus_memory_entry *memory_item = memory_begin;
+           memory_item != memory_end;
            memory_item = memory_next ) {
          //ref_entry = 0;
          //printf("DEBUG -- memory_item->mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
@@ -3468,7 +3381,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp master
          {
 #endif
-         memory_next = state_memory_old.memory_entry_next();
+         memory_next = state_memory_old.memory_entry_by_name_next();
 #ifdef _OPENMP
          } // end master region
 #pragma omp barrier
@@ -3798,11 +3711,11 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    MallocPlus gpu_state_memory_old = gpu_state_memory;
-   list<malloc_plus_memory_entry>::iterator memory_item;
+   malloc_plus_memory_entry *memory_item;
 
-   for (memory_item = gpu_state_memory_old.memory_entry_begin();
-        memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-        memory_item = gpu_state_memory_old.memory_entry_next() ) {
+   for (memory_item = gpu_state_memory_old.memory_entry_by_name_begin();
+        memory_item != gpu_state_memory_old.memory_entry_by_name_end();
+        memory_item = gpu_state_memory_old.memory_entry_by_name_next() ) {
       //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
       cl_mem dev_state_mem_ptr = (cl_mem)memory_item->mem_ptr;
 
@@ -8173,76 +8086,75 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       int load_balance_handle = 0;
       L7_Setup(0, noffset_old, ncells_old, &indices_needed[0], indices_needed_count, &load_balance_handle);
 
+      //printf("\n%d: DEBUG load balance report\n",mype);
+
       state_memory.memory_realloc_all(ncells_old+indices_needed_count);
 
       MallocPlus state_memory_old = state_memory;
 
-      int flags = 0;
-      flags = RESTART_DATA;
-#ifdef HAVE_J7
-      if (parallel) flags = LOAD_BALANCE_MEMORY;
-#endif
 
-      list<malloc_plus_memory_entry>::iterator memory_item;
+      malloc_plus_memory_entry *memory_item;
 
-      for (memory_item = state_memory_old.memory_entry_begin();
-           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-           memory_item = state_memory_old.memory_entry_next() ) {
+      for (memory_item = state_memory_old.memory_entry_by_name_begin();
+           memory_item != state_memory_old.memory_entry_by_name_end();
+           memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
-         //if (mype ==0) printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+         //if (mype == 0) printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
 
          if (memory_item->mem_elsize == 8) {
-            double *mem_ptr = (double *)memory_item->mem_ptr;
+            double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-            int flags = state_memory.get_memory_flags(mem_ptr);
-            double *state_temp = (double *) state_memory.memory_malloc(ncells, sizeof(double),
-                                                                       "state_temp", flags);
+            int flags = state_memory.get_memory_flags(mem_ptr_double);
+            double *state_temp_double = (double *) state_memory.memory_malloc(ncells, sizeof(double),
+                                                                              "state_temp_double", flags);
 
             //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
-            L7_Update(mem_ptr, L7_DOUBLE, load_balance_handle);
+            L7_Update(mem_ptr_double, L7_DOUBLE, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {
                for(; in < MIN(lower_block_size, (int)ncells); in++) {
-                  state_temp[in] = mem_ptr[ncells_old + in];
+                  state_temp_double[in] = mem_ptr_double[ncells_old + in];
                }
             }
 
             for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
-               state_temp[in] = mem_ptr[ic];
+               state_temp_double[in] = mem_ptr_double[ic];
             }
 
             if(upper_block_size > 0) {
                int ic = ncells_old + lower_block_size;
                for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
-                  state_temp[in] = mem_ptr[ic+k];
+                  state_temp_double[in] = mem_ptr_double[ic+k];
                }
             }
-            mem_ptr = (double *)state_memory.memory_replace(mem_ptr, state_temp);
+            state_memory.memory_replace(mem_ptr_double, state_temp_double);
          } else if (memory_item->mem_elsize == 4) {
-            float *state_temp = (float *) state_memory.memory_malloc(ncells, sizeof(float),
-                                                                     "state_temp", flags);
-            float *mem_ptr = (float *)memory_item->mem_ptr;
+            float *mem_ptr_float = (float *)memory_item->mem_ptr;
 
-            ////printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
-            L7_Update(mem_ptr, L7_FLOAT, load_balance_handle);
+            int flags = state_memory.get_memory_flags(mem_ptr_float);
+            float *state_temp_float = (float *) state_memory.memory_malloc(ncells, sizeof(float),
+                                                                          "state_temp_float", flags);
+
+            //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
+            L7_Update(mem_ptr_float, L7_FLOAT, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {
                for(; in < MIN(lower_block_size, (int)ncells); in++) {
-                  state_temp[in] = mem_ptr[ncells_old + in];
+                  state_temp_float[in] = mem_ptr_float[ncells_old + in];
                }
             }
 
             for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
-               state_temp[in] = mem_ptr[ic];
+               state_temp_float[in] = mem_ptr_float[ic];
             }
 
             if(upper_block_size > 0) {
                int ic = ncells_old + lower_block_size;
                for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
-                  state_temp[in] = mem_ptr[ic+k];
+                  state_temp_float[in] = mem_ptr_float[ic+k];
                }
             }
-            mem_ptr = (float *)state_memory.memory_replace(mem_ptr, state_temp);
+            state_memory.memory_replace(mem_ptr_float, state_temp_float);
          }
       }
 
@@ -8250,65 +8162,65 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
 
       MallocPlus mesh_memory_old = mesh_memory;
 
-      for (memory_item = mesh_memory_old.memory_entry_begin();
-           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-           memory_item = mesh_memory_old.memory_entry_next() ) {
+      for (memory_item = mesh_memory_old.memory_entry_by_name_begin();
+           memory_item != mesh_memory_old.memory_entry_by_name_end();
+           memory_item = mesh_memory_old.memory_entry_by_name_next() ) {
 
          //if (mype == 0) printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
 
          if (memory_item->mem_elsize == 8) {
-            long long *mem_ptr = (long long *)memory_item->mem_ptr;
+            long long *mem_ptr_long = (long long *)memory_item->mem_ptr;
 
-            int flags = mesh_memory.get_memory_flags(mem_ptr);
-            long long *mesh_temp = (long long *)mesh_memory.memory_malloc(ncells, sizeof(long long), "mesh_temp", flags);
+            int flags = mesh_memory.get_memory_flags(mem_ptr_long);
+            long long *mesh_temp_long = (long long *)mesh_memory.memory_malloc(ncells, sizeof(long long), "mesh_temp_long", flags);
 
             //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
-            L7_Update(mem_ptr, L7_LONG_LONG_INT, load_balance_handle);
+            L7_Update(mem_ptr_long, L7_LONG_LONG_INT, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {
                for(; in < MIN(lower_block_size, (int)ncells); in++) {
-                  mesh_temp[in] = mem_ptr[ncells_old + in];
+                  mesh_temp_long[in] = mem_ptr_long[ncells_old + in];
                }
             }
 
             for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
-               mesh_temp[in] = mem_ptr[ic];
+               mesh_temp_long[in] = mem_ptr_long[ic];
             }
 
             if(upper_block_size > 0) {
                int ic = ncells_old + lower_block_size;
                for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
-                  mesh_temp[in] = mem_ptr[ic+k];
+                  mesh_temp_long[in] = mem_ptr_long[ic+k];
                }
             }
-            mem_ptr = (long long *)mesh_memory.memory_replace(mem_ptr, mesh_temp);
+            mesh_memory.memory_replace(mem_ptr_long, mesh_temp_long);
 
          } else {
-            int *mem_ptr = (int *)memory_item->mem_ptr;
+            int *mem_ptr_int = (int *)memory_item->mem_ptr;
 
-            int flags = mesh_memory.get_memory_flags(mem_ptr);
-            int *mesh_temp = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "mesh_temp", flags);
+            int flags = mesh_memory.get_memory_flags(mem_ptr_int);
+            int *mesh_temp_int = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "mesh_temp_int", flags);
 
             //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
-            L7_Update(mem_ptr, L7_INT, load_balance_handle);
+            L7_Update(mem_ptr_int, L7_INT, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {
                for(; in < MIN(lower_block_size, (int)ncells); in++) {
-                  mesh_temp[in] = mem_ptr[ncells_old + in];
+                  mesh_temp_int[in] = mem_ptr_int[ncells_old + in];
                }
             }
 
             for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
-               mesh_temp[in] = mem_ptr[ic];
+               mesh_temp_int[in] = mem_ptr_int[ic];
             }
 
             if(upper_block_size > 0) {
                int ic = ncells_old + lower_block_size;
                for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
-                  mesh_temp[in] = mem_ptr[ic+k];
+                  mesh_temp_int[in] = mem_ptr_int[ic+k];
                }
             }
-            mem_ptr = (int *)mesh_memory.memory_replace(mem_ptr, mesh_temp);
+            mesh_memory.memory_replace(mem_ptr_int, mesh_temp_int);
 
          }
       }
@@ -8322,7 +8234,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       //state_memory.memory_report();
       //printf("%d: DEBUG end load balance report\n\n",mype);
    }
-   //if (mype == 0) printf("DEBUG -- finished load balance\n");
+
 
    cpu_timers[MESH_TIMER_LOAD_BALANCE] += cpu_timer_stop(tstart_cpu);
 }
@@ -8418,11 +8330,11 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
       cl_mem dev_state_var_upper = ezcl_malloc(NULL, const_cast<char *>("dev_state_var_upper"), &up_block_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
 
       MallocPlus gpu_state_memory_old = gpu_state_memory;
-      list<malloc_plus_memory_entry>::iterator memory_item;
+      malloc_plus_memory_entry *memory_item;
 
-      for (memory_item = gpu_state_memory_old.memory_entry_begin();
-           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-           memory_item = gpu_state_memory_old.memory_entry_next() ) {
+      for (memory_item = gpu_state_memory_old.memory_entry_by_name_begin();
+           memory_item != gpu_state_memory_old.memory_entry_by_name_end();
+           memory_item = gpu_state_memory_old.memory_entry_by_name_next() ) {
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
          cl_mem dev_state_mem_ptr = (cl_mem)memory_item->mem_ptr;
 
@@ -10206,19 +10118,7 @@ void Mesh::store_checkpoint(Crux *crux)
    mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", flags);
 
    // Store MallocPlus memory database
-   //crux->store_MallocPlus(mesh_memory);
-   crux->store_ints(int_dist_vals, num_int_dist_vals);
-   crux->store_replicated_int_array(int_vals, num_int_vals);
-   crux->store_replicated_double_array(double_vals, num_double_vals);
-   crux->store_int_array(cpu_counters, MESH_COUNTER_SIZE);
-   crux->store_int_array(gpu_counters, MESH_COUNTER_SIZE);
-
-   crux->store_double_array(cpu_timers, MESH_TIMER_SIZE);
-   crux->store_long_array(gpu_timers, MESH_TIMER_SIZE);
-
-   crux->store_int_array(i, ncells);
-   crux->store_int_array(j, ncells);
-   crux->store_int_array(level, ncells);
+   crux->store_MallocPlus(mesh_memory);
 
    // Remove memory entries from database now that data is stored
    mesh_memory.memory_remove(int_dist_vals);
@@ -10272,20 +10172,7 @@ void Mesh::restore_checkpoint(Crux *crux)
    mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", flags);
 
    // Restore MallocPlus memory database
-   //crux->restore_MallocPlus(mesh_memory);
-   crux->restore_ints(int_dist_vals, num_int_dist_vals);
-   ncells                    = int_dist_vals[ 0];
-   crux->restore_ints(int_vals, num_int_vals);
-   crux->restore_doubles(double_vals, num_double_vals);
-   crux->restore_int_array(cpu_counters, MESH_COUNTER_SIZE);
-   crux->restore_int_array(gpu_counters, MESH_COUNTER_SIZE);
-
-   crux->restore_double_array(cpu_timers, MESH_TIMER_SIZE);
-   crux->restore_long_array(gpu_timers, MESH_TIMER_SIZE);
-
-   crux->restore_int_array(i, ncells);
-   crux->restore_int_array(j, ncells);
-   crux->restore_int_array(level, ncells);
+   crux->restore_MallocPlus(mesh_memory);
 
    // Remove memory entries from database now that data is restored
    mesh_memory.memory_remove(int_dist_vals);
