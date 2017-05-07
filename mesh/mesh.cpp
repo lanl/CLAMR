@@ -1611,7 +1611,6 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #endif
 
    if(newcount_global > 0 && levmx > 1) {
-      int levcount = 1;
       size_t my_ncells=ncells;
       if (parallel) my_ncells=ncells_ghost;
 
@@ -1619,19 +1618,20 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
       vector<int> mpot_old(my_ncells);
 
-      while (newcount_global > 0 && levcount < levmx){
-
 #ifdef _OPENMP
 #pragma omp parallel
 {//START Parallel Region
 #endif
+      int levcount = 1;
        
+      while (newcount_global > 0 && levcount < levmx){
+
+         levcount++; 
 #ifdef _OPENMP
 #pragma omp master
 {//MASTER START
 #endif
 
-         levcount++; 
          mpot.swap(mpot_old);
          newcount=0;
 #ifdef HAVE_MPI
@@ -1769,15 +1769,13 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #ifdef _OPENMP
 #pragma omp atomic 
 #endif
-      newcount += mynewcount;
-
-
-
+         newcount += mynewcount;
 
          icount += newcount;
          newcount_global = newcount;
 
 #ifdef _OPENMP
+#pragma omp barrier
 #pragma omp master
 {
 #endif
@@ -1793,12 +1791,14 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 #pragma omp barrier
 #endif
 
+      } // while (newcount_global > 0 && levcount < levmx);
+
 #ifdef _OPENMP
 #pragma omp barrier
 }//END Parallel Region
 #endif
 
-      }// while (newcount_global > 0 && levcount < levmx);
+
    }
 
 #ifdef HAVE_MPI
@@ -8233,6 +8233,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       //mesh_memory.memory_report();
       //state_memory.memory_report();
       //printf("%d: DEBUG end load balance report\n\n",mype);
+      calc_celltype(ncells);
    }
 
 
