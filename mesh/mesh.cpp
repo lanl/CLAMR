@@ -1612,12 +1612,12 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
    vector<int> mpot_old;
 
-   if(newcount_global > 0 && levmx > 1) {
-
 #ifdef _OPENMP
 #pragma omp parallel
 {//START Parallel Region
 #endif
+   if(newcount_global > 0 && levmx > 1) {
+
       size_t my_ncells=ncells;
       if (parallel) my_ncells=ncells_ghost;
 
@@ -1803,13 +1803,13 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
       } // while (newcount_global > 0 && levcount < levmx);
 
+   }
+
 #ifdef _OPENMP
 #pragma omp barrier
 }//END Parallel Region
 #endif
 
-
-   }
 
 #ifdef HAVE_MPI
    if (numpe > 1) {
