@@ -3971,7 +3971,7 @@ void Mesh::calc_neighbors(int ncells)
 #ifdef _OPENMP
          hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0);
 #else
-         hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
+         hash = compact_hash_init(ncells, imaxsize, jmaxsize, 0);
 #endif
 
 #ifdef _OPENMP
@@ -4330,7 +4330,7 @@ void Mesh::calc_neighbors_local(void)
 #ifdef _OPENMP
       hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
 #else
-      hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1);
+      hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
 #endif
 
       //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);
