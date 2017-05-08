@@ -171,12 +171,8 @@ Crux::~Crux()
 }
 
 void Crux::store_MallocPlus(MallocPlus memory){
-    list<malloc_plus_memory_entry>::iterator memory_item;
 
-#ifdef HAVE_MPI
-    int mype = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD,&mype);
-#endif
+    malloc_plus_memory_entry *memory_item;
 
     for (memory_item = memory.memory_entry_begin();
 	 memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
@@ -257,41 +253,45 @@ void Crux::store_begin(size_t nsize, int ncycle)
       crux_data_size[cp_num] = nsize;
       store_fp = fmemopen(crux_data[cp_num], nsize, "w");
    } else if(crux_type == CRUX_DISK) {
-      char backup_file[60];
+      char backup_file_w_dir[60];
+      char backup_file[40];
 #ifdef HAVE_HDF5
       if(USE_HDF5) {
 
-#ifdef HDF5_FF
-	if(is_restart)
-	  sprintf(backup_file,"rbackup%05d.h5",ncycle);
-	else
-	  sprintf(backup_file,"backup%05d.h5",ncycle);
-#else
-          sprintf(backup_file,"%s/backup%05d.h5",checkpoint_directory,ncycle);
-#endif
-
 	hid_t plist_id = create_hdf5_parallel_file_plist();
 	
-	if(!(h5_fid = H5Fcreate(backup_file, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id)))
-              printf("HDF5: Could not write HDF5 %s at iteration %d\n",backup_file,ncycle);
+#ifdef HDF5_FF
+	if(is_restart)
+	  sprintf(backup_file_w_dir,"rbackup%05d.h5",ncycle);
+	else
+	  sprintf(backup_file_w_dir,"backup%05d.h5",ncycle);
+#else
+          sprintf(backup_file_w_dir,"%s/backup%05d.h5",checkpoint_directory,ncycle);
+          sprintf(backup_file,"backup%05d.h5",ncycle);
+#endif
+          if(!(h5_fid = H5Fcreate(backup_file_w_dir, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id))) {
+              printf("HDF5: Could not write HDF5 %s at iteration %d\n",backup_file_w_dir,ncycle);
+          }
           H5Pclose(plist_id);
       } else {
 #endif
-          sprintf(backup_file,"%s/backup%05d.crx",checkpoint_directory,ncycle);
+          sprintf(backup_file_w_dir,"%s/backup%05d.crx",checkpoint_directory,ncycle);
+          sprintf(backup_file,"backup%05d.crx",ncycle);
 #ifdef HAVE_MPI
-          int iret = MPI_File_open(MPI_COMM_WORLD, backup_file, MPI_MODE_CREATE|MPI_MODE_WRONLY, MPI_INFO_NULL, &mpi_store_fp);
+          int iret = MPI_File_open(MPI_COMM_WORLD, backup_file_w_dir, MPI_MODE_CREATE|MPI_MODE_WRONLY, MPI_INFO_NULL, &mpi_store_fp);
           if(iret != MPI_SUCCESS) {
-              printf("Could not write %s at iteration %d\n",backup_file,ncycle);
+              printf("Could not write %s at iteration %d\n",backup_file_w_dir,ncycle);
           }
 #else
-          store_fp = fopen(backup_file,"w");
+          store_fp = fopen(backup_file_w_dir,"w");
           if(!store_fp){
-              printf("Could not write %s at iteration %d\n",backup_file,ncycle);
+              printf("Could not write %s at iteration %d\n",backup_file_w_dir,ncycle);
           }
 #endif
           if (mype == 0) {
               char symlink_file[60];
               sprintf(symlink_file,"%s/backup%1d.crx",checkpoint_directory,cp_num);
+              unlink(symlink_file);
               symlink(backup_file, symlink_file);
               //      int ireturn = symlink(backup_file, symlink_file);
               //      if (ireturn == -1) {
@@ -772,14 +772,14 @@ void Crux::restore_begin(char *restart_file, int rollback_counter)
         restore_fp = fmemopen(crux_data[rs_num], crux_data_size[rs_num], "r");
         restore_type = RESTORE_ROLLBACK;
     } else if(crux_type == CRUX_DISK){
-        char backup_file[60];
+        char backup_file_w_dir[60];
 
-        sprintf(backup_file,"%s/backup%d.crx",checkpoint_directory,rs_num);
-        printf("Restoring state from disk file %s rollback_counter %d\n",backup_file,rollback_counter);
-        restore_fp = fopen(backup_file,"r");
+        sprintf(backup_file_w_dir,"%s/backup%d.crx",checkpoint_directory,rs_num);
+        printf("Restoring state from disk file %s rollback_counter %d\n",backup_file_w_dir,rollback_counter);
+        restore_fp = fopen(backup_file_w_dir,"r");
         if(!restore_fp){
-            //printf("Could not write %s at iteration %d\n",backup_file,crux_int_vals[8]);
-            printf("Could not open restore file %s\n",backup_file);
+            //printf("Could not write %s at iteration %d\n",backup_file_w_dir,crux_int_vals[8]);
+            printf("Could not open restore file %s\n",backup_file_w_dir);
         }
         restore_type = RESTORE_ROLLBACK;
     }

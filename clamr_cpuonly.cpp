@@ -736,7 +736,7 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
          int_vals[0], CRUX_CLAMR_VERSION);
       exit(0);
    }
-  
+
    nx                        = int_vals[ 1];
    ny                        = int_vals[ 2];
    levmx                     = int_vals[ 3];

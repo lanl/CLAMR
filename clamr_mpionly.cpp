@@ -530,7 +530,6 @@ extern "C" void do_calc(void)
       {
 #endif
          state->rezone_all(icount, jcount, mpot);
-
 #ifdef _OPENMP
 #pragma omp master
       {
@@ -543,6 +542,7 @@ extern "C" void do_calc(void)
 
       mesh->ncells = new_ncells;
       ncells = new_ncells;
+
 #ifdef _OPENMP
       }
 #pragma omp barrier
@@ -840,7 +840,7 @@ void store_crux_data(Crux *crux, int ncycle)
 void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_counter)
 {
    crux->restore_begin(restart_file, rollback_counter);
-    
+
    int int_vals[num_int_vals];
 
    double double_vals[num_double_vals];

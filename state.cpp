@@ -3794,7 +3794,7 @@ void State::restore_checkpoint(Crux *crux)
 
    // Check version number
    if (int_vals[ 0] != CRUX_STATE_VERSION) {
-      printf("CRUX version mismatch for state data, version on file is %lld, version in code is %d\n",
+      printf("CRUX version mismatch for state data, version on file is %d, version in code is %d\n",
          int_vals[0], CRUX_STATE_VERSION);
       exit(0);
    }
