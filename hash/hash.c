@@ -215,7 +215,7 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
       } // end omp master
 #pragma omp barrier
 
-#pragma omp parallel for
+#pragma omp for
       for (uint ii = 0; ii<hashtablesize; ii++){
          hash[2*ii] = -1;
       }
@@ -278,7 +278,7 @@ int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_le
       } // end omp master
 #pragma omp barrier
 
-#pragma omp parallel for
+#pragma omp for
       for (uint ii = 0; ii<hashtablesize; ii++){
          hash[ii] = -1;
       }
