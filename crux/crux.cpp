@@ -174,9 +174,9 @@ void Crux::store_MallocPlus(MallocPlus memory){
 
     malloc_plus_memory_entry *memory_item;
 
-    for (memory_item = memory.memory_entry_begin();
-	 memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-	 memory_item = memory.memory_entry_next() ) {
+    for (memory_item = memory.memory_entry_by_name_begin(); 
+	 memory_item != memory.memory_entry_by_name_end();
+	 memory_item = memory.memory_entry_by_name_next() ){
 
         void *mem_ptr = memory_item->mem_ptr;
         if ((memory_item->mem_flags & RESTART_DATA) == 0) continue;
@@ -330,9 +330,11 @@ void Crux::store_field_header(const char *name, int name_size){
 hid_t create_hdf5_parallel_file_plist()
 {
     hid_t plist_id = H5P_DEFAULT;
-#ifdef HAVE_MPI
+
     if( (plist_id = H5Pcreate(H5P_FILE_ACCESS)) < 0)
         printf("HDF5: Could not create property list \n");
+
+#ifdef HAVE_MPI
     if( H5Pset_libver_bounds(plist_id, H5F_LIBVER_LATEST, H5F_LIBVER_LATEST) < 0)
         printf("HDF5: Could set libver bounds \n");
 # ifdef HDF5_FF
@@ -403,18 +405,40 @@ void access_named_hdf5_values (const char *name, int name_size,
         length = count;
 #ifdef HAVE_MPI    
     }
-#endif    
+#endif
+    
+#ifndef HDF5_FF
     if (!store || H5Lexists(h5_fid, groupname, H5P_DEFAULT))
-        hid_group = H5Gopen (h5_fid, groupname, H5P_DEFAULT);
+      hid_group = H5Gopen (h5_fid, groupname, H5P_DEFAULT);
     else
-        hid_group = H5Gcreate (h5_fid, groupname, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    if (!hid_group) {
-        fprintf(stderr, "Unable to create group: %30s\n", groupname);
-        exit(1);
+      hid_group = H5Gcreate (h5_fid, groupname, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+#else
+    int mpi_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+    if(store) {
+	    hbool_t ret;
+
+	    if(mpi_rank == 0)
+		    ret = H5Lexists(h5_fid, groupname, H5P_DEFAULT);
+
+	    MPI_Bcast(&ret, sizeof(hbool_t), MPI_BYTE, 0, MPI_COMM_WORLD);
+	    if(!ret)
+		    hid_group = H5Gcreate (h5_fid, groupname, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	    else
+		    hid_group = H5Gopen (h5_fid, groupname, H5P_DEFAULT);
+    }	       
+    if (!store) {
+	    hid_group = H5Gopen (h5_fid, groupname, H5P_DEFAULT);
+    }
+#endif
+    if (hid_group == -1) {
+      fprintf(stderr, "Unable to create group: %30s\n", groupname);
+      exit(1);
     }
     hid_mem = H5Screate_simple (1, (hsize_t *) &count, NULL);
     hid_space = H5Screate_simple (1, (hsize_t *) &length, NULL);
-    if(!hid_space) {
+    if (hid_space == -1) {
         fprintf(stderr, "Unable to create space\n");
         exit(1);
     }
@@ -424,10 +448,16 @@ void access_named_hdf5_values (const char *name, int name_size,
     } else
       hid_dataset = H5Dopen (hid_group, fieldname, H5P_DEFAULT);
 
+    if(hid_dataset == -1) {
+	    fprintf(stderr, "Unable to access dataset %s\n", fieldname);
+	    exit(1);
+    }
+
     if (!hid_dataset) {
         fprintf(stderr, "Unable to create/open dataset: %30s\n", fieldname);
         exit(1);
     }
+
     herr_t status;
     status = H5Sselect_hyperslab (hid_space, H5S_SELECT_SET,
                                  (hsize_t *) &offset, NULL,
@@ -664,13 +694,13 @@ int restore_type = RESTORE_NONE;
 
 void Crux::restore_MallocPlus(MallocPlus memory){
     char test_name[34];
-    list<malloc_plus_memory_entry>::iterator memory_item;
-    for (memory_item = memory.memory_entry_begin();
-	 memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-	 memory_item = memory.memory_entry_next() ) {
-
+    malloc_plus_memory_entry *memory_item;
+    for (memory_item = memory.memory_entry_by_name_begin(); 
+	    memory_item != memory.memory_entry_by_name_end();
+	    memory_item = memory.memory_entry_by_name_next() ){
         void *mem_ptr = memory_item->mem_ptr;
         if ((memory_item->mem_flags & RESTART_DATA) == 0) continue;
+
         if (DEBUG) {
             printf("MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
                     mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
@@ -745,7 +775,7 @@ void Crux::restore_begin(char *restart_file, int rollback_counter)
         if (USE_HDF5) {
             hid_t plist_id = create_hdf5_parallel_file_plist();
 
-            if(!(h5_fid = H5Fopen(restart_file, H5F_ACC_RDONLY, plist_id)))
+            if(!(h5_fid = H5Fopen(restart_file, H5F_ACC_RDWR, plist_id)))
                 printf("HDF5: Could not restart from HDF5 file: %s\n", restart_file);
             H5Pclose(plist_id);
         } else {
