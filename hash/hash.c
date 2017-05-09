@@ -22,7 +22,7 @@ static double write_hash_collisions_runsum = 0.0;
 static double read_hash_collisions_runsum = 0.0;
 static uint write_hash_collisions_count = 0;
 static uint read_hash_collisions_count = 0;
-static uint hash_report_level = 2;
+static int hash_report_level = 2;
 static uint hash_queries;
 static int hash_method = METHOD_UNSET;
 static uint hash_jump_prime = 41;
@@ -91,8 +91,8 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, int report_level){
 
       do_compact_hash = (hash_method == PERFECT_HASH) ? 0 : 1;
 
-      if (hash_report_level >= 2) printf("DEBUG do_compact_hash %d hash_method %d perfect_hash_size %u compact_hash_size %u\n",
-         do_compact_hash,hash_method,perfect_hash_size,compact_hash_size);
+      if (hash_report_level >= 2) printf("DEBUG do_compact_hash %d hash_method %d hash_report_level %d perfect_hash_size %u compact_hash_size %u\n",
+         do_compact_hash,hash_method,hash_report_level,perfect_hash_size,compact_hash_size);
 
 #ifdef _OPENMP
    } // end omp master

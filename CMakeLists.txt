@@ -14,7 +14,8 @@ set (CLAMR_VERSION_MINOR 0.7)
 set (CLAMR_VERSION "${CLAMR_VERSION_MAJOR}.${CLAMR_VERSION_MINOR}")
 
 if (NOT CMAKE_BUILD_TYPE)
-   set(CMAKE_BUILD_TYPE RelWithDebInfo)
+   #set(CMAKE_BUILD_TYPE RelWithDebInfo)
+   set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # uncomment to build debug

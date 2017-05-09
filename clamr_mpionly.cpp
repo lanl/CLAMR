@@ -350,6 +350,12 @@ int main(int argc, char **argv) {
 
    if (do_display_opengl_graphics || ncycle == next_graphics_cycle){
       if (mype == 0){
+         H_global.clear();
+         x_global.clear();
+         dx_global.clear();
+         y_global.clear();
+         dy_global.clear();
+         proc_global.clear();
          H_global.resize(ncells_global);
          x_global.resize(ncells_global);
          dx_global.resize(ncells_global);
@@ -649,6 +655,12 @@ extern "C" void do_calc(void)
       vector<int>   &ndispl   = mesh->ndispl;
 
       if (mype == 0) {
+         H_global.clear();
+         x_global.clear();
+         dx_global.clear();
+         y_global.clear();
+         dy_global.clear();
+         proc_global.clear();
          x_global.resize(ncells_global);
          dx_global.resize(ncells_global);
          y_global.resize(ncells_global);

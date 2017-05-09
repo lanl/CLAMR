@@ -2460,6 +2460,10 @@ void Mesh::calc_spatial_coordinates(int ibase)
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   x.clear();
+   dx.clear();
+   y.clear();
+   dy.clear();
    x.resize(ncells);
    dx.resize(ncells);
    y.resize(ncells);
