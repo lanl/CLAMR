@@ -88,16 +88,18 @@ size_t *crux_data_size;
 bool USE_HDF5 = true; //MSB
 hid_t h5_fid;
 herr_t h5err;
+bool is_restart = false;
 
 hid_t create_hdf5_parallel_file_plist();
 
-void map_name_to_hdf5 (const char*, int, char*, int, char*, int);
+void map_name_to_hdf5 (const char*, int, char*, char*);
 
 void access_named_hdf5_values (const char *name, int name_size,
                               hsize_t rank, hsize_t *cur_size, 
                               void *values, hid_t datatype,
-                              bool shared, bool store);
+                              bool store);
 #endif
+
 
 FILE *crux_time_fp;
 struct timeval tcheckpoint_time;
@@ -169,11 +171,12 @@ Crux::~Crux()
 }
 
 void Crux::store_MallocPlus(MallocPlus memory){
+
     malloc_plus_memory_entry *memory_item;
 
     for (memory_item = memory.memory_entry_by_name_begin(); 
-            memory_item != memory.memory_entry_by_name_end();
-            memory_item = memory.memory_entry_by_name_next() ){
+	 memory_item != memory.memory_entry_by_name_end();
+	 memory_item = memory.memory_entry_by_name_next() ){
 
         void *mem_ptr = memory_item->mem_ptr;
         if ((memory_item->mem_flags & RESTART_DATA) == 0) continue;
@@ -205,7 +208,7 @@ void Crux::store_MallocPlus(MallocPlus memory){
                               mem_ptr, 
                               memory_item->mem_elsize == 4 ? 
                               H5T_NATIVE_INT : H5T_NATIVE_DOUBLE,
-                              memory_item->mem_flags & REPLICATED_DATA, true);
+                              true);
         } else {
 #endif
             int num_elements = 1;
@@ -234,6 +237,13 @@ void Crux::store_MallocPlus(MallocPlus memory){
 
 void Crux::store_begin(size_t nsize, int ncycle)
 {
+
+   int mype = 0;
+
+#ifdef HAVE_MPI
+   MPI_Comm_rank(MPI_COMM_WORLD,&mype);
+#endif
+
    cp_num = checkpoint_counter % num_of_rollback_states;
    cpu_timer_start(&tcheckpoint_time);
 
@@ -247,9 +257,18 @@ void Crux::store_begin(size_t nsize, int ncycle)
       char backup_file[40];
 #ifdef HAVE_HDF5
       if(USE_HDF5) {
-          hid_t plist_id = create_hdf5_parallel_file_plist();
+
+	hid_t plist_id = create_hdf5_parallel_file_plist();
+	
+#ifdef HDF5_FF
+	if(is_restart)
+	  sprintf(backup_file_w_dir,"rbackup%05d.h5",ncycle);
+	else
+	  sprintf(backup_file_w_dir,"backup%05d.h5",ncycle);
+#else
           sprintf(backup_file_w_dir,"%s/backup%05d.h5",checkpoint_directory,ncycle);
           sprintf(backup_file,"backup%05d.h5",ncycle);
+#endif
           if(!(h5_fid = H5Fcreate(backup_file_w_dir, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id))) {
               printf("HDF5: Could not write HDF5 %s at iteration %d\n",backup_file_w_dir,ncycle);
           }
@@ -311,19 +330,27 @@ void Crux::store_field_header(const char *name, int name_size){
 hid_t create_hdf5_parallel_file_plist()
 {
     hid_t plist_id = H5P_DEFAULT;
-#ifdef HAVE_MPI
+
     if( (plist_id = H5Pcreate(H5P_FILE_ACCESS)) < 0)
         printf("HDF5: Could not create property list \n");
+
+#ifdef HAVE_MPI
     if( H5Pset_libver_bounds(plist_id, H5F_LIBVER_LATEST, H5F_LIBVER_LATEST) < 0)
         printf("HDF5: Could set libver bounds \n");
+# ifdef HDF5_FF
+    H5Pset_fapl_daosm(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
+    if(H5Pset_all_coll_metadata_ops(plist_id, true) < 0)
+        printf("HDF5: Could not set collective metadata \n");
+# else
     H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
+#endif
 #endif
     return plist_id;
 }
 
 void map_name_to_hdf5 (const char *name, int name_size,
-                        char *group, int group_size,
-                        char *label, int label_size)
+                        char *group,
+                        char *label)
 {
     static const char * default_group = "default";
     int i, j;
@@ -348,17 +375,20 @@ void map_name_to_hdf5 (const char *name, int name_size,
 void access_named_hdf5_values (const char *name, int name_size,
                               hsize_t rank, hsize_t *sizes, 
                               void *values, hid_t datatype,
-                              bool shared, bool store)
+                              bool store)
 {
     size_t length = 0, count = 1, offset = 0;
     char groupname[512], fieldname[512];
     hid_t hid_group, hid_space, hid_mem, hid_dataset, hid_plist = H5P_DEFAULT;
-    map_name_to_hdf5(name, name_size, groupname, 512, fieldname, 512);
-    for (int i=0; i<rank; i++)
+
+    map_name_to_hdf5(name, name_size, groupname, fieldname);
+    for (hsize_t i=0; i<rank; i++)
         count *= sizes[i];
 #ifdef HAVE_MPI
     hid_plist = H5Pcreate(H5P_DATASET_XFER);
+#   ifndef HDF5_FF
     H5Pset_dxpl_mpio(hid_plist, H5FD_MPIO_COLLECTIVE);
+#   endif
     if (npes > 1) {
         size_t *counts = new size_t[npes];
         MPI_Allgather (&count, sizeof(count), MPI_BYTE,
@@ -375,29 +405,59 @@ void access_named_hdf5_values (const char *name, int name_size,
         length = count;
 #ifdef HAVE_MPI    
     }
-#endif    
+#endif
+    
+#ifndef HDF5_FF
     if (!store || H5Lexists(h5_fid, groupname, H5P_DEFAULT))
-        hid_group = H5Gopen (h5_fid, groupname, H5P_DEFAULT);
+      hid_group = H5Gopen (h5_fid, groupname, H5P_DEFAULT);
     else
-        hid_group = H5Gcreate (h5_fid, groupname, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    if (!hid_group) {
-        fprintf(stderr, "Unable to create group: %30s\n", groupname);
-        exit(1);
+      hid_group = H5Gcreate (h5_fid, groupname, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+#else
+    int mpi_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+    if(store) {
+	    hbool_t ret;
+
+	    if(mpi_rank == 0)
+		    ret = H5Lexists(h5_fid, groupname, H5P_DEFAULT);
+
+	    MPI_Bcast(&ret, sizeof(hbool_t), MPI_BYTE, 0, MPI_COMM_WORLD);
+	    if(!ret)
+		    hid_group = H5Gcreate (h5_fid, groupname, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	    else
+		    hid_group = H5Gopen (h5_fid, groupname, H5P_DEFAULT);
+    }	       
+    if (!store) {
+	    hid_group = H5Gopen (h5_fid, groupname, H5P_DEFAULT);
+    }
+#endif
+    if (hid_group == -1) {
+      fprintf(stderr, "Unable to create group: %30s\n", groupname);
+      exit(1);
     }
     hid_mem = H5Screate_simple (1, (hsize_t *) &count, NULL);
     hid_space = H5Screate_simple (1, (hsize_t *) &length, NULL);
-    if(!hid_space) {
+    if (hid_space == -1) {
         fprintf(stderr, "Unable to create space\n");
         exit(1);
     }
-    if (store)
+    if (store) {
         hid_dataset = H5Dcreate (hid_group, fieldname, datatype, hid_space,
                              H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    else hid_dataset = H5Dopen (hid_group, fieldname, H5P_DEFAULT);
+    } else
+      hid_dataset = H5Dopen (hid_group, fieldname, H5P_DEFAULT);
+
+    if(hid_dataset == -1) {
+	    fprintf(stderr, "Unable to access dataset %s\n", fieldname);
+	    exit(1);
+    }
+
     if (!hid_dataset) {
-        fprintf(stderr, "Unable to create dataset: %30s\n", fieldname);
+        fprintf(stderr, "Unable to create/open dataset: %30s\n", fieldname);
         exit(1);
     }
+
     herr_t status;
     status = H5Sselect_hyperslab (hid_space, H5S_SELECT_SET,
                                  (hsize_t *) &offset, NULL,
@@ -408,12 +468,13 @@ void access_named_hdf5_values (const char *name, int name_size,
     }
     if (store)
         status = H5Dwrite (hid_dataset, datatype, hid_mem, hid_space, hid_plist, values);
-    else status = H5Dread (hid_dataset, datatype, hid_mem, hid_space, hid_plist, values);
+    else
+      status = H5Dread (hid_dataset, datatype, hid_mem, hid_space, hid_plist, values);
 
     H5Dclose (hid_dataset);
+    H5Gclose (hid_group);
     H5Sclose (hid_space);
     H5Sclose (hid_mem);
-    H5Gclose (hid_group);
 #ifdef HAVE_MPI
     H5Pclose (hid_plist);
 #endif
@@ -425,7 +486,7 @@ void Crux::store_named_ints(const char *name, int name_size, int *int_vals, size
 #ifdef HAVE_HDF5
     if (USE_HDF5) {
         access_named_hdf5_values (name, name_size, 1, (hsize_t *) &nelem, 
-                                 int_vals, H5T_NATIVE_INT, false, true);
+                                 int_vals, H5T_NATIVE_INT, true);
 
     } else {
 #endif
@@ -441,7 +502,7 @@ void Crux::restore_named_ints(const char *name, int name_size, int *int_vals, si
 #ifdef HAVE_HDF5
     if (USE_HDF5) {
         access_named_hdf5_values (name, name_size, 1, (hsize_t *) &nelem, 
-                                 int_vals, H5T_NATIVE_INT, false, false);
+                                 int_vals, H5T_NATIVE_INT, false);
 
     } else {
 #endif
@@ -604,9 +665,8 @@ void Crux::store_end(void)
 {
 #ifdef HAVE_HDF5
    if(USE_HDF5) {
-     if(H5Fclose(h5_fid) != 0) {
+    if(H5Fclose(h5_fid) != 0)
        printf("HDF5: Could not close HDF5 file \n");
-     }
    } else {
 #endif
 #ifdef HAVE_MPI
@@ -636,8 +696,8 @@ void Crux::restore_MallocPlus(MallocPlus memory){
     char test_name[34];
     malloc_plus_memory_entry *memory_item;
     for (memory_item = memory.memory_entry_by_name_begin(); 
-            memory_item != memory.memory_entry_by_name_end();
-            memory_item = memory.memory_entry_by_name_next() ){
+	    memory_item != memory.memory_entry_by_name_end();
+	    memory_item = memory.memory_entry_by_name_next() ){
         void *mem_ptr = memory_item->mem_ptr;
         if ((memory_item->mem_flags & RESTART_DATA) == 0) continue;
 
@@ -664,8 +724,7 @@ void Crux::restore_MallocPlus(MallocPlus memory){
                     (hsize_t *) memory_item->mem_nelem, 
                     mem_ptr, 
                     memory_item->mem_elsize == 4 ? 
-                    H5T_NATIVE_INT : H5T_NATIVE_DOUBLE,
-                    memory_item->mem_flags & REPLICATED_DATA, false);
+                    H5T_NATIVE_INT : H5T_NATIVE_DOUBLE, false);
         } else {
 #endif
             int num_elements = 1;
@@ -712,11 +771,12 @@ void Crux::restore_begin(char *restart_file, int rollback_counter)
             printf(  "  ================================================================\n\n");
         }
 #ifdef HAVE_HDF5
+	is_restart = true;
         if (USE_HDF5) {
             hid_t plist_id = create_hdf5_parallel_file_plist();
-            if(!(h5_fid = H5Fopen(restart_file, H5F_ACC_RDONLY, plist_id))) {
+
+            if(!(h5_fid = H5Fopen(restart_file, H5F_ACC_RDWR, plist_id)))
                 printf("HDF5: Could not restart from HDF5 file: %s\n", restart_file);
-            }
             H5Pclose(plist_id);
         } else {
 #endif
