@@ -1206,7 +1206,7 @@ void State::calc_finite_difference(double deltaT){
 
    int lowerBound, upperBound;
    mesh->get_bounds(lowerBound, upperBound);
-
+#pragma omp simd
    for(int gix = lowerBound; gix < upperBound; gix++) {
 #if DEBUG >= 3
       printf("%d: DEBUG gix is %d at line %d in file %s\n",mesh->mype,gix,__LINE__,__FILE__);
