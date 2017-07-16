@@ -24,20 +24,13 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
    # using Clang
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -ftree-vectorize")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
    # using GCC
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -ftree-vectorize")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C++
 endif()
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-
-if (MIC_NATIVE)
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-intel -mmic")
-   link_directories("/projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic")
-endif (MIC_NATIVE)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
