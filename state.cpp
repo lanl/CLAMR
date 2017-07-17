@@ -1231,16 +1231,6 @@ void State::calc_finite_difference(double deltaT){
       int nt      = ntop[gix];
       int nb      = nbot[gix];
 
-//Apparently the below (Hic = H[gix])  has a dependency with 
-//     
-//      V_new[gix] = U_fullstep(deltaT, dxic, Vic,
-//                       Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
-//                  - wminusy_V + wplusy_V;
-//       
-//  which is...
-//
-//      V_new[gix] = (Vic - (deltaT / dxic)*(Vxfluxplus - Vxfluxminus + Vyfluxplus - Vyfluxminus)) - wminusy_V + wplusy_V
-
 
 
       real_t Hic     = H[gix];
