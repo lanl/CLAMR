@@ -56,8 +56,6 @@
 
 // SKG TODO op realloc (similar to managed)
 
-#undef HAVE_OPENCL
-
 #include "MallocPlus.h"
 #include <stdlib.h>
 #include <unistd.h>
