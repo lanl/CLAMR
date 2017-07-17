@@ -350,10 +350,6 @@ int main(int argc, char **argv) {
    for (it = ncycle; it < 10000000; it++) {
       do_calc();
    }
-#ifdef HAVE_ITTNOTIFY
-__itt_pause();
-__SSC_MARK(0x222);
-#endif
 #endif
    
    return 0;
