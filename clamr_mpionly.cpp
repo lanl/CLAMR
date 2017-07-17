@@ -73,9 +73,6 @@
 #include "crux/crux.h"
 #include "PowerParser/PowerParser.hh"
 #include "MallocPlus/MallocPlus.h"
-#ifdef HAVE_ITTNOTIFY
-#include <ittnotify.h>
-#endif
 
 using namespace PP;
 
@@ -439,17 +436,9 @@ int main(int argc, char **argv) {
    set_idle_function(&do_calc);
    start_main_loop();
 #else
-#ifdef HAVE_ITTNOTIFY
-__itt_resume();
-__SSC_MARK(0x111);
-#endif
    for (it = ncycle; it < 10000000; it++) {
       do_calc();
    }
-#ifdef HAVE_ITTNOTIFY
-__itt_pause();
-__SSC_MARK(0x222);
-#endif
 #endif
    
    return 0;

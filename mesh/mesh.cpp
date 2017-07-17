@@ -2770,7 +2770,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    index.resize(new_ncells);
 #ifdef _OPENMP
    }
-#pragma omp barrier
 #endif
 
    static vector<int> order; //  Vector of refined mesh traversal order; set to -1 to indicate errors.
@@ -2780,6 +2779,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    //int ref_entry = 0;
 
 #ifdef _OPENMP
+#pragma omp barrier
 #pragma omp master
    {
 #endif
@@ -2828,7 +2828,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
 #ifdef _OPENMP
    }
-#pragma omp barrier
 #endif
 
 #ifdef REZONE_NO_OPTIMIZATION
@@ -4675,7 +4674,6 @@ void Mesh::calc_neighbors_local(void)
          }
 #ifdef _OPENMP
          }
-#pragma omp barrier
 #endif
 
          static vector<int> border_cell;
@@ -4714,7 +4712,6 @@ void Mesh::calc_neighbors_local(void)
 
 #ifdef _OPENMP
          }
-#pragma omp barrier
 #endif
 
          static vector<int> border_cell_out;
@@ -4886,7 +4883,6 @@ void Mesh::calc_neighbors_local(void)
          }
 #ifdef _OPENMP
          }
-#pragma omp barrier
 #endif
 
          // Compute the overlap between processor bounding boxes and set up push database
@@ -4917,7 +4913,6 @@ void Mesh::calc_neighbors_local(void)
          }
 #ifdef _OPENMP
          }
-#pragma omp barrier
 #endif
 
          // Initialize L7_Push_Setup with num_comm_partners, comm_partner, send_database and 
