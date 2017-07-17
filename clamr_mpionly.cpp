@@ -73,9 +73,6 @@
 #include "crux/crux.h"
 #include "PowerParser/PowerParser.hh"
 #include "MallocPlus/MallocPlus.h"
-#ifdef HAVE_ITTNOTIFY
-#include <ittnotify.h>
-#endif
 
 using namespace PP;
 
@@ -351,6 +348,12 @@ int main(int argc, char **argv) {
 
    if (do_display_opengl_graphics || ncycle == next_graphics_cycle){
       if (mype == 0){
+         H_global.clear();
+         x_global.clear();
+         dx_global.clear();
+         y_global.clear();
+         dy_global.clear();
+         proc_global.clear();
          H_global.resize(ncells_global);
          x_global.resize(ncells_global);
          dx_global.resize(ncells_global);
@@ -434,17 +437,9 @@ int main(int argc, char **argv) {
    set_idle_function(&do_calc);
    start_main_loop();
 #else
-#ifdef HAVE_ITTNOTIFY
-__itt_resume();
-__SSC_MARK(0x111);
-#endif
    for (it = ncycle; it < 10000000; it++) {
       do_calc();
    }
-#ifdef HAVE_ITTNOTIFY
-__itt_pause();
-__SSC_MARK(0x222);
-#endif
 #endif
    
    return 0;
