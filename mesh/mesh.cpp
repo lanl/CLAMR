@@ -2460,6 +2460,10 @@ void Mesh::calc_spatial_coordinates(int ibase)
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   x.clear();
+   dx.clear();
+   y.clear();
+   dy.clear();
    x.resize(ncells);
    dx.resize(ncells);
    y.resize(ncells);
@@ -2492,6 +2496,9 @@ void Mesh::calc_spatial_coordinates(int ibase)
       }
    }
 
+#ifdef _OPENMP
+#pragma omp master
+#endif
    cpu_timers[MESH_TIMER_CALC_SPATIAL_COORDINATES] += cpu_timer_stop(tstart_cpu);
 
 #ifdef _OPENMP
@@ -2763,7 +2770,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    index.resize(new_ncells);
 #ifdef _OPENMP
    }
-#pragma omp barrier
 #endif
 
    static vector<int> order; //  Vector of refined mesh traversal order; set to -1 to indicate errors.
@@ -2773,6 +2779,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    //int ref_entry = 0;
 
 #ifdef _OPENMP
+#pragma omp barrier
 #pragma omp master
    {
 #endif
@@ -2821,7 +2828,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
 #ifdef _OPENMP
    }
-#pragma omp barrier
 #endif
 
 #ifdef REZONE_NO_OPTIMIZATION
@@ -3968,11 +3974,7 @@ void Mesh::calc_neighbors(int ncells)
 
          int *hash;
 
-#ifdef _OPENMP
-         hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0);
-#else
          hash = compact_hash_init(ncells, imaxsize, jmaxsize, 0);
-#endif
 
 #ifdef _OPENMP
 #pragma omp for
@@ -4327,11 +4329,7 @@ void Mesh::calc_neighbors_local(void)
 
       static int *hash;
 
-#ifdef _OPENMP
-      hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
-#else
       hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
-#endif
 
       //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);
 
@@ -4676,7 +4674,6 @@ void Mesh::calc_neighbors_local(void)
          }
 #ifdef _OPENMP
          }
-#pragma omp barrier
 #endif
 
          static vector<int> border_cell;
@@ -4715,7 +4712,6 @@ void Mesh::calc_neighbors_local(void)
 
 #ifdef _OPENMP
          }
-#pragma omp barrier
 #endif
 
          static vector<int> border_cell_out;
@@ -4887,7 +4883,6 @@ void Mesh::calc_neighbors_local(void)
          }
 #ifdef _OPENMP
          }
-#pragma omp barrier
 #endif
 
          // Compute the overlap between processor bounding boxes and set up push database
@@ -4918,7 +4913,6 @@ void Mesh::calc_neighbors_local(void)
          }
 #ifdef _OPENMP
          }
-#pragma omp barrier
 #endif
 
          // Initialize L7_Push_Setup with num_comm_partners, comm_partner, send_database and 

@@ -26,11 +26,7 @@ extern "C"
 {
 #endif
 
-int *compact_hash_init(int ncells, uint isize, uint jsize, uint report_level);
-
-#ifdef _OPENMP
-   int *compact_hash_init_openmp(int ncells, uint isize, uint jsize, uint report_level);
-#endif
+int *compact_hash_init(int ncells, uint isize, uint jsize, int report_level);
 
 int get_hash_method(void);
 long long get_hash_table_size(void);

@@ -24,35 +24,33 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
    # using Clang
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -ftree-vectorize")
    #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
    # using GCC
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -ftree-vectorize")
    #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -march=native -fno-strict-aliasing -ftree-vectorize")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C++
    #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -vec-report3")
    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -ansi-alias -axmic-AVX512 -xHost -qopenmp-simd")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
+elseif (CMAKE_C_COMPILER_ID MATCHES "XL")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
+   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-
-if (MIC_NATIVE)
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-intel -mmic")
-   link_directories("/projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic")
-endif (MIC_NATIVE)
-
-if (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)
+if (NOT DEFINED OPENCL_FOUND)
    find_package(OpenCL)
    #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
    #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
@@ -60,7 +58,7 @@ if (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)
    if (OPENCL_FOUND)
       include_directories(${OPENCL_INCLUDE_DIRS})
    endif (OPENCL_FOUND)
-endif (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)
+endif (NOT DEFINED OPENCL_FOUND)
 
 if (NOT DEFINED MPI_FOUND)
    find_package(MPI)
