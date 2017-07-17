@@ -73,6 +73,9 @@
 #include "crux/crux.h"
 #include "PowerParser/PowerParser.hh"
 #include "MallocPlus/MallocPlus.h"
+#ifdef HAVE_ITTNOTIFY
+#include <ittnotify.h>
+#endif
 
 using namespace PP;
 
@@ -127,7 +130,8 @@ bool        restart,        //  Flag to start from a back up file; init in input
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
             face_based,     //  Flag for face-based finite difference;
-            outline;        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
+            outline,        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
+            output_cuts;     //  Flag for outputting file of slice along y-axis; init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
             crux_type,      //  Type of checkpoint/restart -- CRUX_NONE, CRUX_IN_MEMORY, CRUX_DISK;
                             //  init in input.cpp::parseInput().
@@ -347,12 +351,6 @@ int main(int argc, char **argv) {
 
    if (do_display_opengl_graphics || ncycle == next_graphics_cycle){
       if (mype == 0){
-         H_global.clear();
-         x_global.clear();
-         dx_global.clear();
-         y_global.clear();
-         dy_global.clear();
-         proc_global.clear();
          H_global.resize(ncells_global);
          x_global.resize(ncells_global);
          dx_global.resize(ncells_global);
@@ -436,9 +434,17 @@ int main(int argc, char **argv) {
    set_idle_function(&do_calc);
    start_main_loop();
 #else
+#ifdef HAVE_ITTNOTIFY
+__itt_resume();
+__SSC_MARK(0x111);
+#endif
    for (it = ncycle; it < 10000000; it++) {
       do_calc();
    }
+#ifdef HAVE_ITTNOTIFY
+__itt_pause();
+__SSC_MARK(0x222);
+#endif
 #endif
    
    return 0;
@@ -644,12 +650,6 @@ extern "C" void do_calc(void)
       vector<int>   &ndispl   = mesh->ndispl;
 
       if (mype == 0) {
-         H_global.clear();
-         x_global.clear();
-         dx_global.clear();
-         y_global.clear();
-         dy_global.clear();
-         proc_global.clear();
          x_global.resize(ncells_global);
          dx_global.resize(ncells_global);
          y_global.resize(ncells_global);

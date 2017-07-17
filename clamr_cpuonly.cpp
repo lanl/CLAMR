@@ -72,6 +72,9 @@
 #include "crux/crux.h"
 #include "PowerParser/PowerParser.hh"
 #include "MallocPlus/MallocPlus.h"
+#ifdef HAVE_ITTNOTIFY
+#include <ittnotify.h>
+#endif
 
 using namespace PP;
 
@@ -124,7 +127,8 @@ bool        restart,        //  Flag to start from a back up file; init in input
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
             face_based,     //  Flag for face-based finite difference;
-            outline;        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
+            outline,        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
+            output_cuts;    //  Flag for outputting file of slice along y-axis; init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
             crux_type,      //  Type of checkpoint/restart -- CRUX_NONE, CRUX_IN_MEMORY, CRUX_DISK;
                             //  init in input.cpp::parseInput().
@@ -346,9 +350,17 @@ int main(int argc, char **argv) {
    set_idle_function(&do_calc);
    start_main_loop();
 #else
+#ifdef HAVE_ITTNOTIFY
+__itt_resume();
+__SSC_MARK(0x111);
+#endif
    for (it = ncycle; it < 10000000; it++) {
       do_calc();
    }
+#ifdef HAVE_ITTNOTIFY
+__itt_pause();
+__SSC_MARK(0x222);
+#endif
 #endif
    
    return 0;
@@ -583,7 +595,21 @@ extern "C" void do_calc(void)
    }
 
 #endif
-
+   if(output_cuts) {
+       //Print a cut
+       char cutFilename[50];  
+       sprintf(cutFilename,"cut%d",ncycle);
+       FILE *fpcut = fopen(cutFilename,"a");//Note that this appends. 
+       float xmid = 0.0;
+   
+       mesh->calc_spatial_coordinates(0);
+       for (int ic = 0; ic < ncells; ic++){                                      
+	       if (xmid >= (mesh->x[ic]) && xmid < (mesh->x[ic]+mesh->dx[ic])){        
+                   fprintf (fpcut, "%12.6f, %25.16f \n", (mesh->y[ic])+0.5*(mesh->dy[ic]), state->H[ic]);
+               }                                                                      
+       }
+       fclose(fpcut);
+   }
    cpu_time_graphics += cpu_timer_stop(tstart_cpu);
 
    //  Output final results and timing information.
