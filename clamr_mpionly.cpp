@@ -829,8 +829,9 @@ void store_crux_data(Crux *crux, int ncycle)
 
    crux->store_begin(nsize, ncycle);
 
-   crux->store_MallocPlus(clamr_bootstrap_memory);
-
+   //crux->store_MallocPlus(clamr_bootstrap_memory);
+   crux->store_replicated_int_array(int_vals, num_int_vals);
+   crux->store_replicated_double_array(double_vals, num_double_vals);
    state->store_checkpoint(crux);
 
    crux->store_end();
@@ -942,16 +943,8 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
 void restore_crux_data(Crux *crux)
 {
    state->restore_checkpoint(crux);
-#ifdef HAVE_HDF5
+
    crux->restore_end();
-#else
-#ifndef HAVE_MPI
-    crux->restore_end();
-#else   
-   MPI_Finalize();
-   exit(0);
-#endif
-#endif
 }
 
 

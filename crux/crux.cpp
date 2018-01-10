@@ -857,10 +857,23 @@ int *Crux::restore_int_array(int *int_array, size_t nelem)
 
 long long *Crux::restore_long_array(long long *long_array, size_t nelem)
 {
+#ifdef HAVE_MPI
+   assert(long_array != NULL);
+   MPI_Status status;
+   MPI_File_read_shared(mpi_restore_fp, long_array, (int)nelem, MPI_LONG_LONG, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
+#ifdef DEBUG_RESTORE_VALS
+   int count;
+   MPI_Get_count(&status, MPI_LONG_LONG, &count);
+   printf("%d:Read %d long integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+#endif
+
+#else
    size_t nelem_read = fread(long_array,sizeof(long long),nelem,restore_fp);
    if (nelem_read != nelem){
       printf("Warning: number of elements read %lu is not equal to request %lu\n",nelem_read,nelem);
    }
+#endif
    return(long_array);
 }
 

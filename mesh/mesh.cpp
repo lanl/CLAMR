@@ -10273,10 +10273,10 @@ void Mesh::restore_checkpoint(Crux *crux)
 
    // Restore MallocPlus memory database
    //crux->restore_MallocPlus(mesh_memory);
-   crux->restore_ints(int_dist_vals, num_int_dist_vals);
+   crux->restore_int_array(int_dist_vals, num_int_dist_vals);
    ncells                    = int_dist_vals[ 0];
-   crux->restore_ints(int_vals, num_int_vals);
-   crux->restore_doubles(double_vals, num_double_vals);
+   crux->restore_int_array(int_vals, num_int_vals);
+   crux->restore_double_array(double_vals, num_double_vals);
    crux->restore_int_array(cpu_counters, MESH_COUNTER_SIZE);
    crux->restore_int_array(gpu_counters, MESH_COUNTER_SIZE);
 

@@ -3805,7 +3805,7 @@ void State::restore_checkpoint(Crux *crux)
 
    // Restore memory database
    //crux->restore_MallocPlus(state_memory);
-   crux->restore_ints(int_vals, num_int_vals);
+   crux->restore_replicated_int_array(int_vals, num_int_vals);
    crux->restore_double_array(cpu_timers, STATE_TIMER_SIZE);
    crux->restore_long_array(gpu_timers, STATE_TIMER_SIZE);
 
