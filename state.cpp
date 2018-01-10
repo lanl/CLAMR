@@ -3764,7 +3764,7 @@ void State::store_checkpoint(Crux *crux)
    state_memory.memory_add(gpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_gpu_timers", RESTART_DATA);
 
    //crux->store_MallocPlus(state_memory);
-   crux->store_ints(int_vals, num_int_vals);
+   crux->store_replicated_int_array(int_vals, num_int_vals);
    crux->store_double_array(cpu_timers, STATE_TIMER_SIZE);
    crux->store_long_array(gpu_timers, STATE_TIMER_SIZE);
 

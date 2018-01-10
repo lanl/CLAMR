@@ -852,8 +852,8 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
    clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", flags);
 
    //crux->restore_MallocPlus(clamr_bootstrap_memory);
-   crux->restore_ints(int_vals, num_int_vals);
-   crux->restore_doubles(double_vals, num_double_vals);
+   crux->restore_replicated_int_array(int_vals, num_int_vals);
+   crux->restore_replicated_double_array(double_vals, num_double_vals);
 
    if (int_vals[ 0] != CRUX_CLAMR_VERSION) {
       printf("CRUX version mismatch for clamr data, version on file is %d, version in code is %d\n",

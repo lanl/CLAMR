@@ -506,8 +506,21 @@ void Crux::store_int_array(int *int_array, size_t nelem)
 
 void Crux::store_long_array(long long *long_array, size_t nelem)
 {
+#ifdef HAVE_MPI
+   assert(long_array != NULL);
+   MPI_Status status;
+   MPI_File_write_shared(mpi_store_fp, long_array, (int)nelem, MPI_LONG_LONG, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
+#ifdef DEBUG_RESTORE_VALS
+   int count;
+   MPI_Get_count(&status, MPI_LONG_LONG, &count);
+   printf("%d:Wrote %d long integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+#endif
+
+#else
    assert(long_array != NULL && store_fp != NULL);
    fwrite(long_array,sizeof(long long),nelem,store_fp);
+#endif
 }
 
 void Crux::store_float_array(float *float_array, size_t nelem)

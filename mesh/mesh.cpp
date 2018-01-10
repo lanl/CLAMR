@@ -10207,7 +10207,7 @@ void Mesh::store_checkpoint(Crux *crux)
 
    // Store MallocPlus memory database
    //crux->store_MallocPlus(mesh_memory);
-   crux->store_ints(int_dist_vals, num_int_dist_vals);
+   crux->store_int_array(int_dist_vals, num_int_dist_vals);
    crux->store_replicated_int_array(int_vals, num_int_vals);
    crux->store_replicated_double_array(double_vals, num_double_vals);
    crux->store_int_array(cpu_counters, MESH_COUNTER_SIZE);
