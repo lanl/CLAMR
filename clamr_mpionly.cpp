@@ -608,10 +608,10 @@ extern "C" void do_calc(void)
          }
 
          if((ncycle - (rollback_attempt)*checkpoint_outputInterval) < 0){
-            printf("Rolling simulation back to to ncycle 0\n");
+            printf("Rolling simulation back to ncycle 0\n");
          }
          else{
-            printf("Rolling simulation back to to ncycle %d\n", ncycle - (rollback_attempt*checkpoint_outputInterval));
+            printf("Rolling simulation back to ncycle %d\n", ncycle - (rollback_attempt*checkpoint_outputInterval));
          }
 
          state->print_rollback_log(ncycle, simTime, H_sum_initial, H_sum, percent_mass_diff, rollback_attempt, num_of_rollback_states, error_status);
@@ -823,9 +823,9 @@ void store_crux_data(Crux *crux, int ncycle)
    double_vals[ 3] = deltaT;
    double_vals[ 4] = upper_mass_diff_percentage;
 
-   int flags = RESTART_DATA | REPLICATED_DATA;
-   clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", flags);
-   clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", flags);
+   //int flags = RESTART_DATA | REPLICATED_DATA;
+   //clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", flags);
+   //clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", flags);
 
    crux->store_begin(nsize, ncycle);
 
@@ -836,8 +836,8 @@ void store_crux_data(Crux *crux, int ncycle)
 
    crux->store_end();
 
-   clamr_bootstrap_memory.memory_remove(int_vals);
-   clamr_bootstrap_memory.memory_remove(double_vals);
+   //clamr_bootstrap_memory.memory_remove(int_vals);
+   //clamr_bootstrap_memory.memory_remove(double_vals);
 }
 
 void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_counter)
@@ -848,9 +848,9 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
 
    double double_vals[num_double_vals];
 
-   int flags = RESTART_DATA | REPLICATED_DATA;
-   clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", flags);
-   clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", flags);
+   //int flags = RESTART_DATA | REPLICATED_DATA;
+   //clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", flags);
+   //clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", flags);
 
    //crux->restore_MallocPlus(clamr_bootstrap_memory);
    crux->restore_replicated_int_array(int_vals, num_int_vals);
@@ -883,8 +883,8 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
    deltaT                     = double_vals[ 3];
    upper_mass_diff_percentage = double_vals[ 4];
 
-   clamr_bootstrap_memory.memory_remove(int_vals);
-   clamr_bootstrap_memory.memory_remove(double_vals);
+   //clamr_bootstrap_memory.memory_remove(int_vals);
+   //clamr_bootstrap_memory.memory_remove(double_vals);
 
 #ifdef DEBUG_RESTORE_VALS
    int mype=0;

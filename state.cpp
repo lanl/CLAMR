@@ -3730,6 +3730,7 @@ void State::print(void)
          fprintf(mesh->fp,"%d: %6d %lf %lf %lf %4d  %4d   %4d  \n", mesh->mype,ic, H[ic], U[ic], V[ic], mesh->i[ic], mesh->j[ic], mesh->level[ic]);
       }
    }
+   fflush(mesh->fp);
 }
 
 const int CRUX_STATE_VERSION = 102;
@@ -3759,9 +3760,9 @@ void State::store_checkpoint(Crux *crux)
    int_vals[0] = CRUX_STATE_VERSION;
 
    // Add to memory database for storing checkpoint
-   state_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "state_int_vals", RESTART_DATA | REPLICATED_DATA);
-   state_memory.memory_add(cpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_cpu_timers", RESTART_DATA);
-   state_memory.memory_add(gpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_gpu_timers", RESTART_DATA);
+   //state_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "state_int_vals", RESTART_DATA | REPLICATED_DATA);
+   //state_memory.memory_add(cpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_cpu_timers", RESTART_DATA);
+   //state_memory.memory_add(gpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_gpu_timers", RESTART_DATA);
 
    //crux->store_MallocPlus(state_memory);
    crux->store_replicated_int_array(int_vals, num_int_vals);
@@ -3779,9 +3780,9 @@ void State::store_checkpoint(Crux *crux)
 #endif
 
    // Remove from database after checkpoint is stored
-   state_memory.memory_remove(int_vals);
-   state_memory.memory_remove(cpu_timers);
-   state_memory.memory_remove(gpu_timers);
+   //state_memory.memory_remove(int_vals);
+   //state_memory.memory_remove(cpu_timers);
+   //state_memory.memory_remove(gpu_timers);
 //#endif
 }
 
@@ -3799,15 +3800,20 @@ void State::restore_checkpoint(Crux *crux)
    allocate(storage);
 
    // Add to memory database for restoring checkpoint
-   state_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "state_int_vals", RESTART_DATA | REPLICATED_DATA);
-   state_memory.memory_add(cpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_cpu_timers", RESTART_DATA);
-   state_memory.memory_add(gpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_gpu_timers", RESTART_DATA);
+   //state_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "state_int_vals", RESTART_DATA | REPLICATED_DATA);
+   //state_memory.memory_add(cpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_cpu_timers", RESTART_DATA);
+   //state_memory.memory_add(gpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_gpu_timers", RESTART_DATA);
 
    // Restore memory database
    //crux->restore_MallocPlus(state_memory);
    crux->restore_replicated_int_array(int_vals, num_int_vals);
    crux->restore_double_array(cpu_timers, STATE_TIMER_SIZE);
    crux->restore_long_array(gpu_timers, STATE_TIMER_SIZE);
+
+   state_memory.memory_delete(H);
+   state_memory.memory_delete(U);
+   state_memory.memory_delete(V);
+   allocate(mesh->ncells);
 
 #ifdef FULL_PRECISION
    crux->restore_double_array(H, mesh->ncells);
@@ -3850,9 +3856,9 @@ void State::restore_checkpoint(Crux *crux)
    }
 #endif
 
-   state_memory.memory_remove(int_vals);
-   state_memory.memory_remove(cpu_timers);
-   state_memory.memory_remove(gpu_timers);
+   //state_memory.memory_remove(int_vals);
+   //state_memory.memory_remove(cpu_timers);
+   //state_memory.memory_remove(gpu_timers);
    
    memory_reset_ptrs();
 //#endif

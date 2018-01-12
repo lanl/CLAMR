@@ -10191,19 +10191,19 @@ void Mesh::store_checkpoint(Crux *crux)
 
    double_vals[0] = offtile_ratio_local;
 
-   int flags = RESTART_DATA;
+   //int flags = RESTART_DATA;
    // Now add memory entries to database for storing checkpoint
-   mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", flags);
-   flags = RESTART_DATA | REPLICATED_DATA;
-   mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", flags);
-   mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", flags);
+   //mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", flags);
+   //flags = RESTART_DATA | REPLICATED_DATA;
+   //mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", flags);
+   //mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", flags);
 
-   flags = RESTART_DATA;
-   mesh_memory.memory_add(cpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_cpu_counters", flags);
-   mesh_memory.memory_add(gpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_gpu_counters", flags);
+   //flags = RESTART_DATA;
+   //mesh_memory.memory_add(cpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_cpu_counters", flags);
+   //mesh_memory.memory_add(gpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_gpu_counters", flags);
 
-   mesh_memory.memory_add(cpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_cpu_timers", flags);
-   mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", flags);
+   //mesh_memory.memory_add(cpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_cpu_timers", flags);
+   //mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", flags);
 
    // Store MallocPlus memory database
    //crux->store_MallocPlus(mesh_memory);
@@ -10221,13 +10221,13 @@ void Mesh::store_checkpoint(Crux *crux)
    crux->store_int_array(level, ncells);
 
    // Remove memory entries from database now that data is stored
-   mesh_memory.memory_remove(int_dist_vals);
-   mesh_memory.memory_remove(int_vals);
-   mesh_memory.memory_remove(double_vals);
-   mesh_memory.memory_remove(cpu_counters);
-   mesh_memory.memory_remove(gpu_counters);
-   mesh_memory.memory_remove(cpu_timers);
-   mesh_memory.memory_remove(gpu_timers);
+   //mesh_memory.memory_remove(int_dist_vals);
+   //mesh_memory.memory_remove(int_vals);
+   //mesh_memory.memory_remove(double_vals);
+   //mesh_memory.memory_remove(cpu_counters);
+   //mesh_memory.memory_remove(gpu_counters);
+   //mesh_memory.memory_remove(cpu_timers);
+   //mesh_memory.memory_remove(gpu_timers);
 }
 
 void Mesh::restore_checkpoint(Crux *crux)
@@ -10255,27 +10255,20 @@ void Mesh::restore_checkpoint(Crux *crux)
    // Resize is a mesh method
    // resize(storage);
    // memory_reset_ptrs();
-   allocate (storage);
+   //allocate (storage);
    
-   int flags = RESTART_DATA;
+   //int flags = RESTART_DATA;
    // Now add memory entries to database for restoring checkpoint
-   mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", flags);
-   flags = RESTART_DATA | REPLICATED_DATA;
-   mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", flags);
-   mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", flags);
-
-   flags = RESTART_DATA;
-   mesh_memory.memory_add(cpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_cpu_counters", flags);
-   mesh_memory.memory_add(gpu_counters, (size_t)MESH_COUNTER_SIZE, 4, "mesh_gpu_counters", flags);
-
-   mesh_memory.memory_add(cpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_cpu_timers", flags);
-   mesh_memory.memory_add(gpu_timers, (size_t)MESH_TIMER_SIZE, 8, "mesh_gpu_timers", flags);
+   //mesh_memory.memory_add(int_dist_vals, (size_t)num_int_dist_vals, 4, "mesh_int_dist_vals", flags);
+   //flags = RESTART_DATA | REPLICATED_DATA;
+   //mesh_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "mesh_int_vals", flags);
+   //mesh_memory.memory_add(double_vals, (size_t)num_double_vals, 8, "mesh_double_vals", flags);
 
    // Restore MallocPlus memory database
    //crux->restore_MallocPlus(mesh_memory);
    crux->restore_int_array(int_dist_vals, num_int_dist_vals);
    ncells                    = int_dist_vals[ 0];
-   crux->restore_int_array(int_vals, num_int_vals);
+   crux->restore_replicated_int_array(int_vals, num_int_vals);
    crux->restore_double_array(double_vals, num_double_vals);
    crux->restore_int_array(cpu_counters, MESH_COUNTER_SIZE);
    crux->restore_int_array(gpu_counters, MESH_COUNTER_SIZE);
@@ -10283,18 +10276,27 @@ void Mesh::restore_checkpoint(Crux *crux)
    crux->restore_double_array(cpu_timers, MESH_TIMER_SIZE);
    crux->restore_long_array(gpu_timers, MESH_TIMER_SIZE);
 
+   mesh_memory.memory_delete(i);
+   mesh_memory.memory_delete(j);
+   mesh_memory.memory_delete(level);
+   allocate(ncells);
+
    crux->restore_int_array(i, ncells);
    crux->restore_int_array(j, ncells);
    crux->restore_int_array(level, ncells);
 
+   index.clear();
+   index.resize(ncells);
+   for (int ic = 0; ic < ncells; ic++){
+     index[ic] = ic;
+   }
+
+   calc_celltype(ncells);
+
    // Remove memory entries from database now that data is restored
-   mesh_memory.memory_remove(int_dist_vals);
-   mesh_memory.memory_remove(int_vals);
-   mesh_memory.memory_remove(double_vals);
-   mesh_memory.memory_remove(cpu_counters);
-   mesh_memory.memory_remove(gpu_counters);
-   mesh_memory.memory_remove(cpu_timers);
-   mesh_memory.memory_remove(gpu_timers);
+   //mesh_memory.memory_remove(int_dist_vals);
+   //mesh_memory.memory_remove(int_vals);
+   //mesh_memory.memory_remove(double_vals);
 
    // Check version number
    if (int_vals[ 0] != CRUX_MESH_VERSION) {

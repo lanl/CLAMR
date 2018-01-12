@@ -704,8 +704,8 @@ void store_crux_data(Crux *crux, int ncycle)
    double_vals[ 3] = deltaT;
    double_vals[ 4] = upper_mass_diff_percentage;
 
-   clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", RESTART_DATA);
-   clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", RESTART_DATA);
+   //clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", RESTART_DATA);
+   //clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", RESTART_DATA);
 
    crux->store_begin(nsize, ncycle);
 
@@ -717,8 +717,8 @@ void store_crux_data(Crux *crux, int ncycle)
 
    crux->store_end();
 
-   clamr_bootstrap_memory.memory_remove(int_vals);
-   clamr_bootstrap_memory.memory_remove(double_vals);
+   //clamr_bootstrap_memory.memory_remove(int_vals);
+   //clamr_bootstrap_memory.memory_remove(double_vals);
 }
 
 void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_counter)
@@ -729,8 +729,8 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
 
    double double_vals[num_double_vals];
 
-   clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", RESTART_DATA);
-   clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", RESTART_DATA);
+   //clamr_bootstrap_memory.memory_add(int_vals, size_t(num_int_vals), 4, "bootstrap_int_vals", RESTART_DATA);
+   //clamr_bootstrap_memory.memory_add(double_vals, size_t(num_double_vals), 8, "bootstrap_double_vals", RESTART_DATA);
 
    //crux->restore_MallocPlus(clamr_bootstrap_memory);
    crux->restore_ints(int_vals, num_int_vals);
@@ -767,8 +767,8 @@ void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_co
    // before checkpoint is read
    crux->set_crux_type(crux_type);
 
-   clamr_bootstrap_memory.memory_remove(int_vals);
-   clamr_bootstrap_memory.memory_remove(double_vals);
+   //clamr_bootstrap_memory.memory_remove(int_vals);
+   //clamr_bootstrap_memory.memory_remove(double_vals);
 
 #ifdef DEBUG_RESTORE_VALS
    if (DEBUG_RESTORE_VALS) {

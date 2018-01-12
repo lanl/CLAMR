@@ -72,7 +72,8 @@ bool do_crux_timing = false;
 #ifndef DEBUG
 #define DEBUG 0
 #endif
-#define DEBUG_RESTORE_VALS 1
+#undef DEBUG_RESTORE_VALS
+//#define DEBUG_RESTORE_VALS 1
 
 using namespace std;
 using PP::PowerParser;
@@ -495,7 +496,11 @@ void Crux::store_int_array(int *int_array, size_t nelem)
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_INT, &count);
-   printf("%d:Wrote %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   long long lsum = 0;
+   for (int i=0; i<nelem; i++){
+     lsum += int_array[i];
+   }
+   printf("%d:Wrote %d integers with sum %lld at line %d in file %s\n",mype,count,lsum,__LINE__,__FILE__);
 #endif
 
 #else
@@ -514,7 +519,11 @@ void Crux::store_long_array(long long *long_array, size_t nelem)
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_LONG_LONG, &count);
-   printf("%d:Wrote %d long integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   long long lsum = 0;
+   for (int i=0; i<nelem; i++){
+     lsum += long_array[i];
+   }
+   printf("%d:Wrote %d long integers with sum %lld at line %d in file %s\n",mype,count,lsum,__LINE__,__FILE__);
 #endif
 
 #else
@@ -539,7 +548,11 @@ void Crux::store_double_array(double *double_array, size_t nelem)
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE, &count);
-   printf("%d:Wrote %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   double sum = 0.0;
+   for (int i=0; i<nelem; i++){
+     sum += double_array[i];
+   }
+   printf("%d:Wrote %d doubles with sum of %lf at line %d in file %s\n",mype,count,sum,__LINE__,__FILE__);
 #endif
 
 #else
@@ -558,7 +571,11 @@ void Crux::store_replicated_int_array(int *int_array, size_t nelem)
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_INT, &count);
-   printf("%d:Wrote %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   long long lsum = 0;
+   for (int i=0; i<nelem; i++){
+     lsum += int_array[i];
+   }
+   printf("%d:Wrote %d replicated integers with sum %lld at line %d in file %s\n",mype,count,lsum,__LINE__,__FILE__);
 #endif
 
 #else
@@ -577,7 +594,11 @@ void Crux::store_replicated_double_array(double *double_array, size_t nelem)
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE, &count);
-   printf("%d:Wrote %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   double sum = 0.0;
+   for (int i=0; i<nelem; i++){
+     sum += double_array[i];
+   }
+   printf("%d:Wrote %d replicated doubles with sum %lf at line %d in file %s\n",mype,count,sum,__LINE__,__FILE__);
 #endif
 
 #else
@@ -843,7 +864,11 @@ int *Crux::restore_int_array(int *int_array, size_t nelem)
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_INT, &count);
-   printf("%d:Read %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   long long lsum = 0;
+   for (int i=0; i<nelem; i++){
+     lsum += int_array[i];
+   }
+   printf("%d:Read %d integers with sum %lld at line %d in file %s\n",mype,count,lsum,__LINE__,__FILE__);
 #endif
 
 #else
@@ -865,7 +890,11 @@ long long *Crux::restore_long_array(long long *long_array, size_t nelem)
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_LONG_LONG, &count);
-   printf("%d:Read %d long integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   long long lsum = 0;
+   for (int i=0; i<nelem; i++){
+     lsum += long_array[i];
+   }
+   printf("%d:Read %d long integers with sum %lld at line %d in file %s\n",mype,count,lsum,__LINE__,__FILE__);
 #endif
 
 #else
@@ -895,7 +924,11 @@ double *Crux::restore_double_array(double *double_array, size_t nelem)
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE, &count);
-   printf("%d:Read %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   double sum = 0.0;
+   for (int i=0; i<nelem; i++){
+     sum += double_array[i];
+   }
+   printf("%d:Read %d doubles with sum of %lf at line %d in file %s\n",mype,count,sum,__LINE__,__FILE__);
 #endif
   
 #else
@@ -917,7 +950,11 @@ int *Crux::restore_replicated_int_array(int *int_array, size_t nelem)
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_INT, &count);
-   printf("%d:Read %d integers at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   long long lsum = 0;
+   for (int i=0; i<nelem; i++){
+     lsum += int_array[i];
+   }
+   printf("%d:Read %d replicated integers with sum %lld at line %d in file %s\n",mype,count,lsum,__LINE__,__FILE__);
 #endif
 
 #else
@@ -938,7 +975,11 @@ double *Crux::restore_replicated_double_array(double *double_array, size_t nelem
 #ifdef DEBUG_RESTORE_VALS
    int count;
    MPI_Get_count(&status, MPI_DOUBLE, &count);
-   printf("%d:Read %d doubles at line %d in file %s\n",mype,count,__LINE__,__FILE__);
+   double sum = 0.0;
+   for (int i=0; i<nelem; i++){
+     sum += double_array[i];
+   }
+   printf("%d:Read %d replicated doubles with sum %lf at line %d in file %s\n",mype,count,sum,__LINE__,__FILE__);
 #endif
   
 #else
