@@ -6,6 +6,13 @@ set(CTS_LIB ${CMAKE_CURRENT_SOURCE_DIR}/cts/lib)
 add_test(clamr_tests clamr_tests)
 add_test(scaling_tests scaling_tests)
 
+file(GLOB_RECURSE TESTFILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "*.ctest")
+foreach(TESTFILE ${TESTFILES})
+    #message("DEBUG : add_test(${TESTFILE} working directory ${TEST_DIR} testdriver ${TESTFILE})")
+    add_test(NAME ${TESTFILE} WORKING_DIRECTORY ${TEST_DIR} COMMAND ${TESTFILE})
+    set_tests_properties(${TESTFILE} PROPERTIES TIMEOUT 500)
+endforeach()
+
 add_custom_target(clamr_tests 
                   COMMAND echo "Running clamr tests" &&
                           make clamr_clean_tests &&

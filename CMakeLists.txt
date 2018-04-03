@@ -17,6 +17,7 @@ if (NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif(NOT CMAKE_BUILD_TYPE)
 
+enable_testing()
 # uncomment to build debug
 #set(CMAKE_BUILD_TYPE Debug)
 
@@ -65,14 +66,14 @@ endif()
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fno-alias -restrict -opt_report")
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -std=c++11 -pedantic -Wc++11-long-long -Wno-overlength-strings")
 
-if (MIC_NATIVE)
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-intel -std=c99 -mmic")
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-intel -mmic")
-   link_directories("/projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic")
-else (MIC_NATIVE)
+#f (MIC_NATIVE)
+#  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-intel -std=c99 -mmic")
+#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-intel -mmic")
+#  link_directories("/projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic")
+#lse (MIC_NATIVE)
 #  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11")
    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-endif (MIC_NATIVE)
+#ndif (MIC_NATIVE)
 
 if (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native -Wa,-q")
@@ -84,15 +85,13 @@ endif (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-if (NOT MIC_NATIVE)
-   find_package(OpenCL)
-   #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
-   #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
-   #  OPENCL_LIBRARIES    : The libraries to link against
-   if (OPENCL_FOUND)
-      include_directories(${OPENCL_INCLUDE_DIRS})
-   endif (OPENCL_FOUND)
-endif (NOT MIC_NATIVE)
+find_package(OpenCL)
+#  OPENCL_FOUND        : TRUE if found, FALSE otherwise
+#  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
+#  OPENCL_LIBRARIES    : The libraries to link against
+if (OPENCL_FOUND)
+   include_directories(${OPENCL_INCLUDE_DIRS})
+endif (OPENCL_FOUND)
 
 find_package(MPI)
 if (MPI_FOUND)
@@ -357,15 +356,6 @@ endif (NOT OPENGL_FOUND)
 
 add_definitions(-DHAVE_CONFIG_H)
 
-if (CMAKE_ITTNOTIFY)
-   message("ITTNOTIFY FOUND")
-   set (ITTNOTIFY_FOUND on)
-   add_definitions(-DHAVE_ITTNOTIFY)
-   include_directories("$ENV{VTUNE_AMPLIFIER_XE_2016_DIR}/include")
-   set(ITTNOTIFY_LIBS "-pthread -rdynamic -L$ENV{VTUNE_AMPLIFIER_XE_2016_DIR}/lib64 -littnotify")
-endif (CMAKE_ITTNOTIFY)
-#message("ITTNOTIFY FOUND: " ${CMAKE_ITTNOTIFY} " " ${ITTNOTIFY_FOUND})
-
 # add the binary tree to the search path for include files
 # so that we will find config.h
 include_directories("${PROJECT_BINARY_DIR}")
@@ -450,9 +440,6 @@ if (OPENCL_FOUND AND MPI_FOUND)
    if (LTTRACE_FOUND)
       target_link_libraries(clamr ${LTTRACE_LIBRARIES})
    endif (LTTRACE_FOUND)
-   if (MIC_NATIVE)
-      target_link_libraries(clamr iomp5 cilkrts)
-   endif (MIC_NATIVE)
    target_link_libraries(clamr ${MPI_LIBRARIES})
    add_dependencies(clamr state_kernel_source)
 
@@ -475,10 +462,6 @@ endif (REPROBLAS_FOUND)
 
 #target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
-if (ITTNOTIFY_FOUND)
-   target_link_libraries(clamr_cpuonly ${ITTNOTIFY_LIBS})
-endif (ITTNOTIFY_FOUND)
-
 install(TARGETS clamr_cpuonly DESTINATION bin)
 
 ########### clamr_gpuonly target ###############
@@ -496,9 +479,6 @@ if (OPENCL_FOUND)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_gpuonly ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
-   if (MIC_NATIVE)
-      target_link_libraries(clamr_gpuonly iomp5 cilkrts)
-   endif (MIC_NATIVE)
    add_dependencies(clamr_gpuonly state_kernel_source)
 
    install(TARGETS clamr_gpuonly DESTINATION bin)
@@ -521,15 +501,8 @@ if (MPI_FOUND)
    if (LTTRACE_FOUND)
       target_link_libraries(clamr_mpionly ${LTTRACE_LIBRARIES})
    endif (LTTRACE_FOUND)
-   if (MIC_NATIVE)
-      target_link_libraries(clamr_mpionly iomp5 cilkrts)
-   endif (MIC_NATIVE)
 
    target_link_libraries(clamr_mpionly ${MPI_LIBRARIES})
-
-   if (ITTNOTIFY_FOUND)
-      target_link_libraries(clamr_mpionly ${ITTNOTIFY_LIBS})
-   endif (ITTNOTIFY_FOUND)
 
    install(TARGETS clamr_mpionly DESTINATION bin)
 endif (MPI_FOUND)
@@ -552,13 +525,6 @@ if(OPENMP_FOUND)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_openmponly ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
-   if (MIC_NATIVE)
-      target_link_libraries(clamr_openmponly iomp5 cilkrts)
-   endif (MIC_NATIVE)
-
-   if (ITTNOTIFY_FOUND)
-      target_link_libraries(clamr_openmponly ${ITTNOTIFY_LIBS})
-   endif (ITTNOTIFY_FOUND)
 
    install(TARGETS clamr_openmponly DESTINATION bin)
 endif(OPENMP_FOUND)
@@ -587,16 +553,9 @@ if (MPI_FOUND AND OPENMP_FOUND)
    if (LTTRACE_FOUND)
       target_link_libraries(clamr_mpiopenmponly ${LTTRACE_LIBRARIES})
    endif (LTTRACE_FOUND)
-   if (MIC_NATIVE)
-      target_link_libraries(clamr_mpiopenmponly iomp5 cilkrts)
-   endif (MIC_NATIVE)
    target_link_libraries(clamr_mpiopenmponly ${MPI_LIBRARIES})
 
    install(TARGETS clamr_mpiopenmponly DESTINATION bin)
-
-   if (ITTNOTIFY_FOUND)
-      target_link_libraries(clamr_mpiopenmponly ${ITTNOTIFY_LIBS})
-   endif (ITTNOTIFY_FOUND)
 
 endif (MPI_FOUND AND OPENMP_FOUND)
 
@@ -639,9 +598,6 @@ if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND AND Boost_FOUND)
     if (LTTRACE_FOUND)
        target_link_libraries(clamr_quo ${LTTRACE_LIBRARIES})
     endif (LTTRACE_FOUND)
-    if (MIC_NATIVE)
-       target_link_libraries(clamr_quo iomp5 cilkrts)
-    endif (MIC_NATIVE)
     target_link_libraries(clamr_quo ${MPI_LIBRARIES})
 
     install(TARGETS clamr_quo DESTINATION bin)
@@ -673,9 +629,6 @@ if (OPENCL_FOUND)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_gpucheck ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
-   if (MIC_NATIVE)
-      target_link_libraries(clamr_gpucheck iomp5 cilkrts)
-   endif (MIC_NATIVE)
    add_dependencies(clamr_gpucheck state_kernel_source)
 
    install(TARGETS clamr_gpucheck DESTINATION bin)
@@ -698,9 +651,6 @@ if (MPI_FOUND)
    if (LTTRACE_FOUND)
       target_link_libraries(clamr_mpicheck ${LTTRACE_LIBRARIES})
    endif (LTTRACE_FOUND)
-   if (MIC_NATIVE)
-      target_link_libraries(clamr_mpicheck iomp5 cilkrts)
-   endif (MIC_NATIVE)
    target_link_libraries(clamr_mpicheck ${MPI_LIBRARIES})
 
    install(TARGETS clamr_mpicheck DESTINATION bin)
@@ -724,9 +674,6 @@ if (MPI_FOUND AND OPENCL_FOUND)
    if (LTTRACE_FOUND)
       target_link_libraries(clamr_checkall ${LTTRACE_LIBRARIES})
    endif (LTTRACE_FOUND)
-   if (MIC_NATIVE)
-      target_link_libraries(clamr_checkall iomp5 cilkrts)
-   endif (MIC_NATIVE)
    target_link_libraries(clamr_checkall ${MPI_LIBRARIES})
    add_dependencies(clamr_checkall state_kernel_source)
 

@@ -1,0 +1,14 @@
+#!/bin/sh
+SCRIPT_DIR=`dirname $0`
+cd ${SCRIPT_DIR}
+
+TEST_NAME=`basename $PWD`
+
+ln -s ../../clamr_mpionly
+ln -s ../cts/bin/compare_stdout.pl
+
+mpirun -n 2 ./clamr_mpionly -n 128 -i 100 -t 600 >& ${TEST_NAME}_run1.out
+./compare_stdout.pl 0.0 ${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
+
+mpirun -n 2 ./clamr_mpionly -n 128 -i 100 -t 600 -l 4 >& ${TEST_NAME}_run2.out
+./compare_stdout.pl 0.0 ${TEST_NAME}_run2.gold ${TEST_NAME}_run2.out
