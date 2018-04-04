@@ -2,14 +2,15 @@ set(BIN_DIR ${CMAKE_BINARY_DIR})
 set(TEST_DIR ${CMAKE_BINARY_DIR}/tests)
 set(CTS_BIN ${CMAKE_CURRENT_SOURCE_DIR}/cts/bin)
 set(CTS_LIB ${CMAKE_CURRENT_SOURCE_DIR}/cts/lib)
+set(ENV{TEST_DIR} ${TEST_DIR})
 
 add_test(clamr_tests clamr_tests)
 add_test(scaling_tests scaling_tests)
 
 file(GLOB_RECURSE TESTFILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "*.ctest")
 foreach(TESTFILE ${TESTFILES})
-    #message("DEBUG : add_test(${TESTFILE} working directory ${TEST_DIR} testdriver ${TESTFILE})")
-    add_test(NAME ${TESTFILE} WORKING_DIRECTORY ${TEST_DIR} COMMAND ${TESTFILE})
+    message("DEBUG : add_test(${TESTFILE} working directory ${TEST_DIR} testdriver ${CMAKE_CURRENT_SOURCE_DIR}/${TESTFILE})")
+    add_test(NAME ${TESTFILE} WORKING_DIRECTORY ${TEST_DIR} COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/${TESTFILE})
     set_tests_properties(${TESTFILE} PROPERTIES TIMEOUT 500)
 endforeach()
 

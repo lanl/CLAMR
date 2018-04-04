@@ -10,6 +10,7 @@ shift;
 $CTS_BIN=`dirname $0`;
 chop $CTS_BIN;
 
+
 $string = $newfile;
 $string =~ s/.out//;
 
