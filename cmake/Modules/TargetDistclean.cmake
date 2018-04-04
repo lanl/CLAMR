@@ -34,19 +34,7 @@ IF (UNIX)
    *.dSYM
    */*.dSYM
    */*/*.dSYM
-   tests/*/temp_*
-   tests/*/*run?.out
-   tests/*/compare_stdout.pl
-   tests/*/clamr_cpuonly
-   tests/*/clamr_gpuonly
-   tests/*/clamr_gpucheck
-   tests/*/clamr_checkall
-   tests/*/clamr_mpionly
-   tests/*/clamr_mpicheck
-   tests/*/clamr_openmponly
-   tests/*/clamr_mpiopenmp
-   tests/*/FULL_RESULTS
-   tests/*/total_execution_time.log
+   tests/testing
   )
   
   ADD_CUSTOM_COMMAND(

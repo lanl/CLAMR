@@ -1,16 +1,20 @@
 #!/bin/sh
+
 SCRIPT_DIR=`dirname $0`
 TEST_NAME=`basename ${SCRIPT_DIR}`
 CTS_BIN=`dirname ${SCRIPT_DIR}`/cts/bin
 
-TEST_DIR=`pwd`/${TEST_NAME}
+PWD=`pwd`
+TEST_DIR=${PWD}/testing/${TEST_NAME}
+CLAMR_BIN=`dirname ${PWD}`
+
 if [ -d "${TEST_DIR}" ]; then
-  rm -rf "${TEST_DIR}"
+   rm -rf "${TEST_DIR}"
 fi
-mkdir "${TEST_DIR}"
+mkdir -p "${TEST_DIR}"
 cd "${TEST_DIR}"
 
-ln -s ../../clamr_openmponly
+ln -s ${CLAMR_BIN}/clamr_openmponly
 ln -s ${CTS_BIN}/compare_stdout.pl
 ln -s ${CTS_BIN}/cts_diff.pl
 

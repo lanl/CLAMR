@@ -1,4 +1,5 @@
 #!/bin/sh
+
 # Location of test script in source tree
 SCRIPT_DIR=`dirname $0`
 # This sets the internal test name to the directory name that
@@ -7,19 +8,22 @@ TEST_NAME=`basename ${SCRIPT_DIR}`
 # Location of CTS scripts in source tree
 CTS_BIN=`dirname ${SCRIPT_DIR}`/cts/bin
 
-TEST_DIR=`pwd`/${TEST_NAME}
+PWD=`pwd`
+TEST_DIR=${PWD}/testing/${TEST_NAME}
+CLAMR_BIN=`dirname ${PWD}`
+
 if [ -d "${TEST_DIR}" ]; then
    rm -rf "${TEST_DIR}"
 fi
-mkdir "${TEST_DIR}"
+mkdir -p "${TEST_DIR}"
 cd "${TEST_DIR}"
 
-ln -s ../../clamr_cpuonly
-ln -s ../../clamr_mpionly
-ln -s ../../clamr_openmponly
-ln -s ../../clamr_mpiopenmponly
-ln -s ../../clamr_gpuonly
-ln -s ../../clamr
+ln -s ${CLAMR_BIN}/clamr_cpuonly
+ln -s ${CLAMR_BIN}/clamr_mpionly
+ln -s ${CLAMR_BIN}/clamr_openmponly
+ln -s ${CLAMR_BIN}/clamr_mpiopenmponly
+ln -s ${CLAMR_BIN}/clamr_gpuonly
+ln -s ${CLAMR_BIN}/clamr
 ln -s ${CTS_BIN}/compare_stdout.pl
 ln -s ${CTS_BIN}/compute_speedup.pl
 ln -s ${CTS_BIN}/cts_diff.pl
