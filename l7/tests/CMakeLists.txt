@@ -23,7 +23,7 @@ target_link_libraries(L7Test l7 ${MPI_LIBRARIES})
 
 ################# check/test ##################
 
-add_test(L7Test mpirun -n 2 L7Test)
+#add_test(L7Test mpirun -n 2 L7Test)
 
 set (CMAKE_CHECK_COMMAND ctest && cat Testing/Temporary/LastTest.log)
 

@@ -35,8 +35,8 @@ target_link_libraries(mesh_mpi_test ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 ################# check/test ##################
 
 #add_test(NAME mesh_mpi_test COMMAND mpirun -n 3 ./mesh_mpi_test)
-add_test(mesh_mpi_test mpirun -n 3 ./mesh_mpi_test)
-add_test(face_test ./face_test)
+#add_test(mesh_mpi_test mpirun -n 3 ./mesh_mpi_test)
+#add_test(face_test ./face_test)
 
 set (CMAKE_CHECK_COMMAND ctest && cat Testing/Temporary/LastTest.log)
 
