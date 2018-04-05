@@ -27,6 +27,19 @@ add_custom_target(clamr_tests
                           ${BIN_DIR}/clamr_gpuonly ${BIN_DIR}/clamr_gpucheck
                           ${BIN_DIR}/clamr)
 
+add_custom_target(clamr_nobatch_tests 
+                  COMMAND echo "Running clamr nobatch tests" &&
+                          make clamr_clean_tests &&
+                          env BIN_DIR=${BIN_DIR} 
+                              CTS_BIN=${CTS_BIN}
+                          ${CTS_BIN}/cts --nobatch -cts clamr.cts clamr.suite &&
+                          fgrep SPEEDUP testing/*/*.out
+                  DEPENDS ${BIN_DIR}/clamr_cpuonly ${BIN_DIR}/clamr_mpionly
+                          ${BIN_DIR}/clamr_mpicheck ${BIN_DIR}/clamr_checkall
+                          ${BIN_DIR}/clamr_openmponly ${BIN_DIR}/clamr_mpiopenmponly
+                          ${BIN_DIR}/clamr_gpuonly ${BIN_DIR}/clamr_gpucheck
+                          ${BIN_DIR}/clamr)
+
 add_custom_target(clamr_clean_tests
                   COMMAND echo "Removing previous tests" && rm -rf ${TEST_DIR}/testing)
 

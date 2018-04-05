@@ -1,0 +1,43 @@
+
+  ================================================================
+  Restoring state from disk file checkpoint_output/backup00100.crx
+  ================================================================
+
+
+       === Restored bootstrap int_vals ===
+       CRUX_CLAMR_VERSION             101
+       nx                             128
+       ny                             128
+       levmx                          1
+       ndim                           2
+       outputInterval                 10
+       enhanced_precision_sum         1
+       niter                          200
+       it                             9
+       ncycle                         100
+       crux_type                      1
+       graphic_outputInterval         2147483647
+       checkpoint_outputInterval      100
+       next_cp_cycle                  200
+       next_graphics_cycle            2147483647
+       === Restored bootstrap int_vals ===
+
+
+       === Restored bootstrap double_vals ===
+       circ_radius                    6
+       H_sum_initial                  125195
+       simTime                        0.0438547
+       deltaT                         0.000329773
+       upper_mass_diff_percentage     2.5039e-11
+       === Restored bootstrap double_vals ===
+
+Mass of initialized cells equal to  126230.433325
+CPU:  setup time               time was	  0.0130	  0.0130	s
+Memory used      in startup 	     47612	     47660	kB
+Memory peak      in startup 	     47820	     47868	kB
+Memory free      at startup 	 129758828	 129758828	kB
+Memory available at startup 	 131918472	 131918472	kB
+Iteration 100 timestep 0.000330 Sim Time 0.043855 cells 17436 Mass Sum  126230.433325
+--------------------------------------------------------------------------
+mpirun noticed that process rank 1 with PID 40425 on node cn147 exited on signal 11 (Segmentation fault).
+--------------------------------------------------------------------------
