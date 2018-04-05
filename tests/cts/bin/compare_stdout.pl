@@ -45,6 +45,7 @@ if (open (GOLDFH, $reffile) ){
       if (/^hash table size/) {next LINE;}
       if (/^Final hash collision report/) {next LINE;}
       if (/^Parallel Speed-up/) {next LINE;}
+      if (/^CRUX checkpointing time averaged/) {next LINE;}
       if (/Device timing information/) {next LINE;}
       if (/^---------------/) {next LINE;}
       if (/^===============/) {next LINE;}
@@ -86,6 +87,7 @@ if (open (NEWFH, $newfile) ){
       if (/^hash table size/) {next LINE;}
       if (/^Final hash collision report/) {next LINE;}
       if (/^Parallel Speed-up/) {next LINE;}
+      if (/^CRUX checkpointing time averaged/) {next LINE;}
       if (/Device timing information/) {next LINE;}
       if (/^---------------/) {next LINE;}
       if (/^===============/) {next LINE;}

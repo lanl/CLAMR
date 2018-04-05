@@ -152,7 +152,7 @@ void outputHelp()
          << "      \"svg\"" << endl
          << "      \"data\"" << endl
          << "  -h                display this help message;" << endl
-         << "  -i <I>            specify I steps between output files;" << endl
+         << "  -i <I>            specify I steps between output to files;" << endl
          << "  -l <l>            max number of levels;" << endl
          << "  -M <M>            memory optimization factor 1.0 <= M <=100.0 (default 1.0 -- represents 1/20 perfect hash);" << endl
          << "  -m <m>            specify partition measure type;" << endl
