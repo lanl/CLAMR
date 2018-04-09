@@ -9,7 +9,7 @@ set(ENV{TEST_DIR} ${TEST_DIR})
 
 file(GLOB TESTFILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "*/*.ctest")
 foreach(TESTFILE ${TESTFILES})
-    message("DEBUG : add_test(${TESTFILE} working directory ${TEST_DIR} testdriver ${CMAKE_CURRENT_SOURCE_DIR}/${TESTFILE})")
+    #message("DEBUG : add_test(${TESTFILE} working directory ${TEST_DIR} testdriver ${CMAKE_CURRENT_SOURCE_DIR}/${TESTFILE})")
     add_test(NAME ${TESTFILE} WORKING_DIRECTORY ${TEST_DIR} COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/${TESTFILE})
     set_tests_properties(${TESTFILE} PROPERTIES TIMEOUT 500)
 endforeach()

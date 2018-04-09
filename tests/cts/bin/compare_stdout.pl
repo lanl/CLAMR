@@ -27,6 +27,16 @@ open (OUTFH, ">temp_gold") || die "Can't open temp_gold file";
 if (open (GOLDFH, $reffile) ){
    LINE:
    while ($_ = <GOLDFH>){
+      if (/high-performance Open MPI point-to-point messaging/) {next LINE;}
+      if (/unable to find any relevant network/) {next LINE;}
+      if (/Module: OpenFabrics/) {next LINE;}
+      if (/Host: cn/) {next LINE;}
+      if (/Another transport will be used instead/) {next LINE;}
+      if (/lower performance/) {next LINE;}
+      if (/sent help message/) {next LINE;}
+      if (/Set MCA parameter/) {next LINE;}
+      if (/You can disable this warning/) {next LINE;}
+      if (/btl_base_warn_component/) {next LINE;}
       if (/^App launch reported/) {next LINE;}
       if (/^Reported/) {next LINE;}
       if (/^--- max num openmp threads/) {next LINE;}
@@ -69,6 +79,16 @@ open (OUTFH, ">temp_new") || die "Can't open temp_new file";
 if (open (NEWFH, $newfile) ){
    LINE:
    while ($_ = <NEWFH>){
+      if (/high-performance Open MPI point-to-point messaging/) {next LINE;}
+      if (/unable to find any relevant network/) {next LINE;}
+      if (/Module: OpenFabrics/) {next LINE;}
+      if (/Host: cn/) {next LINE;}
+      if (/Another transport will be used instead/) {next LINE;}
+      if (/lower performance/) {next LINE;}
+      if (/sent help message/) {next LINE;}
+      if (/Set MCA parameter/) {next LINE;}
+      if (/You can disable this warning/) {next LINE;}
+      if (/btl_base_warn_component/) {next LINE;}
       if (/^App launch reported/) {next LINE;}
       if (/^Reported/) {next LINE;}
       if (/^--- max num openmp threads/) {next LINE;}
