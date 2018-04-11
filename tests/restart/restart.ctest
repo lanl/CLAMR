@@ -45,6 +45,6 @@ mpirun -n 2 ./clamr_mpionly -n 128 -i 10 -t 200 -c 100 >& ${TEST_NAME}_run7.out
 ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run3.gold ${TEST_NAME}_run7.out
 
 # Not working yet
-#mpirun -n 2 ./clamr_mpionly -n 128 -i 10 -t 400 -R checkpoint_output/backup00100.crx >& ${TEST_NAME}_run4.out
-#./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run4.gold ${TEST_NAME}_run4.out
+#mpirun -n 2 ./clamr_mpionly -n 128 -i 10 -t 400 -R checkpoint_output/backup00100.crx >& ${TEST_NAME}_run8.out
+#./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run8.gold ${TEST_NAME}_run8.out
 

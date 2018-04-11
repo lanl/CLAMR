@@ -11,3 +11,4 @@ gpuonly      1  0:30
 mpionly      4  0:30
 mpiopenmp    4  0:30
 openmponly   1  0:30
+restart      4  0:30
