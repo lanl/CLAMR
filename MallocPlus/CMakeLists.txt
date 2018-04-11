@@ -55,15 +55,20 @@ endif (MIC_NATIVE)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
 
-if (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)
+if (NOT DEFINED OpenCL_FOUND AND NOT MIC_NATIVE)
    find_package(OpenCL)
-   #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
-   #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
-   #  OPENCL_LIBRARIES    : The libraries to link against
-   if (OPENCL_FOUND)
-      include_directories(${OPENCL_INCLUDE_DIRS})
-   endif (OPENCL_FOUND)
-endif (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)
+   #  OpenCL_FOUND          - True if OpenCL was found
+   #  OpenCL_INCLUDE_DIRS   - include directories for OpenCL
+   #  OpenCL_LIBRARIES      - link against this library to use OpenCL
+   #  OpenCL_VERSION_STRING - Highest supported OpenCL version (eg. 1.2)
+   #  OpenCL_VERSION_MAJOR  - The major version of the OpenCL implementation
+   #  OpenCL_VERSION_MINOR  - The minor version of the OpenCL implementation
+   if (OpenCL_FOUND)
+      set(HAVE_CL_DOUBLE ON CACHE BOOL "Have OpenCL Double")
+      set(NO_CL_DOUBLE OFF)
+      include_directories(${OpenCL_INCLUDE_DIRS})
+   endif (OpenCL_FOUND)
+endif (NOT DEFINED OpenCL_FOUND AND NOT MIC_NATIVE)
 
 if (NOT DEFINED MPI_FOUND)
    find_package(MPI)
@@ -142,7 +147,7 @@ if (OPENMP_FOUND AND MPI_FOUND)
 endif (OPENMP_FOUND AND MPI_FOUND)
 
 ########### dMallocPlus target ###############
-if (OPENCL_FOUND)
+if (OpenCL_FOUND)
    set(dMallocPlus_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${F90_SRCS} ${H_SRCS})
 
    add_library(dMallocPlus STATIC ${dMallocPlus_LIB_SRCS})
@@ -150,17 +155,17 @@ if (OPENCL_FOUND)
    set_target_properties(dMallocPlus PROPERTIES Fortran_MODULE_DIRECTORY ./CMakeFiles/dMallocPlus.dir)
    set_target_properties(dMallocPlus PROPERTIES VERSION ${MALLOC_PLUS_VERSION} SOVERSION ${MALLOC_PLUS_VERSION_MAJOR})
    set_target_properties(dMallocPlus PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
-   target_link_libraries(dMallocPlus ${OPENCL_LIBRARIES})
+   target_link_libraries(dMallocPlus ${OpenCL_LIBRARIES})
    target_link_libraries(dMallocPlus ezcl)
    #if (Boost_FOUND AND MPI_FOUND)
    #   message(STATUS "Adding j7 support ot MallocPlus")
    #   target_link_libraries(dMallocPlus j7)
    #endif()
 #   install(TARGETS dMallocPlus DESTINATION lib)
-endif(OPENCL_FOUND)
+endif(OpenCL_FOUND)
 
 ########### dpMallocPlus target ###############
-if (OPENCL_FOUND AND MPI_FOUND)
+if (OpenCL_FOUND AND MPI_FOUND)
    set(dpMallocPlus_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${F90_SRCS} ${H_SRCS})
 
    add_library(dpMallocPlus STATIC ${dpMallocPlus_LIB_SRCS})
@@ -169,14 +174,14 @@ if (OPENCL_FOUND AND MPI_FOUND)
    set_target_properties(dpMallocPlus PROPERTIES VERSION ${MALLOC_PLUS_VERSION} SOVERSION ${MALLOC_PLUS_VERSION_MAJOR})
    set_target_properties(dpMallocPlus PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
    target_link_libraries(dpMallocPlus ${MPI_LIBRARIES})
-   target_link_libraries(dpMallocPlus ${OPENCL_LIBRARIES})
+   target_link_libraries(dpMallocPlus ${OpenCL_LIBRARIES})
    target_link_libraries(dpMallocPlus ezcl)
    #if (Boost_FOUND AND MPI_FOUND)
    #   message(STATUS "Adding j7 support ot MallocPlus")
    #   target_link_libraries(dMallocPlus j7)
    #endif()
 #   install(TARGETS dpMallocPlus DESTINATION lib)
-endif(OPENCL_FOUND AND MPI_FOUND)
+endif(OpenCL_FOUND AND MPI_FOUND)
 
 ########### install files ###############
 

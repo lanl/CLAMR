@@ -47,15 +47,20 @@ endif (MIC_NATIVE)
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 
-if (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)
+if (NOT DEFINED OpenCL_FOUND AND NOT MIC_NATIVE)
    find_package(OpenCL)
-   #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
-   #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
-   #  OPENCL_LIBRARIES    : The libraries to link against
-   if (OPENCL_FOUND)
-      include_directories(${OPENCL_INCLUDE_DIRS})
-   endif (OPENCL_FOUND)
-endif (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)
+   #  OpenCL_FOUND          - True if OpenCL was found
+   #  OpenCL_INCLUDE_DIRS   - include directories for OpenCL
+   #  OpenCL_LIBRARIES      - link against this library to use OpenCL
+   #  OpenCL_VERSION_STRING - Highest supported OpenCL version (eg. 1.2)
+   #  OpenCL_VERSION_MAJOR  - The major version of the OpenCL implementation
+   #  OpenCL_VERSION_MINOR  - The minor version of the OpenCL implementation
+   if (OpenCL_FOUND)
+      set(HAVE_CL_DOUBLE ON CACHE BOOL "Have OpenCL Double")
+      set(NO_CL_DOUBLE OFF)
+      include_directories(${OpenCL_INCLUDE_DIRS})
+   endif (OpenCL_FOUND)
+endif (NOT DEFINED OpenCL_FOUND AND NOT MIC_NATIVE)
 
 if (NOT DEFINED MPI_FOUND)
    find_package(MPI)
@@ -124,7 +129,7 @@ if(MPI_FOUND)
 endif (MPI_FOUND)
 
 ########### dl7 target ###############
-if (MPI_FOUND AND OPENCL_FOUND)
+if (MPI_FOUND AND OpenCL_FOUND)
    set(dl7_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
    add_library(dl7 STATIC ${l7_LIB_SRCS})
@@ -132,10 +137,10 @@ if (MPI_FOUND AND OPENCL_FOUND)
    set_target_properties(dl7 PROPERTIES VERSION 2.0.0 SOVERSION 2)
    set_target_properties(dl7 PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
    target_link_libraries(dl7 ${MPI_LIBRARIES})
-   target_link_libraries(dl7 ${OPENCL_LIBRARIES})
+   target_link_libraries(dl7 ${OpenCL_LIBRARIES})
    add_dependencies(dl7 l7_kernel_source)
    install(TARGETS dl7 DESTINATION lib)
-endif(MPI_FOUND AND OPENCL_FOUND)
+endif(MPI_FOUND AND OpenCL_FOUND)
 
 ########### install files ###############
 

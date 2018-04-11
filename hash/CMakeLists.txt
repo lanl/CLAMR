@@ -47,15 +47,20 @@ endif (MIC_NATIVE)
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 
-if (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)
+if (NOT DEFINED OpenCL_FOUND AND NOT MIC_NATIVE)
    find_package(OpenCL)
-   #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
-   #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
-   #  OPENCL_LIBRARIES    : The libraries to link against
-   if (OPENCL_FOUND)
-      include_directories(${OPENCL_INCLUDE_DIRS})
-   endif (OPENCL_FOUND)
-endif (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)
+   #  OpenCL_FOUND          - True if OpenCL was found
+   #  OpenCL_INCLUDE_DIRS   - include directories for OpenCL
+   #  OpenCL_LIBRARIES      - link against this library to use OpenCL
+   #  OpenCL_VERSION_STRING - Highest supported OpenCL version (eg. 1.2)
+   #  OpenCL_VERSION_MAJOR  - The major version of the OpenCL implementation
+   #  OpenCL_VERSION_MINOR  - The minor version of the OpenCL implementation
+   if (OpenCL_FOUND)
+      set(HAVE_CL_DOUBLE ON CACHE BOOL "Have OpenCL Double")
+      set(NO_CL_DOUBLE OFF)
+      include_directories(${OpenCL_INCLUDE_DIRS})
+   endif (OpenCL_FOUND)
+endif (NOT DEFINED OpenCL_FOUND AND NOT MIC_NATIVE)
 
 if (NOT DEFINED MPI_FOUND)
    find_package(MPI)
@@ -106,7 +111,7 @@ endif (OPENMP_FOUND)
 
 ########### dhash target ###############
 
-if (OPENCL_FOUND)
+if (OpenCL_FOUND)
    add_library(dhash STATIC ${hash_LIB_SRCS})
 
    set_target_properties(dhash PROPERTIES VERSION ${HASH_VERSION} SOVERSION ${HASH_VERSION_MAJOR})
@@ -114,7 +119,7 @@ if (OPENCL_FOUND)
    install(TARGETS dhash DESTINATION lib)
    add_dependencies(dhash hashlib_source_kernel_source)
    add_dependencies(dhash hashlib_kernel_source)
-endif(OPENCL_FOUND)
+endif(OpenCL_FOUND)
 
 ########### install files ###############
 

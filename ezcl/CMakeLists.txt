@@ -47,15 +47,20 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-if (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)
+if (NOT DEFINED OpenCL_FOUND AND NOT MIC_NATIVE)
    find_package(OpenCL)
-   #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
-   #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
-   #  OPENCL_LIBRARIES    : The libraries to link against
-   if (OPENCL_FOUND)
-      include_directories(${OPENCL_INCLUDE_DIRS})
-   endif (OPENCL_FOUND)
-endif (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)
+   #  OpenCL_FOUND          - True if OpenCL was found
+   #  OpenCL_INCLUDE_DIRS   - include directories for OpenCL
+   #  OpenCL_LIBRARIES      - link against this library to use OpenCL
+   #  OpenCL_VERSION_STRING - Highest supported OpenCL version (eg. 1.2)
+   #  OpenCL_VERSION_MAJOR  - The major version of the OpenCL implementation
+   #  OpenCL_VERSION_MINOR  - The minor version of the OpenCL implementation
+   if (OpenCL_FOUND)
+      set(HAVE_CL_DOUBLE ON CACHE BOOL "Have OpenCL Double")
+      set(NO_CL_DOUBLE OFF)
+      include_directories(${OpenCL_INCLUDE_DIRS})
+   endif (OpenCL_FOUND)
+endif (NOT DEFINED OpenCL_FOUND AND NOT MIC_NATIVE)
  
 if (NOT DEFINED MPI_FOUND)
    find_package(MPI REQUIRED)
@@ -95,7 +100,7 @@ enable_testing()
 add_subdirectory(tests)
 
 ########### global settings ###############
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${OPENCL_INCLUDE_DIRS}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${OpenCL_INCLUDE_DIRS}")
 
 set(H_SRCS ezcl.h)
 set(C_SRCS ezcl.c)
@@ -106,7 +111,7 @@ set(ezcl_LIB_SRCS ${C_SRCS} ${H_SRCS})
 add_library(ezcl SHARED ${ezcl_LIB_SRCS})
 
 set_target_properties(ezcl PROPERTIES VERSION ${EZCL_VERSION} SOVERSION ${EZCL_VERSION_MAJOR})
-target_link_libraries(ezcl ${OPENCL_LIBRARIES})
+target_link_libraries(ezcl ${OpenCL_LIBRARIES})
 install(TARGETS ezcl DESTINATION lib)
 
 ########### pezcl target ###############
@@ -117,7 +122,7 @@ add_library(pezcl SHARED ${pezcl_LIB_SRCS})
 
 set_target_properties(pezcl PROPERTIES VERSION ${EZCL_VERSION} SOVERSION ${EZCL_VERSION_MAJOR})
 set_target_properties(pezcl PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-target_link_libraries(pezcl ${OPENCL_LIBRARIES})
+target_link_libraries(pezcl ${OpenCL_LIBRARIES})
 target_link_libraries(pezcl ${MPI_LIBRARIES})
 install(TARGETS pezcl DESTINATION lib)
 

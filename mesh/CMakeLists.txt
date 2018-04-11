@@ -87,6 +87,8 @@ if (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)
    #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
    #  OPENCL_LIBRARIES    : The libraries to link against
    if (OPENCL_FOUND)
+      set(HAVE_CL_DOUBLE ON CACHE BOOL "Have OpenCL Double")
+      set(NO_CL_DOUBLE OFF)
       include_directories(${OPENCL_INCLUDE_DIRS})
    endif (OPENCL_FOUND)
 endif (NOT DEFINED OPENCL_FOUND AND NOT MIC_NATIVE)

@@ -99,7 +99,7 @@ install(TARGETS pcrux DESTINATION lib)
 
 ########### dcrux target ###############
 
-#if (OPENCL_FOUND)
+#if (OpenCL_FOUND)
 #   add_library(dcrux STATIC ${crux_LIB_SRCS})
 
 #   set_target_properties(dcrux PROPERTIES VERSION ${CRUX_VERSION} SOVERSION ${CRUX_VERSION_MAJOR})
@@ -107,7 +107,7 @@ install(TARGETS pcrux DESTINATION lib)
 #   install(TARGETS dcrux DESTINATION lib)
 #   add_dependencies(dcrux cruxlib_source_kernel_source)
 #   add_dependencies(dcrux cruxlib_kernel_source)
-#endif(OPENCL_FOUND)
+#endif(OpenCL_FOUND)
 
 ########### install files ###############
 
