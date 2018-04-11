@@ -1,60 +1,51 @@
 
   ================================================================
-  Restoring state from disk file checkpoint_output/backup00100.crx
+  Restoring state from disk file checkpoint_output/backup00200.crx
   ================================================================
 
-Mass of initialized cells equal to  125195.039971
-CPU:  setup time               time was	  0.0202	s
-Memory used      in startup 	      6576	kB
-Memory peak      in startup 	      7028	kB
-Memory free      at startup 	 129845196	kB
-Memory available at startup 	 131918472	kB
-Iteration 100 timestep 0.000330 Sim Time 0.043855 cells 17436 Mass Sum  125195.039971
-Iteration 110 timestep 0.000333 Sim Time 0.047176 cells 17460 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 120 timestep 0.000325 Sim Time 0.050464 cells 17484 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 130 timestep 0.000325 Sim Time 0.053708 cells 17508 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 140 timestep 0.000332 Sim Time 0.056994 cells 17532 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 150 timestep 0.000334 Sim Time 0.060351 cells 17532 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 160 timestep 0.000324 Sim Time 0.063629 cells 17580 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 170 timestep 0.000325 Sim Time 0.066869 cells 17604 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 180 timestep 0.000335 Sim Time 0.070166 cells 17628 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 190 timestep 0.000325 Sim Time 0.073484 cells 17640 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 200 timestep 0.000318 Sim Time 0.076685 cells 17664 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Memory used      8716 kB
-Memory peak      8716 kB
-Memory free      129842684 kB
-Memory available 131918472 kB
+Mass of initialized cells equal to  497.320697988
+CPU:  setup time               time was	  0.0019	s
+Memory used      in startup 	      3440	kB
+Memory peak      in startup 	      3472	kB
+Memory free      at startup 	 125067880	kB
+Memory available at startup 	 131914672	kB
+Iteration 200 timestep 0.012901 Sim Time 1.572389 cells 220 Mass Sum  497.320697988
+Iteration 300 timestep 0.052190 Sim Time 5.103572 cells 96 Mass Sum  497.320697988 Mass Change            0
+Memory used      3528 kB
+Memory peak      3528 kB
+Memory free      125067880 kB
+Memory available 131914672 kB
 
 ~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
-CPU: Device compute           time was	  1.0149	s
-CPU:   state_timer_set_timestep      		    0.0453	s
-CPU:   state_timer_finite_difference 		    0.8962	s
-CPU:   state_timer_refine_potential  		    0.0585	s
-CPU:     state_timer_calc_mpot         		      0.0424	s
-CPU:     mesh_timer_refine_smooth      		      0.0064	s
-CPU:   state_timer_rezone_all        		    0.0090	s
-CPU:   mesh_timer_partition          		    0.0001	s
-CPU:   mesh_timer_calc_neighbors     		    0.0047	s
-CPU:     mesh_timer_hash_setup         		      0.0022	s
-CPU:     mesh_timer_hash_query         		      0.0024	s
-CPU:   state_timer_mass_sum          		    0.0011	s
+CPU: Device compute           time was	  0.0165	s
+CPU:   state_timer_set_timestep      		    0.0005	s
+CPU:   state_timer_finite_difference 		    0.0122	s
+CPU:   state_timer_refine_potential  		    0.0024	s
+CPU:     state_timer_calc_mpot         		      0.0010	s
+CPU:     mesh_timer_refine_smooth      		      0.0002	s
+CPU:   state_timer_rezone_all        		    0.0012	s
+CPU:   mesh_timer_partition          		    0.0000	s
+CPU:   mesh_timer_calc_neighbors     		    0.0002	s
+CPU:     mesh_timer_hash_setup         		      0.0000	s
+CPU:     mesh_timer_hash_query         		      0.0001	s
+CPU:   state_timer_mass_sum          		    0.0000	s
 CPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
 =============================================================
-Profiling: Total CPU          time was	  1.0149	s
+Profiling: Total CPU          time was	  0.0165	s
 -------------------------------------------------------------
-Mesh Ops (Neigh+rezone+smooth+balance) 	  0.0201	s
-Mesh Ops Percentage                    	  1.9777	percent
+Mesh Ops (Neigh+rezone+smooth+balance) 	  0.0015	s
+Mesh Ops Percentage                    	  9.2830	percent
 =============================================================
-Profiling: Total              time was	  0.5377	s
+Profiling: Total              time was	  0.0074	s
 =============================================================
-CPU:  calc incl part meas     time was	  0.5245	s
-CPU:  calculation only        time was	  0.5245	s
-CPU:  partition measure       time was	  0.0000	s
+CPU:  calc incl part meas     time was	  0.0043	s
+CPU:  calculation only        time was	  0.0042	s
+CPU:  partition measure       time was	  0.0001	s
 CPU:  graphics                time was	  0.0000	s
 Using hash tables to calculate neighbors
-hash table size  bytes 1081600
+hash table size  bytes 6400
 Initial order is Hilbert sort.   No cycle reorder.   Local Stencil is on.
-CPU:  rezone frequency                	   5.0000	percent
-CPU:  calc neigh frequency            	   5.5000	percent
+CPU:  rezone frequency                	   3.6667	percent
+CPU:  calc neigh frequency            	   4.0000	percent
 CPU:  refine_smooth_iter per rezone   	   0.0000	
-CRUX checkpointing time averaged 12.648000 msec, bandwidth 50.320680 Mbytes/sec
+CRUX checkpointing time averaged 3.083000 msec, bandwidth 1.300032 Mbytes/sec
