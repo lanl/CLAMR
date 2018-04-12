@@ -25,3 +25,12 @@ mpirun -n 2 ./clamr_mpionly -n 128 -i 100 -t 600 >& ${TEST_NAME}_run1.out
 
 mpirun -n 2 ./clamr_mpionly -n 128 -i 100 -t 600 -l 4 >& ${TEST_NAME}_run2.out
 ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run2.gold ${TEST_NAME}_run2.out
+
+mpirun -n 3 ./clamr_mpionly -n 128 -i 100 -t 600 >& ${TEST_NAME}_run3.out
+./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run3.gold ${TEST_NAME}_run3.out
+./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run1.gold ${TEST_NAME}_run3.out
+
+mpirun -n 3 ./clamr_mpionly -n 128 -i 100 -t 600 -l 4 >& ${TEST_NAME}_run4.out
+./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run4.gold ${TEST_NAME}_run4.out
+./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run2.gold ${TEST_NAME}_run4.out
+
