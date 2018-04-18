@@ -128,7 +128,7 @@ bool        restart,        //  Flag to start from a back up file; init in input
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
             face_based,     //  Flag for face-based finite difference;
             outline,        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
-            output_cuts;     //  Flag for outputting file of slice along y-axis; init in input.cpp::parseInput().
+            output_cuts;    //  Flag for outputting file of slice along y-axis; init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
             crux_type,      //  Type of checkpoint/restart -- CRUX_NONE, CRUX_IN_MEMORY, CRUX_DISK;
                             //  init in input.cpp::parseInput().
@@ -602,10 +602,10 @@ extern "C" void do_calc(void)
          }
 
          if((ncycle - (rollback_attempt)*checkpoint_outputInterval) < 0){
-            printf("Rolling simulation back to to ncycle 0\n");
+            printf("Rolling simulation back to ncycle 0\n");
          }
          else{
-            printf("Rolling simulation back to to ncycle %d\n", ncycle - (rollback_attempt*checkpoint_outputInterval));
+            printf("Rolling simulation back to ncycle %d\n", ncycle - (rollback_attempt*checkpoint_outputInterval));
          }
 
          state->print_rollback_log(ncycle, simTime, H_sum_initial, H_sum, percent_mass_diff, rollback_attempt, num_of_rollback_states, error_status);
