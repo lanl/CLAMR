@@ -111,7 +111,8 @@ bool        restart,        //  Flag to start from a back up file; init in input
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
             face_based,     //  Flag for face-based finite difference;
-            outline;        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
+            outline,        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
+            output_cuts;    //  Flag for outputting file of slice along y-axis; init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
             crux_type,      //  Type of checkpoint/restart -- CRUX_NONE, CRUX_IN_MEMORY, CRUX_DISK;
                             //  init in input.cpp::parseInput().
@@ -509,7 +510,6 @@ extern "C" void do_calc(void)
 
       mesh->terminate();
       state->terminate();
-      ezcl_mem_walk_all();
       ezcl_terminate();
       terminate_graphics_output();
 

@@ -101,7 +101,8 @@ static int view_mode = 0;
 bool        verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
             face_based,     //  Flag for face-based finite difference;
-            outline;        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
+            outline,        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
+            output_cuts;    //  Flag for outputting file of slice along y-axis; init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
             enhanced_precision_sum,//  Flag for enhanced precision sum (default true); init in input.cpp::parseInput().
             lttrace_on,     //  Flag to turn on logical time trace package;

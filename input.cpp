@@ -98,7 +98,8 @@ extern bool verbose,
             face_based,
             dynamic_load_balance_on,
             h5_spoutput,
-            restart;
+            restart,
+            output_cuts;
 extern int  outputInterval,
             crux_type,
             enhanced_precision_sum,
@@ -186,7 +187,8 @@ void outputHelp()
          << "                    the default value for this parameter is 2.6e-13;" << endl
          << "  -V                use verbose output;" << endl
          << "  -v                display version information." << endl
-         << "  -z                force recalculation of neighbors." << endl; }
+         << "  -z                force recalculation of neighbors." << endl
+         << "  -Z                Include cuts along y-axis (y vs. H) with output files." << endl; }
 
 void outputVersion()
 {   cout << progName << " " << progVers << endl; }
@@ -210,6 +212,7 @@ void parseInput(const int argc, char** argv)
     verbose                 = false;
     localStencil            = true;
     outline                 = true;
+    output_cuts             = false;
 #ifdef HAVE_LTTRACE
     lttrace_on              = 0;
 #endif
@@ -488,7 +491,11 @@ void parseInput(const int argc, char** argv)
                 case 'z':  // Neighbor remap -- default is true, -z sets to false
                     neighbor_remap = false;
                     break;
-                    
+                 
+                case 'Z':  // Output cuts -- default is false, -Z sets to true
+                    output_cuts = true;
+                    break;
+
                 default:    //  Unknown parameter encountered.
                     cout << "⚠ Unknown input parameter " << val << endl;
                     outputHelp();
