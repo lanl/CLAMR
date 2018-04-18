@@ -509,6 +509,7 @@ extern "C" void do_calc(void)
 
       mesh->terminate();
       state->terminate();
+      ezcl_mem_walk_all();
       ezcl_terminate();
       terminate_graphics_output();
 
