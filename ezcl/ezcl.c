@@ -96,11 +96,13 @@ static cl_uint          nPlatforms = 0;
 static cl_uint          nDevices = 0;
 static cl_platform_id  *platforms;
 static cl_device_id    *devices;
+static int             *device_appropriate;
 static cl_command_queue command_queue;
 static cl_context       context;
 static cl_program       program;
 static cl_platform_id   platform = NULL;
 static int              compute_device = 0;
+static int              device_selected = -99;
 
 SLIST_HEAD(slist_device_memory_head, device_memory_entry) device_memory_head = SLIST_HEAD_INITIALIZER(device_memory_head);
 struct slist_device_memory_head *device_memory_headp;
@@ -421,6 +423,8 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const char *file, int lin
 
    devices = (cl_device_id *)malloc(nDevices*sizeof(cl_device_id));
    ezcl_malloc_memory_add(devices, "DEVICES", nDevices*sizeof(cl_device_id));
+   device_appropriate = malloc(nDevices*sizeof(int));
+   ezcl_malloc_memory_add(device_appropriate, "DEVICE_APPROPRIATE", nDevices*sizeof(int));
 
    ierr = clGetDeviceIDs(platforms[platform_selected],device_type,nDevices,devices,NULL);
    if (ierr != CL_SUCCESS) {
@@ -433,18 +437,37 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const char *file, int lin
      ezcl_print_error(ierr, "EZCL_DEVTYPE_INIT", "clGetDeviceIDs", file, line);
    }
 
-   if (DEVICE_DETECT_DEBUG){
-      for (uint idevice=0; idevice<nDevices; idevice++){
+// Not working quite right yet -- trying to skip non-double capable devices
+
+   int idevice_appropriate = 0;
+   for (uint idevice=0; idevice<nDevices; idevice++){
+#if defined(FULL_PRECISION) || defined(MIXED_PRECISION)
+      device_appropriate[idevice] = ezcl_device_double_support(devices[idevice]);;
+      if (device_appropriate[idevice] == 1){
+         if (device_selected == -99) device_selected = idevice;
+         devices[idevice_appropriate] = devices[idevice];
+         idevice_appropriate++;
+      }
+#else
+      device_appropriate[idevice] = 1;
+      idevice_appropriate++;
+#endif
+      if (DEVICE_DETECT_DEBUG){
          printf(  "  Device %d:\n", idevice+1);
          ezcl_device_info(devices[idevice]);
       }
+   }
+   nDevices = idevice_appropriate; 
+
+   if (DEVICE_DETECT_DEBUG) {
+      printf("Device selected is %d number of appropriate devices %d\n",device_selected, nDevices);
    }
 
    cl_context_properties context_properties[3]=
    {
      CL_CONTEXT_PLATFORM,
      (cl_context_properties)platform,
-     0
+     0 // 0 terminates list
    };
 
    context = clCreateContext(context_properties, nDevices, devices, NULL, NULL, &ierr);
@@ -500,11 +523,15 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const char *file, int lin
 
    char info[1024];
 
-   clGetDeviceInfo(devices[0], CL_DEVICE_VENDOR, sizeof(info), &info, NULL);
+   clGetDeviceInfo(devices[device_selected], CL_DEVICE_VENDOR, sizeof(info), &info, NULL);
+   if (DEVICE_DETECT_DEBUG) printf("DEVICE VENDOR is %s\n",info);
    if (! strncmp(info,"NVIDIA",(size_t)6) ) compute_device = COMPUTE_DEVICE_NVIDIA;
    if (! strncmp(info,"Advanced Micro Devices",(size_t)6) ) compute_device = COMPUTE_DEVICE_AMD;
-   if (! strncmp(info,"Intel(R) Corporation",(size_t)6) ) compute_device = COMPUTE_DEVICE_INTEL;
-   //printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,compute_device);
+   if (! strncmp(info,"AMD",(size_t)3) ) compute_device = COMPUTE_DEVICE_AMD;
+   if (! strncmp(info,"Intel",(size_t)5) ) compute_device = COMPUTE_DEVICE_INTEL;
+   if (DEVICE_DETECT_DEBUG) {
+      printf("DEBUG -- device vendor is |%s|, compute_device %d\n",info,compute_device);
+   }
 
    int mype = 0;
 #ifdef HAVE_MPI
@@ -565,6 +592,22 @@ int ezcl_get_compute_device_p(const char *file, const int line)
       printf(" Error with ezcl_get_compute_device from file %s line %d\n",file,line);
    }
    return(compute_device);
+}
+
+int ezcl_device_double_support_p(cl_device_id device, const char *file, const int line){
+   int have_double = 0;
+   char info[1024];
+
+   clGetDeviceInfo(device, CL_DEVICE_EXTENSIONS, sizeof(info), &info, NULL);
+
+   if (!(strstr(info,"cl_khr_fp64") == NULL)){
+     if (DEVICE_DETECT_DEBUG){
+        printf(  "    Device has double : %s\n\n", strstr(info,"cl_khr_fp64"));
+     }
+     have_double = 1;
+   }
+
+   return(have_double);
 }
 
 void ezcl_device_info_p(cl_device_id device, const char *file, const int line){
@@ -1442,6 +1485,9 @@ char * create_compile_string(void)
    else if (compute_device == COMPUTE_DEVICE_AMD) {
       strcat(CompileString, " -DIS_AMD -DMIN_REDUCE_SYNC_SIZE=64 -DN_BITS_WARP_LENGTH=6");
    }
+   else if (compute_device == COMPUTE_DEVICE_INTEL) {
+      strcat(CompileString, " -DIS_AMD -DMIN_REDUCE_SYNC_SIZE=64 -DN_BITS_WARP_LENGTH=6");
+   }
    else
    {
         printf("EZCL_CREATE_KERNEL: Not supporting anything other than AMD or NVIDIA at the moment\n");
@@ -2126,6 +2172,7 @@ void ezcl_terminate_p(const char *file, const int line){
    }
 
    ezcl_malloc_memory_delete(devices);
+   if (device_appropriate != NULL) ezcl_malloc_memory_delete(device_appropriate);
    ezcl_malloc_memory_delete(platforms);
 
    ezcl_command_queue_release(command_queue);
