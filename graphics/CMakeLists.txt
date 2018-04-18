@@ -24,26 +24,30 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
    # using Clang
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -ftree-vectorize")
    #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
+   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
    # using GCC
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -ftree-vectorize")
    #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ftree-vectorizer-verbose=5")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
+   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C++
    #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
+   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
+   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
+elseif (CMAKE_C_COMPILER_ID MATCHES "XL")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
+   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 endif()
-
-if (MIC_NATIVE)
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static-intel -std=c99 -mmic")
-   link_directories("/projects/opt/intel/compilers/parallel_studio_xe_2013/composer_xe_2013_sp1.2.144/compiler/lib/mic")
-else (MIC_NATIVE)
-#  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11")
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-endif (MIC_NATIVE)
 
 if (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native -Wa,-q")
@@ -51,12 +55,9 @@ else (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
 endif (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
-
 #set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -pedantic")
 
-if (NOT DEFINED OpenCL_FOUND AND NOT MIC_NATIVE)
+if (NOT DEFINED OpenCL_FOUND)
    find_package(OpenCL)
    #  OpenCL_FOUND          - True if OpenCL was found
    #  OpenCL_INCLUDE_DIRS   - include directories for OpenCL
@@ -69,7 +70,7 @@ if (NOT DEFINED OpenCL_FOUND AND NOT MIC_NATIVE)
       set(NO_CL_DOUBLE OFF)
       include_directories(${OpenCL_INCLUDE_DIRS})
    endif (OpenCL_FOUND)
-endif (NOT DEFINED OpenCL_FOUND AND NOT MIC_NATIVE)
+endif (NOT DEFINED OpenCL_FOUND)
 
 if (NOT DEFINED MPI_FOUND)
    find_package(MPI)
