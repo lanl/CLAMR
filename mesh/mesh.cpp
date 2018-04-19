@@ -2496,6 +2496,10 @@ void Mesh::calc_spatial_coordinates(int ibase)
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   x.clear();
+   dx.clear();
+   y.clear();
+   dy.clear();
    x.resize(ncells);
    dx.resize(ncells);
    y.resize(ncells);
@@ -2528,6 +2532,9 @@ void Mesh::calc_spatial_coordinates(int ibase)
       }
    }
 
+#ifdef _OPENMP
+#pragma omp master
+#endif
    cpu_timers[MESH_TIMER_CALC_SPATIAL_COORDINATES] += cpu_timer_stop(tstart_cpu);
 
 #ifdef _OPENMP
@@ -2787,13 +2794,12 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp master
    {
 #endif
-   i_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
-   j_old        = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
-   level_old    = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
+   i_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "i_old",     flags);
+   j_old     = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "j_old",     flags);
+   level_old = (int *)mesh_memory.memory_malloc(new_ncells, sizeof(int), "level_old", flags);
    mesh_memory.memory_swap(&i,     &i_old);
    mesh_memory.memory_swap(&j,     &j_old);
    mesh_memory.memory_swap(&level, &level_old);
-
 
    index.clear();
    // allocate to ncells (oldsize) because index is a map from old cells to new cells
