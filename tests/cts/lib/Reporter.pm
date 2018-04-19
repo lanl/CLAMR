@@ -225,7 +225,7 @@ sub text {     # writes a brief summary of test results
       my $FC=$ENV{FC};
       unless ($FC){
         $FC = "unknown";
-        foreach my $comp qw(lf95 pgf90 ifort ifc f90){
+        foreach my $comp (qw(lf95 pgf90 ifort ifc f90)){
           $output = `which $comp 2>&1`;
           if ($output =~ /Command not found/){
             next;
@@ -266,7 +266,7 @@ sub text {     # writes a brief summary of test results
       my $CC = $ENV{CC};
       unless ($CC){
         $CC = "unknown";
-        foreach my $comp qw(pgcc gcc){
+        foreach my $comp (qw(pgcc gcc)){
           $output = `which $comp 2>&1`;
           if ($output =~ /Command not found/){
             next;

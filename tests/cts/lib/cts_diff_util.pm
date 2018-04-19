@@ -2411,7 +2411,7 @@ sub print_data_file_cts
         undef( @coords );
         foreach $coord ( $GCOORDX, $GCOORDY )
           {
-            if( defined(@{$$data_ref{$GDATA}{$ds_name}{$coord}{$GORG}}) )
+            if( @{$$data_ref{$GDATA}{$ds_name}{$coord}{$GORG}} )
               {
                 push( @coords, $coord );
                 $len = $#{$$data_ref{$GDATA}{$ds_name}{$coord}{$GORG}}+1;
@@ -2519,7 +2519,7 @@ sub print_data_file_xy
         undef( @coords );
         foreach $coord ( $GCOORDX, $GCOORDY )
           {
-            if( defined(@{$$data_ref{$GDATA}{$ds_name}{$coord}{$GORG}}) )
+            if( @{$$data_ref{$GDATA}{$ds_name}{$coord}{$GORG}} )
               {
                 push( @coords, $coord );
                 $len = $#{$$data_ref{$GDATA}{$ds_name}{$coord}{$GORG}}+1;
@@ -2697,7 +2697,7 @@ sub print_gnuplot_data
     #......................
     #...get type of plot...
     #......................
-    if( defined(@{$$ds_data_ref{$GCOORDX}{$GORG}}) )
+    if( @{$$ds_data_ref{$GCOORDX}{$GORG}} )
       {
         $xy = 1;
       }
@@ -2709,7 +2709,7 @@ sub print_gnuplot_data
     #...get number of values...
     #..........................
     $num_vals = 0;
-    if( defined(@{$$ds_data_ref{$GCOORDX}{$GORG}}) )
+    if( @{$$ds_data_ref{$GCOORDX}{$GORG}} )
       {
         $len = $#{$$ds_data_ref{$GCOORDX}{$GORG}}+1;
         if( $len > $num_vals )
@@ -2717,7 +2717,7 @@ sub print_gnuplot_data
             $num_vals = $len;
           }
       }
-    if( defined(@{$$ds_data_ref{$GCOORDY}{$GORG}}) )
+    if( @{$$ds_data_ref{$GCOORDY}{$GORG}} )
       {
         $len = $#{$$ds_data_ref{$GCOORDY}{$GORG}}+1;
         if( $len > $num_vals )

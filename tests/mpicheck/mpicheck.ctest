@@ -1,0 +1,29 @@
+#!/bin/sh
+
+SCRIPT_DIR=`dirname $0`
+TEST_NAME=`basename ${SCRIPT_DIR}`
+CTS_BIN=`dirname ${SCRIPT_DIR}`/cts/bin
+
+PWD=`pwd`
+TEST_DIR=${PWD}/testing/${TEST_NAME}
+CLAMR_BIN=`dirname ${PWD}`
+
+if [ -d "${TEST_DIR}" ]; then
+   rm -rf "${TEST_DIR}"
+fi
+mkdir -p "${TEST_DIR}"
+cd "${TEST_DIR}"
+
+ln -s ${CLAMR_BIN}/clamr_mpicheck
+ln -s ${CTS_BIN}/compare_stdout.pl
+ln -s ${CTS_BIN}/cts_diff.pl
+
+set -ex
+
+# First test is to see if the mpicheck run is getting the same result
+# as the gold standard
+mpirun -n 2 ./clamr_mpicheck -n 128 -i 100 -t 600 >& ${TEST_NAME}_run1.out
+./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
+
+mpirun -n 2 ./clamr_mpicheck -n 128 -i 100 -t 600 -l 4 >& ${TEST_NAME}_run2.out
+./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run2.gold ${TEST_NAME}_run2.out

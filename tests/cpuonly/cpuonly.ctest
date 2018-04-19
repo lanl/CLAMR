@@ -1,0 +1,30 @@
+#!/bin/sh
+
+SCRIPT_DIR=`dirname $0`
+TEST_NAME=`basename ${SCRIPT_DIR}`
+CTS_BIN=`dirname ${SCRIPT_DIR}`/cts/bin
+
+PWD=`pwd`
+TEST_DIR=${PWD}/testing/${TEST_NAME}
+CLAMR_BIN=`dirname ${PWD}`
+
+if [ -d "${TEST_DIR}" ]; then
+   rm -rf "${TEST_DIR}"
+fi
+mkdir -p "${TEST_DIR}"
+cd "${TEST_DIR}"
+
+ln -s ${CLAMR_BIN}/clamr_cpuonly
+ln -s ${CTS_BIN}/compare_stdout.pl
+ln -s ${CTS_BIN}/cts_diff.pl
+
+set -ex
+./clamr_cpuonly -n 128 -i 100 -t 3000 >& ${TEST_NAME}_run1.out
+./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
+
+./clamr_cpuonly -n 128 -l 4 -i 100 -t 3000 >& ${TEST_NAME}_run2.out
+./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run2.gold ${TEST_NAME}_run2.out
+
+./clamr_cpuonly -n 256 -i 100 -t 3000 >& ${TEST_NAME}_run3.out
+./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run3.gold ${TEST_NAME}_run3.out
+

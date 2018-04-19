@@ -288,7 +288,7 @@ if ($opt{daemonize}) {
   }
 
   require POSIX;
-  POSIX->import qw(setsid);
+  POSIX->import (qw(setsid));
 
   open STDIN, '/dev/null'    or die "Can't read /dev/null: $!";
   open STDOUT, '>>/dev/null' or die "Can't write to /dev/null: $!";

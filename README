@@ -51,8 +51,13 @@ make check
 // or for a specific package unit tests
 make MallocPlus_check
 
-// To run the regression tests -- in the CLAMR directory
-make clamr_clean_tests or rm -rf tests/testing
+// There are two testing systems: ctest and cts
+
+// To run the tests with ctest
+make test, or
+ctest -R ctest
+
+// To run the tests with cts  -- in the CLAMR directory
 make clamr_tests
 
 // To build the documentation
