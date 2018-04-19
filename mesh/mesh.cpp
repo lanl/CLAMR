@@ -2767,7 +2767,11 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    mesh_memory.memory_swap(&level, &level_old);
 
    index.clear();
-   index.resize(new_ncells);
+   // allocate to ncells (oldsize) because index is a map from old cells to new cells
+   // loop below is for (ic = 0; ic < ncells; ic++) and within it index[ic] = nc;
+   // If set to new_ncells, will write out-of-bounds when number of cells decreas
+   // mpirun -n 3 valgrind ./clamr_mpionly -t 391 -i 1 fails at cycle 390
+   index.resize(ncells);
 #ifdef _OPENMP
    }
 #endif
