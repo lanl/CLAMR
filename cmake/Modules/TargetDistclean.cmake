@@ -15,6 +15,22 @@ IF (UNIX)
    *.a
    */*.a
    Makefile
+   crux/Makefile
+   ezcl/Makefile
+   genmalloc/Makefile
+   graphics/Makefile
+   hash/Makefile
+   l7/Makefile
+   MallocPlus/Makefile
+   memstats/Makefile
+   mesh/Makefile
+   mesh/hsfc/Makefile
+   mesh/kdtree/Makefile
+   mesh/zorder/Makefile
+   PowerParser/Makefile
+   s7/Makefile
+   timer/Makefile
+   tests/Makefile
    */tests/Makefile
    core core.*
    gmon.out
@@ -26,6 +42,7 @@ IF (UNIX)
    */*/CTestTestfile.cmake
    */Testing
    */*/Testing
+   Testing
    cmake_install.cmake
    */cmake_install.cmake
    */*/cmake_install.cmake
@@ -34,6 +51,7 @@ IF (UNIX)
    *.dSYM
    */*.dSYM
    */*/*.dSYM
+   tests/testing
   )
   
   ADD_CUSTOM_COMMAND(

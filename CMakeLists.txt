@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.1.3)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # --- custom targets: ---
@@ -18,6 +18,7 @@ if (NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
 
+enable_testing()
 # uncomment to build debug
 #set(CMAKE_BUILD_TYPE Debug)
 
@@ -103,12 +104,17 @@ endif (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 include_directories(${PROJECT_SOURCE_DIR})
 
 find_package(OpenCL)
-#  OPENCL_FOUND        : TRUE if found, FALSE otherwise
-#  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
-#  OPENCL_LIBRARIES    : The libraries to link against
-if (OPENCL_FOUND)
-   include_directories(${OPENCL_INCLUDE_DIRS})
-endif (OPENCL_FOUND)
+#  OpenCL_FOUND          - True if OpenCL was found
+#  OpenCL_INCLUDE_DIRS   - include directories for OpenCL
+#  OpenCL_LIBRARIES      - link against this library to use OpenCL
+#  OpenCL_VERSION_STRING - Highest supported OpenCL version (eg. 1.2)
+#  OpenCL_VERSION_MAJOR  - The major version of the OpenCL implementation
+#  OpenCL_VERSION_MINOR  - The minor version of the OpenCL implementation
+if (OpenCL_FOUND)
+   set(HAVE_CL_DOUBLE ON CACHE BOOL "Have OpenCL Double")
+   set(NO_CL_DOUBLE OFF)
+   include_directories(${OpenCL_INCLUDE_DIRS})
+endif (OpenCL_FOUND)
 
 find_package(MPI)
 if (MPI_FOUND)
@@ -406,11 +412,11 @@ if (EXISTS "${CMAKE_SOURCE_DIR}/memstats" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/
    add_subdirectory(memstats)
 endif (EXISTS "${CMAKE_SOURCE_DIR}/memstats" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/memstats")
 
-if (OPENCL_FOUND)
+if (OpenCL_FOUND)
    if (EXISTS "${CMAKE_SOURCE_DIR}/ezcl" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/ezcl")
       add_subdirectory(ezcl)
    endif (EXISTS "${CMAKE_SOURCE_DIR}/ezcl" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/ezcl")
-endif (OPENCL_FOUND)
+endif (OpenCL_FOUND)
 
 if (EXISTS "${CMAKE_SOURCE_DIR}/genmalloc" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/genmalloc")
    add_subdirectory(genmalloc)
@@ -440,7 +446,7 @@ add_custom_target(state_kernel_source ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/st
 
 ########### clamr target ###############
 
-if (OPENCL_FOUND AND MPI_FOUND)
+if (OpenCL_FOUND AND MPI_FOUND)
    set(clamr_CXX_SRCS clamr.cpp state.cpp input.cpp)
    set(clamr_H_SRCS state.h input.h)
    set(clamr_SRCS ${clamr_CXX_SRCS} ${clamr_C_SRCS} ${clamr_H_SRCS})
@@ -449,7 +455,7 @@ if (OPENCL_FOUND AND MPI_FOUND)
 
    set_target_properties(clamr PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
    target_link_libraries(clamr dpmesh hsfc kdtree zorder pcrux dhash pezcl pgraphics timer memstats dl7 genmalloc dpMallocPlus m)
-   target_link_libraries(clamr ${OPENCL_LIBRARIES})
+   target_link_libraries(clamr ${OpenCL_LIBRARIES})
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
@@ -460,7 +466,7 @@ if (OPENCL_FOUND AND MPI_FOUND)
    add_dependencies(clamr state_kernel_source)
 
    install(TARGETS clamr DESTINATION bin)
-endif (OPENCL_FOUND AND MPI_FOUND)
+endif (OpenCL_FOUND AND MPI_FOUND)
 
 ########### clamr_cpuonly target ###############
 
@@ -478,14 +484,10 @@ endif (REPROBLAS_FOUND)
 
 #target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
-if (ITTNOTIFY_FOUND)
-   target_link_libraries(clamr_cpuonly ${ITTNOTIFY_LIBS})
-endif (ITTNOTIFY_FOUND)
-
 install(TARGETS clamr_cpuonly DESTINATION bin)
 
 ########### clamr_gpuonly target ###############
-if (OPENCL_FOUND)
+if (OpenCL_FOUND)
    set(clamr_gpuonly_CXX_SRCS clamr_gpuonly.cpp state.cpp input.cpp)
    set(clamr_gpuonly_H_SRCS state.h input.h)
    set(clamr_gpuonly_SRCS ${clamr_gpuonly_CXX_SRCS} ${clamr_gpuonly_C_SRCS} ${clamr_gpuonly_H_SRCS})
@@ -495,14 +497,14 @@ if (OPENCL_FOUND)
    set_target_properties(clamr_gpuonly PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
    target_link_libraries(clamr_gpuonly PowerParser dmesh hsfc kdtree zorder crux dhash ezcl graphics timer memstats genmalloc dMallocPlus m)
-   target_link_libraries(clamr_gpuonly ${OPENCL_LIBRARIES})
+   target_link_libraries(clamr_gpuonly ${OpenCL_LIBRARIES})
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_gpuonly ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
    add_dependencies(clamr_gpuonly state_kernel_source)
 
    install(TARGETS clamr_gpuonly DESTINATION bin)
-endif (OPENCL_FOUND)
+endif (OpenCL_FOUND)
 
 ########### clamr_mpionly target ###############
 if (MPI_FOUND)
@@ -523,10 +525,6 @@ if (MPI_FOUND)
    endif (LTTRACE_FOUND)
 
    target_link_libraries(clamr_mpionly ${MPI_LIBRARIES})
-
-   if (ITTNOTIFY_FOUND)
-      target_link_libraries(clamr_mpionly ${ITTNOTIFY_LIBS})
-   endif (ITTNOTIFY_FOUND)
 
    install(TARGETS clamr_mpionly DESTINATION bin)
 endif (MPI_FOUND)
@@ -549,10 +547,6 @@ if(OPENMP_FOUND)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_openmponly ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
-
-   if (ITTNOTIFY_FOUND)
-      target_link_libraries(clamr_openmponly ${ITTNOTIFY_LIBS})
-   endif (ITTNOTIFY_FOUND)
 
    install(TARGETS clamr_openmponly DESTINATION bin)
 endif(OPENMP_FOUND)
@@ -584,10 +578,6 @@ if (MPI_FOUND AND OPENMP_FOUND)
    target_link_libraries(clamr_mpiopenmponly ${MPI_LIBRARIES})
 
    install(TARGETS clamr_mpiopenmponly DESTINATION bin)
-
-   if (ITTNOTIFY_FOUND)
-      target_link_libraries(clamr_mpiopenmponly ${ITTNOTIFY_LIBS})
-   endif (ITTNOTIFY_FOUND)
 
 endif (MPI_FOUND AND OPENMP_FOUND)
 
@@ -646,7 +636,7 @@ if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND AND Boost_FOUND)
 endif()
 
 ########### clamr_gpucheck target ###############
-if (OPENCL_FOUND)
+if (OpenCL_FOUND)
    set(clamr_gpucheck_CXX_SRCS clamr_gpucheck.cpp state.cpp input.cpp)
    set(clamr_gpucheck_H_SRCS state.h input.h)
 
@@ -657,14 +647,14 @@ if (OPENCL_FOUND)
    set_target_properties(clamr_gpucheck PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
    target_link_libraries(clamr_gpucheck PowerParser dmesh hsfc kdtree zorder crux dhash ezcl graphics timer memstats genmalloc dMallocPlus m)
-   target_link_libraries(clamr_gpucheck ${OPENCL_LIBRARIES})
+   target_link_libraries(clamr_gpucheck ${OpenCL_LIBRARIES})
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_gpucheck ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
    add_dependencies(clamr_gpucheck state_kernel_source)
 
    install(TARGETS clamr_gpucheck DESTINATION bin)
-endif (OPENCL_FOUND)
+endif (OpenCL_FOUND)
 
 ########### clamr_mpicheck target ###############
 if (MPI_FOUND)
@@ -689,7 +679,7 @@ if (MPI_FOUND)
 endif (MPI_FOUND)
 
 ########### clamr_checkall target ###############
-if (MPI_FOUND AND OPENCL_FOUND)
+if (MPI_FOUND AND OpenCL_FOUND)
    set(clamr_checkall_CXX_SRCS clamr_checkall.cpp state.cpp input.cpp)
    set(clamr_checkall_H_SRCS state.h input.h)
 
@@ -699,7 +689,7 @@ if (MPI_FOUND AND OPENCL_FOUND)
 
    set_target_properties(clamr_checkall PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
    target_link_libraries(clamr_checkall dpmesh hsfc kdtree zorder pcrux dhash pezcl pgraphics timer memstats dl7 genmalloc dpMallocPlus m)
-   target_link_libraries(clamr_checkall ${OPENCL_LIBRARIES})
+   target_link_libraries(clamr_checkall ${OpenCL_LIBRARIES})
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_checkall ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
@@ -710,16 +700,16 @@ if (MPI_FOUND AND OPENCL_FOUND)
    add_dependencies(clamr_checkall state_kernel_source)
 
    install(TARGETS clamr_checkall DESTINATION bin)
-endif (MPI_FOUND AND OPENCL_FOUND)
+endif (MPI_FOUND AND OpenCL_FOUND)
 
 ########### install files ###############
 
 
-if (OPENCL_FOUND)
+if (OpenCL_FOUND)
    set (CMAKE_CHECK_COMMAND "make ezcl_check &&")
-else (OPENCL_FOUND)
+else (OpenCL_FOUND)
    set (CMAKE_CHECK_COMMAND "")
-endif (OPENCL_FOUND)
+endif (OpenCL_FOUND)
 
 set (CMAKE_CHECK_COMMAND ${CMAKE_CHECK_COMMAND}
                          make mesh_check &&

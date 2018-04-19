@@ -60,8 +60,8 @@ file(COPY ${CMAKE_SOURCE_DIR}/PowerParser/tests/parsetest.in DESTINATION ${CMAKE
 
 ################# check/test ##################
 
-add_test(ParserTest ParserTest)
-add_test(FParserTest FParserTest)
+#add_test(ParserTest ParserTest)
+#add_test(FParserTest FParserTest)
 
 set(CMAKE_CHECK_COMMAND ctest && cat Testing/Temporary/LastTest.log)
 
