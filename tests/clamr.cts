@@ -25,6 +25,26 @@ DEFAULT_TESTSUITES    : clamr.suite
 TESTSUITE_DIRECTORIES : .
 TEST_DIRECTORIES      : .
 REPORTS               : text html
+if (`uname -n` == /^gr/) then
+   SYSTEM_NAME Grizzly
+   ACCOUNT : xd
+endif
+if (`uname -n` == /^ml/) then
+   SYSTEM_NAME Moonlight
+#   QUEUE : access
+endif
+if (`uname -n` == /^sn/) then
+   SYSTEM_NAME Snow
+   ACCOUNT : xd
+endif
+if (`uname -n` == /^wf/) then
+   SYSTEM_NAME Wolf
+   ACCOUNT : xd
+endif
+if (`uname -n` == /^tt/) then
+   SYSTEM_NAME Tritite
+#   QUEUE : access
+endif
 #if (`uname -n` == /^ml/) then
 #   SYSTEM_NAME moonlight
 #   QUEUE : access
