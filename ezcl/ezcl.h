@@ -135,6 +135,8 @@ extern "C"
       ( ezcl_get_compute_device_p(__FILE__, __LINE__) ) 
 #define ezcl_device_info(  device) \
       ( ezcl_device_info_p(device, __FILE__, __LINE__) )
+#define ezcl_device_double_support(  device) \
+      ( ezcl_device_double_support_p(device, __FILE__, __LINE__) )
 
 /* context based routines*/
 #define ezcl_create_command_queue(  context, mype) \
@@ -244,6 +246,7 @@ void ezcl_print_error(const int ierr, const char *routine, const char *cl_routin
 cl_device_id ezcl_get_device_p(cl_context context, const char *file, const int line);
 int ezcl_get_compute_device_p(const char *file, const int line);
 void ezcl_device_info_p(cl_device_id device, const char *file, const int line);
+int ezcl_device_double_support_p(cl_device_id device, const char *file, const int line);
 
 /* context based routines*/
 cl_command_queue ezcl_create_command_queue_p(cl_context context, const int mype, const char *file, const int line);
