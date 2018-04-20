@@ -1440,6 +1440,8 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
        if (parallel && numpe > 1) {
 #ifdef HAVE_MPI
           int ncells_int = ncells;
+          nsizes.clear();
+          ndispl.clear();
           nsizes.resize (numpe);
           ndispl.resize (numpe);
           MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
@@ -8191,6 +8193,8 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       int load_balance_handle = 0;
       L7_Setup(0, noffset_old, ncells_old, &indices_needed[0], indices_needed_count, &load_balance_handle);
 
+      //printf("\n%d: DEBUG load balance report\n",mype);
+
       state_memory.memory_realloc_all(ncells_old+indices_needed_count);
 
       MallocPlus state_memory_old = state_memory;
@@ -8235,13 +8239,15 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
                   state_temp_double[in] = mem_ptr_double[ic+k];
                }
             }
-            mem_ptr_double = (double *)state_memory.memory_replace(mem_ptr_double, state_temp_double);
+            state_memory.memory_replace(mem_ptr_double, state_temp_double);
          } else if (memory_item->mem_elsize == 4) {
-            float *state_temp_float = (float *) state_memory.memory_malloc(ncells, sizeof(float),
-                                                                           "state_temp_float", flags);
             float *mem_ptr_float = (float *)memory_item->mem_ptr;
 
-            ////printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr_float);
+            int flags = state_memory.get_memory_flags(mem_ptr_float);
+            float *state_temp_float = (float *) state_memory.memory_malloc(ncells, sizeof(float),
+                                                                           "state_temp_float", flags);
+
+            //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr_float);
             L7_Update(mem_ptr_float, L7_FLOAT, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {
@@ -8260,7 +8266,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
                   state_temp_float[in] = mem_ptr_float[ic+k];
                }
             }
-            mem_ptr_float = (float *)state_memory.memory_replace(mem_ptr_float, state_temp_float);
+            state_memory.memory_replace(mem_ptr_float, state_temp_float);
          }
       }
 
@@ -8299,7 +8305,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
                   mesh_temp_long[in] = mem_ptr_long[ic+k];
                }
             }
-            mem_ptr_long = (long long *)mesh_memory.memory_replace(mem_ptr_long, mesh_temp_long);
+            mesh_memory.memory_replace(mem_ptr_long, mesh_temp_long);
 
          } else {
             int *mem_ptr_int = (int *)memory_item->mem_ptr;
@@ -8326,7 +8332,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
                   mesh_temp_int[in] = mem_ptr_int[ic+k];
                }
             }
-            mem_ptr_int = (int *)mesh_memory.memory_replace(mem_ptr_int, mesh_temp_int);
+            mesh_memory.memory_replace(mem_ptr_int, mesh_temp_int);
 
          }
       }
@@ -8339,6 +8345,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       //mesh_memory.memory_report();
       //state_memory.memory_report();
       //printf("%d: DEBUG end load balance report\n\n",mype);
+      calc_celltype(ncells);
    }
    //if (mype == 0) printf("DEBUG -- finished load balance\n");
 

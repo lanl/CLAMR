@@ -519,7 +519,6 @@ extern "C" void do_calc(void)
       } // do_comparison_calc
 
       state->do_load_balance_local(new_ncells);
-      mesh->calc_celltype(ncells);
 
       if (do_comparison_calc) {
          // And compare H gathered to H_global, etc
