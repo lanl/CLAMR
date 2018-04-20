@@ -255,6 +255,7 @@ int main(int argc, char **argv) {
 
 
    //  Kahan-type enhanced precision sum implementation.
+   mesh->calc_celltype(ncells);
    double H_sum = state->mass_sum(enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
@@ -584,6 +585,7 @@ extern "C" void do_calc(void)
    }
 
 #endif
+
    if(output_cuts) {
        //Print a cut
        char cutFilename[50];  
@@ -593,12 +595,13 @@ extern "C" void do_calc(void)
    
        mesh->calc_spatial_coordinates(0);
        for (int ic = 0; ic < ncells; ic++){                                      
-	       if (xmid >= (mesh->x[ic]) && xmid < (mesh->x[ic]+mesh->dx[ic])){        
-                   fprintf (fpcut, "%12.6f, %25.16f \n", (mesh->y[ic])+0.5*(mesh->dy[ic]), state->H[ic]);
-               }                                                                      
+          if (xmid >= (mesh->x[ic]) && xmid < (mesh->x[ic]+mesh->dx[ic])){
+             fprintf (fpcut, "%12.6f, %25.16f \n", (mesh->y[ic])+0.5*(mesh->dy[ic]), state->H[ic]);
+          }
        }
        fclose(fpcut);
    }
+
    cpu_time_graphics += cpu_timer_stop(tstart_cpu);
 
    //  Output final results and timing information.

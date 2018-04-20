@@ -1231,8 +1231,6 @@ void State::calc_finite_difference(double deltaT){
       int nt      = ntop[gix];
       int nb      = nbot[gix];
 
-
-
       real_t Hic     = H[gix];
       real_t Uic     = U[gix];
       real_t Vic     = V[gix];
