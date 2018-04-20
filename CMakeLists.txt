@@ -78,7 +78,6 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C++
    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -vec-report3")
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3 -ansi-alias -axmic-AVX512 -xHost -qopenmp-simd")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -290,6 +289,9 @@ endif (NOT GRAPHICS_TYPE)
 
 if (GRAPHICS_TYPE STREQUAL "OpenGL")
    find_package(OpenGL)
+   if (OPENGL_FOUND)
+      find_package(GLUT)
+   endif (OPENGL_FOUND)
 endif (GRAPHICS_TYPE STREQUAL "OpenGL")
 
 # If autodetect does not work try setting MPEHOME or
@@ -304,12 +306,12 @@ endif (GRAPHICS_TYPE STREQUAL "MPE")
 #message("GRAPHICS_TYPE is ${GRAPHICS_TYPE}")
 #message("MPE_INCLUDE is ${MPE_INCLUDE_DIR}")
 
-if (OPENGL_FOUND)
+if (OPENGL_FOUND AND GLUT_FOUND)
    set (HAVE_GRAPHICS on)
    set (HAVE_OPENGL on)
    include_directories(${OPENGL_INCLUDE_DIR})
-   find_package(GLUT)
-endif (OPENGL_FOUND)
+   include_directories(${GLUT_INCLUDE_DIR})
+endif (OPENGL_FOUND AND GLUT_FOUND)
 
 #if(DEFINED ENV{QUO_HOME})
 #   if(EXISTS "$ENV{QUO_HOME}/include/")
