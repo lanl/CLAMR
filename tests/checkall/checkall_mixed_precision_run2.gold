@@ -1,0 +1,168 @@
+Starting compile of kernels in mesh
+Finishing compile of kernels in mesh
+Starting compile of kernels in state
+Finishing compile of kernels in state
+Mass of initialized cells equal to  500812.884335
+Iteration    0 timestep      n/a Sim Time      0.0 cells 66836 Mass Sum  500812.884335
+Iteration  100 timestep 0.000325 Sim Time 0.043606 cells 67652 Mass Sum   500812.88563 Mass Change   0.00129509
+Iteration  200 timestep 0.000315 Sim Time 0.075823 cells 68048 Mass Sum  500812.886566 Mass Change    0.0022316
+Iteration  300 timestep 0.000314 Sim Time 0.107409 cells 68396 Mass Sum  500812.885056 Mass Change  0.000721931
+Iteration  400 timestep 0.000324 Sim Time 0.138971 cells 68768 Mass Sum  500812.884565 Mass Change  0.000230312
+Iteration  500 timestep 0.000321 Sim Time 0.171234 cells 68900 Mass Sum  500812.884804 Mass Change  0.000469446
+Iteration  600 timestep 0.000331 Sim Time 0.204432 cells 68996 Mass Sum  500812.884895 Mass Change  0.000560045
+Iteration  700 timestep 0.000353 Sim Time 0.238722 cells 69152 Mass Sum  500812.883997 Mass Change -0.000337839
+Iteration  800 timestep 0.000374 Sim Time 0.274253 cells 69176 Mass Sum   500812.88284 Mass Change  -0.00149453
+Iteration  900 timestep 0.000385 Sim Time 0.311120 cells 69224 Mass Sum  500812.881613 Mass Change  -0.00272155
+Iteration 1000 timestep 0.000398 Sim Time 0.349395 cells 69188 Mass Sum  500812.879884 Mass Change  -0.00445104
+
+~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
+CPU: Device compute           time was	 13.6875	s
+CPU:   state_timer_set_timestep      		    0.3871	s
+CPU:   state_timer_finite_difference 		   11.5562	s
+CPU:   state_timer_refine_potential  		    0.9402	s
+CPU:     state_timer_calc_mpot         		      0.6830	s
+CPU:     mesh_timer_refine_smooth      		      0.1711	s
+CPU:   state_timer_rezone_all        		    0.2812	s
+CPU:   mesh_timer_partition          		    0.0136	s
+CPU:   mesh_timer_calc_neighbors     		    0.3247	s
+CPU:     mesh_timer_hash_setup         		      0.1982	s
+CPU:     mesh_timer_hash_query         		      0.1260	s
+CPU:   state_timer_mass_sum          		    0.1846	s
+CPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
+=============================================================
+Profiling: Total CPU          time was	 13.6875	s
+-------------------------------------------------------------
+Mesh Ops (Neigh+rezone+smooth+balance) 	  0.7770	s
+Mesh Ops Percentage                    	  5.6764	percent
+=============================================================
+Profiling: Total              time was	 43.6430	s
+Parallel Speed-up:                    	  2.6879	Reference Serial CPU
+=============================================================
+
+~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
+GPU: Write to device          time was	  0.0009	s
+GPU: Read from device         time was	  0.0000	s
+GPU: Device compute           time was	  5.0913	s
+GPU:   state_timer_set_timestep      		    0.5408	s
+GPU:   state_timer_finite_difference 		    2.5597	s
+GPU:   state_timer_refine_potential  		    0.8538	s
+GPU:     state_timer_calc_mpot         		      0.6253	s
+GPU:     mesh_timer_refine_smooth      		      0.2280	s
+GPU:   state_timer_rezone_all        		    0.2831	s
+GPU:   mesh_timer_partition          		    0.0000	s
+GPU:   mesh_timer_calc_neighbors     		    0.2152	s
+GPU:     mesh_timer_hash_setup         		      0.1142	s
+GPU:     mesh_timer_hash_query         		      0.1009	s
+GPU:   state_timer_mass_sum          		    0.6389	s
+GPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
+=============================================================
+Profiling: Total GPU          time was	  5.0922	s
+-------------------------------------------------------------
+Mesh Ops (Neigh+rezone+smooth+balance) 	  0.7263	s
+Mesh Ops Percentage                    	 14.2620	percent
+=============================================================
+Profiling: Total              time was	 43.6430	s
+Parallel Speed-up:                    	  2.6879	Reference Serial CPU
+=============================================================
+
+~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
+
+CPU: Parallel timings
+
+CPU: Device compute           time was	  7.8391	  8.1643	s
+CPU:   state_timer_set_timestep      		    0.2175	    0.2269	s
+CPU:   state_timer_finite_difference 		    6.0347	    6.0113	s
+CPU:   state_timer_refine_potential  		    0.5680	    0.8488	s
+CPU:     state_timer_calc_mpot         		      0.4224	      0.7049	s
+CPU:     mesh_timer_refine_smooth      		      0.1007	      0.0989	s
+CPU:   state_timer_rezone_all        		    0.1460	    0.1465	s
+CPU:   mesh_timer_partition          		    0.0314	    0.0738	s
+CPU:   mesh_timer_calc_neighbors     		    0.7275	    0.7272	s
+CPU:     mesh_timer_hash_setup         		      0.1022	      0.1026	s
+CPU:     mesh_timer_hash_query         		      0.2425	      0.2401	s
+CPU:     mesh_timer_find_boundary      		      0.0757	      0.0760	s
+CPU:     mesh_timer_push_setup         		      0.0131	      0.0144	s
+CPU:     mesh_timer_push_boundary      		      0.0022	      0.0022	s
+CPU:     mesh_timer_local_list         		      0.0000	      0.0000	s
+CPU:     mesh_timer_layer1             		      0.0057	      0.0048	s
+CPU:     mesh_timer_layer2             		      0.0046	      0.0037	s
+CPU:     mesh_timer_layer_list         		      0.0000	      0.0000	s
+CPU:     mesh_timer_copy_mesh_data     		      0.0046	      0.0038	s
+CPU:     mesh_timer_fill_mesh_ghost    		      0.0003	      0.0003	s
+CPU:     mesh_timer_fill_neigh_ghost   		      0.0870	      0.2090	s
+CPU:     mesh_timer_set_corner_neigh   		      0.0000	      0.0000	s
+CPU:     mesh_timer_neigh_adjust       		      0.0203	      0.0200	s
+CPU:     mesh_timer_setup_comm         		      0.1511	      0.0320	s
+CPU:   state_timer_mass_sum          		    0.1132	    0.1289	s
+CPU:   mesh_timer_load_balance       		    0.0002	    0.0002	s
+CPU:   mesh_timer_calc_spatial_coordi		    0.0005	    0.0005	s
+=============================================================
+Profiling: Total CPU          time was	  7.8391	  8.1643	s
+-------------------------------------------------------------
+Mesh Ops (Neigh+rezone+smooth+balance) 	  0.9744	  0.9729	s
+Mesh Ops Percentage                    	 12.4304	 11.9161	percent
+=============================================================
+Profiling: Total              time was	 43.6430	 43.6430	s
+Parallel Speed-up:                    	  2.2033	  2.2237	Reference Serial CPU
+=============================================================
+
+~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
+
+GPU: Parallel timings
+
+GPU: Write to device          time was	  0.0004	  0.0004	s
+GPU: Read from device         time was	  0.0000	  0.0000	s
+GPU: Device compute           time was	  6.2121	  6.2112	s
+GPU:   state_timer_set_timestep      		    0.1980	    0.2066	s
+GPU:   state_timer_finite_difference 		    2.0877	    2.1340	s
+GPU:   state_timer_refine_potential  		    2.0900	    2.0264	s
+GPU:     state_timer_calc_mpot         		      1.1410	      1.0895	s
+GPU:     mesh_timer_refine_smooth      		      0.9488	      0.9367	s
+GPU:   state_timer_rezone_all        		    0.1872	    0.1736	s
+GPU:   mesh_timer_partition          		    0.0000	    0.0000	s
+GPU:   mesh_timer_calc_neighbors     		    1.0845	    1.1080	s
+GPU:     mesh_timer_hash_setup         		      0.2507	      0.2665	s
+GPU:     mesh_timer_hash_query         		      0.0215	      0.0212	s
+GPU:     mesh_timer_find_boundary      		      0.1654	      0.2617	s
+GPU:     mesh_timer_push_setup         		      0.1008	      0.0149	s
+GPU:     mesh_timer_push_boundary      		      0.0424	      0.0188	s
+GPU:     mesh_timer_local_list         		      0.0896	      0.0940	s
+GPU:     mesh_timer_layer1             		      0.0322	      0.0327	s
+GPU:     mesh_timer_layer2             		      0.0583	      0.0597	s
+GPU:     mesh_timer_layer_list         		      0.0414	      0.0505	s
+GPU:     mesh_timer_copy_mesh_data     		      0.0649	      0.0655	s
+GPU:     mesh_timer_fill_mesh_ghost    		      0.0177	      0.0203	s
+GPU:     mesh_timer_fill_neigh_ghost   		      0.0340	      0.0325	s
+GPU:     mesh_timer_set_corner_neigh   		      0.0000	      0.0000	s
+GPU:     mesh_timer_neigh_adjust       		      0.0536	      0.0536	s
+GPU:     mesh_timer_setup_comm         		      0.0831	      0.0847	s
+GPU:   state_timer_mass_sum          		    0.5647	    0.5625	s
+GPU:   mesh_timer_load_balance       		    0.0000	    0.0000	s
+GPU:   mesh_timer_calc_spatial_coordi		    0.0000	    0.0000	s
+=============================================================
+Profiling: Total GPU          time was	  6.2124	  6.2115	s
+-------------------------------------------------------------
+Mesh Ops (Neigh+rezone+smooth+balance) 	  2.2205	  2.2183	s
+Mesh Ops Percentage                    	 35.7426	 35.7122	percent
+=============================================================
+Profiling: Total              time was	 43.6430	 43.6430	s
+Parallel Speed-up:                    	  2.2033	  2.2237	Reference Serial CPU
+=============================================================
+GPU:  graphics                 time was	  0.0000	  0.0000	s
+The MPI surface area to volume ratio 	  0.0160	  0.0160	without duplicates
+Using hash tables to calculate neighbors
+Initial order is Hilbert sort.   No cycle reorder.   Local Stencil is on.
+CPU:  rezone frequency                	  22.7000	percent
+CPU:  calc neigh frequency            	  22.7000	percent
+CPU:  load balance frequency          	   0.0000	percent
+GPU:  rezone frequency                	  22.6000	percent
+GPU:  calc neigh frequency            	  22.6000	percent
+GPU:  load balance frequency          	   0.0000	percent
+GPU:  refine_smooth_iter per rezone   	   0.0000	
+CPU:  rezone frequency global         	  22.6000	percent
+CPU:  calc neigh frequency global     	  22.6000	percent
+CPU:  load balance frequency global   	   0.0000	percent
+GPU:  rezone frequency global         	  22.6000	percent
+GPU:  calc neigh frequency global     	  22.6000	percent
+GPU:  load balance frequency global   	   0.0000	percent
+GPU:  refine_smooth_iter per rezone   	   0.0000	

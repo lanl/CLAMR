@@ -11,6 +11,13 @@ CLAMR_BIN=`dirname ${PWD}`
 if [ -d "${TEST_DIR}" ]; then
    rm -rf "${TEST_DIR}"
 fi
+
+PRECISION_TYPE=$(grep PRECISION_TYPE ${CLAMR_BIN}/CMakeCache.txt | cut -d "=" -f2)
+
+if [ "${PRECISION_TYPE}" != "minimum_precision" ] &&  [ "${PRECISION_TYPE}" != "mixed_precision" ]; then
+  PRECISION_TYPE="full_precision"
+fi
+
 mkdir -p "${TEST_DIR}"
 cd "${TEST_DIR}"
 
@@ -19,6 +26,8 @@ ln -s ${CTS_BIN}/compare_stdout.pl
 ln -s ${CTS_BIN}/cts_diff.pl
 
 set -ex
+
+TEST_NAME="${TEST_NAME}_$PRECISION_TYPE"
 
 mpirun -n 2 ./clamr_checkall -n 128 -i 100 -t 600 >& ${TEST_NAME}_run1.out
 ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
