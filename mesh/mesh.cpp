@@ -2412,8 +2412,16 @@ int Mesh::rezone_count_threaded(vector<int> mpot, int &icount, int &jcount)
       }
    }
    //printf("icount is %d\n",my_icount);
-   icount = my_icount;
-   jcount = my_jcount;
+#ifdef _OPENMP
+#pragma omp master
+#endif
+   {
+      icount = my_icount;
+      jcount = my_jcount;
+   }
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
 
    return(icount+jcount);
 }
