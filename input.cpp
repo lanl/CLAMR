@@ -491,7 +491,7 @@ void parseInput(const int argc, char** argv)
                 case 'z':  // Neighbor remap -- default is true, -z sets to false
                     neighbor_remap = false;
                     break;
-                 
+
                 case 'Z':  // Output cuts -- default is false, -Z sets to true
                     output_cuts = true;
                     break;

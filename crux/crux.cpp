@@ -174,8 +174,8 @@ void Crux::store_MallocPlus(MallocPlus memory){
     malloc_plus_memory_entry *memory_item;
 
     for (memory_item = memory.memory_entry_by_name_begin(); 
-            memory_item != memory.memory_entry_by_name_end();
-            memory_item = memory.memory_entry_by_name_next() ){
+         memory_item != memory.memory_entry_by_name_end();
+         memory_item = memory.memory_entry_by_name_next() ){
 
         void *mem_ptr = memory_item->mem_ptr;
         if ((memory_item->mem_flags & RESTART_DATA) == 0) continue;
