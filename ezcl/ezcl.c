@@ -450,6 +450,7 @@ cl_int ezcl_devtype_init_p(cl_device_type device_type, const char *file, int lin
       }
 #else
       device_appropriate[idevice] = 1;
+      device_selected = idevice;
       idevice_appropriate++;
 #endif
       if (DEVICE_DETECT_DEBUG){
