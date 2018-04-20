@@ -84,9 +84,12 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 if (NOT DEFINED OPENCL_FOUND)
    find_package(OpenCL)
-   #  OPENCL_FOUND        : TRUE if found, FALSE otherwise
-   #  OPENCL_INCLUDE_DIRS : Include directories for OpenCL
-   #  OPENCL_LIBRARIES    : The libraries to link against
+#  OpenCL_FOUND          - True if OpenCL was found
+#  OpenCL_INCLUDE_DIRS   - include directories for OpenCL
+#  OpenCL_LIBRARIES      - link against this library to use OpenCL
+#  OpenCL_VERSION_STRING - Highest supported OpenCL version (eg. 1.2)
+#  OpenCL_VERSION_MAJOR  - The major version of the OpenCL implementation
+#  OpenCL_VERSION_MINOR  - The minor version of the OpenCL implementation
    if (OPENCL_FOUND)
       set(HAVE_CL_DOUBLE ON CACHE BOOL "Have OpenCL Double")
       set(NO_CL_DOUBLE OFF)
