@@ -288,7 +288,9 @@ endif (NOT GRAPHICS_TYPE)
 
 if (GRAPHICS_TYPE STREQUAL "OpenGL")
    find_package(OpenGL)
-   find_package(GLUT)
+   if (OPENGL_FOUND)
+      find_package(GLUT)
+   endif (OPENGL_FOUND)
 endif (GRAPHICS_TYPE STREQUAL "OpenGL")
 
 # If autodetect does not work try setting MPEHOME or
