@@ -3014,11 +3014,11 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    if (have_state){
       flags = RESTART_DATA;
       MallocPlus state_memory_old = state_memory;
-      list<malloc_plus_memory_entry>::iterator memory_item;
+      malloc_plus_memory_entry *memory_item;
 
-      for (memory_item = state_memory_old.memory_entry_begin();
-           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-           memory_item = state_memory_old.memory_entry_next() ) {
+      for (memory_item = state_memory_old.memory_entry_by_name_begin();
+           memory_item != state_memory_old.memory_entry_by_name_end();
+           memory_item = state_memory_old.memory_entry_by_name_next() ) {
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
          if (memory_item->mem_elsize == 8) {
             double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
@@ -3315,9 +3315,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    if (have_state){
 
       static MallocPlus state_memory_old;
-
-      static list<malloc_plus_memory_entry>::iterator memory_next;
-      static list<malloc_plus_memory_entry>::iterator memory_begin;
+      static malloc_plus_memory_entry *memory_begin;
+      static malloc_plus_memory_entry *memory_end;
+      static malloc_plus_memory_entry *memory_next;
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -3326,14 +3326,15 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
       state_memory_old = state_memory;
 
-      memory_begin = state_memory_old.memory_entry_begin();
+      memory_begin = state_memory_old.memory_entry_by_name_begin();
+      memory_end   = state_memory_old.memory_entry_by_name_end();
 #ifdef _OPENMP
       } // end master region
 #pragma omp barrier
 #endif
 
-      for (list<malloc_plus_memory_entry>::iterator memory_item = memory_begin;
-           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
+      for (malloc_plus_memory_entry *memory_item = memory_begin;
+           memory_item != memory_end;
            memory_item = memory_next ) {
          //ref_entry = 0;
          //printf("DEBUG -- memory_item->mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
@@ -3488,7 +3489,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp master
          {
 #endif
-         memory_next = state_memory_old.memory_entry_next();
+         memory_next = state_memory_old.memory_entry_by_name_next();
 #ifdef _OPENMP
          } // end master region
 #pragma omp barrier
@@ -3818,11 +3819,11 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_rezone_all,   1, NULL, &global_work_size, &local_work_size, NULL);
 
    MallocPlus gpu_state_memory_old = gpu_state_memory;
-   list<malloc_plus_memory_entry>::iterator memory_item;
+   malloc_plus_memory_entry *memory_item;
 
-   for (memory_item = gpu_state_memory_old.memory_entry_begin();
-        memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-        memory_item = gpu_state_memory_old.memory_entry_next() ) {
+   for (memory_item = gpu_state_memory_old.memory_entry_by_name_begin();
+        memory_item != gpu_state_memory_old.memory_entry_by_name_end();
+        memory_item = gpu_state_memory_old.memory_entry_by_name_next() ) {
       //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
       cl_mem dev_state_mem_ptr = (cl_mem)memory_item->mem_ptr;
 
@@ -8205,11 +8206,11 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
       if (parallel) flags = LOAD_BALANCE_MEMORY;
 #endif
 
-      list<malloc_plus_memory_entry>::iterator memory_item;
+      malloc_plus_memory_entry *memory_item;
 
-      for (memory_item = state_memory_old.memory_entry_begin();
-           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-           memory_item = state_memory_old.memory_entry_next() ) {
+      for (memory_item = state_memory_old.memory_entry_by_name_begin();
+           memory_item != state_memory_old.memory_entry_by_name_end();
+           memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
          //if (mype == 0) printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
 
@@ -8274,9 +8275,9 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
 
       MallocPlus mesh_memory_old = mesh_memory;
 
-      for (memory_item = mesh_memory_old.memory_entry_begin();
-           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-           memory_item = mesh_memory_old.memory_entry_next() ) {
+      for (memory_item = mesh_memory_old.memory_entry_by_name_begin();
+           memory_item != mesh_memory_old.memory_entry_by_name_end();
+           memory_item = mesh_memory_old.memory_entry_by_name_next() ) {
 
          //if (mype == 0) printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
 
@@ -8443,11 +8444,11 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
       cl_mem dev_state_var_upper = ezcl_malloc(NULL, const_cast<char *>("dev_state_var_upper"), &up_block_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
 
       MallocPlus gpu_state_memory_old = gpu_state_memory;
-      list<malloc_plus_memory_entry>::iterator memory_item;
+      malloc_plus_memory_entry *memory_item;
 
-      for (memory_item = gpu_state_memory_old.memory_entry_begin();
-           memory_item != (list<malloc_plus_memory_entry>::iterator) NULL;
-           memory_item = gpu_state_memory_old.memory_entry_next() ) {
+      for (memory_item = gpu_state_memory_old.memory_entry_by_name_begin();
+           memory_item != gpu_state_memory_old.memory_entry_by_name_end();
+           memory_item = gpu_state_memory_old.memory_entry_by_name_next() ) {
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
          cl_mem dev_state_mem_ptr = (cl_mem)memory_item->mem_ptr;
 

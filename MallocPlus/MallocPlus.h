@@ -53,20 +53,23 @@
 #ifndef MALLOCPLUS_H_
 #define MALLOCPLUS_H_
 
-#include <list>
+#include <map>
+#include <string>
 #include <string.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 
-#define HOST_REGULAR_MEMORY   0x00000
-#define HOST_MANAGED_MEMORY   0x00001
-#define DEVICE_REGULAR_MEMORY 0x00002
-#define INDEX_ARRAY_MEMORY    0x00004
-#define LOAD_BALANCE_MEMORY   0x00008
-#define RESTART_DATA          0x00010
-#define REPLICATED_DATA       0x00020
+#define HOST_REGULAR_MEMORY     0x00000
+#define HOST_MANAGED_MEMORY     0x00001
+#define DEVICE_REGULAR_MEMORY   0x00002
+#define INDEX_ARRAY_MEMORY      0x00004
+#define LOAD_BALANCE_MEMORY     0x00008
+#define RESTART_DATA            0x00010
+#define REPLICATED_DATA         0x00020
+#define DISTRIBUTED_INT_DATA    0x00040
+#define DISTRIBUTED_DOUBLE_DATA 0x00080
 
 #if defined(HAVE_MPI)
 #include "mpi.h"
@@ -109,8 +112,10 @@ struct cmp_str
  *    multi-dimensional arrays
  *******************************************************************/
 class MallocPlus {
-protected:
-   list<malloc_plus_memory_entry> memory_list; //!< Database structure for class
+//protected:
+public:
+   map<string, malloc_plus_memory_entry*> memory_name_dict; //!< Dictionary entries by name
+   map<void*, malloc_plus_memory_entry*> memory_ptr_dict; //!< Dictionary entries by pointer
 
 #if defined(HAVE_MPI) && defined(HAVE_J7)
 private:
@@ -543,35 +548,112 @@ public:
 
 /****************************************************************//**
  * \brief
+ * Gets initial memory pointer from database for iterating over the
+ * entries and processing each.
+ *
+ * Typical Usage
+ *
+ *     for (void *mem_ptr = my_mem.memory_by_name_begin(); mem_ptr!=NULL;
+ *          mem_ptr = my_mem.memory_by_name_next() ){
+ *        ... process entries ...
+ *     }
+ *******************************************************************/
+   void *memory_by_name_begin(void);
+
+/****************************************************************//**
+ * \brief
+ * Gets next memory pointer from database for iterating over the
+ * entries and processing each. Note that their is an implied caching
+ * of the current memory pointer in MallocPlus.
+ *
+ * Typical Usage
+ *
+ *     for (void *mem_ptr = my_mem.memory_by_name_begin(); mem_ptr!=NULL;
+ *          mem_ptr = my_mem.memory_by_name_next() ){
+ *        ... process entries ...
+ *     }
+ *******************************************************************/
+   void *memory_by_name_next(void);
+
+/****************************************************************//**
+ * \brief
+ * Gets initial memory entry from database for iterating over the
+ * entries and processing each.
+ *
+ * Typical Usage
+ *
+ *     malloc_plus_memory_entry memory_item;
+ *     for (memory_item = my_mem.memory_entry_begin(); 
+ *          memory_item != my_mem.memory_entry_end();
+ *          memory_item = my_mem.memory_entry_next() ){
+ *        ... process entries ...
+ *     }
+ *******************************************************************/
+   malloc_plus_memory_entry *memory_entry_begin(void);
+
+/****************************************************************//**
+ * \brief
+ * Gets next memory entry from database for iterating over the
+ * entries and processing each.
+ *
+ * Typical Usage
+ *
+ *     malloc_plus_memory_entry memory_item;
+ *     for (memory_item = my_mem.memory_entry_begin(); 
+ *          memory_item != my_mem.memory_entry_end();
+ *          memory_item = my_mem.memory_entry_next() ){
+ *        ... process entries ...
+ *     }
+ *******************************************************************/
+   malloc_plus_memory_entry *memory_entry_next(void);
+
+/****************************************************************//**
+ * \brief
  * Gets initial memory iterator from database for iterating over the
  * entries and processing each.
  *
  * Typical Usage
  *
- *     list<malloc_plus_memory_entry>::iterator it;
- *     for (it = my_mem.memory_entry_begin(); 
- *          it != my_mem.memory_entry_end();
- *          it = my_mem.memory_entry_next() ){
+ *     malloc_plus_memory_entry *memory_item;
+ *     for (memory_item = my_mem.memory_entry_begin(); 
+ *          memory_item != my_mem.memory_entry_end();
+ *          memory_item = my_mem.memory_entry_next() ){
  *        ... process entries ...
  *     }
  *******************************************************************/
-   list<malloc_plus_memory_entry>::iterator memory_entry_begin(void);
+   malloc_plus_memory_entry *memory_entry_end(void);
 
 /****************************************************************//**
  * \brief
- * Gets next memory iterator from database for iterating over the
+ * Gets initial memory entry from name database for iterating over the
  * entries and processing each.
  *
  * Typical Usage
  *
- *     list<malloc_plus_memory_entry>::iterator it;
- *     for (it = my_mem.memory_entry_begin(); 
- *          it != my_mem.memory_entry_end();
- *          it = my_mem.memory_entry_next() ){
+ *     malloc_plus_memory_entry memory_item;
+ *     for (memory_item = my_mem.memory_entry_by_name_begin(); 
+ *          memory_item != my_mem.memory_entry_by_name_end();
+ *          memory_item = my_mem.memory_entry_by_name_next() ){
  *        ... process entries ...
  *     }
  *******************************************************************/
-   list<malloc_plus_memory_entry>::iterator memory_entry_next(void);
+   malloc_plus_memory_entry *memory_entry_by_name_begin(void);
+
+/****************************************************************//**
+ * \brief
+ * Gets next memory entry from database for iterating over the
+ * entries and processing each.
+ *
+ * Typical Usage
+ *
+ *     malloc_plus_memory_entry memory_item;
+ *     for (memory_item = my_mem.memory_entry_by_name_begin(); 
+ *          memory_item != my_mem.memory_entry_by_name_end();
+ *          memory_item = my_mem.memory_entry_by_name_next() ){
+ *        ... process entries ...
+ *     }
+ *******************************************************************/
+   malloc_plus_memory_entry *memory_entry_by_name_next(void);
 
 /****************************************************************//**
  * \brief
@@ -580,14 +662,14 @@ public:
  *
  * Typical Usage
  *
- *     list<malloc_plus_memory_entry>::iterator it;
- *     for (it = my_mem.memory_entry_begin(); 
- *          it != my_mem.memory_entry_end();
- *          it = my_mem.memory_entry_next() ){
+ *     malloc_plus_memory_entry *memory_item;
+ *     for (memory_item = my_mem.memory_entry_by_name_begin(); 
+ *          memory_item != my_mem.memory_entry_by_name_end();
+ *          memory_item = my_mem.memory_entry_by_name_next() ){
  *        ... process entries ...
  *     }
  *******************************************************************/
-   list<malloc_plus_memory_entry>::iterator memory_entry_end(void);
+   malloc_plus_memory_entry *memory_entry_by_name_end(void);
 
 /****************************************************************//**
  * \brief
