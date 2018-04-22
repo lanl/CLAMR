@@ -4024,11 +4024,7 @@ void Mesh::calc_neighbors(int ncells)
 
          int *hash;
 
-#ifdef _OPENMP
-         hash = compact_hash_init_openmp(ncells, imaxsize, jmaxsize, 0);
-#else
-         hash = compact_hash_init(ncells, imaxsize, jmaxsize, 1);
-#endif
+         hash = compact_hash_init(ncells, imaxsize, jmaxsize, 0);
 
 #ifdef _OPENMP
 #pragma omp for
@@ -4383,11 +4379,7 @@ void Mesh::calc_neighbors_local(void)
 
       static int *hash;
 
-#ifdef _OPENMP
-      hash = compact_hash_init_openmp(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
-#else
-      hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 1);
-#endif
+      hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
 
       //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);
 
@@ -8200,11 +8192,6 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
 
       MallocPlus state_memory_old = state_memory;
 
-      int flags = 0;
-      flags = RESTART_DATA;
-#ifdef HAVE_J7
-      if (parallel) flags = LOAD_BALANCE_MEMORY;
-#endif
 
       malloc_plus_memory_entry *memory_item;
 
