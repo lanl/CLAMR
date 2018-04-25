@@ -3777,20 +3777,11 @@ void State::store_checkpoint(Crux *crux)
    //state_memory.memory_add(cpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_cpu_timers", RESTART_DATA);
    //state_memory.memory_add(gpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_gpu_timers", RESTART_DATA);
 
-   //crux->store_MallocPlus(state_memory);
    crux->store_replicated_int_array(int_vals, num_int_vals);
    crux->store_double_array(cpu_timers, STATE_TIMER_SIZE);
    crux->store_long_array(gpu_timers, STATE_TIMER_SIZE);
 
-#ifdef FULL_PRECISION
-   crux->store_double_array(H, mesh->ncells);
-   crux->store_double_array(U, mesh->ncells);
-   crux->store_double_array(V, mesh->ncells);
-#else
-   crux->store_float_array(H, mesh->ncells);
-   crux->store_float_array(U, mesh->ncells);
-   crux->store_float_array(V, mesh->ncells);
-#endif
+   crux->store_MallocPlus(state_memory);
 
    // Remove from database after checkpoint is stored
    //state_memory.memory_remove(int_vals);
@@ -3818,25 +3809,18 @@ void State::restore_checkpoint(Crux *crux)
    //state_memory.memory_add(gpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_gpu_timers", RESTART_DATA);
 
    // Restore memory database
-   //crux->restore_MallocPlus(state_memory);
    crux->restore_replicated_int_array(int_vals, num_int_vals);
    crux->restore_double_array(cpu_timers, STATE_TIMER_SIZE);
    crux->restore_long_array(gpu_timers, STATE_TIMER_SIZE);
 
-   state_memory.memory_delete(H);
-   state_memory.memory_delete(U);
-   state_memory.memory_delete(V);
-   allocate(mesh->ncells);
+// Are these memory resizing statements needed?
 
-#ifdef FULL_PRECISION
-   crux->restore_double_array(H, mesh->ncells);
-   crux->restore_double_array(U, mesh->ncells);
-   crux->restore_double_array(V, mesh->ncells);
-#else
-   crux->restore_float_array(H, mesh->ncells);
-   crux->restore_float_array(U, mesh->ncells);
-   crux->restore_float_array(V, mesh->ncells);
-#endif
+// state_memory.memory_delete(H);
+// state_memory.memory_delete(U);
+// state_memory.memory_delete(V);
+// allocate(mesh->ncells);
+
+   crux->restore_MallocPlus(state_memory);
 
    // Check version number
    if (int_vals[ 0] != CRUX_STATE_VERSION) {
