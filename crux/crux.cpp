@@ -170,7 +170,6 @@ Crux::~Crux()
 }
 
 void Crux::store_MallocPlus(MallocPlus memory){
-#ifdef XXX
     malloc_plus_memory_entry *memory_item;
 
     for (memory_item = memory.memory_entry_by_name_begin(); 
@@ -232,7 +231,6 @@ void Crux::store_MallocPlus(MallocPlus memory){
 #ifdef HAVE_HDF5   
     }
 #endif   
-#endif
 }
 
 void Crux::store_begin(size_t nsize, int ncycle)
@@ -669,7 +667,6 @@ void Crux::store_end(void)
 int restore_type = RESTORE_NONE;
 
 void Crux::restore_MallocPlus(MallocPlus memory){
-#ifdef XXX
     char test_name[34];
     malloc_plus_memory_entry *memory_item;
     for (memory_item = memory.memory_entry_by_name_begin(); 
@@ -734,7 +731,6 @@ void Crux::restore_MallocPlus(MallocPlus memory){
 #ifdef HAVE_HDF5
     }
 #endif    
-#endif
 }
 
 void Crux::restore_begin(char *restart_file, int rollback_counter)
