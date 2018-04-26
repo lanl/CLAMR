@@ -126,6 +126,11 @@ static const char *state_timer_descriptor[STATE_TIMER_SIZE] = {
    "state_timer_write"
 };
 
+const int CRUX_STATE_VERSION = 102;
+const int num_int_vals       = 1;
+
+int int_vals[num_int_vals] = {CRUX_STATE_VERSION};
+
 #ifdef HAVE_OPENCL
 #include "state_kernel.inc"
 #endif
@@ -3746,9 +3751,6 @@ void State::print(void)
    fflush(mesh->fp);
 }
 
-const int CRUX_STATE_VERSION = 102;
-const int num_int_vals       = 1;
-
 size_t State::get_checkpoint_size(void)
 {
 #ifdef FULL_PRECISION
@@ -3769,8 +3771,8 @@ void State::store_checkpoint(Crux *crux)
 
 //#ifndef HAVE_MPI
    // Load up scalar values
-   int int_vals[num_int_vals];
-   int_vals[0] = CRUX_STATE_VERSION;
+   //int int_vals[num_int_vals];
+   //int_vals[0] = CRUX_STATE_VERSION;
 
    // Add to memory database for storing checkpoint
    //state_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "state_int_vals", RESTART_DATA | REPLICATED_DATA);
@@ -3797,8 +3799,8 @@ void State::restore_checkpoint(Crux *crux)
    mesh->restore_checkpoint(crux);
    crux->restore_named_ints("storage", 7, &storage, 1);
 
-   // Create memory for restoring data into
-   int int_vals[num_int_vals];
+   // Clear memory for restoring data into
+   int_vals[0] = 0;
 
    // allocate is a state method
    allocate(storage);
