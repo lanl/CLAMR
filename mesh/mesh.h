@@ -152,6 +152,8 @@ enum neighbor_calc
 {  HASH_TABLE,                  //  Hash Table.
    KDTREE };                    //  kD-tree.
 
+#define REZONE_DATA             0x00100
+
 enum mesh_timers
 {
    MESH_TIMER_COUNT_BCS,

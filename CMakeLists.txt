@@ -41,7 +41,7 @@ elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
      set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -fno-strict-aliasing -ftree-vectorize")
    endif ()
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
-   # using Intel C++
+   # using Intel C
    #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")

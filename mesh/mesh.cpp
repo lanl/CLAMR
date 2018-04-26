@@ -3020,6 +3020,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
            memory_item != state_memory_old.memory_entry_by_name_end();
            memory_item = state_memory_old.memory_entry_by_name_next() ) {
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+
+         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
+
          if (memory_item->mem_elsize == 8) {
             double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
                                                                              "state_temp_double", flags);
@@ -3338,6 +3341,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
            memory_item = memory_next ) {
          //ref_entry = 0;
          //printf("DEBUG -- memory_item->mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+
+         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
+
          if (memory_item->mem_elsize == 8) {
 
             static double *state_temp_double, *mem_ptr_double;
