@@ -98,33 +98,13 @@ map<string, malloc_plus_memory_entry*, cmp_str>::iterator it_save_by_name, it_en
 void
 MallocPlus::pinit(MPI_Comm smComm, std::size_t memPoolSize)
 {
-#if defined(HAVE_J7)
-    try {
-        j7 = new J7(smComm, memPoolSize);
-    }
-    catch(...) {
-        std::cerr << "*** pinit failure ***" << std::endl;
-        throw;
-    }
-#else
     // Just to suppress compiler warnings
     if (WARNING_SUPPRESSION) printf("DEBUG memPoolSize = %lu smComm = %p\n",memPoolSize,smComm);
-#endif
 }
 
 void
 MallocPlus::pfini(void)
 {
-#if defined(HAVE_J7)
-    try {
-        delete j7;
-        j7 = NULL;
-    }
-    catch(...) {
-        std::cerr << "*** pfini failure ***" << std::endl;
-        throw;
-    }
-#endif
 }
 #endif // if defined(HAVE_MPI)
 
@@ -150,13 +130,6 @@ void *MallocPlus::memory_malloc(size_t nelem, size_t elsize, const char *name, i
       memory_item->mem_capacity = 2 * nelem;
       memory_item->mem_ptr      = malloc(2* nelem*elsize);
    }
-#ifdef HAVE_J7
-   // experimental shared memory allocation
-   else if (flags & LOAD_BALANCE_MEMORY) {
-      memory_item->mem_capacity = nelem;
-      memory_item->mem_ptr      = j7->memAlloc(nelem * elsize);
-   }
-#endif
    // Just regular memory allocation
    else {
       memory_item->mem_capacity = nelem;
@@ -207,14 +180,6 @@ void *MallocPlus::memory_realloc(size_t nelem, void *malloc_mem_ptr){
             memory_item->mem_nelem[0] = nelem;
          }
       }
-#ifdef HAVE_J7
-      else if (memory_item->mem_flags & LOAD_BALANCE_MEMORY) {
-         mem_ptr = j7->memRealloc(memory_item->mem_ptr, nelem * memory_item->mem_elsize);
-         memory_item->mem_capacity = nelem;
-         memory_item->mem_nelem[0] = nelem;
-         memory_item->mem_ptr      = mem_ptr;
-      }
-#endif
       else {
          mem_ptr=realloc(memory_item->mem_ptr, nelem*memory_item->mem_elsize);
          memory_item->mem_capacity = nelem;
@@ -258,14 +223,6 @@ void *MallocPlus::memory_realloc(size_t nelem, const char *name){
             memory_item->mem_nelem[0] = nelem;
          }
       }
-#ifdef HAVE_J7
-      else if (memory_item->mem_flags & LOAD_BALANCE_MEMORY) {
-         mem_ptr = j7->memRealloc(memory_item->mem_ptr, nelem * memory_item->mem_elsize);
-         memory_item->mem_capacity = nelem;
-         memory_item->mem_nelem[0] = nelem;
-         memory_item->mem_ptr      = mem_ptr;
-      }
-#endif
       else {
          //memory_name_dict.erase(it);
          mem_ptr=realloc(memory_item->mem_ptr, nelem*memory_item->mem_elsize);
@@ -281,6 +238,59 @@ void *MallocPlus::memory_realloc(size_t nelem, const char *name){
    }
 
    return(mem_ptr);
+}
+
+void MallocPlus::memory_realloc(size_t nelem, int flag){
+   // Need a copy of the dictionary since we will be modifying while being used
+   map <void *, malloc_plus_memory_entry*> memory_ptr_dict_old = memory_ptr_dict;
+
+   // Need iterators to both new and old; new will be modified during the loop
+   map<void *, malloc_plus_memory_entry*>::iterator it_old;
+   map<void *, malloc_plus_memory_entry*>::iterator it_new;
+   void *mem_ptr=NULL;
+
+   for ( it_old=memory_ptr_dict_old.begin(); it_old != memory_ptr_dict_old.end(); it_old++){
+      // Get the memory entry for the old dictionary
+      malloc_plus_memory_entry *memory_item = it_old->second;
+
+      if (memory_item->mem_flags & HOST_MANAGED_MEMORY) {
+         // Get the iterator to the new dictionary by memory pointer and delete it
+         //   since it will probably change
+         // The dictionary by name does not need to be updated
+         it_new = memory_ptr_dict.find(memory_item->mem_ptr);
+         memory_ptr_dict.erase(it_new);
+
+         if (nelem > memory_item->mem_capacity) {
+            mem_ptr=realloc(memory_item->mem_ptr, nelem*memory_item->mem_elsize);
+            if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC_FLAG: DEBUG -- reallocated memory pointer %p new pointer %p\n",memory_item->mem_ptr,mem_ptr);
+            memory_item->mem_capacity = nelem;
+            memory_item->mem_nelem[0] = nelem;
+            memory_item->mem_ptr      = mem_ptr;
+         } else {
+            memory_item->mem_nelem[0] = nelem;
+         }
+
+         //Insert the entry back into the dictionary
+         memory_ptr_dict.insert(std::pair<void*, malloc_plus_memory_entry*>(mem_ptr, memory_item) );
+      }
+      else if (memory_item->mem_flags & flag) {
+         // Get the iterator to the new dictionary by memory pointer and delete it
+         //   since it will probably change
+         // The dictionary by name does not need to be updated
+         it_new = memory_ptr_dict.find(memory_item->mem_ptr);
+         memory_ptr_dict.erase(it_new);
+
+         mem_ptr=realloc(memory_item->mem_ptr, nelem*memory_item->mem_elsize);
+         if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC_FLAG: DEBUG -- reallocated memory pointer %p new pointer %p\n",memory_item->mem_ptr,mem_ptr);
+         memory_item->mem_capacity = nelem;
+         memory_item->mem_nelem[0] = nelem;
+         memory_item->mem_ptr      = mem_ptr;
+
+         //Insert the entry back into the dictionary
+         memory_ptr_dict.insert(std::pair<void*, malloc_plus_memory_entry*>(mem_ptr, memory_item) );
+      }
+
+   }
 }
 
 void *MallocPlus::memory_request(size_t new_capacity, void *malloc_mem_ptr){
@@ -355,14 +365,6 @@ void MallocPlus::memory_realloc_all(size_t nelem){
             memory_item->mem_nelem[0] = nelem;
          }
       }
-#ifdef HAVE_J7
-      else if (it->mem_flags & LOAD_BALANCE_MEMORY) {
-         mem_ptr = j7->memRealloc(memory_item->mem_ptr, nelem * memory_item->mem_elsize);
-         memory_item->mem_capacity = nelem;
-         memory_item->mem_nelem[0] = nelem;
-         memory_item->mem_ptr      = mem_ptr;
-      }
-#endif
       else {
          mem_ptr=realloc(memory_item->mem_ptr, nelem*memory_item->mem_elsize);
          if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC_ALL: DEBUG -- reallocated memory pointer %p new pointer %p\n",memory_item->mem_ptr,mem_ptr);
@@ -666,11 +668,6 @@ void *MallocPlus::memory_delete(void *malloc_mem_ptr){
          ezcl_device_memory_delete(memory_item->mem_ptr);
 #endif
       }
-#ifdef HAVE_J7
-      else if (memory_item->mem_flags & LOAD_BALANCE_MEMORY) {
-         j7->memFree(memory_item->mem_ptr);
-      }
-#endif
       else {
          free(memory_item->mem_ptr);
       }
@@ -705,11 +702,6 @@ void *MallocPlus::memory_delete(const char *name){
          ezcl_device_memory_delete(memory_item->mem_ptr);
 #endif
       }
-#ifdef HAVE_J7
-      else if (memory_item->mem_flags & LOAD_BALANCE_MEMORY) {
-         j7->memFree(memory_item->mem_ptr);
-      }
-#endif
       else {
          free(memory_item->mem_ptr);
       }
@@ -976,12 +968,6 @@ void *MallocPlus::memory_replace(void *malloc_mem_ptr_old, void * const malloc_m
          ezcl_device_memory_replace(&memory_item_old->mem_ptr, &memory_item_new->mem_ptr);
 #endif
       }
-#ifdef HAVE_J7
-      else if (memory_item->mem_flags & LOAD_BALANCE_MEMORY) {
-         j7->memFree(memory_item_old->mem_ptr);
-         memory_item_old->mem_ptr      = memory_item_new->mem_ptr;
-      }
-#endif
       else {
          free(memory_item_old->mem_ptr);
          memory_item_old->mem_ptr      = memory_item_new->mem_ptr;

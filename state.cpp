@@ -225,6 +225,9 @@ inline real_t w_corrector(
 
 State::State(Mesh *mesh_in)
 {
+   state_memory.memory_add(int_vals,   (size_t)num_int_vals,     4, "state_int_vals",   RESTART_DATA | REPLICATED_DATA);
+   state_memory.memory_add(cpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_cpu_timers", RESTART_DATA);
+   state_memory.memory_add(gpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_gpu_timers", RESTART_DATA);
    for (int i = 0; i < STATE_TIMER_SIZE; i++){
       cpu_timers[i] = 0.0;
    }
@@ -286,10 +289,8 @@ void State::init(int do_gpu_calc)
 void State::allocate(size_t ncells)
 {
    int flags = 0;
-   flags = RESTART_DATA | REZONE_DATA;
-#ifdef HAVE_J7
-   if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
-#endif
+   flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
+   //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
 
    H = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), "H", flags);
    U = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), "U", flags);
@@ -320,6 +321,9 @@ void State::terminate(void)
    state_memory.memory_delete(H);
    state_memory.memory_delete(U);
    state_memory.memory_delete(V);
+   state_memory.memory_remove(int_vals);
+   state_memory.memory_remove(cpu_timers);
+   state_memory.memory_remove(gpu_timers);
 
 #ifdef HAVE_OPENCL
    ezcl_device_memory_delete(dev_deltaT);
@@ -1196,10 +1200,8 @@ void State::calc_finite_difference(double deltaT){
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
    int flags = 0;
-   flags = RESTART_DATA | REZONE_DATA;
-#if defined (HAVE_J7)
-   if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
-#endif
+   flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
+   //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
 
 #ifdef _OPENMP
 #pragma omp master
@@ -1815,10 +1817,8 @@ void State::calc_finite_difference_via_faces(double deltaT){
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
    int flags = 0;
-   flags = RESTART_DATA | REZONE_DATA;
-#if defined (HAVE_J7)
-   if (mesh->parallel) flags = LOAD_BALANCE_MEMORY;
-#endif
+   flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
+   //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -3767,61 +3767,28 @@ void State::store_checkpoint(Crux *crux)
 {
    // Store mesh data first
    mesh->store_checkpoint(crux);
-   crux->store_named_ints("storage", 7, (int*)&mesh->ncells, 1);
-
-//#ifndef HAVE_MPI
-   // Load up scalar values
-   //int int_vals[num_int_vals];
-   //int_vals[0] = CRUX_STATE_VERSION;
-
-   // Add to memory database for storing checkpoint
-   state_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "state_int_vals", RESTART_DATA | REPLICATED_DATA);
-   state_memory.memory_add(cpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_cpu_timers", RESTART_DATA);
-   state_memory.memory_add(gpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_gpu_timers", RESTART_DATA);
-
-   //crux->store_replicated_int_array(int_vals, num_int_vals);
-   //crux->store_double_array(cpu_timers, STATE_TIMER_SIZE);
-   //crux->store_long_array(gpu_timers, STATE_TIMER_SIZE);
 
    crux->store_MallocPlus(state_memory);
-
-   // Remove from database after checkpoint is stored
-   state_memory.memory_remove(int_vals);
-   state_memory.memory_remove(cpu_timers);
-   state_memory.memory_remove(gpu_timers);
-//#endif
 }
 
 void State::restore_checkpoint(Crux *crux)
 {
-   int storage;
    // Restore mesh data first
    mesh->restore_checkpoint(crux);
-   crux->restore_named_ints("storage", 7, &storage, 1);
 
    // Clear memory for restoring data into
    int_vals[0] = 0;
 
    // allocate is a state method
-   allocate(storage);
-
-   // Add to memory database for restoring checkpoint
-   state_memory.memory_add(int_vals, (size_t)num_int_vals, 4, "state_int_vals", RESTART_DATA | REPLICATED_DATA);
-   state_memory.memory_add(cpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_cpu_timers", RESTART_DATA);
-   state_memory.memory_add(gpu_timers, (size_t)STATE_TIMER_SIZE, 8, "state_gpu_timers", RESTART_DATA);
-
-   // Restore memory database
-   //crux->restore_replicated_int_array(int_vals, num_int_vals);
-   //crux->restore_double_array(cpu_timers, STATE_TIMER_SIZE);
-   //crux->restore_long_array(gpu_timers, STATE_TIMER_SIZE);
-
 // Are these memory resizing statements needed?
 
-// state_memory.memory_delete(H);
-// state_memory.memory_delete(U);
-// state_memory.memory_delete(V);
-// allocate(mesh->ncells);
+   state_memory.memory_delete(H);
+   state_memory.memory_delete(U);
+   state_memory.memory_delete(V);
+   allocate(mesh->ncells);
+   //allocate(storage);
 
+   // Restore memory database
    crux->restore_MallocPlus(state_memory);
 
    // Check version number
@@ -3855,12 +3822,7 @@ void State::restore_checkpoint(Crux *crux)
    }
 #endif
 
-   state_memory.memory_remove(int_vals);
-   state_memory.memory_remove(cpu_timers);
-   state_memory.memory_remove(gpu_timers);
-   
    memory_reset_ptrs();
-//#endif
 }
 
 // Added overloaded print to get mesh information to print in each cycle

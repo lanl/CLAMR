@@ -3025,7 +3025,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
          if (memory_item->mem_elsize == 8) {
             double *state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
-                                                                             "state_temp_double", flags);
+                                                                             "state_temp_double", memory_item->mem_flags);
 
             double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
@@ -3076,7 +3076,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             state_memory.memory_replace(mem_ptr_double, state_temp_double);
          } else if (memory_item->mem_elsize == 4) {
             float *state_temp_float = (float *)state_memory.memory_malloc(new_ncells, sizeof(float),
-                                                                          "state_temp_float", flags);
+                                                                          "state_temp_float", memory_item->mem_flags);
 
             float *mem_ptr_float = (float *)memory_item->mem_ptr;
 
@@ -3339,10 +3339,23 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
       for (malloc_plus_memory_entry *memory_item = memory_begin;
            memory_item != memory_end;
            memory_item = memory_next ) {
+
          //ref_entry = 0;
          //printf("DEBUG -- memory_item->mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
 
-         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
+         if ( (memory_item->mem_flags & REZONE_DATA) == 0) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+            memory_next = state_memory_old.memory_entry_by_name_next();
+#ifdef _OPENMP
+         } // end master region
+#pragma omp barrier
+#endif
+            continue;
+         }
 
          if (memory_item->mem_elsize == 8) {
 
@@ -8194,7 +8207,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
 
       //printf("\n%d: DEBUG load balance report\n",mype);
 
-      state_memory.memory_realloc_all(ncells_old+indices_needed_count);
+      state_memory.memory_realloc(ncells_old+indices_needed_count,LOAD_BALANCE_MEMORY);
 
       MallocPlus state_memory_old = state_memory;
 
@@ -8207,6 +8220,8 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
 
          //if (mype == 0) printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
 
+         if ( (memory_item->mem_flags & LOAD_BALANCE_MEMORY) == 0) continue;
+
          if (memory_item->mem_elsize == 8) {
             double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
@@ -8214,7 +8229,7 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
             double *state_temp_double = (double *) state_memory.memory_malloc(ncells, sizeof(double),
                                                                               "state_temp_double", flags);
 
-            //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr);
+            //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,memory_item->mem_ptr);
             L7_Update(mem_ptr_double, L7_DOUBLE, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {

@@ -194,6 +194,20 @@ public:
 
 /****************************************************************//**
  * \brief
+ * Reallocates memory for all arrays with flag
+ *
+ * **Parameters**
+ * * size_t nelem -- number of elements for new allocation
+ * * int flags -- arrays with flag to reallocate
+ *
+ * Typical Usage
+ *
+ *     my_mem->memory_realloc(new_ncells, LOAD_BALANCE_MEMORY);
+ *******************************************************************/
+    void memory_realloc(size_t nelem, const int name);
+
+/****************************************************************//**
+ * \brief
  * Request memory buffer capacity reallocation for memory pointer in database.
  * This only changes the capacity for managed memory and does not change
  * the current number of elements registered for the array.
