@@ -304,7 +304,12 @@ void Crux::store_field_header(const char *name, int name_size){
 
 #else
    assert(name != NULL && store_fp != NULL);
-   fwrite(name,sizeof(char),name_size,store_fp);
+   char str[name_size+1];
+   for (int i = 0; i< name_size+1; i++){
+     str[i] = ' ';
+   }
+   strncpy(str,name,30);
+   fwrite(str,sizeof(char),name_size,store_fp);
 #endif
 }
 
@@ -499,6 +504,11 @@ void Crux::store_int_array(int *int_array, size_t nelem)
      lsum += int_array[i];
    }
    printf("%d:Wrote %d integers with sum %lld at line %d in file %s\n",mype,count,lsum,__LINE__,__FILE__);
+   if (DEBUG_RESTORE_VALS >= 2) {
+     for (int i=0; i<nelem; i++){
+       printf("%d: elem %d value %d\n",mype,i,int_array[i]);
+     }
+   }
 #endif
 
 #else
@@ -551,6 +561,11 @@ void Crux::store_double_array(double *double_array, size_t nelem)
      sum += double_array[i];
    }
    printf("%d:Wrote %d doubles with sum of %lf at line %d in file %s\n",mype,count,sum,__LINE__,__FILE__);
+   if (DEBUG_RESTORE_VALS >= 2) {
+     for (int i=0; i<nelem; i++){
+        printf("%d: elem %d value %lf\n",mype,i,double_array[i]);
+     }
+   }
 #endif
 
 #else
@@ -597,6 +612,11 @@ void Crux::store_replicated_double_array(double *double_array, size_t nelem)
      sum += double_array[i];
    }
    printf("%d:Wrote %d replicated doubles with sum %lf at line %d in file %s\n",mype,count,sum,__LINE__,__FILE__);
+   if (DEBUG_RESTORE_VALS >= 2) {
+     for (int i=0; i<nelem; i++){
+       printf("%d: elem %d value %lf\n",mype,i,double_array[i]);
+     }
+   }
 #endif
 
 #else
@@ -865,6 +885,11 @@ int *Crux::restore_int_array(int *int_array, size_t nelem)
      lsum += int_array[i];
    }
    printf("%d:Read %d integers with sum %lld at line %d in file %s\n",mype,count,lsum,__LINE__,__FILE__);
+   if (DEBUG_RESTORE_VALS >= 2) {
+     for (int i=0; i<nelem; i++){
+       printf("%d: elem %d value %d\n",mype,i,int_array[i]);
+     }
+   }
 #endif
 
 #else
@@ -925,6 +950,11 @@ double *Crux::restore_double_array(double *double_array, size_t nelem)
      sum += double_array[i];
    }
    printf("%d:Read %d doubles with sum of %lf at line %d in file %s\n",mype,count,sum,__LINE__,__FILE__);
+   if (DEBUG_RESTORE_VALS >= 2) {
+     for (int i=0; i<nelem; i++){
+       printf("%d: elem %d value %lf\n",mype,i,double_array[i]);
+     }
+   }
 #endif
   
 #else
@@ -976,6 +1006,11 @@ double *Crux::restore_replicated_double_array(double *double_array, size_t nelem
      sum += double_array[i];
    }
    printf("%d:Read %d replicated doubles with sum %lf at line %d in file %s\n",mype,count,sum,__LINE__,__FILE__);
+   if (DEBUG_RESTORE_VALS >= 2) {
+     for (int i=0; i<nelem; i++){
+       printf("%d: elem %d value %lf\n",mype,i,double_array[i]);
+     }
+   }
 #endif
   
 #else
