@@ -3780,18 +3780,12 @@ void State::restore_checkpoint(Crux *crux)
    int_vals[0] = 0;
 
    // allocate is a state method
-// Are these memory resizing statements needed?
 
    state_memory.memory_delete(H);
    state_memory.memory_delete(U);
    state_memory.memory_delete(V);
-   if (mesh->parallel) {
-     allocate(mesh->ncells_ghost);
-   } else {
-     allocate(mesh->ncells);
-   }
+   allocate(mesh->ncells);
    memory_reset_ptrs();
-   //allocate(storage);
 
    // Restore memory database
    crux->restore_MallocPlus(state_memory);

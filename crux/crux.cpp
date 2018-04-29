@@ -291,10 +291,16 @@ void Crux::store_begin(size_t nsize, int ncycle)
 }
 
 void Crux::store_field_header(const char *name, int name_size){
-#ifdef HAVE_MPI
    assert(name != NULL);
+   char *str;
+   str = (char *)malloc(30+1*sizeof(char));
+   for (int i = 0; i< name_size+1; i++){
+     str[i] = ' ';
+   }
+   str = strncpy(str,name,30);
+#ifdef HAVE_MPI
    MPI_Status status;
-   MPI_File_write_shared(mpi_store_fp, (void *)name, name_size, MPI_CHAR, &status);
+   MPI_File_write_shared(mpi_store_fp, (void *)str, name_size, MPI_CHAR, &status);
    MPI_Barrier(MPI_COMM_WORLD);
 #ifdef DEBUG_RESTORE_VALS
    int count;
@@ -303,9 +309,10 @@ void Crux::store_field_header(const char *name, int name_size){
 #endif
 
 #else
-   assert(name != NULL && store_fp != NULL);
-   fwrite(name,sizeof(char),name_size,store_fp);
+   assert(store_fp != NULL);
+   fwrite(str,sizeof(char),name_size,store_fp);
 #endif
+   free(str);
 }
 
 #ifdef HAVE_HDF5
