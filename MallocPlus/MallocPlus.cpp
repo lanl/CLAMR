@@ -655,6 +655,7 @@ void MallocPlus::memory_report(void){
 }
 
 void *MallocPlus::memory_delete(void *malloc_mem_ptr){
+   if (malloc_mem_ptr == NULL) return(NULL);
    map <void *, malloc_plus_memory_entry*>::iterator it = memory_ptr_dict.find(malloc_mem_ptr);
 
    if (it != memory_ptr_dict.end()){

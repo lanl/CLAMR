@@ -3785,7 +3785,12 @@ void State::restore_checkpoint(Crux *crux)
    state_memory.memory_delete(H);
    state_memory.memory_delete(U);
    state_memory.memory_delete(V);
-   allocate(mesh->ncells);
+   if (mesh->parallel) {
+     allocate(mesh->ncells_ghost);
+   } else {
+     allocate(mesh->ncells);
+   }
+   memory_reset_ptrs();
    //allocate(storage);
 
    // Restore memory database

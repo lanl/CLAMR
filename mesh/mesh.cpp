@@ -10207,7 +10207,7 @@ void Mesh::store_checkpoint(Crux *crux)
 {
    // Need ncells for memory allocation
    int storage = mesh_memory.get_memory_capacity(level);
-   crux->store_named_ints("storage", 7, &storage, 1);
+   crux->store_named_ints("storage", 8, &storage, 1);
    // Write scalars to arrays for storing in checkpoint
    int int_vals[num_int_vals];
 
@@ -10243,7 +10243,7 @@ void Mesh::store_checkpoint(Crux *crux)
    //crux->store_MallocPlus(mesh_memory);
    crux->store_int_array(int_dist_vals, num_int_dist_vals);
    crux->store_replicated_int_array(int_vals, num_int_vals);
-   crux->store_replicated_double_array(double_vals, num_double_vals);
+   crux->store_double_array(double_vals, num_double_vals);
    crux->store_int_array(cpu_counters, MESH_COUNTER_SIZE);
    crux->store_int_array(gpu_counters, MESH_COUNTER_SIZE);
 
@@ -10267,7 +10267,7 @@ void Mesh::store_checkpoint(Crux *crux)
 void Mesh::restore_checkpoint(Crux *crux)
 {
    int storage;
-   crux->restore_named_ints("storage", 7, &storage, 1);
+   crux->restore_named_ints("storage", 8, &storage, 1);
 
    // Create memory for reading data into
    int int_dist_vals[num_int_dist_vals];
@@ -10288,8 +10288,8 @@ void Mesh::restore_checkpoint(Crux *crux)
 
    // Resize is a mesh method
    // resize(storage);
-   // memory_reset_ptrs();
-   //allocate (storage);
+   allocate (storage);
+   memory_reset_ptrs();
    
    //int flags = RESTART_DATA;
    // Now add memory entries to database for restoring checkpoint

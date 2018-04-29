@@ -186,9 +186,9 @@ public:
    MallocPlus state_memory;
    MallocPlus gpu_state_memory;
    Mesh *mesh;
-   state_t *H;
-   state_t *U;
-   state_t *V;
+   state_t *H = NULL;
+   state_t *U = NULL;
+   state_t *V = NULL;
 
 #ifdef HAVE_OPENCL
    cl_mem dev_H;

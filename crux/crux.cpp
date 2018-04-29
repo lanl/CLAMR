@@ -107,9 +107,9 @@ int checkpoint_timing_count = 0;
 float checkpoint_timing_sum = 0.0f;
 float checkpoint_timing_size = 0.0f;
 int rollback_attempt = 0;
-FILE *store_fp, *restore_fp;
+FILE *store_fp=NULL, *restore_fp=NULL;
 #ifdef HAVE_MPI
-static MPI_File mpi_store_fp, mpi_restore_fp;
+static MPI_File mpi_store_fp=NULL, mpi_restore_fp=NULL;
 #endif
 static int mype = 0, npes = 1;
 
@@ -182,8 +182,8 @@ void Crux::store_MallocPlus(MallocPlus memory){
 
 
         if (DEBUG) {
-            printf("MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
-                    mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
+            printf("%d:MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
+                    mype,mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
 
             char nelemstring[80];
             char *str_ptr = nelemstring;
@@ -676,8 +676,8 @@ void Crux::restore_MallocPlus(MallocPlus memory){
         if ((memory_item->mem_flags & RESTART_DATA) == 0) continue;
 
         if (DEBUG) {
-            printf("MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
-                    mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
+            printf("%d:MallocPlus ptr  %p: name %10s ptr %p dims %lu nelem (",
+                    mype,mem_ptr,memory_item->mem_name,memory_item->mem_ptr,memory_item->mem_ndims);
 
             char nelemstring[80];
             char *str_ptr = nelemstring;
