@@ -3,6 +3,9 @@ set(TEST_DIR ${CMAKE_BINARY_DIR}/tests)
 set(CTS_BIN ${CMAKE_CURRENT_SOURCE_DIR}/cts/bin)
 set(CTS_LIB ${CMAKE_CURRENT_SOURCE_DIR}/cts/lib)
 set(ENV{TEST_DIR} ${TEST_DIR})
+set(MPI_OPTIONS=" --map-by socket --bind-to core ")
+set(HYBRID_OPTIONS=" --map-by socket --bind-to core ")
+set(MPIOPENMP_OPTIONS=" --map-by core --bind-to socket ")
 
 #add_test(clamr_tests clamr_tests)
 #add_test(scaling_tests scaling_tests)
@@ -34,7 +37,10 @@ add_custom_target(clamr_nobatch_tests
                           env BIN_DIR=${BIN_DIR} 
                               CTS_BIN=${CTS_BIN}
                               PRECISION_TYPE="_${PRECISION_TYPE}"
-                          ${CTS_BIN}/cts --nobatch -cts clamr.cts clamr.suite &&
+                              MPI_OPTIONS=${MPI_OPTIONS}
+                              HYBRID_OPTIONS=${HYBRID_OPTIONS}
+                              MPIOPENMP_OPTIONS=${MPIOPENMP_OPTIONS}
+                          ${CTS_BIN}/cts --nobatch --maxthreads 1 -cts clamr.cts clamr.suite &&
                           fgrep SPEEDUP testing/*/*.out
                   DEPENDS ${BIN_DIR}/clamr_cpuonly ${BIN_DIR}/clamr_mpionly
                           ${BIN_DIR}/clamr_mpicheck ${BIN_DIR}/clamr_checkall
