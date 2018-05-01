@@ -156,13 +156,15 @@ Crux::~Crux()
 
    if (do_crux_timing){
       if (checkpoint_timing_count > 0) {
-         printf("CRUX checkpointing time averaged %f msec, bandwidth %f Mbytes/sec\n",
-                checkpoint_timing_sum/(float)checkpoint_timing_count*1.0e3,
-                checkpoint_timing_size/checkpoint_timing_sum*1.0e-6);
+         if (mype == 0) {
+            printf("CRUX checkpointing time averaged %f msec, bandwidth %f Mbytes/sec\n",
+                   checkpoint_timing_sum/(float)checkpoint_timing_count*1.0e3,
+                   checkpoint_timing_size/checkpoint_timing_sum*1.0e-6);
 
-         fprintf(crux_time_fp,"CRUX checkpointing time averaged %f msec, bandwidth %f Mbytes/sec\n",
-                checkpoint_timing_sum/(float)checkpoint_timing_count*1.0e3,
-                checkpoint_timing_size/checkpoint_timing_sum*1.0e-6);
+            fprintf(crux_time_fp,"CRUX checkpointing time averaged %f msec, bandwidth %f Mbytes/sec\n",
+                   checkpoint_timing_sum/(float)checkpoint_timing_count*1.0e3,
+                   checkpoint_timing_size/checkpoint_timing_sum*1.0e-6);
+         }
 
       fclose(crux_time_fp);
       }

@@ -17,15 +17,14 @@ set TEST_NAME=`basename $PWD`
 mpirun -n 2 ./clamr_mpionly -n 8 -t 300 -i 10 -c 100 > ${TEST_NAME}_run5.out
 ./compare_stdout.pl 0.0 ${TEST_NAME}_run5.gold ${TEST_NAME}_run5.out
 
-#mpirun -n 2 ./clamr_mpionly -R checkpoint_output/backup00200.crx > ${TEST_NAME}_run6.out
-#./compare_stdout.pl 0.0 ${TEST_NAME}_run6.gold ${TEST_NAME}_run6.out
+mpirun -n 2 ./clamr_mpionly -R checkpoint_output/backup00200.crx > ${TEST_NAME}_run6.out
+./compare_stdout.pl 0.0 ${TEST_NAME}_run6.gold ${TEST_NAME}_run6.out
 
 mpirun -n 2 ./clamr_mpionly -n 128 -i 10 -t 200 -c 100 >& ${TEST_NAME}_run7.out
 ./compare_stdout.pl 0.0 ${TEST_NAME}_run7.gold ${TEST_NAME}_run7.out
 # This should also give the same result as the equivalent serial run
 ./compare_stdout.pl 0.0 ${TEST_NAME}_run3.gold ${TEST_NAME}_run7.out
 
-# Not working yet
-#mpirun -n 2 ./clamr_mpionly -n 128 -i 10 -t 400 -R checkpoint_output/backup00100.crx >& ${TEST_NAME}_run8.out
-#./compare_stdout.pl 0.0 ${TEST_NAME}_run8.gold ${TEST_NAME}_run8.out
+mpirun -n 2 ./clamr_mpionly -n 128 -i 10 -t 400 -R checkpoint_output/backup00100.crx >& ${TEST_NAME}_run8.out
+./compare_stdout.pl 0.0 ${TEST_NAME}_run8.gold ${TEST_NAME}_run8.out
 

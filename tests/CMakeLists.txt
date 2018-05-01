@@ -19,6 +19,7 @@ add_custom_target(clamr_tests
                           make clamr_clean_tests &&
                           env BIN_DIR=${BIN_DIR} 
                               CTS_BIN=${CTS_BIN}
+                              PRECISION_TYPE="_${PRECISION_TYPE}"
                           ${CTS_BIN}/cts -cts clamr.cts clamr.suite &&
                           fgrep SPEEDUP testing/*/*.out
                   DEPENDS ${BIN_DIR}/clamr_cpuonly ${BIN_DIR}/clamr_mpionly
@@ -32,6 +33,7 @@ add_custom_target(clamr_nobatch_tests
                           make clamr_clean_tests &&
                           env BIN_DIR=${BIN_DIR} 
                               CTS_BIN=${CTS_BIN}
+                              PRECISION_TYPE="_${PRECISION_TYPE}"
                           ${CTS_BIN}/cts --nobatch -cts clamr.cts clamr.suite &&
                           fgrep SPEEDUP testing/*/*.out
                   DEPENDS ${BIN_DIR}/clamr_cpuonly ${BIN_DIR}/clamr_mpionly
@@ -48,6 +50,7 @@ add_custom_target(scaling_tests
                           make clamr_clean_tests &&
                           env BIN_DIR=${BIN_DIR} 
                               CTS_BIN=${CTS_BIN}
+                              PRECISION_TYPE="_${PRECISION_TYPE}"
                           ${CTS_BIN}/cts -cts clamr.cts scaling.suite &&
                           fgrep SPEEDUP testing/*/*.out
                   DEPENDS ${BIN_DIR}/clamr_cpuonly ${BIN_DIR}/clamr_mpionly
@@ -61,6 +64,7 @@ add_custom_target(inspxe_tests
                           make clamr_clean_tests &&
                           env BIN_DIR=${BIN_DIR} 
                               CTS_BIN=${CTS_BIN}
+                              PRECISION_TYPE="_${PRECISION_TYPE}"
                           ${CTS_BIN}/cts -cts clamr.cts inspxe.suite
                   DEPENDS ${BIN_DIR}/clamr_cpuonly ${BIN_DIR}/clamr_mpionly
                           ${BIN_DIR}/clamr_mpicheck ${BIN_DIR}/clamr_checkall

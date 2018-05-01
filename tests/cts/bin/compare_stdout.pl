@@ -27,10 +27,11 @@ open (OUTFH, ">temp_gold") || die "Can't open temp_gold file";
 if (open (GOLDFH, $reffile) ){
    LINE:
    while ($_ = <GOLDFH>){
+      if (/     or  /) {next LINE;}
       if (/high-performance Open MPI point-to-point messaging/) {next LINE;}
       if (/unable to find any relevant network/) {next LINE;}
       if (/Module: OpenFabrics/) {next LINE;}
-      if (/Host: cn/) {next LINE;}
+      if (/Host:/) {next LINE;}
       if (/Another transport will be used instead/) {next LINE;}
       if (/lower performance/) {next LINE;}
       if (/sent help message/) {next LINE;}
@@ -79,10 +80,11 @@ open (OUTFH, ">temp_new") || die "Can't open temp_new file";
 if (open (NEWFH, $newfile) ){
    LINE:
    while ($_ = <NEWFH>){
+      if (/     or  /) {next LINE;}
       if (/high-performance Open MPI point-to-point messaging/) {next LINE;}
       if (/unable to find any relevant network/) {next LINE;}
       if (/Module: OpenFabrics/) {next LINE;}
-      if (/Host: cn/) {next LINE;}
+      if (/Host:/) {next LINE;}
       if (/Another transport will be used instead/) {next LINE;}
       if (/lower performance/) {next LINE;}
       if (/sent help message/) {next LINE;}
