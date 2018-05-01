@@ -10206,7 +10206,8 @@ size_t Mesh::get_checkpoint_size(void)
 void Mesh::store_checkpoint(Crux *crux)
 {
    // Need ncells for memory allocation
-   int storage = mesh_memory.get_memory_capacity(level);
+   //int storage = mesh_memory.get_memory_capacity(level);
+   int storage = ncells;
    crux->store_named_ints("storage", 8, &storage, 1);
    // Write scalars to arrays for storing in checkpoint
    int int_vals[num_int_vals];
@@ -10286,6 +10287,11 @@ void Mesh::restore_checkpoint(Crux *crux)
    nbot = NULL;
    celltype = NULL;
 
+   mesh_memory.memory_delete(i);
+   mesh_memory.memory_delete(j);
+   mesh_memory.memory_delete(level);
+   //allocate(ncells);
+
    // Resize is a mesh method
    // resize(storage);
    allocate (storage);
@@ -10309,11 +10315,6 @@ void Mesh::restore_checkpoint(Crux *crux)
 
    crux->restore_double_array(cpu_timers, MESH_TIMER_SIZE);
    crux->restore_long_array(gpu_timers, MESH_TIMER_SIZE);
-
-   mesh_memory.memory_delete(i);
-   mesh_memory.memory_delete(j);
-   mesh_memory.memory_delete(level);
-   allocate(ncells);
 
    crux->restore_int_array(i, ncells);
    crux->restore_int_array(j, ncells);

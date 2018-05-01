@@ -83,8 +83,8 @@ using namespace PP;
 #ifndef DEBUG
 #define DEBUG 0
 #endif
-//#undef DEBUG_RESTORE_VALS
-#define DEBUG_RESTORE_VALS 1
+#undef DEBUG_RESTORE_VALS
+//#define DEBUG_RESTORE_VALS 1
 
 #define MIN3(x,y,z) ( min( min(x,y), z) )
 
@@ -239,6 +239,18 @@ int main(int argc, char **argv) {
       // mesh->proc.resize(mesh->ncells);
       // mesh->calc_distribution(numpe);
       mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
+
+      mesh->calc_celltype(mesh->ncells);
+      double H_sum = state->mass_sum(enhanced_precision_sum);
+      //if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
+
+      double percent_mass_diff = fabs(H_sum - H_sum_initial)/H_sum_initial * 100.0;
+      if (percent_mass_diff >= upper_mass_diff_percentage) {
+        printf("Mass difference outside of acceptable range on restart at cycle %d percent_mass_diff %lg upper limit %lg\n",ncycle,percent_mass_diff, upper_mass_diff_percentage);
+
+        L7_Terminate();
+        exit(0);
+      }
    } else {
       mesh = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
 
@@ -630,7 +642,15 @@ extern "C" void do_calc(void)
          ncycle, deltaT, simTime, ncells_global, H_sum, H_sum - H_sum_initial);
    }
 
-   if (ncycle == next_cp_cycle) store_crux_data(crux, ncycle); 
+   if (ncycle == next_cp_cycle) store_crux_data(crux, ncycle);
+/*
+   if (ncycle == next_cp_cycle) {
+      int have_celltype = mesh->celltype != NULL ? 1 : 0;
+      mesh->calc_celltype(mesh->ncells, ncycle);
+      if (! have_celltype) mesh->mesh_memory.memory_delete(mesh->celltype);
+      store_crux_data(crux, ncycle); 
+   }
+*/
 
    cpu_timer_start(&tstart_cpu);
 
