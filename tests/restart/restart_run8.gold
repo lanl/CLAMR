@@ -3,16 +3,77 @@
   Restoring state from disk file checkpoint_output/backup00100.crx
   ================================================================
 
-ERROR in restore checkpoint for  U
-ERROR in restore checkpoint for @ U
--------------------------------------------------------
-Primary job  terminated normally, but 1 process returned
-a non-zero exit code.. Per user-direction, the job has been aborted.
--------------------------------------------------------
---------------------------------------------------------------------------
-mpirun detected that one or more processes exited with non-zero status, thus causing
-the job to be terminated. The first process to do so was:
+Mass of initialized cells equal to  125195.039971
+CPU:  setup time               time was	  0.0103	  0.0103	s
+Memory used      in startup 	     47444	     47588	kB
+Memory peak      in startup 	     47752	     47824	kB
+Memory free      at startup 	   6623128	   6623128	kB
+Memory available at startup 	   8112560	   8112560	kB
+Iteration 100 timestep 0.000330 Sim Time 0.043855 cells 17436 Mass Sum  125195.039971
+Iteration 110 timestep 0.000333 Sim Time 0.047176 cells 17460 Mass Sum  125195.039971 Mass Change            0
+Iteration 120 timestep 0.000325 Sim Time 0.050464 cells 17484 Mass Sum  125195.039971 Mass Change            0
+Iteration 130 timestep 0.000325 Sim Time 0.053708 cells 17508 Mass Sum  125195.039971 Mass Change            0
+Iteration 140 timestep 0.000332 Sim Time 0.056994 cells 17532 Mass Sum  125195.039971 Mass Change            0
+Iteration 150 timestep 0.000334 Sim Time 0.060351 cells 17532 Mass Sum  125195.039971 Mass Change            0
+Iteration 160 timestep 0.000324 Sim Time 0.063629 cells 17580 Mass Sum  125195.039971 Mass Change            0
+Iteration 170 timestep 0.000325 Sim Time 0.066869 cells 17604 Mass Sum  125195.039971 Mass Change            0
+Iteration 180 timestep 0.000335 Sim Time 0.070166 cells 17628 Mass Sum  125195.039971 Mass Change            0
+Iteration 190 timestep 0.000325 Sim Time 0.073484 cells 17640 Mass Sum  125195.039971 Mass Change            0
+Iteration 200 timestep 0.000318 Sim Time 0.076685 cells 17664 Mass Sum  125195.039971 Mass Change            0
+Memory used      	     49272	     49460	kB
+Memory peak      	     49320	     49660	kB
+Memory free      	   6619408	   6619408	kB
+CRUX checkpointing time averaged 0.039000 msec, bandwidth 8166.769664 Mbytes/sec
+Memory available 	   8112560	   8112560	kB
 
-  Process name: [[12961,1],1]
-  Exit code:    255
---------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
+
+CPU: Parallel timings
+
+CPU: Device compute           time was	  0.3106	  0.3107	s
+CPU:   state_timer_set_timestep      		    0.0096	    0.0098	s
+CPU:   state_timer_finite_difference 		    0.2576	    0.2572	s
+CPU:   state_timer_refine_potential  		    0.0302	    0.0307	s
+CPU:     state_timer_calc_mpot         		      0.0215	      0.0219	s
+CPU:     mesh_timer_refine_smooth      		      0.0037	      0.0037	s
+CPU:   state_timer_rezone_all        		    0.0046	    0.0046	s
+CPU:   mesh_timer_partition          		    0.0000	    0.0000	s
+CPU:   mesh_timer_calc_neighbors     		    0.0077	    0.0077	s
+CPU:     mesh_timer_hash_setup         		      0.0012	      0.0013	s
+CPU:     mesh_timer_hash_query         		      0.0018	      0.0019	s
+CPU:     mesh_timer_find_boundary      		      0.0012	      0.0011	s
+CPU:     mesh_timer_push_setup         		      0.0004	      0.0003	s
+CPU:     mesh_timer_push_boundary      		      0.0001	      0.0001	s
+CPU:     mesh_timer_local_list         		      0.0000	      0.0000	s
+CPU:     mesh_timer_layer1             		      0.0001	      0.0001	s
+CPU:     mesh_timer_layer2             		      0.0001	      0.0001	s
+CPU:     mesh_timer_layer_list         		      0.0000	      0.0000	s
+CPU:     mesh_timer_copy_mesh_data     		      0.0003	      0.0003	s
+CPU:     mesh_timer_fill_mesh_ghost    		      0.0000	      0.0000	s
+CPU:     mesh_timer_fill_neigh_ghost   		      0.0006	      0.0017	s
+CPU:     mesh_timer_set_corner_neigh   		      0.0000	      0.0000	s
+CPU:     mesh_timer_neigh_adjust       		      0.0005	      0.0005	s
+CPU:     mesh_timer_setup_comm         		      0.0011	      0.0001	s
+CPU:   state_timer_mass_sum          		    0.0009	    0.0008	s
+CPU:   mesh_timer_load_balance       		    0.0000	    0.0000	s
+CPU:   mesh_timer_calc_spatial_coordi		    0.0000	    0.0000	s
+=============================================================
+Profiling: Total CPU          time was	  0.3106	  0.3107	s
+-------------------------------------------------------------
+Mesh Ops (Neigh+rezone+smooth+balance) 	  0.0159	  0.0160	s
+Mesh Ops Percentage                    	  5.1275	  5.1400	percent
+=============================================================
+Profiling: Total              time was	  0.1652	  0.1653	s
+=============================================================
+CPU:  calc incl part meas     time was	  0.1647	  0.1649	s
+CPU:  calculation only        time was	  0.1647	  0.1648	s
+CPU:  partition measure       time was	  0.0000	  0.0000	s
+CPU:  graphics                time was	  0.0000	  0.0000	s
+The MPI surface area to volume ratio 	  0.0307	  0.0307	without duplicates
+Using hash tables to calculate neighbors
+Initial order is Hilbert sort.   No cycle reorder.   Local Stencil is on.
+CPU:  rezone frequency                	   5.0000	percent
+CPU:  calc neigh frequency            	   5.5000	percent
+CPU:  load balance frequency          	   0.0000	percent
+CPU:  refine_smooth_iter per rezone   	   0.0000	
+CRUX checkpointing time averaged 0.030000 msec, bandwidth 10616.800256 Mbytes/sec
