@@ -211,10 +211,7 @@ void Crux::store_MallocPlus(MallocPlus memory){
                               memory_item->mem_flags & REPLICATED_DATA, true);
         } else {
 #endif
-            int num_elements = 1;
-            for (uint i = 0; i < memory_item->mem_ndims; i++){
-                num_elements *= memory_item->mem_nelem[i];
-            }
+            int num_elements = memory_item->mem_rest_len;
             store_field_header(memory_item->mem_name,30);
             if (memory_item->mem_flags & REPLICATED_DATA) { 
                 if (memory_item->mem_elsize == 4){
@@ -726,10 +723,7 @@ void Crux::restore_MallocPlus(MallocPlus memory){
                     memory_item->mem_flags & REPLICATED_DATA, false);
         } else {
 #endif
-            int num_elements = 1;
-            for (uint i = 0; i < memory_item->mem_ndims; i++){
-                num_elements *= memory_item->mem_nelem[i];
-            }
+            int num_elements = memory_item->mem_rest_len;
             restore_field_header(test_name,30);
             if (strcmp(test_name,memory_item->mem_name) != 0) {
                 printf("ERROR in restore checkpoint for %s %s\n",test_name,memory_item->mem_name);

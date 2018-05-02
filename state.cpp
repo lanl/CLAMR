@@ -3765,20 +3765,21 @@ size_t State::get_checkpoint_size(void)
 
 void State::store_checkpoint(Crux *crux)
 {
-   // Need size for memory allocation
-   int storage = state_memory.get_memory_capacity(H);
-   crux->store_named_ints("storage", 8, &storage, 1);
    // Store mesh data first
    mesh->store_checkpoint(crux);
 
+   size_t save_size = state_memory.get_memory_capacity(H);
+   state_memory.set_restart_length(H,mesh->ncells);
+   state_memory.set_restart_length(U,mesh->ncells);
+   state_memory.set_restart_length(V,mesh->ncells);
    crux->store_MallocPlus(state_memory);
+   state_memory.set_restart_length(H,save_size);
+   state_memory.set_restart_length(U,save_size);
+   state_memory.set_restart_length(V,save_size);
 }
 
 void State::restore_checkpoint(Crux *crux)
 {
-   int storage;
-   crux->restore_named_ints("storage", 8, &storage, 1);
-
    // Restore mesh data first
    mesh->restore_checkpoint(crux);
 
@@ -3790,7 +3791,7 @@ void State::restore_checkpoint(Crux *crux)
    state_memory.memory_delete(H);
    state_memory.memory_delete(U);
    state_memory.memory_delete(V);
-   allocate(storage);
+   allocate(mesh->ncells);
    memory_reset_ptrs();
 
    // Restore memory database

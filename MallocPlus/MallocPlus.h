@@ -90,6 +90,7 @@ struct malloc_plus_memory_entry {
                           //!< this may be larger than the number of
                           //!< elements and is used to internally handle
                           //!< memory resizing
+   size_t  mem_rest_len;  //!< number of contiguous elements to write out for restart
    size_t *mem_nelem;     //!< number of elements
    size_t  mem_ndims;     //!< number of dimensions
    size_t  mem_elsize;    //!< element size for type of data
@@ -752,6 +753,34 @@ public:
  *     density = my_mem->get_memory_ptr("Density");
  *******************************************************************/
    void *get_memory_ptr(const char *name);
+
+/****************************************************************//**
+ * \brief
+ * Set number of elements to write out for restart.
+ *
+ * **Parameters**
+ * * void *malloc_mem_ptr -- memory pointer of entry in the database
+ * * size_t restart_length -- number of elements to write out for array
+ *
+ * Typical Usage
+ *
+ *     my_mem->set_restart_length(density, ncells);
+ *******************************************************************/
+   void set_restart_length(void *malloc_mem_ptr, size_t restart_length);
+
+/****************************************************************//**
+ * \brief
+ * Set number of elements to write out for restart.
+ *
+ * **Parameters**
+ * * const char *name -- name of entry in the database
+ * * size_t restart_length -- number of elements to write out for array
+ *
+ * Typical Usage
+ *
+ *     my_mem->set_restart_length(density, ncells);
+ *******************************************************************/
+   void set_restart_length(const char *name, size_t restart_length);
 
 /****************************************************************//**
  * \brief

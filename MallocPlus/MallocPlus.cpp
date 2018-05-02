@@ -114,6 +114,7 @@ void *MallocPlus::memory_malloc(size_t nelem, size_t elsize, const char *name, i
    memory_item->mem_nelem    = (size_t *)malloc(1*sizeof(size_t));
    memory_item->mem_nelem[0] = nelem;
    memory_item->mem_ndims    = 1;
+   memory_item->mem_rest_len = nelem;
    memory_item->mem_elsize   = elsize;
    memory_item->mem_flags    = flags;
 
@@ -174,16 +175,19 @@ void *MallocPlus::memory_realloc(size_t nelem, void *malloc_mem_ptr){
             mem_ptr=realloc(memory_item->mem_ptr, 2*nelem*memory_item->mem_elsize);
             memory_item->mem_capacity = 2*nelem;
             memory_item->mem_nelem[0] = nelem;
+            memory_item->mem_rest_len = nelem;
             memory_item->mem_ptr      = mem_ptr;
          } else {
             // Just move size to use more of memory buffer
             memory_item->mem_nelem[0] = nelem;
+            memory_item->mem_rest_len = nelem;
          }
       }
       else {
          mem_ptr=realloc(memory_item->mem_ptr, nelem*memory_item->mem_elsize);
          memory_item->mem_capacity = nelem;
          memory_item->mem_nelem[0] = nelem;
+         memory_item->mem_rest_len = nelem;
          memory_item->mem_ptr      = mem_ptr;
       }
 
@@ -217,10 +221,12 @@ void *MallocPlus::memory_realloc(size_t nelem, const char *name){
             mem_ptr=realloc(memory_item->mem_ptr, 2*nelem*memory_item->mem_elsize);
             memory_item->mem_capacity = 2*nelem;
             memory_item->mem_nelem[0] = nelem;
+            memory_item->mem_rest_len = nelem;
             memory_item->mem_ptr      = mem_ptr;
          } else {
             // Just move size to use more of memory buffer
             memory_item->mem_nelem[0] = nelem;
+            memory_item->mem_rest_len = nelem;
          }
       }
       else {
@@ -228,6 +234,7 @@ void *MallocPlus::memory_realloc(size_t nelem, const char *name){
          mem_ptr=realloc(memory_item->mem_ptr, nelem*memory_item->mem_elsize);
          memory_item->mem_capacity = nelem;
          memory_item->mem_nelem[0] = nelem;
+         memory_item->mem_rest_len = nelem;
          memory_item->mem_ptr      = mem_ptr;
          //memory_name_dict.insert(std::pair<string, malloc_plus_memory_entry*>(name, memory_item) );
       }
@@ -265,9 +272,11 @@ void MallocPlus::memory_realloc(size_t nelem, int flag){
             if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC_FLAG: DEBUG -- reallocated memory pointer %p new pointer %p\n",memory_item->mem_ptr,mem_ptr);
             memory_item->mem_capacity = nelem;
             memory_item->mem_nelem[0] = nelem;
+            memory_item->mem_rest_len = nelem;
             memory_item->mem_ptr      = mem_ptr;
          } else {
             memory_item->mem_nelem[0] = nelem;
+            memory_item->mem_rest_len = nelem;
          }
 
          //Insert the entry back into the dictionary
@@ -284,6 +293,7 @@ void MallocPlus::memory_realloc(size_t nelem, int flag){
          if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC_FLAG: DEBUG -- reallocated memory pointer %p new pointer %p\n",memory_item->mem_ptr,mem_ptr);
          memory_item->mem_capacity = nelem;
          memory_item->mem_nelem[0] = nelem;
+         memory_item->mem_rest_len = nelem;
          memory_item->mem_ptr      = mem_ptr;
 
          //Insert the entry back into the dictionary
@@ -360,9 +370,11 @@ void MallocPlus::memory_realloc_all(size_t nelem){
             if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC_ALL: DEBUG -- reallocated memory pointer %p new pointer %p\n",memory_item->mem_ptr,mem_ptr);
             memory_item->mem_capacity = nelem;
             memory_item->mem_nelem[0] = nelem;
+            memory_item->mem_rest_len = nelem;
             memory_item->mem_ptr      = mem_ptr;
          } else {
             memory_item->mem_nelem[0] = nelem;
+            memory_item->mem_rest_len = nelem;
          }
       }
       else {
@@ -370,6 +382,7 @@ void MallocPlus::memory_realloc_all(size_t nelem){
          if (DEBUG) printf("MALLOC_PLUS_MEMORY_REALLOC_ALL: DEBUG -- reallocated memory pointer %p new pointer %p\n",memory_item->mem_ptr,mem_ptr);
          memory_item->mem_capacity = nelem;
          memory_item->mem_nelem[0] = nelem;
+         memory_item->mem_rest_len = nelem;
          memory_item->mem_ptr      = mem_ptr;
       }
 
@@ -405,6 +418,7 @@ void *MallocPlus::memory_add(void *malloc_mem_ptr, size_t nelem, size_t elsize, 
 
    memory_item->mem_nelem    = (size_t *)malloc(1*sizeof(size_t));
    memory_item->mem_nelem[0] = nelem;
+   memory_item->mem_rest_len = nelem;
    memory_item->mem_ndims    = 1;
    memory_item->mem_capacity = nelem;
    memory_item->mem_elsize   = elsize;
@@ -423,8 +437,10 @@ void *MallocPlus::memory_add(void *malloc_mem_ptr, int ndim, size_t *nelem, size
    malloc_plus_memory_entry *memory_item = (malloc_plus_memory_entry *)malloc(sizeof(malloc_plus_memory_entry));
 
    memory_item->mem_nelem    = (size_t *)malloc(ndim*sizeof(size_t));
+   memory_item->mem_rest_len = 1;
    for (int i=0; i<ndim; i++){
      memory_item->mem_nelem[i] = nelem[i];
+     memory_item->mem_rest_len *= nelem[i];
    }
    memory_item->mem_ndims    = ndim;
    memory_item->mem_capacity = 0;
@@ -629,8 +645,8 @@ void MallocPlus::memory_report(void){
       }
       printf("%12s",nelemstring);
 
-      printf(") elsize %lu flags %d capacity %lu\n",
-            memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
+      printf(") elsize %lu flags %d capacity %lu restart length %lu\n",
+            memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity,memory_item->mem_rest_len);
    }
 
    map<string, malloc_plus_memory_entry*>::iterator it_name;
@@ -649,8 +665,8 @@ void MallocPlus::memory_report(void){
       }
       printf("%12s",nelemstring);
 
-      printf(") elsize %lu flags %d capacity %lu\n",
-            memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity);
+      printf(") elsize %lu flags %d capacity %lu restart length %lu\n",
+            memory_item->mem_elsize,memory_item->mem_flags,memory_item->mem_capacity,memory_item->mem_rest_len);
    }
 }
 
@@ -976,6 +992,7 @@ void *MallocPlus::memory_replace(void *malloc_mem_ptr_old, void * const malloc_m
 
       memory_item_old->mem_nelem[0] = memory_item_new->mem_nelem[0];
       memory_item_old->mem_capacity = memory_item_new->mem_capacity;
+      memory_item_old->mem_rest_len = memory_item_new->mem_rest_len;
       memory_item_old->mem_elsize   = memory_item_new->mem_elsize;
       memory_item_old->mem_flags    = memory_item_new->mem_flags;
       malloc_mem_ptr_old = (void *)malloc_mem_ptr_new;
@@ -1158,6 +1175,32 @@ bool MallocPlus::check_memory_attribute(void *malloc_mem_ptr, int attribute){
    } else {
       printf("Error -- memory not found\n");
       exit(1);
+   }
+}
+
+void MallocPlus::set_restart_length(void *malloc_mem_ptr, size_t nelem){
+   map <void *, malloc_plus_memory_entry*>::iterator it = memory_ptr_dict.find(malloc_mem_ptr);
+
+   if (it != memory_ptr_dict.end()){
+      malloc_plus_memory_entry *memory_item = it->second;
+
+      if (DEBUG) printf("Found memory item ptr %p name %s attribute %d\n",memory_item->mem_ptr,memory_item->mem_name,memory_item->mem_flags);
+      memory_item->mem_rest_len = nelem;
+   } else {
+      if (DEBUG) printf("Warning -- memory not found\n");
+   }
+}
+
+void MallocPlus::set_restart_length(const char *name, size_t nelem){
+   map <string, malloc_plus_memory_entry*>::iterator it = memory_name_dict.find(name);
+
+   if (it != memory_name_dict.end()){
+      malloc_plus_memory_entry *memory_item = it->second;
+
+      if (DEBUG) printf("Found memory item ptr %p name %s\n",memory_item->mem_ptr,memory_item->mem_name);
+      memory_item->mem_rest_len = nelem;
+   } else {
+      if (DEBUG) printf("Warning -- memory not found\n");
    }
 }
 
