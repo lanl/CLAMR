@@ -320,7 +320,7 @@ void parseInput(const int argc, char** argv)
                     } else if (! strcmp(val,"data") ) {
                        graphics_type = GRAPHICS_DATA;
                     } else if (! strcmp(val,"rdata") ) {
-                       graphics_type = REAL_GRAPHICS_DATA;
+                       graphics_type = GRAPHICS_REAL_DATA;
 #ifdef HAVE_MAGICKWAND
                     } else if (! strcmp(val,"bmp") ) {
                        graphics_type = GRAPHICS_BMP;

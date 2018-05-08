@@ -361,7 +361,7 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
    }
 #endif
 
-   if (graphics_type == GRAPHICS_DATA || graphics_type == REAL_GRAPHICS_DATA){
+   if (graphics_type == GRAPHICS_DATA || graphics_type == GRAPHICS_REAL_DATA){
       int i, color;
       int step = Ncolors/(graphics_proc[graphics_mysize-1]+1);
       int xloc, xwid, yloc, ywid;
@@ -663,7 +663,7 @@ void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_
         }
      }
   }
-  else if (graphics_type == REAL_GRAPHICS_DATA){
+  else if (graphics_type == GRAPHICS_REAL_DATA){
       int i;
       char filename[50], filename2[50];
    

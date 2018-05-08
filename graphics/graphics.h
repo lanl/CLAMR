@@ -68,6 +68,7 @@ extern "C"
 enum graphics_file_type{
    GRAPHICS_NONE,
    GRAPHICS_DATA,
+   GRAPHICS_REAL_DATA,
    GRAPHICS_BMP,
    GRAPHICS_GIF,
    GRAPHICS_JPEG,
