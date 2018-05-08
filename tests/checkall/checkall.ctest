@@ -12,12 +12,6 @@ if [ -d "${TEST_DIR}" ]; then
    rm -rf "${TEST_DIR}"
 fi
 
-PRECISION_TYPE=$(grep PRECISION_TYPE ${CLAMR_BIN}/CMakeCache.txt | cut -d "=" -f2)
-
-if [ "${PRECISION_TYPE}" != "minimum_precision" ] &&  [ "${PRECISION_TYPE}" != "mixed_precision" ]; then
-  PRECISION_TYPE="full_precision"
-fi
-
 mkdir -p "${TEST_DIR}"
 cd "${TEST_DIR}"
 
