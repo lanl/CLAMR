@@ -361,7 +361,7 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
    }
 #endif
 
-   if (graphics_type == GRAPHICS_DATA){
+   if (graphics_type == GRAPHICS_DATA || graphics_type == REAL_GRAPHICS_DATA){
       int i, color;
       int step = Ncolors/(graphics_proc[graphics_mysize-1]+1);
       int xloc, xwid, yloc, ywid;
@@ -663,6 +663,73 @@ void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_
         }
      }
   }
+  else if (graphics_type == REAL_GRAPHICS_DATA){
+      int i;
+      char filename[50], filename2[50];
+   
+      if(rollback_img){
+         sprintf(filename,"%s/graph%dcp%05d.rdata", graphics_directory, graph_num, rollback_num);
+         sprintf(filename2,"%s/outline%dcp%05d.lin",graphics_directory, graph_num, rollback_num);
+      }
+      else{
+         sprintf(filename,"%s/graph%05d.rdata", graphics_directory, graph_num);
+         sprintf(filename2,"%s/outline%05d.lin",graphics_directory, graph_num);
+      }
+      FILE *fp = fopen(filename,"w");
+      FILE *fp2 = fopen(filename2,"w");
+      if(fp && fp2){
+         fprintf(fp,"%d,%lf\n",ncycle,simTime);
+
+         int xloc, xwid, yloc, ywid;
+         int xloc1, xloc2, yloc1, yloc2;
+         for(i = 0; i < graphics_mysize; i++) {
+            if (data_type == DATA_DOUBLE){
+               xloc = (int)((x_double[i]-graphics_xmin)*xconversion);
+               xwid = (int)((x_double[i]+dx_double[i]-graphics_xmin)*xconversion-xloc);
+               yloc = (int)((graphics_ymax-(y_double[i]+dy_double[i]))*yconversion);
+               ywid = (int)((graphics_ymax-y_double[i])*yconversion);
+               ywid -= yloc;
+               fprintf(fp,"%d,%d,%d,%d,%lf\n",xloc,yloc,xwid,ywid,data_double[i]);
+         
+               xloc1 = (int)((x_double[i]-graphics_xmin)*xconversion);
+               xloc2 = (int)((x_double[i]+dx_double[i]-graphics_xmin)*xconversion);
+               yloc1 = (int)((graphics_ymax-y_double[i])*yconversion);
+               yloc2 = (int)((graphics_ymax-(y_double[i]+dy_double[i]))*yconversion);
+               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc2,xloc2,yloc2);
+               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc2,yloc1);
+               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc1,yloc2);
+               fprintf(fp2,"%d,%d,%d,%d\n",xloc2,yloc1,xloc2,yloc2);
+            } else {
+               xloc = (int)((x_float[i]-graphics_xmin)*xconversion);
+               xwid = (int)((x_float[i]+dx_float[i]-graphics_xmin)*xconversion-xloc);
+               yloc = (int)((graphics_ymax-(y_float[i]+dy_float[i]))*yconversion);
+               ywid = (int)((graphics_ymax-y_float[i])*yconversion);
+               ywid -= yloc;
+               fprintf(fp,"%d,%d,%d,%d,%d\n",xloc,yloc,xwid,ywid,data_float[i]);
+         
+               xloc1 = (int)((x_float[i]-graphics_xmin)*xconversion);
+               xloc2 = (int)((x_float[i]+dx_float[i]-graphics_xmin)*xconversion);
+               yloc1 = (int)((graphics_ymax-y_float[i])*yconversion);
+               yloc2 = (int)((graphics_ymax-(y_float[i]+dy_float[i]))*yconversion);
+               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc2,xloc2,yloc2);
+               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc2,yloc1);
+               fprintf(fp2,"%d,%d,%d,%d\n",xloc1,yloc1,xloc1,yloc2);
+               fprintf(fp2,"%d,%d,%d,%d\n",xloc2,yloc1,xloc2,yloc2);
+            }
+         }
+         fclose(fp);
+         fclose(fp2);   
+         iteration++;
+     }
+     else{
+        if(fp == NULL){
+            printf("Could not open %s in DisplayStateToFile\n", filename);
+        }
+        else{
+            printf("Could not open %s in DisplayStateToFile\n", filename2);
+        }
+     }
+   }
 }
 
 void write_graphics_info(int graph_num, int ncycle, double simTime, int rollback_img, int rollback_num){

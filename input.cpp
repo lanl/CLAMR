@@ -152,6 +152,7 @@ void outputHelp()
          << "      \"png\"" << endl
          << "      \"svg\"" << endl
          << "      \"data\"" << endl
+         << "      \"rdata\"" << endl
          << "  -h                display this help message;" << endl
          << "  -i <I>            specify I steps between output to files;" << endl
          << "  -l <l>            max number of levels;" << endl
@@ -318,6 +319,8 @@ void parseInput(const int argc, char** argv)
                        graphic_outputInterval  = INT_MAX;
                     } else if (! strcmp(val,"data") ) {
                        graphics_type = GRAPHICS_DATA;
+                    } else if (! strcmp(val,"rdata") ) {
+                       graphics_type = REAL_GRAPHICS_DATA;
 #ifdef HAVE_MAGICKWAND
                     } else if (! strcmp(val,"bmp") ) {
                        graphics_type = GRAPHICS_BMP;
