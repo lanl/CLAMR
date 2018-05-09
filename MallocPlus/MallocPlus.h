@@ -100,9 +100,13 @@ struct malloc_plus_memory_entry {
 
 struct cmp_str
 {
-   bool operator()(char const *a, char const *b)
+   bool operator()(char const *a, char const *b) const
    {
       return strcmp(a, b) < 0;
+   }
+   bool operator()(const string &a, const string &b) const
+   {
+      return strcmp(&a[0], &b[0]) < 0;
    }
 };
 
