@@ -169,9 +169,7 @@ cl_kernel kernel_reduce_epsum_mass_stage1of2;
 cl_kernel kernel_reduce_epsum_mass_stage2of2;
 #endif
 
-#ifdef _OPENMP
 #pragma omp declare simd
-#endif
 inline real_t U_halfstep(// XXX Fix the subindices to be more intuitive XXX
         real_t    deltaT,     // Timestep
         real_t    U_i,        // Initial cell's (downwind's) state variable
@@ -698,9 +696,7 @@ void State::apply_boundary_conditions(void)
    int lowerBound, upperBound;
    mesh->get_bounds(lowerBound, upperBound);
 
-#ifdef _OPENMP
 #pragma omp simd safelen(8)
-#endif
 
    for (uint ic=lowerBound; ic<upperBound; ic++) {
       if (mesh->is_left_boundary(ic)) {
@@ -809,9 +805,7 @@ double State::set_timestep(double g, double sigma)
 #endif
 
    double mymindeltaT = 1000.0; // private for each thread
-#ifdef _OPENMP
 #pragma omp simd reduction(min:mymindeltaT)
-#endif
    for (int ic=lowerBounds; ic<upperBounds; ic++) {
       if (mesh->celltype[ic] == REAL_CELL) {
          int lev = mesh->level[ic];
@@ -1224,9 +1218,7 @@ void State::calc_finite_difference(double deltaT){
    int lowerBound, upperBound;
    mesh->get_bounds(lowerBound, upperBound);
 
-#ifdef _OPENMP
 #pragma omp simd
-#endif
    for(int gix = lowerBound; gix < upperBound; gix++) {
 #if DEBUG >= 3
       printf("%d: DEBUG gix is %d at line %d in file %s\n",mesh->mype,gix,__LINE__,__FILE__);
@@ -2755,9 +2747,7 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    int lowerBound, upperBound;
    //mesh->set_bounds(ncells);
    mesh->get_bounds(lowerBound,upperBound);
-#ifdef _OPENMP
 #pragma omp simd
-#endif
    for (int ic=lowerBound; ic<upperBound; ic++) {
 
       if (mesh->celltype[ic] != REAL_CELL) continue;

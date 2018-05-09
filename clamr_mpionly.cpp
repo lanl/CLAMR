@@ -110,7 +110,7 @@ static double circle_radius=-1.0;
 static int view_mode = 0;
 
 #ifdef FULL_PRECISION
-#define  SUM_ERROR 2.0e-16
+#define  SUM_ERROR 2.2e-16
    void (*set_graphics_cell_coordinates)(double *, double *, double *, double *) = &set_graphics_cell_coordinates_double;
    void (*set_graphics_cell_data)(double *) = &set_graphics_cell_data_double;
 #else

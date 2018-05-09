@@ -46,7 +46,10 @@ elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C
    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -ansi-alias -axmic-AVX512 -xHost -qopenmp-simd -qopt-report=5 -qopt-report-phase=vec,loop")
+   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -ansi-alias -vecabi=cmdtarget -axmic-AVX512 -xHost -qopenmp-simd -qopt-report=5 -qopt-report-phase=vec,loop")
+   if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
+     set(CMAKE_C_FLAGS_RELEASE "-qopt-zmm-usage=high ${CMAKE_C_FLAGS_RELEASE}")
+   endif ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
 elseif (CMAKE_C_COMPILER_ID MATCHES "PGI")
@@ -80,7 +83,10 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C++
    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -vec-report3")
    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3 -ansi-alias -axmic-AVX512 -xHost -qopenmp-simd -qopt-report=5 -qopt-report-phase=vec,loop")
+   if ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
+     set(CMAKE_CXX_FLAGS_RELEASE "-qopt-zmm-usage=high ${CMAKE_CXX_FLAGS_RELEASE}")
+   endif ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
+   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3 -ansi-alias -vecabi=cmdtarget -axmic-AVX512 -xHost -qopenmp-simd -qopt-report=5 -qopt-report-phase=vec,loop")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "PGI")
