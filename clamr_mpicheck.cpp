@@ -563,7 +563,7 @@ extern "C" void do_calc(void)
    if (H_sum < 0) {
       H_sum = state->mass_sum(enhanced_precision_sum);
    }
-   if (isnan(H_sum)) {
+   if (std::isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
       exit(-1);
    }

@@ -486,7 +486,7 @@ extern "C" void do_calc(void)
 
    int error_status = STATUS_OK;
 
-   if (isnan(H_sum)) {
+   if (std::isnan(H_sum)) {
       printf("Got a NAN on cycle %d\n",ncycle);
       error_status = STATUS_NAN;
    }

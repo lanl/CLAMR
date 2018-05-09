@@ -2755,6 +2755,9 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    int lowerBound, upperBound;
    //mesh->set_bounds(ncells);
    mesh->get_bounds(lowerBound,upperBound);
+#ifdef _OPENMP
+#pragma omp simd
+#endif
    for (int ic=lowerBound; ic<upperBound; ic++) {
 
       if (mesh->celltype[ic] != REAL_CELL) continue;
