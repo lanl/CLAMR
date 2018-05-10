@@ -26,7 +26,7 @@ extern "C"
 {
 #endif
 
-int *compact_hash_init(int ncells, uint isize, uint jsize, int report_level);
+int *compact_hash_init(int ncells, uint isize, uint jsize, int hash_method_in, int report_level);
 
 int get_hash_method(void);
 long long get_hash_table_size(void);

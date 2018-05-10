@@ -4043,7 +4043,7 @@ void Mesh::calc_neighbors(int ncells)
 
          int *hash;
 
-         hash = compact_hash_init(ncells, imaxsize, jmaxsize, 0);
+         hash = compact_hash_init(ncells, imaxsize, jmaxsize, METHOD_UNSET, 0);
 
 #ifdef _OPENMP
 #pragma omp for
@@ -4398,7 +4398,7 @@ void Mesh::calc_neighbors_local(void)
 
       static int *hash;
 
-      hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, 0);
+      hash = compact_hash_init(ncells, imaxsize-iminsize, jmaxsize-jminsize, METHOD_UNSET, 0);
 
       //printf("%d: DEBUG -- noffset %d cells %d\n",mype,noffset,ncells);
 

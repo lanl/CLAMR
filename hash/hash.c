@@ -51,7 +51,7 @@ long long get_hashtablesize(void) {
   return(hashtablesize);
 }
 
-int *compact_hash_init(int ncells, uint isize, uint jsize, int report_level){
+int *compact_hash_init(int ncells, uint isize, uint jsize, int hash_method_in, int report_level){
    static int *hash;
 
    static float hash_mem_factor;
@@ -73,6 +73,8 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, int report_level){
       hash_report_level = report_level;
       hash_stride = isize;
       hash = NULL;
+
+      if (hash_method_in != METHOD_UNSET) hash_method = hash_method_in;
 
       if (choose_hash_method != METHOD_UNSET) hash_method = choose_hash_method;
 

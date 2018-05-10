@@ -344,6 +344,7 @@ public:
    void timer_output(state_timer_category category, mesh_device_types device_type, int timer_level);
 
    void print(void);
+   void print_data_dump(int ncycle);
 
    size_t get_checkpoint_size(void);
    void store_checkpoint(Crux *crux);

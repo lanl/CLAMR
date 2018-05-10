@@ -66,6 +66,7 @@
 #include "input.h"
 #include "mesh/mesh.h"
 #include "mesh/partition.h"
+#include "hash/hash.h"
 #include "state.h"
 #include "timer/timer.h"
 #include "memstats/memstats.h"
@@ -84,10 +85,14 @@ using namespace PP;
 #endif
 #undef DEBUG_RESTORE_VALS
 
+#define IPOW2(a) (2 << (a))
+
 #define MIN3(x,y,z) ( min( min(x,y), z) )
 
 static int do_cpu_calc = 1;
 static int do_gpu_calc = 0;
+
+extern int graphics_type;
 
 typedef unsigned int uint;
 
@@ -568,6 +573,38 @@ extern "C" void do_calc(void)
       set_graphics_cell_proc(&mesh->proc[0]);
 
       write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);
+      if (graphics_type == GRAPHICS_REAL_DATA) {
+        state->print_data_dump(ncycle);
+      }
+      if (graphics_type == GRAPHICS_HASH) {
+        int jmaxsize = (mesh->jmax+1)*IPOW2(mesh->levmx);
+        int imaxsize = (mesh->imax+1)*IPOW2(mesh->levmx);
+
+        int *hash;
+
+        hash = compact_hash_init(ncells, imaxsize, jmaxsize, PERFECT_HASH, 0);
+
+        for(int ic=0; ic<ncells; ic++){
+           int lev = mesh->level[ic];
+           int levmult = IPOW2(mesh->levmx-lev);
+           int ii = mesh->i[ic]*levmult;
+           int jj = mesh->j[ic]*levmult;
+
+           write_hash(ic,jj*imaxsize+ii,hash);
+        }
+
+        char filename[20];
+        sprintf(filename,"hash%1d.%05d",mesh->mype,ncycle);
+        FILE *fp=fopen(filename,"w");
+
+        for (int ih = 0; ih< imaxsize*jmaxsize; ih++){
+           fprintf(fp,"HASH ih %d hash[ih] %d\n",ih,hash[ih]);
+        }
+
+        fclose(fp);
+
+        compact_hash_delete(hash);
+      }
       next_graphics_cycle += graphic_outputInterval;
    }
 

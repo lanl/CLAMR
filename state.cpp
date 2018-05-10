@@ -153,6 +153,21 @@ int save_ncells;
 #define SQR(x) ( x*x )
 #define MIN3(x,y,z) ( min( min(x,y), z) )
 
+void doubleToHex(FILE *fp, double val){
+    unsigned char* hexVals = (unsigned char *)malloc(sizeof(double));
+    for(int i = 0; i < sizeof(double); i++){
+        hexVals[i] = ((unsigned char*)&val)[i];
+    }
+    for(int ii = 0; ii < (int) sizeof(double); ++ii) {
+       if (ii == 0) { 
+          fprintf(fp,"%#02x", hexVals[ii]);
+       } else {
+          fprintf(fp,"%02x", hexVals[ii]);
+       }    
+    }    
+    free(hexVals);
+}
+
 #ifdef HAVE_OPENCL
 cl_kernel kernel_set_timestep;
 cl_kernel kernel_reduction_min;
@@ -3744,6 +3759,39 @@ void State::print(void)
    fflush(mesh->fp);
 }
 
+void State::print_data_dump(int ncycle)
+
+{  //printf("size is %lu %lu %lu %lu %lu\n",index.size(), i.size(), level.size(), nlft.size(), x.size());
+
+   char filename[20];
+   sprintf(filename,"out%1d.%05d",mesh->mype,ncycle);
+   FILE *fp=fopen(filename,"w");
+
+   int nlength = (mesh->mesh_memory.get_memory_size(mesh->nlft) >= mesh->ncells_ghost) ? mesh->ncells_ghost : mesh->ncells;
+
+   fprintf(fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mesh->mype);
+   for (uint ic=0; ic < nlength; ic++) {
+      fprintf(fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mesh->mype,ic, ic+mesh->noffset,mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+   }
+   fprintf(fp,"%d:  index     H           H             U            U             V           V           i     j     lev\n",mesh->mype);
+   for (uint ic=0; ic < nlength; ic++) {
+      fprintf(fp,"%d: %6d %lf ", mesh->mype,ic, H[ic]);
+
+      doubleToHex(fp, H[ic]);
+
+      fprintf(fp," %lf ",U[ic]);
+
+      doubleToHex(fp, U[ic]);
+
+      fprintf(fp," %lf ",V[ic]);
+
+      doubleToHex(fp, V[ic]);
+
+      fprintf(fp," %4d  %4d   %4d  \n", mesh->i[ic], mesh->j[ic], mesh->level[ic]);
+   }
+   fclose(fp);
+}
+
 size_t State::get_checkpoint_size(void)
 {
 #ifdef FULL_PRECISION
@@ -3955,3 +4003,4 @@ void State::print_rollback_log(int iteration, double simTime, double initial_mas
       }
    }
 }
+
