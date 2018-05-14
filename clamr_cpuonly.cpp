@@ -491,7 +491,11 @@ extern "C" void do_calc(void)
 
    int error_status = STATUS_OK;
 
+#ifdef __APPLE__
+   if (isnan(H_sum)) {
+#else
    if (std::isnan(H_sum)) {
+#endif
       printf("Got a NAN on cycle %d\n",ncycle);
       error_status = STATUS_NAN;
    }

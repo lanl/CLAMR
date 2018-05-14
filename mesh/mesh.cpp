@@ -2711,7 +2711,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
 
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp for simd
+#else
+#pragma omp simd
 #endif
       for (uint ic=0; ic<ncells; ic++){
          index[ic]=ic;
@@ -2759,7 +2761,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    if (have_state) {
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp for simd
+#else
+#pragma omp simd
 #endif
       for (int ic = 0; ic < (int)ncells; ic++){
          celltype_save[ic] = celltype[ic];
@@ -4025,6 +4029,11 @@ void Mesh::calc_neighbors(int ncells)
          int lowerBounds, upperBounds;
          get_bounds(lowerBounds, upperBounds);
 
+#ifdef _OPENMP
+#pragma omp for simd
+#else
+#pragma omp simd
+#endif
          for(int ic=lowerBounds; ic<upperBounds; ic++){
             nlft[ic] = -1;
             nrht[ic] = -1;

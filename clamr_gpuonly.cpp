@@ -396,7 +396,11 @@ extern "C" void do_calc(void)
 
    double H_sum = state->gpu_mass_sum(enhanced_precision_sum);
 
+#ifdef __APPLE__
+   if (isnan(H_sum)) {
+#else
    if (std::isnan(H_sum)) {
+#endif
       printf("Got a NAN on cycle %d\n",ncycle);
       exit(-1);
    }
