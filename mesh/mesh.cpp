@@ -2711,7 +2711,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #endif
 
 #ifdef _OPENMP
-#pragma omp for simd
+#pragma omp for
 #else
 #pragma omp simd
 #endif
@@ -2761,7 +2761,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 
    if (have_state) {
 #ifdef _OPENMP
-#pragma omp for simd
+#pragma omp for
 #else
 #pragma omp simd
 #endif
@@ -4030,7 +4030,7 @@ void Mesh::calc_neighbors(int ncells)
          get_bounds(lowerBounds, upperBounds);
 
 #ifdef _OPENMP
-#pragma omp for simd
+#pragma omp for
 #else
 #pragma omp simd
 #endif
