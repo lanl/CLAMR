@@ -160,7 +160,11 @@ void doubleToHex(FILE *fp, double val){
     }
     for(int ii = 0; ii < (int) sizeof(double); ++ii) {
        if (ii == 0) { 
-          fprintf(fp,"%#02x", hexVals[ii]);
+          if (hexVals[ii] == 0){
+             fprintf(fp,"Ox%02x", hexVals[ii]);
+          } else {
+             fprintf(fp,"%#02x", hexVals[ii]);
+          }
        } else {
           fprintf(fp,"%02x", hexVals[ii]);
        }    
