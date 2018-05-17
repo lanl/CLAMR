@@ -156,7 +156,7 @@ int save_ncells;
 void doubleToHex(FILE *fp, double val){
     unsigned char* hexVals = (unsigned char *)malloc(sizeof(double));
     for(int i = 0; i < sizeof(double); i++){
-        hexVals[i] = ((unsigned char*)&val)[i];
+        hexVals[i] = ((unsigned char*)&val)[sizeof(double)-i-1];
     }
     for(int ii = 0; ii < (int) sizeof(double); ++ii) {
        if (ii == 0) { 
