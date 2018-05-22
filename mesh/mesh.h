@@ -261,6 +261,15 @@ public:
    vector<int>    nsizes,
                   ndispl;
 
+//#define PATTERN_CHECK 1
+#undef PATTERN_CHECK
+
+#ifdef PATTERN_CHECK
+   int *xcase;
+   int xcase_count[70];
+   char xcase_descrip[70][50];
+#endif
+
    FILE          *fp;
 
    TKDTree        tree;         //!<  k-D tree for neighbor search.

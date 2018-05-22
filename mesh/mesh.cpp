@@ -98,6 +98,9 @@ void scan ( scanInt *input , scanInt *output , scanInt length);
 #define TIMING_LEVEL 2
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
+#ifdef PATTERN_CHECK
+#define MIN4(a,b,c,d) ( MIN(MIN(a,b),MIN(c,d)) )
+#endif
 
 #define IPOW2(a) (2 << (a))
 
@@ -1362,6 +1365,14 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double d
    nrht     = NULL;
    nbot     = NULL;
    ntop     = NULL;
+
+#ifdef PATTERN_CHECK
+   for (int ii=0; ii<70; ii++){
+       xcase_count[ii]=0;
+       sprintf(xcase_descrip[ii],"\0");
+   }
+#endif
+
 }
 
 void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_order, int do_gpu_calc)
@@ -9778,6 +9789,103 @@ void Mesh::calc_face_list_wbidirmap(void)
       jymin_level[fl] = 0;
    }
 
+#ifdef PATTERN_CHECK
+   for (int ii=0; ii<70; ii++){
+       xcase_count[ii]=0;
+       sprintf(xcase_descrip[ii],"\0");
+   }
+   int bitsize = 3;
+
+   xcase = (int *)malloc(nxface*sizeof(int));
+   for (int iface = 0; iface < nxface; iface++){
+      xcase[iface]=-1;
+      int nl = map_xface2cell_lower[iface];
+      int nll = nlft[nl];
+      int nr = map_xface2cell_upper[iface];
+      int nrr = nrht[nr];
+      int ll = level[nl];
+      int lll = level[nll];
+      int lr = level[nr];
+      int lrr = level[nrr];
+
+      int imin = MIN4(lll,ll,lr,lrr);
+      ll  -= imin;
+      lll -= imin;
+      lr  -= imin;
+      lrr -= imin;
+      char binlevstring[6];
+      sprintf(binlevstring,"%1d%1d%1d%1db\0",ll,lr,lll,lrr);
+      xcase[iface]=strtol(binlevstring,NULL,bitsize);
+      sprintf(xcase_descrip[xcase[iface]],"   %s     %d     %d   %d     %d\0",binlevstring,lll,ll,lr,lrr);
+      xcase_count[xcase[iface]]++;
+      printf("%d %s %d %d %d %d %d\n",iface,binlevstring,lll,ll,lr,lrr,xcase[iface]);
+   }
+
+   for (int ll = 0; ll < 3; ll++){
+      for (int lll = 0; lll < 3; lll++){
+         for (int lr = 0; lr < 3; lr++){
+            for (int lrr = 0; lrr < 3; lrr++){
+               char binlevstring[6];
+               sprintf(binlevstring,"%1d%1d%1d%1db\0",ll,lr,lll,lrr);
+               int icase=strtol(binlevstring,NULL,bitsize);
+               switch (icase) {
+                   case 0 :
+                   case 1 :
+                   case 3 :
+                   case 4 :
+                   case 10 :
+                   case 11 :
+                   case 30 :
+                   case 33 :
+                   case 37 :
+                   case 38 :
+                   case 39 :
+                   case 42 :
+                   case 47 :
+                   case 69 :
+                      sprintf(xcase_descrip[icase],"   %s     %d     %d   %d     %d\0",binlevstring,lll,ll,lr,lrr);
+                      break;
+                   default : 
+                      //printf("Face %d does not fit a case\n",iface);
+                      break;
+               }
+            }
+         }
+      }
+   }
+
+   printf("          l,r,ll,rr        levels\n");
+   printf("case count bincode lft-lft lft rht rht-rht\n");
+   for (int ii=0; ii<70; ii++){
+      if (xcase_count[ii] > 0 || strlen(xcase_descrip[ii]) > 1) {
+         printf(" %3d %3d %s\n",ii,xcase_count[ii],xcase_descrip[ii]);
+      }
+   }
+
+   // Check to see if we missed any cases
+   for (int iface = 0; iface < nxface; iface++){
+      switch (xcase[iface]) {
+          case 0 :
+          case 1 :
+          case 3 :
+          case 4 :
+          case 10 :
+          case 11 :
+          case 30 :
+          case 33 :
+          case 37 :
+          case 38 :
+          case 39 :
+          case 42 :
+          case 47 :
+          case 69 :
+             break;
+          default : 
+             printf("Face %d does not fit a case\n",iface);
+             break;
+      }
+   }
+#endif
 }
 
 int **Mesh::get_xface_flag(int lev, bool print_output)

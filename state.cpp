@@ -1866,12 +1866,42 @@ void State::calc_finite_difference_via_faces(double deltaT){
       int level_lower = level[cell_lower];
       int level_upper = level[cell_upper];
       if (level_lower == level_upper) {
+#ifdef PATTERN_CHECK
+         switch(mesh->xcase[iface]){
+             case 0:
+             case 1:
+             case 37:
+             case 3:
+             case 39:
+             case 4:
+             case 38:
+             case 42:
+                 break;
+             default:
+                 printf("Face case %d at line %d is not handled \n",mesh->xcase[iface],__LINE__);
+                 break;
+         }
+#endif
          int lev = level_upper;
          real_t Cxhalf = 0.5*deltaT/mesh->lev_deltax[lev];
          Hx[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cxhalf*( HXFLUX(cell_upper)-HXFLUX(cell_lower) );
          Ux[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cxhalf*( UXFLUX(cell_upper)-UXFLUX(cell_lower) );
          Vx[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cxhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
       } else {
+#ifdef PATTERN_CHECK
+         switch(mesh->xcase[iface]){
+             case 10:
+             case 11:
+             case 47:
+             case 30:
+             case 33:
+             case 69:
+                 break;
+             default:
+                 printf("Face case %d at line %d is not handled \n",mesh->xcase[iface],__LINE__);
+                 break;
+         }
+#endif
          real_t dx_lower = mesh->lev_deltax[level[cell_lower]];
          real_t dx_upper = mesh->lev_deltax[level[cell_upper]];
 
@@ -1920,6 +1950,10 @@ void State::calc_finite_difference_via_faces(double deltaT){
    if (DEBUG >= 2) {
       printf("\n");
    }
+#endif
+
+#ifdef PATTERN_CHECK
+   free(mesh->xcase);
 #endif
 
    static vector<state_t> Hy, Uy, Vy;
