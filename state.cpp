@@ -154,23 +154,10 @@ int save_ncells;
 #define MIN3(x,y,z) ( min( min(x,y), z) )
 
 void doubleToHex(FILE *fp, double val){
-    unsigned char* hexVals = (unsigned char *)malloc(sizeof(double));
-    for(int i = 0; i < sizeof(double); i++){
-        hexVals[i] = ((unsigned char*)&val)[sizeof(double)-i-1];
-    }
-    for(int ii = 0; ii < (int) sizeof(double); ++ii) {
-       if (ii == 0) { 
-          // hex printing doesn't seem to add Ox for 0 value, so force it
-          if (hexVals[ii] == 0){
-             fprintf(fp,"Ox%02x", hexVals[ii]);
-          } else {
-             fprintf(fp,"%#02x", hexVals[ii]);
-          }
-       } else {
-          fprintf(fp,"%02x", hexVals[ii]);
-       }    
-    }    
-    free(hexVals);
+	fprintf(fp, "0x%02x", *(((unsigned char*)(&val))+sizeof(double)-1)  );
+ 		for(int i=sizeof(double)-2; i >=0; i--) {
+			fprintf(fp, "%02x", *(((unsigned char*)(&val))+i)  );
+		}
 }
 
 #ifdef HAVE_OPENCL
@@ -3808,26 +3795,27 @@ void State::print_data_dump(int ncycle)
 
    int nlength = (mesh->mesh_memory.get_memory_size(mesh->nlft) >= mesh->ncells_ghost) ? mesh->ncells_ghost : mesh->ncells;
 
-   fprintf(fp,"%d:   index global  i     j     lev   nlft  nrht  nbot  ntop \n",mesh->mype);
+fprintf(fp,"%d:\tindex\tglobal\ti\tj\tlev\tnlft\tnrht\tnbot\tntop\tH\tHhex\tU\tUhex\tV\tVhex\n",mesh->mype);
    for (uint ic=0; ic < nlength; ic++) {
-      fprintf(fp,"%d: %6d  %6d %4d  %4d   %4d  %4d  %4d  %4d  %4d \n", mesh->mype,ic, ic+mesh->noffset,mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
-   }
-   fprintf(fp,"%d:  index     H           H             U            U             V           V           i     j     lev\n",mesh->mype);
-   for (uint ic=0; ic < nlength; ic++) {
-      fprintf(fp,"%d: %6d %lf ", mesh->mype,ic, H[ic]);
-
+      fprintf(fp,"%d:\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d", mesh->mype,ic,
+                ic+mesh->noffset,mesh->i[ic], mesh->j[ic], mesh->level[ic], mesh->nlft[ic],
+                mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+ 
+      fprintf(fp,"\t%lf\t", H[ic]);
+ 
       doubleToHex(fp, H[ic]);
-
-      fprintf(fp," %lf ",U[ic]);
-
+ 
+      fprintf(fp,"\t%lf\t",U[ic]);
+ 
       doubleToHex(fp, U[ic]);
-
-      fprintf(fp," %lf ",V[ic]);
-
+ 
+      fprintf(fp,"\t%lf\t",V[ic]);
+ 
       doubleToHex(fp, V[ic]);
+ 
+      fprintf(fp,"\n");
 
-      fprintf(fp," %4d  %4d   %4d  \n", mesh->i[ic], mesh->j[ic], mesh->level[ic]);
-   }
+	}
    fclose(fp);
 }
 
