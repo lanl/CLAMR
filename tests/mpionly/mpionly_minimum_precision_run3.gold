@@ -1,0 +1,83 @@
+--------------------------------------------------------------------------
+[[2687,1],2]: A high-performance Open MPI point-to-point messaging module
+was unable to find any relevant network interfaces:
+
+Module: OpenFabrics (openib)
+  Host: cn412
+
+Another transport will be used instead, although this may result in
+lower performance.
+
+NOTE: You can disable this warning by setting the MCA parameter
+btl_base_warn_component_unused to 0.
+--------------------------------------------------------------------------
+Mass of initialized cells equal to  125195.039982
+CPU:  setup time               time was	  0.0143	  0.0142	  0.0143	s
+Memory used      in startup 	     15920	     15864	     16140	kB
+Memory peak      in startup 	     16136	     16120	     16324	kB
+Memory free      at startup 	 130270564	 130270564	 130270564	kB
+Memory available at startup 	 131906808	 131906808	 131906808	kB
+Iteration   0 timestep      n/a Sim Time      0.0 cells 17028 Mass Sum  125195.039982
+Iteration 100 timestep 0.000330 Sim Time 0.043855 cells 17436 Mass Sum  125195.039371 Mass Change -0.000610948
+Iteration 200 timestep 0.000318 Sim Time 0.076685 cells 17664 Mass Sum  125195.039052 Mass Change -0.000929832
+Iteration 300 timestep 0.000346 Sim Time 0.109718 cells 17892 Mass Sum  125195.038353 Mass Change  -0.00162899
+Iteration 400 timestep 0.000358 Sim Time 0.144092 cells 18072 Mass Sum  125195.037471 Mass Change  -0.00251091
+Iteration 500 timestep 0.000371 Sim Time 0.180465 cells 18216 Mass Sum  125195.037357 Mass Change  -0.00262463
+Iteration 600 timestep 0.000398 Sim Time 0.219301 cells 18300 Mass Sum  125195.036736 Mass Change  -0.00324571
+Memory used      	     16660	     16908	     17140	kB
+Memory peak      	     16908	     16944	     17280	kB
+Memory free      	 130268740	 130268740	 130268740	kB
+Memory available 	 131906808	 131906808	 131906808	kB
+
+~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
+
+CPU: Parallel timings
+
+CPU: Device compute           time was	  0.9189	  0.9222	  0.9211	s
+CPU:   state_timer_set_timestep      		    0.0274	    0.0308	    0.0297	s
+CPU:   state_timer_finite_difference 		    0.6876	    0.6622	    0.7035	s
+CPU:   state_timer_refine_potential  		    0.1049	    0.1306	    0.0891	s
+CPU:     state_timer_calc_mpot         		      0.0792	      0.1005	      0.0609	s
+CPU:     mesh_timer_refine_smooth      		      0.0201	      0.0248	      0.0228	s
+CPU:   state_timer_rezone_all        		    0.0118	    0.0117	    0.0118	s
+CPU:   mesh_timer_partition          		    0.0000	    0.0000	    0.0000	s
+CPU:   mesh_timer_calc_neighbors     		    0.0835	    0.0835	    0.0835	s
+CPU:     mesh_timer_hash_setup         		      0.0074	      0.0066	      0.0074	s
+CPU:     mesh_timer_hash_query         		      0.0184	      0.0165	      0.0182	s
+CPU:     mesh_timer_find_boundary      		      0.0060	      0.0085	      0.0059	s
+CPU:     mesh_timer_push_setup         		      0.0022	      0.0027	      0.0026	s
+CPU:     mesh_timer_push_boundary      		      0.0037	      0.0038	      0.0038	s
+CPU:     mesh_timer_local_list         		      0.0000	      0.0000	      0.0000	s
+CPU:     mesh_timer_layer1             		      0.0118	      0.0054	      0.0115	s
+CPU:     mesh_timer_layer2             		      0.0130	      0.0055	      0.0126	s
+CPU:     mesh_timer_layer_list         		      0.0000	      0.0000	      0.0000	s
+CPU:     mesh_timer_copy_mesh_data     		      0.0007	      0.0007	      0.0008	s
+CPU:     mesh_timer_fill_mesh_ghost    		      0.0001	      0.0001	      0.0001	s
+CPU:     mesh_timer_fill_neigh_ghost   		      0.0079	      0.0152	      0.0162	s
+CPU:     mesh_timer_set_corner_neigh   		      0.0000	      0.0000	      0.0000	s
+CPU:     mesh_timer_neigh_adjust       		      0.0018	      0.0017	      0.0017	s
+CPU:     mesh_timer_setup_comm         		      0.0086	      0.0153	      0.0010	s
+CPU:   state_timer_mass_sum          		    0.0002	    0.0004	    0.0002	s
+CPU:   mesh_timer_load_balance       		    0.0035	    0.0031	    0.0033	s
+CPU:   mesh_timer_calc_spatial_coordi		    0.0000	    0.0000	    0.0000	s
+=============================================================
+Profiling: Total CPU          time was	  0.9189	  0.9222	  0.9211	s
+-------------------------------------------------------------
+Mesh Ops (Neigh+rezone+smooth+balance) 	  0.1189	  0.1230	  0.1215	s
+Mesh Ops Percentage                    	 12.9377	 13.3430	 13.1946	percent
+=============================================================
+Profiling: Total              time was	  0.9307	  0.9307	  0.9307	s
+=============================================================
+CPU:  calc incl part meas     time was	  0.9304	  0.9305	  0.9305	s
+CPU:  calculation only        time was	  0.9304	  0.9305	  0.9305	s
+CPU:  partition measure       time was	  0.0000	  0.0000	  0.0000	s
+CPU:  graphics                time was	  0.0000	  0.0000	  0.0000	s
+The MPI surface area to volume ratio 	  0.0657	  0.0843	  0.0657	without duplicates
+Using hash tables to calculate neighbors
+Initial order is Hilbert sort.   No cycle reorder.   Local Stencil is on.
+CPU:  rezone frequency                	  12.1667	percent
+CPU:  calc neigh frequency            	  12.3333	percent
+CPU:  load balance frequency          	  12.1667	percent
+CPU:  refine_smooth_iter per rezone   	   0.0000	
+[cn412:05925] 2 more processes have sent help message help-mpi-btl-base.txt / btl:no-nics
+[cn412:05925] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help / error messages
