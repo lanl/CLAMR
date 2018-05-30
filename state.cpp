@@ -1857,12 +1857,12 @@ void State::calc_finite_difference_via_faces(double deltaT){
          switch(mesh->xcase[iface]){
              case 0:
              case 1:
-             case 37:
-             case 3:
-             case 39:
+             case 81:
              case 4:
-             case 38:
-             case 42:
+             case 84:
+             case 5:
+             case 82:
+             case 88:
                  break;
              default:
                  printf("Face case %d at line %d is not handled \n",mesh->xcase[iface],__LINE__);
@@ -1877,12 +1877,14 @@ void State::calc_finite_difference_via_faces(double deltaT){
       } else {
 #ifdef PATTERN_CHECK
          switch(mesh->xcase[iface]){
-             case 10:
-             case 11:
-             case 47:
-             case 30:
-             case 33:
-             case 69:
+             case 17:
+             case 18:
+             case 98:
+             case 68:
+             case 72:
+	     case 99:
+             case 152:
+	     case 156:
                  break;
              default:
                  printf("Face case %d at line %d is not handled \n",mesh->xcase[iface],__LINE__);
