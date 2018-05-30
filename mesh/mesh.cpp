@@ -1367,7 +1367,7 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double d
    ntop     = NULL;
 
 #ifdef PATTERN_CHECK
-   for (int ii=0; ii<70; ii++){
+   for (int ii=0; ii<255; ii++){
        xcase_count[ii]=0;
        sprintf(xcase_descrip[ii],"\0");
    }
@@ -9790,11 +9790,11 @@ void Mesh::calc_face_list_wbidirmap(void)
    }
 
 #ifdef PATTERN_CHECK
-   for (int ii=0; ii<70; ii++){
+   for (int ii=0; ii<255; ii++){
        xcase_count[ii]=0;
        sprintf(xcase_descrip[ii],"\0");
    }
-   int bitsize = 3;
+   int bitsize = 4;
 
    xcase = (int *)malloc(nxface*sizeof(int));
    for (int iface = 0; iface < nxface; iface++){
@@ -9821,31 +9821,34 @@ void Mesh::calc_face_list_wbidirmap(void)
       printf("%d %s %d %d %d %d %d\n",iface,binlevstring,lll,ll,lr,lrr,xcase[iface]);
    }
 
-   for (int ll = 0; ll < 3; ll++){
-      for (int lll = 0; lll < 3; lll++){
-         for (int lr = 0; lr < 3; lr++){
-            for (int lrr = 0; lrr < 3; lrr++){
+   for (int ll = 0; ll < 4; ll++){
+      for (int lll = 0; lll < 4; lll++){
+         for (int lr = 0; lr < 4; lr++){
+            for (int lrr = 0; lrr < 4; lrr++){
                char binlevstring[6];
                sprintf(binlevstring,"%1d%1d%1d%1db\0",ll,lr,lll,lrr);
                int icase=strtol(binlevstring,NULL,bitsize);
                switch (icase) {
                    case 0 :
                    case 1 :
-                   case 3 :
                    case 4 :
-                   case 10 :
-                   case 11 :
-                   case 30 :
-                   case 33 :
-                   case 37 :
-                   case 38 :
-                   case 39 :
-                   case 42 :
-                   case 47 :
-                   case 69 :
+                   case 5 :
+                   case 17 :
+                   case 18 :
+                   case 68 :
+                   case 72 :
+                   case 81 :
+                   case 82 :
+                   case 84 :
+                   case 88 :
+                   case 98 :
+                   case 99 :
+		   case 152 :
+		   case 156 :
                       sprintf(xcase_descrip[icase],"   %s     %d     %d   %d     %d\0",binlevstring,lll,ll,lr,lrr);
                       break;
-                   default : 
+                   default: 
+                      //printf("   %s     %d     %d   %d     %d\n",binlevstring,lll,ll,lr,lrr);
                       //printf("Face %d does not fit a case\n",iface);
                       break;
                }
@@ -9856,7 +9859,7 @@ void Mesh::calc_face_list_wbidirmap(void)
 
    printf("          l,r,ll,rr        levels\n");
    printf("case count bincode lft-lft lft rht rht-rht\n");
-   for (int ii=0; ii<70; ii++){
+   for (int ii=0; ii<256; ii++){
       if (xcase_count[ii] > 0 || strlen(xcase_descrip[ii]) > 1) {
          printf(" %3d %3d %s\n",ii,xcase_count[ii],xcase_descrip[ii]);
       }
@@ -9867,18 +9870,20 @@ void Mesh::calc_face_list_wbidirmap(void)
       switch (xcase[iface]) {
           case 0 :
           case 1 :
-          case 3 :
           case 4 :
-          case 10 :
-          case 11 :
-          case 30 :
-          case 33 :
-          case 37 :
-          case 38 :
-          case 39 :
-          case 42 :
-          case 47 :
-          case 69 :
+          case 5 :
+          case 17 :
+          case 18 :
+          case 68 :
+          case 72 :
+          case 81 :
+          case 82 :
+          case 84 :
+          case 88 :
+          case 98 :
+          case 99 :
+	  case 152 :
+	  case 156 :
              break;
           default : 
              printf("Face %d does not fit a case\n",iface);
