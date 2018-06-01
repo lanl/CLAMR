@@ -9789,8 +9789,24 @@ void Mesh::calc_face_list_wbidirmap(void)
       jymin_level[fl] = 0;
    }
 
+    //use every other face so as not to get duplicate ghost cells. All ghosts will still be accounted for
+    for (int iface = 0; iface < nxface; iface ++) {
+        int gcellCnt = 0, //counter for new ghost cells
+            gfaceCnt = 0, //counter for new ghost faces
+            lncell = map_xface2cell_lower[iface], // cell neighbor to the left
+            rncell = map_xface2cell_upper[iface]; // cell neighbor to the right
+
+        if (level[lncell] != level[rncell]) {
+            gcellCnt += 4 - (iface % 2) * 2; //add 4 for even faces, add only 2 for odd faces
+            gfaceCnt++; //always adding 1 face
+
+        }
+            
+    }
+
+
 #ifdef PATTERN_CHECK
-   for (int ii=0; ii<255; ii++){
+   for (int ii=0; ii<256; ii++){
        xcase_count[ii]=0;
        sprintf(xcase_descrip[ii],"\0");
    }
@@ -9843,8 +9859,8 @@ void Mesh::calc_face_list_wbidirmap(void)
                    case 88 :
                    case 98 :
                    case 99 :
-		   case 152 :
-		   case 156 :
+		           case 152 :
+		           case 156 :
                       sprintf(xcase_descrip[icase],"   %s     %d     %d   %d     %d\0",binlevstring,lll,ll,lr,lrr);
                       break;
                    default: 
@@ -9882,8 +9898,8 @@ void Mesh::calc_face_list_wbidirmap(void)
           case 88 :
           case 98 :
           case 99 :
-	  case 152 :
-	  case 156 :
+          case 152 :
+          case 156 :
              break;
           default : 
              printf("Face %d does not fit a case\n",iface);
