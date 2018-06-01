@@ -9843,8 +9843,8 @@ void Mesh::calc_face_list_wbidirmap(void)
                    case 88 :
                    case 98 :
                    case 99 :
-		   case 152 :
-		   case 156 :
+		           case 152 :
+		           case 156 :
                       sprintf(xcase_descrip[icase],"   %s     %d     %d   %d     %d\0",binlevstring,lll,ll,lr,lrr);
                       break;
                    default: 
@@ -9882,8 +9882,8 @@ void Mesh::calc_face_list_wbidirmap(void)
           case 88 :
           case 98 :
           case 99 :
-	  case 152 :
-	  case 156 :
+          case 152 :
+          case 156 :
              break;
           default : 
              printf("Face %d does not fit a case\n",iface);
