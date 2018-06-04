@@ -1,4 +1,4 @@
-/*
+h*
  *  Copyright (c) 2011-2012, Los Alamos National Security, LLC.
  *  All rights Reserved.
  *
@@ -9789,7 +9789,7 @@ void Mesh::calc_face_list_wbidirmap(void)
       jymin_level[fl] = 0;
    }
 
-    //These variable are for the following for-loop
+    //These variables are for the following for-loop
     int pcellCnt = 0, //counter for new phantom cells
         pfaceCnt = 0, //counter for new phantom faces
         pcellIdx = (int) ncells, //starting index for new cell phantoms
@@ -9816,7 +9816,12 @@ void Mesh::calc_face_list_wbidirmap(void)
                     map_xcell2face_right1[lncell] = pfaceIdx;
                     map_xcell2face_left1[pcellIdx + 2] = pfaceIdx;
                     //old face's new phantom adjacent cell
-                    map_face2cell_lower[iface] = pcellIdx;
+                    map_xface2cell_lower[iface] = pcellIdx;
+
+                    //face positions
+                    xface_level[pfaceIdx] = level[lncell];
+                    xface_i[pfaceIdx] = i[lncell] + 1;
+                    xface_j[pfaceIdx] = j[lncell];
                 }
                 else { //left is more refined
                     //new face's adjacent cells
@@ -9826,7 +9831,11 @@ void Mesh::calc_face_list_wbidirmap(void)
                     map_xcell2face_left1[rncell] = pfaceIdx;
                     map_xcell2face_right1[pcellIdx] = pfaceIdx;
                     //old face's new phantom adjacent cell
-                    map_face2cell_upper[iface] = pcellIdx + 2;
+                    map_xface2cell_upper[iface] = pcellIdx + 2;
+
+                    xface_level[pfaceIdx] = level[rncell];
+                    xface_i[pfaceIdx] = i[rncell];
+                    xface_j[pfaceIdx] = j[rncell];
                 }
                 //phantom cells' new neighbors (same regardless of which side refinement occurs)
                 nlft[pcellIdx] = pcellIdx + 1;
@@ -9835,6 +9844,17 @@ void Mesh::calc_face_list_wbidirmap(void)
                 nlft[pcellIdx+2] = lncell;
                 nrht[pcellIdx+2] = pcellIdx + 3;
                 nlft[pcellIdx+3] = pcellIdx + 2;
+
+                //update other arrays
+                i[pcellIdx] = i[rncell] - 1;
+                i[pcellIdx+1] = i[rncell] - 2;
+                i[pcellIdx+2] = i[lncell] + 1;
+                i[pcellIdx+3] = i[lncell] + 2;
+                j[pcellIdx] = j[rncell];
+                j[pcellIdx+1] = j[rncell];
+                j[pcellIdx+2] = j[lncell];
+                j[pcellIdx+3] = j[lncell];
+                
             }
             else {
                 pcellCnt += 2;
@@ -9846,6 +9866,12 @@ void Mesh::calc_face_list_wbidirmap(void)
                     nlft[pcellIdx] = pcellIdx + 1;
                     nrht[pcellIdx] = rncell;
                     nrht[pcellIdx+1] = pcellIdx;
+                    //other arrays
+                    i[pcellIdx] = i[rncell] - 1;
+                    i[pcellIdx+1] = i[rncell] - 2;
+                    j[pcellIdx] = j[rncell];
+                    j[pcellIdx+1] = j[rncell];
+
                 }
                 else { // left is more refined 
                     //old face's new phantom adjacent cell
@@ -9854,7 +9880,13 @@ void Mesh::calc_face_list_wbidirmap(void)
                     nlft[pcellIdx] = lncell;
                     nrht[pcellIdx] = rncell;
                     nrht[pcellIdx+1] = pcellIdx;
+                    //other arrays
+                    i[pcellIdx] = i[lncell] + 1;
+                    i[pcellIdx+1] = i[lncell] + 2;
+                    j[pcellIdx] = j[lncell];
+                    j[pcellIdx+1] = j[lncell];
                 }
+
             }
 
             //update indexes
@@ -9864,6 +9896,122 @@ void Mesh::calc_face_list_wbidirmap(void)
 
     }
 
+    /*
+     *resize arrays/vectors here including the addition of the new faces and cells
+     * */
+
+
+    //Now for the y faces
+    
+    //pcellIdx will actually stay where it was previously incremented to because there
+    //is only 1 array of cells (not dependent on x/y)
+    pcellCnt = 0;
+    pfaceCnt = 0;
+    pfaceIdx = nyface;
+
+    for (int iface = 0; iface < nyface; iface++) {
+        int bncell = map_xface2cell_lower[iface], // cell neighbor below
+            tncell = map_xface2cell_upper[iface]; // cell neighbor above
+
+        //for future indexing, the new phantom cell appear in the array as follows
+        // bp bbp tp ttp (for even iface), [b,t]p [bb,tt]p (for odd iface)
+        // important to note we only add 2 phantom cells on odd iface values
+        // because 2 that would be added by its even "partner" iface value will be the same 
+        if (level[bncell] != level[tncell]) {
+            if (iface % 2 ==0) { // iface is even
+                pcellCnt += 4;
+                pfaceCnt++;
+
+                if (level[bncell] < level[tncell]) { // top is more refined
+                    //new face's adjacent cells
+                    map_yface2cell_lower[pfaceIdx] = bncell;        
+                    map_yface2cell_upper[pfaceIdx] = pcellIdx + 2;
+                    //adjacent cells' face
+                    map_ycell2face_top1[bncell] = pfaceIdx;
+                    map_ycell2face_bot1[pcellIdx + 2] = pfaceIdx;
+                    //old face's new phantom adjacent cell
+                    map_yface2cell_lower[iface] = pcellIdx;
+
+                    //face positions
+                    yface_level[pfaceIdx] = level[bncell];
+                    yface_i = i[bncell];
+                    yface_j = j[bncell] + 1;
+                }
+                else { //bottom is more refined
+                    //new face's adjacent cells
+                    map_yface2cell_lower[pfaceIdx] = pcellIdx;        
+                    map_yface2cell_upper[pfaceIdx] = tncell;
+                    //adjacent cell's face
+                    map_ycell2face_bot1[tncell] = pfaceIdx;
+                    map_ycell2face_top1[pcellIdx] = pfaceIdx;
+                    //old face's new phantom adjacent cell
+                    map_yface2cell_upper[iface] = pcellIdx + 2;
+
+                    yface_level[pfaceIdx] = level[tncell];
+                    yface_i = i[tncell];
+                    yface_j = j[tncell];
+                }
+                //phantom cells' new neighbors (same regardless of which side refinement occurs)
+                nbot[pcellIdx] = pcellIdx + 1;
+                ntop[pcellIdx] = tncell;
+                ntop[pcellIdx+1] = pcellIdx;
+                nbot[pcellIdx+2] = bncell;
+                ntop[pcellIdx+2] = pcellIdx + 3;
+                nbot[pcellIdx+3] = pcellIdx + 2;
+
+                //update other arrays
+                i[pcellIdx] = i[tncell];
+                i[pcellIdx+1] = i[rncell];
+                i[pcellIdx+2] = i[bncell];
+                i[pcellIdx+3] = i[bncell];
+                j[pcellIdx] = j[tncell] - 1;
+                j[pcellIdx+1] = j[tncell] - 2;
+                j[pcellIdx+2] = j[bncell] + 1;
+                j[pcellIdx+3] = j[bncell] + 2;
+                
+            }
+            else {
+                pcellCnt += 2;
+
+                if (level[lncell] < level[rncell]) { // top is more refined
+                    //old face's new phantom adjacent cell
+                    map_yface2cell_lower[iface] = pcellIdx;
+                    //phantom cells' new neighbors
+                    nbot[pcellIdx] = pcellIdx + 1;
+                    ntop[pcellIdx] = tncell;
+                    ntop[pcellIdx+1] = pcellIdx;
+                    //other arrays
+                    i[pcellIdx] = i[tncell];
+                    i[pcellIdx+1] = i[tncell];
+                    j[pcellIdx] = j[tncell] - 1;
+                    j[pcellIdx+1] = j[tncell] - 2;
+                }
+                else { // bottom is more refined 
+                    //old face's new phantom adjacent cell
+                    map_yface2cell_upper[iface] = pcellIdx; 
+                    //phantom cells' new neighbors
+                    nbot[pcellIdx] = bncell;
+                    ntop[pcellIdx] = pcellIdx + 1;
+                    nbot[pcellIdx+1] = pcellIdx;
+                    //other arrays
+                    i[pcellIdx] = i[bncell];
+                    i[pcellIdx+1] = i[bncell];
+                    j[pcellIdx] = j[bncell] + 1;
+                    j[pcellIdx+1] = j[bncell] + 2;
+                }
+
+            }
+
+            //update indexes
+            pcellIdx += 4 - (iface % 2) * 2;
+            pfaceIdx += 1 - (iface % 2);
+        }
+
+    }
+
+    /*
+     * resize arrays/vectors with the addition of the new faces and cells
+     * */
 
 #ifdef PATTERN_CHECK
    for (int ii=0; ii<256; ii++){
