@@ -1,4 +1,4 @@
-h*
+/*
  *  Copyright (c) 2011-2012, Los Alamos National Security, LLC.
  *  All rights Reserved.
  *
@@ -9594,7 +9594,7 @@ void Mesh::calc_face_list_wbidirmap(void)
    jxadjust.clear();
    jxadjust.resize(levmx+1);
 
-   int iface=0;
+   int iface=0, uniIdx = 0;
    for (int nz=0; nz<(int)ncells; nz++){
       int nr = nrht[nz];
       if (nr == nz) continue;
@@ -9603,32 +9603,34 @@ void Mesh::calc_face_list_wbidirmap(void)
       if (level[nr] < level[nz]) ifactor = 2;
 
       // Have right face
-      map_xface2cell_lower.push_back(nz);
-      map_xface2cell_upper.push_back(nr);
-      xface_level.push_back(MAX(level[nz],level[nr]));
-      xface_i.push_back(i[nr]*ifactor);
+      map_xface2cell_lower[uniIdx] = nz;
+      map_xface2cell_upper[uniIdx] = nr;
+      xface_level[uniIdx] = MAX(level[nz],level[nr]);
+      xface_i[uniIdx] = i[nr]*ifactor;
       if (level[nr] < level[nz] && is_upper(j[nz]) ) {
-         xface_j.push_back(j[nr]*ifactor+1);
+         xface_j[uniIdx] = j[nr]*ifactor+1;
       } else {
-         xface_j.push_back(j[nr]*ifactor);
+         xface_j[uniIdx] = j[nr]*ifactor;
       }
       map_xcell2face_right1[nz] = iface;
 
       iface++;
 
       if (level[nr] > level[nz] && is_lower(j[nr]) ){
+         uniIdx++;
          int ntr = ntop[nr];
          if (ntr != nr) {
-            map_xface2cell_lower.push_back(nz);
-            map_xface2cell_upper.push_back(ntr);
-            xface_level.push_back(MAX(level[nz],level[ntr]));
-            xface_i.push_back(i[ntr]*ifactor);
-            xface_j.push_back(j[ntr]*ifactor);
+            map_xface2cell_lower[uniIdx] = nz;
+            map_xface2cell_upper[uniIdx] = ntr;
+            xface_level[uniIdx] = MAX(level[nz],level[ntr]);
+            xface_i[uniIdx] = i[ntr]*ifactor;
+            xface_j[uniIdx] = j[ntr]*ifactor;
             map_xcell2face_right2[nz] = iface;
 
             iface++;
          }
       }
+      uniIdx++;
    }
    nxface=iface;
 
@@ -9677,7 +9679,7 @@ void Mesh::calc_face_list_wbidirmap(void)
    jyadjust.clear();
    jyadjust.resize(levmx+1);
 
-   iface=0;
+   iface=0, uniIdx = 0;
    for (int nz=0; nz<(int)ncells; nz++){
       int nt = ntop[nz];
       if (nt == nz) continue;
@@ -9687,27 +9689,28 @@ void Mesh::calc_face_list_wbidirmap(void)
 
       // Have top face
       // printf("DEBUG -- iface %d lower nz %d upper nr %d\n",iface,nz,nt);
-      map_yface2cell_lower.push_back(nz);
-      map_yface2cell_upper.push_back(nt);
-      yface_level.push_back(MAX(level[nz],level[nt]));
-      yface_j.push_back(j[nt]*ifactor);
+      map_yface2cell_lower[uniIdx] = nz;
+      map_yface2cell_upper[uniIdx] = nt;
+      yface_level[uniIdx] = MAX(level[nz],level[nt]);
+      yface_j[uniIdx] = j[nt]*ifactor;
       if (level[nt] < level[nz] && is_upper(i[nz]) ) {
-         yface_i.push_back(i[nt]*ifactor+1);
+         yface_i[uniIdx] = i[nt]*ifactor+1;
       } else{
-         yface_i.push_back(i[nt]*ifactor);
+         yface_i[uniIdx] = i[nt]*ifactor;
       }
       map_ycell2face_top1[nz] = iface;
 
       iface++;
 
       if (level[nt] > level[nz]  &&is_lower(i[nt]) ){
+         uniIdx++;
          int nrt = nrht[nt];
          if (nrt != nt) {
-            map_yface2cell_lower.push_back(nz);
-            map_yface2cell_upper.push_back(nrt);
-            yface_level.push_back(MAX(level[nz],level[nrt]));
-            yface_j.push_back(j[nrt]*ifactor);
-            yface_i.push_back(i[nrt]*ifactor);
+            map_yface2cell_lower[uniIdx] = nz;
+            map_yface2cell_upper[uniIdx] = nrt;
+            yface_level[uniIdx] = MAX(level[nz],level[nrt]);
+            yface_j[uniIdx] = j[nrt]*ifactor;
+            yface_i[uniIdx] = i[nrt]*ifactor;
             map_ycell2face_top2[nz] = iface;
 
             iface++;
