@@ -9789,19 +9789,79 @@ void Mesh::calc_face_list_wbidirmap(void)
       jymin_level[fl] = 0;
    }
 
-    //use every other face so as not to get duplicate ghost cells. All ghosts will still be accounted for
-    for (int iface = 0; iface < nxface; iface ++) {
-        int gcellCnt = 0, //counter for new ghost cells
-            gfaceCnt = 0, //counter for new ghost faces
-            lncell = map_xface2cell_lower[iface], // cell neighbor to the left
+    //These variable are for the following for-loop
+    int pcellCnt = 0, //counter for new phantom cells
+        pfaceCnt = 0, //counter for new phantom faces
+        pcellIdx = (int) ncells, //starting index for new cell phantoms
+        pfaceIdx = nxface; //starting index for new face phantoms
+
+    for (int iface = 0; iface < nxface; iface++) {
+        int lncell = map_xface2cell_lower[iface], // cell neighbor to the left
             rncell = map_xface2cell_upper[iface]; // cell neighbor to the right
 
+        //for future indexing, the new phantom cell appear in the array as follows
+        // lp llp rp rrp (for even iface), [l,r]p [ll,rr]p (for odd iface)
+        // important to note we only add 2 phantom cells on odd iface values
+        // because 2 that would be added by its even "partner" iface value will be the same 
         if (level[lncell] != level[rncell]) {
-            gcellCnt += 4 - (iface % 2) * 2; //add 4 for even faces, add only 2 for odd faces
-            gfaceCnt++; //always adding 1 face
+            if (iface % 2 ==0) { // iface is even
+                pcellCnt += 4;
+                pfaceCnt++;
 
+                if (level[lncell] < level[rncell]) { // right is more refined
+                    //new face's adjacent cells
+                    map_xface2cell_lower[pfaceIdx] = lncell;        
+                    map_xface2cell_upper[pfaceIdx] = pcellIdx + 2;
+                    //adjacent cells' face
+                    map_xcell2face_right1[lncell] = pfaceIdx;
+                    map_xcell2face_left1[pcellIdx + 2] = pfaceIdx;
+                    //old face's new phantom adjacent cell
+                    map_face2cell_lower[iface] = pcellIdx;
+                }
+                else { //left is more refined
+                    //new face's adjacent cells
+                    map_xface2cell_lower[pfaceIdx] = rncell;        
+                    map_xface2cell_upper[pfaceIdx] = pcellIdx;
+                    //adjacent cell's face
+                    map_xcell2face_left1[rncell] = pfaceIdx;
+                    map_xcell2face_right1[pcellIdx] = pfaceIdx;
+                    //old face's new phantom adjacent cell
+                    map_face2cell_upper[iface] = pcellIdx + 2;
+                }
+                //phantom cells' new neighbors (same regardless of which side refinement occurs)
+                nlft[pcellIdx] = pcellIdx + 1;
+                nrht[pcellIdx] = rncell;
+                nrht[pcellIdx+1] = pcellIdx;
+                nlft[pcellIdx+2] = lncell;
+                nrht[pcellIdx+2] = pcellIdx + 3;
+                nlft[pcellIdx+3] = pcellIdx + 2;
+            }
+            else {
+                pcellCnt += 2;
+
+                if (level[lncell] < level[rncell]) { // right is more refined
+                    //old face's new phantom adjacent cell
+                    map_xface2cell_lower[iface] = pcellIdx;
+                    //phantom cells' new neighbors
+                    nlft[pcellIdx] = pcellIdx + 1;
+                    nrht[pcellIdx] = rncell;
+                    nrht[pcellIdx+1] = pcellIdx;
+                }
+                else { // left is more refined 
+                    //old face's new phantom adjacent cell
+                    map_xface2cell_upper[iface] = pcellIdx; 
+                    //phantom cells' new neighbors
+                    nlft[pcellIdx] = lncell;
+                    nrht[pcellIdx] = rncell;
+                    nrht[pcellIdx+1] = pcellIdx;
+                }
+            }
+
+            //update indexes
+            pcellIdx += 4 - (iface % 2) * 2;
+            pfaceIdx += 1 - (iface % 2);
         }
-            
+
     }
 
 
