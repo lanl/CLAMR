@@ -9805,19 +9805,21 @@ void Mesh::calc_face_list_wbidirmap(void)
       jymin_level[fl] = 0;
    }
 
-    i        = (int *)mesh_memory.memory_realloc(6 * ncells, i);
-    j        = (int *)mesh_memory.memory_realloc(6 * ncells, j);
-    level    = (int *)mesh_memory.memory_realloc(6 * ncells, level);
-    nlft     = (int *)mesh_memory.memory_realloc(6 * ncells, nlft);
-    nrht     = (int *)mesh_memory.memory_realloc(6 * ncells, nrht);
-    nbot     = (int *)mesh_memory.memory_realloc(6 * ncells, nbot);
-    ntop     = (int *)mesh_memory.memory_realloc(6 * ncells, ntop);
+    i        = (int *)mesh_memory.memory_realloc(6*ncells, i);
+    j        = (int *)mesh_memory.memory_realloc(6*ncells, j);
+    level    = (int *)mesh_memory.memory_realloc(6*ncells, level);
+    nlft     = (int *)mesh_memory.memory_realloc(6*ncells, nlft);
+    nrht     = (int *)mesh_memory.memory_realloc(6*ncells, nrht);
+    nbot     = (int *)mesh_memory.memory_realloc(6*ncells, nbot);
+    ntop     = (int *)mesh_memory.memory_realloc(6*ncells, ntop);
     memory_reset_ptrs();
     printf("\n%d\n", mesh_memory.get_memory_size(nlft));
+
 
     //These variables are for the following for-loop
     int pcellCnt = 0, //counter for new phantom cells
         pfaceCnt = 0, //counter for new phantom faces
+        idxVar = 0,
         pcellIdx = (int) ncells, //starting index for new cell phantoms
         pfaceIdx = nxface; //starting index for new face phantoms
 
@@ -9830,7 +9832,9 @@ void Mesh::calc_face_list_wbidirmap(void)
         // important to note we only add 2 phantom cells on odd iface values
         // because 2 that would be added by its even "partner" iface value will be the same 
         if (level[lncell] != level[rncell]) {
-            if (iface % 2 ==0) { // iface is even
+            //if (iface % 2 ==0) { // iface is even
+            if (nrht[lncell] == rncell && nlft[rncell] == lncell) {
+                idxVar = 0;
                 //printf("\nEven face %d\n", iface);
                 pcellCnt += 4;
                 pfaceCnt++;
@@ -9887,6 +9891,7 @@ void Mesh::calc_face_list_wbidirmap(void)
                 level[pcellIdx+3] = level[lncell];
             }
             else {
+                idxVar = 1;
                 //printf("\nOdd face %d\n", iface);
                 pcellCnt += 2;
 
@@ -9925,8 +9930,8 @@ void Mesh::calc_face_list_wbidirmap(void)
             }
 
             //update indexes
-            pcellIdx += 4 - (iface % 2) * 2;
-            pfaceIdx += 1 - (iface % 2);
+            pcellIdx += 4 - (idxVar % 2) * 2;
+            pfaceIdx += 1 - (idxVar % 2);
         }
 
     } 
@@ -9947,7 +9952,7 @@ void Mesh::calc_face_list_wbidirmap(void)
 
     //for (int fprint = 0; fprint < pfaceIdx; fprint++) {
       //  printf("\n%d ( %d ) %d\n", map_xface2cell_lower[fprint], fprint, map_xface2cell_upper[fprint]);
-   // }
+    //}
     //printf("\nhere\n");
 
     //Now for the y faces
@@ -9969,7 +9974,9 @@ void Mesh::calc_face_list_wbidirmap(void)
         // because 2 that would be added by its even "partner" iface value will be the same 
         if (level[bncell] != level[tncell]) {
             //printf("\n%d\n", pcellIdx);
-            if (iface % 2 ==0) { // iface is even
+            //if (iface % 2 ==0) { // iface is even
+            if (ntop[bncell] == tncell && nbot[tncell] == bncell) {
+                idxVar = 0;
                 pcellCnt += 4;
                 pfaceCnt++;
 
@@ -10025,6 +10032,7 @@ void Mesh::calc_face_list_wbidirmap(void)
                 level[pcellIdx+3] = level[bncell];
             }
             else { // iface is odd
+                idxVar = 1;
                 pcellCnt += 2;
 
                 if (level[bncell] < level[tncell]) { // top is more refined
@@ -10061,9 +10069,9 @@ void Mesh::calc_face_list_wbidirmap(void)
             }
 
             //update indexes
-            locpcellIdx += 4 - (iface % 2) * 2;
-            pcellIdx += 4 - (iface % 2) * 2;
-            pfaceIdx += 1 - (iface % 2);
+            locpcellIdx += 4 - (idxVar % 2) * 2;
+            pcellIdx += 4 - (idxVar % 2) * 2;
+            pfaceIdx += 1 - (idxVar % 2);
         }
 
     }
@@ -10081,7 +10089,7 @@ void Mesh::calc_face_list_wbidirmap(void)
     yface_i.resize(pfaceIdx);
     yface_j.resize(pfaceIdx);
     yface_level.resize(pfaceIdx);
-    //printf("\n%d new cells %d new faces\n", pcellCnt, pfaceCnt);
+    printf("\n%d new cells %d new faces\n", pcellCnt, pfaceCnt);
 
     // resize cell based  arrays (i, j, nlft, nrht, nbot, ntop) 
     // do this based on pcellIdx, as it was continuous w/ x and y faces
