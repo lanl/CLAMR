@@ -4018,7 +4018,7 @@ void Mesh::calc_neighbors(int ncells)
          nlft_size = mesh_memory.get_memory_size(nlft);
       }
 
-      if (nlft_size < ncells){
+      if (nlft_size < ncells) {
             if (nlft != NULL){
                nlft = (int *)mesh_memory.memory_delete(nlft);
                nrht = (int *)mesh_memory.memory_delete(nrht);
@@ -4031,6 +4031,7 @@ void Mesh::calc_neighbors(int ncells)
             nbot = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "nbot", flags);
             ntop = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ntop", flags);
       }
+
 #ifdef _OPENMP
       }
 #pragma omp barrier
@@ -9566,19 +9567,24 @@ void Mesh::calc_face_list_wbidirmap(void)
 {
    map_xface2cell_lower.clear();
    map_xface2cell_upper.clear();
+   map_xface2cell_lower.resize(3*ncells, -1);
+   map_xface2cell_upper.resize(3*ncells, -1);
 
    map_xcell2face_left1.clear();
    map_xcell2face_left2.clear();
    map_xcell2face_right1.clear();
    map_xcell2face_right2.clear();
-   map_xcell2face_left1.resize(ncells, -1);
-   map_xcell2face_left2.resize(ncells, -1);
-   map_xcell2face_right1.resize(ncells, -1);
-   map_xcell2face_right2.resize(ncells, -1);
+   map_xcell2face_left1.resize(3*ncells, -1);
+   map_xcell2face_left2.resize(3*ncells, -1);
+   map_xcell2face_right1.resize(3*ncells, -1);
+   map_xcell2face_right2.resize(3*ncells, -1);
 
    xface_i.clear();
    xface_j.clear();
    xface_level.clear();
+   xface_i.resize(3*ncells, -1);
+   xface_j.resize(3*ncells, -1);
+   xface_level.resize(3*ncells, -1);
 
    ixmin_level.clear();
    ixmax_level.clear();
@@ -9594,8 +9600,9 @@ void Mesh::calc_face_list_wbidirmap(void)
    jxadjust.clear();
    jxadjust.resize(levmx+1);
 
-   int iface=0;
+   int iface=0, uniIdx = 0, unix2 = 1;
    for (int nz=0; nz<(int)ncells; nz++){
+      //printf("\n%d\t%d\t%d\n", uniIdx, unix2, map_xface2cell_upper.size());
       int nr = nrht[nz];
       if (nr == nz) continue;
 
@@ -9603,14 +9610,14 @@ void Mesh::calc_face_list_wbidirmap(void)
       if (level[nr] < level[nz]) ifactor = 2;
 
       // Have right face
-      map_xface2cell_lower.push_back(nz);
-      map_xface2cell_upper.push_back(nr);
-      xface_level.push_back(MAX(level[nz],level[nr]));
-      xface_i.push_back(i[nr]*ifactor);
+      map_xface2cell_lower[uniIdx] = nz;
+      map_xface2cell_upper[uniIdx] = nr;
+      xface_level[uniIdx] = MAX(level[nz],level[nr]);
+      xface_i[uniIdx] = i[nr]*ifactor;
       if (level[nr] < level[nz] && is_upper(j[nz]) ) {
-         xface_j.push_back(j[nr]*ifactor+1);
+         xface_j[uniIdx] = j[nr]*ifactor+1;
       } else {
-         xface_j.push_back(j[nr]*ifactor);
+         xface_j[uniIdx] = j[nr]*ifactor;
       }
       map_xcell2face_right1[nz] = iface;
 
@@ -9619,16 +9626,18 @@ void Mesh::calc_face_list_wbidirmap(void)
       if (level[nr] > level[nz] && is_lower(j[nr]) ){
          int ntr = ntop[nr];
          if (ntr != nr) {
-            map_xface2cell_lower.push_back(nz);
-            map_xface2cell_upper.push_back(ntr);
-            xface_level.push_back(MAX(level[nz],level[ntr]));
-            xface_i.push_back(i[ntr]*ifactor);
-            xface_j.push_back(j[ntr]*ifactor);
+            uniIdx++;
+            map_xface2cell_lower[uniIdx] = nz;
+            map_xface2cell_upper[uniIdx] = ntr;
+            xface_level[uniIdx] = MAX(level[nz],level[ntr]);
+            xface_i[uniIdx] = i[ntr]*ifactor;
+            xface_j[uniIdx] = j[ntr]*ifactor;
             map_xcell2face_right2[nz] = iface;
 
             iface++;
          }
       }
+      uniIdx++;
    }
    nxface=iface;
 
@@ -9649,19 +9658,24 @@ void Mesh::calc_face_list_wbidirmap(void)
 
    map_yface2cell_lower.clear();
    map_yface2cell_upper.clear();
+   map_yface2cell_lower.resize(3*ncells, -1);
+   map_yface2cell_upper.resize(3*ncells, -1);
 
    map_ycell2face_bot1.clear();
    map_ycell2face_bot2.clear();
    map_ycell2face_top1.clear();
    map_ycell2face_top2.clear();
-   map_ycell2face_bot1.resize(ncells, -1);
-   map_ycell2face_bot2.resize(ncells, -1);
-   map_ycell2face_top1.resize(ncells, -1);
-   map_ycell2face_top2.resize(ncells, -1);
+   map_ycell2face_bot1.resize(3*ncells, -1);
+   map_ycell2face_bot2.resize(3*ncells, -1);
+   map_ycell2face_top1.resize(3*ncells, -1);
+   map_ycell2face_top2.resize(3*ncells, -1);
 
    yface_i.clear();
    yface_j.clear();
    yface_level.clear();
+   yface_i.resize(3*ncells, -1);
+   yface_j.resize(3*ncells, -1);
+   yface_level.resize(3*ncells, -1);
 
    iymin_level.clear();
    iymax_level.clear();
@@ -9677,7 +9691,7 @@ void Mesh::calc_face_list_wbidirmap(void)
    jyadjust.clear();
    jyadjust.resize(levmx+1);
 
-   iface=0;
+   iface=0, uniIdx = 0;
    for (int nz=0; nz<(int)ncells; nz++){
       int nt = ntop[nz];
       if (nt == nz) continue;
@@ -9687,14 +9701,14 @@ void Mesh::calc_face_list_wbidirmap(void)
 
       // Have top face
       // printf("DEBUG -- iface %d lower nz %d upper nr %d\n",iface,nz,nt);
-      map_yface2cell_lower.push_back(nz);
-      map_yface2cell_upper.push_back(nt);
-      yface_level.push_back(MAX(level[nz],level[nt]));
-      yface_j.push_back(j[nt]*ifactor);
+      map_yface2cell_lower[uniIdx] = nz;
+      map_yface2cell_upper[uniIdx] = nt;
+      yface_level[uniIdx] = MAX(level[nz],level[nt]);
+      yface_j[uniIdx] = j[nt]*ifactor;
       if (level[nt] < level[nz] && is_upper(i[nz]) ) {
-         yface_i.push_back(i[nt]*ifactor+1);
+         yface_i[uniIdx] = i[nt]*ifactor+1;
       } else{
-         yface_i.push_back(i[nt]*ifactor);
+         yface_i[uniIdx] = i[nt]*ifactor;
       }
       map_ycell2face_top1[nz] = iface;
 
@@ -9703,16 +9717,18 @@ void Mesh::calc_face_list_wbidirmap(void)
       if (level[nt] > level[nz]  &&is_lower(i[nt]) ){
          int nrt = nrht[nt];
          if (nrt != nt) {
-            map_yface2cell_lower.push_back(nz);
-            map_yface2cell_upper.push_back(nrt);
-            yface_level.push_back(MAX(level[nz],level[nrt]));
-            yface_j.push_back(j[nrt]*ifactor);
-            yface_i.push_back(i[nrt]*ifactor);
+            uniIdx++;
+            map_yface2cell_lower[uniIdx] = nz;
+            map_yface2cell_upper[uniIdx] = nrt;
+            yface_level[uniIdx] = MAX(level[nz],level[nrt]);
+            yface_j[uniIdx] = j[nrt]*ifactor;
+            yface_i[uniIdx] = i[nrt]*ifactor;
             map_ycell2face_top2[nz] = iface;
 
             iface++;
          }
       }
+      uniIdx++;
    }
    nyface=iface;
 
@@ -9789,20 +9805,306 @@ void Mesh::calc_face_list_wbidirmap(void)
       jymin_level[fl] = 0;
    }
 
-    //use every other face so as not to get duplicate ghost cells. All ghosts will still be accounted for
-    for (int iface = 0; iface < nxface; iface ++) {
-        int gcellCnt = 0, //counter for new ghost cells
-            gfaceCnt = 0, //counter for new ghost faces
-            lncell = map_xface2cell_lower[iface], // cell neighbor to the left
+    i        = (int *)mesh_memory.memory_realloc(6*ncells, i);
+    j        = (int *)mesh_memory.memory_realloc(6*ncells, j);
+    level    = (int *)mesh_memory.memory_realloc(6*ncells, level);
+    nlft     = (int *)mesh_memory.memory_realloc(6*ncells, nlft);
+    nrht     = (int *)mesh_memory.memory_realloc(6*ncells, nrht);
+    nbot     = (int *)mesh_memory.memory_realloc(6*ncells, nbot);
+    ntop     = (int *)mesh_memory.memory_realloc(6*ncells, ntop);
+    memory_reset_ptrs();
+    printf("\n%d\n", mesh_memory.get_memory_size(nlft));
+
+
+    //These variables are for the following for-loop
+    int pcellCnt = 0, //counter for new phantom cells
+        pfaceCnt = 0, //counter for new phantom faces
+        idxVar = 0,
+        pcellIdx = (int) ncells, //starting index for new cell phantoms
+        pfaceIdx = nxface; //starting index for new face phantoms
+
+    for (int iface = 0; iface < nxface; iface++) {
+        int lncell = map_xface2cell_lower[iface], // cell neighbor to the left
             rncell = map_xface2cell_upper[iface]; // cell neighbor to the right
 
+        //for future indexing, the new phantom cell appear in the array as follows
+        // lp llp rp rrp (for even iface), [l,r]p [ll,rr]p (for odd iface)
+        // important to note we only add 2 phantom cells on odd iface values
+        // because 2 that would be added by its even "partner" iface value will be the same 
         if (level[lncell] != level[rncell]) {
-            gcellCnt += 4 - (iface % 2) * 2; //add 4 for even faces, add only 2 for odd faces
-            gfaceCnt++; //always adding 1 face
+            //if (iface % 2 ==0) { // iface is even
+            if (nrht[lncell] == rncell && nlft[rncell] == lncell) {
+                idxVar = 0;
+                //printf("\nEven face %d\n", iface);
+                pcellCnt += 4;
+                pfaceCnt++;
 
+                if (level[lncell] < level[rncell]) { // right is more refined
+                    //new face's adjacent cells
+                    map_xface2cell_lower[pfaceIdx] = lncell;        
+                    map_xface2cell_upper[pfaceIdx] = pcellIdx + 2;
+                    //adjacent cells' face
+                    map_xcell2face_right1[lncell] = pfaceIdx;
+                    map_xcell2face_left1[pcellIdx + 2] = pfaceIdx;
+                    //old face's new phantom adjacent cell
+                    map_xface2cell_lower[iface] = pcellIdx;
+
+                    //face positions
+                    xface_level[pfaceIdx] = level[lncell];
+                    xface_i[pfaceIdx] = i[lncell] + 1;
+                    xface_j[pfaceIdx] = j[lncell];
+                }
+                else { //left is more refined
+                    //new face's adjacent cells
+                    map_xface2cell_lower[pfaceIdx] = rncell;        
+                    map_xface2cell_upper[pfaceIdx] = pcellIdx;
+                    //adjacent cell's face
+                    map_xcell2face_left1[rncell] = pfaceIdx;
+                    map_xcell2face_right1[pcellIdx] = pfaceIdx;
+                    //old face's new phantom adjacent cell
+                    map_xface2cell_upper[iface] = pcellIdx + 2;
+
+                    xface_level[pfaceIdx] = level[rncell];
+                    xface_i[pfaceIdx] = i[rncell];
+                    xface_j[pfaceIdx] = j[rncell];
+                }
+                //phantom cells' new neighbors (same regardless of which side refinement occurs)
+                nlft[pcellIdx] = pcellIdx + 1;
+                nrht[pcellIdx] = rncell;
+                nrht[pcellIdx+1] = pcellIdx;
+                nlft[pcellIdx+2] = lncell;
+                nrht[pcellIdx+2] = pcellIdx + 3;
+                nlft[pcellIdx+3] = pcellIdx + 2;
+
+                //update other arrays
+                i[pcellIdx] = i[rncell] - 1;
+                i[pcellIdx+1] = i[rncell] - 2;
+                i[pcellIdx+2] = i[lncell] + 1;
+                i[pcellIdx+3] = i[lncell] + 2;
+                j[pcellIdx] = j[rncell];
+                j[pcellIdx+1] = j[rncell];
+                j[pcellIdx+2] = j[lncell];
+                j[pcellIdx+3] = j[lncell];
+                level[pcellIdx] = level[rncell];
+                level[pcellIdx+1] = level[rncell];
+                level[pcellIdx+2] = level[lncell];
+                level[pcellIdx+3] = level[lncell];
+
+            }
+            else {
+                idxVar = 1;
+                //printf("\nOdd face %d\n", iface);
+                pcellCnt += 2;
+
+                if (level[lncell] < level[rncell]) { // right is more refined
+                    //old face's new phantom adjacent cell
+                    map_xface2cell_lower[iface] = pcellIdx;
+                    //phantom cells' new neighbors
+                    nlft[pcellIdx] = pcellIdx + 1;
+                    nrht[pcellIdx] = rncell;
+                    nrht[pcellIdx+1] = pcellIdx;
+                    //other arrays
+                    i[pcellIdx] = i[rncell] - 1;
+                    i[pcellIdx+1] = i[rncell] - 2;
+                    j[pcellIdx] = j[rncell];
+                    j[pcellIdx+1] = j[rncell];
+                    level[pcellIdx] = level[rncell];
+                    level[pcellIdx+1] = level[rncell];
+
+                }
+                else { // left is more refined 
+                    //old face's new phantom adjacent cell
+                    map_xface2cell_upper[iface] = pcellIdx; 
+                    //phantom cells' new neighbors
+                    nlft[pcellIdx] = lncell;
+                    nrht[pcellIdx] = rncell;
+                    nrht[pcellIdx+1] = pcellIdx;
+                    //other arrays
+                    i[pcellIdx] = i[lncell] + 1;
+                    i[pcellIdx+1] = i[lncell] + 2;
+                    j[pcellIdx] = j[lncell];
+                    j[pcellIdx+1] = j[lncell];
+                    level[pcellIdx] = level[lncell];
+                    level[pcellIdx+1] = level[lncell];
+                }
+
+            }
+
+            //update indexes
+            pcellIdx += 4 - (idxVar % 2) * 2;
+            pfaceIdx += 1 - (idxVar % 2);
         }
-            
+
+    } 
+
+    //printf("\n%d new cells %d new faces\n", pcellCnt, pfaceCnt);
+    
+     //resize arrays/vectors here including the addition of the new faces and cells
+
+    map_xface2cell_lower.resize(pfaceIdx);
+    map_xface2cell_upper.resize(pfaceIdx);
+    map_xcell2face_left1.resize(pcellIdx);
+    map_xcell2face_left2.resize(pcellIdx);
+    map_xcell2face_right1.resize(pcellIdx);
+    map_xcell2face_right2.resize(pcellIdx);
+    xface_i.resize(pfaceIdx);
+    xface_j.resize(pfaceIdx);
+    xface_level.resize(pfaceIdx);
+
+    //for (int fprint = 0; fprint < pfaceIdx; fprint++) {
+      //  printf("\n%d ( %d ) %d\n", map_xface2cell_lower[fprint], fprint, map_xface2cell_upper[fprint]);
+    //}
+    //printf("\nhere\n");
+
+    //Now for the y faces
+    
+    //pcellIdx will actually stay where it was previously incremented to because there
+    //is only 1 array of cells (not dependent on x/y)
+    pcellCnt = 0;
+    pfaceCnt = 0;
+    int locpcellIdx = (int) ncells;
+    pfaceIdx = nyface;
+
+    for (int iface = 0; iface < nyface; iface++) {
+        int bncell = map_yface2cell_lower[iface], // cell neighbor below
+            tncell = map_yface2cell_upper[iface]; // cell neighbor above
+
+        //for future indexing, the new phantom cell appear in the array as follows
+        // bp bbp tp ttp (for even iface), [b,t]p [bb,tt]p (for odd iface)
+        // important to note we only add 2 phantom cells on odd iface values
+        // because 2 that would be added by its even "partner" iface value will be the same 
+        if (level[bncell] != level[tncell]) {
+            //printf("\n%d\n", pcellIdx);
+            //if (iface % 2 ==0) { // iface is even
+            if (ntop[bncell] == tncell && nbot[tncell] == bncell) {
+                idxVar = 0;
+                pcellCnt += 4;
+                pfaceCnt++;
+
+                if (level[bncell] < level[tncell]) { // top is more refined
+                    //new face's adjacent cells
+                    map_yface2cell_lower[pfaceIdx] = bncell;        
+                    map_yface2cell_upper[pfaceIdx] = locpcellIdx + 2;
+                    //adjacent cells' face
+                    map_ycell2face_top1[bncell] = pfaceIdx;
+                    map_ycell2face_bot1[locpcellIdx + 2] = pfaceIdx;
+                    //old face's new phantom adjacent cell
+                    map_yface2cell_lower[iface] = locpcellIdx;
+
+                    //face positions
+                    yface_level[pfaceIdx] = level[bncell];
+                    yface_i[pfaceIdx] = i[bncell];
+                    yface_j[pfaceIdx] = j[bncell] + 1;
+                }
+                else { //bottom is more refined
+                    //new face's adjacent cells
+                    map_yface2cell_lower[pfaceIdx] = locpcellIdx;        
+                    map_yface2cell_upper[pfaceIdx] = tncell;
+                    //adjacent cell's face
+                    map_ycell2face_bot1[tncell] = pfaceIdx;
+                    map_ycell2face_top1[locpcellIdx] = pfaceIdx;
+                    //old face's new phantom adjacent cell
+                    map_yface2cell_upper[iface] = locpcellIdx + 2;
+
+                    yface_level[pfaceIdx] = level[tncell];
+                    yface_i[pfaceIdx] = i[tncell];
+                    yface_j[pfaceIdx] = j[tncell];
+                }
+                //phantom cells' new neighbors (same regardless of which side refinement occurs)
+                nbot[pcellIdx] = pcellIdx + 1;
+                ntop[pcellIdx] = tncell;
+                ntop[pcellIdx+1] = pcellIdx;
+                nbot[pcellIdx+2] = bncell;
+                ntop[pcellIdx+2] = pcellIdx + 3;
+                nbot[pcellIdx+3] = pcellIdx + 2;
+
+                //update other arrays
+                i[pcellIdx] = i[tncell];
+                i[pcellIdx+1] = i[tncell];
+                i[pcellIdx+2] = i[bncell];
+                i[pcellIdx+3] = i[bncell];
+                j[pcellIdx] = j[tncell] - 1;
+                j[pcellIdx+1] = j[tncell] - 2;
+                j[pcellIdx+2] = j[bncell] + 1;
+                j[pcellIdx+3] = j[bncell] + 2;
+                level[pcellIdx] = level[tncell];
+                level[pcellIdx+1] = level[tncell];
+                level[pcellIdx+2] = level[bncell];
+                level[pcellIdx+3] = level[bncell];
+            }
+            else { // iface is odd
+                idxVar = 1;
+                pcellCnt += 2;
+
+                if (level[bncell] < level[tncell]) { // top is more refined
+                    //old face's new phantom adjacent cell
+                    map_yface2cell_lower[iface] = locpcellIdx;
+                    //phantom cells' new neighbors
+                    nbot[pcellIdx] = pcellIdx + 1;
+                    ntop[pcellIdx] = tncell;
+                    ntop[pcellIdx+1] = pcellIdx;
+                    //other arrays
+                    i[pcellIdx] = i[tncell];
+                    i[pcellIdx+1] = i[tncell];
+                    j[pcellIdx] = j[tncell] - 1;
+                    j[pcellIdx+1] = j[tncell] - 2;
+                    level[pcellIdx] = level[tncell];
+                    level[pcellIdx+1] = level[tncell];
+                }
+                else { // bottom is more refined 
+                    //old face's new phantom adjacent cell
+                    map_yface2cell_upper[iface] = pcellIdx; 
+                    //phantom cells' new neighbors
+                    nbot[pcellIdx] = bncell;
+                    ntop[pcellIdx] = pcellIdx + 1;
+                    nbot[pcellIdx+1] = pcellIdx;
+                    //other arrays
+                    i[pcellIdx] = i[bncell];
+                    i[pcellIdx+1] = i[bncell];
+                    j[pcellIdx] = j[bncell] + 1;
+                    j[pcellIdx+1] = j[bncell] + 2;
+                    level[pcellIdx] = level[bncell];
+                    level[pcellIdx+1] = level[bncell];
+                }
+
+            }
+
+            //update indexes
+            locpcellIdx += 4 - (idxVar % 2) * 2;
+            pcellIdx += 4 - (idxVar % 2) * 2;
+            pfaceIdx += 1 - (idxVar % 2);
+        }
+
     }
+
+    // resize arrays/vectors with the addition of the new faces and cells
+    
+    printf("\n%d loccellidx %d globcellidx %d faceidx\n", locpcellIdx, pcellIdx, pfaceIdx);
+
+    map_yface2cell_lower.resize(pfaceIdx);
+    map_yface2cell_upper.resize(pfaceIdx);
+    map_ycell2face_bot1.resize((int) ncells + pcellCnt);
+    map_ycell2face_bot2.resize((int) ncells + pcellCnt);
+    map_ycell2face_top1.resize((int) ncells + pcellCnt);
+    map_ycell2face_top2.resize((int) ncells + pcellCnt);
+    yface_i.resize(pfaceIdx);
+    yface_j.resize(pfaceIdx);
+    yface_level.resize(pfaceIdx);
+    printf("\n%d new cells %d new faces\n", pcellCnt, pfaceCnt);
+
+    // resize cell based  arrays (i, j, nlft, nrht, nbot, ntop) 
+    // do this based on pcellIdx, as it was continuous w/ x and y faces
+     
+
+    i        = (int *)mesh_memory.memory_realloc(pcellIdx, i);
+    j        = (int *)mesh_memory.memory_realloc(pcellIdx, j);
+    level    = (int *)mesh_memory.memory_realloc(pcellIdx, level);
+    nlft     = (int *)mesh_memory.memory_realloc(pcellIdx, nlft);
+    nrht     = (int *)mesh_memory.memory_realloc(pcellIdx, nrht);
+    nbot     = (int *)mesh_memory.memory_realloc(pcellIdx, nbot);
+    ntop     = (int *)mesh_memory.memory_realloc(pcellIdx, ntop);
+    memory_reset_ptrs();
+    printf("\n%d\n", mesh_memory.get_memory_size(level));
 
 
 #ifdef PATTERN_CHECK
