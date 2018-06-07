@@ -1804,6 +1804,8 @@ void State::calc_finite_difference_via_faces(double deltaT){
    apply_boundary_conditions();
 #endif
 
+   int xfaceSize, cellSizewp;
+
    //int *nlft, *nrht, *nbot, *ntop, *level;
 
    /*nlft  = mesh->nlft;
@@ -1829,6 +1831,9 @@ void State::calc_finite_difference_via_faces(double deltaT){
    }
 #endif
 
+   xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
+   cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
+
    static vector<state_t> Hx, Ux, Vx;
 
 #ifdef _OPENMP
@@ -1836,26 +1841,37 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #pragma omp master
    {
 #endif
-   Hx.resize(mesh->nxface);
-   Ux.resize(mesh->nxface);
-   Vx.resize(mesh->nxface);
+   
+   Hx.resize(xfaceSize, -999999);
+   Ux.resize(xfaceSize, -999999);
+   Vx.resize(xfaceSize, -999999);
+
+    for (int quickcell = (int) mesh->ncells; quickcell < cellSizewp; quickcell++) {
+        H[quickcell] = 1;
+        V[quickcell] = 1;
+        U[quickcell] = 1;
+        //Hx[quickcell] = 1;
+        //Vx[quickcell] = 1;
+        //Ux[quickcell] = 1;
+    } 
 #ifdef _OPENMP
    }
 #pragma omp barrier
 #endif
 
    //printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
+   printf("\n%d %d %d %d\n", mesh->nlft[56], mesh->nrht[56], mesh->nbot[56], mesh->ntop[56]);
 #ifdef _OPENMP
 #pragma omp for 
 #endif
-   for (int iface = 0; iface < mesh->nxface; iface++){
+   for (int iface = 0; iface < xfaceSize; iface++){
       int cell_lower = mesh->map_xface2cell_lower[iface];
       int cell_upper = mesh->map_xface2cell_upper[iface];
       int level_lower = mesh->level[cell_lower];
       int level_upper = mesh->level[cell_upper];
       if (level_lower == level_upper) {
 #ifdef PATTERN_CHECK
-         switch(mesh->xcase[iface]){
+         switch(mesh->xcase[iface]){ //will not work as phantom faces haven't been added a pattern (should be pat 0)
              case 0:
              case 1:
              case 81:
@@ -1946,6 +1962,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
    free(mesh->xcase);
 #endif
 
+   int yfaceSize = mesh->map_yface2cell_lower.size(); //new "update" nyface inc. phantoms
    static vector<state_t> Hy, Uy, Vy;
 
 #ifdef _OPENMP
@@ -1953,9 +1970,16 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #pragma omp master
    {
 #endif
-   Hy.resize(mesh->nyface);
-   Uy.resize(mesh->nyface);
-   Vy.resize(mesh->nyface);
+
+   Hy.resize(yfaceSize, -999999);
+   Uy.resize(yfaceSize, -999999);
+   Vy.resize(yfaceSize, -999999);
+
+    /*for (int quickcell = (int) mesh->ncells; quickcell < cellSizewp; quickcell++) {
+        Hy[quickcell] = 1;
+        Vy[quickcell] = 1;
+        Uy[quickcell] = 1;
+    }*/ 
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -1964,7 +1988,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #ifdef _OPENMP
 #pragma omp for 
 #endif
-   for (int iface = 0; iface < mesh->nyface; iface++){
+   for (int iface = 0; iface < yfaceSize; iface++){
       int cell_lower = mesh->map_yface2cell_lower[iface];
       int cell_upper = mesh->map_yface2cell_upper[iface];
       int level_lower = mesh->level[cell_lower];
@@ -2170,6 +2194,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
          Htt2 = H[ntrt];
          Vtt2 = V[ntrt];
       }
+
 
       ////////////////////////////////////////
       /// Artificial Viscosity corrections ///

@@ -9889,6 +9889,7 @@ void Mesh::calc_face_list_wbidirmap(void)
                 level[pcellIdx+1] = level[rncell];
                 level[pcellIdx+2] = level[lncell];
                 level[pcellIdx+3] = level[lncell];
+
             }
             else {
                 idxVar = 1;
