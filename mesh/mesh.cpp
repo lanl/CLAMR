@@ -9846,6 +9846,8 @@ void Mesh::calc_face_list_wbidirmap(void)
                     //adjacent cells' face
                     map_xcell2face_right1[lncell] = pfaceIdx;
                     map_xcell2face_left1[pcellIdx + 2] = pfaceIdx;
+                    //"undo" the second face for the cell, as it is no longer applicable
+                    map_xcell2face_right2[lncell] = -1;
                     //old face's new phantom adjacent cell
                     map_xface2cell_lower[iface] = pcellIdx;
 
@@ -9861,6 +9863,8 @@ void Mesh::calc_face_list_wbidirmap(void)
                     //adjacent cell's face
                     map_xcell2face_left1[rncell] = pfaceIdx;
                     map_xcell2face_right1[pcellIdx] = pfaceIdx;
+                    //"undo" the second face for the cell, as it is no longer applicable
+                    map_xcell2face_left2[rncell] = -1;
                     //old face's new phantom adjacent cell
                     map_xface2cell_upper[iface] = pcellIdx + 2;
 
@@ -9929,6 +9933,9 @@ void Mesh::calc_face_list_wbidirmap(void)
                 }
 
             }
+#ifdef PATTERN_CHECK
+            xcase[pfaceIdx] = 0;
+#endif
 
             //update indexes
             pcellIdx += 4 - (idxVar % 2) * 2;
@@ -9962,7 +9969,7 @@ void Mesh::calc_face_list_wbidirmap(void)
     //is only 1 array of cells (not dependent on x/y)
     pcellCnt = 0;
     pfaceCnt = 0;
-    int locpcellIdx = (int) ncells;
+    //int locpcellIdx = (int) ncells;
     pfaceIdx = nyface;
 
     for (int iface = 0; iface < nyface; iface++) {
@@ -9984,12 +9991,14 @@ void Mesh::calc_face_list_wbidirmap(void)
                 if (level[bncell] < level[tncell]) { // top is more refined
                     //new face's adjacent cells
                     map_yface2cell_lower[pfaceIdx] = bncell;        
-                    map_yface2cell_upper[pfaceIdx] = locpcellIdx + 2;
+                    map_yface2cell_upper[pfaceIdx] = pcellIdx + 2;
                     //adjacent cells' face
                     map_ycell2face_top1[bncell] = pfaceIdx;
-                    map_ycell2face_bot1[locpcellIdx + 2] = pfaceIdx;
+                    map_ycell2face_bot1[pcellIdx + 2] = pfaceIdx;
+                    //"undo" the second face for the cell, as it is no longer applicable
+                    map_ycell2face_top2[bncell] = -1;
                     //old face's new phantom adjacent cell
-                    map_yface2cell_lower[iface] = locpcellIdx;
+                    map_yface2cell_lower[iface] = pcellIdx;
 
                     //face positions
                     yface_level[pfaceIdx] = level[bncell];
@@ -9998,13 +10007,15 @@ void Mesh::calc_face_list_wbidirmap(void)
                 }
                 else { //bottom is more refined
                     //new face's adjacent cells
-                    map_yface2cell_lower[pfaceIdx] = locpcellIdx;        
+                    map_yface2cell_lower[pfaceIdx] = pcellIdx;        
                     map_yface2cell_upper[pfaceIdx] = tncell;
                     //adjacent cell's face
                     map_ycell2face_bot1[tncell] = pfaceIdx;
-                    map_ycell2face_top1[locpcellIdx] = pfaceIdx;
+                    map_ycell2face_top1[pcellIdx] = pfaceIdx;
+                    //"undo" the second face for the cell, as it is no longer applicable
+                    map_ycell2face_bot2[tncell] = -1;
                     //old face's new phantom adjacent cell
-                    map_yface2cell_upper[iface] = locpcellIdx + 2;
+                    map_yface2cell_upper[iface] = pcellIdx + 2;
 
                     yface_level[pfaceIdx] = level[tncell];
                     yface_i[pfaceIdx] = i[tncell];
@@ -10038,7 +10049,7 @@ void Mesh::calc_face_list_wbidirmap(void)
 
                 if (level[bncell] < level[tncell]) { // top is more refined
                     //old face's new phantom adjacent cell
-                    map_yface2cell_lower[iface] = locpcellIdx;
+                    map_yface2cell_lower[iface] = pcellIdx;
                     //phantom cells' new neighbors
                     nbot[pcellIdx] = pcellIdx + 1;
                     ntop[pcellIdx] = tncell;
@@ -10068,18 +10079,24 @@ void Mesh::calc_face_list_wbidirmap(void)
                 }
 
             }
+#ifdef PATTERN_CHECK
+            ycase[pfaceIdx] = 0;
+#endif
 
             //update indexes
-            locpcellIdx += 4 - (idxVar % 2) * 2;
+            //locpcellIdx += 4 - (idxVar % 2) * 2;
             pcellIdx += 4 - (idxVar % 2) * 2;
             pfaceIdx += 1 - (idxVar % 2);
         }
 
     }
+ /*   for (int ijk = 0; ijk < (int) ncells; ijk++) {
+        printf("\n%d) df %d uf %d me %d l %d r %d\n", ijk, map_ycell2face_bot1[ijk], map_ycell2face_top1[ijk], level[ijk], level[map_yface2cell_lower[ map_ycell2face_bot1[ijk] ] ], level[map_yface2cell_upper[ map_ycell2face_top1[ijk] ] ]);
+    }*/
 
     // resize arrays/vectors with the addition of the new faces and cells
     
-    printf("\n%d loccellidx %d globcellidx %d faceidx\n", locpcellIdx, pcellIdx, pfaceIdx);
+    //printf("\n%d loccellidx %d globcellidx %d faceidx\n", locpcellIdx, pcellIdx, pfaceIdx);
 
     map_yface2cell_lower.resize(pfaceIdx);
     map_yface2cell_upper.resize(pfaceIdx);
