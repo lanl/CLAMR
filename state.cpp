@@ -285,7 +285,7 @@ void State::init(int do_gpu_calc)
    }
 
    //printf("\nDEBUG -- Calling state memory memory malloc at line %d\n",__LINE__);
-   allocate((mesh->ncells)*6);
+   allocate(mesh->ncells);
    //state_memory.memory_report();
    //printf("DEBUG -- Finished state memory memory malloc at line %d\n\n",__LINE__);
 
@@ -763,11 +763,11 @@ void State::remove_boundary_cells(void)
          mesh->ntop     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->ntop);
 
          // Reset the neighbors due to the dropped boundary cells
-         mesh->index.resize(6*save_ncells);
-         mesh->x.resize(6*save_ncells);
-         mesh->dx.resize(6*save_ncells);
-         mesh->y.resize(6*save_ncells);
-         mesh->dy.resize(6*save_ncells);
+         mesh->index.resize(save_ncells);
+         mesh->x.resize(save_ncells);
+         mesh->dx.resize(save_ncells);
+         mesh->y.resize(save_ncells);
+         mesh->dy.resize(save_ncells);
 #ifdef _OPENMP
       }
 #pragma omp barrier
@@ -1826,11 +1826,13 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #pragma omp master
    {
 #endif
-   mesh->calc_face_list_wbidirmap();
+   mesh->calc_face_list_wbidirmap(state_memory);
 #ifdef _OPENMP
    }
 #endif
 
+   memory_reset_ptrs();
+   //printf("\nDebug %s %d\n", __FILE__, __LINE__);
    xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
    cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
 
@@ -1846,6 +1848,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
    Ux.resize(xfaceSize, -999999);
    Vx.resize(xfaceSize, -999999);
 
+   //printf("\nDebug %s %d\n", __FILE__, __LINE__);
     for (int quickcell = (int) mesh->ncells; quickcell < cellSizewp; quickcell++) {
         H[quickcell] = 1;
         V[quickcell] = 1;
@@ -1854,6 +1857,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
         //Vx[quickcell] = 1;
         //Ux[quickcell] = 1;
     } 
+   //printf("\nDebug %s %d\n", __FILE__, __LINE__);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -3893,7 +3897,7 @@ void State::restore_checkpoint(Crux *crux)
    state_memory.memory_delete(H);
    state_memory.memory_delete(U);
    state_memory.memory_delete(V);
-   allocate((mesh->ncells)*6);
+   allocate(mesh->ncells);
    memory_reset_ptrs();
 
    // Restore memory database
