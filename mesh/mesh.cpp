@@ -9891,6 +9891,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
                     // loop through state arrays to update phantom cell state values
                     int tempsidx = 0;
+                    real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; //vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
@@ -9909,6 +9910,25 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         //state_memory.memory_replace(mem_ptr_double, state_temp_double);
                         temp_state_buffer[stateCnt*(pcellIdx+2)+tempsidx] = state_avg;
                         temp_state_buffer[stateCnt*pcellIdx+tempsidx] = mem_ptr_double[cncell];
+
+                        if (level[nrht[bncell]] < level_right) { // rightbot right neighbor is even more refined
+                            state_botbot = mem_ptr_double[nrht[bncell]];
+                            state_bottop = mem_ptr_double[ntop[nrht[bncell]]];
+                            state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                        }
+                        else { // same refinement as rightbot neighbor
+                            state_sideavg += HALF * mem_ptr_double[nrht[bncell]];
+                        }
+                        if (level[nrht[tncell]] < level_right) { // righttop right neighbor is even more refined
+                            state_topbot = mem_ptr_double[nrht[tncell]];
+                            state_toptop = mem_ptr_double[ntop[nrht[tncell]]];
+                            state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                        }
+                        else { // same refinement as righttop neighbor
+                            state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
+                        }
+                        temp_state_buffer[stateCnt*(pcellIdx+3)+tempsidx] = state_sideavg;
+                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[nlft[cncell]];
                         tempsidx++;
                     }
 
@@ -9932,6 +9952,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
                     // loop through state arrays to update phantom cell state values
                     int tempsidx = 0;
+                    real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; //vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
@@ -9951,6 +9972,25 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         //state_memory.memory_replace(mem_ptr_double, state_temp_double);
                         temp_state_buffer[stateCnt*pcellIdx+tempsidx] = state_avg;
                         temp_state_buffer[stateCnt*(pcellIdx+2)+tempsidx] = mem_ptr_double[cncell];
+
+                        if (level[nlft[bncell]] < level_left) { // leftbot left neighbor is even more refined
+                            state_botbot = mem_ptr_double[nlft[bncell]];
+                            state_bottop = mem_ptr_double[ntop[nlft[bncell]]];
+                            state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                        }
+                        else { // same refinement as leftbot neighbor
+                            state_sideavg += HALF * mem_ptr_double[nlft[bncell]];
+                        }
+                        if (level[nlft[tncell]] < level_left) { // lefttop left neighbor is even more refined
+                            state_topbot = mem_ptr_double[nlft[tncell]];
+                            state_toptop = mem_ptr_double[ntop[nlft[tncell]]];
+                            state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                        }
+                        else { // same refinement as leftop neighbor
+                            state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
+                        }
+                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = state_sideavg;
+                        temp_state_buffer[stateCnt*(pcellIdx+3)+tempsidx] = mem_ptr_double[nrht[cncell]];
                         tempsidx++;
                     }
 
@@ -10017,6 +10057,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         //state_temp_double[pcellIdx] = mem_ptr_double[cncell];
                         //state_memory.memory_replace(mem_ptr_double, state_temp_double);
                         temp_state_buffer[stateCnt*pcellIdx+tempsidx] = mem_ptr_double[cncell];
+                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[ntop[nlft[cncell]]];
                         tempsidx++;
                     }
 
@@ -10056,6 +10097,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         //state_temp_double[pcellIdx] = mem_ptr_double[cncell];
                         //state_memory.memory_replace(mem_ptr_double, state_temp_double);
                         temp_state_buffer[stateCnt*pcellIdx+tempsidx] = mem_ptr_double[cncell];
+                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[ntop[nrht[cncell]]];
                         tempsidx++;
                     }
 
@@ -10153,6 +10195,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
                     // loop through state arrays to update phantom cell state values
                     int tempsidx = 0;
+                    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; //vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
@@ -10172,6 +10215,25 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         //state_memory.memory_replace(mem_ptr_double, state_temp_double);
                         temp_state_buffer[stateCnt*(pcellIdx+2)+tempsidx] = state_avg;
                         temp_state_buffer[stateCnt*pcellIdx+tempsidx] = mem_ptr_double[cncell];
+
+                        if (level[nbot[lncell]] < level_top) { // topleft top neighbor is even more refined
+                            state_lftlft = mem_ptr_double[ntop[lncell]];
+                            state_lftrht = mem_ptr_double[nrht[ntop[lncell]]];
+                            state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                        }
+                        else { // same refinement as toplft neighbor
+                            state_sideavg += HALF * mem_ptr_double[ntop[lncell]];
+                        }
+                        if (level[ntop[rncell]] < level_top) { // toprht top neighbor is even more refined
+                            state_rhtlft = mem_ptr_double[ntop[rncell]];
+                            state_rhtrht = mem_ptr_double[nrht[ntop[rncell]]];
+                            state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                        }
+                        else { // same refinement as toprht neighbor
+                            state_sideavg += HALF * mem_ptr_double[ntop[rncell]];
+                        }
+                        temp_state_buffer[stateCnt*(pcellIdx+3)+tempsidx] = state_sideavg;
+                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[nbot[cncell]];
                         tempsidx++;
                     }
 
@@ -10196,6 +10258,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
                     // loop through state arrays to update phantom cell state values
                     int tempsidx = 0;
+                    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; //vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
@@ -10215,6 +10278,25 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         //state_memory.memory_replace(mem_ptr_double, state_temp_double);
                         temp_state_buffer[stateCnt*pcellIdx+tempsidx] = state_avg;
                         temp_state_buffer[stateCnt*(pcellIdx+2)+tempsidx] = mem_ptr_double[cncell];
+
+                        if (level[ntop[lncell]] < level_bot) { // botleft bot neighbor is even more refined
+                            state_lftlft = mem_ptr_double[nbot[lncell]];
+                            state_lftrht = mem_ptr_double[nrht[nbot[lncell]]];
+                            state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                        }
+                        else { // same refinement as botlft neighbor
+                            state_sideavg += HALF * mem_ptr_double[nbot[lncell]];
+                        }
+                        if (level[nbot[rncell]] < level_bot) { // botrht bot neighbor is even more refined
+                            state_rhtlft = mem_ptr_double[nbot[rncell]];
+                            state_rhtrht = mem_ptr_double[nrht[nbot[rncell]]];
+                            state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                        }
+                        else { // same refinement as toprht neighbor
+                            state_sideavg += HALF * mem_ptr_double[nbot[rncell]];
+                        }
+                        temp_state_buffer[stateCnt*(pcellIdx+3)+tempsidx] = state_sideavg;
+                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[ntop[cncell]];
                         tempsidx++;
                     }
 
@@ -10281,6 +10363,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         //state_temp_double[pcellIdx] = mem_ptr_double[cncell];
                         //state_memory.memory_replace(mem_ptr_double, state_temp_double);
                         temp_state_buffer[stateCnt*pcellIdx+tempsidx] = mem_ptr_double[cncell];
+                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[nbot[cncell]];
                         tempsidx++;
                     }
 
@@ -10320,6 +10403,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         //state_temp_double[pcellIdx] = mem_ptr_double[cncell];
                         //state_memory.memory_replace(mem_ptr_double, state_temp_double);
                         temp_state_buffer[stateCnt*pcellIdx+tempsidx] = mem_ptr_double[cncell];
+                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[ntop[cncell]];
                         tempsidx++;
                     }
 
