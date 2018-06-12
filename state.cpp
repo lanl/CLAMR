@@ -1831,7 +1831,9 @@ void State::calc_finite_difference_via_faces(double deltaT){
    }
 #endif
 
-   memory_reset_ptrs();
+   printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
+   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
+   printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
    //printf("\nDebug %s %d\n", __FILE__, __LINE__);
    xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
    cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
@@ -1848,22 +1850,26 @@ void State::calc_finite_difference_via_faces(double deltaT){
    Ux.resize(xfaceSize, -999999);
    Vx.resize(xfaceSize, -999999);
 
+   printf("\nH\tV\tU\n\n");
+   for (int ppppp = 0; ppppp < cellSizewp; ppppp++) {
+        printf("%d) %f %f %f\n", ppppp, H[ppppp], V[ppppp], U[ppppp]);
+   }
+
    //printf("\nDebug %s %d\n", __FILE__, __LINE__);
-    for (int quickcell = (int) mesh->ncells; quickcell < cellSizewp; quickcell++) {
+   /* for (int quickcell = (int) mesh->ncells; quickcell < cellSizewp; quickcell++) {
         H[quickcell] = 1;
         V[quickcell] = 1;
         U[quickcell] = 1;
         //Hx[quickcell] = 1;
         //Vx[quickcell] = 1;
         //Ux[quickcell] = 1;
-    } 
+    }*/ 
    //printf("\nDebug %s %d\n", __FILE__, __LINE__);
 #ifdef _OPENMP
    }
 #pragma omp barrier
 #endif
 
-   //printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
 #ifdef _OPENMP
 #pragma omp for 
 #endif
