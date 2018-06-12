@@ -9817,20 +9817,22 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
       MallocPlus state_memory_old = state_memory;
       malloc_plus_memory_entry *memory_item;
-      double *state_temp_double, *mem_ptr_double;
       int stateCnt = 0;
 
       for (memory_item = state_memory_old.memory_entry_by_name_begin();
            memory_item != state_memory_old.memory_entry_by_name_end();
            memory_item = state_memory_old.memory_entry_by_name_next() ) {
           
+        //double *state_temp_double, *mem_ptr_double;
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
 
          if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
+
+        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+
          stateCnt++;
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
         state_memory.memory_realloc(6*ncells, memory_item->mem_ptr);
-
 
       }  
       vector<double> temp_state_buffer(stateCnt*6*ncells, -98765.43210);
@@ -9929,6 +9931,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         }
                         temp_state_buffer[stateCnt*(pcellIdx+3)+tempsidx] = state_sideavg;
                         temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[nlft[cncell]];
+                        state_sideavg = 0;
                         tempsidx++;
                     }
 
@@ -9991,6 +9994,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         }
                         temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = state_sideavg;
                         temp_state_buffer[stateCnt*(pcellIdx+3)+tempsidx] = mem_ptr_double[nrht[cncell]];
+                        state_sideavg = 0;
                         tempsidx++;
                     }
 
@@ -10234,6 +10238,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         }
                         temp_state_buffer[stateCnt*(pcellIdx+3)+tempsidx] = state_sideavg;
                         temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[nbot[cncell]];
+                        state_sideavg = 0;
                         tempsidx++;
                     }
 
@@ -10297,6 +10302,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         }
                         temp_state_buffer[stateCnt*(pcellIdx+3)+tempsidx] = state_sideavg;
                         temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[ntop[cncell]];
+                        state_sideavg = 0;
                         tempsidx++;
                     }
 
@@ -10481,9 +10487,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
          }
       }
          tempsidx++;
-        printf("\n%f %f %f\n", temp_state_buffer[149*3+2], state_temp_double[149], mem_ptr_double[149]);
         state_memory.memory_replace(mem_ptr_double, state_temp_double);
-        printf("\n%f %f %f\n", temp_state_buffer[149*3+2], state_temp_double[149], mem_ptr_double[149]);
     }
 
 #ifdef PATTERN_CHECK
