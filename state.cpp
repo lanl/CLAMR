@@ -1831,10 +1831,17 @@ void State::calc_finite_difference_via_faces(double deltaT){
    }
 #endif
 
-   memory_reset_ptrs();
+   printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
+   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
+   printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
    //printf("\nDebug %s %d\n", __FILE__, __LINE__);
    xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
    cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
+
+   printf("\nH\tU\tV\n\n");
+   for (int ppppp = 0; ppppp < cellSizewp; ppppp++) {
+        printf("%d) %f %f %f\n", ppppp, H[ppppp], U[ppppp], V[ppppp]);
+   }
 
    static vector<state_t> Hx, Ux, Vx;
 
@@ -1849,21 +1856,20 @@ void State::calc_finite_difference_via_faces(double deltaT){
    Vx.resize(xfaceSize, -999999);
 
    //printf("\nDebug %s %d\n", __FILE__, __LINE__);
-    for (int quickcell = (int) mesh->ncells; quickcell < cellSizewp; quickcell++) {
+   /* for (int quickcell = (int) mesh->ncells; quickcell < cellSizewp; quickcell++) {
         H[quickcell] = 1;
         V[quickcell] = 1;
         U[quickcell] = 1;
         //Hx[quickcell] = 1;
         //Vx[quickcell] = 1;
         //Ux[quickcell] = 1;
-    } 
+    }*/ 
    //printf("\nDebug %s %d\n", __FILE__, __LINE__);
 #ifdef _OPENMP
    }
 #pragma omp barrier
 #endif
 
-   //printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
 #ifdef _OPENMP
 #pragma omp for 
 #endif
@@ -2153,7 +2159,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
       real_t Hlt = 0.0, Ult = 0.0; // Vlt = 0.0;
       real_t Hll2 = 0.0;
       real_t Ull2 = 0.0;
-      if(lvl < mesh->level[nl]) {
+/*      if(lvl < mesh->level[nl]) {
          Hlt  = H[ mesh->ntop[nl] ];
          Ult  = U[ mesh->ntop[nl] ];
          //Vlt  = V[ mesh->ntop[nl] ];
@@ -2161,13 +2167,13 @@ void State::calc_finite_difference_via_faces(double deltaT){
          nltl = mesh->nlft[nlt];
          Hll2 = H[nltl];
          Ull2 = U[nltl];
-      }
+      }*/
 
       int nrtr = 0;
       real_t Hrt = 0.0, Urt = 0.0; // Vrt = 0.0;
       real_t Hrr2 = 0.0;
       real_t Urr2 = 0.0;
-      if(lvl < mesh->level[nr]) {
+      /*if(lvl < mesh->level[nr]) {
          Hrt  = H[ mesh->ntop[nr] ];
          Urt  = U[ mesh->ntop[nr] ];
          //Vrt  = V[ mesh->ntop[nr] ];
@@ -2175,13 +2181,13 @@ void State::calc_finite_difference_via_faces(double deltaT){
          nrtr = mesh->nrht[nrt];
          Hrr2 = H[nrtr];
          Urr2 = U[nrtr];
-      }
+      }*/
 
       int nbrb = 0;
       real_t Hbr = 0.0, Vbr = 0.0; // Ubr = 0.0
       real_t Hbb2 = 0.0;
       real_t Vbb2 = 0.0;
-      if(lvl < mesh->level[nb]) {
+      /*if(lvl < mesh->level[nb]) {
          Hbr  = H[ mesh->nrht[nb] ];
          //Ubr  = U[ mesh->nrht[nb] ];
          Vbr  = V[ mesh->nrht[nb] ];
@@ -2189,13 +2195,13 @@ void State::calc_finite_difference_via_faces(double deltaT){
          nbrb = mesh->nbot[nbr];
          Hbb2 = H[nbrb];
          Vbb2 = V[nbrb];
-      }
+      }*/
 
       int ntrt = 0;
       real_t Htr = 0.0, Vtr = 0.0; // Utr = 0.0
       real_t Htt2 = 0.0;
       real_t Vtt2 = 0.0;
-      if(lvl < mesh->level[nt]) {
+      /*if(lvl < mesh->level[nt]) {
          Htr  = H[ mesh->nrht[nt] ];
          //Utr  = U[ mesh->nrht[nt] ];
          Vtr  = V[ mesh->nrht[nt] ];
@@ -2203,7 +2209,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
          ntrt = mesh->ntop[ntr];
          Htt2 = H[ntrt];
          Vtt2 = V[ntrt];
-      }
+      }*/
 
 
       ////////////////////////////////////////
@@ -2220,7 +2226,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
       }
 
       real_t Hxminus2 = 0.0;
-      if(lvl < mesh->level[nl]) Hxminus2 = H[ic];
+      //if(lvl < mesh->level[nl]) Hxminus2 = H[ic];
       real_t Uxminus2 = 0.0;
       real_t Vxminus2 = 0.0;
       if (mesh->map_xcell2face_left2[ic] >= 0) {
@@ -2239,7 +2245,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
       }
 
       real_t Hxplus2 = 0.0;
-      if(lvl < mesh->level[nr]) Hxplus2 = H[ic];
+      //if(lvl < mesh->level[nr]) Hxplus2 = H[ic];
       real_t Uxplus2 = 0.0;
       real_t Vxplus2 = 0.0;
       if (mesh->map_xcell2face_right2[ic] >= 0){
@@ -2248,17 +2254,17 @@ void State::calc_finite_difference_via_faces(double deltaT){
          Vxplus2  = Vx[mesh->map_xcell2face_right2[ic]];
       }
 
-      if(mesh->level[nl] < mesh->level[nll]) {
+      /*if(mesh->level[nl] < mesh->level[nll]) {
          Hll = (Hll + H[ mesh->ntop[nll] ]) * HALF;
          Ull = (Ull + U[ mesh->ntop[nll] ]) * HALF;
-      }
+      }*/
 
       real_t Hr2 = Hr;
       real_t Ur2 = Ur;
-      if(lvl < mesh->level[nr]) {
+      /*if(lvl < mesh->level[nr]) {
          Hr2 = (Hr2 + Hrt) * HALF;
          Ur2 = (Ur2 + Urt) * HALF;
-      }
+      }*/
 
       real_t wminusx_H = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
                               Hic-Hl, Hl-Hll, Hr2-Hic);
