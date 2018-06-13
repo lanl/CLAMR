@@ -9817,7 +9817,6 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
       MallocPlus state_memory_old = state_memory;
       malloc_plus_memory_entry *memory_item;
-      int stateCnt = 0;
 
       for (memory_item = state_memory_old.memory_entry_by_name_begin();
            memory_item != state_memory_old.memory_entry_by_name_end();
@@ -9830,12 +9829,10 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-         stateCnt++;
          //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
         state_memory.memory_realloc(6*ncells, memory_item->mem_ptr);
 
       }  
-      vector<double> temp_state_buffer(stateCnt*6*ncells, -98765.43210);
 
     //These variables are for the following for-loop
     int pcellCnt = 0, //counter for new phantom cells
@@ -9892,26 +9889,20 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                     xface_j[pfaceIdx] = j[lncell];
 
                     // loop through state arrays to update phantom cell state values
-                    int tempsidx = 0;
                     real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; //vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
-                        double *state_temp_double = (double *)state_memory.memory_malloc(6*ncells, sizeof(double),
-                                                                 "state_temp_double", memory_item->mem_flags);
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_avg = HALF * (state_bot + state_top);
-                        //state_temp_double[pcellIdx+2] = state_avg;
-                        //state_temp_double[pcellIdx] = mem_ptr_double[cncell];
-                        //state_memory.memory_replace(mem_ptr_double, state_temp_double);
-                        temp_state_buffer[stateCnt*(pcellIdx+2)+tempsidx] = state_avg;
-                        temp_state_buffer[stateCnt*pcellIdx+tempsidx] = mem_ptr_double[cncell];
+                        mem_ptr_double[pcellIdx+2] = state_avg;
+                        mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
 
                         if (level[nrht[bncell]] < level_right) { // rightbot right neighbor is even more refined
                             state_botbot = mem_ptr_double[nrht[bncell]];
@@ -9929,10 +9920,12 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         else { // same refinement as righttop neighbor
                             state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
                         }
-                        temp_state_buffer[stateCnt*(pcellIdx+3)+tempsidx] = state_sideavg;
-                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[nlft[cncell]];
+                        mem_ptr_double[pcellIdx+3] = state_sideavg;
+                        if (level[nlft[cncell]] != level[cncell]) // if 2 cells over is back to same refinement
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
                         state_sideavg = 0;
-                        tempsidx++;
                     }
 
                 }
@@ -9954,7 +9947,6 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
 
                     // loop through state arrays to update phantom cell state values
-                    int tempsidx = 0;
                     real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; //vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
@@ -9962,19 +9954,13 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *state_temp_double = (double *)state_memory.memory_malloc(6*ncells, sizeof(double),
-                                                                 "state_temp_double", memory_item->mem_flags);
-
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_avg = HALF * (state_bot + state_top);
-                        //state_temp_double[pcellIdx] = state_avg;
-                        //state_temp_double[pcellIdx+2] = mem_ptr_double[cncell];
-                        //state_memory.memory_replace(mem_ptr_double, state_temp_double);
-                        temp_state_buffer[stateCnt*pcellIdx+tempsidx] = state_avg;
-                        temp_state_buffer[stateCnt*(pcellIdx+2)+tempsidx] = mem_ptr_double[cncell];
+                        mem_ptr_double[pcellIdx] = state_avg;
+                        mem_ptr_double[pcellIdx+2] = mem_ptr_double[cncell];
 
                         if (level[nlft[bncell]] < level_left) { // leftbot left neighbor is even more refined
                             state_botbot = mem_ptr_double[nlft[bncell]];
@@ -9992,10 +9978,12 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         else { // same refinement as leftop neighbor
                             state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
                         }
-                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = state_sideavg;
-                        temp_state_buffer[stateCnt*(pcellIdx+3)+tempsidx] = mem_ptr_double[nrht[cncell]];
+                        mem_ptr_double[pcellIdx+1] = state_sideavg;
+                        if (level[nrht[cncell]] != level[cncell]) // if 2 cells over is back to same refinement
+                            mem_ptr_double[pcellIdx+3] = mem_ptr_double[ntop[nrht[cncell]]];
+                        else
+                            mem_ptr_double[pcellIdx+3] = mem_ptr_double[nrht[cncell]];
                         state_sideavg = 0;
-                        tempsidx++;
                     }
 
                 }
@@ -10043,26 +10031,22 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
 
                     // loop through state arrays to update phantom cell state values
-                    int tempsidx = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *state_temp_double = (double *)state_memory.memory_malloc(6*ncells, sizeof(double),
-                                                                 "state_temp_double", memory_item->mem_flags);
-
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_avg = HALF * (state_bot + state_top);
-                        //state_temp_double[pcellIdx] = mem_ptr_double[cncell];
-                        //state_memory.memory_replace(mem_ptr_double, state_temp_double);
-                        temp_state_buffer[stateCnt*pcellIdx+tempsidx] = mem_ptr_double[cncell];
-                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[ntop[nlft[cncell]]];
-                        tempsidx++;
+                        mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
+                        if (level[nlft[cncell]] != level[cncell]) // if 2 cells over is back to same refinement
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
                     }
 
                 }
@@ -10083,26 +10067,22 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
 
                     // loop through state arrays to update phantom cell state values
-                    int tempsidx = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *state_temp_double = (double *)state_memory.memory_malloc(6*ncells, sizeof(double),
-                                                                 "state_temp_double", memory_item->mem_flags);
-
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_avg = HALF * (state_bot + state_top);
-                        //state_temp_double[pcellIdx] = mem_ptr_double[cncell];
-                        //state_memory.memory_replace(mem_ptr_double, state_temp_double);
-                        temp_state_buffer[stateCnt*pcellIdx+tempsidx] = mem_ptr_double[cncell];
-                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[ntop[nrht[cncell]]];
-                        tempsidx++;
+                        mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
+                        if (level[nrht[cncell]] != level[cncell]) // if 2 cells over is back to same refinement
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nrht[cncell]]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[cncell]];
                     }
 
                 }
@@ -10198,7 +10178,6 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
 
                     // loop through state arrays to update phantom cell state values
-                    int tempsidx = 0;
                     real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; //vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
@@ -10206,19 +10185,13 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *state_temp_double = (double *)state_memory.memory_malloc(6*ncells, sizeof(double),
-                                                                 "state_temp_double", memory_item->mem_flags);
-
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
-                        //state_temp_double[pcellIdx+2] = state_avg;
-                        //state_temp_double[pcellIdx] = mem_ptr_double[cncell];
-                        //state_memory.memory_replace(mem_ptr_double, state_temp_double);
-                        temp_state_buffer[stateCnt*(pcellIdx+2)+tempsidx] = state_avg;
-                        temp_state_buffer[stateCnt*pcellIdx+tempsidx] = mem_ptr_double[cncell];
+                        mem_ptr_double[pcellIdx+2] = state_avg;
+                        mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
 
                         if (level[nbot[lncell]] < level_top) { // topleft top neighbor is even more refined
                             state_lftlft = mem_ptr_double[ntop[lncell]];
@@ -10236,10 +10209,12 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         else { // same refinement as toprht neighbor
                             state_sideavg += HALF * mem_ptr_double[ntop[rncell]];
                         }
-                        temp_state_buffer[stateCnt*(pcellIdx+3)+tempsidx] = state_sideavg;
-                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[nbot[cncell]];
+                        mem_ptr_double[pcellIdx+3] = state_sideavg;
+                        if (level[nbot[cncell]] != level[cncell]) // if 2 cells over is back to same refinement
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[nbot[cncell]]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
                         state_sideavg = 0;
-                        tempsidx++;
                     }
 
                 }
@@ -10262,7 +10237,6 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
 
                     // loop through state arrays to update phantom cell state values
-                    int tempsidx = 0;
                     real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; //vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
@@ -10270,19 +10244,13 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *state_temp_double = (double *)state_memory.memory_malloc(6*ncells, sizeof(double),
-                                                                 "state_temp_double", memory_item->mem_flags);
-
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
-                        //state_temp_double[pcellIdx] = state_avg;
-                        //state_temp_double[pcellIdx+2] = mem_ptr_double[cncell];
-                        //state_memory.memory_replace(mem_ptr_double, state_temp_double);
-                        temp_state_buffer[stateCnt*pcellIdx+tempsidx] = state_avg;
-                        temp_state_buffer[stateCnt*(pcellIdx+2)+tempsidx] = mem_ptr_double[cncell];
+                        mem_ptr_double[pcellIdx] = state_avg;
+                        mem_ptr_double[pcellIdx+2] = mem_ptr_double[cncell];
 
                         if (level[ntop[lncell]] < level_bot) { // botleft bot neighbor is even more refined
                             state_lftlft = mem_ptr_double[nbot[lncell]];
@@ -10300,10 +10268,12 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         else { // same refinement as toprht neighbor
                             state_sideavg += HALF * mem_ptr_double[nbot[rncell]];
                         }
-                        temp_state_buffer[stateCnt*(pcellIdx+3)+tempsidx] = state_sideavg;
-                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[ntop[cncell]];
+                        mem_ptr_double[pcellIdx+3] = state_sideavg;
+                        if (level[ntop[cncell]] != level[cncell]) // if 2 cells over is back to same refinement
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
                         state_sideavg = 0;
-                        tempsidx++;
                     }
 
                 }
@@ -10351,26 +10321,22 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
 
                     // loop through state arrays to update phantom cell state values
-                    int tempsidx = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *state_temp_double = (double *)state_memory.memory_malloc(6*ncells, sizeof(double),
-                                                                 "state_temp_double", memory_item->mem_flags);
-
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
-                        //state_temp_double[pcellIdx] = mem_ptr_double[cncell];
-                        //state_memory.memory_replace(mem_ptr_double, state_temp_double);
-                        temp_state_buffer[stateCnt*pcellIdx+tempsidx] = mem_ptr_double[cncell];
-                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[nbot[cncell]];
-                        tempsidx++;
+                        mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
+                        if (level[nbot[cncell]] != level[cncell]) // if 2 cells over is back to same refinement level
+                            mem_ptr_double[pcellIdx] = mem_ptr_double[nrht[nbot[cncell]]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
                     }
 
                 }
@@ -10391,26 +10357,22 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
 
                     // loop through state arrays to update phantom cell state values
-                    int tempsidx = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *state_temp_double = (double *)state_memory.memory_malloc(6*ncells, sizeof(double),
-                                                                 "state_temp_double", memory_item->mem_flags);
-
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
-                        //state_temp_double[pcellIdx] = mem_ptr_double[cncell];
-                        //state_memory.memory_replace(mem_ptr_double, state_temp_double);
-                        temp_state_buffer[stateCnt*pcellIdx+tempsidx] = mem_ptr_double[cncell];
-                        temp_state_buffer[stateCnt*(pcellIdx+1)+tempsidx] = mem_ptr_double[ntop[cncell]];
-                        tempsidx++;
+                        mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
+                        if (level[nbot[cncell]] != level[cncell]) // if 2 cells over is back to same refinement level
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
                     }
 
                 }
@@ -10459,36 +10421,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
     ntop     = (int *)mesh_memory.memory_realloc(pcellIdx, ntop);
     memory_reset_ptrs();
     printf("\n%d\n", mesh_memory.get_memory_size(level));
-
     
-        int tempsidx = 0;
-      for (memory_item = state_memory_old.memory_entry_by_name_begin();
-           memory_item != state_memory_old.memory_entry_by_name_end();
-           memory_item = state_memory_old.memory_entry_by_name_next() ) {
-         //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
-
-         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
-         //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
-        double *state_temp_double = (double *)state_memory.memory_malloc(6*ncells, sizeof(double),
-                                                        "state_temp_double", memory_item->mem_flags);
-
-        double *mem_ptr_double = (double *)memory_item->mem_ptr;
-        for (int qqq = 0; qqq < (int) ncells; qqq++) {
-            state_temp_double[qqq] = mem_ptr_double[qqq];
-        }
-
-    for (int quickcell = (int) ncells; quickcell < pcellIdx; quickcell++) {
-        int quickIdx = quickcell*stateCnt + tempsidx;
-         if (temp_state_buffer[quickIdx] != -98765.43210) {
-            state_temp_double[quickcell] = temp_state_buffer[quickIdx];
-         }
-         else {
-            state_temp_double[quickcell] = 0.0;
-         }
-      }
-         tempsidx++;
-        state_memory.memory_replace(mem_ptr_double, state_temp_double);
-    }
 
 #ifdef PATTERN_CHECK
    for (int ii=0; ii<256; ii++){
