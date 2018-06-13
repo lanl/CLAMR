@@ -9815,24 +9815,23 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
     memory_reset_ptrs();
     printf("\n%d\n", mesh_memory.get_memory_size(nlft));
 
-      MallocPlus state_memory_old = state_memory;
-      malloc_plus_memory_entry *memory_item;
+    MallocPlus state_memory_old = state_memory;
+    malloc_plus_memory_entry *memory_item;
 
-      for (memory_item = state_memory_old.memory_entry_by_name_begin();
-           memory_item != state_memory_old.memory_entry_by_name_end();
-           memory_item = state_memory_old.memory_entry_by_name_next() ) {
+    for (memory_item = state_memory_old.memory_entry_by_name_begin();
+        memory_item != state_memory_old.memory_entry_by_name_end();
+        memory_item = state_memory_old.memory_entry_by_name_next() ) {
           
-        //double *state_temp_double, *mem_ptr_double;
-         //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+        //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
 
-         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
+        if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-         //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+        //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
         state_memory.memory_realloc(6*ncells, memory_item->mem_ptr);
 
-      }  
+    }  
 
     //These variables are for the following for-loop
     int pcellCnt = 0, //counter for new phantom cells
@@ -9875,7 +9874,9 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
                 if (level_left < level_right) { // right is more refined
                     //new face's adjacent cells
+                    map_xface2cell_upper[pfaceIdx] = pcellIdx+2;
                     map_xface2cell_lower[pfaceIdx] = lncell;        
+                    //adjacent cell's face
                     map_xcell2face_right1[lncell] = pfaceIdx;
                     map_xcell2face_left1[pcellIdx + 2] = pfaceIdx;
                     //"undo" the second face for the cell, as it is no longer applicable

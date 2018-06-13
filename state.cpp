@@ -1838,10 +1838,10 @@ void State::calc_finite_difference_via_faces(double deltaT){
    xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
    cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
 
-   printf("\nH\tU\tV\n\n");
+   /*printf("\nH\tU\tV\n\n");
    for (int ppppp = 0; ppppp < cellSizewp; ppppp++) {
         printf("%d) %f %f %f\n", ppppp, H[ppppp], U[ppppp], V[ppppp]);
-   }
+   }*/
 
    static vector<state_t> Hx, Ux, Vx;
 
