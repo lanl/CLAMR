@@ -1838,10 +1838,10 @@ void State::calc_finite_difference_via_faces(double deltaT){
    xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
    cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
 
-   printf("\nH\tU\tV\n\n");
+   /*printf("\nH\tU\tV\n\n");
    for (int ppppp = 0; ppppp < cellSizewp; ppppp++) {
         printf("%d) %f %f %f\n", ppppp, H[ppppp], U[ppppp], V[ppppp]);
-   }
+   }*/
 
    static vector<state_t> Hx, Ux, Vx;
 
@@ -2271,38 +2271,38 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
       wminusx_H *= Hic - Hl;
 
-      if(lvl < mesh->level[nl]) {
+      /*if(lvl < mesh->level[nl]) {
          if(mesh->level[nlt] < mesh->level[nltl])
             Hll2 = (Hll2 + H[ mesh->ntop[nltl] ]) * HALF;
          wminusx_H = ((w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus2/Hxminus2) +
                                   sqrt(g*Hxminus2), Hic-Hlt, Hlt-Hll2, Hr2-Hic) *
                       (Hic - Hlt)) + wminusx_H)*HALF*HALF;
-      }
+      }*/
 
-      if(mesh->level[nr] < mesh->level[nrr]) {
+      /*if(mesh->level[nr] < mesh->level[nrr]) {
          Hrr = (Hrr + H[ mesh->ntop[nrr] ]) * HALF;
          Urr = (Urr + U[ mesh->ntop[nrr] ]) * HALF;
-      }
+      }*/
 
       real_t Hl2 = Hl;
       real_t Ul2 = Ul;
-      if(lvl < mesh->level[nl]) {
+      /*if(lvl < mesh->level[nl]) {
          Hl2 = (Hl2 + Hlt) * HALF;
          Ul2 = (Ul2 + Ult) * HALF;
-      }
+      }*/
 
       real_t wplusx_H = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
                            Hr-Hic, Hic-Hl2, Hrr-Hr);
 
       wplusx_H *= Hr - Hic;
 
-      if(lvl < mesh->level[nr]) {
+      /*if(lvl < mesh->level[nr]) {
          if(mesh->level[nrt] < mesh->level[nrtr])
             Hrr2 = (Hrr2 + H[ mesh->ntop[nrtr] ]) * HALF;
          wplusx_H = ((w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus2/Hxplus2) +
                                   sqrt(g*Hxplus2), Hrt-Hic, Hic-Hl2, Hrr2-Hrt) *
                       (Hrt - Hic))+wplusx_H)*HALF*HALF;
-      }
+      }*/
 
 
       real_t wminusx_U = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
@@ -2310,13 +2310,13 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
       wminusx_U *= Uic - Ul;
 
-      if(lvl < mesh->level[nl]) {
+      /*if(lvl < mesh->level[nl]) {
          if(mesh->level[nlt] < mesh->level[nltl])
             Ull2 = (Ull2 + U[ mesh->ntop[nltl] ]) * HALF;
          wminusx_U = ((w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus2/Hxminus2) +
                                   sqrt(g*Hxminus2), Uic-Ult, Ult-Ull2, Ur2-Uic) *
                       (Uic - Ult))+wminusx_U)*HALF*HALF;
-      }
+      }*/
 
 
       real_t wplusx_U = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
@@ -2324,26 +2324,26 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
       wplusx_U *= Ur - Uic;
 
-      if(lvl < mesh->level[nr]) {
+      /*if(lvl < mesh->level[nr]) {
          if(mesh->level[nrt] < mesh->level[nrtr])
             Urr2 = (Urr2 + U[ mesh->ntop[nrtr] ]) * HALF;
          wplusx_U = ((w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus2/Hxplus2) +
                                   sqrt(g*Hxplus2), Urt-Uic, Uic-Ul2, Urr2-Urt) *
                       (Urt - Uic))+wplusx_U)*HALF*HALF;
-      }
+      }*/
 
 
-      if(mesh->level[nb] < mesh->level[nbb]) {
+      /*if(mesh->level[nb] < mesh->level[nbb]) {
          Hbb = (Hbb + H[ mesh->nrht[nbb] ]) * HALF;
          Vbb = (Vbb + V[ mesh->nrht[nbb] ]) * HALF;
-      }
+      }*/
 
       real_t Ht2 = Ht;
       real_t Vt2 = Vt;
-      if(lvl < mesh->level[nt]) {
+      /*if(lvl < mesh->level[nt]) {
          Ht2 = (Ht2 + Htr) * HALF;
          Vt2 = (Vt2 + Vtr) * HALF;
-      }
+      }*/
 
       real_t Hyminus = H[ic];
       real_t Uyminus = 0.0;
@@ -2355,7 +2355,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
       }
 
       real_t Hyminus2 = 0.0;
-      if(lvl < mesh->level[nb]) Hyminus2 = H[ic];
+      //if(lvl < mesh->level[nb]) Hyminus2 = H[ic];
       real_t Uyminus2 = 0.0;
       real_t Vyminus2 = 0.0;
       if (mesh->map_ycell2face_bot2[ic] >= 0){
@@ -2374,7 +2374,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
       }
 
       real_t Hyplus2 = 0.0;
-      if(lvl < mesh->level[nt]) Hyplus2 = H[ic];
+      //if(lvl < mesh->level[nt]) Hyplus2 = H[ic];
       real_t Uyplus2 = 0.0;
       real_t Vyplus2 = 0.0;
       if (mesh->map_ycell2face_top2[ic] >= 0){
@@ -2388,65 +2388,65 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
       wminusy_H *= Hic - Hb;
 
-      if(lvl < mesh->level[nb]) {
+      /*if(lvl < mesh->level[nb]) {
          if(mesh->level[nbr] < mesh->level[nbrb])
             Hbb2 = (Hbb2 + H[ mesh->nrht[nbrb] ]) * HALF;
          wminusy_H = ((w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus2/Hyminus2) +
                                   sqrt(g*Hyminus2), Hic-Hbr, Hbr-Hbb2, Ht2-Hic) *
                       (Hic - Hbr))+wminusy_H)*HALF*HALF;
-      }
+      }*/
 
 
-      if(mesh->level[nt] < mesh->level[ntt]) {
+      /*if(mesh->level[nt] < mesh->level[ntt]) {
          Htt = (Htt + H[ mesh->nrht[ntt] ]) * HALF;
          Vtt = (Vtt + V[ mesh->nrht[ntt] ]) * HALF;
-      }
+      }*/
 
       real_t Hb2 = Hb;
       real_t Vb2 = Vb;
-      if(lvl < mesh->level[nb]) {
+      /*if(lvl < mesh->level[nb]) {
          Hb2 = (Hb2 + Hbr) * HALF;
          Vb2 = (Vb2 + Vbr) * HALF;
-      }
+      }*/
 
       real_t wplusy_H = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
                              Ht-Hic, Hic-Hb2, Htt-Ht);
 
       wplusy_H *= Ht - Hic;
 
-      if(lvl < mesh->level[nt]) {
+      /*if(lvl < mesh->level[nt]) {
          if(mesh->level[ntr] < mesh->level[ntrt])
             Htt2 = (Htt2 + H[ mesh->nrht[ntrt] ]) * HALF;
          wplusy_H = ((w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus2/Hyplus2) +
                                   sqrt(g*Hyplus2), Htr-Hic, Hic-Hb2, Htt2-Htr) *
                       (Htr - Hic))+wplusy_H)*HALF*HALF;
-      }
+      }*/
 
       real_t wminusy_V = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
                               Vic-Vb, Vb-Vbb, Vt2-Vic);
 
       wminusy_V *= Vic - Vb;
 
-      if(lvl < mesh->level[nb]) {
+      /*if(lvl < mesh->level[nb]) {
          if(mesh->level[nbr] < mesh->level[nbrb])
             Vbb2 = (Vbb2 + V[ mesh->nrht[nbrb] ]) * HALF;
          wminusy_V = ((w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus2/Hyminus2) +
                                   sqrt(g*Hyminus2), Vic-Vbr, Vbr-Vbb2, Vt2-Vic) *
                       (Vic - Vbr))+wminusy_V)*HALF*HALF;
-      }
+      }*/
 
       real_t wplusy_V = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
                            Vt-Vic, Vic-Vb2, Vtt-Vt);
 
       wplusy_V *= Vt - Vic;
 
-      if(lvl < mesh->level[nt]) {
+      /*if(lvl < mesh->level[nt]) {
          if(mesh->level[ntr] < mesh->level[ntrt])
             Vtt2 = (Vtt2 + V[ mesh->nrht[ntrt] ]) * HALF;
          wplusy_V = ((w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus2/Hyplus2) +
                                   sqrt(g*Hyplus2), Vtr-Vic, Vic-Vb2, Vtt2-Vtr) *
                       (Vtr - Vic))+wplusy_V)*HALF*HALF;
-      }
+      }*/
 
       real_t Hxfluxminus = HNEWXFLUXMINUS;
       real_t Uxfluxminus = UNEWXFLUXMINUS;
@@ -2464,29 +2464,29 @@ void State::calc_finite_difference_via_faces(double deltaT){
       real_t Uyfluxplus  = VUNEWFLUXPLUS;
       real_t Vyfluxplus  = VNEWYFLUXPLUS;
 
-      if(lvl < mesh->level[nl]) {
+      /*if(lvl < mesh->level[nl]) {
          Hxfluxminus = (Hxfluxminus + HNEWXFLUXMINUS2) * HALF;
          Uxfluxminus = (Uxfluxminus + UNEWXFLUXMINUS2) * HALF;
          Vxfluxminus = (Vxfluxminus + UVNEWFLUXMINUS2) * HALF;
-      }
+      }*/
 
-      if(lvl < mesh->level[nr]) {
+      /*if(lvl < mesh->level[nr]) {
          Hxfluxplus  = (Hxfluxplus + HNEWXFLUXPLUS2) * HALF;
          Uxfluxplus  = (Uxfluxplus + UNEWXFLUXPLUS2) * HALF;
          Vxfluxplus  = (Vxfluxplus + UVNEWFLUXPLUS2) * HALF;
-      }
+      }*/
 
-      if(lvl < mesh->level[nb]) {
+      /*if(lvl < mesh->level[nb]) {
          Hyfluxminus = (Hyfluxminus + HNEWYFLUXMINUS2) * HALF;
          Uyfluxminus = (Uyfluxminus + VUNEWFLUXMINUS2) * HALF;
          Vyfluxminus = (Vyfluxminus + VNEWYFLUXMINUS2) * HALF;
-      }
+      }*/
 
-      if(lvl < mesh->level[nt]) {
+      /*if(lvl < mesh->level[nt]) {
          Hyfluxplus  = (Hyfluxplus + HNEWYFLUXPLUS2) * HALF;
          Uyfluxplus  = (Uyfluxplus + VUNEWFLUXPLUS2) * HALF;
          Vyfluxplus  = (Vyfluxplus + VNEWYFLUXPLUS2) * HALF;
-      }
+      }*/
 
       H_new[ic] = U_fullstep(deltaT, dxic, Hic,
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
