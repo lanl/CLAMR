@@ -1,0 +1,78 @@
+Starting compile of kernels in mesh
+Finishing compile of kernels in mesh
+Starting compile of kernels in state
+Finishing compile of kernels in state
+Mass of initialized cells equal to  125195.039982
+CPU:  setup time               time was	  1.4640	s
+Memory used      in startup 	    122232	kB
+Memory peak      in startup 	    123164	kB
+Memory free      at startup 	   6559268	kB
+Memory available at startup 	   8112564	kB
+Iteration   0 timestep      n/a Sim Time      0.0 cells 17028 Mass Sum  125195.039982
+Iteration 100 timestep 0.000330 Sim Time 0.043855 cells 17436 Mass Sum  125195.040096 Mass Change  0.000113964
+Iteration 200 timestep 0.000318 Sim Time 0.076685 cells 17664 Mass Sum  125195.039671 Mass Change -0.000310898
+Iteration 300 timestep 0.000346 Sim Time 0.109718 cells 17892 Mass Sum  125195.039425 Mass Change -0.000556946
+Iteration 400 timestep 0.000358 Sim Time 0.144092 cells 18072 Mass Sum  125195.038828 Mass Change  -0.00115395
+Iteration 500 timestep 0.000371 Sim Time 0.180465 cells 18216 Mass Sum   125195.03859 Mass Change  -0.00139213
+Iteration 600 timestep 0.000398 Sim Time 0.219301 cells 18300 Mass Sum  125195.038289 Mass Change  -0.00169241
+Iteration 700 timestep 0.000432 Sim Time 0.260814 cells 18408 Mass Sum  125195.037541 Mass Change  -0.00244129
+Iteration 800 timestep 0.000469 Sim Time 0.305481 cells 18516 Mass Sum   125195.03694 Mass Change  -0.00304151
+Iteration 900 timestep 0.000484 Sim Time 0.353147 cells 18612 Mass Sum  125195.036796 Mass Change  -0.00318623
+Iteration 1000 timestep 0.000547 Sim Time 0.404220 cells 18960 Mass Sum  125195.036175 Mass Change  -0.00380647
+Iteration 1100 timestep 0.000561 Sim Time 0.458685 cells 19068 Mass Sum   125195.03585 Mass Change  -0.00413215
+Iteration 1200 timestep 0.000594 Sim Time 0.517027 cells 19272 Mass Sum  125195.035181 Mass Change   -0.0048008
+Iteration 1300 timestep 0.000640 Sim Time 0.579504 cells 19548 Mass Sum  125195.033886 Mass Change  -0.00609589
+Iteration 1400 timestep 0.000708 Sim Time 0.646808 cells 19764 Mass Sum  125195.032711 Mass Change  -0.00727081
+Iteration 1500 timestep 0.000751 Sim Time 0.719800 cells 20088 Mass Sum  125195.032749 Mass Change  -0.00723326
+Iteration 1600 timestep 0.000837 Sim Time 0.799014 cells 20280 Mass Sum  125195.031994 Mass Change  -0.00798768
+Iteration 1700 timestep 0.000903 Sim Time 0.885034 cells 20496 Mass Sum  125195.031125 Mass Change  -0.00885707
+Iteration 1800 timestep 0.000977 Sim Time 0.978367 cells 20496 Mass Sum  125195.030398 Mass Change  -0.00958407
+Iteration 1900 timestep 0.001048 Sim Time 1.079313 cells 20568 Mass Sum  125195.028586 Mass Change   -0.0113956
+Iteration 2000 timestep 0.001129 Sim Time 1.188644 cells 20628 Mass Sum  125195.027248 Mass Change   -0.0127341
+Iteration 2100 timestep 0.001228 Sim Time 1.307170 cells 20856 Mass Sum  125195.026878 Mass Change   -0.0131034
+Iteration 2200 timestep 0.001353 Sim Time 1.436101 cells 20928 Mass Sum  125195.026626 Mass Change   -0.0133553
+Iteration 2300 timestep 0.001469 Sim Time 1.576790 cells 21372 Mass Sum  125195.024716 Mass Change    -0.015266
+Iteration 2400 timestep 0.001625 Sim Time 1.731039 cells 21540 Mass Sum  125195.024306 Mass Change    -0.015676
+Iteration 2500 timestep 0.001779 Sim Time 1.900426 cells 21840 Mass Sum   125195.02309 Mass Change   -0.0168915
+Iteration 2600 timestep 0.001965 Sim Time 2.086941 cells 22020 Mass Sum  125195.021377 Mass Change   -0.0186047
+Iteration 2700 timestep 0.002149 Sim Time 2.292338 cells 22404 Mass Sum   125195.01996 Mass Change   -0.0200214
+Iteration 2800 timestep 0.002385 Sim Time 2.518665 cells 22500 Mass Sum   125195.01822 Mass Change   -0.0217618
+Iteration 2900 timestep 0.002623 Sim Time 2.767544 cells 22992 Mass Sum   125195.01806 Mass Change   -0.0219223
+Iteration 3000 timestep 0.002850 Sim Time 3.040779 cells 22968 Mass Sum  125195.017816 Mass Change   -0.0221659
+Memory used      122232 kB
+Memory peak      123164 kB
+Memory free      6559172 kB
+Memory available 8112564 kB
+
+~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
+GPU: Write to device          time was	  0.0000	s
+GPU: Read from device         time was	  0.0000	s
+GPU: Device compute           time was	  4.4409	s
+GPU:   state_timer_set_timestep      		    0.7959	s
+GPU:   state_timer_finite_difference 		    1.0985	s
+GPU:   state_timer_refine_potential  		    1.5806	s
+GPU:     state_timer_calc_mpot         		      0.8856	s
+GPU:     mesh_timer_refine_smooth      		      0.6943	s
+GPU:   state_timer_rezone_all        		    0.4415	s
+GPU:   mesh_timer_partition          		    0.0000	s
+GPU:   mesh_timer_calc_neighbors     		    0.5157	s
+GPU:     mesh_timer_hash_setup         		      0.3121	s
+GPU:     mesh_timer_hash_query         		      0.2033	s
+GPU:   state_timer_mass_sum          		    0.0087	s
+GPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
+=============================================================
+Profiling: Total GPU          time was	  4.4409	s
+-------------------------------------------------------------
+Mesh Ops (Neigh+rezone+smooth+balance) 	  1.6516	s
+Mesh Ops Percentage                    	 37.1897	percent
+=============================================================
+Profiling: Total              time was	  4.4421	s
+=============================================================
+CPU:  calculation only         time was	  4.4338	s
+GPU:  graphics                 time was	  0.0000	s
+Using hash tables to calculate neighbors
+hash table size  bytes 1081600
+Initial order is Hilbert sort.   No cycle reorder.   Local Stencil is on.
+GPU:  rezone frequency                	  53.7000	percent
+GPU:  calc neigh frequency            	  53.7000	percent
+GPU:  refine_smooth_iter per rezone   	   0.0000	

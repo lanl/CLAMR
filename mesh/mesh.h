@@ -266,8 +266,8 @@ public:
 
 #ifdef PATTERN_CHECK
    int *xcase;
-   int xcase_count[70];
-   char xcase_descrip[70][50];
+   int xcase_count[256];
+   char xcase_descrip[256][50];
 #endif
 
    FILE          *fp;
