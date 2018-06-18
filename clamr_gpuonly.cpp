@@ -337,6 +337,8 @@ int main(int argc, char **argv) {
    mesh->proc.clear();
    mesh->index.clear();
 
+   mesh->gpu_calc_neighbors();
+
    cpu_timer_start(&tstart);
 #ifdef HAVE_GRAPHICS
    set_idle_function(&do_calc);
@@ -367,6 +369,14 @@ extern "C" void do_calc(void)
 
    for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
+
+      size_t new_ncells = state->gpu_calc_refine_potential(icount, jcount);
+
+      //  Resize the mesh, inserting cells where refinement is necessary.
+      if (state->dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);
+      ncells = new_ncells;
+      mesh->ncells = new_ncells;
+
       //  Calculate the real time step for the current discrete time step.
       deltaT = state->gpu_set_timestep(sigma);
       simTime += deltaT;
@@ -381,13 +391,6 @@ extern "C" void do_calc(void)
       //  Execute main kernel
       state->gpu_calc_finite_difference(deltaT);
       
-      size_t new_ncells = state->gpu_calc_refine_potential(icount, jcount);
-
-      //  Resize the mesh, inserting cells where refinement is necessary.
-      if (state->dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);
-      ncells = new_ncells;
-      mesh->ncells = new_ncells;
-
       //int bcount = mesh->gpu_count_BCs();
 
    } // End burst loop
