@@ -9922,10 +9922,10 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                             state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
                         }
                         mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        if (level[nlft[cncell]] != level[cncell]) // if 2 cells over is back to same refinement
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
-                        else
+                        if (level[nlft[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
                         state_sideavg = 0;
                     }
 
@@ -9980,10 +9980,10 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                             state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
                         }
                         mem_ptr_double[pcellIdx+1] = state_sideavg;
-                        if (level[nrht[cncell]] != level[cncell]) // if 2 cells over is back to same refinement
-                            mem_ptr_double[pcellIdx+3] = mem_ptr_double[ntop[nrht[cncell]]];
-                        else
+                        if (level[nrht[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
                             mem_ptr_double[pcellIdx+3] = mem_ptr_double[nrht[cncell]];
+                        else
+                            mem_ptr_double[pcellIdx+3] = mem_ptr_double[ntop[nrht[cncell]]];
                         state_sideavg = 0;
                     }
 
@@ -10044,10 +10044,10 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_avg = HALF * (state_bot + state_top);
                         mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
-                        if (level[nlft[cncell]] != level[cncell]) // if 2 cells over is back to same refinement
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
-                        else
+                        if (level[nlft[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
                     }
 
                 }
@@ -10080,10 +10080,10 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_avg = HALF * (state_bot + state_top);
                         mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
-                        if (level[nrht[cncell]] != level[cncell]) // if 2 cells over is back to same refinement
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nrht[cncell]]];
-                        else
+                        if (level[nrht[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[cncell]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nrht[cncell]]];
                     }
 
                 }
@@ -10211,10 +10211,10 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                             state_sideavg += HALF * mem_ptr_double[ntop[rncell]];
                         }
                         mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        if (level[nbot[cncell]] != level[cncell]) // if 2 cells over is back to same refinement
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[nbot[cncell]]];
-                        else
+                        if (level[nbot[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[nbot[cncell]]];
                         state_sideavg = 0;
                     }
 
@@ -10270,10 +10270,10 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                             state_sideavg += HALF * mem_ptr_double[nbot[rncell]];
                         }
                         mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        if (level[ntop[cncell]] != level[cncell]) // if 2 cells over is back to same refinement
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
-                        else
+                        if (level[ntop[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
                         state_sideavg = 0;
                     }
 
@@ -10334,10 +10334,10 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
                         mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
-                        if (level[nbot[cncell]] != level[cncell]) // if 2 cells over is back to same refinement level
-                            mem_ptr_double[pcellIdx] = mem_ptr_double[nrht[nbot[cncell]]];
-                        else
+                        if (level[nbot[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
+                        else
+                            mem_ptr_double[pcellIdx] = mem_ptr_double[nrht[nbot[cncell]]];
                     }
 
                 }
@@ -10370,10 +10370,10 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
                         mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
-                        if (level[nbot[cncell]] != level[cncell]) // if 2 cells over is back to same refinement level
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
-                        else
+                        if (level[nbot[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
+                        else
+                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
                     }
 
                 }
