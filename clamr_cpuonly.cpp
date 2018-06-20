@@ -93,6 +93,7 @@ static int do_cpu_calc = 1;
 static int do_gpu_calc = 0;
 
 extern int graphics_type;
+extern int choose_amr_method;
 
 typedef unsigned int uint;
 
@@ -473,7 +474,9 @@ extern "C" void do_calc(void)
          mesh->set_bounds(ncells);
 
          //  Execute main kernel
-         if (face_based) {
+         if (choose_amr_method == FACE_IN_PLACE_AMR) {
+            state->calc_finite_difference_face_in_place(deltaT);
+         } else if (face_based) {
             state->calc_finite_difference_via_faces(deltaT);
          } else {
             state->calc_finite_difference(deltaT);

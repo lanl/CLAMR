@@ -149,6 +149,8 @@ bool neighbor_remap;
 static bool iversion_flag = false;
 #endif
 
+int   choose_amr_method;
+
 static const char *mesh_timer_descriptor[MESH_TIMER_SIZE] = {
    "mesh_timer_count_BCs",
    "mesh_timer_calc_neighbors",

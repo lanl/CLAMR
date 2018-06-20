@@ -112,7 +112,8 @@ extern int  outputInterval,
             lttrace_on,
             do_quo_setup,
             calc_neighbor_type,
-	    choose_hash_method,
+	        choose_amr_method,
+	        choose_hash_method,
             initial_order,
             graphic_outputInterval,
             graphics_type,
@@ -131,6 +132,9 @@ void outputHelp()
 {   cout << "CLAMR is an experimental adaptive mesh refinement code for the GPU." << endl
          << "Version is " << PACKAGE_VERSION << endl << endl
          << "Usage:  " << progName << " [options]..." << endl
+         << "  -A <T>            AMR type (default regular);" << endl
+         << "      \"regular\"" << endl
+         << "      \"face-in-place\"" << endl
          << "  -b <B>            Number of rollback images, disk or in memory (default 2);" << endl
          << "  -c <C>            Checkpoint to disk at interval specified;" << endl
          << "  -C <C>            Checkpoint to memory at interval specified;" << endl
@@ -234,6 +238,7 @@ void parseInput(const int argc, char** argv)
     //measure_type            = CSTARVALUE;
     measure_type            = NO_PARTITION_MEASURE;
     calc_neighbor_type      = HASH_TABLE;
+    choose_amr_method       = REGULAR_AMR;
     choose_hash_method      = METHOD_UNSET;
     initial_order           = HILBERT_SORT;
     cycle_reorder           = ORIGINAL_ORDER;
@@ -252,6 +257,16 @@ void parseInput(const int argc, char** argv)
         val = strtok(argv[i++], " ,.-");
         while (val != NULL){
             switch (val[0]){
+                case 'A':   //  AMR method specified.
+                    val = strtok(argv[i++], " ,");
+                    if (! strcmp(val,"regular") ) {
+                       choose_amr_method = REGULAR_AMR;
+                    } else if (! strcmp(val,"face-in-place") ) {
+                       choose_amr_method = FACE_IN_PLACE_AMR;
+                    } else {
+                       printf("AMR method must be either \"regular\" or \"face-in-place\"\n");
+                    }
+                    break;
                case 'b':     //  Number of rollback images, disk or in memory (default 2)
                     sprintf(val,"0");
                     if (i < argc) val = strtok(argv[i++], " ,");

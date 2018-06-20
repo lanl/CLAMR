@@ -128,6 +128,12 @@ typedef unsigned int uint;
 
 //float mem_opt_factor = 1.0;
 
+enum amr_method
+{
+    REGULAR_AMR,         // AMR done in physics level
+    FACE_IN_PLACE_AMR    // AMR done in mesh by extending face data structure
+};
+
 enum boundary
 {  REAL_CELL      =  1,         //  Denotes cell type of real cell.
    LEFT_BOUNDARY  = -1,         //  Denotes left boundary ghost cell.
