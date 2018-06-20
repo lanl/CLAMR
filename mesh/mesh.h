@@ -523,7 +523,7 @@ public:
    //void calc_face_list_test(double *H);
    void calc_face_list(void);
    void calc_face_list_wmap(void);
-   void calc_face_list_wbidirmap(void);
+   void calc_face_list_wbidirmap(MallocPlus &state_memory);
    void calc_face_list_clearmaps(void);
 
    int **get_xface_flag(int lev, bool print_output=0);
