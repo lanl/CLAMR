@@ -316,7 +316,8 @@ int main(int argc, char **argv) {
    set_display_viewmode(view_mode);
    set_display_outline((int)outline);
    init_display(&argc, argv, "Shallow Water");
-      
+#endif
+#ifdef HAVE_GRAPHICS
    set_display_circle_radius(circle_radius);
    draw_scene();
    if (verbose) sleep(5);
@@ -327,9 +328,10 @@ int main(int argc, char **argv) {
    
    //  Clear superposition of circle on grid output.
    circle_radius = -1.0;
-   
+#endif
    cpu_timer_start(&tstart);
 
+#ifdef HAVE_GRAPHICS
    set_idle_function(&do_calc);
    start_main_loop();
 #else

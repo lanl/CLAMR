@@ -339,6 +339,10 @@ int main(int argc, char **argv) {
    //  Set flag to show mesh results rather than domain decomposition.
    view_mode = 1;
 
+   mesh->calc_neighbors(ncells);
+
+   mesh->gpu_calc_neighbors();
+
    cpu_timer_start(&tstart);
 #ifdef HAVE_GRAPHICS
    set_idle_function(&do_calc);
@@ -400,54 +404,6 @@ extern "C" void do_calc(void)
          ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_state_t),  (void *)&state->V[0],  NULL);
       }
 
-      //  Define basic domain decomposition parameters for GPU.
-      old_ncells = ncells;
-
-      //  Calculate the real time step for the current discrete time step.
-      double deltaT_cpu = state->set_timestep(g, sigma);
-      
-      double deltaT_gpu = state->gpu_set_timestep(sigma);
-
-      //  Compare time step values and pass deltaT in to the kernel.
-      if (do_comparison_calc)
-      {  if (fabs(deltaT_gpu - deltaT_cpu) > .000001)
-         {  printf("Error with deltaT calc --- cpu %lf gpu %lf\n",deltaT_cpu,deltaT_gpu); } }
-      
-      deltaT = (do_gpu_calc) ? deltaT_gpu : deltaT_cpu;
-      simTime += deltaT;
-
-      mesh->calc_neighbors(ncells);
-
-      mesh->gpu_calc_neighbors();
-
-      if (do_comparison_calc) {
-         mesh->compare_neighbors_gpu_global_to_cpu_global();
-      }
-
-      cpu_timer_start(&tstart_partmeas);
-      mesh->partition_measure();
-      cpu_time_partmeas += cpu_timer_stop(tstart_partmeas);
-
-      // Currently not working -- may need to be earlier?
-      //if (do_cpu_calc && ! mesh->have_boundary) {
-      //  state->add_boundary_cells(mesh);
-      //}
-
-      // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
-
-      //  Execute main kernel
-      state->calc_finite_difference(deltaT);
-      
-      state->gpu_calc_finite_difference(deltaT);
-      
-      if (do_comparison_calc) {
-         // Need to compare dev_H to H, etc
-         state->compare_state_gpu_global_to_cpu_global("finite difference",ncycle,ncells);
-      }
-
-      //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
-      state->remove_boundary_cells();
-      
       mpot.resize(ncells);
       new_ncells = state->calc_refine_potential(mpot, icount, jcount);
       //printf("DEBUG cpu icount %d jcount %d new_ncells %d\n",icount,jcount,new_ncells);
@@ -566,6 +522,55 @@ extern "C" void do_calc(void)
          ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&state->U[0],  NULL);
          ezcl_enqueue_write_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_state_t),  (void *)&state->V[0],  NULL);
       }
+
+      //  Define basic domain decomposition parameters for GPU.
+      old_ncells = ncells;
+
+      //  Calculate the real time step for the current discrete time step.
+      double deltaT_cpu = state->set_timestep(g, sigma);
+      
+      double deltaT_gpu = state->gpu_set_timestep(sigma);
+
+      //  Compare time step values and pass deltaT in to the kernel.
+      if (do_comparison_calc)
+      {  if (fabs(deltaT_gpu - deltaT_cpu) > .000001)
+         {  printf("Error with deltaT calc --- cpu %lf gpu %lf\n",deltaT_cpu,deltaT_gpu); } }
+      
+      deltaT = (do_gpu_calc) ? deltaT_gpu : deltaT_cpu;
+      simTime += deltaT;
+
+      mesh->calc_neighbors(ncells);
+
+      mesh->gpu_calc_neighbors();
+
+      if (do_comparison_calc) {
+         mesh->compare_neighbors_gpu_global_to_cpu_global();
+      }
+
+      cpu_timer_start(&tstart_partmeas);
+      mesh->partition_measure();
+      cpu_time_partmeas += cpu_timer_stop(tstart_partmeas);
+
+      // Currently not working -- may need to be earlier?
+      //if (do_cpu_calc && ! mesh->have_boundary) {
+      //  state->add_boundary_cells(mesh);
+      //}
+
+      // Apply BCs is currently done as first part of gpu_finite_difference and so comparison won't work here
+
+      //  Execute main kernel
+      state->calc_finite_difference(deltaT);
+      
+      state->gpu_calc_finite_difference(deltaT);
+      
+      if (do_comparison_calc) {
+         // Need to compare dev_H to H, etc
+         state->compare_state_gpu_global_to_cpu_global("finite difference",ncycle,ncells);
+      }
+
+      //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
+      state->remove_boundary_cells();
+      
    } // End burst loop
 
    cpu_time_calcs += cpu_timer_stop(tstart_cpu);
