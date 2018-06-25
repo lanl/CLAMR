@@ -2609,7 +2609,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp master
    {
 #endif
-   mesh->calc_face_list_wbidirmap();
+   mesh->calc_face_list_wbidirmap(state_memory);
 #ifdef _OPENMP
    }
 #endif

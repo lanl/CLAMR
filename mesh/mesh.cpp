@@ -9903,9 +9903,10 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
 
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
+                        real_t state_coarse = mem_ptr_double[cncell];
                         real_t state_avg = HALF * (state_bot + state_top);
                         mem_ptr_double[pcellIdx+2] = state_avg;
-                        mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
+                        mem_ptr_double[pcellIdx] = state_course;
 
                         if (level[nrht[bncell]] < level_right) { // rightbot right neighbor is even more refined
                             state_botbot = mem_ptr_double[nrht[bncell]];
@@ -9913,7 +9914,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                             state_sideavg += HALF * HALF * (state_botbot + state_bottop);
                         }
                         else { // same refinement as rightbot neighbor
-                            state_sideavg += HALF * mem_ptr_double[nrht[bncell]];
+                            state_sideavg += HALF * state_botbot;
                         }
                         if (level[nrht[tncell]] < level_right) { // righttop right neighbor is even more refined
                             state_topbot = mem_ptr_double[nrht[tncell]];
@@ -9921,13 +9922,11 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                             state_sideavg += HALF * HALF * (state_topbot + state_toptop);
                         }
                         else { // same refinement as righttop neighbor
-                            state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
+                            state_sideavg += HALF * state_topbot;
                         }
                         mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        if (level[nlft[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
-                        else
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
+                        mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
+
                         state_sideavg = 0;
                     }
 
@@ -9982,10 +9981,8 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                             state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
                         }
                         mem_ptr_double[pcellIdx+1] = state_sideavg;
-                        if (level[nrht[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
-                            mem_ptr_double[pcellIdx+3] = mem_ptr_double[nrht[cncell]];
-                        else
-                            mem_ptr_double[pcellIdx+3] = mem_ptr_double[ntop[nrht[cncell]]];
+                        mem_ptr_double[pcellIdx+3] = mem_ptr_double[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
+
                         state_sideavg = 0;
                     }
 
@@ -10046,7 +10043,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_avg = HALF * (state_bot + state_top);
                         mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
-                        if (level[nlft[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
+                        if (level[nlft[cncell]] <= level[cncell]) // 2 cells over is same or lesser refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
                         else
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
@@ -10082,7 +10079,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_avg = HALF * (state_bot + state_top);
                         mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
-                        if (level[nrht[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
+                        if (level[nrht[cncell]] <= level[cncell]) // 2 cells over is same or lesser refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[cncell]];
                         else
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nrht[cncell]]];
@@ -10213,10 +10210,8 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                             state_sideavg += HALF * mem_ptr_double[ntop[rncell]];
                         }
                         mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        if (level[nbot[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
-                        else
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[nbot[cncell]]];
+                        mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
+                        
                         state_sideavg = 0;
                     }
 
@@ -10272,10 +10267,8 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                             state_sideavg += HALF * mem_ptr_double[nbot[rncell]];
                         }
                         mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        if (level[ntop[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
-                        else
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
+                        mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
+
                         state_sideavg = 0;
                     }
 
@@ -10336,7 +10329,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
                         mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
-                        if (level[nbot[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
+                        if (level[nbot[cncell]] <= level[cncell]) // 2 cells over is same or lesser refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
                         else
                             mem_ptr_double[pcellIdx] = mem_ptr_double[nrht[nbot[cncell]]];
@@ -10372,7 +10365,7 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
                         mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
-                        if (level[nbot[cncell]] >= level[cncell]) // 2 cells over is same or greater refine.
+                        if (level[nbot[cncell]] <= level[cncell]) // 2 cells over is same or lesser refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
                         else
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
