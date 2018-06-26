@@ -523,6 +523,16 @@ public:
    //void calc_face_list_test(double *H);
    void calc_face_list(void);
    void calc_face_list_wmap(void);
+   void quickInterpolate(int side_main,              //x dim, bottom left/right neighbor || y dim, left top/bot neighbor
+                         int side_sec,               //x dim, top left/right neighbor || y dim, right top/bot neighbor
+                         int cncell,                 //coarse cell
+                         double* mem_ptr_double,     //memory item double pointer
+                         real_t d_lo,                //x dim, lev_deltax[level[left neigh]] || y dim, lev_deltay[level[bot..
+                         real_t d_hi,                //x dim, lev_deltax[level[right neigh]] || y dim, lev_deltay[level[top..
+                         int flag,                   //whether we are gettting a coarse from fine, fine from coarse, or both
+                         real_t *fineavg,            //pointer for a fine phantom value from coarse
+                         real_t *coarseavg);          //pointer for a coarse phantom value from fine
+
    void calc_face_list_wbidirmap(void);
    void calc_face_list_wbidirmap_phantom(MallocPlus &state_memory);
    void calc_face_list_clearmaps(void);
