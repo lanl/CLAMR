@@ -10881,6 +10881,38 @@ void Mesh::calc_face_list_wbidirmap(void)
 #endif
 }
 
+void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
+{
+   printf("DEBUG -- imin, imax %d %d\n",imin,imax);
+   int nvar=0;
+   malloc_plus_memory_entry *memory_item;
+   MallocPlus state_memory_old = state_memory;
+   for (memory_item = state_memory_old.memory_entry_by_name_begin();
+       memory_item != state_memory_old.memory_entry_by_name_end();
+       memory_item = state_memory_old.memory_entry_by_name_next() ) {
+          
+       //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+
+       if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
+       nvar++;
+   }
+   printf("DEBUG -- nvar %d jmax %d jmin %d imax %d imin %d\n",nvar,jmax,jmin,imax,imin);
+
+   double ****pstate = (double ****)genquadmatrix(levmx,nvar,jmax+1,imax+1,sizeof(double));
+   //double **Hrg = (double **)genmalloc(jmax+1,imax+1,size(double));
+   for(int ll=0; ll<levmx; ll++){
+      for(int nn=0; nn<nvar; nn++){
+         for(int jj=0; jj<jmax+1; jj++){
+            for(int ii=0; ii<imax+1; ii++){
+               pstate[ll][nn][jj][ii]=0.0;
+            }
+         }
+      }
+   }
+   printf("DEBUG -- nvar %d jmax %d jmin %d imax %d imin %d\n",nvar,jmax,jmin,imax,imin);
+   exit(0);
+}
+
 int **Mesh::get_xface_flag(int lev, bool print_output)
 {
    int **xface_flag = (int **)genmatrix(jxmax_level[lev]+1,

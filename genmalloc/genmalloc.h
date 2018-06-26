@@ -68,10 +68,14 @@ extern "C"
       ( genmatrix_p(jnum, inum, elsize, __FILE__, __LINE__) )
 #define gentrimatrix(  knum, jnum, inum, elsize) \
       ( gentrimatrix_p(knum, jnum, inum, elsize, __FILE__, __LINE__) )
+#define genquadmatrix(  lnum, knum, jnum, inum, elsize) \
+      ( genquadmatrix_p(lnum, knum, jnum, inum, elsize, __FILE__, __LINE__) )
 #define genmatrixfree(  var) \
       ( genmatrixfree_p(var, __FILE__, __LINE__) )
 #define gentrimatrixfree(  var) \
       ( gentrimatrixfree_p(var, __FILE__, __LINE__) )
+#define genquadmatrixfree(  var) \
+      ( genquadmatrixfree_p(var, __FILE__, __LINE__) )
 
 #define genmalloc_memory_add(  malloc_mem_ptr, size) \
       ( genmalloc_memory_add_p(malloc_mem_ptr, size, __FILE__, __LINE__) )
@@ -85,8 +89,10 @@ void *genvector_p(int inum, size_t elsize, const char *file, const int line);
 void genvectorfree_p(void *var, const char *file, const int line);
 void **genmatrix_p(int jnum, int inum, size_t elsize, const char *file, const int line);
 void ***gentrimatrix_p(int knum, int jnum, int inum, size_t elsize, const char *file, const int line);
+void ****genquadmatrix_p(int lnum, int knum, int jnum, int inum, size_t elsize, const char *file, const int line);
 void genmatrixfree_p(void **var, const char *file, const int line);
 void gentrimatrixfree_p(void ***var, const char *file, const int line);
+void genquadmatrixfree_p(void ****var, const char *file, const int line);
 
 void *genmalloc_memory_add_p(void *malloc_mem_ptr, size_t size, const char *file, const int line);
 void genmalloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const int line);

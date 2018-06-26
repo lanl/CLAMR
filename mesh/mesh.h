@@ -130,8 +130,10 @@ typedef unsigned int uint;
 
 enum amr_method
 {
-    REGULAR_AMR,         // AMR done in physics level
-    FACE_IN_PLACE_AMR    // AMR done in mesh by extending face data structure
+    CELL_AMR,            // AMR done in physics level by cell
+    FACE_AMR,            // AMR done in physics level by face
+    FACE_IN_PLACE_AMR,   // AMR done in mesh by extending face data structure
+    REGULAR_CELL_AMR     // AMR done in mesh by creating regular grid
 };
 
 enum boundary
@@ -525,6 +527,7 @@ public:
    void calc_face_list_wmap(void);
    void calc_face_list_wbidirmap(void);
    void calc_face_list_wbidirmap_phantom(MallocPlus &state_memory);
+   void generate_regular_cell_meshes(MallocPlus &state_memory);
    void calc_face_list_clearmaps(void);
 
    int **get_xface_flag(int lev, bool print_output=0);

@@ -132,9 +132,11 @@ void outputHelp()
 {   cout << "CLAMR is an experimental adaptive mesh refinement code for the GPU." << endl
          << "Version is " << PACKAGE_VERSION << endl << endl
          << "Usage:  " << progName << " [options]..." << endl
-         << "  -A <T>            AMR type (default regular);" << endl
-         << "      \"regular\"" << endl
+         << "  -A <T>            AMR type (default cell);" << endl
+         << "      \"cell\"" << endl
+         << "      \"face\"" << endl
          << "      \"face-in-place\"" << endl
+         << "      \"regular-cells\"" << endl
          << "  -b <B>            Number of rollback images, disk or in memory (default 2);" << endl
          << "  -c <C>            Checkpoint to disk at interval specified;" << endl
          << "  -C <C>            Checkpoint to memory at interval specified;" << endl
@@ -238,7 +240,7 @@ void parseInput(const int argc, char** argv)
     //measure_type            = CSTARVALUE;
     measure_type            = NO_PARTITION_MEASURE;
     calc_neighbor_type      = HASH_TABLE;
-    choose_amr_method       = REGULAR_AMR;
+    choose_amr_method       = CELL_AMR;
     choose_hash_method      = METHOD_UNSET;
     initial_order           = HILBERT_SORT;
     cycle_reorder           = ORIGINAL_ORDER;
@@ -259,12 +261,16 @@ void parseInput(const int argc, char** argv)
             switch (val[0]){
                 case 'A':   //  AMR method specified.
                     val = strtok(argv[i++], " ,");
-                    if (! strcmp(val,"regular") ) {
-                       choose_amr_method = REGULAR_AMR;
+                    if (! strcmp(val,"cell") ) {
+                       choose_amr_method = CELL_AMR;
+                    } else if (! strcmp(val,"face") ) {
+                       choose_amr_method = FACE_AMR;
                     } else if (! strcmp(val,"face-in-place") ) {
                        choose_amr_method = FACE_IN_PLACE_AMR;
+                    } else if (! strcmp(val,"regular-cell") ) {
+                       choose_amr_method = REGULAR_CELL_AMR;
                     } else {
-                       printf("AMR method must be either \"regular\" or \"face-in-place\"\n");
+                       printf("AMR method must be either \"cell\", \"face\", \"face-in-place\", or \"regular-cell\"\n");
                     }
                     break;
                case 'b':     //  Number of rollback images, disk or in memory (default 2)
