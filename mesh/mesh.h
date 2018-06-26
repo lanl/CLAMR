@@ -368,16 +368,18 @@ public:
    int nxface;
    int nyface;
 
-   vector<int> xface_i;
-   vector<int> xface_j;
-   vector<int> xface_level;
-   vector<int> map_xface2cell_lower;
-   vector<int> map_xface2cell_upper;
+   vector<int> xface_i; // i (x-axis) coordinates for xfaces
+   vector<int> xface_j; // j (y-axis) coordinates for xfaces
+   vector<int> xface_level; // level of xfaces (max level of upper/lower cells)
+   vector<int> map_xface2cell_lower; // IDs of lower cell (left for xface, bottom for yface)
+   vector<int> map_xface2cell_upper; // IDs of upper cell (right for xface, top for yface)
 
-   vector<int> map_xcell2face_left1;
-   vector<int> map_xcell2face_left2;
-   vector<int> map_xcell2face_right1;
-   vector<int> map_xcell2face_right2;
+   //Just like for cell neighbors, if the refinement increases across a face
+   //this points to the left/bottom cell neighbor
+   vector<int> map_xcell2face_left1; // ID of 1st face to the left 
+   vector<int> map_xcell2face_left2; // ID of 2nd face to the left (in the case the refinement to the left is higher, this cell will have 2 faces to the left)
+   vector<int> map_xcell2face_right1; // ID of 1st face to the right
+   vector<int> map_xcell2face_right2; // ID of 2nd face to the right (in the case the refinement to the right is higher, this cell will have 2 faces to the left)
 
    vector<int> ixmin_level;
    vector<int> ixmax_level;
@@ -522,6 +524,7 @@ public:
    void calc_face_list(void);
    void calc_face_list_wmap(void);
    void calc_face_list_wbidirmap(void);
+   void calc_face_list_wbidirmap_phantom(MallocPlus &state_memory);
    void calc_face_list_clearmaps(void);
 
    int **get_xface_flag(int lev, bool print_output=0);
