@@ -9585,7 +9585,7 @@ void Mesh::calc_face_list_wmap(void)
 
 }*/
 
-void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
+void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
 {
    map_xface2cell_lower.clear();
    map_xface2cell_upper.clear();
@@ -10541,6 +10541,337 @@ void Mesh::calc_face_list_wbidirmap(MallocPlus &state_memory)
           case 99 :
           case 152 :
           case 156 :
+             break;
+          default : 
+             printf("Face %d does not fit a case\n",iface);
+             break;
+      }
+   }
+#endif
+}
+
+void Mesh::calc_face_list_wbidirmap(void)
+{
+   map_xface2cell_lower.clear();
+   map_xface2cell_upper.clear();
+
+   map_xcell2face_left1.clear();
+   map_xcell2face_left2.clear();
+   map_xcell2face_right1.clear();
+   map_xcell2face_right2.clear();
+   map_xcell2face_left1.resize(ncells, -1);
+   map_xcell2face_left2.resize(ncells, -1);
+   map_xcell2face_right1.resize(ncells, -1);
+   map_xcell2face_right2.resize(ncells, -1);
+
+   xface_i.clear();
+   xface_j.clear();
+   xface_level.clear();
+
+   ixmin_level.clear();
+   ixmax_level.clear();
+   jxmin_level.clear();
+   jxmax_level.clear();
+   ixmin_level.resize(levmx+1,  9999999);
+   ixmax_level.resize(levmx+1, -9999999);
+   jxmin_level.resize(levmx+1,  9999999);
+   jxmax_level.resize(levmx+1, -9999999);
+
+   ixadjust.clear();
+   ixadjust.resize(levmx+1);
+   jxadjust.clear();
+   jxadjust.resize(levmx+1);
+
+   int iface=0;
+   for (int nz=0; nz<(int)ncells; nz++){
+      int nr = nrht[nz];
+      if (nr == nz) continue;
+
+      int ifactor = 1;
+      if (level[nr] < level[nz]) ifactor = 2;
+
+      // Have right face
+      map_xface2cell_lower.push_back(nz);
+      map_xface2cell_upper.push_back(nr);
+      xface_level.push_back(MAX(level[nz],level[nr]));
+      xface_i.push_back(i[nr]*ifactor);
+      if (level[nr] < level[nz] && is_upper(j[nz]) ) {
+         xface_j.push_back(j[nr]*ifactor+1);
+      } else {
+         xface_j.push_back(j[nr]*ifactor);
+      }
+      map_xcell2face_right1[nz] = iface;
+
+      iface++;
+
+      if (level[nr] > level[nz] && is_lower(j[nr]) ){
+         int ntr = ntop[nr];
+         if (ntr != nr) {
+            map_xface2cell_lower.push_back(nz);
+            map_xface2cell_upper.push_back(ntr);
+            xface_level.push_back(MAX(level[nz],level[ntr]));
+            xface_i.push_back(i[ntr]*ifactor);
+            xface_j.push_back(j[ntr]*ifactor);
+            map_xcell2face_right2[nz] = iface;
+
+            iface++;
+         }
+      }
+   }
+   nxface=iface;
+
+   for (int nz=0; nz<(int)ncells; nz++){
+      int nl = nlft[nz];
+      if (nl == nz) continue;
+
+      if (level[nl] < level[nz] && is_upper(j[nz])){
+         map_xcell2face_left1[nz] = map_xcell2face_right2[nl];
+      } else {
+         map_xcell2face_left1[nz] = map_xcell2face_right1[nl];
+         if (level[nl] > level[nz]){
+            map_xcell2face_left2[nz] = map_xcell2face_right1[ntop[nl]];
+         }
+      }
+
+   }
+
+   map_yface2cell_lower.clear();
+   map_yface2cell_upper.clear();
+
+   map_ycell2face_bot1.clear();
+   map_ycell2face_bot2.clear();
+   map_ycell2face_top1.clear();
+   map_ycell2face_top2.clear();
+   map_ycell2face_bot1.resize(ncells, -1);
+   map_ycell2face_bot2.resize(ncells, -1);
+   map_ycell2face_top1.resize(ncells, -1);
+   map_ycell2face_top2.resize(ncells, -1);
+
+   yface_i.clear();
+   yface_j.clear();
+   yface_level.clear();
+
+   iymin_level.clear();
+   iymax_level.clear();
+   jymin_level.clear();
+   jymax_level.clear();
+   iymin_level.resize(levmx+1,  9999999);
+   iymax_level.resize(levmx+1, -9999999);
+   jymin_level.resize(levmx+1,  9999999);
+   jymax_level.resize(levmx+1, -9999999);
+
+   iyadjust.clear();
+   iyadjust.resize(levmx+1);
+   jyadjust.clear();
+   jyadjust.resize(levmx+1);
+
+   iface=0;
+   for (int nz=0; nz<(int)ncells; nz++){
+      int nt = ntop[nz];
+      if (nt == nz) continue;
+
+      int ifactor = 1;
+      if (level[nt] < level[nz]) ifactor = 2;
+
+      // Have top face
+      // printf("DEBUG -- iface %d lower nz %d upper nr %d\n",iface,nz,nt);
+      map_yface2cell_lower.push_back(nz);
+      map_yface2cell_upper.push_back(nt);
+      yface_level.push_back(MAX(level[nz],level[nt]));
+      yface_j.push_back(j[nt]*ifactor);
+      if (level[nt] < level[nz] && is_upper(i[nz]) ) {
+         yface_i.push_back(i[nt]*ifactor+1);
+      } else{
+         yface_i.push_back(i[nt]*ifactor);
+      }
+      map_ycell2face_top1[nz] = iface;
+
+      iface++;
+
+      if (level[nt] > level[nz]  &&is_lower(i[nt]) ){
+         int nrt = nrht[nt];
+         if (nrt != nt) {
+            map_yface2cell_lower.push_back(nz);
+            map_yface2cell_upper.push_back(nrt);
+            yface_level.push_back(MAX(level[nz],level[nrt]));
+            yface_j.push_back(j[nrt]*ifactor);
+            yface_i.push_back(i[nrt]*ifactor);
+            map_ycell2face_top2[nz] = iface;
+
+            iface++;
+         }
+      }
+   }
+   nyface=iface;
+
+   for (int nz=0; nz<(int)ncells; nz++){
+      int nb = nbot[nz];
+      if (nb == nz) continue;
+
+      if (level[nb] < level[nz] && is_upper(i[nz])){
+         map_ycell2face_bot1[nz] = map_ycell2face_top2[nb];
+      } else {
+         map_ycell2face_bot1[nz] = map_ycell2face_top1[nb];
+         if (level[nb] > level[nz]){
+            map_ycell2face_bot2[nz] = map_ycell2face_top1[nrht[nb]];
+         }
+      }
+
+   }
+
+   for (int iface=0; iface < nxface; iface++){
+      int fl = xface_level[iface];
+
+      int fi = xface_i[iface];
+      if (fi < ixmin_level[fl]) ixmin_level[fl] = fi;
+      if (fi > ixmax_level[fl]) ixmax_level[fl] = fi;
+
+      int fj = xface_j[iface];
+      if (fj < jxmin_level[fl]) jxmin_level[fl] = fj;
+      if (fj > jxmax_level[fl]) jxmax_level[fl] = fj;
+   }
+
+   for (int iface=0; iface < nxface; iface++){
+      int fl = xface_level[iface];
+      if (ixmax_level[fl] < ixmin_level[fl]) continue;
+
+      xface_i[iface] -= ixmin_level[fl];
+      xface_j[iface] -= jxmin_level[fl];
+   }
+
+   for (int fl = 0; fl <= levmx; fl++){
+      ixadjust[fl] = ixmin_level[fl];
+      jxadjust[fl] = jxmin_level[fl];
+      ixmax_level[fl] -= ixmin_level[fl];;
+      jxmax_level[fl] -= jxmin_level[fl];
+      ixmin_level[fl] = 0;
+      jxmin_level[fl] = 0;
+   }
+
+   for (int iface=0; iface < nyface; iface++){
+      int fl = yface_level[iface];
+
+      int fi = yface_i[iface];
+      if (fi < iymin_level[fl]) iymin_level[fl] = fi;
+      if (fi > iymax_level[fl]) iymax_level[fl] = fi;
+
+      int fj = yface_j[iface];
+      if (fj < jymin_level[fl]) jymin_level[fl] = fj;
+      if (fj > jymax_level[fl]) jymax_level[fl] = fj;
+   }
+
+   for (int iface=0; iface < nyface; iface++){
+      int fl = yface_level[iface];
+      if (iymax_level[fl] < iymin_level[fl]) continue;
+
+      yface_i[iface] -= iymin_level[fl];
+      yface_j[iface] -= jymin_level[fl];
+   }
+
+   for (int fl = 0; fl <= levmx; fl++){
+      iyadjust[fl] = iymin_level[fl];
+      jyadjust[fl] = jymin_level[fl];
+      iymax_level[fl] -= iymin_level[fl];;
+      jymax_level[fl] -= jymin_level[fl];
+      iymin_level[fl] = 0;
+      jymin_level[fl] = 0;
+   }
+
+#ifdef PATTERN_CHECK
+   for (int ii=0; ii<255; ii++){
+       xcase_count[ii]=0;
+       sprintf(xcase_descrip[ii],"\0");
+   }
+   int bitsize = 4;
+
+   xcase = (int *)malloc(nxface*sizeof(int));
+   for (int iface = 0; iface < nxface; iface++){
+      xcase[iface]=-1;
+      int nl = map_xface2cell_lower[iface];
+      int nll = nlft[nl];
+      int nr = map_xface2cell_upper[iface];
+      int nrr = nrht[nr];
+      int ll = level[nl];
+      int lll = level[nll];
+      int lr = level[nr];
+      int lrr = level[nrr];
+
+      int imin = MIN4(lll,ll,lr,lrr);
+      ll  -= imin;
+      lll -= imin;
+      lr  -= imin;
+      lrr -= imin;
+      char binlevstring[6];
+      sprintf(binlevstring,"%1d%1d%1d%1db\0",ll,lr,lll,lrr);
+      xcase[iface]=strtol(binlevstring,NULL,bitsize);
+      sprintf(xcase_descrip[xcase[iface]],"   %s     %d     %d   %d     %d\0",binlevstring,lll,ll,lr,lrr);
+      xcase_count[xcase[iface]]++;
+      printf("%d %s %d %d %d %d %d\n",iface,binlevstring,lll,ll,lr,lrr,xcase[iface]);
+   }
+
+   for (int ll = 0; ll < 4; ll++){
+      for (int lll = 0; lll < 4; lll++){
+         for (int lr = 0; lr < 4; lr++){
+            for (int lrr = 0; lrr < 4; lrr++){
+               char binlevstring[6];
+               sprintf(binlevstring,"%1d%1d%1d%1db\0",ll,lr,lll,lrr);
+               int icase=strtol(binlevstring,NULL,bitsize);
+               switch (icase) {
+                   case 0 :
+                   case 1 :
+                   case 4 :
+                   case 5 :
+                   case 17 :
+                   case 18 :
+                   case 68 :
+                   case 72 :
+                   case 81 :
+                   case 82 :
+                   case 84 :
+                   case 88 :
+                   case 98 :
+                   case 99 :
+		   case 152 :
+		   case 156 :
+                      sprintf(xcase_descrip[icase],"   %s     %d     %d   %d     %d\0",binlevstring,lll,ll,lr,lrr);
+                      break;
+                   default: 
+                      //printf("   %s     %d     %d   %d     %d\n",binlevstring,lll,ll,lr,lrr);
+                      //printf("Face %d does not fit a case\n",iface);
+                      break;
+               }
+            }
+         }
+      }
+   }
+
+   printf("          l,r,ll,rr        levels\n");
+   printf("case count bincode lft-lft lft rht rht-rht\n");
+   for (int ii=0; ii<256; ii++){
+      if (xcase_count[ii] > 0 || strlen(xcase_descrip[ii]) > 1) {
+         printf(" %3d %3d %s\n",ii,xcase_count[ii],xcase_descrip[ii]);
+      }
+   }
+
+   // Check to see if we missed any cases
+   for (int iface = 0; iface < nxface; iface++){
+      switch (xcase[iface]) {
+          case 0 :
+          case 1 :
+          case 4 :
+          case 5 :
+          case 17 :
+          case 18 :
+          case 68 :
+          case 72 :
+          case 81 :
+          case 82 :
+          case 84 :
+          case 88 :
+          case 98 :
+          case 99 :
+	  case 152 :
+	  case 156 :
              break;
           default : 
              printf("Face %d does not fit a case\n",iface);

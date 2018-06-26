@@ -1757,7 +1757,7 @@ void State::calc_finite_difference(double deltaT){
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
-void State::calc_finite_difference_via_faces(double deltaT){
+void State::calc_finite_difference_face_in_place(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = HALF*g;
 
@@ -1826,7 +1826,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #pragma omp master
    {
 #endif
-   mesh->calc_face_list_wbidirmap(state_memory);
+   mesh->calc_face_list_wbidirmap_phantom(state_memory);
 #ifdef _OPENMP
    }
 #endif
@@ -2542,7 +2542,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
-void State::calc_finite_difference_face_in_place(double deltaT){
+void State::calc_finite_difference_via_faces(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = HALF*g;
 
@@ -2609,7 +2609,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp master
    {
 #endif
-   mesh->calc_face_list_wbidirmap(state_memory);
+   mesh->calc_face_list_wbidirmap();
 #ifdef _OPENMP
    }
 #endif
