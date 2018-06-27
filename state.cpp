@@ -169,6 +169,7 @@ cl_kernel kernel_apply_boundary_conditions;
 cl_kernel kernel_apply_boundary_conditions_local;
 cl_kernel kernel_apply_boundary_conditions_ghost;
 cl_kernel kernel_calc_finite_difference;
+cl_kernel kernel_calc_finite_difference_via_faces;
 cl_kernel kernel_refine_potential;
 cl_kernel kernel_reduce_sum_mass_stage1of2;
 cl_kernel kernel_reduce_sum_mass_stage2of2;
@@ -273,6 +274,7 @@ void State::init(int do_gpu_calc)
       kernel_apply_boundary_conditions_local = ezcl_create_kernel_wprogram(program, "apply_boundary_conditions_local_cl");
       kernel_apply_boundary_conditions_ghost = ezcl_create_kernel_wprogram(program, "apply_boundary_conditions_ghost_cl");
       kernel_calc_finite_difference          = ezcl_create_kernel_wprogram(program, "calc_finite_difference_cl");
+      kernel_calc_finite_difference_via_faces = ezcl_create_kernel_wprogram(program, "calc_finite_difference_via_faces_cl");
       kernel_refine_potential                = ezcl_create_kernel_wprogram(program, "refine_potential_cl");
       kernel_reduce_sum_mass_stage1of2       = ezcl_create_kernel_wprogram(program, "reduce_sum_mass_stage1of2_cl");
       kernel_reduce_sum_mass_stage2of2       = ezcl_create_kernel_wprogram(program, "reduce_sum_mass_stage2of2_cl");
@@ -345,6 +347,7 @@ void State::terminate(void)
    ezcl_kernel_release(kernel_apply_boundary_conditions_local);
    ezcl_kernel_release(kernel_apply_boundary_conditions_ghost);
    ezcl_kernel_release(kernel_calc_finite_difference);
+   ezcl_kernel_release(kernel_calc_finite_difference_via_faces);
    ezcl_kernel_release(kernel_refine_potential);
    ezcl_kernel_release(kernel_reduce_sum_mass_stage1of2);
    ezcl_kernel_release(kernel_reduce_sum_mass_stage2of2);
@@ -3623,44 +3626,93 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
 #endif
 
-cl_event calc_difference_via_faces_event;
+   /* __kernel void calc_finite_difference_via_faces_cl(                         
+                                    const int       ncells,                     // 0 Total number of cells      
+                                    const int       nxfaces,                    // 1 Number of x faces          
+                                    const int       nyfaces,                    // 2 Number of y faces          
+                                    const int       levmx,                      // 3 Maximum level
+                        __global    const state_t   *H,                         // 4
+                        __global    const state_t   *U,                         // 5
+                        __global    const state_t   *V,                         // 6
+                        __global          state_t   *H_new,                     // 7
+                        __global          state_t   *U_new,                     // 8
+                        __global          state_t   *V_new,                     // 9
+                        __global    const int       *nlft,                      // 10 Array of left neighbors   
+                        __global    const int       *nrht,                      // 11 Array of right neighbors  
+                        __global    const int       *ntop,                      // 12 Array of top neighbors    
+                        __global    const int       *nbot,                      // 13 Array of bottom neighbors 
+                        __global    const int       *level,                     // 14 Array of level information
+                                    const real_t    deltaT,                     // 15 Size of time step
+                        __global    const reat_t    *lev_dx,                    // 16 
+                        __global    const real_t    *lev_dy,                    // 17 
+                        __local           state4_t  *tile,                      // 18 Tile size in state4_t     
+                        __local           int8      *itile,                     // 19 Tile size in int8
+                        __local           int8      *xface,                     // 20 xFace size in int8        
+                        __local           int8      *yface,                     // 21 yFace size in int8 
+                        __global    const int       *map_xface2cell_lower,      // 22 A face's left cell        
+                        __global    const int       *map_xface2cell_upper,      // 23 A face's left cell 
+                        __global    const int       *map_xcell2face_left1,      // 24 A cell's left primary face 
+                        __global    const int       *map_xcell2face_left2,      // 25 A cell's left secondary face
+                        __global    const int       *map_xcell2face_right1,     // 26 A cell's right primary face 
+                        __global    const int       *map_xcell2face_right2,     // 27 A cell's right secondary face 
+                        __global    const int       *map_yface2cell_lower,      // 28 A face's below cell 
+                        __global    const int       *map_yface2cell_upper,      // 29 A face's above cell       
+                        __global    const int       *map_ycell2face_bot1,       // 30 A cell's bot primary face 
+                        __global    const int       *map_ycell2face_bot2,       // 31 A cell's bot secondary face
+                        __global    const int       *map_ycell2face_top1,       // 32 A cell's top primary face 
+                        __global    const int       *map_ycell2face_top2) {     // 33 A cell's top secondary face 
+    */
 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 0, sizeof(cl_int), (void *)&ncells); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 1, sizeof(cl_int), (void *)&nxface); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 2, sizeof(cl_int), (void *)&nyface); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 3, sizeof(cl_int), (void *)&levmx); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 4, sizeof(cl_mem), (void *)&dev_H); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 5, sizeof(cl_mem), (void *)&dev_U); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 6, sizeof(cl_mem), (void *)&dev_V); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 7, sizeof(cl_mem), (void *)&dev_H_new); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 8, sizeof(cl_mem), (void *)&dev_U_new); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 9, sizeof(cl_mem), (void *)&dev_V_new); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 10, sizeof(cl_mem), (void *)&dev_nlft); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 11, sizeof(cl_mem), (void *)&dev_nrht); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 12, sizeof(cl_mem), (void *)&dev_ntop); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 13, sizeof(cl_mem), (void *)&dev_nbot); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 14, sizeof(cl_mem), (void *)&dev_level); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 15, sizeof(cl_real_t), (void *)&deltaT_local); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 16, sizeof(cl_mem), (void *)&dev_levdx); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 17, sizeof(cl_mem), (void *)&dev_levdy); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 18, sizeof(cl_state4_t), NULL); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 19, sizeof(cl_int8), NULL); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 20, sizeof(cl_int8), NULL); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 21, sizeof(cl_int8), NULL); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 22, sizeof(cl_mem), (void *)&dev_map_xface2cell_lower); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 23, sizeof(cl_mem), (void *)&dev_map_xface2cell_upper); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 24, sizeof(cl_mem), (void *)&dev_map_xcell2face_left1); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 25, sizeof(cl_mem), (void *)&dev_map_xcell2face_left2); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 26, sizeof(cl_mem), (void *)&dev_map_xcell2face_right1); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 27, sizeof(cl_mem), (void *)&dev_map_xcell2face_right2); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 28, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 29, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 30, sizeof(cl_mem), (void *)&dev_map_ycell2face_left1); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 31, sizeof(cl_mem), (void *)&dev_map_ycell2face_left2); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 32, sizeof(cl_mem), (void *)&dev_map_ycell2face_right1); 
-   ezcl_set_kernel_arg(kernel_calc_difference_via_faces, 33, sizeof(cl_mem), (void *)&dev_map_ycell2face_right2); 
+   cl_event calc_finite_difference_via_faces_event;
 
+   real_t deltaT_local = deltaT;
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 0, sizeof(cl_int), (void *)&ncells); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 1, sizeof(cl_int), (void *)&nxface); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 2, sizeof(cl_int), (void *)&nyface); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 3, sizeof(cl_int), (void *)&levmx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 4, sizeof(cl_mem), (void *)&dev_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 5, sizeof(cl_mem), (void *)&dev_U); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 6, sizeof(cl_mem), (void *)&dev_V); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 7, sizeof(cl_mem), (void *)&dev_H_new); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 8, sizeof(cl_mem), (void *)&dev_U_new); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 9, sizeof(cl_mem), (void *)&dev_V_new); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 10, sizeof(cl_mem), (void *)&dev_nlft); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 11, sizeof(cl_mem), (void *)&dev_nrht); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 12, sizeof(cl_mem), (void *)&dev_ntop); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 13, sizeof(cl_mem), (void *)&dev_nbot); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 14, sizeof(cl_mem), (void *)&dev_level); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 15, sizeof(cl_real_t), (void *)&deltaT_local); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 16, sizeof(cl_mem), (void *)&dev_levdx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 17, sizeof(cl_mem), (void *)&dev_levdy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 18, sizeof(cl_state4_t), NULL); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 19, sizeof(cl_int8), NULL); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 20, sizeof(cl_int8), NULL); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 21, sizeof(cl_int8), NULL); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 22, sizeof(cl_mem), (void *)&dev_map_xface2cell_lower); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 23, sizeof(cl_mem), (void *)&dev_map_xface2cell_upper); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 24, sizeof(cl_mem), (void *)&dev_map_xcell2face_left1); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 25, sizeof(cl_mem), (void *)&dev_map_xcell2face_left2); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 26, sizeof(cl_mem), (void *)&dev_map_xcell2face_right1); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 27, sizeof(cl_mem), (void *)&dev_map_xcell2face_right2); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 28, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 29, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 30, sizeof(cl_mem), (void *)&dev_map_ycell2face_left1); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 31, sizeof(cl_mem), (void *)&dev_map_ycell2face_left2); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 32, sizeof(cl_mem), (void *)&dev_map_ycell2face_right1); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 33, sizeof(cl_mem), (void *)&dev_map_ycell2face_right2); 
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_faces, 1, NULL, &global_work_size, &calc_difference_via_faces_event);
+
+   ezcl_wait_for_events(1, &calc_finite_difference_via_faces_event);
+   ezcl_event_release(cal_finite_difference_via_faces_event);
+
+   dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
+   dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
+   dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
+
+   gpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9)
 }
+#endif
 
 void State::symmetry_check(const char *string, vector<int> sym_index, double eps,
                            SIGN_RULE sign_rule, int &flag)

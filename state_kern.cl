@@ -1525,7 +1525,7 @@ __kernel void calc_finite_difference_cl(
 
 }
 
-__kernel void calc_difference_via_faces_cl(
+__kernel void calc_finite_difference_via_faces_cl(
                         const int       ncells,                     // 0 Total number of cells
                         const int       nxfaces,                    // 1 Number of x faces
                         const int       nyfaces,                    // 2 Number of y faces
