@@ -343,6 +343,18 @@ void setup_refine_tile(
                 __global const int     *level
                 );
 
+void setup_xface(
+                __local           int8        *xface,
+                __global    const int         *map_xface2cell_lower,   
+                __global    const int         *map_xface2cell_upper,      
+                );
+
+void setup_yface(
+                __local           int8        *yface,
+                __global    const int         *map_yface2cell_lower,       
+                __global    const int         *map_yface2cell_upper,       
+                );
+
 __kernel void copy_state_data_cl(
                           const int    isize,         // 0 
                  __global      state_t *H,            // 1 
@@ -398,6 +410,18 @@ __kernel void copy_state_ghost_data_cl(
 #define nbotval(i)  ( itile[i].s3 )
 #define levelval(i) ( itile[i].s4 )
 #define mpotval(i)  ( itile[i].s5 )
+
+#endif
+
+#ifndef SET_FACE_VARIABLES
+#define SET_FACE_VARIABLES
+// Define macros for local face access
+
+#define xfacelower(i)   ( xface[i].s0 )
+#define xfaceupper(i)   ( xface[i].s1 )
+#define yfacelower(i)   ( yface[i].s0 )
+#define yfaceupper(i)   ( yface[i].s1 )
+
 #endif
 
 #define SQ(x)      ( (x)*(x) )
@@ -1501,6 +1525,185 @@ __kernel void calc_finite_difference_cl(
 
 }
 
+__kernel void calc_difference_via_faces_cl(
+                        const int       ncells,                     // 0 Total number of cells
+                        const int       nxfaces,                    // 1 Number of x faces
+                        const int       nyfaces,                    // 2 Number of y faces
+                        const int       levmx,                      // 3 Maximum level
+            __global    const state_t   *H,                         // 4
+            __global    const state_t   *U,                         // 5
+            __global    const state_t   *V,                         // 6
+            __global          state_t   *H_new,                     // 7
+            __global          state_t   *U_new,                     // 8
+            __global          state_t   *V_new,                     // 9
+            __global    const int       *nlft,                      // 10 Array of left neighbors
+            __global    const int       *nrht,                      // 11 Array of right neighbors
+            __global    const int       *ntop,                      // 12 Array of top neighbors
+            __global    const int       *nbot,                      // 13 Array of bottom neighbors
+            __global    const int       *level,                     // 14 Array of level information
+                        const real_t    deltaT,                     // 15 Size of time step
+            __global    const reat_t    *lev_dx,                    // 16
+            __global    const real_t    *lev_dy,                    // 17
+            __local           state4_t  *tile,                      // 18 Tile size in state4_t
+            __local           int8      *itile,                     // 19 Tile size in int8
+            __local           int8      *xface,                     // 20 xFace size in int8
+            __local           int8      *yface,                     // 21 yFace size in int8 
+            __global    const int       *map_xface2cell_lower,      // 22 A face's left cell 
+            __global    const int       *map_xface2cell_upper,      // 23 A face's left cell 
+            __global    const int       *map_xcell2face_left1,      // 24 A cell's left primary face 
+            __global    const int       *map_xcell2face_left2,      // 25 A cell's left secondary face
+            __global    const int       *map_xcell2face_right1,     // 26 A cell's right primary face 
+            __global    const int       *map_xcell2face_right2,     // 27 A cell's right secondary face 
+            __global    const int       *map_yface2cell_lower,      // 28 A face's below cell 
+            __global    const int       *map_yface2cell_upper,      // 29 A face's above cell 
+            __global    const int       *map_ycell2face_bot1,       // 30 A cell's bot primary face 
+            __global    const int       *map_ycell2face_bot2,       // 31 A cell's bot secondary face
+            __global    const int       *map_ycell2face_top1,       // 32 A cell's top primary face 
+            __global    const int       *map_ycell2face_top2) {     // 33 A cell's top secondary face 
+
+    /////////////////////////////////////////////
+    /// Get thread identification information ///
+    /////////////////////////////////////////////
+
+    const unit giX = get_global_id(0);
+    const uint tiX = get_local_id(0);
+
+    const uint ngX = get_global_size(0);
+    const unit ntX = get_local_sizee(0);
+
+    const unit group_id = get_group_id(0);
+
+    // Ensure the executing thread is not extraneous
+    if (giX >= max(ncells, max(nxface, nyface)))
+        return;
+
+    /////////////////////////////////////////////
+    /// Set local tile & apply boundary conds ///
+    /////////////////////////////////////////////
+
+  if (giX < ncells) { // only the workers equal to the number of cells
+    setup_tile(tile, itile, ncells, H, U, V, nlft, nrht, ntop, nbot, level);
+  }
+  if (giX < nxface) {
+    setup_xface(xface, nxface, map_xface2cell_lower, map_xface2cell_upper);
+  }
+  if (giX < nyface) {
+    setup_yface(yface, nyface, map_yface2cell_lower, map_yface2cell_upper);
+  }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    /////////////////////////////////////////////////
+    /// Declare all constants and local variables ///
+    /////////////////////////////////////////////////
+
+    const real_g        = GRAVITATIONAL_CONSTANT; // gravitational constant
+    const real_t ghalf  = HALF*g;
+
+    // Left, right, ... left-left, right-right, ... left-top, right-top neighbor
+    int nl, nr, nt, nb;
+    int nll, nrr, ntt, nbb;
+
+    // Level
+    int lvl, lvl_nl, lvl_nr, lvl_nt, lvl_nb;
+    int lvl_nll, lvl_nrr, lvl_ntt, lvl_nbb;
+
+    // Left-top, right-top, top-right, bottom-right neighbor
+    int nlt, nrt, ntr, nbr;
+
+    // State variables at x-axis control volume face
+   real_t Hxminus, Hxplus;
+   real_t Uxminus, Uxplus;
+   real_t Vxminus, Vxplus;
+
+   // State variables at y-axis control volume face
+   real_t Hyminus, Hyplus;
+   real_t Uyminus, Uyplus;
+   real_t Vyminus, Vyplus;
+
+   // Variables for artificial viscosity/flux limiting
+   real_t wminusx_H, wminusx_U;
+   real_t wplusx_H, wplusx_U;
+   real_t wminusy_H, wminusy_V;
+   real_t wplusy_H, wplusy_V;
+
+   int nltl;
+   real_t Hll2;
+
+   int nrtr;
+   real_t Hrr2;
+
+   real_t Ull2;
+   real_t Urr2;
+
+   int ntrt;
+   real_t Htt2;
+
+   int nbrb;
+   real_t Hbb2;
+
+   real_t Vtt2;
+   real_t Vbb2;
+
+   real_t Hxminus2, Hxplus2;
+   real_t Uxminus2, Uxplus2;
+   real_t Vxminus2, Vxplus2;
+
+   real_t Hyminus2, Hyplus2;
+   real_t Uyminus2, Uyplus2;
+   real_t Vyminus2, Vyplus2;
+
+   real_t Hxfluxminus;
+   real_t Uxfluxminus;
+   real_t Vxfluxminus;
+
+   real_t Hxfluxplus;
+   real_t Uxfluxplus;
+   real_t Vxfluxplus;
+
+   real_t Hyfluxminus;
+   real_t Uyfluxminus;
+   real_t Vyfluxminus;
+
+   real_t Hyfluxplus;
+   real_t Uyfluxplus;
+   real_t Vyfluxplus;
+
+
+   // XXX Assuming square cells! XXX
+   // State variables and cell widths and lengths
+   real_t dric, drl, drr, drt, drb;
+//   real_t drlt, drrt, drtr, drbr;
+
+   real_t Hic, Hl, Hr, Ht, Hb;
+   real_t Hll, Hrr, Htt, Hbb;
+
+   real_t Uic, Ul, Ur, Ut, Ub;
+   real_t Ull, Urr;
+
+   real_t Vic, Vl, Vr, Vt, Vb;
+   real_t Vtt, Vbb;
+
+   real_t Hlt, Hrt, Htr, Hbr;
+   real_t Ult, Urt, Utr, Ubr;
+   real_t Vlt, Vrt, Vtr, Vbr;
+
+
+   // Local values for the state variables and cell widths and heights for the local cell as well
+   // as its neighboring cells
+   real_t dxic, dxl, dxr, dyic, dyt, dyb;
+
+   //////////////////////////
+   /// set the local tile ///
+   //////////////////////////
+
+    if (giX < nxface) {
+        int cell_lower, cell_upper, level_lower, level_upper;
+        cell_lower = 
+    }
+
+}
+
 __kernel void refine_potential_cl(
                  const int      ncells,     // 0  Total number of cells.
                  const int      levmx,      // 1  Maximum level
@@ -1947,6 +2150,72 @@ void setup_refine_tile(
    }
 
    levelval(tiX) = level[giX];
+}
+
+void setup_xface(
+                __local           int8        *xface,
+                __local           int         isize;
+                __global    const int         *map_xface2cell_lower,   
+                __global    const int         *map_xface2cell_upper,      
+                )
+{
+    const unsigned int giX = get_global_id (0);
+    const unsigned int tiX = get_local_id (0);
+
+    const unsigned int ntX = get_local_size (0);
+
+    const unsigned int group_id = get_group_id (0);
+
+    int start_idx = group_id * ntX;
+    int end_idx = (group_id + 1) * ntX;
+    end_idx = min(end_idx, isize);
+
+    if (map_xface2cell_lower[giX] >= start_idx && map_xface2cell_lower[giX] < end_idx) {
+        xfacelower(tiX) = map_xface2cell_lower[giX];
+    }
+    else {
+        xfacelower(tiX) = map_xface2cell_lower[giX];
+    }
+
+    if (map_xface2cell_upper[giX] >= start_idx && map_xface2cell_upper[giX] < end_idx) {
+        xfaceupper(tiX) = map_xface2cell_upper[giX];
+    }
+    else {
+        xfaceupper(tiX) = map_xface2cell_upper[giX];
+    }
+}
+
+void setup_yface(
+                __local           int8        *yface,
+                __local           int         isize;
+                __global    const int         *map_yface2cell_lower,   
+                __global    const int         *map_yface2cell_upper,      
+                )
+{
+    const unsigned int giX = get_global_id (0);
+    const unsigned int tiX = get_local_id (0);
+
+    const unsigned int ntX = get_local_size (0);
+
+    const unsigned int group_id = get_group_id (0);
+
+    int start_idx = group_id * ntX;
+    int end_idx = (group_id + 1) * ntX;
+    end_idx = min(end_idx, isize);
+
+    if (map_yface2cell_lower[giX] >= start_idx && map_yface2cell_lower[giX] < end_idx) {
+        yfacelower(tiX) = map_yface2cell_lower[giX];
+    }
+    else {
+        yfacelower(tiX) = map_yface2cell_lower[giX];
+    }
+
+    if (map_xface2cell_upper[giX] >= start_idx && map_xface2cell_upper[giX] < end_idx) {
+        yfaceupper(tiX) = map_yface2cell_upper[giX];
+    }
+    else {
+        yfaceupper(tiX) = map_yface2cell_upper[giX];
+    }
 }
 
 inline uint scan_warp_exclusive(__local volatile uint *input, const uint idx, const uint lane) {
