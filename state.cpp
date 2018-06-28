@@ -1831,17 +1831,17 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    }
 #endif
 
-   printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
+   //printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
    memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
-   printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
+   //printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
    //printf("\nDebug %s %d\n", __FILE__, __LINE__);
    xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
    cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
 
-   printf("\nH\tV\tU\n\n");
+   /*printf("\nH\tV\tU\n\n");
    for (int ppppp = 0; ppppp < cellSizewp; ppppp++) {
         printf("%d) %f %f %f\n", ppppp, H[ppppp], V[ppppp], U[ppppp]);
-   }
+   }*/
 
    static vector<state_t> Hx, Ux, Vx;
 
@@ -2613,6 +2613,12 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #ifdef _OPENMP
    }
 #endif
+
+   /*printf("\nH\tV\tU\n\n");
+   for (int ppppp = 0; ppppp < mesh->ncells; ppppp++) {
+        printf("%d) %f %f %f\n", ppppp, H[ppppp], V[ppppp], U[ppppp]);
+   }*/
+
 
    static vector<state_t> Hx, Ux, Vx;
 

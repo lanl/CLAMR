@@ -9571,7 +9571,7 @@ void Mesh::calc_face_list_wmap(void)
 
 }
 
-/*void Mesh::quickInterpolate(int side_main, int side_sec, int cncell, double* mem_ptr_double,
+void Mesh::quickInterpolate(int side_main, int side_sec, int cncell, double* mem_ptr_double,
                             real_t d_lo, real_t d_hi, int flag, real_t *fineavg, real_t *coarseavg)
 {
     //real_t state_mainmain, state_mainsec, state_secmain, state_secsec, state_sideavg = 0; //vars for 2 cells over
@@ -9580,16 +9580,26 @@ void Mesh::calc_face_list_wmap(void)
     state_main = mem_ptr_double[side_main];
     state_sec = mem_ptr_double[side_sec];
     state_coarse = mem_ptr_double[cncell];
-    c2f_avg = 2 * (d_lo * state_main + d_hi * state_coarse) / (d_lo + d_hi) - state_main;
-    //mem_ptr_double[pcellIdx] = c2f_avg;
-    *fineavg = cf2_avg;
-    if (flag) { //if we are adding refined coarse cells
-        f2c_avg = (2 * (d_lo * state_main + d_hi * state_coarse) / (d_lo + d_hi) - state_main) + (2 * (d_lo * state_sec + d_hi * state_coarse) / (d_lo + d_hi) - state_main);
+    if (flag == 0) { //only working with a single cell, either coarse or refined (dampening)
+        c2f_avg = 2 * (d_lo * state_main + d_hi * state_coarse) / (d_lo + d_hi) - state_coarse;
+        //mem_ptr_double[pcellIdx] = c2f_avg;
+        *fineavg = c2f_avg;
+    }
+    else if (flag == 1) { //only adding coarser refined cells if we know there are 2 neighbors (dampening)
+        f2c_avg = (2 * (d_lo * state_main + d_hi * state_coarse) / (d_lo + d_hi) - state_main) + (2 * (d_lo * state_sec + d_hi * state_coarse) / (d_lo + d_hi) - state_sec);
+        //mem_ptr_double[pcellIdx+2] = f2c_avg / 2;
+        *coarseavg = f2c_avg / 2;
+    }
+    else { //adding both (base neighbors)
+        c2f_avg = 2 * (d_lo * state_main + d_hi * state_coarse) / (d_lo + d_hi) - state_coarse;
+        //mem_ptr_double[pcellIdx] = c2f_avg;
+        *fineavg = c2f_avg;
+        f2c_avg = (2 * (d_lo * state_main + d_hi * state_coarse) / (d_lo + d_hi) - state_main) + (2 * (d_lo * state_sec + d_hi * state_coarse) / (d_lo + d_hi) - state_sec);
         //mem_ptr_double[pcellIdx+2] = f2c_avg / 2;
         *coarseavg = f2c_avg / 2;
     }
 
-}*/
+}
 
 void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
 {
@@ -9919,6 +9929,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
 
                     // loop through state arrays to update phantom cell state values
                     real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; //vars for 2 cells over
+                    //printf("\n\n");
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
@@ -9928,37 +9939,55 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
                         real_t cAvg, fAvg;
-                        //quickInterpolate(bncell, tncell, cncell, mem_ptr_double, lev_deltax[level[lncell]],
-                                        //lev_deltax[level[rncell]], 1, &fAvg, cAvg);
-                        //mem_ptr_double[pcellIdx+2] = cAvg;
-                        //mem_ptr_double[pcellIdx] = fAvg;    
+                        quickInterpolate(bncell, tncell, cncell, mem_ptr_double, lev_deltax[level[lncell]],
+                                        lev_deltax[level[rncell]], 2, &fAvg, &cAvg);
+                        mem_ptr_double[pcellIdx+2] = cAvg;
+                        mem_ptr_double[pcellIdx] = fAvg;    
+                        //printf("\n%d -- %d|%d\n", pcellIdx+2, bncell, tncell); 
 
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_coarse = mem_ptr_double[cncell];
                         real_t state_avg = HALF * (state_bot + state_top);
-                        mem_ptr_double[pcellIdx+2] = state_avg;
-                        mem_ptr_double[pcellIdx] = state_coarse;
+                        //mem_ptr_double[pcellIdx+2] = state_avg;
+                        //mem_ptr_double[pcellIdx] = state_coarse;
+
+                        //printf("%d) state values (pf, pc, nl, nrb, nrt) %f %f %f %f %f\n",
+                          //      iface, fAvg, cAvg, state_coarse, state_bot, state_top);
 
                         if (level[nrht[bncell]] < level_right) { // rightbot right neighbor is even more refined
-                            state_botbot = mem_ptr_double[nrht[bncell]];
-                            state_bottop = mem_ptr_double[ntop[nrht[bncell]]];
-                            state_sideavg += HALF * HALF * (state_botbot + state_bottop);
-                            //quickInterpolate(nrht[bncell], ntop[nrht[bncell]]], cncell 
+                            //state_botbot = mem_ptr_double[nrht[bncell]];
+                            //state_bottop = mem_ptr_double[ntop[nrht[bncell]]];
+                            //state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                            quickInterpolate(nrht[bncell], ntop[nrht[bncell]], cncell, mem_ptr_double,
+                                    lev_deltax[level[cncell]], lev_deltax[level[nrht[bncell]]], 1, &fAvg, &cAvg);
+                            state_sideavg += cAvg;
                         }
                         else { // same refinement as rightbot neighbor
-                            state_sideavg += HALF * state_botbot;
+                            //state_sideavg += HALF * state_botbot;
+                            quickInterpolate(nrht[bncell], ntop[nrht[bncell]], cncell, mem_ptr_double,
+                                    lev_deltax[level[cncell]], lev_deltax[level[nrht[bncell]]], 0, &fAvg, &cAvg);
+                            state_sideavg += fAvg;
                         }
                         if (level[nrht[tncell]] < level_right) { // righttop right neighbor is even more refined
-                            state_topbot = mem_ptr_double[nrht[tncell]];
-                            state_toptop = mem_ptr_double[ntop[nrht[tncell]]];
-                            state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                            //state_topbot = mem_ptr_double[nrht[tncell]];
+                            //state_toptop = mem_ptr_double[ntop[nrht[tncell]]];
+                            //state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                            quickInterpolate(nrht[tncell], ntop[nrht[tncell]], cncell, mem_ptr_double,
+                                    lev_deltax[level[cncell]], lev_deltax[level[nrht[tncell]]], 1, &fAvg, &cAvg);
+                            state_sideavg += cAvg;
                         }
                         else { // same refinement as righttop neighbor
-                            state_sideavg += HALF * state_topbot;
+                            //state_sideavg += HALF * state_topbot;
+                            quickInterpolate(nrht[tncell], ntop[nrht[tncell]], cncell, mem_ptr_double,
+                                    lev_deltax[level[cncell]], lev_deltax[level[nrht[tncell]]], 0, &fAvg, &cAvg);
+                            state_sideavg += fAvg;
                         }
                         mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
+                        quickInterpolate(nlft[cncell], ntop[nlft[cncell]], rncell, mem_ptr_double,
+                                lev_deltax[level[nlft[cncell]]], lev_deltax[level[rncell]], 0, &fAvg, &cAvg);
+                        mem_ptr_double[pcellIdx+1] = fAvg;
+                        //mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
 
                         state_sideavg = 0;
                     }
@@ -9991,30 +10020,52 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
+                        real_t cAvg, fAvg;
+                        quickInterpolate(bncell, tncell, cncell, mem_ptr_double, lev_deltax[level[cncell]],
+                                        lev_deltax[level[lncell]], 2, &fAvg, &cAvg);
+                        mem_ptr_double[pcellIdx+2] = fAvg;
+                        mem_ptr_double[pcellIdx] = cAvg;    
+
+
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_avg = HALF * (state_bot + state_top);
-                        mem_ptr_double[pcellIdx] = state_avg;
-                        mem_ptr_double[pcellIdx+2] = mem_ptr_double[cncell];
+                        //mem_ptr_double[pcellIdx] = state_avg;
+                        //mem_ptr_double[pcellIdx+2] = mem_ptr_double[cncell];
 
                         if (level[nlft[bncell]] < level_left) { // leftbot left neighbor is even more refined
-                            state_botbot = mem_ptr_double[nlft[bncell]];
-                            state_bottop = mem_ptr_double[ntop[nlft[bncell]]];
-                            state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                            //state_botbot = mem_ptr_double[nlft[bncell]];
+                            //state_bottop = mem_ptr_double[ntop[nlft[bncell]]];
+                            //state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                            quickInterpolate(nlft[bncell], ntop[nlft[bncell]], cncell, mem_ptr_double,
+                                    lev_deltax[level[cncell]], lev_deltax[level[nlft[bncell]]], 1, &fAvg, &cAvg);
+                            state_sideavg += cAvg;
                         }
                         else { // same refinement as leftbot neighbor
-                            state_sideavg += HALF * mem_ptr_double[nlft[bncell]];
+                            //state_sideavg += HALF * mem_ptr_double[nlft[bncell]];
+                            quickInterpolate(nlft[bncell], ntop[nlft[bncell]], cncell, mem_ptr_double,
+                                    lev_deltax[level[cncell]], lev_deltax[level[nlft[bncell]]], 0, &fAvg, &cAvg);
+                            state_sideavg += fAvg;
                         }
                         if (level[nlft[tncell]] < level_left) { // lefttop left neighbor is even more refined
-                            state_topbot = mem_ptr_double[nlft[tncell]];
-                            state_toptop = mem_ptr_double[ntop[nlft[tncell]]];
-                            state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                            //state_topbot = mem_ptr_double[nlft[tncell]];
+                            //state_toptop = mem_ptr_double[ntop[nlft[tncell]]];
+                            //state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                            quickInterpolate(nlft[tncell], ntop[nlft[tncell]], cncell, mem_ptr_double,
+                                    lev_deltax[level[cncell]], lev_deltax[level[nlft[tncell]]], 1, &fAvg, &cAvg);
+                            state_sideavg += cAvg;
                         }
                         else { // same refinement as leftop neighbor
-                            state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
+                            //state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
+                            quickInterpolate(nlft[tncell], ntop[nlft[tncell]], cncell, mem_ptr_double,
+                                    lev_deltax[level[cncell]], lev_deltax[level[nlft[tncell]]], 0, &fAvg, &cAvg);
+                            state_sideavg += fAvg;
                         }
                         mem_ptr_double[pcellIdx+1] = state_sideavg;
-                        mem_ptr_double[pcellIdx+3] = mem_ptr_double[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
+                        quickInterpolate(nrht[cncell], ntop[nrht[cncell]], lncell, mem_ptr_double,
+                                lev_deltax[level[lncell]], lev_deltax[level[nrht[cncell]]], 0, &fAvg, &cAvg);
+                        mem_ptr_double[pcellIdx+3] = fAvg;
+                        //mem_ptr_double[pcellIdx+3] = mem_ptr_double[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
 
                         state_sideavg = 0;
                     }
@@ -10072,14 +10123,28 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
+                        real_t cAvg, fAvg;
+                        quickInterpolate(cncell, ntop[cncell], tncell, mem_ptr_double, lev_deltax[level[tncell]],
+                                        lev_deltax[level[cncell]], 0, &fAvg, &cAvg);
+                        mem_ptr_double[pcellIdx] = fAvg;    
+
+
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_avg = HALF * (state_bot + state_top);
-                        mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
-                        if (level[nlft[cncell]] <= level[cncell]) // 2 cells over is same or lesser refine.
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
-                        else
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
+                        //mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
+                        if (level[nlft[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                            //mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
+                            quickInterpolate(nlft[cncell], ntop[cncell], tncell, mem_ptr_double,
+                                    lev_deltax[level[tncell]], lev_deltax[level[nlft[cncell]]], 0, &fAvg, &cAvg);
+                            mem_ptr_double[pcellIdx+1] = fAvg;    
+                        }
+                        else {
+                            //mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
+                            quickInterpolate(ntop[nlft[cncell]], ntop[cncell], tncell, mem_ptr_double,
+                                    lev_deltax[level[tncell]], lev_deltax[level[ntop[nlft[cncell]]]], 0, &fAvg, &cAvg);
+                            mem_ptr_double[pcellIdx+1] = fAvg;    
+                        }
                     }
 
                 }
@@ -10108,14 +10173,28 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
+                        real_t cAvg, fAvg;
+                        quickInterpolate(cncell, ntop[cncell], tncell, mem_ptr_double, lev_deltax[level[tncell]],
+                                        lev_deltax[level[cncell]], 0, &fAvg, &cAvg);
+                        mem_ptr_double[pcellIdx] = fAvg;    
+
+
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_avg = HALF * (state_bot + state_top);
-                        mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
-                        if (level[nrht[cncell]] <= level[cncell]) // 2 cells over is same or lesser refine.
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[cncell]];
-                        else
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nrht[cncell]]];
+                        //mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
+                        if (level[nrht[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                              //mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[cncell]];
+                            quickInterpolate(nrht[cncell], ntop[cncell], tncell, mem_ptr_double, 
+                                    lev_deltax[level[tncell]], lev_deltax[level[nrht[cncell]]], 0, &fAvg, &cAvg);
+                            mem_ptr_double[pcellIdx+1] = fAvg;    
+                        }
+                        else {
+                            //mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nrht[cncell]]];
+                            quickInterpolate(ntop[nrht[cncell]], ntop[cncell], tncell, mem_ptr_double, 
+                                    lev_deltax[level[tncell]], lev_deltax[level[ntop[nrht[cncell]]]], 0, &fAvg, &cAvg);
+                            mem_ptr_double[pcellIdx+1] = fAvg;    
+                        }
                     }
 
                 }
@@ -10220,30 +10299,51 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
+                        real_t cAvg, fAvg;
+                        quickInterpolate(lncell, rncell, cncell, mem_ptr_double, lev_deltay[level[bncell]],
+                                        lev_deltay[level[tncell]], 2, &fAvg, &cAvg);
+                        mem_ptr_double[pcellIdx+2] = cAvg;
+                        mem_ptr_double[pcellIdx] = fAvg;    
+
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
-                        mem_ptr_double[pcellIdx+2] = state_avg;
-                        mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
+                        //mem_ptr_double[pcellIdx+2] = state_avg;
+                        //mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
 
                         if (level[nbot[lncell]] < level_top) { // topleft top neighbor is even more refined
-                            state_lftlft = mem_ptr_double[ntop[lncell]];
-                            state_lftrht = mem_ptr_double[nrht[ntop[lncell]]];
-                            state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                            //state_lftlft = mem_ptr_double[ntop[lncell]];
+                            //state_lftrht = mem_ptr_double[nrht[ntop[lncell]]];
+                            //state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                            quickInterpolate(ntop[lncell], nrht[ntop[lncell]], cncell, mem_ptr_double,
+                                    lev_deltay[level[cncell]], lev_deltay[level[ntop[lncell]]], 1, &fAvg, &cAvg);
+                            state_sideavg += cAvg;
                         }
                         else { // same refinement as toplft neighbor
-                            state_sideavg += HALF * mem_ptr_double[ntop[lncell]];
+                            //state_sideavg += HALF * mem_ptr_double[ntop[lncell]];
+                            quickInterpolate(ntop[lncell], nrht[ntop[lncell]], cncell, mem_ptr_double,
+                                    lev_deltay[level[cncell]], lev_deltay[level[ntop[lncell]]], 0, &fAvg, &cAvg);
+                            state_sideavg += fAvg;
                         }
                         if (level[ntop[rncell]] < level_top) { // toprht top neighbor is even more refined
-                            state_rhtlft = mem_ptr_double[ntop[rncell]];
-                            state_rhtrht = mem_ptr_double[nrht[ntop[rncell]]];
-                            state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                            //state_rhtlft = mem_ptr_double[ntop[rncell]];
+                            //state_rhtrht = mem_ptr_double[nrht[ntop[rncell]]];
+                            //state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                            quickInterpolate(ntop[rncell], nrht[ntop[rncell]], cncell, mem_ptr_double,
+                                    lev_deltay[level[cncell]], lev_deltay[level[ntop[rncell]]], 1, &fAvg, &cAvg);
+                            state_sideavg += cAvg;
                         }
                         else { // same refinement as toprht neighbor
-                            state_sideavg += HALF * mem_ptr_double[ntop[rncell]];
+                            //state_sideavg += HALF * mem_ptr_double[ntop[rncell]];
+                            quickInterpolate(ntop[rncell], nrht[ntop[rncell]], cncell, mem_ptr_double,
+                                    lev_deltay[level[cncell]], lev_deltay[level[ntop[rncell]]], 0, &fAvg, &cAvg);
+                            state_sideavg += fAvg;
                         }
                         mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
+                        quickInterpolate(nbot[cncell], nrht[ntop[rncell]], tncell, mem_ptr_double,
+                                lev_deltay[level[tncell]], lev_deltay[level[nbot[cncell]]], 0, &fAvg, &cAvg);
+                        mem_ptr_double[pcellIdx+1] = fAvg;
+                        //mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
                         
                         state_sideavg = 0;
                     }
@@ -10277,30 +10377,52 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
+                        real_t cAvg, fAvg;
+                        quickInterpolate(lncell, rncell, cncell, mem_ptr_double, lev_deltay[level[tncell]],
+                                        lev_deltay[level[bncell]], 2, &fAvg, &cAvg);
+                        mem_ptr_double[pcellIdx+2] = fAvg;
+                        mem_ptr_double[pcellIdx] = cAvg;    
+
+
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
-                        mem_ptr_double[pcellIdx] = state_avg;
-                        mem_ptr_double[pcellIdx+2] = mem_ptr_double[cncell];
+                        //mem_ptr_double[pcellIdx] = state_avg;
+                        //mem_ptr_double[pcellIdx+2] = mem_ptr_double[cncell];
 
                         if (level[ntop[lncell]] < level_bot) { // botleft bot neighbor is even more refined
-                            state_lftlft = mem_ptr_double[nbot[lncell]];
-                            state_lftrht = mem_ptr_double[nrht[nbot[lncell]]];
-                            state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                            //state_lftlft = mem_ptr_double[nbot[lncell]];
+                            //state_lftrht = mem_ptr_double[nrht[nbot[lncell]]];
+                            //state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                            quickInterpolate(nbot[lncell], nrht[nbot[lncell]], cncell, mem_ptr_double,
+                                    lev_deltay[level[cncell]], lev_deltay[level[nbot[lncell]]], 1, &fAvg, &cAvg);
+                            state_sideavg += cAvg;
                         }
                         else { // same refinement as botlft neighbor
-                            state_sideavg += HALF * mem_ptr_double[nbot[lncell]];
+                            //state_sideavg += HALF * mem_ptr_double[nbot[lncell]];
+                            quickInterpolate(nbot[lncell], nrht[nbot[lncell]], cncell, mem_ptr_double,
+                                    lev_deltay[level[cncell]], lev_deltay[level[nbot[lncell]]], 0, &fAvg, &cAvg);
+                            state_sideavg += fAvg;
                         }
                         if (level[nbot[rncell]] < level_bot) { // botrht bot neighbor is even more refined
-                            state_rhtlft = mem_ptr_double[nbot[rncell]];
-                            state_rhtrht = mem_ptr_double[nrht[nbot[rncell]]];
-                            state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                            //state_rhtlft = mem_ptr_double[nbot[rncell]];
+                            //state_rhtrht = mem_ptr_double[nrht[nbot[rncell]]];
+                            //state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                            quickInterpolate(nbot[rncell], nrht[nbot[rncell]], cncell, mem_ptr_double,
+                                    lev_deltay[level[cncell]], lev_deltay[level[nbot[rncell]]], 1, &fAvg, &cAvg);
+                            state_sideavg += cAvg;
                         }
                         else { // same refinement as toprht neighbor
-                            state_sideavg += HALF * mem_ptr_double[nbot[rncell]];
+                            //state_sideavg += HALF * mem_ptr_double[nbot[rncell]];
+                            quickInterpolate(nbot[rncell], nrht[nbot[rncell]], cncell, mem_ptr_double,
+                                    lev_deltay[level[cncell]], lev_deltay[level[nbot[rncell]]], 0, &fAvg, &cAvg);
+                            state_sideavg += fAvg;
                         }
-                        mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
+                        mem_ptr_double[pcellIdx+1] = state_sideavg;
+                        quickInterpolate(ntop[cncell], nrht[nbot[rncell]], bncell, mem_ptr_double,
+                                lev_deltay[level[bncell]], lev_deltay[level[ntop[cncell]]], 0, &fAvg, &cAvg);
+                        mem_ptr_double[pcellIdx+3] = fAvg;
+                        //mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
 
                         state_sideavg = 0;
                     }
@@ -10358,14 +10480,28 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
+                        real_t cAvg, fAvg;
+                        quickInterpolate(cncell, nrht[cncell], tncell, mem_ptr_double, lev_deltay[level[tncell]],
+                                        lev_deltay[level[cncell]], 0, &fAvg, &cAvg);
+                        mem_ptr_double[pcellIdx] = fAvg;    
+
+
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
-                        mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
-                        if (level[nbot[cncell]] <= level[cncell]) // 2 cells over is same or lesser refine.
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
-                        else
-                            mem_ptr_double[pcellIdx] = mem_ptr_double[nrht[nbot[cncell]]];
+                        //mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
+                        if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                            //mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
+                            quickInterpolate(nbot[cncell], nrht[ntop[rncell]], tncell, mem_ptr_double,
+                                    lev_deltay[level[tncell]], lev_deltay[level[nbot[cncell]]], 0, &fAvg, &cAvg);
+                            mem_ptr_double[pcellIdx+1] = fAvg;
+                        }
+                        else {
+                            //mem_ptr_double[pcellIdx] = mem_ptr_double[nrht[nbot[cncell]]];
+                            quickInterpolate(nrht[nbot[cncell]], nrht[ntop[rncell]], tncell, mem_ptr_double,
+                                    lev_deltay[level[tncell]], lev_deltay[level[nrht[nbot[cncell]]]], 0, &fAvg, &cAvg);
+                            mem_ptr_double[pcellIdx+1] = fAvg;
+                        }
                     }
 
                 }
@@ -10394,14 +10530,28 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
+                        real_t cAvg, fAvg;
+                        quickInterpolate(cncell, nrht[cncell], bncell, mem_ptr_double, lev_deltay[level[bncell]],
+                                        lev_deltay[level[cncell]], 0, &fAvg, &cAvg);
+                        mem_ptr_double[pcellIdx] = fAvg;    
+
+
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
-                        mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
-                        if (level[nbot[cncell]] <= level[cncell]) // 2 cells over is same or lesser refine.
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
-                        else
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
+                        //mem_ptr_double[pcellIdx] = mem_ptr_double[cncell];
+                        if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                            //mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
+                            quickInterpolate(ntop[cncell], nrht[nbot[rncell]], bncell, mem_ptr_double,
+                                    lev_deltay[level[bncell]], lev_deltay[level[ntop[cncell]]], 0, &fAvg, &cAvg);
+                            mem_ptr_double[pcellIdx+3] = fAvg;
+                        }
+                        else {
+                            //mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
+                            quickInterpolate(nrht[ntop[cncell]], nrht[nbot[rncell]], bncell, mem_ptr_double,
+                                    lev_deltay[level[bncell]], lev_deltay[level[nrht[ntop[cncell]]]], 0, &fAvg, &cAvg);
+                            mem_ptr_double[pcellIdx+3] = fAvg;
+                        }
                     }
 
                 }
