@@ -351,7 +351,19 @@ public:
                   dev_nlft,       
                   dev_nrht,       
                   dev_nbot,       
-                  dev_ntop;       
+                  dev_ntop,
+                  dev_map_xface2cell_lower,
+                  dev_map_xface2cell_upper,
+                  dev_map_xcell2face_left1,
+                  dev_map_xcell2face_left2,
+                  dev_map_xcell2face_right1,
+                  dev_map_xcell2face_right2,
+                  dev_map_yface2cell_lower,
+                  dev_map_yface2cell_upper,
+                  dev_map_ycell2face_bot1,
+                  dev_map_ycell2face_bot2,
+                  dev_map_ycell2face_top1,
+                  dev_map_ycell2face_top2;
 
    cl_mem         dev_levdx,    // corresponds to lev_deltax
                   dev_levdy,    // corresponds to lev_deltay
@@ -558,6 +570,7 @@ public:
 #ifdef HAVE_OPENCL
    void gpu_calc_neighbors(void);
    void gpu_calc_neighbors_local(void);
+   void gpu_calc_face_list_wbidirmap(void);
 #endif
    //   TODO:  Not created yet; overloading for 3D mesh support. (davis68)
    void calc_neighbors(vector<int> &nlft,
