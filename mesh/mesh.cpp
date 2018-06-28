@@ -1617,6 +1617,12 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
    struct timeval tstart_lev2;
 
+   struct mesh_type
+   {
+       double ***pstate;
+       int **mask;
+   };
+
 #ifdef _OPENMP
 #pragma omp parallel
 { //START Parallel Region
@@ -10896,20 +10902,84 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
        if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
        nvar++;
    }
-   printf("DEBUG -- nvar %d jmax %d jmin %d imax %d imin %d\n",nvar,jmax,jmin,imax,imin);
+   nvar--;
+   printf("DEBUG -- levmx %d nvar %d jmax %d jmin %d imax %d imin %d\n",levmx,nvar,jmax,jmin,imax,imin);
 
-   double ****pstate = (double ****)genquadmatrix(levmx,nvar,jmax+1,imax+1,sizeof(double));
-   //double **Hrg = (double **)genmalloc(jmax+1,imax+1,size(double));
-   for(int ll=0; ll<levmx; ll++){
+   
+   meshes = (mesh_type*)malloc((levmx+1)*sizeof(mesh_type));
+
+   int iimax = imax+1;
+   int jjmax = jmax+1;
+   for (int ll=0; ll<=levmx; ll++){
+      printf("DEBUG -- iimax %d jjmax %d\n",lev_ibegin[ll],lev_iend[ll]);
+      meshes[ll].pstate = (double ***)gentrimatrix(nvar+1,jjmax,iimax,sizeof(double));
+      meshes[ll].mask = (int **)genmatrix(jjmax,iimax,sizeof(int));
+
       for(int nn=0; nn<nvar; nn++){
-         for(int jj=0; jj<jmax+1; jj++){
-            for(int ii=0; ii<imax+1; ii++){
-               pstate[ll][nn][jj][ii]=0.0;
+         for(int jj=0; jj<jjmax; jj++){
+            for(int ii=0; ii<iimax; ii++){
+               meshes[ll].pstate[nn][jj][ii]=0.0;
             }
          }
       }
+      for(int jj=0; jj<jjmax; jj++){
+         for(int ii=0; ii<iimax; ii++){
+            meshes[ll].mask[jj][ii]=0;
+         }
+      }
+      iimax *= 2;
+      jjmax *= 2;
    }
+
+   int ivar = 0;
+   for (memory_item = state_memory_old.memory_entry_by_name_begin();
+       memory_item != state_memory_old.memory_entry_by_name_end();
+       memory_item = state_memory_old.memory_entry_by_name_next() ) {
+       
+       //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+
+       if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
+
+       double *mem_ptr_double = (double *)memory_item->mem_ptr;
+
+       for (int ic=0; ic < ncells; ic++){
+          meshes[level[ic]].pstate[ivar][j[ic]][i[ic]]=mem_ptr_double[ic];
+          meshes[level[ic]].mask[j[ic]][i[ic]] = 1;
+       }
+       ivar++;
+   }
+           
+
    printf("DEBUG -- nvar %d jmax %d jmin %d imax %d imin %d\n",nvar,jmax,jmin,imax,imin);
+}
+
+void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
+{
+   int ivar = 0;
+   malloc_plus_memory_entry *memory_item;
+   MallocPlus state_memory_old = state_memory;
+   for (memory_item = state_memory_old.memory_entry_by_name_begin();
+       memory_item != state_memory_old.memory_entry_by_name_end();
+       memory_item = state_memory_old.memory_entry_by_name_next() ) {
+       
+       //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+
+       if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
+
+       double *mem_ptr_double = (double *)memory_item->mem_ptr;
+
+       for (int ic=0; ic < ncells; ic++){
+          mem_ptr_double[ic]=meshes[level[ic]].pstate[ivar][j[ic]][i[ic]];
+       }
+
+       ivar++;
+   }
+
+   for (int ll=0; ll<=levmx; ll++){
+       free(meshes[ll].pstate);
+       free(meshes[ll].mask);
+   }
+   free(meshes);
    exit(0);
 }
 

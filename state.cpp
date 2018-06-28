@@ -3352,6 +3352,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #endif
    mesh->calc_face_list_wbidirmap_phantom(state_memory);
    mesh->generate_regular_cell_meshes(state_memory);
+   mesh->destroy_regular_cell_meshes(state_memory);
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
