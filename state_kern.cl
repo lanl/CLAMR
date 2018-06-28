@@ -417,10 +417,10 @@ __kernel void copy_state_ghost_data_cl(
 #define SET_FACE_VARIABLES
 // Define macros for local face access
 
-#define xfacelower(i)   ( xface[i].s0 )
-#define xfaceupper(i)   ( xface[i].s1 )
-#define yfacelower(i)   ( yface[i].s0 )
-#define yfaceupper(i)   ( yface[i].s1 )
+//#define xfacelower(i)   ( xface[i].s0 )
+//#define xfaceupper(i)   ( xface[i].s1 )
+//#define yfacelower(i)   ( yface[i].s0 )
+//#define yfaceupper(i)   ( yface[i].s1 )
 
 #endif
 
@@ -1584,12 +1584,12 @@ __kernel void calc_finite_difference_via_faces_cl(
   if (giX < ncells) { // only the workers equal to the number of cells
     setup_tile(tile, itile, ncells, H, U, V, nlft, nrht, ntop, nbot, level);
   }
-  if (giX < nxface) {
+  /*if (giX < nxface) {
     setup_xface(xface, nxface, map_xface2cell_lower, map_xface2cell_upper);
   }
   if (giX < nyface) {
     setup_yface(yface, nyface, map_yface2cell_lower, map_yface2cell_upper);
-  }
+  }*/
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -2152,7 +2152,7 @@ void setup_refine_tile(
    levelval(tiX) = level[giX];
 }
 
-void setup_xface(
+/*void setup_xface(
                 __local           int8        *xface,
                 __local           int         isize;
                 __global    const int         *map_xface2cell_lower,   
@@ -2216,7 +2216,7 @@ void setup_yface(
     else {
         yfaceupper(tiX) = map_yface2cell_upper[giX];
     }
-}
+}*/
 
 inline uint scan_warp_exclusive(__local volatile uint *input, const uint idx, const uint lane) {
     if (lane > 0 ) input[idx] += input[idx - 1];

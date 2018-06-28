@@ -1,58 +1,3 @@
-/*
- *  Copyright (c) 2011-2013, Los Alamos National Security, LLC.
- *  All rights Reserved.
- *
- *  Copyright 2011-2012. Los Alamos National Security, LLC. This software was produced 
- *  under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
- *  Laboratory (LANL), which is operated by Los Alamos National Security, LLC 
- *  for the U.S. Department of Energy. The U.S. Government has rights to use, 
- *  reproduce, and distribute this software.  NEITHER THE GOVERNMENT NOR LOS 
- *  ALAMOS NATIONAL SECURITY, LLC MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR 
- *  ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE.  If software is modified
- *  to produce derivative works, such modified software should be clearly marked,
- *  so as not to confuse it with the version available from LANL.
- *
- *  Additionally, redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Los Alamos National Security, LLC, Los Alamos 
- *       National Laboratory, LANL, the U.S. Government, nor the names of its 
- *       contributors may be used to endorse or promote products derived from 
- *       this software without specific prior written permission.
- *  
- *  THIS SOFTWARE IS PROVIDED BY THE LOS ALAMOS NATIONAL SECURITY, LLC AND 
- *  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT 
- *  NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL LOS ALAMOS NATIONAL
- *  SECURITY, LLC OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- *  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- *  OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- *  
- *  CLAMR -- LA-CC-11-094
- *  This research code is being developed as part of the 
- *  2011 X Division Summer Workshop for the express purpose
- *  of a collaborative code for development of ideas in
- *  the implementation of AMR codes for Exascale platforms
- *  
- *  AMR implementation of the Wave code previously developed
- *  as a demonstration code for regular grids on Exascale platforms
- *  as part of the Supercomputing Challenge and Los Alamos 
- *  National Laboratory
- *  
- *  Authors: Bob Robey       XCP-2   brobey@lanl.gov
- *           Neal Davis              davis68@lanl.gov, davis68@illinois.edu
- *           David Nicholaeff        dnic@lanl.gov, mtrxknight@aol.com
- *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
- * 
- */
 #include "mesh/mesh.h"
 #include <unistd.h>
 #include <stdio.h>
@@ -3475,7 +3420,7 @@ void State::gpu_calc_finite_difference(double deltaT)
 }
 #endif
 
-
+#ifdef HAVE_OPENCL
 void State::gpu_calc_finite_difference_via_faces(double deltaT)
 {
 
@@ -3488,8 +3433,8 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    //cl_mem dev_ptr = NULL;
 
    size_t &ncells    = mesh->ncells;
-   size_t &nxface    = mesh->nxface;
-   size_t &nyface    = mesh->nyface;
+   int nxface    = mesh->nxface;
+   int nyface    = mesh->nyface;
    size_t &ncells_ghost = mesh->ncells_ghost;
    if (ncells_ghost < ncells) ncells_ghost = ncells;
    int &levmx           = mesh->levmx;
@@ -3501,18 +3446,18 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    cl_mem &dev_level    = mesh->dev_level;
    cl_mem &dev_levdx    = mesh->dev_levdx;
    cl_mem &dev_levdy    = mesh->dev_levdy;
-   cl_mem &dev_map_xface2cell_lower = mesh->map_xface2cell_lower;
-   cl_mem &dev_map_xface2cell_upper = mesh->map_xface2cell_upper;
-   cl_mem &dev_map_xcell2face_left1 = mesh->map_xcell2face_left1;
-   cl_mem &dev_map_xcell2face_left2 = mesh->map_xcell2face_left2;
-   cl_mem &dev_map_xcell2face_right1 = mesh->map_xcell2face_right1;
-   cl_mem &dev_map_xcell2face_right2 = mesh->map_xcell2face_right2;
-   cl_mem &dev_map_yface2cell_lower = mesh->map_yface2cell_lower;
-   cl_mem &dev_map_yface2cell_upper = mesh->map_yface2cell_upper;
-   cl_mem &dev_map_ycell2face_left1 = mesh->map_ycell2face_left1;
-   cl_mem &dev_map_ycell2face_left2 = mesh->map_ycell2face_left2;
-   cl_mem &dev_map_ycell2face_right1 = mesh->map_ycell2face_right1;
-   cl_mem &dev_map_ycell2face_right2 = mesh->map_ycell2face_right2;
+   cl_mem &dev_map_xface2cell_lower = mesh->dev_map_xface2cell_lower;
+   cl_mem &dev_map_xface2cell_upper = mesh->dev_map_xface2cell_upper;
+   cl_mem &dev_map_xcell2face_left1 = mesh->dev_map_xcell2face_left1;
+   cl_mem &dev_map_xcell2face_left2 = mesh->dev_map_xcell2face_left2;
+   cl_mem &dev_map_xcell2face_right1 = mesh->dev_map_xcell2face_right1;
+   cl_mem &dev_map_xcell2face_right2 = mesh->dev_map_xcell2face_right2;
+   cl_mem &dev_map_yface2cell_lower = mesh->dev_map_yface2cell_lower;
+   cl_mem &dev_map_yface2cell_upper = mesh->dev_map_yface2cell_upper;
+   cl_mem &dev_map_ycell2face_bot1 = mesh->dev_map_ycell2face_bot1;
+   cl_mem &dev_map_ycell2face_bot2 = mesh->dev_map_ycell2face_bot2;
+   cl_mem &dev_map_ycell2face_top1 = mesh->dev_map_ycell2face_top1;
+   cl_mem &dev_map_ycell2face_top2 = mesh->dev_map_ycell2face_top2;
 
    assert(dev_H);
    assert(dev_U);
@@ -3532,10 +3477,10 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    assert(dev_map_xcell2face_right2);
    assert(dev_map_yface2cell_lower);
    assert(dev_map_yface2cell_upper);
-   assert(dev_map_ycell2face_left1);
-   assert(dev_map_ycell2face_left2);
-   assert(dev_map_ycell2face_right1);
-   assert(dev_map_ycell2face_right2);
+   assert(dev_map_ycell2face_bot1);
+   assert(dev_map_ycell2face_bot2);
+   assert(dev_map_ycell2face_top1);
+   assert(dev_map_ycell2face_top2);
 
    cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
    cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
@@ -3696,21 +3641,21 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 27, sizeof(cl_mem), (void *)&dev_map_xcell2face_right2); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 28, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 29, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 30, sizeof(cl_mem), (void *)&dev_map_ycell2face_left1); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 31, sizeof(cl_mem), (void *)&dev_map_ycell2face_left2); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 32, sizeof(cl_mem), (void *)&dev_map_ycell2face_right1); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 33, sizeof(cl_mem), (void *)&dev_map_ycell2face_right2); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 30, sizeof(cl_mem), (void *)&dev_map_ycell2face_bot1); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 31, sizeof(cl_mem), (void *)&dev_map_ycell2face_bot2); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 32, sizeof(cl_mem), (void *)&dev_map_ycell2face_top1); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces, 33, sizeof(cl_mem), (void *)&dev_map_ycell2face_top2); 
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_faces, 1, NULL, &global_work_size, &calc_difference_via_faces_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_faces, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_via_faces_event);
 
    ezcl_wait_for_events(1, &calc_finite_difference_via_faces_event);
-   ezcl_event_release(cal_finite_difference_via_faces_event);
+   ezcl_event_release(calc_finite_difference_via_faces_event);
 
    dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
    dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
    dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
 
-   gpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9)
+   gpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 }
 #endif
 
