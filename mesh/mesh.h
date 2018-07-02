@@ -130,8 +130,10 @@ typedef unsigned int uint;
 
 enum amr_method
 {
-    REGULAR_AMR,         // AMR done in physics level
-    FACE_IN_PLACE_AMR    // AMR done in mesh by extending face data structure
+    CELL_AMR,            // AMR done in physics level by cell
+    FACE_AMR,            // AMR done in physics level by face
+    FACE_IN_PLACE_AMR,   // AMR done in mesh by extending face data structure
+    REGULAR_CELL_AMR     // AMR done in mesh by creating regular grid
 };
 
 enum boundary
@@ -220,6 +222,12 @@ typedef mesh_device_types mesh_device_type;
 
 using namespace std;
 
+   struct mesh_type
+   {
+       double ***pstate;
+       int **mask;
+   };
+
 /****************************************************************//**
  * Mesh class
  *    Contains the cell-based adaptive mesh refinement
@@ -233,6 +241,8 @@ public:
 
    MallocPlus mesh_memory;
    MallocPlus gpu_mesh_memory;
+
+   struct mesh_type *meshes;
 
 #ifdef HAVE_OPENCL
    string defines;
@@ -547,6 +557,8 @@ public:
 
    void calc_face_list_wbidirmap(void);
    void calc_face_list_wbidirmap_phantom(MallocPlus &state_memory);
+   void generate_regular_cell_meshes(MallocPlus &state_memory);
+   void destroy_regular_cell_meshes(MallocPlus &state_memory);
    void calc_face_list_clearmaps(void);
 
    int **get_xface_flag(int lev, bool print_output=0);

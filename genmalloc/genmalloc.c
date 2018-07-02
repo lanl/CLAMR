@@ -64,6 +64,9 @@
 #define DEBUG 0
 #endif
 
+double ****genquadmatrix_double_p(int lnum, int knum, int jnum, int inum, const char *file, const int line);
+int ****genquadmatrix_int_p(int lnum, int knum, int jnum, int inum, const char *file, const int line);
+
 double ***gentrimatrix_double_p(int knum, int jnum, int inum, const char *file, const int line);
 int ***gentrimatrix_int_p(int knum, int jnum, int inum, const char *file, const int line);
 
@@ -230,6 +233,86 @@ void gentrimatrixfree_p(void ***var, const char *file, const int line)
    // Just to get rid of warning
    if (1 == 2) printf("Warning file %s line %d\n", file, line);
 
+   genmalloc_memory_remove(var[0][0]);
+   genmalloc_memory_remove(var[0]);
+   genmalloc_memory_remove(var);
+}
+
+void ****genquadmatrix_p(int lnum, int knum, int jnum, int inum, size_t elsize, const char *file, const int line)
+{
+   // Just to get rid of warning
+   if (1 == 2) printf("Warning file %s line %d\n", file, line);
+
+   void ****out = NULL;
+   if (elsize == 8) {
+      out = (void ****)genquadmatrix_double_p(lnum, knum, jnum, inum, file, line);
+   } else if (elsize == 4) {
+      //out = (void ****)genquadmatrix_int_p(lnum, knum, jnum, inum, file, line);
+   } else {
+      printf("Error -- element size not supported in genmalloc for call at %s line %d\n",file,line);
+   }
+
+   return(out);
+}
+
+double ****genquadmatrix_double_p(int lnum, int knum, int jnum, int inum, const char *file, const int line)
+{
+   // Just to get rid of warning
+   if (1 == 2) printf("Warning file %s line %d\n", file, line);
+
+   double ****out;
+   size_t mem_size;
+   const size_t elsize = 8;
+
+   mem_size  = lnum*sizeof(void ***);
+   out       = (double ****)malloc(mem_size);
+   genmalloc_memory_add(out, mem_size);
+
+   mem_size  = lnum*knum*sizeof(void **);
+   out[0]    = (double ***)malloc(mem_size);
+   genmalloc_memory_add(out[0], mem_size);
+
+   mem_size  = lnum*knum*jnum*sizeof(void *);
+   out[0][0] = (double **) malloc(mem_size);
+   genmalloc_memory_add(out[0][0], mem_size);
+
+   size_t nelems = lnum*knum*jnum*inum;
+   mem_size  = nelems*elsize;
+   out[0][0][0] = (void *)calloc(nelems, elsize);
+   genmalloc_memory_add(out[0][0][0], mem_size);
+
+   for (int l = 0; l < lnum; l++) 
+   {
+      if (l > 0)
+      {
+         out[l] = out[l-1] + lnum;
+         out[l][0] = out[l-1][0] + lnum*jnum*inum;
+      }
+
+      for (int k = 0; k < knum; k++)
+      {
+         if (k > 0)
+         {
+            out[l][k] = out[l][k-1] + knum;
+            out[l][k][0] = out[l][k-1][0] + jnum*inum;
+         }
+
+         for (int j = 1; j < jnum; j++)
+         {
+            out[l][k][j] = out[l][k][j-1] + inum;
+         }
+      }
+   }
+
+   return (out);
+}
+
+void genquadmatrixfree_p(void ****var, const char *file, const int line)
+{
+   // Just to get rid of warning
+   if (1 == 2) printf("Warning file %s line %d\n", file, line);
+
+   genmalloc_memory_remove(var[0][0][0]);
    genmalloc_memory_remove(var[0][0]);
    genmalloc_memory_remove(var[0]);
    genmalloc_memory_remove(var);

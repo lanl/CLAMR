@@ -476,6 +476,8 @@ extern "C" void do_calc(void)
          //  Execute main kernel
          if (choose_amr_method == FACE_IN_PLACE_AMR) {
             state->calc_finite_difference_face_in_place(deltaT);
+         } else if (choose_amr_method == REGULAR_CELL_AMR) {
+            state->calc_finite_difference_regular_cells(deltaT);
          } else if (face_based) {
             state->calc_finite_difference_via_faces(deltaT);
          } else {
