@@ -11037,7 +11037,6 @@ void Mesh::calc_face_list_wbidirmap(void)
 #endif
 }
 
-<<<<<<< HEAD
 #ifdef HAVE_OPENCL
 void Mesh::gpu_calc_face_list_wbidirmap(void)
 {
@@ -11059,7 +11058,6 @@ void Mesh::gpu_calc_face_list_wbidirmap(void)
     
 }
 #endif
-=======
 void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
 {
    printf("DEBUG -- imin, imax %d %d\n",imin,imax);
@@ -11155,7 +11153,6 @@ void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
    free(meshes);
    exit(0);
 }
->>>>>>> master
 
 int **Mesh::get_xface_flag(int lev, bool print_output)
 {
