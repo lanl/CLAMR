@@ -3242,6 +3242,79 @@ void State::calc_finite_difference_via_faces(double deltaT){
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
+void State::calc_finite_difference_regular_cells(double deltaT){
+   real_t   g     = 9.80;   // gravitational constant
+   real_t   ghalf = 0.5*g;
+
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
+   size_t ncells     = mesh->ncells;
+   size_t &ncells_ghost = mesh->ncells_ghost;
+#ifdef _OPENMP
+#pragma omp master
+#endif
+   if (ncells_ghost < ncells) ncells_ghost = ncells;
+
+   //printf("\nDEBUG finite diff\n"); 
+
+#ifdef HAVE_MPI
+   // We need to populate the ghost regions since the calc neighbors has just been
+   // established for the mesh shortly before
+   if (mesh->numpe > 1) {
+      apply_boundary_conditions_local();
+
+#ifdef _OPENMP
+#pragma omp master
+      {
+#endif
+      H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
+      U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
+      V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
+
+      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
+      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
+      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
+#ifdef _OPENMP
+      }
+#pragma omp barrier
+#endif
+
+      apply_boundary_conditions_ghost();
+   } else {
+      apply_boundary_conditions();
+   }
+#else
+   apply_boundary_conditions();
+#endif
+
+   static state_t *H_new, *U_new, *V_new;
+   int *nlft, *nrht, *nbot, *ntop, *level;
+
+   nlft  = mesh->nlft;
+   nrht  = mesh->nrht;
+   nbot  = mesh->nbot;
+   ntop  = mesh->ntop;
+   level = mesh->level;
+
+   vector<real_t> &lev_deltax = mesh->lev_deltax;
+   vector<real_t> &lev_deltay = mesh->lev_deltay;
+
+   int flags = 0;
+   flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
+   //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
+
+#ifdef _OPENMP
+#pragma omp master
+#endif
+   mesh->calc_face_list_wbidirmap_phantom(state_memory);
+   mesh->generate_regular_cell_meshes(state_memory);
+   mesh->destroy_regular_cell_meshes(state_memory);
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+}
+
 
 #ifdef HAVE_OPENCL
 void State::gpu_calc_finite_difference(double deltaT)
