@@ -343,6 +343,18 @@ void setup_refine_tile(
                 __global const int     *level
                 );
 
+void setup_xface(
+                __local           int8        *xface,
+                __global    const int         *map_xface2cell_lower,   
+                __global    const int         *map_xface2cell_upper
+                );
+
+void setup_yface(
+                __local           int8        *yface,
+                __global    const int         *map_yface2cell_lower,       
+                __global    const int         *map_yface2cell_upper
+                );
+
 __kernel void copy_state_data_cl(
                           const int    isize,         // 0 
                  __global      state_t *H,            // 1 
@@ -398,6 +410,18 @@ __kernel void copy_state_ghost_data_cl(
 #define nbotval(i)  ( itile[i].s3 )
 #define levelval(i) ( itile[i].s4 )
 #define mpotval(i)  ( itile[i].s5 )
+
+#endif
+
+#ifndef SET_FACE_VARIABLES
+#define SET_FACE_VARIABLES
+// Define macros for local face access
+
+//#define xfacelower(i)   ( xface[i].s0 )
+//#define xfaceupper(i)   ( xface[i].s1 )
+//#define yfacelower(i)   ( yface[i].s0 )
+//#define yfaceupper(i)   ( yface[i].s1 )
+
 #endif
 
 #define SQ(x)      ( (x)*(x) )
@@ -1501,6 +1525,730 @@ __kernel void calc_finite_difference_cl(
 
 }
 
+__kernel void calc_finite_difference_via_faces_face_comps_cl(
+                        const int       nxfaces,                    // 0 Number of x faces
+                        const int       nyfaces,                    // 1 Number of y faces
+                        const int       levmx,                      // 2 Maximum level
+            __global    const state_t   *H,                         // 3
+            __global    const state_t   *U,                         // 4
+            __global    const state_t   *V,                         // 5
+            __global    const int       *level,                     // 6 Array of level information
+                        const real_t    deltaT,                     // 7 Size of time step
+            __global    const real_t    *lev_dx,                    // 8
+            __global    const real_t    *lev_dy,                    // 9
+            __local           state4_t  *tile,                      // 10 Tile size in state4_t
+            __local           int8      *itile,                     // 11 Tile size in int8
+            __local           int8      *xface,                     // 12 xFace size in int8
+            __local           int8      *yface,                     // 13 yFace size in int8 
+            __global    const int       *map_xface2cell_lower,      // 14 A face's left cell 
+            __global    const int       *map_xface2cell_upper,      // 15 A face's left cell 
+            __global    const int       *map_yface2cell_lower,      // 16 A face's below cell 
+            __global    const int       *map_yface2cell_upper) {    // 17 A face's above cell 
+
+    /////////////////////////////////////////////
+    /// Get thread identification information ///
+    /////////////////////////////////////////////
+
+    const uint giX = get_global_id(0);
+    const uint tiX = get_local_id(0);
+
+    const uint ngX = get_global_size(0);
+    const uint ntX = get_local_size(0);
+
+    const uint group_id = get_group_id(0);
+
+    #ifdef NEEDS_WORK_XXX
+    // Ensure the executing thread is not extraneous
+    if (giX >= max(nxface, nyface))
+        return;
+
+    /////////////////////////////////////////////
+    /// Set local tile & apply boundary conds ///
+    /////////////////////////////////////////////
+
+  /*if (giX < ncells) { // only the workers equal to the number of cells
+    setup_tile(tile, itile, ncells, H, U, V, nlft, nrht, ntop, nbot, level);
+  }*/
+  /*if (giX < nxface) {
+    setup_xface(xface, nxface, map_xface2cell_lower, map_xface2cell_upper);
+  }
+  if (giX < nyface) {
+    setup_yface(yface, nyface, map_yface2cell_lower, map_yface2cell_upper);
+  }*/
+
+
+    if (giX < nxface) {
+      int cell_lower, cell_upper, level_lower, level_upper;
+      int cell_lower = mesh->map_xface2cell_lower[giX];
+      int cell_upper = mesh->map_xface2cell_upper[giX];
+      int level_lower = level[cell_lower];
+      int level_upper = level[cell_upper];
+      if (level_lower == level_upper) {
+         int lev = level_upper;
+         real_t Cxhalf = 0.5*deltaT/mesh->lev_deltax[lev];
+         Hx[giX]=HALF*(H[cell_upper]+H[cell_lower]) - Cxhalf*( HXFLUX(cell_upper)-HXFLUX(cell_lower) );
+         Ux[giX]=HALF*(U[cell_upper]+U[cell_lower]) - Cxhalf*( UXFLUX(cell_upper)-UXFLUX(cell_lower) );
+         Vx[giX]=HALF*(V[cell_upper]+V[cell_lower]) - Cxhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
+      }
+      else {
+         real_t dx_lower = mesh->lev_deltax[level[cell_lower]];
+         real_t dx_upper = mesh->lev_deltax[level[cell_upper]];
+
+         real_t FA_lower = dx_lower;
+         real_t FA_upper = dx_upper;
+         real_t FA_lolim = FA_lower*min(ONE, FA_upper/FA_lower);
+         real_t FA_uplim = FA_upper*min(ONE, FA_lower/FA_upper);
+
+         real_t CV_lower = SQ(dx_lower);
+         real_t CV_upper = SQ(dx_upper);
+         real_t CV_lolim = CV_lower*min(HALF, CV_upper/CV_lower);
+         real_t CV_uplim = CV_upper*min(HALF, CV_lower/CV_upper);
+
+         // Weighted half-step calculation
+         //
+         // (dx_lower*H[cell_upper]+dx_upper*H[cell_lower])
+         // -----------------------------------------------   -
+         //             (dx_lower+dx_upper)
+         //
+         //                ( (FA_uplim*HXFLUX(cell_upper))-(FA_lolim*HXFLUX(cell_lower)) )
+         // 0.5*deltaT  *  ----------------------------------------------------------------
+         //                                    (CV_uplim+CV_lolim)
+         //
+
+         Hx[giX]=(dx_lower*H[cell_upper]+dx_upper*H[cell_lower])/(dx_lower+dx_upper) -
+                   HALF*deltaT*( (FA_uplim*HXFLUX(cell_upper))-(FA_lolim*HXFLUX(cell_lower)) )/
+                   (CV_uplim+CV_lolim);
+         Ux[giX]=(dx_lower*U[cell_upper]+dx_upper*U[cell_lower])/(dx_lower+dx_upper) -
+                   HALF*deltaT*( (FA_uplim*UXFLUX(cell_upper))-(FA_lolim*UXFLUX(cell_lower)) )/
+                   (CV_uplim+CV_lolim);
+         Vx[giX]=(dx_lower*V[cell_upper]+dx_upper*V[cell_lower])/(dx_lower+dx_upper) -
+                   HALF*deltaT*( (FA_uplim*UVFLUX(cell_upper))-(FA_lolim*UVFLUX(cell_lower)) )/
+                   (CV_uplim+CV_lolim);
+      }
+   }
+
+    if (giX < nyface) {
+      int cell_lower = mesh->map_yface2cell_lower[giX];
+      int cell_upper = mesh->map_yface2cell_upper[giX];
+      int level_lower = level[cell_lower];
+      int level_upper = level[cell_upper];
+      if (level_lower == level_upper) {
+         int lev = level_upper;
+         real_t Cyhalf = 0.5*deltaT/mesh->lev_deltay[lev];
+         Hy[giX]=HALF*(H[cell_upper]+H[cell_lower]) - Cyhalf*( HYFLUX(cell_upper)-HYFLUX(cell_lower) );
+         Uy[giX]=HALF*(U[cell_upper]+U[cell_lower]) - Cyhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
+         Vy[giX]=HALF*(V[cell_upper]+V[cell_lower]) - Cyhalf*( VYFLUX(cell_upper)-VYFLUX(cell_lower) );
+      } else {
+         real_t dy_lower = mesh->lev_deltay[level[cell_lower]];
+         real_t dy_upper = mesh->lev_deltay[level[cell_upper]];
+
+         real_t FA_lower = dy_lower;
+         real_t FA_upper = dy_upper;
+         real_t FA_lolim = FA_lower*min(ONE, FA_upper/FA_lower);
+         real_t FA_uplim = FA_upper*min(ONE, FA_lower/FA_upper);
+
+         real_t CV_lower = SQ(dy_lower);
+         real_t CV_upper = SQ(dy_upper);
+         real_t CV_lolim = CV_lower*min(HALF, CV_upper/CV_lower);
+         real_t CV_uplim = CV_upper*min(HALF, CV_lower/CV_upper);
+
+         // Weighted half-step calculation
+         //
+         // (dy_lower*H[cell_upper]+dy_upper*H[cell_lower])
+         // -----------------------------------------------   -
+         //             (dy_lower+dy_upper)
+         //
+         //                ( (FA_uplim*HYFLUX(cell_upper))-(FA_lolim*HYFLUX(cell_lower)) )
+         // 0.5*deltaT  *  ----------------------------------------------------------------
+         //                                    (CV_uplim+CV_lolim)
+         //
+
+         Hy[giX]=(dy_lower*H[cell_upper]+dy_upper*H[cell_lower])/(dy_lower+dy_upper) -
+                   HALF*deltaT*( (FA_uplim*HYFLUX(cell_upper))-(FA_lolim*HYFLUX(cell_lower)) )/
+                   (CV_uplim+CV_lolim);
+         Uy[giX]=(dy_lower*U[cell_upper]+dy_upper*U[cell_lower])/(dy_lower+dy_upper) -
+                   HALF*deltaT*( (FA_uplim*UVFLUX(cell_upper))-(FA_lolim*UVFLUX(cell_lower)) )/
+                   (CV_uplim+CV_lolim);
+         Vy[giX]=(dy_lower*V[cell_upper]+dy_upper*V[cell_lower])/(dy_lower+dy_upper) -
+                   HALF*deltaT*( (FA_uplim*VYFLUX(cell_upper))-(FA_lolim*VYFLUX(cell_lower)) )/
+                   (CV_uplim+CV_lolim);
+
+      }
+    }
+    #endif
+
+
+}
+
+
+__kernel void calc_finite_difference_via_faces_cell_comps_cl (
+                        const int       ncells,                     // 0 Total number of cells
+                        const int       levmx,                      // 1 Maximum level
+            __global    const state_t   *H,                         // 2
+            __global    const state_t   *U,                         // 3
+            __global    const state_t   *V,                         // 4
+            __global          state_t   *H_new,                     // 5
+            __global          state_t   *U_new,                     // 6
+            __global          state_t   *V_new,                     // 7
+            __global    const int       *nlft,                      // 8 Array of left neighbors
+            __global    const int       *nrht,                      // 9 Array of right neighbors
+            __global    const int       *ntop,                      // 10 Array of top neighbors
+            __global    const int       *nbot,                      // 11 Array of bottom neighbors
+            __global    const int       *level,                     // 12 Array of level information
+                        const real_t    deltaT,                     // 13 Size of time step
+            __global    const real_t    *lev_dx,                    // 14
+            __global    const real_t    *lev_dy,                    // 15
+            __local           state4_t  *tile,                      // 16 Tile size in state4_t
+            __local           int8      *itile,                     // 17 Tile size in int8
+            __global    const int       *map_xcell2face_left1,      // 18 A cell's left primary face 
+            __global    const int       *map_xcell2face_left2,      // 19 A cell's left secondary face
+            __global    const int       *map_xcell2face_right1,     // 20 A cell's right primary face 
+            __global    const int       *map_xcell2face_right2,     // 21 A cell's right secondary face 
+            __global    const int       *map_ycell2face_bot1,       // 22 A cell's bot primary face 
+            __global    const int       *map_ycell2face_bot2,       // 23 A cell's bot secondary face
+            __global    const int       *map_ycell2face_top1,       // 24 A cell's top primary face 
+            __global    const int       *map_ycell2face_top2) {     // 25 A cell's top secondary face 
+
+    /////////////////////////////////////////////
+    /// Get thread identification information ///
+    /////////////////////////////////////////////
+
+    const uint giX = get_global_id(0);
+    const uint tiX = get_local_id(0);
+
+    const uint ngX = get_global_size(0);
+    const uint ntX = get_local_size(0);
+
+    const uint group_id = get_group_id(0);
+
+    #ifdef NEEDS_WORK_XXX
+    // Ensure the executing thread is not extraneous
+    if (giX >= max(ncells, max(nxface, nyface)))
+        return;
+
+    /////////////////////////////////////////////
+    /// Set local tile & apply boundary conds ///
+    /////////////////////////////////////////////
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    /////////////////////////////////////////////////
+    /// Declare all constants and local variables ///
+    /////////////////////////////////////////////////
+
+    const real_g        = GRAVITATIONAL_CONSTANT; // gravitational constant
+    const real_t ghalf  = HALF*g;
+
+    // Left, right, ... left-left, right-right, ... left-top, right-top neighbor
+    int nl, nr, nt, nb;
+    int nll, nrr, ntt, nbb;
+
+    // Level
+    int lvl, lvl_nl, lvl_nr, lvl_nt, lvl_nb;
+    int lvl_nll, lvl_nrr, lvl_ntt, lvl_nbb;
+
+    // Left-top, right-top, top-right, bottom-right neighbor
+    int nlt, nrt, ntr, nbr;
+
+    // State variables at x-axis control volume face
+   real_t Hxminus, Hxplus;
+   real_t Uxminus, Uxplus;
+   real_t Vxminus, Vxplus;
+
+   // State variables at y-axis control volume face
+   real_t Hyminus, Hyplus;
+   real_t Uyminus, Uyplus;
+   real_t Vyminus, Vyplus;
+
+   // Variables for artificial viscosity/flux limiting
+   real_t wminusx_H, wminusx_U;
+   real_t wplusx_H, wplusx_U;
+   real_t wminusy_H, wminusy_V;
+   real_t wplusy_H, wplusy_V;
+
+   int nltl;
+   real_t Hll2;
+
+   int nrtr;
+   real_t Hrr2;
+
+   real_t Ull2;
+   real_t Urr2;
+
+   int ntrt;
+   real_t Htt2;
+
+   int nbrb;
+   real_t Hbb2;
+
+   real_t Vtt2;
+   real_t Vbb2;
+
+   real_t Hxminus2, Hxplus2;
+   real_t Uxminus2, Uxplus2;
+   real_t Vxminus2, Vxplus2;
+
+   real_t Hyminus2, Hyplus2;
+   real_t Uyminus2, Uyplus2;
+   real_t Vyminus2, Vyplus2;
+
+   real_t Hxfluxminus;
+   real_t Uxfluxminus;
+   real_t Vxfluxminus;
+
+   real_t Hxfluxplus;
+   real_t Uxfluxplus;
+   real_t Vxfluxplus;
+
+   real_t Hyfluxminus;
+   real_t Uyfluxminus;
+   real_t Vyfluxminus;
+
+   real_t Hyfluxplus;
+   real_t Uyfluxplus;
+   real_t Vyfluxplus;
+
+
+   // XXX Assuming square cells! XXX
+   // State variables and cell widths and lengths
+   real_t dric, drl, drr, drt, drb;
+//   real_t drlt, drrt, drtr, drbr;
+
+   real_t Hic, Hl, Hr, Ht, Hb;
+   real_t Hll, Hrr, Htt, Hbb;
+
+   real_t Uic, Ul, Ur, Ut, Ub;
+   real_t Ull, Urr;
+
+   real_t Vic, Vl, Vr, Vt, Vb;
+   real_t Vtt, Vbb;
+
+   real_t Hlt, Hrt, Htr, Hbr;
+   real_t Ult, Urt, Utr, Ubr;
+   real_t Vlt, Vrt, Vtr, Vbr;
+
+
+   // Local values for the state variables and cell widths and heights for the local cell as well
+   // as its neighboring cells
+   real_t dxic, dxl, dxr, dyic, dyt, dyb;
+
+
+    // we have done the computions from the faces, now we use those values via cells
+
+      int lvl     = level[giX];
+      int nl      = nlft[giX];
+      int nr      = nrht[giX];
+      int nt      = ntop[giX];
+      int nb      = nbot[giX];
+
+      real_t Hic     = H[giX];
+      real_t Uic     = U[giX];
+      real_t Vic     = V[giX];
+
+      int nll     = nlft[nl];
+      real_t Hl      = H[nl];
+      real_t Ul      = U[nl];
+      //real_t Vl      = V[nl];
+
+      int nrr     = nrht[nr];
+      real_t Hr      = H[nr];
+      real_t Ur      = U[nr];
+      //real_t Vr      = V[nr];
+
+      int ntt     = ntop[nt];
+      real_t Ht      = H[nt];
+      //real_t Ut      = U[nt];
+      real_t Vt      = V[nt];
+
+      int nbb     = nbot[nb];
+      real_t Hb      = H[nb];
+      //real_t Ub      = U[nb];
+      real_t Vb      = V[nb];
+
+      int nlt     = ntop[nl];
+      int nrt     = ntop[nr];
+      int ntr     = nrht[nt];
+      int nbr     = nrht[nb];
+
+      real_t Hll     = H[nll];
+      real_t Ull     = U[nll];
+      //real_t Vll     = V[nll];
+
+      real_t Hrr     = H[nrr];
+      real_t Urr     = U[nrr];
+      //real_t Vrr     = V[nrr];
+
+      real_t Htt     = H[ntt];
+      //real_t Utt     = U[ntt];
+      real_t Vtt     = V[ntt];
+
+      real_t Hbb     = H[nbb];
+      //real_t Ubb     = U[nbb];
+      real_t Vbb     = V[nbb];
+
+      real_t dxic    = lev_deltax[lvl];
+      //real_t dyic    = lev_deltay[lvl];
+
+      real_t dxl     = lev_deltax[level[nl]];
+      real_t dxr     = lev_deltax[level[nr]];
+
+      real_t dyt     = lev_deltay[level[nt]];
+      real_t dyb     = lev_deltay[level[nb]];
+
+      //real_t drl     = dxl;
+      //real_t drr     = dxr;
+      //real_t drt     = dyt;
+      //real_t drb     = dyb;
+
+      real_t dric    = dxic;
+
+      int nltl = 0;
+      real_t Hlt = 0.0, Ult = 0.0; // Vlt = 0.0;
+      real_t Hll2 = 0.0;
+      real_t Ull2 = 0.0;
+      if(lvl < level[nl]) {
+         Hlt  = H[ ntop[nl] ];
+         Ult  = U[ ntop[nl] ];
+         //Vlt  = V[ ntop[nl] ];
+
+         nltl = nlft[nlt];
+         Hll2 = H[nltl];
+         Ull2 = U[nltl];
+      }
+
+      int nrtr = 0;
+      real_t Hrt = 0.0, Urt = 0.0; // Vrt = 0.0;
+      real_t Hrr2 = 0.0;
+      real_t Urr2 = 0.0;
+      if(lvl < level[nr]) {
+         Hrt  = H[ ntop[nr] ];
+         Urt  = U[ ntop[nr] ];
+         //Vrt  = V[ ntop[nr] ];
+
+         nrtr = nrht[nrt];
+         Hrr2 = H[nrtr];
+         Urr2 = U[nrtr];
+      }
+
+      int nbrb = 0;
+      real_t Hbr = 0.0, Vbr = 0.0; // Ubr = 0.0
+      real_t Hbb2 = 0.0;
+      real_t Vbb2 = 0.0;
+      if(lvl < level[nb]) {
+         Hbr  = H[ nrht[nb] ];
+         //Ubr  = U[ nrht[nb] ];
+         Vbr  = V[ nrht[nb] ];
+
+         nbrb = nbot[nbr];
+         Hbb2 = H[nbrb];
+         Vbb2 = V[nbrb];
+      }
+
+      int ntrt = 0;
+      real_t Htr = 0.0, Vtr = 0.0; // Utr = 0.0
+      real_t Htt2 = 0.0;
+      real_t Vtt2 = 0.0;
+      if(lvl < level[nt]) {
+         Htr  = H[ nrht[nt] ];
+         //Utr  = U[ nrht[nt] ];
+         Vtr  = V[ nrht[nt] ];
+
+         ntrt = ntop[ntr];
+         Htt2 = H[ntrt];
+         Vtt2 = V[ntrt];
+      }
+
+      ////////////////////////////////////////
+      /// Artificial Viscosity corrections ///
+      ////////////////////////////////////////
+
+      real_t Hxminus = H[giX];
+      real_t Uxminus = 0.0;
+      real_t Vxminus = 0.0;
+      if (mesh->map_xcell2face_left1[giX] >= 0){
+         Hxminus  = Hx[mesh->map_xcell2face_left1[giX]];
+         Uxminus  = Ux[mesh->map_xcell2face_left1[giX]];
+         Vxminus  = Vx[mesh->map_xcell2face_left1[giX]];
+      }
+
+      real_t Hxminus2 = 0.0;
+      if(lvl < level[nl]) Hxminus2 = H[giX];
+      real_t Uxminus2 = 0.0;
+      real_t Vxminus2 = 0.0;
+      if (mesh->map_xcell2face_left2[giX] >= 0) {
+         Hxminus2 = Hx[mesh->map_xcell2face_left2[giX]];
+         Uxminus2 = Ux[mesh->map_xcell2face_left2[giX]];
+         Vxminus2 = Vx[mesh->map_xcell2face_left2[giX]];
+      }
+
+      real_t Hxplus = H[giX];
+      real_t Uxplus = 0.0;
+      real_t Vxplus = 0.0;
+      if (mesh->map_xcell2face_right1[giX] >= 0){
+         Hxplus   = Hx[mesh->map_xcell2face_right1[giX]];
+         Uxplus   = Ux[mesh->map_xcell2face_right1[giX]];
+         Vxplus   = Vx[mesh->map_xcell2face_right1[giX]];
+      }
+
+      real_t Hxplus2 = 0.0;
+      if(lvl < level[nr]) Hxplus2 = H[giX];
+      real_t Uxplus2 = 0.0;
+      real_t Vxplus2 = 0.0;
+      if (mesh->map_xcell2face_right2[giX] >= 0){
+         Hxplus2  = Hx[mesh->map_xcell2face_right2[giX]];
+         Uxplus2  = Ux[mesh->map_xcell2face_right2[giX]];
+         Vxplus2  = Vx[mesh->map_xcell2face_right2[giX]];
+      }
+
+      if(level[nl] < level[nll]) {
+         Hll = (Hll + H[ ntop[nll] ]) * HALF;
+         Ull = (Ull + U[ ntop[nll] ]) * HALF;
+      }
+
+      real_t Hr2 = Hr;
+      real_t Ur2 = Ur;
+      if(lvl < level[nr]) {
+         Hr2 = (Hr2 + Hrt) * HALF;
+         Ur2 = (Ur2 + Urt) * HALF;
+      }
+
+      real_t wminusx_H = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+                              Hic-Hl, Hl-Hll, Hr2-Hic);
+
+      wminusx_H *= Hic - Hl;
+
+      if(lvl < level[nl]) {
+         if(level[nlt] < level[nltl])
+            Hll2 = (Hll2 + H[ ntop[nltl] ]) * HALF;
+         wminusx_H = ((w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus2/Hxminus2) +
+                                  sqrt(g*Hxminus2), Hic-Hlt, Hlt-Hll2, Hr2-Hic) *
+                      (Hic - Hlt)) + wminusx_H)*HALF*HALF;
+      }
+
+      if(level[nr] < level[nrr]) {
+         Hrr = (Hrr + H[ ntop[nrr] ]) * HALF;
+         Urr = (Urr + U[ ntop[nrr] ]) * HALF;
+      }
+
+      real_t Hl2 = Hl;
+      real_t Ul2 = Ul;
+      if(lvl < level[nl]) {
+         Hl2 = (Hl2 + Hlt) * HALF;
+         Ul2 = (Ul2 + Ult) * HALF;
+      }
+
+      real_t wplusx_H = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+                           Hr-Hic, Hic-Hl2, Hrr-Hr);
+
+      wplusx_H *= Hr - Hic;
+
+      if(lvl < level[nr]) {
+         if(level[nrt] < level[nrtr])
+            Hrr2 = (Hrr2 + H[ ntop[nrtr] ]) * HALF;
+         wplusx_H = ((w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus2/Hxplus2) +
+                                  sqrt(g*Hxplus2), Hrt-Hic, Hic-Hl2, Hrr2-Hrt) *
+                      (Hrt - Hic))+wplusx_H)*HALF*HALF;
+      }
+
+
+      real_t wminusx_U = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+                              Uic-Ul, Ul-Ull, Ur2-Uic);
+
+      wminusx_U *= Uic - Ul;
+
+      if(lvl < level[nl]) {
+         if(level[nlt] < level[nltl])
+            Ull2 = (Ull2 + U[ ntop[nltl] ]) * HALF;
+         wminusx_U = ((w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus2/Hxminus2) +
+                                  sqrt(g*Hxminus2), Uic-Ult, Ult-Ull2, Ur2-Uic) *
+                      (Uic - Ult))+wminusx_U)*HALF*HALF;
+      }
+
+
+      real_t wplusx_U = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+                              Ur-Uic, Uic-Ul2, Urr-Ur);
+
+      wplusx_U *= Ur - Uic;
+
+      if(lvl < level[nr]) {
+         if(level[nrt] < level[nrtr])
+            Urr2 = (Urr2 + U[ ntop[nrtr] ]) * HALF;
+         wplusx_U = ((w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus2/Hxplus2) +
+                                  sqrt(g*Hxplus2), Urt-Uic, Uic-Ul2, Urr2-Urt) *
+                      (Urt - Uic))+wplusx_U)*HALF*HALF;
+      }
+
+
+      if(level[nb] < level[nbb]) {
+         Hbb = (Hbb + H[ nrht[nbb] ]) * HALF;
+         Vbb = (Vbb + V[ nrht[nbb] ]) * HALF;
+      }
+
+      real_t Ht2 = Ht;
+      real_t Vt2 = Vt;
+      if(lvl < level[nt]) {
+         Ht2 = (Ht2 + Htr) * HALF;
+         Vt2 = (Vt2 + Vtr) * HALF;
+      }
+
+      real_t Hyminus = H[giX];
+      real_t Uyminus = 0.0;
+      real_t Vyminus = 0.0;
+      if (mesh->map_ycell2face_bot1[giX] >= 0){
+         Hyminus  = Hy[mesh->map_ycell2face_bot1[giX]];
+         Uyminus  = Uy[mesh->map_ycell2face_bot1[giX]];
+         Vyminus  = Vy[mesh->map_ycell2face_bot1[giX]];
+      }
+
+      real_t Hyminus2 = 0.0;
+      if(lvl < level[nb]) Hyminus2 = H[giX];
+      real_t Uyminus2 = 0.0;
+      real_t Vyminus2 = 0.0;
+      if (mesh->map_ycell2face_bot2[giX] >= 0){
+         Hyminus2 = Hy[mesh->map_ycell2face_bot2[giX]];
+         Uyminus2 = Uy[mesh->map_ycell2face_bot2[giX]];
+         Vyminus2 = Vy[mesh->map_ycell2face_bot2[giX]];
+      }
+
+      real_t Hyplus = H[giX];
+      real_t Uyplus = 0.0;
+      real_t Vyplus = 0.0;
+      if (mesh->map_ycell2face_top1[giX] >= 0){
+         Hyplus   = Hy[mesh->map_ycell2face_top1[giX]];
+         Uyplus   = Uy[mesh->map_ycell2face_top1[giX]];
+         Vyplus   = Vy[mesh->map_ycell2face_top1[giX]];
+      }
+
+      real_t Hyplus2 = 0.0;
+      if(lvl < level[nt]) Hyplus2 = H[giX];
+      real_t Uyplus2 = 0.0;
+      real_t Vyplus2 = 0.0;
+      if (mesh->map_ycell2face_top2[giX] >= 0){
+         Hyplus2  = Hy[mesh->map_ycell2face_top2[giX]];
+         Uyplus2  = Uy[mesh->map_ycell2face_top2[giX]];
+         Vyplus2  = Vy[mesh->map_ycell2face_top2[giX]];
+      }
+
+      real_t wminusy_H = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+                              Hic-Hb, Hb-Hbb, Ht2-Hic);
+
+      wminusy_H *= Hic - Hb;
+
+      if(lvl < level[nb]) {
+         if(level[nbr] < level[nbrb])
+            Hbb2 = (Hbb2 + H[ nrht[nbrb] ]) * HALF;
+         wminusy_H = ((w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus2/Hyminus2) +
+                                  sqrt(g*Hyminus2), Hic-Hbr, Hbr-Hbb2, Ht2-Hic) *
+                      (Hic - Hbr))+wminusy_H)*HALF*HALF;
+      }
+
+
+      if(level[nt] < level[ntt]) {
+         Htt = (Htt + H[ nrht[ntt] ]) * HALF;
+         Vtt = (Vtt + V[ nrht[ntt] ]) * HALF;
+      }
+
+      real_t Hb2 = Hb;
+      real_t Vb2 = Vb;
+      if(lvl < level[nb]) {
+         Hb2 = (Hb2 + Hbr) * HALF;
+         Vb2 = (Vb2 + Vbr) * HALF;
+      }
+
+      real_t wplusy_H = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+                             Ht-Hic, Hic-Hb2, Htt-Ht);
+
+      wplusy_H *= Ht - Hic;
+
+      if(lvl < level[nt]) {
+         if(level[ntr] < level[ntrt])
+            Htt2 = (Htt2 + H[ nrht[ntrt] ]) * HALF;
+         wplusy_H = ((w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus2/Hyplus2) +
+                                  sqrt(g*Hyplus2), Htr-Hic, Hic-Hb2, Htt2-Htr) *
+                      (Htr - Hic))+wplusy_H)*HALF*HALF;
+      }
+
+      real_t wminusy_V = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+                              Vic-Vb, Vb-Vbb, Vt2-Vic);
+
+      wminusy_V *= Vic - Vb;
+
+      if(lvl < level[nb]) {
+         if(level[nbr] < level[nbrb])
+            Vbb2 = (Vbb2 + V[ nrht[nbrb] ]) * HALF;
+         wminusy_V = ((w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus2/Hyminus2) +
+                                  sqrt(g*Hyminus2), Vic-Vbr, Vbr-Vbb2, Vt2-Vic) *
+                      (Vic - Vbr))+wminusy_V)*HALF*HALF;
+      }
+
+      real_t wplusy_V = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+                           Vt-Vic, Vic-Vb2, Vtt-Vt);
+
+      wplusy_V *= Vt - Vic;
+
+      if(lvl < level[nt]) {
+         if(level[ntr] < level[ntrt])
+            Vtt2 = (Vtt2 + V[ nrht[ntrt] ]) * HALF;
+         wplusy_V = ((w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus2/Hyplus2) +
+                                  sqrt(g*Hyplus2), Vtr-Vic, Vic-Vb2, Vtt2-Vtr) *
+                      (Vtr - Vic))+wplusy_V)*HALF*HALF;
+      }
+
+      real_t Hxfluxminus = HNEWXFLUXMINUS;
+      real_t Uxfluxminus = UNEWXFLUXMINUS;
+      real_t Vxfluxminus = UVNEWFLUXMINUS;
+
+      real_t Hxfluxplus  = HNEWXFLUXPLUS;
+      real_t Uxfluxplus  = UNEWXFLUXPLUS;
+      real_t Vxfluxplus  = UVNEWFLUXPLUS;
+
+      real_t Hyfluxminus = HNEWYFLUXMINUS;
+      real_t Uyfluxminus = VUNEWFLUXMINUS;
+      real_t Vyfluxminus = VNEWYFLUXMINUS;
+
+      real_t Hyfluxplus  = HNEWYFLUXPLUS;
+      real_t Uyfluxplus  = VUNEWFLUXPLUS;
+      real_t Vyfluxplus  = VNEWYFLUXPLUS;
+
+      if(lvl < level[nl]) {
+         Hxfluxminus = (Hxfluxminus + HNEWXFLUXMINUS2) * HALF;
+         Uxfluxminus = (Uxfluxminus + UNEWXFLUXMINUS2) * HALF;
+         Vxfluxminus = (Vxfluxminus + UVNEWFLUXMINUS2) * HALF;
+      }
+
+      if(lvl < level[nr]) {
+         Hxfluxplus  = (Hxfluxplus + HNEWXFLUXPLUS2) * HALF;
+         Uxfluxplus  = (Uxfluxplus + UNEWXFLUXPLUS2) * HALF;
+         Vxfluxplus  = (Vxfluxplus + UVNEWFLUXPLUS2) * HALF;
+      }
+
+      if(lvl < level[nb]) {
+         Hyfluxminus = (Hyfluxminus + HNEWYFLUXMINUS2) * HALF;
+         Uyfluxminus = (Uyfluxminus + VUNEWFLUXMINUS2) * HALF;
+         Vyfluxminus = (Vyfluxminus + VNEWYFLUXMINUS2) * HALF;
+      }
+
+      if(lvl < level[nt]) {
+         Hyfluxplus  = (Hyfluxplus + HNEWYFLUXPLUS2) * HALF;
+         Uyfluxplus  = (Uyfluxplus + VUNEWFLUXPLUS2) * HALF;
+         Vyfluxplus  = (Vyfluxplus + VNEWYFLUXPLUS2) * HALF;
+      }
+
+      H_new[giX] = U_fullstep(deltaT, dxic, Hic,
+                      Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
+                 - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
+      U_new[giX] = U_fullstep(deltaT, dxic, Uic,
+                      Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
+                 - wminusx_U + wplusx_U;
+      V_new[giX] = U_fullstep(deltaT, dxic, Vic,
+                      Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
+                 - wminusy_V + wplusy_V;
+
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
+      #endif
+
+}
+
 __kernel void refine_potential_cl(
                  const int      ncells,     // 0  Total number of cells.
                  const int      levmx,      // 1  Maximum level
@@ -1948,6 +2696,72 @@ void setup_refine_tile(
 
    levelval(tiX) = level[giX];
 }
+
+/*void setup_xface(
+                __local           int8        *xface,
+                __local           int         isize;
+                __global    const int         *map_xface2cell_lower,   
+                __global    const int         *map_xface2cell_upper,      
+                )
+{
+    const unsigned int giX = get_global_id (0);
+    const unsigned int tiX = get_local_id (0);
+
+    const unsigned int ntX = get_local_size (0);
+
+    const unsigned int group_id = get_group_id (0);
+
+    int start_idx = group_id * ntX;
+    int end_idx = (group_id + 1) * ntX;
+    end_idx = min(end_idx, isize);
+
+    if (map_xface2cell_lower[giX] >= start_idx && map_xface2cell_lower[giX] < end_idx) {
+        xfacelower(tiX) = map_xface2cell_lower[giX];
+    }
+    else {
+        xfacelower(tiX) = map_xface2cell_lower[giX];
+    }
+
+    if (map_xface2cell_upper[giX] >= start_idx && map_xface2cell_upper[giX] < end_idx) {
+        xfaceupper(tiX) = map_xface2cell_upper[giX];
+    }
+    else {
+        xfaceupper(tiX) = map_xface2cell_upper[giX];
+    }
+}
+
+void setup_yface(
+                __local           int8        *yface,
+                __local           int         isize;
+                __global    const int         *map_yface2cell_lower,   
+                __global    const int         *map_yface2cell_upper,      
+                )
+{
+    const unsigned int giX = get_global_id (0);
+    const unsigned int tiX = get_local_id (0);
+
+    const unsigned int ntX = get_local_size (0);
+
+    const unsigned int group_id = get_group_id (0);
+
+    int start_idx = group_id * ntX;
+    int end_idx = (group_id + 1) * ntX;
+    end_idx = min(end_idx, isize);
+
+    if (map_yface2cell_lower[giX] >= start_idx && map_yface2cell_lower[giX] < end_idx) {
+        yfacelower(tiX) = map_yface2cell_lower[giX];
+    }
+    else {
+        yfacelower(tiX) = map_yface2cell_lower[giX];
+    }
+
+    if (map_xface2cell_upper[giX] >= start_idx && map_xface2cell_upper[giX] < end_idx) {
+        yfaceupper(tiX) = map_yface2cell_upper[giX];
+    }
+    else {
+        yfaceupper(tiX) = map_yface2cell_upper[giX];
+    }
+}*/
 
 inline uint scan_warp_exclusive(__local volatile uint *input, const uint idx, const uint lane) {
     if (lane > 0 ) input[idx] += input[idx - 1];

@@ -11133,6 +11133,28 @@ void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
    exit(0);
 }
 
+#ifdef HAVE_OPENCL
+void Mesh::gpu_calc_face_list_wbidirmap(void)
+{
+   size_t mem_request = (int)((float)nxface*mem_factor);
+   dev_map_xface2cell_lower = ezcl_malloc(NULL, const_cast<char *>("dev_map_xface2cell_lower"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_map_xface2cell_upper = ezcl_malloc(NULL, const_cast<char *>("dev_map_xface2cell_upper"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   mem_request = (int)((float)nyface*mem_factor);
+   dev_map_yface2cell_lower = ezcl_malloc(NULL, const_cast<char *>("dev_map_yface2cell_lower"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_map_yface2cell_upper = ezcl_malloc(NULL, const_cast<char *>("dev_map_yface2cell_upper"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   mem_request = (int)((float)ncells*mem_factor);
+   dev_map_xcell2face_left1 = ezcl_malloc(NULL, const_cast<char *>("dev_map_xcell2face_left1"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_map_xcell2face_left2 = ezcl_malloc(NULL, const_cast<char *>("dev_map_xcell2face_left2"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_map_xcell2face_right1 = ezcl_malloc(NULL, const_cast<char *>("dev_map_xcell2face_right1"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_map_xcell2face_right2 = ezcl_malloc(NULL, const_cast<char *>("dev_map_xcell2face_right2"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_map_ycell2face_bot1 = ezcl_malloc(NULL, const_cast<char *>("dev_map_ycell2face_bot1"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_map_ycell2face_bot2 = ezcl_malloc(NULL, const_cast<char *>("dev_map_ycell2face_bot2"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_map_ycell2face_top1 = ezcl_malloc(NULL, const_cast<char *>("dev_map_ycell2face_top1"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_map_ycell2face_top2 = ezcl_malloc(NULL, const_cast<char *>("dev_map_ycell2face_top2"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+    
+}
+#endif
+
 int **Mesh::get_xface_flag(int lev, bool print_output)
 {
    int **xface_flag = (int **)genmatrix(jxmax_level[lev]+1,
