@@ -175,6 +175,18 @@ inline real_t w_corrector(
    return HALF*nu*(ONE- max(MIN3(ONE, rplus, rminus), ZERO));
 }
 
+inline real_t U_reggrid_halfstep(// XXX Fix the subindices to be more intuitive XXX
+        real_t    deltaT,     // Timestep
+        real_t    deltax,     // Cell size in direction of flux
+        real_t    U_i,        // Initial cell's (downwind's) state variable
+        real_t    U_n,        // Next cell's    (upwind's)   state variable
+        real_t    F_i,        // Initial cell's (downwind's) state variable flux
+        real_t    F_n) {      // Next cell's    (upwind's)   state variable flux
+
+   return ( HALF*( ((U_n) + (U_i)) - (deltaT)/(deltax)*((F_n) - (F_i)) ) );
+}
+
+
 State::State(Mesh *mesh_in)
 {
    state_memory.memory_add(int_vals,   (size_t)num_int_vals,     4, "state_int_vals",   RESTART_DATA | REPLICATED_DATA);
@@ -3242,6 +3254,24 @@ void State::calc_finite_difference_via_faces(double deltaT){
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
+//#define HXRGFLUXIC ( Uic )
+//#define HXRGFLUXNL ( Ul )
+//#define HXRGFLUXNR ( Ur )
+//#define HXRGFLUXNB ( Ub )
+//#define HXRGFLUXNT ( Ut )
+
+//#define UXRGFLUXIC ( SQ(Uic)/Hic + ghalf*SQ(Hic) )
+//#define UXRGFLUXNL ( SQ(Ul)/Hl + ghalf*SQ(Hl) )
+//#define UXRGFLUXNR ( SQ(Ur)/Hr + ghalf*SQ(Hr) )
+//#define UXRGFLUXNB ( SQ(Ub)/Hb + ghalf*SQ(Hb) )
+//#define UXRGFLUXNT ( SQ(Ut)/Ht + ghalf*SQ(Ht) )
+
+//#define UVRGFLUXIC ( Uic*Vic/Hic )
+//#define UVRGFLUXNL ( Ul*Vl/Hl )
+//#define UVRGFLUXNR ( Ur*Vr/Hr )
+//#define UVRGFLUXNB ( Ub*Vb/Hb )
+//#define UVRGFLUXNT ( Ut*Vt/Ht )
+
 void State::calc_finite_difference_regular_cells(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = 0.5*g;
@@ -3289,6 +3319,8 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #endif
 
    static state_t *H_new, *U_new, *V_new;
+   static state_t ***H_reg_lev, ***U_reg_lev, ***V_reg_lev;
+   static int ***mask_reg_lev;
    int *nlft, *nrht, *nbot, *ntop, *level;
 
    nlft  = mesh->nlft;
@@ -3309,6 +3341,165 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #endif
    mesh->calc_face_list_wbidirmap_phantom(state_memory);
    mesh->generate_regular_cell_meshes(state_memory);
+   H_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
+   U_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
+   V_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
+   mask_reg_lev = (int ***)malloc(mesh->levmx*sizeof(int **));
+   for (int lev = 0; lev <= mesh->levmx; lev++){
+       state_t ***pstate = mesh->meshes[lev].pstate;
+       H_reg_lev[lev] = pstate[0];
+       U_reg_lev[lev] = pstate[1];
+       V_reg_lev[lev] = pstate[2];
+       mask_reg_lev[lev] = mesh->meshes[lev].mask;
+   }
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+
+   int iimax = mesh->imax+1;
+   int jjmax = mesh->jmax+1;
+   for (int ll=0; ll<=mesh->levmx; ll++){
+      state_t **H_reg = H_reg_lev[ll];
+      state_t **U_reg = U_reg_lev[ll];
+      state_t **V_reg = V_reg_lev[ll];
+      int **mask_reg = mask_reg_lev[ll];
+      state_t dx = lev_deltax[ll];
+      for(int jj=0; jj<jjmax; jj++){
+         for(int ii=0; ii<iimax; ii++){
+            real_t Hxminus = 0.0;
+            real_t Uxminus = 0.0;
+            real_t Vxminus = 0.0;
+            if (ii >= 1 && mask_reg[jj][ii-1] == 1 && mask_reg[jj][ii]){
+//             Hxminus = U_reggrid_halfstep(deltaT, dx, H_reg[jj][ii-1], H_reg[jj][ii],
+//                       HXRGFLUXNL, HXRGFLUXIC);
+//             Uxminus = U_reggrid_halfstep(deltaT, dx, U_reg[jj][ii-1], U_reg[jj][ii],
+//                       UXRGFLUXNL, UXRGFLUXIC);
+//             Vxminus = V_reggrid_halfstep(deltaT, dx, V_reg[jj][ii-1], V_reg[jj][ii],
+//                       VXRGFLUXNL, VXRGFLUXIC);
+            }
+            real_t Hxplus = 0.0;
+            real_t Uxplus = 0.0;
+            real_t Vxplus = 0.0;
+            if (ii >= 1 && mask_reg[jj][ii] == 1 && mask_reg[jj][ii+1]){
+//             Hxplus = U_reggrid_halfstep(deltaT, dx, H_reg[jj][ii], H_reg[jj][ii+1],
+//                       HXRGFLUXIC, HXRGFLUXNR);
+//             Uxplus = U_reggrid_halfstep(deltaT, dx, U_reg[jj][ii], U_reg[jj][ii+1],
+//                       UXRGFLUXIC, UXRGFLUXNR);
+//             Vxplus = V_reggrid_halfstep(deltaT, dx, V_reg[jj][ii], V_reg[jj][ii+1],
+//                       VXRGFLUXIC, VXRGFLUXNR);
+            }
+
+            real_t Hyminus = 0.0;
+            real_t Uyminus = 0.0;
+            real_t Vyminus = 0.0;
+            if (jj >= 1 && mask_reg[jj-1][ii] == 1 && mask_reg[jj][ii]){
+//             Hyminus = U_reggrid_halfstep(deltaT, dy, H_reg[jj-1][ii], H_reg[jj][ii],
+//                       HYRGFLUXNB, HYRGFLUXIC);
+//             Uyminus = U_reggrid_halfstep(deltaT, dy, U_reg[jj-1][ii], U_reg[jj][ii],
+//                       UYRGFLUXNB, UYRGFLUXIC);
+//             Vyminus = V_reggrid_halfstep(deltaT, dy, V_reg[jj-1][ii], V_reg[jj][ii],
+//                       VYRGFLUXNB, VYRGFLUXIC);
+            }
+            real_t Hyplus = 0.0;
+            real_t Uyplus = 0.0;
+            real_t Vyplus = 0.0;
+            if (jj >= 1 && mask_reg[jj][ii] == 1 && mask_reg[jj+1][ii]){
+//             Hyplus = U_reggrid_halfstep(deltaT, dy, H_reg[jj][ii], H_reg[jj+1][ii],
+//                       HYRGFLUXIC, HYRGFLUXNU);
+//             Uyplus = U_reggrid_halfstep(deltaT, dy, U_reg[jj][ii], U_reg[jj+1][ii],
+//                       UYRGFLUXIC, UYRGFLUXNU);
+//             Vyplus = V_reggrid_halfstep(deltaT, dy, V_reg[jj][ii], V_reg[jj+1][ii],
+//                       VYRGFLUXIC, VYRGFLUXNU);
+            }
+
+#ifdef XXX
+            duminus1 = H[j][i-1]-H[j][i-2];
+            duminus2 = U[j][i-1]-U[j][i-2];
+            duplus1 = H[j][i+1]-H[j][i];
+            duplus2 = U[j][i+1]-U[j][i];
+            duhalf1 = H[j][i]-H[j][i-1];
+            duhalf2 = U[j][i]-U[j][i-1];
+            rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
+            rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
+            rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
+            rplus =rnumplus /rdenom;
+            rminus=rnumminus/rdenom;
+            q = max(MIN3(1.0, rminus, rplus), 0.0);
+            nu=(fabs(Ux[j-2][i-2])+sqrt(g*Hx[j-2][i-2]))*Cx;
+            cv=nu*(1.0-nu);
+            wminusx = 0.5*cv*(1.0-q);
+
+            duminus1 = H[j][i]-H[j][i-1];
+            duminus2 = U[j][i]-U[j][i-1];
+            duplus1 = H[j][i+2]-H[j][i+1];
+            duplus2 = U[j][i+2]-U[j][i+1];
+            duhalf1 = H[j][i+1]-H[j][i];
+            duhalf2 = U[j][i+1]-U[j][i];
+            rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
+            rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
+            rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
+            rplus =rnumplus /rdenom;
+            rminus=rnumminus/rdenom;
+            q = max(MIN3(1.0, rminus, rplus), 0.0);
+            nu=(fabs(Ux[j-2][i-1])+sqrt(g*Hx[j-2][i-1]))*Cx;
+            cv=nu*(1.0-nu);
+            wplusx = 0.5*cv*(1.0-q);
+
+            duminus1 = H[j-1][i]-H[j-2][i];
+            duminus2 = V[j-1][i]-V[j-2][i];
+            duplus1 = H[j+1][i]-H[j][i];
+            duplus2 = V[j+1][i]-V[j][i];
+            duhalf1 = H[j][i]-H[j-1][i];
+            duhalf2 = V[j][i]-V[j-1][i];
+            rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
+            rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
+            rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
+            rplus =rnumplus /rdenom;
+            rminus=rnumminus/rdenom;
+            q = max(MIN3(1.0, rminus, rplus), 0.0);
+            nu=(fabs(Vy[j-2][i-2])+sqrt(g*Hy[j-2][i-2]))*Cy;
+            cv=nu*(1.0-nu);
+            wminusy = 0.5*cv*(1.0-q);
+
+            duminus1 = H[j][i]-H[j-1][i];
+            duminus2 = V[j][i]-V[j-1][i];
+            duplus1 = H[j+2][i]-H[j+1][i];
+            duplus2 = V[j+2][i]-V[j+1][i];
+            duhalf1 = H[j+1][i]-H[j][i];
+            duhalf2 = V[j+1][i]-V[j][i];
+            rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
+            rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
+            rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
+            rplus =rnumplus /rdenom;
+            rminus=rnumminus/rdenom;
+            q = max(MIN3(1.0, rminus, rplus), 0.0);
+            nu=(fabs(Vy[j-1][i-2])+sqrt(g*Hy[j-1][i-2]))*Cy;
+            cv=nu*(1.0-nu);
+            wplusy = 0.5*cv*(1.0-q);
+
+            H_reg_new[jj][ii] = H_reg[jj][ii] - Cx*(HRGNEWXFLUXMINUS - HRGNEWXFLUXPLUS)
+                                                 -wminusx*(H[j][i]-H[j][i-1])+wplusx*(H[j][i+1]-H[j][i])
+                                              - Cy*(HRGNEWYFLUXMINUS - HRGNEWYFLUXPLUS)
+                                                 -wminusy*(H[j][i]-H[j-1][i])+wplusy*(H[j+1][i]-H[j][i]);
+            U_reg_new[jj][ii] = U_reg[jj][ii] - Cx*(URGNEWXFLUXMINUS - URGNEWXFLUXPLUS)
+                                                 -wminusx*(U[j][i]-U[j][i-1])+wplusx*(U[j][i+1]-U[j][i])
+                                              - Cy*(URGNEWYFLUXMINUS - URGNEWYFLUXPLUS)
+                                                 -wminusy*(U[j][i]-U[j-1][i])+wplusy*(U[j+1][i]-U[j][i]);
+            V_reg_new[jj][ii] = V_reg[jj][ii] - Cx*(VRGNEWXFLUXMINUS - VRGNEWXFLUXPLUS)
+                                                 -wminusx*(V[j][i]-V[j][i-1])+wplusx*(V[j][i+1]-V[j][i])
+                                              - Cy*(VRGNEWYFLUXMINUS - VRGNEWYFLUXPLUS)
+                                                 -wminusy*(V[j][i]-V[j-1][i])+wplusy*(V[j+1][i]-V[j][i]);
+#endif
+         } // ii
+      } // jj 
+      iimax *= 2; 
+      jjmax *= 2; 
+   } // ll
+
+
+#ifdef _OPENMP
+#pragma omp master
+#endif
    mesh->destroy_regular_cell_meshes(state_memory);
 #ifdef _OPENMP
 #pragma omp barrier
