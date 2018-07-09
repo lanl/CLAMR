@@ -1,5 +1,7 @@
 #!/bin/sh
 
+export HWLOC_HIDE_ERRORS=1
+
 SCRIPT_DIR=`dirname $0`
 TEST_NAME=`basename ${SCRIPT_DIR}`
 CTS_BIN=`dirname ${SCRIPT_DIR}`/cts/bin
