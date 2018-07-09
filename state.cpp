@@ -307,11 +307,8 @@ void State::terminate(void)
    ezcl_kernel_release(kernel_apply_boundary_conditions_ghost);
    ezcl_kernel_release(kernel_calc_finite_difference);
    ezcl_kernel_release(kernel_calc_finite_difference_via_faces_face);
-<<<<<<< HEAD
    ezcl_kernel_release(kernel_calc_finite_difference_via_faces_cell);
-=======
    //ezcl_kernel_release(kernel_calc_finite_difference_via_faces_cell);
->>>>>>> upstream/master
    ezcl_kernel_release(kernel_refine_potential);
    ezcl_kernel_release(kernel_reduce_sum_mass_stage1of2);
    ezcl_kernel_release(kernel_reduce_sum_mass_stage2of2);
@@ -2454,6 +2451,11 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Uyfluxplus  = (Uyfluxplus + VUNEWFLUXPLUS2) * HALF;
          Vyfluxplus  = (Vyfluxplus + VNEWYFLUXPLUS2) * HALF;
       }*/
+      
+      //trying without dampening
+      wminusx_H = 0.0; wplusx_H = 0.0; wminusy_H = 0.0; wplusy_H = 0.0;
+      wminusx_U = 0.0; wplusx_U = 0.0;
+      wminusy_V = 0.0; wplusy_V = 0.0;
 
       H_new[ic] = U_fullstep(deltaT, dxic, Hic,
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
