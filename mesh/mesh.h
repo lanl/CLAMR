@@ -554,6 +554,17 @@ public:
                          int flag,                   //whether we are gettting a coarse from fine, fine from coarse, or both
                          real_t *fineavg,            //pointer for a fine phantom value from coarse
                          real_t *coarseavg);          //pointer for a coarse phantom value from fine
+   double xFakeFlux(double* locH,
+                  double* locU,
+                  double* locV,
+                  int     idx,
+                  int     caseNum);
+   
+   double yFakeFlux(double* locH,
+                  double* locU,
+                  double* locV,
+                  int     idx,
+                  int     caseNum);
 
    void calc_face_list_wbidirmap(void);
    void calc_face_list_wbidirmap_phantom(MallocPlus &state_memory);
