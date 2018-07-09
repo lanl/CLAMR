@@ -266,6 +266,7 @@ public:
 #ifdef HAVE_OPENCL
    void gpu_calc_finite_difference(double deltaT);
    void gpu_calc_finite_difference_via_faces(double deltaT);
+   void gpu_calc_finite_difference_via_face_in_place(double deltaT);
 #endif
 
    /*******************************************************************
