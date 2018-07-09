@@ -346,13 +346,21 @@ void setup_refine_tile(
 void setup_xface(
                 __local           int8        *xface,
                 __global    const int         *map_xface2cell_lower,   
+<<<<<<< HEAD
                 __global    const int         *map_xface2cell_upper,      
+=======
+                __global    const int         *map_xface2cell_upper
+>>>>>>> upstream/master
                 );
 
 void setup_yface(
                 __local           int8        *yface,
                 __global    const int         *map_yface2cell_lower,       
+<<<<<<< HEAD
                 __global    const int         *map_yface2cell_upper,       
+=======
+                __global    const int         *map_yface2cell_upper
+>>>>>>> upstream/master
                 );
 
 __kernel void copy_state_data_cl(
@@ -1534,7 +1542,11 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
             __global    const state_t   *V,                         // 5
             __global    const int       *level,                     // 6 Array of level information
                         const real_t    deltaT,                     // 7 Size of time step
+<<<<<<< HEAD
             __global    const reat_t    *lev_dx,                    // 8
+=======
+            __global    const real_t    *lev_dx,                    // 8
+>>>>>>> upstream/master
             __global    const real_t    *lev_dy,                    // 9
             __local           state4_t  *tile,                      // 10 Tile size in state4_t
             __local           int8      *itile,                     // 11 Tile size in int8
@@ -1549,6 +1561,7 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
     /// Get thread identification information ///
     /////////////////////////////////////////////
 
+<<<<<<< HEAD
     const unit giX = get_global_id(0);
     const uint tiX = get_local_id(0);
 
@@ -1557,6 +1570,17 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
 
     const unit group_id = get_group_id(0);
 
+=======
+    const uint giX = get_global_id(0);
+    const uint tiX = get_local_id(0);
+
+    const uint ngX = get_global_size(0);
+    const uint ntX = get_local_size(0);
+
+    const uint group_id = get_group_id(0);
+
+    #ifdef NEEDS_WORK_XXX
+>>>>>>> upstream/master
     // Ensure the executing thread is not extraneous
     if (giX >= max(nxface, nyface))
         return;
@@ -1674,6 +1698,10 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
 
       }
     }
+<<<<<<< HEAD
+=======
+    #endif
+>>>>>>> upstream/master
 
 
 }
@@ -1694,7 +1722,11 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
             __global    const int       *nbot,                      // 11 Array of bottom neighbors
             __global    const int       *level,                     // 12 Array of level information
                         const real_t    deltaT,                     // 13 Size of time step
+<<<<<<< HEAD
             __global    const reat_t    *lev_dx,                    // 14
+=======
+            __global    const real_t    *lev_dx,                    // 14
+>>>>>>> upstream/master
             __global    const real_t    *lev_dy,                    // 15
             __local           state4_t  *tile,                      // 16 Tile size in state4_t
             __local           int8      *itile,                     // 17 Tile size in int8
@@ -1711,6 +1743,7 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
     /// Get thread identification information ///
     /////////////////////////////////////////////
 
+<<<<<<< HEAD
     const unit giX = get_global_id(0);
     const uint tiX = get_local_id(0);
 
@@ -1719,6 +1752,17 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
 
     const unit group_id = get_group_id(0);
 
+=======
+    const uint giX = get_global_id(0);
+    const uint tiX = get_local_id(0);
+
+    const uint ngX = get_global_size(0);
+    const uint ntX = get_local_size(0);
+
+    const uint group_id = get_group_id(0);
+
+    #ifdef NEEDS_WORK_XXX
+>>>>>>> upstream/master
     // Ensure the executing thread is not extraneous
     if (giX >= max(ncells, max(nxface, nyface)))
         return;
@@ -2242,6 +2286,10 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
                  - wminusy_V + wplusy_V;
 
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
+<<<<<<< HEAD
+=======
+      #endif
+>>>>>>> upstream/master
 
 }
 

@@ -1,5 +1,7 @@
 #!/bin/sh
 
+export HWLOC_HIDE_ERRORS=1
+
 # Location of test script in source tree
 SCRIPT_DIR=`dirname $0`
 # This sets the internal test name to the directory name that
