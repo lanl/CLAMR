@@ -1800,14 +1800,22 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #ifdef _OPENMP
    }
 #endif
-   static vector<double> FakeFluxHx, FakeFluxUx, FakeFluxVx;
-   FakeFluxHx.resize(mesh->ncells, 0);
-   FakeFluxUx.resize(mesh->ncells, 0);
-   FakeFluxVx.resize(mesh->ncells, 0);
-   static vector<double> FakeFluxHy, FakeFluxUy, FakeFluxVy;
-   FakeFluxHy.resize(mesh->ncells, 0);
-   FakeFluxUy.resize(mesh->ncells, 0);
-   FakeFluxVy.resize(mesh->ncells, 0);
+   vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
+   FakeFluxHxP.resize(ncells, 0);
+   FakeFluxUxP.resize(ncells, 0);
+   FakeFluxVxP.resize(ncells, 0);
+   vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
+   FakeFluxHyP.resize(ncells, 0);
+   FakeFluxUyP.resize(ncells, 0);
+   FakeFluxVyP.resize(ncells, 0);
+   vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
+   FakeFluxHxM.resize(ncells, 0);
+   FakeFluxUxM.resize(ncells, 0);
+   FakeFluxVxM.resize(ncells, 0);
+   vector<double> FakeFluxHyM, FakeFluxUyM, FakeFluxVyM;
+   FakeFluxHyM.resize(ncells, 0);
+   FakeFluxUyM.resize(ncells, 0);
+   FakeFluxVyM.resize(ncells, 0);
 
    //printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
    memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
@@ -1887,9 +1895,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
              case 98:
              case 68:
              case 72:
-	     case 99:
+	         case 99:
              case 152:
-	     case 156:
+	         case 156:
                  break;
              default:
                  printf("Face case %d at line %d is not handled \n",mesh->xcase[iface],__LINE__);
@@ -2531,57 +2539,65 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       wminusx_H = 0.0; wplusx_H = 0.0; wminusy_H = 0.0; wplusy_H = 0.0;
       wminusx_U = 0.0; wplusx_U = 0.0;
       wminusy_V = 0.0; wplusy_V = 0.0;
+    //printf("\n%d) FakeFlux %f %f %f, phantom %d %d\n", ic, FakeFluxHx[ic], FakeFluxUx[ic], FakeFluxVx[ic], mesh->phantomXFlux[ic], mesh->phantomYFlux[ic]);
+    if ((FakeFluxHxP[ic] > 0) || (FakeFluxUxP[ic] > 0) || (FakeFluxVxP[ic] > 0)) {
+        //printf("\n(%d) received %f %f %f XP\n", ic, FakeFluxHxP[ic], FakeFluxUxP[ic], FakeFluxVxP[ic]);
+        Hxfluxplus = FakeFluxHxP[ic] * HALF; 
+        Uxfluxplus = FakeFluxUxP[ic] * HALF;
+        Vxfluxplus = FakeFluxVxP[ic] * HALF; 
+    }
+    else if ((FakeFluxHxM[ic] > 0) || (FakeFluxUxM[ic] > 0) || (FakeFluxVxM[ic] > 0)) {
+        //printf("\n(%d) received %f %f %f XM\n", ic, FakeFluxHxM[ic], FakeFluxUxM[ic], FakeFluxVxM[ic]);
+        Hxfluxminus = FakeFluxHxM[ic] * HALF; 
+        Uxfluxminus = FakeFluxUxM[ic] * HALF; 
+        Vxfluxminus = FakeFluxVxM[ic] * HALF; 
+    }
+    if ((FakeFluxHyP[ic] > 0) || (FakeFluxUyP[ic] > 0) || (FakeFluxVyP[ic] > 0)) {
+        //printf("\n(%d) received %f %f %f YP\n", ic, FakeFluxHyP[ic], FakeFluxUyP[ic], FakeFluxVyP[ic]);
+        Hyfluxplus = FakeFluxHyP[ic] * HALF; 
+        Uyfluxplus = FakeFluxUyP[ic] * HALF; 
+        Vyfluxplus = FakeFluxVyP[ic] * HALF; 
+    }
+    else if ((FakeFluxHyM[ic] > 0) || (FakeFluxUyM[ic] > 0) || (FakeFluxVyM[ic] > 0)) {
+        //printf("\n(%d) received %f %f %f YM\n", ic, FakeFluxHyM[ic], FakeFluxUyM[ic], FakeFluxVyM[ic]);
+        Hyfluxminus = FakeFluxHyM[ic] * HALF; 
+        Uyfluxminus = FakeFluxUyM[ic] * HALF; 
+        Vyfluxminus = FakeFluxVyM[ic] * HALF; 
+    }
 
     if ((mesh->phantomXFlux[ic] >= 0) && (mesh->phantomXFlux[ic] < 99999)) {
-        FakeFluxHx[mesh->phantomXFlux[ic]] += Hxfluxplus;
-        FakeFluxUx[mesh->phantomXFlux[ic]] += Uxfluxplus;
-        FakeFluxVx[mesh->phantomXFlux[ic]] += Vxfluxplus;
+        //printf("\n(%d) adding %f %f %f to %d XP\n", ic, Hxfluxminus, Uxfluxminus, Vxfluxminus, mesh->phantomXFlux[ic]);
+        FakeFluxHxP[mesh->phantomXFlux[ic]] += Hxfluxminus;
+        FakeFluxUxP[mesh->phantomXFlux[ic]] += Uxfluxminus;
+        FakeFluxVxP[mesh->phantomXFlux[ic]] += Vxfluxminus;
     }
     else if (mesh->phantomXFlux[ic] < 0) {
-        FakeFluxHx[abs(mesh->phantomXFlux[ic])] -= Hxfluxminus;
-        FakeFluxUx[abs(mesh->phantomXFlux[ic])] -= Uxfluxminus;
-        FakeFluxVx[abs(mesh->phantomXFlux[ic])] -= Vxfluxminus;
+        //printf("(%d) adding %f %f %f to %d XM\n", ic, Hxfluxplus, Uxfluxplus, Vxfluxplus, mesh->phantomXFlux[ic]);
+        FakeFluxHxM[abs(mesh->phantomXFlux[ic])] += Hxfluxplus;
+        FakeFluxUxM[abs(mesh->phantomXFlux[ic])] += Uxfluxplus;
+        FakeFluxVxM[abs(mesh->phantomXFlux[ic])] += Vxfluxplus;
     }
     if ((mesh->phantomYFlux[ic] >= 0) && (mesh->phantomYFlux[ic] < 99999)) {
-        FakeFluxHy[mesh->phantomYFlux[ic]] += Hyfluxplus;
-        FakeFluxUy[mesh->phantomYFlux[ic]] += Uyfluxplus;
-        FakeFluxVy[mesh->phantomYFlux[ic]] += Vyfluxplus;
+        //printf("(%d) adding %f %f %f to %d YP\n", ic, Hyfluxminus, Uyfluxminus, Vyfluxminus, mesh->phantomYFlux[ic]);
+        FakeFluxHyP[mesh->phantomYFlux[ic]] += Hyfluxminus;
+        FakeFluxUyP[mesh->phantomYFlux[ic]] += Uyfluxminus;
+        FakeFluxVyP[mesh->phantomYFlux[ic]] += Vyfluxminus;
     }
     else if (mesh->phantomYFlux[ic] < 0) {
-        FakeFluxHy[abs(mesh->phantomYFlux[ic])] -= Hyfluxminus;
-        FakeFluxUy[abs(mesh->phantomYFlux[ic])] -= Uyfluxminus;
-        FakeFluxVy[abs(mesh->phantomYFlux[ic])] -= Vyfluxminus;
-    }
-    
-    if ((FakeFluxHx[ic] > 0) || (FakeFluxUx[ic] > 0) || (FakeFluxVx[ic] > 0)) {
-        Hxfluxplus = FakeFluxHx[ic] * HALF; 
-        Uxfluxplus = FakeFluxUx[ic] * HALF;
-        Vxfluxplus = FakeFluxVx[ic] * HALF; 
-    }
-    else if ((FakeFluxHx[ic] < 0) || (FakeFluxUx[ic] < 0) || (FakeFluxVx[ic] < 0)) {
-        Hxfluxminus = -1 * FakeFluxHx[ic] * HALF; 
-        Uxfluxminus = -1 * FakeFluxUx[ic] * HALF; 
-        Vxfluxminus = -1 * FakeFluxVx[ic] * HALF; 
-    }
-    if ((FakeFluxHy[ic] > 0) || (FakeFluxUy[ic] > 0) || (FakeFluxVy[ic] > 0)) {
-        Hyfluxplus = FakeFluxHy[ic] * HALF; 
-        Uyfluxplus = FakeFluxUy[ic] * HALF; 
-        Vyfluxplus = FakeFluxVy[ic] * HALF; 
-    }
-    else if ((FakeFluxHy[ic] < 0) || (FakeFluxUy[ic] < 0) || (FakeFluxVy[ic] < 0)) {
-        Hyfluxminus = -1 * FakeFluxHy[ic] * HALF; 
-        Uyfluxminus = -1 * FakeFluxUy[ic] * HALF; 
-        Vyfluxminus = -1 * FakeFluxVy[ic] * HALF; 
+        //printf("(%d) adding %f %f %f to %d YM\n", ic, Hyfluxplus, Uyfluxplus, Vyfluxplus, mesh->phantomYFlux[ic]);
+        FakeFluxHyM[abs(mesh->phantomYFlux[ic])] += Hyfluxplus;
+        FakeFluxUyM[abs(mesh->phantomYFlux[ic])] += Uyfluxplus;
+        FakeFluxVyM[abs(mesh->phantomYFlux[ic])] += Vyfluxplus;
     }
 
-/*	printf("\t%d - ( %d ) - %d\n", nl, ic, nr);
+	/*printf("\t%d - ( %d ) - %d\n", nl, ic, nr);
 	printf("Hx+ : %f Hx- : %f\n", Hxfluxplus, Hxfluxminus);
 	printf("Hy+ : %f Hy- : %f\n", Hyfluxplus, Hyfluxminus);
 	printf("Ux+ : %f Ux- : %f\n", Uxfluxplus, Uxfluxminus);
 	printf("Uy+ : %f Uy- : %f\n", Uyfluxplus, Uyfluxminus);
 	printf("Vx+ : %f Vx- : %f\n", Vxfluxplus, Vxfluxminus);
-	printf("Vy+ : %f Vy- : %f\n\n", Vyfluxplus, Vyfluxminus);
-*/
+	printf("Vy+ : %f Vy- : %f\n\n", Vyfluxplus, Vyfluxminus);*/
+
       H_new[ic] = U_fullstep(deltaT, dxic, Hic,
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
                  - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
@@ -3337,15 +3353,14 @@ void State::calc_finite_difference_via_faces(double deltaT){
       wminusx_U = 0.0; wplusx_U = 0.0;
       wminusy_V = 0.0; wplusy_V = 0.0;
 
-	printf("\t%d - ( %d ) - %d\n", nl, ic, nr);
+	/*printf("\t%d - ( %d ) - %d\n", nl, ic, nr);
 	printf("Hx+ : %f Hx- : %f\n", Hxfluxplus, Hxfluxminus);
 	printf("Hy+ : %f Hy- : %f\n", Hyfluxplus, Hyfluxminus);
 	printf("Ux+ : %f Ux- : %f\n", Uxfluxplus, Uxfluxminus);
 	printf("Uy+ : %f Uy- : %f\n", Uyfluxplus, Uyfluxminus);
 	printf("Vx+ : %f Vx- : %f\n", Vxfluxplus, Vxfluxminus);
 	printf("Vy+ : %f Vy- : %f\n\n", Vyfluxplus, Vyfluxminus);
-
-      printf("\n%d\n", mesh->ncells);
+*/
       H_new[ic] = U_fullstep(deltaT, dxic, Hic,
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
                  - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
