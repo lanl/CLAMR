@@ -10228,6 +10228,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
     /*for (int fprint = 0; fprint < pfaceIdx; fprint++) {
         printf("\n%d ( %d ) %d\n", map_xface2cell_lower[fprint], fprint, map_xface2cell_upper[fprint]);
     }*/
+    /*for (int fprint = 0; fprint < pfaceIdx; fprint++) {
+        printf("%d level %d lower %d upper %d\n", fprint, xface_level[fprint], map_xface2cell_lower[fprint], map_xface2cell_upper[fprint]);
+    }*/
     //printf("\nhere\n");
 
     //Now for the y faces

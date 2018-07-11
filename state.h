@@ -263,6 +263,7 @@ public:
    void calc_finite_difference_via_faces(double deltaT);
    void calc_finite_difference_face_in_place(double deltaT);
    void calc_finite_difference_regular_cells(double deltaT);
+   void calc_finite_difference_regular_cells_by_faces(double deltaT);
 #ifdef HAVE_OPENCL
    void gpu_calc_finite_difference(double deltaT);
    void gpu_calc_finite_difference_via_faces(double deltaT);
