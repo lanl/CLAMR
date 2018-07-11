@@ -395,8 +395,8 @@ public:
    vector<int> xface_level; // level of xfaces (max level of upper/lower cells)
    vector<int> map_xface2cell_lower; // IDs of lower cell (left for xface, bottom for yface)
    vector<int> map_xface2cell_upper; // IDs of upper cell (right for xface, top for yface)
-   vector<int> phantomXFaceFlux;
-   vector<int> phantomYFaceFlux;
+   vector<int> phantomXFlux;
+   vector<int> phantomYFlux;
 
    //Just like for cell neighbors, if the refinement increases across a face
    //this points to the left/bottom cell neighbor
