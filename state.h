@@ -365,5 +365,15 @@ private:
    void print_object_info(void);
 };
 
+class Mesh_CLAMR : public Mesh{
+   public:
+   Mesh_CLAMR(int, int, int, int, double, double, int, int, int);
+   void interpolate(int, int, int, int, double, MallocPlus&);
+   void interpolate_fine_x(int, int, int, int, double, MallocPlus&);
+   void interpolate_fine_y(int, int, int, int, double, MallocPlus&);
+   void interpolate_course_x(int, int, int, int, double, MallocPlus&);
+   void interpolate_course_y(int, int, int, int, double, MallocPlus&);
+};
+
 #endif // ifndef STATE_H_
 

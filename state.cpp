@@ -1796,7 +1796,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp master
    {
 #endif
-   mesh->calc_face_list_wbidirmap_phantom(state_memory);
+   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
 #ifdef _OPENMP
    }
 #endif
@@ -3500,7 +3500,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #ifdef _OPENMP
 #pragma omp master
 #endif
-   mesh->calc_face_list_wbidirmap_phantom(state_memory);
+   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
    mesh->generate_regular_cell_meshes(state_memory);
    H_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
    U_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
@@ -5752,3 +5752,364 @@ void State::print_rollback_log(int iteration, double simTime, double initial_mas
    }
 }
 
+Mesh_CLAMR::Mesh_CLAMR(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double deltay_in, int boundary, int parallel_in, int do_gpu_calc) : Mesh(nx,ny,levmx_in,ndim_in,deltax_in,deltay_in,boundary,parallel_in,do_gpu_calc){};
+
+
+void Mesh_CLAMR::interpolate(int scheme, int index, int cell_lower, int cell_upper, double deltaT, MallocPlus &state_memory){
+   switch(scheme){
+      case 0: // fine cell, x-direction, right cell more refined
+      interpolate_fine_x(0,index,cell_lower,cell_upper,deltaT,state_memory);
+      break;
+
+      case 1: // fine cell, x-direction, left cell more refined
+      interpolate_fine_x(1,index+2,cell_lower,cell_upper,deltaT,state_memory);
+      break;
+
+      case 2: // fine cell, y-direction, top cell more refined
+      interpolate_fine_y(0,index,cell_lower,cell_upper,deltaT,state_memory);
+      break;
+
+      case 3: // fine cell, y-direction, bottom cell more refined
+      interpolate_fine_y(1,index+2,cell_lower,cell_upper,deltaT,state_memory);
+      break;
+
+      case 4: // course cell, x-direction, right cell more refined
+      interpolate_course_x(0,index+2,cell_lower,cell_upper,deltaT,state_memory);
+      break;
+
+      case 5: // course cell, x-direction, left cell more refined
+      interpolate_course_x(1,index,cell_lower,cell_upper,deltaT,state_memory);
+      break;
+
+      case 6: // course cell, y-direction, top cell more refined
+      interpolate_course_y(0,index+2,cell_lower,cell_upper,deltaT,state_memory);
+      break;
+
+      case 7: // course cell, y-direction, bottom cell more refined
+      interpolate_course_x(1,index,cell_lower,cell_upper,deltaT,state_memory);
+      break;
+   } 
+}
+
+void Mesh_CLAMR::interpolate_fine_x(int scheme, int index, int cell_lower, int cell_upper, double deltaT, MallocPlus &state_memory){
+   state_t* H = (state_t *)state_memory.get_memory_ptr("H");
+   state_t* U = (state_t *)state_memory.get_memory_ptr("U");
+   state_t* V = (state_t *)state_memory.get_memory_ptr("V");
+
+   real_t dx_lower = lev_deltax[level[cell_lower]];
+   real_t dx_upper = lev_deltax[level[cell_upper]];
+   real_t FA_lower = dx_lower;
+   real_t FA_upper = dx_upper;
+   real_t FA_lolim = FA_lower*min(ONE, FA_upper/FA_lower);
+   real_t FA_uplim = FA_upper*min(ONE, FA_lower/FA_upper);
+   real_t CV_lower = SQ(dx_lower);
+   real_t CV_upper = SQ(dx_upper);
+   real_t CV_lolim = CV_lower*min(HALF, CV_upper/CV_lower);
+   real_t CV_uplim = CV_upper*min(HALF, CV_lower/CV_upper);
+   real_t g     = 9.80;   // gravitational constant
+   real_t ghalf = 0.5*g;
+   switch(scheme){
+      case 0: // H,U,V interpolation, right cell more refined
+         H[index] = (2*(dx_lower*H[cell_upper]+dx_lower*H[cell_lower])/(dx_lower+dx_upper)
+         - deltaT*((FA_uplim*HXFLUX(cell_upper)-FA_lolim*HXFLUX(cell_lower))/(CV_uplim+CV_lolim)
+         - (HXFLUX(cell_upper)-HXFLUX(cell_lower))/dx_upper) - H[cell_upper]);
+         U[index] = (2*(dx_lower*U[cell_upper]+dx_lower*U[cell_lower])/(dx_lower+dx_upper)
+         - deltaT*((FA_uplim*UXFLUX(cell_upper)-FA_lolim*UXFLUX(cell_lower))/(CV_uplim+CV_lolim)
+         - (UXFLUX(cell_upper)-UXFLUX(cell_lower))/dx_upper) - U[cell_upper]);
+         V[index] = (2*(dx_lower*V[cell_upper]+dx_lower*V[cell_lower])/(dx_lower+dx_upper)
+         - deltaT*((FA_uplim*UVFLUX(cell_upper)-FA_lolim*UVFLUX(cell_lower))/(CV_uplim+CV_lolim)
+         - (UVFLUX(cell_upper)-UVFLUX(cell_lower))/dx_upper) - V[cell_upper]);
+      break;   
+      case 1: // H,U,V interpolation, left cell more refined
+         H[index] = (2*(dx_lower*H[cell_upper]+dx_lower*H[cell_lower])/(dx_lower+dx_upper)
+         - deltaT*((FA_uplim*HXFLUX(cell_upper)-FA_lolim*HXFLUX(cell_lower))/(CV_uplim+CV_lolim)
+         - (HXFLUX(cell_upper)-HXFLUX(cell_lower))/dx_upper) - H[cell_lower]);
+         U[index] = (2*(dx_lower*U[cell_upper]+dx_lower*U[cell_lower])/(dx_lower+dx_upper)
+         - deltaT*((FA_uplim*UXFLUX(cell_upper)-FA_lolim*UXFLUX(cell_lower))/(CV_uplim+CV_lolim)
+         - (UXFLUX(cell_upper)-UXFLUX(cell_lower))/dx_upper) - U[cell_lower]);
+         V[index] = (2*(dx_lower*V[cell_upper]+dx_lower*V[cell_lower])/(dx_lower+dx_upper)
+         - deltaT*((FA_uplim*UVFLUX(cell_upper)-FA_lolim*UVFLUX(cell_lower))/(CV_uplim+CV_lolim)
+         - (UVFLUX(cell_upper)-UVFLUX(cell_lower))/dx_upper) - V[cell_lower]);
+      break;
+   }
+   printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
+   printf("            H:  %f, U: %f, V: %f\n", H[index],U[index],V[index]);
+} 
+
+void Mesh_CLAMR::interpolate_fine_y(int scheme, int index, int cell_lower, int cell_upper, double deltaT, MallocPlus &state_memory){
+   state_t* H = (state_t *)state_memory.get_memory_ptr("H");
+   state_t* U = (state_t *)state_memory.get_memory_ptr("U");
+   state_t* V = (state_t *)state_memory.get_memory_ptr("V");
+
+   real_t dy_lower = lev_deltay[level[cell_lower]];
+   real_t dy_upper = lev_deltay[level[cell_upper]];
+   real_t FA_lower = dy_lower;
+   real_t FA_upper = dy_upper;
+   real_t FA_lolim = FA_lower*min(ONE, FA_upper/FA_lower);
+   real_t FA_uplim = FA_upper*min(ONE, FA_lower/FA_upper);
+   real_t CV_lower = SQ(dy_lower);
+   real_t CV_upper = SQ(dy_upper);
+   real_t CV_lolim = CV_lower*min(HALF, CV_upper/CV_lower);
+   real_t CV_uplim = CV_upper*min(HALF, CV_lower/CV_upper);
+   real_t g     = 9.80;   // gravitational constant
+   real_t ghalf = 0.5*g;
+   switch(scheme){
+      case 0: // H,U,V interpolation, top cell more refined 
+         H[index] = (2*(dy_lower*H[cell_upper]+dy_lower*H[cell_lower])/(dy_lower+dy_upper)
+         - deltaT*((FA_uplim*HYFLUX(cell_upper)-FA_lolim*HYFLUX(cell_lower))/(CV_uplim+CV_lolim)
+         - (HYFLUX(cell_upper)-HYFLUX(cell_lower))/dy_upper) - H[cell_upper]);
+         U[index] = (2*(dy_lower*U[cell_upper]+dy_lower*U[cell_lower])/(dy_lower+dy_upper)
+         - deltaT*((FA_uplim*UVFLUX(cell_upper)-FA_lolim*UVFLUX(cell_lower))/(CV_uplim+CV_lolim)
+         - (UVFLUX(cell_upper)-UVFLUX(cell_lower))/dy_upper) - U[cell_upper]);
+         V[index] = (2*(dy_lower*V[cell_upper]+dy_lower*V[cell_lower])/(dy_lower+dy_upper)
+         - deltaT*((FA_uplim*VYFLUX(cell_upper)-FA_lolim*VYFLUX(cell_lower))/(CV_uplim+CV_lolim)
+         - (VYFLUX(cell_upper)-VYFLUX(cell_lower))/dy_upper) - V[cell_upper]);
+   break;
+      case 1: // H,U,V interpolation, bottom cell more refined
+         H[index] = (2*(dy_lower*H[cell_upper]+dy_lower*H[cell_lower])/(dy_lower+dy_upper)
+         - deltaT*((FA_uplim*HYFLUX(cell_upper)-FA_lolim*HYFLUX(cell_lower))/(CV_uplim+CV_lolim)
+         - (HYFLUX(cell_upper)-HYFLUX(cell_lower))/dy_upper) - H[cell_lower]);
+         U[index] = (2*(dy_lower*U[cell_upper]+dy_lower*U[cell_lower])/(dy_lower+dy_upper)
+         - deltaT*((FA_uplim*UVFLUX(cell_upper)-FA_lolim*UVFLUX(cell_lower))/(CV_uplim+CV_lolim)
+         - (UVFLUX(cell_upper)-UVFLUX(cell_lower))/dy_upper) - U[cell_lower]);
+         V[index] = (2*(dy_lower*V[cell_upper]+dy_lower*V[cell_lower])/(dy_lower+dy_upper)
+         - deltaT*((FA_uplim*VYFLUX(cell_upper)-FA_lolim*VYFLUX(cell_lower))/(CV_uplim+CV_lolim)
+         - (VYFLUX(cell_upper)-VYFLUX(cell_lower))/dy_upper) - V[cell_lower]);
+      break;
+   }
+   printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
+   printf("            H:  %f, U: %f, V: %f\n", H[index],U[index],V[index]);
+}
+
+void Mesh_CLAMR::interpolate_course_x(int scheme, int index, int cell_lower, int cell_upper, double deltaT, MallocPlus &state_memory){
+   state_t* H = (state_t *)state_memory.get_memory_ptr("H");
+   state_t* U = (state_t *)state_memory.get_memory_ptr("U");
+   state_t* V = (state_t *)state_memory.get_memory_ptr("V");
+
+   int cell_course, cell_bot, cell_top;
+   real_t dx_lower_bot, dx_lower_top, dx_upper_bot, dx_upper_top;
+   real_t FA_lower_bot, FA_lower_top, FA_upper_bot, FA_upper_top;
+   real_t FA_lolim_bot, FA_lolim_top, FA_uplim_bot, FA_uplim_top;
+   real_t CV_lower_bot, CV_lower_top, CV_upper_bot, CV_upper_top;
+   real_t CV_lolim_bot, CV_lolim_top, CV_uplim_bot, CV_uplim_top;
+   real_t Hx_bot, Hx_top, Ux_bot, Ux_top, Vx_bot, Vx_top;
+   real_t g = 9.80;   // gravitational constant
+   real_t ghalf = 0.5*g;
+   switch(scheme){
+      case 0: // H,U,V interpolation, right cell more refined  
+         cell_course = cell_lower;
+         cell_bot = nrht[cell_course];
+         cell_top = ntop[cell_bot];
+         dx_lower_bot = lev_deltax[level[cell_course]];
+         dx_lower_top = lev_deltax[level[cell_course]];
+         dx_upper_bot = lev_deltax[level[cell_bot]];
+         dx_upper_top = lev_deltax[level[cell_top]];
+         FA_lower_bot = dx_lower_bot;
+         FA_lower_top = dx_lower_top;
+         FA_upper_bot = dx_upper_bot;
+         FA_upper_top = dx_upper_top;
+         FA_lolim_bot = FA_lower_bot*min(ONE, FA_upper_bot/FA_lower_bot);
+         FA_lolim_top = FA_lower_top*min(ONE, FA_upper_top/FA_lower_top);
+         FA_uplim_bot = FA_upper_bot*min(ONE, FA_lower_bot/FA_upper_bot);
+         FA_uplim_top = FA_upper_top*min(ONE, FA_lower_top/FA_upper_top);
+         CV_lower_bot = SQ(dx_lower_bot);
+         CV_lower_top = SQ(dx_lower_top);
+         CV_upper_bot = SQ(dx_upper_bot);
+         CV_upper_top = SQ(dx_upper_top);
+         CV_lolim_bot = CV_lower_bot*min(HALF, CV_upper_bot/CV_lower_bot);
+         CV_lolim_top = CV_lower_top*min(HALF, CV_upper_top/CV_lower_top);
+         CV_uplim_bot = CV_upper_bot*min(HALF, CV_lower_bot/CV_upper_bot);
+         CV_uplim_top = CV_upper_top*min(HALF, CV_lower_top/CV_upper_top);
+
+         Hx_bot = (dx_lower_bot*H[cell_bot]+dx_upper_bot*H[cell_course])/(dx_lower_bot+dx_upper_bot) -
+                 HALF*deltaT*( (FA_uplim_bot*HXFLUX(cell_bot))-(FA_lolim_bot*HXFLUX(cell_course)) )/
+                 (CV_uplim_bot+CV_lolim_bot);
+         Hx_top = (dx_lower_top*H[cell_top]+dx_upper_top*H[cell_course])/(dx_lower_top+dx_upper_top) -
+                 HALF*deltaT*( (FA_uplim_top*HXFLUX(cell_top))-(FA_lolim_top*HXFLUX(cell_course)) )/
+                 (CV_uplim_bot+CV_lolim_bot);
+         Ux_bot = (dx_lower_bot*U[cell_bot]+dx_upper_bot*U[cell_course])/(dx_lower_bot+dx_upper_bot) -
+                 HALF*deltaT*( (FA_uplim_bot*UXFLUX(cell_bot))-(FA_lolim_bot*UXFLUX(cell_course)) )/
+                 (CV_uplim_bot+CV_lolim_bot);
+         Ux_top = (dx_lower_top*U[cell_top]+dx_upper_top*U[cell_course])/(dx_lower_top+dx_upper_top) -
+                 HALF*deltaT*( (FA_uplim_top*UXFLUX(cell_top))-(FA_lolim_top*UXFLUX(cell_course)) )/
+                 (CV_uplim_top+CV_lolim_top);
+         Vx_bot = (dx_lower_bot*V[cell_bot]+dx_upper_bot*V[cell_course])/(dx_lower_bot+dx_upper_bot) -
+                 HALF*deltaT*( (FA_uplim_bot*UVFLUX(cell_bot))-(FA_lolim_bot*UVFLUX(cell_course)) )/
+                 (CV_uplim_bot+CV_lolim_bot);
+         Vx_top = (dx_lower_top*V[cell_top]+dx_upper_top*V[cell_course])/(dx_lower_top+dx_upper_top) -
+                 HALF*deltaT*( (FA_uplim_top*UVFLUX(cell_top))-(FA_lolim_top*UVFLUX(cell_course)) )/
+                 (CV_uplim_top+CV_lolim_top);
+
+         H[index] = (2*(Hx_bot+Hx_top) + deltaT*(HXFLUX(cell_upper)-HXFLUX(cell_lower))/dx_lower_bot - H[cell_upper]);
+         U[index] = (2*(Ux_bot+Ux_top) + deltaT*(UXFLUX(cell_upper)-UXFLUX(cell_lower))/dx_lower_bot - U[cell_upper]);
+         V[index] = (2*(Vx_bot+Vx_top) + deltaT*(UVFLUX(cell_upper)-UVFLUX(cell_lower))/dx_lower_bot - V[cell_upper]);
+      break;
+      case 1: // H,U,V interpolation, left cell more refined  
+         cell_course = cell_upper;
+         cell_bot = nlft[cell_course];
+         cell_top = ntop[cell_bot];         
+         dx_lower_bot = lev_deltax[level[cell_bot]];
+         dx_lower_top = lev_deltax[level[cell_top]];
+         dx_upper_bot = lev_deltax[level[cell_course]];
+         dx_upper_top = lev_deltax[level[cell_course]];
+         FA_lower_bot = dx_lower_bot;
+         FA_lower_top = dx_lower_top;
+         FA_upper_bot = dx_upper_bot;
+         FA_upper_top = dx_upper_top;
+         FA_lolim_bot = FA_lower_bot*min(ONE, FA_upper_bot/FA_lower_bot);
+         FA_lolim_top = FA_lower_top*min(ONE, FA_upper_top/FA_lower_top);
+         FA_uplim_bot = FA_upper_bot*min(ONE, FA_lower_bot/FA_upper_bot);
+         FA_uplim_top = FA_upper_top*min(ONE, FA_lower_top/FA_upper_top);
+         CV_lower_bot = SQ(dx_lower_bot);
+         CV_lower_top = SQ(dx_lower_top);
+         CV_upper_bot = SQ(dx_upper_bot);
+         CV_upper_top = SQ(dx_upper_top);
+         CV_lolim_bot = CV_lower_bot*min(HALF, CV_upper_bot/CV_lower_bot);
+         CV_lolim_top = CV_lower_top*min(HALF, CV_upper_top/CV_lower_top);
+         CV_uplim_bot = CV_upper_bot*min(HALF, CV_lower_bot/CV_upper_bot);
+         CV_uplim_top = CV_upper_top*min(HALF, CV_lower_top/CV_upper_top);
+
+         Hx_bot = (dx_lower_bot*H[cell_bot]+dx_upper_bot*H[cell_course])/(dx_lower_bot+dx_upper_bot) -
+                 HALF*deltaT*( (FA_uplim_bot*HXFLUX(cell_bot))-(FA_lolim_bot*HXFLUX(cell_course)) )/
+                 (CV_uplim_bot+CV_lolim_bot);
+         Hx_top = (dx_lower_top*H[cell_top]+dx_upper_top*H[cell_course])/(dx_lower_top+dx_upper_top) -
+                 HALF*deltaT*( (FA_uplim_top*HXFLUX(cell_top))-(FA_lolim_top*HXFLUX(cell_course)) )/
+                 (CV_uplim_bot+CV_lolim_bot);
+         Ux_bot = (dx_lower_bot*U[cell_bot]+dx_upper_bot*U[cell_course])/(dx_lower_bot+dx_upper_bot) -
+                 HALF*deltaT*( (FA_uplim_bot*UXFLUX(cell_bot))-(FA_lolim_bot*UXFLUX(cell_course)) )/
+                 (CV_uplim_bot+CV_lolim_bot);
+         Ux_top = (dx_lower_top*U[cell_top]+dx_upper_top*U[cell_course])/(dx_lower_top+dx_upper_top) -
+                 HALF*deltaT*( (FA_uplim_top*UXFLUX(cell_top))-(FA_lolim_top*UXFLUX(cell_course)) )/
+                 (CV_uplim_top+CV_lolim_top);
+         Vx_bot = (dx_lower_bot*V[cell_bot]+dx_upper_bot*V[cell_course])/(dx_lower_bot+dx_upper_bot) -
+                 HALF*deltaT*( (FA_uplim_bot*UVFLUX(cell_bot))-(FA_lolim_bot*UVFLUX(cell_course)) )/
+                 (CV_uplim_bot+CV_lolim_bot);
+         Vx_top = (dx_lower_top*V[cell_top]+dx_upper_top*V[cell_course])/(dx_lower_top+dx_upper_top) -
+                 HALF*deltaT*( (FA_uplim_top*UVFLUX(cell_top))-(FA_lolim_top*UVFLUX(cell_course)) )/
+                 (CV_uplim_top+CV_lolim_top);
+
+         H[index] = (2*(Hx_bot+Hx_top) + deltaT*(HXFLUX(cell_upper)-HXFLUX(cell_lower))/dx_upper_bot - H[cell_lower]);
+         U[index] = (2*(Ux_bot+Ux_top) + deltaT*(UXFLUX(cell_upper)-UXFLUX(cell_lower))/dx_upper_bot - U[cell_lower]);
+         V[index] = (2*(Vx_bot+Vx_top) + deltaT*(UVFLUX(cell_upper)-UVFLUX(cell_lower))/dx_upper_bot - V[cell_lower]);
+      break;
+   }
+   printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
+   printf("            H:  %f, U: %f, V: %f\n", H[index],U[index],V[index]);
+}
+
+void Mesh_CLAMR::interpolate_course_y(int scheme, int index, int cell_lower, int cell_upper , double deltaT, MallocPlus &state_memory){
+   state_t* H = (state_t *)state_memory.get_memory_ptr("H");
+   state_t* U = (state_t *)state_memory.get_memory_ptr("U");
+   state_t* V = (state_t *)state_memory.get_memory_ptr("V");
+
+   int cell_course, cell_left, cell_right;
+   real_t dy_lower_left, dy_lower_right, dy_upper_left, dy_upper_right;
+   real_t FA_lower_left, FA_lower_right, FA_upper_left, FA_upper_right;
+   real_t FA_lolim_left, FA_lolim_right, FA_uplim_left, FA_uplim_right;
+   real_t CV_lower_left, CV_lower_right, CV_upper_left, CV_upper_right;
+   real_t CV_lolim_left, CV_lolim_right, CV_uplim_left, CV_uplim_right;
+   real_t Hy_left, Hy_right, Uy_left, Uy_right, Vy_left, Vy_right;
+   real_t g = 9.80;   // gravitational constant
+   real_t ghalf = 0.5*g;
+
+   switch(scheme){
+      case 0: // H,U,V interpolation, top cell more refined  
+         cell_course = cell_lower;
+         cell_left = ntop[cell_course];
+         cell_right = nrht[cell_left];
+         dy_lower_left = lev_deltay[level[cell_course]];
+         dy_lower_right = lev_deltay[level[cell_course]];
+         dy_upper_left = lev_deltay[level[cell_left]];
+         dy_upper_right = lev_deltay[level[cell_right]];
+         FA_lower_left = dy_lower_left;
+         FA_lower_right = dy_lower_right;
+         FA_upper_left = dy_upper_left;
+         FA_upper_right = dy_upper_right;
+         FA_lolim_left = FA_lower_left*min(ONE, FA_upper_left/FA_lower_left);
+         FA_lolim_right = FA_lower_right*min(ONE, FA_upper_right/FA_lower_right);
+         FA_uplim_left = FA_upper_left*min(ONE, FA_lower_left/FA_upper_left);
+         FA_uplim_right = FA_upper_right*min(ONE, FA_lower_right/FA_upper_right);
+         CV_lower_left = SQ(dy_lower_left);
+         CV_lower_right = SQ(dy_lower_right);
+         CV_upper_left = SQ(dy_upper_left);
+         CV_upper_right = SQ(dy_upper_right);
+         CV_lolim_left = CV_lower_left*min(HALF, CV_upper_left/CV_lower_left);
+         CV_lolim_right = CV_lower_right*min(HALF, CV_upper_right/CV_lower_right);
+         CV_uplim_left = CV_upper_left*min(HALF, CV_lower_left/CV_upper_left);
+         CV_uplim_right = CV_upper_right*min(HALF, CV_lower_right/CV_upper_right);
+
+         Hy_left = (dy_lower_left*H[cell_left]+dy_upper_left*H[cell_course])/(dy_lower_left+dy_upper_left) -
+                 HALF*deltaT*( (FA_uplim_left*HYFLUX(cell_left))-(FA_lolim_left*HYFLUX(cell_course)) )/
+                 (CV_uplim_left+CV_lolim_left);
+         Hy_right = (dy_lower_right*H[cell_right]+dy_upper_right*H[cell_course])/(dy_lower_right+dy_upper_right) -
+                 HALF*deltaT*( (FA_uplim_right*HYFLUX(cell_right))-(FA_lolim_right*HYFLUX(cell_course)) )/
+                 (CV_uplim_left+CV_lolim_left);
+         Uy_left = (dy_lower_left*U[cell_left]+dy_upper_left*U[cell_course])/(dy_lower_left+dy_upper_left) -
+                 HALF*deltaT*( (FA_uplim_left*UVFLUX(cell_left))-(FA_lolim_left*UVFLUX(cell_course)) )/
+                 (CV_uplim_left+CV_lolim_left);
+         Uy_right = (dy_lower_right*U[cell_right]+dy_upper_right*U[cell_course])/(dy_lower_right+dy_upper_right) -
+                 HALF*deltaT*( (FA_uplim_right*UVFLUX(cell_right))-(FA_lolim_right*UVFLUX(cell_course)) )/
+                 (CV_uplim_right+CV_lolim_right);
+         Vy_left = (dy_lower_left*V[cell_left]+dy_upper_left*V[cell_course])/(dy_lower_left+dy_upper_left) -
+                 HALF*deltaT*( (FA_uplim_left*VYFLUX(cell_left))-(FA_lolim_left*VYFLUX(cell_course)) )/
+                 (CV_uplim_left+CV_lolim_left);
+         Vy_right = (dy_lower_right*V[cell_right]+dy_upper_right*V[cell_course])/(dy_lower_right+dy_upper_right) -
+                 HALF*deltaT*( (FA_uplim_right*VYFLUX(cell_right))-(FA_lolim_right*VYFLUX(cell_course)) )/
+                 (CV_uplim_right+CV_lolim_right);
+
+         H[index] = (2*(Hy_left+Hy_right) + deltaT*(HYFLUX(cell_upper)-HYFLUX(cell_lower))/dy_lower_left - H[cell_upper]);
+         U[index] = (2*(Uy_left+Uy_right) + deltaT*(UVFLUX(cell_upper)-UVFLUX(cell_lower))/dy_lower_left - U[cell_upper]);
+         V[index] = (2*(Vy_left+Vy_right) + deltaT*(VYFLUX(cell_upper)-VYFLUX(cell_lower))/dy_lower_left - V[cell_upper]);
+      break;
+      case 1: // H,U,V interpolation, bottom cell more refined  
+         cell_course = cell_upper;
+         cell_left = nbot[cell_course];
+         cell_right = nrht[cell_left];
+         dy_lower_left = lev_deltay[level[cell_left]];
+         dy_lower_right = lev_deltay[level[cell_right]];
+         dy_upper_left = lev_deltay[level[cell_course]];
+         dy_upper_right = lev_deltay[level[cell_course]];
+         FA_lower_left = dy_lower_left;
+         FA_lower_right = dy_lower_right;
+         FA_upper_left = dy_upper_left;
+         FA_upper_right = dy_upper_right;
+         FA_lolim_left = FA_lower_left*min(ONE, FA_upper_left/FA_lower_left);
+         FA_lolim_right = FA_lower_right*min(ONE, FA_upper_right/FA_lower_right);
+         FA_uplim_left = FA_upper_left*min(ONE, FA_lower_left/FA_upper_left);
+         FA_uplim_right = FA_upper_right*min(ONE, FA_lower_right/FA_upper_right);
+         CV_lower_left = SQ(dy_lower_left);
+         CV_lower_right = SQ(dy_lower_right);
+         CV_upper_left = SQ(dy_upper_left);
+         CV_upper_right = SQ(dy_upper_right);
+         CV_lolim_left = CV_lower_left*min(HALF, CV_upper_left/CV_lower_left);
+         CV_lolim_right = CV_lower_right*min(HALF, CV_upper_right/CV_lower_right);
+         CV_uplim_left = CV_upper_left*min(HALF, CV_lower_left/CV_upper_left);
+         CV_uplim_right = CV_upper_right*min(HALF, CV_lower_right/CV_upper_right);
+
+         Hy_left = (dy_lower_left*H[cell_left]+dy_upper_left*H[cell_course])/(dy_lower_left+dy_upper_left) -
+                 HALF*deltaT*( (FA_uplim_left*HYFLUX(cell_left))-(FA_lolim_left*HYFLUX(cell_course)) )/
+                 (CV_uplim_left+CV_lolim_left);
+         Hy_right = (dy_lower_right*H[cell_right]+dy_upper_right*H[cell_course])/(dy_lower_right+dy_upper_right) -
+                 HALF*deltaT*( (FA_uplim_right*HYFLUX(cell_right))-(FA_lolim_right*HYFLUX(cell_course)) )/
+                 (CV_uplim_left+CV_lolim_left);
+         Uy_left = (dy_lower_left*U[cell_left]+dy_upper_left*U[cell_course])/(dy_lower_left+dy_upper_left) -
+                 HALF*deltaT*( (FA_uplim_left*UVFLUX(cell_left))-(FA_lolim_left*UVFLUX(cell_course)) )/
+                 (CV_uplim_left+CV_lolim_left);
+         Uy_right = (dy_lower_right*U[cell_right]+dy_upper_right*U[cell_course])/(dy_lower_right+dy_upper_right) -
+                 HALF*deltaT*( (FA_uplim_right*UVFLUX(cell_right))-(FA_lolim_right*UVFLUX(cell_course)) )/
+                 (CV_uplim_right+CV_lolim_right);
+         Vy_left = (dy_lower_left*V[cell_left]+dy_upper_left*V[cell_course])/(dy_lower_left+dy_upper_left) -
+                 HALF*deltaT*( (FA_uplim_left*VYFLUX(cell_left))-(FA_lolim_left*VYFLUX(cell_course)) )/
+                 (CV_uplim_left+CV_lolim_left);
+         Vy_right = (dy_lower_right*V[cell_right]+dy_upper_right*V[cell_course])/(dy_lower_right+dy_upper_right) -
+                 HALF*deltaT*( (FA_uplim_right*VYFLUX(cell_right))-(FA_lolim_right*VYFLUX(cell_course)) )/
+                 (CV_uplim_right+CV_lolim_right);
+
+         H[index] = (2*(Hy_left+Hy_right) + deltaT*(HYFLUX(cell_upper)-HYFLUX(cell_lower))/dy_upper_left - H[cell_lower]);
+         U[index] = (2*(Uy_left+Uy_right) + deltaT*(UVFLUX(cell_upper)-UVFLUX(cell_lower))/dy_upper_left - U[cell_lower]);
+         V[index] = (2*(Vy_left+Vy_right) + deltaT*(VYFLUX(cell_upper)-VYFLUX(cell_lower))/dy_upper_left - V[cell_lower]);
+      break;
+   }
+   printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
+   printf("            H:  %f, U: %f, V: %f\n", H[index],U[index],V[index]);
+}
