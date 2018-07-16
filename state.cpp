@@ -3574,80 +3574,80 @@ void State::calc_finite_difference_regular_cells(double deltaT){
             }
 
 #ifdef XXX
-            duminus1 = H[j][i-1]-H[j][i-2];
-            duminus2 = U[j][i-1]-U[j][i-2];
-            duplus1 = H[j][i+1]-H[j][i];
-            duplus2 = U[j][i+1]-U[j][i];
-            duhalf1 = H[j][i]-H[j][i-1];
-            duhalf2 = U[j][i]-U[j][i-1];
+            duminus1 = H[jj][ii-1]-H[jj][ii-2];
+            duminus2 = U[jj][ii-1]-U[jj][ii-2];
+            duplus1 = H[jj][ii+1]-H[jj][ii];
+            duplus2 = U[jj][ii+1]-U[jj][ii];
+            duhalf1 = H[jj][ii]-H[jj][ii-1];
+            duhalf2 = U[jj][ii]-U[jj][ii-1];
             rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
             rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
             rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
             rplus =rnumplus /rdenom;
             rminus=rnumminus/rdenom;
             q = max(MIN3(1.0, rminus, rplus), 0.0);
-            nu=(fabs(Ux[j-2][i-2])+sqrt(g*Hx[j-2][i-2]))*Cx;
+            nu=(fabs(Ux[jj-2][ii-2])+sqrt(g*Hx[jj-2][ii-2]))*Cx;
             cv=nu*(1.0-nu);
             wminusx = 0.5*cv*(1.0-q);
 
-            duminus1 = H[j][i]-H[j][i-1];
-            duminus2 = U[j][i]-U[j][i-1];
-            duplus1 = H[j][i+2]-H[j][i+1];
-            duplus2 = U[j][i+2]-U[j][i+1];
-            duhalf1 = H[j][i+1]-H[j][i];
-            duhalf2 = U[j][i+1]-U[j][i];
+            duminus1 = H[jj][ii]-H[jj][ii-1];
+            duminus2 = U[jj][ii]-U[jj][ii-1];
+            duplus1 = H[jj][ii+2]-H[jj][ii+1];
+            duplus2 = U[jj][ii+2]-U[jj][ii+1];
+            duhalf1 = H[jj][ii+1]-H[jj][ii];
+            duhalf2 = U[jj][ii+1]-U[jj][ii];
             rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
             rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
             rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
             rplus =rnumplus /rdenom;
             rminus=rnumminus/rdenom;
             q = max(MIN3(1.0, rminus, rplus), 0.0);
-            nu=(fabs(Ux[j-2][i-1])+sqrt(g*Hx[j-2][i-1]))*Cx;
+            nu=(fabs(Ux[jj-2][ii-1])+sqrt(g*Hx[jj-2][ii-1]))*Cx;
             cv=nu*(1.0-nu);
             wplusx = 0.5*cv*(1.0-q);
 
-            duminus1 = H[j-1][i]-H[j-2][i];
-            duminus2 = V[j-1][i]-V[j-2][i];
-            duplus1 = H[j+1][i]-H[j][i];
-            duplus2 = V[j+1][i]-V[j][i];
-            duhalf1 = H[j][i]-H[j-1][i];
-            duhalf2 = V[j][i]-V[j-1][i];
+            duminus1 = H[jj-1][ii]-H[jj-2][ii];
+            duminus2 = V[jj-1][ii]-V[jj-2][ii];
+            duplus1 = H[jj+1][ii]-H[jj][ii];
+            duplus2 = V[jj+1][ii]-V[jj][ii];
+            duhalf1 = H[jj][ii]-H[jj-1][ii];
+            duhalf2 = V[jj][ii]-V[jj-1][ii];
             rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
             rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
             rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
             rplus =rnumplus /rdenom;
             rminus=rnumminus/rdenom;
             q = max(MIN3(1.0, rminus, rplus), 0.0);
-            nu=(fabs(Vy[j-2][i-2])+sqrt(g*Hy[j-2][i-2]))*Cy;
+            nu=(fabs(Vy[jj-2][ii-2])+sqrt(g*Hy[jj-2][ii-2]))*Cy;
             cv=nu*(1.0-nu);
             wminusy = 0.5*cv*(1.0-q);
 
-            duminus1 = H[j][i]-H[j-1][i];
-            duminus2 = V[j][i]-V[j-1][i];
-            duplus1 = H[j+2][i]-H[j+1][i];
-            duplus2 = V[j+2][i]-V[j+1][i];
-            duhalf1 = H[j+1][i]-H[j][i];
-            duhalf2 = V[j+1][i]-V[j][i];
+            duminus1 = H[jj][ii]-H[jj-1][ii];
+            duminus2 = V[jj][ii]-V[jj-1][ii];
+            duplus1 = H[jj+2][ii]-H[jj+1][ii];
+            duplus2 = V[jj+2][ii]-V[jj+1][ii];
+            duhalf1 = H[jj+1][ii]-H[jj][ii];
+            duhalf2 = V[jj+1][ii]-V[jj][ii];
             rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
             rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
             rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
             rplus =rnumplus /rdenom;
             rminus=rnumminus/rdenom;
             q = max(MIN3(1.0, rminus, rplus), 0.0);
-            nu=(fabs(Vy[j-1][i-2])+sqrt(g*Hy[j-1][i-2]))*Cy;
+            nu=(fabs(Vy[jj-1][ii-2])+sqrt(g*Hy[jj-1][ii-2]))*Cy;
             cv=nu*(1.0-nu);
             wplusy = 0.5*cv*(1.0-q);
 
             H_reg_new[jj][ii] = H_reg[jj][ii] - Cx*(HRGNEWXFLUXMINUS - HRGNEWXFLUXPLUS)
-                                                 -wminusx*(H[j][i]-H[j][i-1])+wplusx*(H[j][i+1]-H[j][i])
+                                                 -wminusx*(H[jj][ii]-H[jj][ii-1])+wplusx*(H[jj][ii+1]-H[jj][ii])
                                               - Cy*(HRGNEWYFLUXMINUS - HRGNEWYFLUXPLUS)
-                                                 -wminusy*(H[j][i]-H[j-1][i])+wplusy*(H[j+1][i]-H[j][i]);
+                                                 -wminusy*(H[jj][ii]-H[jj-1][ii])+wplusy*(H[jj+1][ii]-H[jj][ii]);
             U_reg_new[jj][ii] = U_reg[jj][ii] - Cx*(URGNEWXFLUXMINUS - URGNEWXFLUXPLUS)
-                                                 -wminusx*(U[j][i]-U[j][i-1])+wplusx*(U[j][i+1]-U[j][i])
+                                                 -wminusx*(U[jj][ii]-U[jj][ii-1])+wplusx*(U[jj][ii+1]-U[jj][ii])
                                               - Cy*(URGNEWYFLUXMINUS - URGNEWYFLUXPLUS)
-                                                 -wminusy*(U[j][i]-U[j-1][i])+wplusy*(U[j+1][i]-U[j][i]);
+                                                 -wminusy*(U[jj][ii]-U[jj-1][ii])+wplusy*(U[jj+1][ii]-U[jj][ii]);
             V_reg_new[jj][ii] = V_reg[jj][ii] - Cx*(VRGNEWXFLUXMINUS - VRGNEWXFLUXPLUS)
-                                                 -wminusx*(V[j][i]-V[j][i-1])+wplusx*(V[j][i+1]-V[j][i])
+                                                 -wminusx*(V[jj][ii]-V[jj][ii-1])+wplusx*(V[jj][ii+1]-V[jj][ii])
                                               - Cy*(VRGNEWYFLUXMINUS - VRGNEWYFLUXPLUS)
                                                  -wminusy*(V[j][i]-V[j-1][i])+wplusy*(V[j+1][i]-V[j][i]);
 #endif

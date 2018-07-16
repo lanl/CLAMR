@@ -209,6 +209,7 @@ cl_kernel      kernel_count_BCs;
 cl_kernel      kernel_do_load_balance_lower;
 cl_kernel      kernel_do_load_balance_middle;
 cl_kernel      kernel_do_load_balance_upper;
+cl_kernel      kernel_calc_face_list_wbidirmap;
 #ifndef MINIMUM_PRECISION
 cl_kernel      kernel_do_load_balance_double;
 #endif
@@ -224,6 +225,7 @@ cl_kernel      kernel_rezone_one_double;
 cl_kernel      kernel_rezone_one_float;
 cl_kernel      kernel_copy_mpot_ghost_data;
 cl_kernel      kernel_set_boundary_refinement;
+cl_kernel      kernel_calc_face_list_wbidirmap;
 #endif
 
 extern size_t hash_header_size;
@@ -1422,6 +1424,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       kernel_do_load_balance_lower    = ezcl_create_kernel_wprogram(program, "do_load_balance_lower_cl");
       kernel_do_load_balance_middle   = ezcl_create_kernel_wprogram(program, "do_load_balance_middle_cl");
       kernel_do_load_balance_upper    = ezcl_create_kernel_wprogram(program, "do_load_balance_upper_cl");
+      kernel_calc_face_list_wbidir    = ezcl_create_kernel_wprogram(program, "calc_face_list_wbidir");
 #ifndef MINIMUM_PRECISION
       kernel_do_load_balance_double   = ezcl_create_kernel_wprogram(program, "do_load_balance_double_cl");
 #endif
@@ -9692,14 +9695,14 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
       if (level[nr] < level[nz]) ifactor = 2;
 
       // Have right face
-      map_xface2cell_lower[uniIdx] = nz;
-      map_xface2cell_upper[uniIdx] = nr;
-      xface_level[uniIdx] = MAX(level[nz],level[nr]);
-      xface_i[uniIdx] = i[nr]*ifactor;
+      map_xface2cell_lower[iface] = nz;
+      map_xface2cell_upper[iface] = nr;
+      xface_level[iface] = MAX(level[nz],level[nr]);
+      xface_i[iface] = i[nr]*ifactor;
       if (level[nr] < level[nz] && is_upper(j[nz]) ) {
-         xface_j[uniIdx] = j[nr]*ifactor+1;
+         xface_j[iface] = j[nr]*ifactor+1;
       } else {
-         xface_j[uniIdx] = j[nr]*ifactor;
+         xface_j[iface] = j[nr]*ifactor;
       }
       map_xcell2face_right1[nz] = iface;
 
@@ -9709,11 +9712,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
          int ntr = ntop[nr];
          if (ntr != nr) {
             uniIdx++;
-            map_xface2cell_lower[uniIdx] = nz;
-            map_xface2cell_upper[uniIdx] = ntr;
-            xface_level[uniIdx] = MAX(level[nz],level[ntr]);
-            xface_i[uniIdx] = i[ntr]*ifactor;
-            xface_j[uniIdx] = j[ntr]*ifactor;
+            map_xface2cell_lower[iface] = nz;
+            map_xface2cell_upper[iface] = ntr;
+            xface_level[iface] = MAX(level[nz],level[ntr]);
+            xface_i[iface] = i[ntr]*ifactor;
+            xface_j[iface] = j[ntr]*ifactor;
             map_xcell2face_right2[nz] = iface;
 
             iface++;
@@ -11156,6 +11159,63 @@ void Mesh::calc_face_list_wbidirmap(void)
    }
 #endif
 }
+
+#ifdef HAVE_OPENCL
+void Mesh::gpu_wbidirmap_setup(void)
+{
+    dev_level = ezcl_malloc(NULL, const_cast<char *>("dev_level"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_i = ezcl_malloc(NULL, const_cast<char *>("dev_level"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_j = ezcl_malloc(NULL, const_cast<char *>("dev_level"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_nlft = ezcl_malloc(NULL, const_cast<char *>("dev_nlft"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_nrht = ezcl_malloc(NULL, const_cast<char *>("dev_nrht"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_nbot = ezcl_malloc(NULL, const_cast<char *>("dev_nbot"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_ntop = ezcl_malloc(NULL, const_cast<char *>("dev_ntop"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_map_xface2cell_lower = ezcl_malloc(NULL, const_cast<char *>("dev_map_xface2cell_lower"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_map_xface2cell_upper = ezcl_malloc(NULL, const_cast<char *>("dev_map_xface2cell_upper"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_map_xcell2face_left1 = ezcl_malloc(NULL, const_cast<char *>("dev_map_xcell2face_left1"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_map_xcell2face_left2 = ezcl_malloc(NULL, const_cast<char *>("dev_map_xcell2face_left2"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_map_xcell2face_right1 = ezcl_malloc(NULL, const_cast<char *>("dev_map_xcell2face_right1"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_map_xcell2face_right2 = ezcl_malloc(NULL, const_cast<char *>("dev_map_xcell2face_right2"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_map_yface2cell_lower = ezcl_malloc(NULL, const_cast<char *>("dev_map_yface2cell_lower"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_map_yface2cell_upper = ezcl_malloc(NULL, const_cast<char *>("dev_map_yface2cell_upper"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_map_ycell2face_bot1 = ezcl_malloc(NULL, const_cast<char *>("dev_map_ycell2face_bot1"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_map_ycell2face_bot2 = ezcl_malloc(NULL, const_cast<char *>("dev_map_ycell2face_bot2"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_map_ycell2face_top1 = ezcl_malloc(NULL, const_cast<char *>("dev_map_ycell2face_top1"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_map_ycell2face_top2 = ezcl_malloc(NULL, const_cast<char *>("dev_map_ycell2face_top2"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    
+
+}
+
+void Mesh::gpu_calc_face_list_wbidirmap(void)
+{
+    struct timeval tstart_cpu;
+    cpu_timer_start(&tstart_cpu);
+    
+    cl_command_queue command_queue = ezcl_get_command_queue();
+
+    gpu_wbidirmap_setup();
+ 
+    assert(dev_nlft);
+    assert(dev_nrht);
+    assert(dev_nbot);
+    assert(dev_ntop);
+    assert(dev_level);
+    assert(dev_levdx);
+    assert(dev_levdy);
+    assert(dev_map_xface2cell_lower);
+    assert(dev_map_xface2cell_upper);
+    assert(dev_map_xcell2face_left1);
+    assert(dev_map_xcell2face_left2);
+    assert(dev_map_xcell2face_right1);
+    assert(dev_map_xcell2face_right2);
+    assert(dev_map_yface2cell_lower);
+    assert(dev_map_yface2cell_upper);
+    assert(dev_map_ycell2face_bot1);
+    assert(dev_map_ycell2face_bot2);
+    assert(dev_map_ycell2face_top1);
+    assert(dev_map_ycell2face_top2);
+}
+#endif
 
 void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
 {
