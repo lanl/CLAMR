@@ -1801,24 +1801,37 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    }
 #endif
    vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
+   vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
+   vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
+   vector<double> FakeFluxHyM, FakeFluxUyM, FakeFluxVyM;
+
+   printf("yo\n");
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
    FakeFluxHxP.resize(ncells, 0);
    FakeFluxUxP.resize(ncells, 0);
    FakeFluxVxP.resize(ncells, 0);
-   vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
    FakeFluxHyP.resize(ncells, 0);
    FakeFluxUyP.resize(ncells, 0);
    FakeFluxVyP.resize(ncells, 0);
-   vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
    FakeFluxHxM.resize(ncells, 0);
    FakeFluxUxM.resize(ncells, 0);
    FakeFluxVxM.resize(ncells, 0);
-   vector<double> FakeFluxHyM, FakeFluxUyM, FakeFluxVyM;
    FakeFluxHyM.resize(ncells, 0);
    FakeFluxUyM.resize(ncells, 0);
    FakeFluxVyM.resize(ncells, 0);
 
    //printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
    memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
    //printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
    //printf("\nDebug %s %d\n", __FILE__, __LINE__);
    xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
@@ -1860,7 +1873,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp for 
 #endif
    //normally use xfaceSize
-   for (int iface = 0; iface < xfaceSize; iface++){
+   for (int iface = 0; iface < mesh->nxface; iface++){
       int cell_lower = mesh->map_xface2cell_lower[iface];
       int cell_upper = mesh->map_xface2cell_upper[iface];
       int level_lower = mesh->level[cell_lower];
@@ -2008,7 +2021,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #endif
    
    //normally use yfaceSize
-   for (int iface = 0; iface < yfaceSize; iface++){
+   for (int iface = 0; iface < mesh->nxface; iface++){
       int cell_lower = mesh->map_yface2cell_lower[iface];
       int cell_upper = mesh->map_yface2cell_upper[iface];
       int level_lower = mesh->level[cell_lower];
@@ -2108,6 +2121,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    }
 #pragma omp barrier
 #endif
+
+    printf("got here mp\n");
 
    int lowerBound, upperBound;
 
@@ -2722,10 +2737,12 @@ void State::calc_finite_difference_via_faces(double deltaT){
    {
 #endif
    mesh->calc_face_list_wbidirmap();
+   //mesh->calc_face_list_wbidirmap_phantom(state_memory);
 #ifdef _OPENMP
    }
 #endif
 
+   //printf("hello\n");
    /*printf("\nH\tV\tU\n\n");
    for (int ppppp = 0; ppppp < mesh->ncells; ppppp++) {
         printf("%d) %f %f %f\n", ppppp, H[ppppp], V[ppppp], U[ppppp]);
@@ -2929,6 +2946,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
       printf("\n");
    }
 #endif
+
 
    static state_t *H_new, *U_new, *V_new;
 
@@ -3859,6 +3877,8 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    cl_command_queue command_queue = ezcl_get_command_queue();
 
    //cl_mem dev_ptr = NULL;
+   mesh->gpu_wbidirmap_setup();
+   mesh->calc_face_list_wbidirmap();
 
    size_t &ncells    = mesh->ncells;
    int nxface    = mesh->nxface;
@@ -3886,6 +3906,12 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    cl_mem &dev_map_ycell2face_bot2 = mesh->dev_map_ycell2face_bot2;
    cl_mem &dev_map_ycell2face_top1 = mesh->dev_map_ycell2face_top1;
    cl_mem &dev_map_ycell2face_top2 = mesh->dev_map_ycell2face_top2;
+   cl_mem &dev_Hx = mesh->dev_Hx;
+   cl_mem &dev_Ux = mesh->dev_Ux;
+   cl_mem &dev_Vx = mesh->dev_Vx;
+   cl_mem &dev_Hy = mesh->dev_Hy;
+   cl_mem &dev_Uy = mesh->dev_Uy;
+   cl_mem &dev_Vy = mesh->dev_Vy;
 
    assert(dev_H);
    assert(dev_U);
@@ -3909,6 +3935,12 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    assert(dev_map_ycell2face_bot2);
    assert(dev_map_ycell2face_top1);
    assert(dev_map_ycell2face_top2);
+   assert(dev_Hx);
+   assert(dev_Ux);
+   assert(dev_Vx);
+   assert(dev_Hy);
+   assert(dev_Uy);
+   assert(dev_Vy);
 
    cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
    cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
@@ -4026,7 +4058,15 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
             __global    const int       *map_xface2cell_lower,      // 14 A face's left cell 
             __global    const int       *map_xface2cell_upper,      // 15 A face's left cell 
             __global    const int       *map_yface2cell_lower,      // 16 A face's below cell 
-            __global    const int       *map_yface2cell_upper) {    // 17 A face's above cell*/
+            __global    const int       *map_yface2cell_upper,       // 17 A face's above cell
+            __global          state_t   *Hx,                        // 18
+            __global          state_t   *Ux,                        // 19
+            __global          state_t   *Vx,                        // 20
+            __global          state_t   *Hy,                        // 21
+            __global          state_t   *Uy,                        // 22
+            __global          state_t   *Vy) {                      // 23
+            
+            */
 
    cl_event calc_finite_difference_via_faces_face_event, calc_finite_difference_via_faces_cell_event;
 
@@ -4049,6 +4089,12 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_face, 15, sizeof(cl_mem), (void *)&dev_map_xface2cell_upper); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_face, 16, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_face, 17, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 18, sizeof(cl_mem), (void *)&dev_Hx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 19, sizeof(cl_mem), (void *)&dev_Ux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 20, sizeof(cl_mem), (void *)&dev_Vx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 21, sizeof(cl_mem), (void *)&dev_Hy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 22, sizeof(cl_mem), (void *)&dev_Uy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 23, sizeof(cl_mem), (void *)&dev_Vy); 
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_faces_face, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_via_faces_face_event);
 
@@ -4083,7 +4129,13 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
             __global    const int       *map_ycell2face_bot1,       // 22 A cell's bot primary face 
             __global    const int       *map_ycell2face_bot2,       // 23 A cell's bot secondary face
             __global    const int       *map_ycell2face_top1,       // 24 A cell's top primary face 
-            __global    const int       *map_ycell2face_top2) {     // 25 A cell's top secondary face 
+            __global    const int       *map_ycell2face_top2,       // 25 A cell's top secondary face 
+            __global    const state_t   *Hx,                        // 26
+            __global    const state_t   *Ux,                        // 27
+            __global    const state_t   *Vx,                        // 28
+            __global    const state_t   *Hy,                        // 28
+            __global    const state_t   *Uy,                        // 30
+            __global    const state_t   *Vy) {                      // 31
      
      * */ 
 
@@ -4113,6 +4165,12 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 23, sizeof(cl_mem), (void *)&dev_map_ycell2face_bot2); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 24, sizeof(cl_mem), (void *)&dev_map_ycell2face_top1); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 25, sizeof(cl_mem), (void *)&dev_map_ycell2face_top2); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 26, sizeof(cl_mem), (void *)&dev_Hx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 27, sizeof(cl_mem), (void *)&dev_Ux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 28, sizeof(cl_mem), (void *)&dev_Vx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 29, sizeof(cl_mem), (void *)&dev_Hy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 30, sizeof(cl_mem), (void *)&dev_Uy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 31, sizeof(cl_mem), (void *)&dev_Vy); 
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_faces_cell, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_via_faces_cell_event);
 
@@ -4138,6 +4196,7 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    cl_command_queue command_queue = ezcl_get_command_queue();
 
    //cl_mem dev_ptr = NULL;
+   mesh->gpu_wbidirmap_setup();
 
    size_t &ncells    = mesh->ncells;
    int nxface    = mesh->nxface;
@@ -4161,6 +4220,12 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    cl_mem &dev_map_yface2cell_upper = mesh->dev_map_yface2cell_upper;
    cl_mem &dev_map_ycell2face_bot1 = mesh->dev_map_ycell2face_bot1;
    cl_mem &dev_map_ycell2face_top1 = mesh->dev_map_ycell2face_top1;
+   cl_mem &dev_Hx = mesh->dev_Hx;
+   cl_mem &dev_Ux = mesh->dev_Ux;
+   cl_mem &dev_Vx = mesh->dev_Vx;
+   cl_mem &dev_Hy = mesh->dev_Hy;
+   cl_mem &dev_Uy = mesh->dev_Uy;
+   cl_mem &dev_Vy = mesh->dev_Vy;
 
    assert(dev_H);
    assert(dev_U);
@@ -4180,6 +4245,12 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    assert(dev_map_yface2cell_upper);
    assert(dev_map_ycell2face_bot1);
    assert(dev_map_ycell2face_top1);
+   assert(dev_Hx);
+   assert(dev_Ux);
+   assert(dev_Vx);
+   assert(dev_Hy);
+   assert(dev_Uy);
+   assert(dev_Vy);
 
    cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
    cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
@@ -4320,6 +4391,12 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_face, 15, sizeof(cl_mem), (void *)&dev_map_xface2cell_upper); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_face, 16, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_face, 17, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 18, sizeof(cl_mem), (void *)&dev_Hx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 19, sizeof(cl_mem), (void *)&dev_Ux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 20, sizeof(cl_mem), (void *)&dev_Vx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 21, sizeof(cl_mem), (void *)&dev_Hy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 22, sizeof(cl_mem), (void *)&dev_Uy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 23, sizeof(cl_mem), (void *)&dev_Vy); 
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_faces_face, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_via_faces_face_event);
 
@@ -4384,6 +4461,12 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 23, sizeof(cl_mem), (void *)&dev_map_xcell2face_right1); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 24, sizeof(cl_mem), (void *)&dev_map_ycell2face_bot1); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 25, sizeof(cl_mem), (void *)&dev_map_ycell2face_top1); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 26, sizeof(cl_mem), (void *)&dev_Hx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 27, sizeof(cl_mem), (void *)&dev_Ux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 28, sizeof(cl_mem), (void *)&dev_Vx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 29, sizeof(cl_mem), (void *)&dev_Hy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 30, sizeof(cl_mem), (void *)&dev_Uy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 31, sizeof(cl_mem), (void *)&dev_Vy); 
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_face_in_place_cell, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_via_faces_cell_event);
 
@@ -5088,6 +5171,12 @@ void State::allocate_device_memory(size_t ncells)
    dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H"), DEVICE_REGULAR_MEMORY);
    dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U"), DEVICE_REGULAR_MEMORY);
    dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V"), DEVICE_REGULAR_MEMORY);
+   dev_Hx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Hx"), DEVICE_REGULAR_MEMORY);
+   dev_Ux = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Ux"), DEVICE_REGULAR_MEMORY);
+   dev_Vx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Vx"), DEVICE_REGULAR_MEMORY);
+   dev_Hy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Hy"), DEVICE_REGULAR_MEMORY);
+   dev_Uy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Uy"), DEVICE_REGULAR_MEMORY);
+   dev_Vy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Vy"), DEVICE_REGULAR_MEMORY);
 }
 #endif
 
@@ -5097,9 +5186,21 @@ void State::resize_old_device_memory(size_t ncells)
    gpu_state_memory.memory_delete(dev_H);
    gpu_state_memory.memory_delete(dev_U);
    gpu_state_memory.memory_delete(dev_V);
+   gpu_state_memory.memory_delete(dev_Hx);
+   gpu_state_memory.memory_delete(dev_Ux);
+   gpu_state_memory.memory_delete(dev_Vx);
+   gpu_state_memory.memory_delete(dev_Hy);
+   gpu_state_memory.memory_delete(dev_Uy);
+   gpu_state_memory.memory_delete(dev_Vy);
    dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H"), DEVICE_REGULAR_MEMORY);
    dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U"), DEVICE_REGULAR_MEMORY);
    dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V"), DEVICE_REGULAR_MEMORY);
+   dev_Hx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Hx"), DEVICE_REGULAR_MEMORY);
+   dev_Ux = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Ux"), DEVICE_REGULAR_MEMORY);
+   dev_Vx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Vx"), DEVICE_REGULAR_MEMORY);
+   dev_Hy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Hy"), DEVICE_REGULAR_MEMORY);
+   dev_Uy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Uy"), DEVICE_REGULAR_MEMORY);
+   dev_Vy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Vy"), DEVICE_REGULAR_MEMORY);
 #else
    // Just to block compiler warnings
    if (1 == 2) printf("DEBUG -- ncells is %ld\n",ncells);
