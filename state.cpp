@@ -1784,9 +1784,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    ntop  = mesh->ntop;
    level = mesh->level;*/
 
-   vector<real_t> &lev_deltax = mesh->lev_deltax;
-   vector<real_t> &lev_deltay = mesh->lev_deltay;
-
    int flags = 0;
    flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
    //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
@@ -1797,21 +1794,35 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    {
 #endif
    mesh->calc_face_list_wbidirmap_phantom(state_memory);
+   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
 #ifdef _OPENMP
    }
 #endif
-   vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
-   vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
-   vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
-   vector<double> FakeFluxHyM, FakeFluxUyM, FakeFluxVyM;
+   static vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
+   static vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
+   static vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
+   static vector<double> FakeFluxHyM, FakeFluxUyM, FakeFluxVyM;
 
-   printf("yo\n");
+   vector<real_t> &lev_deltax = mesh->lev_deltax;
+   vector<real_t> &lev_deltay = mesh->lev_deltay;
 
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
    {
 #endif
+   /*FakeFluxHxP.clear();
+   FakeFluxUxP.clear();
+   FakeFluxVxP.clear();
+   FakeFluxHyP.clear();
+   FakeFluxUyP.clear();
+   FakeFluxVyP.clear();
+   FakeFluxHxM.clear();
+   FakeFluxUxM.clear();
+   FakeFluxVxM.clear();
+   FakeFluxHyM.clear();
+   FakeFluxUyM.clear();
+   FakeFluxVyM.clear();*/
    FakeFluxHxP.resize(ncells, 0);
    FakeFluxUxP.resize(ncells, 0);
    FakeFluxVxP.resize(ncells, 0);
@@ -1824,9 +1835,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    FakeFluxHyM.resize(ncells, 0);
    FakeFluxUyM.resize(ncells, 0);
    FakeFluxVyM.resize(ncells, 0);
-
-   //printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
-   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -1868,6 +1876,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    }
 #pragma omp barrier
 #endif
+
+   
 
 #ifdef _OPENMP
 #pragma omp for 
@@ -2122,12 +2132,13 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp barrier
 #endif
 
-    printf("got here mp\n");
 
    int lowerBound, upperBound;
 
    mesh->get_bounds(lowerBound, upperBound);
-   for (int rough = 2; rough > -1; rough--) {
+   int rough = 2;
+   while (rough > -1) {
+       //printf("Level %d we all here\n", rough);
    for (int ic = lowerBound; ic < upperBound; ic++){
       int lvl     = mesh->level[ic];
       if (lvl != rough) continue;
@@ -2141,13 +2152,13 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int nt = mesh->map_yface2cell_upper[mesh->map_ycell2face_top1[ic]];
 
       if (mesh->nlft[ic] == ic)
-  	nl = ic;
+  	    nl = ic;
       if (mesh->nrht[ic] == ic)
-  	nr = ic;
+  	    nr = ic;
       if (mesh->nbot[ic] == ic)
-  	nb = ic;
+  	    nb = ic;
       if (mesh->ntop[ic] == ic)
-  	nt = ic;
+  	    nt = ic;
 
       //printf("\n%d) %d %d %d %d\n", ic, nl, nr, nb, nt);
       //printf("%d %d %d %d %d\n", mesh->level[ic], mesh->level[nl], mesh->level[nr], mesh->level[nb], mesh->level[nt]);    
@@ -2554,30 +2565,43 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       wminusx_H = 0.0; wplusx_H = 0.0; wminusy_H = 0.0; wplusy_H = 0.0;
       wminusx_U = 0.0; wplusx_U = 0.0;
       wminusy_V = 0.0; wplusy_V = 0.0;
-    //printf("\n%d) FakeFlux %f %f %f, phantom %d %d\n", ic, FakeFluxHx[ic], FakeFluxUx[ic], FakeFluxVx[ic], mesh->phantomXFlux[ic], mesh->phantomYFlux[ic]);
+      printf("\n%d) %f\n", ic, FakeFluxHxP[ic]);
+    //printf("\n%d) FakeFlux %f %f %f %f, phantom %d %d\n", ic, FakeFluxHxP[ic], FakeFluxHxM, FakeFluxHyP, FakeFluxHyM,  mesh->phantomXFlux[ic], mesh->phantomYFlux[ic]);
     if ((FakeFluxHxP[ic] > 0) || (FakeFluxUxP[ic] > 0) || (FakeFluxVxP[ic] > 0)) {
         //printf("\n(%d) received %f %f %f XP\n", ic, FakeFluxHxP[ic], FakeFluxUxP[ic], FakeFluxVxP[ic]);
         Hxfluxplus = FakeFluxHxP[ic] * HALF; 
         Uxfluxplus = FakeFluxUxP[ic] * HALF;
         Vxfluxplus = FakeFluxVxP[ic] * HALF; 
+        FakeFluxHxP[ic] = 0.0;
+        FakeFluxUxP[ic] = 0.0;
+        FakeFluxVxP[ic] = 0.0;
     }
     else if ((FakeFluxHxM[ic] > 0) || (FakeFluxUxM[ic] > 0) || (FakeFluxVxM[ic] > 0)) {
         //printf("\n(%d) received %f %f %f XM\n", ic, FakeFluxHxM[ic], FakeFluxUxM[ic], FakeFluxVxM[ic]);
         Hxfluxminus = FakeFluxHxM[ic] * HALF; 
         Uxfluxminus = FakeFluxUxM[ic] * HALF; 
         Vxfluxminus = FakeFluxVxM[ic] * HALF; 
+        FakeFluxHxM[ic] = 0.0;
+        FakeFluxUxM[ic] = 0.0;
+        FakeFluxVxM[ic] = 0.0;
     }
     if ((FakeFluxHyP[ic] > 0) || (FakeFluxUyP[ic] > 0) || (FakeFluxVyP[ic] > 0)) {
         //printf("\n(%d) received %f %f %f YP\n", ic, FakeFluxHyP[ic], FakeFluxUyP[ic], FakeFluxVyP[ic]);
         Hyfluxplus = FakeFluxHyP[ic] * HALF; 
         Uyfluxplus = FakeFluxUyP[ic] * HALF; 
         Vyfluxplus = FakeFluxVyP[ic] * HALF; 
+        FakeFluxHyP[ic] = 0.0;
+        FakeFluxUyP[ic] = 0.0;
+        FakeFluxVyP[ic] = 0.0;
     }
     else if ((FakeFluxHyM[ic] > 0) || (FakeFluxUyM[ic] > 0) || (FakeFluxVyM[ic] > 0)) {
         //printf("\n(%d) received %f %f %f YM\n", ic, FakeFluxHyM[ic], FakeFluxUyM[ic], FakeFluxVyM[ic]);
         Hyfluxminus = FakeFluxHyM[ic] * HALF; 
         Uyfluxminus = FakeFluxUyM[ic] * HALF; 
         Vyfluxminus = FakeFluxVyM[ic] * HALF; 
+        FakeFluxHyM[ic] = 0.0;
+        FakeFluxUyM[ic] = 0.0;
+        FakeFluxVyM[ic] = 0.0;
     }
 
     if ((mesh->phantomXFlux[ic] >= 0) && (mesh->phantomXFlux[ic] < 99999)) {
@@ -2642,6 +2666,10 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       printf("DEBUG ic %d wminusy_V %lf wplusy_V %lf\n",ic, wminusy_V, wplusy_V);
 */
    }//end forloop
+   rough--;
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
    }//end while
 
 
@@ -2718,6 +2746,22 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
    int *nlft, *nrht, *nbot, *ntop, *level;
 
+   int flags = 0;
+   flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
+   //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
+
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   mesh->calc_face_list_wbidirmap();
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
    nlft  = mesh->nlft;
    nrht  = mesh->nrht;
    nbot  = mesh->nbot;
@@ -2727,27 +2771,13 @@ void State::calc_finite_difference_via_faces(double deltaT){
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
-   int flags = 0;
-   flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
-   //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
 
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   mesh->calc_face_list_wbidirmap();
-   //mesh->calc_face_list_wbidirmap_phantom(state_memory);
-#ifdef _OPENMP
-   }
-#endif
-
-   //printf("hello\n");
    /*printf("\nH\tV\tU\n\n");
    for (int ppppp = 0; ppppp < mesh->ncells; ppppp++) {
         printf("%d) %f %f %f\n", ppppp, H[ppppp], V[ppppp], U[ppppp]);
    }*/
 
+   //printf("%f\n", H[mesh->ncells-1]);
 
    static vector<state_t> Hx, Ux, Vx;
 
@@ -2844,6 +2874,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
          Vx[iface]=(dx_lower*V[cell_upper]+dx_upper*V[cell_lower])/(dx_lower+dx_upper) -
                    HALF*deltaT*( (FA_uplim*UVFLUX(cell_upper))-(FA_lolim*UVFLUX(cell_lower)) )/
                    (CV_uplim+CV_lolim);
+
       }
 #if DEBUG >= 2
       if (DEBUG >= 2) {
@@ -2967,7 +2998,6 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
    mesh->get_bounds(lowerBound, upperBound);
    for (int ic = lowerBound; ic < upperBound; ic++){
-
       int lvl     = level[ic];
       int nl      = nlft[ic];
       int nr      = nrht[ic];
@@ -3388,6 +3418,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
       V_new[ic] = U_fullstep(deltaT, dxic, Vic,
                       Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                  - wminusy_V + wplusy_V;
+      //printf("%d) %f\n", ic, H_new[ic]);
 
 #if DEBUG >= 1
       if (DEBUG >= 1) {
