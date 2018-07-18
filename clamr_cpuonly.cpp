@@ -399,6 +399,17 @@ extern "C" void do_calc(void)
       //  Resize the mesh, inserting cells where refinement is necessary.
 
 #ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+        //state->state_memory.memory_report();
+        //printf("\n\n\n");
+#ifdef _OPENMP
+         }
+#endif
+
+#ifdef _OPENMP
 #pragma omp parallel
       {
 #endif

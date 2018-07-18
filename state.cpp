@@ -1788,6 +1788,62 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
    //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
 
+    //following ~35 lines are to give H, U, V its proper flags back
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+    state_memory.memory_report();
+    printf("\n\n\n");
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+   static state_t *H_tmp, *U_tmp, *V_tmp;
+#pragma omp master
+   {
+      H_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "H_tmp", flags);
+      U_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "U_tmp", flags);
+      V_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "V_tmp", flags);
+   }
+#pragma omp barrier
+    int lowlow, upup;
+
+    mesh->get_bounds(lowlow, upup);
+    for (lowlow; lowlow < upup; lowlow++) {
+        H_tmp[lowlow] = H[lowlow];    
+        U_tmp[lowlow] = U[lowlow];    
+        V_tmp[lowlow] = V[lowlow];    
+    }
+#pragma omp barrier
+#pragma omp master
+   {
+      // Replace H with H_new and deallocate H. New memory will have the characteristics
+      // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
+      H = (state_t *)state_memory.memory_replace(H, H_tmp);
+      U = (state_t *)state_memory.memory_replace(U, U_tmp);
+      V = (state_t *)state_memory.memory_replace(V, V_tmp);
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+    state_memory.memory_report();
+    printf("\n\n\n");
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
@@ -1795,8 +1851,12 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #endif
    mesh->calc_face_list_wbidirmap_phantom(state_memory);
    memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
+   // state_memory.memory_report();
+    //printf("\n\n\n");
+   //for (int phantI=0; phantI < ncells; phantI++) { printf("%d) %d %d\n", phantI, mesh->phantomXFlux[phantI], mesh->phantomYFlux[phantI]);}
 #ifdef _OPENMP
    }
+#pragma omp barrier
 #endif
    static vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
    static vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
@@ -1811,18 +1871,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp master
    {
 #endif
-   /*FakeFluxHxP.clear();
-   FakeFluxUxP.clear();
-   FakeFluxVxP.clear();
-   FakeFluxHyP.clear();
-   FakeFluxUyP.clear();
-   FakeFluxVyP.clear();
-   FakeFluxHxM.clear();
-   FakeFluxUxM.clear();
-   FakeFluxVxM.clear();
-   FakeFluxHyM.clear();
-   FakeFluxUyM.clear();
-   FakeFluxVyM.clear();*/
    FakeFluxHxP.resize(ncells, 0);
    FakeFluxUxP.resize(ncells, 0);
    FakeFluxVxP.resize(ncells, 0);
@@ -1840,8 +1888,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp barrier
 #endif
 
-   //printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
-   //printf("\nDebug %s %d\n", __FILE__, __LINE__);
    xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
    cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
 
@@ -2138,10 +2184,10 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    mesh->get_bounds(lowerBound, upperBound);
    int rough = 2;
    while (rough > -1) {
-       //printf("Level %d we all here\n", rough);
    for (int ic = lowerBound; ic < upperBound; ic++){
       int lvl     = mesh->level[ic];
       if (lvl != rough) continue;
+      // printf("Level %d we all here\n", rough);
       /*int nl      = mesh->nlft[ic]; //need to use mapping to get neighbors so that
       int nr      = mesh->nrht[ic];   //we include phantom cells
       int nt      = mesh->ntop[ic];
@@ -2565,7 +2611,10 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       wminusx_H = 0.0; wplusx_H = 0.0; wminusy_H = 0.0; wplusy_H = 0.0;
       wminusx_U = 0.0; wplusx_U = 0.0;
       wminusy_V = 0.0; wplusy_V = 0.0;
-      printf("\n%d) %f\n", ic, FakeFluxHxP[ic]);
+      //printf("\n%d) %f %f %f\n", ic, FakeFluxHxP[ic], FakeFluxUxP[ic], FakeFluxVxP[ic]);
+      //printf("%d) %f %f %f\n", ic, FakeFluxHxM[ic], FakeFluxUxM[ic], FakeFluxVxM[ic]);
+      //printf("%d) %f %f %f\n", ic, FakeFluxHyP[ic], FakeFluxUyP[ic], FakeFluxVyP[ic]);
+      //printf("%d) %f %f %f\n", ic, FakeFluxHyM[ic], FakeFluxUyM[ic], FakeFluxVyM[ic]);
     //printf("\n%d) FakeFlux %f %f %f %f, phantom %d %d\n", ic, FakeFluxHxP[ic], FakeFluxHxM, FakeFluxHyP, FakeFluxHyM,  mesh->phantomXFlux[ic], mesh->phantomYFlux[ic]);
     if ((FakeFluxHxP[ic] > 0) || (FakeFluxUxP[ic] > 0) || (FakeFluxVxP[ic] > 0)) {
         //printf("\n(%d) received %f %f %f XP\n", ic, FakeFluxHxP[ic], FakeFluxUxP[ic], FakeFluxVxP[ic]);
@@ -2604,6 +2653,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
         FakeFluxVyM[ic] = 0.0;
     }
 
+    //printf("\n%d) %d %d\n", ic, mesh->phantomXFlux[ic], mesh->phantomYFlux[ic]); 
     if ((mesh->phantomXFlux[ic] >= 0) && (mesh->phantomXFlux[ic] < 99999)) {
         //printf("\n(%d) adding %f %f %f to %d XP\n", ic, Hxfluxminus, Uxfluxminus, Vxfluxminus, mesh->phantomXFlux[ic]);
         FakeFluxHxP[mesh->phantomXFlux[ic]] += Hxfluxminus;
@@ -2646,6 +2696,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       V_new[ic] = U_fullstep(deltaT, dxic, Vic,
                       Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                  - wminusy_V + wplusy_V;
+      //printf("%d) H %f U %f V %f\n", ic, H_new[ic], U_new[ic], V_new[ic]);
 
 #if DEBUG >= 1
       if (DEBUG >= 1) {
@@ -2685,6 +2736,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       V = (state_t *)state_memory.memory_replace(V, V_new);
 
       //state_memory.memory_report();
+    //printf("\n\n\n");
       //printf("DEBUG end finite diff\n\n"); 
 #ifdef _OPENMP
    }
@@ -2706,6 +2758,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
+
 #ifdef _OPENMP
 #pragma omp master
 #endif

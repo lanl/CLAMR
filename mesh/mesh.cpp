@@ -3456,6 +3456,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp barrier
 #endif
 
+
          } else if (memory_item->mem_elsize == 4) {
 
             static float *state_temp_float, *mem_ptr_float;
@@ -9912,6 +9913,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory)
         memory_item = state_memory_old.memory_entry_by_name_next() ) {
           
         //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
+        //printf("\n%d\n", memory_item->mem_flags);
 
         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
         
