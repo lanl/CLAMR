@@ -64,6 +64,7 @@
 #include "ezcl/ezcl.h"
 #endif
 #include "l7/l7.h"
+#include <atomic>
 
 #define STATUS_OK        0
 #define STATUS_NAN       1
@@ -179,6 +180,28 @@ enum state_timers
 typedef enum state_timers   state_timer_category;
 
 using namespace std;
+
+struct atomwrapper
+{
+    atomic<double> _a;
+
+    atomwrapper()
+        :_a()
+    {}
+
+    atomwrapper(const std::atomic<double> &a)
+        :_a(a.load())
+    {}
+
+    atomwrapper(const atomwrapper &other)
+        :_a(other._a.load())
+    {}
+
+    atomwrapper &operator=(const atomwrapper &other)
+    {
+        _a.store(other._a.load());
+    }
+};
 
 class State {
    

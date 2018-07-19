@@ -1546,7 +1546,13 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
             __global    const int       *map_xface2cell_lower,      // 14 A face's left cell 
             __global    const int       *map_xface2cell_upper,      // 15 A face's left cell 
             __global    const int       *map_yface2cell_lower,      // 16 A face's below cell 
-            __global    const int       *map_yface2cell_upper) {    // 17 A face's above cell 
+            __global    const int       *map_yface2cell_upper,      // 17 A face's above cell 
+            __global          state_t   *Hx,                        // 18
+            __global          state_t   *Ux,                        // 19
+            __global          state_t   *Vx,                        // 20
+            __global          state_t   *Hy,                        // 21
+            __global          state_t   *Uy,                        // 22
+            __global          state_t   *Vy) {                      // 23
 
     /////////////////////////////////////////////
     /// Get thread identification information ///
@@ -1568,7 +1574,6 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
 
     const uint group_id = get_group_id(0);
 
-    #ifdef NEEDS_WORK_XXX
     // Ensure the executing thread is not extraneous
     if (giX >= max(nxface, nyface))
         return;
@@ -1589,6 +1594,7 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
 
 
     if (giX < nxface) {
+      real_t Hxic, Uxic, Vxic; 
       int cell_lower, cell_upper, level_lower, level_upper;
       int cell_lower = mesh->map_xface2cell_lower[giX];
       int cell_upper = mesh->map_xface2cell_upper[giX];
@@ -1626,19 +1632,24 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
          //                                    (CV_uplim+CV_lolim)
          //
 
-         Hx[giX]=(dx_lower*H[cell_upper]+dx_upper*H[cell_lower])/(dx_lower+dx_upper) -
+         Hxic = (dx_lower*H[cell_upper]+dx_upper*H[cell_lower])/(dx_lower+dx_upper) -
                    HALF*deltaT*( (FA_uplim*HXFLUX(cell_upper))-(FA_lolim*HXFLUX(cell_lower)) )/
                    (CV_uplim+CV_lolim);
-         Ux[giX]=(dx_lower*U[cell_upper]+dx_upper*U[cell_lower])/(dx_lower+dx_upper) -
+         Uxic = (dx_lower*U[cell_upper]+dx_upper*U[cell_lower])/(dx_lower+dx_upper) -
                    HALF*deltaT*( (FA_uplim*UXFLUX(cell_upper))-(FA_lolim*UXFLUX(cell_lower)) )/
                    (CV_uplim+CV_lolim);
-         Vx[giX]=(dx_lower*V[cell_upper]+dx_upper*V[cell_lower])/(dx_lower+dx_upper) -
+         Vxic = (dx_lower*V[cell_upper]+dx_upper*V[cell_lower])/(dx_lower+dx_upper) -
                    HALF*deltaT*( (FA_uplim*UVFLUX(cell_upper))-(FA_lolim*UVFLUX(cell_lower)) )/
                    (CV_uplim+CV_lolim);
+
+         Hx[giX] = Hxic;
+         Ux[giX] = Uxic;
+         Vx[giX] = Vxic;
       }
    }
 
     if (giX < nyface) {
+      real_t Hyic, Uyic, Vyic; 
       int cell_lower = mesh->map_yface2cell_lower[giX];
       int cell_upper = mesh->map_yface2cell_upper[giX];
       int level_lower = level[cell_lower];
@@ -1674,19 +1685,21 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
          //                                    (CV_uplim+CV_lolim)
          //
 
-         Hy[giX]=(dy_lower*H[cell_upper]+dy_upper*H[cell_lower])/(dy_lower+dy_upper) -
+         Hyic = (dy_lower*H[cell_upper]+dy_upper*H[cell_lower])/(dy_lower+dy_upper) -
                    HALF*deltaT*( (FA_uplim*HYFLUX(cell_upper))-(FA_lolim*HYFLUX(cell_lower)) )/
                    (CV_uplim+CV_lolim);
-         Uy[giX]=(dy_lower*U[cell_upper]+dy_upper*U[cell_lower])/(dy_lower+dy_upper) -
+         Uyic = (dy_lower*U[cell_upper]+dy_upper*U[cell_lower])/(dy_lower+dy_upper) -
                    HALF*deltaT*( (FA_uplim*UVFLUX(cell_upper))-(FA_lolim*UVFLUX(cell_lower)) )/
                    (CV_uplim+CV_lolim);
-         Vy[giX]=(dy_lower*V[cell_upper]+dy_upper*V[cell_lower])/(dy_lower+dy_upper) -
+         Vyic = (dy_lower*V[cell_upper]+dy_upper*V[cell_lower])/(dy_lower+dy_upper) -
                    HALF*deltaT*( (FA_uplim*VYFLUX(cell_upper))-(FA_lolim*VYFLUX(cell_lower)) )/
                    (CV_uplim+CV_lolim);
 
+         Hy[giX] = Hyic;
+         Uy[giX] = Uyic;
+         Vy[giX] = Vyic;
       }
     }
-    #endif
 
 }
 
@@ -1718,7 +1731,13 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
             __global    const int       *map_ycell2face_bot1,       // 22 A cell's bot primary face 
             __global    const int       *map_ycell2face_bot2,       // 23 A cell's bot secondary face
             __global    const int       *map_ycell2face_top1,       // 24 A cell's top primary face 
-            __global    const int       *map_ycell2face_top2) {     // 25 A cell's top secondary face 
+            __global    const int       *map_ycell2face_top2,       // 25 A cell's top secondary face 
+            __global    const state_t   *Hx,                        // 26
+            __global    const state_t   *Ux,                        // 27
+            __global    const state_t   *Vx,                        // 28
+            __global    const state_t   *Hy,                        // 28
+            __global    const state_t   *Uy,                        // 30
+            __global    const state_t   *Vy) {                      // 31
 
     /////////////////////////////////////////////
     /// Get thread identification information ///
@@ -1740,7 +1759,6 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
 
     const uint group_id = get_group_id(0);
 
-    #ifdef NEEDS_WORK_XXX
     // Ensure the executing thread is not extraneous
     if (giX >= ncells)
         return;
@@ -2253,18 +2271,21 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
          Vyfluxplus  = (Vyfluxplus + VNEWYFLUXPLUS2) * HALF;
       }
 
-      H_new[giX] = U_fullstep(deltaT, dxic, Hic,
+      Hic = U_fullstep(deltaT, dxic, Hic,
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
                  - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
-      U_new[giX] = U_fullstep(deltaT, dxic, Uic,
+      Uic = U_fullstep(deltaT, dxic, Uic,
                       Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
                  - wminusx_U + wplusx_U;
-      V_new[giX] = U_fullstep(deltaT, dxic, Vic,
+      Vic = U_fullstep(deltaT, dxic, Vic,
                       Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                  - wminusy_V + wplusy_V;
+      
+      H_new[giX] = Hic;
+      U_new[giX] = Uic;
+      V_new[giX] = Vic;
 
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
-      #endif
 
 }
 
@@ -2294,7 +2315,13 @@ __kernel void calc_finite_difference_via_face_in_place_cell_comps_cl(
             __global    const int       *map_xcell2face_left1,      // 22 A cell's left primary face 
             __global    const int       *map_xcell2face_right1,     // 23 A cell's right primary face 
             __global    const int       *map_ycell2face_bot1,       // 24 A cell's bot primary face 
-            __global    const int       *map_ycell2face_top1) {     // 25 A cell's top primary face 
+            __global    const int       *map_ycell2face_top1,       // 25 A cell's top primary face 
+            __global    const state_t   *Hx,                        // 26
+            __global    const state_t   *Ux,                        // 27
+            __global    const state_t   *Vx,                        // 28
+            __global    const state_t   *Hy,                        // 28
+            __global    const state_t   *Uy,                        // 30
+            __global    const state_t   *Vy) {                      // 31
 
     /////////////////////////////////////////////
     /// Get thread identification information ///
@@ -2320,7 +2347,6 @@ __kernel void calc_finite_difference_via_face_in_place_cell_comps_cl(
     if (giX >= ncells) 
         return;
 
-    #ifdef NEEDS_WORK_XXX
 
     /////////////////////////////////////////////////
     /// Declare all constants and local variables ///
@@ -2566,19 +2592,22 @@ __kernel void calc_finite_difference_via_face_in_place_cell_comps_cl(
          Vyfluxplus  = (Vyfluxplus + VNEWYFLUXPLUS2) * HALF;
       }
 
-      H_new[giX] = U_fullstep(deltaT, dxic, Hic,
+      Hic = U_fullstep(deltaT, dxic, Hic,
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
                  - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
-      U_new[giX] = U_fullstep(deltaT, dxic, Uic,
+      Uic = U_fullstep(deltaT, dxic, Uic,
                       Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
                  - wminusx_U + wplusx_U;
-      V_new[giX] = U_fullstep(deltaT, dxic, Vic,
+      Vic = U_fullstep(deltaT, dxic, Vic,
                       Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                  - wminusy_V + wplusy_V;
 
+      H_new[giX] = Hic;
+      U_new[giX] = Uic;
+      V_new[giX] = Vic;
+
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 
-      #endif
 }
 
 __kernel void refine_potential_cl(

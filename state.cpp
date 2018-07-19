@@ -1784,43 +1784,108 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    ntop  = mesh->ntop;
    level = mesh->level;*/
 
-   vector<real_t> &lev_deltax = mesh->lev_deltax;
-   vector<real_t> &lev_deltay = mesh->lev_deltay;
-
    int flags = 0;
    flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
    //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
+
+    //following ~35 lines are to give H, U, V its proper flags back
 
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
    {
 #endif
-   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
+    state_memory.memory_report();
+    printf("\n\n\n");
 #ifdef _OPENMP
    }
+#pragma omp barrier
 #endif
-   vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
+
+#ifdef _OPENMP
+#pragma omp barrier
+   static state_t *H_tmp, *U_tmp, *V_tmp;
+#pragma omp master
+   {
+      H_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "H_tmp", flags);
+      U_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "U_tmp", flags);
+      V_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "V_tmp", flags);
+   }
+#pragma omp barrier
+    int lowlow, upup;
+
+    mesh->get_bounds(lowlow, upup);
+    for (lowlow; lowlow < upup; lowlow++) {
+        H_tmp[lowlow] = H[lowlow];    
+        U_tmp[lowlow] = U[lowlow];    
+        V_tmp[lowlow] = V[lowlow];    
+    }
+#pragma omp barrier
+#pragma omp master
+   {
+      // Replace H with H_new and deallocate H. New memory will have the characteristics
+      // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
+      H = (state_t *)state_memory.memory_replace(H, H_tmp);
+      U = (state_t *)state_memory.memory_replace(U, U_tmp);
+      V = (state_t *)state_memory.memory_replace(V, V_tmp);
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+    state_memory.memory_report();
+    printf("\n\n\n");
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   //mesh->calc_face_list_wbidirmap_phantom(state_memory);
+   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
+   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+   static vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
+   static vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
+   static vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
+   static vector<double> FakeFluxHyM, FakeFluxUyM, FakeFluxVyM;
+
+   vector<real_t> &lev_deltax = mesh->lev_deltax;
+   vector<real_t> &lev_deltay = mesh->lev_deltay;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
    FakeFluxHxP.resize(ncells, 0);
    FakeFluxUxP.resize(ncells, 0);
    FakeFluxVxP.resize(ncells, 0);
-   vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
    FakeFluxHyP.resize(ncells, 0);
    FakeFluxUyP.resize(ncells, 0);
    FakeFluxVyP.resize(ncells, 0);
-   vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
    FakeFluxHxM.resize(ncells, 0);
    FakeFluxUxM.resize(ncells, 0);
    FakeFluxVxM.resize(ncells, 0);
-   vector<double> FakeFluxHyM, FakeFluxUyM, FakeFluxVyM;
    FakeFluxHyM.resize(ncells, 0);
    FakeFluxUyM.resize(ncells, 0);
    FakeFluxVyM.resize(ncells, 0);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
 
-   //printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
-   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
-   //printf("\n%d\n", mesh->mesh_memory.get_memory_size(mesh->level));
-   //printf("\nDebug %s %d\n", __FILE__, __LINE__);
    xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
    cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
 
@@ -1856,11 +1921,13 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp barrier
 #endif
 
+   
+
 #ifdef _OPENMP
 #pragma omp for 
 #endif
    //normally use xfaceSize
-   for (int iface = 0; iface < xfaceSize; iface++){
+   for (int iface = 0; iface < mesh->nxface; iface++){
       int cell_lower = mesh->map_xface2cell_lower[iface];
       int cell_upper = mesh->map_xface2cell_upper[iface];
       int level_lower = mesh->level[cell_lower];
@@ -2008,7 +2075,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #endif
    
    //normally use yfaceSize
-   for (int iface = 0; iface < yfaceSize; iface++){
+   for (int iface = 0; iface < mesh->nxface; iface++){
       int cell_lower = mesh->map_yface2cell_lower[iface];
       int cell_upper = mesh->map_yface2cell_upper[iface];
       int level_lower = mesh->level[cell_lower];
@@ -2109,13 +2176,16 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp barrier
 #endif
 
+
    int lowerBound, upperBound;
 
    mesh->get_bounds(lowerBound, upperBound);
-   for (int rough = 2; rough > -1; rough--) {
+   int rough = 2;
+   while (rough > -1) {
    for (int ic = lowerBound; ic < upperBound; ic++){
       int lvl     = mesh->level[ic];
       if (lvl != rough) continue;
+      // printf("Level %d we all here\n", rough);
       /*int nl      = mesh->nlft[ic]; //need to use mapping to get neighbors so that
       int nr      = mesh->nrht[ic];   //we include phantom cells
       int nt      = mesh->ntop[ic];
@@ -2126,13 +2196,13 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int nt = mesh->map_yface2cell_upper[mesh->map_ycell2face_top1[ic]];
 
       if (mesh->nlft[ic] == ic)
-  	nl = ic;
+  	    nl = ic;
       if (mesh->nrht[ic] == ic)
-  	nr = ic;
+  	    nr = ic;
       if (mesh->nbot[ic] == ic)
-  	nb = ic;
+  	    nb = ic;
       if (mesh->ntop[ic] == ic)
-  	nt = ic;
+  	    nt = ic;
 
       //printf("\n%d) %d %d %d %d\n", ic, nl, nr, nb, nt);
       //printf("%d %d %d %d %d\n", mesh->level[ic], mesh->level[nl], mesh->level[nr], mesh->level[nb], mesh->level[nt]);    
@@ -2539,32 +2609,49 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       wminusx_H = 0.0; wplusx_H = 0.0; wminusy_H = 0.0; wplusy_H = 0.0;
       wminusx_U = 0.0; wplusx_U = 0.0;
       wminusy_V = 0.0; wplusy_V = 0.0;
-    //printf("\n%d) FakeFlux %f %f %f, phantom %d %d\n", ic, FakeFluxHx[ic], FakeFluxUx[ic], FakeFluxVx[ic], mesh->phantomXFlux[ic], mesh->phantomYFlux[ic]);
+      //printf("\n%d) %f %f %f\n", ic, FakeFluxHxP[ic], FakeFluxUxP[ic], FakeFluxVxP[ic]);
+      //printf("%d) %f %f %f\n", ic, FakeFluxHxM[ic], FakeFluxUxM[ic], FakeFluxVxM[ic]);
+      //printf("%d) %f %f %f\n", ic, FakeFluxHyP[ic], FakeFluxUyP[ic], FakeFluxVyP[ic]);
+      //printf("%d) %f %f %f\n", ic, FakeFluxHyM[ic], FakeFluxUyM[ic], FakeFluxVyM[ic]);
+    //printf("\n%d) FakeFlux %f %f %f %f, phantom %d %d\n", ic, FakeFluxHxP[ic], FakeFluxHxM, FakeFluxHyP, FakeFluxHyM,  mesh->phantomXFlux[ic], mesh->phantomYFlux[ic]);
     if ((FakeFluxHxP[ic] > 0) || (FakeFluxUxP[ic] > 0) || (FakeFluxVxP[ic] > 0)) {
         //printf("\n(%d) received %f %f %f XP\n", ic, FakeFluxHxP[ic], FakeFluxUxP[ic], FakeFluxVxP[ic]);
         Hxfluxplus = FakeFluxHxP[ic] * HALF; 
         Uxfluxplus = FakeFluxUxP[ic] * HALF;
         Vxfluxplus = FakeFluxVxP[ic] * HALF; 
+        FakeFluxHxP[ic] = 0.0;
+        FakeFluxUxP[ic] = 0.0;
+        FakeFluxVxP[ic] = 0.0;
     }
     else if ((FakeFluxHxM[ic] > 0) || (FakeFluxUxM[ic] > 0) || (FakeFluxVxM[ic] > 0)) {
         //printf("\n(%d) received %f %f %f XM\n", ic, FakeFluxHxM[ic], FakeFluxUxM[ic], FakeFluxVxM[ic]);
         Hxfluxminus = FakeFluxHxM[ic] * HALF; 
         Uxfluxminus = FakeFluxUxM[ic] * HALF; 
         Vxfluxminus = FakeFluxVxM[ic] * HALF; 
+        FakeFluxHxM[ic] = 0.0;
+        FakeFluxUxM[ic] = 0.0;
+        FakeFluxVxM[ic] = 0.0;
     }
     if ((FakeFluxHyP[ic] > 0) || (FakeFluxUyP[ic] > 0) || (FakeFluxVyP[ic] > 0)) {
         //printf("\n(%d) received %f %f %f YP\n", ic, FakeFluxHyP[ic], FakeFluxUyP[ic], FakeFluxVyP[ic]);
         Hyfluxplus = FakeFluxHyP[ic] * HALF; 
         Uyfluxplus = FakeFluxUyP[ic] * HALF; 
         Vyfluxplus = FakeFluxVyP[ic] * HALF; 
+        FakeFluxHyP[ic] = 0.0;
+        FakeFluxUyP[ic] = 0.0;
+        FakeFluxVyP[ic] = 0.0;
     }
     else if ((FakeFluxHyM[ic] > 0) || (FakeFluxUyM[ic] > 0) || (FakeFluxVyM[ic] > 0)) {
         //printf("\n(%d) received %f %f %f YM\n", ic, FakeFluxHyM[ic], FakeFluxUyM[ic], FakeFluxVyM[ic]);
         Hyfluxminus = FakeFluxHyM[ic] * HALF; 
         Uyfluxminus = FakeFluxUyM[ic] * HALF; 
         Vyfluxminus = FakeFluxVyM[ic] * HALF; 
+        FakeFluxHyM[ic] = 0.0;
+        FakeFluxUyM[ic] = 0.0;
+        FakeFluxVyM[ic] = 0.0;
     }
 
+    //printf("\n%d) %d %d\n", ic, mesh->phantomXFlux[ic], mesh->phantomYFlux[ic]); 
     if ((mesh->phantomXFlux[ic] >= 0) && (mesh->phantomXFlux[ic] < 99999)) {
         //printf("\n(%d) adding %f %f %f to %d XP\n", ic, Hxfluxminus, Uxfluxminus, Vxfluxminus, mesh->phantomXFlux[ic]);
         FakeFluxHxP[mesh->phantomXFlux[ic]] += Hxfluxminus;
@@ -2607,6 +2694,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       V_new[ic] = U_fullstep(deltaT, dxic, Vic,
                       Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                  - wminusy_V + wplusy_V;
+      //printf("%d) H %f U %f V %f\n", ic, H_new[ic], U_new[ic], V_new[ic]);
 
 #if DEBUG >= 1
       if (DEBUG >= 1) {
@@ -2627,6 +2715,10 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       printf("DEBUG ic %d wminusy_V %lf wplusy_V %lf\n",ic, wminusy_V, wplusy_V);
 */
    }//end forloop
+   rough--;
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
    }//end while
 
 
@@ -2642,6 +2734,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       V = (state_t *)state_memory.memory_replace(V, V_new);
 
       //state_memory.memory_report();
+    //printf("\n\n\n");
       //printf("DEBUG end finite diff\n\n"); 
 #ifdef _OPENMP
    }
@@ -2663,6 +2756,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
+
 #ifdef _OPENMP
 #pragma omp master
 #endif
@@ -2703,18 +2797,10 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
    int *nlft, *nrht, *nbot, *ntop, *level;
 
-   nlft  = mesh->nlft;
-   nrht  = mesh->nrht;
-   nbot  = mesh->nbot;
-   ntop  = mesh->ntop;
-   level = mesh->level;
-
-   vector<real_t> &lev_deltax = mesh->lev_deltax;
-   vector<real_t> &lev_deltay = mesh->lev_deltay;
-
    int flags = 0;
    flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
    //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
+
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -2724,13 +2810,25 @@ void State::calc_finite_difference_via_faces(double deltaT){
    mesh->calc_face_list_wbidirmap();
 #ifdef _OPENMP
    }
+#pragma omp barrier
 #endif
+
+   nlft  = mesh->nlft;
+   nrht  = mesh->nrht;
+   nbot  = mesh->nbot;
+   ntop  = mesh->ntop;
+   level = mesh->level;
+
+   vector<real_t> &lev_deltax = mesh->lev_deltax;
+   vector<real_t> &lev_deltay = mesh->lev_deltay;
+
 
    /*printf("\nH\tV\tU\n\n");
    for (int ppppp = 0; ppppp < mesh->ncells; ppppp++) {
         printf("%d) %f %f %f\n", ppppp, H[ppppp], V[ppppp], U[ppppp]);
    }*/
 
+   //printf("%f\n", H[mesh->ncells-1]);
 
    static vector<state_t> Hx, Ux, Vx;
 
@@ -2827,6 +2925,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
          Vx[iface]=(dx_lower*V[cell_upper]+dx_upper*V[cell_lower])/(dx_lower+dx_upper) -
                    HALF*deltaT*( (FA_uplim*UVFLUX(cell_upper))-(FA_lolim*UVFLUX(cell_lower)) )/
                    (CV_uplim+CV_lolim);
+
       }
 #if DEBUG >= 2
       if (DEBUG >= 2) {
@@ -2930,6 +3029,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
    }
 #endif
 
+
    static state_t *H_new, *U_new, *V_new;
 
 #ifdef _OPENMP
@@ -2949,7 +3049,6 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
    mesh->get_bounds(lowerBound, upperBound);
    for (int ic = lowerBound; ic < upperBound; ic++){
-
       int lvl     = level[ic];
       int nl      = nlft[ic];
       int nr      = nrht[ic];
@@ -3370,6 +3469,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
       V_new[ic] = U_fullstep(deltaT, dxic, Vic,
                       Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                  - wminusy_V + wplusy_V;
+      //printf("%d) %f\n", ic, H_new[ic]);
 
 #if DEBUG >= 1
       if (DEBUG >= 1) {
@@ -3574,80 +3674,80 @@ void State::calc_finite_difference_regular_cells(double deltaT){
             }
 
 #ifdef XXX
-            duminus1 = H[j][i-1]-H[j][i-2];
-            duminus2 = U[j][i-1]-U[j][i-2];
-            duplus1 = H[j][i+1]-H[j][i];
-            duplus2 = U[j][i+1]-U[j][i];
-            duhalf1 = H[j][i]-H[j][i-1];
-            duhalf2 = U[j][i]-U[j][i-1];
+            duminus1 = H[jj][ii-1]-H[jj][ii-2];
+            duminus2 = U[jj][ii-1]-U[jj][ii-2];
+            duplus1 = H[jj][ii+1]-H[jj][ii];
+            duplus2 = U[jj][ii+1]-U[jj][ii];
+            duhalf1 = H[jj][ii]-H[jj][ii-1];
+            duhalf2 = U[jj][ii]-U[jj][ii-1];
             rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
             rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
             rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
             rplus =rnumplus /rdenom;
             rminus=rnumminus/rdenom;
             q = max(MIN3(1.0, rminus, rplus), 0.0);
-            nu=(fabs(Ux[j-2][i-2])+sqrt(g*Hx[j-2][i-2]))*Cx;
+            nu=(fabs(Ux[jj-2][ii-2])+sqrt(g*Hx[jj-2][ii-2]))*Cx;
             cv=nu*(1.0-nu);
             wminusx = 0.5*cv*(1.0-q);
 
-            duminus1 = H[j][i]-H[j][i-1];
-            duminus2 = U[j][i]-U[j][i-1];
-            duplus1 = H[j][i+2]-H[j][i+1];
-            duplus2 = U[j][i+2]-U[j][i+1];
-            duhalf1 = H[j][i+1]-H[j][i];
-            duhalf2 = U[j][i+1]-U[j][i];
+            duminus1 = H[jj][ii]-H[jj][ii-1];
+            duminus2 = U[jj][ii]-U[jj][ii-1];
+            duplus1 = H[jj][ii+2]-H[jj][ii+1];
+            duplus2 = U[jj][ii+2]-U[jj][ii+1];
+            duhalf1 = H[jj][ii+1]-H[jj][ii];
+            duhalf2 = U[jj][ii+1]-U[jj][ii];
             rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
             rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
             rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
             rplus =rnumplus /rdenom;
             rminus=rnumminus/rdenom;
             q = max(MIN3(1.0, rminus, rplus), 0.0);
-            nu=(fabs(Ux[j-2][i-1])+sqrt(g*Hx[j-2][i-1]))*Cx;
+            nu=(fabs(Ux[jj-2][ii-1])+sqrt(g*Hx[jj-2][ii-1]))*Cx;
             cv=nu*(1.0-nu);
             wplusx = 0.5*cv*(1.0-q);
 
-            duminus1 = H[j-1][i]-H[j-2][i];
-            duminus2 = V[j-1][i]-V[j-2][i];
-            duplus1 = H[j+1][i]-H[j][i];
-            duplus2 = V[j+1][i]-V[j][i];
-            duhalf1 = H[j][i]-H[j-1][i];
-            duhalf2 = V[j][i]-V[j-1][i];
+            duminus1 = H[jj-1][ii]-H[jj-2][ii];
+            duminus2 = V[jj-1][ii]-V[jj-2][ii];
+            duplus1 = H[jj+1][ii]-H[jj][ii];
+            duplus2 = V[jj+1][ii]-V[jj][ii];
+            duhalf1 = H[jj][ii]-H[jj-1][ii];
+            duhalf2 = V[jj][ii]-V[jj-1][ii];
             rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
             rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
             rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
             rplus =rnumplus /rdenom;
             rminus=rnumminus/rdenom;
             q = max(MIN3(1.0, rminus, rplus), 0.0);
-            nu=(fabs(Vy[j-2][i-2])+sqrt(g*Hy[j-2][i-2]))*Cy;
+            nu=(fabs(Vy[jj-2][ii-2])+sqrt(g*Hy[jj-2][ii-2]))*Cy;
             cv=nu*(1.0-nu);
             wminusy = 0.5*cv*(1.0-q);
 
-            duminus1 = H[j][i]-H[j-1][i];
-            duminus2 = V[j][i]-V[j-1][i];
-            duplus1 = H[j+2][i]-H[j+1][i];
-            duplus2 = V[j+2][i]-V[j+1][i];
-            duhalf1 = H[j+1][i]-H[j][i];
-            duhalf2 = V[j+1][i]-V[j][i];
+            duminus1 = H[jj][ii]-H[jj-1][ii];
+            duminus2 = V[jj][ii]-V[jj-1][ii];
+            duplus1 = H[jj+2][ii]-H[jj+1][ii];
+            duplus2 = V[jj+2][ii]-V[jj+1][ii];
+            duhalf1 = H[jj+1][ii]-H[jj][ii];
+            duhalf2 = V[jj+1][ii]-V[jj][ii];
             rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
             rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
             rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
             rplus =rnumplus /rdenom;
             rminus=rnumminus/rdenom;
             q = max(MIN3(1.0, rminus, rplus), 0.0);
-            nu=(fabs(Vy[j-1][i-2])+sqrt(g*Hy[j-1][i-2]))*Cy;
+            nu=(fabs(Vy[jj-1][ii-2])+sqrt(g*Hy[jj-1][ii-2]))*Cy;
             cv=nu*(1.0-nu);
             wplusy = 0.5*cv*(1.0-q);
 
             H_reg_new[jj][ii] = H_reg[jj][ii] - Cx*(HRGNEWXFLUXMINUS - HRGNEWXFLUXPLUS)
-                                                 -wminusx*(H[j][i]-H[j][i-1])+wplusx*(H[j][i+1]-H[j][i])
+                                                 -wminusx*(H[jj][ii]-H[jj][ii-1])+wplusx*(H[jj][ii+1]-H[jj][ii])
                                               - Cy*(HRGNEWYFLUXMINUS - HRGNEWYFLUXPLUS)
-                                                 -wminusy*(H[j][i]-H[j-1][i])+wplusy*(H[j+1][i]-H[j][i]);
+                                                 -wminusy*(H[jj][ii]-H[jj-1][ii])+wplusy*(H[jj+1][ii]-H[jj][ii]);
             U_reg_new[jj][ii] = U_reg[jj][ii] - Cx*(URGNEWXFLUXMINUS - URGNEWXFLUXPLUS)
-                                                 -wminusx*(U[j][i]-U[j][i-1])+wplusx*(U[j][i+1]-U[j][i])
+                                                 -wminusx*(U[jj][ii]-U[jj][ii-1])+wplusx*(U[jj][ii+1]-U[jj][ii])
                                               - Cy*(URGNEWYFLUXMINUS - URGNEWYFLUXPLUS)
-                                                 -wminusy*(U[j][i]-U[j-1][i])+wplusy*(U[j+1][i]-U[j][i]);
+                                                 -wminusy*(U[jj][ii]-U[jj-1][ii])+wplusy*(U[jj+1][ii]-U[jj][ii]);
             V_reg_new[jj][ii] = V_reg[jj][ii] - Cx*(VRGNEWXFLUXMINUS - VRGNEWXFLUXPLUS)
-                                                 -wminusx*(V[j][i]-V[j][i-1])+wplusx*(V[j][i+1]-V[j][i])
+                                                 -wminusx*(V[jj][ii]-V[jj][ii-1])+wplusx*(V[jj][ii+1]-V[jj][ii])
                                               - Cy*(VRGNEWYFLUXMINUS - VRGNEWYFLUXPLUS)
                                                  -wminusy*(V[j][i]-V[j-1][i])+wplusy*(V[j+1][i]-V[j][i]);
 #endif
@@ -3859,6 +3959,8 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    cl_command_queue command_queue = ezcl_get_command_queue();
 
    //cl_mem dev_ptr = NULL;
+   mesh->gpu_wbidirmap_setup();
+   mesh->calc_face_list_wbidirmap();
 
    size_t &ncells    = mesh->ncells;
    int nxface    = mesh->nxface;
@@ -3886,6 +3988,12 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    cl_mem &dev_map_ycell2face_bot2 = mesh->dev_map_ycell2face_bot2;
    cl_mem &dev_map_ycell2face_top1 = mesh->dev_map_ycell2face_top1;
    cl_mem &dev_map_ycell2face_top2 = mesh->dev_map_ycell2face_top2;
+   cl_mem &dev_Hx = mesh->dev_Hx;
+   cl_mem &dev_Ux = mesh->dev_Ux;
+   cl_mem &dev_Vx = mesh->dev_Vx;
+   cl_mem &dev_Hy = mesh->dev_Hy;
+   cl_mem &dev_Uy = mesh->dev_Uy;
+   cl_mem &dev_Vy = mesh->dev_Vy;
 
    assert(dev_H);
    assert(dev_U);
@@ -3909,6 +4017,12 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    assert(dev_map_ycell2face_bot2);
    assert(dev_map_ycell2face_top1);
    assert(dev_map_ycell2face_top2);
+   assert(dev_Hx);
+   assert(dev_Ux);
+   assert(dev_Vx);
+   assert(dev_Hy);
+   assert(dev_Uy);
+   assert(dev_Vy);
 
    cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
    cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
@@ -4026,7 +4140,15 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
             __global    const int       *map_xface2cell_lower,      // 14 A face's left cell 
             __global    const int       *map_xface2cell_upper,      // 15 A face's left cell 
             __global    const int       *map_yface2cell_lower,      // 16 A face's below cell 
-            __global    const int       *map_yface2cell_upper) {    // 17 A face's above cell*/
+            __global    const int       *map_yface2cell_upper,       // 17 A face's above cell
+            __global          state_t   *Hx,                        // 18
+            __global          state_t   *Ux,                        // 19
+            __global          state_t   *Vx,                        // 20
+            __global          state_t   *Hy,                        // 21
+            __global          state_t   *Uy,                        // 22
+            __global          state_t   *Vy) {                      // 23
+            
+            */
 
    cl_event calc_finite_difference_via_faces_face_event, calc_finite_difference_via_faces_cell_event;
 
@@ -4049,6 +4171,12 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_face, 15, sizeof(cl_mem), (void *)&dev_map_xface2cell_upper); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_face, 16, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_face, 17, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 18, sizeof(cl_mem), (void *)&dev_Hx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 19, sizeof(cl_mem), (void *)&dev_Ux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 20, sizeof(cl_mem), (void *)&dev_Vx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 21, sizeof(cl_mem), (void *)&dev_Hy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 22, sizeof(cl_mem), (void *)&dev_Uy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 23, sizeof(cl_mem), (void *)&dev_Vy); 
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_faces_face, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_via_faces_face_event);
 
@@ -4083,7 +4211,13 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
             __global    const int       *map_ycell2face_bot1,       // 22 A cell's bot primary face 
             __global    const int       *map_ycell2face_bot2,       // 23 A cell's bot secondary face
             __global    const int       *map_ycell2face_top1,       // 24 A cell's top primary face 
-            __global    const int       *map_ycell2face_top2) {     // 25 A cell's top secondary face 
+            __global    const int       *map_ycell2face_top2,       // 25 A cell's top secondary face 
+            __global    const state_t   *Hx,                        // 26
+            __global    const state_t   *Ux,                        // 27
+            __global    const state_t   *Vx,                        // 28
+            __global    const state_t   *Hy,                        // 28
+            __global    const state_t   *Uy,                        // 30
+            __global    const state_t   *Vy) {                      // 31
      
      * */ 
 
@@ -4113,6 +4247,12 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 23, sizeof(cl_mem), (void *)&dev_map_ycell2face_bot2); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 24, sizeof(cl_mem), (void *)&dev_map_ycell2face_top1); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 25, sizeof(cl_mem), (void *)&dev_map_ycell2face_top2); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 26, sizeof(cl_mem), (void *)&dev_Hx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 27, sizeof(cl_mem), (void *)&dev_Ux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 28, sizeof(cl_mem), (void *)&dev_Vx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 29, sizeof(cl_mem), (void *)&dev_Hy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 30, sizeof(cl_mem), (void *)&dev_Uy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 31, sizeof(cl_mem), (void *)&dev_Vy); 
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_faces_cell, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_via_faces_cell_event);
 
@@ -4138,6 +4278,7 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    cl_command_queue command_queue = ezcl_get_command_queue();
 
    //cl_mem dev_ptr = NULL;
+   mesh->gpu_wbidirmap_setup();
 
    size_t &ncells    = mesh->ncells;
    int nxface    = mesh->nxface;
@@ -4161,6 +4302,12 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    cl_mem &dev_map_yface2cell_upper = mesh->dev_map_yface2cell_upper;
    cl_mem &dev_map_ycell2face_bot1 = mesh->dev_map_ycell2face_bot1;
    cl_mem &dev_map_ycell2face_top1 = mesh->dev_map_ycell2face_top1;
+   cl_mem &dev_Hx = mesh->dev_Hx;
+   cl_mem &dev_Ux = mesh->dev_Ux;
+   cl_mem &dev_Vx = mesh->dev_Vx;
+   cl_mem &dev_Hy = mesh->dev_Hy;
+   cl_mem &dev_Uy = mesh->dev_Uy;
+   cl_mem &dev_Vy = mesh->dev_Vy;
 
    assert(dev_H);
    assert(dev_U);
@@ -4180,6 +4327,12 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    assert(dev_map_yface2cell_upper);
    assert(dev_map_ycell2face_bot1);
    assert(dev_map_ycell2face_top1);
+   assert(dev_Hx);
+   assert(dev_Ux);
+   assert(dev_Vx);
+   assert(dev_Hy);
+   assert(dev_Uy);
+   assert(dev_Vy);
 
    cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
    cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
@@ -4320,6 +4473,12 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_face, 15, sizeof(cl_mem), (void *)&dev_map_xface2cell_upper); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_face, 16, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_face, 17, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 18, sizeof(cl_mem), (void *)&dev_Hx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 19, sizeof(cl_mem), (void *)&dev_Ux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 20, sizeof(cl_mem), (void *)&dev_Vx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 21, sizeof(cl_mem), (void *)&dev_Hy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 22, sizeof(cl_mem), (void *)&dev_Uy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 23, sizeof(cl_mem), (void *)&dev_Vy); 
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_faces_face, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_via_faces_face_event);
 
@@ -4384,6 +4543,12 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 23, sizeof(cl_mem), (void *)&dev_map_xcell2face_right1); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 24, sizeof(cl_mem), (void *)&dev_map_ycell2face_bot1); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 25, sizeof(cl_mem), (void *)&dev_map_ycell2face_top1); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 26, sizeof(cl_mem), (void *)&dev_Hx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 27, sizeof(cl_mem), (void *)&dev_Ux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 28, sizeof(cl_mem), (void *)&dev_Vx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 29, sizeof(cl_mem), (void *)&dev_Hy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 30, sizeof(cl_mem), (void *)&dev_Uy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_via_faces_cell, 31, sizeof(cl_mem), (void *)&dev_Vy); 
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_face_in_place_cell, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_via_faces_cell_event);
 
@@ -5088,6 +5253,12 @@ void State::allocate_device_memory(size_t ncells)
    dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H"), DEVICE_REGULAR_MEMORY);
    dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U"), DEVICE_REGULAR_MEMORY);
    dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V"), DEVICE_REGULAR_MEMORY);
+   dev_Hx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Hx"), DEVICE_REGULAR_MEMORY);
+   dev_Ux = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Ux"), DEVICE_REGULAR_MEMORY);
+   dev_Vx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Vx"), DEVICE_REGULAR_MEMORY);
+   dev_Hy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Hy"), DEVICE_REGULAR_MEMORY);
+   dev_Uy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Uy"), DEVICE_REGULAR_MEMORY);
+   dev_Vy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Vy"), DEVICE_REGULAR_MEMORY);
 }
 #endif
 
@@ -5097,9 +5268,21 @@ void State::resize_old_device_memory(size_t ncells)
    gpu_state_memory.memory_delete(dev_H);
    gpu_state_memory.memory_delete(dev_U);
    gpu_state_memory.memory_delete(dev_V);
+   gpu_state_memory.memory_delete(dev_Hx);
+   gpu_state_memory.memory_delete(dev_Ux);
+   gpu_state_memory.memory_delete(dev_Vx);
+   gpu_state_memory.memory_delete(dev_Hy);
+   gpu_state_memory.memory_delete(dev_Uy);
+   gpu_state_memory.memory_delete(dev_Vy);
    dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H"), DEVICE_REGULAR_MEMORY);
    dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U"), DEVICE_REGULAR_MEMORY);
    dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V"), DEVICE_REGULAR_MEMORY);
+   dev_Hx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Hx"), DEVICE_REGULAR_MEMORY);
+   dev_Ux = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Ux"), DEVICE_REGULAR_MEMORY);
+   dev_Vx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Vx"), DEVICE_REGULAR_MEMORY);
+   dev_Hy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Hy"), DEVICE_REGULAR_MEMORY);
+   dev_Uy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Uy"), DEVICE_REGULAR_MEMORY);
+   dev_Vy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Vy"), DEVICE_REGULAR_MEMORY);
 #else
    // Just to block compiler warnings
    if (1 == 2) printf("DEBUG -- ncells is %ld\n",ncells);
