@@ -1795,8 +1795,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp master
    {
 #endif
-    state_memory.memory_report();
-    printf("\n\n\n");
+    //state_memory.memory_report();
+    //printf("\n\n\n");
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -1837,8 +1837,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp master
    {
 #endif
-    state_memory.memory_report();
-    printf("\n\n\n");
+    //state_memory.memory_report();
+    //printf("\n\n\n");
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -1932,7 +1932,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int cell_upper = mesh->map_xface2cell_upper[iface];
       int level_lower = mesh->level[cell_lower];
       int level_upper = mesh->level[cell_upper];
-      if (level_lower == level_upper) {
+      //if (level_lower == level_upper) {
 #ifdef PATTERN_CHECK
          switch(mesh->xcase[iface]){ //will not work as phantom faces haven't been added a pattern (should be pat 0)
              case 0:
@@ -1954,7 +1954,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Hx[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cxhalf*( HXFLUX(cell_upper)-HXFLUX(cell_lower) );
          Ux[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cxhalf*( UXFLUX(cell_upper)-UXFLUX(cell_lower) );
          Vx[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cxhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
-      } else {
+      //} else {
 #ifdef PATTERN_CHECK
          switch(mesh->xcase[iface]){
              case 17:
@@ -1971,7 +1971,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
                  break;
          }
 #endif
-         real_t dx_lower = mesh->lev_deltax[mesh->level[cell_lower]];
+         /*real_t dx_lower = mesh->lev_deltax[mesh->level[cell_lower]];
          real_t dx_upper = mesh->lev_deltax[mesh->level[cell_upper]];
 
          real_t FA_lower = dx_lower;
@@ -2004,7 +2004,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Vx[iface]=(dx_lower*V[cell_upper]+dx_upper*V[cell_lower])/(dx_lower+dx_upper) -
                    HALF*deltaT*( (FA_uplim*UVFLUX(cell_upper))-(FA_lolim*UVFLUX(cell_lower)) )/
                    (CV_uplim+CV_lolim);
-      }
+      }*/
 #if DEBUG >= 2
       if (DEBUG >= 2) {
          printf("1st pass x direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
@@ -2080,13 +2080,13 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int cell_upper = mesh->map_yface2cell_upper[iface];
       int level_lower = mesh->level[cell_lower];
       int level_upper = mesh->level[cell_upper];
-      if (level_lower == level_upper) {
+      //if (level_lower == level_upper) {
          int lev = level_upper;
          real_t Cyhalf = 0.5*deltaT/mesh->lev_deltay[lev];
          Hy[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cyhalf*( HYFLUX(cell_upper)-HYFLUX(cell_lower) );
          Uy[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cyhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
          Vy[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cyhalf*( VYFLUX(cell_upper)-VYFLUX(cell_lower) );
-      } else {
+     /* } else {
          real_t dy_lower = mesh->lev_deltay[mesh->level[cell_lower]];
          real_t dy_upper = mesh->lev_deltay[mesh->level[cell_upper]];
 
@@ -2121,7 +2121,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
                    HALF*deltaT*( (FA_uplim*VYFLUX(cell_upper))-(FA_lolim*VYFLUX(cell_lower)) )/
                    (CV_uplim+CV_lolim);
 
-      }
+      }*/
 
 #if DEBUG >= 2
       if (DEBUG >= 2) {
@@ -2268,10 +2268,10 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 
       real_t dric    = dxic;
 
-      int nltl = 0;
-      real_t Hlt = 0.0, Ult = 0.0; // Vlt = 0.0;
-      real_t Hll2 = 0.0;
-      real_t Ull2 = 0.0;
+      //int nltl = 0;
+      //real_t Hlt = 0.0, Ult = 0.0; // Vlt = 0.0;
+      //real_t Hll2 = 0.0;
+      //real_t Ull2 = 0.0;
 /*      if(lvl < mesh->level[nl]) {
          Hlt  = H[ mesh->ntop[nl] ];
          Ult  = U[ mesh->ntop[nl] ];
@@ -2282,10 +2282,10 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Ull2 = U[nltl];
       }*/
 
-      int nrtr = 0;
-      real_t Hrt = 0.0, Urt = 0.0; // Vrt = 0.0;
-      real_t Hrr2 = 0.0;
-      real_t Urr2 = 0.0;
+      //int nrtr = 0;
+      //real_t Hrt = 0.0, Urt = 0.0; // Vrt = 0.0;
+      //real_t Hrr2 = 0.0;
+      //real_t Urr2 = 0.0;
       /*if(lvl < mesh->level[nr]) {
          Hrt  = H[ mesh->ntop[nr] ];
          Urt  = U[ mesh->ntop[nr] ];
@@ -2296,10 +2296,10 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Urr2 = U[nrtr];
       }*/
 
-      int nbrb = 0;
-      real_t Hbr = 0.0, Vbr = 0.0; // Ubr = 0.0
-      real_t Hbb2 = 0.0;
-      real_t Vbb2 = 0.0;
+      //int nbrb = 0;
+      //real_t Hbr = 0.0, Vbr = 0.0; // Ubr = 0.0
+      //real_t Hbb2 = 0.0;
+      //real_t Vbb2 = 0.0;
       /*if(lvl < mesh->level[nb]) {
          Hbr  = H[ mesh->nrht[nb] ];
          //Ubr  = U[ mesh->nrht[nb] ];
@@ -2310,10 +2310,10 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Vbb2 = V[nbrb];
       }*/
 
-      int ntrt = 0;
-      real_t Htr = 0.0, Vtr = 0.0; // Utr = 0.0
-      real_t Htt2 = 0.0;
-      real_t Vtt2 = 0.0;
+      //int ntrt = 0;
+      //real_t Htr = 0.0, Vtr = 0.0; // Utr = 0.0
+      //real_t Htt2 = 0.0;
+      //real_t Vtt2 = 0.0;
       /*if(lvl < mesh->level[nt]) {
          Htr  = H[ mesh->nrht[nt] ];
          //Utr  = U[ mesh->nrht[nt] ];
@@ -2338,7 +2338,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Vxminus  = Vx[mesh->map_xcell2face_left1[ic]];
       }
 
-      real_t Hxminus2 = 0.0;
+      /*real_t Hxminus2 = 0.0;
       //if(lvl < mesh->level[nl]) Hxminus2 = H[ic];
       real_t Uxminus2 = 0.0;
       real_t Vxminus2 = 0.0;
@@ -2347,7 +2347,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Hxminus2 = Hx[mesh->map_xcell2face_left2[ic]];
          Uxminus2 = Ux[mesh->map_xcell2face_left2[ic]];
          Vxminus2 = Vx[mesh->map_xcell2face_left2[ic]];
-      }
+      }*/
 
       real_t Hxplus = H[ic];
       real_t Uxplus = 0.0;
@@ -2358,7 +2358,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Vxplus   = Vx[mesh->map_xcell2face_right1[ic]];
       }
 
-      real_t Hxplus2 = 0.0;
+      /*real_t Hxplus2 = 0.0;
       //if(lvl < mesh->level[nr]) Hxplus2 = H[ic];
       real_t Uxplus2 = 0.0;
       real_t Vxplus2 = 0.0;
@@ -2367,7 +2367,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Hxplus2  = Hx[mesh->map_xcell2face_right2[ic]];
          Uxplus2  = Ux[mesh->map_xcell2face_right2[ic]];
          Vxplus2  = Vx[mesh->map_xcell2face_right2[ic]];
-      }
+      }*/
 
       /*if(mesh->level[nl] < mesh->level[nll]) {
          Hll = (Hll + H[ mesh->ntop[nll] ]) * HALF;
@@ -2469,7 +2469,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Vyminus  = Vy[mesh->map_ycell2face_bot1[ic]];
       }
 
-      real_t Hyminus2 = 0.0;
+      /*real_t Hyminus2 = 0.0;
       //if(lvl < mesh->level[nb]) Hyminus2 = H[ic];
       real_t Uyminus2 = 0.0;
       real_t Vyminus2 = 0.0;
@@ -2478,7 +2478,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Hyminus2 = Hy[mesh->map_ycell2face_bot2[ic]];
          Uyminus2 = Uy[mesh->map_ycell2face_bot2[ic]];
          Vyminus2 = Vy[mesh->map_ycell2face_bot2[ic]];
-      }
+      }*/
 
       real_t Hyplus = H[ic];
       real_t Uyplus = 0.0;
@@ -2489,7 +2489,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Vyplus   = Vy[mesh->map_ycell2face_top1[ic]];
       }
 
-      real_t Hyplus2 = 0.0;
+      /*real_t Hyplus2 = 0.0;
       //if(lvl < mesh->level[nt]) Hyplus2 = H[ic];
       real_t Uyplus2 = 0.0;
       real_t Vyplus2 = 0.0;
@@ -2498,7 +2498,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Hyplus2  = Hy[mesh->map_ycell2face_top2[ic]];
          Uyplus2  = Uy[mesh->map_ycell2face_top2[ic]];
          Vyplus2  = Vy[mesh->map_ycell2face_top2[ic]];
-      }
+      }*/
 
       real_t wminusy_H = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
                               Hic-Hb, Hb-Hbb, Ht2-Hic);
@@ -6015,8 +6015,8 @@ void Mesh_CLAMR::interpolate_fine_x(int scheme, int index, int cell_lower, int c
          - (UVFLUX(cell_upper)-UVFLUX(cell_lower))/dx_upper) - V[cell_lower]);
       break;
    }
-   printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
-   printf("            H:  %f, U: %f, V: %f\n", H[index],U[index],V[index]);
+   //printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
+   //printf("            H:  %f, U: %f, V: %f\n", H[index],U[index],V[index]);
 } 
 
 void Mesh_CLAMR::interpolate_fine_y(int scheme, int index, int cell_lower, int cell_upper, double deltaT, MallocPlus &state_memory){
@@ -6060,8 +6060,8 @@ void Mesh_CLAMR::interpolate_fine_y(int scheme, int index, int cell_lower, int c
          - (VYFLUX(cell_upper)-VYFLUX(cell_lower))/dy_upper) - V[cell_lower]);
       break;
    }
-   printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
-   printf("            H:  %f, U: %f, V: %f\n", H[index],U[index],V[index]);
+   //printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
+   //printf("            H:  %f, U: %f, V: %f\n", H[index],U[index],V[index]);
 }
 
 void Mesh_CLAMR::interpolate_course_x(int scheme, int index, int cell_lower, int cell_upper, double deltaT, MallocPlus &state_memory){
@@ -6176,8 +6176,8 @@ void Mesh_CLAMR::interpolate_course_x(int scheme, int index, int cell_lower, int
          V[index] = (2*(Vx_bot+Vx_top) + deltaT*(UVFLUX(cell_upper)-UVFLUX(cell_lower))/dx_upper_bot - V[cell_lower]);
       break;
    }
-   printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
-   printf("            H:  %f, U: %f, V: %f\n", H[index],U[index],V[index]);
+   //printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
+   //printf("            H:  %f, U: %f, V: %f\n", H[index],U[index],V[index]);
 }
 
 void Mesh_CLAMR::interpolate_course_y(int scheme, int index, int cell_lower, int cell_upper , double deltaT, MallocPlus &state_memory){
@@ -6293,6 +6293,6 @@ void Mesh_CLAMR::interpolate_course_y(int scheme, int index, int cell_lower, int
          V[index] = (2*(Vy_left+Vy_right) + deltaT*(VYFLUX(cell_upper)-VYFLUX(cell_lower))/dy_upper_left - V[cell_lower]);
       break;
    }
-   printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
-   printf("            H:  %f, U: %f, V: %f\n", H[index],U[index],V[index]);
+   //printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
+   //printf("            H:  %f, U: %f, V: %f\n", H[index],U[index],V[index]);
 }
