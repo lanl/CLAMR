@@ -399,6 +399,17 @@ extern "C" void do_calc(void)
       //  Resize the mesh, inserting cells where refinement is necessary.
 
 #ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+         {
+#endif
+        //state->state_memory.memory_report();
+        //printf("\n\n\n");
+#ifdef _OPENMP
+         }
+#endif
+
+#ifdef _OPENMP
 #pragma omp parallel
       {
 #endif
@@ -510,10 +521,10 @@ extern "C" void do_calc(void)
    }
 
    double percent_mass_diff = fabs(H_sum - H_sum_initial)/H_sum_initial * 100.0;
-   if (percent_mass_diff >= upper_mass_diff_percentage) {
+   /*if (percent_mass_diff >= upper_mass_diff_percentage) {
       printf("Mass difference outside of acceptable range on cycle %d percent_mass_diff %lg upper limit %lg\n",ncycle,percent_mass_diff, upper_mass_diff_percentage);
       error_status = STATUS_MASS_LOSS;
-   }
+   }*/
 
    if (error_status != STATUS_OK){
       if (crux_type != CRUX_NONE) {

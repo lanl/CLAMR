@@ -396,6 +396,10 @@ public:
    vector<int> xface_level; // level of xfaces (max level of upper/lower cells)
    vector<int> map_xface2cell_lower; // IDs of lower cell (left for xface, bottom for yface)
    vector<int> map_xface2cell_upper; // IDs of upper cell (right for xface, top for yface)
+   vector<int> phantomXFlux;
+   vector<int> phantomXFlux2;
+   vector<int> phantomYFlux;
+   vector<int> phantomYFlux2;
 
    //Just like for cell neighbors, if the refinement increases across a face
    //this points to the left/bottom cell neighbor
@@ -555,9 +559,21 @@ public:
                          int flag,                   //whether we are gettting a coarse from fine, fine from coarse, or both
                          real_t *fineavg,            //pointer for a fine phantom value from coarse
                          real_t *coarseavg);          //pointer for a coarse phantom value from fine
+   double xFakeFlux(double* locH,
+                  double* locU,
+                  double* locV,
+                  int     idx,
+                  int     caseNum);
+   
+   double yFakeFlux(double* locH,
+                  double* locU,
+                  double* locV,
+                  int     idx,
+                  int     caseNum);
 
    void calc_face_list_wbidirmap(void);
-   void calc_face_list_wbidirmap_phantom(MallocPlus &state_memory);
+   virtual void interpolate(int, int, int, int, double, MallocPlus&);
+   void calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double);
    void generate_regular_cell_meshes(MallocPlus &state_memory);
    void destroy_regular_cell_meshes(MallocPlus &state_memory);
    void calc_face_list_clearmaps(void);

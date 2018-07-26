@@ -64,6 +64,7 @@
 #include "ezcl/ezcl.h"
 #endif
 #include "l7/l7.h"
+#include <atomic>
 
 #define STATUS_OK        0
 #define STATUS_NAN       1
@@ -180,6 +181,28 @@ typedef enum state_timers   state_timer_category;
 
 using namespace std;
 
+struct atomwrapper
+{
+    atomic<double> _a;
+
+    atomwrapper()
+        :_a()
+    {}
+
+    atomwrapper(const std::atomic<double> &a)
+        :_a(a.load())
+    {}
+
+    atomwrapper(const atomwrapper &other)
+        :_a(other._a.load())
+    {}
+
+    atomwrapper &operator=(const atomwrapper &other)
+    {
+        _a.store(other._a.load());
+    }
+};
+
 class State {
    
 public:
@@ -267,6 +290,7 @@ public:
 #ifdef HAVE_OPENCL
    void gpu_calc_finite_difference(double deltaT);
    void gpu_calc_finite_difference_via_faces(double deltaT);
+   void gpu_calc_finite_difference_via_face_in_place(double deltaT);
 #endif
 
    /*******************************************************************
@@ -363,6 +387,16 @@ private:
    State(const State&); // To block copy constructor so copies are not made inadvertently
 
    void print_object_info(void);
+};
+
+class Mesh_CLAMR : public Mesh{
+   public:
+   Mesh_CLAMR(int, int, int, int, double, double, int, int, int);
+   void interpolate(int, int, int, int, double, MallocPlus&);
+   void interpolate_fine_x(int, int, int, int, double, MallocPlus&);
+   void interpolate_fine_y(int, int, int, int, double, MallocPlus&);
+   void interpolate_course_x(int, int, int, int, double, MallocPlus&);
+   void interpolate_course_y(int, int, int, int, double, MallocPlus&);
 };
 
 #endif // ifndef STATE_H_
