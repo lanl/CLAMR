@@ -10244,6 +10244,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
     ntop     = (int *)mesh_memory.memory_realloc(6*ncells, ntop);
     memory_reset_ptrs();
     //printf("\n%d\n", mesh_memory.get_memory_size(nlft));
+    //printf("\n%d %d %d %d %d\n", nbot[26], level[26], is_upper(j[26]), j[26], j[nbot[26]]);
 
     MallocPlus state_memory_old = state_memory;
     malloc_plus_memory_entry *memory_item;
@@ -10710,9 +10711,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
     xface_j.resize(pfaceIdx);
     xface_level.resize(pfaceIdx);
 
-    for (int fprint = 0; fprint < (int) ncells; fprint++) {
+    /*for (int fprint = 0; fprint < (int) ncells; fprint++) {
         printf("\n%d) %d\n", fprint, phantomXFlux2[fprint]);
-    }
+    }*/
     //printf("\nhere\n");
 
     //Now for the y faces
