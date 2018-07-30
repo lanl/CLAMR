@@ -3920,7 +3920,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 #ifdef _OPENMP
 #pragma omp master
 #endif
-   mesh->calc_face_list_wbidirmap_phantom(state_memory);
+   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
    mesh->generate_regular_cell_meshes(state_memory);
    H_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
    U_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
