@@ -4312,12 +4312,12 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    cl_mem &dev_map_ycell2face_bot2 = mesh->dev_map_ycell2face_bot2;
    cl_mem &dev_map_ycell2face_top1 = mesh->dev_map_ycell2face_top1;
    cl_mem &dev_map_ycell2face_top2 = mesh->dev_map_ycell2face_top2;
-   cl_mem &dev_Hx = mesh->dev_Hx;
-   cl_mem &dev_Ux = mesh->dev_Ux;
-   cl_mem &dev_Vx = mesh->dev_Vx;
-   cl_mem &dev_Hy = mesh->dev_Hy;
-   cl_mem &dev_Uy = mesh->dev_Uy;
-   cl_mem &dev_Vy = mesh->dev_Vy;
+   //cl_mem &dev_Hx = mesh->dev_Hx;
+   //cl_mem &dev_Ux = mesh->dev_Ux;
+   //cl_mem &dev_Vx = mesh->dev_Vx;
+   //cl_mem &dev_Hy = mesh->dev_Hy;
+   //cl_mem &dev_Uy = mesh->dev_Uy;
+   //cl_mem &dev_Vy = mesh->dev_Vy;
 
    assert(dev_H);
    assert(dev_U);
@@ -4626,12 +4626,12 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    cl_mem &dev_map_yface2cell_upper = mesh->dev_map_yface2cell_upper;
    cl_mem &dev_map_ycell2face_bot1 = mesh->dev_map_ycell2face_bot1;
    cl_mem &dev_map_ycell2face_top1 = mesh->dev_map_ycell2face_top1;
-   cl_mem &dev_Hx = mesh->dev_Hx;
-   cl_mem &dev_Ux = mesh->dev_Ux;
-   cl_mem &dev_Vx = mesh->dev_Vx;
-   cl_mem &dev_Hy = mesh->dev_Hy;
-   cl_mem &dev_Uy = mesh->dev_Uy;
-   cl_mem &dev_Vy = mesh->dev_Vy;
+   //cl_mem &dev_Hx = mesh->dev_Hx;
+   //cl_mem &dev_Ux = mesh->dev_Ux;
+   //cl_mem &dev_Vx = mesh->dev_Vx;
+   //cl_mem &dev_Hy = mesh->dev_Hy;
+   //cl_mem &dev_Uy = mesh->dev_Uy;
+   //cl_mem &dev_Vy = mesh->dev_Vy;
 
    assert(dev_H);
    assert(dev_U);
@@ -5577,36 +5577,36 @@ void State::allocate_device_memory(size_t ncells)
    dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H"), DEVICE_REGULAR_MEMORY);
    dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U"), DEVICE_REGULAR_MEMORY);
    dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V"), DEVICE_REGULAR_MEMORY);
-   dev_Hx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Hx"), DEVICE_REGULAR_MEMORY);
-   dev_Ux = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Ux"), DEVICE_REGULAR_MEMORY);
-   dev_Vx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Vx"), DEVICE_REGULAR_MEMORY);
-   dev_Hy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Hy"), DEVICE_REGULAR_MEMORY);
-   dev_Uy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Uy"), DEVICE_REGULAR_MEMORY);
-   dev_Vy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Vy"), DEVICE_REGULAR_MEMORY);
+   //dev_Hx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Hx"), DEVICE_REGULAR_MEMORY);
+   //dev_Ux = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Ux"), DEVICE_REGULAR_MEMORY);
+   //dev_Vx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Vx"), DEVICE_REGULAR_MEMORY);
+   //dev_Hy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Hy"), DEVICE_REGULAR_MEMORY);
+   //dev_Uy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Uy"), DEVICE_REGULAR_MEMORY);
+   //dev_Vy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Vy"), DEVICE_REGULAR_MEMORY);
 }
 #endif
 
 void State::resize_old_device_memory(size_t ncells)
 {
 #ifdef HAVE_OPENCL
-   gpu_state_memory.memory_delete(dev_H);
-   gpu_state_memory.memory_delete(dev_U);
-   gpu_state_memory.memory_delete(dev_V);
-   gpu_state_memory.memory_delete(dev_Hx);
-   gpu_state_memory.memory_delete(dev_Ux);
-   gpu_state_memory.memory_delete(dev_Vx);
-   gpu_state_memory.memory_delete(dev_Hy);
-   gpu_state_memory.memory_delete(dev_Uy);
-   gpu_state_memory.memory_delete(dev_Vy);
+   //gpu_state_memory.memory_delete(dev_H);
+   //gpu_state_memory.memory_delete(dev_U);
+   //gpu_state_memory.memory_delete(dev_V);
+   //gpu_state_memory.memory_delete(dev_Hx);
+   //gpu_state_memory.memory_delete(dev_Ux);
+   //gpu_state_memory.memory_delete(dev_Vx);
+   //gpu_state_memory.memory_delete(dev_Hy);
+   //gpu_state_memory.memory_delete(dev_Uy);
+   //gpu_state_memory.memory_delete(dev_Vy);
    dev_H = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H"), DEVICE_REGULAR_MEMORY);
    dev_U = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U"), DEVICE_REGULAR_MEMORY);
    dev_V = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V"), DEVICE_REGULAR_MEMORY);
-   dev_Hx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Hx"), DEVICE_REGULAR_MEMORY);
-   dev_Ux = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Ux"), DEVICE_REGULAR_MEMORY);
-   dev_Vx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Vx"), DEVICE_REGULAR_MEMORY);
-   dev_Hy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Hy"), DEVICE_REGULAR_MEMORY);
-   dev_Uy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Uy"), DEVICE_REGULAR_MEMORY);
-   dev_Vy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Vy"), DEVICE_REGULAR_MEMORY);
+   //dev_Hx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Hx"), DEVICE_REGULAR_MEMORY);
+   //dev_Ux = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Ux"), DEVICE_REGULAR_MEMORY);
+   //dev_Vx = (cl_mem)gpu_state_memory.memory_malloc(mesh->nxface, sizeof(cl_state_t), const_cast<char *>("dev_Vx"), DEVICE_REGULAR_MEMORY);
+   //dev_Hy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Hy"), DEVICE_REGULAR_MEMORY);
+   //dev_Uy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Uy"), DEVICE_REGULAR_MEMORY);
+   //dev_Vy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Vy"), DEVICE_REGULAR_MEMORY);
 #else
    // Just to block compiler warnings
    if (1 == 2) printf("DEBUG -- ncells is %ld\n",ncells);

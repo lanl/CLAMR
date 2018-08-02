@@ -1423,7 +1423,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       kernel_do_load_balance_lower    = ezcl_create_kernel_wprogram(program, "do_load_balance_lower_cl");
       kernel_do_load_balance_middle   = ezcl_create_kernel_wprogram(program, "do_load_balance_middle_cl");
       kernel_do_load_balance_upper    = ezcl_create_kernel_wprogram(program, "do_load_balance_upper_cl");
-      kernel_calc_face_list_wbidirmap = ezcl_create_kernel_wprogram(program, "calc_face_list_wbidir");
+      //kernel_calc_face_list_wbidirmap = ezcl_create_kernel_wprogram(program, "calc_face_list_wbidir");
 #ifndef MINIMUM_PRECISION
       kernel_do_load_balance_double   = ezcl_create_kernel_wprogram(program, "do_load_balance_double_cl");
 #endif
