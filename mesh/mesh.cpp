@@ -10713,6 +10713,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
     /*for (int fprint = 0; fprint < (int) ncells; fprint++) {
         printf("\n%d) %d\n", fprint, phantomXFlux2[fprint]);
+    */
 
 
     /*for (int fprint = 0; fprint < pfaceIdx; fprint++) {

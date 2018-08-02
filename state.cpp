@@ -2745,7 +2745,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
         tempWHyM[mesh->phantomYFlux[ic]] += wplusy_H;
         tempWVyM[mesh->phantomYFlux[ic]] += wplusy_V;
     }
-      printf("\n%d) %f %f %f %f %f %f %f %f\n", ic, wminusx_H, wplusx_H, wminusy_H, wplusy_H, wminusx_U, wplusx_U, wminusy_V, wplusy_V);
+      //printf("\n%d) %f %f %f %f %f %f %f %f\n", ic, wminusx_H, wplusx_H, wminusy_H, wplusy_H, wminusx_U, wplusx_U, wminusy_V, wplusy_V);
 
     //  printf("\n%d) %f %f %f %f %f %f %f %f %f\n((%f))\n", ic, deltaT, dric, dxl, Uxminus, Hxminus, Hic, Hl, Hll, Hr2, wminusx_H);
     //printf("\n%d) %f %f\n", ic, wminusx_H, wplusx_H);
@@ -3539,7 +3539,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
 	printf("Vx+ : %f Vx- : %f\n", Vxfluxplus, Vxfluxminus);
 	printf("Vy+ : %f Vy- : %f\n\n", Vyfluxplus, Vyfluxminus);
 */
-      printf("\n%d) %f %f %f %f %f %f %f %f\n", ic, wminusx_H, wplusx_H, wminusy_H, wplusy_H, wminusx_U, wplusx_U, wminusy_V, wplusy_V);
+      //printf("\n%d) %f %f %f %f %f %f %f %f\n", ic, wminusx_H, wplusx_H, wminusy_H, wplusy_H, wminusx_U, wplusx_U, wminusy_V, wplusy_V);
       //printf("\n%d) %f %f\n", ic, wminusx_H, wplusx_H);
       //printf("\n%d) %f %f %f %f %f %f %f %f %f \n((%f))\n", ic, deltaT, dric, dxl, Uxminus, Hxminus, Hic, Hl, Hll, Hr2, wminusx_H);
        // printf("\n%d) %f %f %f %f\n", ic, Hic-Hl, Hr-Hic, Hic-Hb, Ht-Hic);
