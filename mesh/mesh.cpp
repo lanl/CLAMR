@@ -10542,10 +10542,14 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                 j[pcellIdx+1] = j[rncell];
                 j[pcellIdx+2] = j[lncell];
                 j[pcellIdx+3] = j[lncell];
-                level[pcellIdx] = level[rncell];
-                level[pcellIdx+1] = level[rncell];
-                level[pcellIdx+2] = level[lncell];
-                level[pcellIdx+3] = level[lncell];
+                //level[pcellIdx] = level[rncell];
+                //level[pcellIdx+1] = level[rncell];
+                //level[pcellIdx+2] = level[lncell];
+                //level[pcellIdx+3] = level[lncell];
+                level[pcellIdx] = level[lncell];
+                level[pcellIdx+1] = level[lncell];
+                level[pcellIdx+2] = level[rncell];
+                level[pcellIdx+3] = level[rncell];
 
             }
             else { // top of the two horizontal neighbors, add 2 phantoms
@@ -10564,8 +10568,10 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     i[pcellIdx+1] = i[rncell] - 2;
                     j[pcellIdx] = j[rncell];
                     j[pcellIdx+1] = j[rncell];
-                    level[pcellIdx] = level[rncell];
-                    level[pcellIdx+1] = level[rncell];
+                    //level[pcellIdx] = level[rncell];
+                    //level[pcellIdx+1] = level[rncell];
+                    level[pcellIdx] = level[lncell];
+                    level[pcellIdx+1] = level[lncell];
 
 
                     //interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -10631,8 +10637,10 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     i[pcellIdx+1] = i[lncell] + 2;
                     j[pcellIdx] = j[lncell];
                     j[pcellIdx+1] = j[lncell];
-                    level[pcellIdx] = level[lncell];
-                    level[pcellIdx+1] = level[lncell];
+                    //level[pcellIdx] = level[lncell];
+                    //level[pcellIdx+1] = level[lncell];
+                    level[pcellIdx] = level[rncell];
+                    level[pcellIdx+1] = level[rncell];
 
                     //XXX the index shift is a hack, fixme!
                     //interpolate(1, pcellIdx-2, lncell, rncell, deltaT,  state_memory_old);
@@ -10714,7 +10722,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
     /*for (int fprint = 0; fprint < (int) ncells; fprint++) {
         printf("\n%d) %d\n", fprint, phantomXFlux2[fprint]);
-
+    */
 
     /*for (int fprint = 0; fprint < pfaceIdx; fprint++) {
         printf("\n%d ( %d ) %d\n", map_xface2cell_lower[fprint], fprint, map_xface2cell_upper[fprint]);
@@ -10987,10 +10995,14 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                 j[pcellIdx+1] = j[tncell] - 2;
                 j[pcellIdx+2] = j[bncell] + 1;
                 j[pcellIdx+3] = j[bncell] + 2;
-                level[pcellIdx] = level[tncell];
-                level[pcellIdx+1] = level[tncell];
-                level[pcellIdx+2] = level[bncell];
-                level[pcellIdx+3] = level[bncell];
+                //level[pcellIdx] = level[tncell];
+                //level[pcellIdx+1] = level[tncell];
+                //level[pcellIdx+2] = level[bncell];
+                //level[pcellIdx+3] = level[bncell];
+                level[pcellIdx] = level[bncell];
+                level[pcellIdx+1] = level[bncell];
+                level[pcellIdx+2] = level[tncell];
+                level[pcellIdx+3] = level[tncell];
             }
             else { // right of the two vertical neighbors, only add 2 phantoms
                 idxVar = 1;
@@ -11008,8 +11020,10 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     i[pcellIdx+1] = i[tncell];
                     j[pcellIdx] = j[tncell] - 1;
                     j[pcellIdx+1] = j[tncell] - 2;
-                    level[pcellIdx] = level[tncell];
-                    level[pcellIdx+1] = level[tncell];
+                    //level[pcellIdx] = level[tncell];
+                    //level[pcellIdx+1] = level[tncell];
+                    level[pcellIdx] = level[bncell];
+                    level[pcellIdx+1] = level[bncell];
 
                     //interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //phantomYFlux[tncell] = bncell;
@@ -11073,8 +11087,10 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     i[pcellIdx+1] = i[bncell];
                     j[pcellIdx] = j[bncell] + 1;
                     j[pcellIdx+1] = j[bncell] + 2;
-                    level[pcellIdx] = level[bncell];
-                    level[pcellIdx+1] = level[bncell];
+                    //level[pcellIdx] = level[bncell];
+                    //level[pcellIdx+1] = level[bncell];
+                    level[pcellIdx] = level[tncell];
+                    level[pcellIdx+1] = level[tncell];
 
                     //XXX the index shift is a hack, fixme!
                     //interpolate(3, pcellIdx-2, bncell, tncell, deltaT,  state_memory_old);
