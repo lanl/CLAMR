@@ -1803,31 +1803,39 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #endif
 
 #ifdef _OPENMP
-#pragma omp barrier
-   static state_t *H_tmp, *U_tmp, *V_tmp;
-#pragma omp master
-   {
-      H_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "H_tmp", flags);
-      U_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "U_tmp", flags);
-      V_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "V_tmp", flags);
-   }
-#pragma omp barrier
-    int lowlow, upup;
+//#pragma omp barrier
+   //static state_t *H_tmp, *U_tmp, *V_tmp;
+//#pragma omp master
+   //{
+   //   H_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "H_tmp", flags);
+   //   U_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "U_tmp", flags);
+   //   V_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "V_tmp", flags);
+   //}
+//#pragma omp barrier
+   // int lowlow, upup;
 
-    mesh->get_bounds(lowlow, upup);
-    for (lowlow; lowlow < upup; lowlow++) {
-        H_tmp[lowlow] = H[lowlow];    
-        U_tmp[lowlow] = U[lowlow];    
-        V_tmp[lowlow] = V[lowlow];    
-    }
+   // mesh->get_bounds(lowlow, upup);
+   // for (lowlow; lowlow < upup; lowlow++) {
+   //     H_tmp[lowlow] = H[lowlow];
+   //     U_tmp[lowlow] = U[lowlow];
+   //     V_tmp[lowlow] = V[lowlow];
+   // }
 #pragma omp barrier
 #pragma omp master
    {
       // Replace H with H_new and deallocate H. New memory will have the characteristics
       // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
-      H = (state_t *)state_memory.memory_replace(H, H_tmp);
-      U = (state_t *)state_memory.memory_replace(U, U_tmp);
-      V = (state_t *)state_memory.memory_replace(V, V_tmp);
+      //H = (state_t *)state_memory.memory_replace(H, H_tmp);
+      //U = (state_t *)state_memory.memory_replace(U, U_tmp);
+      //V = (state_t *)state_memory.memory_replace(V, V_tmp);
+
+      // Set missing memory attributes to be sure they are correct
+      state_memory.set_memory_attribute(H, REZONE_DATA);
+      state_memory.set_memory_attribute(H, LOAD_BALANCE_MEMORY);
+      state_memory.set_memory_attribute(U, REZONE_DATA);
+      state_memory.set_memory_attribute(U, LOAD_BALANCE_MEMORY);
+      state_memory.set_memory_attribute(V, REZONE_DATA);
+      state_memory.set_memory_attribute(V, LOAD_BALANCE_MEMORY);
    }
 #pragma omp barrier
 #endif
