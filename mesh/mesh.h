@@ -225,7 +225,11 @@ using namespace std;
 
    struct mesh_type
    {
+#ifdef FULL_PRECISION
        double ***pstate;
+#else
+       float ***pstate;
+#endif
        int **mask;
    };
 

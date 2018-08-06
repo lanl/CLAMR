@@ -1621,7 +1621,11 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
    struct mesh_type
    {
+#ifdef FULL_PRECISION
        double ***pstate;
+#else
+       float ***pstate;
+#endif
        int **mask;
    };
 
@@ -11830,7 +11834,11 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
    int jjmax = jmax+1;
    for (int ll=0; ll<=levmx; ll++){
       printf("DEBUG -- iimax %d jjmax %d\n",lev_ibegin[ll],lev_iend[ll]);
+#ifdef FULL_PRECISION
       meshes[ll].pstate = (double ***)gentrimatrix(nvar+1,jjmax,iimax,sizeof(double));
+#else
+      meshes[ll].pstate = (float ***)gentrimatrix(nvar+1,jjmax,iimax,sizeof(float));
+#endif
       meshes[ll].mask = (int **)genmatrix(jjmax,iimax,sizeof(int));
 
       for(int nn=0; nn<nvar; nn++){
