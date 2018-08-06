@@ -484,6 +484,8 @@ extern "C" void do_calc(void)
 
          mesh->set_bounds(ncells);
 
+   //H_sum = state->mass_sum(enhanced_precision_sum);
+   //printf("%f\n", H_sum);
          //  Execute main kernel
          if (choose_amr_method == FACE_IN_PLACE_AMR) {
             state->calc_finite_difference_face_in_place(deltaT);
@@ -496,6 +498,8 @@ extern "C" void do_calc(void)
          } else {
             state->calc_finite_difference(deltaT);
          }
+   //H_sum = state->mass_sum(enhanced_precision_sum);
+   //printf("%f\n", H_sum);
 
          //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
          state->remove_boundary_cells();
