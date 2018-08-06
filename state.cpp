@@ -2216,9 +2216,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
   	    nb = ic;
       if (mesh->ntop[ic] == ic)
   	    nt = ic;
+     
 
-      //printf("\n%d ( %d ) %d %d\n", nl, ic, nr, lvl);
-
+      //printf("\n%d ) %d %d %d %d %d\n", ic, mesh->level[mesh->nbot[mesh->nbot[ic]]], mesh->level[mesh->nbot[ic]], lvl, mesh->level[mesh->ntop[ic]], mesh->level[mesh->ntop[mesh->ntop[ic]]]);
       //printf("\n%d) %d %d %d %d\n", ic, nl, nr, nb, nt);
       //printf("%d %d %d %d %d\n", mesh->level[ic], mesh->level[nl], mesh->level[nr], mesh->level[nb], mesh->level[nt]);    
 
@@ -2246,10 +2246,21 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       //real_t Ub      = U[nb];
       real_t Vb      = V[nb];
 
-      int nlt     = mesh->ntop[nl];
+      if (mesh->nlft[nl] == nl)
+  	    nll = nl;
+      if (mesh->nrht[nr] == nr)
+  	    nrr = nr;
+      if (mesh->nbot[nb] == nb)
+  	    nbb = nb;
+      if (mesh->ntop[nt] == nt)
+  	    ntt = nt;
+
+      //printf("%d %d %d %d %d\n", nbb, nb, ic, nt, ntt);
+
+      /*int nlt     = mesh->ntop[nl];
       int nrt     = mesh->ntop[nr];
       int ntr     = mesh->nrht[nt];
-      int nbr     = mesh->nrht[nb];
+      int nbr     = mesh->nrht[nb];*/
 
       real_t Hll     = H[nll];
       real_t Ull     = U[nll];
@@ -2269,6 +2280,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 
       real_t dxic    = lev_deltax[lvl];
       //real_t dyic    = lev_deltay[lvl];
+      int my_patt_num = 10000*mesh->level[mesh->nbot[mesh->nbot[ic]]] + 1000*mesh->level[mesh->nbot[ic]] + +100*lvl + 10*mesh->level[mesh->ntop[ic]] + 1*mesh->level[mesh->ntop[mesh->ntop[ic]]];
+
+      //if (my_patt_num == 22122) printf("\n%d) %f %f %f %f %f\n", ic, Hbb, Hb, Hic, Ht, Htt);
 
       real_t dxl     = lev_deltax[mesh->level[nl]];
       real_t dxr     = lev_deltax[mesh->level[nr]];
@@ -2687,7 +2701,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
         //wminusx_H = tempWHxM[ic] / 4;
         //wminusx_U = tempWUxM[ic] / 4;
         //printf("%d) %f %f\n", ic, wminusx_H, wminusx_U);
-        tempWHxP[ic] = 0.0;
         tempWHxM[ic] = 0.0;
         tempWUxM[ic] = 0.0;
         //printf("\n(%d) received %f %f %f %f XM\n", ic, wminusx_H, wminusx_U);
@@ -2711,7 +2724,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
         wplusy_V *= HALF;*/
         //wplusy_H = tempWHyP[ic] / 4;
         //wplusy_V = tempWVyP[ic] / 4;
-        tempWHxP[ic] = 0.0;
         tempWHyP[ic] = 0.0;
         tempWVyP[ic] = 0.0;
         //printf("\n(%d) received %f %f YP\n", ic, wplusy_H, wplusy_V);
@@ -2841,9 +2853,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       //printf("\n%d) %f %f\n", ic, wminusx_H, wplusx_H);
 
       //trying without dampening
-      //wminusx_H = 0.0; wplusx_H = 0.0; wminusy_H = 0.0; wplusy_H = 0.0;
-      //wminusx_U = 0.0; wplusx_U = 0.0;
-      //wminusy_V = 0.0; wplusy_V = 0.0;
+      wminusx_H = 0.0; wplusx_H = 0.0; wminusy_H = 0.0; wplusy_H = 0.0;
+      wminusx_U = 0.0; wplusx_U = 0.0;
+      wminusy_V = 0.0; wplusy_V = 0.0;
 
       H_new[ic] = U_fullstep(deltaT, dxic, Hic,
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
@@ -3685,7 +3697,6 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
       //printf("\n%d) %f %f\n", ic, wminusx_H, wplusx_H);
    }//end forloop
-printf("\n\n");
 
 #ifdef _OPENMP
 #pragma omp barrier
