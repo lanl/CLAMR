@@ -225,7 +225,6 @@ cl_kernel      kernel_rezone_one_double;
 cl_kernel      kernel_rezone_one_float;
 cl_kernel      kernel_copy_mpot_ghost_data;
 cl_kernel      kernel_set_boundary_refinement;
-cl_kernel      kernel_calc_face_list_wbidirmap;
 #endif
 
 extern size_t hash_header_size;
@@ -1424,7 +1423,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       kernel_do_load_balance_lower    = ezcl_create_kernel_wprogram(program, "do_load_balance_lower_cl");
       kernel_do_load_balance_middle   = ezcl_create_kernel_wprogram(program, "do_load_balance_middle_cl");
       kernel_do_load_balance_upper    = ezcl_create_kernel_wprogram(program, "do_load_balance_upper_cl");
-      kernel_calc_face_list_wbidir    = ezcl_create_kernel_wprogram(program, "calc_face_list_wbidir");
+      //kernel_calc_face_list_wbidirmap = ezcl_create_kernel_wprogram(program, "calc_face_list_wbidir");
 #ifndef MINIMUM_PRECISION
       kernel_do_load_balance_double   = ezcl_create_kernel_wprogram(program, "do_load_balance_double_cl");
 #endif
@@ -1622,7 +1621,11 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
    struct mesh_type
    {
+#ifdef FULL_PRECISION
        double ***pstate;
+#else
+       float ***pstate;
+#endif
        int **mask;
    };
 
@@ -11685,6 +11688,21 @@ void Mesh::calc_face_list_wbidirmap(void)
 #ifdef HAVE_OPENCL
 void Mesh::gpu_wbidirmap_setup(void)
 {
+    size_t mem_request;
+    cl_mem dev_xface_level;
+    cl_mem dev_xface_i;
+    cl_mem dev_xface_j;
+    cl_mem dev_ixmin_level;
+    cl_mem dev_ixmax_level;
+    cl_mem dev_jxmin_level;
+    cl_mem dev_jxmax_level;
+    cl_mem dev_yface_level;
+    cl_mem dev_yface_i;
+    cl_mem dev_yface_j;
+    cl_mem dev_iymin_level;
+    cl_mem dev_iymax_level;
+    cl_mem dev_jymin_level;
+    cl_mem dev_jymax_level;
     dev_level = ezcl_malloc(NULL, const_cast<char *>("dev_level"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_nlft = ezcl_malloc(NULL, const_cast<char *>("dev_nlft"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_nrht = ezcl_malloc(NULL, const_cast<char *>("dev_nrht"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -11749,10 +11767,12 @@ void Mesh::gpu_calc_face_list_wbidirmap(void)
     assert(dev_map_ycell2face_top1);
     assert(dev_map_ycell2face_top2);
 
-    size_t = local_work_size = 128;
-    size_t = global_work_size = (ncells + nyfaces + nxface - 1);
+    size_t local_work_size = 128;
+    size_t global_work_size = (ncells + nyface + nxface - 1);
 
     //need to get faces starting indexes
+    int *xfaceIdxList = (int *)malloc(100*sizeof(int));
+    int *yfaceIdxList = (int *)malloc(100*sizeof(int));
     xfaceIdxList[0] = 0;
     yfaceIdxList[0] = 0;
     for (int ccc = 0; ccc < (int) ncells - 1; ccc++) {
@@ -11853,7 +11873,7 @@ void Mesh::gpu_calc_face_list_wbidirmap(void)
     ezcl_wait_for_events(1, &calc_face_list_wbidirmap_event);
     ezcl_event_release(calc_face_list_wbidirmap_event);
 
-    gpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
+    //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 }
 #endif
 
@@ -11882,7 +11902,11 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
    int jjmax = jmax+1;
    for (int ll=0; ll<=levmx; ll++){
       printf("DEBUG -- iimax %d jjmax %d\n",lev_ibegin[ll],lev_iend[ll]);
+#ifdef FULL_PRECISION
       meshes[ll].pstate = (double ***)gentrimatrix(nvar+1,jjmax,iimax,sizeof(double));
+#else
+      meshes[ll].pstate = (float ***)gentrimatrix(nvar+1,jjmax,iimax,sizeof(float));
+#endif
       meshes[ll].mask = (int **)genmatrix(jjmax,iimax,sizeof(int));
 
       for(int nn=0; nn<nvar; nn++){

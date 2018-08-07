@@ -346,14 +346,12 @@ void setup_refine_tile(
 void setup_xface(
                 __local           int8        *xface,
                 __global    const int         *map_xface2cell_lower,   
-                __global    const int         *map_xface2cell_upper,      
                 __global    const int         *map_xface2cell_upper
                 );
 
 void setup_yface(
                 __local           int8        *yface,
                 __global    const int         *map_yface2cell_lower,       
-                __global    const int         *map_yface2cell_upper,       
                 __global    const int         *map_yface2cell_upper
                 );
 
@@ -1536,8 +1534,8 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
             __global    const state_t   *V,                         // 5
             __global    const int       *level,                     // 6 Array of level information
                         const real_t    deltaT,                     // 7 Size of time step
-            __global    const reat_t    *lev_dx,                    // 8
             __global    const real_t    *lev_dx,                    // 8
+            //__global    const real_t    *lev_dx,                    // 8
             __global    const real_t    *lev_dy,                    // 9
             __local           state4_t  *tile,                      // 10 Tile size in state4_t
             __local           int8      *itile,                     // 11 Tile size in int8
@@ -1558,14 +1556,6 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
     /// Get thread identification information ///
     /////////////////////////////////////////////
 
-    const unit giX = get_global_id(0);
-    const uint tiX = get_local_id(0);
-
-    const uint ngX = get_global_size(0);
-    const unit ntX = get_local_sizee(0);
-
-    const unit group_id = get_group_id(0);
-
     const uint giX = get_global_id(0);
     const uint tiX = get_local_id(0);
 
@@ -1575,8 +1565,8 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
     const uint group_id = get_group_id(0);
 
     // Ensure the executing thread is not extraneous
-    if (giX >= max(nxface, nyface))
-        return;
+    //if (giX >= max(nxface, nyface))
+    //    return;
 
     /////////////////////////////////////////////
     /// Set local tile & apply boundary conds ///
@@ -1593,6 +1583,7 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
   }*/
 
 
+  /*
     if (giX < nxface) {
       real_t Hxic, Uxic, Vxic; 
       int cell_lower, cell_upper, level_lower, level_upper;
@@ -1700,6 +1691,7 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
          Vy[giX] = Vyic;
       }
     }
+    */
 
 }
 
@@ -1719,8 +1711,8 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
             __global    const int       *nbot,                      // 11 Array of bottom neighbors
             __global    const int       *level,                     // 12 Array of level information
                         const real_t    deltaT,                     // 13 Size of time step
-            __global    const reat_t    *lev_dx,                    // 14
             __global    const real_t    *lev_dx,                    // 14
+            //__global    const real_t    *lev_dx,                    // 14
             __global    const real_t    *lev_dy,                    // 15
             __local           state4_t  *tile,                      // 16 Tile size in state4_t
             __local           int8      *itile,                     // 17 Tile size in int8
@@ -1742,14 +1734,6 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
     /////////////////////////////////////////////
     /// Get thread identification information ///
     /////////////////////////////////////////////
-
-    const unit giX = get_global_id(0);
-    const uint tiX = get_local_id(0);
-
-    const uint ngX = get_global_size(0);
-    const unit ntX = get_local_sizee(0);
-
-    const unit group_id = get_group_id(0);
 
     const uint giX = get_global_id(0);
     const uint tiX = get_local_id(0);
@@ -1773,7 +1757,7 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
     /// Declare all constants and local variables ///
     /////////////////////////////////////////////////
 
-    const real_g        = GRAVITATIONAL_CONSTANT; // gravitational constant
+    const real_t g      = GRAVITATIONAL_CONSTANT; // gravitational constant
     const real_t ghalf  = HALF*g;
 
     // Left, right, ... left-left, right-right, ... left-top, right-top neighbor
@@ -1872,72 +1856,73 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
 
     // we have done the computions from the faces, now we use those values via cells
 
-      int lvl     = level[giX];
-      int nl      = nlft[giX];
-      int nr      = nrht[giX];
-      int nt      = ntop[giX];
-      int nb      = nbot[giX];
+      lvl     = level[giX];
+      nl      = nlft[giX];
+      nr      = nrht[giX];
+      nt      = ntop[giX];
+      nb      = nbot[giX];
 
-      real_t Hic     = H[giX];
-      real_t Uic     = U[giX];
-      real_t Vic     = V[giX];
+      Hic     = H[giX];
+      Uic     = U[giX];
+      Vic     = V[giX];
 
-      int nll     = nlft[nl];
-      real_t Hl      = H[nl];
-      real_t Ul      = U[nl];
-      //real_t Vl      = V[nl];
+      nll     = nlft[nl];
+      Hl      = H[nl];
+      Ul      = U[nl];
+      //Vl      = V[nl];
 
-      int nrr     = nrht[nr];
-      real_t Hr      = H[nr];
-      real_t Ur      = U[nr];
-      //real_t Vr      = V[nr];
+      nrr     = nrht[nr];
+      Hr      = H[nr];
+      Ur      = U[nr];
+      //Vr      = V[nr];
 
-      int ntt     = ntop[nt];
-      real_t Ht      = H[nt];
-      //real_t Ut      = U[nt];
-      real_t Vt      = V[nt];
+      ntt     = ntop[nt];
+      Ht      = H[nt];
+      //Ut      = U[nt];
+      Vt      = V[nt];
 
-      int nbb     = nbot[nb];
-      real_t Hb      = H[nb];
-      //real_t Ub      = U[nb];
-      real_t Vb      = V[nb];
+      nbb     = nbot[nb];
+      Hb      = H[nb];
+      //Ub      = U[nb];
+      Vb      = V[nb];
 
-      int nlt     = ntop[nl];
-      int nrt     = ntop[nr];
-      int ntr     = nrht[nt];
-      int nbr     = nrht[nb];
+      nlt     = ntop[nl];
+      nrt     = ntop[nr];
+      ntr     = nrht[nt];
+      nbr     = nrht[nb];
 
-      real_t Hll     = H[nll];
-      real_t Ull     = U[nll];
-      //real_t Vll     = V[nll];
+      Hll     = H[nll];
+      Ull     = U[nll];
+      //Vll     = V[nll];
 
-      real_t Hrr     = H[nrr];
-      real_t Urr     = U[nrr];
-      //real_t Vrr     = V[nrr];
+      Hrr     = H[nrr];
+      Urr     = U[nrr];
+      //Vrr     = V[nrr];
 
-      real_t Htt     = H[ntt];
-      //real_t Utt     = U[ntt];
-      real_t Vtt     = V[ntt];
+      Htt     = H[ntt];
+      //Utt     = U[ntt];
+      Vtt     = V[ntt];
 
-      real_t Hbb     = H[nbb];
-      //real_t Ubb     = U[nbb];
-      real_t Vbb     = V[nbb];
+      Hbb     = H[nbb];
+      //Ubb     = U[nbb];
+      Vbb     = V[nbb];
 
-      real_t dxic    = lev_deltax[lvl];
-      //real_t dyic    = lev_deltay[lvl];
+ #ifdef NOT_READY
+      dxic    = lev_deltax[lvl];
+      //dyic    = lev_deltay[lvl];
 
-      real_t dxl     = lev_deltax[level[nl]];
-      real_t dxr     = lev_deltax[level[nr]];
+      dxl     = lev_deltax[level[nl]];
+      dxr     = lev_deltax[level[nr]];
 
-      real_t dyt     = lev_deltay[level[nt]];
-      real_t dyb     = lev_deltay[level[nb]];
+      dyt     = lev_deltay[level[nt]];
+      dyb     = lev_deltay[level[nb]];
 
-      //real_t drl     = dxl;
-      //real_t drr     = dxr;
-      //real_t drt     = dyt;
-      //real_t drb     = dyb;
+      //drl     = dxl;
+      //drr     = dxr;
+      //drt     = dyt;
+      //drb     = dyb;
 
-      real_t dric    = dxic;
+      dric    = dxic;
 
       int nltl = 0;
       real_t Hlt = 0.0, Ult = 0.0; // Vlt = 0.0;
@@ -2286,6 +2271,7 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
       V_new[giX] = Vic;
 
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
+  #endif
 
 }
 
@@ -2327,14 +2313,6 @@ __kernel void calc_finite_difference_via_face_in_place_cell_comps_cl(
     /// Get thread identification information ///
     /////////////////////////////////////////////
 
-    const unit giX = get_global_id(0);
-    const uint tiX = get_local_id(0);
-
-    const uint ngX = get_global_size(0);
-    const unit ntX = get_local_sizee(0);
-
-    const unit group_id = get_group_id(0);
-
     const uint giX = get_global_id(0);
     const uint tiX = get_local_id(0);
 
@@ -2352,7 +2330,7 @@ __kernel void calc_finite_difference_via_face_in_place_cell_comps_cl(
     /// Declare all constants and local variables ///
     /////////////////////////////////////////////////
 
-    const real_g        = GRAVITATIONAL_CONSTANT; // gravitational constant
+    const real_t g      = GRAVITATIONAL_CONSTANT; // gravitational constant
     const real_t ghalf  = HALF*g;
 
     // Left, right, ... left-left, right-right, ... left-top, right-top neighbor
@@ -2415,55 +2393,56 @@ __kernel void calc_finite_difference_via_face_in_place_cell_comps_cl(
 
     // we have done the computions from the faces, now we use those values via cells
       int lvl     = level[giX];
-      int nl      = map_xface2cell_lower[map_xcell2face_left1[giX]];
-      int nr      = map_xface2cell_upper[map_xcell2face_right1[giX]];
-      int nb      = map_yface2cell_lower[map_ycell2face_bot1[giX]];
-      int nt      = map_yface2cell_upper[map_ycell2face_top1[giX]];
+      nl      = map_xface2cell_lower[map_xcell2face_left1[giX]];
+      nr      = map_xface2cell_upper[map_xcell2face_right1[giX]];
+      nb      = map_yface2cell_lower[map_ycell2face_bot1[giX]];
+      nt      = map_yface2cell_upper[map_ycell2face_top1[giX]];
 
-      real_t Hic     = H[giX];
-      real_t Uic     = U[giX];
-      real_t Vic     = V[giX];
+      Hic     = H[giX];
+      Uic     = U[giX];
+      Vic     = V[giX];
 
-      int nll     = map_xface2cell_lower[map_xcell2face_left1[nl]];
-      real_t Hl      = H[nl];
-      real_t Ul      = U[nl];
-      //real_t Vl      = V[nl];
+      nll     = map_xface2cell_lower[map_xcell2face_left1[nl]];
+      Hl      = H[nl];
+      Ul      = U[nl];
+      //Vl      = V[nl];
 
-      int nrr      = map_xface2cell_upper[map_xcell2face_right1[nr]];
-      real_t Hr      = H[nr];
-      real_t Ur      = U[nr];
-      //real_t Vr      = V[nr];
+      nrr      = map_xface2cell_upper[map_xcell2face_right1[nr]];
+      Hr      = H[nr];
+      Ur      = U[nr];
+      //Vr      = V[nr];
 
-      int ntt      = map_yface2cell_upper[map_ycell2face_top1[nt]];
-      real_t Ht      = H[nt];
-      //real_t Ut      = U[nt];
-      real_t Vt      = V[nt];
+      ntt      = map_yface2cell_upper[map_ycell2face_top1[nt]];
+      Ht      = H[nt];
+      //Ut      = U[nt];
+      Vt      = V[nt];
 
-      int nbb      = map_yface2cell_lower[map_ycell2face_bot1[nb]];
-      real_t Hb      = H[nb];
-      //real_t Ub      = U[nb];
-      real_t Vb      = V[nb];
+      nbb      = map_yface2cell_lower[map_ycell2face_bot1[nb]];
+      Hb      = H[nb];
+      //Ub      = U[nb];
+      Vb      = V[nb];
 
-      real_t Hll     = H[nll];
-      real_t Ull     = U[nll];
-      //real_t Vll     = V[nll];
+      Hll     = H[nll];
+      Ull     = U[nll];
+      //Vll     = V[nll];
 
-      real_t Hrr     = H[nrr];
-      real_t Urr     = U[nrr];
-      //real_t Vrr     = V[nrr];
+      Hrr     = H[nrr];
+      Urr     = U[nrr];
+      //Vrr     = V[nrr];
 
-      real_t Htt     = H[ntt];
-      //real_t Utt     = U[ntt];
-      real_t Vtt     = V[ntt];
+      Htt     = H[ntt];
+      //Utt     = U[ntt];
+      Vtt     = V[ntt];
 
-      real_t Hbb     = H[nbb];
-      //real_t Ubb     = U[nbb];
-      real_t Vbb     = V[nbb];
+      Hbb     = H[nbb];
+      //Ubb     = U[nbb];
+      Vbb     = V[nbb];
 
-      real_t dxic    = lev_deltax[lvl];
-      //real_t dyic    = lev_deltay[lvl];
+   #ifdef NOT_READY
+      dxic    = lev_deltax[lvl];
+      //dyic    = lev_deltay[lvl];
 
-      real_t dric    = dxic;
+      dric    = dxic;
 
 
       ////////////////////////////////////////
@@ -2607,7 +2586,7 @@ __kernel void calc_finite_difference_via_face_in_place_cell_comps_cl(
       V_new[giX] = Vic;
 
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
-
+   #endif
 }
 
 __kernel void refine_potential_cl(

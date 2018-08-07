@@ -225,7 +225,11 @@ using namespace std;
 
    struct mesh_type
    {
+#ifdef FULL_PRECISION
        double ***pstate;
+#else
+       float ***pstate;
+#endif
        int **mask;
    };
 
@@ -572,6 +576,9 @@ public:
                   int     caseNum);
 
    void calc_face_list_wbidirmap(void);
+#ifdef HAVE_OPENCL
+   void gpu_wbidirmap_setup(void);
+#endif
    virtual void interpolate(int, int, int, int, double, MallocPlus&);
    void calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double);
    void generate_regular_cell_meshes(MallocPlus &state_memory);
