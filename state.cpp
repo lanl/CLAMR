@@ -2848,12 +2848,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
         tempWVyM[recvIdx] += wplusy_V / 4;
         //printf("(%d) adding %f %f to %d YM\n", ic, wplusy_H, wplusy_V, mesh->phantomYFlux[ic]);
     }
-<<<<<<< HEAD
 //printf("\n%d) L%d R%d T%d B%d | %d %d\n", ic, nl, nr, nt, nb, mesh->nrht[ic], mesh->ntop[mesh->nrht[ic]]);
-=======
       //printf("\n%d) %f %f %f %f %f %f %f %f\n", ic, wminusx_H, wplusx_H, wminusy_H, wplusy_H, wminusx_U, wplusx_U, wminusy_V, wplusy_V);
 
->>>>>>> upstream/master
     //  printf("\n%d) %f %f %f %f %f %f %f %f %f\n((%f))\n", ic, deltaT, dric, dxl, Uxminus, Hxminus, Hic, Hl, Hll, Hr2, wminusx_H);
     //printf("\n%d) %f %f\n", ic, wminusx_H, wplusx_H);
 	/*printf("\t%d - ( %d ) - %d\n", nl, ic, nr);
@@ -2866,9 +2863,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       //printf("\n%d) %f %f\n", ic, wminusx_H, wplusx_H);
 
       //trying without dampening
-      wminusx_H = 0.0; wplusx_H = 0.0; wminusy_H = 0.0; wplusy_H = 0.0;
-      wminusx_U = 0.0; wplusx_U = 0.0;
-      wminusy_V = 0.0; wplusy_V = 0.0;
+      //wminusx_H = 0.0; wplusx_H = 0.0; wminusy_H = 0.0; wplusy_H = 0.0;
+      //wminusx_U = 0.0; wplusx_U = 0.0;
+      //wminusy_V = 0.0; wplusy_V = 0.0;
 
       H_new[ic] = U_fullstep(deltaT, dxic, Hic,
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)

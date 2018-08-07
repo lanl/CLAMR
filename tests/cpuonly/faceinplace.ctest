@@ -23,6 +23,6 @@ ln -s ${CTS_BIN}/compare_stdout.pl
 ln -s ${CTS_BIN}/cts_diff.pl
 
 set -ex
-./clamr_cpuonly -A "face-in-place" -f -n 128 -i 1 -t 100 >& ${TEST_NAME}_run1.out
-./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
+./clamr_cpuonly -A "face-in-place" -f -n 4 -i 1 -t 114 >& faceinplace_run1.out
+./compare_stdout.pl 0.0 ${SCRIPT_DIR}/faceinplace_run1.gold faceinplace_run1.out
 
