@@ -10246,34 +10246,18 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
     ntop     = (int *)mesh_memory.memory_realloc(6*ncells, ntop);
     memory_reset_ptrs();
     //printf("\n%d\n", mesh_memory.get_memory_size(nlft));
-    //printf("\n%d %d %d %d %d\n", nbot[26], level[26], is_upper(j[26]), j[26], j[nbot[26]]);
 
     MallocPlus state_memory_old = state_memory;
     malloc_plus_memory_entry *memory_item;
-    //hardcoded for now
-    double *state_H, *state_U, *state_V;
-    int stateCnt = 0;
 
     for (memory_item = state_memory_old.memory_entry_by_name_begin();
         memory_item != state_memory_old.memory_entry_by_name_end();
         memory_item = state_memory_old.memory_entry_by_name_next() ) {
-          
-        //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
-        //printf("\n%d\n", memory_item->mem_flags);
 
         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
         
-        /*if (stateCnt == 0)
-            state_H = (double *)memory_item->mem_ptr;
-        else if (stateCnt == 1)
-            state_U = (double *)memory_item->mem_ptr;
-        else
-            state_V = (double *)memory_item->mem_ptr;
-        stateCnt++;*/
-
         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-        //printf("DEBUG -- it.mem_name %s elsize %lu\n",memory_item->mem_name,memory_item->mem_elsize);
         state_memory.memory_realloc(6*ncells, memory_item->mem_ptr);
 
     }  
@@ -10328,7 +10312,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     map_xface2cell_lower[pfaceIdx+2] = pcellIdx+2;
                     //adjacent cell's face
                     map_xcell2face_right1[lncell] = pfaceIdx;
-                    map_xcell2face_left1[pcellIdx + 2] = pfaceIdx;
+                    map_xcell2face_left1[pcellIdx+2] = pfaceIdx;
                     map_xcell2face_right1[pcellIdx+1] = pfaceIdx+1;
                     map_xcell2face_left1[pcellIdx] = pfaceIdx+1;
                     map_xcell2face_right1[pcellIdx+2] = pfaceIdx+2;
@@ -10340,8 +10324,14 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     //face positions
                     xface_level[pfaceIdx] = level[lncell];
+                    xface_level[pfaceIdx+1] = level[rncell];
+                    xface_level[pfaceIdx+2] = level[lncell];
                     xface_i[pfaceIdx] = i[lncell] + 1;
+                    xface_i[pfaceIdx+1] = i[rncell] - 1;
+                    xface_i[pfaceIdx+2] = i[lncell] + 2;
                     xface_j[pfaceIdx] = j[lncell];
+                    xface_j[pfaceIdx+1] = j[rncell];
+                    xface_j[pfaceIdx+2] = j[lncell];
 
                     //interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //interpolate(4, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -10360,74 +10350,33 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t cAvg, fAvg;
-
-                        /*quickInterpolate(bncell, tncell, cncell, mem_ptr_double, lev_deltax[level[lncell]],
-                                        lev_deltax[level[rncell]], 2, &fAvg, &cAvg);
-                        mem_ptr_double[pcellIdx+2] = cAvg;
-                        mem_ptr_double[pcellIdx] = fAvg;    
-                        //printf("\n%d -- %d|%d\n", pcellIdx+2, bncell, tncell); 
-                        */
-
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_coarse = mem_ptr_double[cncell];
                         real_t state_avg = HALF * (state_bot + state_top);
-                        //real_t fake1 = xFakeFlux(state_H, state_U, state_V, bncell, locStateCnt); 
-                        //real_t fake2 = xFakeFlux(state_H, state_U, state_V, tncell, locStateCnt); 
-                        //real_t cfake = xFakeFlux(state_H, state_U, state_V, cncell, locStateCnt); 
-                        //locStateCnt++;
-                        mem_ptr_double[pcellIdx+2] = state_avg;// + (0.25 * (fake1 + fake2) - cfake);
-                        mem_ptr_double[pcellIdx] = state_coarse;// + 0.5 * (0.5 *(fake1 + fake2) - cfake);
+                        mem_ptr_double[pcellIdx+2] = state_avg;
+                        mem_ptr_double[pcellIdx] = state_coarse;
             			//for now, to maintain mass conservation
-			            phantomXFlux[rncell] = lncell;
-                        //phantomXFlux[tncell] = lncell;
-
-                        //printf("%d) state values (pf, pc, nl, nrb, nrt) %f %f %f %f %f\n",
-                          //      iface, fAvg, cAvg, state_coarse, state_bot, state_top);
-
+			            phantomXFlux[fncell] = cncell;
 
                         if (level[nrht[bncell]] > level_right) { // rightbot right neighbor is even more refined
                             state_botbot = mem_ptr_double[nrht[bncell]];
                             state_bottop = mem_ptr_double[ntop[nrht[bncell]]];
                             state_sideavg += HALF * HALF * (state_botbot + state_bottop);
-                            phantomXFlux2[nrht[bncell]] = lncell;
-                            phantomXFlux2[ntop[nrht[bncell]]] = lncell;
-                            //quickInterpolate(nrht[bncell], ntop[nrht[bncell]], cncell, mem_ptr_double,
-                              //      lev_deltax[level[cncell]], lev_deltax[level[nrht[bncell]]], 1, &fAvg, &cAvg);
-                            //state_sideavg += cAvg;
                         }
                         else { // same refinement as rightbot neighbor
-                            state_sideavg += HALF * state_botbot;
-                            phantomXFlux2[nrht[bncell]] = lncell;
-                            //quickInterpolate(nrht[bncell], ntop[nrht[bncell]], cncell, mem_ptr_double,
-                              //      lev_deltax[level[cncell]], lev_deltax[level[nrht[bncell]]], 0, &fAvg, &cAvg);
-                            //state_sideavg += fAvg;
+                            state_sideavg += HALF * mem_ptr_double[nrht[bncell]];
                         }
                         if (level[nrht[tncell]] > level_right) { // righttop right neighbor is even more refined
                             state_topbot = mem_ptr_double[nrht[tncell]];
                             state_toptop = mem_ptr_double[ntop[nrht[tncell]]];
                             state_sideavg += HALF * HALF * (state_topbot + state_toptop);
-                            phantomXFlux2[nrht[tncell]] = lncell;
-                            phantomXFlux2[ntop[nrht[tncell]]] = lncell;
-                            //quickInterpolate(nrht[tncell], ntop[nrht[tncell]], cncell, mem_ptr_double,
-                              //      lev_deltax[level[cncell]], lev_deltax[level[nrht[tncell]]], 1, &fAvg, &cAvg);
-                            //state_sideavg += cAvg;
                         }
                         else { // same refinement as righttop neighbor
-                            state_sideavg += HALF * state_topbot;
-                            phantomXFlux2[nrht[tncell]] = lncell;
-                            //quickInterpolate(nrht[tncell], ntop[nrht[tncell]], cncell, mem_ptr_double,
-                              //      lev_deltax[level[cncell]], lev_deltax[level[nrht[tncell]]], 0, &fAvg, &cAvg);
-                            //state_sideavg += fAvg;
+                            state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
                         }
                         mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        //quickInterpolate(nlft[cncell], ntop[nlft[cncell]], rncell, mem_ptr_double,
-                          //      lev_deltax[level[nlft[cncell]]], lev_deltax[level[rncell]], 0, &fAvg, &cAvg);
-                        //mem_ptr_double[pcellIdx+1] = fAvg;
                         mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
-
-
 
                         state_sideavg = 0;
                     }
@@ -10454,8 +10403,14 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     map_xface2cell_upper[iface] = pcellIdx + 2;
 
                     xface_level[pfaceIdx] = level[rncell];
+                    xface_level[pfaceIdx+1] = level[rncell];
+                    xface_level[pfaceIdx+2] = level[lncell];
                     xface_i[pfaceIdx] = i[rncell];
+                    xface_i[pfaceIdx+1] = i[rncell] - 1;
+                    xface_i[pfaceIdx+2] = i[lncell] + 2;
                     xface_j[pfaceIdx] = j[rncell];
+                    xface_j[pfaceIdx+1] = j[rncell];
+                    xface_j[pfaceIdx+2] = j[lncell];
 
                     //interpolate(1, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //interpolate(5, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -10464,7 +10419,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     // loop through state arrays to update phantom cell state values
                     real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; //vars for 2 cells over
-                    int locStateCnt = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
@@ -10473,68 +10427,33 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t cAvg, fAvg;
-
-                        /*quickInterpolate(bncell, tncell, cncell, mem_ptr_double, lev_deltax[level[cncell]],
-                                        lev_deltax[level[lncell]], 2, &fAvg, &cAvg);
-                        mem_ptr_double[pcellIdx+2] = fAvg;
-                        mem_ptr_double[pcellIdx] = cAvg;    
-			*/	
-
-
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
                         real_t state_coarse = mem_ptr_double[cncell];
                         real_t state_avg = HALF * (state_bot + state_top);
-                        //real_t fake1 = xFakeFlux(state_H, state_U, state_V, bncell, locStateCnt); 
-                        //real_t fake2 = xFakeFlux(state_H, state_U, state_V, tncell, locStateCnt); 
-                        //real_t cfake = xFakeFlux(state_H, state_U, state_V, cncell, locStateCnt); 
-                        //locStateCnt++;
-                        mem_ptr_double[pcellIdx] = state_avg;// + (0.25 * (fake1 + fake2) - cfake);
-                        mem_ptr_double[pcellIdx+2] = state_coarse;// + 0.5 * (0.5 *(fake1 + fake2) - cfake);
-			            //for now, to maintain mass conservation
-			            phantomXFlux[lncell] = -rncell;
-                        //phantomXFlux[tncell] = -rncell;
 
+                        mem_ptr_double[pcellIdx] = state_avg;
+                        mem_ptr_double[pcellIdx+2] = state_coarse;
+			            //for now, to maintain mass conservation
+			            phantomXFlux[fncell] = -cncell;
 
                         if (level[nlft[bncell]] > level_left) { // leftbot left neighbor is even more refined
                             state_botbot = mem_ptr_double[nlft[bncell]];
                             state_bottop = mem_ptr_double[ntop[nlft[bncell]]];
                             state_sideavg += HALF * HALF * (state_botbot + state_bottop);
-                            phantomXFlux2[nlft[bncell]] = -rncell;
-                            phantomXFlux2[ntop[nlft[bncell]]] = -rncell;
-                            //quickInterpolate(nlft[bncell], ntop[nlft[bncell]], cncell, mem_ptr_double,
-                              //      lev_deltax[level[cncell]], lev_deltax[level[nlft[bncell]]], 1, &fAvg, &cAvg);
-                            //state_sideavg += cAvg;
                         }
                         else { // same refinement as leftbot neighbor
                             state_sideavg += HALF * mem_ptr_double[nlft[bncell]];
-                            phantomXFlux2[nlft[bncell]] = -rncell;
-                            //quickInterpolate(nlft[bncell], ntop[nlft[bncell]], cncell, mem_ptr_double,
-                              //      lev_deltax[level[cncell]], lev_deltax[level[nlft[bncell]]], 0, &fAvg, &cAvg);
-                            //state_sideavg += fAvg;
                         }
                         if (level[nlft[tncell]] > level_left) { // lefttop left neighbor is even more refined
                             state_topbot = mem_ptr_double[nlft[tncell]];
                             state_toptop = mem_ptr_double[ntop[nlft[tncell]]];
                             state_sideavg += HALF * HALF * (state_topbot + state_toptop);
-                            phantomXFlux2[nlft[tncell]] = -rncell;
-                            phantomXFlux2[ntop[nlft[tncell]]] = -rncell;
-                            //quickInterpolate(nlft[tncell], ntop[nlft[tncell]], cncell, mem_ptr_double,
-                              //      lev_deltax[level[cncell]], lev_deltax[level[nlft[tncell]]], 1, &fAvg, &cAvg);
-                            //state_sideavg += cAvg;
                         }
                         else { // same refinement as leftop neighbor
                             state_sideavg += HALF * mem_ptr_double[nlft[tncell]];
-                            phantomXFlux2[nlft[tncell]] = -rncell;
-                            //quickInterpolate(nlft[tncell], ntop[nlft[tncell]], cncell, mem_ptr_double,
-                               //     lev_deltax[level[cncell]], lev_deltax[level[nlft[tncell]]], 0, &fAvg, &cAvg);
-                            //state_sideavg += fAvg;
                         }
                         mem_ptr_double[pcellIdx+1] = state_sideavg;
-                        //quickInterpolate(nrht[cncell], ntop[nrht[cncell]], lncell, mem_ptr_double,
-                          //      lev_deltax[level[lncell]], lev_deltax[level[nrht[cncell]]], 0, &fAvg, &cAvg);
-                        //mem_ptr_double[pcellIdx+3] = fAvg;
                         mem_ptr_double[pcellIdx+3] = mem_ptr_double[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
 
 
@@ -10564,16 +10483,12 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                 level[pcellIdx+1] = level[rncell];
                 level[pcellIdx+2] = level[lncell];
                 level[pcellIdx+3] = level[lncell];
-                //level[pcellIdx] = level[lncell];
-                //level[pcellIdx+1] = level[lncell];
-                //level[pcellIdx+2] = level[rncell];
-                //level[pcellIdx+3] = level[rncell];
 
             }
             else { // top of the two horizontal neighbors, add 2 phantoms
                 idxVar = 1;
                 pcellCnt += 2;
-                pfaceCnt ++;
+                pfaceCnt++;
 
                 if (level[lncell] < level[rncell]) { // right is more refined
                     //old face's new phantom adjacent cell
@@ -10594,8 +10509,10 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     j[pcellIdx+1] = j[rncell];
                     level[pcellIdx] = level[rncell];
                     level[pcellIdx+1] = level[rncell];
-                    //level[pcellIdx] = level[lncell];
-                    //level[pcellIdx+1] = level[lncell];
+
+                    xface_level[pfaceIdx] = level[rncell];
+                    xface_i[pfaceIdx] = i[rncell] - 1;
+                    xface_j[pfaceIdx] = j[rncell];
 
 
                     //interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -10604,7 +10521,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
 
                     // loop through state arrays to update phantom cell state values
-                    int locStateCnt = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
@@ -10613,36 +10529,15 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t cAvg, fAvg;
-
-                        /*quickInterpolate(cncell, ntop[cncell], tncell, mem_ptr_double, lev_deltax[level[tncell]],
-                                        lev_deltax[level[cncell]], 0, &fAvg, &cAvg);
-                        mem_ptr_double[pcellIdx] = fAvg;    
-                        */        
-
-
-                        real_t state_bot = mem_ptr_double[bncell];
-                        real_t state_top = mem_ptr_double[tncell];
                         real_t state_coarse = mem_ptr_double[cncell];
-                        real_t state_avg = HALF * (state_bot + state_top);
-                        //real_t fake1 = xFakeFlux(state_H, state_U, state_V, bncell, locStateCnt); 
-                        //real_t fake2 = xFakeFlux(state_H, state_U, state_V, tncell, locStateCnt); 
-                        //real_t cfake = xFakeFlux(state_H, state_U, state_V, lncell, locStateCnt); 
-                        //locStateCnt++;
-                        mem_ptr_double[pcellIdx] = state_coarse;// + 0.5 * (0.5 *(fake1 + fake2) - cfake);
-			            phantomXFlux[rncell] = lncell;
+                        mem_ptr_double[pcellIdx] = state_coarse;
+			            phantomXFlux[fncell] = cncell;
 
                         if (level[nlft[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
-                            //quickInterpolate(nlft[cncell], ntop[cncell], tncell, mem_ptr_double,
-                              //      lev_deltax[level[tncell]], lev_deltax[level[nlft[cncell]]], 0, &fAvg, &cAvg);
-                            //mem_ptr_double[pcellIdx+1] = fAvg;    
                         }
                         else {
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
-                            //quickInterpolate(ntop[nlft[cncell]], ntop[cncell], tncell, mem_ptr_double,
-                              //      lev_deltax[level[tncell]], lev_deltax[level[ntop[nlft[cncell]]]], 0, &fAvg, &cAvg);
-                            //mem_ptr_double[pcellIdx+1] = fAvg;    
                         }
 
                     }
@@ -10659,7 +10554,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     map_xcell2face_right1[pcellIdx] = pfaceIdx;
                     //phantom cells' new neighbors
                     nlft[pcellIdx] = lncell;
-                    nrht[pcellIdx] = rncell;
+                    nrht[pcellIdx] = pcellIdx + 1;
                     nrht[pcellIdx+1] = pcellIdx;
                     //other arrays
                     i[pcellIdx] = i[lncell] + 1;
@@ -10668,8 +10563,10 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     j[pcellIdx+1] = j[lncell];
                     level[pcellIdx] = level[lncell];
                     level[pcellIdx+1] = level[lncell];
-                    //level[pcellIdx] = level[rncell];
-                    //level[pcellIdx+1] = level[rncell];
+
+                    xface_level[pfaceIdx] = level[lncell];
+                    xface_i[pfaceIdx] = i[lncell] + 2;
+                    xface_j[pfaceIdx] = j[lncell];
 
                     //XXX the index shift is a hack, fixme!
                     //interpolate(1, pcellIdx-2, lncell, rncell, deltaT,  state_memory_old);
@@ -10677,7 +10574,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
 
                     // loop through state arrays to update phantom cell state values
-                    int locStateCnt = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
@@ -10686,36 +10582,15 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t cAvg, fAvg;
-  
-                        /*quickInterpolate(cncell, ntop[cncell], tncell, mem_ptr_double, lev_deltax[level[tncell]],
-                                        lev_deltax[level[cncell]], 0, &fAvg, &cAvg);
-                        mem_ptr_double[pcellIdx] = fAvg;    
-                        */
-
-
-                        real_t state_bot = mem_ptr_double[bncell];
-                        real_t state_top = mem_ptr_double[tncell];
                         real_t state_coarse = mem_ptr_double[cncell];
-                        real_t state_avg = HALF * (state_bot + state_top);
-                        //real_t fake1 = xFakeFlux(state_H, state_U, state_V, bncell, locStateCnt); 
-                        //real_t fake2 = xFakeFlux(state_H, state_U, state_V, tncell, locStateCnt); 
-                        //real_t cfake = xFakeFlux(state_H, state_U, state_V, cncell, locStateCnt); 
-                        //locStateCnt++;
-                        mem_ptr_double[pcellIdx] = state_coarse;// + 0.5 * (0.5 *(fake1 + fake2) - cfake);
-			            phantomXFlux[lncell] = -rncell;
+                        mem_ptr_double[pcellIdx] = state_coarse;
+			            phantomXFlux[fncell] = -cncell;
 
                         if (level[nrht[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[cncell]];
-                            //quickInterpolate(nrht[cncell], ntop[cncell], tncell, mem_ptr_double, 
-                              //      lev_deltax[level[tncell]], lev_deltax[level[nrht[cncell]]], 0, &fAvg, &cAvg);
-                            //mem_ptr_double[pcellIdx+1] = fAvg;    
                         }
                         else {
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nrht[cncell]]];
-                            //quickInterpolate(ntop[nrht[cncell]], ntop[cncell], tncell, mem_ptr_double, 
-                              //      lev_deltax[level[tncell]], lev_deltax[level[ntop[nrht[cncell]]]], 0, &fAvg, &cAvg);
-                            //mem_ptr_double[pcellIdx+1] = fAvg;    
                         }
 
                     }
@@ -10734,8 +10609,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
     } 
 
-    //printf("\n%d new cells %d new faces\n", pcellCnt, pfaceCnt);
-    
      //resize arrays/vectors here including the addition of the new faces and cells
 
     map_xface2cell_lower.resize(pfaceIdx);
@@ -10749,24 +10622,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
     xface_level.resize(pfaceIdx);
 
 
-    /*for (int fprint = 0; fprint < (int) ncells; fprint++) {
-        printf("\n%d) %d\n", fprint, phantomXFlux2[fprint]);
-    */
-
-    /*for (int fprint = 0; fprint < pfaceIdx; fprint++) {
-        printf("\n%d ( %d ) %d\n", map_xface2cell_lower[fprint], fprint, map_xface2cell_upper[fprint]);
-    }*/
-    /*for (int fprint = 0; fprint < pfaceIdx; fprint++) {
-        printf("%d level %d lower %d upper %d\n", fprint, xface_level[fprint], map_xface2cell_lower[fprint], map_xface2cell_upper[fprint]);
-
-    }*/
-    //printf("\nhere\n");
-
     //Now for the y faces
     
     //pcellIdx will actually stay where it was previously incremented to because there
     //is only 1 array of cells (not dependent on x/y)
-    pcellCnt = 0;
+    pcellCnt = (int) ncells;
     pfaceCnt = 0;
     pfaceIdx = nyface;
 
@@ -10779,7 +10639,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
             rncell, // top of the two fince neighbots of the course
             level_bot = level[bncell],
             level_top = level[tncell];
-
 
         //for future indexing, the new phantom cell appear in the array as follows
         // bp bbp tp ttp (for even iface), [b,t]p [bb,tt]p (for odd iface)
@@ -10813,7 +10672,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     map_yface2cell_lower[pfaceIdx+2] = pcellIdx+2;
                     //adjacent cells' face
                     map_ycell2face_top1[bncell] = pfaceIdx;
-                    map_ycell2face_bot1[pcellIdx + 2] = pfaceIdx;
+                    map_ycell2face_bot1[pcellIdx+2] = pfaceIdx;
                     map_ycell2face_top1[pcellIdx+1] = pfaceIdx+1;
                     map_ycell2face_bot1[pcellIdx] = pfaceIdx+1;
                     map_ycell2face_top1[pcellIdx+2] = pfaceIdx+2;
@@ -10825,8 +10684,14 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     //face positions
                     yface_level[pfaceIdx] = level[bncell];
+                    yface_level[pfaceIdx+1] = level[tncell];
+                    yface_level[pfaceIdx+2] = level[bncell];
                     yface_i[pfaceIdx] = i[bncell];
+                    yface_i[pfaceIdx+1] = i[tncell];
+                    yface_i[pfaceIdx+2] = i[bncell];
                     yface_j[pfaceIdx] = j[bncell] + 1;
+                    yface_j[pfaceIdx+1] = j[tncell] - 1;
+                    yface_j[pfaceIdx+2] = j[bncell] + 2;
 
                     //interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //interpolate(6, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
@@ -10835,7 +10700,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     // loop through state arrays to update phantom cell state values
                     real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; //vars for 2 cells over
-                    int locStateCnt = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
@@ -10844,67 +10708,34 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t cAvg, fAvg;
-
-                        /*quickInterpolate(lncell, rncell, cncell, mem_ptr_double, lev_deltay[level[bncell]],
-                                        lev_deltay[level[tncell]], 2, &fAvg, &cAvg);
-                        mem_ptr_double[pcellIdx+2] = cAvg;
-                        mem_ptr_double[pcellIdx] = fAvg;    
-                        */
-
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_coarse = mem_ptr_double[cncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
-                        //real_t fake1 = yFakeFlux(state_H, state_U, state_V, lncell, locStateCnt); 
-                        //real_t fake2 = yFakeFlux(state_H, state_U, state_V, rncell, locStateCnt); 
-                        //real_t cfake = yFakeFlux(state_H, state_U, state_V, cncell, locStateCnt); 
-                        //locStateCnt++;
-                        mem_ptr_double[pcellIdx+2] = state_avg;// + (0.25 * (fake1 + fake2) - cfake);
-                        mem_ptr_double[pcellIdx] = state_coarse;// + 0.5 * (0.5 *(fake1 + fake2) - cfake);
+
+                        mem_ptr_double[pcellIdx+2] = state_avg;
+                        mem_ptr_double[pcellIdx] = state_coarse;
 			            //for now, to maintain mass conservation
-			            phantomYFlux[tncell] = bncell;
-                        //phantomYFlux[rncell] = bncell;
+			            phantomYFlux[fncell] = cncell;
 
 
                         if (level[nbot[lncell]] > level_top) { // topleft top neighbor is even more refined
                             state_lftlft = mem_ptr_double[ntop[lncell]];
                             state_lftrht = mem_ptr_double[nrht[ntop[lncell]]];
                             state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
-                            phantomYFlux2[ntop[lncell]] = bncell;
-                            phantomYFlux2[nrht[ntop[lncell]]] = bncell;
-                            //quickInterpolate(ntop[lncell], nrht[ntop[lncell]], cncell, mem_ptr_double,
-                              //      lev_deltay[level[cncell]], lev_deltay[level[ntop[lncell]]], 1, &fAvg, &cAvg);
-                            //state_sideavg += cAvg;
                         }
                         else { // same refinement as toplft neighbor
                             state_sideavg += HALF * mem_ptr_double[ntop[lncell]];
-                            phantomYFlux2[ntop[lncell]] = bncell;
-                            //quickInterpolate(ntop[lncell], nrht[ntop[lncell]], cncell, mem_ptr_double,
-                              //      lev_deltay[level[cncell]], lev_deltay[level[ntop[lncell]]], 0, &fAvg, &cAvg);
-                            //state_sideavg += fAvg;
                         }
                         if (level[ntop[rncell]] > level_top) { // toprht top neighbor is even more refined
                             state_rhtlft = mem_ptr_double[ntop[rncell]];
                             state_rhtrht = mem_ptr_double[nrht[ntop[rncell]]];
                             state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
-                            phantomYFlux2[ntop[rncell]] = bncell;
-                            phantomYFlux2[nrht[ntop[rncell]]] = bncell;
-                            //quickInterpolate(ntop[rncell], nrht[ntop[rncell]], cncell, mem_ptr_double,
-                              //      lev_deltay[level[cncell]], lev_deltay[level[ntop[rncell]]], 1, &fAvg, &cAvg);
-                            //state_sideavg += cAvg;
                         }
                         else { // same refinement as toprht neighbor
                             state_sideavg += HALF * mem_ptr_double[ntop[rncell]];
-                            phantomYFlux2[ntop[rncell]] = bncell;
-                            //quickInterpolate(ntop[rncell], nrht[ntop[rncell]], cncell, mem_ptr_double,
-                              //      lev_deltay[level[cncell]], lev_deltay[level[ntop[rncell]]], 0, &fAvg, &cAvg);
-                            //state_sideavg += fAvg;
                         }
                         mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        //quickInterpolate(nbot[cncell], nrht[ntop[rncell]], tncell, mem_ptr_double,
-                          //      lev_deltay[level[tncell]], lev_deltay[level[nbot[cncell]]], 0, &fAvg, &cAvg);
-                        //mem_ptr_double[pcellIdx+1] = fAvg;
                         mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
                         
 
@@ -10934,8 +10765,14 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     // face positions
                     yface_level[pfaceIdx] = level[tncell];
+                    yface_level[pfaceIdx+1] = level[tncell];
+                    yface_level[pfaceIdx+2] = level[bncell];
                     yface_i[pfaceIdx] = i[tncell];
+                    yface_i[pfaceIdx+1] = i[tncell];
+                    yface_i[pfaceIdx+2] = i[bncell];
                     yface_j[pfaceIdx] = j[tncell];
+                    yface_j[pfaceIdx+1] = j[tncell] - 1;
+                    yface_j[pfaceIdx+2] = j[bncell] + 2;
 
                     //interpolate(3, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //interpolate(7, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
@@ -10944,7 +10781,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     // loop through state arrays to update phantom cell state values
                     real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; //vars for 2 cells over
-                    int locStateCnt = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
@@ -10953,68 +10789,34 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t cAvg, fAvg;
-
-                        /*quickInterpolate(lncell, rncell, cncell, mem_ptr_double, lev_deltay[level[tncell]],
-                                        lev_deltay[level[bncell]], 2, &fAvg, &cAvg);
-                        mem_ptr_double[pcellIdx+2] = fAvg;
-                        mem_ptr_double[pcellIdx] = cAvg;    
-                        */
-
-
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
                         real_t state_coarse = mem_ptr_double[cncell];
                         real_t state_avg = HALF * (state_lft + state_rht);
-                        //real_t fake1 = yFakeFlux(state_H, state_U, state_V, lncell, locStateCnt); 
-                        //real_t fake2 = yFakeFlux(state_H, state_U, state_V, rncell, locStateCnt); 
-                        //real_t cfake = yFakeFlux(state_H, state_U, state_V, cncell, locStateCnt); 
-                        //locStateCnt++;
-                        mem_ptr_double[pcellIdx] = state_avg;// + (0.25 * (fake1 + fake2) - cfake);
-                        mem_ptr_double[pcellIdx+2] = state_coarse;// + 0.5 * (0.5 * (fake1 + fake2) - cfake);
+
+                        mem_ptr_double[pcellIdx] = state_avg;
+                        mem_ptr_double[pcellIdx+2] = state_coarse;
 			            //for now, to maintain mass conservation
-			            phantomYFlux[bncell] = -tncell;
-                        //phantomYFlux[rncell] = -tncell;
+			            phantomYFlux[fncell] = -cncell;
 
 
                         if (level[ntop[lncell]] > level_bot) { // botleft bot neighbor is even more refined
                             state_lftlft = mem_ptr_double[nbot[lncell]];
                             state_lftrht = mem_ptr_double[nrht[nbot[lncell]]];
                             state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
-                            phantomYFlux2[nbot[lncell]] = -tncell;
-                            phantomYFlux2[nrht[nbot[lncell]]] = -tncell;
-                            //quickInterpolate(nbot[lncell], nrht[nbot[lncell]], cncell, mem_ptr_double,
-                              //      lev_deltay[level[cncell]], lev_deltay[level[nbot[lncell]]], 1, &fAvg, &cAvg);
-                            //state_sideavg += cAvg;
                         }
                         else { // same refinement as botlft neighbor
                             state_sideavg += HALF * mem_ptr_double[nbot[lncell]];
-                            phantomYFlux2[nbot[lncell]] = -tncell;
-                            //quickInterpolate(nbot[lncell], nrht[nbot[lncell]], cncell, mem_ptr_double,
-                              //      lev_deltay[level[cncell]], lev_deltay[level[nbot[lncell]]], 0, &fAvg, &cAvg);
-                            //state_sideavg += fAvg;
                         }
                         if (level[nbot[rncell]] > level_bot) { // botrht bot neighbor is even more refined
                             state_rhtlft = mem_ptr_double[nbot[rncell]];
                             state_rhtrht = mem_ptr_double[nrht[nbot[rncell]]];
                             state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
-                            phantomYFlux2[nbot[rncell]] = -tncell;
-                            phantomYFlux2[nrht[nbot[rncell]]] = -tncell;
-                            //quickInterpolate(nbot[rncell], nrht[nbot[rncell]], cncell, mem_ptr_double,
-                              //      lev_deltay[level[cncell]], lev_deltay[level[nbot[rncell]]], 1, &fAvg, &cAvg);
-                            //state_sideavg += cAvg;
                         }
                         else { // same refinement as toprht neighbor
                             state_sideavg += HALF * mem_ptr_double[nbot[rncell]];
-                            phantomYFlux2[nbot[rncell]] = -tncell;
-                            //quickInterpolate(nbot[rncell], nrht[nbot[rncell]], cncell, mem_ptr_double,
-                              //      lev_deltay[level[cncell]], lev_deltay[level[nbot[rncell]]], 0, &fAvg, &cAvg);
-                            //state_sideavg += fAvg;
                         }
                         mem_ptr_double[pcellIdx+1] = state_sideavg;
-                        //quickInterpolate(ntop[cncell], nrht[nbot[rncell]], bncell, mem_ptr_double,
-                          //      lev_deltay[level[bncell]], lev_deltay[level[ntop[cncell]]], 0, &fAvg, &cAvg);
-                        //mem_ptr_double[pcellIdx+3] = fAvg;
                         mem_ptr_double[pcellIdx+3] = mem_ptr_double[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
 
 
@@ -11044,10 +10846,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                 level[pcellIdx+1] = level[tncell];
                 level[pcellIdx+2] = level[bncell];
                 level[pcellIdx+3] = level[bncell];
-                //level[pcellIdx] = level[bncell];
-                //level[pcellIdx+1] = level[bncell];
-                //level[pcellIdx+2] = level[tncell];
-                //level[pcellIdx+3] = level[tncell];
             }
             else { // right of the two vertical neighbors, only add 2 phantoms
                 idxVar = 1;
@@ -11073,15 +10871,16 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     j[pcellIdx+1] = j[tncell] - 2;
                     level[pcellIdx] = level[tncell];
                     level[pcellIdx+1] = level[tncell];
-                    //level[pcellIdx] = level[bncell];
-                    //level[pcellIdx+1] = level[bncell];
+
+                    yface_level[pfaceIdx] = level[tncell];
+                    yface_i[pfaceIdx] = i[tncell];
+                    yface_j[pfaceIdx] = j[tncell] - 1;
 
                     //interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //phantomYFlux[tncell] = bncell;
 
 
                     // loop through state arrays to update phantom cell state values
-                    int locStateCnt = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
@@ -11090,36 +10889,15 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t cAvg, fAvg;
-
-                        /*quickInterpolate(cncell, nrht[cncell], tncell, mem_ptr_double, lev_deltay[level[tncell]],
-                                        lev_deltay[level[cncell]], 0, &fAvg, &cAvg);
-                        mem_ptr_double[pcellIdx] = fAvg;    
-                        */
-
-
-                        real_t state_lft = mem_ptr_double[lncell];
-                        real_t state_rht = mem_ptr_double[rncell];
                         real_t state_coarse = mem_ptr_double[cncell];
-                        real_t state_avg = HALF * (state_lft + state_rht);
-                        //real_t fake1 = yFakeFlux(state_H, state_U, state_V, lncell, locStateCnt); 
-                        //real_t fake2 = yFakeFlux(state_H, state_U, state_V, rncell, locStateCnt); 
-                        //real_t cfake = yFakeFlux(state_H, state_U, state_V, bncell, locStateCnt); 
-                        //locStateCnt++;
-                        mem_ptr_double[pcellIdx] = state_coarse;// + 0.5 * (0.5 * (fake1 + fake2) - cfake);
-			            phantomYFlux[tncell] = bncell;
+                        mem_ptr_double[pcellIdx] = state_coarse;
+			            phantomYFlux[fncell] = cncell;
 
                         if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
-                            //quickInterpolate(nbot[cncell], nrht[ntop[rncell]], tncell, mem_ptr_double,
-                              //      lev_deltay[level[tncell]], lev_deltay[level[nbot[cncell]]], 0, &fAvg, &cAvg);
-                            //mem_ptr_double[pcellIdx+1] = fAvg;
                         }
                         else {
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[nbot[cncell]]];
-                            //quickInterpolate(nrht[nbot[cncell]], nrht[ntop[rncell]], tncell, mem_ptr_double,
-                              //      lev_deltay[level[tncell]], lev_deltay[level[nrht[nbot[cncell]]]], 0, &fAvg, &cAvg);
-                            //mem_ptr_double[pcellIdx+1] = fAvg;
                         }
 
                     }
@@ -11145,8 +10923,10 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     j[pcellIdx+1] = j[bncell] + 2;
                     level[pcellIdx] = level[bncell];
                     level[pcellIdx+1] = level[bncell];
-                    //level[pcellIdx] = level[tncell];
-                    //level[pcellIdx+1] = level[tncell];
+
+                    yface_level[pfaceIdx] = level[bncell];
+                    yface_i[pfaceIdx] = i[bncell];
+                    yface_j[pfaceIdx] = j[bncell] + 2;
 
                     //XXX the index shift is a hack, fixme!
                     //interpolate(3, pcellIdx-2, bncell, tncell, deltaT,  state_memory_old);
@@ -11154,7 +10934,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
 
                     // loop through state arrays to update phantom cell state values
-                    int locStateCnt = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
@@ -11163,36 +10942,15 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t cAvg, fAvg;
-
-                        /*quickInterpolate(cncell, nrht[cncell], bncell, mem_ptr_double, lev_deltay[level[bncell]],
-                                        lev_deltay[level[cncell]], 0, &fAvg, &cAvg);
-                        mem_ptr_double[pcellIdx] = fAvg;    
-                        */
-
-
-                        real_t state_lft = mem_ptr_double[lncell];
-                        real_t state_rht = mem_ptr_double[rncell];
                         real_t state_coarse = mem_ptr_double[cncell];
-                        real_t state_avg = HALF * (state_lft + state_rht);
-                        //real_t fake1 = yFakeFlux(state_H, state_U, state_V, lncell, locStateCnt); 
-                        //real_t fake2 = yFakeFlux(state_H, state_U, state_V, rncell, locStateCnt); 
-                        //real_t cfake = yFakeFlux(state_H, state_U, state_V, tncell, locStateCnt); 
-                        //locStateCnt++;
-                        mem_ptr_double[pcellIdx] = state_coarse;// + 0.5 * (0.5 * (fake1 + fake2) - cfake);
-			            phantomYFlux[bncell] = -tncell;
+                        mem_ptr_double[pcellIdx] = state_coarse;
+			            phantomYFlux[fncell] = -cncell;
 
                         if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
-                            //quickInterpolate(ntop[cncell], nrht[nbot[rncell]], bncell, mem_ptr_double,
-                              //      lev_deltay[level[bncell]], lev_deltay[level[ntop[cncell]]], 0, &fAvg, &cAvg);
-                            //mem_ptr_double[pcellIdx+3] = fAvg;
                         }
                         else {
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
-                            //quickInterpolate(nrht[ntop[cncell]], nrht[nbot[rncell]], bncell, mem_ptr_double,
-                              //      lev_deltay[level[bncell]], lev_deltay[level[nrht[ntop[cncell]]]], 0, &fAvg, &cAvg);
-                            //mem_ptr_double[pcellIdx+3] = fAvg;
                         }
 
                     }
@@ -11212,9 +10970,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
         }
 
     }
-    /*for (int ijk = 0; ijk < (int) ncells; ijk++) {
-        printf("\n%d) df %d uf %d me %d l %d r %d\n", ijk, map_ycell2face_bot1[ijk], map_ycell2face_top1[ijk], level[ijk], level[map_yface2cell_lower[ map_ycell2face_bot1[ijk] ] ], level[map_yface2cell_upper[ map_ycell2face_top1[ijk] ] ]);
-    }*/
 
     // resize arrays/vectors with the addition of the new faces and cells
     
@@ -11222,18 +10977,13 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
     map_yface2cell_lower.resize(pfaceIdx);
     map_yface2cell_upper.resize(pfaceIdx);
-    map_ycell2face_bot1.resize(pcellIdx);
-    map_ycell2face_top1.resize(pcellIdx);
-    map_ycell2face_bot2.resize(pcellIdx);
-    map_ycell2face_top2.resize(pcellIdx);
+    map_ycell2face_bot1.resize(pcellCnt);
+    map_ycell2face_top1.resize(pcellCnt);
+    map_ycell2face_bot2.resize(pcellCnt);
+    map_ycell2face_top2.resize(pcellCnt);
     yface_i.resize(pfaceIdx);
     yface_j.resize(pfaceIdx);
     yface_level.resize(pfaceIdx);
-    //printf("\n%d cell idx %d face idx\n", pcellIdx, pfaceIdx);
-    //printf("\nncells %d\n", (int) ncells);
-    /*for (int yolo = 0; yolo < (int) ncells; yolo++) {
-        printf("\n%d) %d %d\n", yolo, phantomXFlux[yolo], phantomYFlux[yolo]);
-    }*/
 
     // resize cell based  arrays (i, j, nlft, nrht, nbot, ntop) 
     // do this based on pcellIdx, as it was continuous w/ x and y faces
