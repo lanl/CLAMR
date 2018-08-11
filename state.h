@@ -197,10 +197,13 @@ struct atomwrapper
         :_a(other._a.load())
     {}
 
+// Fixing compile error
+#ifdef XXX
     atomwrapper &operator=(const atomwrapper &other)
     {
         _a.store(other._a.load());
     }
+#endif
 };
 
 class State {
