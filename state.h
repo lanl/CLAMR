@@ -177,35 +177,6 @@ enum state_timers
    STATE_TIMER_SIZE
 };
 
-typedef enum state_timers   state_timer_category;
-
-using namespace std;
-
-struct atomwrapper
-{
-    atomic<double> _a;
-
-    atomwrapper()
-        :_a()
-    {}
-
-    atomwrapper(const std::atomic<double> &a)
-        :_a(a.load())
-    {}
-
-    atomwrapper(const atomwrapper &other)
-        :_a(other._a.load())
-    {}
-
-// Fixing compile error
-#ifdef XXX
-    atomwrapper &operator=(const atomwrapper &other)
-    {
-        _a.store(other._a.load());
-    }
-#endif
-};
-
 class State {
    
 public:
