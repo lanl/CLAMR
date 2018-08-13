@@ -177,6 +177,10 @@ enum state_timers
    STATE_TIMER_SIZE
 };
 
+typedef enum state_timers   state_timer_category;
+
+using namespace std;
+
 class State {
    
 public:

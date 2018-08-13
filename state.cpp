@@ -2586,7 +2586,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
         tempWHyM[ic] = 0.0;
         tempWVyM[ic] = 0.0;
     }
-   if (ic == 280) printf("%d\n", mesh->phantomXFlux[286]);
+   //if (ic == 280) printf("%d\n", mesh->phantomXFlux[286]);
 
     if ((mesh->phantomXFlux[ic] >= 0) && (mesh->phantomXFlux[ic] < 99999)) {
         int recvIdx = mesh->phantomXFlux[ic];
