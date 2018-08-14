@@ -10033,7 +10033,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    for (int nz=0; nz<(int)ncells; nz++){
       //printf("\n%d\t%d\t%d\n", uniIdx, unix2, map_xface2cell_upper.size());
       int nr = nrht[nz];
-      if (nr == nz) continue;
+      if (nr == nz) 
+          continue;
 
       int ifactor = 1;
       if (level[nr] < level[nz]) ifactor = 2;
@@ -10049,6 +10050,10 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
          xface_j[iface] = j[nr]*ifactor;
       }
       map_xcell2face_right1[nz] = iface;
+
+      //the right is a real cell, but I am left boundary
+      if (nz == nlft[nz])
+          map_xcell2face_left1[nz] = iface;
 
       iface++;
 
@@ -10078,6 +10083,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
          map_xcell2face_left1[nz] = map_xcell2face_right2[nl];
       } else {
          map_xcell2face_left1[nz] = map_xcell2face_right1[nl];
+
+         //the left is a real cell, but I am right boundary
+         if (nz == nrht[nz])
+             map_xcell2face_right1[nz] = map_xcell2face_right1[nl];
+
          if (level[nl] > level[nz]){
             map_xcell2face_left2[nz] = map_xcell2face_right1[ntop[nl]];
          }
@@ -10144,6 +10154,10 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       }
       map_ycell2face_top1[nz] = iface;
 
+      //the top is a real cell, but I am bot boundary
+      if (nz == nbot[nz])
+          map_ycell2face_bot1[nz] = iface;
+
       iface++;
 
       if (level[nt] > level[nz]  &&is_lower(i[nt]) ){
@@ -10172,6 +10186,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
          map_ycell2face_bot1[nz] = map_ycell2face_top2[nb];
       } else {
          map_ycell2face_bot1[nz] = map_ycell2face_top1[nb];
+
+         //the bot is a real cell, but I am top boundary
+         if (nz == ntop[nz])
+             map_ycell2face_top1[nz] = map_ycell2face_top1[nb];
+
          if (level[nb] > level[nz]){
             map_ycell2face_bot2[nz] = map_ycell2face_top1[nrht[nb]];
          }
