@@ -10970,7 +10970,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
         }
 
     }
-
+    //if (ncells > 280)
+     //   printf("%d %d\n", nlft[286], nrht[286]);
     // resize arrays/vectors with the addition of the new faces and cells
     
     //printf("\n%d loccellidx %d globcellidx %d faceidx\n", locpcellIdx, pcellIdx, pfaceIdx);

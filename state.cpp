@@ -1905,7 +1905,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp master
    {
 #endif
-   
    Hx.resize(xfaceSize, -999999);
    Ux.resize(xfaceSize, -999999);
    Vx.resize(xfaceSize, -999999);
@@ -2131,6 +2130,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int lvl     = mesh->level[ic];
       if (lvl != rough) continue;
 
+   //if (ic == 286) printf("%d %d %d %d %d\n", mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic], mesh->phantomXFlux[286]);
       if (mesh->nlft[ic] == ic)
   	    //nl = ic;
         continue;
@@ -2586,7 +2586,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
         tempWHyM[ic] = 0.0;
         tempWVyM[ic] = 0.0;
     }
-   //if (ic == 280) printf("%d\n", mesh->phantomXFlux[286]);
 
     if ((mesh->phantomXFlux[ic] >= 0) && (mesh->phantomXFlux[ic] < 99999)) {
         int recvIdx = mesh->phantomXFlux[ic];
@@ -2714,6 +2713,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       //wminusx_U = 0.0; wplusx_U = 0.0;
       //wminusy_V = 0.0; wplusy_V = 0.0;
 
+
       H_new[ic] = U_fullstep(deltaT, dxic, Hic,
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
                  - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
@@ -2723,6 +2723,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       V_new[ic] = U_fullstep(deltaT, dxic, Vic,
                       Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                  - wminusy_V + wplusy_V;
+    //printf("%d) %f %f %f %f\n", ic, Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus);
 
 #if DEBUG >= 1
       if (DEBUG >= 1) {
