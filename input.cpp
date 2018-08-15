@@ -137,6 +137,7 @@ void outputHelp()
          << "      \"face\"" << endl
          << "      \"face-in-place\"" << endl
          << "      \"regular-cells\"" << endl
+         << "      \"regular-cell-by-faces\"" << endl
          << "  -b <B>            Number of rollback images, disk or in memory (default 2);" << endl
          << "  -c <C>            Checkpoint to disk at interval specified;" << endl
          << "  -C <C>            Checkpoint to memory at interval specified;" << endl
