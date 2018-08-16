@@ -11637,10 +11637,10 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
    meshes = (mesh_type*)malloc((levmx+1)*sizeof(mesh_type));
 
    for (int ll=0; ll<=levmx; ll++){
-      lev_iregmin[ll] = lev_ibegin[ll]-1;
-      lev_jregmin[ll] = lev_jbegin[ll]-1;
-      lev_iregsize[ll] = lev_iend[ll]-lev_ibegin[ll]+3;
-      lev_jregsize[ll] = lev_jend[ll]-lev_jbegin[ll]+3;
+      lev_iregmin[ll] = lev_ibegin[ll]-2;
+      lev_jregmin[ll] = lev_jbegin[ll]-2;
+      lev_iregsize[ll] = lev_iend[ll]-lev_ibegin[ll]+5;
+      lev_jregsize[ll] = lev_jend[ll]-lev_jbegin[ll]+5;
       printf("DEBUG -- lev_iregmin %d lev_iregsize %d lev_jregmin %d lev_jregsize %d\n",
               lev_iregmin[ll],lev_iregsize[ll],lev_jregmin[ll],lev_jregsize[ll]);
 #ifdef FULL_PRECISION
@@ -11695,23 +11695,17 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
    }
            
    for (int ll=0; ll<=levmx; ll++){
-      int iimin = lev_ibegin[ll]-1;
-      int iimax = lev_iend[ll]+1;
-      int jjmin = lev_jbegin[ll]-1;
-      int jjmax = lev_jend[ll]+1;
-      int iisize = lev_iend[ll]-lev_ibegin[ll]+3;
-      int jjsize = lev_jend[ll]-lev_jbegin[ll]+3;
        printf("DEBUG regular mesh level %d\n",ll);
-       for(int jj=0; jj<jjsize; jj++){
-           for(int ii=0; ii<iisize; ii++){
+       for(int jj=0; jj<lev_jregsize[ll]; jj++){
+           for(int ii=0; ii<lev_iregsize[ll]; ii++){
                //printf("   %lf %lf %lf    ",meshes[ll].pstate[0][jj][ii],meshes[ll].pstate[1][jj][ii],meshes[ll].pstate[2][jj][ii]);
                printf("  %d  ",meshes[ll].mask[jj][ii]);
            }
            printf("\n");
        }
        printf("\n");
-       for(int jj=0; jj<jjsize; jj++){
-           for(int ii=0; ii<iisize; ii++){
+       for(int jj=0; jj<lev_jregsize[ll]; jj++){
+           for(int ii=0; ii<lev_iregsize[ll]; ii++){
                //printf("   %lf %lf %lf    ",meshes[ll].pstate[0][jj][ii],meshes[ll].pstate[1][jj][ii],meshes[ll].pstate[2][jj][ii]);
                if (meshes[ll].pstate[0][jj][ii] != -1.0){
                   printf("  %lf  ",meshes[ll].pstate[0][jj][ii]);
