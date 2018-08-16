@@ -99,7 +99,8 @@ extern bool verbose,
             dynamic_load_balance_on,
             h5_spoutput,
             restart,
-            output_cuts;
+            output_cuts,
+            phantom_debug;
 extern int  outputInterval,
             crux_type,
             enhanced_precision_sum,
@@ -137,6 +138,7 @@ void outputHelp()
          << "      \"face\"" << endl
          << "      \"face-in-place\"" << endl
          << "      \"regular-cells\"" << endl
+         << "      \"regular-cell-by-faces\"" << endl
          << "  -b <B>            Number of rollback images, disk or in memory (default 2);" << endl
          << "  -c <C>            Checkpoint to disk at interval specified;" << endl
          << "  -C <C>            Checkpoint to memory at interval specified;" << endl
@@ -195,6 +197,7 @@ void outputHelp()
          << "                    the default value for this parameter is 2.6e-13;" << endl
          << "  -V                use verbose output;" << endl
          << "  -v                display version information." << endl
+         << "  -x                turn on phantom AMR regular debug" << endl
          << "  -z                force recalculation of neighbors." << endl
          << "  -Z                Include cuts along y-axis (y vs. H) with output files." << endl; }
 
@@ -515,6 +518,10 @@ void parseInput(const int argc, char** argv)
                     outputVersion();
                     cout.flush();
                     exit(EXIT_SUCCESS);
+                    break;
+
+                case 'x':  // Phantom debug, -x sets to true
+                    phantom_debug = true;
                     break;
 
                 case 'z':  // Neighbor remap -- default is true, -z sets to false

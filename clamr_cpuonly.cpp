@@ -493,6 +493,9 @@ extern "C" void do_calc(void)
             state->calc_finite_difference_regular_cells(deltaT);
          } else if (choose_amr_method == REGULAR_CELL_BY_FACES_AMR) {
             state->calc_finite_difference_regular_cells_by_faces(deltaT);
+         // merge these two or clean up
+         } else if (choose_amr_method == FACE_AMR) {
+            state->calc_finite_difference_via_faces(deltaT);
          } else if (face_based) {
             state->calc_finite_difference_via_faces(deltaT);
          } else {

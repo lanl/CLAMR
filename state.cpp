@@ -57,6 +57,8 @@
 static bool iversion_flag = false;
 #endif
 
+bool phantom_debug = false;
+
 typedef unsigned int uint;
 
 static const char *state_timer_descriptor[STATE_TIMER_SIZE] = {
@@ -1900,6 +1902,10 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    Ux.resize(xfaceSize, -999999);
    Vx.resize(xfaceSize, -999999);
 
+   if (phantom_debug) {
+      print();
+   }
+
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -1963,13 +1969,22 @@ void State::calc_finite_difference_face_in_place(double deltaT){
             H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
       }
 #endif
+      if (phantom_debug) {
+         printf("1st pass x direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+            iface, mesh->xface_i[iface], mesh->xface_j[iface], mesh->xface_level[iface],
+            mesh->map_xface2cell_lower[iface], mesh->map_xface2cell_upper[iface],
+            Hx[iface],Ux[iface],Vx[iface],
+            H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
+      }
    }
 #if DEBUG >= 2
    if (DEBUG >= 2) {
       printf("\n");
    }
 #endif
-
+   if (phantom_debug) {
+      printf("\n");
+   }
 #ifdef PATTERN_CHECK
    free(mesh->xcase);
 #endif
@@ -2017,12 +2032,22 @@ void State::calc_finite_difference_face_in_place(double deltaT){
             H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
       }
 #endif
+      if (phantom_debug) {
+         printf("1st pass y direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
+            iface, mesh->yface_i[iface], mesh->yface_j[iface], mesh->yface_level[iface],
+            mesh->map_yface2cell_lower[iface], mesh->map_yface2cell_upper[iface],
+            Hy[iface],Uy[iface],Vy[iface],
+            H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
+      }
    }
 #if DEBUG >= 2
    if (DEBUG >= 2) {
       printf("\n");
    }
 #endif
+   if (phantom_debug) {
+      printf("\n");
+   }
 
    static state_t *H_new, *U_new, *V_new;
 
@@ -3492,7 +3517,10 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       apply_boundary_conditions();
    }
 #else
-   apply_boundary_conditions();
+   // Temporary commented out for debug code that sets cell to its own index
+   if (! phantom_debug){
+      apply_boundary_conditions();
+   }
 #endif
 
    static state_t *H_new, *U_new, *V_new;
@@ -3937,12 +3965,12 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    assert(dev_map_ycell2face_bot2);
    assert(dev_map_ycell2face_top1);
    assert(dev_map_ycell2face_top2);
-   assert(dev_Hx);
-   assert(dev_Ux);
-   assert(dev_Vx);
-   assert(dev_Hy);
-   assert(dev_Uy);
-   assert(dev_Vy);
+   //assert(dev_Hx);
+   //assert(dev_Ux);
+   //assert(dev_Vx);
+   //assert(dev_Hy);
+   //assert(dev_Uy);
+   //assert(dev_Vy);
 
    cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
    cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
@@ -4247,12 +4275,12 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    assert(dev_map_yface2cell_upper);
    assert(dev_map_ycell2face_bot1);
    assert(dev_map_ycell2face_top1);
-   assert(dev_Hx);
-   assert(dev_Ux);
-   assert(dev_Vx);
-   assert(dev_Hy);
-   assert(dev_Uy);
-   assert(dev_Vy);
+   //assert(dev_Hx);
+   //assert(dev_Ux);
+   //assert(dev_Vx);
+   //assert(dev_Hy);
+   //assert(dev_Uy);
+   //assert(dev_Vy);
 
    cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
    cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
