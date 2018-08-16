@@ -134,6 +134,7 @@ void outputHelp()
          << "Usage:  " << progName << " [options]..." << endl
          << "  -A <T>            AMR type (default cell);" << endl
          << "      \"cell\"" << endl
+         << "      \"cell-in-place\"" << endl
          << "      \"face\"" << endl
          << "      \"face-in-place\"" << endl
          << "      \"regular-cells\"" << endl
@@ -263,6 +264,8 @@ void parseInput(const int argc, char** argv)
                     val = strtok(argv[i++], " ,");
                     if (! strcmp(val,"cell") ) {
                        choose_amr_method = CELL_AMR;
+                    } else if (! strcmp(val,"cell-in-place") ) {
+                       choose_amr_method = CELL_IN_PLACE_AMR;
                     } else if (! strcmp(val,"face") ) {
                        choose_amr_method = FACE_AMR;
                     } else if (! strcmp(val,"face-in-place") ) {
@@ -272,7 +275,7 @@ void parseInput(const int argc, char** argv)
                     } else if (! strcmp(val,"regular-cell-by-faces") ) {
                        choose_amr_method = REGULAR_CELL_BY_FACES_AMR;
                     } else {
-                       printf("AMR method must be either \"cell\", \"face\", \"face-in-place\", \"regular-cell\" or \"regular-cell-by-faces\"\n");
+                       printf("AMR method must be either \"cell\", \"cell-in-place\", \"face\", \"face-in-place\", \"regular-cell\" or \"regular-cell-by-faces\"\n");
                     }
                     break;
                case 'b':     //  Number of rollback images, disk or in memory (default 2)

@@ -3176,6 +3176,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp for
 #endif
       for (int ic = 0; ic < (int)ncells; ic++){
+          if (new_ic[ic] == 284) printf("%d\n", ic);
          if (mpot[ic] == 0) {
             add_count[ic] = 1;
          } else if (mpot[ic] < 0) {
@@ -3207,12 +3208,17 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    for (int ic = 0; ic < (int)ncells; ic++) {
    vector<int>  invorder(4, -1); //  Vector mapping location from base index.
       int nc = new_ic[ic];
+          if (new_ic[ic] == 284) printf("%d\n", ic);
       if (mpot[ic] == 0)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
          index[ic] = nc;
          i[nc]     = i_old[ic];
          j[nc]     = j_old[ic];
          level[nc] = level_old[ic];
+      //if (ic == 296) printf("%d\n", mpot[ic]);
+       //if (ic == 296) printf("%d %d %d\n", i_old[ic], j_old[ic], level_old[ic]);
+       //if (ic == 296) printf("%d %d %d %d\n", nc, i[nc], j[nc], level[nc]);
+         
       } //  Complete no change needed.
 
       else if (mpot[ic] < 0)
@@ -3334,6 +3340,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp master
    {
 #endif
+       //printf("%d %d %d\n", i[284], j[284], level[284]);
    mesh_memory.memory_delete(i_old);
    mesh_memory.memory_delete(j_old);
    mesh_memory.memory_delete(level_old);
@@ -4085,6 +4092,7 @@ void Mesh::calc_neighbors(int ncells)
 #endif
             for(int ic=0; ic<ncells; ic++){
                int lev = level[ic];
+               //printf("%d) %d\n", ic, lev);
 
                bool need_hash = (nlft[ic] == -1 || nrht[ic] == -1 || nbot[ic] == -1 || ntop[ic] == -1) ? true : false;
 
@@ -4100,11 +4108,19 @@ void Mesh::calc_neighbors(int ncells)
                   int ii = i[ic]*levmult;
                   int jj = j[ic]*levmult;
 
+                  //if (ic == 284) printf("%d %d %d %d\n", i[ic], j[ic], levmx, lev);
                   write_hash(ic,jj*imaxsize+ii,hash);
                }
             }
 
+//#ifdef _OPENMP
+//#pragma omp barrier
+//#pragma omp master
+//    printf("here\n");
+//#endif
+
             if (TIMING_LEVEL >= 2) {
+
 #ifdef _OPENMP
 #pragma omp master
 #endif
@@ -10023,8 +10039,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    int iface=0, uniIdx = 0, unix2 = 1;
    for (int nz=0; nz<(int)ncells; nz++){
       int nr = nrht[nz];
-      if (nr == nz) 
-          continue;
+      if (nr == nz) continue;
 
       int ifactor = 1;
       if (level[nr] < level[nz]) ifactor = 2;
@@ -10285,6 +10300,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
             tncell, // top of the two fince neighbots of the course
             level_left = level[lncell],
             level_right = level[rncell];
+        if (nlft[lncell] == lncell || nbot[lncell] == lncell || ntop[lncell] == lncell) continue;
+        if (nrht[rncell] == rncell || nbot[rncell] == rncell || ntop[rncell] == rncell) continue;
 
         // for future indexing, the new phantom cell appear in the array as follows
         // lp llp rp rrp (for even iface), [l,r]p [ll,rr]p (for odd iface)
@@ -10361,7 +10378,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                         mem_ptr_double[pcellIdx+2] = state_avg;
                         mem_ptr_double[pcellIdx] = state_coarse;
                         //to maintain mass conservation
-		        phantomXFlux[fncell] = cncell;
+		                phantomXFlux[fncell] = cncell;
 
                         if (level[nrht[bncell]] > level_right) { // rightbot right neighbor is even more refined
                             state_botbot = mem_ptr_double[nrht[bncell]];
@@ -10635,6 +10652,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
             rncell, // top of the two fince neighbots of the course
             level_bot = level[bncell],
             level_top = level[tncell];
+        if (nlft[bncell] == bncell || nbot[bncell] == bncell || nrht[bncell] == bncell) continue;
+        if (nrht[tncell] == tncell || nrht[tncell] == tncell || ntop[tncell] == tncell) continue;
 
         // for future indexing, the new phantom cell appear in the array as follows
         // bp bbp tp ttp (for even iface), [b,t]p [bb,tt]p (for odd iface)
@@ -12400,8 +12419,9 @@ void scan ( scanInt *input , scanInt *output , scanInt length)
        // value of zero.
 
        output[start] = 0;
-       for ( scanInt i = start + 1 ; i < end ; i++ ) 
+       for ( scanInt i = start + 1 ; i < end ; i++ ) {
           output[i] = output[i-1] + input[i-1];
+        }
    }
     
    // Wait until all threads get here. 
@@ -12430,8 +12450,10 @@ void scan ( scanInt *input , scanInt *output , scanInt length)
 
    // Apply the offset to the range for this thread.
     
-   for ( scanInt i = start + 1 ; i < end ; i++ ) 
+   for ( scanInt i = start + 1 ; i < end ; i++ ) {
       output[i] += output[start];
+           //if (output[i] == 284) printf("%d\n", i);
+    }
 
 #else
    output[0] = 0;
