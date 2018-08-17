@@ -131,6 +131,7 @@ typedef unsigned int uint;
 enum amr_method
 {
     CELL_AMR,                 // AMR done in physics level by cell
+    CELL_IN_PLACE_AMR,        // AMR done in mesh by extending cell data structure
     FACE_AMR,                 // AMR done in physics level by face
     FACE_IN_PLACE_AMR,        // AMR done in mesh by extending face data structure
     REGULAR_CELL_AMR,         // AMR done in mesh by creating regular grid
