@@ -3888,33 +3888,37 @@ void State::calc_finite_difference_regular_cells(double deltaT){
       state_t dx = lev_deltax[ll];
       for(int jj=0; jj<jjmax; jj++){
          for(int ii=0; ii<iimax; ii++){
+            if (mask_reg[jj][ii] != 1 || ii < 1) continue;
             real_t Hxminus = 0.0;
             real_t Uxminus = 0.0;
             real_t Vxminus = 0.0;
-            if (ii >= 1 && mask_reg[jj][ii-1] == 1 && mask_reg[jj][ii]){
-//             Hxminus = U_reggrid_halfstep(deltaT, dx, H_reg[jj][ii-1], H_reg[jj][ii],
-//                       HXRGFLUXNL, HXRGFLUXIC);
-//             Uxminus = U_reggrid_halfstep(deltaT, dx, U_reg[jj][ii-1], U_reg[jj][ii],
-//                       UXRGFLUXNL, UXRGFLUXIC);
-//             Vxminus = V_reggrid_halfstep(deltaT, dx, V_reg[jj][ii-1], V_reg[jj][ii],
-//                       VXRGFLUXNL, VXRGFLUXIC);
+            if (mask_reg[jj][ii-1] == 1){ // left neighbor is a part of the mask of our level
+             /*Hxminus = U_reggrid_halfstep(deltaT, dx, H_reg[jj][ii-1], H_reg[jj][ii],
+                       HXRGFLUXNL, HXRGFLUXIC);
+             Uxminus = U_reggrid_halfstep(deltaT, dx, U_reg[jj][ii-1], U_reg[jj][ii],
+                       UXRGFLUXNL, UXRGFLUXIC);
+             Vxminus = V_reggrid_halfstep(deltaT, dx, V_reg[jj][ii-1], V_reg[jj][ii],
+                       VXRGFLUXNL, VXRGFLUXIC);*/
             }
+            else {} //get or give fluxes from or to other levels
+
             real_t Hxplus = 0.0;
             real_t Uxplus = 0.0;
             real_t Vxplus = 0.0;
-            if (ii >= 1 && mask_reg[jj][ii] == 1 && mask_reg[jj][ii+1]){
-//             Hxplus = U_reggrid_halfstep(deltaT, dx, H_reg[jj][ii], H_reg[jj][ii+1],
-//                       HXRGFLUXIC, HXRGFLUXNR);
-//             Uxplus = U_reggrid_halfstep(deltaT, dx, U_reg[jj][ii], U_reg[jj][ii+1],
-//                       UXRGFLUXIC, UXRGFLUXNR);
-//             Vxplus = V_reggrid_halfstep(deltaT, dx, V_reg[jj][ii], V_reg[jj][ii+1],
-//                       VXRGFLUXIC, VXRGFLUXNR);
+            if (mask_reg[jj][ii+1] == 1){ // right neighbor is a part of the mask of our level
+/*             Hxplus = U_reggrid_halfstep(deltaT, dx, H_reg[jj][ii], H_reg[jj][ii+1],
+                       HXRGFLUXIC, HXRGFLUXNR);
+             Uxplus = U_reggrid_halfstep(deltaT, dx, U_reg[jj][ii], U_reg[jj][ii+1],
+                       UXRGFLUXIC, UXRGFLUXNR);
+             Vxplus = V_reggrid_halfstep(deltaT, dx, V_reg[jj][ii], V_reg[jj][ii+1],
+                       VXRGFLUXIC, VXRGFLUXNR);*/
             }
+            else {} //get or give fluxes from or to other levels
 
             real_t Hyminus = 0.0;
             real_t Uyminus = 0.0;
             real_t Vyminus = 0.0;
-            if (jj >= 1 && mask_reg[jj-1][ii] == 1 && mask_reg[jj][ii]){
+            if (mask_reg[jj-1][ii] == 1){ // bot neighbor is a part of the mask of our level
 //             Hyminus = U_reggrid_halfstep(deltaT, dy, H_reg[jj-1][ii], H_reg[jj][ii],
 //                       HYRGFLUXNB, HYRGFLUXIC);
 //             Uyminus = U_reggrid_halfstep(deltaT, dy, U_reg[jj-1][ii], U_reg[jj][ii],
@@ -3922,10 +3926,12 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 //             Vyminus = V_reggrid_halfstep(deltaT, dy, V_reg[jj-1][ii], V_reg[jj][ii],
 //                       VYRGFLUXNB, VYRGFLUXIC);
             }
+            else {} //get or give fluxes from or to other levels
+
             real_t Hyplus = 0.0;
             real_t Uyplus = 0.0;
             real_t Vyplus = 0.0;
-            if (jj >= 1 && mask_reg[jj][ii] == 1 && mask_reg[jj+1][ii]){
+            if (mask_reg[jj+1][ii] == 1){ // top neighbor is a part of the mask of our level
 //             Hyplus = U_reggrid_halfstep(deltaT, dy, H_reg[jj][ii], H_reg[jj+1][ii],
 //                       HYRGFLUXIC, HYRGFLUXNU);
 //             Uyplus = U_reggrid_halfstep(deltaT, dy, U_reg[jj][ii], U_reg[jj+1][ii],
@@ -3933,6 +3939,9 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 //             Vyplus = V_reggrid_halfstep(deltaT, dy, V_reg[jj][ii], V_reg[jj+1][ii],
 //                       VYRGFLUXIC, VYRGFLUXNU);
             }
+            else {} //get or give fluxes from or to other levels
+
+            //use macros to get the real flux
 
 #ifdef XXX
             duminus1 = H[jj][ii-1]-H[jj][ii-2];
