@@ -1743,8 +1743,6 @@ void State::calc_finite_difference_in_place(double deltaT){
 #endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
 
-   //printf("\nDEBUG finite diff\n"); 
-
 #ifdef HAVE_MPI
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
@@ -1886,13 +1884,6 @@ void State::calc_finite_difference_in_place(double deltaT){
 #endif
 
    static state_t *H_new, *U_new, *V_new;
-   //int *nlft, *nrht, *nbot, *ntop, *level;
-
-   //nlft  = mesh->nlft;
-   //nrht  = mesh->nrht;
-   //nbot  = mesh->nbot;
-   //ntop  = mesh->ntop;
-   //level = mesh->level;
 
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
@@ -1916,24 +1907,15 @@ void State::calc_finite_difference_in_place(double deltaT){
 #endif
 
    int lowerBound, upperBound;
+
    mesh->get_bounds(lowerBound, upperBound);
-
-//#pragma omp simd
-
    int rough = mesh->levmx;
    while (rough > -1) {
    for(int gix = lowerBound; gix < upperBound; gix++) {
-#if DEBUG >= 3
-      printf("%d: DEBUG gix is %d at line %d in file %s\n",mesh->mype,gix,__LINE__,__FILE__);
-#endif
 
       int lvl     = mesh->level[gix];
 
       if (lvl != rough) continue;
-      /*int nl      = nlft[gix];
-      int nr      = nrht[gix];
-      int nt      = ntop[gix];
-      int nb      = nbot[gix];*/
 
       int nl = mesh->map_xface2cell_lower[mesh->map_xcell2face_left1[gix]];
       int nr = mesh->map_xface2cell_upper[mesh->map_xcell2face_right1[gix]];
@@ -1946,86 +1928,40 @@ void State::calc_finite_difference_in_place(double deltaT){
       real_t Uic     = U[gix];
       real_t Vic     = V[gix];
 
-#if DEBUG >= 3
-      if (nl < 0 || nl >= ncells_ghost ) printf("%d: Problem at file %s line %d with nl %ld\n",mesh->mype,__FILE__,__LINE__,nl);
-#endif
-      //int nll     = nlft[nl];
       int nll     = mesh->map_xface2cell_lower[mesh->map_xcell2face_left1[nl]];
       real_t Hl      = H[nl];
       real_t Ul      = U[nl];
       real_t Vl      = V[nl];
 
-#if DEBUG >= 3
-      if (nr < 0 || nr >= ncells_ghost ) printf("%d: Problem at file %s line %d with nr %ld\n",mesh->mype,__FILE__,__LINE__,nr);
-#endif
-      //int nrr     = nrht[nr];
       int nrr     = mesh->map_xface2cell_upper[mesh->map_xcell2face_right1[nr]];
       real_t Hr      = H[nr];
       real_t Ur      = U[nr];
       real_t Vr      = V[nr];
 
-#if DEBUG >= 3
-      if (nt < 0 || nt >= ncells_ghost ) printf("%d: Problem at file %s line %d with nt %ld\n",mesh->mype,__FILE__,__LINE__,nt);
-#endif
-      //int ntt     = ntop[nt];
       int ntt     = mesh->map_yface2cell_upper[mesh->map_ycell2face_top1[nt]];
       real_t Ht      = H[nt];
       real_t Ut      = U[nt];
       real_t Vt      = V[nt];
 
-#if DEBUG >= 3
-      if (nb < 0 || nb >= ncells_ghost ) printf("%d: Problem at file %s line %d with nb %ld\n",mesh->mype,__FILE__,__LINE__,nb);
-#endif
-      //int nbb     = nbot[nb];
       int nbb     = mesh->map_yface2cell_lower[mesh->map_ycell2face_bot1[nb]];
       real_t Hb      = H[nb];
       real_t Ub      = U[nb];
       real_t Vb      = V[nb];
 
-      //int nlt     = ntop[nl];
-      //int nrt     = ntop[nr];
-      //int ntr     = nrht[nt];
-      //int nbr     = nrht[nb];
-
-#if DEBUG >= 3
-      if (nll < 0 || nll >= ncells_ghost ) printf("%d: Problem at file %s line %d with nll %ld\n",mesh->mype,__FILE__,__LINE__,nll);
-#endif
       real_t Hll     = H[nll];
       real_t Ull     = U[nll];
-      //real_t Vll     = V[nll];
 
-#if DEBUG >= 3
-      if (nrr < 0 || nrr >= ncells_ghost ) printf("%d: Problem at file %s line %d with nrr %ld\n",mesh->mype,__FILE__,__LINE__,nrr);
-#endif
       real_t Hrr     = H[nrr];
       real_t Urr     = U[nrr];
-      //real_t Vrr     = V[nrr];
 
-#if DEBUG >= 3
-      if (ntt < 0 || ntt >= ncells_ghost ) printf("%d: Problem at file %s line %d with ntt %ld\n",mesh->mype,__FILE__,__LINE__,ntt);
-#endif
       real_t Htt     = H[ntt];
-      //real_t Utt     = U[ntt];
       real_t Vtt     = V[ntt];
 
-#if DEBUG >= 3
-      if (nbb < 0 || nbb >= ncells_ghost ) {printf("%d: Problem at file %s line %d ic %d %d with nbb %ld\n",mesh->mype,__FILE__,__LINE__,gix,gix+mesh->noffset,nbb); sleep(15); }
-#endif
       real_t Hbb     = H[nbb];
-      //real_t Ubb     = U[nbb];
       real_t Vbb     = V[nbb];
 
-#if DEBUG >= 3
-      if (lvl < 0 || lvl >= (int)lev_deltax.size() ) printf("%d: Problem at file %s line %d with lvl %d\n",mesh->mype,__FILE__,__LINE__,lvl);
-#endif
       real_t dxic    = lev_deltax[lvl];
       real_t dyic    = lev_deltay[lvl];
-
-      //real_t dxl     = lev_deltax[level[nl]];
-      //real_t dxr     = lev_deltax[level[nr]];
-
-      //real_t dyt     = lev_deltay[level[nt]];
-      //real_t dyb     = lev_deltay[level[nb]];
 
       real_t dxl = dxic;
       real_t dxr = dxic;
@@ -2039,83 +1975,6 @@ void State::calc_finite_difference_in_place(double deltaT){
       real_t drb     = dyb;
 
       real_t dric    = dxic;
-
-      //int nltl = 0;
-      //real_t Hlt = 0.0, Ult = 0.0, Vlt = 0.0;
-      //real_t Hll2 = 0.0;
-      //real_t Ull2 = 0.0;
-      //if(lvl < level[nl]) {
-#if DEBUG >= 3
-         if (nlt < 0 || nlt > ncells_ghost ) printf("%d: Problem at file %s line %d with nlt %ld\n",mesh->mype,__FILE__,__LINE__,nlt);
-#endif
-         //Hlt  = H[ ntop[nl] ];
-         //Ult  = U[ ntop[nl] ];
-         //Vlt  = V[ ntop[nl] ];
-         //nltl = nlft[nlt];
-#if DEBUG >= 3
-         //if (nltl < 0 || nltl > ncells_ghost ) printf("%d: Problem at file %s line %d with nltl %ld\n",mesh->mype,__FILE__,__LINE__,nltl);
-#endif
-         //Hll2 = H[nltl];
-         //Ull2 = U[nltl];
-      //}
-
-      //int nrtr = 0;
-      //real_t Hrt = 0.0, Urt = 0.0, Vrt = 0.0;
-      //real_t Hrr2 = 0.0;
-      //real_t Urr2 = 0.0;
-      //if(lvl < level[nr]) {
-#if DEBUG >= 3
-         if (nrt < 0 || nrt > ncells_ghost ) printf("%d: Problem at file %s line %d with nrt %ld\n",mesh->mype,__FILE__,__LINE__,nrt);
-#endif
-         //Hrt  = H[ ntop[nr] ];
-         //Urt  = U[ ntop[nr] ];
-         //Vrt  = V[ ntop[nr] ];
-         //nrtr = nrht[nrt];
-#if DEBUG >= 3
-         if (nrtr < 0 || nrtr > ncells_ghost ) printf("%d: Problem at file %s line %d with nrtr %ld\n",mesh->mype,__FILE__,__LINE__,nrtr);
-#endif
-         //Hrr2 = H[nrtr];
-         //Urr2 = U[nrtr];
-      //}
-
-      //int nbrb = 0;
-      //real_t Hbr = 0.0, Ubr = 0.0, Vbr = 0.0;
-      //real_t Hbb2 = 0.0;
-      //real_t Vbb2 = 0.0;
-      //if(lvl < level[nb]) {
-#if DEBUG >= 3
-         if (nbr < 0 || nbr > ncells_ghost ) printf("%d: Problem at file %s line %d with nbr %ld\n",mesh->mype,__FILE__,__LINE__,nbr);
-#endif
-        // Hbr  = H[ nrht[nb] ];
-        // Ubr  = U[ nrht[nb] ];
-        // Vbr  = V[ nrht[nb] ];
-         //nbrb = nbot[nbr];
-#if DEBUG >= 3
-         if (nbrb < 0 || nbrb > ncells_ghost ) {printf("%d: Problem at file %s line %d ic %d %d with nbrb %ld\n",mesh->mype,__FILE__,__LINE__,gix,gix+mesh->noffset,nbrb); sleep(20);}
-#endif
-         //Hbb2 = H[nbrb];
-         //Vbb2 = V[nbrb];
-      //}
-
-      //int ntrt = 0;
-      //real_t Htr = 0.0, Utr = 0.0, Vtr = 0.0;
-      //real_t Htt2 = 0.0;
-      //real_t Vtt2 = 0.0;
-      //if(lvl < level[nt]) {
-#if DEBUG >= 3
-         if (ntr < 0 || ntr > ncells_ghost ) printf("%d: Problem at file %s line %d with ntr %ld\n",mesh->mype,__FILE__,__LINE__,ntr);
-#endif
-         //Htr  = H[ nrht[nt] ];
-         //Utr  = U[ nrht[nt] ];
-         //Vtr  = V[ nrht[nt] ];
-         //ntrt = ntop[ntr];
-#if DEBUG >= 3
-         if (ntrt < 0 || ntrt > ncells_ghost ) {printf("%d: Problem at file %s line %d ic %d %d with ntrt %ld\n",mesh->mype,__FILE__,__LINE__,gix,gix+mesh->noffset,ntrt); sleep(20); }
-#endif
-         //Htt2 = H[ntrt];
-         //Vtt2 = V[ntrt];
-      //}
-
 
       real_t Hxminus = U_halfstep(deltaT, Hl, Hic, HXFLUXNL, HXFLUXIC,
                            dxl, dxic, dxl, dxic, SQR(dxl), SQR(dxic));
@@ -2161,162 +2020,32 @@ void State::calc_finite_difference_in_place(double deltaT){
       real_t Uyfluxplus  = VUNEWFLUXPLUS;
       real_t Vyfluxplus  = VNEWYFLUXPLUS;
 
-      /*real_t Hxminus2 = 0.0;
-      real_t Uxminus2 = 0.0;
-      real_t Vxminus2 = 0.0;
-      if(lvl < level[nl]) {
-
-         Hxminus2 = U_halfstep(deltaT, Hlt, Hic, HXFLUXNLT, HXFLUXIC,
-                               drl, dric, drl, dric, SQR(drl), SQR(dric));
-         Uxminus2 = U_halfstep(deltaT, Ult, Uic, UXFLUXNLT, UXFLUXIC,
-                               drl, dric, drl, dric, SQR(drl), SQR(dric));
-         Vxminus2 = U_halfstep(deltaT, Vlt, Vic, UVFLUXNLT, UVFLUXIC,
-                               drl, dric, drl, dric, SQR(drl), SQR(dric));
-
-         Hxfluxminus = (Hxfluxminus + HNEWXFLUXMINUS2) * HALF;
-         Uxfluxminus = (Uxfluxminus + UNEWXFLUXMINUS2) * HALF;
-         Vxfluxminus = (Vxfluxminus + UVNEWFLUXMINUS2) * HALF;
-
-      }
-
-      real_t Hxplus2 = 0.0;
-      real_t Uxplus2 = 0.0;
-      real_t Vxplus2 = 0.0;
-      if(lvl < level[nr]) {
-
-         Hxplus2  = U_halfstep(deltaT, Hic, Hrt, HXFLUXIC, HXFLUXNRT,
-                               dric, drr, dric, drr, SQR(dric), SQR(drr));
-         Uxplus2  = U_halfstep(deltaT, Uic, Urt, UXFLUXIC, UXFLUXNRT,
-                               dric, drr, dric, drr, SQR(dric), SQR(drr));
-         Vxplus2  = U_halfstep(deltaT, Vic, Vrt, UVFLUXIC, UVFLUXNRT,
-                               dric, drr, dric, drr, SQR(dric), SQR(drr));
-
-         Hxfluxplus  = (Hxfluxplus + HNEWXFLUXPLUS2) * HALF;
-         Uxfluxplus  = (Uxfluxplus + UNEWXFLUXPLUS2) * HALF;
-         Vxfluxplus  = (Vxfluxplus + UVNEWFLUXPLUS2) * HALF;
-
-      }
-
-      real_t Hyminus2 = 0.0;
-      real_t Uyminus2 = 0.0;
-      real_t Vyminus2 = 0.0;
-      if(lvl < level[nb]) {
-
-         Hyminus2 = U_halfstep(deltaT, Hbr, Hic, HYFLUXNBR, HYFLUXIC,
-                               drb, dric, drb, dric, SQR(drb), SQR(dric));
-         Uyminus2 = U_halfstep(deltaT, Ubr, Uic, VUFLUXNBR, VUFLUXIC,
-                               drb, dric, drb, dric, SQR(drb), SQR(dric));
-         Vyminus2 = U_halfstep(deltaT, Vbr, Vic, VYFLUXNBR, VYFLUXIC,
-                               drb, dric, drb, dric, SQR(drb), SQR(dric));
-
-         Hyfluxminus = (Hyfluxminus + HNEWYFLUXMINUS2) * HALF;
-         Uyfluxminus = (Uyfluxminus + VUNEWFLUXMINUS2) * HALF;
-         Vyfluxminus = (Vyfluxminus + VNEWYFLUXMINUS2) * HALF;
-
-      }
-
-      real_t Hyplus2 = 0.0;
-      real_t Uyplus2 = 0.0;
-      real_t Vyplus2 = 0.0;
-      if(lvl < level[nt]) {
-
-         Hyplus2  = U_halfstep(deltaT, Hic, Htr, HYFLUXIC, HYFLUXNTR,
-                               dric, drt, dric, drt, SQR(dric), SQR(drt));
-         Uyplus2  = U_halfstep(deltaT, Uic, Utr, VUFLUXIC, VUFLUXNTR,
-                               dric, drt, dric, drt, SQR(dric), SQR(drt));
-         Vyplus2  = U_halfstep(deltaT, Vic, Vtr, VYFLUXIC, VYFLUXNTR,
-                               dric, drt, dric, drt, SQR(dric), SQR(drt));
-
-         Hyfluxplus  = (Hyfluxplus + HNEWYFLUXPLUS2) * HALF;
-         Uyfluxplus  = (Uyfluxplus + VUNEWFLUXPLUS2) * HALF;
-         Vyfluxplus  = (Vyfluxplus + VNEWYFLUXPLUS2) * HALF;
-
-      }*/
-
-      //if (DEBUG >= 2) {
-      // printf("1st pass x direction nz %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf\n",
-      //    gix, nl, nr,
-      //    Hxplus,Hxplus2,Uxplus,Uxplus2,Vxplus,Vxplus2);
-      //    //H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
-      //}
 
       ////////////////////////////////////////
       /// Artificial Viscosity corrections ///
       ////////////////////////////////////////
 
 
-      //if(level[nl] < level[nll]) {
-#if DEBUG >= 3
-         size_t nllt = ntop[nll];
-         if (nllt < 0 || nllt >= ncells_ghost ) printf("%d: Problem at file %s line %d with nllt %ld\n",mesh->mype,__FILE__,__LINE__,nllt);
-#endif
-         //Hll = (Hll + H[ ntop[nll] ]) * HALF;
-         //Ull = (Ull + U[ ntop[nll] ]) * HALF;
-      //}
-
       real_t Hr2 = Hr;
       real_t Ur2 = Ur;
-      /*if(lvl < level[nr]) {
-         Hr2 = (Hr2 + Hrt) * HALF;
-         Ur2 = (Ur2 + Urt) * HALF;
-      }*/
 
       real_t wminusx_H = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
                               Hic-Hl, Hl-Hll, Hr2-Hic);
 
       wminusx_H *= Hic - Hl;
 
-      /*if(lvl < level[nl]) {
-         if(level[nlt] < level[nltl])
-            Hll2 = (Hll2 + H[ ntop[nltl] ]) * HALF;
-         wminusx_H = ((w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus2/Hxminus2) +
-                                  sqrt(g*Hxminus2), Hic-Hlt, Hlt-Hll2, Hr2-Hic) *
-                      (Hic - Hlt)) + wminusx_H)*HALF*HALF;
-      }*/
-
-
-      //if(level[nr] < level[nrr]) {
-#if DEBUG >= 3
-         size_t nrrt = ntop[nrr];
-         if (nrrt < 0 || nrrt >= ncells_ghost ) printf("%d: Problem at file %s line %d with nrrt %ld\n",mesh->mype,__FILE__,__LINE__,nrrt);
-#endif
-         //Hrr = (Hrr + H[ ntop[nrr] ]) * HALF;
-         //Urr = (Urr + U[ ntop[nrr] ]) * HALF;
-      //}
-
       real_t Hl2 = Hl;
       real_t Ul2 = Ul;
-      /*if(lvl < level[nl]) {
-         Hl2 = (Hl2 + Hlt) * HALF;
-         Ul2 = (Ul2 + Ult) * HALF;
-      }*/
 
       real_t wplusx_H = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
                            Hr-Hic, Hic-Hl2, Hrr-Hr);
 
       wplusx_H *= Hr - Hic;
 
-      /*(if(lvl < level[nr]) {
-         if(level[nrt] < level[nrtr])
-            Hrr2 = (Hrr2 + H[ ntop[nrtr] ]) * HALF;
-         wplusx_H = ((w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus2/Hxplus2) +
-                                  sqrt(g*Hxplus2), Hrt-Hic, Hic-Hl2, Hrr2-Hrt) *
-                      (Hrt - Hic))+wplusx_H)*HALF*HALF;
-      }*/
-
-
       real_t wminusx_U = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
                               Uic-Ul, Ul-Ull, Ur2-Uic);
 
       wminusx_U *= Uic - Ul;
-
-      /*if(lvl < level[nl]) {
-         if(level[nlt] < level[nltl])
-            Ull2 = (Ull2 + U[ ntop[nltl] ]) * HALF;
-         wminusx_U = ((w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus2/Hxminus2) +
-                                  sqrt(g*Hxminus2), Uic-Ult, Ult-Ull2, Ur2-Uic) *
-                      (Uic - Ult))+wminusx_U)*HALF*HALF;
-      }*/
 
 
       real_t wplusx_U = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
@@ -2324,99 +2053,33 @@ void State::calc_finite_difference_in_place(double deltaT){
 
       wplusx_U *= Ur - Uic;
 
-      /*if(lvl < level[nr]) {
-         if(level[nrt] < level[nrtr])
-            Urr2 = (Urr2 + U[ ntop[nrtr] ]) * HALF;
-         wplusx_U = ((w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus2/Hxplus2) +
-                                  sqrt(g*Hxplus2), Urt-Uic, Uic-Ul2, Urr2-Urt) *
-                      (Urt - Uic))+wplusx_U)*HALF*HALF;
-      }*/
-
-
-      //if(level[nb] < level[nbb]) {
-#if DEBUG >= 3
-         size_t nbbr = nrht[nbb];
-         if (nbbr < 0 || nbbr >= ncells_ghost ) printf("%d: Problem at file %s line %d gix %d %d with nbbr %ld\n",mesh->mype,__FILE__,__LINE__,gix,gix+mesh->noffset,nbbr);
-#endif
-         //Hbb = (Hbb + H[ nrht[nbb] ]) * HALF;
-         //Vbb = (Vbb + V[ nrht[nbb] ]) * HALF;
-      //}
 
       real_t Ht2 = Ht;
       real_t Vt2 = Vt;
-      /*if(lvl < level[nt]) {
-         Ht2 = (Ht2 + Htr) * HALF;
-         Vt2 = (Vt2 + Vtr) * HALF;
-      }*/
 
       real_t wminusy_H = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
                               Hic-Hb, Hb-Hbb, Ht2-Hic);
 
       wminusy_H *= Hic - Hb;
 
-      /*if(lvl < level[nb]) {
-         if(level[nbr] < level[nbrb])
-            Hbb2 = (Hbb2 + H[ nrht[nbrb] ]) * HALF;
-         wminusy_H = ((w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus2/Hyminus2) +
-                                  sqrt(g*Hyminus2), Hic-Hbr, Hbr-Hbb2, Ht2-Hic) *
-                      (Hic - Hbr))+wminusy_H)*HALF*HALF;
-      }*/
-
-
-      //if(level[nt] < level[ntt]) {
-#if DEBUG >= 3
-         size_t nttr = nrht[ntt];
-         if (nttr < 0 || nttr >= ncells_ghost ) printf("%d: Problem at file %s line %d with nttr %ld\n",mesh->mype,__FILE__,__LINE__,nttr);
-#endif
-         //Htt = (Htt + H[ nrht[ntt] ]) * HALF;
-         //Vtt = (Vtt + V[ nrht[ntt] ]) * HALF;
-      //}
 
       real_t Hb2 = Hb;
       real_t Vb2 = Vb;
-      /*if(lvl < level[nb]) {
-         Hb2 = (Hb2 + Hbr) * HALF;
-         Vb2 = (Vb2 + Vbr) * HALF;
-      }*/
 
       real_t wplusy_H = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
                              Ht-Hic, Hic-Hb2, Htt-Ht);
 
       wplusy_H *= Ht - Hic;
 
-      /*if(lvl < level[nt]) {
-         if(level[ntr] < level[ntrt])
-            Htt2 = (Htt2 + H[ nrht[ntrt] ]) * HALF;
-         wplusy_H = ((w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus2/Hyplus2) +
-                                  sqrt(g*Hyplus2), Htr-Hic, Hic-Hb2, Htt2-Htr) *
-                      (Htr - Hic))+wplusy_H)*HALF*HALF;
-      }*/
-
       real_t wminusy_V = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
                               Vic-Vb, Vb-Vbb, Vt2-Vic);
 
       wminusy_V *= Vic - Vb;
 
-      /*if(lvl < level[nb]) {
-         if(level[nbr] < level[nbrb])
-            Vbb2 = (Vbb2 + V[ nrht[nbrb] ]) * HALF;
-         wminusy_V = ((w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus2/Hyminus2) +
-                                  sqrt(g*Hyminus2), Vic-Vbr, Vbr-Vbb2, Vt2-Vic) *
-                      (Vic - Vbr))+wminusy_V)*HALF*HALF;
-      }*/
-
       real_t wplusy_V = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
                            Vt-Vic, Vic-Vb2, Vtt-Vt);
 
       wplusy_V *= Vt - Vic;
-
-      /*if(lvl < level[nt]) {
-         if(level[ntr] < level[ntrt])
-            Vtt2 = (Vtt2 + V[ nrht[ntrt] ]) * HALF;
-         wplusy_V = ((w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus2/Hyplus2) +
-                                  sqrt(g*Hyplus2), Vtr-Vic, Vic-Vb2, Vtt2-Vtr) *
-                      (Vtr - Vic))+wplusy_V)*HALF*HALF;
-      }*/
 
     if ((FakeFluxHxP[gix] > 0) || (FakeFluxUxP[gix] > 0) || (FakeFluxVxP[gix] > 0)) {
         Hxfluxplus = FakeFluxHxP[gix] * HALF; 
@@ -2606,8 +2269,6 @@ void State::calc_finite_difference_in_place(double deltaT){
       U = (state_t *)state_memory.memory_replace(U, U_new);
       V = (state_t *)state_memory.memory_replace(V, V_new);
 
-      //state_memory.memory_report();
-      //printf("DEBUG end finite diff\n\n"); 
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -3665,7 +3326,6 @@ void State::calc_finite_difference_via_faces(double deltaT){
       int nt      = ntop[ic];
       int nb      = nbot[ic];
 
-      printf("%d) %d %d %d %d\n", ic, nl, nr, nb, nt);
       real_t Hic     = H[ic];
       real_t Uic     = U[ic];
       real_t Vic     = V[ic];
