@@ -302,7 +302,11 @@ public:
                   lev_jend,     //!<  Highest y-index in use at specified level of refinement.
                   lev_kbegin,   //!<  Lowest z-index in use at specified level of refinement.
                   lev_kend,     //!<  Highest z-index in use at specified level of refinement.
-                  levtable;     //!<  Powers of two to simplify i,j calculations
+                  levtable,     //!<  Powers of two to simplify i,j calculations
+                  lev_iregmin,  //!<  min value to use as offset for regular grid at each level
+                  lev_iregsize, //!<  size of regular grid at each level
+                  lev_jregmin,  //!<  min value to use as offset for regular grid at each level
+                  lev_jregsize; //!<  size of regular grid at each level
    vector<real_t> lev_deltax,   //!<  Grid spacing along x-axis at specified level of refinement.
                   lev_deltay,   //!<  Grid spacing along y-axis at specified level of refinement.
                   lev_deltaz;   //!<  Grid spacing along z-axis at specified level of refinement.

@@ -1312,6 +1312,10 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double d
    lev_jend.resize(  lvlMxSize);
    lev_deltax.resize(lvlMxSize);
    lev_deltay.resize(lvlMxSize);
+   lev_iregmin.resize(lvlMxSize);
+   lev_iregsize.resize(lvlMxSize);
+   lev_jregmin.resize(lvlMxSize);
+   lev_jregsize.resize(lvlMxSize);
    
    lev_ibegin[0] = imin + 1;
    lev_iend[0]   = imax - 1;
@@ -11651,31 +11655,32 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
    
    meshes = (mesh_type*)malloc((levmx+1)*sizeof(mesh_type));
 
-   int iimax = imax+1;
-   int jjmax = jmax+1;
    for (int ll=0; ll<=levmx; ll++){
-      printf("DEBUG -- iimax %d jjmax %d\n",lev_ibegin[ll],lev_iend[ll]);
+      lev_iregmin[ll] = lev_ibegin[ll]-2;
+      lev_jregmin[ll] = lev_jbegin[ll]-2;
+      lev_iregsize[ll] = lev_iend[ll]-lev_ibegin[ll]+5;
+      lev_jregsize[ll] = lev_jend[ll]-lev_jbegin[ll]+5;
+      printf("DEBUG -- lev_iregmin %d lev_iregsize %d lev_jregmin %d lev_jregsize %d\n",
+              lev_iregmin[ll],lev_iregsize[ll],lev_jregmin[ll],lev_jregsize[ll]);
 #ifdef FULL_PRECISION
-      meshes[ll].pstate = (double ***)gentrimatrix(nvar+1,jjmax,iimax,sizeof(double));
+      meshes[ll].pstate = (double ***)gentrimatrix(nvar+1,lev_jregsize[ll],lev_iregsize[ll],sizeof(double));
 #else
-      meshes[ll].pstate = (float ***)gentrimatrix(nvar+1,jjmax,iimax,sizeof(float));
+      meshes[ll].pstate = (float ***)gentrimatrix(nvar+1,lev_jregsize[ll],lev_iregsize[ll],sizeof(float));
 #endif
-      meshes[ll].mask = (int **)genmatrix(jjmax,iimax,sizeof(int));
+      meshes[ll].mask = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
 
       for(int nn=0; nn<nvar; nn++){
-         for(int jj=0; jj<jjmax; jj++){
-            for(int ii=0; ii<iimax; ii++){
-               meshes[ll].pstate[nn][jj][ii]=0.0;
+         for(int jj=0; jj<lev_jregsize[ll]; jj++){
+            for(int ii=0; ii<lev_iregsize[ll]; ii++){
+               meshes[ll].pstate[nn][jj][ii]=-1.0;
             }
          }
       }
-      for(int jj=0; jj<jjmax; jj++){
-         for(int ii=0; ii<iimax; ii++){
+      for(int jj=0; jj<lev_jregsize[ll]; jj++){
+         for(int ii=0; ii<lev_iregsize[ll]; ii++){
             meshes[ll].mask[jj][ii]=0;
          }
       }
-      iimax *= 2;
-      jjmax *= 2;
    }
 
    int ivar = 0;
@@ -11690,14 +11695,50 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
        double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
        for (int ic=0; ic < ncells; ic++){
-          meshes[level[ic]].pstate[ivar][j[ic]][i[ic]]=mem_ptr_double[ic];
-          meshes[level[ic]].mask[j[ic]][i[ic]] = 1;
+          int ll = level[ic];
+          //printf("Setting cell %d level %d i %d j %d value %lf\n",ic,level[ic],i[ic],j[ic],mem_ptr_double[ic]);
+          meshes[level[ic]].pstate[ivar][j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]]=mem_ptr_double[ic];
+          meshes[level[ic]].mask[j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]] = 1;
+       }
+
+       if (ivar == 0) {
+          for (int iface = 0; iface < nxface; iface++){
+             printf("1st pass x direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf\n",
+                    iface, xface_i[iface], xface_j[iface], xface_level[iface],
+                    map_xface2cell_lower[iface], map_xface2cell_upper[iface],
+                    mem_ptr_double[map_xface2cell_lower[iface]], mem_ptr_double[map_xface2cell_upper[iface]]
+                    );
+          }
        }
        ivar++;
    }
            
+   for (int ll=0; ll<=levmx; ll++){
+       printf("DEBUG regular mesh level %d\n",ll);
+       for(int jj=0; jj<lev_jregsize[ll]; jj++){
+           for(int ii=0; ii<lev_iregsize[ll]; ii++){
+               //printf("   %lf %lf %lf    ",meshes[ll].pstate[0][jj][ii],meshes[ll].pstate[1][jj][ii],meshes[ll].pstate[2][jj][ii]);
+               printf("  %d  ",meshes[ll].mask[jj][ii]);
+           }
+           printf("\n");
+       }
+       printf("\n");
+       for(int jj=0; jj<lev_jregsize[ll]; jj++){
+           for(int ii=0; ii<lev_iregsize[ll]; ii++){
+               //printf("   %lf %lf %lf    ",meshes[ll].pstate[0][jj][ii],meshes[ll].pstate[1][jj][ii],meshes[ll].pstate[2][jj][ii]);
+               if (meshes[ll].pstate[0][jj][ii] != -1.0){
+                  printf("  %lf  ",meshes[ll].pstate[0][jj][ii]);
+               } else {
+                  printf("             ");
+               }
+           }
+           printf("\n");
+       }
+       printf("\n");
+   }
 
    printf("DEBUG -- nvar %d jmax %d jmin %d imax %d imin %d\n",nvar,jmax,jmin,imax,imin);
+
 }
 
 void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
