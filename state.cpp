@@ -4116,9 +4116,10 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 #endif
 
 
-   int iimax = mesh->imax+1;
-   int jjmax = mesh->jmax+1;
    for (int ll=0; ll<=mesh->levmx; ll++){
+      int iimax = mesh->lev_iregsize[ll];
+      int jjmax = mesh->lev_jregsize[ll];
+
       state_t **H_reg = H_reg_lev[ll];
       state_t **U_reg = U_reg_lev[ll];
       state_t **V_reg = V_reg_lev[ll];
@@ -4254,8 +4255,6 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 #endif
          } // ii
       } // jj 
-      iimax *= 2; 
-      jjmax *= 2; 
    } // ll
 
 

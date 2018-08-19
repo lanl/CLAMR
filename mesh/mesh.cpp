@@ -11660,8 +11660,55 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
       lev_jregmin[ll] = lev_jbegin[ll]-2;
       lev_iregsize[ll] = lev_iend[ll]-lev_ibegin[ll]+5;
       lev_jregsize[ll] = lev_jend[ll]-lev_jbegin[ll]+5;
+      //printf("DEBUG -- lev_iregmin %d lev_iregsize %d lev_jregmin %d lev_jregsize %d\n",
+      //        lev_iregmin[ll],lev_iregsize[ll],lev_jregmin[ll],lev_jregsize[ll]);
+
+      int col[lev_iregsize[ll]];
+      for(int ii=0; ii<lev_iregsize[ll]; ii++){
+         col[ii] = 0;
+      }
+      int row[lev_jregsize[ll]];
+      for(int jj=0; jj<lev_jregsize[ll]; jj++){
+         row[jj] = 0;
+      }
+      for (int ic=0; ic < ncells; ic++){
+         //printf("Setting cell %d level %d i %d j %d value %lf\n",ic,level[ic],i[ic],j[ic],mem_ptr_double[ic]);
+         if (level[ic] == ll) {
+            col[i[ic]-lev_iregmin[ll]] = 1;
+            row[j[ic]-lev_jregmin[ll]] = 1;
+         }
+      }
+
+      int trimleft=0;
+      for(int ii=2; ii<lev_iregsize[ll]; ii++){
+         if (col[ii] == 1) break;
+         trimleft++;
+      }
+      int trimright=0;
+      for(int ii=lev_iregsize[ll]-3; ii >= 0; ii--){
+         if (col[ii] == 1) break;
+         trimright++;
+      }
+      int trimbottom=0;
+      for(int jj=2; jj<lev_jregsize[ll]; jj++){
+         if (row[jj] == 1) break;
+         trimbottom++;
+      }
+      int trimtop=0;
+      for(int jj=lev_iregsize[ll]-3; jj >= 0; jj--){
+         if (row[jj] == 1) break;
+         trimtop++;
+      }
+      //printf("DEBUG -- trimleft %d trimright %d trimbottom %d trimtop %d\n",trimleft,trimright,trimbottom,trimtop);
+
+      lev_iregmin[ll] += trimleft;
+      lev_jregmin[ll] += trimbottom;
+      lev_iregsize[ll] -= (trimleft+trimright);
+      lev_jregsize[ll] -= (trimbottom+trimtop);
+
       printf("DEBUG -- lev_iregmin %d lev_iregsize %d lev_jregmin %d lev_jregsize %d\n",
               lev_iregmin[ll],lev_iregsize[ll],lev_jregmin[ll],lev_jregsize[ll]);
+
 #ifdef FULL_PRECISION
       meshes[ll].pstate = (double ***)gentrimatrix(nvar+1,lev_jregsize[ll],lev_iregsize[ll],sizeof(double));
 #else
@@ -11757,7 +11804,8 @@ void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
        double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
        for (int ic=0; ic < ncells; ic++){
-          mem_ptr_double[ic]=meshes[level[ic]].pstate[ivar][j[ic]][i[ic]];
+          int ll = level[ic];
+          mem_ptr_double[ic]=meshes[level[ic]].pstate[ivar][j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]];
        }
 
        ivar++;
