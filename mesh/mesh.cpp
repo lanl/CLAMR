@@ -11791,7 +11791,7 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
 void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
 {
    for (int ll=0; ll<=levmx; ll++){
-       printf("DEBUG regular mesh level %d\n",ll);
+       printf("DEBUG just before destroy in mesh regular mesh level %d\n",ll);
        for(int jj=0; jj<lev_jregsize[ll]; jj++){
            for(int ii=0; ii<lev_iregsize[ll]; ii++){
                //printf("   %lf %lf %lf    ",meshes[ll].pstate[0][jj][ii],meshes[ll].pstate[1][jj][ii],meshes[ll].pstate[2][jj][ii]);

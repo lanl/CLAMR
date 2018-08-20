@@ -4108,11 +4108,12 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 #endif
    mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
    mesh->generate_regular_cell_meshes(state_memory);
-   H_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
-   U_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
-   V_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
-   mask_reg_lev = (int ***)malloc(mesh->levmx*sizeof(int **));
+   H_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+   U_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+   V_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+   mask_reg_lev = (int ***)malloc((mesh->levmx+1)*sizeof(int **));
    for (int lev = 0; lev <= mesh->levmx; lev++){
+       printf("DEBUG -- lev is %d\n",lev);
        state_t ***pstate = mesh->meshes[lev].pstate;
        H_reg_lev[lev] = pstate[0];
        U_reg_lev[lev] = pstate[1];
@@ -4162,15 +4163,23 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 
       int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
 
-      state_t **H_reg_new = (state_t **)genmatrix((jjmax-1), (iimax-1), sizeof(state_t));
-      state_t **U_reg_new = (state_t **)genmatrix((jjmax-1), (iimax-1), sizeof(state_t));
-      state_t **V_reg_new = (state_t **)genmatrix((jjmax-1), (iimax-1), sizeof(state_t));
+      state_t **H_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
+      state_t **U_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
+      state_t **V_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
 
       real_t Cx = deltaT/dx;
       real_t Cy = deltaT/dy;
       real_t duminus1, duminus2, duplus1, duplus2, duhalf1, duhalf2;
       real_t rdenom, rnumplus, rnumminus, rplus, rminus, q, nu, cv;
       real_t wminusx, wplusx, wminusy, wplusy;
+
+      for(int jj=0; jj<mesh->lev_jregsize[ll]; jj++){
+          for(int ii=0; ii<mesh->lev_iregsize[ll]; ii++){
+              H_reg_new[jj][ii] = 0.0;
+              U_reg_new[jj][ii] = 0.0;
+              V_reg_new[jj][ii] = 0.0;
+          }
+      }
 
       for(int jj=2; jj<jjmax-2; jj++){
          for(int ii=2; ii<iimax-2; ii++){
@@ -4260,12 +4269,34 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
          } // ii
       } // jj 
 
-      genmatrixfree((void **)Hx);
-      genmatrixfree((void **)Ux);
-      genmatrixfree((void **)Vx);
-      genmatrixfree((void **)Hy);
-      genmatrixfree((void **)Ux);
-      genmatrixfree((void **)Vy);
+      printf("DEBUG at end of physics kernel regular mesh level %d\n",ll);
+      for(int jj=0; jj<mesh->lev_jregsize[ll]; jj++){
+          for(int ii=0; ii<mesh->lev_iregsize[ll]; ii++){
+              //printf("   %lf %lf %lf    ",meshes[ll].pstate[0][jj][ii],meshes[ll].pstate[1][jj][ii],meshes[ll].pstate[2      ][jj][ii]);
+              printf("  %d  ",mask_reg[jj][ii]);
+          }
+          printf("\n");
+      }
+      printf("\n");
+      for(int jj=0; jj<mesh->lev_jregsize[ll]; jj++){
+          for(int ii=0; ii<mesh->lev_iregsize[ll]; ii++){
+              //printf("   %lf %lf %lf    ",meshes[ll].pstate[0][jj][ii],meshes[ll].pstate[1][jj][ii],meshes[ll].pstate[2      ][jj][ii]);
+              if (H_reg_new[jj][ii] != -1.0){
+                 printf("  %lf %lf  ",H_reg_new[jj][ii],H_reg[jj][ii]);
+              } else {
+                 printf("             ");
+              }
+          }
+          printf("\n");
+      }
+      printf("\n");
+
+//    genmatrixfree((void **)Hx);
+//    genmatrixfree((void **)Ux);
+//    genmatrixfree((void **)Vx);
+//    genmatrixfree((void **)Hy);
+//    genmatrixfree((void **)Ux);
+//    genmatrixfree((void **)Vy);
 
       // Replace H_reg with H_reg_new
       state_t ** tmp_reg;
@@ -4273,9 +4304,9 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       SWAP_PTR(U_reg, U_reg_new, tmp_reg);
       SWAP_PTR(V_reg, V_reg_new, tmp_reg);
 
-      genmatrixfree((void **)H_reg_new);
-      genmatrixfree((void **)U_reg_new);
-      genmatrixfree((void **)V_reg_new);
+      //genmatrixfree((void **)H_reg_new);
+      //genmatrixfree((void **)U_reg_new);
+      //genmatrixfree((void **)V_reg_new);
 
    } // ll
 
