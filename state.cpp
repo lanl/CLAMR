@@ -4240,11 +4240,23 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
             wplusy = 0.5*cv*(1.0-q);
 
             H_reg_new[jj][ii] = H_reg[jj][ii] - Cx*(HNEWXRGFLUXMINUS - HNEWXRGFLUXPLUS)
-                                              - Cy*(HNEWYRGFLUXMINUS - HNEWYRGFLUXPLUS);
+                                                 -wminusx*(H_reg[jj][ii]-H_reg[jj][ii-1])
+                                                 +wplusx*(H_reg[jj][ii+1]-H_reg[jj][ii])
+                                              - Cy*(HNEWYRGFLUXMINUS - HNEWYRGFLUXPLUS),
+                                                 -wminusy*(H_reg[jj][ii]-H_reg[jj-1][ii])
+                                                 +wplusy*(H_reg[jj+1][ii]-H_reg[jj][ii]);
             U_reg_new[jj][ii] = U_reg[jj][ii] - Cx*(UNEWXRGFLUXMINUS - UNEWXRGFLUXPLUS)
-                                              - Cy*(UNEWYRGFLUXMINUS - UNEWYRGFLUXPLUS);
+                                                 -wminusx*(U_reg[jj][ii]-U_reg[jj][ii-1])
+                                                 +wplusx*(U_reg[jj][ii+1]-U_reg[jj][ii])
+                                              - Cy*(UNEWYRGFLUXMINUS - UNEWYRGFLUXPLUS),
+                                                 -wminusy*(U_reg[jj][ii]-U_reg[jj-1][ii])
+                                                 +wplusy*(U_reg[jj+1][ii]-U_reg[jj][ii]);
             V_reg_new[jj][ii] = V_reg[jj][ii] - Cx*(VNEWXRGFLUXMINUS - VNEWXRGFLUXPLUS)
-                                              - Cy*(VNEWYRGFLUXMINUS - VNEWYRGFLUXPLUS);
+                                                 -wminusx*(V_reg[jj][ii]-V_reg[jj][ii-1])
+                                                 +wplusx*(V_reg[jj][ii+1]-V_reg[jj][ii])
+                                              - Cy*(VNEWYRGFLUXMINUS - VNEWYRGFLUXPLUS),
+                                                 -wminusy*(V_reg[j][i]-V_reg[j-1][i])
+                                                 +wplusy*(V_reg[j+1][i]-V_reg[j][i]);
          } // ii
       } // jj 
 
