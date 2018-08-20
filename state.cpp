@@ -3814,6 +3814,19 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #define VYRGFLUXNB  ( SQ(V_reg[jj-1][ii])/H_reg[jj-1][ii] + ghalf*SQ(H_reg[jj-1][ii]) )
 #define VYRGFLUXNT  ( SQ(V_reg[jj+1][ii])/H_reg[jj+1][ii] + ghalf*SQ(H_reg[jj+1][ii]) )
 
+#define HNEWXRGFLUXMINUS  ( Ux[jj][ii-1] )
+#define HNEWXRGFLUXPLUS   ( Ux[jj][ii] )
+#define UNEWXRGFLUXMINUS  ( SQ(Ux[jj][ii-1])/Hx[jj][ii-1] + ghalf*SQ(Hx[jj][ii-1]) )
+#define UNEWXRGFLUXPLUS   ( SQ(Ux[jj][ii])  /Hx[jj][ii]   + ghalf*SQ(Hx[jj][ii]) )
+#define VNEWXRGFLUXMINUS  ( Ux[jj][ii-1]*Vx[jj][ii-1]/Hx[jj][ii-1] )
+#define VNEWXRGFLUXPLUS   ( Ux[jj][ii]  *Vx[jj][ii]  /Hx[jj][ii] )
+
+#define HNEWYRGFLUXMINUS  ( Vy[jj-1][ii] )
+#define HNEWYRGFLUXPLUS   ( Vy[jj][ii] )
+#define UNEWYRGFLUXMINUS  ( Vy[jj-1][ii]*Uy[jj-1][ii]/Hy[jj-1][ii] )
+#define UNEWYRGFLUXPLUS   ( Vy[jj][ii]  *Uy[jj][ii]  /Hy[jj][ii] )
+#define VNEWYRGFLUXMINUS  ( SQ(Vy[jj-1][ii])/Hy[jj-1][ii] + ghalf*SQ(Hy[jj-1][ii]) )
+#define VNEWYRGFLUXPLUS   ( SQ(Vy[jj][ii])  /Hy[jj][ii]   + ghalf*SQ(Hy[jj][ii]) )
 
 void State::calc_finite_difference_regular_cells(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
@@ -4122,14 +4135,15 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       state_t **V_reg = V_reg_lev[ll];
       int **mask_reg = mask_reg_lev[ll];
       state_t dx = lev_deltax[ll];
+      state_t dy = lev_deltax[ll];
       double **Hx = (double **)genmatrix(jjmax-1, iimax-1, sizeof(double));
       double **Ux = (double **)genmatrix(jjmax-1, iimax-1, sizeof(double));
       double **Vx = (double **)genmatrix(jjmax-1, iimax-1, sizeof(double));
       double **Hy = (double **)genmatrix(jjmax-1, iimax-1, sizeof(double));
       double **Uy = (double **)genmatrix(jjmax-1, iimax-1, sizeof(double));
       double **Vy = (double **)genmatrix(jjmax-1, iimax-1, sizeof(double));
-      for(int jj=0; jj<jjmax-1; jj++){
-         for(int ii=0; ii<iimax-1; ii++){
+      for(int jj=1; jj<jjmax-2; jj++){
+         for(int ii=1; ii<iimax-2; ii++){
             printf("DEBUG -- ll %d jj %d ii %d H %lf U %lf V %lf mask %d\n",
                ll,jj,ii,H_reg[jj][ii],U_reg[jj][ii],V_reg[jj][ii],mask_reg[jj][ii]);
             if (mask_reg[jj][ii] == 1 || mask_reg[jj][ii+1] == 1){
@@ -4139,11 +4153,24 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
             }
 
             if (mask_reg[jj][ii] == 1 || mask_reg[jj+1][ii] == 1){
-               Hy[jj][ii] = HALF*( ((H_reg[jj][ii]) + (H_reg[jj+1][ii])) - (deltaT)/(dx)*((HYRGFLUXIC) - (HYRGFLUXNT)) );
-               Uy[jj][ii] = HALF*( ((U_reg[jj][ii]) + (U_reg[jj+1][ii])) - (deltaT)/(dx)*((UYRGFLUXIC) - (UYRGFLUXNT)) );
-               Vy[jj][ii] = HALF*( ((V_reg[jj][ii]) + (V_reg[jj+1][ii])) - (deltaT)/(dx)*((VYRGFLUXIC) - (VYRGFLUXNT)) );
+               Hy[jj][ii] = HALF*( ((H_reg[jj][ii]) + (H_reg[jj+1][ii])) - (deltaT)/(dy)*((HYRGFLUXIC) - (HYRGFLUXNT)) );
+               Uy[jj][ii] = HALF*( ((U_reg[jj][ii]) + (U_reg[jj+1][ii])) - (deltaT)/(dy)*((UYRGFLUXIC) - (UYRGFLUXNT)) );
+               Vy[jj][ii] = HALF*( ((V_reg[jj][ii]) + (V_reg[jj+1][ii])) - (deltaT)/(dy)*((VYRGFLUXIC) - (VYRGFLUXNT)) );
             }
+         }
+      }
 
+      int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
+
+      state_t **H_reg_new = (state_t **)genmatrix((jjmax-1), (iimax-1), sizeof(state_t));
+      state_t **U_reg_new = (state_t **)genmatrix((jjmax-1), (iimax-1), sizeof(state_t));
+      state_t **V_reg_new = (state_t **)genmatrix((jjmax-1), (iimax-1), sizeof(state_t));
+
+      real_t Cx = deltaT/dx;
+      real_t Cy = deltaT/dy;
+
+      for(int jj=2; jj<jjmax-2; jj++){
+         for(int ii=2; ii<iimax-2; ii++){
 #ifdef XXX
             duminus1 = H_reg[j][i-1]-H_reg[j][i-2];
             duminus2 = U_reg[j][i-1]-U_reg[j][i-2];
@@ -4208,28 +4235,34 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
             nu=(fabs(Vy[j-1][i-2])+sqrt(g*Hy[j-1][i-2]))*Cy;
             cv=nu*(1.0-nu);
             wplusy = 0.5*cv*(1.0-q);
-
-            H_reg_new[jj][ii] = H_reg[jj][ii] - Cx*(HRGNEWXFLUXMINUS - HRGNEWXFLUXPLUS)
-                                                 -wminusx*(H[j][i]-H[j][i-1])+wplusx*(H[j][i+1]-H[j][i])
-                                              - Cy*(HRGNEWYFLUXMINUS - HRGNEWYFLUXPLUS)
-                                                 -wminusy*(H[j][i]-H[j-1][i])+wplusy*(H[j+1][i]-H[j][i]);
-            U_reg_new[jj][ii] = U_reg[jj][ii] - Cx*(URGNEWXFLUXMINUS - URGNEWXFLUXPLUS)
-                                                 -wminusx*(U[j][i]-U[j][i-1])+wplusx*(U[j][i+1]-U[j][i])
-                                              - Cy*(URGNEWYFLUXMINUS - URGNEWYFLUXPLUS)
-                                                 -wminusy*(U[j][i]-U[j-1][i])+wplusy*(U[j+1][i]-U[j][i]);
-            V_reg_new[jj][ii] = V_reg[jj][ii] - Cx*(VRGNEWXFLUXMINUS - VRGNEWXFLUXPLUS)
-                                                 -wminusx*(V[j][i]-V[j][i-1])+wplusx*(V[j][i+1]-V[j][i])
-                                              - Cy*(VRGNEWYFLUXMINUS - VRGNEWYFLUXPLUS)
-                                                 -wminusy*(V[j][i]-V[j-1][i])+wplusy*(V[j+1][i]-V[j][i]);
 #endif
+
+            H_reg_new[jj][ii] = H_reg[jj][ii] - Cx*(HNEWXRGFLUXMINUS - HNEWXRGFLUXPLUS)
+                                              - Cy*(HNEWYRGFLUXMINUS - HNEWYRGFLUXPLUS);
+            U_reg_new[jj][ii] = U_reg[jj][ii] - Cx*(UNEWXRGFLUXMINUS - UNEWXRGFLUXPLUS)
+                                              - Cy*(UNEWYRGFLUXMINUS - UNEWYRGFLUXPLUS);
+            V_reg_new[jj][ii] = V_reg[jj][ii] - Cx*(VNEWXRGFLUXMINUS - VNEWXRGFLUXPLUS)
+                                              - Cy*(VNEWYRGFLUXMINUS - VNEWYRGFLUXPLUS);
          } // ii
       } // jj 
+
       genmatrixfree((void **)Hx);
       genmatrixfree((void **)Ux);
       genmatrixfree((void **)Vx);
       genmatrixfree((void **)Hy);
       genmatrixfree((void **)Ux);
       genmatrixfree((void **)Vy);
+
+      // Replace H_reg with H_reg_new
+      state_t ** tmp_reg;
+      SWAP_PTR(H_reg, H_reg_new, tmp_reg);
+      SWAP_PTR(U_reg, U_reg_new, tmp_reg);
+      SWAP_PTR(V_reg, V_reg_new, tmp_reg);
+
+      genmatrixfree((void **)H_reg_new);
+      genmatrixfree((void **)U_reg_new);
+      genmatrixfree((void **)V_reg_new);
+
    } // ll
 
 
