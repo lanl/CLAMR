@@ -4027,6 +4027,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
    mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
    mesh->generate_regular_cell_meshes(state_memory);
    memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
+
    H_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
    U_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
    V_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
