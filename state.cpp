@@ -4255,8 +4255,8 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
                                                  -wminusx*(V_reg[jj][ii]-V_reg[jj][ii-1])
                                                  +wplusx*(V_reg[jj][ii+1]-V_reg[jj][ii])
                                               - Cy*(VNEWYRGFLUXMINUS - VNEWYRGFLUXPLUS),
-                                                 -wminusy*(V_reg[j][i]-V_reg[j-1][i])
-                                                 +wplusy*(V_reg[j+1][i]-V_reg[j][i]);
+                                                 -wminusy*(V_reg[jj][ii]-V_reg[jj-1][ii])
+                                                 +wplusy*(V_reg[jj+1][ii]-V_reg[jj][ii]);
          } // ii
       } // jj 
 
