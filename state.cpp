@@ -3858,10 +3858,116 @@ void State::calc_finite_difference_regular_cells(double deltaT){
    flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
    //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
 
+    //following ~35 lines are to give H, U, V its proper flags back
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+    //state_memory.memory_report();
+    //printf("\n\n\n");
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+//#pragma omp barrier
+   //static state_t *H_tmp, *U_tmp, *V_tmp;
+//#pragma omp master
+   //{
+   //   H_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "H_tmp", flags);
+   //   U_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "U_tmp", flags);
+   //   V_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "V_tmp", flags);
+   //}
+//#pragma omp barrier
+   // int lowlow, upup;
+
+   // mesh->get_bounds(lowlow, upup);
+   // for (lowlow; lowlow < upup; lowlow++) {
+   //     H_tmp[lowlow] = H[lowlow];
+   //     U_tmp[lowlow] = U[lowlow];
+   //     V_tmp[lowlow] = V[lowlow];
+   // }
+#pragma omp barrier
+#pragma omp master
+   {
+      // Set missing memory attributes to be sure they are correct
+      state_memory.set_memory_attribute(H, REZONE_DATA);
+      state_memory.set_memory_attribute(H, LOAD_BALANCE_MEMORY);
+      state_memory.set_memory_attribute(U, REZONE_DATA);
+      state_memory.set_memory_attribute(U, LOAD_BALANCE_MEMORY);
+      state_memory.set_memory_attribute(V, REZONE_DATA);
+      state_memory.set_memory_attribute(V, LOAD_BALANCE_MEMORY);
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+    //state_memory.memory_report();
+    //printf("\n\n\n");
+#endif
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
+   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+   static vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
+   static vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
+   static vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
+   static vector<double> FakeFluxHyM, FakeFluxUyM, FakeFluxVyM;
+   static vector<double> tempWHxP, tempWHxM, tempWUxP, tempWUxM;
+   static vector<double> tempWHyP, tempWHyM, tempWVyP, tempWVyM;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   FakeFluxHxP.resize(ncells, 0);
+   FakeFluxUxP.resize(ncells, 0);
+   FakeFluxVxP.resize(ncells, 0);
+   FakeFluxHyP.resize(ncells, 0);
+   FakeFluxUyP.resize(ncells, 0);
+   FakeFluxVyP.resize(ncells, 0);
+   FakeFluxHxM.resize(ncells, 0);
+   FakeFluxUxM.resize(ncells, 0);
+   FakeFluxVxM.resize(ncells, 0);
+   FakeFluxHyM.resize(ncells, 0);
+   FakeFluxUyM.resize(ncells, 0);
+   FakeFluxVyM.resize(ncells, 0);
+   tempWHxP.resize(ncells, 0);
+   tempWHxM.resize(ncells, 0);
+   tempWUxP.resize(ncells, 0);
+   tempWUxM.resize(ncells, 0);
+   tempWHyP.resize(ncells, 0);
+   tempWHyM.resize(ncells, 0);
+   tempWVyP.resize(ncells, 0);
+   tempWVyM.resize(ncells, 0);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
 #ifdef _OPENMP
 #pragma omp master
 #endif
-   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
+   //mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
    mesh->generate_regular_cell_meshes(state_memory);
    H_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
    U_reg_lev = (state_t ***)malloc(mesh->levmx*sizeof(state_t **));
@@ -3880,7 +3986,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 
    int iimax = mesh->imax+1;
    int jjmax = mesh->jmax+1;
-   for (int ll=0; ll<=mesh->levmx; ll++){
+   for (int ll=mesh->levmx; ll>-1; ll--){
       state_t **H_reg = H_reg_lev[ll];
       state_t **U_reg = U_reg_lev[ll];
       state_t **V_reg = V_reg_lev[ll];
@@ -3892,54 +3998,54 @@ void State::calc_finite_difference_regular_cells(double deltaT){
             real_t Hxminus = 0.0;
             real_t Uxminus = 0.0;
             real_t Vxminus = 0.0;
-            if (mask_reg[jj][ii-1] == 1){ // left neighbor is a part of the mask of our level
-             /*Hxminus = U_reggrid_halfstep(deltaT, dx, H_reg[jj][ii-1], H_reg[jj][ii],
+            //if (mask_reg[jj][ii-1] == 1){ // left neighbor is a part of the mask of our level
+            /*Hxminus = U_reggrid_halfstep(deltaT, dx, H_reg[jj][ii-1], H_reg[jj][ii],
                        HXRGFLUXNL, HXRGFLUXIC);
-             Uxminus = U_reggrid_halfstep(deltaT, dx, U_reg[jj][ii-1], U_reg[jj][ii],
+            Uxminus = U_reggrid_halfstep(deltaT, dx, U_reg[jj][ii-1], U_reg[jj][ii],
                        UXRGFLUXNL, UXRGFLUXIC);
-             Vxminus = V_reggrid_halfstep(deltaT, dx, V_reg[jj][ii-1], V_reg[jj][ii],
+            Vxminus = V_reggrid_halfstep(deltaT, dx, V_reg[jj][ii-1], V_reg[jj][ii],
                        VXRGFLUXNL, VXRGFLUXIC);*/
-            }
-            else {} //get or give fluxes from or to other levels
+            //}
+            //else {} //get or give fluxes from or to other levels
 
             real_t Hxplus = 0.0;
             real_t Uxplus = 0.0;
             real_t Vxplus = 0.0;
-            if (mask_reg[jj][ii+1] == 1){ // right neighbor is a part of the mask of our level
-/*             Hxplus = U_reggrid_halfstep(deltaT, dx, H_reg[jj][ii], H_reg[jj][ii+1],
+            //if (mask_reg[jj][ii+1] == 1){ // right neighbor is a part of the mask of our level
+            /*Hxplus = U_reggrid_halfstep(deltaT, dx, H_reg[jj][ii], H_reg[jj][ii+1],
                        HXRGFLUXIC, HXRGFLUXNR);
-             Uxplus = U_reggrid_halfstep(deltaT, dx, U_reg[jj][ii], U_reg[jj][ii+1],
+            Uxplus = U_reggrid_halfstep(deltaT, dx, U_reg[jj][ii], U_reg[jj][ii+1],
                        UXRGFLUXIC, UXRGFLUXNR);
-             Vxplus = V_reggrid_halfstep(deltaT, dx, V_reg[jj][ii], V_reg[jj][ii+1],
+            Vxplus = V_reggrid_halfstep(deltaT, dx, V_reg[jj][ii], V_reg[jj][ii+1],
                        VXRGFLUXIC, VXRGFLUXNR);*/
-            }
-            else {} //get or give fluxes from or to other levels
+            //}
+            //else {} //get or give fluxes from or to other levels
 
             real_t Hyminus = 0.0;
             real_t Uyminus = 0.0;
             real_t Vyminus = 0.0;
-            if (mask_reg[jj-1][ii] == 1){ // bot neighbor is a part of the mask of our level
-//             Hyminus = U_reggrid_halfstep(deltaT, dy, H_reg[jj-1][ii], H_reg[jj][ii],
-//                       HYRGFLUXNB, HYRGFLUXIC);
-//             Uyminus = U_reggrid_halfstep(deltaT, dy, U_reg[jj-1][ii], U_reg[jj][ii],
-//                       UYRGFLUXNB, UYRGFLUXIC);
-//             Vyminus = V_reggrid_halfstep(deltaT, dy, V_reg[jj-1][ii], V_reg[jj][ii],
-//                       VYRGFLUXNB, VYRGFLUXIC);
-            }
-            else {} //get or give fluxes from or to other levels
+            //if (mask_reg[jj-1][ii] == 1){ // bot neighbor is a part of the mask of our level
+            /*Hyminus = U_reggrid_halfstep(deltaT, dy, H_reg[jj-1][ii], H_reg[jj][ii],
+                       HYRGFLUXNB, HYRGFLUXIC);
+            Uyminus = U_reggrid_halfstep(deltaT, dy, U_reg[jj-1][ii], U_reg[jj][ii],
+                       UYRGFLUXNB, UYRGFLUXIC);
+            Vyminus = V_reggrid_halfstep(deltaT, dy, V_reg[jj-1][ii], V_reg[jj][ii],
+                       VYRGFLUXNB, VYRGFLUXIC);*/
+            //}
+            //else {} //get or give fluxes from or to other levels
 
             real_t Hyplus = 0.0;
             real_t Uyplus = 0.0;
             real_t Vyplus = 0.0;
-            if (mask_reg[jj+1][ii] == 1){ // top neighbor is a part of the mask of our level
-//             Hyplus = U_reggrid_halfstep(deltaT, dy, H_reg[jj][ii], H_reg[jj+1][ii],
-//                       HYRGFLUXIC, HYRGFLUXNU);
-//             Uyplus = U_reggrid_halfstep(deltaT, dy, U_reg[jj][ii], U_reg[jj+1][ii],
-//                       UYRGFLUXIC, UYRGFLUXNU);
-//             Vyplus = V_reggrid_halfstep(deltaT, dy, V_reg[jj][ii], V_reg[jj+1][ii],
-//                       VYRGFLUXIC, VYRGFLUXNU);
-            }
-            else {} //get or give fluxes from or to other levels
+            //if (mask_reg[jj+1][ii] == 1){ // top neighbor is a part of the mask of our level
+    /*        Hyplus = U_reggrid_halfstep(deltaT, dy, H_reg[jj][ii], H_reg[jj+1][ii],
+                       HYRGFLUXIC, HYRGFLUXNU);
+            Uyplus = U_reggrid_halfstep(deltaT, dy, U_reg[jj][ii], U_reg[jj+1][ii],
+                       UYRGFLUXIC, UYRGFLUXNU);
+            Vyplus = V_reggrid_halfstep(deltaT, dy, V_reg[jj][ii], V_reg[jj+1][ii],
+                       VYRGFLUXIC, VYRGFLUXNU);*/
+            //}
+            //else {} //get or give fluxes from or to other levels
 
             //use macros to get the real flux
 
