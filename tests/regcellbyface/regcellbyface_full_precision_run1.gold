@@ -1,0 +1,481 @@
+Mass of initialized cells equal to  124.330174497
+CPU:  setup time               time was	  0.0002	s
+Memory used      in startup 	      4172	kB
+Memory peak      in startup 	      4236	kB
+Memory free      at startup 	   6468944	kB
+Memory available at startup 	   8112352	kB
+Iteration   0 timestep      n/a Sim Time      0.0 cells 56 Mass Sum  124.330174497
+DEBUG -- imin, imax 0 5
+DEBUG -- levmx 2 nvar 2 jmax 5 jmin 0 imax 5 imin 0
+DEBUG -- lev_iregmin -1 lev_iregsize 8 lev_jregmin -1 lev_jregsize 8
+DEBUG -- lev_iregmin 2 lev_iregsize 8 lev_jregmin 2 lev_jregsize 8
+DEBUG -- lev_iregmin 8 lev_iregsize 8 lev_jregmin 8 lev_jregsize 8
+1st pass x direction iface 0 i 1 j 0 lev 0 nzlower 0 nzupper 13 7.000000 7.000000
+1st pass x direction iface 1 i 1 j 1 lev 0 nzlower 1 nzupper 12 7.000000 7.000000
+1st pass x direction iface 2 i 0 j 1 lev 0 nzlower 2 nzupper 1 7.000000 7.000000
+1st pass x direction iface 3 i 0 j 2 lev 0 nzlower 3 nzupper 4 7.000000 7.000000
+1st pass x direction iface 4 i 0 j 0 lev 1 nzlower 56 nzupper 5 7.000000 7.000000
+1st pass x direction iface 5 i 0 j 1 lev 1 nzlower 60 nzupper 6 7.000000 7.000000
+1st pass x direction iface 6 i 1 j 0 lev 1 nzlower 5 nzupper 11 7.000000 7.000000
+1st pass x direction iface 7 i 0 j 0 lev 2 nzlower 62 nzupper 7 7.000000 7.000000
+1st pass x direction iface 8 i 0 j 1 lev 2 nzlower 66 nzupper 8 7.000000 7.000000
+1st pass x direction iface 9 i 1 j 0 lev 2 nzlower 7 nzupper 10 7.000000 7.000000
+1st pass x direction iface 10 i 1 j 1 lev 2 nzlower 8 nzupper 9 7.000000 56.320698
+1st pass x direction iface 11 i 2 j 1 lev 2 nzlower 9 nzupper 27 56.320698 56.320698
+1st pass x direction iface 12 i 2 j 0 lev 2 nzlower 10 nzupper 24 7.000000 7.000000
+1st pass x direction iface 13 i 2 j 0 lev 1 nzlower 11 nzupper 23 7.000000 7.000000
+1st pass x direction iface 14 i 2 j 1 lev 0 nzlower 12 nzupper 15 7.000000 7.000000
+1st pass x direction iface 15 i 2 j 0 lev 0 nzlower 13 nzupper 14 7.000000 7.000000
+1st pass x direction iface 16 i 3 j 0 lev 0 nzlower 14 nzupper 16 7.000000 7.000000
+1st pass x direction iface 17 i 3 j 1 lev 0 nzlower 15 nzupper 18 7.000000 7.000000
+1st pass x direction iface 18 i 4 j 1 lev 0 nzlower 18 nzupper 17 7.000000 7.000000
+1st pass x direction iface 19 i 4 j 2 lev 0 nzlower 20 nzupper 19 7.000000 7.000000
+1st pass x direction iface 20 i 4 j 1 lev 1 nzlower 21 nzupper 68 7.000000 7.000000
+1st pass x direction iface 21 i 4 j 0 lev 1 nzlower 22 nzupper 72 7.000000 7.000000
+1st pass x direction iface 22 i 3 j 0 lev 1 nzlower 23 nzupper 22 7.000000 7.000000
+1st pass x direction iface 23 i 3 j 0 lev 2 nzlower 24 nzupper 25 7.000000 7.000000
+1st pass x direction iface 24 i 4 j 0 lev 2 nzlower 25 nzupper 76 7.000000 7.000000
+1st pass x direction iface 25 i 4 j 1 lev 2 nzlower 26 nzupper 78 7.000000 7.000000
+1st pass x direction iface 26 i 3 j 1 lev 2 nzlower 27 nzupper 26 56.320698 7.000000
+1st pass x direction iface 27 i 3 j 2 lev 2 nzlower 28 nzupper 29 56.320698 7.000000
+1st pass x direction iface 28 i 4 j 2 lev 2 nzlower 29 nzupper 82 7.000000 7.000000
+1st pass x direction iface 29 i 4 j 3 lev 2 nzlower 30 nzupper 84 7.000000 7.000000
+1st pass x direction iface 30 i 3 j 3 lev 2 nzlower 31 nzupper 30 7.000000 7.000000
+1st pass x direction iface 31 i 3 j 3 lev 1 nzlower 32 nzupper 33 7.000000 7.000000
+1st pass x direction iface 32 i 4 j 3 lev 1 nzlower 33 nzupper 86 7.000000 7.000000
+1st pass x direction iface 33 i 4 j 2 lev 1 nzlower 34 nzupper 90 7.000000 7.000000
+1st pass x direction iface 34 i 4 j 3 lev 0 nzlower 35 nzupper 36 7.000000 7.000000
+1st pass x direction iface 35 i 4 j 4 lev 0 nzlower 37 nzupper 38 7.000000 7.000000
+1st pass x direction iface 36 i 3 j 4 lev 0 nzlower 40 nzupper 37 7.000000 7.000000
+1st pass x direction iface 37 i 3 j 5 lev 0 nzlower 41 nzupper 39 7.000000 7.000000
+1st pass x direction iface 38 i 2 j 5 lev 0 nzlower 42 nzupper 41 7.000000 7.000000
+1st pass x direction iface 39 i 2 j 4 lev 0 nzlower 43 nzupper 40 7.000000 7.000000
+1st pass x direction iface 40 i 2 j 3 lev 1 nzlower 44 nzupper 32 7.000000 7.000000
+1st pass x direction iface 41 i 2 j 3 lev 2 nzlower 45 nzupper 31 7.000000 7.000000
+1st pass x direction iface 42 i 2 j 2 lev 2 nzlower 46 nzupper 28 56.320698 56.320698
+1st pass x direction iface 43 i 1 j 2 lev 2 nzlower 47 nzupper 46 7.000000 56.320698
+1st pass x direction iface 44 i 1 j 3 lev 2 nzlower 48 nzupper 45 7.000000 7.000000
+1st pass x direction iface 45 i 0 j 2 lev 2 nzlower 92 nzupper 47 7.000000 7.000000
+1st pass x direction iface 46 i 0 j 3 lev 2 nzlower 96 nzupper 48 7.000000 7.000000
+1st pass x direction iface 47 i 1 j 3 lev 1 nzlower 50 nzupper 44 7.000000 7.000000
+1st pass x direction iface 48 i 0 j 2 lev 1 nzlower 98 nzupper 49 7.000000 7.000000
+1st pass x direction iface 49 i 0 j 3 lev 1 nzlower 102 nzupper 50 7.000000 7.000000
+1st pass x direction iface 50 i 0 j 3 lev 0 nzlower 52 nzupper 51 7.000000 7.000000
+1st pass x direction iface 51 i 0 j 4 lev 0 nzlower 53 nzupper 54 7.000000 7.000000
+1st pass x direction iface 52 i 1 j 4 lev 0 nzlower 54 nzupper 43 7.000000 7.000000
+1st pass x direction iface 53 i 1 j 5 lev 0 nzlower 55 nzupper 42 7.000000 7.000000
+DEBUG regular mesh level 0
+  0    0    0    0    0    0    0    0  
+  0    0    1    1    1    1    0    0  
+  0    1    1    1    1    1    1    0  
+  0    1    1    0    0    1    1    0  
+  0    1    1    0    0    1    1    0  
+  0    1    1    1    1    1    1    0  
+  0    0    1    1    1    1    0    0  
+  0    0    0    0    0    0    0    0  
+
+                                                                                                        
+                            7.000000    7.000000    7.000000    7.000000                            
+               7.000000    7.000000    7.000000    7.000000    7.000000    7.000000               
+               7.000000    7.000000                              7.000000    7.000000               
+               7.000000    7.000000                              7.000000    7.000000               
+               7.000000    7.000000    7.000000    7.000000    7.000000    7.000000               
+                            7.000000    7.000000    7.000000    7.000000                            
+                                                                                                        
+
+DEBUG regular mesh level 1
+  0    0    0    0    0    0    0    0  
+  0    0    0    0    0    0    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    1    0    0    1    0    0  
+  0    0    1    0    0    1    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    0    0    0    0    0    0  
+  0    0    0    0    0    0    0    0  
+
+                                                                                                        
+                                                                                                        
+                            7.000000    7.000000    7.000000    7.000000                            
+                            7.000000                              7.000000                            
+                            7.000000                              7.000000                            
+                            7.000000    7.000000    7.000000    7.000000                            
+                                                                                                        
+                                                                                                        
+
+DEBUG regular mesh level 2
+  0    0    0    0    0    0    0    0  
+  0    0    0    0    0    0    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    0    0    0    0    0    0  
+  0    0    0    0    0    0    0    0  
+
+                                                                                                        
+                                                                                                        
+                            7.000000    7.000000    7.000000    7.000000                            
+                            7.000000    56.320698    56.320698    7.000000                            
+                            7.000000    56.320698    56.320698    7.000000                            
+                            7.000000    7.000000    7.000000    7.000000                            
+                                                                                                        
+                                                                                                        
+
+DEBUG -- nvar 2 jmax 5 jmin 0 imax 5 imin 0
+DEBUG -- ll 0 jj 1 ii 1 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 0 jj 1 ii 2 H 7.000000 U 0.000000 V -0.000000 mask 1
+DEBUG -- ll 0 jj 1 ii 3 H 7.000000 U 0.000000 V -0.000000 mask 1
+DEBUG -- ll 0 jj 1 ii 4 H 7.000000 U 0.000000 V -0.000000 mask 1
+DEBUG -- ll 0 jj 1 ii 5 H 7.000000 U 0.000000 V -0.000000 mask 1
+DEBUG -- ll 0 jj 2 ii 1 H 7.000000 U -0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 2 ii 2 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 2 ii 3 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 2 ii 4 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 2 ii 5 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 3 ii 1 H 7.000000 U -0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 3 ii 2 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 3 ii 3 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 0 jj 3 ii 4 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 0 jj 3 ii 5 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 4 ii 1 H 7.000000 U -0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 4 ii 2 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 4 ii 3 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 0 jj 4 ii 4 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 0 jj 4 ii 5 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 5 ii 1 H 7.000000 U -0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 5 ii 2 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 5 ii 3 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 5 ii 4 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 0 jj 5 ii 5 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG at end of physics kernel regular mesh level 0
+  0    0    0    0    0    0    0    0  
+  0    0    1    1    1    1    0    0  
+  0    1    1    1    1    1    1    0  
+  0    1    1    0    0    1    1    0  
+  0    1    1    0    0    1    1    0  
+  0    1    1    1    1    1    1    0  
+  0    0    1    1    1    1    0    0  
+  0    0    0    0    0    0    0    0  
+
+  0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    0.000000 7.000000    0.000000 7.000000    0.000000 7.000000    0.000000 7.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 7.000000    7.000000 7.000000    6.996995 7.000000    6.996995 7.000000    7.000000 7.000000    0.000000 7.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 7.000000    6.885937 7.000000    0.000000 -1.000000    0.000000 -1.000000    6.839062 7.000000    0.000000 7.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 7.000000    6.834007 7.000000    0.000000 -1.000000    0.000000 -1.000000    6.839062 7.000000    0.000000 7.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 7.000000    7.000000 7.000000    6.996995 7.000000    6.996995 7.000000    7.000000 7.000000    0.000000 7.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    0.000000 7.000000    0.000000 7.000000    0.000000 7.000000    0.000000 7.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000  
+
+DEBUG -- ll 1 jj 1 ii 1 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 1 ii 2 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 1 ii 3 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 1 ii 4 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 1 ii 5 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 2 ii 1 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 2 ii 2 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 1 jj 2 ii 3 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 1 jj 2 ii 4 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 1 jj 2 ii 5 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 1 jj 3 ii 1 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 3 ii 2 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 1 jj 3 ii 3 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 3 ii 4 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 3 ii 5 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 1 jj 4 ii 1 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 4 ii 2 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 1 jj 4 ii 3 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 4 ii 4 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 4 ii 5 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 1 jj 5 ii 1 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 1 jj 5 ii 2 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 1 jj 5 ii 3 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 1 jj 5 ii 4 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 1 jj 5 ii 5 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG at end of physics kernel regular mesh level 1
+  0    0    0    0    0    0    0    0  
+  0    0    0    0    0    0    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    1    0    0    1    0    0  
+  0    0    1    0    0    1    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    0    0    0    0    0    0  
+  0    0    0    0    0    0    0    0  
+
+  0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    6.980967 7.000000    6.975964 7.000000    6.975964 7.000000    6.970858 7.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    6.975861 7.000000    0.000000 -1.000000    0.000000 -1.000000    6.975861 7.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    6.743676 7.000000    0.000000 -1.000000    0.000000 -1.000000    6.362110 7.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    6.980967 7.000000    6.975964 7.000000    6.975964 7.000000    6.738673 7.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000  
+
+DEBUG -- ll 2 jj 1 ii 1 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 2 jj 1 ii 2 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 2 jj 1 ii 3 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 2 jj 1 ii 4 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 2 jj 1 ii 5 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 2 jj 2 ii 1 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 2 jj 2 ii 2 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 2 ii 3 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 2 ii 4 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 2 ii 5 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 3 ii 1 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 2 jj 3 ii 2 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 3 ii 3 H 56.320698 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 3 ii 4 H 56.320698 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 3 ii 5 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 4 ii 1 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 2 jj 4 ii 2 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 4 ii 3 H 56.320698 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 4 ii 4 H 56.320698 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 4 ii 5 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 5 ii 1 H -1.000000 U -1.000000 V 0.000000 mask 0
+DEBUG -- ll 2 jj 5 ii 2 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 5 ii 3 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 5 ii 4 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG -- ll 2 jj 5 ii 5 H 7.000000 U 0.000000 V 0.000000 mask 1
+DEBUG at end of physics kernel regular mesh level 2
+  0    0    0    0    0    0    0    0  
+  0    0    0    0    0    0    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    0    0    0    0    0    0  
+  0    0    0    0    0    0    0    0  
+
+  0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    6.913759 7.000000    10.079692 7.000000    10.079692 7.000000    6.893541 7.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    10.089597 7.000000    50.065168 56.320698    50.065168 56.320698    10.069378 7.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    13.198827 7.000000    46.955938 56.320698    46.627108 56.320698    12.949772 7.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    6.913759 7.000000    10.079692 7.000000    10.079692 7.000000    41.508231 7.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000  
+  0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000    0.000000 -1.000000  
+
+DEBUG just before destroy in mesh regular mesh level 0
+  0    0    0    0    0    0    0    0  
+  0    0    1    1    1    1    0    0  
+  0    1    1    1    1    1    1    0  
+  0    1    1    0    0    1    1    0  
+  0    1    1    0    0    1    1    0  
+  0    1    1    1    1    1    1    0  
+  0    0    1    1    1    1    0    0  
+  0    0    0    0    0    0    0    0  
+
+  0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000  
+  0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000  
+  0.000000    0.000000    7.000000    6.996995    6.996995    7.000000    0.000000    0.000000  
+  0.000000    0.000000    6.885937    0.000000    0.000000    6.839062    0.000000    0.000000  
+  0.000000    0.000000    6.834007    0.000000    0.000000    6.839062    0.000000    0.000000  
+  0.000000    0.000000    7.000000    6.996995    6.996995    7.000000    0.000000    0.000000  
+  0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000  
+  0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000  
+
+DEBUG just before destroy in mesh regular mesh level 1
+  0    0    0    0    0    0    0    0  
+  0    0    0    0    0    0    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    1    0    0    1    0    0  
+  0    0    1    0    0    1    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    0    0    0    0    0    0  
+  0    0    0    0    0    0    0    0  
+
+  0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000  
+  0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000  
+  0.000000    0.000000    6.980967    6.975964    6.975964    6.970858    0.000000    0.000000  
+  0.000000    0.000000    6.975861    0.000000    0.000000    6.975861    0.000000    0.000000  
+  0.000000    0.000000    6.743676    0.000000    0.000000    6.362110    0.000000    0.000000  
+  0.000000    0.000000    6.980967    6.975964    6.975964    6.738673    0.000000    0.000000  
+  0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000  
+  0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000  
+
+DEBUG just before destroy in mesh regular mesh level 2
+  0    0    0    0    0    0    0    0  
+  0    0    0    0    0    0    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    1    1    1    1    0    0  
+  0    0    0    0    0    0    0    0  
+  0    0    0    0    0    0    0    0  
+
+  0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000  
+  0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000  
+  0.000000    0.000000    6.913759    10.079692    10.079692    6.893541    0.000000    0.000000  
+  0.000000    0.000000    10.089597    50.065168    50.065168    10.069378    0.000000    0.000000  
+  0.000000    0.000000    13.198827    46.955938    46.627108    12.949772    0.000000    0.000000  
+  0.000000    0.000000    6.913759    10.079692    10.079692    41.508231    0.000000    0.000000  
+  0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000  
+  0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000  
+
+DEBUG -- ic 0 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 1 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 7.000000
+DEBUG -- ic 2 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 3 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 4 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 6.885937
+DEBUG -- ic 5 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 6.980967
+DEBUG -- ic 6 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 6.975861
+DEBUG -- ic 7 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 6.913759
+DEBUG -- ic 8 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 10.089597
+DEBUG -- ic 9 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 50.065168
+DEBUG -- ic 10 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 10.079692
+DEBUG -- ic 11 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 6.975964
+DEBUG -- ic 12 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 6.996995
+DEBUG -- ic 13 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 14 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 15 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 6.996995
+DEBUG -- ic 16 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 17 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 18 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 7.000000
+DEBUG -- ic 19 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 20 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 6.839062
+DEBUG -- ic 21 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 6.975861
+DEBUG -- ic 22 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 6.970858
+DEBUG -- ic 23 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 6.975964
+DEBUG -- ic 24 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 10.079692
+DEBUG -- ic 25 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 6.893541
+DEBUG -- ic 26 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 10.069378
+DEBUG -- ic 27 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 50.065168
+DEBUG -- ic 28 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 46.627108
+DEBUG -- ic 29 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 12.949772
+DEBUG -- ic 30 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 41.508231
+DEBUG -- ic 31 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 10.079692
+DEBUG -- ic 32 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 6.975964
+DEBUG -- ic 33 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 6.738673
+DEBUG -- ic 34 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 6.362110
+DEBUG -- ic 35 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 6.839062
+DEBUG -- ic 36 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 37 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 7.000000
+DEBUG -- ic 38 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 39 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 40 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 6.996995
+DEBUG -- ic 41 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 42 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 43 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 6.996995
+DEBUG -- ic 44 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 6.975964
+DEBUG -- ic 45 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 10.079692
+DEBUG -- ic 46 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 46.955938
+DEBUG -- ic 47 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 13.198827
+DEBUG -- ic 48 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 6.913759
+DEBUG -- ic 49 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 6.743676
+DEBUG -- ic 50 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 6.980967
+DEBUG -- ic 51 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 6.834007
+DEBUG -- ic 52 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 53 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 54 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 7.000000
+DEBUG -- ic 55 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 0 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 1 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 2 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 3 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 4 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate -1.002612
+DEBUG -- ic 5 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 1.980282
+DEBUG -- ic 6 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.005061
+DEBUG -- ic 7 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 3.940860
+DEBUG -- ic 8 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 113.666986
+DEBUG -- ic 9 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 199.663892
+DEBUG -- ic 10 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 0.008012
+DEBUG -- ic 11 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.004006
+DEBUG -- ic 12 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000501
+DEBUG -- ic 13 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 14 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 15 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000501
+DEBUG -- ic 16 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 17 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 18 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 19 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 20 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.970253
+DEBUG -- ic 21 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.005061
+DEBUG -- ic 22 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate -1.971215
+DEBUG -- ic 23 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.004006
+DEBUG -- ic 24 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 0.008012
+DEBUG -- ic 25 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate -3.904398
+DEBUG -- ic 26 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate -113.646549
+DEBUG -- ic 27 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate -199.663892
+DEBUG -- ic 28 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate -199.663892
+DEBUG -- ic 29 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate -113.716257
+DEBUG -- ic 30 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 0.422438
+DEBUG -- ic 31 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 0.008012
+DEBUG -- ic 32 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.004006
+DEBUG -- ic 33 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate -2.000238
+DEBUG -- ic 34 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate -0.071658
+DEBUG -- ic 35 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.970253
+DEBUG -- ic 36 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 37 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 38 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 39 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 40 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000501
+DEBUG -- ic 41 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 42 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 43 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000501
+DEBUG -- ic 44 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.004006
+DEBUG -- ic 45 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 0.008012
+DEBUG -- ic 46 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 199.663892
+DEBUG -- ic 47 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 113.666986
+DEBUG -- ic 48 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 3.940860
+DEBUG -- ic 49 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate -0.023962
+DEBUG -- ic 50 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 1.980282
+DEBUG -- ic 51 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate -1.009103
+DEBUG -- ic 52 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 53 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 54 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 55 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 0 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 1 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 2 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 3 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 4 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 5 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 1.976640
+DEBUG -- ic 6 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.000000
+DEBUG -- ic 7 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 3.924704
+DEBUG -- ic 8 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 0.000000
+DEBUG -- ic 9 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 199.663892
+DEBUG -- ic 10 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 113.658842
+DEBUG -- ic 11 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.000000
+DEBUG -- ic 12 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate -0.990106
+DEBUG -- ic 13 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 14 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 15 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate -0.990106
+DEBUG -- ic 16 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 17 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 18 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 19 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 20 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 21 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.000000
+DEBUG -- ic 22 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 1.976640
+DEBUG -- ic 23 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.000000
+DEBUG -- ic 24 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 113.658842
+DEBUG -- ic 25 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 3.924704
+DEBUG -- ic 26 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 0.000000
+DEBUG -- ic 27 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 199.663892
+DEBUG -- ic 28 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate -199.663892
+DEBUG -- ic 29 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 0.000000
+DEBUG -- ic 30 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate -3.924704
+DEBUG -- ic 31 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate -113.658842
+DEBUG -- ic 32 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.000000
+DEBUG -- ic 33 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate -1.976640
+DEBUG -- ic 34 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.000000
+DEBUG -- ic 35 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 36 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 37 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 38 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 39 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 40 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.990106
+DEBUG -- ic 41 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 42 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 43 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.990106
+DEBUG -- ic 44 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.000000
+DEBUG -- ic 45 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate -113.658842
+DEBUG -- ic 46 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate -199.663892
+DEBUG -- ic 47 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate 0.000000
+DEBUG -- ic 48 ll 2 lev_iregmin[ll] 8 lev_jregmin[ll] 8 pstate -3.924704
+DEBUG -- ic 49 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate 0.000000
+DEBUG -- ic 50 ll 1 lev_iregmin[ll] 2 lev_jregmin[ll] 2 pstate -1.976640
+DEBUG -- ic 51 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 52 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 53 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 54 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000
+DEBUG -- ic 55 ll 0 lev_iregmin[ll] -1 lev_jregmin[ll] -1 pstate 0.000000

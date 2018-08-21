@@ -4564,7 +4564,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 
       for(int jj=2; jj<jjmax-2; jj++){
          for(int ii=2; ii<iimax-2; ii++){
-            if (mask_reg[jj][ii] == 1) continue;
+            if (mask_reg[jj][ii] != 1) continue;
             duminus1 = H_reg[jj][ii-1]-H_reg[jj][ii-2];
             duminus2 = U_reg[jj][ii-1]-U_reg[jj][ii-2];
             duplus1 = H_reg[jj][ii+1]-H_reg[jj][ii];
