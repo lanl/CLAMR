@@ -4457,6 +4457,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 
    printf("DEBUG line %d\n",__LINE__);
    for (int ll=0; ll<=mesh->levmx; ll++){
+      state_t ***pstate = mesh->meshes[ll].pstate;
       int iimax = mesh->lev_iregsize[ll];
       int jjmax = mesh->lev_jregsize[ll];
       printf("DEBUG lev %d iimax %d jjmax %d\n",ll,iimax,jjmax);
@@ -4621,25 +4622,24 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       }
       printf("\n");
 
-//    genmatrixfree((void **)Hx);
-//    genmatrixfree((void **)Ux);
-//    genmatrixfree((void **)Vx);
-//    genmatrixfree((void **)Hy);
-//    genmatrixfree((void **)Ux);
-//    genmatrixfree((void **)Vy);
+      genmatrixfree((void **)&Hx);
+      genmatrixfree((void **)&Ux);
+      genmatrixfree((void **)&Vx);
+      genmatrixfree((void **)&Hy);
+      genmatrixfree((void **)&Ux);
+      genmatrixfree((void **)&Vy);
 
       // Replace H_reg with H_reg_new
       state_t ** tmp_reg;
-      SWAP_PTR(H_reg, H_reg_new, tmp_reg);
-      SWAP_PTR(U_reg, U_reg_new, tmp_reg);
-      SWAP_PTR(V_reg, V_reg_new, tmp_reg);
+      SWAP_PTR(pstate[0], H_reg_new, tmp_reg);
+      SWAP_PTR(pstate[1], U_reg_new, tmp_reg);
+      SWAP_PTR(pstate[2], V_reg_new, tmp_reg);
 
-      //genmatrixfree((void **)H_reg_new);
-      //genmatrixfree((void **)U_reg_new);
-      //genmatrixfree((void **)V_reg_new);
+      genmatrixfree((void **)&H_reg_new);
+      genmatrixfree((void **)&U_reg_new);
+      genmatrixfree((void **)&V_reg_new);
 
    } // ll
-
 
 #ifdef _OPENMP
 #pragma omp master

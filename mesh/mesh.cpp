@@ -11813,6 +11813,7 @@ void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
        }
        printf("\n");
    }
+
    int ivar = 0;
    malloc_plus_memory_entry *memory_item;
    MallocPlus state_memory_old = state_memory;
@@ -11828,7 +11829,9 @@ void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
 
        for (int ic=0; ic < ncells; ic++){
           int ll = level[ic];
-          mem_ptr_double[ic]=meshes[level[ic]].pstate[ivar][j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]];
+          printf("DEBUG -- ic %d ll %d lev_iregmin[ll] %d lev_jregmin[ll] %d pstate %lf\n",
+                  ic, ll, lev_iregmin[ll], lev_jregmin[ll], meshes[ll].pstate[ivar][j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]]);
+          mem_ptr_double[ic]=meshes[ll].pstate[ivar][j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]];
        }
 
        ivar++;
