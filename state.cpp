@@ -1950,8 +1950,6 @@ void State::calc_finite_difference_in_place(double deltaT){
       real_t Ub      = U[nb];
       real_t Vb      = V[nb];
 
-      printf("%d) %f %f %f %f %f\n", gix, Hic, Hl, Hr, Hb, Ht);
-
       real_t Hll     = H[nll];
       real_t Ull     = U[nll];
 
