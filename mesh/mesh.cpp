@@ -11740,7 +11740,7 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
        meshes[ll].mask[j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]] = 1;
        phantomXFluxRG[regID] = phantomXFlux[ic];
        phantomYFluxRG[regID] = phantomYFlux[ic];
-       printf("%d) adding %d & %d to %d\n", ic, phantomXFlux[ic], phantomYFlux[ic], regID);
+       //printf("%d) adding %d & %d to %d\n", ic, phantomXFlux[ic], phantomYFlux[ic], regID);
    }
 
    int ivar = 0;
@@ -11754,7 +11754,6 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
 
        double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-       printf("\n\n");
        for (int ic=0; ic < ncells_phan; ic++){
           int ll = level[ic];
           /*int nl, nll, nr, nrr, nb, nbb, nt, ntt;
