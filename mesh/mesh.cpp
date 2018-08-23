@@ -10004,7 +10004,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    phantomXFlux.clear();
    phantomXFlux.resize(3*ncells, 99999);
    phantomXFluxRG.clear();
-   phantomXFluxRG.resize((levmx+1)*ncells, 99999);
+   phantomXFluxRG.resize((levmx+1)*ncells*ncells, 99999);
    map_xface2cell_lower.clear();
    map_xface2cell_upper.clear();
    map_xface2cell_lower.resize(3*ncells, -1);
@@ -10106,7 +10106,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    phantomYFlux.clear();
    phantomYFlux.resize(3*ncells, 99999);
    phantomYFluxRG.clear();
-   phantomYFluxRG.resize((levmx+1)*ncells, 99999);
+   phantomYFluxRG.resize((levmx+1)*ncells*ncells, 99999);
    map_yface2cell_lower.clear();
    map_yface2cell_upper.clear();
    map_yface2cell_lower.resize(3*ncells, -1);
@@ -11733,10 +11733,11 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
    }
 
    //do the mask first & temp vector for averaging
-   vector<vector<int>> avgCnt(3*ncells, vector<int>(3*ncells, 0));
+   int sizeMaxIJ = lev_jregsize[levmx] * lev_iregsize[levmx];
+   vector<vector<int>> avgCnt((levmx+1)*ncells, vector<int>((levmx+1)*ncells, 0));
    for (int ic = 0; ic < ncells; ic++) {
        int ll = level[ic];
-       int regID = (ncells * ll) + ((j[ic] - lev_jregmin[ll]) * lev_jregsize[ll] + (i[ic] - lev_iregmin[ll]));
+       int regID = (sizeMaxIJ * ll) + ((j[ic] - lev_jregmin[ll]) * lev_jregsize[ll] + (i[ic] - lev_iregmin[ll]));
        meshes[ll].mask[j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]] = 1;
        phantomXFluxRG[regID] = phantomXFlux[ic];
        phantomYFluxRG[regID] = phantomYFlux[ic];

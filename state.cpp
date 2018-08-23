@@ -3977,48 +3977,11 @@ void State::calc_finite_difference_regular_cells(double deltaT){
    static vector<double> tempWUxP, tempWUxM, tempWVyP, tempWVyM;
 
 #ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   FakeFluxHxP.resize((mesh->levmx+1)*ncells, 0);
-   FakeFluxUxP.resize((mesh->levmx+1)*ncells, 0);
-   FakeFluxVxP.resize((mesh->levmx+1)*ncells, 0);
-   FakeFluxHyP.resize((mesh->levmx+1)*ncells, 0);
-   FakeFluxUyP.resize((mesh->levmx+1)*ncells, 0);
-   FakeFluxVyP.resize((mesh->levmx+1)*ncells, 0);
-   FakeFluxHxM.resize((mesh->levmx+1)*ncells, 0);
-   FakeFluxUxM.resize((mesh->levmx+1)*ncells, 0);
-   FakeFluxVxM.resize((mesh->levmx+1)*ncells, 0);
-   FakeFluxHyM.resize((mesh->levmx+1)*ncells, 0);
-   FakeFluxUyM.resize((mesh->levmx+1)*ncells, 0);
-   FakeFluxVyM.resize((mesh->levmx+1)*ncells, 0);
-   //tempWxP.resize((mesh->levmx+1)*ncells, 0);
-   //tempWxM.resize((mesh->levmx+1)*ncells, 0);
-   //tempWyP.resize((mesh->levmx+1)*ncells, 0);
-   //tempWyM.resize((mesh->levmx+1)*ncells, 0);
-   tempWHxP.resize((mesh->levmx+1)*ncells, 0);
-   tempWHxM.resize((mesh->levmx+1)*ncells, 0);
-   tempWHyP.resize((mesh->levmx+1)*ncells, 0);
-   tempWHyM.resize((mesh->levmx+1)*ncells, 0);
-   tempWUxP.resize((mesh->levmx+1)*ncells, 0);
-   tempWUxM.resize((mesh->levmx+1)*ncells, 0);
-   tempWVyP.resize((mesh->levmx+1)*ncells, 0);
-   tempWVyM.resize((mesh->levmx+1)*ncells, 0);
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
 #pragma omp master
 #endif
    mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
-      printf("wbidir\n");
    memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
-      printf("reset\n");
    mesh->generate_regular_cell_meshes(state_memory);
-      printf("gen\n");
    H_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
    U_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
    V_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
@@ -4031,6 +3994,43 @@ void State::calc_finite_difference_regular_cells(double deltaT){
        mask_reg_lev[lev] = mesh->meshes[lev].mask;
    }
 #ifdef _OPENMP
+#pragma omp barrier
+#endif
+
+   //the maximum size for our 1D vectors to map the "larges" i/j coordinate
+   int sizeMaxIJ = mesh->lev_jregsize[mesh->levmx] * mesh->lev_iregsize[mesh->levmx];
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   FakeFluxHxP.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   FakeFluxUxP.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   FakeFluxVxP.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   FakeFluxHyP.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   FakeFluxUyP.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   FakeFluxVyP.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   FakeFluxHxM.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   FakeFluxUxM.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   FakeFluxVxM.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   FakeFluxHyM.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   FakeFluxUyM.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   FakeFluxVyM.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   //tempWxP.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   //tempWxM.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   //tempWyP.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   //tempWyM.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   tempWHxP.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   tempWHxM.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   tempWHyP.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   tempWHyM.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   tempWUxP.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   tempWUxM.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   tempWVyP.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+   tempWVyM.resize((mesh->levmx+1)*sizeMaxIJ, 0);
+#ifdef _OPENMP
+   }
 #pragma omp barrier
 #endif
 
@@ -4049,11 +4049,9 @@ void State::calc_finite_difference_regular_cells(double deltaT){
       real_t Cx = deltaT/dx;
       real_t Cy = deltaT/dy;
 
-      printf("state1\n");
       state_t **H_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
       state_t **U_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
       state_t **V_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
-      printf("state2\n");
 
       real_t duminus1, duminus2, duplus1, duplus2, duhalf1, duhalf2;
       real_t rdenom, rnumplus, rnumminus, rplus, rminus, q, nu, cv;
@@ -4268,7 +4266,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 
 
             //mass conservation by flux transfer
-    int gix = (ncells * ll) + (jj * jjmax + ii);
+    int gix = (sizeMaxIJ * ll) + (jj * jjmax + ii);
     if ((FakeFluxHxP[gix] > 0) || (FakeFluxUxP[gix] > 0) || (FakeFluxVxP[gix] > 0)) {
         Hxfluxplus = FakeFluxHxP[gix] * HALF; 
         Uxfluxplus = FakeFluxUxP[gix] * HALF;
@@ -4328,7 +4326,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 
     if ((mesh->phantomXFluxRG[gix] >= 0) && (mesh->phantomXFluxRG[gix] < 99999)) {
         int oldic = mesh->phantomXFluxRG[gix];
-        int recvIdx = (ncells * (ll - 1)) + ((mesh->j[oldic] - mesh->lev_jregmin[ll-1]) * mesh->lev_jregsize[ll-1] + (mesh->i[oldic] - mesh->lev_iregmin[ll-1]));
+        int recvIdx = (sizeMaxIJ * (ll - 1)) + ((mesh->j[oldic] - mesh->lev_jregmin[ll-1]) * mesh->lev_jregsize[ll-1] + (mesh->i[oldic] - mesh->lev_iregmin[ll-1]));
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
@@ -4350,7 +4348,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
     }
     else if (mesh->phantomXFluxRG[gix] < 0) {
         int oldic = abs(mesh->phantomXFluxRG[gix]);
-        int recvIdx = (ncells * (ll - 1)) + ((mesh->j[oldic] - mesh->lev_jregmin[ll-1]) * mesh->lev_jregsize[ll-1] + (mesh->i[oldic] - mesh->lev_iregmin[ll-1]));
+        int recvIdx = (sizeMaxIJ * (ll - 1)) + ((mesh->j[oldic] - mesh->lev_jregmin[ll-1]) * mesh->lev_jregsize[ll-1] + (mesh->i[oldic] - mesh->lev_iregmin[ll-1]));
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
@@ -4372,7 +4370,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
     }
     if ((mesh->phantomYFluxRG[gix] >= 0) && (mesh->phantomYFluxRG[gix] < 99999)) {
         int oldic = mesh->phantomYFluxRG[gix];
-        int recvIdx = (ncells * (ll - 1)) + ((mesh->j[oldic] - mesh->lev_jregmin[ll-1]) * mesh->lev_jregsize[ll-1] + (mesh->i[oldic] - mesh->lev_iregmin[ll-1]));
+        int recvIdx = (sizeMaxIJ * (ll - 1)) + ((mesh->j[oldic] - mesh->lev_jregmin[ll-1]) * mesh->lev_jregsize[ll-1] + (mesh->i[oldic] - mesh->lev_iregmin[ll-1]));
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
@@ -4394,7 +4392,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
     }
     else if (mesh->phantomYFluxRG[gix] < 0) {
         int oldic = abs(mesh->phantomYFluxRG[gix]);
-        int recvIdx = (ncells * (ll - 1)) + ((mesh->j[oldic] - mesh->lev_jregmin[ll-1]) * mesh->lev_jregsize[ll-1] + (mesh->i[oldic] - mesh->lev_iregmin[ll-1]));
+        int recvIdx = (sizeMaxIJ * (ll - 1)) + ((mesh->j[oldic] - mesh->lev_jregmin[ll-1]) * mesh->lev_jregsize[ll-1] + (mesh->i[oldic] - mesh->lev_iregmin[ll-1]));
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
