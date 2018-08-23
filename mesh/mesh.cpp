@@ -10003,8 +10003,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 {
    phantomXFlux.clear();
    phantomXFlux.resize(3*ncells, 99999);
-   phantomXFlux2.clear();
-   phantomXFlux2.resize(3*ncells, 99999);
+   phantomXFluxRG.clear();
+   phantomXFluxRG.resize((levmx+1)*ncells, 99999);
    map_xface2cell_lower.clear();
    map_xface2cell_upper.clear();
    map_xface2cell_lower.resize(3*ncells, -1);
@@ -10105,8 +10105,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    }
    phantomYFlux.clear();
    phantomYFlux.resize(3*ncells, 99999);
-   phantomYFlux2.clear();
-   phantomYFlux2.resize(3*ncells, 99999);
+   phantomYFluxRG.clear();
+   phantomYFluxRG.resize((levmx+1)*ncells, 99999);
    map_yface2cell_lower.clear();
    map_yface2cell_upper.clear();
    map_yface2cell_lower.resize(3*ncells, -1);
@@ -10994,6 +10994,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
     yface_j.resize(pfaceIdx);
     yface_level.resize(pfaceIdx);
 
+    ncells_phan = pcellIdx;
+
     // resize cell based  arrays (i, j, nlft, nrht, nbot, ntop) 
     // do this based on pcellIdx, as it was continuous w/ x and y faces 
 
@@ -11734,7 +11736,11 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
    vector<vector<int>> avgCnt(3*ncells, vector<int>(3*ncells, 0));
    for (int ic = 0; ic < ncells; ic++) {
        int ll = level[ic];
+       int regID = (ncells * ll) + ((j[ic] - lev_jregmin[ll]) * lev_jregsize[ll] + (i[ic] - lev_iregmin[ll]));
        meshes[ll].mask[j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]] = 1;
+       phantomXFluxRG[regID] = phantomXFlux[ic];
+       phantomYFluxRG[regID] = phantomYFlux[ic];
+       printf("%d) adding %d & %d to %d\n", ic, phantomXFlux[ic], phantomYFlux[ic], regID);
    }
 
    int ivar = 0;
@@ -11748,9 +11754,10 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
 
        double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-       for (int ic=0; ic < ncells; ic++){
+       printf("\n\n");
+       for (int ic=0; ic < ncells_phan; ic++){
           int ll = level[ic];
-          int nl, nll, nr, nrr, nb, nbb, nt, ntt;
+          /*int nl, nll, nr, nrr, nb, nbb, nt, ntt;
           nl = map_xface2cell_lower[map_xcell2face_left1[ic]];
           nll = map_xface2cell_lower[map_xcell2face_left1[nl]];
           nr = map_xface2cell_upper[map_xcell2face_right1[ic]];
@@ -11758,15 +11765,20 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
           nb = map_yface2cell_lower[map_ycell2face_bot1[ic]];
           nbb = map_yface2cell_lower[map_ycell2face_bot1[nb]];
           nt = map_yface2cell_upper[map_ycell2face_top1[ic]];
-          ntt = map_yface2cell_upper[map_ycell2face_top1[nt]];
+          ntt = map_yface2cell_upper[map_ycell2face_top1[nt]];*/
 
           //printf("Setting cell %d level %d i %d j %d value %lf\n",ic,level[ic],i[ic],j[ic],mem_ptr_double[ic]);
-          meshes[ll].pstate[ivar][j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]]=mem_ptr_double[ic];
+          int pjIdx, piIdx;
+          pjIdx = (ncells*ll) + (j[ic] - lev_jregmin[ll]);
+          piIdx = (ncells*ll) + (i[ic] - lev_jregmin[ll]);  
+          meshes[ll].pstate[ivar][j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]] += mem_ptr_double[ic];
+          //printf("%d (%d/%d) added %f\n", ic, pjIdx, piIdx, mem_ptr_double[ic]);
+          avgCnt[pjIdx][piIdx]++;
           
-          if (nb == ic  || nt == ic || nl == ic | nr == ic) continue;
+          //if (nb == ic  || nt == ic || nl == ic | nr == ic) continue;
 
           //add phantom cell values into regular grid
-          int pjIdx, piIdx;
+          /*int pjIdx, piIdx;
           pjIdx = (ncells*ll) + (j[ic] - lev_jregmin[ll]);
           piIdx = (ncells*ll) + (i[ic] - lev_jregmin[ll]);  
           if (meshes[ll].mask[j[ic]-lev_jregmin[ll]][(i[ic]-1)-lev_iregmin[ll]] == 0) { // left
@@ -11798,13 +11810,13 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
               //printf("%d (%d/%d) top added %f to %d/%d\n", ic, pjIdx, piIdx, mem_ptr_double[nt], pjIdx+1, piIdx);
               avgCnt[pjIdx+1][piIdx] ++;
               avgCnt[pjIdx+2][piIdx] ++;
-          } 
+          } */
           
        }
 
-       for (int ic=0; ic < ncells; ic++){
+       for (int ic=0; ic < ncells_phan; ic++){
           int ll = level[ic];
-          int nl, nll, nr, nrr, nb, nbb, nt, ntt;
+          /*int nl, nll, nr, nrr, nb, nbb, nt, ntt;
           nl = map_xface2cell_lower[map_xcell2face_left1[ic]];
           nll = map_xface2cell_lower[map_xcell2face_left1[nl]];
           nr = map_xface2cell_upper[map_xcell2face_right1[ic]];
@@ -11814,13 +11826,17 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
           nt = map_yface2cell_upper[map_ycell2face_top1[ic]];
           ntt = map_yface2cell_upper[map_ycell2face_top1[nt]];
 
-          if (nb == ic  || nt == ic || nl == ic | nr == ic) continue;
+          if (nb == ic  || nt == ic || nl == ic | nr == ic) continue;*/
 
           //add phantom cell values into regular grid
           int pjIdx, piIdx;
           pjIdx = (ncells*ll) + (j[ic] - lev_jregmin[ll]);
           piIdx = (ncells*ll) + (i[ic] - lev_jregmin[ll]);  
-          if (meshes[ll].mask[j[ic]-lev_jregmin[ll]][(i[ic]-1)-lev_iregmin[ll]] == 0) { // left
+          meshes[ll].pstate[ivar][j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]] /= avgCnt[pjIdx][piIdx];
+          //printf("avgCnt[%d][%d] = %d\n", pjIdx, piIdx, avgCnt[pjIdx][piIdx]);
+          avgCnt[pjIdx][piIdx] = 1;
+          /*if (meshes[ll].mask[j[ic]-lev_jregmin[ll]][(i[ic]-1)-lev_iregmin[ll]] == 0) { // left
+              printf("%d %d %d %d\n", pjIdx, piIdx-1, avgCnt[pjIdx][piIdx-1], avgCnt[pjIdx][piIdx-2]);
               meshes[ll].pstate[ivar][j[ic]-lev_jregmin[ll]][(i[ic]-1)-lev_iregmin[ll]] /= avgCnt[pjIdx][piIdx-1];
               meshes[ll].pstate[ivar][j[ic]-lev_jregmin[ll]][(i[ic]-2)-lev_iregmin[ll]] /= avgCnt[pjIdx][piIdx-2];
           } 
@@ -11835,7 +11851,13 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
           if (meshes[ll].mask[(j[ic]+1)-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]] == 0) { // top
               meshes[ll].pstate[ivar][(j[ic]+1)-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]] /= avgCnt[pjIdx+1][piIdx];
               meshes[ll].pstate[ivar][(j[ic]+2)-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]] /= avgCnt[pjIdx+2][piIdx];
-          }
+          }*/
+       }
+
+       for (int jj = 0; jj < 3*ncells; jj++) {
+           for (int ii = 0; ii < 3*ncells; ii++) {
+               avgCnt[jj][ii] = 0;
+           }
        }
 
        if (ivar == 0) {
@@ -11875,7 +11897,7 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
    }
 
    printf("DEBUG -- nvar %d jmax %d jmin %d imax %d imin %d\n",nvar,jmax,jmin,imax,imin);
-    */
+   */ 
 }
 
 void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)

@@ -321,7 +321,8 @@ public:
                   kmax;         //!<  Highest z-index in use.
    size_t         ncells,       //!<  Number of cells in mesh.
                   ncells_global, //!<  Global number of cells for parallel runs
-                  ncells_ghost; //!<  Number of cells in mesh with ghost cells.
+                  ncells_ghost, //!<  Number of cells in mesh with ghost cells.
+                  ncells_phan;  //!< Number of cells including phantoms 
    real_t         xmin,         //!<  Lowest x-coordinate in use.
                   xmax,         //!<  Highest x-coordinate in use.
                   ymin,         //!<  Lowest y-coordinate in use.
@@ -406,9 +407,9 @@ public:
    vector<int> map_xface2cell_lower; // IDs of lower cell (left for xface, bottom for yface)
    vector<int> map_xface2cell_upper; // IDs of upper cell (right for xface, top for yface)
    vector<int> phantomXFlux;
-   vector<int> phantomXFlux2;
+   vector<int> phantomXFluxRG;
    vector<int> phantomYFlux;
-   vector<int> phantomYFlux2;
+   vector<int> phantomYFluxRG;
 
    //Just like for cell neighbors, if the refinement increases across a face
    //this points to the left/bottom cell neighbor

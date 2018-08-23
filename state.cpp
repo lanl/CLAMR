@@ -4000,40 +4000,6 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #pragma omp barrier
 #endif
 
-   /*
-    *
-   static vector<vector<double>> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
-   static vector<vector<double>> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
-   static vector<vector<double>> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
-   static vector<vector<double>> FakeFluxHyM, FakeFluxUyM, FakeFluxVyM;
-   static vector<vector<double>> tempWHxP, tempWHxM, tempWUxP, tempWUxM;
-   static vector<vector<double>> tempWHyP, tempWHyM, tempWVyP, tempWVyM;
-
-   int iimax = mesh->imax+1;
-   int jjmax = mesh->jmax+1;
-
-   FakeFluxHxP.resize(jjmax, vector<double>(iimax, 0));
-   FakeFluxUxP.resize(jjmax, vector<double>(iimax, 0));
-   FakeFluxVxP.resize(jjmax, vector<double>(iimax, 0));
-   FakeFluxHyP.resize(jjmax, vector<double>(iimax, 0));
-   FakeFluxUyP.resize(jjmax, vector<double>(iimax, 0));
-   FakeFluxVyP.resize(jjmax, vector<double>(iimax, 0));
-   FakeFluxHxM.resize(jjmax, vector<double>(iimax, 0));
-   FakeFluxUxM.resize(jjmax, vector<double>(iimax, 0));
-   FakeFluxVxM.resize(jjmax, vector<double>(iimax, 0));
-   FakeFluxHyM.resize(jjmax, vector<double>(iimax, 0));
-   FakeFluxUyM.resize(jjmax, vector<double>(iimax, 0));
-   FakeFluxVyM.resize(jjmax, vector<double>(iimax, 0));
-   tempWHxP.resize(jjmax, vector<double>(iimax, 0));
-   tempWHxM.resize(jjmax, vector<double>(iimax, 0));
-   tempWUxP.resize(jjmax, vector<double>(iimax, 0));
-   tempWUxM.resize(jjmax, vector<double>(iimax, 0));
-   tempWHyP.resize(jjmax, vector<double>(iimax, 0));
-   tempWHyM.resize(jjmax, vector<double>(iimax, 0));
-   tempWVyP.resize(jjmax, vector<double>(iimax, 0));
-   tempWVyM.resize(jjmax, vector<double>(iimax, 0));
-    * */
-
 #ifdef _OPENMP
 #pragma omp master
 #endif
@@ -4088,60 +4054,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
       for(int jj=2; jj<jjmax-2; jj++){
          for(int ii=2; ii<iimax-2; ii++){
             if (mask_reg[jj][ii] != 1) continue;
-            //real_t Hxminus = 0.0;
-            //real_t Uxminus = 0.0;
-            //real_t Vxminus = 0.0;
-            //if (mask_reg[jj][ii-1] == 1){ // left neighbor is a part of the mask of our level
-            /*Hxminus = U_reggrid_halfstep(deltaT, dx, H_reg[jj][ii-1], H_reg[jj][ii],
-                       HXRGFLUXNL, HXRGFLUXIC);
-            Uxminus = U_reggrid_halfstep(deltaT, dx, U_reg[jj][ii-1], U_reg[jj][ii],
-                       UXRGFLUXNL, UXRGFLUXIC);
-            Vxminus = V_reggrid_halfstep(deltaT, dx, V_reg[jj][ii-1], V_reg[jj][ii],
-                       VXRGFLUXNL, VXRGFLUXIC);*/
-            //}
-            //else {} //get or give fluxes from or to other levels
 
-            //real_t Hxplus = 0.0;
-            //real_t Uxplus = 0.0;
-            //real_t Vxplus = 0.0;
-            //if (mask_reg[jj][ii+1] == 1){ // right neighbor is a part of the mask of our level
-            /*Hxplus = U_reggrid_halfstep(deltaT, dx, H_reg[jj][ii], H_reg[jj][ii+1],
-                       HXRGFLUXIC, HXRGFLUXNR);
-            Uxplus = U_reggrid_halfstep(deltaT, dx, U_reg[jj][ii], U_reg[jj][ii+1],
-                       UXRGFLUXIC, UXRGFLUXNR);
-            Vxplus = V_reggrid_halfstep(deltaT, dx, V_reg[jj][ii], V_reg[jj][ii+1],
-                       VXRGFLUXIC, VXRGFLUXNR);*/
-            //}
-            //else {} //get or give fluxes from or to other levels
-
-            //real_t Hyminus = 0.0;
-            //real_t Uyminus = 0.0;
-            //real_t Vyminus = 0.0;
-            //if (mask_reg[jj-1][ii] == 1){ // bot neighbor is a part of the mask of our level
-            /*Hyminus = U_reggrid_halfstep(deltaT, dy, H_reg[jj-1][ii], H_reg[jj][ii],
-                       HYRGFLUXNB, HYRGFLUXIC);
-            Uyminus = U_reggrid_halfstep(deltaT, dy, U_reg[jj-1][ii], U_reg[jj][ii],
-                       UYRGFLUXNB, UYRGFLUXIC);
-            Vyminus = V_reggrid_halfstep(deltaT, dy, V_reg[jj-1][ii], V_reg[jj][ii],
-                       VYRGFLUXNB, VYRGFLUXIC);*/
-            //}
-            //else {} //get or give fluxes from or to other levels
-
-            //real_t Hyplus = 0.0;
-            //real_t Uyplus = 0.0;
-            //real_t Vyplus = 0.0;
-            //if (mask_reg[jj+1][ii] == 1){ // top neighbor is a part of the mask of our level
-    /*        Hyplus = U_reggrid_halfstep(deltaT, dy, H_reg[jj][ii], H_reg[jj+1][ii],
-                       HYRGFLUXIC, HYRGFLUXNU);
-            Uyplus = U_reggrid_halfstep(deltaT, dy, U_reg[jj][ii], U_reg[jj+1][ii],
-                       UYRGFLUXIC, UYRGFLUXNU);
-            Vyplus = V_reggrid_halfstep(deltaT, dy, V_reg[jj][ii], V_reg[jj+1][ii],
-                       VYRGFLUXIC, VYRGFLUXNU);*/
-            //}
-            //else {} //get or give fluxes from or to other levels
-
-            //use macros to get the real flux
-            //if (mask_reg[jj][ii] == 1) continue;
             printf("[%d][%d] %f %f %f %f %f\n", jj, ii, H_reg[jj][ii], H_reg[jj][ii-1], H_reg[jj][ii+1], H_reg[jj-1][ii], H_reg[jj+1][ii]);
 
             real_t Hxminus = HALF*( ((H_reg[jj][ii-1]) + (H_reg[jj][ii])) - (deltaT)/(dx)*((HXRGFLUXNL) - (HXRGFLUXIC)) );
@@ -4244,6 +4157,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
             //mass conservation by flux transfer
     int gix = (ncells * ll) + (jj * jjmax + ii);
     if ((FakeFluxHxP[gix] > 0) || (FakeFluxUxP[gix] > 0) || (FakeFluxVxP[gix] > 0)) {
+        printf("%d received\n", gix);
         Hxfluxplus = FakeFluxHxP[gix] * HALF; 
         Uxfluxplus = FakeFluxUxP[gix] * HALF;
         Vxfluxplus = FakeFluxVxP[gix] * HALF; 
@@ -4284,8 +4198,10 @@ void State::calc_finite_difference_regular_cells(double deltaT){
         tempWyM[gix] = 0.0;
     }
 
-    if ((mesh->phantomXFlux[gix] >= 0) && (mesh->phantomXFlux[gix] < 99999)) {
-        int recvIdx = (ncells * ll) + (jj*jjmax + (ii-1));
+    if ((mesh->phantomXFluxRG[gix] >= 0) && (mesh->phantomXFluxRG[gix] < 99999)) {
+        int oldic = mesh->phantomXFluxRG[gix];
+        int recvIdx = (ncells * (ll - 1)) + ((mesh->j[oldic] - mesh->lev_jregmin[ll-1]) * mesh->lev_jregsize[ll-1] + (mesh->i[oldic] - mesh->lev_iregmin[ll-1]));
+        printf("%d sending to %d\n", gix, recvIdx);
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
@@ -4301,10 +4217,11 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWxP[recvIdx] += wminusx / 4;
+        tempWxP[recvIdx] += wminusx / 8;
     }
-    else if (mesh->phantomXFlux[gix] < 0) {
-        int recvIdx = (ncells * ll) + (jj*jjmax + (ii+1));
+    else if (mesh->phantomXFluxRG[gix] < 0) {
+        int oldic = abs(mesh->phantomXFluxRG[gix]);
+        int recvIdx = (ncells * (ll - 1)) + ((mesh->j[oldic] - mesh->lev_jregmin[ll-1]) * mesh->lev_jregsize[ll-1] + (mesh->i[oldic] - mesh->lev_iregmin[ll-1]));
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
@@ -4320,10 +4237,11 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWxM[recvIdx] += wplusx / 4;
+        tempWxM[recvIdx] += wplusx / 8;
     }
-    if ((mesh->phantomYFlux[gix] >= 0) && (mesh->phantomYFlux[gix] < 99999)) {
-        int recvIdx = (ncells * ll) + ((jj-1)*jjmax + ii);
+    if ((mesh->phantomYFluxRG[gix] >= 0) && (mesh->phantomYFluxRG[gix] < 99999)) {
+        int oldic = mesh->phantomYFluxRG[gix];
+        int recvIdx = (ncells * (ll - 1)) + ((mesh->j[oldic] - mesh->lev_jregmin[ll-1]) * mesh->lev_jregsize[ll-1] + (mesh->i[oldic] - mesh->lev_iregmin[ll-1]));
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
@@ -4339,10 +4257,11 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWyP[recvIdx] += wminusy / 4;
+        tempWyP[recvIdx] += wminusy / 8;
     }
-    else if (mesh->phantomYFlux[gix] < 0) {
-        int recvIdx = (ncells * ll) + ((jj+1)*jjmax + ii);
+    else if (mesh->phantomYFluxRG[gix] < 0) {
+        int oldic = abs(mesh->phantomYFluxRG[gix]);
+        int recvIdx = (ncells * (ll - 1)) + ((mesh->j[oldic] - mesh->lev_jregmin[ll-1]) * mesh->lev_jregsize[ll-1] + (mesh->i[oldic] - mesh->lev_iregmin[ll-1]));
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
@@ -4358,8 +4277,10 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWyM[recvIdx] += wplusy / 4;
+        tempWyM[recvIdx] += wplusy / 8;
     }
+
+    //wplusy = 0.0; wminusy = 0.0; wplusx = 0.0; wminusx = 0.0;
 
             H_reg_new[jj][ii] = H_reg[jj][ii] - Cx*(Hxfluxminus - Hxfluxplus)
                                                  -wminusx*(H_reg[jj][ii]-H_reg[jj][ii-1])
