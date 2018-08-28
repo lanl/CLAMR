@@ -11770,7 +11770,7 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
           //printf("Setting cell %d level %d i %d j %d value %lf\n",ic,level[ic],i[ic],j[ic],mem_ptr_double[ic]);
           int pjIdx, piIdx;
           pjIdx = (ncells*ll) + (j[ic] - lev_jregmin[ll]);
-          piIdx = (ncells*ll) + (i[ic] - lev_jregmin[ll]);  
+          piIdx = (ncells*ll) + (i[ic] - lev_iregmin[ll]);  
           meshes[ll].pstate[ivar][j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]] += mem_ptr_double[ic];
           //printf("%d (%d/%d) added %f\n", ic, pjIdx, piIdx, mem_ptr_double[ic]);
           avgCnt[pjIdx][piIdx]++;
@@ -11831,7 +11831,7 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
           //add phantom cell values into regular grid
           int pjIdx, piIdx;
           pjIdx = (ncells*ll) + (j[ic] - lev_jregmin[ll]);
-          piIdx = (ncells*ll) + (i[ic] - lev_jregmin[ll]);  
+          piIdx = (ncells*ll) + (i[ic] - lev_iregmin[ll]);  
           meshes[ll].pstate[ivar][j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]] /= avgCnt[pjIdx][piIdx];
           //printf("avgCnt[%d][%d] = %d\n", pjIdx, piIdx, avgCnt[pjIdx][piIdx]);
           avgCnt[pjIdx][piIdx] = 1;
