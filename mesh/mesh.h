@@ -353,7 +353,9 @@ public:
                   *nbot,         //!<  1D ordered index of mesh element bottom neighbors.
                   *ntop,         //!<  1D ordered index of mesh element top neighbors.
                   *nfrt,         //!<  1D ordered index of mesh element front neighbors.
-                  *nbak;         //!<  1D ordered index of mesh element back neighbors.
+                  *nbak,         //!<  1D ordered index of mesh element back neighbors.
+                  ***phantomXFluxRG,
+                  ***phantomYFluxRG;
 
    vector<spatial_t> x,          //!<  1D ordered index of mesh element x-coordinates.
                      dx,         //!<  1D ordered index of mesh element x-coordinate spacings.
@@ -407,9 +409,7 @@ public:
    vector<int> map_xface2cell_lower; // IDs of lower cell (left for xface, bottom for yface)
    vector<int> map_xface2cell_upper; // IDs of upper cell (right for xface, top for yface)
    vector<int> phantomXFlux;
-   vector<int> phantomXFluxRG;
    vector<int> phantomYFlux;
-   vector<int> phantomYFluxRG;
 
    //Just like for cell neighbors, if the refinement increases across a face
    //this points to the left/bottom cell neighbor

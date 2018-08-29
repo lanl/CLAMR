@@ -1,0 +1,114 @@
+Mass of initialized cells equal to  124.330174497
+CPU:  setup time               time was	  0.0002	s
+Memory used      in startup 	      3984	kB
+Memory peak      in startup 	      4116	kB
+Memory free      at startup 	  14434856	kB
+Memory available at startup 	 263916396	kB
+Iteration   0 timestep      n/a Sim Time      0.0 cells 56 Mass Sum  124.330174497
+Iteration   1 timestep 0.005055 Sim Time 0.005055 cells 56 Mass Sum  124.330174497 Mass Change            0
+Iteration   2 timestep 0.000537 Sim Time 0.005591 cells 84 Mass Sum  124.330174497 Mass Change            0
+Iteration   3 timestep 0.000896 Sim Time 0.006488 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration   4 timestep 0.001226 Sim Time 0.007713 cells 112 Mass Sum  124.330174497 Mass Change  1.42109e-14
+Iteration   5 timestep 0.001394 Sim Time 0.009107 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration   6 timestep 0.001482 Sim Time 0.010589 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration   7 timestep 0.001561 Sim Time 0.012150 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration   8 timestep 0.001643 Sim Time 0.013793 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration   9 timestep 0.001731 Sim Time 0.015524 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  10 timestep 0.001825 Sim Time 0.017349 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  11 timestep 0.001926 Sim Time 0.019274 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  12 timestep 0.002032 Sim Time 0.021307 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  13 timestep 0.002146 Sim Time 0.023453 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  14 timestep 0.002268 Sim Time 0.025721 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  15 timestep 0.002397 Sim Time 0.028118 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  16 timestep 0.002534 Sim Time 0.030652 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  17 timestep 0.002680 Sim Time 0.033332 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  18 timestep 0.002835 Sim Time 0.036167 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  19 timestep 0.002998 Sim Time 0.039164 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  20 timestep 0.003169 Sim Time 0.042334 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  21 timestep 0.003348 Sim Time 0.045681 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  22 timestep 0.003427 Sim Time 0.049109 cells 112 Mass Sum  124.330174497 Mass Change            0
+Iteration  23 timestep 0.003549 Sim Time 0.052658 cells 124 Mass Sum  124.330174497 Mass Change            0
+Iteration  24 timestep 0.003684 Sim Time 0.056342 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  25 timestep 0.003826 Sim Time 0.060168 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  26 timestep 0.003975 Sim Time 0.064143 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  27 timestep 0.004134 Sim Time 0.068277 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  28 timestep 0.004302 Sim Time 0.072578 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  29 timestep 0.004478 Sim Time 0.077057 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  30 timestep 0.004664 Sim Time 0.081720 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  31 timestep 0.004857 Sim Time 0.086577 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  32 timestep 0.005057 Sim Time 0.091634 cells 136 Mass Sum  124.330174497 Mass Change  1.42109e-14
+Iteration  33 timestep 0.005163 Sim Time 0.096797 cells 136 Mass Sum  124.330174497 Mass Change  1.42109e-14
+Iteration  34 timestep 0.005260 Sim Time 0.102057 cells 136 Mass Sum  124.330174497 Mass Change  1.42109e-14
+Iteration  35 timestep 0.005380 Sim Time 0.107438 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  36 timestep 0.005508 Sim Time 0.112946 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  37 timestep 0.005637 Sim Time 0.118583 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  38 timestep 0.005770 Sim Time 0.124353 cells 148 Mass Sum  124.330174497 Mass Change  1.42109e-14
+Iteration  39 timestep 0.005907 Sim Time 0.130260 cells 148 Mass Sum  124.330174497 Mass Change  1.42109e-14
+Iteration  40 timestep 0.006051 Sim Time 0.136311 cells 148 Mass Sum  124.330174497 Mass Change  1.42109e-14
+Iteration  41 timestep 0.006200 Sim Time 0.142511 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  42 timestep 0.006353 Sim Time 0.148865 cells 148 Mass Sum  124.330174497 Mass Change  1.42109e-14
+Iteration  43 timestep 0.006510 Sim Time 0.155375 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  44 timestep 0.006669 Sim Time 0.162044 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  45 timestep 0.006829 Sim Time 0.168873 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  46 timestep 0.006989 Sim Time 0.175863 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  47 timestep 0.007150 Sim Time 0.183013 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  48 timestep 0.007311 Sim Time 0.190323 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  49 timestep 0.007472 Sim Time 0.197795 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  50 timestep 0.007613 Sim Time 0.205408 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  51 timestep 0.007754 Sim Time 0.213162 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  52 timestep 0.007898 Sim Time 0.221061 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  53 timestep 0.008044 Sim Time 0.229105 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  54 timestep 0.008189 Sim Time 0.237294 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  55 timestep 0.008334 Sim Time 0.245628 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  56 timestep 0.008459 Sim Time 0.254087 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  57 timestep 0.008546 Sim Time 0.262633 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  58 timestep 0.008642 Sim Time 0.271276 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  59 timestep 0.008738 Sim Time 0.280013 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  60 timestep 0.008815 Sim Time 0.288828 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  61 timestep 0.008898 Sim Time 0.297726 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  62 timestep 0.008982 Sim Time 0.306708 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  63 timestep 0.009067 Sim Time 0.315774 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  64 timestep 0.009152 Sim Time 0.324926 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  65 timestep 0.009239 Sim Time 0.334165 cells 148 Mass Sum  124.330174497 Mass Change            0
+Iteration  66 timestep 0.009327 Sim Time 0.343492 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  67 timestep 0.009417 Sim Time 0.352910 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  68 timestep 0.009471 Sim Time 0.362380 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  69 timestep 0.009529 Sim Time 0.371909 cells 136 Mass Sum  124.330174497 Mass Change            0
+Iteration  70 timestep 0.009599 Sim Time 0.381508 cells 136 Mass Sum  124.330174497 Mass Change            0
+Memory used      13352 kB
+Memory peak      13616 kB
+Memory free      14426292 kB
+Memory available 263916396 kB
+
+~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
+CPU: Device compute           time was	  0.0008	s
+CPU:   state_timer_set_timestep      		    0.0001	s
+CPU:   state_timer_finite_difference 		    0.0000	s
+CPU:   state_timer_refine_potential  		    0.0005	s
+CPU:     state_timer_calc_mpot         		      0.0002	s
+CPU:     mesh_timer_refine_smooth      		      0.0002	s
+CPU:   state_timer_rezone_all        		    0.0002	s
+CPU:   mesh_timer_partition          		    0.0000	s
+CPU:   mesh_timer_calc_neighbors     		    0.0001	s
+CPU:     mesh_timer_hash_setup         		      0.0000	s
+CPU:     mesh_timer_hash_query         		      0.0000	s
+CPU:   state_timer_mass_sum          		    0.0000	s
+CPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
+=============================================================
+Profiling: Total CPU          time was	  0.0008	s
+-------------------------------------------------------------
+Mesh Ops (Neigh+rezone+smooth+balance) 	  0.0005	s
+Mesh Ops Percentage                    	 54.3923	percent
+=============================================================
+Profiling: Total              time was	  0.0102	s
+=============================================================
+CPU:  calc incl part meas     time was	  0.0100	s
+CPU:  calculation only        time was	  0.0100	s
+CPU:  partition measure       time was	  0.0000	s
+CPU:  graphics                time was	  0.0000	s
+Using hash tables to calculate neighbors
+hash table size  bytes 9216
+Initial order is Hilbert sort.   No cycle reorder.   Local Stencil is on.
+CPU:  rezone frequency                	   8.5714	percent
+CPU:  calc neigh frequency            	  10.0000	percent
+CPU:  refine_smooth_iter per rezone   	  11.6667	
