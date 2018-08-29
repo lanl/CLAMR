@@ -129,8 +129,10 @@ void genmatrixfree_p(void **var, const char *file, const int line)
    // Just to get rid of warning
    if (1 == 2) printf("Warning file %s line %d\n", file, line);
 
+   //printf("yoyo1\n");
    genmalloc_memory_remove(var[0]);
    genmalloc_memory_remove(var);
+   //printf("yoyo2\n");
 }
 
 void ***gentrimatrix_p(int knum, int jnum, int inum, size_t elsize, const char *file, const int line)
@@ -339,9 +341,13 @@ void genmalloc_memory_remove_p(void *malloc_mem_ptr, const char *file, const int
    if (1 == 2) printf("Warning file %s line %d\n", file, line);
 
    SLIST_FOREACH(genmalloc_memory_item, &genmalloc_memory_head, genmalloc_memory_entries){
+       //printf("%p\n", (void *)genmalloc_memory_item->mem_ptr);
       if (genmalloc_memory_item->mem_ptr == malloc_mem_ptr) {
          if (DEBUG) printf("GENMALLOC_MEMORY_REMOVE: DEBUG -- freeing malloc memory pointer %p called from file %s line %d\n",malloc_mem_ptr,file,line);
+         //printf("Address arg %p address mem_item %p\n", (void *)malloc_mem_ptr, (void *)genmalloc_memory_item->mem_ptr);
+         //printf("ahoy1\n");
          free(malloc_mem_ptr);
+         //printf("ahoy2\n");
          SLIST_REMOVE(&genmalloc_memory_head, genmalloc_memory_item, genmalloc_memory_entry, genmalloc_memory_entries);
          free(genmalloc_memory_item);
          break;
