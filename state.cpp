@@ -2239,7 +2239,6 @@ void State::calc_finite_difference_in_place(double deltaT){
                   - wminusy_V + wplusy_V;
 
       //printf("%d) %f %f %f\n", gix, H_new[gix], U_new[gix], V_new[gix]);
-            printf("%d)  %f %f %f %f\n", gix, Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus);
 #if DEBUG >= 1
       if (DEBUG >= 1) {
          real_t U_tmp = U_new[gix];
@@ -3990,6 +3989,13 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #pragma omp master
    {
 #endif
+   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
+   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
+   mesh->generate_regular_cell_meshes(state_memory);
+   H_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+   U_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+   V_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+   mask_reg_lev = (int ***)malloc((mesh->levmx+1)*sizeof(int **));
 
    FakeFluxHxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
    FakeFluxHxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
@@ -4012,14 +4018,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
    tempWVyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
    tempWVyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
 
-   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
-   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
-   mesh->generate_regular_cell_meshes(state_memory);
-   H_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
-   U_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
-   V_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
-   mask_reg_lev = (int ***)malloc((mesh->levmx+1)*sizeof(int **));
-   for (int lev = 0; lev <= mesh->levmx; lev++){
+   for (int lev = 0; lev < mesh->levmx + 1; lev++){
        state_t ***pstate = mesh->meshes[lev].pstate;
        H_reg_lev[lev] = pstate[0];
        U_reg_lev[lev] = pstate[1];
@@ -4053,9 +4052,6 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #pragma omp barrier
 #endif
 
-   //the maximum size for our 1D vectors to map the "larges" i/j coordinate
-   int sizeMaxIJ = mesh->lev_jregsize[mesh->levmx] * mesh->lev_iregsize[mesh->levmx];
-   //printf("%d %d %d\n", sizeMaxIJ, mesh->lev_jregsize[mesh->levmx], mesh->lev_iregsize[mesh->levmx]);
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -4325,7 +4321,6 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 
 
             //mass conservation by flux transfer
-    int gix = (sizeMaxIJ * ll) + (jj * jjmax + ii);
     if ((FakeFluxHxP[ll][jj][ii] > 0) || (FakeFluxUxP[ll][jj][ii] > 0) || (FakeFluxVxP[ll][jj][ii] > 0)) {
         Hxfluxplus = FakeFluxHxP[ll][jj][ii] * HALF; 
         Uxfluxplus = FakeFluxUxP[ll][jj][ii] * HALF;
@@ -4455,6 +4450,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
     }
     else if (mesh->phantomYFluxRG[ll][jj][ii] < 0) {
         int recvic = abs(mesh->phantomYFluxRG[ll][jj][ii]);
+        //printf("%d %d %d\n", mesh->level[mesh->nbot[recvic]], mesh->level[recvic], mesh->level[mesh->ntop[recvic]]);
         int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
         int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
 #ifdef _OPENMP
@@ -4528,6 +4524,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
       } // jj 
       for(int jj=2; jj<jjmax-2; jj++){
          for(int ii=2; ii<iimax-2; ii++){
+             if (mask_reg[jj][ii] != 1) continue;
              H_reg[jj][ii] = H_reg_new[jj][ii];
              U_reg[jj][ii] = U_reg_new[jj][ii];
              V_reg[jj][ii] = V_reg_new[jj][ii];
