@@ -2496,7 +2496,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          Hx[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cxhalf*( HXFLUX(cell_upper)-HXFLUX(cell_lower) );
          Ux[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cxhalf*( UXFLUX(cell_upper)-UXFLUX(cell_lower) );
          Vx[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cxhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
-         printf("%f %f %f\n", Hx[iface], Ux[iface], Vx[iface]);
 
 #ifdef PATTERN_CHECK
          switch(mesh->xcase[iface]){
@@ -2576,7 +2575,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       Hy[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cyhalf*( HYFLUX(cell_upper)-HYFLUX(cell_lower) );
       Uy[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cyhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
       Vy[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cyhalf*( VYFLUX(cell_upper)-VYFLUX(cell_lower) );
-         printf("%f %f %f\n", Hy[iface], Uy[iface], Vy[iface]);
 
 #if DEBUG >= 2
       if (DEBUG >= 2) {
@@ -4642,7 +4640,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 #endif
 
 
-   for (int ll=0; ll<=mesh->levmx; ll++){
+   for (int ll = mesh->levmx; ll > -1; ll--){
       state_t ***pstate = mesh->meshes[ll].pstate;
       int iimax = mesh->lev_iregsize[ll];
       int jjmax = mesh->lev_jregsize[ll];
@@ -4663,11 +4661,15 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
             for (int ii = 0; ii < iimax; ii++) {
                 Hx[jj][ii] = 1.0;           
                 Hy[jj][ii] = 1.0;           
+                //Ux[jj][ii] = 1.0;           
+                //Uy[jj][ii] = 1.0;           
+                //Vx[jj][ii] = 1.0;           
+                //Vy[jj][ii] = 1.0;           
             }
         }
 
-      for(int jj=3; jj<jjmax-2; jj++){
-         for(int ii=3; ii<iimax-2; ii++){
+      for(int jj=1; jj<jjmax-2; jj++){
+         for(int ii=1; ii<iimax-2; ii++){
             //printf("DEBUG -- ll %d jj %d ii %d H %lf U %lf V %lf mask %d\n",
              //  ll,jj,ii,H_reg[jj][ii],U_reg[jj][ii],V_reg[jj][ii],mask_reg[jj][ii]);
             if (mask_reg[jj][ii-1] == 1 && mask_reg[jj][ii] == 1){
@@ -4676,8 +4678,6 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
                Ux[jj][ii] = HALF*( ((U_reg[jj][ii-1]) + (U_reg[jj][ii])) - (deltaT)/(dx)*((UXRGFLUXIC) - (UXRGFLUXNL)) );
                Vx[jj][ii] = HALF*( ((V_reg[jj][ii-1]) + (V_reg[jj][ii])) - (deltaT)/(dx)*((VXRGFLUXIC) - (VXRGFLUXNL)) );
             }
-            if (Hx[jj][ii-1] == 0.0) Hx[jj][ii-1] = 1.0;
-            if (Hx[jj][ii+1] == 0.0) Hx[jj][ii+1] = 1.0;
 
             if (mask_reg[jj-1][ii] == 1 && mask_reg[jj][ii] == 1){
                Hy[jj][ii] = HALF*( ((H_reg[jj-1][ii]) + (H_reg[jj][ii])) - (deltaT)/(dy)*((HYRGFLUXIC) - (HYRGFLUXNB)) );
@@ -4685,12 +4685,17 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
                Uy[jj][ii] = HALF*( ((U_reg[jj-1][ii]) + (U_reg[jj][ii])) - (deltaT)/(dy)*((UYRGFLUXIC) - (UYRGFLUXNB)) );
                Vy[jj][ii] = HALF*( ((V_reg[jj-1][ii]) + (V_reg[jj][ii])) - (deltaT)/(dy)*((VYRGFLUXIC) - (VYRGFLUXNB)) );
             }
-            if (Hy[jj-1][ii] == 0.0) Hy[jj-1][ii] = 1.0;
-            if (Hy[jj+1][ii] == 0.0) Hy[jj+1][ii] = 1.0;
 
             //printf("%f %f %f %f %f %f\n", Hx[jj][ii], Hy[jj][ii], Ux[jj][ii], Uy[jj][ii], Vx[jj][ii], Vy[jj][ii]);
          }
       }
+
+      /*for (int jj = 0; jj < jjmax;jj++) {
+        for (int ii = 0; ii < iimax; ii++) {
+            if (Hx[jj][ii] != 1.0)
+            printf("%d/%d %f %f %f\n", jj, ii, Hx[jj][ii], Ux[jj][ii], Vx[jj][ii]);
+        }
+      }*/
 
       int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
 
@@ -4716,7 +4721,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
          for(int ii=2; ii<iimax-2; ii++){
             if (mask_reg[jj][ii] != 1) continue;
 
-            real_t Hxminus = HNEWXRGFLUXFL;
+            /*real_t Hxminus = HNEWXRGFLUXFL;
             real_t Uxminus = UNEWXRGFLUXFL;
             real_t Vxminus = VNEWXRGFLUXFL;
 
@@ -4730,8 +4735,25 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 
             real_t Hyplus = HNEWYRGFLUXFT;
             real_t Uyplus = UNEWYRGFLUXFT;
-            real_t Vyplus = VNEWYRGFLUXFT;
-        printf("%f %f %f %f\n", Uxplus, Uxminus, Uyplus, Uyminus);
+            real_t Vyplus = VNEWYRGFLUXFT;*/
+
+            real_t Hxminus = Hx[jj][ii];
+            real_t Uxminus = Ux[jj][ii];
+            real_t Vxminus = Vx[jj][ii];;
+
+            real_t Hxplus = Hx[jj][ii+1];
+            real_t Uxplus = Ux[jj][ii+1];
+            real_t Vxplus = Vx[jj][ii+1];;
+
+            real_t Hyminus = Hy[jj][ii];
+            real_t Uyminus = Uy[jj][ii];
+            real_t Vyminus = Vy[jj][ii];;
+
+            real_t Hyplus = Hy[jj+1][ii];
+            real_t Uyplus = Uy[jj+1][ii];
+            real_t Vyplus = Vy[jj+1][ii];;
+
+            //printf("%f %f\n", Hxminus, Hyminus);
 
             real_t Hxfluxminus = HNEWXRGFLUXMINUS;
             real_t Uxfluxminus = UNEWXRGFLUXMINUS;
@@ -4748,6 +4770,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
             real_t Hyfluxplus = HNEWYRGFLUXPLUS;
             real_t Uyfluxplus = UNEWYRGFLUXPLUS;
             real_t Vyfluxplus = VNEWYRGFLUXPLUS;
+        //printf("%f %f %f %f\n", Hxminus, Uxminus, Vxminus, Uxfluxminus);
 
             duminus1 = H_reg[jj][ii-1]-H_reg[jj][ii-2];
             duminus2 = U_reg[jj][ii-1]-U_reg[jj][ii-2];
