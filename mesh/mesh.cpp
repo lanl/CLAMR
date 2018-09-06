@@ -11806,6 +11806,11 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
           }
        }*/
    }
+
+   for (int lev = 0; lev < levmx+1; lev++) {
+       genmatrixfree((void **)avgCnt[lev]);
+   }
+   free(avgCnt);
            
    /*for (int ll=0; ll<=levmx; ll++){
        printf("DEBUG regular mesh level %d\n",ll);
@@ -11887,8 +11892,12 @@ void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
    for (int ll=0; ll<levmx+1; ll++){
        free(meshes[ll].pstate);
        free(meshes[ll].mask);
+       genmatrixfree((void **)phantomXFluxRG[ll]);
+       genmatrixfree((void **)phantomYFluxRG[ll]);
    }
    free(meshes);
+   free(phantomXFluxRG);
+   free(phantomYFluxRG);
    //exit(0);
 }
 
