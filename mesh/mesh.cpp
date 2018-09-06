@@ -2298,7 +2298,7 @@ void Mesh::terminate(void)
       }
 
 #ifdef _OPENMP
-#pragma OMP MASTER
+#pragma omp master
 #endif
       {
          free(lowerBound_Global);
@@ -3414,7 +3414,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             {
 #endif
                state_temp_double = (double *)state_memory.memory_malloc(new_ncells, sizeof(double),
-                                                                                "state_temp_double", flags);
+                                                                                "state_temp_double", memory_item->mem_flags);
                mem_ptr_double = (double *)memory_item->mem_ptr;
 #ifdef _OPENMP
             } // end master region
@@ -3488,7 +3488,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
             {
 #endif
                state_temp_float = (float *)state_memory.memory_malloc(new_ncells, sizeof(float),
-                                                                             "state_temp_float", flags);
+                                                                             "state_temp_float", memory_item->mem_flags);
                mem_ptr_float = (float *)memory_item->mem_ptr;
 #ifdef _OPENMP
             } // end master region

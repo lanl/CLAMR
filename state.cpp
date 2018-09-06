@@ -2332,23 +2332,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    int flags = 0;
    flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
 
-    //following lines are to give H, U, V its proper flags back
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-      // Set missing memory attributes to be sure they are correct
-      state_memory.set_memory_attribute(H, REZONE_DATA);
-      state_memory.set_memory_attribute(H, LOAD_BALANCE_MEMORY);
-      state_memory.set_memory_attribute(U, REZONE_DATA);
-      state_memory.set_memory_attribute(U, LOAD_BALANCE_MEMORY);
-      state_memory.set_memory_attribute(V, REZONE_DATA);
-      state_memory.set_memory_attribute(V, LOAD_BALANCE_MEMORY);
-   }
-#pragma omp barrier
-#endif
-
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
