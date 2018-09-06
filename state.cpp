@@ -162,6 +162,7 @@ inline real_t U_fullstep(
 }
 
 
+#pragma omp declare simd
 inline real_t w_corrector(
         real_t    deltaT,       // Timestep
         real_t    dr,           // Cell's center to face distance
