@@ -2297,6 +2297,14 @@ void Mesh::terminate(void)
          mesh_memory.memory_delete(ntop);
       }
 
+#ifdef _OPENMP
+#pragma OMP MASTER
+#endif
+      {
+         free(lowerBound_Global);
+         free(upperBound_Global);
+      }
+
 #ifdef HAVE_OPENCL
       hash_lib_terminate();
 
@@ -12641,15 +12649,15 @@ void Mesh::set_bounds(int n){
         {
         int nthreads = omp_get_num_threads();//Private for each thread
         int threadID = omp_get_thread_num(); //Private for each thread
-        #pragma omp master 
-	{
+#pragma omp master 
+     	{
         	if(lowerBound_Global == NULL) lowerBound_Global = (int *)malloc(nthreads*sizeof(int)); 
         	if(upperBound_Global == NULL) upperBound_Global = (int *)malloc(nthreads*sizeof(int)); 
         }
-	//#pragma omp flush (lowerBound_Global, upperBound_Global)
-	#pragma omp barrier
+//#pragma omp flush (lowerBound_Global, upperBound_Global)
+#pragma omp barrier
  	
-	int work = n/nthreads;
+        int work = n/nthreads;
         if(threadID<(n%nthreads))work++;
         int lowerBound = ((n / nthreads)*threadID) + min(n%nthreads, threadID);
         int upperBound = lowerBound + work;
