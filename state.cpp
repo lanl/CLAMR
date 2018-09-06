@@ -5079,6 +5079,11 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
+
+#ifdef _OPENMP
+#pragma omp master
+#endif
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
 /************************************************************************/
@@ -5717,6 +5722,11 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
+
+#ifdef _OPENMP
+#pragma omp master
+#endif
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
 
