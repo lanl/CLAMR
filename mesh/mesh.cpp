@@ -2297,6 +2297,14 @@ void Mesh::terminate(void)
          mesh_memory.memory_delete(ntop);
       }
 
+#ifdef _OPENMP
+#pragma OMP MASTER
+#endif
+      {
+         free(lowerBound_Global);
+         free(upperBound_Global);
+      }
+
 #ifdef HAVE_OPENCL
       hash_lib_terminate();
 
@@ -3044,7 +3052,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    calc_celltype(new_ncells);
 
    if (have_state){
-      flags = RESTART_DATA;
+      flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
       MallocPlus state_memory_old = state_memory;
       malloc_plus_memory_entry *memory_item;
 
@@ -3180,7 +3188,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp for
 #endif
       for (int ic = 0; ic < (int)ncells; ic++){
-          if (new_ic[ic] == 284) printf("%d\n", ic);
+          //if (new_ic[ic] == 284) printf("%d\n", ic);
          if (mpot[ic] == 0) {
             add_count[ic] = 1;
          } else if (mpot[ic] < 0) {
@@ -3212,7 +3220,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    for (int ic = 0; ic < (int)ncells; ic++) {
    vector<int>  invorder(4, -1); //  Vector mapping location from base index.
       int nc = new_ic[ic];
-          if (new_ic[ic] == 284) printf("%d\n", ic);
+          //if (new_ic[ic] == 284) printf("%d\n", ic);
       if (mpot[ic] == 0)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
          index[ic] = nc;
@@ -12650,15 +12658,15 @@ void Mesh::set_bounds(int n){
         {
         int nthreads = omp_get_num_threads();//Private for each thread
         int threadID = omp_get_thread_num(); //Private for each thread
-        #pragma omp master 
-	{
+#pragma omp master 
+     	{
         	if(lowerBound_Global == NULL) lowerBound_Global = (int *)malloc(nthreads*sizeof(int)); 
         	if(upperBound_Global == NULL) upperBound_Global = (int *)malloc(nthreads*sizeof(int)); 
         }
-	//#pragma omp flush (lowerBound_Global, upperBound_Global)
-	#pragma omp barrier
+//#pragma omp flush (lowerBound_Global, upperBound_Global)
+#pragma omp barrier
  	
-	int work = n/nthreads;
+        int work = n/nthreads;
         if(threadID<(n%nthreads))work++;
         int lowerBound = ((n / nthreads)*threadID) + min(n%nthreads, threadID);
         int upperBound = lowerBound + work;
