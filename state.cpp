@@ -4482,15 +4482,6 @@ void State::calc_finite_difference_regular_cells(double deltaT){
                                               - Cy*(Vyfluxminus - Vyfluxplus)
                                                  -wminusy*(V_reg[jj][ii]-V_reg[jj-1][ii])
                                                  +wplusy*(V_reg[jj+1][ii]-V_reg[jj][ii]);*/
-    /*H_reg_new[jj][ii] = H_reg[jj][ii] - Cx * (Hxfluxplus - Hxfluxminus + Hyfluxplus - Hyfluxminus + singleUseFluxH) 
-                      + wplusx_H - wminusx_H + wplusy_H - wminusy_H + singleuseWH;
-
-    U_reg_new[jj][ii] = U_reg[jj][ii] - Cx * (Uxfluxplus - Uxfluxminus + Uyfluxplus - Uyfluxminus + singleUseFluxU) 
-                      + wplusx_U - wminusx_U + singleUseWU;
-
-    V_reg_new[jj][ii] = V_reg[jj][ii] - Cx * (Vxfluxplus - Vxfluxminus + Vyfluxplus - Vyfluxminus + singleUseFluxV) 
-                      + wplusy_V - wminusy_V + singleUseWV;*/
-
     H_reg_new[jj][ii] = H_reg[jj][ii] - Cx 
                       * (varH[ll][jj][ii*8+1] - varH[ll][jj][ii*8+0] + varH[ll][jj][ii*8+3] - varH[ll][jj][ii*8+2])
                       + varH[ll][jj][ii*8+5] - varH[ll][jj][ii*8+4] + varH[ll][jj][ii*8+7] - varH[ll][jj][ii*8+6]; 
@@ -4518,12 +4509,6 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 */
 
 //#endif
-            //H_reg_new[jj][ii] = H_reg[jj][ii] - Cx*(HNEWXRGFLUXMINUS - HNEWXRGFLUXPLUS)
-            //                                  - Cy*(HNEWYRGFLUXMINUS - HNEWYRGFLUXPLUS);
-            //U_reg_new[jj][ii] = U_reg[jj][ii] - Cx*(UNEWXRGFLUXMINUS - UNEWXRGFLUXPLUS);
-            //                                  - Cy*(UNEWYRGFLUXMINUS - UNEWYRGFLUXPLUS);
-            //V_reg_new[jj][ii] = V_reg[jj][ii] - Cx*(VNEWXRGFLUXMINUS - VNEWXRGFLUXPLUS);
-            //                                  - Cy*(VNEWYRGFLUXMINUS - VNEWYRGFLUXPLUS);
          } // ii
       } // jj 
       for(int jj=2; jj<jjmax-2; jj++){
@@ -4549,28 +4534,56 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 
    } // ll
 
-   /*gentrimatrixfree((void ***)&FakeFluxHxP);
-   gentrimatrixfree((void ***)&FakeFluxHxM);
-   gentrimatrixfree((void ***)&FakeFluxUxP);
-   gentrimatrixfree((void ***)&FakeFluxUxM);
-   gentrimatrixfree((void ***)&FakeFluxVxP);
-   gentrimatrixfree((void ***)&FakeFluxVxM);
-   gentrimatrixfree((void ***)&FakeFluxHyP);
-   gentrimatrixfree((void ***)&FakeFluxHyM);
-   gentrimatrixfree((void ***)&FakeFluxUyP);
-   gentrimatrixfree((void ***)&FakeFluxUyM);
-   gentrimatrixfree((void ***)&FakeFluxVyP);
-   gentrimatrixfree((void ***)&FakeFluxVyM);
-   gentrimatrixfree((void ***)&tempWHxP);
-   gentrimatrixfree((void ***)&tempWHxM);
-   gentrimatrixfree((void ***)&tempWUxP);
-   gentrimatrixfree((void ***)&tempWUxM);
-   gentrimatrixfree((void ***)&tempWVyP);
-   gentrimatrixfree((void ***)&tempWVyM);*/
-   gentrimatrixfree((void ***)&varH);
-   gentrimatrixfree((void ***)&varU);
-   gentrimatrixfree((void ***)&varV);
-   gentrimatrixfree((void ***)&passFlag);
+   for (int lev = 0; lev < mesh->levmx+1; lev++) {
+    /*gentrimatrixfree((void ***)FakeFluxHxP[lev]);
+    gentrimatrixfree((void ***)FakeFluxHxM[lev]);
+    gentrimatrixfree((void ***)FakeFluxUxP[lev]);
+    gentrimatrixfree((void ***)FakeFluxUxM[lev]);
+    gentrimatrixfree((void ***)FakeFluxVxP[lev]);
+    gentrimatrixfree((void ***)FakeFluxVxM[lev]);
+    gentrimatrixfree((void ***)FakeFluxHyP[lev]);
+    gentrimatrixfree((void ***)FakeFluxHyM[lev]);
+    gentrimatrixfree((void ***)FakeFluxUyP[lev]);
+    gentrimatrixfree((void ***)FakeFluxUyM[lev]);
+    gentrimatrixfree((void ***)FakeFluxVyP[lev]);
+    gentrimatrixfree((void ***)FakeFluxVyM[lev]);
+    gentrimatrixfree((void ***)tempWHxP[lev]);
+    gentrimatrixfree((void ***)tempWHxM[lev]);
+    gentrimatrixfree((void ***)tempWUxP[lev]);
+    gentrimatrixfree((void ***)tempWUxM[lev]);
+    gentrimatrixfree((void ***)tempWVyP[lev]);
+    gentrimatrixfree((void ***)tempWVyM[lev]);*/
+    genmatrixfree((void **)varH[lev]);
+    genmatrixfree((void **)varU[lev]);
+    genmatrixfree((void **)varV[lev]);
+    genmatrixfree((void **)passFlag[lev]);
+   }
+    /*free(FakeFluxHxP);
+    free(FakeFluxHxM);
+    free(FakeFluxUxP);
+    free(FakeFluxUxM);
+    free(FakeFluxVxP);
+    free(FakeFluxVxM);
+    free(FakeFluxHyP);
+    free(FakeFluxHyM);
+    free(FakeFluxUyP);
+    free(FakeFluxUyM);
+    free(FakeFluxVyP);
+    free(FakeFluxVyM);
+    free(tempWHxP);
+    free(tempWHxM);
+    free(tempWHyP);
+    free(tempWHyM);
+    free(tempWUxP);
+    free(tempWUxM)a;*/
+    free(varH);
+    free(varU);
+    free(varV);
+    free(passFlag);
+    free(H_reg_lev);
+    free(U_reg_lev);
+    free(V_reg_lev);
+    free(mask_reg_lev);
 
 #ifdef _OPENMP
 #pragma omp master
@@ -4747,7 +4760,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
    tempWVyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
    tempWVyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
 
-   for (int lev = 0; lev <= mesh->levmx; lev++){
+   for (int lev = 0; lev < mesh->levmx+1; lev++){
        state_t ***pstate = mesh->meshes[lev].pstate;
        H_reg_lev[lev] = pstate[0];
        U_reg_lev[lev] = pstate[1];
@@ -5173,12 +5186,12 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
          }
       }
 
-      genmatrixfree((void **)&Hx);
-      genmatrixfree((void **)&Ux);
-      genmatrixfree((void **)&Vx);
-      genmatrixfree((void **)&Hy);
-      genmatrixfree((void **)&Ux);
-      genmatrixfree((void **)&Vy);
+      genmatrixfree((void **)Hx[0]);
+      genmatrixfree((void **)Ux[0]);
+      genmatrixfree((void **)Vx[0]);
+      genmatrixfree((void **)Hy[0]);
+      genmatrixfree((void **)Uy[0]);
+      genmatrixfree((void **)Vy[0]);
 
       // Replace H_reg with H_reg_new
       state_t ** tmp_reg;
@@ -5186,29 +5199,57 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       //SWAP_PTR(pstate[1], U_reg_new, tmp_reg);
       //SWAP_PTR(pstate[2], V_reg_new, tmp_reg);
 
-      genmatrixfree((void **)&H_reg_new);
-      genmatrixfree((void **)&U_reg_new);
-      genmatrixfree((void **)&V_reg_new);
+      genmatrixfree((void **)H_reg_new[0]);
+      genmatrixfree((void **)U_reg_new[0]);
+      genmatrixfree((void **)V_reg_new[0]);
 
    } // ll
-   gentrimatrixfree((void ***)&FakeFluxHxP);
-   gentrimatrixfree((void ***)&FakeFluxHxM);
-   gentrimatrixfree((void ***)&FakeFluxUxP);
-   gentrimatrixfree((void ***)&FakeFluxUxM);
-   gentrimatrixfree((void ***)&FakeFluxVxP);
-   gentrimatrixfree((void ***)&FakeFluxVxM);
-   gentrimatrixfree((void ***)&FakeFluxHyP);
-   gentrimatrixfree((void ***)&FakeFluxHyM);
-   gentrimatrixfree((void ***)&FakeFluxUyP);
-   gentrimatrixfree((void ***)&FakeFluxUyM);
-   gentrimatrixfree((void ***)&FakeFluxVyP);
-   gentrimatrixfree((void ***)&FakeFluxVyM);
-   gentrimatrixfree((void ***)&tempWHxP);
-   gentrimatrixfree((void ***)&tempWHxM);
-   gentrimatrixfree((void ***)&tempWUxP);
-   gentrimatrixfree((void ***)&tempWUxM);
-   gentrimatrixfree((void ***)&tempWVyP);
-   gentrimatrixfree((void ***)&tempWVyM);
+
+   //free memory
+   for (int lev = 0; lev < mesh->levmx+1; lev++) {
+      genmatrixfree((void **)FakeFluxHxP[lev]);
+      genmatrixfree((void **)FakeFluxHxM[lev]);
+      genmatrixfree((void **)FakeFluxUxP[lev]);
+      genmatrixfree((void **)FakeFluxUxM[lev]);
+      genmatrixfree((void **)FakeFluxVxP[lev]);
+      genmatrixfree((void **)FakeFluxVxM[lev]);
+      genmatrixfree((void **)FakeFluxHyP[lev]);
+      genmatrixfree((void **)FakeFluxHyM[lev]);
+      genmatrixfree((void **)FakeFluxUyP[lev]);
+      genmatrixfree((void **)FakeFluxUyM[lev]);
+      genmatrixfree((void **)FakeFluxVyP[lev]);
+      genmatrixfree((void **)FakeFluxVyM[lev]);
+      genmatrixfree((void **)tempWHxP[lev]);
+      genmatrixfree((void **)tempWHxM[lev]);
+      genmatrixfree((void **)tempWUxP[lev]);
+      genmatrixfree((void **)tempWUxM[lev]);
+      genmatrixfree((void **)tempWVyP[lev]);
+      genmatrixfree((void **)tempWVyM[lev]);
+   }
+      free(FakeFluxHxP);
+      free(FakeFluxHxM);
+      free(FakeFluxUxP);
+      free(FakeFluxUxM);
+      free(FakeFluxVxP);
+      free(FakeFluxVxM);
+      free(FakeFluxHyP);
+      free(FakeFluxHyM);
+      free(FakeFluxUyP);
+      free(FakeFluxUyM);
+      free(FakeFluxVyP);
+      free(FakeFluxVyM);
+      free(tempWHxP);
+      free(tempWHxM);
+      free(tempWHyP);
+      free(tempWHyM);
+      free(tempWUxP);
+      free(tempWUxM);
+      free(tempWVyP);
+      free(tempWVyM);
+      free(H_reg_lev);
+      free(U_reg_lev);
+      free(V_reg_lev);
+      free(mask_reg_lev);
 
 #ifdef _OPENMP
 #pragma omp master
