@@ -3052,7 +3052,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    calc_celltype(new_ncells);
 
    if (have_state){
-      flags = RESTART_DATA;
+      flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
       MallocPlus state_memory_old = state_memory;
       malloc_plus_memory_entry *memory_item;
 
@@ -3188,7 +3188,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
 #pragma omp for
 #endif
       for (int ic = 0; ic < (int)ncells; ic++){
-          if (new_ic[ic] == 284) printf("%d\n", ic);
+          //if (new_ic[ic] == 284) printf("%d\n", ic);
          if (mpot[ic] == 0) {
             add_count[ic] = 1;
          } else if (mpot[ic] < 0) {
@@ -3220,7 +3220,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, 
    for (int ic = 0; ic < (int)ncells; ic++) {
    vector<int>  invorder(4, -1); //  Vector mapping location from base index.
       int nc = new_ic[ic];
-          if (new_ic[ic] == 284) printf("%d\n", ic);
+          //if (new_ic[ic] == 284) printf("%d\n", ic);
       if (mpot[ic] == 0)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
          index[ic] = nc;

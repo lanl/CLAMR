@@ -2332,7 +2332,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
 
     //following lines are to give H, U, V its proper flags back
-    // need to find where the flags are not assigned in the OpenMP version
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -2419,8 +2418,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp barrier
 #endif
 
-   
-
 #ifdef _OPENMP
 #pragma omp for 
 #endif
@@ -2428,41 +2425,14 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    for (int iface = 0; iface < mesh->nxface; iface++){
       int cell_lower = mesh->map_xface2cell_lower[iface];
       int cell_upper = mesh->map_xface2cell_upper[iface];
-      int level_lower = mesh->level[cell_lower];
-      int level_upper = mesh->level[cell_upper];
-      //if (level_lower == level_upper) {
-         int lev = level_upper;
-         real_t Cxhalf = 0.5*deltaT/mesh->lev_deltax[lev];
-         Hx[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cxhalf*( HXFLUX(cell_upper)-HXFLUX(cell_lower) );
-         Ux[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cxhalf*( UXFLUX(cell_upper)-UXFLUX(cell_lower) );
-         Vx[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cxhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
 
-#if DEBUG >= 2
-      if (DEBUG >= 2) {
-         printf("1st pass x direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-            iface, mesh->xface_i[iface], mesh->xface_j[iface], mesh->xface_level[iface],
-            mesh->map_xface2cell_lower[iface], mesh->map_xface2cell_upper[iface],
-            Hx[iface],Ux[iface],Vx[iface],
-            H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
-      }
-#endif
-      if (phantom_debug) {
-         printf("1st pass x direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-            iface, mesh->xface_i[iface], mesh->xface_j[iface], mesh->xface_level[iface],
-            mesh->map_xface2cell_lower[iface], mesh->map_xface2cell_upper[iface],
-            Hx[iface],Ux[iface],Vx[iface],
-            H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
-      }
+      int lev = mesh->level[cell_lower];
+      real_t Cxhalf = 0.5*deltaT/mesh->lev_deltax[lev];
+      Hx[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cxhalf*( HXFLUX(cell_upper)-HXFLUX(cell_lower) );
+      Ux[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cxhalf*( UXFLUX(cell_upper)-UXFLUX(cell_lower) );
+      Vx[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cxhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
    }
-#if DEBUG >= 2
-   if (DEBUG >= 2) {
-      printf("\n");
-   }
-#endif
-   if (phantom_debug) {
-      printf("\n");
-   }
-   
+
    int yfaceSize = mesh->map_yface2cell_lower.size(); //new "update" nyface inc. phantoms
    static vector<state_t> Hy, Uy, Vy;
 
@@ -2471,11 +2441,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp master
    {
 #endif
-
    Hy.resize(yfaceSize, -999999);
    Uy.resize(yfaceSize, -999999);
    Vy.resize(yfaceSize, -999999);
-
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2484,43 +2452,16 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #ifdef _OPENMP
 #pragma omp for 
 #endif
-   
    //normally use yfaceSize
    for (int iface = 0; iface < mesh->nyface; iface++){
       int cell_lower = mesh->map_yface2cell_lower[iface];
       int cell_upper = mesh->map_yface2cell_upper[iface];
-      int level_lower = mesh->level[cell_lower];
-      int level_upper = mesh->level[cell_upper];
-      int lev = level_upper;
+
+      int lev = mesh->level[cell_lower];
       real_t Cyhalf = 0.5*deltaT/mesh->lev_deltay[lev];
       Hy[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cyhalf*( HYFLUX(cell_upper)-HYFLUX(cell_lower) );
       Uy[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cyhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
       Vy[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cyhalf*( VYFLUX(cell_upper)-VYFLUX(cell_lower) );
-
-#if DEBUG >= 2
-      if (DEBUG >= 2) {
-         printf("1st pass y direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-            iface, mesh->yface_i[iface], mesh->yface_j[iface], mesh->yface_level[iface],
-            mesh->map_yface2cell_lower[iface], mesh->map_yface2cell_upper[iface],
-            Hy[iface],Uy[iface],Vy[iface],
-            H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
-      }
-#endif
-      if (phantom_debug) {
-         printf("1st pass y direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-            iface, mesh->yface_i[iface], mesh->yface_j[iface], mesh->yface_level[iface],
-            mesh->map_yface2cell_lower[iface], mesh->map_yface2cell_upper[iface],
-            Hy[iface],Uy[iface],Vy[iface],
-            H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
-      }
-   }
-#if DEBUG >= 2
-   if (DEBUG >= 2) {
-      printf("\n");
-   }
-#endif
-   if (phantom_debug) {
-      printf("\n");
    }
 
 
