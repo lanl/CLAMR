@@ -566,15 +566,20 @@ void State::add_boundary_cells(void)
    cpu_timers[STATE_TIMER_APPLY_BCS] += cpu_timer_stop(tstart_cpu);
 }
 
-void State::apply_boundary_conditions_local(void)
+void State::apply_boundary_conditions_ghost(void)
 {
+
    static int *nlft, *nrht, *nbot, *ntop;
 
-   size_t &ncells = mesh->ncells;
    nlft = mesh->nlft;
    nrht = mesh->nrht;
    nbot = mesh->nbot;
    ntop = mesh->ntop;
+
+#ifdef _OPENMP
+#pragma omp master
+#endif
+   if (mesh->ncells_ghost < mesh->ncells) mesh->ncells_ghost = mesh->ncells;
 
    // This is for a mesh with boundary cells
    int lowerBound, upperBound;
@@ -582,7 +587,7 @@ void State::apply_boundary_conditions_local(void)
    for (uint ic=lowerBound; ic<upperBound; ic++) {
       if (mesh->is_left_boundary(ic)) {
          int nr = nrht[ic];
-         if (nr < (int)ncells) {
+         if (nr < (int)mesh->ncells) {
             H[ic] =  H[nr];
             U[ic] = -U[nr];
             V[ic] =  V[nr];
@@ -590,7 +595,7 @@ void State::apply_boundary_conditions_local(void)
       }
       if (mesh->is_right_boundary(ic))  {
          int nl = nlft[ic];
-         if (nl < (int)ncells) {
+         if (nl < (int)mesh->ncells) {
             H[ic] =  H[nl];
             U[ic] = -U[nl];
             V[ic] =  V[nl];
@@ -598,7 +603,7 @@ void State::apply_boundary_conditions_local(void)
       }
       if (mesh->is_bottom_boundary(ic)) {
          int nt = ntop[ic];
-         if (nt < (int)ncells) {
+         if (nt < (int)mesh->ncells) {
             H[ic] =  H[nt];
             U[ic] =  U[nt];
             V[ic] = -V[nt];
@@ -606,32 +611,41 @@ void State::apply_boundary_conditions_local(void)
       }
       if (mesh->is_top_boundary(ic)) {
          int nb = nbot[ic];
-         if (nb < (int)ncells) {
+         if (nb < (int)mesh->ncells) {
             H[ic] =  H[nb];
             U[ic] =  U[nb];
             V[ic] = -V[nb];
          }
       }
    }
-}
 
-void State::apply_boundary_conditions_ghost(void)
-{
-   static int *nlft, *nrht, *nbot, *ntop;
 
-   size_t &ncells = mesh->ncells;
-   nlft = mesh->nlft;
-   nrht = mesh->nrht;
-   nbot = mesh->nbot;
-   ntop = mesh->ntop;
+#ifdef HAVE_MPI
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+      {    
+#endif
+      H=(state_t *)state_memory.memory_realloc(mesh->ncells_ghost, H);
+      U=(state_t *)state_memory.memory_realloc(mesh->ncells_ghost, U);
+      V=(state_t *)state_memory.memory_realloc(mesh->ncells_ghost, V);
+
+      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
+      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
+      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
+#ifdef _OPENMP
+      }    
+#pragma omp barrier
+#endif
+
+#endif
 
    // This is for a mesh with boundary cells
-   int lowerBound, upperBound; 
-   mesh->get_bounds(lowerBound, upperBound);
    for (uint ic=lowerBound; ic<upperBound; ic++) {
       if (mesh->is_left_boundary(ic)) {
          int nr = nrht[ic];
-         if (nr >= (int)ncells) {
+         if (nr >= (int)mesh->ncells) {
             H[ic] =  H[nr];
             U[ic] = -U[nr];
             V[ic] =  V[nr];
@@ -639,7 +653,7 @@ void State::apply_boundary_conditions_ghost(void)
       }
       if (mesh->is_right_boundary(ic))  {
          int nl = nlft[ic];
-         if (nl >= (int)ncells) {
+         if (nl >= (int)mesh->ncells) {
             H[ic] =  H[nl];
             U[ic] = -U[nl];
             V[ic] =  V[nl];
@@ -647,7 +661,7 @@ void State::apply_boundary_conditions_ghost(void)
       }
       if (mesh->is_bottom_boundary(ic)) {
          int nt = ntop[ic];
-         if (nt >= (int)ncells) {
+         if (nt >= (int)mesh->ncells) {
             H[ic] =  H[nt];
             U[ic] =  U[nt];
             V[ic] = -V[nt];
@@ -655,7 +669,7 @@ void State::apply_boundary_conditions_ghost(void)
       }
       if (mesh->is_top_boundary(ic)) {
          int nb = nbot[ic];
-         if (nb >= (int)ncells) {
+         if (nb >= (int)mesh->ncells) {
             H[ic] =  H[nb];
             U[ic] =  U[nb];
             V[ic] = -V[nb];
@@ -1124,44 +1138,22 @@ void State::calc_finite_difference(double deltaT){
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   //printf("\nDEBUG finite diff\n"); 
+
+   // We need to populate the ghost regions since the calc neighbors has just been
+   // established for the mesh shortly before
+   if (mesh->numpe > 1) {
+      apply_boundary_conditions_ghost();
+   } else {
+      apply_boundary_conditions();
+   }
+
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
 #ifdef _OPENMP
 #pragma omp master
 #endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
-
-   //printf("\nDEBUG finite diff\n"); 
-
-#ifdef HAVE_MPI
-   // We need to populate the ghost regions since the calc neighbors has just been
-   // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
-
-#ifdef _OPENMP
-#pragma omp master
-      {
-#endif
-      H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
-      U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
-      V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
-
-      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
-
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-#else
-   apply_boundary_conditions();
-#endif
 
    static state_t *H_new, *U_new, *V_new;
    int *nlft, *nrht, *nbot, *ntop, *level;
@@ -1739,42 +1731,20 @@ void State::calc_finite_difference_in_place(double deltaT){
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   // We need to populate the ghost regions since the calc neighbors has just been
+   // established for the mesh shortly before
+   if (mesh->numpe > 1) {
+      apply_boundary_conditions_ghost();
+   } else {
+      apply_boundary_conditions();
+   }
+
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
 #ifdef _OPENMP
 #pragma omp master
 #endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
-
-#ifdef HAVE_MPI
-   // We need to populate the ghost regions since the calc neighbors has just been
-   // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
-
-#ifdef _OPENMP
-#pragma omp master
-      {
-#endif
-      H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
-      U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
-      V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
-
-      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
-
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-#else
-   apply_boundary_conditions();
-#endif
 
    int flags = 0;
    flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
@@ -2224,43 +2194,20 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   // We need to populate the ghost regions since the calc neighbors has just been
+   // established for the mesh shortly before
+   if (mesh->numpe > 1) {
+      apply_boundary_conditions_ghost();
+   } else {
+      apply_boundary_conditions();
+   }
+
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
 #ifdef _OPENMP
 #pragma omp master
 #endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
-
-#ifdef HAVE_MPI
-   // We need to populate the ghost regions since the calc neighbors has just been
-   // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master 
-      {
-#endif
-         H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
-         U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
-         V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
-
-         L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
-         L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
-         L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
-
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-#else
-   apply_boundary_conditions();
-#endif
 
    int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
 
@@ -2769,43 +2716,20 @@ void State::calc_finite_difference_face_in_place_old(double deltaT){
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   // We need to populate the ghost regions since the calc neighbors has just been
+   // established for the mesh shortly before
+   if (mesh->numpe > 1) {
+      apply_boundary_conditions_ghost();
+   } else {
+      apply_boundary_conditions();
+   }
+
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
 #ifdef _OPENMP
 #pragma omp master
 #endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
-
-#ifdef HAVE_MPI
-   // We need to populate the ghost regions since the calc neighbors has just been
-   // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master 
-      {
-#endif
-         H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
-         U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
-         V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
-
-         L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
-         L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
-         L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
-
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-#else
-   apply_boundary_conditions();
-#endif
 
    int xfaceSize, cellSizewp;
 
@@ -3517,6 +3441,14 @@ void State::calc_finite_difference_via_faces(double deltaT){
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   // We need to populate the ghost regions since the calc neighbors has just been
+   // established for the mesh shortly before
+   if (mesh->numpe > 1) {
+      apply_boundary_conditions_ghost();
+   } else {
+      apply_boundary_conditions();
+   }
+
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
 
@@ -3524,37 +3456,6 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #pragma omp master
 #endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
-
-#ifdef HAVE_MPI
-   // We need to populate the ghost regions since the calc neighbors has just been
-   // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master 
-      {
-#endif
-         H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
-         U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
-         V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
-
-         L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
-         L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
-         L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
-
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-#else
-   apply_boundary_conditions();
-#endif
 
    int *nlft, *nrht, *nbot, *ntop, *level;
 
@@ -4197,6 +4098,14 @@ void State::calc_finite_difference_via_faces_old(double deltaT){
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   // We need to populate the ghost regions since the calc neighbors has just been
+   // established for the mesh shortly before
+   if (mesh->numpe > 1) {
+      apply_boundary_conditions_ghost();
+   } else {
+      apply_boundary_conditions();
+   }
+
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
 
@@ -4204,37 +4113,6 @@ void State::calc_finite_difference_via_faces_old(double deltaT){
 #pragma omp master
 #endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
-
-#ifdef HAVE_MPI
-   // We need to populate the ghost regions since the calc neighbors has just been
-   // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master 
-      {
-#endif
-         H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
-         U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
-         V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
-
-         L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
-         L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
-         L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
-
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-#else
-   apply_boundary_conditions();
-#endif
 
    int *nlft, *nrht, *nbot, *ntop, *level;
 
@@ -5009,44 +4887,22 @@ void State::calc_finite_difference_regular_cells(double deltaT){
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   //printf("\nDEBUG finite diff\n"); 
+
+   // We need to populate the ghost regions since the calc neighbors has just been
+   // established for the mesh shortly before
+   if (mesh->numpe > 1) {
+      apply_boundary_conditions_ghost();
+   } else {
+      apply_boundary_conditions();
+   }
+
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
 #ifdef _OPENMP
 #pragma omp master
 #endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
-
-   //printf("\nDEBUG finite diff\n"); 
-
-#ifdef HAVE_MPI
-   // We need to populate the ghost regions since the calc neighbors has just been
-   // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
-
-#ifdef _OPENMP
-#pragma omp master
-      {
-#endif
-      H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
-      U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
-      V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
-
-      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
-
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-#else
-   apply_boundary_conditions();
-#endif
 
    static state_t *H_new, *U_new, *V_new;
    static state_t ***H_reg_lev, ***U_reg_lev, ***V_reg_lev;
@@ -5707,47 +5563,22 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   //printf("\nDEBUG finite diff\n"); 
+
+   // We need to populate the ghost regions since the calc neighbors has just been
+   // established for the mesh shortly before
+   if (mesh->numpe > 1) {
+      apply_boundary_conditions_ghost();
+   } else {
+      apply_boundary_conditions();
+   }
+
    size_t ncells     = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
 #ifdef _OPENMP
 #pragma omp master
 #endif
    if (ncells_ghost < ncells) ncells_ghost = ncells;
-
-   //printf("\nDEBUG finite diff\n"); 
-
-#ifdef HAVE_MPI
-   // We need to populate the ghost regions since the calc neighbors has just been
-   // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
-
-#ifdef _OPENMP
-#pragma omp master
-      {
-#endif
-      H=(state_t *)state_memory.memory_realloc(ncells_ghost, H);
-      U=(state_t *)state_memory.memory_realloc(ncells_ghost, U);
-      V=(state_t *)state_memory.memory_realloc(ncells_ghost, V);
-
-      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
-#ifdef _OPENMP
-      }
-#pragma omp barrier
-#endif
-
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-#else
-   // Temporary commented out for debug code that sets cell to its own index
-   if (! phantom_debug){
-      apply_boundary_conditions();
-   }
-#endif
 
    static state_t *H_new, *U_new, *V_new;
    static state_t ***H_reg_lev, ***U_reg_lev, ***V_reg_lev;
@@ -7243,31 +7074,14 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 #pragma omp barrier
 #endif
 
-#ifdef HAVE_MPI
    // We need to update the ghost regions and boundary regions for the state
    // variables since they were changed in the finite difference routine. We
    // want to use the updated values for refinement decisions
    if (mesh->numpe > 1) {
-      apply_boundary_conditions_local();
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-{
-#endif
-      L7_Update(&H[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&U[0], L7_STATE_T, mesh->cell_handle);
-      L7_Update(&V[0], L7_STATE_T, mesh->cell_handle);
-#ifdef _OPENMP
-}
-#pragma omp barrier
-#endif
       apply_boundary_conditions_ghost();
    } else {
       apply_boundary_conditions();
    }
-#else
-   apply_boundary_conditions();
-#endif
 
 #ifdef _OPENMP
 #pragma omp barrier
