@@ -566,9 +566,9 @@ void State::add_boundary_cells(void)
    cpu_timers[STATE_TIMER_APPLY_BCS] += cpu_timer_stop(tstart_cpu);
 }
 
-void State::apply_boundary_conditions_ghost(void)
-{
 
+void State::apply_boundary_conditions(void)
+{
    static int *nlft, *nrht, *nbot, *ntop;
 
    nlft = mesh->nlft;
@@ -584,6 +584,7 @@ void State::apply_boundary_conditions_ghost(void)
    // This is for a mesh with boundary cells
    int lowerBound, upperBound;
    mesh->get_bounds(lowerBound, upperBound);
+
    for (uint ic=lowerBound; ic<upperBound; ic++) {
       if (mesh->is_left_boundary(ic)) {
          int nr = nrht[ic];
@@ -619,6 +620,7 @@ void State::apply_boundary_conditions_ghost(void)
       }
    }
 
+   if (mesh->numpe > 1) {
 
 #ifdef HAVE_MPI
 
@@ -641,83 +643,40 @@ void State::apply_boundary_conditions_ghost(void)
 
 #endif
 
-   // This is for a mesh with boundary cells
-   for (uint ic=lowerBound; ic<upperBound; ic++) {
-      if (mesh->is_left_boundary(ic)) {
-         int nr = nrht[ic];
-         if (nr >= (int)mesh->ncells) {
-            H[ic] =  H[nr];
-            U[ic] = -U[nr];
-            V[ic] =  V[nr];
+      // This is for a mesh with boundary cells
+      for (uint ic=lowerBound; ic<upperBound; ic++) {
+         if (mesh->is_left_boundary(ic)) {
+            int nr = nrht[ic];
+            if (nr >= (int)mesh->ncells) {
+               H[ic] =  H[nr];
+               U[ic] = -U[nr];
+               V[ic] =  V[nr];
+            }
          }
-      }
-      if (mesh->is_right_boundary(ic))  {
-         int nl = nlft[ic];
-         if (nl >= (int)mesh->ncells) {
-            H[ic] =  H[nl];
-            U[ic] = -U[nl];
-            V[ic] =  V[nl];
+         if (mesh->is_right_boundary(ic))  {
+            int nl = nlft[ic];
+            if (nl >= (int)mesh->ncells) {
+               H[ic] =  H[nl];
+               U[ic] = -U[nl];
+               V[ic] =  V[nl];
+            }
          }
-      }
-      if (mesh->is_bottom_boundary(ic)) {
-         int nt = ntop[ic];
-         if (nt >= (int)mesh->ncells) {
-            H[ic] =  H[nt];
-            U[ic] =  U[nt];
-            V[ic] = -V[nt];
+         if (mesh->is_bottom_boundary(ic)) {
+            int nt = ntop[ic];
+            if (nt >= (int)mesh->ncells) {
+               H[ic] =  H[nt];
+               U[ic] =  U[nt];
+               V[ic] = -V[nt];
+            }
          }
-      }
-      if (mesh->is_top_boundary(ic)) {
-         int nb = nbot[ic];
-         if (nb >= (int)mesh->ncells) {
-            H[ic] =  H[nb];
-            U[ic] =  U[nb];
-            V[ic] = -V[nb];
+         if (mesh->is_top_boundary(ic)) {
+            int nb = nbot[ic];
+            if (nb >= (int)mesh->ncells) {
+               H[ic] =  H[nb];
+               U[ic] =  U[nb];
+               V[ic] = -V[nb];
+            }
          }
-      }
-   }
-}
-
-void State::apply_boundary_conditions(void)
-{
-   int *nlft, *nrht, *nbot, *ntop;
-
-   size_t &ncells = mesh->ncells;
-   nlft = mesh->nlft;
-   nrht = mesh->nrht;
-   nbot = mesh->nbot;
-   ntop = mesh->ntop;
-
-   // This is for a mesh with boundary cells
-   int lowerBound, upperBound;
-   mesh->get_bounds(lowerBound, upperBound);
-
-#pragma omp simd safelen(8)
-
-   for (uint ic=lowerBound; ic<upperBound; ic++) {
-      if (mesh->is_left_boundary(ic)) {
-         int nr = nrht[ic];
-         H[ic] =  H[nr];
-         U[ic] = -U[nr];
-         V[ic] =  V[nr];
-      }
-      if (mesh->is_right_boundary(ic))  {
-         int nl = nlft[ic];
-         H[ic] =  H[nl];
-         U[ic] = -U[nl];
-         V[ic] =  V[nl];
-      }
-      if (mesh->is_bottom_boundary(ic)) {
-         int nt = ntop[ic];
-         H[ic] =  H[nt];
-         U[ic] =  U[nt];
-         V[ic] = -V[nt];
-      }
-      if (mesh->is_top_boundary(ic)) {
-         int nb = nbot[ic];
-         H[ic] =  H[nb];
-         U[ic] =  U[nb];
-         V[ic] = -V[nb];
       }
    }
 }
@@ -1142,18 +1101,7 @@ void State::calc_finite_difference(double deltaT){
 
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-
-   size_t ncells     = mesh->ncells;
-   size_t &ncells_ghost = mesh->ncells_ghost;
-#ifdef _OPENMP
-#pragma omp master
-#endif
-   if (ncells_ghost < ncells) ncells_ghost = ncells;
+   apply_boundary_conditions();
 
    static state_t *H_new, *U_new, *V_new;
    int *nlft, *nrht, *nbot, *ntop, *level;
@@ -1169,21 +1117,14 @@ void State::calc_finite_difference(double deltaT){
 
    int flags = 0;
    flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
-   //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
 
 #ifdef _OPENMP
 #pragma omp master
 #endif
    {
-      H_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                    sizeof(state_t),
-                                                    "H_new", flags);
-      U_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                    sizeof(state_t),
-                                                    "U_new", flags);
-      V_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                    sizeof(state_t),
-                                                    "V_new", flags);
+      H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
+      U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
+      V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
    }
 #ifdef _OPENMP
 #pragma omp barrier
@@ -1194,9 +1135,6 @@ void State::calc_finite_difference(double deltaT){
 
 #pragma omp simd
    for(int gix = lowerBound; gix < upperBound; gix++) {
-#if DEBUG >= 3
-      printf("%d: DEBUG gix is %d at line %d in file %s\n",mesh->mype,gix,__LINE__,__FILE__);
-#endif
 
       int lvl     = level[gix];
       int nl      = nlft[gix];
@@ -1208,33 +1146,21 @@ void State::calc_finite_difference(double deltaT){
       real_t Uic     = U[gix];
       real_t Vic     = V[gix];
 
-#if DEBUG >= 3
-      if (nl < 0 || nl >= ncells_ghost ) printf("%d: Problem at file %s line %d with nl %ld\n",mesh->mype,__FILE__,__LINE__,nl);
-#endif
       int nll     = nlft[nl];
       real_t Hl      = H[nl];
       real_t Ul      = U[nl];
       real_t Vl      = V[nl];
 
-#if DEBUG >= 3
-      if (nr < 0 || nr >= ncells_ghost ) printf("%d: Problem at file %s line %d with nr %ld\n",mesh->mype,__FILE__,__LINE__,nr);
-#endif
       int nrr     = nrht[nr];
       real_t Hr      = H[nr];
       real_t Ur      = U[nr];
       real_t Vr      = V[nr];
 
-#if DEBUG >= 3
-      if (nt < 0 || nt >= ncells_ghost ) printf("%d: Problem at file %s line %d with nt %ld\n",mesh->mype,__FILE__,__LINE__,nt);
-#endif
       int ntt     = ntop[nt];
       real_t Ht      = H[nt];
       real_t Ut      = U[nt];
       real_t Vt      = V[nt];
 
-#if DEBUG >= 3
-      if (nb < 0 || nb >= ncells_ghost ) printf("%d: Problem at file %s line %d with nb %ld\n",mesh->mype,__FILE__,__LINE__,nb);
-#endif
       int nbb     = nbot[nb];
       real_t Hb      = H[nb];
       real_t Ub      = U[nb];
@@ -1245,37 +1171,22 @@ void State::calc_finite_difference(double deltaT){
       int ntr     = nrht[nt];
       int nbr     = nrht[nb];
 
-#if DEBUG >= 3
-      if (nll < 0 || nll >= ncells_ghost ) printf("%d: Problem at file %s line %d with nll %ld\n",mesh->mype,__FILE__,__LINE__,nll);
-#endif
       real_t Hll     = H[nll];
       real_t Ull     = U[nll];
       //real_t Vll     = V[nll];
 
-#if DEBUG >= 3
-      if (nrr < 0 || nrr >= ncells_ghost ) printf("%d: Problem at file %s line %d with nrr %ld\n",mesh->mype,__FILE__,__LINE__,nrr);
-#endif
       real_t Hrr     = H[nrr];
       real_t Urr     = U[nrr];
       //real_t Vrr     = V[nrr];
 
-#if DEBUG >= 3
-      if (ntt < 0 || ntt >= ncells_ghost ) printf("%d: Problem at file %s line %d with ntt %ld\n",mesh->mype,__FILE__,__LINE__,ntt);
-#endif
       real_t Htt     = H[ntt];
       //real_t Utt     = U[ntt];
       real_t Vtt     = V[ntt];
 
-#if DEBUG >= 3
-      if (nbb < 0 || nbb >= ncells_ghost ) {printf("%d: Problem at file %s line %d ic %d %d with nbb %ld\n",mesh->mype,__FILE__,__LINE__,gix,gix+mesh->noffset,nbb); sleep(15); }
-#endif
       real_t Hbb     = H[nbb];
       //real_t Ubb     = U[nbb];
       real_t Vbb     = V[nbb];
 
-#if DEBUG >= 3
-      if (lvl < 0 || lvl >= (int)lev_deltax.size() ) printf("%d: Problem at file %s line %d with lvl %d\n",mesh->mype,__FILE__,__LINE__,lvl);
-#endif
       real_t dxic    = lev_deltax[lvl];
       real_t dyic    = lev_deltay[lvl];
 
@@ -1297,16 +1208,10 @@ void State::calc_finite_difference(double deltaT){
       real_t Hll2 = 0.0;
       real_t Ull2 = 0.0;
       if(lvl < level[nl]) {
-#if DEBUG >= 3
-         if (nlt < 0 || nlt > ncells_ghost ) printf("%d: Problem at file %s line %d with nlt %ld\n",mesh->mype,__FILE__,__LINE__,nlt);
-#endif
          Hlt  = H[ ntop[nl] ];
          Ult  = U[ ntop[nl] ];
          Vlt  = V[ ntop[nl] ];
          nltl = nlft[nlt];
-#if DEBUG >= 3
-         if (nltl < 0 || nltl > ncells_ghost ) printf("%d: Problem at file %s line %d with nltl %ld\n",mesh->mype,__FILE__,__LINE__,nltl);
-#endif
          Hll2 = H[nltl];
          Ull2 = U[nltl];
       }
@@ -1316,16 +1221,10 @@ void State::calc_finite_difference(double deltaT){
       real_t Hrr2 = 0.0;
       real_t Urr2 = 0.0;
       if(lvl < level[nr]) {
-#if DEBUG >= 3
-         if (nrt < 0 || nrt > ncells_ghost ) printf("%d: Problem at file %s line %d with nrt %ld\n",mesh->mype,__FILE__,__LINE__,nrt);
-#endif
          Hrt  = H[ ntop[nr] ];
          Urt  = U[ ntop[nr] ];
          Vrt  = V[ ntop[nr] ];
          nrtr = nrht[nrt];
-#if DEBUG >= 3
-         if (nrtr < 0 || nrtr > ncells_ghost ) printf("%d: Problem at file %s line %d with nrtr %ld\n",mesh->mype,__FILE__,__LINE__,nrtr);
-#endif
          Hrr2 = H[nrtr];
          Urr2 = U[nrtr];
       }
@@ -1335,16 +1234,10 @@ void State::calc_finite_difference(double deltaT){
       real_t Hbb2 = 0.0;
       real_t Vbb2 = 0.0;
       if(lvl < level[nb]) {
-#if DEBUG >= 3
-         if (nbr < 0 || nbr > ncells_ghost ) printf("%d: Problem at file %s line %d with nbr %ld\n",mesh->mype,__FILE__,__LINE__,nbr);
-#endif
          Hbr  = H[ nrht[nb] ];
          Ubr  = U[ nrht[nb] ];
          Vbr  = V[ nrht[nb] ];
          nbrb = nbot[nbr];
-#if DEBUG >= 3
-         if (nbrb < 0 || nbrb > ncells_ghost ) {printf("%d: Problem at file %s line %d ic %d %d with nbrb %ld\n",mesh->mype,__FILE__,__LINE__,gix,gix+mesh->noffset,nbrb); sleep(20);}
-#endif
          Hbb2 = H[nbrb];
          Vbb2 = V[nbrb];
       }
@@ -1354,16 +1247,10 @@ void State::calc_finite_difference(double deltaT){
       real_t Htt2 = 0.0;
       real_t Vtt2 = 0.0;
       if(lvl < level[nt]) {
-#if DEBUG >= 3
-         if (ntr < 0 || ntr > ncells_ghost ) printf("%d: Problem at file %s line %d with ntr %ld\n",mesh->mype,__FILE__,__LINE__,ntr);
-#endif
          Htr  = H[ nrht[nt] ];
          Utr  = U[ nrht[nt] ];
          Vtr  = V[ nrht[nt] ];
          ntrt = ntop[ntr];
-#if DEBUG >= 3
-         if (ntrt < 0 || ntrt > ncells_ghost ) {printf("%d: Problem at file %s line %d ic %d %d with ntrt %ld\n",mesh->mype,__FILE__,__LINE__,gix,gix+mesh->noffset,ntrt); sleep(20); }
-#endif
          Htt2 = H[ntrt];
          Vtt2 = V[ntrt];
       }
@@ -1485,23 +1372,12 @@ void State::calc_finite_difference(double deltaT){
 
       }
 
-      //if (DEBUG >= 2) {
-      // printf("1st pass x direction nz %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf\n",
-      //    gix, nl, nr,
-      //    Hxplus,Hxplus2,Uxplus,Uxplus2,Vxplus,Vxplus2);
-      //    //H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
-      //}
-
       ////////////////////////////////////////
       /// Artificial Viscosity corrections ///
       ////////////////////////////////////////
 
 
       if(level[nl] < level[nll]) {
-#if DEBUG >= 3
-         size_t nllt = ntop[nll];
-         if (nllt < 0 || nllt >= ncells_ghost ) printf("%d: Problem at file %s line %d with nllt %ld\n",mesh->mype,__FILE__,__LINE__,nllt);
-#endif
          Hll = (Hll + H[ ntop[nll] ]) * HALF;
          Ull = (Ull + U[ ntop[nll] ]) * HALF;
       }
@@ -1528,10 +1404,6 @@ void State::calc_finite_difference(double deltaT){
 
 
       if(level[nr] < level[nrr]) {
-#if DEBUG >= 3
-         size_t nrrt = ntop[nrr];
-         if (nrrt < 0 || nrrt >= ncells_ghost ) printf("%d: Problem at file %s line %d with nrrt %ld\n",mesh->mype,__FILE__,__LINE__,nrrt);
-#endif
          Hrr = (Hrr + H[ ntop[nrr] ]) * HALF;
          Urr = (Urr + U[ ntop[nrr] ]) * HALF;
       }
@@ -1586,10 +1458,6 @@ void State::calc_finite_difference(double deltaT){
 
 
       if(level[nb] < level[nbb]) {
-#if DEBUG >= 3
-         size_t nbbr = nrht[nbb];
-         if (nbbr < 0 || nbbr >= ncells_ghost ) printf("%d: Problem at file %s line %d gix %d %d with nbbr %ld\n",mesh->mype,__FILE__,__LINE__,gix,gix+mesh->noffset,nbbr);
-#endif
          Hbb = (Hbb + H[ nrht[nbb] ]) * HALF;
          Vbb = (Vbb + V[ nrht[nbb] ]) * HALF;
       }
@@ -1616,10 +1484,6 @@ void State::calc_finite_difference(double deltaT){
 
 
       if(level[nt] < level[ntt]) {
-#if DEBUG >= 3
-         size_t nttr = nrht[ntt];
-         if (nttr < 0 || nttr >= ncells_ghost ) printf("%d: Problem at file %s line %d with nttr %ld\n",mesh->mype,__FILE__,__LINE__,nttr);
-#endif
          Htt = (Htt + H[ nrht[ntt] ]) * HALF;
          Vtt = (Vtt + V[ nrht[ntt] ]) * HALF;
       }
@@ -1680,24 +1544,6 @@ void State::calc_finite_difference(double deltaT){
                        Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                   - wminusy_V + wplusy_V;
 
-#if DEBUG >= 1
-      if (DEBUG >= 1) {
-         real_t U_tmp = U_new[gix];
-         real_t V_tmp = V_new[gix];
-         if (U_tmp == 0.0) U_tmp = 0.0;
-         if (V_tmp == 0.0) V_tmp = 0.0;
-         printf("DEBUG ic %d H_new %lf U_new %lf V_new %lf\n",gix,H_new[gix],U_tmp,V_tmp);
-      }
-#endif
-
-/*
-      printf("DEBUG ic %d deltaT, %lf dxic, %lf Hic, %lf Hxfluxplus, %lf Hxfluxminus, %lf Hyfluxplus, %lf Hyfluxminus %lf\n",
-         gix, deltaT, dxic, Hic, Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus);
-      printf("DEBUG ic %d wminusx_H %lf wplusx_H %lf wminusy_H %lf wplusy_H %lf\n",gix, wminusx_H, wplusx_H, wminusy_H, wplusy_H);
-      printf("DEBUG ic %d deltaT, %lf dxic, %lf Vic, %lf Vxfluxplus, %lf Vxfluxminus, %lf Vyfluxplus, %lf Vyfluxminus %lf\n",
-         gix, deltaT, dxic, Vic, Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus);
-      printf("DEBUG ic %d wminusy_V %lf wplusy_V %lf\n",gix, wminusy_V, wplusy_V);
-*/
    } // cell loop
 
 #ifdef _OPENMP
@@ -1713,15 +1559,12 @@ void State::calc_finite_difference(double deltaT){
 
       //state_memory.memory_report();
       //printf("DEBUG end finite diff\n\n"); 
+
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 #ifdef _OPENMP
    }
 #pragma omp barrier
 #endif
-
-#ifdef _OPENMP
-#pragma omp master
-#endif
-      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
 void State::calc_finite_difference_in_place(double deltaT){
@@ -1733,18 +1576,7 @@ void State::calc_finite_difference_in_place(double deltaT){
 
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-
-   size_t ncells     = mesh->ncells;
-   size_t &ncells_ghost = mesh->ncells_ghost;
-#ifdef _OPENMP
-#pragma omp master
-#endif
-   if (ncells_ghost < ncells) ncells_ghost = ncells;
+   apply_boundary_conditions();
 
    int flags = 0;
    flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
@@ -1772,26 +1604,26 @@ void State::calc_finite_difference_in_place(double deltaT){
 #pragma omp master
    {
 #endif
-   FakeFluxHxP.resize(ncells, 0);
-   FakeFluxUxP.resize(ncells, 0);
-   FakeFluxVxP.resize(ncells, 0);
-   FakeFluxHyP.resize(ncells, 0);
-   FakeFluxUyP.resize(ncells, 0);
-   FakeFluxVyP.resize(ncells, 0);
-   FakeFluxHxM.resize(ncells, 0);
-   FakeFluxUxM.resize(ncells, 0);
-   FakeFluxVxM.resize(ncells, 0);
-   FakeFluxHyM.resize(ncells, 0);
-   FakeFluxUyM.resize(ncells, 0);
-   FakeFluxVyM.resize(ncells, 0);
-   tempWHxP.resize(ncells, 0);
-   tempWHxM.resize(ncells, 0);
-   tempWUxP.resize(ncells, 0);
-   tempWUxM.resize(ncells, 0);
-   tempWHyP.resize(ncells, 0);
-   tempWHyM.resize(ncells, 0);
-   tempWVyP.resize(ncells, 0);
-   tempWVyM.resize(ncells, 0);
+   FakeFluxHxP.resize(mesh->ncells, 0);
+   FakeFluxUxP.resize(mesh->ncells, 0);
+   FakeFluxVxP.resize(mesh->ncells, 0);
+   FakeFluxHyP.resize(mesh->ncells, 0);
+   FakeFluxUyP.resize(mesh->ncells, 0);
+   FakeFluxVyP.resize(mesh->ncells, 0);
+   FakeFluxHxM.resize(mesh->ncells, 0);
+   FakeFluxUxM.resize(mesh->ncells, 0);
+   FakeFluxVxM.resize(mesh->ncells, 0);
+   FakeFluxHyM.resize(mesh->ncells, 0);
+   FakeFluxUyM.resize(mesh->ncells, 0);
+   FakeFluxVyM.resize(mesh->ncells, 0);
+   tempWHxP.resize(mesh->ncells, 0);
+   tempWHxM.resize(mesh->ncells, 0);
+   tempWUxP.resize(mesh->ncells, 0);
+   tempWUxM.resize(mesh->ncells, 0);
+   tempWHyP.resize(mesh->ncells, 0);
+   tempWHyM.resize(mesh->ncells, 0);
+   tempWVyP.resize(mesh->ncells, 0);
+   tempWVyM.resize(mesh->ncells, 0);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -1806,9 +1638,9 @@ void State::calc_finite_difference_in_place(double deltaT){
 #pragma omp master
 #endif
    {
-      H_new = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "H_new", flags);
-      U_new = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "U_new", flags);
-      V_new = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "V_new", flags);
+      H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
+      U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
+      V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
    }
 #ifdef _OPENMP
 #pragma omp barrier
@@ -2176,15 +2008,11 @@ void State::calc_finite_difference_in_place(double deltaT){
       U = (state_t *)state_memory.memory_replace(U, U_new);
       V = (state_t *)state_memory.memory_replace(V, V_new);
 
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 #ifdef _OPENMP
    }
 #pragma omp barrier
 #endif
-
-#ifdef _OPENMP
-#pragma omp master
-#endif
-      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
 void State::calc_finite_difference_face_in_place(double deltaT){
@@ -2196,18 +2024,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-
-   size_t ncells     = mesh->ncells;
-   size_t &ncells_ghost = mesh->ncells_ghost;
-#ifdef _OPENMP
-#pragma omp master
-#endif
-   if (ncells_ghost < ncells) ncells_ghost = ncells;
+   apply_boundary_conditions();
 
    int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
 
@@ -2238,26 +2055,26 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp master
    {
 #endif
-   FakeFluxHxP.resize(ncells, 0);
-   FakeFluxUxP.resize(ncells, 0);
-   FakeFluxVxP.resize(ncells, 0);
-   FakeFluxHyP.resize(ncells, 0);
-   FakeFluxUyP.resize(ncells, 0);
-   FakeFluxVyP.resize(ncells, 0);
-   FakeFluxHxM.resize(ncells, 0);
-   FakeFluxUxM.resize(ncells, 0);
-   FakeFluxVxM.resize(ncells, 0);
-   FakeFluxHyM.resize(ncells, 0);
-   FakeFluxUyM.resize(ncells, 0);
-   FakeFluxVyM.resize(ncells, 0);
-   tempWHxP.resize(ncells, 0);
-   tempWHxM.resize(ncells, 0);
-   tempWUxP.resize(ncells, 0);
-   tempWUxM.resize(ncells, 0);
-   tempWHyP.resize(ncells, 0);
-   tempWHyM.resize(ncells, 0);
-   tempWVyP.resize(ncells, 0);
-   tempWVyM.resize(ncells, 0);
+   FakeFluxHxP.resize(mesh->ncells, 0);
+   FakeFluxUxP.resize(mesh->ncells, 0);
+   FakeFluxVxP.resize(mesh->ncells, 0);
+   FakeFluxHyP.resize(mesh->ncells, 0);
+   FakeFluxUyP.resize(mesh->ncells, 0);
+   FakeFluxVyP.resize(mesh->ncells, 0);
+   FakeFluxHxM.resize(mesh->ncells, 0);
+   FakeFluxUxM.resize(mesh->ncells, 0);
+   FakeFluxVxM.resize(mesh->ncells, 0);
+   FakeFluxHyM.resize(mesh->ncells, 0);
+   FakeFluxUyM.resize(mesh->ncells, 0);
+   FakeFluxVyM.resize(mesh->ncells, 0);
+   tempWHxP.resize(mesh->ncells, 0);
+   tempWHxM.resize(mesh->ncells, 0);
+   tempWUxP.resize(mesh->ncells, 0);
+   tempWUxM.resize(mesh->ncells, 0);
+   tempWHyP.resize(mesh->ncells, 0);
+   tempWHyM.resize(mesh->ncells, 0);
+   tempWVyP.resize(mesh->ncells, 0);
+   tempWVyM.resize(mesh->ncells, 0);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2698,740 +2515,11 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       U = (state_t *)state_memory.memory_replace(U, U_new);
       V = (state_t *)state_memory.memory_replace(V, V_new);
 
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-#pragma omp master
-#endif
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
-}
-
-void State::calc_finite_difference_face_in_place_old(double deltaT){
-   real_t   g     = 9.80;   // gravitational constant
-   real_t   ghalf = HALF*g;
-
-   struct timeval tstart_cpu;
-   cpu_timer_start(&tstart_cpu);
-
-   // We need to populate the ghost regions since the calc neighbors has just been
-   // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-
-   size_t ncells     = mesh->ncells;
-   size_t &ncells_ghost = mesh->ncells_ghost;
-#ifdef _OPENMP
-#pragma omp master
-#endif
-   if (ncells_ghost < ncells) ncells_ghost = ncells;
-
-   int xfaceSize, cellSizewp;
-
-   int flags = 0;
-   flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
-
-    //following ~35 lines are to give H, U, V its proper flags back
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-    //state_memory.memory_report();
-    //printf("\n\n\n");
 #ifdef _OPENMP
    }
 #pragma omp barrier
 #endif
-
-#ifdef _OPENMP
-//#pragma omp barrier
-   //static state_t *H_tmp, *U_tmp, *V_tmp;
-//#pragma omp master
-   //{
-   //   H_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "H_tmp", flags);
-   //   U_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "U_tmp", flags);
-   //   V_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "V_tmp", flags);
-   //}
-//#pragma omp barrier
-   // int lowlow, upup;
-
-   // mesh->get_bounds(lowlow, upup);
-   // for (lowlow; lowlow < upup; lowlow++) {
-   //     H_tmp[lowlow] = H[lowlow];
-   //     U_tmp[lowlow] = U[lowlow];
-   //     V_tmp[lowlow] = V[lowlow];
-   // }
-#pragma omp barrier
-#pragma omp master
-   {
-      // Set missing memory attributes to be sure they are correct
-      state_memory.set_memory_attribute(H, REZONE_DATA);
-      state_memory.set_memory_attribute(H, LOAD_BALANCE_MEMORY);
-      state_memory.set_memory_attribute(U, REZONE_DATA);
-      state_memory.set_memory_attribute(U, LOAD_BALANCE_MEMORY);
-      state_memory.set_memory_attribute(V, REZONE_DATA);
-      state_memory.set_memory_attribute(V, LOAD_BALANCE_MEMORY);
-   }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-    //state_memory.memory_report();
-    //printf("\n\n\n");
-#endif
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
-   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-   static vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
-   static vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
-   static vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
-   static vector<double> FakeFluxHyM, FakeFluxUyM, FakeFluxVyM;
-   static vector<double> tempWHxP, tempWHxM, tempWUxP, tempWUxM;
-   static vector<double> tempWHyP, tempWHyM, tempWVyP, tempWVyM;
-
-   vector<real_t> &lev_deltax = mesh->lev_deltax;
-   vector<real_t> &lev_deltay = mesh->lev_deltay;
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   FakeFluxHxP.resize(ncells, 0);
-   FakeFluxUxP.resize(ncells, 0);
-   FakeFluxVxP.resize(ncells, 0);
-   FakeFluxHyP.resize(ncells, 0);
-   FakeFluxUyP.resize(ncells, 0);
-   FakeFluxVyP.resize(ncells, 0);
-   FakeFluxHxM.resize(ncells, 0);
-   FakeFluxUxM.resize(ncells, 0);
-   FakeFluxVxM.resize(ncells, 0);
-   FakeFluxHyM.resize(ncells, 0);
-   FakeFluxUyM.resize(ncells, 0);
-   FakeFluxVyM.resize(ncells, 0);
-   tempWHxP.resize(ncells, 0);
-   tempWHxM.resize(ncells, 0);
-   tempWUxP.resize(ncells, 0);
-   tempWUxM.resize(ncells, 0);
-   tempWHyP.resize(ncells, 0);
-   tempWHyM.resize(ncells, 0);
-   tempWVyP.resize(ncells, 0);
-   tempWVyM.resize(ncells, 0);
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-   xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
-   cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
-
-   static vector<state_t> Hx, Ux, Vx;
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   Hx.resize(xfaceSize, -999999);
-   Ux.resize(xfaceSize, -999999);
-   Vx.resize(xfaceSize, -999999);
-
-   if (phantom_debug) {
-      print();
-   }
-
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-   
-
-#ifdef _OPENMP
-#pragma omp for 
-#endif
-   //normally use xfaceSize
-   for (int iface = 0; iface < mesh->nxface; iface++){
-      int cell_lower = mesh->map_xface2cell_lower[iface];
-      int cell_upper = mesh->map_xface2cell_upper[iface];
-      int level_lower = mesh->level[cell_lower];
-      int level_upper = mesh->level[cell_upper];
-      //if (level_lower == level_upper) {
-#ifdef PATTERN_CHECK
-         switch(mesh->xcase[iface]){ //will not work as phantom faces haven't been added a pattern (should be pat 0)
-             case 0:
-             case 1:
-             case 81:
-             case 4:
-             case 84:
-             case 5:
-             case 82:
-             case 88:
-                 break;
-             default:
-                 printf("Face case %d at line %d is not handled \n",mesh->xcase[iface],__LINE__);
-                 break;
-         }
-#endif
-         int lev = level_upper;
-         real_t Cxhalf = 0.5*deltaT/mesh->lev_deltax[lev];
-         Hx[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cxhalf*( HXFLUX(cell_upper)-HXFLUX(cell_lower) );
-         Ux[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cxhalf*( UXFLUX(cell_upper)-UXFLUX(cell_lower) );
-         Vx[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cxhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
-
-#ifdef PATTERN_CHECK
-         switch(mesh->xcase[iface]){
-             case 17:
-             case 18:
-             case 98:
-             case 68:
-             case 72:
-	         case 99:
-             case 152:
-	         case 156:
-                 break;
-             default:
-                 printf("Face case %d at line %d is not handled \n",mesh->xcase[iface],__LINE__);
-                 break;
-         }
-#endif
-#if DEBUG >= 2
-      if (DEBUG >= 2) {
-         printf("1st pass x direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-            iface, mesh->xface_i[iface], mesh->xface_j[iface], mesh->xface_level[iface],
-            mesh->map_xface2cell_lower[iface], mesh->map_xface2cell_upper[iface],
-            Hx[iface],Ux[iface],Vx[iface],
-            H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
-      }
-#endif
-      if (phantom_debug) {
-         printf("1st pass x direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-            iface, mesh->xface_i[iface], mesh->xface_j[iface], mesh->xface_level[iface],
-            mesh->map_xface2cell_lower[iface], mesh->map_xface2cell_upper[iface],
-            Hx[iface],Ux[iface],Vx[iface],
-            H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
-      }
-   }
-#if DEBUG >= 2
-   if (DEBUG >= 2) {
-      printf("\n");
-   }
-#endif
-   if (phantom_debug) {
-      printf("\n");
-   }
-#ifdef PATTERN_CHECK
-   free(mesh->xcase);
-#endif
-   
-   int yfaceSize = mesh->map_yface2cell_lower.size(); //new "update" nyface inc. phantoms
-   static vector<state_t> Hy, Uy, Vy;
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-
-   Hy.resize(yfaceSize, -999999);
-   Uy.resize(yfaceSize, -999999);
-   Vy.resize(yfaceSize, -999999);
-
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-#pragma omp for 
-#endif
-   
-   //normally use yfaceSize
-   for (int iface = 0; iface < mesh->nyface; iface++){
-      int cell_lower = mesh->map_yface2cell_lower[iface];
-      int cell_upper = mesh->map_yface2cell_upper[iface];
-      int level_lower = mesh->level[cell_lower];
-      int level_upper = mesh->level[cell_upper];
-      int lev = level_upper;
-      real_t Cyhalf = 0.5*deltaT/mesh->lev_deltay[lev];
-      Hy[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cyhalf*( HYFLUX(cell_upper)-HYFLUX(cell_lower) );
-      Uy[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cyhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
-      Vy[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cyhalf*( VYFLUX(cell_upper)-VYFLUX(cell_lower) );
-
-#if DEBUG >= 2
-      if (DEBUG >= 2) {
-         printf("1st pass y direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-            iface, mesh->yface_i[iface], mesh->yface_j[iface], mesh->yface_level[iface],
-            mesh->map_yface2cell_lower[iface], mesh->map_yface2cell_upper[iface],
-            Hy[iface],Uy[iface],Vy[iface],
-            H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
-      }
-#endif
-      if (phantom_debug) {
-         printf("1st pass y direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-            iface, mesh->yface_i[iface], mesh->yface_j[iface], mesh->yface_level[iface],
-            mesh->map_yface2cell_lower[iface], mesh->map_yface2cell_upper[iface],
-            Hy[iface],Uy[iface],Vy[iface],
-            H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
-      }
-   }
-#if DEBUG >= 2
-   if (DEBUG >= 2) {
-      printf("\n");
-   }
-#endif
-   if (phantom_debug) {
-      printf("\n");
-   }
-
-
-   static state_t *H_new, *U_new, *V_new;
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-      H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
-      U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
-      V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-
-   int lowerBound, upperBound;
-
-   mesh->get_bounds(lowerBound, upperBound);
-   int rough = mesh->levmx;
-   while (rough > -1) {
-   for (int ic = lowerBound; ic < upperBound; ic++){
-      int lvl     = mesh->level[ic];
-      if (lvl != rough) continue;
-
-   //if (ic == 286) printf("%d %d %d %d %d\n", mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic], mesh->phantomXFlux[286]);
-      /*if (mesh->nlft[ic] == ic)
-  	    //nl = ic;
-        continue;
-      if (mesh->nrht[ic] == ic)
-  	    //nr = ic;
-        continue;
-      if (mesh->nbot[ic] == ic)
-  	    //nb = ic;
-        continue;
-      if (mesh->ntop[ic] == ic)
-  	    //nt = ic;
-        continue;*/
-     
-      int nl = mesh->map_xface2cell_lower[mesh->map_xcell2face_left1[ic]];
-      int nr = mesh->map_xface2cell_upper[mesh->map_xcell2face_right1[ic]];
-      int nb = mesh->map_yface2cell_lower[mesh->map_ycell2face_bot1[ic]];
-      int nt = mesh->map_yface2cell_upper[mesh->map_ycell2face_top1[ic]];
-
-      if (nb == ic  || nt == ic || nl == ic | nr == ic) continue;
-
-      //printf("%d) %d %d %d %d\n", ic, nl, nr, nb, nt);
-
-      real_t Hic     = H[ic];
-      real_t Uic     = U[ic];
-      real_t Vic     = V[ic];
-
-      int nll     = mesh->map_xface2cell_lower[mesh->map_xcell2face_left1[nl]];
-      real_t Hl      = H[nl];
-      real_t Ul      = U[nl];
-      //real_t Vl      = V[nl];
-
-      int nrr     = mesh->map_xface2cell_upper[mesh->map_xcell2face_right1[nr]];
-      real_t Hr      = H[nr];
-      real_t Ur      = U[nr];
-      //real_t Vr      = V[nr];
-
-      int ntt     = mesh->map_yface2cell_upper[mesh->map_ycell2face_top1[nt]];
-      real_t Ht      = H[nt];
-      //real_t Ut      = U[nt];
-      real_t Vt      = V[nt];
-
-      int nbb     = mesh->map_yface2cell_lower[mesh->map_ycell2face_bot1[nb]];
-      real_t Hb      = H[nb];
-      //real_t Ub      = U[nb];
-      real_t Vb      = V[nb];
-
-      /*if (mesh->nlft[nl] == nl)
-  	    nll = nl;
-      if (mesh->nrht[nr] == nr)
-  	    nrr = nr;
-      if (mesh->nbot[nb] == nb)
-  	    nbb = nb;
-      if (mesh->ntop[nt] == nt)
-  	    ntt = nt;*/
-
-      real_t Hll     = H[nll];
-      real_t Ull     = U[nll];
-
-      real_t Hrr     = H[nrr];
-      real_t Urr     = U[nrr];
-
-      real_t Htt     = H[ntt];
-      real_t Vtt     = V[ntt];
-
-      real_t Hbb     = H[nbb];
-      real_t Vbb     = V[nbb];
-
-      real_t dxic    = lev_deltax[lvl];
-
-      real_t dxl     = lev_deltax[mesh->level[nl]];
-      real_t dxr     = lev_deltax[mesh->level[nr]];
-
-      real_t dyt     = lev_deltay[mesh->level[nt]];
-      real_t dyb     = lev_deltay[mesh->level[nb]];
-
-      real_t dric    = dxic;
-
-      ////////////////////////////////////////
-      /// Artificial Viscosity corrections ///
-      ////////////////////////////////////////
-
-      real_t Hxminus = H[ic];
-      real_t Uxminus = 0.0;
-      real_t Vxminus = 0.0;
-      //if (mesh->map_xcell2face_left1[ic] >= 0){
-         Hxminus  = Hx[mesh->map_xcell2face_left1[ic]];
-         Uxminus  = Ux[mesh->map_xcell2face_left1[ic]];
-         Vxminus  = Vx[mesh->map_xcell2face_left1[ic]];
-      //}
-
-      real_t Hxplus = H[ic];
-      real_t Uxplus = 0.0;
-      real_t Vxplus = 0.0;
-      //if (mesh->map_xcell2face_right1[ic] >= 0){
-         Hxplus   = Hx[mesh->map_xcell2face_right1[ic]];
-         Uxplus   = Ux[mesh->map_xcell2face_right1[ic]];
-         Vxplus   = Vx[mesh->map_xcell2face_right1[ic]];
-      //}
-      //if (ic == 280) printf("%f %f %f %d %d\n", Hic, Hxplus, Hxminus, mesh->map_xcell2face_right1[ic], mesh->map_xcell2face_left1[ic]);
-      //if (ic == 280) printf("%d %d %d %d %d\n", mesh->nlft[ic], mesh->level[mesh->nlft[ic]], lvl, mesh->nrht[ic], mesh->level[mesh->nrht[ic]]);
-
-      /*real_t Hxplus2 = 0.0;
-      //if(lvl < mesh->level[nr]) Hxplus2 = H[ic];
-      real_t Uxplus2 = 0.0;
-      real_t Vxplus2 = 0.0;
-      if (mesh->map_xcell2face_right2[ic] >= 0){
-	printf("shouldn't get here 4\n");
-         Hxplus2  = Hx[mesh->map_xcell2face_right2[ic]];
-         Uxplus2  = Ux[mesh->map_xcell2face_right2[ic]];
-         Vxplus2  = Vx[mesh->map_xcell2face_right2[ic]];
-      }*/
-
-      /*if(mesh->level[nl] < mesh->level[nll]) {
-         Hll = (Hll + H[ mesh->ntop[nll] ]) * HALF;
-         Ull = (Ull + U[ mesh->ntop[nll] ]) * HALF;
-      }*/
-
-      real_t Hr2 = Hr;
-      real_t Ur2 = Ur;
-
-      real_t wminusx_H = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                              Hic-Hl, Hl-Hll, Hr2-Hic);
-      wminusx_H *= Hic - Hl;
-
-      real_t Hl2 = Hl;
-      real_t Ul2 = Ul;
-
-      real_t wplusx_H = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                           Hr-Hic, Hic-Hl2, Hrr-Hr);
-
-      wplusx_H *= Hr - Hic;
-
-      real_t wminusx_U = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                              Uic-Ul, Ul-Ull, Ur2-Uic);
-
-      wminusx_U *= Uic - Ul;
-
-      real_t wplusx_U = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                              Ur-Uic, Uic-Ul2, Urr-Ur);
-
-      wplusx_U *= Ur - Uic;
-
-      real_t Ht2 = Ht;
-      real_t Vt2 = Vt;
-
-      real_t Hyminus = H[ic];
-      real_t Uyminus = 0.0;
-      real_t Vyminus = 0.0;
-      //if (mesh->map_ycell2face_bot1[ic] >= 0){
-         Hyminus  = Hy[mesh->map_ycell2face_bot1[ic]];
-         Uyminus  = Uy[mesh->map_ycell2face_bot1[ic]];
-         Vyminus  = Vy[mesh->map_ycell2face_bot1[ic]];
-      //}
-
-      real_t Hyplus = H[ic];
-      real_t Uyplus = 0.0;
-      real_t Vyplus = 0.0;
-      //if (mesh->map_ycell2face_top1[ic] >= 0){
-         Hyplus   = Hy[mesh->map_ycell2face_top1[ic]];
-         Uyplus   = Uy[mesh->map_ycell2face_top1[ic]];
-         Vyplus   = Vy[mesh->map_ycell2face_top1[ic]];
-      //}
-
-      real_t wminusy_H = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                              Hic-Hb, Hb-Hbb, Ht2-Hic);
-
-      wminusy_H *= Hic - Hb;
-
-      real_t Hb2 = Hb;
-      real_t Vb2 = Vb;
-
-      real_t wplusy_H = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                             Ht-Hic, Hic-Hb2, Htt-Ht);
-
-      wplusy_H *= Ht - Hic;
-
-      real_t wminusy_V = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                              Vic-Vb, Vb-Vbb, Vt2-Vic);
-
-      wminusy_V *= Vic - Vb;
-
-      real_t wplusy_V = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                           Vt-Vic, Vic-Vb2, Vtt-Vt);
-
-      wplusy_V *= Vt - Vic;
-      
-      real_t Hxfluxminus = HNEWXFLUXMINUS;
-      real_t Uxfluxminus = UNEWXFLUXMINUS;
-      real_t Vxfluxminus = UVNEWFLUXMINUS;
-
-      real_t Hxfluxplus  = HNEWXFLUXPLUS;
-      real_t Uxfluxplus  = UNEWXFLUXPLUS;
-      real_t Vxfluxplus  = UVNEWFLUXPLUS;
-
-      real_t Hyfluxminus = HNEWYFLUXMINUS;
-      real_t Uyfluxminus = VUNEWFLUXMINUS;
-      real_t Vyfluxminus = VNEWYFLUXMINUS;
-
-      real_t Hyfluxplus  = HNEWYFLUXPLUS;
-      real_t Uyfluxplus  = VUNEWFLUXPLUS;
-      real_t Vyfluxplus  = VNEWYFLUXPLUS;
-
-    if ((FakeFluxHxP[ic] > 0) || (FakeFluxUxP[ic] > 0) || (FakeFluxVxP[ic] > 0)) {
-        Hxfluxplus = FakeFluxHxP[ic] * HALF; 
-        Uxfluxplus = FakeFluxUxP[ic] * HALF;
-        Vxfluxplus = FakeFluxVxP[ic] * HALF; 
-        FakeFluxHxP[ic] = 0.0;
-        FakeFluxUxP[ic] = 0.0;
-        FakeFluxVxP[ic] = 0.0;
-        wplusx_H = tempWHxP[ic];
-        wplusx_U = tempWUxP[ic];
-        tempWHxP[ic] = 0.0;
-        tempWUxP[ic] = 0.0;
-    }
-    if ((FakeFluxHxM[ic] > 0) || (FakeFluxUxM[ic] > 0) || (FakeFluxVxM[ic] > 0)) {
-        Hxfluxminus = FakeFluxHxM[ic] * HALF; 
-        Uxfluxminus = FakeFluxUxM[ic] * HALF; 
-        Vxfluxminus = FakeFluxVxM[ic] * HALF; 
-        FakeFluxHxM[ic] = 0.0;
-        FakeFluxUxM[ic] = 0.0;
-        FakeFluxVxM[ic] = 0.0;
-        wminusx_H = tempWHxM[ic];
-        wminusx_U = tempWUxM[ic];
-        tempWHxM[ic] = 0.0;
-        tempWUxM[ic] = 0.0;
-    }
-    if ((FakeFluxHyP[ic] > 0) || (FakeFluxUyP[ic] > 0) || (FakeFluxVyP[ic] > 0)) {
-        Hyfluxplus = FakeFluxHyP[ic] * HALF; 
-        Uyfluxplus = FakeFluxUyP[ic] * HALF; 
-        Vyfluxplus = FakeFluxVyP[ic] * HALF; 
-        FakeFluxHyP[ic] = 0.0;
-        FakeFluxUyP[ic] = 0.0;
-        FakeFluxVyP[ic] = 0.0;
-        wplusy_H = tempWHyP[ic];
-        wplusy_V = tempWVyP[ic];
-        tempWHyP[ic] = 0.0;
-        tempWVyP[ic] = 0.0;
-    }
-    if ((FakeFluxHyM[ic] > 0) || (FakeFluxUyM[ic] > 0) || (FakeFluxVyM[ic] > 0)) {
-        Hyfluxminus = FakeFluxHyM[ic] * HALF; 
-        Uyfluxminus = FakeFluxUyM[ic] * HALF; 
-        Vyfluxminus = FakeFluxVyM[ic] * HALF; 
-        FakeFluxHyM[ic] = 0.0;
-        FakeFluxUyM[ic] = 0.0;
-        FakeFluxVyM[ic] = 0.0;
-        wminusy_H = tempWHyM[ic];
-        wminusy_V = tempWVyM[ic];
-        tempWHyM[ic] = 0.0;
-        tempWVyM[ic] = 0.0;
-    }
-   //if (ic == 280) printf("%d\n", mesh->phantomXFlux[286]);
-
-    if ((mesh->phantomXFlux[ic] >= 0) && (mesh->phantomXFlux[ic] < 99999)) {
-        int recvIdx = mesh->phantomXFlux[ic];
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        FakeFluxHxP[recvIdx] += Hxfluxminus;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        FakeFluxUxP[recvIdx] += Uxfluxminus;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        FakeFluxVxP[recvIdx] += Vxfluxminus;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        tempWHxP[recvIdx] += wminusx_H / 4;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        tempWUxP[recvIdx] += wminusx_U / 4;
-    }
-    else if (mesh->phantomXFlux[ic] < 0) {
-        int recvIdx = abs(mesh->phantomXFlux[ic]);
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        FakeFluxHxM[recvIdx] += Hxfluxplus;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        FakeFluxUxM[recvIdx] += Uxfluxplus;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        FakeFluxVxM[recvIdx] += Vxfluxplus;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        tempWHxM[recvIdx] += wplusx_H / 4;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        tempWUxM[recvIdx] += wplusx_U / 4;
-    }
-    if ((mesh->phantomYFlux[ic] >= 0) && (mesh->phantomYFlux[ic] < 99999)) {
-        int recvIdx = mesh->phantomYFlux[ic];
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        FakeFluxHyP[recvIdx] += Hyfluxminus;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        FakeFluxUyP[recvIdx] += Uyfluxminus;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        FakeFluxVyP[recvIdx] += Vyfluxminus;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        tempWHyP[recvIdx] += wminusy_H / 4;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        tempWVyP[recvIdx] += wminusy_V / 4;
-    }
-    else if (mesh->phantomYFlux[ic] < 0) {
-        int recvIdx = abs(mesh->phantomYFlux[ic]);
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        FakeFluxHyM[recvIdx] += Hyfluxplus;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        FakeFluxUyM[recvIdx] += Uyfluxplus;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        FakeFluxVyM[recvIdx] += Vyfluxplus;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        tempWHyM[recvIdx] += wplusy_H / 4;
-#ifdef _OPENMP
-#pragma omp atomic update
-#endif
-        tempWVyM[recvIdx] += wplusy_V / 4;
-    }
-
-      //trying without dampening
-      //wminusx_H = 0.0; wplusx_H = 0.0; wminusy_H = 0.0; wplusy_H = 0.0;
-      //wminusx_U = 0.0; wplusx_U = 0.0;
-      //wminusy_V = 0.0; wplusy_V = 0.0;
-
-      H_new[ic] = U_fullstep(deltaT, dxic, Hic,
-                      Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
-                 - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
-      U_new[ic] = U_fullstep(deltaT, dxic, Uic,
-                      Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
-                 - wminusx_U + wplusx_U;
-      V_new[ic] = U_fullstep(deltaT, dxic, Vic,
-                      Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
-                 - wminusy_V + wplusy_V;
-    //printf("%d) %f %f %f %f\n", ic, Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus);
-
-#if DEBUG >= 1
-      if (DEBUG >= 1) {
-         real_t U_tmp = U_new[ic];
-         real_t V_tmp = V_new[ic];
-         if (U_tmp == 0.0) U_tmp = 0.0;
-         if (V_tmp == 0.0) V_tmp = 0.0;
-         printf("DEBUG ic %d H_new %lf U_new %lf V_new %lf\n",ic,H_new[ic],U_tmp,V_tmp);
-      }
-#endif
-
-   }//end forloop
-   rough--;
-#ifdef _OPENMP
-#pragma omp barrier
-#endif
-   }//end while
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-      // Replace H with H_new and deallocate H. New memory will have the characteristics
-      // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
-      H = (state_t *)state_memory.memory_replace(H, H_new);
-      U = (state_t *)state_memory.memory_replace(U, U_new);
-      V = (state_t *)state_memory.memory_replace(V, V_new);
-
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-#pragma omp master
-#endif
-      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
 void State::calc_finite_difference_via_faces(double deltaT){
@@ -3443,19 +2531,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-
-   size_t ncells     = mesh->ncells;
-   size_t &ncells_ghost = mesh->ncells_ghost;
-
-#ifdef _OPENMP
-#pragma omp master
-#endif
-   if (ncells_ghost < ncells) ncells_ghost = ncells;
+   apply_boundary_conditions();
 
    int *nlft, *nrht, *nbot, *ntop, *level;
 
@@ -4080,738 +3156,12 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
       //state_memory.memory_report();
       //printf("DEBUG end finite diff\n\n"); 
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
 
-#ifdef _OPENMP
-#pragma omp master
-#endif
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
-}
-
-void State::calc_finite_difference_via_faces_old(double deltaT){
-   real_t   g     = 9.80;   // gravitational constant
-   real_t   ghalf = HALF*g;
-
-   struct timeval tstart_cpu;
-   cpu_timer_start(&tstart_cpu);
-
-   // We need to populate the ghost regions since the calc neighbors has just been
-   // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-
-   size_t ncells     = mesh->ncells;
-   size_t &ncells_ghost = mesh->ncells_ghost;
-
-#ifdef _OPENMP
-#pragma omp master
-#endif
-   if (ncells_ghost < ncells) ncells_ghost = ncells;
-
-   int *nlft, *nrht, *nbot, *ntop, *level;
-
-   int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   mesh->calc_face_list_wbidirmap();
 #ifdef _OPENMP
    }
 #pragma omp barrier
 #endif
-
-   nlft  = mesh->nlft;
-   nrht  = mesh->nrht;
-   nbot  = mesh->nbot;
-   ntop  = mesh->ntop;
-   level = mesh->level;
-
-   vector<real_t> &lev_deltax = mesh->lev_deltax;
-   vector<real_t> &lev_deltay = mesh->lev_deltay;
-
-
-   static vector<state_t> Hx, Ux, Vx;
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   Hx.resize(mesh->nxface);
-   Ux.resize(mesh->nxface);
-   Vx.resize(mesh->nxface);
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-#pragma omp for 
-#endif
-   for (int iface = 0; iface < mesh->nxface; iface++){
-      int cell_lower = mesh->map_xface2cell_lower[iface];
-      int cell_upper = mesh->map_xface2cell_upper[iface];
-      int level_lower = level[cell_lower];
-      int level_upper = level[cell_upper];
-      if (level_lower == level_upper) {
-#ifdef PATTERN_CHECK
-         switch(mesh->xcase[iface]){
-             case 0:
-             case 1:
-             case 81:
-             case 4:
-             case 84:
-             case 5:
-             case 82:
-             case 88:
-                 break;
-             default:
-                 printf("Face case %d at line %d is not handled \n",mesh->xcase[iface],__LINE__);
-                 break;
-         }
-#endif
-         int lev = level_upper;
-         real_t Cxhalf = 0.5*deltaT/mesh->lev_deltax[lev];
-         Hx[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cxhalf*( HXFLUX(cell_upper)-HXFLUX(cell_lower) );
-         Ux[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cxhalf*( UXFLUX(cell_upper)-UXFLUX(cell_lower) );
-         Vx[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cxhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
-      } else {
-#ifdef PATTERN_CHECK
-         switch(mesh->xcase[iface]){
-             case 17:
-             case 18:
-             case 98:
-             case 68:
-             case 72:
-	     case 99:
-             case 152:
-	     case 156:
-                 break;
-             default:
-                 printf("Face case %d at line %d is not handled \n",mesh->xcase[iface],__LINE__);
-                 break;
-         }
-#endif
-         real_t dx_lower = mesh->lev_deltax[level[cell_lower]];
-         real_t dx_upper = mesh->lev_deltax[level[cell_upper]];
-
-         real_t FA_lower = dx_lower;
-         real_t FA_upper = dx_upper;
-         real_t FA_lolim = FA_lower*min(ONE, FA_upper/FA_lower);
-         real_t FA_uplim = FA_upper*min(ONE, FA_lower/FA_upper);
-
-         real_t CV_lower = SQ(dx_lower);
-         real_t CV_upper = SQ(dx_upper);
-         real_t CV_lolim = CV_lower*min(HALF, CV_upper/CV_lower);
-         real_t CV_uplim = CV_upper*min(HALF, CV_lower/CV_upper);
-
-         // Weighted half-step calculation
-         //
-         // (dx_lower*H[cell_upper]+dx_upper*H[cell_lower])
-         // -----------------------------------------------   -
-         //             (dx_lower+dx_upper)
-         //
-         //                ( (FA_uplim*HXFLUX(cell_upper))-(FA_lolim*HXFLUX(cell_lower)) )
-         // 0.5*deltaT  *  ----------------------------------------------------------------
-         //                                    (CV_uplim+CV_lolim)
-         //
-
-         Hx[iface]=(dx_lower*H[cell_upper]+dx_upper*H[cell_lower])/(dx_lower+dx_upper) -
-                   HALF*deltaT*( (FA_uplim*HXFLUX(cell_upper))-(FA_lolim*HXFLUX(cell_lower)) )/
-                   (CV_uplim+CV_lolim);
-         Ux[iface]=(dx_lower*U[cell_upper]+dx_upper*U[cell_lower])/(dx_lower+dx_upper) -
-                   HALF*deltaT*( (FA_uplim*UXFLUX(cell_upper))-(FA_lolim*UXFLUX(cell_lower)) )/
-                   (CV_uplim+CV_lolim);
-         Vx[iface]=(dx_lower*V[cell_upper]+dx_upper*V[cell_lower])/(dx_lower+dx_upper) -
-                   HALF*deltaT*( (FA_uplim*UVFLUX(cell_upper))-(FA_lolim*UVFLUX(cell_lower)) )/
-                   (CV_uplim+CV_lolim);
-
-      }
-#if DEBUG >= 2
-      if (DEBUG >= 2) {
-         printf("1st pass x direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-            iface, mesh->xface_i[iface], mesh->xface_j[iface], mesh->xface_level[iface],
-            mesh->map_xface2cell_lower[iface], mesh->map_xface2cell_upper[iface],
-            Hx[iface],Ux[iface],Vx[iface],
-            H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
-      }
-#endif
-   }
-#if DEBUG >= 2
-   if (DEBUG >= 2) {
-      printf("\n");
-   }
-#endif
-
-#ifdef PATTERN_CHECK
-   free(mesh->xcase);
-#endif
-
-   static vector<state_t> Hy, Uy, Vy;
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   Hy.resize(mesh->nyface);
-   Uy.resize(mesh->nyface);
-   Vy.resize(mesh->nyface);
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-#pragma omp for 
-#endif
-   for (int iface = 0; iface < mesh->nyface; iface++){
-      int cell_lower = mesh->map_yface2cell_lower[iface];
-      int cell_upper = mesh->map_yface2cell_upper[iface];
-      int level_lower = level[cell_lower];
-      int level_upper = level[cell_upper];
-      if (level_lower == level_upper) {
-         int lev = level_upper;
-         real_t Cyhalf = 0.5*deltaT/mesh->lev_deltay[lev];
-         Hy[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cyhalf*( HYFLUX(cell_upper)-HYFLUX(cell_lower) );
-         Uy[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cyhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
-         Vy[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cyhalf*( VYFLUX(cell_upper)-VYFLUX(cell_lower) );
-      } else {
-         real_t dy_lower = mesh->lev_deltay[level[cell_lower]];
-         real_t dy_upper = mesh->lev_deltay[level[cell_upper]];
-
-         real_t FA_lower = dy_lower;
-         real_t FA_upper = dy_upper;
-         real_t FA_lolim = FA_lower*min(ONE, FA_upper/FA_lower);
-         real_t FA_uplim = FA_upper*min(ONE, FA_lower/FA_upper);
-
-         real_t CV_lower = SQ(dy_lower);
-         real_t CV_upper = SQ(dy_upper);
-         real_t CV_lolim = CV_lower*min(HALF, CV_upper/CV_lower);
-         real_t CV_uplim = CV_upper*min(HALF, CV_lower/CV_upper);
-
-         // Weighted half-step calculation
-         //
-         // (dy_lower*H[cell_upper]+dy_upper*H[cell_lower])
-         // -----------------------------------------------   -
-         //             (dy_lower+dy_upper)
-         //
-         //                ( (FA_uplim*HYFLUX(cell_upper))-(FA_lolim*HYFLUX(cell_lower)) )
-         // 0.5*deltaT  *  ----------------------------------------------------------------
-         //                                    (CV_uplim+CV_lolim)
-         //
-
-         Hy[iface]=(dy_lower*H[cell_upper]+dy_upper*H[cell_lower])/(dy_lower+dy_upper) -
-                   HALF*deltaT*( (FA_uplim*HYFLUX(cell_upper))-(FA_lolim*HYFLUX(cell_lower)) )/
-                   (CV_uplim+CV_lolim);
-         Uy[iface]=(dy_lower*U[cell_upper]+dy_upper*U[cell_lower])/(dy_lower+dy_upper) -
-                   HALF*deltaT*( (FA_uplim*UVFLUX(cell_upper))-(FA_lolim*UVFLUX(cell_lower)) )/
-                   (CV_uplim+CV_lolim);
-         Vy[iface]=(dy_lower*V[cell_upper]+dy_upper*V[cell_lower])/(dy_lower+dy_upper) -
-                   HALF*deltaT*( (FA_uplim*VYFLUX(cell_upper))-(FA_lolim*VYFLUX(cell_lower)) )/
-                   (CV_uplim+CV_lolim);
-
-      }
-
-#if DEBUG >= 2
-      if (DEBUG >= 2) {
-         printf("1st pass y direction iface %d i %d j %d lev %d nzlower %d nzupper %d %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
-            iface, mesh->yface_i[iface], mesh->yface_j[iface], mesh->yface_level[iface],
-            mesh->map_yface2cell_lower[iface], mesh->map_yface2cell_upper[iface],
-            Hy[iface],Uy[iface],Vy[iface],
-            H[cell_upper],H[cell_lower],U[cell_upper],U[cell_lower],V[cell_upper],V[cell_lower]);
-      }
-#endif
-   }
-#if DEBUG >= 2
-   if (DEBUG >= 2) {
-      printf("\n");
-   }
-#endif
-
-
-   static state_t *H_new, *U_new, *V_new;
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-      H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
-      U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
-      V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-   int lowerBound, upperBound;
-
-   mesh->get_bounds(lowerBound, upperBound);
-   for (int ic = lowerBound; ic < upperBound; ic++){
-      int lvl     = level[ic];
-      int nl      = nlft[ic];
-      int nr      = nrht[ic];
-      int nt      = ntop[ic];
-      int nb      = nbot[ic];
-
-      real_t Hic     = H[ic];
-      real_t Uic     = U[ic];
-      real_t Vic     = V[ic];
-
-      int nll     = nlft[nl];
-      real_t Hl      = H[nl];
-      real_t Ul      = U[nl];
-      //real_t Vl      = V[nl];
-
-      int nrr     = nrht[nr];
-      real_t Hr      = H[nr];
-      real_t Ur      = U[nr];
-      //real_t Vr      = V[nr];
-
-      int ntt     = ntop[nt];
-      real_t Ht      = H[nt];
-      //real_t Ut      = U[nt];
-      real_t Vt      = V[nt];
-
-      int nbb     = nbot[nb];
-      real_t Hb      = H[nb];
-      //real_t Ub      = U[nb];
-      real_t Vb      = V[nb];
-
-      int nlt     = ntop[nl];
-      int nrt     = ntop[nr];
-      int ntr     = nrht[nt];
-      int nbr     = nrht[nb];
-
-      real_t Hll     = H[nll];
-      real_t Ull     = U[nll];
-      //real_t Vll     = V[nll];
-
-      real_t Hrr     = H[nrr];
-      real_t Urr     = U[nrr];
-      //real_t Vrr     = V[nrr];
-
-      real_t Htt     = H[ntt];
-      //real_t Utt     = U[ntt];
-      real_t Vtt     = V[ntt];
-
-      real_t Hbb     = H[nbb];
-      //real_t Ubb     = U[nbb];
-      real_t Vbb     = V[nbb];
-
-      real_t dxic    = lev_deltax[lvl];
-      //real_t dyic    = lev_deltay[lvl];
-
-      real_t dxl     = lev_deltax[level[nl]];
-      real_t dxr     = lev_deltax[level[nr]];
-
-      real_t dyt     = lev_deltay[level[nt]];
-      real_t dyb     = lev_deltay[level[nb]];
-
-      //real_t drl     = dxl;
-      //real_t drr     = dxr;
-      //real_t drt     = dyt;
-      //real_t drb     = dyb;
-
-      real_t dric    = dxic;
-
-      int nltl = 0;
-      real_t Hlt = 0.0, Ult = 0.0; // Vlt = 0.0;
-      real_t Hll2 = 0.0;
-      real_t Ull2 = 0.0;
-      if(lvl < level[nl]) {
-         Hlt  = H[ ntop[nl] ];
-         Ult  = U[ ntop[nl] ];
-         //Vlt  = V[ ntop[nl] ];
-
-         nltl = nlft[nlt];
-         Hll2 = H[nltl];
-         Ull2 = U[nltl];
-      }
-
-      int nrtr = 0;
-      real_t Hrt = 0.0, Urt = 0.0; // Vrt = 0.0;
-      real_t Hrr2 = 0.0;
-      real_t Urr2 = 0.0;
-      if(lvl < level[nr]) {
-         Hrt  = H[ ntop[nr] ];
-         Urt  = U[ ntop[nr] ];
-         //Vrt  = V[ ntop[nr] ];
-
-         nrtr = nrht[nrt];
-         Hrr2 = H[nrtr];
-         Urr2 = U[nrtr];
-      }
-
-      int nbrb = 0;
-      real_t Hbr = 0.0, Vbr = 0.0; // Ubr = 0.0
-      real_t Hbb2 = 0.0;
-      real_t Vbb2 = 0.0;
-      if(lvl < level[nb]) {
-         Hbr  = H[ nrht[nb] ];
-         //Ubr  = U[ nrht[nb] ];
-         Vbr  = V[ nrht[nb] ];
-
-         nbrb = nbot[nbr];
-         Hbb2 = H[nbrb];
-         Vbb2 = V[nbrb];
-      }
-
-      int ntrt = 0;
-      real_t Htr = 0.0, Vtr = 0.0; // Utr = 0.0
-      real_t Htt2 = 0.0;
-      real_t Vtt2 = 0.0;
-      if(lvl < level[nt]) {
-         Htr  = H[ nrht[nt] ];
-         //Utr  = U[ nrht[nt] ];
-         Vtr  = V[ nrht[nt] ];
-
-         ntrt = ntop[ntr];
-         Htt2 = H[ntrt];
-         Vtt2 = V[ntrt];
-      }
-
-      ////////////////////////////////////////
-      /// Artificial Viscosity corrections ///
-      ////////////////////////////////////////
-
-      real_t Hxminus = H[ic];
-      real_t Uxminus = 0.0;
-      real_t Vxminus = 0.0;
-      if (mesh->map_xcell2face_left1[ic] >= 0){
-         Hxminus  = Hx[mesh->map_xcell2face_left1[ic]];
-         Uxminus  = Ux[mesh->map_xcell2face_left1[ic]];
-         Vxminus  = Vx[mesh->map_xcell2face_left1[ic]];
-      }
-
-      real_t Hxminus2 = 0.0;
-      if(lvl < level[nl]) Hxminus2 = H[ic];
-      real_t Uxminus2 = 0.0;
-      real_t Vxminus2 = 0.0;
-      if (mesh->map_xcell2face_left2[ic] >= 0) {
-         Hxminus2 = Hx[mesh->map_xcell2face_left2[ic]];
-         Uxminus2 = Ux[mesh->map_xcell2face_left2[ic]];
-         Vxminus2 = Vx[mesh->map_xcell2face_left2[ic]];
-      }
-
-      real_t Hxplus = H[ic];
-      real_t Uxplus = 0.0;
-      real_t Vxplus = 0.0;
-      if (mesh->map_xcell2face_right1[ic] >= 0){
-         Hxplus   = Hx[mesh->map_xcell2face_right1[ic]];
-         Uxplus   = Ux[mesh->map_xcell2face_right1[ic]];
-         Vxplus   = Vx[mesh->map_xcell2face_right1[ic]];
-      }
-
-      real_t Hxplus2 = 0.0;
-      if(lvl < level[nr]) Hxplus2 = H[ic];
-      real_t Uxplus2 = 0.0;
-      real_t Vxplus2 = 0.0;
-      if (mesh->map_xcell2face_right2[ic] >= 0){
-         Hxplus2  = Hx[mesh->map_xcell2face_right2[ic]];
-         Uxplus2  = Ux[mesh->map_xcell2face_right2[ic]];
-         Vxplus2  = Vx[mesh->map_xcell2face_right2[ic]];
-      }
-
-      if(level[nl] < level[nll]) {
-         Hll = (Hll + H[ ntop[nll] ]) * HALF;
-         Ull = (Ull + U[ ntop[nll] ]) * HALF;
-      }
-
-      real_t Hr2 = Hr;
-      real_t Ur2 = Ur;
-      if(lvl < level[nr]) {
-         Hr2 = (Hr2 + Hrt) * HALF;
-         Ur2 = (Ur2 + Urt) * HALF;
-      }
-
-      real_t wminusx_H = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                              Hic-Hl, Hl-Hll, Hr2-Hic);
-      wminusx_H *= Hic - Hl;
-      if(lvl < level[nl]) {
-         if(level[nlt] < level[nltl])
-            Hll2 = (Hll2 + H[ ntop[nltl] ]) * HALF;
-         wminusx_H = ((w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus2/Hxminus2) +
-                                  sqrt(g*Hxminus2), Hic-Hlt, Hlt-Hll2, Hr2-Hic) *
-                      (Hic - Hlt)) + wminusx_H)*HALF*HALF;
-      }
-
-      if(level[nr] < level[nrr]) {
-         Hrr = (Hrr + H[ ntop[nrr] ]) * HALF;
-         Urr = (Urr + U[ ntop[nrr] ]) * HALF;
-      }
-
-      real_t Hl2 = Hl;
-      real_t Ul2 = Ul;
-      if(lvl < level[nl]) {
-         Hl2 = (Hl2 + Hlt) * HALF;
-         Ul2 = (Ul2 + Ult) * HALF;
-      }
-
-      real_t wplusx_H = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                           Hr-Hic, Hic-Hl2, Hrr-Hr);
-
-      wplusx_H *= Hr - Hic;
-
-      if(lvl < level[nr]) {
-         if(level[nrt] < level[nrtr])
-            Hrr2 = (Hrr2 + H[ ntop[nrtr] ]) * HALF;
-         wplusx_H = ((w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus2/Hxplus2) +
-                                  sqrt(g*Hxplus2), Hrt-Hic, Hic-Hl2, Hrr2-Hrt) *
-                      (Hrt - Hic))+wplusx_H)*HALF*HALF;
-      }
-
-      real_t wminusx_U = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                              Uic-Ul, Ul-Ull, Ur2-Uic);
-
-      wminusx_U *= Uic - Ul;
-
-      if(lvl < level[nl]) {
-         if(level[nlt] < level[nltl])
-            Ull2 = (Ull2 + U[ ntop[nltl] ]) * HALF;
-         wminusx_U = ((w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus2/Hxminus2) +
-                                  sqrt(g*Hxminus2), Uic-Ult, Ult-Ull2, Ur2-Uic) *
-                      (Uic - Ult))+wminusx_U)*HALF*HALF;
-      }
-
-
-
-      real_t wplusx_U = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                              Ur-Uic, Uic-Ul2, Urr-Ur);
-
-      wplusx_U *= Ur - Uic;
-
-      if(lvl < level[nr]) {
-         if(level[nrt] < level[nrtr])
-            Urr2 = (Urr2 + U[ ntop[nrtr] ]) * HALF;
-         wplusx_U = ((w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus2/Hxplus2) +
-                                  sqrt(g*Hxplus2), Urt-Uic, Uic-Ul2, Urr2-Urt) *
-                      (Urt - Uic))+wplusx_U)*HALF*HALF;
-      }
-
-
-      if(level[nb] < level[nbb]) {
-         Hbb = (Hbb + H[ nrht[nbb] ]) * HALF;
-         Vbb = (Vbb + V[ nrht[nbb] ]) * HALF;
-      }
-
-      real_t Ht2 = Ht;
-      real_t Vt2 = Vt;
-      if(lvl < level[nt]) {
-         Ht2 = (Ht2 + Htr) * HALF;
-         Vt2 = (Vt2 + Vtr) * HALF;
-      }
-
-      real_t Hyminus = H[ic];
-      real_t Uyminus = 0.0;
-      real_t Vyminus = 0.0;
-      if (mesh->map_ycell2face_bot1[ic] >= 0){
-         Hyminus  = Hy[mesh->map_ycell2face_bot1[ic]];
-         Uyminus  = Uy[mesh->map_ycell2face_bot1[ic]];
-         Vyminus  = Vy[mesh->map_ycell2face_bot1[ic]];
-      }
-
-      real_t Hyminus2 = 0.0;
-      if(lvl < level[nb]) Hyminus2 = H[ic];
-      real_t Uyminus2 = 0.0;
-      real_t Vyminus2 = 0.0;
-      if (mesh->map_ycell2face_bot2[ic] >= 0){
-         Hyminus2 = Hy[mesh->map_ycell2face_bot2[ic]];
-         Uyminus2 = Uy[mesh->map_ycell2face_bot2[ic]];
-         Vyminus2 = Vy[mesh->map_ycell2face_bot2[ic]];
-      }
-
-      real_t Hyplus = H[ic];
-      real_t Uyplus = 0.0;
-      real_t Vyplus = 0.0;
-      if (mesh->map_ycell2face_top1[ic] >= 0){
-         Hyplus   = Hy[mesh->map_ycell2face_top1[ic]];
-         Uyplus   = Uy[mesh->map_ycell2face_top1[ic]];
-         Vyplus   = Vy[mesh->map_ycell2face_top1[ic]];
-      }
-
-      real_t Hyplus2 = 0.0;
-      if(lvl < level[nt]) Hyplus2 = H[ic];
-      real_t Uyplus2 = 0.0;
-      real_t Vyplus2 = 0.0;
-      if (mesh->map_ycell2face_top2[ic] >= 0){
-         Hyplus2  = Hy[mesh->map_ycell2face_top2[ic]];
-         Uyplus2  = Uy[mesh->map_ycell2face_top2[ic]];
-         Vyplus2  = Vy[mesh->map_ycell2face_top2[ic]];
-      }
-
-      real_t wminusy_H = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                              Hic-Hb, Hb-Hbb, Ht2-Hic);
-
-      wminusy_H *= Hic - Hb;
-
-      if(lvl < level[nb]) {
-         if(level[nbr] < level[nbrb])
-            Hbb2 = (Hbb2 + H[ nrht[nbrb] ]) * HALF;
-         wminusy_H = ((w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus2/Hyminus2) +
-                                  sqrt(g*Hyminus2), Hic-Hbr, Hbr-Hbb2, Ht2-Hic) *
-                      (Hic - Hbr))+wminusy_H)*HALF*HALF;
-      }
-
-
-      if(level[nt] < level[ntt]) {
-         Htt = (Htt + H[ nrht[ntt] ]) * HALF;
-         Vtt = (Vtt + V[ nrht[ntt] ]) * HALF;
-      }
-
-      real_t Hb2 = Hb;
-      real_t Vb2 = Vb;
-      if(lvl < level[nb]) {
-         Hb2 = (Hb2 + Hbr) * HALF;
-         Vb2 = (Vb2 + Vbr) * HALF;
-      }
-
-      real_t wplusy_H = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                             Ht-Hic, Hic-Hb2, Htt-Ht);
-
-      wplusy_H *= Ht - Hic;
-
-      if(lvl < level[nt]) {
-         if(level[ntr] < level[ntrt])
-            Htt2 = (Htt2 + H[ nrht[ntrt] ]) * HALF;
-         wplusy_H = ((w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus2/Hyplus2) +
-                                  sqrt(g*Hyplus2), Htr-Hic, Hic-Hb2, Htt2-Htr) *
-                      (Htr - Hic))+wplusy_H)*HALF*HALF;
-      }
-
-      real_t wminusy_V = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                              Vic-Vb, Vb-Vbb, Vt2-Vic);
-
-      wminusy_V *= Vic - Vb;
-
-      if(lvl < level[nb]) {
-         if(level[nbr] < level[nbrb])
-            Vbb2 = (Vbb2 + V[ nrht[nbrb] ]) * HALF;
-         wminusy_V = ((w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus2/Hyminus2) +
-                                  sqrt(g*Hyminus2), Vic-Vbr, Vbr-Vbb2, Vt2-Vic) *
-                      (Vic - Vbr))+wminusy_V)*HALF*HALF;
-      }
-
-      real_t wplusy_V = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                           Vt-Vic, Vic-Vb2, Vtt-Vt);
-
-      wplusy_V *= Vt - Vic;
-
-      if(lvl < level[nt]) {
-         if(level[ntr] < level[ntrt])
-            Vtt2 = (Vtt2 + V[ nrht[ntrt] ]) * HALF;
-         wplusy_V = ((w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus2/Hyplus2) +
-                                  sqrt(g*Hyplus2), Vtr-Vic, Vic-Vb2, Vtt2-Vtr) *
-                      (Vtr - Vic))+wplusy_V)*HALF*HALF;
-      }
-
-      real_t Hxfluxminus = HNEWXFLUXMINUS;
-      real_t Uxfluxminus = UNEWXFLUXMINUS;
-      real_t Vxfluxminus = UVNEWFLUXMINUS;
-
-      real_t Hxfluxplus  = HNEWXFLUXPLUS;
-      real_t Uxfluxplus  = UNEWXFLUXPLUS;
-      real_t Vxfluxplus  = UVNEWFLUXPLUS;
-
-      real_t Hyfluxminus = HNEWYFLUXMINUS;
-      real_t Uyfluxminus = VUNEWFLUXMINUS;
-      real_t Vyfluxminus = VNEWYFLUXMINUS;
-
-      real_t Hyfluxplus  = HNEWYFLUXPLUS;
-      real_t Uyfluxplus  = VUNEWFLUXPLUS;
-      real_t Vyfluxplus  = VNEWYFLUXPLUS;
-
-      if(lvl < level[nl]) {
-         Hxfluxminus = (Hxfluxminus + HNEWXFLUXMINUS2) * HALF;
-         Uxfluxminus = (Uxfluxminus + UNEWXFLUXMINUS2) * HALF;
-         Vxfluxminus = (Vxfluxminus + UVNEWFLUXMINUS2) * HALF;
-      }
-
-      if(lvl < level[nr]) {
-         Hxfluxplus  = (Hxfluxplus + HNEWXFLUXPLUS2) * HALF;
-         Uxfluxplus  = (Uxfluxplus + UNEWXFLUXPLUS2) * HALF;
-         Vxfluxplus  = (Vxfluxplus + UVNEWFLUXPLUS2) * HALF;
-      }
-
-      if(lvl < level[nb]) {
-         Hyfluxminus = (Hyfluxminus + HNEWYFLUXMINUS2) * HALF;
-         Uyfluxminus = (Uyfluxminus + VUNEWFLUXMINUS2) * HALF;
-         Vyfluxminus = (Vyfluxminus + VNEWYFLUXMINUS2) * HALF;
-      }
-
-      if(lvl < level[nt]) {
-         Hyfluxplus  = (Hyfluxplus + HNEWYFLUXPLUS2) * HALF;
-         Uyfluxplus  = (Uyfluxplus + VUNEWFLUXPLUS2) * HALF;
-         Vyfluxplus  = (Vyfluxplus + VNEWYFLUXPLUS2) * HALF;
-      }
-
-      //wminusx_H = 0.0; wplusx_H = 0.0; wminusy_H = 0.0; wplusy_H = 0.0;
-      //wminusx_U = 0.0; wplusx_U = 0.0;
-      //wminusy_V = 0.0; wplusy_V = 0.0;
-
-      H_new[ic] = U_fullstep(deltaT, dxic, Hic,
-                      Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
-                 - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
-      U_new[ic] = U_fullstep(deltaT, dxic, Uic,
-                      Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
-                 - wminusx_U + wplusx_U;
-      V_new[ic] = U_fullstep(deltaT, dxic, Vic,
-                      Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
-                 - wminusy_V + wplusy_V;
-
-#if DEBUG >= 1
-      if (DEBUG >= 1) {
-         real_t U_tmp = U_new[ic];
-         real_t V_tmp = V_new[ic];
-         if (U_tmp == 0.0) U_tmp = 0.0;
-         if (V_tmp == 0.0) V_tmp = 0.0;
-         printf("DEBUG ic %d H_new %lf U_new %lf V_new %lf\n",ic,H_new[ic],U_tmp,V_tmp);
-      }
-#endif
-
-
-      /*printf("\nDEBUG ic %d deltaT, %lf dxic, %lf Hic, %lf Hxfluxplus, %lf Hxfluxminus, %lf Hyfluxplus, %lf Hyfluxminus %lf\n",
-         ic, deltaT, dxic, Hic, Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus);
-      printf("DEBUG ic %d wminusx_H %lf wplusx_H %lf wminusy_H %lf wplusy_H %lf\n",ic, wminusx_H, wplusx_H, wminusy_H, wplusy_H);
-      printf("DEBUG ic %d deltaT, %lf dxic, %lf Vic, %lf Vxfluxplus, %lf Vxfluxminus, %lf Vyfluxplus, %lf Vyfluxminus %lf\n",
-         ic, deltaT, dxic, Vic, Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus);
-      printf("DEBUG ic %d wminusy_V %lf wplusy_V %lf\n\n\n",ic, wminusy_V, wplusy_V);*/
-
-      //printf("\n%d) %f %f\n", ic, wminusx_H, wplusx_H);
-   }//end forloop
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-      // Replace H with H_new and deallocate H. New memory will have the characteristics
-      // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
-      H = (state_t *)state_memory.memory_replace(H, H_new);
-      U = (state_t *)state_memory.memory_replace(U, U_new);
-      V = (state_t *)state_memory.memory_replace(V, V_new);
-
-      //state_memory.memory_report();
-      //printf("DEBUG end finite diff\n\n"); 
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-#pragma omp master
-#endif
-      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
 #define HXRGFLUXIC ( U_reg[jj][ii] )
@@ -4891,18 +3241,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-
-   size_t ncells     = mesh->ncells;
-   size_t &ncells_ghost = mesh->ncells_ghost;
-#ifdef _OPENMP
-#pragma omp master
-#endif
-   if (ncells_ghost < ncells) ncells_ghost = ncells;
+   apply_boundary_conditions();
 
    static state_t *H_new, *U_new, *V_new;
    static state_t ***H_reg_lev, ***U_reg_lev, ***V_reg_lev;
@@ -5544,14 +3883,11 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #pragma omp master
 #endif
    mesh->destroy_regular_cell_meshes(state_memory);
+
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
-
-#ifdef _OPENMP
-#pragma omp master
-#endif
-      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
 
 /************************************************************************/
@@ -5567,18 +3903,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
-
-   size_t ncells     = mesh->ncells;
-   size_t &ncells_ghost = mesh->ncells_ghost;
-#ifdef _OPENMP
-#pragma omp master
-#endif
-   if (ncells_ghost < ncells) ncells_ghost = ncells;
+   apply_boundary_conditions();
 
    static state_t *H_new, *U_new, *V_new;
    static state_t ***H_reg_lev, ***U_reg_lev, ***V_reg_lev;
@@ -6190,16 +4515,12 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 #pragma omp master
 #endif
    mesh->destroy_regular_cell_meshes(state_memory);
+
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
-
-#ifdef _OPENMP
-#pragma omp master
-#endif
-      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 }
-
 
 
 #ifdef HAVE_OPENCL
@@ -6216,6 +4537,7 @@ void State::gpu_calc_finite_difference(double deltaT)
    size_t &ncells    = mesh->ncells;
    size_t &ncells_ghost = mesh->ncells_ghost;
    if (ncells_ghost < ncells) ncells_ghost = ncells;
+
    int &levmx           = mesh->levmx;
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_nlft     = mesh->dev_nlft;
@@ -7077,11 +5399,7 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
    // We need to update the ghost regions and boundary regions for the state
    // variables since they were changed in the finite difference routine. We
    // want to use the updated values for refinement decisions
-   if (mesh->numpe > 1) {
-      apply_boundary_conditions_ghost();
-   } else {
-      apply_boundary_conditions();
-   }
+   apply_boundary_conditions();
 
 #ifdef _OPENMP
 #pragma omp barrier
