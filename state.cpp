@@ -1581,17 +1581,6 @@ void State::calc_finite_difference_in_place(double deltaT){
    int flags = 0;
    flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
 
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
-   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
    static vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
    static vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
    static vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
@@ -1599,50 +1588,45 @@ void State::calc_finite_difference_in_place(double deltaT){
    static vector<double> tempWHxP, tempWHxM, tempWUxP, tempWUxM;
    static vector<double> tempWHyP, tempWHyM, tempWVyP, tempWVyM;
 
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   FakeFluxHxP.resize(mesh->ncells, 0);
-   FakeFluxUxP.resize(mesh->ncells, 0);
-   FakeFluxVxP.resize(mesh->ncells, 0);
-   FakeFluxHyP.resize(mesh->ncells, 0);
-   FakeFluxUyP.resize(mesh->ncells, 0);
-   FakeFluxVyP.resize(mesh->ncells, 0);
-   FakeFluxHxM.resize(mesh->ncells, 0);
-   FakeFluxUxM.resize(mesh->ncells, 0);
-   FakeFluxVxM.resize(mesh->ncells, 0);
-   FakeFluxHyM.resize(mesh->ncells, 0);
-   FakeFluxUyM.resize(mesh->ncells, 0);
-   FakeFluxVyM.resize(mesh->ncells, 0);
-   tempWHxP.resize(mesh->ncells, 0);
-   tempWHxM.resize(mesh->ncells, 0);
-   tempWUxP.resize(mesh->ncells, 0);
-   tempWUxM.resize(mesh->ncells, 0);
-   tempWHyP.resize(mesh->ncells, 0);
-   tempWHyM.resize(mesh->ncells, 0);
-   tempWVyP.resize(mesh->ncells, 0);
-   tempWVyM.resize(mesh->ncells, 0);
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
    static state_t *H_new, *U_new, *V_new;
 
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
 #ifdef _OPENMP
+#pragma omp barrier
 #pragma omp master
-#endif
    {
+#endif
+      mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
+      memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
+
+      FakeFluxHxP.resize(mesh->ncells, 0);
+      FakeFluxUxP.resize(mesh->ncells, 0);
+      FakeFluxVxP.resize(mesh->ncells, 0);
+      FakeFluxHyP.resize(mesh->ncells, 0);
+      FakeFluxUyP.resize(mesh->ncells, 0);
+      FakeFluxVyP.resize(mesh->ncells, 0);
+      FakeFluxHxM.resize(mesh->ncells, 0);
+      FakeFluxUxM.resize(mesh->ncells, 0);
+      FakeFluxVxM.resize(mesh->ncells, 0);
+      FakeFluxHyM.resize(mesh->ncells, 0);
+      FakeFluxUyM.resize(mesh->ncells, 0);
+      FakeFluxVyM.resize(mesh->ncells, 0);
+      tempWHxP.resize(mesh->ncells, 0);
+      tempWHxM.resize(mesh->ncells, 0);
+      tempWUxP.resize(mesh->ncells, 0);
+      tempWUxM.resize(mesh->ncells, 0);
+      tempWHyP.resize(mesh->ncells, 0);
+      tempWHyM.resize(mesh->ncells, 0);
+      tempWVyP.resize(mesh->ncells, 0);
+      tempWVyM.resize(mesh->ncells, 0);
+
       H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
       U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
       V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
-   }
 #ifdef _OPENMP
+   }
 #pragma omp barrier
 #endif
 
@@ -1662,7 +1646,7 @@ void State::calc_finite_difference_in_place(double deltaT){
       int nb = mesh->map_yface2cell_lower[mesh->map_ycell2face_bot1[gix]];
       int nt = mesh->map_yface2cell_upper[mesh->map_ycell2face_top1[gix]];
 
-      if (nb == gix  || nt == gix || nl == gix | nr == gix) continue;
+      if (nb == gix  || nt == gix || nl == gix || nr == gix) continue;
 
       real_t Hic     = H[gix];
       real_t Uic     = U[gix];
@@ -1708,11 +1692,6 @@ void State::calc_finite_difference_in_place(double deltaT){
 
       real_t dyt = dyic;
       real_t dyb = dyic;
-
-      real_t drl     = dxl;
-      real_t drr     = dxr;
-      real_t drt     = dyt;
-      real_t drb     = dyb;
 
       real_t dric    = dxic;
 
@@ -1820,147 +1799,147 @@ void State::calc_finite_difference_in_place(double deltaT){
 
       wplusy_V *= Vt - Vic;
 
-    if ((FakeFluxHxP[gix] > 0) || (FakeFluxUxP[gix] > 0) || (FakeFluxVxP[gix] > 0)) {
-        Hxfluxplus = FakeFluxHxP[gix] * HALF; 
-        Uxfluxplus = FakeFluxUxP[gix] * HALF;
-        Vxfluxplus = FakeFluxVxP[gix] * HALF; 
-        FakeFluxHxP[gix] = 0.0;
-        FakeFluxUxP[gix] = 0.0;
-        FakeFluxVxP[gix] = 0.0;
-        wplusx_H = tempWHxP[gix];
-        wplusx_U = tempWUxP[gix];
-        tempWHxP[gix] = 0.0;
-        tempWUxP[gix] = 0.0;
-    }
-    if ((FakeFluxHxM[gix] > 0) || (FakeFluxUxM[gix] > 0) || (FakeFluxVxM[gix] > 0)) {
-        Hxfluxminus = FakeFluxHxM[gix] * HALF; 
-        Uxfluxminus = FakeFluxUxM[gix] * HALF; 
-        Vxfluxminus = FakeFluxVxM[gix] * HALF; 
-        FakeFluxHxM[gix] = 0.0;
-        FakeFluxUxM[gix] = 0.0;
-        FakeFluxVxM[gix] = 0.0;
-        wminusx_H = tempWHxM[gix];
-        wminusx_U = tempWUxM[gix];
-        tempWHxM[gix] = 0.0;
-        tempWUxM[gix] = 0.0;
-    }
-    if ((FakeFluxHyP[gix] > 0) || (FakeFluxUyP[gix] > 0) || (FakeFluxVyP[gix] > 0)) {
-        Hyfluxplus = FakeFluxHyP[gix] * HALF; 
-        Uyfluxplus = FakeFluxUyP[gix] * HALF; 
-        Vyfluxplus = FakeFluxVyP[gix] * HALF; 
-        FakeFluxHyP[gix] = 0.0;
-        FakeFluxUyP[gix] = 0.0;
-        FakeFluxVyP[gix] = 0.0;
-        wplusy_H = tempWHyP[gix];
-        wplusy_V = tempWVyP[gix];
-        tempWHyP[gix] = 0.0;
-        tempWVyP[gix] = 0.0;
-    }
-    if ((FakeFluxHyM[gix] > 0) || (FakeFluxUyM[gix] > 0) || (FakeFluxVyM[gix] > 0)) {
-        Hyfluxminus = FakeFluxHyM[gix] * HALF; 
-        Uyfluxminus = FakeFluxUyM[gix] * HALF; 
-        Vyfluxminus = FakeFluxVyM[gix] * HALF; 
-        FakeFluxHyM[gix] = 0.0;
-        FakeFluxUyM[gix] = 0.0;
-        FakeFluxVyM[gix] = 0.0;
-        wminusy_H = tempWHyM[gix];
-        wminusy_V = tempWVyM[gix];
-        tempWHyM[gix] = 0.0;
-        tempWVyM[gix] = 0.0;
-    }
+      if ((FakeFluxHxP[gix] > 0) || (FakeFluxUxP[gix] > 0) || (FakeFluxVxP[gix] > 0)) {
+         Hxfluxplus = FakeFluxHxP[gix] * HALF; 
+         Uxfluxplus = FakeFluxUxP[gix] * HALF;
+         Vxfluxplus = FakeFluxVxP[gix] * HALF; 
+         FakeFluxHxP[gix] = 0.0;
+         FakeFluxUxP[gix] = 0.0;
+         FakeFluxVxP[gix] = 0.0;
+         wplusx_H = tempWHxP[gix];
+         wplusx_U = tempWUxP[gix];
+         tempWHxP[gix] = 0.0;
+         tempWUxP[gix] = 0.0;
+      }
+      if ((FakeFluxHxM[gix] > 0) || (FakeFluxUxM[gix] > 0) || (FakeFluxVxM[gix] > 0)) {
+         Hxfluxminus = FakeFluxHxM[gix] * HALF; 
+         Uxfluxminus = FakeFluxUxM[gix] * HALF; 
+         Vxfluxminus = FakeFluxVxM[gix] * HALF; 
+         FakeFluxHxM[gix] = 0.0;
+         FakeFluxUxM[gix] = 0.0;
+         FakeFluxVxM[gix] = 0.0;
+         wminusx_H = tempWHxM[gix];
+         wminusx_U = tempWUxM[gix];
+         tempWHxM[gix] = 0.0;
+         tempWUxM[gix] = 0.0;
+      }
+      if ((FakeFluxHyP[gix] > 0) || (FakeFluxUyP[gix] > 0) || (FakeFluxVyP[gix] > 0)) {
+         Hyfluxplus = FakeFluxHyP[gix] * HALF; 
+         Uyfluxplus = FakeFluxUyP[gix] * HALF; 
+         Vyfluxplus = FakeFluxVyP[gix] * HALF; 
+         FakeFluxHyP[gix] = 0.0;
+         FakeFluxUyP[gix] = 0.0;
+         FakeFluxVyP[gix] = 0.0;
+         wplusy_H = tempWHyP[gix];
+         wplusy_V = tempWVyP[gix];
+         tempWHyP[gix] = 0.0;
+         tempWVyP[gix] = 0.0;
+      }
+      if ((FakeFluxHyM[gix] > 0) || (FakeFluxUyM[gix] > 0) || (FakeFluxVyM[gix] > 0)) {
+         Hyfluxminus = FakeFluxHyM[gix] * HALF; 
+         Uyfluxminus = FakeFluxUyM[gix] * HALF; 
+         Vyfluxminus = FakeFluxVyM[gix] * HALF; 
+         FakeFluxHyM[gix] = 0.0;
+         FakeFluxUyM[gix] = 0.0;
+         FakeFluxVyM[gix] = 0.0;
+         wminusy_H = tempWHyM[gix];
+         wminusy_V = tempWVyM[gix];
+         tempWHyM[gix] = 0.0;
+         tempWVyM[gix] = 0.0;
+      }
 
-    if ((mesh->phantomXFlux[gix] >= 0) && (mesh->phantomXFlux[gix] < 99999)) {
-        int recvIdx = mesh->phantomXFlux[gix];
+      if ((mesh->phantomXFlux[gix] >= 0) && (mesh->phantomXFlux[gix] < 99999)) {
+         int recvIdx = mesh->phantomXFlux[gix];
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHxP[recvIdx] += Hxfluxminus;
+         FakeFluxHxP[recvIdx] += Hxfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUxP[recvIdx] += Uxfluxminus;
+         FakeFluxUxP[recvIdx] += Uxfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVxP[recvIdx] += Vxfluxminus;
+         FakeFluxVxP[recvIdx] += Vxfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWHxP[recvIdx] += wminusx_H / 4;
+         tempWHxP[recvIdx] += wminusx_H / 4;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWUxP[recvIdx] += wminusx_U / 4;
-    }
-    else if (mesh->phantomXFlux[gix] < 0) {
-        int recvIdx = abs(mesh->phantomXFlux[gix]);
+         tempWUxP[recvIdx] += wminusx_U / 4;
+      }
+      else if (mesh->phantomXFlux[gix] < 0) {
+         int recvIdx = abs(mesh->phantomXFlux[gix]);
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHxM[recvIdx] += Hxfluxplus;
+         FakeFluxHxM[recvIdx] += Hxfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUxM[recvIdx] += Uxfluxplus;
+         FakeFluxUxM[recvIdx] += Uxfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVxM[recvIdx] += Vxfluxplus;
+         FakeFluxVxM[recvIdx] += Vxfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWHxM[recvIdx] += wplusx_H / 4;
+         tempWHxM[recvIdx] += wplusx_H / 4;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWUxM[recvIdx] += wplusx_U / 4;
-    }
-    if ((mesh->phantomYFlux[gix] >= 0) && (mesh->phantomYFlux[gix] < 99999)) {
-        int recvIdx = mesh->phantomYFlux[gix];
+         tempWUxM[recvIdx] += wplusx_U / 4;
+      }
+      if ((mesh->phantomYFlux[gix] >= 0) && (mesh->phantomYFlux[gix] < 99999)) {
+         int recvIdx = mesh->phantomYFlux[gix];
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHyP[recvIdx] += Hyfluxminus;
+         FakeFluxHyP[recvIdx] += Hyfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUyP[recvIdx] += Uyfluxminus;
+         FakeFluxUyP[recvIdx] += Uyfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVyP[recvIdx] += Vyfluxminus;
+         FakeFluxVyP[recvIdx] += Vyfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWHyP[recvIdx] += wminusy_H / 4;
+         tempWHyP[recvIdx] += wminusy_H / 4;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWVyP[recvIdx] += wminusy_V / 4;
-    }
-    else if (mesh->phantomYFlux[gix] < 0) {
-        int recvIdx = abs(mesh->phantomYFlux[gix]);
+         tempWVyP[recvIdx] += wminusy_V / 4;
+      }
+      else if (mesh->phantomYFlux[gix] < 0) {
+         int recvIdx = abs(mesh->phantomYFlux[gix]);
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHyM[recvIdx] += Hyfluxplus;
+         FakeFluxHyM[recvIdx] += Hyfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUyM[recvIdx] += Uyfluxplus;
+         FakeFluxUyM[recvIdx] += Uyfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVyM[recvIdx] += Vyfluxplus;
+         FakeFluxVyM[recvIdx] += Vyfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWHyM[recvIdx] += wplusy_H / 4;
+         tempWHyM[recvIdx] += wplusy_H / 4;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWVyM[recvIdx] += wplusy_V / 4;
-    }
+         tempWVyM[recvIdx] += wplusy_V / 4;
+      }
 
       H_new[gix] = U_fullstep(deltaT, dxic, Hic,
                        Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
@@ -1971,25 +1950,6 @@ void State::calc_finite_difference_in_place(double deltaT){
       V_new[gix] = U_fullstep(deltaT, dxic, Vic,
                        Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                   - wminusy_V + wplusy_V;
-
-#if DEBUG >= 1
-      if (DEBUG >= 1) {
-         real_t U_tmp = U_new[gix];
-         real_t V_tmp = V_new[gix];
-         if (U_tmp == 0.0) U_tmp = 0.0;
-         if (V_tmp == 0.0) V_tmp = 0.0;
-         printf("DEBUG ic %d H_new %lf U_new %lf V_new %lf\n",gix,H_new[gix],U_tmp,V_tmp);
-      }
-#endif
-
-/*
-      printf("DEBUG ic %d deltaT, %lf dxic, %lf Hic, %lf Hxfluxplus, %lf Hxfluxminus, %lf Hyfluxplus, %lf Hyfluxminus %lf\n",
-         gix, deltaT, dxic, Hic, Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus);
-      printf("DEBUG ic %d wminusx_H %lf wplusx_H %lf wminusy_H %lf wplusy_H %lf\n",gix, wminusx_H, wplusx_H, wminusy_H, wplusy_H);
-      printf("DEBUG ic %d deltaT, %lf dxic, %lf Vic, %lf Vxfluxplus, %lf Vxfluxminus, %lf Vyfluxplus, %lf Vyfluxminus %lf\n",
-         gix, deltaT, dxic, Vic, Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus);
-      printf("DEBUG ic %d wminusy_V %lf wplusy_V %lf\n",gix, wminusy_V, wplusy_V);
-*/
    } // cell loop
    rough--;
 #ifdef _OPENMP
@@ -2028,18 +1988,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 
    int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
 
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
-   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
    static vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
    static vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
    static vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
@@ -2050,38 +1998,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   FakeFluxHxP.resize(mesh->ncells, 0);
-   FakeFluxUxP.resize(mesh->ncells, 0);
-   FakeFluxVxP.resize(mesh->ncells, 0);
-   FakeFluxHyP.resize(mesh->ncells, 0);
-   FakeFluxUyP.resize(mesh->ncells, 0);
-   FakeFluxVyP.resize(mesh->ncells, 0);
-   FakeFluxHxM.resize(mesh->ncells, 0);
-   FakeFluxUxM.resize(mesh->ncells, 0);
-   FakeFluxVxM.resize(mesh->ncells, 0);
-   FakeFluxHyM.resize(mesh->ncells, 0);
-   FakeFluxUyM.resize(mesh->ncells, 0);
-   FakeFluxVyM.resize(mesh->ncells, 0);
-   tempWHxP.resize(mesh->ncells, 0);
-   tempWHxM.resize(mesh->ncells, 0);
-   tempWUxP.resize(mesh->ncells, 0);
-   tempWUxM.resize(mesh->ncells, 0);
-   tempWHyP.resize(mesh->ncells, 0);
-   tempWHyM.resize(mesh->ncells, 0);
-   tempWVyP.resize(mesh->ncells, 0);
-   tempWVyM.resize(mesh->ncells, 0);
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-   int xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
-   int cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
+   int xfaceSize; //new "update" nxface inc. phantoms
+   //int cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
 
    static vector<state_t> Hx, Ux, Vx;
 
@@ -2090,9 +2008,34 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp master
    {
 #endif
-   Hx.resize(xfaceSize, -999999);
-   Ux.resize(xfaceSize, -999999);
-   Vx.resize(xfaceSize, -999999);
+      mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
+      xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
+      memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
+
+      FakeFluxHxP.resize(mesh->ncells, 0);
+      FakeFluxUxP.resize(mesh->ncells, 0);
+      FakeFluxVxP.resize(mesh->ncells, 0);
+      FakeFluxHyP.resize(mesh->ncells, 0);
+      FakeFluxUyP.resize(mesh->ncells, 0);
+      FakeFluxVyP.resize(mesh->ncells, 0);
+      FakeFluxHxM.resize(mesh->ncells, 0);
+      FakeFluxUxM.resize(mesh->ncells, 0);
+      FakeFluxVxM.resize(mesh->ncells, 0);
+      FakeFluxHyM.resize(mesh->ncells, 0);
+      FakeFluxUyM.resize(mesh->ncells, 0);
+      FakeFluxVyM.resize(mesh->ncells, 0);
+      tempWHxP.resize(mesh->ncells, 0);
+      tempWHxM.resize(mesh->ncells, 0);
+      tempWUxP.resize(mesh->ncells, 0);
+      tempWUxM.resize(mesh->ncells, 0);
+      tempWHyP.resize(mesh->ncells, 0);
+      tempWHyM.resize(mesh->ncells, 0);
+      tempWVyP.resize(mesh->ncells, 0);
+      tempWVyM.resize(mesh->ncells, 0);
+
+      Hx.resize(xfaceSize, -999999);
+      Ux.resize(xfaceSize, -999999);
+      Vx.resize(xfaceSize, -999999);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2121,9 +2064,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp master
    {
 #endif
-   Hy.resize(yfaceSize, -999999);
-   Uy.resize(yfaceSize, -999999);
-   Vy.resize(yfaceSize, -999999);
+      Hy.resize(yfaceSize, -999999);
+      Uy.resize(yfaceSize, -999999);
+      Vy.resize(yfaceSize, -999999);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2175,7 +2118,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int nb = mesh->map_yface2cell_lower[mesh->map_ycell2face_bot1[ic]];
       int nt = mesh->map_yface2cell_upper[mesh->map_ycell2face_top1[ic]];
 
-      if (nb == ic  || nt == ic || nl == ic | nr == ic) continue;
+      if (nb == ic  || nt == ic || nl == ic || nr == ic) continue;
 
       //printf("%d) %d %d %d %d\n", ic, nl, nr, nb, nt);
 
@@ -2328,148 +2271,148 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       real_t Uyfluxplus  = VUNEWFLUXPLUS;
       real_t Vyfluxplus  = VNEWYFLUXPLUS;
 
-    if ((FakeFluxHxP[ic] > 0) || (FakeFluxUxP[ic] > 0) || (FakeFluxVxP[ic] > 0)) {
-        Hxfluxplus = FakeFluxHxP[ic] * HALF; 
-        Uxfluxplus = FakeFluxUxP[ic] * HALF;
-        Vxfluxplus = FakeFluxVxP[ic] * HALF; 
-        FakeFluxHxP[ic] = 0.0;
-        FakeFluxUxP[ic] = 0.0;
-        FakeFluxVxP[ic] = 0.0;
-        wplusx_H = tempWHxP[ic];
-        wplusx_U = tempWUxP[ic];
-        tempWHxP[ic] = 0.0;
-        tempWUxP[ic] = 0.0;
-    }
-    if ((FakeFluxHxM[ic] > 0) || (FakeFluxUxM[ic] > 0) || (FakeFluxVxM[ic] > 0)) {
-        Hxfluxminus = FakeFluxHxM[ic] * HALF; 
-        Uxfluxminus = FakeFluxUxM[ic] * HALF; 
-        Vxfluxminus = FakeFluxVxM[ic] * HALF; 
-        FakeFluxHxM[ic] = 0.0;
-        FakeFluxUxM[ic] = 0.0;
-        FakeFluxVxM[ic] = 0.0;
-        wminusx_H = tempWHxM[ic];
-        wminusx_U = tempWUxM[ic];
-        tempWHxM[ic] = 0.0;
-        tempWUxM[ic] = 0.0;
-    }
-    if ((FakeFluxHyP[ic] > 0) || (FakeFluxUyP[ic] > 0) || (FakeFluxVyP[ic] > 0)) {
-        Hyfluxplus = FakeFluxHyP[ic] * HALF; 
-        Uyfluxplus = FakeFluxUyP[ic] * HALF; 
-        Vyfluxplus = FakeFluxVyP[ic] * HALF; 
-        FakeFluxHyP[ic] = 0.0;
-        FakeFluxUyP[ic] = 0.0;
-        FakeFluxVyP[ic] = 0.0;
-        wplusy_H = tempWHyP[ic];
-        wplusy_V = tempWVyP[ic];
-        tempWHyP[ic] = 0.0;
-        tempWVyP[ic] = 0.0;
-    }
-    if ((FakeFluxHyM[ic] > 0) || (FakeFluxUyM[ic] > 0) || (FakeFluxVyM[ic] > 0)) {
-        Hyfluxminus = FakeFluxHyM[ic] * HALF; 
-        Uyfluxminus = FakeFluxUyM[ic] * HALF; 
-        Vyfluxminus = FakeFluxVyM[ic] * HALF; 
-        FakeFluxHyM[ic] = 0.0;
-        FakeFluxUyM[ic] = 0.0;
-        FakeFluxVyM[ic] = 0.0;
-        wminusy_H = tempWHyM[ic];
-        wminusy_V = tempWVyM[ic];
-        tempWHyM[ic] = 0.0;
-        tempWVyM[ic] = 0.0;
-    }
+      if ((FakeFluxHxP[ic] > 0) || (FakeFluxUxP[ic] > 0) || (FakeFluxVxP[ic] > 0)) {
+         Hxfluxplus = FakeFluxHxP[ic] * HALF; 
+         Uxfluxplus = FakeFluxUxP[ic] * HALF;
+         Vxfluxplus = FakeFluxVxP[ic] * HALF; 
+         FakeFluxHxP[ic] = 0.0;
+         FakeFluxUxP[ic] = 0.0;
+         FakeFluxVxP[ic] = 0.0;
+         wplusx_H = tempWHxP[ic];
+         wplusx_U = tempWUxP[ic];
+         tempWHxP[ic] = 0.0;
+         tempWUxP[ic] = 0.0;
+      }
+      if ((FakeFluxHxM[ic] > 0) || (FakeFluxUxM[ic] > 0) || (FakeFluxVxM[ic] > 0)) {
+         Hxfluxminus = FakeFluxHxM[ic] * HALF; 
+         Uxfluxminus = FakeFluxUxM[ic] * HALF; 
+         Vxfluxminus = FakeFluxVxM[ic] * HALF; 
+         FakeFluxHxM[ic] = 0.0;
+         FakeFluxUxM[ic] = 0.0;
+         FakeFluxVxM[ic] = 0.0;
+         wminusx_H = tempWHxM[ic];
+         wminusx_U = tempWUxM[ic];
+         tempWHxM[ic] = 0.0;
+         tempWUxM[ic] = 0.0;
+      }
+      if ((FakeFluxHyP[ic] > 0) || (FakeFluxUyP[ic] > 0) || (FakeFluxVyP[ic] > 0)) {
+         Hyfluxplus = FakeFluxHyP[ic] * HALF; 
+         Uyfluxplus = FakeFluxUyP[ic] * HALF; 
+         Vyfluxplus = FakeFluxVyP[ic] * HALF; 
+         FakeFluxHyP[ic] = 0.0;
+         FakeFluxUyP[ic] = 0.0;
+         FakeFluxVyP[ic] = 0.0;
+         wplusy_H = tempWHyP[ic];
+         wplusy_V = tempWVyP[ic];
+         tempWHyP[ic] = 0.0;
+         tempWVyP[ic] = 0.0;
+      }
+      if ((FakeFluxHyM[ic] > 0) || (FakeFluxUyM[ic] > 0) || (FakeFluxVyM[ic] > 0)) {
+         Hyfluxminus = FakeFluxHyM[ic] * HALF; 
+         Uyfluxminus = FakeFluxUyM[ic] * HALF; 
+         Vyfluxminus = FakeFluxVyM[ic] * HALF; 
+         FakeFluxHyM[ic] = 0.0;
+         FakeFluxUyM[ic] = 0.0;
+         FakeFluxVyM[ic] = 0.0;
+         wminusy_H = tempWHyM[ic];
+         wminusy_V = tempWVyM[ic];
+         tempWHyM[ic] = 0.0;
+         tempWVyM[ic] = 0.0;
+      }
    //if (ic == 280) printf("%d\n", mesh->phantomXFlux[286]);
 
-    if ((mesh->phantomXFlux[ic] >= 0) && (mesh->phantomXFlux[ic] < 99999)) {
-        int recvIdx = mesh->phantomXFlux[ic];
+      if ((mesh->phantomXFlux[ic] >= 0) && (mesh->phantomXFlux[ic] < 99999)) {
+         int recvIdx = mesh->phantomXFlux[ic];
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHxP[recvIdx] += Hxfluxminus;
+         FakeFluxHxP[recvIdx] += Hxfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUxP[recvIdx] += Uxfluxminus;
+         FakeFluxUxP[recvIdx] += Uxfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVxP[recvIdx] += Vxfluxminus;
+         FakeFluxVxP[recvIdx] += Vxfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWHxP[recvIdx] += wminusx_H / 4;
+         tempWHxP[recvIdx] += wminusx_H / 4;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWUxP[recvIdx] += wminusx_U / 4;
-    }
-    else if (mesh->phantomXFlux[ic] < 0) {
-        int recvIdx = abs(mesh->phantomXFlux[ic]);
+         tempWUxP[recvIdx] += wminusx_U / 4;
+      }
+      else if (mesh->phantomXFlux[ic] < 0) {
+         int recvIdx = abs(mesh->phantomXFlux[ic]);
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHxM[recvIdx] += Hxfluxplus;
+         FakeFluxHxM[recvIdx] += Hxfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUxM[recvIdx] += Uxfluxplus;
+         FakeFluxUxM[recvIdx] += Uxfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVxM[recvIdx] += Vxfluxplus;
+         FakeFluxVxM[recvIdx] += Vxfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWHxM[recvIdx] += wplusx_H / 4;
+         tempWHxM[recvIdx] += wplusx_H / 4;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWUxM[recvIdx] += wplusx_U / 4;
-    }
-    if ((mesh->phantomYFlux[ic] >= 0) && (mesh->phantomYFlux[ic] < 99999)) {
-        int recvIdx = mesh->phantomYFlux[ic];
+         tempWUxM[recvIdx] += wplusx_U / 4;
+      }
+      if ((mesh->phantomYFlux[ic] >= 0) && (mesh->phantomYFlux[ic] < 99999)) {
+         int recvIdx = mesh->phantomYFlux[ic];
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHyP[recvIdx] += Hyfluxminus;
+         FakeFluxHyP[recvIdx] += Hyfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUyP[recvIdx] += Uyfluxminus;
+         FakeFluxUyP[recvIdx] += Uyfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVyP[recvIdx] += Vyfluxminus;
+         FakeFluxVyP[recvIdx] += Vyfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWHyP[recvIdx] += wminusy_H / 4;
+         tempWHyP[recvIdx] += wminusy_H / 4;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWVyP[recvIdx] += wminusy_V / 4;
-    }
-    else if (mesh->phantomYFlux[ic] < 0) {
-        int recvIdx = abs(mesh->phantomYFlux[ic]);
+         tempWVyP[recvIdx] += wminusy_V / 4;
+      }
+      else if (mesh->phantomYFlux[ic] < 0) {
+         int recvIdx = abs(mesh->phantomYFlux[ic]);
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHyM[recvIdx] += Hyfluxplus;
+         FakeFluxHyM[recvIdx] += Hyfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUyM[recvIdx] += Uyfluxplus;
+         FakeFluxUyM[recvIdx] += Uyfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVyM[recvIdx] += Vyfluxplus;
+         FakeFluxVyM[recvIdx] += Vyfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWHyM[recvIdx] += wplusy_H / 4;
+         tempWHyM[recvIdx] += wplusy_H / 4;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        tempWVyM[recvIdx] += wplusy_V / 4;
-    }
+         tempWVyM[recvIdx] += wplusy_V / 4;
+      }
 
       //trying without dampening
       //wminusx_H = 0.0; wplusx_H = 0.0; wminusy_H = 0.0; wplusy_H = 0.0;
@@ -2485,17 +2428,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       V_new[ic] = U_fullstep(deltaT, dxic, Vic,
                       Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                  - wminusy_V + wplusy_V;
-    //printf("%d) %f %f %f %f\n", ic, Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus);
-
-#if DEBUG >= 1
-      if (DEBUG >= 1) {
-         real_t U_tmp = U_new[ic];
-         real_t V_tmp = V_new[ic];
-         if (U_tmp == 0.0) U_tmp = 0.0;
-         if (V_tmp == 0.0) V_tmp = 0.0;
-         printf("DEBUG ic %d H_new %lf U_new %lf V_new %lf\n",ic,H_new[ic],U_tmp,V_tmp);
-      }
-#endif
 
    }//end forloop
    rough--;
@@ -3243,21 +3175,12 @@ void State::calc_finite_difference_regular_cells(double deltaT){
    // established for the mesh shortly before
    apply_boundary_conditions();
 
-   static state_t *H_new, *U_new, *V_new;
+   //static state_t *H_new, *U_new, *V_new;
    static state_t ***H_reg_lev, ***U_reg_lev, ***V_reg_lev;
    static int ***mask_reg_lev;
-   int *nlft, *nrht, *nbot, *ntop, *level;
-
-   nlft  = mesh->nlft;
-   nrht  = mesh->nrht;
-   nbot  = mesh->nbot;
-   ntop  = mesh->ntop;
-   level = mesh->level;
 
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
-
-   int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
 
    //double ***FakeFluxHxP, ***FakeFluxUxP, ***FakeFluxVxP;
    //double ***FakeFluxHyP, ***FakeFluxUyP, ***FakeFluxVyP;
@@ -3365,7 +3288,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 
    for (int ll=mesh->levmx; ll>-1; ll--){
    //for (int ll = 0; ll < mesh->levmx; ll++){
-      state_t ***pstate = mesh->meshes[ll].pstate;
+      //state_t ***pstate = mesh->meshes[ll].pstate;
       int iimax = mesh->lev_iregsize[ll];
       int jjmax = mesh->lev_jregsize[ll];
 
@@ -3818,7 +3741,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #endif
 
       // Replace H_reg with H_reg_new
-      state_t **tmp_reg;
+      //state_t **tmp_reg;
       //SWAP_PTR(pstate[0], H_reg_new, tmp_reg);
       //SWAP_PTR(pstate[1], U_reg_new, tmp_reg);
       //SWAP_PTR(pstate[2], V_reg_new, tmp_reg);
@@ -3905,56 +3828,16 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
    // established for the mesh shortly before
    apply_boundary_conditions();
 
-   static state_t *H_new, *U_new, *V_new;
+   //static state_t *H_new, *U_new, *V_new;
    static state_t ***H_reg_lev, ***U_reg_lev, ***V_reg_lev;
    static int ***mask_reg_lev;
-   int *nlft, *nrht, *nbot, *ntop, *level;
-
-   nlft  = mesh->nlft;
-   nrht  = mesh->nrht;
-   nbot  = mesh->nbot;
-   ntop  = mesh->ntop;
-   level = mesh->level;
 
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
-   int flags = 0;
-   flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
-   //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
-
-    //following ~35 lines are to give H, U, V its proper flags back
+    //following lines are to give H, U, V its proper flags back
 
 #ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-    //state_memory.memory_report();
-    //printf("\n\n\n");
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-//#pragma omp barrier
-   //static state_t *H_tmp, *U_tmp, *V_tmp;
-//#pragma omp master
-   //{
-   //   H_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "H_tmp", flags);
-   //   U_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "U_tmp", flags);
-   //   V_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "V_tmp", flags);
-   //}
-//#pragma omp barrier
-   // int lowlow, upup;
-
-   // mesh->get_bounds(lowlow, upup);
-   // for (lowlow; lowlow < upup; lowlow++) {
-   //     H_tmp[lowlow] = H[lowlow];
-   //     U_tmp[lowlow] = U[lowlow];
-   //     V_tmp[lowlow] = V[lowlow];
-   // }
 #pragma omp barrier
 #pragma omp master
    {
@@ -3969,17 +3852,6 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 #pragma omp barrier
 #endif
 
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-    //state_memory.memory_report();
-    //printf("\n\n\n");
-#endif
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
    double ***FakeFluxHxP, ***FakeFluxUxP, ***FakeFluxVxP;
    double ***FakeFluxHyP, ***FakeFluxUyP, ***FakeFluxVyP;
    double ***FakeFluxHxM, ***FakeFluxUxM, ***FakeFluxVxM;
@@ -4056,7 +3928,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 
 
    for (int ll = mesh->levmx; ll > -1; ll--){
-      state_t ***pstate = mesh->meshes[ll].pstate;
+      //state_t ***pstate = mesh->meshes[ll].pstate;
       int iimax = mesh->lev_iregsize[ll];
       int jjmax = mesh->lev_jregsize[ll];
 
@@ -4065,7 +3937,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       state_t **V_reg = V_reg_lev[ll];
       int **mask_reg = mask_reg_lev[ll];
       state_t dx = lev_deltax[ll];
-      state_t dy = lev_deltax[ll];
+      state_t dy = lev_deltay[ll];
       double **Hx = (double **)genmatrix(jjmax, iimax, sizeof(double));
       double **Ux = (double **)genmatrix(jjmax, iimax, sizeof(double));
       double **Vx = (double **)genmatrix(jjmax, iimax, sizeof(double));
@@ -4098,17 +3970,15 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
          }
       }
 
-      int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
-
       state_t **H_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
       state_t **U_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
       state_t **V_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
 
-      real_t Cx = deltaT/dx;
-      real_t Cy = deltaT/dy;
-      real_t duminus1, duminus2, duplus1, duplus2, duhalf1, duhalf2;
-      real_t rdenom, rnumplus, rnumminus, rplus, rminus, q, nu, cv;
-      real_t wminusx, wplusx, wminusy, wplusy;
+      //real_t Cx = deltaT/dx;
+      //real_t Cy = deltaT/dy;
+      //real_t duminus1, duminus2, duplus1, duplus2, duhalf1, duhalf2;
+      //real_t rdenom, rnumplus, rnumminus, rplus, rminus, q, nu, cv;
+      //real_t wminusx, wplusx, wminusy, wplusy;
 
       for(int jj=2; jj<jjmax-2; jj++){
          for(int ii=2; ii<iimax-2; ii++){
@@ -4146,6 +4016,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
             real_t Uyfluxplus = UNEWYRGFLUXPLUS;
             real_t Vyfluxplus = VNEWYRGFLUXPLUS;
 
+            /*
             duminus1 = H_reg[jj][ii-1]-H_reg[jj][ii-2];
             duminus2 = U_reg[jj][ii-1]-U_reg[jj][ii-2];
             duplus1 = H_reg[jj][ii+1]-H_reg[jj][ii];
@@ -4209,6 +4080,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
             nu=(fabs(Vy[jj-1][ii-2])+sqrt(g*Hy[jj-1][ii-2]))*Cy;
             cv=nu*(1.0-nu);
             wplusy = 0.5*cv*(1.0-q);
+            */
 
 
       real_t wminusx_H = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
@@ -4454,7 +4326,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       genmatrixfree((void **)Vy[0]);
 
       // Replace H_reg with H_reg_new
-      state_t ** tmp_reg;
+      //state_t ** tmp_reg;
       //SWAP_PTR(pstate[0], H_reg_new, tmp_reg);
       //SWAP_PTR(pstate[1], U_reg_new, tmp_reg);
       //SWAP_PTR(pstate[2], V_reg_new, tmp_reg);
@@ -5378,7 +5250,6 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 
    int *nlft, *nrht, *nbot, *ntop, *level;
    
-   size_t ncells = mesh->ncells;
    nlft  = mesh->nlft;
    nrht  = mesh->nrht;
    nbot  = mesh->nbot;
