@@ -1778,65 +1778,6 @@ void State::calc_finite_difference_in_place(double deltaT){
 
    int flags = 0;
    flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
-   //if (mesh->parallel) flags = (flags | LOAD_BALANCE_MEMORY);
-
-    //following ~35 lines are to give H, U, V its proper flags back
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-    //state_memory.memory_report();
-    //printf("\n\n\n");
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-//#pragma omp barrier
-   //static state_t *H_tmp, *U_tmp, *V_tmp;
-//#pragma omp master
-   //{
-   //   H_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "H_tmp", flags);
-   //   U_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "U_tmp", flags);
-   //   V_tmp = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "V_tmp", flags);
-   //}
-//#pragma omp barrier
-   // int lowlow, upup;
-
-   // mesh->get_bounds(lowlow, upup);
-   // for (lowlow; lowlow < upup; lowlow++) {
-   //     H_tmp[lowlow] = H[lowlow];
-   //     U_tmp[lowlow] = U[lowlow];
-   //     V_tmp[lowlow] = V[lowlow];
-   // }
-#pragma omp barrier
-#pragma omp master
-   {
-      // Set missing memory attributes to be sure they are correct
-      state_memory.set_memory_attribute(H, REZONE_DATA);
-      state_memory.set_memory_attribute(H, LOAD_BALANCE_MEMORY);
-      state_memory.set_memory_attribute(U, REZONE_DATA);
-      state_memory.set_memory_attribute(U, LOAD_BALANCE_MEMORY);
-      state_memory.set_memory_attribute(V, REZONE_DATA);
-      state_memory.set_memory_attribute(V, LOAD_BALANCE_MEMORY);
-   }
-#pragma omp barrier
-#endif
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-    //state_memory.memory_report();
-    //printf("\n\n\n");
-#endif
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -1895,15 +1836,9 @@ void State::calc_finite_difference_in_place(double deltaT){
 #pragma omp master
 #endif
    {
-      H_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                    sizeof(state_t),
-                                                    "H_new", flags);
-      U_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                    sizeof(state_t),
-                                                    "U_new", flags);
-      V_new = (state_t *)state_memory.memory_malloc(ncells_ghost,
-                                                    sizeof(state_t),
-                                                    "V_new", flags);
+      H_new = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "H_new", flags);
+      U_new = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "U_new", flags);
+      V_new = (state_t *)state_memory.memory_malloc(ncells_ghost, sizeof(state_t), "V_new", flags);
    }
 #ifdef _OPENMP
 #pragma omp barrier
