@@ -1567,7 +1567,7 @@ void State::calc_finite_difference(double deltaT){
 #endif
 }
 
-void State::calc_finite_difference_in_place(double deltaT){
+void State::calc_finite_difference_cell_in_place(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = 0.5*g;
 
@@ -1578,8 +1578,6 @@ void State::calc_finite_difference_in_place(double deltaT){
    // established for the mesh shortly before
    apply_boundary_conditions();
 
-   int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
-
    static vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
    static vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
    static vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
@@ -1588,9 +1586,6 @@ void State::calc_finite_difference_in_place(double deltaT){
    static vector<double> tempWHyP, tempWHyM, tempWVyP, tempWVyM;
 
    static state_t *H_new, *U_new, *V_new;
-
-   vector<real_t> &lev_deltax = mesh->lev_deltax;
-   vector<real_t> &lev_deltay = mesh->lev_deltay;
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -1621,6 +1616,8 @@ void State::calc_finite_difference_in_place(double deltaT){
       tempWVyP.resize(mesh->ncells, 0);
       tempWVyM.resize(mesh->ncells, 0);
 
+      int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
+
       H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
       U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
       V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
@@ -1633,8 +1630,8 @@ void State::calc_finite_difference_in_place(double deltaT){
 
    mesh->get_bounds(lowerBound, upperBound);
    for (int lev = mesh->levmx; lev > -1; lev--){
-      real_t dxic    = lev_deltax[lev];
-      real_t dyic    = lev_deltay[lev];
+      real_t dxic    = mesh->lev_deltax[lev];
+      real_t dyic    = mesh->lev_deltay[lev];
 
       for (int gix = lowerBound; gix < upperBound; gix++) {
 
@@ -1982,8 +1979,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    // established for the mesh shortly before
    apply_boundary_conditions();
 
-   int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
-
    static vector<double> FakeFluxHxP, FakeFluxUxP, FakeFluxVxP;
    static vector<double> FakeFluxHyP, FakeFluxUyP, FakeFluxVyP;
    static vector<double> FakeFluxHxM, FakeFluxUxM, FakeFluxVxM;
@@ -1991,11 +1986,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    static vector<double> tempWHxP, tempWHxM, tempWUxP, tempWUxM;
    static vector<double> tempWHyP, tempWHyM, tempWVyP, tempWVyM;
 
-   vector<real_t> &lev_deltax = mesh->lev_deltax;
-   vector<real_t> &lev_deltay = mesh->lev_deltay;
-
    int xfaceSize; //new "update" nxface inc. phantoms
-   //int cellSizewp = mesh->mesh_memory.get_memory_size(mesh->level); //number of cell inc. phantoms
 
    static vector<state_t> Hx, Ux, Vx;
 
@@ -2091,6 +2082,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp master
    {
 #endif
+      int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
+
       H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
       U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
       V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
@@ -2104,7 +2097,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 
    mesh->get_bounds(lowerBound, upperBound);
    for (int lev = mesh->levmx; lev > -1; lev--){
-      real_t dxic    = lev_deltax[lev];
+      real_t dxic    = mesh->lev_deltax[lev];
 
       for (int ic = lowerBound; ic < upperBound; ic++){
          if (lev != mesh->level[ic]) continue;
@@ -2154,11 +2147,11 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          real_t Hbb     = H[nbb];
          real_t Vbb     = V[nbb];
 
-         real_t dxl     = lev_deltax[mesh->level[nl]];
-         real_t dxr     = lev_deltax[mesh->level[nr]];
+         real_t dxl     = mesh->lev_deltax[mesh->level[nl]];
+         real_t dxr     = mesh->lev_deltax[mesh->level[nr]];
 
-         real_t dyt     = lev_deltay[mesh->level[nt]];
-         real_t dyb     = lev_deltay[mesh->level[nb]];
+         real_t dyt     = mesh->lev_deltay[mesh->level[nt]];
+         real_t dyb     = mesh->lev_deltay[mesh->level[nb]];
 
          real_t dric    = dxic;
 
