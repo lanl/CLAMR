@@ -2462,17 +2462,6 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
    int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
 
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   mesh->calc_face_list_wbidirmap();
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-
    nlft  = mesh->nlft;
    nrht  = mesh->nrht;
    nbot  = mesh->nbot;
@@ -2490,9 +2479,11 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #pragma omp master
    {
 #endif
-   Hx.resize(mesh->nxface);
-   Ux.resize(mesh->nxface);
-   Vx.resize(mesh->nxface);
+      mesh->calc_face_list_wbidirmap();
+
+      Hx.resize(mesh->nxface);
+      Ux.resize(mesh->nxface);
+      Vx.resize(mesh->nxface);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2557,9 +2548,9 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #pragma omp master
    {
 #endif
-   Hy.resize(mesh->nyface);
-   Uy.resize(mesh->nyface);
-   Vy.resize(mesh->nyface);
+      Hy.resize(mesh->nyface);
+      Uy.resize(mesh->nyface);
+      Vy.resize(mesh->nyface);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -3198,81 +3189,81 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #pragma omp master
    {
 #endif
-   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
-   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
-   mesh->generate_regular_cell_meshes(state_memory);
-   H_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
-   U_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
-   V_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
-   mask_reg_lev = (int ***)malloc((mesh->levmx+1)*sizeof(int **));
+      mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
+      memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
+      mesh->generate_regular_cell_meshes(state_memory);
+      H_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      U_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      V_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      mask_reg_lev = (int ***)malloc((mesh->levmx+1)*sizeof(int **));
 
-   /*FakeFluxHxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxHxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxHyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxHyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxUxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxUxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxUyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxUyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxVxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxVxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxVyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxVyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWHxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWHxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWHyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWHyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWUxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWUxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWVyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWVyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));*/
-   varH = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   varU = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   varV = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   passFlag = (int ***) malloc((mesh->levmx+1) * sizeof(int **));
+      /*FakeFluxHxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxHxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxHyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxHyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxUxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxUxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxUyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxUyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxVxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxVxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxVyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxVyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWHxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWHxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWHyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWHyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWUxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWUxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWVyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWVyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));*/
+      varH = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      varU = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      varV = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      passFlag = (int ***) malloc((mesh->levmx+1) * sizeof(int **));
 
-   for (int lev = 0; lev < mesh->levmx + 1; lev++){
-       state_t ***pstate = mesh->meshes[lev].pstate;
-       H_reg_lev[lev] = pstate[0];
-       U_reg_lev[lev] = pstate[1];
-       V_reg_lev[lev] = pstate[2];
-       mask_reg_lev[lev] = mesh->meshes[lev].mask;
+      for (int lev = 0; lev < mesh->levmx + 1; lev++){
+          state_t ***pstate = mesh->meshes[lev].pstate;
+          H_reg_lev[lev] = pstate[0];
+          U_reg_lev[lev] = pstate[1];
+          V_reg_lev[lev] = pstate[2];
+          mask_reg_lev[lev] = mesh->meshes[lev].mask;
 /*
-       FakeFluxHxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxHxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxHyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxHyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxUxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxUxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxUyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxUyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxVxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxVxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxVyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxVyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWHxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWHxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWHyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWHyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWUxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWUxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWVyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWVyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));*/
-       varH[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*8,sizeof(double));
-       varU[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*6,sizeof(double));
-       varV[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*6,sizeof(double));
-       passFlag[lev] = (int **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*4,sizeof(int));
+          FakeFluxHxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          FakeFluxHxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          FakeFluxHyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          FakeFluxHyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          FakeFluxUxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          FakeFluxUxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          FakeFluxUyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          FakeFluxUyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          FakeFluxVxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          FakeFluxVxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          FakeFluxVyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          FakeFluxVyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          tempWHxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          tempWHxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          tempWHyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          tempWHyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          tempWUxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          tempWUxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          tempWVyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          tempWVyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));*/
+          varH[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*8,sizeof(double));
+          varU[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*6,sizeof(double));
+          varV[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*6,sizeof(double));
+          passFlag[lev] = (int **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*4,sizeof(int));
 
-      for(int jj=0; jj<mesh->lev_jregsize[lev]; jj++){
-          for(int ii=0; ii<mesh->lev_iregsize[lev]; ii++){
-              passFlag[lev][jj][ii*4+0] = 0;
-              passFlag[lev][jj][ii*4+1] = 0;
-              passFlag[lev][jj][ii*4+2] = 0;
-              passFlag[lev][jj][ii*4+3] = 0;
-          }
+         for(int jj=0; jj<mesh->lev_jregsize[lev]; jj++){
+             for(int ii=0; ii<mesh->lev_iregsize[lev]; ii++){
+                 passFlag[lev][jj][ii*4+0] = 0;
+                 passFlag[lev][jj][ii*4+1] = 0;
+                 passFlag[lev][jj][ii*4+2] = 0;
+                 passFlag[lev][jj][ii*4+3] = 0;
+             }
+         }
+
       }
-
-   }
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -3280,7 +3271,6 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 
 
    for (int ll=mesh->levmx; ll>-1; ll--){
-   //for (int ll = 0; ll < mesh->levmx; ll++){
       //state_t ***pstate = mesh->meshes[ll].pstate;
       int iimax = mesh->lev_iregsize[ll];
       int jjmax = mesh->lev_jregsize[ll];
@@ -3343,26 +3333,26 @@ void State::calc_finite_difference_regular_cells(double deltaT){
             real_t Uyfluxplus = UNEWYRGFLUXPLUS;
             real_t Vyfluxplus = VNEWYRGFLUXPLUS;
 
-      if (!passFlag[ll][jj][ii*4+0]) {
-            varH[ll][jj][ii*8+0] = Hxfluxminus;
-            varU[ll][jj][ii*6+0] = Uxfluxminus;
-            varV[ll][jj][ii*6+0] = Vxfluxminus;
-      }
-      if (!passFlag[ll][jj][ii*4+1]) {
-            varH[ll][jj][ii*8+1] = Hxfluxplus;
-            varU[ll][jj][ii*6+1] = Uxfluxplus;
-            varV[ll][jj][ii*6+1] = Vxfluxplus;
-      }
-      if (!passFlag[ll][jj][ii*4+2]) {
-            varH[ll][jj][ii*8+2] = Hyfluxminus;
-            varU[ll][jj][ii*6+2] = Uyfluxminus;
-            varV[ll][jj][ii*6+2] = Vyfluxminus;
-      }
-      if (!passFlag[ll][jj][ii*4+3]) {
-            varH[ll][jj][ii*8+3] = Hyfluxplus;
-            varU[ll][jj][ii*6+3] = Uyfluxplus;
-            varV[ll][jj][ii*6+3] = Vyfluxplus;
-      }
+            if (!passFlag[ll][jj][ii*4+0]) {
+               varH[ll][jj][ii*8+0] = Hxfluxminus;
+               varU[ll][jj][ii*6+0] = Uxfluxminus;
+               varV[ll][jj][ii*6+0] = Vxfluxminus;
+            }
+            if (!passFlag[ll][jj][ii*4+1]) {
+               varH[ll][jj][ii*8+1] = Hxfluxplus;
+               varU[ll][jj][ii*6+1] = Uxfluxplus;
+               varV[ll][jj][ii*6+1] = Vxfluxplus;
+            }
+            if (!passFlag[ll][jj][ii*4+2]) {
+               varH[ll][jj][ii*8+2] = Hyfluxminus;
+               varU[ll][jj][ii*6+2] = Uyfluxminus;
+               varV[ll][jj][ii*6+2] = Vyfluxminus;
+            }
+            if (!passFlag[ll][jj][ii*4+3]) {
+               varH[ll][jj][ii*8+3] = Hyfluxplus;
+               varU[ll][jj][ii*6+3] = Uyfluxplus;
+               varV[ll][jj][ii*6+3] = Vyfluxplus;
+            }
 
             /*duminus1 = H_reg[jj][ii-1]-H_reg[jj][ii-2];
             duminus2 = U_reg[jj][ii-1]-U_reg[jj][ii-2];
@@ -3428,292 +3418,292 @@ void State::calc_finite_difference_regular_cells(double deltaT){
             cv=nu*(1.0-nu);
             wplusy = 0.5*cv*(1.0-q);*/
 
-      real_t wminusx_H = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+            real_t wminusx_H = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
                               H_reg[jj][ii]-H_reg[jj][ii-1], H_reg[jj][ii-1]-H_reg[jj][ii-2], H_reg[jj][ii+1]-H_reg[jj][ii]);
 
-      wminusx_H *= H_reg[jj][ii] - H_reg[jj][ii-1];
+            wminusx_H *= H_reg[jj][ii] - H_reg[jj][ii-1];
 
-      real_t wplusx_H = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+            real_t wplusx_H = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
                               H_reg[jj][ii+1]-H_reg[jj][ii], H_reg[jj][ii]-H_reg[jj][ii-1], H_reg[jj][ii+2]-H_reg[jj][ii+1]);
 
-      wplusx_H *= H_reg[jj][ii+1] - H_reg[jj][ii];
+            wplusx_H *= H_reg[jj][ii+1] - H_reg[jj][ii];
 
-      real_t wminusx_U = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+            real_t wminusx_U = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
                               U_reg[jj][ii]-U_reg[jj][ii-1], U_reg[jj][ii-1]-U_reg[jj][ii-2], U_reg[jj][ii+1]-U_reg[jj][ii]);
 
-      wminusx_U *= U_reg[jj][ii] - U_reg[jj][ii-1];
+            wminusx_U *= U_reg[jj][ii] - U_reg[jj][ii-1];
 
-      real_t wplusx_U = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+            real_t wplusx_U = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
                               U_reg[jj][ii+1]-U_reg[jj][ii], U_reg[jj][ii]-U_reg[jj][ii-1], U_reg[jj][ii+2]-U_reg[jj][ii+1]);
 
-      wplusx_U *= U_reg[jj][ii+1] - U_reg[jj][ii];
+            wplusx_U *= U_reg[jj][ii+1] - U_reg[jj][ii];
 
-      real_t wminusy_H = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+            real_t wminusy_H = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
                               H_reg[jj][ii]-H_reg[jj-1][ii], H_reg[jj-1][ii]-H_reg[jj-2][ii], H_reg[jj+1][ii]-H_reg[jj][ii]);
 
-      wminusy_H *= H_reg[jj][ii] - H_reg[jj-1][ii];
+            wminusy_H *= H_reg[jj][ii] - H_reg[jj-1][ii];
 
-      real_t wplusy_H = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+            real_t wplusy_H = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
                               H_reg[jj+1][ii]-H_reg[jj][ii], H_reg[jj][ii]-H_reg[jj-1][ii], H_reg[jj+2][ii]-H_reg[jj+1][ii]);
 
-      wplusy_H *= H_reg[jj+1][ii] - H_reg[jj][ii];
+            wplusy_H *= H_reg[jj+1][ii] - H_reg[jj][ii];
 
-      real_t wminusy_V = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+            real_t wminusy_V = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
                               V_reg[jj][ii]-V_reg[jj-1][ii], V_reg[jj-1][ii]-V_reg[jj-2][ii], V_reg[jj+1][ii]-V_reg[jj][ii]);
 
-      wminusy_V *= V_reg[jj][ii] - V_reg[jj-1][ii];
+            wminusy_V *= V_reg[jj][ii] - V_reg[jj-1][ii];
 
-      real_t wplusy_V = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+            real_t wplusy_V = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
                               V_reg[jj+1][ii]-V_reg[jj][ii], V_reg[jj][ii]-V_reg[jj-1][ii], V_reg[jj+2][ii]-V_reg[jj+1][ii]);
 
-      wplusy_V *= V_reg[jj+1][ii] - V_reg[jj][ii];
+            wplusy_V *= V_reg[jj+1][ii] - V_reg[jj][ii];
 
-      if (!passFlag[ll][jj][ii*4+0]) {
-      varH[ll][jj][ii*8+4] = wminusx_H;
-      varU[ll][jj][ii*6+4] = wminusx_U;
-      }
-      if (!passFlag[ll][jj][ii*4+1]) {
-      varH[ll][jj][ii*8+5] = wplusx_H;
-      varU[ll][jj][ii*6+5] = wplusx_U;
-      }
-      if (!passFlag[ll][jj][ii*4+2]) {
-      varH[ll][jj][ii*8+6] = wminusy_H;
-      varV[ll][jj][ii*6+4] = wminusy_V;
-      }
-      if (!passFlag[ll][jj][ii*4+3]) {
-      varH[ll][jj][ii*8+7] = wplusy_H;
-      varV[ll][jj][ii*6+5] = wplusy_V;
-      }
+            if (!passFlag[ll][jj][ii*4+0]) {
+               varH[ll][jj][ii*8+4] = wminusx_H;
+               varU[ll][jj][ii*6+4] = wminusx_U;
+            }
+            if (!passFlag[ll][jj][ii*4+1]) {
+               varH[ll][jj][ii*8+5] = wplusx_H;
+               varU[ll][jj][ii*6+5] = wplusx_U;
+            }
+            if (!passFlag[ll][jj][ii*4+2]) {
+               varH[ll][jj][ii*8+6] = wminusy_H;
+               varV[ll][jj][ii*6+4] = wminusy_V;
+            }
+            if (!passFlag[ll][jj][ii*4+3]) {
+               varH[ll][jj][ii*8+7] = wplusy_H;
+               varV[ll][jj][ii*6+5] = wplusy_V;
+            }
 
 
             //mass conservation by flux transfer
-    /*if ((FakeFluxHxP[ll][jj][ii] > 0) || (FakeFluxUxP[ll][jj][ii] > 0) || (FakeFluxVxP[ll][jj][ii] > 0)) {
-        Hxfluxplus = FakeFluxHxP[ll][jj][ii] * HALF; 
-        Uxfluxplus = FakeFluxUxP[ll][jj][ii] * HALF;
-        Vxfluxplus = FakeFluxVxP[ll][jj][ii] * HALF; 
-        FakeFluxHxP[ll][jj][ii] = 0.0;
-        FakeFluxUxP[ll][jj][ii] = 0.0;
-        FakeFluxVxP[ll][jj][ii] = 0.0;
-        //wplusx = tempWxP[gix];
-        wplusx_H = tempWHxP[ll][jj][ii];
-        wplusx_U = tempWUxP[ll][jj][ii];
-        //tempWxP[gix] = 0.0;
-        tempWHxP[ll][jj][ii] = 0.0;
-        tempWUxP[ll][jj][ii] = 0.0;
-    }
-    if ((FakeFluxHxM[ll][jj][ii] > 0) || (FakeFluxUxM[ll][jj][ii] > 0) || (FakeFluxVxM[ll][jj][ii] > 0)) {
-        Hxfluxminus = FakeFluxHxM[ll][jj][ii] * HALF; 
-        Uxfluxminus = FakeFluxUxM[ll][jj][ii] * HALF; 
-        Vxfluxminus = FakeFluxVxM[ll][jj][ii] * HALF; 
-        FakeFluxHxM[ll][jj][ii] = 0.0;
-        FakeFluxUxM[ll][jj][ii] = 0.0;
-        FakeFluxVxM[ll][jj][ii] = 0.0;
-        //wminusx = tempWxM[gix];
-        wminusx_H = tempWHxM[ll][jj][ii];
-        wminusx_U = tempWUxM[ll][jj][ii];
-        //tempWxM[gix] = 0.0;
-        tempWHxM[ll][jj][ii] = 0.0;
-        tempWUxM[ll][jj][ii] = 0.0;
-    }
-    if ((FakeFluxHyP[ll][jj][ii] > 0) || (FakeFluxUyP[ll][jj][ii] > 0) || (FakeFluxVyP[ll][jj][ii] > 0)) {
-        Hyfluxplus = FakeFluxHyP[ll][jj][ii] * HALF; 
-        Uyfluxplus = FakeFluxUyP[ll][jj][ii] * HALF; 
-        Vyfluxplus = FakeFluxVyP[ll][jj][ii] * HALF; 
-        FakeFluxHyP[ll][jj][ii] = 0.0;
-        FakeFluxUyP[ll][jj][ii] = 0.0;
-        FakeFluxVyP[ll][jj][ii] = 0.0;
-        //wplusy = tempWyP[gix];
-        wplusy_H = tempWHyP[ll][jj][ii];
-        wplusy_V = tempWVyP[ll][jj][ii];
-        //tempWyP[gix] = 0.0;
-        tempWHyP[ll][jj][ii] = 0.0;
-        tempWVyP[ll][jj][ii] = 0.0;
-    }
-    if ((FakeFluxHyM[ll][jj][ii] > 0) || (FakeFluxUyM[ll][jj][ii] > 0) || (FakeFluxVyM[ll][jj][ii] > 0)) {
-        Hyfluxminus = FakeFluxHyM[ll][jj][ii] * HALF; 
-        Uyfluxminus = FakeFluxUyM[ll][jj][ii] * HALF; 
-        Vyfluxminus = FakeFluxVyM[ll][jj][ii] * HALF; 
-        FakeFluxHyM[ll][jj][ii] = 0.0;
-        FakeFluxUyM[ll][jj][ii] = 0.0;
-        FakeFluxVyM[ll][jj][ii] = 0.0;
-        //wminusy = tempWyM[gix];
-        wminusy_H = tempWHyM[ll][jj][ii];
-        wminusy_V = tempWVyM[ll][jj][ii];
-        //tempWyM[gix] = 0.0;
-        tempWHyM[ll][jj][ii] = 0.0;
-        tempWVyM[ll][jj][ii] = 0.0;
-    }*/
+            /*if ((FakeFluxHxP[ll][jj][ii] > 0) || (FakeFluxUxP[ll][jj][ii] > 0) || (FakeFluxVxP[ll][jj][ii] > 0)) {
+               Hxfluxplus = FakeFluxHxP[ll][jj][ii] * HALF; 
+               Uxfluxplus = FakeFluxUxP[ll][jj][ii] * HALF;
+               Vxfluxplus = FakeFluxVxP[ll][jj][ii] * HALF; 
+               FakeFluxHxP[ll][jj][ii] = 0.0;
+               FakeFluxUxP[ll][jj][ii] = 0.0;
+               FakeFluxVxP[ll][jj][ii] = 0.0;
+               //wplusx = tempWxP[gix];
+               wplusx_H = tempWHxP[ll][jj][ii];
+               wplusx_U = tempWUxP[ll][jj][ii];
+               //tempWxP[gix] = 0.0;
+               tempWHxP[ll][jj][ii] = 0.0;
+               tempWUxP[ll][jj][ii] = 0.0;
+            }
+            if ((FakeFluxHxM[ll][jj][ii] > 0) || (FakeFluxUxM[ll][jj][ii] > 0) || (FakeFluxVxM[ll][jj][ii] > 0)) {
+               Hxfluxminus = FakeFluxHxM[ll][jj][ii] * HALF; 
+               Uxfluxminus = FakeFluxUxM[ll][jj][ii] * HALF; 
+               Vxfluxminus = FakeFluxVxM[ll][jj][ii] * HALF; 
+               FakeFluxHxM[ll][jj][ii] = 0.0;
+               FakeFluxUxM[ll][jj][ii] = 0.0;
+               FakeFluxVxM[ll][jj][ii] = 0.0;
+               //wminusx = tempWxM[gix];
+               wminusx_H = tempWHxM[ll][jj][ii];
+               wminusx_U = tempWUxM[ll][jj][ii];
+               //tempWxM[gix] = 0.0;
+               tempWHxM[ll][jj][ii] = 0.0;
+               tempWUxM[ll][jj][ii] = 0.0;
+            }
+            if ((FakeFluxHyP[ll][jj][ii] > 0) || (FakeFluxUyP[ll][jj][ii] > 0) || (FakeFluxVyP[ll][jj][ii] > 0)) {
+               Hyfluxplus = FakeFluxHyP[ll][jj][ii] * HALF; 
+               Uyfluxplus = FakeFluxUyP[ll][jj][ii] * HALF; 
+               Vyfluxplus = FakeFluxVyP[ll][jj][ii] * HALF; 
+               FakeFluxHyP[ll][jj][ii] = 0.0;
+               FakeFluxUyP[ll][jj][ii] = 0.0;
+               FakeFluxVyP[ll][jj][ii] = 0.0;
+               //wplusy = tempWyP[gix];
+               wplusy_H = tempWHyP[ll][jj][ii];
+               wplusy_V = tempWVyP[ll][jj][ii];
+               //tempWyP[gix] = 0.0;
+               tempWHyP[ll][jj][ii] = 0.0;
+               tempWVyP[ll][jj][ii] = 0.0;
+            }
+            if ((FakeFluxHyM[ll][jj][ii] > 0) || (FakeFluxUyM[ll][jj][ii] > 0) || (FakeFluxVyM[ll][jj][ii] > 0)) {
+               Hyfluxminus = FakeFluxHyM[ll][jj][ii] * HALF; 
+               Uyfluxminus = FakeFluxUyM[ll][jj][ii] * HALF; 
+               Vyfluxminus = FakeFluxVyM[ll][jj][ii] * HALF; 
+               FakeFluxHyM[ll][jj][ii] = 0.0;
+               FakeFluxUyM[ll][jj][ii] = 0.0;
+               FakeFluxVyM[ll][jj][ii] = 0.0;
+               //wminusy = tempWyM[gix];
+               wminusy_H = tempWHyM[ll][jj][ii];
+               wminusy_V = tempWVyM[ll][jj][ii];
+               //tempWyM[gix] = 0.0;
+               tempWHyM[ll][jj][ii] = 0.0;
+               tempWVyM[ll][jj][ii] = 0.0;
+            }*/
 
-    if ((mesh->phantomXFluxRG[ll][jj][ii] >= 0) && (mesh->phantomXFluxRG[ll][jj][ii] < 99999)) {
-        int recvic = mesh->phantomXFluxRG[ll][jj][ii];
-        int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
-        int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
-        int multfactor = passFlag[ll-1][recvJ][recvI*4+1];
-        /*
+            if ((mesh->phantomXFluxRG[ll][jj][ii] >= 0) && (mesh->phantomXFluxRG[ll][jj][ii] < 99999)) {
+               int recvic = mesh->phantomXFluxRG[ll][jj][ii];
+               int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
+               int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
+               int multfactor = passFlag[ll-1][recvJ][recvI*4+1];
+               /*
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHxP[ll-1][recvJ][recvI] += Hxfluxminus;
+               FakeFluxHxP[ll-1][recvJ][recvI] += Hxfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUxP[ll-1][recvJ][recvI] += Uxfluxminus;
+               FakeFluxUxP[ll-1][recvJ][recvI] += Uxfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVxP[ll-1][recvJ][recvI] += Vxfluxminus;
+               FakeFluxVxP[ll-1][recvJ][recvI] += Vxfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        //tempWxP[recvIdx] += wminusx / 4;
-        tempWHxP[ll-1][recvJ][recvI] += wminusx_H / 4;
-        tempWUxP[ll-1][recvJ][recvI] += wminusx_U / 4;
+               //tempWxP[recvIdx] += wminusx / 4;
+               tempWHxP[ll-1][recvJ][recvI] += wminusx_H / 4;
+               tempWUxP[ll-1][recvJ][recvI] += wminusx_U / 4;
 */
-        varH[ll-1][recvJ][recvI*8+1] = multfactor * varH[ll-1][recvJ][recvI*8+1] + varH[ll][jj][ii*8+0] * HALF;
-        varU[ll-1][recvJ][recvI*6+1] = multfactor * varU[ll-1][recvJ][recvI*6+1] + varU[ll][jj][ii*6+0] * HALF;
-        varV[ll-1][recvJ][recvI*6+1] = multfactor * varV[ll-1][recvJ][recvI*6+1] + varV[ll][jj][ii*6+0] * HALF;
-        varH[ll-1][recvJ][recvI*8+5] = multfactor * varH[ll-1][recvJ][recvI*8+5] + varH[ll][jj][ii*8+4] / 4;
-        varU[ll-1][recvJ][recvI*6+5] = multfactor * varU[ll-1][recvJ][recvI*6+5] + varU[ll][jj][ii*6+4] / 4;
-        passFlag[ll-1][recvJ][recvI*4+1] = 1;
-    }
-    else if (mesh->phantomXFluxRG[ll][jj][ii] < 0) {
-        int recvic = abs(mesh->phantomXFluxRG[ll][jj][ii]);
-        int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
-        int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
-        int multfactor = passFlag[ll-1][recvJ][recvI*4+0];
-        /*
+               varH[ll-1][recvJ][recvI*8+1] = multfactor * varH[ll-1][recvJ][recvI*8+1] + varH[ll][jj][ii*8+0] * HALF;
+               varU[ll-1][recvJ][recvI*6+1] = multfactor * varU[ll-1][recvJ][recvI*6+1] + varU[ll][jj][ii*6+0] * HALF;
+               varV[ll-1][recvJ][recvI*6+1] = multfactor * varV[ll-1][recvJ][recvI*6+1] + varV[ll][jj][ii*6+0] * HALF;
+               varH[ll-1][recvJ][recvI*8+5] = multfactor * varH[ll-1][recvJ][recvI*8+5] + varH[ll][jj][ii*8+4] / 4;
+               varU[ll-1][recvJ][recvI*6+5] = multfactor * varU[ll-1][recvJ][recvI*6+5] + varU[ll][jj][ii*6+4] / 4;
+               passFlag[ll-1][recvJ][recvI*4+1] = 1;
+           }
+           else if (mesh->phantomXFluxRG[ll][jj][ii] < 0) {
+               int recvic = abs(mesh->phantomXFluxRG[ll][jj][ii]);
+               int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
+               int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
+               int multfactor = passFlag[ll-1][recvJ][recvI*4+0];
+               /*
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHxM[ll-1][recvJ][recvI] += Hxfluxplus;
+               FakeFluxHxM[ll-1][recvJ][recvI] += Hxfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUxM[ll-1][recvJ][recvI] += Uxfluxplus;
+               FakeFluxUxM[ll-1][recvJ][recvI] += Uxfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVxM[ll-1][recvJ][recvI] += Vxfluxplus;
+               FakeFluxVxM[ll-1][recvJ][recvI] += Vxfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        //tempWxM[recvIdx] += wplusx / 4;
-        tempWHxM[ll-1][recvJ][recvI] += wplusx_H / 4;
-        tempWUxM[ll-1][recvJ][recvI] += wplusx_U / 4;
+               //tempWxM[recvIdx] += wplusx / 4;
+               tempWHxM[ll-1][recvJ][recvI] += wplusx_H / 4;
+               tempWUxM[ll-1][recvJ][recvI] += wplusx_U / 4;
 */
-        varH[ll-1][recvJ][recvI*8+0] = multfactor * varH[ll-1][recvJ][recvI*8+0] + varH[ll][jj][ii*8+1] * HALF;
-        varU[ll-1][recvJ][recvI*6+0] = multfactor * varU[ll-1][recvJ][recvI*6+0] + varU[ll][jj][ii*6+1] * HALF;
-        varV[ll-1][recvJ][recvI*6+0] = multfactor * varV[ll-1][recvJ][recvI*6+0] + varV[ll][jj][ii*6+1] * HALF;
-        varH[ll-1][recvJ][recvI*8+4] = multfactor * varH[ll-1][recvJ][recvI*8+4] + varH[ll][jj][ii*8+5] / 4;
-        varU[ll-1][recvJ][recvI*6+4] = multfactor * varU[ll-1][recvJ][recvI*6+4] + varU[ll][jj][ii*6+5] / 4;
-        passFlag[ll-1][recvJ][recvI*4+0] = 1;
-    }
-    if ((mesh->phantomYFluxRG[ll][jj][ii] >= 0) && (mesh->phantomYFluxRG[ll][jj][ii] < 99999)) {
-        int recvic = mesh->phantomYFluxRG[ll][jj][ii];
-        int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
-        int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
-        int multfactor = passFlag[ll-1][recvJ][recvI*4+3];
-        /*
+               varH[ll-1][recvJ][recvI*8+0] = multfactor * varH[ll-1][recvJ][recvI*8+0] + varH[ll][jj][ii*8+1] * HALF;
+               varU[ll-1][recvJ][recvI*6+0] = multfactor * varU[ll-1][recvJ][recvI*6+0] + varU[ll][jj][ii*6+1] * HALF;
+               varV[ll-1][recvJ][recvI*6+0] = multfactor * varV[ll-1][recvJ][recvI*6+0] + varV[ll][jj][ii*6+1] * HALF;
+               varH[ll-1][recvJ][recvI*8+4] = multfactor * varH[ll-1][recvJ][recvI*8+4] + varH[ll][jj][ii*8+5] / 4;
+               varU[ll-1][recvJ][recvI*6+4] = multfactor * varU[ll-1][recvJ][recvI*6+4] + varU[ll][jj][ii*6+5] / 4;
+               passFlag[ll-1][recvJ][recvI*4+0] = 1;
+           }
+           if ((mesh->phantomYFluxRG[ll][jj][ii] >= 0) && (mesh->phantomYFluxRG[ll][jj][ii] < 99999)) {
+               int recvic = mesh->phantomYFluxRG[ll][jj][ii];
+               int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
+               int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
+               int multfactor = passFlag[ll-1][recvJ][recvI*4+3];
+               /*
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHyP[ll-1][recvJ][recvI] += Hyfluxminus;
+               FakeFluxHyP[ll-1][recvJ][recvI] += Hyfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUyP[ll-1][recvJ][recvI] += Uyfluxminus;
+               FakeFluxUyP[ll-1][recvJ][recvI] += Uyfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVyP[ll-1][recvJ][recvI] += Vyfluxminus;
+               FakeFluxVyP[ll-1][recvJ][recvI] += Vyfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        //tempWyP[recvIdx] += wminusy / 4;
-        tempWHyP[ll-1][recvJ][recvI] += wminusy_H / 4;
-        tempWVyP[ll-1][recvJ][recvI] += wminusy_V / 4;
+               //tempWyP[recvIdx] += wminusy / 4;
+               tempWHyP[ll-1][recvJ][recvI] += wminusy_H / 4;
+               tempWVyP[ll-1][recvJ][recvI] += wminusy_V / 4;
 */
-        varH[ll-1][recvJ][recvI*8+3] = multfactor * varH[ll-1][recvJ][recvI*8+3] + varH[ll][jj][ii*8+2] * HALF;
-        varU[ll-1][recvJ][recvI*6+3] = multfactor * varU[ll-1][recvJ][recvI*6+3] + varU[ll][jj][ii*6+2] * HALF;
-        varV[ll-1][recvJ][recvI*6+3] = multfactor * varV[ll-1][recvJ][recvI*6+3] + varV[ll][jj][ii*6+2] * HALF;
-        varH[ll-1][recvJ][recvI*8+7] = multfactor * varH[ll-1][recvJ][recvI*8+7] + varH[ll][jj][ii*8+6] / 4;
-        varV[ll-1][recvJ][recvI*6+5] = multfactor * varV[ll-1][recvJ][recvI*6+5] + varV[ll][jj][ii*6+4] / 4;
-        passFlag[ll-1][recvJ][recvI*4+3] = 1;
-    }
-    else if (mesh->phantomYFluxRG[ll][jj][ii] < 0) {
-        int recvic = abs(mesh->phantomYFluxRG[ll][jj][ii]);
-        int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
-        int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
-        int multfactor = passFlag[ll-1][recvJ][recvI*4+2];
-        /*
+               varH[ll-1][recvJ][recvI*8+3] = multfactor * varH[ll-1][recvJ][recvI*8+3] + varH[ll][jj][ii*8+2] * HALF;
+               varU[ll-1][recvJ][recvI*6+3] = multfactor * varU[ll-1][recvJ][recvI*6+3] + varU[ll][jj][ii*6+2] * HALF;
+               varV[ll-1][recvJ][recvI*6+3] = multfactor * varV[ll-1][recvJ][recvI*6+3] + varV[ll][jj][ii*6+2] * HALF;
+               varH[ll-1][recvJ][recvI*8+7] = multfactor * varH[ll-1][recvJ][recvI*8+7] + varH[ll][jj][ii*8+6] / 4;
+               varV[ll-1][recvJ][recvI*6+5] = multfactor * varV[ll-1][recvJ][recvI*6+5] + varV[ll][jj][ii*6+4] / 4;
+               passFlag[ll-1][recvJ][recvI*4+3] = 1;
+           }
+           else if (mesh->phantomYFluxRG[ll][jj][ii] < 0) {
+               int recvic = abs(mesh->phantomYFluxRG[ll][jj][ii]);
+               int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
+               int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
+               int multfactor = passFlag[ll-1][recvJ][recvI*4+2];
+               /*
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHyM[ll-1][recvJ][recvI] += Hyfluxplus;
+               FakeFluxHyM[ll-1][recvJ][recvI] += Hyfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUyM[ll-1][recvJ][recvI] += Uyfluxplus;
+               FakeFluxUyM[ll-1][recvJ][recvI] += Uyfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVyM[ll-1][recvJ][recvI] += Vyfluxplus;
+               FakeFluxVyM[ll-1][recvJ][recvI] += Vyfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        //tempWyM[recvIdx] += wplusy / 4;
-        tempWHyM[ll-1][recvJ][recvI] += wplusy_H / 4;
-        tempWVyM[ll-1][recvJ][recvI] += wplusy_V / 4;
+               //tempWyM[recvIdx] += wplusy / 4;
+               tempWHyM[ll-1][recvJ][recvI] += wplusy_H / 4;
+               tempWVyM[ll-1][recvJ][recvI] += wplusy_V / 4;
 */
-        varH[ll-1][recvJ][recvI*8+2] = multfactor * varH[ll-1][recvJ][recvI*8+2] + varH[ll][jj][ii*8+3] * HALF;
-        varU[ll-1][recvJ][recvI*6+2] = multfactor * varU[ll-1][recvJ][recvI*6+2] + varU[ll][jj][ii*6+3] * HALF;
-        varV[ll-1][recvJ][recvI*6+2] = multfactor * varV[ll-1][recvJ][recvI*6+2] + varV[ll][jj][ii*6+3] * HALF;
-        varH[ll-1][recvJ][recvI*8+6] = multfactor * varH[ll-1][recvJ][recvI*8+6] + varH[ll][jj][ii*8+7] / 4;
-        varV[ll-1][recvJ][recvI*6+4] = multfactor * varV[ll-1][recvJ][recvI*6+4] + varV[ll][jj][ii*6+5] / 4;
-        passFlag[ll-1][recvJ][recvI*4+2] = 1;
-    }
+               varH[ll-1][recvJ][recvI*8+2] = multfactor * varH[ll-1][recvJ][recvI*8+2] + varH[ll][jj][ii*8+3] * HALF;
+               varU[ll-1][recvJ][recvI*6+2] = multfactor * varU[ll-1][recvJ][recvI*6+2] + varU[ll][jj][ii*6+3] * HALF;
+               varV[ll-1][recvJ][recvI*6+2] = multfactor * varV[ll-1][recvJ][recvI*6+2] + varV[ll][jj][ii*6+3] * HALF;
+               varH[ll-1][recvJ][recvI*8+6] = multfactor * varH[ll-1][recvJ][recvI*8+6] + varH[ll][jj][ii*8+7] / 4;
+               varV[ll-1][recvJ][recvI*6+4] = multfactor * varV[ll-1][recvJ][recvI*6+4] + varV[ll][jj][ii*6+5] / 4;
+               passFlag[ll-1][recvJ][recvI*4+2] = 1;
+           }
 
 
-            /*H_reg_new[jj][ii] = H_reg[jj][ii] - Cx*(Hxfluxminus - Hxfluxplus)
+           /*H_reg_new[jj][ii] = H_reg[jj][ii] - Cx*(Hxfluxminus - Hxfluxplus)
                                                  -wminusx*(H_reg[jj][ii]-H_reg[jj][ii-1])
                                                  +wplusx*(H_reg[jj][ii+1]-H_reg[jj][ii])
                                               - Cy*(Hyfluxminus - Hyfluxplus)
                                                  -wminusy*(H_reg[jj][ii]-H_reg[jj-1][ii])
                                                  +wplusy*(H_reg[jj+1][ii]-H_reg[jj][ii]);
-            U_reg_new[jj][ii] = U_reg[jj][ii] - Cx*(Uxfluxminus - Uxfluxplus)
+           U_reg_new[jj][ii] = U_reg[jj][ii] - Cx*(Uxfluxminus - Uxfluxplus)
                                                  -wminusx*(U_reg[jj][ii]-U_reg[jj][ii-1])
                                                  +wplusx*(U_reg[jj][ii+1]-U_reg[jj][ii])
                                               - Cy*(Uyfluxminus - Uyfluxplus)
                                                  -wminusy*(U_reg[jj][ii]-U_reg[jj-1][ii])
                                                  +wplusy*(U_reg[jj+1][ii]-U_reg[jj][ii]);
-            V_reg_new[jj][ii] = V_reg[jj][ii] - Cx*(Vxfluxminus - Vxfluxplus)
+           V_reg_new[jj][ii] = V_reg[jj][ii] - Cx*(Vxfluxminus - Vxfluxplus)
                                                  -wminusx*(V_reg[jj][ii]-V_reg[jj][ii-1])
                                                  +wplusx*(V_reg[jj][ii+1]-V_reg[jj][ii])
                                               - Cy*(Vyfluxminus - Vyfluxplus)
                                                  -wminusy*(V_reg[jj][ii]-V_reg[jj-1][ii])
                                                  +wplusy*(V_reg[jj+1][ii]-V_reg[jj][ii]);*/
-    H_reg_new[jj][ii] = H_reg[jj][ii] - Cx 
+           H_reg_new[jj][ii] = H_reg[jj][ii] - Cx 
                       * (varH[ll][jj][ii*8+1] - varH[ll][jj][ii*8+0] + varH[ll][jj][ii*8+3] - varH[ll][jj][ii*8+2])
                       + varH[ll][jj][ii*8+5] - varH[ll][jj][ii*8+4] + varH[ll][jj][ii*8+7] - varH[ll][jj][ii*8+6]; 
 
-    U_reg_new[jj][ii] = U_reg[jj][ii] - Cx 
+           U_reg_new[jj][ii] = U_reg[jj][ii] - Cx 
                       * (varU[ll][jj][ii*6+1] - varU[ll][jj][ii*6+0] + varU[ll][jj][ii*6+3] - varU[ll][jj][ii*6+2])
                       + varU[ll][jj][ii*6+5] - varU[ll][jj][ii*6+4]; 
 
-    V_reg_new[jj][ii] = V_reg[jj][ii] - Cx 
+           V_reg_new[jj][ii] = V_reg[jj][ii] - Cx 
                       * (varV[ll][jj][ii*6+1] - varV[ll][jj][ii*6+0] + varV[ll][jj][ii*6+3] - varV[ll][jj][ii*6+2])
                       + varV[ll][jj][ii*6+5] - varV[ll][jj][ii*6+4]; 
 
 
-/*      H_reg_new[jj][ii] = U_fullstep(deltaT, dx, H_reg[jj][ii],
+/*         H_reg_new[jj][ii] = U_fullstep(deltaT, dx, H_reg[jj][ii],
                        Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
                   - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
 
-      U_reg_new[jj][ii] = U_fullstep(deltaT, dx, U_reg[jj][ii],
+           U_reg_new[jj][ii] = U_fullstep(deltaT, dx, U_reg[jj][ii],
                        Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
                   - wminusx_U + wplusx_U;
 
-      V_reg_new[jj][ii] = U_fullstep(deltaT, dx, V_reg[jj][ii],
+           V_reg_new[jj][ii] = U_fullstep(deltaT, dx, V_reg[jj][ii],
                        Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                   - wminusy_V + wplusy_V;
 */
@@ -3721,6 +3711,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 //#endif
          } // ii
       } // jj 
+
       for(int jj=2; jj<jjmax-2; jj++){
          for(int ii=2; ii<iimax-2; ii++){
              if (mask_reg[jj][ii] != 1) continue;
@@ -3745,55 +3736,56 @@ void State::calc_finite_difference_regular_cells(double deltaT){
    } // ll
 
    for (int lev = 0; lev < mesh->levmx+1; lev++) {
-    /*gentrimatrixfree((void ***)FakeFluxHxP[lev]);
-    gentrimatrixfree((void ***)FakeFluxHxM[lev]);
-    gentrimatrixfree((void ***)FakeFluxUxP[lev]);
-    gentrimatrixfree((void ***)FakeFluxUxM[lev]);
-    gentrimatrixfree((void ***)FakeFluxVxP[lev]);
-    gentrimatrixfree((void ***)FakeFluxVxM[lev]);
-    gentrimatrixfree((void ***)FakeFluxHyP[lev]);
-    gentrimatrixfree((void ***)FakeFluxHyM[lev]);
-    gentrimatrixfree((void ***)FakeFluxUyP[lev]);
-    gentrimatrixfree((void ***)FakeFluxUyM[lev]);
-    gentrimatrixfree((void ***)FakeFluxVyP[lev]);
-    gentrimatrixfree((void ***)FakeFluxVyM[lev]);
-    gentrimatrixfree((void ***)tempWHxP[lev]);
-    gentrimatrixfree((void ***)tempWHxM[lev]);
-    gentrimatrixfree((void ***)tempWUxP[lev]);
-    gentrimatrixfree((void ***)tempWUxM[lev]);
-    gentrimatrixfree((void ***)tempWVyP[lev]);
-    gentrimatrixfree((void ***)tempWVyM[lev]);*/
-    genmatrixfree((void **)varH[lev]);
-    genmatrixfree((void **)varU[lev]);
-    genmatrixfree((void **)varV[lev]);
-    genmatrixfree((void **)passFlag[lev]);
+      /*gentrimatrixfree((void ***)FakeFluxHxP[lev]);
+      gentrimatrixfree((void ***)FakeFluxHxM[lev]);
+      gentrimatrixfree((void ***)FakeFluxUxP[lev]);
+      gentrimatrixfree((void ***)FakeFluxUxM[lev]);
+      gentrimatrixfree((void ***)FakeFluxVxP[lev]);
+      gentrimatrixfree((void ***)FakeFluxVxM[lev]);
+      gentrimatrixfree((void ***)FakeFluxHyP[lev]);
+      gentrimatrixfree((void ***)FakeFluxHyM[lev]);
+      gentrimatrixfree((void ***)FakeFluxUyP[lev]);
+      gentrimatrixfree((void ***)FakeFluxUyM[lev]);
+      gentrimatrixfree((void ***)FakeFluxVyP[lev]);
+      gentrimatrixfree((void ***)FakeFluxVyM[lev]);
+      gentrimatrixfree((void ***)tempWHxP[lev]);
+      gentrimatrixfree((void ***)tempWHxM[lev]);
+      gentrimatrixfree((void ***)tempWUxP[lev]);
+      gentrimatrixfree((void ***)tempWUxM[lev]);
+      gentrimatrixfree((void ***)tempWVyP[lev]);
+      gentrimatrixfree((void ***)tempWVyM[lev]);*/
+      genmatrixfree((void **)varH[lev]);
+      genmatrixfree((void **)varU[lev]);
+      genmatrixfree((void **)varV[lev]);
+      genmatrixfree((void **)passFlag[lev]);
    }
-    /*free(FakeFluxHxP);
-    free(FakeFluxHxM);
-    free(FakeFluxUxP);
-    free(FakeFluxUxM);
-    free(FakeFluxVxP);
-    free(FakeFluxVxM);
-    free(FakeFluxHyP);
-    free(FakeFluxHyM);
-    free(FakeFluxUyP);
-    free(FakeFluxUyM);
-    free(FakeFluxVyP);
-    free(FakeFluxVyM);
-    free(tempWHxP);
-    free(tempWHxM);
-    free(tempWHyP);
-    free(tempWHyM);
-    free(tempWUxP);
-    free(tempWUxM)a;*/
-    free(varH);
-    free(varU);
-    free(varV);
-    free(passFlag);
-    free(H_reg_lev);
-    free(U_reg_lev);
-    free(V_reg_lev);
-    free(mask_reg_lev);
+
+   /*free(FakeFluxHxP);
+   free(FakeFluxHxM);
+   free(FakeFluxUxP);
+   free(FakeFluxUxM);
+   free(FakeFluxVxP);
+   free(FakeFluxVxM);
+   free(FakeFluxHyP);
+   free(FakeFluxHyM);
+   free(FakeFluxUyP);
+   free(FakeFluxUyM);
+   free(FakeFluxVyP);
+   free(FakeFluxVyM);
+   free(tempWHxP);
+   free(tempWHxM);
+   free(tempWHyP);
+   free(tempWHyM);
+   free(tempWUxP);
+   free(tempWUxM)a;*/
+   free(varH);
+   free(varU);
+   free(varV);
+   free(passFlag);
+   free(H_reg_lev);
+   free(U_reg_lev);
+   free(V_reg_lev);
+   free(mask_reg_lev);
 
 #ifdef _OPENMP
 #pragma omp master
@@ -3856,64 +3848,64 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 #pragma omp master
    {
 #endif
-   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
-   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
-   mesh->generate_regular_cell_meshes(state_memory);
-   H_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
-   U_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
-   V_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
-   mask_reg_lev = (int ***)malloc((mesh->levmx+1)*sizeof(int **));
+      mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
+      memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
+      mesh->generate_regular_cell_meshes(state_memory);
+      H_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      U_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      V_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      mask_reg_lev = (int ***)malloc((mesh->levmx+1)*sizeof(int **));
 
-   FakeFluxHxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxHxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxHyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxHyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxUxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxUxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxUyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxUyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxVxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxVxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxVyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   FakeFluxVyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWHxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWHxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWHyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWHyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWUxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWUxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWVyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-   tempWVyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxHxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxHxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxHyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxHyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxUxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxUxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxUyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxUyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxVxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxVxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxVyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      FakeFluxVyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWHxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWHxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWHyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWHyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWUxP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWUxM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWVyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      tempWVyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
 
-   for (int lev = 0; lev < mesh->levmx+1; lev++){
-       state_t ***pstate = mesh->meshes[lev].pstate;
-       H_reg_lev[lev] = pstate[0];
-       U_reg_lev[lev] = pstate[1];
-       V_reg_lev[lev] = pstate[2];
-       mask_reg_lev[lev] = mesh->meshes[lev].mask;
+      for (int lev = 0; lev < mesh->levmx+1; lev++){
+         state_t ***pstate = mesh->meshes[lev].pstate;
+         H_reg_lev[lev] = pstate[0];
+         U_reg_lev[lev] = pstate[1];
+         V_reg_lev[lev] = pstate[2];
+         mask_reg_lev[lev] = mesh->meshes[lev].mask;
 
-       FakeFluxHxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxHxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxHyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxHyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxUxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxUxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxUyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxUyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxVxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxVxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxVyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       FakeFluxVyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWHxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWHxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWHyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWHyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWUxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWUxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWVyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-       tempWVyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         FakeFluxHxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         FakeFluxHxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         FakeFluxHyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         FakeFluxHyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         FakeFluxUxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         FakeFluxUxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         FakeFluxUyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         FakeFluxUyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         FakeFluxVxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         FakeFluxVxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         FakeFluxVyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         FakeFluxVyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         tempWHxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         tempWHxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         tempWHyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         tempWHyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         tempWUxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         tempWUxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         tempWVyP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         tempWVyM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
 
-   }
+      }
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -3937,12 +3929,13 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       double **Hy = (double **)genmatrix(jjmax, iimax, sizeof(double));
       double **Uy = (double **)genmatrix(jjmax, iimax, sizeof(double));
       double **Vy = (double **)genmatrix(jjmax, iimax, sizeof(double));
-        for (int jj = 0; jj < jjmax; jj++) {
-            for (int ii = 0; ii < iimax; ii++) {
-                Hx[jj][ii] = 1.0;           
-                Hy[jj][ii] = 1.0;           
-            }
-        }
+
+      for (int jj = 0; jj < jjmax; jj++) {
+         for (int ii = 0; ii < iimax; ii++) {
+            Hx[jj][ii] = 1.0;           
+            Hy[jj][ii] = 1.0;           
+         }
+      }
 
       for(int jj=3; jj<jjmax-2; jj++){
          for(int ii=3; ii<iimax-2; ii++){
@@ -4076,197 +4069,197 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
             */
 
 
-      real_t wminusx_H = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+            real_t wminusx_H = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
                               H_reg[jj][ii]-H_reg[jj][ii-1], H_reg[jj][ii-1]-H_reg[jj][ii-2], H_reg[jj][ii+1]-H_reg[jj][ii]);
 
-      wminusx_H *= H_reg[jj][ii] - H_reg[jj][ii-1];
+            wminusx_H *= H_reg[jj][ii] - H_reg[jj][ii-1];
 
-      real_t wplusx_H = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+            real_t wplusx_H = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
                               H_reg[jj][ii+1]-H_reg[jj][ii], H_reg[jj][ii]-H_reg[jj][ii-1], H_reg[jj][ii+2]-H_reg[jj][ii+1]);
 
-      wplusx_H *= H_reg[jj][ii+1] - H_reg[jj][ii];
+            wplusx_H *= H_reg[jj][ii+1] - H_reg[jj][ii];
 
-      real_t wminusx_U = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+            real_t wminusx_U = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
                               U_reg[jj][ii]-U_reg[jj][ii-1], U_reg[jj][ii-1]-U_reg[jj][ii-2], U_reg[jj][ii+1]-U_reg[jj][ii]);
 
-      wminusx_U *= U_reg[jj][ii] - U_reg[jj][ii-1];
+            wminusx_U *= U_reg[jj][ii] - U_reg[jj][ii-1];
 
-      real_t wplusx_U = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+            real_t wplusx_U = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
                               U_reg[jj][ii+1]-U_reg[jj][ii], U_reg[jj][ii]-U_reg[jj][ii-1], U_reg[jj][ii+2]-U_reg[jj][ii+1]);
 
-      wplusx_U *= U_reg[jj][ii+1] - U_reg[jj][ii];
+            wplusx_U *= U_reg[jj][ii+1] - U_reg[jj][ii];
 
-      real_t wminusy_H = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+            real_t wminusy_H = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
                               H_reg[jj][ii]-H_reg[jj-1][ii], H_reg[jj-1][ii]-H_reg[jj-2][ii], H_reg[jj+1][ii]-H_reg[jj][ii]);
 
-      wminusy_H *= H_reg[jj][ii] - H_reg[jj-1][ii];
+            wminusy_H *= H_reg[jj][ii] - H_reg[jj-1][ii];
 
-      real_t wplusy_H = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+            real_t wplusy_H = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
                               H_reg[jj+1][ii]-H_reg[jj][ii], H_reg[jj][ii]-H_reg[jj-1][ii], H_reg[jj+2][ii]-H_reg[jj+1][ii]);
 
-      wplusy_H *= H_reg[jj+1][ii] - H_reg[jj][ii];
+            wplusy_H *= H_reg[jj+1][ii] - H_reg[jj][ii];
 
-      real_t wminusy_V = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+            real_t wminusy_V = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
                               V_reg[jj][ii]-V_reg[jj-1][ii], V_reg[jj-1][ii]-V_reg[jj-2][ii], V_reg[jj+1][ii]-V_reg[jj][ii]);
 
-      wminusy_V *= V_reg[jj][ii] - V_reg[jj-1][ii];
+            wminusy_V *= V_reg[jj][ii] - V_reg[jj-1][ii];
 
-      real_t wplusy_V = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+            real_t wplusy_V = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
                               V_reg[jj+1][ii]-V_reg[jj][ii], V_reg[jj][ii]-V_reg[jj-1][ii], V_reg[jj+2][ii]-V_reg[jj+1][ii]);
 
-      wplusy_V *= V_reg[jj+1][ii] - V_reg[jj][ii];
+            wplusy_V *= V_reg[jj+1][ii] - V_reg[jj][ii];
 
 
             //mass conservation by flux transfer
-    if ((FakeFluxHxP[ll][jj][ii] > 0) || (FakeFluxUxP[ll][jj][ii] > 0) || (FakeFluxVxP[ll][jj][ii] > 0)) {
-        Hxfluxplus = FakeFluxHxP[ll][jj][ii] * HALF; 
-        Uxfluxplus = FakeFluxUxP[ll][jj][ii] * HALF;
-        Vxfluxplus = FakeFluxVxP[ll][jj][ii] * HALF; 
-        FakeFluxHxP[ll][jj][ii] = 0.0;
-        FakeFluxUxP[ll][jj][ii] = 0.0;
-        FakeFluxVxP[ll][jj][ii] = 0.0;
-        //wplusx = tempWxP[gix];
-        wplusx_H = tempWHxP[ll][jj][ii];
-        wplusx_U = tempWUxP[ll][jj][ii];
-        //tempWxP[gix] = 0.0;
-        tempWHxP[ll][jj][ii] = 0.0;
-        tempWUxP[ll][jj][ii] = 0.0;
-    }
-    if ((FakeFluxHxM[ll][jj][ii] > 0) || (FakeFluxUxM[ll][jj][ii] > 0) || (FakeFluxVxM[ll][jj][ii] > 0)) {
-        Hxfluxminus = FakeFluxHxM[ll][jj][ii] * HALF; 
-        Uxfluxminus = FakeFluxUxM[ll][jj][ii] * HALF; 
-        Vxfluxminus = FakeFluxVxM[ll][jj][ii] * HALF; 
-        FakeFluxHxM[ll][jj][ii] = 0.0;
-        FakeFluxUxM[ll][jj][ii] = 0.0;
-        FakeFluxVxM[ll][jj][ii] = 0.0;
-        //wminusx = tempWxM[gix];
-        wminusx_H = tempWHxM[ll][jj][ii];
-        wminusx_U = tempWUxM[ll][jj][ii];
-        //tempWxM[gix] = 0.0;
-        tempWHxM[ll][jj][ii] = 0.0;
-        tempWUxM[ll][jj][ii] = 0.0;
-    }
-    if ((FakeFluxHyP[ll][jj][ii] > 0) || (FakeFluxUyP[ll][jj][ii] > 0) || (FakeFluxVyP[ll][jj][ii] > 0)) {
-        Hyfluxplus = FakeFluxHyP[ll][jj][ii] * HALF; 
-        Uyfluxplus = FakeFluxUyP[ll][jj][ii] * HALF; 
-        Vyfluxplus = FakeFluxVyP[ll][jj][ii] * HALF; 
-        FakeFluxHyP[ll][jj][ii] = 0.0;
-        FakeFluxUyP[ll][jj][ii] = 0.0;
-        FakeFluxVyP[ll][jj][ii] = 0.0;
-        //wplusy = tempWyP[gix];
-        wplusy_H = tempWHyP[ll][jj][ii];
-        wplusy_V = tempWVyP[ll][jj][ii];
-        //tempWyP[gix] = 0.0;
-        tempWHyP[ll][jj][ii] = 0.0;
-        tempWVyP[ll][jj][ii] = 0.0;
-    }
-    if ((FakeFluxHyM[ll][jj][ii] > 0) || (FakeFluxUyM[ll][jj][ii] > 0) || (FakeFluxVyM[ll][jj][ii] > 0)) {
-        Hyfluxminus = FakeFluxHyM[ll][jj][ii] * HALF; 
-        Uyfluxminus = FakeFluxUyM[ll][jj][ii] * HALF; 
-        Vyfluxminus = FakeFluxVyM[ll][jj][ii] * HALF; 
-        FakeFluxHyM[ll][jj][ii] = 0.0;
-        FakeFluxUyM[ll][jj][ii] = 0.0;
-        FakeFluxVyM[ll][jj][ii] = 0.0;
-        //wminusy = tempWyM[gix];
-        wminusy_H = tempWHyM[ll][jj][ii];
-        wminusy_V = tempWVyM[ll][jj][ii];
-        //tempWyM[gix] = 0.0;
-        tempWHyM[ll][jj][ii] = 0.0;
-        tempWVyM[ll][jj][ii] = 0.0;
-    }
+            if ((FakeFluxHxP[ll][jj][ii] > 0) || (FakeFluxUxP[ll][jj][ii] > 0) || (FakeFluxVxP[ll][jj][ii] > 0)) {
+               Hxfluxplus = FakeFluxHxP[ll][jj][ii] * HALF; 
+               Uxfluxplus = FakeFluxUxP[ll][jj][ii] * HALF;
+               Vxfluxplus = FakeFluxVxP[ll][jj][ii] * HALF; 
+               FakeFluxHxP[ll][jj][ii] = 0.0;
+               FakeFluxUxP[ll][jj][ii] = 0.0;
+               FakeFluxVxP[ll][jj][ii] = 0.0;
+               //wplusx = tempWxP[gix];
+               wplusx_H = tempWHxP[ll][jj][ii];
+               wplusx_U = tempWUxP[ll][jj][ii];
+               //tempWxP[gix] = 0.0;
+               tempWHxP[ll][jj][ii] = 0.0;
+               tempWUxP[ll][jj][ii] = 0.0;
+            }
+            if ((FakeFluxHxM[ll][jj][ii] > 0) || (FakeFluxUxM[ll][jj][ii] > 0) || (FakeFluxVxM[ll][jj][ii] > 0)) {
+               Hxfluxminus = FakeFluxHxM[ll][jj][ii] * HALF; 
+               Uxfluxminus = FakeFluxUxM[ll][jj][ii] * HALF; 
+               Vxfluxminus = FakeFluxVxM[ll][jj][ii] * HALF; 
+               FakeFluxHxM[ll][jj][ii] = 0.0;
+               FakeFluxUxM[ll][jj][ii] = 0.0;
+               FakeFluxVxM[ll][jj][ii] = 0.0;
+               //wminusx = tempWxM[gix];
+               wminusx_H = tempWHxM[ll][jj][ii];
+               wminusx_U = tempWUxM[ll][jj][ii];
+               //tempWxM[gix] = 0.0;
+               tempWHxM[ll][jj][ii] = 0.0;
+               tempWUxM[ll][jj][ii] = 0.0;
+            }
+            if ((FakeFluxHyP[ll][jj][ii] > 0) || (FakeFluxUyP[ll][jj][ii] > 0) || (FakeFluxVyP[ll][jj][ii] > 0)) {
+               Hyfluxplus = FakeFluxHyP[ll][jj][ii] * HALF; 
+               Uyfluxplus = FakeFluxUyP[ll][jj][ii] * HALF; 
+               Vyfluxplus = FakeFluxVyP[ll][jj][ii] * HALF; 
+               FakeFluxHyP[ll][jj][ii] = 0.0;
+               FakeFluxUyP[ll][jj][ii] = 0.0;
+               FakeFluxVyP[ll][jj][ii] = 0.0;
+               //wplusy = tempWyP[gix];
+               wplusy_H = tempWHyP[ll][jj][ii];
+               wplusy_V = tempWVyP[ll][jj][ii];
+               //tempWyP[gix] = 0.0;
+               tempWHyP[ll][jj][ii] = 0.0;
+               tempWVyP[ll][jj][ii] = 0.0;
+            }
+            if ((FakeFluxHyM[ll][jj][ii] > 0) || (FakeFluxUyM[ll][jj][ii] > 0) || (FakeFluxVyM[ll][jj][ii] > 0)) {
+               Hyfluxminus = FakeFluxHyM[ll][jj][ii] * HALF; 
+               Uyfluxminus = FakeFluxUyM[ll][jj][ii] * HALF; 
+               Vyfluxminus = FakeFluxVyM[ll][jj][ii] * HALF; 
+               FakeFluxHyM[ll][jj][ii] = 0.0;
+               FakeFluxUyM[ll][jj][ii] = 0.0;
+               FakeFluxVyM[ll][jj][ii] = 0.0;
+               //wminusy = tempWyM[gix];
+               wminusy_H = tempWHyM[ll][jj][ii];
+               wminusy_V = tempWVyM[ll][jj][ii];
+               //tempWyM[gix] = 0.0;
+               tempWHyM[ll][jj][ii] = 0.0;
+               tempWVyM[ll][jj][ii] = 0.0;
+            }
 
-    if ((mesh->phantomXFluxRG[ll][jj][ii] >= 0) && (mesh->phantomXFluxRG[ll][jj][ii] < 99999)) {
-        int recvic = mesh->phantomXFluxRG[ll][jj][ii];
-        int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
-        int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
+            if ((mesh->phantomXFluxRG[ll][jj][ii] >= 0) && (mesh->phantomXFluxRG[ll][jj][ii] < 99999)) {
+               int recvic = mesh->phantomXFluxRG[ll][jj][ii];
+               int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
+               int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHxP[ll-1][recvJ][recvI] += Hxfluxminus;
+               FakeFluxHxP[ll-1][recvJ][recvI] += Hxfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUxP[ll-1][recvJ][recvI] += Uxfluxminus;
+               FakeFluxUxP[ll-1][recvJ][recvI] += Uxfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVxP[ll-1][recvJ][recvI] += Vxfluxminus;
+               FakeFluxVxP[ll-1][recvJ][recvI] += Vxfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        //tempWxP[recvIdx] += wminusx / 4;
-        tempWHxP[ll-1][recvJ][recvI] += wminusx_H / 4;
-        tempWUxP[ll-1][recvJ][recvI] += wminusx_U / 4;
-    }
-    else if (mesh->phantomXFluxRG[ll][jj][ii] < 0) {
-        int recvic = abs(mesh->phantomXFluxRG[ll][jj][ii]);
-        int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
-        int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
+               //tempWxP[recvIdx] += wminusx / 4;
+               tempWHxP[ll-1][recvJ][recvI] += wminusx_H / 4;
+               tempWUxP[ll-1][recvJ][recvI] += wminusx_U / 4;
+            }
+            else if (mesh->phantomXFluxRG[ll][jj][ii] < 0) {
+               int recvic = abs(mesh->phantomXFluxRG[ll][jj][ii]);
+               int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
+               int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHxM[ll-1][recvJ][recvI] += Hxfluxplus;
+               FakeFluxHxM[ll-1][recvJ][recvI] += Hxfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUxM[ll-1][recvJ][recvI] += Uxfluxplus;
+               FakeFluxUxM[ll-1][recvJ][recvI] += Uxfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVxM[ll-1][recvJ][recvI] += Vxfluxplus;
+               FakeFluxVxM[ll-1][recvJ][recvI] += Vxfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        //tempWxM[recvIdx] += wplusx / 4;
-        tempWHxM[ll-1][recvJ][recvI] += wplusx_H / 4;
-        tempWUxM[ll-1][recvJ][recvI] += wplusx_U / 4;
-    }
-    if ((mesh->phantomYFluxRG[ll][jj][ii] >= 0) && (mesh->phantomYFluxRG[ll][jj][ii] < 99999)) {
-        int recvic = mesh->phantomYFluxRG[ll][jj][ii];
-        int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
-        int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
+               //tempWxM[recvIdx] += wplusx / 4;
+               tempWHxM[ll-1][recvJ][recvI] += wplusx_H / 4;
+               tempWUxM[ll-1][recvJ][recvI] += wplusx_U / 4;
+            }
+            if ((mesh->phantomYFluxRG[ll][jj][ii] >= 0) && (mesh->phantomYFluxRG[ll][jj][ii] < 99999)) {
+               int recvic = mesh->phantomYFluxRG[ll][jj][ii];
+               int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
+               int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHyP[ll-1][recvJ][recvI] += Hyfluxminus;
+               FakeFluxHyP[ll-1][recvJ][recvI] += Hyfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUyP[ll-1][recvJ][recvI] += Uyfluxminus;
+               FakeFluxUyP[ll-1][recvJ][recvI] += Uyfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVyP[ll-1][recvJ][recvI] += Vyfluxminus;
+               FakeFluxVyP[ll-1][recvJ][recvI] += Vyfluxminus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        //tempWyP[recvIdx] += wminusy / 4;
-        tempWHyP[ll-1][recvJ][recvI] += wminusy_H / 4;
-        tempWVyP[ll-1][recvJ][recvI] += wminusy_V / 4;
-    }
-    else if (mesh->phantomYFluxRG[ll][jj][ii] < 0) {
-        int recvic = abs(mesh->phantomYFluxRG[ll][jj][ii]);
-        int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
-        int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
+               //tempWyP[recvIdx] += wminusy / 4;
+               tempWHyP[ll-1][recvJ][recvI] += wminusy_H / 4;
+               tempWVyP[ll-1][recvJ][recvI] += wminusy_V / 4;
+            }
+            else if (mesh->phantomYFluxRG[ll][jj][ii] < 0) {
+               int recvic = abs(mesh->phantomYFluxRG[ll][jj][ii]);
+               int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
+               int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxHyM[ll-1][recvJ][recvI] += Hyfluxplus;
+               FakeFluxHyM[ll-1][recvJ][recvI] += Hyfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxUyM[ll-1][recvJ][recvI] += Uyfluxplus;
+               FakeFluxUyM[ll-1][recvJ][recvI] += Uyfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        FakeFluxVyM[ll-1][recvJ][recvI] += Vyfluxplus;
+               FakeFluxVyM[ll-1][recvJ][recvI] += Vyfluxplus;
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-        //tempWyM[recvIdx] += wplusy / 4;
-        tempWHyM[ll-1][recvJ][recvI] += wplusy_H / 4;
-        tempWVyM[ll-1][recvJ][recvI] += wplusy_V / 4;
-    }
+               //tempWyM[recvIdx] += wplusy / 4;
+               tempWHyM[ll-1][recvJ][recvI] += wplusy_H / 4;
+               tempWVyM[ll-1][recvJ][recvI] += wplusy_V / 4;
+            }
 
             /*H_reg_new[jj][ii] = H_reg[jj][ii] - Cx*(HNEWXRGFLUXFL - HNEWXRGFLUXFR)
                                                  -wminusx*(H_reg[jj][ii]-H_reg[jj][ii-1])
@@ -4287,15 +4280,15 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
                                                  -wminusy*(V_reg[jj][ii]-V_reg[jj-1][ii])
                                                  +wplusy*(V_reg[jj+1][ii]-V_reg[jj][ii]);*/
 
-      H_reg_new[jj][ii] = U_fullstep(deltaT, dx, H_reg[jj][ii],
+            H_reg_new[jj][ii] = U_fullstep(deltaT, dx, H_reg[jj][ii],
                        Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
                   - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
 
-      U_reg_new[jj][ii] = U_fullstep(deltaT, dx, U_reg[jj][ii],
+            U_reg_new[jj][ii] = U_fullstep(deltaT, dx, U_reg[jj][ii],
                        Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
                   - wminusx_U + wplusx_U;
 
-      V_reg_new[jj][ii] = U_fullstep(deltaT, dx, V_reg[jj][ii],
+            V_reg_new[jj][ii] = U_fullstep(deltaT, dx, V_reg[jj][ii],
                        Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                   - wminusy_V + wplusy_V;
 
@@ -4351,30 +4344,31 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       genmatrixfree((void **)tempWVyP[lev]);
       genmatrixfree((void **)tempWVyM[lev]);
    }
-      free(FakeFluxHxP);
-      free(FakeFluxHxM);
-      free(FakeFluxUxP);
-      free(FakeFluxUxM);
-      free(FakeFluxVxP);
-      free(FakeFluxVxM);
-      free(FakeFluxHyP);
-      free(FakeFluxHyM);
-      free(FakeFluxUyP);
-      free(FakeFluxUyM);
-      free(FakeFluxVyP);
-      free(FakeFluxVyM);
-      free(tempWHxP);
-      free(tempWHxM);
-      free(tempWHyP);
-      free(tempWHyM);
-      free(tempWUxP);
-      free(tempWUxM);
-      free(tempWVyP);
-      free(tempWVyM);
-      free(H_reg_lev);
-      free(U_reg_lev);
-      free(V_reg_lev);
-      free(mask_reg_lev);
+
+   free(FakeFluxHxP);
+   free(FakeFluxHxM);
+   free(FakeFluxUxP);
+   free(FakeFluxUxM);
+   free(FakeFluxVxP);
+   free(FakeFluxVxM);
+   free(FakeFluxHyP);
+   free(FakeFluxHyM);
+   free(FakeFluxUyP);
+   free(FakeFluxUyM);
+   free(FakeFluxVyP);
+   free(FakeFluxVyM);
+   free(tempWHxP);
+   free(tempWHxM);
+   free(tempWHyP);
+   free(tempWHyM);
+   free(tempWUxP);
+   free(tempWUxM);
+   free(tempWVyP);
+   free(tempWVyM);
+   free(H_reg_lev);
+   free(U_reg_lev);
+   free(V_reg_lev);
+   free(mask_reg_lev);
 
 #ifdef _OPENMP
 #pragma omp master
