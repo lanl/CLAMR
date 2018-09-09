@@ -1687,29 +1687,22 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
          real_t Hbb     = H[nbb];
          real_t Vbb     = V[nbb];
 
-         real_t dxl = dxic;
-         real_t dxr = dxic;
+         // Halfstep in space and time
+         real_t Hxminus = HALF*(Hic+Hl)-deltaT/dxic*(HXFLUXIC-HXFLUXNL);
+         real_t Uxminus = HALF*(Uic+Ul)-deltaT/dxic*(UXFLUXIC-UXFLUXNL);
+         real_t Vxminus = HALF*(Vic+Vl)-deltaT/dxic*(UVFLUXIC-UVFLUXNL);
 
-         real_t dyt = dyic;
-         real_t dyb = dyic;
+         real_t Hxplus = HALF*(Hr+Hic)-deltaT/dxic*(HXFLUXNR-HXFLUXIC);
+         real_t Uxplus = HALF*(Ur+Uic)-deltaT/dxic*(UXFLUXNR-UXFLUXIC);
+         real_t Vxplus = HALF*(Vr+Vic)-deltaT/dxic*(UVFLUXNR-UVFLUXIC);
 
-         real_t dric    = dxic;
+         real_t Hyminus = HALF*(Hic+Hb)-deltaT/dyic*(HYFLUXIC-HYFLUXNB);
+         real_t Uyminus = HALF*(Uic+Ub)-deltaT/dyic*(VUFLUXIC-VUFLUXNB);
+         real_t Vyminus = HALF*(Vic+Vb)-deltaT/dyic*(VYFLUXIC-VYFLUXNB);
 
-         real_t Hxminus = U_reggrid_halfstep(deltaT, dxic, Hl, Hic, HXFLUXNL, HXFLUXIC);
-         real_t Uxminus = U_reggrid_halfstep(deltaT, dxic, Ul, Uic, UXFLUXNL, UXFLUXIC);
-         real_t Vxminus = U_reggrid_halfstep(deltaT, dxic, Vl, Vic, UVFLUXNL, UVFLUXIC);
-
-         real_t Hxplus  = U_reggrid_halfstep(deltaT, dxic, Hic, Hr, HXFLUXIC, HXFLUXNR);
-         real_t Uxplus  = U_reggrid_halfstep(deltaT, dxic, Uic, Ur, UXFLUXIC, UXFLUXNR);
-         real_t Vxplus  = U_reggrid_halfstep(deltaT, dxic, Vic, Vr, UVFLUXIC, UVFLUXNR);
-
-         real_t Hyminus = U_reggrid_halfstep(deltaT, dxic, Hb, Hic, HYFLUXNB, HYFLUXIC);
-         real_t Uyminus = U_reggrid_halfstep(deltaT, dxic, Ub, Uic, VUFLUXNB, VUFLUXIC);
-         real_t Vyminus = U_reggrid_halfstep(deltaT, dxic, Vb, Vic, VYFLUXNB, VYFLUXIC);
-
-         real_t Hyplus  = U_reggrid_halfstep(deltaT, dxic, Hic, Ht, HYFLUXIC, HYFLUXNT);
-         real_t Uyplus  = U_reggrid_halfstep(deltaT, dxic, Uic, Ut, VUFLUXIC, VUFLUXNT);
-         real_t Vyplus  = U_reggrid_halfstep(deltaT, dxic, Vic, Vt, VYFLUXIC, VYFLUXNT);
+         real_t Hyplus = HALF*(Ht+Hic)-deltaT/dyic*(HYFLUXNT-HYFLUXIC);
+         real_t Uyplus = HALF*(Ut+Uic)-deltaT/dyic*(VUFLUXNT-VUFLUXIC);
+         real_t Vyplus = HALF*(Vt+Vic)-deltaT/dyic*(VYFLUXNT-VYFLUXIC);
 
          real_t Hxfluxminus = HNEWXFLUXMINUS;
          real_t Uxfluxminus = UNEWXFLUXMINUS;
@@ -1732,45 +1725,45 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
          ////////////////////////////////////////
 
 
-         real_t wminusx_H = w_corrector(deltaT, dric, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+         real_t wminusx_H = w_corrector(deltaT, dxic, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
                                  Hic-Hl, Hl-Hll, Hr-Hic);
 
          wminusx_H *= Hic - Hl;
 
-         real_t wplusx_H = w_corrector(deltaT, dric, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+         real_t wplusx_H = w_corrector(deltaT, dxic, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
                               Hr-Hic, Hic-Hl, Hrr-Hr);
 
          wplusx_H *= Hr - Hic;
 
-         real_t wminusx_U = w_corrector(deltaT, dric, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+         real_t wminusx_U = w_corrector(deltaT, dxic, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
                                  Uic-Ul, Ul-Ull, Ur-Uic);
 
          wminusx_U *= Uic - Ul;
 
 
-         real_t wplusx_U = w_corrector(deltaT, dric, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+         real_t wplusx_U = w_corrector(deltaT, dxic, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
                                  Ur-Uic, Uic-Ul, Urr-Ur);
 
          wplusx_U *= Ur - Uic;
 
 
-         real_t wminusy_H = w_corrector(deltaT, dric, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+         real_t wminusy_H = w_corrector(deltaT, dyic, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
                                  Hic-Hb, Hb-Hbb, Ht-Hic);
 
          wminusy_H *= Hic - Hb;
 
 
-         real_t wplusy_H = w_corrector(deltaT, dric, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+         real_t wplusy_H = w_corrector(deltaT, dyic, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
                                 Ht-Hic, Hic-Hb, Htt-Ht);
 
          wplusy_H *= Ht - Hic;
 
-         real_t wminusy_V = w_corrector(deltaT, dric, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+         real_t wminusy_V = w_corrector(deltaT, dyic, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
                                  Vic-Vb, Vb-Vbb, Vt-Vic);
 
          wminusy_V *= Vic - Vb;
 
-         real_t wplusy_V = w_corrector(deltaT, dric, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+         real_t wplusy_V = w_corrector(deltaT, dyic, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
                               Vt-Vic, Vic-Vb, Vtt-Vt);
 
          wplusy_V *= Vt - Vic;
