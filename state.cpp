@@ -2122,22 +2122,22 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          real_t Uic     = U[ic];
          real_t Vic     = V[ic];
 
-         int nll     = mesh->map_xface2cell_lower[mesh->map_xcell2face_left1[nl]];
+         int nll     = mesh->map_xface2cell_lower[fl];
          real_t Hl      = H[nl];
          real_t Ul      = U[nl];
          //real_t Vl      = V[nl];
 
-         int nrr     = mesh->map_xface2cell_upper[mesh->map_xcell2face_right1[nr]];
+         int nrr     = mesh->map_xface2cell_upper[fr];
          real_t Hr      = H[nr];
          real_t Ur      = U[nr];
          //real_t Vr      = V[nr];
 
-         int ntt     = mesh->map_yface2cell_upper[mesh->map_ycell2face_top1[nt]];
+         int ntt     = mesh->map_yface2cell_upper[ft];
          real_t Ht      = H[nt];
          //real_t Ut      = U[nt];
          real_t Vt      = V[nt];
 
-         int nbb     = mesh->map_yface2cell_lower[mesh->map_ycell2face_bot1[nb]];
+         int nbb     = mesh->map_yface2cell_lower[fb];
          real_t Hb      = H[nb];
          //real_t Ub      = U[nb];
          real_t Vb      = V[nb];
