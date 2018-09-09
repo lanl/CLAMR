@@ -17,9 +17,9 @@ mv yy00 calc_finite_difference_regular_cells_by_faces.cpp
 cloc --by-file calc*.cpp
 lizard calc*.cpp
 
-fgrep -w if calc_finite_difference.cpp |wc
-fgrep -w if calc_finite_difference_via_faces.cpp |wc
-fgrep -w if calc_finite_difference_call_in_place.cpp |wc
-fgrep -w if calc_finite_difference_face_in_place.cpp |wc
-fgrep -w if calc_finite_difference_regular_cells.cpp |wc
-fgrep -w if calc_finite_difference_regular_cells_by_faces.cpp |wc
+for file in calc_finite_difference*.cpp
+do
+   printf "$file"
+   fgrep -w if $file |wc -l
+done
+
