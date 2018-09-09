@@ -1695,33 +1695,21 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
 
          real_t dric    = dxic;
 
-         real_t Hxminus = U_halfstep(deltaT, Hl, Hic, HXFLUXNL, HXFLUXIC,
-                              dxl, dxic, dxl, dxic, SQR(dxl), SQR(dxic));
-         real_t Uxminus = U_halfstep(deltaT, Ul, Uic, UXFLUXNL, UXFLUXIC,
-                              dxl, dxic, dxl, dxic, SQR(dxl), SQR(dxic));
-         real_t Vxminus = U_halfstep(deltaT, Vl, Vic, UVFLUXNL, UVFLUXIC,
-                              dxl, dxic, dxl, dxic, SQR(dxl), SQR(dxic));
+         real_t Hxminus = U_reggrid_halfstep(deltaT, dxic, Hl, Hic, HXFLUXNL, HXFLUXIC);
+         real_t Uxminus = U_reggrid_halfstep(deltaT, dxic, Ul, Uic, UXFLUXNL, UXFLUXIC);
+         real_t Vxminus = U_reggrid_halfstep(deltaT, dxic, Vl, Vic, UVFLUXNL, UVFLUXIC);
 
-         real_t Hxplus  = U_halfstep(deltaT, Hic, Hr, HXFLUXIC, HXFLUXNR,
-                              dxic, dxr, dxic, dxr, SQR(dxic), SQR(dxr));
-         real_t Uxplus  = U_halfstep(deltaT, Uic, Ur, UXFLUXIC, UXFLUXNR,
-                              dxic, dxr, dxic, dxr, SQR(dxic), SQR(dxr));
-         real_t Vxplus  = U_halfstep(deltaT, Vic, Vr, UVFLUXIC, UVFLUXNR,
-                              dxic, dxr, dxic, dxr, SQR(dxic), SQR(dxr));
+         real_t Hxplus  = U_reggrid_halfstep(deltaT, dxic, Hic, Hr, HXFLUXIC, HXFLUXNR);
+         real_t Uxplus  = U_reggrid_halfstep(deltaT, dxic, Uic, Ur, UXFLUXIC, UXFLUXNR);
+         real_t Vxplus  = U_reggrid_halfstep(deltaT, dxic, Vic, Vr, UVFLUXIC, UVFLUXNR);
 
-         real_t Hyminus = U_halfstep(deltaT, Hb, Hic, HYFLUXNB, HYFLUXIC,
-                              dyb, dyic, dyb, dyic, SQR(dyb), SQR(dyic));
-         real_t Uyminus = U_halfstep(deltaT, Ub, Uic, VUFLUXNB, VUFLUXIC,
-                              dyb, dyic, dyb, dyic, SQR(dyb), SQR(dyic));
-         real_t Vyminus = U_halfstep(deltaT, Vb, Vic, VYFLUXNB, VYFLUXIC,
-                              dyb, dyic, dyb, dyic, SQR(dyb), SQR(dyic));
+         real_t Hyminus = U_reggrid_halfstep(deltaT, dxic, Hb, Hic, HYFLUXNB, HYFLUXIC);
+         real_t Uyminus = U_reggrid_halfstep(deltaT, dxic, Ub, Uic, VUFLUXNB, VUFLUXIC);
+         real_t Vyminus = U_reggrid_halfstep(deltaT, dxic, Vb, Vic, VYFLUXNB, VYFLUXIC);
 
-         real_t Hyplus  = U_halfstep(deltaT, Hic, Ht, HYFLUXIC, HYFLUXNT,
-                              dyic, dyt, dyic, dyt, SQR(dyic), SQR(dyt));
-         real_t Uyplus  = U_halfstep(deltaT, Uic, Ut, VUFLUXIC, VUFLUXNT,
-                              dyic, dyt, dyic, dyt, SQR(dyic), SQR(dyt));
-         real_t Vyplus  = U_halfstep(deltaT, Vic, Vt, VYFLUXIC, VYFLUXNT,
-                              dyic, dyt, dyic, dyt, SQR(dyic), SQR(dyt));
+         real_t Hyplus  = U_reggrid_halfstep(deltaT, dxic, Hic, Ht, HYFLUXIC, HYFLUXNT);
+         real_t Uyplus  = U_reggrid_halfstep(deltaT, dxic, Uic, Ut, VUFLUXIC, VUFLUXNT);
+         real_t Vyplus  = U_reggrid_halfstep(deltaT, dxic, Vic, Vt, VYFLUXIC, VYFLUXNT);
 
          real_t Hxfluxminus = HNEWXFLUXMINUS;
          real_t Uxfluxminus = UNEWXFLUXMINUS;
