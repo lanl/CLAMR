@@ -1637,10 +1637,17 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
 
          if (lev != mesh->level[gix]) continue;
 
-         int nl = mesh->map_xface2cell_lower[mesh->map_xcell2face_left1[gix]];
-         int nr = mesh->map_xface2cell_upper[mesh->map_xcell2face_right1[gix]];
-         int nb = mesh->map_yface2cell_lower[mesh->map_ycell2face_bot1[gix]];
-         int nt = mesh->map_yface2cell_upper[mesh->map_ycell2face_top1[gix]];
+         // set the four faces
+         int fl = mesh->map_xcell2face_left1[gix];
+         int fr = mesh->map_xcell2face_right1[gix];
+         int fb = mesh->map_ycell2face_bot1[gix];
+         int ft = mesh->map_ycell2face_top1[gix];
+
+         // set the four neighboring cells
+         int nl = mesh->map_xface2cell_lower[fl];
+         int nr = mesh->map_xface2cell_upper[fr];
+         int nb = mesh->map_yface2cell_lower[fb];
+         int nt = mesh->map_yface2cell_upper[ft];
 
          if (nb == gix  || nt == gix || nl == gix || nr == gix) continue;
 
@@ -1648,22 +1655,22 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
          real_t Uic     = U[gix];
          real_t Vic     = V[gix];
 
-         int nll     = mesh->map_xface2cell_lower[mesh->map_xcell2face_left1[nl]];
+         int nll     = mesh->map_xface2cell_lower[fl];
          real_t Hl      = H[nl];
          real_t Ul      = U[nl];
          real_t Vl      = V[nl];
 
-         int nrr     = mesh->map_xface2cell_upper[mesh->map_xcell2face_right1[nr]];
+         int nrr     = mesh->map_xface2cell_upper[fr];
          real_t Hr      = H[nr];
          real_t Ur      = U[nr];
          real_t Vr      = V[nr];
 
-         int ntt     = mesh->map_yface2cell_upper[mesh->map_ycell2face_top1[nt]];
+         int ntt     = mesh->map_yface2cell_upper[ft];
          real_t Ht      = H[nt];
          real_t Ut      = U[nt];
          real_t Vt      = V[nt];
 
-         int nbb     = mesh->map_yface2cell_lower[mesh->map_ycell2face_bot1[nb]];
+         int nbb     = mesh->map_yface2cell_lower[fb];
          real_t Hb      = H[nb];
          real_t Ub      = U[nb];
          real_t Vb      = V[nb];
@@ -1737,58 +1744,46 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
          ////////////////////////////////////////
 
 
-         real_t Hr2 = Hr;
-         real_t Ur2 = Ur;
-
-         real_t wminusx_H = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                                 Hic-Hl, Hl-Hll, Hr2-Hic);
+         real_t wminusx_H = w_corrector(deltaT, dric, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+                                 Hic-Hl, Hl-Hll, Hr-Hic);
 
          wminusx_H *= Hic - Hl;
 
-         real_t Hl2 = Hl;
-         real_t Ul2 = Ul;
-
-         real_t wplusx_H = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                              Hr-Hic, Hic-Hl2, Hrr-Hr);
+         real_t wplusx_H = w_corrector(deltaT, dric, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+                              Hr-Hic, Hic-Hl, Hrr-Hr);
 
          wplusx_H *= Hr - Hic;
 
-         real_t wminusx_U = w_corrector(deltaT, (dric+dxl)*HALF, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                                 Uic-Ul, Ul-Ull, Ur2-Uic);
+         real_t wminusx_U = w_corrector(deltaT, dric, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+                                 Uic-Ul, Ul-Ull, Ur-Uic);
 
          wminusx_U *= Uic - Ul;
 
 
-         real_t wplusx_U = w_corrector(deltaT, (dric+dxr)*HALF, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                                 Ur-Uic, Uic-Ul2, Urr-Ur);
+         real_t wplusx_U = w_corrector(deltaT, dric, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+                                 Ur-Uic, Uic-Ul, Urr-Ur);
 
          wplusx_U *= Ur - Uic;
 
 
-         real_t Ht2 = Ht;
-         real_t Vt2 = Vt;
-
-         real_t wminusy_H = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                                 Hic-Hb, Hb-Hbb, Ht2-Hic);
+         real_t wminusy_H = w_corrector(deltaT, dric, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+                                 Hic-Hb, Hb-Hbb, Ht-Hic);
 
          wminusy_H *= Hic - Hb;
 
 
-         real_t Hb2 = Hb;
-         real_t Vb2 = Vb;
-
-         real_t wplusy_H = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                                Ht-Hic, Hic-Hb2, Htt-Ht);
+         real_t wplusy_H = w_corrector(deltaT, dric, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+                                Ht-Hic, Hic-Hb, Htt-Ht);
 
          wplusy_H *= Ht - Hic;
 
-         real_t wminusy_V = w_corrector(deltaT, (dric+dyb)*HALF, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                                 Vic-Vb, Vb-Vbb, Vt2-Vic);
+         real_t wminusy_V = w_corrector(deltaT, dric, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+                                 Vic-Vb, Vb-Vbb, Vt-Vic);
 
          wminusy_V *= Vic - Vb;
 
-         real_t wplusy_V = w_corrector(deltaT, (dric+dyt)*HALF, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                              Vt-Vic, Vic-Vb2, Vtt-Vt);
+         real_t wplusy_V = w_corrector(deltaT, dric, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+                              Vt-Vic, Vic-Vb, Vtt-Vt);
 
          wplusy_V *= Vt - Vic;
 
