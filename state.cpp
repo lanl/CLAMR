@@ -3891,17 +3891,15 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
                Ux[jj][ii] = HALF*( ((U_reg[jj][ii-1]) + (U_reg[jj][ii])) - (deltaT)/(dx)*((UXRGFLUXIC) - (UXRGFLUXNL)) );
                Vx[jj][ii] = HALF*( ((V_reg[jj][ii-1]) + (V_reg[jj][ii])) - (deltaT)/(dx)*((VXRGFLUXIC) - (VXRGFLUXNL)) );
  
-               real_t Hxminus = Hx[jj][ii];
-               real_t Uxminus = Ux[jj][ii];
-               real_t U_eigen = fabs(Uxminus/Hxminus) + sqrt(g*Hxminus);
+               real_t U_eigen = fabs(Ux[jj][ii]/Hx[jj][ii]) + sqrt(g*Hx[jj][ii]);
 
                real_t Hic = H_reg[jj][ii-1];
-               real_t Hr = H_reg[jj][ii];
-               real_t Hl = H_reg[jj][ii-2];
+               real_t Hr  = H_reg[jj][ii];
+               real_t Hl  = H_reg[jj][ii-2];
                real_t Hrr = H_reg[jj][ii+1];
                real_t Uic = U_reg[jj][ii-1];
-               real_t Ur = U_reg[jj][ii];
-               real_t Ul = U_reg[jj][ii-2];
+               real_t Ur  = U_reg[jj][ii];
+               real_t Ul  = U_reg[jj][ii-2];
                real_t Urr = U_reg[jj][ii+1];
 
                Wx_H[jj][ii] = w_corrector(deltaT, dx, U_eigen, Hr-Hic, Hic-Hl, Hrr-Hr) * (Hr-Hic);
@@ -3913,17 +3911,15 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
                Uy[jj][ii] = HALF*( ((U_reg[jj-1][ii]) + (U_reg[jj][ii])) - (deltaT)/(dy)*((UYRGFLUXIC) - (UYRGFLUXNB)) );
                Vy[jj][ii] = HALF*( ((V_reg[jj-1][ii]) + (V_reg[jj][ii])) - (deltaT)/(dy)*((VYRGFLUXIC) - (VYRGFLUXNB)) );
 
-               real_t Hyminus = Hy[jj][ii];
-               real_t Vyminus = Vy[jj][ii];
-               real_t U_eigen = fabs(Vyminus/Hyminus) + sqrt(g*Hyminus);
+               real_t U_eigen = fabs(Vy[jj][ii]/Hy[jj][ii]) + sqrt(g*Hy[jj][ii]);
 
                real_t Hic = H_reg[jj-1][ii];
-               real_t Ht = H_reg[jj][ii];
-               real_t Hb = H_reg[jj-2][ii];
+               real_t Ht  = H_reg[jj][ii];
+               real_t Hb  = H_reg[jj-2][ii];
                real_t Htt = H_reg[jj+1][ii];
                real_t Vic = V_reg[jj-1][ii];
-               real_t Vt = V_reg[jj][ii];
-               real_t Vb = V_reg[jj-2][ii];
+               real_t Vt  = V_reg[jj][ii];
+               real_t Vb  = V_reg[jj-2][ii];
                real_t Vtt = V_reg[jj+1][ii];
 
                Wy_H[jj][ii] = w_corrector(deltaT, dy, U_eigen, Ht-Hic, Hic-Hb, Htt-Ht) * (Ht-Hic);
@@ -3947,49 +3943,33 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
          for(int ii=2; ii<iimax-2; ii++){
             if (mask_reg[jj][ii] != 1) continue;
 
-            real_t Hxminus = Hx[jj][ii];
-            real_t Uxminus = Ux[jj][ii];
-            real_t Vxminus = Vx[jj][ii];;
+            real_t Hxfluxminus = HNEWXRGFLUXFL;
+            real_t Uxfluxminus = UNEWXRGFLUXFL;
+            real_t Vxfluxminus = VNEWXRGFLUXFL;
 
-            real_t Hxplus = Hx[jj][ii+1];
-            real_t Uxplus = Ux[jj][ii+1];
-            real_t Vxplus = Vx[jj][ii+1];;
+            real_t Hxfluxplus = HNEWXRGFLUXFR;
+            real_t Uxfluxplus = UNEWXRGFLUXFR;
+            real_t Vxfluxplus = VNEWXRGFLUXFR;
 
-            real_t Hyminus = Hy[jj][ii];
-            real_t Uyminus = Uy[jj][ii];
-            real_t Vyminus = Vy[jj][ii];;
+            real_t Hyfluxminus = HNEWYRGFLUXFB;
+            real_t Uyfluxminus = UNEWYRGFLUXFB;
+            real_t Vyfluxminus = VNEWYRGFLUXFB;
 
-            real_t Hyplus = Hy[jj+1][ii];
-            real_t Uyplus = Uy[jj+1][ii];
-            real_t Vyplus = Vy[jj+1][ii];;
-
-            real_t Hxfluxminus = HNEWXRGFLUXMINUS;
-            real_t Uxfluxminus = UNEWXRGFLUXMINUS;
-            real_t Vxfluxminus = VNEWXRGFLUXMINUS;
-
-            real_t Hxfluxplus = HNEWXRGFLUXPLUS;
-            real_t Uxfluxplus = UNEWXRGFLUXPLUS;
-            real_t Vxfluxplus = VNEWXRGFLUXPLUS;
-
-            real_t Hyfluxminus = HNEWYRGFLUXMINUS;
-            real_t Uyfluxminus = UNEWYRGFLUXMINUS;
-            real_t Vyfluxminus = VNEWYRGFLUXMINUS;
-
-            real_t Hyfluxplus = HNEWYRGFLUXPLUS;
-            real_t Uyfluxplus = UNEWYRGFLUXPLUS;
-            real_t Vyfluxplus = VNEWYRGFLUXPLUS;
+            real_t Hyfluxplus = HNEWYRGFLUXFT;
+            real_t Uyfluxplus = UNEWYRGFLUXFT;
+            real_t Vyfluxplus = VNEWYRGFLUXFT;
 
 
             real_t wminusx_H = Wx_H[jj][ii];
-            real_t wplusx_H = Wx_H[jj][ii+1];
+            real_t wplusx_H  = Wx_H[jj][ii+1];
             real_t wminusx_U = Wx_U[jj][ii];
-            real_t wplusx_U = Wx_U[jj][ii+1];
+            real_t wplusx_U  = Wx_U[jj][ii+1];
 
 
             real_t wminusy_H = Wy_H[jj][ii];
-            real_t wplusy_H = Wy_H[jj+1][ii];
+            real_t wplusy_H  = Wy_H[jj+1][ii];
             real_t wminusy_V = Wy_V[jj][ii];
-            real_t wplusy_V = Wy_V[jj+1][ii];
+            real_t wplusy_V  = Wy_V[jj+1][ii];
 
 
             //mass conservation by flux transfer
