@@ -2015,13 +2015,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int cell_upper = mesh->map_xface2cell_upper[iface];
       if (cell_lower >= mesh->ncells && cell_upper >= mesh->ncells) continue;
 
-      int lev = mesh->level[cell_lower];
-      real_t dxic    = mesh->lev_deltax[lev];
-      real_t Cxhalf = 0.5*deltaT/dxic;
-      Hx[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cxhalf*( HXFLUX(cell_upper)-HXFLUX(cell_lower) );
-      Ux[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cxhalf*( UXFLUX(cell_upper)-UXFLUX(cell_lower) );
-      Vx[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cxhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
-
       // set the two faces
       int fl = mesh->map_xcell2face_left1[cell_lower];
       int fr = mesh->map_xcell2face_right1[cell_upper];
@@ -2029,7 +2022,10 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int nll = mesh->map_xface2cell_lower[fl];
       int nrr = mesh->map_xface2cell_upper[fr];
 
-      real_t U_eigen = fabs(Ux[iface]/Hx[iface]) + sqrt(g*Hx[iface]);
+      int lev = mesh->level[cell_lower];
+      real_t dxic    = mesh->lev_deltax[lev];
+      real_t Cxhalf = 0.5*deltaT/dxic;
+
       real_t Hic = H[cell_lower];
       real_t Hr  = H[cell_upper];
       real_t Hl  = H[nll];
@@ -2039,11 +2035,15 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       real_t Ul  = U[nll];
       real_t Urr = U[nrr];
 
-      Wx_H[iface] = w_corrector(deltaT, dxic, U_eigen, Hr-Hic, Hic-Hl, Hrr-Hr);
-      Wx_H[iface] *= Hr - Hic;
+      Hx[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cxhalf*( HXFLUX(cell_upper)-HXFLUX(cell_lower) );
+      Ux[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cxhalf*( UXFLUX(cell_upper)-UXFLUX(cell_lower) );
+      Vx[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cxhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
 
-      Wx_U[iface] = w_corrector(deltaT, dxic, U_eigen, Ur-Uic, Uic-Ul, Urr-Ur);
-      Wx_U[iface] *= Ur - Uic;
+      real_t U_eigen = fabs(Ux[iface]/Hx[iface]) + sqrt(g*Hx[iface]);
+
+      Wx_H[iface] = w_corrector(deltaT, dxic, U_eigen, Hr-Hic, Hic-Hl, Hrr-Hr) * (Hr - Hic);
+
+      Wx_U[iface] = w_corrector(deltaT, dxic, U_eigen, Ur-Uic, Uic-Ul, Urr-Ur) * (Ur - Uic);
    }
 
 
@@ -2074,13 +2074,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    for (int iface = 0; iface < yfaceSize; iface++){
       int cell_lower = mesh->map_yface2cell_lower[iface];
       int cell_upper = mesh->map_yface2cell_upper[iface];
-
-      int lev = mesh->level[cell_lower];
-      real_t dyic    = mesh->lev_deltay[lev];
-      real_t Cyhalf = 0.5*deltaT/dyic;
-      Hy[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cyhalf*( HYFLUX(cell_upper)-HYFLUX(cell_lower) );
-      Uy[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cyhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
-      Vy[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cyhalf*( VYFLUX(cell_upper)-VYFLUX(cell_lower) );
+      if (cell_lower >= mesh->ncells && cell_upper >= mesh->ncells) continue;
 
       // set the two faces
       int fb = mesh->map_ycell2face_bot1[cell_lower];
@@ -2089,7 +2083,10 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int nbb = mesh->map_yface2cell_lower[fb];
       int ntt = mesh->map_yface2cell_upper[ft];
 
-      real_t U_eigen = fabs(Vy[iface]/Hy[iface]) + sqrt(g*Hy[iface]);
+      int lev = mesh->level[cell_lower];
+      real_t dyic    = mesh->lev_deltay[lev];
+      real_t Cyhalf = 0.5*deltaT/dyic;
+
       real_t Hic = H[cell_lower];
       real_t Ht  = H[cell_upper];
       real_t Hb  = H[nbb];
@@ -2099,13 +2096,15 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       real_t Vb  = V[nbb];
       real_t Vtt = V[ntt];
 
-      Wy_H[iface] = w_corrector(deltaT, dyic, U_eigen, Ht-Hic, Hic-Hb, Htt-Ht);
-      Wy_H[iface] *= Ht - Hic;
+      Hy[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cyhalf*( HYFLUX(cell_upper)-HYFLUX(cell_lower) );
+      Uy[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cyhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
+      Vy[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cyhalf*( VYFLUX(cell_upper)-VYFLUX(cell_lower) );
 
-      Wy_V[iface] = w_corrector(deltaT, dyic, U_eigen, Vt-Vic, Vic-Vb, Vtt-Vt);
-      Wy_V[iface] *= Vt - Vic;
+      real_t U_eigen = fabs(Vy[iface]/Hy[iface]) + sqrt(g*Hy[iface]);
+
+      Wy_H[iface] = w_corrector(deltaT, dyic, U_eigen, Ht-Hic, Hic-Hb, Htt-Ht) * (Ht - Hic);
+      Wy_V[iface] = w_corrector(deltaT, dyic, U_eigen, Vt-Vic, Vic-Vb, Vtt-Vt) * (Vt - Vic);
    }
-
 
    static state_t *H_new, *U_new, *V_new;
 
