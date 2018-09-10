@@ -1962,9 +1962,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    static vector<double> tempWHxP, tempWHxM, tempWUxP, tempWUxM;
    static vector<double> tempWHyP, tempWHyM, tempWVyP, tempWVyM;
 
-   int xfaceSize; //new "update" nxface inc. phantoms
+   static int xfaceSize; //new "update" nxface inc. phantoms
 
-   static vector<state_t> Hx, Ux, Vx;
+   static vector<state_t> Hx, Ux, Vx, Wx_H, Wx_U;
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -1999,6 +1999,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       Hx.resize(xfaceSize, -999999);
       Ux.resize(xfaceSize, -999999);
       Vx.resize(xfaceSize, -999999);
+      Wx_H.resize(xfaceSize, -999999);
+      Wx_U.resize(xfaceSize, -999999);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2008,28 +2010,58 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp for 
 #endif
    //normally use xfaceSize
-   for (int iface = 0; iface < mesh->nxface; iface++){
+   for (int iface = 0; iface < xfaceSize; iface++){
       int cell_lower = mesh->map_xface2cell_lower[iface];
       int cell_upper = mesh->map_xface2cell_upper[iface];
+      if (cell_lower >= mesh->ncells && cell_upper >= mesh->ncells) continue;
 
       int lev = mesh->level[cell_lower];
-      real_t Cxhalf = 0.5*deltaT/mesh->lev_deltax[lev];
+      real_t dxic    = mesh->lev_deltax[lev];
+      real_t Cxhalf = 0.5*deltaT/dxic;
       Hx[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cxhalf*( HXFLUX(cell_upper)-HXFLUX(cell_lower) );
       Ux[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cxhalf*( UXFLUX(cell_upper)-UXFLUX(cell_lower) );
       Vx[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cxhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
+
+      // set the two faces
+      int fl = mesh->map_xcell2face_left1[cell_lower];
+      int fr = mesh->map_xcell2face_right1[cell_upper];
+      // set the two cells away
+      int nll = mesh->map_xface2cell_lower[fl];
+      int nrr = mesh->map_xface2cell_upper[fr];
+
+      real_t U_eigen = fabs(Ux[iface]/Hx[iface]) + sqrt(g*Hx[iface]);
+      real_t Hic = H[cell_lower];
+      real_t Hr  = H[cell_upper];
+      real_t Hl  = H[nll];
+      real_t Hrr = H[nrr];
+      real_t Uic = U[cell_lower];
+      real_t Ur  = U[cell_upper];
+      real_t Ul  = U[nll];
+      real_t Urr = U[nrr];
+
+      Wx_H[iface] = w_corrector(deltaT, dxic, U_eigen, Hr-Hic, Hic-Hl, Hrr-Hr);
+      Wx_H[iface] *= Hr - Hic;
+
+      Wx_U[iface] = w_corrector(deltaT, dxic, U_eigen, Ur-Uic, Uic-Ul, Urr-Ur);
+      Wx_U[iface] *= Ur - Uic;
    }
 
-   int yfaceSize = mesh->map_yface2cell_lower.size(); //new "update" nyface inc. phantoms
-   static vector<state_t> Hy, Uy, Vy;
+
+   static int yfaceSize;
+   static vector<state_t> Hy, Uy, Vy, Wy_H, Wy_V;
 
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
    {
 #endif
+      yfaceSize = mesh->map_yface2cell_lower.size(); //new "update" nyface inc. phantoms
+
       Hy.resize(yfaceSize, -999999);
       Uy.resize(yfaceSize, -999999);
       Vy.resize(yfaceSize, -999999);
+      Wy_H.resize(yfaceSize, -999999);
+      Wy_V.resize(yfaceSize, -999999);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2039,15 +2071,39 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #pragma omp for 
 #endif
    //normally use yfaceSize
-   for (int iface = 0; iface < mesh->nyface; iface++){
+   for (int iface = 0; iface < yfaceSize; iface++){
       int cell_lower = mesh->map_yface2cell_lower[iface];
       int cell_upper = mesh->map_yface2cell_upper[iface];
 
       int lev = mesh->level[cell_lower];
-      real_t Cyhalf = 0.5*deltaT/mesh->lev_deltay[lev];
+      real_t dyic    = mesh->lev_deltay[lev];
+      real_t Cyhalf = 0.5*deltaT/dyic;
       Hy[iface]=HALF*(H[cell_upper]+H[cell_lower]) - Cyhalf*( HYFLUX(cell_upper)-HYFLUX(cell_lower) );
       Uy[iface]=HALF*(U[cell_upper]+U[cell_lower]) - Cyhalf*( UVFLUX(cell_upper)-UVFLUX(cell_lower) );
       Vy[iface]=HALF*(V[cell_upper]+V[cell_lower]) - Cyhalf*( VYFLUX(cell_upper)-VYFLUX(cell_lower) );
+
+      // set the two faces
+      int fb = mesh->map_ycell2face_bot1[cell_lower];
+      int ft = mesh->map_ycell2face_top1[cell_upper];
+      // set the two cells away
+      int nbb = mesh->map_yface2cell_lower[fb];
+      int ntt = mesh->map_yface2cell_upper[ft];
+
+      real_t U_eigen = fabs(Vy[iface]/Hy[iface]) + sqrt(g*Hy[iface]);
+      real_t Hic = H[cell_lower];
+      real_t Ht  = H[cell_upper];
+      real_t Hb  = H[nbb];
+      real_t Htt = H[ntt];
+      real_t Vic = V[cell_lower];
+      real_t Vt  = V[cell_upper];
+      real_t Vb  = V[nbb];
+      real_t Vtt = V[ntt];
+
+      Wy_H[iface] = w_corrector(deltaT, dyic, U_eigen, Ht-Hic, Hic-Hb, Htt-Ht);
+      Wy_H[iface] *= Ht - Hic;
+
+      Wy_V[iface] = w_corrector(deltaT, dyic, U_eigen, Vt-Vic, Vic-Vb, Vtt-Vt);
+      Wy_V[iface] *= Vt - Vic;
    }
 
 
@@ -2074,6 +2130,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    mesh->get_bounds(lowerBound, upperBound);
    for (int lev = mesh->levmx; lev > -1; lev--){
       real_t dxic    = mesh->lev_deltax[lev];
+      real_t dyic    = mesh->lev_deltay[lev];
 
       for (int ic = lowerBound; ic < upperBound; ic++){
          if (lev != mesh->level[ic]) continue;
@@ -2092,45 +2149,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 
          if (nb == ic  || nt == ic || nl == ic || nr == ic) continue;
 
-         //printf("%d) %d %d %d %d\n", ic, nl, nr, nb, nt);
-
          real_t Hic     = H[ic];
          real_t Uic     = U[ic];
          real_t Vic     = V[ic];
-
-         int nll     = mesh->map_xface2cell_lower[fl];
-         real_t Hl      = H[nl];
-         real_t Ul      = U[nl];
-         //real_t Vl      = V[nl];
-
-         int nrr     = mesh->map_xface2cell_upper[fr];
-         real_t Hr      = H[nr];
-         real_t Ur      = U[nr];
-         //real_t Vr      = V[nr];
-
-         int ntt     = mesh->map_yface2cell_upper[ft];
-         real_t Ht      = H[nt];
-         //real_t Ut      = U[nt];
-         real_t Vt      = V[nt];
-
-         int nbb     = mesh->map_yface2cell_lower[fb];
-         real_t Hb      = H[nb];
-         //real_t Ub      = U[nb];
-         real_t Vb      = V[nb];
-
-         real_t Hll     = H[nll];
-         real_t Ull     = U[nll];
-
-         real_t Hrr     = H[nrr];
-         real_t Urr     = U[nrr];
-
-         real_t Htt     = H[ntt];
-         real_t Vtt     = V[ntt];
-
-         real_t Hbb     = H[nbb];
-         real_t Vbb     = V[nbb];
-
-         real_t dric    = dxic;
 
          ////////////////////////////////////////
          /// Artificial Viscosity corrections ///
@@ -2144,24 +2165,14 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          real_t Uxplus   = Ux[fr];
          real_t Vxplus   = Vx[fr];
 
-         real_t wminusx_H = w_corrector(deltaT, dric, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                                 Hic-Hl, Hl-Hll, Hr-Hic);
-         wminusx_H *= Hic - Hl;
+         real_t wminusx_H = Wx_H[fl];
 
-         real_t wplusx_H = w_corrector(deltaT, dric, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                              Hr-Hic, Hic-Hl, Hrr-Hr);
+         real_t wplusx_H = Wx_H[fr];
 
-         wplusx_H *= Hr - Hic;
+         real_t wminusx_U = Wx_U[fl];
 
-         real_t wminusx_U = w_corrector(deltaT, dric, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                                 Uic-Ul, Ul-Ull, Ur-Uic);
+         real_t wplusx_U = Wx_U[fr];
 
-         wminusx_U *= Uic - Ul;
-
-         real_t wplusx_U = w_corrector(deltaT, dric, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                                 Ur-Uic, Uic-Ul, Urr-Ur);
-
-         wplusx_U *= Ur - Uic;
 
          real_t Hyminus  = Hy[fb];
          real_t Uyminus  = Uy[fb];
@@ -2171,25 +2182,13 @@ void State::calc_finite_difference_face_in_place(double deltaT){
          real_t Uyplus   = Uy[ft];
          real_t Vyplus   = Vy[ft];
 
-         real_t wminusy_H = w_corrector(deltaT, dric, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                                 Hic-Hb, Hb-Hbb, Ht-Hic);
+         real_t wminusy_H = Wy_H[fb];
 
-         wminusy_H *= Hic - Hb;
+         real_t wplusy_H = Wy_H[ft];
 
-         real_t wplusy_H = w_corrector(deltaT, dric, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                                Ht-Hic, Hic-Hb, Htt-Ht);
+         real_t wminusy_V = Wy_V[fb];
 
-         wplusy_H *= Ht - Hic;
-
-         real_t wminusy_V = w_corrector(deltaT, dric, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                                 Vic-Vb, Vb-Vbb, Vt-Vic);
-
-         wminusy_V *= Vic - Vb;
-
-         real_t wplusy_V = w_corrector(deltaT, dric, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                              Vt-Vic, Vic-Vb, Vtt-Vt);
-
-         wplusy_V *= Vt - Vic;
+         real_t wplusy_V = Wy_V[ft];
       
          real_t Hxfluxminus = HNEWXFLUXMINUS;
          real_t Uxfluxminus = UNEWXFLUXMINUS;
