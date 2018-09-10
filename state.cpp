@@ -3870,6 +3870,11 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       double **Uy = (double **)genmatrix(jjmax, iimax, sizeof(double));
       double **Vy = (double **)genmatrix(jjmax, iimax, sizeof(double));
 
+      double **Wx_H = (double **)genmatrix(jjmax, iimax, sizeof(double));
+      double **Wx_U = (double **)genmatrix(jjmax, iimax, sizeof(double));
+      double **Wy_H = (double **)genmatrix(jjmax, iimax, sizeof(double));
+      double **Wy_V = (double **)genmatrix(jjmax, iimax, sizeof(double));
+
       for (int jj = 0; jj < jjmax; jj++) {
          for (int ii = 0; ii < iimax; ii++) {
             Hx[jj][ii] = 1.0;           
@@ -3879,18 +3884,50 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 
       for(int jj=3; jj<jjmax-2; jj++){
          for(int ii=3; ii<iimax-2; ii++){
-            //printf("DEBUG -- ll %d jj %d ii %d H %lf U %lf V %lf mask %d\n",
-             //  ll,jj,ii,H_reg[jj][ii],U_reg[jj][ii],V_reg[jj][ii],mask_reg[jj][ii]);
-            if (mask_reg[jj][ii-1] == 1 && mask_reg[jj][ii] == 1){
+            //printf("DEBUG -- ll %d jj %d ii %d H %lf U %lf V %lf mask %d mask %d\n",
+            //   ll,jj,ii,H_reg[jj][ii],U_reg[jj][ii],V_reg[jj][ii],mask_reg[jj][ii-1],mask_reg[jj][ii]);
+            if (mask_reg[jj][ii-1] == 1 || mask_reg[jj][ii] == 1){
                Hx[jj][ii] = HALF*( ((H_reg[jj][ii-1]) + (H_reg[jj][ii])) - (deltaT)/(dx)*((HXRGFLUXIC) - (HXRGFLUXNL)) );
                Ux[jj][ii] = HALF*( ((U_reg[jj][ii-1]) + (U_reg[jj][ii])) - (deltaT)/(dx)*((UXRGFLUXIC) - (UXRGFLUXNL)) );
                Vx[jj][ii] = HALF*( ((V_reg[jj][ii-1]) + (V_reg[jj][ii])) - (deltaT)/(dx)*((VXRGFLUXIC) - (VXRGFLUXNL)) );
+ 
+               real_t Hxminus = Hx[jj][ii];
+               real_t Uxminus = Ux[jj][ii];
+               real_t U_eigen = fabs(Uxminus/Hxminus) + sqrt(g*Hxminus);
+
+               real_t Hic = H_reg[jj][ii-1];
+               real_t Hr = H_reg[jj][ii];
+               real_t Hl = H_reg[jj][ii-2];
+               real_t Hrr = H_reg[jj][ii+1];
+               real_t Uic = U_reg[jj][ii-1];
+               real_t Ur = U_reg[jj][ii];
+               real_t Ul = U_reg[jj][ii-2];
+               real_t Urr = U_reg[jj][ii+1];
+
+               Wx_H[jj][ii] = w_corrector(deltaT, dx, U_eigen, Hr-Hic, Hic-Hl, Hrr-Hr) * (Hr-Hic);
+               Wx_U[jj][ii] = w_corrector(deltaT, dx, U_eigen, Ur-Uic, Uic-Ul, Urr-Ur) * (Ur-Uic);
             }
 
-            if (mask_reg[jj-1][ii] == 1 && mask_reg[jj][ii] == 1){
+            if (mask_reg[jj-1][ii] == 1 || mask_reg[jj][ii] == 1){
                Hy[jj][ii] = HALF*( ((H_reg[jj-1][ii]) + (H_reg[jj][ii])) - (deltaT)/(dy)*((HYRGFLUXIC) - (HYRGFLUXNB)) );
                Uy[jj][ii] = HALF*( ((U_reg[jj-1][ii]) + (U_reg[jj][ii])) - (deltaT)/(dy)*((UYRGFLUXIC) - (UYRGFLUXNB)) );
                Vy[jj][ii] = HALF*( ((V_reg[jj-1][ii]) + (V_reg[jj][ii])) - (deltaT)/(dy)*((VYRGFLUXIC) - (VYRGFLUXNB)) );
+
+               real_t Hyminus = Hy[jj][ii];
+               real_t Vyminus = Vy[jj][ii];
+               real_t U_eigen = fabs(Vyminus/Hyminus) + sqrt(g*Hyminus);
+
+               real_t Hic = H_reg[jj-1][ii];
+               real_t Ht = H_reg[jj][ii];
+               real_t Hb = H_reg[jj-2][ii];
+               real_t Htt = H_reg[jj+1][ii];
+               real_t Vic = V_reg[jj-1][ii];
+               real_t Vt = V_reg[jj][ii];
+               real_t Vb = V_reg[jj-2][ii];
+               real_t Vtt = V_reg[jj+1][ii];
+
+               Wy_H[jj][ii] = w_corrector(deltaT, dy, U_eigen, Ht-Hic, Hic-Hb, Htt-Ht) * (Ht-Hic);
+               Wy_V[jj][ii] = w_corrector(deltaT, dy, U_eigen, Vt-Vic, Vic-Vb, Vtt-Vt) * (Vt-Vic);
             }
 
          }
@@ -3942,112 +3979,17 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
             real_t Uyfluxplus = UNEWYRGFLUXPLUS;
             real_t Vyfluxplus = VNEWYRGFLUXPLUS;
 
-            /*
-            duminus1 = H_reg[jj][ii-1]-H_reg[jj][ii-2];
-            duminus2 = U_reg[jj][ii-1]-U_reg[jj][ii-2];
-            duplus1 = H_reg[jj][ii+1]-H_reg[jj][ii];
-            duplus2 = U_reg[jj][ii+1]-U_reg[jj][ii];
-            duhalf1 = H_reg[jj][ii]-H_reg[jj][ii-1];
-            duhalf2 = U_reg[jj][ii]-U_reg[jj][ii-1];
-            rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
-            rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
-            rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
-            rplus =rnumplus /rdenom;
-            rminus=rnumminus/rdenom;
-            q = max(MIN3(1.0, rminus, rplus), 0.0);
-            nu=(fabs(Ux[jj-2][ii-2])+sqrt(g*Hx[jj-2][ii-2]))*Cx;
-            cv=nu*(1.0-nu);
-            wminusx = 0.5*cv*(1.0-q);
 
-            duminus1 = H_reg[jj][ii]-H_reg[jj][ii-1];
-            duminus2 = U_reg[jj][ii]-U_reg[jj][ii-1];
-            duplus1 = H_reg[jj][ii+2]-H_reg[jj][ii+1];
-            duplus2 = U_reg[jj][ii+2]-U_reg[jj][ii+1];
-            duhalf1 = H_reg[jj][ii+1]-H_reg[jj][ii];
-            duhalf2 = U_reg[jj][ii+1]-U_reg[jj][ii];
-            rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
-            rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
-            rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
-            rplus =rnumplus /rdenom;
-            rminus=rnumminus/rdenom;
-            q = max(MIN3(1.0, rminus, rplus), 0.0);
-            nu=(fabs(Ux[jj-2][ii-1])+sqrt(g*Hx[jj-2][ii-1]))*Cx;
-            cv=nu*(1.0-nu);
-            wplusx = 0.5*cv*(1.0-q);
-
-            duminus1 = H_reg[jj-1][ii]-H_reg[jj-2][ii];
-            duminus2 = V_reg[jj-1][ii]-V_reg[jj-2][ii];
-            duplus1 = H_reg[jj+1][ii]-H_reg[jj][ii];
-            duplus2 = V_reg[jj+1][ii]-V_reg[jj][ii];
-            duhalf1 = H_reg[jj][ii]-H_reg[jj-1][ii];
-            duhalf2 = V_reg[jj][ii]-V_reg[jj-1][ii];
-            rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
-            rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
-            rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
-            rplus =rnumplus /rdenom;
-            rminus=rnumminus/rdenom;
-            q = max(MIN3(1.0, rminus, rplus), 0.0);
-            nu=(fabs(Vy[jj-2][ii-2])+sqrt(g*Hy[jj-2][ii-2]))*Cy;
-            cv=nu*(1.0-nu);
-            wminusy = 0.5*cv*(1.0-q);
-
-            duminus1 = H_reg[jj][ii]-H_reg[jj-1][ii];
-            duminus2 = V_reg[jj][ii]-V_reg[jj-1][ii];
-            duplus1 = H_reg[jj+2][ii]-H_reg[jj+1][ii];
-            duplus2 = V_reg[jj+2][ii]-V_reg[jj+1][ii];
-            duhalf1 = H_reg[jj+1][ii]-H_reg[jj][ii];
-            duhalf2 = V_reg[jj+1][ii]-V_reg[jj][ii];
-            rdenom = max(SQ(duhalf1) + SQ(duhalf2),1.0e-30);
-            rnumplus  = duplus1 *duhalf1 + duplus2 *duhalf2;
-            rnumminus = duminus1*duhalf1 + duminus2*duhalf2;
-            rplus =rnumplus /rdenom;
-            rminus=rnumminus/rdenom;
-            q = max(MIN3(1.0, rminus, rplus), 0.0);
-            nu=(fabs(Vy[jj-1][ii-2])+sqrt(g*Hy[jj-1][ii-2]))*Cy;
-            cv=nu*(1.0-nu);
-            wplusy = 0.5*cv*(1.0-q);
-            */
+            real_t wminusx_H = Wx_H[jj][ii];
+            real_t wplusx_H = Wx_H[jj][ii+1];
+            real_t wminusx_U = Wx_U[jj][ii];
+            real_t wplusx_U = Wx_U[jj][ii+1];
 
 
-            real_t wminusx_H = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                              H_reg[jj][ii]-H_reg[jj][ii-1], H_reg[jj][ii-1]-H_reg[jj][ii-2], H_reg[jj][ii+1]-H_reg[jj][ii]);
-
-            wminusx_H *= H_reg[jj][ii] - H_reg[jj][ii-1];
-
-            real_t wplusx_H = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                              H_reg[jj][ii+1]-H_reg[jj][ii], H_reg[jj][ii]-H_reg[jj][ii-1], H_reg[jj][ii+2]-H_reg[jj][ii+1]);
-
-            wplusx_H *= H_reg[jj][ii+1] - H_reg[jj][ii];
-
-            real_t wminusx_U = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                              U_reg[jj][ii]-U_reg[jj][ii-1], U_reg[jj][ii-1]-U_reg[jj][ii-2], U_reg[jj][ii+1]-U_reg[jj][ii]);
-
-            wminusx_U *= U_reg[jj][ii] - U_reg[jj][ii-1];
-
-            real_t wplusx_U = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                              U_reg[jj][ii+1]-U_reg[jj][ii], U_reg[jj][ii]-U_reg[jj][ii-1], U_reg[jj][ii+2]-U_reg[jj][ii+1]);
-
-            wplusx_U *= U_reg[jj][ii+1] - U_reg[jj][ii];
-
-            real_t wminusy_H = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                              H_reg[jj][ii]-H_reg[jj-1][ii], H_reg[jj-1][ii]-H_reg[jj-2][ii], H_reg[jj+1][ii]-H_reg[jj][ii]);
-
-            wminusy_H *= H_reg[jj][ii] - H_reg[jj-1][ii];
-
-            real_t wplusy_H = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                              H_reg[jj+1][ii]-H_reg[jj][ii], H_reg[jj][ii]-H_reg[jj-1][ii], H_reg[jj+2][ii]-H_reg[jj+1][ii]);
-
-            wplusy_H *= H_reg[jj+1][ii] - H_reg[jj][ii];
-
-            real_t wminusy_V = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                              V_reg[jj][ii]-V_reg[jj-1][ii], V_reg[jj-1][ii]-V_reg[jj-2][ii], V_reg[jj+1][ii]-V_reg[jj][ii]);
-
-            wminusy_V *= V_reg[jj][ii] - V_reg[jj-1][ii];
-
-            real_t wplusy_V = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                              V_reg[jj+1][ii]-V_reg[jj][ii], V_reg[jj][ii]-V_reg[jj-1][ii], V_reg[jj+2][ii]-V_reg[jj+1][ii]);
-
-            wplusy_V *= V_reg[jj+1][ii] - V_reg[jj][ii];
+            real_t wminusy_H = Wy_H[jj][ii];
+            real_t wplusy_H = Wy_H[jj+1][ii];
+            real_t wminusy_V = Wy_V[jj][ii];
+            real_t wplusy_V = Wy_V[jj+1][ii];
 
 
             //mass conservation by flux transfer
@@ -4250,6 +4192,10 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       genmatrixfree((void **)Hy[0]);
       genmatrixfree((void **)Uy[0]);
       genmatrixfree((void **)Vy[0]);
+      genmatrixfree((void **)Wx_H[0]);
+      genmatrixfree((void **)Wx_U[0]);
+      genmatrixfree((void **)Wy_H[0]);
+      genmatrixfree((void **)Wy_V[0]);
 
       // Replace H_reg with H_reg_new
       //state_t ** tmp_reg;
