@@ -10011,6 +10011,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 {
    phantomXFlux.clear();
    phantomXFlux.resize(3*ncells, 99999);
+   phantomXFluxFace.clear();
+   phantomXFluxFace.resize(3*ncells, -99999);
    map_xface2cell_lower.clear();
    map_xface2cell_upper.clear();
    map_xface2cell_lower.resize(3*ncells, -1);
@@ -10046,7 +10048,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    jxadjust.clear();
    jxadjust.resize(levmx+1);
 
-   int iface=0, uniIdx = 0, unix2 = 1;
+   int iface=0;
    for (int nz=0; nz<(int)ncells; nz++){
       int nr = nrht[nz];
       if (nr == nz) continue;
@@ -10075,7 +10077,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       if (level[nr] > level[nz] && is_lower(j[nr]) ){
          int ntr = ntop[nr];
          if (ntr != nr) {
-            uniIdx++;
             map_xface2cell_lower[iface] = nz;
             map_xface2cell_upper[iface] = ntr;
             xface_level[iface] = MAX(level[nz],level[ntr]);
@@ -10086,7 +10087,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
             iface++;
          }
       }
-      uniIdx++;
    }
    nxface=iface;
 
@@ -10101,7 +10101,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
          //the left is a real cell, but I am right boundary
          if (nz == nrht[nz])
-             map_xcell2face_right1[nz] = map_xcell2face_right1[nl];
+             map_xcell2face_right1[nz] = map_xcell2face_left1[nz];
 
          if (level[nl] > level[nz]){
             map_xcell2face_left2[nz] = map_xcell2face_right1[ntop[nl]];
@@ -10111,6 +10111,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    }
    phantomYFlux.clear();
    phantomYFlux.resize(3*ncells, 99999);
+   phantomYFluxFace.clear();
+   phantomYFluxFace.resize(3*ncells, -99999);
    map_yface2cell_lower.clear();
    map_yface2cell_upper.clear();
    map_yface2cell_lower.resize(3*ncells, -1);
@@ -10146,7 +10148,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    jyadjust.clear();
    jyadjust.resize(levmx+1);
 
-   iface=0, uniIdx = 0;
+   iface=0;
    for (int nz=0; nz<(int)ncells; nz++){
       int nt = ntop[nz];
       if (nt == nz) continue;
@@ -10155,14 +10157,14 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       if (level[nt] < level[nz]) ifactor = 2;
 
       // Have top face
-      map_yface2cell_lower[uniIdx] = nz;
-      map_yface2cell_upper[uniIdx] = nt;
-      yface_level[uniIdx] = MAX(level[nz],level[nt]);
-      yface_j[uniIdx] = j[nt]*ifactor;
+      map_yface2cell_lower[iface] = nz;
+      map_yface2cell_upper[iface] = nt;
+      yface_level[iface] = MAX(level[nz],level[nt]);
+      yface_j[iface] = j[nt]*ifactor;
       if (level[nt] < level[nz] && is_upper(i[nz]) ) {
-         yface_i[uniIdx] = i[nt]*ifactor+1;
+         yface_i[iface] = i[nt]*ifactor+1;
       } else{
-         yface_i[uniIdx] = i[nt]*ifactor;
+         yface_i[iface] = i[nt]*ifactor;
       }
       map_ycell2face_top1[nz] = iface;
 
@@ -10175,18 +10177,16 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       if (level[nt] > level[nz]  &&is_lower(i[nt]) ){
          int nrt = nrht[nt];
          if (nrt != nt) {
-            uniIdx++;
-            map_yface2cell_lower[uniIdx] = nz;
-            map_yface2cell_upper[uniIdx] = nrt;
-            yface_level[uniIdx] = MAX(level[nz],level[nrt]);
-            yface_j[uniIdx] = j[nrt]*ifactor;
-            yface_i[uniIdx] = i[nrt]*ifactor;
+            map_yface2cell_lower[iface] = nz;
+            map_yface2cell_upper[iface] = nrt;
+            yface_level[iface] = MAX(level[nz],level[nrt]);
+            yface_j[iface] = j[nrt]*ifactor;
+            yface_i[iface] = i[nrt]*ifactor;
             map_ycell2face_top2[nz] = iface;
 
             iface++;
          }
       }
-      uniIdx++;
    }
    nyface=iface;
 
@@ -10201,7 +10201,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
          //the bot is a real cell, but I am top boundary
          if (nz == ntop[nz])
-             map_ycell2face_top1[nz] = map_ycell2face_top1[nb];
+             map_ycell2face_top1[nz] = map_ycell2face_bot1[nz];
 
          if (level[nb] > level[nz]){
             map_ycell2face_bot2[nz] = map_ycell2face_top1[nrht[nb]];
@@ -10277,6 +10277,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
     ntop     = (int *)mesh_memory.memory_realloc(6*ncells, ntop);
     memory_reset_ptrs();
 
+    /*for (int braat = 0; braat < ncells; braat++) {
+        printf("%d) %d %d %d %d\n", braat, map_xcell2face_left1[braat], map_xcell2face_right1[braat], map_ycell2face_bot1[braat], map_ycell2face_top1[braat]);
+    }*/
     MallocPlus state_memory_old = state_memory;
     malloc_plus_memory_entry *memory_item;
 
@@ -10387,6 +10390,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                         mem_ptr_double[pcellIdx] = state_coarse;
                         //to maintain mass conservation
 		                phantomXFlux[fncell] = cncell;
+                        phantomXFluxFace[iface] = pfaceIdx;
+                        phantomXFluxFace[map_xcell2face_left1[tncell]] = pfaceIdx;
 
                         if (level[nrht[bncell]] > level_right) { // rightbot right neighbor is even more refined
                             state_botbot = mem_ptr_double[nrht[bncell]];
@@ -10464,6 +10469,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                         mem_ptr_double[pcellIdx+2] = state_coarse;
                         // for now, to maintain mass conservation
                         phantomXFlux[fncell] = -cncell;
+                        phantomXFluxFace[iface] = pfaceIdx;
+                        phantomXFluxFace[map_xcell2face_right1[tncell]] = pfaceIdx;
 
                         if (level[nlft[bncell]] > level_left) { // leftbot left neighbor is even more refined
                             state_botbot = mem_ptr_double[nlft[bncell]];
@@ -10739,6 +10746,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                         mem_ptr_double[pcellIdx] = state_coarse;
                         // to maintain mass conservation
                         phantomYFlux[fncell] = cncell;
+                        phantomYFluxFace[iface] = pfaceIdx;
+                        phantomYFluxFace[map_ycell2face_bot1[rncell]] = pfaceIdx;
 
                         if (level[nbot[lncell]] > level_top) { // topleft top neighbor is even more refined
                             state_lftlft = mem_ptr_double[ntop[lncell]];
@@ -10818,6 +10827,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                         mem_ptr_double[pcellIdx+2] = state_coarse;
                         // to maintain mass conservation
                         phantomYFlux[fncell] = -cncell;
+                        phantomYFluxFace[iface] = pfaceIdx;
+                        phantomYFluxFace[map_ycell2face_top1[rncell]] = pfaceIdx;
 
                         if (level[ntop[lncell]] > level_bot) { // botleft bot neighbor is even more refined
                             state_lftlft = mem_ptr_double[nbot[lncell]];

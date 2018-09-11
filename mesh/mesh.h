@@ -410,6 +410,8 @@ public:
    vector<int> map_xface2cell_upper; // IDs of upper cell (right for xface, top for yface)
    vector<int> phantomXFlux;
    vector<int> phantomYFlux;
+   vector<int> phantomXFluxFace;
+   vector<int> phantomYFluxFace;
 
    //Just like for cell neighbors, if the refinement increases across a face
    //this points to the left/bottom cell neighbor
