@@ -492,7 +492,7 @@ extern "C" void do_calc(void)
          } else if (choose_amr_method == FACE_AMR) {
              state->calc_finite_difference_via_faces(deltaT);
          } else if (choose_amr_method == CELL_IN_PLACE_AMR) {
-            state->calc_finite_difference_in_place(deltaT);
+            state->calc_finite_difference_cell_in_place(deltaT);
          } else if (choose_amr_method == FACE_IN_PLACE_AMR) {
             state->calc_finite_difference_face_in_place(deltaT);
          } else if (choose_amr_method == REGULAR_CELL_AMR) {

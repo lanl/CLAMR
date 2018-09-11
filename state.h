@@ -234,8 +234,6 @@ public:
    /* Boundary routines -- not currently used */
    void add_boundary_cells(void);
    void apply_boundary_conditions(void);
-   void apply_boundary_conditions_local(void);
-   void apply_boundary_conditions_ghost(void);
    void remove_boundary_cells(void);
 
    /*******************************************************************
@@ -261,10 +259,9 @@ public:
    *      H, U, V
    *******************************************************************/
    void calc_finite_difference(double deltaT);
-   void calc_finite_difference_in_place(double deltaT);
+   void calc_finite_difference_cell_in_place(double deltaT);
    void calc_finite_difference_via_faces(double deltaT);
    void calc_finite_difference_face_in_place(double deltaT);
-   void calc_finite_difference_face_in_place_old(double deltaT);
    void calc_finite_difference_regular_cells(double deltaT);
    void calc_finite_difference_regular_cells_by_faces(double deltaT);
 #ifdef HAVE_OPENCL
