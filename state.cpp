@@ -3757,9 +3757,6 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
    static state_t ***H_reg_lev, ***U_reg_lev, ***V_reg_lev;
    static int ***mask_reg_lev;
 
-   vector<real_t> &lev_deltax = mesh->lev_deltax;
-   vector<real_t> &lev_deltay = mesh->lev_deltay;
-
     //following lines are to give H, U, V its proper flags back
 
 #ifdef _OPENMP
@@ -3861,8 +3858,8 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       state_t **U_reg = U_reg_lev[ll];
       state_t **V_reg = V_reg_lev[ll];
       int **mask_reg = mask_reg_lev[ll];
-      state_t dx = lev_deltax[ll];
-      state_t dy = lev_deltay[ll];
+      state_t dx = mesh->lev_deltax[ll];
+      state_t dy = mesh->lev_deltay[ll];
       double **Hx = (double **)genmatrix(jjmax, iimax, sizeof(double));
       double **Ux = (double **)genmatrix(jjmax, iimax, sizeof(double));
       double **Vx = (double **)genmatrix(jjmax, iimax, sizeof(double));
@@ -3887,43 +3884,45 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
             //printf("DEBUG -- ll %d jj %d ii %d H %lf U %lf V %lf mask %d mask %d\n",
             //   ll,jj,ii,H_reg[jj][ii],U_reg[jj][ii],V_reg[jj][ii],mask_reg[jj][ii-1],mask_reg[jj][ii]);
             if (mask_reg[jj][ii-1] == 1 || mask_reg[jj][ii] == 1){
-               Hx[jj][ii] = HALF*( ((H_reg[jj][ii-1]) + (H_reg[jj][ii])) - (deltaT)/(dx)*((HXRGFLUXIC) - (HXRGFLUXNL)) );
-               Ux[jj][ii] = HALF*( ((U_reg[jj][ii-1]) + (U_reg[jj][ii])) - (deltaT)/(dx)*((UXRGFLUXIC) - (UXRGFLUXNL)) );
-               Vx[jj][ii] = HALF*( ((V_reg[jj][ii-1]) + (V_reg[jj][ii])) - (deltaT)/(dx)*((VXRGFLUXIC) - (VXRGFLUXNL)) );
+               Hx[jj][ii] = HALF*( (H_reg[jj][ii-1] + H_reg[jj][ii]) - deltaT/dx*(HXRGFLUXIC - HXRGFLUXNL) );
+               Ux[jj][ii] = HALF*( (U_reg[jj][ii-1] + U_reg[jj][ii]) - deltaT/dx*(UXRGFLUXIC - UXRGFLUXNL) );
+               Vx[jj][ii] = HALF*( (V_reg[jj][ii-1] + V_reg[jj][ii]) - deltaT/dx*(VXRGFLUXIC - VXRGFLUXNL) );
  
                real_t U_eigen = fabs(Ux[jj][ii]/Hx[jj][ii]) + sqrt(g*Hx[jj][ii]);
 
-               real_t Hic = H_reg[jj][ii-1];
-               real_t Hr  = H_reg[jj][ii];
-               real_t Hl  = H_reg[jj][ii-2];
+               // Cell numbering is the same for the cell to right of the face -- ll l r rr is -2 -1 0 1
+               real_t Hll = H_reg[jj][ii-2];
+               real_t Hl  = H_reg[jj][ii-1];
+               real_t Hr  = H_reg[jj][ii  ];
                real_t Hrr = H_reg[jj][ii+1];
-               real_t Uic = U_reg[jj][ii-1];
-               real_t Ur  = U_reg[jj][ii];
-               real_t Ul  = U_reg[jj][ii-2];
+               real_t Ull = U_reg[jj][ii-2];
+               real_t Ul  = U_reg[jj][ii-1];
+               real_t Ur  = U_reg[jj][ii  ];
                real_t Urr = U_reg[jj][ii+1];
 
-               Wx_H[jj][ii] = w_corrector(deltaT, dx, U_eigen, Hr-Hic, Hic-Hl, Hrr-Hr) * (Hr-Hic);
-               Wx_U[jj][ii] = w_corrector(deltaT, dx, U_eigen, Ur-Uic, Uic-Ul, Urr-Ur) * (Ur-Uic);
+               Wx_H[jj][ii] = w_corrector(deltaT, dx, U_eigen, Hr-Hl, Hl-Hll, Hrr-Hr) * (Hr-Hl);
+               Wx_U[jj][ii] = w_corrector(deltaT, dx, U_eigen, Ur-Ul, Ul-Ull, Urr-Ur) * (Ur-Ul);
             }
 
             if (mask_reg[jj-1][ii] == 1 || mask_reg[jj][ii] == 1){
-               Hy[jj][ii] = HALF*( ((H_reg[jj-1][ii]) + (H_reg[jj][ii])) - (deltaT)/(dy)*((HYRGFLUXIC) - (HYRGFLUXNB)) );
-               Uy[jj][ii] = HALF*( ((U_reg[jj-1][ii]) + (U_reg[jj][ii])) - (deltaT)/(dy)*((UYRGFLUXIC) - (UYRGFLUXNB)) );
-               Vy[jj][ii] = HALF*( ((V_reg[jj-1][ii]) + (V_reg[jj][ii])) - (deltaT)/(dy)*((VYRGFLUXIC) - (VYRGFLUXNB)) );
+               Hy[jj][ii] = HALF*( (H_reg[jj-1][ii] + H_reg[jj][ii]) - deltaT/dy*(HYRGFLUXIC - HYRGFLUXNB) );
+               Uy[jj][ii] = HALF*( (U_reg[jj-1][ii] + U_reg[jj][ii]) - deltaT/dy*(UYRGFLUXIC - UYRGFLUXNB) );
+               Vy[jj][ii] = HALF*( (V_reg[jj-1][ii] + V_reg[jj][ii]) - deltaT/dy*(VYRGFLUXIC - VYRGFLUXNB) );
 
                real_t U_eigen = fabs(Vy[jj][ii]/Hy[jj][ii]) + sqrt(g*Hy[jj][ii]);
 
-               real_t Hic = H_reg[jj-1][ii];
-               real_t Ht  = H_reg[jj][ii];
-               real_t Hb  = H_reg[jj-2][ii];
+               // Cell numbering is the same for the cell to right of the face -- ll l r rr is -2 -1 0 1
+               real_t Hbb = H_reg[jj-2][ii];
+               real_t Hb  = H_reg[jj-1][ii];
+               real_t Ht  = H_reg[jj  ][ii];
                real_t Htt = H_reg[jj+1][ii];
-               real_t Vic = V_reg[jj-1][ii];
-               real_t Vt  = V_reg[jj][ii];
-               real_t Vb  = V_reg[jj-2][ii];
+               real_t Vbb = V_reg[jj-2][ii];
+               real_t Vb  = V_reg[jj-1][ii];
+               real_t Vt  = V_reg[jj  ][ii];
                real_t Vtt = V_reg[jj+1][ii];
 
-               Wy_H[jj][ii] = w_corrector(deltaT, dy, U_eigen, Ht-Hic, Hic-Hb, Htt-Ht) * (Ht-Hic);
-               Wy_V[jj][ii] = w_corrector(deltaT, dy, U_eigen, Vt-Vic, Vic-Vb, Vtt-Vt) * (Vt-Vic);
+               Wy_H[jj][ii] = w_corrector(deltaT, dy, U_eigen, Ht-Hb, Hb-Hbb, Htt-Ht) * (Ht-Hb);
+               Wy_V[jj][ii] = w_corrector(deltaT, dy, U_eigen, Vt-Vb, Vb-Vbb, Vtt-Vt) * (Vt-Vb);
             }
 
          }
