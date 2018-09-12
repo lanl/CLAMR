@@ -11901,15 +11901,14 @@ void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
    }
 
    for (int ll=0; ll<levmx+1; ll++){
-       free(meshes[ll].pstate);
-       free(meshes[ll].mask);
+       gentrimatrixfree((void ***)meshes[ll].pstate);
+       gentrimatrixfree((void ***)meshes[ll].mask);
        genmatrixfree((void **)phantomXFluxRG[ll]);
        genmatrixfree((void **)phantomYFluxRG[ll]);
    }
    free(meshes);
    free(phantomXFluxRG);
    free(phantomYFluxRG);
-   //exit(0);
 }
 
 int **Mesh::get_xface_flag(int lev, bool print_output)
