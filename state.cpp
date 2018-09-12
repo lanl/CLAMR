@@ -4245,6 +4245,9 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       genmatrixfree((void **)VxFlux[0]);
       genmatrixfree((void **)Wx_H[0]);
       genmatrixfree((void **)Wx_U[0]);
+      genmatrixfree((void **)HyFlux[0]);
+      genmatrixfree((void **)UyFlux[0]);
+      genmatrixfree((void **)VyFlux[0]);
       genmatrixfree((void **)Wy_H[0]);
       genmatrixfree((void **)Wy_V[0]);
 
