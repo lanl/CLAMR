@@ -42,10 +42,12 @@ fig, ax = plt.subplots()
 
 bar_width = 0.35
 
+y1 = [ CellRuntime["origcell"]/CellRuntime["origcell"],CellRuntime["cellinplace"]/CellRuntime["origcell"],0 ]
+y2 = [ FaceRuntime["origface"]/CellRuntime["origcell"],FaceRuntime["faceinplace"]/CellRuntime["origcell"],0 ]
 #y1 = [ CellRuntime["origcell"]/CellRuntime["origcell"],CellRuntime["cellinplace"]/CellRuntime["origcell"],CellRuntime["reggridbycell"]/CellRuntime["origcell"] ]
 #y2 = [ FaceRuntime["origface"]/CellRuntime["origcell"],FaceRuntime["faceinplace"]/CellRuntime["origcell"],FaceRuntime["reggridbyfaces"]/CellRuntime["origcell"] ]
-y1 = [ CellRuntime["origcell"]/CellRuntime["origcell"],CellRuntime["cellinplace"]/CellRuntime["origcell"] ]
-y2 = [ FaceRuntime["origface"]/CellRuntime["origcell"],FaceRuntime["faceinplace"]/CellRuntime["origcell"] ]
+#y1 = [ CellRuntime["origcell"]/CellRuntime["origcell"],CellRuntime["cellinplace"]/CellRuntime["origcell"] ]
+#y2 = [ FaceRuntime["origface"]/CellRuntime["origcell"],FaceRuntime["faceinplace"]/CellRuntime["origcell"] ]
 
 x1 = np.arange(len(y1))
 x2 = [x + bar_width for x in x1]
