@@ -495,9 +495,9 @@ extern "C" void do_calc(void)
             state->calc_finite_difference_cell_in_place(deltaT);
          } else if (choose_amr_method == FACE_IN_PLACE_AMR) {
             state->calc_finite_difference_face_in_place(deltaT);
-         } else if (choose_amr_method == REGULAR_CELL_AMR) {
+         } else if (choose_amr_method == REGULAR_GRID_AMR) {
             state->calc_finite_difference_regular_cells(deltaT);
-         } else if (choose_amr_method == REGULAR_CELL_BY_FACES_AMR) {
+         } else if (choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
             state->calc_finite_difference_regular_cells_by_faces(deltaT);
          // merge these two or clean up
          } else if (choose_amr_method == FACE_AMR) {

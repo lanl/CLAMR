@@ -134,8 +134,8 @@ enum amr_method
     CELL_IN_PLACE_AMR,        // AMR done in mesh by extending cell data structure
     FACE_AMR,                 // AMR done in physics level by face
     FACE_IN_PLACE_AMR,        // AMR done in mesh by extending face data structure
-    REGULAR_CELL_AMR,         // AMR done in mesh by creating regular grid
-    REGULAR_CELL_BY_FACES_AMR // AMR done in mesh by creating regular grid
+    REGULAR_GRID_AMR,         // AMR done in mesh by creating regular grid
+    REGULAR_GRID_BY_FACES_AMR // AMR done in mesh by creating regular grid
 };
 
 enum boundary
