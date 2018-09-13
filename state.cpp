@@ -67,6 +67,12 @@ static const char *state_timer_descriptor[STATE_TIMER_SIZE] = {
    "state_timer_apply_BCs",
    "state_timer_set_timestep",
    "state_timer_finite_difference",
+   "state_timer_finite_diff_part1",
+   "state_timer_finite_diff_part2",
+   "state_timer_finite_diff_part3",
+   "state_timer_finite_diff_part4",
+   "state_timer_finite_diff_part5",
+   "state_timer_finite_diff_part6",
    "state_timer_refine_potential",
    "state_timer_calc_mpot",
    "state_timer_rezone_all",
@@ -1582,6 +1588,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   struct timeval tstart_cpu_part;
+   cpu_timer_start(&tstart_cpu_part);
+
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
    apply_boundary_conditions();
@@ -1633,6 +1642,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
    }
 #pragma omp barrier
 #endif
+
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    int lowerBound, upperBound;
 
@@ -1933,6 +1945,7 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
 #pragma omp barrier
 #endif
    } // lev loop
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -1958,6 +1971,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
+
+   struct timeval tstart_cpu_part;
+   cpu_timer_start(&tstart_cpu_part);
 
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
@@ -1990,6 +2006,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    }
 #pragma omp barrier
 #endif
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
 #pragma omp for 
@@ -2035,7 +2053,14 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       HxFlux[iface] = HXFLUXFACE;
       UxFlux[iface] = UXFLUXFACE;
       VxFlux[iface] = VXFLUXFACE;
+   }
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
+#ifdef _OPENMP
+#pragma omp for 
+#endif
+   for (int iface = 0; iface < mesh->nxface; iface++){
       if (mesh->phantomXFluxFace[iface] > -1) {
         int recvIdx = mesh->phantomXFluxFace[iface];
         HxFlux[recvIdx] += HxFlux[iface] * HALF;
@@ -2045,6 +2070,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
         Wx_U[recvIdx] += Wx_U[iface] / 4;
       }
    }
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
 
    static int yfaceSize;
@@ -2116,6 +2143,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       UyFlux[iface] = UYFLUXFACE;
       VyFlux[iface] = VYFLUXFACE;
    }
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    /*real_t **ptr = malloc(6*sizeof(dobule);
 
@@ -2136,6 +2165,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
         Wy_V[recvIdx] += Wy_V[iface] / 4;
       }
    }
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART5] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    static state_t *H_new, *U_new, *V_new;
 
@@ -2190,6 +2221,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
                   VxFlux[fr], VxFlux[fl], VyFlux[ft], VyFlux[fb])
                 - Wy_V[fb] + Wy_V[ft];
    } // cell loop
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART6] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -2215,6 +2248,9 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
+
+   struct timeval tstart_cpu_part;
+   cpu_timer_start(&tstart_cpu_part);
 
    // We need to populate the ghost regions since the calc neighbors has just been
    // established for the mesh shortly before
@@ -2250,6 +2286,8 @@ void State::calc_finite_difference_via_faces(double deltaT){
    }
 #pragma omp barrier
 #endif
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
 #pragma omp for 
@@ -2302,6 +2340,8 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
       }
    }
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    static vector<state_t> Hy, Uy, Vy;
 
@@ -2369,6 +2409,9 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
       }
    }
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
 
    static state_t *H_new, *U_new, *V_new;
 
@@ -2820,6 +2863,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
       //printf("\n%d) %f %f\n", ic, wminusx_H, wplusx_H);
    }//end forloop
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -2909,6 +2953,9 @@ void State::calc_finite_difference_regular_cells(double deltaT){
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
+   struct timeval tstart_cpu_part;
+   cpu_timer_start(&tstart_cpu_part);
+
    //printf("\nDEBUG finite diff\n"); 
 
    // We need to populate the ghost regions since the calc neighbors has just been
@@ -2946,8 +2993,14 @@ void State::calc_finite_difference_regular_cells(double deltaT){
    {
 #endif
       mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += cpu_timer_stop(tstart_cpu_part);
+      cpu_timer_start(&tstart_cpu_part);
+
       memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
       mesh->generate_regular_cell_meshes(state_memory);
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
+      cpu_timer_start(&tstart_cpu_part);
+
       H_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
       U_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
       V_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
@@ -3030,7 +3083,8 @@ void State::calc_finite_difference_regular_cells(double deltaT){
    }
 #pragma omp barrier
 #endif
-
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    for (int ll=mesh->levmx; ll>-1; ll--){
       //state_t ***pstate = mesh->meshes[ll].pstate;
@@ -3537,6 +3591,9 @@ void State::calc_finite_difference_regular_cells(double deltaT){
       genmatrixfree((void **)V_reg_new);
 
    } // ll
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
 
    for (int lev = 0; lev < mesh->levmx+1; lev++) {
       /*gentrimatrixfree((void ***)FakeFluxHxP[lev]);
@@ -3594,6 +3651,9 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #pragma omp master
 #endif
    mesh->destroy_regular_cell_meshes(state_memory);
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART5] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
 
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 #ifdef _OPENMP
@@ -5759,6 +5819,12 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
 
    timer_output(STATE_TIMER_SET_TIMESTEP,                  device_type, 1);
    timer_output(STATE_TIMER_FINITE_DIFFERENCE,             device_type, 1);
+   timer_output(STATE_TIMER_FINITE_DIFFERENCE_PART1,       device_type, 2);
+   timer_output(STATE_TIMER_FINITE_DIFFERENCE_PART2,       device_type, 2);
+   timer_output(STATE_TIMER_FINITE_DIFFERENCE_PART3,       device_type, 2);
+   timer_output(STATE_TIMER_FINITE_DIFFERENCE_PART4,       device_type, 2);
+   timer_output(STATE_TIMER_FINITE_DIFFERENCE_PART5,       device_type, 2);
+   timer_output(STATE_TIMER_FINITE_DIFFERENCE_PART6,       device_type, 2);
    timer_output(STATE_TIMER_REFINE_POTENTIAL,              device_type, 1);
    timer_output(STATE_TIMER_CALC_MPOT,                     device_type, 2);
    mesh->timer_output(MESH_TIMER_REFINE_SMOOTH,            device_type, 2);
