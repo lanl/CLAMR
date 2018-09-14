@@ -24,7 +24,7 @@ for line in data:
         line = line.strip('\n')
         #print(len(line.split()))
         if len(line.split()) == 6:
-           dummy,value,dummy,dummy,dummy,string = line.split()
+           dummy,dummy,value,dummy,dummy,string = line.split()
            if 'face' in string:
               if 'via_faces' in string:
                  FaceCCN["origface"] = float(value)
