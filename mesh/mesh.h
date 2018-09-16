@@ -415,6 +415,8 @@ public:
 
    int nxface;
    int nyface;
+   int nxfixup;
+   int nyfixup;
 
    vector<int> xface_i; // i (x-axis) coordinates for xfaces
    vector<int> xface_j; // j (y-axis) coordinates for xfaces
@@ -425,6 +427,12 @@ public:
    vector<int> phantomYFlux;
    vector<int> phantomXFluxFace;
    vector<int> phantomYFluxFace;
+   vector<int> xrecvIdx;
+   vector<int> xsendIdx1;
+   vector<int> xsendIdx2;
+   vector<int> yrecvIdx;
+   vector<int> ysendIdx1;
+   vector<int> ysendIdx2;
 
    //Just like for cell neighbors, if the refinement increases across a face
    //this points to the left/bottom cell neighbor

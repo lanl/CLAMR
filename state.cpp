@@ -2060,15 +2060,15 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #ifdef _OPENMP
 #pragma omp for 
 #endif
-   for (int iface = 0; iface < mesh->nxface; iface++){
-      if (mesh->phantomXFluxFace[iface] > -1) {
-        int recvIdx = mesh->phantomXFluxFace[iface];
-        HxFlux[recvIdx] += HxFlux[iface] * HALF;
-        UxFlux[recvIdx] += UxFlux[iface] * HALF;
-        VxFlux[recvIdx] += VxFlux[iface] * HALF;
-        Wx_H[recvIdx] += Wx_H[iface] / 4;
-        Wx_U[recvIdx] += Wx_U[iface] / 4;
-      }
+   for (int ifixup = 0; ifixup < mesh->nxfixup; ifixup++){
+      int ir  = mesh->xrecvIdx[ifixup];
+      int is1 = mesh->xsendIdx1[ifixup];
+      int is2 = mesh->xsendIdx2[ifixup];
+      HxFlux[ir] = (HxFlux[is1] + HxFlux[is2]) * HALF;
+      UxFlux[ir] = (UxFlux[is1] + UxFlux[is2]) * HALF;
+      VxFlux[ir] = (VxFlux[is1] + VxFlux[is2]) * HALF;
+      Wx_H[ir] = (Wx_H[is1] + Wx_H[is2]) * 0.25;
+      Wx_U[ir] = (Wx_U[is1] + Wx_U[is2]) * 0.25;
    }
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
@@ -2155,16 +2155,16 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    ptr[4] = Wy_V;
    ptr[5] = NULL;*/
 
-   for (int iface = 0; iface < mesh->nyface; iface++){
-      if (mesh->phantomYFluxFace[iface] > -1) {
-        int recvIdx = mesh->phantomYFluxFace[iface];
-        HyFlux[recvIdx] += HyFlux[iface] * HALF;
-        UyFlux[recvIdx] += UyFlux[iface] * HALF;
-        VyFlux[recvIdx] += VyFlux[iface] * HALF;
-        Wy_H[recvIdx] += Wy_H[iface] / 4;
-        Wy_V[recvIdx] += Wy_V[iface] / 4;
-      }
-   }
+   for (int ifixup = 0; ifixup < mesh->nyfixup; ifixup++){
+      int ir  = mesh->yrecvIdx[ifixup];
+      int is1 = mesh->ysendIdx1[ifixup];
+      int is2 = mesh->ysendIdx2[ifixup];
+      HyFlux[ir] = (HyFlux[is1] + HyFlux[is2]) * HALF;
+      UyFlux[ir] = (UyFlux[is1] + UyFlux[is2]) * HALF;
+      VyFlux[ir] = (VyFlux[is1] + VyFlux[is2]) * HALF;
+      Wy_H[ir] = (Wy_H[is1] + Wy_H[is2]) * 0.25;
+      Wy_V[ir] = (Wy_V[is1] + Wy_V[is2]) * 0.25;
+    }
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART5] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
