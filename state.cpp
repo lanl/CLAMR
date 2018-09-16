@@ -1075,8 +1075,8 @@ void State::gpu_rezone_all(int icount, int jcount, bool localStencil)
 #define VXFLUXFACE (Ux*Vx/Hx)
 
 #define HYFLUXFACE (Vy)
-#define UYFLUXFACE (SQ(Vy)/Hy + ghalf*SQ(Hy))
-#define VYFLUXFACE (Vy*Uy/Hy)
+#define UYFLUXFACE (Vy*Uy/Hy)
+#define VYFLUXFACE (SQ(Vy)/Hy + ghalf*SQ(Hy))
 
 // XXX ADDED XXX
 #define HXFLUXNLT ( Ult )
