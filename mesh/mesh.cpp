@@ -175,7 +175,20 @@ static const char *mesh_timer_descriptor[MESH_TIMER_SIZE] = {
    "mesh_timer_rezone_all",
    "mesh_timer_partition",
    "mesh_timer_calc_spatial_coordinates",
-   "mesh_timer_load_balance"
+   "mesh_timer_load_balance",
+   "mesh_timer_bidir",
+   "mesh_timer_bidirpart1",
+   "mesh_timer_bidirpart2",
+   "mesh_timer_bidirpart3",
+   "mesh_timer_bidirpart4",
+   "mesh_timer_bidirpart5",
+   "mesh_timer_bidirpart6",
+   "mesh_timer_bidirpart7",
+   "mesh_timer_bidirpart8",
+   "mesh_timer_bidirpart9",
+   "mesh_timer_bidirpart10",
+   "mesh_timer_bidirpart11",
+   "mesh_timer_bidirpart12"
 };
 
 #ifdef HAVE_OPENCL
@@ -10009,6 +10022,12 @@ void Mesh::interpolate(int scheme, int index, int cell_lower, int cell_upper, do
 
 void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double deltaT)
 {
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
+   struct timeval tstart_cpu_part;
+   cpu_timer_start(&tstart_cpu_part);
+
    phantomXFlux.clear();
    phantomXFlux.resize(3*ncells, 99999);
    phantomXFluxFace.clear();
@@ -10017,6 +10036,13 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    map_xface2cell_upper.clear();
    map_xface2cell_lower.resize(3*ncells, -1);
    map_xface2cell_upper.resize(3*ncells, -1);
+
+   xrecvIdx.clear();
+   xsendIdx1.clear();
+   xsendIdx2.clear();
+   xrecvIdx.resize(ncells,-1);
+   xsendIdx1.resize(ncells,-1);
+   xsendIdx2.resize(ncells,-1);
 
    map_xcell2face_left1.clear();
    map_xcell2face_left2.clear();
@@ -10047,6 +10073,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    ixadjust.resize(levmx+1);
    jxadjust.clear();
    jxadjust.resize(levmx+1);
+
+   cpu_timers[MESH_TIMER_BIDIRPART1] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    int iface=0;
    for (int nz=0; nz<(int)ncells; nz++){
@@ -10092,6 +10121,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    }
    nxface=iface;
 
+   cpu_timers[MESH_TIMER_BIDIRPART2] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
    for (int nz=0; nz<(int)ncells; nz++){
       int nl = nlft[nz];
       if (nl == nz) continue;
@@ -10111,6 +10143,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       }
 
    }
+   cpu_timers[MESH_TIMER_BIDIRPART3] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
    phantomYFlux.clear();
    phantomYFlux.resize(3*ncells, 99999);
    phantomYFluxFace.clear();
@@ -10119,6 +10154,13 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    map_yface2cell_upper.clear();
    map_yface2cell_lower.resize(3*ncells, -1);
    map_yface2cell_upper.resize(3*ncells, -1);
+
+   yrecvIdx.clear();
+   ysendIdx1.clear();
+   ysendIdx2.clear();
+   yrecvIdx.resize(ncells,-1);
+   ysendIdx1.resize(ncells,-1);
+   ysendIdx2.resize(ncells,-1);
 
    map_ycell2face_bot1.clear();
    map_ycell2face_bot2.clear();
@@ -10149,6 +10191,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    iyadjust.resize(levmx+1);
    jyadjust.clear();
    jyadjust.resize(levmx+1);
+
+   cpu_timers[MESH_TIMER_BIDIRPART4] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    iface=0;
    for (int nz=0; nz<(int)ncells; nz++){
@@ -10192,6 +10237,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    }
    nyface=iface;
 
+   cpu_timers[MESH_TIMER_BIDIRPART5] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
    for (int nz=0; nz<(int)ncells; nz++){
       int nb = nbot[nz];
       if (nb == nz) continue;
@@ -10211,6 +10259,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       }
 
    }
+
+   cpu_timers[MESH_TIMER_BIDIRPART6] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    /*for (int iface=0; iface < nxface; iface++){
       int fl = xface_level[iface];
@@ -10273,6 +10324,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       jymin_level[fl] = 0;
    }*/
 
+   cpu_timers[MESH_TIMER_BIDIRPART7] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
     i        = (int *)mesh_memory.memory_realloc(6*ncells, i);
     j        = (int *)mesh_memory.memory_realloc(6*ncells, j);
     level    = (int *)mesh_memory.memory_realloc(6*ncells, level);
@@ -10300,12 +10354,16 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
     }  
 
+   cpu_timers[MESH_TIMER_BIDIRPART8] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
     // These variables are for the following for-loop
     int pcellCnt = 0, // counter for new phantom cells
         pfaceCnt = 0, // counter for new phantom faces
         idxVar = 0,
         pcellIdx = (int) ncells, // starting index for new cell phantoms
-        pfaceIdx = nxface; // starting index for new face phantoms
+        pfaceIdx = nxface, // starting index for new face phantoms
+        ifixupIdx = 0; // starting index for receive fluxfixup
 
     for (int iface = 0; iface < nxface; iface++) {
         int lncell = map_xface2cell_lower[iface], // cell neighbor to the left
@@ -10375,6 +10433,16 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     //interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //interpolate(4, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //phantomXFlux[rncell] = lncell;
+
+                    xrecvIdx[ifixupIdx] = pfaceIdx;
+                    if (iface < map_xcell2face_left1[tncell]) {
+                       xsendIdx1[ifixupIdx] = iface;
+                       xsendIdx2[ifixupIdx] = map_xcell2face_left1[tncell];
+                    } else {
+                       xsendIdx1[ifixupIdx] = map_xcell2face_left1[tncell];
+                       xsendIdx2[ifixupIdx] = iface;
+                    }
+                    ifixupIdx++;
 
                     // loop through state arrays to update phantom cell state values
                     real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; //vars for 2 cells over
@@ -10454,6 +10522,16 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     //interpolate(1, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //interpolate(5, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //phantomXFlux[lncell] = -rncell;
+
+                    xrecvIdx[ifixupIdx] = pfaceIdx;
+                    if (iface < map_xcell2face_right1[tncell]){
+                       xsendIdx1[ifixupIdx] = iface;
+                       xsendIdx2[ifixupIdx] = map_xcell2face_right1[tncell];
+                    } else {
+                       xsendIdx1[ifixupIdx] = map_xcell2face_right1[tncell];
+                       xsendIdx2[ifixupIdx] = iface;
+                    }
+                    ifixupIdx++;
 
                     // loop through state arrays to update phantom cell state values
                     real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; // vars for 2 cells over
@@ -10643,6 +10721,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
     } 
 
+   nxfixup = ifixupIdx;
+
+   cpu_timers[MESH_TIMER_BIDIRPART9] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
      // resize arrays/vectors here including the addition of the new faces and cells
 
     map_xface2cell_lower.resize(pfaceIdx);
@@ -10655,6 +10738,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
     xface_j.resize(pfaceIdx);
     xface_level.resize(pfaceIdx);
 
+   cpu_timers[MESH_TIMER_BIDIRPART10] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
     // now for the y faces
     
     // pcellIdx will actually stay where it was previously incremented to because there
@@ -10662,6 +10748,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
     pcellCnt = (int) ncells;
     pfaceCnt = 0;
     pfaceIdx = nyface;
+    ifixupIdx = 0;
 
     for (int iface = 0; iface < nyface; iface++) {
      int    bncell = map_yface2cell_lower[iface], // cell neighbor below
@@ -10731,6 +10818,16 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     //interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //interpolate(6, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //phantomYFlux[tncell] = bncell;
+
+                    yrecvIdx[ifixupIdx] = pfaceIdx;
+                    if (iface < map_ycell2face_bot1[rncell]) {
+                       ysendIdx1[ifixupIdx] = iface;
+                       ysendIdx2[ifixupIdx] = map_ycell2face_bot1[rncell];
+                    } else {
+                       ysendIdx1[ifixupIdx] = map_ycell2face_bot1[rncell];
+                       ysendIdx2[ifixupIdx] = iface;
+                    }
+                    ifixupIdx++;
 
                     // loop through state arrays to update phantom cell state values
                     real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; // vars for 2 cells over
@@ -10812,6 +10909,16 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     //interpolate(3, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //interpolate(7, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //phantomYFlux[bncell] = -tncell;
+
+                    yrecvIdx[ifixupIdx] = pfaceIdx;
+                    if (iface < map_ycell2face_top1[rncell]){
+                       ysendIdx1[ifixupIdx] = iface;
+                       ysendIdx2[ifixupIdx] = map_ycell2face_top1[rncell];
+                    } else {
+                       ysendIdx1[ifixupIdx] = map_ycell2face_top1[rncell];
+                       ysendIdx2[ifixupIdx] = iface;
+                    }
+                    ifixupIdx++;
 
                     // loop through state arrays to update phantom cell state values
                     real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; //vars for 2 cells over
@@ -11000,10 +11107,16 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
         }
 
     }
+
+   nyfixup = ifixupIdx;
+
     //if (ncells > 280)
      //   printf("%d %d\n", nlft[286], nrht[286]);
     // resize arrays/vectors with the addition of the new faces and cells
     
+   cpu_timers[MESH_TIMER_BIDIRPART11] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
     map_yface2cell_lower.resize(pfaceIdx);
     map_yface2cell_upper.resize(pfaceIdx);
     map_ycell2face_bot1.resize(pcellCnt);
@@ -11029,6 +11142,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
     memory_reset_ptrs();
     //printf("\n%d\n", mesh_memory.get_memory_size(level));
     
+   cpu_timers[MESH_TIMER_BIDIRPART12] += cpu_timer_stop(tstart_cpu_part);
+
 #ifdef PATTERN_CHECK
    for (int ii=0; ii<256; ii++){
        xcase_count[ii]=0;
@@ -11131,10 +11246,17 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       }
    }
 #endif
+   cpu_timers[MESH_TIMER_BIDIR] += cpu_timer_stop(tstart_cpu);
 }
 
 void Mesh::calc_face_list_wbidirmap(void)
 {
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
+   struct timeval tstart_cpu_part;
+   cpu_timer_start(&tstart_cpu_part);
+
    map_xface2cell_lower.clear();
    map_xface2cell_upper.clear();
 
@@ -11164,6 +11286,9 @@ void Mesh::calc_face_list_wbidirmap(void)
    ixadjust.resize(levmx+1);
    jxadjust.clear();
    jxadjust.resize(levmx+1);
+
+   cpu_timers[MESH_TIMER_BIDIRPART1] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    int iface=0;
    for (int nz=0; nz<(int)ncells; nz++){
@@ -11203,6 +11328,9 @@ void Mesh::calc_face_list_wbidirmap(void)
    }
    nxface=iface;
 
+   cpu_timers[MESH_TIMER_BIDIRPART2] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
    for (int nz=0; nz<(int)ncells; nz++){
       int nl = nlft[nz];
       if (nl == nz) continue;
@@ -11217,6 +11345,9 @@ void Mesh::calc_face_list_wbidirmap(void)
       }
 
    }
+
+   cpu_timers[MESH_TIMER_BIDIRPART3] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    map_yface2cell_lower.clear();
    map_yface2cell_upper.clear();
@@ -11247,6 +11378,9 @@ void Mesh::calc_face_list_wbidirmap(void)
    iyadjust.resize(levmx+1);
    jyadjust.clear();
    jyadjust.resize(levmx+1);
+
+   cpu_timers[MESH_TIMER_BIDIRPART4] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    iface=0;
    for (int nz=0; nz<(int)ncells; nz++){
@@ -11287,6 +11421,9 @@ void Mesh::calc_face_list_wbidirmap(void)
    }
    nyface=iface;
 
+   cpu_timers[MESH_TIMER_BIDIRPART5] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
    for (int nz=0; nz<(int)ncells; nz++){
       int nb = nbot[nz];
       if (nb == nz) continue;
@@ -11302,6 +11439,9 @@ void Mesh::calc_face_list_wbidirmap(void)
 
    }
 
+   cpu_timers[MESH_TIMER_BIDIRPART6] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
    for (int iface=0; iface < nxface; iface++){
       int fl = xface_level[iface];
 
@@ -11314,6 +11454,9 @@ void Mesh::calc_face_list_wbidirmap(void)
       if (fj > jxmax_level[fl]) jxmax_level[fl] = fj;
    }
 
+   cpu_timers[MESH_TIMER_BIDIRPART7] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
    for (int iface=0; iface < nxface; iface++){
       int fl = xface_level[iface];
       if (ixmax_level[fl] < ixmin_level[fl]) continue;
@@ -11321,6 +11464,9 @@ void Mesh::calc_face_list_wbidirmap(void)
       xface_i[iface] -= ixmin_level[fl];
       xface_j[iface] -= jxmin_level[fl];
    }
+
+   cpu_timers[MESH_TIMER_BIDIRPART8] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    for (int fl = 0; fl <= levmx; fl++){
       ixadjust[fl] = ixmin_level[fl];
@@ -11330,6 +11476,9 @@ void Mesh::calc_face_list_wbidirmap(void)
       ixmin_level[fl] = 0;
       jxmin_level[fl] = 0;
    }
+
+   cpu_timers[MESH_TIMER_BIDIRPART9] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    for (int iface=0; iface < nyface; iface++){
       int fl = yface_level[iface];
@@ -11342,6 +11491,9 @@ void Mesh::calc_face_list_wbidirmap(void)
       if (fj < jymin_level[fl]) jymin_level[fl] = fj;
       if (fj > jymax_level[fl]) jymax_level[fl] = fj;
    }
+
+   cpu_timers[MESH_TIMER_BIDIRPART10] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
    for (int iface=0; iface < nyface; iface++){
       int fl = yface_level[iface];
@@ -11359,6 +11511,8 @@ void Mesh::calc_face_list_wbidirmap(void)
       iymin_level[fl] = 0;
       jymin_level[fl] = 0;
    }
+
+   cpu_timers[MESH_TIMER_BIDIRPART11] += cpu_timer_stop(tstart_cpu_part);
 
 #ifdef PATTERN_CHECK
    for (int ii=0; ii<255; ii++){
@@ -11462,6 +11616,7 @@ void Mesh::calc_face_list_wbidirmap(void)
       }
    }
 #endif
+   cpu_timers[MESH_TIMER_BIDIR] += cpu_timer_stop(tstart_cpu);
 }
 
 #ifdef HAVE_OPENCL

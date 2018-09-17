@@ -134,8 +134,8 @@ enum amr_method
     CELL_IN_PLACE_AMR,        // AMR done in mesh by extending cell data structure
     FACE_AMR,                 // AMR done in physics level by face
     FACE_IN_PLACE_AMR,        // AMR done in mesh by extending face data structure
-    REGULAR_CELL_AMR,         // AMR done in mesh by creating regular grid
-    REGULAR_CELL_BY_FACES_AMR // AMR done in mesh by creating regular grid
+    REGULAR_GRID_AMR,         // AMR done in mesh by creating regular grid
+    REGULAR_GRID_BY_FACES_AMR // AMR done in mesh by creating regular grid
 };
 
 enum boundary
@@ -190,6 +190,19 @@ enum mesh_timers
    MESH_TIMER_PARTITION,
    MESH_TIMER_CALC_SPATIAL_COORDINATES,
    MESH_TIMER_LOAD_BALANCE,
+   MESH_TIMER_BIDIR,
+   MESH_TIMER_BIDIRPART1,
+   MESH_TIMER_BIDIRPART2,
+   MESH_TIMER_BIDIRPART3,
+   MESH_TIMER_BIDIRPART4,
+   MESH_TIMER_BIDIRPART5,
+   MESH_TIMER_BIDIRPART6,
+   MESH_TIMER_BIDIRPART7,
+   MESH_TIMER_BIDIRPART8,
+   MESH_TIMER_BIDIRPART9,
+   MESH_TIMER_BIDIRPART10,
+   MESH_TIMER_BIDIRPART11,
+   MESH_TIMER_BIDIRPART12,
    MESH_TIMER_SIZE
 };
 
@@ -404,6 +417,8 @@ public:
 
    int nxface;
    int nyface;
+   int nxfixup;
+   int nyfixup;
 
    vector<int> xface_i; // i (x-axis) coordinates for xfaces
    vector<int> xface_j; // j (y-axis) coordinates for xfaces
@@ -414,6 +429,12 @@ public:
    vector<int> phantomYFlux;
    vector<int> phantomXFluxFace;
    vector<int> phantomYFluxFace;
+   vector<int> xrecvIdx;
+   vector<int> xsendIdx1;
+   vector<int> xsendIdx2;
+   vector<int> yrecvIdx;
+   vector<int> ysendIdx1;
+   vector<int> ysendIdx2;
 
    //Just like for cell neighbors, if the refinement increases across a face
    //this points to the left/bottom cell neighbor

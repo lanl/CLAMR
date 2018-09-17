@@ -138,8 +138,8 @@ void outputHelp()
          << "      \"cell-in-place\"" << endl
          << "      \"face\"" << endl
          << "      \"face-in-place\"" << endl
-         << "      \"regular-cell\"" << endl
-         << "      \"regular-cell-by-faces\"" << endl
+         << "      \"regular-grid\"" << endl
+         << "      \"regular-grid-by-faces\"" << endl
          << "  -b <B>            Number of rollback images, disk or in memory (default 2);" << endl
          << "  -c <C>            Checkpoint to disk at interval specified;" << endl
          << "  -C <C>            Checkpoint to memory at interval specified;" << endl
@@ -273,12 +273,12 @@ void parseInput(const int argc, char** argv)
                        choose_amr_method = FACE_AMR;
                     } else if (! strcmp(val,"face-in-place") ) {
                        choose_amr_method = FACE_IN_PLACE_AMR;
-                    } else if (! strcmp(val,"regular-cell") ) {
-                       choose_amr_method = REGULAR_CELL_AMR;
-                    } else if (! strcmp(val,"regular-cell-by-faces") ) {
-                       choose_amr_method = REGULAR_CELL_BY_FACES_AMR;
+                    } else if (! strcmp(val,"regular-grid") ) {
+                       choose_amr_method = REGULAR_GRID_AMR;
+                    } else if (! strcmp(val,"regular-grid-by-faces") ) {
+                       choose_amr_method = REGULAR_GRID_BY_FACES_AMR;
                     } else {
-                       printf("AMR method must be either \"cell\", \"cell-in-place\", \"face\", \"face-in-place\", \"regular-cell\" or \"regular-cell-by-faces\"\n");
+                       printf("AMR method must be either \"cell\", \"cell-in-place\", \"face\", \"face-in-place\", \"regular-grid\" or \"regular-grid-by-faces\"\n");
                     }
                     break;
                case 'b':     //  Number of rollback images, disk or in memory (default 2)
