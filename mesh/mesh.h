@@ -355,7 +355,9 @@ public:
                   *nfrt,         //!<  1D ordered index of mesh element front neighbors.
                   *nbak,         //!<  1D ordered index of mesh element back neighbors.
                   ***phantomXFluxRG,
-                  ***phantomYFluxRG;
+                  ***phantomYFluxRG,
+                  ***phantomXFluxRGFace,
+                  ***phantomYFluxRGFace;
 
    vector<spatial_t> x,          //!<  1D ordered index of mesh element x-coordinates.
                      dx,         //!<  1D ordered index of mesh element x-coordinate spacings.

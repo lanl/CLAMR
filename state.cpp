@@ -3643,6 +3643,8 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
    double ***FakeFluxHyM, ***FakeFluxUyM, ***FakeFluxVyM;
    double ***tempWHxP, ***tempWHxM, ***tempWHyP, ***tempWHyM;
    double ***tempWUxP, ***tempWUxM, ***tempWVyP, ***tempWVyM;
+   double ***HxFlux, ***UxFlux, ***VxFlux, ***Wx_H, ***Wx_U;
+   double ***HyFlux, ***UyFlux, ***VyFlux, ***Wy_H, ***Wy_V;
 
 #ifdef _OPENMP
 #pragma omp master
@@ -3677,12 +3679,34 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       tempWVyP = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
       tempWVyM = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
 
+      HxFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
+      UxFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
+      VxFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
+      Wx_H   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
+      Wx_U   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
+      HyFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
+      UyFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
+      VyFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
+      Wy_H   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
+      Wy_V   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
+
       for (int lev = 0; lev < mesh->levmx+1; lev++){
          state_t ***pstate = mesh->meshes[lev].pstate;
          H_reg_lev[lev] = pstate[0];
          U_reg_lev[lev] = pstate[1];
          V_reg_lev[lev] = pstate[2];
          mask_reg_lev[lev] = mesh->meshes[lev].mask;
+
+         HxFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         UxFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         VxFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         Wx_H[lev]   = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         Wx_U[lev]   = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         HyFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         UyFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         VyFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         Wy_H[lev]   = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         Wy_V[lev]   = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
 
          FakeFluxHxP[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
          FakeFluxHxM[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
@@ -3711,6 +3735,22 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 #pragma omp barrier
 #endif
 
+   for (int ll = mesh->levmx; ll > -1; ll--){
+      for (int jj = 0; jj < mesh->lev_jregsize[ll]; jj++) {
+         for (int ii = 0; ii < mesh->lev_iregsize[ll]; ii++) {
+            HxFlux[ll][jj][ii] = 0.0;           
+            UxFlux[ll][jj][ii] = 0.0;           
+            VxFlux[ll][jj][ii] = 0.0;           
+            Wx_H[ll][jj][ii] = 0.0;           
+            Wx_U[ll][jj][ii] = 0.0;           
+            HyFlux[ll][jj][ii] = 0.0;           
+            UyFlux[ll][jj][ii] = 0.0;           
+            VyFlux[ll][jj][ii] = 0.0;           
+            Wy_H[ll][jj][ii] = 0.0;           
+            Wy_V[ll][jj][ii] = 0.0;           
+         }
+      }
+   }
 
    for (int ll = mesh->levmx; ll > -1; ll--){
       //state_t ***pstate = mesh->meshes[ll].pstate;
@@ -3723,28 +3763,6 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       int **mask_reg = mask_reg_lev[ll];
       state_t dx = mesh->lev_deltax[ll];
       state_t dy = mesh->lev_deltay[ll];
-      double **HxFlux = (double **)genmatrix(jjmax, iimax, sizeof(double));
-      double **UxFlux = (double **)genmatrix(jjmax, iimax, sizeof(double));
-      double **VxFlux = (double **)genmatrix(jjmax, iimax, sizeof(double));
-      double **HyFlux = (double **)genmatrix(jjmax, iimax, sizeof(double));
-      double **UyFlux = (double **)genmatrix(jjmax, iimax, sizeof(double));
-      double **VyFlux = (double **)genmatrix(jjmax, iimax, sizeof(double));
-
-      double **Wx_H = (double **)genmatrix(jjmax, iimax, sizeof(double));
-      double **Wx_U = (double **)genmatrix(jjmax, iimax, sizeof(double));
-      double **Wy_H = (double **)genmatrix(jjmax, iimax, sizeof(double));
-      double **Wy_V = (double **)genmatrix(jjmax, iimax, sizeof(double));
-
-      for (int jj = 0; jj < jjmax; jj++) {
-         for (int ii = 0; ii < iimax; ii++) {
-            HxFlux[jj][ii] = 0.0;           
-            UxFlux[jj][ii] = 0.0;           
-            VxFlux[jj][ii] = 0.0;           
-            HyFlux[jj][ii] = 0.0;           
-            UyFlux[jj][ii] = 0.0;           
-            VyFlux[jj][ii] = 0.0;           
-         }
-      }
 
       for(int jj=2; jj<jjmax-1; jj++){
          for(int ii=2; ii<iimax-1; ii++){
@@ -3767,12 +3785,12 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
                real_t Ur  = U_reg[jj][ii  ];
                real_t Urr = U_reg[jj][ii+1];
 
-               Wx_H[jj][ii] = w_corrector(deltaT, dx, U_eigen, Hr-Hl, Hl-Hll, Hrr-Hr) * (Hr-Hl);
-               Wx_U[jj][ii] = w_corrector(deltaT, dx, U_eigen, Ur-Ul, Ul-Ull, Urr-Ur) * (Ur-Ul);
+               Wx_H[ll][jj][ii] = w_corrector(deltaT, dx, U_eigen, Hr-Hl, Hl-Hll, Hrr-Hr) * (Hr-Hl);
+               Wx_U[ll][jj][ii] = w_corrector(deltaT, dx, U_eigen, Ur-Ul, Ul-Ull, Urr-Ur) * (Ur-Ul);
 
-               HxFlux[jj][ii] = HNEWXRGFLUXFL;
-               UxFlux[jj][ii] = UNEWXRGFLUXFL;
-               VxFlux[jj][ii] = VNEWXRGFLUXFL;
+               HxFlux[ll][jj][ii] = HNEWXRGFLUXFL;
+               UxFlux[ll][jj][ii] = UNEWXRGFLUXFL;
+               VxFlux[ll][jj][ii] = VNEWXRGFLUXFL;
             }
 
             if (mask_reg[jj-1][ii] == 1 || mask_reg[jj][ii] == 1){
@@ -3792,16 +3810,95 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
                real_t Vt  = V_reg[jj  ][ii];
                real_t Vtt = V_reg[jj+1][ii];
 
-               Wy_H[jj][ii] = w_corrector(deltaT, dy, U_eigen, Ht-Hb, Hb-Hbb, Htt-Ht) * (Ht-Hb);
-               Wy_V[jj][ii] = w_corrector(deltaT, dy, U_eigen, Vt-Vb, Vb-Vbb, Vtt-Vt) * (Vt-Vb);
+               Wy_H[ll][jj][ii] = w_corrector(deltaT, dy, U_eigen, Ht-Hb, Hb-Hbb, Htt-Ht) * (Ht-Hb);
+               Wy_V[ll][jj][ii] = w_corrector(deltaT, dy, U_eigen, Vt-Vb, Vb-Vbb, Vtt-Vt) * (Vt-Vb);
 
-               HyFlux[jj][ii] = HNEWYRGFLUXFB;
-               UyFlux[jj][ii] = UNEWYRGFLUXFB;
-               VyFlux[jj][ii] = VNEWYRGFLUXFB;
+               HyFlux[ll][jj][ii] = HNEWYRGFLUXFB;
+               UyFlux[ll][jj][ii] = UNEWYRGFLUXFB;
+               VyFlux[ll][jj][ii] = VNEWYRGFLUXFB;
+            } 
+         } // ii
+      } // jj
+
+      for (int jj = 2; jj < jjmax - 1; jj++) {
+         for (int ii = 2; ii < iimax-1; ii++) {
+            if (mask_reg[jj][ii-1] == 1 || mask_reg[jj][ii] == 1) {
+                int recvIdx = mesh->phantomXFluxRGFace[ll][jj][ii];
+                if (recvIdx < 0) continue;
+
+                int recvJ = mesh->xface_j[recvIdx] - mesh->lev_jregmin[ll-1];
+                int recvI = mesh->xface_i[recvIdx] - mesh->lev_iregmin[ll-1];
+
+                printf("%d %d/%d -> %d/%d [%d %d]\n", ll, jj, ii, recvJ, recvI, mesh->lev_jregmin[ll-1], mesh->lev_iregmin[ll-1]);
+                HxFlux[ll-1][recvJ][recvI] += HxFlux[ll][jj][ii] * HALF;
+                UxFlux[ll-1][recvJ][recvI] += UxFlux[ll][jj][ii] * HALF;
+                VxFlux[ll-1][recvJ][recvI] += VxFlux[ll][jj][ii] * HALF;
+                Wx_H[ll-1][recvJ][recvI] += Wx_H[ll][jj][ii] / 4;
+                Wx_U[ll-1][recvJ][recvI] += Wx_U[ll][jj][ii] / 4;
             }
 
+            if (mask_reg[jj-1][ii] == 1 || mask_reg[jj][ii] == 1) {
+                int recvIdx = mesh->phantomYFluxRGFace[ll][jj][ii];
+                if (recvIdx < 0) continue;
+
+                int recvJ = mesh->yface_j[recvIdx] - mesh->lev_jregmin[ll-1];
+                int recvI = mesh->yface_i[recvIdx] - mesh->lev_iregmin[ll-1];
+
+                HyFlux[ll-1][recvJ][recvI] += HyFlux[ll][jj][ii] * HALF;
+                UyFlux[ll-1][recvJ][recvI] += UyFlux[ll][jj][ii] * HALF;
+                VyFlux[ll-1][recvJ][recvI] += VyFlux[ll][jj][ii] * HALF;
+                Wy_H[ll-1][recvJ][recvI] += Wy_H[ll][jj][ii] / 4;
+                Wy_V[ll-1][recvJ][recvI] += Wy_V[ll][jj][ii] / 4;
+            }
          }
       }
+
+      /*printf("%d %d %d %d %d %d\n", mesh->lev_jregsize[0], mesh->lev_iregsize[0], mesh->lev_jregsize[1], mesh->lev_iregsize[1], mesh->lev_jregsize[2], mesh->lev_iregsize[2]);
+
+      for (int iface = 0; iface < mesh->nxface; iface++){
+         int recvIdx = mesh->phantomXFluxFace[iface];
+         if (recvIdx < 0) continue;//{
+         //printf("1st pass x direction recvIdx %d iface %d i %d j %d lev %d nzlower %d nzupper %d\n",
+         //   recvIdx, iface, mesh->xface_i[iface], mesh->xface_j[iface], mesh->xface_level[iface],
+         //   mesh->map_xface2cell_lower[iface], mesh->map_xface2cell_upper[iface]);
+         //}
+
+         int ii = mesh->xface_i[iface] - mesh->lev_iregmin[ll];
+         int jj = mesh->xface_j[iface] - mesh->lev_jregmin[ll];
+         int recvJ = mesh->xface_j[recvIdx] - mesh->lev_jregmin[ll-1];
+         int recvI = mesh->xface_i[recvIdx] - mesh->lev_iregmin[ll-1];
+
+         printf("%d (%d) %d/%d (%d) %d/%d\n", ll, iface, jj, ii, recvIdx, recvJ, recvI);
+         //printf("\t%d) %d %d %d\n", iface, ll, mesh->xface_j[iface], mesh->xface_i[iface]);
+         HxFlux[ll-1][recvJ][recvI] += HxFlux[ll][jj][ii] *HALF;
+         UxFlux[ll-1][recvJ][recvI] += UxFlux[ll][jj][ii] *HALF;
+         VxFlux[ll-1][recvJ][recvI] += VxFlux[ll][jj][ii] *HALF;
+         Wx_H[ll-1][recvJ][recvI] += Wx_H[ll][jj][ii] / 4;
+         Wx_U[ll-1][recvJ][recvI] += Wx_U[ll][jj][ii] / 4;
+      }
+
+      for (int iface = 0; iface < mesh->nyface; iface++){
+         int recvIdx = mesh->phantomYFluxFace[iface];
+         //printf("1st pass x direction recvIdx %d iface %d i %d j %d lev %d nzlower %d nzupper %d\n",
+         //   recvIdx, iface, mesh->xface_i[iface], mesh->xface_j[iface], mesh->xface_level[iface],
+         //   mesh->map_xface2cell_lower[iface], mesh->map_xface2cell_upper[iface]);
+         if (recvIdx < 0) continue;//{
+            //printf("1st pass x direction recvIdx %d i %d j %d lev %d nzlower %d nzupper %d\n",
+            //   recvIdx, mesh->xface_i[recvIdx], mesh->xface_j[recvIdx], mesh->xface_level[recvIdx],
+            //   mesh->map_xface2cell_lower[recvIdx], mesh->map_xface2cell_upper[recvIdx]);
+         //}
+
+         int ii = mesh->yface_i[iface] - mesh->lev_iregmin[ll];
+         int jj = mesh->yface_j[iface] - mesh->lev_jregmin[ll];
+
+         int recvJ = mesh->yface_j[recvIdx] - mesh->lev_jregmin[ll-1];
+         int recvI = mesh->yface_i[recvIdx] - mesh->lev_iregmin[ll-1];
+         HyFlux[ll-1][recvJ][recvI] += HyFlux[ll][jj][ii] *HALF;
+         UyFlux[ll-1][recvJ][recvI] += UyFlux[ll][jj][ii] *HALF;
+         VyFlux[ll-1][recvJ][recvI] += VyFlux[ll][jj][ii] *HALF;
+         Wy_H[ll-1][recvJ][recvI] += Wy_H[ll][jj][ii] / 4;
+         Wy_V[ll-1][recvJ][recvI] += Wy_V[ll][jj][ii] / 4;
+      }*/
 
       state_t **H_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
       state_t **U_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
@@ -3817,37 +3914,39 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
          for(int ii=2; ii<iimax-2; ii++){
             if (mask_reg[jj][ii] != 1) continue;
 
-            real_t Hxfluxminus = HxFlux[jj][ii];
-            real_t Uxfluxminus = UxFlux[jj][ii];
-            real_t Vxfluxminus = VxFlux[jj][ii];
+            real_t Hxfluxminus = HxFlux[ll][jj][ii];
+            real_t Uxfluxminus = UxFlux[ll][jj][ii];
+            real_t Vxfluxminus = VxFlux[ll][jj][ii];
 
-            real_t Hxfluxplus = HxFlux[jj][ii+1];
-            real_t Uxfluxplus = UxFlux[jj][ii+1];
-            real_t Vxfluxplus = VxFlux[jj][ii+1];
+            real_t Hxfluxplus = HxFlux[ll][jj][ii+1];
+            real_t Uxfluxplus = UxFlux[ll][jj][ii+1];
+            real_t Vxfluxplus = VxFlux[ll][jj][ii+1];
 
-            real_t Hyfluxminus = HyFlux[jj][ii];
-            real_t Uyfluxminus = UyFlux[jj][ii];
-            real_t Vyfluxminus = VyFlux[jj][ii];
+            real_t Hyfluxminus = HyFlux[ll][jj][ii];
+            real_t Uyfluxminus = UyFlux[ll][jj][ii];
+            real_t Vyfluxminus = VyFlux[ll][jj][ii];
 
-            real_t Hyfluxplus = HyFlux[jj+1][ii];
-            real_t Uyfluxplus = UyFlux[jj+1][ii];
-            real_t Vyfluxplus = VyFlux[jj+1][ii];
-
-
-            real_t wminusx_H = Wx_H[jj][ii];
-            real_t wplusx_H  = Wx_H[jj][ii+1];
-            real_t wminusx_U = Wx_U[jj][ii];
-            real_t wplusx_U  = Wx_U[jj][ii+1];
+            real_t Hyfluxplus = HyFlux[ll][jj+1][ii];
+            real_t Uyfluxplus = UyFlux[ll][jj+1][ii];
+            real_t Vyfluxplus = VyFlux[ll][jj+1][ii];
 
 
-            real_t wminusy_H = Wy_H[jj][ii];
-            real_t wplusy_H  = Wy_H[jj+1][ii];
-            real_t wminusy_V = Wy_V[jj][ii];
-            real_t wplusy_V  = Wy_V[jj+1][ii];
+            real_t wminusx_H = Wx_H[ll][jj][ii];
+            real_t wplusx_H  = Wx_H[ll][jj][ii+1];
+            real_t wminusx_U = Wx_U[ll][jj][ii];
+            real_t wplusx_U  = Wx_U[ll][jj][ii+1];
 
 
+            real_t wminusy_H = Wy_H[ll][jj][ii];
+            real_t wplusy_H  = Wy_H[ll][jj+1][ii];
+            real_t wminusy_V = Wy_V[ll][jj][ii];
+            real_t wplusy_V  = Wy_V[ll][jj+1][ii];
+
+
+#ifdef XXX
             //mass conservation by flux transfer
             if ((FakeFluxHxP[ll][jj][ii] > 0) || (FakeFluxUxP[ll][jj][ii] > 0) || (FakeFluxVxP[ll][jj][ii] > 0)) {
+               printf("DEBUG coarse receiver lev %d j %d i %d H %lf\n",ll,jj,ii,FakeFluxHxP[ll][jj][ii]);
                Hxfluxplus = FakeFluxHxP[ll][jj][ii] * HALF; 
                Uxfluxplus = FakeFluxUxP[ll][jj][ii] * HALF;
                Vxfluxplus = FakeFluxVxP[ll][jj][ii] * HALF; 
@@ -3908,6 +4007,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
                int recvic = mesh->phantomXFluxRG[ll][jj][ii];
                int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
                int recvI = mesh->i[recvic] - mesh->lev_iregmin[ll-1];
+               printf("DEBUG fine sender lev %d j %d i %d recvic %d recvJ %d recvI %d H %lf\n",ll,jj,ii,recvic,recvJ,recvI,FakeFluxHxP[ll][jj][ii]);
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
@@ -3996,6 +4096,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
                tempWHyM[ll-1][recvJ][recvI] += wplusy_H / 4;
                tempWVyM[ll-1][recvJ][recvI] += wplusy_V / 4;
             }
+#endif
 
             /*H_reg_new[jj][ii] = H_reg[jj][ii] - Cx*(HNEWXRGFLUXFL - HNEWXRGFLUXFR)
                                                  -wminusx*(H_reg[jj][ii]-H_reg[jj][ii-1])
