@@ -11933,15 +11933,16 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
    }
    for (int iface = 0; iface < nxface; iface++) {
        ll = xface_level[iface];
-       pjIdx = xface_j[iface];
-       piIdx = xface_i[iface];
+       pjIdx = xface_j[iface] - lev_jregmin[ll];
+       piIdx = xface_i[iface] - lev_iregmin[ll];
        phantomXFluxRGFace[ll][pjIdx][piIdx] = phantomXFluxFace[iface];
+       //if (phantomXFluxFace[iface] > -1) printf("\t%d %d %d\n", ll, pjIdx, piIdx);
    }
 
    for (int iface = 0; iface < nyface; iface++) {
        ll = yface_level[iface];
-       pjIdx = yface_j[iface];
-       piIdx = yface_i[iface];
+       pjIdx = yface_j[iface] - lev_jregmin[ll];
+       piIdx = yface_i[iface] - lev_iregmin[ll];
        phantomYFluxRGFace[ll][pjIdx][piIdx] = phantomYFluxFace[iface];
    }
 
