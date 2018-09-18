@@ -669,6 +669,7 @@ extern "C" void do_calc(void)
    
        mesh->calc_spatial_coordinates(0);
        for (int ic = 0; ic < ncells; ic++){                                      
+          if (mesh->celltype[ic] != REAL_CELL) continue;
           if (xmid >= (mesh->x[ic]) && xmid < (mesh->x[ic]+mesh->dx[ic])){
              fprintf (fpcut, "%12.6f, %25.16f \n", (mesh->y[ic])+0.5*(mesh->dy[ic]), state->H[ic]);
           }
