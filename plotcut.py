@@ -26,7 +26,7 @@ plt.xlabel('X',fontsize=18)
 plt.ylabel('Height',fontsize=18)
 ax.tick_params(axis = 'both', labelsize = 14)
 plt.legend()
-plt.setp(ax.get_legend().get_texts(), fontsize='16') # for legend text
+plt.setp(ax.get_legend().get_texts(), fontsize='14') # for legend text
 fig.tight_layout()
 plt.savefig("cutplanes.pdf")
 plt.show()
