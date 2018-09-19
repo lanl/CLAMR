@@ -10457,7 +10457,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                         mem_ptr_double[pcellIdx+2] = state_avg;
                         mem_ptr_double[pcellIdx] = state_coarse;
                         //to maintain mass conservation
-		                phantomXFlux[fncell] = cncell;
+		        phantomXFlux[fncell] = cncell;
                         phantomXFluxFace[iface] = pfaceIdx;
                         phantomXFluxFace[map_xcell2face_left1[tncell]] = pfaceIdx;
 
