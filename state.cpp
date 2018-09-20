@@ -2010,7 +2010,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
-#pragma omp for 
+#pragma omp for
+#else
+#pragma omp simd
 #endif
    //normally use xfaceSize
    for (int iface = 0; iface < mesh->nxface; iface++){
@@ -2101,7 +2103,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #endif
 
 #ifdef _OPENMP
-#pragma omp for 
+#pragma omp for
+#else
+#pragma omp simd
 #endif
    //normally use yfaceSize
    for (int iface = 0; iface < mesh->nyface; iface++){
@@ -2156,6 +2160,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    ptr[4] = Wy_V;
    ptr[5] = NULL;*/
 
+#ifdef _OPENMP
+#pragma omp for
+#endif
    for (int ifixup = 0; ifixup < mesh->nyfixup; ifixup++){
       int ir  = mesh->yrecvIdx[ifixup];
       int is1 = mesh->ysendIdx1[ifixup];
