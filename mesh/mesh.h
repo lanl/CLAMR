@@ -428,9 +428,13 @@ public:
    vector<int> phantomXFluxFace;
    vector<int> phantomYFluxFace;
    vector<int> xrecvIdx;
+   vector<int> xplusCell2Idx;
+   vector<int> xminusCell2Idx;
    vector<int> xsendIdx1;
    vector<int> xsendIdx2;
    vector<int> yrecvIdx;
+   vector<int> yplusCell2Idx;
+   vector<int> yminusCell2Idx;
    vector<int> ysendIdx1;
    vector<int> ysendIdx2;
 
