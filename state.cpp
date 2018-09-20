@@ -2010,7 +2010,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
-#pragma omp for simd
+#pragma omp for
 #else
 #pragma omp simd
 #endif
