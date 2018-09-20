@@ -10099,6 +10099,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       } else {
          xface_j[iface] = j[nr]*ifactor;
       }
+      //printf("%d) %d/%d\n", iface, xface_j[iface], xface_i[iface]);
       map_xcell2face_right1[nz] = iface;
 
       //the right is a real cell, but I am left boundary
@@ -10116,6 +10117,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
             xface_i[iface] = i[ntr]*ifactor;
             xface_j[iface] = j[ntr]*ifactor;
             map_xcell2face_right2[nz] = iface;
+            //printf("%d) %d/%d\n", iface, xface_j[iface], xface_i[iface]);
 
             iface++;
          }
@@ -10269,7 +10271,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    cpu_timers[MESH_TIMER_BIDIRPART6] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
-   for (int iface=0; iface < nxface; iface++){
+   /*for (int iface=0; iface < nxface; iface++){
       int fl = xface_level[iface];
 
       int fi = xface_i[iface];
@@ -10297,6 +10299,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       ixmin_level[fl] = 0;
       jxmin_level[fl] = 0;
    }
+    //for (int yankers = 0; yankers < nxface; yankers++) {
+    //  printf("%d) %d/%d\n", yankers, xface_j[yankers], xface_i[yankers]);
+    //}
 
    for (int iface=0; iface < nyface; iface++){
       int fl = yface_level[iface];
@@ -10325,7 +10330,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       jymax_level[fl] -= jymin_level[fl];
       iymin_level[fl] = 0;
       jymin_level[fl] = 0;
-   }
+   }*/
 
    cpu_timers[MESH_TIMER_BIDIRPART7] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
@@ -10540,6 +10545,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     }
                     ifixupIdx++;
 
+                    // for now, to maintain mass conservation
+                    phantomXFlux[fncell] = -cncell;
+                    phantomXFluxFace[iface] = pfaceIdx;
+                    phantomXFluxFace[map_xcell2face_right1[tncell]] = pfaceIdx;
+
                     // loop through state arrays to update phantom cell state values
                     real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; // vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
@@ -10557,10 +10567,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         mem_ptr_double[pcellIdx] = state_avg;
                         mem_ptr_double[pcellIdx+2] = state_coarse;
-                        // for now, to maintain mass conservation
-                        phantomXFlux[fncell] = -cncell;
-                        phantomXFluxFace[iface] = pfaceIdx;
-                        phantomXFluxFace[map_xcell2face_right1[tncell]] = pfaceIdx;
 
                         if (level[nlft[bncell]] > level_left) { // leftbot left neighbor is even more refined
                             state_botbot = mem_ptr_double[nlft[bncell]];
@@ -10838,6 +10844,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     }
                     ifixupIdx++;
 
+                    // to maintain mass conservation
+                    phantomYFlux[fncell] = cncell;
+                    phantomYFluxFace[iface] = pfaceIdx;
+                    phantomYFluxFace[map_ycell2face_bot1[rncell]] = pfaceIdx;
+
                     // loop through state arrays to update phantom cell state values
                     real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; // vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
@@ -10855,10 +10866,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         mem_ptr_double[pcellIdx+2] = state_avg;
                         mem_ptr_double[pcellIdx] = state_coarse;
-                        // to maintain mass conservation
-                        phantomYFlux[fncell] = cncell;
-                        phantomYFluxFace[iface] = pfaceIdx;
-                        phantomYFluxFace[map_ycell2face_bot1[rncell]] = pfaceIdx;
 
                         if (level[nbot[lncell]] > level_top) { // topleft top neighbor is even more refined
                             state_lftlft = mem_ptr_double[ntop[lncell]];
@@ -11844,6 +11851,8 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
    meshes = (mesh_type*)malloc((levmx+1)*sizeof(mesh_type));
    phantomXFluxRG = (int ***)malloc((levmx+1) * sizeof(int **));
    phantomYFluxRG = (int ***)malloc((levmx+1) * sizeof(int **));
+   phantomXFluxRGFace = (int ***)malloc((levmx+1) * sizeof(int **));
+   phantomYFluxRGFace = (int ***)malloc((levmx+1) * sizeof(int **));
    int ***avgCnt = (int ***)malloc((levmx+1) * sizeof(int **));
 
    int ll, pjIdx, piIdx;
@@ -11908,6 +11917,8 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
       meshes[ll].mask = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
       phantomXFluxRG[ll] = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
       phantomYFluxRG[ll] = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
+      phantomXFluxRGFace[ll] = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
+      phantomYFluxRGFace[ll] = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
       avgCnt[ll] = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
 
       for(int nn=0; nn<nvar; nn++){
@@ -11922,6 +11933,8 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
             meshes[ll].mask[jj][ii]=0;
             phantomXFluxRG[ll][jj][ii] = 99999;
             phantomYFluxRG[ll][jj][ii] = 99999;
+            phantomXFluxRGFace[ll][jj][ii] = -99999;
+            phantomYFluxRGFace[ll][jj][ii] = -99999;
             avgCnt[ll][jj][ii] = 0;
          }
       }
@@ -11935,6 +11948,20 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
        meshes[ll].mask[pjIdx][piIdx] = 1;
        phantomXFluxRG[ll][pjIdx][piIdx] = phantomXFlux[ic];
        phantomYFluxRG[ll][pjIdx][piIdx] = phantomYFlux[ic];
+   }
+   for (int iface = 0; iface < nxface; iface++) {
+       ll = xface_level[iface];
+       pjIdx = xface_j[iface] - lev_jregmin[ll];
+       piIdx = xface_i[iface] - lev_iregmin[ll];
+       phantomXFluxRGFace[ll][pjIdx][piIdx] = phantomXFluxFace[iface];
+       //if (phantomXFluxFace[iface] > -1) printf("\t%d %d %d\n", ll, pjIdx, piIdx);
+   }
+
+   for (int iface = 0; iface < nyface; iface++) {
+       ll = yface_level[iface];
+       pjIdx = yface_j[iface] - lev_jregmin[ll];
+       piIdx = yface_i[iface] - lev_iregmin[ll];
+       phantomYFluxRGFace[ll][pjIdx][piIdx] = phantomYFluxFace[iface];
    }
 
    int ivar = 0;
@@ -12076,10 +12103,14 @@ void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
        gentrimatrixfree((void ***)meshes[ll].mask);
        genmatrixfree((void **)phantomXFluxRG[ll]);
        genmatrixfree((void **)phantomYFluxRG[ll]);
+       genmatrixfree((void **)phantomXFluxRGFace[ll]);
+       genmatrixfree((void **)phantomYFluxRGFace[ll]);
    }
    free(meshes);
    free(phantomXFluxRG);
    free(phantomYFluxRG);
+   free(phantomXFluxRGFace);
+   free(phantomYFluxRGFace);
 }
 
 int **Mesh::get_xface_flag(int lev, bool print_output)
