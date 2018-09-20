@@ -2102,7 +2102,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #endif
 
 #ifdef _OPENMP
-#pragma omp for simd
+#pragma omp for
 #else
 #pragma omp simd
 #endif
