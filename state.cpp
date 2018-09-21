@@ -1746,31 +1746,22 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       /// Artificial Viscosity corrections ///
       ////////////////////////////////////////
 
-      wminusx_H[gix] = w_corrector(deltaT, dxic, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                              Hic-Hl, Hl-Hll, Hr-Hic) * (Hic - Hl);
+      real_t U_eigen = fabs(Uxminus/Hxminus) + sqrt(g*Hxminus);
+      wminusx_H[gix] = w_corrector(deltaT, dxic, U_eigen, Hic-Hl, Hl-Hll, Hr-Hic) * (Hic - Hl);
+      wminusx_U[gix] = w_corrector(deltaT, dxic, U_eigen, Uic-Ul, Ul-Ull, Ur-Uic) * (Uic - Ul);
 
-      wplusx_H[gix] = w_corrector(deltaT, dxic, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                              Hr-Hic, Hic-Hl, Hrr-Hr) * (Hr - Hic);
-
-
-      wminusx_U[gix] = w_corrector(deltaT, dxic, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                              Uic-Ul, Ul-Ull, Ur-Uic) * (Uic - Ul);
-
-      wplusx_U[gix] = w_corrector(deltaT, dxic, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                              Ur-Uic, Uic-Ul, Urr-Ur) * (Ur - Uic);
+      U_eigen = fabs(Uxplus/Hxplus) + sqrt(g*Hxplus);
+      wplusx_H[gix] = w_corrector(deltaT, dxic, U_eigen, Hr-Hic, Hic-Hl, Hrr-Hr) * (Hr - Hic);
+      wplusx_U[gix] = w_corrector(deltaT, dxic, U_eigen, Ur-Uic, Uic-Ul, Urr-Ur) * (Ur - Uic);
 
 
-      wminusy_H[gix] = w_corrector(deltaT, dyic, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                              Hic-Hb, Hb-Hbb, Ht-Hic) * (Hic - Hb);
+      U_eigen = fabs(Vyminus/Hyminus) + sqrt(g*Hyminus);
+      wminusy_H[gix] = w_corrector(deltaT, dyic, U_eigen, Hic-Hb, Hb-Hbb, Ht-Hic) * (Hic - Hb);
+      wminusy_V[gix] = w_corrector(deltaT, dyic, U_eigen, Vic-Vb, Vb-Vbb, Vt-Vic) * (Vic - Vb);
 
-      wplusy_H[gix] = w_corrector(deltaT, dyic, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                              Ht-Hic, Hic-Hb, Htt-Ht) * (Ht - Hic);
-
-      wminusy_V[gix] = w_corrector(deltaT, dyic, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                              Vic-Vb, Vb-Vbb, Vt-Vic) * (Vic - Vb);
-
-      wplusy_V[gix] = w_corrector(deltaT, dyic, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                              Vt-Vic, Vic-Vb, Vtt-Vt) * (Vt - Vic);
+      U_eigen = fabs(Vyplus/Hyplus) + sqrt(g*Hyplus);
+      wplusy_H[gix] = w_corrector(deltaT, dyic, U_eigen, Ht-Hic, Hic-Hb, Htt-Ht) * (Ht - Hic);
+      wplusy_V[gix] = w_corrector(deltaT, dyic, U_eigen, Vt-Vic, Vic-Vb, Vtt-Vt) * (Vt - Vic);
    }
 
 
