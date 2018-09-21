@@ -10038,11 +10038,13 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    map_xface2cell_upper.resize(3*ncells, -1);
 
    xrecvIdx.clear();
+   xrecvCIdx.clear();
    xplusCell2Idx.clear();
    xminusCell2Idx.clear();
    xsendIdx1.clear();
    xsendIdx2.clear();
    xrecvIdx.resize(ncells,-1);
+   xrecvCIdx.resize(ncells,-1);
    xplusCell2Idx.resize(ncells,-1);
    xminusCell2Idx.resize(ncells,-1);
    xsendIdx1.resize(ncells,-1);
@@ -10160,11 +10162,13 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    map_yface2cell_upper.resize(3*ncells, -1);
 
    yrecvIdx.clear();
+   yrecvCIdx.clear();
    yplusCell2Idx.clear();
    yminusCell2Idx.clear();
    ysendIdx1.clear();
    ysendIdx2.clear();
    yrecvIdx.resize(ncells,-1);
+   yrecvCIdx.resize(ncells,-1);
    yplusCell2Idx.resize(ncells,-1);
    yminusCell2Idx.resize(ncells,-1);
    ysendIdx1.resize(ncells,-1);
@@ -10444,6 +10448,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     xrecvIdx[ifixupIdx] = pfaceIdx;
                     int nl = map_xface2cell_lower[pfaceIdx];
+                    xrecvCIdx[ifixupIdx] = nl;
                     xplusCell2Idx[nl] = ifixupIdx;
                     if (iface < map_xcell2face_left1[tncell]) {
                        xsendIdx1[ifixupIdx] = iface;
@@ -10536,6 +10541,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     xrecvIdx[ifixupIdx] = pfaceIdx;
                     int nr = map_xface2cell_upper[pfaceIdx];
+                    xrecvCIdx[ifixupIdx] = nr;
                     xminusCell2Idx[nr] = ifixupIdx;
                     if (iface < map_xcell2face_right1[tncell]){
                        xsendIdx1[ifixupIdx] = iface;
@@ -10835,6 +10841,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     yrecvIdx[ifixupIdx] = pfaceIdx;
                     int nb = map_yface2cell_lower[pfaceIdx];
+                    yrecvCIdx[ifixupIdx] = nb;
                     yplusCell2Idx[nb] = ifixupIdx;
                     if (iface < map_ycell2face_bot1[rncell]) {
                        ysendIdx1[ifixupIdx] = iface;
@@ -10929,6 +10936,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     yrecvIdx[ifixupIdx] = pfaceIdx;
                     int nt = map_yface2cell_upper[pfaceIdx];
+                    yrecvCIdx[ifixupIdx] = nt;
                     yminusCell2Idx[nt] = ifixupIdx;
                     if (iface < map_ycell2face_top1[rncell]){
                        ysendIdx1[ifixupIdx] = iface;

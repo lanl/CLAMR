@@ -1768,7 +1768,8 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
    cpu_timer_start(&tstart_cpu_part);
 
 
-   for (int gix = lowerBound; gix < upperBound; gix++) {
+   for (int ifixup = 0; ifixup < mesh->nxfixup; ifixup++){
+      int gix = mesh->xrecvCIdx[ifixup];
 
       if (mesh->xplusCell2Idx[gix] > -1) {
          int ifixup = mesh->xplusCell2Idx[gix];
@@ -1797,6 +1798,10 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
          wminusx_H[gix] = (wplusx_H[ns1] + wplusx_H[ns2]) * 0.25;
          wminusx_U[gix] = (wplusx_U[ns1] + wplusx_U[ns2]) * 0.25;
       }
+   }
+
+   for (int ifixup = 0; ifixup < mesh->nxfixup; ifixup++){
+      int gix = mesh->yrecvCIdx[ifixup];
 
       if (mesh->yplusCell2Idx[gix] > -1) {
          int ifixup = mesh->yplusCell2Idx[gix];
