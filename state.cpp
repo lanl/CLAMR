@@ -1583,7 +1583,7 @@ void State::calc_finite_difference(double deltaT){
 
 void State::calc_finite_difference_cell_in_place(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
-   real_t   ghalf = 0.5*g;
+   real_t   ghalf = HALF*g;
 
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -1764,6 +1764,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       wplusy_V[gix] = w_corrector(deltaT, dyic, U_eigen, Vt-Vic, Vic-Vb, Vtt-Vt) * (Vt - Vic);
    }
 
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
 
    for (int gix = lowerBound; gix < upperBound; gix++) {
 
@@ -1824,6 +1827,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       }
    }
 
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
    for (int gix = lowerBound; gix < upperBound; gix++) {
       int lev = mesh->level[gix];
       real_t dxic    = mesh->lev_deltax[lev];
@@ -1844,7 +1850,7 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
                   - wminusy_V[gix] + wplusy_V[gix];
    } // cell loop
 
-   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
 
 #ifdef _OPENMP
 #pragma omp barrier
