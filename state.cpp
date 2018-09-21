@@ -1653,216 +1653,205 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
    int lowerBound, upperBound;
 
    mesh->get_bounds(lowerBound, upperBound);
-   for (int lev = mesh->levmx; lev > -1; lev--){
+
+   for (int gix = lowerBound; gix < upperBound; gix++) {
+      int lev = mesh->level[gix];
       real_t dxic    = mesh->lev_deltax[lev];
       real_t dyic    = mesh->lev_deltay[lev];
 
-      for (int gix = lowerBound; gix < upperBound; gix++) {
+      // set the four faces
+      int fl = mesh->map_xcell2face_left1[gix];
+      int fr = mesh->map_xcell2face_right1[gix];
+      int fb = mesh->map_ycell2face_bot1[gix];
+      int ft = mesh->map_ycell2face_top1[gix];
 
-         if (lev != mesh->level[gix]) continue;
+      // set the four neighboring cells
+      int nl = mesh->map_xface2cell_lower[fl];
+      int nr = mesh->map_xface2cell_upper[fr];
+      int nb = mesh->map_yface2cell_lower[fb];
+      int nt = mesh->map_yface2cell_upper[ft];
 
-         // set the four faces
-         int fl = mesh->map_xcell2face_left1[gix];
-         int fr = mesh->map_xcell2face_right1[gix];
-         int fb = mesh->map_ycell2face_bot1[gix];
-         int ft = mesh->map_ycell2face_top1[gix];
+      if (nb == gix  || nt == gix || nl == gix || nr == gix) continue;
 
-         // set the four neighboring cells
-         int nl = mesh->map_xface2cell_lower[fl];
-         int nr = mesh->map_xface2cell_upper[fr];
-         int nb = mesh->map_yface2cell_lower[fb];
-         int nt = mesh->map_yface2cell_upper[ft];
+      real_t Hic     = H[gix];
+      real_t Uic     = U[gix];
+      real_t Vic     = V[gix];
 
-         if (nb == gix  || nt == gix || nl == gix || nr == gix) continue;
+      int nll     = mesh->map_xface2cell_lower[fl];
+      real_t Hl      = H[nl];
+      real_t Ul      = U[nl];
+      real_t Vl      = V[nl];
 
-         real_t Hic     = H[gix];
-         real_t Uic     = U[gix];
-         real_t Vic     = V[gix];
+      int nrr     = mesh->map_xface2cell_upper[fr];
+      real_t Hr      = H[nr];
+      real_t Ur      = U[nr];
+      real_t Vr      = V[nr];
 
-         int nll     = mesh->map_xface2cell_lower[fl];
-         real_t Hl      = H[nl];
-         real_t Ul      = U[nl];
-         real_t Vl      = V[nl];
+      int ntt     = mesh->map_yface2cell_upper[ft];
+      real_t Ht      = H[nt];
+      real_t Ut      = U[nt];
+      real_t Vt      = V[nt];
 
-         int nrr     = mesh->map_xface2cell_upper[fr];
-         real_t Hr      = H[nr];
-         real_t Ur      = U[nr];
-         real_t Vr      = V[nr];
+      int nbb     = mesh->map_yface2cell_lower[fb];
+      real_t Hb      = H[nb];
+      real_t Ub      = U[nb];
+      real_t Vb      = V[nb];
 
-         int ntt     = mesh->map_yface2cell_upper[ft];
-         real_t Ht      = H[nt];
-         real_t Ut      = U[nt];
-         real_t Vt      = V[nt];
+      real_t Hll     = H[nll];
+      real_t Ull     = U[nll];
 
-         int nbb     = mesh->map_yface2cell_lower[fb];
-         real_t Hb      = H[nb];
-         real_t Ub      = U[nb];
-         real_t Vb      = V[nb];
+      real_t Hrr     = H[nrr];
+      real_t Urr     = U[nrr];
 
-         real_t Hll     = H[nll];
-         real_t Ull     = U[nll];
+      real_t Htt     = H[ntt];
+      real_t Vtt     = V[ntt];
 
-         real_t Hrr     = H[nrr];
-         real_t Urr     = U[nrr];
+      real_t Hbb     = H[nbb];
+      real_t Vbb     = V[nbb];
 
-         real_t Htt     = H[ntt];
-         real_t Vtt     = V[ntt];
+      // Halfstep in space and time
+      real_t Hxminus = HALF*(Hic+Hl)-deltaT/dxic*(HXFLUXIC-HXFLUXNL);
+      real_t Uxminus = HALF*(Uic+Ul)-deltaT/dxic*(UXFLUXIC-UXFLUXNL);
+      real_t Vxminus = HALF*(Vic+Vl)-deltaT/dxic*(UVFLUXIC-UVFLUXNL);
 
-         real_t Hbb     = H[nbb];
-         real_t Vbb     = V[nbb];
+      real_t Hxplus = HALF*(Hr+Hic)-deltaT/dxic*(HXFLUXNR-HXFLUXIC);
+      real_t Uxplus = HALF*(Ur+Uic)-deltaT/dxic*(UXFLUXNR-UXFLUXIC);
+      real_t Vxplus = HALF*(Vr+Vic)-deltaT/dxic*(UVFLUXNR-UVFLUXIC);
 
-         // Halfstep in space and time
-         real_t Hxminus = HALF*(Hic+Hl)-deltaT/dxic*(HXFLUXIC-HXFLUXNL);
-         real_t Uxminus = HALF*(Uic+Ul)-deltaT/dxic*(UXFLUXIC-UXFLUXNL);
-         real_t Vxminus = HALF*(Vic+Vl)-deltaT/dxic*(UVFLUXIC-UVFLUXNL);
+      real_t Hyminus = HALF*(Hic+Hb)-deltaT/dyic*(HYFLUXIC-HYFLUXNB);
+      real_t Uyminus = HALF*(Uic+Ub)-deltaT/dyic*(VUFLUXIC-VUFLUXNB);
+      real_t Vyminus = HALF*(Vic+Vb)-deltaT/dyic*(VYFLUXIC-VYFLUXNB);
 
-         real_t Hxplus = HALF*(Hr+Hic)-deltaT/dxic*(HXFLUXNR-HXFLUXIC);
-         real_t Uxplus = HALF*(Ur+Uic)-deltaT/dxic*(UXFLUXNR-UXFLUXIC);
-         real_t Vxplus = HALF*(Vr+Vic)-deltaT/dxic*(UVFLUXNR-UVFLUXIC);
+      real_t Hyplus = HALF*(Ht+Hic)-deltaT/dyic*(HYFLUXNT-HYFLUXIC);
+      real_t Uyplus = HALF*(Ut+Uic)-deltaT/dyic*(VUFLUXNT-VUFLUXIC);
+      real_t Vyplus = HALF*(Vt+Vic)-deltaT/dyic*(VYFLUXNT-VYFLUXIC);
 
-         real_t Hyminus = HALF*(Hic+Hb)-deltaT/dyic*(HYFLUXIC-HYFLUXNB);
-         real_t Uyminus = HALF*(Uic+Ub)-deltaT/dyic*(VUFLUXIC-VUFLUXNB);
-         real_t Vyminus = HALF*(Vic+Vb)-deltaT/dyic*(VYFLUXIC-VYFLUXNB);
+      Hxfluxminus[gix] = HNEWXFLUXMINUS;
+      Uxfluxminus[gix] = UNEWXFLUXMINUS;
+      Vxfluxminus[gix] = UVNEWFLUXMINUS;
 
-         real_t Hyplus = HALF*(Ht+Hic)-deltaT/dyic*(HYFLUXNT-HYFLUXIC);
-         real_t Uyplus = HALF*(Ut+Uic)-deltaT/dyic*(VUFLUXNT-VUFLUXIC);
-         real_t Vyplus = HALF*(Vt+Vic)-deltaT/dyic*(VYFLUXNT-VYFLUXIC);
+      Hxfluxplus[gix]  = HNEWXFLUXPLUS;
+      Uxfluxplus[gix]  = UNEWXFLUXPLUS;
+      Vxfluxplus[gix]  = UVNEWFLUXPLUS;
 
-         Hxfluxminus[gix] = HNEWXFLUXMINUS;
-         Uxfluxminus[gix] = UNEWXFLUXMINUS;
-         Vxfluxminus[gix] = UVNEWFLUXMINUS;
+      Hyfluxminus[gix] = HNEWYFLUXMINUS;
+      Uyfluxminus[gix] = VUNEWFLUXMINUS;
+      Vyfluxminus[gix] = VNEWYFLUXMINUS;
 
-         Hxfluxplus[gix]  = HNEWXFLUXPLUS;
-         Uxfluxplus[gix]  = UNEWXFLUXPLUS;
-         Vxfluxplus[gix]  = UVNEWFLUXPLUS;
+      Hyfluxplus[gix]  = HNEWYFLUXPLUS;
+      Uyfluxplus[gix]  = VUNEWFLUXPLUS;
+      Vyfluxplus[gix]  = VNEWYFLUXPLUS;
 
-         Hyfluxminus[gix] = HNEWYFLUXMINUS;
-         Uyfluxminus[gix] = VUNEWFLUXMINUS;
-         Vyfluxminus[gix] = VNEWYFLUXMINUS;
+      ////////////////////////////////////////
+      /// Artificial Viscosity corrections ///
+      ////////////////////////////////////////
 
-         Hyfluxplus[gix]  = HNEWYFLUXPLUS;
-         Uyfluxplus[gix]  = VUNEWFLUXPLUS;
-         Vyfluxplus[gix]  = VNEWYFLUXPLUS;
+      wminusx_H[gix] = w_corrector(deltaT, dxic, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+                              Hic-Hl, Hl-Hll, Hr-Hic) * (Hic - Hl);
 
-         ////////////////////////////////////////
-         /// Artificial Viscosity corrections ///
-         ////////////////////////////////////////
-
-
-         wminusx_H[gix] = w_corrector(deltaT, dxic, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                                 Hic-Hl, Hl-Hll, Hr-Hic);
-
-         wminusx_H[gix] *= Hic - Hl;
-
-         wplusx_H[gix] = w_corrector(deltaT, dxic, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                              Hr-Hic, Hic-Hl, Hrr-Hr);
-
-         wplusx_H[gix] *= Hr - Hic;
-
-         wminusx_U[gix] = w_corrector(deltaT, dxic, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
-                                 Uic-Ul, Ul-Ull, Ur-Uic);
-
-         wminusx_U[gix] *= Uic - Ul;
+      wplusx_H[gix] = w_corrector(deltaT, dxic, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+                              Hr-Hic, Hic-Hl, Hrr-Hr) * (Hr - Hic);
 
 
-         wplusx_U[gix] = w_corrector(deltaT, dxic, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
-                                 Ur-Uic, Uic-Ul, Urr-Ur);
+      wminusx_U[gix] = w_corrector(deltaT, dxic, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+                              Uic-Ul, Ul-Ull, Ur-Uic) * (Uic - Ul);
 
-         wplusx_U[gix] *= Ur - Uic;
-
-
-         wminusy_H[gix] = w_corrector(deltaT, dyic, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                                 Hic-Hb, Hb-Hbb, Ht-Hic);
-
-         wminusy_H[gix] *= Hic - Hb;
+      wplusx_U[gix] = w_corrector(deltaT, dxic, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+                              Ur-Uic, Uic-Ul, Urr-Ur) * (Ur - Uic);
 
 
-         wplusy_H[gix] = w_corrector(deltaT, dyic, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                                Ht-Hic, Hic-Hb, Htt-Ht);
+      wminusy_H[gix] = w_corrector(deltaT, dyic, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+                              Hic-Hb, Hb-Hbb, Ht-Hic) * (Hic - Hb);
 
-         wplusy_H[gix] *= Ht - Hic;
+      wplusy_H[gix] = w_corrector(deltaT, dyic, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+                              Ht-Hic, Hic-Hb, Htt-Ht) * (Ht - Hic);
 
-         wminusy_V[gix] = w_corrector(deltaT, dyic, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
-                                 Vic-Vb, Vb-Vbb, Vt-Vic);
+      wminusy_V[gix] = w_corrector(deltaT, dyic, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+                              Vic-Vb, Vb-Vbb, Vt-Vic) * (Vic - Vb);
 
-         wminusy_V[gix] *= Vic - Vb;
+      wplusy_V[gix] = w_corrector(deltaT, dyic, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+                              Vt-Vic, Vic-Vb, Vtt-Vt) * (Vt - Vic);
+   }
 
-         wplusy_V[gix] = w_corrector(deltaT, dyic, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
-                              Vt-Vic, Vic-Vb, Vtt-Vt);
 
-         wplusy_V[gix] *= Vt - Vic;
+   for (int gix = lowerBound; gix < upperBound; gix++) {
 
-         if (mesh->xplusCell2Idx[gix] > -1) {
-            int ifixup = mesh->xplusCell2Idx[gix];
+      if (mesh->xplusCell2Idx[gix] > -1) {
+         int ifixup = mesh->xplusCell2Idx[gix];
 
-            // set the sending cells
-            int ns1 = mesh->map_xface2cell_upper[mesh->xsendIdx1[ifixup]];
-            int ns2 = mesh->map_xface2cell_upper[mesh->xsendIdx2[ifixup]];
+         // set the sending cells
+         int ns1 = mesh->map_xface2cell_upper[mesh->xsendIdx1[ifixup]];
+         int ns2 = mesh->map_xface2cell_upper[mesh->xsendIdx2[ifixup]];
 
-            Hxfluxplus[gix] = (Hxfluxminus[ns1] + Hxfluxminus[ns2]) * HALF;
-            Uxfluxplus[gix] = (Uxfluxminus[ns1] + Uxfluxminus[ns2]) * HALF;
-            Vxfluxplus[gix] = (Vxfluxminus[ns1] + Vxfluxminus[ns2]) * HALF;
-            wplusx_H[gix] = (wminusx_H[ns1] + wminusx_H[ns2]) * 0.25;
-            wplusx_U[gix] = (wminusx_U[ns1] + wminusx_U[ns2]) * 0.25;
-         }
+         Hxfluxplus[gix] = (Hxfluxminus[ns1] + Hxfluxminus[ns2]) * HALF;
+         Uxfluxplus[gix] = (Uxfluxminus[ns1] + Uxfluxminus[ns2]) * HALF;
+         Vxfluxplus[gix] = (Vxfluxminus[ns1] + Vxfluxminus[ns2]) * HALF;
+         wplusx_H[gix] = (wminusx_H[ns1] + wminusx_H[ns2]) * 0.25;
+         wplusx_U[gix] = (wminusx_U[ns1] + wminusx_U[ns2]) * 0.25;
+      }
 
-         if (mesh->xminusCell2Idx[gix] > -1) {
-            int ifixup = mesh->xminusCell2Idx[gix];
+      if (mesh->xminusCell2Idx[gix] > -1) {
+         int ifixup = mesh->xminusCell2Idx[gix];
 
-            // set the sending cells
-            int ns1 = mesh->map_xface2cell_lower[mesh->xsendIdx1[ifixup]];
-            int ns2 = mesh->map_xface2cell_lower[mesh->xsendIdx2[ifixup]];
+         // set the sending cells
+         int ns1 = mesh->map_xface2cell_lower[mesh->xsendIdx1[ifixup]];
+         int ns2 = mesh->map_xface2cell_lower[mesh->xsendIdx2[ifixup]];
 
-            Hxfluxminus[gix] = (Hxfluxplus[ns1] + Hxfluxplus[ns2]) * HALF;
-            Uxfluxminus[gix] = (Uxfluxplus[ns1] + Uxfluxplus[ns2]) * HALF;
-            Vxfluxminus[gix] = (Vxfluxplus[ns1] + Vxfluxplus[ns2]) * HALF;
-            wminusx_H[gix] = (wplusx_H[ns1] + wplusx_H[ns2]) * 0.25;
-            wminusx_U[gix] = (wplusx_U[ns1] + wplusx_U[ns2]) * 0.25;
-         }
+         Hxfluxminus[gix] = (Hxfluxplus[ns1] + Hxfluxplus[ns2]) * HALF;
+         Uxfluxminus[gix] = (Uxfluxplus[ns1] + Uxfluxplus[ns2]) * HALF;
+         Vxfluxminus[gix] = (Vxfluxplus[ns1] + Vxfluxplus[ns2]) * HALF;
+         wminusx_H[gix] = (wplusx_H[ns1] + wplusx_H[ns2]) * 0.25;
+         wminusx_U[gix] = (wplusx_U[ns1] + wplusx_U[ns2]) * 0.25;
+      }
 
-         if (mesh->yplusCell2Idx[gix] > -1) {
-            int ifixup = mesh->yplusCell2Idx[gix];
+      if (mesh->yplusCell2Idx[gix] > -1) {
+         int ifixup = mesh->yplusCell2Idx[gix];
 
-            // set the sending cells
-            int ns1 = mesh->map_yface2cell_upper[mesh->ysendIdx1[ifixup]];
-            int ns2 = mesh->map_yface2cell_upper[mesh->ysendIdx2[ifixup]];
+         // set the sending cells
+         int ns1 = mesh->map_yface2cell_upper[mesh->ysendIdx1[ifixup]];
+         int ns2 = mesh->map_yface2cell_upper[mesh->ysendIdx2[ifixup]];
 
-            Hyfluxplus[gix] = (Hyfluxminus[ns1] + Hyfluxminus[ns2]) * HALF;
-            Uyfluxplus[gix] = (Uyfluxminus[ns1] + Uyfluxminus[ns2]) * HALF;
-            Vyfluxplus[gix] = (Vyfluxminus[ns1] + Vyfluxminus[ns2]) * HALF;
-            wplusy_H[gix] = (wminusy_H[ns1] + wminusy_H[ns2]) * 0.25;
-            wplusy_V[gix] = (wminusy_V[ns1] + wminusy_V[ns2]) * 0.25;
-         }
+         Hyfluxplus[gix] = (Hyfluxminus[ns1] + Hyfluxminus[ns2]) * HALF;
+         Uyfluxplus[gix] = (Uyfluxminus[ns1] + Uyfluxminus[ns2]) * HALF;
+         Vyfluxplus[gix] = (Vyfluxminus[ns1] + Vyfluxminus[ns2]) * HALF;
+         wplusy_H[gix] = (wminusy_H[ns1] + wminusy_H[ns2]) * 0.25;
+         wplusy_V[gix] = (wminusy_V[ns1] + wminusy_V[ns2]) * 0.25;
+      }
 
-         if (mesh->yminusCell2Idx[gix] > -1) {
-            int ifixup = mesh->yminusCell2Idx[gix];
+      if (mesh->yminusCell2Idx[gix] > -1) {
+         int ifixup = mesh->yminusCell2Idx[gix];
 
-            // set the sending cells
-            int ns1 = mesh->map_yface2cell_lower[mesh->ysendIdx1[ifixup]];
-            int ns2 = mesh->map_yface2cell_lower[mesh->ysendIdx2[ifixup]];
+         // set the sending cells
+         int ns1 = mesh->map_yface2cell_lower[mesh->ysendIdx1[ifixup]];
+         int ns2 = mesh->map_yface2cell_lower[mesh->ysendIdx2[ifixup]];
 
-            Hyfluxminus[gix] = (Hyfluxplus[ns1] + Hyfluxplus[ns2]) * HALF;
-            Uyfluxminus[gix] = (Uyfluxplus[ns1] + Uyfluxplus[ns2]) * HALF;
-            Vyfluxminus[gix] = (Vyfluxplus[ns1] + Vyfluxplus[ns2]) * HALF;
-            wminusy_H[gix] = (wplusy_H[ns1] + wplusy_H[ns2]) * 0.25;
-            wminusy_V[gix] = (wplusy_V[ns1] + wplusy_V[ns2]) * 0.25;
-         }
+         Hyfluxminus[gix] = (Hyfluxplus[ns1] + Hyfluxplus[ns2]) * HALF;
+         Uyfluxminus[gix] = (Uyfluxplus[ns1] + Uyfluxplus[ns2]) * HALF;
+         Vyfluxminus[gix] = (Vyfluxplus[ns1] + Vyfluxplus[ns2]) * HALF;
+         wminusy_H[gix] = (wplusy_H[ns1] + wplusy_H[ns2]) * 0.25;
+         wminusy_V[gix] = (wplusy_V[ns1] + wplusy_V[ns2]) * 0.25;
+      }
+   }
 
-         H_new[gix] = U_fullstep(deltaT, dxic, Hic,
-                          Hxfluxplus[gix], Hxfluxminus[gix], Hyfluxplus[gix], Hyfluxminus[gix])
-                     - wminusx_H[gix] + wplusx_H[gix] - wminusy_H[gix] + wplusy_H[gix];
-         U_new[gix] = U_fullstep(deltaT, dxic, Uic,
-                          Uxfluxplus[gix], Uxfluxminus[gix], Uyfluxplus[gix], Uyfluxminus[gix])
-                     - wminusx_U[gix] + wplusx_U[gix];
-         V_new[gix] = U_fullstep(deltaT, dxic, Vic,
-                          Vxfluxplus[gix], Vxfluxminus[gix], Vyfluxplus[gix], Vyfluxminus[gix])
-                     - wminusy_V[gix] + wplusy_V[gix];
-      } // cell loop
+   for (int gix = lowerBound; gix < upperBound; gix++) {
+      int lev = mesh->level[gix];
+      real_t dxic    = mesh->lev_deltax[lev];
+      real_t dyic    = mesh->lev_deltay[lev];
 
-#ifdef _OPENMP
-#pragma omp barrier
-#endif
-   } // lev loop
+      real_t Hic     = H[gix];
+      real_t Uic     = U[gix];
+      real_t Vic     = V[gix];
+
+      H_new[gix] = U_fullstep(deltaT, dxic, Hic,
+                       Hxfluxplus[gix], Hxfluxminus[gix], Hyfluxplus[gix], Hyfluxminus[gix])
+                  - wminusx_H[gix] + wplusx_H[gix] - wminusy_H[gix] + wplusy_H[gix];
+      U_new[gix] = U_fullstep(deltaT, dxic, Uic,
+                       Uxfluxplus[gix], Uxfluxminus[gix], Uyfluxplus[gix], Uyfluxminus[gix])
+                  - wminusx_U[gix] + wplusx_U[gix];
+      V_new[gix] = U_fullstep(deltaT, dxic, Vic,
+                       Vxfluxplus[gix], Vxfluxminus[gix], Vyfluxplus[gix], Vyfluxminus[gix])
+                  - wminusy_V[gix] + wplusy_V[gix];
+   } // cell loop
 
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
 
