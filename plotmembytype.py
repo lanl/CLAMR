@@ -43,10 +43,7 @@ fig, ax = plt.subplots()
 bar_width = 0.35
 
 y1 = [ CellMemused["origcell"]/CellMemused["origcell"],CellMemused["cellinplace"]/CellMemused["origcell"],CellMemused["reggridbycell"]/CellMemused["origcell"] ]
-y2 = [ FaceMemused["origface"]/CellMemused["origcell"],FaceMemused["faceinplace"]/CellMemused["origcell"],0 ]
-#y2 = [ FaceMemused["origface"]/CellMemused["origcell"],FaceMemused["faceinplace"]/CellMemused["origcell"],FaceMemused["reggridbyfaces"]/CellMemused["origcell"] ]
-#y1 = [ CellMemused["origcell"]/CellMemused["origcell"],CellMemused["cellinplace"]/CellMemused["origcell"] ]
-#y2 = [ FaceMemused["origface"]/CellMemused["origcell"],FaceMemused["faceinplace"]/CellMemused["origcell"] ]
+y2 = [ FaceMemused["origface"]/CellMemused["origcell"],FaceMemused["faceinplace"]/CellMemused["origcell"],FaceMemused["reggridbyfaces"]/CellMemused["origcell"] ]
 
 x1 = np.arange(len(y1))
 x2 = [x + bar_width for x in x1]
