@@ -80,14 +80,14 @@ plt.bar(x2, y4, width=bar_width, color='k', edgecolor='white')
 #plt.bar(x3, y3, width=bar_width, color='g', edgecolor='white', label='RegGrid')
 
 axes = plt.gca() # get current axes
-axes.set_ylim([0,1.2])
+axes.set_ylim([0,1.5])
 
 ax.set_xlabel('Mesh Data Structure',fontsize=18)
 ax.set_ylabel('Runtime relative to Original Cell AMR',fontsize=18)
 ax.tick_params(axis = 'both', labelsize = 14)
 ax.set_xticks(x1 + bar_width)
 ax.set_xticklabels(('Original AMR','InPlace','RegGrid'))
-ax.legend(loc=1)
+ax.legend(loc=2)
 
 plt.setp(ax.get_legend().get_texts(), fontsize='16') # for legend text
 
