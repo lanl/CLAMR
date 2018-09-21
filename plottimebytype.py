@@ -18,6 +18,14 @@ OrigRuntime = dict()
 InPlaceRuntime = dict()
 RegGridRuntime = dict()
 
+AllMeshtime = dict()
+FaceMeshtime = dict()
+CellMeshtime = dict()
+
+OrigMeshtime = dict()
+InPlaceMeshtime = dict()
+RegGridMeshtime = dict()
+
 for line in data:
     #if 'CPU' in line:
     if 'finite_difference' in line:
@@ -37,6 +45,21 @@ for line in data:
            InPlaceRuntime[key] = float(value)
         if 'reggrid' in key:
            RegGridRuntime[key] = float(value)
+    if 'mesh_timer_bidir  ' in line:
+        line = line.strip('\n')
+        #key,dummy,dummy,value,dummy = line.split()
+        key,dummy,value,dummy = line.split()
+        name.append(key)
+        if 'face' in key:
+           FaceMeshtime[key] = float(value)
+        if 'cell' in key:
+           CellMeshtime[key] = float(value)
+        if 'orig' in key:
+           OrigMeshtime[key] = float(value)
+        if 'inplace' in key:
+           InPlaceMeshtime[key] = float(value)
+        if 'reggrid' in key:
+           RegGridMeshtime[key] = float(value)
 
 fig, ax = plt.subplots()
 
@@ -44,6 +67,8 @@ bar_width = 0.35
 
 y1 = [ CellRuntime["origcell"]/CellRuntime["origcell"],CellRuntime["cellinplace"]/CellRuntime["origcell"],0 ]
 y2 = [ FaceRuntime["origface"]/CellRuntime["origcell"],FaceRuntime["faceinplace"]/CellRuntime["origcell"],0 ]
+y3 = [ CellMeshtime["origcell"]/CellRuntime["origcell"],CellMeshtime["cellinplace"]/CellRuntime["origcell"],0 ]
+y4 = [ FaceMeshtime["origface"]/CellRuntime["origcell"],FaceMeshtime["faceinplace"]/CellRuntime["origcell"],0 ]
 #y1 = [ CellRuntime["origcell"]/CellRuntime["origcell"],CellRuntime["cellinplace"]/CellRuntime["origcell"],CellRuntime["reggridbycell"]/CellRuntime["origcell"] ]
 #y2 = [ FaceRuntime["origface"]/CellRuntime["origcell"],FaceRuntime["faceinplace"]/CellRuntime["origcell"],FaceRuntime["reggridbyfaces"]/CellRuntime["origcell"] ]
 #y1 = [ CellRuntime["origcell"]/CellRuntime["origcell"],CellRuntime["cellinplace"]/CellRuntime["origcell"] ]
@@ -54,6 +79,8 @@ x2 = [x + bar_width for x in x1]
 
 plt.bar(x1, y1, width=bar_width, color='b', edgecolor='white', label='Cells')
 plt.bar(x2, y2, width=bar_width, color='r', edgecolor='white', label='Faces')
+plt.bar(x1, y3, width=bar_width, color='k', edgecolor='white', label='Mesh')
+plt.bar(x2, y4, width=bar_width, color='k', edgecolor='white')
 #plt.bar(x3, y3, width=bar_width, color='g', edgecolor='white', label='RegGrid')
 
 axes = plt.gca() # get current axes
