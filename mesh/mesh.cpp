@@ -10454,6 +10454,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     }
                     ifixupIdx++;
 
+                    //to maintain mass conservation
+		            phantomXFlux[fncell] = cncell;
+                    phantomXFluxFace[iface] = pfaceIdx;
+                    phantomXFluxFace[map_xcell2face_left1[tncell]] = pfaceIdx;
+
                     // loop through state arrays to update phantom cell state values
                     real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; //vars for 2 cells over
                     int locStateCnt = 0;
@@ -10471,10 +10476,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                         real_t state_avg = HALF * (state_bot + state_top);
                         mem_ptr_double[pcellIdx+2] = state_avg;
                         mem_ptr_double[pcellIdx] = state_coarse;
-                        //to maintain mass conservation
-		        phantomXFlux[fncell] = cncell;
-                        phantomXFluxFace[iface] = pfaceIdx;
-                        phantomXFluxFace[map_xcell2face_left1[tncell]] = pfaceIdx;
 
                         if (level[nrht[bncell]] > level_right) { // rightbot right neighbor is even more refined
                             state_botbot = mem_ptr_double[nrht[bncell]];
@@ -10646,6 +10647,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     //interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //phantomXFlux[rncell] = lncell;
+			        phantomXFlux[fncell] = cncell;
 
                     // loop through state arrays to update phantom cell state values
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
@@ -10658,7 +10660,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         real_t state_coarse = mem_ptr_double[cncell];
                         mem_ptr_double[pcellIdx] = state_coarse;
-			            phantomXFlux[fncell] = cncell;
 
                         if (level[nlft[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
@@ -10697,6 +10698,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     //interpolate(1, pcellIdx-2, lncell, rncell, deltaT,  state_memory_old);
                     //phantomXFlux[lncell] = -rncell;
+			        phantomXFlux[fncell] = -cncell;
 
                     // loop through state arrays to update phantom cell state values
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
@@ -10709,7 +10711,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         real_t state_coarse = mem_ptr_double[cncell];
                         mem_ptr_double[pcellIdx] = state_coarse;
-			            phantomXFlux[fncell] = -cncell;
 
                         if (level[nrht[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[cncell]];
@@ -10938,6 +10939,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     }
                     ifixupIdx++;
 
+                    // to maintain mass conservation
+                    phantomYFlux[fncell] = -cncell;
+                    phantomYFluxFace[iface] = pfaceIdx;
+                    phantomYFluxFace[map_ycell2face_top1[rncell]] = pfaceIdx;
+
                     // loop through state arrays to update phantom cell state values
                     real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; //vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
@@ -10955,10 +10961,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         mem_ptr_double[pcellIdx] = state_avg;
                         mem_ptr_double[pcellIdx+2] = state_coarse;
-                        // to maintain mass conservation
-                        phantomYFlux[fncell] = -cncell;
-                        phantomYFluxFace[iface] = pfaceIdx;
-                        phantomYFluxFace[map_ycell2face_top1[rncell]] = pfaceIdx;
 
                         if (level[ntop[lncell]] > level_bot) { // botleft bot neighbor is even more refined
                             state_lftlft = mem_ptr_double[nbot[lncell]];
@@ -11037,6 +11039,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     //interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //phantomYFlux[tncell] = bncell;
+			        phantomYFlux[fncell] = cncell;
 
                     // loop through state arrays to update phantom cell state values
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
@@ -11049,7 +11052,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         real_t state_coarse = mem_ptr_double[cncell];
                         mem_ptr_double[pcellIdx] = state_coarse;
-			            phantomYFlux[fncell] = cncell;
 
                         if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
@@ -11088,6 +11090,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     //XXX the index shift is a hack, fixme!
                     //interpolate(3, pcellIdx-2, bncell, tncell, deltaT,  state_memory_old);
                     //phantomYFlux[bncell] = -tncell;
+			        phantomYFlux[fncell] = -cncell;
 
                     // loop through state arrays to update phantom cell state values
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
@@ -11100,7 +11103,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         real_t state_coarse = mem_ptr_double[cncell];
                         mem_ptr_double[pcellIdx] = state_coarse;
-			            phantomYFlux[fncell] = -cncell;
 
                         if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
                             mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
