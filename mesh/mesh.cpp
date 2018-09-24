@@ -11306,9 +11306,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
       int nr = nrht[nz];
       if (nr == nz) continue;
 
-      int ifactor = 1;
-      if (level[nr] < level[nz]) ifactor = 2;
-
       // Have right face
       map_xface2cell_lower[iface] = nz;
       map_xface2cell_upper[iface] = nr;
@@ -11346,9 +11343,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
    for (int nz=0; nz<(int)ncells; nz++){
       int nt = ntop[nz];
       if (nt == nz) continue;
-
-      int ifactor = 1;
-      if (level[nt] < level[nz]) ifactor = 2;
 
       // Have top face
       map_yface2cell_lower[iface] = nz;
