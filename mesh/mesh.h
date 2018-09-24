@@ -618,6 +618,7 @@ public:
 #endif
    virtual void interpolate(int, int, int, int, double, MallocPlus&);
    void calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double);
+   void calc_face_list_fill_phantom(MallocPlus &state_memory, double);
    void generate_regular_cell_meshes(MallocPlus &state_memory);
    void destroy_regular_cell_meshes(MallocPlus &state_memory);
    void calc_face_list_clearmaps(void);
