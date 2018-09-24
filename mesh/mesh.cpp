@@ -11298,20 +11298,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
    map_xface2cell_lower.resize(3*ncells, -1);
    map_xface2cell_upper.resize(3*ncells, -1);
 
-   ixmin_level.clear();
-   ixmax_level.clear();
-   jxmin_level.clear();
-   jxmax_level.clear();
-   ixmin_level.resize(levmx+1,  9999999);
-   ixmax_level.resize(levmx+1, -9999999);
-   jxmin_level.resize(levmx+1,  9999999);
-   jxmax_level.resize(levmx+1, -9999999);
-
-   ixadjust.clear();
-   ixadjust.resize(levmx+1);
-   jxadjust.clear();
-   jxadjust.resize(levmx+1);
-
    cpu_timers[MESH_TIMER_BIDIRPART1] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
@@ -11344,9 +11330,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
    cpu_timers[MESH_TIMER_BIDIRPART2] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
-   cpu_timers[MESH_TIMER_BIDIRPART3] += cpu_timer_stop(tstart_cpu_part);
-   cpu_timer_start(&tstart_cpu_part);
-
    phantomYFlux.clear();
    phantomYFlux.resize(3*ncells, 99999);
    phantomYFluxFace.clear();
@@ -11355,20 +11338,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
    map_yface2cell_upper.clear();
    map_yface2cell_lower.resize(3*ncells, -1);
    map_yface2cell_upper.resize(3*ncells, -1);
-
-   iymin_level.clear();
-   iymax_level.clear();
-   jymin_level.clear();
-   jymax_level.clear();
-   iymin_level.resize(levmx+1,  9999999);
-   iymax_level.resize(levmx+1, -9999999);
-   jymin_level.resize(levmx+1,  9999999);
-   jymax_level.resize(levmx+1, -9999999);
-
-   iyadjust.clear();
-   iyadjust.resize(levmx+1);
-   jyadjust.clear();
-   jyadjust.resize(levmx+1);
 
    cpu_timers[MESH_TIMER_BIDIRPART4] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
@@ -11400,12 +11369,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
    nyface=iface;
 
    cpu_timers[MESH_TIMER_BIDIRPART5] += cpu_timer_stop(tstart_cpu_part);
-   cpu_timer_start(&tstart_cpu_part);
-
-   cpu_timers[MESH_TIMER_BIDIRPART6] += cpu_timer_stop(tstart_cpu_part);
-   cpu_timer_start(&tstart_cpu_part);
-
-   cpu_timers[MESH_TIMER_BIDIRPART7] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
     i        = (int *)mesh_memory.memory_realloc(6*ncells, i);
