@@ -11560,27 +11560,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     }
 
                 }
-                // phantom cells' new neighbors (same regardless of which side refinement occurs)
-                nlft[pcellIdx] = pcellIdx + 1;
-                nrht[pcellIdx] = rncell;
-                nrht[pcellIdx+1] = pcellIdx;
-                nlft[pcellIdx+2] = lncell;
-                nrht[pcellIdx+2] = pcellIdx + 3;
-                nlft[pcellIdx+3] = pcellIdx + 2;
-
-                // update other arrays
-                i[pcellIdx] = i[rncell] - 1;
-                i[pcellIdx+1] = i[rncell] - 2;
-                i[pcellIdx+2] = i[lncell] + 1;
-                i[pcellIdx+3] = i[lncell] + 2;
-                j[pcellIdx] = j[rncell];
-                j[pcellIdx+1] = j[rncell];
-                j[pcellIdx+2] = j[lncell];
-                j[pcellIdx+3] = j[lncell];
-                level[pcellIdx] = level[rncell];
-                level[pcellIdx+1] = level[rncell];
-                level[pcellIdx+2] = level[lncell];
-                level[pcellIdx+3] = level[lncell];
 
             }
             else { // top of the two horizontal neighbors, add 2 phantoms
@@ -11593,19 +11572,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     map_xface2cell_lower[iface] = pcellIdx;
                     map_xface2cell_upper[pfaceIdx] = pcellIdx;
                     map_xface2cell_lower[pfaceIdx] = pcellIdx+1;
-
-                    // phantom cells' new neighbors
-                    nlft[pcellIdx] = pcellIdx + 1;
-                    nrht[pcellIdx] = rncell;
-                    nrht[pcellIdx+1] = pcellIdx;
-                    // other arrays
-                    i[pcellIdx] = i[rncell] - 1;
-                    i[pcellIdx+1] = i[rncell] - 2;
-                    j[pcellIdx] = j[rncell];
-                    j[pcellIdx+1] = j[rncell];
-                    level[pcellIdx] = level[rncell];
-                    level[pcellIdx+1] = level[rncell];
-
 
                     //interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //phantomXFlux[rncell] = lncell;
@@ -11639,18 +11605,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     map_xface2cell_upper[iface] = pcellIdx; 
                     map_xface2cell_upper[pfaceIdx] = pcellIdx+1;
                     map_xface2cell_lower[pfaceIdx] = pcellIdx;
-
-                    // phantom cells' new neighbors
-                    nlft[pcellIdx] = lncell;
-                    nrht[pcellIdx] = pcellIdx + 1;
-                    nrht[pcellIdx+1] = pcellIdx;
-                    // other arrays
-                    i[pcellIdx] = i[lncell] + 1;
-                    i[pcellIdx+1] = i[lncell] + 2;
-                    j[pcellIdx] = j[lncell];
-                    j[pcellIdx+1] = j[lncell];
-                    level[pcellIdx] = level[lncell];
-                    level[pcellIdx+1] = level[lncell];
 
                     //interpolate(1, pcellIdx-2, lncell, rncell, deltaT,  state_memory_old);
                     //phantomXFlux[lncell] = -rncell;
@@ -11871,27 +11825,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
 
 
                 }
-                // phantom cells' new neighbors (same regardless of which side refinement occurs)
-                nbot[pcellIdx] = pcellIdx + 1;
-                ntop[pcellIdx] = tncell;
-                ntop[pcellIdx+1] = pcellIdx;
-                nbot[pcellIdx+2] = bncell;
-                ntop[pcellIdx+2] = pcellIdx + 3;
-                nbot[pcellIdx+3] = pcellIdx + 2;
-
-                // update other arrays
-                i[pcellIdx] = i[tncell];
-                i[pcellIdx+1] = i[tncell];
-                i[pcellIdx+2] = i[bncell];
-                i[pcellIdx+3] = i[bncell];
-                j[pcellIdx] = j[tncell] - 1;
-                j[pcellIdx+1] = j[tncell] - 2;
-                j[pcellIdx+2] = j[bncell] + 1;
-                j[pcellIdx+3] = j[bncell] + 2;
-                level[pcellIdx] = level[tncell];
-                level[pcellIdx+1] = level[tncell];
-                level[pcellIdx+2] = level[bncell];
-                level[pcellIdx+3] = level[bncell];
             }
             else { // right of the two vertical neighbors, only add 2 phantoms
                 idxVar = 1;
@@ -11903,18 +11836,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     map_yface2cell_lower[iface] = pcellIdx;
                     map_yface2cell_upper[pfaceIdx] = pcellIdx;
                     map_yface2cell_lower[pfaceIdx] = pcellIdx+1;
-
-                    // phantom cells' new neighbors
-                    nbot[pcellIdx] = pcellIdx + 1;
-                    ntop[pcellIdx] = tncell;
-                    ntop[pcellIdx+1] = pcellIdx;
-                    // other arrays
-                    i[pcellIdx] = i[tncell];
-                    i[pcellIdx+1] = i[tncell];
-                    j[pcellIdx] = j[tncell] - 1;
-                    j[pcellIdx+1] = j[tncell] - 2;
-                    level[pcellIdx] = level[tncell];
-                    level[pcellIdx+1] = level[tncell];
 
                     //interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //phantomYFlux[tncell] = bncell;
@@ -11947,18 +11868,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     map_yface2cell_upper[iface] = pcellIdx; 
                     map_yface2cell_upper[pfaceIdx] = pcellIdx+1;
                     map_yface2cell_lower[pfaceIdx] = pcellIdx;
-
-                    // phantom cells' new neighbors
-                    nbot[pcellIdx] = bncell;
-                    ntop[pcellIdx] = pcellIdx + 1;
-                    nbot[pcellIdx+1] = pcellIdx;
-                    // other arrays
-                    i[pcellIdx] = i[bncell];
-                    i[pcellIdx+1] = i[bncell];
-                    j[pcellIdx] = j[bncell] + 1;
-                    j[pcellIdx+1] = j[bncell] + 2;
-                    level[pcellIdx] = level[bncell];
-                    level[pcellIdx+1] = level[bncell];
 
                     //XXX the index shift is a hack, fixme!
                     //interpolate(3, pcellIdx-2, bncell, tncell, deltaT,  state_memory_old);
