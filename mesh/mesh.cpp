@@ -10169,8 +10169,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    yrecvCIdx.clear();
    yplusCell2Idx.clear();
    yminusCell2Idx.clear();
-   //ysendIdx1.clear();
-   //ysendIdx2.clear();
+   ysendIdx1.clear();
+   ysendIdx2.clear();
    yrecvIdx.resize(ncells,-1);
    yrecvCIdx.resize(ncells,-1);
    yplusCell2Idx.resize(ncells,-1);
@@ -11298,16 +11298,16 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
    map_xface2cell_lower.resize(3*ncells, -1);
    map_xface2cell_upper.resize(3*ncells, -1);
 
-   xrecvIdx.clear();
-   xrecvCIdx.clear();
-   xplusCell2Idx.clear();
-   xminusCell2Idx.clear();
+   //xrecvIdx.clear();
+   //xrecvCIdx.clear();
+   //xplusCell2Idx.clear();
+   //xminusCell2Idx.clear();
    //xsendIdx1.clear();
    //xsendIdx2.clear();
-   xrecvIdx.resize(ncells,-1);
-   xrecvCIdx.resize(ncells,-1);
-   xplusCell2Idx.resize(ncells,-1);
-   xminusCell2Idx.resize(ncells,-1);
+   //xrecvIdx.resize(ncells,-1);
+   //xrecvCIdx.resize(ncells,-1);
+   //xplusCell2Idx.resize(ncells,-1);
+   //xminusCell2Idx.resize(ncells,-1);
    //xsendIdx1.resize(ncells,-1);
    //xsendIdx2.resize(ncells,-1);
 
@@ -11422,16 +11422,16 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
    map_yface2cell_lower.resize(3*ncells, -1);
    map_yface2cell_upper.resize(3*ncells, -1);
 
-   yrecvIdx.clear();
-   yrecvCIdx.clear();
-   yplusCell2Idx.clear();
-   yminusCell2Idx.clear();
+   //yrecvIdx.clear();
+   //yrecvCIdx.clear();
+   //yplusCell2Idx.clear();
+   //yminusCell2Idx.clear();
    //ysendIdx1.clear();
    //ysendIdx2.clear();
-   yrecvIdx.resize(ncells,-1);
-   yrecvCIdx.resize(ncells,-1);
-   yplusCell2Idx.resize(ncells,-1);
-   yminusCell2Idx.resize(ncells,-1);
+   //yrecvIdx.resize(ncells,-1);
+   //yrecvCIdx.resize(ncells,-1);
+   //yplusCell2Idx.resize(ncells,-1);
+   //yminusCell2Idx.resize(ncells,-1);
    //ysendIdx1.resize(ncells,-1);
    //ysendIdx2.resize(ncells,-1);
 
@@ -11707,10 +11707,10 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     //interpolate(4, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //phantomXFlux[rncell] = lncell;
 
-                    xrecvIdx[ifixupIdx] = pfaceIdx;
-                    int nl = map_xface2cell_lower[pfaceIdx];
-                    xrecvCIdx[ifixupIdx] = nl;
-                    xplusCell2Idx[nl] = ifixupIdx;
+                    //xrecvIdx[ifixupIdx] = pfaceIdx;
+                    //int nl = map_xface2cell_lower[pfaceIdx];
+                    //xrecvCIdx[ifixupIdx] = nl;
+                    //xplusCell2Idx[nl] = ifixupIdx;
                     //if (iface < map_xcell2face_left1[tncell]) {
                        //xsendIdx1[ifixupIdx] = iface;
                        //xsendIdx2[ifixupIdx] = map_xcell2face_left1[tncell];
@@ -11800,10 +11800,10 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     //interpolate(5, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //phantomXFlux[lncell] = -rncell;
 
-                    xrecvIdx[ifixupIdx] = pfaceIdx;
-                    int nr = map_xface2cell_upper[pfaceIdx];
-                    xrecvCIdx[ifixupIdx] = nr;
-                    xminusCell2Idx[nr] = ifixupIdx;
+                    //xrecvIdx[ifixupIdx] = pfaceIdx;
+                    //int nr = map_xface2cell_upper[pfaceIdx];
+                    //xrecvCIdx[ifixupIdx] = nr;
+                    //xminusCell2Idx[nr] = ifixupIdx;
                     //if (iface < map_xcell2face_right1[tncell]){
                        //xsendIdx1[ifixupIdx] = iface;
                        //xsendIdx2[ifixupIdx] = map_xcell2face_right1[tncell];
@@ -12100,10 +12100,10 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     //interpolate(6, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //phantomYFlux[tncell] = bncell;
 
-                    yrecvIdx[ifixupIdx] = pfaceIdx;
-                    int nb = map_yface2cell_lower[pfaceIdx];
-                    yrecvCIdx[ifixupIdx] = nb;
-                    yplusCell2Idx[nb] = ifixupIdx;
+                    //yrecvIdx[ifixupIdx] = pfaceIdx;
+                    //int nb = map_yface2cell_lower[pfaceIdx];
+                    //yrecvCIdx[ifixupIdx] = nb;
+                    //yplusCell2Idx[nb] = ifixupIdx;
                     //if (iface < map_ycell2face_bot1[rncell]) {
                        //ysendIdx1[ifixupIdx] = iface;
                        //ysendIdx2[ifixupIdx] = map_ycell2face_bot1[rncell];
@@ -12195,10 +12195,10 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     //interpolate(7, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //phantomYFlux[bncell] = -tncell;
 
-                    yrecvIdx[ifixupIdx] = pfaceIdx;
-                    int nt = map_yface2cell_upper[pfaceIdx];
-                    yrecvCIdx[ifixupIdx] = nt;
-                    yminusCell2Idx[nt] = ifixupIdx;
+                    //yrecvIdx[ifixupIdx] = pfaceIdx;
+                    //int nt = map_yface2cell_upper[pfaceIdx];
+                    //yrecvCIdx[ifixupIdx] = nt;
+                    //yminusCell2Idx[nt] = ifixupIdx;
                     //if (iface < map_ycell2face_top1[rncell]){
                        //ysendIdx1[ifixupIdx] = iface;
                        //ysendIdx2[ifixupIdx] = map_ycell2face_top1[rncell];
