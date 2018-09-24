@@ -11298,13 +11298,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
    map_xface2cell_lower.resize(3*ncells, -1);
    map_xface2cell_upper.resize(3*ncells, -1);
 
-   xface_i.clear();
-   xface_j.clear();
-   xface_level.clear();
-   xface_i.resize(3*ncells, -1);
-   xface_j.resize(3*ncells, -1);
-   xface_level.resize(3*ncells, -1);
-
    ixmin_level.clear();
    ixmax_level.clear();
    jxmin_level.clear();
@@ -11333,14 +11326,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
       // Have right face
       map_xface2cell_lower[iface] = nz;
       map_xface2cell_upper[iface] = nr;
-      xface_level[iface] = MAX(level[nz],level[nr]);
-      xface_i[iface] = i[nr]*ifactor;
-      if (level[nr] < level[nz] && is_upper(j[nz]) ) {
-         xface_j[iface] = j[nr]*ifactor+1;
-      } else {
-         xface_j[iface] = j[nr]*ifactor;
-      }
-      //printf("%d) %d/%d\n", iface, xface_j[iface], xface_i[iface]);
 
       iface++;
 
@@ -11349,10 +11334,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
          if (ntr != nr) {
             map_xface2cell_lower[iface] = nz;
             map_xface2cell_upper[iface] = ntr;
-            xface_level[iface] = MAX(level[nz],level[ntr]);
-            xface_i[iface] = i[ntr]*ifactor;
-            xface_j[iface] = j[ntr]*ifactor;
-            //printf("%d) %d/%d\n", iface, xface_j[iface], xface_i[iface]);
 
             iface++;
          }
@@ -11374,13 +11355,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
    map_yface2cell_upper.clear();
    map_yface2cell_lower.resize(3*ncells, -1);
    map_yface2cell_upper.resize(3*ncells, -1);
-
-   yface_i.clear();
-   yface_j.clear();
-   yface_level.clear();
-   yface_i.resize(3*ncells, -1);
-   yface_j.resize(3*ncells, -1);
-   yface_level.resize(3*ncells, -1);
 
    iymin_level.clear();
    iymax_level.clear();
@@ -11410,18 +11384,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
       // Have top face
       map_yface2cell_lower[iface] = nz;
       map_yface2cell_upper[iface] = nt;
-      yface_level[iface] = MAX(level[nz],level[nt]);
-      yface_j[iface] = j[nt]*ifactor;
-      if (level[nt] < level[nz] && is_upper(i[nz]) ) {
-         yface_i[iface] = i[nt]*ifactor+1;
-      } else{
-         yface_i[iface] = i[nt]*ifactor;
-      }
-      //map_ycell2face_top1[nz] = iface;
-
-      //the top is a real cell, but I am bot boundary
-      //if (nz == nbot[nz])
-          //map_ycell2face_bot1[nz] = iface;
 
       iface++;
 
@@ -11430,10 +11392,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
          if (nrt != nt) {
             map_yface2cell_lower[iface] = nz;
             map_yface2cell_upper[iface] = nrt;
-            yface_level[iface] = MAX(level[nz],level[nrt]);
-            yface_j[iface] = j[nrt]*ifactor;
-            yface_i[iface] = i[nrt]*ifactor;
-            //map_ycell2face_top2[nz] = iface;
 
             iface++;
          }
@@ -11530,17 +11488,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     // old face's new phantom adjacent cell
                     map_xface2cell_lower[iface] = pcellIdx;
 
-                    // face positions
-                    xface_level[pfaceIdx] = level[lncell];
-                    xface_level[pfaceIdx+1] = level[rncell];
-                    xface_level[pfaceIdx+2] = level[lncell];
-                    xface_i[pfaceIdx] = i[lncell] + 1;
-                    xface_i[pfaceIdx+1] = i[rncell] - 1;
-                    xface_i[pfaceIdx+2] = i[lncell] + 2;
-                    xface_j[pfaceIdx] = j[lncell];
-                    xface_j[pfaceIdx+1] = j[rncell];
-                    xface_j[pfaceIdx+2] = j[lncell];
-
                     //interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //interpolate(4, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //phantomXFlux[rncell] = lncell;
@@ -11603,16 +11550,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     map_xface2cell_upper[pfaceIdx+2] = pcellIdx+3;
                     // old face's new phantom adjacent cell
                     map_xface2cell_upper[iface] = pcellIdx + 2;
-
-                    xface_level[pfaceIdx] = level[rncell];
-                    xface_level[pfaceIdx+1] = level[rncell];
-                    xface_level[pfaceIdx+2] = level[lncell];
-                    xface_i[pfaceIdx] = i[rncell];
-                    xface_i[pfaceIdx+1] = i[rncell] - 1;
-                    xface_i[pfaceIdx+2] = i[lncell] + 2;
-                    xface_j[pfaceIdx] = j[rncell];
-                    xface_j[pfaceIdx+1] = j[rncell];
-                    xface_j[pfaceIdx+2] = j[lncell];
 
                     //interpolate(1, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     //interpolate(5, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -11700,8 +11637,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     map_xface2cell_upper[pfaceIdx] = pcellIdx;
                     map_xface2cell_lower[pfaceIdx] = pcellIdx+1;
 
-                    //map_xcell2face_left1[pcellIdx] = pfaceIdx;
-                    //map_xcell2face_right1[pcellIdx+1] = pfaceIdx;
                     // phantom cells' new neighbors
                     nlft[pcellIdx] = pcellIdx + 1;
                     nrht[pcellIdx] = rncell;
@@ -11713,10 +11648,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     j[pcellIdx+1] = j[rncell];
                     level[pcellIdx] = level[rncell];
                     level[pcellIdx+1] = level[rncell];
-
-                    xface_level[pfaceIdx] = level[rncell];
-                    xface_i[pfaceIdx] = i[rncell] - 1;
-                    xface_j[pfaceIdx] = j[rncell];
 
 
                     //interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -11764,10 +11695,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     level[pcellIdx] = level[lncell];
                     level[pcellIdx+1] = level[lncell];
 
-                    xface_level[pfaceIdx] = level[lncell];
-                    xface_i[pfaceIdx] = i[lncell] + 2;
-                    xface_j[pfaceIdx] = j[lncell];
-
                     //interpolate(1, pcellIdx-2, lncell, rncell, deltaT,  state_memory_old);
                     //phantomXFlux[lncell] = -rncell;
 			        phantomXFlux[fncell] = -cncell;
@@ -11813,9 +11740,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
 
     map_xface2cell_lower.resize(pfaceIdx);
     map_xface2cell_upper.resize(pfaceIdx);
-    xface_i.resize(pfaceIdx);
-    xface_j.resize(pfaceIdx);
-    xface_level.resize(pfaceIdx);
 
    cpu_timers[MESH_TIMER_BIDIRPART10] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
@@ -11873,17 +11797,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     map_yface2cell_lower[pfaceIdx+2] = pcellIdx+2;
                     // old face's new phantom adjacent cell
                     map_yface2cell_lower[iface] = pcellIdx;
-
-                    // face positions
-                    yface_level[pfaceIdx] = level[bncell];
-                    yface_level[pfaceIdx+1] = level[tncell];
-                    yface_level[pfaceIdx+2] = level[bncell];
-                    yface_i[pfaceIdx] = i[bncell];
-                    yface_i[pfaceIdx+1] = i[tncell];
-                    yface_i[pfaceIdx+2] = i[bncell];
-                    yface_j[pfaceIdx] = j[bncell] + 1;
-                    yface_j[pfaceIdx+1] = j[tncell] - 1;
-                    yface_j[pfaceIdx+2] = j[bncell] + 2;
 
                     //interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //interpolate(6, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
@@ -11947,17 +11860,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     map_yface2cell_lower[pfaceIdx+2] = pcellIdx+2;
                     map_yface2cell_upper[pfaceIdx+2] = pcellIdx+3;
                     map_yface2cell_upper[iface] = pcellIdx + 2;
-
-                    // face positions
-                    yface_level[pfaceIdx] = level[tncell];
-                    yface_level[pfaceIdx+1] = level[tncell];
-                    yface_level[pfaceIdx+2] = level[bncell];
-                    yface_i[pfaceIdx] = i[tncell];
-                    yface_i[pfaceIdx+1] = i[tncell];
-                    yface_i[pfaceIdx+2] = i[bncell];
-                    yface_j[pfaceIdx] = j[tncell];
-                    yface_j[pfaceIdx+1] = j[tncell] - 1;
-                    yface_j[pfaceIdx+2] = j[bncell] + 2;
 
                     //interpolate(3, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //interpolate(7, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
@@ -12057,10 +11959,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     level[pcellIdx] = level[tncell];
                     level[pcellIdx+1] = level[tncell];
 
-                    yface_level[pfaceIdx] = level[tncell];
-                    yface_i[pfaceIdx] = i[tncell];
-                    yface_j[pfaceIdx] = j[tncell] - 1;
-
                     //interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     //phantomYFlux[tncell] = bncell;
 			        phantomYFlux[fncell] = cncell;
@@ -12104,10 +12002,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     j[pcellIdx+1] = j[bncell] + 2;
                     level[pcellIdx] = level[bncell];
                     level[pcellIdx+1] = level[bncell];
-
-                    yface_level[pfaceIdx] = level[bncell];
-                    yface_i[pfaceIdx] = i[bncell];
-                    yface_j[pfaceIdx] = j[bncell] + 2;
 
                     //XXX the index shift is a hack, fixme!
                     //interpolate(3, pcellIdx-2, bncell, tncell, deltaT,  state_memory_old);
@@ -12154,9 +12048,6 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
 
     map_yface2cell_lower.resize(pfaceIdx);
     map_yface2cell_upper.resize(pfaceIdx);
-    yface_i.resize(pfaceIdx);
-    yface_j.resize(pfaceIdx);
-    yface_level.resize(pfaceIdx);
 
     ncells_phan = pcellIdx;
 
