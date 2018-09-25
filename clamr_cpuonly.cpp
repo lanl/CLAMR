@@ -490,8 +490,8 @@ extern "C" void do_calc(void)
          if (choose_amr_method == CELL_AMR) {
             state->calc_finite_difference(deltaT);
          } else if (choose_amr_method == FACE_AMR) {
-            //state->calc_finite_difference_via_faces_new(deltaT);
-            state->calc_finite_difference_via_faces(deltaT);
+            state->calc_finite_difference_via_faces_new(deltaT);
+            //state->calc_finite_difference_via_faces(deltaT);
          } else if (choose_amr_method == CELL_IN_PLACE_AMR) {
             state->calc_finite_difference_cell_in_place(deltaT);
          } else if (choose_amr_method == FACE_IN_PLACE_AMR) {
@@ -500,12 +500,6 @@ extern "C" void do_calc(void)
             state->calc_finite_difference_regular_cells(deltaT);
          } else if (choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
             state->calc_finite_difference_regular_cells_by_faces(deltaT);
-         // merge these two or clean up
-         } else if (choose_amr_method == FACE_AMR) {
-            //state->calc_finite_difference_via_faces_new(deltaT);
-            state->calc_finite_difference_via_faces(deltaT);
-         //} else if (face_based) {
-         //   state->calc_finite_difference_via_faces(deltaT);
          } else {
             state->calc_finite_difference(deltaT);
          }
