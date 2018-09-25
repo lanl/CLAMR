@@ -61,6 +61,32 @@ typedef double  real;
 typedef float   real;
 #endif
 
+__kernel void pack_char_have_data_cl(
+                          const int  num_indices_have, // 0
+                 __global       int  *indices_have,    // 1
+                 __global       char *array,           // 2
+                 __global       char *packed_data)     // 3
+{
+   const unsigned int giX  = get_global_id(0);
+
+   if (giX >= num_indices_have) return;
+
+   packed_data[giX] = array[indices_have[giX]];
+}
+
+__kernel void pack_short_have_data_cl(
+                          const int   num_indices_have, // 0
+                 __global       int   *indices_have,    // 1
+                 __global       short *array,           // 2
+                 __global       short *packed_data)     // 3
+{
+   const unsigned int giX  = get_global_id(0);
+
+   if (giX >= num_indices_have) return;
+
+   packed_data[giX] = array[indices_have[giX]];
+}
+
 __kernel void pack_int_have_data_cl(
                           const int  num_indices_have, // 0
                  __global       int  *indices_have,    // 1
@@ -98,6 +124,32 @@ __kernel void pack_double_have_data_cl(
    if (giX >= num_indices_have) return;
 
    packed_data[giX] = array[indices_have[giX]];
+}
+
+__kernel void copy_ghost_char_data_cl(
+                          const int  ncells,           // 0
+                          const int  nghost,           // 1
+                 __global       char *data_buffer,     // 2
+                 __global       char *data_buffer_add) // 3
+{
+   const unsigned int giX  = get_global_id(0);
+
+   if (giX >= nghost) return;
+
+   data_buffer[ncells+giX] = data_buffer_add[giX];
+}
+
+__kernel void copy_ghost_short_data_cl(
+                          const int   ncells,           // 0
+                          const int   nghost,           // 1
+                 __global       short *data_buffer,     // 2
+                 __global       short *data_buffer_add) // 3
+{
+   const unsigned int giX  = get_global_id(0);
+
+   if (giX >= nghost) return;
+
+   data_buffer[ncells+giX] = data_buffer_add[giX];
 }
 
 
