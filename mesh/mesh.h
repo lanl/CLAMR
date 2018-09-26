@@ -72,72 +72,6 @@
 #include "ezcl/ezcl.h"
 #endif
 
-#if !defined(REG_INTEGER) && !defined(SHORT_INTEGER) && !defined(MIN_INTEGER)
-#define REG_INTEGER
-#endif
-
-#if defined(MIN_INTEGER)
-   // define all to needed ranges and then typedef or define to actual
-   typedef unsigned short ushort_t // 0 to 65,535
-   typedef short          short_t  // -32,768 to 32,767
-   typedef unsigned char  uchar_t  // 0 to 255
-   typedef char           char_t   // -128 to 127 
-#ifdef HAVE_OPENCL
-   typedef cl_ushort cl_ushort_t;
-   typedef cl_short  cl_short_t;
-   typedef cl_uchar  cl_uchar_t;
-   typedef cl_char   cl_char_t;
-#endif
-#ifdef HAVE_MPI
-   #define MPI_USHORT_T MPI_UNSIGNED_SHORT
-   #define MPI_SHORT_T  MPI_SHORT
-   #define MPI_UCHAR_T  MPI_UNSIGNED_CHAR
-   #define MPI_CHAR_T   MPI_CHAR
-   #define L7_SHORT_T   L7_SHORT
-   #define L7_CHAR_T    L7_CHAR
-#endif
-
-#elif defined(SHORT_INTEGER)
-   typedef unsigned short ushort_t;
-   typedef short          short_t;
-   typedef unsigned short uchar_t;
-   typedef short          char_t;
-#ifdef HAVE_OPENCL
-   typedef cl_ushort cl_ushort_t;
-   typedef cl_short  cl_short_t;
-   typedef cl_short  cl_uchar_t;
-   typedef cl_short  cl_char_t;
-#endif
-#ifdef HAVE_MPI
-   #define MPI_USHORT_T MPI_UNSIGNED_SHORT
-   #define MPI_SHORT_T  MPI_SHORT
-   #define MPI_UCHAR_T  MPI_UNSIGNED_SHORT
-   #define MPI_CHAR_T   MPI_SHORT
-   #define L7_SHORT_T   L7_SHORT
-   #define L7_CHAR_T    L7_SHORT
-#endif
-
-#elif defined(REG_INTEGER)
-   typedef unsigned int ushortt_t;
-   typedef int          short_t;
-   typedef unsigned int uchar_t;
-   typedef int          char_t;
-#ifdef HAVE_OPENCL
-   typedef cl_uint cl_ushort_t;
-   typedef cl_int  cl_short_t;
-   typedef cl_uint cl_uchar_t;
-   typedef cl_int  cl_char_t;
-#endif
-#ifdef HAVE_MPI
-   #define MPI_USHORT_T MPI_UNSIGNED
-   #define MPI_SHORT_T  MPI_INT
-   #define MPI_UCHAR_T  MPI_UNSIGNED
-   #define MPI_CHAR_T   MPI_INT
-   #define L7_SHORT_T   L7_INT
-   #define L7_CHAR_T    L7_INT
-#endif
-#endif
-
 #if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
 #define FULL_PRECISION
 #endif
@@ -424,10 +358,10 @@ public:
    int            *i,            //!<  1D array of mesh element x-indices.
                   *j,            //!<  1D array of mesh element y-indices.
                   *k,            //!<  1D array of mesh element z-indices.
-                  *level;        //!<  1D array of mesh element refinement levels.
+                  *level,        //!<  1D array of mesh element refinement levels.
                                  //!<  derived data from mesh state data
-   char_t         *celltype;     //!<  1D ordered index of mesh element cell types (ghost or real).
-   int            *nlft,         //!<  1D ordered index of mesh element left neighbors.
+                  *celltype,     //!<  1D ordered index of mesh element cell types (ghost or real).
+                  *nlft,         //!<  1D ordered index of mesh element left neighbors.
                   *nrht,         //!<  1D ordered index of mesh element right neighbors.
                   *nbot,         //!<  1D ordered index of mesh element bottom neighbors.
                   *ntop,         //!<  1D ordered index of mesh element top neighbors.
@@ -848,7 +782,7 @@ public:
 #ifdef HAVE_OPENCL
    void compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle);
    void compare_ioffset_gpu_global_to_cpu_global(uint old_ncells, int *mpot);
-   void compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, char_t *celltype_global, int *i_global, int *j_global);
+   void compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, int *celltype_global, int *i_global, int *j_global);
    void compare_coordinates_gpu_global_to_cpu_global_double(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, double *H);
    void compare_coordinates_gpu_global_to_cpu_global_float(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, float *H);
 #endif

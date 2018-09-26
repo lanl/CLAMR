@@ -292,14 +292,14 @@ int main(int argc, char **argv) {
 
    // Gather level, celltype, H, U, V for global calc
 
-   mesh_global->celltype = (char_t *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(char_t), "celltype");
+   mesh_global->celltype = (int *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(int), "celltype");
    mesh_global->level    = (int *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(int), "level");
    mesh_global->i        = (int *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(int), "i");
    mesh_global->j        = (int *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(int), "j");
 
    proc_global.resize(ncells_global);
 
-   MPI_Allgatherv(&mesh_local->celltype[0], ncells, MPI_CHAR_T, &mesh_global->celltype[0], &nsizes[0], &ndispl[0], MPI_CHAR_T, MPI_COMM_WORLD);
+   MPI_Allgatherv(&mesh_local->celltype[0], ncells, MPI_INT, &mesh_global->celltype[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
    MPI_Allgatherv(&mesh_local->level[0], ncells, MPI_INT, &mesh_global->level[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
    MPI_Allgatherv(&mesh_local->i[0], ncells, MPI_INT, &mesh_global->i[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
    MPI_Allgatherv(&mesh_local->j[0], ncells, MPI_INT, &mesh_global->j[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
@@ -311,7 +311,7 @@ int main(int argc, char **argv) {
    MPI_Allgatherv(&mesh_local->proc[0], ncells, MPI_INT, &proc_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
    size_t mem_request = (int)((float)ncells*mesh_local->mem_factor);
-   dev_celltype  = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &mem_request, sizeof(cl_char_t),  CL_MEM_READ_WRITE, 0);
+   dev_celltype  = ezcl_malloc(NULL, const_cast<char *>("dev_celltype"), &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
    dev_i         = ezcl_malloc(NULL, const_cast<char *>("dev_i"),        &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
    dev_j         = ezcl_malloc(NULL, const_cast<char *>("dev_j"),        &mem_request, sizeof(cl_int),  CL_MEM_READ_ONLY,  0);
    dev_level     = ezcl_malloc(NULL, const_cast<char *>("dev_level"),    &mem_request, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
@@ -343,7 +343,7 @@ int main(int argc, char **argv) {
    state_global->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT_global"), &one,    sizeof(cl_real_t),  CL_MEM_READ_WRITE, 0);
    state_local->dev_deltaT   = ezcl_malloc(NULL, const_cast<char *>("dev_deltaT"), &one,    sizeof(cl_real_t),  CL_MEM_READ_WRITE, 0);
 
-   dev_celltype_global = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_global"), &ncells_global, sizeof(cl_char_t),   CL_MEM_READ_ONLY, 0);
+   dev_celltype_global = ezcl_malloc(NULL, const_cast<char *>("dev_celltype_global"), &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
    dev_i_global        = ezcl_malloc(NULL, const_cast<char *>("dev_i_global"),        &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
    dev_j_global        = ezcl_malloc(NULL, const_cast<char *>("dev_j_global"),        &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
    dev_level_global    = ezcl_malloc(NULL, const_cast<char *>("dev_level_global"),    &ncells_global, sizeof(cl_int),   CL_MEM_READ_ONLY, 0);
@@ -354,7 +354,7 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_state_t),  (void *)&state_global->U[0],  NULL              );
    ezcl_enqueue_write_buffer(command_queue, dev_V_global, CL_FALSE, 0, ncells_global*sizeof(cl_state_t),  (void *)&state_global->V[0],  NULL              );
 
-   ezcl_enqueue_write_buffer(command_queue, dev_celltype_global, CL_FALSE, 0, ncells_global*sizeof(cl_char_t),  (void *)&mesh_global->celltype[0], NULL            );
+   ezcl_enqueue_write_buffer(command_queue, dev_celltype_global, CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&mesh_global->celltype[0], NULL            );
    ezcl_enqueue_write_buffer(command_queue, dev_i_global,        CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&mesh_global->i[0],        NULL            );
    ezcl_enqueue_write_buffer(command_queue, dev_j_global,        CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&mesh_global->j[0],        NULL            );
    ezcl_enqueue_write_buffer(command_queue, dev_level_global,    CL_TRUE,  0, ncells_global*sizeof(cl_int),  (void *)&mesh_global->level[0],    &end_write_event);
@@ -364,7 +364,7 @@ int main(int argc, char **argv) {
    ezcl_enqueue_write_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&state_local->U[0],  NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_V, CL_FALSE, 0, ncells*sizeof(cl_state_t),  (void *)&state_local->V[0],  NULL);
 
-   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_char_t),  (void *)&mesh_local->celltype[0], NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh_local->celltype[0], NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_i,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh_local->i[0],        NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_j,        CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh_local->j[0],        NULL);
    ezcl_enqueue_write_buffer(command_queue, dev_level,    CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&mesh_local->level[0],    &end_write_event);
@@ -778,11 +778,11 @@ extern "C" void do_calc(void)
          mesh_local->partition_cells(numpe, index, cycle_reorder);
          //state->state_reorder(index);
          if (do_gpu_sync) {
-            ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_char_t),  (void *)&mesh_local->celltype[0],  NULL);
+            ezcl_enqueue_write_buffer(command_queue, dev_celltype, CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh_local->celltype[0],  NULL);
             ezcl_enqueue_write_buffer(command_queue, dev_i,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh_local->i[0],  NULL);
             ezcl_enqueue_write_buffer(command_queue, dev_j,     CL_FALSE, 0, ncells*sizeof(cl_int),  (void *)&mesh_local->j[0],  NULL);
             ezcl_enqueue_write_buffer(command_queue, dev_level, CL_TRUE,  0, ncells*sizeof(cl_int),  (void *)&mesh_local->level[0],  NULL);
-            ezcl_enqueue_write_buffer(command_queue, dev_celltype_global, CL_FALSE, 0, ncells_global*sizeof(cl_char_t),  (void *)&mesh_global->celltype[0],  NULL);
+            ezcl_enqueue_write_buffer(command_queue, dev_celltype_global, CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&mesh_global->celltype[0],  NULL);
             ezcl_enqueue_write_buffer(command_queue, dev_i_global,     CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&mesh_global->i[0],  NULL);
             ezcl_enqueue_write_buffer(command_queue, dev_j_global,     CL_FALSE, 0, ncells_global*sizeof(cl_int),  (void *)&mesh_global->j[0],  NULL);
             ezcl_enqueue_write_buffer(command_queue, dev_level_global, CL_TRUE,  0, ncells_global*sizeof(cl_int),  (void *)&mesh_global->level[0],  NULL);

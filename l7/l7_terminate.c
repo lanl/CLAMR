@@ -122,13 +122,9 @@ int L7_Terminate (void)
 	
 #ifdef HAVE_OPENCL
         if (l7.numpes > 1){
-           ezcl_kernel_release(l7.kernel_pack_char_have_data);
-           ezcl_kernel_release(l7.kernel_pack_short_have_data);
            ezcl_kernel_release(l7.kernel_pack_int_have_data);
            ezcl_kernel_release(l7.kernel_pack_float_have_data);
            ezcl_kernel_release(l7.kernel_pack_double_have_data);
-           ezcl_kernel_release(l7.kernel_copy_ghost_char_data);
-           ezcl_kernel_release(l7.kernel_copy_ghost_short_data);
            ezcl_kernel_release(l7.kernel_copy_ghost_int_data);
            ezcl_kernel_release(l7.kernel_copy_ghost_float_data);
            ezcl_kernel_release(l7.kernel_copy_ghost_double_data);

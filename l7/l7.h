@@ -62,7 +62,6 @@ enum  L7_Datatype
    L7_PACKED,
    
    L7_CHAR,
-   L7_SHORT,
    L7_INT,
    L7_LONG,
    L7_LONG_LONG_INT,

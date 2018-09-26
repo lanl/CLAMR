@@ -282,13 +282,9 @@ void L7_Dev_Init(void)
    if (l7.numpes > 1) {
         cl_context context = ezcl_get_context();
 
-        l7.kernel_pack_char_have_data    = ezcl_create_kernel_wsource(context, l7_kern_source, "pack_char_have_data_cl");
-        l7.kernel_pack_short_have_data   = ezcl_create_kernel_wsource(context, l7_kern_source, "pack_short_have_data_cl");
         l7.kernel_pack_int_have_data     = ezcl_create_kernel_wsource(context, l7_kern_source, "pack_int_have_data_cl");
         l7.kernel_pack_float_have_data   = ezcl_create_kernel_wsource(context, l7_kern_source, "pack_float_have_data_cl");
         l7.kernel_pack_double_have_data  = ezcl_create_kernel_wsource(context, l7_kern_source, "pack_double_have_data_cl");
-        l7.kernel_copy_ghost_char_data   = ezcl_create_kernel_wsource(context, l7_kern_source, "copy_ghost_char_data_cl");
-        l7.kernel_copy_ghost_short_data  = ezcl_create_kernel_wsource(context, l7_kern_source, "copy_ghost_short_data_cl");
         l7.kernel_copy_ghost_int_data    = ezcl_create_kernel_wsource(context, l7_kern_source, "copy_ghost_int_data_cl");
         l7.kernel_copy_ghost_float_data  = ezcl_create_kernel_wsource(context, l7_kern_source, "copy_ghost_float_data_cl");
         l7.kernel_copy_ghost_double_data = ezcl_create_kernel_wsource(context, l7_kern_source, "copy_ghost_double_data_cl");

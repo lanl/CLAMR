@@ -23,7 +23,6 @@ MPI_Datatype l7p_mpi_type (
 	 *                     L7_PACKED
 	 * 
 	 *                     L7_CHAR
-	 *                     L7_SHORT
 	 *                     L7_INT
 	 *                     L7_LONG
 	 *                     L7_LONG_LONG_INT
@@ -76,9 +75,6 @@ MPI_Datatype l7p_mpi_type (
 	/* C Types */
 	case L7_CHAR:
 		mpi_type = MPI_CHAR;
-		break;
-	case L7_SHORT:
-		mpi_type = MPI_SHORT;
 		break;
 	case L7_INT:
 		mpi_type = MPI_INT;
