@@ -62,17 +62,17 @@
 
 #if defined(MIN_INTEGER)
    // define all to needed ranges and then typedef or define to actual
-   typedef unsigned short ushort_t // 0 to 65,535
-   typedef short          short_t  // -32,768 to 32,767
-   typedef unsigned char  uchar_t  // 0 to 255
-   typedef char           char_t   // -128 to 127 
+   typedef unsigned short ushort_t; // 0 to 65,535
+   typedef short          short_t;  // -32,768 to 32,767
+   typedef unsigned char  uchar_t;  // 0 to 255
+   typedef char           char_t;   // -128 to 127 
 #elif defined(SHORT_INTEGER)
    typedef unsigned short ushort_t;
    typedef short          short_t;
    typedef unsigned short uchar_t;
    typedef short          char_t;
 #elif defined(REG_INTEGER)
-   typedef unsigned int ushortt_t;
+   typedef unsigned int ushort_t;
    typedef int          short_t;
    typedef unsigned int uchar_t;
    typedef int          char_t;

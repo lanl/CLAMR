@@ -13342,7 +13342,7 @@ void Mesh::store_checkpoint(Crux *crux)
 #elif SHORT_INTEGER
    crux->store_short_array((short *)level, ncells);
 #elif MIN_INTEGER
-   crux->store_uchar_array((char *)level, ncells);
+   crux->store_char_array((char *)level, ncells);
 #endif
 
    // Remove memory entries from database now that data is stored
