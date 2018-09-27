@@ -618,7 +618,7 @@ extern "C" void do_calc(void)
         hash = compact_hash_init(ncells, imaxsize, jmaxsize, PERFECT_HASH, 0);
 
         for(int ic=0; ic<ncells; ic++){
-           int lev = mesh->level[ic];
+           uchar_t lev = mesh->level[ic];
            int levmult = IPOW2(mesh->levmx-lev);
            int ii = mesh->i[ic]*levmult;
            int jj = mesh->j[ic]*levmult;

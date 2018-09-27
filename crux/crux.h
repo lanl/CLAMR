@@ -73,6 +73,8 @@ public:
    void store_longs(long long *long_vals, size_t nelem);
    void store_sizets(size_t *size_t_vals, size_t nelem);
    void store_doubles(double *double_vals, size_t nelem);
+   void store_char_array(char *int_array, size_t nelem);
+   void store_short_array(short *int_array, size_t nelem);
    void store_int_array(int *int_array, size_t nelem);
    void store_long_array(long long *long_array, size_t nelem);
    void store_float_array(float *float_array, size_t nelem);
@@ -94,6 +96,8 @@ public:
    void       restore_longs(long long *long_vals, size_t nelem);
    void       restore_sizets(size_t *size_t_vals, size_t nelem);
    void       restore_doubles(double *double_vals, size_t nelem);
+   char      *restore_char_array(char *int_array, size_t nsize);
+   short     *restore_short_array(short *int_array, size_t nsize);
    int       *restore_int_array(int *int_array, size_t nsize);
    long long *restore_long_array(long long *long_array, size_t nsize);
    float     *restore_float_array(float *float_array, size_t nsize);

@@ -279,8 +279,8 @@ __kernel void set_timestep_cl(
         __global const state_t *H_in,      // 2  
         __global const state_t *U_in,      // 3  
         __global const state_t *V_in,      // 4  
-        __global const int     *level,     // 5  Array of level information.
-        __global const char_t   *celltype,  // 6 
+        __global const uchar_t *level,     // 5  Array of level information.
+        __global const char_t  *celltype,  // 6 
         __global const real_t  *lev_dx,    // 7  
         __global const real_t  *lev_dy,    // 8  
         __global       real_t  *redscratch,// 9 
@@ -305,8 +305,8 @@ __kernel void set_timestep_cl(
     real_t H       = H_in[giX];
     real_t U       = U_in[giX];
     real_t V       = V_in[giX];
-    int lev      = level[giX];
-    char_t type     = celltype[giX];
+    uchar_t lev    = level[giX];
+    char_t type    = celltype[giX];
     
     //--CALCULATIONS------------------------------------------------------------
     if (type == REAL_CELL){
@@ -371,7 +371,7 @@ void setup_tile(__local        state4_t *tile,
                 __global const int      *nrht,
                 __global const int      *ntop,
                 __global const int      *nbot,
-                __global const int      *level
+                __global const uchar_t  *level
                 );
 
 void setup_refine_tile(
@@ -383,7 +383,7 @@ void setup_refine_tile(
                 __global const int     *nrht,
                 __global const int     *ntop,
                 __global const int     *nbot,
-                __global const int     *level
+                __global const uchar_t *level
                 );
 
 void setup_xface(
@@ -808,7 +808,7 @@ __kernel void calc_finite_difference_cl(
         __global const int      *nrht,     // 9   Array of right neighbors
         __global const int      *ntop,     // 10  Array of top neighbors
         __global const int      *nbot,     // 11  Array of bottom neighbors
-        __global const int      *level,    // 12  Array of level information
+        __global const uchar_t  *level,    // 12  Array of level information
                  const real_t    deltaT,   // 13  Size of time step.
         __global const real_t   *lev_dx,   // 14
         __global const real_t   *lev_dy,   // 15
@@ -1575,7 +1575,7 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
             __global    const state_t   *H,                         // 3
             __global    const state_t   *U,                         // 4
             __global    const state_t   *V,                         // 5
-            __global    const int       *level,                     // 6 Array of level information
+            __global    const uchar_t   *level,                     // 6 Array of level information
                         const real_t    deltaT,                     // 7 Size of time step
             __global    const real_t    *lev_dx,                    // 8
             //__global    const real_t    *lev_dx,                    // 8
@@ -1632,8 +1632,8 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
       int cell_lower, cell_upper, level_lower, level_upper;
       int cell_lower = mesh->map_xface2cell_lower[giX];
       int cell_upper = mesh->map_xface2cell_upper[giX];
-      int level_lower = level[cell_lower];
-      int level_upper = level[cell_upper];
+      uchar_t level_lower = level[cell_lower];
+      uchar_t level_upper = level[cell_upper];
       if (level_lower == level_upper) {
          int lev = level_upper;
          real_t Cxhalf = 0.5*deltaT/mesh->lev_deltax[lev];
@@ -1686,8 +1686,8 @@ __kernel void calc_finite_difference_via_faces_face_comps_cl(
       real_t Hyic, Uyic, Vyic; 
       int cell_lower = mesh->map_yface2cell_lower[giX];
       int cell_upper = mesh->map_yface2cell_upper[giX];
-      int level_lower = level[cell_lower];
-      int level_upper = level[cell_upper];
+      uchar_t level_lower = level[cell_lower];
+      uchar_t level_upper = level[cell_upper];
       if (level_lower == level_upper) {
          int lev = level_upper;
          real_t Cyhalf = 0.5*deltaT/mesh->lev_deltay[lev];
@@ -1752,7 +1752,7 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
             __global    const int       *nrht,                      // 9 Array of right neighbors
             __global    const int       *ntop,                      // 10 Array of top neighbors
             __global    const int       *nbot,                      // 11 Array of bottom neighbors
-            __global    const int       *level,                     // 12 Array of level information
+            __global    const uchar_t   *level,                     // 12 Array of level information
                         const real_t    deltaT,                     // 13 Size of time step
             __global    const real_t    *lev_dx,                    // 14
             //__global    const real_t    *lev_dx,                    // 14
@@ -2329,7 +2329,7 @@ __kernel void calc_finite_difference_via_face_in_place_cell_comps_cl(
             __global          state_t   *H_new,                     // 7
             __global          state_t   *U_new,                     // 8
             __global          state_t   *V_new,                     // 9
-            __global    const int       *level,                     // 10 Array of level information
+            __global    const uchar_t   *level,                     // 10 Array of level information
                         const real_t    deltaT,                     // 11 Size of time step
             __global    const real_t    *lev_dx,                    // 12
             __global    const real_t    *lev_dy,                    // 13
@@ -2644,8 +2644,8 @@ __kernel void refine_potential_cl(
         __global const int     *nbot,       // 8  Array of top neighbors.
         __global const int     *i,          // 9  Array of i values.
         __global const int     *j,          // 10 Array of j values.
-        __global const int     *level,      // 11 Array of level information.
-        __global const char_t   *celltype,   // 12  Array of celltype information.
+        __global const uchar_t *level,      // 11 Array of level information.
+        __global const char_t  *celltype,   // 12  Array of celltype information.
         __global const real_t  *lev_dx,     // 13
         __global const real_t  *lev_dy,     // 14
         __global       int     *mpot,       // 15  Array of mesh potential information.
@@ -2706,7 +2706,7 @@ __kernel void refine_potential_cl(
 
    Hic  = Hrefval(tiX);
 
-   int lvl = levelval(tiX);
+   uchar_t lvl = levelval(tiX);
 
    //////////////////////////
    //////////////////////////
@@ -2967,7 +2967,7 @@ void setup_tile(__local        state4_t *tile,
                 __global const int      *nrht,
                 __global const int      *ntop,
                 __global const int      *nbot,
-                __global const int      *level
+                __global const uchar_t  *level
                 )
 {
    const uint giX = get_global_id (0);
@@ -3029,7 +3029,7 @@ void setup_refine_tile(
                 __global const int     *nrht,
                 __global const int     *ntop,
                 __global const int     *nbot,
-                __global const int     *level
+                __global const uchar_t *level
                 )
 {
    const unsigned int giX = get_global_id (0);
@@ -3169,7 +3169,7 @@ inline uint scan_warp_inclusive(__local volatile uint *input, const uint idx, co
 __kernel void reduce_sum_mass_stage1of2_cl(
                  const int      isize,     // 0  Total number of cells.
         __global const state_t *array,     // 1
-        __global const int     *level,     // 2
+        __global const uchar_t *level,     // 2
         __global const real_t  *levdx,     // 3
         __global const real_t  *levdy,     // 4
         __global const char_t   *celltype,  // 5
@@ -3235,7 +3235,7 @@ void reduction_epsum_within_tile(__local  real2_t  *tile)
 __kernel void reduce_epsum_mass_stage1of2_cl(
                  const int      isize,     // 0  Total number of cells.
         __global const state_t *array,     // 1
-        __global const int     *level,     // 2
+        __global const uchar_t *level,     // 2
         __global const real_t  *levdx,     // 3
         __global const real_t  *levdy,     // 4
         __global const char_t   *celltype,  // 5

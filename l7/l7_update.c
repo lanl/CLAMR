@@ -96,6 +96,14 @@ int L7_Update(
      sizeof_type,          /* Number of bytes for input datatype */
      start_index;
    
+   char
+     *pchardata_buffer,    /* (int *)data_buffer                 */
+     *pcharsend_buffer;    /* (int *)send_buffer                 */
+   
+   short
+     *pshortdata_buffer,   /* (int *)data_buffer                 */
+     *pshortsend_buffer;   /* (int *)send_buffer                 */
+   
    int
      *pintdata_buffer,     /* (int *)data_buffer                 */
      *pintsend_buffer;     /* (int *)send_buffer                 */
@@ -203,6 +211,72 @@ int L7_Update(
     */
    
    switch (l7_datatype){
+      case L7_CHAR:
+         pchardata_buffer = (char *)data_buffer;
+         pcharsend_buffer = (char *)l7.send_buffer;
+         
+         offset = 0;
+         start_index = 0;
+         
+         num_sends = l7_id_db->num_sends;
+         
+         for (i=0; i<num_sends; i++){
+            /* Load data to be sent. */
+            
+            send_count = l7_id_db->send_counts[i];
+            for (j=0; j<send_count; j++){
+               pcharsend_buffer[offset] =
+                  pchardata_buffer[l7_id_db->indices_local_to_send[offset]];
+               offset++;
+            }
+            msg_bytes = l7_id_db->send_counts[i] * sizeof_type;
+            
+#if defined _L7_DEBUG
+            printf("[pe %d] Send pisend_buffer[%d], len=%d ints to %d \n",
+                  l7.penum, offset, l7_id_db->send_counts[i], l7_id_db->send_to[i] );
+#endif
+            
+            ierr = MPI_Isend(&pcharsend_buffer[start_index], msg_bytes, MPI_BYTE,
+                  l7_id_db->send_to[i], l7_id_db->this_tag_update,
+                  MPI_COMM_WORLD, &l7_id_db->mpi_request[num_outstanding_reqs++] );
+            L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Isend failure", ierr);
+            
+            start_index += send_count;
+         }
+         break;
+      case L7_SHORT:
+         pshortdata_buffer = (short *)data_buffer;
+         pshortsend_buffer = (short *)l7.send_buffer;
+         
+         offset = 0;
+         start_index = 0;
+         
+         num_sends = l7_id_db->num_sends;
+         
+         for (i=0; i<num_sends; i++){
+            /* Load data to be sent. */
+            
+            send_count = l7_id_db->send_counts[i];
+            for (j=0; j<send_count; j++){
+               pshortsend_buffer[offset] =
+                  pshortdata_buffer[l7_id_db->indices_local_to_send[offset]];
+               offset++;
+            }
+            msg_bytes = l7_id_db->send_counts[i] * sizeof_type;
+            
+#if defined _L7_DEBUG
+            printf("[pe %d] Send pisend_buffer[%d], len=%d ints to %d \n",
+                  l7.penum, offset, l7_id_db->send_counts[i], l7_id_db->send_to[i] );
+#endif
+            
+            ierr = MPI_Isend(&pshortsend_buffer[start_index], msg_bytes, MPI_BYTE,
+                  l7_id_db->send_to[i], l7_id_db->this_tag_update,
+                  MPI_COMM_WORLD, &l7_id_db->mpi_request[num_outstanding_reqs++] );
+            L7_ASSERT(ierr == MPI_SUCCESS, "MPI_Isend failure", ierr);
+            
+            start_index += send_count;
+         }
+         break;
       case L7_INTEGER4:
       case L7_INT:
       case L7_LOGICAL:

@@ -80,10 +80,8 @@ int l7p_sizeof(
 	case L7_GENERIC8:
 	case L7_BYTE:
 	case L7_PACKED:
-	case L7_CHAR:
 	case L7_LONG_LONG_INT:
 	case L7_DOUBLE:
-	case L7_CHARACTER:
 	case L7_INTEGER8:
 	case L7_REAL8:
 		sizeof_type = 8;
@@ -95,6 +93,13 @@ int l7p_sizeof(
 	case L7_REAL4:
 		sizeof_type = 4;
 		break;
+    case L7_SHORT:
+        sizeof_type = 2;
+        break;
+    case L7_CHAR:
+	case L7_CHARACTER:
+        sizeof_type = 1;
+        break;
 	case L7_LONG:
 		sizeof_type = sizeof(long);
 		break;

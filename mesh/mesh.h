@@ -428,8 +428,8 @@ public:
                                  //  mesh state data
    int            *i,            //!<  1D array of mesh element x-indices.
                   *j,            //!<  1D array of mesh element y-indices.
-                  *k,            //!<  1D array of mesh element z-indices.
-                  *level;        //!<  1D array of mesh element refinement levels.
+                  *k;            //!<  1D array of mesh element z-indices.
+   uchar_t        *level;        //!<  1D array of mesh element refinement levels.
                                  //!<  derived data from mesh state data
    char_t         *celltype;     //!<  1D ordered index of mesh element cell types (ghost or real).
    int            *nlft,         //!<  1D ordered index of mesh element left neighbors.
@@ -493,7 +493,7 @@ public:
 
    vector<int> xface_i; // i (x-axis) coordinates for xfaces
    vector<int> xface_j; // j (y-axis) coordinates for xfaces
-   vector<int> xface_level; // level of xfaces (max level of upper/lower cells)
+   vector<uchar_t> xface_level; // level of xfaces (max level of upper/lower cells)
    vector<int> map_xface2cell_lower; // IDs of lower cell (left for xface, bottom for yface)
    vector<int> map_xface2cell_upper; // IDs of upper cell (right for xface, top for yface)
    vector<int> phantomXFlux;
@@ -529,7 +529,7 @@ public:
 
    vector<int> yface_i;
    vector<int> yface_j;
-   vector<int> yface_level;
+   vector<uchar_t> yface_level;
    vector<int> map_yface2cell_lower;
    vector<int> map_yface2cell_upper;
 
@@ -883,7 +883,7 @@ private:
    void print_object_info();
 
    void set_refinement_order(int order[4], int ic, int ifirst, int ilast, int jfirst, int jlast,
-                                int level_first, int level_last, int *i, int *j, int *level);
+                                uchar_t level_first, uchar_t level_last, int *i, int *j, uchar_t *level);
 
    void write_grid(int ncycle);
    void calc_centerminmax(void);

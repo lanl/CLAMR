@@ -1259,9 +1259,9 @@ void ezcl_mem_free_all_p(const char *file, const int line){
 
 int ezcl_get_device_mem_nelements_p(cl_mem mem_buffer, const char *file, const int line)
 {
-   if (mem_buffer == NULL) {
-      printf(" Error with mem_buffer in ezcl_get_device_mem_nelements from file %s line %d\n",file,line);
-   }
+   //if (mem_buffer == NULL) {
+   //   printf(" Error with mem_buffer in ezcl_get_device_mem_nelements from file %s line %d\n",file,line);
+   //}
    int nelements = -1;
    if (! SLIST_EMPTY(&device_memory_head)){
       SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
