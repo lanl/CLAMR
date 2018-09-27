@@ -13338,7 +13338,7 @@ void Mesh::store_checkpoint(Crux *crux)
    crux->store_int_array(i, ncells);
    crux->store_int_array(j, ncells);
 #ifdef REG_INTEGER
-   crux->store_int_array(level, ncells);
+   crux->store_int_array((int *)level, ncells);
 #elif SHORT_INTEGER
    crux->store_short_array((short *)level, ncells);
 #elif MIN_INTEGER
@@ -13409,7 +13409,7 @@ void Mesh::restore_checkpoint(Crux *crux)
    crux->restore_int_array(i, ncells);
    crux->restore_int_array(j, ncells);
 #ifdef REG_INTEGER
-   crux->restore_int_array(level, ncells);
+   crux->restore_int_array((int *)level, ncells);
 #elif SHORT_INTEGER
    crux->restore_short_array((short *)level, ncells);
 #elif MIN_INTEGER

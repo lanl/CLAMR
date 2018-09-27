@@ -121,7 +121,7 @@
 #endif
 
 #elif defined(REG_INTEGER)
-   typedef unsigned int ushortt_t;
+   typedef unsigned int ushort_t;
    typedef int          short_t;
    typedef unsigned int uchar_t;
    typedef int          char_t;
