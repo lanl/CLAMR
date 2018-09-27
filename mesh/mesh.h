@@ -77,10 +77,10 @@
 
 #if defined(MIN_INTEGER)
    // define all to needed ranges and then typedef or define to actual
-   typedef unsigned short ushort_t // 0 to 65,535
-   typedef short          short_t  // -32,768 to 32,767
-   typedef unsigned char  uchar_t  // 0 to 255
-   typedef char           char_t   // -128 to 127 
+   typedef unsigned short ushort_t;  // 0 to 65,535
+   typedef short          short_t;   // -32,768 to 32,767
+   typedef unsigned char  uchar_t;   // 0 to 255
+   typedef char           char_t;    // -128 to 127 
 #ifdef HAVE_OPENCL
    typedef cl_ushort cl_ushort_t;
    typedef cl_short  cl_short_t;
