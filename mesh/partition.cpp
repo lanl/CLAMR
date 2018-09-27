@@ -568,9 +568,9 @@ void Mesh::partition_cells(
             vector<int>level_global(ncells_global);
             vector<int>z_index_global(ncells_global);
             vector<int>z_order_global(ncells_global);
-            MPI_Allgatherv(&i[0], ncells, MPI_REAL, &i_global[0], &nsizes[0], &ndispl[0], MPI_REAL, MPI_COMM_WORLD);
-            MPI_Allgatherv(&j[0], ncells, MPI_REAL, &j_global[0], &nsizes[0], &ndispl[0], MPI_REAL, MPI_COMM_WORLD);
-            MPI_Allgatherv(&level[0], ncells, MPI_REAL, &level_global[0], &nsizes[0], &ndispl[0], MPI_REAL, MPI_COMM_WORLD);
+            MPI_Allgatherv(&i[0], ncells, MPI_INT, &i_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+            MPI_Allgatherv(&j[0], ncells, MPI_INT, &j_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+            MPI_Allgatherv(&level[0], ncells, MPI_INT, &level_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
 
             i_scaled.resize(ncells_global);
             j_scaled.resize(ncells_global);

@@ -371,7 +371,7 @@ void State::add_boundary_cells(void)
    int *i        = mesh->i;
    int *j        = mesh->j;
    int *level    = mesh->level;
-   int *celltype = mesh->celltype;
+   char_t *celltype = mesh->celltype;
    int *nlft     = mesh->nlft;
    int *nrht     = mesh->nrht;
    int *nbot     = mesh->nbot;
@@ -403,7 +403,7 @@ void State::add_boundary_cells(void)
    mesh->i        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, i);
    mesh->j        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, j);
    mesh->level    =(int *)mesh->mesh_memory.memory_realloc(new_ncells, level);
-   mesh->celltype =(int *)mesh->mesh_memory.memory_realloc(new_ncells, celltype);
+   mesh->celltype =(char_t *)mesh->mesh_memory.memory_realloc(new_ncells, celltype);
    mesh->nlft     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nlft);
    mesh->nrht     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nrht);
    mesh->nbot     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nbot);
@@ -710,7 +710,7 @@ void State::remove_boundary_cells(void)
          mesh->i        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->i);
          mesh->j        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->j);
          mesh->level    = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->level);
-         mesh->celltype = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->celltype);
+         mesh->celltype = (char_t *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->celltype);
          mesh->nlft     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->nlft);
          mesh->nrht     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->nrht);
          mesh->nbot     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->nbot);
@@ -849,7 +849,7 @@ double State::gpu_set_timestep(double sigma)
               __global const state_t  *U,          // 3
               __global const state_t  *V,          // 4
               __global const int      *level,      // 5  Array of level information.
-              __global const int      *celltype,   // 6
+              __global const char_t    *celltype,   // 6
               __global const real_t   *lev_dx,     // 7
               __global const real_t   *lev_dy,     // 8
               __global       real_t   *redscratch, // 9
@@ -5245,7 +5245,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
      __global const int     *ntop,       // 7  Array of bottom neighbors.
      __global const int     *nbot,       // 8  Array of top neighbors.
      __global const int     *level,      // 9  Array of level information.
-     __global const int     *celltype,   // 10  Array of celltype information.
+     __global const char_t   *celltype,   // 10  Array of celltype information.
      __global       int     *mpot,       // 11  Array of mesh potential information.
      __global       int2    *redscratch, // 12
      __global const real_t  *lev_dx,     // 13
@@ -5314,7 +5314,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
 double State::mass_sum(int enhanced_precision_sum)
 {
    size_t &ncells = mesh->ncells;
-   int *celltype = mesh->celltype;
+   char_t *celltype = mesh->celltype;
    int *level    = mesh->level;
 
 #ifdef HAVE_MPI
@@ -5424,7 +5424,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
                 __global       int     *level,      // 2
                 __global       int     *levdx,      // 3
                 __global       int     *levdy,      // 4
-                __global       int     *celltype,   // 5
+                __global       char_t   *celltype,   // 5
                 __global       real_t  *redscratch, // 6   Final result of operation.
                 __local        real_t  *tile)       // 7
         */
@@ -5480,7 +5480,7 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
                 __global       int     *level,      // 2
                 __global       int     *levdx,      // 3
                 __global       int     *levdy,      // 4
-                __global       int     *celltype,   // 5
+                __global       char_t   *celltype,   // 5
                 __global       real_t  *redscratch, // 6   Final result of operation.
                 __local        real_t  *tile)       // 7
         */

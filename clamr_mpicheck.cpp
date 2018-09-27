@@ -244,14 +244,14 @@ int main(int argc, char **argv) {
 
    // Gather level, celltype, H, U, V for global calc
 
-   mesh_global->celltype = (int *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(int), "celltype");
+   mesh_global->celltype = (char_t *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(char_t), "celltype");
    mesh_global->level    = (int *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(int), "level");
    mesh_global->i        = (int *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(int), "i");
    mesh_global->j        = (int *)mesh_global->mesh_memory.memory_malloc(ncells_global, sizeof(int), "j");
 
    proc_global.resize(ncells_global);
 
-   MPI_Allgatherv(&mesh->celltype[0], ncells, MPI_INT, &mesh_global->celltype[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   MPI_Allgatherv(&mesh->celltype[0], ncells, MPI_CHAR_T, &mesh_global->celltype[0], &nsizes[0], &ndispl[0], MPI_CHAR_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&mesh->level[0], ncells, MPI_INT, &mesh_global->level[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
    MPI_Allgatherv(&mesh->i[0], ncells, MPI_INT, &mesh_global->i[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
    MPI_Allgatherv(&mesh->j[0], ncells, MPI_INT, &mesh_global->j[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);

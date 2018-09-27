@@ -53,6 +53,49 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
+
+#if !defined(REG_INTEGER) && !defined(SHORT_INTEGER) && !defined(MIN_INTEGER)
+#define REG_INTEGER
+#endif
+
+#if defined(MIN_INTEGER)
+   // define all to needed ranges and then typedef or define to actual
+   typedef unsigned short ushort_t // 0 to 65,535
+   typedef short          short_t  // -32,768 to 32,767
+   typedef unsigned char  uchar_t  // 0 to 255
+   typedef char           char_t   // -128 to 127 
+#ifdef HAVE_OPENCL
+   typedef cl_ushort cl_ushort_t;
+   typedef cl_short  cl_short_t;
+   typedef cl_uchar  cl_uchar_t;
+   typedef cl_char   cl_char_t;
+#endif
+
+#elif defined(SHORT_INTEGER)
+   typedef unsigned short ushort_t;
+   typedef short          short_t;
+   typedef unsigned short uchar_t;
+   typedef short          char_t;
+#ifdef HAVE_OPENCL
+   typedef cl_ushort cl_ushort_t;
+   typedef cl_short  cl_short_t;
+   typedef cl_short  cl_uchar_t;
+   typedef cl_short  cl_char_t;
+#endif
+
+#elif defined(REG_INTEGER)
+   typedef unsigned int ushortt_t;
+   typedef int          short_t;
+   typedef unsigned int uchar_t;
+   typedef int          char_t;
+#ifdef HAVE_OPENCL
+   typedef cl_uint cl_ushort_t;
+   typedef cl_int  cl_short_t;
+   typedef cl_uint cl_uchar_t;
+   typedef cl_int  cl_char_t;
+#endif
+#endif
+
 #if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
 #define FULL_PRECISION
 #endif
@@ -237,7 +280,7 @@ __kernel void set_timestep_cl(
         __global const state_t *U_in,      // 3  
         __global const state_t *V_in,      // 4  
         __global const int     *level,     // 5  Array of level information.
-        __global const int     *celltype,  // 6 
+        __global const char_t   *celltype,  // 6 
         __global const real_t  *lev_dx,    // 7  
         __global const real_t  *lev_dy,    // 8  
         __global       real_t  *redscratch,// 9 
@@ -263,7 +306,7 @@ __kernel void set_timestep_cl(
     real_t U       = U_in[giX];
     real_t V       = V_in[giX];
     int lev      = level[giX];
-    int type     = celltype[giX];
+    char_t type     = celltype[giX];
     
     //--CALCULATIONS------------------------------------------------------------
     if (type == REAL_CELL){
@@ -600,7 +643,7 @@ real_t w_corrector(//_ORIG(
 
 __kernel void apply_boundary_conditions_local_cl(
                  const int      ncells,   // 0  Total number of cells
-        __global const int     *celltype, // 1  Array of left neighbors
+        __global const char_t   *celltype, // 1  Array of left neighbors
         __global const int     *nlft,     // 2  Array of left neighbors
         __global const int     *nrht,     // 3  Array of right neighbors
         __global const int     *ntop,     // 4  Array of top neighbors
@@ -616,7 +659,7 @@ __kernel void apply_boundary_conditions_local_cl(
    if(giX >= ncells)
       return;
 
-   int ctype = celltype[giX];
+   char_t ctype = celltype[giX];
 
    if (ctype == LEFT_BOUNDARY){
       int nr = nrht[giX];
@@ -654,7 +697,7 @@ __kernel void apply_boundary_conditions_local_cl(
 
 __kernel void apply_boundary_conditions_ghost_cl(
                  const int     ncells,   // 0  Total number of cells
-        __global const int    *celltype, // 1  Array of left neighbors
+        __global const char_t  *celltype, // 1  Array celltypes
         __global const int    *nlft,     // 2  Array of left neighbors
         __global const int    *nrht,     // 3  Array of right neighbors
         __global const int    *ntop,     // 4  Array of top neighbors
@@ -670,7 +713,7 @@ __kernel void apply_boundary_conditions_ghost_cl(
    if(giX >= ncells)
       return;
 
-   int ctype = celltype[giX];
+   char_t ctype = celltype[giX];
 
    if (ctype == LEFT_BOUNDARY){
       int nr = nrht[giX];
@@ -708,7 +751,7 @@ __kernel void apply_boundary_conditions_ghost_cl(
 
 __kernel void apply_boundary_conditions_cl(
                  const int      ncells,   // 0  Total number of cells
-        __global const int     *celltype, // 1  Array of left neighbors
+        __global const char_t   *celltype, // 1  Array of left neighbors
         __global const int     *nlft,     // 2  Array of left neighbors
         __global const int     *nrht,     // 3  Array of right neighbors
         __global const int     *ntop,     // 4  Array of top neighbors
@@ -724,7 +767,7 @@ __kernel void apply_boundary_conditions_cl(
    if(giX >= ncells)
       return;
 
-   int ctype = celltype[giX];
+   char_t ctype = celltype[giX];
 
    if (ctype == LEFT_BOUNDARY){
       int nr = nrht[giX];
@@ -2602,7 +2645,7 @@ __kernel void refine_potential_cl(
         __global const int     *i,          // 9  Array of i values.
         __global const int     *j,          // 10 Array of j values.
         __global const int     *level,      // 11 Array of level information.
-        __global const int     *celltype,   // 12  Array of celltype information.
+        __global const char_t   *celltype,   // 12  Array of celltype information.
         __global const real_t  *lev_dx,     // 13
         __global const real_t  *lev_dy,     // 14
         __global       int     *mpot,       // 15  Array of mesh potential information.
@@ -2640,7 +2683,7 @@ __kernel void refine_potential_cl(
 
    setup_refine_tile(tile, itile, ncells, H, nlft, nrht, ntop, nbot, level);
 
-   int ctype = celltype[giX];
+   char_t ctype = celltype[giX];
 
    barrier (CLK_LOCAL_MEM_FENCE);
 
@@ -3129,7 +3172,7 @@ __kernel void reduce_sum_mass_stage1of2_cl(
         __global const int     *level,     // 2
         __global const real_t  *levdx,     // 3
         __global const real_t  *levdy,     // 4
-        __global const int     *celltype,  // 5
+        __global const char_t   *celltype,  // 5
         __global       real_t  *mass_sum,  // 6
         __global       real_t  *scratch,   // 7
         __local        real_t  *tile)      // 8
@@ -3195,7 +3238,7 @@ __kernel void reduce_epsum_mass_stage1of2_cl(
         __global const int     *level,     // 2
         __global const real_t  *levdx,     // 3
         __global const real_t  *levdy,     // 4
-        __global const int     *celltype,  // 5
+        __global const char_t   *celltype,  // 5
         __global       real2_t *mass_sum, // 6
         __global       real2_t *scratch,   // 7
         __local        real2_t *tile)      // 8
