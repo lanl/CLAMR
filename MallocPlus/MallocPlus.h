@@ -312,7 +312,12 @@ public:
  *       ... lots of calculations of level from level_new ...
  *     my_mem->memory_delete(level_old);
  *******************************************************************/
+   void memory_swap(char **malloc_mem_ptr_old, char **malloc_mem_ptr_new);
+   void memory_swap(unsigned char **malloc_mem_ptr_old, unsigned char **malloc_mem_ptr_new);
+   void memory_swap(short **malloc_mem_ptr_old, short **malloc_mem_ptr_new);
+   void memory_swap(unsigned short **malloc_mem_ptr_old, unsigned short **malloc_mem_ptr_new);
    void memory_swap(int **malloc_mem_ptr_old, int **malloc_mem_ptr_new);
+   void memory_swap(unsigned int **malloc_mem_ptr_old, unsigned int **malloc_mem_ptr_new);
 
 /****************************************************************//**
  * \brief

@@ -437,6 +437,8 @@ void Mesh::partition_cells(
             //   Order the mesh according to the calculated order (note that z_order is for both curves).
             vector<int> int_global(ncells_global);
             vector<int> int_global_new(ncells_global);
+            vector<uchar_t> uchar_global(ncells_global);
+            vector<uchar_t> uchar_global_new(ncells_global);
 
             // gather, reorder and scatter i
             MPI_Allgatherv(&i[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
@@ -453,11 +455,11 @@ void Mesh::partition_cells(
             MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &j[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
 
             // gather, reorder and scatter level
-            MPI_Allgatherv(&level[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+            MPI_Allgatherv(&level[0], ncells, MPI_UCHAR_T, &int_global[0], &nsizes[0], &ndispl[0], MPI_UCHAR_T, MPI_COMM_WORLD);
             for (int ic = 0; ic<(int)ncells_global; ic++){
-               int_global_new[ic] = int_global[z_order_global[ic]];
+               uchar_global_new[ic] = uchar_global[z_order_global[ic]];
             }
-            MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &level[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Scatterv(&uchar_global_new[0], &nsizes[0], &ndispl[0], MPI_UCHAR_T, &level[0], ncells, MPI_UCHAR_T, 0, MPI_COMM_WORLD);
 
             // It is faster just to recalculate these variables instead of communicating them
             if (mesh_memory.get_memory_size(celltype) >= ncells) {
@@ -565,12 +567,12 @@ void Mesh::partition_cells(
 #ifdef HAVE_MPI
             vector<int>i_global(ncells_global);
             vector<int>j_global(ncells_global);
-            vector<int>level_global(ncells_global);
+            vector<uchar_t>level_global(ncells_global);
             vector<int>z_index_global(ncells_global);
             vector<int>z_order_global(ncells_global);
-            MPI_Allgatherv(&i[0], ncells, MPI_REAL, &i_global[0], &nsizes[0], &ndispl[0], MPI_REAL, MPI_COMM_WORLD);
-            MPI_Allgatherv(&j[0], ncells, MPI_REAL, &j_global[0], &nsizes[0], &ndispl[0], MPI_REAL, MPI_COMM_WORLD);
-            MPI_Allgatherv(&level[0], ncells, MPI_REAL, &level_global[0], &nsizes[0], &ndispl[0], MPI_REAL, MPI_COMM_WORLD);
+            MPI_Allgatherv(&i[0], ncells, MPI_INT, &i_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+            MPI_Allgatherv(&j[0], ncells, MPI_INT, &j_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+            MPI_Allgatherv(&level[0], ncells, MPI_UCHAR_T, &level_global[0], &nsizes[0], &ndispl[0], MPI_UCHAR_T, MPI_COMM_WORLD);
 
             i_scaled.resize(ncells_global);
             j_scaled.resize(ncells_global);
@@ -597,6 +599,8 @@ void Mesh::partition_cells(
             //   Order the mesh according to the calculated order (note that z_order is for both curves).
             vector<int> int_global(ncells_global);
             vector<int> int_global_new(ncells_global);
+            vector<uchar_t> uchar_global(ncells_global);
+            vector<uchar_t> uchar_global_new(ncells_global);
 
             // gather, reorder and scatter i
             MPI_Allgatherv(&i[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
@@ -613,11 +617,11 @@ void Mesh::partition_cells(
             MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &j[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
 
             // gather, reorder and scatter level
-            MPI_Allgatherv(&level[0], ncells, MPI_INT, &int_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+            MPI_Allgatherv(&level[0], ncells, MPI_UCHAR_T, &int_global[0], &nsizes[0], &ndispl[0], MPI_UCHAR_T, MPI_COMM_WORLD);
             for (int ic = 0; ic<(int)ncells_global; ic++){
-               int_global_new[ic] = int_global[z_order_global[ic]];
+               uchar_global_new[ic] = uchar_global[z_order_global[ic]];
             }
-            MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_INT, &level[0], ncells, MPI_INT, 0, MPI_COMM_WORLD);
+            MPI_Scatterv(&int_global_new[0], &nsizes[0], &ndispl[0], MPI_UCHAR_T, &level[0], ncells, MPI_UCHAR_T, 0, MPI_COMM_WORLD);
 
             // It is faster just to recalculate these variables instead of communicating them
             if (mesh_memory.get_memory_size(celltype) >= ncells) {

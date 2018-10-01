@@ -54,6 +54,48 @@
  * 
  */
 
+#if !defined(REG_INTEGER) && !defined(SHORT_INTEGER) && !defined(MIN_INTEGER)
+#define REG_INTEGER
+#endif
+
+#if defined(MIN_INTEGER)
+   // define all to needed ranges and then typedef or define to actual
+   typedef unsigned short ushort_t // 0 to 65,535
+   typedef short          short_t  // -32,768 to 32,767
+   typedef unsigned char  uchar_t  // 0 to 255
+   typedef char           char_t   // -128 to 127 
+#ifdef HAVE_OPENCL
+   typedef cl_ushort cl_ushort_t;
+   typedef cl_short  cl_short_t;
+   typedef cl_uchar  cl_uchar_t;
+   typedef cl_char   cl_char_t;
+#endif
+
+#elif defined(SHORT_INTEGER)
+   typedef unsigned short ushort_t;
+   typedef short          short_t;
+   typedef unsigned short uchar_t;
+   typedef short          char_t;
+#ifdef HAVE_OPENCL
+   typedef cl_ushort cl_ushort_t;
+   typedef cl_short  cl_short_t;
+   typedef cl_short  cl_uchar_t;
+   typedef cl_short  cl_char_t;
+#endif
+
+#elif defined(REG_INTEGER)
+   typedef unsigned int ushortt_t;
+   typedef int          short_t;
+   typedef unsigned int uchar_t;
+   typedef int          char_t;
+#ifdef HAVE_OPENCL
+   typedef cl_uint cl_ushort_t;
+   typedef cl_int  cl_short_t;
+   typedef cl_uint cl_uchar_t;
+   typedef cl_int  cl_char_t;
+#endif
+#endif
+
 #if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
 #define FULL_PRECISION
 #endif
@@ -162,7 +204,7 @@ __kernel void hash_setup_cl(
                           const int   levmx,            // 1
                           const int   imaxsize,         // 2
                  __global const int   *levtable,        // 3
-                 __global const int   *level,           // 4
+                 __global const uchar_t *level,           // 4
                  __global const int   *i,               // 5
                  __global const int   *j,               // 6
                  __global const int   *nlft,            // 7
@@ -210,7 +252,7 @@ __kernel void hash_setup_local_cl(
                           const int   noffset,         // 4
                  __global const int4  *sizes,          // 5
                  __global const int   *levtable,       // 6
-                 __global const int   *level,          // 7
+                 __global const uchar_t *level,          // 7
                  __global const int   *i,              // 8
                  __global const int   *j,              // 9
                  __global const ulong *hash_header,    // 10
@@ -256,7 +298,7 @@ __kernel void calc_neighbors_cl(
                           const int   imaxsize,         // 4 
                           const int   jmaxsize,         // 5 
                  __global const int   *levtable,        // 6
-                 __global const int   *level,           // 7
+                 __global const uchar_t *level,           // 7
                  __global const int   *i,               // 8
                  __global const int   *j,               // 9
                  __global       int   *nlft,            // 10
@@ -385,7 +427,7 @@ __kernel void calc_neighbors_local_cl(
                           const int   noffset,         // 4
                  __global const int4  *sizes,          // 5
                  __global const int   *levtable,       // 6
-                 __global const int   *level,          // 7
+                 __global const uchar_t *level,          // 7
                  __global const int   *i,              // 8
                  __global const int   *j,              // 9
                  __global       int   *nlft,           // 10
@@ -533,7 +575,7 @@ __kernel void calc_border_cells_cl(
                  __global const int *nrht,      // 3
                  __global const int *nbot,      // 4
                  __global const int *ntop,      // 5
-                 __global const int *level,     // 6
+                 __global const uchar_t *level,     // 6
                  __global       uint *border_cell_out //7
                                   )
 {
@@ -592,7 +634,7 @@ __kernel void calc_border_cells2_cl(
                  __global const int   *nrht,            // 3
                  __global const int   *nbot,            // 4
                  __global const int   *ntop,            // 5
-                 __global const int   *level,           // 6
+                 __global const uchar_t   *level,           // 6
                  __global const uint  *border_cell_in,  // 7
                  __global       uint  *border_cell_out, // 8
                  __global       uint  *ioffset,         // 9
@@ -826,7 +868,7 @@ __kernel void get_border_data_cl(
                  __global const int  *border_cell,       // 3
                  __global const int  *i,                 // 4
                  __global const int  *j,                 // 5
-                 __global const int  *level,             // 6
+                 __global const uchar_t *level,             // 6
                  __global       int  *border_cell_i,     // 8
                  __global       int  *border_cell_j,     // 9
                  __global       int  *border_cell_level, // 10
@@ -889,7 +931,7 @@ __kernel void calc_layer1_cl (
                           const int   noffset,             // 5 
                  __global const int4  *sizes,              // 6
                  __global const int   *levtable,           // 7
-                 __global const int   *level,              // 8
+                 __global const uchar_t *level,              // 8
                  __global const int   *border_cell_i,      // 9
                  __global const int   *border_cell_j,      // 10
                  __global const int   *border_cell_level,  // 11
@@ -1095,7 +1137,7 @@ __kernel void calc_layer2_cl (
                           const int   jmax,                    // 5 
                  __global const int4  *sizes,                  // 6
                  __global const int   *levtable,               // 7
-                 __global const int   *level,                  // 8
+                 __global const uchar_t *level,                  // 8
                  __global const int   *border_cell_i,          // 9
                  __global const int   *border_cell_j,          // 10
                  __global const int   *border_cell_level,      // 11
@@ -1416,14 +1458,14 @@ __kernel void calc_layer2_sethash_cl (
 
 __kernel void copy_mesh_data_cl(
                           const int  isize,         // 0
-                 __global const int  *celltype_old, // 1
-                 __global       int  *celltype,     // 2
+                 __global const char_t *celltype_old, // 1
+                 __global       char_t *celltype,     // 2
                  __global const int  *i_old,        // 3
                  __global       int  *i,            // 4
                  __global const int  *j_old,        // 5
                  __global       int  *j,            // 6
-                 __global const int  *level_old,    // 7
-                 __global       int  *level,        // 8
+                 __global const uchar_t *level_old,    // 7
+                 __global       uchar_t *level,        // 8
                  __global const int  *nlft_old,     // 9
                  __global       int  *nlft,         // 10
                  __global const int  *nrht_old,     // 11
@@ -1460,8 +1502,8 @@ __kernel void fill_mesh_ghost_cl (
                  __global const int  *border_cell_level, // 8
                  __global       int  *i,                 // 9 
                  __global       int  *j,                 // 10
-                 __global       int  *level,             // 11
-                 __global       int  *celltype,          // 12
+                 __global       uchar_t *level,             // 11
+                 __global       char_t *celltype,          // 12
                  __global       int  *nlft,              // 13
                  __global       int  *nrht,              // 14
                  __global       int  *nbot,              // 15
@@ -1500,7 +1542,7 @@ __kernel void fill_neighbor_ghost_cl (
                  __global const int   *levtable,       // 5 
                  __global const int   *i,              // 6
                  __global const int   *j,              // 7
-                 __global const int   *level,          // 8
+                 __global const uchar_t *level,          // 8
                  __global const ulong *hash_header,    // 9
                  __global const int   *hash,           // 10
                  __global       int   *nlft,           // 11
@@ -1689,7 +1731,7 @@ __kernel void set_corner_neighbor_cl(
                  __global const int  *levtable, // 4 
                  __global const int  *i,        // 5 
                  __global const int  *j,        // 6 
-                 __global const int  *level,    // 7 
+                 __global const uchar_t *level,    // 7 
                  __global const int  *hash,     // 8 
                  __global       int  *nlft,     // 9 
                  __global       int  *nrht,     // 10
@@ -1949,7 +1991,7 @@ __kernel void calc_hash_size_cl(
                           const int   ncells,      // 0 
                           const int   levmx,       // 1 
                  __global const int   *levtable,   // 2 
-                 __global const int   *level,      // 3 
+                 __global const uchar_t *level,      // 3 
                  __global const int   *i,          // 4 
                  __global const int   *j,          // 5 
                  __global       int4  *redscratch, // 6
@@ -2033,7 +2075,7 @@ __kernel void calc_spatial_coordinates_cl(
           __global spatial_t *dx,
           __global spatial_t *y,
           __global spatial_t *dy,
-          __global int       *level,
+          __global uchar_t   *level,
           __global int       *i,
           __global int       *j)
 {
@@ -2114,15 +2156,15 @@ __kernel void do_load_balance_float_cl(
 }
 
 __kernel void do_load_balance_lower_cl(
-         __global       int  *dev_i_new,
-         __global       int  *dev_j_new,
-         __global       int  *dev_level_new,
-         __global       int  *dev_celltype_new,
-         __global const int  *dev_i_lower,
-         __global const int  *dev_j_lower,
-         __global const int  *dev_level_lower,
-         __global const int  *dev_celltype_lower,
-         const int            lower_block_size)
+         __global       int   *dev_i_new,
+         __global       int   *dev_j_new,
+         __global       uchar_t *dev_level_new,
+         __global       char_t *dev_celltype_new,
+         __global const int   *dev_i_lower,
+         __global const int   *dev_j_lower,
+         __global const uchar_t *dev_level_lower,
+         __global const char_t *dev_celltype_lower,
+         const int             lower_block_size)
 {
 
    const unsigned int giX = get_global_id(0);
@@ -2138,17 +2180,17 @@ __kernel void do_load_balance_lower_cl(
 
 
 __kernel void do_load_balance_middle_cl(
-         __global       int  *dev_i_new,
-         __global       int  *dev_j_new,
-         __global       int  *dev_level_new,
-         __global       int  *dev_celltype_new,
-         __global const int  *dev_i,
-         __global const int  *dev_j,
-         __global const int  *dev_level,
-         __global const int  *dev_celltype,
-         const int            lower_block_size,
-         const int            middle_block_size,
-         const int            middle_block_start)
+         __global       int   *dev_i_new,
+         __global       int   *dev_j_new,
+         __global       uchar_t *dev_level_new,
+         __global       char_t *dev_celltype_new,
+         __global const int   *dev_i,
+         __global const int   *dev_j,
+         __global const uchar_t *dev_level,
+         __global const char_t *dev_celltype,
+         const int             lower_block_size,
+         const int             middle_block_size,
+         const int             middle_block_start)
 {
 
    const unsigned int giX = get_global_id(0);
@@ -2167,17 +2209,17 @@ __kernel void do_load_balance_middle_cl(
 
 
 __kernel void do_load_balance_upper_cl(
-         __global       int  *dev_i_new,
-         __global       int  *dev_j_new,
-         __global       int  *dev_level_new,
-         __global       int  *dev_celltype_new,
-         __global const int  *dev_i_upper,
-         __global const int  *dev_j_upper,
-         __global const int  *dev_level_upper,
-         __global const int  *dev_celltype_upper,
-         const int            lower_block_size,
-         const int            middle_block_size,
-         const int            upper_block_size)
+         __global       int   *dev_i_new,
+         __global       int   *dev_j_new,
+         __global       uchar_t *dev_level_new,
+         __global       char_t *dev_celltype_new,
+         __global const int   *dev_i_upper,
+         __global const int   *dev_j_upper,
+         __global const uchar_t *dev_level_upper,
+         __global const char_t *dev_celltype_upper,
+         const int             lower_block_size,
+         const int             middle_block_size,
+         const int             upper_block_size)
 {
 
    const unsigned int giX = get_global_id(0);
@@ -2202,8 +2244,8 @@ __kernel void refine_smooth_cl(
         __global const int   *nrht,         // 4  Array of right neighbors.
         __global const int   *nbot,         // 5  Array of bottom neighbors.
         __global const int   *ntop,         // 6  Array of top neighbors.
-        __global const int   *level,        // 7  Array of level information.
-        __global const int   *celltype,     // 8  Array of celltype information.
+        __global const uchar_t *level,        // 7  Array of level information.
+        __global const char_t *celltype,     // 8  Array of celltype information.
         __global const int   *mpot_old,     // 9  Array of mesh potential information.
         __global       int   *mpot,         // 10 Array of mesh potential information.
         __global       int   *redscratch,   // 11  Array of number of cells smoothed per tile
@@ -2233,7 +2275,7 @@ __kernel void refine_smooth_cl(
    int llt, lrt, ltr, lbr;
 
    int mpotval = mpot_old[giX];
-   int ctype   = celltype[giX];
+   char_t ctype   = celltype[giX];
 
    int new_count = 0;
    if (mpotval > 0){
@@ -2376,7 +2418,7 @@ __kernel void coarsen_smooth_cl(
         __global const int   *ntop,         // 4  Array of top neighbors.
         __global const int   *i,            // 5  Array of i values.
         __global const int   *j,            // 6  Array of j values.
-        __global const int   *level,        // 7  Array of level information.
+        __global const uchar_t *level,        // 7  Array of level information.
         __global const int   *mpot_old,     // 8  Array of mpot_old information.
         __global       int   *mpot)         // 9  Array of mpot information.
 {
@@ -2437,8 +2479,8 @@ __kernel void coarsen_check_block_cl(
         __global const int   *ntop,         // 4  Array of top neighbors.
         __global const int   *i,            // 5  Array of i values.
         __global const int   *j,            // 6  Array of j values.
-        __global const int   *level,        // 7  Array of level information.
-        __global const int   *celltype,     // 8  Array of celltype information.
+        __global const uchar_t *level,        // 7  Array of level information.
+        __global const char_t *celltype,     // 8  Array of celltype information.
         __global const int   *mpot_old,     // 9  Array of mpot_old information.
         __global       int   *mpot,         // 10 Array of mpot information.
         __global       int   *redscratch,   // 10 Reduction scratch
@@ -2497,7 +2539,7 @@ __kernel void coarsen_check_block_cl(
       }
 
       if (mpotval < 0) {
-         int ctype = celltype[giX];
+         char_t ctype = celltype[giX];
          if (ctype == REAL_CELL) {
             if (! is_lower_left(ival,jval) ) itile[tiX] = 1;
          } else {
@@ -2523,14 +2565,14 @@ __kernel void rezone_all_cl(
                  const int    stencil,       // 1 
                  const int    levmx,         // 2
         __global const int    *mpot,         // 3   Array of mesh potential information.
-        __global const int    *level,        // 4
+        __global const uchar_t *level,        // 4
         __global const int    *i,            // 5
         __global const int    *j,            // 6
-        __global const int    *celltype,     // 7
-        __global       int    *level_new,    // 8
+        __global const char_t *celltype,     // 7
+        __global       uchar_t *level_new,    // 8
         __global       int    *i_new,        // 9
         __global       int    *j_new,        // 10
-        __global       int    *celltype_new, // 11
+        __global       char_t  *celltype_new, // 11
         __global const uint   *ioffset,      // 12   
         __global       uint   *indexoffset,  // 13   
         __global const real_t *lev_dx,       // 14
@@ -2538,7 +2580,6 @@ __kernel void rezone_all_cl(
         __global const int    *levtable,     // 16
         __global const int    *ijadd,        // 17
         __local        uint   *itile)        // 18
-        //__local        real2  *tile)         // 19
 { 
    uint tiX = get_local_id(0);
    uint giX = get_global_id(0);
@@ -2556,7 +2597,7 @@ __kernel void rezone_all_cl(
    if (giX >= isize) return;
 
    int mpotval = mpot[giX];
-   int ctype = celltype[giX];
+   char_t ctype = celltype[giX];
    int ival = i[giX];
    int jval = j[giX];
 
@@ -2990,7 +3031,7 @@ __kernel void rezone_neighbors_cl(
         __global const int   *nrht,         // 4
         __global const int   *nbot,         // 5
         __global const int   *ntop,         // 6
-        __global const int   *celltype_new, // 7
+        __global const char_t *celltype_new, // 7
         __global       int   *nlft_new,     // 8
         __global       int   *nrht_new,     // 9
         __global       int   *nbot_new,     // 10
@@ -3073,7 +3114,7 @@ __kernel void rezone_one_float_cl(
         __global const int   *nrht,         // 4
         __global const int   *nbot,         // 5
         __global const int   *ntop,         // 6
-        __global const int   *celltype,     // 7
+        __global const char_t *celltype,     // 7
         __global const int   *mpot,         // 8   Array of mesh potential information.
         __global const uint  *indexoffset,  // 9
         __global const float *Var,          // 10
@@ -3085,7 +3126,7 @@ __kernel void rezone_one_float_cl(
 
    float Varold = Var[giX];
    int mpotval = mpot[giX];
-   int ctype = celltype[giX];
+   char_t ctype = celltype[giX];
    int indexval = indexoffset[giX];
 
    if (mpotval == 0) {
@@ -3123,7 +3164,7 @@ __kernel void rezone_one_double_cl(
         __global const int    *nrht,         // 4
         __global const int    *nbot,         // 5
         __global const int    *ntop,         // 6
-        __global const int    *celltype,     // 7
+        __global const char_t  *celltype,     // 7
         __global const int    *mpot,         // 8   Array of mesh potential information.
         __global const uint   *indexoffset,  // 9
         __global const double *Var,          // 10
@@ -3135,7 +3176,7 @@ __kernel void rezone_one_double_cl(
 
    double Varold = Var[giX];
    int mpotval = mpot[giX];
-   int ctype = celltype[giX];
+   char_t ctype = celltype[giX];
    int indexval = indexoffset[giX];
 
    if (mpotval == 0) {
@@ -3186,7 +3227,7 @@ __kernel void set_boundary_refinement(
       __global const int  *ntop,       // 4
       __global const int  *i,          // 5
       __global const int  *j,          // 6
-      __global const int  *celltype,   // 7
+      __global const char_t *celltype,   // 7
       __global       int  *mpot,       // 8  refinement flag
       __global       int2 *redscratch, // 9  reduction array
       __global       int  *ioffset,    // 10 prefix scan offset array
@@ -3204,7 +3245,7 @@ __kernel void set_boundary_refinement(
 
    if (giX >= ncells) return;
 
-   int ctype = celltype[giX];
+   char_t ctype = celltype[giX];
    int mpotval = mpot[giX];
    int mpotval_save = mpotval;
 
@@ -3294,7 +3335,7 @@ __kernel void count_BCs_cl(
                  const int    isize,     // 0  Total number of cells.
         __global const int   *i,         // 1
         __global const int   *j,         // 2
-        __global const int   *level,     // 3
+        __global const uchar_t *level,     // 3
         __global const int   *lev_ibeg,  // 4
         __global const int   *lev_iend,  // 5
         __global const int   *lev_jbeg,  // 6

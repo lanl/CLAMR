@@ -220,7 +220,11 @@ void Crux::store_MallocPlus(MallocPlus memory){
                     store_replicated_double_array((double *)mem_ptr, num_elements);
                 }
             } else {
-                if (memory_item->mem_elsize == 4){
+                if (memory_item->mem_elsize == 1){
+                    store_char_array((char *)mem_ptr, num_elements);
+                } else if (memory_item->mem_elsize == 2){
+                    store_short_array((short *)mem_ptr, num_elements);
+                } else if (memory_item->mem_elsize == 4){
                     store_int_array((int *)mem_ptr, num_elements);
                 } else {
                     store_double_array((double *)mem_ptr, num_elements);
@@ -490,6 +494,62 @@ void Crux::store_doubles(double *double_vals, size_t nelem)
    fwrite(double_vals,sizeof(double),nelem,store_fp);
 }
 
+void Crux::store_char_array(char *char_array, size_t nelem)
+{
+#ifdef HAVE_MPI
+   assert(char_array != NULL);
+   MPI_Status status;
+   MPI_File_write_ordered(mpi_store_fp, char_array, (int)nelem, MPI_CHAR, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
+#ifdef DEBUG_RESTORE_VALS
+   int count;
+   MPI_Get_count(&status, MPI_CHAR, &count);
+   long long lsum = 0;
+   for (int i=0; i<nelem; i++){
+     lsum += char_array[i];
+   }
+   printf("%d:Wrote %d char integers with sum %lld at line %d in file %s\n",mype,count,lsum,__LINE__,__FILE__);
+   if (DEBUG_RESTORE_VALS >= 2) {
+     for (int i=0; i<nelem; i++){
+       printf("%d: elem %d value %d\n",mype,i,char_array[i]);
+     }
+   }
+#endif
+
+#else
+   assert(char_array != NULL && store_fp != NULL);
+   fwrite(char_array,sizeof(char),nelem,store_fp);
+#endif
+}
+
+void Crux::store_short_array(short *short_array, size_t nelem)
+{
+#ifdef HAVE_MPI
+   assert(short_array != NULL);
+   MPI_Status status;
+   MPI_File_write_ordered(mpi_store_fp, short_array, (int)nelem, MPI_SHORT, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
+#ifdef DEBUG_RESTORE_VALS
+   int count;
+   MPI_Get_count(&status, MPI_SHORT, &count);
+   long long lsum = 0;
+   for (int i=0; i<nelem; i++){
+     lsum += short_array[i];
+   }
+   printf("%d:Wrote %d integers with sum %lld at line %d in file %s\n",mype,count,lsum,__LINE__,__FILE__);
+   if (DEBUG_RESTORE_VALS >= 2) {
+     for (int i=0; i<nelem; i++){
+       printf("%d: elem %d value %d\n",mype,i,short_array[i]);
+     }
+   }
+#endif
+
+#else
+   assert(short_array != NULL && store_fp != NULL);
+   fwrite(short_array,sizeof(short),nelem,store_fp);
+#endif
+}
+
 void Crux::store_int_array(int *int_array, size_t nelem)
 {
 #ifdef HAVE_MPI
@@ -739,7 +799,11 @@ void Crux::restore_MallocPlus(MallocPlus memory){
                     restore_replicated_double_array((double *)mem_ptr, num_elements);
                 }
             } else {
-                if (memory_item->mem_elsize == 4){
+                if (memory_item->mem_elsize == 1){
+                    restore_char_array((char *)mem_ptr, num_elements);
+                } else if (memory_item->mem_elsize == 2){
+                    restore_short_array((short *)mem_ptr, num_elements);
+                } else if (memory_item->mem_elsize == 4){
                     restore_int_array((int *)mem_ptr, num_elements);
                 } else {
                     restore_double_array((double *)mem_ptr, num_elements);
@@ -866,6 +930,68 @@ void Crux::restore_doubles(double *double_vals, size_t nelem)
    if (nelem_read != nelem){
       printf("Warning: number of elements read %lu is not equal to request %lu\n",nelem_read,nelem);
    }
+}
+
+char *Crux::restore_char_array(char *char_array, size_t nelem)
+{
+#ifdef HAVE_MPI
+   assert(char_array != NULL);
+   MPI_Status status;
+   MPI_File_read_ordered(mpi_restore_fp, char_array, (int)nelem, MPI_CHAR, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
+#ifdef DEBUG_RESTORE_VALS
+   int count;
+   MPI_Get_count(&status, MPI_CHAR, &count);
+   long long lsum = 0;
+   for (int i=0; i<nelem; i++){
+     lsum += char_array[i];
+   }
+   printf("%d:Read %d integers with sum %lld at line %d in file %s\n",mype,count,lsum,__LINE__,__FILE__);
+   if (DEBUG_RESTORE_VALS >= 2) {
+     for (int i=0; i<nelem; i++){
+       printf("%d: elem %d value %d\n",mype,i,char_array[i]);
+     }
+   }
+#endif
+
+#else
+   size_t nelem_read = fread(char_array,sizeof(char),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %lu is not equal to request %lu\n",nelem_read,nelem);
+   }
+#endif
+   return(char_array);
+}
+
+short *Crux::restore_short_array(short *short_array, size_t nelem)
+{
+#ifdef HAVE_MPI
+   assert(short_array != NULL);
+   MPI_Status status;
+   MPI_File_read_ordered(mpi_restore_fp, short_array, (int)nelem, MPI_SHORT, &status);
+   MPI_Barrier(MPI_COMM_WORLD);
+#ifdef DEBUG_RESTORE_VALS
+   int count;
+   MPI_Get_count(&status, MPI_SHORT, &count);
+   long long lsum = 0;
+   for (int i=0; i<nelem; i++){
+     lsum += short_array[i];
+   }
+   printf("%d:Read %d integers with sum %lld at line %d in file %s\n",mype,count,lsum,__LINE__,__FILE__);
+   if (DEBUG_RESTORE_VALS >= 2) {
+     for (int i=0; i<nelem; i++){
+       printf("%d: elem %d value %d\n",mype,i,short_array[i]);
+     }
+   }
+#endif
+
+#else
+   size_t nelem_read = fread(short_array,sizeof(short),nelem,restore_fp);
+   if (nelem_read != nelem){
+      printf("Warning: number of elements read %lu is not equal to request %lu\n",nelem_read,nelem);
+   }
+#endif
+   return(short_array);
 }
 
 int *Crux::restore_int_array(int *int_array, size_t nelem)

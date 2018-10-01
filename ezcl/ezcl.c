@@ -64,6 +64,10 @@
 #define EZCL_MEM_FACTOR 1.6
 #define SUPPRESS_WARNING 1
 
+#if !defined(REG_INTEGER) && !defined(SHORT_INTEGER) && !defined(MIN_INTEGER)
+#define REG_INTEGER
+#endif
+
 #if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
 #define FULL_PRECISION
 #endif
@@ -1255,9 +1259,9 @@ void ezcl_mem_free_all_p(const char *file, const int line){
 
 int ezcl_get_device_mem_nelements_p(cl_mem mem_buffer, const char *file, const int line)
 {
-   if (mem_buffer == NULL) {
-      printf(" Error with mem_buffer in ezcl_get_device_mem_nelements from file %s line %d\n",file,line);
-   }
+   //if (mem_buffer == NULL) {
+   //   printf(" Error with mem_buffer in ezcl_get_device_mem_nelements from file %s line %d\n",file,line);
+   //}
    int nelements = -1;
    if (! SLIST_EMPTY(&device_memory_head)){
       SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
@@ -1470,6 +1474,17 @@ char * create_compile_string(void)
 #else
    strcat(CompileString,"-DNO_CL_DOUBLE -cl-single-precision-constant");
 #endif
+
+#ifdef REG_INTEGER
+   strcat(CompileString," -DREG_INTEGER");
+#endif
+#ifdef SHORT_INTEGER
+   strcat(CompileString," -DSHORT_INTEGER");
+#endif
+#ifdef MIN_INTEGER
+   strcat(CompileString," -DMIN_INTEGER");
+#endif
+
 #ifdef FULL_PRECISION
    strcat(CompileString," -DFULL_PRECISION");
 #endif

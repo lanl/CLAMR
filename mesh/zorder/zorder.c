@@ -61,7 +61,7 @@
 
 #define DEBUG 0
 
-void calc_zorder(int size, int *i, int *j, int *level, int levmx, int ibase, int *z_index, int *z_order)
+void calc_zorder(int size, int *i, int *j, uchar_t *level, int levmx, int ibase, int *z_index, int *z_order)
 {   unsigned long long ibit,   //   Bitwise representation of x-index.
                        jbit;   //   Bitwise representation of y-index.
 

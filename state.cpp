@@ -370,8 +370,8 @@ void State::add_boundary_cells(void)
 
    int *i        = mesh->i;
    int *j        = mesh->j;
-   int *level    = mesh->level;
-   int *celltype = mesh->celltype;
+   uchar_t *level    = mesh->level;
+   char_t *celltype = mesh->celltype;
    int *nlft     = mesh->nlft;
    int *nrht     = mesh->nrht;
    int *nbot     = mesh->nbot;
@@ -402,8 +402,8 @@ void State::add_boundary_cells(void)
 
    mesh->i        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, i);
    mesh->j        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, j);
-   mesh->level    =(int *)mesh->mesh_memory.memory_realloc(new_ncells, level);
-   mesh->celltype =(int *)mesh->mesh_memory.memory_realloc(new_ncells, celltype);
+   mesh->level    =(uchar_t *)mesh->mesh_memory.memory_realloc(new_ncells, level);
+   mesh->celltype =(char_t *)mesh->mesh_memory.memory_realloc(new_ncells, celltype);
    mesh->nlft     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nlft);
    mesh->nrht     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nrht);
    mesh->nbot     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nbot);
@@ -709,8 +709,8 @@ void State::remove_boundary_cells(void)
 
          mesh->i        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->i);
          mesh->j        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->j);
-         mesh->level    = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->level);
-         mesh->celltype = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->celltype);
+         mesh->level    = (uchar_t *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->level);
+         mesh->celltype = (char_t *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->celltype);
          mesh->nlft     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->nlft);
          mesh->nrht     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->nrht);
          mesh->nbot     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->nbot);
@@ -769,7 +769,7 @@ double State::set_timestep(double g, double sigma)
 #pragma omp simd reduction(min:mymindeltaT)
    for (int ic=lowerBounds; ic<upperBounds; ic++) {
       if (mesh->celltype[ic] == REAL_CELL) {
-         int lev = mesh->level[ic];
+         uchar_t lev = mesh->level[ic];
          double wavespeed = sqrt(g*H[ic]);
          double xspeed = (fabs(U[ic])+wavespeed)/mesh->lev_deltax[lev];
          double yspeed = (fabs(V[ic])+wavespeed)/mesh->lev_deltay[lev];
@@ -848,8 +848,8 @@ double State::gpu_set_timestep(double sigma)
               __global const state_t  *H,          // 2
               __global const state_t  *U,          // 3
               __global const state_t  *V,          // 4
-              __global const int      *level,      // 5  Array of level information.
-              __global const int      *celltype,   // 6
+              __global const uchar_t  *level,      // 5  Array of level information.
+              __global const char_t   *celltype,   // 6
               __global const real_t   *lev_dx,     // 7
               __global const real_t   *lev_dy,     // 8
               __global       real_t   *redscratch, // 9
@@ -1118,7 +1118,8 @@ void State::calc_finite_difference(double deltaT){
    apply_boundary_conditions();
 
    static state_t *H_new, *U_new, *V_new;
-   int *nlft, *nrht, *nbot, *ntop, *level;
+   int *nlft, *nrht, *nbot, *ntop;
+   uchar_t *level;
 
    nlft  = mesh->nlft;
    nrht  = mesh->nrht;
@@ -1150,7 +1151,7 @@ void State::calc_finite_difference(double deltaT){
 #pragma omp simd
    for(int gix = lowerBound; gix < upperBound; gix++) {
 
-      int lvl     = level[gix];
+      uchar_t lvl     = level[gix];
       int nl      = nlft[gix];
       int nr      = nrht[gix];
       int nt      = ntop[gix];
@@ -1655,7 +1656,7 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
    mesh->get_bounds(lowerBound, upperBound);
 
    for (int gix = lowerBound; gix < upperBound; gix++) {
-      int lev = mesh->level[gix];
+      uchar_t lev = mesh->level[gix];
       real_t dxic    = mesh->lev_deltax[lev];
       real_t dyic    = mesh->lev_deltay[lev];
 
@@ -1836,7 +1837,7 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
    cpu_timer_start(&tstart_cpu_part);
 
    for (int gix = lowerBound; gix < upperBound; gix++) {
-      int lev = mesh->level[gix];
+      uchar_t lev = mesh->level[gix];
       real_t dxic    = mesh->lev_deltax[lev];
       real_t dyic    = mesh->lev_deltay[lev];
 
@@ -1968,7 +1969,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int nll = mesh->map_xface2cell_lower[fl];
       int nrr = mesh->map_xface2cell_upper[fr];
 
-      int lev = mesh->level[cell_lower];
+      uchar_t lev = mesh->level[cell_lower];
       real_t dxic    = mesh->lev_deltax[lev];
       real_t Cxhalf = 0.5*deltaT/dxic;
 
@@ -2060,7 +2061,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int nbb = mesh->map_yface2cell_lower[fb];
       int ntt = mesh->map_yface2cell_upper[ft];
 
-      int lev = mesh->level[cell_lower];
+      uchar_t lev = mesh->level[cell_lower];
       real_t dyic    = mesh->lev_deltay[lev];
       real_t Cyhalf = 0.5*deltaT/dyic;
 
@@ -2202,7 +2203,8 @@ void State::calc_finite_difference_via_faces(double deltaT){
    // established for the mesh shortly before
    apply_boundary_conditions();
 
-   int *nlft, *nrht, *nbot, *ntop, *level;
+   int *nlft, *nrht, *nbot, *ntop;
+   uchar_t *level;
 
    int flags = (RESTART_DATA | REZONE_DATA | LOAD_BALANCE_MEMORY);
 
@@ -2844,7 +2846,8 @@ void State::calc_finite_difference_via_faces_new(double deltaT){
    apply_boundary_conditions();
 
    //No longer used, can remove
-   int *nlft, *nrht, *nbot, *ntop, *level;
+   int *nlft, *nrht, *nbot, *ntop;
+   uchar_t *level;
 
    nlft  = mesh->nlft;
    nrht  = mesh->nrht;
@@ -2963,8 +2966,8 @@ void State::calc_finite_difference_via_faces_new(double deltaT){
          int nll = mesh->map_xface2cell_lower[fl];
          int nrr = mesh->map_xface2cell_upper[fr];
 
-         int lev = level[cell_lower];
-         int levr = level[cell_upper];
+         uchar_t lev = level[cell_lower];
+         uchar_t levr = level[cell_upper];
          real_t dxic = lev_deltax[lev]; 
          real_t dxr = lev_deltax[levr];
 
@@ -3104,8 +3107,8 @@ void State::calc_finite_difference_via_faces_new(double deltaT){
          int nbb = mesh->map_yface2cell_lower[fb];
          int ntt = mesh->map_yface2cell_upper[ft];
  
-         int lev = level[cell_lower];
-         int levt = level[cell_upper];
+         uchar_t lev = level[cell_lower];
+         uchar_t levt = level[cell_upper];
          real_t dyic = lev_deltay[lev];
          real_t dyt = lev_deltay[levt];
 
@@ -4208,7 +4211,7 @@ void State::gpu_calc_finite_difference(double deltaT)
              __global const int     *nrht,     // 9  Array of right neighbors.
              __global const int     *ntop,     // 10  Array of bottom neighbors.
              __global const int     *nbot,     // 11  Array of top neighbors.
-             __global const int     *level,    // 12  Array of level information.
+             __global const uchar_t *level,    // 12  Array of level information.
                       const real_t   deltaT,   // 13  Size of time step.
              __global const real_t  *lev_dx,   // 14
              __global const real_t  *lev_dy,   // 15
@@ -4431,7 +4434,7 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
             __global    const state_t   *H,                         // 3
             __global    const state_t   *U,                         // 4
             __global    const state_t   *V,                         // 5
-            __global    const int       *level,                     // 6 Array of level information
+            __global    const uchar_t   *level,                     // 6 Array of level information
                         const real_t    deltaT,                     // 7 Size of time step
             __global    const reat_t    *lev_dx,                    // 8
             __global    const real_t    *lev_dy,                    // 9
@@ -4500,7 +4503,7 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
             __global    const int       *nrht,                      // 9 Array of right neighbors
             __global    const int       *ntop,                      // 10 Array of top neighbors
             __global    const int       *nbot,                      // 11 Array of bottom neighbors
-            __global    const int       *level,                     // 12 Array of level information
+            __global    const uchar_t   *level,                     // 12 Array of level information
                         const real_t    deltaT,                     // 13 Size of time step
             __global    const reat_t    *lev_dx,                    // 14
             __global    const real_t    *lev_dy,                    // 15
@@ -4741,7 +4744,7 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
             __global    const state_t   *H,                         // 3
             __global    const state_t   *U,                         // 4
             __global    const state_t   *V,                         // 5
-            __global    const int       *level,                     // 6 Array of level information
+            __global    const uchar_t   *level,                     // 6 Array of level information
                         const real_t    deltaT,                     // 7 Size of time step
             __global    const reat_t    *lev_dx,                    // 8
             __global    const real_t    *lev_dy,                    // 9
@@ -4800,7 +4803,7 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
             __global          state_t   *H_new,                     // 7
             __global          state_t   *U_new,                     // 8
             __global          state_t   *V_new,                     // 9
-            __global    const int       *level,                     // 10 Array of level information
+            __global    const uchar_t   *level,                     // 10 Array of level information
                         const real_t    deltaT,                     // 11 Size of time step
             __global    const reat_t    *lev_dx,                    // 12
             __global    const real_t    *lev_dy,                    // 13
@@ -4922,7 +4925,8 @@ size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
 }
 #endif
 
-   int *nlft, *nrht, *nbot, *ntop, *level;
+   int *nlft, *nrht, *nbot, *ntop;
+   uchar_t *level;
    
    nlft  = mesh->nlft;
    nrht  = mesh->nrht;
@@ -5180,13 +5184,13 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
          vector<int> nrht_tmp(mesh->ncells_ghost);
          vector<int> nbot_tmp(mesh->ncells_ghost);
          vector<int> ntop_tmp(mesh->ncells_ghost);
-         vector<int> level_tmp(mesh->ncells_ghost);
+         vector<uchar_t> level_tmp(mesh->ncells_ghost);
          vector<state_t> H_tmp(mesh->ncells_ghost);
          ezcl_enqueue_read_buffer(command_queue, dev_nlft,  CL_FALSE, 0, mesh->ncells_ghost*sizeof(cl_int), &nlft_tmp[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_nrht,  CL_FALSE, 0, mesh->ncells_ghost*sizeof(cl_int), &nrht_tmp[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_nbot,  CL_FALSE, 0, mesh->ncells_ghost*sizeof(cl_int), &nbot_tmp[0],  NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_ntop,  CL_TRUE,  0, mesh->ncells_ghost*sizeof(cl_int), &ntop_tmp[0],  NULL);
-         ezcl_enqueue_read_buffer(command_queue, dev_level, CL_TRUE,  0, mesh->ncells_ghost*sizeof(cl_int), &level_tmp[0], NULL);
+         ezcl_enqueue_read_buffer(command_queue, dev_level, CL_TRUE,  0, mesh->ncells_ghost*sizeof(cl_uchar_t), &level_tmp[0], NULL);
          ezcl_enqueue_read_buffer(command_queue, dev_H,     CL_TRUE,  0, mesh->ncells_ghost*sizeof(cl_int), &H_tmp[0],     NULL);
          for (uint ic=0; ic<ncells; ic++){
             int nl = nlft_tmp[ic];
@@ -5237,8 +5241,8 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
      __global const int     *nrht,       // 6  Array of right neighbors.
      __global const int     *ntop,       // 7  Array of bottom neighbors.
      __global const int     *nbot,       // 8  Array of top neighbors.
-     __global const int     *level,      // 9  Array of level information.
-     __global const int     *celltype,   // 10  Array of celltype information.
+     __global const uchar_t *level,      // 9  Array of level information.
+     __global const char_t  *celltype,   // 10  Array of celltype information.
      __global       int     *mpot,       // 11  Array of mesh potential information.
      __global       int2    *redscratch, // 12
      __global const real_t  *lev_dx,     // 13
@@ -5307,8 +5311,8 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
 double State::mass_sum(int enhanced_precision_sum)
 {
    size_t &ncells = mesh->ncells;
-   int *celltype = mesh->celltype;
-   int *level    = mesh->level;
+   char_t *celltype = mesh->celltype;
+   uchar_t *level    = mesh->level;
 
 #ifdef HAVE_MPI
    //int &mype = mesh->mype;
@@ -5414,10 +5418,10 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
         __kernel void reduce_sum_cl(
                          const int      isize,      // 0
                 __global       state_t *array,      // 1   Array to be reduced.
-                __global       int     *level,      // 2
+                __global       uchar_t *level,      // 2
                 __global       int     *levdx,      // 3
                 __global       int     *levdy,      // 4
-                __global       int     *celltype,   // 5
+                __global       char_t   *celltype,   // 5
                 __global       real_t  *redscratch, // 6   Final result of operation.
                 __local        real_t  *tile)       // 7
         */
@@ -5470,10 +5474,10 @@ double State::gpu_mass_sum(int enhanced_precision_sum)
         __kernel void reduce_sum_cl(
                          const int      isize,      // 0
                 __global       state_t *array,      // 1   Array to be reduced.
-                __global       int     *level,      // 2
+                __global       uchar_t *level,      // 2
                 __global       int     *levdx,      // 3
                 __global       int     *levdy,      // 4
-                __global       int     *celltype,   // 5
+                __global       char_t   *celltype,   // 5
                 __global       real_t  *redscratch, // 6   Final result of operation.
                 __local        real_t  *tile)       // 7
         */
