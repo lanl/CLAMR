@@ -3674,14 +3674,6 @@ void State::calc_finite_difference_regular_cells(double deltaT){
          } // ii
       } // jj 
 
-      for(int jj=2; jj<jjmax-2; jj++){
-         for(int ii=2; ii<iimax-2; ii++){
-             if (mask_reg[jj][ii] != 1) continue;
-             H_reg[jj][ii] = H_reg_new[jj][ii];
-             U_reg[jj][ii] = U_reg_new[jj][ii];
-             V_reg[jj][ii] = V_reg_new[jj][ii];
-         }
-      }
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
@@ -3691,10 +3683,16 @@ void State::calc_finite_difference_regular_cells(double deltaT){
       genmatrixfree((void **)varV[ll]);
       genmatrixfree((void **)passFlag[ll]);
       // Replace H_reg with H_reg_new
-      //state_t **tmp_reg;
-      //SWAP_PTR(pstate[0], H_reg_new, tmp_reg);
-      //SWAP_PTR(pstate[1], U_reg_new, tmp_reg);
-      //SWAP_PTR(pstate[2], V_reg_new, tmp_reg);
+      state_t ***tmp_reg, ***tmp_new, ***tmp_tmp;
+      tmp_reg = &H_reg;
+      tmp_new = &H_reg;
+      SWAP_PTR(tmp_reg, tmp_new, tmp_tmp);
+      tmp_reg = &U_reg;
+      tmp_new = &U_reg;
+      SWAP_PTR(tmp_reg, tmp_new, tmp_tmp);
+      tmp_reg = &V_reg;
+      tmp_new = &V_reg;
+      SWAP_PTR(tmp_reg, tmp_new, tmp_tmp);
       genmatrixfree((void **)H_reg_new);
       genmatrixfree((void **)U_reg_new);
       genmatrixfree((void **)V_reg_new);
@@ -4012,16 +4010,6 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
          } // ii
       } // jj 
 
-      for(int jj=2; jj<jjmax-2; jj++){
-         for(int ii=2; ii<iimax-2; ii++){
-             if (mask_reg[jj][ii] != 1) continue;
-             H_reg[jj][ii] = H_reg_new[jj][ii];
-             U_reg[jj][ii] = U_reg_new[jj][ii];
-             V_reg[jj][ii] = V_reg_new[jj][ii];
-         }
-      }
-
-      genmatrixfree((void **)HxFlux[ll]);
       genmatrixfree((void **)UxFlux[ll]);
       genmatrixfree((void **)VxFlux[ll]);
       genmatrixfree((void **)Wx_H[ll]);
@@ -4034,12 +4022,17 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       genmatrixfree((void **)passFlagX[ll]);
       genmatrixfree((void **)passFlagY[ll]);
 
-      // Replace H_reg with H_reg_new
-      //state_t ** tmp_reg;
-      //SWAP_PTR(pstate[0], H_reg_new, tmp_reg);
-      //SWAP_PTR(pstate[1], U_reg_new, tmp_reg);
-      //SWAP_PTR(pstate[2], V_reg_new, tmp_reg);
-
+      // Replace old state with new state
+      state_t ***tmp_reg, ***tmp_new, ***tmp_tmp;
+      tmp_reg = &H_reg;
+      tmp_new = &H_reg;
+      SWAP_PTR(tmp_reg, tmp_new, tmp_tmp);
+      tmp_reg = &U_reg;
+      tmp_new = &U_reg;
+      SWAP_PTR(tmp_reg, tmp_new, tmp_tmp);
+      tmp_reg = &V_reg;
+      tmp_new = &V_reg;
+      SWAP_PTR(tmp_reg, tmp_new, tmp_tmp);
       genmatrixfree((void **)H_reg_new);
       genmatrixfree((void **)U_reg_new);
       genmatrixfree((void **)V_reg_new);
