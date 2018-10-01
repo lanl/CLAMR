@@ -267,7 +267,6 @@ public:
    void calc_finite_difference(double deltaT);
    void calc_finite_difference_cell_in_place(double deltaT);
    void calc_finite_difference_via_faces(double deltaT);
-   void calc_finite_difference_via_faces_new(double deltaT);
    void calc_finite_difference_face_in_place(double deltaT);
    void calc_finite_difference_regular_cells(double deltaT);
    void calc_finite_difference_regular_cells_by_faces(double deltaT);
