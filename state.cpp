@@ -2849,9 +2849,10 @@ void State::calc_finite_difference_regular_cells(double deltaT){
       real_t Cx = deltaT/dx;
       real_t Cy = deltaT/dy;
 
-      state_t **H_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
-      state_t **U_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
-      state_t **V_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
+      state_t ***states_new = (state_t ***)gentrimatrix(3, jjmax, iimax, sizeof(state_t));
+      //state_t **H_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
+      //state_t **U_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
+      //state_t **V_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
 
       for(int jj=2; jj<jjmax-2; jj++){
          for(int ii=2; ii<iimax-2; ii++){
@@ -3016,15 +3017,18 @@ void State::calc_finite_difference_regular_cells(double deltaT){
                passFlag[ll-1][recvJ][recvI*4+2] = 1;
            }
 
-           H_reg_new[jj][ii] = U_fullstep(deltaT, dx, H_reg[jj][ii],
+           states_new[0][jj][ii] = U_fullstep(deltaT, dx, H_reg[jj][ii],
+           //H_reg_new[jj][ii] = U_fullstep(deltaT, dx, H_reg[jj][ii],
                        Hxfluxplus, Hxfluxminus, Hyfluxplus + varH[ll][jj][ii*2], Hyfluxminus)
                   - wminusx_H + wplusx_H - wminusy_H + wplusy_H + varH[ll][jj][ii*2+1];
 
-           U_reg_new[jj][ii] = U_fullstep(deltaT, dx, U_reg[jj][ii],
+           states_new[1][jj][ii] = U_fullstep(deltaT, dx, U_reg[jj][ii],
+           //U_reg_new[jj][ii] = U_fullstep(deltaT, dx, U_reg[jj][ii],
                        Uxfluxplus, Uxfluxminus, Uyfluxplus + varU[ll][jj][ii*2], Uyfluxminus)
                   - wminusx_U + wplusx_U + varU[ll][jj][ii*2+1];
 
-           V_reg_new[jj][ii] = U_fullstep(deltaT, dx, V_reg[jj][ii],
+           states_new[2][jj][ii] = U_fullstep(deltaT, dx, V_reg[jj][ii],
+           //V_reg_new[jj][ii] = U_fullstep(deltaT, dx, V_reg[jj][ii],
                        Vxfluxplus, Vxfluxminus, Vyfluxplus + varV[ll][jj][ii*2], Vyfluxminus)
                   - wminusy_V + wplusy_V + varV[ll][jj][ii*2+1];
 
@@ -3035,13 +3039,13 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
-      for(int jj=2; jj<jjmax-2; jj++){
+      /*for(int jj=2; jj<jjmax-2; jj++){
          for(int ii=2; ii<iimax-2; ii++){
              H_reg[jj][ii] = H_reg_new[jj][ii];
              U_reg[jj][ii] = U_reg_new[jj][ii];
              V_reg[jj][ii] = V_reg_new[jj][ii];
          }
-      }
+      }*/
 
       genmatrixfree((void **)varH[ll]);
       genmatrixfree((void **)varU[ll]);
@@ -3058,13 +3062,29 @@ void State::calc_finite_difference_regular_cells(double deltaT){
       tmp_reg = &V_reg;
       tmp_new = &V_reg;
       SWAP_PTR(tmp_reg, tmp_new, tmp_tmp);*/
-      state_t **tmp_reg;
-      //SWAP_PTR(H_reg_new, mesh->meshes[ll].pstate[0], tmp_reg);
-      //SWAP_PTR(U_reg_new, mesh->meshes[ll].pstate[1], tmp_reg);
-      //SWAP_PTR(V_reg_new, mesh->meshes[ll].pstate[2], tmp_reg);
-      genmatrixfree((void **)H_reg_new);
-      genmatrixfree((void **)U_reg_new);
-      genmatrixfree((void **)V_reg_new);
+      //printf("tmp %x old %x new %x\n", tmp_reg, mesh->meshes[ll].pstate[0], H_reg_new);
+      //printf("tmp %x pstate %x H_reg_new %x\n", tmp_reg, mesh->meshes[ll].pstate[0], H_reg_new);
+      //printf("tmp %x old %x new %x\n", tmp_reg, mesh->meshes[ll].pstate[0], H_reg_new);
+      /*state_t **tmp_reg;
+      SWAP_PTR(H_reg_new, H_reg, tmp_reg);
+      SWAP_PTR(U_reg_new, U_reg, tmp_reg);
+      SWAP_PTR(V_reg_new, V_reg, tmp_reg);*/
+      //state_t ***statePT;
+      //statePT = mesh->meshes[ll].pstate;
+      //statePT[0] = H_reg_new;
+      //statePT[1] = U_reg_new;
+      //statePT[2] = V_reg_new;
+      //mesh->meshes[ll].pstate[0] = H_reg_new;
+      //mesh->meshes[ll].pstate[1] = U_reg_new;
+      //mesh->meshes[ll].pstate[2] = V_reg_new;
+      state_t ***tmp_reg;
+      //printf("tmp %x pstate %x new %x\n", tmp_reg, mesh->meshes[ll].pstate, states_new);
+      SWAP_PTR(states_new, mesh->meshes[ll].pstate, tmp_reg);
+      //printf("tmp %x pstate %x new %x\n", tmp_reg, mesh->meshes[ll].pstate, states_new);
+      gentrimatrixfree((void ***) states_new);
+      //genmatrixfree((void **)H_reg_new);
+      //genmatrixfree((void **)U_reg_new);
+      //genmatrixfree((void **)V_reg_new);
 
    } // ll
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
@@ -3319,9 +3339,10 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 
       //printf("%d %d %d %d %d %d\n", mesh->lev_jregsize[0], mesh->lev_iregsize[0], mesh->lev_jregsize[1], mesh->lev_iregsize[1], mesh->lev_jregsize[2], mesh->lev_iregsize[2]);
 
-      state_t **H_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
-      state_t **U_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
-      state_t **V_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
+      state_t ***states_new = (state_t ***)gentrimatrix(3, jjmax, iimax, sizeof(state_t));
+      //state_t **H_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
+      //state_t **U_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
+      //state_t **V_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
 
       //real_t Cx = deltaT/dx;
       //real_t Cy = deltaT/dy;
@@ -3364,29 +3385,33 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
             real_t wplusy_V  = Wy_V[ll][jj+1][ii];
 
 
-            H_reg_new[jj][ii] = U_fullstep(deltaT, dx, H_reg[jj][ii],
+            states_new[0][jj][ii] = U_fullstep(deltaT, dx, H_reg[jj][ii],
+            //H_reg_new[jj][ii] = U_fullstep(deltaT, dx, H_reg[jj][ii],
                        Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
                   - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
 
-            U_reg_new[jj][ii] = U_fullstep(deltaT, dx, U_reg[jj][ii],
+            states_new[1][jj][ii] = U_fullstep(deltaT, dx, U_reg[jj][ii],
+            //U_reg_new[jj][ii] = U_fullstep(deltaT, dx, U_reg[jj][ii],
                        Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
                   - wminusx_U + wplusx_U;
 
-            V_reg_new[jj][ii] = U_fullstep(deltaT, dx, V_reg[jj][ii],
+            states_new[2][jj][ii] = U_fullstep(deltaT, dx, V_reg[jj][ii],
+            //V_reg_new[jj][ii] = U_fullstep(deltaT, dx, V_reg[jj][ii],
                        Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                   - wminusy_V + wplusy_V;
 
          } // ii
       } // jj 
 
-      for(int jj=2; jj<jjmax-2; jj++){
+      /*for(int jj=2; jj<jjmax-2; jj++){
          for(int ii=2; ii<iimax-2; ii++){
              H_reg[jj][ii] = H_reg_new[jj][ii];
              U_reg[jj][ii] = U_reg_new[jj][ii];
              V_reg[jj][ii] = V_reg_new[jj][ii];
          }
-      }
+      }*/
 
+      genmatrixfree((void **)HxFlux[ll]);
       genmatrixfree((void **)UxFlux[ll]);
       genmatrixfree((void **)VxFlux[ll]);
       genmatrixfree((void **)Wx_H[ll]);
@@ -3400,19 +3425,14 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       genmatrixfree((void **)passFlagY[ll]);
 
       // Replace old state with new state
-      /*state_t ***tmp_reg, ***tmp_new, ***tmp_tmp;
-      tmp_reg = &H_reg;
-      tmp_new = &H_reg;
-      SWAP_PTR(tmp_reg, tmp_new, tmp_tmp);
-      tmp_reg = &U_reg;
-      tmp_new = &U_reg;
-      SWAP_PTR(tmp_reg, tmp_new, tmp_tmp);
-      tmp_reg = &V_reg;
-      tmp_new = &V_reg;
-      SWAP_PTR(tmp_reg, tmp_new, tmp_tmp);*/
-      genmatrixfree((void **)H_reg_new);
-      genmatrixfree((void **)U_reg_new);
-      genmatrixfree((void **)V_reg_new);
+      state_t ***tmp_reg;
+      //printf("tmp %x pstate %x new %x\n", tmp_reg, mesh->meshes[ll].pstate, states_new);
+      SWAP_PTR(states_new, mesh->meshes[ll].pstate, tmp_reg);
+      //printf("tmp %x pstate %x new %x\n", tmp_reg, mesh->meshes[ll].pstate, states_new);
+      gentrimatrixfree((void ***) states_new);
+      //genmatrixfree((void **) H_reg_new);
+      //genmatrixfree((void **) U_reg_new);
+      //genmatrixfree((void **) V_reg_new);
 
    } // ll
 
