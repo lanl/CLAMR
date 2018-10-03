@@ -381,7 +381,7 @@ extern "C" void do_calc(void)
    //  Initialize state variables for GPU calculation.
    size_t &ncells    = mesh->ncells;
 
-   vector<int>     mpot;
+   vector<char_t>     mpot;
    
    size_t new_ncells = 0;
    double H_sum = -1.0;
@@ -423,7 +423,7 @@ extern "C" void do_calc(void)
          {
 #endif
             //mpot.clear();
-            vector<int>().swap(mpot);
+            vector<char_t>().swap(mpot);
 
             mesh->ncells = new_ncells;
             ncells = new_ncells;

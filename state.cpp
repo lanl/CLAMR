@@ -968,7 +968,7 @@ void State::state_reorder(vector<int> iorder)
    //printf("DEBUG end reorder cells\n\n"); 
 }
 
-void State::rezone_all(int icount, int jcount, vector<int> mpot)
+void State::rezone_all(int icount, int jcount, vector<char_t> mpot)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -4298,7 +4298,7 @@ void State::symmetry_check(const char *string, vector<int> sym_index, double eps
 
 }
 
-size_t State::calc_refine_potential(vector<int> &mpot,int &icount, int &jcount)
+size_t State::calc_refine_potential(vector<char_t> &mpot,int &icount, int &jcount)
 {
    
   struct timeval tstart_cpu;
@@ -4622,7 +4622,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
    cl_mem dev_result     = ezcl_malloc(NULL, const_cast<char *>("dev_result"),     &result_size,        sizeof(cl_int2), CL_MEM_READ_WRITE, 0);
    cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size,         sizeof(cl_int2), CL_MEM_READ_WRITE, 0);
 
-   dev_mpot              = ezcl_malloc(NULL, const_cast<char *>("dev_mpot"),       &mesh->ncells_ghost, sizeof(cl_int),  CL_MEM_READ_WRITE, 0);
+   dev_mpot              = ezcl_malloc(NULL, const_cast<char *>("dev_mpot"),       &mesh->ncells_ghost, sizeof(cl_char_t),  CL_MEM_READ_WRITE, 0);
 
      /*
      __kernel void refine_potential
@@ -4637,7 +4637,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
      __global const int     *nbot,       // 8  Array of top neighbors.
      __global const uchar_t *level,      // 9  Array of level information.
      __global const char_t  *celltype,   // 10  Array of celltype information.
-     __global       int     *mpot,       // 11  Array of mesh potential information.
+     __global       char_t  *mpot,       // 11  Array of mesh potential information.
      __global       int2    *redscratch, // 12
      __global const real_t  *lev_dx,     // 13
      __global const real_t  *lev_dy,     // 14
@@ -4678,7 +4678,7 @@ size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
    //size_t result = ncells + icount - jcount;
 
    //int mpot_check[ncells];
-   //ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_int), mpot_check, NULL);
+   //ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE, 0, ncells*sizeof(cl_char_t), mpot_check, NULL);
    //for (int ic=0; ic<ncells; ic++){
    //   if (mpot_check[ic]) printf("DEBUG -- cell %d mpot %d\n",ic,mpot_check[ic]);
    //}

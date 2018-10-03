@@ -2246,8 +2246,8 @@ __kernel void refine_smooth_cl(
         __global const int   *ntop,         // 6  Array of top neighbors.
         __global const uchar_t *level,        // 7  Array of level information.
         __global const char_t *celltype,     // 8  Array of celltype information.
-        __global const int   *mpot_old,     // 9  Array of mesh potential information.
-        __global       int   *mpot,         // 10 Array of mesh potential information.
+        __global const char_t   *mpot_old,     // 9  Array of mesh potential information.
+        __global       char_t   *mpot,         // 10 Array of mesh potential information.
         __global       int   *redscratch,   // 11  Array of number of cells smoothed per tile
         __global       int   *result,       // 12
         __local        int   *itile)        // 13  Tile size in int2.
@@ -2419,8 +2419,8 @@ __kernel void coarsen_smooth_cl(
         __global const int   *i,            // 5  Array of i values.
         __global const int   *j,            // 6  Array of j values.
         __global const uchar_t *level,        // 7  Array of level information.
-        __global const int   *mpot_old,     // 8  Array of mpot_old information.
-        __global       int   *mpot)         // 9  Array of mpot information.
+        __global const char_t   *mpot_old,     // 8  Array of mpot_old information.
+        __global       char_t   *mpot)         // 9  Array of mpot information.
 {
    const uint giX  = get_global_id(0);
 
@@ -2481,8 +2481,8 @@ __kernel void coarsen_check_block_cl(
         __global const int   *j,            // 6  Array of j values.
         __global const uchar_t *level,        // 7  Array of level information.
         __global const char_t *celltype,     // 8  Array of celltype information.
-        __global const int   *mpot_old,     // 9  Array of mpot_old information.
-        __global       int   *mpot,         // 10 Array of mpot information.
+        __global const char_t   *mpot_old,     // 9  Array of mpot_old information.
+        __global       char_t   *mpot,         // 10 Array of mpot information.
         __global       int   *redscratch,   // 10 Reduction scratch
         __global       int   *result,       // 11 Reduction result
         __local        int   *itile)        // 12 itile scratch.
@@ -2564,7 +2564,7 @@ __kernel void rezone_all_cl(
                  const int    isize,         // 0 
                  const int    stencil,       // 1 
                  const int    levmx,         // 2
-        __global const int    *mpot,         // 3   Array of mesh potential information.
+        __global const char_t    *mpot,         // 3   Array of mesh potential information.
         __global const uchar_t *level,        // 4
         __global const int    *i,            // 5
         __global const int    *j,            // 6
@@ -3025,7 +3025,7 @@ __kernel void rezone_all_cl(
 
 __kernel void rezone_neighbors_cl(
                  const int    isize,        // 0 
-        __global const int   *mpot,         // 1
+        __global const char_t   *mpot,         // 1
         __global const int   *index_offset, // 2
         __global const int   *nlft,         // 3
         __global const int   *nrht,         // 4
@@ -3115,7 +3115,7 @@ __kernel void rezone_one_float_cl(
         __global const int   *nbot,         // 5
         __global const int   *ntop,         // 6
         __global const char_t *celltype,     // 7
-        __global const int   *mpot,         // 8   Array of mesh potential information.
+        __global const char_t   *mpot,         // 8   Array of mesh potential information.
         __global const uint  *indexoffset,  // 9
         __global const float *Var,          // 10
         __global       float *Var_new)      // 11
@@ -3165,7 +3165,7 @@ __kernel void rezone_one_double_cl(
         __global const int    *nbot,         // 5
         __global const int    *ntop,         // 6
         __global const char_t  *celltype,     // 7
-        __global const int    *mpot,         // 8   Array of mesh potential information.
+        __global const char_t    *mpot,         // 8   Array of mesh potential information.
         __global const uint   *indexoffset,  // 9
         __global const double *Var,          // 10
         __global       double *Var_new)      // 11
@@ -3209,8 +3209,8 @@ __kernel void rezone_one_double_cl(
 __kernel void copy_mpot_ghost_data_cl(
                           const int  ncells,        // 0
                           const int  nghost,        // 1
-                 __global       int  *mpot,         // 2
-                 __global       int  *mpot_add)     // 3
+                 __global       char_t  *mpot,         // 2
+                 __global       char_t  *mpot_add)     // 3
 {
    const unsigned int giX  = get_global_id(0);
 
@@ -3228,7 +3228,7 @@ __kernel void set_boundary_refinement(
       __global const int  *i,          // 5
       __global const int  *j,          // 6
       __global const char_t *celltype,   // 7
-      __global       int  *mpot,       // 8  refinement flag
+      __global       char_t  *mpot,       // 8  refinement flag
       __global       int2 *redscratch, // 9  reduction array
       __global       int  *ioffset,    // 10 prefix scan offset array
       __global       int2 *result,     // 11 new cell count

@@ -287,7 +287,7 @@ public:
    *    ioffset
    *    count
    *******************************************************************/
-   size_t calc_refine_potential(vector<int> &mpot, int &icount, int &jcount);
+   size_t calc_refine_potential(vector<char_t> &mpot, int &icount, int &jcount);
 #ifdef HAVE_OPENCL
    size_t gpu_calc_refine_potential(int &icount, int &jcount);
 #endif
@@ -299,7 +299,7 @@ public:
    *  Output
    *    New mesh and state variables on refined mesh
    *******************************************************************/
-   void rezone_all(int icount, int jcount, vector<int> mpot);
+   void rezone_all(int icount, int jcount, vector<char_t> mpot);
 #ifdef HAVE_OPENCL
    void gpu_rezone_all(int icount, int jcount, bool localStencil);
 #endif

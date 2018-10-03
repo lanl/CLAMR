@@ -383,7 +383,7 @@ extern "C" void do_calc(void)
 
    cl_mem &dev_mpot     = state->dev_mpot;
 
-   vector<int>     mpot;
+   vector<char_t>     mpot;
    
    size_t old_ncells = ncells;
    size_t new_ncells = 0;
@@ -426,10 +426,10 @@ extern "C" void do_calc(void)
       // otherwise cell count will diverge causing code problems and crashes
       if (dev_mpot) {
          if (do_sync) {
-            ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_char_t), &mpot[0], NULL);
          }
          if (do_gpu_sync) {
-            ezcl_enqueue_write_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
+            ezcl_enqueue_write_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_char_t), &mpot[0], NULL);
          }
       }
 
@@ -478,7 +478,7 @@ extern "C" void do_calc(void)
       // it to delete the mpot memory. This is all to avoid valgrind from showing
       // it as a reachable memory leak
       //mpot.clear();
-      vector<int>().swap(mpot);
+      vector<char_t>().swap(mpot);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
       if (state->dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);

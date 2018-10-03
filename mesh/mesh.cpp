@@ -1045,12 +1045,12 @@ void Mesh::compare_coordinates_cpu_local_to_cpu_global_float(uint ncells_global,
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::compare_mpot_gpu_global_to_cpu_global(int *mpot, cl_mem dev_mpot)
+void Mesh::compare_mpot_gpu_global_to_cpu_global(char_t *mpot, cl_mem dev_mpot)
 {
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-   vector<int>mpot_check(ncells);
-   ezcl_enqueue_read_buffer(command_queue, dev_mpot,  CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_check[0], NULL);
+   vector<char_t>mpot_check(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_mpot,  CL_TRUE,  0, ncells*sizeof(cl_char_t), &mpot_check[0], NULL);
 
    for (uint ic=0; ic<ncells; ic++) {
       if (mpot[ic] != mpot_check[ic]) printf("DEBUG -- mpot: ic %d mpot %d mpot_check %d\n",ic, mpot[ic], mpot_check[ic]);
@@ -1058,11 +1058,11 @@ void Mesh::compare_mpot_gpu_global_to_cpu_global(int *mpot, cl_mem dev_mpot)
 }
 #endif
 
-void Mesh::compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, int *mpot, int *mpot_global, int cycle)
+void Mesh::compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes, int *ndispl, char_t *mpot, char_t *mpot_global, int cycle)
 {
-   vector<int>mpot_save_global(ncells_global);
+   vector<char_t>mpot_save_global(ncells_global);
 #ifdef HAVE_MPI
-   MPI_Allgatherv(&mpot[0], ncells, MPI_INT, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   MPI_Allgatherv(&mpot[0], ncells, MPI_CHAR_T, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_CHAR_T, MPI_COMM_WORLD);
 #else
    // Just to get rid of compiler warnings
    if (1 == 2) printf("DEBUG -- nsizes[0] %d ndispl[0] %d mpot %p\n",
@@ -1077,14 +1077,14 @@ void Mesh::compare_mpot_cpu_local_to_cpu_global(uint ncells_global, int *nsizes,
 }
 
 #ifdef HAVE_OPENCL
-void Mesh::compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle)
+void Mesh::compare_mpot_all_to_gpu_local(char_t *mpot, char_t *mpot_global, cl_mem dev_mpot, cl_mem dev_mpot_global, uint ncells_global, int *nsizes, int *ndispl, int ncycle)
 {
 #ifdef HAVE_MPI
    cl_command_queue command_queue = ezcl_get_command_queue();
 
    // Need to compare dev_mpot to mpot 
-   vector<int>mpot_save(ncells);
-   ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot_save[0], NULL);
+   vector<char_t>mpot_save(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_char_t), &mpot_save[0], NULL);
    for (uint ic = 0; ic < ncells; ic++){
       if (mpot[ic] != mpot_save[ic]) {
          printf("%d: DEBUG refine_potential 1 at cycle %d cell %d mpot & mpot_save %d %d \n",mype,ncycle,ic,mpot[ic],mpot_save[ic]);
@@ -1092,8 +1092,8 @@ void Mesh::compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev
    }    
 
    // Compare dev_mpot to mpot_global
-   vector<int>mpot_save_global(ncells_global);
-   MPI_Allgatherv(&mpot_save[0], nsizes[mype], MPI_INT, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   vector<char_t>mpot_save_global(ncells_global);
+   MPI_Allgatherv(&mpot_save[0], nsizes[mype], MPI_CHAR_T, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_CHAR_T, MPI_COMM_WORLD);
    for (uint ic = 0; ic < ncells_global; ic++){
       if (mpot_global[ic] != mpot_save_global[ic]) {
          if (mype == 0) printf("%d: DEBUG refine_potential 2 at cycle %d cell %d mpot_global & mpot_save_global %d %d \n",mype,ncycle,ic,mpot_global[ic],mpot_save_global[ic]);
@@ -1101,7 +1101,7 @@ void Mesh::compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev
    }    
 
    // Compare mpot to mpot_global
-   MPI_Allgatherv(&mpot[0], nsizes[mype], MPI_INT, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_INT, MPI_COMM_WORLD);
+   MPI_Allgatherv(&mpot[0], nsizes[mype], MPI_CHAR_T, &mpot_save_global[0], &nsizes[0], &ndispl[0], MPI_CHAR_T, MPI_COMM_WORLD);
    for (uint ic = 0; ic < ncells_global; ic++){
       if (mpot_global[ic] != mpot_save_global[ic]) {
          if (mype == 0) printf("%d: DEBUG refine_potential 3 at cycle %d cell %d mpot_global & mpot_save_global %d %d \n",mype,ncycle,ic,mpot_global[ic],mpot_save_global[ic]);
@@ -1109,7 +1109,7 @@ void Mesh::compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev
    }    
 
    // Compare dev_mpot_global to mpot_global
-   ezcl_enqueue_read_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_int), &mpot_save_global[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_char_t), &mpot_save_global[0], NULL);
    for (uint ic = 0; ic < ncells_global; ic++){
       if (mpot_global[ic] != mpot_save_global[ic]) {
          if (mype == 0) printf("%d: DEBUG refine_potential 4 at cycle %d cell %u mpot_global & mpot_save_global %d %d \n",mype,ncycle,ic,mpot_global[ic],mpot_save_global[ic]);
@@ -1122,7 +1122,7 @@ void Mesh::compare_mpot_all_to_gpu_local(int *mpot, int *mpot_global, cl_mem dev
 #endif
 }
 
-void Mesh::compare_ioffset_gpu_global_to_cpu_global(uint old_ncells, int *mpot)
+void Mesh::compare_ioffset_gpu_global_to_cpu_global(uint old_ncells, char_t *mpot)
 {
    cl_command_queue command_queue = ezcl_get_command_queue();
 
@@ -1165,7 +1165,7 @@ void Mesh::compare_ioffset_gpu_global_to_cpu_global(uint old_ncells, int *mpot)
    }
 }
 
-void Mesh::compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, int *mpot, int *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, char_t *celltype_global, int *i_global, int *j_global)
+void Mesh::compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, char_t *mpot, char_t *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, char_t *celltype_global, int *i_global, int *j_global)
 {
    cl_command_queue command_queue = ezcl_get_command_queue();
 
@@ -1579,7 +1579,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
           KDTree_QueryCircleIntersect_Float(&tree, &nez, &(ind[0]), circ_radius, ncells, &x[0], &dx[0], &y[0], &dy[0]);
     #endif
 
-          vector<int> mpot(ncells_ghost,0);
+          vector<char_t> mpot(ncells_ghost,0);
 
           for (int ic=0; ic<nez; ++ic){
              if (level[ind[ic]] < levmx) mpot[ind[ic]] = 1;
@@ -1628,9 +1628,9 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
    }
 }
 
-size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
+size_t Mesh::refine_smooth(vector<char_t> &mpot, int &icount, int &jcount)
 {
-   vector<int> mpot_old;
+   vector<char_t> mpot_old;
 
    int newcount;
    int newcount_global;
@@ -1705,7 +1705,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
          newcount=0;
 #ifdef HAVE_MPI
          if (numpe > 1) {
-            L7_Update(&mpot_old[0], L7_INT, cell_handle);
+            L7_Update(&mpot_old[0], L7_CHAR_T, cell_handle);
          }
 #endif
 
@@ -1871,7 +1871,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
 #ifdef HAVE_MPI
    if (numpe > 1) {
-      L7_Update(&mpot[0], L7_INT, cell_handle);
+      L7_Update(&mpot[0], L7_CHAR_T, cell_handle);
   }
 #endif
 
@@ -1933,7 +1933,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
 #ifdef HAVE_MPI
    if (numpe > 1) {
-      L7_Update(&mpot[0], L7_INT, cell_handle);
+      L7_Update(&mpot[0], L7_CHAR_T, cell_handle);
   }
 #endif
 
@@ -1993,7 +1993,7 @@ size_t Mesh::refine_smooth(vector<int> &mpot, int &icount, int &jcount)
 
 #ifdef HAVE_MPI
    if (numpe > 1) {
-      L7_Update(&mpot[0], L7_INT, cell_handle);
+      L7_Update(&mpot[0], L7_CHAR_T, cell_handle);
   }
 #endif
 
@@ -2086,7 +2086,7 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
       size_t result_size = 1;
       cl_mem dev_result  = ezcl_malloc(NULL, const_cast<char *>("dev_result"),  &result_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
       cl_mem dev_redscratch = ezcl_malloc(NULL, const_cast<char *>("dev_redscratch"), &block_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-      cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_char_t), CL_MEM_READ_WRITE, 0);
 
       int newcount = icount;
       int newcount_global = icount_global;
@@ -2097,7 +2097,7 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
 
 #ifdef HAVE_MPI
          if (numpe > 1) {
-            L7_Dev_Update(dev_mpot, L7_INT, cell_handle);
+            L7_Dev_Update(dev_mpot, L7_CHAR_T, cell_handle);
          }
 #endif
 
@@ -2151,11 +2151,11 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
    if (jcount_global) {
 #ifdef HAVE_MPI
       if (numpe > 1) {
-         L7_Dev_Update(dev_mpot, L7_INT, cell_handle);
+         L7_Dev_Update(dev_mpot, L7_CHAR_T, cell_handle);
       }
 #endif
 
-      cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+      cl_mem dev_mpot_old = ezcl_malloc(NULL, const_cast<char *>("dev_mpot_old"), &ncells_ghost, sizeof(cl_char_t), CL_MEM_READ_WRITE, 0);
 
       if (jcount) {
          ezcl_device_memory_swap(&dev_mpot_old, &dev_mpot);
@@ -2176,7 +2176,7 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
 
 #ifdef HAVE_MPI
       if (numpe > 1) {
-         L7_Dev_Update(dev_mpot, L7_INT, cell_handle);
+         L7_Dev_Update(dev_mpot, L7_CHAR_T, cell_handle);
       }
 #endif
 
@@ -2231,7 +2231,7 @@ int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
    if (icount_global || jcount_global) {
 #ifdef HAVE_MPI
       if (numpe > 1) {
-         L7_Dev_Update(dev_mpot, L7_INT, cell_handle);
+         L7_Dev_Update(dev_mpot, L7_CHAR_T, cell_handle);
       }
 #endif
 
@@ -2399,7 +2399,7 @@ void Mesh::terminate(void)
 #endif
 }
 
-int Mesh::rezone_count(vector<int> mpot, int &icount, int &jcount)
+int Mesh::rezone_count(vector<char_t> mpot, int &icount, int &jcount)
 {
    int my_icount=0;
    int my_jcount=0;
@@ -2434,7 +2434,7 @@ int Mesh::rezone_count(vector<int> mpot, int &icount, int &jcount)
    return(icount+jcount);
 }
 
-int Mesh::rezone_count_threaded(vector<int> mpot, int &icount, int &jcount)
+int Mesh::rezone_count_threaded(vector<char_t> mpot, int &icount, int &jcount)
 {
    static int my_icount=0;
    static int my_jcount=0;
@@ -2741,7 +2741,7 @@ void Mesh::calc_centerminmax(void)
 
 }
 
-void Mesh::rezone_all(int icount, int jcount, vector<int> mpot, int have_state, MallocPlus &state_memory)
+void Mesh::rezone_all(int icount, int jcount, vector<char_t> mpot, int have_state, MallocPlus &state_memory)
 {
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);

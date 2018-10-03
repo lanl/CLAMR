@@ -493,8 +493,8 @@ extern "C" void do_calc(void)
 
    cl_mem &dev_mpot     = state_local->dev_mpot;
 
-   vector<int>     mpot;
-   vector<int>     mpot_global;
+   vector<char_t>     mpot;
+   vector<char_t>     mpot_global;
 
    size_t old_ncells = ncells;
    size_t old_ncells_global = ncells_global;
@@ -638,12 +638,12 @@ extern "C" void do_calc(void)
       // otherwise cell count will diverge causing code problems and crashes
       if (state_local->dev_mpot) {
          if (do_sync) {
-            ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
-            ezcl_enqueue_read_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_int), &mpot_global[0], NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_char_t), &mpot[0], NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_char_t), &mpot_global[0], NULL);
          }
          if (do_gpu_sync) {
-            ezcl_enqueue_write_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
-            ezcl_enqueue_write_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_int), &mpot_global[0], NULL);
+            ezcl_enqueue_write_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_char_t), &mpot[0], NULL);
+            ezcl_enqueue_write_buffer(command_queue, dev_mpot_global, CL_TRUE,  0, ncells_global*sizeof(cl_char_t), &mpot_global[0], NULL);
          }
       }
 
@@ -694,8 +694,8 @@ extern "C" void do_calc(void)
          // it as a reachable memory leak
          mpot_global.clear();
          mpot.clear();
-         //vector<int>().swap(mpot_global);
-         //vector<int>().swap(mpot);
+         //vector<char_t>().swap(mpot_global);
+         //vector<char_t>().swap(mpot);
       }
 
       //  Resize the mesh, inserting cells where refinement is necessary.
