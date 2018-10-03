@@ -253,9 +253,11 @@ typedef struct
                                 */
 #ifdef HAVE_OPENCL
    cl_kernel
+     kernel_pack_short_have_data,
      kernel_pack_int_have_data,
      kernel_pack_float_have_data,
      kernel_pack_double_have_data,
+     kernel_copy_ghost_short_data,
      kernel_copy_ghost_int_data,
      kernel_copy_ghost_float_data,
      kernel_copy_ghost_double_data;

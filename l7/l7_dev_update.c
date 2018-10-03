@@ -158,6 +158,8 @@ int L7_Dev_Update(
 
    cl_mem dev_packed_data = NULL;
    cl_mem dev_data_buffer_add = NULL;
+   short *short_data_buffer = NULL;
+   short *packed_short_data = NULL;
    int *packed_int_data = NULL;
    int *int_data_buffer = NULL;
    float *packed_float_data = NULL;
@@ -169,6 +171,50 @@ int L7_Dev_Update(
    size_t ghost_global_work_size = ((num_indices_needed + ghost_local_work_size - 1) /ghost_local_work_size) * ghost_local_work_size;
 
    switch (l7_datatype) {
+      case L7_SHORT:
+         dev_packed_data = ezcl_malloc(NULL, "dev_packed_data", &num_indices_have, sizeof(cl_short), CL_MEM_READ_WRITE, 0);
+
+         ezcl_set_kernel_arg(l7.kernel_pack_short_have_data, 0, sizeof(cl_int), (void *)&num_indices_have);
+         ezcl_set_kernel_arg(l7.kernel_pack_short_have_data, 1, sizeof(cl_mem), (void *)&l7_id_db->dev_indices_have);
+         ezcl_set_kernel_arg(l7.kernel_pack_short_have_data, 2, sizeof(cl_mem), (void *)&dev_data_buffer);
+         ezcl_set_kernel_arg(l7.kernel_pack_short_have_data, 3, sizeof(cl_mem), (void *)&dev_packed_data);
+
+         ezcl_enqueue_ndrange_kernel(command_queue, l7.kernel_pack_short_have_data,   1, NULL, &pack_global_work_size, &pack_local_work_size, NULL);
+
+         packed_short_data = (short *)malloc(num_indices_have*sizeof(short));
+         ezcl_enqueue_read_buffer(command_queue, dev_packed_data, CL_TRUE, 0, num_indices_have*sizeof(cl_short), &packed_short_data[0], NULL);
+   
+         short_data_buffer = (short *)malloc((num_indices_owned+num_indices_needed)*sizeof(short));
+         for (unsigned int ii = 0; ii < num_indices_have; ii++){
+            short_data_buffer[l7_id_db->indices_have[ii]] = packed_short_data[ii];
+         }
+
+         free(packed_short_data);
+
+         ezcl_device_memory_delete(dev_packed_data);
+
+         /*
+          * Do the regular L7_Update across processor.
+          */
+   
+         L7_Update (short_data_buffer, l7_datatype, l7_id);
+
+         dev_data_buffer_add    = ezcl_malloc(NULL, "dev_data_buffer_add",    &num_indices_needed,     sizeof(cl_short), CL_MEM_READ_WRITE, 0);
+         ezcl_enqueue_write_buffer(command_queue, dev_data_buffer_add, CL_TRUE,  0, num_indices_needed*sizeof(cl_short), &short_data_buffer[num_indices_owned],     NULL);
+
+         free(short_data_buffer);
+
+         // Fill in ghost
+         ezcl_set_kernel_arg(l7.kernel_copy_ghost_short_data, 0, sizeof(cl_int), &num_indices_owned);
+         ezcl_set_kernel_arg(l7.kernel_copy_ghost_short_data, 1, sizeof(cl_int), (void *)&num_indices_needed);
+         ezcl_set_kernel_arg(l7.kernel_copy_ghost_short_data, 2, sizeof(cl_mem), (void *)&dev_data_buffer);
+         ezcl_set_kernel_arg(l7.kernel_copy_ghost_short_data, 3, sizeof(cl_mem), (void *)&dev_data_buffer_add);
+
+         ezcl_enqueue_ndrange_kernel(command_queue, l7.kernel_copy_ghost_short_data,   1, NULL, &ghost_global_work_size, &ghost_local_work_size, NULL);
+
+         ezcl_device_memory_delete(dev_data_buffer_add);
+
+         break;
       case L7_INT:
          dev_packed_data = ezcl_malloc(NULL, "dev_packed_data", &num_indices_have, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
 

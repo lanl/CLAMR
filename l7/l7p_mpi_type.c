@@ -76,6 +76,9 @@ MPI_Datatype l7p_mpi_type (
 	case L7_CHAR:
 		mpi_type = MPI_CHAR;
 		break;
+    case L7_SHORT:
+		mpi_type = MPI_SHORT;
+		break;
 	case L7_INT:
 		mpi_type = MPI_INT;
 		break;
