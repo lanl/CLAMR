@@ -388,6 +388,7 @@ extern "C" void do_calc(void)
 
    //  Main loop.
    int endcycle = MIN3(niter, next_cp_cycle, next_graphics_cycle);
+   mesh->firstFlag = true;
 
    cpu_timer_start(&tstart_cpu);
 
