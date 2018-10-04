@@ -13217,10 +13217,10 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
       }
       //printf("DEBUG -- trimleft %d trimright %d trimbottom %d trimtop %d\n",trimleft,trimright,trimbottom,trimtop);
 
-      lev_iregmin[ll] += trimleft;
-      lev_jregmin[ll] += trimbottom;
-      lev_iregsize[ll] -= (trimleft+trimright);
-      lev_jregsize[ll] -= (trimbottom+trimtop);
+      //lev_iregmin[ll] += trimleft;
+      //lev_jregmin[ll] += trimbottom;
+      //lev_iregsize[ll] -= (trimleft+trimright);
+      //lev_jregsize[ll] -= (trimbottom+trimtop);
         
       //printf("DEBUG -- lev_iregmin %d lev_iregsize %d lev_jregmin %d lev_jregsize %d\n",
       //        lev_iregmin[ll],lev_iregsize[ll],lev_jregmin[ll],lev_jregsize[ll]);
