@@ -107,14 +107,20 @@ void scan ( scanInt *input , scanInt *output , scanInt length);
 #if defined(MINIMUM_PRECISION)
 #define CONSERVATION_EPS    .1
 #define STATE_EPS      15.0
+#define HALF 0.5f
+#define ZERO 0.0f
 
 #elif defined(MIXED_PRECISION) // intermediate values calculated high precision and stored as floats
 #define CONSERVATION_EPS    .02
 #define STATE_EPS        .025
+#define HALF 0.5
+#define ZERO 0.0
 
 #elif defined(FULL_PRECISION)
 #define CONSERVATION_EPS    .02
 #define STATE_EPS        .025
+#define HALF 0.5
+#define ZERO 0.0
 
 #endif
 
@@ -124,7 +130,6 @@ typedef unsigned long ulong;
 #endif
 
 #define TWO 2
-#define HALF 0.5
 
 #define __NEW_STENCIL__
 //#define __OLD_STENCIL__
@@ -9754,7 +9759,7 @@ void Mesh::interpolate(int scheme, int index, int cell_lower, int cell_upper, do
    real_t state_bot, state_top, state_lft, state_rht, state_avg;
    real_t state_botbot, state_bottop, state_topbot, state_toptop; 
    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht;
-   real_t state_sideavg = 0; 
+   real_t state_sideavg = ZERO; 
    bool fake_flux = false;
    bool five_point = false;
 
@@ -9921,7 +9926,7 @@ void Mesh::interpolate(int scheme, int index, int cell_lower, int cell_upper, do
               //mem_ptr_double[index+1] = mem_ptr_double[nlft[cell_course]]; // left left
               // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
           }
-          state_sideavg = 0;
+          state_sideavg = ZERO;
       }
 
       //printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: rht\n",index+2,cell_lower,cell_upper);
@@ -9969,7 +9974,7 @@ void Mesh::interpolate(int scheme, int index, int cell_lower, int cell_upper, do
               //mem_ptr_double[index+3] = mem_ptr_double[nrht[cell_course]]; // right right
               // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
           }
-          state_sideavg = 0;
+          state_sideavg = ZERO;
       }
 
       //printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: lft\n",index,cell_lower,cell_upper);
@@ -10017,7 +10022,7 @@ void Mesh::interpolate(int scheme, int index, int cell_lower, int cell_upper, do
               //mem_ptr_double[index+1] = mem_ptr_double[nbot[cell_course]]; // bot bot
               // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
           }
-          state_sideavg = 0;
+          state_sideavg = ZERO;
       }
 
       //printf("DEBUG MESH: ID %d) LOWER:  %d, UPPER: %d, POS: top\n",index+2,cell_lower,cell_upper);
@@ -10065,7 +10070,7 @@ void Mesh::interpolate(int scheme, int index, int cell_lower, int cell_upper, do
               //mem_ptr_double[index+3] = mem_ptr_double[ntop[cell_course]]; // top top
               // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
           }
-          state_sideavg = 0;
+          state_sideavg = ZERO;
       }
 
       //printf("DEBUG MESH: ID %d) LOWER: %d, UPPER: %d, POS: bot\n",index,cell_lower,cell_upper);
@@ -10525,7 +10530,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     phantomXFluxFace[map_xcell2face_left1[tncell]] = pfaceIdx;
 
                     // loop through state arrays to update phantom cell state values
-                    real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; //vars for 2 cells over
+                    real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = ZERO; //vars for 2 cells over
                     int locStateCnt = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
@@ -10533,7 +10538,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
@@ -10561,7 +10566,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                         mem_ptr_double[pcellIdx+3] = state_sideavg;
                         mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
 
-                        state_sideavg = 0;
+                        state_sideavg = ZERO;
                     }
 
                 }
@@ -10618,14 +10623,14 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     phantomXFluxFace[map_xcell2face_right1[tncell]] = pfaceIdx;
 
                     // loop through state arrays to update phantom cell state values
-                    real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; // vars for 2 cells over
+                    real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = ZERO; // vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
@@ -10654,7 +10659,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                         mem_ptr_double[pcellIdx+1] = state_sideavg;
                         mem_ptr_double[pcellIdx+3] = mem_ptr_double[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
 
-                        state_sideavg = 0;
+                        state_sideavg = ZERO;
                     }
 
                 }
@@ -10722,7 +10727,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_coarse = mem_ptr_double[cncell];
                         mem_ptr_double[pcellIdx] = state_coarse;
@@ -10773,7 +10778,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_coarse = mem_ptr_double[cncell];
                         mem_ptr_double[pcellIdx] = state_coarse;
@@ -10918,14 +10923,14 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     phantomYFluxFace[map_ycell2face_bot1[rncell]] = pfaceIdx;
 
                     // loop through state arrays to update phantom cell state values
-                    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; // vars for 2 cells over
+                    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = ZERO; // vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
@@ -10955,7 +10960,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                         mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
                         
 
-                        state_sideavg = 0;
+                        state_sideavg = ZERO;
                     }
 
                 }
@@ -11013,14 +11018,14 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     phantomYFluxFace[map_ycell2face_top1[rncell]] = pfaceIdx;
 
                     // loop through state arrays to update phantom cell state values
-                    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; //vars for 2 cells over
+                    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = ZERO; //vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
@@ -11049,7 +11054,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                         mem_ptr_double[pcellIdx+1] = state_sideavg;
                         mem_ptr_double[pcellIdx+3] = mem_ptr_double[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
 
-                        state_sideavg = 0;
+                        state_sideavg = ZERO;
                     }
 
 
@@ -11116,7 +11121,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_coarse = mem_ptr_double[cncell];
                         mem_ptr_double[pcellIdx] = state_coarse;
@@ -11167,7 +11172,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_coarse = mem_ptr_double[cncell];
                         mem_ptr_double[pcellIdx] = state_coarse;
@@ -11513,7 +11518,7 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     phantomXFluxFace[map_xcell2face_left1[tncell]] = pfaceIdx;
 
                     // loop through state arrays to update phantom cell state values
-                    real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; //vars for 2 cells over
+                    real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = ZERO; //vars for 2 cells over
                     int locStateCnt = 0;
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
@@ -11521,7 +11526,7 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
@@ -11549,7 +11554,7 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                         mem_ptr_double[pcellIdx+3] = state_sideavg;
                         mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
 
-                        state_sideavg = 0;
+                        state_sideavg = ZERO;
                     }
 
                 }
@@ -11576,14 +11581,14 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     phantomXFluxFace[map_xcell2face_right1[tncell]] = pfaceIdx;
 
                     // loop through state arrays to update phantom cell state values
-                    real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0; // vars for 2 cells over
+                    real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = ZERO; // vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_bot = mem_ptr_double[bncell];
                         real_t state_top = mem_ptr_double[tncell];
@@ -11612,7 +11617,7 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                         mem_ptr_double[pcellIdx+1] = state_sideavg;
                         mem_ptr_double[pcellIdx+3] = mem_ptr_double[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
 
-                        state_sideavg = 0;
+                        state_sideavg = ZERO;
                     }
 
                 }
@@ -11640,7 +11645,7 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_coarse = mem_ptr_double[cncell];
                         mem_ptr_double[pcellIdx] = state_coarse;
@@ -11673,7 +11678,7 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_coarse = mem_ptr_double[cncell];
                         mem_ptr_double[pcellIdx] = state_coarse;
@@ -11777,14 +11782,14 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     phantomYFluxFace[map_ycell2face_bot1[rncell]] = pfaceIdx;
 
                     // loop through state arrays to update phantom cell state values
-                    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; // vars for 2 cells over
+                    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = ZERO; // vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
@@ -11814,7 +11819,7 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                         mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
                         
 
-                        state_sideavg = 0;
+                        state_sideavg = ZERO;
                     }
 
                 }
@@ -11840,14 +11845,14 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                     phantomYFluxFace[map_ycell2face_top1[rncell]] = pfaceIdx;
 
                     // loop through state arrays to update phantom cell state values
-                    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0; //vars for 2 cells over
+                    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = ZERO; //vars for 2 cells over
                     for (memory_item = state_memory_old.memory_entry_by_name_begin();
                         memory_item != state_memory_old.memory_entry_by_name_end();
                         memory_item = state_memory_old.memory_entry_by_name_next() ) {
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_lft = mem_ptr_double[lncell];
                         real_t state_rht = mem_ptr_double[rncell];
@@ -11876,7 +11881,7 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
                         mem_ptr_double[pcellIdx+1] = state_sideavg;
                         mem_ptr_double[pcellIdx+3] = mem_ptr_double[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
 
-                        state_sideavg = 0;
+                        state_sideavg = ZERO;
                     }
 
 
@@ -11904,7 +11909,7 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_coarse = mem_ptr_double[cncell];
                         mem_ptr_double[pcellIdx] = state_coarse;
@@ -11937,7 +11942,7 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        double *mem_ptr_double = (double *)memory_item->mem_ptr;
+                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
 
                         real_t state_coarse = mem_ptr_double[cncell];
                         mem_ptr_double[pcellIdx] = state_coarse;
