@@ -10462,8 +10462,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
         
-        double *mem_ptr_double = (double *)memory_item->mem_ptr;
-
         state_memory.memory_realloc(6*ncells, memory_item->mem_ptr);
 
     }  
@@ -10575,35 +10573,100 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
+                        if (memory_item->mem_elsize == 8) {
+                           state_sideavg = ZERO;
+                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t state_bot = mem_ptr_double[bncell];
-                        real_t state_top = mem_ptr_double[tncell];
-                        real_t state_coarse = mem_ptr_double[cncell];
-                        real_t state_avg = HALF * (state_bot + state_top);
-                        mem_ptr_double[pcellIdx+2] = state_avg;
-                        mem_ptr_double[pcellIdx] = state_coarse;
+                           real_t state_bot = mem_ptr_double[bncell];
+                           real_t state_top = mem_ptr_double[tncell];
+                           real_t state_coarse = mem_ptr_double[cncell];
+                           real_t state_avg = HALF * (state_bot + state_top);
+                           mem_ptr_double[pcellIdx+2] = state_avg;
+                           mem_ptr_double[pcellIdx] = state_coarse;
 
-                        if (level[nrht[bncell]] > level_right) { // rightbot right neighbor is even more refined
-                            state_botbot = mem_ptr_double[nrht[bncell]];
-                            state_bottop = mem_ptr_double[ntop[nrht[bncell]]];
-                            state_sideavg += HALF * HALF * (state_botbot + state_bottop);
-                        }
-                        else { // same refinement as rightbot neighbor
-                            state_sideavg += HALF * mem_ptr_double[nrht[bncell]];
-                        }
-                        if (level[nrht[tncell]] > level_right) { // righttop right neighbor is even more refined
-                            state_topbot = mem_ptr_double[nrht[tncell]];
-                            state_toptop = mem_ptr_double[ntop[nrht[tncell]]];
-                            state_sideavg += HALF * HALF * (state_topbot + state_toptop);
-                        }
-                        else { // same refinement as righttop neighbor
-                            state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
-                        }
-                        mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
+                           if (level[nrht[bncell]] > level_right) { // rightbot right neighbor is even more refined
+                               state_botbot = mem_ptr_double[nrht[bncell]];
+                               state_bottop = mem_ptr_double[ntop[nrht[bncell]]];
+                               state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                           }
+                           else { // same refinement as rightbot neighbor
+                               state_sideavg += HALF * mem_ptr_double[nrht[bncell]];
+                           }
+                           if (level[nrht[tncell]] > level_right) { // righttop right neighbor is even more refined
+                               state_topbot = mem_ptr_double[nrht[tncell]];
+                               state_toptop = mem_ptr_double[ntop[nrht[tncell]]];
+                               state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                           }
+                           else { // same refinement as righttop neighbor
+                               state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
+                           }
+                           mem_ptr_double[pcellIdx+3] = state_sideavg;
+                           mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
 
-                        state_sideavg = ZERO;
+                        } else if (memory_item->mem_elsize == 4) {
+                           state_sideavg = ZERO;
+                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
+
+                           real_t state_bot = mem_ptr_float[bncell];
+                           real_t state_top = mem_ptr_float[tncell];
+                           real_t state_coarse = mem_ptr_float[cncell];
+                           real_t state_avg = HALF * (state_bot + state_top);
+                           mem_ptr_float[pcellIdx+2] = state_avg;
+                           mem_ptr_float[pcellIdx] = state_coarse;
+
+                           if (level[nrht[bncell]] > level_right) { // rightbot right neighbor is even more refined
+                               state_botbot = mem_ptr_float[nrht[bncell]];
+                               state_bottop = mem_ptr_float[ntop[nrht[bncell]]];
+                               state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                           }
+                           else { // same refinement as rightbot neighbor
+                               state_sideavg += HALF * mem_ptr_float[nrht[bncell]];
+                           }
+                           if (level[nrht[tncell]] > level_right) { // righttop right neighbor is even more refined
+                               state_topbot = mem_ptr_float[nrht[tncell]];
+                               state_toptop = mem_ptr_float[ntop[nrht[tncell]]];
+                               state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                           }
+                           else { // same refinement as righttop neighbor
+                               state_sideavg += HALF * mem_ptr_float[nrht[tncell]];
+                           }
+                           mem_ptr_float[pcellIdx+3] = state_sideavg;
+                           mem_ptr_float[pcellIdx+1] = mem_ptr_float[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
+
+#ifdef HALF_PRECISION
+                        } else if (memory_item->mem_elsize == 2) {
+                           state_sideavg = ZERO;
+                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
+
+                           real_t state_bot = mem_ptr_half[bncell];
+                           real_t state_top = mem_ptr_half[tncell];
+                           real_t state_coarse = mem_ptr_half[cncell];
+                           real_t state_avg = HALF * (state_bot + state_top);
+                           mem_ptr_half[pcellIdx+2] = state_avg;
+                           mem_ptr_half[pcellIdx] = state_coarse;
+
+                           if (level[nrht[bncell]] > level_right) { // rightbot right neighbor is even more refined
+                               state_botbot = mem_ptr_half[nrht[bncell]];
+                               state_bottop = mem_ptr_half[ntop[nrht[bncell]]];
+                               state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                           }
+                           else { // same refinement as rightbot neighbor
+                               state_sideavg += HALF * mem_ptr_half[nrht[bncell]];
+                           }
+                           if (level[nrht[tncell]] > level_right) { // righttop right neighbor is even more refined
+                               state_topbot = mem_ptr_half[nrht[tncell]];
+                               state_toptop = mem_ptr_half[ntop[nrht[tncell]]];
+                               state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                           }
+                           else { // same refinement as righttop neighbor
+                               state_sideavg += HALF * mem_ptr_half[nrht[tncell]];
+                           }
+                           mem_ptr_half[pcellIdx+3] = state_sideavg;
+                           mem_ptr_half[pcellIdx+1] = mem_ptr_half[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
+#endif
+
+                        }
+
                     }
 
                 }
@@ -10667,36 +10730,103 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
+                        if (memory_item->mem_elsize == 8) {
+                           state_sideavg = ZERO;
+                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t state_bot = mem_ptr_double[bncell];
-                        real_t state_top = mem_ptr_double[tncell];
-                        real_t state_coarse = mem_ptr_double[cncell];
-                        real_t state_avg = HALF * (state_bot + state_top);
+                           real_t state_bot = mem_ptr_double[bncell];
+                           real_t state_top = mem_ptr_double[tncell];
+                           real_t state_coarse = mem_ptr_double[cncell];
+                           real_t state_avg = HALF * (state_bot + state_top);
 
-                        mem_ptr_double[pcellIdx] = state_avg;
-                        mem_ptr_double[pcellIdx+2] = state_coarse;
+                           mem_ptr_double[pcellIdx] = state_avg;
+                           mem_ptr_double[pcellIdx+2] = state_coarse;
 
-                        if (level[nlft[bncell]] > level_left) { // leftbot left neighbor is even more refined
-                            state_botbot = mem_ptr_double[nlft[bncell]];
-                            state_bottop = mem_ptr_double[ntop[nlft[bncell]]];
-                            state_sideavg += HALF * HALF * (state_botbot + state_bottop);
-                        }
-                        else { // same refinement as leftbot neighbor
-                            state_sideavg += HALF * mem_ptr_double[nlft[bncell]];
-                        }
-                        if (level[nlft[tncell]] > level_left) { // lefttop left neighbor is even more refined
-                            state_topbot = mem_ptr_double[nlft[tncell]];
-                            state_toptop = mem_ptr_double[ntop[nlft[tncell]]];
-                            state_sideavg += HALF * HALF * (state_topbot + state_toptop);
-                        }
-                        else { // same refinement as leftop neighbor
-                            state_sideavg += HALF * mem_ptr_double[nlft[tncell]];
-                        }
-                        mem_ptr_double[pcellIdx+1] = state_sideavg;
-                        mem_ptr_double[pcellIdx+3] = mem_ptr_double[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
+                           if (level[nlft[bncell]] > level_left) { // leftbot left neighbor is even more refined
+                               state_botbot = mem_ptr_double[nlft[bncell]];
+                               state_bottop = mem_ptr_double[ntop[nlft[bncell]]];
+                               state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                           }
+                           else { // same refinement as leftbot neighbor
+                               state_sideavg += HALF * mem_ptr_double[nlft[bncell]];
+                           }
+                           if (level[nlft[tncell]] > level_left) { // lefttop left neighbor is even more refined
+                               state_topbot = mem_ptr_double[nlft[tncell]];
+                               state_toptop = mem_ptr_double[ntop[nlft[tncell]]];
+                               state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                           }
+                           else { // same refinement as leftop neighbor
+                               state_sideavg += HALF * mem_ptr_double[nlft[tncell]];
+                           }
+                           mem_ptr_double[pcellIdx+1] = state_sideavg;
+                           mem_ptr_double[pcellIdx+3] = mem_ptr_double[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
 
-                        state_sideavg = ZERO;
+                        } else if (memory_item->mem_elsize == 4) {
+                           state_sideavg = ZERO;
+                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
+
+                           real_t state_bot = mem_ptr_float[bncell];
+                           real_t state_top = mem_ptr_float[tncell];
+                           real_t state_coarse = mem_ptr_float[cncell];
+                           real_t state_avg = HALF * (state_bot + state_top);
+
+                           mem_ptr_float[pcellIdx] = state_avg;
+                           mem_ptr_float[pcellIdx+2] = state_coarse;
+
+                           if (level[nlft[bncell]] > level_left) { // leftbot left neighbor is even more refined
+                               state_botbot = mem_ptr_float[nlft[bncell]];
+                               state_bottop = mem_ptr_float[ntop[nlft[bncell]]];
+                               state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                           }
+                           else { // same refinement as leftbot neighbor
+                               state_sideavg += HALF * mem_ptr_float[nlft[bncell]];
+                           }
+                           if (level[nlft[tncell]] > level_left) { // lefttop left neighbor is even more refined
+                               state_topbot = mem_ptr_float[nlft[tncell]];
+                               state_toptop = mem_ptr_float[ntop[nlft[tncell]]];
+                               state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                           }
+                           else { // same refinement as leftop neighbor
+                               state_sideavg += HALF * mem_ptr_float[nlft[tncell]];
+                           }
+                           mem_ptr_float[pcellIdx+1] = state_sideavg;
+                           mem_ptr_float[pcellIdx+3] = mem_ptr_float[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
+
+#ifdef HALF_PRECISION
+                        } else if (memory_item->mem_elsize == 2) {
+                           state_sideavg = ZERO;
+                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
+
+                           real_t state_bot = mem_ptr_half[bncell];
+                           real_t state_top = mem_ptr_half[tncell];
+                           real_t state_coarse = mem_ptr_half[cncell];
+                           real_t state_avg = HALF * (state_bot + state_top);
+
+                           mem_ptr_half[pcellIdx] = state_avg;
+                           mem_ptr_half[pcellIdx+2] = state_coarse;
+
+                           if (level[nlft[bncell]] > level_left) { // leftbot left neighbor is even more refined
+                               state_botbot = mem_ptr_half[nlft[bncell]];
+                               state_bottop = mem_ptr_half[ntop[nlft[bncell]]];
+                               state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                           }
+                           else { // same refinement as leftbot neighbor
+                               state_sideavg += HALF * mem_ptr_half[nlft[bncell]];
+                           }
+                           if (level[nlft[tncell]] > level_left) { // lefttop left neighbor is even more refined
+                               state_topbot = mem_ptr_half[nlft[tncell]];
+                               state_toptop = mem_ptr_half[ntop[nlft[tncell]]];
+                               state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                           }
+                           else { // same refinement as leftop neighbor
+                               state_sideavg += HALF * mem_ptr_half[nlft[tncell]];
+                           }
+                           mem_ptr_half[pcellIdx+1] = state_sideavg;
+                           mem_ptr_half[pcellIdx+3] = mem_ptr_half[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
+#endif
+
+                        }
+
                     }
 
                 }
@@ -10764,17 +10894,46 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
+                        if (memory_item->mem_elsize == 8) {
+                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t state_coarse = mem_ptr_double[cncell];
-                        mem_ptr_double[pcellIdx] = state_coarse;
+                           real_t state_coarse = mem_ptr_double[cncell];
+                           mem_ptr_double[pcellIdx] = state_coarse;
 
-                        if (level[nlft[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
+                           if (level[nlft[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
+                           }
+                           else {
+                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
+                           }
+                        } else if (memory_item->mem_elsize == 4) {
+                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
+
+                           real_t state_coarse = mem_ptr_float[cncell];
+                           mem_ptr_float[pcellIdx] = state_coarse;
+
+                           if (level[nlft[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[nlft[cncell]];
+                           }
+                           else {
+                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[ntop[nlft[cncell]]];
+                           }
+#ifdef HALF_PRECISION
+                        } else if (memory_item->mem_elsize == 2) {
+                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
+
+                           real_t state_coarse = mem_ptr_half[cncell];
+                           mem_ptr_half[pcellIdx] = state_coarse;
+
+                           if (level[nlft[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[nlft[cncell]];
+                           }
+                           else {
+                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[ntop[nlft[cncell]]];
+                           }
+#endif
                         }
-                        else {
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
-                        }
+
 
                     }
 
@@ -10815,16 +10974,44 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
-
-                        real_t state_coarse = mem_ptr_double[cncell];
-                        mem_ptr_double[pcellIdx] = state_coarse;
-
-                        if (level[nrht[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[cncell]];
-                        }
-                        else {
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nrht[cncell]]];
+                        if (memory_item->mem_elsize == 8) {
+                           real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
+   
+                           real_t state_coarse = mem_ptr_double[cncell];
+                           mem_ptr_double[pcellIdx] = state_coarse;
+   
+                           if (level[nrht[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[cncell]];
+                           }
+                           else {
+                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nrht[cncell]]];
+                           }
+                        } else if (memory_item->mem_elsize == 4) {
+                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
+   
+                           real_t state_coarse = mem_ptr_float[cncell];
+                           mem_ptr_float[pcellIdx] = state_coarse;
+   
+                           if (level[nrht[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[nrht[cncell]];
+                           }
+                           else {
+                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[ntop[nrht[cncell]]];
+                           }
+#ifdef HALF_PRECISION
+                        } else if (memory_item->mem_elsize == 2) {
+                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
+   
+                           real_t state_coarse = mem_ptr_half[cncell];
+                           mem_ptr_half[pcellIdx] = state_coarse;
+   
+                           if (level[nrht[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[nrht[cncell]];
+                           }
+                           else {
+                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[ntop[nrht[cncell]]];
+                           }
+#endif
                         }
 
                     }
@@ -10967,37 +11154,103 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
+                        if (memory_item->mem_elsize == 8) {
+                           state_sideavg = ZERO;
+                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t state_lft = mem_ptr_double[lncell];
-                        real_t state_rht = mem_ptr_double[rncell];
-                        real_t state_coarse = mem_ptr_double[cncell];
-                        real_t state_avg = HALF * (state_lft + state_rht);
+                           real_t state_lft = mem_ptr_double[lncell];
+                           real_t state_rht = mem_ptr_double[rncell];
+                           real_t state_coarse = mem_ptr_double[cncell];
+                           real_t state_avg = HALF * (state_lft + state_rht);
 
-                        mem_ptr_double[pcellIdx+2] = state_avg;
-                        mem_ptr_double[pcellIdx] = state_coarse;
+                           mem_ptr_double[pcellIdx+2] = state_avg;
+                           mem_ptr_double[pcellIdx] = state_coarse;
 
-                        if (level[nbot[lncell]] > level_top) { // topleft top neighbor is even more refined
-                            state_lftlft = mem_ptr_double[ntop[lncell]];
-                            state_lftrht = mem_ptr_double[nrht[ntop[lncell]]];
-                            state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
-                        }
-                        else { // same refinement as toplft neighbor
-                            state_sideavg += HALF * mem_ptr_double[ntop[lncell]];
-                        }
-                        if (level[ntop[rncell]] > level_top) { // toprht top neighbor is even more refined
-                            state_rhtlft = mem_ptr_double[ntop[rncell]];
-                            state_rhtrht = mem_ptr_double[nrht[ntop[rncell]]];
-                            state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
-                        }
-                        else { // same refinement as toprht neighbor
-                            state_sideavg += HALF * mem_ptr_double[ntop[rncell]];
-                        }
-                        mem_ptr_double[pcellIdx+3] = state_sideavg;
-                        mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
+                           if (level[nbot[lncell]] > level_top) { // topleft top neighbor is even more refined
+                               state_lftlft = mem_ptr_double[ntop[lncell]];
+                               state_lftrht = mem_ptr_double[nrht[ntop[lncell]]];
+                               state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                           }
+                           else { // same refinement as toplft neighbor
+                               state_sideavg += HALF * mem_ptr_double[ntop[lncell]];
+                           }
+                           if (level[ntop[rncell]] > level_top) { // toprht top neighbor is even more refined
+                               state_rhtlft = mem_ptr_double[ntop[rncell]];
+                               state_rhtrht = mem_ptr_double[nrht[ntop[rncell]]];
+                               state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                           }
+                           else { // same refinement as toprht neighbor
+                               state_sideavg += HALF * mem_ptr_double[ntop[rncell]];
+                           }
+                           mem_ptr_double[pcellIdx+3] = state_sideavg;
+                           mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
                         
+                        } else if (memory_item->mem_elsize == 4) {
+                           state_sideavg = ZERO;
+                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
 
-                        state_sideavg = ZERO;
+                           real_t state_lft = mem_ptr_float[lncell];
+                           real_t state_rht = mem_ptr_float[rncell];
+                           real_t state_coarse = mem_ptr_float[cncell];
+                           real_t state_avg = HALF * (state_lft + state_rht);
+
+                           mem_ptr_float[pcellIdx+2] = state_avg;
+                           mem_ptr_float[pcellIdx] = state_coarse;
+
+                           if (level[nbot[lncell]] > level_top) { // topleft top neighbor is even more refined
+                               state_lftlft = mem_ptr_float[ntop[lncell]];
+                               state_lftrht = mem_ptr_float[nrht[ntop[lncell]]];
+                               state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                           }
+                           else { // same refinement as toplft neighbor
+                               state_sideavg += HALF * mem_ptr_float[ntop[lncell]];
+                           }
+                           if (level[ntop[rncell]] > level_top) { // toprht top neighbor is even more refined
+                               state_rhtlft = mem_ptr_float[ntop[rncell]];
+                               state_rhtrht = mem_ptr_float[nrht[ntop[rncell]]];
+                               state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                           }
+                           else { // same refinement as toprht neighbor
+                               state_sideavg += HALF * mem_ptr_float[ntop[rncell]];
+                           }
+                           mem_ptr_float[pcellIdx+3] = state_sideavg;
+                           mem_ptr_float[pcellIdx+1] = mem_ptr_float[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
+                        
+#ifdef HALF_PRECISION
+                        } else if (memory_item->mem_elsize == 2) {
+                           state_sideavg = ZERO;
+                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
+
+                           real_t state_lft = mem_ptr_half[lncell];
+                           real_t state_rht = mem_ptr_half[rncell];
+                           real_t state_coarse = mem_ptr_half[cncell];
+                           real_t state_avg = HALF * (state_lft + state_rht);
+
+                           mem_ptr_half[pcellIdx+2] = state_avg;
+                           mem_ptr_half[pcellIdx] = state_coarse;
+
+                           if (level[nbot[lncell]] > level_top) { // topleft top neighbor is even more refined
+                               state_lftlft = mem_ptr_half[ntop[lncell]];
+                               state_lftrht = mem_ptr_half[nrht[ntop[lncell]]];
+                               state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                           }
+                           else { // same refinement as toplft neighbor
+                               state_sideavg += HALF * mem_ptr_half[ntop[lncell]];
+                           }
+                           if (level[ntop[rncell]] > level_top) { // toprht top neighbor is even more refined
+                               state_rhtlft = mem_ptr_half[ntop[rncell]];
+                               state_rhtrht = mem_ptr_half[nrht[ntop[rncell]]];
+                               state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                           }
+                           else { // same refinement as toprht neighbor
+                               state_sideavg += HALF * mem_ptr_half[ntop[rncell]];
+                           }
+                           mem_ptr_half[pcellIdx+3] = state_sideavg;
+                           mem_ptr_half[pcellIdx+1] = mem_ptr_half[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
+                        
+#endif
+                        }
+
                     }
 
                 }
@@ -11062,36 +11315,102 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
+                        if (memory_item->mem_elsize == 8) {
+                           state_sideavg = ZERO;
+                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t state_lft = mem_ptr_double[lncell];
-                        real_t state_rht = mem_ptr_double[rncell];
-                        real_t state_coarse = mem_ptr_double[cncell];
-                        real_t state_avg = HALF * (state_lft + state_rht);
+                           real_t state_lft = mem_ptr_double[lncell];
+                           real_t state_rht = mem_ptr_double[rncell];
+                           real_t state_coarse = mem_ptr_double[cncell];
+                           real_t state_avg = HALF * (state_lft + state_rht);
 
-                        mem_ptr_double[pcellIdx] = state_avg;
-                        mem_ptr_double[pcellIdx+2] = state_coarse;
+                           mem_ptr_double[pcellIdx] = state_avg;
+                           mem_ptr_double[pcellIdx+2] = state_coarse;
 
-                        if (level[ntop[lncell]] > level_bot) { // botleft bot neighbor is even more refined
-                            state_lftlft = mem_ptr_double[nbot[lncell]];
-                            state_lftrht = mem_ptr_double[nrht[nbot[lncell]]];
-                            state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
-                        }
-                        else { // same refinement as botlft neighbor
-                            state_sideavg += HALF * mem_ptr_double[nbot[lncell]];
-                        }
-                        if (level[nbot[rncell]] > level_bot) { // botrht bot neighbor is even more refined
-                            state_rhtlft = mem_ptr_double[nbot[rncell]];
-                            state_rhtrht = mem_ptr_double[nrht[nbot[rncell]]];
-                            state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
-                        }
-                        else { // same refinement as toprht neighbor
-                            state_sideavg += HALF * mem_ptr_double[nbot[rncell]];
-                        }
-                        mem_ptr_double[pcellIdx+1] = state_sideavg;
-                        mem_ptr_double[pcellIdx+3] = mem_ptr_double[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
+                           if (level[ntop[lncell]] > level_bot) { // botleft bot neighbor is even more refined
+                               state_lftlft = mem_ptr_double[nbot[lncell]];
+                               state_lftrht = mem_ptr_double[nrht[nbot[lncell]]];
+                               state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                           }
+                           else { // same refinement as botlft neighbor
+                               state_sideavg += HALF * mem_ptr_double[nbot[lncell]];
+                           }
+                           if (level[nbot[rncell]] > level_bot) { // botrht bot neighbor is even more refined
+                               state_rhtlft = mem_ptr_double[nbot[rncell]];
+                               state_rhtrht = mem_ptr_double[nrht[nbot[rncell]]];
+                               state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                           }
+                           else { // same refinement as toprht neighbor
+                               state_sideavg += HALF * mem_ptr_double[nbot[rncell]];
+                           }
+                           mem_ptr_double[pcellIdx+1] = state_sideavg;
+                           mem_ptr_double[pcellIdx+3] = mem_ptr_double[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
 
-                        state_sideavg = ZERO;
+                        } else if (memory_item->mem_elsize == 4) {
+                           state_sideavg = ZERO;
+                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
+
+                           real_t state_lft = mem_ptr_float[lncell];
+                           real_t state_rht = mem_ptr_float[rncell];
+                           real_t state_coarse = mem_ptr_float[cncell];
+                           real_t state_avg = HALF * (state_lft + state_rht);
+
+                           mem_ptr_float[pcellIdx] = state_avg;
+                           mem_ptr_float[pcellIdx+2] = state_coarse;
+
+                           if (level[ntop[lncell]] > level_bot) { // botleft bot neighbor is even more refined
+                               state_lftlft = mem_ptr_float[nbot[lncell]];
+                               state_lftrht = mem_ptr_float[nrht[nbot[lncell]]];
+                               state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                           }
+                           else { // same refinement as botlft neighbor
+                               state_sideavg += HALF * mem_ptr_float[nbot[lncell]];
+                           }
+                           if (level[nbot[rncell]] > level_bot) { // botrht bot neighbor is even more refined
+                               state_rhtlft = mem_ptr_float[nbot[rncell]];
+                               state_rhtrht = mem_ptr_float[nrht[nbot[rncell]]];
+                               state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                           }
+                           else { // same refinement as toprht neighbor
+                               state_sideavg += HALF * mem_ptr_float[nbot[rncell]];
+                           }
+                           mem_ptr_float[pcellIdx+1] = state_sideavg;
+                           mem_ptr_float[pcellIdx+3] = mem_ptr_float[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
+
+#ifdef HALF_PRECISION
+                        } else if (memory_item->mem_elsize == 2) {
+                           state_sideavg = ZERO;
+                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
+
+                           real_t state_lft = mem_ptr_half[lncell];
+                           real_t state_rht = mem_ptr_half[rncell];
+                           real_t state_coarse = mem_ptr_half[cncell];
+                           real_t state_avg = HALF * (state_lft + state_rht);
+
+                           mem_ptr_half[pcellIdx] = state_avg;
+                           mem_ptr_half[pcellIdx+2] = state_coarse;
+
+                           if (level[ntop[lncell]] > level_bot) { // botleft bot neighbor is even more refined
+                               state_lftlft = mem_ptr_half[nbot[lncell]];
+                               state_lftrht = mem_ptr_half[nrht[nbot[lncell]]];
+                               state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                           }
+                           else { // same refinement as botlft neighbor
+                               state_sideavg += HALF * mem_ptr_half[nbot[lncell]];
+                           }
+                           if (level[nbot[rncell]] > level_bot) { // botrht bot neighbor is even more refined
+                               state_rhtlft = mem_ptr_half[nbot[rncell]];
+                               state_rhtrht = mem_ptr_half[nrht[nbot[rncell]]];
+                               state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                           }
+                           else { // same refinement as toprht neighbor
+                               state_sideavg += HALF * mem_ptr_half[nbot[rncell]];
+                           }
+                           mem_ptr_half[pcellIdx+1] = state_sideavg;
+                           mem_ptr_half[pcellIdx+3] = mem_ptr_half[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
+
+#endif
+                        }
                     }
 
 
@@ -11158,16 +11477,44 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
+                        if (memory_item->mem_elsize == 8) {
+                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t state_coarse = mem_ptr_double[cncell];
-                        mem_ptr_double[pcellIdx] = state_coarse;
+                           real_t state_coarse = mem_ptr_double[cncell];
+                           mem_ptr_double[pcellIdx] = state_coarse;
 
-                        if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
-                        }
-                        else {
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[nbot[cncell]]];
+                           if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
+                           }
+                           else {
+                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[nbot[cncell]]];
+                           }
+                        } else if (memory_item->mem_elsize == 4) {
+                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
+
+                           real_t state_coarse = mem_ptr_float[cncell];
+                           mem_ptr_float[pcellIdx] = state_coarse;
+
+                           if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[nbot[cncell]];
+                           }
+                           else {
+                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[nrht[nbot[cncell]]];
+                           }
+#ifdef HALF_PRECISION
+                        } else if (memory_item->mem_elsize == 2) {
+                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
+
+                           real_t state_coarse = mem_ptr_half[cncell];
+                           mem_ptr_half[pcellIdx] = state_coarse;
+
+                           if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[nbot[cncell]];
+                           }
+                           else {
+                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[nrht[nbot[cncell]]];
+                           }
+#endif
                         }
 
                     }
@@ -11209,16 +11556,44 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                         if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
 
-                        real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
+                        if (memory_item->mem_elsize == 8) {
+                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-                        real_t state_coarse = mem_ptr_double[cncell];
-                        mem_ptr_double[pcellIdx] = state_coarse;
+                           real_t state_coarse = mem_ptr_double[cncell];
+                           mem_ptr_double[pcellIdx] = state_coarse;
 
-                        if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
-                        }
-                        else {
-                            mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
+                           if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
+                           }
+                           else {
+                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
+                           }
+                        } else if (memory_item->mem_elsize == 4) {
+                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
+
+                           real_t state_coarse = mem_ptr_float[cncell];
+                           mem_ptr_float[pcellIdx] = state_coarse;
+
+                           if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[ntop[cncell]];
+                           }
+                           else {
+                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[nrht[ntop[cncell]]];
+                           }
+#ifdef HALF_PRECISION
+                        } else if (memory_item->mem_elsize == 2) {
+                           real_t *mem_ptr_half = (real_t *)memory_item->mem_ptr;
+
+                           real_t state_coarse = mem_ptr_half[cncell];
+                           mem_ptr_half[pcellIdx] = state_coarse;
+
+                           if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[ntop[cncell]];
+                           }
+                           else {
+                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[nrht[ntop[cncell]]];
+                           }
+#endif
                         }
 
                     }
