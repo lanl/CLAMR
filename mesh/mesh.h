@@ -143,16 +143,32 @@
 #endif
 #endif
 
-#if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
+#if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION) && !defined(HALF_PRECISION)
 #define FULL_PRECISION
 #endif
 #ifdef NO_CL_DOUBLE
 #undef  FULL_PRECISION
 #undef  MIXED_PRECISION
 #define MINIMUM_PRECISION
+#undef  HALF_PRECISION
 #endif
 
-#if defined(MINIMUM_PRECISION)
+#if defined(HALF_PRECISION)
+   #include "half.hpp"
+   using half_float::half;
+   using namespace half_float::literal;
+   typedef float real_t; // this is used for intermediate calculations
+   typedef float spatial_t; // for spatial variables
+#ifdef HAVE_OPENCL
+   typedef cl_float cl_real_t; // for intermediate gpu physics state variables
+   typedef cl_float cl_spatial_t;
+#endif
+#ifdef HAVE_MPI
+   #define MPI_REAL_T MPI_FLOAT // for MPI communication for physics state variables
+   #define MPI_SPATIAL_T MPI_FLOAT
+#endif
+
+#elif defined(MINIMUM_PRECISION)
    typedef float real_t; // this is used for intermediate calculations
    typedef float spatial_t; // for spatial variables
 #ifdef HAVE_OPENCL
@@ -312,6 +328,9 @@ using namespace std;
    {
 #ifdef FULL_PRECISION
        double ***pstate;
+#elif HALF_PRECISION
+       #include "half.hpp"
+       half ***pstate;
 #else
        float ***pstate;
 #endif
@@ -856,6 +875,9 @@ public:
    void compare_ioffset_all_to_gpu_local(uint old_ncells, uint old_ncells_global, int block_size, int block_size_global, char_t *mpot, char_t *mpot_global, cl_mem dev_ioffset, cl_mem dev_ioffset_global, int *ioffset, int *ioffset_global, char_t *celltype_global, int *i_global, int *j_global);
    void compare_coordinates_gpu_global_to_cpu_global_double(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, double *H);
    void compare_coordinates_gpu_global_to_cpu_global_float(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, float *H);
+#ifdef HALF_PRECISION
+   void compare_coordinates_gpu_global_to_cpu_global_half(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, half *H);
+#endif
 #endif
    void compare_coordinates_cpu_local_to_cpu_global_double(uint ncells_global, int *nsizes, int *ndispl, spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy, double *H, spatial_t *x_global, spatial_t *dx_global, spatial_t *y_global, spatial_t *dy_global, double *H_global, int cycle);
    void compare_coordinates_cpu_local_to_cpu_global_float(uint ncells_global, int *nsizes, int *ndispl, spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy, float *H, spatial_t *x_global, spatial_t *dx_global, spatial_t *y_global, spatial_t *dy_global, float *H_global, int cycle);

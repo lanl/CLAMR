@@ -308,7 +308,9 @@ int main(int argc, char **argv) {
                           (float)mesh->ymin, (float)mesh->ymax);
       set_graphics_outline((int)outline);
       set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+#ifndef HALF_PRECISION
       set_graphics_cell_data(&state->H[0]);
+#endif
       set_graphics_cell_proc(&mesh->proc[0]);
       set_graphics_viewmode(view_mode);
 
@@ -449,7 +451,9 @@ extern "C" void do_calc(void)
       set_graphics_mysize(ncells);
       set_graphics_viewmode(view_mode);
       set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+#ifndef HALF_PRECISION
       set_graphics_cell_data(&H_graphics[0]);
+#endif
       set_graphics_cell_proc(NULL);
 
       write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);

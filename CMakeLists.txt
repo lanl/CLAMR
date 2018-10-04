@@ -312,6 +312,13 @@ if (PRECISION_TYPE STREQUAL "minimum_precision")
    add_definitions(-DMINIMUM_PRECISION)
 endif (PRECISION_TYPE STREQUAL "minimum_precision")
 
+if (PRECISION_TYPE STREQUAL "half_precision")
+   set (HALF_PRECISION on)
+   set (PRECISION_TYPE half_precision)
+   add_definitions(-DHALF_PRECISION)
+   include_directories(${CMAKE_SOURCE_DIR}/half/include)
+endif (PRECISION_TYPE STREQUAL "half_precision")
+
 if (NOT GRAPHICS_TYPE)
    set (GRAPHICS_TYPE none)
 endif (NOT GRAPHICS_TYPE)

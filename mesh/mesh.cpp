@@ -104,7 +104,13 @@ void scan ( scanInt *input , scanInt *output , scanInt length);
 
 #define IPOW2(a) (2 << (a))
 
-#if defined(MINIMUM_PRECISION)
+#if defined(HALF_PRECISION)
+#define CONSERVATION_EPS    1
+#define STATE_EPS      30.0
+#define HALF 0.5_h
+#define ZERO 0.0_h
+
+#elif defined(MINIMUM_PRECISION)
 #define CONSERVATION_EPS    .1
 #define STATE_EPS      15.0
 #define HALF 0.5f
@@ -987,6 +993,37 @@ void Mesh::compare_coordinates_gpu_global_to_cpu_global_float(cl_mem dev_x, cl_m
       }
    }
 }
+
+#ifdef HALF_PRECISION
+void Mesh::compare_coordinates_gpu_global_to_cpu_global_half(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy, cl_mem dev_H, half *H)
+{
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
+   vector<spatial_t>x_check(ncells);
+   vector<spatial_t>dx_check(ncells);
+   vector<spatial_t>y_check(ncells);
+   vector<spatial_t>dy_check(ncells);
+   vector<half>H_check(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_x,   CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &x_check[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_dx,  CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &dx_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_y,   CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &y_check[0],  NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_dy,  CL_FALSE, 0, ncells*sizeof(cl_spatial_t), &dy_check[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_H,   CL_TRUE,  0, ncells*sizeof(cl_half), &H_check[0],  NULL);
+   for (uint ic = 0; ic < ncells; ic++){
+      if (x[ic] != x_check[ic] || dx[ic] != dx_check[ic] || y[ic] != y_check[ic] || dy[ic] != dy_check[ic] ) {
+         printf("Error -- mismatch in spatial coordinates for cell %d is gpu %lf %lf %lf %lf cpu %lf %lf %lf %lf\n",ic,x_check[ic],dx_check[ic],y_check[ic],dy_check[ic],x[ic],dx[ic],y[ic],dy[ic]);
+         exit(0);
+      }
+   }  
+   for (uint ic = 0; ic < ncells; ic++){
+      if (fabs(H[ic] - H_check[ic]) > CONSERVATION_EPS) {
+         printf("Error -- mismatch in H for cell %d is gpu %lf cpu %lf\n",ic,H_check[ic],H[ic]);
+         exit(0);
+      }
+   }
+}
+#endif
+
 #endif
 
 void Mesh::compare_coordinates_cpu_local_to_cpu_global_double(uint ncells_global, int *nsizes, int *ndispl, spatial_t *x, spatial_t *dx, spatial_t *y, spatial_t *dy, double *H, spatial_t *x_global, spatial_t *dx_global, spatial_t *y_global, spatial_t *dy_global, double *H_global, int cycle)
@@ -12659,6 +12696,8 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
       //printf("%d %d %d\n", nvar, lev_jregsize[ll], lev_iregsize[ll]);
 #ifdef FULL_PRECISION
       meshes[ll].pstate = (double ***)gentrimatrix(nvar,lev_jregsize[ll],lev_iregsize[ll],sizeof(double));
+#elif HALF_PRECISION
+      meshes[ll].pstate = (half ***)gentrimatrix(nvar,lev_jregsize[ll],lev_iregsize[ll],sizeof(half));
 #else
       meshes[ll].pstate = (float ***)gentrimatrix(nvar,lev_jregsize[ll],lev_iregsize[ll],sizeof(float));
 #endif

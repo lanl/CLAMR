@@ -17,7 +17,19 @@
 #undef DEBUG_RESTORE_VALS
 #define TIMING_LEVEL 2
 
-#if defined(MINIMUM_PRECISION)
+#if defined(HALF_PRECISION)
+#define ZERO 0.0f
+#define ONE 1.0f
+#define HALF 0.5f
+#define EPSILON 1.0f-30
+#define STATE_EPS        15.0
+// calc refine is done in single precision
+#define REFINE_GRADIENT  0.10f
+#define COARSEN_GRADIENT 0.05f
+#define REFINE_HALF 0.5f
+#define REFINE_NEG_THOUSAND -1000.0f
+
+#elif defined(MINIMUM_PRECISION)
 #define ZERO 0.0f
 #define ONE 1.0f
 #define HALF 0.5f
@@ -1932,15 +1944,15 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
 
       Wx_H.clear();
-      Wx_H.resize(xfaceSize, 0);
+      Wx_H.resize(xfaceSize, (state_t)0.0);
       Wx_U.clear();
-      Wx_U.resize(xfaceSize, 0);
+      Wx_U.resize(xfaceSize, (state_t)0.0);
       HxFlux.clear();
-      HxFlux.resize(xfaceSize, 0);
+      HxFlux.resize(xfaceSize, (state_t)0.0);
       UxFlux.clear();
-      UxFlux.resize(xfaceSize, 0);
+      UxFlux.resize(xfaceSize, (state_t)0.0);
       VxFlux.clear();
-      VxFlux.resize(xfaceSize, 0);
+      VxFlux.resize(xfaceSize, (state_t)0.0);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2027,15 +2039,15 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       yfaceSize = mesh->map_yface2cell_lower.size(); //new "update" nyface inc. phantoms
 
       Wy_H.clear();
-      Wy_H.resize(yfaceSize, 0);
+      Wy_H.resize(yfaceSize, (state_t)0.0);
       Wy_V.clear();
-      Wy_V.resize(yfaceSize, 0);
+      Wy_V.resize(yfaceSize, (state_t)0.0);
       HyFlux.clear();
-      HyFlux.resize(yfaceSize, 0);
+      HyFlux.resize(yfaceSize, (state_t)0.0);
       UyFlux.clear();
-      UyFlux.resize(yfaceSize, 0);
+      UyFlux.resize(yfaceSize, (state_t)0.0);
       VyFlux.clear();
-      VyFlux.resize(yfaceSize, 0);
+      VyFlux.resize(yfaceSize, (state_t)0.0);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2226,11 +2238,11 @@ void State::calc_finite_difference_via_faces(double deltaT){
       xfaceSize = mesh->map_xface2cell_lower.size();//new "update" nxface inc. phantoms
       memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
 
-      HxFlux.resize(xfaceSize, -999999);
-      UxFlux.resize(xfaceSize, -999999);
-      VxFlux.resize(xfaceSize, -999999);
-      Wx_H.resize(xfaceSize, -999999);
-      Wx_U.resize(xfaceSize, -999999);
+      HxFlux.resize(xfaceSize, (state_t)-999999);
+      UxFlux.resize(xfaceSize, (state_t)-999999);
+      VxFlux.resize(xfaceSize, (state_t)-999999);
+      Wx_H.resize(xfaceSize, (state_t)-999999);
+      Wx_U.resize(xfaceSize, (state_t)-999999);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2369,11 +2381,11 @@ void State::calc_finite_difference_via_faces(double deltaT){
 #endif
       yfaceSize = mesh->map_yface2cell_lower.size(); //new "update" nyface inc. phantoms
 
-      HyFlux.resize(yfaceSize, -999999);
-      UyFlux.resize(yfaceSize, -999999);
-      VyFlux.resize(yfaceSize, -999999);
-      Wy_H.resize(yfaceSize, -999999);
-      Wy_V.resize(yfaceSize, -999999);
+      HyFlux.resize(yfaceSize, (state_t)-999999);
+      UyFlux.resize(yfaceSize, (state_t)-999999);
+      VyFlux.resize(yfaceSize, (state_t)-999999);
+      Wy_H.resize(yfaceSize, (state_t)-999999);
+      Wy_V.resize(yfaceSize, (state_t)-999999);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2844,8 +2856,8 @@ void State::calc_finite_difference_regular_cells(double deltaT){
       state_t **U_reg = U_reg_lev[ll];
       state_t **V_reg = V_reg_lev[ll];
       int **mask_reg = mask_reg_lev[ll];
-      state_t dx = lev_deltax[ll];
-      state_t dy = lev_deltay[ll];
+      real_t dx = lev_deltax[ll];
+      real_t dy = lev_deltay[ll];
       real_t Cx = deltaT/dx;
       real_t Cy = deltaT/dy;
 
@@ -3223,10 +3235,10 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
       state_t **U_reg = U_reg_lev[ll];
       state_t **V_reg = V_reg_lev[ll];
       int **mask_reg = mask_reg_lev[ll];
-      state_t dx = mesh->lev_deltax[ll];
-      state_t dy = mesh->lev_deltay[ll];
-      state_t Cxhalf = deltaT/dx;
-      state_t Cyhalf = deltaT/dy;
+      real_t dx = mesh->lev_deltax[ll];
+      real_t dy = mesh->lev_deltay[ll];
+      real_t Cxhalf = deltaT/dx;
+      real_t Cyhalf = deltaT/dy;
 
       for(int jj=2; jj<jjmax-1; jj++){
          for(int ii=2; ii<iimax-1; ii++){
@@ -4410,7 +4422,7 @@ size_t State::calc_refine_potential(vector<char_t> &mpot,int &icount, int &jcoun
       duhalf1 = Hic-Hl;
       //duhalf2 = Uic-Ul;
 
-      state_t qmax = REFINE_NEG_THOUSAND;
+      real_t qmax = REFINE_NEG_THOUSAND;
 
       state_t qpot = max(fabs(duplus1/Hic), fabs(duhalf1/Hic));
       if (qpot > qmax) qmax = qpot;
