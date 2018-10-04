@@ -364,7 +364,8 @@ public:
    int    gpu_counters[MESH_COUNTER_SIZE];
 
    bool           do_rezone,
-                  gpu_do_rezone;
+                  gpu_do_rezone,
+                  firstFlag;
 
    int            mype,
                   numpe,

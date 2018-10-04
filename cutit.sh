@@ -12,5 +12,5 @@ mv cut500 faceinplace.cut500
 ./clamr_cpuonly -Z -n 128 -t 500 -i 500 -l 2 -A "regular-grid"           >& /dev/null
 mv cut500 reggridbycell.cut500
 ./clamr_cpuonly -Z -n 128 -t 500 -i 500 -l 2 -A "regular-grid-by-faces"  >& /dev/null
-mv cut500 reggridbyface.cut500
+mv cut500 reggridbyfacecut500
 

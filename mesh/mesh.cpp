@@ -10120,10 +10120,11 @@ void Mesh::interpolate(int scheme, int index, int cell_lower, int cell_upper, do
 
 void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double deltaT)
 {
-   /*if (! do_rezone) {
+   if (!do_rezone && !firstFlag) {
+      firstFlag = false;
       calc_face_list_fill_phantom(state_memory, deltaT);
       return;
-   }*/
+   }
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
