@@ -3221,6 +3221,58 @@ void Mesh::rezone_all(int icount, int jcount, vector<char_t> mpot, int have_stat
             }
 
             state_memory.memory_replace(mem_ptr_float, state_temp_float);
+#ifdef HALF_PRECISION
+         } else if (memory_item->mem_elsize == 2) {
+            half *state_temp_half = (half *)state_memory.memory_malloc(new_ncells, sizeof(half),
+                                                                          "state_temp_half", memory_item->mem_flags);
+
+            half *mem_ptr_half = (half *)memory_item->mem_ptr;
+
+            for (int ic=0, nc=0; ic<(int)ncells; ic++) {
+
+               if (mpot[ic] == 0) {
+                  state_temp_half[nc] = mem_ptr_half[ic];
+                  nc++;
+               } else if (mpot[ic] < 0){
+                  if (mpot[ic] == -2) {
+                     int nr = nrht[ic];
+                     int nt = ntop[ic];
+                     int nrt = nrht[nt];
+                     state_temp_half[nc] = (mem_ptr_half[ic] + mem_ptr_half[nr] +
+                                             mem_ptr_half[nt] + mem_ptr_half[nrt])*0.25;
+                     nc++;
+                  }
+                  if (mpot[ic] == -3) {
+                     int nl = nlft[ic];
+                     int nb = nbot[ic];
+                     int nlb = nlft[nb];
+                     state_temp_half[nc] = (mem_ptr_half[ic] + mem_ptr_half[nl] +
+                                             mem_ptr_half[nb] + mem_ptr_half[nlb])*0.25;
+                     nc++;
+                  }
+               } else if (mpot[ic] > 0){
+                  // lower left
+                  state_temp_half[nc] = mem_ptr_half[ic];
+                  nc++;
+
+                  // lower right
+                  state_temp_half[nc] = mem_ptr_half[ic];
+                  nc++;
+
+                  if (celltype_save[ic] == REAL_CELL){
+                     // upper left
+                     state_temp_half[nc] = mem_ptr_half[ic];
+                     nc++;
+
+                     // upper right
+                     state_temp_half[nc] = mem_ptr_half[ic];
+                     nc++;
+                  }
+               }
+            }
+
+            state_memory.memory_replace(mem_ptr_half, state_temp_half);
+#endif
          }
       }
    }
@@ -3606,7 +3658,82 @@ void Mesh::rezone_all(int icount, int jcount, vector<char_t> mpot, int have_stat
             } // end master region
 #pragma omp barrier
 #endif
-         } // mem elem size 4 bytes
+#ifdef HALF_PRECISION
+         } else if (memory_item->mem_elsize == 2) {
+
+            static half *state_temp_half, *mem_ptr_half;
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
+               state_temp_half = (half *)state_memory.memory_malloc(new_ncells, sizeof(half),
+                                                                             "state_temp_half", memory_item->mem_flags);
+               mem_ptr_half = (half *)memory_item->mem_ptr;
+#ifdef _OPENMP
+            } // end master region
+#pragma omp barrier
+#endif
+
+#ifdef _OPENMP
+#pragma omp for
+#endif
+            for (int ic=0; ic<(int)ncells; ic++) {
+
+               int nc = new_ic[ic];
+               if (mpot[ic] == 0) {
+                  state_temp_half[nc] = mem_ptr_half[ic];
+               } else if (mpot[ic] < 0){
+                  if (mpot[ic] == -2) {
+                     int nr = nrht[ic];
+                     int nt = ntop[ic];
+                     int nrt = nrht[nt];
+                     state_temp_half[nc] = (mem_ptr_half[ic] + mem_ptr_half[nr] +
+                                             mem_ptr_half[nt] + mem_ptr_half[nrt])*0.25;
+                  }
+                  if (mpot[ic] == -3) {
+                     int nl = nlft[ic];
+                     int nb = nbot[ic];
+                     int nlb = nlft[nb];
+                     state_temp_half[nc] = (mem_ptr_half[ic] + mem_ptr_half[nl] +
+                                             mem_ptr_half[nb] + mem_ptr_half[nlb])*0.25;
+                  }
+               } else if (mpot[ic] > 0){
+                  // lower left
+                  state_temp_half[nc] = mem_ptr_half[ic];
+                  nc++;
+
+                  // lower right
+                  state_temp_half[nc] = mem_ptr_half[ic];
+                  nc++;
+
+                  if (celltype_save[ic] == REAL_CELL){
+                     // upper left
+                     state_temp_half[nc] = mem_ptr_half[ic];
+                     nc++;
+
+                     // upper right
+                     state_temp_half[nc] = mem_ptr_half[ic];
+                     nc++;
+                  }
+               }
+            } // end cell loop
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+            {
+#endif
+               state_memory.memory_replace(mem_ptr_half, state_temp_half);
+#ifdef _OPENMP
+            } // end master region
+#pragma omp barrier
+#endif
+
+            // end half_precision
+#endif
+         } // mem elem size 2 bytes
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -8396,6 +8523,35 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
                }
             }
             state_memory.memory_replace(mem_ptr_float, state_temp_float);
+#ifdef HALF_PRECISION
+         } else if (memory_item->mem_elsize == 2) {
+            half *mem_ptr_half = (half *)memory_item->mem_ptr;
+
+            int flags = state_memory.get_memory_flags(mem_ptr_half);
+            half *state_temp_half = (half *) state_memory.memory_malloc(ncells, sizeof(half),
+                                                                           "state_temp_half", flags);
+
+            //printf("%d: DEBUG L7_Update in do_load_balance_local mem_ptr %p\n",mype,mem_ptr_half);
+            L7_Update(mem_ptr_half, L7_FLOAT, load_balance_handle);
+            in = 0;
+            if(lower_block_size > 0) {
+               for(; in < MIN(lower_block_size, (int)ncells); in++) {
+                  state_temp_half[in] = mem_ptr_half[ncells_old + in];
+               }
+            }
+
+            for(int ic = MAX((noffset - noffset_old), 0); (ic < ncells_old) && (in < (int)ncells); ic++, in++) {
+               state_temp_half[in] = mem_ptr_half[ic];
+            }
+
+            if(upper_block_size > 0) {
+               int ic = ncells_old + lower_block_size;
+               for(int k = max(noffset-upper_block_start,0); ((k+ic) < (ncells_old+indices_needed_count)) && (in < (int)ncells); k++, in++) {
+                  state_temp_half[in] = mem_ptr_half[ic+k];
+               }
+            }
+            state_memory.memory_replace(mem_ptr_half, state_temp_half);
+#endif
          }
       }
 
