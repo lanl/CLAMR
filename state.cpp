@@ -589,15 +589,20 @@ void State::apply_boundary_conditions(void)
 {
    static int *nlft, *nrht, *nbot, *ntop;
 
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
    nlft = mesh->nlft;
    nrht = mesh->nrht;
    nbot = mesh->nbot;
    ntop = mesh->ntop;
 
-#ifdef _OPENMP
-#pragma omp master
-#endif
    if (mesh->ncells_ghost < mesh->ncells) mesh->ncells_ghost = mesh->ncells;
+#ifdef _OPENMP
+      }    
+#pragma omp barrier
+#endif
 
    // This is for a mesh with boundary cells
    int lowerBound, upperBound;
