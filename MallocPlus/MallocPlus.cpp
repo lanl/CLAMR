@@ -513,6 +513,37 @@ float *MallocPlus::memory_reorder(float *malloc_mem_ptr, int *iorder){
    return(malloc_mem_ptr);
 }
 
+#ifdef HALF_PRECISION
+half *MallocPlus::memory_reorder(half *malloc_mem_ptr, int *iorder){
+   map <void *, malloc_plus_memory_entry*>::iterator it = memory_ptr_dict.find(malloc_mem_ptr);
+
+   if (it != memory_ptr_dict.end() ){
+      malloc_plus_memory_entry *memory_item = it->second;
+      half *ptr;
+
+      memory_ptr_dict.erase(it);
+
+      if (DEBUG) printf("Found memory item ptr %p name %s\n",memory_item->mem_ptr,memory_item->mem_name);
+      half *tmp = (half *)malloc(memory_item->mem_nelem[0]*memory_item->mem_elsize);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (uint ic = 0; ic < memory_item->mem_nelem[0]; ic++){
+         tmp[ic] = malloc_mem_ptr[iorder[ic]];
+      }
+      SWAP_PTR(malloc_mem_ptr, tmp, ptr);
+      free(tmp);
+      memory_item->mem_ptr = malloc_mem_ptr;
+
+      memory_ptr_dict.insert(std::pair<void*, malloc_plus_memory_entry*>(malloc_mem_ptr, memory_item) );
+   } else {
+      if (DEBUG) printf("Warning -- memory pointer %p not found\n",malloc_mem_ptr);
+   }
+
+   return(malloc_mem_ptr);
+}
+#endif
+
 int *MallocPlus::memory_reorder(int *malloc_mem_ptr, int *iorder){
    map <void *, malloc_plus_memory_entry*>::iterator it = memory_ptr_dict.find(malloc_mem_ptr);
 

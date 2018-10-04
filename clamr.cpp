@@ -413,8 +413,8 @@ extern "C" void do_calc(void)
    size_t &ncells_global    = mesh->ncells_global;
    size_t &ncells           = mesh->ncells;
 
-   vector<int>     mpot;
-   vector<int>     mpot_global;
+   vector<char_t>     mpot;
+   vector<char_t>     mpot_global;
    
    size_t new_ncells = 0;
    double H_sum = -1.0;

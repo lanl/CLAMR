@@ -364,8 +364,8 @@ extern "C" void do_calc(void)
    size_t &ncells           = mesh->ncells;
    size_t &ncells_ghost     = mesh->ncells_ghost;
 
-   vector<int>     mpot;
-   vector<int>     mpot_global;
+   vector<char_t>     mpot;
+   vector<char_t>     mpot_global;
    
    //size_t old_ncells = ncells;
    //size_t old_ncells_global = ncells_global;
@@ -499,7 +499,7 @@ extern "C" void do_calc(void)
       // it to delete the mpot memory. This is all to avoid valgrind from showing
       // it as a reachable memory leak
       //mpot.clear();
-      vector<int>().swap(mpot);
+      vector<char_t>().swap(mpot);
       ncells = new_ncells;
       mesh->ncells = new_ncells;
 

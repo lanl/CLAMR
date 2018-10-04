@@ -78,6 +78,11 @@
 #endif
 #endif
 
+#ifdef HALF_PRECISION
+#include "half.hpp"
+using half_float::half;
+#endif
+
 using namespace std;
 
 /****************************************************************//**
@@ -418,6 +423,9 @@ public:
  *     float *density = my_mem->memory_reorder_all(density, iorder);
  *******************************************************************/
    float *memory_reorder(float *malloc_mem_ptr, int *iorder);
+#ifdef HALF_PRECISION
+   half *memory_reorder(half *malloc_mem_ptr, int *iorder);
+#endif
 
 /****************************************************************//**
  * \brief

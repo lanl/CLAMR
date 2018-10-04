@@ -314,7 +314,9 @@ int main(int argc, char **argv) {
                           (float)mesh->ymin, (float)mesh->ymax);
       set_graphics_outline((int)outline);
       set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+#ifndef HALF_PRECISION
       set_graphics_cell_data(&state->H[0]);
+#endif
       set_graphics_cell_proc(&mesh->proc[0]);
       set_graphics_viewmode(view_mode);
 
@@ -383,7 +385,7 @@ extern "C" void do_calc(void)
 
    cl_mem &dev_mpot     = state->dev_mpot;
 
-   vector<int>     mpot;
+   vector<char_t>     mpot;
    
    size_t old_ncells = ncells;
    size_t new_ncells = 0;
@@ -426,10 +428,10 @@ extern "C" void do_calc(void)
       // otherwise cell count will diverge causing code problems and crashes
       if (dev_mpot) {
          if (do_sync) {
-            ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
+            ezcl_enqueue_read_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_char_t), &mpot[0], NULL);
          }
          if (do_gpu_sync) {
-            ezcl_enqueue_write_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_int), &mpot[0], NULL);
+            ezcl_enqueue_write_buffer(command_queue, dev_mpot, CL_TRUE,  0, ncells*sizeof(cl_char_t), &mpot[0], NULL);
          }
       }
 
@@ -478,7 +480,7 @@ extern "C" void do_calc(void)
       // it to delete the mpot memory. This is all to avoid valgrind from showing
       // it as a reachable memory leak
       //mpot.clear();
-      vector<int>().swap(mpot);
+      vector<char_t>().swap(mpot);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
       if (state->dev_mpot) state->gpu_rezone_all(icount, jcount, localStencil);
@@ -608,6 +610,8 @@ extern "C" void do_calc(void)
          if (do_comparison_calc){
 #ifdef FULL_PRECISION
             mesh->compare_coordinates_gpu_global_to_cpu_global_double(dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
+#elif HALF_PRECISION
+            mesh->compare_coordinates_gpu_global_to_cpu_global_half(dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
 #else
             mesh->compare_coordinates_gpu_global_to_cpu_global_float(dev_x, dev_dx, dev_y, dev_dy, dev_H, &state->H[0]);
 #endif
@@ -624,7 +628,9 @@ extern "C" void do_calc(void)
       set_graphics_mysize(ncells);
       set_graphics_viewmode(view_mode);
       set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+#ifndef HALF_PRECISION
       set_graphics_cell_data(&state->H[0]);
+#endif
       set_graphics_cell_proc(&mesh->proc[0]);
 
       write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,0,0);

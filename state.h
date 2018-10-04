@@ -70,16 +70,43 @@
 #define STATUS_NAN       1
 #define STATUS_MASS_LOSS 2
 
-#if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION)
+#if !defined(FULL_PRECISION) && !defined(MIXED_PRECISION) && !defined(MINIMUM_PRECISION) && !defined(HALF_PRECISION)
 #define FULL_PRECISION
 #endif
 #ifdef NO_CL_DOUBLE
 #undef  FULL_PRECISION
 #undef  MIXED_PRECISION
 #define MINIMUM_PRECISION
+#undef  HALF_PRECISION
 #endif
 
-#if defined(MINIMUM_PRECISION)
+#if defined(HALF_PRECISION)
+    #include "half.hpp"
+   using half_float::half;
+   using namespace half_float::literal;
+   typedef half state_t; // this is for physics state variables ncell in size
+   typedef float real_t; // this is used for intermediate calculations
+   typedef struct
+   {
+      float s0;
+      float s1;
+   }  real2_t;
+#define CONSERVATION_EPS    15.0
+#ifdef HAVE_OPENCL
+   typedef cl_half  cl_state_t; // for gpu physics state variables
+   typedef cl_half4 cl_state4_t; // for gpu physics state variables
+   typedef cl_float  cl_real_t; // for intermediate gpu physics state variables
+   typedef cl_float2 cl_real2_t; // for intermediate gpu physics state variables
+   typedef cl_float4 cl_real4_t; // for intermediate gpu physics state variables
+#endif
+#ifdef HAVE_MPI
+   #define MPI_STATE_T MPI_SHORT // for MPI communication for physics state variables
+   #define MPI_REAL_T MPI_FLOAT // for MPI communication for physics state variables
+   #define L7_STATE_T L7_SHORT
+   #define L7_REAL_T L7_FLOAT
+#endif
+
+#elif defined(MINIMUM_PRECISION)
    typedef float state_t; // this is for physics state variables ncell in size
    typedef float real_t; // this is used for intermediate calculations
    typedef struct
@@ -287,7 +314,7 @@ public:
    *    ioffset
    *    count
    *******************************************************************/
-   size_t calc_refine_potential(vector<int> &mpot, int &icount, int &jcount);
+   size_t calc_refine_potential(vector<char_t> &mpot, int &icount, int &jcount);
 #ifdef HAVE_OPENCL
    size_t gpu_calc_refine_potential(int &icount, int &jcount);
 #endif
@@ -299,7 +326,7 @@ public:
    *  Output
    *    New mesh and state variables on refined mesh
    *******************************************************************/
-   void rezone_all(int icount, int jcount, vector<int> mpot);
+   void rezone_all(int icount, int jcount, vector<char_t> mpot);
 #ifdef HAVE_OPENCL
    void gpu_rezone_all(int icount, int jcount, bool localStencil);
 #endif

@@ -416,7 +416,9 @@ int main(int argc, char **argv) {
       set_graphics_mysize(ncells_global);
       set_graphics_cell_coordinates(&x_global[0], &dx_global[0],
                                     &y_global[0], &dy_global[0]);
+#ifndef HALF_PRECISION
       set_graphics_cell_data(&H_global[0]);
+#endif
       set_graphics_cell_proc(&proc_global[0]);
       set_graphics_viewmode(view_mode);
 
@@ -471,8 +473,8 @@ extern "C" void do_calc(void)
    size_t &ncells_global    = mesh->ncells_global;
    size_t &ncells           = mesh->ncells;
 
-   vector<int>     mpot;
-   vector<int>     mpot_global;
+   vector<char_t>     mpot;
+   vector<char_t>     mpot_global;
    
    size_t new_ncells = 0;
 
@@ -546,7 +548,7 @@ extern "C" void do_calc(void)
       // it to delete the mpot memory. This is all to avoid valgrind from showing
       // it as a reachable memory leak
       //mpot.clear();
-      vector<int>().swap(mpot);
+      vector<char_t>().swap(mpot);
 
       mesh->ncells = new_ncells;
       ncells = new_ncells;
@@ -612,7 +614,9 @@ extern "C" void do_calc(void)
             set_graphics_mysize(ncells);
             set_graphics_viewmode(view_mode);
             set_graphics_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+#ifndef HALF_PRECISION
             set_graphics_cell_data(&state->H[0]);
+#endif
             set_graphics_cell_proc(&mesh->proc[0]);
             write_graphics_info(ncycle/graphic_outputInterval,ncycle,simTime,1,rollback_attempt);
          }
@@ -703,7 +707,9 @@ extern "C" void do_calc(void)
       set_graphics_viewmode(view_mode);
       set_graphics_cell_coordinates(&x_global[0], &dx_global[0],
                                     &y_global[0], &dy_global[0]);
+#ifndef HALF_PRECISION
       set_graphics_cell_data(&H_global[0]);
+#endif
       set_graphics_cell_proc(&proc_global[0]);
 
       if (mype == 0) {

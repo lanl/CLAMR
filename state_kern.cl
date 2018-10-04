@@ -60,10 +60,10 @@
 
 #if defined(MIN_INTEGER)
    // define all to needed ranges and then typedef or define to actual
-   typedef unsigned short ushort_t // 0 to 65,535
-   typedef short          short_t  // -32,768 to 32,767
-   typedef unsigned char  uchar_t  // 0 to 255
-   typedef char           char_t   // -128 to 127 
+   typedef unsigned short ushort_t; // 0 to 65,535
+   typedef short          short_t;  // -32,768 to 32,767
+   typedef unsigned char  uchar_t;  // 0 to 255
+   typedef char           char_t;   // -128 to 127 
 #ifdef HAVE_OPENCL
    typedef cl_ushort cl_ushort_t;
    typedef cl_short  cl_short_t;
@@ -2648,7 +2648,7 @@ __kernel void refine_potential_cl(
         __global const char_t  *celltype,   // 12  Array of celltype information.
         __global const real_t  *lev_dx,     // 13
         __global const real_t  *lev_dy,     // 14
-        __global       int     *mpot,       // 15  Array of mesh potential information.
+        __global       char_t  *mpot,       // 15  Array of mesh potential information.
         __global       int2    *redscratch, // 16  Array of new giX offsets.
         __global       int2    *result,     // 17
         __local        state_t *tile,       // 18  Tile size in state_t.
