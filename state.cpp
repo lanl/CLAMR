@@ -415,7 +415,8 @@ void State::add_boundary_cells(void)
    mesh->i        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, i);
    mesh->j        =(int *)mesh->mesh_memory.memory_realloc(new_ncells, j);
    mesh->level    =(uchar_t *)mesh->mesh_memory.memory_realloc(new_ncells, level);
-   mesh->celltype =(char_t *)mesh->mesh_memory.memory_realloc(new_ncells, celltype);
+   // needs to cast char_t to void so doesn't mistake it for string
+   mesh->celltype =(char_t *)mesh->mesh_memory.memory_realloc(new_ncells, (void *)celltype);
    mesh->nlft     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nlft);
    mesh->nrht     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nrht);
    mesh->nbot     =(int *)mesh->mesh_memory.memory_realloc(new_ncells, nbot);
@@ -727,7 +728,8 @@ void State::remove_boundary_cells(void)
          mesh->i        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->i);
          mesh->j        = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->j);
          mesh->level    = (uchar_t *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->level);
-         mesh->celltype = (char_t *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->celltype);
+         // needs to cast char_t to void so doesn't mistake it for string
+         mesh->celltype = (char_t *)mesh->mesh_memory.memory_realloc(save_ncells, (void *)mesh->celltype);
          mesh->nlft     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->nlft);
          mesh->nrht     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->nrht);
          mesh->nbot     = (int *)mesh->mesh_memory.memory_realloc(save_ncells, mesh->nbot);

@@ -2345,7 +2345,8 @@ void Mesh::terminate(void)
       mesh_memory.memory_delete(i);
       mesh_memory.memory_delete(j);
       mesh_memory.memory_delete(level);
-      mesh_memory.memory_delete(celltype);
+      // needs to cast char_t to void so doesn't mistake it for string
+      mesh_memory.memory_delete((void *)celltype);
       if (neighbor_remap) {
          mesh_memory.memory_delete(nlft);
          mesh_memory.memory_delete(nrht);
@@ -5918,7 +5919,8 @@ void Mesh::calc_neighbors_local(void)
 #pragma omp master
          {
 #endif
-         celltype = (char_t *)mesh_memory.memory_realloc(ncells_ghost, celltype);
+         // needs to cast char_t to void so doesn't mistake it for string
+         celltype = (char_t *)mesh_memory.memory_realloc(ncells_ghost, (void *)celltype);
          i        = (int *)mesh_memory.memory_realloc(ncells_ghost, i);
          j        = (int *)mesh_memory.memory_realloc(ncells_ghost, j);
          level    = (uchar_t *)mesh_memory.memory_realloc(ncells_ghost, level);
@@ -8300,7 +8302,7 @@ void Mesh::calc_celltype_threaded(size_t ncells)
    {
 #endif
    if (celltype == NULL || mesh_memory.get_memory_size(celltype) < ncells) {
-      if (celltype != NULL) celltype = (char_t *)mesh_memory.memory_delete(celltype);
+      if (celltype != NULL) celltype = (char_t *)mesh_memory.memory_delete((void *)celltype);
       celltype = (char_t *)mesh_memory.memory_malloc(ncells, sizeof(char_t), "celltype", flags);
    }
 #ifdef _OPENMP
@@ -8328,7 +8330,7 @@ void Mesh::calc_celltype(size_t ncells)
 #endif
 
    if (celltype == NULL || mesh_memory.get_memory_size(celltype) < ncells) {
-      if (celltype != NULL) celltype = (char_t *)mesh_memory.memory_delete(celltype);
+      if (celltype != NULL) celltype = (char_t *)mesh_memory.memory_delete((void *)celltype);
       celltype = (char_t *)mesh_memory.memory_malloc(ncells, sizeof(char_t), "celltype", flags);
    }
 

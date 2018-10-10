@@ -2539,7 +2539,7 @@ __kernel void coarsen_check_block_cl(
       }
 
       if (mpotval < 0) {
-         char_t ctype = celltype[giX];
+         int ctype = celltype[giX];
          if (ctype == REAL_CELL) {
             if (! is_lower_left(ival,jval) ) itile[tiX] = 1;
          } else {
