@@ -1427,6 +1427,9 @@ Mesh::Mesh(int nx, int ny, int levmx_in, int ndim_in, double deltax_in, double d
    nrht     = NULL;
    nbot     = NULL;
    ntop     = NULL;
+   i        = NULL;
+   j        = NULL;
+   level    = NULL;
 
 #ifdef PATTERN_CHECK
    for (int ii=0; ii<255; ii++){
@@ -13948,7 +13951,8 @@ void Mesh::restore_checkpoint(Crux *crux)
    mesh_memory.memory_delete(nrht);
    mesh_memory.memory_delete(nbot);
    mesh_memory.memory_delete(ntop);
-   mesh_memory.memory_delete(celltype);
+   // needs to cast char_t to void so doesn't mistake it for string
+   mesh_memory.memory_delete((void *)celltype);
 
    nlft = NULL;
    nrht = NULL;
