@@ -109,12 +109,16 @@ static double circle_radius=-1.0;
 
 static int view_mode = 0;
 
-#ifdef FULL_PRECISION
+#if defined(FULL_PRECISION)
 #define  SUM_ERROR 2.2e-16
    void (*set_graphics_cell_coordinates)(double *, double *, double *, double *) = &set_graphics_cell_coordinates_double;
    void (*set_graphics_cell_data)(double *) = &set_graphics_cell_data_double;
-#else
-#define  SUM_ERROR 1.0e-8
+#elif defined(MINIMUM_PRECISION) || defined(MIXED_PRECISION)
+#define  SUM_ERROR 1.0e-7
+   void (*set_graphics_cell_coordinates)(float *, float *, float *, float *) = &set_graphics_cell_coordinates_float;
+   void (*set_graphics_cell_data)(float *) = &set_graphics_cell_data_float;
+#elif defined(HALF_PRECISION)
+#define  SUM_ERROR 1.0e-6
    void (*set_graphics_cell_coordinates)(float *, float *, float *, float *) = &set_graphics_cell_coordinates_float;
    void (*set_graphics_cell_data)(float *) = &set_graphics_cell_data_float;
 #endif
