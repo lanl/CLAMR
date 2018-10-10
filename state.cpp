@@ -1820,7 +1820,7 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       }
    }
 
-   for (int ifixup = 0; ifixup < mesh->nxfixup; ifixup++){
+   for (int ifixup = 0; ifixup < mesh->nyfixup; ifixup++){
       int gix = mesh->yrecvCIdx[ifixup];
 
       if (mesh->yplusCell2Idx[gix] > -1) {
