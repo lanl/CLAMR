@@ -118,8 +118,7 @@ bool        restart,        //  Flag to start from a back up file; init in input
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
             localStencil,   //  Flag for use of local stencil; init in input.cpp::parseInput().
             face_based,     //  Flag for face-based finite difference;
-            outline,        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
-            output_cuts;    //  Flag for outputting file of slice along y-axis; init in input.cpp::parseInput().
+            outline;        //  Flag for drawing outlines of cells; init in input.cpp::parseInput().
 int         outputInterval, //  Periodicity of output; init in input.cpp::parseInput().
             crux_type,      //  Type of checkpoint/restart -- CRUX_NONE, CRUX_IN_MEMORY, CRUX_DISK;
                             //  init in input.cpp::parseInput().
@@ -133,6 +132,7 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
             graphic_outputInterval, // Periodicity of graphic output that is saved; init in input.cpp::parseInput()
             checkpoint_outputInterval, // Periodicity of checkpoint output that is saved; init in input.cpp::parseInput()
             num_of_rollback_states,// Maximum number of rollback states to maintain; init in input.cpp::parseInput()
+            output_cuts,    //  Flag for outputting file of slice along y-axis; init in input.cpp::parseInput().
             backup_file_num,//  Backup file number to restart simulation from; init in input.cpp::parseInput()
             numpe,          //  
             ndim    = 2;    //  Dimensionality of problem (2 or 3).

@@ -99,7 +99,6 @@ extern bool verbose,
             dynamic_load_balance_on,
             h5_spoutput,
             restart,
-            output_cuts,
             phantom_debug;
 extern int  outputInterval,
             crux_type,
@@ -121,6 +120,7 @@ extern int  outputInterval,
             checkpoint_outputInterval,
             neighbor_remap,
             num_of_rollback_states,
+            output_cuts,
             cycle_reorder;
 extern float
             mem_opt_factor;
@@ -200,7 +200,10 @@ void outputHelp()
          << "  -v                display version information." << endl
          << "  -x                turn on phantom AMR regular debug" << endl
          << "  -z                force recalculation of neighbors." << endl
-         << "  -Z                Include cuts along y-axis (y vs. H) with output files." << endl; }
+         << "  -Z <Z>            Include cuts along y-axis (y vs. H) with output files." << endl
+         << "      \"y-axis\"" << endl
+         << "      \"x-axis\"" << endl
+         << "      \"45-deg\"" << endl;}
 
 void outputVersion()
 {   cout << progName << " " << progVers << endl; }
@@ -224,7 +227,7 @@ void parseInput(const int argc, char** argv)
     verbose                 = false;
     localStencil            = true;
     outline                 = true;
-    output_cuts             = false;
+    output_cuts             = CUT_NONE;
 #ifdef HAVE_LTTRACE
     lttrace_on              = 0;
 #endif
@@ -531,8 +534,19 @@ void parseInput(const int argc, char** argv)
                     neighbor_remap = false;
                     break;
 
-                case 'Z':  // Output cuts -- default is false, -Z sets to true
-                    output_cuts = true;
+                case 'Z':  // Output cuts -- default is none, -Z <Z> sets to type of cut
+                    val = strtok(argv[i++], " ,");
+                    if (! strcmp(val,"xaxis") ) {
+                       output_cuts = CUT_XAXIS;
+                    } else if (! strcmp(val,"yaxis") ) {
+                       output_cuts = CUT_YAXIS;
+                    } else if (! strcmp(val,"45deg") ) {
+                       output_cuts = CUT_45DEG;
+                    } else if (! strcmp(val,"all") ) {
+                       output_cuts = CUT_ALL;
+                    } else {
+                       printf("Error with output cut type\n");
+                    }
                     break;
 
                 default:    //  Unknown parameter encountered.
