@@ -4,12 +4,12 @@ import numpy as np
 
 fig, ax = plt.subplots()
 
-x1, y1 = np.loadtxt('cell.cut500', delimiter=',', unpack=True)
-x2, y2 = np.loadtxt('face.cut500', delimiter=',', unpack=True)
-x3, y3 = np.loadtxt('cellinplace.cut500', delimiter=',', unpack=True)
-x4, y4 = np.loadtxt('faceinplace.cut500', delimiter=',', unpack=True)
-x5, y5 = np.loadtxt('reggridbycell.cut500', delimiter=',', unpack=True)
-x6, y6 = np.loadtxt('reggridbyface.cut500', delimiter=',', unpack=True)
+x1, y1 = np.loadtxt('cell.cut2000', delimiter=',', unpack=True)
+x2, y2 = np.loadtxt('face.cut2000', delimiter=',', unpack=True)
+x3, y3 = np.loadtxt('cellinplace.cut2000', delimiter=',', unpack=True)
+x4, y4 = np.loadtxt('faceinplace.cut2000', delimiter=',', unpack=True)
+x5, y5 = np.loadtxt('reggridbycell.cut2000', delimiter=',', unpack=True)
+x6, y6 = np.loadtxt('reggridbyface.cut2000', delimiter=',', unpack=True)
 
 plt.plot(x1,y1, label='Original AMR Cell', color='black')
 plt.plot(x2,y2, label='Original AMR Face', color='grey')

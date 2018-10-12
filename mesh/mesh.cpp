@@ -10204,7 +10204,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       } else {
          xface_j[iface] = j[nr]*ifactor;
       }
-      //printf("%d) %d/%d\n", iface, xface_j[iface], xface_i[iface]);
       map_xcell2face_right1[nz] = iface;
 
       //the right is a real cell, but I am left boundary
@@ -10222,7 +10221,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
             xface_i[iface] = i[ntr]*ifactor;
             xface_j[iface] = j[ntr]*ifactor;
             map_xcell2face_right2[nz] = iface;
-            //printf("%d) %d/%d\n", iface, xface_j[iface], xface_i[iface]);
 
             iface++;
          }
@@ -10239,6 +10237,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
       if (level[nl] < level[nz] && is_upper(j[nz])){
          map_xcell2face_left1[nz] = map_xcell2face_right2[nl];
+
+         //the left is a real cell, but I am right boundary
+         if (nz == nrht[nz])
+             map_xcell2face_right1[nz] = map_xcell2face_left1[nz];
+
       } else {
          map_xcell2face_left1[nz] = map_xcell2face_right1[nl];
 
@@ -10358,9 +10361,14 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    for (int nz=0; nz<(int)ncells; nz++){
       int nb = nbot[nz];
       if (nb == nz) continue;
+      //if (nz == 3) printf("%d %d\n", map_ycell2face_top1[nb], map_ycell2face_top2[nb]);
 
       if (level[nb] < level[nz] && is_upper(i[nz])){
          map_ycell2face_bot1[nz] = map_ycell2face_top2[nb];
+         //the bot is a real cell, but I am top boundary
+         if (nz == ntop[nz])
+             map_ycell2face_top1[nz] = map_ycell2face_bot1[nz];
+
       } else {
          map_ycell2face_bot1[nz] = map_ycell2face_top1[nb];
 
@@ -10372,8 +10380,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
             map_ycell2face_bot2[nz] = map_ycell2face_top1[nrht[nb]];
          }
       }
-
    }
+
+   //for (int nz = 0; nz < ncells; nz++) {
+   //    printf("%d) %d %d %d %d\n", nz,map_xcell2face_left1[nz],map_xcell2face_right1[nz],map_ycell2face_bot1[nz],map_ycell2face_top1[nz]);
+   //}
 
    cpu_timers[MESH_TIMER_BIDIRPART6] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
