@@ -178,6 +178,14 @@
 
 extern "C" void do_calc(void);
 
+enum CUT_TYPE {
+   CUT_NONE = 0,
+   CUT_XAXIS,
+   CUT_YAXIS,
+   CUT_45DEG,
+   CUT_ALL
+};
+
 enum SUM_TYPE {
    SUM_REGULAR,
    SUM_KAHAN
