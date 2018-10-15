@@ -1723,22 +1723,22 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       real_t Uic     = U[gix];
       real_t Vic     = V[gix];
 
-      int nll     = mesh->map_xface2cell_lower[fl];
+      int nll     = mesh->map_xface2cell_lower[mesh->map_xcell2face_left1[nl]];
       real_t Hl      = H[nl];
       real_t Ul      = U[nl];
       real_t Vl      = V[nl];
 
-      int nrr     = mesh->map_xface2cell_upper[fr];
+      int nrr     = mesh->map_xface2cell_upper[mesh->map_xcell2face_right1[nr]];
       real_t Hr      = H[nr];
       real_t Ur      = U[nr];
       real_t Vr      = V[nr];
 
-      int ntt     = mesh->map_yface2cell_upper[ft];
+      int ntt     = mesh->map_yface2cell_upper[mesh->map_ycell2face_top1[nt]];
       real_t Ht      = H[nt];
       real_t Ut      = U[nt];
       real_t Vt      = V[nt];
 
-      int nbb     = mesh->map_yface2cell_lower[fb];
+      int nbb     = mesh->map_yface2cell_lower[mesh->map_ycell2face_bot1[nb]];
       real_t Hb      = H[nb];
       real_t Ub      = U[nb];
       real_t Vb      = V[nb];
@@ -1756,21 +1756,21 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       real_t Vbb     = V[nbb];
 
       // Halfstep in space and time
-      real_t Hxminus = HALF*(Hic+Hl)-deltaT/dxic*(HXFLUXIC-HXFLUXNL);
-      real_t Uxminus = HALF*(Uic+Ul)-deltaT/dxic*(UXFLUXIC-UXFLUXNL);
-      real_t Vxminus = HALF*(Vic+Vl)-deltaT/dxic*(UVFLUXIC-UVFLUXNL);
+      real_t Hxminus = HALF*((Hic+Hl)-deltaT/dxic*(HXFLUXIC-HXFLUXNL));
+      real_t Uxminus = HALF*((Uic+Ul)-deltaT/dxic*(UXFLUXIC-UXFLUXNL));
+      real_t Vxminus = HALF*((Vic+Vl)-deltaT/dxic*(UVFLUXIC-UVFLUXNL));
 
-      real_t Hxplus = HALF*(Hr+Hic)-deltaT/dxic*(HXFLUXNR-HXFLUXIC);
-      real_t Uxplus = HALF*(Ur+Uic)-deltaT/dxic*(UXFLUXNR-UXFLUXIC);
-      real_t Vxplus = HALF*(Vr+Vic)-deltaT/dxic*(UVFLUXNR-UVFLUXIC);
+      real_t Hxplus = HALF*((Hr+Hic)-deltaT/dxic*(HXFLUXNR-HXFLUXIC));
+      real_t Uxplus = HALF*((Ur+Uic)-deltaT/dxic*(UXFLUXNR-UXFLUXIC));
+      real_t Vxplus = HALF*((Vr+Vic)-deltaT/dxic*(UVFLUXNR-UVFLUXIC));
 
-      real_t Hyminus = HALF*(Hic+Hb)-deltaT/dyic*(HYFLUXIC-HYFLUXNB);
-      real_t Uyminus = HALF*(Uic+Ub)-deltaT/dyic*(VUFLUXIC-VUFLUXNB);
-      real_t Vyminus = HALF*(Vic+Vb)-deltaT/dyic*(VYFLUXIC-VYFLUXNB);
+      real_t Hyminus = HALF*((Hic+Hb)-deltaT/dyic*(HYFLUXIC-HYFLUXNB));
+      real_t Uyminus = HALF*((Uic+Ub)-deltaT/dyic*(VUFLUXIC-VUFLUXNB));
+      real_t Vyminus = HALF*((Vic+Vb)-deltaT/dyic*(VYFLUXIC-VYFLUXNB));
 
-      real_t Hyplus = HALF*(Ht+Hic)-deltaT/dyic*(HYFLUXNT-HYFLUXIC);
-      real_t Uyplus = HALF*(Ut+Uic)-deltaT/dyic*(VUFLUXNT-VUFLUXIC);
-      real_t Vyplus = HALF*(Vt+Vic)-deltaT/dyic*(VYFLUXNT-VYFLUXIC);
+      real_t Hyplus = HALF*((Ht+Hic)-deltaT/dyic*(HYFLUXNT-HYFLUXIC));
+      real_t Uyplus = HALF*((Ut+Uic)-deltaT/dyic*(VUFLUXNT-VUFLUXIC));
+      real_t Vyplus = HALF*((Vt+Vic)-deltaT/dyic*(VYFLUXNT-VYFLUXIC));
 
       Hxfluxminus[gix] = HNEWXFLUXMINUS;
       Uxfluxminus[gix] = UNEWXFLUXMINUS;
@@ -1921,67 +1921,68 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
-   for (int ifixup = 0; ifixup < mesh->nxfixup; ifixup++){
-      int gix = mesh->xrecvCIdx[ifixup];
+   for (int ifix = 0; ifix < mesh->nxfixup; ifix++){
+      int ic = mesh->xrecvCIdx[ifix];
 
-      if (mesh->xplusCell2Idx[gix] > -1) {
-         int ifixup = mesh->xplusCell2Idx[gix];
+      if (mesh->xplusCell2Idx[ic] > -1) {
+         int ifixup = mesh->xplusCell2Idx[ic];
 
          // set the sending cells
          int ns1 = mesh->map_xface2cell_upper[mesh->xsendIdx1[ifixup]];
          int ns2 = mesh->map_xface2cell_upper[mesh->xsendIdx2[ifixup]];
 
-         Hxfluxplus[gix] = (Hxfluxminus[ns1] + Hxfluxminus[ns2]) * HALF;
-         Uxfluxplus[gix] = (Uxfluxminus[ns1] + Uxfluxminus[ns2]) * HALF;
-         Vxfluxplus[gix] = (Vxfluxminus[ns1] + Vxfluxminus[ns2]) * HALF;
-         wplusx_H[gix] = (wminusx_H[ns1] + wminusx_H[ns2]) * 0.25;
-         wplusx_U[gix] = (wminusx_U[ns1] + wminusx_U[ns2]) * 0.25;
+         Hxfluxplus[ic] = (Hxfluxminus[ns1] + Hxfluxminus[ns2]) * HALF;
+         Uxfluxplus[ic] = (Uxfluxminus[ns1] + Uxfluxminus[ns2]) * HALF;
+         Vxfluxplus[ic] = (Vxfluxminus[ns1] + Vxfluxminus[ns2]) * HALF;
+         wplusx_H[ic] = (wminusx_H[ns1] + wminusx_H[ns2]) * 0.25;
+         wplusx_U[ic] = (wminusx_U[ns1] + wminusx_U[ns2]) * 0.25;
       }
 
-      if (mesh->xminusCell2Idx[gix] > -1) {
-         int ifixup = mesh->xminusCell2Idx[gix];
+      if (mesh->xminusCell2Idx[ic] > -1) {
+         int ifixup = mesh->xminusCell2Idx[ic];
 
          // set the sending cells
          int ns1 = mesh->map_xface2cell_lower[mesh->xsendIdx1[ifixup]];
          int ns2 = mesh->map_xface2cell_lower[mesh->xsendIdx2[ifixup]];
 
-         Hxfluxminus[gix] = (Hxfluxplus[ns1] + Hxfluxplus[ns2]) * HALF;
-         Uxfluxminus[gix] = (Uxfluxplus[ns1] + Uxfluxplus[ns2]) * HALF;
-         Vxfluxminus[gix] = (Vxfluxplus[ns1] + Vxfluxplus[ns2]) * HALF;
-         wminusx_H[gix] = (wplusx_H[ns1] + wplusx_H[ns2]) * 0.25;
-         wminusx_U[gix] = (wplusx_U[ns1] + wplusx_U[ns2]) * 0.25;
+         Hxfluxminus[ic] = (Hxfluxplus[ns1] + Hxfluxplus[ns2]) * HALF;
+         Uxfluxminus[ic] = (Uxfluxplus[ns1] + Uxfluxplus[ns2]) * HALF;
+         Vxfluxminus[ic] = (Vxfluxplus[ns1] + Vxfluxplus[ns2]) * HALF;
+         //printf("(%d) %f\n", ic, Vxfluxminus[ic]);
+         wminusx_H[ic] = (wplusx_H[ns1] + wplusx_H[ns2]) * 0.25;
+         wminusx_U[ic] = (wplusx_U[ns1] + wplusx_U[ns2]) * 0.25;
       }
    }
 
-   for (int ifixup = 0; ifixup < mesh->nyfixup; ifixup++){
-      int gix = mesh->yrecvCIdx[ifixup];
+   for (int ifix = 0; ifix < mesh->nyfixup; ifix++){
+      int ic = mesh->yrecvCIdx[ifix];
 
-      if (mesh->yplusCell2Idx[gix] > -1) {
-         int ifixup = mesh->yplusCell2Idx[gix];
+      if (mesh->yplusCell2Idx[ic] > -1) {
+         int ifixup = mesh->yplusCell2Idx[ic];
 
          // set the sending cells
          int ns1 = mesh->map_yface2cell_upper[mesh->ysendIdx1[ifixup]];
          int ns2 = mesh->map_yface2cell_upper[mesh->ysendIdx2[ifixup]];
 
-         Hyfluxplus[gix] = (Hyfluxminus[ns1] + Hyfluxminus[ns2]) * HALF;
-         Uyfluxplus[gix] = (Uyfluxminus[ns1] + Uyfluxminus[ns2]) * HALF;
-         Vyfluxplus[gix] = (Vyfluxminus[ns1] + Vyfluxminus[ns2]) * HALF;
-         wplusy_H[gix] = (wminusy_H[ns1] + wminusy_H[ns2]) * 0.25;
-         wplusy_V[gix] = (wminusy_V[ns1] + wminusy_V[ns2]) * 0.25;
+         Hyfluxplus[ic] = (Hyfluxminus[ns1] + Hyfluxminus[ns2]) * HALF;
+         Uyfluxplus[ic] = (Uyfluxminus[ns1] + Uyfluxminus[ns2]) * HALF;
+         Vyfluxplus[ic] = (Vyfluxminus[ns1] + Vyfluxminus[ns2]) * HALF;
+         wplusy_H[ic] = (wminusy_H[ns1] + wminusy_H[ns2]) * 0.25;
+         wplusy_V[ic] = (wminusy_V[ns1] + wminusy_V[ns2]) * 0.25;
       }
 
-      if (mesh->yminusCell2Idx[gix] > -1) {
-         int ifixup = mesh->yminusCell2Idx[gix];
+      if (mesh->yminusCell2Idx[ic] > -1) {
+         int ifixup = mesh->yminusCell2Idx[ic];
 
          // set the sending cells
          int ns1 = mesh->map_yface2cell_lower[mesh->ysendIdx1[ifixup]];
          int ns2 = mesh->map_yface2cell_lower[mesh->ysendIdx2[ifixup]];
 
-         Hyfluxminus[gix] = (Hyfluxplus[ns1] + Hyfluxplus[ns2]) * HALF;
-         Uyfluxminus[gix] = (Uyfluxplus[ns1] + Uyfluxplus[ns2]) * HALF;
-         Vyfluxminus[gix] = (Vyfluxplus[ns1] + Vyfluxplus[ns2]) * HALF;
-         wminusy_H[gix] = (wplusy_H[ns1] + wplusy_H[ns2]) * 0.25;
-         wminusy_V[gix] = (wplusy_V[ns1] + wplusy_V[ns2]) * 0.25;
+         Hyfluxminus[ic] = (Hyfluxplus[ns1] + Hyfluxplus[ns2]) * HALF;
+         Uyfluxminus[ic] = (Uyfluxplus[ns1] + Uyfluxplus[ns2]) * HALF;
+         Vyfluxminus[ic] = (Vyfluxplus[ns1] + Vyfluxplus[ns2]) * HALF;
+         wminusy_H[ic] = (wplusy_H[ns1] + wplusy_H[ns2]) * 0.25;
+         wminusy_V[ic] = (wplusy_V[ns1] + wplusy_V[ns2]) * 0.25;
       }
    }
 
@@ -1993,9 +1994,25 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       real_t dxic    = mesh->lev_deltax[lev];
       real_t dyic    = mesh->lev_deltay[lev];
 
+      int fl = mesh->map_xcell2face_left1[gix];
+      int fr = mesh->map_xcell2face_right1[gix];
+      int fb = mesh->map_ycell2face_bot1[gix];
+      int ft = mesh->map_ycell2face_top1[gix];
+
+      //printf("%d %d %d %d\n", fl, fr, fb, ft);
+
+      // set the four neighboring cells
+      int nl = mesh->map_xface2cell_lower[fl];
+      int nr = mesh->map_xface2cell_upper[fr];
+      int nb = mesh->map_yface2cell_lower[fb];
+      int nt = mesh->map_yface2cell_upper[ft];
+
+      if (nb == gix  || nt == gix || nl == gix || nr == gix) continue;
       real_t Hic     = H[gix];
       real_t Uic     = U[gix];
       real_t Vic     = V[gix];
+
+      //printf("%d) %f %f %f %f\n", gix, Vyfluxplus[gix], Vyfluxminus[gix], wminusy_V[gix], wplusy_V[gix]);
 
       H_new[gix] = U_fullstep(deltaT, dxic, Hic,
                        Hxfluxplus[gix], Hxfluxminus[gix], Hyfluxplus[gix], Hyfluxminus[gix])
@@ -2246,6 +2263,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       HyFlux[iface] = HYFLUXFACE;
       UyFlux[iface] = UYFLUXFACE;
       VyFlux[iface] = VYFLUXFACE;
+      //printf("[%d] (%d)   %f   (%d)\n", iface, cell_lower, VyFlux[iface], cell_upper);
    }
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
@@ -2318,6 +2336,9 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       real_t Hic     = H[ic];
       real_t Uic     = U[ic];
       real_t Vic     = V[ic];
+
+         //printf("(%d) %f\n", ic, VyFlux[fl]);
+      //printf("%d) %f %f %f %f\n", ic, VyFlux[ft], VyFlux[fb], Wy_V[fb], Wy_V[ft]);
 
       H_new[ic] = U_fullstep(deltaT,dxic,Hic,
                   HxFlux[fr], HxFlux[fl], HyFlux[ft], HyFlux[fb])
