@@ -1704,6 +1704,8 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       //if (lev != l) continue;
       real_t dxic    = mesh->lev_deltax[lev];
       real_t dyic    = mesh->lev_deltay[lev];
+      real_t Cxhalf = 0.5*deltaT/dxic;
+      real_t Cyhalf = 0.5*deltaT/dyic;
 
       // set the four faces
       int fl = mesh->map_xcell2face_left1[gix];
@@ -1756,21 +1758,21 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       real_t Vbb     = V[nbb];
 
       // Halfstep in space and time
-      real_t Hxminus = HALF*((Hic+Hl)-deltaT/dxic*(HXFLUXIC-HXFLUXNL));
-      real_t Uxminus = HALF*((Uic+Ul)-deltaT/dxic*(UXFLUXIC-UXFLUXNL));
-      real_t Vxminus = HALF*((Vic+Vl)-deltaT/dxic*(UVFLUXIC-UVFLUXNL));
+      real_t Hxminus = HALF*(Hic+Hl)-Cxhalf*(HXFLUXIC-HXFLUXNL);
+      real_t Uxminus = HALF*(Uic+Ul)-Cxhalf*(UXFLUXIC-UXFLUXNL);
+      real_t Vxminus = HALF*(Vic+Vl)-Cxhalf*(UVFLUXIC-UVFLUXNL);
 
-      real_t Hxplus = HALF*((Hr+Hic)-deltaT/dxic*(HXFLUXNR-HXFLUXIC));
-      real_t Uxplus = HALF*((Ur+Uic)-deltaT/dxic*(UXFLUXNR-UXFLUXIC));
-      real_t Vxplus = HALF*((Vr+Vic)-deltaT/dxic*(UVFLUXNR-UVFLUXIC));
+      real_t Hxplus = HALF*(Hr+Hic)-Cxhalf*(HXFLUXNR-HXFLUXIC);
+      real_t Uxplus = HALF*(Ur+Uic)-Cxhalf*(UXFLUXNR-UXFLUXIC);
+      real_t Vxplus = HALF*(Vr+Vic)-Cxhalf*(UVFLUXNR-UVFLUXIC);
 
-      real_t Hyminus = HALF*((Hic+Hb)-deltaT/dyic*(HYFLUXIC-HYFLUXNB));
-      real_t Uyminus = HALF*((Uic+Ub)-deltaT/dyic*(VUFLUXIC-VUFLUXNB));
-      real_t Vyminus = HALF*((Vic+Vb)-deltaT/dyic*(VYFLUXIC-VYFLUXNB));
+      real_t Hyminus = HALF*(Hic+Hb)-Cyhalf*(HYFLUXIC-HYFLUXNB);
+      real_t Uyminus = HALF*(Uic+Ub)-Cyhalf*(VUFLUXIC-VUFLUXNB);
+      real_t Vyminus = HALF*(Vic+Vb)-Cyhalf*(VYFLUXIC-VYFLUXNB);
 
-      real_t Hyplus = HALF*((Ht+Hic)-deltaT/dyic*(HYFLUXNT-HYFLUXIC));
-      real_t Uyplus = HALF*((Ut+Uic)-deltaT/dyic*(VUFLUXNT-VUFLUXIC));
-      real_t Vyplus = HALF*((Vt+Vic)-deltaT/dyic*(VYFLUXNT-VYFLUXIC));
+      real_t Hyplus = HALF*(Ht+Hic)-Cyhalf*(HYFLUXNT-HYFLUXIC);
+      real_t Uyplus = HALF*(Ut+Uic)-Cyhalf*(VUFLUXNT-VUFLUXIC);
+      real_t Vyplus = HALF*(Vt+Vic)-Cyhalf*(VYFLUXNT-VYFLUXIC);
 
       Hxfluxminus[gix] = HNEWXFLUXMINUS;
       Uxfluxminus[gix] = UNEWXFLUXMINUS;
@@ -2012,7 +2014,11 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       real_t Uic     = U[gix];
       real_t Vic     = V[gix];
 
+<<<<<<< HEAD
       //printf("%d) %f %f %f %f\n", gix, Vyfluxplus[gix], Vyfluxminus[gix], wminusy_V[gix], wplusy_V[gix]);
+=======
+      if (mesh->celltype[gix] != REAL_CELL) continue;
+>>>>>>> 483c74704b7355e1ec9691ec4a7604f64e3d029c
 
       H_new[gix] = U_fullstep(deltaT, dxic, Hic,
                        Hxfluxplus[gix], Hxfluxminus[gix], Hyfluxplus[gix], Hyfluxminus[gix])
