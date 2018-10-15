@@ -19,13 +19,13 @@ plt.plot(x5,y5, label='Regular Grid Cell', color='blue')
 plt.plot(x6,y6, label='Regular Grid Face', color='royalblue')
 
 axes = plt.gca() # get current axes
-axes.set_ylim([0,110])
-#axes.set_xlim([0,70])
+axes.set_ylim([0,30])
+axes.set_xlim([0,20])
 
 plt.xlabel('X',fontsize=18)
 plt.ylabel('Height',fontsize=18)
 ax.tick_params(axis = 'both', labelsize = 14)
-plt.legend()
+plt.legend(loc=2)
 plt.setp(ax.get_legend().get_texts(), fontsize='14') # for legend text
 fig.tight_layout()
 plt.savefig("cutplanes.pdf")

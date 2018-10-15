@@ -28,5 +28,5 @@ ax.tick_params(axis = 'both', labelsize = 14)
 plt.legend()
 plt.setp(ax.get_legend().get_texts(), fontsize='14') # for legend text
 fig.tight_layout()
-plt.savefig("cutplanes.pdf")
+plt.savefig("cutplanesall.pdf")
 plt.show()
