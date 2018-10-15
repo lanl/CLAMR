@@ -2014,11 +2014,7 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       real_t Uic     = U[gix];
       real_t Vic     = V[gix];
 
-<<<<<<< HEAD
-      //printf("%d) %f %f %f %f\n", gix, Vyfluxplus[gix], Vyfluxminus[gix], wminusy_V[gix], wplusy_V[gix]);
-=======
       if (mesh->celltype[gix] != REAL_CELL) continue;
->>>>>>> 483c74704b7355e1ec9691ec4a7604f64e3d029c
 
       H_new[gix] = U_fullstep(deltaT, dxic, Hic,
                        Hxfluxplus[gix], Hxfluxminus[gix], Hyfluxplus[gix], Hyfluxminus[gix])
