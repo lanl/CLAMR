@@ -13210,33 +13210,45 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
             row[j[ic]-lev_jregmin[ll]] = 1;
          }
       }
+
+      /*for (int ii = 2; ii < lev_iregsize[ll]-2; ii++) {
+        printf("%d\t", col[ii]);
+      }
+      printf("\n");
+      for (int jj = 2; jj < lev_jregsize[ll]-2; jj++) {
+        printf("%d\t", row[jj]);
+      }
+      printf("\n");*/
         
       int trimleft=0;
-      for(int ii=2; ii<lev_iregsize[ll]; ii++){
+      for(int ii=2; ii<lev_iregsize[ll]-2; ii++){
          if (col[ii] == 1) break;
          trimleft++;
       }
       int trimright=0;
-      for(int ii=lev_iregsize[ll]-3; ii >= 0; ii--){
+      for(int ii=lev_iregsize[ll]-3; ii >= 2; ii--){
          if (col[ii] == 1) break;
          trimright++;
       }
       int trimbottom=0;
-      for(int jj=2; jj<lev_jregsize[ll]; jj++){
+      for(int jj=2; jj<lev_jregsize[ll]-2; jj++){
          if (row[jj] == 1) break;
          trimbottom++;
       }
       int trimtop=0;
-      for(int jj=lev_iregsize[ll]-3; jj >= 0; jj--){
+      for(int jj=lev_iregsize[ll]-3; jj >= 2; jj--){
          if (row[jj] == 1) break;
          trimtop++;
       }
       //printf("DEBUG -- trimleft %d trimright %d trimbottom %d trimtop %d\n",trimleft,trimright,trimbottom,trimtop);
 
-      //lev_iregmin[ll] += trimleft;
-      //lev_jregmin[ll] += trimbottom;
-      //lev_iregsize[ll] -= (trimleft+trimright);
-      //lev_jregsize[ll] -= (trimbottom+trimtop);
+      lev_iregmin[ll] += trimleft;
+      lev_jregmin[ll] += trimbottom;
+      lev_iregsize[ll] -= (trimleft+trimright);
+      lev_jregsize[ll] -= (trimbottom+trimtop);
+
+      if (lev_iregsize[ll] < 0) lev_iregsize[ll] = 0;
+      if (lev_jregsize[ll] < 0) lev_jregsize[ll] = 0;
         
       //printf("DEBUG -- lev_iregmin %d lev_iregsize %d lev_jregmin %d lev_jregsize %d\n",
       //        lev_iregmin[ll],lev_iregsize[ll],lev_jregmin[ll],lev_jregsize[ll]);
