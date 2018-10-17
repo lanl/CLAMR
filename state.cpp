@@ -1619,8 +1619,6 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
    static real_t *Hxfluxminus, *Uxfluxminus, *Vxfluxminus, *Hxfluxplus, *Uxfluxplus, *Vxfluxplus;
    static real_t *Hyfluxminus, *Uyfluxminus, *Vyfluxminus, *Hyfluxplus, *Uyfluxplus, *Vyfluxplus;
    static real_t *wminusx_H, *wminusx_U, *wplusx_H, *wplusx_U, *wminusy_H, *wminusy_V, *wplusy_H, *wplusy_V;
-   //static real_t *Hflux, *Uflux, *Vflux, *wH, *wU, *wV;
-   //static int    *passFlag;
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -1672,20 +1670,13 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
-   //real_t Hxfluxminus, Uxfluxminus, Vxfluxminus;
-   //real_t Hxfluxplus, Uxfluxplus, Vxfluxplus;
-   //real_t Hyfluxminus, Uyfluxminus, Vyfluxminus;
-   //real_t Hyfluxplus, Uyfluxplus, Vyfluxplus;
-   //real_t wminusx_H, wminusx_U, wplusx_H, wplusx_U, wminusy_H, wminusy_V, wplusy_H, wplusy_V;
-
-
    int lowerBound, upperBound;
 
    mesh->get_bounds(lowerBound, upperBound);
-  //for (int l = mesh->levmx; l > -1; l--) {
    for (int gix = lowerBound; gix < upperBound; gix++) {
+      if (mesh->celltype[gix] != REAL_CELL) continue;
+
       uchar_t lev = mesh->level[gix];
-      //if (lev != l) continue;
       real_t dxic    = mesh->lev_deltax[lev];
       real_t dyic    = mesh->lev_deltay[lev];
       real_t Cxhalf = 0.5*deltaT/dxic;
@@ -1702,8 +1693,6 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       int nr = mesh->map_xface2cell_upper[fr];
       int nb = mesh->map_yface2cell_lower[fb];
       int nt = mesh->map_yface2cell_upper[ft];
-
-      if (nb == gix  || nt == gix || nl == gix || nr == gix) continue;
 
       real_t Hic     = H[gix];
       real_t Uic     = U[gix];
@@ -1867,23 +1856,19 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
    cpu_timer_start(&tstart_cpu_part);
 
    for (int ic = lowerBound; ic < upperBound; ic++) {
+      if (mesh->celltype[ic] != REAL_CELL) continue;
+
       uchar_t lev = mesh->level[ic];
       real_t dxic    = mesh->lev_deltax[lev];
       real_t dyic    = mesh->lev_deltay[lev];
 
-      real_t Hic     = H[ic];
-      real_t Uic     = U[ic];
-      real_t Vic     = V[ic];
-
-      if (mesh->celltype[ic] != REAL_CELL) continue;
-
-      H_new[ic] = U_fullstep(deltaT, dxic, Hic,
+      H_new[ic] = U_fullstep(deltaT, dxic, H[ic],
                        Hxfluxplus[ic], Hxfluxminus[ic], Hyfluxplus[ic], Hyfluxminus[ic])
                   - wminusx_H[ic] + wplusx_H[ic] - wminusy_H[ic] + wplusy_H[ic];
-      U_new[ic] = U_fullstep(deltaT, dxic, Uic,
+      U_new[ic] = U_fullstep(deltaT, dxic, U[ic],
                        Uxfluxplus[ic], Uxfluxminus[ic], Uyfluxplus[ic], Uyfluxminus[ic])
                   - wminusx_U[ic] + wplusx_U[ic];
-      V_new[ic] = U_fullstep(deltaT, dxic, Vic,
+      V_new[ic] = U_fullstep(deltaT, dxic, V[ic],
                        Vxfluxplus[ic], Vxfluxminus[ic], Vyfluxplus[ic], Vyfluxminus[ic])
                   - wminusy_V[ic] + wplusy_V[ic];
    } // cell loop
