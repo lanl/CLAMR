@@ -1981,7 +1981,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int fr = mesh->map_xcell2face_right1[cell_upper];
       if (fl == -1 || fr == -1) continue;
       real_t Hx, Ux, Vx;
-      //printf("%d %d %d\n", fl, fr, xfaceSize);
+
       // set the two cells away
       int nll = mesh->map_xface2cell_lower[fl];
       int nrr = mesh->map_xface2cell_upper[fr];
@@ -2074,6 +2074,7 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int ft = mesh->map_ycell2face_top1[cell_upper];
       if (fb == -1 || ft == -1) continue;
       real_t Hy, Uy, Vy;
+
       // set the two cells away
       int nbb = mesh->map_yface2cell_lower[fb];
       int ntt = mesh->map_yface2cell_upper[ft];
@@ -2103,7 +2104,6 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       HyFlux[iface] = HYFLUXFACE;
       UyFlux[iface] = UYFLUXFACE;
       VyFlux[iface] = VYFLUXFACE;
-      //printf("[%d] (%d)   %f   (%d)\n", iface, cell_lower, VyFlux[iface], cell_upper);
    }
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
@@ -2147,6 +2147,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    mesh->get_bounds(lowerBound, upperBound);
 
    for (int ic = lowerBound; ic < upperBound; ic++){
+      if (mesh->celltype[ic] != REAL_CELL) continue;
+
       real_t dxic = mesh->lev_deltax[mesh->level[ic]];
       // set the four faces
       int fl = mesh->map_xcell2face_left1[ic];
@@ -2154,34 +2156,18 @@ void State::calc_finite_difference_face_in_place(double deltaT){
       int fb = mesh->map_ycell2face_bot1[ic];
       int ft = mesh->map_ycell2face_top1[ic];
 
-      //printf("%d %d %d %d\n", fl, fr, fb, ft);
-
-      // set the four neighboring cells
-      int nl = mesh->map_xface2cell_lower[fl];
-      int nr = mesh->map_xface2cell_upper[fr];
-      int nb = mesh->map_yface2cell_lower[fb];
-      int nt = mesh->map_yface2cell_upper[ft];
-
-      if (nb == ic  || nt == ic || nl == ic || nr == ic) continue;
-
-      real_t Hic     = H[ic];
-      real_t Uic     = U[ic];
-      real_t Vic     = V[ic];
-
-         //printf("(%d) %f\n", ic, VyFlux[fl]);
-      //printf("%d) %f %f %f %f\n", ic, VyFlux[ft], VyFlux[fb], Wy_V[fb], Wy_V[ft]);
-
-      H_new[ic] = U_fullstep(deltaT,dxic,Hic,
+      H_new[ic] = U_fullstep(deltaT,dxic,H[ic],
                   HxFlux[fr], HxFlux[fl], HyFlux[ft], HyFlux[fb])
                 - Wx_H[fl] + Wx_H[fr] - Wy_H[fb] + Wy_H[ft];
-      U_new[ic] = U_fullstep(deltaT,dxic,Uic,
+      U_new[ic] = U_fullstep(deltaT,dxic,U[ic],
                   UxFlux[fr], UxFlux[fl], UyFlux[ft], UyFlux[fb])
                 - Wx_U[fl] + Wx_U[fr];
-      V_new[ic] = U_fullstep(deltaT,dxic,Vic,
+      V_new[ic] = U_fullstep(deltaT,dxic,V[ic],
                   VxFlux[fr], VxFlux[fl], VyFlux[ft], VyFlux[fb])
                 - Wy_V[fb] + Wy_V[ft];
 
    } // cell loop
+
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART6] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
