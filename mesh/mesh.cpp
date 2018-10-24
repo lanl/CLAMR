@@ -13172,8 +13172,8 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
       lev_iregsize[ll] -= (trimleft+trimright);
       lev_jregsize[ll] -= (trimbottom+trimtop);
 
-      if (lev_iregsize[ll] < 0) lev_iregsize[ll] = 0;
-      if (lev_jregsize[ll] < 0) lev_jregsize[ll] = 0;
+      if (lev_iregsize[ll] <= 0) lev_iregsize[ll] = 1;
+      if (lev_jregsize[ll] <= 0) lev_jregsize[ll] = 1;
         
       //printf("DEBUG -- lev_iregmin %d lev_iregsize %d lev_jregmin %d lev_jregsize %d\n",
       //        lev_iregmin[ll],lev_iregsize[ll],lev_jregmin[ll],lev_jregsize[ll]);
@@ -13372,7 +13372,7 @@ void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
 
    for (int ll=0; ll<levmx+1; ll++){
        gentrimatrixfree((void ***)meshes[ll].pstate);
-       gentrimatrixfree((void ***)meshes[ll].mask);
+       genmatrixfree((void **)meshes[ll].mask);
        genmatrixfree((void **)phantomXFluxRG[ll]);
        genmatrixfree((void **)phantomYFluxRG[ll]);
        genmatrixfree((void **)phantomXFluxRGFace[ll]);

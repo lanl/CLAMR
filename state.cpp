@@ -3218,8 +3218,8 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 
       state_t ***states_new = (state_t ***)gentrimatrix(3, jjmax, iimax, sizeof(state_t));
       state_t **H_reg_new = states_new[0];
-      state_t **U_reg_new = states_new[0];
-      state_t **V_reg_new = states_new[0];
+      state_t **U_reg_new = states_new[1];
+      state_t **V_reg_new = states_new[2];
 
       for(int jj=2; jj<jjmax-1; jj++){
          for(int ii=2; ii<iimax-1; ii++){
