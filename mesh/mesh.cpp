@@ -10078,7 +10078,7 @@ void Mesh::interpolate(int scheme, int index, int cell_lower, int cell_upper, do
       cell_course = cell_lower; // course neighbor to the face
       cell_fine = cell_upper; // fine neighbor to the face
       cell_left = ntop[cell_course]; // bottom of the two fine neighbors of the course
-      cell_right = nrht[cell_bottom]; // top of the two fince neighbots of the course
+      cell_right = nrht[cell_fine]; // top of the two fince neighbots of the course
  
       for (memory_item = state_memory_old.memory_entry_by_name_begin();
          memory_item != state_memory_old.memory_entry_by_name_end();
@@ -10133,7 +10133,7 @@ void Mesh::interpolate(int scheme, int index, int cell_lower, int cell_upper, do
       cell_course = cell_upper; // course neighbor to the face
       cell_fine = cell_lower; // fine neighbor to the face
       cell_left = nbot[cell_course]; // bottom of the two fine neighbors of the course
-      cell_right = nrht[cell_bottom]; // top of the two fince neighbots of the course
+      cell_right = nrht[cell_fine]; // top of the two fince neighbots of the course
 
       for (memory_item = state_memory_old.memory_entry_by_name_begin();
          memory_item != state_memory_old.memory_entry_by_name_end();
@@ -10412,7 +10412,7 @@ void Mesh::interpolate(int scheme, int index, int cell_lower, int cell_upper, do
       cell_course = cell_lower; // course neighbor to the face
       cell_fine =  cell_upper; // fine neighbor to the face
       cell_left = ntop[cell_course]; // bottom of the two fine neighbors of the course
-      cell_right = nrht[cell_bottom]; // top of the two fince neighbots of the course
+      cell_right = nrht[cell_fine]; // top of the two fince neighbots of the course
  
       for (memory_item = state_memory_old.memory_entry_by_name_begin();
          memory_item != state_memory_old.memory_entry_by_name_end();
@@ -10524,7 +10524,7 @@ void Mesh::interpolate(int scheme, int index, int cell_lower, int cell_upper, do
       cell_course = cell_upper; // course neighbor to the face
       cell_fine =  cell_lower; // fine neighbor to the face
       cell_left = nbot[cell_course]; // bottom of the two fine neighbors of the course
-      cell_right = nrht[cell_bottom]; // top of the two fince neighbots of the course
+      cell_right = nrht[cell_fine]; // top of the two fince neighbots of the course
  
       for (memory_item = state_memory_old.memory_entry_by_name_begin();
          memory_item != state_memory_old.memory_entry_by_name_end();
