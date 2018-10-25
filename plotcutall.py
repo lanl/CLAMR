@@ -22,11 +22,12 @@ axes = plt.gca() # get current axes
 axes.set_ylim([0,90])
 axes.set_xlim([0,15])
 
-plt.xlabel('X',fontsize=18)
+plt.xlabel('Radius',fontsize=18)
 plt.ylabel('Height',fontsize=18)
 ax.tick_params(axis = 'both', labelsize = 14)
 plt.legend()
 plt.setp(ax.get_legend().get_texts(), fontsize='14') # for legend text
 fig.tight_layout()
 plt.savefig("cutplanesall.pdf")
+plt.savefig("cutplanesall.jpg")
 plt.show()

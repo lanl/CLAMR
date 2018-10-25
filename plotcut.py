@@ -29,4 +29,5 @@ plt.legend(loc=2)
 plt.setp(ax.get_legend().get_texts(), fontsize='14') # for legend text
 fig.tight_layout()
 plt.savefig("cutplanes.pdf")
+plt.savefig("cutplanes.jpg")
 plt.show()
