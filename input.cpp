@@ -109,7 +109,8 @@ extern int  outputInterval,
             ny,
             niter,
             measure_type,
-            lttrace_on,
+            ndigits,
+            nbits,
             do_quo_setup,
             calc_neighbor_type,
 	        choose_amr_method,
@@ -143,8 +144,8 @@ void outputHelp()
          << "  -b <B>            Number of rollback images, disk or in memory (default 2);" << endl
          << "  -c <C>            Checkpoint to disk at interval specified;" << endl
          << "  -C <C>            Checkpoint to memory at interval specified;" << endl
-         << "  -d                turn on LTTRACE;" << endl
-         << "  -D                turn on dynamic load balancing using LTTRACE;" << endl
+         << "  -d                digits to truncate;" << endl
+         << "  -D                bits to truncate;" << endl
          << "  -e <E>            force hash_method, ie linear, quadratic..." <<endl          
          << "      \"perfect\"" << endl
          << "      \"linear\"" << endl
@@ -228,9 +229,6 @@ void parseInput(const int argc, char** argv)
     localStencil            = true;
     outline                 = true;
     output_cuts             = CUT_NONE;
-#ifdef HAVE_LTTRACE
-    lttrace_on              = 0;
-#endif
 #ifdef HAVE_QUO
     do_quo_setup            = 0;
 #endif
@@ -246,6 +244,8 @@ void parseInput(const int argc, char** argv)
     neighbor_remap          = true;
     //measure_type            = CSTARVALUE;
     measure_type            = NO_PARTITION_MEASURE;
+    ndigits                 = -1;
+    nbits                   = -1;
     calc_neighbor_type      = HASH_TABLE;
     choose_amr_method       = CELL_AMR;
     choose_hash_method      = METHOD_UNSET;
@@ -306,20 +306,14 @@ void parseInput(const int argc, char** argv)
                     crux_type = CRUX_IN_MEMORY;
                     break;
 
-                case 'd':   //  Turn on lttrace.
-                            //  This is provided as a separate option to measure
-                            //  the overhead of having lttrace on.
-#ifdef HAVE_LTTRACE
-                    lttrace_on = 1;
-#endif
+                case 'd':   //  number of digits to truncate at end of burst loop
+                    val = strtok(argv[i++], " ,.-");
+                    ndigits = atoi(val);
                     break;
 
-                case 'D':   //  Turn on dynamic load balancing.
-                            //  This forces on lttrace.
-#ifdef HAVE_LTTRACE
-                    lttrace_on = true;
-                    dynamic_load_balance_on = true;
-#endif
+                case 'D':   //  number of bits to truncate at end of burst loop
+                    val = strtok(argv[i++], " ,.-");
+                    nbits = atoi(val);
                     break;
 
                 case 'e':   //  hash method specified.

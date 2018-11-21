@@ -147,7 +147,9 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
             output_cuts,    //  Flag for outputting file of slice along y-axis; init in input.cpp::parseInput().
             backup_file_num,//  Backup file number to restart simulation from; init in input.cpp::parseInput()
             numpe,          //  
-            ndim    = 2;    //  Dimensionality of problem (2 or 3).
+            ndim    = 2,    //  Dimensionality of problem (2 or 3).
+            ndigits,
+            nbits;
 double      upper_mass_diff_percentage; //  Flag for the allowed pecentage difference to the total
                                         //  mass per output intervals; init in input.cpp::parseInput().
 
@@ -165,6 +167,9 @@ static PowerParser *parse;          //  Object containing input file parsing
 static real_t circ_radius = 0.0;
 static int next_cp_cycle = 0;
 static int next_graphics_cycle = 0;
+
+double digitround(double var, int ndigits);
+double bittruncate(double var, uint nbits);
 
 //  Set up timing information.
 static struct timeval tstart, tstart_cpu, tstart_partmeas;
@@ -510,6 +515,21 @@ extern "C" void do_calc(void)
 
          //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
          state->remove_boundary_cells();
+
+         if (ndigits != -1){
+            for (int ic = 0; ic < ncells; ic++){
+               digitround(state->H[ic], ndigits);
+               digitround(state->U[ic], ndigits);
+               digitround(state->V[ic], ndigits);
+            }
+         }
+         if (nbits != -1){
+            for (int ic = 0; ic < ncells; ic++){
+               bittruncate(state->H[ic], nbits);
+               bittruncate(state->U[ic], nbits);
+               bittruncate(state->V[ic], nbits);
+            }
+         }
 #ifdef _OPENMP
       } // end parallel region
 #endif
@@ -925,6 +945,49 @@ void restore_crux_data(Crux *crux)
    state->restore_checkpoint(crux);
 
    crux->restore_end();
+}
+
+double digitround(double var, int ndigits)
+{
+   int n = (int)log10(var);
+   int nshift = 15 - ndigits - n;
+   if (nshift >= 0) {
+      double mult = pow((double)10.0,nshift);
+      return(round(var*mult)/mult);
+   } else {
+      double div = pow((double)10.0,abs(nshift));
+      return(round(var/div)*div);
+   }
+}
+
+double bittruncate(double var, uint nbits)
+{
+   unsigned long long bitmask[41] = {
+      0x00000000,
+      0x00000001, 0x00000003, 0x00000007, 0x0000000F,
+      0x0000001F, 0x0000003F, 0x0000007F, 0x000000FF,
+      0x000001FF, 0x000003FF, 0x000007FF, 0x00000FFF,
+      0x00001FFF, 0x00003FFF, 0x00007FFF, 0x0000FFFF,
+      0x0001FFFF, 0x0003FFFF, 0x0007FFFF, 0x000FFFFF,
+      0x001FFFFF, 0x003FFFFF, 0x007FFFFF, 0x00FFFFFF,
+      0x01FFFFFF, 0x03FFFFFF, 0x07FFFFFF, 0x0FFFFFFF,
+      0x1FFFFFFF, 0x3FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF,
+      0x1FFFFFFFF, 0x3FFFFFFFF, 0x7FFFFFFFF, 0xFFFFFFFFF,
+      0x1FFFFFFFFF, 0x3FFFFFFFFF, 0x7FFFFFFFFF, 0xFFFFFFFFFF
+   };
+
+   union twiddler {
+      double dvalue;
+      unsigned long long ivalue;
+   } q;
+
+   nbits = MIN(40,nbits);
+
+   q.dvalue = var;
+   q.ivalue &= ~bitmask[nbits];
+   var = q.dvalue;
+
+   return(var);
 }
 
 

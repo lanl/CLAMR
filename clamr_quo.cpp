@@ -111,7 +111,9 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
             nx,             //  x-resolution of coarse grid; init in input.cpp::parseInput().
             ny,             //  y-resolution of coarse grid; init in input.cpp::parseInput().
             niter,          //  Maximum time step; init in input.cpp::parseInput().
-            ndim    = 2;    //  Dimensionality of problem (2 or 3).
+            ndim    = 2,    //  Dimensionality of problem (2 or 3).
+            ndigits,
+            nbits;
 
 enum partition_method initial_order,  //  Initial order of mesh.
                       cycle_reorder;  //  Order of mesh every cycle.

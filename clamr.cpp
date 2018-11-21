@@ -122,7 +122,9 @@ int         outputInterval, //  Periodicity of output; init in input.cpp::parseI
             output_cuts,    //  Flag for outputting file of slice along y-axis; init in input.cpp::parseInput().
             backup_file_num,//  Backup file number to restart simulation from; init in input.cpp::parseInput()
             numpe,          //  
-            ndim    = 2;    //  Dimensionality of problem (2 or 3).
+            ndim    = 2,    //  Dimensionality of problem (2 or 3).
+            ndigits,
+            nbits;
 double      upper_mass_diff_percentage; //  Flag for the allowed pecentage difference to the total
                                         //  mass per output intervals; init in input.cpp::parseInput().
 
