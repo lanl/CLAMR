@@ -142,10 +142,10 @@ void outputHelp()
          << "      \"regular-grid\"" << endl
          << "      \"regular-grid-by-faces\"" << endl
          << "  -b <B>            Number of rollback images, disk or in memory (default 2);" << endl
+         << "  -B                bits to truncate;" << endl
          << "  -c <C>            Checkpoint to disk at interval specified;" << endl
          << "  -C <C>            Checkpoint to memory at interval specified;" << endl
-         << "  -d                digits to truncate;" << endl
-         << "  -D                bits to truncate;" << endl
+         << "  -D                digits to truncate;" << endl
          << "  -e <E>            force hash_method, ie linear, quadratic..." <<endl          
          << "      \"perfect\"" << endl
          << "      \"linear\"" << endl
@@ -294,6 +294,12 @@ void parseInput(const int argc, char** argv)
                         num_of_rollback_states = atoi(val);
                     }
                     break;
+
+                case 'B':   //  number of bits to truncate at end of burst loop
+                    val = strtok(argv[i++], " ,.-");
+                    nbits = atoi(val);
+                    break;
+
                 case 'c':   //  Checkpoint to disk at interval specified
                     val = strtok(argv[i++], " ,.-");
                     checkpoint_outputInterval = atoi(val);
@@ -306,14 +312,9 @@ void parseInput(const int argc, char** argv)
                     crux_type = CRUX_IN_MEMORY;
                     break;
 
-                case 'd':   //  number of digits to truncate at end of burst loop
+                case 'D':   //  number of digits to truncate at end of burst loop
                     val = strtok(argv[i++], " ,.-");
                     ndigits = atoi(val);
-                    break;
-
-                case 'D':   //  number of bits to truncate at end of burst loop
-                    val = strtok(argv[i++], " ,.-");
-                    nbits = atoi(val);
                     break;
 
                 case 'e':   //  hash method specified.
