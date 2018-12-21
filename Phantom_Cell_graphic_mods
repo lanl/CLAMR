@@ -1,0 +1,208 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b317c59..8ed524c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -134,14 +134,30 @@ find_package( OpenMP)
+ #   message("OPENMP NOT FOUND")
+ #endif(OPENMP_FOUND)
+ 
++set(ImageMagick_FOUND TRUE)
++set(ImageMagick_INCLUDE_DIRS /usr/local/include/ImageMagick-7)
++set(ImageMagick_LIBRARIES /usr/local/lib/libMagickWand-7.Q16HDRI.a
++    /usr/local/lib/libMagick++-7.Q16HDRI.a
++    /usr/local/lib/libMagickCore-7.Q16HDRI.a
++    /usr/lib/libz.dylib /usr/lib/libxml2.dylib /usr/local/lib/libpng.a
++    /usr/local/lib/libopenjp2.a /usr/local/lib/liblzma.a /usr/local/lib/libjpeg.a
++    /usr/local/lib/liblcms2.a /usr/X11/lib/libX11.dylib /usr/local/lib/libtiff.a /usr/local/lib/libwebp.a
++    /usr/local/lib/libwebpmux.a /usr/X11/lib/libXext.dylib /usr/local/lib/libfreetype.a /usr/lib/libbz2.dylib)
++set(ImageMagick_LIBRARY /usr/local/lib/libMagick++-7.Q16HDRI.a /usr/local/lib/libwebpdemux.a)
++set(ImageMagick_VERSION_STRING 7.0.1)
++set(ImageMagick_MagickWand_FOUND TRUE)
++set(ImageMagick_MagickWand_INCLUDE_DIRS /usr/local/include/ImageMagick-7)
++set(ImageMagick_MagickWand_LIBRARIES /usr/local/lib/libMagickWand-7.Q16HDRI.a)
++
+ #find_package(ImageMagick COMPONENTS MagickCore MagickWand)
+-find_package(ImageMagick COMPONENTS MagickWand)
++#find_package(ImageMagick COMPONENTS MagickWand)
+ #   ImageMagick_FOUND                    - TRUE if all components are found.
+ #   ImageMagick_INCLUDE_DIRS             - Full paths to all include dirs.
+ #   ImageMagick_LIBRARIES                - Full paths to all libraries.
+ #   ImageMagick_<component>_FOUND        - TRUE if <component> is found.
+ #   ImageMagick_<component>_INCLUDE_DIRS - Full path to <component> include dirs.
+ #   ImageMagick_<component>_LIBRARIES    - Full path to <component> libraries.
++#set(ImageMagick_FOUND yes)
+ if (ImageMagick_FOUND)
+    if (ImageMagick_MagickWand_FOUND)
+       add_definitions(-DHAVE_MAGICKWAND)
+@@ -158,18 +174,18 @@ if (ImageMagick_FOUND)
+ #     add_definitions(-DMAGICKCORE_QUANTUM_DEPTH=16)
+       include_directories(${ImageMagick_INCLUDE_DIRS})
+    endif (ImageMagick_MagickWand_FOUND)
+-
+-#   message("ImageMagick_FOUND                   ${ImageMagick_FOUND}")
+-#   message("ImageMagick_INCLUDE_DIRS            ${ImageMagick_INCLUDE_DIRS}")
+-#   message("ImageMagick_LIBRARIES               ${ImageMagick_LIBRARIES}")
+-##  message("ImageMagick_MagickCore_FOUND        ${ImageMagick_MagickCore_FOUND}")
+-##  message("ImageMagick_MagickCore_INCLUDE_DIRS ${ImageMagick_MagickCore_INCLUDE_DIRS}")
+-##  message("ImageMagick_MagickCore_LIBRARIES    ${ImageMagick_MagickCore_LIBRARIES}")
+-#   message("ImageMagick_MagickWand_FOUND        ${ImageMagick_MagickWand_FOUND}")
+-#   message("ImageMagick_MagickWand_INCLUDE_DIRS ${ImageMagick_MagickWand_INCLUDE_DIRS}")
+-#   message("ImageMagick_MagickWand_LIBRARIES    ${ImageMagick_MagickWand_LIBRARIES}")
+ endif (ImageMagick_FOUND)
+ 
++   message("ImageMagick_FOUND                   ${ImageMagick_FOUND}")
++   message("ImageMagick_INCLUDE_DIRS            ${ImageMagick_INCLUDE_DIRS}")
++   message("ImageMagick_LIBRARIES               ${ImageMagick_LIBRARIES}")
++#  message("ImageMagick_MagickCore_FOUND        ${ImageMagick_MagickCore_FOUND}")
++#  message("ImageMagick_MagickCore_INCLUDE_DIRS ${ImageMagick_MagickCore_INCLUDE_DIRS}")
++#  message("ImageMagick_MagickCore_LIBRARIES    ${ImageMagick_MagickCore_LIBRARIES}")
++   message("ImageMagick_MagickWand_FOUND        ${ImageMagick_MagickWand_FOUND}")
++   message("ImageMagick_MagickWand_INCLUDE_DIRS ${ImageMagick_MagickWand_INCLUDE_DIRS}")
++   message("ImageMagick_MagickWand_LIBRARIES    ${ImageMagick_MagickWand_LIBRARIES}")
++
+ 
+ #-----------------------------------------------------------------------------
+ # HDF5 support
+diff --git a/clamr_cpuonly.cpp b/clamr_cpuonly.cpp
+index d58ddce..0c68866 100644
+--- a/clamr_cpuonly.cpp
++++ b/clamr_cpuonly.cpp
+@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
+ 
+    crux = new Crux(crux_type, num_of_rollback_states, restart);
+ 
+-   circ_radius = 6.0;
++   circ_radius = 40.0;
+    //  Scale the circle appropriately for the mesh size.
+    circ_radius = circ_radius * (real_t) nx / 128.0;
+    int boundary = 1;
+diff --git a/graphics/graphics.c b/graphics/graphics.c
+index 5e1f18a..e1c3bec 100644
+--- a/graphics/graphics.c
++++ b/graphics/graphics.c
+@@ -230,14 +230,14 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
+ 
+       int magick_step = MAGICK_NCOLORS/(graphics_proc[graphics_mysize-1]+1);
+ 
+-      if (graphics_outline) {
++      //if (graphics_outline) {
+          PixelGetBlack(pixel_wand);
+ 
+          DrawSetStrokeColor(draw_wand,pixel_wand);
+          DrawSetStrokeWidth(draw_wand,0.01);
+          DrawSetStrokeAntialias(draw_wand,1);
+          DrawSetStrokeOpacity(draw_wand,1);
+-      }
++      //}
+ 
+       if (data_type == DATA_DOUBLE){
+ 
+@@ -247,13 +247,13 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
+             sprintf(cstring,"rgba(%d,%d,%d,%d)",MagickRainbow[magick_color].Red,
+                                                 MagickRainbow[magick_color].Green,
+                                                 MagickRainbow[magick_color].Blue,120);
+-            PixelSetColor(pixel_wand, cstring);
+-            
++            sprintf(cstring,"rgba(%d,%d,%d,%d)",0,0,0,0);
++            //PixelSetColor(pixel_wand, cstring);
+ 
+-            DrawSetFillColor(draw_wand, pixel_wand); 
++            //DrawSetFillColor(draw_wand, pixel_wand); 
+ 
+-            DrawRectangle(draw_wand, x_double[i],              y_double[i],
+-                                     x_double[i]+dx_double[i], y_double[i]+dy_double[i]);
++            //DrawRectangle(draw_wand, x_double[i],              y_double[i],
++            //                         x_double[i]+dx_double[i], y_double[i]+dy_double[i]);
+ /*
+            printf("DEBUG -- i %d magick_color %d magick_step %d graphics_proc %d cstring %s corners %lg %lg %lg %lg\n",
+                i,magick_color,magick_step,graphics_proc[i],cstring,
+@@ -262,7 +262,7 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
+ */
+          }
+ 
+-         if (graphics_outline) {
++         //if (graphics_outline) {
+ 	    PixelSetColor(pixel_wand,"black");
+ 	    DrawSetStrokeColor(draw_wand,pixel_wand);
+ 	    DrawSetStrokeWidth(draw_wand,0.01);
+@@ -282,7 +282,7 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
+                xold = xnew;
+                yold = ynew;
+             }
+-         }
++         //}
+ 
+ /*
+          // Set up a 12 point black font 
+@@ -313,15 +313,15 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
+             sprintf(cstring,"rgba(%d,%d,%d,%d)",MagickRainbow[magick_color].Red,
+                                                 MagickRainbow[magick_color].Green,
+                                                 MagickRainbow[magick_color].Blue,120);
+-            PixelSetColor(pixel_wand, cstring);
++            //PixelSetColor(pixel_wand, cstring);
+ 
+-            DrawSetFillColor(draw_wand, pixel_wand);
++            //DrawSetFillColor(draw_wand, pixel_wand);
+ 
+-            DrawRectangle(draw_wand, x_float[i],             y_float[i],
+-                                     x_float[i]+dx_float[i], y_float[i]+dy_float[i]);
++            //DrawRectangle(draw_wand, x_float[i],             y_float[i],
++            //                       x_float[i]+dx_float[i], y_float[i]+dy_float[i]);
+          }
+ 
+-         if (graphics_outline) {
++         //if (graphics_outline) {
+ 	    PixelSetColor(pixel_wand,"black");
+ 	    DrawSetStrokeColor(draw_wand,pixel_wand);
+ 	    DrawSetStrokeWidth(draw_wand,0.01);
+@@ -341,7 +341,7 @@ void DrawSquaresToFile(int graph_num, int ncycle, double simTime, int rollback_i
+                xold = xnew;
+                yold = ynew;
+             }
+-         }
++         //}
+ 
+       }
+ 
+@@ -481,14 +481,14 @@ void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_
+ 
+       int magick_step = MAGICK_NCOLORS/(scaleMax - scaleMin);
+ 
+-      if (graphics_outline) {
++      //if (graphics_outline) {
+          PixelGetBlack(pixel_wand);
+ 
+          DrawSetStrokeColor(draw_wand,pixel_wand);
+          DrawSetStrokeWidth(draw_wand,0.01);
+          DrawSetStrokeAntialias(draw_wand,1);
+          DrawSetStrokeOpacity(draw_wand,1);
+-      }
++      //}
+ 
+       if (data_type == DATA_DOUBLE){
+ 
+@@ -509,6 +509,7 @@ void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_
+             sprintf(cstring,"rgba(%d,%d,%d,%d)",MagickRainbow[magick_color].Red,
+                                                 MagickRainbow[magick_color].Green,
+                                                 MagickRainbow[magick_color].Blue,120);
++            sprintf(cstring,"rgba(%d,%d,%d,%d)",0,0,0,0);
+             PixelSetColor(pixel_wand, cstring);
+ 
+             DrawSetFillColor(draw_wand, pixel_wand);
+@@ -541,12 +542,12 @@ void DisplayStateToFile(int graph_num, int ncycle, double simTime, int rollback_
+             sprintf(cstring,"rgba(%d,%d,%d,%d)",MagickRainbow[magick_color].Red,
+                                                 MagickRainbow[magick_color].Green,
+                                                 MagickRainbow[magick_color].Blue,120);
+-            PixelSetColor(pixel_wand, cstring);
++            //PixelSetColor(pixel_wand, cstring);
+ 
+-            DrawSetFillColor(draw_wand, pixel_wand);
++            //DrawSetFillColor(draw_wand, pixel_wand);
+ 
+-            DrawRectangle(draw_wand, x_float[i],             y_float[i],
+-                                     x_float[i]+dx_float[i], y_float[i]+dy_float[i]);
++            //DrawRectangle(draw_wand, x_float[i],             y_float[i],
++            //                         x_float[i]+dx_float[i], y_float[i]+dy_float[i]);
+          }
+       }
+ 
