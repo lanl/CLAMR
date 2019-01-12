@@ -73,4 +73,5 @@ plt.setp(ax.get_legend().get_texts(), fontsize='16') # for legend text
 
 fig.tight_layout()
 plt.savefig("plotConditional.pdf")
+plt.savefig("plotConditional.svg")
 plt.show()
