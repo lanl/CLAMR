@@ -67,4 +67,5 @@ plt.setp(ax.get_legend().get_texts(), fontsize='16') # for legend text
 fig.tight_layout()
 plt.savefig("plotmembytype.pdf")
 plt.savefig("plotmembytype.jpg")
+plt.savefig("plotmembytype.svg")
 plt.show()

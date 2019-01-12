@@ -94,4 +94,5 @@ plt.setp(ax.get_legend().get_texts(), fontsize='16') # for legend text
 fig.tight_layout()
 plt.savefig("plottimebytype.pdf")
 plt.savefig("plottimebytype.jpg")
+plt.savefig("plottimebytype.svg")
 plt.show()
