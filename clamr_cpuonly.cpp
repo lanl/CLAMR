@@ -133,9 +133,12 @@ void restore_crux_data(Crux *crux);
 #ifdef HAVE_POWER_GADGET
 #define POWER_GADGET_VERBOSE 0
 void extract_power_data(void);
-double processor_power_gadget_mWh_sum = 0.0;
-double ia_power_gadget_mWh_sum = 0.0;
-double dram_power_gadget_mWh_sum = 0.0;
+double power_gadget_processor_mWh_sum = 0.0;
+double power_gadget_ia_mWh_sum = 0.0;
+double power_gadget_dram_mWh_sum = 0.0;
+double power_gadget_processor_power_W_sum = 0.0;
+double power_gadget_ia_power_W_sum = 0.0;
+double power_gadget_dram_power_W_sum = 0.0;
 double power_gadget_avg_frequency = 0.0;
 double power_gadget_avg_temperature = 0.0;
 double power_gadget_time_secs_sum = 0.0;
@@ -815,9 +818,12 @@ extern "C" void do_calc(void)
 
       extract_power_data();
       printf("\n");
-      printf("Processor      Energy(mWh) = %10.5f\n",  processor_power_gadget_mWh_sum);
-      printf("IA             Energy(mWh) = %10.5f\n",  ia_power_gadget_mWh_sum);
-      printf("DRAM           Energy(mWh) = %10.5f\n",  dram_power_gadget_mWh_sum);
+      printf("Processor      Energy(mWh) = %10.5f\n",  power_gadget_processor_mWh_sum);
+      printf("IA             Energy(mWh) = %10.5f\n",  power_gadget_ia_mWh_sum);
+      printf("DRAM           Energy(mWh) = %10.5f\n",  power_gadget_dram_mWh_sum);
+      printf("Processor      Power (W)   = %10.5f\n",  power_gadget_processor_power_W_sum/power_gadget_time_secs_sum);
+      printf("IA             Power (W)   = %10.5f\n",  power_gadget_ia_power_W_sum/power_gadget_time_secs_sum);
+      printf("DRAM           Power (W)   = %10.5f\n",  power_gadget_dram_power_W_sum/power_gadget_time_secs_sum);
       printf("Average Frequency          = %10.5f\n",  power_gadget_avg_frequency/power_gadget_time_secs_sum);
       printf("Average Temperature (C)    = %10.5f\n",  power_gadget_avg_temperature/power_gadget_time_secs_sum);
       printf("Time Expended (secs)       = %10.5f\n",  power_gadget_time_secs_sum);
@@ -1070,11 +1076,14 @@ void extract_power_data(void)
             printf("%-14s Energy(mWh) = %10.5f\n",  szName, data[2]);
          }
          if (! strcmp(szName,"Processor")){
-            processor_power_gadget_mWh_sum += data[2];
+            power_gadget_processor_power_W_sum += data[0];
+            power_gadget_processor_mWh_sum += data[2];
          } else if (! strcmp(szName,"IA")){
-            ia_power_gadget_mWh_sum += data[2];
+            power_gadget_ia_power_W_sum += data[0];
+            power_gadget_ia_mWh_sum += data[2];
          } else if (! strcmp(szName,"DRAM")){
-            dram_power_gadget_mWh_sum += data[2];
+            power_gadget_dram_power_W_sum += data[0];
+            power_gadget_dram_mWh_sum += data[2];
          }
       }
 
