@@ -74,6 +74,10 @@
 #include "PowerParser/PowerParser.hh"
 #include "MallocPlus/MallocPlus.h"
 
+#ifdef HAVE_POWER_GADGET
+   #include <EnergyLib.h>
+#endif
+
 using namespace PP;
 
 #ifdef _OPENMP
@@ -125,6 +129,18 @@ static int view_mode = 0;
 void store_crux_data(Crux *crux, int ncycle);
 void restore_crux_data_bootstrap(Crux *crux, char *restart_file, int rollback_counter);
 void restore_crux_data(Crux *crux);
+
+#ifdef HAVE_POWER_GADGET
+#define POWER_GADGET_VERBOSE 0
+void extract_power_data(void);
+double processor_power_gadget_mWh_sum = 0.0;
+double ia_power_gadget_mWh_sum = 0.0;
+double dram_power_gadget_mWh_sum = 0.0;
+double power_gadget_avg_frequency = 0.0;
+double power_gadget_avg_temperature = 0.0;
+double power_gadget_time_secs_sum = 0.0;
+int sample_count = 0;
+#endif
 
 bool        restart,        //  Flag to start from a back up file; init in input.cpp::parseInput().
             verbose,        //  Flag for verbose command-line output; init in input.cpp::parseInput().
@@ -366,6 +382,14 @@ int main(int argc, char **argv) {
 #endif
 
    cpu_timer_start(&tstart);
+#ifdef HAVE_POWER_GADGET
+   IntelEnergyLibInitialize();
+   StartLog((char *)"PowerGadgetLog.csv"); // causes a sample to be read
+   ReadSample();
+
+   extract_power_data();
+#endif
+
 #ifdef HAVE_GRAPHICS
    set_idle_function(&do_calc);
    start_main_loop();
@@ -610,6 +634,10 @@ extern "C" void do_calc(void)
    if (mype == 0 && ncycle % outputInterval == 0) {
       printf("Iteration %3d timestep %lf Sim Time %lf cells %ld Mass Sum %14.12lg Mass Change %12.6lg\n",
          ncycle, deltaT, simTime, ncells, H_sum, H_sum - H_sum_initial);
+#ifdef HAVE_POWER_GADGET
+      ReadSample();
+      extract_power_data();
+#endif
    }
 
    if (ncycle == next_cp_cycle) store_crux_data(crux, ncycle); 
@@ -781,6 +809,21 @@ extern "C" void do_calc(void)
       FILE *fp = fopen(total_sim_time_log,"w");
       fprintf(fp,"The total execution time of the program was %g seconds\n", total_program_time);
       fclose(fp);
+#ifdef HAVE_POWER_GADGET
+      printf("Closing power gadget log file\n");
+      StopLog();// causes a sample to be read
+
+      extract_power_data();
+      printf("\n");
+      printf("Processor      Energy(mWh) = %10.5f\n",  processor_power_gadget_mWh_sum);
+      printf("IA             Energy(mWh) = %10.5f\n",  ia_power_gadget_mWh_sum);
+      printf("DRAM           Energy(mWh) = %10.5f\n",  dram_power_gadget_mWh_sum);
+      printf("Average Frequency          = %10.5f\n",  power_gadget_avg_frequency/power_gadget_time_secs_sum);
+      printf("Average Temperature (C)    = %10.5f\n",  power_gadget_avg_temperature/power_gadget_time_secs_sum);
+      printf("Time Expended (secs)       = %10.5f\n",  power_gadget_time_secs_sum);
+
+         double time_expended;
+#endif
       exit(0);
    }  //  Complete final output.
    
@@ -990,4 +1033,62 @@ double bittruncate(double var, uint nbits)
    return(var);
 }
 
+#ifdef HAVE_POWER_GADGET
+void extract_power_data(void)
+{
+   int numMsrs = 0;
+   GetNumMsrs(&numMsrs);
+
+   for (int j = 0; j < numMsrs; j++) {
+      int funcID;
+      char szName[1024];
+      GetMsrFunc(j, &funcID);
+      GetMsrName(j, szName);
+      int nData;
+      double data[3];
+      GetPowerData(0, j, data, &nData);
+      double time_expended;
+
+      // Frequency
+      if (funcID == MSR_FUNC_FREQ) {
+         GetTimeInterval(&time_expended);
+
+         power_gadget_avg_frequency += data[0]*time_expended;;
+         sample_count ++;
+         if (POWER_GADGET_VERBOSE == 1) {
+            printf("%-14s             = %4.0f\n",  szName, data[0]);
+         }
+
+         power_gadget_time_secs_sum += time_expended;
+      }
+
+      // Power
+      else if (funcID == MSR_FUNC_POWER) {
+         if (POWER_GADGET_VERBOSE == 1) {
+            printf("%-14s Power (W)   = %10.5f\n", szName, data[0]);
+            printf("%-14s Energy(J)   = %10.5f\n",  szName, data[1]);
+            printf("%-14s Energy(mWh) = %10.5f\n",  szName, data[2]);
+         }
+         if (! strcmp(szName,"Processor")){
+            processor_power_gadget_mWh_sum += data[2];
+         } else if (! strcmp(szName,"IA")){
+            ia_power_gadget_mWh_sum += data[2];
+         } else if (! strcmp(szName,"DRAM")){
+            dram_power_gadget_mWh_sum += data[2];
+         }
+      }
+
+      // Temperature
+      else if (funcID == MSR_FUNC_TEMP) {
+         power_gadget_avg_temperature += data[0]*time_expended;
+         if (POWER_GADGET_VERBOSE == 1) {
+            printf("%-14s Temp (C)    = %4.0f\n",  szName, data[0]);
+         }
+      }
+   }
+   if (POWER_GADGET_VERBOSE == 1) {
+      printf("\n");
+   }
+}
+#endif
 

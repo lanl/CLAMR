@@ -109,18 +109,26 @@ endif (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-find_package(OpenCL)
-#  OpenCL_FOUND          - True if OpenCL was found
-#  OpenCL_INCLUDE_DIRS   - include directories for OpenCL
-#  OpenCL_LIBRARIES      - link against this library to use OpenCL
-#  OpenCL_VERSION_STRING - Highest supported OpenCL version (eg. 1.2)
-#  OpenCL_VERSION_MAJOR  - The major version of the OpenCL implementation
-#  OpenCL_VERSION_MINOR  - The minor version of the OpenCL implementation
-if (OpenCL_FOUND)
-   set(HAVE_CL_DOUBLE ON CACHE BOOL "Have OpenCL Double")
-   set(NO_CL_DOUBLE OFF)
-   include_directories(${OpenCL_INCLUDE_DIRS})
-endif (OpenCL_FOUND)
+IF (APPLE)
+   EXEC_PROGRAM(uname ARGS -v  OUTPUT_VARIABLE DARWIN_VERSION)
+   STRING(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
+   MESSAGE(STATUS "DARWIN_VERSION=${DARWIN_VERSION}")
+ENDIF(APPLE)
+
+if (NOT APPLE OR DARWIN_VERSION LESS 18)
+   find_package(OpenCL)
+   #  OpenCL_FOUND          - True if OpenCL was found
+   #  OpenCL_INCLUDE_DIRS   - include directories for OpenCL
+   #  OpenCL_LIBRARIES      - link against this library to use OpenCL
+   #  OpenCL_VERSION_STRING - Highest supported OpenCL version (eg. 1.2)
+   #  OpenCL_VERSION_MAJOR  - The major version of the OpenCL implementation
+   #  OpenCL_VERSION_MINOR  - The minor version of the OpenCL implementation
+   if (OpenCL_FOUND)
+      set(HAVE_CL_DOUBLE ON CACHE BOOL "Have OpenCL Double")
+      set(NO_CL_DOUBLE OFF)
+      include_directories(${OpenCL_INCLUDE_DIRS})
+   endif (OpenCL_FOUND)
+endif (NOT APPLE OR DARWIN_VERSION LESS 18)
 
 find_package(MPI)
 if (MPI_FOUND)
@@ -412,6 +420,15 @@ endif (NOT OPENGL_FOUND)
 # this min version isn't correct -- FIXME
 #set (BOOST_MIN_VER "1.45.0")
 #find_package(Boost ${BOOST_MIN_VER})
+ 
+find_library(POWER_GADGET IntelPowerGadget)
+if (POWER_GADGET)
+   set (POWER_GADGET_FOUND on)
+   add_definitions(-DHAVE_POWER_GADGET)
+   message("-- Detected Intel Power Gadget")
+   include_directories(/Library/Frameworks/IntelPowerGadget.framework/Headers)
+endif (POWER_GADGET)
+
 
 #message("MPE_LIBRARIES ${MPE_LIBRARIES}")
 #message("MPE_LIBS ${MPE_LIBS}")
@@ -527,6 +544,10 @@ if (REPROBLAS_FOUND)
    target_link_libraries(clamr_cpuonly ${REPROBLAS_LIBRARIES})
 endif (REPROBLAS_FOUND)
 
+if (POWER_GADGET_FOUND)
+   target_link_libraries(clamr_cpuonly ${POWER_GADGET})
+endif (POWER_GADGET_FOUND)
+
 #target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
 install(TARGETS clamr_cpuonly DESTINATION bin)
@@ -592,6 +613,10 @@ if(OPENMP_FOUND)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_openmponly ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
+
+   if (POWER_GADGET_FOUND)
+      target_link_libraries(clamr_openmponly ${POWER_GADGET})
+   endif (POWER_GADGET_FOUND)
 
    install(TARGETS clamr_openmponly DESTINATION bin)
 endif(OPENMP_FOUND)

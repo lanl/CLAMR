@@ -54,18 +54,20 @@ elseif (CMAKE_C_COMPILER_ID MATCHES "XL")
 endif()
 
 if (NOT DEFINED OpenCL_FOUND)
-   find_package(OpenCL)
-   #  OpenCL_FOUND          - True if OpenCL was found
-   #  OpenCL_INCLUDE_DIRS   - include directories for OpenCL
-   #  OpenCL_LIBRARIES      - link against this library to use OpenCL
-   #  OpenCL_VERSION_STRING - Highest supported OpenCL version (eg. 1.2)
-   #  OpenCL_VERSION_MAJOR  - The major version of the OpenCL implementation
-   #  OpenCL_VERSION_MINOR  - The minor version of the OpenCL implementation
-   if (OpenCL_FOUND)
-      set(HAVE_CL_DOUBLE ON CACHE BOOL "Have OpenCL Double")
-      set(NO_CL_DOUBLE OFF)
-      include_directories(${OpenCL_INCLUDE_DIRS})
-   endif (OpenCL_FOUND)
+   if (NOT APPLE OR DARWIN_VERSION LESS 18)
+      find_package(OpenCL)
+      #  OpenCL_FOUND          - True if OpenCL was found
+      #  OpenCL_INCLUDE_DIRS   - include directories for OpenCL
+      #  OpenCL_LIBRARIES      - link against this library to use OpenCL
+      #  OpenCL_VERSION_STRING - Highest supported OpenCL version (eg. 1.2)
+      #  OpenCL_VERSION_MAJOR  - The major version of the OpenCL implementation
+      #  OpenCL_VERSION_MINOR  - The minor version of the OpenCL implementation
+      if (OpenCL_FOUND)
+         set(HAVE_CL_DOUBLE ON CACHE BOOL "Have OpenCL Double")
+         set(NO_CL_DOUBLE OFF)
+         include_directories(${OpenCL_INCLUDE_DIRS})
+      endif (OpenCL_FOUND)
+   endif (NOT APPLE OR DARWIN_VERSION LESS 18)
 endif (NOT DEFINED OpenCL_FOUND)
 
 if (NOT DEFINED MPI_FOUND)
