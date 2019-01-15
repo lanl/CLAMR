@@ -474,6 +474,10 @@ if (EXISTS "${CMAKE_SOURCE_DIR}/memstats" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/
    add_subdirectory(memstats)
 endif (EXISTS "${CMAKE_SOURCE_DIR}/memstats" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/memstats")
 
+if (EXISTS "${CMAKE_SOURCE_DIR}/powerstats" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/powerstats")
+   add_subdirectory(powerstats)
+endif (EXISTS "${CMAKE_SOURCE_DIR}/powerstats" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/powerstats")
+
 if (OpenCL_FOUND)
    if (EXISTS "${CMAKE_SOURCE_DIR}/ezcl" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/ezcl")
       add_subdirectory(ezcl)
@@ -516,7 +520,7 @@ if (OpenCL_FOUND AND MPI_FOUND)
    add_executable(clamr ${clamr_SRCS})
 
    set_target_properties(clamr PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
-   target_link_libraries(clamr dpmesh hsfc kdtree zorder pcrux dhash pezcl pgraphics timer memstats dl7 genmalloc dpMallocPlus m)
+   target_link_libraries(clamr dpmesh hsfc kdtree zorder pcrux dhash pezcl pgraphics timer memstats powerstats dl7 genmalloc dpMallocPlus m)
    target_link_libraries(clamr ${OpenCL_LIBRARIES})
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr ${REPROBLAS_LIBRARIES})
@@ -539,7 +543,7 @@ set(clamr_cpuonly_SRCS ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr
 
 add_executable(clamr_cpuonly ${clamr_cpuonly_SRCS})
 
-target_link_libraries(clamr_cpuonly PowerParser mesh hsfc kdtree zorder crux hash graphics timer memstats genmalloc MallocPlus m)
+target_link_libraries(clamr_cpuonly PowerParser mesh hsfc kdtree zorder crux hash graphics timer memstats powerstats genmalloc MallocPlus m)
 if (REPROBLAS_FOUND)
    target_link_libraries(clamr_cpuonly ${REPROBLAS_LIBRARIES})
 endif (REPROBLAS_FOUND)
@@ -562,7 +566,7 @@ if (OpenCL_FOUND)
 
    set_target_properties(clamr_gpuonly PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
-   target_link_libraries(clamr_gpuonly PowerParser dmesh hsfc kdtree zorder crux dhash ezcl graphics timer memstats genmalloc dMallocPlus m)
+   target_link_libraries(clamr_gpuonly PowerParser dmesh hsfc kdtree zorder crux dhash ezcl graphics timer memstats powerstats genmalloc dMallocPlus m)
    target_link_libraries(clamr_gpuonly ${OpenCL_LIBRARIES})
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_gpuonly ${REPROBLAS_LIBRARIES})
@@ -582,7 +586,7 @@ if (MPI_FOUND)
    add_executable(clamr_mpionly ${clamr_mpionly_SRCS})
 
    set_target_properties(clamr_mpionly PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-   target_link_libraries(clamr_mpionly pPowerParser pmesh hsfc kdtree zorder pcrux hash pgraphics timer memstats l7 genmalloc pMallocPlus m)
+   target_link_libraries(clamr_mpionly pPowerParser pmesh hsfc kdtree zorder pcrux hash pgraphics timer memstats powerstats l7 genmalloc pMallocPlus m)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_mpionly ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
@@ -609,7 +613,7 @@ if(OPENMP_FOUND)
    set_target_properties(clamr_openmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(clamr_openmponly PROPERTIES LINK_FLAGS "${OpenMP_C_FLAGS}")
 
-   target_link_libraries(clamr_openmponly PowerParser mpmesh hsfc kdtree zorder crux mphash graphics mptimer memstats genmalloc mpMallocPlus m)
+   target_link_libraries(clamr_openmponly PowerParser mpmesh hsfc kdtree zorder crux mphash graphics mptimer memstats powerstats genmalloc mpMallocPlus m)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_openmponly ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
@@ -638,7 +642,7 @@ if (MPI_FOUND AND OPENMP_FOUND)
    set_target_properties(clamr_mpiopenmponly PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
    set_target_properties(clamr_mpiopenmponly PROPERTIES LINK_FLAGS "${clamr_mpiopenmponly_link_flags}")
 
-   target_link_libraries(clamr_mpiopenmponly pPowerParser pmpmesh hsfc kdtree zorder pcrux mphash pgraphics mptimer memstats mpl7 genmalloc pmpMallocPlus m)
+   target_link_libraries(clamr_mpiopenmponly pPowerParser pmpmesh hsfc kdtree zorder pcrux mphash pgraphics mptimer memstats powerstats mpl7 genmalloc pmpMallocPlus m)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_mpiopenmponly ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
@@ -681,7 +685,7 @@ if (QUO_FOUND AND MPI_FOUND AND OPENMP_FOUND AND Boost_FOUND)
 
     set_target_properties(clamr_quo PROPERTIES LINK_FLAGS "${clamr_quo_link_flags}")
 
-    target_link_libraries(clamr_quo pmesh hsfc kdtree zorder crux hash pgraphics timer memstats l7 genmalloc pMallocPlus m)
+    target_link_libraries(clamr_quo pmesh hsfc kdtree zorder crux hash pgraphics timer memstats powerstats l7 genmalloc pMallocPlus m)
     target_link_libraries(clamr_quo quo)
     target_link_libraries(clamr_quo j7)
     if (REPROBLAS_FOUND)
@@ -716,7 +720,7 @@ if (OpenCL_FOUND)
 
    set_target_properties(clamr_gpucheck PROPERTIES COMPILE_DEFINITIONS HAVE_OPENCL)
 
-   target_link_libraries(clamr_gpucheck PowerParser dmesh hsfc kdtree zorder crux dhash ezcl graphics timer memstats genmalloc dMallocPlus m)
+   target_link_libraries(clamr_gpucheck PowerParser dmesh hsfc kdtree zorder crux dhash ezcl graphics timer memstats powerstats genmalloc dMallocPlus m)
    target_link_libraries(clamr_gpucheck ${OpenCL_LIBRARIES})
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_gpucheck ${REPROBLAS_LIBRARIES})
@@ -736,7 +740,7 @@ if (MPI_FOUND)
    add_executable(clamr_mpicheck ${clamr_mpicheck_SRCS})
 
    set_target_properties(clamr_mpicheck PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-   target_link_libraries(clamr_mpicheck pPowerParser pmesh hsfc kdtree zorder pcrux hash pgraphics timer memstats l7 genmalloc pMallocPlus m)
+   target_link_libraries(clamr_mpicheck pPowerParser pmesh hsfc kdtree zorder pcrux hash pgraphics timer memstats powerstats l7 genmalloc pMallocPlus m)
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_mpicheck ${REPROBLAS_LIBRARIES})
    endif (REPROBLAS_FOUND)
@@ -758,7 +762,7 @@ if (MPI_FOUND AND OpenCL_FOUND)
    add_executable(clamr_checkall ${clamr_checkall_SRCS})
 
    set_target_properties(clamr_checkall PROPERTIES COMPILE_DEFINITIONS "HAVE_MPI;HAVE_OPENCL")
-   target_link_libraries(clamr_checkall dpmesh hsfc kdtree zorder pcrux dhash pezcl pgraphics timer memstats dl7 genmalloc dpMallocPlus m)
+   target_link_libraries(clamr_checkall dpmesh hsfc kdtree zorder pcrux dhash pezcl pgraphics timer memstats powerstats dl7 genmalloc dpMallocPlus m)
    target_link_libraries(clamr_checkall ${OpenCL_LIBRARIES})
    if (REPROBLAS_FOUND)
       target_link_libraries(clamr_checkall ${REPROBLAS_LIBRARIES})
@@ -798,6 +802,7 @@ set (CMAKE_DOC_COMMAND #make CLAMR_doc       &&
                        make Graphics_doc    &&
                        make Hash_doc        &&
                        make memstats_doc    &&
+                       make powerstats_doc  &&
                        make Mesh_doc        &&
                        make Crux_doc)
 
