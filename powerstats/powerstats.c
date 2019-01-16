@@ -64,6 +64,8 @@
 
 #include "powerstats.h"
 
+void extract_power_data();
+
 #ifdef HAVE_POWER_GADGET
    #include <EnergyLib.h>
 #endif
@@ -71,7 +73,8 @@
 void powerstats_init(void){
 #ifdef HAVE_POWER_GADGET
    IntelEnergyLibInitialize();
-   StartLog((char *)"PowerGadgetLog.csv"); // causes a sample to be read
+   //StartLog((char *)"PowerGadgetLog.csv"); // causes a sample to be read
+   ReadSample();
    ReadSample();
 
    extract_power_data();
@@ -88,7 +91,8 @@ void powerstats_sample(void){
 void powerstats_finalize(void){
 #ifdef HAVE_POWER_GADGET
       printf("Closing power gadget log file\n");
-      StopLog();// causes a sample to be read
+      //StopLog();// causes a sample to be read
+      ReadSample();
 
       extract_power_data();
       printf("\n");

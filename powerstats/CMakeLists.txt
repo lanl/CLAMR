@@ -51,8 +51,12 @@ if (POWER_GADGET)
 endif (POWER_GADGET)
 
 ########### global settings ###############
+#if ("${CMAKE_SYSTEM_NAME}" STREQUAL "linux")
+#   set(ADDITIONAL_FILES rapl_read.c)
+#endif ("${CMAKE_SYSTEM_NAME}" STREQUAL "linux")
+
 set(H_SRCS powerstats.h)
-set(C_SRCS powerstats.c)
+set(C_SRCS powerstats.c ${ADDITIONAL_FILES})
 
 set(powerstats_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
