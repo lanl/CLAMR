@@ -64,13 +64,60 @@
 
 #include "powerstats.h"
 
+#if defined(HAVE_RAPL_PERF) || defined(HAVE_RAPL_SYSFS) || defined(HAVE_RAPL_MSR)
+#define HAVE_RAPL 1
+int detect_cpu(void);
+int detect_packages(void);
+#endif
+#ifdef HAVE_RAPL_PERF
+int rapl_perf(int core);
+#endif
+#ifdef HAVE_RAPL_SYSFS
+int rapl_sysfs(int core);
+#endif
+#ifdef HAVE_RAPL_MSR
+int rapl_msr(int core);
+#endif
+int (*rapl_read)(int core) = NULL;
+
 void extract_power_data();
 
 #ifdef HAVE_POWER_GADGET
    #include <EnergyLib.h>
 #endif
+int rapl_perf(int core);
 
 void powerstats_init(void){
+#ifdef HAVE_RAPL
+   detect_cpu();
+   detect_packages();
+
+#ifdef HAVE_RAPL_PERF
+   if (rapl_perf(0) != -1){
+      rapl_read = &rapl_perf;
+   }
+#endif
+
+#ifdef HAVE_RAPL_SYSFS
+   if (rapl_sysfs(0) != -1){
+      printf("Found working RAPL_SYSFS\n");
+      rapl_read = &rapl_sysfs;
+   } else {
+      printf("RAPL_SYSFS fails\n");
+   }
+#endif
+
+#ifdef HAVE_RAPL_MSR
+   if (rapl_msr(0) != -1){
+      printf("Found working RAPL_MSR\n");
+      rapl_read = &rapl_msr;
+   } else {
+      printf("RAPL_MSR fails\n");
+   }
+#endif
+
+#endif
+
 #ifdef HAVE_POWER_GADGET
    IntelEnergyLibInitialize();
    //StartLog((char *)"PowerGadgetLog.csv"); // causes a sample to be read

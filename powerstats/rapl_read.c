@@ -26,6 +26,7 @@
 /* Vince Weaver -- vincent.weaver @ maine.edu -- 11 September 2015	*/
 /*									*/
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -39,6 +40,12 @@
 
 #include <sys/syscall.h>
 #include <linux/perf_event.h>
+
+#if defined(HAVE_RAPL_PERF) || defined(HAVE_RAPL_SYSFS) || defined(HAVE_RAPL_MSR)
+#define HAVE_RAPL 1
+#endif
+
+//#define RAPL_VERBOSE 1
 
 #define MSR_RAPL_POWER_UNIT		0x606
 
@@ -83,6 +90,9 @@
 #define TIME_UNIT_OFFSET	0x10
 #define TIME_UNIT_MASK		0xF000
 
+int cpu_model = 0;
+
+#ifdef HAVE_RAPL_MSR
 static int open_msr(int core) {
 
 	char msr_filename[BUFSIZ];
@@ -93,15 +103,18 @@ static int open_msr(int core) {
 	if ( fd < 0 ) {
 		if ( errno == ENXIO ) {
 			fprintf(stderr, "rdmsr: No CPU %d\n", core);
-			exit(2);
+                        return(-1);
+			//exit(2);
 		} else if ( errno == EIO ) {
 			fprintf(stderr, "rdmsr: CPU %d doesn't support MSRs\n",
 					core);
-			exit(3);
+                        return(-1);
+			//exit(3);
 		} else {
 			perror("rdmsr:open");
 			fprintf(stderr,"Trying to open %s\n",msr_filename);
-			exit(127);
+                        return(-1);
+			//exit(127);
 		}
 	}
 
@@ -119,6 +132,7 @@ static long long read_msr(int fd, int which) {
 
 	return (long long)data;
 }
+#endif
 
 #define CPU_SANDYBRIDGE		42
 #define CPU_SANDYBRIDGE_EP	45
@@ -151,7 +165,8 @@ static long long read_msr(int fd, int which) {
 /* the whole SoC not just the package.				*/
 /* see dcee75b3b7f025cc6765e6c92ba0a4e59a4d25f4			*/
 
-static int detect_cpu(void) {
+#ifdef HAVE_RAPL
+int detect_cpu(void) {
 
 	FILE *fff;
 
@@ -251,8 +266,10 @@ static int detect_cpu(void) {
 
 	printf(" Processor type\n");
 
-	return model;
+	cpu_model = model;
+        return(0);
 }
+#endif
 
 #define MAX_CPUS	1024
 #define MAX_PACKAGES	16
@@ -260,7 +277,8 @@ static int detect_cpu(void) {
 static int total_cores=0,total_packages=0;
 static int package_map[MAX_PACKAGES];
 
-static int detect_packages(void) {
+#ifdef HAVE_RAPL
+int detect_packages(void) {
 
 	char filename[BUFSIZ];
 	FILE *fff;
@@ -275,8 +293,10 @@ static int detect_packages(void) {
 		fff=fopen(filename,"r");
 		if (fff==NULL) break;
 		fscanf(fff,"%d",&package);
+#ifdef RAPL_VERBOSE
 		printf("%d (%d)",i,package);
 		if (i%8==7) printf("\n\t"); else printf(", ");
+#endif
 		fclose(fff);
 
 		if (package_map[package]==-1) {
@@ -295,12 +315,14 @@ static int detect_packages(void) {
 
 	return 0;
 }
+#endif
 
 
+#ifdef HAVE_RAPL_MSR
 /*******************************/
 /* MSR code                    */
 /*******************************/
-static int rapl_msr(int core, int cpu_model) {
+int rapl_msr(int core) {
 
 	int fd;
 	long long result;
@@ -395,6 +417,7 @@ static int rapl_msr(int core, int cpu_model) {
 		printf("\tListing paramaters for package #%d\n",j);
 
 		fd=open_msr(package_map[j]);
+                if (fd == -1) return(-1);
 
 		/* Calculate the units used */
 		result=read_msr(fd,MSR_RAPL_POWER_UNIT);
@@ -525,7 +548,7 @@ static int rapl_msr(int core, int cpu_model) {
 		close(fd);
 	}
 
-  	printf("\n\tSleeping 1 second\n\n");
+  	//printf("\n\tSleeping 1 second\n\n");
 	sleep(1);
 
 	for(j=0;j<total_packages;j++) {
@@ -574,7 +597,9 @@ static int rapl_msr(int core, int cpu_model) {
 
 	return 0;
 }
+#endif
 
+#ifdef HAVE_RAPL_PERF
 static int perf_event_open(struct perf_event_attr *hw_event_uptr,
                     pid_t pid, int cpu, int group_fd, unsigned long flags) {
 
@@ -614,7 +639,7 @@ static int check_paranoid(void) {
 
 }
 
-static int rapl_perf(int core) {
+int rapl_perf(int core) {
 
 	FILE *fff;
 	int type;
@@ -628,7 +653,9 @@ static int rapl_perf(int core) {
 	int i,j;
 	int paranoid_value;
 
+#ifdef RAPL_VERBOSE
 	printf("\nTrying perf_event interface to gather results\n\n");
+#endif
 
 	fff=fopen("/sys/bus/event_source/devices/power/type","r");
 	if (fff==NULL) {
@@ -648,7 +675,9 @@ static int rapl_perf(int core) {
 
 		if (fff!=NULL) {
 			fscanf(fff,"event=%x",&config[i]);
+#ifdef RAPL_VERBOSE
 			printf("\tEvent=%s Config=%d ",rapl_domain_names[i],config[i]);
+#endif
 			fclose(fff);
 		} else {
 			continue;
@@ -660,7 +689,9 @@ static int rapl_perf(int core) {
 
 		if (fff!=NULL) {
 			fscanf(fff,"%lf",&scale[i]);
+#ifdef RAPL_VERBOSE
 			printf("scale=%g ",scale[i]);
+#endif
 			fclose(fff);
 		}
 
@@ -670,11 +701,15 @@ static int rapl_perf(int core) {
 
 		if (fff!=NULL) {
 			fscanf(fff,"%s",units[i]);
+#ifdef RAPL_VERBOSE
 			printf("units=%s ",units[i]);
+#endif
 			fclose(fff);
 		}
 
+#ifdef RAPL_VERBOSE
 		printf("\n");
+#endif
 	}
 
 	for(j=0;j<total_packages;j++) {
@@ -709,7 +744,7 @@ static int rapl_perf(int core) {
 		}
 	}
 
-	printf("\n\tSleeping 1 second\n\n");
+	//printf("\n\tSleeping 1 second\n\n");
 	sleep(1);
 
 	for(j=0;j<total_packages;j++) {
@@ -735,8 +770,10 @@ static int rapl_perf(int core) {
 
 	return 0;
 }
+#endif
 
-static int rapl_sysfs(int core) {
+#ifdef HAVE_RAPL_SYSFS
+int rapl_sysfs(int core) {
 
 	char event_names[MAX_PACKAGES][NUM_RAPL_DOMAINS][256];
 	char filenames[MAX_PACKAGES][NUM_RAPL_DOMAINS][256];
@@ -805,7 +842,7 @@ static int rapl_sysfs(int core) {
 		}
 	}
 
-	printf("\tSleeping 1 second\n\n");
+	//printf("\tSleeping 1 second\n\n");
 	sleep(1);
 
 	/* Gather after values */
@@ -838,78 +875,4 @@ static int rapl_sysfs(int core) {
 	return 0;
 
 }
-
-int main(int argc, char **argv) {
-
-	int c;
-	int force_msr=0,force_perf_event=0,force_sysfs=0;
-	int core=0;
-	int result=-1;
-	int cpu_model;
-
-	printf("\n");
-	printf("RAPL read -- use -s for sysfs, -p for perf_event, -m for msr\n\n");
-
-	opterr=0;
-
-	while ((c = getopt (argc, argv, "c:hmps")) != -1) {
-		switch (c) {
-		case 'c':
-			core = atoi(optarg);
-			break;
-		case 'h':
-			printf("Usage: %s [-c core] [-h] [-m]\n\n",argv[0]);
-			printf("\t-c core : specifies which core to measure\n");
-			printf("\t-h      : displays this help\n");
-			printf("\t-m      : forces use of MSR mode\n");
-			printf("\t-p      : forces use of perf_event mode\n");
-			printf("\t-s      : forces use of sysfs mode\n");
-			exit(0);
-		case 'm':
-			force_msr = 1;
-			break;
-		case 'p':
-			force_perf_event = 1;
-			break;
-		case 's':
-			force_sysfs = 1;
-			break;
-		default:
-			fprintf(stderr,"Unknown option %c\n",c);
-			exit(-1);
-		}
-	}
-
-	(void)force_sysfs;
-
-	cpu_model=detect_cpu();
-	detect_packages();
-
-	if ((!force_msr) && (!force_perf_event)) {
-		result=rapl_sysfs(core);
-	}
-
-	if (result<0) {
-		if ((force_perf_event) && (!force_msr)) {
-			result=rapl_perf(core);
-		}
-	}
-
-	if (result<0) {
-		result=rapl_msr(core,cpu_model);
-	}
-
-	if (result<0) {
-
-		printf("Unable to read RAPL counters.\n");
-		printf("* Verify you have an Intel Sandybridge or newer processor\n");
-		printf("* You may need to run as root or have /proc/sys/kernel/perf_event_paranoid set properly\n");
-		printf("* If using raw msr access, make sure msr module is installed\n");
-		printf("\n");
-
-		return -1;
-
-	}
-
-	return 0;
-}
+#endif
