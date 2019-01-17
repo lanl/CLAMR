@@ -39,9 +39,9 @@
 #include <string.h>
 
 #include <sys/syscall.h>
-#include <linux/perf_event.h>
 
 #if defined(HAVE_RAPL_PERF) || defined(HAVE_RAPL_SYSFS) || defined(HAVE_RAPL_MSR)
+#include <linux/perf_event.h>
 #define HAVE_RAPL 1
 #endif
 
