@@ -89,7 +89,9 @@ int rapl_perf(int core);
 
 void powerstats_init(void){
 #ifdef HAVE_RAPL
+#ifdef HAVE_RAPL_MSR
    detect_cpu();
+#endif
    detect_packages();
 
 #ifdef HAVE_RAPL_PERF
