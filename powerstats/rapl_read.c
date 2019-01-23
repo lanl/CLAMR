@@ -599,6 +599,8 @@ int rapl_msr(int core) {
 }
 #endif
 
+#define NUM_RAPL_DOMAINS	5
+
 #ifdef HAVE_RAPL_PERF
 static int perf_event_open(struct perf_event_attr *hw_event_uptr,
                     pid_t pid, int cpu, int group_fd, unsigned long flags) {
@@ -606,8 +608,6 @@ static int perf_event_open(struct perf_event_attr *hw_event_uptr,
         return syscall(__NR_perf_event_open,hw_event_uptr, pid, cpu,
                         group_fd, flags);
 }
-
-#define NUM_RAPL_DOMAINS	5
 
 char rapl_domain_names[NUM_RAPL_DOMAINS][30]= {
 	"energy-cores",
