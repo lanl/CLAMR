@@ -393,7 +393,9 @@ extern "C" void do_calc(void)
       //}
 
       //  Execute main kernel
-      state->gpu_calc_finite_difference(deltaT);
+      //state->gpu_calc_finite_difference(deltaT);
+      state->gpu_calc_finite_difference_via_faces(deltaT);
+      //state->gpu_calc_finite_difference_in_place(deltaT);
       
       //int bcount = mesh->gpu_count_BCs();
 

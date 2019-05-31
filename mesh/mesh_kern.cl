@@ -152,10 +152,17 @@ enum orientation
    NE,                          //  NE quadrant.
    SE };                        //  SE quadrant.
 
+int is_lower(int i) { return (i % 2 == 0); }
+int is_upper(int i) { return  (i % 2 == 1); }
 int is_lower_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 0); }
 int is_lower_right(int i, int j) { return(i % 2 == 1 && j % 2 == 0); }
 int is_upper_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 1); }
 int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
+int is_boundary(int cell, int *nlft, int *nrht, int *nbot, int *ntop) {
+    if (nlft[cell] == cell || nrht[cell] == cell || nbot[cell] == cell || ntop[cell] == cell)
+        return 1;
+    return 0;
+}
 
 void reduction_sum_int_within_tile(__local  int  *itile);
 void reduction_sum_int2_within_tile(__local  int2  *itile);
@@ -3366,3 +3373,312 @@ __kernel void count_BCs_cl(
     }
 }
 
+__kernel void face_idx_wbidirmap_cl(
+            __global          int   *level,                     // 0
+            __global          int   *nlft,                      // 1
+            __global          int   *nrht,                      // 2
+            __global          int   *nbot,                      // 3
+            __global          int   *ntop,                      // 4
+            __global          int   *xfaceIdxList,              // 5
+            __global          int   *yfaceIdxList,              // 6
+                              int   ncells,                     // 7
+            __global          int   *nface) {                   // 8
+
+    /////////////////////////////////////////////
+    /// Get thread identification information ///
+    /////////////////////////////////////////////
+
+    const uint giX  = get_global_id(0);
+    const uint tiX  = get_local_id(0);
+    
+    const uint ngX  = get_global_size(0);
+    const uint ntX  = get_local_size(0);
+    
+    const uint group_id = get_group_id(0);
+ 
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    //this will only be executed by one thread
+    
+    int ccc;//, nxfaceCnt = 1, nyfaceCnt = 1;
+    xfaceIdxList[0] = 0;
+    yfaceIdxList[0] = 0;
+    for (ccc = 0; ccc < (int) ncells - 1; ccc++) {
+        int xfaceSt = xfaceIdxList[ccc], yfaceSt = yfaceIdxList[ccc];
+        if (nrht[ccc] != ccc) {
+            xfaceSt++;
+            //nxfaceCnt++;
+        }
+        if (ntop[ccc] != ccc) {
+            yfaceSt++;
+            //nyfaceCnt++;
+        }
+        if ((level[nrht[ccc]] > level[ccc]) && (ntop[nrht[ccc]] != nrht[ccc]) && (nbot[nrht[ccc]] != nrht[ccc])) {
+            xfaceSt++; 
+            //nxfaceCnt++;
+        }
+        if ((level[ntop[ccc]] > level[ccc]) && (nrht[ntop[ccc]] != ntop[ccc]) && (nlft[ntop[ccc]] != ntop[ccc])) {
+            yfaceSt++;
+            //nyfaceCnt++;
+        }
+        xfaceIdxList[ccc+1] = xfaceSt;
+        yfaceIdxList[ccc+1] = yfaceSt;
+    }
+    //if ((level[nrht[ccc]] > level[ccc]) && (is_lower(nrht[ccc])))
+    //    nxfaceCnt++;
+    //if ((level[ntop[ccc]] > level[ccc]) && (is_lower(ntop[ccc])))
+    //    nyfaceCnt++;
+    //nface[0] = nxfaceCnt; 
+    //nface[1] = nyfaceCnt; 
+}
+
+__kernel void calc_face_list_wbidirmap_pt1_cl(
+                        const int   ncells,                     // 0
+            __global          int   *nface,                     // 1
+                        const int   levmx,                      // 2
+            __global          int   *level,                     // 3
+            __global          int   *nlft,                      // 4
+            __global          int   *nrht,                      // 5
+            __global          int   *nbot,                      // 6
+            __global          int   *ntop,                      // 7
+            __global          int   *map_xface2cell_lower,      // 8
+            __global          int   *map_xface2cell_upper,      // 9
+            __global          int   *map_xcell2face_left1,      // 10
+            __global          int   *map_xcell2face_left2,      // 11
+            __global          int   *map_xcell2face_right1,     // 12
+            __global          int   *map_xcell2face_right2,     // 13
+            __global          int   *xface_level,               // 14
+            __global          int   *xface_i,                   // 15
+            __global          int   *xface_j,                   // 16
+            __global          int   *ixmin_level,               // 17
+            __global          int   *ixmax_level,               // 18
+            __global          int   *jxmin_level,               // 19
+            __global          int   *jxmax_level,               // 20
+            __global          int   *map_yface2cell_lower,      // 21
+            __global          int   *map_yface2cell_upper,      // 22
+            __global          int   *map_ycell2face_bot1,       // 23
+            __global          int   *map_ycell2face_bot2,       // 24
+            __global          int   *map_ycell2face_top1,       // 25
+            __global          int   *map_ycell2face_top2,       // 26
+            __global          int   *yface_level,               // 27
+            __global          int   *yface_i,                   // 28
+            __global          int   *yface_j,                   // 29
+            __global          int   *iymin_level,               // 30
+            __global          int   *iymax_level,               // 31
+            __global          int   *jymin_level,               // 32
+            __global          int   *jymax_level,               // 33
+            __global          int   *xfaceIdxList,              // 34
+            __global          int   *yfaceIdxList,              // 35
+            __global    const int   *i,                         // 36
+            __global    const int   *j) {                       // 37
+
+   /////////////////////////////////////////////
+   /// Get thread identification information ///
+   /////////////////////////////////////////////
+
+   const uint giX  = get_global_id(0);
+   const uint tiX  = get_local_id(0);
+   
+   const uint ngX  = get_global_size(0);
+   const uint ntX  = get_local_size(0);
+   
+   const uint group_id = get_group_id(0);
+    
+   // Ensure the executing thread is not extraneous
+   if(giX >= ncells)
+      return;
+
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+    ////////////////X Dim/////////////////////
+
+    int nz = giX;
+    int iface = xfaceIdxList[nz];
+    int nr = nrht[nz];
+    if (nr != nz) {
+        int ifactor = 1;
+        if (level[nr] < level[nz]) ifactor = 2;
+
+        map_xface2cell_lower[iface] = nz;
+        map_xface2cell_upper[iface] = nr;
+        xface_level[iface] = max(level[nz],level[nr]);
+        xface_i[iface] = i[nr]*ifactor;
+        if (level[nr] < level[nz] && is_upper(j[nz]) )
+            xface_j[iface] = j[nr]*ifactor+1;
+        else
+            xface_j[iface] = j[nr]*ifactor;
+        map_xcell2face_right1[nz] = iface;
+
+        if (nz == nlft[nz])
+            map_xcell2face_left1[nz] = iface;
+        iface++;
+
+        if (level[nr] > level[nz] && is_lower(j[nr]) ){
+            int ntr = ntop[nr];
+            if (ntr != nr) {
+                map_xface2cell_lower[iface] = nz;
+                map_xface2cell_upper[iface] = ntr;
+                xface_level[iface] = max(level[nz],level[ntr]);
+                xface_i[iface] = i[ntr]*ifactor;
+                xface_j[iface] = j[ntr]*ifactor;
+                map_xcell2face_right2[nz] = iface;
+
+                iface++;
+            }
+        }
+    }
+
+    if (giX == ncells-1)
+        nface[0] = iface;
+
+    ////////////////Y Dim/////////////////////
+
+    iface = yfaceIdxList[nz];
+    int nt = ntop[nz];
+    if (nt != nz) {
+        int ifactor = 1;
+        if (level[nt] < level[nz]) ifactor = 2;
+
+        map_yface2cell_lower[iface] = nz;
+        map_yface2cell_upper[iface] = nt;
+        yface_level[iface] = max(level[nz],level[nt]);
+        yface_j[iface] = j[nt]*ifactor;
+        if (level[nt] < level[nz] && is_upper(i[nz]))
+           yface_i[iface] = i[nt]*ifactor+1;
+        else
+           yface_i[iface] = i[nt]*ifactor;
+        map_ycell2face_top1[nz] = iface;
+        if (nz == nbot[nz])
+            map_ycell2face_bot1[nz] = iface;
+    
+        iface++;
+
+        if (level[nt] > level[nz]  && is_lower(i[nt])){
+            int nrt = nrht[nt];
+            if (nrt != nt) {
+                map_yface2cell_lower[iface] = nz;
+                map_yface2cell_upper[iface] = nrt;
+                yface_level[iface] = max(level[nz],level[nrt]);
+                yface_j[iface] = j[nrt]*ifactor;
+                yface_i[iface] = i[nrt]*ifactor;
+                map_ycell2face_top2[nz] = iface;
+
+                iface++;
+            }
+        }
+    }
+
+    if (giX == ncells-1)
+        nface[1] = iface;
+
+}
+
+__kernel void calc_face_list_wbidirmap_pt2_cl(
+                        const int   ncells,                     // 0
+            __global          int   *level,                     // 1
+            __global          int   *nlft,                      // 2
+            __global          int   *nrht,                      // 3
+            __global          int   *nbot,                      // 4
+            __global          int   *ntop,                      // 5
+            __global          int   *map_xcell2face_left1,      // 6
+            __global          int   *map_xcell2face_left2,      // 7
+            __global          int   *map_xcell2face_right1,     // 8
+            __global          int   *map_xcell2face_right2,     // 9
+            __global          int   *map_ycell2face_bot1,       // 10
+            __global          int   *map_ycell2face_bot2,       // 11
+            __global          int   *map_ycell2face_top1,       // 12
+            __global          int   *map_ycell2face_top2,       // 13
+            __global          int   *i,                         // 14
+            __global          int   *j) {                       // 15
+
+   /////////////////////////////////////////////
+   /// Get thread identification information ///
+   /////////////////////////////////////////////
+
+   const uint giX  = get_global_id(0);
+   const uint tiX  = get_local_id(0);
+   
+   const uint ngX  = get_global_size(0);
+   const uint ntX  = get_local_size(0);
+   
+   const uint group_id = get_group_id(0);
+    
+   // Ensure the executing thread is not extraneous
+   if(giX >= ncells)
+      return;
+
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+    int nz = giX;
+    int nl = nlft[nz];
+    if (nl != nz) {
+        if (level[nl] < level[nz] && is_upper(j[nz]) && nbot[nz] != nz){
+            map_xcell2face_left1[nz] = map_xcell2face_right2[nl];
+        }
+        else {
+            map_xcell2face_left1[nz] = map_xcell2face_right1[nl];
+            if (level[nl] > level[nz])
+                map_xcell2face_left2[nz] = map_xcell2face_right1[ntop[nl]];
+        }
+        if (nz == nrht[nz])
+            map_xcell2face_right1[nz] = map_xcell2face_left1[nz];
+    }
+
+    int nb = nbot[nz];
+    if (nb != nz) {  
+        if (level[nb] < level[nz] && is_upper(i[nz]) && nlft[nz] != nz){
+            map_ycell2face_bot1[nz] = map_ycell2face_top2[nb];
+        }
+        else {
+            map_ycell2face_bot1[nz] = map_ycell2face_top1[nb];
+            if (level[nb] > level[nz])
+                map_ycell2face_bot2[nz] = map_ycell2face_top1[nrht[nb]];
+        }
+        if (nz == ntop[nz])
+            map_ycell2face_top1[nz] = map_ycell2face_bot1[nz];
+    }
+}
+
+__kernel void wbidirmap_precount_cl(
+            __global          int   *pcellCnt,                  // 0
+            __global          int   *pfaceCnt,                  // 1
+            __global          int   *level,                     // 2
+            __global          int   *nlft,                      // 3
+            __global          int   *nrht,                      // 4
+            __global          int   *nbot,                      // 5
+            __global          int   *ntop,                      // 6
+            __global          int   *map_xface2cell_lower,      // 7
+            __global          int   *map_xface2cell_upper,      // 8
+            __global          int   *map_yface2cell_lower,      // 9
+            __global          int   *map_yface2cell_upper,      // 10
+            __global          int   *nface) {                   // 11 Number array of faces
+
+
+   /////////////////////////////////////////////
+   /// Get thread identification information ///
+   /////////////////////////////////////////////
+
+   const uint giX  = get_global_id(0);
+   const uint tiX  = get_local_id(0);
+   
+   const uint ngX  = get_global_size(0);
+   const uint ntX  = get_local_size(0);
+   
+   const uint group_id = get_group_id(0);
+    
+   // Ensure the executing thread is not extraneous
+   if(giX >= max(nface[0], nface[1]))
+      return;
+
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+    int lncell, rncell, bncell, tncell, cncell, fncell, level_left, level_right, level_bot, level_top;
+    if (giX < nface[0]) {
+        lncell = map_xface2cell_lower[giX];
+    }
+
+    if (giX < nface[1]) {
+   
+    }
+
+}

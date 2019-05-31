@@ -236,6 +236,16 @@ public:
    cl_mem dev_H;
    cl_mem dev_U;
    cl_mem dev_V;
+   cl_mem dev_HxFlux;
+   cl_mem dev_UxFlux;
+   cl_mem dev_VxFlux;
+   cl_mem dev_HyFlux;
+   cl_mem dev_UyFlux;
+   cl_mem dev_VyFlux;
+   cl_mem dev_Wx_H;
+   cl_mem dev_Wx_U;
+   cl_mem dev_Wy_H;
+   cl_mem dev_Wy_V;
 
    cl_mem dev_mass_sum;
    cl_mem dev_deltaT;
@@ -306,8 +316,11 @@ public:
    void calc_finite_difference_regular_cells(double deltaT);
    void calc_finite_difference_regular_cells_by_faces(double deltaT);
 #ifdef HAVE_OPENCL
+   void gpu_faces_setup(size_t mem_requestx, size_t mem_requesty);
+   void gpu_faces_delete(void);
    void gpu_calc_finite_difference(double deltaT);
    void gpu_calc_finite_difference_via_faces(double deltaT);
+   void gpu_calc_finite_difference_in_place(double deltaT);
    void gpu_calc_finite_difference_via_face_in_place(double deltaT);
 #endif
 

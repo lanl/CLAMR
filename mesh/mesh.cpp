@@ -233,7 +233,9 @@ cl_kernel      kernel_count_BCs;
 cl_kernel      kernel_do_load_balance_lower;
 cl_kernel      kernel_do_load_balance_middle;
 cl_kernel      kernel_do_load_balance_upper;
-cl_kernel      kernel_calc_face_list_wbidirmap;
+cl_kernel      kernel_calc_face_list_wbidirmap_pt1;
+cl_kernel      kernel_calc_face_list_wbidirmap_pt2;
+cl_kernel      kernel_face_idx_wbidirmap;
 #ifndef MINIMUM_PRECISION
 cl_kernel      kernel_do_load_balance_double;
 #endif
@@ -1486,7 +1488,9 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       kernel_do_load_balance_lower    = ezcl_create_kernel_wprogram(program, "do_load_balance_lower_cl");
       kernel_do_load_balance_middle   = ezcl_create_kernel_wprogram(program, "do_load_balance_middle_cl");
       kernel_do_load_balance_upper    = ezcl_create_kernel_wprogram(program, "do_load_balance_upper_cl");
-      //kernel_calc_face_list_wbidirmap = ezcl_create_kernel_wprogram(program, "calc_face_list_wbidir");
+      kernel_calc_face_list_wbidirmap_pt1 = ezcl_create_kernel_wprogram(program, "calc_face_list_wbidirmap_pt1_cl");
+      kernel_calc_face_list_wbidirmap_pt2 = ezcl_create_kernel_wprogram(program, "calc_face_list_wbidirmap_pt2_cl");
+      kernel_face_idx_wbidirmap = ezcl_create_kernel_wprogram(program, "face_idx_wbidirmap_cl");
 #ifndef MINIMUM_PRECISION
       kernel_do_load_balance_double   = ezcl_create_kernel_wprogram(program, "do_load_balance_double_cl");
 #endif
@@ -2419,6 +2423,9 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_do_load_balance_lower);
       ezcl_kernel_release(kernel_do_load_balance_middle);
       ezcl_kernel_release(kernel_do_load_balance_upper);
+      ezcl_kernel_release(kernel_calc_face_list_wbidirmap_pt1);
+      ezcl_kernel_release(kernel_calc_face_list_wbidirmap_pt2);
+      ezcl_kernel_release(kernel_face_idx_wbidirmap);
 #ifndef MINIMUM_PRECISION
       ezcl_kernel_release(kernel_do_load_balance_double);
 #endif
@@ -10755,24 +10762,21 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       int nl = nlft[nz];
       if (nl == nz) continue;
 
-      if (level[nl] < level[nz] && is_upper(j[nz])){
+      if (level[nl] < level[nz] && is_upper(j[nz]) && nbot[nz] != nz){
          map_xcell2face_left1[nz] = map_xcell2face_right2[nl];
 
-         //the left is a real cell, but I am right boundary
-         if (nz == nrht[nz])
-             map_xcell2face_right1[nz] = map_xcell2face_left1[nz];
 
       } else {
          map_xcell2face_left1[nz] = map_xcell2face_right1[nl];
-
-         //the left is a real cell, but I am right boundary
-         if (nz == nrht[nz])
-             map_xcell2face_right1[nz] = map_xcell2face_left1[nz];
 
          if (level[nl] > level[nz]){
             map_xcell2face_left2[nz] = map_xcell2face_right1[ntop[nl]];
          }
       }
+
+      //the left is a real cell, but I am right boundary
+      if (nz == nrht[nz])
+          map_xcell2face_right1[nz] = map_xcell2face_left1[nz];
 
    }
    cpu_timers[MESH_TIMER_BIDIRPART3] += cpu_timer_stop(tstart_cpu_part);
@@ -10862,7 +10866,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
       iface++;
 
-      if (level[nt] > level[nz]  &&is_lower(i[nt]) ){
+      if (level[nt] > level[nz]  && is_lower(i[nt]) ){
          int nrt = nrht[nt];
          if (nrt != nt) {
             map_yface2cell_lower[iface] = nz;
@@ -10886,23 +10890,19 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       if (nb == nz) continue;
       //if (nz == 3) printf("%d %d\n", map_ycell2face_top1[nb], map_ycell2face_top2[nb]);
 
-      if (level[nb] < level[nz] && is_upper(i[nz])){
+      if (level[nb] < level[nz] && is_upper(i[nz]) && nlft[nz] != nz){
          map_ycell2face_bot1[nz] = map_ycell2face_top2[nb];
-         //the bot is a real cell, but I am top boundary
-         if (nz == ntop[nz])
-             map_ycell2face_top1[nz] = map_ycell2face_bot1[nz];
 
       } else {
          map_ycell2face_bot1[nz] = map_ycell2face_top1[nb];
-
-         //the bot is a real cell, but I am top boundary
-         if (nz == ntop[nz])
-             map_ycell2face_top1[nz] = map_ycell2face_bot1[nz];
 
          if (level[nb] > level[nz]){
             map_ycell2face_bot2[nz] = map_ycell2face_top1[nrht[nb]];
          }
       }
+      //the bot is a real cell, but I am top boundary
+      if (nz == ntop[nz])
+          map_ycell2face_top1[nz] = map_ycell2face_bot1[nz];
    }
 
    //for (int nz = 0; nz < ncells; nz++) {
@@ -12595,6 +12595,406 @@ void Mesh::calc_face_list_wbidirmap(void)
       int nl = nlft[nz];
       if (nl == nz) continue;
 
+      if (level[nl] < level[nz] && is_upper(j[nz]) && nbot[nz] != nz){
+         map_xcell2face_left1[nz] = map_xcell2face_right2[nl];
+      } else {
+         map_xcell2face_left1[nz] = map_xcell2face_right1[nl];
+
+         //the left is a real cell, but I am right boundary
+         if (nz == nrht[nz])
+             map_xcell2face_right1[nz] = map_xcell2face_left1[nz];
+
+         if (level[nl] > level[nz]){
+            map_xcell2face_left2[nz] = map_xcell2face_right1[ntop[nl]];
+         }
+      }
+
+   }
+
+   cpu_timers[MESH_TIMER_BIDIRPART3] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
+   map_yface2cell_lower.clear();
+   map_yface2cell_upper.clear();
+
+   map_ycell2face_bot1.clear();
+   map_ycell2face_bot2.clear();
+   map_ycell2face_top1.clear();
+   map_ycell2face_top2.clear();
+   map_ycell2face_bot1.resize(ncells, -1);
+   map_ycell2face_bot2.resize(ncells, -1);
+   map_ycell2face_top1.resize(ncells, -1);
+   map_ycell2face_top2.resize(ncells, -1);
+
+   yface_i.clear();
+   yface_j.clear();
+   yface_level.clear();
+
+   iymin_level.clear();
+   iymax_level.clear();
+   jymin_level.clear();
+   jymax_level.clear();
+   iymin_level.resize(levmx+1,  9999999);
+   iymax_level.resize(levmx+1, -9999999);
+   jymin_level.resize(levmx+1,  9999999);
+   jymax_level.resize(levmx+1, -9999999);
+
+   iyadjust.clear();
+   iyadjust.resize(levmx+1);
+   jyadjust.clear();
+   jyadjust.resize(levmx+1);
+
+   cpu_timers[MESH_TIMER_BIDIRPART4] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
+   iface=0;
+   for (int nz=0; nz<(int)ncells; nz++){
+      int nt = ntop[nz];
+      if (nt == nz) continue;
+
+      int ifactor = 1;
+      if (level[nt] < level[nz]) ifactor = 2;
+
+      // Have top face
+      // printf("DEBUG -- iface %d lower nz %d upper nr %d\n",iface,nz,nt);
+      map_yface2cell_lower.push_back(nz);
+      map_yface2cell_upper.push_back(nt);
+      yface_level.push_back(MAX(level[nz],level[nt]));
+      yface_j.push_back(j[nt]*ifactor);
+      if (level[nt] < level[nz] && is_upper(i[nz]) ) {
+         yface_i.push_back(i[nt]*ifactor+1);
+      } else{
+         yface_i.push_back(i[nt]*ifactor);
+      }
+      map_ycell2face_top1[nz] = iface;
+
+      //the top is a real cell, but I am bot boundary
+      if (nz == nbot[nz])
+          map_ycell2face_bot1[nz] = iface;
+
+      iface++;
+
+      if (level[nt] > level[nz]  && is_lower(i[nt]) ){
+         int nrt = nrht[nt];
+         if (nrt != nt) {
+            map_yface2cell_lower.push_back(nz);
+            map_yface2cell_upper.push_back(nrt);
+            yface_level.push_back(MAX(level[nz],level[nrt]));
+            yface_j.push_back(j[nrt]*ifactor);
+            yface_i.push_back(i[nrt]*ifactor);
+            map_ycell2face_top2[nz] = iface;
+
+            iface++;
+         }
+      }
+   }
+   nyface=iface;
+
+   cpu_timers[MESH_TIMER_BIDIRPART5] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
+   for (int nz=0; nz<(int)ncells; nz++){
+      int nb = nbot[nz];
+      if (nb == nz) continue;
+
+      if (level[nb] < level[nz] && is_upper(i[nz]) && nlft[nz] != nz){
+         map_ycell2face_bot1[nz] = map_ycell2face_top2[nb];
+      } else {
+         map_ycell2face_bot1[nz] = map_ycell2face_top1[nb];
+
+         //the bot is a real cell, but I am top boundary
+         if (nz == ntop[nz])
+             map_ycell2face_top1[nz] = map_ycell2face_bot1[nz];
+
+         if (level[nb] > level[nz]){
+            map_ycell2face_bot2[nz] = map_ycell2face_top1[nrht[nb]];
+         }
+      }
+
+   }
+
+   cpu_timers[MESH_TIMER_BIDIRPART6] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
+   for (int iface=0; iface < nxface; iface++){
+      uchar_t fl = xface_level[iface];
+
+      int fi = xface_i[iface];
+      if (fi < ixmin_level[fl]) ixmin_level[fl] = fi;
+      if (fi > ixmax_level[fl]) ixmax_level[fl] = fi;
+
+      int fj = xface_j[iface];
+      if (fj < jxmin_level[fl]) jxmin_level[fl] = fj;
+      if (fj > jxmax_level[fl]) jxmax_level[fl] = fj;
+   }
+
+   cpu_timers[MESH_TIMER_BIDIRPART7] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
+   for (int iface=0; iface < nxface; iface++){
+      uchar_t fl = xface_level[iface];
+      if (ixmax_level[fl] < ixmin_level[fl]) continue;
+
+      xface_i[iface] -= ixmin_level[fl];
+      xface_j[iface] -= jxmin_level[fl];
+   }
+
+   cpu_timers[MESH_TIMER_BIDIRPART8] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
+   for (int fl = 0; fl <= levmx; fl++){
+      ixadjust[fl] = ixmin_level[fl];
+      jxadjust[fl] = jxmin_level[fl];
+      ixmax_level[fl] -= ixmin_level[fl];;
+      jxmax_level[fl] -= jxmin_level[fl];
+      ixmin_level[fl] = 0;
+      jxmin_level[fl] = 0;
+   }
+
+   cpu_timers[MESH_TIMER_BIDIRPART9] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
+   for (int iface=0; iface < nyface; iface++){
+      uchar_t fl = yface_level[iface];
+
+      int fi = yface_i[iface];
+      if (fi < iymin_level[fl]) iymin_level[fl] = fi;
+      if (fi > iymax_level[fl]) iymax_level[fl] = fi;
+
+      int fj = yface_j[iface];
+      if (fj < jymin_level[fl]) jymin_level[fl] = fj;
+      if (fj > jymax_level[fl]) jymax_level[fl] = fj;
+   }
+
+   cpu_timers[MESH_TIMER_BIDIRPART10] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
+   for (int iface=0; iface < nyface; iface++){
+      uchar_t fl = yface_level[iface];
+      if (iymax_level[fl] < iymin_level[fl]) continue;
+
+      yface_i[iface] -= iymin_level[fl];
+      yface_j[iface] -= jymin_level[fl];
+   }
+
+   for (int fl = 0; fl <= levmx; fl++){
+      iyadjust[fl] = iymin_level[fl];
+      jyadjust[fl] = jymin_level[fl];
+      iymax_level[fl] -= iymin_level[fl];;
+      jymax_level[fl] -= jymin_level[fl];
+      iymin_level[fl] = 0;
+      jymin_level[fl] = 0;
+   }
+
+   cpu_timers[MESH_TIMER_BIDIRPART11] += cpu_timer_stop(tstart_cpu_part);
+
+#ifdef PATTERN_CHECK
+   for (int ii=0; ii<255; ii++){
+       xcase_count[ii]=0;
+       sprintf(xcase_descrip[ii],"\0");
+   }
+   int bitsize = 4;
+
+   xcase = (int *)malloc(nxface*sizeof(int));
+   for (int iface = 0; iface < nxface; iface++){
+      xcase[iface]=-1;
+      int nl = map_xface2cell_lower[iface];
+      int nll = nlft[nl];
+      int nr = map_xface2cell_upper[iface];
+      int nrr = nrht[nr];
+      uchar_t ll = level[nl];
+      uchar_t lll = level[nll];
+      uchar_t lr = level[nr];
+      uchar_t lrr = level[nrr];
+
+      int imin = MIN4(lll,ll,lr,lrr);
+      ll  -= imin;
+      lll -= imin;
+      lr  -= imin;
+      lrr -= imin;
+      char binlevstring[6];
+      sprintf(binlevstring,"%1d%1d%1d%1db\0",ll,lr,lll,lrr);
+      xcase[iface]=strtol(binlevstring,NULL,bitsize);
+      sprintf(xcase_descrip[xcase[iface]],"   %s     %d     %d   %d     %d\0",binlevstring,lll,ll,lr,lrr);
+      xcase_count[xcase[iface]]++;
+      printf("%d %s %d %d %d %d %d\n",iface,binlevstring,lll,ll,lr,lrr,xcase[iface]);
+   }
+
+   for (int ll = 0; ll < 4; ll++){
+      for (int lll = 0; lll < 4; lll++){
+         for (int lr = 0; lr < 4; lr++){
+            for (int lrr = 0; lrr < 4; lrr++){
+               char binlevstring[6];
+               sprintf(binlevstring,"%1d%1d%1d%1db\0",ll,lr,lll,lrr);
+               int icase=strtol(binlevstring,NULL,bitsize);
+               switch (icase) {
+                   case 0 :
+                   case 1 :
+                   case 4 :
+                   case 5 :
+                   case 17 :
+                   case 18 :
+                   case 68 :
+                   case 72 :
+                   case 81 :
+                   case 82 :
+                   case 84 :
+                   case 88 :
+                   case 98 :
+                   case 99 :
+		   case 152 :
+		   case 156 :
+                      sprintf(xcase_descrip[icase],"   %s     %d     %d   %d     %d\0",binlevstring,lll,ll,lr,lrr);
+                      break;
+                   default: 
+                      //printf("   %s     %d     %d   %d     %d\n",binlevstring,lll,ll,lr,lrr);
+                      //printf("Face %d does not fit a case\n",iface);
+                      break;
+               }
+            }
+         }
+      }
+   }
+
+   printf("          l,r,ll,rr        levels\n");
+   printf("case count bincode lft-lft lft rht rht-rht\n");
+   for (int ii=0; ii<256; ii++){
+      if (xcase_count[ii] > 0 || strlen(xcase_descrip[ii]) > 1) {
+         printf(" %3d %3d %s\n",ii,xcase_count[ii],xcase_descrip[ii]);
+      }
+   }
+
+   // Check to see if we missed any cases
+   for (int iface = 0; iface < nxface; iface++){
+      switch (xcase[iface]) {
+          case 0 :
+          case 1 :
+          case 4 :
+          case 5 :
+          case 17 :
+          case 18 :
+          case 68 :
+          case 72 :
+          case 81 :
+          case 82 :
+          case 84 :
+          case 88 :
+          case 98 :
+          case 99 :
+	  case 152 :
+	  case 156 :
+             break;
+          default : 
+             printf("Face %d does not fit a case\n",iface);
+             break;
+      }
+   }
+#endif
+
+   cpu_timers[MESH_TIMER_BIDIR] += cpu_timer_stop(tstart_cpu);
+}
+
+#ifdef NOVEC
+void Mesh::calc_face_list_wbidirmap_novec(void) {
+   struct timeval tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
+   struct timeval tstart_cpu_part;
+   cpu_timer_start(&tstart_cpu_part);
+
+   //map_xface2cell_lower.clear();
+   //map_xface2cell_upper.clear();
+   cl_map_xface2cell_lower = (int *) realloc(ncells * sizeof(int));
+   cl_map_xface2cell_upper = (int *) realloc(ncells * sizeof(int));
+   cl_map_xcell2face_left1 = (int *) realloc(ncells * sizeof(int));
+   cl_map_xcell2face_left2 = (int *) realloc(ncells * sizeof(int));
+   cl_map_xcell2face_right1 = (int *) realloc(ncells * sizeof(int));
+   cl_map_xcell2face_right2 = (int *) realloc(ncells * sizeof(int));
+   cl_map_xcell2face_bot1 = (int *) realloc(ncells * sizeof(int));
+   cl_map_xcell2face_bot2 = (int *) realloc(ncells * sizeof(int));
+   cl_map_xcell2face_top1 = (int *) realloc(ncells * sizeof(int));
+   cl_map_xcell2face_top2 = (int *) realloc(ncells * sizeof(int));
+
+   //map_xcell2face_left1.clear();
+   //map_xcell2face_left2.clear();
+   //map_xcell2face_right1.clear();
+   //map_xcell2face_right2.clear();
+   //map_xcell2face_left1.resize(ncells, -1);
+   //map_xcell2face_left2.resize(ncells, -1);
+   //map_xcell2face_right1.resize(ncells, -1);
+   //map_xcell2face_right2.resize(ncells, -1);
+
+   //xface_i.clear();
+   //xface_j.clear();
+   //xface_level.clear();
+
+   //ixmin_level.clear();
+   //ixmax_level.clear();
+   //jxmin_level.clear();
+   //jxmax_level.clear();
+   //ixmin_level.resize(levmx+1,  9999999);
+   //ixmax_level.resize(levmx+1, -9999999);
+   //jxmin_level.resize(levmx+1,  9999999);
+   //jxmax_level.resize(levmx+1, -9999999);
+
+   //ixadjust.clear();
+   //ixadjust.resize(levmx+1);
+   //jxadjust.clear();
+   //jxadjust.resize(levmx+1);
+
+   cpu_timers[MESH_TIMER_BIDIRPART1] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+    printf("\nyeet\n");
+
+   int iface=0;
+   for (int nz=0; nz<(int)ncells; nz++){
+      int nr = nrht[nz];
+      if (nr == nz) continue;
+
+      int ifactor = 1;
+      if (level[nr] < level[nz]) ifactor = 2;
+
+      // Have right face
+      map_xface2cell_lower.push_back(nz);
+      map_xface2cell_upper.push_back(nr);
+      xface_level.push_back(MAX(level[nz],level[nr]));
+      xface_i.push_back(i[nr]*ifactor);
+      if (level[nr] < level[nz] && is_upper(j[nz]) ) {
+         xface_j.push_back(j[nr]*ifactor+1);
+      } else {
+         xface_j.push_back(j[nr]*ifactor);
+      }
+      map_xcell2face_right1[nz] = iface;
+
+      //the right is a real cell, but I am left boundary
+      if (nz == nlft[nz])
+          map_xcell2face_left1[nz] = iface;
+
+      iface++;
+
+      if (level[nr] > level[nz] && is_lower(j[nr]) ){
+         int ntr = ntop[nr];
+         if (ntr != nr) {
+            map_xface2cell_lower.push_back(nz);
+            map_xface2cell_upper.push_back(ntr);
+            xface_level.push_back(MAX(level[nz],level[ntr]));
+            xface_i.push_back(i[ntr]*ifactor);
+            xface_j.push_back(j[ntr]*ifactor);
+            map_xcell2face_right2[nz] = iface;
+
+            iface++;
+         }
+      }
+   }
+   nxface=iface;
+
+   cpu_timers[MESH_TIMER_BIDIRPART2] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
+   for (int nz=0; nz<(int)ncells; nz++){
+      int nl = nlft[nz];
+      if (nl == nz) continue;
+
       if (level[nl] < level[nz] && is_upper(j[nz])){
          map_xcell2face_left1[nz] = map_xcell2face_right2[nl];
       } else {
@@ -12893,30 +13293,14 @@ void Mesh::calc_face_list_wbidirmap(void)
 
    cpu_timers[MESH_TIMER_BIDIR] += cpu_timer_stop(tstart_cpu);
 }
+#endif
 
 #ifdef HAVE_OPENCL
 void Mesh::gpu_wbidirmap_setup(void)
 {
-    size_t mem_request;
-    cl_mem dev_xface_level;
-    cl_mem dev_xface_i;
-    cl_mem dev_xface_j;
-    cl_mem dev_ixmin_level;
-    cl_mem dev_ixmax_level;
-    cl_mem dev_jxmin_level;
-    cl_mem dev_jxmax_level;
-    cl_mem dev_yface_level;
-    cl_mem dev_yface_i;
-    cl_mem dev_yface_j;
-    cl_mem dev_iymin_level;
-    cl_mem dev_iymax_level;
-    cl_mem dev_jymin_level;
-    cl_mem dev_jymax_level;
-    dev_level = ezcl_malloc(NULL, const_cast<char *>("dev_level"), &mem_request, sizeof(cl_uchar_t), CL_MEM_READ_WRITE, 0);
-    dev_nlft = ezcl_malloc(NULL, const_cast<char *>("dev_nlft"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-    dev_nrht = ezcl_malloc(NULL, const_cast<char *>("dev_nrht"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-    dev_nbot = ezcl_malloc(NULL, const_cast<char *>("dev_nbot"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-    dev_ntop = ezcl_malloc(NULL, const_cast<char *>("dev_ntop"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    size_t mem_request = ncells * 2;
+    size_t mem_faces = 2;
+    dev_nface = ezcl_malloc(NULL, const_cast<char *>("dev_nface"), &mem_faces, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_map_xface2cell_lower = ezcl_malloc(NULL, const_cast<char *>("dev_map_xface2cell_lower"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_map_xface2cell_upper = ezcl_malloc(NULL, const_cast<char *>("dev_map_xface2cell_upper"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_map_xcell2face_left1 = ezcl_malloc(NULL, const_cast<char *>("dev_map_xcell2face_left1"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -12943,8 +13327,41 @@ void Mesh::gpu_wbidirmap_setup(void)
     dev_iymax_level = ezcl_malloc(NULL, const_cast<char *>("dev_iymax_level"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_jymin_level = ezcl_malloc(NULL, const_cast<char *>("dev_jymin_level"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_jymax_level = ezcl_malloc(NULL, const_cast<char *>("dev_jymax_level"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-    
+    dev_xfaceIdxList = ezcl_malloc(NULL, const_cast<char *>("dev_xfaceIdxList"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_yfaceIdxList = ezcl_malloc(NULL, const_cast<char *>("dev_yfaceIdxList"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+}
 
+void Mesh::gpu_wbidirmap_delete(void)
+{
+   ezcl_device_memory_delete(dev_nface);
+   ezcl_device_memory_delete(dev_map_xface2cell_lower);
+   ezcl_device_memory_delete(dev_map_xface2cell_upper);
+   ezcl_device_memory_delete(dev_map_yface2cell_lower);
+   ezcl_device_memory_delete(dev_map_yface2cell_upper);
+   ezcl_device_memory_delete(dev_map_xcell2face_left1);
+   ezcl_device_memory_delete(dev_map_xcell2face_left2);
+   ezcl_device_memory_delete(dev_map_xcell2face_right1);
+   ezcl_device_memory_delete(dev_map_xcell2face_right2);
+   ezcl_device_memory_delete(dev_map_ycell2face_bot1);
+   ezcl_device_memory_delete(dev_map_ycell2face_bot2);
+   ezcl_device_memory_delete(dev_map_ycell2face_top1);
+   ezcl_device_memory_delete(dev_map_ycell2face_top2);
+   ezcl_device_memory_delete(dev_xface_level);
+   ezcl_device_memory_delete(dev_xface_i);
+   ezcl_device_memory_delete(dev_xface_j);
+   ezcl_device_memory_delete(dev_ixmin_level);
+   ezcl_device_memory_delete(dev_ixmax_level);
+   ezcl_device_memory_delete(dev_jxmin_level);
+   ezcl_device_memory_delete(dev_jxmax_level);
+   ezcl_device_memory_delete(dev_yface_level);
+   ezcl_device_memory_delete(dev_yface_i);
+   ezcl_device_memory_delete(dev_yface_j);
+   ezcl_device_memory_delete(dev_iymin_level);
+   ezcl_device_memory_delete(dev_iymax_level);
+   ezcl_device_memory_delete(dev_jymin_level);
+   ezcl_device_memory_delete(dev_jymax_level);
+   ezcl_device_memory_delete(dev_xfaceIdxList);
+   ezcl_device_memory_delete(dev_yfaceIdxList);
 }
 
 void Mesh::gpu_calc_face_list_wbidirmap(void)
@@ -12954,8 +13371,6 @@ void Mesh::gpu_calc_face_list_wbidirmap(void)
     
     cl_command_queue command_queue = ezcl_get_command_queue();
 
-    gpu_wbidirmap_setup();
- 
     assert(dev_nlft);
     assert(dev_nrht);
     assert(dev_nbot);
@@ -12976,111 +13391,248 @@ void Mesh::gpu_calc_face_list_wbidirmap(void)
     assert(dev_map_ycell2face_top1);
     assert(dev_map_ycell2face_top2);
 
-    size_t local_work_size = 128;
-    size_t global_work_size = (ncells + nyface + nxface - 1);
+    //size_t local_work_size  = MIN(ncells, TILE_SIZE);
+    size_t local_work_size  = ncells;
+    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
 
     //need to get faces starting indexes
-    int *xfaceIdxList = (int *)malloc(100*sizeof(int));
-    int *yfaceIdxList = (int *)malloc(100*sizeof(int));
+    /*int *loc_nrht = (int *)malloc(ncells*sizeof(int));
+    int *loc_ntop = (int *)malloc(ncells*sizeof(int));
+    int *loc_level = (int *)malloc(ncells*sizeof(int));
+    int *xfaceIdxList = (int *)malloc(ncells*sizeof(int));
+    int *yfaceIdxList = (int *)malloc(ncells*sizeof(int));
+    */
+
+    //clEnqueueReadBuffer(command_queue, dev_nrht, CL_TRUE, 0, ncells, loc_nrht, 0, NULL, NULL );
+
+    /*int ccc, nxfaceCnt = 0, nyfaceCnt = 0;
     xfaceIdxList[0] = 0;
     yfaceIdxList[0] = 0;
-    for (int ccc = 0; ccc < (int) ncells - 1; ccc++) {
+    for (ccc = 0; ccc < (int) ncells - 1; ccc++) {
         int xfaceSt = xfaceIdxList[ccc], yfaceSt = yfaceIdxList[ccc];
-        xfaceSt++;
-        nxface++;
-        yfaceSt++;
-        nyface++;
+        printf("%d) %d %d\n", ccc, xfaceSt, yfaceSt);
+        if (nrht[ccc] != ccc) {
+            xfaceSt++;
+            nxfaceCnt++;
+        }
+        if (ntop[ccc] != ccc) {
+            yfaceSt++;
+            nyfaceCnt++;
+        }
+        printf("\t%d with level %d -> %d with level %d\n", ccc, level[ccc], nrht[ccc], level[nrht[ccc]]);
         if (level[nrht[ccc]] > level[ccc]) {
             xfaceSt++; 
-            nxface++;
+            nxfaceCnt++;
         }
         if (level[ntop[ccc]] > level[ccc]) {
             yfaceSt++;
-            nyface++;
+            nyfaceCnt++;
         }
         xfaceIdxList[ccc+1] = xfaceSt;
         yfaceIdxList[ccc+1] = yfaceSt;
     }
+    if (level[nrht[ccc]] > level[ccc])
+        nxfaceCnt++;
+    if (level[ntop[ccc]] > level[ccc])
+        nyfaceCnt++;
+    nxface = nxfaceCnt;
+    nyface = nyfaceCnt;
+    printf("OG face count %d %d\n", nxface, nyface);
+    //may not be 100% necessary but just in case, new variables
+    //for the scalar variables for the gpu
+    int dev_nxface = nxface;
+    int dev_nyface = nyface;*/
+    //int dev_nxface = 54;
+    //int dev_nyface = 54;
 
-/*__kernel void calc_face_list_wbidirmap(
-                        const int       ncells,                 // 0
-                        const int       nxfaces,                // 1
-                        const int       nyfaces,                // 2
-                        const int       levmx,                  // 3
-            __global          uchar_t *level,                     // 4
-            __global          int   *nlft,                      // 5
-            __global          int   *nrht,                      // 6
-            __global          int   *nbot,                      // 7
-            __global          int   *ntop,                      // 8
-            __global          int   *map_xface2cell_lower,      // 9
-            __global          int   *map_xface2cell_upper,      // 10
-            __global          int   *map_xcell2face_left1,      // 11
-            __global          int   *map_xcell2face_left2,      // 12
-            __global          int   *map_xcell2face_right1,     // 13
-            __global          int   *map_xcell2face_right2,     // 14
-            __global          uchar_t *xface_level,               // 15
-            __global          int   *xface_i,                   // 16
-            __global          int   *xface_j,                   // 17
-            __global          int   *ixmin_level,               // 18
-            __global          int   *ixmax_level,               // 19
-            __global          int   *jxmin_level,               // 20
-            __global          int   *jxmax_level,               // 21
-            __global          int   *map_yface2cell_lower,      // 22
-            __global          int   *map_yface2cell_upper,      // 23
-            __global          int   *map_ycell2face_bot1,       // 24
-            __global          int   *map_ycell2face_bot2,       // 25
-            __global          int   *map_ycell2face_top1,       // 26
-            __global          int   *map_ycell2face_top2,       // 27
-            __global          uchar_t *yface_level,               // 28
-            __global          int   *yface_i,                   // 29
-            __global          int   *yface_j,                   // 30
-            __global          int   *iymin_level,               // 31
-            __global          int   *iymax_level,               // 32
-            __global          int   *jymin_level,               // 33
-            __global          int   *jymax_level) {             // 34*/
+/*
+__kernel void face_idx_wbidirmap_cl(
+            __global          int   *level,                     // 0
+            __global          int   *nlft,                      // 1
+            __global          int   *nrht,                      // 2
+            __global          int   *nbot,                      // 3
+            __global          int   *ntop,                      // 4
+            __global          int   *xfaceIdxList,              // 5
+            __global          int   *yfaceIdxList,              // 6
+                              int   ncells,                     // 7
+            __global          int   *nface) {                   // 8
+*/
+
+    cl_event face_idx_event;
+    ezcl_set_kernel_arg(kernel_face_idx_wbidirmap, 0, sizeof(cl_mem), (void *)&dev_level);
+    ezcl_set_kernel_arg(kernel_face_idx_wbidirmap, 1, sizeof(cl_mem), (void *)&dev_nlft);
+    ezcl_set_kernel_arg(kernel_face_idx_wbidirmap, 2, sizeof(cl_mem), (void *)&dev_nrht);
+    ezcl_set_kernel_arg(kernel_face_idx_wbidirmap, 3, sizeof(cl_mem), (void *)&dev_nbot);
+    ezcl_set_kernel_arg(kernel_face_idx_wbidirmap, 4, sizeof(cl_mem), (void *)&dev_ntop);
+    ezcl_set_kernel_arg(kernel_face_idx_wbidirmap, 5, sizeof(cl_mem), (void *)&dev_xfaceIdxList);
+    ezcl_set_kernel_arg(kernel_face_idx_wbidirmap, 6, sizeof(cl_mem), (void *)&dev_yfaceIdxList);
+    ezcl_set_kernel_arg(kernel_face_idx_wbidirmap, 7, sizeof(cl_int), (void *)&ncells);
+    ezcl_set_kernel_arg(kernel_face_idx_wbidirmap, 8, sizeof(cl_mem), (void *)&dev_nface);
+    size_t single_work = 1;
+    
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_face_idx_wbidirmap, 1, NULL, &single_work, &single_work, &face_idx_event);
+
+    ezcl_wait_for_events(1, &face_idx_event);
+    ezcl_event_release(face_idx_event);
+
+/*
+__kernel void calc_face_list_wbidirmap_pt1_cl(
+                        const int   ncells,                     // 0
+            __global          int   *nface,                     // 1
+                        const int   levmx,                      // 2
+            __global          int   *level,                     // 3
+            __global          int   *nlft,                      // 4
+            __global          int   *nrht,                      // 5
+            __global          int   *nbot,                      // 6
+            __global          int   *ntop,                      // 7
+            __global          int   *map_xface2cell_lower,      // 8
+            __global          int   *map_xface2cell_upper,      // 9
+            __global          int   *map_xcell2face_left1,      // 10
+            __global          int   *map_xcell2face_left2,      // 11
+            __global          int   *map_xcell2face_right1,     // 12
+            __global          int   *map_xcell2face_right2,     // 13
+            __global          int   *xface_level,               // 14
+            __global          int   *xface_i,                   // 15
+            __global          int   *xface_j,                   // 16
+            __global          int   *ixmin_level,               // 17
+            __global          int   *ixmax_level,               // 18
+            __global          int   *jxmin_level,               // 19
+            __global          int   *jxmax_level,               // 20
+            __global          int   *map_yface2cell_lower,      // 21
+            __global          int   *map_yface2cell_upper,      // 22
+            __global          int   *map_ycell2face_bot1,       // 23
+            __global          int   *map_ycell2face_bot2,       // 24
+            __global          int   *map_ycell2face_top1,       // 25
+            __global          int   *map_ycell2face_top2,       // 26
+            __global          int   *yface_level,               // 27
+            __global          int   *yface_i,                   // 28
+            __global          int   *yface_j,                   // 29
+            __global          int   *iymin_level,               // 30
+            __global          int   *iymax_level,               // 31
+            __global          int   *jymin_level,               // 32
+            __global          int   *jymax_level,               // 33
+            __global          int   *xfaceIdxList,              // 34
+            __global          int   *yfaceIdxList,              // 35
+            __global    const int   *i,                         // 36
+            __global    const int   *j) {                       // 37
+            */
 
 
-    cl_event calc_face_list_wbidirmap_event;
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 0, sizeof(cl_int), (void *)&ncells);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 1, sizeof(cl_int), (void *)&nxface);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 2, sizeof(cl_int), (void *)&nyface);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 3, sizeof(cl_int), (void *)&levmx);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 4, sizeof(cl_uchar_t), (void *)&level);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 5, sizeof(cl_int), (void *)&nlft);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 6, sizeof(cl_int), (void *)&nrht);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 7, sizeof(cl_int), (void *)&nbot);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 8, sizeof(cl_int), (void *)&ntop);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 9, sizeof(cl_int), (void *)&map_xface2cell_lower);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 10, sizeof(cl_int), (void *)&map_xface2cell_upper);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 11, sizeof(cl_int), (void *)&map_xcell2face_left1);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 12, sizeof(cl_int), (void *)&map_xcell2face_left2);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 13, sizeof(cl_int), (void *)&map_xcell2face_right1);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 14, sizeof(cl_int), (void *)&map_xcell2face_right2);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 15, sizeof(cl_uchar_t), (void *)&xface_level);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 16, sizeof(cl_int), (void *)&xface_i);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 17, sizeof(cl_int), (void *)&xface_j);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 18, sizeof(cl_int), (void *)&ixmin_level);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 19, sizeof(cl_int), (void *)&ixmax_level);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 20, sizeof(cl_int), (void *)&jxmin_level);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 21, sizeof(cl_int), (void *)&jxmax_level);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 22, sizeof(cl_int), (void *)&map_yface2cell_lower);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 23, sizeof(cl_int), (void *)&map_yface2cell_upper);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 24, sizeof(cl_int), (void *)&map_ycell2face_bot1);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 25, sizeof(cl_int), (void *)&map_ycell2face_bot2);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 26, sizeof(cl_int), (void *)&map_ycell2face_top1);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 27, sizeof(cl_int), (void *)&map_ycell2face_top2);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 28, sizeof(cl_uchar_t), (void *)&yface_level);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 29, sizeof(cl_int), (void *)&yface_i);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 30, sizeof(cl_int), (void *)&yface_j);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 31, sizeof(cl_int), (void *)&iymin_level);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 32, sizeof(cl_int), (void *)&iymax_level);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 33, sizeof(cl_int), (void *)&jymin_level);
-    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap, 34, sizeof(cl_int), (void *)&jymax_level);
+    cl_event calc_face_list_wbidirmap_event1, calc_face_list_wbidirmap_event2;
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 0, sizeof(cl_int), (void *)&ncells);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 1, sizeof(cl_mem), (void *)&dev_nface);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 2, sizeof(cl_int), (void *)&levmx);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 3, sizeof(cl_mem), (void *)&dev_level);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 4, sizeof(cl_mem), (void *)&dev_nlft);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 5, sizeof(cl_mem), (void *)&dev_nrht);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 6, sizeof(cl_mem), (void *)&dev_nbot);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 7, sizeof(cl_mem), (void *)&dev_ntop);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 8, sizeof(cl_mem), (void *)&dev_map_xface2cell_lower);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 9, sizeof(cl_mem), (void *)&dev_map_xface2cell_upper);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 10, sizeof(cl_mem), (void *)&dev_map_xcell2face_left1);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 11, sizeof(cl_mem), (void *)&dev_map_xcell2face_left2);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 12, sizeof(cl_mem), (void *)&dev_map_xcell2face_right1);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 13, sizeof(cl_mem), (void *)&dev_map_xcell2face_right2);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 14, sizeof(cl_mem), (void *)&dev_xface_level);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 15, sizeof(cl_mem), (void *)&dev_xface_i);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 16, sizeof(cl_mem), (void *)&dev_xface_j);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 17, sizeof(cl_mem), (void *)&dev_ixmin_level);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 18, sizeof(cl_mem), (void *)&dev_ixmax_level);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 19, sizeof(cl_mem), (void *)&dev_jxmin_level);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 20, sizeof(cl_mem), (void *)&dev_jxmax_level);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 21, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 22, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 23, sizeof(cl_mem), (void *)&dev_map_ycell2face_bot1);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 24, sizeof(cl_mem), (void *)&dev_map_ycell2face_bot2);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 25, sizeof(cl_mem), (void *)&dev_map_ycell2face_top1);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 26, sizeof(cl_mem), (void *)&dev_map_ycell2face_top2);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 27, sizeof(cl_mem), (void *)&dev_yface_level);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 28, sizeof(cl_mem), (void *)&dev_yface_i);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 29, sizeof(cl_mem), (void *)&dev_yface_j);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 30, sizeof(cl_mem), (void *)&dev_iymin_level);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 31, sizeof(cl_mem), (void *)&dev_iymax_level);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 32, sizeof(cl_mem), (void *)&dev_jymin_level);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 33, sizeof(cl_mem), (void *)&dev_jymax_level);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 34, sizeof(cl_mem), (void *)&dev_xfaceIdxList);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 35, sizeof(cl_mem), (void *)&dev_yfaceIdxList);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 36, sizeof(cl_mem), (void *)&dev_i);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 37, sizeof(cl_mem), (void *)&dev_j);
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap, 1, NULL, &global_work_size, &local_work_size, &calc_face_list_wbidirmap_event);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt1, 1, NULL, &global_work_size, &local_work_size, &calc_face_list_wbidirmap_event1);
 
-    ezcl_wait_for_events(1, &calc_face_list_wbidirmap_event);
-    ezcl_event_release(calc_face_list_wbidirmap_event);
+    ezcl_wait_for_events(1, &calc_face_list_wbidirmap_event1);
+    ezcl_event_release(calc_face_list_wbidirmap_event1);
+
+    /*
+__kernel void calc_face_list_wbidirmap_pt2_cl(
+                        const int   ncells,                     // 0
+            __global          int   *level,                     // 1
+            __global          int   *nlft,                      // 2
+            __global          int   *nrht,                      // 3
+            __global          int   *nbot,                      // 4
+            __global          int   *ntop,                      // 5
+            __global          int   *map_xcell2face_left1,      // 6
+            __global          int   *map_xcell2face_left2,      // 7
+            __global          int   *map_xcell2face_right1,     // 8
+            __global          int   *map_xcell2face_right2,     // 9
+            __global          int   *map_ycell2face_bot1,       // 10
+            __global          int   *map_ycell2face_bot2,       // 11
+            __global          int   *map_ycell2face_top1,       // 12
+            __global          int   *map_ycell2face_top2,       // 13
+            __global    const int   *i,                         // 14
+            __global    const int   *j) {                       // 15
+    */
+
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 0, sizeof(cl_int), (void *)&ncells);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 1, sizeof(cl_mem), (void *)&dev_level);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 2, sizeof(cl_mem), (void *)&dev_nlft);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 3, sizeof(cl_mem), (void *)&dev_nrht);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 4, sizeof(cl_mem), (void *)&dev_nbot);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 5, sizeof(cl_mem), (void *)&dev_ntop);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 6, sizeof(cl_mem), (void *)&dev_map_xcell2face_left1);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 7, sizeof(cl_mem), (void *)&dev_map_xcell2face_left2);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 8, sizeof(cl_mem), (void *)&dev_map_xcell2face_right1);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 9, sizeof(cl_mem), (void *)&dev_map_xcell2face_right2);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 10, sizeof(cl_mem), (void *)&dev_map_ycell2face_bot1);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 11, sizeof(cl_mem), (void *)&dev_map_ycell2face_bot2);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 12, sizeof(cl_mem), (void *)&dev_map_ycell2face_top1);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 13, sizeof(cl_mem), (void *)&dev_map_ycell2face_top2);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 14, sizeof(cl_mem), (void *)&dev_i);
+    ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 15, sizeof(cl_mem), (void *)&dev_j);
+
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt2, 1, NULL, &global_work_size, &local_work_size, &calc_face_list_wbidirmap_event2);
+
+    ezcl_wait_for_events(1, &calc_face_list_wbidirmap_event2);
+    ezcl_event_release(calc_face_list_wbidirmap_event2);
+   /*
+   vector<int>map_xcell_tmp_l(ncells);
+   vector<int>map_xcell_tmp_r(ncells);
+   vector<int>map_ycell_tmp_b(ncells);
+   vector<int>map_ycell_tmp_t(ncells);
+   vector<int>l_tmp(ncells);
+   vector<int>r_tmp(ncells);
+   vector<int>b_tmp(ncells);
+   vector<int>t_tmp(ncells);
+   vector<int>facelistX(ncells);
+   vector<int>facelistY(ncells);
+   vector<int>faceIdx(ncells);
+   int nxface;
+   ezcl_enqueue_read_buffer(command_queue, dev_map_xcell2face_left1,     CL_TRUE, 0, ncells*sizeof(cl_int), &map_xcell_tmp_l[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_map_xcell2face_right1,     CL_TRUE, 0, ncells*sizeof(cl_int), &map_xcell_tmp_r[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_map_ycell2face_bot1,     CL_TRUE, 0, ncells*sizeof(cl_int), &map_ycell_tmp_b[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_map_ycell2face_top1,     CL_TRUE, 0, ncells*sizeof(cl_int), &map_ycell_tmp_t[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_nlft,     CL_TRUE, 0, ncells*sizeof(cl_int), &l_tmp[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_nrht,     CL_TRUE, 0, ncells*sizeof(cl_int), &r_tmp[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_nbot,     CL_TRUE, 0, ncells*sizeof(cl_int), &b_tmp[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_ntop,     CL_TRUE, 0, ncells*sizeof(cl_int), &t_tmp[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_xfaceIdxList,     CL_TRUE, 0, ncells*sizeof(cl_int), &facelistX[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_yfaceIdxList,     CL_TRUE, 0, ncells*sizeof(cl_int), &facelistY[0], NULL);
+   ezcl_enqueue_read_buffer(command_queue, dev_nface,     CL_TRUE, 0, sizeof(cl_int), &nxface, NULL);
+   printf("\n");
+   for (int jello = 0; jello < ncells; jello++) { printf("%d) %d %d %d %d\n", jello, map_xcell_tmp_l[jello], map_xcell_tmp_r[jello], map_ycell_tmp_b[jello], map_ycell_tmp_t[jello]); if (jello == 40) printf("\n|%d %d %d %d|\n", l_tmp[40], r_tmp[40], b_tmp[40], t_tmp[40]); }
+   //for (int jello = 0; jello < ncells; jello++) { printf("%d) %d %d\n", jello, facelistX[jello], facelistX[jello]); }
+   */
+    //gpu_wbidirmap_delete();
 
     //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 }

@@ -492,7 +492,24 @@ public:
                   dev_map_ycell2face_bot1,
                   dev_map_ycell2face_bot2,
                   dev_map_ycell2face_top1,
-                  dev_map_ycell2face_top2;
+                  dev_map_ycell2face_top2,
+                  dev_xface_level,
+                  dev_xface_i,
+                  dev_xface_j,
+                  dev_ixmin_level,
+                  dev_ixmax_level,
+                  dev_jxmin_level,
+                  dev_jxmax_level,
+                  dev_yface_level,
+                  dev_yface_i,
+                  dev_yface_j,
+                  dev_iymin_level,
+                  dev_iymax_level,
+                  dev_jymin_level,
+                  dev_jymax_level,
+                  dev_xfaceIdxList,
+                  dev_yfaceIdxList,
+                  dev_nface;    // single array for faces, 0 is X, 1 is Y
 
    cl_mem         dev_levdx,    // corresponds to lev_deltax
                   dev_levdy,    // corresponds to lev_deltay
@@ -706,6 +723,7 @@ public:
    void calc_face_list_wbidirmap(void);
 #ifdef HAVE_OPENCL
    void gpu_wbidirmap_setup(void);
+   void gpu_wbidirmap_delete(void);
 #endif
    virtual void interpolate(int, int, int, int, double, MallocPlus&);
    void calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double);
