@@ -870,7 +870,7 @@ cl_mem ezcl_device_memory_malloc_p(cl_context context, void *host_mem_ptr, const
 }
 
 cl_mem ezcl_device_memory_realloc_p(cl_mem dev_mem_ptr, size_t num_elements, const char *file, const int line){
-
+// function returns new memory pointer
    SLIST_FOREACH(device_memory_item, &device_memory_head, device_memory_entries){
       if (device_memory_item->cl_mem_ptr == dev_mem_ptr) {
 
@@ -881,7 +881,7 @@ cl_mem ezcl_device_memory_realloc_p(cl_mem dev_mem_ptr, size_t num_elements, con
                size_t size = EZCL_MEM_FACTOR*num_elements*device_memory_item->el_size;
                device_memory_item->capacity=EZCL_MEM_FACTOR*num_elements;
 
-               cl_mem dev_mem_ptr = clCreateBuffer(context, device_memory_item->flags, size, NULL, &ierr);
+               cl_mem dev_mem_ptr_new = clCreateBuffer(context, device_memory_item->flags, size, NULL, &ierr);
                if (ierr != CL_SUCCESS) {
                    /* Possible Errors
                     *  CL_INVALID_CONTEXT:
@@ -894,7 +894,7 @@ cl_mem ezcl_device_memory_realloc_p(cl_mem dev_mem_ptr, size_t num_elements, con
                   ezcl_print_error(ierr, "EZCL_DEVICE_MEMORY_REALLOC", "clCreateBuffer", file, line);
                }
 
-               device_memory_item->cl_mem_ptr = dev_mem_ptr;
+               device_memory_item->cl_mem_ptr = dev_mem_ptr_new;
                device_memory_item->num_elements=num_elements;
                device_memory_item->line=line;
                snprintf(device_memory_item->file,(size_t)40,"%s",file);
@@ -905,7 +905,8 @@ cl_mem ezcl_device_memory_realloc_p(cl_mem dev_mem_ptr, size_t num_elements, con
             int ierr=0;
             size_t size = num_elements*device_memory_item->el_size;
 
-            cl_mem dev_mem_ptr = clCreateBuffer(context, device_memory_item->flags, size, NULL, &ierr);
+          //printf("EZCL_DEVICE_MEMORY_REALLOC: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
+            cl_mem dev_mem_ptr_new = clCreateBuffer(context, device_memory_item->flags, size, NULL, &ierr);
             if (ierr != CL_SUCCESS) {
                 /* Possible Errors
                  *  CL_INVALID_CONTEXT:
@@ -917,11 +918,13 @@ cl_mem ezcl_device_memory_realloc_p(cl_mem dev_mem_ptr, size_t num_elements, con
                  */
                ezcl_print_error(ierr, "EZCL_DEVICE_MEMORY_REALLOC", "clCreateBuffer", file, line);
             }
-            device_memory_item->cl_mem_ptr = dev_mem_ptr;
+          //printf("EZCL_DEVICE_MEMORY_REALLOC: DEBUG -- new is %p\n",dev_mem_ptr);
+            device_memory_item->cl_mem_ptr = dev_mem_ptr_new;
             device_memory_item->num_elements=num_elements;
             device_memory_item->capacity=num_elements;
             device_memory_item->line=line;
             snprintf(device_memory_item->file,(size_t)40,"%s",file);
+            return(dev_mem_ptr_new);
          }
          if (DEBUG) printf("EZCL_DEVICE_MEMORY_REALLOC: DEBUG -- cl memory pointer is %p\n",dev_mem_ptr);
       }

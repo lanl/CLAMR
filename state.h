@@ -237,15 +237,35 @@ public:
    cl_mem dev_U;
    cl_mem dev_V;
    cl_mem dev_HxFlux;
+   cl_mem dev_Hxfluxplus;
+   cl_mem dev_Hxfluxminus;
    cl_mem dev_UxFlux;
+   cl_mem dev_Uxfluxplus;
+   cl_mem dev_Uxfluxminus;
    cl_mem dev_VxFlux;
+   cl_mem dev_Vxfluxplus;
+   cl_mem dev_Vxfluxminus;
    cl_mem dev_HyFlux;
+   cl_mem dev_Hyfluxplus;
+   cl_mem dev_Hyfluxminus;
    cl_mem dev_UyFlux;
+   cl_mem dev_Uyfluxplus;
+   cl_mem dev_Uyfluxminus;
    cl_mem dev_VyFlux;
+   cl_mem dev_Vyfluxplus;
+   cl_mem dev_Vyfluxminus;
    cl_mem dev_Wx_H;
+   cl_mem dev_Wplusx_H;
+   cl_mem dev_Wminusx_H;
    cl_mem dev_Wx_U;
+   cl_mem dev_Wplusx_U;
+   cl_mem dev_Wminusx_U;
    cl_mem dev_Wy_H;
+   cl_mem dev_Wplusy_H;
+   cl_mem dev_Wminusy_H;
    cl_mem dev_Wy_V;
+   cl_mem dev_Wplusy_V;
+   cl_mem dev_Wminusy_V;
 
    cl_mem dev_mass_sum;
    cl_mem dev_deltaT;
@@ -273,6 +293,7 @@ public:
    void resize(size_t ncells);
    void memory_reset_ptrs(void);
 #ifdef HAVE_OPENCL
+   void gpu_memory_reset_ptrs(void);
    void allocate_device_memory(size_t ncells);
 #endif
    void resize_old_device_memory(size_t ncells);
@@ -316,8 +337,11 @@ public:
    void calc_finite_difference_regular_cells(double deltaT);
    void calc_finite_difference_regular_cells_by_faces(double deltaT);
 #ifdef HAVE_OPENCL
+   //void gpu_faces_realloc(size_t mem_requestx, size_t mem_requesty);
    void gpu_faces_setup(size_t mem_requestx, size_t mem_requesty);
+   void gpu_faces_setup_phantom(size_t mem_requestx, size_t mem_requesty);
    void gpu_faces_delete(void);
+   void gpu_faces_delete_phantom(void);
    void gpu_calc_finite_difference(double deltaT);
    void gpu_calc_finite_difference_via_faces(double deltaT);
    void gpu_calc_finite_difference_in_place(double deltaT);

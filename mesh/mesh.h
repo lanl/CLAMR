@@ -471,6 +471,9 @@ public:
                      dz;         //!<  1D ordered index of mesh element z-coordinate spacings.
 
 #ifdef HAVE_OPENCL
+   int            pcellCnt,
+                  pxfaceCnt,
+                  pyfaceCnt;
    cl_mem         dev_ioffset;
 
    cl_mem         dev_celltype,       
@@ -509,6 +512,14 @@ public:
                   dev_jymax_level,
                   dev_xfaceIdxList,
                   dev_yfaceIdxList,
+                  dev_pxcellCnt,
+                  dev_pycellCnt,
+                  dev_pxfaceCnt,
+                  dev_pyfaceCnt,
+                  dev_pxcellIdx,
+                  dev_pycellIdx,
+                  dev_pxfaceIdx,
+                  dev_pyfaceIdx,
                   dev_nface;    // single array for faces, 0 is X, 1 is Y
 
    cl_mem         dev_levdx,    // corresponds to lev_deltax
@@ -721,10 +732,6 @@ public:
                   int     caseNum);
 
    void calc_face_list_wbidirmap(void);
-#ifdef HAVE_OPENCL
-   void gpu_wbidirmap_setup(void);
-   void gpu_wbidirmap_delete(void);
-#endif
    virtual void interpolate(int, int, int, int, double, MallocPlus&);
    void calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double);
    void calc_face_list_fill_phantom(MallocPlus &state_memory, double);
@@ -753,7 +760,13 @@ public:
 #ifdef HAVE_OPENCL
    void gpu_calc_neighbors(void);
    void gpu_calc_neighbors_local(void);
+   // For face and phantom cell methods
+   void gpu_wbidirmap_setup(void);
+   void gpu_wbidirmap_delete(void);
+   void gpu_wbidirmap_realloc(cl_mem *dev_mem_ptr, int old_size, size_t mem_request);
+   int gpu_serial_int_reduce(int *arr, int count, int length);
    void gpu_calc_face_list_wbidirmap(void);
+   void gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory);
 #endif
    //   TODO:  Not created yet; overloading for 3D mesh support. (davis68)
    void calc_neighbors(vector<int> &nlft,

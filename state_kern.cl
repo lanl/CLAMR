@@ -2044,6 +2044,355 @@ __kernel void calc_finite_difference_via_faces_cell_comps_cl (
                  - wminusy_V + wplusy_V;
 }
 
+__kernel void calc_finite_difference_in_place_cell_comps_cl (
+                        const int       ncells,                     // 0 Number of cells (not including phantom)
+            __global    const int       *nfaces,                    // 1 Number of x faces
+                        const int       levmx,                      // 2 Maximum level
+            __global    const state_t   *H,                         // 3
+            __global    const state_t   *U,                         // 4
+            __global    const state_t   *V,                         // 5
+            __global    const uchar_t   *level,                     // 6 Array of level information
+                        const real_t    deltaT,                     // 7 Size of time step
+            __global    const real_t    *lev_dx,                    // 8
+            __global    const real_t    *lev_dy,                    // 9
+            __local           state4_t  *tile,                      // 10 Tile size in state4_t
+            __local           int8      *itile,                     // 11 Tile size in int8
+            __local           int8      *xface,                     // 12 xFace size in int8
+            __local           int8      *yface,                     // 13 yFace size in int8 
+            __global    const int       *map_xface2cell_lower,      // 14 A face's left cell 
+            __global    const int       *map_xface2cell_upper,      // 15 A face's left cell 
+            __global    const int       *map_yface2cell_lower,      // 16 A face's below cell 
+            __global    const int       *map_yface2cell_upper,      // 17 A face's above cell 
+            __global    const int       *map_xcell2face_left1,      // 18 A cell's left primary face 
+            __global    const int       *map_xcell2face_right1,     // 19 A cell's right primary face 
+            __global    const int       *map_ycell2face_bot1,       // 20 A cell's bot primary face 
+            __global    const int       *map_ycell2face_top1,       // 21 A cell's top primary face 
+            __global          state_t   *Hxfluxplus,                // 22
+            __global          state_t   *Hxfluxminus,               // 23
+            __global          state_t   *Uxfluxplus,                // 24
+            __global          state_t   *Uxfluxminus,               // 25
+            __global          state_t   *Vxfluxplus,                // 26
+            __global          state_t   *Vxfluxminus,               // 27
+            __global          state_t   *Hyfluxplus,                // 28
+            __global          state_t   *Hyfluxminus,               // 29
+            __global          state_t   *Uyfluxplus,                // 30
+            __global          state_t   *Uyfluxminus,               // 31
+            __global          state_t   *Vyfluxplus,                // 32
+            __global          state_t   *Vyfluxminus,               // 33
+            __global          state_t   *wplusx_H,                  // 34
+            __global          state_t   *wminusx_H,                 // 35
+            __global          state_t   *wplusx_U,                  // 36
+            __global          state_t   *wminusx_U,                 // 37
+            __global          state_t   *wplusy_H,                  // 38
+            __global          state_t   *wminusy_H,                 // 39
+            __global          state_t   *wplusy_V,                  // 40
+            __global          state_t   *wminusy_V) {               // 41
+
+    /////////////////////////////////////////////
+    /// Get thread identification information ///
+    /////////////////////////////////////////////
+
+    const uint giX = get_global_id(0);
+    const uint tiX = get_local_id(0);
+
+    const uint ngX = get_global_size(0);
+    const uint ntX = get_local_size(0);
+
+    const uint group_id = get_group_id(0);
+
+    
+    if (giX >= ncells) 
+        return;
+
+    real_t   g     = 9.80; 
+    real_t   ghalf = HALF*g;
+
+    int ic = giX;
+    int lev = level[ic];
+    real_t dxic    = lev_dx[lev];
+    real_t dyic    = lev_dy[lev];
+    real_t Cxhalf = 0.5*deltaT/dxic;
+    real_t Cyhalf = 0.5*deltaT/dyic;
+
+    int fl = map_xcell2face_left1[ic];
+    int fr = map_xcell2face_right1[ic];
+    int fb = map_ycell2face_bot1[ic];
+    int ft = map_ycell2face_top1[ic];
+
+    int nl = map_xface2cell_lower[fl];
+    int nr = map_xface2cell_upper[fr];
+    int nb = map_yface2cell_lower[fb];
+    int nt = map_yface2cell_upper[ft];
+
+    if (ic == nl || ic == nr || ic == nb || ic == nt) return;
+
+    real_t Hic     = H[ic];
+    real_t Uic     = U[ic];
+    real_t Vic     = V[ic];
+
+    int nll     = map_xface2cell_lower[map_xcell2face_left1[nl]];
+    real_t Hl      = H[nl];
+    real_t Ul      = U[nl];
+    real_t Vl      = V[nl];
+
+    int nrr     = map_xface2cell_upper[map_xcell2face_right1[nr]];
+    real_t Hr      = H[nr];
+    real_t Ur      = U[nr];
+    real_t Vr      = V[nr];
+
+    int ntt     = map_yface2cell_upper[map_ycell2face_top1[nt]];
+    real_t Ht      = H[nt];
+    real_t Ut      = U[nt];
+    real_t Vt      = V[nt];
+
+    int nbb     = map_yface2cell_lower[map_ycell2face_bot1[nb]];
+    real_t Hb      = H[nb];
+    real_t Ub      = U[nb];
+    real_t Vb      = V[nb];
+
+    real_t Hll     = H[nll];
+    real_t Ull     = U[nll];
+
+    real_t Hrr     = H[nrr];
+    real_t Urr     = U[nrr];
+
+    real_t Htt     = H[ntt];
+    real_t Vtt     = V[ntt];
+
+    real_t Hbb     = H[nbb];
+    real_t Vbb     = V[nbb];
+
+    real_t Hxminus = HALF*(Hic+Hl)-Cxhalf*(HXFLUXIC-HXFLUXNL);
+    real_t Uxminus = HALF*(Uic+Ul)-Cxhalf*(UXFLUXIC-UXFLUXNL);
+    real_t Vxminus = HALF*(Vic+Vl)-Cxhalf*(UVFLUXIC-UVFLUXNL);
+
+    real_t Hxplus = HALF*(Hr+Hic)-Cxhalf*(HXFLUXNR-HXFLUXIC);
+    real_t Uxplus = HALF*(Ur+Uic)-Cxhalf*(UXFLUXNR-UXFLUXIC);
+    real_t Vxplus = HALF*(Vr+Vic)-Cxhalf*(UVFLUXNR-UVFLUXIC);
+
+    real_t Hyminus = HALF*(Hic+Hb)-Cyhalf*(HYFLUXIC-HYFLUXNB);
+    real_t Uyminus = HALF*(Uic+Ub)-Cyhalf*(VUFLUXIC-VUFLUXNB);
+    real_t Vyminus = HALF*(Vic+Vb)-Cyhalf*(VYFLUXIC-VYFLUXNB);
+
+    real_t Hyplus = HALF*(Ht+Hic)-Cyhalf*(HYFLUXNT-HYFLUXIC);
+    real_t Uyplus = HALF*(Ut+Uic)-Cyhalf*(VUFLUXNT-VUFLUXIC);
+    real_t Vyplus = HALF*(Vt+Vic)-Cyhalf*(VYFLUXNT-VYFLUXIC);
+
+    Hxfluxminus[ic] = HNEWXFLUXMINUS;
+    Uxfluxminus[ic] = UNEWXFLUXMINUS;
+    Vxfluxminus[ic] = UVNEWFLUXMINUS;
+
+    Hxfluxplus[ic]  = HNEWXFLUXPLUS;
+    Uxfluxplus[ic]  = UNEWXFLUXPLUS;
+    Vxfluxplus[ic]  = UVNEWFLUXPLUS;
+
+    Hyfluxminus[ic] = HNEWYFLUXMINUS;
+    Uyfluxminus[ic] = VUNEWFLUXMINUS;
+    Vyfluxminus[ic] = VNEWYFLUXMINUS;
+
+    Hyfluxplus[ic]  = HNEWYFLUXPLUS;
+    Uyfluxplus[ic]  = VUNEWFLUXPLUS;
+    Vyfluxplus[ic]  = VNEWYFLUXPLUS;
+
+    real_t U_eigen = fabs(Uxminus/Hxminus) + sqrt(g*Hxminus);
+    wminusx_H[ic] = w_corrector(deltaT, dxic, U_eigen, Hic-Hl, Hl-Hll, Hr-Hic) * (Hic - Hl);
+    wminusx_U[ic] = w_corrector(deltaT, dxic, U_eigen, Uic-Ul, Ul-Ull, Ur-Uic) * (Uic - Ul);
+
+    U_eigen = fabs(Uxplus/Hxplus) + sqrt(g*Hxplus);
+    wplusx_H[ic] = w_corrector(deltaT, dxic, U_eigen, Hr-Hic, Hic-Hl, Hrr-Hr) * (Hr - Hic);
+    wplusx_U[ic] = w_corrector(deltaT, dxic, U_eigen, Ur-Uic, Uic-Ul, Urr-Ur) * (Ur - Uic);
+
+    U_eigen = fabs(Vyminus/Hyminus) + sqrt(g*Hyminus);
+    wminusy_H[ic] = w_corrector(deltaT, dyic, U_eigen, Hic-Hb, Hb-Hbb, Ht-Hic) * (Hic - Hb);
+    wminusy_V[ic] = w_corrector(deltaT, dyic, U_eigen, Vic-Vb, Vb-Vbb, Vt-Vic) * (Vic - Vb);
+
+    U_eigen = fabs(Vyplus/Hyplus) + sqrt(g*Hyplus);
+    wplusy_H[ic] = w_corrector(deltaT, dyic, U_eigen, Ht-Hic, Hic-Hb, Htt-Ht) * (Ht - Hic);
+    wplusy_V[ic] = w_corrector(deltaT, dyic, U_eigen, Vt-Vic, Vic-Vb, Vtt-Vt) * (Vt - Vic);
+
+}
+
+__kernel void calc_finite_difference_in_place_fixup_cl(
+            __global    const int       *fixup,               // 15 A face's left cell 
+            __global    const int       *xrecvCIdx,               // 15 A face's left cell 
+            __global    const int       *xplusCell2Idx,               // 15 A face's left cell 
+            __global    const int       *xminusCell2Idx,               // 15 A face's left cell 
+            __global    const int       *xsendIdx1,               // 15 A face's left cell 
+            __global    const int       *xsendIdx2,               // 15 A face's left cell 
+            __global    const int       *yrecvCIdx,               // 15 A face's left cell 
+            __global    const int       *yplusCell2Idx,               // 15 A face's left cell 
+            __global    const int       *yminusCell2Idx,               // 15 A face's left cell 
+            __global    const int       *ysendIdx1,               // 15 A face's left cell 
+            __global    const int       *ysendIdx2,               // 15 A face's left cell 
+            __global    const int       *map_xface2cell_lower,      // 14 A face's left cell 
+            __global    const int       *map_xface2cell_upper,      // 15 A face's left cell 
+            __global    const int       *map_yface2cell_lower,      // 16 A face's below cell 
+            __global    const int       *map_yface2cell_upper,      // 17 A face's above cell 
+            __global          state_t   *Hxfluxplus,                // 22
+            __global          state_t   *Hxfluxminus,               // 23
+            __global          state_t   *Uxfluxplus,                // 24
+            __global          state_t   *Uxfluxminus,               // 25
+            __global          state_t   *Vxfluxplus,                // 26
+            __global          state_t   *Vxfluxminus,               // 27
+            __global          state_t   *Hyfluxplus,                // 28
+            __global          state_t   *Hyfluxminus,               // 29
+            __global          state_t   *Uyfluxplus,                // 30
+            __global          state_t   *Uyfluxminus,               // 31
+            __global          state_t   *Vyfluxplus,                // 32
+            __global          state_t   *Vyfluxminus,               // 33
+            __global          state_t   *wplusx_H,                  // 34
+            __global          state_t   *wminusx_H,                 // 35
+            __global          state_t   *wplusx_U,                  // 36
+            __global          state_t   *wminusx_U,                 // 37
+            __global          state_t   *wplusy_H,                  // 38
+            __global          state_t   *wminusy_H,                 // 39
+            __global          state_t   *wplusy_V,                  // 40
+            __global          state_t   *wminusy_V) {               // 41
+
+    /////////////////////////////////////////////
+    /// Get thread identification information ///
+    /////////////////////////////////////////////
+
+    const uint giX = get_global_id(0);
+    const uint tiX = get_local_id(0);
+
+    const uint ngX = get_global_size(0);
+    const uint ntX = get_local_size(0);
+
+    const uint group_id = get_group_id(0);
+
+    
+    if (giX >= max(fixup[0], fixup[1])) 
+        return;
+
+    int ifix = giX;
+    if (giX < fixup[0]) {
+      int ic = xrecvCIdx[ifix];
+
+      if (xplusCell2Idx[ic] > -1) {
+         int ifixup = xplusCell2Idx[ic];
+
+         int ns1 = map_xface2cell_upper[xsendIdx1[ifixup]];
+         int ns2 = map_xface2cell_upper[xsendIdx2[ifixup]];
+
+         Hxfluxplus[ic] = (Hxfluxminus[ns1] + Hxfluxminus[ns2]) * HALF;
+         Uxfluxplus[ic] = (Uxfluxminus[ns1] + Uxfluxminus[ns2]) * HALF;
+         Vxfluxplus[ic] = (Vxfluxminus[ns1] + Vxfluxminus[ns2]) * HALF;
+         wplusx_H[ic] = (wminusx_H[ns1] + wminusx_H[ns2]) * 0.25;
+         wplusx_U[ic] = (wminusx_U[ns1] + wminusx_U[ns2]) * 0.25;
+      }
+
+      if (xminusCell2Idx[ic] > -1) {
+         int ifixup = xminusCell2Idx[ic];
+
+         int ns1 = map_xface2cell_lower[xsendIdx1[ifixup]];
+         int ns2 = map_xface2cell_lower[xsendIdx2[ifixup]];
+
+         Hxfluxminus[ic] = (Hxfluxplus[ns1] + Hxfluxplus[ns2]) * HALF;
+         Uxfluxminus[ic] = (Uxfluxplus[ns1] + Uxfluxplus[ns2]) * HALF;
+         Vxfluxminus[ic] = (Vxfluxplus[ns1] + Vxfluxplus[ns2]) * HALF;
+         wminusx_H[ic] = (wplusx_H[ns1] + wplusx_H[ns2]) * 0.25;
+         wminusx_U[ic] = (wplusx_U[ns1] + wplusx_U[ns2]) * 0.25;
+      }
+    }
+
+    if (giX < fixup[1]) {
+      int ic = yrecvCIdx[ifix];
+
+      if (yplusCell2Idx[ic] > -1) {
+         int ifixup = yplusCell2Idx[ic];
+
+         int ns1 = map_yface2cell_upper[ysendIdx1[ifixup]];
+         int ns2 = map_yface2cell_upper[ysendIdx2[ifixup]];
+
+         Hyfluxplus[ic] = (Hyfluxminus[ns1] + Hyfluxminus[ns2]) * HALF;
+         Uyfluxplus[ic] = (Uyfluxminus[ns1] + Uyfluxminus[ns2]) * HALF;
+         Vyfluxplus[ic] = (Vyfluxminus[ns1] + Vyfluxminus[ns2]) * HALF;
+         wplusy_H[ic] = (wminusy_H[ns1] + wminusy_H[ns2]) * 0.25;
+         wplusy_V[ic] = (wminusy_V[ns1] + wminusy_V[ns2]) * 0.25;
+      }
+
+      if (yminusCell2Idx[ic] > -1) {
+         int ifixup = yminusCell2Idx[ic];
+
+         int ns1 = map_yface2cell_lower[ysendIdx1[ifixup]];
+         int ns2 = map_yface2cell_lower[ysendIdx2[ifixup]];
+
+         Hyfluxminus[ic] = (Hyfluxplus[ns1] + Hyfluxplus[ns2]) * HALF;
+         Uyfluxminus[ic] = (Uyfluxplus[ns1] + Uyfluxplus[ns2]) * HALF;
+         Vyfluxminus[ic] = (Vyfluxplus[ns1] + Vyfluxplus[ns2]) * HALF;
+         wminusy_H[ic] = (wplusy_H[ns1] + wplusy_H[ns2]) * 0.25;
+         wminusy_V[ic] = (wplusy_V[ns1] + wplusy_V[ns2]) * 0.25;
+      }
+    
+    }
+}
+
+__kernel void calc_finite_difference_in_place_fill_new_cl(
+                        const int       ncells,                     // 0 Number of cells (not including phantom)
+                        const real_t    deltaT,                     // 1 Size of time step
+            __global    const real_t    *lev_dx,                    // 2
+            __global    const real_t    *lev_dy,                    // 3
+            __global          state_t   *Hxfluxplus,                // 4
+            __global          state_t   *Hxfluxminus,               // 5
+            __global          state_t   *Uxfluxplus,                // 6
+            __global          state_t   *Uxfluxminus,               // 7
+            __global          state_t   *Vxfluxplus,                // 8
+            __global          state_t   *Vxfluxminus,               // 9
+            __global          state_t   *Hyfluxplus,                // 10
+            __global          state_t   *Hyfluxminus,               // 11
+            __global          state_t   *Uyfluxplus,                // 12
+            __global          state_t   *Uyfluxminus,               // 13
+            __global          state_t   *Vyfluxplus,                // 14
+            __global          state_t   *Vyfluxminus,               // 15
+            __global          state_t   *wplusx_H,                  // 16
+            __global          state_t   *wminusx_H,                 // 17
+            __global          state_t   *wplusx_U,                  // 18
+            __global          state_t   *wminusx_U,                 // 19
+            __global          state_t   *wplusy_H,                  // 20
+            __global          state_t   *wminusy_H,                 // 21
+            __global          state_t   *wplusy_V,                  // 22
+            __global          state_t   *wminusy_V,                 // 23
+            __global          state_t   *level,                     // 24
+            __global          state_t   *H,                         // 25
+            __global          state_t   *U,                         // 26
+            __global          state_t   *V,                         // 27
+            __global          state_t   *H_new,                     // 28
+            __global          state_t   *U_new,                     // 29
+            __global          state_t   *V_new) {                   // 30
+
+    /////////////////////////////////////////////
+    /// Get thread identification information ///
+    /////////////////////////////////////////////
+
+    const uint giX = get_global_id(0);
+    const uint tiX = get_local_id(0);
+
+    const uint ngX = get_global_size(0);
+    const uint ntX = get_local_size(0);
+
+    const uint group_id = get_group_id(0);
+
+    
+    if (giX >= ncells) 
+        return;
+
+      int ic = giX;
+      uchar_t lev = level[ic];
+      real_t dxic    = lev_dx[lev];
+      real_t dyic    = lev_dy[lev];
+
+      H_new[ic] = U_fullstep(deltaT, dxic, H[ic],
+                       Hxfluxplus[ic], Hxfluxminus[ic], Hyfluxplus[ic], Hyfluxminus[ic])
+                  - wminusx_H[ic] + wplusx_H[ic] - wminusy_H[ic] + wplusy_H[ic];
+      U_new[ic] = U_fullstep(deltaT, dxic, U[ic],
+                       Uxfluxplus[ic], Uxfluxminus[ic], Uyfluxplus[ic], Uyfluxminus[ic])
+                  - wminusx_U[ic] + wplusx_U[ic];
+      V_new[ic] = U_fullstep(deltaT, dxic, V[ic],
+                       Vxfluxplus[ic], Vxfluxminus[ic], Vyfluxplus[ic], Vyfluxminus[ic])
+                  - wminusy_V[ic] + wplusy_V[ic];
+
+}
 
 __kernel void calc_finite_difference_via_face_in_place_cell_comps_cl(
                         const int       ncells,                     // 0 Number of cells (not including phantom)
