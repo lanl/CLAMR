@@ -1,9 +1,20 @@
 language: cpp fortran
 
+# works on Precise and Trusty
+ - os: linux
+   addons:
+     apt:
+       sources:
+         - ubuntu-toolchain-r-test
+       packages:
+         - g++-7
+   env:
+     - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7 && F90=gfortran"
+
 before_install:
+ - eval "${MATRIX_EVAL}"
  - sudo apt-get update
  - sudo apt-get install -y cmake libboost-all-dev openmpi-bin libopenmpi-dev
- - sudo apt-get install -y gcc
 
 script:
  - cmake . && make -j2 && sudo make install 
