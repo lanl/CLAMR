@@ -3744,6 +3744,7 @@ __kernel void wbidirmap_precount_cl(
     }
 }
 
+#ifdef XXX
 __kernel void calc_wbidirmap_phantom_cl(
                          const     int    ncells,                    // 0
             __global     const     int   *pxcellCnt,                 // 1
@@ -3977,3 +3978,4 @@ __kernel void deep_copy_cl(
     arr_new[giX] = arr_old[giX];
 
 }
+#endif

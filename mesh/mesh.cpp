@@ -1490,11 +1490,11 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       kernel_do_load_balance_lower    = ezcl_create_kernel_wprogram(program, "do_load_balance_lower_cl");
       kernel_do_load_balance_middle   = ezcl_create_kernel_wprogram(program, "do_load_balance_middle_cl");
       kernel_do_load_balance_upper    = ezcl_create_kernel_wprogram(program, "do_load_balance_upper_cl");
+      kernel_face_idx_wbidirmap = ezcl_create_kernel_wprogram(program, "face_idx_wbidirmap_cl");
       kernel_calc_face_list_wbidirmap_pt1 = ezcl_create_kernel_wprogram(program, "calc_face_list_wbidirmap_pt1_cl");
       kernel_calc_face_list_wbidirmap_pt2 = ezcl_create_kernel_wprogram(program, "calc_face_list_wbidirmap_pt2_cl");
-      kernel_face_idx_wbidirmap = ezcl_create_kernel_wprogram(program, "face_idx_wbidirmap_cl");
       kernel_wbidirmap_precount = ezcl_create_kernel_wprogram(program, "wbidirmap_precount_cl");
-      kernel_deep_copy = ezcl_create_kernel_wprogram(program, "deep_copy_cl");
+//    kernel_deep_copy = ezcl_create_kernel_wprogram(program, "deep_copy_cl");
 #ifndef MINIMUM_PRECISION
       kernel_do_load_balance_double   = ezcl_create_kernel_wprogram(program, "do_load_balance_double_cl");
 #endif
@@ -2431,7 +2431,7 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_calc_face_list_wbidirmap_pt2);
       ezcl_kernel_release(kernel_face_idx_wbidirmap);
       ezcl_kernel_release(kernel_wbidirmap_precount);
-      ezcl_kernel_release(kernel_deep_copy);
+//    ezcl_kernel_release(kernel_deep_copy);
 #ifndef MINIMUM_PRECISION
       ezcl_kernel_release(kernel_do_load_balance_double);
 #endif
