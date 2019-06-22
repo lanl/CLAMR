@@ -332,6 +332,8 @@ int L7_Setup(
 
 #ifdef _OPENMP
 #pragma omp parallel for
+#else
+#pragma omp simd
 #endif
 	for (i=0; i<num_indices_needed; i++){
 		l7_id_db->indices_needed[i] = indices_needed[i];
@@ -811,6 +813,8 @@ int L7_Setup(
            int adj = (int)(my_start_index) - base_adj; // for vectorization
 #ifdef _OPENMP
 #pragma omp parallel for
+#else
+#pragma omp simd
 #endif
 	   for (j=0; j<counts; j++){
 	      l7_id_db->indices_local_to_send[offset+j] =
