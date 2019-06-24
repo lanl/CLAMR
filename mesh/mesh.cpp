@@ -237,6 +237,8 @@ cl_kernel      kernel_calc_face_list_wbidirmap_pt1;
 cl_kernel      kernel_calc_face_list_wbidirmap_pt2;
 cl_kernel      kernel_face_idx_wbidirmap;
 cl_kernel      kernel_wbidirmap_precount;
+cl_kernel      kernel_calc_wbidirmap_phantom_neighbors;;
+cl_kernel      kernel_calc_wbidirmap_phantom_values;;
 cl_kernel      kernel_deep_copy;
 #ifndef MINIMUM_PRECISION
 cl_kernel      kernel_do_load_balance_double;
@@ -1494,6 +1496,8 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
       kernel_calc_face_list_wbidirmap_pt2 = ezcl_create_kernel_wprogram(program, "calc_face_list_wbidirmap_pt2_cl");
       kernel_face_idx_wbidirmap = ezcl_create_kernel_wprogram(program, "face_idx_wbidirmap_cl");
       kernel_wbidirmap_precount = ezcl_create_kernel_wprogram(program, "wbidirmap_precount_cl");
+      kernel_calc_wbidirmap_phantom_neighbors = ezcl_create_kernel_wprogram(program, "calc_wbidirmap_phantom_neighbors_cl");
+      kernel_calc_wbidirmap_phantom_values = ezcl_create_kernel_wprogram(program, "calc_wbidirmap_phantom_values_cl");
       kernel_deep_copy = ezcl_create_kernel_wprogram(program, "deep_copy_cl");
 #ifndef MINIMUM_PRECISION
       kernel_do_load_balance_double   = ezcl_create_kernel_wprogram(program, "do_load_balance_double_cl");
@@ -2431,6 +2435,8 @@ void Mesh::terminate(void)
       ezcl_kernel_release(kernel_calc_face_list_wbidirmap_pt2);
       ezcl_kernel_release(kernel_face_idx_wbidirmap);
       ezcl_kernel_release(kernel_wbidirmap_precount);
+      ezcl_kernel_release(kernel_calc_wbidirmap_phantom_neighbors);
+      ezcl_kernel_release(kernel_calc_wbidirmap_phantom_values);
       ezcl_kernel_release(kernel_deep_copy);
 #ifndef MINIMUM_PRECISION
       ezcl_kernel_release(kernel_do_load_balance_double);
@@ -13340,6 +13346,20 @@ void Mesh::gpu_wbidirmap_setup(void)
     dev_pycellCnt = ezcl_malloc(NULL, const_cast<char *>("dev_pycellCnt"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_pxfaceCnt = ezcl_malloc(NULL, const_cast<char *>("dev_pxfaceCnt"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_pyfaceCnt = ezcl_malloc(NULL, const_cast<char *>("dev_pyfaceCnt"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_xrecvIdx = ezcl_malloc(NULL, const_cast<char *>("dev_xrecvIdx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_xrecvCIdx = ezcl_malloc(NULL, const_cast<char *>("dev_xrecvCIdx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_xplusCell2Idx = ezcl_malloc(NULL, const_cast<char *>("dev_xplusCell2Idx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_xminusCell2Idx = ezcl_malloc(NULL, const_cast<char *>("dev_xminusCell2Idx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_xsendIdx1 = ezcl_malloc(NULL, const_cast<char *>("dev_xsendIdx1"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_xsendIdx2 = ezcl_malloc(NULL, const_cast<char *>("dev_xsendIdx2"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_yrecvIdx = ezcl_malloc(NULL, const_cast<char *>("dev_yrecvIdx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_yrecvCIdx = ezcl_malloc(NULL, const_cast<char *>("dev_yrecvCIdx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_yplusCell2Idx = ezcl_malloc(NULL, const_cast<char *>("dev_yplusCell2Idx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_yminusCell2Idx = ezcl_malloc(NULL, const_cast<char *>("dev_yminusCell2Idx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_ysendIdx1 = ezcl_malloc(NULL, const_cast<char *>("dev_ysendIdx1"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_ysendIdx2 = ezcl_malloc(NULL, const_cast<char *>("dev_ysendIdx2"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_ifixupXStart = ezcl_malloc(NULL, const_cast<char *>("dev_ifixupXStart"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_ifixupYStart = ezcl_malloc(NULL, const_cast<char *>("dev_ifixupYStart"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     //dev_pxcellIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pxcellIdx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     //dev_pycellIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pycellIdx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     //dev_pxfaceIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pxfaceIdx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -13383,6 +13403,20 @@ void Mesh::gpu_wbidirmap_delete(void)
    ezcl_device_memory_delete(dev_pycellCnt);
    ezcl_device_memory_delete(dev_pxfaceCnt);
    ezcl_device_memory_delete(dev_pyfaceCnt);
+   ezcl_device_memory_delete(dev_xrecvIdx);
+   ezcl_device_memory_delete(dev_xrecvCIdx);
+   ezcl_device_memory_delete(dev_xplusCell2Idx);
+   ezcl_device_memory_delete(dev_xminusCell2Idx);
+   ezcl_device_memory_delete(dev_xsendIdx1);
+   ezcl_device_memory_delete(dev_xsendIdx2);
+   ezcl_device_memory_delete(dev_yrecvIdx);
+   ezcl_device_memory_delete(dev_yrecvCIdx);
+   ezcl_device_memory_delete(dev_yplusCell2Idx);
+   ezcl_device_memory_delete(dev_yminusCell2Idx);
+   ezcl_device_memory_delete(dev_ysendIdx1);
+   ezcl_device_memory_delete(dev_ysendIdx2);
+   ezcl_device_memory_delete(dev_ifixupXStart);
+   ezcl_device_memory_delete(dev_ifixupYStart);
 }
 
 void Mesh::gpu_wbidirmap_realloc(cl_mem *dev_mem_ptr, int old_size, size_t mem_request)
@@ -13666,7 +13700,7 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
     //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 }
 
-void Mesh::gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory)
+void Mesh::gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory, double deltaT)
 {
     struct timeval tstart_cpu;
     cpu_timer_start(&tstart_cpu);
@@ -13770,7 +13804,7 @@ __kernel void calc_face_list_wbidirmap_pt1_cl(
             */
 
 
-    cl_event calc_face_list_wbidirmap_event1, calc_face_list_wbidirmap_event2, wbidirmap_precount_event;
+    cl_event calc_face_list_wbidirmap_event1, calc_face_list_wbidirmap_event2, wbidirmap_precount_event, calc_wbidirmap_phantom_neighbors_event, calc_wbidirmap_phantom_values_event;
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 0, sizeof(cl_int), (void *)&ncells);
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 1, sizeof(cl_mem), (void *)&dev_nface);
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 2, sizeof(cl_int), (void *)&levmx);
@@ -13864,6 +13898,23 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
     //printf("%d %d\n", nxface, nyface);
     
     /*
+__kernel void wbidirmap_precount_cl(
+            __global          int   *pxcellCnt,                 // 0
+            __global          int   *pycellCnt,                 // 1
+            __global          int   *pxfaceCnt,                 // 2
+            __global          int   *pyfaceCnt,                 // 3
+            __global          int   *level,                     // 4
+            __global          int   *nlft,                      // 5
+            __global          int   *nrht,                      // 6
+            __global          int   *nbot,                      // 7
+            __global          int   *ntop,                      // 8
+            __global          int   *map_xface2cell_lower,      // 9
+            __global          int   *map_xface2cell_upper,      // 10
+            __global          int   *map_yface2cell_lower,      // 11
+            __global          int   *map_yface2cell_upper,      // 12
+            __global          int   *nface,                     // 13 Number array of faces
+            __global          int   *ifixupXStart,              // 14
+            __global          int   *ifixupYStart) {            // 15
      */
 
     ezcl_set_kernel_arg(kernel_wbidirmap_precount, 0, sizeof(cl_mem), (void *)&dev_pxcellCnt);
@@ -13880,6 +13931,8 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
     ezcl_set_kernel_arg(kernel_wbidirmap_precount, 11, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower);
     ezcl_set_kernel_arg(kernel_wbidirmap_precount, 12, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper);
     ezcl_set_kernel_arg(kernel_wbidirmap_precount, 13, sizeof(cl_mem), (void *)&dev_nface);
+    ezcl_set_kernel_arg(kernel_wbidirmap_precount, 14, sizeof(cl_mem), (void *)&dev_ifixupXStart);
+    ezcl_set_kernel_arg(kernel_wbidirmap_precount, 15, sizeof(cl_mem), (void *)&dev_ifixupYStart);
 
     ezcl_enqueue_ndrange_kernel(command_queue, kernel_wbidirmap_precount, 1, NULL, &global_work_size, &local_work_size, &wbidirmap_precount_event);
 
@@ -13890,10 +13943,14 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
     vector<int>cyCnt(nyface);
     vector<int>xCnt(nxface);
     vector<int>yCnt(nyface);
+    vector<int>fixupX(nxface);
+    vector<int>fixupY(nyface);
     ezcl_enqueue_read_buffer(command_queue, dev_pxcellCnt,     CL_TRUE, 0, nxface*sizeof(cl_int), &cxCnt[0], NULL);
     ezcl_enqueue_read_buffer(command_queue, dev_pycellCnt,     CL_TRUE, 0, nyface*sizeof(cl_int), &cyCnt[0], NULL);
     ezcl_enqueue_read_buffer(command_queue, dev_pxfaceCnt,     CL_TRUE, 0, nxface*sizeof(cl_int), &xCnt[0], NULL);
     ezcl_enqueue_read_buffer(command_queue, dev_pyfaceCnt,     CL_TRUE, 0, nyface*sizeof(cl_int), &yCnt[0], NULL);
+    ezcl_enqueue_read_buffer(command_queue, dev_ifixupXStart,     CL_TRUE, 0, nxface*sizeof(cl_int), &fixupX[0], NULL);
+    ezcl_enqueue_read_buffer(command_queue, dev_ifixupYStart,     CL_TRUE, 0, nyface*sizeof(cl_int), &fixupY[0], NULL);
     
     printf("\n\n"); 
     for (int dumb = 0; dumb < nxface; dumb++) { printf("%d %d\t", cxCnt[dumb], xCnt[dumb]); }
@@ -13904,11 +13961,13 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
         pxfaceCnt = gpu_serial_int_reduce(&xCnt[0], nxface, nxface);
         pyfaceCnt = gpu_serial_int_reduce(&yCnt[0], nyface, nyface);
         pcellCnt = xcellCnt + ycellCnt - ncells; // subtract ncells b/c bot xcellCnt & ycellCnt include it
+        nxfixup = gpu_serial_int_reduce(&fixupX[0], 0, nxface);
+        nyfixup = gpu_serial_int_reduce(&fixupY[0], 0, nyface);
     for (int dumb = 0; dumb < nxface; dumb++) { printf("%d %d\t", cxCnt[dumb], xCnt[dumb]); }
     printf("\n\n"); 
 
 
-    //printf("%d %d %d\n", pcellCnt, pxfaceCnt, pyfaceCnt);
+    printf("%d %d %d %d %d\n", pcellCnt, pxfaceCnt, pyfaceCnt, nxfixup, nyfixup);
     
     gpu_wbidirmap_realloc(&dev_map_xface2cell_lower, nxface, pxfaceCnt);
     gpu_wbidirmap_realloc(&dev_map_xface2cell_upper, nxface, pxfaceCnt);
@@ -13928,6 +13987,88 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
     ezcl_enqueue_write_buffer(command_queue, dev_pycellIdx, CL_TRUE, 0, nyface*sizeof(cl_int), &cyCnt[0], NULL);
     ezcl_enqueue_write_buffer(command_queue, dev_pxfaceIdx, CL_TRUE, 0, nxface*sizeof(cl_int), &xCnt[0], NULL);
     ezcl_enqueue_write_buffer(command_queue, dev_pyfaceIdx, CL_TRUE, 0, nyface*sizeof(cl_int), &yCnt[0], NULL);
+    ezcl_enqueue_write_buffer(command_queue, dev_ifixupXStart, CL_TRUE, 0, nxface*sizeof(cl_int), &fixupX[0], NULL);
+    ezcl_enqueue_write_buffer(command_queue, dev_ifixupYStart, CL_TRUE, 0, nyface*sizeof(cl_int), &fixupY[0], NULL);
+
+
+    /*
+__kernel void calc_wbidirmap_phantom_neighbors_cl(
+                         const     int    ncells,                    // 0
+                         const     real_t deltaT,                    // 1 Size of time step
+            __global     const     int   *nface,                     // 2
+            __global               int   *pxcellIdx,                 // 3
+            __global               int   *pycellIdx,                 // 4
+            __global               int   *pxfaceIdx,                 // 5
+            __global               int   *pyfaceIdx,                 // 6
+            __global               int   *ifixupXStart,              // 7
+            __global               int   *ifixupYStart,              // 8
+            __global               int   *level,                     // 9
+            __global               int   *nlft,                      // 10
+            __global               int   *nrht,                      // 11
+            __global               int   *nbot,                      // 12
+            __global               int   *ntop,                      // 13
+            __global               int   *map_xface2cell_lower,      // 14
+            __global               int   *map_xface2cell_upper,      // 15
+            __global               int   *map_xcell2face_left1,      // 16
+            __global               int   *map_xcell2face_right1,     // 17
+            __global               int   *map_yface2cell_lower,      // 18
+            __global               int   *map_yface2cell_upper,      // 19
+            __global               int   *map_ycell2face_bot1,       // 20
+            __global               int   *map_ycell2face_top1,       // 21
+            __global               int   *xrecvIdx,                  // 22
+            __global               int   *xrecvCIdx,                 // 23
+            __global               int   *xplusCell2Idx,             // 24
+            __global               int   *xminusCell2Idx,            // 25
+            __global               int   *xsendIdx1,                 // 26
+            __global               int   *xsendIdx2,                 // 27
+            __global               int   *yrecvIdx,                  // 28
+            __global               int   *yrecvCIdx,                 // 29
+            __global               int   *yplusCell2Idx,             // 30
+            __global               int   *yminusCell2Idx,            // 31
+            __global               int   *ysendIdx1,                 // 32
+            __global               int   *ysendIdx2) {               // 33
+     */
+
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 0, sizeof(cl_int), (void *)&ncells);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 1, sizeof(cl_real_t), (void *)&deltaT);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 2, sizeof(cl_mem), (void *)&dev_nface);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 3, sizeof(cl_mem), (void *)&dev_pxcellIdx);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 4, sizeof(cl_mem), (void *)&dev_pycellIdx);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 5, sizeof(cl_mem), (void *)&dev_pxfaceIdx);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 6, sizeof(cl_mem), (void *)&dev_pyfaceIdx);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 7, sizeof(cl_mem), (void *)&dev_ifixupXStart);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 8, sizeof(cl_mem), (void *)&dev_ifixupYStart);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 9, sizeof(cl_mem), (void *)&dev_level);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 10, sizeof(cl_mem), (void *)&dev_nlft);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 11, sizeof(cl_mem), (void *)&dev_nrht);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 12, sizeof(cl_mem), (void *)&dev_nbot);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 13, sizeof(cl_mem), (void *)&dev_ntop);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 14, sizeof(cl_mem), (void *)&dev_map_xface2cell_lower);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 15, sizeof(cl_mem), (void *)&dev_map_xface2cell_upper);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 16, sizeof(cl_mem), (void *)&dev_map_xcell2face_left1);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 17, sizeof(cl_mem), (void *)&dev_map_xcell2face_right1);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 18, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 19, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 20, sizeof(cl_mem), (void *)&dev_map_ycell2face_bot1);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 21, sizeof(cl_mem), (void *)&dev_map_ycell2face_top1);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 22, sizeof(cl_mem), (void *)&dev_xrecvIdx);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 23, sizeof(cl_mem), (void *)&dev_xrecvCIdx);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 24, sizeof(cl_mem), (void *)&dev_xplusCell2Idx);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 25, sizeof(cl_mem), (void *)&dev_xminusCell2Idx);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 26, sizeof(cl_mem), (void *)&dev_xsendIdx1);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 27, sizeof(cl_mem), (void *)&dev_xsendIdx2);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 28, sizeof(cl_mem), (void *)&dev_yrecvIdx);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 29, sizeof(cl_mem), (void *)&dev_yrecvCIdx);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 30, sizeof(cl_mem), (void *)&dev_yplusCell2Idx);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 31, sizeof(cl_mem), (void *)&dev_yminusCell2Idx);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 32, sizeof(cl_mem), (void *)&dev_ysendIdx1);
+    ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 33, sizeof(cl_mem), (void *)&dev_ysendIdx2);
+
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_wbidirmap_phantom_neighbors, 1, NULL, &global_work_size, &local_work_size, &calc_wbidirmap_phantom_neighbors_event);
+
+    ezcl_wait_for_events(1, &calc_wbidirmap_phantom_neighbors_event);
+    ezcl_event_release(calc_wbidirmap_phantom_neighbors_event);
+
 
     MallocPlus gpu_state_memory_old = gpu_state_memory;
     malloc_plus_memory_entry *memory_item;
@@ -13939,15 +14080,59 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
         cl_mem dev_state_mem_ptr = (cl_mem)memory_item->mem_ptr;
 
         if (memory_item->mem_elsize != 8) continue;
+/*
+__kernel void calc_wbidirmap_phantom_values_cl(
+            __global          int      *level,                     // 0
+            __global          int      *nlft,                      // 1
+            __global          int      *nrht,                      // 2
+            __global          int      *nbot,                      // 3
+            __global          int      *ntop,                      // 4
+            __global          int      *map_xface2cell_lower,      // 5
+            __global          int      *map_xface2cell_upper,      // 6
+            __global          int      *map_yface2cell_lower,      // 7
+            __global          int      *map_yface2cell_upper,      // 8
+            __global          int      *pxcellIdx,                 // 9
+            __global          int      *pycellIdx,                 // 10
+            __global          int      *nface,                     // 11 Number array of faces
+            __global   const  double   *state,                     // 12
+            __global          double   *state_new) {               // 13
+ */
+        cl_mem dev_state_mem_ptr_new = (cl_mem)gpu_state_memory.memory_malloc(pcellCnt, sizeof(cl_double), const_cast<char *>("dev_state_mem_ptr_new"), DEVICE_REGULAR_MEMORY);
 
-        //cl_mem dev_state_var_new = (cl_mem)gpu_state_memory.memory_malloc(max(old_ncells,new_ncells), sizeof(cl_double), const_cast<char *>("dev_state_var_new"), DEVICE_REGULAR_MEMORY);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 0, sizeof(cl_mem), (void *)&dev_level);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 1, sizeof(cl_mem), (void *)&dev_nlft);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 2, sizeof(cl_mem), (void *)&dev_nrht);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 3, sizeof(cl_mem), (void *)&dev_nbot);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 4, sizeof(cl_mem), (void *)&dev_ntop);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 5, sizeof(cl_mem), (void *)&dev_map_xface2cell_lower);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 6, sizeof(cl_mem), (void *)&dev_map_xface2cell_upper);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 7, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 8, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 9, sizeof(cl_mem), (void *)&dev_pxcellIdx);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 10, sizeof(cl_mem), (void *)&dev_pycellIdx);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 11, sizeof(cl_mem), (void *)&dev_nface);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 12, sizeof(cl_mem), (void *)&dev_state_mem_ptr);
+        ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 13, sizeof(cl_mem), (void *)&dev_state_mem_ptr_new);
 
+        ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_wbidirmap_phantom_values, 1, NULL, &global_work_size, &local_work_size, &calc_wbidirmap_phantom_values_event);
+
+        ezcl_wait_for_events(1, &calc_wbidirmap_phantom_values_event);
+        ezcl_event_release(calc_wbidirmap_phantom_values_event);
+
+        gpu_state_memory.memory_replace(dev_state_mem_ptr, dev_state_mem_ptr_new);
 
     }
     ezcl_device_memory_delete(dev_pxcellIdx);
     ezcl_device_memory_delete(dev_pycellIdx);
     ezcl_device_memory_delete(dev_pxfaceIdx);
     ezcl_device_memory_delete(dev_pyfaceIdx);
+
+   //vector<int>map_xface(pxfaceCnt);
+   //vector<int>map_xcell(xcellCnt);
+   //ezcl_enqueue_read_buffer(command_queue, dev_map_xface2cell_lower,     CL_TRUE, 0, pxfaceCnt*sizeof(cl_int), &map_xface[0], NULL);
+   //ezcl_enqueue_read_buffer(command_queue, dev_map_xcell2face_left1,     CL_TRUE, 0, xcellCnt*sizeof(cl_int), &map_xcell[0], NULL);
+   //for (int jello = 0; jello < ncells; jello++) { printf("%d) %d\n", jello, map_xface[map_xcell[jello]]); }
+   
 /*   
    vector<int>map_xcell_tmp_l(ncells);
    vector<int>map_xcell_tmp_r(ncells);

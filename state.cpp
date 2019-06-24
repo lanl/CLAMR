@@ -1708,6 +1708,7 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       int nr = mesh->map_xface2cell_upper[fr];
       int nb = mesh->map_yface2cell_lower[fb];
       int nt = mesh->map_yface2cell_upper[ft];
+      printf("%d) %d\n", ic, nl);
 
       real_t Hic     = H[ic];
       real_t Uic     = U[ic];
@@ -4035,6 +4036,7 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
    size_t &ncells_ghost = mesh->ncells_ghost;
    if (ncells_ghost < ncells) ncells_ghost = ncells;
    int &levmx           = mesh->levmx;
+   real_t deltaT_local = deltaT;
    cl_mem &dev_nface    = mesh->dev_nface;
    cl_mem &dev_celltype = mesh->dev_celltype;
    cl_mem &dev_nlft     = mesh->dev_nlft;
@@ -4058,12 +4060,12 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
    assert(dev_levdy);
 
    mesh->gpu_wbidirmap_setup();
-    mesh->gpu_calc_face_list_wbidirmap_phantom(gpu_state_memory);
+    mesh->gpu_calc_face_list_wbidirmap_phantom(gpu_state_memory, deltaT_local);
     gpu_memory_reset_ptrs();
 
-   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(152, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
-   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(152, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
-   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(152, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(mesh->pcellCnt, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(mesh->pcellCnt, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(mesh->pcellCnt, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
  
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -4211,17 +4213,19 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
    assert(dev_jymax_level);
 
     size_t mem_requestx, mem_requesty;
-    ezcl_enqueue_read_buffer(command_queue, dev_nface,     CL_TRUE, 0, sizeof(cl_int), &mem_requestx, NULL);
-    ezcl_enqueue_read_buffer(command_queue, dev_nface,     CL_TRUE, 1*sizeof(cl_int), sizeof(cl_int), &mem_requesty, NULL);
+    //ezcl_enqueue_read_buffer(command_queue, dev_nface,     CL_TRUE, 0, sizeof(cl_int), &mem_requestx, NULL);
+    //ezcl_enqueue_read_buffer(command_queue, dev_nface,     CL_TRUE, 1*sizeof(cl_int), sizeof(cl_int), &mem_requesty, NULL);
     //printf("\nMem requests %d and %d\n", mem_requestx, mem_requesty);
     //printf("\n%d\n", ncells);
+    mem_requestx = mesh->pxfaceCnt;
+    mem_requesty = mesh->pyfaceCnt;
     
     gpu_faces_setup_phantom(mem_requestx, mem_requesty);
 
    cl_event calc_finite_difference_in_place_cell_event, calc_finite_difference_in_place_cellpt2_event, calc_finite_difference_in_place_fixup_event;
 
    size_t local_face_work = 128;
-   size_t global_face_work = ((152+local_face_work - 1) /local_face_work) * local_face_work;
+   size_t global_face_work = ((mesh->pcellCnt+local_face_work - 1) /local_face_work) * local_face_work;
    //printf("\nglobal face work %d\n", global_face_work);
 
     /*
@@ -4273,8 +4277,7 @@ __kernel void calc_finite_difference_in_place_cell_comps_pt1_cl (
             __global          state_t   *wplusy_V,                  // 44
             __global          state_t   *wminusy_V) {               // 45
             */
-
-   real_t deltaT_local = deltaT;
+/*
    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_cell_comps, 0, sizeof(cl_int), (void *)&ncells); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_cell_comps, 1, sizeof(cl_mem), (void *)&dev_nface); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_cell_comps, 2, sizeof(cl_int), (void *)&levmx); 
@@ -4322,7 +4325,7 @@ __kernel void calc_finite_difference_in_place_cell_comps_pt1_cl (
 
    ezcl_wait_for_events(1, &calc_finite_difference_in_place_cell_event);
    ezcl_event_release(calc_finite_difference_in_place_cell_event);
-
+*/
    /* 
    int nxface;
    ezcl_enqueue_read_buffer(command_queue, dev_nface,     CL_TRUE, 0, sizeof(cl_int), &nxface, NULL);

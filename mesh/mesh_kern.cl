@@ -158,11 +158,6 @@ int is_lower_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 0); }
 int is_lower_right(int i, int j) { return(i % 2 == 1 && j % 2 == 0); }
 int is_upper_left(int i, int j)  { return(i % 2 == 0 && j % 2 == 1); }
 int is_upper_right(int i, int j) { return(i % 2 == 1 && j % 2 == 1); }
-/*int is_boundary(int cell, int *nlft, int *nrht, int *nbot, int *ntop) {
-    if (nlft[cell] == cell || nrht[cell] == cell || nbot[cell] == cell || ntop[cell] == cell)
-        return 1;
-    return 0;
-}*/
 
 void reduction_sum_int_within_tile(__local  int  *itile);
 void reduction_sum_int2_within_tile(__local  int2  *itile);
@@ -3653,7 +3648,9 @@ __kernel void wbidirmap_precount_cl(
             __global          int   *map_xface2cell_upper,      // 10
             __global          int   *map_yface2cell_lower,      // 11
             __global          int   *map_yface2cell_upper,      // 12
-            __global          int   *nface) {                   // 13 Number array of faces
+            __global          int   *nface,                     // 13 Number array of faces
+            __global          int   *ifixupXStart,              // 14
+            __global          int   *ifixupYStart) {            // 15
 
 
    /////////////////////////////////////////////
@@ -3678,6 +3675,7 @@ __kernel void wbidirmap_precount_cl(
     if (giX < nface[0]) {
         pxcellCnt[giX] = 0;
         pxfaceCnt[giX] = 0;
+        ifixupXStart[giX] = 0;
         lncell = map_xface2cell_lower[giX];
         rncell = map_xface2cell_upper[giX];
         level_left = level[lncell];
@@ -3700,6 +3698,7 @@ __kernel void wbidirmap_precount_cl(
                 if (fncell == bncell) { 
                     pxcellCnt[giX] += 4;
                     pxfaceCnt[giX] += 3;
+                    ifixupXStart[giX] ++;
                 }
                 else {
                     pxcellCnt[giX] += 2;
@@ -3712,6 +3711,7 @@ __kernel void wbidirmap_precount_cl(
     if (giX < nface[1]) {
         pycellCnt[giX] = 0;
         pyfaceCnt[giX] = 0;
+        ifixupYStart[giX] = 0;
         bncell = map_yface2cell_lower[giX];
         tncell = map_yface2cell_upper[giX];
         level_bot = level[bncell];
@@ -3734,6 +3734,7 @@ __kernel void wbidirmap_precount_cl(
                 if (fncell == lncell) {
                     pycellCnt[giX] += 4;
                     pyfaceCnt[giX] += 3;
+                    ifixupYStart[giX] ++;
                 }
                 else {
                     pycellCnt[giX] += 2;
@@ -3744,35 +3745,42 @@ __kernel void wbidirmap_precount_cl(
     }
 }
 
-__kernel void calc_wbidirmap_phantom_cl(
+__kernel void calc_wbidirmap_phantom_neighbors_cl(
                          const     int    ncells,                    // 0
-            __global     const     int   *pxcellCnt,                 // 1
-            __global     const     int   *pycellCnt,                 // 2
-            __global     const     int   *pxfaceCnt,                 // 3
-            __global     const     int   *pyfaceCnt,                 // 4
-            __global     const     int   *nface,                     // 5
-            __global               int   *pxcellIdx,                 // 6
-            __global               int   *pycellIdx,                 // 7
-            __global               int   *pxfaceIdx,                 // 8
-            __global               int   *pyfaceIdx,               // 9
-            __global               int   *level,                     // 4
-            __global               int   *nlft,                      // 5
-            __global               int   *nrht,                      // 6
-            __global               int   *nbot,                      // 7
-            __global               int   *ntop,                      // 8
-            __global               int   *xrecvIdx,                      // 7
-            __global               int   *xrecvCIdx,                      // 7
-            __global               int   *xplusCell2Idx,                      // 7
-            __global               int   *xminusCell2Idx,                      // 7
-            __global               int   *xsendIdx1,                      // 7
-            __global               int   *xsendIdx2,                      // 7
-            __global               int   *yrecvIdx,                      // 7
-            __global               int   *yrecvCIdx,                      // 7
-            __global               int   *yplusCell2Idx,                      // 7
-            __global               int   *yminusCell2Idx,                      // 7
-            __global               int   *ysendIdx1,                      // 7
-            __global               int   *ysendIdx2,                      // 7
-                         const     real_t    deltaT,                     // 7 Size of time step
+                         const     real_t deltaT,                    // 1 Size of time step
+            __global     const     int   *nface,                     // 2
+            __global               int   *pxcellIdx,                 // 3
+            __global               int   *pycellIdx,                 // 4
+            __global               int   *pxfaceIdx,                 // 5
+            __global               int   *pyfaceIdx,                 // 6
+            __global               int   *ifixupXStart,              // 7
+            __global               int   *ifixupYStart,              // 8
+            __global               int   *level,                     // 9
+            __global               int   *nlft,                      // 10
+            __global               int   *nrht,                      // 11
+            __global               int   *nbot,                      // 12
+            __global               int   *ntop,                      // 13
+            __global               int   *map_xface2cell_lower,      // 14
+            __global               int   *map_xface2cell_upper,      // 15
+            __global               int   *map_xcell2face_left1,      // 16
+            __global               int   *map_xcell2face_right1,     // 17
+            __global               int   *map_yface2cell_lower,      // 18
+            __global               int   *map_yface2cell_upper,      // 19
+            __global               int   *map_ycell2face_bot1,       // 20
+            __global               int   *map_ycell2face_top1,       // 21
+            __global               int   *xrecvIdx,                  // 22
+            __global               int   *xrecvCIdx,                 // 23
+            __global               int   *xplusCell2Idx,             // 24
+            __global               int   *xminusCell2Idx,            // 25
+            __global               int   *xsendIdx1,                 // 26
+            __global               int   *xsendIdx2,                 // 27
+            __global               int   *yrecvIdx,                  // 28
+            __global               int   *yrecvCIdx,                 // 29
+            __global               int   *yplusCell2Idx,             // 30
+            __global               int   *yminusCell2Idx,            // 31
+            __global               int   *ysendIdx1,                 // 32
+            __global               int   *ysendIdx2) {               // 33
+
 
 
    /////////////////////////////////////////////
@@ -3793,10 +3801,12 @@ __kernel void calc_wbidirmap_phantom_cl(
       return;
 
     int iface, pcellIdx, pfaceIdx, ifixupIdx;
-    iface = giX:
+    iface = giX;
     pcellIdx = pxcellIdx[iface];
     pfaceIdx = pxfaceIdx[iface];
     ifixupIdx = ifixupXStart[iface];
+
+    int lncell, rncell, bncell, tncell, cncell, fncell, level_left, level_right, level_bot, level_top;
     if (giX < nface[0]) {
         lncell = map_xface2cell_lower[giX];
         rncell = map_xface2cell_upper[giX];
@@ -3831,7 +3841,6 @@ __kernel void calc_wbidirmap_phantom_cl(
                         map_xcell2face_left1[pcellIdx] = pfaceIdx+1;
                         map_xcell2face_right1[pcellIdx+2] = pfaceIdx+2;
                         map_xcell2face_left1[pcellIdx+3] = pfaceIdx+2;
-                        map_xcell2face_right2[lncell] = -1;
                         map_xface2cell_lower[iface] = pcellIdx;
     
                         //interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -3849,10 +3858,6 @@ __kernel void calc_wbidirmap_phantom_cl(
                            xsendIdx1[ifixupIdx] = map_xcell2face_left1[tncell];
                            xsendIdx2[ifixupIdx] = iface;
                         }
-
-		                phantomXFlux[fncell] = cncell;
-                        phantomXFluxFace[iface] = pfaceIdx;
-                        phantomXFluxFace[map_xcell2face_left1[tncell]] = pfaceIdx;
                     }
                     else {
                         map_xface2cell_lower[pfaceIdx] = pcellIdx;        
@@ -3867,13 +3872,8 @@ __kernel void calc_wbidirmap_phantom_cl(
                         map_xcell2face_right1[pcellIdx+1] = pfaceIdx+1;
                         map_xcell2face_left1[pcellIdx+3] = pfaceIdx+2;
                         map_xcell2face_right1[pcellIdx+2] = pfaceIdx+2;
-                        map_xcell2face_left2[rncell] = -1;
                         map_xface2cell_upper[iface] = pcellIdx + 2;
     
-                        xface_level[pfaceIdx] = level[rncell];
-                        xface_level[pfaceIdx+1] = level[rncell];
-                        xface_level[pfaceIdx+2] = level[lncell];
-
                         //interpolate(1, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                         //interpolate(5, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
     
@@ -3889,10 +3889,6 @@ __kernel void calc_wbidirmap_phantom_cl(
                            xsendIdx1[ifixupIdx] = map_xcell2face_right1[tncell];
                            xsendIdx2[ifixupIdx] = iface;
                         }
-    
-                        phantomXFlux[fncell] = -cncell;
-                        phantomXFluxFace[iface] = pfaceIdx;
-                        phantomXFluxFace[map_xcell2face_right1[tncell]] = pfaceIdx;
                     }
                 }
                 else {
@@ -3904,7 +3900,6 @@ __kernel void calc_wbidirmap_phantom_cl(
                         map_xcell2face_right1[pcellIdx+1] = pfaceIdx;
 
                         //interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
-			            phantomXFlux[fncell] = cncell;
                     }
                     else {
                         map_xface2cell_upper[iface] = pcellIdx; 
@@ -3914,7 +3909,6 @@ __kernel void calc_wbidirmap_phantom_cl(
                         map_xcell2face_right1[pcellIdx] = pfaceIdx;
 
                         //interpolate(1, pcellIdx-2, lncell, rncell, deltaT,  state_memory_old);
-			            phantomXFlux[fncell] = -cncell;
                     }
                 }
             }
@@ -3942,13 +3936,353 @@ __kernel void calc_wbidirmap_phantom_cl(
                     rncell = nrht[lncell];
                 }
                 if (fncell == lncell) {
+                    if (level_bot < level_top) { // top is more refined
+                        map_yface2cell_upper[pfaceIdx] = pcellIdx + 2;
+                        map_yface2cell_lower[pfaceIdx] = bncell;        
+                        map_yface2cell_upper[pfaceIdx+1] = pcellIdx;
+                        map_yface2cell_lower[pfaceIdx+1] = pcellIdx+1;
+                        map_yface2cell_upper[pfaceIdx+2] = pcellIdx+3;
+                        map_yface2cell_lower[pfaceIdx+2] = pcellIdx+2;
+                        map_ycell2face_top1[bncell] = pfaceIdx;
+                        map_ycell2face_bot1[pcellIdx+2] = pfaceIdx;
+                        map_ycell2face_top1[pcellIdx+1] = pfaceIdx+1;
+                        map_ycell2face_bot1[pcellIdx] = pfaceIdx+1;
+                        map_ycell2face_top1[pcellIdx+2] = pfaceIdx+2;
+                        map_ycell2face_bot1[pcellIdx+3] = pfaceIdx+2;
+                        map_yface2cell_lower[iface] = pcellIdx;
+
+                        //interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
+                        //interpolate(6, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
+
+                        yrecvIdx[ifixupIdx] = pfaceIdx;
+                        int nb = map_yface2cell_lower[pfaceIdx];
+                        yrecvCIdx[ifixupIdx] = nb;
+                        yplusCell2Idx[nb] = ifixupIdx;
+                        if (iface < map_ycell2face_bot1[rncell]) {
+                            ysendIdx1[ifixupIdx] = iface;
+                            ysendIdx2[ifixupIdx] = map_ycell2face_bot1[rncell];
+                        }
+                        else {
+                            ysendIdx1[ifixupIdx] = map_ycell2face_bot1[rncell];
+                            ysendIdx2[ifixupIdx] = iface;
+                        }
+                    }
+                    else {
+                        map_yface2cell_lower[pfaceIdx] = pcellIdx;        
+                        map_yface2cell_upper[pfaceIdx] = tncell;
+                        map_yface2cell_lower[pfaceIdx+1] = pcellIdx+1;
+                        map_yface2cell_upper[pfaceIdx+1] = pcellIdx;
+                        map_yface2cell_lower[pfaceIdx+2] = pcellIdx+2;
+                        map_yface2cell_upper[pfaceIdx+2] = pcellIdx+3;
+                        map_ycell2face_bot1[tncell] = pfaceIdx;
+                        map_ycell2face_top1[pcellIdx] = pfaceIdx;
+                        map_ycell2face_bot1[pcellIdx] = pfaceIdx+1;
+                        map_ycell2face_top1[pcellIdx+1] = pfaceIdx+1;
+                        map_ycell2face_bot1[pcellIdx+3] = pfaceIdx+2;
+                        map_ycell2face_top1[pcellIdx+2] = pfaceIdx+2;
+                        map_yface2cell_upper[iface] = pcellIdx + 2;
+
+                        //interpolate(3, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
+                        //interpolate(7, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
+
+                        yrecvIdx[ifixupIdx] = pfaceIdx;
+                        int nt = map_yface2cell_upper[pfaceIdx];
+                        yrecvCIdx[ifixupIdx] = nt;
+                        yminusCell2Idx[nt] = ifixupIdx;
+                        if (iface < map_ycell2face_top1[rncell]){
+                            ysendIdx1[ifixupIdx] = iface;
+                            ysendIdx2[ifixupIdx] = map_ycell2face_top1[rncell];
+                        }
+                        else {
+                            ysendIdx1[ifixupIdx] = map_ycell2face_top1[rncell];
+                            ysendIdx2[ifixupIdx] = iface;
+                        }
+                    }
                 }
                 else {
+                    if (level[bncell] < level[tncell]) { // top is more refined
+                        map_yface2cell_lower[iface] = pcellIdx;
+                        map_yface2cell_upper[pfaceIdx] = pcellIdx;
+                        map_yface2cell_lower[pfaceIdx] = pcellIdx+1;
+                        map_ycell2face_top1[pcellIdx+1] = pfaceIdx;
+                        map_ycell2face_bot1[pcellIdx] = pfaceIdx;
+    
+                        //interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
+                    }
+                    else {
+                        map_yface2cell_upper[iface] = pcellIdx; 
+                        map_yface2cell_upper[pfaceIdx] = pcellIdx+1;
+                        map_yface2cell_lower[pfaceIdx] = pcellIdx;
+                        map_ycell2face_top1[pcellIdx] = pfaceIdx;
+                        map_ycell2face_bot1[pcellIdx+1] = pfaceIdx;
+                    
+                        //interpolate(3, pcellIdx-2, bncell, tncell, deltaT,  state_memory_old);
+                    }
                 }
             }
         }
     }
 }
+
+__kernel void calc_wbidirmap_phantom_values_cl(
+            __global          int      *level,                     // 0
+            __global          int      *nlft,                      // 1
+            __global          int      *nrht,                      // 2
+            __global          int      *nbot,                      // 3
+            __global          int      *ntop,                      // 4
+            __global          int      *map_xface2cell_lower,      // 5
+            __global          int      *map_xface2cell_upper,      // 6
+            __global          int      *map_yface2cell_lower,      // 7
+            __global          int      *map_yface2cell_upper,      // 8
+            __global          int      *pxcellIdx,                 // 9
+            __global          int      *pycellIdx,                 // 10
+            __global          int      *nface,                     // 11 Number array of faces
+            __global   const  double   *state,                     // 12
+            __global          double   *state_new) {               // 13
+
+
+
+   /////////////////////////////////////////////
+   /// Get thread identification information ///
+   /////////////////////////////////////////////
+
+   const uint giX  = get_global_id(0);
+   const uint tiX  = get_local_id(0);
+   
+   const uint ngX  = get_global_size(0);
+   const uint ntX  = get_local_size(0);
+   
+   const uint group_id = get_group_id(0);
+    
+   // Ensure the executing thread is not extraneous
+   if(giX >= max(nface[0], nface[1]))
+      return;
+
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+    int lncell, rncell, bncell, tncell, cncell, fncell, level_left, level_right, level_bot, level_top;
+    int pcellIdx = pxcellIdx[giX];
+    if (giX < nface[0]) {
+        lncell = map_xface2cell_lower[giX];
+        rncell = map_xface2cell_upper[giX];
+        level_left = level[lncell];
+        level_right = level[rncell];
+        state_new[lncell] = state[lncell];
+        state_new[rncell] = state[rncell];
+        if (!(lncell == nlft[lncell] || lncell == nbot[lncell] || lncell == ntop[lncell]) && \
+            !(rncell == nrht[rncell] || rncell == nbot[rncell] || rncell == ntop[rncell])) {
+            if (level_left != level_right) {
+                if (level_left < level_right) {
+                    cncell = lncell;
+                    fncell = rncell;
+                    bncell = nrht[cncell];
+                    tncell = ntop[bncell];
+                }
+                else {
+                    cncell = rncell;
+                    fncell = lncell;
+                    bncell = nlft[cncell];
+                    tncell = ntop[bncell];
+                }
+                if (fncell == bncell) { 
+                    if (level_left < level_right) { // right is more refined
+                        real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0.0;
+
+                        real_t state_bot = state[bncell];
+                        real_t state_top = state[tncell];
+                        real_t state_coarse = state[cncell];
+                        real_t state_avg = HALF * (state_bot + state_top);
+                        state_new[pcellIdx+2] = state_avg;
+                        state_new[pcellIdx] = state_coarse;
+
+                        if (level[nrht[bncell]] > level_right) { // rightbot right neighbor is even more refined
+                            state_botbot = state[nrht[bncell]];
+                            state_bottop = state[ntop[nrht[bncell]]];
+                            state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                        }
+                        else { // same refinement as rightbot neighbor
+                            state_sideavg += HALF * state[nrht[bncell]];
+                        }
+                        if (level[nrht[tncell]] > level_right) { // righttop right neighbor is even more refined
+                            state_topbot = state[nrht[tncell]];
+                            state_toptop = state[ntop[nrht[tncell]]];
+                            state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                        }
+                        else { // same refinement as righttop neighbor
+                            state_sideavg += HALF * state[nrht[tncell]];
+                        }
+                        state_new[pcellIdx+3] = state_sideavg;
+                        state_new[pcellIdx+1] = state[nlft[cncell]];
+                    }
+                    else {
+                        real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = 0.0;
+
+                        real_t state_bot = state[bncell];
+                        real_t state_top = state[tncell];
+                        real_t state_coarse = state[cncell];
+                        real_t state_avg = HALF * (state_bot + state_top);
+
+                        state_new[pcellIdx] = state_avg;
+                        state_new[pcellIdx+2] = state_coarse;
+
+                        if (level[nlft[bncell]] > level_left) { // leftbot left neighbor is even more refined
+                            state_botbot = state[nlft[bncell]];
+                            state_bottop = state[ntop[nlft[bncell]]];
+                            state_sideavg += HALF * HALF * (state_botbot + state_bottop);
+                        }
+                        else { // same refinement as leftbot neighbor
+                            state_sideavg += HALF * state[nlft[bncell]];
+                        }
+                        if (level[nlft[tncell]] > level_left) { // lefttop left neighbor is even more refined
+                            state_topbot = state[nlft[tncell]];
+                            state_toptop = state[ntop[nlft[tncell]]];
+                            state_sideavg += HALF * HALF * (state_topbot + state_toptop);
+                        }
+                        else { // same refinement as leftop neighbor
+                            state_sideavg += HALF * state[nlft[tncell]];
+                        }
+                        state_new[pcellIdx+1] = state_sideavg;
+                        state_new[pcellIdx+3] = state[nrht[cncell]];
+                    }
+                }
+                else {
+                    if (level_left < level_right) { // right is more refined
+                        real_t state_coarse = state[cncell];
+                        state_new[pcellIdx] = state_coarse;
+
+                        if (level[nlft[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                            state_new[pcellIdx+1] = state[nlft[cncell]];
+                        }
+                        else {
+                            state_new[pcellIdx+1] = state[ntop[nlft[cncell]]];
+                        }
+                    }
+                    else {
+                        real_t state_coarse = state[cncell];
+                        state_new[pcellIdx] = state_coarse;
+
+                        if (level[nrht[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                            state_new[pcellIdx+1] = state[nrht[cncell]];
+                        }
+                        else {
+                            state_new[pcellIdx+1] = state[ntop[nrht[cncell]]];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pcellIdx = pycellIdx[giX];
+    if (giX < nface[1]) {
+        bncell = map_yface2cell_lower[giX];
+        tncell = map_yface2cell_upper[giX];
+        level_bot = level[bncell];
+        level_top = level[tncell];
+        state_new[bncell] = state[bncell];
+        state_new[tncell] = state[tncell];
+        if (!(bncell == nbot[bncell] || bncell == nlft[bncell] || bncell == nrht[bncell]) && \
+            !(tncell == ntop[tncell] || tncell == nlft[tncell] || tncell == nrht[tncell])) {
+            if (level_bot != level_top) {
+                if (level_bot < level_top) {
+                    cncell = bncell;
+                    fncell = tncell;
+                    lncell = ntop[cncell];
+                    rncell = nrht[lncell];
+                }
+                else {
+                    cncell = tncell;
+                    fncell = bncell;
+                    lncell = nbot[cncell];
+                    rncell = nrht[lncell];
+                }
+                if (fncell == lncell) {
+                    if (level_bot < level_top) { // top is more refined
+                        real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0.0;
+                        real_t state_lft = state[lncell];
+                        real_t state_rht = state[rncell];
+                        real_t state_coarse = state[cncell];
+                        real_t state_avg = HALF * (state_lft + state_rht);
+
+                        state_new[pcellIdx+2] = state_avg;
+                        state_new[pcellIdx] = state_coarse;
+
+                        if (level[nbot[lncell]] > level_top) { // topleft top neighbor is even more refined
+                            state_lftlft = state[ntop[lncell]];
+                            state_lftrht = state[nrht[ntop[lncell]]];
+                            state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                        }
+                        else { // same refinement as toplft neighbor
+                            state_sideavg += HALF * state[ntop[lncell]];
+                        }
+                        if (level[ntop[rncell]] > level_top) { // toprht top neighbor is even more refined
+                            state_rhtlft = state[ntop[rncell]];
+                            state_rhtrht = state[nrht[ntop[rncell]]];
+                            state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                        }
+                        else { // same refinement as toprht neighbor
+                            state_sideavg += HALF * state[ntop[rncell]];
+                        }
+                        state_new[pcellIdx+3] = state_sideavg;
+                        state_new[pcellIdx+1] = state[nbot[cncell]];
+                    }
+                    else {
+                        real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = 0.0;
+                        real_t state_lft = state[lncell];
+                        real_t state_rht = state[rncell];
+                        real_t state_coarse = state[cncell];
+                        real_t state_avg = HALF * (state_lft + state_rht);
+
+                        state_new[pcellIdx] = state_avg;
+                        state_new[pcellIdx+2] = state_coarse;
+
+                        if (level[ntop[lncell]] > level_bot) { // botleft bot neighbor is even more refined
+                            state_lftlft = state[nbot[lncell]];
+                            state_lftrht = state[nrht[nbot[lncell]]];
+                            state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
+                        }
+                        else { // same refinement as botlft neighbor
+                            state_sideavg += HALF * state[nbot[lncell]];
+                        }
+                        if (level[nbot[rncell]] > level_bot) { // botrht bot neighbor is even more refined
+                            state_rhtlft = state[nbot[rncell]];
+                            state_rhtrht = state[nrht[nbot[rncell]]];
+                            state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
+                        }
+                        else { // same refinement as toprht neighbor
+                            state_sideavg += HALF * state[nbot[rncell]];
+                        }
+                        state_new[pcellIdx+1] = state_sideavg;
+                        state_new[pcellIdx+3] = state[ntop[cncell]];
+                    }
+                }
+                else {
+                    if (level_bot < level_top) { // top is more refined
+                        real_t state_coarse = state[cncell];
+                        state_new[pcellIdx] = state_coarse;
+
+                        if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                            state_new[pcellIdx+1] = state[nbot[cncell]];
+                        }
+                        else {
+                            state_new[pcellIdx+1] = state[nrht[nbot[cncell]]];
+                        }
+                    }
+                    else {
+                        real_t state_coarse = state[cncell];
+                        state_new[pcellIdx] = state_coarse;
+
+                        if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
+                            state_new[pcellIdx+1] = state[ntop[cncell]];
+                        }
+                        else {
+                            state_new[pcellIdx+1] = state[nrht[ntop[cncell]]];
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 __kernel void deep_copy_cl(

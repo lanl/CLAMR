@@ -520,6 +520,20 @@ public:
                   dev_pycellIdx,
                   dev_pxfaceIdx,
                   dev_pyfaceIdx,
+                  dev_xrecvIdx,
+                  dev_xrecvCIdx,
+                  dev_xplusCell2Idx,
+                  dev_xminusCell2Idx,
+                  dev_xsendIdx1,
+                  dev_xsendIdx2,
+                  dev_yrecvIdx,
+                  dev_yrecvCIdx,
+                  dev_yplusCell2Idx,
+                  dev_yminusCell2Idx,
+                  dev_ysendIdx1,
+                  dev_ysendIdx2,
+                  dev_ifixupXStart,
+                  dev_ifixupYStart,
                   dev_nface;    // single array for faces, 0 is X, 1 is Y
 
    cl_mem         dev_levdx,    // corresponds to lev_deltax
@@ -766,7 +780,7 @@ public:
    void gpu_wbidirmap_realloc(cl_mem *dev_mem_ptr, int old_size, size_t mem_request);
    int gpu_serial_int_reduce(int *arr, int count, int length);
    void gpu_calc_face_list_wbidirmap(void);
-   void gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory);
+   void gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory, double deltaT);
 #endif
    //   TODO:  Not created yet; overloading for 3D mesh support. (davis68)
    void calc_neighbors(vector<int> &nlft,
