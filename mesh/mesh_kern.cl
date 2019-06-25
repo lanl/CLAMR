@@ -4179,8 +4179,8 @@ __kernel void calc_wbidirmap_phantom_values_cl(
         tncell = map_yface2cell_upper[giX];
         level_bot = level[bncell];
         level_top = level[tncell];
-        state_new[bncell] = state[bncell];
-        state_new[tncell] = state[tncell];
+        //state_new[bncell] = state[bncell];
+        //state_new[tncell] = state[tncell];
         if (!(bncell == nbot[bncell] || bncell == nlft[bncell] || bncell == nrht[bncell]) && \
             !(tncell == ntop[tncell] || tncell == nlft[tncell] || tncell == nrht[tncell])) {
             if (level_bot != level_top) {

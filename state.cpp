@@ -1139,7 +1139,8 @@ void State::gpu_rezone_all(int icount, int jcount, bool localStencil)
 #define VUNEWFLUXMINUS2  ( Vyminus2*Uyminus2/Hyminus2 )
 #define VUNEWFLUXPLUS2   ( Vyplus2 *Uyplus2 /Hyplus2 )
 
-void State::calc_finite_difference(double deltaT){
+void State::calc_finite_difference(double deltaT)
+{
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = 0.5*g;
 
@@ -1617,7 +1618,8 @@ void State::calc_finite_difference(double deltaT){
 #endif
 }
 
-void State::calc_finite_difference_cell_in_place(double deltaT){
+void State::calc_finite_difference_cell_in_place(double deltaT)
+{
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = HALF*g;
 
@@ -1709,7 +1711,7 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
       int nr = mesh->map_xface2cell_upper[fr];
       int nb = mesh->map_yface2cell_lower[fb];
       int nt = mesh->map_yface2cell_upper[ft];
-      printf("%d) %d\n", ic, nl);
+      //printf("%d) %d\n", ic, nl);
 
       real_t Hic     = H[ic];
       real_t Uic     = U[ic];
@@ -1938,7 +1940,8 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
 #endif
 }
 
-void State::calc_finite_difference_face_in_place(double deltaT){
+void State::calc_finite_difference_face_in_place(double deltaT)
+{
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = HALF*g;
 
@@ -2206,7 +2209,8 @@ void State::calc_finite_difference_face_in_place(double deltaT){
 #endif
 }
 
-void State::calc_finite_difference_via_faces(double deltaT){
+void State::calc_finite_difference_via_faces(double deltaT)
+{
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = HALF*g;
 
@@ -2717,7 +2721,8 @@ void State::calc_finite_difference_via_faces(double deltaT){
 
 /*****************************************************************/
 
-void State::calc_finite_difference_regular_cells(double deltaT){
+void State::calc_finite_difference_regular_cells(double deltaT)
+{
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = 0.5*g;
 
@@ -3043,7 +3048,8 @@ void State::calc_finite_difference_regular_cells(double deltaT){
 
 /************************************************************************/
 
-void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
+void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
+{
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = 0.5*g;
 
@@ -4024,8 +4030,6 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
 
 void State::gpu_calc_finite_difference_in_place(double deltaT)
 {
-
-    
    struct timeval tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
@@ -4048,6 +4052,19 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
    cl_mem &dev_level    = mesh->dev_level;
    cl_mem &dev_levdx    = mesh->dev_levdx;
    cl_mem &dev_levdy    = mesh->dev_levdy;
+   cl_mem &dev_xrecvCIdx = mesh->dev_xrecvCIdx;
+   cl_mem &dev_xminusCell2Idx = mesh->dev_xminusCell2Idx;
+   cl_mem &dev_xplusCell2Idx = mesh->dev_xplusCell2Idx;
+   cl_mem &dev_xsendIdx1 = mesh->dev_xsendIdx1;
+   cl_mem &dev_xsendIdx2 = mesh->dev_xsendIdx2;
+   cl_mem &dev_yrecvCIdx = mesh->dev_yrecvCIdx;
+   cl_mem &dev_yminusCell2Idx = mesh->dev_yminusCell2Idx;
+   cl_mem &dev_yplusCell2Idx = mesh->dev_yplusCell2Idx;
+   cl_mem &dev_ysendIdx1 = mesh->dev_ysendIdx1;
+   cl_mem &dev_ysendIdx2 = mesh->dev_ysendIdx2;
+   int &nxfixup = mesh->nxfixup;
+   int &nyfixup = mesh->nyfixup;
+   int &pcellCnt = mesh->pcellCnt;
 
    assert(dev_nface);
    assert(dev_H);
@@ -4061,13 +4078,23 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
    assert(dev_levdx);
    assert(dev_levdy);
 
+   vector<state_t>H_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_H,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &H_loc[0], NULL);
+   vector<state_t>U_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_U,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &U_loc[0], NULL);
+   vector<state_t>V_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_V,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &V_loc[0], NULL);
+   
+   //printf("\n");
+   //for (int jello = 0; jello < ncells; jello++) { printf("%d) %f | %f | %f\n", jello, H_loc[jello], U_loc[jello], V_loc[jello]); }
+   
    mesh->gpu_wbidirmap_setup();
     mesh->gpu_calc_face_list_wbidirmap_phantom(gpu_state_memory, deltaT_local);
     gpu_memory_reset_ptrs();
 
-   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(mesh->pcellCnt, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
-   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(mesh->pcellCnt, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
-   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(mesh->pcellCnt, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(pcellCnt, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(pcellCnt, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(pcellCnt, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
  
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -4224,62 +4251,58 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
     
     gpu_faces_setup_phantom(mem_requestx, mem_requesty);
 
-   cl_event calc_finite_difference_in_place_cell_event, calc_finite_difference_in_place_cellpt2_event, calc_finite_difference_in_place_fixup_event;
+   cl_event calc_finite_difference_in_place_cell_event, calc_finite_difference_in_place_fill_new_event, calc_finite_difference_in_place_fixup_event;
 
    size_t local_face_work = 128;
    size_t global_face_work = ((mesh->pcellCnt+local_face_work - 1) /local_face_work) * local_face_work;
    //printf("\nglobal face work %d\n", global_face_work);
 
     /*
-__kernel void calc_finite_difference_in_place_cell_comps_pt1_cl (
+__kernel void calc_finite_difference_in_place_cell_comps_cl (
                         const int       ncells,                     // 0 Number of cells (not including phantom)
-                        const int       nxfaces,                    // 1 Number of x faces
-                        const int       nyfaces,                    // 2 Number of y faces
-                        const int       levmx,                      // 3 Maximum level
-            __global    const state_t   *H,                         // 4
-            __global    const state_t   *U,                         // 5
-            __global    const state_t   *V,                         // 6
-            __global          state_t   *H_new,                     // 7
-            __global          state_t   *U_new,                     // 8
-            __global          state_t   *V_new,                     // 9
-            __global    const uchar_t   *level,                     // 10 Array of level information
-                        const real_t    deltaT,                     // 11 Size of time step
-            __global    const real_t    *lev_dx,                    // 12
-            __global    const real_t    *lev_dy,                    // 13
-            __local           state4_t  *tile,                      // 14 Tile size in state4_t
-            __local           int8      *itile,                     // 15 Tile size in int8
-            __local           int8      *xface,                     // 16 xFace size in int8
-            __local           int8      *yface,                     // 17 yFace size in int8 
-            __global    const int       *map_xface2cell_lower,      // 18 A face's left cell 
-            __global    const int       *map_xface2cell_upper,      // 19 A face's left cell 
-            __global    const int       *map_yface2cell_lower,      // 20 A face's below cell 
-            __global    const int       *map_yface2cell_upper,      // 21 A face's above cell 
-            __global    const int       *map_xcell2face_left1,      // 22 A cell's left primary face 
-            __global    const int       *map_xcell2face_right1,     // 23 A cell's right primary face 
-            __global    const int       *map_ycell2face_bot1,       // 24 A cell's bot primary face 
-            __global    const int       *map_ycell2face_top1,       // 25 A cell's top primary face 
-            __global          state_t   *HxFluxplus,                // 26
-            __global          state_t   *HxFluxminus,               // 27
-            __global          state_t   *UxFluxplus,                // 28
-            __global          state_t   *UxFluxminus,               // 29
-            __global          state_t   *VxFluxplus,                // 30
-            __global          state_t   *VxFluxminus,               // 31
-            __global          state_t   *HyFluxplus,                // 32
-            __global          state_t   *HyFluxminus,               // 33
-            __global          state_t   *UyFluxplus,                // 34
-            __global          state_t   *UyFluxminus,               // 35
-            __global          state_t   *VyFluxplus,                // 36
-            __global          state_t   *VyFluxminus,               // 37
-            __global          state_t   *wplusx_H,                  // 38
-            __global          state_t   *wminusx_H,                 // 39
-            __global          state_t   *wplusx_U,                  // 40
-            __global          state_t   *wminusx_U,                 // 41
-            __global          state_t   *wplusy_H,                  // 42
-            __global          state_t   *wminusy_H,                 // 43
-            __global          state_t   *wplusy_V,                  // 44
-            __global          state_t   *wminusy_V) {               // 45
+            __global    const int       *nfaces,                    // 1 Number of x faces
+                        const int       levmx,                      // 2 Maximum level
+            __global    const state_t   *H,                         // 3
+            __global    const state_t   *U,                         // 4
+            __global    const state_t   *V,                         // 5
+            __global    const uchar_t   *level,                     // 6 Array of level information
+                        const real_t    deltaT,                     // 7 Size of time step
+            __global    const real_t    *lev_dx,                    // 8
+            __global    const real_t    *lev_dy,                    // 9
+            __local           state4_t  *tile,                      // 10 Tile size in state4_t
+            __local           int8      *itile,                     // 11 Tile size in int8
+            __local           int8      *xface,                     // 12 xFace size in int8
+            __local           int8      *yface,                     // 13 yFace size in int8 
+            __global    const int       *map_xface2cell_lower,      // 14 A face's left cell 
+            __global    const int       *map_xface2cell_upper,      // 15 A face's left cell 
+            __global    const int       *map_yface2cell_lower,      // 16 A face's below cell 
+            __global    const int       *map_yface2cell_upper,      // 17 A face's above cell 
+            __global    const int       *map_xcell2face_left1,      // 18 A cell's left primary face 
+            __global    const int       *map_xcell2face_right1,     // 19 A cell's right primary face 
+            __global    const int       *map_ycell2face_bot1,       // 20 A cell's bot primary face 
+            __global    const int       *map_ycell2face_top1,       // 21 A cell's top primary face 
+            __global          state_t   *Hxfluxplus,                // 22
+            __global          state_t   *Hxfluxminus,               // 23
+            __global          state_t   *Uxfluxplus,                // 24
+            __global          state_t   *Uxfluxminus,               // 25
+            __global          state_t   *Vxfluxplus,                // 26
+            __global          state_t   *Vxfluxminus,               // 27
+            __global          state_t   *Hyfluxplus,                // 28
+            __global          state_t   *Hyfluxminus,               // 29
+            __global          state_t   *Uyfluxplus,                // 30
+            __global          state_t   *Uyfluxminus,               // 31
+            __global          state_t   *Vyfluxplus,                // 32
+            __global          state_t   *Vyfluxminus,               // 33
+            __global          state_t   *wplusx_H,                  // 34
+            __global          state_t   *wminusx_H,                 // 35
+            __global          state_t   *wplusx_U,                  // 36
+            __global          state_t   *wminusx_U,                 // 37
+            __global          state_t   *wplusy_H,                  // 38
+            __global          state_t   *wminusy_H,                 // 39
+            __global          state_t   *wplusy_V,                  // 40
+            __global          state_t   *wminusy_V) {               // 41
             */
-/*
+
    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_cell_comps, 0, sizeof(cl_int), (void *)&ncells); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_cell_comps, 1, sizeof(cl_mem), (void *)&dev_nface); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_cell_comps, 2, sizeof(cl_int), (void *)&levmx); 
@@ -4327,7 +4350,163 @@ __kernel void calc_finite_difference_in_place_cell_comps_pt1_cl (
 
    ezcl_wait_for_events(1, &calc_finite_difference_in_place_cell_event);
    ezcl_event_release(calc_finite_difference_in_place_cell_event);
-*/
+
+   /*
+__kernel void calc_finite_difference_in_place_fixup_cl(
+                        const int        nxfixup,                   // 0
+                        const int        nyfixup,                   // 1
+            __global    const int       *xrecvCIdx,                 // 2
+            __global    const int       *xplusCell2Idx,             // 3
+            __global    const int       *xminusCell2Idx,            // 4
+            __global    const int       *xsendIdx1,                 // 5
+            __global    const int       *xsendIdx2,                 // 6
+            __global    const int       *yrecvCIdx,                 // 7
+            __global    const int       *yplusCell2Idx,             // 8
+            __global    const int       *yminusCell2Idx,            // 9
+            __global    const int       *ysendIdx1,                 // 10
+            __global    const int       *ysendIdx2,                 // 11
+            __global    const int       *map_xface2cell_lower,      // 12
+            __global    const int       *map_xface2cell_upper,      // 13
+            __global    const int       *map_yface2cell_lower,      // 14 
+            __global    const int       *map_yface2cell_upper,      // 15 
+            __global          state_t   *Hxfluxplus,                // 16
+            __global          state_t   *Hxfluxminus,               // 17
+            __global          state_t   *Uxfluxplus,                // 18
+            __global          state_t   *Uxfluxminus,               // 19
+            __global          state_t   *Vxfluxplus,                // 20
+            __global          state_t   *Vxfluxminus,               // 21
+            __global          state_t   *Hyfluxplus,                // 22
+            __global          state_t   *Hyfluxminus,               // 23
+            __global          state_t   *Uyfluxplus,                // 24
+            __global          state_t   *Uyfluxminus,               // 25
+            __global          state_t   *Vyfluxplus,                // 26
+            __global          state_t   *Vyfluxminus,               // 27
+            __global          state_t   *wplusx_H,                  // 28
+            __global          state_t   *wminusx_H,                 // 29
+            __global          state_t   *wplusx_U,                  // 30
+            __global          state_t   *wminusx_U,                 // 31
+            __global          state_t   *wplusy_H,                  // 32
+            __global          state_t   *wminusy_H,                 // 33
+            __global          state_t   *wplusy_V,                  // 34
+            __global          state_t   *wminusy_V) {               // 35
+    */
+
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 0, sizeof(cl_int), (void *)&nxfixup); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 1, sizeof(cl_int), (void *)&nyfixup); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 2, sizeof(cl_mem), (void *)&dev_xrecvCIdx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 3, sizeof(cl_mem), (void *)&dev_xplusCell2Idx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 4, sizeof(cl_mem), (void *)&dev_xminusCell2Idx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 5, sizeof(cl_mem), (void *)&dev_xsendIdx1);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 6, sizeof(cl_mem), (void *)&dev_xsendIdx2);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 7, sizeof(cl_mem), (void *)&dev_yrecvCIdx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 8, sizeof(cl_mem), (void *)&dev_yplusCell2Idx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 9, sizeof(cl_mem), (void *)&dev_yminusCell2Idx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 10, sizeof(cl_mem), (void *)&dev_ysendIdx1);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 11, sizeof(cl_mem), (void *)&dev_ysendIdx2);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 12, sizeof(cl_mem), (void *)&dev_map_xface2cell_lower); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 13, sizeof(cl_mem), (void *)&dev_map_xface2cell_upper); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 14, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 15, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 16, sizeof(cl_mem), (void *)&dev_Hxfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 17, sizeof(cl_mem), (void *)&dev_Hxfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 18, sizeof(cl_mem), (void *)&dev_Uxfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 19, sizeof(cl_mem), (void *)&dev_Uxfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 20, sizeof(cl_mem), (void *)&dev_Vxfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 21, sizeof(cl_mem), (void *)&dev_Vxfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 22, sizeof(cl_mem), (void *)&dev_Hyfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 23, sizeof(cl_mem), (void *)&dev_Hyfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 24, sizeof(cl_mem), (void *)&dev_Uyfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 25, sizeof(cl_mem), (void *)&dev_Uyfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 26, sizeof(cl_mem), (void *)&dev_Vyfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 27, sizeof(cl_mem), (void *)&dev_Vyfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 28, sizeof(cl_mem), (void *)&dev_Wplusx_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 29, sizeof(cl_mem), (void *)&dev_Wminusx_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 30, sizeof(cl_mem), (void *)&dev_Wplusx_U); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 31, sizeof(cl_mem), (void *)&dev_Wminusx_U); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 32, sizeof(cl_mem), (void *)&dev_Wplusy_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 33, sizeof(cl_mem), (void *)&dev_Wminusy_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 34, sizeof(cl_mem), (void *)&dev_Wplusy_V); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 35, sizeof(cl_mem), (void *)&dev_Wminusy_V); 
+
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_in_place_fixup, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_fixup_event);
+
+    ezcl_wait_for_events(1, &calc_finite_difference_in_place_fixup_event);
+    ezcl_event_release(calc_finite_difference_in_place_fixup_event);
+
+
+/*
+__kernel void calc_finite_difference_in_place_fill_new_cl(
+                        const int       ncells,                     // 0 Number of cells (not including phantom)
+                        const real_t    deltaT,                     // 1 Size of time step
+            __global    const real_t    *lev_dx,                    // 2
+            __global    const real_t    *lev_dy,                    // 3
+            __global          state_t   *Hxfluxplus,                // 4
+            __global          state_t   *Hxfluxminus,               // 5
+            __global          state_t   *Uxfluxplus,                // 6
+            __global          state_t   *Uxfluxminus,               // 7
+            __global          state_t   *Vxfluxplus,                // 8
+            __global          state_t   *Vxfluxminus,               // 9
+            __global          state_t   *Hyfluxplus,                // 10
+            __global          state_t   *Hyfluxminus,               // 11
+            __global          state_t   *Uyfluxplus,                // 12
+            __global          state_t   *Uyfluxminus,               // 13
+            __global          state_t   *Vyfluxplus,                // 14
+            __global          state_t   *Vyfluxminus,               // 15
+            __global          state_t   *wplusx_H,                  // 16
+            __global          state_t   *wminusx_H,                 // 17
+            __global          state_t   *wplusx_U,                  // 18
+            __global          state_t   *wminusx_U,                 // 19
+            __global          state_t   *wplusy_H,                  // 20
+            __global          state_t   *wminusy_H,                 // 21
+            __global          state_t   *wplusy_V,                  // 22
+            __global          state_t   *wminusy_V,                 // 23
+            __global          state_t   *level,                     // 24
+            __global          state_t   *H,                         // 25
+            __global          state_t   *U,                         // 26
+            __global          state_t   *V,                         // 27
+            __global          state_t   *H_new,                     // 28
+            __global          state_t   *U_new,                     // 29
+            __global          state_t   *V_new) {                   // 30
+ */ 
+
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 0, sizeof(cl_int), (void *)&ncells); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 1, sizeof(cl_real_t), (void *)&deltaT_local); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 2, sizeof(cl_mem), (void *)&dev_levdx); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 3, sizeof(cl_mem), (void *)&dev_levdy); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 4, sizeof(cl_mem), (void *)&dev_Hxfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 5, sizeof(cl_mem), (void *)&dev_Hxfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 6, sizeof(cl_mem), (void *)&dev_Uxfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 7, sizeof(cl_mem), (void *)&dev_Uxfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 8, sizeof(cl_mem), (void *)&dev_Vxfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 9, sizeof(cl_mem), (void *)&dev_Vxfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 10, sizeof(cl_mem), (void *)&dev_Hyfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 11, sizeof(cl_mem), (void *)&dev_Hyfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 12, sizeof(cl_mem), (void *)&dev_Uyfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 13, sizeof(cl_mem), (void *)&dev_Uyfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 14, sizeof(cl_mem), (void *)&dev_Vyfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 15, sizeof(cl_mem), (void *)&dev_Vyfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 16, sizeof(cl_mem), (void *)&dev_Wplusx_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 17, sizeof(cl_mem), (void *)&dev_Wminusx_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 18, sizeof(cl_mem), (void *)&dev_Wplusx_U); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 19, sizeof(cl_mem), (void *)&dev_Wminusx_U); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 20, sizeof(cl_mem), (void *)&dev_Wplusy_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 21, sizeof(cl_mem), (void *)&dev_Wminusy_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 22, sizeof(cl_mem), (void *)&dev_Wplusy_V); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 23, sizeof(cl_mem), (void *)&dev_Wminusy_V); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 24, sizeof(cl_mem), (void *)&dev_level); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 25, sizeof(cl_mem), (void *)&dev_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 26, sizeof(cl_mem), (void *)&dev_U); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 27, sizeof(cl_mem), (void *)&dev_V); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 28, sizeof(cl_mem), (void *)&dev_H_new); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 29, sizeof(cl_mem), (void *)&dev_U_new); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 30, sizeof(cl_mem), (void *)&dev_V_new); 
+
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_in_place_fill_new, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_fill_new_event);
+
+    ezcl_wait_for_events(1, &calc_finite_difference_in_place_fill_new_event);
+    ezcl_event_release(calc_finite_difference_in_place_fill_new_event);
+
+
    /* 
    int nxface;
    ezcl_enqueue_read_buffer(command_queue, dev_nface,     CL_TRUE, 0, sizeof(cl_int), &nxface, NULL);
@@ -4345,20 +4524,10 @@ __kernel void calc_finite_difference_in_place_cell_comps_pt1_cl (
    for (int jello = 0; jello < nxface; jello++) { printf("%d) %d %d\n\t%d) %f | %f | %f\n", jello, lefty[jello], righty[jello], jello, Hx_loc[jello], Ux_loc[jello], Vx_loc[jello]); }
    */
 
+     
    dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
    dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
    dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
-   /*  
-   vector<state_t>H_loc(ncells);
-   ezcl_enqueue_read_buffer(command_queue, dev_H,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &H_loc[0], NULL);
-   vector<state_t>U_loc(ncells);
-   ezcl_enqueue_read_buffer(command_queue, dev_U,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &U_loc[0], NULL);
-   vector<state_t>V_loc(ncells);
-   ezcl_enqueue_read_buffer(command_queue, dev_V,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &V_loc[0], NULL);
-   
-   printf("\n");
-   for (int jello = 0; jello < ncells; jello++) { printf("%d) %f | %f | %f\n", jello, H_loc[jello], U_loc[jello], V_loc[jello]); }
-   */
 
    gpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
     

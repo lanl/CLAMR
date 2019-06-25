@@ -2213,41 +2213,42 @@ __kernel void calc_finite_difference_in_place_cell_comps_cl (
 }
 
 __kernel void calc_finite_difference_in_place_fixup_cl(
-            __global    const int       *fixup,               // 15 A face's left cell 
-            __global    const int       *xrecvCIdx,               // 15 A face's left cell 
-            __global    const int       *xplusCell2Idx,               // 15 A face's left cell 
-            __global    const int       *xminusCell2Idx,               // 15 A face's left cell 
-            __global    const int       *xsendIdx1,               // 15 A face's left cell 
-            __global    const int       *xsendIdx2,               // 15 A face's left cell 
-            __global    const int       *yrecvCIdx,               // 15 A face's left cell 
-            __global    const int       *yplusCell2Idx,               // 15 A face's left cell 
-            __global    const int       *yminusCell2Idx,               // 15 A face's left cell 
-            __global    const int       *ysendIdx1,               // 15 A face's left cell 
-            __global    const int       *ysendIdx2,               // 15 A face's left cell 
-            __global    const int       *map_xface2cell_lower,      // 14 A face's left cell 
-            __global    const int       *map_xface2cell_upper,      // 15 A face's left cell 
-            __global    const int       *map_yface2cell_lower,      // 16 A face's below cell 
-            __global    const int       *map_yface2cell_upper,      // 17 A face's above cell 
-            __global          state_t   *Hxfluxplus,                // 22
-            __global          state_t   *Hxfluxminus,               // 23
-            __global          state_t   *Uxfluxplus,                // 24
-            __global          state_t   *Uxfluxminus,               // 25
-            __global          state_t   *Vxfluxplus,                // 26
-            __global          state_t   *Vxfluxminus,               // 27
-            __global          state_t   *Hyfluxplus,                // 28
-            __global          state_t   *Hyfluxminus,               // 29
-            __global          state_t   *Uyfluxplus,                // 30
-            __global          state_t   *Uyfluxminus,               // 31
-            __global          state_t   *Vyfluxplus,                // 32
-            __global          state_t   *Vyfluxminus,               // 33
-            __global          state_t   *wplusx_H,                  // 34
-            __global          state_t   *wminusx_H,                 // 35
-            __global          state_t   *wplusx_U,                  // 36
-            __global          state_t   *wminusx_U,                 // 37
-            __global          state_t   *wplusy_H,                  // 38
-            __global          state_t   *wminusy_H,                 // 39
-            __global          state_t   *wplusy_V,                  // 40
-            __global          state_t   *wminusy_V) {               // 41
+                        const int        nxfixup,                   // 0
+                        const int        nyfixup,                   // 1
+            __global    const int       *xrecvCIdx,                 // 2
+            __global    const int       *xplusCell2Idx,             // 3
+            __global    const int       *xminusCell2Idx,            // 4
+            __global    const int       *xsendIdx1,                 // 5
+            __global    const int       *xsendIdx2,                 // 6
+            __global    const int       *yrecvCIdx,                 // 7
+            __global    const int       *yplusCell2Idx,             // 8
+            __global    const int       *yminusCell2Idx,            // 9
+            __global    const int       *ysendIdx1,                 // 10
+            __global    const int       *ysendIdx2,                 // 11
+            __global    const int       *map_xface2cell_lower,      // 12
+            __global    const int       *map_xface2cell_upper,      // 13
+            __global    const int       *map_yface2cell_lower,      // 14 
+            __global    const int       *map_yface2cell_upper,      // 15 
+            __global          state_t   *Hxfluxplus,                // 16
+            __global          state_t   *Hxfluxminus,               // 17
+            __global          state_t   *Uxfluxplus,                // 18
+            __global          state_t   *Uxfluxminus,               // 19
+            __global          state_t   *Vxfluxplus,                // 20
+            __global          state_t   *Vxfluxminus,               // 21
+            __global          state_t   *Hyfluxplus,                // 22
+            __global          state_t   *Hyfluxminus,               // 23
+            __global          state_t   *Uyfluxplus,                // 24
+            __global          state_t   *Uyfluxminus,               // 25
+            __global          state_t   *Vyfluxplus,                // 26
+            __global          state_t   *Vyfluxminus,               // 27
+            __global          state_t   *wplusx_H,                  // 28
+            __global          state_t   *wminusx_H,                 // 29
+            __global          state_t   *wplusx_U,                  // 30
+            __global          state_t   *wminusx_U,                 // 31
+            __global          state_t   *wplusy_H,                  // 32
+            __global          state_t   *wminusy_H,                 // 33
+            __global          state_t   *wplusy_V,                  // 34
+            __global          state_t   *wminusy_V) {               // 35
 
     /////////////////////////////////////////////
     /// Get thread identification information ///
@@ -2262,11 +2263,11 @@ __kernel void calc_finite_difference_in_place_fixup_cl(
     const uint group_id = get_group_id(0);
 
     
-    if (giX >= max(fixup[0], fixup[1])) 
+    if (giX >= max(nxfixup, nyfixup)) 
         return;
 
     int ifix = giX;
-    if (giX < fixup[0]) {
+    if (giX < nxfixup) {
       int ic = xrecvCIdx[ifix];
 
       if (xplusCell2Idx[ic] > -1) {
@@ -2296,7 +2297,7 @@ __kernel void calc_finite_difference_in_place_fixup_cl(
       }
     }
 
-    if (giX < fixup[1]) {
+    if (giX < nyfixup) {
       int ic = yrecvCIdx[ifix];
 
       if (yplusCell2Idx[ic] > -1) {
