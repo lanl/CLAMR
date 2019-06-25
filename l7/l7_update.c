@@ -549,6 +549,7 @@ int L7_Get_Local_Indices(const int l7_id, int *local_indices)
       /* Copy data to be sent. */
       
       int send_count = l7_id_db->send_counts[i];
+#pragma omp simd
       for (int j=0; j<send_count; j++){
           local_indices[offset] = l7_id_db->indices_local_to_send[offset];
           offset++;

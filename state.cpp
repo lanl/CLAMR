@@ -452,6 +452,7 @@ void State::add_boundary_cells(void)
    y.resize(new_ncells);
    dy.resize(new_ncells);
 
+#pragma omp simd
    for (int nc=ncells; nc<new_ncells; nc++) {
       nlft[nc] = -1;
       nrht[nc] = -1;
@@ -2781,6 +2782,7 @@ void State::calc_finite_difference_regular_cells(double deltaT){
           passFlag[lev] = (int **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*4,sizeof(int));
 
          for(int jj=0; jj<mesh->lev_jregsize[lev]; jj++){
+#pragma omp simd
              for(int ii=0; ii<mesh->lev_iregsize[lev]; ii++){
                  varH[lev][jj][ii*2] = 0.0;
                  varH[lev][jj][ii*2+1] = 0.0;
