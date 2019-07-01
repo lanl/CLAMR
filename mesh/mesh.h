@@ -516,10 +516,6 @@ public:
                   dev_pycellCnt,
                   dev_pxfaceCnt,
                   dev_pyfaceCnt,
-                  dev_pxcellIdx,
-                  dev_pycellIdx,
-                  dev_pxfaceIdx,
-                  dev_pyfaceIdx,
                   dev_xrecvIdx,
                   dev_xrecvCIdx,
                   dev_xplusCell2Idx,
@@ -532,8 +528,8 @@ public:
                   dev_yminusCell2Idx,
                   dev_ysendIdx1,
                   dev_ysendIdx2,
-                  dev_ifixupXStart,
-                  dev_ifixupYStart,
+                  dev_ifixupXCnt,
+                  dev_ifixupYCnt,
                   dev_nface;    // single array for faces, 0 is X, 1 is Y
 
    cl_mem         dev_levdx,    // corresponds to lev_deltax

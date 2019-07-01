@@ -11186,6 +11186,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     map_xcell2face_left1[pcellIdx] = pfaceIdx+1;
                     map_xcell2face_right1[pcellIdx+2] = pfaceIdx+2;
                     map_xcell2face_left1[pcellIdx+3] = pfaceIdx+2;
+                    map_xcell2face_right1[pcellIdx] = iface;
                     // "undo" the second face for the cell, as it is no longer applicable
                     map_xcell2face_right2[lncell] = -1;
                     // old face's new phantom adjacent cell
@@ -11344,6 +11345,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     map_xcell2face_right1[pcellIdx+1] = pfaceIdx+1;
                     map_xcell2face_left1[pcellIdx+3] = pfaceIdx+2;
                     map_xcell2face_right1[pcellIdx+2] = pfaceIdx+2;
+                    map_xcell2face_left1[pcellIdx+2] = iface;
                     // "undo" the second face for the cell, as it is no longer applicable
                     map_xcell2face_left2[rncell] = -1;
                     // old face's new phantom adjacent cell
@@ -11524,6 +11526,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     map_xcell2face_left1[pcellIdx] = pfaceIdx;
                     map_xcell2face_right1[pcellIdx+1] = pfaceIdx;
+                    map_xcell2face_right1[pcellIdx] = iface;
                     // phantom cells' new neighbors
                     nlft[pcellIdx] = pcellIdx + 1;
                     nrht[pcellIdx] = rncell;
@@ -11604,6 +11607,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     map_xcell2face_left1[pcellIdx+1] = pfaceIdx;
                     map_xcell2face_right1[pcellIdx] = pfaceIdx;
+                    map_xcell2face_left1[pcellIdx] = iface;
                     // phantom cells' new neighbors
                     nlft[pcellIdx] = lncell;
                     nrht[pcellIdx] = pcellIdx + 1;
@@ -11762,6 +11766,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     map_ycell2face_bot1[pcellIdx] = pfaceIdx+1;
                     map_ycell2face_top1[pcellIdx+2] = pfaceIdx+2;
                     map_ycell2face_bot1[pcellIdx+3] = pfaceIdx+2;
+                    map_ycell2face_top1[pcellIdx] = iface;
                     // "undo" the second face for the cell, as it is no longer applicable
                     map_ycell2face_top2[bncell] = -1;
                     // old face's new phantom adjacent cell
@@ -11783,6 +11788,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     yrecvIdx[ifixupIdx] = pfaceIdx;
                     int nb = map_yface2cell_lower[pfaceIdx];
+                    //printf("%d) %d %d\n", ifixupIdx, iface, pfaceIdx); 
                     yrecvCIdx[ifixupIdx] = nb;
                     yplusCell2Idx[nb] = ifixupIdx;
                     if (iface < map_ycell2face_bot1[rncell]) {
@@ -11922,6 +11928,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     map_ycell2face_top1[pcellIdx+1] = pfaceIdx+1;
                     map_ycell2face_bot1[pcellIdx+3] = pfaceIdx+2;
                     map_ycell2face_top1[pcellIdx+2] = pfaceIdx+2;
+                    map_ycell2face_bot1[pcellIdx+2] = iface;
                     // "undo" the second face for the cell, as it is no longer applicable
                     map_ycell2face_bot2[tncell] = -1;
                     // old face's new phantom adjacent cell
@@ -11943,6 +11950,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     yrecvIdx[ifixupIdx] = pfaceIdx;
                     int nt = map_yface2cell_upper[pfaceIdx];
+                    //printf("%d) %d %d\n", ifixupIdx, iface, pfaceIdx); 
                     yrecvCIdx[ifixupIdx] = nt;
                     yminusCell2Idx[nt] = ifixupIdx;
                     if (iface < map_ycell2face_top1[rncell]){
@@ -12102,6 +12110,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     map_ycell2face_top1[pcellIdx+1] = pfaceIdx;
                     map_ycell2face_bot1[pcellIdx] = pfaceIdx;
+                    map_ycell2face_top1[pcellIdx] = iface;
                     // phantom cells' new neighbors
                     nbot[pcellIdx] = pcellIdx + 1;
                     ntop[pcellIdx] = tncell;
@@ -12179,6 +12188,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
                     map_ycell2face_top1[pcellIdx] = pfaceIdx;
                     map_ycell2face_bot1[pcellIdx+1] = pfaceIdx;
+                    map_ycell2face_bot1[pcellIdx] = iface;
                     // phantom cells' new neighbors
                     nbot[pcellIdx] = bncell;
                     ntop[pcellIdx] = pcellIdx + 1;
@@ -13367,8 +13377,8 @@ void Mesh::gpu_wbidirmap_setup(void)
     dev_yminusCell2Idx = ezcl_malloc(NULL, const_cast<char *>("dev_yminusCell2Idx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_ysendIdx1 = ezcl_malloc(NULL, const_cast<char *>("dev_ysendIdx1"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_ysendIdx2 = ezcl_malloc(NULL, const_cast<char *>("dev_ysendIdx2"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-    dev_ifixupXStart = ezcl_malloc(NULL, const_cast<char *>("dev_ifixupXStart"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-    dev_ifixupYStart = ezcl_malloc(NULL, const_cast<char *>("dev_ifixupYStart"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_ifixupXCnt = ezcl_malloc(NULL, const_cast<char *>("dev_ifixupXCnt"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_ifixupYCnt = ezcl_malloc(NULL, const_cast<char *>("dev_ifixupYCnt"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     //dev_pxcellIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pxcellIdx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     //dev_pycellIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pycellIdx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     //dev_pxfaceIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pxfaceIdx"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -13424,8 +13434,8 @@ void Mesh::gpu_wbidirmap_delete(void)
    ezcl_device_memory_delete(dev_yminusCell2Idx);
    ezcl_device_memory_delete(dev_ysendIdx1);
    ezcl_device_memory_delete(dev_ysendIdx2);
-   ezcl_device_memory_delete(dev_ifixupXStart);
-   ezcl_device_memory_delete(dev_ifixupYStart);
+   ezcl_device_memory_delete(dev_ifixupXCnt);
+   ezcl_device_memory_delete(dev_ifixupYCnt);
 }
 
 void Mesh::gpu_wbidirmap_realloc(cl_mem *dev_mem_ptr, int old_size, size_t mem_request)
@@ -13438,8 +13448,10 @@ void Mesh::gpu_wbidirmap_realloc(cl_mem *dev_mem_ptr, int old_size, size_t mem_r
         *dev_tmp = *dev_mem_ptr;
 
 
+        
         size_t local_work_size = 128;
         size_t global_work_size = ((old_size+local_work_size - 1) /local_work_size) * local_work_size;
+        //printf("%d %d\n", old_size, global_work_size);
         cl_event deep_copy_event;
         ezcl_set_kernel_arg(kernel_deep_copy, 0, sizeof(cl_int), (void *)&old_size);
         ezcl_set_kernel_arg(kernel_deep_copy, 1, sizeof(cl_mem), (void *)dev_mem_ptr);
@@ -13477,8 +13489,7 @@ void Mesh::gpu_wbidirmap_realloc(cl_mem *dev_mem_ptr, int old_size, size_t mem_r
 int Mesh::gpu_serial_int_reduce(int *arr, int count, int length)
 {
     int sum = count;
-    arr[0] += count;
-    for (int i = 1; i < length; i++) {
+    for (int i = 0; i < length; i++) {
         int my_val = arr[i];
         arr[i] = sum;
         sum += my_val;
@@ -13922,8 +13933,8 @@ __kernel void wbidirmap_precount_cl(
             __global          int   *map_yface2cell_lower,      // 11
             __global          int   *map_yface2cell_upper,      // 12
             __global          int   *nface,                     // 13 Number array of faces
-            __global          int   *ifixupXStart,              // 14
-            __global          int   *ifixupYStart) {            // 15
+            __global          int   *ifixupXCnt,              // 14
+            __global          int   *ifixupYCnt) {            // 15
      */
 
     ezcl_set_kernel_arg(kernel_wbidirmap_precount, 0, sizeof(cl_mem), (void *)&dev_pxcellCnt);
@@ -13940,8 +13951,8 @@ __kernel void wbidirmap_precount_cl(
     ezcl_set_kernel_arg(kernel_wbidirmap_precount, 11, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower);
     ezcl_set_kernel_arg(kernel_wbidirmap_precount, 12, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper);
     ezcl_set_kernel_arg(kernel_wbidirmap_precount, 13, sizeof(cl_mem), (void *)&dev_nface);
-    ezcl_set_kernel_arg(kernel_wbidirmap_precount, 14, sizeof(cl_mem), (void *)&dev_ifixupXStart);
-    ezcl_set_kernel_arg(kernel_wbidirmap_precount, 15, sizeof(cl_mem), (void *)&dev_ifixupYStart);
+    ezcl_set_kernel_arg(kernel_wbidirmap_precount, 14, sizeof(cl_mem), (void *)&dev_ifixupXCnt);
+    ezcl_set_kernel_arg(kernel_wbidirmap_precount, 15, sizeof(cl_mem), (void *)&dev_ifixupYCnt);
 
     ezcl_enqueue_ndrange_kernel(command_queue, kernel_wbidirmap_precount, 1, NULL, &global_work_size, &local_work_size, &wbidirmap_precount_event);
 
@@ -13958,11 +13969,11 @@ __kernel void wbidirmap_precount_cl(
     ezcl_enqueue_read_buffer(command_queue, dev_pycellCnt,     CL_TRUE, 0, nyface*sizeof(cl_int), &cyCnt[0], NULL);
     ezcl_enqueue_read_buffer(command_queue, dev_pxfaceCnt,     CL_TRUE, 0, nxface*sizeof(cl_int), &xCnt[0], NULL);
     ezcl_enqueue_read_buffer(command_queue, dev_pyfaceCnt,     CL_TRUE, 0, nyface*sizeof(cl_int), &yCnt[0], NULL);
-    ezcl_enqueue_read_buffer(command_queue, dev_ifixupXStart,     CL_TRUE, 0, nxface*sizeof(cl_int), &fixupX[0], NULL);
-    ezcl_enqueue_read_buffer(command_queue, dev_ifixupYStart,     CL_TRUE, 0, nyface*sizeof(cl_int), &fixupY[0], NULL);
+    ezcl_enqueue_read_buffer(command_queue, dev_ifixupXCnt,     CL_TRUE, 0, nxface*sizeof(cl_int), &fixupX[0], NULL);
+    ezcl_enqueue_read_buffer(command_queue, dev_ifixupYCnt,     CL_TRUE, 0, nyface*sizeof(cl_int), &fixupY[0], NULL);
     
     //printf("\n\n"); 
-    //for (int dumb = 0; dumb < nxface; dumb++) { printf("%d %d\t", cxCnt[dumb], xCnt[dumb]); }
+    //for (int dumb = 0; dumb < nxface; dumb++) { printf("%d %d\t", cyCnt[dumb], yCnt[dumb]); }
     //printf("\n"); 
     //run reduce on the CPU version of device memory
     int xcellCnt = gpu_serial_int_reduce(&cxCnt[0], ncells, nxface);
@@ -13972,7 +13983,7 @@ __kernel void wbidirmap_precount_cl(
         pcellCnt = xcellCnt + ycellCnt - ncells; // subtract ncells b/c bot xcellCnt & ycellCnt include it
         nxfixup = gpu_serial_int_reduce(&fixupX[0], 0, nxface);
         nyfixup = gpu_serial_int_reduce(&fixupY[0], 0, nyface);
-    //for (int dumb = 0; dumb < nxface; dumb++) { printf("%d %d\t", cxCnt[dumb], xCnt[dumb]); }
+    //for (int dumb = 0; dumb < nyface; dumb++) { printf("%d) %d\n", dumb, cyCnt[dumb]); }
     //printf("\n\n"); 
     //printf("%d\n", xcellCnt - ncells);
 
@@ -13983,16 +13994,18 @@ __kernel void wbidirmap_precount_cl(
     gpu_wbidirmap_realloc(&dev_map_xface2cell_upper, nxface, pxfaceCnt);
     gpu_wbidirmap_realloc(&dev_map_yface2cell_lower, nyface, pyfaceCnt);
     gpu_wbidirmap_realloc(&dev_map_yface2cell_upper, nyface, pyfaceCnt);
-    gpu_wbidirmap_realloc(&dev_map_xcell2face_left1, ncells, xcellCnt);
-    gpu_wbidirmap_realloc(&dev_map_xcell2face_right1, ncells, xcellCnt);
-    gpu_wbidirmap_realloc(&dev_map_ycell2face_bot1, ncells, ycellCnt);
-    gpu_wbidirmap_realloc(&dev_map_ycell2face_top1, ncells, ycellCnt);
+    gpu_wbidirmap_realloc(&dev_map_xcell2face_left1, ncells, pcellCnt);
+    gpu_wbidirmap_realloc(&dev_map_xcell2face_right1, ncells, pcellCnt);
+    gpu_wbidirmap_realloc(&dev_map_ycell2face_bot1, ncells, pcellCnt);
+    gpu_wbidirmap_realloc(&dev_map_ycell2face_top1, ncells, pcellCnt);
 
     size_t size_nxface = nxface, size_nyface = nyface;
-    dev_pxcellIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pxcellIdx"), &size_nxface, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-    dev_pycellIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pycellIdx"), &size_nyface, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-    dev_pxfaceIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pxfaceIdx"), &size_nxface, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
-    dev_pyfaceIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pyfaceIdx"), &size_nyface, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    cl_mem dev_pxcellIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pxcellIdx"), &size_nxface, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    cl_mem dev_pycellIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pycellIdx"), &size_nyface, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    cl_mem dev_pxfaceIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pxfaceIdx"), &size_nxface, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    cl_mem dev_pyfaceIdx = ezcl_malloc(NULL, const_cast<char *>("dev_pyfaceIdx"), &size_nyface, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    cl_mem dev_ifixupXStart = ezcl_malloc(NULL, const_cast<char *>("dev_ifixupXStart"), &size_nxface, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    cl_mem dev_ifixupYStart = ezcl_malloc(NULL, const_cast<char *>("dev_ifixupYStart"), &size_nyface, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     ezcl_enqueue_write_buffer(command_queue, dev_pxcellIdx, CL_TRUE, 0, nxface*sizeof(cl_int), &cxCnt[0], NULL);
     ezcl_enqueue_write_buffer(command_queue, dev_pycellIdx, CL_TRUE, 0, nyface*sizeof(cl_int), &cyCnt[0], NULL);
     ezcl_enqueue_write_buffer(command_queue, dev_pxfaceIdx, CL_TRUE, 0, nxface*sizeof(cl_int), &xCnt[0], NULL);
@@ -14003,10 +14016,10 @@ __kernel void wbidirmap_precount_cl(
     vector<int>xplusCell(ncells, -1);
     vector<int>yminusCell(ncells, -1);
     vector<int>yplusCell(ncells, -1);
-    ezcl_enqueue_write_buffer(command_queue, dev_xminusCell2Idx, CL_TRUE, 0, nyface*sizeof(cl_int), &xminusCell[0], NULL);
-    ezcl_enqueue_write_buffer(command_queue, dev_xplusCell2Idx, CL_TRUE, 0, nyface*sizeof(cl_int), &xplusCell[0], NULL);
-    ezcl_enqueue_write_buffer(command_queue, dev_yminusCell2Idx, CL_TRUE, 0, nyface*sizeof(cl_int), &yminusCell[0], NULL);
-    ezcl_enqueue_write_buffer(command_queue, dev_yplusCell2Idx, CL_TRUE, 0, nyface*sizeof(cl_int), &yplusCell[0], NULL);
+    ezcl_enqueue_write_buffer(command_queue, dev_xminusCell2Idx, CL_TRUE, 0, ncells*sizeof(cl_int), &xminusCell[0], NULL);
+    ezcl_enqueue_write_buffer(command_queue, dev_xplusCell2Idx, CL_TRUE, 0, ncells*sizeof(cl_int), &xplusCell[0], NULL);
+    ezcl_enqueue_write_buffer(command_queue, dev_yminusCell2Idx, CL_TRUE, 0, ncells*sizeof(cl_int), &yminusCell[0], NULL);
+    ezcl_enqueue_write_buffer(command_queue, dev_yplusCell2Idx, CL_TRUE, 0, ncells*sizeof(cl_int), &yplusCell[0], NULL);
 
 
     MallocPlus gpu_state_memory_old = gpu_state_memory;
@@ -14145,15 +14158,37 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
     ezcl_wait_for_events(1, &calc_wbidirmap_phantom_neighbors_event);
     ezcl_event_release(calc_wbidirmap_phantom_neighbors_event);
 
+    vector<int>map_l(pcellCnt);
+    ezcl_enqueue_read_buffer(command_queue, dev_map_ycell2face_bot1,     CL_TRUE, 0, pcellCnt*sizeof(cl_int), &map_l[0], NULL);
+    vector<int>map_r(pcellCnt);
+    ezcl_enqueue_read_buffer(command_queue, dev_map_ycell2face_top1,     CL_TRUE, 0, pcellCnt*sizeof(cl_int), &map_r[0], NULL);
+    //for (int jello = 0; jello < pcellCnt; jello++) { 
+    //    if ((jello % 2 == ncells % 2) && (jello >= ncells)) 
+    //        printf("%d) %d %d\n", jello, map_l[jello], map_r[jello]);
+    //}
+    //vector<int>recvCx(nxfixup);
+    /*vector<int>map_yface(pyfaceCnt);
+    ezcl_enqueue_read_buffer(command_queue, dev_map_yface2cell_upper,     CL_TRUE, 0, pyfaceCnt*sizeof(cl_int), &map_yface[0], NULL);
+    vector<int>recvCx(nxfixup);
+    ezcl_enqueue_read_buffer(command_queue, dev_xrecvCIdx,     CL_TRUE, 0, nxfixup*sizeof(cl_int), &recvCx[0], NULL);
+    vector<int>recvCy(nyfixup);
+    ezcl_enqueue_read_buffer(command_queue, dev_yrecvIdx,     CL_TRUE, 0, nyfixup*sizeof(cl_int), &recvCy[0], NULL);
+        int yordle = 0;
+    for (int dumb = 0; dumb < nyface -1; dumb++) { 
+        if (fixupY[dumb] != fixupY[dumb+1]) {
+            printf("%d) %d %d\n", yordle, dumb, recvCy[yordle]);
+            yordle++;
+        }
+    }*/
 
 
     ezcl_device_memory_delete(dev_pxcellIdx);
     ezcl_device_memory_delete(dev_pycellIdx);
     ezcl_device_memory_delete(dev_pxfaceIdx);
     ezcl_device_memory_delete(dev_pyfaceIdx);
+    ezcl_device_memory_delete(dev_ifixupXStart);
+    ezcl_device_memory_delete(dev_ifixupYStart);
 
-   //vector<int>map_xface(pxfaceCnt);
-   //ezcl_enqueue_read_buffer(command_queue, dev_map_xface2cell_lower,     CL_TRUE, 0, pxfaceCnt*sizeof(cl_int), &map_xface[0], NULL);
    
 /*   
    vector<int>map_xcell_tmp_l(ncells);

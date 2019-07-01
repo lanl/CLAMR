@@ -3649,8 +3649,8 @@ __kernel void wbidirmap_precount_cl(
             __global          int   *map_yface2cell_lower,      // 11
             __global          int   *map_yface2cell_upper,      // 12
             __global          int   *nface,                     // 13 Number array of faces
-            __global          int   *ifixupXStart,              // 14
-            __global          int   *ifixupYStart) {            // 15
+            __global          int   *ifixupXCnt,              // 14
+            __global          int   *ifixupYCnt) {            // 15
 
 
    /////////////////////////////////////////////
@@ -3675,7 +3675,7 @@ __kernel void wbidirmap_precount_cl(
     if (giX < nface[0]) {
         pxcellCnt[giX] = 0;
         pxfaceCnt[giX] = 0;
-        ifixupXStart[giX] = 0;
+        ifixupXCnt[giX] = 0;
         lncell = map_xface2cell_lower[giX];
         rncell = map_xface2cell_upper[giX];
         level_left = level[lncell];
@@ -3698,7 +3698,7 @@ __kernel void wbidirmap_precount_cl(
                 if (fncell == bncell) { 
                     pxcellCnt[giX] += 4;
                     pxfaceCnt[giX] += 3;
-                    ifixupXStart[giX] ++;
+                    ifixupXCnt[giX] ++;
                 }
                 else {
                     pxcellCnt[giX] += 2;
@@ -3711,7 +3711,7 @@ __kernel void wbidirmap_precount_cl(
     if (giX < nface[1]) {
         pycellCnt[giX] = 0;
         pyfaceCnt[giX] = 0;
-        ifixupYStart[giX] = 0;
+        ifixupYCnt[giX] = 0;
         bncell = map_yface2cell_lower[giX];
         tncell = map_yface2cell_upper[giX];
         level_bot = level[bncell];
@@ -3734,7 +3734,7 @@ __kernel void wbidirmap_precount_cl(
                 if (fncell == lncell) {
                     pycellCnt[giX] += 4;
                     pyfaceCnt[giX] += 3;
-                    ifixupYStart[giX] ++;
+                    ifixupYCnt[giX] ++;
                 }
                 else {
                     pycellCnt[giX] += 2;
@@ -3841,6 +3841,7 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
                         map_xcell2face_left1[pcellIdx] = pfaceIdx+1;
                         map_xcell2face_right1[pcellIdx+2] = pfaceIdx+2;
                         map_xcell2face_left1[pcellIdx+3] = pfaceIdx+2;
+                        map_xcell2face_right1[pcellIdx] = iface;
                         map_xface2cell_lower[iface] = pcellIdx;
     
                         //interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -3872,6 +3873,7 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
                         map_xcell2face_right1[pcellIdx+1] = pfaceIdx+1;
                         map_xcell2face_left1[pcellIdx+3] = pfaceIdx+2;
                         map_xcell2face_right1[pcellIdx+2] = pfaceIdx+2;
+                        map_xcell2face_left1[pcellIdx+2] = iface;
                         map_xface2cell_upper[iface] = pcellIdx + 2;
     
                         //interpolate(1, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -3898,6 +3900,7 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
                         map_xface2cell_lower[pfaceIdx] = pcellIdx+1;
                         map_xcell2face_left1[pcellIdx] = pfaceIdx;
                         map_xcell2face_right1[pcellIdx+1] = pfaceIdx;
+                        map_xcell2face_right1[pcellIdx] = iface;
 
                         //interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     }
@@ -3907,6 +3910,7 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
                         map_xface2cell_lower[pfaceIdx] = pcellIdx;
                         map_xcell2face_left1[pcellIdx+1] = pfaceIdx;
                         map_xcell2face_right1[pcellIdx] = pfaceIdx;
+                        map_xcell2face_left1[pcellIdx] = iface;
 
                         //interpolate(1, pcellIdx-2, lncell, rncell, deltaT,  state_memory_old);
                     }
@@ -3914,6 +3918,10 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
             }
         }
     }
+
+    pcellIdx = pycellIdx[iface];
+    pfaceIdx = pyfaceIdx[iface];
+    ifixupIdx = ifixupYStart[iface];
 
     if (giX < nface[1]) {
         bncell = map_yface2cell_lower[giX];
@@ -3949,6 +3957,7 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
                         map_ycell2face_bot1[pcellIdx] = pfaceIdx+1;
                         map_ycell2face_top1[pcellIdx+2] = pfaceIdx+2;
                         map_ycell2face_bot1[pcellIdx+3] = pfaceIdx+2;
+                        map_ycell2face_top1[pcellIdx] = iface;
                         map_yface2cell_lower[iface] = pcellIdx;
 
                         //interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
@@ -3980,6 +3989,7 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
                         map_ycell2face_top1[pcellIdx+1] = pfaceIdx+1;
                         map_ycell2face_bot1[pcellIdx+3] = pfaceIdx+2;
                         map_ycell2face_top1[pcellIdx+2] = pfaceIdx+2;
+                        map_ycell2face_bot1[pcellIdx+2] = iface;
                         map_yface2cell_upper[iface] = pcellIdx + 2;
 
                         //interpolate(3, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
@@ -4006,6 +4016,7 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
                         map_yface2cell_lower[pfaceIdx] = pcellIdx+1;
                         map_ycell2face_top1[pcellIdx+1] = pfaceIdx;
                         map_ycell2face_bot1[pcellIdx] = pfaceIdx;
+                        map_ycell2face_top1[pcellIdx] = iface;
     
                         //interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     }
@@ -4015,6 +4026,7 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
                         map_yface2cell_lower[pfaceIdx] = pcellIdx;
                         map_ycell2face_top1[pcellIdx] = pfaceIdx;
                         map_ycell2face_bot1[pcellIdx+1] = pfaceIdx;
+                        map_ycell2face_bot1[pcellIdx] = iface;
                     
                         //interpolate(3, pcellIdx-2, bncell, tncell, deltaT,  state_memory_old);
                     }

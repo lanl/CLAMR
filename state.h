@@ -339,7 +339,7 @@ public:
 #ifdef HAVE_OPENCL
    //void gpu_faces_realloc(size_t mem_requestx, size_t mem_requesty);
    void gpu_faces_setup(size_t mem_requestx, size_t mem_requesty);
-   void gpu_faces_setup_phantom(size_t mem_requestx, size_t mem_requesty);
+   void gpu_faces_setup_phantom(size_t mem_request);
    void gpu_faces_delete(void);
    void gpu_faces_delete_phantom(void);
    void gpu_calc_finite_difference(double deltaT);
