@@ -173,7 +173,7 @@ double digitround(double var, int ndigits);
 double bittruncate(double var, uint nbits);
 
 //  Set up timing information.
-static struct timeval tstart, tstart_cpu, tstart_partmeas;
+static struct timespec tstart, tstart_cpu, tstart_partmeas;
 
 static double H_sum_initial = 0.0;
 static double cpu_time_graphics = 0.0;
@@ -184,7 +184,7 @@ static int     ncycle  = 0;
 static double  simTime = 0.0;
 static double  deltaT = 0.0;
 char total_sim_time_log[] = {"total_execution_time.log"};
-struct timeval total_exec;
+struct timespec total_exec;
 
 static int mype=0;
 int main(int argc, char **argv) {
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
 
    parse = new PowerParser();
 
-   struct timeval tstart_setup;
+   struct timespec tstart_setup;
    cpu_timer_start(&tstart_setup);
 
    crux = new Crux(crux_type, num_of_rollback_states, restart);

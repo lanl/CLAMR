@@ -346,7 +346,7 @@ void Mesh::partition_cells(
    vector<double> iunit;     //
    vector<double> junit;     //
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    //  Initialize ordered curve index.

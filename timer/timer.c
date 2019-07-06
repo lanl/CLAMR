@@ -54,11 +54,6 @@
  * 
  */
 #include <sys/time.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -69,45 +64,45 @@
 
 #include "timer.h"
 
-void cpu_timer_start(struct timeval *tstart_cpu){
+void cpu_timer_start(struct timespec *tstart_cpu){
 #ifdef _OPENMP
    if ( omp_in_parallel() ) {
 #pragma omp master
       {
-         gettimeofday(tstart_cpu, NULL);
+         clock_gettime(CLOCK_MONOTONIC, tstart_cpu);
       }
    } else {
-      gettimeofday(tstart_cpu, NULL);
+      clock_gettime(CLOCK_MONOTONIC, tstart_cpu);
    }
 #else
-   gettimeofday(tstart_cpu, NULL);
+   clock_gettime(CLOCK_MONOTONIC, tstart_cpu);
 #endif
 }
 
-double cpu_timer_stop(struct timeval tstart_cpu){
+double cpu_timer_stop(struct timespec tstart_cpu){
    double result;
-   struct timeval tstop_cpu, tresult;
+   struct timespec tstop_cpu, tresult;
 
 #ifdef _OPENMP
    if ( omp_in_parallel() ) {
 #pragma omp master
       {
-         gettimeofday(&tstop_cpu, NULL);
+         clock_gettime(CLOCK_MONOTONIC, &tstop_cpu);
          tresult.tv_sec = tstop_cpu.tv_sec - tstart_cpu.tv_sec;
-         tresult.tv_usec = tstop_cpu.tv_usec - tstart_cpu.tv_usec;
-         result = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
+         tresult.tv_nsec = tstop_cpu.tv_nsec - tstart_cpu.tv_nsec;
+         result = (double)tresult.tv_sec + (double)tresult.tv_nsec*1.0e-9;
       }
    } else {
-      gettimeofday(&tstop_cpu, NULL);
+      clock_gettime(CLOCK_MONOTONIC, &tstop_cpu);
       tresult.tv_sec = tstop_cpu.tv_sec - tstart_cpu.tv_sec;
-      tresult.tv_usec = tstop_cpu.tv_usec - tstart_cpu.tv_usec;
-      result = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
+      tresult.tv_nsec = tstop_cpu.tv_nsec - tstart_cpu.tv_nsec;
+      result = (double)tresult.tv_sec + (double)tresult.tv_nsec*1.0e-9;
    }
 #else
-   gettimeofday(&tstop_cpu, NULL);
+   clock_gettime(CLOCK_MONOTONIC, &tstop_cpu);
    tresult.tv_sec = tstop_cpu.tv_sec - tstart_cpu.tv_sec;
-   tresult.tv_usec = tstop_cpu.tv_usec - tstart_cpu.tv_usec;
-   result = (double)tresult.tv_sec + (double)tresult.tv_usec*1.0e-6;
+   tresult.tv_nsec = tstop_cpu.tv_nsec - tstart_cpu.tv_nsec;
+   result = (double)tresult.tv_sec + (double)tresult.tv_nsec*1.0e-9;
 #endif
    return(result);
 }

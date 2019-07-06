@@ -101,8 +101,8 @@ void access_named_hdf5_values (const char *name, int name_size,
 #endif
 
 FILE *crux_time_fp;
-struct timeval tcheckpoint_time;
-struct timeval trestore_time;
+struct timespec tcheckpoint_time;
+struct timespec trestore_time;
 int checkpoint_timing_count = 0;
 float checkpoint_timing_sum = 0.0f;
 float checkpoint_timing_size = 0.0f;

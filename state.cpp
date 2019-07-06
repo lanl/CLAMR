@@ -368,7 +368,7 @@ void knuth_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Data
 
 void State::add_boundary_cells(void)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    // This is for a mesh with no boundary cells -- they are added and
@@ -764,7 +764,7 @@ double State::set_timestep(double g, double sigma)
 {
    double globalmindeltaT;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    static double mindeltaT;
@@ -832,7 +832,7 @@ double State::gpu_set_timestep(double sigma)
 {
    double deltaT, globalmindeltaT;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -989,7 +989,7 @@ void State::state_reorder(vector<int> iorder)
 
 void State::rezone_all(int icount, int jcount, vector<char_t> mpot)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    mesh->rezone_all(icount, jcount, mpot, 1, state_memory);
@@ -1010,7 +1010,7 @@ void State::rezone_all(int icount, int jcount, vector<char_t> mpot)
 #ifdef HAVE_OPENCL
 void State::gpu_rezone_all(int icount, int jcount, bool localStencil)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    // Just to get rid of compiler warnings
@@ -1127,7 +1127,7 @@ void State::calc_finite_difference(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = 0.5*g;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    //printf("\nDEBUG finite diff\n"); 
@@ -1605,10 +1605,10 @@ void State::calc_finite_difference_cell_in_place(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = HALF*g;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_cpu_part;
+   struct timespec tstart_cpu_part;
    cpu_timer_start(&tstart_cpu_part);
 
    // We need to populate the ghost regions since the calc neighbors has just been
@@ -1925,10 +1925,10 @@ void State::calc_finite_difference_face_in_place(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = HALF*g;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_cpu_part;
+   struct timespec tstart_cpu_part;
    cpu_timer_start(&tstart_cpu_part);
 
    // We need to populate the ghost regions since the calc neighbors has just been
@@ -2193,7 +2193,7 @@ void State::calc_finite_difference_via_faces(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = HALF*g;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    // We need to populate the ghost regions since the calc neighbors has just been
@@ -2699,10 +2699,10 @@ void State::calc_finite_difference_regular_cells(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = 0.5*g;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_cpu_part;
+   struct timespec tstart_cpu_part;
    cpu_timer_start(&tstart_cpu_part);
 
    //printf("\nDEBUG finite diff\n"); 
@@ -3024,7 +3024,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = 0.5*g;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    //printf("\nDEBUG finite diff\n"); 
@@ -3319,7 +3319,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT){
 void State::gpu_calc_finite_difference(double deltaT)
 {
     
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -3501,7 +3501,7 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
 {
 
     
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -3820,7 +3820,7 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
 {
 
     
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -4150,13 +4150,13 @@ void State::symmetry_check(const char *string, vector<int> sym_index, double eps
 size_t State::calc_refine_potential(vector<char_t> &mpot,int &icount, int &jcount)
 {
    
-  struct timeval tstart_cpu;
+  struct timespec tstart_cpu;
 #ifdef _OPENMP
 #pragma omp parallel 
 {
 #endif
 
-  struct timeval tstart_lev2;
+  struct timespec tstart_lev2;
 
 #ifdef _OPENMP
 #pragma omp master
@@ -4323,10 +4323,10 @@ size_t State::calc_refine_potential(vector<char_t> &mpot,int &icount, int &jcoun
 #ifdef HAVE_OPENCL
 size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_lev2;
+   struct timespec tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -4561,7 +4561,7 @@ double State::mass_sum(int enhanced_precision_sum)
    //int &mype = mesh->mype;
 #endif
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    double summer = 0.0;
@@ -4628,7 +4628,7 @@ double State::mass_sum(int enhanced_precision_sum)
 #ifdef HAVE_OPENCL
 double State::gpu_mass_sum(int enhanced_precision_sum)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    cl_command_queue command_queue = ezcl_get_command_queue();

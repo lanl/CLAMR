@@ -61,8 +61,8 @@ extern "C"
 {
 #endif
 
-void cpu_timer_start(struct timeval *tstart_cpu);
-double cpu_timer_stop(struct timeval tstart_cpu);
+void cpu_timer_start(struct timespec *tstart_cpu);
+double cpu_timer_stop(struct timespec tstart_cpu);
 
 #ifdef __cplusplus
 }
