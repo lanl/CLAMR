@@ -459,6 +459,7 @@ void FC_FUNC(get_char0,GET_CHAR0)(char *cmdname, char *cmdvalue,
     *len_value_actual = len;
 
     if (len > (*len_value)) len = (*len_value);
+#pragma omp simd
     for (int i=0; i<len; i++) {
         cmdvalue[i] = cvalue[i];
     }
@@ -944,6 +945,7 @@ void FC_FUNC(get_output_line,GET_OUTPUT_LINE)(char *fline, int *nchar,
     nc_max = nc < *nchar ? nc : *nchar;
 
     // Copy the characters to the fortran character string. Pad with blanks.
+#pragma omp simd
     for (int i=0; i<nc_max; i++) {
         fline[i] = sline.c_str()[i];
     }
