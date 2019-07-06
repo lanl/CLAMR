@@ -12928,10 +12928,10 @@ void Mesh::calc_face_list_wbidirmap(void)
 
 #ifdef NOVEC
 void Mesh::calc_face_list_wbidirmap_novec(void) {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_cpu_part;
+   struct timespec tstart_cpu_part;
    cpu_timer_start(&tstart_cpu_part);
 
    //map_xface2cell_lower.clear();
@@ -13722,7 +13722,7 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
 
 void Mesh::gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory, double deltaT)
 {
-    struct timeval tstart_cpu;
+    struct timespec tstart_cpu;
     cpu_timer_start(&tstart_cpu);
     
     cl_command_queue command_queue = ezcl_get_command_queue();

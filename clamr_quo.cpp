@@ -122,7 +122,7 @@ static State      *state;    //  Object containing state information correspondi
 
 
 //  Set up timing information.
-static struct timeval tstart;
+static struct timespec tstart;
 
 static double H_sum_initial = 0.0;
 static double cpu_time_graphics = 0.0;
@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
    signal(SIGSEGV, SIG_DFL);
 #endif
 
-   struct timeval tstart_setup;
+   struct timespec tstart_setup;
    cpu_timer_start(&tstart_setup);
 
    real_t circ_radius = 6.0;
@@ -320,7 +320,7 @@ extern "C" void do_calc(void)
 {  double g     = 9.80;
    double sigma = 0.95; 
    int icount, jcount;
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
 
    //  Initialize state variables for GPU calculation.
    int &mype  = mesh->mype;

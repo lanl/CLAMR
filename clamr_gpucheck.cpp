@@ -159,7 +159,7 @@ static real_t circ_radius = 0.0;
 static int next_graphics_cycle = 0;
 
 //  Set up timing information.
-static struct timeval tstart, tstart_cpu, tstart_partmeas;
+static struct timespec tstart, tstart_cpu, tstart_partmeas;
 //static struct tstart_check;
 static cl_event start_write_event, end_write_event;
 
@@ -185,7 +185,7 @@ int main(int argc, char **argv) {
    //  Process command-line arguments, if any.
    parseInput(argc, argv);
 
-   struct timeval tstart_setup;
+   struct timespec tstart_setup;
    cpu_timer_start(&tstart_setup);
    
    numpe = 16;

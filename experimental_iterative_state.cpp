@@ -298,7 +298,7 @@ void kahan_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Data
 
 void State::add_boundary_cells(void)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
 
    cpu_timer_start(&tstart_cpu);
 
@@ -718,7 +718,7 @@ double State::set_timestep(double g, double sigma)
 {
    double globalmindeltaT;
    double mindeltaT = 1000.0;
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
 
    cpu_timer_start(&tstart_cpu);
 
@@ -771,7 +771,7 @@ double State::gpu_set_timestep(double sigma)
 {
    double deltaT, globalmindeltaT;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -957,7 +957,7 @@ void State::calc_finite_difference(double deltaT){
 	real_t   ghalf = HALF*g;
 
 	// Timers
-	struct timeval tstart_cpu;
+	struct timespec tstart_cpu;
 	cpu_timer_start(&tstart_cpu);
 
 	// Grab the Physical Adaptive Mesh Cells
@@ -1511,7 +1511,7 @@ void State::calc_finite_difference(double deltaT){
 #ifdef HAVE_OPENCL
 void State::gpu_calc_finite_difference(double deltaT)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -1725,10 +1725,10 @@ void State::symmetry_check(const char *string, vector<int> sym_index, double eps
 
 size_t State::calc_refine_potential(vector<char_t> &mpot,int &icount, int &jcount)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_lev2;
+   struct timespec tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
    size_t ncells     = mesh->ncells;
@@ -1874,10 +1874,10 @@ size_t State::calc_refine_potential(vector<char_t> &mpot,int &icount, int &jcoun
 #ifdef HAVE_OPENCL
 size_t State::gpu_calc_refine_potential(int &icount, int &jcount)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_lev2;
+   struct timespec tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -2112,7 +2112,7 @@ double State::mass_sum(int enhanced_precision_sum)
    //int &mype = mesh->mype;
 #endif
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    double summer = 0.0;
@@ -2179,7 +2179,7 @@ double State::mass_sum(int enhanced_precision_sum)
 #ifdef HAVE_OPENCL
 double State::gpu_mass_sum(int enhanced_precision_sum)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    cl_command_queue command_queue = ezcl_get_command_queue();

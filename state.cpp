@@ -4560,7 +4560,7 @@ __kernel void calc_finite_difference_in_place_fill_new_cl(
 
 void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    cl_command_queue command_queue = ezcl_get_command_queue();

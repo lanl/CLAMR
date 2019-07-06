@@ -283,8 +283,8 @@ struct verbose_timing {
    struct verbose_timing *next; /* linked list - the next guy in the chain */
    int fname_index;             /* the function id (L7_IO_PROF_OPEN ...) */
    int file_id;                 /* the file ID associated w/ this op */
-   struct timeval time_in;
-   struct timeval time_out;
+   struct timespec time_in;
+   struct timespec time_out;
    enum L7_DiskPatternType  l7_disk_pattern;  /* like distributed/replicated */
    /* these next three are left open to be used or not used by each timing.
     * some of the functions will want to store things in them while others
@@ -303,8 +303,8 @@ struct verbose_fd {
     * be reused by the system so we need to record what times the open/close
     * was done
     */
-   struct timeval valid_start;
-   struct timeval valid_end;
+   struct timespec valid_start;
+   struct timespec valid_end;
 };
 
 union l7_file_handler {

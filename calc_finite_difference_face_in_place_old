@@ -2,7 +2,7 @@ void State::calc_finite_difference_face_in_place_old(double deltaT){
    real_t   g     = 9.80;   // gravitational constant
    real_t   ghalf = HALF*g;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    size_t ncells     = mesh->ncells;

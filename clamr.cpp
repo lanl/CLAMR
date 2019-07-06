@@ -136,7 +136,7 @@ static Mesh       *mesh;     //  Object containing mesh information; init in gri
 static State      *state;    //  Object containing state information corresponding to mesh; init in grid.cpp::main().
 
 //  Set up timing information.
-static struct timeval tstart;
+static struct timespec tstart;
 static cl_event start_write_event, end_write_event;
 
 static double H_sum_initial = 0.0;
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
    }
    L7_Dev_Init();
 
-   struct timeval tstart_setup;
+   struct timespec tstart_setup;
    cpu_timer_start(&tstart_setup);
 
    real_t circ_radius = 6.0;
@@ -395,7 +395,7 @@ extern "C" void do_calc(void)
    int &numpe = mesh->numpe;
 
 #ifdef HAVE_GRAPHICS
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
 
 #ifdef HAVE_OPENGL
    vector<int>   &nsizes   = mesh->nsizes;

@@ -164,7 +164,7 @@ static Mesh       *mesh_local;     //  Object containing mesh information; init 
 static State      *state_local;    //  Object containing state information corresponding to mesh; init in grid.cpp::main().
 
 //  Set up timing information.
-static struct timeval tstart;
+static struct timespec tstart;
 static cl_event start_write_event, end_write_event;
 
 static double  H_sum_initial = 0.0;
@@ -840,7 +840,7 @@ extern "C" void do_calc(void)
 
    gpu_time_graphics += ezcl_timer_calc(&start_read_event, &end_read_event);
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    ezcl_device_memory_remove(dev_x);

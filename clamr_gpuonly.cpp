@@ -148,7 +148,7 @@ static real_t circ_radius = 0.0;
 static int next_graphics_cycle = 0;
 
 //  Set up timing information.
-static struct timeval tstart, tstart_cpu;
+static struct timespec tstart, tstart_cpu;
 //static struct tstart_check;
 static cl_event start_read_event,  end_read_event;
 
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
    //  Process command-line arguments, if any.
    parseInput(argc, argv);
 
-   struct timeval tstart_setup;
+   struct timespec tstart_setup;
    cpu_timer_start(&tstart_setup);
    
    numpe = 16;
@@ -466,7 +466,7 @@ extern "C" void do_calc(void)
    }
 
 #ifdef HAVE_GRAPHICS
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    set_display_mysize(ncells);
