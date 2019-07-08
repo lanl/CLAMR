@@ -55,7 +55,7 @@
  *           Dennis Trujillo         dptrujillo@lanl.gov, dptru10@gmail.com
  * 
  */
-#include <sys/time.h>
+#include <time.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
