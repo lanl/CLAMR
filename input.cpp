@@ -204,9 +204,10 @@ void outputHelp()
          << "  -x                turn on phantom AMR regular debug" << endl
          << "  -z                force recalculation of neighbors." << endl
          << "  -Z <Z>            Include cuts along y-axis (y vs. H) with output files." << endl
-         << "      \"y-axis\"" << endl
-         << "      \"x-axis\"" << endl
-         << "      \"45-deg\"" << endl;}
+         << "      \"yaxis\"" << endl
+         << "      \"xaxis\"" << endl
+         << "      \"45deg\"" << endl
+         << "      \"all\"" << endl;}
 
 void outputVersion()
 {   cout << progName << " " << progVers << endl; }
