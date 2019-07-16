@@ -1,13 +1,15 @@
 /*
- *  Copyright (c) 2011-2012, Los Alamos National Security, LLC.
+ *  Copyright (c) 2011-2019, Triad National Security, LLC.
  *  All rights Reserved.
  *
- *  Copyright 2011-2012. Los Alamos National Security, LLC. This software was produced 
- *  under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
- *  Laboratory (LANL), which is operated by Los Alamos National Security, LLC 
+ *  CLAMR -- LA-CC-11-094
+ *
+ *  Copyright 2011-2019. Triad National Security, LLC. This software was produced 
+ *  under U.S. Government contract 89233218CNA000001 for Los Alamos National 
+ *  Laboratory (LANL), which is operated by Triad National Security, LLC 
  *  for the U.S. Department of Energy. The U.S. Government has rights to use, 
- *  reproduce, and distribute this software.  NEITHER THE GOVERNMENT NOR LOS 
- *  ALAMOS NATIONAL SECURITY, LLC MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR 
+ *  reproduce, and distribute this software.  NEITHER THE GOVERNMENT NOR
+ *  TRIAD NATIONAL SECURITY, LLC MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR 
  *  ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE.  If software is modified
  *  to produce derivative works, such modified software should be clearly marked,
  *  so as not to confuse it with the version available from LANL.
@@ -19,15 +21,15 @@
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Los Alamos National Security, LLC, Los Alamos 
+ *     * Neither the name of the Triad National Security, LLC, Los Alamos 
  *       National Laboratory, LANL, the U.S. Government, nor the names of its 
  *       contributors may be used to endorse or promote products derived from 
  *       this software without specific prior written permission.
  *  
- *  THIS SOFTWARE IS PROVIDED BY THE LOS ALAMOS NATIONAL SECURITY, LLC AND 
+ *  THIS SOFTWARE IS PROVIDED BY THE TRIAD NATIONAL SECURITY, LLC AND 
  *  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT 
  *  NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL LOS ALAMOS NATIONAL
+ *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL TRIAD NATIONAL
  *  SECURITY, LLC OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
  *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
  *  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
@@ -1692,7 +1694,7 @@ size_t Mesh::refine_smooth(vector<char_t> &mpot, int &icount, int &jcount)
    int newcount;
    int newcount_global;
 
-   struct timeval tstart_lev2;
+   struct timespec tstart_lev2;
 
    struct mesh_type
    {
@@ -2113,7 +2115,7 @@ size_t Mesh::refine_smooth(vector<char_t> &mpot, int &icount, int &jcount)
 #ifdef HAVE_OPENCL
 int Mesh::gpu_refine_smooth(cl_mem &dev_mpot, int &icount, int &jcount)
 {
-   struct timeval tstart_lev2;
+   struct timespec tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -2618,7 +2620,7 @@ void Mesh::kdtree_setup()
 
 void Mesh::calc_spatial_coordinates(int ibase)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    x.clear();
@@ -2671,7 +2673,7 @@ void Mesh::calc_spatial_coordinates(int ibase)
 #ifdef HAVE_OPENCL
 void Mesh::gpu_calc_spatial_coordinates(cl_mem dev_x, cl_mem dev_dx, cl_mem dev_y, cl_mem dev_dy)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    cl_event calc_spatial_coordinates_event;
@@ -2808,7 +2810,7 @@ void Mesh::calc_centerminmax(void)
 
 void Mesh::rezone_all(int icount, int jcount, vector<char_t> mpot, int have_state, MallocPlus &state_memory)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    if (! do_rezone) {
@@ -3946,7 +3948,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
 {
    if (! gpu_do_rezone) return;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    gpu_counters[MESH_COUNTER_REZONE]++;
@@ -4237,7 +4239,7 @@ void Mesh::gpu_rezone_all(int icount, int jcount, cl_mem &dev_mpot, MallocPlus &
 
 void Mesh::calc_neighbors(int ncells)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    if (do_rezone) {
@@ -4298,7 +4300,7 @@ void Mesh::calc_neighbors(int ncells)
 
       if (calc_neighbor_type == HASH_TABLE) {
 
-         struct timeval tstart_lev2;
+         struct timespec tstart_lev2;
          if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
          int jmaxsize = (jmax+1)*IPOW2(levmx);
@@ -4475,7 +4477,7 @@ void Mesh::calc_neighbors(int ncells)
 
       } else if (calc_neighbor_type == KDTREE) {
 
-         struct timeval tstart_lev2;
+         struct timespec tstart_lev2;
          if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
 #ifdef _OPENMP
@@ -4562,7 +4564,7 @@ void Mesh::calc_neighbors(int ncells)
 
 void Mesh::calc_neighbors_local(void)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    if (do_rezone) {
@@ -4606,7 +4608,7 @@ void Mesh::calc_neighbors_local(void)
 
       if (calc_neighbor_type == HASH_TABLE) {
 
-         struct timeval tstart_lev2;
+         struct timespec tstart_lev2;
          if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
          ncells_ghost = ncells;
@@ -6543,7 +6545,7 @@ void Mesh::calc_neighbors_local(void)
 #pragma omp master
          {
 #endif
-         struct timeval tstart_lev2;
+         struct timespec tstart_lev2;
          if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
          TBounds box;
@@ -6625,10 +6627,10 @@ void Mesh::gpu_calc_neighbors(void)
 
    ulong gpu_hash_table_size =  0;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_lev2;
+   struct timespec tstart_lev2;
    cpu_timer_start(&tstart_lev2);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -6769,10 +6771,10 @@ void Mesh::gpu_calc_neighbors_local(void)
 
    ulong gpu_hash_table_size =  0;
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_lev2;
+   struct timespec tstart_lev2;
    if (TIMING_LEVEL >= 2) cpu_timer_start(&tstart_lev2);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -8414,7 +8416,7 @@ void Mesh::calc_symmetry(vector<int> &dsym, vector<int> &xsym, vector<int> &ysym
 #ifdef HAVE_MPI
 void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &state_memory)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    // To get rid of compiler warning
@@ -8733,7 +8735,7 @@ int Mesh::gpu_do_load_balance_local(size_t numcells, float *weight, MallocPlus &
 
    if (! gpu_do_rezone) return(do_load_balance_global);
 
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    // To get rid of compiler warning
@@ -10670,10 +10672,10 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       calc_face_list_fill_phantom(state_memory, deltaT);
       return;
    }
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_cpu_part;
+   struct timespec tstart_cpu_part;
    cpu_timer_start(&tstart_cpu_part);
 
    //
@@ -12416,10 +12418,10 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
 void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_cpu_part;
+   struct timespec tstart_cpu_part;
    cpu_timer_start(&tstart_cpu_part);
 
     MallocPlus state_memory_old = state_memory;
@@ -12539,10 +12541,10 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
 
 void Mesh::calc_face_list_wbidirmap(void)
 {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_cpu_part;
+   struct timespec tstart_cpu_part;
    cpu_timer_start(&tstart_cpu_part);
 
    map_xface2cell_lower.clear();
@@ -12928,10 +12930,10 @@ void Mesh::calc_face_list_wbidirmap(void)
 
 #ifdef NOVEC
 void Mesh::calc_face_list_wbidirmap_novec(void) {
-   struct timeval tstart_cpu;
+   struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timeval tstart_cpu_part;
+   struct timespec tstart_cpu_part;
    cpu_timer_start(&tstart_cpu_part);
 
    //map_xface2cell_lower.clear();
@@ -13499,7 +13501,7 @@ int Mesh::gpu_serial_int_reduce(int *arr, int count, int length)
 
 void Mesh::gpu_calc_face_list_wbidirmap(void)
 {
-    struct timeval tstart_cpu;
+    struct timespec tstart_cpu;
     cpu_timer_start(&tstart_cpu);
     
     cl_command_queue command_queue = ezcl_get_command_queue();
@@ -13722,7 +13724,7 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
 
 void Mesh::gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory, double deltaT)
 {
-    struct timeval tstart_cpu;
+    struct timespec tstart_cpu;
     cpu_timer_start(&tstart_cpu);
     
     cl_command_queue command_queue = ezcl_get_command_queue();

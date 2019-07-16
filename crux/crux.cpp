@@ -1,13 +1,15 @@
 /*
- *  Copyright (c) 2014, Los Alamos National Security, LLC.
+ *  Copyright (c) 2011-2019, Triad National Security, LLC.
  *  All rights Reserved.
  *
- *  Copyright 2011-2012. Los Alamos National Security, LLC. This software was produced 
- *  under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
- *  Laboratory (LANL), which is operated by Los Alamos National Security, LLC 
+ *  CLAMR -- LA-CC-11-094
+ *
+ *  Copyright 2011-2019. Triad National Security, LLC. This software was produced 
+ *  under U.S. Government contract 89233218CNA000001 for Los Alamos National 
+ *  Laboratory (LANL), which is operated by Triad National Security, LLC 
  *  for the U.S. Department of Energy. The U.S. Government has rights to use, 
- *  reproduce, and distribute this software.  NEITHER THE GOVERNMENT NOR LOS 
- *  ALAMOS NATIONAL SECURITY, LLC MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR 
+ *  reproduce, and distribute this software.  NEITHER THE GOVERNMENT NOR
+ *  TRIAD NATIONAL SECURITY, LLC MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR 
  *  ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE.  If software is modified
  *  to produce derivative works, such modified software should be clearly marked,
  *  so as not to confuse it with the version available from LANL.
@@ -19,15 +21,15 @@
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Los Alamos National Security, LLC, Los Alamos 
+ *     * Neither the name of the Triad National Security, LLC, Los Alamos 
  *       National Laboratory, LANL, the U.S. Government, nor the names of its 
  *       contributors may be used to endorse or promote products derived from 
  *       this software without specific prior written permission.
  *  
- *  THIS SOFTWARE IS PROVIDED BY THE LOS ALAMOS NATIONAL SECURITY, LLC AND 
+ *  THIS SOFTWARE IS PROVIDED BY THE TRIAD NATIONAL SECURITY, LLC AND 
  *  CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT 
  *  NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL LOS ALAMOS NATIONAL
+ *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL TRIAD NATIONAL
  *  SECURITY, LLC OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
  *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
  *  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
@@ -101,8 +103,8 @@ void access_named_hdf5_values (const char *name, int name_size,
 #endif
 
 FILE *crux_time_fp;
-struct timeval tcheckpoint_time;
-struct timeval trestore_time;
+struct timespec tcheckpoint_time;
+struct timespec trestore_time;
 int checkpoint_timing_count = 0;
 float checkpoint_timing_sum = 0.0f;
 float checkpoint_timing_size = 0.0f;
