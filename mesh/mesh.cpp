@@ -13987,7 +13987,6 @@ __kernel void wbidirmap_precount_cl(
     //printf("\n\n"); 
     //printf("%d\n", xcellCnt - ncells);
 
-
     //printf("%d %d %d %d %d\n", pcellCnt, pxfaceCnt, pyfaceCnt, nxfixup, nyfixup);
     
     gpu_wbidirmap_realloc(&dev_map_xface2cell_lower, nxface, pxfaceCnt);
@@ -14158,28 +14157,23 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
     ezcl_wait_for_events(1, &calc_wbidirmap_phantom_neighbors_event);
     ezcl_event_release(calc_wbidirmap_phantom_neighbors_event);
 
-    vector<int>map_l(pcellCnt);
-    ezcl_enqueue_read_buffer(command_queue, dev_map_ycell2face_bot1,     CL_TRUE, 0, pcellCnt*sizeof(cl_int), &map_l[0], NULL);
-    vector<int>map_r(pcellCnt);
-    ezcl_enqueue_read_buffer(command_queue, dev_map_ycell2face_top1,     CL_TRUE, 0, pcellCnt*sizeof(cl_int), &map_r[0], NULL);
-    //for (int jello = 0; jello < pcellCnt; jello++) { 
-    //    if ((jello % 2 == ncells % 2) && (jello >= ncells)) 
-    //        printf("%d) %d %d\n", jello, map_l[jello], map_r[jello]);
-    //}
+    //vector<int>map_l(nxfixup);
+    //ezcl_enqueue_read_buffer(command_queue, dev_xrecvIdx,     CL_TRUE, 0, nxfixup*sizeof(cl_int), &map_l[0], NULL);
+    //vector<int>map_r(nxfixup);
+    //ezcl_enqueue_read_buffer(command_queue, dev_xsendIdx1,     CL_TRUE, 0, nxfixup*sizeof(cl_int), &map_r[0], NULL);
+    //vector<int>map_t(nxfixup);
+    //ezcl_enqueue_read_buffer(command_queue, dev_xsendIdx2,     CL_TRUE, 0, nxfixup*sizeof(cl_int), &map_t[0], NULL);
+    vector<int>map_r(pyfaceCnt);
+    ezcl_enqueue_read_buffer(command_queue, dev_map_yface2cell_lower,     CL_TRUE, 0, pyfaceCnt*sizeof(cl_int), &map_r[0], NULL);
+    //for (int jello = 0; jello < pyfaceCnt; jello++) {  printf("%d) %d\n", jello, map_r[jello]); }
     //vector<int>recvCx(nxfixup);
-    /*vector<int>map_yface(pyfaceCnt);
-    ezcl_enqueue_read_buffer(command_queue, dev_map_yface2cell_upper,     CL_TRUE, 0, pyfaceCnt*sizeof(cl_int), &map_yface[0], NULL);
-    vector<int>recvCx(nxfixup);
-    ezcl_enqueue_read_buffer(command_queue, dev_xrecvCIdx,     CL_TRUE, 0, nxfixup*sizeof(cl_int), &recvCx[0], NULL);
-    vector<int>recvCy(nyfixup);
-    ezcl_enqueue_read_buffer(command_queue, dev_yrecvIdx,     CL_TRUE, 0, nyfixup*sizeof(cl_int), &recvCy[0], NULL);
-        int yordle = 0;
-    for (int dumb = 0; dumb < nyface -1; dumb++) { 
-        if (fixupY[dumb] != fixupY[dumb+1]) {
-            printf("%d) %d %d\n", yordle, dumb, recvCy[yordle]);
-            yordle++;
-        }
-    }*/
+    //vector<int>map_yface(pyfaceCnt);
+    //ezcl_enqueue_read_buffer(command_queue, dev_map_yface2cell_upper,     CL_TRUE, 0, pyfaceCnt*sizeof(cl_int), &map_yface[0], NULL);
+    //vector<int>recvCx(nxfixup);
+    //ezcl_enqueue_read_buffer(command_queue, dev_xrecvCIdx,     CL_TRUE, 0, nxfixup*sizeof(cl_int), &recvCx[0], NULL);
+    //vector<int>recvCy(nyfixup);
+    //ezcl_enqueue_read_buffer(command_queue, dev_yrecvIdx,     CL_TRUE, 0, nyfixup*sizeof(cl_int), &recvCy[0], NULL);
+    //printf("%d %d\n", xcellCnt, pcellCnt);
 
 
     ezcl_device_memory_delete(dev_pxcellIdx);

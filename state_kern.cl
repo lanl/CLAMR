@@ -2415,33 +2415,34 @@ __kernel void calc_finite_difference_in_place_fill_new_cl(
 }
 
 __kernel void calc_finite_difference_via_face_in_place_face_comps_cl(
-            __global    const int       *nfaces,                    // 0 Number of faces
-                        const int       levmx,                      // 1 Maximum level
-            __global    const state_t   *H,                         // 2
-            __global    const state_t   *U,                         // 3
-            __global    const state_t   *V,                         // 4
-            __global    const uchar_t   *level,                     // 5 Array of level information
-                        const real_t    deltaT,                     // 6 Size of time step
-            __global    const real_t    *lev_dx,                    // 7
-            __global    const real_t    *lev_dy,                    // 8
-            __global    const int       *map_xface2cell_lower,      // 9 A face's left cell 
-            __global    const int       *map_xface2cell_upper,      // 10 A face's left cell 
-            __global    const int       *map_yface2cell_lower,      // 11 A face's below cell 
-            __global    const int       *map_yface2cell_upper,      // 12 A face's above cell 
-            __global    const int       *map_xcell2face_left1,      // 13 A cell's left primary face 
-            __global    const int       *map_xcell2face_right1,     // 14 A cell's right primary face 
-            __global    const int       *map_ycell2face_bot1,       // 15 A cell's bot primary face 
-            __global    const int       *map_ycell2face_top1,       // 16 A cell's top primary face 
-            __global          state_t   *HxFlux,                    // 17
-            __global          state_t   *UxFlux,                    // 18
-            __global          state_t   *VxFlux,                    // 19
-            __global          state_t   *HyFlux,                    // 20
-            __global          state_t   *UyFlux,                    // 21
-            __global          state_t   *VyFlux,                    // 22
-            __global          state_t   *Wx_H,                      // 23
-            __global          state_t   *Wx_U,                      // 24
-            __global          state_t   *Wy_H,                      // 25
-            __global          state_t   *Wy_V) {                    // 26
+                        const int       ncells,                     // 0 Number of cells (not including phantom)
+            __global    const int       *nfaces,                    // 1 Number of faces
+                        const int       levmx,                      // 2 Maximum level
+            __global    const state_t   *H,                         // 3
+            __global    const state_t   *U,                         // 4
+            __global    const state_t   *V,                         // 5
+            __global    const uchar_t   *level,                     // 6 Array of level information
+                        const real_t    deltaT,                     // 7 Size of time step
+            __global    const real_t    *lev_dx,                    // 8
+            __global    const real_t    *lev_dy,                    // 9
+            __global    const int       *map_xface2cell_lower,      // 10 A face's left cell 
+            __global    const int       *map_xface2cell_upper,      // 11 A face's left cell 
+            __global    const int       *map_yface2cell_lower,      // 12 A face's below cell 
+            __global    const int       *map_yface2cell_upper,      // 13 A face's above cell 
+            __global    const int       *map_xcell2face_left1,      // 14 A cell's left primary face 
+            __global    const int       *map_xcell2face_right1,     // 15 A cell's right primary face 
+            __global    const int       *map_ycell2face_bot1,       // 16 A cell's bot primary face 
+            __global    const int       *map_ycell2face_top1,       // 17 A cell's top primary face 
+            __global          state_t   *HxFlux,                    // 18
+            __global          state_t   *UxFlux,                    // 19
+            __global          state_t   *VxFlux,                    // 20
+            __global          state_t   *HyFlux,                    // 21
+            __global          state_t   *UyFlux,                    // 22
+            __global          state_t   *VyFlux,                    // 23
+            __global          state_t   *Wx_H,                      // 24
+            __global          state_t   *Wx_U,                      // 25
+            __global          state_t   *Wy_H,                      // 26
+            __global          state_t   *Wy_V) {                    // 27
 
     /////////////////////////////////////////////
     /// Get thread identification information ///
@@ -2460,7 +2461,7 @@ __kernel void calc_finite_difference_via_face_in_place_face_comps_cl(
         return;
 
     real_t   g     = 9.80; 
-    real_t   ghalf = HALF*g;
+    real_t   ghalf = 0.5*g;
 
     int iface = giX;
 
@@ -2470,13 +2471,18 @@ __kernel void calc_finite_difference_via_face_in_place_face_comps_cl(
   
         int fl = map_xcell2face_left1[cell_lower];
         int fr = map_xcell2face_right1[cell_upper];
-        if (fl != -1 && fr != -1) {
         real_t Hx, Ux, Vx;
   
         int nll = map_xface2cell_lower[fl];
         int nrr = map_xface2cell_upper[fr];
+        //if (cell_lower != nll && cell_upper != nrr) {
+        //if (fl > -1 || fr > -1) {
   
-        uchar_t lev = level[cell_lower];
+        uchar_t lev;
+        if (cell_lower < ncells)
+            lev = level[cell_lower];
+        else
+            lev = level[cell_upper];
         real_t dxic    = lev_dx[lev];
         real_t Cxhalf = 0.5*deltaT/dxic;
   
@@ -2501,7 +2507,7 @@ __kernel void calc_finite_difference_via_face_in_place_face_comps_cl(
         HxFlux[iface] = HXFLUXFACE;
         UxFlux[iface] = UXFLUXFACE;
         VxFlux[iface] = VXFLUXFACE;
-        }
+        //}
     }
 
     if (giX < nfaces[1]) {
@@ -2510,13 +2516,18 @@ __kernel void calc_finite_difference_via_face_in_place_face_comps_cl(
   
         int fb = map_ycell2face_bot1[cell_lower];
         int ft = map_ycell2face_top1[cell_upper];
-        if (fb != -1 && ft != -1) {
         real_t Hy, Uy, Vy;
   
         int nbb = map_yface2cell_lower[fb];
         int ntt = map_yface2cell_upper[ft];
+        //if (cell_lower != nbb && cell_upper != ntt) {
+        //if (fb > -1 || ft > -1) {
   
-        uchar_t lev = level[cell_lower];
+        uchar_t lev;
+        if (cell_lower < ncells)
+            lev = level[cell_lower];
+        else
+            lev = level[cell_upper];
         real_t dyic    = lev_dy[lev];
         real_t Cyhalf = 0.5*deltaT/dyic;
   
@@ -2541,7 +2552,7 @@ __kernel void calc_finite_difference_via_face_in_place_face_comps_cl(
         HyFlux[iface] = HYFLUXFACE;
         UyFlux[iface] = UYFLUXFACE;
         VyFlux[iface] = VYFLUXFACE;
-        }
+        //}
     }
 
 }
@@ -2586,7 +2597,7 @@ __kernel void calc_finite_difference_via_face_in_place_fixup_cl(
     if (giX >= max(nxfixup, nyfixup)) 
         return;
 
-    int ifixup = nxfixup;
+    int ifixup = giX;
 
     if (giX < nxfixup) {
         int ir  = xrecvIdx[ifixup];
@@ -2598,8 +2609,6 @@ __kernel void calc_finite_difference_via_face_in_place_fixup_cl(
         Wx_H[ir] = (Wx_H[is1] + Wx_H[is2]) * 0.25;
         Wx_U[ir] = (Wx_U[is1] + Wx_U[is2]) * 0.25;
     }
-
-    ifixup = nyfixup;
 
     if (giX < nyfixup) {
         int ir  = yrecvIdx[ifixup];

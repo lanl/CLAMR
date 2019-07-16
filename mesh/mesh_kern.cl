@@ -3874,7 +3874,7 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
                         map_xcell2face_left1[pcellIdx+3] = pfaceIdx+2;
                         map_xcell2face_right1[pcellIdx+2] = pfaceIdx+2;
                         map_xcell2face_left1[pcellIdx+2] = iface;
-                        map_xface2cell_upper[iface] = pcellIdx + 2;
+                        map_xface2cell_upper[iface] = pcellIdx+2;
     
                         //interpolate(1, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                         //interpolate(5, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -3990,7 +3990,7 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
                         map_ycell2face_bot1[pcellIdx+3] = pfaceIdx+2;
                         map_ycell2face_top1[pcellIdx+2] = pfaceIdx+2;
                         map_ycell2face_bot1[pcellIdx+2] = iface;
-                        map_yface2cell_upper[iface] = pcellIdx + 2;
+                        map_yface2cell_upper[iface] = pcellIdx+2;
 
                         //interpolate(3, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                         //interpolate(7, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
