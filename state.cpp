@@ -2259,7 +2259,6 @@ void State::calc_finite_difference_via_faces(double deltaT)
       VxFlux.resize(xfaceSize, (state_t)-999999);
       Wx_H.resize(xfaceSize, (state_t)-999999);
       Wx_U.resize(xfaceSize, (state_t)-999999);
-   printf("%d\n", mesh->ncells);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2563,7 +2562,7 @@ void State::calc_finite_difference_via_faces(double deltaT)
       int fr2 = mesh->map_xcell2face_right2[ic];
       int fb2 = mesh->map_ycell2face_bot2[ic];
       int ft2 = mesh->map_ycell2face_top2[ic];
-      printf("%d) %d %d %d %d\n", ic, fl, fr, fb, ft);
+      //printf("%d) %d %d %d %d\n", ic, fl, fr, fb, ft);
 
       // set the four neighboring cells
       int nl = mesh->map_xface2cell_lower[fl];
