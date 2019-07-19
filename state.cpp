@@ -117,6 +117,8 @@ int save_ncells;
 
 #define CONSERVED_EQNS
 
+//#define PRECISION_CHECK 1.0e-7
+
 #define SQR(x) ( x*x )
 #define MIN3(x,y,z) ( min( min(x,y), z) )
 
@@ -184,6 +186,44 @@ inline real_t U_fullstep(
 
 }
 
+#ifdef PRECISION_CHECK
+
+inline void U_fullstep_precision_check(
+        int       ic,
+        real_t    deltaT_in,
+        real_t    dr_in,
+        real_t    U_in,
+        real_t    U_new_in,
+        real_t    F_plus_in,
+        real_t    F_minus_in,
+        real_t    G_plus_in,
+        real_t    G_minus_in,
+        real_t    wminusx_H_in,
+        real_t    wplusx_H_in,
+        real_t    wminusy_H_in,
+        real_t    wplusy_H_in) {
+
+   float U       = (float)U_in;
+   float deltaT  = (float)deltaT_in;
+   float dr      = (float)dr_in;
+   float F_plus  = (float)F_plus_in;
+   float F_minus = (float)F_minus_in;
+   float G_plus  = (float)G_plus_in;
+   float G_minus = (float)G_minus_in;
+   float wminusx_H = (float)wminusx_H_in;
+   float wplusx_H = (float)wplusx_H_in;
+   float wminusy_H = (float)wminusy_H_in;
+   float wplusy_H = (float)wplusy_H_in;
+
+   double U_new = U - (deltaT / dr)*(F_plus - F_minus + G_plus - G_minus)
+                   - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
+
+   if (fabs(U_new - U_new_in)/U_new > PRECISION_CHECK) {
+      printf("DEBUG -- found one at ic %d precision diff is %12.6lg relative %12.6lg\n",ic,fabs(U_new - U_new_in), fabs(U_new - U_new_in)/U_new);
+   }
+}
+
+#endif
 
 #pragma omp declare simd
 inline real_t w_corrector(
@@ -2639,6 +2679,14 @@ void State::calc_finite_difference_via_faces(double deltaT)
       H_new[ic] = U_fullstep(deltaT, dxic, Hic,
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
                  - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
+
+
+#ifdef PRECISION_CHECK
+      U_fullstep_precision_check(ic, deltaT, dxic, Hic, H_new[ic],
+                      Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus,
+                      wminusx_H, wplusx_H, wminusy_H, wplusy_H);
+#endif
+
       U_new[ic] = U_fullstep(deltaT, dxic, Uic,
                       Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
                  - wminusx_U + wplusx_U;
