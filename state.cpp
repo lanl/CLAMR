@@ -2089,7 +2089,6 @@ void State::calc_finite_difference_face_in_place(double deltaT)
       int ir  = mesh->xrecvIdx[ifixup];
       int is1 = mesh->xsendIdx1[ifixup];
       int is2 = mesh->xsendIdx2[ifixup];
-      printf("%d) %d %d %d\n", ifixup, ir, is1, is2);
       HxFlux[ir] = (HxFlux[is1] + HxFlux[is2]) * HALF;
       UxFlux[ir] = (UxFlux[is1] + UxFlux[is2]) * HALF;
       VxFlux[ir] = (VxFlux[is1] + VxFlux[is2]) * HALF;
@@ -2602,6 +2601,7 @@ void State::calc_finite_difference_via_faces(double deltaT)
       int fr2 = mesh->map_xcell2face_right2[ic];
       int fb2 = mesh->map_ycell2face_bot2[ic];
       int ft2 = mesh->map_ycell2face_top2[ic];
+
       //printf("%d) %d %d %d %d\n", ic, fl, fr, fb, ft);
 
       // set the four neighboring cells
@@ -4143,7 +4143,8 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
    cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
  
    size_t local_work_size = 128;
-   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+   //size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+   size_t global_work_size = MAX(MAX(mesh->nxface, mesh->nyface), ncells);
 
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
@@ -4224,7 +4225,7 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
    ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), (void *)&dev_H);
    ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), (void *)&dev_U);
    ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), (void *)&dev_V);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, 0, NULL);
 #endif
 
    cl_mem &dev_map_xface2cell_lower = mesh->dev_map_xface2cell_lower;
@@ -4387,7 +4388,7 @@ __kernel void calc_finite_difference_in_place_cell_comps_cl (
    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_cell_comps, 40, sizeof(cl_mem), (void *)&dev_Wplusy_V); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_cell_comps, 41, sizeof(cl_mem), (void *)&dev_Wminusy_V); 
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_in_place_cell_comps, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_cell_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_in_place_cell_comps, 1, NULL, &global_work_size, 0, &calc_finite_difference_in_place_cell_event);
 
    ezcl_wait_for_events(1, &calc_finite_difference_in_place_cell_event);
    ezcl_event_release(calc_finite_difference_in_place_cell_event);
@@ -4469,7 +4470,7 @@ __kernel void calc_finite_difference_in_place_fixup_cl(
     ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 34, sizeof(cl_mem), (void *)&dev_Wplusy_V); 
     ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 35, sizeof(cl_mem), (void *)&dev_Wminusy_V); 
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_in_place_fixup, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_fixup_event);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_in_place_fixup, 1, NULL, &global_work_size, 0, &calc_finite_difference_in_place_fixup_event);
 
     ezcl_wait_for_events(1, &calc_finite_difference_in_place_fixup_event);
     ezcl_event_release(calc_finite_difference_in_place_fixup_event);
@@ -4562,7 +4563,7 @@ __kernel void calc_finite_difference_in_place_fill_new_cl(
     ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 37, sizeof(cl_mem), (void *)&dev_U_new); 
     ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fill_new, 38, sizeof(cl_mem), (void *)&dev_V_new); 
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_in_place_fill_new, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_fill_new_event);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_in_place_fill_new, 1, NULL, &global_work_size, 0, &calc_finite_difference_in_place_fill_new_event);
 
     ezcl_wait_for_events(1, &calc_finite_difference_in_place_fill_new_event);
     ezcl_event_release(calc_finite_difference_in_place_fill_new_event);
@@ -4661,7 +4662,8 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
  
    size_t local_work_size = 128;
-   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+   //size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+   size_t global_work_size = MAX(MAX(mesh->nxface, mesh->nyface), ncells);
 
 #ifdef HAVE_MPI
    if (mesh->numpe > 1) {
@@ -4742,7 +4744,7 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), (void *)&dev_H);
    ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), (void *)&dev_U);
    ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), (void *)&dev_V);
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, 0, NULL);
 #endif
 
    cl_mem &dev_map_xface2cell_lower = mesh->dev_map_xface2cell_lower;
@@ -4904,7 +4906,7 @@ __kernel void calc_finite_difference_via_face_in_place_face_comps_cl(
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_face_comps, 26, sizeof(cl_mem), (void *)&dev_Wy_H); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_face_comps, 27, sizeof(cl_mem), (void *)&dev_Wy_V); 
 
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_face_in_place_face_comps, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_face_event);
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_face_in_place_face_comps, 1, NULL, &global_work_size, 0, &calc_finite_difference_in_place_face_event);
 
    ezcl_wait_for_events(1, &calc_finite_difference_in_place_face_event);
    ezcl_event_release(calc_finite_difference_in_place_face_event);
@@ -4958,7 +4960,7 @@ __kernel void calc_finite_difference_via_face_in_place_fixup_cl(
     ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 20, sizeof(cl_mem), (void *)&dev_Wy_H); 
     ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 21, sizeof(cl_mem), (void *)&dev_Wy_V); 
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_face_in_place_fixup, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_fixup_event);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_face_in_place_fixup, 1, NULL, &global_work_size, 0, &calc_finite_difference_in_place_fixup_event);
 
     ezcl_wait_for_events(1, &calc_finite_difference_in_place_fixup_event);
     ezcl_event_release(calc_finite_difference_in_place_fixup_event);
@@ -5028,7 +5030,7 @@ __kernel void calc_finite_difference_via_face_in_place_fill_new_cl(
     ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fill_new, 23, sizeof(cl_mem), (void *)&dev_U_new); 
     ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fill_new, 24, sizeof(cl_mem), (void *)&dev_V_new); 
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_face_in_place_fill_new, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_fill_new_event);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_face_in_place_fill_new, 1, NULL, &global_work_size, 0, &calc_finite_difference_in_place_fill_new_event);
 
     ezcl_wait_for_events(1, &calc_finite_difference_in_place_fill_new_event);
     ezcl_event_release(calc_finite_difference_in_place_fill_new_event);

@@ -13643,7 +13643,7 @@ __kernel void calc_face_list_wbidirmap_pt1_cl(
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 36, sizeof(cl_mem), (void *)&dev_i);
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 37, sizeof(cl_mem), (void *)&dev_j);
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt1, 1, NULL, &global_work_size, &local_work_size, &calc_face_list_wbidirmap_event1);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt1, 1, NULL, &global_work_size, 0, &calc_face_list_wbidirmap_event1);
 
     ezcl_wait_for_events(1, &calc_face_list_wbidirmap_event1);
     ezcl_event_release(calc_face_list_wbidirmap_event1);
@@ -13685,7 +13685,7 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 14, sizeof(cl_mem), (void *)&dev_i);
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 15, sizeof(cl_mem), (void *)&dev_j);
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt2, 1, NULL, &global_work_size, &local_work_size, &calc_face_list_wbidirmap_event2);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt2, 1, NULL, &global_work_size, 0, &calc_face_list_wbidirmap_event2);
 
     ezcl_wait_for_events(1, &calc_face_list_wbidirmap_event2);
     ezcl_event_release(calc_face_list_wbidirmap_event2);
@@ -13750,8 +13750,11 @@ void Mesh::gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory, do
     assert(dev_map_ycell2face_top2);
 
     //size_t local_work_size  = MIN(ncells, TILE_SIZE);
-    size_t local_work_size  = ncells;
-    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+    //size_t local_work_size  = ncells;
+    //size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+    //size_t global_work_size = MAX(MAX(nxface, nyface), ncells) + 1;
+    size_t local_work_size = CL_DEVICE_MAX_WORK_GROUP_SIZE;
+    size_t global_work_size = ncells;
 
 /*
 __kernel void face_idx_wbidirmap_cl(
@@ -13866,7 +13869,7 @@ __kernel void calc_face_list_wbidirmap_pt1_cl(
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 36, sizeof(cl_mem), (void *)&dev_i);
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 37, sizeof(cl_mem), (void *)&dev_j);
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt1, 1, NULL, &global_work_size, &local_work_size, &calc_face_list_wbidirmap_event1);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt1, 1, NULL, &global_work_size, 0, &calc_face_list_wbidirmap_event1);
 
     ezcl_wait_for_events(1, &calc_face_list_wbidirmap_event1);
     ezcl_event_release(calc_face_list_wbidirmap_event1);
@@ -13908,7 +13911,7 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 14, sizeof(cl_mem), (void *)&dev_i);
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 15, sizeof(cl_mem), (void *)&dev_j);
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt2, 1, NULL, &global_work_size, &local_work_size, &calc_face_list_wbidirmap_event2);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt2, 1, NULL, &global_work_size, 0, &calc_face_list_wbidirmap_event2);
 
     ezcl_wait_for_events(1, &calc_face_list_wbidirmap_event2);
     ezcl_event_release(calc_face_list_wbidirmap_event2);
@@ -13956,7 +13959,7 @@ __kernel void wbidirmap_precount_cl(
     ezcl_set_kernel_arg(kernel_wbidirmap_precount, 14, sizeof(cl_mem), (void *)&dev_ifixupXCnt);
     ezcl_set_kernel_arg(kernel_wbidirmap_precount, 15, sizeof(cl_mem), (void *)&dev_ifixupYCnt);
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_wbidirmap_precount, 1, NULL, &global_work_size, &local_work_size, &wbidirmap_precount_event);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_wbidirmap_precount, 1, NULL, &global_work_size, 0, &wbidirmap_precount_event);
 
     ezcl_wait_for_events(1, &wbidirmap_precount_event);
     ezcl_event_release(wbidirmap_precount_event);
@@ -13989,7 +13992,7 @@ __kernel void wbidirmap_precount_cl(
     //printf("\n\n"); 
     //printf("%d\n", xcellCnt - ncells);
 
-    //printf("%d %d %d %d %d\n", pcellCnt, pxfaceCnt, pyfaceCnt, nxfixup, nyfixup);
+    //printf("%d %d %d %d %d\n", pcellCnt, pxfaceCnt, pyfaceCnt, nxface, nyface);
     
     gpu_wbidirmap_realloc(&dev_map_xface2cell_lower, nxface, pxfaceCnt);
     gpu_wbidirmap_realloc(&dev_map_xface2cell_upper, nxface, pxfaceCnt);
@@ -14067,7 +14070,7 @@ __kernel void calc_wbidirmap_phantom_values_cl(
         ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 12, sizeof(cl_mem), (void *)&dev_state_mem_ptr);
         ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_values, 13, sizeof(cl_mem), (void *)&dev_state_mem_ptr_new);
 
-        ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_wbidirmap_phantom_values, 1, NULL, &global_work_size, &local_work_size, &calc_wbidirmap_phantom_values_event);
+        ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_wbidirmap_phantom_values, 1, NULL, &global_work_size, 0, &calc_wbidirmap_phantom_values_event);
 
         ezcl_wait_for_events(1, &calc_wbidirmap_phantom_values_event);
         ezcl_event_release(calc_wbidirmap_phantom_values_event);
@@ -14154,7 +14157,7 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
     ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 32, sizeof(cl_mem), (void *)&dev_ysendIdx1);
     ezcl_set_kernel_arg(kernel_calc_wbidirmap_phantom_neighbors, 33, sizeof(cl_mem), (void *)&dev_ysendIdx2);
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_wbidirmap_phantom_neighbors, 1, NULL, &global_work_size, &local_work_size, &calc_wbidirmap_phantom_neighbors_event);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_wbidirmap_phantom_neighbors, 1, NULL, &global_work_size, 0, &calc_wbidirmap_phantom_neighbors_event);
 
     ezcl_wait_for_events(1, &calc_wbidirmap_phantom_neighbors_event);
     ezcl_event_release(calc_wbidirmap_phantom_neighbors_event);
