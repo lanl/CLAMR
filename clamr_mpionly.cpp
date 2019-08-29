@@ -532,6 +532,9 @@ extern "C" void do_calc(void)
 
          //  Execute main kernel
          state->calc_finite_difference(deltaT);
+         //state->calc_finite_difference_via_faces(deltaT);
+         //state->calc_finite_difference_cell_in_place(deltaT);
+         //state->calc_finite_difference_face_in_place(deltaT);
 
          //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
          state->remove_boundary_cells();

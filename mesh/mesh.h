@@ -367,6 +367,8 @@ public:
 
    bool           do_rezone,
                   gpu_do_rezone,
+                  bidiralloc,
+                  bidirdealloc,
                   firstFlag;
 
    int            mype,
@@ -532,6 +534,8 @@ public:
                   dev_ysendIdx2,
                   dev_ifixupXCnt,
                   dev_ifixupYCnt,
+                  dev_pxcellIdx,
+                  dev_pycellIdx,
                   dev_nface;    // single array for faces, 0 is X, 1 is Y
 
    cl_mem         dev_levdx,    // corresponds to lev_deltax
@@ -773,12 +777,15 @@ public:
    void gpu_calc_neighbors(void);
    void gpu_calc_neighbors_local(void);
    // For face and phantom cell methods
+   void gpu_wbidirmap_only_essentials(void);
    void gpu_wbidirmap_setup(void);
    void gpu_wbidirmap_delete(void);
    void gpu_wbidirmap_realloc(cl_mem *dev_mem_ptr, int old_size, size_t mem_request);
+   void gpu_call_wbidirmap_realloc(void);
    int gpu_serial_int_reduce(int *arr, int count, int length);
    void gpu_calc_face_list_wbidirmap(void);
    void gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory, double deltaT);
+   void gpu_calc_face_list_phantom_fill(MallocPlus &gpu_state_memory, double deltaT);
 #endif
    //   TODO:  Not created yet; overloading for 3D mesh support. (davis68)
    void calc_neighbors(vector<int> &nlft,

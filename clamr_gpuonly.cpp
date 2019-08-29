@@ -350,9 +350,11 @@ int main(int argc, char **argv) {
    set_idle_function(&do_calc);
    start_main_loop();
 #else
+
    for (it = 0; it < 10000000; it++) {
       do_calc();
    }
+
 #endif
    
    return 0;
@@ -372,6 +374,10 @@ extern "C" void do_calc(void)
    int endcycle = MIN(niter, next_graphics_cycle);
 
    cpu_timer_start(&tstart_cpu);
+
+
+      //printf("Cell in place\n");
+      //printf("Face in place\n");
 
    for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
@@ -393,17 +399,30 @@ extern "C" void do_calc(void)
       //if (do_cpu_calc && ! mesh->have_boundary) {
       //  state->add_boundary_cells(mesh);
       //}
-
+/*
+      if (mesh->gpu_do_rezone) {
+          mesh->gpu_wbidirmap_delete();
+          mesh->bidirdealloc = true;
+          mesh->bidiralloc = false;
+      }
+      if (mesh->bidirdealloc) {
+          mesh->gpu_wbidirmap_setup();
+          mesh->bidiralloc = true;
+      }
+      mesh->bidirdealloc = false;
+*/
       //  Execute main kernel
       //state->gpu_calc_finite_difference(deltaT);
       //state->gpu_calc_finite_difference_via_faces(deltaT);
       //state->gpu_calc_finite_difference_in_place(deltaT);
       state->gpu_calc_finite_difference_via_face_in_place(deltaT);
       
+
+      mesh->firstFlag = false;
+      
       //int bcount = mesh->gpu_count_BCs();
 
    } // End burst loop
-
    cpu_time_calcs += cpu_timer_stop(tstart_cpu);
 
    double H_sum = state->gpu_mass_sum(enhanced_precision_sum);
@@ -486,6 +505,8 @@ extern "C" void do_calc(void)
    //  Output final results and timing information.
    if (ncycle >= niter) {
       //free_display();
+      //  if (mesh->bidiralloc)
+      //      mesh->gpu_wbidirmap_delete();
       
       if(graphic_outputInterval < niter){
          cpu_timer_start(&tstart_cpu);
