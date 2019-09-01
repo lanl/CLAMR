@@ -21,7 +21,7 @@ ax.set_title('Intel Skylake with GCC Compiler')
 ax.set_xticks(x)
 ax.set_xlim([-0.6, 6])
 ax.set_xticklabels(labels, fontsize=14, rotation="vertical")
-ax.legend(loc="upper right")
+ax.legend(loc="upper right", prop={'size' : 10 })
 fig.subplots_adjust(right=2.0)
 
 """
