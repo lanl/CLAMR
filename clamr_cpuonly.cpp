@@ -515,8 +515,6 @@ extern "C" void do_calc(void)
          } else {
             state->calc_finite_difference(deltaT);
          }
-#ifdef _OPENMP
-#endif
    //H_sum = state->mass_sum(enhanced_precision_sum);
    //printf("%f\n", H_sum);
 

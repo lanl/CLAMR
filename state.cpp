@@ -1230,7 +1230,7 @@ void State::calc_finite_difference(double deltaT)
    int lowerBound, upperBound;
    mesh->get_bounds(lowerBound, upperBound);
 
-#pragma omp parallel for
+#pragma omp simd
    for(int gix = lowerBound; gix < upperBound; gix++) {
 
       uchar_t lvl     = level[gix];
@@ -1737,8 +1737,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
    int lowerBound, upperBound;
 
    mesh->get_bounds(lowerBound, upperBound);
+#pragma omp simd
    for (int ic = lowerBound; ic < upperBound; ic++) {
-      if (mesh->celltype[ic] != REAL_CELL) continue;
+      //if (mesh->celltype[ic] != REAL_CELL) continue;
 
       uchar_t lev = mesh->level[ic];
       real_t dxic    = mesh->lev_deltax[lev];
@@ -2032,7 +2033,7 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp for simd
 #else
 #pragma omp simd
 #endif
@@ -2045,7 +2046,9 @@ void State::calc_finite_difference_face_in_place(double deltaT)
       // set the two faces
       int fl = mesh->map_xcell2face_left1[cell_lower];
       int fr = mesh->map_xcell2face_right1[cell_upper];
-      if (fl == -1 || fr == -1) continue;
+#ifndef _OPENMP
+//      if (fl == -1 || fr == -1) continue;
+#endif
       real_t Hx, Ux, Vx;
 
       // set the two cells away
@@ -2083,7 +2086,9 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
-#pragma omp for 
+#pragma omp for simd
+#else
+#pragma omp simd
 #endif
    for (int ifixup = 0; ifixup < mesh->nxfixup; ifixup++){
       int ir  = mesh->xrecvIdx[ifixup];
@@ -2125,7 +2130,7 @@ void State::calc_finite_difference_face_in_place(double deltaT)
 #endif
 
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp for simd
 #else
 #pragma omp simd
 #endif
@@ -2138,7 +2143,9 @@ void State::calc_finite_difference_face_in_place(double deltaT)
       // set the two faces
       int fb = mesh->map_ycell2face_bot1[cell_lower];
       int ft = mesh->map_ycell2face_top1[cell_upper];
-      if (fb == -1 || ft == -1) continue;
+#ifndef _OPENMP
+//      if (fb == -1 || ft == -1) continue;
+#endif
       real_t Hy, Uy, Vy;
 
       // set the two cells away
@@ -2175,7 +2182,9 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp for simd
+#else
+#pragma omp simd
 #endif
    for (int ifixup = 0; ifixup < mesh->nyfixup; ifixup++){
       int ir  = mesh->yrecvIdx[ifixup];
@@ -2804,13 +2813,13 @@ void State::calc_finite_difference_regular_cells(double deltaT)
     * 0 = flux corrector
     * 1 = dampening corrector
     * */
+   apply_boundary_conditions();
 
 #ifdef _OPENMP
+#pragma omp barrier
 #pragma omp master
    {
 #endif
-
-   apply_boundary_conditions();
 
       mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += cpu_timer_stop(tstart_cpu_part);
@@ -2881,17 +2890,10 @@ void State::calc_finite_difference_regular_cells(double deltaT)
       int jjmax = mesh->lev_jregsize[ll];
       int jj, ii;
 
-#ifdef _OPENMP
-#pragma omp master
-      {
-#endif
-      H_reg = H_reg_lev[ll];
-      U_reg = U_reg_lev[ll];
-      V_reg = V_reg_lev[ll];
-      mask_reg = mask_reg_lev[ll];
-#ifdef _OPENMP
-      }
-#endif
+      //H_reg = H_reg_lev[ll];
+      //U_reg = U_reg_lev[ll];
+      //V_reg = V_reg_lev[ll];
+      //mask_reg = mask_reg_lev[ll];
       real_t dx = lev_deltax[ll];
       real_t dy = lev_deltay[ll];
       real_t Cx = deltaT/dx;
@@ -2906,7 +2908,7 @@ void State::calc_finite_difference_regular_cells(double deltaT)
 #endif
       for(jj=2; jj<jjmax-2; jj++){
          for(ii=2; ii<iimax-2; ii++){
-            if (mask_reg_lev[ll][jj][ii] != 1) continue;
+            if (mask_reg_lev[ll][jj][ii] == 1) {
 
             real_t Hxminus = HALF*( ((H_reg_lev[ll][jj][ii-1]) + (H_reg_lev[ll][jj][ii])) - (deltaT)/(dx)*((HXRGFLUXIC) - (HXRGFLUXNL)) );
             real_t Uxminus = HALF*( ((U_reg_lev[ll][jj][ii-1]) + (U_reg_lev[ll][jj][ii])) - (deltaT)/(dx)*((UXRGFLUXIC) - (UXRGFLUXNL)) );
@@ -3008,7 +3010,10 @@ void State::calc_finite_difference_regular_cells(double deltaT)
                 wplusy_H = 0.0;
                 wplusy_V = 0.0;
             }
-
+#ifdef _OPENMP
+#pragma omp critical
+{
+#endif
             if ((mesh->phantomXFluxRG[ll][jj][ii] >= 0) && (mesh->phantomXFluxRG[ll][jj][ii] < mesh->ncells)) {
                int recvic = mesh->phantomXFluxRG[ll][jj][ii];
                int recvJ = mesh->j[recvic] - mesh->lev_jregmin[ll-1];
@@ -3068,13 +3073,13 @@ void State::calc_finite_difference_regular_cells(double deltaT)
            //V_reg_new[jj][ii] = U_fullstep(deltaT, dx, V_reg[jj][ii],
                        Vxfluxplus, Vxfluxminus, Vyfluxplus + varV[ll][jj][ii*2], Vyfluxminus)
                   - wminusy_V + wplusy_V + varV[ll][jj][ii*2+1];
+#ifdef _OPENMP
+}
+#endif
 
-
+         }
          } // ii
       } // jj 
-#ifdef _OPENMP
-#pragma omp barrier
-#endif
 
       /*for(int jj=2; jj<jjmax-2; jj++){
          for(int ii=2; ii<iimax-2; ii++){
@@ -3083,7 +3088,9 @@ void State::calc_finite_difference_regular_cells(double deltaT)
              V_reg[jj][ii] = V_reg_new[jj][ii];
          }
       }*/
-
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
 #ifdef _OPENMP
 #pragma omp master
       {
@@ -3102,23 +3109,23 @@ void State::calc_finite_difference_regular_cells(double deltaT)
       //genmatrixfree((void **)V_reg_new);
 #ifdef _OPENMP
       }
-#endif
-#ifdef _OPENMP
 #pragma omp barrier
 #endif
 
    } // ll
-   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
-   cpu_timer_start(&tstart_cpu_part);
-
-
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
+
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
 #ifdef _OPENMP
 #pragma omp master
       {
 #endif
+
+
    free(varH);
    free(varU);
    free(varV);
@@ -3129,18 +3136,16 @@ void State::calc_finite_difference_regular_cells(double deltaT)
    free(mask_reg_lev);
 
    mesh->destroy_regular_cell_meshes(state_memory);
-   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART5] += cpu_timer_stop(tstart_cpu_part);
-   cpu_timer_start(&tstart_cpu_part);
 #ifdef _OPENMP
       }
 #endif
+   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART5] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
 
 
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 #ifdef _OPENMP
-        printf("\t%d)\n", omp_get_thread_num());
 #pragma omp barrier
-        printf("%d)\n", omp_get_thread_num());
 #endif
 }
 
