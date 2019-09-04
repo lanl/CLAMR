@@ -85,6 +85,7 @@ static int do_gpu_calc = 1;
 typedef unsigned int uint;
 
 static bool do_display_graphics = false;
+extern int choose_amr_method;
 
 #ifdef HAVE_GRAPHICS
 static double circle_radius=-1.0;
@@ -415,7 +416,18 @@ extern "C" void do_calc(void)
       //state->gpu_calc_finite_difference(deltaT);
       //state->gpu_calc_finite_difference_via_faces(deltaT);
       //state->gpu_calc_finite_difference_in_place(deltaT);
-      state->gpu_calc_finite_difference_via_face_in_place(deltaT);
+      //state->gpu_calc_finite_difference_via_face_in_place(deltaT);
+         if (choose_amr_method == CELL_AMR) {
+            state->gpu_calc_finite_difference(deltaT);
+         } else if (choose_amr_method == FACE_AMR) {
+            state->gpu_calc_finite_difference_via_faces(deltaT);
+         } else if (choose_amr_method == CELL_IN_PLACE_AMR) {
+            state->gpu_calc_finite_difference_in_place(deltaT);
+         } else if (choose_amr_method == FACE_IN_PLACE_AMR) {
+            state->gpu_calc_finite_difference_via_face_in_place(deltaT);
+         } else {
+            state->gpu_calc_finite_difference(deltaT);
+         }
       
 
       mesh->firstFlag = false;

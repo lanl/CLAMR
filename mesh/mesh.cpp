@@ -13574,7 +13574,7 @@ void Mesh::gpu_calc_face_list_wbidirmap(void)
     assert(dev_map_ycell2face_top2);
 
     //size_t local_work_size  = MIN(ncells, TILE_SIZE);
-    size_t local_work_size  = ncells;
+    size_t local_work_size  = 128;
     size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
 
     vector<int>this_xfaceIdxList(ncells);
@@ -13731,7 +13731,7 @@ __kernel void calc_face_list_wbidirmap_pt1_cl(
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 36, sizeof(cl_mem), (void *)&dev_i);
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt1, 37, sizeof(cl_mem), (void *)&dev_j);
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt1, 1, NULL, &global_work_size, 0, &calc_face_list_wbidirmap_event1);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt1, 1, NULL, &global_work_size, &local_work_size, &calc_face_list_wbidirmap_event1);
 
     ezcl_wait_for_events(1, &calc_face_list_wbidirmap_event1);
     ezcl_event_release(calc_face_list_wbidirmap_event1);
@@ -13773,7 +13773,7 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 14, sizeof(cl_mem), (void *)&dev_i);
     ezcl_set_kernel_arg(kernel_calc_face_list_wbidirmap_pt2, 15, sizeof(cl_mem), (void *)&dev_j);
 
-    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt2, 1, NULL, &global_work_size, 0, &calc_face_list_wbidirmap_event2);
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_face_list_wbidirmap_pt2, 1, NULL, &global_work_size, &local_work_size, &calc_face_list_wbidirmap_event2);
 
     ezcl_wait_for_events(1, &calc_face_list_wbidirmap_event2);
     ezcl_event_release(calc_face_list_wbidirmap_event2);
@@ -13807,7 +13807,7 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
    //for (int jello = 0; jello < ncells; jello++) { printf("%d) %d %d\n", jello, facelistX[jello], facelistX[jello]); }
    */
 
-    //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
+    gpu_timers[MESH_TIMER_BIDIR] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
 }
 
 void Mesh::gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory, double deltaT)
@@ -13824,8 +13824,8 @@ void Mesh::gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory, do
     struct timespec tstart_cpu;
     cpu_timer_start(&tstart_cpu);
 
-    struct timespec tstart_cpu_part;
-    cpu_timer_start(&tstart_cpu_part);
+    //struct timespec tstart_cpu_part;
+    //cpu_timer_start(&tstart_cpu_part);
     
     cl_command_queue command_queue = ezcl_get_command_queue();
 
@@ -13855,7 +13855,7 @@ void Mesh::gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory, do
     //size_t global_work_size = MAX(MAX(nxface, nyface), ncells) + 1;
     size_t local_work_size = CL_DEVICE_MAX_WORK_GROUP_SIZE;
     size_t global_work_size = ncells;
-
+/*
     vector<int>this_xfaceIdxList(ncells);
     vector<int>this_yfaceIdxList(ncells);
     vector<int>this_nlft(ncells);
@@ -13899,7 +13899,7 @@ void Mesh::gpu_calc_face_list_wbidirmap_phantom(MallocPlus &gpu_state_memory, do
 
     ezcl_enqueue_write_buffer(command_queue, dev_xfaceIdxList, CL_TRUE, 0, ncells*sizeof(cl_int), &this_xfaceIdxList[0], NULL);
     ezcl_enqueue_write_buffer(command_queue, dev_yfaceIdxList, CL_TRUE, 0, ncells*sizeof(cl_int), &this_yfaceIdxList[0], NULL);
-
+*/
     //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
     //cpu_timer_start(&tstart_cpu_part);
 
@@ -13915,7 +13915,7 @@ __kernel void face_idx_wbidirmap_cl(
                               int   ncells,                     // 7
             __global          int   *nface) {                   // 8
 */
-/*
+
     cl_event face_idx_event;
     ezcl_set_kernel_arg(kernel_face_idx_wbidirmap, 0, sizeof(cl_mem), (void *)&dev_level);
     ezcl_set_kernel_arg(kernel_face_idx_wbidirmap, 1, sizeof(cl_mem), (void *)&dev_nlft);
@@ -13932,9 +13932,9 @@ __kernel void face_idx_wbidirmap_cl(
 
     ezcl_wait_for_events(1, &face_idx_event);
     ezcl_event_release(face_idx_event);
-*/
-    gpu_timers[MESH_TIMER_BIDIRPART1] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+
+    //gpu_timers[MESH_TIMER_BIDIRPART1] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
 /*
 __kernel void calc_face_list_wbidirmap_pt1_cl(
@@ -14024,8 +14024,8 @@ __kernel void calc_face_list_wbidirmap_pt1_cl(
     ezcl_wait_for_events(1, &calc_face_list_wbidirmap_event1);
     ezcl_event_release(calc_face_list_wbidirmap_event1);
 
-    gpu_timers[MESH_TIMER_BIDIRPART2] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[MESH_TIMER_BIDIRPART2] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
     /*
 __kernel void calc_face_list_wbidirmap_pt2_cl(
@@ -14070,8 +14070,8 @@ __kernel void calc_face_list_wbidirmap_pt2_cl(
     ezcl_event_release(calc_face_list_wbidirmap_event2);
 
 
-    gpu_timers[MESH_TIMER_BIDIRPART3] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[MESH_TIMER_BIDIRPART3] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
     // read in device memory
     int nxface, nyface;
@@ -14121,8 +14121,8 @@ __kernel void wbidirmap_precount_cl(
     ezcl_wait_for_events(1, &wbidirmap_precount_event);
     ezcl_event_release(wbidirmap_precount_event);
 
-    gpu_timers[MESH_TIMER_BIDIRPART4] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[MESH_TIMER_BIDIRPART4] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
     vector<int>cxCnt(nxface);
     vector<int>cyCnt(nyface);
@@ -14166,8 +14166,8 @@ __kernel void wbidirmap_precount_cl(
     gpu_wbidirmap_realloc(&dev_map_ycell2face_bot1, ncells, pcellCnt);
     gpu_wbidirmap_realloc(&dev_map_ycell2face_top1, ncells, pcellCnt);
 */
-    gpu_timers[MESH_TIMER_BIDIRPART5] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[MESH_TIMER_BIDIRPART5] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
 
     size_t size_nxface = nxface, size_nyface = nyface;
@@ -14193,8 +14193,8 @@ __kernel void wbidirmap_precount_cl(
     //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
     //cpu_timer_start(&tstart_cpu_part);
 
-    gpu_timers[MESH_TIMER_BIDIRPART6] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[MESH_TIMER_BIDIRPART6] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
 
     MallocPlus gpu_state_memory_old = gpu_state_memory;
@@ -14254,8 +14254,8 @@ __kernel void calc_wbidirmap_phantom_values_cl(
 
     }
 
-    gpu_timers[MESH_TIMER_BIDIRPART7] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[MESH_TIMER_BIDIRPART7] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
 
     /*
@@ -14336,8 +14336,8 @@ __kernel void calc_wbidirmap_phantom_neighbors_cl(
     ezcl_wait_for_events(1, &calc_wbidirmap_phantom_neighbors_event);
     ezcl_event_release(calc_wbidirmap_phantom_neighbors_event);
 
-    gpu_timers[MESH_TIMER_BIDIRPART8] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[MESH_TIMER_BIDIRPART8] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
     //vector<int>map_l(nxfixup);
     //ezcl_enqueue_read_buffer(command_queue, dev_xrecvIdx,     CL_TRUE, 0, nxfixup*sizeof(cl_int), &map_l[0], NULL);

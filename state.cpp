@@ -2807,8 +2807,12 @@ void State::calc_finite_difference_regular_cells(double deltaT)
    vector<real_t> &lev_deltax = mesh->lev_deltax;
    vector<real_t> &lev_deltay = mesh->lev_deltay;
 
-   static double ***varH, ***varU, ***varV, ****states_new; 
-   static int    ***passFlag;
+   //static state ***varH, ***varU, ***varV, ****states_new; 
+   static state_t ****states_new;
+   static state_t ***Hxfluxplus, ***Hxfluxminus, ***Uxfluxplus, ***Uxfluxminus, ***Vxfluxplus, ***Vxfluxminus; 
+   static state_t ***Hyfluxplus, ***Hyfluxminus, ***Uyfluxplus, ***Uyfluxminus, ***Vyfluxplus, ***Vyfluxminus; 
+   static state_t ***wplusx_H, ***wminusx_H, ***wplusy_H, ***wminusy_H, ***wplusx_U, ***wminusx_U, ***wplusy_V, ***wminusy_V; 
+   //static int    ***passFlag;
    /*
     * 0 = flux corrector
     * 1 = dampening corrector
@@ -2835,10 +2839,30 @@ void State::calc_finite_difference_regular_cells(double deltaT)
       V_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
       mask_reg_lev = (int ***)malloc((mesh->levmx+1)*sizeof(int **));
 
-      varH = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-      varU = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-      varV = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
-      passFlag = (int ***) malloc((mesh->levmx+1) * sizeof(int **));
+      Hxfluxplus = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      Hxfluxminus = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      Hyfluxplus = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      Hyfluxminus = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      wplusx_H = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      wminusx_H = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      wplusy_H = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      wminusy_H = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      Uxfluxplus = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      Uxfluxminus = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      Uyfluxplus = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      Uyfluxminus = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      wplusx_U = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      wminusx_U = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      Vxfluxplus = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      Vxfluxminus = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      Vyfluxplus = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      Vyfluxminus = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      wplusy_V = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      wminusy_V = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
+      //varH = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      //varU = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      //varV = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
+      //passFlag = (int ***) malloc((mesh->levmx+1) * sizeof(int **));
       states_new = (double ****)malloc((mesh->levmx+1)*sizeof(double ***));
 
       for (int lev = 0; lev < mesh->levmx + 1; lev++){
@@ -2847,26 +2871,58 @@ void State::calc_finite_difference_regular_cells(double deltaT)
           U_reg_lev[lev] = pstate[1];
           V_reg_lev[lev] = pstate[2];
           mask_reg_lev[lev] = mesh->meshes[lev].mask;
-          varH[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*2,sizeof(double));
-          varU[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*2,sizeof(double));
-          varV[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*2,sizeof(double));
-          passFlag[lev] = (int **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*4,sizeof(int));
 
+    
+          Hxfluxplus[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          Hxfluxminus[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          Hyfluxplus[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          Hyfluxminus[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          wplusx_H[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          wminusx_H[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          wplusy_H[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          wminusy_H[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          Uxfluxplus[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          Uxfluxminus[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          Uyfluxplus[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          Uyfluxminus[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          wplusx_U[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          wminusx_U[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          Vxfluxplus[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          Vxfluxminus[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          Vyfluxplus[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          Vyfluxminus[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          wplusy_V[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          wminusy_V[lev] = (state_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+          //varH[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*2,sizeof(double));
+          //varU[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*2,sizeof(double));
+          //varV[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*2,sizeof(double));
+          //passFlag[lev] = (int **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev]*4,sizeof(int));
+/*
          for(int jj=0; jj<mesh->lev_jregsize[lev]; jj++){
              for(int ii=0; ii<mesh->lev_iregsize[lev]; ii++){
-                 varH[lev][jj][ii*2] = 0.0;
-                 varH[lev][jj][ii*2+1] = 0.0;
-                 varU[lev][jj][ii*2] = 0.0;
-                 varU[lev][jj][ii*2+1] = 0.0;
-                 varV[lev][jj][ii*2] = 0.0;
-                 varV[lev][jj][ii*2+1] = 0.0;
-                 passFlag[lev][jj][ii*4] = 0;
-                 passFlag[lev][jj][ii*4+1] = 0;
-                 passFlag[lev][jj][ii*4+2] = 0;
-                 passFlag[lev][jj][ii*4+3] = 0;
+                 Hxfluxplus[lev][jj][ii] = 0.0;
+                 Hxfluxminus[lev][jj][ii] = 0.0;
+                 Hyfluxplus[lev][jj][ii] = 0.0;
+                 Hyfluxminus[lev][jj][ii] = 0.0;
+                 Uxfluxplus[lev][jj][ii] = 0.0;
+                 Uxfluxminus[lev][jj][ii] = 0.0;
+                 Uyfluxplus[lev][jj][ii] = 0.0;
+                 Uyfluxminus[lev][jj][ii] = 0.0;
+                 Vxfluxplus[lev][jj][ii] = 0.0;
+                 Vxfluxminus[lev][jj][ii] = 0.0;
+                 Vyfluxplus[lev][jj][ii] = 0.0;
+                 Vyfluxminus[lev][jj][ii] = 0.0;
+                 wplusx_H[lev][jj][ii] = 0.0;
+                 wminusx_H[lev][jj][ii] = 0.0;
+                 wplusy_H[lev][jj][ii] = 0.0;
+                 wminusy_H[lev][jj][ii] = 0.0;
+                 wplusx_U[lev][jj][ii] = 0.0;
+                 wminusx_U[lev][jj][ii] = 0.0;
+                 wplusy_V[lev][jj][ii] = 0.0;
+                 wminusy_V[lev][jj][ii] = 0.0;
              }
          }
-
+*/
       }
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
@@ -2884,7 +2940,8 @@ void State::calc_finite_difference_regular_cells(double deltaT)
    static state_t **H_reg, **U_reg, **V_reg;
    int **mask_reg;
 
-   for (int ll=mesh->levmx; ll>-1; ll--){
+   //for (int ll=mesh->levmx; ll>-1; ll--){
+   for (int ll=0; ll<mesh->levmx+1; ll++){
       //state_t ***pstate = mesh->meshes[ll].pstate;
       int iimax = mesh->lev_iregsize[ll];
       int jjmax = mesh->lev_jregsize[ll];
@@ -2926,62 +2983,63 @@ void State::calc_finite_difference_regular_cells(double deltaT)
             real_t Uyplus  = HALF*( ((U_reg_lev[ll][jj][ii]) + (U_reg_lev[ll][jj+1][ii])) - (deltaT)/(dy)*((UYRGFLUXNT) - (UYRGFLUXIC)) );
             real_t Vyplus  = HALF*( ((V_reg_lev[ll][jj][ii]) + (V_reg_lev[ll][jj+1][ii])) - (deltaT)/(dy)*((VYRGFLUXNT) - (VYRGFLUXIC)) );
 
-            real_t Hxfluxminus = HNEWXRGFLUXMINUS;
-            real_t Uxfluxminus = UNEWXRGFLUXMINUS;
-            real_t Vxfluxminus = VNEWXRGFLUXMINUS;
+            Hxfluxminus[ll][jj][ii] = HNEWXRGFLUXMINUS;
+            Uxfluxminus[ll][jj][ii] = UNEWXRGFLUXMINUS;
+            Vxfluxminus[ll][jj][ii] = VNEWXRGFLUXMINUS;
 
-            real_t Hxfluxplus = HNEWXRGFLUXPLUS;
-            real_t Uxfluxplus = UNEWXRGFLUXPLUS;
-            real_t Vxfluxplus = VNEWXRGFLUXPLUS;
+            Hxfluxplus[ll][jj][ii] = HNEWXRGFLUXPLUS;
+            Uxfluxplus[ll][jj][ii] = UNEWXRGFLUXPLUS;
+            Vxfluxplus[ll][jj][ii] = VNEWXRGFLUXPLUS;
 
-            real_t Hyfluxminus = HNEWYRGFLUXMINUS;
-            real_t Uyfluxminus = UNEWYRGFLUXMINUS;
-            real_t Vyfluxminus = VNEWYRGFLUXMINUS;
+            Hyfluxminus[ll][jj][ii] = HNEWYRGFLUXMINUS;
+            Uyfluxminus[ll][jj][ii] = UNEWYRGFLUXMINUS;
+            Vyfluxminus[ll][jj][ii] = VNEWYRGFLUXMINUS;
 
-            real_t Hyfluxplus = HNEWYRGFLUXPLUS;
-            real_t Uyfluxplus = UNEWYRGFLUXPLUS;
-            real_t Vyfluxplus = VNEWYRGFLUXPLUS;
+            Hyfluxplus[ll][jj][ii] = HNEWYRGFLUXPLUS;
+            Uyfluxplus[ll][jj][ii] = UNEWYRGFLUXPLUS;
+            Vyfluxplus[ll][jj][ii] = VNEWYRGFLUXPLUS;
 
-            real_t wminusx_H = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+            wminusx_H[ll][jj][ii] = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
                               H_reg_lev[ll][jj][ii]-H_reg_lev[ll][jj][ii-1], H_reg_lev[ll][jj][ii-1]-H_reg_lev[ll][jj][ii-2], H_reg_lev[ll][jj][ii+1]-H_reg_lev[ll][jj][ii]);
 
-            wminusx_H *= H_reg_lev[ll][jj][ii] - H_reg_lev[ll][jj][ii-1];
+            wminusx_H[ll][jj][ii] *= H_reg_lev[ll][jj][ii] - H_reg_lev[ll][jj][ii-1];
 
-            real_t wplusx_H = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+            wplusx_H[ll][jj][ii] = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
                               H_reg_lev[ll][jj][ii+1]-H_reg_lev[ll][jj][ii], H_reg_lev[ll][jj][ii]-H_reg_lev[ll][jj][ii-1], H_reg_lev[ll][jj][ii+2]-H_reg_lev[ll][jj][ii+1]);
 
-            wplusx_H *= H_reg_lev[ll][jj][ii+1] - H_reg_lev[ll][jj][ii];
+            wplusx_H[ll][jj][ii] *= H_reg_lev[ll][jj][ii+1] - H_reg_lev[ll][jj][ii];
 
-            real_t wminusx_U = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+            wminusx_U[ll][jj][ii] = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
                               U_reg_lev[ll][jj][ii]-U_reg_lev[ll][jj][ii-1], U_reg_lev[ll][jj][ii-1]-U_reg_lev[ll][jj][ii-2], U_reg_lev[ll][jj][ii+1]-U_reg_lev[ll][jj][ii]);
 
-            wminusx_U *= U_reg_lev[ll][jj][ii] - U_reg_lev[ll][jj][ii-1];
+            wminusx_U[ll][jj][ii] *= U_reg_lev[ll][jj][ii] - U_reg_lev[ll][jj][ii-1];
 
-            real_t wplusx_U = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+            wplusx_U[ll][jj][ii] = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
                               U_reg_lev[ll][jj][ii+1]-U_reg_lev[ll][jj][ii], U_reg_lev[ll][jj][ii]-U_reg_lev[ll][jj][ii-1], U_reg_lev[ll][jj][ii+2]-U_reg_lev[ll][jj][ii+1]);
 
-            wplusx_U *= U_reg_lev[ll][jj][ii+1] - U_reg_lev[ll][jj][ii];
+            wplusx_U[ll][jj][ii] *= U_reg_lev[ll][jj][ii+1] - U_reg_lev[ll][jj][ii];
 
-            real_t wminusy_H = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+            wminusy_H[ll][jj][ii] = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
                               H_reg_lev[ll][jj][ii]-H_reg_lev[ll][jj-1][ii], H_reg_lev[ll][jj-1][ii]-H_reg_lev[ll][jj-2][ii], H_reg_lev[ll][jj+1][ii]-H_reg_lev[ll][jj][ii]);
 
-            wminusy_H *= H_reg_lev[ll][jj][ii] - H_reg_lev[ll][jj-1][ii];
+            wminusy_H[ll][jj][ii] *= H_reg_lev[ll][jj][ii] - H_reg_lev[ll][jj-1][ii];
 
-            real_t wplusy_H = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+            wplusy_H[ll][jj][ii] = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
                               H_reg_lev[ll][jj+1][ii]-H_reg_lev[ll][jj][ii], H_reg_lev[ll][jj][ii]-H_reg_lev[ll][jj-1][ii], H_reg_lev[ll][jj+2][ii]-H_reg_lev[ll][jj+1][ii]);
 
-            wplusy_H *= H_reg_lev[ll][jj+1][ii] - H_reg_lev[ll][jj][ii];
+            wplusy_H[ll][jj][ii] *= H_reg_lev[ll][jj+1][ii] - H_reg_lev[ll][jj][ii];
 
-            real_t wminusy_V = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+            wminusy_V[ll][jj][ii] = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
                               V_reg_lev[ll][jj][ii]-V_reg_lev[ll][jj-1][ii], V_reg_lev[ll][jj-1][ii]-V_reg_lev[ll][jj-2][ii], V_reg_lev[ll][jj+1][ii]-V_reg_lev[ll][jj][ii]);
 
-            wminusy_V *= V_reg_lev[ll][jj][ii] - V_reg_lev[ll][jj-1][ii];
+            wminusy_V[ll][jj][ii] *= V_reg_lev[ll][jj][ii] - V_reg_lev[ll][jj-1][ii];
 
-            real_t wplusy_V = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+            wplusy_V[ll][jj][ii] = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
                               V_reg_lev[ll][jj+1][ii]-V_reg_lev[ll][jj][ii], V_reg_lev[ll][jj][ii]-V_reg_lev[ll][jj-1][ii], V_reg_lev[ll][jj+2][ii]-V_reg_lev[ll][jj+1][ii]);
 
-            wplusy_V *= V_reg_lev[ll][jj+1][ii] - V_reg_lev[ll][jj][ii];
+            wplusy_V[ll][jj][ii] *= V_reg_lev[ll][jj+1][ii] - V_reg_lev[ll][jj][ii];
 
+/*
             if (passFlag[ll][jj][ii*4+0] == 1) {
                Hxfluxminus = 0.0;
                Uxfluxminus = 0.0;
@@ -3076,11 +3134,15 @@ void State::calc_finite_difference_regular_cells(double deltaT)
 #ifdef _OPENMP
 }
 #endif
-
+*/
          }
          } // ii
       } // jj 
 
+
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
       /*for(int jj=2; jj<jjmax-2; jj++){
          for(int ii=2; ii<iimax-2; ii++){
              H_reg[jj][ii] = H_reg_new[jj][ii];
@@ -3088,17 +3150,187 @@ void State::calc_finite_difference_regular_cells(double deltaT)
              V_reg[jj][ii] = V_reg_new[jj][ii];
          }
       }*/
+   } // ll
+
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp parallel for
+#endif
+   for (int ifix = 0; ifix < mesh->nxfixup; ifix++){
+      int ic = mesh->xrecvCIdx[ifix];
+      int llr = mesh->level[ic];
+      int icjj = mesh->j[ic] - mesh->lev_jregmin[llr];
+      int icii = mesh->i[ic] - mesh->lev_iregmin[llr];
+      if (mesh->xplusCell2Idx[ic] > -1) {
+         int ifixup = mesh->xplusCell2Idx[ic];
+         int ns1 = mesh->map_xface2cell_upper[mesh->xsendIdx1[ifixup]];
+         int ns2 = mesh->map_xface2cell_upper[mesh->xsendIdx2[ifixup]];
+
+         int ll = mesh->level[ns1];
+         int ns1jj = mesh->j[ns1] - mesh->lev_jregmin[ll];
+         int ns1ii = mesh->i[ns1] - mesh->lev_iregmin[ll];
+         int ns2jj = mesh->j[ns2] - mesh->lev_jregmin[ll];
+         int ns2ii = mesh->i[ns2] - mesh->lev_iregmin[ll];
+
+
+         Hxfluxplus[llr][icjj][icii] = (Hxfluxminus[ll][ns1jj][ns1ii] + Hxfluxminus[ll][ns2jj][ns2ii]) * HALF;
+         Uxfluxplus[llr][icjj][icii] = (Uxfluxminus[ll][ns1jj][ns1ii] + Uxfluxminus[ll][ns2jj][ns2ii]) * HALF;
+         Vxfluxplus[llr][icjj][icii] = (Vxfluxminus[ll][ns1jj][ns1ii] + Vxfluxminus[ll][ns2jj][ns2ii]) * HALF;
+         wplusx_H[llr][icjj][icii] = (wminusx_H[ll][ns1jj][ns1ii] + wminusx_H[ll][ns2jj][ns2ii]) * 0.25;
+         wplusx_U[llr][icjj][icii] = (wminusx_U[ll][ns1jj][ns1ii] + wminusx_U[ll][ns2jj][ns2ii]) * 0.25;
+         //Hxfluxplus[ic] = (Hxfluxminus[ns1] + Hxfluxminus[ns2]) * HALF;
+         //Uxfluxplus[ic] = (Uxfluxminus[ns1] + Uxfluxminus[ns2]) * HALF;
+         //Vxfluxplus[ic] = (Vxfluxminus[ns1] + Vxfluxminus[ns2]) * HALF;
+         //wplusx_H[ic] = (wminusx_H[ns1] + wminusx_H[ns2]) * 0.25;
+         //wplusx_U[ic] = (wminusx_U[ns1] + wminusx_U[ns2]) * 0.25;
+      }
+
+      if (mesh->xminusCell2Idx[ic] > -1) {
+         int ifixup = mesh->xminusCell2Idx[ic];
+         int ns1 = mesh->map_xface2cell_lower[mesh->xsendIdx1[ifixup]];
+         int ns2 = mesh->map_xface2cell_lower[mesh->xsendIdx2[ifixup]];
+         
+         int ll = mesh->level[ns1];
+         int ns1jj = mesh->j[ns1] - mesh->lev_jregmin[ll];
+         int ns1ii = mesh->i[ns1] - mesh->lev_iregmin[ll];
+         int ns2jj = mesh->j[ns2] - mesh->lev_jregmin[ll];
+         int ns2ii = mesh->i[ns2] - mesh->lev_iregmin[ll];
+
+         Hxfluxminus[llr][icjj][icii] = (Hxfluxplus[ll][ns1jj][ns1ii] + Hxfluxplus[ll][ns2jj][ns2ii]) * HALF;
+         Uxfluxminus[llr][icjj][icii] = (Uxfluxplus[ll][ns1jj][ns1ii] + Uxfluxplus[ll][ns2jj][ns2ii]) * HALF;
+         Vxfluxminus[llr][icjj][icii] = (Vxfluxplus[ll][ns1jj][ns1ii] + Vxfluxplus[ll][ns2jj][ns2ii]) * HALF;
+         wminusx_H[llr][icjj][icii] = (wplusx_H[ll][ns1jj][ns1ii] + wplusx_H[ll][ns2jj][ns2ii]) * 0.25;
+         wminusx_U[llr][icjj][icii] = (wplusx_U[ll][ns1jj][ns1ii] + wplusx_U[ll][ns2jj][ns2ii]) * 0.25;
+         //Hxfluxminus[ic] = (Hxfluxplus[ns1] + Hxfluxplus[ns2]) * HALF;
+         //Uxfluxminus[ic] = (Uxfluxplus[ns1] + Uxfluxplus[ns2]) * HALF;
+         //Vxfluxminus[ic] = (Vxfluxplus[ns1] + Vxfluxplus[ns2]) * HALF;
+         //wminusx_H[ic] = (wplusx_H[ns1] + wplusx_H[ns2]) * 0.25;
+         //wminusx_U[ic] = (wplusx_U[ns1] + wplusx_U[ns2]) * 0.25;
+      }
+   }
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+   for (int ifix = 0; ifix < mesh->nyfixup; ifix++){
+      int ic = mesh->yrecvCIdx[ifix];
+      int llr = mesh->level[ic];
+      int icjj = mesh->j[ic] - mesh->lev_jregmin[llr];
+      int icii = mesh->i[ic] - mesh->lev_iregmin[llr];
+      if (mesh->yplusCell2Idx[ic] > -1) {
+         int ifixup = mesh->yplusCell2Idx[ic];
+         int ns1 = mesh->map_yface2cell_upper[mesh->ysendIdx1[ifixup]];
+         int ns2 = mesh->map_yface2cell_upper[mesh->ysendIdx2[ifixup]];
+
+         int ll = mesh->level[ns1];
+         int ns1jj = mesh->j[ns1] - mesh->lev_jregmin[ll];
+         int ns1ii = mesh->i[ns1] - mesh->lev_iregmin[ll];
+         int ns2jj = mesh->j[ns2] - mesh->lev_jregmin[ll];
+         int ns2ii = mesh->i[ns2] - mesh->lev_iregmin[ll];
+
+         Hyfluxplus[llr][icjj][icii] = (Hyfluxminus[ll][ns1jj][ns1ii] + Hyfluxminus[ll][ns2jj][ns2ii]) * HALF;
+         Uyfluxplus[llr][icjj][icii] = (Uyfluxminus[ll][ns1jj][ns1ii] + Uyfluxminus[ll][ns2jj][ns2ii]) * HALF;
+         Vyfluxplus[llr][icjj][icii] = (Vyfluxminus[ll][ns1jj][ns1ii] + Vyfluxminus[ll][ns2jj][ns2ii]) * HALF;
+         wplusy_H[llr][icjj][icii] = (wminusy_H[ll][ns1jj][ns1ii] + wminusy_H[ll][ns2jj][ns2ii]) * 0.25;
+         wplusy_V[llr][icjj][icii] = (wminusy_V[ll][ns1jj][ns1ii] + wminusy_V[ll][ns2jj][ns2ii]) * 0.25;
+         //Hyfluxplus[ic] = (Hyfluxminus[ns1] + Hyfluxminus[ns2]) * HALF;
+         //Uyfluxplus[ic] = (Uyfluxminus[ns1] + Uyfluxminus[ns2]) * HALF;
+         //Vyfluxplus[ic] = (Vyfluxminus[ns1] + Vyfluxminus[ns2]) * HALF;
+         //wplusy_H[ic] = (wminusy_H[ns1] + wminusy_H[ns2]) * 0.25;
+         //wplusy_V[ic] = (wminusy_V[ns1] + wminusy_V[ns2]) * 0.25;
+      }
+
+      if (mesh->yminusCell2Idx[ic] > -1) {
+         int ifixup = mesh->yminusCell2Idx[ic];
+         int ns1 = mesh->map_yface2cell_lower[mesh->ysendIdx1[ifixup]];
+         int ns2 = mesh->map_yface2cell_lower[mesh->ysendIdx2[ifixup]];
+
+         int ll = mesh->level[ns1];
+         int ns1jj = mesh->j[ns1] - mesh->lev_jregmin[ll];
+         int ns1ii = mesh->i[ns1] - mesh->lev_iregmin[ll];
+         int ns2jj = mesh->j[ns2] - mesh->lev_jregmin[ll];
+         int ns2ii = mesh->i[ns2] - mesh->lev_iregmin[ll];
+
+         Hyfluxminus[llr][icjj][icii] = (Hyfluxplus[ll][ns1jj][ns1ii] + Hyfluxplus[ll][ns2jj][ns2ii]) * HALF;
+         Uyfluxminus[llr][icjj][icii] = (Uyfluxplus[ll][ns1jj][ns1ii] + Uyfluxplus[ll][ns2jj][ns2ii]) * HALF;
+         Vyfluxminus[llr][icjj][icii] = (Vyfluxplus[ll][ns1jj][ns1ii] + Vyfluxplus[ll][ns2jj][ns2ii]) * HALF;
+         wminusy_H[llr][icjj][icii] = (wplusy_H[ll][ns1jj][ns1ii] + wplusy_H[ll][ns2jj][ns2ii]) * 0.25;
+         wminusy_V[llr][icjj][icii] = (wplusy_V[ll][ns1jj][ns1ii] + wplusy_V[ll][ns2jj][ns2ii]) * 0.25;
+         //Hyfluxminus[ic] = (Hyfluxplus[ns1] + Hyfluxplus[ns2]) * HALF;
+         //Uyfluxminus[ic] = (Uyfluxplus[ns1] + Uyfluxplus[ns2]) * HALF;
+         //Vyfluxminus[ic] = (Vyfluxplus[ns1] + Vyfluxplus[ns2]) * HALF;
+         //wminusy_H[ic] = (wplusy_H[ns1] + wplusy_H[ns2]) * 0.25;
+         //wminusy_V[ic] = (wplusy_V[ns1] + wplusy_V[ns2]) * 0.25;
+      }
+   }
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
+
+
+
+   for (int ll=0; ll<mesh->levmx+1; ll++){
+      int iimax = mesh->lev_iregsize[ll];
+      int jjmax = mesh->lev_jregsize[ll];
+      int jj, ii;
+      real_t dx = lev_deltax[ll];
+      real_t dy = lev_deltay[ll];
+      real_t Cx = deltaT/dx;
+      real_t Cy = deltaT/dy;
+
 #ifdef _OPENMP
+#pragma omp parallel for private(jj, ii), shared(mask_reg_lev, H_reg_lev, U_reg_lev, V_reg_lev), collapse(2)
+#endif
+      for(jj=2; jj<jjmax-2; jj++){
+         for(ii=2; ii<iimax-2; ii++){
+            if (mask_reg_lev[ll][jj][ii] == 1) {
+           states_new[ll][0][jj][ii] = U_fullstep(deltaT, dx, H_reg_lev[ll][jj][ii],
+           //H_reg_new[jj][ii] = U_fullstep(deltaT, dx, H_reg[jj][ii],
+                       Hxfluxplus[ll][jj][ii], Hxfluxminus[ll][jj][ii], Hyfluxplus[ll][jj][ii], Hyfluxminus[ll][jj][ii])
+                  - wminusx_H[ll][jj][ii] + wplusx_H[ll][jj][ii] - wminusy_H[ll][jj][ii] + wplusy_H[ll][jj][ii];
+
+           states_new[ll][1][jj][ii] = U_fullstep(deltaT, dx, U_reg_lev[ll][jj][ii],
+           //U_reg_new[jj][ii] = U_fullstep(deltaT, dx, U_reg[jj][ii],
+                       Uxfluxplus[ll][jj][ii], Uxfluxminus[ll][jj][ii], Uyfluxplus[ll][jj][ii], Uyfluxminus[ll][jj][ii])
+                  - wminusx_U[ll][jj][ii] + wplusx_U[ll][jj][ii];
+
+           states_new[ll][2][jj][ii] = U_fullstep(deltaT, dx, V_reg_lev[ll][jj][ii],
+           //V_reg_new[jj][ii] = U_fullstep(deltaT, dx, V_reg[jj][ii],
+                       Vxfluxplus[ll][jj][ii], Vxfluxminus[ll][jj][ii], Vyfluxplus[ll][jj][ii], Vyfluxminus[ll][jj][ii])
+                  - wminusy_V[ll][jj][ii] + wplusy_V[ll][jj][ii];
+            }
+         } // ii
+      } // jj
+
+#ifdef _OPENMP
+#pragma omp barrier
 #pragma omp master
       {
 #endif
-      genmatrixfree((void **)varH[ll]);
-      genmatrixfree((void **)varU[ll]);
-      genmatrixfree((void **)varV[ll]);
-      genmatrixfree((void **)passFlag[ll]);
+      //genmatrixfree((void **)varH[ll]);
+      //genmatrixfree((void **)varU[ll]);
+      //genmatrixfree((void **)varV[ll]);
+      //genmatrixfree((void **)passFlag[ll]);
+      genmatrixfree((void **)Hxfluxplus[ll]);
+      genmatrixfree((void **)Hxfluxminus[ll]);
+      genmatrixfree((void **)Hyfluxplus[ll]);
+      genmatrixfree((void **)Hyfluxminus[ll]);
+      genmatrixfree((void **)Uxfluxplus[ll]);
+      genmatrixfree((void **)Uxfluxminus[ll]);
+      genmatrixfree((void **)Uyfluxplus[ll]);
+      genmatrixfree((void **)Uyfluxminus[ll]);
+      genmatrixfree((void **)Vxfluxplus[ll]);
+      genmatrixfree((void **)Vxfluxminus[ll]);
+      genmatrixfree((void **)Vyfluxplus[ll]);
+      genmatrixfree((void **)Vyfluxminus[ll]);
+      genmatrixfree((void **)wplusx_H[ll]);
+      genmatrixfree((void **)wminusx_H[ll]);
+      genmatrixfree((void **)wplusy_H[ll]);
+      genmatrixfree((void **)wminusy_H[ll]);
+      genmatrixfree((void **)wplusx_U[ll]);
+      genmatrixfree((void **)wminusx_U[ll]);
+      genmatrixfree((void **)wplusy_V[ll]);
+      genmatrixfree((void **)wminusy_V[ll]);
       state_t ***tmp_reg;
       //printf("tmp %x pstate %x new %x\n", tmp_reg, mesh->meshes[ll].pstate, states_new);
       SWAP_PTR(states_new[ll], mesh->meshes[ll].pstate, tmp_reg);
@@ -3126,10 +3358,30 @@ void State::calc_finite_difference_regular_cells(double deltaT)
 #endif
 
 
-   free(varH);
-   free(varU);
-   free(varV);
-   free(passFlag);
+   //free(varH);
+   //free(varU);
+   //free(varV);
+   //free(passFlag);
+   free(Hxfluxplus);
+   free(Hxfluxminus);
+   free(Hyfluxplus);
+   free(Hyfluxminus);
+   free(Uxfluxplus);
+   free(Uxfluxminus);
+   free(Uyfluxplus);
+   free(Uyfluxminus);
+   free(Vxfluxplus);
+   free(Vxfluxminus);
+   free(Vyfluxplus);
+   free(Vyfluxminus);
+   free(wplusx_H);
+   free(wminusx_H);
+   free(wplusy_H);
+   free(wminusy_H);
+   free(wplusx_U);
+   free(wminusx_U);
+   free(wplusy_V);
+   free(wminusy_V);
    free(H_reg_lev);
    free(U_reg_lev);
    free(V_reg_lev);
@@ -3721,8 +3973,8 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timespec tstart_cpu_part;
-   cpu_timer_start(&tstart_cpu_part);
+   //struct timespec tstart_cpu_part;
+   //cpu_timer_start(&tstart_cpu_part);
 
 
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -4147,8 +4399,8 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
    struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timespec tstart_cpu_part;
-   cpu_timer_start(&tstart_cpu_part);
+   //struct timespec tstart_cpu_part;
+   //cpu_timer_start(&tstart_cpu_part);
 
     
    cl_command_queue command_queue = ezcl_get_command_queue();
@@ -4200,15 +4452,15 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
     mesh->gpu_calc_face_list_wbidirmap_phantom(gpu_state_memory, deltaT_local);
     gpu_memory_reset_ptrs();
 
-    gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
    cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
    cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
    cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
  
-    gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
    size_t local_work_size = 128;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -4294,14 +4546,14 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
    ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), (void *)&dev_U);
    ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), (void *)&dev_V);
 
-    gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
 #endif
 
-    gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
 
    cl_mem &dev_map_xface2cell_lower = mesh->dev_map_xface2cell_lower;
@@ -4464,16 +4716,16 @@ __kernel void calc_finite_difference_in_place_cell_comps_cl (
    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_cell_comps, 40, sizeof(cl_mem), (void *)&dev_Wplusy_V); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_cell_comps, 41, sizeof(cl_mem), (void *)&dev_Wminusy_V); 
 
-    gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_in_place_cell_comps, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_cell_event);
 
    ezcl_wait_for_events(1, &calc_finite_difference_in_place_cell_event);
    ezcl_event_release(calc_finite_difference_in_place_cell_event);
    
-    gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
    /*
 __kernel void calc_finite_difference_in_place_fixup_cl(
@@ -4552,16 +4804,16 @@ __kernel void calc_finite_difference_in_place_fixup_cl(
     ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 34, sizeof(cl_mem), (void *)&dev_Wplusy_V); 
     ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 35, sizeof(cl_mem), (void *)&dev_Wminusy_V); 
 
-    gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
     ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_in_place_fixup, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_fixup_event);
 
     ezcl_wait_for_events(1, &calc_finite_difference_in_place_fixup_event);
     ezcl_event_release(calc_finite_difference_in_place_fixup_event);
 
-    gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
   /*  
    vector<real_t>H_loc(ncells, 0);
@@ -4658,8 +4910,8 @@ __kernel void calc_finite_difference_in_place_fill_new_cl(
     ezcl_wait_for_events(1, &calc_finite_difference_in_place_fill_new_event);
     ezcl_event_release(calc_finite_difference_in_place_fill_new_event);
 
-    gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART5] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART5] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 /*
    vector<real_t>H_loc(ncells);
    ezcl_enqueue_read_buffer(command_queue, dev_H_new,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &H_loc[0], NULL);
@@ -4704,8 +4956,8 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
-   struct timespec tstart_cpu_part;
-   cpu_timer_start(&tstart_cpu_part);
+   //struct timespec tstart_cpu_part;
+   //cpu_timer_start(&tstart_cpu_part);
 
    cl_command_queue command_queue = ezcl_get_command_queue();
 
@@ -4752,15 +5004,15 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
     mesh->gpu_calc_face_list_wbidirmap_phantom(gpu_state_memory, deltaT_local);
     gpu_memory_reset_ptrs();
 
-    gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
    cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
    cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
    cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
  
-    gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
    size_t local_work_size = 256;
    size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
@@ -4846,14 +5098,14 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), (void *)&dev_U);
    ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), (void *)&dev_V);
 
-    gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
 #endif
 
-    gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
    cl_mem &dev_map_xface2cell_lower = mesh->dev_map_xface2cell_lower;
    cl_mem &dev_map_xface2cell_upper = mesh->dev_map_xface2cell_upper;
@@ -5014,16 +5266,16 @@ __kernel void calc_finite_difference_via_face_in_place_face_comps_cl(
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_face_comps, 26, sizeof(cl_mem), (void *)&dev_Wy_H); 
    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_face_comps, 27, sizeof(cl_mem), (void *)&dev_Wy_V); 
 
-    gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_face_in_place_face_comps, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_face_event);
 
    ezcl_wait_for_events(1, &calc_finite_difference_in_place_face_event);
    ezcl_event_release(calc_finite_difference_in_place_face_event);
    
-    gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
    /*
 __kernel void calc_finite_difference_via_face_in_place_fixup_cl(
@@ -5074,16 +5326,16 @@ __kernel void calc_finite_difference_via_face_in_place_fixup_cl(
     ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 20, sizeof(cl_mem), (void *)&dev_Wy_H); 
     ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 21, sizeof(cl_mem), (void *)&dev_Wy_V); 
 
-    gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
     ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_face_in_place_fixup, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_fixup_event);
 
     ezcl_wait_for_events(1, &calc_finite_difference_in_place_fixup_event);
     ezcl_event_release(calc_finite_difference_in_place_fixup_event);
 
-    gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
 /*
    vector<real_t>H_loc(mem_requestx);
@@ -5153,16 +5405,16 @@ __kernel void calc_finite_difference_via_face_in_place_fill_new_cl(
     ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fill_new, 23, sizeof(cl_mem), (void *)&dev_U_new); 
     ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fill_new, 24, sizeof(cl_mem), (void *)&dev_V_new); 
 
-    gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
     ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_face_in_place_fill_new, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_fill_new_event);
 
     ezcl_wait_for_events(1, &calc_finite_difference_in_place_fill_new_event);
     ezcl_event_release(calc_finite_difference_in_place_fill_new_event);
 
-    gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART5] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    cpu_timer_start(&tstart_cpu_part);
+    //gpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART5] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
 
 
    /* 
