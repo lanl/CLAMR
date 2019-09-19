@@ -38,7 +38,7 @@
 #define COMMHHINCLUDE
 
 #ifdef __MPI__
-#define HAVE_MPI
+//#define HAVE_MPI
 #endif
 
 #ifdef HAVE_MPI

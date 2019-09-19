@@ -65,7 +65,9 @@
 
 #include <omp.h>
 #include "QUO.hpp"
+#ifdef HAVE_MPI
 #include "mpi.h"
+#endif
 
 using namespace std;
 

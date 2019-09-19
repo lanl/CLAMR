@@ -65,7 +65,9 @@
 #include "timer/timer.h"
 #include "memstats/memstats.h"
 
+#ifdef HAVE_MPI
 #include <mpi.h>
+#endif
 #include <algorithm>
 #include <math.h>
 #include <stdio.h>

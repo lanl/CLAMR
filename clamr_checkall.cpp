@@ -64,7 +64,9 @@
 #include "graphics/display.h"
 #include "timer/timer.h"
 #include "l7/l7.h"
+#ifdef HAVE_MPI
 #include <mpi.h>
+#endif
 
 #include <algorithm>
 #include <math.h>

@@ -72,7 +72,9 @@
 #include "timer/timer.h"
 #include "memstats/memstats.h"
 
+#ifdef HAVE_MPI
 #include <mpi.h>
+#endif
 #include <omp.h>
 #include "display.h"
 
