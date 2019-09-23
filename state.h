@@ -68,6 +68,12 @@
 #include "l7/l7.h"
 #include <atomic>
 
+#define SIMPLE_CL 1
+#ifdef SIMPLE_CL
+#include "ezcl/ezcl.h"
+using cl_real_t = cl_double;
+#endif
+
 #define STATUS_OK        0
 #define STATUS_NAN       1
 #define STATUS_MASS_LOSS 2
@@ -234,7 +240,7 @@ public:
    state_t *U = NULL;
    state_t *V = NULL;
 
-#ifdef HAVE_OPENCL
+#if defined(HAVE_OPENCL)
    cl_mem dev_H;
    cl_mem dev_U;
    cl_mem dev_V;
@@ -277,7 +283,52 @@ public:
    cl_mem dev_mpot;
    //cl_mem dev_ioffset;
    cl_mem dev_result;
+#elif defined(SIMPLE_CL)
+   cl_mem dev_j;
+   cl_mem dev_i;
+   cl_mem dev_level;
+   cl_mem dev_levdx;
+   cl_mem dev_levdy;
+   cl_mem dev_HxFlux;
+   cl_mem dev_Hxfluxplus;
+   cl_mem dev_Hxfluxminus;
+   cl_mem dev_UxFlux;
+   cl_mem dev_Uxfluxplus;
+   cl_mem dev_Uxfluxminus;
+   cl_mem dev_VxFlux;
+   cl_mem dev_Vxfluxplus;
+   cl_mem dev_Vxfluxminus;
+   cl_mem dev_HyFlux;
+   cl_mem dev_Hyfluxplus;
+   cl_mem dev_Hyfluxminus;
+   cl_mem dev_UyFlux;
+   cl_mem dev_Uyfluxplus;
+   cl_mem dev_Uyfluxminus;
+   cl_mem dev_VyFlux;
+   cl_mem dev_Vyfluxplus;
+   cl_mem dev_Vyfluxminus;
+   cl_mem dev_Wx_H;
+   cl_mem dev_Wplusx_H;
+   cl_mem dev_Wminusx_H;
+   cl_mem dev_Wx_U;
+   cl_mem dev_Wplusx_U;
+   cl_mem dev_Wminusx_U;
+   cl_mem dev_Wy_H;
+   cl_mem dev_Wplusy_H;
+   cl_mem dev_Wminusy_H;
+   cl_mem dev_Wy_V;
+   cl_mem dev_Wplusy_V;
+   cl_mem dev_Wminusy_V;
+   cl_mem dev_H_reg_lev;
+   cl_mem dev_U_reg_lev;
+   cl_mem dev_V_reg_lev;
+   cl_mem dev_reg_start;
+   cl_mem dev_lev_jregmin;
+   cl_mem dev_lev_iregmin;
+   cl_mem dev_lev_jregsize;
+   cl_mem dev_lev_iregsize;
 #endif
+
 
    double    cpu_timers[STATE_TIMER_SIZE];
    long long gpu_timers[STATE_TIMER_SIZE];
@@ -338,6 +389,10 @@ public:
    void calc_finite_difference_face_in_place(double deltaT);
    void calc_finite_difference_regular_cells(double deltaT);
    void calc_finite_difference_regular_cells_by_faces(double deltaT);
+#ifdef SIMPLE_CL
+   void gpu_calc_finite_difference_regular_cells(double deltaT);
+   void gpu_reggrid_setup(size_t mem_request);
+#endif
 #ifdef HAVE_OPENCL
    //void gpu_faces_realloc(size_t mem_requestx, size_t mem_requesty);
    void gpu_faces_setup(size_t mem_requestx, size_t mem_requesty);

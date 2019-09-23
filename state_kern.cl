@@ -2690,6 +2690,213 @@ __kernel void calc_finite_difference_via_face_in_place_fill_new_cl(
 
 }
 
+#define H_reg_lev(ll, jj, ii) H_reg_lev[reg_start[ll]+jj*lev_iregsize[ll]+ii]
+#define U_reg_lev(ll, jj, ii) U_reg_lev[reg_start[ll]+jj*lev_iregsize[ll]+ii]
+#define V_reg_lev(ll, jj, ii) V_reg_lev[reg_start[ll]+jj*lev_iregsize[ll]+ii]
+
+#define HXRGFLUXIC ( U_reg_lev(ll, jj, ii) )
+#define HXRGFLUXNL ( U_reg_lev(ll, jj, ii-1) )
+#define HXRGFLUXNR ( U_reg_lev(ll, jj, ii+1) )
+#define HXRGFLUXNB ( U_reg_lev(ll, jj-1, ii) )
+#define HXRGFLUXNT ( U_reg_lev(ll, jj+1, ii) )
+
+#define UXRGFLUXIC ( SQ(U_reg_lev(ll, jj, ii))  /H_reg_lev(ll, jj, ii)   + ghalf*SQ(H_reg_lev(ll, jj, ii)) )
+#define UXRGFLUXNL ( SQ(U_reg_lev(ll, jj, ii-1))/H_reg_lev(ll, jj, ii-1) + ghalf*SQ(H_reg_lev(ll, jj, ii-1)) )
+#define UXRGFLUXNR ( SQ(U_reg_lev(ll, jj, ii+1))/H_reg_lev(ll, jj, ii+1) + ghalf*SQ(H_reg_lev(ll, jj, ii+1)) )
+#define UXRGFLUXNB ( SQ(U_reg_lev(ll, jj-1, ii))/H_reg_lev(ll, jj-1, ii) + ghalf*SQ(H_reg_lev(ll, jj-1, ii)) )
+#define UXRGFLUXNT ( SQ(U_reg_lev(ll, jj+1, ii))/H_reg_lev(ll, jj+1, ii) + ghalf*SQ(H_reg_lev(ll, jj+1, ii)) )
+
+#define VXRGFLUXIC ( U_reg_lev(ll, jj, ii)  *V_reg_lev(ll, jj, ii)  /H_reg_lev(ll, jj, ii) )
+#define VXRGFLUXNL ( U_reg_lev(ll, jj, ii-1)*V_reg_lev(ll, jj, ii-1)/H_reg_lev(ll, jj, ii-1) )
+#define VXRGFLUXNR ( U_reg_lev(ll, jj, ii+1)*V_reg_lev(ll, jj, ii+1)/H_reg_lev(ll, jj, ii+1) )
+#define VXRGFLUXNB ( U_reg_lev(ll, jj-1, ii)*V_reg_lev(ll, jj-1, ii)/H_reg_lev(ll, jj-1, ii) )
+#define VXRGFLUXNT ( U_reg_lev(ll, jj+1, ii)*V_reg_lev(ll, jj+1, ii)/H_reg_lev(ll, jj+1, ii) )
+
+#define HYRGFLUXIC ( V_reg_lev(ll, jj, ii) )
+#define HYRGFLUXNL ( V_reg_lev(ll, jj, ii-1) )
+#define HYRGFLUXNR ( V_reg_lev(ll, jj, ii+1) )
+#define HYRGFLUXNB ( V_reg_lev(ll, jj-1, ii) )
+#define HYRGFLUXNT ( V_reg_lev(ll, jj+1, ii) )
+
+#define UYRGFLUXIC  ( V_reg_lev(ll, jj, ii)  *U_reg_lev(ll, jj, ii)  /H_reg_lev(ll, jj, ii) )
+#define UYRGFLUXNL  ( V_reg_lev(ll, jj, ii-1)*U_reg_lev(ll, jj, ii-1)/H_reg_lev(ll, jj, ii-1) )
+#define UYRGFLUXNR  ( V_reg_lev(ll, jj, ii+1)*U_reg_lev(ll, jj, ii+1)/H_reg_lev(ll, jj, ii+1) )
+#define UYRGFLUXNB  ( V_reg_lev(ll, jj-1, ii)*U_reg_lev(ll, jj-1, ii)/H_reg_lev(ll, jj-1, ii) )
+#define UYRGFLUXNT  ( V_reg_lev(ll, jj+1, ii)*U_reg_lev(ll, jj+1, ii)/H_reg_lev(ll, jj+1, ii) )
+
+#define VYRGFLUXIC  ( SQ(V_reg_lev(ll, jj, ii))  /H_reg_lev(ll, jj, ii)   + ghalf*SQ(H_reg_lev(ll, jj, ii)) )
+#define VYRGFLUXNL  ( SQ(V_reg_lev(ll, jj, ii-1))/H_reg_lev(ll, jj, ii-1) + ghalf*SQ(H_reg_lev(ll, jj, ii-1)) )
+#define VYRGFLUXNR  ( SQ(V_reg_lev(ll, jj, ii+1))/H_reg_lev(ll, jj, ii+1) + ghalf*SQ(H_reg_lev(ll, jj, ii+1)) )
+#define VYRGFLUXNB  ( SQ(V_reg_lev(ll, jj-1, ii))/H_reg_lev(ll, jj-1, ii) + ghalf*SQ(H_reg_lev(ll, jj-1, ii)) )
+#define VYRGFLUXNT  ( SQ(V_reg_lev(ll, jj+1, ii))/H_reg_lev(ll, jj+1, ii) + ghalf*SQ(H_reg_lev(ll, jj+1, ii)) )
+
+#define HNEWXRGFLUXFL  ( Ux )
+#define UNEWXRGFLUXFL  ( SQ(Ux)/Hx + ghalf*SQ(Hx) )
+#define VNEWXRGFLUXFL  ( Ux*Vx/Hx )
+
+#define HNEWYRGFLUXFB  ( Vy )
+#define UNEWYRGFLUXFB  ( Vy*Uy/Hy )
+#define VNEWYRGFLUXFB  ( SQ(Vy)/Hy + ghalf*SQ(Hy) )
+
+#define HNEWXRGFLUXMINUS  ( Uxminus )
+#define HNEWXRGFLUXPLUS   ( Uxplus )
+#define UNEWXRGFLUXMINUS  ( SQ(Uxminus)/Hxminus + ghalf*SQ(Hxminus) )
+#define UNEWXRGFLUXPLUS   ( SQ(Uxplus) /Hxplus  + ghalf*SQ(Hxplus) )
+#define VNEWXRGFLUXMINUS  ( Uxminus*Vxminus/Hxminus )
+#define VNEWXRGFLUXPLUS   ( Uxplus *Vxplus /Hxplus )
+
+#define HNEWYRGFLUXMINUS  ( Vyminus )
+#define HNEWYRGFLUXPLUS   ( Vyplus )
+#define UNEWYRGFLUXMINUS  ( Vyminus*Uyminus/Hyminus )
+#define UNEWYRGFLUXPLUS   ( Vyplus *Uyplus /Hyplus )
+#define VNEWYRGFLUXMINUS  ( SQ(Vyminus)/Hyminus + ghalf*SQ(Hyminus) )
+#define VNEWYRGFLUXPLUS   ( SQ(Vyplus) /Hyplus  + ghalf*SQ(Hyplus) )
+
+
+__kernel void calc_finite_difference_regular_cells_comps_cl(
+                              int       ncells,                     // 0  Total number of cells.
+                              real_t    deltaT,                     // 1 Size of time step
+            __global    const real_t    *lev_dx,                    // 2
+            __global    const real_t    *lev_dy,                    // 3
+            __global          state_t   *Hxfluxplus,                // 4
+            __global          state_t   *Hxfluxminus,               // 5
+            __global          state_t   *Uxfluxplus,                // 6
+            __global          state_t   *Uxfluxminus,               // 7
+            __global          state_t   *Vxfluxplus,                // 8
+            __global          state_t   *Vxfluxminus,               // 9
+            __global          state_t   *Hyfluxplus,                // 10
+            __global          state_t   *Hyfluxminus,               // 11
+            __global          state_t   *Uyfluxplus,                // 12
+            __global          state_t   *Uyfluxminus,               // 13
+            __global          state_t   *Vyfluxplus,                // 14
+            __global          state_t   *Vyfluxminus,               // 15
+            __global          state_t   *wplusx_H,                  // 16
+            __global          state_t   *wminusx_H,                 // 17
+            __global          state_t   *wplusx_U,                  // 18
+            __global          state_t   *wminusx_U,                 // 19
+            __global          state_t   *wplusy_H,                  // 20
+            __global          state_t   *wminusy_H,                 // 21
+            __global          state_t   *wplusy_V,                  // 22
+            __global          state_t   *wminusy_V,                 // 23
+            __global    const int       *level,                     // 24
+            __global    const int       *reg_start,                 // 25
+            __global    const real_t    *H_reg_lev,                 // 26
+            __global    const real_t    *U_reg_lev,                 // 27
+            __global    const real_t    *V_reg_lev,                 // 28
+            __global    const int       *j,                         // 29
+            __global    const int       *i,                         // 30
+            __global    const int       *lev_jregmin,               // 31
+            __global    const int       *lev_iregmin,               // 32
+            __global    const int       *lev_jregsize,              // 33
+            __global    const int       *lev_iregsize)              // 34
+{
+
+    /////////////////////////////////////////////
+    /// Get thread identification information ///
+    /////////////////////////////////////////////
+
+    const uint giX = get_global_id(0);
+    const uint tiX = get_local_id(0);
+
+    const uint ngX = get_global_size(0);
+    const uint ntX = get_local_size(0);
+
+    const uint group_id = get_group_id(0);
+
+    
+    if (giX >= ncells) 
+        return;
+
+    real_t   g     = 9.80;   // gravitational constant
+    real_t   ghalf = 0.5*g;
+
+    int ll = level[giX];
+    int jj = j[giX] - lev_jregmin[ll];
+    int ii = i[giX] - lev_iregmin[ll];
+    int jjmax = lev_jregsize[ll];
+    int iimax = lev_iregsize[ll];
+    int startIdx = reg_start[ll];
+
+    real_t dx = lev_dx[ll];
+    real_t dy = lev_dy[ll];
+    real_t Cx = deltaT/dx;
+    real_t Cy = deltaT/dy;
+
+    real_t Hxminus = HALF*( ((H_reg_lev(ll, jj, ii-1)) + (H_reg_lev(ll, jj, ii))) - (deltaT)/(dx)*((HXRGFLUXIC) - (HXRGFLUXNL)) );
+    real_t Uxminus = HALF*( ((U_reg_lev(ll, jj, ii-1)) + (U_reg_lev(ll, jj, ii))) - (deltaT)/(dx)*((UXRGFLUXIC) - (UXRGFLUXNL)) );
+    real_t Vxminus = HALF*( ((V_reg_lev(ll, jj, ii-1)) + (V_reg_lev(ll, jj, ii))) - (deltaT)/(dx)*((VXRGFLUXIC) - (VXRGFLUXNL)) );
+
+    real_t Hxplus = HALF*( ((H_reg_lev(ll, jj, ii)) + (H_reg_lev(ll, jj, ii+1))) - (deltaT)/(dx)*((HXRGFLUXNR) - (HXRGFLUXIC)) );
+    real_t Uxplus = HALF*( ((U_reg_lev(ll, jj, ii)) + (U_reg_lev(ll, jj, ii+1))) - (deltaT)/(dx)*((UXRGFLUXNR) - (UXRGFLUXIC)) );
+    real_t Vxplus = HALF*( ((V_reg_lev(ll, jj, ii)) + (V_reg_lev(ll, jj, ii+1))) - (deltaT)/(dx)*((VXRGFLUXNR) - (VXRGFLUXIC)) );
+
+    real_t Hyminus = HALF*( ((H_reg_lev(ll, jj-1, ii)) + (H_reg_lev(ll, jj, ii))) - (deltaT)/(dy)*((HYRGFLUXIC) - (HYRGFLUXNB)) );
+    real_t Uyminus = HALF*( ((U_reg_lev(ll, jj-1, ii)) + (U_reg_lev(ll, jj, ii))) - (deltaT)/(dy)*((UYRGFLUXIC) - (UYRGFLUXNB)) );
+    real_t Vyminus = HALF*( ((V_reg_lev(ll, jj-1, ii)) + (V_reg_lev(ll, jj, ii))) - (deltaT)/(dy)*((VYRGFLUXIC) - (VYRGFLUXNB)) );
+
+    real_t Hyplus = HALF*( ((H_reg_lev(ll, jj, ii)) + (H_reg_lev(ll, jj+1, ii))) - (deltaT)/(dy)*((HYRGFLUXNT) - (HYRGFLUXIC)) );
+    real_t Uyplus = HALF*( ((U_reg_lev(ll, jj, ii)) + (U_reg_lev(ll, jj+1, ii))) - (deltaT)/(dy)*((UYRGFLUXNT) - (UYRGFLUXIC)) );
+    real_t Vyplus = HALF*( ((V_reg_lev(ll, jj, ii)) + (V_reg_lev(ll, jj+1, ii))) - (deltaT)/(dy)*((VYRGFLUXNT) - (VYRGFLUXIC)) );
+
+    Hxfluxminus[giX] = HNEWXRGFLUXMINUS;
+    Uxfluxminus[giX] = UNEWXRGFLUXMINUS;
+    Vxfluxminus[giX] = VNEWXRGFLUXMINUS;
+
+    Hxfluxplus[giX] = HNEWXRGFLUXPLUS;
+    Uxfluxplus[giX] = UNEWXRGFLUXPLUS;
+    Vxfluxplus[giX] = VNEWXRGFLUXPLUS;
+
+    Hyfluxminus[giX] = HNEWYRGFLUXMINUS;
+    Uyfluxminus[giX] = UNEWYRGFLUXMINUS;
+    Vyfluxminus[giX] = VNEWYRGFLUXMINUS;
+
+    Hyfluxplus[giX] = HNEWYRGFLUXPLUS;
+    Uyfluxplus[giX] = UNEWYRGFLUXPLUS;
+    Vyfluxplus[giX] = VNEWYRGFLUXPLUS;
+
+    wminusx_H[giX] = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+                      H_reg_lev(ll, jj, ii)-H_reg_lev(ll, jj, ii-1), H_reg_lev(ll, jj, ii-1)-H_reg_lev(ll, jj, ii-2), H_reg_lev(ll, jj, ii+1)-H_reg_lev(ll, jj, ii));
+
+    wminusx_H[giX] *= H_reg_lev(ll, jj, ii) - H_reg_lev(ll, jj, ii-1);
+
+    wplusx_H[giX] = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+                      H_reg_lev(ll, jj, ii+1)-H_reg_lev(ll, jj, ii), H_reg_lev(ll, jj, ii)-H_reg_lev(ll, jj, ii-1), H_reg_lev(ll, jj, ii+2)-H_reg_lev(ll, jj, ii+1));
+
+    wplusx_H[giX] *= H_reg_lev(ll, jj, ii+1) - H_reg_lev(ll, jj, ii);
+
+    wminusx_U[giX] = w_corrector(deltaT, dx, fabs(Uxminus/Hxminus) + sqrt(g*Hxminus),
+                      U_reg_lev(ll, jj, ii)-U_reg_lev(ll, jj, ii-1), U_reg_lev(ll, jj, ii-1)-U_reg_lev(ll, jj, ii-2), U_reg_lev(ll, jj, ii+1)-U_reg_lev(ll, jj, ii));
+
+    wminusx_U[giX] *= U_reg_lev(ll, jj, ii) - U_reg_lev(ll, jj, ii-1);
+
+    wplusx_U[giX] = w_corrector(deltaT, dx, fabs(Uxplus/Hxplus) + sqrt(g*Hxplus),
+                      U_reg_lev(ll, jj, ii+1)-U_reg_lev(ll, jj, ii), U_reg_lev(ll, jj, ii)-U_reg_lev(ll, jj, ii-1), U_reg_lev(ll, jj, ii+2)-U_reg_lev(ll, jj, ii+1));
+
+    wplusx_U[giX] *= U_reg_lev(ll, jj, ii+1) - U_reg_lev(ll, jj, ii);
+
+    wminusy_H[giX] = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+                      H_reg_lev(ll, jj, ii)-H_reg_lev(ll, jj-1, ii), H_reg_lev(ll, jj-1, ii)-H_reg_lev(ll, jj-2, ii), H_reg_lev(ll, jj+1, ii)-H_reg_lev(ll, jj, ii));
+
+    wminusy_H[giX] *= H_reg_lev(ll, jj, ii) - H_reg_lev(ll, jj-1, ii);
+
+    wplusy_H[giX] = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+                      H_reg_lev(ll, jj+1, ii)-H_reg_lev(ll, jj, ii), H_reg_lev(ll, jj, ii)-H_reg_lev(ll, jj-1, ii), H_reg_lev(ll, jj+2, ii)-H_reg_lev(ll, jj+1, ii));
+
+    wplusy_H[giX] *= H_reg_lev(ll, jj+1, ii) - H_reg_lev(ll, jj, ii);
+
+    wminusy_V[giX] = w_corrector(deltaT, dy, fabs(Vyminus/Hyminus) + sqrt(g*Hyminus),
+                      V_reg_lev(ll, jj, ii)-V_reg_lev(ll, jj-1, ii), V_reg_lev(ll, jj-1, ii)-V_reg_lev(ll, jj-2, ii), V_reg_lev(ll, jj+1, ii)-V_reg_lev(ll, jj, ii));
+
+    wminusy_V[giX] *= V_reg_lev(ll, jj, ii) - V_reg_lev(ll, jj-1, ii);
+
+    wplusy_V[giX] = w_corrector(deltaT, dy, fabs(Vyplus/Hyplus) + sqrt(g*Hyplus),
+                      V_reg_lev(ll, jj+1, ii)-V_reg_lev(ll, jj, ii), V_reg_lev(ll, jj, ii)-V_reg_lev(ll, jj-1, ii), V_reg_lev(ll, jj+2, ii)-V_reg_lev(ll, jj+1, ii));
+
+    wplusy_V[giX] *= V_reg_lev(ll, jj+1, ii) - V_reg_lev(ll, jj, ii);
+
+
+}
+
 __kernel void refine_potential_cl(
                  const int      ncells,     // 0  Total number of cells.
                  const int      levmx,      // 1  Maximum level

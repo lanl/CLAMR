@@ -425,6 +425,8 @@ extern "C" void do_calc(void)
             state->gpu_calc_finite_difference_in_place(deltaT);
          } else if (choose_amr_method == FACE_IN_PLACE_AMR) {
             state->gpu_calc_finite_difference_via_face_in_place(deltaT);
+         } else if (choose_amr_method == REGULAR_GRID_AMR) {
+            state->gpu_calc_finite_difference_regular_cells(deltaT);
          } else {
             state->gpu_calc_finite_difference(deltaT);
          }

@@ -509,7 +509,8 @@ extern "C" void do_calc(void)
          } else if (choose_amr_method == FACE_IN_PLACE_AMR) {
             state->calc_finite_difference_face_in_place(deltaT);
          } else if (choose_amr_method == REGULAR_GRID_AMR) {
-            state->calc_finite_difference_regular_cells(deltaT);
+            //state->calc_finite_difference_regular_cells(deltaT);
+            state->gpu_calc_finite_difference_regular_cells(deltaT);
          } else if (choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
             state->calc_finite_difference_regular_cells_by_faces(deltaT);
          } else {
