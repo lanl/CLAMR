@@ -2690,9 +2690,9 @@ __kernel void calc_finite_difference_via_face_in_place_fill_new_cl(
 
 }
 
-#define H_reg_lev(ll, jj, ii) H_reg_lev[reg_start[ll]+jj*lev_iregsize[ll]+ii]
-#define U_reg_lev(ll, jj, ii) U_reg_lev[reg_start[ll]+jj*lev_iregsize[ll]+ii]
-#define V_reg_lev(ll, jj, ii) V_reg_lev[reg_start[ll]+jj*lev_iregsize[ll]+ii]
+#define H_reg_lev(lev, j_coord, i_coord) H_reg_lev[reg_start[lev]+(j_coord)*lev_iregsize[lev]+i_coord]
+#define U_reg_lev(lev, j_coord, i_coord) U_reg_lev[reg_start[lev]+(j_coord)*lev_iregsize[lev]+i_coord]
+#define V_reg_lev(lev, j_coord, i_coord) V_reg_lev[reg_start[lev]+(j_coord)*lev_iregsize[lev]+i_coord]
 
 #define HXRGFLUXIC ( U_reg_lev(ll, jj, ii) )
 #define HXRGFLUXNL ( U_reg_lev(ll, jj, ii-1) )
@@ -2817,6 +2817,30 @@ __kernel void calc_finite_difference_regular_cells_comps_cl(
     int iimax = lev_iregsize[ll];
     int startIdx = reg_start[ll];
 
+    if (j[giX] == 0 || i[giX] == 0 || jj == jjmax-2 || ii == iimax-2) {
+        Hyfluxminus[giX] = 0.0;
+        Uyfluxminus[giX] = 0.0;
+        Vyfluxminus[giX] = 0.0;
+        wminusy_H[giX] = 0.0;
+        wminusy_V[giX] = 0.0;
+        Hxfluxminus[giX] = 0.0;
+        Uxfluxminus[giX] = 0.0;
+        Vxfluxminus[giX] = 0.0;
+        wminusx_H[giX] = 0.0;
+        wminusx_U[giX] = 0.0;
+        Hyfluxplus[giX] = 0.0;
+        Uyfluxplus[giX] = 0.0;
+        Vyfluxplus[giX] = 0.0;
+        wplusy_H[giX] = 0.0;
+        wplusy_V[giX] = 0.0;
+        Hxfluxplus[giX] = 0.0;
+        Uxfluxplus[giX] = 0.0;
+        Vxfluxplus[giX] = 0.0;
+        wplusx_H[giX] = 0.0;
+        wplusx_U[giX] = 0.0;
+        return;
+    }
+
     real_t dx = lev_dx[ll];
     real_t dy = lev_dy[ll];
     real_t Cx = deltaT/dx;
@@ -2894,6 +2918,297 @@ __kernel void calc_finite_difference_regular_cells_comps_cl(
 
     wplusy_V[giX] *= V_reg_lev(ll, jj+1, ii) - V_reg_lev(ll, jj, ii);
 
+
+}
+
+__kernel void calc_finite_difference_regular_cells_fill_cl(
+                              int       ncells,                     // 0  Total number of cells.
+                              real_t    deltaT,                     // 1 Size of time step
+            __global    const real_t    *lev_dx,                    // 2
+            __global    const real_t    *lev_dy,                    // 3
+            __global          state_t   *Hxfluxplus,                // 4
+            __global          state_t   *Hxfluxminus,               // 5
+            __global          state_t   *Uxfluxplus,                // 6
+            __global          state_t   *Uxfluxminus,               // 7
+            __global          state_t   *Vxfluxplus,                // 8
+            __global          state_t   *Vxfluxminus,               // 9
+            __global          state_t   *Hyfluxplus,                // 10
+            __global          state_t   *Hyfluxminus,               // 11
+            __global          state_t   *Uyfluxplus,                // 12
+            __global          state_t   *Uyfluxminus,               // 13
+            __global          state_t   *Vyfluxplus,                // 14
+            __global          state_t   *Vyfluxminus,               // 15
+            __global          state_t   *wplusx_H,                  // 16
+            __global          state_t   *wminusx_H,                 // 17
+            __global          state_t   *wplusx_U,                  // 18
+            __global          state_t   *wminusx_U,                 // 19
+            __global          state_t   *wplusy_H,                  // 20
+            __global          state_t   *wminusy_H,                 // 21
+            __global          state_t   *wplusy_V,                  // 22
+            __global          state_t   *wminusy_V,                 // 23
+            __global    const int       *level,                     // 24
+            __global    const int       *reg_start,                 // 25
+            __global    const real_t    *H_reg_lev,                 // 26
+            __global    const real_t    *U_reg_lev,                 // 27
+            __global    const real_t    *V_reg_lev,                 // 28
+            __global    const int       *j,                         // 29
+            __global    const int       *i,                         // 30
+            __global    const int       *lev_jregmin,               // 31
+            __global    const int       *lev_iregmin,               // 32
+            __global    const int       *lev_jregsize,              // 33
+            __global    const int       *lev_iregsize,              // 34
+            __global          real_t    *H_state_new,               // 35
+            __global          real_t    *U_state_new,               // 36
+            __global          real_t    *V_state_new)               // 37
+{
+
+    /////////////////////////////////////////////
+    /// Get thread identification information ///
+    /////////////////////////////////////////////
+
+    const uint giX = get_global_id(0);
+    const uint tiX = get_local_id(0);
+
+    const uint ngX = get_global_size(0);
+    const uint ntX = get_local_size(0);
+
+    const uint group_id = get_group_id(0);
+
+    
+    if (giX >= ncells) 
+        return;
+
+    int ll = level[giX];
+    int jj = j[giX] - lev_jregmin[ll];
+    int ii = i[giX] - lev_iregmin[ll];
+    int jjmax = lev_jregsize[ll];
+    int iimax = lev_iregsize[ll];
+    int startIdx = reg_start[ll];
+
+    real_t dx = lev_dx[ll];
+    real_t dy = lev_dy[ll];
+    real_t Cx = deltaT/dx;
+    real_t Cy = deltaT/dy;
+
+
+    
+     H_state_new[giX] = U_fullstep(deltaT, dx, H_reg_lev(ll, jj, ii),
+                 Hxfluxplus[giX], Hxfluxminus[giX], Hyfluxplus[giX], Hyfluxminus[giX])
+            - wminusx_H[giX] + wplusx_H[giX] - wminusy_H[giX] + wplusy_H[giX];
+
+     U_state_new[giX] = U_fullstep(deltaT, dx, U_reg_lev(ll, jj, ii),
+                 Uxfluxplus[giX], Uxfluxminus[giX], Uyfluxplus[giX], Uyfluxminus[giX])
+            - wminusx_U[giX] + wplusx_U[giX];
+
+     V_state_new[giX] = U_fullstep(deltaT, dx, V_reg_lev(ll, jj, ii),
+                 Vxfluxplus[giX], Vxfluxminus[giX], Vyfluxplus[giX], Vyfluxminus[giX])
+            - wminusy_V[giX] + wplusy_V[giX];
+
+}
+    
+__kernel void calc_finite_difference_regular_cells_face_comps_cl(
+                              int       ncells,                     // 0  Total number of cells.
+            __global    const int       *nfaces,                    // 1 Number of faces
+                              real_t    deltaT,                     // 2 Size of time step
+            __global    const real_t    *lev_dx,                    // 3
+            __global    const real_t    *lev_dy,                    // 4
+            __global          state_t   *HxFlux,                    // 5
+            __global          state_t   *UxFlux,                    // 6
+            __global          state_t   *VxFlux,                    // 7
+            __global          state_t   *HyFlux,                    // 8
+            __global          state_t   *UyFlux,                    // 9
+            __global          state_t   *VyFlux,                    // 10
+            __global          state_t   *Wx_H,                      // 11
+            __global          state_t   *Wx_U,                      // 12
+            __global          state_t   *Wy_H,                      // 13
+            __global          state_t   *Wy_V,                      // 14
+            __global    const int       *reg_start,                 // 15
+            __global    const real_t    *H_reg_lev,                 // 16
+            __global    const real_t    *U_reg_lev,                 // 17
+            __global    const real_t    *V_reg_lev,                 // 18
+            __global    const int       *xface_level,               // 19
+            __global    const int       *xface_j,                   // 20
+            __global    const int       *xface_i,                   // 21
+            __global    const int       *yface_level,               // 22
+            __global    const int       *yface_j,                   // 23
+            __global    const int       *yface_i,                   // 24
+            __global    const int       *lev_jregmin,               // 25
+            __global    const int       *lev_iregmin,               // 26
+            __global    const int       *lev_jregsize,              // 27
+            __global    const int       *lev_iregsize)              // 28
+{
+
+    /////////////////////////////////////////////
+    /// Get thread identification information ///
+    /////////////////////////////////////////////
+
+    const uint giX = get_global_id(0);
+    const uint tiX = get_local_id(0);
+
+    const uint ngX = get_global_size(0);
+    const uint ntX = get_local_size(0);
+
+    const uint group_id = get_group_id(0);
+
+    if (giX >= max(nfaces[0], nfaces[1])) 
+        return;
+
+    real_t   g     = 9.80; 
+    real_t   ghalf = 0.5*g;
+
+    int ll, jj, ii, jjmax, iimax, startIdx;
+    real_t dx, dy, Cxhalf, Cyhalf;
+
+
+    if (giX < nfaces[0]) {
+         ll = xface_level[giX];
+         jj = xface_j[giX] - lev_jregmin[ll];
+         ii = xface_i[giX] - lev_iregmin[ll];
+         jjmax = lev_jregsize[ll];
+         iimax = lev_iregsize[ll];
+         startIdx = reg_start[ll];
+
+         dx = lev_dx[ll];
+         Cxhalf = deltaT/dx;
+
+         real_t Hx = HALF*( (H_reg_lev(ll, jj, ii-1) + H_reg_lev(ll, jj, ii)) - Cxhalf*(HXRGFLUXIC - HXRGFLUXNL) );
+         real_t Ux = HALF*( (U_reg_lev(ll, jj, ii-1) + U_reg_lev(ll, jj, ii)) - Cxhalf*(UXRGFLUXIC - UXRGFLUXNL) );
+         real_t Vx = HALF*( (V_reg_lev(ll, jj, ii-1) + V_reg_lev(ll, jj, ii)) - Cxhalf*(VXRGFLUXIC - VXRGFLUXNL) );
+
+         real_t U_eigen = fabs(Ux/Hx) + sqrt(g*Hx);
+
+         real_t Hll = H_reg_lev(ll, jj, ii-2);
+         real_t Hl  = H_reg_lev(ll, jj, ii-1);
+         real_t Hr  = H_reg_lev(ll, jj, ii  );
+         real_t Hrr = H_reg_lev(ll, jj, ii+1);
+         real_t Ull = U_reg_lev(ll, jj, ii-2);
+         real_t Ul  = U_reg_lev(ll, jj, ii-1);
+         real_t Ur  = U_reg_lev(ll, jj, ii  );
+         real_t Urr = U_reg_lev(ll, jj, ii+1);
+      
+         Wx_H[giX] = w_corrector(deltaT, dx, U_eigen, Hr-Hl, Hl-Hll, Hrr-Hr) * (Hr-Hl);
+         Wx_U[giX] = w_corrector(deltaT, dx, U_eigen, Ur-Ul, Ul-Ull, Urr-Ur) * (Ur-Ul);
+
+         HxFlux[giX] = HNEWXRGFLUXFL;
+         UxFlux[giX] = UNEWXRGFLUXFL;
+         VxFlux[giX] = VNEWXRGFLUXFL;
+    }
+
+    if (giX < nfaces[1]) {
+         ll = yface_level[giX];
+         jj = yface_j[giX] - lev_jregmin[ll];
+         ii = yface_i[giX] - lev_iregmin[ll];
+         jjmax = lev_jregsize[ll];
+         iimax = lev_iregsize[ll];
+         startIdx = reg_start[ll];
+
+         dy = lev_dy[ll];
+         Cyhalf = deltaT/dy;
+
+         real_t Hy = HALF*( (H_reg_lev(ll, jj-1, ii) + H_reg_lev(ll, jj, ii)) - Cyhalf*(HYRGFLUXIC - HYRGFLUXNB) );
+         real_t Uy = HALF*( (U_reg_lev(ll, jj-1, ii) + U_reg_lev(ll, jj, ii)) - Cyhalf*(UYRGFLUXIC - UYRGFLUXNB) );
+         real_t Vy = HALF*( (V_reg_lev(ll, jj-1, ii) + V_reg_lev(ll, jj, ii)) - Cyhalf*(VYRGFLUXIC - VYRGFLUXNB) );
+
+         real_t U_eigen = fabs(Vy/Hy) + sqrt(g*Hy);
+
+         real_t Hbb = H_reg_lev(ll, jj-2, ii);
+         real_t Hb  = H_reg_lev(ll, jj-1, ii);
+         real_t Ht  = H_reg_lev(ll, jj  , ii);
+         real_t Htt = H_reg_lev(ll, jj+1, ii);
+         real_t Vbb = V_reg_lev(ll, jj-2, ii);
+         real_t Vb  = V_reg_lev(ll, jj-1, ii);
+         real_t Vt  = V_reg_lev(ll, jj  , ii);
+         real_t Vtt = V_reg_lev(ll, jj+1, ii);
+
+         Wy_H[giX] = w_corrector(deltaT, dy, U_eigen, Ht-Hb, Hb-Hbb, Htt-Ht) * (Ht-Hb);
+         Wy_V[giX] = w_corrector(deltaT, dy, U_eigen, Vt-Vb, Vb-Vbb, Vtt-Vt) * (Vt-Vb);
+
+         HyFlux[giX] = HNEWYRGFLUXFB;
+         UyFlux[giX] = UNEWYRGFLUXFB;
+         VyFlux[giX] = VNEWYRGFLUXFB;
+    }
+}
+
+__kernel void calc_finite_difference_regular_cells_by_faces_fill_cl(
+                              int       ncells,                     // 0  Total number of cells.
+                              real_t    deltaT,                     // 1 Size of time step
+            __global    const real_t    *lev_dx,                    // 2
+            __global    const real_t    *lev_dy,                    // 3
+            __global    const state_t   *HxFlux,                    // 4
+            __global    const state_t   *UxFlux,                    // 5
+            __global    const state_t   *VxFlux,                    // 6
+            __global    const state_t   *HyFlux,                    // 7
+            __global    const state_t   *UyFlux,                    // 8
+            __global    const state_t   *VyFlux,                    // 9
+            __global    const state_t   *Wx_H,                      // 10
+            __global    const state_t   *Wx_U,                      // 11
+            __global    const state_t   *Wy_H,                      // 12
+            __global    const state_t   *Wy_V,                      // 13
+            __global    const int       *level,                     // 14
+            __global    const int       *map_xcell2face_left1,      // 15 A cell's left primary face 
+            __global    const int       *map_xcell2face_right1,     // 16 A cell's right primary face 
+            __global    const int       *map_ycell2face_bot1,       // 17 A cell's bot primary face 
+            __global    const int       *map_ycell2face_top1,       // 18 A cell's top primary face 
+            __global    const int       *reg_start,                 // 19
+            __global    const real_t    *H_reg_lev,                 // 20
+            __global    const real_t    *U_reg_lev,                 // 21
+            __global    const real_t    *V_reg_lev,                 // 22
+            __global    const int       *j,                         // 23
+            __global    const int       *i,                         // 24
+            __global    const int       *lev_jregmin,               // 25
+            __global    const int       *lev_iregmin,               // 26
+            __global    const int       *lev_jregsize,              // 27
+            __global    const int       *lev_iregsize,              // 28
+            __global          real_t    *H_state_new,               // 29
+            __global          real_t    *U_state_new,               // 30
+            __global          real_t    *V_state_new)               // 31
+{
+
+
+    /////////////////////////////////////////////
+    /// Get thread identification information ///
+    /////////////////////////////////////////////
+
+    const uint giX = get_global_id(0);
+    const uint tiX = get_local_id(0);
+
+    const uint ngX = get_global_size(0);
+    const uint ntX = get_local_size(0);
+
+    const uint group_id = get_group_id(0);
+
+    if (giX >= ncells) 
+        return;
+
+    int ll = level[giX];
+    int jj = j[giX] - lev_jregmin[ll];
+    int ii = i[giX] - lev_iregmin[ll];
+    int jjmax = lev_jregsize[ll];
+    int iimax = lev_iregsize[ll];
+    int startIdx = reg_start[ll];
+
+    real_t dx = lev_dx[ll];
+    real_t dy = lev_dy[ll];
+    real_t Cx = deltaT/dx;
+    real_t Cy = deltaT/dy;
+
+    int fl = map_xcell2face_left1[giX];
+    int fr = map_xcell2face_right1[giX];
+    int fb = map_ycell2face_bot1[giX];
+    int ft = map_ycell2face_top1[giX];
+
+    
+     H_state_new[giX] = U_fullstep(deltaT, dx, H_reg_lev(ll, jj, ii),
+                 HxFlux[fl], HxFlux[fr], HyFlux[fb], HyFlux[ft])
+            - Wx_H[fl] + Wx_H[fr] - Wy_H[fb] + Wy_H[ft];
+
+     U_state_new[giX] = U_fullstep(deltaT, dx, U_reg_lev(ll, jj, ii),
+                 UxFlux[fl], UxFlux[fr], UyFlux[fb], UyFlux[ft])
+            - Wx_U[fl] + Wx_U[fr];
+
+     V_state_new[giX] = U_fullstep(deltaT, dx, V_reg_lev(ll, jj, ii),
+                 VxFlux[fl], VxFlux[fr], VyFlux[fb], VyFlux[ft])
+            - Wy_V[fb] + Wy_V[ft];
 
 }
 

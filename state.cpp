@@ -102,10 +102,6 @@ int int_vals[num_int_vals] = {CRUX_STATE_VERSION};
 #include "state_kernel.inc"
 #endif
 
-#ifdef SIMPLE_CL
-#include "state_kernel.inc"
-#endif
-
 struct esum_type{
    double sum;
    double correction;
@@ -150,6 +146,10 @@ cl_kernel kernel_calc_finite_difference_in_place_fill_new;
 cl_kernel kernel_calc_finite_difference_via_face_in_place_face_comps;
 cl_kernel kernel_calc_finite_difference_via_face_in_place_fixup;
 cl_kernel kernel_calc_finite_difference_via_face_in_place_fill_new;
+cl_kernel kernel_calc_finite_difference_regular_cells_comps;
+cl_kernel kernel_calc_finite_difference_regular_cells_fill;
+cl_kernel kernel_calc_finite_difference_regular_cells_face_comps;
+cl_kernel kernel_calc_finite_difference_regular_cells_by_faces_fill;
 cl_kernel kernel_refine_potential;
 cl_kernel kernel_reduce_sum_mass_stage1of2;
 cl_kernel kernel_reduce_sum_mass_stage2of2;
@@ -157,9 +157,6 @@ cl_kernel kernel_reduce_epsum_mass_stage1of2;
 cl_kernel kernel_reduce_epsum_mass_stage2of2;
 #endif
 
-#ifdef SIMPLE_CL
-cl_kernel kernel_calc_finite_difference_regular_cells_comps;
-#endif
 
 #pragma omp declare simd
 inline real_t U_halfstep(// XXX Fix the subindices to be more intuitive XXX
@@ -318,6 +315,9 @@ void State::init(int do_gpu_calc)
       kernel_calc_finite_difference_via_face_in_place_fixup = ezcl_create_kernel_wprogram(program, "calc_finite_difference_via_face_in_place_fixup_cl");
       kernel_calc_finite_difference_via_face_in_place_fill_new = ezcl_create_kernel_wprogram(program, "calc_finite_difference_via_face_in_place_fill_new_cl");
       kernel_calc_finite_difference_regular_cells_comps = ezcl_create_kernel_wprogram(program, "calc_finite_difference_regular_cells_comps_cl");
+      kernel_calc_finite_difference_regular_cells_fill = ezcl_create_kernel_wprogram(program, "calc_finite_difference_regular_cells_fill_cl");
+      kernel_calc_finite_difference_regular_cells_face_comps = ezcl_create_kernel_wprogram(program, "calc_finite_difference_regular_cells_face_comps_cl");
+      kernel_calc_finite_difference_regular_cells_by_faces_fill = ezcl_create_kernel_wprogram(program, "calc_finite_difference_regular_cells_by_faces_fill_cl");
       kernel_refine_potential                = ezcl_create_kernel_wprogram(program, "refine_potential_cl");
       kernel_reduce_sum_mass_stage1of2       = ezcl_create_kernel_wprogram(program, "reduce_sum_mass_stage1of2_cl");
       kernel_reduce_sum_mass_stage2of2       = ezcl_create_kernel_wprogram(program, "reduce_sum_mass_stage2of2_cl");
@@ -328,16 +328,6 @@ void State::init(int do_gpu_calc)
       if (mesh->mype == 0) printf("Finishing compile of kernels in state\n");
 #endif
 
-#ifdef SIMPLE_CL
-      cl_context context = ezcl_get_context();
-
-      const char *defines = NULL;
-      cl_program program                 = ezcl_create_program_wsource(context, defines, state_kern_source);
-
-      kernel_calc_finite_difference_regular_cells_comps = ezcl_create_kernel_wprogram(program, "calc_finite_difference_regular_cells_comps_cl");
-
-      ezcl_program_release(program);
-#endif
    }
 
    //printf("\nDEBUG -- Calling state memory memory malloc at line %d\n",__LINE__);
@@ -395,10 +385,6 @@ void State::terminate(void)
    state_memory.memory_remove(cpu_timers);
    state_memory.memory_remove(gpu_timers);
 
-#ifdef SIMPLE_CL
-   ezcl_kernel_release(kernel_calc_finite_difference_regular_cells_comps);
-#endif
-
 #ifdef HAVE_OPENCL
    ezcl_device_memory_delete(dev_deltaT);
 
@@ -422,6 +408,10 @@ void State::terminate(void)
    ezcl_kernel_release(kernel_calc_finite_difference_via_face_in_place_face_comps);
    ezcl_kernel_release(kernel_calc_finite_difference_via_face_in_place_fixup);
    ezcl_kernel_release(kernel_calc_finite_difference_via_face_in_place_fill_new);
+   ezcl_kernel_release(kernel_calc_finite_difference_regular_cells_comps);
+   ezcl_kernel_release(kernel_calc_finite_difference_regular_cells_fill);
+   ezcl_kernel_release(kernel_calc_finite_difference_regular_cells_face_comps);
+   ezcl_kernel_release(kernel_calc_finite_difference_regular_cells_by_faces_fill);
 
    ezcl_kernel_release(kernel_refine_potential);
    ezcl_kernel_release(kernel_reduce_sum_mass_stage1of2);
@@ -2976,6 +2966,7 @@ void State::calc_finite_difference_regular_cells(double deltaT)
       //state_t **H_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
       //state_t **U_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
       //state_t **V_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
+      //
 
 #ifdef _OPENMP
 #pragma omp for
@@ -3166,6 +3157,7 @@ void State::calc_finite_difference_regular_cells(double deltaT)
          }
       }*/
    } // ll
+
 
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
       cpu_timer_start(&tstart_cpu_part);
@@ -3804,330 +3796,6 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
 #pragma omp barrier
 #endif
 }
-
-#ifdef SIMPLE_CL
-void State::gpu_reggrid_setup(size_t mem_request)
-{
-    size_t level_size = 3;
-    size_t mem_request1 = mesh->ncells;
-    dev_H_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_H_reg_lev"), &mem_request, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_H_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_H_reg_lev"), &mem_request, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_U_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_U_reg_lev"), &mem_request, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_V_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_V_reg_lev"), &mem_request, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_lev_jregmin = ezcl_malloc(NULL, const_cast<char *>("dev_lev_jregmin"), &level_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_lev_iregmin = ezcl_malloc(NULL, const_cast<char *>("dev_lev_iregmin"), &level_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_lev_jregsize = ezcl_malloc(NULL, const_cast<char *>("dev_lev_jregsize"), &level_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_lev_iregsize = ezcl_malloc(NULL, const_cast<char *>("dev_lev_iregsize"), &level_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_reg_start = ezcl_malloc(NULL, const_cast<char *>("dev_reg_start"), &level_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Hxfluxplus = ezcl_malloc(NULL, const_cast<char *>("dev_Hxfluxplus"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Hxfluxminus = ezcl_malloc(NULL, const_cast<char *>("dev_Hxfluxminus"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Uxfluxplus = ezcl_malloc(NULL, const_cast<char *>("dev_Uxfluxplus"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Uxfluxminus = ezcl_malloc(NULL, const_cast<char *>("dev_Uxfluxminus"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Vxfluxplus = ezcl_malloc(NULL, const_cast<char *>("dev_Vxfluxplus"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Vxfluxminus = ezcl_malloc(NULL, const_cast<char *>("dev_Vxfluxminus"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Hyfluxplus = ezcl_malloc(NULL, const_cast<char *>("dev_Hyfluxplus"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Hyfluxminus = ezcl_malloc(NULL, const_cast<char *>("dev_Hyfluxminus"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Uyfluxplus = ezcl_malloc(NULL, const_cast<char *>("dev_Uyfluxplus"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Uyfluxminus = ezcl_malloc(NULL, const_cast<char *>("dev_Uyfluxminus"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Vyfluxplus = ezcl_malloc(NULL, const_cast<char *>("dev_Vyfluxplus"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Vyfluxminus = ezcl_malloc(NULL, const_cast<char *>("dev_Vyfluxminus"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Wplusx_H = ezcl_malloc(NULL, const_cast<char *>("dev_Wplusx_H"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Wminusx_H = ezcl_malloc(NULL, const_cast<char *>("dev_Wminusx_H"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Wplusx_U = ezcl_malloc(NULL, const_cast<char *>("dev_Wplusx_U"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Wminusx_U = ezcl_malloc(NULL, const_cast<char *>("dev_Wminusx_U"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Wplusy_H = ezcl_malloc(NULL, const_cast<char *>("dev_Wplusy_H"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Wminusy_H = ezcl_malloc(NULL, const_cast<char *>("dev_Wminusy_H"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Wplusy_V = ezcl_malloc(NULL, const_cast<char *>("dev_Wplusy_V"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_Wminusy_V = ezcl_malloc(NULL, const_cast<char *>("dev_Wminusy_V"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_level = ezcl_malloc(NULL, const_cast<char *>("dev_level"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_levdx = ezcl_malloc(NULL, const_cast<char *>("dev_levdx"), &level_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_levdy = ezcl_malloc(NULL, const_cast<char *>("dev_levdy"), &level_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_j = ezcl_malloc(NULL, const_cast<char *>("dev_j"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-    dev_i = ezcl_malloc(NULL, const_cast<char *>("dev_i"), &mem_request1, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-}
-
-void State::gpu_calc_finite_difference_regular_cells(double deltaT)
-{
-
-   struct timespec tstart_cpu;
-   cpu_timer_start(&tstart_cpu);
-
-   mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
-
-   memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
-   mesh->generate_regular_cell_meshes(state_memory);
-
-   cl_command_queue command_queue = ezcl_get_command_queue();
-
-
-   printf("hello\n");
-   //cl_mem dev_ptr = NULL;
-
-   size_t &ncells    = mesh->ncells;
-   size_t &ncells_ghost = mesh->ncells_ghost;
-   if (ncells_ghost < ncells) ncells_ghost = ncells;
-   int &levmx           = mesh->levmx;
-   real_t deltaT_local = deltaT;
-
-   size_t local_work_size = 128;
-   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
-#ifdef NOTEASY
-   cl_mem &dev_nface    = mesh->dev_nface;
-   cl_mem &dev_celltype = mesh->dev_celltype;
-   cl_mem &dev_nlft     = mesh->dev_nlft;
-   cl_mem &dev_nrht     = mesh->dev_nrht;
-   cl_mem &dev_nbot     = mesh->dev_nbot;
-   cl_mem &dev_ntop     = mesh->dev_ntop;
-   cl_mem &dev_level    = mesh->dev_level;
-   cl_mem &dev_levdx    = mesh->dev_levdx;
-   cl_mem &dev_levdy    = mesh->dev_levdy;
-   cl_mem &dev_j        = mesh->dev_j;
-   cl_mem &dev_i        = mesh->dev_i;
-
-   assert(dev_nface);
-   assert(dev_H);
-   assert(dev_U);
-   assert(dev_V);
-   assert(dev_nlft);
-   assert(dev_nrht);
-   assert(dev_nbot);
-   assert(dev_ntop);
-   assert(dev_level);
-   assert(dev_levdx);
-   assert(dev_levdy);
-
-   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
-   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
-   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
- 
-    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    //cpu_timer_start(&tstart_cpu_part);
-
-   //size_t global_work_size = MAX(MAX(mesh->nxface, mesh->nyface), ncells);
-
-#ifdef HAVE_MPI
-   if (mesh->numpe > 1) {
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 0, sizeof(cl_int), &ncells);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 1, sizeof(cl_mem), &dev_celltype);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 2, sizeof(cl_mem), &dev_nlft);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 3, sizeof(cl_mem), &dev_nrht);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 4, sizeof(cl_mem), &dev_ntop);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 5, sizeof(cl_mem), &dev_nbot);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 6, sizeof(cl_mem), &dev_H);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 7, sizeof(cl_mem), &dev_U);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 8, sizeof(cl_mem), &dev_V);
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_local,   1, NULL, &global_work_size, &local_work_size, NULL);
-    
-        /*
-        __kernel void copy_state_data_cl(
-                         const int    isize,         // 0
-                __global      state_t *H,            // 1
-                __global      state_t *U,            // 2
-                __global      state_t *V,            // 3
-                __global      state_t *H_new,        // 4
-                __global      state_t *U_new,        // 5
-                __global      state_t *V_new)        // 6
-        */
-
-      ezcl_set_kernel_arg(kernel_copy_state_data, 0, sizeof(cl_int), (void *)&ncells);
-      ezcl_set_kernel_arg(kernel_copy_state_data, 1, sizeof(cl_mem), (void *)&dev_H);
-      ezcl_set_kernel_arg(kernel_copy_state_data, 2, sizeof(cl_mem), (void *)&dev_U);
-      ezcl_set_kernel_arg(kernel_copy_state_data, 3, sizeof(cl_mem), (void *)&dev_V);
-      ezcl_set_kernel_arg(kernel_copy_state_data, 4, sizeof(cl_mem), (void *)&dev_H_new);
-      ezcl_set_kernel_arg(kernel_copy_state_data, 5, sizeof(cl_mem), (void *)&dev_U_new);
-      ezcl_set_kernel_arg(kernel_copy_state_data, 6, sizeof(cl_mem), (void *)&dev_V_new);
-
-      //ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, &copy_state_data_event);
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, NULL);
-
-      dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
-      dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
-      dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
-
-      L7_Dev_Update(dev_H, L7_STATE_T, mesh->cell_handle);
-      L7_Dev_Update(dev_U, L7_STATE_T, mesh->cell_handle);
-      L7_Dev_Update(dev_V, L7_STATE_T, mesh->cell_handle);
-
-      dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
-      dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
-      dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
-
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 0, sizeof(cl_int), &ncells);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 1, sizeof(cl_mem), &dev_celltype);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 2, sizeof(cl_mem), &dev_nlft);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 3, sizeof(cl_mem), &dev_nrht);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 4, sizeof(cl_mem), &dev_ntop);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 5, sizeof(cl_mem), &dev_nbot);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 6, sizeof(cl_mem), &dev_H);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 7, sizeof(cl_mem), &dev_U);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 8, sizeof(cl_mem), &dev_V);
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_ghost,   1, NULL, &global_work_size, &local_work_size, NULL);
-   } else {
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), &dev_celltype);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), &dev_nlft);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), &dev_nrht);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), &dev_ntop);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), &dev_nbot);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), &dev_H);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), &dev_U);
-      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), &dev_V);
-      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
-   }
-#else
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), (void *)&dev_celltype);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), (void *)&dev_nlft);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), (void *)&dev_nrht);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), (void *)&dev_ntop);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), (void *)&dev_nbot);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), (void *)&dev_H);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), (void *)&dev_U);
-   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), (void *)&dev_V);
-
-    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
-    //cpu_timer_start(&tstart_cpu_part);
-
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
-#endif
-#endif
-
-   size_t mem_request;
-   mem_request = ncells;
-
-   // Get total number of elements for 1D conversion from pstate
-   int total_size = 0;
-   for (int lev=0; lev < levmx; lev++) {
-      total_size +=  mesh->lev_jregsize[lev] * mesh->lev_iregsize[lev];
-   }
-   size_t malloc_size = total_size;
-
-   // Allocate reg_lev arrays with that total size
-   gpu_reggrid_setup(malloc_size);
-
-   // Copy regular mesh arrays
-   ezcl_enqueue_write_buffer(command_queue, dev_lev_jregmin, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_jregmin[0], NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_lev_iregmin, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_iregmin[0], NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_lev_jregsize, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_jregsize[0], NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_lev_iregsize, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_iregsize[0], NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_j, CL_TRUE, 0, ncells*sizeof(cl_int), &mesh->j[0], NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_i, CL_TRUE, 0, ncells*sizeof(cl_int), &mesh->i[0], NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_level, CL_TRUE, 0, ncells*sizeof(cl_int), &mesh->level[0], NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_levdx, CL_TRUE, 0, ncells*sizeof(cl_int), &mesh->lev_deltax[0], NULL);
-   ezcl_enqueue_write_buffer(command_queue, dev_levdy, CL_TRUE, 0, ncells*sizeof(cl_int), &mesh->lev_deltay[0], NULL);
-
-   vector<int>reg_start(levmx);
-
-   // dev_H_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_H_reg_lev"), &malloc_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-   // dev_U_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_U_reg_lev"), &malloc_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-   // dev_V_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_V_reg_lev"), &malloc_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
-
-   printf("Malloc %d\n", malloc_size);
-   // Get values for reg_start and also copy pstate to reg_levs
-   reg_start[0] = 0;
-   int startCnt = 0;
-   for (int lev=0; lev < levmx; lev++) {
-      int llsize = mesh->lev_jregsize[lev] * mesh->lev_iregsize[lev];
-      printf("startCnt %d llsize %d\n", startCnt, llsize);
-      ezcl_enqueue_write_buffer(command_queue, dev_H_reg_lev, CL_TRUE, startCnt*sizeof(cl_int), llsize*sizeof(cl_int), &mesh->meshes[lev].pstate[0], NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_U_reg_lev, CL_TRUE, startCnt*sizeof(cl_int), llsize*sizeof(cl_int), &mesh->meshes[lev].pstate[1], NULL);
-      ezcl_enqueue_write_buffer(command_queue, dev_V_reg_lev, CL_TRUE, startCnt*sizeof(cl_int), llsize*sizeof(cl_int), &mesh->meshes[lev].pstate[2], NULL);
-      startCnt += llsize;
-      if (lev < levmx-1) reg_start[lev+1] = startCnt;
-   }
-
-   // Copy up reg_start
-   ezcl_enqueue_write_buffer(command_queue, dev_reg_start, CL_TRUE, 0, 3*sizeof(cl_int), &reg_start[0], NULL);
-
-   cl_event calc_finite_difference_regular_cells_comps_event, calc_finite_difference_regular_cells_fill_new_event, calc_finite_difference_regular_cells_fixup_event;
-
-   /*
-__kernel void calc_finite_difference_regular_cells(
-                        const int       ncells,                     // 0  Total number of cells.
-                        const real_t    deltaT,                     // 1 Size of time step
-            __global    const real_t    *lev_dx,                    // 2
-            __global    const real_t    *lev_dy,                    // 3
-            __global    const state_t   *Hxfluxplus,                // 4
-            __global    const state_t   *Hxfluxminus,               // 5
-            __global    const state_t   *Uxfluxplus,                // 6
-            __global    const state_t   *Uxfluxminus,               // 7
-            __global    const state_t   *Vxfluxplus,                // 8
-            __global    const state_t   *Vxfluxminus,               // 9
-            __global    const state_t   *Hyfluxplus,                // 10
-            __global    const state_t   *Hyfluxminus,               // 11
-            __global    const state_t   *Uyfluxplus,                // 12
-            __global    const state_t   *Uyfluxminus,               // 13
-            __global    const state_t   *Vyfluxplus,                // 14
-            __global          state_t   *Vyfluxminus,               // 15
-            __global    const state_t   *wplusx_H,                  // 16
-            __global    const state_t   *wminusx_H,                 // 17
-            __global    const state_t   *wplusx_U,                  // 18
-            __global    const state_t   *wminusx_U,                 // 19
-            __global    const state_t   *wplusy_H,                  // 20
-            __global    const state_t   *wminusy_H,                 // 21
-            __global    const state_t   *wplusy_V,                  // 22
-            __global    const state_t   *wminusy_V,                 // 23
-            __global    const int       *level,                     // 24
-            __global    const int       *reg_start,                 // 25
-            __global    const real_t    *H_reg_lev,                 // 26
-            __global    const real_t    *U_reg_lev,                 // 27
-            __global    const real_t    *V_reg_lev,                 // 28
-            __global    const int       *j,                         // 29
-            __global    const int       *i,                         // 30
-            __global    const int       *lev_jregmin,               // 31
-            __global    const int       *lev_iregmin,               // 32
-            __global    const int       *lev_jregsize,              // 33
-            __global    const int       *lev_iregsize)              // 34
-{
-    */
-
-
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 0, sizeof(cl_int), (void *)&ncells); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 1, sizeof(cl_real_t), (void *)&deltaT_local); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 2, sizeof(cl_mem), (void *)&dev_levdx); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 3, sizeof(cl_mem), (void *)&dev_levdy); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 4, sizeof(cl_mem), (void *)&dev_Hxfluxplus); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 5, sizeof(cl_mem), (void *)&dev_Hxfluxminus); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 6, sizeof(cl_mem), (void *)&dev_Uxfluxplus); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 7, sizeof(cl_mem), (void *)&dev_Uxfluxminus); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 8, sizeof(cl_mem), (void *)&dev_Vxfluxplus); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 9, sizeof(cl_mem), (void *)&dev_Vxfluxminus); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 10, sizeof(cl_mem), (void *)&dev_Hyfluxplus); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 11, sizeof(cl_mem), (void *)&dev_Hyfluxminus); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 12, sizeof(cl_mem), (void *)&dev_Uyfluxplus); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 13, sizeof(cl_mem), (void *)&dev_Uyfluxminus); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 14, sizeof(cl_mem), (void *)&dev_Vyfluxplus); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 15, sizeof(cl_mem), (void *)&dev_Vyfluxminus); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 16, sizeof(cl_mem), (void *)&dev_Wplusx_H); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 17, sizeof(cl_mem), (void *)&dev_Wminusx_H); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 18, sizeof(cl_mem), (void *)&dev_Wplusx_U); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 19, sizeof(cl_mem), (void *)&dev_Wminusx_U); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 20, sizeof(cl_mem), (void *)&dev_Wplusy_H); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 21, sizeof(cl_mem), (void *)&dev_Wminusy_H); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 22, sizeof(cl_mem), (void *)&dev_Wplusy_V); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 23, sizeof(cl_mem), (void *)&dev_Wminusy_V); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 24, sizeof(cl_mem), (void *)&dev_level); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 25, sizeof(cl_mem), (void *)&dev_reg_start); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 26, sizeof(cl_mem), (void *)&dev_H_reg_lev); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 27, sizeof(cl_mem), (void *)&dev_U_reg_lev); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 28, sizeof(cl_mem), (void *)&dev_V_reg_lev); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 29, sizeof(cl_mem), (void *)&dev_j); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 30, sizeof(cl_mem), (void *)&dev_i); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 31, sizeof(cl_mem), (void *)&dev_lev_jregmin); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 32, sizeof(cl_mem), (void *)&dev_lev_iregmin); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 33, sizeof(cl_mem), (void *)&dev_lev_jregsize); 
-   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 34, sizeof(cl_mem), (void *)&dev_lev_iregsize); 
-
-   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_regular_cells_comps, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_regular_cells_comps_event);
-
-   ezcl_wait_for_events(1, &calc_finite_difference_regular_cells_comps_event);
-   ezcl_event_release(calc_finite_difference_regular_cells_comps_event);
-
-   //allocate all the memory, make them in header file, make kernels
-   
-   mesh->destroy_regular_cell_meshes(state_memory);
-}
-#endif
 
 /************************************************************************/
 
@@ -5880,7 +5548,1060 @@ __kernel void calc_finite_difference_via_face_in_place_fill_new_cl(
    mesh->gpu_wbidirmap_delete();
 }
 
+void State::gpu_reggrid_setup(size_t mem_request)
+{
+    size_t level_size = 3;
+    dev_H_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_H_reg_lev"), &mem_request, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
+    dev_U_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_U_reg_lev"), &mem_request, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
+    dev_V_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_V_reg_lev"), &mem_request, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
+    dev_lev_jregmin = ezcl_malloc(NULL, const_cast<char *>("dev_lev_jregmin"), &level_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_lev_iregmin = ezcl_malloc(NULL, const_cast<char *>("dev_lev_iregmin"), &level_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_lev_jregsize = ezcl_malloc(NULL, const_cast<char *>("dev_lev_jregsize"), &level_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_lev_iregsize = ezcl_malloc(NULL, const_cast<char *>("dev_lev_iregsize"), &level_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+    dev_reg_start = ezcl_malloc(NULL, const_cast<char *>("dev_reg_start"), &level_size, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
+}
 
+void State::gpu_reggrid_delete()
+{
+    ezcl_device_memory_delete(dev_H_reg_lev);
+    ezcl_device_memory_delete(dev_U_reg_lev);
+    ezcl_device_memory_delete(dev_V_reg_lev);
+    ezcl_device_memory_delete(dev_lev_jregmin);
+    ezcl_device_memory_delete(dev_lev_iregmin);
+    ezcl_device_memory_delete(dev_lev_jregsize);
+    ezcl_device_memory_delete(dev_lev_iregsize);
+    ezcl_device_memory_delete(dev_reg_start);
+}
+
+void State::gpu_calc_finite_difference_regular_cells(double deltaT)
+{
+
+   //struct timespec tstart_cpu_part;
+   //cpu_timer_start(&tstart_cpu_part);
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
+
+   //cl_mem dev_ptr = NULL;
+
+   size_t &ncells    = mesh->ncells;
+   size_t &ncells_ghost = mesh->ncells_ghost;
+   if (ncells_ghost < ncells) ncells_ghost = ncells;
+   int &levmx           = mesh->levmx;
+   real_t deltaT_local = deltaT;
+
+   mesh->gpu_wbidirmap_setup();
+    mesh->gpu_calc_face_list_wbidirmap_phantom(gpu_state_memory, deltaT_local);
+    gpu_memory_reset_ptrs();
+
+   mesh->generate_regular_cell_meshes(gpu_state_memory);
+
+   cl_mem &dev_nface    = mesh->dev_nface;
+   cl_mem &dev_celltype = mesh->dev_celltype;
+   cl_mem &dev_nlft     = mesh->dev_nlft;
+   cl_mem &dev_nrht     = mesh->dev_nrht;
+   cl_mem &dev_nbot     = mesh->dev_nbot;
+   cl_mem &dev_ntop     = mesh->dev_ntop;
+   cl_mem &dev_level    = mesh->dev_level;
+   cl_mem &dev_levdx    = mesh->dev_levdx;
+   cl_mem &dev_levdy    = mesh->dev_levdy;
+   cl_mem &dev_j        = mesh->dev_j;
+   cl_mem &dev_i        = mesh->dev_i;
+   cl_mem &dev_map_xface2cell_lower = mesh->dev_map_xface2cell_lower;
+   cl_mem &dev_map_xface2cell_upper = mesh->dev_map_xface2cell_upper;
+   cl_mem &dev_map_yface2cell_lower = mesh->dev_map_yface2cell_lower;
+   cl_mem &dev_map_yface2cell_upper = mesh->dev_map_yface2cell_upper;
+   cl_mem &dev_xrecvCIdx = mesh->dev_xrecvCIdx;
+   cl_mem &dev_xminusCell2Idx = mesh->dev_xminusCell2Idx;
+   cl_mem &dev_xplusCell2Idx = mesh->dev_xplusCell2Idx;
+   cl_mem &dev_xsendIdx1 = mesh->dev_xsendIdx1;
+   cl_mem &dev_xsendIdx2 = mesh->dev_xsendIdx2;
+   cl_mem &dev_yrecvCIdx = mesh->dev_yrecvCIdx;
+   cl_mem &dev_yminusCell2Idx = mesh->dev_yminusCell2Idx;
+   cl_mem &dev_yplusCell2Idx = mesh->dev_yplusCell2Idx;
+   cl_mem &dev_ysendIdx1 = mesh->dev_ysendIdx1;
+   cl_mem &dev_ysendIdx2 = mesh->dev_ysendIdx2;
+   int &nxfixup = mesh->nxfixup;
+   int &nyfixup = mesh->nyfixup;
+   int &pcellCnt = mesh->pcellCnt;
+
+   assert(dev_nface);
+   assert(dev_H);
+   assert(dev_U);
+   assert(dev_V);
+   assert(dev_nlft);
+   assert(dev_nrht);
+   assert(dev_nbot);
+   assert(dev_ntop);
+   assert(dev_level);
+   assert(dev_levdx);
+   assert(dev_levdy);
+
+   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
+ 
+   size_t local_work_size = 128;
+   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
+
+   //size_t global_work_size = MAX(MAX(mesh->nxface, mesh->nyface), ncells);
+
+#ifdef HAVE_MPI
+   if (mesh->numpe > 1) {
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_local,   1, NULL, &global_work_size, &local_work_size, NULL);
+    
+        /*
+        __kernel void copy_state_data_cl(
+                         const int    isize,         // 0
+                __global      state_t *H,            // 1
+                __global      state_t *U,            // 2
+                __global      state_t *V,            // 3
+                __global      state_t *H_new,        // 4
+                __global      state_t *U_new,        // 5
+                __global      state_t *V_new)        // 6
+        */
+
+      ezcl_set_kernel_arg(kernel_copy_state_data, 0, sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 1, sizeof(cl_mem), (void *)&dev_H);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 2, sizeof(cl_mem), (void *)&dev_U);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 3, sizeof(cl_mem), (void *)&dev_V);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 4, sizeof(cl_mem), (void *)&dev_H_new);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 5, sizeof(cl_mem), (void *)&dev_U_new);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 6, sizeof(cl_mem), (void *)&dev_V_new);
+
+      //ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, &copy_state_data_event);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, NULL);
+
+      dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
+      dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
+      dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
+
+      L7_Dev_Update(dev_H, L7_STATE_T, mesh->cell_handle);
+      L7_Dev_Update(dev_U, L7_STATE_T, mesh->cell_handle);
+      L7_Dev_Update(dev_V, L7_STATE_T, mesh->cell_handle);
+
+      dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
+      dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
+      dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
+
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_ghost,   1, NULL, &global_work_size, &local_work_size, NULL);
+   } else {
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
+   }
+#else
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), (void *)&dev_celltype);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), (void *)&dev_nlft);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), (void *)&dev_nrht);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), (void *)&dev_ntop);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), (void *)&dev_nbot);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), (void *)&dev_H);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), (void *)&dev_U);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), (void *)&dev_V);
+
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
+#endif
+
+   size_t mem_request;
+   mem_request = ncells;
+
+   gpu_faces_setup_phantom(mem_request);
+
+   // Get total number of elements for 1D conversion from pstate
+   int total_size = 0;
+   for (int lev=0; lev < levmx+1; lev++) {
+      total_size +=  mesh->lev_jregsize[lev] * mesh->lev_iregsize[lev];
+   //    printf("%d\n", total_size);
+   }
+   size_t malloc_size = total_size;
+
+   // Allocate reg_lev arrays with that total size
+   gpu_reggrid_setup(malloc_size);
+
+   // Copy regular mesh arrays
+   ezcl_enqueue_write_buffer(command_queue, dev_lev_jregmin, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_jregmin[0], NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_lev_iregmin, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_iregmin[0], NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_lev_jregsize, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_jregsize[0], NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_lev_iregsize, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_iregsize[0], NULL);
+   //ezcl_enqueue_write_buffer(command_queue, dev_j, CL_TRUE, 0, ncells*sizeof(cl_int), &mesh->j[0], NULL);
+   //ezcl_enqueue_write_buffer(command_queue, dev_i, CL_TRUE, 0, ncells*sizeof(cl_int), &mesh->i[0], NULL);
+   //ezcl_enqueue_write_buffer(command_queue, dev_level, CL_TRUE, 0, ncells*sizeof(cl_int), &mesh->level[0], NULL);
+   //ezcl_enqueue_write_buffer(command_queue, dev_levdx, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_deltax[0], NULL);
+   //ezcl_enqueue_write_buffer(command_queue, dev_levdy, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_deltay[0], NULL);
+
+   vector<int>reg_start(levmx+1);
+
+   // dev_H_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_H_reg_lev"), &malloc_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
+   // dev_U_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_U_reg_lev"), &malloc_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
+   // dev_V_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_V_reg_lev"), &malloc_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
+   vector<real_t>H_reg(total_size);
+   vector<real_t>U_reg(total_size);
+   vector<real_t>V_reg(total_size);
+
+   //printf("Malloc %d\n", malloc_size);
+   // Get values for reg_start and also copy pstate to reg_levs
+   reg_start[0] = 0;
+   int startCnt = 0;
+   for (int lev=0; lev < levmx+1; lev++) {
+      int llsize = mesh->lev_jregsize[lev] * mesh->lev_iregsize[lev];
+      //printf("startCnt %d llsize %d\n", startCnt, llsize);
+      for (int copy = 0; copy < llsize; copy++) {
+        H_reg[startCnt+copy] = mesh->meshes[lev].pstate[0][copy/mesh->lev_iregsize[lev]][copy%mesh->lev_iregsize[lev]];
+        U_reg[startCnt+copy] = mesh->meshes[lev].pstate[1][copy/mesh->lev_iregsize[lev]][copy%mesh->lev_iregsize[lev]];
+        V_reg[startCnt+copy] = mesh->meshes[lev].pstate[2][copy/mesh->lev_iregsize[lev]][copy%mesh->lev_iregsize[lev]];
+      }
+      startCnt += llsize;
+      if (lev < levmx) reg_start[lev+1] = startCnt;
+   }
+
+
+      ezcl_enqueue_write_buffer(command_queue, dev_H_reg_lev, CL_TRUE, 0*sizeof(cl_real_t), total_size*sizeof(cl_real_t), &H_reg[0], NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_U_reg_lev, CL_TRUE, 0*sizeof(cl_real_t), total_size*sizeof(cl_real_t), &U_reg[0], NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_V_reg_lev, CL_TRUE, 0*sizeof(cl_real_t), total_size*sizeof(cl_real_t), &V_reg[0], NULL);
+
+   // Copy up reg_start
+   ezcl_enqueue_write_buffer(command_queue, dev_reg_start, CL_TRUE, 0, 3*sizeof(cl_int), &reg_start[0], NULL);
+
+   cl_event calc_finite_difference_regular_cells_comps_event, calc_finite_difference_regular_cells_fill_event, calc_finite_difference_in_place_fixup_event;
+
+   for (int ic = 0; ic < ncells; ic++) {
+       int ll = mesh->level[ic];
+       int jj = mesh->j[ic] - mesh->lev_jregmin[ll];
+       int ii = mesh->i[ic] - mesh->lev_iregmin[ll];
+       //printf("%d) %d %d %d\n", ic, ll, jj, ii);
+       //printf("%f ", V_reg[reg_start[ll]+jj*mesh->lev_iregsize[ll]+ii]);
+       //printf("%f ", V_reg[reg_start[ll]+jj*mesh->lev_iregsize[ll]+ii+1]);
+       //printf("%f ", V_reg[reg_start[ll]+jj*mesh->lev_iregsize[ll]+ii-1]);
+       //printf("%f ", V_reg[reg_start[ll]+(jj+1)*mesh->lev_iregsize[ll]+ii]);
+       //printf("%f\n", V_reg[reg_start[ll]+(jj-1)*mesh->lev_iregsize[ll]+ii]);
+        //printf("%d) ll %d jj %d ii %d startIdx %d\n", i, mesh->level[i], mesh->j[i] - mesh->lev_jregmin[mesh->level[i]], mesh->i[i] - mesh->lev_iregmin[mesh->level[i]], reg_start[mesh->level[i]]);
+    //printf("%d) %f\n", i, mesh->meshes[ll].pstate[0][jj][ii]);
+   }
+
+   struct timespec tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
+   /*
+__kernel void calc_finite_difference_regular_cells(
+                        const int       ncells,                     // 0  Total number of cells.
+                        const real_t    deltaT,                     // 1 Size of time step
+            __global    const real_t    *lev_dx,                    // 2
+            __global    const real_t    *lev_dy,                    // 3
+            __global    const state_t   *Hxfluxplus,                // 4
+            __global    const state_t   *Hxfluxminus,               // 5
+            __global    const state_t   *Uxfluxplus,                // 6
+            __global    const state_t   *Uxfluxminus,               // 7
+            __global    const state_t   *Vxfluxplus,                // 8
+            __global    const state_t   *Vxfluxminus,               // 9
+            __global    const state_t   *Hyfluxplus,                // 10
+            __global    const state_t   *Hyfluxminus,               // 11
+            __global    const state_t   *Uyfluxplus,                // 12
+            __global    const state_t   *Uyfluxminus,               // 13
+            __global    const state_t   *Vyfluxplus,                // 14
+            __global          state_t   *Vyfluxminus,               // 15
+            __global    const state_t   *wplusx_H,                  // 16
+            __global    const state_t   *wminusx_H,                 // 17
+            __global    const state_t   *wplusx_U,                  // 18
+            __global    const state_t   *wminusx_U,                 // 19
+            __global    const state_t   *wplusy_H,                  // 20
+            __global    const state_t   *wminusy_H,                 // 21
+            __global    const state_t   *wplusy_V,                  // 22
+            __global    const state_t   *wminusy_V,                 // 23
+            __global    const int       *level,                     // 24
+            __global    const int       *reg_start,                 // 25
+            __global    const real_t    *H_reg_lev,                 // 26
+            __global    const real_t    *U_reg_lev,                 // 27
+            __global    const real_t    *V_reg_lev,                 // 28
+            __global    const int       *j,                         // 29
+            __global    const int       *i,                         // 30
+            __global    const int       *lev_jregmin,               // 31
+            __global    const int       *lev_iregmin,               // 32
+            __global    const int       *lev_jregsize,              // 33
+            __global    const int       *lev_iregsize)              // 34
+{
+    */
+
+
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 0, sizeof(cl_int), (void *)&ncells); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 1, sizeof(cl_real_t), (void *)&deltaT_local); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 2, sizeof(cl_mem), (void *)&dev_levdx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 3, sizeof(cl_mem), (void *)&dev_levdy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 4, sizeof(cl_mem), (void *)&dev_Hxfluxplus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 5, sizeof(cl_mem), (void *)&dev_Hxfluxminus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 6, sizeof(cl_mem), (void *)&dev_Uxfluxplus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 7, sizeof(cl_mem), (void *)&dev_Uxfluxminus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 8, sizeof(cl_mem), (void *)&dev_Vxfluxplus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 9, sizeof(cl_mem), (void *)&dev_Vxfluxminus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 10, sizeof(cl_mem), (void *)&dev_Hyfluxplus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 11, sizeof(cl_mem), (void *)&dev_Hyfluxminus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 12, sizeof(cl_mem), (void *)&dev_Uyfluxplus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 13, sizeof(cl_mem), (void *)&dev_Uyfluxminus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 14, sizeof(cl_mem), (void *)&dev_Vyfluxplus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 15, sizeof(cl_mem), (void *)&dev_Vyfluxminus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 16, sizeof(cl_mem), (void *)&dev_Wplusx_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 17, sizeof(cl_mem), (void *)&dev_Wminusx_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 18, sizeof(cl_mem), (void *)&dev_Wplusx_U); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 19, sizeof(cl_mem), (void *)&dev_Wminusx_U); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 20, sizeof(cl_mem), (void *)&dev_Wplusy_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 21, sizeof(cl_mem), (void *)&dev_Wminusy_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 22, sizeof(cl_mem), (void *)&dev_Wplusy_V); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 23, sizeof(cl_mem), (void *)&dev_Wminusy_V); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 24, sizeof(cl_mem), (void *)&dev_level); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 25, sizeof(cl_mem), (void *)&dev_reg_start); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 26, sizeof(cl_mem), (void *)&dev_H_reg_lev); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 27, sizeof(cl_mem), (void *)&dev_U_reg_lev); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 28, sizeof(cl_mem), (void *)&dev_V_reg_lev); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 29, sizeof(cl_mem), (void *)&dev_j); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 30, sizeof(cl_mem), (void *)&dev_i); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 31, sizeof(cl_mem), (void *)&dev_lev_jregmin); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 32, sizeof(cl_mem), (void *)&dev_lev_iregmin); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 33, sizeof(cl_mem), (void *)&dev_lev_jregsize); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_comps, 34, sizeof(cl_mem), (void *)&dev_lev_iregsize); 
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_regular_cells_comps, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_regular_cells_comps_event);
+
+   ezcl_wait_for_events(1, &calc_finite_difference_regular_cells_comps_event);
+   ezcl_event_release(calc_finite_difference_regular_cells_comps_event);
+/*
+   vector<real_t>H_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_Hyfluxminus,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &H_loc[0], NULL);
+   vector<real_t>U_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_Uyfluxminus,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &U_loc[0], NULL);
+   vector<real_t>V_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_Vyfluxminus,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &V_loc[0], NULL);
+   printf("\n");
+   for (int jello = 0; jello < ncells; jello++) { printf("%d) %f | %f | %f\n", jello, H_loc[jello], U_loc[jello], V_loc[jello]); }
+*/
+
+/*
+   vector<real_t>H_loc(total_size);
+   ezcl_enqueue_read_buffer(command_queue, dev_H_reg_lev,     CL_TRUE, 0, total_size*sizeof(cl_real_t), &H_loc[0], NULL);
+   printf("\n");
+   for (int jello = 0; jello < total_size; jello++) { printf("%d) %f\n", jello, H_loc[jello]); }
+*/
+   /*
+__kernel void calc_finite_difference_in_place_fixup_cl(
+                        const int        nxfixup,                   // 0
+                        const int        nyfixup,                   // 1
+            __global    const int       *xrecvCIdx,                 // 2
+            __global    const int       *xplusCell2Idx,             // 3
+            __global    const int       *xminusCell2Idx,            // 4
+            __global    const int       *xsendIdx1,                 // 5
+            __global    const int       *xsendIdx2,                 // 6
+            __global    const int       *yrecvCIdx,                 // 7
+            __global    const int       *yplusCell2Idx,             // 8
+            __global    const int       *yminusCell2Idx,            // 9
+            __global    const int       *ysendIdx1,                 // 10
+            __global    const int       *ysendIdx2,                 // 11
+            __global    const int       *map_xface2cell_lower,      // 12
+            __global    const int       *map_xface2cell_upper,      // 13
+            __global    const int       *map_yface2cell_lower,      // 14 
+            __global    const int       *map_yface2cell_upper,      // 15 
+            __global          state_t   *Hxfluxplus,                // 16
+            __global          state_t   *Hxfluxminus,               // 17
+            __global          state_t   *Uxfluxplus,                // 18
+            __global          state_t   *Uxfluxminus,               // 19
+            __global          state_t   *Vxfluxplus,                // 20
+            __global          state_t   *Vxfluxminus,               // 21
+            __global          state_t   *Hyfluxplus,                // 22
+            __global          state_t   *Hyfluxminus,               // 23
+            __global          state_t   *Uyfluxplus,                // 24
+            __global          state_t   *Uyfluxminus,               // 25
+            __global          state_t   *Vyfluxplus,                // 26
+            __global          state_t   *Vyfluxminus,               // 27
+            __global          state_t   *wplusx_H,                  // 28
+            __global          state_t   *wminusx_H,                 // 29
+            __global          state_t   *wplusx_U,                  // 30
+            __global          state_t   *wminusx_U,                 // 31
+            __global          state_t   *wplusy_H,                  // 32
+            __global          state_t   *wminusy_H,                 // 33
+            __global          state_t   *wplusy_V,                  // 34
+            __global          state_t   *wminusy_V) {               // 35
+    */
+
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 0, sizeof(cl_int), (void *)&nxfixup); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 1, sizeof(cl_int), (void *)&nyfixup); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 2, sizeof(cl_mem), (void *)&dev_xrecvCIdx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 3, sizeof(cl_mem), (void *)&dev_xplusCell2Idx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 4, sizeof(cl_mem), (void *)&dev_xminusCell2Idx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 5, sizeof(cl_mem), (void *)&dev_xsendIdx1);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 6, sizeof(cl_mem), (void *)&dev_xsendIdx2);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 7, sizeof(cl_mem), (void *)&dev_yrecvCIdx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 8, sizeof(cl_mem), (void *)&dev_yplusCell2Idx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 9, sizeof(cl_mem), (void *)&dev_yminusCell2Idx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 10, sizeof(cl_mem), (void *)&dev_ysendIdx1);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 11, sizeof(cl_mem), (void *)&dev_ysendIdx2);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 12, sizeof(cl_mem), (void *)&dev_map_xface2cell_lower); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 13, sizeof(cl_mem), (void *)&dev_map_xface2cell_upper); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 14, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 15, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 16, sizeof(cl_mem), (void *)&dev_Hxfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 17, sizeof(cl_mem), (void *)&dev_Hxfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 18, sizeof(cl_mem), (void *)&dev_Uxfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 19, sizeof(cl_mem), (void *)&dev_Uxfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 20, sizeof(cl_mem), (void *)&dev_Vxfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 21, sizeof(cl_mem), (void *)&dev_Vxfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 22, sizeof(cl_mem), (void *)&dev_Hyfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 23, sizeof(cl_mem), (void *)&dev_Hyfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 24, sizeof(cl_mem), (void *)&dev_Uyfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 25, sizeof(cl_mem), (void *)&dev_Uyfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 26, sizeof(cl_mem), (void *)&dev_Vyfluxplus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 27, sizeof(cl_mem), (void *)&dev_Vyfluxminus); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 28, sizeof(cl_mem), (void *)&dev_Wplusx_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 29, sizeof(cl_mem), (void *)&dev_Wminusx_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 30, sizeof(cl_mem), (void *)&dev_Wplusx_U); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 31, sizeof(cl_mem), (void *)&dev_Wminusx_U); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 32, sizeof(cl_mem), (void *)&dev_Wplusy_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 33, sizeof(cl_mem), (void *)&dev_Wminusy_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 34, sizeof(cl_mem), (void *)&dev_Wplusy_V); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_in_place_fixup, 35, sizeof(cl_mem), (void *)&dev_Wminusy_V); 
+
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
+
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_in_place_fixup, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_fixup_event);
+
+    ezcl_wait_for_events(1, &calc_finite_difference_in_place_fixup_event);
+    ezcl_event_release(calc_finite_difference_in_place_fixup_event);
+
+    /*
+   vector<real_t>H_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_H,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &H_loc[0], NULL);
+   vector<real_t>U_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_U,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &U_loc[0], NULL);
+   vector<real_t>V_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_V,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &V_loc[0], NULL);
+   printf("\n");
+   for (int jello = 0; jello < ncells; jello++) { printf("%d) %f | %f | %f\n", jello, H_loc[jello], U_loc[jello], V_loc[jello]); }
+   */
+/*
+__kernel void calc_finite_difference_regular_cells_fill_cl(
+                              int       ncells,                     // 0  Total number of cells.
+                              real_t    deltaT,                     // 1 Size of time step
+            __global    const real_t    *lev_dx,                    // 2
+            __global    const real_t    *lev_dy,                    // 3
+            __global          state_t   *Hxfluxplus,                // 4
+            __global          state_t   *Hxfluxminus,               // 5
+            __global          state_t   *Uxfluxplus,                // 6
+            __global          state_t   *Uxfluxminus,               // 7
+            __global          state_t   *Vxfluxplus,                // 8
+            __global          state_t   *Vxfluxminus,               // 9
+            __global          state_t   *Hyfluxplus,                // 10
+            __global          state_t   *Hyfluxminus,               // 11
+            __global          state_t   *Uyfluxplus,                // 12
+            __global          state_t   *Uyfluxminus,               // 13
+            __global          state_t   *Vyfluxplus,                // 14
+            __global          state_t   *Vyfluxminus,               // 15
+            __global          state_t   *wplusx_H,                  // 16
+            __global          state_t   *wminusx_H,                 // 17
+            __global          state_t   *wplusx_U,                  // 18
+            __global          state_t   *wminusx_U,                 // 19
+            __global          state_t   *wplusy_H,                  // 20
+            __global          state_t   *wminusy_H,                 // 21
+            __global          state_t   *wplusy_V,                  // 22
+            __global          state_t   *wminusy_V,                 // 23
+            __global    const int       *level,                     // 24
+            __global    const int       *reg_start,                 // 25
+            __global    const real_t    *H_reg_lev,                 // 26
+            __global    const real_t    *U_reg_lev,                 // 27
+            __global    const real_t    *V_reg_lev,                 // 28
+            __global    const int       *j,                         // 29
+            __global    const int       *i,                         // 30
+            __global    const int       *lev_jregmin,               // 31
+            __global    const int       *lev_iregmin,               // 32
+            __global    const int       *lev_jregsize,              // 33
+            __global    const int       *lev_iregsize,              // 34
+            __global    const real_t    *H_state_new,               // 35
+            __global    const real_t    *U_state_new,               // 36
+            __global    const real_t    *V_state_new)               // 37
+*/
+
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 0, sizeof(cl_int), (void *)&ncells); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 1, sizeof(cl_real_t), (void *)&deltaT_local); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 2, sizeof(cl_mem), (void *)&dev_levdx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 3, sizeof(cl_mem), (void *)&dev_levdy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 4, sizeof(cl_mem), (void *)&dev_Hxfluxplus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 5, sizeof(cl_mem), (void *)&dev_Hxfluxminus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 6, sizeof(cl_mem), (void *)&dev_Uxfluxplus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 7, sizeof(cl_mem), (void *)&dev_Uxfluxminus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 8, sizeof(cl_mem), (void *)&dev_Vxfluxplus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 9, sizeof(cl_mem), (void *)&dev_Vxfluxminus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 10, sizeof(cl_mem), (void *)&dev_Hyfluxplus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 11, sizeof(cl_mem), (void *)&dev_Hyfluxminus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 12, sizeof(cl_mem), (void *)&dev_Uyfluxplus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 13, sizeof(cl_mem), (void *)&dev_Uyfluxminus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 14, sizeof(cl_mem), (void *)&dev_Vyfluxplus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 15, sizeof(cl_mem), (void *)&dev_Vyfluxminus); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 16, sizeof(cl_mem), (void *)&dev_Wplusx_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 17, sizeof(cl_mem), (void *)&dev_Wminusx_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 18, sizeof(cl_mem), (void *)&dev_Wplusx_U); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 19, sizeof(cl_mem), (void *)&dev_Wminusx_U); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 20, sizeof(cl_mem), (void *)&dev_Wplusy_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 21, sizeof(cl_mem), (void *)&dev_Wminusy_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 22, sizeof(cl_mem), (void *)&dev_Wplusy_V); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 23, sizeof(cl_mem), (void *)&dev_Wminusy_V); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 24, sizeof(cl_mem), (void *)&dev_level); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 25, sizeof(cl_mem), (void *)&dev_reg_start); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 26, sizeof(cl_mem), (void *)&dev_H_reg_lev); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 27, sizeof(cl_mem), (void *)&dev_U_reg_lev); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 28, sizeof(cl_mem), (void *)&dev_V_reg_lev); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 29, sizeof(cl_mem), (void *)&dev_j); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 30, sizeof(cl_mem), (void *)&dev_i); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 31, sizeof(cl_mem), (void *)&dev_lev_jregmin); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 32, sizeof(cl_mem), (void *)&dev_lev_iregmin); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 33, sizeof(cl_mem), (void *)&dev_lev_jregsize); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 34, sizeof(cl_mem), (void *)&dev_lev_iregsize); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 35, sizeof(cl_mem), (void *)&dev_H_new); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 36, sizeof(cl_mem), (void *)&dev_U_new); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_fill, 37, sizeof(cl_mem), (void *)&dev_V_new); 
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_regular_cells_fill, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_regular_cells_fill_event);
+
+   ezcl_wait_for_events(1, &calc_finite_difference_regular_cells_fill_event);
+   ezcl_event_release(calc_finite_difference_regular_cells_fill_event);
+
+   gpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
+
+   dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
+   dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
+   dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
+
+
+
+   gpu_faces_delete_phantom();
+   gpu_reggrid_delete();
+   mesh->destroy_regular_cell_meshes(state_memory);
+   mesh->gpu_wbidirmap_delete();
+}
+
+void State::gpu_calc_finite_difference_regular_cells_by_faces(double deltaT)
+{
+
+   //struct timespec tstart_cpu_part;
+   //cpu_timer_start(&tstart_cpu_part);
+
+   cl_command_queue command_queue = ezcl_get_command_queue();
+
+
+   //cl_mem dev_ptr = NULL;
+
+   size_t &ncells    = mesh->ncells;
+   size_t &ncells_ghost = mesh->ncells_ghost;
+   if (ncells_ghost < ncells) ncells_ghost = ncells;
+   int &levmx           = mesh->levmx;
+   real_t deltaT_local = deltaT;
+
+   mesh->gpu_wbidirmap_setup();
+    mesh->gpu_calc_face_list_wbidirmap_phantom(gpu_state_memory, deltaT_local);
+    gpu_memory_reset_ptrs();
+
+   mesh->generate_regular_cell_meshes(gpu_state_memory);
+
+   cl_mem &dev_nface    = mesh->dev_nface;
+   cl_mem &dev_celltype = mesh->dev_celltype;
+   cl_mem &dev_nlft     = mesh->dev_nlft;
+   cl_mem &dev_nrht     = mesh->dev_nrht;
+   cl_mem &dev_nbot     = mesh->dev_nbot;
+   cl_mem &dev_ntop     = mesh->dev_ntop;
+   cl_mem &dev_level    = mesh->dev_level;
+   cl_mem &dev_levdx    = mesh->dev_levdx;
+   cl_mem &dev_levdy    = mesh->dev_levdy;
+   cl_mem &dev_j        = mesh->dev_j;
+   cl_mem &dev_i        = mesh->dev_i;
+   cl_mem &dev_xface_level    = mesh->dev_xface_level;
+   cl_mem &dev_xface_j    = mesh->dev_xface_j;
+   cl_mem &dev_xface_i    = mesh->dev_xface_i;
+   cl_mem &dev_yface_level    = mesh->dev_yface_level;
+   cl_mem &dev_yface_j    = mesh->dev_yface_j;
+   cl_mem &dev_yface_i    = mesh->dev_yface_i;
+   cl_mem &dev_map_xface2cell_lower = mesh->dev_map_xface2cell_lower;
+   cl_mem &dev_map_xface2cell_upper = mesh->dev_map_xface2cell_upper;
+   cl_mem &dev_map_yface2cell_lower = mesh->dev_map_yface2cell_lower;
+   cl_mem &dev_map_yface2cell_upper = mesh->dev_map_yface2cell_upper;
+   cl_mem &dev_map_xcell2face_left1 = mesh->dev_map_xcell2face_left1;
+   cl_mem &dev_map_xcell2face_right1 = mesh->dev_map_xcell2face_right1;
+   cl_mem &dev_map_ycell2face_bot1 = mesh->dev_map_ycell2face_bot1;
+   cl_mem &dev_map_ycell2face_top1 = mesh->dev_map_ycell2face_top1;
+   cl_mem &dev_xrecvIdx = mesh->dev_xrecvIdx;
+   cl_mem &dev_xsendIdx1 = mesh->dev_xsendIdx1;
+   cl_mem &dev_xsendIdx2 = mesh->dev_xsendIdx2;
+   cl_mem &dev_yrecvIdx = mesh->dev_yrecvIdx;
+   cl_mem &dev_ysendIdx1 = mesh->dev_ysendIdx1;
+   cl_mem &dev_ysendIdx2 = mesh->dev_ysendIdx2;
+   int &nxfixup = mesh->nxfixup;
+   int &nyfixup = mesh->nyfixup;
+   int &pcellCnt = mesh->pcellCnt;
+
+   assert(dev_nface);
+   assert(dev_H);
+   assert(dev_U);
+   assert(dev_V);
+   assert(dev_nlft);
+   assert(dev_nrht);
+   assert(dev_nbot);
+   assert(dev_ntop);
+   assert(dev_level);
+   assert(dev_levdx);
+   assert(dev_levdy);
+
+   cl_mem dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
+   cl_mem dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
+ 
+   size_t local_work_size = 128;
+   size_t global_work_size = ((ncells+local_work_size - 1) /local_work_size) * local_work_size;
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
+
+   //size_t global_work_size = MAX(MAX(mesh->nxface, mesh->nyface), ncells);
+
+#ifdef HAVE_MPI
+   if (mesh->numpe > 1) {
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_local, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_local,   1, NULL, &global_work_size, &local_work_size, NULL);
+    
+        /*
+        __kernel void copy_state_data_cl(
+                         const int    isize,         // 0
+                __global      state_t *H,            // 1
+                __global      state_t *U,            // 2
+                __global      state_t *V,            // 3
+                __global      state_t *H_new,        // 4
+                __global      state_t *U_new,        // 5
+                __global      state_t *V_new)        // 6
+        */
+
+      ezcl_set_kernel_arg(kernel_copy_state_data, 0, sizeof(cl_int), (void *)&ncells);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 1, sizeof(cl_mem), (void *)&dev_H);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 2, sizeof(cl_mem), (void *)&dev_U);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 3, sizeof(cl_mem), (void *)&dev_V);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 4, sizeof(cl_mem), (void *)&dev_H_new);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 5, sizeof(cl_mem), (void *)&dev_U_new);
+      ezcl_set_kernel_arg(kernel_copy_state_data, 6, sizeof(cl_mem), (void *)&dev_V_new);
+
+      //ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, &copy_state_data_event);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_copy_state_data,   1, NULL, &global_work_size, &local_work_size, NULL);
+
+      dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
+      dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
+      dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
+
+      L7_Dev_Update(dev_H, L7_STATE_T, mesh->cell_handle);
+      L7_Dev_Update(dev_U, L7_STATE_T, mesh->cell_handle);
+      L7_Dev_Update(dev_V, L7_STATE_T, mesh->cell_handle);
+
+      dev_H_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_H_new"), DEVICE_REGULAR_MEMORY);
+      dev_U_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_U_new"), DEVICE_REGULAR_MEMORY);
+      dev_V_new = (cl_mem)gpu_state_memory.memory_malloc(ncells_ghost, sizeof(cl_state_t), const_cast<char *>("dev_V_new"), DEVICE_REGULAR_MEMORY);
+
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions_ghost, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions_ghost,   1, NULL, &global_work_size, &local_work_size, NULL);
+   } else {
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), &dev_celltype);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), &dev_nlft);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), &dev_nrht);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), &dev_ntop);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), &dev_nbot);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), &dev_H);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), &dev_U);
+      ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), &dev_V);
+      ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
+   }
+#else
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 0, sizeof(cl_int), &ncells);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 1, sizeof(cl_mem), (void *)&dev_celltype);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 2, sizeof(cl_mem), (void *)&dev_nlft);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 3, sizeof(cl_mem), (void *)&dev_nrht);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 4, sizeof(cl_mem), (void *)&dev_ntop);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 5, sizeof(cl_mem), (void *)&dev_nbot);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 6, sizeof(cl_mem), (void *)&dev_H);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 7, sizeof(cl_mem), (void *)&dev_U);
+   ezcl_set_kernel_arg(kernel_apply_boundary_conditions, 8, sizeof(cl_mem), (void *)&dev_V);
+
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_apply_boundary_conditions,   1, NULL, &global_work_size, &local_work_size, NULL);
+#endif
+
+   size_t mem_requestx, mem_requesty;
+
+   mem_requestx = mesh->pxfaceCnt;
+   mem_requesty = mesh->pyfaceCnt;
+   gpu_faces_setup(mem_requestx, mem_requesty);
+
+   //size_t nfacex, nfacey;
+   //ezcl_enqueue_read_buffer(command_queue, dev_nface,     CL_TRUE, 0, sizeof(cl_int), &nfacex, NULL);
+   //ezcl_enqueue_read_buffer(command_queue, dev_nface,     CL_TRUE, 1*sizeof(cl_int), sizeof(cl_int), &nfacey, NULL);
+   //printf("\nMem requests %d and %d\n", nfacex, nfacey);
+
+   // Get total number of elements for 1D conversion from pstate
+   int total_size = 0;
+   for (int lev=0; lev < levmx+1; lev++) {
+      total_size +=  mesh->lev_jregsize[lev] * mesh->lev_iregsize[lev];
+   //    printf("%d\n", total_size);
+   }
+   size_t malloc_size = total_size;
+
+   // Allocate reg_lev arrays with that total size
+   gpu_reggrid_setup(malloc_size);
+
+   // Copy regular mesh arrays
+   ezcl_enqueue_write_buffer(command_queue, dev_lev_jregmin, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_jregmin[0], NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_lev_iregmin, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_iregmin[0], NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_lev_jregsize, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_jregsize[0], NULL);
+   ezcl_enqueue_write_buffer(command_queue, dev_lev_iregsize, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_iregsize[0], NULL);
+   //ezcl_enqueue_write_buffer(command_queue, dev_j, CL_TRUE, 0, ncells*sizeof(cl_int), &mesh->j[0], NULL);
+   //ezcl_enqueue_write_buffer(command_queue, dev_i, CL_TRUE, 0, ncells*sizeof(cl_int), &mesh->i[0], NULL);
+   //ezcl_enqueue_write_buffer(command_queue, dev_level, CL_TRUE, 0, ncells*sizeof(cl_int), &mesh->level[0], NULL);
+   //ezcl_enqueue_write_buffer(command_queue, dev_levdx, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_deltax[0], NULL);
+   //ezcl_enqueue_write_buffer(command_queue, dev_levdy, CL_TRUE, 0, 3*sizeof(cl_int), &mesh->lev_deltay[0], NULL);
+
+   vector<int>reg_start(levmx+1);
+
+   // dev_H_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_H_reg_lev"), &malloc_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
+   // dev_U_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_U_reg_lev"), &malloc_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
+   // dev_V_reg_lev = ezcl_malloc(NULL, const_cast<char *>("dev_V_reg_lev"), &malloc_size, sizeof(cl_real_t), CL_MEM_READ_WRITE, 0);
+   vector<real_t>H_reg(total_size);
+   vector<real_t>U_reg(total_size);
+   vector<real_t>V_reg(total_size);
+
+   //printf("Malloc %d\n", malloc_size);
+   // Get values for reg_start and also copy pstate to reg_levs
+   reg_start[0] = 0;
+   int startCnt = 0;
+   for (int lev=0; lev < levmx+1; lev++) {
+      int llsize = mesh->lev_jregsize[lev] * mesh->lev_iregsize[lev];
+      //printf("startCnt %d llsize %d\n", startCnt, llsize);
+      for (int copy = 0; copy < llsize; copy++) {
+        H_reg[startCnt+copy] = mesh->meshes[lev].pstate[0][copy/mesh->lev_iregsize[lev]][copy%mesh->lev_iregsize[lev]];
+        U_reg[startCnt+copy] = mesh->meshes[lev].pstate[1][copy/mesh->lev_iregsize[lev]][copy%mesh->lev_iregsize[lev]];
+        V_reg[startCnt+copy] = mesh->meshes[lev].pstate[2][copy/mesh->lev_iregsize[lev]][copy%mesh->lev_iregsize[lev]];
+      }
+      startCnt += llsize;
+      if (lev < levmx) reg_start[lev+1] = startCnt;
+   }
+
+
+      ezcl_enqueue_write_buffer(command_queue, dev_H_reg_lev, CL_TRUE, 0*sizeof(cl_real_t), total_size*sizeof(cl_real_t), &H_reg[0], NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_U_reg_lev, CL_TRUE, 0*sizeof(cl_real_t), total_size*sizeof(cl_real_t), &U_reg[0], NULL);
+      ezcl_enqueue_write_buffer(command_queue, dev_V_reg_lev, CL_TRUE, 0*sizeof(cl_real_t), total_size*sizeof(cl_real_t), &V_reg[0], NULL);
+
+   // Copy up reg_start
+   ezcl_enqueue_write_buffer(command_queue, dev_reg_start, CL_TRUE, 0, 3*sizeof(cl_int), &reg_start[0], NULL);
+
+   cl_event calc_finite_difference_regular_cells_comps_event, calc_finite_difference_regular_cells_fill_event, calc_finite_difference_in_place_fixup_event;
+
+   for (int ic = 0; ic < ncells; ic++) {
+       int ll = mesh->level[ic];
+       int jj = mesh->j[ic] - mesh->lev_jregmin[ll];
+       int ii = mesh->i[ic] - mesh->lev_iregmin[ll];
+       //printf("%d) %d %d %d\n", ic, ll, jj, ii);
+       //printf("%f ", V_reg[reg_start[ll]+jj*mesh->lev_iregsize[ll]+ii]);
+       //printf("%f ", V_reg[reg_start[ll]+jj*mesh->lev_iregsize[ll]+ii+1]);
+       //printf("%f ", V_reg[reg_start[ll]+jj*mesh->lev_iregsize[ll]+ii-1]);
+       //printf("%f ", V_reg[reg_start[ll]+(jj+1)*mesh->lev_iregsize[ll]+ii]);
+       //printf("%f\n", V_reg[reg_start[ll]+(jj-1)*mesh->lev_iregsize[ll]+ii]);
+        //printf("%d) ll %d jj %d ii %d startIdx %d\n", i, mesh->level[i], mesh->j[i] - mesh->lev_jregmin[mesh->level[i]], mesh->i[i] - mesh->lev_iregmin[mesh->level[i]], reg_start[mesh->level[i]]);
+    //printf("%d) %f\n", i, mesh->meshes[ll].pstate[0][jj][ii]);
+   }
+   for (int i = 0; i < mesh->pyfaceCnt; i++) {
+//        printf("%d %d %d\n", mesh->yface_level[i], mesh->yface_i[i], mesh->yface_j[i]);
+   }
+
+
+   struct timespec tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
+   /*
+__kernel void calc_finite_difference_regular_cells_face_comps_cl(
+                              int       ncells,                     // 0  Total number of cells.
+            __global    const int       *nfaces,                    // 1 Number of faces
+                              real_t    deltaT,                     // 2 Size of time step
+            __global    const real_t    *lev_dx,                    // 3
+            __global    const real_t    *lev_dy,                    // 4
+            __global          state_t   *HxFlux,                    // 5
+            __global          state_t   *UxFlux,                    // 6
+            __global          state_t   *VxFlux,                    // 7
+            __global          state_t   *HyFlux,                    // 8
+            __global          state_t   *UyFlux,                    // 9
+            __global          state_t   *VyFlux,                    // 10
+            __global          state_t   *Wx_H,                      // 11
+            __global          state_t   *Wx_U,                      // 12
+            __global          state_t   *Wy_H,                      // 13
+            __global          state_t   *Wy_V,                      // 14
+            __global    const int       *reg_start,                 // 15
+            __global    const real_t    *H_reg_lev,                 // 16
+            __global    const real_t    *U_reg_lev,                 // 17
+            __global    const real_t    *V_reg_lev,                 // 18
+            __global    const int       *xface_level,               // 19
+            __global    const int       *xface_j,                   // 20
+            __global    const int       *xface_i,                   // 21
+            __global    const int       *yface_level,               // 22
+            __global    const int       *yface_j,                   // 23
+            __global    const int       *yface_i,                   // 24
+            __global    const int       *lev_jregmin,               // 25
+            __global    const int       *lev_iregmin,               // 26
+            __global    const int       *lev_jregsize,              // 27
+            __global    const int       *lev_iregsize)              // 28
+    */
+
+
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 0, sizeof(cl_int), (void *)&ncells); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 1, sizeof(cl_mem), (void *)&dev_nface); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 2, sizeof(cl_real_t), (void *)&deltaT_local); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 3, sizeof(cl_mem), (void *)&dev_levdx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 4, sizeof(cl_mem), (void *)&dev_levdy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 5, sizeof(cl_mem), (void *)&dev_HxFlux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 6, sizeof(cl_mem), (void *)&dev_UxFlux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 7, sizeof(cl_mem), (void *)&dev_VxFlux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 8, sizeof(cl_mem), (void *)&dev_HyFlux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 9, sizeof(cl_mem), (void *)&dev_UyFlux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 10, sizeof(cl_mem), (void *)&dev_VyFlux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 11, sizeof(cl_mem), (void *)&dev_Wx_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 12, sizeof(cl_mem), (void *)&dev_Wx_U); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 13, sizeof(cl_mem), (void *)&dev_Wy_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 14, sizeof(cl_mem), (void *)&dev_Wy_V); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 15, sizeof(cl_mem), (void *)&dev_reg_start); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 16, sizeof(cl_mem), (void *)&dev_H_reg_lev); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 17, sizeof(cl_mem), (void *)&dev_U_reg_lev); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 18, sizeof(cl_mem), (void *)&dev_V_reg_lev); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 19, sizeof(cl_mem), (void *)&dev_xface_level); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 20, sizeof(cl_mem), (void *)&dev_xface_j); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 21, sizeof(cl_mem), (void *)&dev_xface_i); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 22, sizeof(cl_mem), (void *)&dev_yface_level); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 23, sizeof(cl_mem), (void *)&dev_yface_j); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 24, sizeof(cl_mem), (void *)&dev_yface_i); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 25, sizeof(cl_mem), (void *)&dev_lev_jregmin); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 26, sizeof(cl_mem), (void *)&dev_lev_iregmin); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 27, sizeof(cl_mem), (void *)&dev_lev_jregsize); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_face_comps, 28, sizeof(cl_mem), (void *)&dev_lev_iregsize); 
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_regular_cells_face_comps, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_regular_cells_comps_event);
+
+   ezcl_wait_for_events(1, &calc_finite_difference_regular_cells_comps_event);
+   ezcl_event_release(calc_finite_difference_regular_cells_comps_event);
+/*
+   vector<real_t>H_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_Hyfluxminus,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &H_loc[0], NULL);
+   vector<real_t>U_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_Uyfluxminus,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &U_loc[0], NULL);
+   vector<real_t>V_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_Vyfluxminus,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &V_loc[0], NULL);
+   printf("\n");
+   for (int jello = 0; jello < ncells; jello++) { printf("%d) %f | %f | %f\n", jello, H_loc[jello], U_loc[jello], V_loc[jello]); }
+*/
+
+/*
+   vector<real_t>H_loc(total_size);
+   ezcl_enqueue_read_buffer(command_queue, dev_H_reg_lev,     CL_TRUE, 0, total_size*sizeof(cl_real_t), &H_loc[0], NULL);
+   printf("\n");
+   for (int jello = 0; jello < total_size; jello++) { printf("%d) %f\n", jello, H_loc[jello]); }
+*/
+
+   /*
+__kernel void calc_finite_difference_via_face_in_place_fixup_cl(
+                        const int        nxfixup,                   // 0
+                        const int        nyfixup,                   // 1
+            __global    const int       *xrecvIdx,                  // 2
+            __global    const int       *xsendIdx1,                 // 3
+            __global    const int       *xsendIdx2,                 // 4
+            __global    const int       *yrecvIdx,                  // 5
+            __global    const int       *ysendIdx1,                 // 6
+            __global    const int       *ysendIdx2,                 // 7
+            __global    const int       *map_xface2cell_lower,      // 8
+            __global    const int       *map_xface2cell_upper,      // 9
+            __global    const int       *map_yface2cell_lower,      // 10 
+            __global    const int       *map_yface2cell_upper,      // 11 
+            __global          state_t   *HxFlux,                    // 12
+            __global          state_t   *UxFlux,                    // 13
+            __global          state_t   *VxFlux,                    // 14
+            __global          state_t   *HyFlux,                    // 15
+            __global          state_t   *UyFlux,                    // 16
+            __global          state_t   *VyFlux,                    // 17
+            __global          state_t   *Wx_H,                      // 18
+            __global          state_t   *Wx_U,                      // 19
+            __global          state_t   *Wy_H,                      // 20
+            __global          state_t   *Wy_V) {                    // 21
+    */
+
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 0, sizeof(cl_int), (void *)&nxfixup); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 1, sizeof(cl_int), (void *)&nyfixup); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 2, sizeof(cl_mem), (void *)&dev_xrecvIdx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 3, sizeof(cl_mem), (void *)&dev_xsendIdx1);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 4, sizeof(cl_mem), (void *)&dev_xsendIdx2);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 5, sizeof(cl_mem), (void *)&dev_yrecvIdx);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 6, sizeof(cl_mem), (void *)&dev_ysendIdx1);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 7, sizeof(cl_mem), (void *)&dev_ysendIdx2);
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 8, sizeof(cl_mem), (void *)&dev_map_xface2cell_lower); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 9, sizeof(cl_mem), (void *)&dev_map_xface2cell_upper); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 10, sizeof(cl_mem), (void *)&dev_map_yface2cell_lower); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 11, sizeof(cl_mem), (void *)&dev_map_yface2cell_upper); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 12, sizeof(cl_mem), (void *)&dev_HxFlux); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 13, sizeof(cl_mem), (void *)&dev_UxFlux); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 14, sizeof(cl_mem), (void *)&dev_VxFlux); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 15, sizeof(cl_mem), (void *)&dev_HyFlux); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 16, sizeof(cl_mem), (void *)&dev_UyFlux); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 17, sizeof(cl_mem), (void *)&dev_VyFlux); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 18, sizeof(cl_mem), (void *)&dev_Wx_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 19, sizeof(cl_mem), (void *)&dev_Wx_U); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 20, sizeof(cl_mem), (void *)&dev_Wy_H); 
+    ezcl_set_kernel_arg(kernel_calc_finite_difference_via_face_in_place_fixup, 21, sizeof(cl_mem), (void *)&dev_Wy_V); 
+
+    //gpu_timers[STATE_TIMER_WRITE] += (long)(cpu_timer_stop(tstart_cpu_part)*1.0e9);
+    //cpu_timer_start(&tstart_cpu_part);
+
+    ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_via_face_in_place_fixup, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_in_place_fixup_event);
+
+    ezcl_wait_for_events(1, &calc_finite_difference_in_place_fixup_event);
+    ezcl_event_release(calc_finite_difference_in_place_fixup_event);
+
+    /*
+   vector<real_t>H_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_H,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &H_loc[0], NULL);
+   vector<real_t>U_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_U,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &U_loc[0], NULL);
+   vector<real_t>V_loc(ncells);
+   ezcl_enqueue_read_buffer(command_queue, dev_V,     CL_TRUE, 0, ncells*sizeof(cl_real_t), &V_loc[0], NULL);
+   printf("\n");
+   for (int jello = 0; jello < ncells; jello++) { printf("%d) %f | %f | %f\n", jello, H_loc[jello], U_loc[jello], V_loc[jello]); }
+   */
+/*
+__kernel void calc_finite_difference_regular_cells_fill_cl(
+                              int       ncells,                     // 0  Total number of cells.
+                              real_t    deltaT,                     // 1 Size of time step
+            __global    const real_t    *lev_dx,                    // 2
+            __global    const real_t    *lev_dy,                    // 3
+            __global    const state_t   *Hxfluxplus,                // 4
+            __global    const state_t   *Uxfluxplus,                // 5
+            __global    const state_t   *Vxfluxplus,                // 6
+            __global    const state_t   *Hyfluxplus,                // 7
+            __global    const state_t   *Uyfluxplus,                // 8
+            __global    const state_t   *Vyfluxplus,                // 9
+            __global    const state_t   *wplusx_H,                  // 10
+            __global    const state_t   *wplusx_U,                  // 11
+            __global    const state_t   *wplusy_H,                  // 12
+            __global    const state_t   *wplusy_V,                  // 13
+            __global    const int       *level,                     // 14
+            __global    const int       *map_xcell2face_left1,      // 15 A cell's left primary face 
+            __global    const int       *map_xcell2face_right1,     // 16 A cell's right primary face 
+            __global    const int       *map_ycell2face_bot1,       // 17 A cell's bot primary face 
+            __global    const int       *map_ycell2face_top1,       // 18 A cell's top primary face 
+            __global    const int       *reg_start,                 // 19
+            __global    const real_t    *H_reg_lev,                 // 20
+            __global    const real_t    *U_reg_lev,                 // 21
+            __global    const real_t    *V_reg_lev,                 // 22
+            __global    const int       *j,                         // 23
+            __global    const int       *i,                         // 24
+            __global    const int       *lev_jregmin,               // 25
+            __global    const int       *lev_iregmin,               // 26
+            __global    const int       *lev_jregsize,              // 27
+            __global    const int       *lev_iregsize,              // 28
+            __global          real_t    *H_state_new,               // 29
+            __global          real_t    *U_state_new,               // 30
+            __global          real_t    *V_state_new)               // 31
+*/
+
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 0, sizeof(cl_int), (void *)&ncells); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 1, sizeof(cl_real_t), (void *)&deltaT_local); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 2, sizeof(cl_mem), (void *)&dev_levdx); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 3, sizeof(cl_mem), (void *)&dev_levdy); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 4, sizeof(cl_mem), (void *)&dev_HxFlux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 5, sizeof(cl_mem), (void *)&dev_UxFlux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 6, sizeof(cl_mem), (void *)&dev_VxFlux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 7, sizeof(cl_mem), (void *)&dev_HyFlux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 8, sizeof(cl_mem), (void *)&dev_UyFlux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 9, sizeof(cl_mem), (void *)&dev_VyFlux); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 10, sizeof(cl_mem), (void *)&dev_Wx_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 11, sizeof(cl_mem), (void *)&dev_Wx_U); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 12, sizeof(cl_mem), (void *)&dev_Wy_H); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 13, sizeof(cl_mem), (void *)&dev_Wy_V); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 14, sizeof(cl_mem), (void *)&dev_level); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 15, sizeof(cl_mem), (void *)&dev_map_xcell2face_left1); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 16, sizeof(cl_mem), (void *)&dev_map_xcell2face_right1); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 17, sizeof(cl_mem), (void *)&dev_map_ycell2face_bot1); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 18, sizeof(cl_mem), (void *)&dev_map_ycell2face_top1); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 19, sizeof(cl_mem), (void *)&dev_reg_start); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 20, sizeof(cl_mem), (void *)&dev_H_reg_lev); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 21, sizeof(cl_mem), (void *)&dev_U_reg_lev); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 22, sizeof(cl_mem), (void *)&dev_V_reg_lev); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 23, sizeof(cl_mem), (void *)&dev_j); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 24, sizeof(cl_mem), (void *)&dev_i); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 25, sizeof(cl_mem), (void *)&dev_lev_jregmin); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 26, sizeof(cl_mem), (void *)&dev_lev_iregmin); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 27, sizeof(cl_mem), (void *)&dev_lev_jregsize); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 28, sizeof(cl_mem), (void *)&dev_lev_iregsize); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 29, sizeof(cl_mem), (void *)&dev_H_new); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 30, sizeof(cl_mem), (void *)&dev_U_new); 
+   ezcl_set_kernel_arg(kernel_calc_finite_difference_regular_cells_by_faces_fill, 31, sizeof(cl_mem), (void *)&dev_V_new); 
+
+   ezcl_enqueue_ndrange_kernel(command_queue, kernel_calc_finite_difference_regular_cells_by_faces_fill, 1, NULL, &global_work_size, &local_work_size, &calc_finite_difference_regular_cells_fill_event);
+
+   ezcl_wait_for_events(1, &calc_finite_difference_regular_cells_fill_event);
+   ezcl_event_release(calc_finite_difference_regular_cells_fill_event);
+
+   gpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += (long)(cpu_timer_stop(tstart_cpu)*1.0e9);
+
+   dev_H = (cl_mem)gpu_state_memory.memory_replace(dev_H, dev_H_new);
+   dev_U = (cl_mem)gpu_state_memory.memory_replace(dev_U, dev_U_new);
+   dev_V = (cl_mem)gpu_state_memory.memory_replace(dev_V, dev_V_new);
+
+
+
+   gpu_faces_delete();
+   gpu_reggrid_delete();
+   mesh->destroy_regular_cell_meshes(state_memory);
+   mesh->gpu_wbidirmap_delete();
+}
 #endif
 
 void State::symmetry_check(const char *string, vector<int> sym_index, double eps,
@@ -6725,7 +7446,6 @@ void State::output_timer_block(mesh_device_types device_type, double elapsed_tim
 
    timer_output(STATE_TIMER_SET_TIMESTEP,                  device_type, 1);
    timer_output(STATE_TIMER_FINITE_DIFFERENCE,             device_type, 1);
-   printf("\tState without Mesh\t\t\t\t%f\ts\n", get_cpu_timer(STATE_TIMER_FINITE_DIFFERENCE_PART2) + get_cpu_timer(STATE_TIMER_FINITE_DIFFERENCE_PART3) + get_cpu_timer(STATE_TIMER_FINITE_DIFFERENCE_PART4));
    timer_output(STATE_TIMER_FINITE_DIFFERENCE_PART1,       device_type, 2);
    timer_output(STATE_TIMER_FINITE_DIFFERENCE_PART2,       device_type, 2);
    timer_output(STATE_TIMER_FINITE_DIFFERENCE_PART3,       device_type, 2);
