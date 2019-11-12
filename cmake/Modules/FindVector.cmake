@@ -111,7 +111,7 @@ if(CMAKE_C_COMPILER_LOADED)
                      VECTOR_NOVEC_C_OPT
                      VECTOR_VEC_C_OPTS)
 
-    message(STATUS  "Setting Vector C flags to -- ${VECTOR_C_OPTS}")
+    message(STATUS  "Setting Vector C flags to -- ${VECTOR_C_FLAGS}")
     message(STATUS  "Setting Vector C No-Vector flags to -- ${VECTOR_NOVEC_C_FLAGS}")
     message(STATUS  "Setting Vector C Verbose flags to -- ${VECTOR_C_VERBOSE}")
 
@@ -207,7 +207,7 @@ if(CMAKE_CXX_COMPILER_LOADED)
                      VECTOR_NOVEC_CXX_OPT
                      VECTOR_VEC_CXX_OPTS)
 
-   message(STATUS  "Setting Vector CXX flags to -- ${VECTOR_CXX_OPTS}")
+   message(STATUS  "Setting Vector CXX flags to -- ${VECTOR_CXX_FLAGS}")
    message(STATUS  "Setting Vector CXX No-Vector flags to -- ${VECTOR_NOVEC_CXX_FLAGS}")
    message(STATUS  "Setting Vector CXX Verbose flags to -- ${VECTOR_CXX_VERBOSE}")
 
@@ -304,7 +304,7 @@ if(CMAKE_Fortran_COMPILER_LOADED)
                      VECTOR_NOVEC_Fortran_OPT
                      VECTOR_VEC_Fortran_OPTS)
 
-    message(STATUS  "Setting Vector Fortran flags to -- ${VECTOR_Fortran_OPTS}")
+    message(STATUS  "Setting Vector Fortran flags to -- ${VECTOR_Fortran_FLAGS}")
     message(STATUS  "Setting Vector Fortran No-Vector flags to -- ${VECTOR_NOVEC_Fortran_FLAGS}")
     message(STATUS  "Setting Vector Fortran Verbose flags to -- ${VECTOR_Fortran_VERBOSE}")
 
