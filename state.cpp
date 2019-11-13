@@ -1760,7 +1760,7 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
    for (int ic = 0; ic < mesh->ncells; ic++) {
       //if (mesh->celltype[ic] != REAL_CELL) continue;
 #ifdef _OPENMP
-      printf("%d) %d %d\n", omp_get_thread_num(), lowerBound, upperBound);
+      //printf("%d) %d %d\n", omp_get_thread_num(), lowerBound, upperBound);
 #endif
 
       uchar_t lev = mesh->level[ic];
@@ -2027,8 +2027,8 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    static int xfaceSize; //new "update" nxface inc. phantoms
    static int yfaceSize;
 
-   static vector<state_t> HxFlux, UxFlux, VxFlux, Wx_H, Wx_U;
-   static vector<state_t> HyFlux, UyFlux, VyFlux, Wy_H, Wy_V;
+   static state_t *HxFlux, *UxFlux, *VxFlux, *Wx_H, *Wx_U;
+   static state_t *HyFlux, *UyFlux, *VyFlux, *Wy_H, *Wy_V;
 
 
 #ifdef _OPENMP
@@ -2037,10 +2037,11 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    {
 #endif
       mesh->calc_face_list_wbidirmap_phantom(state_memory, deltaT);
-      xfaceSize = mesh->map_xface2cell_lower.size(); //new "update" nxface inc. phantoms
-      yfaceSize = mesh->map_yface2cell_lower.size(); //new "update" nyface inc. phantoms
+      xfaceSize = mesh->pxface; //new "update" nxface inc. phantoms
+      yfaceSize = mesh->pyface; //new "update" nyface inc. phantoms
       memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
 
+      /*
       Wx_H.clear();
       Wx_H.resize(xfaceSize, (state_t)0.0);
       Wx_U.clear();
@@ -2062,6 +2063,20 @@ void State::calc_finite_difference_face_in_place(double deltaT)
       UyFlux.resize(yfaceSize, (state_t)0.0);
       VyFlux.clear();
       VyFlux.resize(yfaceSize, (state_t)0.0);
+      */
+    
+      HxFlux = (state_t *)malloc(xfaceSize*sizeof(state_t));
+      UxFlux = (state_t *)malloc(xfaceSize*sizeof(state_t));
+      VxFlux = (state_t *)malloc(xfaceSize*sizeof(state_t));
+      Wx_H = (state_t *)malloc(xfaceSize*sizeof(state_t));
+      Wx_U = (state_t *)malloc(xfaceSize*sizeof(state_t));
+
+      HyFlux = (state_t *)malloc(yfaceSize*sizeof(state_t));
+      UyFlux = (state_t *)malloc(yfaceSize*sizeof(state_t));
+      VyFlux = (state_t *)malloc(yfaceSize*sizeof(state_t));
+      Wy_H = (state_t *)malloc(yfaceSize*sizeof(state_t));
+      Wy_V = (state_t *)malloc(yfaceSize*sizeof(state_t));
+
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2259,6 +2274,17 @@ void State::calc_finite_difference_face_in_place(double deltaT)
 #pragma omp master
    {
 #endif
+      free(HxFlux);
+      free(UxFlux);
+      free(VxFlux);
+      free(Wx_H);
+      free(Wx_U);
+      free(HyFlux);
+      free(UyFlux);
+      free(VyFlux);
+      free(Wy_H);
+      free(Wy_V);
+
       // Replace H with H_new and deallocate H. New memory will have the characteristics
       // of the new memory and the name of the old. Both return and arg1 will be reset to new memory
       H = (state_t *)state_memory.memory_replace(H, H_new);
@@ -2312,8 +2338,8 @@ void State::calc_finite_difference_via_faces(double deltaT)
    {
 #endif
       mesh->calc_face_list_wbidirmap();
-      xfaceSize = mesh->map_xface2cell_lower.size();//new "update" nxface inc. phantoms
-      yfaceSize = mesh->map_yface2cell_lower.size(); //new "update" nyface inc. phantoms
+      xfaceSize = mesh->nxface;//new "update" nxface inc. phantoms
+      yfaceSize = mesh->nyface; //new "update" nyface inc. phantoms
       memory_reset_ptrs(); //reset the pointers H,U,V that were recently reallocated in wbidirmap call
 
       HxFlux.resize(xfaceSize, (state_t)-999999);
@@ -4071,9 +4097,6 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
 {
 
     
-   struct timespec tstart_cpu;
-   cpu_timer_start(&tstart_cpu);
-
    //struct timespec tstart_cpu_part;
    //cpu_timer_start(&tstart_cpu_part);
 
@@ -4286,6 +4309,9 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
     
     gpu_faces_setup(mem_requestx, mem_requesty);
 
+   struct timespec tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
+
     /*__kernel void calc_finite_difference_via_faces_face_comps_cl(
             __global          int       *nface,                     // 0 Number array of faces
                         const int       levmx,                      // 1 Maximum level
@@ -4496,9 +4522,6 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
 
 void State::gpu_calc_finite_difference_in_place(double deltaT)
 {
-
-   struct timespec tstart_cpu;
-   cpu_timer_start(&tstart_cpu);
 
    //struct timespec tstart_cpu_part;
    //cpu_timer_start(&tstart_cpu_part);
@@ -4727,6 +4750,9 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
    size_t local_face_work = 128;
    size_t global_face_work = ((pcellCnt+local_face_work - 1) /local_face_work) * local_face_work;
    //printf("\nglobal face work %d\n", global_face_work);
+
+   struct timespec tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
 
     /*
 __kernel void calc_finite_difference_in_place_cell_comps_cl (
@@ -5054,9 +5080,6 @@ __kernel void calc_finite_difference_in_place_fill_new_cl(
 
 void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
 {
-   struct timespec tstart_cpu;
-   cpu_timer_start(&tstart_cpu);
-
    //struct timespec tstart_cpu_part;
    //cpu_timer_start(&tstart_cpu_part);
 
@@ -5277,6 +5300,9 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    size_t local_face_work = CL_DEVICE_MAX_WORK_GROUP_SIZE;
    size_t global_face_work = ((pcellCnt+local_face_work - 1) /local_face_work) * local_face_work;
    //printf("\nglobal face work %d\n", global_face_work);
+
+   struct timespec tstart_cpu;
+   cpu_timer_start(&tstart_cpu);
 
    /* 
    vector<int>H_loc(p);

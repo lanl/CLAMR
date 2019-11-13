@@ -461,11 +461,7 @@ public:
                   *nbot,         //!<  1D ordered index of mesh element bottom neighbors.
                   *ntop,         //!<  1D ordered index of mesh element top neighbors.
                   *nfrt,         //!<  1D ordered index of mesh element front neighbors.
-                  *nbak,         //!<  1D ordered index of mesh element back neighbors.
-                  ***phantomXFluxRG,
-                  ***phantomYFluxRG,
-                  ***phantomXFluxRGFace,
-                  ***phantomYFluxRGFace;
+                  *nbak;         //!<  1D ordered index of mesh element back neighbors.
 
    vector<spatial_t> x,          //!<  1D ordered index of mesh element x-coordinates.
                      dx,         //!<  1D ordered index of mesh element x-coordinate spacings.
@@ -554,60 +550,63 @@ public:
    int nyface;
    int nxfixup;
    int nyfixup;
+   int pxface;
+   int pyface;
 
-   vector<int> xface_i; // i (x-axis) coordinates for xfaces
-   vector<int> xface_j; // j (y-axis) coordinates for xfaces
-   vector<uchar_t> xface_level; // level of xfaces (max level of upper/lower cells)
-   vector<int> map_xface2cell_lower; // IDs of lower cell (left for xface, bottom for yface)
-   vector<int> map_xface2cell_upper; // IDs of upper cell (right for xface, top for yface)
-   vector<int> phantomXFlux;
-   vector<int> phantomYFlux;
-   vector<int> phantomXFluxFace;
-   vector<int> phantomYFluxFace;
-   vector<int> xrecvIdx;
-   vector<int> xrecvCIdx;
-   vector<int> xplusCell2Idx;
-   vector<int> xminusCell2Idx;
-   vector<int> xsendIdx1;
-   vector<int> xsendIdx2;
-   vector<int> yrecvIdx;
-   vector<int> yrecvCIdx;
-   vector<int> yplusCell2Idx;
-   vector<int> yminusCell2Idx;
-   vector<int> ysendIdx1;
-   vector<int> ysendIdx2;
+   int *xface_i; // i (x-axis) coordinates for xfaces
+   int *xface_j; // j (y-axis) coordinates for xfaces
+   uchar_t *xface_level; // level of xfaces (max level of upper/lower cells)
+   int *map_xface2cell_lower; // IDs of lower cell (left for xface, bottom for yface)
+   int *map_xface2cell_upper; // IDs of upper cell (right for xface, top for yface)
 
    //Just like for cell neighbors, if the refinement increases across a face
    //this points to the left/bottom cell neighbor
-   vector<int> map_xcell2face_left1; // ID of 1st face to the left 
-   vector<int> map_xcell2face_left2; // ID of 2nd face to the left (in the case the refinement to the left is higher, this cell will have 2 faces to the left)
-   vector<int> map_xcell2face_right1; // ID of 1st face to the right
-   vector<int> map_xcell2face_right2; // ID of 2nd face to the right (in the case the refinement to the right is higher, this cell will have 2 faces to the left)
+   int *map_xcell2face_left1; // ID of 1st face to the left 
+   int *map_xcell2face_left2; // ID of 2nd face to the left (in the case the refinement to the left is higher, this cell will have 2 faces to the left)
+   int *map_xcell2face_right1; // ID of 1st face to the right
+   int *map_xcell2face_right2; // ID of 2nd face to the right (in the case the refinement to the right is higher, this cell will have 2 faces to the left)
 
-   vector<int> ixmin_level;
-   vector<int> ixmax_level;
-   vector<int> jxmin_level;
-   vector<int> jxmax_level;
-   vector<int> ixadjust;
-   vector<int> jxadjust;
+   /*
+   int *ixmin_level;
+   int *ixmax_level;
+   int *jxmin_level;
+   int *jxmax_level;
+   int *ixadjust;
+   int *jxadjust;
+   */
 
-   vector<int> yface_i;
-   vector<int> yface_j;
-   vector<uchar_t> yface_level;
-   vector<int> map_yface2cell_lower;
-   vector<int> map_yface2cell_upper;
+   int *yface_i;
+   int *yface_j;
+   uchar_t *yface_level;
+   int *map_yface2cell_lower;
+   int *map_yface2cell_upper;
 
-   vector<int> map_ycell2face_bot1;
-   vector<int> map_ycell2face_bot2;
-   vector<int> map_ycell2face_top1;
-   vector<int> map_ycell2face_top2;
+   int *map_ycell2face_bot1;
+   int *map_ycell2face_bot2;
+   int *map_ycell2face_top1;
+   int *map_ycell2face_top2;
 
-   vector<int> iymin_level;
-   vector<int> iymax_level;
-   vector<int> jymin_level;
-   vector<int> jymax_level;
-   vector<int> iyadjust;
-   vector<int> jyadjust;
+   /*
+   int *iymin_level;
+   int *iymax_level;
+   int *jymin_level;
+   int *jymax_level;
+   int *iyadjust;
+   int *jyadjust;
+   */
+
+   int *xrecvIdx;
+   int *xrecvCIdx;
+   int *xplusCell2Idx;
+   int *xminusCell2Idx;
+   int *xsendIdx1;
+   int *xsendIdx2;
+   int *yrecvIdx;
+   int *yrecvCIdx;
+   int *yplusCell2Idx;
+   int *yminusCell2Idx;
+   int *ysendIdx1;
+   int *ysendIdx2;
 
    //   Public constructors.
    Mesh(FILE *fin, int *numpe);

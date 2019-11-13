@@ -20,7 +20,7 @@ RegGridMemused = dict()
 
 for line in data:
     #if 'CPU' in line:
-    if 'Memory_used' in line:
+    if 'Memory_peak' in line:
         line = line.strip('\n')
         #key,dummy,dummy,value,dummy = line.split()
         key,dummy,value,dummy = line.split()
@@ -42,8 +42,8 @@ fig, ax = plt.subplots()
 
 bar_width = 0.35
 
-y1 = [ CellMemused["origcell"]/CellMemused["origcell"],CellMemused["cellinplace"]/CellMemused["origcell"],CellMemused["reggridbycell"]/CellMemused["origcell"] ]
-y2 = [ FaceMemused["origface"]/CellMemused["origcell"],FaceMemused["faceinplace"]/CellMemused["origcell"],FaceMemused["reggridbyfaces"]/CellMemused["origcell"] ]
+y1 = [ CellMemused["origcell"]/FaceMemused["origface"],CellMemused["cellinplace"]/FaceMemused["origface"],CellMemused["reggridbycell"]/FaceMemused["origface"] ]
+y2 = [ FaceMemused["origface"]/FaceMemused["origface"],FaceMemused["faceinplace"]/FaceMemused["origface"],FaceMemused["reggridbyfaces"]/FaceMemused["origface"] ]
 
 x1 = np.arange(len(y1))
 x2 = [x + bar_width for x in x1]
@@ -56,11 +56,11 @@ axes = plt.gca() # get current axes
 #axes.set_ylim([0,1.2])
 
 ax.set_xlabel('Mesh Data Structure',fontsize=18)
-ax.set_ylabel('Memory used relative to Original Cell AMR',fontsize=18)
+ax.set_ylabel('Memory used relative to\nOriginal Face Method',fontsize=18)
 ax.tick_params(axis = 'both', labelsize = 14)
 ax.set_xticks(x1 + bar_width)
 ax.set_xticklabels(('Original AMR','InPlace','RegGrid'))
-ax.legend(loc=1)
+ax.legend(loc=2)
 
 plt.setp(ax.get_legend().get_texts(), fontsize='16') # for legend text
 

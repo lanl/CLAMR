@@ -2365,6 +2365,36 @@ void Mesh::terminate(void)
       mesh_memory.memory_delete(i);
       mesh_memory.memory_delete(j);
       mesh_memory.memory_delete(level);
+      mesh_memory.memory_delete(xface_i);
+      mesh_memory.memory_delete(xface_j);
+      mesh_memory.memory_delete(xface_level);
+      mesh_memory.memory_delete(map_xface2cell_lower);
+      mesh_memory.memory_delete(map_xface2cell_upper);
+      mesh_memory.memory_delete(map_xcell2face_left1);
+      mesh_memory.memory_delete(map_xcell2face_left2);
+      mesh_memory.memory_delete(map_xcell2face_right1);
+      mesh_memory.memory_delete(map_xcell2face_right2);
+      mesh_memory.memory_delete(xrecvIdx);
+      mesh_memory.memory_delete(xrecvCIdx);
+      mesh_memory.memory_delete(xplusCell2Idx);
+      mesh_memory.memory_delete(xminusCell2Idx);
+      mesh_memory.memory_delete(xsendIdx1);
+      mesh_memory.memory_delete(xsendIdx2);
+      mesh_memory.memory_delete(yface_i);
+      mesh_memory.memory_delete(yface_j);
+      mesh_memory.memory_delete(yface_level);
+      mesh_memory.memory_delete(map_yface2cell_lower);
+      mesh_memory.memory_delete(map_yface2cell_upper);
+      mesh_memory.memory_delete(map_ycell2face_bot1);
+      mesh_memory.memory_delete(map_ycell2face_bot2);
+      mesh_memory.memory_delete(map_ycell2face_top1);
+      mesh_memory.memory_delete(map_ycell2face_top2);
+      mesh_memory.memory_delete(yrecvIdx);
+      mesh_memory.memory_delete(yrecvCIdx);
+      mesh_memory.memory_delete(yplusCell2Idx);
+      mesh_memory.memory_delete(yminusCell2Idx);
+      mesh_memory.memory_delete(ysendIdx1);
+      mesh_memory.memory_delete(ysendIdx2);
       // needs to cast char_t to void so doesn't mistake it for string
       mesh_memory.memory_delete((void *)celltype);
       if (neighbor_remap) {
@@ -9173,6 +9203,36 @@ void Mesh::allocate(size_t ncells)
    i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "i",     flags);
    j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "j",     flags);
    level = (uchar_t *)mesh_memory.memory_malloc(ncells, sizeof(uchar_t), "level", flags);
+   xface_i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xface_i",     flags);
+   xface_j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xface_j",     flags);
+   xface_level     = (uchar_t *)mesh_memory.memory_malloc(ncells, sizeof(uchar_t), "xface_level",     flags);
+   map_xface2cell_lower     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xface2cell_lower",     flags);
+   map_xface2cell_upper     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xface2cell_upper",     flags);
+   map_xcell2face_left1     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_left1",     flags);
+   map_xcell2face_left2     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_left2",     flags);
+   map_xcell2face_right1     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_right1",     flags);
+   map_xcell2face_right2     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_right2",     flags);
+   xrecvIdx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xrecvIdx",     flags);
+   xrecvCIdx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xrecvCIdx",     flags);
+   xplusCell2Idx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xplusCell2Idx",     flags);
+   xminusCell2Idx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xminusCell2Idx",     flags);
+   xsendIdx1     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xsendIdx1",     flags);
+   xsendIdx2     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xsendIdx2",     flags);
+   yface_i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "yface_i",     flags);
+   yface_j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "yface_j",     flags);
+   yface_level     = (uchar_t *)mesh_memory.memory_malloc(ncells, sizeof(uchar_t), "yface_level",     flags);
+   map_yface2cell_lower     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_yface2cell_lower",     flags);
+   map_yface2cell_upper     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_yface2cell_upper",     flags);
+   map_ycell2face_bot1     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_bot1",     flags);
+   map_ycell2face_bot2     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_bot2",     flags);
+   map_ycell2face_top1     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_top1",     flags);
+   map_ycell2face_top2     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_top2",     flags);
+   yrecvIdx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "yrecvIdx",     flags);
+   yrecvCIdx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "yrecvCIdx",     flags);
+   yplusCell2Idx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "yplusCell2Idx",     flags);
+   yminusCell2Idx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "yminusCell2Idx",     flags);
+   ysendIdx1     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ysendIdx1",     flags);
+   ysendIdx2     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ysendIdx2",     flags);
 }
 
 
@@ -9191,6 +9251,36 @@ void Mesh::memory_reset_ptrs(void){
    nrht     = (int *)mesh_memory.get_memory_ptr("nrht");
    nbot     = (int *)mesh_memory.get_memory_ptr("nbot");
    ntop     = (int *)mesh_memory.get_memory_ptr("ntop");
+   xface_i     = (int *)mesh_memory.get_memory_ptr("xface_i");
+   xface_j     = (int *)mesh_memory.get_memory_ptr("xface_j");
+   xface_level     = (uchar_t *)mesh_memory.get_memory_ptr("xface_level");
+   map_xface2cell_lower     = (int *)mesh_memory.get_memory_ptr("map_xface2cell_lower");
+   map_xface2cell_upper     = (int *)mesh_memory.get_memory_ptr("map_xface2cell_upper");
+   map_xcell2face_left1     = (int *)mesh_memory.get_memory_ptr("map_xcell2face_left1");
+   map_xcell2face_left2     = (int *)mesh_memory.get_memory_ptr("map_xcell2face_left2");
+   map_xcell2face_right1     = (int *)mesh_memory.get_memory_ptr("map_xcell2face_right1");
+   map_xcell2face_right2     = (int *)mesh_memory.get_memory_ptr("map_xcell2face_right2");
+   xrecvIdx     = (int *)mesh_memory.get_memory_ptr("xrecvIdx");
+   xrecvCIdx     = (int *)mesh_memory.get_memory_ptr("xrecvCIdx");
+   xplusCell2Idx     = (int *)mesh_memory.get_memory_ptr("xplusCell2Idx");
+   xminusCell2Idx     = (int *)mesh_memory.get_memory_ptr("xminusCell2Idx");
+   xsendIdx1     = (int *)mesh_memory.get_memory_ptr("xsendIdx1");
+   xsendIdx2     = (int *)mesh_memory.get_memory_ptr("xsendIdx2");
+   yface_i     = (int *)mesh_memory.get_memory_ptr("yface_i");
+   yface_j     = (int *)mesh_memory.get_memory_ptr("yface_j");
+   yface_level     = (uchar_t *)mesh_memory.get_memory_ptr("yface_level");
+   map_yface2cell_lower     = (int *)mesh_memory.get_memory_ptr("map_yface2cell_lower");
+   map_yface2cell_upper     = (int *)mesh_memory.get_memory_ptr("map_yface2cell_upper");
+   map_ycell2face_bot1     = (int *)mesh_memory.get_memory_ptr("map_ycell2face_bot1");
+   map_ycell2face_bot2     = (int *)mesh_memory.get_memory_ptr("map_ycell2face_bot2");
+   map_ycell2face_top1     = (int *)mesh_memory.get_memory_ptr("map_ycell2face_top1");
+   map_ycell2face_top2     = (int *)mesh_memory.get_memory_ptr("map_ycell2face_top2");
+   yrecvIdx     = (int *)mesh_memory.get_memory_ptr("yrecvIdx");
+   yrecvCIdx     = (int *)mesh_memory.get_memory_ptr("yrecvCIdx");
+   yplusCell2Idx     = (int *)mesh_memory.get_memory_ptr("yplusCell2Idx");
+   yminusCell2Idx     = (int *)mesh_memory.get_memory_ptr("yminusCell2Idx");
+   ysendIdx1     = (int *)mesh_memory.get_memory_ptr("ysendIdx1");
+   ysendIdx2     = (int *)mesh_memory.get_memory_ptr("ysendIdx2");
 }
 
 void Mesh::resize_old_device_memory(size_t ncells)
@@ -9570,6 +9660,7 @@ void Mesh::set_refinement_order(int order[4], int ic, int ifirst, int ilast, int
 
 void Mesh::calc_face_list(void)
 {
+/*    
    xface_i.clear();
    xface_j.clear();
    xface_level.clear();
@@ -9731,11 +9822,12 @@ void Mesh::calc_face_list(void)
       iymin_level[fl] = 0;
       jymin_level[fl] = 0;
    }
-
+*/
 }
 
 void Mesh::calc_face_list_wmap(void)
 {
+/*
    map_xface2cell_lower.clear();
    map_xface2cell_upper.clear();
 
@@ -9907,7 +9999,7 @@ void Mesh::calc_face_list_wmap(void)
       iymin_level[fl] = 0;
       jymin_level[fl] = 0;
    }
-
+*/
 }
 
 void Mesh::quickInterpolate(int side_main, int side_sec, int cncell, double* mem_ptr_double,
@@ -10681,11 +10773,137 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    struct timespec tstart_cpu_part;
    cpu_timer_start(&tstart_cpu_part);
 
-   //
-   phantomXFlux.clear();
-   phantomXFlux.resize(ncells, INT_MAX);
-   phantomXFluxFace.clear();
-   phantomXFluxFace.resize(2*ncells, INT_MIN);
+    // These variables are for the following for-loop
+    int pcellCnt; // counter for new phantom cells
+
+    int xfaceCnt = 0;
+    int yfaceCnt = 0;
+    int xpCnt = 0;
+    int ypCnt = 0;
+    int cellCount = 0;
+    int xfix = 0;
+    int yfix = 0;
+    for (int nz = 0; nz < ncells; nz++) {
+        int nl = nlft[nz];
+        int nr = nrht[nz];
+        int nb = nbot[nz];
+        int nt = ntop[nz];
+        if (nz == nl || nz == nr || nz == nb || nz == nt) {
+            if (nz != nr) xfaceCnt ++;
+            if (nz != nt) yfaceCnt ++;
+            continue;
+        }
+
+        int lev = level[nz];
+        int ll = level[nl];
+        int lr = level[nr];
+        int lb = level[nb];
+        int lt = level[nt];
+
+        if (lev < lr) {
+            xfaceCnt += 2;
+            xpCnt += 4;
+            cellCount += 6;
+        }
+        else if (lev == lr) {
+            xfaceCnt ++;
+        }
+        else {
+            cellCount += 3;
+            xfaceCnt ++;
+            xpCnt += 2;
+            xfix ++;
+        }
+        if (lev < lt) {
+            yfaceCnt += 2;
+            ypCnt += 4;
+            cellCount += 6;
+        }
+        else if (lev == lt) {
+            yfaceCnt ++;
+        }
+        else {
+            cellCount += 3;
+            yfaceCnt ++;
+            ypCnt += 2;
+            yfix ++;
+        }
+    }
+    nxface = xfaceCnt;
+    nyface = yfaceCnt;
+    pcellCnt = ncells + cellCount;
+    pxface = nxface + xpCnt;
+    pyface = nyface + ypCnt;
+    nxfixup = xfix / 2;
+    nyfixup = yfix / 2;
+
+    // realloc memory based on new counts
+    i        = (int *)mesh_memory.memory_realloc(pcellCnt, i);
+    j        = (int *)mesh_memory.memory_realloc(pcellCnt, j);
+    level    = (uchar_t *)mesh_memory.memory_realloc(pcellCnt, level);
+    nlft     = (int *)mesh_memory.memory_realloc(pcellCnt, nlft);
+    nrht     = (int *)mesh_memory.memory_realloc(pcellCnt, nrht);
+    nbot     = (int *)mesh_memory.memory_realloc(pcellCnt, nbot);
+    ntop     = (int *)mesh_memory.memory_realloc(pcellCnt, ntop);
+
+    map_xface2cell_lower = (int *)mesh_memory.memory_realloc(pxface, map_xface2cell_lower);
+    map_xface2cell_upper = (int *)mesh_memory.memory_realloc(pxface, map_xface2cell_upper);
+    xface_i = (int *)mesh_memory.memory_realloc(pxface, xface_i);
+    xface_j = (int *)mesh_memory.memory_realloc(pxface, xface_j);
+    xface_level = (uchar_t *)mesh_memory.memory_realloc(pxface, xface_level);
+    map_yface2cell_lower = (int *)mesh_memory.memory_realloc(pyface, map_yface2cell_lower);
+    map_yface2cell_upper = (int *)mesh_memory.memory_realloc(pyface, map_yface2cell_upper);
+    yface_i = (int *)mesh_memory.memory_realloc(pyface, yface_i);
+    yface_j = (int *)mesh_memory.memory_realloc(pyface, yface_j);
+    yface_level = (uchar_t *)mesh_memory.memory_realloc(pyface, yface_level);
+
+    map_xcell2face_left1 = (int *)mesh_memory.memory_realloc(pcellCnt, map_xcell2face_left1);
+    map_xcell2face_left2 = (int *)mesh_memory.memory_realloc(pcellCnt, map_xcell2face_left2);
+    map_xcell2face_right1 = (int *)mesh_memory.memory_realloc(pcellCnt, map_xcell2face_right1);
+    map_xcell2face_right2 = (int *)mesh_memory.memory_realloc(pcellCnt, map_xcell2face_right2);
+    map_ycell2face_bot1 = (int *)mesh_memory.memory_realloc(pcellCnt, map_ycell2face_bot1);
+    map_ycell2face_bot2 = (int *)mesh_memory.memory_realloc(pcellCnt, map_ycell2face_bot2);
+    map_ycell2face_top1 = (int *)mesh_memory.memory_realloc(pcellCnt, map_ycell2face_top1);
+    map_ycell2face_top2 = (int *)mesh_memory.memory_realloc(pcellCnt, map_ycell2face_top2);
+
+    xrecvIdx = (int *)mesh_memory.memory_realloc(ncells, xrecvIdx);
+    xrecvCIdx = (int *)mesh_memory.memory_realloc(ncells, xrecvCIdx);
+    xplusCell2Idx = (int *)mesh_memory.memory_realloc(ncells, xplusCell2Idx);
+    xminusCell2Idx = (int *)mesh_memory.memory_realloc(ncells, xminusCell2Idx);
+    xsendIdx1 = (int *)mesh_memory.memory_realloc(ncells, xsendIdx1);
+    xsendIdx2 = (int *)mesh_memory.memory_realloc(ncells, xsendIdx2);
+    yrecvIdx = (int *)mesh_memory.memory_realloc(ncells, yrecvIdx);
+    yrecvCIdx = (int *)mesh_memory.memory_realloc(ncells, yrecvCIdx);
+    yplusCell2Idx = (int *)mesh_memory.memory_realloc(ncells, yplusCell2Idx);
+    yminusCell2Idx = (int *)mesh_memory.memory_realloc(ncells, yminusCell2Idx);
+    ysendIdx1 = (int *)mesh_memory.memory_realloc(ncells, ysendIdx1);
+    ysendIdx2 = (int *)mesh_memory.memory_realloc(ncells, ysendIdx2);
+
+    memory_reset_ptrs();
+
+    // needs to be initialized to -1
+    for (int fill = 0; fill < ncells; fill++) {
+        xplusCell2Idx[fill] = -1;
+        xminusCell2Idx[fill] = -1;
+        yplusCell2Idx[fill] = -1;
+        yminusCell2Idx[fill] = -1;
+    }
+
+    // realloc state memory
+    MallocPlus state_memory_old = state_memory;
+    malloc_plus_memory_entry *memory_item;
+
+    for (memory_item = state_memory_old.memory_entry_by_name_begin();
+        memory_item != state_memory_old.memory_entry_by_name_end();
+        memory_item = state_memory_old.memory_entry_by_name_next() ) {
+
+        if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
+        
+        state_memory.memory_realloc(pcellCnt, memory_item->mem_ptr);
+
+    }  
+
+   /*
    map_xface2cell_lower.clear();
    map_xface2cell_upper.clear();
    map_xface2cell_lower.resize(2*ncells, -1);
@@ -10722,19 +10940,42 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    xface_j.resize(2*ncells, -1);
    xface_level.resize(2*ncells, -1);
 
-   ixmin_level.clear();
-   ixmax_level.clear();
-   jxmin_level.clear();
-   jxmax_level.clear();
-   ixmin_level.resize(levmx+1,  9999999);
-   ixmax_level.resize(levmx+1, -9999999);
-   jxmin_level.resize(levmx+1,  9999999);
-   jxmax_level.resize(levmx+1, -9999999);
+   map_yface2cell_lower.clear();
+   map_yface2cell_upper.clear();
+   map_yface2cell_lower.resize(2*ncells, -1);
+   map_yface2cell_upper.resize(2*ncells, -1);
 
-   ixadjust.clear();
-   ixadjust.resize(levmx+1);
-   jxadjust.clear();
-   jxadjust.resize(levmx+1);
+   yrecvIdx.clear();
+   yrecvCIdx.clear();
+   yplusCell2Idx.clear();
+   yminusCell2Idx.clear();
+   ysendIdx1.clear();
+   ysendIdx2.clear();
+   yrecvIdx.resize(ncells,-1);
+   yrecvCIdx.resize(ncells,-1);
+   yplusCell2Idx.resize(ncells,-1);
+   yminusCell2Idx.resize(ncells,-1);
+   ysendIdx1.resize(ncells,-1);
+   ysendIdx2.resize(ncells,-1);
+
+   //
+   map_ycell2face_bot1.clear();
+   map_ycell2face_bot2.clear();
+   map_ycell2face_top1.clear();
+   map_ycell2face_top2.clear();
+   map_ycell2face_bot1.resize(ncells, -1);
+   map_ycell2face_bot2.resize(ncells, -1);
+   map_ycell2face_top1.resize(ncells, -1);
+   map_ycell2face_top2.resize(ncells, -1);
+
+   //
+   yface_i.clear();
+   yface_j.clear();
+   yface_level.clear();
+   yface_i.resize(2*ncells, -1);
+   yface_j.resize(2*ncells, -1);
+   yface_level.resize(2*ncells, -1);
+   */
 
    cpu_timers[MESH_TIMER_BIDIRPART1] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
@@ -10779,7 +11020,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
          }
       }
    }
-   nxface=iface;
 
    cpu_timers[MESH_TIMER_BIDIRPART2] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
@@ -10809,61 +11049,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    cpu_timer_start(&tstart_cpu_part);
 
    //
-   phantomYFlux.clear();
-   phantomYFlux.resize(ncells, INT_MIN);
-   phantomYFluxFace.clear();
-   phantomYFluxFace.resize(2*ncells, INT_MIN);
-   map_yface2cell_lower.clear();
-   map_yface2cell_upper.clear();
-   map_yface2cell_lower.resize(2*ncells, -1);
-   map_yface2cell_upper.resize(2*ncells, -1);
-
-   yrecvIdx.clear();
-   yrecvCIdx.clear();
-   yplusCell2Idx.clear();
-   yminusCell2Idx.clear();
-   ysendIdx1.clear();
-   ysendIdx2.clear();
-   yrecvIdx.resize(ncells,-1);
-   yrecvCIdx.resize(ncells,-1);
-   yplusCell2Idx.resize(ncells,-1);
-   yminusCell2Idx.resize(ncells,-1);
-   ysendIdx1.resize(ncells,-1);
-   ysendIdx2.resize(ncells,-1);
-
-   //
-   map_ycell2face_bot1.clear();
-   map_ycell2face_bot2.clear();
-   map_ycell2face_top1.clear();
-   map_ycell2face_top2.clear();
-   map_ycell2face_bot1.resize(ncells, -1);
-   map_ycell2face_bot2.resize(ncells, -1);
-   map_ycell2face_top1.resize(ncells, -1);
-   map_ycell2face_top2.resize(ncells, -1);
-
-   //
-   yface_i.clear();
-   yface_j.clear();
-   yface_level.clear();
-   yface_i.resize(2*ncells, -1);
-   yface_j.resize(2*ncells, -1);
-   yface_level.resize(2*ncells, -1);
-
-   iymin_level.clear();
-   iymax_level.clear();
-   jymin_level.clear();
-   jymax_level.clear();
-   iymin_level.resize(levmx+1,  9999999);
-   iymax_level.resize(levmx+1, -9999999);
-   jymin_level.resize(levmx+1,  9999999);
-   jymax_level.resize(levmx+1, -9999999);
-
-   iyadjust.clear();
-   iyadjust.resize(levmx+1);
-   jyadjust.clear();
-   jyadjust.resize(levmx+1);
-
-   cpu_timers[MESH_TIMER_BIDIRPART4] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
    iface=0;
@@ -10906,7 +11091,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
          }
       }
    }
-   nyface=iface;
 
    cpu_timers[MESH_TIMER_BIDIRPART5] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
@@ -10938,78 +11122,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
    cpu_timers[MESH_TIMER_BIDIRPART6] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
-   /*for (int iface=0; iface < nxface; iface++){
-      int fl = xface_level[iface];
-
-      int fi = xface_i[iface];
-      if (fi < ixmin_level[fl]) ixmin_level[fl] = fi;
-      if (fi > ixmax_level[fl]) ixmax_level[fl] = fi;
-
-      int fj = xface_j[iface];
-      if (fj < jxmin_level[fl]) jxmin_level[fl] = fj;
-      if (fj > jxmax_level[fl]) jxmax_level[fl] = fj;
-   }
-
-   for (int iface=0; iface < nxface; iface++){
-      int fl = xface_level[iface];
-      if (ixmax_level[fl] < ixmin_level[fl]) continue;
-
-      xface_i[iface] -= ixmin_level[fl];
-      xface_j[iface] -= jxmin_level[fl];
-   }
-
-   for (int fl = 0; fl <= levmx; fl++){
-      ixadjust[fl] = ixmin_level[fl];
-      jxadjust[fl] = jxmin_level[fl];
-      ixmax_level[fl] -= ixmin_level[fl];;
-      jxmax_level[fl] -= jxmin_level[fl];
-      ixmin_level[fl] = 0;
-      jxmin_level[fl] = 0;
-   }
-    //for (int yankers = 0; yankers < nxface; yankers++) {
-    //  printf("%d) %d/%d\n", yankers, xface_j[yankers], xface_i[yankers]);
-    //}
-
-   for (int iface=0; iface < nyface; iface++){
-      int fl = yface_level[iface];
-
-      int fi = yface_i[iface];
-      if (fi < iymin_level[fl]) iymin_level[fl] = fi;
-      if (fi > iymax_level[fl]) iymax_level[fl] = fi;
-
-      int fj = yface_j[iface];
-      if (fj < jymin_level[fl]) jymin_level[fl] = fj;
-      if (fj > jymax_level[fl]) jymax_level[fl] = fj;
-   }
-
-   for (int iface=0; iface < nyface; iface++){
-      int fl = yface_level[iface];
-      if (iymax_level[fl] < iymin_level[fl]) continue;
-
-      yface_i[iface] -= iymin_level[fl];
-      yface_j[iface] -= jymin_level[fl];
-   }
-
-   for (int fl = 0; fl <= levmx; fl++){
-      iyadjust[fl] = iymin_level[fl];
-      jyadjust[fl] = jymin_level[fl];
-      iymax_level[fl] -= iymin_level[fl];;
-      jymax_level[fl] -= jymin_level[fl];
-      iymin_level[fl] = 0;
-      jymin_level[fl] = 0;
-   }*/
 
    cpu_timers[MESH_TIMER_BIDIRPART7] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
-    // These variables are for the following for-loop
-    int pcellCnt = (int) ncells, // counter for new phantom cells
-        pfaceCnt = nxface, // counter for new phantom faces
-        idxVar = 0,
-        pcellIdx = (int) ncells, // starting index for new cell phantoms
-        pfaceIdx = nxface, // starting index for new face phantoms
-        ifixupIdx = 0; // starting index for receive fluxfixup
-
+/*
     for (int iface = 0; iface < nxface; iface++) {
         int lncell = map_xface2cell_lower[iface], // cell neighbor to the left
             rncell = map_xface2cell_upper[iface], // cell neighbor to the right
@@ -11049,6 +11166,8 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
             }
         }
     }
+
+
 
     map_xface2cell_lower.resize(pfaceCnt, -1);
     map_xface2cell_upper.resize(pfaceCnt, -1);
@@ -11112,35 +11231,20 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
     yface_i.resize(pfaceCnt, -1);
     yface_j.resize(pfaceCnt, -1);
     yface_level.resize(pfaceCnt, -1);
+    */
 
-
-    i        = (int *)mesh_memory.memory_realloc(pcellCnt, i);
-    j        = (int *)mesh_memory.memory_realloc(pcellCnt, j);
-    level    = (uchar_t *)mesh_memory.memory_realloc(pcellCnt, level);
-    nlft     = (int *)mesh_memory.memory_realloc(pcellCnt, nlft);
-    nrht     = (int *)mesh_memory.memory_realloc(pcellCnt, nrht);
-    nbot     = (int *)mesh_memory.memory_realloc(pcellCnt, nbot);
-    ntop     = (int *)mesh_memory.memory_realloc(pcellCnt, ntop);
-    memory_reset_ptrs();
 
     /*for (int braat = 0; braat < ncells; braat++) {
         printf("%d) %d %d %d %d\n", braat, map_xcell2face_left1[braat], map_xcell2face_right1[braat], map_ycell2face_bot1[braat], map_ycell2face_top1[braat]);
     }*/
-    MallocPlus state_memory_old = state_memory;
-    malloc_plus_memory_entry *memory_item;
-
-    for (memory_item = state_memory_old.memory_entry_by_name_begin();
-        memory_item != state_memory_old.memory_entry_by_name_end();
-        memory_item = state_memory_old.memory_entry_by_name_next() ) {
-
-        if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
-        
-        state_memory.memory_realloc(pcellCnt, memory_item->mem_ptr);
-
-    }  
 
    cpu_timers[MESH_TIMER_BIDIRPART8] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
+
+    int idxVar = 0,
+        pcellIdx = (int) ncells, // starting index for new cell phantoms
+        pfaceIdx = nxface, // starting index for new face phantoms
+        ifixupIdx = 0; // starting index for receive fluxfixup
 
     for (int iface = 0; iface < nxface; iface++) {
         int lncell = map_xface2cell_lower[iface], // cell neighbor to the left
@@ -11224,115 +11328,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     }
                     ifixupIdx++;
 
-                    //to maintain mass conservation
-		            phantomXFlux[fncell] = cncell;
-                    phantomXFluxFace[iface] = pfaceIdx;
-                    phantomXFluxFace[map_xcell2face_left1[tncell]] = pfaceIdx;
 
-//                    // loop through state arrays to update phantom cell state values
-//                    real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = ZERO; //vars for 2 cells over
-//                    int locStateCnt = 0;
-//                    for (memory_item = state_memory_old.memory_entry_by_name_begin();
-//                        memory_item != state_memory_old.memory_entry_by_name_end();
-//                        memory_item = state_memory_old.memory_entry_by_name_next() ) {
-//
-//                        if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
-//
-//                        if (memory_item->mem_elsize == 8) {
-//                           state_sideavg = ZERO;
-//                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
-//
-//                           real_t state_bot = mem_ptr_double[bncell];
-//                           real_t state_top = mem_ptr_double[tncell];
-//                           real_t state_coarse = mem_ptr_double[cncell];
-//                           real_t state_avg = HALF * (state_bot + state_top);
-//                           mem_ptr_double[pcellIdx+2] = state_avg;
-//                           mem_ptr_double[pcellIdx] = state_coarse;
-//
-//                           if (level[nrht[bncell]] > level_right) { // rightbot right neighbor is even more refined
-//                               state_botbot = mem_ptr_double[nrht[bncell]];
-//                               state_bottop = mem_ptr_double[ntop[nrht[bncell]]];
-//                               state_sideavg += HALF * HALF * (state_botbot + state_bottop);
-//                           }
-//                           else { // same refinement as rightbot neighbor
-//                               state_sideavg += HALF * mem_ptr_double[nrht[bncell]];
-//                           }
-//                           if (level[nrht[tncell]] > level_right) { // righttop right neighbor is even more refined
-//                               state_topbot = mem_ptr_double[nrht[tncell]];
-//                               state_toptop = mem_ptr_double[ntop[nrht[tncell]]];
-//                               state_sideavg += HALF * HALF * (state_topbot + state_toptop);
-//                           }
-//                           else { // same refinement as righttop neighbor
-//                               state_sideavg += HALF * mem_ptr_double[nrht[tncell]];
-//                           }
-//                           mem_ptr_double[pcellIdx+3] = state_sideavg;
-//                           mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
-//
-//                        } else if (memory_item->mem_elsize == 4) {
-//                           state_sideavg = ZERO;
-//                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
-//
-//                           real_t state_bot = mem_ptr_float[bncell];
-//                           real_t state_top = mem_ptr_float[tncell];
-//                           real_t state_coarse = mem_ptr_float[cncell];
-//                           real_t state_avg = HALF * (state_bot + state_top);
-//                           mem_ptr_float[pcellIdx+2] = state_avg;
-//                           mem_ptr_float[pcellIdx] = state_coarse;
-//
-//                           if (level[nrht[bncell]] > level_right) { // rightbot right neighbor is even more refined
-//                               state_botbot = mem_ptr_float[nrht[bncell]];
-//                               state_bottop = mem_ptr_float[ntop[nrht[bncell]]];
-//                               state_sideavg += HALF * HALF * (state_botbot + state_bottop);
-//                           }
-//                           else { // same refinement as rightbot neighbor
-//                               state_sideavg += HALF * mem_ptr_float[nrht[bncell]];
-//                           }
-//                           if (level[nrht[tncell]] > level_right) { // righttop right neighbor is even more refined
-//                               state_topbot = mem_ptr_float[nrht[tncell]];
-//                               state_toptop = mem_ptr_float[ntop[nrht[tncell]]];
-//                               state_sideavg += HALF * HALF * (state_topbot + state_toptop);
-//                           }
-//                           else { // same refinement as righttop neighbor
-//                               state_sideavg += HALF * mem_ptr_float[nrht[tncell]];
-//                           }
-//                           mem_ptr_float[pcellIdx+3] = state_sideavg;
-//                           mem_ptr_float[pcellIdx+1] = mem_ptr_float[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
-//
-//#ifdef HALF_PRECISION
-//                        } else if (memory_item->mem_elsize == 2) {
-//                           state_sideavg = ZERO;
-//                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
-//
-//                           real_t state_bot = mem_ptr_half[bncell];
-//                           real_t state_top = mem_ptr_half[tncell];
-//                           real_t state_coarse = mem_ptr_half[cncell];
-//                           real_t state_avg = HALF * (state_bot + state_top);
-//                           mem_ptr_half[pcellIdx+2] = state_avg;
-//                           mem_ptr_half[pcellIdx] = state_coarse;
-//
-//                           if (level[nrht[bncell]] > level_right) { // rightbot right neighbor is even more refined
-//                               state_botbot = mem_ptr_half[nrht[bncell]];
-//                               state_bottop = mem_ptr_half[ntop[nrht[bncell]]];
-//                               state_sideavg += HALF * HALF * (state_botbot + state_bottop);
-//                           }
-//                           else { // same refinement as rightbot neighbor
-//                               state_sideavg += HALF * mem_ptr_half[nrht[bncell]];
-//                           }
-//                           if (level[nrht[tncell]] > level_right) { // righttop right neighbor is even more refined
-//                               state_topbot = mem_ptr_half[nrht[tncell]];
-//                               state_toptop = mem_ptr_half[ntop[nrht[tncell]]];
-//                               state_sideavg += HALF * HALF * (state_topbot + state_toptop);
-//                           }
-//                           else { // same refinement as righttop neighbor
-//                               state_sideavg += HALF * mem_ptr_half[nrht[tncell]];
-//                           }
-//                           mem_ptr_half[pcellIdx+3] = state_sideavg;
-//                           mem_ptr_half[pcellIdx+1] = mem_ptr_half[nlft[cncell]]; // we are bot of 2 lefts, so the left neighbor of the coarse will give us bottom left left neighbor
-//#endif
-//
-//                        }
-//
-//                    }
 
                 }
                 else { // left is more refined
@@ -11382,117 +11378,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     }
                     ifixupIdx++;
 
-                    // for now, to maintain mass conservation
-                    phantomXFlux[fncell] = -cncell;
-                    phantomXFluxFace[iface] = pfaceIdx;
-                    phantomXFluxFace[map_xcell2face_right1[tncell]] = pfaceIdx;
-
-//                    // loop through state arrays to update phantom cell state values
-//                    real_t state_botbot, state_bottop, state_topbot, state_toptop, state_sideavg = ZERO; // vars for 2 cells over
-//                    for (memory_item = state_memory_old.memory_entry_by_name_begin();
-//                        memory_item != state_memory_old.memory_entry_by_name_end();
-//                        memory_item = state_memory_old.memory_entry_by_name_next() ) {
-//
-//                        if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
-//
-//                        if (memory_item->mem_elsize == 8) {
-//                           state_sideavg = ZERO;
-//                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
-//
-//                           real_t state_bot = mem_ptr_double[bncell];
-//                           real_t state_top = mem_ptr_double[tncell];
-//                           real_t state_coarse = mem_ptr_double[cncell];
-//                           real_t state_avg = HALF * (state_bot + state_top);
-//
-//                           mem_ptr_double[pcellIdx] = state_avg;
-//                           mem_ptr_double[pcellIdx+2] = state_coarse;
-//
-//                           if (level[nlft[bncell]] > level_left) { // leftbot left neighbor is even more refined
-//                               state_botbot = mem_ptr_double[nlft[bncell]];
-//                               state_bottop = mem_ptr_double[ntop[nlft[bncell]]];
-//                               state_sideavg += HALF * HALF * (state_botbot + state_bottop);
-//                           }
-//                           else { // same refinement as leftbot neighbor
-//                               state_sideavg += HALF * mem_ptr_double[nlft[bncell]];
-//                           }
-//                           if (level[nlft[tncell]] > level_left) { // lefttop left neighbor is even more refined
-//                               state_topbot = mem_ptr_double[nlft[tncell]];
-//                               state_toptop = mem_ptr_double[ntop[nlft[tncell]]];
-//                               state_sideavg += HALF * HALF * (state_topbot + state_toptop);
-//                           }
-//                           else { // same refinement as leftop neighbor
-//                               state_sideavg += HALF * mem_ptr_double[nlft[tncell]];
-//                           }
-//                           mem_ptr_double[pcellIdx+1] = state_sideavg;
-//                           mem_ptr_double[pcellIdx+3] = mem_ptr_double[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
-//
-//                        } else if (memory_item->mem_elsize == 4) {
-//                           state_sideavg = ZERO;
-//                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
-//
-//                           real_t state_bot = mem_ptr_float[bncell];
-//                           real_t state_top = mem_ptr_float[tncell];
-//                           real_t state_coarse = mem_ptr_float[cncell];
-//                           real_t state_avg = HALF * (state_bot + state_top);
-//
-//                           mem_ptr_float[pcellIdx] = state_avg;
-//                           mem_ptr_float[pcellIdx+2] = state_coarse;
-//
-//                           if (level[nlft[bncell]] > level_left) { // leftbot left neighbor is even more refined
-//                               state_botbot = mem_ptr_float[nlft[bncell]];
-//                               state_bottop = mem_ptr_float[ntop[nlft[bncell]]];
-//                               state_sideavg += HALF * HALF * (state_botbot + state_bottop);
-//                           }
-//                           else { // same refinement as leftbot neighbor
-//                               state_sideavg += HALF * mem_ptr_float[nlft[bncell]];
-//                           }
-//                           if (level[nlft[tncell]] > level_left) { // lefttop left neighbor is even more refined
-//                               state_topbot = mem_ptr_float[nlft[tncell]];
-//                               state_toptop = mem_ptr_float[ntop[nlft[tncell]]];
-//                               state_sideavg += HALF * HALF * (state_topbot + state_toptop);
-//                           }
-//                           else { // same refinement as leftop neighbor
-//                               state_sideavg += HALF * mem_ptr_float[nlft[tncell]];
-//                           }
-//                           mem_ptr_float[pcellIdx+1] = state_sideavg;
-//                           mem_ptr_float[pcellIdx+3] = mem_ptr_float[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
-//
-//#ifdef HALF_PRECISION
-//                        } else if (memory_item->mem_elsize == 2) {
-//                           state_sideavg = ZERO;
-//                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
-//
-//                           real_t state_bot = mem_ptr_half[bncell];
-//                           real_t state_top = mem_ptr_half[tncell];
-//                           real_t state_coarse = mem_ptr_half[cncell];
-//                           real_t state_avg = HALF * (state_bot + state_top);
-//
-//                           mem_ptr_half[pcellIdx] = state_avg;
-//                           mem_ptr_half[pcellIdx+2] = state_coarse;
-//
-//                           if (level[nlft[bncell]] > level_left) { // leftbot left neighbor is even more refined
-//                               state_botbot = mem_ptr_half[nlft[bncell]];
-//                               state_bottop = mem_ptr_half[ntop[nlft[bncell]]];
-//                               state_sideavg += HALF * HALF * (state_botbot + state_bottop);
-//                           }
-//                           else { // same refinement as leftbot neighbor
-//                               state_sideavg += HALF * mem_ptr_half[nlft[bncell]];
-//                           }
-//                           if (level[nlft[tncell]] > level_left) { // lefttop left neighbor is even more refined
-//                               state_topbot = mem_ptr_half[nlft[tncell]];
-//                               state_toptop = mem_ptr_half[ntop[nlft[tncell]]];
-//                               state_sideavg += HALF * HALF * (state_topbot + state_toptop);
-//                           }
-//                           else { // same refinement as leftop neighbor
-//                               state_sideavg += HALF * mem_ptr_half[nlft[tncell]];
-//                           }
-//                           mem_ptr_half[pcellIdx+1] = state_sideavg;
-//                           mem_ptr_half[pcellIdx+3] = mem_ptr_half[nrht[cncell]]; // we are bot of 2 rights, so the right neighbor of the coarse will give us bottom right right neighbor
-//#endif
-//
-//                        }
-//
-//                    }
 
                 }
                 // phantom cells' new neighbors (same regardless of which side refinement occurs)
@@ -11550,57 +11435,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
 
                     interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
-			        phantomXFlux[fncell] = cncell;
-
-//                    // loop through state arrays to update phantom cell state values
-//                    for (memory_item = state_memory_old.memory_entry_by_name_begin();
-//                        memory_item != state_memory_old.memory_entry_by_name_end();
-//                        memory_item = state_memory_old.memory_entry_by_name_next() ) {
-//
-//                        if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
-//
-//                        if (memory_item->mem_elsize == 8) {
-//                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
-//
-//                           real_t state_coarse = mem_ptr_double[cncell];
-//                           mem_ptr_double[pcellIdx] = state_coarse;
-//
-//                           if (level[nlft[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-//                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[nlft[cncell]];
-//                           }
-//                           else {
-//                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nlft[cncell]]];
-//                           }
-//                        } else if (memory_item->mem_elsize == 4) {
-//                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
-//
-//                           real_t state_coarse = mem_ptr_float[cncell];
-//                           mem_ptr_float[pcellIdx] = state_coarse;
-//
-//                           if (level[nlft[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-//                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[nlft[cncell]];
-//                           }
-//                           else {
-//                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[ntop[nlft[cncell]]];
-//                           }
-//#ifdef HALF_PRECISION
-//                        } else if (memory_item->mem_elsize == 2) {
-//                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
-//
-//                           real_t state_coarse = mem_ptr_half[cncell];
-//                           mem_ptr_half[pcellIdx] = state_coarse;
-//
-//                           if (level[nlft[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-//                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[nlft[cncell]];
-//                           }
-//                           else {
-//                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[ntop[nlft[cncell]]];
-//                           }
-//#endif
-//                        }
-//
-//
-//                    }
 
 
                 }
@@ -11630,56 +11464,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     xface_j[pfaceIdx] = j[lncell];
 
                     interpolate(1, pcellIdx-2, lncell, rncell, deltaT,  state_memory_old);
-			        phantomXFlux[fncell] = -cncell;
-
-//                    // loop through state arrays to update phantom cell state values
-//                    for (memory_item = state_memory_old.memory_entry_by_name_begin();
-//                        memory_item != state_memory_old.memory_entry_by_name_end();
-//                        memory_item = state_memory_old.memory_entry_by_name_next() ) {
-//
-//                        if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
-//
-//                        if (memory_item->mem_elsize == 8) {
-//                           real_t *mem_ptr_double = (real_t *)memory_item->mem_ptr;
-//   
-//                           real_t state_coarse = mem_ptr_double[cncell];
-//                           mem_ptr_double[pcellIdx] = state_coarse;
-//   
-//                           if (level[nrht[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-//                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[cncell]];
-//                           }
-//                           else {
-//                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[nrht[cncell]]];
-//                           }
-//                        } else if (memory_item->mem_elsize == 4) {
-//                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
-//   
-//                           real_t state_coarse = mem_ptr_float[cncell];
-//                           mem_ptr_float[pcellIdx] = state_coarse;
-//   
-//                           if (level[nrht[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-//                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[nrht[cncell]];
-//                           }
-//                           else {
-//                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[ntop[nrht[cncell]]];
-//                           }
-//#ifdef HALF_PRECISION
-//                        } else if (memory_item->mem_elsize == 2) {
-//                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
-//   
-//                           real_t state_coarse = mem_ptr_half[cncell];
-//                           mem_ptr_half[pcellIdx] = state_coarse;
-//   
-//                           if (level[nrht[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-//                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[nrht[cncell]];
-//                           }
-//                           else {
-//                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[ntop[nrht[cncell]]];
-//                           }
-//#endif
-//                        }
-//
-//                    }
 
                 }
 
@@ -11805,117 +11589,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     }
                     ifixupIdx++;
 
-                    // to maintain mass conservation
-                    phantomYFlux[fncell] = cncell;
-                    phantomYFluxFace[iface] = pfaceIdx;
-                    phantomYFluxFace[map_ycell2face_bot1[rncell]] = pfaceIdx;
-
-//                    // loop through state arrays to update phantom cell state values
-//                    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = ZERO; // vars for 2 cells over
-//                    for (memory_item = state_memory_old.memory_entry_by_name_begin();
-//                        memory_item != state_memory_old.memory_entry_by_name_end();
-//                        memory_item = state_memory_old.memory_entry_by_name_next() ) {
-//
-//                        if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
-//
-//                        if (memory_item->mem_elsize == 8) {
-//                           state_sideavg = ZERO;
-//                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
-//
-//                           real_t state_lft = mem_ptr_double[lncell];
-//                           real_t state_rht = mem_ptr_double[rncell];
-//                           real_t state_coarse = mem_ptr_double[cncell];
-//                           real_t state_avg = HALF * (state_lft + state_rht);
-//
-//                           mem_ptr_double[pcellIdx+2] = state_avg;
-//                           mem_ptr_double[pcellIdx] = state_coarse;
-//
-//                           if (level[nbot[lncell]] > level_top) { // topleft top neighbor is even more refined
-//                               state_lftlft = mem_ptr_double[ntop[lncell]];
-//                               state_lftrht = mem_ptr_double[nrht[ntop[lncell]]];
-//                               state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
-//                           }
-//                           else { // same refinement as toplft neighbor
-//                               state_sideavg += HALF * mem_ptr_double[ntop[lncell]];
-//                           }
-//                           if (level[ntop[rncell]] > level_top) { // toprht top neighbor is even more refined
-//                               state_rhtlft = mem_ptr_double[ntop[rncell]];
-//                               state_rhtrht = mem_ptr_double[nrht[ntop[rncell]]];
-//                               state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
-//                           }
-//                           else { // same refinement as toprht neighbor
-//                               state_sideavg += HALF * mem_ptr_double[ntop[rncell]];
-//                           }
-//                           mem_ptr_double[pcellIdx+3] = state_sideavg;
-//                           mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
-//                        
-//                        } else if (memory_item->mem_elsize == 4) {
-//                           state_sideavg = ZERO;
-//                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
-//
-//                           real_t state_lft = mem_ptr_float[lncell];
-//                           real_t state_rht = mem_ptr_float[rncell];
-//                           real_t state_coarse = mem_ptr_float[cncell];
-//                           real_t state_avg = HALF * (state_lft + state_rht);
-//
-//                           mem_ptr_float[pcellIdx+2] = state_avg;
-//                           mem_ptr_float[pcellIdx] = state_coarse;
-//
-//                           if (level[nbot[lncell]] > level_top) { // topleft top neighbor is even more refined
-//                               state_lftlft = mem_ptr_float[ntop[lncell]];
-//                               state_lftrht = mem_ptr_float[nrht[ntop[lncell]]];
-//                               state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
-//                           }
-//                           else { // same refinement as toplft neighbor
-//                               state_sideavg += HALF * mem_ptr_float[ntop[lncell]];
-//                           }
-//                           if (level[ntop[rncell]] > level_top) { // toprht top neighbor is even more refined
-//                               state_rhtlft = mem_ptr_float[ntop[rncell]];
-//                               state_rhtrht = mem_ptr_float[nrht[ntop[rncell]]];
-//                               state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
-//                           }
-//                           else { // same refinement as toprht neighbor
-//                               state_sideavg += HALF * mem_ptr_float[ntop[rncell]];
-//                           }
-//                           mem_ptr_float[pcellIdx+3] = state_sideavg;
-//                           mem_ptr_float[pcellIdx+1] = mem_ptr_float[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
-//                        
-//#ifdef HALF_PRECISION
-//                        } else if (memory_item->mem_elsize == 2) {
-//                           state_sideavg = ZERO;
-//                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
-//
-//                           real_t state_lft = mem_ptr_half[lncell];
-//                           real_t state_rht = mem_ptr_half[rncell];
-//                           real_t state_coarse = mem_ptr_half[cncell];
-//                           real_t state_avg = HALF * (state_lft + state_rht);
-//
-//                           mem_ptr_half[pcellIdx+2] = state_avg;
-//                           mem_ptr_half[pcellIdx] = state_coarse;
-//
-//                           if (level[nbot[lncell]] > level_top) { // topleft top neighbor is even more refined
-//                               state_lftlft = mem_ptr_half[ntop[lncell]];
-//                               state_lftrht = mem_ptr_half[nrht[ntop[lncell]]];
-//                               state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
-//                           }
-//                           else { // same refinement as toplft neighbor
-//                               state_sideavg += HALF * mem_ptr_half[ntop[lncell]];
-//                           }
-//                           if (level[ntop[rncell]] > level_top) { // toprht top neighbor is even more refined
-//                               state_rhtlft = mem_ptr_half[ntop[rncell]];
-//                               state_rhtrht = mem_ptr_half[nrht[ntop[rncell]]];
-//                               state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
-//                           }
-//                           else { // same refinement as toprht neighbor
-//                               state_sideavg += HALF * mem_ptr_half[ntop[rncell]];
-//                           }
-//                           mem_ptr_half[pcellIdx+3] = state_sideavg;
-//                           mem_ptr_half[pcellIdx+1] = mem_ptr_half[nbot[cncell]]; // we are left of 2 bottom, so the bottom neighbor of the coarse will give us left bot bot neighbor
-//                        
-//#endif
-//                        }
-//
-//                    }
 
                 }
                 else { // bottom is more refined
@@ -11966,117 +11639,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                        ysendIdx2[ifixupIdx] = iface;
                     }
                     ifixupIdx++;
-
-                    // to maintain mass conservation
-                    phantomYFlux[fncell] = -cncell;
-                    phantomYFluxFace[iface] = pfaceIdx;
-                    phantomYFluxFace[map_ycell2face_top1[rncell]] = pfaceIdx;
-
-//                    // loop through state arrays to update phantom cell state values
-//                    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht, state_sideavg = ZERO; //vars for 2 cells over
-//                    for (memory_item = state_memory_old.memory_entry_by_name_begin();
-//                        memory_item != state_memory_old.memory_entry_by_name_end();
-//                        memory_item = state_memory_old.memory_entry_by_name_next() ) {
-//
-//                        if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
-//
-//                        if (memory_item->mem_elsize == 8) {
-//                           state_sideavg = ZERO;
-//                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
-//
-//                           real_t state_lft = mem_ptr_double[lncell];
-//                           real_t state_rht = mem_ptr_double[rncell];
-//                           real_t state_coarse = mem_ptr_double[cncell];
-//                           real_t state_avg = HALF * (state_lft + state_rht);
-//
-//                           mem_ptr_double[pcellIdx] = state_avg;
-//                           mem_ptr_double[pcellIdx+2] = state_coarse;
-//
-//                           if (level[ntop[lncell]] > level_bot) { // botleft bot neighbor is even more refined
-//                               state_lftlft = mem_ptr_double[nbot[lncell]];
-//                               state_lftrht = mem_ptr_double[nrht[nbot[lncell]]];
-//                               state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
-//                           }
-//                           else { // same refinement as botlft neighbor
-//                               state_sideavg += HALF * mem_ptr_double[nbot[lncell]];
-//                           }
-//                           if (level[nbot[rncell]] > level_bot) { // botrht bot neighbor is even more refined
-//                               state_rhtlft = mem_ptr_double[nbot[rncell]];
-//                               state_rhtrht = mem_ptr_double[nrht[nbot[rncell]]];
-//                               state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
-//                           }
-//                           else { // same refinement as toprht neighbor
-//                               state_sideavg += HALF * mem_ptr_double[nbot[rncell]];
-//                           }
-//                           mem_ptr_double[pcellIdx+1] = state_sideavg;
-//                           mem_ptr_double[pcellIdx+3] = mem_ptr_double[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
-//
-//                        } else if (memory_item->mem_elsize == 4) {
-//                           state_sideavg = ZERO;
-//                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
-//
-//                           real_t state_lft = mem_ptr_float[lncell];
-//                           real_t state_rht = mem_ptr_float[rncell];
-//                           real_t state_coarse = mem_ptr_float[cncell];
-//                           real_t state_avg = HALF * (state_lft + state_rht);
-//
-//                           mem_ptr_float[pcellIdx] = state_avg;
-//                           mem_ptr_float[pcellIdx+2] = state_coarse;
-//
-//                           if (level[ntop[lncell]] > level_bot) { // botleft bot neighbor is even more refined
-//                               state_lftlft = mem_ptr_float[nbot[lncell]];
-//                               state_lftrht = mem_ptr_float[nrht[nbot[lncell]]];
-//                               state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
-//                           }
-//                           else { // same refinement as botlft neighbor
-//                               state_sideavg += HALF * mem_ptr_float[nbot[lncell]];
-//                           }
-//                           if (level[nbot[rncell]] > level_bot) { // botrht bot neighbor is even more refined
-//                               state_rhtlft = mem_ptr_float[nbot[rncell]];
-//                               state_rhtrht = mem_ptr_float[nrht[nbot[rncell]]];
-//                               state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
-//                           }
-//                           else { // same refinement as toprht neighbor
-//                               state_sideavg += HALF * mem_ptr_float[nbot[rncell]];
-//                           }
-//                           mem_ptr_float[pcellIdx+1] = state_sideavg;
-//                           mem_ptr_float[pcellIdx+3] = mem_ptr_float[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
-//
-//#ifdef HALF_PRECISION
-//                        } else if (memory_item->mem_elsize == 2) {
-//                           state_sideavg = ZERO;
-//                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
-//
-//                           real_t state_lft = mem_ptr_half[lncell];
-//                           real_t state_rht = mem_ptr_half[rncell];
-//                           real_t state_coarse = mem_ptr_half[cncell];
-//                           real_t state_avg = HALF * (state_lft + state_rht);
-//
-//                           mem_ptr_half[pcellIdx] = state_avg;
-//                           mem_ptr_half[pcellIdx+2] = state_coarse;
-//
-//                           if (level[ntop[lncell]] > level_bot) { // botleft bot neighbor is even more refined
-//                               state_lftlft = mem_ptr_half[nbot[lncell]];
-//                               state_lftrht = mem_ptr_half[nrht[nbot[lncell]]];
-//                               state_sideavg += HALF * HALF * (state_lftlft + state_lftrht);
-//                           }
-//                           else { // same refinement as botlft neighbor
-//                               state_sideavg += HALF * mem_ptr_half[nbot[lncell]];
-//                           }
-//                           if (level[nbot[rncell]] > level_bot) { // botrht bot neighbor is even more refined
-//                               state_rhtlft = mem_ptr_half[nbot[rncell]];
-//                               state_rhtrht = mem_ptr_half[nrht[nbot[rncell]]];
-//                               state_sideavg += HALF * HALF * (state_rhtlft + state_rhtrht);
-//                           }
-//                           else { // same refinement as toprht neighbor
-//                               state_sideavg += HALF * mem_ptr_half[nbot[rncell]];
-//                           }
-//                           mem_ptr_half[pcellIdx+1] = state_sideavg;
-//                           mem_ptr_half[pcellIdx+3] = mem_ptr_half[ntop[cncell]]; // we are left of 2 top, so the top neighbor of the coarse will give us left top top neighbor
-//
-//#endif
-//                        }
-//                    }
 
 
                 }
@@ -12133,56 +11695,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     yface_j[pfaceIdx] = j[tncell] - 1;
 
                     interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
-			        phantomYFlux[fncell] = cncell;
-
-//                    // loop through state arrays to update phantom cell state values
-//                    for (memory_item = state_memory_old.memory_entry_by_name_begin();
-//                        memory_item != state_memory_old.memory_entry_by_name_end();
-//                        memory_item = state_memory_old.memory_entry_by_name_next() ) {
-//
-//                        if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
-//
-//                        if (memory_item->mem_elsize == 8) {
-//                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
-//
-//                           real_t state_coarse = mem_ptr_double[cncell];
-//                           mem_ptr_double[pcellIdx] = state_coarse;
-//
-//                           if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-//                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[nbot[cncell]];
-//                           }
-//                           else {
-//                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[nbot[cncell]]];
-//                           }
-//                        } else if (memory_item->mem_elsize == 4) {
-//                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
-//
-//                           real_t state_coarse = mem_ptr_float[cncell];
-//                           mem_ptr_float[pcellIdx] = state_coarse;
-//
-//                           if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-//                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[nbot[cncell]];
-//                           }
-//                           else {
-//                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[nrht[nbot[cncell]]];
-//                           }
-//#ifdef HALF_PRECISION
-//                        } else if (memory_item->mem_elsize == 2) {
-//                           half *mem_ptr_half = (half *)memory_item->mem_ptr;
-//
-//                           real_t state_coarse = mem_ptr_half[cncell];
-//                           mem_ptr_half[pcellIdx] = state_coarse;
-//
-//                           if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-//                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[nbot[cncell]];
-//                           }
-//                           else {
-//                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[nrht[nbot[cncell]]];
-//                           }
-//#endif
-//                        }
-//
-//                    }
 
                 }
                 else { // bottom is more refined 
@@ -12211,56 +11723,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     yface_j[pfaceIdx] = j[bncell] + 2;
 
                     interpolate(3, pcellIdx-2, bncell, tncell, deltaT,  state_memory_old);
-			        phantomYFlux[fncell] = -cncell;
-
-//                    // loop through state arrays to update phantom cell state values
-//                    for (memory_item = state_memory_old.memory_entry_by_name_begin();
-//                        memory_item != state_memory_old.memory_entry_by_name_end();
-//                        memory_item = state_memory_old.memory_entry_by_name_next() ) {
-//
-//                        if ( (memory_item->mem_flags & REZONE_DATA) == 0) continue;
-//
-//                        if (memory_item->mem_elsize == 8) {
-//                           double *mem_ptr_double = (double *)memory_item->mem_ptr;
-//
-//                           real_t state_coarse = mem_ptr_double[cncell];
-//                           mem_ptr_double[pcellIdx] = state_coarse;
-//
-//                           if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-//                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[ntop[cncell]];
-//                           }
-//                           else {
-//                               mem_ptr_double[pcellIdx+1] = mem_ptr_double[nrht[ntop[cncell]]];
-//                           }
-//                        } else if (memory_item->mem_elsize == 4) {
-//                           float *mem_ptr_float = (float *)memory_item->mem_ptr;
-//
-//                           real_t state_coarse = mem_ptr_float[cncell];
-//                           mem_ptr_float[pcellIdx] = state_coarse;
-//
-//                           if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-//                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[ntop[cncell]];
-//                           }
-//                           else {
-//                               mem_ptr_float[pcellIdx+1] = mem_ptr_float[nrht[ntop[cncell]]];
-//                           }
-//#ifdef HALF_PRECISION
-//                        } else if (memory_item->mem_elsize == 2) {
-//                           real_t *mem_ptr_half = (real_t *)memory_item->mem_ptr;
-//
-//                           real_t state_coarse = mem_ptr_half[cncell];
-//                           mem_ptr_half[pcellIdx] = state_coarse;
-//
-//                           if (level[nbot[cncell]] <= level[cncell]) { // 2 cells over is same or lesser refine.
-//                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[ntop[cncell]];
-//                           }
-//                           else {
-//                               mem_ptr_half[pcellIdx+1] = mem_ptr_half[nrht[ntop[cncell]]];
-//                           }
-//#endif
-//                        }
-//
-//                    }
 
                 }
 
@@ -12550,6 +12012,65 @@ void Mesh::calc_face_list_wbidirmap(void)
    struct timespec tstart_cpu_part;
    cpu_timer_start(&tstart_cpu_part);
 
+    int xfaceCnt = 0;
+    int yfaceCnt = 0;
+    for (int nz = 0; nz < ncells; nz++) {
+        int nl = nlft[nz];
+        int nr = nrht[nz];
+        int nb = nbot[nz];
+        int nt = ntop[nz];
+        if (nz == nl || nz == nr || nz == nb || nz == nt) {
+            if (nz != nr) xfaceCnt ++;
+            if (nz != nt) yfaceCnt ++;
+            continue;
+        }
+
+        int lev = level[nz];
+        int ll = level[nl];
+        int lr = level[nr];
+        int lb = level[nb];
+        int lt = level[nt];
+        if (lev < lr) {
+            xfaceCnt += 2;
+        }
+        else {
+            xfaceCnt ++;
+        }
+        if (lev < lt) {
+            yfaceCnt += 2;
+        }
+        else {
+            yfaceCnt ++;
+        }
+    }
+    nxface = xfaceCnt;
+    nyface = yfaceCnt;
+
+    // realloc memory based on new counts
+
+    map_xface2cell_lower = (int *)mesh_memory.memory_realloc(nxface, map_xface2cell_lower);
+    map_xface2cell_upper = (int *)mesh_memory.memory_realloc(nxface, map_xface2cell_upper);
+    xface_i = (int *)mesh_memory.memory_realloc(nxface, xface_i);
+    xface_j = (int *)mesh_memory.memory_realloc(nxface, xface_j);
+    xface_level = (uchar_t *)mesh_memory.memory_realloc(nxface, xface_level);
+    map_yface2cell_lower = (int *)mesh_memory.memory_realloc(nyface, map_yface2cell_lower);
+    map_yface2cell_upper = (int *)mesh_memory.memory_realloc(nyface, map_yface2cell_upper);
+    yface_i = (int *)mesh_memory.memory_realloc(nyface, yface_i);
+    yface_j = (int *)mesh_memory.memory_realloc(nyface, yface_j);
+    yface_level = (uchar_t *)mesh_memory.memory_realloc(nyface, yface_level);
+
+    map_xcell2face_left1 = (int *)mesh_memory.memory_realloc(ncells, map_xcell2face_left1);
+    map_xcell2face_left2 = (int *)mesh_memory.memory_realloc(ncells, map_xcell2face_left2);
+    map_xcell2face_right1 = (int *)mesh_memory.memory_realloc(ncells, map_xcell2face_right1);
+    map_xcell2face_right2 = (int *)mesh_memory.memory_realloc(ncells, map_xcell2face_right2);
+    map_ycell2face_bot1 = (int *)mesh_memory.memory_realloc(ncells, map_ycell2face_bot1);
+    map_ycell2face_bot2 = (int *)mesh_memory.memory_realloc(ncells, map_ycell2face_bot2);
+    map_ycell2face_top1 = (int *)mesh_memory.memory_realloc(ncells, map_ycell2face_top1);
+    map_ycell2face_top2 = (int *)mesh_memory.memory_realloc(ncells, map_ycell2face_top2);
+
+    memory_reset_ptrs();
+
+/*
    map_xface2cell_lower.clear();
    map_xface2cell_upper.clear();
 
@@ -12579,7 +12100,7 @@ void Mesh::calc_face_list_wbidirmap(void)
    ixadjust.resize(levmx+1);
    jxadjust.clear();
    jxadjust.resize(levmx+1);
-
+*/
    cpu_timers[MESH_TIMER_BIDIRPART1] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
@@ -12592,14 +12113,14 @@ void Mesh::calc_face_list_wbidirmap(void)
       if (level[nr] < level[nz]) ifactor = 2;
 
       // Have right face
-      map_xface2cell_lower.push_back(nz);
-      map_xface2cell_upper.push_back(nr);
-      xface_level.push_back(MAX(level[nz],level[nr]));
-      xface_i.push_back(i[nr]*ifactor);
+      map_xface2cell_lower[iface] = nz;
+      map_xface2cell_upper[iface] = nr;
+      xface_level[iface] = MAX(level[nz],level[nr]);
+      xface_i[iface] = i[nr]*ifactor;
       if (level[nr] < level[nz] && is_upper(j[nz]) ) {
-         xface_j.push_back(j[nr]*ifactor+1);
+         xface_j[iface] = j[nr]*ifactor+1;
       } else {
-         xface_j.push_back(j[nr]*ifactor);
+         xface_j[iface] = j[nr]*ifactor;
       }
       map_xcell2face_right1[nz] = iface;
 
@@ -12612,18 +12133,17 @@ void Mesh::calc_face_list_wbidirmap(void)
       if (level[nr] > level[nz] && is_lower(j[nr]) ){
          int ntr = ntop[nr];
          if (ntr != nr) {
-            map_xface2cell_lower.push_back(nz);
-            map_xface2cell_upper.push_back(ntr);
-            xface_level.push_back(MAX(level[nz],level[ntr]));
-            xface_i.push_back(i[ntr]*ifactor);
-            xface_j.push_back(j[ntr]*ifactor);
+            map_xface2cell_lower[iface] = nz;
+            map_xface2cell_upper[iface] = ntr;
+            xface_level[iface] = MAX(level[nz],level[ntr]);
+            xface_i[iface] = i[ntr]*ifactor;
+            xface_j[iface] = j[ntr]*ifactor;
             map_xcell2face_right2[nz] = iface;
 
             iface++;
          }
       }
    }
-   nxface=iface;
 
    cpu_timers[MESH_TIMER_BIDIRPART2] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
@@ -12634,23 +12154,96 @@ void Mesh::calc_face_list_wbidirmap(void)
 
       if (level[nl] < level[nz] && is_upper(j[nz]) && nbot[nz] != nz){
          map_xcell2face_left1[nz] = map_xcell2face_right2[nl];
+
+
       } else {
          map_xcell2face_left1[nz] = map_xcell2face_right1[nl];
-
-         //the left is a real cell, but I am right boundary
-         if (nz == nrht[nz])
-             map_xcell2face_right1[nz] = map_xcell2face_left1[nz];
 
          if (level[nl] > level[nz]){
             map_xcell2face_left2[nz] = map_xcell2face_right1[ntop[nl]];
          }
       }
 
-   }
+      //the left is a real cell, but I am right boundary
+      if (nz == nrht[nz])
+          map_xcell2face_right1[nz] = map_xcell2face_left1[nz];
 
+   }
    cpu_timers[MESH_TIMER_BIDIRPART3] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
+   //
+   cpu_timer_start(&tstart_cpu_part);
+
+   iface=0;
+   for (int nz=0; nz<(int)ncells; nz++){
+      int nt = ntop[nz];
+      if (nt == nz) continue;
+
+      int ifactor = 1;
+      if (level[nt] < level[nz]) ifactor = 2;
+
+      // Have top face
+      map_yface2cell_lower[iface] = nz;
+      map_yface2cell_upper[iface] = nt;
+      yface_level[iface] = MAX(level[nz],level[nt]);
+      yface_j[iface] = j[nt]*ifactor;
+      if (level[nt] < level[nz] && is_upper(i[nz]) ) {
+         yface_i[iface] = i[nt]*ifactor+1;
+      } else{
+         yface_i[iface] = i[nt]*ifactor;
+      }
+      map_ycell2face_top1[nz] = iface;
+
+      //the top is a real cell, but I am bot boundary
+      if (nz == nbot[nz])
+          map_ycell2face_bot1[nz] = iface;
+
+      iface++;
+
+      if (level[nt] > level[nz]  && is_lower(i[nt]) ){
+         int nrt = nrht[nt];
+         if (nrt != nt) {
+            map_yface2cell_lower[iface] = nz;
+            map_yface2cell_upper[iface] = nrt;
+            yface_level[iface] = MAX(level[nz],level[nrt]);
+            yface_j[iface] = j[nrt]*ifactor;
+            yface_i[iface] = i[nrt]*ifactor;
+            map_ycell2face_top2[nz] = iface;
+
+            iface++;
+         }
+      }
+   }
+
+   cpu_timers[MESH_TIMER_BIDIRPART5] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+
+   for (int nz=0; nz<(int)ncells; nz++){
+      int nb = nbot[nz];
+      if (nb == nz) continue;
+      //if (nz == 3) printf("%d %d\n", map_ycell2face_top1[nb], map_ycell2face_top2[nb]);
+
+      if (level[nb] < level[nz] && is_upper(i[nz]) && nlft[nz] != nz){
+         map_ycell2face_bot1[nz] = map_ycell2face_top2[nb];
+
+      } else {
+         map_ycell2face_bot1[nz] = map_ycell2face_top1[nb];
+
+         if (level[nb] > level[nz]){
+            map_ycell2face_bot2[nz] = map_ycell2face_top1[nrht[nb]];
+         }
+      }
+      //the bot is a real cell, but I am top boundary
+      if (nz == ntop[nz])
+          map_ycell2face_top1[nz] = map_ycell2face_bot1[nz];
+   }
+
+
+
+   cpu_timers[MESH_TIMER_BIDIRPART3] += cpu_timer_stop(tstart_cpu_part);
+   cpu_timer_start(&tstart_cpu_part);
+/*
    map_yface2cell_lower.clear();
    map_yface2cell_upper.clear();
 
@@ -12680,79 +12273,13 @@ void Mesh::calc_face_list_wbidirmap(void)
    iyadjust.resize(levmx+1);
    jyadjust.clear();
    jyadjust.resize(levmx+1);
-
+*/
    cpu_timers[MESH_TIMER_BIDIRPART4] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
-   iface=0;
-   for (int nz=0; nz<(int)ncells; nz++){
-      int nt = ntop[nz];
-      if (nt == nz) continue;
-
-      int ifactor = 1;
-      if (level[nt] < level[nz]) ifactor = 2;
-
-      // Have top face
-      // printf("DEBUG -- iface %d lower nz %d upper nr %d\n",iface,nz,nt);
-      map_yface2cell_lower.push_back(nz);
-      map_yface2cell_upper.push_back(nt);
-      yface_level.push_back(MAX(level[nz],level[nt]));
-      yface_j.push_back(j[nt]*ifactor);
-      if (level[nt] < level[nz] && is_upper(i[nz]) ) {
-         yface_i.push_back(i[nt]*ifactor+1);
-      } else{
-         yface_i.push_back(i[nt]*ifactor);
-      }
-      map_ycell2face_top1[nz] = iface;
-
-      //the top is a real cell, but I am bot boundary
-      if (nz == nbot[nz])
-          map_ycell2face_bot1[nz] = iface;
-
-      iface++;
-
-      if (level[nt] > level[nz]  && is_lower(i[nt]) ){
-         int nrt = nrht[nt];
-         if (nrt != nt) {
-            map_yface2cell_lower.push_back(nz);
-            map_yface2cell_upper.push_back(nrt);
-            yface_level.push_back(MAX(level[nz],level[nrt]));
-            yface_j.push_back(j[nrt]*ifactor);
-            yface_i.push_back(i[nrt]*ifactor);
-            map_ycell2face_top2[nz] = iface;
-
-            iface++;
-         }
-      }
-   }
-   nyface=iface;
-
-   cpu_timers[MESH_TIMER_BIDIRPART5] += cpu_timer_stop(tstart_cpu_part);
-   cpu_timer_start(&tstart_cpu_part);
-
-   for (int nz=0; nz<(int)ncells; nz++){
-      int nb = nbot[nz];
-      if (nb == nz) continue;
-
-      if (level[nb] < level[nz] && is_upper(i[nz]) && nlft[nz] != nz){
-         map_ycell2face_bot1[nz] = map_ycell2face_top2[nb];
-      } else {
-         map_ycell2face_bot1[nz] = map_ycell2face_top1[nb];
-
-         //the bot is a real cell, but I am top boundary
-         if (nz == ntop[nz])
-             map_ycell2face_top1[nz] = map_ycell2face_bot1[nz];
-
-         if (level[nb] > level[nz]){
-            map_ycell2face_bot2[nz] = map_ycell2face_top1[nrht[nb]];
-         }
-      }
-
-   }
-
    cpu_timers[MESH_TIMER_BIDIRPART6] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
-
+/*
    for (int iface=0; iface < nxface; iface++){
       uchar_t fl = xface_level[iface];
 
@@ -12822,7 +12349,7 @@ void Mesh::calc_face_list_wbidirmap(void)
       iymin_level[fl] = 0;
       jymin_level[fl] = 0;
    }
-
+*/
    cpu_timers[MESH_TIMER_BIDIRPART11] += cpu_timer_stop(tstart_cpu_part);
 
 #ifdef PATTERN_CHECK
@@ -12932,13 +12459,14 @@ void Mesh::calc_face_list_wbidirmap(void)
 }
 
 #ifdef NOVEC
-void Mesh::calc_face_list_wbidirmap_novec(void) {
+void Mesh::calc_face_list_wbidirmap_novec(void) 
+{
    struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
 
    struct timespec tstart_cpu_part;
    cpu_timer_start(&tstart_cpu_part);
-
+/*
    //map_xface2cell_lower.clear();
    //map_xface2cell_upper.clear();
    cl_map_xface2cell_lower = (int *) realloc(ncells * sizeof(int));
@@ -12981,7 +12509,6 @@ void Mesh::calc_face_list_wbidirmap_novec(void) {
 
    cpu_timers[MESH_TIMER_BIDIRPART1] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
-    printf("\nyeet\n");
 
    int iface=0;
    for (int nz=0; nz<(int)ncells; nz++){
@@ -13329,6 +12856,7 @@ void Mesh::calc_face_list_wbidirmap_novec(void) {
 #endif
 
    cpu_timers[MESH_TIMER_BIDIR] += cpu_timer_stop(tstart_cpu);
+   */
 }
 #endif
 
@@ -14522,12 +14050,13 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
 #ifdef HAVE_OPENCL
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-   xface_i.resize(pxfaceCnt, -1);
-   xface_j.resize(pxfaceCnt, -1);
-   xface_level.resize(pxfaceCnt, -1);
-   yface_i.resize(pyfaceCnt, -1);
-   yface_j.resize(pyfaceCnt, -1);
-   yface_level.resize(pyfaceCnt, -1);
+    xface_i = (int *)mesh_memory.memory_realloc(nxface, xface_i);
+    xface_j = (int *)mesh_memory.memory_realloc(nxface, xface_j);
+    xface_level = (uchar_t *)mesh_memory.memory_realloc(nxface, xface_level);
+    yface_i = (int *)mesh_memory.memory_realloc(nyface, yface_i);
+    yface_j = (int *)mesh_memory.memory_realloc(nyface, yface_j);
+    yface_level = (uchar_t *)mesh_memory.memory_realloc(nyface, yface_level);
+
    int flags = 0;
    flags = RESTART_DATA;
    i     = (int *)mesh_memory.memory_malloc(pcellCnt, sizeof(int), "i",     flags);
@@ -14546,10 +14075,6 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
 #endif
    
    meshes = (mesh_type*)malloc((levmx+1)*sizeof(mesh_type));
-   phantomXFluxRG = (int ***)malloc((levmx+1) * sizeof(int **));
-   phantomYFluxRG = (int ***)malloc((levmx+1) * sizeof(int **));
-   phantomXFluxRGFace = (int ***)malloc((levmx+1) * sizeof(int **));
-   phantomYFluxRGFace = (int ***)malloc((levmx+1) * sizeof(int **));
    int ***avgCnt = (int ***)malloc((levmx+1) * sizeof(int **));
 
    int ll, pjIdx, piIdx;
@@ -14627,10 +14152,6 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
       meshes[ll].pstate = (float ***)gentrimatrix(nvar,lev_jregsize[ll],lev_iregsize[ll],sizeof(float));
 #endif
       meshes[ll].mask = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
-      phantomXFluxRG[ll] = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
-      phantomYFluxRG[ll] = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
-      phantomXFluxRGFace[ll] = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
-      phantomYFluxRGFace[ll] = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
       avgCnt[ll] = (int **)genmatrix(lev_jregsize[ll],lev_iregsize[ll],sizeof(int));
 
       for(int nn=0; nn<nvar; nn++){
@@ -14643,10 +14164,6 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
       for(int jj=0; jj<lev_jregsize[ll]; jj++){
          for(int ii=0; ii<lev_iregsize[ll]; ii++){
             meshes[ll].mask[jj][ii]=0;
-            phantomXFluxRG[ll][jj][ii] = INT_MAX;
-            phantomYFluxRG[ll][jj][ii] =  INT_MAX;
-            phantomXFluxRGFace[ll][jj][ii] =  INT_MIN;
-            phantomYFluxRGFace[ll][jj][ii] =  INT_MIN;
             avgCnt[ll][jj][ii] = 0;
          }
       }
@@ -14658,22 +14175,17 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
        piIdx = i[ic] - lev_iregmin[ll];  
        if (nlft[ic] == ic || nrht[ic] == ic || nbot[ic] == ic || ntop[ic] == ic) continue;
        meshes[ll].mask[pjIdx][piIdx] = 1;
-       //phantomXFluxRG[ll][pjIdx][piIdx] = phantomXFlux[ic];
-       //phantomYFluxRG[ll][pjIdx][piIdx] = phantomYFlux[ic];
    }
    for (int iface = 0; iface < nxface; iface++) {
        ll = xface_level[iface];
        pjIdx = xface_j[iface] - lev_jregmin[ll];
        piIdx = xface_i[iface] - lev_iregmin[ll];
-       //phantomXFluxRGFace[ll][pjIdx][piIdx] = phantomXFluxFace[iface];
-       //if (phantomXFluxFace[iface] > -1) printf("\t%d %d %d\n", ll, pjIdx, piIdx);
    }
 
    for (int iface = 0; iface < nyface; iface++) {
        ll = yface_level[iface];
        pjIdx = yface_j[iface] - lev_jregmin[ll];
        piIdx = yface_i[iface] - lev_iregmin[ll];
-       //phantomYFluxRGFace[ll][pjIdx][piIdx] = phantomYFluxFace[iface];
    }
 
    int ivar = 0;
@@ -14836,20 +14348,13 @@ void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
    for (int ll=0; ll<levmx+1; ll++){
        gentrimatrixfree((void ***)meshes[ll].pstate);
        genmatrixfree((void **)meshes[ll].mask);
-       genmatrixfree((void **)phantomXFluxRG[ll]);
-       genmatrixfree((void **)phantomYFluxRG[ll]);
-       genmatrixfree((void **)phantomXFluxRGFace[ll]);
-       genmatrixfree((void **)phantomYFluxRGFace[ll]);
    }
    free(meshes);
-   free(phantomXFluxRG);
-   free(phantomYFluxRG);
-   free(phantomXFluxRGFace);
-   free(phantomYFluxRGFace);
 }
 
 int **Mesh::get_xface_flag(int lev, bool print_output)
 {
+    /*
    int **xface_flag = (int **)genmatrix(jxmax_level[lev]+1,
                                         ixmax_level[lev]+1, sizeof(int));
    for (int jj=0; jj<jxmax_level[lev]+1; jj++){
@@ -14893,10 +14398,13 @@ int **Mesh::get_xface_flag(int lev, bool print_output)
    }
 
    return(xface_flag);
+   */
+    return 0;
 }
 
 int **Mesh::get_yface_flag(int lev, bool print_output)
 {
+    /*
    int **yface_flag = (int **)genmatrix(jymax_level[lev]+1,
                                         iymax_level[lev]+1, sizeof(int));
    for (int jj=0; jj<jymax_level[lev]+1; jj++){
@@ -14940,10 +14448,13 @@ int **Mesh::get_yface_flag(int lev, bool print_output)
    }
 
    return(yface_flag);
+   */
+    return 0;
 }
 
 void Mesh::get_flat_grid(int lev, int ***zone_flag_base, int ***zone_cell_base)
 {
+    /*
    int isize = ixmax_level[lev]+4;
    int jsize = jymax_level[lev]+4;
    int iadjust = ixadjust[lev]-2;
@@ -15109,10 +14620,12 @@ void Mesh::get_flat_grid(int lev, int ***zone_flag_base, int ***zone_cell_base)
          printf("\n");
       }
    }
+   */
 }
 
 void Mesh::calc_face_list_clearmaps()
 {
+    /*
    map_xface2cell_lower.clear();
    map_xface2cell_upper.clear();
 
@@ -15128,6 +14641,7 @@ void Mesh::calc_face_list_clearmaps()
    map_ycell2face_bot2.clear();
    map_ycell2face_top1.clear();
    map_ycell2face_top2.clear();
+   */
 }
 
 void Mesh::timer_output(mesh_timer_category category, mesh_device_types device_type, int timer_level)
@@ -15374,6 +14888,36 @@ void Mesh::restore_checkpoint(Crux *crux)
    mesh_memory.memory_delete(i);
    mesh_memory.memory_delete(j);
    mesh_memory.memory_delete(level);
+   mesh_memory.memory_delete(xface_i);
+   mesh_memory.memory_delete(xface_j);
+   mesh_memory.memory_delete(xface_level);
+   mesh_memory.memory_delete(map_xface2cell_lower);
+   mesh_memory.memory_delete(map_xface2cell_upper);
+   mesh_memory.memory_delete(map_xcell2face_left1);
+   mesh_memory.memory_delete(map_xcell2face_left2);
+   mesh_memory.memory_delete(map_xcell2face_right1);
+   mesh_memory.memory_delete(map_xcell2face_right2);
+   mesh_memory.memory_delete(xrecvIdx);
+   mesh_memory.memory_delete(xrecvCIdx);
+   mesh_memory.memory_delete(xplusCell2Idx);
+   mesh_memory.memory_delete(xminusCell2Idx);
+   mesh_memory.memory_delete(xsendIdx1);
+   mesh_memory.memory_delete(xsendIdx2);
+   mesh_memory.memory_delete(yface_i);
+   mesh_memory.memory_delete(yface_j);
+   mesh_memory.memory_delete(yface_level);
+   mesh_memory.memory_delete(map_yface2cell_lower);
+   mesh_memory.memory_delete(map_yface2cell_upper);
+   mesh_memory.memory_delete(map_ycell2face_bot1);
+   mesh_memory.memory_delete(map_ycell2face_bot2);
+   mesh_memory.memory_delete(map_ycell2face_top1);
+   mesh_memory.memory_delete(map_ycell2face_top2);
+   mesh_memory.memory_delete(yrecvIdx);
+   mesh_memory.memory_delete(yrecvCIdx);
+   mesh_memory.memory_delete(yplusCell2Idx);
+   mesh_memory.memory_delete(yminusCell2Idx);
+   mesh_memory.memory_delete(ysendIdx1);
+   mesh_memory.memory_delete(ysendIdx2);
    //allocate(ncells);
 
    // Resize is a mesh method
