@@ -118,6 +118,47 @@ int save_ncells;
 #define CONSERVED_EQNS
 
 //#define PRECISION_CHECK 1.0e-7
+//#define PRECISION_CHECK_STATS 1
+
+#ifdef PRECISION_CHECK_STATS
+static int fail_prec_count = 0;
+static double fail_F_plus_sum    = 0.0;
+static double fail_F_minus_sum   = 0.0;
+static double fail_G_plus_sum    = 0.0;
+static double fail_G_minus_sum   = 0.0;
+static double fail_wminusx_H_sum = 0.0;
+static double fail_wplusx_H_sum  = 0.0;
+static double fail_wminusy_H_sum = 0.0;
+static double fail_wplusy_H_sum  = 0.0;
+static int prec_count = 0;
+static double F_plus_sum    = 0.0;
+static double F_minus_sum   = 0.0;
+static double G_plus_sum    = 0.0;
+static double G_minus_sum   = 0.0;
+static double wminusx_H_sum = 0.0;
+static double wplusx_H_sum  = 0.0;
+static double wminusy_H_sum = 0.0;
+static double wplusy_H_sum  = 0.0;
+
+static int fail_prec_avg_count = 0;
+static double fail_F_plus_avg    = 0.0;
+static double fail_F_minus_avg   = 0.0;
+static double fail_G_plus_avg    = 0.0;
+static double fail_G_minus_avg   = 0.0;
+static double fail_wminusx_H_avg = 0.0;
+static double fail_wplusx_H_avg  = 0.0;
+static double fail_wminusy_H_avg = 0.0;
+static double fail_wplusy_H_avg  = 0.0;
+static int prec_avg_count = 0;
+static double F_plus_avg    = 0.0;
+static double F_minus_avg   = 0.0;
+static double G_plus_avg    = 0.0;
+static double G_minus_avg   = 0.0;
+static double wminusx_H_avg = 0.0;
+static double wplusx_H_avg  = 0.0;
+static double wminusy_H_avg = 0.0;
+static double wplusy_H_avg  = 0.0;
+#endif
 
 #define SQR(x) ( x*x )
 #define MIN3(x,y,z) ( min( min(x,y), z) )
@@ -206,7 +247,8 @@ inline void U_fullstep_precision_check(
         real_t    wminusx_H_in,
         real_t    wplusx_H_in,
         real_t    wminusy_H_in,
-        real_t    wplusy_H_in) {
+        real_t    wplusy_H_in,
+        int       *fail) {
 
    float U       = (float)U_in;
    float deltaT  = (float)deltaT_in;
@@ -220,12 +262,45 @@ inline void U_fullstep_precision_check(
    float wminusy_H = (float)wminusy_H_in;
    float wplusy_H = (float)wplusy_H_in;
 
+#ifdef PRECISION_CHECK_WITH_PARENTHESIS
    double U_new = U - (deltaT / dr)*(F_plus - F_minus + G_plus - G_minus)
-                   - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
+                   +( -wminusx_H + wplusx_H - wminusy_H + wplusy_H);
+#else
+   double U_new = U - (deltaT / dr)*(F_plus - F_minus + G_plus - G_minus)
+                   + -wminusx_H + wplusx_H - wminusy_H + wplusy_H;
+#endif
+
+   *fail = 0;
 
    if (fabs(U_new - U_new_in)/U_new > PRECISION_CHECK) {
       printf("DEBUG -- found one at ic %d precision diff is %12.6lg relative %12.6lg\n",ic,fabs(U_new - U_new_in), fabs(U_new - U_new_in)/U_new);
+
+      *fail = 1;
+
+#ifdef PRECISION_CHECK_STATS
+      fail_prec_count++;
+      fail_F_plus_sum    += fabs(F_plus_in);
+      fail_F_minus_sum   += fabs(F_minus_in);
+      fail_G_plus_sum    += fabs(G_plus_in);
+      fail_G_minus_sum   += fabs(G_minus_in);
+      fail_wminusx_H_sum += fabs(wminusx_H_in);
+      fail_wplusx_H_sum  += fabs(wplusx_H_in);
+      fail_wminusy_H_sum += fabs(wminusy_H_in);
+      fail_wplusy_H_sum  += fabs(wplusy_H_in);
+#endif
    }
+
+#ifdef PRECISION_CHECK_STATS
+   prec_count++;
+   F_plus_sum    += fabs(F_plus_in);
+   F_minus_sum   += fabs(F_minus_in);
+   G_plus_sum    += fabs(G_plus_in);
+   G_minus_sum   += fabs(G_minus_in);
+   wminusx_H_sum += fabs(wminusx_H_in);
+   wplusx_H_sum  += fabs(wplusx_H_in);
+   wminusy_H_sum += fabs(wminusy_H_in);
+   wplusy_H_sum  += fabs(wplusy_H_in);
+#endif
 }
 
 #endif
@@ -346,6 +421,9 @@ void State::allocate(size_t ncells)
    H = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), "H", flags);
    U = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), "U", flags);
    V = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), "V", flags);
+#ifdef PRECISION_CHECK_GRAPHICS
+   PCHECK = (state_t *)state_memory.memory_malloc(ncells, sizeof(state_t), "PCHECK", flags);
+#endif
 }
 
 void State::resize(size_t new_ncells){
@@ -361,6 +439,9 @@ void State::memory_reset_ptrs(void){
    H = (state_t *)state_memory.get_memory_ptr("H");
    U = (state_t *)state_memory.get_memory_ptr("U");
    V = (state_t *)state_memory.get_memory_ptr("V");
+#ifdef PRECISION_CHECK_GRAPHICS
+   PCHECK = (state_t *)state_memory.get_memory_ptr("PCHECK");
+#endif
 
    //printf("\nDEBUG -- Calling state memory reset_ptrs at line %d\n",__LINE__);
    //state_memory.memory_report();
@@ -378,6 +459,27 @@ void State::gpu_memory_reset_ptrs(void)
 
 void State::terminate(void)
 {
+#ifdef PRECISION_CHECK_STATS
+   printf("Stats are Fplus %lf Fminus %lf Gplus %lf Gminus %lf wminusx %lf wplusx %lf wminusy %lf wplusy %lf\n",
+      F_plus_avg/(double)prec_avg_count,
+      F_minus_avg/(double)prec_avg_count,
+      G_plus_avg/(double)prec_avg_count,
+      G_minus_avg/(double)prec_avg_count,
+      wminusx_H_avg/(double)prec_avg_count,
+      wplusx_H_avg/(double)prec_avg_count,
+      wminusy_H_avg/(double)prec_avg_count,
+      wplusy_H_avg/(double)prec_avg_count);
+   printf("Stats for fails are Fplus %lf Fminus %lf Gplus %lf Gminus %lf wminusx %lf wplusx %lf wminusy %lf wplusy %lf\n",
+      fail_F_plus_avg/(double)fail_prec_avg_count,
+      fail_F_minus_avg/(double)fail_prec_avg_count,
+      fail_G_plus_avg/(double)fail_prec_avg_count,
+      fail_G_minus_avg/(double)fail_prec_avg_count,
+      fail_wminusx_H_avg/(double)fail_prec_avg_count,
+      fail_wplusx_H_avg/(double)fail_prec_avg_count,
+      fail_wminusy_H_avg/(double)fail_prec_avg_count,
+      fail_wplusy_H_avg/(double)fail_prec_avg_count);
+#endif
+
    state_memory.memory_delete(H);
    state_memory.memory_delete(U);
    state_memory.memory_delete(V);
@@ -1211,6 +1313,9 @@ void State::calc_finite_difference(double deltaT)
    apply_boundary_conditions();
 
    static state_t *H_new, *U_new, *V_new;
+#ifdef PRECISION_CHECK_GRAPHICS
+   static state_t *PCHECK_new;
+#endif
    int *nlft, *nrht, *nbot, *ntop;
    uchar_t *level;
 
@@ -1233,6 +1338,9 @@ void State::calc_finite_difference(double deltaT)
       H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
       U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
       V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
+#ifdef PRECISION_CHECK_GRAPHICS
+      PCHECK_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "PCHECK_new", flags);
+#endif
    }
 #ifdef _OPENMP
 #pragma omp barrier
@@ -1667,6 +1775,9 @@ void State::calc_finite_difference(double deltaT)
       H = (state_t *)state_memory.memory_replace(H, H_new);
       U = (state_t *)state_memory.memory_replace(U, U_new);
       V = (state_t *)state_memory.memory_replace(V, V_new);
+#ifdef PRECISION_CHECK_GRAPHICS
+      PCHECK = (state_t *)state_memory.memory_replace(PCHECK, PCHECK_new);
+#endif
 
       //state_memory.memory_report();
       //printf("DEBUG end finite diff\n\n"); 
@@ -1694,6 +1805,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
    apply_boundary_conditions();
 
    static state_t *H_new, *U_new, *V_new;
+#ifdef PRECISION_CHECK_GRAPHICS
+   static state_t *PCHECK_new;
+#endif
    static real_t *Hxfluxminus, *Uxfluxminus, *Vxfluxminus, *Hxfluxplus, *Uxfluxplus, *Vxfluxplus;
    static real_t *Hyfluxminus, *Uyfluxminus, *Vyfluxminus, *Hyfluxplus, *Uyfluxplus, *Vyfluxplus;
    static real_t *wminusx_H, *wminusx_U, *wplusx_H, *wplusx_U, *wminusy_H, *wminusy_V, *wplusy_H, *wplusy_V;
@@ -1711,6 +1825,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
       H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
       U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
       V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
+#ifdef PRECISION_CHECK_GRAPHICS
+      PCHECK_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "PCHECK_new", flags);
+#endif
 
       Hxfluxminus = (real_t *)malloc(mesh->ncells*sizeof(real_t));
       Uxfluxminus = (real_t *)malloc(mesh->ncells*sizeof(real_t));
@@ -2001,6 +2118,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
       H = (state_t *)state_memory.memory_replace(H, H_new);
       U = (state_t *)state_memory.memory_replace(U, U_new);
       V = (state_t *)state_memory.memory_replace(V, V_new);
+#ifdef PRECISION_CHECK_GRAPHICS
+      PCHECK = (state_t *)state_memory.memory_replace(PCHECK, PCHECK_new);
+#endif
 
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 #ifdef _OPENMP
@@ -2223,6 +2343,9 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    cpu_timer_start(&tstart_cpu_part);
 
    static state_t *H_new, *U_new, *V_new;
+#ifdef PRECISION_CHECK_GRAPHICS
+   static state_t *PCHECK_new;
+#endif
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -2234,6 +2357,9 @@ void State::calc_finite_difference_face_in_place(double deltaT)
       H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
       U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
       V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
+#ifdef PRECISION_CHECK_GRAPHICS
+      PCHECK_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "PCHECK_new", flags);
+#endif
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2290,6 +2416,9 @@ void State::calc_finite_difference_face_in_place(double deltaT)
       H = (state_t *)state_memory.memory_replace(H, H_new);
       U = (state_t *)state_memory.memory_replace(U, U_new);
       V = (state_t *)state_memory.memory_replace(V, V_new);
+#ifdef PRECISION_CHECK_GRAPHICS
+      PCHECK = (state_t *)state_memory.memory_replace(PCHECK, PCHECK_new);
+#endif
 
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 #ifdef _OPENMP
@@ -2616,6 +2745,9 @@ void State::calc_finite_difference_via_faces(double deltaT)
    cpu_timer_start(&tstart_cpu_part);
 
    static state_t *H_new, *U_new, *V_new;
+#ifdef PRECISION_CHECK_GRAPHICS
+   static state_t *PCHECK_new;
+#endif
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -2627,6 +2759,9 @@ void State::calc_finite_difference_via_faces(double deltaT)
       H_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "H_new", flags);
       U_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "U_new", flags);
       V_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "V_new", flags);
+#ifdef PRECISION_CHECK_GRAPHICS
+      PCHECK_new = (state_t *)state_memory.memory_malloc(mesh->ncells_ghost, sizeof(state_t), "PCHECK_new", flags);
+#endif
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2635,6 +2770,26 @@ void State::calc_finite_difference_via_faces(double deltaT)
    int lowerBound, upperBound;
 
    mesh->get_bounds(lowerBound, upperBound);
+#ifdef PRECISION_CHECK_STATS
+   fail_prec_count = 0;
+   fail_F_plus_sum    = 0.0;
+   fail_F_minus_sum   = 0.0;
+   fail_G_plus_sum    = 0.0;
+   fail_G_minus_sum   = 0.0;
+   fail_wminusx_H_sum = 0.0;
+   fail_wplusx_H_sum  = 0.0;
+   fail_wminusy_H_sum = 0.0;
+   fail_wplusy_H_sum  = 0.0;
+   prec_count = 0;
+   F_plus_sum    = 0.0;
+   F_minus_sum   = 0.0;
+   G_plus_sum    = 0.0;
+   G_minus_sum   = 0.0;
+   wminusx_H_sum = 0.0;
+   wplusx_H_sum  = 0.0;
+   wminusy_H_sum = 0.0;
+   wplusy_H_sum  = 0.0;
+#endif
 
    for (int ic = lowerBound; ic < upperBound; ic++){
       real_t dxic    = lev_deltax[level[ic]];
@@ -2728,9 +2883,13 @@ void State::calc_finite_difference_via_faces(double deltaT)
 
 
 #ifdef PRECISION_CHECK
+      int fail;
       U_fullstep_precision_check(ic, deltaT, dxic, Hic, H_new[ic],
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus,
-                      wminusx_H, wplusx_H, wminusy_H, wplusy_H);
+                      wminusx_H, wplusx_H, wminusy_H, wplusy_H, &fail);
+#ifdef PRECISION_CHECK_GRAPHICS
+      PCHECK_new[ic] = 100.0*(double)fail;
+#endif
 #endif
 
       U_new[ic] = U_fullstep(deltaT, dxic, Uic,
@@ -2742,6 +2901,44 @@ void State::calc_finite_difference_via_faces(double deltaT)
       //printf("%d) %f | %f | %f\n", ic, H_new[ic], U_new[ic], V_new[ic]);
 
    } // cell loop
+
+#ifdef PRECISION_CHECK_STATS
+   fail_F_plus_sum    /= (double)fail_prec_count;
+   fail_F_minus_sum   /= (double)fail_prec_count;
+   fail_G_plus_sum    /= (double)fail_prec_count;
+   fail_G_minus_sum   /= (double)fail_prec_count;
+   fail_wminusx_H_sum /= (double)fail_prec_count;
+   fail_wplusx_H_sum  /= (double)fail_prec_count;
+   fail_wminusy_H_sum /= (double)fail_prec_count;
+   fail_wplusy_H_sum  /= (double)fail_prec_count;
+   F_plus_sum    /= (double)prec_count;
+   F_minus_sum   /= (double)prec_count;
+   G_plus_sum    /= (double)prec_count;
+   G_minus_sum   /= (double)prec_count;
+   wminusx_H_sum /= (double)prec_count;
+   wplusx_H_sum  /= (double)prec_count;
+   wminusy_H_sum /= (double)prec_count;
+   wplusy_H_sum  /= (double)prec_count;
+
+   fail_prec_avg_count++;
+   fail_F_plus_avg    += fail_F_plus_sum;
+   fail_F_minus_avg   += fail_F_minus_sum;
+   fail_G_plus_avg    += fail_G_plus_sum;
+   fail_G_minus_avg   += fail_G_minus_sum;
+   fail_wminusx_H_avg += fail_wminusx_H_sum;
+   fail_wplusx_H_avg  += fail_wplusx_H_sum;
+   fail_wminusy_H_avg += fail_wminusy_H_sum;
+   fail_wplusy_H_avg  += fail_wplusy_H_sum;
+   prec_avg_count++;
+   F_plus_avg    += F_plus_sum;
+   F_minus_avg   += F_minus_sum;
+   G_plus_avg    += G_plus_sum;
+   G_minus_avg   += G_minus_sum;
+   wminusx_H_avg += wminusx_H_sum;
+   wplusx_H_avg  += wplusx_H_sum;
+   wminusy_H_avg += wminusy_H_sum;
+   wplusy_H_avg  += wplusy_H_sum;
+#endif
 
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
@@ -2757,6 +2954,9 @@ void State::calc_finite_difference_via_faces(double deltaT)
       H = (state_t *)state_memory.memory_replace(H, H_new);
       U = (state_t *)state_memory.memory_replace(U, U_new);
       V = (state_t *)state_memory.memory_replace(V, V_new);
+#ifdef PRECISION_CHECK_GRAPHICS
+      PCHECK = (state_t *)state_memory.memory_replace(PCHECK, PCHECK_new);
+#endif
 
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
 #ifdef _OPENMP

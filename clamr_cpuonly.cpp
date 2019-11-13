@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
       state->init(do_gpu_calc);
       mesh->proc.resize(mesh->ncells);
       mesh->calc_distribution(numpe);
-      state->fill_circle(circ_radius, 100.0, 7.0);
+      state->fill_circle(circ_radius, 100.0, 8.0);
    }
 
    size_t &ncells = mesh->ncells;
@@ -312,7 +312,11 @@ int main(int argc, char **argv) {
    do_display_graphics = true;
    set_display_mysize(ncells);
    set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+#ifdef PRECISION_CHECK_GRAPHICS
+   set_display_cell_data(&state->PCHECK[0]);
+#else
    set_display_cell_data(&state->H[0]);
+#endif
    set_display_cell_proc(&mesh->proc[0]);
 
    set_display_window((float)mesh->xmin, (float)mesh->xmax,
@@ -679,7 +683,11 @@ extern "C" void do_calc(void)
          set_display_mysize(ncells);
          set_display_viewmode(view_mode);
          set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+#ifdef PRECISION_CHECK_GRAPHICS
+         set_display_cell_data(&state->PCHECK[0]);
+#else
          set_display_cell_data(&state->H[0]);
+#endif
          set_display_cell_proc(NULL);
       }
       set_display_circle_radius(circle_radius);
@@ -736,7 +744,11 @@ extern "C" void do_calc(void)
          set_display_viewmode(view_mode);
          set_display_mysize(ncells);
          set_display_cell_coordinates(&mesh->x[0], &mesh->dx[0], &mesh->y[0], &mesh->dy[0]);
+#ifdef PRECISION_CHECK_GRAPHICS
+         set_display_cell_data(&state->PCHECK[0]);
+#else
          set_display_cell_data(&state->H[0]);
+#endif
          set_display_cell_proc(NULL);
 #endif
 

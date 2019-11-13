@@ -233,6 +233,9 @@ public:
    state_t *H = NULL;
    state_t *U = NULL;
    state_t *V = NULL;
+#ifdef PRECISION_CHECK
+   state_t *PCHECK = NULL;
+#endif
 
 #ifdef HAVE_OPENCL
    cl_mem dev_H;

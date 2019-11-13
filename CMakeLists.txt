@@ -18,6 +18,13 @@ if (NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
 
+if (CMAKE_PRECISION_CHECK)
+   add_definitions(-DPRECISION_CHECK_GRAPHICS=1)
+   add_definitions(-DPRECISION_CHECK_STATS=1)
+   add_definitions(-DPRECISION_CHECK=1.0e-7)
+   add_definitions(-DPRECISION_CHECK_WITH_PARENTHESIS=1)
+endif (CMAKE_PRECISION_CHECK)
+
 enable_testing()
 # uncomment to build debug
 #set(CMAKE_BUILD_TYPE Debug)
@@ -573,7 +580,7 @@ set(clamr_cpuonly_SRCS ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr
 
 add_executable(clamr_cpuonly ${clamr_cpuonly_SRCS})
 
-target_link_libraries(clamr_cpuonly PowerParser mesh hsfc kdtree zorder crux hash ezcl graphics timer memstats powerstats genmalloc MallocPlus m)
+target_link_libraries(clamr_cpuonly PowerParser mesh hsfc kdtree zorder crux hash graphics timer memstats powerstats genmalloc MallocPlus m)
    target_link_libraries(clamr_cpuonly ${OpenCL_LIBRARIES})
 if (REPROBLAS_FOUND)
    target_link_libraries(clamr_cpuonly ${REPROBLAS_LIBRARIES})
