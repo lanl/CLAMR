@@ -12048,25 +12048,50 @@ void Mesh::calc_face_list_wbidirmap(void)
 
     // realloc memory based on new counts
 
-    map_xface2cell_lower = (int *)mesh_memory.memory_realloc(nxface, map_xface2cell_lower);
-    map_xface2cell_upper = (int *)mesh_memory.memory_realloc(nxface, map_xface2cell_upper);
-    xface_i = (int *)mesh_memory.memory_realloc(nxface, xface_i);
-    xface_j = (int *)mesh_memory.memory_realloc(nxface, xface_j);
-    xface_level = (uchar_t *)mesh_memory.memory_realloc(nxface, xface_level);
-    map_yface2cell_lower = (int *)mesh_memory.memory_realloc(nyface, map_yface2cell_lower);
-    map_yface2cell_upper = (int *)mesh_memory.memory_realloc(nyface, map_yface2cell_upper);
-    yface_i = (int *)mesh_memory.memory_realloc(nyface, yface_i);
-    yface_j = (int *)mesh_memory.memory_realloc(nyface, yface_j);
-    yface_level = (uchar_t *)mesh_memory.memory_realloc(nyface, yface_level);
+    int flags=0;
+    if (nxface > mesh_memory.get_memory_size(map_xface2cell_lower) ) {
+       mesh_memory.memory_delete(map_xface2cell_lower);
+       map_xface2cell_lower = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "map_xface2cell_lower", flags);
+       mesh_memory.memory_delete(map_xface2cell_upper);
+       map_xface2cell_upper = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "map_xface2cell_upper", flags);
+       mesh_memory.memory_delete(xface_i);
+       xface_i = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "xface_i", flags);
+       mesh_memory.memory_delete(xface_j);
+       xface_j = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "xface_j", flags);
+       mesh_memory.memory_delete(xface_level);
+       xface_level = (uchar_t *)mesh_memory.memory_malloc(nxface, sizeof(uchar_t), "xface_level", flags);
+    }
+    if (nyface > mesh_memory.get_memory_size(map_yface2cell_lower) ) {
+       mesh_memory.memory_delete(map_yface2cell_lower);
+       map_yface2cell_lower = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "map_yface2cell_lower", flags);
+       mesh_memory.memory_delete(map_yface2cell_upper);
+       map_yface2cell_upper = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "map_yface2cell_upper", flags);
+       mesh_memory.memory_delete(yface_i);
+       yface_i = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "yface_i", flags);
+       mesh_memory.memory_delete(yface_j);
+       yface_j = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "yface_j", flags);
+       mesh_memory.memory_delete(yface_level);
+       yface_level = (uchar_t *)mesh_memory.memory_malloc(nyface, sizeof(uchar_t), "yface_level", flags);
+    }
 
-    map_xcell2face_left1 = (int *)mesh_memory.memory_realloc(ncells, map_xcell2face_left1);
-    map_xcell2face_left2 = (int *)mesh_memory.memory_realloc(ncells, map_xcell2face_left2);
-    map_xcell2face_right1 = (int *)mesh_memory.memory_realloc(ncells, map_xcell2face_right1);
-    map_xcell2face_right2 = (int *)mesh_memory.memory_realloc(ncells, map_xcell2face_right2);
-    map_ycell2face_bot1 = (int *)mesh_memory.memory_realloc(ncells, map_ycell2face_bot1);
-    map_ycell2face_bot2 = (int *)mesh_memory.memory_realloc(ncells, map_ycell2face_bot2);
-    map_ycell2face_top1 = (int *)mesh_memory.memory_realloc(ncells, map_ycell2face_top1);
-    map_ycell2face_top2 = (int *)mesh_memory.memory_realloc(ncells, map_ycell2face_top2);
+    if (ncells > mesh_memory.get_memory_size(map_xcell2face_left1) ){
+       mesh_memory.memory_delete(map_xcell2face_left1);
+       map_xcell2face_left1 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_left1", flags);
+       mesh_memory.memory_delete(map_xcell2face_left2);
+       map_xcell2face_left2 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_left2", flags);
+       mesh_memory.memory_delete(map_xcell2face_right1);
+       map_xcell2face_right1 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_right1", flags);
+       mesh_memory.memory_delete(map_xcell2face_right2);
+       map_xcell2face_right2 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_right2", flags);
+       mesh_memory.memory_delete(map_ycell2face_bot1);
+       map_ycell2face_bot1 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_bot1", flags);
+       mesh_memory.memory_delete(map_ycell2face_bot2);
+       map_ycell2face_bot2 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_bot2", flags);
+       mesh_memory.memory_delete(map_ycell2face_top1);
+       map_ycell2face_top1 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_top1", flags);
+       mesh_memory.memory_delete(map_ycell2face_top2);
+       map_ycell2face_top2 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_top2", flags);
+    }
 
     memory_reset_ptrs();
 
