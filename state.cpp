@@ -1854,13 +1854,10 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
 #pragma omp simd
 #endif
    for (int ic = 0; ic < mesh->ncells; ic++) {
-<<<<<<< Updated upstream
       //if (mesh->celltype[ic] != REAL_CELL) continue;
 #ifdef _OPENMP
       //printf("%d) %d %d\n", omp_get_thread_num(), lowerBound, upperBound);
 #endif
-=======
->>>>>>> Stashed changes
 
       uchar_t lev = mesh->level[ic];
       real_t dxic    = mesh->lev_deltax[lev];
