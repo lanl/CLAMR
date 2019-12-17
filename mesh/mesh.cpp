@@ -9203,36 +9203,39 @@ void Mesh::allocate(size_t ncells)
    i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "i",     flags);
    j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "j",     flags);
    level = (uchar_t *)mesh_memory.memory_malloc(ncells, sizeof(uchar_t), "level", flags);
-   xface_i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xface_i",     flags);
-   xface_j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xface_j",     flags);
-   xface_level     = (uchar_t *)mesh_memory.memory_malloc(ncells, sizeof(uchar_t), "xface_level",     flags);
-   map_xface2cell_lower     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xface2cell_lower",     flags);
-   map_xface2cell_upper     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xface2cell_upper",     flags);
-   map_xcell2face_left1     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_left1",     flags);
-   map_xcell2face_left2     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_left2",     flags);
-   map_xcell2face_right1     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_right1",     flags);
-   map_xcell2face_right2     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_right2",     flags);
-   xrecvIdx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xrecvIdx",     flags);
-   xrecvCIdx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xrecvCIdx",     flags);
-   xplusCell2Idx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xplusCell2Idx",     flags);
-   xminusCell2Idx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xminusCell2Idx",     flags);
-   xsendIdx1     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xsendIdx1",     flags);
-   xsendIdx2     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "xsendIdx2",     flags);
-   yface_i     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "yface_i",     flags);
-   yface_j     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "yface_j",     flags);
-   yface_level     = (uchar_t *)mesh_memory.memory_malloc(ncells, sizeof(uchar_t), "yface_level",     flags);
-   map_yface2cell_lower     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_yface2cell_lower",     flags);
-   map_yface2cell_upper     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_yface2cell_upper",     flags);
-   map_ycell2face_bot1     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_bot1",     flags);
-   map_ycell2face_bot2     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_bot2",     flags);
-   map_ycell2face_top1     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_top1",     flags);
-   map_ycell2face_top2     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_top2",     flags);
-   yrecvIdx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "yrecvIdx",     flags);
-   yrecvCIdx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "yrecvCIdx",     flags);
-   yplusCell2Idx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "yplusCell2Idx",     flags);
-   yminusCell2Idx     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "yminusCell2Idx",     flags);
-   ysendIdx1     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ysendIdx1",     flags);
-   ysendIdx2     = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "ysendIdx2",     flags);
+
+   flags = 0;
+
+   xface_i     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "xface_i",     flags);
+   xface_j     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "xface_j",     flags);
+   xface_level     = (uchar_t *)mesh_memory.memory_malloc(1, sizeof(uchar_t), "xface_level",     flags);
+   map_xface2cell_lower     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "map_xface2cell_lower",     flags);
+   map_xface2cell_upper     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "map_xface2cell_upper",     flags);
+   map_xcell2face_left1     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "map_xcell2face_left1",     flags);
+   map_xcell2face_left2     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "map_xcell2face_left2",     flags);
+   map_xcell2face_right1     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "map_xcell2face_right1",     flags);
+   map_xcell2face_right2     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "map_xcell2face_right2",     flags);
+   xrecvIdx     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "xrecvIdx",     flags);
+   xrecvCIdx     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "xrecvCIdx",     flags);
+   xplusCell2Idx     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "xplusCell2Idx",     flags);
+   xminusCell2Idx     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "xminusCell2Idx",     flags);
+   xsendIdx1     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "xsendIdx1",     flags);
+   xsendIdx2     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "xsendIdx2",     flags);
+   yface_i     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "yface_i",     flags);
+   yface_j     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "yface_j",     flags);
+   yface_level     = (uchar_t *)mesh_memory.memory_malloc(1, sizeof(uchar_t), "yface_level",     flags);
+   map_yface2cell_lower     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "map_yface2cell_lower",     flags);
+   map_yface2cell_upper     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "map_yface2cell_upper",     flags);
+   map_ycell2face_bot1     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "map_ycell2face_bot1",     flags);
+   map_ycell2face_bot2     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "map_ycell2face_bot2",     flags);
+   map_ycell2face_top1     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "map_ycell2face_top1",     flags);
+   map_ycell2face_top2     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "map_ycell2face_top2",     flags);
+   yrecvIdx     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "yrecvIdx",     flags);
+   yrecvCIdx     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "yrecvCIdx",     flags);
+   yplusCell2Idx     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "yplusCell2Idx",     flags);
+   yminusCell2Idx     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "yminusCell2Idx",     flags);
+   ysendIdx1     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "ysendIdx1",     flags);
+   ysendIdx2     = (int *)mesh_memory.memory_malloc(1, sizeof(int), "ysendIdx2",     flags);
 }
 
 
@@ -10848,23 +10851,26 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
 
     map_xface2cell_lower = (int *)mesh_memory.memory_realloc(pxface, map_xface2cell_lower);
     map_xface2cell_upper = (int *)mesh_memory.memory_realloc(pxface, map_xface2cell_upper);
+    map_yface2cell_lower = (int *)mesh_memory.memory_realloc(pyface, map_yface2cell_lower);
+    map_yface2cell_upper = (int *)mesh_memory.memory_realloc(pyface, map_yface2cell_upper);
+
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
     xface_i = (int *)mesh_memory.memory_realloc(pxface, xface_i);
     xface_j = (int *)mesh_memory.memory_realloc(pxface, xface_j);
     xface_level = (uchar_t *)mesh_memory.memory_realloc(pxface, xface_level);
-    map_yface2cell_lower = (int *)mesh_memory.memory_realloc(pyface, map_yface2cell_lower);
-    map_yface2cell_upper = (int *)mesh_memory.memory_realloc(pyface, map_yface2cell_upper);
     yface_i = (int *)mesh_memory.memory_realloc(pyface, yface_i);
     yface_j = (int *)mesh_memory.memory_realloc(pyface, yface_j);
     yface_level = (uchar_t *)mesh_memory.memory_realloc(pyface, yface_level);
+    }
 
     map_xcell2face_left1 = (int *)mesh_memory.memory_realloc(pcellCnt, map_xcell2face_left1);
-    map_xcell2face_left2 = (int *)mesh_memory.memory_realloc(pcellCnt, map_xcell2face_left2);
+    map_xcell2face_left2 = (int *)mesh_memory.memory_realloc(ncells, map_xcell2face_left2);
     map_xcell2face_right1 = (int *)mesh_memory.memory_realloc(pcellCnt, map_xcell2face_right1);
-    map_xcell2face_right2 = (int *)mesh_memory.memory_realloc(pcellCnt, map_xcell2face_right2);
+    map_xcell2face_right2 = (int *)mesh_memory.memory_realloc(ncells, map_xcell2face_right2);
     map_ycell2face_bot1 = (int *)mesh_memory.memory_realloc(pcellCnt, map_ycell2face_bot1);
-    map_ycell2face_bot2 = (int *)mesh_memory.memory_realloc(pcellCnt, map_ycell2face_bot2);
+    map_ycell2face_bot2 = (int *)mesh_memory.memory_realloc(ncells, map_ycell2face_bot2);
     map_ycell2face_top1 = (int *)mesh_memory.memory_realloc(pcellCnt, map_ycell2face_top1);
-    map_ycell2face_top2 = (int *)mesh_memory.memory_realloc(pcellCnt, map_ycell2face_top2);
+    map_ycell2face_top2 = (int *)mesh_memory.memory_realloc(ncells, map_ycell2face_top2);
 
     xrecvIdx = (int *)mesh_memory.memory_realloc(ncells, xrecvIdx);
     xrecvCIdx = (int *)mesh_memory.memory_realloc(ncells, xrecvCIdx);
@@ -10991,6 +10997,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       // Have right face
       map_xface2cell_lower[iface] = nz;
       map_xface2cell_upper[iface] = nr;
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
       xface_level[iface] = MAX(level[nz],level[nr]);
       xface_i[iface] = i[nr]*ifactor;
       if (level[nr] < level[nz] && is_upper(j[nz]) ) {
@@ -10998,6 +11005,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       } else {
          xface_j[iface] = j[nr]*ifactor;
       }
+    }
       map_xcell2face_right1[nz] = iface;
 
       //the right is a real cell, but I am left boundary
@@ -11011,9 +11019,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
          if (ntr != nr) {
             map_xface2cell_lower[iface] = nz;
             map_xface2cell_upper[iface] = ntr;
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
             xface_level[iface] = MAX(level[nz],level[ntr]);
             xface_i[iface] = i[ntr]*ifactor;
             xface_j[iface] = j[ntr]*ifactor;
+    }
             map_xcell2face_right2[nz] = iface;
 
             iface++;
@@ -11062,6 +11072,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       // Have top face
       map_yface2cell_lower[iface] = nz;
       map_yface2cell_upper[iface] = nt;
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
       yface_level[iface] = MAX(level[nz],level[nt]);
       yface_j[iface] = j[nt]*ifactor;
       if (level[nt] < level[nz] && is_upper(i[nz]) ) {
@@ -11069,6 +11080,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       } else{
          yface_i[iface] = i[nt]*ifactor;
       }
+    }
       map_ycell2face_top1[nz] = iface;
 
       //the top is a real cell, but I am bot boundary
@@ -11082,9 +11094,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
          if (nrt != nt) {
             map_yface2cell_lower[iface] = nz;
             map_yface2cell_upper[iface] = nrt;
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
             yface_level[iface] = MAX(level[nz],level[nrt]);
             yface_j[iface] = j[nrt]*ifactor;
             yface_i[iface] = i[nrt]*ifactor;
+    }
             map_ycell2face_top2[nz] = iface;
 
             iface++;
@@ -11302,6 +11316,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     map_xface2cell_lower[iface] = pcellIdx;
 
                     // face positions
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
                     xface_level[pfaceIdx] = level[lncell];
                     xface_level[pfaceIdx+1] = level[rncell];
                     xface_level[pfaceIdx+2] = level[lncell];
@@ -11311,6 +11326,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     xface_j[pfaceIdx] = j[lncell];
                     xface_j[pfaceIdx+1] = j[rncell];
                     xface_j[pfaceIdx+2] = j[lncell];
+    }
 
                     interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     interpolate(4, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -11352,6 +11368,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     // old face's new phantom adjacent cell
                     map_xface2cell_upper[iface] = pcellIdx + 2;
 
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
                     xface_level[pfaceIdx] = level[rncell];
                     xface_level[pfaceIdx+1] = level[rncell];
                     xface_level[pfaceIdx+2] = level[lncell];
@@ -11361,6 +11378,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     xface_j[pfaceIdx] = j[rncell];
                     xface_j[pfaceIdx+1] = j[rncell];
                     xface_j[pfaceIdx+2] = j[lncell];
+    }
 
                     interpolate(1, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
                     interpolate(5, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -11429,9 +11447,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     level[pcellIdx] = level[rncell];
                     level[pcellIdx+1] = level[rncell];
 
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
                     xface_level[pfaceIdx] = level[rncell];
                     xface_i[pfaceIdx] = i[rncell] - 1;
                     xface_j[pfaceIdx] = j[rncell];
+    }
 
 
                     interpolate(0, pcellIdx, lncell, rncell, deltaT,  state_memory_old);
@@ -11459,9 +11479,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     level[pcellIdx] = level[lncell];
                     level[pcellIdx+1] = level[lncell];
 
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
                     xface_level[pfaceIdx] = level[lncell];
                     xface_i[pfaceIdx] = i[lncell] + 2;
                     xface_j[pfaceIdx] = j[lncell];
+    }
 
                     interpolate(1, pcellIdx-2, lncell, rncell, deltaT,  state_memory_old);
 
@@ -11562,6 +11584,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     map_yface2cell_lower[iface] = pcellIdx;
 
                     // face positions
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
                     yface_level[pfaceIdx] = level[bncell];
                     yface_level[pfaceIdx+1] = level[tncell];
                     yface_level[pfaceIdx+2] = level[bncell];
@@ -11571,6 +11594,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     yface_j[pfaceIdx] = j[bncell] + 1;
                     yface_j[pfaceIdx+1] = j[tncell] - 1;
                     yface_j[pfaceIdx+2] = j[bncell] + 2;
+    }
 
                     interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     interpolate(6, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
@@ -11613,6 +11637,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     map_yface2cell_upper[iface] = pcellIdx + 2;
 
                     // face positions
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
                     yface_level[pfaceIdx] = level[tncell];
                     yface_level[pfaceIdx+1] = level[tncell];
                     yface_level[pfaceIdx+2] = level[bncell];
@@ -11622,6 +11647,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     yface_j[pfaceIdx] = j[tncell];
                     yface_j[pfaceIdx+1] = j[tncell] - 1;
                     yface_j[pfaceIdx+2] = j[bncell] + 2;
+    }
 
                     interpolate(3, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
                     interpolate(7, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
@@ -11690,9 +11716,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     level[pcellIdx] = level[tncell];
                     level[pcellIdx+1] = level[tncell];
 
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
                     yface_level[pfaceIdx] = level[tncell];
                     yface_i[pfaceIdx] = i[tncell];
                     yface_j[pfaceIdx] = j[tncell] - 1;
+    }
 
                     interpolate(2, pcellIdx, bncell, tncell, deltaT,  state_memory_old);
 
@@ -11718,9 +11746,11 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
                     level[pcellIdx] = level[bncell];
                     level[pcellIdx+1] = level[bncell];
 
+    if (choose_amr_method == REGULAR_GRID_AMR || choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
                     yface_level[pfaceIdx] = level[bncell];
                     yface_i[pfaceIdx] = i[bncell];
                     yface_j[pfaceIdx] = j[bncell] + 2;
+    }
 
                     interpolate(3, pcellIdx-2, bncell, tncell, deltaT,  state_memory_old);
 
@@ -12054,12 +12084,12 @@ void Mesh::calc_face_list_wbidirmap(void)
        map_xface2cell_lower = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "map_xface2cell_lower", flags);
        mesh_memory.memory_delete(map_xface2cell_upper);
        map_xface2cell_upper = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "map_xface2cell_upper", flags);
-       mesh_memory.memory_delete(xface_i);
-       xface_i = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "xface_i", flags);
-       mesh_memory.memory_delete(xface_j);
-       xface_j = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "xface_j", flags);
-       mesh_memory.memory_delete(xface_level);
-       xface_level = (uchar_t *)mesh_memory.memory_malloc(nxface, sizeof(uchar_t), "xface_level", flags);
+       //mesh_memory.memory_delete(xface_i);
+       //xface_i = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "xface_i", flags);
+       //mesh_memory.memory_delete(xface_j);
+       //xface_j = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "xface_j", flags);
+       //mesh_memory.memory_delete(xface_level);
+       //xface_level = (uchar_t *)mesh_memory.memory_malloc(nxface, sizeof(uchar_t), "xface_level", flags);
     }
     if (nyface > mesh_memory.get_memory_size(map_yface2cell_lower) ) {
        mesh_memory.memory_delete(map_yface2cell_lower);
@@ -12067,11 +12097,11 @@ void Mesh::calc_face_list_wbidirmap(void)
        mesh_memory.memory_delete(map_yface2cell_upper);
        map_yface2cell_upper = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "map_yface2cell_upper", flags);
        mesh_memory.memory_delete(yface_i);
-       yface_i = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "yface_i", flags);
-       mesh_memory.memory_delete(yface_j);
-       yface_j = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "yface_j", flags);
-       mesh_memory.memory_delete(yface_level);
-       yface_level = (uchar_t *)mesh_memory.memory_malloc(nyface, sizeof(uchar_t), "yface_level", flags);
+       //yface_i = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "yface_i", flags);
+       //mesh_memory.memory_delete(yface_j);
+       //yface_j = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "yface_j", flags);
+       //mesh_memory.memory_delete(yface_level);
+       //yface_level = (uchar_t *)mesh_memory.memory_malloc(nyface, sizeof(uchar_t), "yface_level", flags);
     }
 
     if (ncells > mesh_memory.get_memory_size(map_xcell2face_left1) ){
@@ -12140,13 +12170,13 @@ void Mesh::calc_face_list_wbidirmap(void)
       // Have right face
       map_xface2cell_lower[iface] = nz;
       map_xface2cell_upper[iface] = nr;
-      xface_level[iface] = MAX(level[nz],level[nr]);
-      xface_i[iface] = i[nr]*ifactor;
-      if (level[nr] < level[nz] && is_upper(j[nz]) ) {
-         xface_j[iface] = j[nr]*ifactor+1;
-      } else {
-         xface_j[iface] = j[nr]*ifactor;
-      }
+      //xface_level[iface] = MAX(level[nz],level[nr]);
+      //xface_i[iface] = i[nr]*ifactor;
+      //if (level[nr] < level[nz] && is_upper(j[nz]) ) {
+      //   xface_j[iface] = j[nr]*ifactor+1;
+      //} else {
+      //   xface_j[iface] = j[nr]*ifactor;
+      //}
       map_xcell2face_right1[nz] = iface;
 
       //the right is a real cell, but I am left boundary
@@ -12160,9 +12190,9 @@ void Mesh::calc_face_list_wbidirmap(void)
          if (ntr != nr) {
             map_xface2cell_lower[iface] = nz;
             map_xface2cell_upper[iface] = ntr;
-            xface_level[iface] = MAX(level[nz],level[ntr]);
-            xface_i[iface] = i[ntr]*ifactor;
-            xface_j[iface] = j[ntr]*ifactor;
+            //xface_level[iface] = MAX(level[nz],level[ntr]);
+            //xface_i[iface] = i[ntr]*ifactor;
+            //xface_j[iface] = j[ntr]*ifactor;
             map_xcell2face_right2[nz] = iface;
 
             iface++;
@@ -12211,13 +12241,13 @@ void Mesh::calc_face_list_wbidirmap(void)
       // Have top face
       map_yface2cell_lower[iface] = nz;
       map_yface2cell_upper[iface] = nt;
-      yface_level[iface] = MAX(level[nz],level[nt]);
-      yface_j[iface] = j[nt]*ifactor;
-      if (level[nt] < level[nz] && is_upper(i[nz]) ) {
-         yface_i[iface] = i[nt]*ifactor+1;
-      } else{
-         yface_i[iface] = i[nt]*ifactor;
-      }
+      //yface_level[iface] = MAX(level[nz],level[nt]);
+      //yface_j[iface] = j[nt]*ifactor;
+      //if (level[nt] < level[nz] && is_upper(i[nz]) ) {
+      //   yface_i[iface] = i[nt]*ifactor+1;
+      //} else{
+      //   yface_i[iface] = i[nt]*ifactor;
+      //}
       map_ycell2face_top1[nz] = iface;
 
       //the top is a real cell, but I am bot boundary
@@ -12231,9 +12261,9 @@ void Mesh::calc_face_list_wbidirmap(void)
          if (nrt != nt) {
             map_yface2cell_lower[iface] = nz;
             map_yface2cell_upper[iface] = nrt;
-            yface_level[iface] = MAX(level[nz],level[nrt]);
-            yface_j[iface] = j[nrt]*ifactor;
-            yface_i[iface] = i[nrt]*ifactor;
+            //yface_level[iface] = MAX(level[nz],level[nrt]);
+            //yface_j[iface] = j[nrt]*ifactor;
+            //yface_i[iface] = i[nrt]*ifactor;
             map_ycell2face_top2[nz] = iface;
 
             iface++;
@@ -12894,6 +12924,7 @@ void Mesh::gpu_wbidirmap_setup(void)
 {
     size_t mem_request = ncells * 3;
     size_t mem_faces = 2;
+    int flags = 0;
     dev_nface = ezcl_malloc(NULL, const_cast<char *>("dev_nface"), &mem_faces, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_map_xface2cell_lower = ezcl_malloc(NULL, const_cast<char *>("dev_map_xface2cell_lower"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
     dev_map_xface2cell_upper = ezcl_malloc(NULL, const_cast<char *>("dev_map_xface2cell_upper"), &mem_request, sizeof(cl_int), CL_MEM_READ_WRITE, 0);
@@ -14075,18 +14106,28 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
 #ifdef HAVE_OPENCL
    cl_command_queue command_queue = ezcl_get_command_queue();
 
-    xface_i = (int *)mesh_memory.memory_realloc(nxface, xface_i);
-    xface_j = (int *)mesh_memory.memory_realloc(nxface, xface_j);
-    xface_level = (uchar_t *)mesh_memory.memory_realloc(nxface, xface_level);
-    yface_i = (int *)mesh_memory.memory_realloc(nyface, yface_i);
-    yface_j = (int *)mesh_memory.memory_realloc(nyface, yface_j);
-    yface_level = (uchar_t *)mesh_memory.memory_realloc(nyface, yface_level);
+    //xface_i = (int *)mesh_memory.memory_realloc(pxfaceCnt, xface_i);
+    //xface_j = (int *)mesh_memory.memory_realloc(pxfaceCnt, xface_j);
+    //xface_level = (uchar_t *)mesh_memory.memory_realloc(pxfaceCnt, xface_level);
+    //yface_i = (int *)mesh_memory.memory_realloc(pyfaceCnt, yface_i);
+    //yface_j = (int *)mesh_memory.memory_realloc(pyfaceCnt, yface_j);
+    //yface_level = (uchar_t *)mesh_memory.memory_realloc(pyfaceCnt, yface_level);
+    //i = (int *)mesh_memory.memory_realloc(pcellCnt, i);
+    //j = (int *)mesh_memory.memory_realloc(pcellCnt, j);
+    //level = (uchar_t *)mesh_memory.memory_realloc(pcellCnt, level);
 
-   int flags = 0;
-   flags = RESTART_DATA;
-   i     = (int *)mesh_memory.memory_malloc(pcellCnt, sizeof(int), "i",     flags);
-   j     = (int *)mesh_memory.memory_malloc(pcellCnt, sizeof(int), "j",     flags);
-   level = (uchar_t *)mesh_memory.memory_malloc(pcellCnt, sizeof(uchar_t), "level", flags);
+
+
+    i = (int *)mesh_memory.memory_realloc(pcellCnt, i);
+    j = (int *)mesh_memory.memory_realloc(pcellCnt, j);
+    level = (uchar_t *)mesh_memory.memory_realloc(pcellCnt, level);
+    xface_i = (int *)mesh_memory.memory_realloc(pxfaceCnt, xface_i);
+    xface_j = (int *)mesh_memory.memory_realloc(pxfaceCnt, xface_j);
+    xface_level = (uchar_t *)mesh_memory.memory_realloc(pxfaceCnt, xface_level);
+    yface_i = (int *)mesh_memory.memory_realloc(pyfaceCnt, yface_i);
+    yface_j = (int *)mesh_memory.memory_realloc(pyfaceCnt, yface_j);
+    yface_level = (uchar_t *)mesh_memory.memory_realloc(pyfaceCnt, yface_level);
+    memory_reset_ptrs();
 
     ezcl_enqueue_read_buffer(command_queue, dev_xface_i, CL_TRUE, 0, pxfaceCnt*sizeof(cl_int), &xface_i[0], NULL);
     ezcl_enqueue_read_buffer(command_queue, dev_xface_j, CL_TRUE, 0, pxfaceCnt*sizeof(cl_int), &xface_j[0], NULL);
