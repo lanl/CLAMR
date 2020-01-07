@@ -581,7 +581,6 @@ set(clamr_cpuonly_SRCS ${clamr_cpuonly_CXX_SRCS} ${clamr_cpuonly_C_SRCS} ${clamr
 add_executable(clamr_cpuonly ${clamr_cpuonly_SRCS})
 
 target_link_libraries(clamr_cpuonly PowerParser mesh hsfc kdtree zorder crux hash graphics timer memstats powerstats genmalloc MallocPlus m)
-   target_link_libraries(clamr_cpuonly ${OpenCL_LIBRARIES})
 if (REPROBLAS_FOUND)
    target_link_libraries(clamr_cpuonly ${REPROBLAS_LIBRARIES})
 endif (REPROBLAS_FOUND)
