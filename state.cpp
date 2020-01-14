@@ -2106,6 +2106,7 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
                        Vxfluxplus[ic], Vxfluxminus[ic], Vyfluxplus[ic], Vyfluxminus[ic])
                   - wminusy_V[ic] + wplusy_V[ic];
    } // cell loop
+
 #if defined(__GNUC_MINOR__)
 #ifdef _OPENMP
 #pragma omp barrier
@@ -7013,7 +7014,9 @@ size_t State::calc_refine_potential(vector<char_t> &mpot,int &icount, int &jcoun
    int lowerBound, upperBound;
    //mesh->set_bounds(ncells);
    mesh->get_bounds(lowerBound,upperBound);
+#ifndef _OPENMP
 #pragma omp simd
+#endif
    for (int ic=lowerBound; ic<upperBound; ic++) {
 
       if (mesh->celltype[ic] != REAL_CELL) continue;
