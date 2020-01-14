@@ -2060,12 +2060,37 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
+   
+#if defined(__GNUC_MINOR__)
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   real_t * dxcell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
+   real_t * dycell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+   for (int ic = lowerBound; ic < upperBound; ic++) {
+      uchar_t lev = mesh->level[ic];
+      dxcell[ic]  = mesh->lev_deltax[lev];
+      dycell[ic]  = mesh->lev_deltay[lev];
+   }
+#endif
+   
    for (int ic = lowerBound; ic < upperBound; ic++) {
       if (mesh->celltype[ic] != REAL_CELL) continue;
 
+#if defined(__GNUC_MINOR__)
+      real_t dxic = dxcell[ic];
+      real_t dyic = dycell[ic];
+#else
       uchar_t lev = mesh->level[ic];
       real_t dxic    = mesh->lev_deltax[lev];
       real_t dyic    = mesh->lev_deltay[lev];
+#endif
 
       H_new[ic] = U_fullstep(deltaT, dxic, H[ic],
                        Hxfluxplus[ic], Hxfluxminus[ic], Hyfluxplus[ic], Hyfluxminus[ic])
@@ -2077,6 +2102,20 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
                        Vxfluxplus[ic], Vxfluxminus[ic], Vyfluxplus[ic], Vyfluxminus[ic])
                   - wminusy_V[ic] + wplusy_V[ic];
    } // cell loop
+   
+#if defined(__GNUC_MINOR__)
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   free(dxcell);
+   free(dycell);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+#endif
 
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
 
@@ -3520,6 +3559,34 @@ void State::calc_finite_difference_regular_cells(double deltaT)
 #pragma omp for
 #endif
       for(jj=2; jj<jjmax-2; jj++){
+#if defined(__GNUC_MINOR__)
+         real_t *H_reg_new_loc = states_new[ll][0][jj];
+         real_t *U_reg_new_loc = states_new[ll][1][jj];
+         real_t *V_reg_new_loc = states_new[ll][2][jj];
+         real_t *H_reg_loc = H_reg_lev[ll][jj];
+         real_t *U_reg_loc = U_reg_lev[ll][jj];
+         real_t *V_reg_loc = V_reg_lev[ll][jj];
+         real_t *Hxfluxplus_loc = Hxfluxplus[ll][jj];
+         real_t *Hxfluxminus_loc = Hxfluxminus[ll][jj];
+         real_t *Hyfluxplus_loc = Hyfluxplus[ll][jj];
+         real_t *Hyfluxminus_loc = Hyfluxminus[ll][jj];
+         real_t *Uxfluxplus_loc = Uxfluxplus[ll][jj];
+         real_t *Uxfluxminus_loc = Uxfluxminus[ll][jj];
+         real_t *Uyfluxplus_loc = Uyfluxplus[ll][jj];
+         real_t *Uyfluxminus_loc = Uyfluxminus[ll][jj];
+         real_t *Vxfluxplus_loc = Vxfluxplus[ll][jj];
+         real_t *Vxfluxminus_loc = Vxfluxminus[ll][jj];
+         real_t *Vyfluxplus_loc = Vyfluxplus[ll][jj];
+         real_t *Vyfluxminus_loc = Vyfluxminus[ll][jj];
+         real_t *wplusx_H_loc = wplusx_H[ll][jj];
+         real_t *wminusx_H_loc = wminusx_H[ll][jj];
+         real_t *wplusy_H_loc = wplusy_H[ll][jj];
+         real_t *wminusy_H_loc = wminusy_H[ll][jj];
+         real_t *wplusx_U_loc = wplusx_U[ll][jj];
+         real_t *wminusx_U_loc = wminusx_U[ll][jj];
+         real_t *wplusy_V_loc = wplusy_V[ll][jj];
+         real_t *wminusy_V_loc = wminusy_V[ll][jj];
+#endif
 #pragma omp simd
          for(ii=2; ii<iimax-2; ii++){
             if (mask_reg_lev[ll][jj][ii] == 1) {
@@ -3920,6 +3987,29 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
 #pragma omp for
 #endif
       for(int jj=2; jj<jjmax-1; jj++){
+#if defined(__GNUC_MINOR__)
+         real_t *H_reg_new_loc = states_new[ll][0][jj];
+         real_t *U_reg_new_loc = states_new[ll][1][jj];
+         real_t *V_reg_new_loc = states_new[ll][2][jj];
+         real_t *H_reg_loc = H_reg_lev[ll][jj];
+         real_t *U_reg_loc = U_reg_lev[ll][jj];
+         real_t *V_reg_loc = V_reg_lev[ll][jj];
+         real_t *Hxflux_loc = HxFlux[ll][jj];
+         real_t *Hyfluxplus_loc = HyFlux[ll][jj+1];
+         real_t *Hyfluxminus_loc = HyFlux[ll][jj];
+         real_t *Uxflux_loc = UxFlux[ll][jj];
+         real_t *Uyflux_loc = UyFlux[ll][jj];
+         real_t *Uyfluxplus_loc = UyFlux[ll][jj+1];
+         real_t *Vxflux_loc = VxFlux[ll][jj];
+         real_t *Vyflux_loc = VyFlux[ll][jj];
+         real_t *Vyfluxplus_loc = VyFlux[ll][jj+1];
+         real_t *Wx_H_loc = Wx_H[ll][jj];
+         real_t *Wy_H_loc = Wy_H[ll][jj];
+         real_t *Wy_Hplus_loc = Wy_H[ll][jj+1];
+         real_t *Wx_U_loc = Wx_U[ll][jj];
+         real_t *Wy_V_loc = Wy_V[ll][jj];
+         real_t *Wy_Vplus_loc = Wy_V[ll][jj+1];
+#endif
 #pragma omp simd
          for(int ii=2; ii<iimax-1; ii++){
             if (mask_reg_lev[ll][jj][ii] != 1) continue;
@@ -6920,7 +7010,9 @@ size_t State::calc_refine_potential(vector<char_t> &mpot,int &icount, int &jcoun
    int lowerBound, upperBound;
    //mesh->set_bounds(ncells);
    mesh->get_bounds(lowerBound,upperBound);
+#ifndef _OPENMP
 #pragma omp simd
+#endif
    for (int ic=lowerBound; ic<upperBound; ic++) {
 
       if (mesh->celltype[ic] != REAL_CELL) continue;

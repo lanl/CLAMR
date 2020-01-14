@@ -29,6 +29,7 @@ enable_testing()
 # uncomment to build debug
 #set(CMAKE_BUILD_TYPE Debug)
 
+set (CMAKE_CXX_EXTENSIONS off)
 set (CMAKE_CXX_STANDARD 11)
 set (CMAKE_C_STANDARD 99)
 
@@ -130,15 +131,15 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "XL")
    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
 endif()
 
-find_package(Vector)
-if (CMAKE_VECTOR_VERBOSE)
-    set(VECTOR_C_FLAGS "${VECTOR_C_FLAGS} ${VECTOR_C_VERBOSE}")
-    set(VECTOR_CXX_FLAGS "${VECTOR_CXX_FLAGS} ${VECTOR_CXX_VERBOSE}")
-endif (CMAKE_VECTOR_VERBOSE)
-if (CMAKE_VECTOR_NOVEC)
-    set(VECTOR_C_FLAGS "${VECTOR_NOVEC_C_FLAGS}")
-    set(VECTOR_CXX_FLAGS "${VECTOR_NOVEC_CXX_FLAGS}")
-endif (CMAKE_VECTOR_NOVEC)
+#find_package(Vector)
+#if (CMAKE_VECTOR_VERBOSE)
+#    set(VECTOR_C_FLAGS "${VECTOR_C_FLAGS} ${VECTOR_C_VERBOSE}")
+#    set(VECTOR_CXX_FLAGS "${VECTOR_CXX_FLAGS} ${VECTOR_CXX_VERBOSE}")
+#endif (CMAKE_VECTOR_VERBOSE)
+#if (CMAKE_VECTOR_NOVEC)
+#    set(VECTOR_C_FLAGS "${VECTOR_NOVEC_C_FLAGS}")
+#    set(VECTOR_CXX_FLAGS "${VECTOR_NOVEC_CXX_FLAGS}")
+#endif (CMAKE_VECTOR_NOVEC)
 
 set_source_files_properties(state.cpp PROPERTIES COMPILE_FLAGS "${VECTOR_CXX_FLAGS}")
 
@@ -172,7 +173,9 @@ if (MPI_FOUND)
    include_directories(${MPI_INCLUDE_PATH})
 endif (MPI_FOUND)
 
-find_package( OpenMP)
+set (Kokkos_ENABLE_CUDA_LAMBDA on)
+
+#find_package( OpenMP)
 #if(OPENMP_FOUND)
 #   message("OPENMP FOUND ${OpenMP_C_FLAGS}")
 #else (OPENMP_FOUND)
@@ -571,6 +574,33 @@ if (OpenCL_FOUND AND MPI_FOUND)
    install(TARGETS clamr DESTINATION bin)
 endif (OpenCL_FOUND AND MPI_FOUND)
 
+########### clamr_kokkosonly target ###############
+
+set(clamr_kokkosonly_CXX_SRCS clamr_kokkosonly.cpp state.cpp input.cpp)
+set(clamr_kokkosonly_H_SRCS state.h input.h)
+
+set(clamr_kokkosonly_SRCS ${clamr_kokkosonly_CXX_SRCS} ${clamr_kokkosonly_C_SRCS} ${clamr_kokkosonly_H_SRCS})
+
+add_executable(clamr_kokkosonly ${clamr_kokkosonly_SRCS})
+
+add_subdirectory(kokkos)
+
+target_link_libraries(clamr_kokkosonly Kokkos::kokkos)
+
+target_link_libraries(clamr_kokkosonly PowerParser mesh hsfc kdtree zorder crux hash graphics timer memstats powerstats genmalloc MallocPlus m)
+if (REPROBLAS_FOUND)
+   target_link_libraries(clamr_kokkosonly ${REPROBLAS_LIBRARIES})
+endif (REPROBLAS_FOUND)
+   add_dependencies(clamr_kokkosonly state_kernel_source)
+
+if (POWER_GADGET_FOUND)
+   target_link_libraries(clamr_kokkosonly ${POWER_GADGET})
+endif (POWER_GADGET_FOUND)
+
+#target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+
+install(TARGETS clamr_kokkosonly DESTINATION bin)
+
 ########### clamr_cpuonly target ###############
 
 set(clamr_cpuonly_CXX_SRCS clamr_cpuonly.cpp state.cpp input.cpp)
@@ -829,7 +859,7 @@ set (CMAKE_CHECK_COMMAND ${CMAKE_CHECK_COMMAND}
                          make MallocPlus_check &&
                          make PowerParser_check)
 
-add_custom_target(check COMMAND ${CMAKE_CHECK_COMMAND})
+add_custom_target(clamr_check COMMAND ${CMAKE_CHECK_COMMAND})
 
 set (CMAKE_DOC_COMMAND #make CLAMR_doc       &&
                        make PowerParser_doc &&
