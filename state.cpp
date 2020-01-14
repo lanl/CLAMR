@@ -2060,7 +2060,6 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
-   
 #if defined(__GNUC_MINOR__)
 #ifdef _OPENMP
 #pragma omp barrier
@@ -2102,7 +2101,7 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
                        Vxfluxplus[ic], Vxfluxminus[ic], Vyfluxplus[ic], Vyfluxminus[ic])
                   - wminusy_V[ic] + wplusy_V[ic];
    } // cell loop
-   
+
 #if defined(__GNUC_MINOR__)
 #ifdef _OPENMP
 #pragma omp barrier
