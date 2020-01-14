@@ -2077,8 +2077,13 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
       dxcell[ic]  = mesh->lev_deltax[lev];
       dycell[ic]  = mesh->lev_deltay[lev];
    }
+   
+   real_t *H_loc = H;
+   real_t *U_loc = U;
+   real_t *V_loc = V;
 #endif
    
+#pragma omp simd
    for (int ic = lowerBound; ic < upperBound; ic++) {
       if (mesh->celltype[ic] != REAL_CELL) continue;
 
