@@ -2413,10 +2413,41 @@ void State::calc_finite_difference_face_in_place(double deltaT)
 
    mesh->get_bounds(lowerBound, upperBound);
 
+#if defined(__GNUC_MINOR__)
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   real_t * dxcell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+   for (int ic = lowerBound; ic < upperBound; ic++) {
+      uchar_t lev = mesh->level[ic];
+      dxcell[ic]  = mesh->lev_deltax[lev];
+   }
+
+   real_t *H_loc = H;
+   real_t *U_loc = U;
+   real_t *V_loc = V;
+
+   int *map_xcell2face_left1_loc = mesh->map_xcell2face_left1;
+   int *map_xcell2face_right1_loc = mesh->map_xcell2face_right1;
+   int *map_ycell2face_bot1_loc = mesh->map_ycell2face_bot1;
+   int *map_ycell2face_top1_loc = mesh->map_ycell2face_top1;
+#endif
+
+#pragma omp simd
    for (int ic = lowerBound; ic < upperBound; ic++){
       if (mesh->celltype[ic] != REAL_CELL) continue;
 
+#if defined(__GNUC_MINOR__)
+      real_t dxic = dxcell[ic];
+#else
       real_t dxic = mesh->lev_deltax[mesh->level[ic]];
+#endif
       // set the four faces
       int fl = mesh->map_xcell2face_left1[ic];
       int fr = mesh->map_xcell2face_right1[ic];
