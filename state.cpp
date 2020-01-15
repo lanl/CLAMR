@@ -2061,13 +2061,15 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
    cpu_timer_start(&tstart_cpu_part);
 
 #if defined(__GNUC_MINOR__)
+   static real_t * dxcell;
+   static real_t * dycell;
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
    {
 #endif
-   real_t * dxcell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
-   real_t * dycell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
+   dxcell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
+   dycell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2106,20 +2108,6 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
                        Vxfluxplus[ic], Vxfluxminus[ic], Vyfluxplus[ic], Vyfluxminus[ic])
                   - wminusy_V[ic] + wplusy_V[ic];
    } // cell loop
-
-#if defined(__GNUC_MINOR__)
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
-#endif
-   free(dxcell);
-   free(dycell);
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-#endif
 
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
 
@@ -2163,6 +2151,11 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
       V = (state_t *)state_memory.memory_replace(V, V_new);
 #ifdef PRECISION_CHECK_GRAPHICS
       PCHECK = (state_t *)state_memory.memory_replace(PCHECK, PCHECK_new);
+#endif
+
+#if defined(__GNUC_MINOR__)
+      free(dxcell);
+      free(dycell);
 #endif
 
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);
@@ -2414,12 +2407,13 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    mesh->get_bounds(lowerBound, upperBound);
 
 #if defined(__GNUC_MINOR__)
+   static real_t * dxcell;
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
    {
 #endif
-   real_t * dxcell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
+   dxcell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
 #ifdef _OPENMP
    }
 #pragma omp barrier
@@ -2492,6 +2486,10 @@ void State::calc_finite_difference_face_in_place(double deltaT)
       V = (state_t *)state_memory.memory_replace(V, V_new);
 #ifdef PRECISION_CHECK_GRAPHICS
       PCHECK = (state_t *)state_memory.memory_replace(PCHECK, PCHECK_new);
+#endif
+
+#if defined(__GNUC_MINOR__)
+      free(dxcell);
 #endif
 
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE] += cpu_timer_stop(tstart_cpu);

@@ -130,16 +130,21 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "XL")
    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
 endif()
+ 
+option (KOKKOS_ENABLE "Enable KOKKOS support" OFF)
+mark_as_advanced (KOKKOS_ENABLE)
 
-#find_package(Vector)
-#if (CMAKE_VECTOR_VERBOSE)
-#    set(VECTOR_C_FLAGS "${VECTOR_C_FLAGS} ${VECTOR_C_VERBOSE}")
-#    set(VECTOR_CXX_FLAGS "${VECTOR_CXX_FLAGS} ${VECTOR_CXX_VERBOSE}")
-#endif (CMAKE_VECTOR_VERBOSE)
-#if (CMAKE_VECTOR_NOVEC)
-#    set(VECTOR_C_FLAGS "${VECTOR_NOVEC_C_FLAGS}")
-#    set(VECTOR_CXX_FLAGS "${VECTOR_NOVEC_CXX_FLAGS}")
-#endif (CMAKE_VECTOR_NOVEC)
+if(NOT KOKKOS_ENABLE)
+   find_package(Vector)
+   if (CMAKE_VECTOR_VERBOSE)
+       set(VECTOR_C_FLAGS "${VECTOR_C_FLAGS} ${VECTOR_C_VERBOSE}")
+       set(VECTOR_CXX_FLAGS "${VECTOR_CXX_FLAGS} ${VECTOR_CXX_VERBOSE}")
+   endif (CMAKE_VECTOR_VERBOSE)
+   if (CMAKE_VECTOR_NOVEC)
+       set(VECTOR_C_FLAGS "${VECTOR_NOVEC_C_FLAGS}")
+       set(VECTOR_CXX_FLAGS "${VECTOR_NOVEC_CXX_FLAGS}")
+   endif (CMAKE_VECTOR_NOVEC)
+endif(NOT KOKKOS_ENABLE)
 
 set_source_files_properties(state.cpp PROPERTIES COMPILE_FLAGS "${VECTOR_CXX_FLAGS}")
 
@@ -175,12 +180,14 @@ endif (MPI_FOUND)
 
 set (Kokkos_ENABLE_CUDA_LAMBDA on)
 
-#find_package( OpenMP)
-#if(OPENMP_FOUND)
-#   message("OPENMP FOUND ${OpenMP_C_FLAGS}")
-#else (OPENMP_FOUND)
-#   message("OPENMP NOT FOUND")
-#endif(OPENMP_FOUND)
+if(NOT KOKKOS_ENABLE)
+   find_package( OpenMP)
+   if(OPENMP_FOUND)
+      message("OPENMP FOUND ${OpenMP_C_FLAGS}")
+   else (OPENMP_FOUND)
+      message("OPENMP NOT FOUND")
+   endif(OPENMP_FOUND)
+endif(NOT KOKKOS_ENABLE)
 
 #find_package(ImageMagick COMPONENTS MagickCore MagickWand)
 find_package(ImageMagick COMPONENTS MagickWand)
@@ -576,30 +583,34 @@ endif (OpenCL_FOUND AND MPI_FOUND)
 
 ########### clamr_kokkosonly target ###############
 
-set(clamr_kokkosonly_CXX_SRCS clamr_kokkosonly.cpp state.cpp input.cpp)
-set(clamr_kokkosonly_H_SRCS state.h input.h)
+if(KOKKOS_ENABLE)
+   if (EXISTS "${CMAKE_SOURCE_DIR}/kokkos" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/kokkos")
+      set(clamr_kokkosonly_CXX_SRCS clamr_kokkosonly.cpp state.cpp input.cpp)
+      set(clamr_kokkosonly_H_SRCS state.h input.h)
 
-set(clamr_kokkosonly_SRCS ${clamr_kokkosonly_CXX_SRCS} ${clamr_kokkosonly_C_SRCS} ${clamr_kokkosonly_H_SRCS})
+      set(clamr_kokkosonly_SRCS ${clamr_kokkosonly_CXX_SRCS} ${clamr_kokkosonly_C_SRCS} ${clamr_kokkosonly_H_SRCS})
 
-add_executable(clamr_kokkosonly ${clamr_kokkosonly_SRCS})
+      add_executable(clamr_kokkosonly ${clamr_kokkosonly_SRCS})
 
-add_subdirectory(kokkos)
+      add_subdirectory(kokkos)
 
-target_link_libraries(clamr_kokkosonly Kokkos::kokkos)
+      target_link_libraries(clamr_kokkosonly Kokkos::kokkos)
 
-target_link_libraries(clamr_kokkosonly PowerParser mesh hsfc kdtree zorder crux hash graphics timer memstats powerstats genmalloc MallocPlus m)
-if (REPROBLAS_FOUND)
-   target_link_libraries(clamr_kokkosonly ${REPROBLAS_LIBRARIES})
-endif (REPROBLAS_FOUND)
-   add_dependencies(clamr_kokkosonly state_kernel_source)
+      target_link_libraries(clamr_kokkosonly PowerParser mesh hsfc kdtree zorder crux hash graphics timer memstats powerstats genmalloc MallocPlus m)
+      if (REPROBLAS_FOUND)
+         target_link_libraries(clamr_kokkosonly ${REPROBLAS_LIBRARIES})
+      endif (REPROBLAS_FOUND)
+      add_dependencies(clamr_kokkosonly state_kernel_source)
 
-if (POWER_GADGET_FOUND)
-   target_link_libraries(clamr_kokkosonly ${POWER_GADGET})
-endif (POWER_GADGET_FOUND)
+      if (POWER_GADGET_FOUND)
+         target_link_libraries(clamr_kokkosonly ${POWER_GADGET})
+      endif (POWER_GADGET_FOUND)
 
-#target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+      #target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
-install(TARGETS clamr_kokkosonly DESTINATION bin)
+      install(TARGETS clamr_kokkosonly DESTINATION bin)
+   endif (EXISTS "${CMAKE_SOURCE_DIR}/kokkos" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/kokkos")
+endif(KOKKOS_ENABLE)
 
 ########### clamr_cpuonly target ###############
 
