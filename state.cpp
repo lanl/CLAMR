@@ -3885,6 +3885,30 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
 #pragma omp for
 #endif
       for(int jj=2; jj<jjmax-1; jj++){
+#if defined(__GNUC_MINOR__)
+         real_t * HxFlux_loc = HxFlux[ll][jj];
+         real_t * UxFlux_loc = UxFlux[ll][jj];
+         real_t * VxFlux_loc = VxFlux[ll][jj];
+         real_t * Wx_H_loc = Wx_H[ll][jj];
+         real_t * Wx_U_loc = Wx_U[ll][jj];
+         real_t * H_reg_lev_loc = H_reg_lev[ll][jj];
+         real_t * U_reg_lev_loc = U_reg_lev[ll][jj];
+         real_t * V_reg_lev_loc = V_reg_lev[ll][jj];
+         real_t * H_reg_lev_plus_loc = H_reg_lev[ll][jj+1];
+         real_t * U_reg_lev_plus_loc = U_reg_lev[ll][jj+1];
+         real_t * V_reg_lev_plus_loc = V_reg_lev[ll][jj+1];
+         real_t * H_reg_lev_minus_loc = H_reg_lev[ll][jj-1];
+         real_t * U_reg_lev_minus_loc = U_reg_lev[ll][jj-1];
+         real_t * V_reg_lev_minus_loc = V_reg_lev[ll][jj-1];
+         real_t * H_reg_lev_minus2_loc = H_reg_lev[ll][jj-2];
+         real_t * U_reg_lev_minus2_loc = U_reg_lev[ll][jj-2];
+         real_t * V_reg_lev_minus2_loc = V_reg_lev[ll][jj-2];
+         real_t * HyFlux_loc = HyFlux[ll][jj];
+         real_t * UyFlux_loc = UyFlux[ll][jj];
+         real_t * VyFlux_loc = VyFlux[ll][jj];
+         real_t * Wy_H_loc = Wy_H[ll][jj];
+         real_t * Wy_V_loc = Wy_V[ll][jj];
+#endif
 #pragma omp simd
          for(int ii=2; ii<iimax-1; ii++){
             if ((mask_reg_lev[ll][jj][ii-1] == 1 || mask_reg_lev[ll][jj][ii] == 1)){
