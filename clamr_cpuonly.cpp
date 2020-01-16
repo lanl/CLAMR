@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
       state->init(do_gpu_calc);
       mesh->proc.resize(mesh->ncells);
       mesh->calc_distribution(numpe);
-      state->fill_circle(circ_radius, 80.0, 8.0);
+      state->fill_circle(circ_radius, 100.0, 8.0);
    }
 
    size_t &ncells = mesh->ncells;
