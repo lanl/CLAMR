@@ -336,7 +336,7 @@ int main(int argc, char **argv) {
    MPI_Allgatherv(&y[0],  ncells, MPI_SPATIAL_T, &y_global[0],  &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&dy[0], ncells, MPI_SPATIAL_T, &dy_global[0], &nsizes[0], &ndispl[0], MPI_SPATIAL_T, MPI_COMM_WORLD);
 
-   state_local->fill_circle(circ_radius, 80.0, 8.0);
+   state_local->fill_circle(circ_radius, 100.0, 7.0);
 
    MPI_Allgatherv(&state_local->H[0], ncells, MPI_STATE_T, &state_global->H[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&state_local->U[0], ncells, MPI_STATE_T, &state_global->U[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
