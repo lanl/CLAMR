@@ -3270,6 +3270,44 @@ void State::calc_finite_difference_regular_cells(double deltaT)
 #pragma omp for
 #endif
       for(jj=2; jj<jjmax-2; jj++){
+#if defined(__GNUC_MINOR__)
+         real_t * H_reg_loc = states_new[ll][0][jj];
+         real_t * H_reg_lev_loc = H_reg_lev[ll][jj];
+         real_t * U_reg_lev_loc = U_reg_lev[ll][jj];
+         real_t * V_reg_lev_loc = V_reg_lev[ll][jj];
+         real_t * Hxfluxminus_loc = Hxfluxminus[ll][jj];
+         real_t * Uxfluxminus_loc = Uxfluxminus[ll][jj];
+         real_t * Vxfluxminus_loc = Vxfluxminus[ll][jj];
+         real_t * Hxfluxplus_loc = Hxfluxplus[ll][jj];
+         real_t * Uxfluxplus_loc = Uxfluxplus[ll][jj];
+         real_t * Vxfluxplus_loc = Vxfluxplus[ll][jj];
+         real_t * Hyfluxminus_loc = Hyfluxminus[ll][jj];
+         real_t * Uyfluxminus_loc = Uyfluxminus[ll][jj];
+         real_t * Vyfluxminus_loc = Vyfluxminus[ll][jj];
+         real_t * Hyfluxplus_loc = Hyfluxplus[ll][jj];
+         real_t * Uyfluxplus_loc = Uyfluxplus[ll][jj];
+         real_t * Vyfluxplus_loc = Vyfluxplus[ll][jj];
+         real_t * H_reg_lev_minus_loc = H_reg_lev[ll][jj-1];
+         real_t * H_reg_lev_minus2_loc = H_reg_lev[ll][jj-2];
+         real_t * U_reg_lev_minus_loc = U_reg_lev[ll][jj-1];
+         real_t * U_reg_lev_minus2_loc = U_reg_lev[ll][jj-2];
+         real_t * V_reg_lev_minus_loc = V_reg_lev[ll][jj-1];
+         real_t * V_reg_lev_minus2_loc = V_reg_lev[ll][jj-2];
+         real_t * H_reg_lev_plus_loc = H_reg_lev[ll][jj+1];
+         real_t * H_reg_lev_plus2_loc = H_reg_lev[ll][jj+2];
+         real_t * U_reg_lev_plus_loc = U_reg_lev[ll][jj+1];
+         real_t * U_reg_lev_plus2_loc = U_reg_lev[ll][jj+2];
+         real_t * V_reg_lev_plus_loc = V_reg_lev[ll][jj+1];
+         real_t * V_reg_lev_plus2_loc = V_reg_lev[ll][jj+2];
+         real_t * wminusx_H_loc = wminusx_H[ll][jj];
+         real_t * wplusx_H_loc = wplusx_H[ll][jj];
+         real_t * wminusx_U_loc = wminusx_U[ll][jj];
+         real_t * wplusx_U_loc = wplusx_U[ll][jj];
+         real_t * wminusy_H_loc = wminusy_H[ll][jj];
+         real_t * wplusy_H_loc = wplusy_H[ll][jj];
+         real_t * wminusy_V_loc = wminusy_V[ll][jj];
+         real_t * wplusy_V_loc = wplusy_V[ll][jj];
+#endif
 #pragma omp simd
          for(ii=2; ii<iimax-2; ii++){
             if (mask_reg_lev[ll][jj][ii] == 1) {
