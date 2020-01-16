@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
    state->init(do_gpu_calc);
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe);
-   state->fill_circle(circ_radius, 100.0, 7.0);
+   state->fill_circle(circ_radius, 80.0, 8.0);
    
    if (cycle_reorder == ZORDER || cycle_reorder == HILBERT_SORT) {
       printf("GPU only calc currently does not work with this cycle_reorder");

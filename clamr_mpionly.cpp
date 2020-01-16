@@ -274,7 +274,7 @@ int main(int argc, char **argv) {
       mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
       state = new State(mesh);
       state->init(do_gpu_calc);
-      state->fill_circle(circ_radius, 100.0, 7.0);
+      state->fill_circle(circ_radius, 80.0, 8.0);
 
    }
    size_t &ncells = mesh->ncells;
