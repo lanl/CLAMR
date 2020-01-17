@@ -628,9 +628,9 @@ extern "C" void do_calc(void)
       delete state;
 
       //  Release kernels and finalize the OpenCL elements.
-      //ezcl_finalize();
+      ezcl_finalize();
       
-      ezcl_mem_walk_all();
+      //ezcl_mem_walk_all();
 
       L7_Terminate();
       exit(0);

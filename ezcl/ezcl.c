@@ -60,7 +60,7 @@
 #endif
 
 #ifndef DEVICE_DETECT_DEBUG
-#define DEVICE_DETECT_DEBUG 1
+#define DEVICE_DETECT_DEBUG 0
 #endif
 
 #define EZCL_MEM_FACTOR 1.6

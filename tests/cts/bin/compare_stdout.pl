@@ -28,6 +28,15 @@ if (open (GOLDFH, $reffile) ){
    LINE:
    while ($_ = <GOLDFH>){
       if (/     or  /) {next LINE;}
+      if (/Detected/) {next LINE;}
+      if (/Package 0/) {next LINE;}
+      if (/Package 1/) {next LINE;}
+      if (/sysfs power/) {next LINE;}
+      if (/RAPL_SYSFS/) {next LINE;}
+      if (/Energy Consumed/) {next LINE;}
+      if (/package-0/) {next LINE;}
+      if (/package-1/) {next LINE;}
+      if (/dram/) {next LINE;}
       if (/high-performance Open MPI point-to-point messaging/) {next LINE;}
       if (/unable to find any relevant network/) {next LINE;}
       if (/Module: OpenFabrics/) {next LINE;}
@@ -81,6 +90,15 @@ if (open (NEWFH, $newfile) ){
    LINE:
    while ($_ = <NEWFH>){
       if (/     or  /) {next LINE;}
+      if (/Detected/) {next LINE;}
+      if (/Package 0/) {next LINE;}
+      if (/Package 1/) {next LINE;}
+      if (/sysfs power/) {next LINE;}
+      if (/RAPL_SYSFS/) {next LINE;}
+      if (/Energy Consumed/) {next LINE;}
+      if (/package-0/) {next LINE;}
+      if (/package-1/) {next LINE;}
+      if (/dram/) {next LINE;}
       if (/high-performance Open MPI point-to-point messaging/) {next LINE;}
       if (/unable to find any relevant network/) {next LINE;}
       if (/Module: OpenFabrics/) {next LINE;}

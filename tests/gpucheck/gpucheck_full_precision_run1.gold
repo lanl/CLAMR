@@ -1,108 +1,1288 @@
+
+
+EZCL_DEVTYPE_INIT: 3 opencl platform(s) detected
+  Platform 1:
+    CL_PLATFORM_VERSION    : OpenCL 2.1 LINUX
+    CL_PLATFORM_NAME       : Intel(R) CPU Runtime for OpenCL(TM) Applications
+    CL_PLATFORM_VENDOR     : Intel(R) Corporation
+  Platform 2:
+    CL_PLATFORM_VERSION    : OpenCL 1.2 CUDA 10.2.109
+    CL_PLATFORM_NAME       : NVIDIA CUDA
+    CL_PLATFORM_VENDOR     : NVIDIA Corporation
+  Platform 3:
+    CL_PLATFORM_VERSION    : OpenCL 2.1 AMD-APP (3052.0)
+    CL_PLATFORM_NAME       : AMD Accelerated Parallel Processing
+    CL_PLATFORM_VENDOR     : Advanced Micro Devices, Inc.
+
+Warning: Device of requested type not found for platform 0 in clGetDeviceID call
+EZCL_DEVTYPE_INIT: 2 opencl devices(s) detected
+Warning: Device of requested type not found for platform 2 in clGetDeviceID call
+    Device has double : cl_khr_fp64 cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll cl_nv_copy_opts cl_nv_create_buffer cl_khr_int64_base_atomics cl_khr_int64_extended_atomics cl_kernel_attribute_nv
+
+  Device 1:
+    CL_DEVICE_TYPE                       : CL_DEVICE_TYPE_GPU
+    CL_DEVICE_AVAILABLE                  : TRUE
+    CL_DEVICE_VENDOR                     : NVIDIA Corporation
+    CL_DEVICE_NAME                       : Tesla K80
+    CL_DRIVER_VERSION                    : 440.44
+    CL_DEVICE_VERSION                    : OpenCL 1.2 CUDA
+    CL_DEVICE_MAX_COMPUTE_UNITS          : 13
+    CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS   : 3
+    CL_DEVICE_MAX_WORK_ITEM_SIZES        : 0 18371006475285038 1184
+    CL_DEVICE_MAX_WORK_GROUP_SIZE        : 1024
+    CL_DEVICE_MAX_CLOCK_FREQUENCY        : 823
+    CL_DEVICE_MAX_MEM_ALLOC_SIZE         : 823
+    CL_DEVICE_GLOBAL_MEM_SIZE            : 11996954624
+    CL_DEVICE_GLOBAL_MEM_CACHE_SIZE      : 212992
+    CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE  : 128
+    CL_DEVICE_GLOBAL_MAX_CONSTANT_ARGS   : 9
+    CL_DEVICE_ERROR_CORRECTION_SUPPORT   : TRUE
+    CL_DEVICE_PROFILING_TIMER_RESOLUTION : 1000 nanosecs
+    CL_DEVICE_QUEUE PROFILING            : AVAILABLE
+    CL_DEVICE_EXTENSIONS                 : cl_khr_global_int32_base_atomics cl_khr_global_int32_extended_atomics cl_khr_local_int32_base_atomics cl_khr_local_int32_extended_atomics cl_khr_fp64 cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll cl_nv_copy_opts cl_nv_create_buffer cl_khr_int64_base_atomics cl_khr_int64_extended_atomics cl_kernel_attribute_nv
+
+    Device has double : cl_khr_fp64 cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll cl_nv_copy_opts cl_nv_create_buffer cl_khr_int64_base_atomics cl_khr_int64_extended_atomics cl_kernel_attribute_nv
+
+  Device 2:
+    CL_DEVICE_TYPE                       : CL_DEVICE_TYPE_GPU
+    CL_DEVICE_AVAILABLE                  : TRUE
+    CL_DEVICE_VENDOR                     : NVIDIA Corporation
+    CL_DEVICE_NAME                       : Tesla K80
+    CL_DRIVER_VERSION                    : 440.44
+    CL_DEVICE_VERSION                    : OpenCL 1.2 CUDA
+    CL_DEVICE_MAX_COMPUTE_UNITS          : 13
+    CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS   : 3
+    CL_DEVICE_MAX_WORK_ITEM_SIZES        : 0 18371006475285038 1184
+    CL_DEVICE_MAX_WORK_GROUP_SIZE        : 1024
+    CL_DEVICE_MAX_CLOCK_FREQUENCY        : 823
+    CL_DEVICE_MAX_MEM_ALLOC_SIZE         : 823
+    CL_DEVICE_GLOBAL_MEM_SIZE            : 11996954624
+    CL_DEVICE_GLOBAL_MEM_CACHE_SIZE      : 212992
+    CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE  : 128
+    CL_DEVICE_GLOBAL_MAX_CONSTANT_ARGS   : 9
+    CL_DEVICE_ERROR_CORRECTION_SUPPORT   : TRUE
+    CL_DEVICE_PROFILING_TIMER_RESOLUTION : 1000 nanosecs
+    CL_DEVICE_QUEUE PROFILING            : AVAILABLE
+    CL_DEVICE_EXTENSIONS                 : cl_khr_global_int32_base_atomics cl_khr_global_int32_extended_atomics cl_khr_local_int32_base_atomics cl_khr_local_int32_extended_atomics cl_khr_fp64 cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll cl_nv_copy_opts cl_nv_create_buffer cl_khr_int64_base_atomics cl_khr_int64_extended_atomics cl_kernel_attribute_nv
+
+Device selected is 0 number of appropriate devices 2
+EZCL_DEVTYPE_INIT: GPU device context created
+DEVICE VENDOR is NVIDIA Corporation
+DEBUG -- device vendor is |NVIDIA Corporation|, compute_device 1
+0: DEBUG -- running on device 0
 Starting compile of kernels in mesh
 Finishing compile of kernels in mesh
 Starting compile of kernels in state
 Finishing compile of kernels in state
-Mass of initialized cells equal to  125195.039971
-CPU:  setup time               time was	  5.4081	s
-Memory used      in startup 	    118684	kB
-Memory peak      in startup 	    119696	kB
-Memory free      at startup 	  31037940	kB
-Memory available at startup 	  32958152	kB
-Iteration   0 timestep      n/a Sim Time      0.0 cells 17028 Mass Sum  125195.039971
-Iteration 100 timestep 0.000330 Sim Time 0.043855 cells 17436 Mass Sum  125195.039971 Mass Change  1.45519e-11
-Iteration 200 timestep 0.000318 Sim Time 0.076685 cells 17664 Mass Sum  125195.039971 Mass Change            0
-Iteration 300 timestep 0.000346 Sim Time 0.109718 cells 17892 Mass Sum  125195.039971 Mass Change            0
-Iteration 400 timestep 0.000358 Sim Time 0.144092 cells 18072 Mass Sum  125195.039971 Mass Change            0
-Iteration 500 timestep 0.000371 Sim Time 0.180465 cells 18216 Mass Sum  125195.039971 Mass Change            0
-Iteration 600 timestep 0.000398 Sim Time 0.219301 cells 18300 Mass Sum  125195.039971 Mass Change            0
-Iteration 700 timestep 0.000432 Sim Time 0.260814 cells 18408 Mass Sum  125195.039971 Mass Change            0
-Iteration 800 timestep 0.000469 Sim Time 0.305481 cells 18516 Mass Sum  125195.039971 Mass Change            0
-Iteration 900 timestep 0.000484 Sim Time 0.353147 cells 18612 Mass Sum  125195.039971 Mass Change            0
-Iteration 1000 timestep 0.000547 Sim Time 0.404220 cells 18960 Mass Sum  125195.039971 Mass Change            0
-Iteration 1100 timestep 0.000561 Sim Time 0.458685 cells 19068 Mass Sum  125195.039971 Mass Change            0
-Iteration 1200 timestep 0.000594 Sim Time 0.517027 cells 19272 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 1300 timestep 0.000640 Sim Time 0.579504 cells 19548 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 1400 timestep 0.000708 Sim Time 0.646808 cells 19764 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 1500 timestep 0.000751 Sim Time 0.719800 cells 20088 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 1600 timestep 0.000837 Sim Time 0.799014 cells 20280 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 1700 timestep 0.000903 Sim Time 0.885035 cells 20496 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 1800 timestep 0.000977 Sim Time 0.978367 cells 20496 Mass Sum  125195.039971 Mass Change -1.45519e-11
-Iteration 1900 timestep 0.001048 Sim Time 1.079313 cells 20568 Mass Sum  125195.039971 Mass Change -2.91038e-11
-Iteration 2000 timestep 0.001129 Sim Time 1.188645 cells 20628 Mass Sum  125195.039971 Mass Change -2.91038e-11
-Iteration 2100 timestep 0.001228 Sim Time 1.307170 cells 20856 Mass Sum  125195.039971 Mass Change -2.91038e-11
-Iteration 2200 timestep 0.001353 Sim Time 1.436101 cells 20928 Mass Sum  125195.039971 Mass Change -2.91038e-11
-Iteration 2300 timestep 0.001469 Sim Time 1.576791 cells 21372 Mass Sum  125195.039971 Mass Change -4.36557e-11
-Iteration 2400 timestep 0.001625 Sim Time 1.731040 cells 21540 Mass Sum  125195.039971 Mass Change -4.36557e-11
-Iteration 2500 timestep 0.001779 Sim Time 1.900427 cells 21840 Mass Sum  125195.039971 Mass Change -4.36557e-11
-Iteration 2600 timestep 0.001965 Sim Time 2.086942 cells 22020 Mass Sum  125195.039971 Mass Change -4.36557e-11
-Iteration 2700 timestep 0.002149 Sim Time 2.292339 cells 22404 Mass Sum  125195.039971 Mass Change -4.36557e-11
-Iteration 2800 timestep 0.002385 Sim Time 2.518666 cells 22500 Mass Sum  125195.039971 Mass Change -5.82077e-11
-Iteration 2900 timestep 0.002623 Sim Time 2.767545 cells 22992 Mass Sum  125195.039971 Mass Change -5.82077e-11
-Iteration 3000 timestep 0.002850 Sim Time 3.040780 cells 22968 Mass Sum  125195.039971 Mass Change -5.82077e-11
-Memory used      121224 kB
-Memory peak      121228 kB
-Memory free      31037156 kB
-Memory available 32958152 kB
+Mass of initialized cells equal to  171748.524709
+CPU:  setup time               time was	  0.3358	s
+Memory used      in startup 	    144116	kB
+Memory peak      in startup 	    145016	kB
+Memory free      at startup 	 259503384	kB
+Memory available at startup 	 264038568	kB
+Iteration   0 timestep      n/a Sim Time      0.0 cells 17028 Mass Sum  171748.524709
+Iteration 100 timestep 0.000440 Sim Time 0.058026 cells 17484 Mass Sum  171748.524709 Mass Change            0
+Iteration 200 timestep 0.000444 Sim Time 0.102446 cells 17724 Mass Sum  171748.524709 Mass Change            0
+Iteration 300 timestep 0.000472 Sim Time 0.148770 cells 17928 Mass Sum  171748.524709 Mass Change -2.91038e-11
+Iteration 400 timestep 0.000540 Sim Time 0.199035 cells 18012 Mass Sum  171748.524709 Mass Change -2.91038e-11
+Iteration 500 timestep 0.000566 Sim Time 0.253893 cells 18096 Mass Sum  171748.524709 Mass Change -2.91038e-11
+Iteration 600 timestep 0.000620 Sim Time 0.314156 cells 18048 Mass Sum  171748.524709 Mass Change -2.91038e-11
+Iteration 700 timestep 0.000681 Sim Time 0.380230 cells 18204 Mass Sum  171748.524709 Mass Change -2.91038e-11
+Iteration 800 timestep 0.000766 Sim Time 0.452611 cells 18432 Mass Sum  171748.524709 Mass Change -2.91038e-11
+Iteration 900 timestep 0.000813 Sim Time 0.531611 cells 18732 Mass Sum  171748.524709 Mass Change -2.91038e-11
+Iteration 1000 timestep 0.000886 Sim Time 0.617557 cells 18912 Mass Sum  171748.524709 Mass Change -2.91038e-11
+Iteration 1100 timestep 0.000964 Sim Time 0.710887 cells 19272 Mass Sum  171748.524709 Mass Change -5.82077e-11
+Iteration 1200 timestep 0.001074 Sim Time 0.812489 cells 19536 Mass Sum  171748.524709 Mass Change -5.82077e-11
+Iteration 1300 timestep 0.001162 Sim Time 0.923132 cells 19572 Mass Sum  171748.524709 Mass Change -5.82077e-11
+Iteration 1400 timestep 0.001277 Sim Time 1.044131 cells 19692 Mass Sum  171748.524709 Mass Change -5.82077e-11
+Iteration 1500 timestep 0.001387 Sim Time 1.176721 cells 19740 Mass Sum  171748.524709 Mass Change -5.82077e-11
+Iteration 1600 timestep 0.001536 Sim Time 1.322739 cells 19932 Mass Sum  171748.524709 Mass Change -8.73115e-11
+Iteration 1700 timestep 0.001688 Sim Time 1.483778 cells 20124 Mass Sum  171748.524709 Mass Change -8.73115e-11
+Iteration 1800 timestep 0.001867 Sim Time 1.661683 cells 20244 Mass Sum  171748.524709 Mass Change -8.73115e-11
+Iteration 1900 timestep 0.002052 Sim Time 1.858382 cells 20352 Mass Sum  171748.524709 Mass Change -8.73115e-11
+Iteration 2000 timestep 0.002282 Sim Time 2.075742 cells 20364 Mass Sum  171748.524709 Mass Change -1.16415e-10
+Iteration 2100 timestep 0.002505 Sim Time 2.315232 cells 20340 Mass Sum  171748.524709 Mass Change -1.16415e-10
+Iteration 2200 timestep 0.002708 Sim Time 2.576132 cells 20112 Mass Sum  171748.524709 Mass Change -1.16415e-10
+Iteration 2300 timestep 0.003041 Sim Time 2.863316 cells 19656 Mass Sum  171748.524709 Mass Change -1.16415e-10
+Iteration 2400 timestep 0.003318 Sim Time 3.181417 cells 19524 Mass Sum  171748.524709 Mass Change -1.16415e-10
+DEBUG -- nlft: ic 1855 nlft -1 nlft_check 1855
+DEBUG -- nlft: ic 1857 nlft -1 nlft_check 1857
+DEBUG -- nbot: ic 4892 nbot -1 nbot_check 4892
+DEBUG -- nbot: ic 4898 nbot -1 nbot_check 4898
+DEBUG -- nbot: ic 4900 nbot -1 nbot_check 4900
+DEBUG -- nbot: ic 4918 nbot -1 nbot_check 4918
+DEBUG -- nrht: ic 8384 nrht -1 nrht_check 8384
+DEBUG -- nrht: ic 8390 nrht -1 nrht_check 8390
+DEBUG -- nrht: ic 11208 nrht -1 nrht_check 11208
+DEBUG -- nrht: ic 11214 nrht -1 nrht_check 11214
+DEBUG -- ntop: ic 14680 ntop -1 ntop_check 14680
+DEBUG -- ntop: ic 14698 ntop -1 ntop_check 14698
+DEBUG -- ntop: ic 14700 ntop -1 ntop_check 14700
+DEBUG -- ntop: ic 14706 ntop -1 ntop_check 14706
+DEBUG -- nlft: ic 17741 nlft -1 nlft_check 17741
+DEBUG -- nlft: ic 17743 nlft -1 nlft_check 17743
+DEBUG -- nlft: ic 1853 nlft -1 nlft_check 1853
+DEBUG -- nbot: ic 4854 nbot -1 nbot_check 4854
+DEBUG -- nbot: ic 4928 nbot -1 nbot_check 4928
+DEBUG -- nrht: ic 8386 nrht -1 nrht_check 8386
+DEBUG -- nrht: ic 11244 nrht -1 nrht_check 11244
+DEBUG -- ntop: ic 14702 ntop -1 ntop_check 14702
+DEBUG -- ntop: ic 14776 ntop -1 ntop_check 14776
+DEBUG -- nlft: ic 17777 nlft -1 nlft_check 17777
+DEBUG -- nlft: ic 1842 nlft -1 nlft_check 1842
+DEBUG -- nbot: ic 4860 nbot -1 nbot_check 4860
+DEBUG -- nbot: ic 4942 nbot -1 nbot_check 4942
+DEBUG -- nrht: ic 8396 nrht -1 nrht_check 8396
+DEBUG -- nrht: ic 11266 nrht -1 nrht_check 11266
+DEBUG -- ntop: ic 14720 ntop -1 ntop_check 14720
+DEBUG -- ntop: ic 14802 ntop -1 ntop_check 14802
+DEBUG -- nlft: ic 17820 nlft -1 nlft_check 17820
+DEBUG -- nlft: ic 1859 nlft -1 nlft_check 1859
+DEBUG -- nbot: ic 4868 nbot -1 nbot_check 4868
+DEBUG -- nbot: ic 5042 nbot -1 nbot_check 5042
+DEBUG -- nrht: ic 8384 nrht -1 nrht_check 8384
+DEBUG -- nrht: ic 11310 nrht -1 nrht_check 11310
+DEBUG -- ntop: ic 14652 ntop -1 ntop_check 14652
+DEBUG -- ntop: ic 14826 ntop -1 ntop_check 14826
+DEBUG -- nlft: ic 17835 nlft -1 nlft_check 17835
+DEBUG -- nlft: ic 1854 nlft -1 nlft_check 1854
+DEBUG -- nbot: ic 4855 nbot -1 nbot_check 4855
+DEBUG -- nbot: ic 5037 nbot -1 nbot_check 5037
+DEBUG -- nrht: ic 8382 nrht -1 nrht_check 8382
+DEBUG -- nrht: ic 11308 nrht -1 nrht_check 11308
+DEBUG -- ntop: ic 14653 ntop -1 ntop_check 14653
+DEBUG -- ntop: ic 14835 ntop -1 ntop_check 14835
+DEBUG -- nlft: ic 17836 nlft -1 nlft_check 17836
+DEBUG -- nlft: ic 1803 nlft -1 nlft_check 1803
+DEBUG -- nbot: ic 4849 nbot -1 nbot_check 4849
+DEBUG -- nbot: ic 5036 nbot -1 nbot_check 5036
+DEBUG -- nrht: ic 8363 nrht -1 nrht_check 8363
+DEBUG -- nrht: ic 11311 nrht -1 nrht_check 11311
+DEBUG -- ntop: ic 14638 ntop -1 ntop_check 14638
+DEBUG -- ntop: ic 14825 ntop -1 ntop_check 14825
+DEBUG -- nlft: ic 17871 nlft -1 nlft_check 17871
+DEBUG -- nlft: ic 1811 nlft -1 nlft_check 1811
+DEBUG -- nbot: ic 4845 nbot -1 nbot_check 4845
+DEBUG -- nbot: ic 5053 nbot -1 nbot_check 5053
+DEBUG -- nrht: ic 8364 nrht -1 nrht_check 8364
+DEBUG -- nrht: ic 11318 nrht -1 nrht_check 11318
+DEBUG -- ntop: ic 14629 ntop -1 ntop_check 14629
+DEBUG -- ntop: ic 14837 ntop -1 ntop_check 14837
+DEBUG -- nlft: ic 17871 nlft -1 nlft_check 17871
+DEBUG -- nlft: ic 1797 nlft -1 nlft_check 1797
+DEBUG -- nbot: ic 4583 nbot -1 nbot_check 4583
+DEBUG -- nbot: ic 5033 nbot -1 nbot_check 5033
+DEBUG -- nrht: ic 8272 nrht -1 nrht_check 8272
+DEBUG -- nrht: ic 11346 nrht -1 nrht_check 11346
+DEBUG -- ntop: ic 14585 ntop -1 ntop_check 14585
+DEBUG -- ntop: ic 15035 ntop -1 ntop_check 15035
+DEBUG -- nlft: ic 17821 nlft -1 nlft_check 17821
+DEBUG -- nlft: ic 1786 nlft -1 nlft_check 1786
+DEBUG -- nbot: ic 4586 nbot -1 nbot_check 4586
+DEBUG -- nbot: ic 5041 nbot -1 nbot_check 5041
+DEBUG -- nrht: ic 8273 nrht -1 nrht_check 8273
+DEBUG -- nrht: ic 11353 nrht -1 nrht_check 11353
+DEBUG -- ntop: ic 14585 ntop -1 ntop_check 14585
+DEBUG -- ntop: ic 15040 ntop -1 ntop_check 15040
+DEBUG -- nlft: ic 17840 nlft -1 nlft_check 17840
+DEBUG -- nlft: ic 1791 nlft -1 nlft_check 1791
+DEBUG -- nbot: ic 4594 nbot -1 nbot_check 4594
+DEBUG -- nbot: ic 5092 nbot -1 nbot_check 5092
+DEBUG -- nrht: ic 8284 nrht -1 nrht_check 8284
+DEBUG -- nrht: ic 11386 nrht -1 nrht_check 11386
+DEBUG -- ntop: ic 14578 ntop -1 ntop_check 14578
+DEBUG -- ntop: ic 15076 ntop -1 ntop_check 15076
+DEBUG -- nlft: ic 17879 nlft -1 nlft_check 17879
+DEBUG -- nlft: ic 1786 nlft -1 nlft_check 1786
+DEBUG -- nbot: ic 4578 nbot -1 nbot_check 4578
+DEBUG -- nbot: ic 5084 nbot -1 nbot_check 5084
+DEBUG -- nrht: ic 8273 nrht -1 nrht_check 8273
+DEBUG -- nrht: ic 11381 nrht -1 nrht_check 11381
+DEBUG -- ntop: ic 14570 ntop -1 ntop_check 14570
+DEBUG -- ntop: ic 15076 ntop -1 ntop_check 15076
+DEBUG -- nlft: ic 17868 nlft -1 nlft_check 17868
+DEBUG -- nlft: ic 1695 nlft -1 nlft_check 1695
+DEBUG -- nlft: ic 1869 nlft -1 nlft_check 1869
+DEBUG -- nlft: ic 1870 nlft -1 nlft_check 1870
+DEBUG -- nbot: ic 4558 nbot -1 nbot_check 4558
+DEBUG -- nbot: ic 4870 nbot -1 nbot_check 4870
+DEBUG -- nbot: ic 4872 nbot -1 nbot_check 4872
+DEBUG -- nbot: ic 4873 nbot -1 nbot_check 4873
+DEBUG -- nbot: ic 4878 nbot -1 nbot_check 4878
+DEBUG -- nbot: ic 5026 nbot -1 nbot_check 5026
+DEBUG -- nrht: ic 8180 nrht -1 nrht_check 8180
+DEBUG -- nrht: ic 8344 nrht -1 nrht_check 8344
+DEBUG -- nrht: ic 8346 nrht -1 nrht_check 8346
+DEBUG -- nrht: ic 11145 nrht -1 nrht_check 11145
+DEBUG -- nrht: ic 11147 nrht -1 nrht_check 11147
+DEBUG -- nrht: ic 11310 nrht -1 nrht_check 11310
+DEBUG -- ntop: ic 14464 ntop -1 ntop_check 14464
+DEBUG -- ntop: ic 14613 ntop -1 ntop_check 14613
+DEBUG -- ntop: ic 14618 ntop -1 ntop_check 14618
+DEBUG -- ntop: ic 14619 ntop -1 ntop_check 14619
+DEBUG -- ntop: ic 14621 ntop -1 ntop_check 14621
+DEBUG -- ntop: ic 14932 ntop -1 ntop_check 14932
+DEBUG -- nlft: ic 17621 nlft -1 nlft_check 17621
+DEBUG -- nlft: ic 17622 nlft -1 nlft_check 17622
+DEBUG -- nlft: ic 17795 nlft -1 nlft_check 17795
+DEBUG -- nlft: ic 1863 nlft -1 nlft_check 1863
+DEBUG -- nbot: ic 4847 nbot -1 nbot_check 4847
+DEBUG -- nbot: ic 4871 nbot -1 nbot_check 4871
+DEBUG -- nrht: ic 8324 nrht -1 nrht_check 8324
+DEBUG -- nrht: ic 11135 nrht -1 nrht_check 11135
+DEBUG -- ntop: ic 14588 ntop -1 ntop_check 14588
+DEBUG -- ntop: ic 14612 ntop -1 ntop_check 14612
+DEBUG -- nlft: ic 17596 nlft -1 nlft_check 17596
+DEBUG -- nlft: ic 1851 nlft -1 nlft_check 1851
+DEBUG -- nbot: ic 4832 nbot -1 nbot_check 4832
+DEBUG -- nbot: ic 4859 nbot -1 nbot_check 4859
+DEBUG -- nrht: ic 8294 nrht -1 nrht_check 8294
+DEBUG -- nrht: ic 11109 nrht -1 nrht_check 11109
+DEBUG -- ntop: ic 14544 ntop -1 ntop_check 14544
+DEBUG -- ntop: ic 14571 ntop -1 ntop_check 14571
+DEBUG -- nlft: ic 17552 nlft -1 nlft_check 17552
+DEBUG -- nlft: ic 1840 nlft -1 nlft_check 1840
+DEBUG -- nbot: ic 4813 nbot -1 nbot_check 4813
+DEBUG -- nbot: ic 4897 nbot -1 nbot_check 4897
+DEBUG -- nrht: ic 8245 nrht -1 nrht_check 8245
+DEBUG -- nrht: ic 11090 nrht -1 nrht_check 11090
+DEBUG -- ntop: ic 14438 ntop -1 ntop_check 14438
+DEBUG -- ntop: ic 14522 ntop -1 ntop_check 14522
+DEBUG -- nlft: ic 17495 nlft -1 nlft_check 17495
+DEBUG -- nlft: ic 1691 nlft -1 nlft_check 1691
+DEBUG -- nbot: ic 4527 nbot -1 nbot_check 4527
+DEBUG -- nbot: ic 4983 nbot -1 nbot_check 4983
+DEBUG -- nrht: ic 8106 nrht -1 nrht_check 8106
+DEBUG -- nrht: ic 11212 nrht -1 nrht_check 11212
+DEBUG -- ntop: ic 14335 ntop -1 ntop_check 14335
+DEBUG -- ntop: ic 14791 ntop -1 ntop_check 14791
+DEBUG -- nlft: ic 17627 nlft -1 nlft_check 17627
+DEBUG -- nlft: ic 1832 nlft -1 nlft_check 1832
+DEBUG -- nbot: ic 4790 nbot -1 nbot_check 4790
+DEBUG -- nbot: ic 4880 nbot -1 nbot_check 4880
+DEBUG -- nrht: ic 8207 nrht -1 nrht_check 8207
+DEBUG -- nrht: ic 11056 nrht -1 nrht_check 11056
+DEBUG -- ntop: ic 14383 ntop -1 ntop_check 14383
+DEBUG -- ntop: ic 14473 ntop -1 ntop_check 14473
+DEBUG -- nlft: ic 17431 nlft -1 nlft_check 17431
+DEBUG -- nlft: ic 1813 nlft -1 nlft_check 1813
+DEBUG -- nbot: ic 4790 nbot -1 nbot_check 4790
+DEBUG -- nbot: ic 4883 nbot -1 nbot_check 4883
+DEBUG -- nrht: ic 8199 nrht -1 nrht_check 8199
+DEBUG -- nrht: ic 11068 nrht -1 nrht_check 11068
+DEBUG -- ntop: ic 14384 ntop -1 ntop_check 14384
+DEBUG -- ntop: ic 14477 ntop -1 ntop_check 14477
+DEBUG -- nlft: ic 17454 nlft -1 nlft_check 17454
+DEBUG -- nlft: ic 1695 nlft -1 nlft_check 1695
+DEBUG -- nbot: ic 4490 nbot -1 nbot_check 4490
+DEBUG -- nbot: ic 4960 nbot -1 nbot_check 4960
+DEBUG -- nrht: ic 8081 nrht -1 nrht_check 8081
+DEBUG -- nrht: ic 11193 nrht -1 nrht_check 11193
+DEBUG -- ntop: ic 14314 ntop -1 ntop_check 14314
+DEBUG -- ntop: ic 14784 ntop -1 ntop_check 14784
+DEBUG -- nlft: ic 17579 nlft -1 nlft_check 17579
+DEBUG -- nlft: ic 1803 nlft -1 nlft_check 1803
+DEBUG -- nbot: ic 4776 nbot -1 nbot_check 4776
+DEBUG -- nbot: ic 4876 nbot -1 nbot_check 4876
+DEBUG -- nrht: ic 8173 nrht -1 nrht_check 8173
+DEBUG -- nrht: ic 11046 nrht -1 nrht_check 11046
+DEBUG -- ntop: ic 14343 ntop -1 ntop_check 14343
+DEBUG -- ntop: ic 14443 ntop -1 ntop_check 14443
+DEBUG -- nlft: ic 17416 nlft -1 nlft_check 17416
+DEBUG -- nlft: ic 1809 nlft -1 nlft_check 1809
+DEBUG -- nbot: ic 4559 nbot -1 nbot_check 4559
+DEBUG -- nbot: ic 4875 nbot -1 nbot_check 4875
+DEBUG -- nrht: ic 8125 nrht -1 nrht_check 8125
+DEBUG -- nrht: ic 11086 nrht -1 nrht_check 11086
+DEBUG -- ntop: ic 14336 ntop -1 ntop_check 14336
+DEBUG -- ntop: ic 14652 ntop -1 ntop_check 14652
+DEBUG -- nlft: ic 17402 nlft -1 nlft_check 17402
+DEBUG -- nlft: ic 1681 nlft -1 nlft_check 1681
+DEBUG -- nbot: ic 4476 nbot -1 nbot_check 4476
+DEBUG -- nbot: ic 4929 nbot -1 nbot_check 4929
+DEBUG -- nrht: ic 8034 nrht -1 nrht_check 8034
+DEBUG -- nrht: ic 11136 nrht -1 nrht_check 11136
+DEBUG -- ntop: ic 14241 ntop -1 ntop_check 14241
+DEBUG -- ntop: ic 14694 ntop -1 ntop_check 14694
+DEBUG -- nlft: ic 17489 nlft -1 nlft_check 17489
+DEBUG -- nlft: ic 1780 nlft -1 nlft_check 1780
+DEBUG -- nbot: ic 4522 nbot -1 nbot_check 4522
+DEBUG -- nbot: ic 4841 nbot -1 nbot_check 4841
+DEBUG -- nrht: ic 8051 nrht -1 nrht_check 8051
+DEBUG -- nrht: ic 11016 nrht -1 nrht_check 11016
+DEBUG -- ntop: ic 14226 ntop -1 ntop_check 14226
+DEBUG -- ntop: ic 14545 ntop -1 ntop_check 14545
+DEBUG -- nlft: ic 17287 nlft -1 nlft_check 17287
+DEBUG -- nlft: ic 1689 nlft -1 nlft_check 1689
+DEBUG -- nlft: ic 1788 nlft -1 nlft_check 1788
+DEBUG -- nbot: ic 4488 nbot -1 nbot_check 4488
+DEBUG -- nbot: ic 4547 nbot -1 nbot_check 4547
+DEBUG -- nbot: ic 4925 nbot -1 nbot_check 4925
+DEBUG -- nbot: ic 5856 nbot -1 nbot_check 5856
+DEBUG -- nrht: ic 7889 nrht -1 nrht_check 7889
+DEBUG -- nrht: ic 8128 nrht -1 nrht_check 8128
+DEBUG -- nrht: ic 11131 nrht -1 nrht_check 11131
+DEBUG -- nrht: ic 11369 nrht -1 nrht_check 11369
+DEBUG -- ntop: ic 13402 ntop -1 ntop_check 13402
+DEBUG -- ntop: ic 14334 ntop -1 ntop_check 14334
+DEBUG -- ntop: ic 14712 ntop -1 ntop_check 14712
+DEBUG -- ntop: ic 14770 ntop -1 ntop_check 14770
+DEBUG -- nlft: ic 17471 nlft -1 nlft_check 17471
+DEBUG -- nlft: ic 17569 nlft -1 nlft_check 17569
+DEBUG -- nlft: ic 1764 nlft -1 nlft_check 1764
+DEBUG -- nlft: ic 1818 nlft -1 nlft_check 1818
+DEBUG -- nlft: ic 1820 nlft -1 nlft_check 1820
+DEBUG -- nbot: ic 4533 nbot -1 nbot_check 4533
+DEBUG -- nbot: ic 4818 nbot -1 nbot_check 4818
+DEBUG -- nbot: ic 4824 nbot -1 nbot_check 4824
+DEBUG -- nbot: ic 4826 nbot -1 nbot_check 4826
+DEBUG -- nbot: ic 4844 nbot -1 nbot_check 4844
+DEBUG -- nbot: ic 4957 nbot -1 nbot_check 4957
+DEBUG -- nrht: ic 8128 nrht -1 nrht_check 8128
+DEBUG -- nrht: ic 8230 nrht -1 nrht_check 8230
+DEBUG -- nrht: ic 8236 nrht -1 nrht_check 8236
+DEBUG -- nrht: ic 11066 nrht -1 nrht_check 11066
+DEBUG -- nrht: ic 11072 nrht -1 nrht_check 11072
+DEBUG -- nrht: ic 11175 nrht -1 nrht_check 11175
+DEBUG -- ntop: ic 14346 ntop -1 ntop_check 14346
+DEBUG -- ntop: ic 14458 ntop -1 ntop_check 14458
+DEBUG -- ntop: ic 14476 ntop -1 ntop_check 14476
+DEBUG -- ntop: ic 14478 ntop -1 ntop_check 14478
+DEBUG -- ntop: ic 14484 ntop -1 ntop_check 14484
+DEBUG -- ntop: ic 14770 ntop -1 ntop_check 14770
+DEBUG -- nlft: ic 17482 nlft -1 nlft_check 17482
+DEBUG -- nlft: ic 17484 nlft -1 nlft_check 17484
+DEBUG -- nlft: ic 17539 nlft -1 nlft_check 17539
+DEBUG -- nlft: ic 1802 nlft -1 nlft_check 1802
+DEBUG -- nlft: ic 1820 nlft -1 nlft_check 1820
+DEBUG -- nbot: ic 4780 nbot -1 nbot_check 4780
+DEBUG -- nbot: ic 4782 nbot -1 nbot_check 4782
+DEBUG -- nbot: ic 4856 nbot -1 nbot_check 4856
+DEBUG -- nbot: ic 4862 nbot -1 nbot_check 4862
+DEBUG -- nrht: ic 8230 nrht -1 nrht_check 8230
+DEBUG -- nrht: ic 8236 nrht -1 nrht_check 8236
+DEBUG -- nrht: ic 11106 nrht -1 nrht_check 11106
+DEBUG -- nrht: ic 11112 nrht -1 nrht_check 11112
+DEBUG -- ntop: ic 14480 ntop -1 ntop_check 14480
+DEBUG -- ntop: ic 14486 ntop -1 ntop_check 14486
+DEBUG -- ntop: ic 14560 ntop -1 ntop_check 14560
+DEBUG -- ntop: ic 14562 ntop -1 ntop_check 14562
+DEBUG -- nlft: ic 17522 nlft -1 nlft_check 17522
+DEBUG -- nlft: ic 17540 nlft -1 nlft_check 17540
+DEBUG -- nlft: ic 1678 nlft -1 nlft_check 1678
+DEBUG -- nbot: ic 4484 nbot -1 nbot_check 4484
+DEBUG -- nbot: ic 5914 nbot -1 nbot_check 5914
+DEBUG -- nrht: ic 7941 nrht -1 nrht_check 7941
+DEBUG -- nrht: ic 11481 nrht -1 nrht_check 11481
+DEBUG -- ntop: ic 13508 ntop -1 ntop_check 13508
+DEBUG -- ntop: ic 14938 ntop -1 ntop_check 14938
+DEBUG -- nlft: ic 17744 nlft -1 nlft_check 17744
+DEBUG -- nlft: ic 1820 nlft -1 nlft_check 1820
+DEBUG -- nbot: ic 4808 nbot -1 nbot_check 4808
+DEBUG -- nbot: ic 4991 nbot -1 nbot_check 4991
+DEBUG -- nrht: ic 8264 nrht -1 nrht_check 8264
+DEBUG -- nrht: ic 11214 nrht -1 nrht_check 11214
+DEBUG -- ntop: ic 14487 ntop -1 ntop_check 14487
+DEBUG -- ntop: ic 14670 ntop -1 ntop_check 14670
+DEBUG -- nlft: ic 17658 nlft -1 nlft_check 17658
+DEBUG -- nlft: ic 1715 nlft -1 nlft_check 1715
+DEBUG -- nlft: ic 1823 nlft -1 nlft_check 1823
+DEBUG -- nbot: ic 4560 nbot -1 nbot_check 4560
+DEBUG -- nbot: ic 4802 nbot -1 nbot_check 4802
+DEBUG -- nbot: ic 5008 nbot -1 nbot_check 5008
+DEBUG -- nbot: ic 5043 nbot -1 nbot_check 5043
+DEBUG -- nrht: ic 8200 nrht -1 nrht_check 8200
+DEBUG -- nrht: ic 8282 nrht -1 nrht_check 8282
+DEBUG -- nrht: ic 11244 nrht -1 nrht_check 11244
+DEBUG -- nrht: ic 11327 nrht -1 nrht_check 11327
+DEBUG -- ntop: ic 14484 ntop -1 ntop_check 14484
+DEBUG -- ntop: ic 14518 ntop -1 ntop_check 14518
+DEBUG -- ntop: ic 14724 ntop -1 ntop_check 14724
+DEBUG -- ntop: ic 14967 ntop -1 ntop_check 14967
+DEBUG -- nlft: ic 17703 nlft -1 nlft_check 17703
+DEBUG -- nlft: ic 17812 nlft -1 nlft_check 17812
+DEBUG -- nlft: ic 1778 nlft -1 nlft_check 1778
+DEBUG -- nbot: ic 4808 nbot -1 nbot_check 4808
+DEBUG -- nbot: ic 5022 nbot -1 nbot_check 5022
+DEBUG -- nrht: ic 8284 nrht -1 nrht_check 8284
+DEBUG -- nrht: ic 11274 nrht -1 nrht_check 11274
+DEBUG -- ntop: ic 14536 ntop -1 ntop_check 14536
+DEBUG -- ntop: ic 14750 ntop -1 ntop_check 14750
+DEBUG -- nlft: ic 17780 nlft -1 nlft_check 17780
+Iteration 2500 timestep 0.003800 Sim Time 3.536115 cells 19560 Mass Sum  171748.524709 Mass Change -1.16415e-10
+DEBUG -- nlft: ic 1657 nlft -1 nlft_check 1657
+DEBUG -- nlft: ic 1726 nlft -1 nlft_check 1726
+DEBUG -- nlft: ic 1801 nlft -1 nlft_check 1801
+DEBUG -- nbot: ic 4540 nbot -1 nbot_check 4540
+DEBUG -- nbot: ic 4593 nbot -1 nbot_check 4593
+DEBUG -- nbot: ic 4846 nbot -1 nbot_check 4846
+DEBUG -- nbot: ic 5084 nbot -1 nbot_check 5084
+DEBUG -- nbot: ic 5117 nbot -1 nbot_check 5117
+DEBUG -- nbot: ic 6012 nbot -1 nbot_check 6012
+DEBUG -- nrht: ic 8054 nrht -1 nrht_check 8054
+DEBUG -- nrht: ic 8273 nrht -1 nrht_check 8273
+DEBUG -- nrht: ic 8354 nrht -1 nrht_check 8354
+DEBUG -- nrht: ic 11380 nrht -1 nrht_check 11380
+DEBUG -- nrht: ic 11462 nrht -1 nrht_check 11462
+DEBUG -- nrht: ic 11680 nrht -1 nrht_check 11680
+DEBUG -- ntop: ic 13722 ntop -1 ntop_check 13722
+DEBUG -- ntop: ic 14618 ntop -1 ntop_check 14618
+DEBUG -- ntop: ic 14650 ntop -1 ntop_check 14650
+DEBUG -- ntop: ic 14888 ntop -1 ntop_check 14888
+DEBUG -- ntop: ic 15142 ntop -1 ntop_check 15142
+DEBUG -- ntop: ic 15194 ntop -1 ntop_check 15194
+DEBUG -- nlft: ic 17933 nlft -1 nlft_check 17933
+DEBUG -- nlft: ic 18009 nlft -1 nlft_check 18009
+DEBUG -- nlft: ic 18077 nlft -1 nlft_check 18077
+DEBUG -- nlft: ic 1775 nlft -1 nlft_check 1775
+DEBUG -- nbot: ic 4572 nbot -1 nbot_check 4572
+DEBUG -- nbot: ic 5064 nbot -1 nbot_check 5064
+DEBUG -- nrht: ic 8247 nrht -1 nrht_check 8247
+DEBUG -- nrht: ic 11399 nrht -1 nrht_check 11399
+DEBUG -- ntop: ic 14582 ntop -1 ntop_check 14582
+DEBUG -- ntop: ic 15074 ntop -1 ntop_check 15074
+DEBUG -- nlft: ic 17871 nlft -1 nlft_check 17871
+DEBUG -- nlft: ic 1684 nlft -1 nlft_check 1684
+DEBUG -- nlft: ic 1757 nlft -1 nlft_check 1757
+DEBUG -- nbot: ic 4542 nbot -1 nbot_check 4542
+DEBUG -- nbot: ic 4573 nbot -1 nbot_check 4573
+DEBUG -- nbot: ic 5076 nbot -1 nbot_check 5076
+DEBUG -- nbot: ic 5122 nbot -1 nbot_check 5122
+DEBUG -- nrht: ic 8220 nrht -1 nrht_check 8220
+DEBUG -- nrht: ic 8253 nrht -1 nrht_check 8253
+DEBUG -- nrht: ic 11417 nrht -1 nrht_check 11417
+DEBUG -- nrht: ic 11451 nrht -1 nrht_check 11451
+DEBUG -- ntop: ic 14549 ntop -1 ntop_check 14549
+DEBUG -- ntop: ic 14594 ntop -1 ntop_check 14594
+DEBUG -- ntop: ic 15097 ntop -1 ntop_check 15097
+DEBUG -- ntop: ic 15129 ntop -1 ntop_check 15129
+DEBUG -- nlft: ic 17913 nlft -1 nlft_check 17913
+DEBUG -- nlft: ic 17987 nlft -1 nlft_check 17987
+DEBUG -- nlft: ic 1629 nlft -1 nlft_check 1629
+DEBUG -- nbot: ic 4510 nbot -1 nbot_check 4510
+DEBUG -- nbot: ic 6023 nbot -1 nbot_check 6023
+DEBUG -- nrht: ic 8013 nrht -1 nrht_check 8013
+DEBUG -- nrht: ic 11665 nrht -1 nrht_check 11665
+DEBUG -- ntop: ic 13655 ntop -1 ntop_check 13655
+DEBUG -- ntop: ic 15168 ntop -1 ntop_check 15168
+DEBUG -- nlft: ic 18049 nlft -1 nlft_check 18049
+DEBUG -- nlft: ic 1772 nlft -1 nlft_check 1772
+DEBUG -- nbot: ic 4592 nbot -1 nbot_check 4592
+DEBUG -- nbot: ic 5147 nbot -1 nbot_check 5147
+DEBUG -- nrht: ic 8295 nrht -1 nrht_check 8295
+DEBUG -- nrht: ic 11487 nrht -1 nrht_check 11487
+DEBUG -- ntop: ic 14635 ntop -1 ntop_check 14635
+DEBUG -- ntop: ic 15190 ntop -1 ntop_check 15190
+DEBUG -- nlft: ic 18010 nlft -1 nlft_check 18010
+DEBUG -- nlft: ic 1691 nlft -1 nlft_check 1691
+DEBUG -- nlft: ic 1775 nlft -1 nlft_check 1775
+DEBUG -- nbot: ic 4561 nbot -1 nbot_check 4561
+DEBUG -- nbot: ic 4580 nbot -1 nbot_check 4580
+DEBUG -- nbot: ic 5158 nbot -1 nbot_check 5158
+DEBUG -- nbot: ic 5172 nbot -1 nbot_check 5172
+DEBUG -- nrht: ic 8272 nrht -1 nrht_check 8272
+DEBUG -- nrht: ic 8301 nrht -1 nrht_check 8301
+DEBUG -- nrht: ic 11505 nrht -1 nrht_check 11505
+DEBUG -- nrht: ic 11535 nrht -1 nrht_check 11535
+DEBUG -- ntop: ic 14635 ntop -1 ntop_check 14635
+DEBUG -- ntop: ic 14648 ntop -1 ntop_check 14648
+DEBUG -- ntop: ic 15226 ntop -1 ntop_check 15226
+DEBUG -- ntop: ic 15246 ntop -1 ntop_check 15246
+DEBUG -- nlft: ic 18031 nlft -1 nlft_check 18031
+DEBUG -- nlft: ic 18116 nlft -1 nlft_check 18116
+DEBUG -- nlft: ic 1645 nlft -1 nlft_check 1645
+DEBUG -- nbot: ic 4448 nbot -1 nbot_check 4448
+DEBUG -- nbot: ic 6075 nbot -1 nbot_check 6075
+DEBUG -- nrht: ic 8052 nrht -1 nrht_check 8052
+DEBUG -- nrht: ic 11786 nrht -1 nrht_check 11786
+DEBUG -- ntop: ic 13763 ntop -1 ntop_check 13763
+DEBUG -- ntop: ic 15390 ntop -1 ntop_check 15390
+DEBUG -- nlft: ic 18193 nlft -1 nlft_check 18193
+DEBUG -- nlft: ic 1700 nlft -1 nlft_check 1700
+DEBUG -- nbot: ic 4594 nbot -1 nbot_check 4594
+DEBUG -- nbot: ic 5180 nbot -1 nbot_check 5180
+DEBUG -- nrht: ic 8308 nrht -1 nrht_check 8308
+DEBUG -- nrht: ic 11562 nrht -1 nrht_check 11562
+DEBUG -- ntop: ic 14690 ntop -1 ntop_check 14690
+DEBUG -- ntop: ic 15276 ntop -1 ntop_check 15276
+DEBUG -- nlft: ic 18170 nlft -1 nlft_check 18170
+DEBUG -- nlft: ic 1681 nlft -1 nlft_check 1681
+DEBUG -- nbot: ic 4557 nbot -1 nbot_check 4557
+DEBUG -- nbot: ic 6057 nbot -1 nbot_check 6057
+DEBUG -- nrht: ic 8112 nrht -1 nrht_check 8112
+DEBUG -- nrht: ic 11751 nrht -1 nrht_check 11751
+DEBUG -- ntop: ic 13806 ntop -1 ntop_check 13806
+DEBUG -- ntop: ic 15306 ntop -1 ntop_check 15306
+DEBUG -- nlft: ic 18182 nlft -1 nlft_check 18182
+DEBUG -- nlft: ic 1680 nlft -1 nlft_check 1680
+DEBUG -- nbot: ic 4582 nbot -1 nbot_check 4582
+DEBUG -- nbot: ic 5192 nbot -1 nbot_check 5192
+DEBUG -- nrht: ic 8281 nrht -1 nrht_check 8281
+DEBUG -- nrht: ic 11565 nrht -1 nrht_check 11565
+DEBUG -- ntop: ic 14654 ntop -1 ntop_check 14654
+DEBUG -- ntop: ic 15264 ntop -1 ntop_check 15264
+DEBUG -- nlft: ic 18166 nlft -1 nlft_check 18166
+DEBUG -- nlft: ic 1622 nlft -1 nlft_check 1622
+DEBUG -- nbot: ic 4464 nbot -1 nbot_check 4464
+DEBUG -- nbot: ic 6113 nbot -1 nbot_check 6113
+DEBUG -- nrht: ic 8083 nrht -1 nrht_check 8083
+DEBUG -- nrht: ic 11843 nrht -1 nrht_check 11843
+DEBUG -- ntop: ic 13813 ntop -1 ntop_check 13813
+DEBUG -- ntop: ic 15462 ntop -1 ntop_check 15462
+DEBUG -- nlft: ic 18304 nlft -1 nlft_check 18304
+DEBUG -- nlft: ic 1682 nlft -1 nlft_check 1682
+DEBUG -- nlft: ic 1885 nlft -1 nlft_check 1885
+DEBUG -- nlft: ic 1887 nlft -1 nlft_check 1887
+DEBUG -- nlft: ic 1888 nlft -1 nlft_check 1888
+DEBUG -- nbot: ic 4540 nbot -1 nbot_check 4540
+DEBUG -- nbot: ic 4903 nbot -1 nbot_check 4903
+DEBUG -- nbot: ic 4942 nbot -1 nbot_check 4942
+DEBUG -- nbot: ic 4944 nbot -1 nbot_check 4944
+DEBUG -- nbot: ic 4945 nbot -1 nbot_check 4945
+DEBUG -- nbot: ic 4956 nbot -1 nbot_check 4956
+DEBUG -- nbot: ic 4957 nbot -1 nbot_check 4957
+DEBUG -- nbot: ic 5165 nbot -1 nbot_check 5165
+DEBUG -- nrht: ic 8245 nrht -1 nrht_check 8245
+DEBUG -- nrht: ic 8457 nrht -1 nrht_check 8457
+DEBUG -- nrht: ic 8467 nrht -1 nrht_check 8467
+DEBUG -- nrht: ic 8469 nrht -1 nrht_check 8469
+DEBUG -- nrht: ic 11310 nrht -1 nrht_check 11310
+DEBUG -- nrht: ic 11312 nrht -1 nrht_check 11312
+DEBUG -- nrht: ic 11322 nrht -1 nrht_check 11322
+DEBUG -- nrht: ic 11533 nrht -1 nrht_check 11533
+DEBUG -- ntop: ic 14613 ntop -1 ntop_check 14613
+DEBUG -- ntop: ic 14822 ntop -1 ntop_check 14822
+DEBUG -- ntop: ic 14823 ntop -1 ntop_check 14823
+DEBUG -- ntop: ic 14834 ntop -1 ntop_check 14834
+DEBUG -- ntop: ic 14835 ntop -1 ntop_check 14835
+DEBUG -- ntop: ic 14837 ntop -1 ntop_check 14837
+DEBUG -- ntop: ic 14876 ntop -1 ntop_check 14876
+DEBUG -- ntop: ic 15238 ntop -1 ntop_check 15238
+DEBUG -- nlft: ic 17891 nlft -1 nlft_check 17891
+DEBUG -- nlft: ic 17892 nlft -1 nlft_check 17892
+DEBUG -- nlft: ic 17894 nlft -1 nlft_check 17894
+DEBUG -- nlft: ic 18096 nlft -1 nlft_check 18096
+DEBUG -- nlft: ic 1882 nlft -1 nlft_check 1882
+DEBUG -- nbot: ic 4918 nbot -1 nbot_check 4918
+DEBUG -- nbot: ic 4975 nbot -1 nbot_check 4975
+DEBUG -- nrht: ic 8481 nrht -1 nrht_check 8481
+DEBUG -- nrht: ic 11362 nrht -1 nrht_check 11362
+DEBUG -- ntop: ic 14868 ntop -1 ntop_check 14868
+DEBUG -- ntop: ic 14925 ntop -1 ntop_check 14925
+DEBUG -- nlft: ic 17961 nlft -1 nlft_check 17961
+DEBUG -- nlft: ic 1880 nlft -1 nlft_check 1880
+DEBUG -- nbot: ic 4917 nbot -1 nbot_check 4917
+DEBUG -- nbot: ic 5067 nbot -1 nbot_check 5067
+DEBUG -- nrht: ic 8450 nrht -1 nrht_check 8450
+DEBUG -- nrht: ic 11397 nrht -1 nrht_check 11397
+DEBUG -- ntop: ic 14780 ntop -1 ntop_check 14780
+DEBUG -- ntop: ic 14930 ntop -1 ntop_check 14930
+DEBUG -- nlft: ic 17967 nlft -1 nlft_check 17967
+DEBUG -- nlft: ic 1633 nlft -1 nlft_check 1633
+DEBUG -- nbot: ic 4468 nbot -1 nbot_check 4468
+DEBUG -- nbot: ic 6134 nbot -1 nbot_check 6134
+DEBUG -- nrht: ic 8064 nrht -1 nrht_check 8064
+DEBUG -- nrht: ic 11838 nrht -1 nrht_check 11838
+DEBUG -- ntop: ic 13768 ntop -1 ntop_check 13768
+DEBUG -- ntop: ic 15434 ntop -1 ntop_check 15434
+DEBUG -- nlft: ic 18269 nlft -1 nlft_check 18269
+DEBUG -- nlft: ic 1687 nlft -1 nlft_check 1687
+DEBUG -- nlft: ic 1885 nlft -1 nlft_check 1885
+DEBUG -- nbot: ic 4569 nbot -1 nbot_check 4569
+DEBUG -- nbot: ic 4914 nbot -1 nbot_check 4914
+DEBUG -- nbot: ic 5076 nbot -1 nbot_check 5076
+DEBUG -- nbot: ic 5184 nbot -1 nbot_check 5184
+DEBUG -- nrht: ic 8298 nrht -1 nrht_check 8298
+DEBUG -- nrht: ic 8470 nrht -1 nrht_check 8470
+DEBUG -- nrht: ic 11409 nrht -1 nrht_check 11409
+DEBUG -- nrht: ic 11580 nrht -1 nrht_check 11580
+DEBUG -- ntop: ic 14694 ntop -1 ntop_check 14694
+DEBUG -- ntop: ic 14803 ntop -1 ntop_check 14803
+DEBUG -- ntop: ic 14965 ntop -1 ntop_check 14965
+DEBUG -- ntop: ic 15309 ntop -1 ntop_check 15309
+DEBUG -- nlft: ic 17994 nlft -1 nlft_check 17994
+DEBUG -- nlft: ic 18191 nlft -1 nlft_check 18191
+DEBUG -- nlft: ic 1857 nlft -1 nlft_check 1857
+DEBUG -- nbot: ic 4917 nbot -1 nbot_check 4917
+DEBUG -- nbot: ic 5082 nbot -1 nbot_check 5082
+DEBUG -- nrht: ic 8468 nrht -1 nrht_check 8468
+DEBUG -- nrht: ic 11427 nrht -1 nrht_check 11427
+DEBUG -- ntop: ic 14813 ntop -1 ntop_check 14813
+DEBUG -- ntop: ic 14978 ntop -1 ntop_check 14978
+DEBUG -- nlft: ic 18038 nlft -1 nlft_check 18038
+DEBUG -- nlft: ic 1834 nlft -1 nlft_check 1834
+DEBUG -- nbot: ic 4880 nbot -1 nbot_check 4880
+DEBUG -- nbot: ic 5058 nbot -1 nbot_check 5058
+DEBUG -- nrht: ic 8396 nrht -1 nrht_check 8396
+DEBUG -- nrht: ic 11359 nrht -1 nrht_check 11359
+DEBUG -- ntop: ic 14697 ntop -1 ntop_check 14697
+DEBUG -- ntop: ic 14875 ntop -1 ntop_check 14875
+DEBUG -- nlft: ic 17921 nlft -1 nlft_check 17921
+DEBUG -- nlft: ic 1674 nlft -1 nlft_check 1674
+DEBUG -- nbot: ic 4542 nbot -1 nbot_check 4542
+DEBUG -- nbot: ic 6027 nbot -1 nbot_check 6027
+DEBUG -- nrht: ic 8057 nrht -1 nrht_check 8057
+DEBUG -- nrht: ic 11705 nrht -1 nrht_check 11705
+DEBUG -- ntop: ic 13735 ntop -1 ntop_check 13735
+DEBUG -- ntop: ic 15220 ntop -1 ntop_check 15220
+DEBUG -- nlft: ic 18088 nlft -1 nlft_check 18088
+DEBUG -- nlft: ic 1823 nlft -1 nlft_check 1823
+DEBUG -- nbot: ic 4635 nbot -1 nbot_check 4635
+DEBUG -- nbot: ic 5065 nbot -1 nbot_check 5065
+DEBUG -- nrht: ic 8340 nrht -1 nrht_check 8340
+DEBUG -- nrht: ic 11439 nrht -1 nrht_check 11439
+DEBUG -- ntop: ic 14714 ntop -1 ntop_check 14714
+DEBUG -- ntop: ic 15144 ntop -1 ntop_check 15144
+DEBUG -- nlft: ic 17956 nlft -1 nlft_check 17956
+DEBUG -- nlft: ic 1610 nlft -1 nlft_check 1610
+DEBUG -- nbot: ic 4429 nbot -1 nbot_check 4429
+DEBUG -- nbot: ic 6099 nbot -1 nbot_check 6099
+DEBUG -- nrht: ic 8005 nrht -1 nrht_check 8005
+DEBUG -- nrht: ic 11781 nrht -1 nrht_check 11781
+DEBUG -- ntop: ic 13687 ntop -1 ntop_check 13687
+DEBUG -- ntop: ic 15357 ntop -1 ntop_check 15357
+DEBUG -- nlft: ic 18176 nlft -1 nlft_check 18176
+DEBUG -- nlft: ic 1815 nlft -1 nlft_check 1815
+DEBUG -- nbot: ic 4640 nbot -1 nbot_check 4640
+DEBUG -- nbot: ic 5085 nbot -1 nbot_check 5085
+DEBUG -- nrht: ic 8356 nrht -1 nrht_check 8356
+DEBUG -- nrht: ic 11471 nrht -1 nrht_check 11471
+DEBUG -- ntop: ic 14742 ntop -1 ntop_check 14742
+DEBUG -- ntop: ic 15187 ntop -1 ntop_check 15187
+DEBUG -- nlft: ic 18012 nlft -1 nlft_check 18012
+DEBUG -- nlft: ic 1819 nlft -1 nlft_check 1819
+DEBUG -- nbot: ic 4645 nbot -1 nbot_check 4645
+DEBUG -- nbot: ic 5149 nbot -1 nbot_check 5149
+DEBUG -- nrht: ic 8369 nrht -1 nrht_check 8369
+DEBUG -- nrht: ic 11522 nrht -1 nrht_check 11522
+DEBUG -- ntop: ic 14742 ntop -1 ntop_check 14742
+DEBUG -- ntop: ic 15246 ntop -1 ntop_check 15246
+DEBUG -- nlft: ic 18072 nlft -1 nlft_check 18072
+DEBUG -- nlft: ic 1362 nlft -1 nlft_check 1362
+DEBUG -- nbot: ic 4442 nbot -1 nbot_check 4442
+DEBUG -- nbot: ic 6122 nbot -1 nbot_check 6122
+DEBUG -- nrht: ic 7973 nrht -1 nrht_check 7973
+DEBUG -- nrht: ic 11877 nrht -1 nrht_check 11877
+DEBUG -- ntop: ic 13728 ntop -1 ntop_check 13728
+DEBUG -- ntop: ic 15408 ntop -1 ntop_check 15408
+DEBUG -- nlft: ic 18488 nlft -1 nlft_check 18488
+DEBUG -- nlft: ic 1823 nlft -1 nlft_check 1823
+DEBUG -- nbot: ic 4637 nbot -1 nbot_check 4637
+DEBUG -- nbot: ic 5147 nbot -1 nbot_check 5147
+DEBUG -- nrht: ic 8370 nrht -1 nrht_check 8370
+DEBUG -- nrht: ic 11521 nrht -1 nrht_check 11521
+DEBUG -- ntop: ic 14744 ntop -1 ntop_check 14744
+DEBUG -- ntop: ic 15254 ntop -1 ntop_check 15254
+DEBUG -- nlft: ic 18068 nlft -1 nlft_check 18068
+DEBUG -- nlft: ic 1731 nlft -1 nlft_check 1731
+DEBUG -- nbot: ic 4628 nbot -1 nbot_check 4628
+DEBUG -- nbot: ic 5129 nbot -1 nbot_check 5129
+DEBUG -- nrht: ic 8318 nrht -1 nrht_check 8318
+DEBUG -- nrht: ic 11517 nrht -1 nrht_check 11517
+DEBUG -- ntop: ic 14706 ntop -1 ntop_check 14706
+DEBUG -- ntop: ic 15207 ntop -1 ntop_check 15207
+DEBUG -- nlft: ic 18104 nlft -1 nlft_check 18104
+DEBUG -- nlft: ic 1367 nlft -1 nlft_check 1367
+DEBUG -- nlft: ic 1709 nlft -1 nlft_check 1709
+DEBUG -- nbot: ic 4420 nbot -1 nbot_check 4420
+DEBUG -- nbot: ic 4596 nbot -1 nbot_check 4596
+DEBUG -- nbot: ic 5116 nbot -1 nbot_check 5116
+DEBUG -- nbot: ic 6094 nbot -1 nbot_check 6094
+DEBUG -- nrht: ic 7926 nrht -1 nrht_check 7926
+DEBUG -- nrht: ic 8262 nrht -1 nrht_check 8262
+DEBUG -- nrht: ic 11465 nrht -1 nrht_check 11465
+DEBUG -- nrht: ic 11800 nrht -1 nrht_check 11800
+DEBUG -- ntop: ic 13632 ntop -1 ntop_check 13632
+DEBUG -- ntop: ic 14611 ntop -1 ntop_check 14611
+DEBUG -- ntop: ic 15131 ntop -1 ntop_check 15131
+DEBUG -- ntop: ic 15306 ntop -1 ntop_check 15306
+DEBUG -- nlft: ic 18018 nlft -1 nlft_check 18018
+DEBUG -- nlft: ic 18359 nlft -1 nlft_check 18359
+DEBUG -- nlft: ic 1724 nlft -1 nlft_check 1724
+DEBUG -- nbot: ic 4576 nbot -1 nbot_check 4576
+DEBUG -- nbot: ic 5124 nbot -1 nbot_check 5124
+DEBUG -- nrht: ic 8278 nrht -1 nrht_check 8278
+DEBUG -- nrht: ic 11501 nrht -1 nrht_check 11501
+DEBUG -- ntop: ic 14655 ntop -1 ntop_check 14655
+DEBUG -- ntop: ic 15203 ntop -1 ntop_check 15203
+DEBUG -- nlft: ic 18055 nlft -1 nlft_check 18055
+DEBUG -- nlft: ic 1386 nlft -1 nlft_check 1386
+DEBUG -- nbot: ic 4417 nbot -1 nbot_check 4417
+DEBUG -- nbot: ic 6137 nbot -1 nbot_check 6137
+DEBUG -- nrht: ic 7979 nrht -1 nrht_check 7979
+DEBUG -- nrht: ic 11903 nrht -1 nrht_check 11903
+DEBUG -- ntop: ic 13745 ntop -1 ntop_check 13745
+DEBUG -- ntop: ic 15465 ntop -1 ntop_check 15465
+DEBUG -- nlft: ic 18496 nlft -1 nlft_check 18496
+DEBUG -- nlft: ic 1716 nlft -1 nlft_check 1716
+DEBUG -- nbot: ic 4578 nbot -1 nbot_check 4578
+DEBUG -- nbot: ic 5132 nbot -1 nbot_check 5132
+DEBUG -- nrht: ic 8285 nrht -1 nrht_check 8285
+DEBUG -- nrht: ic 11518 nrht -1 nrht_check 11518
+DEBUG -- ntop: ic 14671 ntop -1 ntop_check 14671
+DEBUG -- ntop: ic 15225 ntop -1 ntop_check 15225
+DEBUG -- nlft: ic 18087 nlft -1 nlft_check 18087
+DEBUG -- nlft: ic 1702 nlft -1 nlft_check 1702
+DEBUG -- nbot: ic 4580 nbot -1 nbot_check 4580
+DEBUG -- nbot: ic 6057 nbot -1 nbot_check 6057
+DEBUG -- nrht: ic 8118 nrht -1 nrht_check 8118
+DEBUG -- nrht: ic 11761 nrht -1 nrht_check 11761
+DEBUG -- ntop: ic 13822 ntop -1 ntop_check 13822
+DEBUG -- ntop: ic 15299 ntop -1 ntop_check 15299
+DEBUG -- nlft: ic 18177 nlft -1 nlft_check 18177
+DEBUG -- nlft: ic 1360 nlft -1 nlft_check 1360
+DEBUG -- nlft: ic 1694 nlft -1 nlft_check 1694
+DEBUG -- nbot: ic 4405 nbot -1 nbot_check 4405
+DEBUG -- nbot: ic 4563 nbot -1 nbot_check 4563
+DEBUG -- nbot: ic 6040 nbot -1 nbot_check 6040
+DEBUG -- nbot: ic 6130 nbot -1 nbot_check 6130
+DEBUG -- nrht: ic 7947 nrht -1 nrht_check 7947
+DEBUG -- nrht: ic 8092 nrht -1 nrht_check 8092
+DEBUG -- nrht: ic 11739 nrht -1 nrht_check 11739
+DEBUG -- nrht: ic 11883 nrht -1 nrht_check 11883
+DEBUG -- ntop: ic 13700 ntop -1 ntop_check 13700
+DEBUG -- ntop: ic 13791 ntop -1 ntop_check 13791
+DEBUG -- ntop: ic 15268 ntop -1 ntop_check 15268
+DEBUG -- ntop: ic 15425 ntop -1 ntop_check 15425
+DEBUG -- nlft: ic 18137 nlft -1 nlft_check 18137
+DEBUG -- nlft: ic 18470 nlft -1 nlft_check 18470
+DEBUG -- nlft: ic 1672 nlft -1 nlft_check 1672
+DEBUG -- nbot: ic 4566 nbot -1 nbot_check 4566
+DEBUG -- nbot: ic 6037 nbot -1 nbot_check 6037
+DEBUG -- nrht: ic 8084 nrht -1 nrht_check 8084
+DEBUG -- nrht: ic 11739 nrht -1 nrht_check 11739
+DEBUG -- ntop: ic 13786 ntop -1 ntop_check 13786
+DEBUG -- ntop: ic 15257 ntop -1 ntop_check 15257
+DEBUG -- nlft: ic 18151 nlft -1 nlft_check 18151
+DEBUG -- nlft: ic 1386 nlft -1 nlft_check 1386
+DEBUG -- nbot: ic 4421 nbot -1 nbot_check 4421
+DEBUG -- nbot: ic 6233 nbot -1 nbot_check 6233
+DEBUG -- nrht: ic 7950 nrht -1 nrht_check 7950
+DEBUG -- nrht: ic 11940 nrht -1 nrht_check 11940
+DEBUG -- ntop: ic 13657 ntop -1 ntop_check 13657
+DEBUG -- ntop: ic 15469 ntop -1 ntop_check 15469
+DEBUG -- nlft: ic 18504 nlft -1 nlft_check 18504
+DEBUG -- nlft: ic 1665 nlft -1 nlft_check 1665
+DEBUG -- nbot: ic 4558 nbot -1 nbot_check 4558
+DEBUG -- nbot: ic 6036 nbot -1 nbot_check 6036
+DEBUG -- nrht: ic 8064 nrht -1 nrht_check 8064
+DEBUG -- nrht: ic 11723 nrht -1 nrht_check 11723
+DEBUG -- ntop: ic 13751 ntop -1 ntop_check 13751
+DEBUG -- ntop: ic 15229 ntop -1 ntop_check 15229
+DEBUG -- nlft: ic 18122 nlft -1 nlft_check 18122
+DEBUG -- nlft: ic 1366 nlft -1 nlft_check 1366
+DEBUG -- nlft: ic 1657 nlft -1 nlft_check 1657
+DEBUG -- nbot: ic 4382 nbot -1 nbot_check 4382
+DEBUG -- nbot: ic 4470 nbot -1 nbot_check 4470
+DEBUG -- nbot: ic 6034 nbot -1 nbot_check 6034
+DEBUG -- nbot: ic 6192 nbot -1 nbot_check 6192
+DEBUG -- nrht: ic 7897 nrht -1 nrht_check 7897
+DEBUG -- nrht: ic 8028 nrht -1 nrht_check 8028
+DEBUG -- nrht: ic 11747 nrht -1 nrht_check 11747
+DEBUG -- nrht: ic 11877 nrht -1 nrht_check 11877
+DEBUG -- ntop: ic 13582 ntop -1 ntop_check 13582
+DEBUG -- ntop: ic 13741 ntop -1 ntop_check 13741
+DEBUG -- ntop: ic 15305 ntop -1 ntop_check 15305
+DEBUG -- ntop: ic 15392 ntop -1 ntop_check 15392
+DEBUG -- nlft: ic 18118 nlft -1 nlft_check 18118
+DEBUG -- nlft: ic 18408 nlft -1 nlft_check 18408
+DEBUG -- nlft: ic 1669 nlft -1 nlft_check 1669
+DEBUG -- nbot: ic 4494 nbot -1 nbot_check 4494
+DEBUG -- nbot: ic 6100 nbot -1 nbot_check 6100
+DEBUG -- nrht: ic 8106 nrht -1 nrht_check 8106
+DEBUG -- nrht: ic 11853 nrht -1 nrht_check 11853
+DEBUG -- ntop: ic 13859 ntop -1 ntop_check 13859
+DEBUG -- ntop: ic 15465 ntop -1 ntop_check 15465
+DEBUG -- nlft: ic 18290 nlft -1 nlft_check 18290
+DEBUG -- nlft: ic 1333 nlft -1 nlft_check 1333
+DEBUG -- nbot: ic 4393 nbot -1 nbot_check 4393
+DEBUG -- nbot: ic 6221 nbot -1 nbot_check 6221
+DEBUG -- nrht: ic 7920 nrht -1 nrht_check 7920
+DEBUG -- nrht: ic 11938 nrht -1 nrht_check 11938
+DEBUG -- ntop: ic 13637 ntop -1 ntop_check 13637
+DEBUG -- ntop: ic 15465 ntop -1 ntop_check 15465
+DEBUG -- nlft: ic 18525 nlft -1 nlft_check 18525
+DEBUG -- nlft: ic 1647 nlft -1 nlft_check 1647
+DEBUG -- nbot: ic 4462 nbot -1 nbot_check 4462
+DEBUG -- nbot: ic 6094 nbot -1 nbot_check 6094
+DEBUG -- nrht: ic 8030 nrht -1 nrht_check 8030
+DEBUG -- nrht: ic 11785 nrht -1 nrht_check 11785
+DEBUG -- ntop: ic 13721 ntop -1 ntop_check 13721
+DEBUG -- ntop: ic 15353 ntop -1 ntop_check 15353
+DEBUG -- nlft: ic 18168 nlft -1 nlft_check 18168
+DEBUG -- nlft: ic 1353 nlft -1 nlft_check 1353
+DEBUG -- nlft: ic 1675 nlft -1 nlft_check 1675
+DEBUG -- nbot: ic 4420 nbot -1 nbot_check 4420
+DEBUG -- nbot: ic 4496 nbot -1 nbot_check 4496
+DEBUG -- nbot: ic 6134 nbot -1 nbot_check 6134
+DEBUG -- nbot: ic 6265 nbot -1 nbot_check 6265
+DEBUG -- nrht: ic 7963 nrht -1 nrht_check 7963
+DEBUG -- nrht: ic 8097 nrht -1 nrht_check 8097
+DEBUG -- nrht: ic 11886 nrht -1 nrht_check 11886
+DEBUG -- nrht: ic 12019 nrht -1 nrht_check 12019
+DEBUG -- ntop: ic 13717 ntop -1 ntop_check 13717
+DEBUG -- ntop: ic 13849 ntop -1 ntop_check 13849
+DEBUG -- ntop: ic 15487 ntop -1 ntop_check 15487
+DEBUG -- ntop: ic 15562 ntop -1 ntop_check 15562
+DEBUG -- nlft: ic 18308 nlft -1 nlft_check 18308
+DEBUG -- nlft: ic 18629 nlft -1 nlft_check 18629
+DEBUG -- nlft: ic 1402 nlft -1 nlft_check 1402
+DEBUG -- nbot: ic 4463 nbot -1 nbot_check 4463
+DEBUG -- nbot: ic 6104 nbot -1 nbot_check 6104
+DEBUG -- nrht: ic 7977 nrht -1 nrht_check 7977
+DEBUG -- nrht: ic 11878 nrht -1 nrht_check 11878
+DEBUG -- ntop: ic 13751 ntop -1 ntop_check 13751
+DEBUG -- ntop: ic 15392 ntop -1 ntop_check 15392
+DEBUG -- nlft: ic 18453 nlft -1 nlft_check 18453
+Iteration 2600 timestep 0.004190 Sim Time 3.938242 cells 19856 Mass Sum  171748.524709 Mass Change -1.16415e-10
+DEBUG -- nbot: ic 439 nbot -1 nbot_check 439
+DEBUG -- nlft: ic 1343 nlft -1 nlft_check 1343
+DEBUG -- nbot: ic 6290 nbot -1 nbot_check 6290
+DEBUG -- nrht: ic 7279 nrht -1 nrht_check 7279
+DEBUG -- nrht: ic 12751 nrht -1 nrht_check 12751
+DEBUG -- ntop: ic 13740 ntop -1 ntop_check 13740
+DEBUG -- nlft: ic 18687 nlft -1 nlft_check 18687
+DEBUG -- ntop: ic 19591 ntop -1 ntop_check 19591
+DEBUG -- nlft: ic 1405 nlft -1 nlft_check 1405
+DEBUG -- nbot: ic 4473 nbot -1 nbot_check 4473
+DEBUG -- nbot: ic 6133 nbot -1 nbot_check 6133
+DEBUG -- nrht: ic 7996 nrht -1 nrht_check 7996
+DEBUG -- nrht: ic 11919 nrht -1 nrht_check 11919
+DEBUG -- ntop: ic 13782 ntop -1 ntop_check 13782
+DEBUG -- ntop: ic 15442 ntop -1 ntop_check 15442
+DEBUG -- nlft: ic 18510 nlft -1 nlft_check 18510
+DEBUG -- nbot: ic 459 nbot -1 nbot_check 459
+DEBUG -- nlft: ic 1327 nlft -1 nlft_check 1327
+DEBUG -- nbot: ic 6250 nbot -1 nbot_check 6250
+DEBUG -- nrht: ic 7232 nrht -1 nrht_check 7232
+DEBUG -- nrht: ic 12678 nrht -1 nrht_check 12678
+DEBUG -- ntop: ic 13660 ntop -1 ntop_check 13660
+DEBUG -- nlft: ic 18583 nlft -1 nlft_check 18583
+DEBUG -- ntop: ic 19451 ntop -1 ntop_check 19451
+DEBUG -- nlft: ic 1398 nlft -1 nlft_check 1398
+DEBUG -- nbot: ic 4422 nbot -1 nbot_check 4422
+DEBUG -- nbot: ic 6119 nbot -1 nbot_check 6119
+DEBUG -- nrht: ic 7971 nrht -1 nrht_check 7971
+DEBUG -- nrht: ic 11896 nrht -1 nrht_check 11896
+DEBUG -- ntop: ic 13748 ntop -1 ntop_check 13748
+DEBUG -- ntop: ic 15445 ntop -1 ntop_check 15445
+DEBUG -- nlft: ic 18469 nlft -1 nlft_check 18469
+DEBUG -- nlft: ic 1398 nlft -1 nlft_check 1398
+DEBUG -- nbot: ic 4434 nbot -1 nbot_check 4434
+DEBUG -- nbot: ic 6125 nbot -1 nbot_check 6125
+DEBUG -- nrht: ic 7986 nrht -1 nrht_check 7986
+DEBUG -- nrht: ic 11921 nrht -1 nrht_check 11921
+DEBUG -- ntop: ic 13782 ntop -1 ntop_check 13782
+DEBUG -- ntop: ic 15473 ntop -1 ntop_check 15473
+DEBUG -- nlft: ic 18509 nlft -1 nlft_check 18509
+DEBUG -- nbot: ic 490 nbot -1 nbot_check 490
+DEBUG -- nlft: ic 1336 nlft -1 nlft_check 1336
+DEBUG -- nbot: ic 6292 nbot -1 nbot_check 6292
+DEBUG -- nrht: ic 7237 nrht -1 nrht_check 7237
+DEBUG -- nrht: ic 12701 nrht -1 nrht_check 12701
+DEBUG -- ntop: ic 13646 ntop -1 ntop_check 13646
+DEBUG -- nlft: ic 18602 nlft -1 nlft_check 18602
+DEBUG -- ntop: ic 19448 ntop -1 ntop_check 19448
+DEBUG -- nlft: ic 1389 nlft -1 nlft_check 1389
+DEBUG -- nbot: ic 4441 nbot -1 nbot_check 4441
+DEBUG -- nbot: ic 6240 nbot -1 nbot_check 6240
+DEBUG -- nrht: ic 7980 nrht -1 nrht_check 7980
+DEBUG -- nrht: ic 11999 nrht -1 nrht_check 11999
+DEBUG -- ntop: ic 13739 ntop -1 ntop_check 13739
+DEBUG -- ntop: ic 15538 ntop -1 ntop_check 15538
+DEBUG -- nlft: ic 18590 nlft -1 nlft_check 18590
+DEBUG -- nbot: ic 473 nbot -1 nbot_check 473
+DEBUG -- nlft: ic 1311 nlft -1 nlft_check 1311
+DEBUG -- nbot: ic 6287 nbot -1 nbot_check 6287
+DEBUG -- nrht: ic 7211 nrht -1 nrht_check 7211
+DEBUG -- nrht: ic 12703 nrht -1 nrht_check 12703
+DEBUG -- ntop: ic 13627 ntop -1 ntop_check 13627
+DEBUG -- nlft: ic 18603 nlft -1 nlft_check 18603
+DEBUG -- ntop: ic 19441 ntop -1 ntop_check 19441
+DEBUG -- nlft: ic 1409 nlft -1 nlft_check 1409
+DEBUG -- nbot: ic 4448 nbot -1 nbot_check 4448
+DEBUG -- nbot: ic 6253 nbot -1 nbot_check 6253
+DEBUG -- nrht: ic 8005 nrht -1 nrht_check 8005
+DEBUG -- nrht: ic 12022 nrht -1 nrht_check 12022
+DEBUG -- ntop: ic 13774 ntop -1 ntop_check 13774
+DEBUG -- ntop: ic 15579 ntop -1 ntop_check 15579
+DEBUG -- nlft: ic 18618 nlft -1 nlft_check 18618
+DEBUG -- nbot: ic 493 nbot -1 nbot_check 493
+DEBUG -- nlft: ic 1239 nlft -1 nlft_check 1239
+DEBUG -- nbot: ic 6292 nbot -1 nbot_check 6292
+DEBUG -- nrht: ic 7205 nrht -1 nrht_check 7205
+DEBUG -- nrht: ic 12745 nrht -1 nrht_check 12745
+DEBUG -- ntop: ic 13658 ntop -1 ntop_check 13658
+DEBUG -- nlft: ic 18711 nlft -1 nlft_check 18711
+DEBUG -- ntop: ic 19457 ntop -1 ntop_check 19457
+DEBUG -- nlft: ic 1347 nlft -1 nlft_check 1347
+DEBUG -- nbot: ic 4429 nbot -1 nbot_check 4429
+DEBUG -- nbot: ic 6228 nbot -1 nbot_check 6228
+DEBUG -- nrht: ic 7938 nrht -1 nrht_check 7938
+DEBUG -- nrht: ic 11981 nrht -1 nrht_check 11981
+DEBUG -- ntop: ic 13691 ntop -1 ntop_check 13691
+DEBUG -- ntop: ic 15490 ntop -1 ntop_check 15490
+DEBUG -- nlft: ic 18572 nlft -1 nlft_check 18572
+DEBUG -- nbot: ic 509 nbot -1 nbot_check 509
+DEBUG -- nlft: ic 1254 nlft -1 nlft_check 1254
+DEBUG -- nbot: ic 6369 nbot -1 nbot_check 6369
+DEBUG -- nrht: ic 7269 nrht -1 nrht_check 7269
+DEBUG -- nrht: ic 12849 nrht -1 nrht_check 12849
+DEBUG -- ntop: ic 13749 ntop -1 ntop_check 13749
+DEBUG -- nlft: ic 18864 nlft -1 nlft_check 18864
+DEBUG -- ntop: ic 19609 ntop -1 ntop_check 19609
+DEBUG -- nlft: ic 1380 nlft -1 nlft_check 1380
+DEBUG -- nbot: ic 4478 nbot -1 nbot_check 4478
+DEBUG -- nbot: ic 6293 nbot -1 nbot_check 6293
+DEBUG -- nrht: ic 8023 nrht -1 nrht_check 8023
+DEBUG -- nrht: ic 12088 nrht -1 nrht_check 12088
+DEBUG -- ntop: ic 13818 ntop -1 ntop_check 13818
+DEBUG -- ntop: ic 15633 ntop -1 ntop_check 15633
+DEBUG -- nlft: ic 18731 nlft -1 nlft_check 18731
+DEBUG -- nbot: ic 525 nbot -1 nbot_check 525
+DEBUG -- nlft: ic 1340 nlft -1 nlft_check 1340
+DEBUG -- nbot: ic 6244 nbot -1 nbot_check 6244
+DEBUG -- nrht: ic 7236 nrht -1 nrht_check 7236
+DEBUG -- nrht: ic 12687 nrht -1 nrht_check 12687
+DEBUG -- ntop: ic 13679 ntop -1 ntop_check 13679
+DEBUG -- nlft: ic 18583 nlft -1 nlft_check 18583
+DEBUG -- ntop: ic 19398 ntop -1 ntop_check 19398
+DEBUG -- nbot: ic 476 nbot -1 nbot_check 476
+DEBUG -- nlft: ic 1258 nlft -1 nlft_check 1258
+DEBUG -- nbot: ic 6343 nbot -1 nbot_check 6343
+DEBUG -- nrht: ic 7235 nrht -1 nrht_check 7235
+DEBUG -- nrht: ic 12827 nrht -1 nrht_check 12827
+DEBUG -- ntop: ic 13719 ntop -1 ntop_check 13719
+DEBUG -- nlft: ic 18804 nlft -1 nlft_check 18804
+DEBUG -- ntop: ic 19586 ntop -1 ntop_check 19586
+DEBUG -- nbot: ic 539 nbot -1 nbot_check 539
+DEBUG -- nlft: ic 1353 nlft -1 nlft_check 1353
+DEBUG -- nbot: ic 6309 nbot -1 nbot_check 6309
+DEBUG -- nrht: ic 7318 nrht -1 nrht_check 7318
+DEBUG -- nrht: ic 12821 nrht -1 nrht_check 12821
+DEBUG -- ntop: ic 13830 ntop -1 ntop_check 13830
+DEBUG -- nlft: ic 18786 nlft -1 nlft_check 18786
+DEBUG -- ntop: ic 19600 ntop -1 ntop_check 19600
+DEBUG -- nbot: ic 472 nbot -1 nbot_check 472
+DEBUG -- nlft: ic 1238 nlft -1 nlft_check 1238
+DEBUG -- nbot: ic 6366 nbot -1 nbot_check 6366
+DEBUG -- nrht: ic 7239 nrht -1 nrht_check 7239
+DEBUG -- nrht: ic 12859 nrht -1 nrht_check 12859
+DEBUG -- ntop: ic 13732 ntop -1 ntop_check 13732
+DEBUG -- nlft: ic 18860 nlft -1 nlft_check 18860
+DEBUG -- ntop: ic 19626 ntop -1 ntop_check 19626
+DEBUG -- nbot: ic 549 nbot -1 nbot_check 549
+DEBUG -- nlft: ic 1361 nlft -1 nlft_check 1361
+DEBUG -- nbot: ic 6318 nbot -1 nbot_check 6318
+DEBUG -- nrht: ic 7287 nrht -1 nrht_check 7287
+DEBUG -- nrht: ic 12768 nrht -1 nrht_check 12768
+DEBUG -- ntop: ic 13737 ntop -1 ntop_check 13737
+DEBUG -- nlft: ic 18694 nlft -1 nlft_check 18694
+DEBUG -- ntop: ic 19506 ntop -1 ntop_check 19506
+DEBUG -- nbot: ic 479 nbot -1 nbot_check 479
+DEBUG -- nlft: ic 1249 nlft -1 nlft_check 1249
+DEBUG -- nbot: ic 6629 nbot -1 nbot_check 6629
+DEBUG -- nrht: ic 7168 nrht -1 nrht_check 7168
+DEBUG -- nrht: ic 12894 nrht -1 nrht_check 12894
+DEBUG -- ntop: ic 13433 ntop -1 ntop_check 13433
+DEBUG -- nlft: ic 18813 nlft -1 nlft_check 18813
+DEBUG -- ntop: ic 19583 ntop -1 ntop_check 19583
+DEBUG -- nbot: ic 517 nbot -1 nbot_check 517
+DEBUG -- nlft: ic 1344 nlft -1 nlft_check 1344
+DEBUG -- nbot: ic 6316 nbot -1 nbot_check 6316
+DEBUG -- nrht: ic 7261 nrht -1 nrht_check 7261
+DEBUG -- nrht: ic 12770 nrht -1 nrht_check 12770
+DEBUG -- ntop: ic 13715 ntop -1 ntop_check 13715
+DEBUG -- nlft: ic 18687 nlft -1 nlft_check 18687
+DEBUG -- ntop: ic 19514 ntop -1 ntop_check 19514
+DEBUG -- nbot: ic 486 nbot -1 nbot_check 486
+DEBUG -- nlft: ic 1265 nlft -1 nlft_check 1265
+DEBUG -- nbot: ic 6648 nbot -1 nbot_check 6648
+DEBUG -- nrht: ic 7223 nrht -1 nrht_check 7223
+DEBUG -- nrht: ic 12971 nrht -1 nrht_check 12971
+DEBUG -- ntop: ic 13546 ntop -1 ntop_check 13546
+DEBUG -- nlft: ic 18929 nlft -1 nlft_check 18929
+DEBUG -- ntop: ic 19708 ntop -1 ntop_check 19708
+DEBUG -- nbot: ic 537 nbot -1 nbot_check 537
+DEBUG -- nlft: ic 1277 nlft -1 nlft_check 1277
+DEBUG -- nbot: ic 6354 nbot -1 nbot_check 6354
+DEBUG -- nrht: ic 7291 nrht -1 nrht_check 7291
+DEBUG -- nrht: ic 12884 nrht -1 nrht_check 12884
+DEBUG -- ntop: ic 13821 ntop -1 ntop_check 13821
+DEBUG -- nlft: ic 18898 nlft -1 nlft_check 18898
+DEBUG -- ntop: ic 19638 ntop -1 ntop_check 19638
+DEBUG -- nbot: ic 476 nbot -1 nbot_check 476
+DEBUG -- nbot: ic 538 nbot -1 nbot_check 538
+DEBUG -- nlft: ic 1210 nlft -1 nlft_check 1210
+DEBUG -- nlft: ic 1276 nlft -1 nlft_check 1276
+DEBUG -- nbot: ic 6338 nbot -1 nbot_check 6338
+DEBUG -- nbot: ic 6614 nbot -1 nbot_check 6614
+DEBUG -- nrht: ic 7177 nrht -1 nrht_check 7177
+DEBUG -- nrht: ic 7268 nrht -1 nrht_check 7268
+DEBUG -- nrht: ic 12835 nrht -1 nrht_check 12835
+DEBUG -- nrht: ic 12925 nrht -1 nrht_check 12925
+DEBUG -- ntop: ic 13488 ntop -1 ntop_check 13488
+DEBUG -- ntop: ic 13765 ntop -1 ntop_check 13765
+DEBUG -- nlft: ic 18827 nlft -1 nlft_check 18827
+DEBUG -- nlft: ic 18892 nlft -1 nlft_check 18892
+DEBUG -- ntop: ic 19565 ntop -1 ntop_check 19565
+DEBUG -- ntop: ic 19626 ntop -1 ntop_check 19626
+Iteration 2700 timestep 0.004282 Sim Time 4.370242 cells 20308 Mass Sum  171748.524709 Mass Change -1.16415e-10
+DEBUG -- nbot: ic 486 nbot -1 nbot_check 486
+DEBUG -- nlft: ic 1254 nlft -1 nlft_check 1254
+DEBUG -- nbot: ic 6322 nbot -1 nbot_check 6322
+DEBUG -- nrht: ic 7230 nrht -1 nrht_check 7230
+DEBUG -- nrht: ic 12829 nrht -1 nrht_check 12829
+DEBUG -- ntop: ic 13737 ntop -1 ntop_check 13737
+DEBUG -- nlft: ic 18805 nlft -1 nlft_check 18805
+DEBUG -- ntop: ic 19573 ntop -1 ntop_check 19573
+DEBUG -- nbot: ic 462 nbot -1 nbot_check 462
+DEBUG -- nlft: ic 1206 nlft -1 nlft_check 1206
+DEBUG -- nbot: ic 6631 nbot -1 nbot_check 6631
+DEBUG -- nrht: ic 7172 nrht -1 nrht_check 7172
+DEBUG -- nrht: ic 12942 nrht -1 nrht_check 12942
+DEBUG -- ntop: ic 13483 ntop -1 ntop_check 13483
+DEBUG -- nlft: ic 18908 nlft -1 nlft_check 18908
+DEBUG -- ntop: ic 19652 ntop -1 ntop_check 19652
+DEBUG -- nbot: ic 497 nbot -1 nbot_check 497
+DEBUG -- nlft: ic 1249 nlft -1 nlft_check 1249
+DEBUG -- nbot: ic 6333 nbot -1 nbot_check 6333
+DEBUG -- nrht: ic 7258 nrht -1 nrht_check 7258
+DEBUG -- nrht: ic 12885 nrht -1 nrht_check 12885
+DEBUG -- ntop: ic 13810 ntop -1 ntop_check 13810
+DEBUG -- nlft: ic 18894 nlft -1 nlft_check 18894
+DEBUG -- ntop: ic 19646 ntop -1 ntop_check 19646
+DEBUG -- nbot: ic 377 nbot -1 nbot_check 377
+DEBUG -- nlft: ic 1207 nlft -1 nlft_check 1207
+DEBUG -- nbot: ic 6608 nbot -1 nbot_check 6608
+DEBUG -- nrht: ic 7130 nrht -1 nrht_check 7130
+DEBUG -- nrht: ic 12948 nrht -1 nrht_check 12948
+DEBUG -- ntop: ic 13470 ntop -1 ntop_check 13470
+DEBUG -- nlft: ic 18871 nlft -1 nlft_check 18871
+DEBUG -- ntop: ic 19701 ntop -1 ntop_check 19701
+DEBUG -- nbot: ic 510 nbot -1 nbot_check 510
+DEBUG -- nlft: ic 1266 nlft -1 nlft_check 1266
+DEBUG -- nbot: ic 6626 nbot -1 nbot_check 6626
+DEBUG -- nrht: ic 7244 nrht -1 nrht_check 7244
+DEBUG -- nrht: ic 12995 nrht -1 nrht_check 12995
+DEBUG -- ntop: ic 13613 ntop -1 ntop_check 13613
+DEBUG -- nlft: ic 18973 nlft -1 nlft_check 18973
+DEBUG -- ntop: ic 19729 ntop -1 ntop_check 19729
+DEBUG -- nbot: ic 400 nbot -1 nbot_check 400
+DEBUG -- nlft: ic 1214 nlft -1 nlft_check 1214
+DEBUG -- nbot: ic 6685 nbot -1 nbot_check 6685
+DEBUG -- nrht: ic 7221 nrht -1 nrht_check 7221
+DEBUG -- nrht: ic 13097 nrht -1 nrht_check 13097
+DEBUG -- ntop: ic 13633 ntop -1 ntop_check 13633
+DEBUG -- nlft: ic 19104 nlft -1 nlft_check 19104
+DEBUG -- ntop: ic 19918 ntop -1 ntop_check 19918
+DEBUG -- nbot: ic 487 nbot -1 nbot_check 487
+DEBUG -- nlft: ic 1252 nlft -1 nlft_check 1252
+DEBUG -- nbot: ic 6609 nbot -1 nbot_check 6609
+DEBUG -- nrht: ic 7206 nrht -1 nrht_check 7206
+DEBUG -- nrht: ic 12961 nrht -1 nrht_check 12961
+DEBUG -- ntop: ic 13558 ntop -1 ntop_check 13558
+DEBUG -- nlft: ic 18915 nlft -1 nlft_check 18915
+DEBUG -- ntop: ic 19680 ntop -1 ntop_check 19680
+DEBUG -- nbot: ic 410 nbot -1 nbot_check 410
+DEBUG -- nlft: ic 1216 nlft -1 nlft_check 1216
+DEBUG -- nbot: ic 6721 nbot -1 nbot_check 6721
+DEBUG -- nrht: ic 7217 nrht -1 nrht_check 7217
+DEBUG -- nrht: ic 13089 nrht -1 nrht_check 13089
+DEBUG -- ntop: ic 13585 ntop -1 ntop_check 13585
+DEBUG -- nlft: ic 19090 nlft -1 nlft_check 19090
+DEBUG -- ntop: ic 19896 ntop -1 ntop_check 19896
+DEBUG -- nbot: ic 492 nbot -1 nbot_check 492
+DEBUG -- nlft: ic 1222 nlft -1 nlft_check 1222
+DEBUG -- nbot: ic 6638 nbot -1 nbot_check 6638
+DEBUG -- nrht: ic 7220 nrht -1 nrht_check 7220
+DEBUG -- nrht: ic 13007 nrht -1 nrht_check 13007
+DEBUG -- ntop: ic 13589 ntop -1 ntop_check 13589
+DEBUG -- nlft: ic 19005 nlft -1 nlft_check 19005
+DEBUG -- ntop: ic 19735 ntop -1 ntop_check 19735
+DEBUG -- nbot: ic 393 nbot -1 nbot_check 393
+DEBUG -- nlft: ic 1208 nlft -1 nlft_check 1208
+DEBUG -- nbot: ic 6710 nbot -1 nbot_check 6710
+DEBUG -- nrht: ic 7200 nrht -1 nrht_check 7200
+DEBUG -- nrht: ic 13106 nrht -1 nrht_check 13106
+DEBUG -- ntop: ic 13596 ntop -1 ntop_check 13596
+DEBUG -- nlft: ic 19098 nlft -1 nlft_check 19098
+DEBUG -- ntop: ic 19913 ntop -1 ntop_check 19913
+DEBUG -- nbot: ic 517 nbot -1 nbot_check 517
+DEBUG -- nlft: ic 1248 nlft -1 nlft_check 1248
+DEBUG -- nbot: ic 6667 nbot -1 nbot_check 6667
+DEBUG -- nrht: ic 7257 nrht -1 nrht_check 7257
+DEBUG -- nrht: ic 13066 nrht -1 nrht_check 13066
+DEBUG -- ntop: ic 13656 ntop -1 ntop_check 13656
+DEBUG -- nlft: ic 19075 nlft -1 nlft_check 19075
+DEBUG -- ntop: ic 19806 ntop -1 ntop_check 19806
+DEBUG -- nlft: ic 108 nlft -1 nlft_check 108
+DEBUG -- nbot: ic 387 nbot -1 nbot_check 387
+DEBUG -- nbot: ic 6736 nbot -1 nbot_check 6736
+DEBUG -- nrht: ic 7019 nrht -1 nrht_check 7019
+DEBUG -- nrht: ic 13323 nrht -1 nrht_check 13323
+DEBUG -- ntop: ic 13606 ntop -1 ntop_check 13606
+DEBUG -- ntop: ic 19955 ntop -1 ntop_check 19955
+DEBUG -- nlft: ic 20234 nlft -1 nlft_check 20234
+DEBUG -- nbot: ic 430 nbot -1 nbot_check 430
+DEBUG -- nlft: ic 1252 nlft -1 nlft_check 1252
+DEBUG -- nbot: ic 6683 nbot -1 nbot_check 6683
+DEBUG -- nrht: ic 7248 nrht -1 nrht_check 7248
+DEBUG -- nrht: ic 13099 nrht -1 nrht_check 13099
+DEBUG -- ntop: ic 13664 ntop -1 ntop_check 13664
+DEBUG -- nlft: ic 19095 nlft -1 nlft_check 19095
+DEBUG -- ntop: ic 19917 ntop -1 ntop_check 19917
+DEBUG -- nlft: ic 119 nlft -1 nlft_check 119
+DEBUG -- nbot: ic 389 nbot -1 nbot_check 389
+DEBUG -- nbot: ic 6726 nbot -1 nbot_check 6726
+DEBUG -- nrht: ic 7002 nrht -1 nrht_check 7002
+DEBUG -- nrht: ic 13292 nrht -1 nrht_check 13292
+DEBUG -- ntop: ic 13568 ntop -1 ntop_check 13568
+DEBUG -- ntop: ic 19905 ntop -1 ntop_check 19905
+DEBUG -- nlft: ic 20175 nlft -1 nlft_check 20175
+DEBUG -- nbot: ic 415 nbot -1 nbot_check 415
+DEBUG -- nlft: ic 1235 nlft -1 nlft_check 1235
+DEBUG -- nbot: ic 6646 nbot -1 nbot_check 6646
+DEBUG -- nrht: ic 7189 nrht -1 nrht_check 7189
+DEBUG -- nrht: ic 13050 nrht -1 nrht_check 13050
+DEBUG -- ntop: ic 13593 ntop -1 ntop_check 13593
+DEBUG -- nlft: ic 19004 nlft -1 nlft_check 19004
+DEBUG -- ntop: ic 19824 ntop -1 ntop_check 19824
+DEBUG -- nlft: ic 132 nlft -1 nlft_check 132
+DEBUG -- nbot: ic 360 nbot -1 nbot_check 360
+DEBUG -- nbot: ic 6754 nbot -1 nbot_check 6754
+DEBUG -- nrht: ic 7031 nrht -1 nrht_check 7031
+DEBUG -- nrht: ic 13347 nrht -1 nrht_check 13347
+DEBUG -- ntop: ic 13624 ntop -1 ntop_check 13624
+DEBUG -- ntop: ic 20018 ntop -1 ntop_check 20018
+DEBUG -- nlft: ic 20246 nlft -1 nlft_check 20246
+DEBUG -- nbot: ic 420 nbot -1 nbot_check 420
+DEBUG -- nlft: ic 1264 nlft -1 nlft_check 1264
+DEBUG -- nbot: ic 6715 nbot -1 nbot_check 6715
+DEBUG -- nrht: ic 7224 nrht -1 nrht_check 7224
+DEBUG -- nrht: ic 13123 nrht -1 nrht_check 13123
+DEBUG -- ntop: ic 13632 ntop -1 ntop_check 13632
+DEBUG -- nlft: ic 19083 nlft -1 nlft_check 19083
+DEBUG -- ntop: ic 19927 ntop -1 ntop_check 19927
+DEBUG -- nlft: ic 133 nlft -1 nlft_check 133
+DEBUG -- nbot: ic 375 nbot -1 nbot_check 375
+DEBUG -- nbot: ic 419 nbot -1 nbot_check 419
+DEBUG -- nlft: ic 1289 nlft -1 nlft_check 1289
+DEBUG -- nbot: ic 6725 nbot -1 nbot_check 6725
+DEBUG -- nbot: ic 6750 nbot -1 nbot_check 6750
+DEBUG -- nrht: ic 7029 nrht -1 nrht_check 7029
+DEBUG -- nrht: ic 7243 nrht -1 nrht_check 7243
+DEBUG -- nrht: ic 13128 nrht -1 nrht_check 13128
+DEBUG -- nrht: ic 13341 nrht -1 nrht_check 13341
+DEBUG -- ntop: ic 13620 ntop -1 ntop_check 13620
+DEBUG -- ntop: ic 13646 ntop -1 ntop_check 13646
+DEBUG -- nlft: ic 19082 nlft -1 nlft_check 19082
+DEBUG -- ntop: ic 19952 ntop -1 ntop_check 19952
+DEBUG -- ntop: ic 19995 ntop -1 ntop_check 19995
+DEBUG -- nlft: ic 20237 nlft -1 nlft_check 20237
+Iteration 2800 timestep 0.003893 Sim Time 4.778392 cells 20324 Mass Sum  171748.524709 Mass Change -1.16415e-10
+Memory used      146112 kB
+Memory peak      146476 kB
+Memory free      259505540 kB
+Memory available 264038568 kB
 
 ~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
-CPU: Device compute           time was	 28.9417	s
-CPU:   state_timer_set_timestep      		    1.1354	s
-CPU:   state_timer_finite_difference 		   24.4854	s
-CPU:   state_timer_refine_potential  		    1.7805	s
-CPU:     state_timer_calc_mpot         		      1.3177	s
-CPU:     mesh_timer_refine_smooth      		      0.3663	s
-CPU:   state_timer_rezone_all        		    0.7788	s
-CPU:   mesh_timer_partition          		    0.0269	s
-CPU:   mesh_timer_calc_neighbors     		    0.7326	s
-CPU:     mesh_timer_hash_setup         		      0.3321	s
-CPU:     mesh_timer_hash_query         		      0.3971	s
-CPU:   state_timer_mass_sum          		    0.0021	s
+CPU: Device compute           time was	 19.6456	s
+CPU:   state_timer_set_timestep      		    0.7615	s
+CPU:   state_timer_finite_difference 		   16.1563	s
+CPU:     state_timer_finite_diff_part1 		      0.0000	s
+CPU:     state_timer_finite_diff_part2 		      0.0000	s
+CPU:     state_timer_finite_diff_part3 		      0.0000	s
+CPU:     state_timer_finite_diff_part4 		      0.0000	s
+CPU:     state_timer_finite_diff_part5 		      0.0000	s
+CPU:     state_timer_finite_diff_part6 		      0.0000	s
+CPU:       mesh_timer_bidir              		        0.0000	s
+CPU:       mesh_timer_bidirpart1         		        0.0000	s
+CPU:       mesh_timer_bidirpart2         		        0.0000	s
+CPU:       mesh_timer_bidirpart3         		        0.0000	s
+CPU:       mesh_timer_bidirpart4         		        0.0000	s
+CPU:       mesh_timer_bidirpart5         		        0.0000	s
+CPU:       mesh_timer_bidirpart6         		        0.0000	s
+CPU:       mesh_timer_bidirpart7         		        0.0000	s
+CPU:       mesh_timer_bidirpart8         		        0.0000	s
+CPU:       mesh_timer_bidirpart9         		        0.0000	s
+CPU:       mesh_timer_bidirpart10        		        0.0000	s
+CPU:       mesh_timer_bidirpart11        		        0.0000	s
+CPU:       mesh_timer_bidirpart12        		        0.0000	s
+CPU:   state_timer_refine_potential  		    1.3216	s
+CPU:     state_timer_calc_mpot         		      0.9965	s
+CPU:     mesh_timer_refine_smooth      		      0.2525	s
+CPU:   state_timer_rezone_all        		    0.7264	s
+CPU:   mesh_timer_partition          		    0.0182	s
+CPU:   mesh_timer_calc_neighbors     		    0.6598	s
+CPU:     mesh_timer_hash_setup         		      0.3116	s
+CPU:     mesh_timer_hash_query         		      0.3474	s
+CPU:   state_timer_mass_sum          		    0.0018	s
 CPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
 =============================================================
-Profiling: Total CPU          time was	 28.9417	s
+Profiling: Total CPU          time was	 19.6456	s
 -------------------------------------------------------------
-Mesh Ops (Neigh+rezone+smooth+balance) 	  1.8777	s
-Mesh Ops Percentage                    	  6.4878	percent
+Mesh Ops (Neigh+rezone+smooth+balance) 	  1.6387	s
+Mesh Ops Percentage                    	  8.3415	percent
 =============================================================
-Profiling: Total              time was	 42.5191	s
-Parallel Speed-up:                    	  5.4517	Reference Serial CPU
+Profiling: Total              time was	 27.5210	s
+Parallel Speed-up:                    	  6.4108	Reference Serial CPU
 =============================================================
 
 ~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
-GPU: Write to device          time was	  0.0005	s
+GPU: Write to device          time was	  0.0004	s
 GPU: Read from device         time was	  0.0000	s
-GPU: Device compute           time was	  5.3083	s
-GPU:   state_timer_set_timestep      		    0.7669	s
-GPU:   state_timer_finite_difference 		    1.8035	s
-GPU:   state_timer_refine_potential  		    1.6641	s
-GPU:     state_timer_calc_mpot         		      0.9488	s
-GPU:     mesh_timer_refine_smooth      		      0.7094	s
-GPU:   state_timer_rezone_all        		    0.5503	s
+GPU: Device compute           time was	  3.0641	s
+GPU:   state_timer_set_timestep      		    0.2028	s
+GPU:   state_timer_finite_difference 		    0.8117	s
+GPU:     state_timer_finite_diff_part1 		      0.0000	s
+GPU:     state_timer_finite_diff_part2 		      0.0000	s
+GPU:     state_timer_finite_diff_part3 		      0.0000	s
+GPU:     state_timer_finite_diff_part4 		      0.0000	s
+GPU:     state_timer_finite_diff_part5 		      0.0000	s
+GPU:     state_timer_finite_diff_part6 		      0.0000	s
+GPU:       mesh_timer_bidir              		        0.0000	s
+GPU:       mesh_timer_bidirpart1         		        0.0000	s
+GPU:       mesh_timer_bidirpart2         		        0.0000	s
+GPU:       mesh_timer_bidirpart3         		        0.0000	s
+GPU:       mesh_timer_bidirpart4         		        0.0000	s
+GPU:       mesh_timer_bidirpart5         		        0.0000	s
+GPU:       mesh_timer_bidirpart6         		        0.0000	s
+GPU:       mesh_timer_bidirpart7         		        0.0000	s
+GPU:       mesh_timer_bidirpart8         		        0.0000	s
+GPU:       mesh_timer_bidirpart9         		        0.0000	s
+GPU:       mesh_timer_bidirpart10        		        0.0000	s
+GPU:       mesh_timer_bidirpart11        		        0.0000	s
+GPU:       mesh_timer_bidirpart12        		        0.0000	s
+GPU:   state_timer_refine_potential  		    0.8029	s
+GPU:     state_timer_calc_mpot         		      0.3609	s
+GPU:     mesh_timer_refine_smooth      		      0.4415	s
+GPU:   state_timer_rezone_all        		    0.6235	s
 GPU:   mesh_timer_partition          		    0.0000	s
-GPU:   mesh_timer_calc_neighbors     		    0.5155	s
-GPU:     mesh_timer_hash_setup         		      0.3017	s
-GPU:     mesh_timer_hash_query         		      0.2107	s
-GPU:   state_timer_mass_sum          		    0.0079	s
+GPU:   mesh_timer_calc_neighbors     		    0.6208	s
+GPU:     mesh_timer_hash_setup         		      0.3801	s
+GPU:     mesh_timer_hash_query         		      0.2405	s
+GPU:   state_timer_mass_sum          		    0.0024	s
 GPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
 =============================================================
-Profiling: Total GPU          time was	  5.3087	s
+Profiling: Total GPU          time was	  3.0644	s
 -------------------------------------------------------------
-Mesh Ops (Neigh+rezone+smooth+balance) 	  1.7752	s
-Mesh Ops Percentage                    	 33.4399	percent
+Mesh Ops (Neigh+rezone+smooth+balance) 	  1.6858	s
+Mesh Ops Percentage                    	 55.0109	percent
 =============================================================
-Profiling: Total              time was	 42.5191	s
-Parallel Speed-up:                    	  5.4517	Reference Serial CPU
+Profiling: Total              time was	 27.5210	s
+Parallel Speed-up:                    	  6.4108	Reference Serial CPU
 =============================================================
-CPU:  calc incl part meas     time was	 42.5089	s
-CPU:  calculation only        time was	 42.5068	s
-CPU:  partition measure       time was	  0.0021	s
+CPU:  calc incl part meas     time was	 27.5167	s
+CPU:  calculation only        time was	 27.5164	s
+CPU:  partition measure       time was	  0.0004	s
 CPU:  graphics                time was	  0.0000	s
 Using hash tables to calculate neighbors
 hash table size  bytes 1081600
 Initial order is Hilbert sort.   No cycle reorder.   Local Stencil is on.
-CPU:  rezone frequency                	  53.7000	percent
-CPU:  calc neigh frequency            	  53.7000	percent
+CPU:  rezone frequency                	  64.2143	percent
+CPU:  calc neigh frequency            	  64.2500	percent
 CPU:  refine_smooth_iter per rezone   	   0.0000	
-GPU:  rezone frequency                	  53.7000	percent
-GPU:  calc neigh frequency            	  53.7000	percent
+GPU:  rezone frequency                	  64.2143	percent
+GPU:  calc neigh frequency            	  64.2500	percent
 GPU:  refine_smooth_iter per rezone   	   0.0000	

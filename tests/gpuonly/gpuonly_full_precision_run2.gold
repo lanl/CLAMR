@@ -1,109 +1,169 @@
+
+
+EZCL_DEVTYPE_INIT: 3 opencl platform(s) detected
+  Platform 1:
+    CL_PLATFORM_VERSION    : OpenCL 2.1 LINUX
+    CL_PLATFORM_NAME       : Intel(R) CPU Runtime for OpenCL(TM) Applications
+    CL_PLATFORM_VENDOR     : Intel(R) Corporation
+  Platform 2:
+    CL_PLATFORM_VERSION    : OpenCL 1.2 CUDA 10.2.109
+    CL_PLATFORM_NAME       : NVIDIA CUDA
+    CL_PLATFORM_VENDOR     : NVIDIA Corporation
+  Platform 3:
+    CL_PLATFORM_VERSION    : OpenCL 2.1 AMD-APP (3052.0)
+    CL_PLATFORM_NAME       : AMD Accelerated Parallel Processing
+    CL_PLATFORM_VENDOR     : Advanced Micro Devices, Inc.
+
+Warning: Device of requested type not found for platform 0 in clGetDeviceID call
+EZCL_DEVTYPE_INIT: 2 opencl devices(s) detected
+Warning: Device of requested type not found for platform 2 in clGetDeviceID call
+    Device has double : cl_khr_fp64 cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll cl_nv_copy_opts cl_nv_create_buffer cl_khr_int64_base_atomics cl_khr_int64_extended_atomics cl_kernel_attribute_nv
+
+  Device 1:
+    CL_DEVICE_TYPE                       : CL_DEVICE_TYPE_GPU
+    CL_DEVICE_AVAILABLE                  : TRUE
+    CL_DEVICE_VENDOR                     : NVIDIA Corporation
+    CL_DEVICE_NAME                       : Tesla K80
+    CL_DRIVER_VERSION                    : 440.44
+    CL_DEVICE_VERSION                    : OpenCL 1.2 CUDA
+    CL_DEVICE_MAX_COMPUTE_UNITS          : 13
+    CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS   : 3
+    CL_DEVICE_MAX_WORK_ITEM_SIZES        : 0 18371006475285038 1184
+    CL_DEVICE_MAX_WORK_GROUP_SIZE        : 1024
+    CL_DEVICE_MAX_CLOCK_FREQUENCY        : 823
+    CL_DEVICE_MAX_MEM_ALLOC_SIZE         : 823
+    CL_DEVICE_GLOBAL_MEM_SIZE            : 11996954624
+    CL_DEVICE_GLOBAL_MEM_CACHE_SIZE      : 212992
+    CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE  : 128
+    CL_DEVICE_GLOBAL_MAX_CONSTANT_ARGS   : 9
+    CL_DEVICE_ERROR_CORRECTION_SUPPORT   : TRUE
+    CL_DEVICE_PROFILING_TIMER_RESOLUTION : 1000 nanosecs
+    CL_DEVICE_QUEUE PROFILING            : AVAILABLE
+    CL_DEVICE_EXTENSIONS                 : cl_khr_global_int32_base_atomics cl_khr_global_int32_extended_atomics cl_khr_local_int32_base_atomics cl_khr_local_int32_extended_atomics cl_khr_fp64 cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll cl_nv_copy_opts cl_nv_create_buffer cl_khr_int64_base_atomics cl_khr_int64_extended_atomics cl_kernel_attribute_nv
+
+    Device has double : cl_khr_fp64 cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll cl_nv_copy_opts cl_nv_create_buffer cl_khr_int64_base_atomics cl_khr_int64_extended_atomics cl_kernel_attribute_nv
+
+  Device 2:
+    CL_DEVICE_TYPE                       : CL_DEVICE_TYPE_GPU
+    CL_DEVICE_AVAILABLE                  : TRUE
+    CL_DEVICE_VENDOR                     : NVIDIA Corporation
+    CL_DEVICE_NAME                       : Tesla K80
+    CL_DRIVER_VERSION                    : 440.44
+    CL_DEVICE_VERSION                    : OpenCL 1.2 CUDA
+    CL_DEVICE_MAX_COMPUTE_UNITS          : 13
+    CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS   : 3
+    CL_DEVICE_MAX_WORK_ITEM_SIZES        : 0 18371006475285038 1184
+    CL_DEVICE_MAX_WORK_GROUP_SIZE        : 1024
+    CL_DEVICE_MAX_CLOCK_FREQUENCY        : 823
+    CL_DEVICE_MAX_MEM_ALLOC_SIZE         : 823
+    CL_DEVICE_GLOBAL_MEM_SIZE            : 11996954624
+    CL_DEVICE_GLOBAL_MEM_CACHE_SIZE      : 212992
+    CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE  : 128
+    CL_DEVICE_GLOBAL_MAX_CONSTANT_ARGS   : 9
+    CL_DEVICE_ERROR_CORRECTION_SUPPORT   : TRUE
+    CL_DEVICE_PROFILING_TIMER_RESOLUTION : 1000 nanosecs
+    CL_DEVICE_QUEUE PROFILING            : AVAILABLE
+    CL_DEVICE_EXTENSIONS                 : cl_khr_global_int32_base_atomics cl_khr_global_int32_extended_atomics cl_khr_local_int32_base_atomics cl_khr_local_int32_extended_atomics cl_khr_fp64 cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll cl_nv_copy_opts cl_nv_create_buffer cl_khr_int64_base_atomics cl_khr_int64_extended_atomics cl_kernel_attribute_nv
+
+Device selected is 0 number of appropriate devices 2
+EZCL_DEVTYPE_INIT: GPU device context created
+DEVICE VENDOR is NVIDIA Corporation
+DEBUG -- device vendor is |NVIDIA Corporation|, compute_device 1
+0: DEBUG -- running on device 0
 Starting compile of kernels in mesh
 Finishing compile of kernels in mesh
 Starting compile of kernels in state
 Finishing compile of kernels in state
-Mass of initialized cells equal to   125205.86861
-CPU:  setup time               time was	  4.7099	s
-Memory used      in startup 	    118832	kB
-Memory peak      in startup 	    120024	kB
-Memory free      at startup 	  31051936	kB
-Memory available at startup 	  32958152	kB
-Iteration   0 timestep      n/a Sim Time      0.0 cells 19920 Mass Sum   125205.86861
-Iteration 100 timestep 0.000040 Sim Time 0.005415 cells 23976 Mass Sum   125205.86861 Mass Change            0
-Iteration 200 timestep 0.000038 Sim Time 0.009338 cells 25752 Mass Sum   125205.86861 Mass Change            0
-Iteration 300 timestep 0.000037 Sim Time 0.013103 cells 27420 Mass Sum   125205.86861 Mass Change            0
-Iteration 400 timestep 0.000037 Sim Time 0.016806 cells 28992 Mass Sum   125205.86861 Mass Change            0
-Iteration 500 timestep 0.000037 Sim Time 0.020498 cells 29952 Mass Sum   125205.86861 Mass Change            0
-Iteration 600 timestep 0.000037 Sim Time 0.024200 cells 30756 Mass Sum   125205.86861 Mass Change            0
-Iteration 700 timestep 0.000037 Sim Time 0.027937 cells 31668 Mass Sum   125205.86861 Mass Change            0
-Iteration 800 timestep 0.000038 Sim Time 0.031717 cells 32076 Mass Sum   125205.86861 Mass Change            0
-Iteration 900 timestep 0.000038 Sim Time 0.035541 cells 32220 Mass Sum   125205.86861 Mass Change            0
-Iteration 1000 timestep 0.000039 Sim Time 0.039411 cells 32076 Mass Sum   125205.86861 Mass Change            0
-Iteration 1100 timestep 0.000039 Sim Time 0.043319 cells 32028 Mass Sum   125205.86861 Mass Change            0
-Iteration 1200 timestep 0.000040 Sim Time 0.047259 cells 32040 Mass Sum   125205.86861 Mass Change            0
-Iteration 1300 timestep 0.000040 Sim Time 0.051226 cells 32172 Mass Sum   125205.86861 Mass Change            0
-Iteration 1400 timestep 0.000040 Sim Time 0.055215 cells 32364 Mass Sum   125205.86861 Mass Change            0
-Iteration 1500 timestep 0.000040 Sim Time 0.059215 cells 32208 Mass Sum   125205.86861 Mass Change            0
-Iteration 1600 timestep 0.000040 Sim Time 0.063231 cells 32052 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 1700 timestep 0.000040 Sim Time 0.067271 cells 31296 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 1800 timestep 0.000041 Sim Time 0.071341 cells 30516 Mass Sum   125205.86861 Mass Change            0
-Iteration 1900 timestep 0.000041 Sim Time 0.075450 cells 30504 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 2000 timestep 0.000042 Sim Time 0.079612 cells 30204 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 2100 timestep 0.000042 Sim Time 0.083828 cells 30312 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 2200 timestep 0.000043 Sim Time 0.088100 cells 30504 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 2300 timestep 0.000044 Sim Time 0.092430 cells 30516 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 2400 timestep 0.000044 Sim Time 0.096818 cells 30528 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 2500 timestep 0.000045 Sim Time 0.101263 cells 30588 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 2600 timestep 0.000045 Sim Time 0.105759 cells 30288 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 2700 timestep 0.000046 Sim Time 0.110301 cells 30504 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 2800 timestep 0.000046 Sim Time 0.114883 cells 30288 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 2900 timestep 0.000047 Sim Time 0.119510 cells 30408 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Iteration 3000 timestep 0.000047 Sim Time 0.124186 cells 30396 Mass Sum   125205.86861 Mass Change -1.45519e-11
-Memory used      121988 kB
-Memory peak      121992 kB
-Memory free      31051304 kB
-Memory available 32958152 kB
+Mass of initialized cells equal to  171756.675298
+CPU:  setup time               time was	  0.3760	s
+Memory used      in startup 	    146708	kB
+Memory peak      in startup 	    147824	kB
+Memory free      at startup 	 259499292	kB
+Memory available at startup 	 264038568	kB
+Iteration   0 timestep      n/a Sim Time      0.0 cells 19920 Mass Sum  171756.675298
+Iteration 100 timestep 0.000054 Sim Time 0.007157 cells 24240 Mass Sum  171756.675298 Mass Change            0
+Iteration 200 timestep 0.000051 Sim Time 0.012390 cells 26364 Mass Sum  171756.675298 Mass Change            0
+Iteration 300 timestep 0.000051 Sim Time 0.017491 cells 27600 Mass Sum  171756.675298 Mass Change            0
+Iteration 400 timestep 0.000050 Sim Time 0.022569 cells 28644 Mass Sum  171756.675298 Mass Change            0
+Iteration 500 timestep 0.000051 Sim Time 0.027668 cells 29292 Mass Sum  171756.675298 Mass Change            0
+Iteration 600 timestep 0.000052 Sim Time 0.032826 cells 29916 Mass Sum  171756.675298 Mass Change            0
+Iteration 700 timestep 0.000053 Sim Time 0.038063 cells 29748 Mass Sum  171756.675298 Mass Change -2.91038e-11
+Iteration 800 timestep 0.000054 Sim Time 0.043394 cells 29604 Mass Sum  171756.675298 Mass Change            0
+Iteration 900 timestep 0.000055 Sim Time 0.048824 cells 29760 Mass Sum  171756.675298 Mass Change            0
+Iteration 1000 timestep 0.000056 Sim Time 0.054344 cells 29808 Mass Sum  171756.675298 Mass Change            0
+Iteration 1100 timestep 0.000056 Sim Time 0.059941 cells 30000 Mass Sum  171756.675298 Mass Change -2.91038e-11
+Iteration 1200 timestep 0.000057 Sim Time 0.065601 cells 29808 Mass Sum  171756.675298 Mass Change            0
+Iteration 1300 timestep 0.000057 Sim Time 0.071311 cells 29412 Mass Sum  171756.675298 Mass Change -2.91038e-11
+Iteration 1400 timestep 0.000057 Sim Time 0.077056 cells 28920 Mass Sum  171756.675298 Mass Change            0
+Iteration 1500 timestep 0.000058 Sim Time 0.082825 cells 28380 Mass Sum  171756.675298 Mass Change -2.91038e-11
+Iteration 1600 timestep 0.000058 Sim Time 0.088614 cells 28308 Mass Sum  171756.675298 Mass Change            0
+Iteration 1700 timestep 0.000058 Sim Time 0.094420 cells 28116 Mass Sum  171756.675298 Mass Change -2.91038e-11
+Iteration 1800 timestep 0.000058 Sim Time 0.100241 cells 28200 Mass Sum  171756.675298 Mass Change            0
+Iteration 1900 timestep 0.000059 Sim Time 0.106093 cells 27972 Mass Sum  171756.675298 Mass Change -2.91038e-11
+Iteration 2000 timestep 0.000059 Sim Time 0.111980 cells 28308 Mass Sum  171756.675298 Mass Change -2.91038e-11
+Iteration 2100 timestep 0.000060 Sim Time 0.117917 cells 28296 Mass Sum  171756.675298 Mass Change -2.91038e-11
+Iteration 2200 timestep 0.000060 Sim Time 0.123922 cells 28248 Mass Sum  171756.675298 Mass Change -5.82077e-11
+Iteration 2300 timestep 0.000061 Sim Time 0.129997 cells 28632 Mass Sum  171756.675298 Mass Change -5.82077e-11
+Iteration 2400 timestep 0.000063 Sim Time 0.136164 cells 28632 Mass Sum  171756.675298 Mass Change -2.91038e-11
+Iteration 2500 timestep 0.000063 Sim Time 0.142416 cells 28620 Mass Sum  171756.675298 Mass Change -5.82077e-11
+Iteration 2600 timestep 0.000064 Sim Time 0.148771 cells 28956 Mass Sum  171756.675298 Mass Change -5.82077e-11
+Iteration 2700 timestep 0.000065 Sim Time 0.155222 cells 28728 Mass Sum  171756.675298 Mass Change -5.82077e-11
+Iteration 2800 timestep 0.000066 Sim Time 0.161778 cells 28884 Mass Sum  171756.675298 Mass Change -5.82077e-11
+Iteration 2900 timestep 0.000067 Sim Time 0.168432 cells 28752 Mass Sum  171756.675298 Mass Change -5.82077e-11
+Iteration 3000 timestep 0.000068 Sim Time 0.175186 cells 28584 Mass Sum  171756.675298 Mass Change -5.82077e-11
+Memory used      146828 kB
+Memory peak      147824 kB
+Memory free      259499856 kB
+Memory available 264038568 kB
 
 ~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
-CPU: Device compute           time was	 46.6926	s
-CPU:   state_timer_set_timestep      		    1.7525	s
-CPU:   state_timer_finite_difference 		   38.3674	s
-CPU:   state_timer_refine_potential  		    3.7644	s
-CPU:     state_timer_calc_mpot         		      2.0973	s
-CPU:     mesh_timer_refine_smooth      		      1.4689	s
-CPU:   state_timer_rezone_all        		    1.4196	s
-CPU:   mesh_timer_partition          		    0.0500	s
-CPU:   mesh_timer_calc_neighbors     		    1.3357	s
-CPU:     mesh_timer_hash_setup         		      0.5502	s
-CPU:     mesh_timer_hash_query         		      0.7810	s
-CPU:   state_timer_mass_sum          		    0.0031	s
-CPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
-=============================================================
-Profiling: Total CPU          time was	 46.6926	s
--------------------------------------------------------------
-Mesh Ops (Neigh+rezone+smooth+balance) 	  4.2242	s
-Mesh Ops Percentage                    	  9.0468	percent
-=============================================================
-Profiling: Total              time was	 67.5254	s
-Parallel Speed-up:                    	  6.6348	Reference Serial CPU
-=============================================================
-
-~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
-GPU: Write to device          time was	  0.0005	s
+GPU: Write to device          time was	  0.0000	s
 GPU: Read from device         time was	  0.0000	s
-GPU: Device compute           time was	  7.0370	s
-GPU:   state_timer_set_timestep      		    0.8090	s
-GPU:   state_timer_finite_difference 		    2.7075	s
-GPU:   state_timer_refine_potential  		    2.0404	s
-GPU:     state_timer_calc_mpot         		      1.0326	s
-GPU:     mesh_timer_refine_smooth      		      1.0015	s
-GPU:   state_timer_rezone_all        		    0.7406	s
+GPU: Device compute           time was	  4.1236	s
+GPU:   state_timer_set_timestep      		    0.2291	s
+GPU:   state_timer_finite_difference 		    1.2051	s
+GPU:     state_timer_finite_diff_part1 		      0.0000	s
+GPU:     state_timer_finite_diff_part2 		      0.0000	s
+GPU:     state_timer_finite_diff_part3 		      0.0000	s
+GPU:     state_timer_finite_diff_part4 		      0.0000	s
+GPU:     state_timer_finite_diff_part5 		      0.0000	s
+GPU:     state_timer_finite_diff_part6 		      0.0000	s
+GPU:       mesh_timer_bidir              		        0.0000	s
+GPU:       mesh_timer_bidirpart1         		        0.0000	s
+GPU:       mesh_timer_bidirpart2         		        0.0000	s
+GPU:       mesh_timer_bidirpart3         		        0.0000	s
+GPU:       mesh_timer_bidirpart4         		        0.0000	s
+GPU:       mesh_timer_bidirpart5         		        0.0000	s
+GPU:       mesh_timer_bidirpart6         		        0.0000	s
+GPU:       mesh_timer_bidirpart7         		        0.0000	s
+GPU:       mesh_timer_bidirpart8         		        0.0000	s
+GPU:       mesh_timer_bidirpart9         		        0.0000	s
+GPU:       mesh_timer_bidirpart10        		        0.0000	s
+GPU:       mesh_timer_bidirpart11        		        0.0000	s
+GPU:       mesh_timer_bidirpart12        		        0.0000	s
+GPU:   state_timer_refine_potential  		    1.1437	s
+GPU:     state_timer_calc_mpot         		      0.4096	s
+GPU:     mesh_timer_refine_smooth      		      0.7334	s
+GPU:   state_timer_rezone_all        		    0.8554	s
 GPU:   mesh_timer_partition          		    0.0000	s
-GPU:   mesh_timer_calc_neighbors     		    0.7313	s
-GPU:     mesh_timer_hash_setup         		      0.4120	s
-GPU:     mesh_timer_hash_query         		      0.3152	s
-GPU:   state_timer_mass_sum          		    0.0083	s
+GPU:   mesh_timer_calc_neighbors     		    0.6875	s
+GPU:     mesh_timer_hash_setup         		      0.3855	s
+GPU:     mesh_timer_hash_query         		      0.3017	s
+GPU:   state_timer_mass_sum          		    0.0028	s
 GPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
 =============================================================
-Profiling: Total GPU          time was	  7.0376	s
+Profiling: Total GPU          time was	  4.1236	s
 -------------------------------------------------------------
-Mesh Ops (Neigh+rezone+smooth+balance) 	  2.4734	s
-Mesh Ops Percentage                    	 35.1454	percent
+Mesh Ops (Neigh+rezone+smooth+balance) 	  2.2763	s
+Mesh Ops Percentage                    	 55.2023	percent
 =============================================================
-Profiling: Total              time was	 67.5254	s
-Parallel Speed-up:                    	  6.6348	Reference Serial CPU
+Profiling: Total              time was	  4.1254	s
 =============================================================
-CPU:  calc incl part meas     time was	 67.5137	s
-CPU:  calculation only        time was	 67.5115	s
-CPU:  partition measure       time was	  0.0022	s
-CPU:  graphics                time was	  0.0000	s
+CPU:  calculation only         time was	  4.1225	s
+GPU:  graphics                 time was	  0.0000	s
 Using hash tables to calculate neighbors
-hash table size  bytes 729504
-Final hash collision report -- write/read collisions per cell 0.003405/0.003979
+hash table size  bytes 686016
 Initial order is Hilbert sort.   No cycle reorder.   Local Stencil is on.
-CPU:  rezone frequency                	  68.8000	percent
-CPU:  calc neigh frequency            	  68.8333	percent
-CPU:  refine_smooth_iter per rezone   	   0.6240	
-GPU:  rezone frequency                	  68.8000	percent
-GPU:  calc neigh frequency            	  68.8333	percent
-GPU:  refine_smooth_iter per rezone   	   1.0552	
+GPU:  rezone frequency                	  77.8667	percent
+GPU:  calc neigh frequency            	  77.9000	percent
+GPU:  refine_smooth_iter per rezone   	   1.0946	
