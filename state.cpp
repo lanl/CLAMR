@@ -1873,9 +1873,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
 #else
 #pragma omp simd
 #endif
-   //for (int ic = lowerBound; ic < upperBound; ic++) {
-   for (int ic = 0; ic < mesh->ncells; ic++) {
-      //if (mesh->celltype[ic] != REAL_CELL) continue;
+   for (int ic = lowerBound; ic < upperBound; ic++) {
+   //for (int ic = 0; ic < mesh->ncells; ic++) {
+      if (mesh->celltype[ic] != REAL_CELL) continue;
 #ifdef _OPENMP
       //printf("%d) %d %d\n", omp_get_thread_num(), lowerBound, upperBound);
 #endif
