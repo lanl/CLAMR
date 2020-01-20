@@ -2029,6 +2029,12 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp for simd
+#else
+#pragma omp simd
+#endif
    for (int ifix = 0; ifix < mesh->nxfixup; ifix++){
       int ic = mesh->xrecvCIdx[ifix];
 
@@ -2062,6 +2068,12 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
       }
    }
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp for simd
+#else
+#pragma omp simd
+#endif
    for (int ifix = 0; ifix < mesh->nyfixup; ifix++){
       int ic = mesh->yrecvCIdx[ifix];
 
@@ -2103,6 +2115,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
    V_loc = V;
 #endif
 
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
 #pragma omp simd
    for (int ic = lowerBound; ic < upperBound; ic++) {
       if (mesh->celltype[ic] != REAL_CELL) continue;
@@ -2267,13 +2282,13 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    for (int iface = 0; iface < mesh->nxface; iface++){
       int cell_lower = mesh->map_xface2cell_lower[iface];
       int cell_upper = mesh->map_xface2cell_upper[iface];
-      //if (cell_lower >= mesh->ncells && cell_upper >= mesh->ncells) continue;
+      if (cell_lower >= mesh->ncells && cell_upper >= mesh->ncells) continue;
 
       // set the two faces
       int fl = mesh->map_xcell2face_left1[cell_lower];
       int fr = mesh->map_xcell2face_right1[cell_upper];
 #ifndef _OPENMP
-//      if (fl == -1 || fr == -1) continue;
+      if (fl == -1 || fr == -1) continue;
 #endif
       real_t Hx, Ux, Vx;
 
@@ -2310,6 +2325,7 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    }
 
 #ifdef _OPENMP
+#pragma omp barrier
 #pragma omp for simd
 #else
 #pragma omp simd
@@ -2379,6 +2395,7 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    }
 
 #ifdef _OPENMP
+#pragma omp barrier
 #pragma omp for simd
 #else
 #pragma omp simd
@@ -2582,7 +2599,9 @@ void State::calc_finite_difference_via_faces(double deltaT)
    cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
-#pragma omp for 
+#pragma omp for simd
+#else
+#pragma omp simd
 #endif
    for (int iface = 0; iface < mesh->nxface; iface++){
       int cell_lower = mesh->map_xface2cell_lower[iface];
@@ -2711,7 +2730,9 @@ void State::calc_finite_difference_via_faces(double deltaT)
 
 
 #ifdef _OPENMP
-#pragma omp for 
+#pragma omp for simd
+#else
+#pragma omp simd
 #endif
    for (int iface = 0; iface < mesh->nyface; iface++){
       int cell_lower = mesh->map_yface2cell_lower[iface];
@@ -2881,6 +2902,7 @@ void State::calc_finite_difference_via_faces(double deltaT)
    wplusy_H_sum  = 0.0;
 #endif
 
+#pragma omp simd
    for (int ic = lowerBound; ic < upperBound; ic++){
       real_t dxic    = lev_deltax[level[ic]];
       // set the four faces
@@ -3519,6 +3541,8 @@ void State::calc_finite_difference_regular_cells(double deltaT)
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp for simd
+#else
+#pragma omp simd
 #endif
    for (int ifix = 0; ifix < mesh->nxfixup; ifix++){
       int ic = mesh->xrecvCIdx[ifix];
@@ -3575,6 +3599,8 @@ void State::calc_finite_difference_regular_cells(double deltaT)
 
 #ifdef _OPENMP
 #pragma omp for simd
+#else
+#pragma omp simd
 #endif
    for (int ifix = 0; ifix < mesh->nyfixup; ifix++){
       int ic = mesh->yrecvCIdx[ifix];
@@ -3988,7 +4014,9 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
 
 #ifdef _OPENMP
 #pragma omp barrier
-#pragma omp for
+#pragma omp for simd
+#else
+#pragma omp simd
 #endif
    for (int ifixup = 0; ifixup < mesh->nxfixup; ifixup++){
       int ir  = mesh->xrecvIdx[ifixup];
@@ -4012,7 +4040,9 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
    }
 
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp for simd
+#else
+#pragma omp simd
 #endif
    for (int ifixup = 0; ifixup < mesh->nyfixup; ifixup++){
       int ir  = mesh->yrecvIdx[ifixup];

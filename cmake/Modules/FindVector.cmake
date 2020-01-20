@@ -29,6 +29,7 @@ if(CMAKE_C_COMPILER_LOADED)
 
         set(VECTOR_OPENMP_SIMD_C_FLAGS "${VECTOR_OPENMP_SIMD_C_FLAGS} -fopenmp-simd")
         set(VECTOR_C_OPTS "${VECTOR_C_OPTS} -fvectorize")
+        set(VECTOR_C_FPOPTS "${VECTOR_C_FPOPTS} -fno-math-errno")
         set(VECTOR_NOVEC_C_OPT "${VECTOR_NOVEC_C_OPT} -fno-vectorize")
         set(VECTOR_C_VERBOSE "${VECTOR_C_VERBOSE} -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize")
 
@@ -130,6 +131,7 @@ if(CMAKE_CXX_COMPILER_LOADED)
 
         set(VECTOR_OPENMP_SIMD_CXX_FLAGS "${VECTOR_OPENMP_SIMD_CXX_FLAGS} -fopenmp-simd")
         set(VECTOR_CXX_OPTS "${VECTOR_CXX_OPTS} -fvectorize")
+        set(VECTOR_CXX_FPOPTS "${VECTOR_CXX_FPOPTS} -fno-math-errno")
         set(VECTOR_NOVEC_CXX_OPT "${VECTOR_NOVEC_CXX_OPT} -fno-vectorize")
         set(VECTOR_CXX_VERBOSE "${VECTOR_CXX_VERBOSE} -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize")
 
@@ -231,6 +233,7 @@ if(CMAKE_Fortran_COMPILER_LOADED)
 
         set(VECTOR_OPENMP_SIMD_Fortran_FLAGS "${VECTOR_OPENMP_SIMD_Fortran_FLAGS} -fopenmp-simd")
         set(VECTOR_Fortran_OPTS "${VECTOR_Fortran_OPTS} -fvectorize")
+        set(VECTOR_Fortran_FPOPTS "${VECTOR_Fortran_FPOPTS} -fno-math-errno")
         set(VECTOR_NOVEC_Fortran_OPT "${VECTOR_NOVEC_Fortran_OPT} -fno-vectorize")
         set(VECTOR_Fortran_VERBOSE "${VECTOR_Fortran_VERBOSE} -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize")
 
