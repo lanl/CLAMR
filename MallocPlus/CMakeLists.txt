@@ -104,7 +104,9 @@ add_subdirectory(tests)
 set(H_SRCS MallocPlus.h)
 #set(C_SRCS CMallocPlus.c)
 set(CXX_SRCS MallocPlus.cpp)
-#set(F90_SRCS FMallocPlus.F90)
+if (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+   set(F90_SRCS FMallocPlus.F90)
+endif (NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
 ########### MallocPlus target ###############
 set(MallocPlus_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${F90_SRCS} ${H_SRCS})
