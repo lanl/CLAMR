@@ -244,7 +244,7 @@ if (OPENCL_FOUND)
 endif (OPENCL_FOUND)
 
 ########### dpmesh target ###############
-if (OPENCL_FOUND)
+if (OPENCL_FOUND AND MPI_FOUND)
    set(dpmesh_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${H_SRCS})
 
    add_library(dpmesh STATIC ${dpmesh_LIB_SRCS})
@@ -259,7 +259,7 @@ if (OPENCL_FOUND)
    add_dependencies(dpmesh mesh_kernel_source)
    add_dependencies(dpmesh reduce_kernel_source)
    install(TARGETS dpmesh DESTINATION lib)
-endif (OPENCL_FOUND)
+endif (OPENCL_FOUND AND MPI_FOUND)
 
 ########### install files ###############
 

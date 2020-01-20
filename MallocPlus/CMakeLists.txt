@@ -77,7 +77,6 @@ if (NOT DEFINED OpenCL_FOUND)
    #  OpenCL_LIBRARIES      - link against this library to use OpenCL
    #  OpenCL_VERSION_STRING - Highest supported OpenCL version (eg. 1.2)
    #  OpenCL_VERSION_MAJOR  - The major version of the OpenCL implementation
-   #  OpenCL_VERSION_MINOR  - The minor version of the OpenCL implementation
    if (OpenCL_FOUND)
       set(HAVE_CL_DOUBLE ON CACHE BOOL "Have OpenCL Double")
       set(NO_CL_DOUBLE OFF)
@@ -105,7 +104,7 @@ add_subdirectory(tests)
 set(H_SRCS MallocPlus.h)
 #set(C_SRCS CMallocPlus.c)
 set(CXX_SRCS MallocPlus.cpp)
-set(F90_SRCS FMallocPlus.F90)
+#set(F90_SRCS FMallocPlus.F90)
 
 ########### MallocPlus target ###############
 set(MallocPlus_LIB_SRCS ${CXX_SRCS} ${C_SRCS} ${F90_SRCS} ${H_SRCS})

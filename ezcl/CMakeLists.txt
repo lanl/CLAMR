@@ -138,15 +138,17 @@ install(TARGETS ezcl DESTINATION lib)
 
 ########### pezcl target ###############
 
-set(pezcl_LIB_SRCS ${C_SRCS} ${H_SRCS})
+if (MPI_FOUND)
+   set(pezcl_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
-add_library(pezcl SHARED ${pezcl_LIB_SRCS})
+   add_library(pezcl SHARED ${pezcl_LIB_SRCS})
 
-set_target_properties(pezcl PROPERTIES VERSION ${EZCL_VERSION} SOVERSION ${EZCL_VERSION_MAJOR})
-set_target_properties(pezcl PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
-target_link_libraries(pezcl ${OpenCL_LIBRARIES})
-target_link_libraries(pezcl ${MPI_LIBRARIES})
-install(TARGETS pezcl DESTINATION lib)
+   set_target_properties(pezcl PROPERTIES VERSION ${EZCL_VERSION} SOVERSION ${EZCL_VERSION_MAJOR})
+   set_target_properties(pezcl PROPERTIES COMPILE_DEFINITIONS HAVE_MPI)
+   target_link_libraries(pezcl ${OpenCL_LIBRARIES})
+   target_link_libraries(pezcl ${MPI_LIBRARIES})
+   install(TARGETS pezcl DESTINATION lib)
+endif (MPI_FOUND)
 
 ########### install files ###############
 

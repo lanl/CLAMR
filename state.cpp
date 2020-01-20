@@ -1868,6 +1868,32 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
    int lowerBound, upperBound;
 
    mesh->get_bounds(lowerBound, upperBound);
+
+#if defined(__GNUC_MINOR__)
+   static real_t * dxcell;
+   static real_t * dycell;
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
+   dxcell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
+   dycell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+   for (int ic = lowerBound; ic < upperBound; ic++) {
+      uchar_t lev = mesh->level[ic];
+      dxcell[ic]  = mesh->lev_deltax[lev];
+      dycell[ic]  = mesh->lev_deltay[lev];
+   }
+   
+   real_t *H_loc = H;
+   real_t *U_loc = U;
+   real_t *V_loc = V;
+#endif
+   
 #ifdef _OPENMP
 #pragma omp for simd
 #else
@@ -1880,9 +1906,15 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
       //printf("%d) %d %d\n", omp_get_thread_num(), lowerBound, upperBound);
 #endif
 
+#if defined(__GNUC_MINOR__)
+      real_t dxic = dxcell[ic];
+      real_t dyic = dycell[ic];
+#else
       uchar_t lev = mesh->level[ic];
       real_t dxic    = mesh->lev_deltax[lev];
       real_t dyic    = mesh->lev_deltay[lev];
+#endif
+
       real_t Cxhalf = 0.5*deltaT/dxic;
       real_t Cyhalf = 0.5*deltaT/dyic;
 
@@ -1952,6 +1984,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
       real_t Uyplus = HALF*(Ut+Uic)-Cyhalf*(VUFLUXNT-VUFLUXIC);
       real_t Vyplus = HALF*(Vt+Vic)-Cyhalf*(VYFLUXNT-VYFLUXIC);
 
+      Hxfluxminus[ic] = Ul; //Uxminus;
+#ifdef XXX
+#define HNEWXFLUXMINUS  ( Uxminus )
       Hxfluxminus[ic] = HNEWXFLUXMINUS;
       Uxfluxminus[ic] = UNEWXFLUXMINUS;
       Vxfluxminus[ic] = UVNEWFLUXMINUS;
@@ -1987,6 +2022,8 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
       U_eigen = fabs(Vyplus/Hyplus) + sqrt(g*Hyplus);
       wplusy_H[ic] = w_corrector(deltaT, dyic, U_eigen, Ht-Hic, Hic-Hb, Htt-Ht) * (Ht - Hic);
       wplusy_V[ic] = w_corrector(deltaT, dyic, U_eigen, Vt-Vic, Vic-Vb, Vtt-Vt) * (Vt - Vic);
+#endif
+      wplusy_V[ic] = 1.0;
    }
 
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
@@ -2061,30 +2098,11 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
    cpu_timer_start(&tstart_cpu_part);
 
 #if defined(__GNUC_MINOR__)
-   static real_t * dxcell;
-   static real_t * dycell;
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-   {
+   H_loc = H;
+   U_loc = U;
+   V_loc = V;
 #endif
-   dxcell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
-   dycell = (real_t *)malloc(sizeof(real_t) * mesh->ncells);
-#ifdef _OPENMP
-   }
-#pragma omp barrier
-#endif
-   for (int ic = lowerBound; ic < upperBound; ic++) {
-      uchar_t lev = mesh->level[ic];
-      dxcell[ic]  = mesh->lev_deltax[lev];
-      dycell[ic]  = mesh->lev_deltay[lev];
-   }
-   
-   real_t *H_loc = H;
-   real_t *U_loc = U;
-   real_t *V_loc = V;
-#endif
-   
+
 #pragma omp simd
    for (int ic = lowerBound; ic < upperBound; ic++) {
       if (mesh->celltype[ic] != REAL_CELL) continue;
