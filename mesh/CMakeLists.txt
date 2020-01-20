@@ -32,6 +32,7 @@ if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
    # using GCC
    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
+   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C
    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
