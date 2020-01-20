@@ -1,84 +1,12 @@
-
-
-EZCL_DEVTYPE_INIT: 3 opencl platform(s) detected
-  Platform 1:
-    CL_PLATFORM_VERSION    : OpenCL 2.1 LINUX
-    CL_PLATFORM_NAME       : Intel(R) CPU Runtime for OpenCL(TM) Applications
-    CL_PLATFORM_VENDOR     : Intel(R) Corporation
-  Platform 2:
-    CL_PLATFORM_VERSION    : OpenCL 1.2 CUDA 10.2.109
-    CL_PLATFORM_NAME       : NVIDIA CUDA
-    CL_PLATFORM_VENDOR     : NVIDIA Corporation
-  Platform 3:
-    CL_PLATFORM_VERSION    : OpenCL 2.1 AMD-APP (3052.0)
-    CL_PLATFORM_NAME       : AMD Accelerated Parallel Processing
-    CL_PLATFORM_VENDOR     : Advanced Micro Devices, Inc.
-
-Warning: Device of requested type not found for platform 0 in clGetDeviceID call
-EZCL_DEVTYPE_INIT: 2 opencl devices(s) detected
-Warning: Device of requested type not found for platform 2 in clGetDeviceID call
-    Device has double : cl_khr_fp64 cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll cl_nv_copy_opts cl_nv_create_buffer cl_khr_int64_base_atomics cl_khr_int64_extended_atomics cl_kernel_attribute_nv
-
-  Device 1:
-    CL_DEVICE_TYPE                       : CL_DEVICE_TYPE_GPU
-    CL_DEVICE_AVAILABLE                  : TRUE
-    CL_DEVICE_VENDOR                     : NVIDIA Corporation
-    CL_DEVICE_NAME                       : Tesla K80
-    CL_DRIVER_VERSION                    : 440.44
-    CL_DEVICE_VERSION                    : OpenCL 1.2 CUDA
-    CL_DEVICE_MAX_COMPUTE_UNITS          : 13
-    CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS   : 3
-    CL_DEVICE_MAX_WORK_ITEM_SIZES        : 0 18371006475285038 1184
-    CL_DEVICE_MAX_WORK_GROUP_SIZE        : 1024
-    CL_DEVICE_MAX_CLOCK_FREQUENCY        : 823
-    CL_DEVICE_MAX_MEM_ALLOC_SIZE         : 823
-    CL_DEVICE_GLOBAL_MEM_SIZE            : 11996954624
-    CL_DEVICE_GLOBAL_MEM_CACHE_SIZE      : 212992
-    CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE  : 128
-    CL_DEVICE_GLOBAL_MAX_CONSTANT_ARGS   : 9
-    CL_DEVICE_ERROR_CORRECTION_SUPPORT   : TRUE
-    CL_DEVICE_PROFILING_TIMER_RESOLUTION : 1000 nanosecs
-    CL_DEVICE_QUEUE PROFILING            : AVAILABLE
-    CL_DEVICE_EXTENSIONS                 : cl_khr_global_int32_base_atomics cl_khr_global_int32_extended_atomics cl_khr_local_int32_base_atomics cl_khr_local_int32_extended_atomics cl_khr_fp64 cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll cl_nv_copy_opts cl_nv_create_buffer cl_khr_int64_base_atomics cl_khr_int64_extended_atomics cl_kernel_attribute_nv
-
-    Device has double : cl_khr_fp64 cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll cl_nv_copy_opts cl_nv_create_buffer cl_khr_int64_base_atomics cl_khr_int64_extended_atomics cl_kernel_attribute_nv
-
-  Device 2:
-    CL_DEVICE_TYPE                       : CL_DEVICE_TYPE_GPU
-    CL_DEVICE_AVAILABLE                  : TRUE
-    CL_DEVICE_VENDOR                     : NVIDIA Corporation
-    CL_DEVICE_NAME                       : Tesla K80
-    CL_DRIVER_VERSION                    : 440.44
-    CL_DEVICE_VERSION                    : OpenCL 1.2 CUDA
-    CL_DEVICE_MAX_COMPUTE_UNITS          : 13
-    CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS   : 3
-    CL_DEVICE_MAX_WORK_ITEM_SIZES        : 0 18371006475285038 1184
-    CL_DEVICE_MAX_WORK_GROUP_SIZE        : 1024
-    CL_DEVICE_MAX_CLOCK_FREQUENCY        : 823
-    CL_DEVICE_MAX_MEM_ALLOC_SIZE         : 823
-    CL_DEVICE_GLOBAL_MEM_SIZE            : 11996954624
-    CL_DEVICE_GLOBAL_MEM_CACHE_SIZE      : 212992
-    CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE  : 128
-    CL_DEVICE_GLOBAL_MAX_CONSTANT_ARGS   : 9
-    CL_DEVICE_ERROR_CORRECTION_SUPPORT   : TRUE
-    CL_DEVICE_PROFILING_TIMER_RESOLUTION : 1000 nanosecs
-    CL_DEVICE_QUEUE PROFILING            : AVAILABLE
-    CL_DEVICE_EXTENSIONS                 : cl_khr_global_int32_base_atomics cl_khr_global_int32_extended_atomics cl_khr_local_int32_base_atomics cl_khr_local_int32_extended_atomics cl_khr_fp64 cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll cl_nv_copy_opts cl_nv_create_buffer cl_khr_int64_base_atomics cl_khr_int64_extended_atomics cl_kernel_attribute_nv
-
-Device selected is 0 number of appropriate devices 2
-EZCL_DEVTYPE_INIT: GPU device context created
-DEVICE VENDOR is NVIDIA Corporation
-DEBUG -- device vendor is |NVIDIA Corporation|, compute_device 1
-0: DEBUG -- running on device 0
 Starting compile of kernels in mesh
 Finishing compile of kernels in mesh
 Starting compile of kernels in state
 Finishing compile of kernels in state
 Mass of initialized cells equal to  171748.524709
-CPU:  setup time               time was	  0.3358	s
-Memory used      in startup 	    144116	kB
-Memory peak      in startup 	    145016	kB
-Memory free      at startup 	 259503384	kB
+CPU:  setup time               time was	  0.3644	s
+Memory used      in startup 	    144076	kB
+Memory peak      in startup 	    144976	kB
+Memory free      at startup 	 259208064	kB
 Memory available at startup 	 264038568	kB
 Iteration   0 timestep      n/a Sim Time      0.0 cells 17028 Mass Sum  171748.524709
 Iteration 100 timestep 0.000440 Sim Time 0.058026 cells 17484 Mass Sum  171748.524709 Mass Change            0
@@ -1181,15 +1109,241 @@ DEBUG -- ntop: ic 19952 ntop -1 ntop_check 19952
 DEBUG -- ntop: ic 19995 ntop -1 ntop_check 19995
 DEBUG -- nlft: ic 20237 nlft -1 nlft_check 20237
 Iteration 2800 timestep 0.003893 Sim Time 4.778392 cells 20324 Mass Sum  171748.524709 Mass Change -1.16415e-10
-Memory used      146112 kB
-Memory peak      146476 kB
-Memory free      259505540 kB
+DEBUG -- nlft: ic 174 nlft -1 nlft_check 174
+DEBUG -- nbot: ic 428 nbot -1 nbot_check 428
+DEBUG -- nbot: ic 6752 nbot -1 nbot_check 6752
+DEBUG -- nrht: ic 7088 nrht -1 nrht_check 7088
+DEBUG -- nrht: ic 13383 nrht -1 nrht_check 13383
+DEBUG -- ntop: ic 13719 ntop -1 ntop_check 13719
+DEBUG -- ntop: ic 20043 ntop -1 ntop_check 20043
+DEBUG -- nlft: ic 20297 nlft -1 nlft_check 20297
+DEBUG -- nlft: ic 147 nlft -1 nlft_check 147
+DEBUG -- nbot: ic 382 nbot -1 nbot_check 382
+DEBUG -- nbot: ic 6895 nbot -1 nbot_check 6895
+DEBUG -- nrht: ic 7053 nrht -1 nrht_check 7053
+DEBUG -- nrht: ic 13473 nrht -1 nrht_check 13473
+DEBUG -- ntop: ic 13631 ntop -1 ntop_check 13631
+DEBUG -- ntop: ic 20144 ntop -1 ntop_check 20144
+DEBUG -- nlft: ic 20379 nlft -1 nlft_check 20379
+DEBUG -- nlft: ic 161 nlft -1 nlft_check 161
+DEBUG -- nbot: ic 402 nbot -1 nbot_check 402
+DEBUG -- nbot: ic 6721 nbot -1 nbot_check 6721
+DEBUG -- nrht: ic 7017 nrht -1 nrht_check 7017
+DEBUG -- nrht: ic 13310 nrht -1 nrht_check 13310
+DEBUG -- ntop: ic 13606 ntop -1 ntop_check 13606
+DEBUG -- ntop: ic 19925 ntop -1 ntop_check 19925
+DEBUG -- nlft: ic 20166 nlft -1 nlft_check 20166
+DEBUG -- nlft: ic 157 nlft -1 nlft_check 157
+DEBUG -- nbot: ic 371 nbot -1 nbot_check 371
+DEBUG -- nbot: ic 6887 nbot -1 nbot_check 6887
+DEBUG -- nrht: ic 7060 nrht -1 nrht_check 7060
+DEBUG -- nrht: ic 13478 nrht -1 nrht_check 13478
+DEBUG -- ntop: ic 13651 ntop -1 ntop_check 13651
+DEBUG -- ntop: ic 20167 ntop -1 ntop_check 20167
+DEBUG -- nlft: ic 20381 nlft -1 nlft_check 20381
+DEBUG -- nlft: ic 168 nlft -1 nlft_check 168
+DEBUG -- nbot: ic 381 nbot -1 nbot_check 381
+DEBUG -- nbot: ic 6749 nbot -1 nbot_check 6749
+DEBUG -- nrht: ic 7052 nrht -1 nrht_check 7052
+DEBUG -- nrht: ic 13383 nrht -1 nrht_check 13383
+DEBUG -- ntop: ic 13686 ntop -1 ntop_check 13686
+DEBUG -- ntop: ic 20054 ntop -1 ntop_check 20054
+DEBUG -- nlft: ic 20267 nlft -1 nlft_check 20267
+DEBUG -- nlft: ic 127 nlft -1 nlft_check 127
+DEBUG -- nbot: ic 376 nbot -1 nbot_check 376
+DEBUG -- nbot: ic 6874 nbot -1 nbot_check 6874
+DEBUG -- nrht: ic 7044 nrht -1 nrht_check 7044
+DEBUG -- nrht: ic 13470 nrht -1 nrht_check 13470
+DEBUG -- ntop: ic 13640 ntop -1 ntop_check 13640
+DEBUG -- ntop: ic 20138 ntop -1 ntop_check 20138
+DEBUG -- nlft: ic 20387 nlft -1 nlft_check 20387
+DEBUG -- nlft: ic 160 nlft -1 nlft_check 160
+DEBUG -- nbot: ic 386 nbot -1 nbot_check 386
+DEBUG -- nbot: ic 6775 nbot -1 nbot_check 6775
+DEBUG -- nrht: ic 7086 nrht -1 nrht_check 7086
+DEBUG -- nrht: ic 13433 nrht -1 nrht_check 13433
+DEBUG -- ntop: ic 13744 ntop -1 ntop_check 13744
+DEBUG -- ntop: ic 20133 ntop -1 ntop_check 20133
+DEBUG -- nlft: ic 20359 nlft -1 nlft_check 20359
+DEBUG -- nlft: ic 117 nlft -1 nlft_check 117
+DEBUG -- nbot: ic 368 nbot -1 nbot_check 368
+DEBUG -- nbot: ic 6858 nbot -1 nbot_check 6858
+DEBUG -- nrht: ic 7000 nrht -1 nrht_check 7000
+DEBUG -- nrht: ic 13430 nrht -1 nrht_check 13430
+DEBUG -- ntop: ic 13572 ntop -1 ntop_check 13572
+DEBUG -- ntop: ic 20062 ntop -1 ntop_check 20062
+DEBUG -- nlft: ic 20313 nlft -1 nlft_check 20313
+DEBUG -- nlft: ic 165 nlft -1 nlft_check 165
+DEBUG -- nbot: ic 393 nbot -1 nbot_check 393
+DEBUG -- nbot: ic 6830 nbot -1 nbot_check 6830
+DEBUG -- nrht: ic 7026 nrht -1 nrht_check 7026
+DEBUG -- nrht: ic 13397 nrht -1 nrht_check 13397
+DEBUG -- ntop: ic 13593 ntop -1 ntop_check 13593
+DEBUG -- ntop: ic 20030 ntop -1 ntop_check 20030
+DEBUG -- nlft: ic 20258 nlft -1 nlft_check 20258
+DEBUG -- nbot: ic 32 nbot -1 nbot_check 32
+DEBUG -- nlft: ic 125 nlft -1 nlft_check 125
+DEBUG -- nbot: ic 6913 nbot -1 nbot_check 6913
+DEBUG -- nrht: ic 6992 nrht -1 nrht_check 6992
+DEBUG -- nrht: ic 13606 nrht -1 nrht_check 13606
+DEBUG -- ntop: ic 13685 ntop -1 ntop_check 13685
+DEBUG -- nlft: ic 20473 nlft -1 nlft_check 20473
+DEBUG -- ntop: ic 20566 ntop -1 ntop_check 20566
+DEBUG -- nlft: ic 173 nlft -1 nlft_check 173
+DEBUG -- nbot: ic 400 nbot -1 nbot_check 400
+DEBUG -- nbot: ic 6849 nbot -1 nbot_check 6849
+DEBUG -- nrht: ic 7042 nrht -1 nrht_check 7042
+DEBUG -- nrht: ic 13429 nrht -1 nrht_check 13429
+DEBUG -- ntop: ic 13622 ntop -1 ntop_check 13622
+DEBUG -- ntop: ic 20071 ntop -1 ntop_check 20071
+DEBUG -- nlft: ic 20298 nlft -1 nlft_check 20298
+DEBUG -- nbot: ic 34 nbot -1 nbot_check 34
+DEBUG -- nlft: ic 115 nlft -1 nlft_check 115
+DEBUG -- nbot: ic 6897 nbot -1 nbot_check 6897
+DEBUG -- nrht: ic 6984 nrht -1 nrht_check 6984
+DEBUG -- nrht: ic 13566 nrht -1 nrht_check 13566
+DEBUG -- ntop: ic 13653 ntop -1 ntop_check 13653
+DEBUG -- nlft: ic 20435 nlft -1 nlft_check 20435
+DEBUG -- ntop: ic 20516 ntop -1 ntop_check 20516
+DEBUG -- nlft: ic 153 nlft -1 nlft_check 153
+DEBUG -- nbot: ic 423 nbot -1 nbot_check 423
+DEBUG -- nbot: ic 6884 nbot -1 nbot_check 6884
+DEBUG -- nrht: ic 7080 nrht -1 nrht_check 7080
+DEBUG -- nrht: ic 13523 nrht -1 nrht_check 13523
+DEBUG -- ntop: ic 13719 ntop -1 ntop_check 13719
+DEBUG -- ntop: ic 20180 ntop -1 ntop_check 20180
+DEBUG -- nlft: ic 20450 nlft -1 nlft_check 20450
+DEBUG -- nbot: ic 38 nbot -1 nbot_check 38
+DEBUG -- nlft: ic 121 nlft -1 nlft_check 121
+DEBUG -- nbot: ic 6930 nbot -1 nbot_check 6930
+DEBUG -- nrht: ic 6977 nrht -1 nrht_check 6977
+DEBUG -- nrht: ic 13573 nrht -1 nrht_check 13573
+DEBUG -- ntop: ic 13620 ntop -1 ntop_check 13620
+DEBUG -- nlft: ic 20429 nlft -1 nlft_check 20429
+DEBUG -- ntop: ic 20512 ntop -1 ntop_check 20512
+DEBUG -- nlft: ic 144 nlft -1 nlft_check 144
+DEBUG -- nbot: ic 418 nbot -1 nbot_check 418
+DEBUG -- nbot: ic 6874 nbot -1 nbot_check 6874
+DEBUG -- nrht: ic 7054 nrht -1 nrht_check 7054
+DEBUG -- nrht: ic 13465 nrht -1 nrht_check 13465
+DEBUG -- ntop: ic 13645 ntop -1 ntop_check 13645
+DEBUG -- ntop: ic 20101 ntop -1 ntop_check 20101
+DEBUG -- nlft: ic 20375 nlft -1 nlft_check 20375
+Iteration 2900 timestep 0.003819 Sim Time 5.162613 cells 20544 Mass Sum  171748.524709 Mass Change -1.16415e-10
+DEBUG -- nbot: ic 33 nbot -1 nbot_check 33
+DEBUG -- nlft: ic 129 nlft -1 nlft_check 129
+DEBUG -- nbot: ic 6937 nbot -1 nbot_check 6937
+DEBUG -- nrht: ic 6987 nrht -1 nrht_check 6987
+DEBUG -- nrht: ic 13587 nrht -1 nrht_check 13587
+DEBUG -- ntop: ic 13637 ntop -1 ntop_check 13637
+DEBUG -- nlft: ic 20445 nlft -1 nlft_check 20445
+DEBUG -- ntop: ic 20541 ntop -1 ntop_check 20541
+DEBUG -- nbot: ic 59 nbot -1 nbot_check 59
+DEBUG -- nlft: ic 148 nlft -1 nlft_check 148
+DEBUG -- nbot: ic 6884 nbot -1 nbot_check 6884
+DEBUG -- nrht: ic 7004 nrht -1 nrht_check 7004
+DEBUG -- nrht: ic 13563 nrht -1 nrht_check 13563
+DEBUG -- ntop: ic 13683 ntop -1 ntop_check 13683
+DEBUG -- nlft: ic 20419 nlft -1 nlft_check 20419
+DEBUG -- ntop: ic 20508 ntop -1 ntop_check 20508
+DEBUG -- nlft: ic 10 nlft -1 nlft_check 10
+DEBUG -- nbot: ic 45 nbot -1 nbot_check 45
+DEBUG -- nbot: ic 6927 nbot -1 nbot_check 6927
+DEBUG -- nrht: ic 6951 nrht -1 nrht_check 6951
+DEBUG -- nrht: ic 13623 nrht -1 nrht_check 13623
+DEBUG -- ntop: ic 13647 ntop -1 ntop_check 13647
+DEBUG -- ntop: ic 20529 ntop -1 ntop_check 20529
+DEBUG -- nlft: ic 20564 nlft -1 nlft_check 20564
+DEBUG -- nbot: ic 68 nbot -1 nbot_check 68
+DEBUG -- nlft: ic 146 nlft -1 nlft_check 146
+DEBUG -- nbot: ic 6868 nbot -1 nbot_check 6868
+DEBUG -- nrht: ic 6987 nrht -1 nrht_check 6987
+DEBUG -- nrht: ic 13556 nrht -1 nrht_check 13556
+DEBUG -- ntop: ic 13675 ntop -1 ntop_check 13675
+DEBUG -- nlft: ic 20397 nlft -1 nlft_check 20397
+DEBUG -- ntop: ic 20475 ntop -1 ntop_check 20475
+DEBUG -- nlft: ic 12 nlft -1 nlft_check 12
+DEBUG -- nbot: ic 47 nbot -1 nbot_check 47
+DEBUG -- nbot: ic 70 nbot -1 nbot_check 70
+DEBUG -- nlft: ic 154 nlft -1 nlft_check 154
+DEBUG -- nbot: ic 6898 nbot -1 nbot_check 6898
+DEBUG -- nbot: ic 6923 nbot -1 nbot_check 6923
+DEBUG -- nrht: ic 6937 nrht -1 nrht_check 6937
+DEBUG -- nrht: ic 6977 nrht -1 nrht_check 6977
+DEBUG -- nrht: ic 13602 nrht -1 nrht_check 13602
+DEBUG -- nrht: ic 13641 nrht -1 nrht_check 13641
+DEBUG -- ntop: ic 13655 ntop -1 ntop_check 13655
+DEBUG -- ntop: ic 13681 ntop -1 ntop_check 13681
+DEBUG -- nlft: ic 20425 nlft -1 nlft_check 20425
+DEBUG -- ntop: ic 20509 ntop -1 ntop_check 20509
+DEBUG -- ntop: ic 20531 ntop -1 ntop_check 20531
+DEBUG -- nlft: ic 20566 nlft -1 nlft_check 20566
+DEBUG -- nbot: ic 55 nbot -1 nbot_check 55
+DEBUG -- nlft: ic 150 nlft -1 nlft_check 150
+DEBUG -- nbot: ic 6879 nbot -1 nbot_check 6879
+DEBUG -- nrht: ic 6953 nrht -1 nrht_check 6953
+DEBUG -- nrht: ic 13582 nrht -1 nrht_check 13582
+DEBUG -- ntop: ic 13656 ntop -1 ntop_check 13656
+DEBUG -- nlft: ic 20385 nlft -1 nlft_check 20385
+DEBUG -- ntop: ic 20480 ntop -1 ntop_check 20480
+DEBUG -- nbot: ic 3 nbot -1 nbot_check 3
+DEBUG -- nlft: ic 17 nlft -1 nlft_check 17
+DEBUG -- nbot: ic 6900 nbot -1 nbot_check 6900
+DEBUG -- nrht: ic 6909 nrht -1 nrht_check 6909
+DEBUG -- nrht: ic 13681 nrht -1 nrht_check 13681
+DEBUG -- ntop: ic 13690 ntop -1 ntop_check 13690
+DEBUG -- nlft: ic 20573 nlft -1 nlft_check 20573
+DEBUG -- ntop: ic 20587 ntop -1 ntop_check 20587
+DEBUG -- nlft: ic 25 nlft -1 nlft_check 25
+DEBUG -- nbot: ic 54 nbot -1 nbot_check 54
+DEBUG -- nbot: ic 6845 nbot -1 nbot_check 6845
+DEBUG -- nrht: ic 6890 nrht -1 nrht_check 6890
+DEBUG -- nrht: ic 13621 nrht -1 nrht_check 13621
+DEBUG -- ntop: ic 13666 ntop -1 ntop_check 13666
+DEBUG -- ntop: ic 20457 ntop -1 ntop_check 20457
+DEBUG -- nlft: ic 20486 nlft -1 nlft_check 20486
+DEBUG -- nlft: ic 0 nlft -1 nlft_check 0
+DEBUG -- nbot: ic 6 nbot -1 nbot_check 6
+DEBUG -- nbot: ic 6800 nbot -1 nbot_check 6800
+DEBUG -- nrht: ic 6802 nrht -1 nrht_check 6802
+DEBUG -- nrht: ic 13572 nrht -1 nrht_check 13572
+DEBUG -- ntop: ic 13574 ntop -1 ntop_check 13574
+DEBUG -- ntop: ic 20368 ntop -1 ntop_check 20368
+DEBUG -- nlft: ic 20374 nlft -1 nlft_check 20374
+DEBUG -- nlft: ic 22 nlft -1 nlft_check 22
+DEBUG -- nbot: ic 40 nbot -1 nbot_check 40
+DEBUG -- nbot: ic 6778 nbot -1 nbot_check 6778
+DEBUG -- nrht: ic 6804 nrht -1 nrht_check 6804
+DEBUG -- nrht: ic 13527 nrht -1 nrht_check 13527
+DEBUG -- ntop: ic 13553 ntop -1 ntop_check 13553
+DEBUG -- ntop: ic 20291 ntop -1 ntop_check 20291
+DEBUG -- nlft: ic 20309 nlft -1 nlft_check 20309
+DEBUG -- nlft: ic 0 nlft -1 nlft_check 0
+DEBUG -- nbot: ic 2 nbot -1 nbot_check 2
+DEBUG -- nbot: ic 6714 nbot -1 nbot_check 6714
+DEBUG -- nrht: ic 6715 nrht -1 nrht_check 6715
+DEBUG -- nrht: ic 13440 nrht -1 nrht_check 13440
+DEBUG -- ntop: ic 13441 ntop -1 ntop_check 13441
+DEBUG -- ntop: ic 20153 ntop -1 ntop_check 20153
+DEBUG -- nlft: ic 20155 nlft -1 nlft_check 20155
+DEBUG -- nlft: ic 20 nlft -1 nlft_check 20
+DEBUG -- nbot: ic 36 nbot -1 nbot_check 36
+DEBUG -- nbot: ic 6670 nbot -1 nbot_check 6670
+DEBUG -- nrht: ic 6689 nrht -1 nrht_check 6689
+DEBUG -- nrht: ic 13353 nrht -1 nrht_check 13353
+DEBUG -- ntop: ic 13372 ntop -1 ntop_check 13372
+DEBUG -- ntop: ic 20006 ntop -1 ntop_check 20006
+DEBUG -- nlft: ic 20022 nlft -1 nlft_check 20022
+Iteration 3000 timestep 0.003721 Sim Time 5.538895 cells 20140 Mass Sum  171748.524709 Mass Change -1.16415e-10
+Memory used      146340 kB
+Memory peak      146344 kB
+Memory free      259209096 kB
 Memory available 264038568 kB
 
 ~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
-CPU: Device compute           time was	 19.6456	s
-CPU:   state_timer_set_timestep      		    0.7615	s
-CPU:   state_timer_finite_difference 		   16.1563	s
+CPU: Device compute           time was	 21.3138	s
+CPU:   state_timer_set_timestep      		    0.8148	s
+CPU:   state_timer_finite_difference 		   17.4917	s
 CPU:     state_timer_finite_diff_part1 		      0.0000	s
 CPU:     state_timer_finite_diff_part2 		      0.0000	s
 CPU:     state_timer_finite_diff_part3 		      0.0000	s
@@ -1209,32 +1363,32 @@ CPU:       mesh_timer_bidirpart9         		        0.0000	s
 CPU:       mesh_timer_bidirpart10        		        0.0000	s
 CPU:       mesh_timer_bidirpart11        		        0.0000	s
 CPU:       mesh_timer_bidirpart12        		        0.0000	s
-CPU:   state_timer_refine_potential  		    1.3216	s
-CPU:     state_timer_calc_mpot         		      0.9965	s
-CPU:     mesh_timer_refine_smooth      		      0.2525	s
-CPU:   state_timer_rezone_all        		    0.7264	s
-CPU:   mesh_timer_partition          		    0.0182	s
-CPU:   mesh_timer_calc_neighbors     		    0.6598	s
-CPU:     mesh_timer_hash_setup         		      0.3116	s
-CPU:     mesh_timer_hash_query         		      0.3474	s
-CPU:   state_timer_mass_sum          		    0.0018	s
+CPU:   state_timer_refine_potential  		    1.4444	s
+CPU:     state_timer_calc_mpot         		      1.0946	s
+CPU:     mesh_timer_refine_smooth      		      0.2716	s
+CPU:   state_timer_rezone_all        		    0.7918	s
+CPU:   mesh_timer_partition          		    0.0201	s
+CPU:   mesh_timer_calc_neighbors     		    0.7491	s
+CPU:     mesh_timer_hash_setup         		      0.3557	s
+CPU:     mesh_timer_hash_query         		      0.3926	s
+CPU:   state_timer_mass_sum          		    0.0019	s
 CPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
 =============================================================
-Profiling: Total CPU          time was	 19.6456	s
+Profiling: Total CPU          time was	 21.3138	s
 -------------------------------------------------------------
-Mesh Ops (Neigh+rezone+smooth+balance) 	  1.6387	s
-Mesh Ops Percentage                    	  8.3415	percent
+Mesh Ops (Neigh+rezone+smooth+balance) 	  1.8125	s
+Mesh Ops Percentage                    	  8.5041	percent
 =============================================================
-Profiling: Total              time was	 27.5210	s
-Parallel Speed-up:                    	  6.4108	Reference Serial CPU
+Profiling: Total              time was	 29.9606	s
+Parallel Speed-up:                    	  6.2766	Reference Serial CPU
 =============================================================
 
 ~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
-GPU: Write to device          time was	  0.0004	s
+GPU: Write to device          time was	  0.0003	s
 GPU: Read from device         time was	  0.0000	s
-GPU: Device compute           time was	  3.0641	s
-GPU:   state_timer_set_timestep      		    0.2028	s
-GPU:   state_timer_finite_difference 		    0.8117	s
+GPU: Device compute           time was	  3.3955	s
+GPU:   state_timer_set_timestep      		    0.2198	s
+GPU:   state_timer_finite_difference 		    0.8881	s
 GPU:     state_timer_finite_diff_part1 		      0.0000	s
 GPU:     state_timer_finite_diff_part2 		      0.0000	s
 GPU:     state_timer_finite_diff_part3 		      0.0000	s
@@ -1254,35 +1408,35 @@ GPU:       mesh_timer_bidirpart9         		        0.0000	s
 GPU:       mesh_timer_bidirpart10        		        0.0000	s
 GPU:       mesh_timer_bidirpart11        		        0.0000	s
 GPU:       mesh_timer_bidirpart12        		        0.0000	s
-GPU:   state_timer_refine_potential  		    0.8029	s
-GPU:     state_timer_calc_mpot         		      0.3609	s
-GPU:     mesh_timer_refine_smooth      		      0.4415	s
-GPU:   state_timer_rezone_all        		    0.6235	s
+GPU:   state_timer_refine_potential  		    0.8716	s
+GPU:     state_timer_calc_mpot         		      0.3895	s
+GPU:     mesh_timer_refine_smooth      		      0.4814	s
+GPU:   state_timer_rezone_all        		    0.7047	s
 GPU:   mesh_timer_partition          		    0.0000	s
-GPU:   mesh_timer_calc_neighbors     		    0.6208	s
-GPU:     mesh_timer_hash_setup         		      0.3801	s
-GPU:     mesh_timer_hash_query         		      0.2405	s
-GPU:   state_timer_mass_sum          		    0.0024	s
+GPU:   mesh_timer_calc_neighbors     		    0.7087	s
+GPU:     mesh_timer_hash_setup         		      0.4291	s
+GPU:     mesh_timer_hash_query         		      0.2793	s
+GPU:   state_timer_mass_sum          		    0.0026	s
 GPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
 =============================================================
-Profiling: Total GPU          time was	  3.0644	s
+Profiling: Total GPU          time was	  3.3958	s
 -------------------------------------------------------------
-Mesh Ops (Neigh+rezone+smooth+balance) 	  1.6858	s
-Mesh Ops Percentage                    	 55.0109	percent
+Mesh Ops (Neigh+rezone+smooth+balance) 	  1.8947	s
+Mesh Ops Percentage                    	 55.7972	percent
 =============================================================
-Profiling: Total              time was	 27.5210	s
-Parallel Speed-up:                    	  6.4108	Reference Serial CPU
+Profiling: Total              time was	 29.9606	s
+Parallel Speed-up:                    	  6.2766	Reference Serial CPU
 =============================================================
-CPU:  calc incl part meas     time was	 27.5167	s
-CPU:  calculation only        time was	 27.5164	s
+CPU:  calc incl part meas     time was	 29.9559	s
+CPU:  calculation only        time was	 29.9555	s
 CPU:  partition measure       time was	  0.0004	s
 CPU:  graphics                time was	  0.0000	s
 Using hash tables to calculate neighbors
 hash table size  bytes 1081600
 Initial order is Hilbert sort.   No cycle reorder.   Local Stencil is on.
-CPU:  rezone frequency                	  64.2143	percent
-CPU:  calc neigh frequency            	  64.2500	percent
+CPU:  rezone frequency                	  66.6000	percent
+CPU:  calc neigh frequency            	  66.6333	percent
 CPU:  refine_smooth_iter per rezone   	   0.0000	
-GPU:  rezone frequency                	  64.2143	percent
-GPU:  calc neigh frequency            	  64.2500	percent
+GPU:  rezone frequency                	  66.6000	percent
+GPU:  calc neigh frequency            	  66.6333	percent
 GPU:  refine_smooth_iter per rezone   	   0.0000	
