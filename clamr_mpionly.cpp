@@ -271,10 +271,11 @@ int main(int argc, char **argv) {
 
          //mesh->print_local();
       }
+
       mesh->init(nx, ny, circ_radius, initial_order, do_gpu_calc);
       state = new State(mesh);
       state->init(do_gpu_calc);
-      state->fill_circle(circ_radius, 100.0, 7.0);
+      state->fill_circle(circ_radius, 80.0, 10.0);
 
    }
    size_t &ncells = mesh->ncells;
@@ -289,35 +290,12 @@ int main(int argc, char **argv) {
    vector<spatial_t> &y  = mesh->y;
    vector<spatial_t> &dy = mesh->dy;
 
-   /*
-    * Commenting because this is redundant. These calculations are performed in Mesh.cpp
-    *
-   nsizes.resize(numpe);
-   ndispl.resize(numpe);
-
-   int ncells_int = ncells;
-   MPI_Allgather(&ncells_int, 1, MPI_INT, &nsizes[0], 1, MPI_INT, MPI_COMM_WORLD);
-
-   ndispl[0]=0;
-   for (int ip=1; ip<numpe; ip++){
-      ndispl[ip] = ndispl[ip-1] + nsizes[ip-1];
-   }
-   noffset = ndispl[mype];
-
-   state->resize(ncells);
-
-   state->fill_circle(circ_radius, 100.0, 7.0);
-
-   x.clear();
-   dx.clear();
-   y.clear();
-   dy.clear();
-   */ 
    if (graphic_outputInterval > niter) next_graphics_cycle = graphic_outputInterval;
    if (checkpoint_outputInterval > niter) next_cp_cycle = checkpoint_outputInterval;
 
 
    //  Kahan-type enhanced precision sum implementation.
+
    double H_sum = state->mass_sum(enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
@@ -326,6 +304,7 @@ int main(int argc, char **argv) {
       upper_mass_diff_percentage = H_sum_initial * SUM_ERROR;
       //printf("Setting sum mass error to %16.8lg\n",upper_mass_diff_percentage);
    }
+
    double cpu_time_main_setup = cpu_timer_stop(tstart_setup);
    mesh->parallel_output("CPU:  setup time               time was",cpu_time_main_setup, 0, "s");
 
@@ -454,6 +433,15 @@ int main(int argc, char **argv) {
    view_mode = 1;
 
    if (ncycle == next_cp_cycle) store_crux_data(crux, ncycle); 
+
+#ifdef _OPENMP
+#pragma omp parallel
+   {
+#endif
+      mesh->calc_neighbors(ncells);
+#ifdef _OPENMP
+   } // end parallel region
+#endif
 
    cpu_timer_start(&tstart);
 #ifdef HAVE_GRAPHICS

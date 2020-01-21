@@ -2,6 +2,8 @@
 # contains this file
 set TEST_NAME=`basename $PWD`
 
+set TEST_NAME="${TEST_NAME}${PRECISION_TYPE}"
+
 # First test is to see if the serial run is getting the same result
 # as the gold standard
 ./clamr_cpuonly -n 256 -i 100 -t 1500 >& ${TEST_NAME}_serial.out

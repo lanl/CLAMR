@@ -228,7 +228,7 @@ int main(int argc, char **argv) {
    state->init(do_gpu_calc);
    mesh->proc.resize(ncells);
    mesh->calc_distribution(numpe);
-   state->fill_circle(circ_radius, 100.0, 7.0);
+   state->fill_circle(circ_radius, 80.0, 10.0);
    
    if (graphic_outputInterval > niter) next_graphics_cycle = graphic_outputInterval;
    cl_mem &dev_celltype = mesh->dev_celltype;

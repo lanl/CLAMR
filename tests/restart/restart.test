@@ -2,6 +2,8 @@
 # contains this file
 set TEST_NAME=`basename $PWD`
 
+set TEST_NAME="${TEST_NAME}${PRECISION_TYPE}"
+
 ./clamr_cpuonly -n 8 -t 300 -c 100 > ${TEST_NAME}_run1.out
 ./compare_stdout.pl 0.0 ${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
 
