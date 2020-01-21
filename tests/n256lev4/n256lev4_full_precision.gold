@@ -1,0 +1,101 @@
+Mass of initialized cells equal to  687027.114624
+CPU:  setup time               time was	  0.2465	s
+Memory used      in startup 	     14212	kB
+Memory peak      in startup 	     18572	kB
+Memory free      at startup 	 259665724	kB
+Memory available at startup 	 264038568	kB
+Iteration   0 timestep      n/a Sim Time      0.0 cells 72560 Mass Sum  687027.114624
+	
+	Detected 40 cores in 2 packages
+
+	Package 0:
+		energy-cores Energy Consumed: 0.000000 Joules
+		energy-pkg Energy Consumed: 17.110535 Joules
+		energy-ram Energy Consumed: 3.094696 Joules
+	Package 1:
+		energy-cores Energy Consumed: 0.000000 Joules
+		energy-pkg Energy Consumed: 18.497192 Joules
+		energy-ram Energy Consumed: 2.835052 Joules
+
+
+Trying sysfs powercap interface to gather results
+
+	Package 0
+		package-1	: 27.195426J
+		dram	: 3.399446J
+	Package 1
+		package-0	: 29.043200J
+		dram	: 5.277658J
+
+Found working RAPL_SYSFS
+Iteration 100 timestep 0.000053 Sim Time 0.007112 cells 81296 Mass Sum  687027.114624 Mass Change            0
+Iteration 200 timestep 0.000051 Sim Time 0.012305 cells 85280 Mass Sum  687027.114624 Mass Change            0
+Iteration 300 timestep 0.000050 Sim Time 0.017345 cells 87920 Mass Sum  687027.114624 Mass Change            0
+Iteration 400 timestep 0.000050 Sim Time 0.022338 cells 89480 Mass Sum  687027.114624 Mass Change            0
+Iteration 500 timestep 0.000050 Sim Time 0.027323 cells 90872 Mass Sum  687027.114624 Mass Change            0
+Iteration 600 timestep 0.000050 Sim Time 0.032335 cells 91388 Mass Sum  687027.114624 Mass Change            0
+Iteration 700 timestep 0.000051 Sim Time 0.037393 cells 91148 Mass Sum  687027.114624 Mass Change            0
+Iteration 800 timestep 0.000051 Sim Time 0.042514 cells 90680 Mass Sum  687027.114624 Mass Change            0
+Iteration 900 timestep 0.000052 Sim Time 0.047697 cells 91076 Mass Sum  687027.114624 Mass Change            0
+Iteration 1000 timestep 0.000053 Sim Time 0.052939 cells 90992 Mass Sum  687027.114624 Mass Change            0
+Iteration 1100 timestep 0.000053 Sim Time 0.058226 cells 90944 Mass Sum  687027.114624 Mass Change            0
+Iteration 1200 timestep 0.000053 Sim Time 0.063543 cells 91220 Mass Sum  687027.114624 Mass Change            0
+Iteration 1300 timestep 0.000053 Sim Time 0.068878 cells 89792 Mass Sum  687027.114624 Mass Change            0
+Iteration 1400 timestep 0.000053 Sim Time 0.074217 cells 87872 Mass Sum  687027.114624 Mass Change            0
+Iteration 1500 timestep 0.000053 Sim Time 0.079557 cells 87020 Mass Sum  687027.114624 Mass Change            0
+Memory used      19760 kB
+Memory peak      19760 kB
+Memory free      259663916 kB
+Memory available 264038568 kB
+
+~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
+CPU: Device compute           time was	 45.9310	s
+CPU:   state_timer_set_timestep      		    1.7653	s
+CPU:   state_timer_finite_difference 		   36.0326	s
+CPU:     state_timer_finite_diff_part1 		      0.0000	s
+CPU:     state_timer_finite_diff_part2 		      0.0000	s
+CPU:     state_timer_finite_diff_part3 		      0.0000	s
+CPU:     state_timer_finite_diff_part4 		      0.0000	s
+CPU:     state_timer_finite_diff_part5 		      0.0000	s
+CPU:     state_timer_finite_diff_part6 		      0.0000	s
+CPU:       mesh_timer_bidir              		        0.0000	s
+CPU:       mesh_timer_bidirpart1         		        0.0000	s
+CPU:       mesh_timer_bidirpart2         		        0.0000	s
+CPU:       mesh_timer_bidirpart3         		        0.0000	s
+CPU:       mesh_timer_bidirpart4         		        0.0000	s
+CPU:       mesh_timer_bidirpart5         		        0.0000	s
+CPU:       mesh_timer_bidirpart6         		        0.0000	s
+CPU:       mesh_timer_bidirpart7         		        0.0000	s
+CPU:       mesh_timer_bidirpart8         		        0.0000	s
+CPU:       mesh_timer_bidirpart9         		        0.0000	s
+CPU:       mesh_timer_bidirpart10        		        0.0000	s
+CPU:       mesh_timer_bidirpart11        		        0.0000	s
+CPU:       mesh_timer_bidirpart12        		        0.0000	s
+CPU:   state_timer_refine_potential  		    4.1986	s
+CPU:     state_timer_calc_mpot         		      1.9355	s
+CPU:     mesh_timer_refine_smooth      		      2.0466	s
+CPU:   state_timer_rezone_all        		    2.0489	s
+CPU:   mesh_timer_partition          		    0.0491	s
+CPU:   mesh_timer_calc_neighbors     		    1.8323	s
+CPU:     mesh_timer_hash_setup         		      0.6990	s
+CPU:     mesh_timer_hash_query         		      1.1329	s
+CPU:   state_timer_mass_sum          		    0.0043	s
+CPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
+=============================================================
+Profiling: Total CPU          time was	 45.9310	s
+-------------------------------------------------------------
+Mesh Ops (Neigh+rezone+smooth+balance) 	  5.9278	s
+Mesh Ops Percentage                    	 12.9060	percent
+=============================================================
+Profiling: Total              time was	 48.5050	s
+=============================================================
+CPU:  calc incl part meas     time was	 46.4994	s
+CPU:  calculation only        time was	 46.4993	s
+CPU:  partition measure       time was	  0.0001	s
+CPU:  graphics                time was	  0.0000	s
+Using hash tables to calculate neighbors
+hash table size  bytes 1044240
+Initial order is Hilbert sort.   No cycle reorder.   Local Stencil is on.
+CPU:  rezone frequency                	  89.2667	percent
+CPU:  calc neigh frequency            	  89.3333	percent
+CPU:  refine_smooth_iter per rezone   	   1.1202	
