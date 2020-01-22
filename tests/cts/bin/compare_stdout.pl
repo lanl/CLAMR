@@ -29,6 +29,7 @@ if (open (GOLDFH, $reffile) ){
    while ($_ = <GOLDFH>){
       if (/     or  /) {next LINE;}
       if (/Detected/) {next LINE;}
+      if (/error opening core/) {next LINE;}
       if (/Package 0/) {next LINE;}
       if (/Package 1/) {next LINE;}
       if (/sysfs power/) {next LINE;}
@@ -91,6 +92,7 @@ if (open (NEWFH, $newfile) ){
    while ($_ = <NEWFH>){
       if (/     or  /) {next LINE;}
       if (/Detected/) {next LINE;}
+      if (/error opening core/) {next LINE;}
       if (/Package 0/) {next LINE;}
       if (/Package 1/) {next LINE;}
       if (/sysfs power/) {next LINE;}

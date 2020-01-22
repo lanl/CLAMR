@@ -400,7 +400,6 @@ extern "C" void do_calc(void)
    vector<char_t>     mpot;
    
    size_t new_ncells = 0;
-   double H_sum = -1.0;
 
    //  Main loop.
    int endcycle = MIN3(niter, next_cp_cycle, next_graphics_cycle);
@@ -414,17 +413,6 @@ extern "C" void do_calc(void)
       new_ncells = state->calc_refine_potential(mpot, icount, jcount);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
-
-#ifdef _OPENMP
-#pragma omp barrier
-#pragma omp master
-         {
-#endif
-        //state->state_memory.memory_report();
-        //printf("\n\n\n");
-#ifdef _OPENMP
-         }
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -476,8 +464,8 @@ extern "C" void do_calc(void)
 #pragma omp master
          {
 #endif
-           deltaT = mydeltaT;
-           simTime += deltaT;
+            deltaT = mydeltaT;
+            simTime += deltaT;
 #ifdef _OPENMP
          }
 #endif
@@ -501,8 +489,6 @@ extern "C" void do_calc(void)
 
          mesh->set_bounds(ncells);
 
-   //H_sum = state->mass_sum(enhanced_precision_sum);
-   //printf("%f\n", H_sum);
          //  Execute main kernel
          if (choose_amr_method == CELL_AMR) {
             state->calc_finite_difference(deltaT);
@@ -519,8 +505,6 @@ extern "C" void do_calc(void)
          } else {
             state->calc_finite_difference(deltaT);
          }
-   //H_sum = state->mass_sum(enhanced_precision_sum);
-   //printf("%f\n", H_sum);
 
          //  Size of arrays gets reduced to just the real cells in this call for have_boundary = 0
          state->remove_boundary_cells();
@@ -547,7 +531,7 @@ extern "C" void do_calc(void)
 
    cpu_time_calcs += cpu_timer_stop(tstart_cpu);
 
-   H_sum = state->mass_sum(enhanced_precision_sum);
+   double H_sum = state->mass_sum(enhanced_precision_sum);
 
    int error_status = STATUS_OK;
 
@@ -561,10 +545,10 @@ extern "C" void do_calc(void)
    }
 
    double percent_mass_diff = fabs(H_sum - H_sum_initial)/H_sum_initial * 100.0;
-   /*if (percent_mass_diff >= upper_mass_diff_percentage) {
+   if (percent_mass_diff >= upper_mass_diff_percentage) {
       printf("Mass difference outside of acceptable range on cycle %d percent_mass_diff %lg upper limit %lg\n",ncycle,percent_mass_diff, upper_mass_diff_percentage);
       error_status = STATUS_MASS_LOSS;
-   }*/
+   }
 
    if (error_status != STATUS_OK){
       if (crux_type != CRUX_NONE) {
