@@ -30,7 +30,7 @@ enable_testing()
 #set(CMAKE_BUILD_TYPE Debug)
 
 set (CMAKE_CXX_EXTENSIONS off)
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_C_STANDARD 99)
 
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
@@ -91,6 +91,8 @@ endif()
 option (KOKKOS_ENABLE "Enable KOKKOS support" OFF)
 mark_as_advanced (KOKKOS_ENABLE)
 
+#set (Kokkos_ENABLE_CUDA_LAMBDA on)
+
 if(NOT KOKKOS_ENABLE)
    find_package(Vector)
    if (CMAKE_VECTOR_VERBOSE)
@@ -134,8 +136,6 @@ find_package(MPI)
 if (MPI_FOUND)
    include_directories(${MPI_INCLUDE_PATH})
 endif (MPI_FOUND)
-
-set (Kokkos_ENABLE_CUDA_LAMBDA on)
 
 if(NOT KOKKOS_ENABLE)
    find_package( OpenMP)
@@ -541,7 +541,8 @@ endif (OpenCL_FOUND AND MPI_FOUND)
 ########### clamr_kokkosonly target ###############
 
 if(KOKKOS_ENABLE)
-   if (EXISTS "${CMAKE_SOURCE_DIR}/kokkos" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/kokkos")
+
+    #if (EXISTS "${CMAKE_SOURCE_DIR}/kokkos" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/kokkos")
       set(clamr_kokkosonly_CXX_SRCS clamr_kokkosonly.cpp state.cpp input.cpp)
       set(clamr_kokkosonly_H_SRCS state.h input.h)
 
@@ -566,7 +567,7 @@ if(KOKKOS_ENABLE)
       #target_link_libraries(clamr_cpuonly ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
 
       install(TARGETS clamr_kokkosonly DESTINATION bin)
-   endif (EXISTS "${CMAKE_SOURCE_DIR}/kokkos" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/kokkos")
+      #endif (EXISTS "${CMAKE_SOURCE_DIR}/kokkos" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/kokkos")
 endif(KOKKOS_ENABLE)
 
 ########### clamr_cpuonly target ###############

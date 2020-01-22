@@ -1,0 +1,5 @@
+#cuda compiler needs to be [my_home]/[where is clamr]/kokkos/bin/nvcc_wrapper
+#Arch depends on GPU. gtx titanx is maxwell52
+
+cmake -DKokkos_ENABLE_CUDA=1 -DKokkos_ENABLE_CUDA_LAMBDA=1 -DCMAKE_CXX_COMPILER=/home/ddunning/CLAMR_KOKKOS/CLAMR/kokkos/bin/nvcc_wrapper -DKokkos_ARCH_MAXWELL52=1 ..
+

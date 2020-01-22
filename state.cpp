@@ -7253,7 +7253,7 @@ size_t State::calc_refine_potential(vector<char_t> &mpot,int &icount, int &jcoun
 
 #ifdef _OPENMP
 #pragma omp master
-{
+    {
 #endif
    if (TIMING_LEVEL >= 2) {
       cpu_timers[STATE_TIMER_CALC_MPOT] += cpu_timer_stop(tstart_lev2);
