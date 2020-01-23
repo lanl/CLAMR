@@ -1,28 +1,28 @@
 Mass of initialized cells equal to  171748.524709
-CPU:  setup time               time was	  0.0158	  0.0158	s
-Memory used      in startup 	     16056	     16076	kB
-Memory peak      in startup 	     16876	     16668	kB
-Memory free      at startup 	 259611416	 259611416	kB
+CPU:  setup time               time was	  0.0160	  0.0159	s
+Memory used      in startup 	     16056	     16084	kB
+Memory peak      in startup 	     16864	     16676	kB
+Memory free      at startup 	 259614108	 259614108	kB
 Memory available at startup 	 264038568	 264038568	kB
 Iteration   0 timestep      n/a Sim Time      0.0 cells 17028 Mass Sum  171748.524709
-Iteration 100 timestep 0.000437 Sim Time 0.057921 cells 17484 Mass Sum  171748.524709 Mass Change            0
-Iteration 200 timestep 0.000441 Sim Time 0.102025 cells 17724 Mass Sum  171748.524709 Mass Change            0
-Iteration 300 timestep 0.000468 Sim Time 0.147972 cells 17928 Mass Sum  171748.524709 Mass Change            0
-Iteration 400 timestep 0.000531 Sim Time 0.197883 cells 17988 Mass Sum  171748.524709 Mass Change -2.91038e-11
-Iteration 500 timestep 0.000563 Sim Time 0.252584 cells 18084 Mass Sum  171748.524709 Mass Change -2.91038e-11
-Iteration 600 timestep 0.000622 Sim Time 0.312740 cells 18048 Mass Sum  171748.524709 Mass Change -2.91038e-11
-Memory used      	     17272	     17428	kB
-Memory peak      	     17348	     17428	kB
-Memory free      	 259611328	 259611328	kB
+Iteration 100 timestep 0.000440 Sim Time 0.058026 cells 17484 Mass Sum  171748.524709 Mass Change            0
+Iteration 200 timestep 0.000444 Sim Time 0.102446 cells 17724 Mass Sum  171748.524709 Mass Change            0
+Iteration 300 timestep 0.000472 Sim Time 0.148770 cells 17928 Mass Sum  171748.524709 Mass Change            0
+Iteration 400 timestep 0.000540 Sim Time 0.199035 cells 18012 Mass Sum  171748.524709 Mass Change            0
+Iteration 500 timestep 0.000566 Sim Time 0.253893 cells 18096 Mass Sum  171748.524709 Mass Change            0
+Iteration 600 timestep 0.000620 Sim Time 0.314156 cells 18048 Mass Sum  171748.524709 Mass Change -2.91038e-11
+Memory used      	     17312	     17496	kB
+Memory peak      	     17388	     17500	kB
+Memory free      	 259613240	 259613240	kB
 Memory available 	 264038568	 264038568	kB
 
 ~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
 
 CPU: Parallel timings
 
-CPU: Device compute           time was	  1.6857	  1.6860	s
-CPU:   state_timer_set_timestep      		    0.0711	    0.0714	s
-CPU:   state_timer_finite_difference 		    1.3906	    1.3859	s
+CPU: Device compute           time was	  1.7204	  1.7202	s
+CPU:   state_timer_set_timestep      		    0.0726	    0.0725	s
+CPU:   state_timer_finite_difference 		    1.4163	    1.4187	s
 CPU:     state_timer_finite_diff_part1 		      0.0000	      0.0000	s
 CPU:     state_timer_finite_diff_part2 		      0.0000	      0.0000	s
 CPU:     state_timer_finite_diff_part3 		      0.0000	      0.0000	s
@@ -42,46 +42,46 @@ CPU:       mesh_timer_bidirpart9         		        0.0000	        0.0000	s
 CPU:       mesh_timer_bidirpart10        		        0.0000	        0.0000	s
 CPU:       mesh_timer_bidirpart11        		        0.0000	        0.0000	s
 CPU:       mesh_timer_bidirpart12        		        0.0000	        0.0000	s
-CPU:   state_timer_refine_potential  		    0.1119	    0.1164	s
-CPU:     state_timer_calc_mpot         		      0.0816	      0.0861	s
-CPU:     mesh_timer_refine_smooth      		      0.0244	      0.0246	s
-CPU:   state_timer_rezone_all        		    0.0241	    0.0241	s
-CPU:   mesh_timer_partition          		    0.0000	    0.0000	s
-CPU:   mesh_timer_calc_neighbors     		    0.0878	    0.0878	s
-CPU:     mesh_timer_hash_setup         		      0.0129	      0.0118	s
-CPU:     mesh_timer_hash_query         		      0.0277	      0.0233	s
-CPU:     mesh_timer_find_boundary      		      0.0101	      0.0158	s
-CPU:     mesh_timer_push_setup         		      0.0024	      0.0022	s
-CPU:     mesh_timer_push_boundary      		      0.0005	      0.0005	s
+CPU:   state_timer_refine_potential  		    0.1162	    0.1135	s
+CPU:     state_timer_calc_mpot         		      0.0853	      0.0828	s
+CPU:     mesh_timer_refine_smooth      		      0.0251	      0.0248	s
+CPU:   state_timer_rezone_all        		    0.0253	    0.0253	s
+CPU:   mesh_timer_partition          		    0.0004	    0.0004	s
+CPU:   mesh_timer_calc_neighbors     		    0.0893	    0.0895	s
+CPU:     mesh_timer_hash_setup         		      0.0126	      0.0126	s
+CPU:     mesh_timer_hash_query         		      0.0257	      0.0251	s
+CPU:     mesh_timer_find_boundary      		      0.0113	      0.0118	s
+CPU:     mesh_timer_push_setup         		      0.0021	      0.0024	s
+CPU:     mesh_timer_push_boundary      		      0.0006	      0.0006	s
 CPU:     mesh_timer_local_list         		      0.0000	      0.0000	s
-CPU:     mesh_timer_layer1             		      0.0014	      0.0011	s
-CPU:     mesh_timer_layer2             		      0.0012	      0.0009	s
+CPU:     mesh_timer_layer1             		      0.0015	      0.0012	s
+CPU:     mesh_timer_layer2             		      0.0013	      0.0010	s
 CPU:     mesh_timer_layer_list         		      0.0000	      0.0000	s
-CPU:     mesh_timer_copy_mesh_data     		      0.0024	      0.0026	s
+CPU:     mesh_timer_copy_mesh_data     		      0.0027	      0.0028	s
 CPU:     mesh_timer_fill_mesh_ghost    		      0.0001	      0.0001	s
-CPU:     mesh_timer_fill_neigh_ghost   		      0.0088	      0.0224	s
+CPU:     mesh_timer_fill_neigh_ghost   		      0.0090	      0.0244	s
 CPU:     mesh_timer_set_corner_neigh   		      0.0000	      0.0000	s
-CPU:     mesh_timer_neigh_adjust       		      0.0035	      0.0036	s
-CPU:     mesh_timer_setup_comm         		      0.0141	      0.0008	s
-CPU:   state_timer_mass_sum          		    0.0003	    0.0004	s
+CPU:     mesh_timer_neigh_adjust       		      0.0037	      0.0038	s
+CPU:     mesh_timer_setup_comm         		      0.0158	      0.0009	s
+CPU:   state_timer_mass_sum          		    0.0003	    0.0003	s
 CPU:   mesh_timer_load_balance       		    0.0000	    0.0000	s
 CPU:   mesh_timer_calc_spatial_coordi		    0.0000	    0.0000	s
 =============================================================
-Profiling: Total CPU          time was	  1.6857	  1.6860	s
+Profiling: Total CPU          time was	  1.7204	  1.7202	s
 -------------------------------------------------------------
-Mesh Ops (Neigh+rezone+smooth+balance) 	  0.1364	  0.1365	s
-Mesh Ops Percentage                    	  8.0886	  8.0960	percent
+Mesh Ops (Neigh+rezone+smooth+balance) 	  0.1397	  0.1396	s
+Mesh Ops Percentage                    	  8.1193	  8.1172	percent
 =============================================================
-Profiling: Total              time was	  1.7135	  1.7137	s
+Profiling: Total              time was	  1.7492	  1.7492	s
 =============================================================
-CPU:  calc incl part meas     time was	  1.7131	  1.7134	s
-CPU:  calculation only        time was	  1.7131	  1.7134	s
+CPU:  calc incl part meas     time was	  1.7488	  1.7489	s
+CPU:  calculation only        time was	  1.7488	  1.7489	s
 CPU:  partition measure       time was	  0.0000	  0.0000	s
 CPU:  graphics                time was	  0.0000	  0.0000	s
-The MPI surface area to volume ratio 	  0.0322	  0.0322	without duplicates
+The MPI surface area to volume ratio 	  0.0324	  0.0324	without duplicates
 Using hash tables to calculate neighbors
 Initial order is Hilbert sort.   No cycle reorder.   Local Stencil is on.
-CPU:  rezone frequency                	  17.3333	percent
-CPU:  calc neigh frequency            	  17.5000	percent
+CPU:  rezone frequency                	  18.1667	percent
+CPU:  calc neigh frequency            	  18.3333	percent
 CPU:  load balance frequency          	   0.0000	percent
 CPU:  refine_smooth_iter per rezone   	   0.0000	

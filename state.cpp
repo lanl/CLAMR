@@ -3282,7 +3282,7 @@ void State::calc_finite_difference_regular_cells(double deltaT)
 #pragma omp barrier
 #endif
 
-   static state_t **H_reg, **U_reg, **V_reg;
+   //static state_t **H_reg, **U_reg, **V_reg;
    int **mask_reg;
 
    //for (int ll=mesh->levmx; ll>-1; ll--){
@@ -4790,7 +4790,7 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
    cl_event calc_finite_difference_via_faces_face_event, calc_finite_difference_via_faces_cell_event;
 
    size_t local_face_work = 128;
-   size_t global_face_work = ((MAX(mem_requestx, mem_requesty)+local_face_work - 1) /local_face_work) * local_face_work;
+   //size_t global_face_work = ((MAX(mem_requestx, mem_requesty)+local_face_work - 1) /local_face_work) * local_face_work;
    //printf("\nglobal face work %d\n", global_face_work);
 
    real_t deltaT_local = deltaT;
@@ -5181,7 +5181,7 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
    cl_event calc_finite_difference_in_place_cell_event, calc_finite_difference_in_place_fill_new_event, calc_finite_difference_in_place_fixup_event;
 
    size_t local_face_work = 128;
-   size_t global_face_work = ((pcellCnt+local_face_work - 1) /local_face_work) * local_face_work;
+   //size_t global_face_work = ((pcellCnt+local_face_work - 1) /local_face_work) * local_face_work;
    //printf("\nglobal face work %d\n", global_face_work);
 
    struct timespec tstart_cpu;
@@ -5731,7 +5731,7 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    cl_event calc_finite_difference_in_place_face_event, calc_finite_difference_in_place_fill_new_event, calc_finite_difference_in_place_fixup_event;
 
    size_t local_face_work = CL_DEVICE_MAX_WORK_GROUP_SIZE;
-   size_t global_face_work = ((pcellCnt+local_face_work - 1) /local_face_work) * local_face_work;
+   //size_t global_face_work = ((pcellCnt+local_face_work - 1) /local_face_work) * local_face_work;
    //printf("\nglobal face work %d\n", global_face_work);
 
    struct timespec tstart_cpu;
@@ -6082,7 +6082,6 @@ void State::gpu_calc_finite_difference_regular_cells(double deltaT)
    cl_mem &dev_ysendIdx2 = mesh->dev_ysendIdx2;
    int &nxfixup = mesh->nxfixup;
    int &nyfixup = mesh->nyfixup;
-   int &pcellCnt = mesh->pcellCnt;
 
    assert(dev_nface);
    assert(dev_H);
@@ -6255,10 +6254,10 @@ void State::gpu_calc_finite_difference_regular_cells(double deltaT)
 
    cl_event calc_finite_difference_regular_cells_comps_event, calc_finite_difference_regular_cells_fill_event, calc_finite_difference_in_place_fixup_event;
 
-   for (int ic = 0; ic < ncells; ic++) {
-       int ll = mesh->level[ic];
-       int jj = mesh->j[ic] - mesh->lev_jregmin[ll];
-       int ii = mesh->i[ic] - mesh->lev_iregmin[ll];
+   //for (int ic = 0; ic < ncells; ic++) {
+       //int ll = mesh->level[ic];
+       //int jj = mesh->j[ic] - mesh->lev_jregmin[ll];
+       //int ii = mesh->i[ic] - mesh->lev_iregmin[ll];
        //printf("%d) %d %d %d\n", ic, ll, jj, ii);
        //printf("%f ", V_reg[reg_start[ll]+jj*mesh->lev_iregsize[ll]+ii]);
        //printf("%f ", V_reg[reg_start[ll]+jj*mesh->lev_iregsize[ll]+ii+1]);
@@ -6267,7 +6266,7 @@ void State::gpu_calc_finite_difference_regular_cells(double deltaT)
        //printf("%f\n", V_reg[reg_start[ll]+(jj-1)*mesh->lev_iregsize[ll]+ii]);
         //printf("%d) ll %d jj %d ii %d startIdx %d\n", i, mesh->level[i], mesh->j[i] - mesh->lev_jregmin[mesh->level[i]], mesh->i[i] - mesh->lev_iregmin[mesh->level[i]], reg_start[mesh->level[i]]);
     //printf("%d) %f\n", i, mesh->meshes[ll].pstate[0][jj][ii]);
-   }
+   //}
 
    struct timespec tstart_cpu;
    cpu_timer_start(&tstart_cpu);
@@ -6621,7 +6620,6 @@ void State::gpu_calc_finite_difference_regular_cells_by_faces(double deltaT)
    cl_mem &dev_ysendIdx2 = mesh->dev_ysendIdx2;
    int &nxfixup = mesh->nxfixup;
    int &nyfixup = mesh->nyfixup;
-   int &pcellCnt = mesh->pcellCnt;
 
    assert(dev_nface);
    assert(dev_H);
@@ -6800,10 +6798,10 @@ void State::gpu_calc_finite_difference_regular_cells_by_faces(double deltaT)
 
    cl_event calc_finite_difference_regular_cells_comps_event, calc_finite_difference_regular_cells_fill_event, calc_finite_difference_in_place_fixup_event;
 
-   for (int ic = 0; ic < ncells; ic++) {
-       int ll = mesh->level[ic];
-       int jj = mesh->j[ic] - mesh->lev_jregmin[ll];
-       int ii = mesh->i[ic] - mesh->lev_iregmin[ll];
+   //for (int ic = 0; ic < ncells; ic++) {
+       //int ll = mesh->level[ic];
+       //int jj = mesh->j[ic] - mesh->lev_jregmin[ll];
+       //int ii = mesh->i[ic] - mesh->lev_iregmin[ll];
        //printf("%d) %d %d %d\n", ic, ll, jj, ii);
        //printf("%f ", V_reg[reg_start[ll]+jj*mesh->lev_iregsize[ll]+ii]);
        //printf("%f ", V_reg[reg_start[ll]+jj*mesh->lev_iregsize[ll]+ii+1]);
@@ -6812,7 +6810,7 @@ void State::gpu_calc_finite_difference_regular_cells_by_faces(double deltaT)
        //printf("%f\n", V_reg[reg_start[ll]+(jj-1)*mesh->lev_iregsize[ll]+ii]);
         //printf("%d) ll %d jj %d ii %d startIdx %d\n", i, mesh->level[i], mesh->j[i] - mesh->lev_jregmin[mesh->level[i]], mesh->i[i] - mesh->lev_iregmin[mesh->level[i]], reg_start[mesh->level[i]]);
     //printf("%d) %f\n", i, mesh->meshes[ll].pstate[0][jj][ii]);
-   }
+   //}
    for (int i = 0; i < mesh->pyfaceCnt; i++) {
 //        printf("%d %d %d\n", mesh->yface_level[i], mesh->yface_i[i], mesh->yface_j[i]);
    }
@@ -7243,7 +7241,7 @@ size_t State::calc_refine_potential(vector<char_t> &mpot,int &icount, int &jcoun
       if (qpot > qmax) qmax = qpot;
 
       mpot[ic]=0;
-      if (qmax > REFINE_GRADIENT && level[ic] < mesh->levmx) {
+      if (qmax > REFINE_GRADIENT && (int)level[ic] < mesh->levmx) {
          mpot[ic]=1;
       } else if (qmax < COARSEN_GRADIENT && level[ic] > 0) {
          mpot[ic] = -1;
@@ -8197,7 +8195,7 @@ void State::print_data_dump(int ncycle)
    sprintf(filename,"out%1d.%05d",mesh->mype,ncycle);
    FILE *fp=fopen(filename,"w");
 
-   int nlength = (mesh->mesh_memory.get_memory_size(mesh->nlft) >= mesh->ncells_ghost) ? mesh->ncells_ghost : mesh->ncells;
+   uint nlength = (mesh->mesh_memory.get_memory_size(mesh->nlft) >= mesh->ncells_ghost) ? mesh->ncells_ghost : mesh->ncells;
 
 fprintf(fp,"%d:\tindex\tglobal\ti\tj\tlev\tnlft\tnrht\tnbot\tntop\tH\tHhex\tU\tUhex\tV\tVhex\n",mesh->mype);
    for (uint ic=0; ic < nlength; ic++) {
