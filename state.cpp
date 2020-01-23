@@ -787,7 +787,7 @@ void State::apply_boundary_conditions(void)
    int lowerBound, upperBound;
    mesh->get_bounds(lowerBound, upperBound);
 
-   for (uint ic=lowerBound; ic<upperBound; ic++) {
+   for (int ic=lowerBound; ic<upperBound; ic++) {
       if (mesh->is_left_boundary(ic)) {
          int nr = nrht[ic];
          if (nr < (int)mesh->ncells) {
@@ -846,7 +846,7 @@ void State::apply_boundary_conditions(void)
 #endif
 
       // This is for a mesh with boundary cells
-      for (uint ic=lowerBound; ic<upperBound; ic++) {
+      for (int ic=lowerBound; ic<upperBound; ic++) {
          if (mesh->is_left_boundary(ic)) {
             int nr = nrht[ic];
             if (nr >= (int)mesh->ncells) {
@@ -928,7 +928,7 @@ void State::remove_boundary_cells(void)
 
       int lowerBound, upperBound;
       mesh->get_bounds(lowerBound, upperBound);
-      for (uint ic=lowerBound; ic<upperBound; ic++) {
+      for (int ic=lowerBound; ic<upperBound; ic++) {
          if (mesh->i[ic] == mesh->lev_ibegin[mesh->level[ic]]) mesh->nlft[ic] = ic;
          if (mesh->i[ic] == mesh->lev_iend[mesh->level[ic]])   mesh->nrht[ic] = ic;
          if (mesh->j[ic] == mesh->lev_jbegin[mesh->level[ic]]) mesh->nbot[ic] = ic;
@@ -1984,9 +1984,6 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
       real_t Uyplus = HALF*(Ut+Uic)-Cyhalf*(VUFLUXNT-VUFLUXIC);
       real_t Vyplus = HALF*(Vt+Vic)-Cyhalf*(VYFLUXNT-VYFLUXIC);
 
-      Hxfluxminus[ic] = Ul; //Uxminus;
-#ifdef XXX
-#define HNEWXFLUXMINUS  ( Uxminus )
       Hxfluxminus[ic] = HNEWXFLUXMINUS;
       Uxfluxminus[ic] = UNEWXFLUXMINUS;
       Vxfluxminus[ic] = UVNEWFLUXMINUS;
@@ -2022,8 +2019,6 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
       U_eigen = fabs(Vyplus/Hyplus) + sqrt(g*Hyplus);
       wplusy_H[ic] = w_corrector(deltaT, dyic, U_eigen, Ht-Hic, Hic-Hb, Htt-Ht) * (Ht - Hic);
       wplusy_V[ic] = w_corrector(deltaT, dyic, U_eigen, Vt-Vic, Vic-Vb, Vtt-Vt) * (Vt - Vic);
-#endif
-      wplusy_V[ic] = 1.0;
    }
 
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
@@ -2124,11 +2119,11 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
 
 #if defined(__GNUC_MINOR__)
       real_t dxic = dxcell[ic];
-      real_t dyic = dycell[ic];
+      //real_t dyic = dycell[ic];
 #else
       uchar_t lev = mesh->level[ic];
       real_t dxic    = mesh->lev_deltax[lev];
-      real_t dyic    = mesh->lev_deltay[lev];
+      //real_t dyic    = mesh->lev_deltay[lev];
 #endif
 
       H_new[ic] = U_fullstep(deltaT, dxic, H[ic],
@@ -2280,8 +2275,8 @@ void State::calc_finite_difference_face_in_place(double deltaT)
 #endif
    //normally use xfaceSize
    for (int iface = 0; iface < mesh->nxface; iface++){
-      int cell_lower = mesh->map_xface2cell_lower[iface];
-      int cell_upper = mesh->map_xface2cell_upper[iface];
+      uint cell_lower = mesh->map_xface2cell_lower[iface];
+      uint cell_upper = mesh->map_xface2cell_upper[iface];
       if (cell_lower >= mesh->ncells && cell_upper >= mesh->ncells) continue;
 
       // set the two faces
@@ -2550,12 +2545,13 @@ void State::calc_finite_difference_via_faces(double deltaT)
    apply_boundary_conditions();
 
    //No longer used, can remove
-   int *nlft, *nrht, *nbot, *ntop;
+   //int *nlft, *nbot;
+   int *nrht, *ntop;
    uchar_t *level;
 
-   nlft  = mesh->nlft;
+   //nlft  = mesh->nlft;
    nrht  = mesh->nrht;
-   nbot  = mesh->nbot;
+   //nbot  = mesh->nbot;
    ntop  = mesh->ntop;
    level = mesh->level;
 
@@ -3283,7 +3279,7 @@ void State::calc_finite_difference_regular_cells(double deltaT)
 #endif
 
    //static state_t **H_reg, **U_reg, **V_reg;
-   int **mask_reg;
+   //int **mask_reg;
 
    //for (int ll=mesh->levmx; ll>-1; ll--){
    for (int ll=0; ll<mesh->levmx+1; ll++){
@@ -3298,8 +3294,8 @@ void State::calc_finite_difference_regular_cells(double deltaT)
       //mask_reg = mask_reg_lev[ll];
       real_t dx = lev_deltax[ll];
       real_t dy = lev_deltay[ll];
-      real_t Cx = deltaT/dx;
-      real_t Cy = deltaT/dy;
+      //real_t Cx = deltaT/dx;
+      //real_t Cy = deltaT/dy;
 
       //state_t **H_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
       //state_t **U_reg_new = (state_t **)genmatrix(jjmax, iimax, sizeof(state_t));
@@ -3668,7 +3664,7 @@ void State::calc_finite_difference_regular_cells(double deltaT)
       int jjmax = mesh->lev_jregsize[ll];
       int jj, ii;
       real_t dx = lev_deltax[ll];
-      real_t dy = lev_deltay[ll];
+      //real_t dy = lev_deltay[ll];
 
 #ifdef _OPENMP
 #pragma omp for
@@ -4124,7 +4120,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
       int iimax = mesh->lev_iregsize[ll];
       int jjmax = mesh->lev_jregsize[ll];
       real_t dx = mesh->lev_deltax[ll];
-      real_t dy = mesh->lev_deltay[ll];
+      //real_t dy = mesh->lev_deltay[ll];
 
 #ifdef _OPENMP
 #pragma omp for
@@ -4789,7 +4785,7 @@ void State::gpu_calc_finite_difference_via_faces(double deltaT)
 
    cl_event calc_finite_difference_via_faces_face_event, calc_finite_difference_via_faces_cell_event;
 
-   size_t local_face_work = 128;
+   //size_t local_face_work = 128;
    //size_t global_face_work = ((MAX(mem_requestx, mem_requesty)+local_face_work - 1) /local_face_work) * local_face_work;
    //printf("\nglobal face work %d\n", global_face_work);
 
@@ -4991,7 +4987,6 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
    cl_mem &dev_ysendIdx2 = mesh->dev_ysendIdx2;
    int &nxfixup = mesh->nxfixup;
    int &nyfixup = mesh->nyfixup;
-   int &pcellCnt = mesh->pcellCnt;
 
    assert(dev_nface);
    assert(dev_H);
@@ -5180,7 +5175,7 @@ void State::gpu_calc_finite_difference_in_place(double deltaT)
 
    cl_event calc_finite_difference_in_place_cell_event, calc_finite_difference_in_place_fill_new_event, calc_finite_difference_in_place_fixup_event;
 
-   size_t local_face_work = 128;
+   //size_t local_face_work = 128;
    //size_t global_face_work = ((pcellCnt+local_face_work - 1) /local_face_work) * local_face_work;
    //printf("\nglobal face work %d\n", global_face_work);
 
@@ -5543,7 +5538,6 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
    cl_mem &dev_ysendIdx2 = mesh->dev_ysendIdx2;
    int &nxfixup = mesh->nxfixup;
    int &nyfixup = mesh->nyfixup;
-   int &pcellCnt = mesh->pcellCnt;
 
    assert(dev_nface);
    assert(dev_H);
@@ -5730,7 +5724,7 @@ void State::gpu_calc_finite_difference_via_face_in_place(double deltaT)
 
    cl_event calc_finite_difference_in_place_face_event, calc_finite_difference_in_place_fill_new_event, calc_finite_difference_in_place_fixup_event;
 
-   size_t local_face_work = CL_DEVICE_MAX_WORK_GROUP_SIZE;
+   //size_t local_face_work = CL_DEVICE_MAX_WORK_GROUP_SIZE;
    //size_t global_face_work = ((pcellCnt+local_face_work - 1) /local_face_work) * local_face_work;
    //printf("\nglobal face work %d\n", global_face_work);
 
