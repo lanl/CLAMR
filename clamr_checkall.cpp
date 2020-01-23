@@ -938,9 +938,7 @@ extern "C" void do_calc(void)
       if (mesh_local->numpe > 1) L7_Free(&mesh_local->cell_handle);
       L7_Dev_Free();
 
-      delete mesh_local;
       delete state_local;
-      delete mesh_global;
       delete state_global;
 
       //  Release kernels and finalize the OpenCL elements.

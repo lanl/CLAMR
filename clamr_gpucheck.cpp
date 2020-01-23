@@ -714,7 +714,6 @@ extern "C" void do_calc(void)
       ezcl_terminate();
       terminate_graphics_output();
 
-      delete mesh;
       delete state;
 
       ezcl_mem_walk_all();

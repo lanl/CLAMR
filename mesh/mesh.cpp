@@ -159,7 +159,7 @@ bool dynamic_load_balance_on;
 bool neighbor_remap;
 
 #ifdef _OPENMP
-static bool iversion_flag = false;
+//static bool iversion_flag = false;
 #endif
 
 int   choose_amr_method;
@@ -1644,7 +1644,7 @@ void Mesh::init(int nx, int ny, real_t circ_radius, partition_method initial_ord
           vector<char_t> mpot(ncells_ghost,0);
 
           for (int ic=0; ic<nez; ++ic){
-             if (level[ind[ic]] < levmx) mpot[ind[ic]] = 1;
+             if ((int)level[ind[ic]] < levmx) mpot[ind[ic]] = 1;
           }
 
           KDTree_Destroy(&tree);
@@ -1955,34 +1955,34 @@ size_t Mesh::refine_smooth(vector<char_t> &mpot, int &icount, int &jcount)
       if (mpot_old[ic] <= -1000000) continue;
       if (        is_upper_right(i[ic],j[ic]) ) {
          int nr = nrht[ic];
-         int lr = level[nr];
+         uint lr = level[nr];
          if (mpot_old[nr] > 0) lr++;
          int nt = ntop[ic];
-         int lt = level[nt];
+         uint lt = level[nt];
          if (mpot_old[nt] > 0) lt++;
          if (lr > level[ic] || lt > level[ic]) mpot[ic] = 0;
       } else if ( is_upper_left(i[ic],j[ic] ) ) {
          int nl = nlft[ic];
-         int ll = level[nl];
+         uint ll = level[nl];
          if (mpot_old[nl] > 0) ll++;
          int nt = ntop[ic];
-         int lt = level[nt];
+         uint lt = level[nt];
          if (mpot_old[nt] > 0) lt++;
          if (ll > level[ic] || lt > level[ic]) mpot[ic] = 0;
       } else if ( is_lower_right(i[ic],j[ic] ) ) {
          int nr = nrht[ic];
-         int lr = level[nr];
+         uint lr = level[nr];
          if (mpot_old[nr] > 0) lr++;
          int nb = nbot[ic];
-         int lb = level[nb];
+         uint lb = level[nb];
          if (mpot_old[nb] > 0) lb++;
          if (lr > level[ic] || lb > level[ic]) mpot[ic] = 0;
       } else if ( is_lower_left(i[ic],j[ic] ) ) {
          int nl = nlft[ic];
-         int ll = level[nl];
+         uint ll = level[nl];
          if (mpot_old[nl] > 0) ll++;
          int nb = nbot[ic];
-         int lb = level[nb];
+         uint lb = level[nb];
          if (mpot_old[nb] > 0) lb++;
          if (ll > level[ic] || lb > level[ic]) mpot[ic] = 0;
       }
@@ -2033,9 +2033,9 @@ size_t Mesh::refine_smooth(vector<char_t> &mpot, int &icount, int &jcount)
       if (n3 < 0) {
          mpot[ic] = 0;
       } else {
-         int lev1 = level[n1];
-         int lev2 = level[n2];
-         int lev3 = level[n3];
+         uint lev1 = level[n1];
+         uint lev2 = level[n2];
+         uint lev3 = level[n3];
          if (mpot_old[n1] > 0) lev1++;
          if (mpot_old[n2] > 0) lev2++;
          if (mpot_old[n3] > 0) lev3++;
@@ -2675,7 +2675,7 @@ void Mesh::calc_spatial_coordinates(int ibase)
    get_bounds(lowerBounds, upperBounds);
 
    if (have_boundary) {
-      for (uint ic = lowerBounds; ic < upperBounds; ic++) {
+      for (int ic = lowerBounds; ic < upperBounds; ic++) {
          uchar_t lev = level[ic];
          x[ic]  = xmin + (lev_deltax[lev] * (i[ic] - ibase));
          dx[ic] =        lev_deltax[lev];
@@ -2683,7 +2683,7 @@ void Mesh::calc_spatial_coordinates(int ibase)
          dy[ic] =        lev_deltay[lev];
       }
    } else {
-      for (uint ic = lowerBounds; ic < upperBounds; ic++) {
+      for (int ic = lowerBounds; ic < upperBounds; ic++) {
          uchar_t lev = level[ic];
          x[ic]  = xmin + (lev_deltax[lev] * (i[ic] - lev_ibegin[lev]));
          dx[ic] =        lev_deltax[lev];
@@ -4353,10 +4353,10 @@ void Mesh::calc_neighbors(int ncells)
                bool need_hash = (nlft[ic] == -1 || nrht[ic] == -1 || nbot[ic] == -1 || ntop[ic] == -1) ? true : false;
 
                if (! need_hash){
-                   if ( (level[nlft[ic]] > lev && ntop[nlft[ic]] == -1) || 
-                        (level[nrht[ic]] > lev && ntop[nrht[ic]] == -1) ||
-                        (level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) || 
-                        (level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ) need_hash = true;
+                   if ( ((int)level[nlft[ic]] > lev && ntop[nlft[ic]] == -1) || 
+                        ((int)level[nrht[ic]] > lev && ntop[nrht[ic]] == -1) ||
+                        ((int)level[nbot[ic]] > lev && nrht[nbot[ic]] == -1) || 
+                        ((int)level[ntop[ic]] > lev && nrht[ntop[ic]] == -1) ) need_hash = true;
                }
             
                if (need_hash) {
@@ -4797,12 +4797,12 @@ void Mesh::calc_neighbors_local(void)
          // same size neighbor
          if (nlftval < 0) {
             int nlfttry = read_hash(jjcur*(imaxsize-iminsize)+iilft, hash);
-            if (nlfttry >= 0 && nlfttry < (int)ncells && level[nlfttry] == lev) nlftval = nlfttry;
+            if (nlfttry >= 0 && nlfttry < (int)ncells && (int)level[nlfttry] == lev) nlftval = nlfttry;
          }
          if (nrhtval < 0) nrhtval = read_hash(jjcur*(imaxsize-iminsize)+iirht, hash);
          if (nbotval < 0) {
             int nbottry = read_hash(jjbot*(imaxsize-iminsize)+iicur, hash);
-            if (nbottry >= 0 && nbottry < (int)ncells && level[nbottry] == lev) nbotval = nbottry;
+            if (nbottry >= 0 && nbottry < (int)ncells && (int)level[nbottry] == lev) nbotval = nbottry;
          }
          if (ntopval < 0) ntopval = read_hash(jjtop*(imaxsize-iminsize)+iicur, hash);
               
@@ -4840,23 +4840,23 @@ void Mesh::calc_neighbors_local(void)
                iilft -= iicur-iilft;
                int jjlft = (jj/2)*2*levmult-jminsize;
                int nlfttry = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
-               if (nlfttry >= 0 && nlfttry < (int)ncells && level[nlfttry] == lev-1) nlftval = nlfttry;
+               if (nlfttry >= 0 && nlfttry < (int)ncells && (int)level[nlfttry] == lev-1) nlftval = nlfttry;
             }       
             if (nrhtval < 0) {
                int jjrht = (jj/2)*2*levmult-jminsize;
                int nrhttry = read_hash(jjrht*(imaxsize-iminsize)+iirht, hash);
-               if (nrhttry >= 0 && nrhttry < (int)ncells && level[nrhttry] == lev-1) nrhtval = nrhttry;
+               if (nrhttry >= 0 && nrhttry < (int)ncells && (int)level[nrhttry] == lev-1) nrhtval = nrhttry;
             }       
             if (nbotval < 0) {
                jjbot -= jjcur-jjbot;
                int iibot = (ii/2)*2*levmult-iminsize;
                int nbottry = read_hash(jjbot*(imaxsize-iminsize)+iibot, hash);
-               if (nbottry >= 0 && nbottry < (int)ncells && level[nbottry] == lev-1) nbotval = nbottry;
+               if (nbottry >= 0 && nbottry < (int)ncells && (int)level[nbottry] == lev-1) nbotval = nbottry;
             }       
             if (ntopval < 0) {
                int iitop = (ii/2)*2*levmult-iminsize;
                int ntoptry = read_hash(jjtop*(imaxsize-iminsize)+iitop, hash);
-               if (ntoptry >= 0 && ntoptry < (int)ncells && level[ntoptry] == lev-1) ntopval = ntoptry;
+               if (ntoptry >= 0 && ntoptry < (int)ncells && (int)level[ntoptry] == lev-1) ntopval = ntoptry;
             }       
          }       
 
@@ -5504,7 +5504,7 @@ void Mesh::calc_neighbors_local(void)
                if (nlftval < 0 && iilft >= 0) {  // same size
                   int nlfttry = read_hash(jjcur*(imaxsize-iminsize)+iilft, hash);
                   // we have to test for same level or it could be a finer cell one cell away that it is matching
-                  if (nlfttry-noffset >= 0 && nlfttry-noffset < (int)ncells && level[nlfttry-noffset] == lev) {
+                  if (nlfttry-noffset >= 0 && nlfttry-noffset < (int)ncells && (int)level[nlfttry-noffset] == lev) {
                      nlftval = nlfttry;
                   }
                }
@@ -5514,7 +5514,7 @@ void Mesh::calc_neighbors_local(void)
                   int jjlft = (jj/2)*2*levmult-jminsize;
                   int nlfttry = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
                   // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
-                  if (nlfttry-noffset >= 0 && nlfttry-noffset < (int)ncells && level[nlfttry-noffset] == lev-1) {
+                  if (nlfttry-noffset >= 0 && nlfttry-noffset < (int)ncells && (int)level[nlfttry-noffset] == lev-1) {
                     nlftval = nlfttry;
                   }
                }
@@ -5535,7 +5535,7 @@ void Mesh::calc_neighbors_local(void)
                   int jjrhtcoarser = (jj/2)*2*levmult-jminsize;
                   if (jjrhtcoarser != jjcur) {
                      int nrhttry = read_hash(jjrhtcoarser*(imaxsize-iminsize)+iirht, hash);
-                     if (nrhttry-noffset >= 0 && nrhttry-noffset < (int)ncells && level[nrhttry-noffset] == lev-1) {
+                     if (nrhttry-noffset >= 0 && nrhttry-noffset < (int)ncells && (int)level[nrhttry-noffset] == lev-1) {
                         nrhtval = nrhttry;
                      }
                   }
@@ -5560,7 +5560,7 @@ void Mesh::calc_neighbors_local(void)
                if (nbotval < 0 && jjbot >= 0) {  // same size
                   int nbottry = read_hash(jjbot*(imaxsize-iminsize)+iicur, hash);
                   // we have to test for same level or it could be a finer cell one cell away that it is matching
-                  if (nbottry-noffset >= 0 && nbottry-noffset < (int)ncells && level[nbottry-noffset] == lev) {
+                  if (nbottry-noffset >= 0 && nbottry-noffset < (int)ncells && (int)level[nbottry-noffset] == lev) {
                      nbotval = nbottry;
                   }
                }
@@ -5570,7 +5570,7 @@ void Mesh::calc_neighbors_local(void)
                   int iibot = (ii/2)*2*levmult-iminsize;
                   int nbottry = read_hash(jjbot*(imaxsize-iminsize)+iibot, hash);
                   // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
-                  if (nbottry-noffset >= 0 && nbottry-noffset < (int)ncells && level[nbottry-noffset] == lev-1) {
+                  if (nbottry-noffset >= 0 && nbottry-noffset < (int)ncells && (int)level[nbottry-noffset] == lev-1) {
                     nbotval = nbottry;
                   }
                }
@@ -5591,7 +5591,7 @@ void Mesh::calc_neighbors_local(void)
                   int iitopcoarser = (ii/2)*2*levmult-iminsize;
                   if (iitopcoarser != iicur) {
                      int ntoptry = read_hash(jjtop*(imaxsize-iminsize)+iitopcoarser, hash);
-                     if (ntoptry-noffset >= 0 && ntoptry-noffset < (int)ncells && level[ntoptry-noffset] == lev-1) {
+                     if (ntoptry-noffset >= 0 && ntoptry-noffset < (int)ncells && (int)level[ntoptry-noffset] == lev-1) {
                         ntopval = ntoptry;
                      }
                   }
@@ -10086,7 +10086,7 @@ void Mesh::interpolate(int scheme, int index, int cell_lower, int cell_upper, do
    real_t state_botbot, state_bottop, state_topbot, state_toptop; 
    real_t state_lftlft, state_lftrht, state_rhtlft, state_rhtrht;
    real_t state_sideavg = ZERO; 
-   bool fake_flux = false;
+   //bool fake_flux = false;
    bool five_point = true;
 
    switch(scheme){
@@ -10786,7 +10786,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
     int cellCount = 0;
     int xfix = 0;
     int yfix = 0;
-    for (int nz = 0; nz < ncells; nz++) {
+    for (int nz = 0; nz < (int)ncells; nz++) {
         int nl = nlft[nz];
         int nr = nrht[nz];
         int nb = nbot[nz];
@@ -10798,9 +10798,9 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
         }
 
         int lev = level[nz];
-        int ll = level[nl];
+        //int ll = level[nl];
         int lr = level[nr];
-        int lb = level[nb];
+        //int lb = level[nb];
         int lt = level[nt];
 
         if (lev < lr) {
@@ -10888,7 +10888,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
     memory_reset_ptrs();
 
     // needs to be initialized to -1
-    for (int fill = 0; fill < ncells; fill++) {
+    for (uint fill = 0; fill < ncells; fill++) {
         xplusCell2Idx[fill] = -1;
         xminusCell2Idx[fill] = -1;
         yplusCell2Idx[fill] = -1;
@@ -11920,7 +11920,7 @@ void Mesh::calc_face_list_fill_phantom(MallocPlus &state_memory, double deltaT)
    cpu_timer_start(&tstart_cpu_part);
 
     MallocPlus state_memory_old = state_memory;
-    malloc_plus_memory_entry *memory_item;
+    //malloc_plus_memory_entry *memory_item;
 
    cpu_timer_start(&tstart_cpu_part);
 
@@ -12044,7 +12044,7 @@ void Mesh::calc_face_list_wbidirmap(void)
 
     int xfaceCnt = 0;
     int yfaceCnt = 0;
-    for (int nz = 0; nz < ncells; nz++) {
+    for (int nz = 0; nz < (int)ncells; nz++) {
         int nl = nlft[nz];
         int nr = nrht[nz];
         int nb = nbot[nz];
@@ -12056,9 +12056,9 @@ void Mesh::calc_face_list_wbidirmap(void)
         }
 
         int lev = level[nz];
-        int ll = level[nl];
+        //int ll = level[nl];
         int lr = level[nr];
-        int lb = level[nb];
+        //int lb = level[nb];
         int lt = level[nt];
         if (lev < lr) {
             xfaceCnt += 2;
@@ -12079,7 +12079,7 @@ void Mesh::calc_face_list_wbidirmap(void)
     // realloc memory based on new counts
 
     int flags=0;
-    if (nxface > mesh_memory.get_memory_size(map_xface2cell_lower) ) {
+    if (nxface > (int)mesh_memory.get_memory_size(map_xface2cell_lower) ) {
        mesh_memory.memory_delete(map_xface2cell_lower);
        map_xface2cell_lower = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "map_xface2cell_lower", flags);
        mesh_memory.memory_delete(map_xface2cell_upper);
@@ -12091,7 +12091,7 @@ void Mesh::calc_face_list_wbidirmap(void)
        //mesh_memory.memory_delete(xface_level);
        //xface_level = (uchar_t *)mesh_memory.memory_malloc(nxface, sizeof(uchar_t), "xface_level", flags);
     }
-    if (nyface > mesh_memory.get_memory_size(map_yface2cell_lower) ) {
+    if (nyface > (int)mesh_memory.get_memory_size(map_yface2cell_lower) ) {
        mesh_memory.memory_delete(map_yface2cell_lower);
        map_yface2cell_lower = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "map_yface2cell_lower", flags);
        mesh_memory.memory_delete(map_yface2cell_upper);
@@ -12164,8 +12164,8 @@ void Mesh::calc_face_list_wbidirmap(void)
       int nr = nrht[nz];
       if (nr == nz) continue;
 
-      int ifactor = 1;
-      if (level[nr] < level[nz]) ifactor = 2;
+      //int ifactor = 1;
+      //if (level[nr] < level[nz]) ifactor = 2;
 
       // Have right face
       map_xface2cell_lower[iface] = nz;
@@ -12235,8 +12235,8 @@ void Mesh::calc_face_list_wbidirmap(void)
       int nt = ntop[nz];
       if (nt == nz) continue;
 
-      int ifactor = 1;
-      if (level[nt] < level[nz]) ifactor = 2;
+      //int ifactor = 1;
+      //if (level[nt] < level[nz]) ifactor = 2;
 
       // Have top face
       map_yface2cell_lower[iface] = nz;
@@ -14160,8 +14160,8 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
       for(int jj=0; jj<lev_jregsize[ll]; jj++){
          row[jj] = 0;
       }
-      for (int ic=0; ic < ncells; ic++){
-         if (level[ic] == ll) {
+      for (uint ic=0; ic < ncells; ic++){
+         if ((int)level[ic] == ll) {
             col[i[ic]-lev_iregmin[ll]] = 1;
             row[j[ic]-lev_jregmin[ll]] = 1;
          }
@@ -14235,7 +14235,7 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
       }
    }
 
-   for (int ic = 0; ic < ncells; ic++) {
+   for (int ic = 0; ic < (int)ncells; ic++) {
        ll = level[ic];
        pjIdx = j[ic] - lev_jregmin[ll];
        piIdx = i[ic] - lev_iregmin[ll];  
@@ -14284,7 +14284,7 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
        double *mem_ptr_double = (double *)memory_item->mem_ptr;
 #endif
        //add original cell values into regular grid
-       for (int ic=0; ic < ncells; ic++){
+       for (uint ic=0; ic < ncells; ic++){
           ll = level[ic];
           pjIdx = j[ic] - lev_jregmin[ll];
           piIdx = i[ic] - lev_iregmin[ll];  
@@ -14293,7 +14293,7 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
        }
 
        //add phantom cell values into regular grid (if it doesn't conflict with an original cell)
-       for (int ic = ncells; ic < ncells_phan; ic++) {
+       for (uint ic = ncells; ic < ncells_phan; ic++) {
            ll = level[ic];
            pjIdx = j[ic] - lev_jregmin[ll];
            piIdx = i[ic] - lev_iregmin[ll];  
@@ -14303,7 +14303,7 @@ void Mesh::generate_regular_cell_meshes(MallocPlus &state_memory)
        }
 
        //interpolation of phantom cell values in regular grid (if it doesn't conflict with an original cell)
-       for (int ic = ncells; ic < ncells_phan; ic++) {
+       for (uint ic = ncells; ic < ncells_phan; ic++) {
            ll = level[ic]; 
            pjIdx = j[ic] - lev_jregmin[ll];
            piIdx = i[ic] - lev_iregmin[ll];  
@@ -14400,7 +14400,7 @@ void Mesh::destroy_regular_cell_meshes(MallocPlus &state_memory)
 
        double *mem_ptr_double = (double *)memory_item->mem_ptr;
 
-       for (int ic=0; ic < ncells; ic++){
+       for (uint ic=0; ic < ncells; ic++){
           uchar_t ll = level[ic];
           //printf("DEBUG -- ic %d ll %d lev_iregmin[ll] %d lev_jregmin[ll] %d pstate %lf\n",
             //      ic, ll, lev_iregmin[ll], lev_jregmin[ll], meshes[ll].pstate[ivar][j[ic]-lev_jregmin[ll]][i[ic]-lev_iregmin[ll]]);
@@ -15022,7 +15022,7 @@ void Mesh::restore_checkpoint(Crux *crux)
 
    index.clear();
    index.resize(ncells);
-   for (int ic = 0; ic < ncells; ic++){
+   for (uint ic = 0; ic < ncells; ic++){
      index[ic] = ic;
    }
 

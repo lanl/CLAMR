@@ -280,7 +280,6 @@ int main(int argc, char **argv) {
    }
    size_t &ncells = mesh->ncells;
    size_t &ncells_global = mesh->ncells_global;
-   int &noffset = mesh->noffset;
 
    vector<int>   &nsizes     = mesh->nsizes;
    vector<int>   &ndispl     = mesh->ndispl;
@@ -817,7 +816,6 @@ extern "C" void do_calc(void)
 
       terminate_graphics_output();
 
-      delete mesh;
       delete state;
       delete crux;
       delete parse;

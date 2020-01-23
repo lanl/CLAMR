@@ -68,7 +68,7 @@
 #endif
 
 #ifdef _OPENMP
-static bool iversion_flag = false;
+//static bool iversion_flag = false;
 #endif
 
 bool phantom_debug = false;
