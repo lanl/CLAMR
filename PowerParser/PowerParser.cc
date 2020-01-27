@@ -2382,7 +2382,6 @@ void PowerParser::wt_carray(int wtn, char *wt_ca, int wt_casize)
 
     string sc;
     whenthens[wtn-1].get_char_array(sc);
-#pragma omp simd
     for (int i=0; i<(int)sc.size(); i++) {
         wt_ca[i] = sc[i];
     }
