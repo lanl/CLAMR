@@ -1411,6 +1411,7 @@ void State::calc_finite_difference(double deltaT)
 
       real_t dxl     = lev_deltax[level[nl]];
       real_t dxr     = lev_deltax[level[nr]];
+      //if (gix == 192) printf("%d %f %f\n", lvl, dxic, dxr);
 
       real_t dyt     = lev_deltay[level[nt]];
       real_t dyb     = lev_deltay[level[nb]];
@@ -1488,6 +1489,7 @@ void State::calc_finite_difference(double deltaT)
                            dxic, dxr, dxic, dxr, SQR(dxic), SQR(dxr));
       real_t Vxplus  = U_halfstep(deltaT, Vic, Vr, UVFLUXIC, UVFLUXNR,
                            dxic, dxr, dxic, dxr, SQR(dxic), SQR(dxr));
+      //if (gix == 192) printf("H %f %f %f %f %f\n", Hic, dxr, SQR(dxic), SQR(dxr), dxic);
 
       real_t Hyminus = U_halfstep(deltaT, Hb, Hic, HYFLUXNB, HYFLUXIC,
                            dyb, dyic, dyb, dyic, SQR(dyb), SQR(dyic));
@@ -1762,6 +1764,8 @@ void State::calc_finite_difference(double deltaT)
       V_new[gix] = U_fullstep(deltaT, dxic, Vic,
                        Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                   - wminusy_V + wplusy_V;
+      //if (gix == 192) printf("%d) %d %d %d %d\n", gix, nr, nl, nt, nb);
+      //printf("H %f %f %f %f\n", Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus);
 
    } // cell loop
 

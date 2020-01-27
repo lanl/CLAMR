@@ -2965,6 +2965,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<char_t> mpot, int have_stat
    mesh_memory.memory_swap(&i,     &i_old);
    mesh_memory.memory_swap(&j,     &j_old);
    mesh_memory.memory_swap(&level, &level_old);
+   // if (ncells >= 192) printf("%d\n", level_old[192]);
 
    index.clear();
    // allocate to ncells (oldsize) because index is a map from old cells to new cells
@@ -3359,7 +3360,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<char_t> mpot, int have_stat
          if (mpot[ic] == 0) {
             add_count[ic] = 1;
          } else if (mpot[ic] < 0) {
-            if (mpot[ic] == -2){
+            if (mpot[ic] <= -2){
                add_count[ic] = 1;
             } else {
                add_count[ic] = 0;
@@ -3388,6 +3389,7 @@ void Mesh::rezone_all(int icount, int jcount, vector<char_t> mpot, int have_stat
    vector<int>  invorder(4, -1); //  Vector mapping location from base index.
       int nc = new_ic[ic];
           //if (new_ic[ic] == 284) printf("%d\n", ic);
+        //if (ic == 192) printf("nc %d mpot %d\n", nc, mpot[192]);
       if (mpot[ic] == 0)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
          index[ic] = nc;
@@ -8376,6 +8378,8 @@ void Mesh::calc_celltype_threaded(size_t ncells)
 #endif
    for (uint ic=0; ic<ncells; ++ic) {
       celltype[ic] = REAL_CELL;
+      //if (ic == 192) printf("%d %d\n", level[ic], lev_ibegin[level[ic]]);
+      //printf("%d i size %d level size %d levibegin size %d celltype size %d\n", ic, mesh_memory.get_memory_size(i), mesh_memory.get_memory_size(level), lev_ibegin.size(), mesh_memory.get_memory_size(celltype));
       if (is_left_boundary(ic) )   celltype[ic] = LEFT_BOUNDARY;
       if (is_right_boundary(ic) )  celltype[ic] = RIGHT_BOUNDARY;
       if (is_bottom_boundary(ic) ) celltype[ic] = BOTTOM_BOUNDARY;
@@ -15162,6 +15166,7 @@ void scan ( scanInt *input , scanInt *output , scanInt length)
        output[start] = 0;
        for ( scanInt i = start + 1 ; i < end ; i++ ) {
           output[i] = output[i-1] + input[i-1];
+        //printf("%d) %d %d %d\n", i, output[i], output[i-1], input[i-1]);
         }
    }
     
@@ -15193,6 +15198,7 @@ void scan ( scanInt *input , scanInt *output , scanInt length)
     
 #pragma omp simd
    for ( scanInt i = start + 1 ; i < end ; i++ ) {
+        //printf("%d) %d %d %d\n", i, output[i], output[i]+output[start], end);
       output[i] += output[start];
            //if (output[i] == 284) printf("%d\n", i);
     }
@@ -15201,6 +15207,7 @@ void scan ( scanInt *input , scanInt *output , scanInt length)
    output[0] = 0;
    for (int ic = 0; ic < length; ic++){
       output[ic+1] = output[ic] + input[ic];
+        //printf("%d) %d %d %d\n", ic, output[ic+1], output[ic], input[ic]);
    }
 #endif
 }
