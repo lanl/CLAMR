@@ -1893,9 +1893,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
       dycell[ic]  = mesh->lev_deltay[lev];
    }
    
-   real_t *H_loc = H;
-   real_t *U_loc = U;
-   real_t *V_loc = V;
+   state_t *H_loc = H;
+   state_t *U_loc = U;
+   state_t *V_loc = V;
 #endif
    
 #ifdef _OPENMP
@@ -2457,9 +2457,9 @@ void State::calc_finite_difference_face_in_place(double deltaT)
       dxcell[ic]  = mesh->lev_deltax[lev];
    }
 
-   real_t *H_loc = H;
-   real_t *U_loc = U;
-   real_t *V_loc = V;
+   state_t *H_loc = H;
+   state_t *U_loc = U;
+   state_t *V_loc = V;
 
    int *map_xcell2face_left1_loc = mesh->map_xcell2face_left1;
    int *map_xcell2face_right1_loc = mesh->map_xcell2face_right1;
@@ -3208,7 +3208,7 @@ void State::calc_finite_difference_regular_cells(double deltaT)
       //varU = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
       //varV = (double ***) malloc((mesh->levmx+1) * sizeof(double **));
       //passFlag = (int ***) malloc((mesh->levmx+1) * sizeof(int **));
-      states_new = (double ****)malloc((mesh->levmx+1)*sizeof(double ***));
+      states_new = (state_t ****)malloc((mesh->levmx+1)*sizeof(double ***));
 
       for (int lev = 0; lev < mesh->levmx + 1; lev++){
           state_t ***pstate = mesh->meshes[lev].pstate;
@@ -3311,42 +3311,42 @@ void State::calc_finite_difference_regular_cells(double deltaT)
 #endif
       for(jj=2; jj<jjmax-2; jj++){
 #if defined(__GNUC_MINOR__)
-         real_t * H_reg_loc = states_new[ll][0][jj];
-         real_t * H_reg_lev_loc = H_reg_lev[ll][jj];
-         real_t * U_reg_lev_loc = U_reg_lev[ll][jj];
-         real_t * V_reg_lev_loc = V_reg_lev[ll][jj];
-         real_t * Hxfluxminus_loc = Hxfluxminus[ll][jj];
-         real_t * Uxfluxminus_loc = Uxfluxminus[ll][jj];
-         real_t * Vxfluxminus_loc = Vxfluxminus[ll][jj];
-         real_t * Hxfluxplus_loc = Hxfluxplus[ll][jj];
-         real_t * Uxfluxplus_loc = Uxfluxplus[ll][jj];
-         real_t * Vxfluxplus_loc = Vxfluxplus[ll][jj];
-         real_t * Hyfluxminus_loc = Hyfluxminus[ll][jj];
-         real_t * Uyfluxminus_loc = Uyfluxminus[ll][jj];
-         real_t * Vyfluxminus_loc = Vyfluxminus[ll][jj];
-         real_t * Hyfluxplus_loc = Hyfluxplus[ll][jj];
-         real_t * Uyfluxplus_loc = Uyfluxplus[ll][jj];
-         real_t * Vyfluxplus_loc = Vyfluxplus[ll][jj];
-         real_t * H_reg_lev_minus_loc = H_reg_lev[ll][jj-1];
-         real_t * H_reg_lev_minus2_loc = H_reg_lev[ll][jj-2];
-         real_t * U_reg_lev_minus_loc = U_reg_lev[ll][jj-1];
-         real_t * U_reg_lev_minus2_loc = U_reg_lev[ll][jj-2];
-         real_t * V_reg_lev_minus_loc = V_reg_lev[ll][jj-1];
-         real_t * V_reg_lev_minus2_loc = V_reg_lev[ll][jj-2];
-         real_t * H_reg_lev_plus_loc = H_reg_lev[ll][jj+1];
-         real_t * H_reg_lev_plus2_loc = H_reg_lev[ll][jj+2];
-         real_t * U_reg_lev_plus_loc = U_reg_lev[ll][jj+1];
-         real_t * U_reg_lev_plus2_loc = U_reg_lev[ll][jj+2];
-         real_t * V_reg_lev_plus_loc = V_reg_lev[ll][jj+1];
-         real_t * V_reg_lev_plus2_loc = V_reg_lev[ll][jj+2];
-         real_t * wminusx_H_loc = wminusx_H[ll][jj];
-         real_t * wplusx_H_loc = wplusx_H[ll][jj];
-         real_t * wminusx_U_loc = wminusx_U[ll][jj];
-         real_t * wplusx_U_loc = wplusx_U[ll][jj];
-         real_t * wminusy_H_loc = wminusy_H[ll][jj];
-         real_t * wplusy_H_loc = wplusy_H[ll][jj];
-         real_t * wminusy_V_loc = wminusy_V[ll][jj];
-         real_t * wplusy_V_loc = wplusy_V[ll][jj];
+         state_t * H_reg_loc = states_new[ll][0][jj];
+         state_t * H_reg_lev_loc = H_reg_lev[ll][jj];
+         state_t * U_reg_lev_loc = U_reg_lev[ll][jj];
+         state_t * V_reg_lev_loc = V_reg_lev[ll][jj];
+         state_t * Hxfluxminus_loc = Hxfluxminus[ll][jj];
+         state_t * Uxfluxminus_loc = Uxfluxminus[ll][jj];
+         state_t * Vxfluxminus_loc = Vxfluxminus[ll][jj];
+         state_t * Hxfluxplus_loc = Hxfluxplus[ll][jj];
+         state_t * Uxfluxplus_loc = Uxfluxplus[ll][jj];
+         state_t * Vxfluxplus_loc = Vxfluxplus[ll][jj];
+         state_t * Hyfluxminus_loc = Hyfluxminus[ll][jj];
+         state_t * Uyfluxminus_loc = Uyfluxminus[ll][jj];
+         state_t * Vyfluxminus_loc = Vyfluxminus[ll][jj];
+         state_t * Hyfluxplus_loc = Hyfluxplus[ll][jj];
+         state_t * Uyfluxplus_loc = Uyfluxplus[ll][jj];
+         state_t * Vyfluxplus_loc = Vyfluxplus[ll][jj];
+         state_t * H_reg_lev_minus_loc = H_reg_lev[ll][jj-1];
+         state_t * H_reg_lev_minus2_loc = H_reg_lev[ll][jj-2];
+         state_t * U_reg_lev_minus_loc = U_reg_lev[ll][jj-1];
+         state_t * U_reg_lev_minus2_loc = U_reg_lev[ll][jj-2];
+         state_t * V_reg_lev_minus_loc = V_reg_lev[ll][jj-1];
+         state_t * V_reg_lev_minus2_loc = V_reg_lev[ll][jj-2];
+         state_t * H_reg_lev_plus_loc = H_reg_lev[ll][jj+1];
+         state_t * H_reg_lev_plus2_loc = H_reg_lev[ll][jj+2];
+         state_t * U_reg_lev_plus_loc = U_reg_lev[ll][jj+1];
+         state_t * U_reg_lev_plus2_loc = U_reg_lev[ll][jj+2];
+         state_t * V_reg_lev_plus_loc = V_reg_lev[ll][jj+1];
+         state_t * V_reg_lev_plus2_loc = V_reg_lev[ll][jj+2];
+         state_t * wminusx_H_loc = wminusx_H[ll][jj];
+         state_t * wplusx_H_loc = wplusx_H[ll][jj];
+         state_t * wminusx_U_loc = wminusx_U[ll][jj];
+         state_t * wplusx_U_loc = wplusx_U[ll][jj];
+         state_t * wminusy_H_loc = wminusy_H[ll][jj];
+         state_t * wplusy_H_loc = wplusy_H[ll][jj];
+         state_t * wminusy_V_loc = wminusy_V[ll][jj];
+         state_t * wplusy_V_loc = wplusy_V[ll][jj];
 #endif
 #pragma omp simd
          for(ii=2; ii<iimax-2; ii++){
@@ -3675,32 +3675,32 @@ void State::calc_finite_difference_regular_cells(double deltaT)
 #endif
       for(jj=2; jj<jjmax-2; jj++){
 #if defined(__GNUC_MINOR__)
-         real_t *H_reg_new_loc = states_new[ll][0][jj];
-         real_t *U_reg_new_loc = states_new[ll][1][jj];
-         real_t *V_reg_new_loc = states_new[ll][2][jj];
-         real_t *H_reg_loc = H_reg_lev[ll][jj];
-         real_t *U_reg_loc = U_reg_lev[ll][jj];
-         real_t *V_reg_loc = V_reg_lev[ll][jj];
-         real_t *Hxfluxplus_loc = Hxfluxplus[ll][jj];
-         real_t *Hxfluxminus_loc = Hxfluxminus[ll][jj];
-         real_t *Hyfluxplus_loc = Hyfluxplus[ll][jj];
-         real_t *Hyfluxminus_loc = Hyfluxminus[ll][jj];
-         real_t *Uxfluxplus_loc = Uxfluxplus[ll][jj];
-         real_t *Uxfluxminus_loc = Uxfluxminus[ll][jj];
-         real_t *Uyfluxplus_loc = Uyfluxplus[ll][jj];
-         real_t *Uyfluxminus_loc = Uyfluxminus[ll][jj];
-         real_t *Vxfluxplus_loc = Vxfluxplus[ll][jj];
-         real_t *Vxfluxminus_loc = Vxfluxminus[ll][jj];
-         real_t *Vyfluxplus_loc = Vyfluxplus[ll][jj];
-         real_t *Vyfluxminus_loc = Vyfluxminus[ll][jj];
-         real_t *wplusx_H_loc = wplusx_H[ll][jj];
-         real_t *wminusx_H_loc = wminusx_H[ll][jj];
-         real_t *wplusy_H_loc = wplusy_H[ll][jj];
-         real_t *wminusy_H_loc = wminusy_H[ll][jj];
-         real_t *wplusx_U_loc = wplusx_U[ll][jj];
-         real_t *wminusx_U_loc = wminusx_U[ll][jj];
-         real_t *wplusy_V_loc = wplusy_V[ll][jj];
-         real_t *wminusy_V_loc = wminusy_V[ll][jj];
+         state_t *H_reg_new_loc = states_new[ll][0][jj];
+         state_t *U_reg_new_loc = states_new[ll][1][jj];
+         state_t *V_reg_new_loc = states_new[ll][2][jj];
+         state_t *H_reg_loc = H_reg_lev[ll][jj];
+         state_t *U_reg_loc = U_reg_lev[ll][jj];
+         state_t *V_reg_loc = V_reg_lev[ll][jj];
+         state_t *Hxfluxplus_loc = Hxfluxplus[ll][jj];
+         state_t *Hxfluxminus_loc = Hxfluxminus[ll][jj];
+         state_t *Hyfluxplus_loc = Hyfluxplus[ll][jj];
+         state_t *Hyfluxminus_loc = Hyfluxminus[ll][jj];
+         state_t *Uxfluxplus_loc = Uxfluxplus[ll][jj];
+         state_t *Uxfluxminus_loc = Uxfluxminus[ll][jj];
+         state_t *Uyfluxplus_loc = Uyfluxplus[ll][jj];
+         state_t *Uyfluxminus_loc = Uyfluxminus[ll][jj];
+         state_t *Vxfluxplus_loc = Vxfluxplus[ll][jj];
+         state_t *Vxfluxminus_loc = Vxfluxminus[ll][jj];
+         state_t *Vyfluxplus_loc = Vyfluxplus[ll][jj];
+         state_t *Vyfluxminus_loc = Vyfluxminus[ll][jj];
+         state_t *wplusx_H_loc = wplusx_H[ll][jj];
+         state_t *wminusx_H_loc = wminusx_H[ll][jj];
+         state_t *wplusy_H_loc = wplusy_H[ll][jj];
+         state_t *wminusy_H_loc = wminusy_H[ll][jj];
+         state_t *wplusx_U_loc = wplusx_U[ll][jj];
+         state_t *wminusx_U_loc = wminusx_U[ll][jj];
+         state_t *wplusy_V_loc = wplusy_V[ll][jj];
+         state_t *wminusy_V_loc = wminusy_V[ll][jj];
 #endif
 #pragma omp simd
          for(ii=2; ii<iimax-2; ii++){
@@ -3861,7 +3861,7 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
       VyFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
       Wy_H   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
       Wy_V   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      states_new = (double ****)malloc((mesh->levmx+1)*sizeof(double ***));
+      states_new = (state_t ****)malloc((mesh->levmx+1)*sizeof(double ***));
       //passFlagX   = (int ***)malloc((mesh->levmx+1)*sizeof(int**));
       //passFlagY   = (int ***)malloc((mesh->levmx+1)*sizeof(int**));
 
@@ -3935,18 +3935,18 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
          real_t * VxFlux_loc = VxFlux[ll][jj];
          real_t * Wx_H_loc = Wx_H[ll][jj];
          real_t * Wx_U_loc = Wx_U[ll][jj];
-         real_t * H_reg_lev_loc = H_reg_lev[ll][jj];
-         real_t * U_reg_lev_loc = U_reg_lev[ll][jj];
-         real_t * V_reg_lev_loc = V_reg_lev[ll][jj];
-         real_t * H_reg_lev_plus_loc = H_reg_lev[ll][jj+1];
-         real_t * U_reg_lev_plus_loc = U_reg_lev[ll][jj+1];
-         real_t * V_reg_lev_plus_loc = V_reg_lev[ll][jj+1];
-         real_t * H_reg_lev_minus_loc = H_reg_lev[ll][jj-1];
-         real_t * U_reg_lev_minus_loc = U_reg_lev[ll][jj-1];
-         real_t * V_reg_lev_minus_loc = V_reg_lev[ll][jj-1];
-         real_t * H_reg_lev_minus2_loc = H_reg_lev[ll][jj-2];
-         real_t * U_reg_lev_minus2_loc = U_reg_lev[ll][jj-2];
-         real_t * V_reg_lev_minus2_loc = V_reg_lev[ll][jj-2];
+         state_t * H_reg_lev_loc = H_reg_lev[ll][jj];
+         state_t * U_reg_lev_loc = U_reg_lev[ll][jj];
+         state_t * V_reg_lev_loc = V_reg_lev[ll][jj];
+         state_t * H_reg_lev_plus_loc = H_reg_lev[ll][jj+1];
+         state_t * U_reg_lev_plus_loc = U_reg_lev[ll][jj+1];
+         state_t * V_reg_lev_plus_loc = V_reg_lev[ll][jj+1];
+         state_t * H_reg_lev_minus_loc = H_reg_lev[ll][jj-1];
+         state_t * U_reg_lev_minus_loc = U_reg_lev[ll][jj-1];
+         state_t * V_reg_lev_minus_loc = V_reg_lev[ll][jj-1];
+         state_t * H_reg_lev_minus2_loc = H_reg_lev[ll][jj-2];
+         state_t * U_reg_lev_minus2_loc = U_reg_lev[ll][jj-2];
+         state_t * V_reg_lev_minus2_loc = V_reg_lev[ll][jj-2];
          real_t * HyFlux_loc = HyFlux[ll][jj];
          real_t * UyFlux_loc = UyFlux[ll][jj];
          real_t * VyFlux_loc = VyFlux[ll][jj];
@@ -4131,12 +4131,12 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
 #endif
       for(int jj=2; jj<jjmax-1; jj++){
 #if defined(__GNUC_MINOR__)
-         real_t *H_reg_new_loc = states_new[ll][0][jj];
-         real_t *U_reg_new_loc = states_new[ll][1][jj];
-         real_t *V_reg_new_loc = states_new[ll][2][jj];
-         real_t *H_reg_loc = H_reg_lev[ll][jj];
-         real_t *U_reg_loc = U_reg_lev[ll][jj];
-         real_t *V_reg_loc = V_reg_lev[ll][jj];
+         state_t *H_reg_new_loc = states_new[ll][0][jj];
+         state_t *U_reg_new_loc = states_new[ll][1][jj];
+         state_t *V_reg_new_loc = states_new[ll][2][jj];
+         state_t *H_reg_loc = H_reg_lev[ll][jj];
+         state_t *U_reg_loc = U_reg_lev[ll][jj];
+         state_t *V_reg_loc = V_reg_lev[ll][jj];
          real_t *Hxflux_loc = HxFlux[ll][jj];
          real_t *Hyfluxplus_loc = HyFlux[ll][jj+1];
          real_t *Hyfluxminus_loc = HyFlux[ll][jj];
