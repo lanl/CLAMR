@@ -28,6 +28,14 @@ if (open (GOLDFH, $reffile) ){
    LINE:
    while ($_ = <GOLDFH>){
       if (/     or  /) {next LINE;}
+      if (/initializing an OpenFabrics/) {next LINE;}
+      if (/Local host/) {next LINE;}
+      if (/Local device/) {next LINE;}
+      if (/least non-excluded/) {next LINE;}
+      if (/no active ports detected/) {next LINE;}
+      if (/most certainly not what you wanted/) {next LINE;}
+      if (/subnet manager configuration/) {next LINE;}
+      if (/ignored for this job/) {next LINE;}
       if (/Detected/) {next LINE;}
       if (/error opening core/) {next LINE;}
       if (/Package 0/) {next LINE;}
@@ -91,6 +99,14 @@ if (open (NEWFH, $newfile) ){
    LINE:
    while ($_ = <NEWFH>){
       if (/     or  /) {next LINE;}
+      if (/initializing an OpenFabrics/) {next LINE;}
+      if (/Local host/) {next LINE;}
+      if (/Local device/) {next LINE;}
+      if (/least non-excluded/) {next LINE;}
+      if (/no active ports detected/) {next LINE;}
+      if (/most certainly not what you wanted/) {next LINE;}
+      if (/subnet manager configuration/) {next LINE;}
+      if (/ignored for this job/) {next LINE;}
       if (/Detected/) {next LINE;}
       if (/error opening core/) {next LINE;}
       if (/Package 0/) {next LINE;}
