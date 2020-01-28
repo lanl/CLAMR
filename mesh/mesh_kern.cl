@@ -173,7 +173,7 @@ __kernel void hash_adjust_sizes_cl(
                           const int  imax,       // 2
                           const int  jmax,       // 3
                  __global const int  *levtable,  // 4
-                 __global const int4 *sizes)     // 5
+                 __global        int4 *sizes)     // 5
 {
    const uint giX  = get_global_id(0);
 
@@ -254,7 +254,7 @@ __kernel void hash_setup_local_cl(
                           const int   imax,            // 2
                           const int   jmax,            // 3
                           const int   noffset,         // 4
-                 __global const int4  *sizes,          // 5
+                 __global        int4  *sizes,          // 5
                  __global const int   *levtable,       // 6
                  __global const uchar_t *level,          // 7
                  __global const int   *i,              // 8

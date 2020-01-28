@@ -29,8 +29,8 @@ enable_testing()
 # uncomment to build debug
 #set(CMAKE_BUILD_TYPE Debug)
 
-set (CMAKE_CXX_EXTENSIONS off)
-set (CMAKE_CXX_STANDARD 14)
+#set (CMAKE_CXX_EXTENSIONS off)
+set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_C_STANDARD 99)
 
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
