@@ -21,6 +21,10 @@
 #       set(VECTOR_NOVEC_<LANG>_FLAGS "${VECTOR_BASE_<LANG>_FLAGS} ${VECTOR_NOVEC_<LANG>_FLAGS}")
 #       set(VECTOR_<LANG>_FLAGS "${VECTOR_BASE_<LANG>_FLAGS} ${VECTOR_<LANG>_FLAGS} ${VECTOR_OPENMP_SIMD_<LANG>_FLAGS}")
 
+include(CheckCCompilerFlag)
+include(CheckCXXCompilerFlag)
+include(CheckFortranCompilerFlag)
+
 # Set vectorization flags for a few compilers
 if(CMAKE_C_COMPILER_LOADED)
     if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang") # using Clang
@@ -63,11 +67,11 @@ if(CMAKE_C_COMPILER_LOADED)
         set(VECTOR_FPMODEL_C_FLAGS "${VECTOR_FPMODEL_C_FLAGS} -fp-model:precise")
 
         set(VECTOR_OPENMP_SIMD_C_FLAGS "${VECTOR_OPENMP_SIMD_C_FLAGS} -qopenmp-simd")
-        set(VECTOR_C_OPTS "${VECTOR_C_OPTS} -xHOST")
+        set(VECTOR_C_OPTS "${VECTOR_C_OPTS} -march=native -mtune=native -xHOST")
         if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
             set(VECTOR_C_OPTS "${VECTOR_C_OPTS} -qopt-zmm-usage=high")
         endif ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
-        set(VECTOR_NOVEC_C_OPT "${VECTOR_NOVEC_C_OPT} -no-vec")
+        set(VECTOR_NOVEC_C_OPT "${VECTOR_NOVEC_C_OPT} -march=native -mtune=native -no-vec")
         set(VECTOR_C_VERBOSE "${VECTOR_C_VERBOSE} -qopt-report=5 -qopt-report-phase=openmp,loop,vec")
 
     elseif (CMAKE_C_COMPILER_ID MATCHES "PGI")
@@ -102,6 +106,12 @@ if(CMAKE_C_COMPILER_LOADED)
         set(VECTOR_C_VERBOSE "${VECTOR_C_VERBOSE} -h msgs -h negmsgs -h list=a")
 
     endif()
+
+    CHECK_C_COMPILER_FLAG("${VECTOR_OPENMP_SIMD_C_FLAGS}" HAVE_OPENMP_SIMD)
+    if (NOT HAVE_OPENMP_SIMD)
+       unset(VECTOR_OPENMP_SIMD_C_FLAGS)
+       add_definitions(-D_OPENMP_SIMD)
+    endif (NOT HAVE_OPENMP_SIMD)
 
     set(VECTOR_BASE_C_FLAGS "${VECTOR_ALIASING_C_FLAGS} ${VECTOR_ARCH_C_FLAGS} ${VECTOR_FPMODEL_C_FLAGS}")
     set(VECTOR_NOVEC_C_FLAGS "${VECTOR_BASE_C_FLAGS} ${VECTOR_NOVEC_C_OPT}")
@@ -165,11 +175,11 @@ if(CMAKE_CXX_COMPILER_LOADED)
         set(VECTOR_FPMODEL_CXX_FLAGS "${VECTOR_FPMODEL_CXX_FLAGS} -fp-model:precise")
 
         set(VECTOR_OPENMP_SIMD_CXX_FLAGS "${VECTOR_OPENMP_SIMD_CXX_FLAGS} -qopenmp-simd")
-        set(VECTOR_CXX_OPTS "${VECTOR_CXX_OPTS} -xHOST")
+        set(VECTOR_CXX_OPTS "${VECTOR_CXX_OPTS} -march=native -mtune=native -xHOST")
         if ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
             set(VECTOR_CXX_OPTS "${VECTOR_CXX_OPTS} -qopt-zmm-usage=high")
         endif ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
-        set(VECTOR_NOVEC_CXX_OPT "${VECTOR_NOVEC_CXX_OPT} -no-vec")
+        set(VECTOR_NOVEC_CXX_OPT "${VECTOR_NOVEC_CXX_OPT} -march=native -mtune=native -no-vec")
         set(VECTOR_CXX_VERBOSE "${VECTOR_CXX_VERBOSE} -qopt-report=5 -qopt-report-phase=openmp,loop,vec")
 
     elseif (CMAKE_CXX_COMPILER_ID MATCHES "PGI")
@@ -204,6 +214,12 @@ if(CMAKE_CXX_COMPILER_LOADED)
         set(VECTOR_CXX_VERBOSE "${VECTOR_CXX_VERBOSE} -h msgs -h negmsgs -h list=a")
 
     endif()
+
+    CHECK_CXX_COMPILER_FLAG("${VECTOR_OPENMP_SIMD_CXX_FLAGS}" HAVE_OPENMP_SIMD)
+    if (NOT HAVE_OPENMP_SIMD)
+       unset(VECTOR_OPENMP_SIMD_CXX_FLAGS)
+       add_definitions(-D_OPENMP_SIMD)
+    endif (NOT HAVE_OPENMP_SIMD)
 
     set(VECTOR_BASE_CXX_FLAGS "${VECTOR_ALIASING_CXX_FLAGS} ${VECTOR_ARCH_CXX_FLAGS} ${VECTOR_FPMODEL_CXX_FLAGS}")
     set(VECTOR_NOVEC_CXX_FLAGS "${VECTOR_BASE_CXX_FLAGS} ${VECTOR_NOVEC_CXX_OPT}")
@@ -267,11 +283,11 @@ if(CMAKE_Fortran_COMPILER_LOADED)
         set(VECTOR_FPMODEL_Fortran_FLAGS "${VECTOR_FPMODEL_Fortran_FLAGS} -fp-model:precise")
 
         set(VECTOR_OPENMP_SIMD_Fortran_FLAGS "${VECTOR_OPENMP_SIMD_Fortran_FLAGS} -qopenmp-simd")
-        set(VECTOR_Fortran_OPTS "${VECTOR_Fortran_OPTS} -xHOST")
+        set(VECTOR_Fortran_OPTS "${VECTOR_Fortran_OPTS} -march=native -mtune=native -xHOST")
         if ("${CMAKE_Fortran_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
             set(VECTOR_Fortran_OPTS "${VECTOR_Fortran_OPTS} -qopt-zmm-usage=high")
         endif ("${CMAKE_Fortran_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
-        set(VECTOR_NOVEC_Fortran_OPT "${VECTOR_NOVEC_Fortran_OPT} -no-vec")
+        set(VECTOR_NOVEC_Fortran_OPT "${VECTOR_NOVEC_Fortran_OPT} -march=native -mtune=native -no-vec")
         set(VECTOR_Fortran_VERBOSE "${VECTOR_Fortran_VERBOSE} -qopt-report=5 -qopt-report-phase=openmp,loop,vec")
 
     elseif (CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
@@ -307,6 +323,11 @@ if(CMAKE_Fortran_COMPILER_LOADED)
 
     endif()
 
+    CHECK_FORTRAN_COMPILER_FLAG("${VECTOR_OPENMP_SIMD_Fortran_FLAGS}" HAVE_OPENMP_SIMD)
+    if (NOT HAVE_OPENMP_SIMD)
+       unset(VECTOR_OPENMP_SIMD_Fortran_FLAGS)
+       add_definitions(-D_OPENMP_SIMD)
+    endif (NOT HAVE_OPENMP_SIMD)
 
     set(VECTOR_BASE_Fortran_FLAGS "${VECTOR_ALIASING_Fortran_FLAGS} ${VECTOR_ARCH_Fortran_FLAGS} ${VECTOR_FPMODEL_Fortran_FLAGS}")
     set(VECTOR_NOVEC_Fortran_FLAGS "${VECTOR_BASE_Fortran_FLAGS} ${VECTOR_NOVEC_Fortran_OPT}")

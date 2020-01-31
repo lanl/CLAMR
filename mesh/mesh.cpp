@@ -3831,9 +3831,15 @@ void Mesh::rezone_all(int icount, int jcount, vector<char_t> mpot, int have_stat
       flags = RESTART_DATA;
 
 #ifdef _OPENMP
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
       for (int ic = 0; ic < new_ncells; ic++){
          nlft_old[ic] = -1;
@@ -10996,6 +11002,7 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       if (nr == nz) continue;
 
       int ifactor = 1;
+      printf("DEBUG -- nr %d nz %d\n",nr,nz);
       if (level[nr] < level[nz]) ifactor = 2;
 
       // Have right face

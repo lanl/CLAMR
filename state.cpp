@@ -1899,9 +1899,15 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
 #endif
    
 #ifdef _OPENMP
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    for (int ic = lowerBound; ic < upperBound; ic++) {
    //for (int ic = 0; ic < mesh->ncells; ic++) {
@@ -2029,10 +2035,15 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
    cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
-#pragma omp barrier
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    for (int ifix = 0; ifix < mesh->nxfixup; ifix++){
       int ic = mesh->xrecvCIdx[ifix];
@@ -2068,10 +2079,15 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
    }
 
 #ifdef _OPENMP
-#pragma omp barrier
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    for (int ifix = 0; ifix < mesh->nyfixup; ifix++){
       int ic = mesh->yrecvCIdx[ifix];
@@ -2273,9 +2289,15 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    //normally use xfaceSize
    for (int iface = 0; iface < mesh->nxface; iface++){
@@ -2324,10 +2346,15 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    }
 
 #ifdef _OPENMP
-#pragma omp barrier
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    for (int ifixup = 0; ifixup < mesh->nxfixup; ifixup++){
       int ir  = mesh->xrecvIdx[ifixup];
@@ -2344,9 +2371,15 @@ void State::calc_finite_difference_face_in_place(double deltaT)
 
 
 #ifdef _OPENMP
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    //normally use yfaceSize
    for (int iface = 0; iface < mesh->nyface; iface++){
@@ -2394,10 +2427,15 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    }
 
 #ifdef _OPENMP
-#pragma omp barrier
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    for (int ifixup = 0; ifixup < mesh->nyfixup; ifixup++){
       int ir  = mesh->yrecvIdx[ifixup];
@@ -2599,14 +2637,20 @@ void State::calc_finite_difference_via_faces(double deltaT)
    cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    for (int iface = 0; iface < mesh->nxface; iface++){
       int cell_lower = mesh->map_xface2cell_lower[iface];
       int cell_upper = mesh->map_xface2cell_upper[iface];
-      //printf("%d) %d %d\n", iface, cell_lower, cell_upper);
+      printf("%d) %d %d\n", iface, cell_lower, cell_upper);
       real_t Hx, Ux, Vx;
       if (level[cell_lower] == level[cell_upper]) {
 
@@ -2615,6 +2659,12 @@ void State::calc_finite_difference_via_faces(double deltaT)
          int fr = mesh->map_xcell2face_right1[cell_upper];
          // set the two cells away
          int nll = mesh->map_xface2cell_lower[fl];
+  int rank;
+#ifdef HAVE_MPI
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+
+      printf("%d: fr %d size %d\n", rank, fr, mesh->mesh_memory.get_memory_size(mesh->map_xface2cell_upper));
          int nrr = mesh->map_xface2cell_upper[fr];
  
          int lev = level[cell_lower];
@@ -2624,6 +2674,7 @@ void State::calc_finite_difference_via_faces(double deltaT)
          real_t Hic = H[cell_lower];
          real_t Hr  = H[cell_upper];
          real_t Hl  = H[nll];
+         printf("DEBUG -- iface %d nrr %d\n",iface,nrr);
          real_t Hrr = H[nrr];
          real_t Uic = U[cell_lower];
          real_t Ur  = U[cell_upper];
@@ -2730,9 +2781,15 @@ void State::calc_finite_difference_via_faces(double deltaT)
 
 
 #ifdef _OPENMP
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    for (int iface = 0; iface < mesh->nyface; iface++){
       int cell_lower = mesh->map_yface2cell_lower[iface];
@@ -2754,6 +2811,7 @@ void State::calc_finite_difference_via_faces(double deltaT)
          real_t Hic = H[cell_lower];
          real_t Ht  = H[cell_upper];
          real_t Hb  = H[nbb];
+         printf("DEBUG -- iface %d ntt %d\n",iface,ntt);
          real_t Htt = H[ntt];
          real_t Vic = V[cell_lower];
          real_t Vt  = V[cell_upper];
@@ -3539,10 +3597,15 @@ void State::calc_finite_difference_regular_cells(double deltaT)
       cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
-#pragma omp barrier
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    for (int ifix = 0; ifix < mesh->nxfixup; ifix++){
       int ic = mesh->xrecvCIdx[ifix];
@@ -3598,9 +3661,15 @@ void State::calc_finite_difference_regular_cells(double deltaT)
    }
 
 #ifdef _OPENMP
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    for (int ifix = 0; ifix < mesh->nyfixup; ifix++){
       int ic = mesh->yrecvCIdx[ifix];
@@ -4013,10 +4082,15 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
 
 
 #ifdef _OPENMP
-#pragma omp barrier
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    for (int ifixup = 0; ifixup < mesh->nxfixup; ifixup++){
       int ir  = mesh->xrecvIdx[ifixup];
@@ -4040,9 +4114,15 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
    }
 
 #ifdef _OPENMP
+#ifdef _OPENMP_SIMD
 #pragma omp for simd
 #else
+#pragma omp for
+#endif
+#else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    for (int ifixup = 0; ifixup < mesh->nyfixup; ifixup++){
       int ir  = mesh->yrecvIdx[ifixup];

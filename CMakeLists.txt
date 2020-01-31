@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.1.3)
 
-project (CLAMR)
+project (CLAMR CXX C)
 # The version number.
 set (CLAMR_VERSION_MAJOR 2)
 set (CLAMR_VERSION_MINOR 0.7)

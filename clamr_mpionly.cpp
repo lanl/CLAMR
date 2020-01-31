@@ -574,12 +574,12 @@ extern "C" void do_calc(void)
             printf("ERROR -- the face method currently does not work with MPI\n");
             L7_Terminate();
             exit(-1);
-            //state->calc_finite_difference_via_faces(deltaT);
+            state->calc_finite_difference_via_faces(deltaT);
          } else if (choose_amr_method == CELL_IN_PLACE_AMR) {
             printf("ERROR -- the cell-in-place method currently does not work with MPI\n");
-            L7_Terminate();
-            exit(-1);
-            //state->calc_finite_difference_cell_in_place(deltaT);
+            //L7_Terminate();
+            //exit(-1);
+            state->calc_finite_difference_cell_in_place(deltaT);
          } else if (choose_amr_method == FACE_IN_PLACE_AMR) {
             printf("ERROR -- the face-in-place method currently does not work with MPI\n");
             L7_Terminate();
