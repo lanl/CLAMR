@@ -228,7 +228,13 @@ inline real_t U_fullstep(
         real_t    G_plus,
         real_t    G_minus) {
 
+#ifdef PRECISION_CHECK_BEST_PARENTHESIS
+   //"best" parentheses version
+   return (U - (deltaT / dr)*((F_plus - F_minus) + (G_plus - G_minus)));
+#else
+   //original, no parentheses
    return (U - (deltaT / dr)*(F_plus - F_minus + G_plus - G_minus));
+#endif
 
 }
 
@@ -263,11 +269,20 @@ inline void U_fullstep_precision_check(
    float wplusy_H = (float)wplusy_H_in;
 
 #ifdef PRECISION_CHECK_WITH_PARENTHESIS
+   //Some parentheses
    double U_new = U - (deltaT / dr)*(F_plus - F_minus + G_plus - G_minus)
                    +( -wminusx_H + wplusx_H - wminusy_H + wplusy_H);
 #else
+
+#ifdef PRECISION_CHECK_BEST_PARENTHESIS
+   //"best" parentheses version
+   double U_new = U - (deltaT / dr)*((F_plus - F_minus) + (G_plus - G_minus))
+                   + (((-wminusx_H - wminusy_H) + wplusy_H) + wplusx_H);
+#else
+   //original, no parentheses
    double U_new = U - (deltaT / dr)*(F_plus - F_minus + G_plus - G_minus)
                    + -wminusx_H + wplusx_H - wminusy_H + wplusy_H;
+#endif
 #endif
 
    *fail = 0;
@@ -3047,16 +3062,34 @@ void State::calc_finite_difference_via_faces(double deltaT)
          wplusy_V = (wplusy_V + Wy_V[ft2]) * HALF * HALF;
       }
 
+
+#ifdef PRECISION_CHECK_WITH_PARENTHESIS
+   //Some parentheses
+      H_new[ic] = U_fullstep(deltaT, dxic, Hic,
+                      Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
+                 + (- wminusx_H + wplusx_H - wminusy_H + wplusy_H);
+#else
+
+#ifdef PRECISION_CHECK_BEST_PARENTHESIS
+   //"best" parentheses version
+      H_new[ic] = U_fullstep(deltaT, dxic, Hic,
+                      Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
+                   + (((-wminusx_H - wminusy_H) + wplusy_H) + wplusx_H);
+#else
+   //original, no parentheses
       H_new[ic] = U_fullstep(deltaT, dxic, Hic,
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
                  - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
-
+#endif
+#endif
 
 #ifdef PRECISION_CHECK
       int fail;
       U_fullstep_precision_check(ic, deltaT, dxic, Hic, H_new[ic],
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus,
                       wminusx_H, wplusx_H, wminusy_H, wplusy_H, &fail);
+
+
 #ifdef PRECISION_CHECK_GRAPHICS
       PCHECK_new[ic] = 100.0*(double)fail;
 #endif
