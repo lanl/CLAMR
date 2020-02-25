@@ -3953,16 +3953,16 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
       V_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
       mask_reg_lev = (int ***)malloc((mesh->levmx+1)*sizeof(int **));
 
-      HxFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      UxFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      VxFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      Wx_H   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      Wx_U   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      HyFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      UyFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      VyFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      Wy_H   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      Wy_V   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
+      HxFlux = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      UxFlux = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      VxFlux = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      Wx_H   = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      Wx_U   = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      HyFlux = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      UyFlux = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      VyFlux = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      Wy_H   = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      Wy_V   = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
       states_new = (state_t ****)malloc((mesh->levmx+1)*sizeof(double ***));
       //passFlagX   = (int ***)malloc((mesh->levmx+1)*sizeof(int**));
       //passFlagY   = (int ***)malloc((mesh->levmx+1)*sizeof(int**));
@@ -3974,16 +3974,16 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
          V_reg_lev[lev] = pstate[2];
          mask_reg_lev[lev] = mesh->meshes[lev].mask;
 
-         HxFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         UxFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         VxFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         Wx_H[lev]   = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         Wx_U[lev]   = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         HyFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         UyFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         VyFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         Wy_H[lev]   = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         Wy_V[lev]   = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         HxFlux[lev] = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         UxFlux[lev] = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         VxFlux[lev] = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         Wx_H[lev]   = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         Wx_U[lev]   = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         HyFlux[lev] = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         UyFlux[lev] = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         VyFlux[lev] = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         Wy_H[lev]   = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         Wy_V[lev]   = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
          //passFlagX[lev]   = (int **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(int));
          //passFlagY[lev]   = (int **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(int));
 
