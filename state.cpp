@@ -288,7 +288,7 @@ inline void U_fullstep_precision_check(
    *fail = 0;
 
    if (fabs(U_new - U_new_in)/U_new > PRECISION_CHECK) {
-      printf("DEBUG -- found one at ic %d precision diff is %12.6lg relative %12.6lg\n",ic,fabs(U_new - U_new_in), fabs(U_new - U_new_in)/U_new);
+      //printf("DEBUG -- found one at ic %d precision diff is %12.6lg relative %12.6lg\n",ic,fabs(U_new - U_new_in), fabs(U_new - U_new_in)/U_new);
 
       *fail = 1;
 
@@ -554,7 +554,7 @@ void knuth_sum(struct esum_type *in, struct esum_type *inout, int *len, MPI_Data
    inout->correction = (u - up) + (v - vpp);
 
    // Just to block compiler warnings
-   if (1==2) printf("DEBUG len %d datatype %lld\n",*len,(long long)(*MPI_TWO_DOUBLES) );
+   //if (1==2) printf("DEBUG len %d datatype %lld\n",*len,(long long)(*MPI_TWO_DOUBLES) );
 }
 #endif
 
@@ -1207,7 +1207,7 @@ void State::gpu_rezone_all(int icount, int jcount, bool localStencil)
    cpu_timer_start(&tstart_cpu);
 
    // Just to get rid of compiler warnings
-   if (1 == 2) printf("DEBUG -- localStencil is %d\n",localStencil);
+   //if (1 == 2) printf("DEBUG -- localStencil is %d\n",localStencil);
 
    mesh->gpu_rezone_all(icount, jcount, dev_mpot, gpu_state_memory);
    dev_H = (cl_mem)gpu_state_memory.get_memory_ptr("dev_H");
@@ -2665,7 +2665,7 @@ void State::calc_finite_difference_via_faces(double deltaT)
    for (int iface = 0; iface < mesh->nxface; iface++){
       int cell_lower = mesh->map_xface2cell_lower[iface];
       int cell_upper = mesh->map_xface2cell_upper[iface];
-      printf("%d) %d %d\n", iface, cell_lower, cell_upper);
+      //printf("%d) %d %d\n", iface, cell_lower, cell_upper);
       real_t Hx, Ux, Vx;
       if (level[cell_lower] == level[cell_upper]) {
 
@@ -2679,7 +2679,7 @@ void State::calc_finite_difference_via_faces(double deltaT)
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
 
-      printf("%d: fr %d size %d\n", rank, fr, mesh->mesh_memory.get_memory_size(mesh->map_xface2cell_upper));
+      //printf("%d: fr %d size %d\n", rank, fr, mesh->mesh_memory.get_memory_size(mesh->map_xface2cell_upper));
          int nrr = mesh->map_xface2cell_upper[fr];
  
          int lev = level[cell_lower];
@@ -2689,7 +2689,7 @@ void State::calc_finite_difference_via_faces(double deltaT)
          real_t Hic = H[cell_lower];
          real_t Hr  = H[cell_upper];
          real_t Hl  = H[nll];
-         printf("DEBUG -- iface %d nrr %d\n",iface,nrr);
+         //printf("DEBUG -- iface %d nrr %d\n",iface,nrr);
          real_t Hrr = H[nrr];
          real_t Uic = U[cell_lower];
          real_t Ur  = U[cell_upper];
@@ -2826,7 +2826,7 @@ void State::calc_finite_difference_via_faces(double deltaT)
          real_t Hic = H[cell_lower];
          real_t Ht  = H[cell_upper];
          real_t Hb  = H[nbb];
-         printf("DEBUG -- iface %d ntt %d\n",iface,ntt);
+         //printf("DEBUG -- iface %d ntt %d\n",iface,ntt);
          real_t Htt = H[ntt];
          real_t Vic = V[cell_lower];
          real_t Vt  = V[cell_upper];
@@ -3936,8 +3936,8 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
    static state_t ***H_reg_lev, ***U_reg_lev, ***V_reg_lev;
    static int ***mask_reg_lev;
 
-   static double ***HxFlux, ***UxFlux, ***VxFlux, ***Wx_H, ***Wx_U;
-   static double ***HyFlux, ***UyFlux, ***VyFlux, ***Wy_H, ***Wy_V;
+   static real_t ***HxFlux, ***UxFlux, ***VxFlux, ***Wx_H, ***Wx_U;
+   static real_t ***HyFlux, ***UyFlux, ***VyFlux, ***Wy_H, ***Wy_V;
    //int ***passFlagX, ***passFlagY;
 
 #ifdef _OPENMP
@@ -3953,17 +3953,17 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
       V_reg_lev = (state_t ***)malloc((mesh->levmx+1)*sizeof(state_t **));
       mask_reg_lev = (int ***)malloc((mesh->levmx+1)*sizeof(int **));
 
-      HxFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      UxFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      VxFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      Wx_H   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      Wx_U   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      HyFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      UyFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      VyFlux = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      Wy_H   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      Wy_V   = (double ***)malloc((mesh->levmx+1)*sizeof(double**));
-      states_new = (state_t ****)malloc((mesh->levmx+1)*sizeof(double ***));
+      HxFlux = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      UxFlux = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      VxFlux = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      Wx_H   = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      Wx_U   = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      HyFlux = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      UyFlux = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      VyFlux = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      Wy_H   = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      Wy_V   = (real_t ***)malloc((mesh->levmx+1)*sizeof(real_t**));
+      states_new = (state_t ****)malloc((mesh->levmx+1)*sizeof(real_t ***));
       //passFlagX   = (int ***)malloc((mesh->levmx+1)*sizeof(int**));
       //passFlagY   = (int ***)malloc((mesh->levmx+1)*sizeof(int**));
 
@@ -3974,16 +3974,16 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
          V_reg_lev[lev] = pstate[2];
          mask_reg_lev[lev] = mesh->meshes[lev].mask;
 
-         HxFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         UxFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         VxFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         Wx_H[lev]   = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         Wx_U[lev]   = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         HyFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         UyFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         VyFlux[lev] = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         Wy_H[lev]   = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
-         Wy_V[lev]   = (double **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(double));
+         HxFlux[lev] = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         UxFlux[lev] = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         VxFlux[lev] = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         Wx_H[lev]   = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         Wx_U[lev]   = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         HyFlux[lev] = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         UyFlux[lev] = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         VyFlux[lev] = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         Wy_H[lev]   = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
+         Wy_V[lev]   = (real_t **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(real_t));
          //passFlagX[lev]   = (int **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(int));
          //passFlagY[lev]   = (int **)genmatrix(mesh->lev_jregsize[lev],mesh->lev_iregsize[lev],sizeof(int));
 
@@ -7875,7 +7875,7 @@ void State::resize_old_device_memory(size_t ncells)
    //dev_Vy = (cl_mem)gpu_state_memory.memory_malloc(mesh->nyface, sizeof(cl_state_t), const_cast<char *>("dev_Vy"), DEVICE_REGULAR_MEMORY);
 #else
    // Just to block compiler warnings
-   if (1 == 2) printf("DEBUG -- ncells is %ld\n",ncells);
+   //if (1 == 2) printf("DEBUG -- ncells is %ld\n",ncells);
 #endif
 }
 
@@ -8138,11 +8138,11 @@ void State::compare_state_gpu_global_to_cpu_global(const char* string, int cycle
    ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_state_t), &H_check[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_state_t), &U_check[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_state_t), &V_check[0], NULL);
-   for (uint ic = 0; ic < ncells; ic++){
+   /*for (uint ic = 0; ic < ncells; ic++){
       if (fabs(H[ic]-H_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d H & H_check %d %lf %lf\n",string,cycle,ic,H[ic],H_check[ic]);
       if (fabs(U[ic]-U_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d U & U_check %d %lf %lf\n",string,cycle,ic,U[ic],U_check[ic]);
       if (fabs(V[ic]-V_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d V & V_check %d %lf %lf\n",string,cycle,ic,V[ic],V_check[ic]);
-   }
+   }*/
 }
 #endif
 
@@ -8161,14 +8161,14 @@ void State::compare_state_cpu_local_to_cpu_global(State *state_global, const cha
    MPI_Allgatherv(&V[0], ncells, MPI_STATE_T, &V_check[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
 #else
    // Just to block compiler warnings
-   if (1 == 2) printf("DEBUG -- ncells %u nsizes %d ndispl %d\n",ncells, nsizes[0],ndispl[0]);
+   //if (1 == 2) printf("DEBUG -- ncells %u nsizes %d ndispl %d\n",ncells, nsizes[0],ndispl[0]);
 #endif
-
+   /*
    for (uint ic = 0; ic < ncells_global; ic++){
       if (fabs(H_global[ic]-H_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d H & H_check %d %lf %lf\n",string,cycle,ic,H_global[ic],H_check[ic]);
       if (fabs(U_global[ic]-U_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d U & U_check %d %lf %lf\n",string,cycle,ic,U_global[ic],U_check[ic]);
       if (fabs(V_global[ic]-V_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d V & V_check %d %lf %lf\n",string,cycle,ic,V_global[ic],V_check[ic]);
-   }
+   }*/
 }
 
 #ifdef HAVE_OPENCL
@@ -8191,11 +8191,11 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
    ezcl_enqueue_read_buffer(command_queue, dev_H, CL_FALSE, 0, ncells*sizeof(cl_state_t), &H_save[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_U, CL_FALSE, 0, ncells*sizeof(cl_state_t), &U_save[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_V, CL_TRUE,  0, ncells*sizeof(cl_state_t), &V_save[0], NULL);
-   for (uint ic = 0; ic < ncells; ic++){
+   /*for (uint ic = 0; ic < ncells; ic++){
       if (fabs(H[ic]-H_save[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 1 at cycle %d H & H_save %d %lf %lf \n",mype,ncycle,ic,H[ic],H_save[ic]);
       if (fabs(U[ic]-U_save[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 1 at cycle %d U & U_save %d %lf %lf \n",mype,ncycle,ic,U[ic],U_save[ic]);
       if (fabs(V[ic]-V_save[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 1 at cycle %d V & V_save %d %lf %lf \n",mype,ncycle,ic,V[ic],V_save[ic]);
-   }
+   }*/
 
    // And compare dev_H gathered to H_global, etc
    vector<state_t>H_save_global(ncells_global);
@@ -8204,41 +8204,41 @@ void State::compare_state_all_to_gpu_local(State *state_global, uint ncells, uin
    MPI_Allgatherv(&H_save[0], nsizes[mype], MPI_STATE_T, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&U_save[0], nsizes[mype], MPI_STATE_T, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&V_save[0], nsizes[mype], MPI_STATE_T, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
-   if (mype == 0) {
+   /*if (mype == 0) {
       for (uint ic = 0; ic < ncells_global; ic++){
          if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 2 at cycle %d H_global & H_save_global %d %lf %lf \n",mype,ncycle,ic,H_global[ic],H_save_global[ic]);
          if (fabs(U_global[ic]-U_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 2 at cycle %d U_global & U_save_global %d %lf %lf \n",mype,ncycle,ic,U_global[ic],U_save_global[ic]);
          if (fabs(V_global[ic]-V_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 2 at cycle %d V_global & V_save_global %d %lf %lf \n",mype,ncycle,ic,V_global[ic],V_save_global[ic]);
       }
-   }
+   }*/
 
    // And compare H gathered to H_global, etc
    MPI_Allgatherv(&H[0], nsizes[mype], MPI_STATE_T, &H_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&U[0], nsizes[mype], MPI_STATE_T, &U_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
    MPI_Allgatherv(&V[0], nsizes[mype], MPI_STATE_T, &V_save_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
-   if (mype == 0) {
+   /*if (mype == 0) {
       for (uint ic = 0; ic < ncells_global; ic++){
          if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("DEBUG finite_difference 3 at cycle %d H_global & H_save_global %d %lf %lf \n",ncycle,ic,H_global[ic],H_save_global[ic]);
          if (fabs(U_global[ic]-U_save_global[ic]) > STATE_EPS) printf("DEBUG finite_difference 3 at cycle %d U_global & U_save_global %d %lf %lf \n",ncycle,ic,U_global[ic],U_save_global[ic]);
          if (fabs(V_global[ic]-V_save_global[ic]) > STATE_EPS) printf("DEBUG finite_difference 3 at cycle %d V_global & V_save_global %d %lf %lf \n",ncycle,ic,V_global[ic],V_save_global[ic]);
       }
-   }
+   }*/
 
    // Now the global dev_H_global to H_global, etc
    ezcl_enqueue_read_buffer(command_queue, dev_H_global, CL_FALSE, 0, ncells_global*sizeof(cl_state_t), &H_save_global[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_U_global, CL_FALSE, 0, ncells_global*sizeof(cl_state_t), &U_save_global[0], NULL);
    ezcl_enqueue_read_buffer(command_queue, dev_V_global, CL_TRUE,  0, ncells_global*sizeof(cl_state_t), &V_save_global[0], NULL);
-   if (mype == 0) {
+   /*if (mype == 0) {
       for (uint ic = 0; ic < ncells_global; ic++){
          if (fabs(H_global[ic]-H_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 4 at cycle %d H_global & H_save_global %d %lf %lf \n",mype,ncycle,ic,H_global[ic],H_save_global[ic]);
          if (fabs(U_global[ic]-U_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 4 at cycle %d U_global & U_save_global %d %lf %lf \n",mype,ncycle,ic,U_global[ic],U_save_global[ic]);
          if (fabs(V_global[ic]-V_save_global[ic]) > STATE_EPS) printf("%d: DEBUG finite_difference 4 at cycle %d V_global & V_save_global %d %lf %lf \n",mype,ncycle,ic,V_global[ic],V_save_global[ic]);
       }
-   }
+   }*/
 #else
    // Just to get rid of compiler warnings
-   if (1 == 2) printf("%d: DEBUG -- ncells %d ncells_global %d ncycle %d nsizes[0] %d ndispl %d state_global %p\n",
-      mype,ncells,ncells_global,ncycle,nsizes[0],ndispl[0],state_global);
+   //if (1 == 2) printf("%d: DEBUG -- ncells %d ncells_global %d ncycle %d nsizes[0] %d ndispl %d state_global %p\n",
+   //   mype,ncells,ncells_global,ncycle,nsizes[0],ndispl[0],state_global);
 #endif
 }
 #endif
@@ -8459,7 +8459,7 @@ void State::print_local(int ncycle)
       mesh->fp=fopen(filename,"w");
    }
 
-   fprintf(mesh->fp,"DEBUG in print_local ncycle is %d\n",ncycle);
+   //fprintf(mesh->fp,"DEBUG in print_local ncycle is %d\n",ncycle);
    if (mesh->nlft != NULL){
       fprintf(mesh->fp,"%d:  index     H        U         V      i     j     lev   nlft   nrht   nbot   ntop\n",mesh->mype);
       uint state_size = state_memory.get_memory_size(H);
