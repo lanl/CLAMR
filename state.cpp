@@ -3936,8 +3936,8 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
    static state_t ***H_reg_lev, ***U_reg_lev, ***V_reg_lev;
    static int ***mask_reg_lev;
 
-   static double ***HxFlux, ***UxFlux, ***VxFlux, ***Wx_H, ***Wx_U;
-   static double ***HyFlux, ***UyFlux, ***VyFlux, ***Wy_H, ***Wy_V;
+   static real_t ***HxFlux, ***UxFlux, ***VxFlux, ***Wx_H, ***Wx_U;
+   static real_t ***HyFlux, ***UyFlux, ***VyFlux, ***Wy_H, ***Wy_V;
    //int ***passFlagX, ***passFlagY;
 
 #ifdef _OPENMP
