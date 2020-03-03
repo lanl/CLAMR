@@ -234,7 +234,8 @@ inline real_t U_fullstep(
 
 #ifdef PRECISION_CHECK_BEST_PARENTHESIS
    //"best" parentheses version
-   return (U - (deltaT / dr)*((F_plus - F_minus) + (G_plus - G_minus)));
+   //return (U - (deltaT / dr)*((F_plus - F_minus) + (G_plus - G_minus)));
+   return (U + (-(deltaT/dr)*((F_plus-F_minus)+(G_plus-G_minus))));
 #else
    //original, no parentheses
    return (U - (deltaT / dr)*(F_plus - F_minus + G_plus - G_minus));
@@ -281,7 +282,8 @@ inline void U_fullstep_precision_check(
 #ifdef PRECISION_CHECK_BEST_PARENTHESIS
    //"best" parentheses version
    double U_new = U - (deltaT / dr)*((F_plus - F_minus) + (G_plus - G_minus))
-                   + (((-wminusx_H - wminusy_H) + wplusy_H) + wplusx_H);
+                  // + (((-wminusx_H - wminusy_H) + wplusy_H) + wplusx_H);
+                   + (((wplusx_H + wplusy_H) - wminusy_H) - wminusx_H);
 #else
    //original, no parentheses
    double U_new = U - (deltaT / dr)*(F_plus - F_minus + G_plus - G_minus)
@@ -1811,7 +1813,8 @@ void State::calc_finite_difference(double deltaT)
       //Version with "best" parentheses
       H_new[gix] = U_fullstep(deltaT, dxic, Hic,
                        Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
-                   + (((-wminusx_H - wminusy_H) + wplusy_H) + wplusx_H);
+                   //+ (((-wminusx_H - wminusy_H) + wplusy_H) + wplusx_H);
+                   + (((wplusx_H + wplusy_H) - wminusy_H) - wminusx_H);
 #else
       //Original version - no parentheses
       H_new[gix] = U_fullstep(deltaT, dxic, Hic,
@@ -3172,7 +3175,8 @@ void State::calc_finite_difference_via_faces(double deltaT)
    //"best" parentheses version
       H_new[ic] = U_fullstep(deltaT, dxic, Hic,
                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
-                   + (((-wminusx_H - wminusy_H) + wplusy_H) + wplusx_H);
+                   //+ (((-wminusx_H - wminusy_H) + wplusy_H) + wplusx_H);
+                   + (((wplusx_H + wplusy_H) - wminusy_H) - wminusx_H);
 #else
    //original, no parentheses
       H_new[ic] = U_fullstep(deltaT, dxic, Hic,
@@ -3915,7 +3919,8 @@ void State::calc_finite_difference_regular_cells(double deltaT)
            //Best parentheses version
            states_new[ll][0][jj][ii] = U_fullstep(deltaT, dx, H_reg_lev[ll][jj][ii],
                        Hxfluxplus[ll][jj][ii], Hxfluxminus[ll][jj][ii], Hyfluxplus[ll][jj][ii], Hyfluxminus[ll][jj][ii])
-                  + ((( -wminusx_H[ll][jj][ii] - wminusy_H[ll][jj][ii] ) + wplusy_H[ll][jj][ii] ) + wplusx_H[ll][jj][ii] );
+                  //+ ((( -wminusx_H[ll][jj][ii] - wminusy_H[ll][jj][ii] ) + wplusy_H[ll][jj][ii] ) + wplusx_H[ll][jj][ii] );
+                  + (((wplusx_H[ll][jj][ii] + wplusy_H[ll][jj][ii]) - wminusy_H[ll][jj][ii]) - wminusx_H[ll][jj][ii]);
 #else
            //Original version with no parentheses
            states_new[ll][0][jj][ii] = U_fullstep(deltaT, dx, H_reg_lev[ll][jj][ii],
