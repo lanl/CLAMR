@@ -3807,13 +3807,13 @@ void State::calc_finite_difference_regular_cells(double deltaT)
 #pragma omp simd
          for(ii=2; ii<iimax-2; ii++){
             if (mask_reg_lev[ll][jj][ii] == 1) {
-#ifdef PRECISION_CHECK_WITH_PARENTHESES
+#ifdef PRECISION_CHECK_WITH_PARENTHESIS
            //Basic parentheses
            states_new[ll][0][jj][ii] = U_fullstep(deltaT, dx, H_reg_lev[ll][jj][ii],
                        Hxfluxplus[ll][jj][ii], Hxfluxminus[ll][jj][ii], Hyfluxplus[ll][jj][ii], Hyfluxminus[ll][jj][ii])
                   + (- wminusx_H[ll][jj][ii] + wplusx_H[ll][jj][ii] - wminusy_H[ll][jj][ii] + wplusy_H[ll][jj][ii]);
 #else
-#ifdef PRECISION_CHECK_BEST_PARENTHESES
+#ifdef PRECISION_CHECK_BEST_PARENTHESIS
            //Best parentheses version
            states_new[ll][0][jj][ii] = U_fullstep(deltaT, dx, H_reg_lev[ll][jj][ii],
                        Hxfluxplus[ll][jj][ii], Hxfluxminus[ll][jj][ii], Hyfluxplus[ll][jj][ii], Hyfluxminus[ll][jj][ii])
