@@ -1367,6 +1367,27 @@ void State::calc_finite_difference(double deltaT)
    int lowerBound, upperBound;
    mesh->get_bounds(lowerBound, upperBound);
 
+#ifdef PRECISION_CHECK_STATS
+   fail_prec_count = 0;
+   fail_F_plus_sum    = 0.0;
+   fail_F_minus_sum   = 0.0;
+   fail_G_plus_sum    = 0.0;
+   fail_G_minus_sum   = 0.0;
+   fail_wminusx_H_sum = 0.0;
+   fail_wplusx_H_sum  = 0.0;
+   fail_wminusy_H_sum = 0.0;
+   fail_wplusy_H_sum  = 0.0;
+   prec_count = 0;
+   F_plus_sum    = 0.0;
+   F_minus_sum   = 0.0;
+   G_plus_sum    = 0.0;
+   G_minus_sum   = 0.0;
+   wminusx_H_sum = 0.0;
+   wplusx_H_sum  = 0.0;
+   wminusy_H_sum = 0.0;
+   wplusy_H_sum  = 0.0;
+#endif
+
 #pragma omp simd
    for(int gix = lowerBound; gix < upperBound; gix++) {
 
@@ -1788,6 +1809,19 @@ void State::calc_finite_difference(double deltaT)
                   - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
 #endif
 #endif
+
+#ifdef PRECISION_CHECK
+      int fail;
+      U_fullstep_precision_check(gix, deltaT, dxic, Hic, H_new[gix],
+                      Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus,
+                      wminusx_H, wplusx_H, wminusy_H, wplusy_H, &fail); 
+
+
+#ifdef PRECISION_CHECK_GRAPHICS
+      PCHECK_new[gix] = 100.0*(double)fail;
+#endif
+#endif
+
       U_new[gix] = U_fullstep(deltaT, dxic, Uic,
                        Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
                   - wminusx_U + wplusx_U;
@@ -1798,6 +1832,45 @@ void State::calc_finite_difference(double deltaT)
       //printf("H %f %f %f %f\n", Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus);
 
    } // cell loop
+
+#ifdef PRECISION_CHECK_STATS
+   fail_F_plus_sum    /= (double)fail_prec_count;
+   fail_F_minus_sum   /= (double)fail_prec_count;
+   fail_G_plus_sum    /= (double)fail_prec_count;
+   fail_G_minus_sum   /= (double)fail_prec_count;
+   fail_wminusx_H_sum /= (double)fail_prec_count;
+   fail_wplusx_H_sum  /= (double)fail_prec_count;
+   fail_wminusy_H_sum /= (double)fail_prec_count;
+   fail_wplusy_H_sum  /= (double)fail_prec_count;
+   F_plus_sum    /= (double)prec_count;
+   F_minus_sum   /= (double)prec_count;
+   G_plus_sum    /= (double)prec_count;
+   G_minus_sum   /= (double)prec_count;
+   wminusx_H_sum /= (double)prec_count;
+   wplusx_H_sum  /= (double)prec_count;
+   wminusy_H_sum /= (double)prec_count;
+   wplusy_H_sum  /= (double)prec_count;
+
+   fail_prec_avg_count++;
+   fail_F_plus_avg    += fail_F_plus_sum;
+   fail_F_minus_avg   += fail_F_minus_sum;
+   fail_G_plus_avg    += fail_G_plus_sum;
+   fail_G_minus_avg   += fail_G_minus_sum;
+   fail_wminusx_H_avg += fail_wminusx_H_sum;
+   fail_wplusx_H_avg  += fail_wplusx_H_sum;
+   fail_wminusy_H_avg += fail_wminusy_H_sum;
+   fail_wplusy_H_avg  += fail_wplusy_H_sum;
+   prec_avg_count++;
+   F_plus_avg    += F_plus_sum;
+   F_minus_avg   += F_minus_sum;
+   G_plus_avg    += G_plus_sum;
+   G_minus_avg   += G_minus_sum;
+   wminusx_H_avg += wminusx_H_sum;
+   wplusx_H_avg  += wplusx_H_sum;
+   wminusy_H_avg += wminusy_H_sum;
+   wplusy_H_avg  += wplusy_H_sum;
+#endif
+
 
 #ifdef _OPENMP
 #pragma omp barrier
