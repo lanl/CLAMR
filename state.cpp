@@ -160,6 +160,10 @@ static double wminusy_H_avg = 0.0;
 static double wplusy_H_avg  = 0.0;
 #endif
 
+#ifdef PRECISION_CHECK
+FILE *fprecise;
+#endif
+
 #define SQR(x) ( x*x )
 #define MIN3(x,y,z) ( min( min(x,y), z) )
 
@@ -288,7 +292,7 @@ inline void U_fullstep_precision_check(
    *fail = 0;
 
    if (fabs(U_new - U_new_in)/U_new > PRECISION_CHECK) {
-      printf("DEBUG -- found one at ic %d precision diff is %12.6lg relative %12.6lg\n",ic,fabs(U_new - U_new_in), fabs(U_new - U_new_in)/U_new);
+      fprintf(fprecise, "DEBUG -- found one at ic %d precision diff is %12.6lg relative %12.6lg\n",ic,fabs(U_new - U_new_in), fabs(U_new - U_new_in)/U_new);
 
       *fail = 1;
 
@@ -380,6 +384,9 @@ State::State(Mesh *mesh_in)
 
 void State::init(int do_gpu_calc)
 {
+#ifdef PRECISION_CHECK
+   fprecise = fopen("precision.out","w");
+#endif
    if (do_gpu_calc) {
 #ifdef HAVE_OPENCL
       cl_context context = ezcl_get_context();
@@ -474,6 +481,9 @@ void State::gpu_memory_reset_ptrs(void)
 
 void State::terminate(void)
 {
+#ifdef PRECISION_CHECK
+   fclose(fprecise);
+#endif
 #ifdef PRECISION_CHECK_STATS
    printf("Stats are Fplus %lf Fminus %lf Gplus %lf Gminus %lf wminusx %lf wplusx %lf wminusy %lf wplusy %lf\n",
       F_plus_avg/(double)prec_avg_count,
