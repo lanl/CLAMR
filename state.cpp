@@ -288,7 +288,7 @@ inline void U_fullstep_precision_check(
    *fail = 0;
 
    if (fabs(U_new - U_new_in)/U_new > PRECISION_CHECK) {
-      //printf("DEBUG -- found one at ic %d precision diff is %12.6lg relative %12.6lg\n",ic,fabs(U_new - U_new_in), fabs(U_new - U_new_in)/U_new);
+      printf("DEBUG -- found one at ic %d precision diff is %12.6lg relative %12.6lg\n",ic,fabs(U_new - U_new_in), fabs(U_new - U_new_in)/U_new);
 
       *fail = 1;
 
