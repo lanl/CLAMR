@@ -1770,9 +1770,24 @@ void State::calc_finite_difference(double deltaT)
                       (Vtr - Vic))+wplusy_V)*HALF*HALF;
       }
 
+#ifdef PRECISION_CHECK_WITH_PARENTHESIS
+      //Basic parentheses
+      H_new[gix] = U_fullstep(deltaT, dxic, Hic,
+                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
+                  +( - wminusx_H + wplusx_H - wminusy_H + wplusy_H );
+#else
+#ifdef PRECISION_CHECK_BEST_PARENTHESIS
+      //Version with "best" parentheses
+      H_new[gix] = U_fullstep(deltaT, dxic, Hic,
+                       Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
+                   + (((-wminusx_H - wminusy_H) + wplusy_H) + wplusx_H);
+#else
+      //Original version - no parentheses
       H_new[gix] = U_fullstep(deltaT, dxic, Hic,
                        Hxfluxplus, Hxfluxminus, Hyfluxplus, Hyfluxminus)
                   - wminusx_H + wplusx_H - wminusy_H + wplusy_H;
+#endif
+#endif
       U_new[gix] = U_fullstep(deltaT, dxic, Uic,
                        Uxfluxplus, Uxfluxminus, Uyfluxplus, Uyfluxminus)
                   - wminusx_U + wplusx_U;
