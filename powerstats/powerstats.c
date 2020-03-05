@@ -91,20 +91,35 @@ int rapl_perf(int core);
 
 void powerstats_init(void){
 #ifdef HAVE_RAPL
+<<<<<<< Updated upstream
 #ifdef HAVE_RAPL_MSR
    detect_cpu();
 #endif
+=======
+   detect_cpu();
+>>>>>>> Stashed changes
    detect_packages();
 
 #ifdef HAVE_RAPL_PERF
    if (rapl_perf(0) != -1){
+<<<<<<< Updated upstream
       rapl_read = &rapl_perf;
+=======
+      printf("RAPL_PERF\n");
+      rapl_read = &rapl_perf;
+   } else {
+      printf("RAPL_PERF fails\n");
+>>>>>>> Stashed changes
    }
 #endif
 
 #ifdef HAVE_RAPL_SYSFS
    if (rapl_sysfs(0) != -1){
+<<<<<<< Updated upstream
       printf("Found working RAPL_SYSFS\n");
+=======
+      printf("RAPL_SYSFS\n");
+>>>>>>> Stashed changes
       rapl_read = &rapl_sysfs;
    } else {
       printf("RAPL_SYSFS fails\n");
@@ -113,7 +128,11 @@ void powerstats_init(void){
 
 #ifdef HAVE_RAPL_MSR
    if (rapl_msr(0) != -1){
+<<<<<<< Updated upstream
       printf("Found working RAPL_MSR\n");
+=======
+      printf("RAPL_MSR works\n");
+>>>>>>> Stashed changes
       rapl_read = &rapl_msr;
    } else {
       printf("RAPL_MSR fails\n");

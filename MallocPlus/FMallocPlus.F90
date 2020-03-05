@@ -16,6 +16,12 @@
 
       implicit none
 
+#ifdef HAVE_MPI
+#include "mpif.h"
+
+      integer :: FMallocPlus_comm = MPI_COMM_WORLD
+#endif
+
       integer, parameter :: INT8   = SELECTED_INT_KIND(INT8_KIND_DIGITS)
       integer, parameter :: REAL4  = SELECTED_REAL_KIND(REAL4_KIND_DIGITS)
       integer, parameter :: REAL8  = SELECTED_REAL_KIND(REAL8_KIND_DIGITS)
@@ -32,6 +38,8 @@
       public FMallocPlus_malloc, FMallocPlus_add
       public FMallocPlus_report
       public FMallocPlus_get_mem_size
+      public FMallocPlus_set_comm
+      public FMallocPlus_remove
 
       interface FMallocPlus_add
         module procedure FMallocPlus_add_1D_int
@@ -57,6 +65,19 @@
         module procedure FMallocPlus_malloc_4D_dble
         module procedure FMallocPlus_malloc_5D_dble
         module procedure FMallocPlus_malloc_6D_dble
+      end interface
+
+      interface FMallocPlus_remove
+        module procedure FMallocPlus_remove_1D_int
+        module procedure FMallocPlus_remove_2D_int
+        module procedure FMallocPlus_remove_3D_int
+        module procedure FMallocPlus_remove_4D_int
+        module procedure FMallocPlus_remove_1D_dble
+        module procedure FMallocPlus_remove_2D_dble
+        module procedure FMallocPlus_remove_3D_dble
+        module procedure FMallocPlus_remove_4D_dble
+        module procedure FMallocPlus_remove_5D_dble
+        module procedure FMallocPlus_remove_6D_dble
       end interface
 
       type FMallocPlus_type
@@ -103,6 +124,29 @@
           character(kind=C_CHAR, len=1) :: name(*)
           integer(C_SIZE_T), value   :: flags
         end subroutine C_MallocPlus_add_multi
+
+        subroutine C_MallocPlus_malloc(mem_object, intptr, nelem, &
+            elsize, name, flags) bind(C,NAME="MallocPlus_memory_malloc")
+          use, intrinsic :: ISO_C_Binding, only : C_PTR, C_INT, &
+            C_CHAR, C_SIZE_T
+          type(C_PTR),       value   :: mem_object
+          type(C_PTR),       value   :: intptr
+          integer(C_SIZE_T), value   :: nelem, elsize
+          character(kind=C_CHAR, len=1) :: name(*)
+          integer(C_SIZE_T), value   :: flags
+        end subroutine C_MallocPlus_malloc
+
+        subroutine C_MallocPlus_remove(mem_object) &
+            bind(C,NAME="MallocPlus_memory_remove")
+          use, intrinsic :: ISO_C_Binding, only : C_PTR
+          type(C_PTR),       value   :: mem_object
+        end subroutine C_MallocPlus_remove
+
+        subroutine C_MallocPlus_delete(mem_object) &
+            bind(C,NAME="MallocPlus_memory_delete")
+          use, intrinsic :: ISO_C_Binding, only : C_PTR
+          type(C_PTR),       value   :: mem_object
+        end subroutine C_MallocPlus_delete
       end interface
 
       contains
@@ -123,6 +167,13 @@
         integer(INT8) :: FMallocPlus_get_mem_size
         FMallocPlus_get_mem_size = mem_size
       end function FMallocPlus_get_mem_size
+!=======================================================================
+      subroutine FMallocPlus_set_comm(my_comm)
+        integer :: my_comm
+#ifdef HAVE_MPI
+        FMallocPlus_comm = my_comm
+#endif
+      end subroutine FMallocPlus_set_comm
 !=======================================================================
       subroutine FMallocPlus_add_1D_int(mem_object, intptr, nelem, elsize, &
           name, flags)
@@ -397,6 +448,176 @@
           c_loc(dbleptr(low1,low2,low3,low4,low5,low6)), ndim, &
           c_loc(nelem(1)), elsize, trim(name)//char(0), flags)
       end subroutine FMallocPlus_add_6D_dble
+!=======================================================================
+      subroutine FMallocPlus_remove_1D_int(mem_object, intptr)
+
+        use iso_c_binding, only : c_loc
+
+        implicit none
+
+        ! Argument definitions
+        type(FMallocPlus_type), intent(inout) :: mem_object
+        integer, dimension(:), pointer, intent(inout) :: intptr
+
+        ! Executable code
+        call C_MallocPlus_remove(mem_object%object)
+
+        deallocate(intptr)
+
+      end subroutine FMallocPlus_remove_1D_int
+!=======================================================================
+      subroutine FMallocPlus_remove_2D_int(mem_object, intptr)
+
+        use iso_c_binding, only : c_loc
+
+        implicit none
+
+        ! Argument definitions
+        type(FMallocPlus_type), intent(inout) :: mem_object
+        integer, dimension(:,:), pointer, intent(inout) :: intptr
+
+        ! Executable code
+        call C_MallocPlus_remove(mem_object%object)
+
+        deallocate(intptr)
+
+      end subroutine FMallocPlus_remove_2D_int
+!=======================================================================
+      subroutine FMallocPlus_remove_3D_int(mem_object, intptr)
+
+        use iso_c_binding, only : c_loc
+
+        implicit none
+
+        ! Argument definitions
+        type(FMallocPlus_type), intent(inout) :: mem_object
+        integer, dimension(:,:,:), pointer, intent(inout) :: intptr
+
+        ! Executable code
+        call C_MallocPlus_remove(mem_object%object)
+
+        deallocate(intptr)
+
+      end subroutine FMallocPlus_remove_3D_int
+!=======================================================================
+      subroutine FMallocPlus_remove_4D_int(mem_object, intptr)
+
+        use iso_c_binding, only : c_loc
+
+        implicit none
+
+        ! Argument definitions
+        type(FMallocPlus_type), intent(inout) :: mem_object
+        integer, dimension(:,:,:,:), pointer, intent(inout) :: intptr
+
+        ! Executable code
+        call C_MallocPlus_remove(mem_object%object)
+
+        deallocate(intptr)
+
+      end subroutine FMallocPlus_remove_4D_int
+!=======================================================================
+      subroutine FMallocPlus_remove_1D_dble(mem_object, dbleptr)
+
+        use iso_c_binding, only : c_loc
+
+        implicit none
+
+        ! Argument definitions
+        type(FMallocPlus_type), intent(inout) :: mem_object
+        real(REAL8), dimension(:), pointer, intent(inout) :: dbleptr
+
+        ! Executable code
+        call C_MallocPlus_remove(mem_object%object)
+
+        deallocate(dbleptr)
+
+      end subroutine FMallocPlus_remove_1D_dble
+!=======================================================================
+      subroutine FMallocPlus_remove_2D_dble(mem_object, dbleptr)
+
+        use iso_c_binding, only : c_loc
+
+        implicit none
+
+        ! Argument definitions
+        type(FMallocPlus_type), intent(inout) :: mem_object
+        real(REAL8), dimension(:,:), pointer, intent(inout) :: dbleptr
+
+        ! Executable code
+        call C_MallocPlus_remove(mem_object%object)
+
+        deallocate(dbleptr)
+
+      end subroutine FMallocPlus_remove_2D_dble
+!=======================================================================
+      subroutine FMallocPlus_remove_3D_dble(mem_object, dbleptr)
+
+        use iso_c_binding, only : c_loc
+
+        implicit none
+
+        ! Argument definitions
+        type(FMallocPlus_type), intent(inout) :: mem_object
+        real(REAL8), dimension(:,:,:), pointer, intent(inout) :: dbleptr
+
+        ! Executable code
+        call C_MallocPlus_remove(mem_object%object)
+
+        deallocate(dbleptr)
+
+      end subroutine FMallocPlus_remove_3D_dble
+!=======================================================================
+      subroutine FMallocPlus_remove_4D_dble(mem_object, dbleptr)
+
+        use iso_c_binding, only : c_loc
+
+        implicit none
+
+        ! Argument definitions
+        type(FMallocPlus_type), intent(inout) :: mem_object
+        real(REAL8), dimension(:,:,:,:), pointer, intent(inout) :: dbleptr
+
+        ! Executable code
+        call C_MallocPlus_remove(mem_object%object)
+
+        deallocate(dbleptr)
+
+      end subroutine FMallocPlus_remove_4D_dble
+!=======================================================================
+      subroutine FMallocPlus_remove_5D_dble(mem_object, dbleptr)
+
+        use iso_c_binding, only : c_loc
+
+        implicit none
+
+        ! Argument definitions
+        type(FMallocPlus_type), intent(inout) :: mem_object
+        real(REAL8), dimension(:,:,:,:,:), pointer, intent(inout) :: dbleptr
+
+        ! Executable code
+        call C_MallocPlus_remove(mem_object%object)
+
+        deallocate(dbleptr)
+
+      end subroutine FMallocPlus_remove_5D_dble
+!=======================================================================
+      subroutine FMallocPlus_remove_6D_dble(mem_object, dbleptr)
+
+        use iso_c_binding, only : c_loc
+
+        implicit none
+
+        ! Argument definitions
+        type(FMallocPlus_type), intent(inout) :: mem_object
+        real(REAL8), dimension(:,:,:,:,:,:), pointer, intent(inout) :: dbleptr
+
+        ! Executable code
+        call C_MallocPlus_remove(mem_object%object)
+
+        deallocate(dbleptr)
+
+      end subroutine FMallocPlus_remove_6D_dble
 !=======================================================================
       subroutine FMallocPlus_malloc_1D_int(mem_object, intptr, &
           nlbound, nubound, &
@@ -843,10 +1064,6 @@
 
          implicit none
 
-#ifdef HAVE_MPI
-#include "mpif.h"
-#endif
-
          ! Argument definitions
          integer, intent(in) :: ierr
          character*(*), intent(in) :: message
@@ -862,10 +1079,10 @@
          ! Executable statements
 
 #ifdef HAVE_MPI
-         call MPI_COMM_RANK(MPI_COMM_WORLD, mpi_rank, ierr)
+         call MPI_COMM_RANK(FMallocPlus_comm, mpi_rank, ierr)
 
          call MPI_ALLREDUCE(ierr, ierr_global, 1, MPI_INTEGER, MPI_MAX, &
-                            MPI_COMM_WORLD, ierror_reduce)
+                            FMallocPlus_comm, ierror_reduce)
 #else
          ierr_global = ierr
 #endif
