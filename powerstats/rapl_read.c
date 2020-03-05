@@ -47,10 +47,6 @@
 
 //#define RAPL_VERBOSE 1
 
-#if defined(HAVE_RAPL_PERF) || defined(HAVE_RAPL_SYSFS) || defined(HAVE_RAPL_MSR)
-#define HAVE_RAPL 1
-#endif
-
 #define MSR_RAPL_POWER_UNIT		0x606
 
 /*
@@ -602,11 +598,8 @@ int rapl_msr(int core) {
 	return 0;
 }
 #endif
-<<<<<<< Updated upstream
 
 #define NUM_RAPL_DOMAINS	5
-=======
->>>>>>> Stashed changes
 
 #ifdef HAVE_RAPL_PERF
 static int perf_event_open(struct perf_event_attr *hw_event_uptr,
@@ -883,88 +876,3 @@ int rapl_sysfs(int core) {
 
 }
 #endif
-<<<<<<< Updated upstream
-=======
-
-int main(int argc, char **argv) {
-
-	int c;
-	int force_msr=0,force_perf_event=0,force_sysfs=0;
-	int core=0;
-	int result=-1;
-
-	printf("\n");
-	printf("RAPL read -- use -s for sysfs, -p for perf_event, -m for msr\n\n");
-
-	opterr=0;
-
-	while ((c = getopt (argc, argv, "c:hmps")) != -1) {
-		switch (c) {
-		case 'c':
-			core = atoi(optarg);
-			break;
-		case 'h':
-			printf("Usage: %s [-c core] [-h] [-m]\n\n",argv[0]);
-			printf("\t-c core : specifies which core to measure\n");
-			printf("\t-h      : displays this help\n");
-			printf("\t-m      : forces use of MSR mode\n");
-			printf("\t-p      : forces use of perf_event mode\n");
-			printf("\t-s      : forces use of sysfs mode\n");
-			exit(0);
-		case 'm':
-			force_msr = 1;
-			break;
-		case 'p':
-			force_perf_event = 1;
-			break;
-		case 's':
-			force_sysfs = 1;
-			break;
-		default:
-			fprintf(stderr,"Unknown option %c\n",c);
-			exit(-1);
-		}
-	}
-
-	(void)force_sysfs;
-
-#ifdef HAVE_RAPL
-	cpu_model=detect_cpu();
-	detect_packages();
-#endif
-
-#ifdef HAVE_RAPL_SYSFS
-	if ((!force_msr) && (!force_perf_event)) {
-		result=rapl_sysfs(core);
-	}
-#endif
-
-#ifdef HAVE_RAPL_PERF
-	if (result<0) {
-		if ((force_perf_event) && (!force_msr)) {
-			result=rapl_perf(core);
-		}
-	}
-#endif
-
-#ifdef HAVE_RAPL_MSR
-	if (result<0) {
-		result=rapl_msr(core);
-	}
-#endif
-
-	if (result<0) {
-
-		printf("Unable to read RAPL counters.\n");
-		printf("* Verify you have an Intel Sandybridge or newer processor\n");
-		printf("* You may need to run as root or have /proc/sys/kernel/perf_event_paranoid set properly\n");
-		printf("* If using raw msr access, make sure msr module is installed\n");
-		printf("\n");
-
-		return -1;
-
-	}
-
-	return 0;
-}
->>>>>>> Stashed changes
