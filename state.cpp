@@ -9,6 +9,10 @@
 #include "genmalloc/genmalloc.h"
 #include "update_eqn_versions.h"
 
+#ifdef KAHAN_SUMS_UPDATE
+#include "specialsums.h"
+#endif
+
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
