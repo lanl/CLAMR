@@ -7,10 +7,11 @@
 #include "state.h"
 #include "timer/timer.h"
 #include "genmalloc/genmalloc.h"
-#include "update_eqn_versions.h"
 
-#ifdef KAHAN_SUMS_UPDATE
+#ifdef UPDATE_EQUATION_SPECIAL
 #include "specialsums.h"
+#else
+#include "update_eqn_versions.h"
 #endif
 
 #ifdef HAVE_MPI

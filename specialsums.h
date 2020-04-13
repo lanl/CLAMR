@@ -4,22 +4,21 @@
 #include <time.h>
 #include <inttypes.h>
 #include <stdint.h>
-#include <size_t.h>
+#include <real_t.h>
 
 
-int SIZE = 6;
 /*****************************************************************************
  * 	kahan_sum()
  * 	Add a list of values using the Kahan method
  *
  * 	Params:
- * 	f_list - list of size_ts to sort
+ * 	f_list - list of real_ts to sort
  * 	size - size of the list
  *****************************************************************************/
-size_t kahan_sum(size_t *f_list, int size){
-    size_t sum = 0.0f;
-    size_t c = 0.0f;
-    size_t t, y;
+inline real_t kahan_sum(real_t *f_list, int size){
+    real_t sum = 0.0;
+    real_t c = 0.0;
+    real_t t, y;
     int i;
     for (i = 0; i < size; i++){
         y = f_list[i] - c;
@@ -36,13 +35,13 @@ size_t kahan_sum(size_t *f_list, int size){
  *      Add a list of values using the Kahan method
  *
  * 	Params:
- * 	f_list - list of size_ts to sort
+ * 	f_list - list of real_ts to sort
  * 	size - size of the list
  ******************************************************************************/
-size_t psum(size_t *f_list, int size){
-    size_t sum = 0.0f;
-    size_t smallest = FLT_MAX;
-    size_t temp_sum1, temp_sum2;
+inline real_t psum(real_t *f_list, int size){
+    real_t sum = 0.0;
+    real_t smallest = FLT_MAX;
+    real_t temp_sum1, temp_sum2;
 
     int left = -1;
     int right = -1;
@@ -87,17 +86,17 @@ size_t psum(size_t *f_list, int size){
 
 /*****************************************************************************
 	sort_list()
-	Sorts a list of size_ts based on order of magnitude
+	Sorts a list of real_ts based on order of magnitude
 	
 	Params:
-		f_list - list of size_ts to sort
+		f_list - list of real_ts to sort
 		size - size of the list
 		order - 'a': ascending will sort from small magnitude to larger magnitude
 		      - 'd': descending will sort from large magnitude to smaller magnitude
 *****************************************************************************/
-void sort_list(size_t *f_list, int size, char order){
+inline void sort_list(real_t *f_list, int size, char order){
 	int i, j;
-	size_t temp;
+	real_t temp;
 	int sign_change = 1;
 
 	if (order == 'd')
@@ -113,4 +112,36 @@ void sort_list(size_t *f_list, int size, char order){
 		}
 	}
 }
+
+inline real_t U_fullstep_version(
+        real_t    deltaT,
+        real_t    dr,
+        real_t    U,
+        real_t    F_plus,
+        real_t    F_minus,
+        real_t    G_plus,
+        real_t    G_minus,
+        real_t    wplusx_H,
+        real_t    wminusx_H,
+        real_t    wplusy_H,
+        real_t    wminusy_H
+) {
+
+real_t f_list[9] = {U, -(deltaT/dr)*F_plus, -(deltaT/dr)*(-F_minus), -(deltaT/dr)*(G_plus),-(deltaT/dr)*(-G_minus), -wminusx_H, wplusx_H, -wminusy_H, wplusy_H};
+
+#ifdef UPDATE_EQUATION_SORT_DESCENDING
+sort_list(f_list,9,'d');
+#endif
+
+#ifdef UPDATE_EQUATION_SORT_ASCENDING
+sort_list(f_list,9,'a');
+#endif
+
+#ifdef UPDATE_EQUATION_KAHAN
+return kahan_sum(f_list);
+#endif
+
+#ifdef UPDATE_EQUATION_PSUM
+return psum(f_list);
+#endif
 
