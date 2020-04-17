@@ -1,0 +1,12 @@
+CMake flags have been added for reproducible runs.
+
+Compile with -DUPDATE_EQUATION_SPECIAL={Kahan,pairwise} to use Kahan Sums or "pairwise" sums for the height update equation.
+
+If you choose one of the above, you may also compile with -DUPDATE_EQUATION_SORTED for ordering the sum.
+When defined, it defaults to an ascending sort (lowest to highest), but you can specify -DUPDATE_EQUATION_SORTED=d for a descending sort. Currently, a sort of sums that are not Kahan or pairwise is not implemented.
+
+Kahan sums and the specific pairwise sum tested are located in specialsums.h
+
+Many parenthesization orderings for the update were tested. To compile for a specific ordering, use the CMake flag UPDATE_EQUATION_VERSION=(number). This defaults to 0, which corresponds to the original ordering and parentheses in CLAMR.
+
+The many orderings/parenthesizations are in update_eqn_versions.h, and are generated via a Python script update_eqn_versions.py.
