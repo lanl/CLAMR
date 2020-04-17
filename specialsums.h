@@ -4,6 +4,7 @@
 #include <time.h>
 #include <inttypes.h>
 #include <stdint.h>
+#include <float.h>
 
 
 /*****************************************************************************
@@ -39,7 +40,11 @@ inline real_t kahan_sum(real_t *f_list, int size){
  ******************************************************************************/
 inline real_t psum(real_t *f_list, int size){
     real_t sum = 0.0;
+#ifdef FULL_PRECISION
+    real_t smallest = DBL_MAX;
+#else
     real_t smallest = FLT_MAX;
+#endif
     real_t temp_sum1, temp_sum2;
 
     int left = -1;
@@ -137,10 +142,14 @@ sort_list(f_list,9,'a');
 #endif
 
 #ifdef UPDATE_EQUATION_KAHAN
-return kahan_sum(f_list);
+return kahan_sum(f_list,9);
 #endif
 
 #ifdef UPDATE_EQUATION_PSUM
-return psum(f_list);
+return psum(f_list,9);
 #endif
 
+#ifdef UPDATE_EQUATION_PAIRWISE
+return (((U+wplusx_H)+((deltaT/dr)*F_minus+-wminusx_H))+(((-deltaT/dr)*F_plus+-wminusy_H)+((-deltaT/dr)*G_plus+((deltaT/dr)*G_minus+wplusy_H))));
+#endif
+}
