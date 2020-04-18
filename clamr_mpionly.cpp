@@ -571,9 +571,9 @@ extern "C" void do_calc(void)
          if (choose_amr_method == CELL_AMR) {
             state->calc_finite_difference(deltaT);
          } else if (choose_amr_method == FACE_AMR) {
-            printf("ERROR -- the face method currently does not work with MPI\n");
-            L7_Terminate();
-            exit(-1);
+            //printf("ERROR -- the face method currently does not work with MPI\n");
+            //L7_Terminate();
+            //exit(-1);
             state->calc_finite_difference_via_faces(deltaT);
          } else if (choose_amr_method == CELL_IN_PLACE_AMR) {
             printf("ERROR -- the cell-in-place method currently does not work with MPI\n");

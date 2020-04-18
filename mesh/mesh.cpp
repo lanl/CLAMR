@@ -12090,11 +12090,11 @@ void Mesh::calc_face_list_wbidirmap(void)
     // realloc memory based on new counts
 
     int flags=0;
-    if (nxface > (int)mesh_memory.get_memory_size(map_xface2cell_lower) ) {
+    if (ncells_ghost > (int)mesh_memory.get_memory_size(map_xface2cell_lower) ) {
        mesh_memory.memory_delete(map_xface2cell_lower);
-       map_xface2cell_lower = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "map_xface2cell_lower", flags);
+       map_xface2cell_lower = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_xface2cell_lower", flags);
        mesh_memory.memory_delete(map_xface2cell_upper);
-       map_xface2cell_upper = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "map_xface2cell_upper", flags);
+       map_xface2cell_upper = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_xface2cell_upper", flags);
        //mesh_memory.memory_delete(xface_i);
        //xface_i = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "xface_i", flags);
        //mesh_memory.memory_delete(xface_j);
@@ -12102,11 +12102,11 @@ void Mesh::calc_face_list_wbidirmap(void)
        //mesh_memory.memory_delete(xface_level);
        //xface_level = (uchar_t *)mesh_memory.memory_malloc(nxface, sizeof(uchar_t), "xface_level", flags);
     }
-    if (nyface > (int)mesh_memory.get_memory_size(map_yface2cell_lower) ) {
+    if (ncells_ghost > (int)mesh_memory.get_memory_size(map_yface2cell_lower) ) {
        mesh_memory.memory_delete(map_yface2cell_lower);
-       map_yface2cell_lower = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "map_yface2cell_lower", flags);
+       map_yface2cell_lower = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_yface2cell_lower", flags);
        mesh_memory.memory_delete(map_yface2cell_upper);
-       map_yface2cell_upper = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "map_yface2cell_upper", flags);
+       map_yface2cell_upper = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_yface2cell_upper", flags);
        mesh_memory.memory_delete(yface_i);
        //yface_i = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "yface_i", flags);
        //mesh_memory.memory_delete(yface_j);
@@ -12115,23 +12115,23 @@ void Mesh::calc_face_list_wbidirmap(void)
        //yface_level = (uchar_t *)mesh_memory.memory_malloc(nyface, sizeof(uchar_t), "yface_level", flags);
     }
 
-    if (ncells > mesh_memory.get_memory_size(map_xcell2face_left1) ){
+    if (ncells_ghost > mesh_memory.get_memory_size(map_xcell2face_left1) ){
        mesh_memory.memory_delete(map_xcell2face_left1);
-       map_xcell2face_left1 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_left1", flags);
+       map_xcell2face_left1 = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_xcell2face_left1", flags);
        mesh_memory.memory_delete(map_xcell2face_left2);
-       map_xcell2face_left2 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_left2", flags);
+       map_xcell2face_left2 = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_xcell2face_left2", flags);
        mesh_memory.memory_delete(map_xcell2face_right1);
-       map_xcell2face_right1 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_right1", flags);
+       map_xcell2face_right1 = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_xcell2face_right1", flags);
        mesh_memory.memory_delete(map_xcell2face_right2);
-       map_xcell2face_right2 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_xcell2face_right2", flags);
+       map_xcell2face_right2 = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_xcell2face_right2", flags);
        mesh_memory.memory_delete(map_ycell2face_bot1);
-       map_ycell2face_bot1 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_bot1", flags);
+       map_ycell2face_bot1 = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_ycell2face_bot1", flags);
        mesh_memory.memory_delete(map_ycell2face_bot2);
-       map_ycell2face_bot2 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_bot2", flags);
+       map_ycell2face_bot2 = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_ycell2face_bot2", flags);
        mesh_memory.memory_delete(map_ycell2face_top1);
-       map_ycell2face_top1 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_top1", flags);
+       map_ycell2face_top1 = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_ycell2face_top1", flags);
        mesh_memory.memory_delete(map_ycell2face_top2);
-       map_ycell2face_top2 = (int *)mesh_memory.memory_malloc(ncells, sizeof(int), "map_ycell2face_top2", flags);
+       map_ycell2face_top2 = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_ycell2face_top2", flags);
     }
 
     memory_reset_ptrs();
@@ -12171,9 +12171,9 @@ void Mesh::calc_face_list_wbidirmap(void)
    cpu_timer_start(&tstart_cpu_part);
 
    int iface=0;
-   for (int nz=0; nz<(int)ncells; nz++){
+   for (int nz=0; nz<(int)ncells_ghost; nz++){
       int nr = nrht[nz];
-      if (nr == nz) continue;
+      if (nr == nz || nr <= -1) continue;
 
       //int ifactor = 1;
       //if (level[nr] < level[nz]) ifactor = 2;
@@ -12214,9 +12214,9 @@ void Mesh::calc_face_list_wbidirmap(void)
    cpu_timers[MESH_TIMER_BIDIRPART2] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
-   for (int nz=0; nz<(int)ncells; nz++){
+   for (int nz=0; nz<(int)ncells_ghost; nz++){
       int nl = nlft[nz];
-      if (nl == nz) continue;
+      if (nl == nz || nl <= -1) continue;
 
       if (level[nl] < level[nz] && is_upper(j[nz]) && nbot[nz] != nz){
          map_xcell2face_left1[nz] = map_xcell2face_right2[nl];
@@ -12242,9 +12242,9 @@ void Mesh::calc_face_list_wbidirmap(void)
    cpu_timer_start(&tstart_cpu_part);
 
    iface=0;
-   for (int nz=0; nz<(int)ncells; nz++){
+   for (int nz=0; nz<(int)ncells_ghost; nz++){
       int nt = ntop[nz];
-      if (nt == nz) continue;
+      if (nt == nz || nt <= -1) continue;
 
       //int ifactor = 1;
       //if (level[nt] < level[nz]) ifactor = 2;
@@ -12285,9 +12285,9 @@ void Mesh::calc_face_list_wbidirmap(void)
    cpu_timers[MESH_TIMER_BIDIRPART5] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
-   for (int nz=0; nz<(int)ncells; nz++){
+   for (int nz=0; nz<(int)ncells_ghost; nz++){
       int nb = nbot[nz];
-      if (nb == nz) continue;
+      if (nb == nz || nb <= -1) continue;
       //if (nz == 3) printf("%d %d\n", map_ycell2face_top1[nb], map_ycell2face_top2[nb]);
 
       if (level[nb] < level[nz] && is_upper(i[nz]) && nlft[nz] != nz){
