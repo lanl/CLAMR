@@ -285,9 +285,9 @@ inline void U_fullstep_precision_check(
                    + (((wplusx_H + wplusy_H) - wminusy_H) - wminusx_H);
 #else
    //original, no parentheses
-#endif
    double U_new = U - (deltaT / dr)*(F_plus - F_minus + G_plus - G_minus)
                    + -wminusx_H + wplusx_H - wminusy_H + wplusy_H;
+#endif
 #endif
 
    *fail = 0;
