@@ -12186,10 +12186,11 @@ void Mesh::calc_face_list_wbidirmap(void)
 #ifdef HAVE_MPI
       int nl = nlft[nz];
       if (nl >= ncells) {
-          map_xface2cell_lower[iface] = nl;
-          map_xface2cell_upper[iface] = nz;
-          map_xcell2face_left1[nz] = iface;
-          iface++;
+        map_xface2cell_lower[iface] = nl;
+        map_xface2cell_upper[iface] = nz;
+        map_xcell2face_left1[nz] = iface;
+        map_xcell2face_right1[nl] = iface;
+        iface++;
       }
 #endif
       if (nr == nz || nr <= -1) continue;
@@ -12260,16 +12261,19 @@ void Mesh::calc_face_list_wbidirmap(void)
    //
    cpu_timer_start(&tstart_cpu_part);
 
+
    iface=0;
+   printf("\n\n%d %d\n\n", ncells, ncells_ghost);
    for (int nz=0; nz<(int)ncells; nz++){
       int nt = ntop[nz];
 #ifdef HAVE_MPI
       int nb = nbot[nz];
       if (nb >= ncells) {
-          map_yface2cell_lower[iface] = nb;
-          map_yface2cell_upper[iface] = nz;
-          map_ycell2face_bot1[nz] = iface;
-          iface++;
+        map_yface2cell_lower[iface] = nb;
+        map_yface2cell_upper[iface] = nz;
+        map_ycell2face_bot1[nz] = iface;
+        map_ycell2face_top1[nb] = iface;
+        iface++;
       }
 #endif
       if (nt == nz || nt <= -1) continue;
@@ -12319,6 +12323,7 @@ void Mesh::calc_face_list_wbidirmap(void)
       //if (nz == 3) printf("%d %d\n", map_ycell2face_top1[nb], map_ycell2face_top2[nb]);
 
       if (level[nb] < level[nz] && is_upper(i[nz]) && nlft[nz] != nz){
+           printf("%d here\n", nz);
          map_ycell2face_bot1[nz] = map_ycell2face_top2[nb];
 
       } else {
@@ -12333,6 +12338,12 @@ void Mesh::calc_face_list_wbidirmap(void)
           map_ycell2face_top1[nz] = map_ycell2face_bot1[nz];
    }
 
+
+   if (mype == 1) {
+   for (int ic = 0; ic < ncells; ic++) {
+       printf("%d) %d %d %d %d %d %d %d %d\n", ic, nlft[ic], nrht[ic], nbot[ic], ntop[ic], map_xcell2face_left1[ic], map_xcell2face_right1[ic], map_ycell2face_bot1[ic], map_ycell2face_top1[ic]);
+   }
+   }
 
 
    cpu_timers[MESH_TIMER_BIDIRPART3] += cpu_timer_stop(tstart_cpu_part);

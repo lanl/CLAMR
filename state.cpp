@@ -3098,7 +3098,10 @@ void State::calc_finite_difference_via_faces(double deltaT)
       int fb2 = mesh->map_ycell2face_bot2[ic];
       int ft2 = mesh->map_ycell2face_top2[ic];
 
-      //printf("%d) %d %d %d %d\n", ic, fl, fr, fb, ft);
+#ifdef HAVE_MPI
+      //if (mesh->mype == 1)
+      //  printf("%d) %d %d %d %d\n", ic, fl, fr, fb, ft);
+#endif
 
       // set the four neighboring cells
       int nl = mesh->map_xface2cell_lower[fl];
@@ -3214,10 +3217,25 @@ void State::calc_finite_difference_via_faces(double deltaT)
                  - wminusy_V + wplusy_V;
       //printf("%d) %f | %f | %f\n", ic, H_new[ic], U_new[ic], V_new[ic]);
 #ifdef HAVE_MPI
-         if (mesh->mype == 1) 
+         if (mesh->mype == 1) {
+             int nb, nbb, nt, ntt;
+             real_t Hb, Hbb, Ht, Htt;
+             nb = mesh->nbot[ic];
+             nbb = mesh->nbot[nb];
+             nt = mesh->ntop[ic];
+             ntt = mesh->ntop[nt];
+             Hb = H[nb];
+             Hb = H[nb];
+             Hbb = H[nbb];
+             Ht = H[nt];
+             Htt = H[ntt];
+             //if (ic == 48) printf("%d %d %d %d %lf %lf %lf %lf %lf\n", nb, nbb, nt, ntt, Hb, Hbb, Ht, Htt, wplusy_H);
 #endif
-            printf("%d) %d %d %f %f %f %f %f %f %f %f %f\n", ic, mesh->i[ic], mesh->j[ic], Hic, Hxfluxminus, Hxfluxplus, Hyfluxminus, Hyfluxplus, wminusx_H, wplusx_H, wminusy_H, wplusy_H); 
+            //printf("%d) %d %d %f %f %f %f %f %f %f %f %f\n", ic, mesh->i[ic], mesh->j[ic], Hic, Hxfluxminus, Hxfluxplus, Hyfluxminus, Hyfluxplus, wminusx_H, wplusx_H, wminusy_H, wplusy_H); 
             //printf("%d) %d %d %d %d %d %d\n", ic, mesh->i[ic], mesh->j[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+#ifdef HAVE_MPI
+            }
+#endif
             
 
 
