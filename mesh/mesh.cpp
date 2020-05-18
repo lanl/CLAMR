@@ -12060,6 +12060,12 @@ void Mesh::calc_face_list_wbidirmap(void)
         int nr = nrht[nz];
         int nb = nbot[nz];
         int nt = ntop[nz];
+#ifdef HAVE_MPI
+        if (nl >= ncells) 
+            xfaceCnt ++;
+        if (nb >= ncells)
+            yfaceCnt ++;
+#endif
         if (nz == nl || nz == nr || nz == nb || nz == nt) {
             if (nz != nr) xfaceCnt ++;
             if (nz != nt) yfaceCnt ++;
@@ -12086,15 +12092,19 @@ void Mesh::calc_face_list_wbidirmap(void)
     }
     nxface = xfaceCnt;
     nyface = yfaceCnt;
+    printf("[%d] %d %d %d\n", mype, ncells_ghost, nxface, nyface);
+    for (int ic = 0; ic < ncells_ghost; ic++) {
+        //if (mype == 0) printf("[%d] (%d) %d %d %d %d %d\n", mype, ic, (ic < ncells), nlft[ic], nrht[ic], nbot[ic], ntop[ic]);
+    }
 
     // realloc memory based on new counts
 
     int flags=0;
-    if (ncells_ghost > (int)mesh_memory.get_memory_size(map_xface2cell_lower) ) {
+    if (nxface > (int)mesh_memory.get_memory_size(map_xface2cell_lower) ) {
        mesh_memory.memory_delete(map_xface2cell_lower);
-       map_xface2cell_lower = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_xface2cell_lower", flags);
+       map_xface2cell_lower = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "map_xface2cell_lower", flags);
        mesh_memory.memory_delete(map_xface2cell_upper);
-       map_xface2cell_upper = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_xface2cell_upper", flags);
+       map_xface2cell_upper = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "map_xface2cell_upper", flags);
        //mesh_memory.memory_delete(xface_i);
        //xface_i = (int *)mesh_memory.memory_malloc(nxface, sizeof(int), "xface_i", flags);
        //mesh_memory.memory_delete(xface_j);
@@ -12102,11 +12112,11 @@ void Mesh::calc_face_list_wbidirmap(void)
        //mesh_memory.memory_delete(xface_level);
        //xface_level = (uchar_t *)mesh_memory.memory_malloc(nxface, sizeof(uchar_t), "xface_level", flags);
     }
-    if (ncells_ghost > (int)mesh_memory.get_memory_size(map_yface2cell_lower) ) {
+    if (nyface > (int)mesh_memory.get_memory_size(map_yface2cell_lower) ) {
        mesh_memory.memory_delete(map_yface2cell_lower);
-       map_yface2cell_lower = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_yface2cell_lower", flags);
+       map_yface2cell_lower = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "map_yface2cell_lower", flags);
        mesh_memory.memory_delete(map_yface2cell_upper);
-       map_yface2cell_upper = (int *)mesh_memory.memory_malloc(ncells_ghost, sizeof(int), "map_yface2cell_upper", flags);
+       map_yface2cell_upper = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "map_yface2cell_upper", flags);
        mesh_memory.memory_delete(yface_i);
        //yface_i = (int *)mesh_memory.memory_malloc(nyface, sizeof(int), "yface_i", flags);
        //mesh_memory.memory_delete(yface_j);
@@ -12171,8 +12181,17 @@ void Mesh::calc_face_list_wbidirmap(void)
    cpu_timer_start(&tstart_cpu_part);
 
    int iface=0;
-   for (int nz=0; nz<(int)ncells_ghost; nz++){
+   for (int nz=0; nz<(int)ncells; nz++){
       int nr = nrht[nz];
+#ifdef HAVE_MPI
+      int nl = nlft[nz];
+      if (nl >= ncells) {
+          map_xface2cell_lower[iface] = nl;
+          map_xface2cell_upper[iface] = nz;
+          map_xcell2face_left1[nz] = iface;
+          iface++;
+      }
+#endif
       if (nr == nz || nr <= -1) continue;
 
       //int ifactor = 1;
@@ -12214,7 +12233,7 @@ void Mesh::calc_face_list_wbidirmap(void)
    cpu_timers[MESH_TIMER_BIDIRPART2] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
-   for (int nz=0; nz<(int)ncells_ghost; nz++){
+   for (int nz=0; nz<(int)ncells; nz++){
       int nl = nlft[nz];
       if (nl == nz || nl <= -1) continue;
 
@@ -12242,8 +12261,17 @@ void Mesh::calc_face_list_wbidirmap(void)
    cpu_timer_start(&tstart_cpu_part);
 
    iface=0;
-   for (int nz=0; nz<(int)ncells_ghost; nz++){
+   for (int nz=0; nz<(int)ncells; nz++){
       int nt = ntop[nz];
+#ifdef HAVE_MPI
+      int nb = nbot[nz];
+      if (nb >= ncells) {
+          map_yface2cell_lower[iface] = nb;
+          map_yface2cell_upper[iface] = nz;
+          map_ycell2face_bot1[nz] = iface;
+          iface++;
+      }
+#endif
       if (nt == nz || nt <= -1) continue;
 
       //int ifactor = 1;
@@ -12285,7 +12313,7 @@ void Mesh::calc_face_list_wbidirmap(void)
    cpu_timers[MESH_TIMER_BIDIRPART5] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
-   for (int nz=0; nz<(int)ncells_ghost; nz++){
+   for (int nz=0; nz<(int)ncells; nz++){
       int nb = nbot[nz];
       if (nb == nz || nb <= -1) continue;
       //if (nz == 3) printf("%d %d\n", map_ycell2face_top1[nb], map_ycell2face_top2[nb]);

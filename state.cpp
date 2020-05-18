@@ -2752,6 +2752,7 @@ void State::calc_finite_difference_via_faces(double deltaT)
    cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += cpu_timer_stop(tstart_cpu_part);
    cpu_timer_start(&tstart_cpu_part);
 
+
 #ifdef _OPENMP
 #ifdef _OPENMP_SIMD
 #pragma omp for simd
@@ -2771,17 +2772,19 @@ void State::calc_finite_difference_via_faces(double deltaT)
       if (level[cell_lower] == level[cell_upper]) {
 
          // set the two faces
-         int fl = mesh->map_xcell2face_left1[cell_lower];
-         int fr = mesh->map_xcell2face_right1[cell_upper];
+         //int fl = mesh->map_xcell2face_left1[cell_lower];
+         //int fr = mesh->map_xcell2face_right1[cell_upper];
          // set the two cells away
-         int nll = mesh->map_xface2cell_lower[fl];
+         //int nll = mesh->map_xface2cell_lower[fl];
+         int nll = mesh->nlft[cell_lower];
   int rank;
 #ifdef HAVE_MPI
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
 
       //printf("%d: fr %d size %d\n", rank, fr, mesh->mesh_memory.get_memory_size(mesh->map_xface2cell_upper));
-         int nrr = mesh->map_xface2cell_upper[fr];
+         //int nrr = mesh->map_xface2cell_upper[fr];
+         int nrr = mesh->nrht[cell_upper];
  
          int lev = level[cell_lower];
          real_t dxic = lev_deltax[lev];
@@ -2847,11 +2850,13 @@ void State::calc_finite_difference_via_faces(double deltaT)
                    (CV_uplim+CV_lolim); 
 
          // set the two faces
-         int fl = mesh->map_xcell2face_left1[cell_lower];
-         int fr = mesh->map_xcell2face_right1[cell_upper];
+         //int fl = mesh->map_xcell2face_left1[cell_lower];
+         //int fr = mesh->map_xcell2face_right1[cell_upper];
          // set the two cells away
-         int nll = mesh->map_xface2cell_lower[fl];
-         int nrr = mesh->map_xface2cell_upper[fr];
+         //int nll = mesh->map_xface2cell_lower[fl];
+         //int nrr = mesh->map_xface2cell_upper[fr];
+         int nll = mesh->nlft[cell_lower];
+         int nrr = mesh->nrht[cell_upper];
 
          uchar_t lev = level[cell_lower];
          uchar_t levr = level[cell_upper];
@@ -2914,11 +2919,13 @@ void State::calc_finite_difference_via_faces(double deltaT)
       if (level[cell_lower] == level[cell_upper]) {
 
          // set the two faces
-         int fb = mesh->map_ycell2face_bot1[cell_lower];
-         int ft = mesh->map_ycell2face_top1[cell_upper];
+         //int fb = mesh->map_ycell2face_bot1[cell_lower];
+         //int ft = mesh->map_ycell2face_top1[cell_upper];
          // set the two cells away
-         int nbb = mesh->map_yface2cell_lower[fb];
-         int ntt = mesh->map_yface2cell_upper[ft];
+         //int nbb = mesh->map_yface2cell_lower[fb];
+         //int ntt = mesh->map_yface2cell_upper[ft];
+         int nbb = mesh->nbot[cell_lower];
+         int ntt = mesh->ntop[cell_upper];
 	
          int lev = level[cell_lower];
          real_t dyic    = lev_deltay[lev];
@@ -2982,11 +2989,13 @@ void State::calc_finite_difference_via_faces(double deltaT)
                    (CV_uplim+CV_lolim);
 
          // set the two faces
-         int fb = mesh->map_ycell2face_bot1[cell_lower];
-         int ft = mesh->map_ycell2face_top1[cell_upper];
+         //int fb = mesh->map_ycell2face_bot1[cell_lower];
+         //int ft = mesh->map_ycell2face_top1[cell_upper];
          // set the two cells away
-         int nbb = mesh->map_yface2cell_lower[fb];
-         int ntt = mesh->map_yface2cell_upper[ft];
+         //int nbb = mesh->map_yface2cell_lower[fb];
+         //int ntt = mesh->map_yface2cell_upper[ft];
+         int nbb = mesh->nbot[cell_lower];
+         int ntt = mesh->ntop[cell_upper];
  
          uchar_t lev = level[cell_lower];
          uchar_t levt = level[cell_upper];
@@ -3204,6 +3213,13 @@ void State::calc_finite_difference_via_faces(double deltaT)
                       Vxfluxplus, Vxfluxminus, Vyfluxplus, Vyfluxminus)
                  - wminusy_V + wplusy_V;
       //printf("%d) %f | %f | %f\n", ic, H_new[ic], U_new[ic], V_new[ic]);
+#ifdef HAVE_MPI
+         if (mesh->mype == 1) 
+#endif
+            printf("%d) %d %d %f %f %f %f %f %f %f %f %f\n", ic, mesh->i[ic], mesh->j[ic], Hic, Hxfluxminus, Hxfluxplus, Hyfluxminus, Hyfluxplus, wminusx_H, wplusx_H, wminusy_H, wplusy_H); 
+            //printf("%d) %d %d %d %d %d %d\n", ic, mesh->i[ic], mesh->j[ic], mesh->nlft[ic], mesh->nrht[ic], mesh->nbot[ic], mesh->ntop[ic]);
+            
+
 
    } // cell loop
 
