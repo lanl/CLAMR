@@ -1,4 +1,9 @@
-# Version 0.4 Increment by 0.1 every change
+# Version 0.6 Increment by 0.1 every change
+#
+# Authors:
+#    Bob Robey, Los Alamos National Laboratory, brobey@lanl.gov
+#    Daniel Dunning, Los Alamos, National Laboratory, ddunning@lanl.gov
+#
 # Operation tested on
 #    Intel Skylake with clang/8.0.1 gcc/9.1.0 intel/19.0.4 pgi/18.10
 #    AMD-Epyc with with clang/8.0.1 gcc/9.1.0 intel/19.0.4 pgi/18.10
@@ -6,20 +11,37 @@
 #    Power9 with clang/8.0.0 gcc/9.1.0 ibm/xlc-16.1.1.3-xlf-16.1.1.3 pgi/19.3
 #
 #    Main output flags
-#       VECTOR_<LANG>_FLAGS
-#       VECTOR_NOVEC_<LANG>_FLAGS
-#       VECTOR_<LANG>_VERBOSE
+#       VECTOR_<LANG>_FLAGS          -- All flags set plus turning on vectorization
+#       VECTOR_NOVEC_<LANG>_FLAGS    -- All flags set same as vectorization, but with vectorization off
+#       VECTOR_<LANG>_VERBOSE        -- Turn on verbose messages when compiling for vectorization feedback
 #    Component flags
-#       VECTOR_ALIASING_<LANG>_FLAGS
-#       VECTOR_ARCH_<LANG>_FLAGS
-#       VECTOR_FPMODEL_<LANG>_FLAGS
-#       VECTOR_NOVEC_<LANG>_OPT
-#       VECTOR_VEC_<LANG>_OPTS
+#       VECTOR_ALIASING_<LANG>_FLAGS -- Stricter aliasing option to help auto-vectorization
+#       VECTOR_ARCH_<LANG>_FLAGS     -- Set to compile for architecture that it is on
+#       VECTOR_FPMODEL_<LANG>_FLAGS  -- Set so that Kahan sum does not get optimized out (unsafe optimizations)
+#       VECTOR_NOVEC_<LANG>_OPT      -- Turn off vectorization for debugging and performance measurement
+#       VECTOR_VEC_<LANG>_OPTS       -- Turn on vectorization
 #
 #    Main output flags are build from component flags by the following rule
 #       set(VECTOR_BASE_<LANG>_FLAGS "${VECTOR_ALIASING_<LANG>_FLAGS} ${VECTOR_ARCH_<LANG>_FLAGS} ${VECTOR_FPMODEL_<LANG>_FLAGS}")
 #       set(VECTOR_NOVEC_<LANG>_FLAGS "${VECTOR_BASE_<LANG>_FLAGS} ${VECTOR_NOVEC_<LANG>_FLAGS}")
 #       set(VECTOR_<LANG>_FLAGS "${VECTOR_BASE_<LANG>_FLAGS} ${VECTOR_<LANG>_FLAGS} ${VECTOR_OPENMP_SIMD_<LANG>_FLAGS}")
+#
+#    Using in CMakeLists:
+#
+#    These lines setup for turning on verbosity with cmake -DCMAKE_VECTOR_VERBOSE
+#
+#       if (CMAKE_VECTOR_VERBOSE)
+#           set(VECTOR_C_FLAGS "${VECTOR_C_FLAGS} ${VECTOR_C_VERBOSE}")
+#           set(VECTOR_CXX_FLAGS "${VECTOR_CXX_FLAGS} ${VECTOR_CXX_VERBOSE}")
+#       endif (CMAKE_VECTOR_VERBOSE)
+#
+#    Vectorization or vector verbosity can be set for individual files
+#
+#       set_source_files_properties(<target> PROPERTIES COMPILE_FLAGS ${VECTOR_C_FLAGS})
+#
+#    Can be added to compile flags for all files
+#
+#       set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${VECTOR_C_FLAGS")
 
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
@@ -29,7 +51,13 @@ include(CheckFortranCompilerFlag)
 if(CMAKE_C_COMPILER_LOADED)
     if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang") # using Clang
         set(VECTOR_ALIASING_C_FLAGS "${VECTOR_ALIASING_C_FLAGS} -fstrict-aliasing")
-        set(VECTOR_ARCH_C_FLAGS "${VECTOR_ARCH_C_FLAGS} -march=native -mtune=native")
+        if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
+           set(VECTOR_ARCH_C_FLAGS "${VECTOR_ARCH_C_FLAGS} -march=native -mtune=native")
+        elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "ppc64le")
+            set(VECTOR_ARCH_C_FLAGS "${VECTOR_ARCH_C_FLAGS} -mcpu=powerpc64le")
+        elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
+            set(VECTOR_ARCH_C_FLAGS "${VECTOR_ARCH_C_FLAGS} -march=native -mtune=native")
+        endif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
 
         set(VECTOR_OPENMP_SIMD_C_FLAGS "${VECTOR_OPENMP_SIMD_C_FLAGS} -fopenmp-simd")
         set(VECTOR_C_OPTS "${VECTOR_C_OPTS} -fvectorize")
@@ -67,7 +95,7 @@ if(CMAKE_C_COMPILER_LOADED)
         set(VECTOR_FPMODEL_C_FLAGS "${VECTOR_FPMODEL_C_FLAGS} -fp-model:precise")
 
         set(VECTOR_OPENMP_SIMD_C_FLAGS "${VECTOR_OPENMP_SIMD_C_FLAGS} -qopenmp-simd")
-        set(VECTOR_C_OPTS "${VECTOR_C_OPTS} -march=native -mtune=native -xHOST")
+        set(VECTOR_C_OPTS "${VECTOR_C_OPTS} -march=native -mtune=native -xHOST -vecabi=cmdtarget")
         if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
             set(VECTOR_C_OPTS "${VECTOR_C_OPTS} -qopt-zmm-usage=high")
         endif ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
@@ -77,6 +105,19 @@ if(CMAKE_C_COMPILER_LOADED)
     elseif (CMAKE_C_COMPILER_ID MATCHES "PGI")
         set(VECTOR_ALIASING_C_FLAGS "${VECTOR_ALIASING_C_FLAGS} -alias=ansi")
         set(VECTOR_OPENMP_SIMD_C_FLAGS "${VECTOR_OPENMP_SIMD_C_FLAGS} -Mvect=simd")
+        if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
+            # PGI is converting over to a LLVM based compiler on x86_64. To enable, add -Mllvm
+            #    and then prepend the llvm pgi compiler path something like below. This is important
+            #    when using OpenMP and also adds OpenMP 4.5 support
+            # module load pgi/18.10
+            # export PATH="/projects/opt/centos7/pgi/linux86-64-llvm/18.10/bin:${PATH}"
+            if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER "18.6")
+                execute_process(COMMAND pgcc --version COMMAND grep LLVM COMMAND wc -l OUTPUT_VARIABLE PGI_VERSION_OUTPUT OUTPUT_STRIP_TRAILING_WHITESPACE)
+                if ("${PGI_VERSION_OUTPUT}" STREQUAL "1")
+                    set(VECTOR_ARCH_C_FLAGS "${VECTOR_ARCH_C_FLAGS} -Mllvm")
+                endif ("${PGI_VERSION_OUTPUT}" STREQUAL "1")
+            endif ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER "18.6")
+        endif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
 
         set(VECTOR_NOVEC_C_OPT "${VECTOR_NOVEC_C_OPT} -Mnovect ")
         set(VECTOR_C_VERBOSE "${VECTOR_C_VERBOSE} -Minfo=loop,inline,vect")
@@ -128,9 +169,9 @@ if(CMAKE_C_COMPILER_LOADED)
                      VECTOR_VEC_C_OPTS
                      VECTOR_VEC_C_FPOPTS)
 
-    message(STATUS  "Setting Vector C flags to -- ${VECTOR_C_FLAGS}")
-    message(STATUS  "Setting Vector C No-Vector flags to -- ${VECTOR_NOVEC_C_FLAGS}")
-    message(STATUS  "Setting Vector C Verbose flags to -- ${VECTOR_C_VERBOSE}")
+    message(STATUS  "Setting Vector C flags to: ${VECTOR_C_FLAGS}")
+    message(STATUS  "Setting Vector C No-Vector flags to: ${VECTOR_NOVEC_C_FLAGS}")
+    message(STATUS  "Setting Vector C Verbose flags to: ${VECTOR_C_VERBOSE}")
 
 endif(CMAKE_C_COMPILER_LOADED)
 
@@ -138,7 +179,13 @@ endif(CMAKE_C_COMPILER_LOADED)
 if(CMAKE_CXX_COMPILER_LOADED)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang") # using Clang
         set(VECTOR_ALIASING_CXX_FLAGS "${VECTOR_ALIASING_CXX_FLAGS} -fstrict-aliasing")
-        set(VECTOR_ARCH_CXX_FLAGS "${VECTOR_ARCH_CXX_FLAGS} -march=native -mtune=native")
+        if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
+           set(VECTOR_ARCH_CXX_FLAGS "${VECTOR_ARCH_CXX_FLAGS} -march=native -mtune=native")
+        elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "ppc64le")
+            set(VECTOR_ARCH_CXX_FLAGS "${VECTOR_ARCH_CXX_FLAGS} -mcpu=powerpc64le")
+        elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
+            set(VECTOR_ARCH_CXX_FLAGS "${VECTOR_ARCH_CXX_FLAGS} -march=native -mtune=native")
+        endif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
 
         set(VECTOR_OPENMP_SIMD_CXX_FLAGS "${VECTOR_OPENMP_SIMD_CXX_FLAGS} -fopenmp-simd")
         set(VECTOR_CXX_OPTS "${VECTOR_CXX_OPTS} -fvectorize")
@@ -176,7 +223,7 @@ if(CMAKE_CXX_COMPILER_LOADED)
         set(VECTOR_FPMODEL_CXX_FLAGS "${VECTOR_FPMODEL_CXX_FLAGS} -fp-model:precise")
 
         set(VECTOR_OPENMP_SIMD_CXX_FLAGS "${VECTOR_OPENMP_SIMD_CXX_FLAGS} -qopenmp-simd")
-        set(VECTOR_CXX_OPTS "${VECTOR_CXX_OPTS} -march=native -mtune=native -xHOST")
+        set(VECTOR_CXX_OPTS "${VECTOR_CXX_OPTS} -march=native -mtune=native -xHOST -vecabi=cmdtarget")
         if ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
             set(VECTOR_CXX_OPTS "${VECTOR_CXX_OPTS} -qopt-zmm-usage=high")
         endif ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
@@ -186,6 +233,14 @@ if(CMAKE_CXX_COMPILER_LOADED)
     elseif (CMAKE_CXX_COMPILER_ID MATCHES "PGI")
         set(VECTOR_ALIASING_CXX_FLAGS "${VECTOR_ALIASING_CXX_FLAGS} -alias=ansi")
         set(VECTOR_OPENMP_SIMD_CXX_FLAGS "${VECTOR_OPENMP_SIMD_CXX_FLAGS} -Mvect=simd")
+        if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
+            if ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_GREATER "18.6")
+                execute_process(COMMAND pgc++ --version COMMAND grep LLVM COMMAND wc -l OUTPUT_VARIABLE PGI_VERSION_OUTPUT OUTPUT_STRIP_TRAILING_WHITESPACE)
+                if ("${PGI_VERSION_OUTPUT}" STREQUAL "1")
+                    set(VECTOR_ARCH_CXX_FLAGS "${VECTOR_ARCH_CXX_FLAGS} -Mllvm")
+                endif ("${PGI_VERSION_OUTPUT}" STREQUAL "1")
+            endif ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_GREATER "18.6")
+        endif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
 
         set(VECTOR_NOVEC_CXX_OPT "${VECTOR_NOVEC_CXX_OPT} -Mnovect ")
         set(VECTOR_CXX_VERBOSE "${VECTOR_CXX_VERBOSE} -Minfo=loop,inline,vect")
@@ -237,9 +292,9 @@ if(CMAKE_CXX_COMPILER_LOADED)
                      VECTOR_VEC_CXX_OPTS
                      VECTOR_VEC_CXX_FPOPTS)
 
-   message(STATUS  "Setting Vector CXX flags to -- ${VECTOR_CXX_FLAGS}")
-   message(STATUS  "Setting Vector CXX No-Vector flags to -- ${VECTOR_NOVEC_CXX_FLAGS}")
-   message(STATUS  "Setting Vector CXX Verbose flags to -- ${VECTOR_CXX_VERBOSE}")
+   message(STATUS  "Setting Vector CXX flags to: ${VECTOR_CXX_FLAGS}")
+   message(STATUS  "Setting Vector CXX No-Vector flags to: ${VECTOR_NOVEC_CXX_FLAGS}")
+   message(STATUS  "Setting Vector CXX Verbose flags to: ${VECTOR_CXX_VERBOSE}")
 
 endif(CMAKE_CXX_COMPILER_LOADED)
 
@@ -247,7 +302,13 @@ endif(CMAKE_CXX_COMPILER_LOADED)
 if(CMAKE_Fortran_COMPILER_LOADED)
     if ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Clang") # using Clang
         set(VECTOR_ALIASING_Fortran_FLAGS "${VECTOR_ALIASING_Fortran_FLAGS} -fstrict-aliasing")
-        set(VECTOR_ARCH_Fortran_FLAGS "${VECTOR_ARCH_Fortran_FLAGS} -march=native -mtune=native")
+        if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
+           set(VECTOR_ARCH_Fortran_FLAGS "${VECTOR_ARCH_Fortran_FLAGS} -march=native -mtune=native")
+        elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "ppc64le")
+            set(VECTOR_ARCH_Fortran_FLAGS "${VECTOR_ARCH_Fortran_FLAGS} -mcpu=powerpc64le")
+        elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
+            set(VECTOR_ARCH_Fortran_FLAGS "${VECTOR_ARCH_Fortran_FLAGS} -march=native -mtune=native")
+        endif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
 
         set(VECTOR_OPENMP_SIMD_Fortran_FLAGS "${VECTOR_OPENMP_SIMD_Fortran_FLAGS} -fopenmp-simd")
         set(VECTOR_Fortran_OPTS "${VECTOR_Fortran_OPTS} -fvectorize")
@@ -285,7 +346,7 @@ if(CMAKE_Fortran_COMPILER_LOADED)
         set(VECTOR_FPMODEL_Fortran_FLAGS "${VECTOR_FPMODEL_Fortran_FLAGS} -fp-model:precise")
 
         set(VECTOR_OPENMP_SIMD_Fortran_FLAGS "${VECTOR_OPENMP_SIMD_Fortran_FLAGS} -qopenmp-simd")
-        set(VECTOR_Fortran_OPTS "${VECTOR_Fortran_OPTS} -march=native -mtune=native -xHOST")
+        set(VECTOR_Fortran_OPTS "${VECTOR_Fortran_OPTS} -march=native -mtune=native -xHOST -vecabi=cmdtarget")
         if ("${CMAKE_Fortran_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
             set(VECTOR_Fortran_OPTS "${VECTOR_Fortran_OPTS} -qopt-zmm-usage=high")
         endif ("${CMAKE_Fortran_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
@@ -295,6 +356,14 @@ if(CMAKE_Fortran_COMPILER_LOADED)
     elseif (CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
         set(VECTOR_ALIASING_Fortran_FLAGS "${VECTOR_ALIASING_Fortran_FLAGS} -alias=ansi")
         set(VECTOR_OPENMP_SIMD_Fortran_FLAGS "${VECTOR_OPENMP_SIMD_Fortran_FLAGS} -Mvect=simd")
+        if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
+            if ("${CMAKE_Fortran_COMPILER_VERSION}" VERSION_GREATER "18.6")
+                execute_process(COMMAND pgfortran --version COMMAND grep LLVM COMMAND wc -l OUTPUT_VARIABLE PGI_VERSION_OUTPUT OUTPUT_STRIP_TRAILING_WHITESPACE)
+                if ("${PGI_VERSION_OUTPUT}" STREQUAL "1")
+                    set(VECTOR_ARCH_Fortran_FLAGS "${VECTOR_ARCH_Fortran_FLAGS} -Mllvm")
+                endif ("${PGI_VERSION_OUTPUT}" STREQUAL "1")
+            endif ("${CMAKE_Fortran_COMPILER_VERSION}" VERSION_GREATER "18.6")
+        endif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
 
         set(VECTOR_NOVEC_Fortran_OPT "${VECTOR_NOVEC_Fortran_OPT} -Mnovect ")
         set(VECTOR_Fortran_VERBOSE "${VECTOR_Fortran_VERBOSE} -Minfo=loop,inline,vect")
@@ -346,8 +415,8 @@ if(CMAKE_Fortran_COMPILER_LOADED)
                      VECTOR_VEC_Fortran_OPTS
                      VECTOR_VEC_Fortran_FPOPTS)
 
-    message(STATUS  "Setting Vector Fortran flags to -- ${VECTOR_Fortran_FLAGS}")
-    message(STATUS  "Setting Vector Fortran No-Vector flags to -- ${VECTOR_NOVEC_Fortran_FLAGS}")
-    message(STATUS  "Setting Vector Fortran Verbose flags to -- ${VECTOR_Fortran_VERBOSE}")
+    message(STATUS  "Setting Vector Fortran flags to: ${VECTOR_Fortran_FLAGS}")
+    message(STATUS  "Setting Vector Fortran No-Vector flags to: ${VECTOR_NOVEC_Fortran_FLAGS}")
+    message(STATUS  "Setting Vector Fortran Verbose flags to: ${VECTOR_Fortran_VERBOSE}")
 
 endif(CMAKE_Fortran_COMPILER_LOADED)
