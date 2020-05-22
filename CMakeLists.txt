@@ -51,7 +51,7 @@ elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C
    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -vecabi=cmdtarget")
+   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
@@ -80,7 +80,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C++
    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3 -vecabi=cmdtarget")
+   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "PGI")
@@ -102,25 +102,17 @@ mark_as_advanced (KOKKOS_ENABLE)
 
 if(NOT KOKKOS_ENABLE)
    find_package(Vector)
-   if (CMAKE_VECTOR_VERBOSE)
-       set(VECTOR_C_FLAGS "${VECTOR_C_FLAGS} ${VECTOR_C_VERBOSE}")
-       set(VECTOR_CXX_FLAGS "${VECTOR_CXX_FLAGS} ${VECTOR_CXX_VERBOSE}")
-   endif (CMAKE_VECTOR_VERBOSE)
    if (CMAKE_VECTOR_NOVEC)
        set(VECTOR_C_FLAGS "${VECTOR_NOVEC_C_FLAGS}")
        set(VECTOR_CXX_FLAGS "${VECTOR_NOVEC_CXX_FLAGS}")
    endif (CMAKE_VECTOR_NOVEC)
+   if (CMAKE_VECTOR_VERBOSE)
+       set(VECTOR_C_FLAGS "${VECTOR_C_FLAGS} ${VECTOR_C_VERBOSE}")
+       set(VECTOR_CXX_FLAGS "${VECTOR_CXX_FLAGS} ${VECTOR_CXX_VERBOSE}")
+   endif (CMAKE_VECTOR_VERBOSE)
 endif(NOT KOKKOS_ENABLE)
 
 set_source_files_properties(state.cpp PROPERTIES COMPILE_FLAGS "${VECTOR_CXX_FLAGS}")
-
-if (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native -Wa,-q")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mtune=native -Wa,-q")
-else (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mtune=native")
-endif (APPLE AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
 include_directories(${PROJECT_SOURCE_DIR})
 
