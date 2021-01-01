@@ -413,7 +413,7 @@ int L7_Setup(
                     /* SKG - Update order to silence valgrind. Don't know if
                      * this is okay... */
 					while ( ( this_index < num_indices_needed)  &&
-                            ( indices_needed[this_index] < l7_id_db->starting_indices[j+1] ) )
+                                                ( indices_needed[this_index] < l7_id_db->starting_indices[j+1] ) )
 						this_index++;
 					
 					/* Remember where we found the first one. */
@@ -521,8 +521,8 @@ int L7_Setup(
 		         
                 /* SKG - Update order to silence valgrind. Don't know if
                  * this is okay... */
-		         while ( ( num_indices_acctd_for < num_indices_needed ) &&
-                        ( indices_needed[this_index] < l7_id_db->starting_indices[j+1] )) {
+                         while ( ( num_indices_acctd_for < num_indices_needed ) &&
+                                 ( indices_needed[this_index] < l7_id_db->starting_indices[j+1] )) {
 		            /* Find the rest on pe j. */
 		            
 		            l7_id_db->recv_counts[i]++;
@@ -551,7 +551,7 @@ int L7_Setup(
 	 * those pes need. This is done use a reduction (MPI_Allreduce).
 	 */
 	
-	if (l7.sizeof_send_buffer < numpes * (int)sizeof(int)){
+	if (l7.sizeof_send_buffer < 2 * numpes * (int)sizeof(int)){
 	   if (l7.send_buffer)
 	      free(l7.send_buffer);
 	   
