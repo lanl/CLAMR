@@ -354,7 +354,7 @@ if(CMAKE_Fortran_COMPILER_LOADED)
         set(VECTOR_Fortran_VERBOSE "${VECTOR_Fortran_VERBOSE} -qopt-report=5 -qopt-report-phase=openmp,loop,vec")
 
     elseif (CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
-        set(VECTOR_ALIASING_Fortran_FLAGS "${VECTOR_ALIASING_Fortran_FLAGS} -alias=ansi")
+        set(VECTOR_ALIASING_Fortran_FLAGS "${VECTOR_ALIASING_Fortran_FLAGS}")
         set(VECTOR_OPENMP_SIMD_Fortran_FLAGS "${VECTOR_OPENMP_SIMD_Fortran_FLAGS} -Mvect=simd")
         if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
             if ("${CMAKE_Fortran_COMPILER_VERSION}" VERSION_GREATER "18.6")
