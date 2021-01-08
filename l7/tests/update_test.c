@@ -77,7 +77,7 @@ void update_test()
    partner_pe = (int *)malloc(num_partners * sizeof(int));
    
    offset = 0;
-   for (i=1; i<=num_partners_lo; i++){
+   for (i=num_partners_lo; i<=1; i--) {
       partner_pe[offset] = penum - i;
       offset++;
    }
