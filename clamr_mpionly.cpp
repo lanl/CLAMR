@@ -255,12 +255,12 @@ int main(int argc, char **argv) {
       //if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
 
       double percent_mass_diff = fabs(H_sum - H_sum_initial)/H_sum_initial * 100.0;
-      //if (percent_mass_diff >= upper_mass_diff_percentage) {
-      //  printf("Mass difference outside of acceptable range on restart at cycle %d percent_mass_diff %lg upper limit %lg\n",ncycle,percent_mass_diff, upper_mass_diff_percentage);
+      if (percent_mass_diff >= upper_mass_diff_percentage) {
+        printf("Mass difference outside of acceptable range on restart at cycle %d percent_mass_diff %lg upper limit %lg\n",ncycle,percent_mass_diff, upper_mass_diff_percentage);
 
-      //  L7_Terminate();
-      //  exit(0);
-      //}
+        L7_Terminate();
+        exit(0);
+      }
    } else {
       mesh = new Mesh(nx, ny, levmx, ndim, deltax_in, deltay_in, boundary, parallel_in, do_gpu_calc);
 
@@ -282,6 +282,7 @@ int main(int argc, char **argv) {
    }
    size_t &ncells = mesh->ncells;
    size_t &ncells_global = mesh->ncells_global;
+   //int &noffset = mesh->noffset;
 
    vector<int>   &nsizes     = mesh->nsizes;
    vector<int>   &ndispl     = mesh->ndispl;
@@ -479,13 +480,13 @@ extern "C" void do_calc(void)
    //  Main loop.
    int endcycle = MIN3(niter, next_cp_cycle, next_graphics_cycle);
 
+   mesh->set_bounds(ncells);
+
    cpu_timer_start(&tstart_cpu);
 
    for (int nburst = ncycle % outputInterval; nburst < outputInterval && ncycle < endcycle; nburst++, ncycle++) {
 
       mpot.resize(mesh->ncells_ghost);
-
-      mesh->set_bounds(ncells);
       new_ncells = state->calc_refine_potential(mpot, icount, jcount);
 
       //  Resize the mesh, inserting cells where refinement is necessary.
@@ -513,27 +514,27 @@ extern "C" void do_calc(void)
 #pragma omp barrier
 #endif
 
-         state->do_load_balance_local(new_ncells);
-
          mesh->set_bounds(ncells);
 
-#ifdef _OPENMP
-#pragma omp master
-         {
-#endif
+         state->do_load_balance_local(new_ncells);
+
+//#ifdef _OPENMP
+//#pragma omp master
+//         {
+//#endif
       //cpu_timer_start(&tstart_check);
-            mesh->proc.resize(ncells);
-            if (icount)
-            {  vector<int> index(ncells);
-               mesh->partition_cells(numpe, index, cycle_reorder);
-               state->state_reorder(index);
-               state->memory_reset_ptrs();
-            }
+//          mesh->proc.resize(ncells);
+//          if (icount)
+//          {  vector<int> index(ncells);
+//             mesh->partition_cells(numpe, index, cycle_reorder);
+//             state->state_reorder(index);
+//             state->memory_reset_ptrs();
+//          }
       //cpu_time_check += cpu_timer_stop(tstart_check);
-#ifdef _OPENMP
-         }
-#pragma omp barrier
-#endif
+//#ifdef _OPENMP
+//         }
+//#pragma omp barrier
+//#endif
 
          //  Calculate the real time step for the current discrete time step.
          double mydeltaT = state->set_timestep(g, sigma); // Private variable to avoid write conflict
@@ -606,13 +607,6 @@ extern "C" void do_calc(void)
       } // end parallel region
 #endif
 
-// XXX
-//      mesh->proc.resize(ncells);
-//      if (icount) {
-//         vector<int> index(ncells);
-//         mesh->partition_cells(numpe, index, cycle_reorder);
-//      }
-
    } // End burst loop
 
    cpu_time_calcs += cpu_timer_stop(tstart_cpu);
@@ -631,10 +625,10 @@ extern "C" void do_calc(void)
    }
 
    double percent_mass_diff = fabs(H_sum - H_sum_initial)/H_sum_initial * 100.0;
-   //if (percent_mass_diff >= upper_mass_diff_percentage) {
-   //   printf("Mass difference outside of acceptable range on cycle %d percent_mass_diff %lg upper limit %lg\n",ncycle,percent_mass_diff, upper_mass_diff_percentage);
-   //   error_status = STATUS_MASS_LOSS;
-   //}
+   if (percent_mass_diff >= upper_mass_diff_percentage) {
+      printf("Mass difference outside of acceptable range on cycle %d percent_mass_diff %lg upper limit %lg\n",ncycle,percent_mass_diff, upper_mass_diff_percentage);
+      error_status = STATUS_MASS_LOSS;
+   }
 
    if (error_status != STATUS_OK){
       if (crux_type != CRUX_NONE) {

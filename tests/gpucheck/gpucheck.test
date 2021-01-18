@@ -6,7 +6,7 @@ set TEST_NAME="${TEST_NAME}${PRECISION_TYPE}"
 
 # First test is to see if the gpucheck run is getting the same result
 # as the gold standard
-./clamr_gpucheck -n 128 -i 100 -t 3000 >& ${TEST_NAME}_run1.out
+./clamr_gpucheck -n 128 -i 100 -t 2400 >& ${TEST_NAME}_run1.out
 ./compare_stdout.pl 0.0 ${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
 
 ./clamr_gpucheck -n 128 -l 4 -i 100 -t 3000 >& ${TEST_NAME}_run2.out

@@ -24,14 +24,14 @@ ln -s ${CTS_BIN}/compare_stdout.pl
 ln -s ${CTS_BIN}/cts_diff.pl
 
 set -ex
-./clamr_cpuonly -A "regular-cell" -n 4 -i 1 -t 70 -l 2 >& ${TEST_NAME}_run1.out
+./clamr_cpuonly -A "regular-grid" -n 4 -i 1 -t 70 -l 2 >& ${TEST_NAME}_run1.out
 ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
 
-./clamr_cpuonly -A "regular-cell" -n 128 -i 1 -t 566 -l 2 >& ${TEST_NAME}_run2.out
+./clamr_cpuonly -A "regular-grid" -n 128 -i 1 -t 566 -l 2 >& ${TEST_NAME}_run2.out
 ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run2.gold ${TEST_NAME}_run2.out
 
 if [ "${HAVE_OPENMP}x" = "1x" ]; then
-   ./clamr_cpuonly -A "regular-cell" -n 128 -i 1 -t 566 -l 2 >& ${TEST_NAME}_run3.out
+   ./clamr_cpuonly -A "regular-grid" -n 128 -i 1 -t 566 -l 2 >& ${TEST_NAME}_run3.out
    ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run2.gold ${TEST_NAME}_run3.out
 fi
 

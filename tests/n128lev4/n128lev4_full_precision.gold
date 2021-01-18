@@ -1,31 +1,31 @@
 Mass of initialized cells equal to  171756.675298
-CPU:  setup time               time was	  0.0605	s
-Memory used      in startup 	      5600	kB
-Memory peak      in startup 	      6624	kB
-Memory free      at startup 	 259381144	kB
-Memory available at startup 	 264038568	kB
+CPU:  setup time               time was	  0.0592	s
+Memory used      in startup 	      5568	kB
+Memory peak      in startup 	      6596	kB
+Memory free      at startup 	 259610924	kB
+Memory available at startup 	 264038520	kB
 Iteration   0 timestep      n/a Sim Time      0.0 cells 19920 Mass Sum  171756.675298
 	
 	Detected 40 cores in 2 packages
 
 	Package 0:
 		energy-cores Energy Consumed: 0.000000 Joules
-		energy-pkg Energy Consumed: 13.801392 Joules
-		energy-ram Energy Consumed: 2.253922 Joules
+		energy-pkg Energy Consumed: 21.146912 Joules
+		energy-ram Energy Consumed: 3.397720 Joules
 	Package 1:
 		energy-cores Energy Consumed: 0.000000 Joules
-		energy-pkg Energy Consumed: 15.666138 Joules
-		energy-ram Energy Consumed: 2.565063 Joules
+		energy-pkg Energy Consumed: 25.659058 Joules
+		energy-ram Energy Consumed: 6.291748 Joules
 
 
 Trying sysfs powercap interface to gather results
 
 	Package 0
-		package-1	: 14.907921J
-		dram	: 2.519604J
+		package-1	: 31.566081J
+		dram	: 5.898135J
 	Package 1
-		package-0	: 13.223538J
-		dram	: 2.259259J
+		package-0	: 29.330858J
+		dram	: 4.774839J
 
 Found working RAPL_SYSFS
 Iteration 100 timestep 0.000054 Sim Time 0.007157 cells 24240 Mass Sum  171756.675298 Mass Change            0
@@ -58,15 +58,15 @@ Iteration 2700 timestep 0.000065 Sim Time 0.155222 cells 28728 Mass Sum  171756.
 Iteration 2800 timestep 0.000066 Sim Time 0.161778 cells 28884 Mass Sum  171756.675298 Mass Change -5.82077e-11
 Iteration 2900 timestep 0.000067 Sim Time 0.168432 cells 28752 Mass Sum  171756.675298 Mass Change -5.82077e-11
 Iteration 3000 timestep 0.000068 Sim Time 0.175186 cells 28584 Mass Sum  171756.675298 Mass Change -5.82077e-11
-Memory used      7824 kB
-Memory peak      7828 kB
-Memory free      259381380 kB
-Memory available 264038568 kB
+Memory used      7796 kB
+Memory peak      7800 kB
+Memory free      259610856 kB
+Memory available 264038520 kB
 
 ~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
-CPU: Device compute           time was	 32.0656	s
-CPU:   state_timer_set_timestep      		    1.1287	s
-CPU:   state_timer_finite_difference 		   25.4069	s
+CPU: Device compute           time was	 31.9394	s
+CPU:   state_timer_set_timestep      		    1.1285	s
+CPU:   state_timer_finite_difference 		   25.4142	s
 CPU:     state_timer_finite_diff_part1 		      0.0000	s
 CPU:     state_timer_finite_diff_part2 		      0.0000	s
 CPU:     state_timer_finite_diff_part3 		      0.0000	s
@@ -86,26 +86,26 @@ CPU:       mesh_timer_bidirpart9         		        0.0000	s
 CPU:       mesh_timer_bidirpart10        		        0.0000	s
 CPU:       mesh_timer_bidirpart11        		        0.0000	s
 CPU:       mesh_timer_bidirpart12        		        0.0000	s
-CPU:   state_timer_refine_potential  		    3.1626	s
-CPU:     state_timer_calc_mpot         		      1.4362	s
-CPU:     mesh_timer_refine_smooth      		      1.5311	s
-CPU:   state_timer_rezone_all        		    1.2404	s
-CPU:   mesh_timer_partition          		    0.0241	s
-CPU:   mesh_timer_calc_neighbors     		    1.1002	s
-CPU:     mesh_timer_hash_setup         		      0.4331	s
-CPU:     mesh_timer_hash_query         		      0.6664	s
-CPU:   state_timer_mass_sum          		    0.0027	s
+CPU:   state_timer_refine_potential  		    3.0746	s
+CPU:     state_timer_calc_mpot         		      1.4205	s
+CPU:     mesh_timer_refine_smooth      		      1.4707	s
+CPU:   state_timer_rezone_all        		    1.2041	s
+CPU:   mesh_timer_partition          		    0.0234	s
+CPU:   mesh_timer_calc_neighbors     		    1.0918	s
+CPU:     mesh_timer_hash_setup         		      0.4193	s
+CPU:     mesh_timer_hash_query         		      0.6718	s
+CPU:   state_timer_mass_sum          		    0.0026	s
 CPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
 =============================================================
-Profiling: Total CPU          time was	 32.0656	s
+Profiling: Total CPU          time was	 31.9394	s
 -------------------------------------------------------------
-Mesh Ops (Neigh+rezone+smooth+balance) 	  3.8717	s
-Mesh Ops Percentage                    	 12.0744	percent
+Mesh Ops (Neigh+rezone+smooth+balance) 	  3.7667	s
+Mesh Ops Percentage                    	 11.7932	percent
 =============================================================
-Profiling: Total              time was	 34.4336	s
+Profiling: Total              time was	 34.2718	s
 =============================================================
-CPU:  calc incl part meas     time was	 32.4291	s
-CPU:  calculation only        time was	 32.4290	s
+CPU:  calc incl part meas     time was	 32.2674	s
+CPU:  calculation only        time was	 32.2673	s
 CPU:  partition measure       time was	  0.0001	s
 CPU:  graphics                time was	  0.0000	s
 Using hash tables to calculate neighbors

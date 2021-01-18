@@ -3,11 +3,11 @@ Finishing compile of kernels in mesh
 Starting compile of kernels in state
 Finishing compile of kernels in state
 Mass of initialized cells equal to  171756.675298
-CPU:  setup time               time was	  0.3911	s
-Memory used      in startup 	    144668	kB
-Memory peak      in startup 	    145784	kB
-Memory free      at startup 	 259205660	kB
-Memory available at startup 	 264038568	kB
+CPU:  setup time               time was	  0.3955	s
+Memory used      in startup 	    157040	kB
+Memory peak      in startup 	    158076	kB
+Memory free      at startup 	 259452468	kB
+Memory available at startup 	 264038520	kB
 Iteration   0 timestep      n/a Sim Time      0.0 cells 19920 Mass Sum  171756.675298
 Iteration 100 timestep 0.000054 Sim Time 0.007157 cells 24240 Mass Sum  171756.675298 Mass Change            0
 Iteration 200 timestep 0.000051 Sim Time 0.012390 cells 26364 Mass Sum  171756.675298 Mass Change            0
@@ -39,17 +39,17 @@ Iteration 2700 timestep 0.000065 Sim Time 0.155222 cells 28728 Mass Sum  171756.
 Iteration 2800 timestep 0.000066 Sim Time 0.161778 cells 28884 Mass Sum  171756.675298 Mass Change -5.82077e-11
 Iteration 2900 timestep 0.000067 Sim Time 0.168432 cells 28752 Mass Sum  171756.675298 Mass Change -5.82077e-11
 Iteration 3000 timestep 0.000068 Sim Time 0.175186 cells 28584 Mass Sum  171756.675298 Mass Change -5.82077e-11
-Memory used      144796 kB
-Memory peak      145784 kB
-Memory free      259208908 kB
-Memory available 264038568 kB
+Memory used      157216 kB
+Memory peak      158076 kB
+Memory free      259455104 kB
+Memory available 264038520 kB
 
 ~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
 GPU: Write to device          time was	  0.0000	s
 GPU: Read from device         time was	  0.0000	s
-GPU: Device compute           time was	  4.0691	s
-GPU:   state_timer_set_timestep      		    0.2247	s
-GPU:   state_timer_finite_difference 		    1.1998	s
+GPU: Device compute           time was	  3.8656	s
+GPU:   state_timer_set_timestep      		    0.2060	s
+GPU:   state_timer_finite_difference 		    1.1865	s
 GPU:     state_timer_finite_diff_part1 		      0.0000	s
 GPU:     state_timer_finite_diff_part2 		      0.0000	s
 GPU:     state_timer_finite_diff_part3 		      0.0000	s
@@ -69,25 +69,25 @@ GPU:       mesh_timer_bidirpart9         		        0.0000	s
 GPU:       mesh_timer_bidirpart10        		        0.0000	s
 GPU:       mesh_timer_bidirpart11        		        0.0000	s
 GPU:       mesh_timer_bidirpart12        		        0.0000	s
-GPU:   state_timer_refine_potential  		    1.1218	s
-GPU:     state_timer_calc_mpot         		      0.4002	s
-GPU:     mesh_timer_refine_smooth      		      0.7209	s
-GPU:   state_timer_rezone_all        		    0.8373	s
+GPU:   state_timer_refine_potential  		    1.0473	s
+GPU:     state_timer_calc_mpot         		      0.3733	s
+GPU:     mesh_timer_refine_smooth      		      0.6734	s
+GPU:   state_timer_rezone_all        		    0.7519	s
 GPU:   mesh_timer_partition          		    0.0000	s
-GPU:   mesh_timer_calc_neighbors     		    0.6827	s
-GPU:     mesh_timer_hash_setup         		      0.3786	s
-GPU:     mesh_timer_hash_query         		      0.3038	s
-GPU:   state_timer_mass_sum          		    0.0028	s
+GPU:   mesh_timer_calc_neighbors     		    0.6714	s
+GPU:     mesh_timer_hash_setup         		      0.3700	s
+GPU:     mesh_timer_hash_query         		      0.3011	s
+GPU:   state_timer_mass_sum          		    0.0025	s
 GPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
 =============================================================
-Profiling: Total GPU          time was	  4.0691	s
+Profiling: Total GPU          time was	  3.8656	s
 -------------------------------------------------------------
-Mesh Ops (Neigh+rezone+smooth+balance) 	  2.2410	s
-Mesh Ops Percentage                    	 55.0730	percent
+Mesh Ops (Neigh+rezone+smooth+balance) 	  2.0967	s
+Mesh Ops Percentage                    	 54.2397	percent
 =============================================================
-Profiling: Total              time was	  4.0706	s
+Profiling: Total              time was	  3.8671	s
 =============================================================
-CPU:  calculation only         time was	  4.0678	s
+CPU:  calculation only         time was	  3.8645	s
 GPU:  graphics                 time was	  0.0000	s
 Using hash tables to calculate neighbors
 hash table size  bytes 686016

@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
 
    mesh->calc_spatial_coordinates(0);
 
-   state->fill_circle(circ_radius, 100.0, 7.0);
+   state->fill_circle(circ_radius, 80.0, 10.0);
 
    state->allocate_device_memory(ncells);
 

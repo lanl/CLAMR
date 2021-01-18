@@ -23,18 +23,26 @@ TEST_NAME="${TEST_NAME}_$PRECISION_TYPE"
 mkdir -p "${TEST_DIR}"
 cd "${TEST_DIR}"
 
-ln -s ${CLAMR_BIN}/clamr_gpuonly
+ln -s ${CLAMR_BIN}/clamr_openmponly
 ln -s ${CTS_BIN}/compare_stdout.pl
 ln -s ${CTS_BIN}/cts_diff.pl
 
 set -ex
 
-./clamr_gpuonly -n 128 -i 100 -t 2400 >& ${TEST_NAME}_run1.out
+./clamr_openmponly -n 128 -i 100 -t 3000 >& ${TEST_NAME}_run1.out
 ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
 
-./clamr_gpuonly -n 128 -l 4 -i 100 -t 3000 >& ${TEST_NAME}_run2.out
+./clamr_openmponly -n 128 -l 4 -i 100 -t 3000 >& ${TEST_NAME}_run2.out
 ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run2.gold ${TEST_NAME}_run2.out
 
-./clamr_gpuonly -n 256 -i 100 -t 3000 >& ${TEST_NAME}_run3.out
+./clamr_openmponly -n 256 -i 100 -t 3000 >& ${TEST_NAME}_run3.out
 ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run3.gold ${TEST_NAME}_run3.out
+
+./clamr_openmponly -A "face-in-place" -f -n 128 -i 1 -t 4835 -l 2 >& ${TEST_NAME}_run4.out
+./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run4.gold ${TEST_NAME}_run4.out
+
+export OMP_NUM_THREADS=4
+./clamr_openmponly -n 128 -i 100 -t 3000 >& ${TEST_NAME}_run5.out
+./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run1.gold ${TEST_NAME}_run5.out
+
 

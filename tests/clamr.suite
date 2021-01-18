@@ -1,3 +1,4 @@
+asymmetric   4  0:30
 n128lev1     4  0:30
 n128lev4     4  0:30
 n256lev1     4  0:30
@@ -12,4 +13,3 @@ mpionly      4  0:30
 mpiopenmp    4  0:30
 openmponly   1  0:30
 restart      4  0:30
-#cellinplace  1  0:30

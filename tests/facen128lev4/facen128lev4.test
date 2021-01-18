@@ -47,7 +47,7 @@ grep "Profiling: Total   " ${TEST_NAME}_gpu.out > timers_gpu.out
 # clamr hybrid
 #mpirun -n 2 ./clamr -f -n 128 -l 4 -i 100 -t 3000 >& ${TEST_NAME}_hybrid.out
 #grep "Profiling: Total   " ${TEST_NAME}_hybrid.out > timers_hybrid.out
-#./compare_stdout.pl 0.0 ${TEST_NAME}.gold ${TEST_NAME}_hybrid.out
+#./compare_stdout.pl 0.0 ${TEST_NAME}_serial.out ${TEST_NAME}_hybrid.out
 
 # Compute the speedup for hybrid mpi and gpu
 #./compute_speedup.pl 4 mpigpu timers_serial.out timers_hybrid.out

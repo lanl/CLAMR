@@ -3,11 +3,11 @@ Finishing compile of kernels in mesh
 Starting compile of kernels in state
 Finishing compile of kernels in state
 Mass of initialized cells equal to  171748.524709
-CPU:  setup time               time was	  0.4016	s
-Memory used      in startup 	    144096	kB
-Memory peak      in startup 	    144996	kB
-Memory free      at startup 	 259213312	kB
-Memory available at startup 	 264038568	kB
+CPU:  setup time               time was	  0.2786	s
+Memory used      in startup 	    171872	kB
+Memory peak      in startup 	    181712	kB
+Memory free      at startup 	 128163800	kB
+Memory available at startup 	 131923860	kB
 Iteration   0 timestep      n/a Sim Time      0.0 cells 17028 Mass Sum  171748.524709
 Iteration 100 timestep 0.000440 Sim Time 0.058026 cells 17484 Mass Sum  171748.524709 Mass Change            0
 Iteration 200 timestep 0.000444 Sim Time 0.102446 cells 17724 Mass Sum  171748.524709 Mass Change            0
@@ -33,23 +33,17 @@ Iteration 2100 timestep 0.002505 Sim Time 2.315232 cells 20340 Mass Sum  171748.
 Iteration 2200 timestep 0.002708 Sim Time 2.576132 cells 20112 Mass Sum  171748.524709 Mass Change -1.16415e-10
 Iteration 2300 timestep 0.003041 Sim Time 2.863316 cells 19656 Mass Sum  171748.524709 Mass Change -1.16415e-10
 Iteration 2400 timestep 0.003318 Sim Time 3.181417 cells 19524 Mass Sum  171748.524709 Mass Change -1.16415e-10
-Iteration 2500 timestep 0.003800 Sim Time 3.536115 cells 19560 Mass Sum  171748.524709 Mass Change -1.16415e-10
-Iteration 2600 timestep 0.004190 Sim Time 3.938242 cells 19856 Mass Sum  171748.524709 Mass Change -1.16415e-10
-Iteration 2700 timestep 0.004282 Sim Time 4.370242 cells 20308 Mass Sum  171748.524709 Mass Change -1.16415e-10
-Iteration 2800 timestep 0.003893 Sim Time 4.778392 cells 20324 Mass Sum  171748.524709 Mass Change -1.16415e-10
-Iteration 2900 timestep 0.003819 Sim Time 5.162613 cells 20544 Mass Sum  171748.524709 Mass Change -1.16415e-10
-Iteration 3000 timestep 0.003721 Sim Time 5.538895 cells 20140 Mass Sum  171748.524709 Mass Change -1.16415e-10
-Memory used      144224 kB
-Memory peak      144996 kB
-Memory free      259213812 kB
-Memory available 264038568 kB
+Memory used      171908 kB
+Memory peak      181712 kB
+Memory free      128163328 kB
+Memory available 131923860 kB
 
 ~~~~~~~~~~~~~~~~ Device timing information ~~~~~~~~~~~~~~~~~~
 GPU: Write to device          time was	  0.0000	s
 GPU: Read from device         time was	  0.0000	s
-GPU: Device compute           time was	  3.3152	s
-GPU:   state_timer_set_timestep      		    0.1981	s
-GPU:   state_timer_finite_difference 		    0.9062	s
+GPU: Device compute           time was	  1.3205	s
+GPU:   state_timer_set_timestep      		    0.0888	s
+GPU:   state_timer_finite_difference 		    0.2453	s
 GPU:     state_timer_finite_diff_part1 		      0.0000	s
 GPU:     state_timer_finite_diff_part2 		      0.0000	s
 GPU:     state_timer_finite_diff_part3 		      0.0000	s
@@ -69,29 +63,29 @@ GPU:       mesh_timer_bidirpart9         		        0.0000	s
 GPU:       mesh_timer_bidirpart10        		        0.0000	s
 GPU:       mesh_timer_bidirpart11        		        0.0000	s
 GPU:       mesh_timer_bidirpart12        		        0.0000	s
-GPU:   state_timer_refine_potential  		    0.8238	s
-GPU:     state_timer_calc_mpot         		      0.3548	s
-GPU:     mesh_timer_refine_smooth      		      0.4684	s
-GPU:   state_timer_rezone_all        		    0.7064	s
+GPU:   state_timer_refine_potential  		    0.3693	s
+GPU:     state_timer_calc_mpot         		      0.1434	s
+GPU:     mesh_timer_refine_smooth      		      0.2254	s
+GPU:   state_timer_rezone_all        		    0.3483	s
 GPU:   mesh_timer_partition          		    0.0000	s
-GPU:   mesh_timer_calc_neighbors     		    0.6782	s
-GPU:     mesh_timer_hash_setup         		      0.4021	s
-GPU:     mesh_timer_hash_query         		      0.2758	s
-GPU:   state_timer_mass_sum          		    0.0025	s
+GPU:   mesh_timer_calc_neighbors     		    0.2676	s
+GPU:     mesh_timer_hash_setup         		      0.1626	s
+GPU:     mesh_timer_hash_query         		      0.1049	s
+GPU:   state_timer_mass_sum          		    0.0012	s
 GPU:   mesh_timer_calc_spatial_coordi		    0.0000	s
 =============================================================
-Profiling: Total GPU          time was	  3.3152	s
+Profiling: Total GPU          time was	  1.3205	s
 -------------------------------------------------------------
-Mesh Ops (Neigh+rezone+smooth+balance) 	  1.8530	s
-Mesh Ops Percentage                    	 55.8942	percent
+Mesh Ops (Neigh+rezone+smooth+balance) 	  0.8413	s
+Mesh Ops Percentage                    	 63.7118	percent
 =============================================================
-Profiling: Total              time was	  3.3167	s
+Profiling: Total              time was	  1.3218	s
 =============================================================
-CPU:  calculation only         time was	  3.3141	s
+CPU:  calculation only         time was	  1.3205	s
 GPU:  graphics                 time was	  0.0000	s
 Using hash tables to calculate neighbors
 hash table size  bytes 1081600
 Initial order is Hilbert sort.   No cycle reorder.   Local Stencil is on.
-GPU:  rezone frequency                	  66.6000	percent
-GPU:  calc neigh frequency            	  66.6333	percent
+GPU:  rezone frequency                	  58.3750	percent
+GPU:  calc neigh frequency            	  58.4167	percent
 GPU:  refine_smooth_iter per rezone   	   0.0000	

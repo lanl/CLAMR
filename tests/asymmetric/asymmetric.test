@@ -1,0 +1,20 @@
+# This sets the internal test name to the directory name that
+# contains this file
+set TEST_NAME=`basename $PWD`
+
+set TEST_NAME="${TEST_NAME}${PRECISION_TYPE}"
+
+# First test is to see if the serial run is getting the same result
+# as the gold standard
+./clamr_cpuonly -t 2800 >& ${TEST_NAME}_serial.out
+grep "Profiling: Total   " ${TEST_NAME}_serial.out > timers_serial.out
+./compare_stdout.pl 0.0 ${TEST_NAME}.gold ${TEST_NAME}_serial.out
+
+# Next test is to see if 4 processor run gets the same
+# result as the serial run
+mpirun -n 6 ./clamr_mpionly -t 2800 >& ${TEST_NAME}_parallel.out
+grep "Profiling: Total   " ${TEST_NAME}_parallel.out > timers_parallel.out
+./compare_stdout.pl 0.0 ${TEST_NAME}_serial.out ${TEST_NAME}_parallel.out
+
+# Compute the speedup for mpi
+./compute_speedup.pl 4 mpi timers_serial.out timers_parallel.out

@@ -2965,7 +2965,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<char_t> mpot, int have_stat
    mesh_memory.memory_swap(&i,     &i_old);
    mesh_memory.memory_swap(&j,     &j_old);
    mesh_memory.memory_swap(&level, &level_old);
-   // if (ncells >= 192) printf("%d\n", level_old[192]);
 
    index.clear();
    // allocate to ncells (oldsize) because index is a map from old cells to new cells
@@ -3389,7 +3388,6 @@ void Mesh::rezone_all(int icount, int jcount, vector<char_t> mpot, int have_stat
    vector<int>  invorder(4, -1); //  Vector mapping location from base index.
       int nc = new_ic[ic];
           //if (new_ic[ic] == 284) printf("%d\n", ic);
-        //if (ic == 192) printf("nc %d mpot %d\n", nc, mpot[192]);
       if (mpot[ic] == 0)
       {  //  No change is needed; copy the old cell straight to the new mesh at this location.
          index[ic] = nc;
@@ -8384,8 +8382,6 @@ void Mesh::calc_celltype_threaded(size_t ncells)
 #endif
    for (uint ic=0; ic<ncells; ++ic) {
       celltype[ic] = REAL_CELL;
-      //if (ic == 192) printf("%d %d\n", level[ic], lev_ibegin[level[ic]]);
-      //printf("%d i size %d level size %d levibegin size %d celltype size %d\n", ic, mesh_memory.get_memory_size(i), mesh_memory.get_memory_size(level), lev_ibegin.size(), mesh_memory.get_memory_size(celltype));
       if (is_left_boundary(ic) )   celltype[ic] = LEFT_BOUNDARY;
       if (is_right_boundary(ic) )  celltype[ic] = RIGHT_BOUNDARY;
       if (is_bottom_boundary(ic) ) celltype[ic] = BOTTOM_BOUNDARY;
@@ -11002,7 +10998,6 @@ void Mesh::calc_face_list_wbidirmap_phantom(MallocPlus &state_memory, double del
       if (nr == nz) continue;
 
       int ifactor = 1;
-      printf("DEBUG -- nr %d nz %d\n",nr,nz);
       if (level[nr] < level[nz]) ifactor = 2;
 
       // Have right face
@@ -12092,10 +12087,6 @@ void Mesh::calc_face_list_wbidirmap(void)
     }
     nxface = xfaceCnt;
     nyface = yfaceCnt;
-    //printf("[%d] %d %d %d\n", mype, ncells_ghost, nxface, nyface);
-    //for (int ic = 0; ic < ncells_ghost; ic++) {
-        //if (mype == 0) printf("[%d] (%d) %d %d %d %d %d\n", mype, ic, (ic < ncells), nlft[ic], nrht[ic], nbot[ic], ntop[ic]);
-    //}
 
     // realloc memory based on new counts
 
@@ -12263,7 +12254,6 @@ void Mesh::calc_face_list_wbidirmap(void)
 
 
    iface=0;
-   //printf("\n\n%d %d\n\n", ncells, ncells_ghost);
    for (int nz=0; nz<(int)ncells; nz++){
       int nt = ntop[nz];
 #ifdef HAVE_MPI
@@ -12323,7 +12313,6 @@ void Mesh::calc_face_list_wbidirmap(void)
       //if (nz == 3) printf("%d %d\n", map_ycell2face_top1[nb], map_ycell2face_top2[nb]);
 
       if (level[nb] < level[nz] && is_upper(i[nz]) && nlft[nz] != nz){
-           // printf("%d here\n", nz);
          map_ycell2face_bot1[nz] = map_ycell2face_top2[nb];
 
       } else {
@@ -12338,12 +12327,6 @@ void Mesh::calc_face_list_wbidirmap(void)
           map_ycell2face_top1[nz] = map_ycell2face_bot1[nz];
    }
 
-
-// if (mype == 1) {
-// for (int ic = 0; ic < ncells; ic++) {
-//     printf("%d) %d %d %d %d %d %d %d %d\n", ic, nlft[ic], nrht[ic], nbot[ic], ntop[ic], map_xcell2face_left1[ic], map_xcell2face_right1[ic], map_ycell2face_bot1[ic], map_ycell2face_top1[ic]);
-// }
-// }
 
 
    cpu_timers[MESH_TIMER_BIDIRPART3] += cpu_timer_stop(tstart_cpu_part);
@@ -15212,7 +15195,6 @@ void scan ( scanInt *input , scanInt *output , scanInt length)
        output[start] = 0;
        for ( scanInt i = start + 1 ; i < end ; i++ ) {
           output[i] = output[i-1] + input[i-1];
-        //printf("%d) %d %d %d\n", i, output[i], output[i-1], input[i-1]);
         }
    }
     
@@ -15244,7 +15226,6 @@ void scan ( scanInt *input , scanInt *output , scanInt length)
     
 #pragma omp simd
    for ( scanInt i = start + 1 ; i < end ; i++ ) {
-        //printf("%d) %d %d %d\n", i, output[i], output[i]+output[start], end);
       output[i] += output[start];
            //if (output[i] == 284) printf("%d\n", i);
     }
@@ -15253,7 +15234,6 @@ void scan ( scanInt *input , scanInt *output , scanInt length)
    output[0] = 0;
    for (int ic = 0; ic < length; ic++){
       output[ic+1] = output[ic] + input[ic];
-        //printf("%d) %d %d %d\n", ic, output[ic+1], output[ic], input[ic]);
    }
 #endif
 }

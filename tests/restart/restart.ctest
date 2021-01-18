@@ -13,6 +13,9 @@ CLAMR_BIN=`dirname ${PWD}`
 if [ -d "${TEST_DIR}" ]; then
    rm -rf "${TEST_DIR}"
 fi
+
+TEST_NAME="${TEST_NAME}_$PRECISION_TYPE"
+
 mkdir -p "${TEST_DIR}"
 cd "${TEST_DIR}"
 

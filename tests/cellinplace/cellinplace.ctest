@@ -34,10 +34,9 @@ set -ex
 #fi
 
 
-
-./clamr_cpuonly -A "cell-in-place" -n 128 -i 1 -t 1078 -l 2 >& ${TEST_NAME}_run1.out
-./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
-
-./clamr_cpuonly -A "cell-in-place" -n 128 -i 1 -t 3000 -l 2 >& ${TEST_NAME}_run2.out
-./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run2.gold ${TEST_NAME}_run2.out
+#./clamr_cpuonly -A "cell-in-place" -n 128 -i 1 -t 1078 -l 2 >& ${TEST_NAME}_run1.out
+#./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
+#
+#./clamr_cpuonly -A "cell-in-place" -n 128 -i 1 -t 3000 -l 2 >& ${TEST_NAME}_run2.out
+#./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run2.gold ${TEST_NAME}_run2.out
 

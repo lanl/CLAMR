@@ -29,7 +29,7 @@ ln -s ${CTS_BIN}/cts_diff.pl
 
 set -ex
 
-./clamr_gpucheck -n 128 -i 100 -t 2800 >& ${TEST_NAME}_run1.out
+./clamr_gpucheck -n 128 -i 100 -t 2400 >& ${TEST_NAME}_run1.out
 ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
 
 ./clamr_gpucheck -n 128 -l 4 -i 100 -t 3000 >& ${TEST_NAME}_run2.out

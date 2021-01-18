@@ -82,7 +82,7 @@ if [ "${HAVE_MPI}x" = "1x" -a "${HAVE_OPENMP}x" = "1x" ]; then
   export OMP_NUM_THREADS=2
   mpirun -n 2 ./clamr_mpiopenmponly -n 256 -i 100 -t 1500 >& ${TEST_NAME}_mpiopenmp.out
   grep "Profiling: Total   " ${TEST_NAME}_mpiopenmp.out > timers_mpiopenmp.out
-  ./compare_stdout.pl 0.0 ${TEST_NAME}_serial.out ${TEST_NAME}_mpiopenmp.out
+  ./compare_stdout.pl 0.0 ${TEST_NAME}_parallel.out ${TEST_NAME}_mpiopenmp.out
 
   # Compute the speedup for hybrid mpi and openmp
   ./compute_speedup.pl 4 mpiopenmp timers_serial.out timers_mpiopenmp.out
@@ -99,12 +99,12 @@ if [ "${HAVE_OPENCL}x" = "1x" ]; then
   ./compute_speedup.pl 4 gpu timers_serial.out timers_gpu.out
 fi
 
-if [ "${HAVE_MPI}x" = "1x" -a "${HAVE_OPENCL}x" = "1x" ]; then
-  # clamr hybrid
-  mpirun -n 2 ./clamr -n 256 -i 100 -t 1500 >& ${TEST_NAME}_hybrid.out
-  grep "Profiling: Total   " ${TEST_NAME}_hybrid.out > timers_hybrid.out
-  ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}.gold ${TEST_NAME}_hybrid.out
-
-  # Compute the speedup for hybrid mpi and gpu
-  ./compute_speedup.pl 4 mpigpu timers_serial.out timers_hybrid.out
-fi
+#if [ "${HAVE_MPI}x" = "1x" -a "${HAVE_OPENCL}x" = "1x" ]; then
+#  # clamr hybrid
+#  mpirun -n 2 ./clamr -n 256 -i 100 -t 1500 >& ${TEST_NAME}_hybrid.out
+#  grep "Profiling: Total   " ${TEST_NAME}_hybrid.out > timers_hybrid.out
+#  ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_serial.out ${TEST_NAME}_hybrid.out
+#
+#  # Compute the speedup for hybrid mpi and gpu
+#  ./compute_speedup.pl 4 mpigpu timers_serial.out timers_hybrid.out
+#fi
