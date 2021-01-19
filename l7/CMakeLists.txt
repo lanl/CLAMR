@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 
-project (L7)
+project (L7 C)
 # The version number.
 set (L7_VERSION_MAJOR 2)
 set (L7_VERSION_MINOR 0.7)
@@ -24,41 +24,55 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 set (CMAKE_C_STANDARD 99)
 
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
+string(REPLACE -O2 -O3 CMAKE_C_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g")
+string(REPLACE -O2 -O3 CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_CXX_FLAGS_RELWITHDEBINFO})
+
+if (CMAKE_BUILD_TYPE MATCHES "DEBUG")
+    set( CMAKE_VECTOR_NOVEC TRUE)
+endif (CMAKE_BUILD_TYPE MATCHES "DEBUG")
+
+
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
    # using Clang
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
    # using GCC
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -vecabi=cmdtarget")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 elseif (CMAKE_C_COMPILER_ID MATCHES "PGI")
 elseif (CMAKE_C_COMPILER_ID MATCHES "Cray")
 elseif (CMAKE_C_COMPILER_ID MATCHES "XL")
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 endif()
 
 if (NOT DEFINED VECTOR_C_FLAGS)
    find_package(Vector)
    if (CMAKE_VECTOR_VERBOSE)
        set(VECTOR_C_FLAGS "${VECTOR_C_FLAGS} ${VECTOR_C_VERBOSE}")
-       set(VECTOR_CXX_FLAGS "${VECTOR_CXX_FLAGS} ${VECTOR_CXX_VERBOSE}")
    endif (CMAKE_VECTOR_VERBOSE)
    if (CMAKE_VECTOR_NOVEC)
        set(VECTOR_C_FLAGS "${VECTOR_NOVEC_C_FLAGS}")
-       set(VECTOR_CXX_FLAGS "${VECTOR_NOVEC_CXX_FLAGS}")
    endif (CMAKE_VECTOR_NOVEC)
 endif()
+
+set(H_SRCS l7.h l7_assert.h l7p.h)
+
+set(C_SRCS
+      l7p_sizeof.c      l7_terminate.c      l7_init.c        l7_update.c 
+      l7_free.c         l7p_set_database.c  l7_setup.c       l7_push_setup.c
+      l7_push_update.c  l7_push_free.c      l7_dev_update.c  l7_dev_setup.c
+      l7_dev_free.c     l7_utils.c          l7_reduction.c   l7_broadcast.c
+      l7p_mpi_type.c
+)
+
+set_source_files_properties(C_SRCS PROPERTIES COMPILE_FLAGS "${VECTOR_C_FLAGS}")
 
 if (NOT DEFINED OpenCL_FOUND)
    if (NOT APPLE OR DARWIN_VERSION LESS 18)
@@ -82,6 +96,7 @@ if (NOT DEFINED MPI_FOUND)
 endif (NOT DEFINED MPI_FOUND)
 if (MPI_FOUND)
    include_directories(${MPI_INCLUDE_PATH})
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_MPI=1")
 endif (MPI_FOUND)
 
 if (NOT DEFINED OPENMP_FOUND)
@@ -91,19 +106,6 @@ endif (NOT DEFINED OPENMP_FOUND)
 enable_testing()
 
 add_subdirectory(tests)
-
-########### global settings ###############
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_MPI=1")
-
-set(H_SRCS l7.h l7_assert.h l7p.h)
-
-set(C_SRCS
-      l7p_sizeof.c      l7_terminate.c      l7_init.c        l7_update.c 
-      l7_free.c         l7p_set_database.c  l7_setup.c       l7_push_setup.c
-      l7_push_update.c  l7_push_free.c      l7_dev_update.c  l7_dev_setup.c
-      l7_dev_free.c     l7_utils.c          l7_reduction.c   l7_broadcast.c
-      l7p_mpi_type.c
-)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 

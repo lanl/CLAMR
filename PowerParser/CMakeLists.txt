@@ -1,12 +1,10 @@
 cmake_minimum_required(VERSION 2.6)
 
-project (POWERPARSER)
+project (POWERPARSER CXX C Fortran)
 # The version number.
 set (POWERPARSER_VERSION_MAJOR 2)
 set (POWERPARSER_VERSION_MINOR 0.7)
 set (POWERPARSER_VERSION "${POWERPARSER_VERSION_MAJOR}.${POWERPARSER_VERSION_MINOR}")
-
-enable_language (Fortran)
 
 #  FFLAGS depend on the compiler
 get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
@@ -24,63 +22,58 @@ if (NOT CMAKE_BUILD_TYPE)
    #set(CMAKE_BUILD_TYPE RelWithDebInfo)
    set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
+string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
 
 # uncomment to build debug
 #set(CMAKE_BUILD_TYPE Debug)
 
 set (CMAKE_C_STANDARD 99)
 
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
+string(REPLACE -O2 -O3 CMAKE_C_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g")
+string(REPLACE -O2 -O3 CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_CXX_FLAGS_RELWITHDEBINFO})
+set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0")
+set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -g")
+string(REPLACE -O2 -O3 CMAKE_Fortran_FLAGS_RELWITHDEBINFO ${CMAKE_Fortran_FLAGS_RELWITHDEBINFO})
+
+if (CMAKE_BUILD_TYPE MATCHES "DEBUG")
+    set( CMAKE_VECTOR_NOVEC TRUE)
+endif (CMAKE_BUILD_TYPE MATCHES "DEBUG")
+
+
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
    # using Clang
-   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
+   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
    # using GCC
-   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
+   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C++
-   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3 -vecabi=cmdtarget")
+   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "PGI")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Cray")
-   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
-   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "XL")
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
-   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
 endif()
 
 if (CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
 # set (CMAKE_Fortran_FLAGS "-cpp")
-  set (CMAKE_Fortran_FLAGS_RELEASE "-O3")
-  set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
 elseif (CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
 # set (CMAKE_Fortran_FLAGS "-fpp -f77rtl")
   set (CMAKE_Fortran_FLAGS "-f77rtl")
-  set (CMAKE_Fortran_FLAGS_RELEASE " -O3")
-  set (CMAKE_Fortran_FLAGS_DEBUG   " -O0 -g")
 elseif (CMAKE_Fortran_COMPILER_ID MATCHES "PGI")
 # set (CMAKE_Fortran_FLAGS "-cpp")
-  set (CMAKE_Fortran_FLAGS_RELEASE "-O3")
-  set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
 elseif (CMAKE_Fortran_COMPILER_ID MATCHES "Cray")
 # set (CMAKE_Fortran_FLAGS "-cpp")
-  set (CMAKE_Fortran_FLAGS_RELEASE "-O3")
-  set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
 elseif (CMAKE_Fortran_COMPILER_ID MATCHES "XL")
   set (CMAKE_Fortran_FLAGS "-qextname")
-  set (CMAKE_Fortran_FLAGS_RELEASE "-O3")
-  set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
 else ()
   message ("CMAKE_Fortran_COMPILER full path: " ${CMAKE_Fortran_COMPILER})
   message ("Fortran compiler: ${Fortran_COMPILER_NAME} ${CMAKE_Fortran_COMPILER_ID}")
-  message ("No optimized Fortran compiler flags are known, we just try -O2...")
-  set (CMAKE_Fortran_FLAGS_RELEASE "-O2")
-  set (CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
 endif ()
 
 if(NOT KOKKOS_ENABLE)
@@ -97,6 +90,21 @@ if(NOT KOKKOS_ENABLE)
    endif (CMAKE_VECTOR_NOVEC)
 endif(NOT KOKKOS_ENABLE)
 
+set(H_SRCS   Cmd.hh   Function.hh    Parser_utils.hh  Variable.hh      Word.hh
+             Comm.hh  PowerParser.hh Parser_math.hh   Restartblock.hh  Whenthen.hh)
+
+set(CXX_SRCS Cmd.cc   Function.cc    Parser_utils.cc  Variable.cc      Word.cc
+             Comm.cc  PowerParser.cc Parser_math.cc   Restartblock.cc  Whenthen.cc)
+
+#if(DEFINED ENV{FC})
+   set(H_SRCS ${H_SRCS} parser_iface.hh)
+   set(CXX_SRCS ${CXX_SRCS} parser_iface.cc)
+   set(F90_SRCS FParser.F90)
+#endif(DEFINED ENV{FC})
+
+set_source_files_properties(CXX_SRCS PROPERTIES COMPILE_FLAGS "${VECTOR_CXX_FLAGS}")
+set_source_files_properties(F90_SRCS PROPERTIES COMPILE_FLAGS "${VECTOR_Fortran_FLAGS}")
+
 if (NOT DEFINED MPI_FOUND)
    find_package(MPI)
 endif (NOT DEFINED MPI_FOUND)
@@ -111,17 +119,6 @@ enable_testing()
 add_subdirectory(tests)
 
 ########### global settings ###############
-set(H_SRCS   Cmd.hh   Function.hh    Parser_utils.hh  Variable.hh      Word.hh
-             Comm.hh  PowerParser.hh Parser_math.hh   Restartblock.hh  Whenthen.hh)
-
-set(CXX_SRCS Cmd.cc   Function.cc    Parser_utils.cc  Variable.cc      Word.cc
-             Comm.cc  PowerParser.cc Parser_math.cc   Restartblock.cc  Whenthen.cc)
-
-#if(DEFINED ENV{FC})
-   set(H_SRCS ${H_SRCS} parser_iface.hh)
-   set(CXX_SRCS ${CXX_SRCS} parser_iface.cc)
-   set(F90_SRCS FParser.F90)
-#endif(DEFINED ENV{FC})
 
 set(DOC_SRCS docs/index.rst docs/About.rst docs/GettingStarted.rst
              docs/DevelopersGuide.rst docs/UsersGuide.rst)
