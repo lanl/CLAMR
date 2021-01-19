@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.1.3)
 
-project (TIMER)
+project (TIMER C)
 # The version number.
 set (TIMER_VERSION_MAJOR 2)
 set (TIMER_VERSION_MINOR 0.7)
@@ -25,43 +25,23 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 set (CMAKE_C_STANDARD 99)
 
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
+string(REPLACE -O2 -O3 CMAKE_C_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
    # using Clang
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize")
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
    # using GCC
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -fstrict-aliasing -ftree-vectorize")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fopt-info-vec-optimized")
-   if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER "4.9")
-     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fopenmp-simd")
-   endif ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER "4.9")
-   if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
-     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -march=native -mtune=native")
-   elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "ppc64le")
-     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -mcpu=powerpc64le")
-   else ()
-     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-   endif ()
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -ansi-alias -vecabi=cmdtarget -xHost -qopenmp-simd -qopt-report=5 -qopt-report-phase=vec,loop")
-   if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
-     set(CMAKE_C_FLAGS_RELEASE "-qopt-zmm-usage=high ${CMAKE_C_FLAGS_RELEASE}")
-   endif ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER "17.0.4")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 elseif (CMAKE_C_COMPILER_ID MATCHES "PGI")
 elseif (CMAKE_C_COMPILER_ID MATCHES "Cray")
 elseif (CMAKE_C_COMPILER_ID MATCHES "XL")
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 endif()
 
 ########### global settings ###############
