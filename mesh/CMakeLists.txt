@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.1.3)
+CMake_minimum_required(VERSION 3.1.3)
 
-project (MESH)
+project (MESH CXX C)
 # The version number.
 set (MESH_VERSION_MAJOR 2)
 set (MESH_VERSION_MINOR 0.7)
@@ -19,58 +19,51 @@ if (NOT CMAKE_BUILD_TYPE)
    #set(CMAKE_BUILD_TYPE RelWithDebInfo)
    set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
-
-# uncomment to build debug
-#set(CMAKE_BUILD_TYPE Debug)
+string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
 
 set (CMAKE_C_STANDARD 99)
 
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g")
+string(REPLACE -O2 -O3 CMAKE_C_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g")
+string(REPLACE -O2 -O3 CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_CXX_FLAGS_RELWITHDEBINFO})
+
+if (CMAKE_BUILD_TYPE MATCHES "DEBUG")
+    set( CMAKE_VECTOR_NOVEC TRUE)
+endif (CMAKE_BUILD_TYPE MATCHES "DEBUG")
+
 if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
    # using Clang
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
    # using GCC
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -vecabi=cmdtarget")
+   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 elseif (CMAKE_C_COMPILER_ID MATCHES "PGI")
 elseif (CMAKE_C_COMPILER_ID MATCHES "Cray")
 elseif (CMAKE_C_COMPILER_ID MATCHES "XL")
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
-   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3")
 endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
    # using Clang
-   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
+   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
    # using GCC
-   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
+   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
    # using Intel C++
-   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g -O0 -Wextra")
-   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
+   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
    # using Visual Studio C++
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "PGI")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Cray")
-   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
-   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "XL")
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
-   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3")
 endif()
 
 if (NOT DEFINED VECTOR_C_FLAGS)
@@ -85,6 +78,14 @@ if (NOT DEFINED VECTOR_C_FLAGS)
    endif (CMAKE_VECTOR_NOVEC)
 endif()
 
+set(H_SRCS mesh.h partition.h reduce.h)
+
+set(CXX_SRCS mesh.cpp partition.cpp)
+
+set(C_SRCS reduce.c)
+
+set_source_files_properties(${CXX_SRCS} PROPERTIES COMPILE_FLAGS "${VECTOR_CXX_FLAGS}")
+set_source_files_properties(${C_SRCS} PROPERTIES COMPILE_FLAGS "${VECTOR_C_FLAGS}")
 
 include_directories(${PROJECT_SOURCE_DIR})
 
@@ -147,12 +148,6 @@ add_subdirectory(zorder)
 add_subdirectory(tests)
 
 ########### global settings ###############
-
-set(H_SRCS mesh.h partition.h reduce.h)
-
-set(CXX_SRCS mesh.cpp partition.cpp)
-
-set(C_SRCS reduce.c)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
