@@ -606,6 +606,7 @@ void MallocPlus::memory_reorder_all(int *iorder){
 
    for ( it_old=memory_ptr_dict_old.begin(); it_old != memory_ptr_dict_old.end(); it_old++){
       malloc_plus_memory_entry *memory_item_old = it_old->second;
+      if (memory_item_old->mem_nelem[0] == 1) continue;
 
       map <void *, malloc_plus_memory_entry*>::iterator it = memory_ptr_dict.find(memory_item_old->mem_ptr);
       malloc_plus_memory_entry *memory_item = it_old->second;

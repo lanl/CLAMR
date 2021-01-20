@@ -4,6 +4,7 @@ set(C_SRCS zorder.c)
 
 set(zorder_LIB_SRCS ${C_SRCS} ${H_SRCS})
 
+set_source_files_properties(${C_SRCS} PROPERTIES COMPILE_FLAGS "${VECTOR_C_FLAGS}")
 ########### zorder target ###############
 add_library(zorder SHARED ${zorder_LIB_SRCS})
 
@@ -14,22 +15,3 @@ install(TARGETS zorder DESTINATION lib)
 ########### install files ###############
 
 #install(FILES  zorder.h DESTINATION include)
-
-#========== original Makefile.am contents follow ===========
-
-#default: libzorder.la
-#all: libzorder.la
-#
-#AM_MAKEFLAGS = -j 4
-#
-#DEFAULT_INCLUDES=-I. -I..
-#
-#lib_LTLIBRARIES = libzorder.la
-#include_HEADERS = zorder.h
-#
-#H_SRCS = zorder.h
-#
-#C_SRCS = zorder.c
-#
-#libzorder_la_SOURCES = ${C_SRCS} ${H_SRCS}
-#
