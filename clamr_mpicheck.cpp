@@ -95,6 +95,8 @@ static int do_comparison_calc = 0;
 static int do_cpu_calc = 1;
 static int do_gpu_calc = 0;
 
+extern int choose_amr_method;
+
 typedef unsigned int uint;
 
 #ifdef HAVE_GRAPHICS
@@ -358,7 +360,7 @@ extern "C" void do_calc(void)
 #endif
 
    //  Initialize state variables for GPU calculation.
-   int &mype = mesh->mype;
+   int &mype  = mesh->mype;
 
    vector<int>   &nsizes   = mesh->nsizes;
    vector<int>   &ndispl   = mesh->ndispl;
@@ -445,10 +447,68 @@ extern "C" void do_calc(void)
          mesh->set_bounds(ncells);
 
          //  Execute main kernel
-         state->calc_finite_difference(deltaT);
+         if (choose_amr_method == CELL_AMR) {
+            state->calc_finite_difference(deltaT);
+         } else if (choose_amr_method == FACE_AMR) {
+            //printf("ERROR -- the face method currently does not work with MPI\n");
+            //L7_Terminate();
+            //exit(-1);
+            state->calc_finite_difference_via_faces(deltaT);
+         } else if (choose_amr_method == CELL_IN_PLACE_AMR) {
+            printf("ERROR -- the cell-in-place method currently does not work with MPI\n");
+            //L7_Terminate();
+            //exit(-1);
+            state->calc_finite_difference_cell_in_place(deltaT);
+         } else if (choose_amr_method == FACE_IN_PLACE_AMR) {
+            printf("ERROR -- the face-in-place method currently does not work with MPI\n");
+            L7_Terminate();
+            exit(-1);
+            //state->calc_finite_difference_face_in_place(deltaT);
+         } else if (choose_amr_method == REGULAR_GRID_AMR) {
+            printf("ERROR -- the regular grid AMR method currently does not work with MPI\n");
+            L7_Terminate();
+            exit(-1);
+            //state->calc_finite_difference_regular_cells(deltaT);
+         } else if (choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
+            printf("ERROR -- the regular grid by faces AMR method currently does not work with MPI\n");
+            L7_Terminate();
+            exit(-1);
+            //state->calc_finite_difference_regular_cells_by_faces(deltaT);
+         } else {
+            state->calc_finite_difference(deltaT);
+         }
 
          if (do_comparison_calc) {
-            state_global->calc_finite_difference(deltaT);
+            if (choose_amr_method == CELL_AMR) {
+               state_global->calc_finite_difference(deltaT);
+            } else if (choose_amr_method == FACE_AMR) {
+               //printf("ERROR -- the face method currently does not work with MPI\n");
+               //L7_Terminate();
+               //exit(-1);
+               state_global->calc_finite_difference_via_faces(deltaT);
+            } else if (choose_amr_method == CELL_IN_PLACE_AMR) {
+               printf("ERROR -- the cell-in-place method currently does not work with MPI\n");
+               //L7_Terminate();
+               //exit(-1);
+               state_global->calc_finite_difference_cell_in_place(deltaT);
+            } else if (choose_amr_method == FACE_IN_PLACE_AMR) {
+               printf("ERROR -- the face-in-place method currently does not work with MPI\n");
+               L7_Terminate();
+               exit(-1);
+               //state_global->calc_finite_difference_face_in_place(deltaT);
+            } else if (choose_amr_method == REGULAR_GRID_AMR) {
+               printf("ERROR -- the regular grid AMR method currently does not work with MPI\n");
+               L7_Terminate();
+               exit(-1);
+               //state_global->calc_finite_difference_regular_cells(deltaT);
+            } else if (choose_amr_method == REGULAR_GRID_BY_FACES_AMR) {
+               printf("ERROR -- the regular grid by faces AMR method currently does not work with MPI\n");
+               L7_Terminate();
+               exit(-1);
+               //state_global->calc_finite_difference_regular_cells_by_faces(deltaT);
+            } else {
+               state_global->calc_finite_difference(deltaT);
+            }
 
 #ifdef _OPENMP
 #pragma omp barrier
