@@ -287,6 +287,7 @@ int main(int argc, char **argv) {
    MPI_Allgatherv(&state->V[0], nsizes[mype], MPI_STATE_T, &V_global[0], &nsizes[0], &ndispl[0], MPI_STATE_T, MPI_COMM_WORLD);
 
    //  Kahan-type enhanced precision sum implementation.
+   mesh->calc_celltype(ncells);
    double H_sum = state->mass_sum(enhanced_precision_sum);
    if (mype == 0) printf ("Mass of initialized cells equal to %14.12lg\n", H_sum);
    H_sum_initial = H_sum;
@@ -300,7 +301,7 @@ int main(int argc, char **argv) {
    }
    for (int i = 0; i < MESH_TIMER_SIZE; i++){
       mesh_global->cpu_timers[i]=0.0;
-   }   
+   }
 
    //  Set up grid.
 
@@ -335,8 +336,20 @@ int main(int argc, char **argv) {
    //  Clear superposition of circle on grid output.
    circle_radius = -1.0;
 #endif
-   cpu_timer_start(&tstart);
 
+#ifdef _OPENMP
+#pragma omp parallel
+   {
+#endif
+      mesh->calc_neighbors_local();
+      if (do_comparison_calc) {
+         mesh_global->calc_neighbors(mesh_global->ncells);
+      }
+#ifdef _OPENMP
+   } // end parallel region
+#endif
+
+   cpu_timer_start(&tstart);
 #ifdef HAVE_GRAPHICS
    set_idle_function(&do_calc);
    start_main_loop();
@@ -352,7 +365,7 @@ int main(int argc, char **argv) {
 
 extern "C" void do_calc(void)
 {  double g     = 9.80;
-   double sigma = 0.95; 
+   double sigma = 0.95;
    int icount, jcount;
    int icount_global, jcount_global;
 #ifdef HAVE_GRAPHICS
@@ -368,7 +381,6 @@ extern "C" void do_calc(void)
    //int levmx        = mesh->levmx;
    size_t &ncells_global    = mesh_global->ncells;
    size_t &ncells           = mesh->ncells;
-   size_t &ncells_ghost     = mesh->ncells_ghost;
 
    vector<char_t>     mpot;
    vector<char_t>     mpot_global;
@@ -381,16 +393,108 @@ extern "C" void do_calc(void)
    double deltaT = 0.0;
 
    //  Main loop.
+
+
+
    for (int nburst = 0; nburst < outputInterval && ncycle < niter; nburst++, ncycle++) {
 
-      //  Define basic domain decomposition parameters for GPU.
-      //old_ncells = ncells;
-      //old_ncells_global = ncells_global;
+      mpot.resize(mesh->ncells_ghost);
+      new_ncells = state->calc_refine_potential(mpot, icount, jcount);
+  
+      if (do_comparison_calc) {
+         mpot_global.resize(ncells_global);
+         new_ncells_global = state_global->calc_refine_potential(mpot_global, icount_global, jcount_global);
 
+         int icount_test;
+         MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         if (icount_test != icount_global) {
+            printf("%d: DEBUG -- icount is %d icount_test %d icount_global is %d\n", mype,icount,icount_test,icount_global);
+         }
+
+         // Compare mpot to mpot_global
+         mesh->compare_mpot_cpu_local_to_cpu_global(ncells_global, &nsizes[0], &ndispl[0], &mpot[0], &mpot_global[0], ncycle);
+      }
+
+      //int add_ncells = new_ncells - old_ncells;
 #ifdef _OPENMP
 #pragma omp parallel
       {
 #endif
+         state->rezone_all(icount, jcount, mpot);
+
+         // Clear does not delete mpot, so have to swap with an empty vector to get
+         // it to delete the mpot memory. This is all to avoid valgrind from showing
+         // it as a reachable memory leak
+#ifdef _OPENMP
+#pragma omp master
+         {
+#endif
+            //mpot.clear();
+            vector<char_t>().swap(mpot);
+
+            mesh->ncells = new_ncells;
+            ncells = new_ncells;
+#ifdef _OPENMP
+         }
+#pragma omp barrier
+#endif
+
+      if (do_comparison_calc) {
+         //int add_ncells_global = new_ncells_global - old_ncells_global;
+         //printf("%d: DEBUG add %d new %d old %d icount %d jcount %d\n",mype,add_ncells,new_ncells,old_ncells,icount,jcount);
+         state_global->rezone_all(icount_global, jcount_global, mpot_global);
+         mpot_global.clear();
+
+         ncells_global = new_ncells_global;
+         mesh_global->ncells = new_ncells_global;
+
+         //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
+
+         // And compare H gathered to H_global, etc
+         state->compare_state_cpu_local_to_cpu_global(state_global, "rezone all", ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
+
+         mesh->compare_indices_cpu_local_to_cpu_global(ncells_global, mesh_global, &nsizes[0], &ndispl[0], ncycle);
+      } // do_comparison_calc
+
+         mesh->set_bounds(ncells);
+
+         state->do_load_balance_local(new_ncells);
+
+      if (do_comparison_calc) {
+         // And compare H gathered to H_global, etc
+         state->compare_state_cpu_local_to_cpu_global(state_global, "load balance", ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
+         mesh->compare_indices_cpu_local_to_cpu_global(ncells_global, mesh_global, &nsizes[0], &ndispl[0], ncycle);
+      }
+
+      H_sum = -1.0;
+
+      if (do_comparison_calc) {
+         H_sum = state->mass_sum(enhanced_precision_sum);
+
+         double H_sum_global = state_global->mass_sum(enhanced_precision_sum);
+
+         if (fabs(H_sum - H_sum_global) > CONSERVATION_EPS) {
+            printf("Error with mass sum calculation -- mass_sum %lf mass_sum_global %lf\n",
+                    H_sum, H_sum_global);
+         }
+      }
+
+//          mesh->proc.resize(ncells);
+//          if (icount)
+//          {  vector<int> index(ncells);
+//             mesh->partition_cells(numpe, index, cycle_reorder);
+//          }
+
+//          if (do_comparison_calc) {
+//             mesh_global->proc.resize(ncells_global);
+
+//             if (icount) {
+//                vector<int> index_global(ncells_global);
+//                mesh_global->partition_cells(numpe, index_global, cycle_reorder);
+                //state->state_reorder(index);
+//             }
+//          }
+
          //  Calculate the real time step for the current discrete time step.
          double mydeltaT = state->set_timestep(g, sigma); // Private variable to avoid write conflict
 #ifdef _OPENMP
@@ -431,7 +535,7 @@ extern "C" void do_calc(void)
 #pragma omp master
 #endif
             {
-               mesh->compare_neighbors_cpu_local_to_cpu_global(ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);
+               mesh->compare_neighbors_cpu_local_to_cpu_global(mesh->ncells_ghost, ncells_global, mesh_global, &nsizes[0], &ndispl[0]);
             }
          }
 
@@ -533,96 +637,6 @@ extern "C" void do_calc(void)
          state_global->remove_boundary_cells();
       }
       
-      mpot.resize(ncells_ghost);
-      new_ncells = state->calc_refine_potential(mpot, icount, jcount);
-  
-      if (do_comparison_calc) {
-         mpot_global.resize(ncells_global);
-         new_ncells_global = state_global->calc_refine_potential(mpot_global, icount_global, jcount_global);
-
-         int icount_test;
-         MPI_Allreduce(&icount, &icount_test, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-         if (icount_test != icount_global) {
-            printf("%d: DEBUG -- icount is %d icount_test %d icount_global is %d\n", mype,icount,icount_test,icount_global);
-         }
-
-         // Compare mpot to mpot_global
-         mesh->compare_mpot_cpu_local_to_cpu_global(ncells_global, &nsizes[0], &ndispl[0], &mpot[0], &mpot_global[0], ncycle);
-      }
-
-      //int add_ncells = new_ncells - old_ncells;
-#ifdef _OPENMP
-#pragma omp parallel
-      {
-#endif
-         state->rezone_all(icount, jcount, mpot);
-#ifdef _OPENMP
-      } // end parallel region
-#endif
-      // Clear does not delete mpot, so have to swap with an empty vector to get
-      // it to delete the mpot memory. This is all to avoid valgrind from showing
-      // it as a reachable memory leak
-      //mpot.clear();
-      vector<char_t>().swap(mpot);
-      ncells = new_ncells;
-      mesh->ncells = new_ncells;
-
-      if (do_comparison_calc) {
-         //int add_ncells_global = new_ncells_global - old_ncells_global;
-         //printf("%d: DEBUG add %d new %d old %d icount %d jcount %d\n",mype,add_ncells,new_ncells,old_ncells,icount,jcount);
-         state_global->rezone_all(icount_global, jcount_global, mpot_global);
-         mpot_global.clear();
-
-         ncells_global = new_ncells_global;
-         mesh_global->ncells = new_ncells_global;
-
-         //printf("%d: DEBUG ncells is %d new_ncells %d old_ncells %d ncells_global %d\n",mype, ncells, new_ncells, old_ncells, ncells_global);
-
-         // And compare H gathered to H_global, etc
-         state->compare_state_cpu_local_to_cpu_global(state_global, "rezone all", ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
-
-         mesh->compare_indices_cpu_local_to_cpu_global(ncells_global, mesh_global, &nsizes[0], &ndispl[0], ncycle);
-      } // do_comparison_calc
-
-      state->do_load_balance_local(new_ncells);
-
-      if (do_comparison_calc) {
-         // And compare H gathered to H_global, etc
-         state->compare_state_cpu_local_to_cpu_global(state_global, "load balance", ncycle, ncells, ncells_global, &nsizes[0], &ndispl[0]);
-         mesh->compare_indices_cpu_local_to_cpu_global(ncells_global, mesh_global, &nsizes[0], &ndispl[0], ncycle);
-      }
-
-      H_sum = -1.0;
-
-      if (do_comparison_calc) {
-         H_sum = state->mass_sum(enhanced_precision_sum);
-
-         double H_sum_global = state_global->mass_sum(enhanced_precision_sum);
-
-         if (fabs(H_sum - H_sum_global) > CONSERVATION_EPS) {
-            printf("Error with mass sum calculation -- mass_sum %lf mass_sum_global %lf\n",
-                    H_sum, H_sum_global);
-         }
-      }
-
-
-// XXX
-//      mesh->proc.resize(ncells);
-//      if (icount) {
-//         vector<int> index(ncells);
-//         mesh->partition_cells(numpe, index, cycle_reorder);
-//      }
-
-//      if (do_comparison_calc) {
-//         mesh_global->proc.resize(ncells_global);
-
-//         if (icount) {
-//            vector<int> index_global(ncells_global);
-//            mesh_global->partition_cells(numpe, index_global, cycle_reorder);
-            //state->state_reorder(index);
-//         }
-//      }
-
    } // End burst loop
 
 
