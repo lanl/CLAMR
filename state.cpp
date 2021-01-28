@@ -58,7 +58,7 @@
 #define ONE 1.0
 #define HALF 0.5
 #define EPSILON 1.0e-30
-#define STATE_EPS        .02
+#define STATE_EPS        .001
 // calc refine is done in single precision
 #define REFINE_GRADIENT  0.10
 #define COARSEN_GRADIENT 0.05
@@ -799,17 +799,17 @@ void State::add_boundary_cells(void)
 
 void State::apply_boundary_conditions(void)
 {
-   static int *nlft, *nrht, *nbot, *ntop;
+   int *nlft, *nrht, *nbot, *ntop;
 
-#ifdef _OPENMP
-#pragma omp master
-   {
-#endif
    nlft = mesh->nlft;
    nrht = mesh->nrht;
    nbot = mesh->nbot;
    ntop = mesh->ntop;
 
+#ifdef _OPENMP
+#pragma omp master
+   {
+#endif
    if (mesh->ncells_ghost < mesh->ncells) mesh->ncells_ghost = mesh->ncells;
 #ifdef _OPENMP
       }    
@@ -8325,10 +8325,12 @@ void State::compare_state_cpu_local_to_cpu_global(State *state_global, const cha
    //if (1 == 2) printf("DEBUG -- ncells %u nsizes %d ndispl %d\n",ncells, nsizes[0],ndispl[0]);
 #endif
 
-   for (uint ic = 0; ic < ncells_global; ic++){
-      if (fabs(H_global[ic]-H_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d H & H_check %d %lf %lf\n",string,cycle,ic,H_global[ic],H_check[ic]);
-      if (fabs(U_global[ic]-U_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d U & U_check %d %lf %lf\n",string,cycle,ic,U_global[ic],U_check[ic]);
-      if (fabs(V_global[ic]-V_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d V & V_check %d %lf %lf\n",string,cycle,ic,V_global[ic],V_check[ic]);
+   if (mesh->mype == 0) {
+      for (uint ic = 0; ic < ncells_global; ic++){
+         if (fabs(H_global[ic]-H_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d H & H_check %d %lf %lf\n",string,cycle,ic,H_global[ic],H_check[ic]);
+         if (fabs(U_global[ic]-U_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d U & U_check %d %lf %lf\n",string,cycle,ic,U_global[ic],U_check[ic]);
+         if (fabs(V_global[ic]-V_check[ic]) > STATE_EPS) printf("DEBUG %s at cycle %d V & V_check %d %lf %lf\n",string,cycle,ic,V_global[ic],V_check[ic]);
+      }
    }
 }
 
