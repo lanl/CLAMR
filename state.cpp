@@ -203,7 +203,9 @@ cl_kernel kernel_reduce_epsum_mass_stage2of2;
 #endif
 
 
+#ifdef _OPENMP_SIMD
 #pragma omp declare simd
+#endif
 inline real_t U_halfstep(// XXX Fix the subindices to be more intuitive XXX
         real_t    deltaT,     // Timestep
         real_t    U_i,        // Initial cell's (downwind's) state variable
@@ -326,7 +328,9 @@ inline void U_fullstep_precision_check(
 
 #endif
 
+#ifdef _OPENMP_SIMD
 #pragma omp declare simd
+#endif
 inline real_t w_corrector(
         real_t    deltaT,       // Timestep
         real_t    dr,           // Cell's center to face distance
@@ -641,7 +645,9 @@ void State::add_boundary_cells(void)
    y.resize(new_ncells);
    dy.resize(new_ncells);
 
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
    for (int nc=ncells; nc<new_ncells; nc++) {
       nlft[nc] = -1;
       nrht[nc] = -1;
@@ -990,7 +996,9 @@ double State::set_timestep(double g, double sigma)
 #endif
 
    double mymindeltaT = 1000.0; // private for each thread
+#ifdef _OPENMP_SIMD
 #pragma omp simd reduction(min:mymindeltaT)
+#endif
    for (int ic=lowerBounds; ic<upperBounds; ic++) {
       if (mesh->celltype[ic] == REAL_CELL) {
          uchar_t lev = mesh->level[ic];
@@ -1400,7 +1408,9 @@ void State::calc_finite_difference(double deltaT)
    wplusy_H_sum  = 0.0;
 #endif
 
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
    for(int gix = lowerBound; gix < upperBound; gix++) {
 
       uchar_t lvl     = level[gix];
@@ -2245,7 +2255,9 @@ void State::calc_finite_difference_cell_in_place(double deltaT)
 #ifdef _OPENMP
 #pragma omp barrier
 #endif
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
    for (int ic = lowerBound; ic < upperBound; ic++) {
       if (mesh->celltype[ic] != REAL_CELL) continue;
 
@@ -2617,7 +2629,9 @@ void State::calc_finite_difference_face_in_place(double deltaT)
    int *map_ycell2face_top1_loc = mesh->map_ycell2face_top1;
 #endif
 
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
    for (int ic = lowerBound; ic < upperBound; ic++){
       if (mesh->celltype[ic] != REAL_CELL) continue;
 
@@ -3072,7 +3086,9 @@ void State::calc_finite_difference_via_faces(double deltaT)
    wplusy_H_sum  = 0.0;
 #endif
 
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
    for (int ic = lowerBound; ic < upperBound; ic++){
       real_t dxic    = lev_deltax[level[ic]];
       // set the four faces
@@ -3559,7 +3575,9 @@ void State::calc_finite_difference_regular_cells(double deltaT)
          state_t * wminusy_V_loc = wminusy_V[ll][jj];
          state_t * wplusy_V_loc = wplusy_V[ll][jj];
 #endif
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
          for(ii=2; ii<iimax-2; ii++){
             if (mask_reg_lev[ll][jj][ii] == 1) {
 
@@ -3924,7 +3942,9 @@ void State::calc_finite_difference_regular_cells(double deltaT)
          state_t *wplusy_V_loc = wplusy_V[ll][jj];
          state_t *wminusy_V_loc = wminusy_V[ll][jj];
 #endif
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
          for(ii=2; ii<iimax-2; ii++){
             if (mask_reg_lev[ll][jj][ii] == 1) {
 #ifdef PRECISION_CHECK_WITH_PARENTHESIS
@@ -4190,7 +4210,9 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
          real_t * Wy_H_loc = Wy_H[ll][jj];
          real_t * Wy_V_loc = Wy_V[ll][jj];
 #endif
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
          for(int ii=2; ii<iimax-1; ii++){
             if ((mask_reg_lev[ll][jj][ii-1] == 1 || mask_reg_lev[ll][jj][ii] == 1)){
                real_t Hx = HALF*( (H_reg_lev[ll][jj][ii-1] + H_reg_lev[ll][jj][ii]) - Cxhalf*(HXRGFLUXIC - HXRGFLUXNL) );
@@ -4401,7 +4423,9 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
          real_t *Wy_V_loc = Wy_V[ll][jj];
          real_t *Wy_Vplus_loc = Wy_V[ll][jj+1];
 #endif
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
          for(int ii=2; ii<iimax-1; ii++){
             if (mask_reg_lev[ll][jj][ii] != 1) continue;
 
@@ -7398,7 +7422,9 @@ size_t State::calc_refine_potential(vector<char_t> &mpot,int &icount, int &jcoun
    //mesh->set_bounds(ncells);
    mesh->get_bounds(lowerBound,upperBound);
 #ifndef _OPENMP
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
    for (int ic=lowerBound; ic<upperBound; ic++) {
 

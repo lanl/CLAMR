@@ -382,7 +382,9 @@ int L7_Push_Setup(
 
         l7_push_id_db->num_comm_partners = num_comm_partners;
 
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
         for (int ip = 0; ip < num_comm_partners; ip++){
                 l7_push_id_db->comm_partner[ip] = comm_partner[ip];
                 l7_push_id_db->send_buffer_count[ip] = send_buffer_count[ip];
@@ -390,7 +392,9 @@ int L7_Push_Setup(
 
         for (int ip = 0; ip < num_comm_partners; ip++){
                 int count = send_buffer_count[ip]; // create simple int count to help vectorization
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                 for (int ic = 0; ic < count; ic++){
                         l7_push_id_db->send_database[ip][ic] = send_database[ip][ic];
                 }

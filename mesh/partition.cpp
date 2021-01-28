@@ -530,7 +530,9 @@ void Mesh::partition_cells(
             if (x.size() >= ncells) {
                vector<spatial_t> real_local(ncells);
 
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for (int ic = 0; ic<(int)ncells; ic++){
                   real_local[ic] = x[ic];
                }
@@ -538,7 +540,9 @@ void Mesh::partition_cells(
                   x[ic] = real_local[z_order[ic]];
                }
 
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for (int ic = 0; ic<(int)ncells; ic++){
                   real_local[ic] = dx[ic];
                }
@@ -546,7 +550,9 @@ void Mesh::partition_cells(
                   dx[ic] = real_local[z_order[ic]];
                }
            
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for (int ic = 0; ic<(int)ncells; ic++){
                   real_local[ic] = y[ic];
                }
@@ -554,7 +560,9 @@ void Mesh::partition_cells(
                   y[ic] = real_local[z_order[ic]];
                }
 
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for (int ic = 0; ic<(int)ncells; ic++){
                   real_local[ic] = dy[ic];
                }
@@ -708,7 +716,9 @@ void Mesh::partition_cells(
             if (x.size() >= ncells) {
                vector<spatial_t> real_local(ncells);
 
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for (int ic = 0; ic<(int)ncells; ic++){
                   real_local[ic] = x[ic];
                }
@@ -716,7 +726,9 @@ void Mesh::partition_cells(
                   x[ic] = real_local[z_order[ic]];
                }
 
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for (int ic = 0; ic<(int)ncells; ic++){
                   real_local[ic] = dx[ic];
                }
@@ -724,7 +736,9 @@ void Mesh::partition_cells(
                   dx[ic] = real_local[z_order[ic]];
                }
            
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for (int ic = 0; ic<(int)ncells; ic++){
                   real_local[ic] = y[ic];
                }
@@ -732,7 +746,9 @@ void Mesh::partition_cells(
                   y[ic] = real_local[z_order[ic]];
                }
 
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for (int ic = 0; ic<(int)ncells; ic++){
                   real_local[ic] = dy[ic];
                }

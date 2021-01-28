@@ -370,7 +370,9 @@ int main(int argc, char **argv) {
 
       if (view_mode == 0) {
          mesh->proc.resize(ncells);
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
          for (size_t ii = 0; ii<ncells; ii++){
             mesh->proc[ii] = mesh->mype;
          }
@@ -729,7 +731,9 @@ extern "C" void do_calc(void)
 
       if (view_mode == 0) {
          mesh->proc.resize(ncells);
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
          for (size_t ii = 0; ii<ncells; ii++){
             mesh->proc[ii] = mesh->mype;
          }

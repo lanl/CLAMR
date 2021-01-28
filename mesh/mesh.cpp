@@ -2863,7 +2863,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<char_t> mpot, int have_stat
 #ifdef _OPENMP
 #pragma omp for
 #else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
       for (uint ic=0; ic<ncells; ic++){
          index[ic]=ic;
@@ -2914,7 +2916,9 @@ void Mesh::rezone_all(int icount, int jcount, vector<char_t> mpot, int have_stat
 #ifdef _OPENMP
 #pragma omp for
 #else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
       for (int ic = 0; ic < (int)ncells; ic++){
          celltype_save[ic] = celltype[ic];
@@ -4327,7 +4331,9 @@ void Mesh::calc_neighbors(int ncells)
 #ifdef _OPENMP
 #pragma omp for
 #else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
          for(int ic=lowerBounds; ic<upperBounds; ic++){
             nlft[ic] = -1;
@@ -6002,7 +6008,9 @@ void Mesh::calc_neighbors_local(void)
 #ifdef _OPENMP
 #pragma omp for
 #else
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
 #endif
          for (int ic = ncells; ic < (int)ncells_ghost; ic++){
             nlft[ic] = -1;
@@ -8549,7 +8557,9 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
             L7_Update(mem_ptr_double, L7_DOUBLE, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for(in = 0; in < MIN(lower_block_size, (int)ncells); in++) {
                   state_temp_double[in] = mem_ptr_double[ncells_old + in];
                }
@@ -8577,7 +8587,9 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
             L7_Update(mem_ptr_float, L7_FLOAT, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for(in = 0; in < MIN(lower_block_size, (int)ncells); in++) {
                   state_temp_float[in] = mem_ptr_float[ncells_old + in];
                }
@@ -8646,7 +8658,9 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
             L7_Update(mem_ptr_long, L7_LONG_LONG_INT, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for(in = 0; in < MIN(lower_block_size, (int)ncells); in++) {
                   mesh_temp_long[in] = mem_ptr_long[ncells_old + in];
                }
@@ -8674,7 +8688,9 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
             L7_Update(mem_ptr_int, L7_INT, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for(in = 0; in < MIN(lower_block_size, (int)ncells); in++) {
                   mesh_temp_int[in] = mem_ptr_int[ncells_old + in];
                }
@@ -8702,7 +8718,9 @@ void Mesh::do_load_balance_local(size_t numcells, float *weight, MallocPlus &sta
             L7_Update(mem_ptr_short, L7_SHORT, load_balance_handle);
             in = 0;
             if(lower_block_size > 0) {
+#ifdef _OPENMP_SIMD
 #pragma omp simd
+#endif
                for(in = 0; in < MIN(lower_block_size, (int)ncells); in++) {
                   mesh_temp_short[in] = mem_ptr_short[ncells_old + in];
                }
