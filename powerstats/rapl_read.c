@@ -673,10 +673,11 @@ int rapl_perf(int core) {
 
 		fff=fopen(filename,"r");
 
+        config[i]=0;
 		if (fff!=NULL) {
 			fscanf(fff,"event=%x",&config[i]);
 #ifdef RAPL_VERBOSE
-			printf("\tEvent=%s Config=%d ",rapl_domain_names[i],config[i]);
+			printf("\tEvent=%s Config=%d\n",rapl_domain_names[i],config[i]);
 #endif
 			fclose(fff);
 		} else {
@@ -718,10 +719,11 @@ int rapl_perf(int core) {
 
 			fd[i][j]=-1;
 
+			if (config[i]==0) continue;
+
 			memset(&attr,0x0,sizeof(attr));
 			attr.type=type;
 			attr.config=config[i];
-			if (config[i]==0) continue;
 
 			fd[i][j]=perf_event_open(&attr,-1, package_map[j],-1,0);
 			if (fd[i][j]<0) {

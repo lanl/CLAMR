@@ -799,12 +799,10 @@ void State::add_boundary_cells(void)
 
 void State::apply_boundary_conditions(void)
 {
-   int *nlft, *nrht, *nbot, *ntop;
-
-   nlft = mesh->nlft;
-   nrht = mesh->nrht;
-   nbot = mesh->nbot;
-   ntop = mesh->ntop;
+   int *nlft = mesh->nlft;
+   int *nrht = mesh->nrht;
+   int *nbot = mesh->nbot;
+   int *ntop = mesh->ntop;
 
 #ifdef _OPENMP
 #pragma omp master
