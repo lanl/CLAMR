@@ -163,6 +163,10 @@ enum plot_data_type {DATA_DOUBLE, DATA_FLOAT};
 static int data_type = DATA_FLOAT;
 static double *data_double=NULL;
 static float *data_float=NULL;
+static int *cellnumber_data=NULL;
+static int *i_data=NULL;
+static int *j_data=NULL;
+static int *level_data=NULL;
 static int *display_proc=NULL;
 #if defined(HAVE_MPI) || defined(HAVE_OPENGL)
 static int rank = 0;
@@ -332,6 +336,17 @@ void set_display_cell_data_float(float *data_in){
 }
 void set_display_cell_proc(int *display_proc_in){
    display_proc = display_proc_in;
+}
+void set_display_cellnumber_data(int *data_in){
+   cellnumber_data = data_in;
+}
+void set_display_indexing_data(int *i_data_in, int *j_data_in, int *level_data_in){
+   i_data = i_data_in;
+   j_data = j_data_in;
+   level_data = level_data_in;
+}
+void set_display_autoscale(void){
+   autoscale = 1;
 }
 void set_display_cell_coordinates_double(double *x_in, double *dx_in, double *y_in, double *dy_in){
    spatial_type = SPATIAL_DOUBLE;
@@ -649,17 +664,19 @@ void DrawSquares(void) {
   
 #ifdef HAVE_OPENGL
    /*Trace order of cells with line going from center to center*/
-   glBegin(GL_LINE_STRIP);
-      if (spatial_type == SPATIAL_DOUBLE) {
-         for(i = 0; i < display_mysize; i++) {
-            glVertex2f(x_double[i]+dx_double[i]/2, y_double[i]+dy_double[i]/2);
+   if (cellnumber_data == NULL) {
+      glBegin(GL_LINE_STRIP);
+         if (spatial_type == SPATIAL_DOUBLE) {
+            for(i = 0; i < display_mysize; i++) {
+               glVertex2f(x_double[i]+dx_double[i]/2, y_double[i]+dy_double[i]/2);
+            }
+         } else {
+            for(i = 0; i < display_mysize; i++) {
+               glVertex2f(x_float[i]+dx_float[i]/2, y_float[i]+dy_float[i]/2);
+            }
          }
-      } else {
-         for(i = 0; i < display_mysize; i++) {
-            glVertex2f(x_float[i]+dx_float[i]/2, y_float[i]+dy_float[i]/2);
-         }
-      }
-   glEnd();
+      glEnd();
+   }
 #endif
 #ifdef HAVE_MPE
    int xloc_old, yloc_old;
@@ -825,15 +842,53 @@ void draw_scene(void) {
 
    if (display_mysize <=500) {
       char c[10];
-      if (data_type == DATA_DOUBLE){
-         for(int i = 0; i < display_mysize; i++) {
-            sprintf(c, "%d", i);
-            DrawString(x_double[i]+0.5*dx_double[i], y_double[i]+0.5*dy_double[i], 0.0, c);
+      if (cellnumber_data != NULL){
+         if (data_type == DATA_DOUBLE){
+            for(int i = 0; i < display_mysize; i++) {
+               int icell = cellnumber_data[i];
+               sprintf(c, "%d", icell);
+               DrawString(x_double[i]+0.5*dx_double[i], y_double[i]+0.5*dy_double[i], 0.0, c);
+            }
+         } else {
+            float xmin_data = 10000.0;
+            float ymin_data = 10000.0;
+            int maxlev = 0;
+            if (i_data != NULL && j_data != NULL && level_data != NULL){
+               for(int i = 0; i < display_mysize; i++) {
+                  if (x_float[i] < xmin_data) xmin_data = x_float[i];
+                  if (y_float[i] < ymin_data) ymin_data = y_float[i];
+                  if (level_data[i] > maxlev) maxlev = level_data[i];
+               }
+               maxlev++;
+            }
+
+            for(int i = 0; i < display_mysize; i++) {
+               int icell = cellnumber_data[i];
+               sprintf(c, "%d", icell);
+               DrawString(x_float[i]+0.5*dx_float[i], y_float[i]+0.5*dy_float[i], 0.0, c);
+               if (i_data != NULL){
+                  sprintf(c, "%d", i_data[i]);
+                  //printf("DEBUG -- line %d file %s x_float %f dx_float %f display_ymin %f level_data %d dy_float %f\n",
+                  //  __LINE__,__FILE__,x_float[i],dx_float[i],display_ymin,level_data[i],dy_float[i]);
+                  DrawString(x_float[i]+0.5*dx_float[i], ymin_data-dy_float[i]*.80, 0.0, c);
+               }
+               if (j_data != NULL){
+                  sprintf(c, "%d", j_data[i]);
+                  DrawString(xmin_data-dx_float[i]*.80,y_float[i]+0.5*dy_float[i], 0.0, c);
+               }
+            }
          }
       } else {
-         for(int i = 0; i < display_mysize; i++) {
-            sprintf(c, "%d", i);
-            DrawString(x_float[i]+0.5*dx_float[i], y_float[i]+0.5*dy_float[i], 0.0, c);
+         if (data_type == DATA_DOUBLE){
+            for(int i = 0; i < display_mysize; i++) {
+               sprintf(c, "%d", i);
+               DrawString(x_double[i]+0.5*dx_double[i], y_double[i]+0.5*dy_double[i], 0.0, c);
+            }
+         } else {
+            for(int i = 0; i < display_mysize; i++) {
+               sprintf(c, "%d", i);
+               DrawString(x_float[i]+0.5*dx_float[i], y_float[i]+0.5*dy_float[i], 0.0, c);
+            }
          }
       }
    }

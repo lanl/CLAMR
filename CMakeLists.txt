@@ -569,6 +569,16 @@ if(KOKKOS_ENABLE)
       #endif (EXISTS "${CMAKE_SOURCE_DIR}/kokkos" AND IS_DIRECTORY "${CMAKE_SOURCE_DIR}/kokkos")
 endif(KOKKOS_ENABLE)
 
+########### drawit target ###############
+
+add_executable(drawit drawit.cpp)
+
+target_link_libraries(drawit graphics)
+
+target_link_libraries(drawit ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES})
+
+install(TARGETS drawit DESTINATION bin)
+
 ########### clamr_cpuonly target ###############
 
 set(clamr_cpuonly_CXX_SRCS clamr_cpuonly.cpp state.cpp input.cpp)

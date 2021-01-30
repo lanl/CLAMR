@@ -126,6 +126,9 @@ void set_display_cell_coordinates_float(float *x_in, float *dx_in,
 void set_display_cell_data_double(double *data_in);
 void set_display_cell_data_float(float *data_in);
 void set_display_cell_proc(int *display_proc_in);
+void set_display_cellnumber_data(int *data_in);
+void set_display_indexing_data(int *i_data_in, int *j_data_in, int *level_data_in);
+void set_display_autoscale(void);
 void set_display_circle_radius(double display_circle_radius_in);
 void draw_scene(void);
 
