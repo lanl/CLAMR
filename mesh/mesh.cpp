@@ -5524,7 +5524,8 @@ void Mesh::calc_neighbors_local(void)
                if (lev != 0 && nlftval < 0 && iilft-(iicur-iilft) >= 0){      // coarser neighbor
                   iilft -= iicur-iilft;
                   int jjlft = (jj/2)*2*levmult-jminsize;
-                  int nlfttry = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
+                  int nlfttry = -1;
+                  if (jjlft*(imaxsize-iminsize)+iilft >= 0) nlfttry = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
                   // we have to test for coarser level or it could be a same size cell one or two cells away that it is matching
                   if (nlfttry-noffset >= 0 && nlfttry-noffset < (int)ncells && (int)level[nlfttry-noffset] == lev-1) {
                     nlftval = nlfttry;
@@ -5546,7 +5547,8 @@ void Mesh::calc_neighbors_local(void)
                if (nrhtval < 0 && lev != 0) { // test for coarser, but not directly above
                   int jjrhtcoarser = (jj/2)*2*levmult-jminsize;
                   if (jjrhtcoarser != jjcur) {
-                     int nrhttry = read_hash(jjrhtcoarser*(imaxsize-iminsize)+iirht, hash);
+                     int nrhttry = -1;
+                     if (jjrhtcoarser*(imaxsize-iminsize)+iirht >= 0) nrhttry = read_hash(jjrhtcoarser*(imaxsize-iminsize)+iirht, hash);
                      if (nrhttry-noffset >= 0 && nrhttry-noffset < (int)ncells && (int)level[nrhttry-noffset] == lev-1) {
                         nrhtval = nrhttry;
                      }
@@ -5752,7 +5754,8 @@ void Mesh::calc_neighbors_local(void)
                   } else if (lev != 0 && iilft-(iicur-iilft) >= 0){      // coarser neighbor
                      iilft -= iicur-iilft;
                      int jjlft = (jj/2)*2*levmult-jminsize;
-                     nl = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
+                     nl = -1;
+                     if (jjlft*(imaxsize-iminsize)+iilft >= 0) nl = read_hash(jjlft*(imaxsize-iminsize)+iilft, hash);
                      levcheck = -1;
                      if (nl-noffset >= 0 && nl-noffset < (int)ncells) {
                         levcheck = level[nl-noffset];
@@ -5784,7 +5787,8 @@ void Mesh::calc_neighbors_local(void)
                if ( (iborder & 0x0002) == 0  && lev != 0) { // test for coarser, but not directly right
                   int jjrhtcoarser = (jj/2)*2*levmult-jminsize;
                   if (jjrhtcoarser != jjcur) {
-                     int nr = read_hash(jjrhtcoarser*(imaxsize-iminsize)+iirht, hash);
+                     int nr = -1;
+                     if (jjrhtcoarser*(imaxsize-iminsize)+iirht >= 0) nr = read_hash(jjrhtcoarser*(imaxsize-iminsize)+iirht, hash);
                      int levcheck = -1;
                      if (nr-noffset >= 0 && nr-noffset < (int)ncells) {
                         levcheck = level[nr-noffset];

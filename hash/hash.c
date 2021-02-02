@@ -1,6 +1,7 @@
 //#if defined __INTEL_COMPILER
 
 #include <stdio.h>
+#include <assert.h>
 #define __USE_XOPEN
 #include <stdlib.h>
 #include "hash.h"
@@ -40,8 +41,8 @@ int   choose_hash_method = METHOD_UNSET;
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
-int (*read_hash)(ulong, int *);
-void (*write_hash)(uint, ulong, int *);
+int (*read_hash)(long, int *);
+void (*write_hash)(uint, long, int *);
 
 int get_hash_method(void) {
   return(hash_method);
@@ -51,6 +52,7 @@ long long get_hashtablesize(void) {
   return(hashtablesize);
 }
 
+static uint perfect_hash_size;
 int *compact_hash_init(int ncells, uint isize, uint jsize, int hash_method_in, int report_level){
    static int *hash;
 
@@ -58,7 +60,6 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, int hash_method_in, i
    static float hash_mem_ratio;
    static int do_compact_hash;
    static uint compact_hash_size;
-   static uint perfect_hash_size;
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -121,8 +122,6 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, int hash_method_in, i
 
 #ifdef _OPENMP
 #pragma omp for
-#endif
-#ifdef _OPENMP
       for (uint ii = 0; ii<hashtablesize; ii++){
          hash[2*ii] = -1;
       }
@@ -288,11 +287,11 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, int hash_method_in, i
    return(hash);
 }
 
-void write_hash_perfect(uint ic, ulong hashkey, int *hash){
+void write_hash_perfect(uint ic, long hashkey, int *hash){
    hash[hashkey] = ic;
 }
 
-void write_hash_linear(uint ic, ulong hashkey, int *hash){
+void write_hash_linear(uint ic, long hashkey, int *hash){
    uint hashloc;
 
    for (hashloc = (hashkey*AA+BB)%prime%hashtablesize; hash[2*hashloc] != -1 && hash[2*hashloc]!= (int)hashkey; hashloc++,hashloc = hashloc%hashtablesize);
@@ -301,7 +300,7 @@ void write_hash_linear(uint ic, ulong hashkey, int *hash){
    hash[2*hashloc+1] = ic;
 }
 
-void write_hash_linear_report_level_1(uint ic, ulong hashkey, int *hash){
+void write_hash_linear_report_level_1(uint ic, long hashkey, int *hash){
    uint hashloc;
 
    hash_ncells++;
@@ -313,7 +312,7 @@ void write_hash_linear_report_level_1(uint ic, ulong hashkey, int *hash){
    hash[2*hashloc+1] = ic;
 }
 
-void write_hash_linear_report_level_2(uint ic, ulong hashkey, int *hash){
+void write_hash_linear_report_level_2(uint ic, long hashkey, int *hash){
    uint hashloc;
 
    hash_ncells++;
@@ -325,7 +324,7 @@ void write_hash_linear_report_level_2(uint ic, ulong hashkey, int *hash){
    hash[2*hashloc+1] = ic;
 }
 
-void write_hash_linear_report_level_3(uint ic, ulong hashkey, int *hash){
+void write_hash_linear_report_level_3(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc;
 
@@ -344,7 +343,7 @@ void write_hash_linear_report_level_3(uint ic, ulong hashkey, int *hash){
    hash[2*hashloc+1] = ic;
 }
 
-void write_hash_quadratic(uint ic, ulong hashkey, int *hash){
+void write_hash_quadratic(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc;
 
@@ -356,7 +355,7 @@ void write_hash_quadratic(uint ic, ulong hashkey, int *hash){
    hash[2*hashloc+1] = ic;
 }
 
-void write_hash_quadratic_report_level_1(uint ic, ulong hashkey, int *hash){
+void write_hash_quadratic_report_level_1(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc;
 
@@ -370,7 +369,7 @@ void write_hash_quadratic_report_level_1(uint ic, ulong hashkey, int *hash){
    hash[2*hashloc+1] = ic;
 }
 
-void write_hash_quadratic_report_level_2(uint ic, ulong hashkey, int *hash){
+void write_hash_quadratic_report_level_2(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc;
 
@@ -384,7 +383,7 @@ void write_hash_quadratic_report_level_2(uint ic, ulong hashkey, int *hash){
    hash[2*hashloc+1] = ic;
 }
 
-void write_hash_quadratic_report_level_3(uint ic, ulong hashkey, int *hash){
+void write_hash_quadratic_report_level_3(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc;
 
@@ -403,7 +402,7 @@ void write_hash_quadratic_report_level_3(uint ic, ulong hashkey, int *hash){
    hash[2*hashloc+1] = ic;
 }
 
-void write_hash_primejump(uint ic, ulong hashkey, int *hash){
+void write_hash_primejump(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc;
 
@@ -416,7 +415,7 @@ void write_hash_primejump(uint ic, ulong hashkey, int *hash){
    hash[2*hashloc+1] = ic;
 }
 
-void write_hash_primejump_report_level_1(uint ic, ulong hashkey, int *hash){
+void write_hash_primejump_report_level_1(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc;
 
@@ -431,7 +430,7 @@ void write_hash_primejump_report_level_1(uint ic, ulong hashkey, int *hash){
    hash[2*hashloc+1] = ic;
 }
 
-void write_hash_primejump_report_level_2(uint ic, ulong hashkey, int *hash){
+void write_hash_primejump_report_level_2(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc;
 
@@ -446,7 +445,7 @@ void write_hash_primejump_report_level_2(uint ic, ulong hashkey, int *hash){
    hash[2*hashloc+1] = ic;
 }
 
-void write_hash_primejump_report_level_3(uint ic, ulong hashkey, int *hash){
+void write_hash_primejump_report_level_3(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc;
 
@@ -467,7 +466,7 @@ void write_hash_primejump_report_level_3(uint ic, ulong hashkey, int *hash){
 }
 
 #ifdef _OPENMP
-void write_hash_linear_openmp(uint ic, ulong hashkey, int *hash){
+void write_hash_linear_openmp(uint ic, long hashkey, int *hash){
    int icount;
    uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;;
 
@@ -486,7 +485,7 @@ void write_hash_linear_openmp(uint ic, ulong hashkey, int *hash){
    if (icount < MaxTries) hash[2*hashloc+1] = ic;
 }
 
-void write_hash_linear_openmp_report_level_1(uint ic, ulong hashkey, int *hash){
+void write_hash_linear_openmp_report_level_1(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;;
 
@@ -511,7 +510,7 @@ void write_hash_linear_openmp_report_level_1(uint ic, ulong hashkey, int *hash){
    hash_ncells++;
 }
 
-void write_hash_linear_openmp_report_level_2(uint ic, ulong hashkey, int *hash){
+void write_hash_linear_openmp_report_level_2(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;;
 
@@ -536,7 +535,7 @@ void write_hash_linear_openmp_report_level_2(uint ic, ulong hashkey, int *hash){
    hash_ncells++;
 }
 
-void write_hash_linear_openmp_report_level_3(uint ic, ulong hashkey, int *hash){
+void write_hash_linear_openmp_report_level_3(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;;
    printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
@@ -563,7 +562,7 @@ void write_hash_linear_openmp_report_level_3(uint ic, ulong hashkey, int *hash){
    hash_ncells++;
 }
 
-void write_hash_quadratic_openmp(uint ic, ulong hashkey, int *hash){
+void write_hash_quadratic_openmp(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
 
@@ -582,31 +581,7 @@ void write_hash_quadratic_openmp(uint ic, ulong hashkey, int *hash){
    if (icount < MaxTries) hash[2*hashloc+1] = ic;
 }
 
-void write_hash_quadratic_openmp_report_level_1(uint ic, ulong hashkey, int *hash){
-   int icount = 0;
-   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-
-   int MaxTries = 1000;
-
-   int old_key = __sync_val_compare_and_swap(&hash[2*hashloc], -1, hashkey); 
-   //printf("old_key is %d\n",old_key);
-
-   for (icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
-      hashloc+=(icount*icount);
-      hashloc %= hashtablesize;
-
-      old_key = __sync_val_compare_and_swap(&hash[2*hashloc], -1, hashkey); 
-   }
-
-   if (icount < MaxTries) hash[2*hashloc+1] = ic;
-
-#pragma omp atomic
-   write_hash_collisions += icount;;
-#pragma omp atomic
-   hash_ncells++;
-}
-
-void write_hash_quadratic_openmp_report_level_2(uint ic, ulong hashkey, int *hash){
+void write_hash_quadratic_openmp_report_level_1(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
 
@@ -630,7 +605,31 @@ void write_hash_quadratic_openmp_report_level_2(uint ic, ulong hashkey, int *has
    hash_ncells++;
 }
 
-void write_hash_quadratic_openmp_report_level_3(uint ic, ulong hashkey, int *hash){
+void write_hash_quadratic_openmp_report_level_2(uint ic, long hashkey, int *hash){
+   int icount = 0;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+
+   int MaxTries = 1000;
+
+   int old_key = __sync_val_compare_and_swap(&hash[2*hashloc], -1, hashkey); 
+   //printf("old_key is %d\n",old_key);
+
+   for (icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
+      hashloc+=(icount*icount);
+      hashloc %= hashtablesize;
+
+      old_key = __sync_val_compare_and_swap(&hash[2*hashloc], -1, hashkey); 
+   }
+
+   if (icount < MaxTries) hash[2*hashloc+1] = ic;
+
+#pragma omp atomic
+   write_hash_collisions += icount;;
+#pragma omp atomic
+   hash_ncells++;
+}
+
+void write_hash_quadratic_openmp_report_level_3(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
    printf("%d: cell %d hashloc is %d hash[2*hashloc] = %d hashkey %lu ii %lu jj %lu\n",icount,ic,hashloc,hash[2*hashloc],hashkey,hashkey%hash_stride,hashkey/hash_stride);
@@ -656,7 +655,7 @@ void write_hash_quadratic_openmp_report_level_3(uint ic, ulong hashkey, int *has
    hash_ncells++;
 }
 
-void write_hash_primejump_openmp(uint ic, ulong hashkey, int *hash){
+void write_hash_primejump_openmp(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint jump = 1+hashkey%hash_jump_prime;
    uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
@@ -676,32 +675,7 @@ void write_hash_primejump_openmp(uint ic, ulong hashkey, int *hash){
    if (icount < MaxTries) hash[2*hashloc+1] = ic;
 }
 
-void write_hash_primejump_openmp_report_level_1(uint ic, ulong hashkey, int *hash){
-   int icount = 0;
-   uint jump = 1+hashkey%hash_jump_prime;
-   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
-
-   int MaxTries = 1000;
-
-   int old_key = __sync_val_compare_and_swap(&hash[2*hashloc], -1, hashkey); 
-   //printf("old_key is %d\n",old_key);
-
-   for (icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
-      hashloc+=(icount*jump);
-      hashloc %= hashtablesize;
-
-      old_key = __sync_val_compare_and_swap(&hash[2*hashloc], -1, hashkey); 
-   }
-
-   if (icount < MaxTries) hash[2*hashloc+1] = ic;
-
-#pragma omp atomic
-   write_hash_collisions += icount;;
-#pragma omp atomic
-   hash_ncells++;
-}
-
-void write_hash_primejump_openmp_report_level_2(uint ic, ulong hashkey, int *hash){
+void write_hash_primejump_openmp_report_level_1(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint jump = 1+hashkey%hash_jump_prime;
    uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
@@ -726,7 +700,32 @@ void write_hash_primejump_openmp_report_level_2(uint ic, ulong hashkey, int *has
    hash_ncells++;
 }
 
-void write_hash_primejump_openmp_report_level_3(uint ic, ulong hashkey, int *hash){
+void write_hash_primejump_openmp_report_level_2(uint ic, long hashkey, int *hash){
+   int icount = 0;
+   uint jump = 1+hashkey%hash_jump_prime;
+   uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
+
+   int MaxTries = 1000;
+
+   int old_key = __sync_val_compare_and_swap(&hash[2*hashloc], -1, hashkey); 
+   //printf("old_key is %d\n",old_key);
+
+   for (icount = 1; old_key != hashkey && old_key != -1 && icount < MaxTries; icount++){
+      hashloc+=(icount*jump);
+      hashloc %= hashtablesize;
+
+      old_key = __sync_val_compare_and_swap(&hash[2*hashloc], -1, hashkey); 
+   }
+
+   if (icount < MaxTries) hash[2*hashloc+1] = ic;
+
+#pragma omp atomic
+   write_hash_collisions += icount;;
+#pragma omp atomic
+   hash_ncells++;
+}
+
+void write_hash_primejump_openmp_report_level_3(uint ic, long hashkey, int *hash){
    int icount = 0;
    uint jump = 1+hashkey%hash_jump_prime;
    uint hashloc = (hashkey*AA+BB)%prime%hashtablesize;
@@ -754,11 +753,13 @@ void write_hash_primejump_openmp_report_level_3(uint ic, ulong hashkey, int *has
 }
 #endif
 
-int read_hash_perfect(ulong hashkey, int *hash){
+int read_hash_perfect(long hashkey, int *hash){
+   // if(hashkey < 0 || hashkey >=  perfect_hash_size) printf("Error -- reading outside bounds of hash -- hashkey %d perfect_hash_size %d\n",hashkey,perfect_hash_size);
+   assert(hashkey >=  0 && hashkey <  perfect_hash_size);
    return(hash[hashkey]);
 }
 
-int read_hash_linear(ulong hashkey, int *hash){
+int read_hash_linear(long hashkey, int *hash){
    int hashval = -1;
    uint hashloc;
    int icount=0;
@@ -771,7 +772,7 @@ int read_hash_linear(ulong hashkey, int *hash){
    return(hashval);
 }
 
-int read_hash_linear_report_level_1(ulong hashkey, int *hash){
+int read_hash_linear_report_level_1(long hashkey, int *hash){
    int hashval = -1;
    uint hashloc;
    int icount=0;
@@ -786,7 +787,7 @@ int read_hash_linear_report_level_1(ulong hashkey, int *hash){
    return(hashval);
 }
 
-int read_hash_linear_report_level_2(ulong hashkey, int *hash){
+int read_hash_linear_report_level_2(long hashkey, int *hash){
    int max_collisions_allowed = 1000;
    int hashval = -1;
    uint hashloc;
@@ -806,7 +807,7 @@ int read_hash_linear_report_level_2(ulong hashkey, int *hash){
    return(hashval);
 }
 
-int read_hash_linear_report_level_3(ulong hashkey, int *hash){
+int read_hash_linear_report_level_3(long hashkey, int *hash){
    int max_collisions_allowed = 1000;
    int hashval = -1;
    uint hashloc;
@@ -831,7 +832,7 @@ int read_hash_linear_report_level_3(ulong hashkey, int *hash){
    return(hashval);
 }
 
-int read_hash_quadratic(ulong hashkey, int *hash){
+int read_hash_quadratic(long hashkey, int *hash){
    int hashval = -1;
    uint hashloc;
    int icount=0;
@@ -844,7 +845,7 @@ int read_hash_quadratic(ulong hashkey, int *hash){
    return(hashval);
 }
 
-int read_hash_quadratic_report_level_1(ulong hashkey, int *hash){
+int read_hash_quadratic_report_level_1(long hashkey, int *hash){
    int hashval = -1;
    uint hashloc;
    int icount=0;
@@ -859,7 +860,7 @@ int read_hash_quadratic_report_level_1(ulong hashkey, int *hash){
    return(hashval);
 }
 
-int read_hash_quadratic_report_level_2(ulong hashkey, int *hash){
+int read_hash_quadratic_report_level_2(long hashkey, int *hash){
    int max_collisions_allowed = 1000;
    int hashval = -1;
    uint hashloc;
@@ -879,7 +880,7 @@ int read_hash_quadratic_report_level_2(ulong hashkey, int *hash){
    return(hashval);
 }
 
-int read_hash_quadratic_report_level_3(ulong hashkey, int *hash){
+int read_hash_quadratic_report_level_3(long hashkey, int *hash){
    int max_collisions_allowed = 1000;
    int hashval = -1;
    uint hashloc;
@@ -904,7 +905,7 @@ int read_hash_quadratic_report_level_3(ulong hashkey, int *hash){
    return(hashval);
 }
 
-int read_hash_primejump(ulong hashkey, int *hash){
+int read_hash_primejump(long hashkey, int *hash){
    int hashval = -1;
    uint hashloc;
    int icount=0;
@@ -918,7 +919,7 @@ int read_hash_primejump(ulong hashkey, int *hash){
    return(hashval);
 }
 
-int read_hash_primejump_report_level_1(ulong hashkey, int *hash){
+int read_hash_primejump_report_level_1(long hashkey, int *hash){
    int hashval = -1;
    uint hashloc;
    int icount=0;
@@ -934,7 +935,7 @@ int read_hash_primejump_report_level_1(ulong hashkey, int *hash){
    return(hashval);
 }
 
-int read_hash_primejump_report_level_2(ulong hashkey, int *hash){
+int read_hash_primejump_report_level_2(long hashkey, int *hash){
    int max_collisions_allowed = 1000;
    int hashval = -1;
    uint hashloc;
@@ -955,7 +956,7 @@ int read_hash_primejump_report_level_2(ulong hashkey, int *hash){
    return(hashval);
 }
 
-int read_hash_primejump_report_level_3(ulong hashkey, int *hash){
+int read_hash_primejump_report_level_3(long hashkey, int *hash){
    int max_collisions_allowed = 1000;
    int hashval = -1;
    uint hashloc;
@@ -1111,7 +1112,7 @@ cl_mem gpu_get_hash_header(void){
 }
 #endif
 
-int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, ulong hashkey, int *hash){
+int read_dev_hash(int hash_method, ulong hashtablesize, ulong AA, ulong BB, long hashkey, int *hash){
    //int hash_report_level = 3;
    int max_collisions_allowed = 1000;
    int hashval = -1;

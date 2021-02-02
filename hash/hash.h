@@ -31,51 +31,51 @@ int *compact_hash_init(int ncells, uint isize, uint jsize, int hash_method_in, i
 int get_hash_method(void);
 long long get_hash_table_size(void);
 
-void write_hash_perfect(uint ic, ulong hashkey, int *hash);
-void write_hash_linear(uint ic, ulong hashkey, int *hash);
-void write_hash_linear_report_level_1(uint ic, ulong hashkey, int *hash);
-void write_hash_linear_report_level_2(uint ic, ulong hashkey, int *hash);
-void write_hash_linear_report_level_3(uint ic, ulong hashkey, int *hash);
-void write_hash_quadratic(uint ic, ulong hashkey, int *hash);
-void write_hash_quadratic_report_level_1(uint ic, ulong hashkey, int *hash);
-void write_hash_quadratic_report_level_2(uint ic, ulong hashkey, int *hash);
-void write_hash_quadratic_report_level_3(uint ic, ulong hashkey, int *hash);
-void write_hash_primejump(uint ic, ulong hashkey, int *hash);
-void write_hash_primejump_report_level_1(uint ic, ulong hashkey, int *hash);
-void write_hash_primejump_report_level_2(uint ic, ulong hashkey, int *hash);
-void write_hash_primejump_report_level_3(uint ic, ulong hashkey, int *hash);
-extern void (*write_hash)(uint ic, ulong hashkey, int *hash); // declared in hash.c
+void write_hash_perfect(uint ic, long hashkey, int *hash);
+void write_hash_linear(uint ic, long hashkey, int *hash);
+void write_hash_linear_report_level_1(uint ic, long hashkey, int *hash);
+void write_hash_linear_report_level_2(uint ic, long hashkey, int *hash);
+void write_hash_linear_report_level_3(uint ic, long hashkey, int *hash);
+void write_hash_quadratic(uint ic, long hashkey, int *hash);
+void write_hash_quadratic_report_level_1(uint ic, long hashkey, int *hash);
+void write_hash_quadratic_report_level_2(uint ic, long hashkey, int *hash);
+void write_hash_quadratic_report_level_3(uint ic, long hashkey, int *hash);
+void write_hash_primejump(uint ic, long hashkey, int *hash);
+void write_hash_primejump_report_level_1(uint ic, long hashkey, int *hash);
+void write_hash_primejump_report_level_2(uint ic, long hashkey, int *hash);
+void write_hash_primejump_report_level_3(uint ic, long hashkey, int *hash);
+extern void (*write_hash)(uint ic, long hashkey, int *hash); // declared in hash.c
 
 #ifdef _OPENMP
-   void write_hash_linear_openmp(uint ic, ulong hashkey, int *hash);
-   void write_hash_linear_openmp_report_level_1(uint ic, ulong hashkey, int *hash);
-   void write_hash_linear_openmp_report_level_2(uint ic, ulong hashkey, int *hash);
-   void write_hash_linear_openmp_report_level_3(uint ic, ulong hashkey, int *hash);
-   void write_hash_quadratic_openmp(uint ic, ulong hashkey, int *hash);
-   void write_hash_quadratic_openmp_report_level_1(uint ic, ulong hashkey, int *hash);
-   void write_hash_quadratic_openmp_report_level_2(uint ic, ulong hashkey, int *hash);
-   void write_hash_quadratic_openmp_report_level_3(uint ic, ulong hashkey, int *hash);
-   void write_hash_primejump_openmp(uint ic, ulong hashkey, int *hash);
-   void write_hash_primejump_openmp_report_level_1(uint ic, ulong hashkey, int *hash);
-   void write_hash_primejump_openmp_report_level_2(uint ic, ulong hashkey, int *hash);
-   void write_hash_primejump_openmp_report_level_3(uint ic, ulong hashkey, int *hash);
-   extern void (*write_hash)(uint ic, ulong hashkey, int *hash); // declared in hash.c
+   void write_hash_linear_openmp(uint ic, long hashkey, int *hash);
+   void write_hash_linear_openmp_report_level_1(uint ic, long hashkey, int *hash);
+   void write_hash_linear_openmp_report_level_2(uint ic, long hashkey, int *hash);
+   void write_hash_linear_openmp_report_level_3(uint ic, long hashkey, int *hash);
+   void write_hash_quadratic_openmp(uint ic, long hashkey, int *hash);
+   void write_hash_quadratic_openmp_report_level_1(uint ic, long hashkey, int *hash);
+   void write_hash_quadratic_openmp_report_level_2(uint ic, long hashkey, int *hash);
+   void write_hash_quadratic_openmp_report_level_3(uint ic, long hashkey, int *hash);
+   void write_hash_primejump_openmp(uint ic, long hashkey, int *hash);
+   void write_hash_primejump_openmp_report_level_1(uint ic, long hashkey, int *hash);
+   void write_hash_primejump_openmp_report_level_2(uint ic, long hashkey, int *hash);
+   void write_hash_primejump_openmp_report_level_3(uint ic, long hashkey, int *hash);
+   extern void (*write_hash)(uint ic, long hashkey, int *hash); // declared in hash.c
 #endif
 
-int read_hash_perfect(ulong hashkey, int *hash);
-int read_hash_linear(ulong hashkey, int *hash);
-int read_hash_linear_report_level_1(ulong hashkey, int *hash);
-int read_hash_linear_report_level_2(ulong hashkey, int *hash);
-int read_hash_linear_report_level_3(ulong hashkey, int *hash);
-int read_hash_quadratic(ulong hashkey, int *hash);
-int read_hash_quadratic_report_level_1(ulong hashkey, int *hash);
-int read_hash_quadratic_report_level_2(ulong hashkey, int *hash);
-int read_hash_quadratic_report_level_3(ulong hashkey, int *hash);
-int read_hash_primejump(ulong hashkey, int *hash);
-int read_hash_primejump_report_level_1(ulong hashkey, int *hash);
-int read_hash_primejump_report_level_2(ulong hashkey, int *hash);
-int read_hash_primejump_report_level_3(ulong hashkey, int *hash);
-extern int (*read_hash)(ulong hashkey, int *hash); // declared in hash.c
+int read_hash_perfect(long hashkey, int *hash);
+int read_hash_linear(long hashkey, int *hash);
+int read_hash_linear_report_level_1(long hashkey, int *hash);
+int read_hash_linear_report_level_2(long hashkey, int *hash);
+int read_hash_linear_report_level_3(long hashkey, int *hash);
+int read_hash_quadratic(long hashkey, int *hash);
+int read_hash_quadratic_report_level_1(long hashkey, int *hash);
+int read_hash_quadratic_report_level_2(long hashkey, int *hash);
+int read_hash_quadratic_report_level_3(long hashkey, int *hash);
+int read_hash_primejump(long hashkey, int *hash);
+int read_hash_primejump_report_level_1(long hashkey, int *hash);
+int read_hash_primejump_report_level_2(long hashkey, int *hash);
+int read_hash_primejump_report_level_3(long hashkey, int *hash);
+extern int (*read_hash)(long hashkey, int *hash); // declared in hash.c
 
 void compact_hash_delete(int *hash);
 
@@ -93,7 +93,7 @@ cl_mem gpu_compact_hash_init(ulong ncells, int imaxsize, int jmaxsize, int gpu_h
 cl_mem gpu_get_hash_header(void);
 void gpu_compact_hash_delete(cl_mem dev_hash, cl_mem dev_hash_header);
 #endif
-int read_dev_hash(int hash_method, ulong hash_table_size, ulong AA, ulong BB, ulong hashkey, int *hash);
+int read_dev_hash(int hash_method, ulong hash_table_size, ulong AA, ulong BB, long hashkey, int *hash);
 
 #ifdef __cplusplus
 }
