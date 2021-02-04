@@ -19,10 +19,16 @@ mkdir -p "${TEST_DIR}"
 cd "${TEST_DIR}"
 
 ln -s ${CLAMR_BIN}/clamr_cpuonly
+ln -s ${CLAMR_BIN}/clamr_openmponly
 ln -s ${CTS_BIN}/compare_stdout.pl
 ln -s ${CTS_BIN}/cts_diff.pl
 
 set -ex
 ./clamr_cpuonly -A "regular-grid-by-faces" -f -n 128 -i 1 -t 200 -l 2 >& ${TEST_NAME}_run1.out
 ./compare_stdout.pl 0.0 ${SCRIPT_DIR}/${TEST_NAME}_run1.gold ${TEST_NAME}_run1.out
+
+if [ "${HAVE_OPENMP}x" = "1x" ]; then
+   ./clamr_openmponly -A "regular-grid-by-faces" -f -n 128 -i 1 -t 200 -l 2 >& ${TEST_NAME}_run2.out
+   ./compare_stdout.pl 0.0 ${TEST_NAME}_run1.out ${TEST_NAME}_run2.out
+fi
 
