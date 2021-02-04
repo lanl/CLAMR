@@ -4164,13 +4164,13 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
           int jjmax = mesh->lev_jregsize[ll];
           states_new[ll] = (state_t ***)gentrimatrix(3, jjmax, iimax, sizeof(state_t));
       }
+
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += cpu_timer_stop(tstart_cpu_part);
+      cpu_timer_start(&tstart_cpu_part);
 #ifdef _OPENMP
    }
 #pragma omp barrier
 #endif
-
-      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART1] += cpu_timer_stop(tstart_cpu_part);
-      cpu_timer_start(&tstart_cpu_part);
 
 /*
    for (int ll = 0; ll < mesh->levmx; ll++){
@@ -4281,8 +4281,17 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
       } // jj
    } // ll
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
       cpu_timer_start(&tstart_cpu_part);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
 
 
 #ifdef _OPENMP
@@ -4349,8 +4358,17 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
       Wy_V[llr][irjj][irii] = (Wy_V[ll][ns1jj][ns1ii] + Wy_V[ll][ns2jj][ns2ii]) * 0.25;
     }
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += cpu_timer_stop(tstart_cpu_part);
       cpu_timer_start(&tstart_cpu_part);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
 
    /*
       for (int jj = 2; jj < jjmax-1; jj++) {
@@ -4485,8 +4503,17 @@ void State::calc_finite_difference_regular_cells_by_faces(double deltaT)
       } // jj 
    } // ll
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
       cpu_timer_start(&tstart_cpu_part);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
 
 #ifdef _OPENMP
 #pragma omp barrier
