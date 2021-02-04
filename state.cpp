@@ -3762,8 +3762,18 @@ void State::calc_finite_difference_regular_cells(double deltaT)
    } // ll
 
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART2] += cpu_timer_stop(tstart_cpu_part);
       cpu_timer_start(&tstart_cpu_part);
+#ifdef _OPENMP
+   }
+#pragma omp barrier
+#endif
+
 
 #ifdef _OPENMP
 #ifdef _OPENMP_SIMD
@@ -3892,10 +3902,16 @@ void State::calc_finite_difference_regular_cells(double deltaT)
       }
    }
 
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp master
+   {
+#endif
       cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART3] += cpu_timer_stop(tstart_cpu_part);
       cpu_timer_start(&tstart_cpu_part);
 
 #ifdef _OPENMP
+   }
 #pragma omp barrier
 #endif
 
@@ -3979,14 +3995,14 @@ void State::calc_finite_difference_regular_cells(double deltaT)
       } // jj
    } // ll
 
-   cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
-   cpu_timer_start(&tstart_cpu_part);
-
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp master
-      {
+   {
 #endif
+      cpu_timers[STATE_TIMER_FINITE_DIFFERENCE_PART4] += cpu_timer_stop(tstart_cpu_part);
+      cpu_timer_start(&tstart_cpu_part);
+
    for (int ll=0; ll<mesh->levmx+1; ll++){
       //genmatrixfree((void **)varH[ll]);
       //genmatrixfree((void **)varU[ll]);
