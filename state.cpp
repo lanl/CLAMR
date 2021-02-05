@@ -1478,53 +1478,53 @@ void State::calc_finite_difference(double deltaT)
 
       real_t dric    = dxic;
 
-      int nltl = 0;
+      int nltl = -1;
       real_t Hlt = 0.0, Ult = 0.0, Vlt = 0.0;
       real_t Hll2 = 0.0;
       real_t Ull2 = 0.0;
       if(lvl < level[nl]) {
-         Hlt  = H[ ntop[nl] ];
-         Ult  = U[ ntop[nl] ];
-         Vlt  = V[ ntop[nl] ];
+         Hlt  = H[nlt];
+         Ult  = U[nlt];
+         Vlt  = V[nlt];
          nltl = nlft[nlt];
          Hll2 = H[nltl];
          Ull2 = U[nltl];
       }
 
-      int nrtr = 0;
+      int nrtr = -1;
       real_t Hrt = 0.0, Urt = 0.0, Vrt = 0.0;
       real_t Hrr2 = 0.0;
       real_t Urr2 = 0.0;
       if(lvl < level[nr]) {
-         Hrt  = H[ ntop[nr] ];
-         Urt  = U[ ntop[nr] ];
-         Vrt  = V[ ntop[nr] ];
+         Hrt  = H[nrt];
+         Urt  = U[nrt];
+         Vrt  = V[nrt];
          nrtr = nrht[nrt];
          Hrr2 = H[nrtr];
          Urr2 = U[nrtr];
       }
 
-      int nbrb = 0;
+      int nbrb = -1;
       real_t Hbr = 0.0, Ubr = 0.0, Vbr = 0.0;
       real_t Hbb2 = 0.0;
       real_t Vbb2 = 0.0;
       if(lvl < level[nb]) {
-         Hbr  = H[ nrht[nb] ];
-         Ubr  = U[ nrht[nb] ];
-         Vbr  = V[ nrht[nb] ];
+         Hbr  = H[nbr];
+         Ubr  = U[nbr];
+         Vbr  = V[nbr];
          nbrb = nbot[nbr];
          Hbb2 = H[nbrb];
          Vbb2 = V[nbrb];
       }
 
-      int ntrt = 0;
+      int ntrt = -1;
       real_t Htr = 0.0, Utr = 0.0, Vtr = 0.0;
       real_t Htt2 = 0.0;
       real_t Vtt2 = 0.0;
       if(lvl < level[nt]) {
-         Htr  = H[ nrht[nt] ];
-         Utr  = U[ nrht[nt] ];
-         Vtr  = V[ nrht[nt] ];
+         Htr  = H[ntr];
+         Utr  = U[ntr];
+         Vtr  = V[ntr];
          ntrt = ntop[ntr];
          Htt2 = H[ntrt];
          Vtt2 = V[ntrt];

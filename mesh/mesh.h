@@ -400,7 +400,7 @@ public:
    char xcase_descrip[256][50];
 #endif
 
-   FILE          *fp;
+   FILE          *fp=NULL;
 
    TKDTree        tree;         //!<  k-D tree for neighbor search.
    vector<int>    proc;
