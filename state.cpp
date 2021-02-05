@@ -1442,9 +1442,13 @@ void State::calc_finite_difference(double deltaT)
       real_t Vb      = V[nb];
 
       int nlt     = ntop[nl];
+      if (mesh->celltype[gix] == BOTTOM_BOUNDARY && lvl < level[nl]) nlt = nl;
       int nrt     = ntop[nr];
+      if (mesh->celltype[gix] == BOTTOM_BOUNDARY && lvl < level[nr]) nrt = nr;
       int ntr     = nrht[nt];
+      if (mesh->celltype[gix] == LEFT_BOUNDARY   && lvl < level[nt]) ntr = nt;
       int nbr     = nrht[nb];
+      if (mesh->celltype[gix] == LEFT_BOUNDARY   && lvl < level[nb]) nbr = nb;
 
       real_t Hll     = H[nll];
       real_t Ull     = U[nll];
