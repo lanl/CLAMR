@@ -818,41 +818,6 @@ void State::apply_boundary_conditions(void)
    int lowerBound, upperBound;
    mesh->get_bounds(lowerBound, upperBound);
 
-   for (int ic=lowerBound; ic<upperBound; ic++) {
-      if (mesh->is_left_boundary(ic)) {
-         int nr = nrht[ic];
-         if (nr < (int)mesh->ncells) {
-            H[ic] =  H[nr];
-            U[ic] = -U[nr];
-            V[ic] =  V[nr];
-         }
-      }
-      if (mesh->is_right_boundary(ic))  {
-         int nl = nlft[ic];
-         if (nl < (int)mesh->ncells) {
-            H[ic] =  H[nl];
-            U[ic] = -U[nl];
-            V[ic] =  V[nl];
-         }
-      }
-      if (mesh->is_bottom_boundary(ic)) {
-         int nt = ntop[ic];
-         if (nt < (int)mesh->ncells) {
-            H[ic] =  H[nt];
-            U[ic] =  U[nt];
-            V[ic] = -V[nt];
-         }
-      }
-      if (mesh->is_top_boundary(ic)) {
-         int nb = nbot[ic];
-         if (nb < (int)mesh->ncells) {
-            H[ic] =  H[nb];
-            U[ic] =  U[nb];
-            V[ic] = -V[nb];
-         }
-      }
-   }
-
    if (mesh->numpe > 1) {
 
 #ifdef HAVE_MPI
@@ -905,6 +870,43 @@ void State::apply_boundary_conditions(void)
          if (mesh->is_top_boundary(ic)) {
             int nb = nbot[ic];
             if (nb >= 0 && nb < (int)mesh->ncells_ghost) {
+               H[ic] =  H[nb];
+               U[ic] =  U[nb];
+               V[ic] = -V[nb];
+            }
+         }
+      }
+   }
+
+   if (mesh->numpe ==  1) {
+      for (int ic=lowerBound; ic<upperBound; ic++) {
+         if (mesh->is_left_boundary(ic)) {
+            int nr = nrht[ic];
+            if (nr < (int)mesh->ncells) {
+               H[ic] =  H[nr];
+               U[ic] = -U[nr];
+               V[ic] =  V[nr];
+            }
+         }
+         if (mesh->is_right_boundary(ic))  {
+            int nl = nlft[ic];
+            if (nl < (int)mesh->ncells) {
+               H[ic] =  H[nl];
+               U[ic] = -U[nl];
+               V[ic] =  V[nl];
+            }
+         }
+         if (mesh->is_bottom_boundary(ic)) {
+            int nt = ntop[ic];
+            if (nt < (int)mesh->ncells) {
+               H[ic] =  H[nt];
+               U[ic] =  U[nt];
+               V[ic] = -V[nt];
+            }
+         }
+         if (mesh->is_top_boundary(ic)) {
+            int nb = nbot[ic];
+            if (nb < (int)mesh->ncells) {
                H[ic] =  H[nb];
                U[ic] =  U[nb];
                V[ic] = -V[nb];
