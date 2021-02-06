@@ -815,7 +815,7 @@ void State::apply_boundary_conditions(void)
 #endif
 
    // This is for a mesh with boundary cells
-   int lowerBound, upperBound;
+   int lowerBound, upperBound, ncells_max;
    mesh->get_bounds(lowerBound, upperBound);
 
    if (mesh->numpe > 1) {
@@ -841,79 +841,51 @@ void State::apply_boundary_conditions(void)
 
 #endif
 
-      // This is for a mesh with boundary cells
-      for (int ic=0; ic<mesh->ncells_ghost; ic++) {
-         if (mesh->is_left_boundary(ic)) {
-            int nr = nrht[ic];
-            if (nr >= 0 && nr < (int)mesh->ncells_ghost) {
-               H[ic] =  H[nr];
-               U[ic] = -U[nr];
-               V[ic] =  V[nr];
-            }
+      lowerBound=0;
+      upperBound=mesh->ncells_ghost;
+#ifdef _OPENMP
+      if (omp_get_thread_num() != 0) upperBound=0;
+#endif
+      ncells_max = mesh->ncells_ghost;
+   } else {
+      ncells_max = mesh->ncells;
+   }
+
+   for (int ic=lowerBound; ic<upperBound; ic++) {
+      if (mesh->is_left_boundary(ic)) {
+         int nr = nrht[ic];
+         if (nr >= 0 && nr < ncells_max) {
+            H[ic] =  H[nr];
+            U[ic] = -U[nr];
+            V[ic] =  V[nr];
          }
-         if (mesh->is_right_boundary(ic))  {
-            int nl = nlft[ic];
-            if (nl >= 0 && nl < (int)mesh->ncells_ghost) {
-               H[ic] =  H[nl];
-               U[ic] = -U[nl];
-               V[ic] =  V[nl];
-            }
+      }
+      if (mesh->is_right_boundary(ic))  {
+         int nl = nlft[ic];
+         if (nl >= 0 && nl < ncells_max) {
+            H[ic] =  H[nl];
+            U[ic] = -U[nl];
+            V[ic] =  V[nl];
          }
-         if (mesh->is_bottom_boundary(ic)) {
-            int nt = ntop[ic];
-            if (nt >= 0 && nt < (int)mesh->ncells_ghost) {
-               H[ic] =  H[nt];
-               U[ic] =  U[nt];
-               V[ic] = -V[nt];
-            }
+      }
+      if (mesh->is_bottom_boundary(ic)) {
+         int nt = ntop[ic];
+         if (nt >= 0 && nt < ncells_max) {
+            H[ic] =  H[nt];
+            U[ic] =  U[nt];
+            V[ic] = -V[nt];
          }
-         if (mesh->is_top_boundary(ic)) {
-            int nb = nbot[ic];
-            if (nb >= 0 && nb < (int)mesh->ncells_ghost) {
-               H[ic] =  H[nb];
-               U[ic] =  U[nb];
-               V[ic] = -V[nb];
-            }
+      }
+      if (mesh->is_top_boundary(ic)) {
+         int nb = nbot[ic];
+         if (nb >= 0 && nb < ncells_max) {
+            H[ic] =  H[nb];
+            U[ic] =  U[nb];
+            V[ic] = -V[nb];
          }
       }
    }
 
-   if (mesh->numpe ==  1) {
-      for (int ic=lowerBound; ic<upperBound; ic++) {
-         if (mesh->is_left_boundary(ic)) {
-            int nr = nrht[ic];
-            if (nr < (int)mesh->ncells) {
-               H[ic] =  H[nr];
-               U[ic] = -U[nr];
-               V[ic] =  V[nr];
-            }
-         }
-         if (mesh->is_right_boundary(ic))  {
-            int nl = nlft[ic];
-            if (nl < (int)mesh->ncells) {
-               H[ic] =  H[nl];
-               U[ic] = -U[nl];
-               V[ic] =  V[nl];
-            }
-         }
-         if (mesh->is_bottom_boundary(ic)) {
-            int nt = ntop[ic];
-            if (nt < (int)mesh->ncells) {
-               H[ic] =  H[nt];
-               U[ic] =  U[nt];
-               V[ic] = -V[nt];
-            }
-         }
-         if (mesh->is_top_boundary(ic)) {
-            int nb = nbot[ic];
-            if (nb < (int)mesh->ncells) {
-               H[ic] =  H[nb];
-               U[ic] =  U[nb];
-               V[ic] = -V[nb];
-            }
-         }
-      }
-   }
 }
 
 void State::remove_boundary_cells(void)
