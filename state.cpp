@@ -877,10 +877,10 @@ void State::apply_boundary_conditions(void)
 #endif
 
       // This is for a mesh with boundary cells
-      for (int ic=lowerBound; ic<upperBound; ic++) {
+      for (int ic=0; ic<mesh->ncells_ghost; ic++) {
          if (mesh->is_left_boundary(ic)) {
             int nr = nrht[ic];
-            if (nr >= (int)mesh->ncells) {
+            if (nr >= 0 && nr < (int)mesh->ncells_ghost) {
                H[ic] =  H[nr];
                U[ic] = -U[nr];
                V[ic] =  V[nr];
@@ -888,7 +888,7 @@ void State::apply_boundary_conditions(void)
          }
          if (mesh->is_right_boundary(ic))  {
             int nl = nlft[ic];
-            if (nl >= (int)mesh->ncells) {
+            if (nl >= 0 && nl < (int)mesh->ncells_ghost) {
                H[ic] =  H[nl];
                U[ic] = -U[nl];
                V[ic] =  V[nl];
@@ -896,7 +896,7 @@ void State::apply_boundary_conditions(void)
          }
          if (mesh->is_bottom_boundary(ic)) {
             int nt = ntop[ic];
-            if (nt >= (int)mesh->ncells) {
+            if (nt >= 0 && nt < (int)mesh->ncells_ghost) {
                H[ic] =  H[nt];
                U[ic] =  U[nt];
                V[ic] = -V[nt];
@@ -904,7 +904,7 @@ void State::apply_boundary_conditions(void)
          }
          if (mesh->is_top_boundary(ic)) {
             int nb = nbot[ic];
-            if (nb >= (int)mesh->ncells) {
+            if (nb >= 0 && nb < (int)mesh->ncells_ghost) {
                H[ic] =  H[nb];
                U[ic] =  U[nb];
                V[ic] = -V[nb];
