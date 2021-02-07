@@ -804,19 +804,9 @@ void State::apply_boundary_conditions(void)
    int *nbot = mesh->nbot;
    int *ntop = mesh->ntop;
 
-#ifdef _OPENMP
-#pragma omp master
-   {
-#endif
-   if (mesh->ncells_ghost < mesh->ncells) mesh->ncells_ghost = mesh->ncells;
-#ifdef _OPENMP
-      }    
-#pragma omp barrier
-#endif
 
    // This is for a mesh with boundary cells
    int lowerBound, upperBound, ncells_max;
-   mesh->get_bounds(lowerBound, upperBound);
 
    if (mesh->numpe > 1) {
 
@@ -848,6 +838,7 @@ void State::apply_boundary_conditions(void)
 #endif
       ncells_max = mesh->ncells_ghost;
    } else {
+      mesh->get_bounds(lowerBound, upperBound);
       ncells_max = mesh->ncells;
    }
 
