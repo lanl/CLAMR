@@ -104,7 +104,7 @@ void scan ( scanInt *input , scanInt *output , scanInt length);
 #define MIN4(a,b,c,d) ( MIN(MIN(a,b),MIN(c,d)) )
 #endif
 
-#define IPOW2(a) (2 << (a))
+#define IPOW2(a) (1 << (a))
 
 #if defined(HALF_PRECISION)
 #define CONSERVATION_EPS    1
