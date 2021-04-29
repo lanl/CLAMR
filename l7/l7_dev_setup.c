@@ -804,7 +804,7 @@ int L7_Dev_Setup(
            int send_counts = l7_id_db->send_counts[i]; // for vectorization
            int adj = (int)(my_start_index) - base_adj; // for vectorization
 #ifdef _OPENMP_SIMD
-#pragma omp simd
+#pragma omp simd linear(offset:1)
 #endif
 	   for (j=0; j<send_counts; j++){
 	      l7_id_db->indices_local_to_send[offset] =
@@ -893,7 +893,7 @@ int L7_Dev_Setup(
 
            int send_count = l7_id_db->send_counts[i];
 #ifdef _OPENMP_SIMD
-#pragma omp simd
+#pragma omp simd linear(ioffset:1)
 #endif
            for (int j=0; j<send_count; j++){
                l7_id_db->indices_have[ioffset] = l7_id_db->indices_local_to_send[ioffset];

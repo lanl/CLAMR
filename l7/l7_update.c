@@ -226,6 +226,9 @@ int L7_Update(
             /* Load data to be sent. */
             
             send_count = l7_id_db->send_counts[i];
+#ifdef _OPENMP_SIMD
+#pragma omp simd linear(offset:1)
+#endif
             for (j=0; j<send_count; j++){
                pcharsend_buffer[offset] =
                   pchardata_buffer[l7_id_db->indices_local_to_send[offset]];
@@ -259,6 +262,9 @@ int L7_Update(
             /* Load data to be sent. */
             
             send_count = l7_id_db->send_counts[i];
+#ifdef _OPENMP_SIMD
+#pragma omp simd linear(offset:1)
+#endif
             for (j=0; j<send_count; j++){
                pshortsend_buffer[offset] =
                   pshortdata_buffer[l7_id_db->indices_local_to_send[offset]];
@@ -294,6 +300,9 @@ int L7_Update(
             /* Load data to be sent. */
             
             send_count = l7_id_db->send_counts[i];
+#ifdef _OPENMP_SIMD
+#pragma omp simd linear(offset:1)
+#endif
             for (j=0; j<send_count; j++){
                pintsend_buffer[offset] =
                   pintdata_buffer[l7_id_db->indices_local_to_send[offset]];
@@ -328,6 +337,9 @@ int L7_Update(
             /* Load data to be sent. */
             
             send_count = l7_id_db->send_counts[i];
+#ifdef _OPENMP_SIMD
+#pragma omp simd linear(offset:1)
+#endif
             for (j=0; j<send_count; j++){
                plongsend_buffer[offset] =
                   plongdata_buffer[l7_id_db->indices_local_to_send[offset]];
@@ -362,6 +374,9 @@ int L7_Update(
             /* Load data to be sent. */
             
             send_count = l7_id_db->send_counts[i];
+#ifdef _OPENMP_SIMD
+#pragma omp simd linear(offset:1)
+#endif
             for (j=0; j<send_count; j++){
                pfloatsend_buffer[offset] =
                   pfloatdata_buffer[l7_id_db->indices_local_to_send[offset]];
@@ -396,6 +411,9 @@ int L7_Update(
             /* Load data to be sent. */
             
             send_count = l7_id_db->send_counts[i];
+#ifdef _OPENMP_SIMD
+#pragma omp simd linear(offset:1)
+#endif
             for (j=0; j<send_count; j++){
                pdoublesend_buffer[offset] =
                   pdoubledata_buffer[l7_id_db->indices_local_to_send[offset]];
@@ -552,7 +570,7 @@ int L7_Get_Local_Indices(const int l7_id, int *local_indices)
       
       int send_count = l7_id_db->send_counts[i];
 #ifdef _OPENMP_SIMD
-#pragma omp simd
+#pragma omp simd linear(offset:1)
 #endif
       for (int j=0; j<send_count; j++){
           local_indices[offset] = l7_id_db->indices_local_to_send[offset];
