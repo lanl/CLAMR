@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 #        'size'   : 67}
 # Must define the files:
 if len(sys.argv) == 1:
-    print "Syntax: python2.7 self_plot.py <FILES>"; exit(1)
+    print("Syntax: python self_plot.py <FILES>"); exit(1)
 
 # Initialize Plot:
 fig, axs = plt.subplots(nrows=1, ncols=1, sharex=True)

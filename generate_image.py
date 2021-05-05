@@ -99,13 +99,13 @@ for file in glob.glob('*.data'):
    name = 'image' + str(file_num) +'.png'
    im.save(name,'PNG')
    NumImages+=1
-   print name + ' has been generated'
+   print(name + ' has been generated')
 
 if add_one:
    num_cp_images = cp_info[2]/cp_info[0]
 else:
    num_cp_images = (cp_info[2] - 1)/cp_info[0]
-print 'The number of cp images are ' + str(num_cp_images) 
+print('The number of cp images are ' + str(num_cp_images)) 
 with open('imagelist.txt','w') as fo:
    for i in range(0,NumImages):
       if i == cp_info[1]:
